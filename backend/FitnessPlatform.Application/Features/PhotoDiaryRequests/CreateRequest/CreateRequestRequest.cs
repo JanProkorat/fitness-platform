@@ -2,19 +2,23 @@ namespace FitnessPlatform.Application.Features.PhotoDiaryRequests.CreateRequest;
 
 /// <summary>
 /// Request body for creating a new photo diary request.
-/// Exactly one of <see cref="LinkId"/> or <see cref="PendingInviteId"/> must be set.
+/// Exactly one of <see cref="ClientId"/> or <see cref="PendingInviteId"/> must be set.
 /// </summary>
 public class CreateRequestRequest
 {
     /// <summary>
-    /// Internal ID of an existing client-professional link.
-    /// Mutually exclusive with <see cref="PendingInviteId"/>.
+    /// Public identifier of the client (<c>ClientProfile.PublicId</c>) this request targets,
+    /// resolved server-side to the caller's own active link. Mutually exclusive with
+    /// <see cref="PendingInviteId"/>.
     /// </summary>
-    public long? LinkId { get; set; }
+    public Guid? ClientId { get; set; }
 
     /// <summary>
-    /// Internal ID of a pending invite.
-    /// Mutually exclusive with <see cref="LinkId"/>.
+    /// Internal ID of a pending invite. Mutually exclusive with <see cref="ClientId"/>.
+    /// Deliberately left as the internal <c>long</c> primary key, unlike <see cref="ClientId"/>:
+    /// a pending invite has no client-facing identity yet — no <c>ClientProfile</c> exists until
+    /// the invite is accepted — so there is no public <c>Guid</c> to address it by. Widening this
+    /// arm to a public identifier is a separate, undecided change and knowingly out of scope here.
     /// </summary>
     public long? PendingInviteId { get; set; }
 

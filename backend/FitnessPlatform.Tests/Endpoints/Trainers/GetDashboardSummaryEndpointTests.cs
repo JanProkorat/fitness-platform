@@ -30,7 +30,7 @@ public class GetDashboardSummaryEndpointTests
         var svc = Substitute.For<IComplianceService>();
 
         svc.CalculateComplianceAsync(
-                Arg.Any<Guid>(), Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
+                Arg.Any<Guid>(), Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>(), Arg.Any<Guid?>())
             .Returns(new ComplianceResult
             {
                 CompliancePercent = 0m,
@@ -39,7 +39,7 @@ public class GetDashboardSummaryEndpointTests
             });
 
         svc.CalculateStreakAsync(
-                Arg.Any<Guid>(), Arg.Any<ComplianceDiscipline>(), Arg.Any<CancellationToken>())
+                Arg.Any<Guid>(), Arg.Any<ComplianceDiscipline>(), Arg.Any<CancellationToken>(), Arg.Any<Guid?>())
             .Returns(0);
 
         svc.CalculateAverageMacrosAsync(
@@ -308,7 +308,7 @@ public class GetDashboardSummaryEndpointTests
         // of which discipline the endpoint picks.
         var complianceSvc = Substitute.For<IComplianceService>();
         complianceSvc.CalculateComplianceAsync(
-                Arg.Any<Guid>(), Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
+                Arg.Any<Guid>(), Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>(), Arg.Any<Guid?>())
             .Returns(callInfo =>
             {
                 var percent = complianceByClient[callInfo.ArgAt<Guid>(0)];
@@ -320,7 +320,7 @@ public class GetDashboardSummaryEndpointTests
                 };
             });
         complianceSvc.CalculateStreakAsync(
-                Arg.Any<Guid>(), Arg.Any<ComplianceDiscipline>(), Arg.Any<CancellationToken>())
+                Arg.Any<Guid>(), Arg.Any<ComplianceDiscipline>(), Arg.Any<CancellationToken>(), Arg.Any<Guid?>())
             .Returns(0);
         complianceSvc.CalculateAverageMacrosAsync(
                 Arg.Any<Guid>(), Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())

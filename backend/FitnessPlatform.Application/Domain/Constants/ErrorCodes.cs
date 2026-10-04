@@ -66,6 +66,12 @@ public static class ErrorCodes
     /// <summary>Food gallery is at its 6-entry cap; no further images can be added.</summary>
     public const string FoodGalleryFull = "FOOD_GALLERY_FULL";
 
+    /// <summary>Food tag not found, or belongs to a different owning nutritionist.</summary>
+    public const string FoodTagNotFound = "FOOD_TAG_NOT_FOUND";
+
+    /// <summary>A food tag with this Name already exists for the owning nutritionist.</summary>
+    public const string FoodTagNameAlreadyExists = "FOOD_TAG_NAME_ALREADY_EXISTS";
+
     // ── Recipes ──────────────────────────────────────────────────────
     /// <summary>User can only edit/delete/upload images for their own recipes.</summary>
     public const string RecipeNotOwned = "RECIPE_NOT_OWNED";
@@ -75,6 +81,12 @@ public static class ErrorCodes
 
     /// <summary>The recipe version is stale; another write occurred first (optimistic concurrency).</summary>
     public const string RecipeVersionConflict = "RECIPE_VERSION_CONFLICT";
+
+    /// <summary>A recipe ingredient food does not exist, is deleted, or is another coach's private food.</summary>
+    public const string RecipeFoodNotAvailable = "RECIPE_FOOD_NOT_AVAILABLE";
+
+    /// <summary>The image URL is neither in the recipe's gallery nor its current main image.</summary>
+    public const string RecipeGalleryImageNotFound = "RECIPE_GALLERY_IMAGE_NOT_FOUND";
 
     // ── Exercises ──────────────────────────────────────────────────
     /// <summary>User can only edit/delete their own custom exercises.</summary>
@@ -103,8 +115,7 @@ public static class ErrorCodes
     /// <summary>
     /// Requested link capability scope (see <see cref="Enums.LinkCapabilityScope"/>) exceeds
     /// the identity roles actually held by the professional the link's CanView flags gate.
-    /// Emitted by AcceptClientRequestEndpoint, CreatePendingInviteEndpoint and
-    /// InviteClientEndpoint.
+    /// Emitted by AcceptClientRequestEndpoint and CreatePendingInviteEndpoint.
     /// </summary>
     public const string RequestedScopeExceedsHeldRoles = "REQUESTED_SCOPE_EXCEEDS_HELD_ROLES";
 
@@ -247,6 +258,19 @@ public static class ErrorCodes
     /// </summary>
     public const string InvalidImageSubPath = "INVALID_IMAGE_SUB_PATH";
 
+    /// <summary>
+    /// A chat message's <c>ImageUploadId</c> has no staged object at send time — never PUT to the
+    /// presigned upload URL, already consumed by an earlier send, or staged by another user or
+    /// conversation.
+    /// </summary>
+    public const string ChatImageUploadNotFound = "CHAT_IMAGE_UPLOAD_NOT_FOUND";
+
+    /// <summary>
+    /// A professional tried to send into a thread whose client has never been linked to them
+    /// (an invite-only thread the client has not accepted).
+    /// </summary>
+    public const string ConversationLocked = "CONVERSATION_LOCKED";
+
     // ── Photo Diary Requests ─────────────────────────────────────────
     /// <summary>Photo diary request not found or does not belong to the caller.</summary>
     public const string PhotoDiaryRequestNotFound = "PHOTO_DIARY_REQUEST_NOT_FOUND";
@@ -384,4 +408,34 @@ public static class ErrorCodes
     /// <see cref="FitnessPlatform.Application.Domain.Services.ProfessionSlotGuard"/>.
     /// </summary>
     public const string ProfessionAlreadyOccupied = "PROFESSION_ALREADY_OCCUPIED";
+
+    // ── Client Tags (#1063) ────────────────────────────────────────────
+    /// <summary>Client tag not found, or belongs to a different owning professional.</summary>
+    public const string ClientTagNotFound = "CLIENT_TAG_NOT_FOUND";
+
+    /// <summary>A tag with this Name already exists for the owning professional.</summary>
+    public const string ClientTagNameAlreadyExists = "CLIENT_TAG_NAME_ALREADY_EXISTS";
+
+    // ── Messaging Broadcast (#1065) ────────────────────────────────────
+    /// <summary>The recipient list exceeds the maximum allowed size for a single broadcast.</summary>
+    public const string BroadcastRecipientLimitExceeded = "BROADCAST_RECIPIENT_LIMIT_EXCEEDED";
+
+    /// <summary>A recipient id does not resolve to a client with a live link to the caller.</summary>
+    public const string BroadcastRecipientNotLinked = "BROADCAST_RECIPIENT_NOT_LINKED";
+
+    /// <summary>
+    /// A recipient's personalized text (after {{firstName}}/{{fullName}} substitution) exceeds
+    /// the message column's storage limit, even though the pre-substitution template passed
+    /// validation. Rejected before any write — checked for every recipient up front, alongside
+    /// the authorization gates.
+    /// </summary>
+    public const string BroadcastMessageTooLongAfterSubstitution = "BROADCAST_MESSAGE_TOO_LONG_AFTER_SUBSTITUTION";
+
+    // ── Messaging Inbox Filter (#1095) ──────────────────────────────────
+    /// <summary>A non-All conversation filter chip was requested by a caller who is not a professional.</summary>
+    public const string FilterRequiresProfessionalCaller = "FILTER_REQUIRES_PROFESSIONAL_CALLER";
+
+    // ── Client Message Stats (#1098) ────────────────────────────────────
+    /// <summary>The requested number of weeks for the message stats is outside 1-26.</summary>
+    public const string MessageStatsWeeksOutOfRange = "MESSAGE_STATS_WEEKS_OUT_OF_RANGE";
 }

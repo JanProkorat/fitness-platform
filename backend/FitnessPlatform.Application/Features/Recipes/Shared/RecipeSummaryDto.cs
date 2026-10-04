@@ -1,5 +1,7 @@
+using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Services;
 
 namespace FitnessPlatform.Application.Features.Recipes.Shared;
 
@@ -64,12 +66,39 @@ public class RecipeSummaryDto
     public int Version { get; set; }
 
     /// <summary>
+    /// True when the recipe belongs to the platform catalog rather than a coach.
+    /// </summary>
+    public bool IsSystem { get; set; }
+
+    /// <summary>
+    /// Number of servings the recipe yields.
+    /// </summary>
+    public int Servings { get; set; } = 1;
+
+    /// <summary>
+    /// Meal types the recipe is suited for.
+    /// </summary>
+    public List<RecipeMealType> MealTypes { get; set; } = [];
+
+    /// <summary>
+    /// Cooking time in minutes, separate from <see cref="PrepTimeMinutes"/>.
+    /// </summary>
+    public int? CookTimeMinutes { get; set; }
+
+    /// <summary>
+    /// The caller's own tags on this recipe, ordered by name. Never another coach's tags.
+    /// </summary>
+    public List<FoodTagDto> Tags { get; set; } = [];
+
+    /// <summary>
     /// Maps a <see cref="Recipe"/> document to a <see cref="RecipeSummaryDto"/>.
     /// </summary>
     /// <param name="recipe">The source recipe document.</param>
     /// <param name="currentUserId">Id of the authenticated user; used to resolve <see cref="IsOwnedByCurrentUser"/>.</param>
+    /// <param name="tags">The caller's tags on the recipe, or null for none.</param>
     /// <returns>A summary DTO.</returns>
-    public static RecipeSummaryDto FromDocument(Recipe recipe, Guid? currentUserId = null) => new()
+    public static RecipeSummaryDto FromDocument(
+        Recipe recipe, Guid? currentUserId = null, List<FoodTagDto>? tags = null) => new()
     {
         RecipeId = recipe.ExternalId,
         Name = recipe.Name,
@@ -85,6 +114,11 @@ public class RecipeSummaryDto
             .Select(f => f.FoodCategory!)
             .Distinct()
             .ToList(),
-        Version = recipe.Version
+        Version = recipe.Version,
+        IsSystem = recipe.NutritionistId == SystemUsers.AdminId,
+        Servings = recipe.Servings,
+        MealTypes = FoodEnumListMapping.ParseStoredNames<RecipeMealType>(recipe.MealTypes ?? []),
+        CookTimeMinutes = recipe.CookTimeMinutes,
+        Tags = tags ?? []
     };
 }

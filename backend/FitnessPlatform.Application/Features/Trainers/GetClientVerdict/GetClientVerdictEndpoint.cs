@@ -106,7 +106,8 @@ public class GetClientVerdictEndpoint(
             clientProfileId: clientProfile.Id,
             targetWeightKg: targetWeightKg,
             capabilities: capabilities.Value,
-            ct: ct);
+            ct: ct,
+            planAuthorUserId: trainerUserId);
 
         await Send.OkAsync(new GetClientVerdictResponse
         {

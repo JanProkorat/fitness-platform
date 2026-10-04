@@ -50,6 +50,9 @@ public class DeleteRecipeEndpoint(IMongoContext mongo)
             return;
         }
 
+        // The recipe is gone for everyone, so every coach's tag assignment for it goes too.
+        await mongo.RecipeTagAssignments.DeleteManyAsync(a => a.RecipeExternalId == req.RecipeId, ct);
+
         await Send.NoContentAsync(ct);
     }
 }

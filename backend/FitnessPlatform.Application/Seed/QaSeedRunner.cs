@@ -233,6 +233,43 @@ public static class QaSeedRunner
     public static readonly Guid QaPhotoDiaryRequestWithPlanId  = new("00000000-0000-0000-9999-000000000001");
     public static readonly Guid QaPhotoDiaryRequestPlanlessId  = new("00000000-0000-0000-9999-000000000002");
 
+    // -------------------------------------------------------------------------
+    // #1095 — Inbox + chat fixture. A third client linked to qa.trainer with NO conversation
+    // and NO active plan, so the NoMessages filter chip stays non-zero and clients.spec.ts's
+    // strict-mode '1 active plan' locator (:156) stays unique to qa.client's seeded plan. A
+    // conversation between qa.trainer and qa.client with >=3 messages (one unread from the
+    // client, one coach message containing a YouTube URL). Two WeeklyCheckIn rows scoped to
+    // Training (the profession the qa.trainer<->qa.client link grants) — one responded but
+    // not yet reviewed (NewCheckIns), one expired (MissingCheckIns).
+    // -------------------------------------------------------------------------
+    public static readonly Guid Client3UserId          = new("77777777-7777-7777-7777-777777777777");
+    public static readonly Guid Client3ProfilePublicId = new("77777777-7777-7777-aaaa-000000000001");
+    public const string Client3Email = "qa.client3@fitnessplatform.test";
+
+    public static readonly Guid QaInboxConversationId = new("00000000-0000-0000-aabb-000000000001");
+    public static readonly Guid QaInboxMessage1Id      = new("00000000-0000-0000-aabb-000000000002");
+    public static readonly Guid QaInboxMessage2Id      = new("00000000-0000-0000-aabb-000000000003");
+    public static readonly Guid QaInboxMessage3Id      = new("00000000-0000-0000-aabb-000000000004");
+
+    public static readonly Guid QaWeeklyCheckInRespondedUnreviewedId = new("00000000-0000-0000-aabb-000000000005");
+    public static readonly Guid QaWeeklyCheckInExpiredId             = new("00000000-0000-0000-aabb-000000000006");
+
+    // -------------------------------------------------------------------------
+    // #1101 — Ended-collaboration inbox fixture. A client whose link to qa.trainer is ended
+    // (IsActive=false, the exact state EndCollaborationEndpoint leaves behind), with a
+    // conversation holding one unread client message. The thread is off the live roster, so it
+    // shows only under the inbox's All chip and under none of the other five. The display name
+    // is "QA Former" — it must never contain "QA Client", which three Playwright specs use to
+    // pick the first matching row.
+    // -------------------------------------------------------------------------
+    public static readonly Guid ClientFormerUserId          = new("88888888-8888-8888-8888-888888888888");
+    public static readonly Guid ClientFormerProfilePublicId = new("88888888-8888-8888-aaaa-000000000001");
+    public const string ClientFormerEmail = "qa.client.former@fitnessplatform.test";
+
+    public static readonly Guid QaEndedLinkConversationId = new("00000000-0000-0000-aabb-000000000011");
+    public static readonly Guid QaEndedLinkMessage1Id     = new("00000000-0000-0000-aabb-000000000012");
+    public static readonly Guid QaEndedLinkMessage2Id     = new("00000000-0000-0000-aabb-000000000013");
+
     // Foods — owned by Nutri (NutritionistId = NutriUserId, the ApplicationUser.Id).
     // CreateFoodEndpoint sets NutritionistId = Guid.Parse(AppClaims.UserId) (the user id, NOT the
     // ProfessionalProfile.PublicId), and the ownership guard in UploadFoodImageUrlEndpoint compares
@@ -453,6 +490,29 @@ public static class QaSeedRunner
             // that link.
             await EnsurePhotoDiaryRequestsFixtureAsync(db, logger);
 
+            // #1095 — a third client linked to qa.trainer with no conversation and no active
+            // plan, so the inbox's NoMessages filter chip stays non-zero and clients.spec.ts's
+            // strict-mode '1 active plan' locator stays unique to qa.client's seeded plan.
+            await EnsureUserAsync(userManager, Client3UserId, Client3Email, "QA", "Client3", UserRole.Client, logger);
+            var client3Profile = await EnsureClientProfileAsync(db, Client3UserId, Client3ProfilePublicId, logger);
+            await EnsureTrainerClientLinkAsync(db, trainerProfile, client3Profile, logger);
+
+            // #1095 — inbox conversation fixture: qa.trainer <-> qa.client, >=3 messages
+            // including one unread client message and one coach message with a YouTube URL.
+            await EnsureInboxConversationFixtureAsync(db, logger);
+
+            // #1101 — a former client (ended link) with an unread conversation, so the inbox's
+            // off-roster All-only rows have a fixture to exercise.
+            await EnsureUserAsync(userManager, ClientFormerUserId, ClientFormerEmail, "QA", "Former", UserRole.Client, logger);
+            var clientFormerProfile = await EnsureClientProfileAsync(db, ClientFormerUserId, ClientFormerProfilePublicId, logger);
+            await EnsureTrainerClientLinkAsync(db, trainerProfile, clientFormerProfile, logger, isActive: false);
+            await EnsureEndedLinkConversationFixtureAsync(db, logger);
+
+            // #1095 — weekly check-in fixtures: one responded-unreviewed (NewCheckIns chip)
+            // and one expired (MissingCheckIns chip), scoped to Training — the profession the
+            // qa.trainer<->qa.client link grants.
+            await EnsureInboxWeeklyCheckInsFixtureAsync(db, logger);
+
             // Image blobs in MinIO — idempotent, bucket created if absent.
             await EnsureAvatarAsync(sp, logger);
             await EnsureFoodImageAsync(sp, logger);
@@ -576,7 +636,8 @@ public static class QaSeedRunner
         ApplicationDbContext db,
         ProfessionalProfile trainerProfile,
         ClientProfile clientProfile,
-        ILogger logger)
+        ILogger logger,
+        bool isActive = true)
     {
         var existing = await db.ClientProfessionalLinks
             .AnyAsync(l =>
@@ -596,7 +657,7 @@ public static class QaSeedRunner
             ProfessionalProfileId = trainerProfile.Id,
             ClientProfileId = clientProfile.Id,
             ProfessionalRole = UserRole.Trainer,
-            IsActive = true,
+            IsActive = isActive,
             CanViewTrainingPlans = true,
             CanViewNutritionPlans = false,
             DateCreated = DateTime.UtcNow,
@@ -1866,6 +1927,7 @@ public static class QaSeedRunner
                 Name            = "Chicken, Rice & Broccoli Bowl",
                 Description     = "Classic high-protein post-workout meal.",
                 PrepTimeMinutes = 20,
+                DietaryPreferences = [nameof(DietaryPreference.GlutenFree), nameof(DietaryPreference.LactoseFree)],
                 Visibility      = RecipeVisibility.Public,
                 DateCreated     = now,
                 Foods =
@@ -1885,6 +1947,11 @@ public static class QaSeedRunner
                 Name            = "Oats & Banana Breakfast",
                 Description     = "Simple overnight oats with banana.",
                 PrepTimeMinutes = 5,
+                DietaryPreferences =
+                [
+                    nameof(DietaryPreference.Vegan), nameof(DietaryPreference.Vegetarian),
+                    nameof(DietaryPreference.Pescatarian), nameof(DietaryPreference.LactoseFree),
+                ],
                 Visibility      = RecipeVisibility.Public,
                 DateCreated     = now,
                 Foods =
@@ -1902,6 +1969,7 @@ public static class QaSeedRunner
                 Name            = "Chicken & Broccoli Stir-fry",
                 Description     = "Quick lean stir-fry, no rice.",
                 PrepTimeMinutes = 15,
+                DietaryPreferences = [nameof(DietaryPreference.GlutenFree), nameof(DietaryPreference.LactoseFree)],
                 Visibility      = RecipeVisibility.Public,
                 DateCreated     = now,
                 Foods =
@@ -1935,6 +2003,21 @@ public static class QaSeedRunner
     /// The plan has 1 week (Status=Published) with 1 day (Monday) containing
     /// Breakfast, Lunch, and Dinner meals.
     /// </summary>
+    /// <remarks>
+    /// #1094 — carries a <c>StartDate</c> anchored to the Monday of the current
+    /// (seed-time) week so <c>PlanWindowResolver</c>'s <c>[StartDate, StartDate +
+    /// weeks*7)</c> window covers today, and a <c>GlobalSettings</c> block so
+    /// GET /nutrition/plans/{id} returns non-null macro targets. Same anchoring
+    /// idiom as <see cref="EnsureTrainingPlanAsync"/>'s #898 fix (daysUntilMonday),
+    /// applied in place to this SAME plan rather than as a second competing Active
+    /// plan: the client has only ever had one Active nutrition plan, so
+    /// <c>PlanWindowResolver.ResolveCurrentPlan</c>'s legacy single-candidate
+    /// fallback already selected it everywhere (GetTodayPlan, GetWeekPlan,
+    /// LogMealEaten, etc.) — giving it an explicit window keeps every one of
+    /// those call sites resolving to this exact plan via the window branch
+    /// instead of the fallback branch, with no second Active nutrition plan
+    /// introduced to make that resolution ambiguous.
+    /// </remarks>
     private static async Task EnsureNutritionPlanAsync(
         IMongoContext mongo,
         Guid clientUserId,
@@ -1954,6 +2037,13 @@ public static class QaSeedRunner
 
         var now = DateTime.UtcNow;
 
+        // #1094 — same anchoring idiom as EnsureTrainingPlanAsync's #898 fix: anchor
+        // StartDate to the Monday of the current (seed-time) week. A 1-week plan means
+        // a 7-day window, valid for 7 days after seeding; POST /test/reset drops the
+        // Mongo collections and re-seeds (re-anchoring to the new current Monday).
+        var daysUntilMonday = ((int)now.DayOfWeek == 0 ? 7 : (int)now.DayOfWeek) - 1;
+        var startDate = now.Date.AddDays(-daysUntilMonday);
+
         var plan = new NutritionPlan
         {
             ExternalId     = QaNutritionPlanExternalId,
@@ -1961,8 +2051,21 @@ public static class QaSeedRunner
             NutritionistId = nutriUserId,
             Name           = "QA Test Nutrition Plan",
             Status         = NutritionPlanStatus.Active,
+            StartDate      = startDate,
             DateCreated    = now,
             Version        = 1,
+            // #1094 — 190/250/82.222g would round to non-exact percentages; these
+            // three gram values were chosen so 4*protein + 4*carbs + 9*fat sums to
+            // DailyKcal EXACTLY (640 + 960 + 900 = 2500), which is what keeps the
+            // client-detail meal-plan card's three rounded percentages (26/38/36)
+            // summing to 100 rather than drifting to 99 or 101.
+            GlobalSettings = new GlobalNutritionSettings
+            {
+                DailyKcal     = 2500,
+                ProteinGrams  = 160,
+                CarbsGrams    = 240,
+                FatGrams      = 100,
+            },
             Weeks =
             [
                 new PlanWeek
@@ -2594,5 +2697,217 @@ public static class QaSeedRunner
 
         logger.LogInformation(
             "QA PhotoDiaryRequest fixtures created: {Count} inserted, linkId={LinkId}", toInsert.Count, nutriLink.Id);
+    }
+
+    /// <summary>
+    /// #1095 — Conversation between qa.trainer and qa.client with three messages: an opening
+    /// message from the client (read), a coach reply containing a YouTube URL (read), and a
+    /// second client message left unread — so the trainer's UnreadMessages chip and the inbox
+    /// thread's YouTube-preview rendering both have a fixture to exercise. Messages are dated
+    /// via the two-pass insert-then-<c>ExecuteUpdateAsync</c> trick
+    /// (<c>GetMessagesEndpointTests.SeedMessagesAsync</c>) — <c>ApplyTimestamps</c> unconditionally
+    /// overwrites <c>DateCreated</c> with <c>UtcNow</c> on insert, so the intended timestamps are
+    /// stamped back on afterward via a change-tracker-bypassing update.
+    /// </summary>
+    private static async Task EnsureInboxConversationFixtureAsync(ApplicationDbContext db, ILogger logger)
+    {
+        var existing = await db.Conversations.AnyAsync(c => c.PublicId == QaInboxConversationId);
+
+        if (existing)
+        {
+            logger.LogInformation("QA inbox conversation fixture already present, skipping.");
+            return;
+        }
+
+        var conversation = new Conversation
+        {
+            PublicId = QaInboxConversationId,
+            ProfessionalUserId = TrainerUserId,
+            ClientUserId = ClientUserId,
+        };
+        db.Conversations.Add(conversation);
+        await db.SaveChangesAsync();
+
+        var now = DateTime.UtcNow;
+        var messages = new List<(Guid Id, Guid SenderId, string Text, bool IsRead, DateTime SentAt)>
+        {
+            (QaInboxMessage1Id, ClientUserId, "Hi coach, quick question about my program!", true, now.AddHours(-3)),
+            (QaInboxMessage2Id, TrainerUserId,
+                "Sure, check out this form breakdown: https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                true, now.AddHours(-2)),
+            (QaInboxMessage3Id, ClientUserId, "Thanks! One more thing...", false, now.AddHours(-1)),
+        };
+
+        // Pass 1: insert (ApplyTimestamps overwrites DateCreated with UtcNow on Added rows).
+        foreach (var (id, senderId, text, isRead, sentAt) in messages)
+        {
+            db.ChatMessages.Add(new ChatMessage
+            {
+                PublicId = id,
+                ConversationId = conversation.Id,
+                SenderUserId = senderId,
+                Text = text,
+                IsRead = isRead,
+                DateCreated = sentAt,
+                DateUpdated = sentAt,
+            });
+        }
+
+        await db.SaveChangesAsync();
+
+        // Pass 2: force the intended DateCreated via ExecuteUpdateAsync (bypasses the change
+        // tracker, so pass 1's ApplyTimestamps overwrite does not survive).
+        foreach (var (id, _, _, _, sentAt) in messages)
+        {
+            await db.ChatMessages
+                .Where(m => m.PublicId == id)
+                .ExecuteUpdateAsync(s => s.SetProperty(m => m.DateCreated, sentAt));
+        }
+
+        var last = messages[^1];
+        conversation.LastMessageText = last.Text.Length > 300 ? last.Text[..300] : last.Text;
+        conversation.LastMessageAt = last.SentAt;
+        conversation.LastMessageSenderId = last.SenderId;
+        await db.SaveChangesAsync();
+
+        logger.LogInformation(
+            "QA inbox conversation fixture created: conversationId={ConversationId}", conversation.PublicId);
+    }
+
+    /// <summary>
+    /// #1101 — Conversation between qa.trainer and the former client (ended link): a client
+    /// message, a coach reply, then an unread client message. Mirrors the real end state — the
+    /// conversation is untouched and <c>IsFormer</c> stays false. Messages are dated with the same
+    /// insert-then-<c>ExecuteUpdateAsync</c> pass as <see cref="EnsureInboxConversationFixtureAsync"/>.
+    /// </summary>
+    private static async Task EnsureEndedLinkConversationFixtureAsync(ApplicationDbContext db, ILogger logger)
+    {
+        if (await db.Conversations.AnyAsync(c => c.PublicId == QaEndedLinkConversationId))
+        {
+            logger.LogInformation("QA ended-link conversation fixture already present, skipping.");
+            return;
+        }
+
+        var conversation = new Conversation
+        {
+            PublicId = QaEndedLinkConversationId,
+            ProfessionalUserId = TrainerUserId,
+            ClientUserId = ClientFormerUserId,
+        };
+        db.Conversations.Add(conversation);
+        await db.SaveChangesAsync();
+
+        var now = DateTime.UtcNow;
+        var messages = new List<(Guid Id, Guid SenderId, string Text, bool IsRead, DateTime SentAt)>
+        {
+            (QaEndedLinkMessage1Id, TrainerUserId, "Thanks for working with me — good luck!", true, now.AddHours(-5)),
+            (QaEndedLinkMessage2Id, ClientFormerUserId, "One last question about my old plan.", false, now.AddHours(-4)),
+        };
+
+        foreach (var (id, senderId, text, isRead, sentAt) in messages)
+        {
+            db.ChatMessages.Add(new ChatMessage
+            {
+                PublicId = id,
+                ConversationId = conversation.Id,
+                SenderUserId = senderId,
+                Text = text,
+                IsRead = isRead,
+                DateCreated = sentAt,
+                DateUpdated = sentAt,
+            });
+        }
+
+        await db.SaveChangesAsync();
+
+        foreach (var (id, _, _, _, sentAt) in messages)
+        {
+            await db.ChatMessages
+                .Where(m => m.PublicId == id)
+                .ExecuteUpdateAsync(s => s.SetProperty(m => m.DateCreated, sentAt));
+        }
+
+        var last = messages[^1];
+        conversation.LastMessageText = last.Text;
+        conversation.LastMessageAt = last.SentAt;
+        conversation.LastMessageSenderId = last.SenderId;
+        await db.SaveChangesAsync();
+
+        logger.LogInformation(
+            "QA ended-link conversation fixture created: conversationId={ConversationId}", conversation.PublicId);
+    }
+
+    /// <summary>
+    /// #1095 — Two WeeklyCheckIn rows on the qa.trainer&lt;-&gt;qa.client link, scoped to
+    /// Training (the only profession that link grants — see
+    /// <see cref="EnsureTrainerClientLinkAsync"/>): one responded but not yet reviewed by the
+    /// trainer (exercises the NewCheckIns filter chip), and one expired unanswered (exercises
+    /// MissingCheckIns). WeekStartDate values are distinct Mondays so neither collides with the
+    /// other under the (ClientUserId, ProfessionalUserId, Profession, WeekStartDate) unique index.
+    /// </summary>
+    private static async Task EnsureInboxWeeklyCheckInsFixtureAsync(ApplicationDbContext db, ILogger logger)
+    {
+        var checkInIds = new[] { QaWeeklyCheckInRespondedUnreviewedId, QaWeeklyCheckInExpiredId };
+
+        var existingIds = (await db.WeeklyCheckIns
+            .Where(w => checkInIds.Contains(w.Id))
+            .Select(w => w.Id)
+            .ToListAsync())
+            .ToHashSet();
+
+        if (existingIds.Count == checkInIds.Length)
+        {
+            logger.LogInformation("QA inbox weekly check-in fixtures already present ({Count}), skipping.", existingIds.Count);
+            return;
+        }
+
+        var now = DateTime.UtcNow;
+        // Anchor to the Monday of the current (seed-time) week — same idiom as
+        // EnsurePastTrainingPlanAsync's lastMonday.
+        var daysSinceMonday = ((int)now.DayOfWeek == 0 ? 7 : (int)now.DayOfWeek) - 1;
+        var thisMonday = now.Date.AddDays(-daysSinceMonday);
+        var respondedWeekStart = DateOnly.FromDateTime(thisMonday.AddDays(-7));
+        var expiredWeekStart = DateOnly.FromDateTime(thisMonday.AddDays(-14));
+
+        var checkIns = new List<WeeklyCheckIn>
+        {
+            new()
+            {
+                Id = QaWeeklyCheckInRespondedUnreviewedId,
+                ClientUserId = ClientUserId,
+                ProfessionalUserId = TrainerUserId,
+                Profession = Profession.Training,
+                WeekStartDate = respondedWeekStart,
+                Status = WeeklyCheckInStatus.Responded,
+                SentAt = now.AddDays(-8),
+                DueAt = now.AddDays(-6),
+                RespondedAt = now.AddDays(-7),
+                ReviewedByTrainerAt = null,
+                DateCreated = now,
+                DateModified = now,
+            },
+            new()
+            {
+                Id = QaWeeklyCheckInExpiredId,
+                ClientUserId = ClientUserId,
+                ProfessionalUserId = TrainerUserId,
+                Profession = Profession.Training,
+                WeekStartDate = expiredWeekStart,
+                Status = WeeklyCheckInStatus.Expired,
+                SentAt = now.AddDays(-15),
+                DueAt = now.AddDays(-13),
+                ExpiredAt = now.AddDays(-13),
+                RespondedAt = null,
+                ReviewedByTrainerAt = null,
+                DateCreated = now,
+                DateModified = now,
+            },
+        };
+
+        var toInsert = checkIns.Where(c => !existingIds.Contains(c.Id)).ToList();
+        db.WeeklyCheckIns.AddRange(toInsert);
+        await db.SaveChangesAsync();
+
+        logger.LogInformation("QA inbox weekly check-in fixtures created: {Count} inserted.", toInsert.Count);
     }
 }

@@ -74,6 +74,21 @@ const IN_CONTAINER = process.env['PLAYWRIGHT_IN_CONTAINER'] === 'true';
 export default defineConfig({
   testDir: './tests/e2e',
 
+  // Exclusion for quarantined specs (#1051). testMatch below is an
+  // UNANCHORED regexp matched against the full path, so a spec under
+  // tests/e2e/_legacy/<role>/<name>.spec.ts would still match a project's
+  // /<role>\/.+\.spec\.ts/ pattern — quarantined specs are therefore
+  // flattened (no role subfolder) so no testMatch pattern can find them.
+  // That flattening is what actually holds the quarantine, for every
+  // project. This root-level testIgnore is NOT a second independent guard
+  // for the `client` and `nutritionist` projects below: Playwright project
+  // config replaces (does not merge with) the root value, and both of
+  // those projects set their own project-level `testIgnore`, so this root
+  // setting is inert for them regardless of PLAYWRIGHT_IN_CONTAINER. It
+  // only adds real protection for projects that don't set their own
+  // testIgnore (`setup`, `trainer`).
+  testIgnore: /_legacy\//,
+
   globalSetup: './tests/e2e/global-setup.ts',
 
   /* Retries: 2 in CI, 0 locally (dev gets immediate feedback) */
@@ -109,6 +124,20 @@ export default defineConfig({
       },
     },
 
+    // ─── Public / unauthenticated specs ───────────────────────────────────────
+    // Picks up only tests/e2e/public/**. No `dependencies` on `setup` and no
+    // `storageState` — these specs exercise the "/" entry page as a signed-out
+    // visitor, including the login form itself, so they must never inherit a
+    // token (#1055). globalSetup's POST /test/reset still runs before this
+    // project, same as every other project.
+    {
+      name: 'public',
+      testMatch: /public\/.+\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+      },
+    },
+
     // ─── Trainer-scoped specs ─────────────────────────────────────────────────
     // Picks up only tests/e2e/trainer/**. Add new trainer-role specs there so
     // they are never duplicated by the client or nutritionist projects.
@@ -134,6 +163,21 @@ export default defineConfig({
       name: 'trainer',
       dependencies: ['setup'],
       testMatch: /trainer\/.+\.spec\.ts/,
+      testIgnore: [/trainer\/inbox-attachments\.spec\.ts/],
+      use: {
+        ...devices['Desktop Chrome'],
+      },
+    },
+
+    // ─── Trainer-media specs ──────────────────────────────────────────────────
+    // inbox-attachments.spec.ts only. Split out of `trainer` (#1096) because it
+    // mutates the seeded QA Client conversation's read state, which
+    // inbox.spec.ts and clients.spec.ts both depend on staying unread.
+    // `dependencies: ['trainer']` makes it run after every trainer test.
+    {
+      name: 'trainer-media',
+      dependencies: ['trainer'],
+      testMatch: /trainer\/inbox-attachments\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
       },
@@ -157,8 +201,8 @@ export default defineConfig({
 
     // ─── Nutritionist-scoped specs ────────────────────────────────────────────
     // Picks up only tests/e2e/nutritionist/**. Add new nutritionist-role specs there.
-    // food-admin-upload and recipe-gallery-upload are container-driven canonical
-    // AC flows — their selectors are exercised by `scripts/test-env run <flow>`
+    // food-admin-upload is a container-driven canonical
+    // AC flow — its selectors are exercised by `scripts/test-env run <flow>`
     // inside qa-playwright (where the seeded fixtures + dockerised web service
     // are the source of truth). Excluded from host runs to keep regression
     // smoke (trainer/clients.spec.ts) fast and deterministic.
@@ -174,11 +218,25 @@ export default defineConfig({
       dependencies: ['setup'],
       testMatch: /nutritionist\/.+\.spec\.ts/,
       testIgnore: IN_CONTAINER
-        ? []
+        ? [/nutritionist\/recipe-tags\.spec\.ts/]
         : [
             /nutritionist\/food-admin-upload\.spec\.ts/,
-            /nutritionist\/recipe-gallery-upload\.spec\.ts/,
+            /nutritionist\/recipe-tags\.spec\.ts/,
           ],
+      use: {
+        ...devices['Desktop Chrome'],
+      },
+    },
+
+    // ─── Nutritionist recipe-tags spec ────────────────────────────────────────
+    // recipe-tags.spec.ts only. Split out of `nutritionist` because
+    // ingredients.spec.ts deletes ALL of qa.nutri's food tags and asserts
+    // "No tags yet." — a recipe-tag test on the same shared list would race it.
+    // `dependencies: ['nutritionist']` makes it run after every nutritionist test.
+    {
+      name: 'nutritionist-tags',
+      dependencies: ['nutritionist'],
+      testMatch: /nutritionist\/recipe-tags\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
       },

@@ -1,4 +1,5 @@
 using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Features.Messaging.Shared;
 using FitnessPlatform.Application.Infrastructure.Services;
 using FluentAssertions;
 using Microsoft.Extensions.Configuration;
@@ -30,24 +31,38 @@ public class MinioBlobStorageServiceTests
         out ILogger<MinioBlobStorageService> logger,
         bool publicUrlIncludesBucket = true,
         string publicEndpoint = "http://localhost:9000",
-        string bucketName = "fitness-platform")
+        string bucketName = "fitness-platform",
+        string? presignEndpoint = null,
+        string? presignSecure = null)
     {
         logger = Substitute.For<ILogger<MinioBlobStorageService>>();
 
+        var settings = new Dictionary<string, string?>
+        {
+            ["MinIO:Endpoint"] = "localhost:9000",
+            ["MinIO:AccessKey"] = "minioadmin",
+            ["MinIO:SecretKey"] = "minioadmin",
+            ["MinIO:Secure"] = "false",
+            ["MinIO:Region"] = "us-east-1",
+            ["MinIO:BucketName"] = bucketName,
+            ["MinIO:ManageBucket"] = "false",
+            ["MinIO:PublicUrlIncludesBucket"] = publicUrlIncludesBucket ? "true" : "false",
+            ["MinIO:PublicEndpoint"] = publicEndpoint,
+            [ConfigKeys.MinIoReadUrlExpiryMinutes] = "15"
+        };
+
+        if (presignEndpoint is not null)
+        {
+            settings["MinIO:PresignEndpoint"] = presignEndpoint;
+        }
+
+        if (presignSecure is not null)
+        {
+            settings["MinIO:PresignSecure"] = presignSecure;
+        }
+
         var configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["MinIO:Endpoint"] = "localhost:9000",
-                ["MinIO:AccessKey"] = "minioadmin",
-                ["MinIO:SecretKey"] = "minioadmin",
-                ["MinIO:Secure"] = "false",
-                ["MinIO:Region"] = "us-east-1",
-                ["MinIO:BucketName"] = bucketName,
-                ["MinIO:ManageBucket"] = "false",
-                ["MinIO:PublicUrlIncludesBucket"] = publicUrlIncludesBucket ? "true" : "false",
-                ["MinIO:PublicEndpoint"] = publicEndpoint,
-                [ConfigKeys.MinIoReadUrlExpiryMinutes] = "15"
-            })
+            .AddInMemoryCollection(settings)
             .Build();
 
         return new MinioBlobStorageService(configuration, logger);
@@ -167,6 +182,43 @@ public class MinioBlobStorageServiceTests
         result!.Should().Contain(containerPath, "the signed URL must still resolve to the same underlying object");
     }
 
+    // ── GenerateReadUrlAsync — chat image container-path shape (SendMessageEndpoint) ──────────
+
+    [Fact]
+    public async Task GenerateReadUrlAsync_ChatImageBarePath_FailsClosed_NotBugSymptom()
+    {
+        // Reproduces the SendMessageEndpoint bug directly: it used to store the BARE container
+        // path returned by ChatImagePolicy.BuildFinalContainerPath (e.g.
+        // "chat/<conversationId>/<messageId>.jpg") instead of running it through BuildPublicUrl.
+        // TryExtractContainerPath expects the full "{publicBase}/{bucket}/" prefix, so a bare
+        // path never matches and GenerateReadUrlAsync fails closed to string.Empty — this is the
+        // exact "Could not derive a container path" warning observed on the compose harness for
+        // every chat image.
+        var service = CreateService(out _);
+        var barePath = ChatImagePolicy.BuildFinalContainerPath(Guid.NewGuid(), Guid.NewGuid(), "jpg");
+
+        var result = await service.GenerateReadUrlAsync(barePath, CancellationToken.None);
+
+        result.Should().Be(string.Empty, "a bare container path is exactly the pre-fix stored value and must fail closed");
+    }
+
+    [Fact]
+    public async Task GenerateReadUrlAsync_ChatImagePublicUrlForm_RoundTripsToSignedUrl()
+    {
+        // The fix: SendMessageEndpoint now stores blobStorage.BuildPublicUrl(finalPath), not the
+        // bare finalPath (see the test above). This proves that stored form round-trips through
+        // the REAL MinioBlobStorageService into a non-empty signed URL, using the exact
+        // ChatImagePolicy path shape SendMessageEndpoint builds.
+        var service = CreateService(out _);
+        var finalPath = ChatImagePolicy.BuildFinalContainerPath(Guid.NewGuid(), Guid.NewGuid(), "jpg");
+        var storedImageBlobUrl = service.BuildPublicUrl(finalPath);
+
+        var result = await service.GenerateReadUrlAsync(storedImageBlobUrl, CancellationToken.None);
+
+        result.Should().NotBeNullOrEmpty("the stored public-URL form must resolve to a signed read URL, not fail closed");
+        result!.Should().Contain(finalPath, "the signed URL must still resolve to the same underlying chat image object");
+    }
+
     // ── NormalizeToCanonicalUrl ─────────────────────────────────────────────────
 
     [Fact]
@@ -260,5 +312,81 @@ public class MinioBlobStorageServiceTests
 
         result.Should().NotBeNullOrEmpty();
         result.Should().Contain("Expires=900", "15 minutes == 900 seconds, the MinIO SDK's presigned-URL expiry query parameter");
+    }
+
+    // ── PresignEndpoint — separate client for presigned URLs ───────────────────
+
+    [Fact]
+    public async Task GenerateUploadUrlAsync_NoPresignEndpointConfigured_SignsAgainstRegularEndpoint()
+    {
+        // Default behaviour, unchanged: with no MinIO:PresignEndpoint set, the upload URL is
+        // signed against the same host server-side calls use.
+        var service = CreateService(out _);
+
+        var result = await service.GenerateUploadUrlAsync(
+            "chat-uploads/conv-1/upload-1.jpg", "image/jpeg", TimeSpan.FromMinutes(15), CancellationToken.None);
+
+        result.UploadUrl.Should().StartWith("http://localhost:9000/");
+    }
+
+    [Fact]
+    public async Task GenerateUploadUrlAsync_PresignEndpointConfigured_SignsAgainstPresignEndpoint_NotRegularEndpoint()
+    {
+        // Root cause this proves: reusing the regular MinIO:Endpoint client for presigning signs
+        // a URL against a host the caller (a browser, outside the docker network) may not be able
+        // to reach — e.g. "minio-test:9000" in docker-compose.test.yml. With MinIO:PresignEndpoint
+        // configured, the presigned upload URL must name THAT host instead.
+        var service = CreateService(out _, presignEndpoint: "localhost:59000");
+
+        var result = await service.GenerateUploadUrlAsync(
+            "chat-uploads/conv-1/upload-1.jpg", "image/jpeg", TimeSpan.FromMinutes(15), CancellationToken.None);
+
+        result.UploadUrl.Should().StartWith("http://localhost:59000/");
+        result.UploadUrl.Should().NotContain("localhost:9000/", "the presign endpoint host must fully replace the regular endpoint, not merely be appended");
+    }
+
+    [Fact]
+    public async Task GenerateReadUrlAsync_PresignEndpointConfigured_SignsAgainstPresignEndpoint_NotRegularEndpoint()
+    {
+        // Same contract as the upload URL, for the read/GET side — GenerateReadUrlAsync is the
+        // only path a stored blob URL resolves to fetchable bytes through (F9), so it must honor
+        // MinIO:PresignEndpoint too.
+        var service = CreateService(out _, presignEndpoint: "localhost:59000");
+
+        const string containerPath = "chat/conv-1/msg-1.jpg";
+        var storedBlobUrl = service.BuildPublicUrl(containerPath);
+
+        var result = await service.GenerateReadUrlAsync(storedBlobUrl, CancellationToken.None);
+
+        result.Should().NotBeNullOrEmpty();
+        result!.Should().StartWith("http://localhost:59000/");
+        result.Should().NotContain("localhost:9000/", "the presign endpoint host must fully replace the regular endpoint, not merely be appended");
+    }
+
+    [Fact]
+    public async Task GenerateUploadUrlAsync_PresignSecureUnset_DefaultsToSecure()
+    {
+        // MinIO:PresignSecure is optional and must fall back to MinIO:Secure (false in every test
+        // fixture here) rather than defaulting independently to true or false.
+        var service = CreateService(out _, presignEndpoint: "localhost:59000");
+
+        var result = await service.GenerateUploadUrlAsync(
+            "chat-uploads/conv-1/upload-1.jpg", "image/jpeg", TimeSpan.FromMinutes(15), CancellationToken.None);
+
+        result.UploadUrl.Should().StartWith("http://", "MinIO:Secure is false in the test fixture and PresignSecure was not overridden");
+    }
+
+    [Fact]
+    public async Task GenerateUploadUrlAsync_PresignSecureTrue_OverridesSecureIndependently()
+    {
+        // PresignSecure must be settable independently of Secure — the two clients can genuinely
+        // differ (e.g. a harness serving plain HTTP internally behind a TLS-terminating host
+        // proxy the browser reaches over HTTPS).
+        var service = CreateService(out _, presignEndpoint: "localhost:59000", presignSecure: "true");
+
+        var result = await service.GenerateUploadUrlAsync(
+            "chat-uploads/conv-1/upload-1.jpg", "image/jpeg", TimeSpan.FromMinutes(15), CancellationToken.None);
+
+        result.UploadUrl.Should().StartWith("https://localhost:59000/");
     }
 }

@@ -20,9 +20,9 @@ export type {
 };
 
 export interface CreateDiaryRequestParams {
-  /** Internal integer ID of the client-professional link. XOR with pendingInviteId. */
-  linkId?: number;
-  /** Internal integer ID of the pending invite. XOR with linkId. */
+  /** Public identifier of the client (ClientProfile.PublicId). XOR with pendingInviteId. */
+  clientId?: string;
+  /** Internal integer ID of the pending invite. XOR with clientId. */
   pendingInviteId?: number;
   /** Optional plan scope (MongoDB external ID). */
   planId?: string;
@@ -37,7 +37,7 @@ export async function createDiaryRequest(
   params: CreateDiaryRequestParams,
 ): Promise<CreateRequestResponse> {
   return apiClient.createRequestEndpoint({
-    linkId: params.linkId ?? undefined,
+    clientId: params.clientId ?? undefined,
     pendingInviteId: params.pendingInviteId ?? undefined,
     planId: params.planId ?? undefined,
     durationDays: params.durationDays ?? 7,

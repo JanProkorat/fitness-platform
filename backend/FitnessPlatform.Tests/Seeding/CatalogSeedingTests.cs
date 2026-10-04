@@ -138,6 +138,27 @@ public class CatalogSeedingTests(CatalogSeedingFactory factory) : IAsyncLifetime
     public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
     /// <summary>
+    /// The reset helper recreates the Mongo indexes it drops (#1129).
+    /// </summary>
+    [Fact]
+    public async Task InitializeAsync_RecreatesFoodTagIndexes_UniqueOwnerNormalizedNameIndexExists()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        using var scope = _factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+        var indexes = await (await mongo.FoodTags.Indexes.ListAsync(ct)).ToListAsync(ct);
+
+        var ownerNameIndex = indexes.SingleOrDefault(
+            i => i["name"].AsString == "idx_foodtag_ownerUserId_normalizedName");
+        ownerNameIndex.Should().NotBeNull(
+            because: "ResetPostgresAndMongoAsync must recreate the foodTags indexes after dropping the collection");
+        ownerNameIndex!["unique"].AsBoolean.Should().BeTrue(
+            because: "the per-owner normalized-name constraint must stay unique after the reset");
+    }
+
+    /// <summary>
     /// Running MongoSeeder.SeedAsync twice must be idempotent: document counts stay at the
     /// exact number of JSON seed entries — no duplicates on re-seed.
     /// </summary>
@@ -287,6 +308,34 @@ public class CatalogSeedingTests(CatalogSeedingFactory factory) : IAsyncLifetime
         var count = await mongo.Recipes.CountDocumentsAsync(filter, cancellationToken: ct);
         count.Should().Be(recipes.Count,
             "SearchRecipes' visibility filter must surface every seeded public recipe to any authenticated nutritionist");
+    }
+
+    /// <summary>
+    /// Seeded recipes carry the JSON servings count (default 1) in the dedicated field instead of a
+    /// note prefix, and store meal types as canonical enum names rather than lowercase spellings.
+    /// </summary>
+    [Fact]
+    public async Task SeedAsync_Recipes_StoreServingsFieldAndCanonicalMealTypes()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        await MongoSeeder.SeedAsync(_factory.Services);
+
+        using var scope = _factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+        var recipes = await mongo.Recipes.Find(FilterDefinition<Recipe>.Empty).ToListAsync(ct);
+        var entriesByName = RecipeSeedData.LoadEntries().ToDictionary(e => e.Name);
+
+        recipes.Should().Contain(r => entriesByName.ContainsKey(r.Name) && entriesByName[r.Name].Servings > 1,
+            "the seed JSON has multi-serving recipes, so the test is not vacuous");
+
+        recipes.Where(r => entriesByName.ContainsKey(r.Name)).Should().AllSatisfy(r =>
+        {
+            r.Servings.Should().Be(entriesByName[r.Name].Servings ?? 1, $"recipe '{r.Name}'");
+            (r.Note ?? string.Empty).Should().NotStartWith("Recept na", $"recipe '{r.Name}'");
+            (r.MealTypes ?? []).Should().AllSatisfy(mealType =>
+                Enum.GetNames<RecipeMealType>().Should().Contain(mealType, $"recipe '{r.Name}'"));
+        });
     }
 
     /// <summary>

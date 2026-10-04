@@ -2,7 +2,10 @@ using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
+using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Features.Recipes.Shared;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using MongoDB.Driver;
 
@@ -11,10 +14,13 @@ namespace FitnessPlatform.Application.Features.Recipes.ConfirmRecipeImage;
 /// <summary>
 /// Persists the recipe image blob URL on the recipe document.
 /// Main slot overwrites <c>ImageUrl</c>. Gallery slot appends to <c>GalleryImageUrls</c> (cap = 6).
-/// Only the nutritionist who created the recipe can set its images.
+/// Only the nutritionist who created the recipe can set its images. The blobUrl must be the exact
+/// presigned key issued for this recipe and slot, so a caller cannot persist an arbitrary URL that
+/// is later rendered to other coaches.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
-public class ConfirmRecipeImageEndpoint(IMongoContext mongo) : Endpoint<ConfirmRecipeImageRequest>
+/// <param name="imageUpload">Image upload service — validates the blobUrl against this recipe's presigned key.</param>
+public class ConfirmRecipeImageEndpoint(IMongoContext mongo, IImageUploadService imageUpload) : Endpoint<ConfirmRecipeImageRequest>
 {
     private const int GalleryCap = 6;
 
@@ -67,39 +73,73 @@ public class ConfirmRecipeImageEndpoint(IMongoContext mongo) : Endpoint<ConfirmR
 
         var isGallery = req.Slot.Equals("gallery", StringComparison.OrdinalIgnoreCase);
 
-        UpdateDefinition<Recipe> update;
+        // Re-check gallery cap at confirm time (race: another confirm could have filled it
+        // between the upload-url call and this confirm call).
+        if (isGallery && recipe.GalleryImageUrls.Count >= GalleryCap)
+        {
+            this.ThrowErrorWithCode(ErrorCodes.RecipeGalleryFull,
+                $"The recipe gallery is full. Maximum {GalleryCap} gallery images are allowed.");
+            return;
+        }
+
+        var slot = isGallery ? RecipeImageKeys.GallerySlot : RecipeImageKeys.MainSlot;
+
+        if (!IsValidKey(req, recipe, slot))
+        {
+            this.ThrowErrorWithCode(ErrorCodes.InvalidBlobUrl, "BlobUrl does not match this recipe's image upload key.");
+            return;
+        }
+
+        var ownedRecipe = Builders<Recipe>.Filter.Eq(r => r.ExternalId, req.RecipeId)
+            & Builders<Recipe>.Filter.Eq(r => r.NutritionistId, nutritionistId);
 
         if (isGallery)
         {
-            // Re-check gallery cap at confirm time (race: another confirm could have filled it
-            // between the upload-url call and this confirm call).
-            if (recipe.GalleryImageUrls.Count >= GalleryCap)
+            // Atomic append: owner, room left (no 6th element) and URL not already present, so a
+            // concurrent confirm cannot overflow the cap or duplicate the entry.
+            var result = await mongo.Recipes.UpdateOneAsync(
+                ownedRecipe
+                    & Builders<Recipe>.Filter.Exists($"galleryImageUrls.{GalleryCap - 1}", false)
+                    & Builders<Recipe>.Filter.Not(Builders<Recipe>.Filter.AnyEq(r => r.GalleryImageUrls, req.BlobUrl)),
+                Builders<Recipe>.Update
+                    .Push(r => r.GalleryImageUrls, req.BlobUrl)
+                    .Set(r => r.DateUpdated, DateTime.UtcNow),
+                cancellationToken: ct);
+
+            if (result.ModifiedCount == 0)
             {
                 this.ThrowErrorWithCode(ErrorCodes.RecipeGalleryFull,
                     $"The recipe gallery is full. Maximum {GalleryCap} gallery images are allowed.");
                 return;
             }
 
-            update = Builders<Recipe>.Update
-                .Push(r => r.GalleryImageUrls, req.BlobUrl)
-                .Set(r => r.DateUpdated, DateTime.UtcNow);
-        }
-        else
-        {
-            update = Builders<Recipe>.Update
-                .Set(r => r.ImageUrl, req.BlobUrl)
-                .Set(r => r.DateUpdated, DateTime.UtcNow);
+            await Send.NoContentAsync(ct);
+            return;
         }
 
-        // Guard against a concurrent delete between the FindAsync above and this
-        // write: include ownership filter in the update so a race that removed or
-        // reassigned the recipe cannot cause a write to a no-longer-owned document.
+        // Ownership filter guards against a concurrent delete or reassignment since the Find above.
         await mongo.Recipes.UpdateOneAsync(
-            Builders<Recipe>.Filter.Eq(r => r.ExternalId, req.RecipeId)
-                & Builders<Recipe>.Filter.Eq(r => r.NutritionistId, nutritionistId),
-            update,
+            ownedRecipe,
+            Builders<Recipe>.Update
+                .Set(r => r.ImageUrl, req.BlobUrl)
+                .Set(r => r.DateUpdated, DateTime.UtcNow),
             cancellationToken: ct);
 
         await Send.NoContentAsync(ct);
+    }
+
+    private bool IsValidKey(ConfirmRecipeImageRequest req, Recipe recipe, string slot)
+    {
+        if (!RecipeImageKeys.TryParse(req.BlobUrl, slot, out var keyId))
+        {
+            return false;
+        }
+
+        if (!imageUpload.IsValidBlobUrlForSubPath(ImageUploadScope.Recipe, $"{req.RecipeId}/{slot}-{keyId:N}", req.BlobUrl))
+        {
+            return false;
+        }
+
+        return req.BlobUrl != recipe.ImageUrl && !recipe.GalleryImageUrls.Contains(req.BlobUrl);
     }
 }

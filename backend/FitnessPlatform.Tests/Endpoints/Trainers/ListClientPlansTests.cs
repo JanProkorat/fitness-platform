@@ -232,7 +232,7 @@ public class ListClientPlansTests
         // now-stale identifier) would hit no matching setup and return
         // default(ComplianceResult) == null, causing a NullReferenceException.
         _complianceService
-            .CalculateComplianceAsync(clientProfile.UserId, planStart, planEnd, Arg.Any<CancellationToken>())
+            .CalculateComplianceAsync(clientProfile.UserId, planStart, planEnd, Arg.Any<CancellationToken>(), Arg.Any<Guid?>())
             .Returns(new ComplianceResult
             {
                 NutritionCompliancePercent = 87.5m,
@@ -281,7 +281,7 @@ public class ListClientPlansTests
         var mongo = BuildMongo(nutritionPlans: [nutritionPlan], executions: [], personalRecords: []);
 
         _complianceService
-            .CalculateComplianceAsync(clientUserId, planStart, planEnd, Arg.Any<CancellationToken>())
+            .CalculateComplianceAsync(clientUserId, planStart, planEnd, Arg.Any<CancellationToken>(), Arg.Any<Guid?>())
             .Returns(new ComplianceResult
             {
                 NutritionCompliancePercent = 92.0m,
@@ -300,9 +300,9 @@ public class ListClientPlansTests
             "nutrition compliance must be non-zero when the client adheres to the plan");
 
         await _complianceService.Received(1).CalculateComplianceAsync(
-            clientUserId, planStart, planEnd, Arg.Any<CancellationToken>());
+            clientUserId, planStart, planEnd, Arg.Any<CancellationToken>(), Arg.Any<Guid?>());
         await _complianceService.DidNotReceive().CalculateComplianceAsync(
-            clientPublicId, Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>());
+            clientPublicId, Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>(), Arg.Any<Guid?>());
     }
 
     [Fact]
@@ -364,7 +364,7 @@ public class ListClientPlansTests
         // Force CalculateComplianceAsync to throw a domain-specific exception
         var expected = new InvalidOperationException("compliance-db-error");
         _complianceService
-            .CalculateComplianceAsync(Arg.Any<Guid>(), Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
+            .CalculateComplianceAsync(Arg.Any<Guid>(), Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>(), Arg.Any<Guid?>())
             .Returns<ComplianceResult>(_ => throw expected);
 
         var ep = CreateEndpoint(db, mongo, _trainerId, setupDefaultCompliance: false);
@@ -545,7 +545,7 @@ public class ListClientPlansTests
         if (setupDefaultCompliance)
         {
             _complianceService
-                .CalculateComplianceAsync(Arg.Any<Guid>(), Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
+                .CalculateComplianceAsync(Arg.Any<Guid>(), Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>(), Arg.Any<Guid?>())
                 .Returns(new ComplianceResult
                 {
                     NutritionCompliancePercent = 0m,

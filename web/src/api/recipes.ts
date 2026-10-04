@@ -1,76 +1,131 @@
-import api from '@/lib/api';
+/**
+ * Recipes API module — wraps the NSwag-generated recipe endpoints.
+ */
+import { apiClient } from '@/api/client';
 import type {
-  RecipeDetail,
-  SearchRecipesResponse,
+  ConfirmRecipeImageRequest,
   CreateRecipeRequest,
+  DietaryPreference,
+  FoodOwnerFilter,
+  FoodSortDirection,
+  GetRecipeResponse,
+  RecipeMealType,
+  RecipeSortField,
+  RecipeSummaryDto,
+  ReplaceRecipeTagAssignmentsResponse,
   UpdateRecipeRequest,
   UploadRecipeImageUrlRequest,
-  UploadRecipeImageUrlResponse,
-  ConfirmRecipeImageRequest,
-  RecipeImageSlot,
-} from './recipe-types';
+} from '@/api/generated';
 
-/** Search recipes with pagination. */
-export async function searchRecipes(params: {
+/** Slot for recipe image upload: 'main' overwrites hero; 'gallery' appends (max 6). */
+export type RecipeImageSlot = 'main' | 'gallery';
+
+export interface SearchRecipesParams {
   search?: string;
-  page?: number;
-  pageSize?: number;
-}): Promise<SearchRecipesResponse> {
-  const { data } = await api.get<SearchRecipesResponse>('/recipes', { params });
-  return data;
+  /** Matches a recipe suited for ANY of the supplied meal types. */
+  mealTypes: RecipeMealType[];
+  /** Matches a recipe carrying ALL of the supplied dietary preferences. */
+  dietaryPreferences: DietaryPreference[];
+  /** Matches a recipe whose ownership falls under ANY of the supplied values. */
+  owners: FoodOwnerFilter[];
+  /** Matches a recipe carrying ANY of the caller's tags with these ids. */
+  tagIds: string[];
+  page: number;
+  pageSize: number;
+  /** `undefined` means the server default: newest-created first. */
+  sortBy?: RecipeSortField;
+  sortDir?: FoodSortDirection;
 }
 
-/** Get a single recipe by ID. */
-export async function getRecipe(recipeId: string): Promise<RecipeDetail> {
-  const { data } = await api.get<RecipeDetail>(`/recipes/${recipeId}`);
-  return data;
+export interface SearchRecipesResult {
+  recipes: RecipeSummaryDto[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
 }
 
-/** Create a new recipe. */
-export async function createRecipe(request: CreateRecipeRequest): Promise<RecipeDetail> {
-  const { data } = await api.post<RecipeDetail>('/recipes', request);
-  return data;
+/** Search recipes by name/description, meal type, dietary preference and owner. */
+export async function searchRecipes(params: SearchRecipesParams): Promise<SearchRecipesResult> {
+  // NSwag orders array params (mealType, dietaryPreference, owner, tagId)
+  // ahead of scalar ones — re-check against the generated signature on regen.
+  const response = await apiClient.searchRecipesEndpoint(
+    params.mealTypes,
+    params.dietaryPreferences,
+    params.owners,
+    params.tagIds,
+    params.page,
+    params.pageSize,
+    params.search,
+    params.sortBy,
+    params.sortDir,
+  );
+  return {
+    recipes: response.recipes ?? [],
+    totalCount: response.totalCount ?? 0,
+    page: response.page ?? params.page,
+    pageSize: response.pageSize ?? params.pageSize,
+  };
 }
 
-/** Update an existing recipe. */
-export async function updateRecipe(
-  recipeId: string,
-  request: UpdateRecipeRequest,
-): Promise<RecipeDetail> {
-  const { data } = await api.put<RecipeDetail>(`/recipes/${recipeId}`, request);
-  return data;
+/** Get a single recipe's full detail. */
+export async function getRecipe(recipeId: string): Promise<GetRecipeResponse> {
+  return apiClient.getRecipeEndpoint(recipeId);
 }
 
-/** Delete a recipe. */
+/** Create a recipe (Nutritionist only). Private by default. */
+export async function createRecipe(request: CreateRecipeRequest): Promise<GetRecipeResponse> {
+  return apiClient.createRecipeEndpoint(request);
+}
+
+/** Update a recipe (owner only). Full-state PUT; `version` must echo the loaded value. */
+export async function updateRecipe(recipeId: string, request: UpdateRecipeRequest): Promise<GetRecipeResponse> {
+  return apiClient.updateRecipeEndpoint(recipeId, request);
+}
+
+/** Delete a recipe (owner only). */
 export async function deleteRecipe(recipeId: string): Promise<void> {
-  await api.delete(`/recipes/${recipeId}`);
+  await apiClient.deleteRecipeEndpoint(recipeId);
 }
 
-/**
- * Request a pre-signed upload URL for a recipe image.
- * slot=main overwrites the hero image; slot=gallery appends to the gallery (max 6).
- */
+/** Request a pre-signed upload URL for a recipe image (owner only). */
 export async function requestRecipeImageUploadUrl(
   recipeId: string,
   slot: RecipeImageSlot,
   request: UploadRecipeImageUrlRequest,
-): Promise<UploadRecipeImageUrlResponse> {
-  const { data } = await api.post<UploadRecipeImageUrlResponse>(
-    `/recipes/${recipeId}/image/upload-url`,
-    request,
-    { params: { slot } },
-  );
-  return data;
+): Promise<{ uploadUrl: string; blobUrl: string }> {
+  const response = await apiClient.uploadRecipeImageUrlEndpoint(recipeId, slot, request);
+  return { uploadUrl: response.uploadUrl ?? '', blobUrl: response.blobUrl ?? '' };
+}
+
+/** Confirm a completed recipe image upload by persisting its blob URL (owner only). */
+export async function confirmRecipeImage(recipeId: string, slot: RecipeImageSlot, blobUrl: string): Promise<void> {
+  const body: ConfirmRecipeImageRequest = { blobUrl };
+  await apiClient.confirmRecipeImageEndpoint(recipeId, slot, body);
+}
+
+/** Clears a recipe's main picture (owner only). */
+export async function removeRecipeImage(recipeId: string): Promise<void> {
+  await apiClient.deleteRecipeImageEndpoint(recipeId);
+}
+
+/** Removes one extra picture from a recipe's gallery (owner only). Idempotent. */
+export async function removeRecipeGalleryImage(recipeId: string, imageUrl: string): Promise<void> {
+  await apiClient.removeRecipeGalleryImageEndpoint(recipeId, imageUrl);
 }
 
 /**
- * Confirm a recipe image upload after a successful blob PUT.
- * slot=main sets the main imageUrl; slot=gallery appends to galleryImageUrls.
+ * Replaces the full set of the caller's own tags assigned to one recipe, via
+ * PUT /trainer/recipes/{recipeId}/tags. The recipe may be the caller's own,
+ * a system recipe, or another coach's Public recipe.
  */
-export async function confirmRecipeImage(
+export async function replaceRecipeTagAssignments(
   recipeId: string,
-  slot: RecipeImageSlot,
-  request: ConfirmRecipeImageRequest,
-): Promise<void> {
-  await api.put(`/recipes/${recipeId}/image`, request, { params: { slot } });
+  tagIds: string[],
+): Promise<ReplaceRecipeTagAssignmentsResponse> {
+  return apiClient.replaceRecipeTagAssignmentsEndpoint(recipeId, { tagIds });
+}
+
+/** Makes a gallery picture the main one; the previous main takes its slot (owner only). */
+export async function promoteRecipeGalleryImage(recipeId: string, imageUrl: string): Promise<void> {
+  await apiClient.promoteRecipeGalleryImageEndpoint(recipeId, { imageUrl });
 }

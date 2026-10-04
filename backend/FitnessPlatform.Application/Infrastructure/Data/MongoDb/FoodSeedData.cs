@@ -1,5 +1,6 @@
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Services;
 
 namespace FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 
@@ -45,6 +46,8 @@ public static class FoodSeedData
                 .Select(s => new ServingSize { Label = s.Label, WeightGrams = s.Grams })
                 .ToList() ?? [],
             Allergens = e.Allergens ?? [],
+            DietaryPreferences = FoodEnumListMapping.ToStoredNames(
+                FoodEnumListMapping.ParseStoredNames<DietaryPreference>(e.DietaryPreferences ?? [])),
             NutritionistId = null,
             Visibility = FoodVisibility.Public,
             DateCreated = now,
@@ -87,7 +90,12 @@ public record FoodSeedEntry(
     decimal? Sugar,
     decimal? SaturatedFat,
     List<string>? Allergens,
+    List<string>? DietaryPreferences,
     List<FoodServingEntry>? Servings);
 
-/// <summary>A common serving size entry for a food, as authored in <c>seed-foods.json</c>.</summary>
+/// <summary>
+/// A common serving size entry for a food, as authored in <c>seed-foods.json</c>. <see cref="Label"/>
+/// is a <see cref="FitnessPlatform.Application.Domain.Constants.ServingUnits"/> key, and
+/// <see cref="Grams"/> is the weight of ONE unit.
+/// </summary>
 public record FoodServingEntry(string Label, decimal Grams);

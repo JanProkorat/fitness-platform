@@ -38,7 +38,7 @@ public class GetClientDashboardPermissionFlagsTests
     {
         var svc = Substitute.For<IComplianceService>();
         svc.CalculateComplianceAsync(
-                Arg.Any<Guid>(), Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
+                Arg.Any<Guid>(), Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>(), Arg.Any<Guid?>())
             .Returns(new ComplianceResult
             {
                 CompliancePercent = 50m,
@@ -48,7 +48,7 @@ public class GetClientDashboardPermissionFlagsTests
         // The endpoint always calls the discipline-aware 3-arg overload (never the
         // parameterless 2-arg one, which defaults to ComplianceDiscipline.Both) — stub that
         // overload, not the 2-arg one.
-        svc.CalculateStreakAsync(Arg.Any<Guid>(), Arg.Any<ComplianceDiscipline>(), Arg.Any<CancellationToken>())
+        svc.CalculateStreakAsync(Arg.Any<Guid>(), Arg.Any<ComplianceDiscipline>(), Arg.Any<CancellationToken>(), Arg.Any<Guid?>())
             .Returns(0);
         return svc;
     }
@@ -81,7 +81,7 @@ public class GetClientDashboardPermissionFlagsTests
 
         var ep = Factory.Create<GetClientDashboardEndpoint>(
             ctx => ctx.Request.HttpContext.User = TrainerPrincipal(_trainerId),
-            db, _audit, _complianceService, PlanTestHelpers.CreateMockMongo());
+            db, _audit, _complianceService, PlanTestHelpers.CreateMockMongo(), TimeProvider.System);
 
         // Act
         await ep.HandleAsync(new GetClientDashboardRequest
@@ -119,7 +119,7 @@ public class GetClientDashboardPermissionFlagsTests
 
         var ep = Factory.Create<GetClientDashboardEndpoint>(
             ctx => ctx.Request.HttpContext.User = TrainerPrincipal(_trainerId),
-            db, _audit, _complianceService, PlanTestHelpers.CreateMockMongo());
+            db, _audit, _complianceService, PlanTestHelpers.CreateMockMongo(), TimeProvider.System);
 
         // Act
         await ep.HandleAsync(new GetClientDashboardRequest
@@ -160,7 +160,7 @@ public class GetClientDashboardPermissionFlagsTests
 
         var ep = Factory.Create<GetClientDashboardEndpoint>(
             ctx => ctx.Request.HttpContext.User = TrainerPrincipal(_trainerId),
-            db, _audit, _complianceService, PlanTestHelpers.CreateMockMongo());
+            db, _audit, _complianceService, PlanTestHelpers.CreateMockMongo(), TimeProvider.System);
 
         // Act
         await ep.HandleAsync(new GetClientDashboardRequest
@@ -202,7 +202,7 @@ public class GetClientDashboardPermissionFlagsTests
 
         var ep = Factory.Create<GetClientDashboardEndpoint>(
             ctx => ctx.Request.HttpContext.User = TrainerPrincipal(_trainerId),
-            db, _audit, _complianceService, PlanTestHelpers.CreateMockMongo());
+            db, _audit, _complianceService, PlanTestHelpers.CreateMockMongo(), TimeProvider.System);
 
         // Act
         await ep.HandleAsync(new GetClientDashboardRequest
@@ -217,7 +217,7 @@ public class GetClientDashboardPermissionFlagsTests
             "existing CompliancePercent wire field, not the combined figure");
 
         await _complianceService.Received(1).CalculateStreakAsync(
-            clientUser.Id, ComplianceDiscipline.NutritionOnly, Arg.Any<CancellationToken>());
+            clientUser.Id, ComplianceDiscipline.NutritionOnly, Arg.Any<CancellationToken>(), Arg.Any<Guid?>());
     }
 
     [Fact]
@@ -244,7 +244,7 @@ public class GetClientDashboardPermissionFlagsTests
 
         var ep = Factory.Create<GetClientDashboardEndpoint>(
             ctx => ctx.Request.HttpContext.User = TrainerPrincipal(_trainerId),
-            db, _audit, _complianceService, PlanTestHelpers.CreateMockMongo());
+            db, _audit, _complianceService, PlanTestHelpers.CreateMockMongo(), TimeProvider.System);
 
         // Act
         await ep.HandleAsync(new GetClientDashboardRequest
@@ -259,7 +259,7 @@ public class GetClientDashboardPermissionFlagsTests
             "existing CompliancePercent wire field, not the combined figure");
 
         await _complianceService.Received(1).CalculateStreakAsync(
-            clientUser.Id, ComplianceDiscipline.TrainingOnly, Arg.Any<CancellationToken>());
+            clientUser.Id, ComplianceDiscipline.TrainingOnly, Arg.Any<CancellationToken>(), Arg.Any<Guid?>());
     }
 
     [Fact]
@@ -286,7 +286,7 @@ public class GetClientDashboardPermissionFlagsTests
 
         var ep = Factory.Create<GetClientDashboardEndpoint>(
             ctx => ctx.Request.HttpContext.User = TrainerPrincipal(_trainerId),
-            db, _audit, _complianceService, PlanTestHelpers.CreateMockMongo());
+            db, _audit, _complianceService, PlanTestHelpers.CreateMockMongo(), TimeProvider.System);
 
         // Act
         await ep.HandleAsync(new GetClientDashboardRequest
@@ -300,6 +300,6 @@ public class GetClientDashboardPermissionFlagsTests
             "a fully-entitled caller must keep receiving the combined CompliancePercent — additive/unchanged");
 
         await _complianceService.Received(1).CalculateStreakAsync(
-            clientUser.Id, ComplianceDiscipline.Both, Arg.Any<CancellationToken>());
+            clientUser.Id, ComplianceDiscipline.Both, Arg.Any<CancellationToken>(), Arg.Any<Guid?>());
     }
 }

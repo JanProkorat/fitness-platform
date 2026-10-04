@@ -27,7 +27,7 @@ internal sealed class CreateSubscriptionPlanEndpoint(IApplicationDbContext db)
         {
             s.Summary = "Create subscription plan";
             s.Description = "Creates a new subscription tier. Code is the immutable entitlement/Stripe mapping key.";
-            s.Responses[StatusCodes.Status201Created] = "Subscription plan created";
+            s.Response<SubscriptionPlanDto>(StatusCodes.Status201Created, "Subscription plan created");
             s.Responses[StatusCodes.Status400BadRequest] = "Invalid request body";
             s.Responses[StatusCodes.Status401Unauthorized] = "Missing or invalid credentials";
             s.Responses[StatusCodes.Status403Forbidden] = "Caller is not an Admin";

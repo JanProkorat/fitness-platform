@@ -110,4 +110,31 @@ public static class PlanWindowResolver
 
         return null;
     }
+
+    /// <summary>
+    /// Selects the plan out of <paramref name="plans"/> whose window strictly contains
+    /// <paramref name="today"/> — <see cref="IsWithinWindow"/> only, never the legacy
+    /// single-candidate unranged fallback that <see cref="ResolveCurrentPlan{T}"/> applies. An
+    /// unranged (no <c>StartDate</c>) plan never counts as current here, regardless of how many
+    /// candidates are passed.
+    /// </summary>
+    /// <remarks>
+    /// Use this for a status derivation (e.g. feeding <c>ClientStatusClassifier.Classify</c>)
+    /// that must agree across every caller regardless of legacy StartDate-less data — the
+    /// original per-caller fallback in <see cref="ResolveCurrentPlan{T}"/> exists for callers that
+    /// still want a best-effort plan to read fields off of, which a status check does not.
+    /// </remarks>
+    public static T? ResolveCurrentPlanStrict<T>(
+        IEnumerable<T> plans,
+        Func<T, DateTime?> startDateSelector,
+        Func<T, int> weekCountSelector,
+        DateOnly today)
+        where T : class
+    {
+        return plans
+            .Where(p => startDateSelector(p) is not null)
+            .Where(p => IsWithinWindow(startDateSelector(p)!.Value, weekCountSelector(p), today))
+            .OrderByDescending(p => startDateSelector(p)!.Value)
+            .FirstOrDefault();
+    }
 }

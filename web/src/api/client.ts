@@ -19,8 +19,6 @@ export type {
   GetClientsRequest,
   GetClientsResponse,
   ClientSummary,
-  InviteClientRequest,
-  InviteClientResponse,
   GetClientDashboardRequest,
   GetClientDashboardResponse,
   LatestMeasurementDto,

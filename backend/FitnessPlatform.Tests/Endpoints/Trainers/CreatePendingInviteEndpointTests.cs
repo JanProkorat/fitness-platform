@@ -7,6 +7,7 @@ using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.Trainers.PendingInvites.Create;
 using FitnessPlatform.Tests.Builders;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 
@@ -26,19 +27,47 @@ public class CreatePendingInviteEndpointTests
     private static CreatePendingInviteEndpoint CreateEndpoint(
         Application.Infrastructure.Data.IApplicationDbContext db,
         Guid callerId,
+        params string[] roles) =>
+        CreateEndpointWithSeedService(db, callerId, roles).Endpoint;
+
+    private static (CreatePendingInviteEndpoint Endpoint, IConversationSeedService ConversationSeedService, UserManager<ApplicationUser> UserManager) CreateEndpointWithSeedService(
+        Application.Infrastructure.Data.IApplicationDbContext db,
+        Guid callerId,
         params string[] roles)
     {
-        var emailService = Substitute.For<IEmailService>();
+        var harness = CreateHarness(db, callerId, roles);
+        return (harness.Endpoint, harness.ConversationSeedService, harness.UserManager);
+    }
+
+    private sealed record InviteHarness(
+        CreatePendingInviteEndpoint Endpoint,
+        IConversationSeedService ConversationSeedService,
+        UserManager<ApplicationUser> UserManager,
+        IBackgroundEmailQueue EmailQueue,
+        INotificationService NotificationService,
+        IRealtimeNotifier Notifier);
+
+    private static InviteHarness CreateHarness(
+        Application.Infrastructure.Data.IApplicationDbContext db,
+        Guid callerId,
+        params string[] roles)
+    {
+        var emailQueue = Substitute.For<IBackgroundEmailQueue>();
+        emailQueue.TryEnqueue(Arg.Any<EmailDispatchWorkItem>()).Returns(true);
         var notificationService = Substitute.For<INotificationService>();
         var notifier = Substitute.For<IRealtimeNotifier>();
+        var conversationSeedService = Substitute.For<IConversationSeedService>();
+        var userManager = EndpointTestHelpers.CreateFakeUserManager();
         var logger = Substitute.For<ILogger<CreatePendingInviteEndpoint>>();
 
-        return Factory.Create<CreatePendingInviteEndpoint>(
+        var ep = Factory.Create<CreatePendingInviteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(roles.Length > 1
                     ? MultiRoleClaims(callerId, roles)
                     : EndpointTestHelpers.FakeUserClaims(callerId, roles.FirstOrDefault() ?? AppRoles.Trainer))),
-            db, emailService, notificationService, notifier, logger);
+            db, emailQueue, notificationService, notifier, conversationSeedService, userManager, logger);
+
+        return new InviteHarness(ep, conversationSeedService, userManager, emailQueue, notificationService, notifier);
     }
 
     [Fact]
@@ -62,8 +91,6 @@ public class CreatePendingInviteEndpointTests
 
         await ep.HandleAsync(new CreatePendingInviteRequest
         {
-            FirstName = "Jane",
-            LastName = "Doe",
             Email = "jane@test.com"
         }, TestContext.Current.CancellationToken);
 
@@ -78,28 +105,19 @@ public class CreatePendingInviteEndpointTests
     }
 
     /// <summary>
-    /// claude-security F8 — superseding the #768 regression contract this test used to assert
-    /// (a chat message seeded immediately into an existing user's account for an email match
-    /// with no relationship check). That immediate seed, plus the accompanying notification and
-    /// realtime push, is exactly the abuse vector: a free professional account could drop
-    /// attacker-written text into any registered user's message stream. The side effect is now
-    /// deferred to acceptance time — this test proves the endpoint no longer writes anything into
-    /// the invited user's inbox at creation time, only the PendingInvite/InvitationToken rows and
-    /// the outbound email.
+    /// The behaviour this issue exists to enable: an invite with an email and no message at all
+    /// still succeeds now that FirstName/LastName are no longer part of the request shape.
     /// </summary>
     [Fact]
-    public async Task HandleAsync_ExistingUserWithMessage_DoesNotSeedConversationImmediately()
+    public async Task HandleAsync_EmailOnlyNoMessage_Returns200()
     {
         var trainerUser = EntityBuilder.User.WithId(_trainerId).WithEmail("trainer@test.com")
             .WithFirstName("Train").WithLastName("Er").Build();
         var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUser(trainerUser).Build();
-        var existingUser = EntityBuilder.User.WithId(Guid.NewGuid()).WithEmail("jane@test.com")
-            .WithFirstName("Jane").WithLastName("Doe").Build();
 
         var db = new MockDbBuilder()
             .With(trainerUser)
             .With(trainerProfile)
-            .With(existingUser)
             .Build();
 
         PendingInvite? captured = null;
@@ -110,17 +128,249 @@ public class CreatePendingInviteEndpointTests
 
         await ep.HandleAsync(new CreatePendingInviteRequest
         {
-            FirstName = "Jane",
-            LastName = "Doe",
+            Email = "email-only@test.com"
+        }, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+        captured.Should().NotBeNull();
+        captured!.Email.Should().Be("email-only@test.com");
+        captured.Message.Should().BeNull();
+    }
+
+    /// <summary>
+    /// MAINTAINER RULING 2026-09-23 (F8 reversed): for a VERIFIED existing CLIENT account,
+    /// the endpoint now immediately seeds the professional-client conversation with an
+    /// Invited cooperation event (plus the invite's message beneath it) — superseding the
+    /// #768/F8 regression contract this test used to assert (that nothing was seeded at
+    /// creation time). The accepted risk is documented at the call site; see the
+    /// maintainer-ruling comment in CreatePendingInviteEndpoint.HandleAsync.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_ExistingVerifiedUserWithMessage_SeedsInvitedEventImmediately()
+    {
+        var trainerUser = EntityBuilder.User.WithId(_trainerId).WithEmail("trainer@test.com")
+            .WithFirstName("Train").WithLastName("Er").Build();
+        var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUser(trainerUser).Build();
+        var existingUser = EntityBuilder.User.WithId(Guid.NewGuid()).WithEmail("jane@test.com")
+            .WithFirstName("Jane").WithLastName("Doe").Build();
+        existingUser.EmailConfirmed = true;
+        existingUser.NormalizedEmail = "JANE@TEST.COM";
+        var existingClientProfile = EntityBuilder.ClientProfile.WithId(1).WithUser(existingUser).Build();
+
+        var db = new MockDbBuilder()
+            .With(trainerUser)
+            .With(trainerProfile)
+            .With(existingUser)
+            .With(existingClientProfile)
+            .Build();
+
+        PendingInvite? captured = null;
+        db.PendingInvites.When(x => x.Add(Arg.Any<PendingInvite>()))
+            .Do(ci => captured = ci.Arg<PendingInvite>());
+
+        var (ep, conversationSeedService, userManager) = CreateEndpointWithSeedService(db, _trainerId, AppRoles.Trainer);
+        userManager.GetRolesAsync(existingUser).Returns(["Client"]);
+
+        await ep.HandleAsync(new CreatePendingInviteRequest
+        {
             Email = "jane@test.com",
             Message = "Looking forward to coaching you!"
         }, TestContext.Current.CancellationToken);
 
-        ep.HttpContext.Response.StatusCode.Should().Be(200,
-            "the invite is still created successfully — only the immediate side effect is removed");
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
         captured.Should().NotBeNull();
-        captured!.Message.Should().Be("Looking forward to coaching you!",
-            "the message is still stored on the invite for the accept-time seed to use later");
+        captured!.Message.Should().Be("Looking forward to coaching you!");
+
+        await conversationSeedService.Received(1).AppendCooperationEventAsync(
+            trainerProfile.UserId, existingUser.Id, trainerProfile.UserId,
+            ChatEventType.Invited, captured.PublicId, "Looking forward to coaching you!",
+            createConversationIfMissing: true, TestContext.Current.CancellationToken);
+    }
+
+    /// <summary>
+    /// R4: invite threads exist only for VERIFIED accounts. An existing but unverified
+    /// account gets no thread at invite-creation time — VerifyEmailEndpoint seeds the
+    /// identical rows once the account is verified.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_ExistingUnverifiedUser_DoesNotSeedConversationImmediately()
+    {
+        var trainerUser = EntityBuilder.User.WithId(_trainerId).WithEmail("trainer@test.com")
+            .WithFirstName("Train").WithLastName("Er").Build();
+        var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUser(trainerUser).Build();
+        var existingUser = EntityBuilder.User.WithId(Guid.NewGuid()).WithEmail("jane@test.com")
+            .WithFirstName("Jane").WithLastName("Doe").Build();
+        existingUser.EmailConfirmed = false;
+
+        var db = new MockDbBuilder()
+            .With(trainerUser)
+            .With(trainerProfile)
+            .With(existingUser)
+            .Build();
+
+        var (ep, conversationSeedService, _) = CreateEndpointWithSeedService(db, _trainerId, AppRoles.Trainer);
+
+        await ep.HandleAsync(new CreatePendingInviteRequest
+        {
+            Email = "jane@test.com",
+            Message = "Looking forward to coaching you!"
+        }, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+        await conversationSeedService.DidNotReceiveWithAnyArgs().AppendCooperationEventAsync(
+            default, default, default, default, default, default, default, TestContext.Current.CancellationToken);
+    }
+
+    /// <summary>
+    /// No account at all for the invited email — same no-thread outcome as an unverified
+    /// account, for the same reason (nothing exists yet to key a Conversation on).
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_NoAccountForEmail_DoesNotSeedConversation()
+    {
+        var trainerUser = EntityBuilder.User.WithId(_trainerId).WithEmail("trainer@test.com")
+            .WithFirstName("Train").WithLastName("Er").Build();
+        var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUser(trainerUser).Build();
+
+        var db = new MockDbBuilder()
+            .With(trainerUser)
+            .With(trainerProfile)
+            .Build();
+
+        var (ep, conversationSeedService, _) = CreateEndpointWithSeedService(db, _trainerId, AppRoles.Trainer);
+
+        await ep.HandleAsync(new CreatePendingInviteRequest
+        {
+            Email = "nobody-yet@test.com",
+            Message = "Looking forward to coaching you!"
+        }, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+        await conversationSeedService.DidNotReceiveWithAnyArgs().AppendCooperationEventAsync(
+            default, default, default, default, default, default, default, TestContext.Current.CancellationToken);
+    }
+
+    private static void AssertSilentInvite(InviteHarness harness, PendingInvite? captured, Application.Infrastructure.Data.IApplicationDbContext db)
+    {
+        harness.Endpoint.HttpContext.Response.StatusCode.Should().Be(200);
+        captured.Should().NotBeNull("a silent invite is still stored so the inviter's view stays uniform");
+        db.InvitationTokens.DidNotReceive().Add(Arg.Any<InvitationToken>());
+        harness.EmailQueue.DidNotReceiveWithAnyArgs().TryEnqueue(default!);
+        harness.NotificationService.ReceivedCalls().Should().BeEmpty();
+        harness.Notifier.ReceivedCalls().Should().BeEmpty();
+        harness.ConversationSeedService.ReceivedCalls().Should().BeEmpty();
+    }
+
+    /// <summary>
+    /// A Trainer-only invitee gets the normal success and a stored row, but no token, email,
+    /// notification, realtime event or conversation — the response must not reveal that the
+    /// address belongs to a coach.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_VerifiedProfessionalOnlyInvitee_StoresSilentInvite()
+    {
+        var trainerUser = EntityBuilder.User.WithId(_trainerId).WithEmail("trainer@test.com")
+            .WithFirstName("Train").WithLastName("Er").Build();
+        var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUser(trainerUser).Build();
+        var peerProfessionalUser = EntityBuilder.User.WithId(Guid.NewGuid()).WithEmail("peer@test.com")
+            .WithFirstName("Peer").WithLastName("Pro").Build();
+        peerProfessionalUser.EmailConfirmed = true;
+        peerProfessionalUser.NormalizedEmail = "PEER@TEST.COM";
+        var peerProfile = EntityBuilder.ProfessionalProfile.WithId(2).WithUser(peerProfessionalUser).Build();
+
+        var db = new MockDbBuilder()
+            .With(trainerUser)
+            .With(trainerProfile)
+            .With(peerProfessionalUser)
+            .With(peerProfile)
+            .Build();
+
+        PendingInvite? captured = null;
+        db.PendingInvites.When(x => x.Add(Arg.Any<PendingInvite>()))
+            .Do(ci => captured = ci.Arg<PendingInvite>());
+
+        var harness = CreateHarness(db, _trainerId, AppRoles.Trainer);
+        harness.UserManager.GetRolesAsync(peerProfessionalUser).Returns(["Trainer"]);
+
+        await harness.Endpoint.HandleAsync(new CreatePendingInviteRequest
+        {
+            Email = "peer@test.com",
+            Message = "Looking forward to coaching you!"
+        }, TestContext.Current.CancellationToken);
+
+        AssertSilentInvite(harness, captured, db);
+        harness.Endpoint.Response.Email.Should().Be("peer@test.com");
+    }
+
+    /// <summary>A Nutritionist-only invitee is silent too, proving both professional roles are checked.</summary>
+    [Fact]
+    public async Task HandleAsync_InviteeIsNutritionistOnly_StoresSilentInvite()
+    {
+        var trainerUser = EntityBuilder.User.WithId(_trainerId).WithEmail("trainer@test.com")
+            .WithFirstName("Train").WithLastName("Er").Build();
+        var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUser(trainerUser).Build();
+        var nutritionistUser = EntityBuilder.User.WithId(Guid.NewGuid()).WithEmail("nutri@test.com")
+            .WithFirstName("Nutri").WithLastName("Tionist").Build();
+        nutritionistUser.EmailConfirmed = true;
+        nutritionistUser.NormalizedEmail = "NUTRI@TEST.COM";
+        var nutritionistProfile = EntityBuilder.ProfessionalProfile.WithId(2).WithUser(nutritionistUser).Build();
+
+        var db = new MockDbBuilder()
+            .With(trainerUser)
+            .With(trainerProfile)
+            .With(nutritionistUser)
+            .With(nutritionistProfile)
+            .Build();
+
+        PendingInvite? captured = null;
+        db.PendingInvites.When(x => x.Add(Arg.Any<PendingInvite>()))
+            .Do(ci => captured = ci.Arg<PendingInvite>());
+
+        var harness = CreateHarness(db, _trainerId, AppRoles.Trainer);
+        harness.UserManager.GetRolesAsync(nutritionistUser).Returns(["Nutritionist"]);
+
+        await harness.Endpoint.HandleAsync(new CreatePendingInviteRequest
+        {
+            Email = "nutri@test.com"
+        }, TestContext.Current.CancellationToken);
+
+        AssertSilentInvite(harness, captured, db);
+    }
+
+    /// <summary>
+    /// A dual-role invitee (Client and Trainer) is silent as well, which also covers a coach
+    /// inviting their own email. The profession-slot check is skipped for it.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_DualRoleInvitee_StoresSilentInvite()
+    {
+        var trainerUser = EntityBuilder.User.WithId(_trainerId).WithEmail("trainer@test.com")
+            .WithFirstName("Train").WithLastName("Er").Build();
+        trainerUser.EmailConfirmed = true;
+        trainerUser.NormalizedEmail = "TRAINER@TEST.COM";
+        var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUser(trainerUser).Build();
+        var trainerClientProfile = EntityBuilder.ClientProfile.WithId(1).WithUser(trainerUser).Build();
+
+        var db = new MockDbBuilder()
+            .With(trainerUser)
+            .With(trainerProfile)
+            .With(trainerClientProfile)
+            .Build();
+
+        PendingInvite? captured = null;
+        db.PendingInvites.When(x => x.Add(Arg.Any<PendingInvite>()))
+            .Do(ci => captured = ci.Arg<PendingInvite>());
+
+        var harness = CreateHarness(db, _trainerId, AppRoles.Trainer);
+        harness.UserManager.GetRolesAsync(trainerUser).Returns(["Trainer", "Client"]);
+
+        await harness.Endpoint.HandleAsync(new CreatePendingInviteRequest
+        {
+            Email = "trainer@test.com",
+            Message = "Looking forward to coaching you!"
+        }, TestContext.Current.CancellationToken);
+
+        AssertSilentInvite(harness, captured, db);
     }
 
     [Fact]
@@ -131,8 +381,6 @@ public class CreatePendingInviteEndpointTests
 
         var act = () => ep.HandleAsync(new CreatePendingInviteRequest
         {
-            FirstName = "Jane",
-            LastName = "Doe",
             Email = "jane@test.com"
         }, TestContext.Current.CancellationToken);
 
@@ -168,8 +416,6 @@ public class CreatePendingInviteEndpointTests
 
         await ep.HandleAsync(new CreatePendingInviteRequest
         {
-            FirstName = "Jane",
-            LastName = "Doe",
             Email = "jane@test.com",
             RequestedScope = LinkCapabilityScope.TrainingOnly
         }, TestContext.Current.CancellationToken);
@@ -203,8 +449,6 @@ public class CreatePendingInviteEndpointTests
 
         var act = () => ep.HandleAsync(new CreatePendingInviteRequest
         {
-            FirstName = "Jane",
-            LastName = "Doe",
             Email = "jane@test.com",
             RequestedScope = LinkCapabilityScope.NutritionOnly
         }, TestContext.Current.CancellationToken);
@@ -231,8 +475,6 @@ public class CreatePendingInviteEndpointTests
         var existingInvite = new PendingInvite
         {
             ProfessionalProfileId = trainerProfile.Id,
-            FirstName = "Jane",
-            LastName = "Doe",
             Email = "jane@test.com",
             SentAt = DateTime.UtcNow.AddDays(-1),
             IsAccepted = false
@@ -252,8 +494,6 @@ public class CreatePendingInviteEndpointTests
 
         await ep.HandleAsync(new CreatePendingInviteRequest
         {
-            FirstName = "Jane",
-            LastName = "Doe",
             Email = "jane@test.com"
         }, TestContext.Current.CancellationToken);
 
@@ -275,8 +515,6 @@ public class CreatePendingInviteEndpointTests
         var existingInvite = new PendingInvite
         {
             ProfessionalProfileId = trainerProfile.Id,
-            FirstName = "Someone",
-            LastName = "Else",
             Email = "someone-else@test.com",
             SentAt = DateTime.UtcNow.AddDays(-1),
             IsAccepted = false
@@ -292,8 +530,6 @@ public class CreatePendingInviteEndpointTests
 
         await ep.HandleAsync(new CreatePendingInviteRequest
         {
-            FirstName = "Jane",
-            LastName = "Doe",
             Email = "jane@test.com"
         }, TestContext.Current.CancellationToken);
 
@@ -314,8 +550,6 @@ public class CreatePendingInviteEndpointTests
         var acceptedInvite = new PendingInvite
         {
             ProfessionalProfileId = trainerProfile.Id,
-            FirstName = "Jane",
-            LastName = "Doe",
             Email = "jane@test.com",
             SentAt = DateTime.UtcNow.AddDays(-30),
             IsAccepted = true
@@ -331,8 +565,6 @@ public class CreatePendingInviteEndpointTests
 
         await ep.HandleAsync(new CreatePendingInviteRequest
         {
-            FirstName = "Jane",
-            LastName = "Doe",
             Email = "jane@test.com"
         }, TestContext.Current.CancellationToken);
 
@@ -358,8 +590,6 @@ public class CreatePendingInviteEndpointTests
             builder = builder.With(new PendingInvite
             {
                 ProfessionalProfileId = trainerProfile.Id,
-                FirstName = "Existing",
-                LastName = $"Invitee{i}",
                 Email = $"existing{i}@test.com",
                 SentAt = DateTime.UtcNow.AddDays(-1),
                 IsAccepted = false
@@ -376,8 +606,6 @@ public class CreatePendingInviteEndpointTests
 
         await ep.HandleAsync(new CreatePendingInviteRequest
         {
-            FirstName = "One",
-            LastName = "Too Many",
             Email = "one-too-many@test.com"
         }, TestContext.Current.CancellationToken);
 
@@ -404,8 +632,6 @@ public class CreatePendingInviteEndpointTests
             builder = builder.With(new PendingInvite
             {
                 ProfessionalProfileId = trainerProfile.Id,
-                FirstName = "Existing",
-                LastName = $"Invitee{i}",
                 Email = $"existing{i}@test.com",
                 SentAt = DateTime.UtcNow.AddDays(-1),
                 IsAccepted = false
@@ -418,8 +644,6 @@ public class CreatePendingInviteEndpointTests
 
         await ep.HandleAsync(new CreatePendingInviteRequest
         {
-            FirstName = "Jane",
-            LastName = "Doe",
             Email = "jane@test.com"
         }, TestContext.Current.CancellationToken);
 

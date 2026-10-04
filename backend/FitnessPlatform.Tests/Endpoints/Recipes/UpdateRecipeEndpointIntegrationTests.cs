@@ -70,20 +70,7 @@ public class UpdateRecipeEndpointIntegrationTests(FitnessApiFactory factory)
             }, cancellationToken: ct);
         }
 
-        TestHelpers.SetBearerToken(client, accessToken);
-
-        var foodResponse = await client.PostAsJsonAsync("/foods", new
-        {
-            Name = $"Test Food {Guid.NewGuid():N}",
-            NutrientValue = new { Kcal = 100m, Protein = 20m, Carbs = 0m, Fat = 2m },
-            Allergens = Array.Empty<string>(),
-            CommonServings = Array.Empty<object>()
-        }, ct);
-
-        foodResponse.StatusCode.Should().Be(HttpStatusCode.Created,
-            "food creation must succeed so the recipe update can reference it");
-
-        var foodBody = await foodResponse.Content.ReadFromJsonAsync<FoodRef>(cancellationToken: ct);
+        var foodId = await TestHelpers.CreateFoodAsync(client, accessToken, ct, kcal: 100m, protein: 20m, carbs: 0m, fat: 2m);
 
         var response = await client.PutAsJsonAsync(
             $"/recipes/{recipeId}",
@@ -91,9 +78,10 @@ public class UpdateRecipeEndpointIntegrationTests(FitnessApiFactory factory)
             {
                 Version = 1,
                 Name = "Updated Legacy Recipe",
+                MealTypes = new[] { "Lunch" },
                 Foods = new[]
                 {
-                    new { FoodExternalId = foodBody!.FoodId, AmountGrams = 100m }
+                    new { FoodExternalId = foodId, AmountGrams = 100m }
                 }
             },
             ct);
@@ -107,8 +95,6 @@ public class UpdateRecipeEndpointIntegrationTests(FitnessApiFactory factory)
         body!.Version.Should().Be(2,
             "the version field is stored for the first time on this write and bumped to 2");
     }
-
-    private record FoodRef(Guid FoodId);
 
     private record RecipeVersionRef(int Version);
 }

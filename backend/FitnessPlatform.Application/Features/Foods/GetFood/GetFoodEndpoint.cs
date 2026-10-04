@@ -3,6 +3,7 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.Foods.Shared;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using MongoDB.Driver;
@@ -25,6 +26,8 @@ public class GetFoodEndpoint(IMongoContext mongo) : Endpoint<GetFoodRequest, Foo
             s.Description = "Returns a single food item by its public identifier. "
                 + "Private foods are only accessible to their creator; other nutritionists receive 404. "
                 + "Clients can still read private foods referenced by their nutrition plans.";
+            s.Response<FoodSummary>(StatusCodes.Status200OK, "Food detail");
+            s.Responses[StatusCodes.Status404NotFound] = "Food not found, soft-deleted, or not visible to the caller";
         });
     }
 
@@ -68,6 +71,11 @@ public class GetFoodEndpoint(IMongoContext mongo) : Endpoint<GetFoodRequest, Foo
         var language = HttpContext.Request.Headers.AcceptLanguage.FirstOrDefault()
             ?.Split(',').FirstOrDefault()?.Trim().Split('-').FirstOrDefault();
 
-        await Send.OkAsync(FoodSummary.FromDocument(food, language, currentUserId), ct);
+        var tags = currentUserId.HasValue
+            ? (await FoodTagLookup.GetTagsByFoodIdAsync(mongo, currentUserId.Value, [food.ExternalId], ct))
+                .GetValueOrDefault(food.ExternalId, [])
+            : [];
+
+        await Send.OkAsync(FoodSummary.FromDocument(food, language, currentUserId, tags), ct);
     }
 }

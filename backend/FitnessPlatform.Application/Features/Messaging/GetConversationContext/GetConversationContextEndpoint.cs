@@ -70,6 +70,15 @@ public class GetConversationContextEndpoint(IApplicationDbContext db, UserManage
             return;
         }
 
+        // A coach-role invitee never sees the invite banner: invites addressed to a coaching
+        // account are silent rows it can neither see nor act on.
+        if (userGuid == conversation.ClientUserId &&
+            (User.IsInRole(AppRoles.Trainer) || User.IsInRole(AppRoles.Nutritionist)))
+        {
+            await Send.NoContentAsync(ct);
+            return;
+        }
+
         // Check for pending invite
         var pendingInvite = await db.PendingInvites
             .AsNoTracking()

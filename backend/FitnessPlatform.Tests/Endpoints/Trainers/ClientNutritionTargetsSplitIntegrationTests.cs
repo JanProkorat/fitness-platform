@@ -1,5 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Features.Trainers.GetClientDashboard;
@@ -24,6 +26,16 @@ namespace FitnessPlatform.Tests.Endpoints.Trainers;
 [Collection(TestCollection.Name)]
 public class ClientNutritionTargetsSplitIntegrationTests(FitnessApiFactory factory)
 {
+    // The API serializes enums as strings (JsonStringEnumConverter globally), so use matching
+    // deserialization options here — GetClientDashboardResponse.Status (#1094) is this response's
+    // first raw enum-typed property; the bare ReadFromJsonAsync<T>() default options that read
+    // every other field here fine cannot convert an enum's string representation.
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        Converters = { new JsonStringEnumConverter() }
+    };
+
     private static string UniqueEmail(string tag) => $"{Guid.NewGuid():N}@nutrition-targets-{tag}.com";
 
     private async Task<(HttpClient Http, long ProfessionalProfileId)> SetupTrainerAsync()
@@ -157,7 +169,7 @@ public class ClientNutritionTargetsSplitIntegrationTests(FitnessApiFactory facto
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var body = await response.Content.ReadFromJsonAsync<GetClientDashboardResponse>(
-            cancellationToken: TestContext.Current.CancellationToken);
+            JsonOptions, TestContext.Current.CancellationToken);
 
         body!.Onboarding.Should().NotBeNull();
         body.Onboarding!.DerivedActivityLevel.Should().Be(ActivityLevel.ModeratelyActive.ToString());
@@ -202,7 +214,7 @@ public class ClientNutritionTargetsSplitIntegrationTests(FitnessApiFactory facto
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var body = await response.Content.ReadFromJsonAsync<GetClientDashboardResponse>(
-            cancellationToken: TestContext.Current.CancellationToken);
+            JsonOptions, TestContext.Current.CancellationToken);
 
         body!.Onboarding.Should().NotBeNull();
         body.Onboarding!.DerivedActivityLevel.Should().BeNull();

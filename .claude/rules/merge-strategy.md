@@ -1,7 +1,11 @@
 # Rules: Merge strategy & gate
 
 The merge gate has two sub-rules depending on the PR's base branch.
-`pr-reviewer` performs the merge once authorised; never the dev agents.
+`pr-reviewer` **clears** the merge — CI on the exact head, base current,
+exclusion list, stacked PRs, strategy — and hands back a pinned
+`gh pr merge … --match-head-commit <sha>` command. The **main thread
+runs it**: `deny-subagent-merge.py` blocks `gh pr merge` and `git push`
+for every subagent, by design. Dev agents never merge.
 
 ## Strategy mapping
 
@@ -38,10 +42,15 @@ When `pr-reviewer` returns ✅ READY FOR MERGE on a PR whose base is an
 - The merge exclusion list still applies absolutely — see
   [#exclusion-list](#exclusion-list).
 - Strategy from the `type:*` label, same mapping as above.
-- After the merge, `pr-reviewer` syncs the epic branch locally
-  (`git checkout <epic-branch> && git pull --ff-only`, sub-issue
-  branch deleted best-effort), then the orchestrator rebases any
-  in-flight sibling sub-issue branches onto the fresh epic-branch tip.
+- After the merge, the orchestrator fast-forwards the local epic branch
+  (`git pull --ff-only`, never a hard reset), deletes the sub-issue
+  branch best-effort, tears down its compose harness, removes its
+  worktree, and merges the fresh epic-branch tip into any in-flight
+  sibling sub-issue branches (merge + normal push — never rebase and
+  force-push).
+- **Close the sub-issue by hand** via `github-issues`. `Fixes #<N>`
+  only fires on merges into the default branch, never into an epic
+  branch.
 - `notion-docs` is **not** dispatched per sub-issue. It runs once
   after the epic ships to `develop`.
 
@@ -74,20 +83,22 @@ to merge:
 
 ### Merge dispatch
 
-1. Orchestrator re-dispatches `pr-reviewer` with the explicit
-   authorization and the instruction to merge.
-2. `pr-reviewer` first checks the [#exclusion-list](#exclusion-list).
-   If the PR hits any exclusion, it refuses to merge and returns
-   BLOCKED with the reason — the user merges those manually.
-3. Otherwise `pr-reviewer` picks the merge strategy from the
-   `type:*` label (see top of file) and runs
-   `gh pr merge <n> <strategy> --delete-branch`.
-4. Verify the merge landed, sync the local `develop`
-   (`git checkout develop && git pull --ff-only`, local feature/epic
-   branch deleted best-effort), return MERGED with the resulting
-   commit SHA. Sync failures (dirty tree, non-ff local `develop`)
-   surface as a ⚠️ warning on the otherwise-successful verdict — not
-   a rollback; the merge already landed.
+1. Orchestrator re-dispatches `pr-reviewer` in `mode: merge` with the
+   explicit authorization phrase.
+2. `pr-reviewer` checks the [#exclusion-list](#exclusion-list). If the
+   PR hits any exclusion, it returns BLOCKED with the reason — the
+   user merges those manually.
+3. Otherwise it confirms CI on the exact head, that the base hasn't
+   moved under the green run, and that no PRs are stacked on the
+   branch, picks the strategy from the `type:*` label (see top of
+   file), and returns CLEARED TO MERGE with the command
+   `gh pr merge <n> <strategy> --delete-branch --match-head-commit <sha>`.
+4. The **main thread** runs that command, confirms the merge landed
+   (`gh pr view <n> --json state,mergeCommit`), fast-forwards the
+   local base (`git pull --ff-only`, never a hard reset), deletes the
+   local branch best-effort and removes the worktree. A failed
+   fast-forward (dirty tree, local commits) is a ⚠️ warning to the
+   user, not a rollback — the merge already landed.
 5. Orchestrator dispatches `notion-docs` (update mode) to document
    the change. For an epic merge the docs entry covers all the
    sub-issues that landed in the consolidated commit — not one per

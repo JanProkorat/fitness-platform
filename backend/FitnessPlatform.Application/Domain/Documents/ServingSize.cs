@@ -8,7 +8,9 @@ namespace FitnessPlatform.Application.Domain.Documents;
 public class ServingSize
 {
     /// <summary>
-    /// Human-readable label (e.g. "1 medium banana", "1 slice").
+    /// For seeded foods, a <see cref="FitnessPlatform.Application.Domain.Constants.ServingUnits"/>
+    /// key (e.g. "piece", "slice"), translated client-side. Legacy owned foods may still carry
+    /// free text (e.g. "1 bar (~60g)").
     /// </summary>
     [BsonElement("label")]
     public string Label { get; set; } = string.Empty;

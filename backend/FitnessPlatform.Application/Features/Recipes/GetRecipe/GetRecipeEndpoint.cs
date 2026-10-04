@@ -2,7 +2,7 @@ using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
-using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.Recipes.Shared;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using MongoDB.Driver;
@@ -44,18 +44,8 @@ public class GetRecipeEndpoint(IMongoContext mongo)
 
         var nutritionistId = Guid.Parse(userId);
 
-        var filterBuilder = Builders<Recipe>.Filter;
-
-        // Mirrors LibrarySearchHelper.SearchAsync's Guid.Empty refusal (#992): the ownership term
-        // is suppressed entirely for an empty caller id, so a document that explicitly stores a
-        // zero-uuid owner can't be matched as "owned by the caller" below.
-        var visibilityFilter = nutritionistId == Guid.Empty
-            ? filterBuilder.Eq(r => r.Visibility, RecipeVisibility.Public)
-            : filterBuilder.Or(
-                filterBuilder.Eq(r => r.NutritionistId, nutritionistId),
-                filterBuilder.Eq(r => r.Visibility, RecipeVisibility.Public));
-
-        var filter = filterBuilder.Eq(r => r.ExternalId, req.RecipeId) & visibilityFilter;
+        var filter = Builders<Recipe>.Filter.Eq(r => r.ExternalId, req.RecipeId)
+            & RecipeVisibilityFilter.BuildOwnOrPublic(nutritionistId);
 
         using var cursor = await mongo.Recipes.FindAsync(filter, cancellationToken: ct);
         var recipe = await cursor.FirstOrDefaultAsync(ct);
@@ -75,6 +65,11 @@ public class GetRecipeEndpoint(IMongoContext mongo)
 
         var language = HttpContext.Request.Headers.AcceptLanguage.FirstOrDefault()?.Split(',').FirstOrDefault()?.Trim().Split('-').FirstOrDefault();
 
-        await Send.OkAsync(GetRecipeResponse.FromDocument(recipe, foodLookup, language, nutritionistId), ct);
+        var response = GetRecipeResponse.FromDocument(recipe, foodLookup, language, nutritionistId);
+
+        var tagsByRecipeId = await FoodTagLookup.GetTagsByRecipeIdAsync(mongo, nutritionistId, [recipe.ExternalId], ct);
+        response.Tags = tagsByRecipeId.GetValueOrDefault(recipe.ExternalId, []);
+
+        await Send.OkAsync(response, ct);
     }
 }

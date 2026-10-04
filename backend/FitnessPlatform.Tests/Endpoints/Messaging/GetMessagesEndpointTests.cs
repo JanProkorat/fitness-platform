@@ -1,7 +1,10 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Tests.Infrastructure;
 using Microsoft.EntityFrameworkCore;
@@ -20,6 +23,14 @@ public class GetMessagesEndpointTests(FitnessApiFactory factory)
 {
     private static string UniqueEmail() => $"{Guid.NewGuid():N}@getmsg-test.com";
     private const string Password = "TestPass1!";
+
+    // The API serializes enums as strings (JsonStringEnumConverter globally), so use matching
+    // client-side options wherever a response includes Kind/EventType.
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        Converters = { new JsonStringEnumConverter() },
+    };
 
     // ── helpers ──────────────────────────────────────────────────────────────
 
@@ -56,6 +67,9 @@ public class GetMessagesEndpointTests(FitnessApiFactory factory)
         var (clientToken, _) = await TestHelpers.LoginAsync(clientHttp, clientEmail, Password);
         TestHelpers.SetBearerToken(clientHttp, clientToken);
 
+        // A live link is required to start a NEW conversation — see StartConversationEndpoint.
+        await LinkAsync(trainerEmail, clientEmail);
+
         // Start conversation
         var convResp = await clientHttp.PostAsJsonAsync(
             "/conversations",
@@ -66,6 +80,36 @@ public class GetMessagesEndpointTests(FitnessApiFactory factory)
         var conversationId = convBody!.Id;
 
         return (trainerHttp, clientHttp, conversationId);
+    }
+
+    /// <summary>
+    /// Creates a live <c>ClientProfessionalLink</c> between the two registered users so
+    /// <c>POST /conversations</c> can start a NEW conversation — a first message requires a
+    /// currently live link (StartConversationEndpoint, #1095).
+    /// </summary>
+    private async Task LinkAsync(string trainerEmail, string clientEmail)
+    {
+        var ct = TestContext.Current.CancellationToken;
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var trainerUserId = (await db.Users.FirstAsync(u => u.Email == trainerEmail, ct)).Id;
+        var clientUserId = (await db.Users.FirstAsync(u => u.Email == clientEmail, ct)).Id;
+        var clientProfile = await db.ClientProfiles.FirstAsync(cp => cp.UserId == clientUserId, ct);
+        var professionalProfile = await db.ProfessionalProfiles.FirstAsync(pp => pp.UserId == trainerUserId, ct);
+
+        db.ClientProfessionalLinks.Add(new ClientProfessionalLink
+        {
+            PublicId = Guid.NewGuid(),
+            ProfessionalProfileId = professionalProfile.Id,
+            ClientProfileId = clientProfile.Id,
+            ProfessionalRole = UserRole.Trainer,
+            IsActive = true,
+            CanViewNutritionPlans = true,
+            CanViewTrainingPlans = true,
+            DateCreated = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync(ct);
     }
 
     /// <summary>
@@ -178,7 +222,7 @@ public class GetMessagesEndpointTests(FitnessApiFactory factory)
             $"/conversations/{conversationId}/messages?limit=1",
             ct);
         page1Resp.StatusCode.Should().Be(HttpStatusCode.OK);
-        var page1 = await page1Resp.Content.ReadFromJsonAsync<MessagesResponse>(cancellationToken: ct);
+        var page1 = await page1Resp.Content.ReadFromJsonAsync<MessagesResponse>(JsonOptions, ct);
         page1.Should().NotBeNull();
         page1!.Items.Should().HaveCount(1);
 
@@ -190,7 +234,7 @@ public class GetMessagesEndpointTests(FitnessApiFactory factory)
             $"/conversations/{conversationId}/messages?limit=1&cursor={cursor1}",
             ct);
         page2Resp.StatusCode.Should().Be(HttpStatusCode.OK);
-        var page2 = await page2Resp.Content.ReadFromJsonAsync<MessagesResponse>(cancellationToken: ct);
+        var page2 = await page2Resp.Content.ReadFromJsonAsync<MessagesResponse>(JsonOptions, ct);
         page2.Should().NotBeNull();
         page2!.Items.Should().HaveCount(1, "the second tied message must not be dropped at the page boundary");
 
@@ -202,7 +246,7 @@ public class GetMessagesEndpointTests(FitnessApiFactory factory)
             $"/conversations/{conversationId}/messages?limit=1&cursor={cursor2}",
             ct);
         page3Resp.StatusCode.Should().Be(HttpStatusCode.OK);
-        var page3 = await page3Resp.Content.ReadFromJsonAsync<MessagesResponse>(cancellationToken: ct);
+        var page3 = await page3Resp.Content.ReadFromJsonAsync<MessagesResponse>(JsonOptions, ct);
         page3.Should().NotBeNull();
         page3!.Items.Should().HaveCount(1, "the third message must not be dropped");
 
@@ -266,9 +310,72 @@ public class GetMessagesEndpointTests(FitnessApiFactory factory)
     /// <summary>
     /// Unauthenticated request gets 401 — auth check preserved.
     /// </summary>
+
+    /// <summary>
+    /// A directly-seeded <see cref="ChatMessageKind.Event"/> row surfaces its
+    /// <c>Kind</c>/<c>EventType</c> through the response — #1100 C6.
+    /// </summary>
+    [Fact]
+    public async Task GetMessages_EventRow_ReturnsKindAndEventType()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (_, clientHttp, conversationId) = await SetupConversationAsync();
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var conv = await db.Conversations.FirstAsync(c => c.PublicId == conversationId, ct);
+            db.ChatMessages.Add(new ChatMessage
+            {
+                ConversationId = conv.Id,
+                SenderUserId = conv.ClientUserId,
+                Kind = ChatMessageKind.Event,
+                EventType = ChatEventType.Accepted,
+                Text = "Jane Doe accepted the collaboration.",
+                IsRead = false,
+            });
+            await db.SaveChangesAsync(ct);
+        }
+
+        var resp = await clientHttp.GetAsync($"/conversations/{conversationId}/messages", ct);
+        resp.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await resp.Content.ReadFromJsonAsync<MessagesResponse>(JsonOptions, ct);
+
+        var eventItem = body!.Items.Should().ContainSingle(m => m.Kind == ChatMessageKind.Event).Subject;
+        eventItem.EventType.Should().Be(ChatEventType.Accepted);
+    }
+
+    /// <summary>
+    /// A plain message sent through the real endpoint — no explicit Kind/EventType set by the
+    /// writer — surfaces as <see cref="ChatMessageKind.Text"/> with a null <c>EventType</c>. No
+    /// back-fill exists (#1100 C6, RULING 9): the entity's <c>Kind</c> default (0 = Text) is what
+    /// makes an old, pre-#1100 row read correctly with no data migration.
+    /// </summary>
+    [Fact]
+    public async Task GetMessages_PlainTextRow_DefaultsToKindText_WithNullEventType()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (trainerHttp, clientHttp, conversationId) = await SetupConversationAsync();
+
+        var sendResp = await trainerHttp.PostAsJsonAsync(
+            $"/conversations/{conversationId}/messages",
+            new { ConversationId = conversationId, Text = "Hello!" }, ct);
+        sendResp.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var resp = await clientHttp.GetAsync($"/conversations/{conversationId}/messages", ct);
+        resp.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await resp.Content.ReadFromJsonAsync<MessagesResponse>(JsonOptions, ct);
+
+        var textItem = body!.Items.Should().ContainSingle().Subject;
+        textItem.Kind.Should().Be(ChatMessageKind.Text);
+        textItem.EventType.Should().BeNull();
+    }
+
     // ── local response DTOs (per slice rules — no cross-feature imports) ──────
 
-    private record MessageItemDto(Guid Id, Guid SenderId, string Text, DateTime Timestamp, bool IsRead);
+    private record MessageItemDto(
+        Guid Id, Guid SenderId, string Text, DateTime Timestamp, bool IsRead,
+        ChatMessageKind Kind, ChatEventType? EventType);
     private record MessagesResponse(List<MessageItemDto> Items, Guid? Cursor);
     private record ConversationResponse(Guid Id);
 }

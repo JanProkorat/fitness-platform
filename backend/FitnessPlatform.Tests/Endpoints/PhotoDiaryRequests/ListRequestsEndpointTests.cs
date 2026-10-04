@@ -85,8 +85,6 @@ public class ListRequestsEndpointTests(FitnessApiFactory factory)
         var invite = new PendingInvite
         {
             ProfessionalProfileId = profProfile.Id,
-            FirstName = "Jane",
-            LastName = "Doe",
             Email = inviteeEmail,
             SentAt = DateTime.UtcNow,
             IsAccepted = false,

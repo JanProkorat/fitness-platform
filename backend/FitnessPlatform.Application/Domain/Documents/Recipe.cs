@@ -113,13 +113,42 @@ public class Recipe
     public DateTime? DateUpdated { get; set; }
 
     /// <summary>
-    /// Meal types this recipe is suited for (e.g. "breakfast", "lunch", "dinner", "dessert").
-    /// Additive/optional — absent on legacy documents, no backfill needed. No UI consumes this
-    /// yet (follow-up issue).
+    /// Meal types this recipe is suited for, stored as <see cref="RecipeMealType"/> names. Older
+    /// documents may hold lowercase spellings ("breakfast"); readers parse case-insensitively and
+    /// filters match both spellings. Absent on some legacy documents.
     /// </summary>
     [BsonElement("mealTypes")]
     [BsonIgnoreIfNull]
     public List<string>? MealTypes { get; set; }
+
+    /// <summary>
+    /// Number of servings the recipe yields. Legacy documents without the field read as 1.
+    /// </summary>
+    [BsonElement("servings")]
+    public int Servings { get; set; } = 1;
+
+    /// <summary>
+    /// Preparation difficulty, if set.
+    /// </summary>
+    [BsonElement("difficulty")]
+    [BsonRepresentation(BsonType.String)]
+    [BsonIgnoreIfNull]
+    public RecipeDifficulty? Difficulty { get; set; }
+
+    /// <summary>
+    /// Cooking time in minutes, separate from <see cref="PrepTimeMinutes"/>.
+    /// </summary>
+    [BsonElement("cookTimeMinutes")]
+    [BsonIgnoreIfNull]
+    public int? CookTimeMinutes { get; set; }
+
+    /// <summary>
+    /// Dietary preferences the recipe satisfies. Stores <see cref="DietaryPreference"/> names as plain
+    /// strings — see <see cref="Services.FoodEnumListMapping"/>. Allergens are never stored; they are derived
+    /// on read from the ingredient foods.
+    /// </summary>
+    [BsonElement("dietaryPreferences")]
+    public List<string> DietaryPreferences { get; set; } = [];
 
     /// <summary>
     /// Optimistic concurrency version. Incremented on each update.

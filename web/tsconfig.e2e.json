@@ -2,7 +2,10 @@
   "compilerOptions": {
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.e2e.tsbuildinfo",
     "target": "ES2023",
-    "lib": ["ES2023"],
+    /* DOM is needed for page.evaluate() callbacks that read browser globals
+       (document/window) — see shell.responsive.spec.ts (#1073). It only
+       affects type-checking of these test files, not the app bundle. */
+    "lib": ["ES2023", "DOM"],
     "module": "ESNext",
     "types": ["node"],
     "skipLibCheck": true,

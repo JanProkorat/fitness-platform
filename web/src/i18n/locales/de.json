@@ -1,5 +1,6 @@
 {
   "common": {
+    "appName": "GoodFellas",
     "loading": "Laden...",
     "save": "Änderungen speichern",
     "saving": "Speichern...",
@@ -177,10 +178,20 @@
     "comingSoon": "Mobile App kommt bald",
     "comingSoonHint": "Wir arbeiten an der mobilen GF Platform App. Bleiben Sie dran!"
   },
+  "shell": {
+    "comingSoon": "Diese Seite ist in Vorbereitung.",
+    "notFoundTitle": "Seite nicht gefunden",
+    "notFoundBody": "Die gesuchte Seite existiert nicht.",
+    "backToClients": "Zurück zu Klienten",
+    "openNavigation": "Navigation öffnen",
+    "navigationTitle": "Navigation"
+  },
   "sidebar": {
     "dashboard": "Dashboard",
     "profile": "Profil",
     "clients": "Klienten",
+    "inbox": "Nachrichten",
+    "ingredients": "Zutaten",
     "foods": "Lebensmittel",
     "plans": "Pläne",
     "settings": "Einstellungen",
@@ -192,6 +203,9 @@
     "clientsSection": "KLIENTEN",
     "searchClients": "Klient suchen...",
     "databaseSection": "DATENBANK",
+    "clientManagementSection": "Klientenverwaltung",
+    "nutritionSection": "Ernährung",
+    "help": "Hilfe & Support",
     "trainingPlan": "Trainingsplan",
     "mealPlan": "Ernährungsplan",
     "questionnaires": "Fragebögen",
@@ -213,6 +227,12 @@
     "planSubmenu": {
       "empty": "Noch keine Pläne"
     }
+  },
+  "roles": {
+    "admin": "Administrator",
+    "trainer": "Personal Trainer",
+    "nutritionist": "Ernährungsberater",
+    "client": "Klient"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -296,6 +316,85 @@
   "clients": {
     "title": "Klienten",
     "subtitle": "Verwaltung und Übersicht der Klienten",
+    "tabs": {
+      "active": "Aktiv",
+      "paused": "Pausiert",
+      "archived": "Archiviert",
+      "pending": "Ausstehend"
+    },
+    "searchPlaceholder": "Klienten suchen...",
+    "chips": {
+      "groupLabel": "Klienten filtern",
+      "all": "Alle",
+      "unreadMessages": "Ungelesene Nachrichten",
+      "noMessages": "Keine Nachrichten",
+      "newCheckIns": "Neue Check-ins",
+      "missingCheckIns": "Fehlende Check-ins",
+      "endingSoon": "Endet bald"
+    },
+    "tagFilter": {
+      "label": "Tags auswählen",
+      "empty": "Sie haben noch keine Tags erstellt."
+    },
+    "table": {
+      "columnClient": "Klient",
+      "columnStatus": "Status",
+      "columnTags": "Tags",
+      "columnUnread": "Ungelesen",
+      "columnPlans": "Pläne",
+      "unreadTooltip_one": "{{count}} ungelesene Nachricht",
+      "unreadTooltip_other": "{{count}} ungelesene Nachrichten",
+      "activePlanCount_one": "{{count}} aktiver Plan",
+      "activePlanCount_other": "{{count}} aktive Pläne",
+      "noActivePlans": "Keine aktiven Pläne",
+      "planType": {
+        "nutrition": "Ernährung",
+        "training": "Training"
+      },
+      "selectAll": "Alle Klienten auf dieser Seite auswählen",
+      "selectRow": "{{name}} auswählen"
+    },
+    "rowMenu": {
+      "open": "Zeilenmenü öffnen",
+      "viewDetail": "Klientendetail öffnen"
+    },
+    "noResultsForFilters": "Keine Klienten entsprechen Ihren Filtern.",
+    "clearFilters": "Filter zurücksetzen",
+    "retry": "Erneut versuchen",
+    "pagination": {
+      "viewing": "Anzeige {{count}} von {{total}}"
+    },
+    "pendingTable": {
+      "columnName": "Name",
+      "columnEmail": "E-Mail",
+      "columnType": "Typ",
+      "columnSentAt": "Gesendet",
+      "kindInvite": "Einladung gesendet",
+      "kindRequest": "Anfrage erhalten",
+      "empty": "Keine ausstehenden Einladungen oder Anfragen.",
+      "accept": "Annehmen",
+      "reject": "Ablehnen",
+      "cancel": "Abbrechen"
+    },
+    "tags": {
+      "createError": "Tag konnte nicht erstellt werden. Bitte versuchen Sie es erneut.",
+      "updateError": "Tag konnte nicht aktualisiert werden. Bitte versuchen Sie es erneut.",
+      "deleteError": "Tag konnte nicht gelöscht werden. Bitte versuchen Sie es erneut.",
+      "assignError": "Tags des Klienten konnten nicht aktualisiert werden. Bitte versuchen Sie es erneut."
+    },
+    "broadcast": {
+      "success": "Nachricht gesendet.",
+      "error": "Nachricht konnte nicht gesendet werden. Bitte versuchen Sie es erneut."
+    },
+    "addClient": {
+      "success": "Einladung gesendet.",
+      "error": "Einladung konnte nicht gesendet werden. Bitte versuchen Sie es erneut."
+    },
+    "pending": {
+      "cancelError": "Einladung konnte nicht storniert werden. Bitte versuchen Sie es erneut.",
+      "acceptError": "Anfrage konnte nicht angenommen werden. Bitte versuchen Sie es erneut.",
+      "rejectError": "Anfrage konnte nicht abgelehnt werden. Bitte versuchen Sie es erneut."
+    },
     "inviteClient": "+ Klient einladen",
     "inviteNewClient": "Neuen Klienten einladen",
     "inviteSent": "Einladung gesendet!",
@@ -307,7 +406,6 @@
     "backToClients": "Klienten",
     "clientDetail": "Klientendetail",
     "comingSoon": "Demnächst verfügbar",
-    "comingSoonHint": "Klientendetail wird in der nächsten Phase verfügbar sein",
     "overview": "Übersicht",
     "compliance": "Compliance",
     "streak": "Tage-Serie",
@@ -471,6 +569,63 @@
       "Cut": "Reduktion (Defizit)",
       "Maintain": "Erhaltung",
       "Bulk": "Aufbau (Überschuss)"
+    },
+    "selectionBar": {
+      "count_one": "{{count}} Klient ausgewählt",
+      "count_other": "{{count}} Klienten ausgewählt",
+      "broadcast": "Nachricht senden",
+      "cancel": "Abbrechen"
+    },
+    "broadcastDrawer": {
+      "title": "Nachricht an mehrere Klienten",
+      "description_one": "Diese Nachricht an {{count}} ausgewählten Klienten senden.",
+      "description_other": "Diese Nachricht an {{count}} ausgewählte Klienten senden.",
+      "placeholder": "Nachricht eingeben...",
+      "insertFirstName": "Vorname einfügen",
+      "insertFullName": "Vollständigen Namen einfügen",
+      "send": "Senden",
+      "validation": {
+        "textRequired": "Nachrichtentext ist erforderlich."
+      }
+    },
+    "tagPicker": {
+      "open": "Tags zuweisen",
+      "createTag": "Tag erstellen",
+      "createTitle": "Neuen Tag erstellen",
+      "createDescription": "Tags helfen Ihnen, Ihre Klienten zu gruppieren und zu filtern.",
+      "nameLabel": "Name",
+      "namePlaceholder": "Tag-Namen eingeben",
+      "colorLabel": "Farbe",
+      "descriptionLabel": "Beschreibung",
+      "descriptionPlaceholder": "Tag-Beschreibung eingeben",
+      "previewLabel": "Vorschau",
+      "previewSampleName": "Tag-Vorschau",
+      "createSubmit": "Tag erstellen",
+      "colors": {
+        "red": "Rot",
+        "orange": "Orange",
+        "yellow": "Gelb",
+        "green": "Grün",
+        "blue": "Blau",
+        "purple": "Violett",
+        "pink": "Rosa",
+        "grey": "Grau"
+      },
+      "validation": {
+        "nameRequired": "Tagname ist erforderlich.",
+        "colorInvalid": "Geben Sie eine gültige Hex-Farbe ein (z. B. #3B82F6)."
+      }
+    },
+    "addClientDrawer": {
+      "title": "Neuen Klienten einladen",
+      "description": "Der Klient erhält eine E-Mail-Einladung, ein Konto zu erstellen und sich mit Ihnen zu verbinden.",
+      "emailLabel": "E-Mail",
+      "messageLabel": "Nachricht (optional)",
+      "submit": "Einladung senden",
+      "validation": {
+        "emailRequired": "E-Mail ist erforderlich.",
+        "emailInvalid": "Geben Sie eine gültige E-Mail-Adresse ein."
+      }
     }
   },
   "profile": {
@@ -644,71 +799,382 @@
       "uploadGalleryError": "Foto konnte nicht zur Galerie hinzugefügt werden"
     }
   },
+  "ingredients": {
+    "title": "Zutaten",
+    "newIngredient": "+ Neue Zutat",
+    "searchPlaceholder": "Zutaten suchen…",
+    "retry": "Erneut versuchen",
+    "noResultsForFilters": "Keine Zutaten entsprechen Ihren Filtern.",
+    "clearFilters": "Filter zurücksetzen",
+    "deleteSuccess": "Zutat gelöscht.",
+    "deleteError": "Zutat konnte nicht gelöscht werden. Bitte versuchen Sie es erneut.",
+    "filters": {
+      "category": "Kategorie"
+    },
+    "table": {
+      "columnName": "Name",
+      "columnCalories": "Kalorien",
+      "columnNutrients": "Nährwerte",
+      "columnCategory": "Kategorie",
+      "columnTags": "Tags",
+      "columnLibrary": "Bibliothek",
+      "caloriesValue": "{{count}} kcal / 100 g",
+      "proteinValue": "P: {{count}} g",
+      "carbsValue": "K: {{count}} g",
+      "fatValue": "F: {{count}} g"
+    },
+    "tags": {
+      "createError": "Der Tag konnte nicht erstellt werden. Bitte versuchen Sie es erneut.",
+      "updateError": "Der Tag konnte nicht aktualisiert werden. Bitte versuchen Sie es erneut.",
+      "deleteError": "Der Tag konnte nicht gelöscht werden. Bitte versuchen Sie es erneut.",
+      "assignError": "Die Tags dieser Zutat konnten nicht aktualisiert werden. Bitte versuchen Sie es erneut."
+    },
+    "category": {
+      "Other": "Sonstiges",
+      "Fruit": "Obst",
+      "Vegetables": "Gemüse",
+      "Meat": "Fleisch",
+      "FishAndSeafood": "Fisch & Meeresfrüchte",
+      "Dairy": "Milchprodukte",
+      "GrainsAndCereals": "Getreide",
+      "Legumes": "Hülsenfrüchte",
+      "NutsAndSeeds": "Nüsse & Samen",
+      "OilsAndFats": "Öle & Fette",
+      "SweetsAndSnacks": "Süßigkeiten & Snacks",
+      "Beverages": "Getränke",
+      "Supplements": "Nahrungsergänzungsmittel"
+    },
+    "allergen": {
+      "Gluten": "Gluten",
+      "Crustaceans": "Krebstiere",
+      "Eggs": "Eier",
+      "Fish": "Fisch",
+      "Peanuts": "Erdnüsse",
+      "Soy": "Soja",
+      "Milk": "Milch",
+      "TreeNuts": "Schalenfrüchte",
+      "Celery": "Sellerie",
+      "Mustard": "Senf",
+      "Sesame": "Sesam",
+      "Sulphites": "Sulfite",
+      "Lupin": "Lupinen",
+      "Molluscs": "Weichtiere"
+    },
+    "dietaryPreference": {
+      "Vegan": "Vegan",
+      "Vegetarian": "Vegetarisch",
+      "Pescatarian": "Pescetarisch",
+      "GlutenFree": "Glutenfrei",
+      "LactoseFree": "Laktosefrei",
+      "DairyFree": "Ohne Milchprodukte",
+      "Keto": "Keto",
+      "LowCarb": "Low-Carb"
+    },
+    "unit": {
+      "portion": "Portion",
+      "piece": "Stück",
+      "slice": "Scheibe",
+      "cup": "Tasse",
+      "tbsp": "Esslöffel",
+      "tsp": "Teelöffel",
+      "handful": "Handvoll",
+      "glass": "Glas",
+      "pack": "Packung",
+      "can": "Dose",
+      "tub": "Becher",
+      "head": "Kopf",
+      "clove": "Zehe",
+      "bunch": "Bund",
+      "scoop": "Messlöffel"
+    },
+    "drawer": {
+      "createTitle": "Neue Zutat",
+      "editTitle": "Zutat bearbeiten",
+      "viewTitle": "Zutat",
+      "subtitleCreate": "Fügen Sie Ihrer Bibliothek eine neue Zutat hinzu",
+      "subtitleEdit": "Bearbeiten Sie die Angaben zu dieser Zutat",
+      "subtitleView": "Details zur Zutat",
+      "basicInfo": "Grundinformationen",
+      "nutritionalInfo": "Nährwertangaben",
+      "tagsClassification": "Tags & Klassifizierung",
+      "name": "Name",
+      "namePlaceholder": "Namen eingeben",
+      "nameRequired": "Name ist erforderlich.",
+      "zeroPlaceholder": "0",
+      "category": "Kategorie",
+      "categoryPlaceholder": "Kategorie auswählen",
+      "categoryRequired": "Kategorie ist erforderlich.",
+      "calories": "Kalorien / 100 g",
+      "caloriesRequired": "Kalorien sind erforderlich.",
+      "protein": "Protein / 100 g",
+      "proteinRequired": "Protein ist erforderlich.",
+      "carbs": "Kohlenhydrate / 100 g",
+      "carbsRequired": "Kohlenhydrate sind erforderlich.",
+      "fat": "Fett / 100 g",
+      "fatRequired": "Fett ist erforderlich.",
+      "fiber": "Ballaststoffe / 100 g",
+      "macroMinRequired": "Muss 0 oder mehr sein.",
+      "unit": "Einheit",
+      "unitPlaceholder": "Einheit auswählen",
+      "unitRequired": "Einheit ist erforderlich.",
+      "servingSize": "Gewicht pro Einheit (g)",
+      "servingSizeRequired": "Gewicht pro Einheit ist erforderlich.",
+      "dietaryPreferences": "Ernährungspräferenzen",
+      "dietaryPreferencesPlaceholder": "Präferenzen auswählen",
+      "allergens": "Enthält Allergene",
+      "allergensPlaceholder": "Allergene auswählen",
+      "myTags": "Meine Tags",
+      "save": "Zutat speichern",
+      "delete": "Löschen",
+      "createSuccess": "Zutat erstellt.",
+      "createError": "Zutat konnte nicht erstellt werden. Bitte versuchen Sie es erneut.",
+      "updateSuccess": "Zutat aktualisiert.",
+      "updateError": "Zutat konnte nicht aktualisiert werden. Bitte versuchen Sie es erneut."
+    },
+    "deleteDialog": {
+      "title": "Zutat löschen",
+      "description": "Möchten Sie „{{name}}“ wirklich löschen? Dies kann nicht rückgängig gemacht werden.",
+      "confirm": "Löschen"
+    },
+    "picture": {
+      "removeConfirmDescription": "Möchten Sie das Bild dieser Zutat wirklich entfernen? Dies kann nicht rückgängig gemacht werden.",
+      "alt": "Zutatenbild"
+    }
+  },
+  "library": {
+    "badge": {
+      "system": "System",
+      "mine": "Meine",
+      "shared": "Geteilt"
+    },
+    "visibility": {
+      "label": "Sichtbarkeit",
+      "options": {
+        "Private": "Privat",
+        "Public": "Öffentlich"
+      },
+      "hint": {
+        "Private": {
+          "recipe": "Nur Sie können dieses Rezept sehen und verwenden.",
+          "ingredient": "Nur Sie können diese Zutat sehen und verwenden."
+        },
+        "Public": {
+          "recipe": "Alle Coaches können dieses Rezept sehen und verwenden.",
+          "ingredient": "Alle Coaches können diese Zutat sehen und verwenden."
+        }
+      }
+    },
+    "pagination": {
+      "viewing": "{{count}} von {{total}} angezeigt"
+    },
+    "sortButtonLabel": "Sortieren nach {{column}}",
+    "tags": {
+      "filter": "Tags",
+      "empty": "Noch keine Tags.",
+      "open": "Tags zuweisen",
+      "createTag": "Tag erstellen",
+      "createTitle": "Neuen Tag erstellen",
+      "createDescription": "Tags helfen Ihnen, Ihre Zutaten und Rezepte zu gruppieren und zu filtern.",
+      "editTitle": "Tag bearbeiten",
+      "editDescription": "Benennen Sie diesen Tag um, ändern Sie seine Farbe oder Beschreibung.",
+      "editTag": "„{{name}}“ bearbeiten",
+      "deleteTag": "Löschen",
+      "deleteConfirmTitle": "Tag löschen",
+      "deleteConfirmDescription": "Möchten Sie den Tag „{{name}}“ wirklich löschen? Er wird von allen Zutaten und Rezepten entfernt, denen er zugewiesen ist. Dies kann nicht rückgängig gemacht werden.",
+      "deleteConfirmSubmit": "Löschen",
+      "nameLabel": "Name",
+      "namePlaceholder": "Tag-Namen eingeben",
+      "colorLabel": "Farbe",
+      "descriptionLabel": "Beschreibung",
+      "descriptionPlaceholder": "Tag-Beschreibung eingeben",
+      "previewLabel": "Vorschau",
+      "previewSampleName": "Tag-Vorschau",
+      "createSubmit": "Tag erstellen",
+      "editSubmit": "Änderungen speichern",
+      "colors": {
+        "red": "Rot",
+        "orange": "Orange",
+        "yellow": "Gelb",
+        "green": "Grün",
+        "blue": "Blau",
+        "purple": "Violett",
+        "pink": "Rosa",
+        "grey": "Grau"
+      },
+      "validation": {
+        "nameRequired": "Tagname ist erforderlich.",
+        "colorInvalid": "Geben Sie eine gültige Hex-Farbe ein (z. B. #3B82F6)."
+      }
+    },
+    "filters": {
+      "owner": "Eigentümer",
+      "ownerOptions": {
+        "Mine": "Meine",
+        "System": "System",
+        "OtherCoaches": "Andere Coaches"
+      }
+    },
+    "picture": {
+      "sectionLabel": "Bild",
+      "upload": "Bild hochladen",
+      "dropHint": "Bild hierher ziehen oder zum Hochladen klicken",
+      "dropLimits": "JPEG, PNG oder WebP, max. 5 MB.",
+      "replace": "Bild ersetzen",
+      "remove": "Bild entfernen",
+      "removeConfirmTitle": "Bild entfernen",
+      "removeConfirmSubmit": "Entfernen",
+      "removeSuccess": "Bild entfernt.",
+      "removeError": "Bild konnte nicht entfernt werden. Bitte versuchen Sie es erneut.",
+      "uploadError": "Bild konnte nicht hochgeladen werden. Bitte versuchen Sie es erneut.",
+      "thumbnailAlt": "Bild von {{name}}",
+      "viewPicture": "Bild anzeigen",
+      "viewPictureOf": "Bild von {{name}} anzeigen",
+      "previous": "Vorheriges Bild",
+      "next": "Nächstes Bild"
+    }
+  },
   "recipes": {
     "title": "Rezepte",
-    "subtitle": "Wiederverwendbare Rezepte erstellen und verwalten",
-    "pageTitle": "Rezeptbibliothek",
-    "pageSubtitle": "Erstellen, organisieren und verwenden Sie Rezepte mit vollständiger Nährwertübersicht",
-    "viewTable": "Tabelle",
-    "viewList": "Liste",
-    "viewCards": "Karten",
-    "sort": "Sortieren",
-    "prepTime": "Zubereitungszeit",
-    "search": "Rezepte suchen...",
-    "searchAriaLabel": "Rezepte suchen",
-    "addRecipe": "Neues Rezept",
-    "editRecipe": "Rezept bearbeiten",
-    "recipeName": "Rezeptname",
-    "recipeNamePlaceholder": "z.B. Hähnchen-Pfanne",
-    "description": "Zubereitungsanleitung",
-    "descriptionPlaceholder": "Wie wird dieses Rezept zubereitet...",
-    "foods": "Zutaten",
-    "pieces": "Stück",
-    "serving": "Portion",
-    "addFood": "+ Zutat hinzufügen",
-    "noRecipes": "Noch keine Rezepte",
-    "noRecipesHint": "Erstellen Sie Ihr erstes Rezept über die Schaltfläche oben",
-    "created": "Rezept erstellt",
-    "updated": "Rezept aktualisiert",
-    "deleted": "Rezept gelöscht",
-    "createError": "Rezept konnte nicht erstellt werden",
-    "updateError": "Rezept konnte nicht gespeichert werden",
-    "deleteError": "Rezept konnte nicht gelöscht werden",
-    "confirmDelete": "Möchten Sie dieses Rezept wirklich löschen?",
-    "deleteConfirmTitle": "Rezept löschen",
-    "deleteConfirmMessage": "Möchten Sie \"{{name}}\" wirklich löschen? Dies kann nicht rückgängig gemacht werden.",
-    "deleteRecipe": "Löschen",
-    "createRecipe": "Rezept erstellen",
-    "nutritionPerRecipe": "Nährwerte / Rezept",
-    "autoCalculated": "Automatisch aus Zutaten berechnet",
-    "note": "Tipp / Notiz",
-    "notePlaceholder": "Tipps zu Variationen, Empfehlungen...",
-    "stepsLabel": "Zubereitungsschritte",
-    "addStep": "Schritt hinzufügen",
-    "stepPlaceholder": "Schritt",
-    "discardChanges": "Zurück zur Ansicht",
-    "fromRecipe": "Aus Rezept",
-    "portions": "Portionen",
-    "searchRecipes": "Rezepte suchen...",
-    "noResults": "Keine Rezepte gefunden",
-    "foodCount": "{{count}} Zutaten",
-    "totalKcal": "{{kcal}} kcal",
-    "ingredientNote": "Notiz",
-    "ingredientNotePlaceholder": "z.B. fein gehackt, Zimmertemperatur...",
-    "visibilityPublic": "Öffentlich",
-    "visibilityPrivate": "Privat",
-    "visibilityHint": "Öffentliche Rezepte sind für alle Ernährungsberater sichtbar. Bearbeiten können Sie sie nur selbst.",
-    "image": {
-      "mainHeading": "Hauptbild",
-      "mainEmpty": "Kein Hauptbild. Zum Hochladen klicken.",
-      "galleryHeading": "Fotogalerie",
-      "galleryEmpty": "Noch keine Fotos in der Galerie.",
-      "addPhoto": "+ Foto hinzufügen",
-      "galleryFull": "Galerie ist voll (max. 6 Fotos)",
-      "uploadMainSuccess": "Hauptbild aktualisiert",
-      "uploadMainError": "Hauptbild konnte nicht hochgeladen werden",
-      "uploadGallerySuccess": "Foto zur Galerie hinzugefügt",
-      "uploadGalleryError": "Foto konnte nicht zur Galerie hinzugefügt werden"
+    "searchPlaceholder": "Rezepte suchen…",
+    "newRecipe": "+ Neues Rezept",
+    "retry": "Erneut versuchen",
+    "noResultsForFilters": "Keine Rezepte passen zu Ihren Filtern.",
+    "clearFilters": "Filter zurücksetzen",
+    "deleteSuccess": "Rezept gelöscht.",
+    "deleteError": "Das Rezept konnte nicht gelöscht werden. Bitte versuchen Sie es erneut.",
+    "empty": {
+      "title": "Noch keine Rezepte",
+      "hint": "Erstellen Sie Ihr erstes Rezept, um loszulegen",
+      "create": "Rezept erstellen"
+    },
+    "nutritionistsOnly": {
+      "title": "Rezepte sind für Ernährungsberater verfügbar",
+      "body": "Ihr Konto ist ein Trainerkonto, daher steht Ihnen die Rezeptbibliothek nicht zur Verfügung."
+    },
+    "filters": {
+      "mealType": "Mahlzeit",
+      "dietaryPreference": "Ernährungsweise"
+    },
+    "mealType": {
+      "Breakfast": "Frühstück",
+      "Lunch": "Mittagessen",
+      "Dinner": "Abendessen",
+      "Snack": "Snack",
+      "Dessert": "Dessert"
+    },
+    "difficulty": {
+      "Easy": "Einfach",
+      "Medium": "Mittel",
+      "Hard": "Schwer"
+    },
+    "table": {
+      "columnName": "Name",
+      "columnCalories": "Kalorien / Portion",
+      "columnNutrients": "Nährwerte / Portion",
+      "columnMealType": "Mahlzeit",
+      "columnServings": "Portionen",
+      "columnTags": "Tags",
+      "columnLibrary": "Bibliothek",
+      "caloriesValue": "{{count}} kcal",
+      "proteinValue": "P: {{count}} g",
+      "carbsValue": "K: {{count}} g",
+      "fatValue": "F: {{count}} g",
+      "ingredientsCount": "{{count}} Zutaten",
+      "minutesValue": "{{count}} Min."
+    },
+    "drawer": {
+      "createTitle": "Neues Rezept",
+      "editTitle": "Rezept bearbeiten",
+      "viewTitle": "Rezept",
+      "subtitleCreate": "Fügen Sie Details zu Ihrem Rezept hinzu",
+      "subtitleEdit": "Bearbeiten Sie die Details dieses Rezepts",
+      "subtitleView": "Rezeptdetails",
+      "tabDetails": "Details",
+      "tabIngredients": "Zutaten",
+      "tabPreparation": "Zubereitung",
+      "tabPictures": "Bilder",
+      "picturesCreateHint": "Speichern Sie das Rezept, um Bilder hinzuzufügen.",
+      "tabsLabel": "Rezeptabschnitte",
+      "name": "Name",
+      "namePlaceholder": "Rezeptnamen eingeben",
+      "nameRequired": "Name ist erforderlich.",
+      "servings": "Portionen",
+      "servingsRequired": "Die Portionszahl muss eine ganze Zahl und mindestens 1 sein.",
+      "description": "Beschreibung",
+      "descriptionPlaceholder": "Rezept beschreiben",
+      "recipeDetails": "Rezeptdetails",
+      "mealTypes": "Mahlzeit",
+      "mealTypesPlaceholder": "Typen auswählen",
+      "mealTypesRequired": "Wählen Sie mindestens eine Mahlzeit.",
+      "difficulty": "Schwierigkeit",
+      "difficultyNone": "Keine",
+      "prepTime": "Vorbereitungszeit (optional)",
+      "cookTime": "Kochzeit (optional)",
+      "timePlaceholder": "z. B. 10 Minuten",
+      "minutesInvalid": "Geben Sie eine ganze Zahl an Minuten ein.",
+      "allergens": "Allergene",
+      "allergensNone": "Keine",
+      "allergensHint": "Aus den Zutaten abgeleitet.",
+      "dietaryPreferences": "Ernährungsweise",
+      "dietaryPreferencesPlaceholder": "Auswählen",
+      "save": "Rezept speichern",
+      "delete": "Löschen",
+      "createSuccess": "Rezept erstellt.",
+      "createError": "Das Rezept konnte nicht erstellt werden. Bitte versuchen Sie es erneut.",
+      "updateSuccess": "Rezept aktualisiert.",
+      "updateError": "Das Rezept konnte nicht aktualisiert werden. Bitte versuchen Sie es erneut.",
+      "loadError": "Das Rezept konnte nicht geladen werden. Bitte versuchen Sie es erneut.",
+      "myTags": "Meine Tags"
+    },
+    "tags": {
+      "assignError": "Die Tags dieses Rezepts konnten nicht aktualisiert werden. Bitte versuchen Sie es erneut."
+    },
+    "ingredientsTab": {
+      "searchPlaceholder": "Zutaten zum Hinzufügen suchen… (Ihre Bibliothek + System)",
+      "searchLabel": "Zutaten zum Hinzufügen suchen",
+      "searching": "Suche…",
+      "noResults": "Keine Zutaten gefunden.",
+      "empty": "Noch keine Zutaten. Suchen Sie oben, um eine hinzuzufügen.",
+      "foodsRequired": "Fügen Sie mindestens eine Zutat hinzu.",
+      "amountLabel": "Menge in Gramm für {{name}}",
+      "amountInvalid": "Geben Sie eine Menge über 0 ein.",
+      "removeIngredient": "{{name}} entfernen",
+      "gramsUnit": "g",
+      "kcalValue": "{{count}} kcal",
+      "kcalPer100": "{{count}} kcal / 100 g",
+      "total": "Gesamt",
+      "perServing": "Pro Portion ({{count}})"
+    },
+    "preparation": {
+      "stepLabel": "Schritt {{number}}",
+      "stepPlaceholder": "Diesen Schritt beschreiben",
+      "addStep": "+ Schritt hinzufügen",
+      "removeStep": "Schritt {{number}} entfernen",
+      "reorderStep": "Schritt {{number}} verschieben",
+      "hint": "Die Schritte werden dem Klienten in der App in dieser Reihenfolge angezeigt.",
+      "times": "Vorbereitung {{prep}} · Kochen {{cook}}"
+    },
+    "deleteDialog": {
+      "title": "Rezept löschen",
+      "description": "Möchten Sie „{{name}}“ wirklich löschen? Dies kann nicht rückgängig gemacht werden.",
+      "confirm": "Löschen"
+    },
+    "picture": {
+      "alt": "Rezeptbild",
+      "removeConfirmDescription": "Möchten Sie das Bild dieses Rezepts wirklich entfernen? Dies kann nicht rückgängig gemacht werden."
+    },
+    "pictures": {
+      "mainLabel": "Hauptbild",
+      "galleryLabel": "Weitere Bilder",
+      "galleryCount": "{{count}} von {{max}}",
+      "galleryEmpty": "Keine weiteren Bilder.",
+      "galleryAlt": "Rezeptbild {{number}}",
+      "addPicture": "Bild hinzufügen",
+      "remove": "Bild {{number}} entfernen",
+      "setAsMain": "Als Hauptbild festlegen",
+      "setAsMainLabel": "Bild {{number}} als Hauptbild festlegen",
+      "promoteError": "Das Hauptbild konnte nicht festgelegt werden. Bitte versuchen Sie es erneut.",
+      "removeConfirmDescription": "Möchten Sie dieses Bild wirklich entfernen? Dies kann nicht rückgängig gemacht werden."
     }
   },
   "nutrition": {
@@ -918,7 +1384,7 @@
     "INVITATION_EXPIRED": "Diese Einladung ist abgelaufen.",
     "ROLE_ALREADY_ASSIGNED": "Sie haben diese Rolle bereits.",
     "ACCOUNT_DELETION_FAILED": "Kontolöschung fehlgeschlagen. Bitte versuchen Sie es erneut.",
-    "KCAL_INCONSISTENT": "Kalorienwert stimmt nicht mit Makronährstoffen überein (Eiweiß×4 + Kohlenhydrate×4 + Fett×9 ± 10 %).",
+    "KCAL_INCONSISTENT": "Kalorienwert stimmt nicht mit Makronährstoffen überein (Eiweiß×4 + Kohlenhydrate×4 + Fett×9 + Ballaststoffe×2 ± 10 %).",
     "FOOD_NOT_OWNED": "Sie können nur eigene Lebensmittel bearbeiten.",
     "TRAINER_PROFILE_MISSING": "Trainerprofil nicht gefunden.",
     "CLIENT_NOT_FOUND": "Klient nicht gefunden.",
@@ -947,6 +1413,7 @@
     "OUT_OF_RANGE": "Der Wert liegt außerhalb des zulässigen Bereichs.",
     "INVALID_DEADLINE_OFFSET_HOURS": "Ungültige Frist. Erlaubte Werte: 24, 48, 72, 120 oder 168 Stunden.",
     "SESSION_ALREADY_COMPLETED": "Diese Einheit wurde bereits abgeschlossen.",
+    "CONVERSATION_LOCKED": "Sie können antworten, sobald der Klient Ihre Einladung annimmt.",
     "SECTION_ALREADY_COMPLETED": "Dieser Abschnitt wurde bereits vom Klienten abgeschlossen und kann nicht bearbeitet werden.",
     "COMPLETED_AT_IN_FUTURE": "Das Abschlussdatum darf nicht in der Zukunft liegen.",
     "COMPLETED_AT_BEFORE_PLAN_START": "Das Abschlussdatum darf nicht vor dem Startdatum des Plans liegen.",
@@ -957,7 +1424,27 @@
     "QuestionnaireResponseId": "Diese Fragebogenantwort wurde nicht gefunden oder ist noch nicht ausgefüllt.",
     "PHOTO_DIARY_REQUEST_NOT_FOUND": "Foto-Tagebuch nicht gefunden.",
     "PHOTO_DIARY_REQUEST_FORBIDDEN": "Dieses Foto-Tagebuch gehört nicht Ihnen.",
-    "PHOTO_DIARY_REQUEST_PLAN_NOT_OWNED": "Der ausgewählte Plan wurde nicht gefunden oder gehört nicht zu diesem Klienten."
+    "PHOTO_DIARY_REQUEST_PLAN_NOT_OWNED": "Der ausgewählte Plan wurde nicht gefunden oder gehört nicht zu diesem Klienten.",
+    "BROADCAST_RECIPIENT_LIMIT_EXCEEDED": "Sie können eine Nachricht gleichzeitig an höchstens 50 Klienten senden.",
+    "BROADCAST_RECIPIENT_NOT_LINKED": "Einer der ausgewählten Klienten ist nicht mehr mit Ihnen verknüpft.",
+    "BROADCAST_MESSAGE_TOO_LONG_AFTER_SUBSTITUTION": "Die Nachricht ist nach dem Einfügen der Namen zu lang. Bitte kürzen Sie den Text.",
+    "DUPLICATE_PENDING_INVITE": "Für diese E-Mail-Adresse besteht bereits eine offene Einladung.",
+    "TOO_MANY_PENDING_INVITES": "Sie haben die maximale Anzahl offener Einladungen erreicht. Warten Sie auf eine Antwort oder brechen Sie eine ab.",
+    "PROFESSION_ALREADY_OCCUPIED": "Dieser Klient hat für diesen Beruf bereits einen aktiven Coach.",
+    "REQUESTED_SCOPE_EXCEEDS_HELD_ROLES": "Der angeforderte Zugriff übersteigt Ihre aktuellen Rollen.",
+    "CLIENT_TAG_NAME_ALREADY_EXISTS": "Ein Tag mit diesem Namen existiert bereits.",
+    "CLIENT_TAG_NOT_FOUND": "Dieser Tag konnte nicht gefunden werden.",
+    "FOOD_TAG_NAME_ALREADY_EXISTS": "Ein Tag mit diesem Namen existiert bereits.",
+    "FOOD_TAG_NOT_FOUND": "Dieser Tag konnte nicht gefunden werden.",
+    "INVALID_IMAGE_CONTENT_TYPE": "Es werden nur JPEG-, PNG- oder WebP-Bilder unterstützt.",
+    "IMAGE_TOO_LARGE": "Das Bild ist zu groß — die maximale Größe beträgt 5 MB.",
+    "CHAT_IMAGE_UPLOAD_NOT_FOUND": "Der Bild-Upload wurde nicht gefunden. Bitte fügen Sie es erneut an.",
+    "INVALID_BLOB_URL": "Das Bild konnte nicht gespeichert werden. Bitte laden Sie es erneut hoch.",
+    "RECIPE_VERSION_CONFLICT": "Dieses Rezept wurde anderswo geändert. Schließen Sie es und öffnen Sie es erneut, um die aktuelle Version zu sehen.",
+    "RECIPE_FOOD_NOT_AVAILABLE": "Eine der Zutaten ist nicht mehr verfügbar. Entfernen Sie sie und versuchen Sie es erneut.",
+    "RECIPE_NOT_OWNED": "Sie können nur Ihre eigenen Rezepte ändern.",
+    "RECIPE_GALLERY_FULL": "Dieses Rezept hat bereits die maximale Anzahl an Bildern.",
+    "RECIPE_GALLERY_IMAGE_NOT_FOUND": "Dieses Bild gehört nicht mehr zu diesem Rezept. Es wurde möglicherweise an anderer Stelle geändert."
   },
   "nutritionGoals": {
     "title": "Ziele & Makros",
@@ -1840,7 +2327,6 @@
       "modeWorkflowDesc": "{{days}} Tage schrittweise, Ernährungsberater sieht Fotos live.",
       "modeHint": "Der Klient wählt den Modus bei der Annahme der Anfrage.",
       "senderInfo": "Der Klient sieht Ihren Namen als Absender und Ihren Avatar. Nach dem Einreichen der Fotos erhalten Sie Echtzeit-Benachrichtigungen.",
-      "linkIdMissing": "Senden nicht möglich: Die Client-Link-ID ist noch nicht verfügbar. Dies ist eine bekannte Backend-Lücke — bitte kontaktieren Sie den Support.",
       "send": "Anfrage senden",
       "sending": "Wird gesendet...",
       "successToast": "Fototagebuch-Anfrage gesendet",
@@ -1867,19 +2353,8 @@
     "weightKg": "Gewicht (kg)",
     "profileUpdated": "Klientenprofil gespeichert",
     "readOnlyFieldHint": "Dieses Feld kann im Trainerportal nicht bearbeitet werden.",
-    "tabBarLabel": "Klienten-Reiter",
     "ageYears_one": "{{count}} Jahr",
     "ageYears_other": "{{count}} Jahre",
-    "tabs": {
-      "prehled": "Übersicht",
-      "mereni": "Messungen",
-      "fotky": "Fotos",
-      "aktivita": "Aktivität",
-      "plany": "Pläne",
-      "checkiny": "Check-ins",
-      "dotazniky": "Fragebögen",
-      "poznamky": "Notizen"
-    },
     "verdict": {
       "unavailable": "Bewertung nicht verfügbar",
       "onTrack": {
@@ -2101,7 +2576,155 @@
       "editAriaLabel": "Notiz bearbeiten",
       "deleteAriaLabel": "Notiz löschen",
       "errorLoading": "Notizen konnten nicht geladen werden"
+    },
+    "overview": {
+      "backAriaLabel": "Zurück zu Klienten",
+      "tbd": "TBD",
+      "header": {
+        "heightCm": "{{cm}} cm"
+      },
+      "actions": {
+        "chat": "Chat",
+        "tasks": "Aufgaben",
+        "notes": "Notizen",
+        "info": "Info"
+      },
+      "tabs": {
+        "overview": "Übersicht",
+        "development": "Entwicklung",
+        "nutrition": "Ernährung",
+        "workouts": "Workouts",
+        "storage": "Speicher",
+        "payment": "Zahlung",
+        "automations": "Automatisierungen"
+      },
+      "stats": {
+        "rating": {
+          "label": "Durchschnittsbewertung",
+          "caption": "Basierend auf Check-in-Antworten"
+        },
+        "payments": {
+          "label": "Zahlungen",
+          "caption": "Keine Zahlungen für den Klienten gefunden"
+        },
+        "weight": {
+          "label": "Aktuelles Gewicht",
+          "value": "{{kg}} kg",
+          "deltaThisWeek": "{{delta}} kg diese Woche",
+          "goalWeight": "Ziel {{goal}} kg",
+          "empty": "—",
+          "noMeasurements": "Noch keine Messungen"
+        },
+        "clientSince": {
+          "label": "Klient seit",
+          "days_one": "{{count}} Tag",
+          "days_other": "{{count}} Tage",
+          "started": "Gestartet am {{date}}"
+        }
+      },
+      "mealPlan": {
+        "heading": "Aktueller Ernährungsplan",
+        "detail": "{{kcal}} kcal • {{carb}} % Kohlenhydrate / {{protein}} % Eiweiß / {{fat}} % Fett"
+      },
+      "workout": {
+        "heading": "Letztes Workout",
+        "exercises_one": "{{count}} Übung",
+        "exercises_other": "{{count}} Übungen"
+      },
+      "checkInTrend": {
+        "heading": "Check-in-Trend",
+        "last15Days": "Letzte 15 Tage",
+        "legend": {
+          "completed": "Abgeschlossen",
+          "missed": "Verpasst",
+          "upcoming": "Bevorstehend"
+        }
+      },
+      "messagesTrend": {
+        "heading": "Nachrichtentrend",
+        "last4Weeks": "Letzte 4 Wochen",
+        "chartAriaLabel": "Nachrichten von Trainer und Klient pro Woche, letzte 4 Wochen. {{summary}}",
+        "chartAriaWeek": "Woche ab {{date}}: {{coach}} vom Trainer, {{client}} vom Klienten",
+        "weekLabel": "W{{index}}",
+        "weekTooltip": "Woche ab {{date}}",
+        "legend": {
+          "coach": "Trainer-Nachrichten",
+          "client": "Klienten-Nachrichten"
+        }
+      }
     }
+  },
+  "inbox": {
+    "activeView": "Aktiv",
+    "archivedView": "Archiviert",
+    "searchPlaceholder": "Chats durchsuchen...",
+    "emptyState": {
+      "title": "Wählen Sie einen Chat aus, um eine Unterhaltung zu beginnen",
+      "subtitle": "Ihr Kunden-Posteingang, Trainingsfragen und Onboarding-Kennzahlen finden Sie hier."
+    },
+    "filters": {
+      "groupLabel": "Gespräche filtern",
+      "all": "Alle",
+      "failedPayments": "Fehlgeschlagene Zahlungen",
+      "unreadMessages": "Ungelesene Nachrichten",
+      "noMessages": "Keine Nachrichten",
+      "newCheckIns": "Neue Check-ins",
+      "blockedAutomations": "Blockierte Automatisierungen",
+      "missingCheckIns": "Fehlende Check-ins",
+      "endingSoon": "Endet bald",
+      "tasksOverdue": "Überfällige Aufgaben"
+    },
+    "row": {
+      "yesterday": "Gestern",
+      "noConversationYet": "Noch keine Nachrichten — schreiben Sie zuerst",
+      "unreadAriaLabel": "Ungelesen"
+    },
+    "noConversations": "Keine Gespräche gefunden",
+    "list": {
+      "photoMarker": "📷 Foto"
+    },
+    "thread": {
+      "showClient": "Kunde anzeigen",
+      "hideClient": "Kunde ausblenden",
+      "clientPanelTitle": "Kundendetails",
+      "settingsAriaLabel": "Gesprächseinstellungen",
+      "openClientProfileAriaLabel": "Kundenprofil öffnen",
+      "loadingOlder": "Ältere Nachrichten werden geladen…",
+      "imageAlt": "Angehängtes Bild",
+      "imageUnavailable": "Bild nicht verfügbar"
+    },
+    "events": {
+      "invited": "Sie haben {{name}} zur Zusammenarbeit eingeladen",
+      "requested": "{{name}} hat um Zusammenarbeit mit Ihnen gebeten",
+      "accepted": {
+        "own": "Sie haben die Anfrage von {{name}} angenommen",
+        "other": "{{name}} hat Ihre Einladung angenommen"
+      },
+      "declined": {
+        "own": "Sie haben die Anfrage von {{name}} abgelehnt",
+        "other": "{{name}} hat Ihre Einladung abgelehnt"
+      },
+      "withdrawn": "Das Kooperationsangebot wurde zurückgezogen"
+    },
+    "typingIndicator": "Schreibt gerade…",
+    "composer": {
+      "placeholder": "Nachricht eingeben...",
+      "sendAriaLabel": "Nachricht senden",
+      "attachFileAriaLabel": "Datei anhängen",
+      "attachImageAriaLabel": "Bild anhängen",
+      "sendError": "Die Nachricht konnte nicht gesendet werden. Bitte versuchen Sie es erneut.",
+      "lockedNotice": "Sie können antworten, sobald der Klient Ihre Einladung annimmt.",
+      "imagePreviewAlt": "Bildvorschau",
+      "removeImageAriaLabel": "Bild entfernen",
+      "imageUploadError": "Das Bild konnte nicht hochgeladen werden. Bitte versuchen Sie es erneut."
+    },
+    "video": {
+      "label": "Video"
+    },
+    "deepLink": {
+      "error": "Dieser Chat konnte nicht geöffnet werden."
+    },
+    "loadError": "Der Posteingang konnte nicht geladen werden."
   },
   "messages": {
     "title": "Nachrichten",
@@ -2175,5 +2798,263 @@
     "mondayHint": "Pläne können nur montags beginnen.",
     "weekCountRequired": "Geben Sie eine Anzahl von Wochen ein.",
     "weekCountRange": "Die Anzahl der Wochen muss zwischen 1 und 52 liegen."
+  },
+  "entry": {
+    "brand": "GoodFellas",
+    "eyebrow": "Plattform für Trainer und Ernährungsberater",
+    "headline": {
+      "line1": "Klientenbetreuung",
+      "accent": "ohne Chaos"
+    },
+    "sub": "Ernährungspläne, Trainingspläne, Messwerte und Nachrichten an einem Ort. Sie arbeiten im Browser, Ihr Klient hat alles auf dem Handy.",
+    "points": {
+      "meals": "Wochenweise Ernährungspläne",
+      "training": "Trainingspläne",
+      "checkins": "Wöchentliche Check-ins",
+      "chat": "Live-Chat"
+    },
+    "collage": {
+      "strength": "Krafttraining",
+      "conditioning": "Ausdauer",
+      "nutrition": "Ernährung",
+      "coaching": "Betreuung",
+      "progress": "Fortschritt",
+      "note": "Hier kommen Fotos hin — beim Bau der App ergänzt."
+    },
+    "capabilities": {
+      "eyebrow": "Was die Plattform kann",
+      "title": "Eine App statt Tabellen, E-Mails und WhatsApp",
+      "subtitle": "Trainer und Ernährungsberater arbeiten am selben Klienten. Der Klient sieht nur, was freigegeben ist.",
+      "nutrition": {
+        "tag": "Ernährung",
+        "title": "Wochenweise Ernährungspläne",
+        "body": "Stellen Sie eine Woche aus Rezepten und Zutaten zusammen, prüfen Sie die Makros und geben Sie nur fertige Wochen frei. Eine offene Woche bleibt verborgen."
+      },
+      "training": {
+        "tag": "Training",
+        "title": "Pläne und Übungsbibliothek",
+        "body": "Ziehen Sie Übungen in eine Einheit, speichern Sie sie als Vorlage und nutzen Sie sie beim nächsten Mal mit einem Klick."
+      },
+      "contact": {
+        "tag": "Kontakt",
+        "title": "Check-ins und Nachrichten",
+        "body": "Einmal pro Woche schickt Ihr Klient Messwerte, Fotos und sein Befinden. Sie antworten im Chat, der live läuft — ohne Neuladen."
+      }
+    },
+    "audience": {
+      "coaches": {
+        "eyebrow": "Für Trainer",
+        "title": "Für den Browser gebaut",
+        "subtitle": "Das Portal ist für den großen Bildschirm gemacht, denn Pläne entstehen am Schreibtisch.",
+        "check1": "Klientenliste mit Tags und Filtern",
+        "check2": "Einladungen per E-Mail",
+        "check3": "Eigene Zutaten- und Rezeptdatenbank",
+        "check4": "Messwerte und Fotos an einem Ort"
+      },
+      "clients": {
+        "eyebrow": "Für Klienten",
+        "title": "App auf dem Handy",
+        "subtitle": "Klienten stellen nichts zusammen. Sie öffnen die App und sehen, was heute zu essen und zu trainieren ist.",
+        "check1": "Heutige Mahlzeiten und Einheit",
+        "check2": "Mahlzeiten abhaken, Sätze eintragen",
+        "check3": "Einkaufsliste für die ganze Woche",
+        "check4": "Chat mit dem Trainer und Hinweise"
+      }
+    },
+    "cta": {
+      "title": "Testen Sie es mit einem Klienten",
+      "body": "Konto anlegen, ersten Klienten einladen und die erste Woche bauen. Das dauert einen Nachmittag.",
+      "button": "Trainerkonto erstellen"
+    },
+    "footer": "Trainerportal · Klienten-App für iOS und Android",
+    "login": {
+      "title": "Willkommen zurück",
+      "lede": "Im Trainerportal anmelden.",
+      "emailLabel": "E-Mail",
+      "emailPlaceholder": "trainer@example.com",
+      "passwordLabel": "Passwort",
+      "showPassword": "Zeigen",
+      "hidePassword": "Verbergen",
+      "rememberMe": "Angemeldet bleiben",
+      "forgotPassword": "Passwort vergessen?",
+      "submit": "Anmelden",
+      "submitting": "Anmeldung läuft...",
+      "or": "oder",
+      "google": "Google",
+      "apple": "Apple",
+      "googleComingSoon": "Die Google-Anmeldung ist noch nicht verfügbar.",
+      "appleComingSoon": "Die Apple-Anmeldung ist noch nicht verfügbar.",
+      "noAccount": "Noch kein Konto?",
+      "createAccount": "Trainerkonto erstellen",
+      "clientNote": {
+        "lead": "Suchen Sie einen Trainer oder Ernährungsberater?",
+        "body": "Laden Sie unsere mobile App herunter und werden Sie noch heute Mitglied.",
+        "appStore": "App Store",
+        "googlePlay": "Google Play"
+      },
+      "validation": {
+        "emailRequired": "Geben Sie Ihre E-Mail-Adresse ein.",
+        "emailInvalid": "Geben Sie eine gültige E-Mail-Adresse ein.",
+        "passwordRequired": "Geben Sie Ihr Passwort ein."
+      },
+      "errors": {
+        "network": "Der Server konnte nicht erreicht werden. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
+        "profileLoadFailed": "Sie sind angemeldet, aber das Laden Ihres Profils ist fehlgeschlagen. Bitte versuchen Sie es erneut.",
+        "generic": "Anmeldung fehlgeschlagen. Bitte versuchen Sie es erneut."
+      }
+    },
+    "panel": {
+      "headline": "Werden Sie Teil unserer Community aus Trainern und Ernährungsberatern"
+    },
+    "register": {
+      "title": "Konto erstellen",
+      "lede": "Geben Sie Ihre Daten ein und bestätigen Sie Ihre E-Mail-Adresse. Das dauert eine Minute.",
+      "roleLabel": "Womit beschäftigen Sie sich?",
+      "roleHint": "Sie können beides wählen. Rollen können später in den Einstellungen geändert werden.",
+      "roles": {
+        "trainer": {
+          "name": "Trainer",
+          "description": "Trainingspläne, Übungen, Trainingsprotokoll."
+        },
+        "nutritionist": {
+          "name": "Ernährungsberater",
+          "description": "Ernährungspläne, Rezepte, Zutaten, Makros."
+        }
+      },
+      "firstNameLabel": "Vorname",
+      "firstNamePlaceholder": "Jan",
+      "lastNameLabel": "Nachname",
+      "lastNamePlaceholder": "Novak",
+      "emailLabel": "E-Mail",
+      "emailPlaceholder": "trainer@example.com",
+      "passwordLabel": "Passwort",
+      "passwordRules": {
+        "length": "Mindestens 8 Zeichen",
+        "uppercase": "Großbuchstabe",
+        "lowercase": "Kleinbuchstabe",
+        "digit": "Ziffer"
+      },
+      "consentLabel": "Ich stimme der Verarbeitung meiner personenbezogenen Daten und den Nutzungsbedingungen zu.",
+      "submit": "Konto erstellen",
+      "submitting": "Konto wird erstellt...",
+      "submitHint": "Wählen Sie eine Rolle aus und füllen Sie alle Felder aus.",
+      "haveAccount": "Sie haben bereits ein Konto?",
+      "signIn": "Anmelden",
+      "validation": {
+        "roleRequired": "Wählen Sie mindestens eine Rolle aus.",
+        "firstNameRequired": "Geben Sie Ihren Vornamen ein.",
+        "lastNameRequired": "Geben Sie Ihren Nachnamen ein.",
+        "emailRequired": "Geben Sie Ihre E-Mail-Adresse ein.",
+        "emailInvalid": "Geben Sie eine gültige E-Mail-Adresse ein.",
+        "passwordInvalid": "Das Passwort erfüllt nicht alle oben genannten Anforderungen.",
+        "consentRequired": "Sie müssen der Verarbeitung Ihrer personenbezogenen Daten zustimmen, um ein Konto zu erstellen."
+      },
+      "errors": {
+        "duplicateEmail": "Diese E-Mail-Adresse ist bereits registriert.",
+        "network": "Der Server konnte nicht erreicht werden. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
+        "generic": "Die Registrierung konnte nicht abgeschlossen werden. Bitte versuchen Sie es erneut."
+      },
+      "sent": {
+        "title": "Prüfen Sie Ihr Postfach",
+        "lede": "Wir haben einen Bestätigungslink an {{email}} gesendet. Der Link ist 24 Stunden gültig.",
+        "note": "Nicht angekommen? Prüfen Sie Ihren Spam-Ordner. Falls er dort auch nicht ist, senden wir ihn erneut.",
+        "resend": "Link erneut senden",
+        "resending": "Wird gesendet...",
+        "resendConfirmation": "Falls nötig, haben wir einen neuen Link gesendet.",
+        "wrongEmail": "Falsche Adresse?",
+        "changeEmail": "E-Mail ändern"
+      }
+    },
+    "forgotPassword": {
+      "title": "Passwort vergessen",
+      "lede": "Geben Sie die E-Mail-Adresse ein, mit der Sie sich anmelden.",
+      "emailLabel": "E-Mail",
+      "emailPlaceholder": "trainer@example.com",
+      "submit": "Link senden",
+      "submitting": "Wird gesendet...",
+      "note": "Wir antworten immer gleich, unabhängig davon, ob ein Konto existiert — so verraten wir nie, welche E-Mail-Adressen registriert sind.",
+      "backToLogin": "Zurück zur Anmeldung",
+      "validation": {
+        "emailRequired": "Geben Sie Ihre E-Mail-Adresse ein.",
+        "emailInvalid": "Geben Sie eine gültige E-Mail-Adresse ein."
+      },
+      "errors": {
+        "network": "Verbindung zum Server fehlgeschlagen. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
+        "generic": "Senden fehlgeschlagen. Bitte versuchen Sie es erneut."
+      },
+      "sent": {
+        "title": "Prüfen Sie Ihr Postfach",
+        "lede": "Falls unter dieser Adresse ein Konto existiert, haben wir einen Link zum Zurücksetzen des Passworts gesendet.",
+        "tryAnother": "Andere Adresse verwenden"
+      }
+    },
+    "verifyEmail": {
+      "verifying": "E-Mail wird bestätigt...",
+      "success": {
+        "title": "E-Mail bestätigt",
+        "lede": "Ihr Konto ist bereit. Sie können sich anmelden und loslegen.",
+        "cta": "Zum Portal",
+        "ctaLoggedOut": "Zur Anmeldung"
+      },
+      "checkInbox": {
+        "title": "Prüfen Sie Ihr Postfach",
+        "lede": "Wir haben einen Bestätigungslink an {{email}} gesendet. Klicken Sie darauf, um Ihr Konto zu aktivieren.",
+        "resend": "Link erneut senden",
+        "resending": "Wird gesendet...",
+        "resendConfirmation": "Wir haben einen neuen Link gesendet."
+      },
+      "invalid": {
+        "title": "Dieser Link ist ungültig",
+        "noSessionLede": "Dieser Bestätigungslink ist ungültig oder wurde bereits verwendet.",
+        "backToLogin": "Zurück zur Anmeldung"
+      },
+      "resendFromExpired": {
+        "prompt": "Wir senden einen neuen Link an {{email}}.",
+        "button": "Neuen Link senden"
+      },
+      "errors": {
+        "network": "Verbindung zum Server fehlgeschlagen. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
+        "generic": "Bestätigung fehlgeschlagen. Bitte versuchen Sie es erneut."
+      }
+    },
+    "resetPassword": {
+      "title": "Neues Passwort festlegen",
+      "lede": "Wählen Sie ein Passwort, das Sie nicht anderswo verwenden. Angemeldete Geräte bleiben angemeldet.",
+      "newPasswordLabel": "Neues Passwort",
+      "confirmPasswordLabel": "Passwort wiederholen",
+      "submit": "Neues Passwort speichern",
+      "submitting": "Wird gespeichert...",
+      "note": "Melden Sie sich danach mit Ihrem neuen Passwort an. Der Link kann nur einmal verwendet werden.",
+      "success": {
+        "title": "Passwort geändert",
+        "lede": "Sie können sich jetzt mit Ihrem neuen Passwort anmelden.",
+        "cta": "Zur Anmeldung"
+      },
+      "invalidLink": {
+        "title": "Dieser Link ist ungültig",
+        "lede": "Dieser Link zum Zurücksetzen des Passworts fehlt oder ist fehlerhaft.",
+        "cta": "Zurück zur Anmeldung",
+        "requestNew": "Neuen Link anfordern"
+      },
+      "validation": {
+        "passwordInvalid": "Das Passwort erfüllt nicht alle oben genannten Anforderungen.",
+        "confirmRequired": "Geben Sie das Passwort erneut ein.",
+        "confirmMismatch": "Die Passwörter stimmen nicht überein."
+      },
+      "errors": {
+        "genericFailure": "Dieser Link zum Zurücksetzen des Passworts ist nicht mehr gültig. Bitte fordern Sie einen neuen an.",
+        "passwordField": "Das Passwort erfüllt nicht die Anforderungen des Servers. Bitte versuchen Sie ein anderes.",
+        "network": "Verbindung zum Server fehlgeschlagen. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
+        "generic": "Speichern fehlgeschlagen. Bitte versuchen Sie es erneut."
+      }
+    },
+    "languageSwitch": {
+      "label": "Sprache",
+      "cs": "CS",
+      "en": "EN",
+      "de": "DE"
+    },
+    "brandMark": "GF",
+    "copyright": "© 2026 GoodFellas"
   }
 }

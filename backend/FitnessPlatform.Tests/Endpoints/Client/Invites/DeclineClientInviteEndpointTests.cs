@@ -3,6 +3,7 @@ using FastEndpoints;
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.Client.Invites.Decline;
 using FitnessPlatform.Tests.Builders;
@@ -18,6 +19,7 @@ namespace FitnessPlatform.Tests.Endpoints.Client.Invites;
 public class DeclineClientInviteEndpointTests
 {
     private readonly IRealtimeNotifier _notifier = Substitute.For<IRealtimeNotifier>();
+    private readonly IConversationSeedService _conversationSeedService = Substitute.For<IConversationSeedService>();
 
     private static ApplicationUser CreateUser(Guid id, string email) => new()
     {
@@ -34,7 +36,7 @@ public class DeclineClientInviteEndpointTests
         Factory.Create<DeclineClientInviteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(callerId, AppRoles.Client))),
-            db, _notifier);
+            db, _notifier, _conversationSeedService);
 
     [Fact]
     public async Task Decline_ByRecipient_Returns204_AndMarksAccepted()
@@ -70,6 +72,17 @@ public class DeclineClientInviteEndpointTests
         invite.IsAccepted.Should().BeTrue();
         await _notifier.Received(1).NotifyAsync(
             professionalProfile.UserId, "invitedeclined", Arg.Any<object>(), Arg.Any<CancellationToken>());
+
+        // Ensures the Invited event (idempotent no-op if already written), then records
+        // Declined — same "ensure then append" shape as the accept paths.
+        await _conversationSeedService.Received(1).AppendCooperationEventAsync(
+            professionalProfile.UserId, clientId, professionalProfile.UserId,
+            ChatEventType.Invited, inviteId, invite.Message,
+            createConversationIfMissing: true, Arg.Any<CancellationToken>());
+        await _conversationSeedService.Received(1).AppendCooperationEventAsync(
+            professionalProfile.UserId, clientId, clientId,
+            ChatEventType.Declined, inviteId, null,
+            createConversationIfMissing: true, Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -105,6 +118,8 @@ public class DeclineClientInviteEndpointTests
         ep.HttpContext.Response.StatusCode.Should().Be(404);
         invite.IsAccepted.Should().BeFalse();
         await _notifier.DidNotReceiveWithAnyArgs().NotifyAsync(default, default!, default!, TestContext.Current.CancellationToken);
+        await _conversationSeedService.DidNotReceiveWithAnyArgs().AppendCooperationEventAsync(
+            default, default, default, default, default, default, default, TestContext.Current.CancellationToken);
     }
 
     [Fact]

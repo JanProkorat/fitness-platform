@@ -1,7 +1,6 @@
 import axios from 'axios';
 import i18n from '@/i18n';
 import { useAuthStore } from '@/stores/auth';
-import { useToastStore } from '@/stores/toast';
 import { executeRefresh } from '@/lib/refresh';
 
 const api = axios.create({
@@ -34,7 +33,8 @@ function attachToken(config: import('axios').InternalAxiosRequestConfig) {
 }
 
 // On 401: use the shared single-flight refresh, then retry original request once.
-// On 429: surface a toast and reject — do NOT logout.
+// On 429: reject — do NOT logout. (A rate-limit toast used to fire here; the
+// toast store was removed with the UI strip — see rejectWithRateLimit below.)
 
 /**
  * Returns true if the error is an Axios 429 response.
@@ -47,13 +47,14 @@ function isRateLimited(error: unknown): boolean {
 }
 
 /**
- * Show the rate-limit toast and return a rejected promise.
- * Does NOT call logout() — the user session remains valid.
+ * Rejects the request without logging the user out — the session remains
+ * valid on a 429. NOTE: this used to also surface `errors.rateLimitRefresh`
+ * via the toast store; `stores/toast.ts` was removed with the UI strip
+ * (feature/ui-redesign). Re-wire a rate-limit notification here once the new
+ * design system's notification surface lands.
  */
 function rejectWithRateLimit(error: unknown): Promise<never> {
-  useToastStore
-    .getState()
-    .addToast(i18n.t('errors.rateLimitRefresh'), 'error');
+  console.error(i18n.t('errors.rateLimitRefresh'));
   return Promise.reject(error);
 }
 

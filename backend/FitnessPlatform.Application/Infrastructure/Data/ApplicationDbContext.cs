@@ -162,6 +162,16 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     /// </summary>
     public virtual DbSet<CoachSubscription> CoachSubscriptions { get; set; } = null!;
 
+    /// <summary>
+    /// Coach-owned tags used to label clients.
+    /// </summary>
+    public virtual DbSet<ClientTag> ClientTags { get; set; } = null!;
+
+    /// <summary>
+    /// Assignments of a <see cref="ClientTag"/> to a specific <see cref="ClientProfessionalLink"/>.
+    /// </summary>
+    public virtual DbSet<ClientTagAssignment> ClientTagAssignments { get; set; } = null!;
+
     /// <inheritdoc />
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -199,6 +209,13 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             e.HasOne(m => m.Conversation).WithMany(c => c.Messages).HasForeignKey(m => m.ConversationId);
             e.HasOne(m => m.Sender).WithMany().HasForeignKey(m => m.SenderUserId).OnDelete(DeleteBehavior.Restrict);
             e.HasIndex(m => new { m.ConversationId, m.DateCreated });
+
+            // Deduplicates a re-processed cooperation event (double-accept, retried
+            // withdraw) — only one Event row per (conversation, type, source) can exist.
+            // Partial: plain text rows carry a null EventSourceId and are unconstrained.
+            e.HasIndex(m => new { m.ConversationId, m.EventType, m.EventSourceId })
+                .IsUnique()
+                .HasFilter("event_source_id IS NOT NULL");
         });
 
         builder.Entity<WeeklyCheckInSetting>(e =>
@@ -425,11 +442,20 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     {
         var entries = ChangeTracker.Entries<ITimestampable>();
 
+        // Guarantees strictly increasing DateCreated across entities Added in the same
+        // batch, tie-broken by add-order — ties are compared at whole-microsecond
+        // precision (Postgres' column precision), needed for GetMessagesEndpoint's
+        // (DateCreated, Id) ordering (#1100).
+        DateTime? lastAssignedDateCreated = null;
+
         foreach (var entry in entries)
         {
             if (entry.State == EntityState.Added)
             {
-                entry.Entity.DateCreated = DateTime.UtcNow;
+                var dateCreated = NextDateCreated(DateTime.UtcNow, lastAssignedDateCreated);
+
+                entry.Entity.DateCreated = dateCreated;
+                lastAssignedDateCreated = dateCreated;
             }
 
             if (entry.State == EntityState.Modified)
@@ -447,5 +473,21 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                 entry.Entity.PublicId = Guid.NewGuid();
             }
         }
+    }
+
+    /// <summary>
+    /// Truncates <paramref name="candidate"/> to whole microseconds and bumps it past
+    /// <paramref name="previous"/> when the truncated value would otherwise tie or precede it.
+    /// </summary>
+    internal static DateTime NextDateCreated(DateTime candidate, DateTime? previous)
+    {
+        var truncated = new DateTime(candidate.Ticks - candidate.Ticks % TimeSpan.TicksPerMicrosecond, candidate.Kind);
+
+        if (previous is { } previousValue && truncated <= previousValue)
+        {
+            return previousValue.AddTicks(TimeSpan.TicksPerMicrosecond);
+        }
+
+        return truncated;
     }
 }

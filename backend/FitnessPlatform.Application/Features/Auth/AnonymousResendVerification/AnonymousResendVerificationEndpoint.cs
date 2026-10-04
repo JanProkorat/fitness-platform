@@ -119,7 +119,7 @@ public class AnonymousResendVerificationEndpoint(
                 // non-blocking; a full queue drops + logs rather than falling back to
                 // an awaited write, which would reintroduce a load-dependent timing
                 // oracle on this branch only.
-                if (!emailQueue.TryEnqueue(new EmailDispatchWorkItem(user.Email!, token, language)))
+                if (!emailQueue.TryEnqueue(new VerificationEmailWorkItem(user.Email!, token, language)))
                 {
                     logger.LogWarning(
                         "Background email queue full; dropped anonymous verification-resend send for {Email}.",

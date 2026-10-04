@@ -35,4 +35,13 @@ public enum ImageUploadScope
     /// Blob path: <c>diary/{diaryId}/{photoId}.{ext}</c>
     /// </summary>
     Diary,
+
+    /// <summary>
+    /// A staged chat-image upload awaiting promotion to a permanent object at send time. The
+    /// staging object carries no extension — its real content type is sniffed from its bytes when
+    /// the message is sent, never trusted from the client-declared content type used only to mint
+    /// this upload URL.
+    /// Blob path: <c>chat-uploads/{conversationId}/{callerUserId}/{uploadId}</c>
+    /// </summary>
+    ChatUpload,
 }

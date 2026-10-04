@@ -40,7 +40,7 @@ public class CreateFoodEndpointTests
                 Carbs = 20,
                 Fat = 5
             },
-            Allergens = ["milk", "soy"],
+            Allergens = [Allergen.Milk, Allergen.Soy],
             CommonServings = [new ServingSizeDto { Label = "1 bar", WeightGrams = 60 }]
         };
 
@@ -57,7 +57,7 @@ public class CreateFoodEndpointTests
     }
 
     [Fact]
-    public async Task HandleAsync_VisibilityOmitted_DefaultsToPublic()
+    public async Task HandleAsync_VisibilityOmitted_DefaultsToPrivate()
     {
         var mongo = FoodTestHelpers.CreateMockMongo();
 
@@ -69,14 +69,14 @@ public class CreateFoodEndpointTests
 
         var request = new CreateFoodRequest
         {
-            Name = "Public By Default",
+            Name = "Private By Default",
             NutrientValue = new NutrientValueDto { Kcal = 100, Protein = 10, Carbs = 10, Fat = 5 }
         };
 
         await ep.HandleAsync(request, TestContext.Current.CancellationToken);
 
         await mongo.Foods.Received(1).InsertOneAsync(
-            Arg.Is<Food>(f => f.Visibility == FoodVisibility.Public),
+            Arg.Is<Food>(f => f.Visibility == FoodVisibility.Private),
             Arg.Any<InsertOneOptions>(),
             Arg.Any<CancellationToken>());
     }
@@ -105,6 +105,36 @@ public class CreateFoodEndpointTests
             Arg.Is<Food>(f =>
                 f.Visibility == FoodVisibility.Private &&
                 f.NutritionistId == _nutritionistId),
+            Arg.Any<InsertOneOptions>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task HandleAsync_AllergensAndDietaryPreferences_StoredAsTrimmedStrings()
+    {
+        var mongo = FoodTestHelpers.CreateMockMongo();
+
+        var ep = Factory.Create<CreateFoodEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
+            mongo);
+
+        var request = new CreateFoodRequest
+        {
+            Name = "Tagged Food",
+            NutrientValue = new NutrientValueDto { Kcal = 100, Protein = 10, Carbs = 10, Fat = 5 },
+            Allergens = [Allergen.Milk, Allergen.TreeNuts],
+            DietaryPreferences = [DietaryPreference.Vegan],
+            CommonServings = [new ServingSizeDto { Label = "1 bar", WeightGrams = 60 }]
+        };
+
+        await ep.HandleAsync(request, TestContext.Current.CancellationToken);
+
+        await mongo.Foods.Received(1).InsertOneAsync(
+            Arg.Is<Food>(f =>
+                f.Allergens.SequenceEqual(new[] { "Milk", "TreeNuts" }) &&
+                f.DietaryPreferences.SequenceEqual(new[] { "Vegan" })),
             Arg.Any<InsertOneOptions>(),
             Arg.Any<CancellationToken>());
     }

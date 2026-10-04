@@ -37,6 +37,7 @@ public class FakeEmailService : IEmailService
     private readonly List<(string Email, string TrainerName, string Token, string Language, string? PersonalMessage)> _invitationsSent = [];
     private readonly List<(string Email, string Token, string Language)> _passwordResetsSent = [];
     private readonly List<(string Email, string Token, string Language)> _verificationsSent = [];
+    private readonly HashSet<string> _invitationSendFailuresByEmail = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Snapshot of invitation emails sent during the test.
@@ -89,10 +90,30 @@ public class FakeEmailService : IEmailService
     {
         lock (_sync)
         {
+            if (_invitationSendFailuresByEmail.Contains(toEmail))
+            {
+                throw new InvalidOperationException(
+                    $"Simulated SMTP failure for {toEmail} (test-configured via FailInvitationSendFor).");
+            }
+
             _invitationsSent.Add((toEmail, trainerName, invitationToken, language, personalMessage));
         }
 
         return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Configures <see cref="SendInvitationEmailAsync"/> to throw for the given recipient only
+    /// (#1109) — asserting the background worker's failure-and-keep-running path without
+    /// poisoning other tests that share this per-host singleton instance (see the type-level
+    /// remarks) and invite a DIFFERENT email within the same collection.
+    /// </summary>
+    public void FailInvitationSendFor(string email)
+    {
+        lock (_sync)
+        {
+            _invitationSendFailuresByEmail.Add(email);
+        }
     }
 
     /// <inheritdoc />

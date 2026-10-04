@@ -36,33 +36,26 @@ public class FoodImageIntegrationTests(FitnessApiFactory factory)
     }
 
     /// <summary>
-    /// Creates a food owned by <paramref name="ownerToken"/> and returns its FoodId.
+    /// Calls <c>POST /foods/{foodId}/image/upload-url?slot=main</c> as <paramref name="ownerToken"/>
+    /// and returns the issued <c>blobUrl</c>. Confirm now validates the blobUrl against this
+    /// food's presigned key, so main-slot confirm tests must use a real issued URL rather than
+    /// a hand-built relative path.
     /// </summary>
-    private static async Task<Guid> CreateFoodAsync(HttpClient client, string ownerToken)
+    private static async Task<string> RequestMainSlotBlobUrlAsync(HttpClient client, string ownerToken, Guid foodId)
     {
         TestHelpers.SetBearerToken(client, ownerToken);
-        // Kcal = Protein×4 + Carbs×4 + Fat×9 → 10×4 + 10×4 + 5×9 = 125 (exactly consistent)
-        var response = await client.PostAsJsonAsync("/foods", new
-        {
-            Name = $"Test Food {Guid.NewGuid():N}",
-            NutrientValue = new
-            {
-                Kcal = 125m,
-                Protein = 10m,
-                Carbs = 10m,
-                Fat = 5m
-            },
-            Allergens = Array.Empty<string>(),
-            CommonServings = Array.Empty<object>()
-        }, TestContext.Current.CancellationToken);
 
-        response.StatusCode.Should().Be(HttpStatusCode.Created,
-            "food creation must succeed for the integration test to proceed");
+        var response = await client.PostAsJsonAsync(
+            $"/foods/{foodId}/image/upload-url?slot=main",
+            new { ContentType = "image/jpeg", SizeBytes = 102400L },
+            TestContext.Current.CancellationToken);
 
-        var body = await response.Content.ReadFromJsonAsync<FoodResponse>(
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var body = await response.Content.ReadFromJsonAsync<UploadUrlResponse>(
             cancellationToken: TestContext.Current.CancellationToken);
 
-        return body!.FoodId;
+        return body!.BlobUrl;
     }
 
     // ── Happy path: upload-url (main slot) ────────────────────────────────────
@@ -77,7 +70,7 @@ public class FoodImageIntegrationTests(FitnessApiFactory factory)
     {
         var client = factory.CreateClient();
         var token = await SeedUserAsync(client, "Nutritionist");
-        var foodId = await CreateFoodAsync(client, token);
+        var foodId = await TestHelpers.CreateFoodAsync(client, token, TestContext.Current.CancellationToken);
 
         TestHelpers.SetBearerToken(client, token);
         var response = await client.PostAsJsonAsync(
@@ -106,7 +99,7 @@ public class FoodImageIntegrationTests(FitnessApiFactory factory)
     {
         var client = factory.CreateClient();
         var token = await SeedUserAsync(client, "Nutritionist", "gallery-upload");
-        var foodId = await CreateFoodAsync(client, token);
+        var foodId = await TestHelpers.CreateFoodAsync(client, token, TestContext.Current.CancellationToken);
 
         TestHelpers.SetBearerToken(client, token);
         var response = await client.PostAsJsonAsync(
@@ -136,7 +129,7 @@ public class FoodImageIntegrationTests(FitnessApiFactory factory)
 
         // Nutritionist A creates the food
         var tokenA = await SeedUserAsync(client, "Nutritionist", "upload-owner-a");
-        var foodId = await CreateFoodAsync(client, tokenA);
+        var foodId = await TestHelpers.CreateFoodAsync(client, tokenA, TestContext.Current.CancellationToken);
 
         // Nutritionist B tries to get the upload URL
         var tokenB = await SeedUserAsync(client, "Nutritionist", "upload-owner-b");
@@ -165,9 +158,9 @@ public class FoodImageIntegrationTests(FitnessApiFactory factory)
     {
         var client = factory.CreateClient();
         var token = await SeedUserAsync(client, "Nutritionist", "confirm-happy");
-        var foodId = await CreateFoodAsync(client, token);
+        var foodId = await TestHelpers.CreateFoodAsync(client, token, TestContext.Current.CancellationToken);
 
-        var blobUrl = $"foods/{foodId}.jpg";
+        var blobUrl = await RequestMainSlotBlobUrlAsync(client, token, foodId);
 
         TestHelpers.SetBearerToken(client, token);
 
@@ -205,7 +198,7 @@ public class FoodImageIntegrationTests(FitnessApiFactory factory)
     {
         var client = factory.CreateClient();
         var token = await SeedUserAsync(client, "Nutritionist", "confirm-gallery");
-        var foodId = await CreateFoodAsync(client, token);
+        var foodId = await TestHelpers.CreateFoodAsync(client, token, TestContext.Current.CancellationToken);
 
         var galleryUrl = $"foods/{foodId}/gallery-0.jpg";
 
@@ -248,7 +241,7 @@ public class FoodImageIntegrationTests(FitnessApiFactory factory)
 
         // Nutritionist A creates the food
         var tokenA = await SeedUserAsync(client, "Nutritionist", "owner-a");
-        var foodId = await CreateFoodAsync(client, tokenA);
+        var foodId = await TestHelpers.CreateFoodAsync(client, tokenA, TestContext.Current.CancellationToken);
 
         // Nutritionist B tries to confirm an image on it
         var tokenB = await SeedUserAsync(client, "Nutritionist", "owner-b");
@@ -264,6 +257,36 @@ public class FoodImageIntegrationTests(FitnessApiFactory factory)
         var raw = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         raw.Should().Contain("FOOD_NOT_OWNED",
             "the Problem Details payload must carry the FOOD_NOT_OWNED error code");
+    }
+
+    // ── Blob URL validation on confirm (main slot only) ───────────────────────
+
+    /// <summary>
+    /// A nutritionist tries to confirm the main image using another food's presigned key
+    /// (a well-formed <c>foods/{id}.ext</c> URL, just for the wrong food). Expects 400 with
+    /// error code INVALID_BLOB_URL — the blobUrl must match this food's own issued key.
+    /// </summary>
+    [Fact]
+    public async Task ConfirmImage_MainSlot_ForeignBlobUrl_Returns400WithInvalidBlobUrlError()
+    {
+        var client = factory.CreateClient();
+        var token = await SeedUserAsync(client, "Nutritionist", "foreign-blob-url");
+
+        var foodId = await TestHelpers.CreateFoodAsync(client, token, TestContext.Current.CancellationToken);
+        var otherFoodId = await TestHelpers.CreateFoodAsync(client, token, TestContext.Current.CancellationToken);
+
+        TestHelpers.SetBearerToken(client, token);
+
+        var response = await client.PutAsJsonAsync(
+            $"/foods/{foodId}/image?slot=main",
+            new { BlobUrl = $"foods/{otherFoodId}.jpg" },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+
+        var raw = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        raw.Should().Contain("INVALID_BLOB_URL",
+            "the Problem Details payload must carry the INVALID_BLOB_URL error code");
     }
 
     // ── Local response DTOs (per slice rules — no cross-feature imports) ────────

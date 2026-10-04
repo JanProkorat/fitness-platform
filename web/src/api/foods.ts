@@ -1,58 +1,111 @@
-import api from '@/lib/api';
-import type { UploadFoodImageUrlRequest, ConfirmFoodImageRequest } from './generated';
+/**
+ * Ingredients (backend: Foods) API module.
+ *
+ * Wraps the NSwag-generated `searchFoodsEndpoint` / `createFoodEndpoint` /
+ * `updateFoodEndpoint` / `deleteFoodEndpoint`. Food-tag CRUD/assignment
+ * lives in the sibling `food-tags.ts` module (#1120).
+ */
+import { apiClient } from '@/api/client';
 import type {
-  SearchFoodsResponse,
-  GetCustomFoodsResponse,
+  UploadFoodImageUrlRequest,
+  ConfirmFoodImageRequest,
   FoodSummary,
   FoodCategory,
+  FoodOwnerFilter,
+  FoodSortField,
+  FoodSortDirection,
   CreateFoodRequest,
   UpdateFoodRequest,
-} from './food-types';
+} from '@/api/generated';
 
 /** Slot for food image upload: 'main' overwrites hero; 'gallery' appends (max 6). */
 export type FoodImageSlot = 'main' | 'gallery';
 
-/** Search foods by name with pagination. */
-export async function searchFoods(params: {
+export interface SearchFoodsParams {
   q?: string;
-  category?: FoodCategory;
-  page?: number;
-  pageSize?: number;
-}): Promise<SearchFoodsResponse> {
-  const { data } = await api.get<SearchFoodsResponse>('/foods/search', { params });
-  return data;
+  /** Matches a food carrying ANY of the supplied categories. Always passed
+   * through (even empty) — the generated client serialises it as a repeated
+   * `category=` query parameter, same shape as `tags` below. */
+  categories: FoodCategory[];
+  /** Matches a food the caller has tagged with ANY of the supplied food-tag
+   * ids (#1120). Always passed through (even empty) — the generated client
+   * serialises it as a repeated `tagIds=` query parameter; hand-building
+   * that URL is exactly how the tags filter goes silently wrong. */
+  tagIds: string[];
+  /** Matches a food whose ownership falls under ANY of the supplied
+   * `FoodOwnerFilter` values (#1139). Always passed through (even empty) —
+   * same repeated-query-param shape as `categories`/`tagIds` above. */
+  owners: FoodOwnerFilter[];
+  page: number;
+  pageSize: number;
+  /** Column to sort by. `undefined` means no explicit sort — the backend
+   * returns newest-created foods first. */
+  sortBy?: FoodSortField;
+  /** Direction for `sortBy`. Ignored by the backend when `sortBy` is omitted. */
+  sortDir?: FoodSortDirection;
+}
+
+export interface SearchFoodsResult {
+  foods: FoodSummary[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+}
+
+/** Search foods (ingredients) by name, category and tags, with pagination. */
+export async function searchFoods(params: SearchFoodsParams): Promise<SearchFoodsResult> {
+  // NSwag reorders array params ahead of scalar ones, and generator output can
+  // silently reorder further on regen — always re-check this argument order
+  // against the generated `searchFoodsEndpoint` signature, don't assume it.
+  const response = await apiClient.searchFoodsEndpoint(
+    params.categories,
+    params.tagIds,
+    params.owners,
+    params.page,
+    params.pageSize,
+    params.q,
+    params.sortBy,
+    params.sortDir,
+  );
+  return {
+    foods: response.foods ?? [],
+    totalCount: response.totalCount ?? 0,
+    page: response.page ?? params.page,
+    pageSize: response.pageSize ?? params.pageSize,
+  };
 }
 
 /** Get a single food by ID. */
 export async function getFood(foodId: string): Promise<FoodSummary> {
-  const { data } = await api.get<FoodSummary>(`/foods/${foodId}`);
-  return data;
+  return apiClient.getFoodEndpoint(foodId);
 }
 
-/** Create a custom food (Nutritionist only). */
+/** Create a custom food (Nutritionist only). Defaults to Private visibility. */
 export async function createFood(request: CreateFoodRequest): Promise<FoodSummary> {
-  const { data } = await api.post<FoodSummary>('/foods', request);
-  return data;
+  return apiClient.createFoodEndpoint(request);
 }
 
-/** Update a custom food (Nutritionist only). */
+/** Update a custom food (owner only). This is a full-state PUT — callers must
+ * round-trip every field the backend stores, not just the ones edited in the
+ * UI, or the untouched fields get silently wiped. */
 export async function updateFood(foodId: string, request: UpdateFoodRequest): Promise<FoodSummary> {
-  const { data } = await api.put<FoodSummary>(`/foods/${foodId}`, request);
-  return data;
+  return apiClient.updateFoodEndpoint(foodId, request);
 }
 
-/** Delete a custom food (soft delete, Nutritionist only). */
+/** Delete a custom food (soft delete, owner only). */
 export async function deleteFood(foodId: string): Promise<void> {
-  await api.delete(`/foods/${foodId}`);
+  await apiClient.deleteFoodEndpoint(foodId);
 }
 
 /** Get custom foods for the authenticated nutritionist. */
-export async function getCustomFoods(params: {
-  page?: number;
-  pageSize?: number;
-}): Promise<GetCustomFoodsResponse> {
-  const { data } = await api.get<GetCustomFoodsResponse>('/foods/custom', { params });
-  return data;
+export async function getCustomFoods(params: { page: number; pageSize: number }) {
+  const response = await apiClient.getCustomFoodsEndpoint(params.page, params.pageSize);
+  return {
+    foods: response.foods ?? [],
+    totalCount: response.totalCount ?? 0,
+    page: response.page ?? params.page,
+    pageSize: response.pageSize ?? params.pageSize,
+  };
 }
 
 /**
@@ -64,12 +117,8 @@ export async function requestFoodImageUploadUrl(
   slot: FoodImageSlot,
   request: UploadFoodImageUrlRequest,
 ): Promise<{ uploadUrl: string; blobUrl: string }> {
-  const { data } = await api.post<{ uploadUrl: string; blobUrl: string }>(
-    `/foods/${foodId}/image/upload-url`,
-    request,
-    { params: { slot } },
-  );
-  return data;
+  const response = await apiClient.uploadFoodImageUrlEndpoint(foodId, slot, request);
+  return { uploadUrl: response.uploadUrl ?? '', blobUrl: response.blobUrl ?? '' };
 }
 
 /**
@@ -82,5 +131,14 @@ export async function confirmFoodImage(
   blobUrl: string,
 ): Promise<void> {
   const body: ConfirmFoodImageRequest = { blobUrl };
-  await api.put(`/foods/${foodId}/image`, body, { params: { slot } });
+  await apiClient.confirmFoodImageEndpoint(foodId, slot, body);
+}
+
+/**
+ * Clears a food's main picture (owner only). Mirrors the backend's
+ * DeleteFoodImageEndpoint — only `ImageUrl` is cleared; the gallery and
+ * every other field are left untouched.
+ */
+export async function removeFoodImage(foodId: string): Promise<void> {
+  await apiClient.deleteFoodImageEndpoint(foodId);
 }

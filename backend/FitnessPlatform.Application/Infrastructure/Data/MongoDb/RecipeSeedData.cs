@@ -1,6 +1,7 @@
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Services;
 
 namespace FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 
@@ -87,11 +88,16 @@ public static class RecipeSeedData
                 Description = entry.Description,
                 PrepTimeMinutes = entry.PrepMinutes,
                 Steps = entry.Steps is { Count: > 0 } ? entry.Steps : null,
-                Note = BuildNote(entry),
+                Note = string.IsNullOrWhiteSpace(entry.Note) ? null : entry.Note,
+                Servings = entry.Servings ?? 1,
                 Foods = mealFoods,
                 TotalNutrients = ComputeTotals(mealFoods),
                 Visibility = RecipeVisibility.Public,
-                MealTypes = entry.MealTypes,
+                DietaryPreferences = IntersectDietaryPreferences(
+                    entry.Ingredients.Select(i => foodEntries[i.Slug].DietaryPreferences)),
+                MealTypes = entry.MealTypes is null
+                    ? null
+                    : FoodEnumListMapping.ToStoredNames(FoodEnumListMapping.ParseStoredNames<RecipeMealType>(entry.MealTypes)),
                 DateCreated = now,
             });
         }
@@ -127,25 +133,22 @@ public static class RecipeSeedData
     }
 
     /// <summary>
-    /// Prepends the servings-count hint (the JSON has no dedicated Recipe field for it) to the
-    /// authored note. Provenance-only fields (<c>statedKcalPerServing</c>, <c>sourceUrl</c>) are
-    /// intentionally not surfaced here.
+    /// A recipe carries a preference only when every ingredient food carries it. An empty
+    /// ingredient list or an ingredient with no tags yields none.
     /// </summary>
-    private static string? BuildNote(RecipeSeedEntry entry)
+    public static List<string> IntersectDietaryPreferences(IEnumerable<List<string>?> ingredientPreferences)
     {
-        var parts = new List<string>();
+        var parsed = ingredientPreferences
+            .Select(p => FoodEnumListMapping.ParseStoredNames<DietaryPreference>(p ?? []).ToHashSet())
+            .ToList();
 
-        if (entry.Servings is { } servings)
+        if (parsed.Count == 0)
         {
-            parts.Add($"Recept na {servings} porcí.");
+            return [];
         }
 
-        if (!string.IsNullOrWhiteSpace(entry.Note))
-        {
-            parts.Add(entry.Note);
-        }
-
-        return parts.Count > 0 ? string.Join(" ", parts) : null;
+        return FoodEnumListMapping.ToStoredNames(
+            Enum.GetValues<DietaryPreference>().Where(p => parsed.All(set => set.Contains(p))));
     }
 
     /// <summary>

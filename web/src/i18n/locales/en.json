@@ -1,5 +1,6 @@
 {
   "common": {
+    "appName": "GoodFellas",
     "loading": "Loading...",
     "save": "Save changes",
     "saving": "Saving...",
@@ -177,10 +178,20 @@
     "comingSoon": "Mobile app coming soon",
     "comingSoonHint": "We're working hard to bring the GF Platform mobile app to you. Stay tuned!"
   },
+  "shell": {
+    "comingSoon": "This page is coming soon.",
+    "notFoundTitle": "Page not found",
+    "notFoundBody": "The page you're looking for doesn't exist.",
+    "backToClients": "Back to Clients",
+    "openNavigation": "Open navigation",
+    "navigationTitle": "Navigation"
+  },
   "sidebar": {
     "dashboard": "Dashboard",
     "profile": "Profile",
     "clients": "Clients",
+    "inbox": "Inbox",
+    "ingredients": "Ingredients",
     "foods": "Foods",
     "plans": "Plans",
     "settings": "Settings",
@@ -192,6 +203,9 @@
     "clientsSection": "CLIENTS",
     "searchClients": "Search client...",
     "databaseSection": "DATABASE",
+    "clientManagementSection": "Client management",
+    "nutritionSection": "Nutrition",
+    "help": "Help & Support",
     "trainingPlan": "Training plan",
     "mealPlan": "Meal plan",
     "questionnaires": "Questionnaires",
@@ -213,6 +227,12 @@
     "planSubmenu": {
       "empty": "No plans yet"
     }
+  },
+  "roles": {
+    "admin": "Admin",
+    "trainer": "Personal trainer",
+    "nutritionist": "Nutritionist",
+    "client": "Client"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -296,6 +316,85 @@
   "clients": {
     "title": "Clients",
     "subtitle": "Client management and overview",
+    "tabs": {
+      "active": "Active",
+      "paused": "Paused",
+      "archived": "Archived",
+      "pending": "Pending"
+    },
+    "searchPlaceholder": "Search clients...",
+    "chips": {
+      "groupLabel": "Filter clients",
+      "all": "All",
+      "unreadMessages": "Unread messages",
+      "noMessages": "No messages",
+      "newCheckIns": "New check-ins",
+      "missingCheckIns": "Missing check-ins",
+      "endingSoon": "Ending soon"
+    },
+    "tagFilter": {
+      "label": "Select tags",
+      "empty": "You haven't created any tags yet."
+    },
+    "table": {
+      "columnClient": "Client",
+      "columnStatus": "Status",
+      "columnTags": "Tags",
+      "columnUnread": "Unread",
+      "columnPlans": "Plans",
+      "unreadTooltip_one": "{{count}} unread message",
+      "unreadTooltip_other": "{{count}} unread messages",
+      "activePlanCount_one": "{{count}} active plan",
+      "activePlanCount_other": "{{count}} active plans",
+      "noActivePlans": "No active plans",
+      "planType": {
+        "nutrition": "Nutrition",
+        "training": "Training"
+      },
+      "selectAll": "Select all clients on this page",
+      "selectRow": "Select {{name}}"
+    },
+    "rowMenu": {
+      "open": "Open row menu",
+      "viewDetail": "Open client detail"
+    },
+    "noResultsForFilters": "No clients match your filters.",
+    "clearFilters": "Clear filters",
+    "retry": "Retry",
+    "pagination": {
+      "viewing": "Viewing {{count}} of {{total}}"
+    },
+    "pendingTable": {
+      "columnName": "Name",
+      "columnEmail": "Email",
+      "columnType": "Type",
+      "columnSentAt": "Sent",
+      "kindInvite": "Invite sent",
+      "kindRequest": "Request received",
+      "empty": "No pending invites or requests.",
+      "accept": "Accept",
+      "reject": "Reject",
+      "cancel": "Cancel"
+    },
+    "tags": {
+      "createError": "Couldn't create the tag. Please try again.",
+      "updateError": "Couldn't update the tag. Please try again.",
+      "deleteError": "Couldn't delete the tag. Please try again.",
+      "assignError": "Couldn't update this client's tags. Please try again."
+    },
+    "broadcast": {
+      "success": "Message sent.",
+      "error": "Couldn't send the message. Please try again."
+    },
+    "addClient": {
+      "success": "Invitation sent.",
+      "error": "Couldn't send the invitation. Please try again."
+    },
+    "pending": {
+      "cancelError": "Couldn't cancel the invite. Please try again.",
+      "acceptError": "Couldn't accept the request. Please try again.",
+      "rejectError": "Couldn't reject the request. Please try again."
+    },
     "inviteClient": "+ Invite client",
     "inviteNewClient": "Invite a new client",
     "inviteSent": "Invitation sent!",
@@ -307,7 +406,6 @@
     "backToClients": "Clients",
     "clientDetail": "Client detail",
     "comingSoon": "Coming soon",
-    "comingSoonHint": "Client detail will be available in the next phase",
     "overview": "Overview",
     "compliance": "Compliance",
     "streak": "Day Streak",
@@ -472,6 +570,63 @@
       "Cut": "Cut (deficit)",
       "Maintain": "Maintain",
       "Bulk": "Bulk (surplus)"
+    },
+    "selectionBar": {
+      "count_one": "{{count}} client selected",
+      "count_other": "{{count}} clients selected",
+      "broadcast": "Broadcast",
+      "cancel": "Cancel"
+    },
+    "broadcastDrawer": {
+      "title": "Broadcast message",
+      "description_one": "Send this message to {{count}} selected client.",
+      "description_other": "Send this message to {{count}} selected clients.",
+      "placeholder": "Type your message...",
+      "insertFirstName": "Insert first name",
+      "insertFullName": "Insert full name",
+      "send": "Send",
+      "validation": {
+        "textRequired": "Message text is required."
+      }
+    },
+    "tagPicker": {
+      "open": "Assign tags",
+      "createTag": "Create tag",
+      "createTitle": "Create a new tag",
+      "createDescription": "Tags help you group and filter your clients.",
+      "nameLabel": "Name",
+      "namePlaceholder": "Enter tag name",
+      "colorLabel": "Color",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Enter tag description",
+      "previewLabel": "Preview",
+      "previewSampleName": "Tag Preview",
+      "createSubmit": "Create tag",
+      "colors": {
+        "red": "Red",
+        "orange": "Orange",
+        "yellow": "Yellow",
+        "green": "Green",
+        "blue": "Blue",
+        "purple": "Purple",
+        "pink": "Pink",
+        "grey": "Grey"
+      },
+      "validation": {
+        "nameRequired": "Tag name is required.",
+        "colorInvalid": "Enter a valid hex color (e.g. #3B82F6)."
+      }
+    },
+    "addClientDrawer": {
+      "title": "Invite a new client",
+      "description": "The client will receive an email invitation to create an account and connect with you.",
+      "emailLabel": "Email",
+      "messageLabel": "Message (optional)",
+      "submit": "Send invitation",
+      "validation": {
+        "emailRequired": "Email is required.",
+        "emailInvalid": "Enter a valid email address."
+      }
     }
   },
   "profile": {
@@ -645,71 +800,382 @@
       "uploadGalleryError": "Failed to add gallery photo"
     }
   },
+  "ingredients": {
+    "title": "Ingredients",
+    "newIngredient": "+ New Ingredient",
+    "searchPlaceholder": "Search ingredients…",
+    "retry": "Retry",
+    "noResultsForFilters": "No ingredients match your filters.",
+    "clearFilters": "Clear filters",
+    "deleteSuccess": "Ingredient deleted.",
+    "deleteError": "Couldn't delete the ingredient. Please try again.",
+    "filters": {
+      "category": "Category"
+    },
+    "table": {
+      "columnName": "Name",
+      "columnCalories": "Calories",
+      "columnNutrients": "Nutrients",
+      "columnCategory": "Category",
+      "columnTags": "Tags",
+      "columnLibrary": "Library",
+      "caloriesValue": "{{count}} kcal / 100g",
+      "proteinValue": "P: {{count}} g",
+      "carbsValue": "C: {{count}} g",
+      "fatValue": "F: {{count}} g"
+    },
+    "tags": {
+      "createError": "Couldn't create the tag. Please try again.",
+      "updateError": "Couldn't update the tag. Please try again.",
+      "deleteError": "Couldn't delete the tag. Please try again.",
+      "assignError": "Couldn't update this ingredient's tags. Please try again."
+    },
+    "category": {
+      "Other": "Other",
+      "Fruit": "Fruit",
+      "Vegetables": "Vegetables",
+      "Meat": "Meat",
+      "FishAndSeafood": "Fish and Seafood",
+      "Dairy": "Dairy",
+      "GrainsAndCereals": "Grains and Cereals",
+      "Legumes": "Legumes",
+      "NutsAndSeeds": "Nuts and Seeds",
+      "OilsAndFats": "Oils and Fats",
+      "SweetsAndSnacks": "Sweets and Snacks",
+      "Beverages": "Beverages",
+      "Supplements": "Supplements"
+    },
+    "allergen": {
+      "Gluten": "Gluten",
+      "Crustaceans": "Crustaceans",
+      "Eggs": "Eggs",
+      "Fish": "Fish",
+      "Peanuts": "Peanuts",
+      "Soy": "Soy",
+      "Milk": "Milk",
+      "TreeNuts": "Tree nuts",
+      "Celery": "Celery",
+      "Mustard": "Mustard",
+      "Sesame": "Sesame",
+      "Sulphites": "Sulphites",
+      "Lupin": "Lupin",
+      "Molluscs": "Molluscs"
+    },
+    "dietaryPreference": {
+      "Vegan": "Vegan",
+      "Vegetarian": "Vegetarian",
+      "Pescatarian": "Pescatarian",
+      "GlutenFree": "Gluten-free",
+      "LactoseFree": "Lactose-free",
+      "DairyFree": "Dairy-free",
+      "Keto": "Keto",
+      "LowCarb": "Low-carb"
+    },
+    "unit": {
+      "portion": "Portion",
+      "piece": "Piece",
+      "slice": "Slice",
+      "cup": "Cup",
+      "tbsp": "Tablespoon",
+      "tsp": "Teaspoon",
+      "handful": "Handful",
+      "glass": "Glass",
+      "pack": "Pack",
+      "can": "Can",
+      "tub": "Tub",
+      "head": "Head",
+      "clove": "Clove",
+      "bunch": "Bunch",
+      "scoop": "Scoop"
+    },
+    "drawer": {
+      "createTitle": "New Ingredient",
+      "editTitle": "Edit Ingredient",
+      "viewTitle": "Ingredient",
+      "subtitleCreate": "Add a new ingredient to your library",
+      "subtitleEdit": "Edit this ingredient's details",
+      "subtitleView": "Ingredient details",
+      "basicInfo": "Basic Information",
+      "nutritionalInfo": "Nutritional Information",
+      "tagsClassification": "Tags & Classification",
+      "name": "Name",
+      "namePlaceholder": "Enter name",
+      "nameRequired": "Name is required.",
+      "zeroPlaceholder": "0",
+      "category": "Category",
+      "categoryPlaceholder": "Select category",
+      "categoryRequired": "Category is required.",
+      "calories": "Calories / 100g",
+      "caloriesRequired": "Calories is required.",
+      "protein": "Protein / 100g",
+      "proteinRequired": "Protein is required.",
+      "carbs": "Carbs / 100g",
+      "carbsRequired": "Carbs is required.",
+      "fat": "Fat / 100g",
+      "fatRequired": "Fat is required.",
+      "fiber": "Fiber / 100g",
+      "macroMinRequired": "Must be 0 or more.",
+      "unit": "Unit",
+      "unitPlaceholder": "Select unit",
+      "unitRequired": "Unit is required.",
+      "servingSize": "Unit weight (g)",
+      "servingSizeRequired": "Unit weight is required.",
+      "dietaryPreferences": "Dietary Preferences",
+      "dietaryPreferencesPlaceholder": "Select preferences",
+      "allergens": "Contains Allergens",
+      "allergensPlaceholder": "Select allergens",
+      "myTags": "My Tags",
+      "save": "Save Ingredient",
+      "delete": "Delete",
+      "createSuccess": "Ingredient created.",
+      "createError": "Couldn't create the ingredient. Please try again.",
+      "updateSuccess": "Ingredient updated.",
+      "updateError": "Couldn't update the ingredient. Please try again."
+    },
+    "deleteDialog": {
+      "title": "Delete ingredient",
+      "description": "Are you sure you want to delete \"{{name}}\"? This can't be undone.",
+      "confirm": "Delete"
+    },
+    "picture": {
+      "removeConfirmDescription": "Are you sure you want to remove this ingredient's picture? This can't be undone.",
+      "alt": "Ingredient picture"
+    }
+  },
+  "library": {
+    "badge": {
+      "system": "System",
+      "mine": "Mine",
+      "shared": "Shared"
+    },
+    "visibility": {
+      "label": "Visibility",
+      "options": {
+        "Private": "Private",
+        "Public": "Public"
+      },
+      "hint": {
+        "Private": {
+          "recipe": "Only you can see and use this recipe.",
+          "ingredient": "Only you can see and use this ingredient."
+        },
+        "Public": {
+          "recipe": "All coaches can see and use this recipe.",
+          "ingredient": "All coaches can see and use this ingredient."
+        }
+      }
+    },
+    "pagination": {
+      "viewing": "Viewing {{count}} of {{total}}"
+    },
+    "sortButtonLabel": "Sort by {{column}}",
+    "tags": {
+      "filter": "Tags",
+      "empty": "No tags yet.",
+      "open": "Assign tags",
+      "createTag": "Create tag",
+      "createTitle": "Create a new tag",
+      "createDescription": "Tags help you group and filter your ingredients and recipes.",
+      "editTitle": "Edit tag",
+      "editDescription": "Rename, recolor, or redescribe this tag.",
+      "editTag": "Edit \"{{name}}\"",
+      "deleteTag": "Delete",
+      "deleteConfirmTitle": "Delete tag",
+      "deleteConfirmDescription": "Are you sure you want to delete \"{{name}}\"? It will be removed from every ingredient and recipe it's assigned to. This can't be undone.",
+      "deleteConfirmSubmit": "Delete",
+      "nameLabel": "Name",
+      "namePlaceholder": "Enter tag name",
+      "colorLabel": "Color",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Enter tag description",
+      "previewLabel": "Preview",
+      "previewSampleName": "Tag Preview",
+      "createSubmit": "Create tag",
+      "editSubmit": "Save changes",
+      "colors": {
+        "red": "Red",
+        "orange": "Orange",
+        "yellow": "Yellow",
+        "green": "Green",
+        "blue": "Blue",
+        "purple": "Purple",
+        "pink": "Pink",
+        "grey": "Grey"
+      },
+      "validation": {
+        "nameRequired": "Tag name is required.",
+        "colorInvalid": "Enter a valid hex color (e.g. #3B82F6)."
+      }
+    },
+    "filters": {
+      "owner": "Owner",
+      "ownerOptions": {
+        "Mine": "Mine",
+        "System": "System",
+        "OtherCoaches": "Other coaches"
+      }
+    },
+    "picture": {
+      "sectionLabel": "Picture",
+      "upload": "Upload picture",
+      "dropHint": "Drag a picture here or click to upload",
+      "dropLimits": "JPEG, PNG, or WebP, up to 5 MB.",
+      "replace": "Replace picture",
+      "remove": "Remove picture",
+      "removeConfirmTitle": "Remove picture",
+      "removeConfirmSubmit": "Remove",
+      "removeSuccess": "Picture removed.",
+      "removeError": "Couldn't remove the picture. Please try again.",
+      "uploadError": "Couldn't upload the picture. Please try again.",
+      "thumbnailAlt": "{{name}} picture",
+      "viewPicture": "View picture",
+      "viewPictureOf": "View picture of {{name}}",
+      "previous": "Previous picture",
+      "next": "Next picture"
+    }
+  },
   "recipes": {
     "title": "Recipes",
-    "subtitle": "Create and manage reusable meal recipes",
-    "pageTitle": "Recipe Library",
-    "pageSubtitle": "Create, organize and reuse your meal recipes with full nutritional breakdown",
-    "viewTable": "Table",
-    "viewList": "List",
-    "viewCards": "Cards",
-    "sort": "Sort",
-    "prepTime": "Prep time",
-    "search": "Search recipes...",
-    "searchAriaLabel": "Search recipes",
-    "addRecipe": "New Recipe",
-    "editRecipe": "Edit Recipe",
-    "recipeName": "Recipe name",
-    "recipeNamePlaceholder": "e.g. Chicken Stir-Fry",
-    "description": "Cooking instructions",
-    "descriptionPlaceholder": "How to prepare this recipe...",
-    "foods": "Ingredients",
-    "pieces": "Pieces",
-    "serving": "Serving",
-    "addFood": "+ Add Ingredient",
-    "noRecipes": "No recipes yet",
-    "noRecipesHint": "Create your first recipe using the button above",
-    "created": "Recipe created",
-    "updated": "Recipe updated",
-    "deleted": "Recipe deleted",
-    "createError": "Failed to create recipe",
-    "updateError": "Failed to update recipe",
-    "deleteError": "Failed to delete recipe",
-    "confirmDelete": "Are you sure you want to delete this recipe?",
-    "deleteConfirmTitle": "Delete recipe",
-    "deleteConfirmMessage": "Are you sure you want to delete \"{{name}}\"? This cannot be undone.",
-    "deleteRecipe": "Delete",
-    "createRecipe": "Create Recipe",
-    "nutritionPerRecipe": "Nutrition / recipe",
-    "autoCalculated": "Auto-calculated from ingredients",
-    "note": "Tip / note",
-    "notePlaceholder": "Tips, variations, recommendations...",
-    "stepsLabel": "Preparation steps",
-    "addStep": "Add step",
-    "stepPlaceholder": "Step",
-    "discardChanges": "Back to detail",
-    "fromRecipe": "From Recipe",
-    "portions": "Portions",
-    "searchRecipes": "Search recipes...",
-    "noResults": "No recipes found",
-    "foodCount": "{{count}} ingredients",
-    "totalKcal": "{{kcal}} kcal",
-    "ingredientNote": "Note",
-    "ingredientNotePlaceholder": "e.g. finely chopped, room temperature...",
-    "visibilityPublic": "Public",
-    "visibilityPrivate": "Private",
-    "visibilityHint": "Public recipes are visible to all nutritionists. Only you can edit them.",
-    "image": {
-      "mainHeading": "Main Image",
-      "mainEmpty": "No main image. Click to upload.",
-      "galleryHeading": "Photo Gallery",
-      "galleryEmpty": "No gallery photos yet.",
-      "addPhoto": "+ Add photo",
-      "galleryFull": "Gallery is full (max 6 photos)",
-      "uploadMainSuccess": "Main image updated",
-      "uploadMainError": "Failed to upload main image",
-      "uploadGallerySuccess": "Photo added to gallery",
-      "uploadGalleryError": "Failed to add gallery photo"
+    "searchPlaceholder": "Search recipes…",
+    "newRecipe": "+ New Recipe",
+    "retry": "Retry",
+    "noResultsForFilters": "No recipes match your filters.",
+    "clearFilters": "Clear filters",
+    "deleteSuccess": "Recipe deleted.",
+    "deleteError": "Couldn't delete the recipe. Please try again.",
+    "empty": {
+      "title": "No recipes yet",
+      "hint": "Create your first recipe to get started",
+      "create": "Create Recipe"
+    },
+    "nutritionistsOnly": {
+      "title": "Recipes are available to nutritionists",
+      "body": "Your account is a trainer account, so the recipe library is not available to you."
+    },
+    "filters": {
+      "mealType": "Meal type",
+      "dietaryPreference": "Dietary preferences"
+    },
+    "mealType": {
+      "Breakfast": "Breakfast",
+      "Lunch": "Lunch",
+      "Dinner": "Dinner",
+      "Snack": "Snack",
+      "Dessert": "Dessert"
+    },
+    "difficulty": {
+      "Easy": "Easy",
+      "Medium": "Medium",
+      "Hard": "Hard"
+    },
+    "table": {
+      "columnName": "Name",
+      "columnCalories": "Calories / serving",
+      "columnNutrients": "Nutrients / serving",
+      "columnMealType": "Meal type",
+      "columnServings": "Servings",
+      "columnTags": "Tags",
+      "columnLibrary": "Library",
+      "caloriesValue": "{{count}} kcal",
+      "proteinValue": "P: {{count}} g",
+      "carbsValue": "C: {{count}} g",
+      "fatValue": "F: {{count}} g",
+      "ingredientsCount": "{{count}} ingredients",
+      "minutesValue": "{{count}} min"
+    },
+    "drawer": {
+      "createTitle": "New Recipe",
+      "editTitle": "Edit Recipe",
+      "viewTitle": "Recipe",
+      "subtitleCreate": "Add details about your recipe",
+      "subtitleEdit": "Edit this recipe's details",
+      "subtitleView": "Recipe details",
+      "tabDetails": "Details",
+      "tabIngredients": "Ingredients",
+      "tabPreparation": "Preparation",
+      "tabPictures": "Pictures",
+      "picturesCreateHint": "Save the recipe to add pictures.",
+      "tabsLabel": "Recipe sections",
+      "name": "Name",
+      "namePlaceholder": "Enter recipe name",
+      "nameRequired": "Name is required.",
+      "servings": "Servings",
+      "servingsRequired": "Servings must be a whole number, at least 1.",
+      "description": "Description",
+      "descriptionPlaceholder": "Describe recipe",
+      "recipeDetails": "Recipe details",
+      "mealTypes": "Meal type",
+      "mealTypesPlaceholder": "Select types",
+      "mealTypesRequired": "Select at least one meal type.",
+      "difficulty": "Difficulty",
+      "difficultyNone": "None",
+      "prepTime": "Prep time (optional)",
+      "cookTime": "Cook time (optional)",
+      "timePlaceholder": "e.g. 10 minutes",
+      "minutesInvalid": "Enter a whole number of minutes.",
+      "allergens": "Allergens",
+      "allergensNone": "None",
+      "allergensHint": "Derived from the ingredients.",
+      "dietaryPreferences": "Dietary preferences",
+      "dietaryPreferencesPlaceholder": "Select preferences",
+      "save": "Save Recipe",
+      "delete": "Delete",
+      "createSuccess": "Recipe created.",
+      "createError": "Couldn't create the recipe. Please try again.",
+      "updateSuccess": "Recipe updated.",
+      "updateError": "Couldn't update the recipe. Please try again.",
+      "loadError": "Couldn't load this recipe. Please try again.",
+      "myTags": "My Tags"
+    },
+    "tags": {
+      "assignError": "Couldn't update this recipe's tags. Please try again."
+    },
+    "ingredientsTab": {
+      "searchPlaceholder": "Search ingredients to add… (your library + system)",
+      "searchLabel": "Search ingredients to add",
+      "searching": "Searching…",
+      "noResults": "No ingredients found.",
+      "empty": "No ingredients yet. Search above to add one.",
+      "foodsRequired": "Add at least one ingredient.",
+      "amountLabel": "Amount in grams for {{name}}",
+      "amountInvalid": "Enter an amount above 0.",
+      "removeIngredient": "Remove {{name}}",
+      "gramsUnit": "g",
+      "kcalValue": "{{count}} kcal",
+      "kcalPer100": "{{count}} kcal / 100 g",
+      "total": "Total",
+      "perServing": "Per serving ({{count}})"
+    },
+    "preparation": {
+      "stepLabel": "Step {{number}}",
+      "stepPlaceholder": "Describe this step",
+      "addStep": "+ Add step",
+      "removeStep": "Remove step {{number}}",
+      "reorderStep": "Reorder step {{number}}",
+      "hint": "Steps are shown to the client in the app, in this order.",
+      "times": "Prep {{prep}} · Cook {{cook}}"
+    },
+    "deleteDialog": {
+      "title": "Delete recipe",
+      "description": "Are you sure you want to delete \"{{name}}\"? This can't be undone.",
+      "confirm": "Delete"
+    },
+    "picture": {
+      "alt": "Recipe picture",
+      "removeConfirmDescription": "Are you sure you want to remove this recipe's picture? This can't be undone."
+    },
+    "pictures": {
+      "mainLabel": "Main picture",
+      "galleryLabel": "More pictures",
+      "galleryCount": "{{count}} of {{max}}",
+      "galleryEmpty": "No additional pictures.",
+      "galleryAlt": "Recipe picture {{number}}",
+      "addPicture": "Add picture",
+      "remove": "Remove picture {{number}}",
+      "setAsMain": "Set as main",
+      "setAsMainLabel": "Set picture {{number}} as main",
+      "promoteError": "Couldn't set the main picture. Please try again.",
+      "removeConfirmDescription": "Are you sure you want to remove this picture? This can't be undone."
     }
   },
   "nutrition": {
@@ -919,7 +1385,7 @@
     "INVITATION_EXPIRED": "This invitation has expired.",
     "ROLE_ALREADY_ASSIGNED": "You already have this role.",
     "ACCOUNT_DELETION_FAILED": "Account deletion failed. Please try again.",
-    "KCAL_INCONSISTENT": "Calorie value doesn't match macronutrients (protein×4 + carbs×4 + fat×9 ± 10%).",
+    "KCAL_INCONSISTENT": "Calorie value doesn't match macronutrients (protein×4 + carbs×4 + fat×9 + fiber×2 ± 10%).",
     "FOOD_NOT_OWNED": "You can only modify your own custom foods.",
     "TRAINER_PROFILE_MISSING": "Trainer profile not found.",
     "CLIENT_NOT_FOUND": "Client not found.",
@@ -948,6 +1414,7 @@
     "OUT_OF_RANGE": "Value is out of the allowed range.",
     "INVALID_DEADLINE_OFFSET_HOURS": "Invalid deadline. Allowed values: 24, 48, 72, 120 or 168 hours.",
     "SESSION_ALREADY_COMPLETED": "This session has already been completed.",
+    "CONVERSATION_LOCKED": "You can reply once the client accepts your invitation.",
     "SECTION_ALREADY_COMPLETED": "This section has already been completed by the client and cannot be edited.",
     "COMPLETED_AT_IN_FUTURE": "Completion date cannot be in the future.",
     "COMPLETED_AT_BEFORE_PLAN_START": "Completion date cannot be before the plan's start date.",
@@ -958,7 +1425,27 @@
     "QuestionnaireResponseId": "This questionnaire response was not found or is not submitted yet.",
     "PHOTO_DIARY_REQUEST_NOT_FOUND": "Photo diary not found.",
     "PHOTO_DIARY_REQUEST_FORBIDDEN": "This photo diary does not belong to you.",
-    "PHOTO_DIARY_REQUEST_PLAN_NOT_OWNED": "The selected plan was not found or does not belong to this client."
+    "PHOTO_DIARY_REQUEST_PLAN_NOT_OWNED": "The selected plan was not found or does not belong to this client.",
+    "BROADCAST_RECIPIENT_LIMIT_EXCEEDED": "You can broadcast to at most 50 clients at once.",
+    "BROADCAST_RECIPIENT_NOT_LINKED": "One of the selected clients is no longer linked to you.",
+    "BROADCAST_MESSAGE_TOO_LONG_AFTER_SUBSTITUTION": "The message is too long once names are inserted. Please shorten it.",
+    "DUPLICATE_PENDING_INVITE": "An invite to this email is already pending.",
+    "TOO_MANY_PENDING_INVITES": "You've reached the maximum number of pending invites. Wait for a response or cancel one first.",
+    "PROFESSION_ALREADY_OCCUPIED": "This client already has an active coach for this profession.",
+    "REQUESTED_SCOPE_EXCEEDS_HELD_ROLES": "The requested access exceeds your current roles.",
+    "CLIENT_TAG_NAME_ALREADY_EXISTS": "A tag with this name already exists.",
+    "CLIENT_TAG_NOT_FOUND": "This tag could not be found.",
+    "FOOD_TAG_NAME_ALREADY_EXISTS": "A tag with this name already exists.",
+    "FOOD_TAG_NOT_FOUND": "This tag could not be found.",
+    "INVALID_IMAGE_CONTENT_TYPE": "Only JPEG, PNG or WebP images are supported.",
+    "IMAGE_TOO_LARGE": "Image is too large — the maximum size is 5 MB.",
+    "CHAT_IMAGE_UPLOAD_NOT_FOUND": "The image upload could not be found. Please attach it again.",
+    "INVALID_BLOB_URL": "Couldn't save the picture. Please try uploading it again.",
+    "RECIPE_VERSION_CONFLICT": "This recipe was changed elsewhere. Close it and reopen it to see the latest version.",
+    "RECIPE_FOOD_NOT_AVAILABLE": "One of the ingredients is no longer available. Remove it and try again.",
+    "RECIPE_NOT_OWNED": "You can only change your own recipes.",
+    "RECIPE_GALLERY_FULL": "This recipe already has the maximum number of pictures.",
+    "RECIPE_GALLERY_IMAGE_NOT_FOUND": "That picture is no longer part of this recipe. It may have been changed elsewhere."
   },
   "nutritionGoals": {
     "title": "Goals & Macros",
@@ -1841,7 +2328,6 @@
       "modeWorkflowDesc": "{{days}} days gradually, nutritionist sees photos live.",
       "modeHint": "Client selects the mode when they accept the request.",
       "senderInfo": "The client will see your name as the sender and your avatar. You will receive real-time notifications after photos are submitted.",
-      "linkIdMissing": "Unable to send: the client link ID is not yet available. This is a known backend gap — please contact support.",
       "send": "Send request",
       "sending": "Sending...",
       "successToast": "Photo diary request sent",
@@ -1868,19 +2354,8 @@
     "weightKg": "Weight (kg)",
     "profileUpdated": "Client profile saved",
     "readOnlyFieldHint": "This field can't be edited from the trainer portal.",
-    "tabBarLabel": "Client tabs",
     "ageYears_one": "{{count}} year",
     "ageYears_other": "{{count}} years",
-    "tabs": {
-      "prehled": "Overview",
-      "mereni": "Measurements",
-      "fotky": "Photos",
-      "aktivita": "Activity",
-      "plany": "Plans",
-      "checkiny": "Check-ins",
-      "dotazniky": "Questionnaires",
-      "poznamky": "Notes"
-    },
     "verdict": {
       "unavailable": "Verdict unavailable",
       "onTrack": {
@@ -2102,7 +2577,155 @@
       "editAriaLabel": "Edit note",
       "deleteAriaLabel": "Delete note",
       "errorLoading": "Failed to load notes"
+    },
+    "overview": {
+      "backAriaLabel": "Back to clients",
+      "tbd": "TBD",
+      "header": {
+        "heightCm": "{{cm}} cm"
+      },
+      "actions": {
+        "chat": "Chat",
+        "tasks": "Tasks",
+        "notes": "Notes",
+        "info": "Info"
+      },
+      "tabs": {
+        "overview": "Overview",
+        "development": "Development",
+        "nutrition": "Nutrition",
+        "workouts": "Workouts",
+        "storage": "Storage",
+        "payment": "Payment",
+        "automations": "Automations"
+      },
+      "stats": {
+        "rating": {
+          "label": "Average rating",
+          "caption": "Based on check-in answers"
+        },
+        "payments": {
+          "label": "Payments",
+          "caption": "No payments found for client"
+        },
+        "weight": {
+          "label": "Current weight",
+          "value": "{{kg}} kg",
+          "deltaThisWeek": "{{delta}} kg this week",
+          "goalWeight": "{{goal}} kg goal",
+          "empty": "—",
+          "noMeasurements": "No measurements yet"
+        },
+        "clientSince": {
+          "label": "Client since",
+          "days_one": "{{count}} day",
+          "days_other": "{{count}} days",
+          "started": "Started {{date}}"
+        }
+      },
+      "mealPlan": {
+        "heading": "Current meal plan",
+        "detail": "{{kcal}} kcal • {{carb}} % Carb / {{protein}} % Protein / {{fat}} % Fat"
+      },
+      "workout": {
+        "heading": "Latest workout",
+        "exercises_one": "{{count}} Exercise",
+        "exercises_other": "{{count}} Exercises"
+      },
+      "checkInTrend": {
+        "heading": "Check-in trend",
+        "last15Days": "Last 15 days",
+        "legend": {
+          "completed": "Completed",
+          "missed": "Missed",
+          "upcoming": "Upcoming"
+        }
+      },
+      "messagesTrend": {
+        "heading": "Messages trend",
+        "last4Weeks": "Last 4 weeks",
+        "chartAriaLabel": "Coach and client messages per week, last 4 weeks. {{summary}}",
+        "chartAriaWeek": "week of {{date}}: {{coach}} from coach, {{client}} from client",
+        "weekLabel": "W{{index}}",
+        "weekTooltip": "Week of {{date}}",
+        "legend": {
+          "coach": "Coach Messages",
+          "client": "Client Messages"
+        }
+      }
     }
+  },
+  "inbox": {
+    "activeView": "Active",
+    "archivedView": "Archived",
+    "searchPlaceholder": "Search chats...",
+    "emptyState": {
+      "title": "Select a chat to begin messaging",
+      "subtitle": "Your client inbox, workout questions, and onboarding metrics live here."
+    },
+    "filters": {
+      "groupLabel": "Filter conversations",
+      "all": "All",
+      "failedPayments": "Failed payments",
+      "unreadMessages": "Unread messages",
+      "noMessages": "No messages",
+      "newCheckIns": "New check-ins",
+      "blockedAutomations": "Blocked automations",
+      "missingCheckIns": "Missing check-ins",
+      "endingSoon": "Ending soon",
+      "tasksOverdue": "Tasks overdue"
+    },
+    "row": {
+      "yesterday": "Yesterday",
+      "noConversationYet": "No messages yet — start the chat",
+      "unreadAriaLabel": "Unread"
+    },
+    "noConversations": "No conversations found",
+    "list": {
+      "photoMarker": "📷 Photo"
+    },
+    "thread": {
+      "showClient": "Show client",
+      "hideClient": "Hide client",
+      "clientPanelTitle": "Client details",
+      "settingsAriaLabel": "Conversation settings",
+      "openClientProfileAriaLabel": "Open client profile",
+      "loadingOlder": "Loading older messages…",
+      "imageAlt": "Attached image",
+      "imageUnavailable": "Image unavailable"
+    },
+    "events": {
+      "invited": "You invited {{name}} to collaborate",
+      "requested": "{{name}} asked to collaborate with you",
+      "accepted": {
+        "own": "You accepted {{name}}'s request",
+        "other": "{{name}} accepted your invitation"
+      },
+      "declined": {
+        "own": "You declined {{name}}'s request",
+        "other": "{{name}} declined your invitation"
+      },
+      "withdrawn": "The collaboration offer was withdrawn"
+    },
+    "typingIndicator": "Typing…",
+    "composer": {
+      "placeholder": "Type your message here...",
+      "sendAriaLabel": "Send message",
+      "attachFileAriaLabel": "Attach file",
+      "attachImageAriaLabel": "Attach image",
+      "sendError": "Could not send the message. Please try again.",
+      "lockedNotice": "You can reply once the client accepts your invitation.",
+      "imagePreviewAlt": "Image preview",
+      "removeImageAriaLabel": "Remove image",
+      "imageUploadError": "Could not upload the image. Please try again."
+    },
+    "video": {
+      "label": "Video"
+    },
+    "deepLink": {
+      "error": "Could not open this chat."
+    },
+    "loadError": "Could not load the inbox."
   },
   "messages": {
     "title": "Messages",
@@ -2176,5 +2799,263 @@
     "mondayHint": "Plans can only start on a Monday.",
     "weekCountRequired": "Enter a number of weeks.",
     "weekCountRange": "Number of weeks must be between 1 and 52."
+  },
+  "entry": {
+    "brand": "GoodFellas",
+    "eyebrow": "Platform for coaches and nutritionists",
+    "headline": {
+      "line1": "Client coaching",
+      "accent": "without the mess"
+    },
+    "sub": "Meal plans, training plans, measurements and messaging in one place. You work in the browser, your client gets it all on their phone.",
+    "points": {
+      "meals": "Meal plans by week",
+      "training": "Training plans",
+      "checkins": "Weekly check-ins",
+      "chat": "Live chat"
+    },
+    "collage": {
+      "strength": "Strength",
+      "conditioning": "Conditioning",
+      "nutrition": "Nutrition",
+      "coaching": "Coaching",
+      "progress": "Progress",
+      "note": "Photography goes here — added when the app is built."
+    },
+    "capabilities": {
+      "eyebrow": "What it does",
+      "title": "One app instead of spreadsheets, email and WhatsApp",
+      "subtitle": "A trainer and a nutritionist work on the same client. The client sees only what has been published.",
+      "nutrition": {
+        "tag": "Nutrition",
+        "title": "Meal plans by week",
+        "body": "Build a week from recipes and ingredients, check the macros, and publish only finished weeks. A week in progress stays hidden."
+      },
+      "training": {
+        "tag": "Training",
+        "title": "Plans and an exercise library",
+        "body": "Drag exercises into a session, save it as a template, and reuse it next time in one click."
+      },
+      "contact": {
+        "tag": "Contact",
+        "title": "Check-ins and messages",
+        "body": "Once a week your client sends measurements, photos and how they feel. You reply in a chat that updates live — no page refresh."
+      }
+    },
+    "audience": {
+      "coaches": {
+        "eyebrow": "For coaches",
+        "title": "Built for the browser",
+        "subtitle": "The portal is made for a large screen, because plans get built sitting at a desk.",
+        "check1": "Client list with tags and filters",
+        "check2": "Email invites for new clients",
+        "check3": "Your own ingredient and recipe database",
+        "check4": "Measurement and photo history in one place"
+      },
+      "clients": {
+        "eyebrow": "For clients",
+        "title": "An app on their phone",
+        "subtitle": "Clients build nothing. They open the app and see what to eat and what to train today.",
+        "check1": "Today's meals and today's session",
+        "check2": "Tick off meals, log your sets",
+        "check3": "A shopping list for the whole week",
+        "check4": "Chat with the coach, plus alerts"
+      }
+    },
+    "cta": {
+      "title": "Try it with one client",
+      "body": "Create an account, invite your first client, and build their first week. It takes an afternoon.",
+      "button": "Create a coach account"
+    },
+    "footer": "Coach portal · Client app for iOS and Android",
+    "login": {
+      "title": "Welcome back",
+      "lede": "Sign in to the coach portal.",
+      "emailLabel": "Email",
+      "emailPlaceholder": "coach@example.com",
+      "passwordLabel": "Password",
+      "showPassword": "Show",
+      "hidePassword": "Hide",
+      "rememberMe": "Keep me signed in",
+      "forgotPassword": "Forgot password?",
+      "submit": "Sign in",
+      "submitting": "Signing in...",
+      "or": "or",
+      "google": "Google",
+      "apple": "Apple",
+      "googleComingSoon": "Google sign-in is not available yet.",
+      "appleComingSoon": "Apple sign-in is not available yet.",
+      "noAccount": "No account yet?",
+      "createAccount": "Create a coach account",
+      "clientNote": {
+        "lead": "Looking for a coach or nutritionist?",
+        "body": "Download our mobile app and join today.",
+        "appStore": "App Store",
+        "googlePlay": "Google Play"
+      },
+      "validation": {
+        "emailRequired": "Enter your email.",
+        "emailInvalid": "Enter a valid email address.",
+        "passwordRequired": "Enter your password."
+      },
+      "errors": {
+        "network": "Could not reach the server. Check your connection and try again.",
+        "profileLoadFailed": "You're signed in, but loading your profile failed. Please try again.",
+        "generic": "Sign in failed. Please try again."
+      }
+    },
+    "panel": {
+      "headline": "Join our community of coaches and nutritionists"
+    },
+    "register": {
+      "title": "Create account",
+      "lede": "Fill in your details and confirm your email. Takes a minute.",
+      "roleLabel": "What do you do?",
+      "roleHint": "You can pick both. Roles can be changed later in settings.",
+      "roles": {
+        "trainer": {
+          "name": "Trainer",
+          "description": "Training plans, exercises, workout logging."
+        },
+        "nutritionist": {
+          "name": "Nutritionist",
+          "description": "Meal plans, recipes, ingredients, macros."
+        }
+      },
+      "firstNameLabel": "First name",
+      "firstNamePlaceholder": "Jan",
+      "lastNameLabel": "Last name",
+      "lastNamePlaceholder": "Novak",
+      "emailLabel": "Email",
+      "emailPlaceholder": "coach@example.com",
+      "passwordLabel": "Password",
+      "passwordRules": {
+        "length": "At least 8 characters",
+        "uppercase": "Uppercase letter",
+        "lowercase": "Lowercase letter",
+        "digit": "Digit"
+      },
+      "consentLabel": "I agree to the processing of my personal data and to the terms of use.",
+      "submit": "Create account",
+      "submitting": "Creating account...",
+      "submitHint": "Select a role and fill in every field.",
+      "haveAccount": "Already have an account?",
+      "signIn": "Sign in",
+      "validation": {
+        "roleRequired": "Select at least one role.",
+        "firstNameRequired": "Enter your first name.",
+        "lastNameRequired": "Enter your last name.",
+        "emailRequired": "Enter your email.",
+        "emailInvalid": "Enter a valid email address.",
+        "passwordInvalid": "Password does not meet all the requirements above.",
+        "consentRequired": "You must agree to the processing of your personal data to create an account."
+      },
+      "errors": {
+        "duplicateEmail": "This email is already registered.",
+        "network": "Could not reach the server. Check your connection and try again.",
+        "generic": "Could not complete registration. Please try again."
+      },
+      "sent": {
+        "title": "Check your email",
+        "lede": "We sent a verification link to {{email}}. The link is valid for 24 hours.",
+        "note": "Didn't get it? Check your spam folder. If it's not there, we'll resend it.",
+        "resend": "Resend link",
+        "resending": "Sending...",
+        "resendConfirmation": "If needed, we've sent a new link.",
+        "wrongEmail": "Wrong address?",
+        "changeEmail": "Change email"
+      }
+    },
+    "forgotPassword": {
+      "title": "Forgot password",
+      "lede": "Enter the email you sign in with.",
+      "emailLabel": "Email",
+      "emailPlaceholder": "coach@example.com",
+      "submit": "Send link",
+      "submitting": "Sending...",
+      "note": "We reply the same way whether or not an account exists — so we never reveal which emails are registered.",
+      "backToLogin": "Back to sign in",
+      "validation": {
+        "emailRequired": "Enter your email.",
+        "emailInvalid": "Enter a valid email."
+      },
+      "errors": {
+        "network": "Could not reach the server. Check your connection and try again.",
+        "generic": "Sending failed. Please try again."
+      },
+      "sent": {
+        "title": "Check your email",
+        "lede": "If an account exists for this address, we've sent it a password reset link.",
+        "tryAnother": "Use a different address"
+      }
+    },
+    "verifyEmail": {
+      "verifying": "Verifying your email...",
+      "success": {
+        "title": "Email verified",
+        "lede": "Your account is ready. You can sign in and get to work.",
+        "cta": "Go to the portal",
+        "ctaLoggedOut": "Go to sign in"
+      },
+      "checkInbox": {
+        "title": "Check your email",
+        "lede": "We sent a verification link to {{email}}. Click it to activate your account.",
+        "resend": "Resend link",
+        "resending": "Sending...",
+        "resendConfirmation": "We sent a new link."
+      },
+      "invalid": {
+        "title": "This link isn't valid",
+        "noSessionLede": "This verification link is invalid or has already been used.",
+        "backToLogin": "Back to sign in"
+      },
+      "resendFromExpired": {
+        "prompt": "We'll send a new link to {{email}}.",
+        "button": "Send new link"
+      },
+      "errors": {
+        "network": "Could not reach the server. Check your connection and try again.",
+        "generic": "Verification failed. Please try again."
+      }
+    },
+    "resetPassword": {
+      "title": "Set a new password",
+      "lede": "Choose a password you don't use elsewhere. Signed-in devices stay signed in.",
+      "newPasswordLabel": "New password",
+      "confirmPasswordLabel": "Confirm password",
+      "submit": "Save new password",
+      "submitting": "Saving...",
+      "note": "Sign in with your new password afterwards. The link can only be used once.",
+      "success": {
+        "title": "Password changed",
+        "lede": "You can now sign in with your new password.",
+        "cta": "Go to sign in"
+      },
+      "invalidLink": {
+        "title": "This link isn't valid",
+        "lede": "This password reset link is missing or malformed.",
+        "cta": "Back to sign in",
+        "requestNew": "Request a new link"
+      },
+      "validation": {
+        "passwordInvalid": "Password doesn't meet all the requirements above.",
+        "confirmRequired": "Enter your password again.",
+        "confirmMismatch": "Passwords don't match."
+      },
+      "errors": {
+        "genericFailure": "This password reset link is no longer valid. Please request a new one.",
+        "passwordField": "Password doesn't meet the server's requirements. Please try a different one.",
+        "network": "Could not reach the server. Check your connection and try again.",
+        "generic": "Saving failed. Please try again."
+      }
+    },
+    "languageSwitch": {
+      "label": "Language",
+      "cs": "CS",
+      "en": "EN",
+      "de": "DE"
+    },
+    "brandMark": "GF",
+    "copyright": "© 2026 GoodFellas"
   }
 }

@@ -1,5 +1,6 @@
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Services;
 
 namespace FitnessPlatform.Application.Features.Foods.Shared;
 
@@ -44,12 +45,22 @@ public class FoodSummary
     public NutrientValueDto NutrientValue { get; set; } = new();
 
     /// <summary>
-    /// Allergen identifiers.
+    /// Allergens contained in this food.
     /// </summary>
-    public List<string> Allergens { get; set; } = [];
+    public List<Allergen> Allergens { get; set; } = [];
 
     /// <summary>
-    /// Common serving sizes.
+    /// Dietary preferences this food satisfies.
+    /// </summary>
+    public List<DietaryPreference> DietaryPreferences { get; set; } = [];
+
+    /// <summary>
+    /// The caller's own coach-private tags on this food; empty if the caller has none assigned.
+    /// </summary>
+    public List<FoodTagDto> Tags { get; set; } = [];
+
+    /// <summary>
+    /// Common serving sizes. The first entry is the default serving.
     /// </summary>
     public List<ServingSizeDto> CommonServings { get; set; } = [];
 
@@ -87,12 +98,23 @@ public class FoodSummary
     public bool IsOwnedByCurrentUser { get; set; }
 
     /// <summary>
+    /// True when this food has no owning nutritionist (a platform system/catalog entry).
+    /// Lets clients distinguish the three Library badge states — System, Mine
+    /// (<see cref="IsOwnedByCurrentUser"/>), and Shared (another coach's Public food, neither of
+    /// the above) — without exposing the owner's identifier itself.
+    /// </summary>
+    public bool IsSystem { get; set; }
+
+    /// <summary>
     /// Maps a <see cref="Food"/> document to a <see cref="FoodSummary"/> DTO.
     /// </summary>
     /// <param name="food">The food document.</param>
     /// <param name="language">Two-letter language code for name resolution (e.g. "cs", "de"). Defaults to "en".</param>
     /// <param name="currentUserId">Id of the authenticated user; used to resolve <see cref="IsOwnedByCurrentUser"/>.</param>
-    public static FoodSummary FromDocument(Food food, string? language = null, Guid? currentUserId = null) => new()
+    /// <param name="tags">The caller's own tag chips for this food (#1120), pre-resolved via
+    /// <see cref="FoodTagLookup"/> — this factory does not query the database itself.</param>
+    public static FoodSummary FromDocument(
+        Food food, string? language = null, Guid? currentUserId = null, List<FoodTagDto>? tags = null) => new()
     {
         FoodId = food.ExternalId,
         Name = food.LocalizedNames?.Resolve(language) ?? food.Name,
@@ -119,7 +141,10 @@ public class FoodSummary
         IsOwnedByCurrentUser = currentUserId.HasValue
             && food.NutritionistId.HasValue
             && food.NutritionistId.Value == currentUserId.Value,
-        Allergens = food.Allergens,
+        IsSystem = food.NutritionistId is null,
+        Allergens = FoodEnumListMapping.ParseStoredNames<Allergen>(food.Allergens),
+        DietaryPreferences = FoodEnumListMapping.ParseStoredNames<DietaryPreference>(food.DietaryPreferences),
+        Tags = tags ?? [],
         CommonServings = food.CommonServings
             .Select(s => new ServingSizeDto { Label = s.Label, WeightGrams = s.WeightGrams })
             .ToList()

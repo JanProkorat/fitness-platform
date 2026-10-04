@@ -420,9 +420,14 @@ Follow `.claude/CLAUDE.md` rules 6 and 7 literally. Summary:
 Sub-issue PRs auto-merge per rule 8a — no per-PR user pause.
 
 - Re-dispatch `pr-reviewer` in `mode: merge-sub-issue` with the PR
-  number. It runs the pre-merge CI gate, the merge exclusion check,
-  and then `gh pr merge <n> <strategy> --delete-branch` against the
-  epic branch.
+  number. It runs the pre-merge CI gate, the merge exclusion check and
+  the stacked-PR check, and returns CLEARED TO MERGE with a pinned
+  `gh pr merge <n> <strategy> --delete-branch --match-head-commit <sha>`.
+- **Run that command yourself on the main thread** —
+  `deny-subagent-merge.py` blocks every subagent from merging. Then
+  fast-forward the local epic branch, close the sub-issue via
+  `github-issues` (`Fixes #<N>` doesn't fire off the default branch),
+  and tear down the sub-issue's harness and worktree.
 - If `pr-reviewer` returns BLOCKED (CI red, or the diff hits the
   merge exclusion list), surface the BLOCKED reason to the user. For
   CI failures route the fix to the owning dev sub-agent and re-run
@@ -436,19 +441,25 @@ Sub-issue PRs auto-merge per rule 8a — no per-PR user pause.
   ```bash
   git worktree remove .worktrees/<N>-<short>
   ```
-- **Rebase any in-flight sibling sub-issue branches onto the new
-  epic-branch tip.** If a sibling is mid-task in a worktree, post a
-  note to its dev sub-agent ("epic branch advanced — rebase before
-  next push") rather than rebasing under it. If a sibling already has
-  an open PR but hasn't been re-reviewed yet, run:
+- **Bring the new epic-branch tip into any in-flight sibling sub-issue
+  branches — by merge, never rebase.** A rebase rewrites the pushed
+  branch and needs a force-push, which is banned outright (global
+  CLAUDE.md, `rules/git-workflow.md#never`). The sibling PR is
+  squash-merged later, so the merge commit never reaches the epic
+  history. If a sibling is mid-task in a worktree, don't merge under
+  its dev sub-agent — wait until it hands back, then merge before you
+  push. If a sibling already has an open PR but hasn't been
+  re-reviewed yet, run:
   ```bash
   git -C .worktrees/<sibling>/ fetch origin "$EPIC_BRANCH"
-  git -C .worktrees/<sibling>/ rebase "origin/$EPIC_BRANCH"
-  git -C .worktrees/<sibling>/ push --force-with-lease
+  git -C .worktrees/<sibling>/ merge --no-edit "origin/$EPIC_BRANCH"
+  git -C .worktrees/<sibling>/ push
   ```
-  then re-dispatch `qa-tester` and `pr-reviewer` against the rebased
-  sibling before its own auto-merge fires. (Force-with-lease, never
-  force.)
+  then re-dispatch `qa-tester` and `pr-reviewer` against the updated
+  sibling before its own merge. The review delta is then the sibling's
+  own new changes only — compare `git diff origin/<epic>...<since>`
+  with `git diff origin/<epic>...HEAD` (rule 7d). On a conflict, stop
+  and resolve it as you would any merge; never `--force`.
 - **Do NOT dispatch `notion-docs`** for sub-issue merges. That fires
   exactly once, in Phase 3, after the epic merges to `develop`.
 
@@ -466,15 +477,16 @@ epic branch (or been deferred with their say-so):
    ```
    If the log is empty, the epic landed nothing — abort and ask the
    user what happened. If `develop` has moved while the epic was
-   open, rebase the epic branch onto the new `develop` tip:
+   open, **merge** the new `develop` tip into the epic branch — never
+   rebase it, since that needs a force-push, which is banned:
    ```bash
    git checkout "$EPIC_BRANCH"
    git pull --ff-only
-   git rebase origin/develop      # or git merge origin/develop, user's call
-   git push --force-with-lease
+   git merge --no-edit origin/develop
+   git push
    ```
-   Resolve conflicts the same way you'd resolve any rebase. Don't
-   force-push to `develop` itself ever.
+   Resolve conflicts the same way you'd resolve any merge. The epic
+   PR is squash-merged, so `develop` still gets one commit per epic.
 
 2. Open the **epic PR** with `pr-reviewer`. Dispatch in
    `mode: open-and-review` with:
@@ -521,25 +533,29 @@ When the user authorizes:
 
 1. Re-dispatch `pr-reviewer` in `mode: merge` with the PR number and
    the verbatim authorization phrase.
-2. `pr-reviewer` runs the pre-merge CI gate, the merge exclusion
-   check, and then `gh pr merge <n> <strategy> --delete-branch` —
-   `--squash --delete-branch` for `type:feature` (the typical epic
-   shape). The squash collapses every sub-issue commit into a
-   single commit on `develop` named for the epic; `develop` history
-   stays linear and one revert undoes the whole epic.
+2. `pr-reviewer` runs the pre-merge CI gate and the merge exclusion
+   check, and returns CLEARED TO MERGE with a pinned
+   `gh pr merge <n> <strategy> --delete-branch --match-head-commit <sha>` —
+   `--squash` for `type:feature` (the typical epic shape). **You run
+   it on the main thread**; subagents can't merge. The squash
+   collapses every sub-issue commit into a single commit on `develop`
+   named for the epic; `develop` history stays linear and one revert
+   undoes the whole epic.
 3. If `pr-reviewer` returns BLOCKED on exclusions (rare for an epic,
    but possible — e.g. an EF Core migration squashed into the diff),
    tell the user and let them merge manually. Once they confirm the
    merge landed, continue to Phase 3.
 4. When MERGED:
    - The remote epic branch is gone (deleted by `--delete-branch`).
-   - `pr-reviewer` synced local `develop`. Sanity-check it ran clean
-     (no ⚠️ local-sync warning), and clean up the local epic branch:
+   - Fast-forward local `develop` yourself (`git pull --ff-only`, never
+     a hard reset; a failure is a ⚠️ warning for the user), and clean up
+     the local epic branch:
      ```bash
      git branch -D "$EPIC_BRANCH" 2>/dev/null || true
      ```
-   - Confirm all sub-issues auto-closed: `gh issue view <child>
-     --json state` for each child should now show `CLOSED`.
+   - Confirm all sub-issues are closed: `gh issue view <child>
+     --json state` for each child should show `CLOSED` (they were
+     closed by hand at each sub-issue merge in 1d).
 
 ## Phase 3 — Recap, document, close
 
@@ -605,9 +621,9 @@ manually for an excluded epic):
   CI failure on the same sub-issue still warrants surfacing to the
   user before looping silently.
 - **The epic PR conflicts with `develop` at the end.** `develop`
-  moved while the epic was open. Rebase the epic branch onto the new
-  `develop` (force-with-lease), re-push, re-dispatch `pr-reviewer`
-  (mode: re-review). Conflicts here mean the same code path was
+  moved while the epic was open. Merge the new `develop` into the epic
+  branch (no rebase, no force-push), push, re-dispatch `pr-reviewer`
+  (mode: re-review) on the epic's own new changes per rule 7d. Conflicts here mean the same code path was
   touched on `develop` and on the epic branch — resolve carefully,
   and consider whether anything on the epic branch needs adjustment
   in light of the develop change.

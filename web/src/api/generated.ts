@@ -372,555 +372,6 @@ export class ApiClient {
     }
 
     /**
-     * Update workout log
-     * @param logId The workout log's public identifier.
-     * @return Success
-     */
-    updateWorkoutEndpoint(logId: string, updateWorkoutRequest: UpdateWorkoutRequest, signal?: AbortSignal): Promise<WorkoutLogDetail> {
-        let url_ = this.baseUrl + "/client/training/logs/{logId}";
-        if (logId === undefined || logId === null)
-            throw new globalThis.Error("The parameter 'logId' must be defined.");
-        url_ = url_.replace("{logId}", encodeURIComponent("" + logId));
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(updateWorkoutRequest);
-
-        let options_: AxiosRequestConfig = {
-            data: content_,
-            method: "PUT",
-            url: url_,
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            },
-            signal
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processUpdateWorkoutEndpoint(_response);
-        });
-    }
-
-    protected processUpdateWorkoutEndpoint(response: AxiosResponse): Promise<WorkoutLogDetail> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<WorkoutLogDetail>(result200);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status === 401) {
-            const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
-
-        } else if (status === 403) {
-            const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<WorkoutLogDetail>(null as any);
-    }
-
-    /**
-     * Get workout log detail
-     * @param logId The workout log's public identifier.
-     * @return Success
-     */
-    getWorkoutLogEndpoint(logId: string, signal?: AbortSignal): Promise<WorkoutLogDetail> {
-        let url_ = this.baseUrl + "/client/training/logs/{logId}";
-        if (logId === undefined || logId === null)
-            throw new globalThis.Error("The parameter 'logId' must be defined.");
-        url_ = url_.replace("{logId}", encodeURIComponent("" + logId));
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "GET",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            signal
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processGetWorkoutLogEndpoint(_response);
-        });
-    }
-
-    protected processGetWorkoutLogEndpoint(response: AxiosResponse): Promise<WorkoutLogDetail> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<WorkoutLogDetail>(result200);
-
-        } else if (status === 401) {
-            const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
-
-        } else if (status === 403) {
-            const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<WorkoutLogDetail>(null as any);
-    }
-
-    /**
-     * Start a workout (create draft log)
-     * @return Success
-     */
-    startWorkoutEndpoint(startWorkoutRequest: StartWorkoutRequest, signal?: AbortSignal): Promise<StartWorkoutResponse> {
-        let url_ = this.baseUrl + "/client/training/logs";
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(startWorkoutRequest);
-
-        let options_: AxiosRequestConfig = {
-            data: content_,
-            method: "POST",
-            url: url_,
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            },
-            signal
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processStartWorkoutEndpoint(_response);
-        });
-    }
-
-    protected processStartWorkoutEndpoint(response: AxiosResponse): Promise<StartWorkoutResponse> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<StartWorkoutResponse>(result200);
-
-        } else if (status === 401) {
-            const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
-
-        } else if (status === 403) {
-            const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<StartWorkoutResponse>(null as any);
-    }
-
-    /**
-     * List workout logs
-     * @param page Page number (1-based).
-     * @param pageSize Number of items per page.
-     * @return Success
-     */
-    getWorkoutLogsEndpoint(page: number, pageSize: number, signal?: AbortSignal): Promise<GetWorkoutLogsResponse> {
-        let url_ = this.baseUrl + "/client/training/logs?";
-        if (page === undefined || page === null)
-            throw new globalThis.Error("The parameter 'page' must be defined and cannot be null.");
-        else
-            url_ += "page=" + encodeURIComponent("" + page) + "&";
-        if (pageSize === undefined || pageSize === null)
-            throw new globalThis.Error("The parameter 'pageSize' must be defined and cannot be null.");
-        else
-            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "GET",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            signal
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processGetWorkoutLogsEndpoint(_response);
-        });
-    }
-
-    protected processGetWorkoutLogsEndpoint(response: AxiosResponse): Promise<GetWorkoutLogsResponse> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<GetWorkoutLogsResponse>(result200);
-
-        } else if (status === 401) {
-            const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
-
-        } else if (status === 403) {
-            const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<GetWorkoutLogsResponse>(null as any);
-    }
-
-    /**
-     * Go live with a workout
-     * @param logId The external ID of the workout log to go live with.
-    Bound from the route segment {logId}.
-     * @return Success
-     */
-    goLiveEndpoint(logId: string, signal?: AbortSignal): Promise<GoLiveResponse> {
-        let url_ = this.baseUrl + "/client/training/logs/{logId}/go-live";
-        if (logId === undefined || logId === null)
-            throw new globalThis.Error("The parameter 'logId' must be defined.");
-        url_ = url_.replace("{logId}", encodeURIComponent("" + logId));
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "POST",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            signal
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processGoLiveEndpoint(_response);
-        });
-    }
-
-    protected processGoLiveEndpoint(response: AxiosResponse): Promise<GoLiveResponse> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<GoLiveResponse>(result200);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status === 401) {
-            const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
-
-        } else if (status === 403) {
-            const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<GoLiveResponse>(null as any);
-    }
-
-    /**
-     * Get exercise progress
-     * @param clientId Client's public user identifier.
-     * @param exerciseId Exercise's public identifier.
-     * @return Success
-     */
-    getExerciseProgressEndpoint(clientId: string, exerciseId: string, signal?: AbortSignal): Promise<GetExerciseProgressResponse> {
-        let url_ = this.baseUrl + "/training/clients/{clientId}/progress/{exerciseId}";
-        if (clientId === undefined || clientId === null)
-            throw new globalThis.Error("The parameter 'clientId' must be defined.");
-        url_ = url_.replace("{clientId}", encodeURIComponent("" + clientId));
-        if (exerciseId === undefined || exerciseId === null)
-            throw new globalThis.Error("The parameter 'exerciseId' must be defined.");
-        url_ = url_.replace("{exerciseId}", encodeURIComponent("" + exerciseId));
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "GET",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            signal
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processGetExerciseProgressEndpoint(_response);
-        });
-    }
-
-    protected processGetExerciseProgressEndpoint(response: AxiosResponse): Promise<GetExerciseProgressResponse> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<GetExerciseProgressResponse>(result200);
-
-        } else if (status === 401) {
-            const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
-
-        } else if (status === 403) {
-            const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<GetExerciseProgressResponse>(null as any);
-    }
-
-    /**
-     * Complete a workout
-     * @param logId The workout log's public identifier.
-     * @return Success
-     */
-    completeWorkoutEndpoint(logId: string, signal?: AbortSignal): Promise<WorkoutLogDetail> {
-        let url_ = this.baseUrl + "/client/training/logs/{logId}/complete";
-        if (logId === undefined || logId === null)
-            throw new globalThis.Error("The parameter 'logId' must be defined.");
-        url_ = url_.replace("{logId}", encodeURIComponent("" + logId));
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "POST",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            signal
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processCompleteWorkoutEndpoint(_response);
-        });
-    }
-
-    protected processCompleteWorkoutEndpoint(response: AxiosResponse): Promise<WorkoutLogDetail> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<WorkoutLogDetail>(result200);
-
-        } else if (status === 401) {
-            const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
-
-        } else if (status === 403) {
-            const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<WorkoutLogDetail>(null as any);
-    }
-
-    /**
-     * Abandon a workout
-     * @param logId The external ID of the workout log to abandon.
-    Bound from the route segment {logId}.
-     * @return Success
-     */
-    abandonWorkoutEndpoint(logId: string, signal?: AbortSignal): Promise<AbandonWorkoutResponse> {
-        let url_ = this.baseUrl + "/client/training/logs/{logId}/abandon";
-        if (logId === undefined || logId === null)
-            throw new globalThis.Error("The parameter 'logId' must be defined.");
-        url_ = url_.replace("{logId}", encodeURIComponent("" + logId));
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "POST",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            signal
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processAbandonWorkoutEndpoint(_response);
-        });
-    }
-
-    protected processAbandonWorkoutEndpoint(response: AxiosResponse): Promise<AbandonWorkoutResponse> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<AbandonWorkoutResponse>(result200);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status === 401) {
-            const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
-
-        } else if (status === 403) {
-            const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<AbandonWorkoutResponse>(null as any);
-    }
-
-    /**
      * Respond to a weekly check-in
      * @param id Route parameter — check-in identifier.
      * @return Success
@@ -3974,7 +3425,7 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("Requested scope exceeds the caller\'s held roles.", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -4123,21 +3574,17 @@ export class ApiClient {
     }
 
     /**
-     * Invite a client
-     * @return Success
+     * Get pending clients
+     * @return Merged pending rows
      */
-    inviteClientEndpoint(inviteClientRequest: InviteClientRequest, signal?: AbortSignal): Promise<InviteClientResponse> {
-        let url_ = this.baseUrl + "/trainer/clients/invite";
+    getPendingClientsEndpoint(signal?: AbortSignal): Promise<GetPendingClientsResponse> {
+        let url_ = this.baseUrl + "/trainer/clients/pending";
         url_ = url_.replace(/[?&]$/, "");
 
-        const content_ = JSON.stringify(inviteClientRequest);
-
         let options_: AxiosRequestConfig = {
-            data: content_,
-            method: "POST",
+            method: "GET",
             url: url_,
             headers: {
-                "Content-Type": "application/json",
                 "Accept": "application/json"
             },
             signal
@@ -4150,11 +3597,11 @@ export class ApiClient {
                 throw _error;
             }
         }).then((_response: AxiosResponse) => {
-            return this.processInviteClientEndpoint(_response);
+            return this.processGetPendingClientsEndpoint(_response);
         });
     }
 
-    protected processInviteClientEndpoint(response: AxiosResponse): Promise<InviteClientResponse> {
+    protected processGetPendingClientsEndpoint(response: AxiosResponse): Promise<GetPendingClientsResponse> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -4169,18 +3616,11 @@ export class ApiClient {
             let result200: any = null;
             let resultData200  = _responseText;
             result200 = JSON.parse(resultData200);
-            return Promise.resolve<InviteClientResponse>(result200);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return Promise.resolve<GetPendingClientsResponse>(result200);
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
@@ -4190,7 +3630,7 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<InviteClientResponse>(null as any);
+        return Promise.resolve<GetPendingClientsResponse>(null as any);
     }
 
     /**
@@ -4403,10 +3843,20 @@ export class ApiClient {
      * Get trainer's clients
      * @param page Page number (1-based). Defaults to 1.
      * @param pageSize Number of items per page. Defaults to 20.
+     * @param tagIds Optional set of the caller's own ClientTag.PublicId values.
+    A client matches if it carries ANY of the requested tag ids via the caller's own link —
+    selecting more tags widens the result set, as a filter dropdown normally does. An unknown
+    or a foreign (another coach's) tag id is never distinguished from a real one — both simply
+    match nothing, never a 404, so tag ids stay non-enumerable from the outside.
      * @param search (optional) Optional search filter by client name or email.
+     * @param status (optional) Optional tab selector. Omitted means every live link (IsActive == true) —
+    today's exact pre-existing behaviour, Active and Paused combined. Archived is only
+    returned when explicitly requested.
+     * @param filter (optional) Optional filter chip narrowing the current tab further. Its own count is reported in
+    FilterCounts without this filter applied.
      * @return Success
      */
-    getClientsEndpoint(page: number, pageSize: number, search?: string | null | undefined, signal?: AbortSignal): Promise<GetClientsResponse> {
+    getClientsEndpoint(page: number, pageSize: number, tagIds: string[], search?: string | null | undefined, status?: ClientListStatus | null | undefined, filter?: ClientListFilter | null | undefined, signal?: AbortSignal): Promise<GetClientsResponse> {
         let url_ = this.baseUrl + "/trainer/clients?";
         if (page === undefined || page === null)
             throw new globalThis.Error("The parameter 'page' must be defined and cannot be null.");
@@ -4416,8 +3866,16 @@ export class ApiClient {
             throw new globalThis.Error("The parameter 'pageSize' must be defined and cannot be null.");
         else
             url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        if (tagIds === undefined || tagIds === null)
+            throw new globalThis.Error("The parameter 'tagIds' must be defined and cannot be null.");
+        else
+            tagIds && tagIds.forEach(item => { url_ += "tagIds=" + encodeURIComponent("" + item) + "&"; });
         if (search !== undefined && search !== null)
             url_ += "search=" + encodeURIComponent("" + search) + "&";
+        if (status !== undefined && status !== null)
+            url_ += "status=" + encodeURIComponent("" + status) + "&";
+        if (filter !== undefined && filter !== null)
+            url_ += "filter=" + encodeURIComponent("" + filter) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -4456,6 +3914,13 @@ export class ApiClient {
             let resultData200  = _responseText;
             result200 = JSON.parse(resultData200);
             return Promise.resolve<GetClientsResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -4817,7 +4282,7 @@ export class ApiClient {
 
     /**
      * Create a trainer note for a client
-     * @return Success
+     * @return Note created
      */
     createNoteEndpoint(clientId: string, createNoteRequest: CreateNoteRequest, signal?: AbortSignal): Promise<CreateNoteResponse> {
         let url_ = this.baseUrl + "/trainer/clients/{clientId}/notes";
@@ -4860,12 +4325,12 @@ export class ApiClient {
                 }
             }
         }
-        if (status === 200) {
+        if (status === 201) {
             const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<CreateNoteResponse>(result200);
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = JSON.parse(resultData201);
+            return Promise.resolve<CreateNoteResponse>(result201);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -5362,7 +4827,7 @@ export class ApiClient {
 
     /**
      * Create subscription plan
-     * @return Success
+     * @return Subscription plan created
      */
     createSubscriptionPlanEndpoint(createSubscriptionPlanRequest: CreateSubscriptionPlanRequest, signal?: AbortSignal): Promise<SubscriptionPlanDto> {
         let url_ = this.baseUrl + "/admin/subscription-plans";
@@ -5402,12 +4867,12 @@ export class ApiClient {
                 }
             }
         }
-        if (status === 200) {
+        if (status === 201) {
             const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<SubscriptionPlanDto>(result200);
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = JSON.parse(resultData201);
+            return Promise.resolve<SubscriptionPlanDto>(result201);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -5916,6 +5381,555 @@ export class ApiClient {
     }
 
     /**
+     * Update workout log
+     * @param logId The workout log's public identifier.
+     * @return Success
+     */
+    updateWorkoutEndpoint(logId: string, updateWorkoutRequest: UpdateWorkoutRequest, signal?: AbortSignal): Promise<WorkoutLogDetail> {
+        let url_ = this.baseUrl + "/client/training/logs/{logId}";
+        if (logId === undefined || logId === null)
+            throw new globalThis.Error("The parameter 'logId' must be defined.");
+        url_ = url_.replace("{logId}", encodeURIComponent("" + logId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(updateWorkoutRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUpdateWorkoutEndpoint(_response);
+        });
+    }
+
+    protected processUpdateWorkoutEndpoint(response: AxiosResponse): Promise<WorkoutLogDetail> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<WorkoutLogDetail>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<WorkoutLogDetail>(null as any);
+    }
+
+    /**
+     * Get workout log detail
+     * @param logId The workout log's public identifier.
+     * @return Success
+     */
+    getWorkoutLogEndpoint(logId: string, signal?: AbortSignal): Promise<WorkoutLogDetail> {
+        let url_ = this.baseUrl + "/client/training/logs/{logId}";
+        if (logId === undefined || logId === null)
+            throw new globalThis.Error("The parameter 'logId' must be defined.");
+        url_ = url_.replace("{logId}", encodeURIComponent("" + logId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetWorkoutLogEndpoint(_response);
+        });
+    }
+
+    protected processGetWorkoutLogEndpoint(response: AxiosResponse): Promise<WorkoutLogDetail> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<WorkoutLogDetail>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<WorkoutLogDetail>(null as any);
+    }
+
+    /**
+     * Start a workout (create draft log)
+     * @return Success
+     */
+    startWorkoutEndpoint(startWorkoutRequest: StartWorkoutRequest, signal?: AbortSignal): Promise<StartWorkoutResponse> {
+        let url_ = this.baseUrl + "/client/training/logs";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(startWorkoutRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processStartWorkoutEndpoint(_response);
+        });
+    }
+
+    protected processStartWorkoutEndpoint(response: AxiosResponse): Promise<StartWorkoutResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<StartWorkoutResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<StartWorkoutResponse>(null as any);
+    }
+
+    /**
+     * List workout logs
+     * @param page Page number (1-based).
+     * @param pageSize Number of items per page.
+     * @return Success
+     */
+    getWorkoutLogsEndpoint(page: number, pageSize: number, signal?: AbortSignal): Promise<GetWorkoutLogsResponse> {
+        let url_ = this.baseUrl + "/client/training/logs?";
+        if (page === undefined || page === null)
+            throw new globalThis.Error("The parameter 'page' must be defined and cannot be null.");
+        else
+            url_ += "page=" + encodeURIComponent("" + page) + "&";
+        if (pageSize === undefined || pageSize === null)
+            throw new globalThis.Error("The parameter 'pageSize' must be defined and cannot be null.");
+        else
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetWorkoutLogsEndpoint(_response);
+        });
+    }
+
+    protected processGetWorkoutLogsEndpoint(response: AxiosResponse): Promise<GetWorkoutLogsResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GetWorkoutLogsResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GetWorkoutLogsResponse>(null as any);
+    }
+
+    /**
+     * Go live with a workout
+     * @param logId The external ID of the workout log to go live with.
+    Bound from the route segment {logId}.
+     * @return Success
+     */
+    goLiveEndpoint(logId: string, signal?: AbortSignal): Promise<GoLiveResponse> {
+        let url_ = this.baseUrl + "/client/training/logs/{logId}/go-live";
+        if (logId === undefined || logId === null)
+            throw new globalThis.Error("The parameter 'logId' must be defined.");
+        url_ = url_.replace("{logId}", encodeURIComponent("" + logId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGoLiveEndpoint(_response);
+        });
+    }
+
+    protected processGoLiveEndpoint(response: AxiosResponse): Promise<GoLiveResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GoLiveResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GoLiveResponse>(null as any);
+    }
+
+    /**
+     * Get exercise progress
+     * @param clientId Client's public user identifier.
+     * @param exerciseId Exercise's public identifier.
+     * @return Success
+     */
+    getExerciseProgressEndpoint(clientId: string, exerciseId: string, signal?: AbortSignal): Promise<GetExerciseProgressResponse> {
+        let url_ = this.baseUrl + "/training/clients/{clientId}/progress/{exerciseId}";
+        if (clientId === undefined || clientId === null)
+            throw new globalThis.Error("The parameter 'clientId' must be defined.");
+        url_ = url_.replace("{clientId}", encodeURIComponent("" + clientId));
+        if (exerciseId === undefined || exerciseId === null)
+            throw new globalThis.Error("The parameter 'exerciseId' must be defined.");
+        url_ = url_.replace("{exerciseId}", encodeURIComponent("" + exerciseId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetExerciseProgressEndpoint(_response);
+        });
+    }
+
+    protected processGetExerciseProgressEndpoint(response: AxiosResponse): Promise<GetExerciseProgressResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GetExerciseProgressResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GetExerciseProgressResponse>(null as any);
+    }
+
+    /**
+     * Complete a workout
+     * @param logId The workout log's public identifier.
+     * @return Success
+     */
+    completeWorkoutEndpoint(logId: string, signal?: AbortSignal): Promise<WorkoutLogDetail> {
+        let url_ = this.baseUrl + "/client/training/logs/{logId}/complete";
+        if (logId === undefined || logId === null)
+            throw new globalThis.Error("The parameter 'logId' must be defined.");
+        url_ = url_.replace("{logId}", encodeURIComponent("" + logId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCompleteWorkoutEndpoint(_response);
+        });
+    }
+
+    protected processCompleteWorkoutEndpoint(response: AxiosResponse): Promise<WorkoutLogDetail> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<WorkoutLogDetail>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<WorkoutLogDetail>(null as any);
+    }
+
+    /**
+     * Abandon a workout
+     * @param logId The external ID of the workout log to abandon.
+    Bound from the route segment {logId}.
+     * @return Success
+     */
+    abandonWorkoutEndpoint(logId: string, signal?: AbortSignal): Promise<AbandonWorkoutResponse> {
+        let url_ = this.baseUrl + "/client/training/logs/{logId}/abandon";
+        if (logId === undefined || logId === null)
+            throw new globalThis.Error("The parameter 'logId' must be defined.");
+        url_ = url_.replace("{logId}", encodeURIComponent("" + logId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processAbandonWorkoutEndpoint(_response);
+        });
+    }
+
+    protected processAbandonWorkoutEndpoint(response: AxiosResponse): Promise<AbandonWorkoutResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<AbandonWorkoutResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<AbandonWorkoutResponse>(null as any);
+    }
+
+    /**
      * Generate recipe image upload URL
      * @param recipeId The recipe's public identifier (from route).
      * @param slot Image slot: main (overwrites) or gallery (appends, max 6).
@@ -6197,13 +6211,40 @@ export class ApiClient {
 
     /**
      * Search recipes
+     * @param mealType Optional meal type filter — matches a recipe carrying ANY of the supplied meal types. Bound
+    from the repeated mealType query param.
+     * @param dietaryPreference Optional dietary preference filter — matches a recipe carrying ALL of the supplied
+    preferences. Bound from the repeated dietaryPreference query param.
+     * @param owner Optional owner filter — matches a recipe whose ownership falls under ANY of the supplied
+    values (System means the platform catalog). Bound from the repeated owner query param.
+     * @param tagId Optional tags filter — matches a recipe the caller has tagged with ANY of the supplied tag
+    ids. At most 20. Bound from the repeated tagId query param.
      * @param page Page number (1-based). Defaults to 1.
      * @param pageSize Number of items per page. Defaults to 20.
-     * @param search (optional) Optional search term to filter recipes by name.
+     * @param search (optional) Optional search term matched against recipe name and description.
+     * @param sortBy (optional) Column to sort by. null (the default) means newest-created first.
+     * @param sortDir (optional) Direction for SortBy; defaults to ascending when SortBy is set.
+    Ignored when SortBy is null.
      * @return Success
      */
-    searchRecipesEndpoint(page: number, pageSize: number, search?: string | null | undefined, signal?: AbortSignal): Promise<SearchRecipesResponse> {
+    searchRecipesEndpoint(mealType: RecipeMealType[], dietaryPreference: DietaryPreference[], owner: FoodOwnerFilter[], tagId: string[], page: number, pageSize: number, search?: string | null | undefined, sortBy?: RecipeSortField | null | undefined, sortDir?: FoodSortDirection | null | undefined, signal?: AbortSignal): Promise<SearchRecipesResponse> {
         let url_ = this.baseUrl + "/recipes?";
+        if (mealType === undefined || mealType === null)
+            throw new globalThis.Error("The parameter 'mealType' must be defined and cannot be null.");
+        else
+            mealType && mealType.forEach(item => { url_ += "mealType=" + encodeURIComponent("" + item) + "&"; });
+        if (dietaryPreference === undefined || dietaryPreference === null)
+            throw new globalThis.Error("The parameter 'dietaryPreference' must be defined and cannot be null.");
+        else
+            dietaryPreference && dietaryPreference.forEach(item => { url_ += "dietaryPreference=" + encodeURIComponent("" + item) + "&"; });
+        if (owner === undefined || owner === null)
+            throw new globalThis.Error("The parameter 'owner' must be defined and cannot be null.");
+        else
+            owner && owner.forEach(item => { url_ += "owner=" + encodeURIComponent("" + item) + "&"; });
+        if (tagId === undefined || tagId === null)
+            throw new globalThis.Error("The parameter 'tagId' must be defined and cannot be null.");
+        else
+            tagId && tagId.forEach(item => { url_ += "tagId=" + encodeURIComponent("" + item) + "&"; });
         if (page === undefined || page === null)
             throw new globalThis.Error("The parameter 'page' must be defined and cannot be null.");
         else
@@ -6214,6 +6255,10 @@ export class ApiClient {
             url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
         if (search !== undefined && search !== null)
             url_ += "search=" + encodeURIComponent("" + search) + "&";
+        if (sortBy !== undefined && sortBy !== null)
+            url_ += "sortBy=" + encodeURIComponent("" + sortBy) + "&";
+        if (sortDir !== undefined && sortDir !== null)
+            url_ += "sortDir=" + encodeURIComponent("" + sortDir) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -6258,7 +6303,7 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("Invalid page, page size, filter value, or sort field/direction", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -6277,7 +6322,7 @@ export class ApiClient {
 
     /**
      * Create recipe
-     * @return Success
+     * @return Recipe created
      */
     createRecipeEndpoint(createRecipeRequest: CreateRecipeRequest, signal?: AbortSignal): Promise<GetRecipeResponse> {
         let url_ = this.baseUrl + "/recipes";
@@ -6317,19 +6362,166 @@ export class ApiClient {
                 }
             }
         }
-        if (status === 200) {
+        if (status === 201) {
             const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<GetRecipeResponse>(result200);
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = JSON.parse(resultData201);
+            return Promise.resolve<GetRecipeResponse>(result201);
 
         } else if (status === 400) {
             const _responseText = response.data;
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("Invalid request body or unavailable ingredient", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GetRecipeResponse>(null as any);
+    }
+
+    /**
+     * Replace a recipe's tag assignments
+     * @param recipeId Public identifier of the recipe, from the route.
+     * @return The resulting tag set
+     */
+    replaceRecipeTagAssignmentsEndpoint(recipeId: string, replaceRecipeTagAssignmentsRequest: ReplaceRecipeTagAssignmentsRequest, signal?: AbortSignal): Promise<ReplaceRecipeTagAssignmentsResponse> {
+        let url_ = this.baseUrl + "/trainer/recipes/{recipeId}/tags";
+        if (recipeId === undefined || recipeId === null)
+            throw new globalThis.Error("The parameter 'recipeId' must be defined.");
+        url_ = url_.replace("{recipeId}", encodeURIComponent("" + recipeId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(replaceRecipeTagAssignmentsRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processReplaceRecipeTagAssignmentsEndpoint(_response);
+        });
+    }
+
+    protected processReplaceRecipeTagAssignmentsEndpoint(response: AxiosResponse): Promise<ReplaceRecipeTagAssignmentsResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<ReplaceRecipeTagAssignmentsResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid request body", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ReplaceRecipeTagAssignmentsResponse>(null as any);
+    }
+
+    /**
+     * Remove a recipe gallery image
+     * @param recipeId The recipe's public identifier (from route).
+     * @param imageUrl The exact stored gallery URL to remove (query parameter).
+     * @return Image removed (or was not in the gallery)
+     */
+    removeRecipeGalleryImageEndpoint(recipeId: string, imageUrl: string, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/recipes/{recipeId}/gallery?";
+        if (recipeId === undefined || recipeId === null)
+            throw new globalThis.Error("The parameter 'recipeId' must be defined.");
+        url_ = url_.replace("{recipeId}", encodeURIComponent("" + recipeId));
+        if (imageUrl === undefined || imageUrl === null)
+            throw new globalThis.Error("The parameter 'imageUrl' must be defined and cannot be null.");
+        else
+            url_ += "imageUrl=" + encodeURIComponent("" + imageUrl) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "DELETE",
+            url: url_,
+            headers: {
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processRemoveRecipeGalleryImageEndpoint(_response);
+        });
+    }
+
+    protected processRemoveRecipeGalleryImageEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("RECIPE_NOT_OWNED, or invalid imageUrl", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -6343,7 +6535,138 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<GetRecipeResponse>(null as any);
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Promote a gallery image to main
+     * @param recipeId The recipe's public identifier (from route).
+     * @return Image promoted (or already main)
+     */
+    promoteRecipeGalleryImageEndpoint(recipeId: string, promoteRecipeGalleryImageRequest: PromoteRecipeGalleryImageRequest, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/recipes/{recipeId}/gallery/promote";
+        if (recipeId === undefined || recipeId === null)
+            throw new globalThis.Error("The parameter 'recipeId' must be defined.");
+        url_ = url_.replace("{recipeId}", encodeURIComponent("" + recipeId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(promoteRecipeGalleryImageRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processPromoteRecipeGalleryImageEndpoint(_response);
+        });
+    }
+
+    protected processPromoteRecipeGalleryImageEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("RECIPE_NOT_OWNED or RECIPE_GALLERY_IMAGE_NOT_FOUND", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Remove recipe image
+     * @param recipeId The recipe's public identifier (from route).
+     * @return Image cleared (or was already unset)
+     */
+    deleteRecipeImageEndpoint(recipeId: string, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/recipes/{recipeId}/image";
+        if (recipeId === undefined || recipeId === null)
+            throw new globalThis.Error("The parameter 'recipeId' must be defined.");
+        url_ = url_.replace("{recipeId}", encodeURIComponent("" + recipeId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "DELETE",
+            url: url_,
+            headers: {
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processDeleteRecipeImageEndpoint(_response);
+        });
+    }
+
+    protected processDeleteRecipeImageEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
     }
 
     /**
@@ -6873,7 +7196,7 @@ export class ApiClient {
 
     /**
      * Create questionnaire
-     * @return Success
+     * @return Questionnaire created
      */
     createQuestionnaireEndpoint(createQuestionnaireRequest: CreateQuestionnaireRequest, signal?: AbortSignal): Promise<GetTrainerQuestionnaireResponse> {
         let url_ = this.baseUrl + "/trainer/questionnaires";
@@ -6913,12 +7236,12 @@ export class ApiClient {
                 }
             }
         }
-        if (status === 200) {
+        if (status === 201) {
             const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<GetTrainerQuestionnaireResponse>(result200);
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = JSON.parse(resultData201);
+            return Promise.resolve<GetTrainerQuestionnaireResponse>(result201);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -9594,7 +9917,7 @@ export class ApiClient {
 
     /**
      * Start or get a conversation
-     * @return Success
+     * @return The existing or newly created conversation.
      */
     startConversationEndpoint(startConversationRequest: StartConversationRequest, signal?: AbortSignal): Promise<ConversationDto> {
         let url_ = this.baseUrl + "/conversations";
@@ -9665,14 +9988,21 @@ export class ApiClient {
 
     /**
      * Get conversations
-     * @return Success
+     * @param archived Whether to return the archived view instead of the active one.
+     * @param filter (optional) Optional filter chip narrowing the professional caller's roster the same way the
+    trainer's clients list does. Omitted or All returns every
+    conversation, matching this endpoint's pre-existing behaviour. Not valid for a client
+    caller — see GetConversationsEndpoint.
+     * @return Conversation list, newest activity first.
      */
-    getConversationsEndpoint(archived: boolean, signal?: AbortSignal): Promise<ConversationDto[]> {
+    getConversationsEndpoint(archived: boolean, filter?: ClientListFilter | null | undefined, signal?: AbortSignal): Promise<ConversationDto[]> {
         let url_ = this.baseUrl + "/conversations?";
         if (archived === undefined || archived === null)
             throw new globalThis.Error("The parameter 'archived' must be defined and cannot be null.");
         else
             url_ += "archived=" + encodeURIComponent("" + archived) + "&";
+        if (filter !== undefined && filter !== null)
+            url_ += "filter=" + encodeURIComponent("" + filter) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -9712,9 +10042,16 @@ export class ApiClient {
             result200 = JSON.parse(resultData200);
             return Promise.resolve<ConversationDto[]>(result200);
 
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("filter is not a member of ClientListFilter, or a non-All filter was requested by a Client caller.", status, _responseText, _headers, result400);
+
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("No caller claim on the request.", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
@@ -9792,7 +10129,7 @@ export class ApiClient {
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
+            return throwException("CONVERSATION_LOCKED: professional caller in an invite-only thread", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -9930,6 +10267,66 @@ export class ApiClient {
     }
 
     /**
+     * Get conversation filter chip counts
+     * @return The six chip counts.
+     */
+    getConversationFilterCountsEndpoint(signal?: AbortSignal): Promise<GetConversationFilterCountsResponse> {
+        let url_ = this.baseUrl + "/conversations/filter-counts";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetConversationFilterCountsEndpoint(_response);
+        });
+    }
+
+    protected processGetConversationFilterCountsEndpoint(response: AxiosResponse): Promise<GetConversationFilterCountsResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GetConversationFilterCountsResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("No caller claim on the request.", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GetConversationFilterCountsResponse>(null as any);
+    }
+
+    /**
      * Get conversation context
      * @return Success
      */
@@ -9990,6 +10387,228 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<ConversationContextResponse>(null as any);
+    }
+
+    /**
+     * Get a client's weekly message stats
+     * @param clientId The client profile's public identifier (route parameter).
+     * @param weeks Number of ISO weeks to return, oldest first, including the current partial week.
+    Defaults to 4.
+     * @return Exactly `weeks` rows, oldest first
+     */
+    getClientMessageStatsEndpoint(clientId: string, weeks: number, signal?: AbortSignal): Promise<WeeklyMessageStatsDto[]> {
+        let url_ = this.baseUrl + "/trainer/clients/{clientId}/message-stats?";
+        if (clientId === undefined || clientId === null)
+            throw new globalThis.Error("The parameter 'clientId' must be defined.");
+        url_ = url_.replace("{clientId}", encodeURIComponent("" + clientId));
+        if (weeks === undefined || weeks === null)
+            throw new globalThis.Error("The parameter 'weeks' must be defined and cannot be null.");
+        else
+            url_ += "weeks=" + encodeURIComponent("" + weeks) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetClientMessageStatsEndpoint(_response);
+        });
+    }
+
+    protected processGetClientMessageStatsEndpoint(response: AxiosResponse): Promise<WeeklyMessageStatsDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<WeeklyMessageStatsDto[]>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<WeeklyMessageStatsDto[]>(null as any);
+    }
+
+    /**
+     * Generate a chat image upload URL
+     * @return Upload URL and uploadId
+     */
+    generateChatImageUploadUrlEndpoint(conversationId: string, generateChatImageUploadUrlRequest: GenerateChatImageUploadUrlRequest, signal?: AbortSignal): Promise<GenerateChatImageUploadUrlResponse> {
+        let url_ = this.baseUrl + "/conversations/{conversationId}/messages/image-upload-url";
+        if (conversationId === undefined || conversationId === null)
+            throw new globalThis.Error("The parameter 'conversationId' must be defined.");
+        url_ = url_.replace("{conversationId}", encodeURIComponent("" + conversationId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(generateChatImageUploadUrlRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGenerateChatImageUploadUrlEndpoint(_response);
+        });
+    }
+
+    protected processGenerateChatImageUploadUrlEndpoint(response: AxiosResponse): Promise<GenerateChatImageUploadUrlResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GenerateChatImageUploadUrlResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("CONVERSATION_LOCKED: professional caller in an invite-only thread", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GenerateChatImageUploadUrlResponse>(null as any);
+    }
+
+    /**
+     * Broadcast a message to several clients
+     * @return Message sent; SentCount is the distinct recipient count.
+     */
+    broadcastMessageEndpoint(broadcastMessageRequest: BroadcastMessageRequest, signal?: AbortSignal): Promise<BroadcastMessageResponse> {
+        let url_ = this.baseUrl + "/trainer/broadcast";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(broadcastMessageRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processBroadcastMessageEndpoint(_response);
+        });
+    }
+
+    protected processBroadcastMessageEndpoint(response: AxiosResponse): Promise<BroadcastMessageResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<BroadcastMessageResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Empty/too-long text, more than 50 recipients, or a recipient\'s substituted text exceeds the storage limit.", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<BroadcastMessageResponse>(null as any);
     }
 
     /**
@@ -10611,9 +11230,144 @@ export class ApiClient {
     }
 
     /**
+     * Update a food tag
+     * @param tagId Public identifier of the tag to update, from the route.
+     * @return Tag updated
+     */
+    updateFoodTagEndpoint(tagId: string, updateFoodTagRequest: UpdateFoodTagRequest, signal?: AbortSignal): Promise<FoodTagDto> {
+        let url_ = this.baseUrl + "/trainer/food-tags/{tagId}";
+        if (tagId === undefined || tagId === null)
+            throw new globalThis.Error("The parameter 'tagId' must be defined.");
+        url_ = url_.replace("{tagId}", encodeURIComponent("" + tagId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(updateFoodTagRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUpdateFoodTagEndpoint(_response);
+        });
+    }
+
+    protected processUpdateFoodTagEndpoint(response: AxiosResponse): Promise<FoodTagDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<FoodTagDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid request body", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<FoodTagDto>(null as any);
+    }
+
+    /**
+     * Delete a food tag
+     * @param tagId Public identifier of the tag to delete, from the route.
+     * @return Tag deleted
+     */
+    deleteFoodTagEndpoint(tagId: string, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/trainer/food-tags/{tagId}";
+        if (tagId === undefined || tagId === null)
+            throw new globalThis.Error("The parameter 'tagId' must be defined.");
+        url_ = url_.replace("{tagId}", encodeURIComponent("" + tagId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "DELETE",
+            url: url_,
+            headers: {
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processDeleteFoodTagEndpoint(_response);
+        });
+    }
+
+    protected processDeleteFoodTagEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * Update custom food
      * @param foodId The food's public identifier (from route).
-     * @return Success
+     * @return Food updated
      */
     updateFoodEndpoint(foodId: string, updateFoodRequest: UpdateFoodRequest, signal?: AbortSignal): Promise<FoodSummary> {
         let url_ = this.baseUrl + "/foods/{foodId}";
@@ -10668,11 +11422,11 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("Invalid request body, or the food belongs to another nutritionist", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
@@ -10688,7 +11442,7 @@ export class ApiClient {
     /**
      * Get food by ID
      * @param foodId The food's public identifier.
-     * @return Success
+     * @return Food detail
      */
     getFoodEndpoint(foodId: string, signal?: AbortSignal): Promise<FoodSummary> {
         let url_ = this.baseUrl + "/foods/{foodId}";
@@ -10748,7 +11502,7 @@ export class ApiClient {
     /**
      * Delete custom food
      * @param foodId The food's public identifier.
-     * @return No Content
+     * @return Food deleted
      */
     deleteFoodEndpoint(foodId: string, signal?: AbortSignal): Promise<void> {
         let url_ = this.baseUrl + "/foods/{foodId}";
@@ -10792,7 +11546,7 @@ export class ApiClient {
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
@@ -10807,14 +11561,39 @@ export class ApiClient {
 
     /**
      * Search foods
+     * @param category Optional category filter — matches a food carrying ANY of the supplied categories. Bound
+    from the repeated category query param, so a single ?category=Dairy still
+    binds a one-item list.
+     * @param tagIds Optional tags filter — matches a food the caller has tagged with ANY of the supplied
+    TagId values (#1120). At most 20.
+     * @param owner Optional owner filter — matches a food whose ownership falls under ANY of the supplied
+    FoodOwnerFilter values. Bound from the repeated owner query param, so
+    a single ?owner=Mine still binds a one-item list. At most 3 (one per enum member).
+    None supplied applies no owner filter.
      * @param page Page number (1-based). Defaults to 1.
      * @param pageSize Number of items per page. Defaults to 20.
      * @param q (optional) Free-text search query.
-     * @param category (optional) Optional category filter.
-     * @return Success
+     * @param sortBy (optional) Column to sort by. null (the default) means no explicit sort —
+    newest-created foods first.
+     * @param sortDir (optional) Direction for SortBy. Defaults to Ascending
+    when SortBy is set but this is omitted. Ignored when SortBy is
+    null.
+     * @return Matching foods
      */
-    searchFoodsEndpoint(page: number, pageSize: number, q?: string | null | undefined, category?: FoodCategory | null | undefined, signal?: AbortSignal): Promise<SearchFoodsResponse> {
+    searchFoodsEndpoint(category: FoodCategory[], tagIds: string[], owner: FoodOwnerFilter[], page: number, pageSize: number, q?: string | null | undefined, sortBy?: FoodSortField | null | undefined, sortDir?: FoodSortDirection | null | undefined, signal?: AbortSignal): Promise<SearchFoodsResponse> {
         let url_ = this.baseUrl + "/foods/search?";
+        if (category === undefined || category === null)
+            throw new globalThis.Error("The parameter 'category' must be defined and cannot be null.");
+        else
+            category && category.forEach(item => { url_ += "category=" + encodeURIComponent("" + item) + "&"; });
+        if (tagIds === undefined || tagIds === null)
+            throw new globalThis.Error("The parameter 'tagIds' must be defined and cannot be null.");
+        else
+            tagIds && tagIds.forEach(item => { url_ += "tagIds=" + encodeURIComponent("" + item) + "&"; });
+        if (owner === undefined || owner === null)
+            throw new globalThis.Error("The parameter 'owner' must be defined and cannot be null.");
+        else
+            owner && owner.forEach(item => { url_ += "owner=" + encodeURIComponent("" + item) + "&"; });
         if (page === undefined || page === null)
             throw new globalThis.Error("The parameter 'page' must be defined and cannot be null.");
         else
@@ -10825,8 +11604,10 @@ export class ApiClient {
             url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
         if (q !== undefined && q !== null)
             url_ += "q=" + encodeURIComponent("" + q) + "&";
-        if (category !== undefined && category !== null)
-            url_ += "category=" + encodeURIComponent("" + category) + "&";
+        if (sortBy !== undefined && sortBy !== null)
+            url_ += "sortBy=" + encodeURIComponent("" + sortBy) + "&";
+        if (sortDir !== undefined && sortDir !== null)
+            url_ += "sortDir=" + encodeURIComponent("" + sortDir) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -10871,17 +11652,223 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("Invalid page, page size, tags filter, category filter, owner filter, or sort field/direction", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<SearchFoodsResponse>(null as any);
+    }
+
+    /**
+     * Replace a food's tag assignments
+     * @param foodId Public identifier of the food, from the route.
+     * @return The resulting tag set
+     */
+    replaceFoodTagAssignmentsEndpoint(foodId: string, replaceFoodTagAssignmentsRequest: ReplaceFoodTagAssignmentsRequest, signal?: AbortSignal): Promise<ReplaceFoodTagAssignmentsResponse> {
+        let url_ = this.baseUrl + "/trainer/foods/{foodId}/tags";
+        if (foodId === undefined || foodId === null)
+            throw new globalThis.Error("The parameter 'foodId' must be defined.");
+        url_ = url_.replace("{foodId}", encodeURIComponent("" + foodId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(replaceFoodTagAssignmentsRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processReplaceFoodTagAssignmentsEndpoint(_response);
+        });
+    }
+
+    protected processReplaceFoodTagAssignmentsEndpoint(response: AxiosResponse): Promise<ReplaceFoodTagAssignmentsResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<ReplaceFoodTagAssignmentsResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid request body", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ReplaceFoodTagAssignmentsResponse>(null as any);
+    }
+
+    /**
+     * List food tags
+     * @return The caller's food tags
+     */
+    getFoodTagsEndpoint(signal?: AbortSignal): Promise<GetFoodTagsResponse> {
+        let url_ = this.baseUrl + "/trainer/food-tags";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetFoodTagsEndpoint(_response);
+        });
+    }
+
+    protected processGetFoodTagsEndpoint(response: AxiosResponse): Promise<GetFoodTagsResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GetFoodTagsResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GetFoodTagsResponse>(null as any);
+    }
+
+    /**
+     * Create a food tag
+     * @return Tag created
+     */
+    createFoodTagEndpoint(createFoodTagRequest: CreateFoodTagRequest, signal?: AbortSignal): Promise<FoodTagDto> {
+        let url_ = this.baseUrl + "/trainer/food-tags";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(createFoodTagRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCreateFoodTagEndpoint(_response);
+        });
+    }
+
+    protected processCreateFoodTagEndpoint(response: AxiosResponse): Promise<FoodTagDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 201) {
+            const _responseText = response.data;
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = JSON.parse(resultData201);
+            return Promise.resolve<FoodTagDto>(result201);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid request body", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<FoodTagDto>(null as any);
     }
 
     /**
@@ -10962,22 +11949,21 @@ export class ApiClient {
     }
 
     /**
-     * Create custom food
-     * @return Success
+     * Remove food image
+     * @param foodId The food's public identifier (from route).
+     * @return Image cleared (or was already unset)
      */
-    createFoodEndpoint(createFoodRequest: CreateFoodRequest, signal?: AbortSignal): Promise<FoodSummary> {
-        let url_ = this.baseUrl + "/foods";
+    deleteFoodImageEndpoint(foodId: string, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/foods/{foodId}/image";
+        if (foodId === undefined || foodId === null)
+            throw new globalThis.Error("The parameter 'foodId' must be defined.");
+        url_ = url_.replace("{foodId}", encodeURIComponent("" + foodId));
         url_ = url_.replace(/[?&]$/, "");
 
-        const content_ = JSON.stringify(createFoodRequest);
-
         let options_: AxiosRequestConfig = {
-            data: content_,
-            method: "POST",
+            method: "DELETE",
             url: url_,
             headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
             },
             signal
         };
@@ -10989,11 +11975,11 @@ export class ApiClient {
                 throw _error;
             }
         }).then((_response: AxiosResponse) => {
-            return this.processCreateFoodEndpoint(_response);
+            return this.processDeleteFoodImageEndpoint(_response);
         });
     }
 
-    protected processCreateFoodEndpoint(response: AxiosResponse): Promise<FoodSummary> {
+    protected processDeleteFoodImageEndpoint(response: AxiosResponse): Promise<void> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -11003,19 +11989,9 @@ export class ApiClient {
                 }
             }
         }
-        if (status === 200) {
+        if (status === 204) {
             const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<FoodSummary>(result200);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return Promise.resolve<void>(null as any);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -11029,7 +12005,7 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<FoodSummary>(null as any);
+        return Promise.resolve<void>(null as any);
     }
 
     /**
@@ -11107,6 +12083,77 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Create custom food
+     * @return Food created
+     */
+    createFoodEndpoint(createFoodRequest: CreateFoodRequest, signal?: AbortSignal): Promise<FoodSummary> {
+        let url_ = this.baseUrl + "/foods";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(createFoodRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCreateFoodEndpoint(_response);
+        });
+    }
+
+    protected processCreateFoodEndpoint(response: AxiosResponse): Promise<FoodSummary> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 201) {
+            const _responseText = response.data;
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = JSON.parse(resultData201);
+            return Promise.resolve<FoodSummary>(result201);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid request body", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<FoodSummary>(null as any);
     }
 
     /**
@@ -12416,6 +13463,347 @@ export class ApiClient {
     }
 
     /**
+     * Update a client tag
+     * @param tagId Public identifier of the tag to update, from the route.
+     * @return Tag updated
+     */
+    updateClientTagEndpoint(tagId: string, updateClientTagRequest: UpdateClientTagRequest, signal?: AbortSignal): Promise<ClientTagDto> {
+        let url_ = this.baseUrl + "/trainer/client-tags/{tagId}";
+        if (tagId === undefined || tagId === null)
+            throw new globalThis.Error("The parameter 'tagId' must be defined.");
+        url_ = url_.replace("{tagId}", encodeURIComponent("" + tagId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(updateClientTagRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUpdateClientTagEndpoint(_response);
+        });
+    }
+
+    protected processUpdateClientTagEndpoint(response: AxiosResponse): Promise<ClientTagDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<ClientTagDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid request body", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ClientTagDto>(null as any);
+    }
+
+    /**
+     * Delete a client tag
+     * @param tagId Public identifier of the tag to delete, from the route.
+     * @return Tag deleted
+     */
+    deleteClientTagEndpoint(tagId: string, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/trainer/client-tags/{tagId}";
+        if (tagId === undefined || tagId === null)
+            throw new globalThis.Error("The parameter 'tagId' must be defined.");
+        url_ = url_.replace("{tagId}", encodeURIComponent("" + tagId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "DELETE",
+            url: url_,
+            headers: {
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processDeleteClientTagEndpoint(_response);
+        });
+    }
+
+    protected processDeleteClientTagEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Replace a client's tag assignments
+     * @param clientId Public identifier of the client, from the route.
+     * @return The resulting tag set
+     */
+    replaceClientTagAssignmentsEndpoint(clientId: string, replaceClientTagAssignmentsRequest: ReplaceClientTagAssignmentsRequest, signal?: AbortSignal): Promise<ReplaceClientTagAssignmentsResponse> {
+        let url_ = this.baseUrl + "/trainer/clients/{clientId}/tags";
+        if (clientId === undefined || clientId === null)
+            throw new globalThis.Error("The parameter 'clientId' must be defined.");
+        url_ = url_.replace("{clientId}", encodeURIComponent("" + clientId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(replaceClientTagAssignmentsRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processReplaceClientTagAssignmentsEndpoint(_response);
+        });
+    }
+
+    protected processReplaceClientTagAssignmentsEndpoint(response: AxiosResponse): Promise<ReplaceClientTagAssignmentsResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<ReplaceClientTagAssignmentsResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid request body", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ReplaceClientTagAssignmentsResponse>(null as any);
+    }
+
+    /**
+     * List client tags
+     * @return The caller's tags
+     */
+    getClientTagsEndpoint(signal?: AbortSignal): Promise<GetClientTagsResponse> {
+        let url_ = this.baseUrl + "/trainer/client-tags";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetClientTagsEndpoint(_response);
+        });
+    }
+
+    protected processGetClientTagsEndpoint(response: AxiosResponse): Promise<GetClientTagsResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GetClientTagsResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GetClientTagsResponse>(null as any);
+    }
+
+    /**
+     * Create a client tag
+     * @return Tag created
+     */
+    createClientTagEndpoint(createClientTagRequest: CreateClientTagRequest, signal?: AbortSignal): Promise<ClientTagDto> {
+        let url_ = this.baseUrl + "/trainer/client-tags";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(createClientTagRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCreateClientTagEndpoint(_response);
+        });
+    }
+
+    protected processCreateClientTagEndpoint(response: AxiosResponse): Promise<ClientTagDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 201) {
+            const _responseText = response.data;
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = JSON.parse(resultData201);
+            return Promise.resolve<ClientTagDto>(result201);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid request body", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ClientTagDto>(null as any);
+    }
+
+    /**
      * Send a client request
      * @return Success
      */
@@ -12599,6 +13987,110 @@ export class ApiClient {
     }
 
     /**
+     * List a client's photos (trainer view)
+     * @param clientId The client profile's public identifier (route parameter).
+     * @param page Page number (1-based). Defaults to 1.
+     * @param pageSize Number of items per page. Defaults to 20.
+     * @param groupByMonth When true the response items are MonthGroupResponse objects
+    grouped by YYYY-MM. When false (default) items are flat
+    ClientPhotoResponse objects.
+    Pagination applies to groups when true, to individual photos when false.
+     * @param category (optional) Optional category filter (Food / Body / FreeForm).
+     * @param from (optional) Optional inclusive lower bound on TakenAt (UTC).
+     * @param to (optional) Optional inclusive upper bound on TakenAt (UTC).
+     * @param planId (optional) Optional plan filter. When provided, only photos belonging to this plan
+    (matching PlanPhoto.PlanId) are returned. Applies regardless of
+    PlanType; the caller is expected to know whether the plan is a
+    nutrition or training plan.
+     * @return Success
+     */
+    getTrainerClientPhotosEndpoint(clientId: string, page: number, pageSize: number, groupByMonth: boolean, category?: PlanPhotoCategory | null | undefined, from?: string | null | undefined, to?: string | null | undefined, planId?: string | null | undefined, signal?: AbortSignal): Promise<GetTrainerClientPhotosResponse> {
+        let url_ = this.baseUrl + "/trainer/clients/{clientId}/photos?";
+        if (clientId === undefined || clientId === null)
+            throw new globalThis.Error("The parameter 'clientId' must be defined.");
+        url_ = url_.replace("{clientId}", encodeURIComponent("" + clientId));
+        if (page === undefined || page === null)
+            throw new globalThis.Error("The parameter 'page' must be defined and cannot be null.");
+        else
+            url_ += "page=" + encodeURIComponent("" + page) + "&";
+        if (pageSize === undefined || pageSize === null)
+            throw new globalThis.Error("The parameter 'pageSize' must be defined and cannot be null.");
+        else
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        if (groupByMonth === undefined || groupByMonth === null)
+            throw new globalThis.Error("The parameter 'groupByMonth' must be defined and cannot be null.");
+        else
+            url_ += "groupByMonth=" + encodeURIComponent("" + groupByMonth) + "&";
+        if (category !== undefined && category !== null)
+            url_ += "category=" + encodeURIComponent("" + category) + "&";
+        if (from !== undefined && from !== null)
+            url_ += "from=" + encodeURIComponent("" + from) + "&";
+        if (to !== undefined && to !== null)
+            url_ += "to=" + encodeURIComponent("" + to) + "&";
+        if (planId !== undefined && planId !== null)
+            url_ += "planId=" + encodeURIComponent("" + planId) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetTrainerClientPhotosEndpoint(_response);
+        });
+    }
+
+    protected processGetTrainerClientPhotosEndpoint(response: AxiosResponse): Promise<GetTrainerClientPhotosResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GetTrainerClientPhotosResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GetTrainerClientPhotosResponse>(null as any);
+    }
+
+    /**
      * List plan photos
      * @param planId Route: the plan's public identifier.
      * @param page 1-based page number (default 1).
@@ -12686,7 +14178,7 @@ export class ApiClient {
     /**
      * Finalize plan photo upload
      * @param planId Route: the plan's public identifier (NutritionPlan.ExternalId or TrainingPlan.ExternalId).
-     * @return Success
+     * @return Plan photo finalized
      */
     finalizePlanPhotoEndpoint(planId: string, finalizePlanPhotoRequest: FinalizePlanPhotoRequest, signal?: AbortSignal): Promise<PlanPhotoResponse> {
         let url_ = this.baseUrl + "/client/plans/{planId}/photos";
@@ -12729,12 +14221,12 @@ export class ApiClient {
                 }
             }
         }
-        if (status === 200) {
+        if (status === 201) {
             const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<PlanPhotoResponse>(result200);
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = JSON.parse(resultData201);
+            return Promise.resolve<PlanPhotoResponse>(result201);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -12756,6 +14248,100 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<PlanPhotoResponse>(null as any);
+    }
+
+    /**
+     * List my photos (client view)
+     * @param page Page number (1-based). Defaults to 1.
+     * @param pageSize Number of items per page. Defaults to 20.
+     * @param groupByMonth When true the response items are MonthGroupResponse objects
+    grouped by YYYY-MM. When false (default) items are flat
+    ClientPhotoResponse objects.
+    Pagination applies to groups when true, to individual photos when false.
+     * @param category (optional) Optional category filter (Food / Body / FreeForm).
+     * @param from (optional) Optional inclusive lower bound on TakenAt (UTC).
+     * @param to (optional) Optional inclusive upper bound on TakenAt (UTC).
+     * @return Success
+     */
+    getMyPhotosEndpoint(page: number, pageSize: number, groupByMonth: boolean, category?: PlanPhotoCategory | null | undefined, from?: string | null | undefined, to?: string | null | undefined, signal?: AbortSignal): Promise<GetMyPhotosResponse> {
+        let url_ = this.baseUrl + "/client/me/photos?";
+        if (page === undefined || page === null)
+            throw new globalThis.Error("The parameter 'page' must be defined and cannot be null.");
+        else
+            url_ += "page=" + encodeURIComponent("" + page) + "&";
+        if (pageSize === undefined || pageSize === null)
+            throw new globalThis.Error("The parameter 'pageSize' must be defined and cannot be null.");
+        else
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        if (groupByMonth === undefined || groupByMonth === null)
+            throw new globalThis.Error("The parameter 'groupByMonth' must be defined and cannot be null.");
+        else
+            url_ += "groupByMonth=" + encodeURIComponent("" + groupByMonth) + "&";
+        if (category !== undefined && category !== null)
+            url_ += "category=" + encodeURIComponent("" + category) + "&";
+        if (from !== undefined && from !== null)
+            url_ += "from=" + encodeURIComponent("" + from) + "&";
+        if (to !== undefined && to !== null)
+            url_ += "to=" + encodeURIComponent("" + to) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetMyPhotosEndpoint(_response);
+        });
+    }
+
+    protected processGetMyPhotosEndpoint(response: AxiosResponse): Promise<GetMyPhotosResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GetMyPhotosResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GetMyPhotosResponse>(null as any);
     }
 
     /**
@@ -12891,204 +14477,6 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<void>(null as any);
-    }
-
-    /**
-     * List a client's photos (trainer view)
-     * @param clientId The client profile's public identifier (route parameter).
-     * @param page Page number (1-based). Defaults to 1.
-     * @param pageSize Number of items per page. Defaults to 20.
-     * @param groupByMonth When true the response items are MonthGroupResponse objects
-    grouped by YYYY-MM. When false (default) items are flat
-    ClientPhotoResponse objects.
-    Pagination applies to groups when true, to individual photos when false.
-     * @param category (optional) Optional category filter (Food / Body / FreeForm).
-     * @param from (optional) Optional inclusive lower bound on TakenAt (UTC).
-     * @param to (optional) Optional inclusive upper bound on TakenAt (UTC).
-     * @param planId (optional) Optional plan filter. When provided, only photos belonging to this plan
-    (matching PlanPhoto.PlanId) are returned. Applies regardless of
-    PlanType; the caller is expected to know whether the plan is a
-    nutrition or training plan.
-     * @return Success
-     */
-    getTrainerClientPhotosEndpoint(clientId: string, page: number, pageSize: number, groupByMonth: boolean, category?: PlanPhotoCategory | null | undefined, from?: string | null | undefined, to?: string | null | undefined, planId?: string | null | undefined, signal?: AbortSignal): Promise<GetTrainerClientPhotosResponse> {
-        let url_ = this.baseUrl + "/trainer/clients/{clientId}/photos?";
-        if (clientId === undefined || clientId === null)
-            throw new globalThis.Error("The parameter 'clientId' must be defined.");
-        url_ = url_.replace("{clientId}", encodeURIComponent("" + clientId));
-        if (page === undefined || page === null)
-            throw new globalThis.Error("The parameter 'page' must be defined and cannot be null.");
-        else
-            url_ += "page=" + encodeURIComponent("" + page) + "&";
-        if (pageSize === undefined || pageSize === null)
-            throw new globalThis.Error("The parameter 'pageSize' must be defined and cannot be null.");
-        else
-            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
-        if (groupByMonth === undefined || groupByMonth === null)
-            throw new globalThis.Error("The parameter 'groupByMonth' must be defined and cannot be null.");
-        else
-            url_ += "groupByMonth=" + encodeURIComponent("" + groupByMonth) + "&";
-        if (category !== undefined && category !== null)
-            url_ += "category=" + encodeURIComponent("" + category) + "&";
-        if (from !== undefined && from !== null)
-            url_ += "from=" + encodeURIComponent("" + from) + "&";
-        if (to !== undefined && to !== null)
-            url_ += "to=" + encodeURIComponent("" + to) + "&";
-        if (planId !== undefined && planId !== null)
-            url_ += "planId=" + encodeURIComponent("" + planId) + "&";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "GET",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            signal
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processGetTrainerClientPhotosEndpoint(_response);
-        });
-    }
-
-    protected processGetTrainerClientPhotosEndpoint(response: AxiosResponse): Promise<GetTrainerClientPhotosResponse> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<GetTrainerClientPhotosResponse>(result200);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status === 401) {
-            const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
-
-        } else if (status === 403) {
-            const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<GetTrainerClientPhotosResponse>(null as any);
-    }
-
-    /**
-     * List my photos (client view)
-     * @param page Page number (1-based). Defaults to 1.
-     * @param pageSize Number of items per page. Defaults to 20.
-     * @param groupByMonth When true the response items are MonthGroupResponse objects
-    grouped by YYYY-MM. When false (default) items are flat
-    ClientPhotoResponse objects.
-    Pagination applies to groups when true, to individual photos when false.
-     * @param category (optional) Optional category filter (Food / Body / FreeForm).
-     * @param from (optional) Optional inclusive lower bound on TakenAt (UTC).
-     * @param to (optional) Optional inclusive upper bound on TakenAt (UTC).
-     * @return Success
-     */
-    getMyPhotosEndpoint(page: number, pageSize: number, groupByMonth: boolean, category?: PlanPhotoCategory | null | undefined, from?: string | null | undefined, to?: string | null | undefined, signal?: AbortSignal): Promise<GetMyPhotosResponse> {
-        let url_ = this.baseUrl + "/client/me/photos?";
-        if (page === undefined || page === null)
-            throw new globalThis.Error("The parameter 'page' must be defined and cannot be null.");
-        else
-            url_ += "page=" + encodeURIComponent("" + page) + "&";
-        if (pageSize === undefined || pageSize === null)
-            throw new globalThis.Error("The parameter 'pageSize' must be defined and cannot be null.");
-        else
-            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
-        if (groupByMonth === undefined || groupByMonth === null)
-            throw new globalThis.Error("The parameter 'groupByMonth' must be defined and cannot be null.");
-        else
-            url_ += "groupByMonth=" + encodeURIComponent("" + groupByMonth) + "&";
-        if (category !== undefined && category !== null)
-            url_ += "category=" + encodeURIComponent("" + category) + "&";
-        if (from !== undefined && from !== null)
-            url_ += "from=" + encodeURIComponent("" + from) + "&";
-        if (to !== undefined && to !== null)
-            url_ += "to=" + encodeURIComponent("" + to) + "&";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "GET",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            signal
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processGetMyPhotosEndpoint(_response);
-        });
-    }
-
-    protected processGetMyPhotosEndpoint(response: AxiosResponse): Promise<GetMyPhotosResponse> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<GetMyPhotosResponse>(result200);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status === 401) {
-            const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
-
-        } else if (status === 403) {
-            const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<GetMyPhotosResponse>(null as any);
     }
 
     /**
@@ -14099,7 +15487,7 @@ export class ApiClient {
 
     /**
      * Add a body measurement
-     * @return Success
+     * @return Measurement created
      */
     addMeasurementEndpoint(addMeasurementRequest: AddMeasurementRequest, signal?: AbortSignal): Promise<MeasurementDto> {
         let url_ = this.baseUrl + "/client/measurements";
@@ -14139,12 +15527,12 @@ export class ApiClient {
                 }
             }
         }
-        if (status === 200) {
+        if (status === 201) {
             const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<MeasurementDto>(result200);
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = JSON.parse(resultData201);
+            return Promise.resolve<MeasurementDto>(result201);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -14318,7 +15706,7 @@ export class ApiClient {
     /**
      * Record a client's body measurement
      * @param clientId The client profile's public identifier (route parameter).
-     * @return Success
+     * @return Measurement created
      */
     addClientMeasurementEndpoint(clientId: string, addClientMeasurementRequest: AddClientMeasurementRequest, signal?: AbortSignal): Promise<MeasurementDto> {
         let url_ = this.baseUrl + "/trainer/clients/{clientId}/measurements";
@@ -14361,12 +15749,12 @@ export class ApiClient {
                 }
             }
         }
-        if (status === 200) {
+        if (status === 201) {
             const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<MeasurementDto>(result200);
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = JSON.parse(resultData201);
+            return Promise.resolve<MeasurementDto>(result201);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -16282,264 +17670,6 @@ export interface CreateWorkoutTemplateRequest {
     defaultExercises?: CreateWorkoutTemplateExerciseRequest[];
 }
 
-/** Full workout log detail DTO. Byte-stable wire shape — sourced from SessionExecution (#841) instead of the retired standalone WorkoutLog. */
-export interface WorkoutLogDetail {
-    /** Workout log public identifier. */
-    logId?: string;
-    /** Client's user ID. */
-    clientId?: string;
-    /** Training plan reference. */
-    planId?: string | undefined;
-    /** Training session reference. */
-    sessionId?: string | undefined;
-    /** When the workout started. */
-    startedAt?: string;
-    /** When the workout was completed. */
-    completedAt?: string | undefined;
-    /** Duration in seconds (null if not completed). */
-    durationSeconds?: number | undefined;
-    /** Client mood (1-5). */
-    mood?: number | undefined;
-    /** Client notes. */
-    notes?: string | undefined;
-    /** Whether the workout is completed. */
-    isCompleted?: boolean;
-    /** Exercises performed. */
-    exercises?: WorkoutExercise[];
-    /** Whether any set in this workout is a PR. */
-    hasPR?: boolean;
-}
-
-/** An exercise performed during a workout — denormalized snapshot with actual results. */
-export interface WorkoutExercise {
-    /** Reference to the exercise document's ExternalId. */
-    exerciseExternalId?: string;
-    /** Snapshot of the exercise name. */
-    exerciseName?: string;
-    /** WOD format result for this individual exercise.
-Null for Standard exercises or when not yet recorded. */
-    wodResult?: WodResult | undefined;
-    /** Actual sets performed. */
-    sets?: WorkoutSet[];
-}
-
-/** Records the outcome of a WOD (Workout Of the Day) format session or exercise. Which fields are meaningful depends on the WorkoutFormat. All fields are nullable — only those relevant to the actual result need to be set. */
-export interface WodResult {
-    /** Number of complete rounds completed (AMRAP, Tabata). */
-    roundsCompleted?: number | undefined;
-    /** Extra reps accumulated after the last complete round (AMRAP). */
-    extraReps?: number | undefined;
-    /** Total time taken to complete the workout in seconds (ForTime). */
-    totalTimeSeconds?: number | undefined;
-    /** List of round numbers that were not completed (Tabata, EMOM). */
-    failedRounds?: number[] | undefined;
-    /** Reps completed per round, indexed 1-based (Tabata, EMOM, AMRAP). */
-    repsByRound?: number[] | undefined;
-}
-
-/** A single set actually performed during a workout with recorded values. Snapshot-planned fields capture the prescribed values at the time the set was first logged; they are immutable after initial persistence so later plan edits do not affect them. */
-export interface WorkoutSet {
-    /** Set number within the exercise (1-based). */
-    setNumber?: number;
-    /** Actual repetitions completed. */
-    reps?: number | undefined;
-    /** Actual weight used in kilograms. */
-    weightKg?: number | undefined;
-    /** Rate of Perceived Exertion (1-10 scale). */
-    rpe?: number | undefined;
-    /** Actual duration in seconds (for timed exercises). */
-    durationSeconds?: number | undefined;
-    /** Actual distance in meters (for distance-based exercises). */
-    distanceMeters?: number | undefined;
-    /** When this set was completed. */
-    completedAt?: string | undefined;
-    /** Whether this set is a personal record for this exercise. */
-    isPR?: boolean;
-    /** Prescribed repetitions at the time this set was first logged. */
-    plannedReps?: number | undefined;
-    /** Prescribed weight (kg) at the time this set was first logged. */
-    plannedWeightKg?: number | undefined;
-    /** Prescribed RPE at the time this set was first logged. */
-    plannedRpe?: number | undefined;
-    /** Prescribed duration (seconds) at the time this set was first logged. */
-    plannedDurationSeconds?: number | undefined;
-    /** Prescribed distance (meters) at the time this set was first logged. */
-    plannedDistanceMeters?: number | undefined;
-    /** Backend-computed flag: true when any actual field differs from its snapshot-planned counterpart.
-Always false for legacy sets whose planned fields are all null (backward-compatible default).
-Never stored — derived on read. */
-    isModified?: boolean;
-}
-
-/** Request to progressively update a workout log with exercise data. Designed for offline-first: client sends all exercises/sets accumulated so far. */
-export interface UpdateWorkoutRequest {
-    /** Client's subjective mood rating (1-5). */
-    mood?: number | undefined;
-    /** Optional client notes. */
-    notes?: string | undefined;
-    /** WOD format result for the whole session (ForTime, AMRAP, etc.).
-Null for Standard workouts or when not yet recorded. */
-    wodResult?: WodResult | undefined;
-    /** Current state of exercises performed. */
-    exercises?: UpdateWorkoutExerciseRequest[];
-}
-
-/** Exercise data in a workout update. */
-export interface UpdateWorkoutExerciseRequest {
-    /** The workout this exercise belongs to — must match WorkoutId
-(and by design the source WorkoutId).
-Null for requests from legacy clients that do not yet send workout context;
-in that case the exercise is stored in the first workout of the log (single-workout fallback). */
-    workoutId?: string | undefined;
-    /** Reference to the exercise document's ExternalId. */
-    exerciseExternalId?: string;
-    /** Snapshot of the exercise name. */
-    exerciseName?: string;
-    /** WOD format result for this individual exercise.
-Null for Standard exercises or when not yet recorded. */
-    wodResult?: WodResult | undefined;
-    /** Sets performed for this exercise. */
-    sets?: UpdateWorkoutSetRequest[];
-}
-
-/** Set data in a workout update. */
-export interface UpdateWorkoutSetRequest {
-    /** Set number (1-based). */
-    setNumber?: number;
-    /** Actual reps completed. */
-    reps?: number | undefined;
-    /** Actual weight in kg. */
-    weightKg?: number | undefined;
-    /** Rate of Perceived Exertion (1-10). */
-    rpe?: number | undefined;
-    /** Duration in seconds. */
-    durationSeconds?: number | undefined;
-    /** Distance in meters. */
-    distanceMeters?: number | undefined;
-    /** When this set was completed. */
-    completedAt?: string | undefined;
-    /** Prescribed repetitions from the plan prescription. */
-    plannedReps?: number | undefined;
-    /** Prescribed weight (kg) from the plan prescription. */
-    plannedWeightKg?: number | undefined;
-    /** Prescribed RPE from the plan prescription. */
-    plannedRpe?: number | undefined;
-    /** Prescribed duration (seconds) from the plan prescription. */
-    plannedDurationSeconds?: number | undefined;
-    /** Prescribed distance (meters) from the plan prescription. */
-    plannedDistanceMeters?: number | undefined;
-}
-
-/** Response after starting a workout. */
-export interface StartWorkoutResponse {
-    /** The new workout log's public identifier. */
-    logId?: string;
-    /** When the workout was started. */
-    startedAt?: string;
-}
-
-/** Request to start a new workout session. */
-export interface StartWorkoutRequest {
-    /** Optional reference to the training plan. */
-    planId?: string | undefined;
-    /** Optional reference to the training session within the plan. */
-    sessionId?: string | undefined;
-}
-
-/** Response returned when a workout log transitions to Live state. */
-export interface GoLiveResponse {
-    /** The external ID of the workout log now in Live state. */
-    logId?: string;
-    /** UTC timestamp when the Live lock was acquired. */
-    liveAt?: string;
-}
-
-/** Request to transition an existing draft workout log to Live state. */
-export interface GoLiveRequest {
-}
-
-/** Paginated response with workout log summaries. */
-export interface GetWorkoutLogsResponse {
-    /** List of workout log summaries. */
-    logs?: WorkoutLogSummary[];
-    /** Total count of matching logs. */
-    totalCount?: number;
-    /** Current page. */
-    page?: number;
-    /** Page size. */
-    pageSize?: number;
-}
-
-/** Lightweight workout log summary for list views. Byte-stable wire shape — sourced from SessionExecution (#841) instead of the retired standalone WorkoutLog. */
-export interface WorkoutLogSummary {
-    /** Workout log public identifier. */
-    logId?: string;
-    /** When the workout started. */
-    startedAt?: string;
-    /** When the workout was completed. */
-    completedAt?: string | undefined;
-    /** Duration in seconds. */
-    durationSeconds?: number | undefined;
-    /** Client mood (1-5). */
-    mood?: number | undefined;
-    /** Whether the workout is completed. */
-    isCompleted?: boolean;
-    /** Number of exercises performed. */
-    exerciseCount?: number;
-    /** Total number of sets performed. */
-    setCount?: number;
-    /** Whether any set is a PR. */
-    hasPR?: boolean;
-}
-
-/** Request to list client's workout logs. */
-export interface GetWorkoutLogsRequest {
-}
-
-/** Request to get a single workout log detail. */
-export interface GetWorkoutLogRequest {
-}
-
-/** Time series of exercise performance data points. */
-export interface GetExerciseProgressResponse {
-    /** Exercise name. */
-    exerciseName?: string;
-    /** Performance data points ordered by date. */
-    dataPoints?: ExerciseProgressPoint[];
-}
-
-/** A single data point of exercise performance. */
-export interface ExerciseProgressPoint {
-    /** Date of the workout. */
-    date?: string;
-    /** Best weight used in this workout (kg). */
-    bestWeightKg?: number | undefined;
-    /** Best reps at best weight. */
-    bestReps?: number | undefined;
-    /** Total volume (sum of weight × reps across all sets). */
-    totalVolume?: number;
-    /** Whether any set was a PR. */
-    hasPR?: boolean;
-}
-
-/** Request to get a client's exercise progress over time. */
-export interface GetExerciseProgressRequest {
-}
-
-/** Request to complete a workout session. */
-export interface CompleteWorkoutRequest {
-}
-
-/** Response returned when an abandon request is processed (including idempotent no-op case). */
-export interface AbandonWorkoutResponse {
-    /** Whether a Live lock was actually released. False when the lock was already gone (idempotent). */
-    released?: boolean;
-}
-
-/** Request to abandon (discard) a draft workout session and release the Live lock. */
-export interface AbandonWorkoutRequest {
-}
-
 /** Response for POST /client/weekly-check-ins/{id}/respond. */
 export interface RespondToCheckInResponse {
     /** Check-in identifier. */
@@ -17336,7 +18466,7 @@ Populated by the endpoint after loading the plan; the client side should filter
 to dates that fall within the plan's active weeks. */
     completions?: TrainingPlanCompletionDto[];
     /** Per-session workout-log execution data for the plan's client.
-One entry per session that has at least one WorkoutLog record.
+One entry per session that has at least one SessionExecution record.
 Sessions with no log entry are absent (equivalent to all sets being not-yet-reached).
 The web layer uses this together with Completions to render per-set,
 per-exercise, and per-session completed/skipped/unreached state indicators. */
@@ -17421,11 +18551,11 @@ semantics unchanged. */
 export interface SessionExecutionDto {
     /** The SessionId this execution belongs to. */
     sessionId?: string;
-    /** Whether the workout was finalised by the client (IsCompleted was true). */
+    /** Whether the workout was finalised by the client (Status was Completed). */
     isSessionFinished?: boolean;
     /** Per-exercise map of which set numbers were completed (i.e. had a non-null
 CompletedAt). Key = ExerciseExternalId; value = sorted list
-of 1-based set numbers that were stamped as complete in the WorkoutLog.
+of 1-based set numbers that were stamped as complete in the SessionExecution.
 An absent key means no sets for that exercise were logged.
 An empty list should not occur but is treated identically to an absent key.
 Deprecated in favour of CompletedSetsByWorkoutAndExercise.
@@ -17860,10 +18990,6 @@ Used to populate pendingInviteId on the photo-diary-request create form. */
     id?: number;
     /** Public identifier of the pending invite. */
     publicId?: string;
-    /** First name of the invited client. */
-    firstName?: string;
-    /** Last name of the invited client. */
-    lastName?: string;
     /** Email address of the invited client. */
     email?: string;
     /** Optional introduction message. */
@@ -17889,10 +19015,6 @@ Used to populate pendingInviteId on the photo-diary-request create form. */
     id?: number;
     /** Public identifier of the created pending invite. */
     publicId?: string;
-    /** First name of the invited client. */
-    firstName?: string;
-    /** Last name of the invited client. */
-    lastName?: string;
     /** Email address of the invited client. */
     email?: string;
     /** Timestamp when the invitation was sent. */
@@ -17903,10 +19025,6 @@ Used to populate pendingInviteId on the photo-diary-request create form. */
 
 /** Request model for creating a pending client invitation. */
 export interface CreatePendingInviteRequest {
-    /** First name of the invited client. */
-    firstName: string;
-    /** Last name of the invited client. */
-    lastName: string;
     /** Email address of the invited client. */
     email: string;
     /** Optional introduction message from the professional. */
@@ -17982,26 +19100,6 @@ Null for training plans, or when fewer than two measurements exist in the window
 export interface ListClientPlansRequest {
 }
 
-/** Response model returned after sending a client invitation. */
-export interface InviteClientResponse {
-    /** Confirmation message. */
-    message?: string;
-    /** Invitation token (exposed for dev/testing; would be emailed in production). */
-    invitationToken?: string;
-}
-
-/** Request model for inviting a client via email. */
-export interface InviteClientRequest {
-    /** Email address of the client to invite. */
-    email: string;
-    /** Optional explicit domain scope for the relationship this invitation will form.
-When omitted, the accept flow defaults to every domain implied by the inviting
-professional's held identity roles (existing behavior — unchanged). When
-supplied, it must be a subset of the professional's actually-held roles; e.g. a
-Trainer-only professional cannot request NutritionOnly. */
-    requestedScope?: LinkCapabilityScope | undefined;
-}
-
 /** Response model for the professional's own profile data. */
 export interface GetProfessionalProfileResponse {
     /** Short biography of the professional. */
@@ -18030,6 +19128,39 @@ export interface GetProfessionalProfileResponse {
     showInSearch?: boolean;
     /** Whether the professional is currently accepting new clients. */
     acceptNewClients?: boolean;
+}
+
+/** Response model for the trainer's Pending tab. */
+export interface GetPendingClientsResponse {
+    /** Merged, unpaginated rows — unaccepted invites plus incoming pending requests, ordered by
+SentAt descending. */
+    rows?: PendingClientRow[];
+}
+
+/** A single Pending-tab row. Kind tells the client which existing action endpoint to call with PublicId — cancel an invite, or accept/reject a request. */
+export interface PendingClientRow {
+    /** Which source table this row came from. */
+    kind?: PendingRowKind;
+    /** Public identifier of the source row — PendingInvite.PublicId for
+Invite, ClientRequest.PublicId for
+Request. This is the id the row's action endpoint expects. */
+    publicId?: string;
+    /** First name of the prospective client. */
+    firstName?: string;
+    /** Last name of the prospective client. */
+    lastName?: string;
+    /** Email address of the prospective client. */
+    email?: string;
+    /** Optional message attached to the invite or request. */
+    message?: string | undefined;
+    /** When the invite was sent, or the request was submitted. */
+    sentAt?: string;
+}
+
+/** Discriminates a row on the trainer's Pending tab, which merges two otherwise-unrelated source tables: unaccepted PendingInvite rows and incoming ClientRequest rows. The client uses this to decide which action to offer (cancel an invite; accept or reject a request) and which existing endpoint to call with the row's PublicId. */
+export enum PendingRowKind {
+    Invite = "Invite",
+    Request = "Request",
 }
 
 /** Aggregated dashboard data for the trainer's client list. */
@@ -18170,23 +19301,35 @@ export interface GetClientTimelineRequest {
 
 /** Response model for the trainer's client list. */
 export interface GetClientsResponse {
-    /** List of client summaries. */
+    /** List of client summaries for the requested page. */
     clients?: ClientSummary[];
-    /** Total number of clients matching the filter. */
+    /** Total number of clients matching the current tab, search, tags AND filter chip. */
     totalCount?: number;
     /** Current page number. */
     page?: number;
     /** Number of items per page. */
     pageSize?: number;
+    /** Counts of clients per status tab, computed with search and tagIds applied
+(so the counts track what the caller is currently narrowing down), but never with the
+tab or the filter chip itself applied — that would make comparing tabs meaningless.
+Pending is not narrowed by search or tags: those describe
+existing linked clients, and pending rows are not clients yet. */
+    tabCounts?: ClientTabCounts;
+    /** Counts of clients per filter chip, computed over the current tab with search and
+tagIds applied but the chip filter itself NOT applied — this is what lets the web
+client grey out a chip whose count is zero without losing the ability to select it. */
+    filterCounts?: ClientFilterCounts;
 }
 
 /** Summary of a client in the trainer's client list. */
 export interface ClientSummary {
-    /** Internal integer primary key of the ClientProfessionalLink row.
-Used to populate linkId on the photo-diary-request create form. */
-    linkId?: number;
     /** Client profile's public ID. */
     publicId?: string;
+    /** The client's ApplicationUser.Id — the join key shared with Mongo plan documents
+(NutritionPlan.ClientId / TrainingPlan.ClientId, #840) and with messaging
+(Conversation.ClientUserId). Distinct from PublicId, which is
+ClientProfile.PublicId and is not a valid join key against either. */
+    userId?: string;
     /** Client's email address. */
     email?: string;
     /** Client's first name. */
@@ -18197,10 +19340,101 @@ Used to populate linkId on the photo-diary-request create form. */
     isActive?: boolean;
     /** Date when the trainer-client relationship was established. */
     linkedAt?: string;
+    /** Derived tab status — see ClientListStatus. */
+    status?: ClientListStatus;
+    /** The client's avatar, if uploaded. Read straight off ApplicationUser.AvatarBlobUrl —
+same as GetDashboardSummaryEndpoint, no presigning at this layer. */
+    avatarBlobUrl?: string | undefined;
+    /** The caller's own tags assigned to this client, via the caller's own link. */
+    tags?: ClientTagSummaryDto[];
+    /** Number of unread messages sent BY the client to the caller. */
+    unreadMessageCount?: number;
+    /** Whether the client has an in-window Active nutrition plan. Always false when the
+link does not grant CanViewNutritionPlans — never computed for a domain the caller
+cannot see. */
+    hasActiveNutritionPlan?: boolean;
+    /** Whether the client has an in-window Active training plan. Always false when the
+link does not grant CanViewTrainingPlans. */
+    hasActiveTrainingPlan?: boolean;
+    /** The client's currently in-window Active plans, one per visible domain, for the row's
+hover popover. Omits any domain the link does not grant. */
+    activePlans?: ClientActivePlanDto[];
+}
+
+/** Derived status of a client on the trainer's clients list. Never stored — computed per request from the link's IsActive flag plus whether an in-window Active plan exists in a domain the link grants (see GetClientsEndpoint). */
+export enum ClientListStatus {
+    Active = "Active",
+    Paused = "Paused",
+    Archived = "Archived",
+}
+
+/** A coach-owned tag assigned to a client, as surfaced on the clients list. Declared locally to this slice rather than reusing Features/ClientTags/Shared/ClientTagDto — the list needs only the display fields, and importing a sibling feature's DTO would cross a feature boundary. */
+export interface ClientTagSummaryDto {
+    /** Public identifier of the tag. */
+    tagId?: string;
+    /** Tag label. */
+    name?: string;
+    /** Display color as a lowercase 6-digit hex string. */
+    colorHex?: string;
+}
+
+/** A client's currently in-window Active plan, for the clients list hover popover. */
+export interface ClientActivePlanDto {
+    /** Plan display name. */
+    name?: string;
+    /** Which domain this plan belongs to. */
+    type?: Profession;
+    /** The plan's start date. */
+    startDate?: string | undefined;
+}
+
+/** Identifies the professional capacity in which a check-in setting or override applies. */
+export enum Profession {
+    Training = "Training",
+    Nutrition = "Nutrition",
+}
+
+/** Per-tab client counts. See TabCounts for scoping rules. */
+export interface ClientTabCounts {
+    /** Number of clients in the Active tab. */
+    active?: number;
+    /** Number of clients in the Paused tab. */
+    paused?: number;
+    /** Number of clients in the Archived tab. */
+    archived?: number;
+    /** Number of pending rows (unaccepted invites plus incoming pending requests) for the
+caller. Unfiltered by search or tags — see TabCounts. */
+    pending?: number;
+}
+
+/** Per-chip client counts over the current tab. See FilterCounts for scoping rules. */
+export interface ClientFilterCounts {
+    /** Total rows in the current tab (search and tags applied). */
+    all?: number;
+    /** Rows with at least one unread message from the client. */
+    unreadMessages?: number;
+    /** Rows with no conversation, or a conversation with zero messages. */
+    noMessages?: number;
+    /** Rows with a responded, not-yet-reviewed weekly check-in. */
+    newCheckIns?: number;
+    /** Rows with an expired or overdue-unanswered weekly check-in. */
+    missingCheckIns?: number;
+    /** Rows whose active plan window ends within 14 days. */
+    endingSoon?: number;
 }
 
 /** Request model for retrieving a trainer's client list with pagination. */
 export interface GetClientsRequest {
+}
+
+/** The surviving filter chips on the trainer's clients list. Each chip narrows the current tab's rows; its own count is computed with search and tag filters applied but the chip itself not applied, so a zero-count chip can be greyed out on the client. */
+export enum ClientListFilter {
+    All = "All",
+    UnreadMessages = "UnreadMessages",
+    NoMessages = "NoMessages",
+    NewCheckIns = "NewCheckIns",
+    MissingCheckIns = "MissingCheckIns",
+    EndingSoon = "EndingSoon",
 }
 
 /** Response model containing a client's progress data for the trainer view. */
@@ -18273,6 +19507,11 @@ endpoints — it differs from ClientPublicId. */
     linkedAt?: string;
     /** Whether the trainer-client relationship is currently active. */
     isActive?: boolean;
+    /** Derived Active/Paused/Archived status — computed by
+Classify, the same derivation
+GetClientsEndpoint uses, so this value always agrees with the caller's clients-list
+status pill for the same client (#1094). */
+    status?: ClientListStatus;
     /** Whether this professional is permitted to view the client's nutrition plans.
 Mirrors ClientProfessionalLink.CanViewNutritionPlans. */
     canViewNutritionPlans?: boolean;
@@ -18781,6 +20020,264 @@ Private when omitted. */
 export interface CopySessionTemplateRequest {
 }
 
+/** Full workout log detail DTO. Byte-stable wire shape — sourced from SessionExecution (#841) instead of the retired standalone WorkoutLog. */
+export interface WorkoutLogDetail {
+    /** Workout log public identifier. */
+    logId?: string;
+    /** Client's user ID. */
+    clientId?: string;
+    /** Training plan reference. */
+    planId?: string | undefined;
+    /** Training session reference. */
+    sessionId?: string | undefined;
+    /** When the workout started. */
+    startedAt?: string;
+    /** When the workout was completed. */
+    completedAt?: string | undefined;
+    /** Duration in seconds (null if not completed). */
+    durationSeconds?: number | undefined;
+    /** Client mood (1-5). */
+    mood?: number | undefined;
+    /** Client notes. */
+    notes?: string | undefined;
+    /** Whether the workout is completed. */
+    isCompleted?: boolean;
+    /** Exercises performed. */
+    exercises?: WorkoutExercise[];
+    /** Whether any set in this workout is a PR. */
+    hasPR?: boolean;
+}
+
+/** An exercise performed during a workout — denormalized snapshot with actual results. */
+export interface WorkoutExercise {
+    /** Reference to the exercise document's ExternalId. */
+    exerciseExternalId?: string;
+    /** Snapshot of the exercise name. */
+    exerciseName?: string;
+    /** WOD format result for this individual exercise.
+Null for Standard exercises or when not yet recorded. */
+    wodResult?: WodResult | undefined;
+    /** Actual sets performed. */
+    sets?: WorkoutSet[];
+}
+
+/** Records the outcome of a WOD (Workout Of the Day) format session or exercise. Which fields are meaningful depends on the WorkoutFormat. All fields are nullable — only those relevant to the actual result need to be set. */
+export interface WodResult {
+    /** Number of complete rounds completed (AMRAP, Tabata). */
+    roundsCompleted?: number | undefined;
+    /** Extra reps accumulated after the last complete round (AMRAP). */
+    extraReps?: number | undefined;
+    /** Total time taken to complete the workout in seconds (ForTime). */
+    totalTimeSeconds?: number | undefined;
+    /** List of round numbers that were not completed (Tabata, EMOM). */
+    failedRounds?: number[] | undefined;
+    /** Reps completed per round, indexed 1-based (Tabata, EMOM, AMRAP). */
+    repsByRound?: number[] | undefined;
+}
+
+/** A single set actually performed during a workout with recorded values. Snapshot-planned fields capture the prescribed values at the time the set was first logged; they are immutable after initial persistence so later plan edits do not affect them. */
+export interface WorkoutSet {
+    /** Set number within the exercise (1-based). */
+    setNumber?: number;
+    /** Actual repetitions completed. */
+    reps?: number | undefined;
+    /** Actual weight used in kilograms. */
+    weightKg?: number | undefined;
+    /** Rate of Perceived Exertion (1-10 scale). */
+    rpe?: number | undefined;
+    /** Actual duration in seconds (for timed exercises). */
+    durationSeconds?: number | undefined;
+    /** Actual distance in meters (for distance-based exercises). */
+    distanceMeters?: number | undefined;
+    /** When this set was completed. */
+    completedAt?: string | undefined;
+    /** Whether this set is a personal record for this exercise. */
+    isPR?: boolean;
+    /** Prescribed repetitions at the time this set was first logged. */
+    plannedReps?: number | undefined;
+    /** Prescribed weight (kg) at the time this set was first logged. */
+    plannedWeightKg?: number | undefined;
+    /** Prescribed RPE at the time this set was first logged. */
+    plannedRpe?: number | undefined;
+    /** Prescribed duration (seconds) at the time this set was first logged. */
+    plannedDurationSeconds?: number | undefined;
+    /** Prescribed distance (meters) at the time this set was first logged. */
+    plannedDistanceMeters?: number | undefined;
+    /** Backend-computed flag: true when any actual field differs from its snapshot-planned counterpart.
+Always false for legacy sets whose planned fields are all null (backward-compatible default).
+Never stored — derived on read. */
+    isModified?: boolean;
+}
+
+/** Request to progressively update a workout log with exercise data. Designed for offline-first: client sends all exercises/sets accumulated so far. */
+export interface UpdateWorkoutRequest {
+    /** Client's subjective mood rating (1-5). */
+    mood?: number | undefined;
+    /** Optional client notes. */
+    notes?: string | undefined;
+    /** WOD format result for the whole session (ForTime, AMRAP, etc.).
+Null for Standard workouts or when not yet recorded. */
+    wodResult?: WodResult | undefined;
+    /** Current state of exercises performed. */
+    exercises?: UpdateWorkoutExerciseRequest[];
+}
+
+/** Exercise data in a workout update. */
+export interface UpdateWorkoutExerciseRequest {
+    /** The workout this exercise belongs to — must match WorkoutId
+(and by design the source WorkoutId).
+Null for requests from legacy clients that do not yet send workout context;
+in that case the exercise is stored in the first workout of the log (single-workout fallback). */
+    workoutId?: string | undefined;
+    /** Reference to the exercise document's ExternalId. */
+    exerciseExternalId?: string;
+    /** Snapshot of the exercise name. */
+    exerciseName?: string;
+    /** WOD format result for this individual exercise.
+Null for Standard exercises or when not yet recorded. */
+    wodResult?: WodResult | undefined;
+    /** Sets performed for this exercise. */
+    sets?: UpdateWorkoutSetRequest[];
+}
+
+/** Set data in a workout update. */
+export interface UpdateWorkoutSetRequest {
+    /** Set number (1-based). */
+    setNumber?: number;
+    /** Actual reps completed. */
+    reps?: number | undefined;
+    /** Actual weight in kg. */
+    weightKg?: number | undefined;
+    /** Rate of Perceived Exertion (1-10). */
+    rpe?: number | undefined;
+    /** Duration in seconds. */
+    durationSeconds?: number | undefined;
+    /** Distance in meters. */
+    distanceMeters?: number | undefined;
+    /** When this set was completed. */
+    completedAt?: string | undefined;
+    /** Prescribed repetitions from the plan prescription. */
+    plannedReps?: number | undefined;
+    /** Prescribed weight (kg) from the plan prescription. */
+    plannedWeightKg?: number | undefined;
+    /** Prescribed RPE from the plan prescription. */
+    plannedRpe?: number | undefined;
+    /** Prescribed duration (seconds) from the plan prescription. */
+    plannedDurationSeconds?: number | undefined;
+    /** Prescribed distance (meters) from the plan prescription. */
+    plannedDistanceMeters?: number | undefined;
+}
+
+/** Response after starting a workout. */
+export interface StartWorkoutResponse {
+    /** The new workout log's public identifier. */
+    logId?: string;
+    /** When the workout was started. */
+    startedAt?: string;
+}
+
+/** Request to start a new workout session. */
+export interface StartWorkoutRequest {
+    /** Optional reference to the training plan. */
+    planId?: string | undefined;
+    /** Optional reference to the training session within the plan. */
+    sessionId?: string | undefined;
+}
+
+/** Response returned when a workout log transitions to Live state. */
+export interface GoLiveResponse {
+    /** The external ID of the workout log now in Live state. */
+    logId?: string;
+    /** UTC timestamp when the Live lock was acquired. */
+    liveAt?: string;
+}
+
+/** Request to transition an existing draft workout log to Live state. */
+export interface GoLiveRequest {
+}
+
+/** Paginated response with workout log summaries. */
+export interface GetWorkoutLogsResponse {
+    /** List of workout log summaries. */
+    logs?: WorkoutLogSummary[];
+    /** Total count of matching logs. */
+    totalCount?: number;
+    /** Current page. */
+    page?: number;
+    /** Page size. */
+    pageSize?: number;
+}
+
+/** Lightweight workout log summary for list views. Byte-stable wire shape — sourced from SessionExecution (#841) instead of the retired standalone WorkoutLog. */
+export interface WorkoutLogSummary {
+    /** Workout log public identifier. */
+    logId?: string;
+    /** When the workout started. */
+    startedAt?: string;
+    /** When the workout was completed. */
+    completedAt?: string | undefined;
+    /** Duration in seconds. */
+    durationSeconds?: number | undefined;
+    /** Client mood (1-5). */
+    mood?: number | undefined;
+    /** Whether the workout is completed. */
+    isCompleted?: boolean;
+    /** Number of exercises performed. */
+    exerciseCount?: number;
+    /** Total number of sets performed. */
+    setCount?: number;
+    /** Whether any set is a PR. */
+    hasPR?: boolean;
+}
+
+/** Request to list client's workout logs. */
+export interface GetWorkoutLogsRequest {
+}
+
+/** Request to get a single workout log detail. */
+export interface GetWorkoutLogRequest {
+}
+
+/** Time series of exercise performance data points. */
+export interface GetExerciseProgressResponse {
+    /** Exercise name. */
+    exerciseName?: string;
+    /** Performance data points ordered by date. */
+    dataPoints?: ExerciseProgressPoint[];
+}
+
+/** A single data point of exercise performance. */
+export interface ExerciseProgressPoint {
+    /** Date of the workout. */
+    date?: string;
+    /** Best weight used in this workout (kg). */
+    bestWeightKg?: number | undefined;
+    /** Best reps at best weight. */
+    bestReps?: number | undefined;
+    /** Total volume (sum of weight × reps across all sets). */
+    totalVolume?: number;
+    /** Whether any set was a PR. */
+    hasPR?: boolean;
+}
+
+/** Request to get a client's exercise progress over time. */
+export interface GetExerciseProgressRequest {
+}
+
+/** Request to complete a workout session. */
+export interface CompleteWorkoutRequest {
+}
+
+/** Response returned when an abandon request is processed (including idempotent no-op case). */
+export interface AbandonWorkoutResponse {
+    /** Whether a Live lock was actually released. False when the lock was already gone (idempotent). */
+    released?: boolean;
+}
+
+/** Request to abandon (discard) a draft workout session and release the Live lock. */
+export interface AbandonWorkoutRequest {
+}
+
 /** Response model containing the pre-signed upload URL and the permanent blob URL. */
 export interface UploadRecipeImageUrlResponse {
     /** Time-limited pre-signed URL the client should PUT the image file to. */
@@ -18831,6 +20328,24 @@ Clients of the API can use this flag to decide whether to show edit/delete affor
     dateCreated?: string;
     /** When the recipe was last updated. */
     dateUpdated?: string | undefined;
+    /** Optimistic concurrency version. Clients must echo this value back on update. */
+    version?: number;
+    /** Number of servings the recipe yields. */
+    servings?: number;
+    /** Preparation difficulty, or null when not set. */
+    difficulty?: RecipeDifficulty | undefined;
+    /** Cooking time in minutes, separate from PrepTimeMinutes. */
+    cookTimeMinutes?: number | undefined;
+    /** Meal types the recipe is suited for. */
+    mealTypes?: RecipeMealType[];
+    /** Dietary preferences the recipe satisfies. */
+    dietaryPreferences?: DietaryPreference[];
+    /** Allergens derived on read from the ingredient foods; never stored on the recipe. */
+    allergens?: Allergen[];
+    /** True when the recipe belongs to the platform catalog rather than a coach. */
+    isSystem?: boolean;
+    /** The caller's own tags on this recipe, ordered by name. Never another coach's tags. */
+    tags?: FoodTagDto[];
 }
 
 /** A food item within a meal — denormalized snapshot of food data at the time of addition. */
@@ -18881,15 +20396,86 @@ export enum RecipeVisibility {
     Private = "Private",
 }
 
+/** How demanding a recipe is to prepare. */
+export enum RecipeDifficulty {
+    Easy = "Easy",
+    Medium = "Medium",
+    Hard = "Hard",
+}
+
+/** Meal a recipe is suited for. Stored on Recipe.MealTypes as the member names. */
+export enum RecipeMealType {
+    Breakfast = "Breakfast",
+    Lunch = "Lunch",
+    Dinner = "Dinner",
+    Snack = "Snack",
+    Dessert = "Dessert",
+}
+
+/** Dietary preference tags that can be attached to a food item. */
+export enum DietaryPreference {
+    Vegan = "Vegan",
+    Vegetarian = "Vegetarian",
+    Pescatarian = "Pescatarian",
+    GlutenFree = "GlutenFree",
+    LactoseFree = "LactoseFree",
+    DairyFree = "DairyFree",
+    Keto = "Keto",
+    LowCarb = "LowCarb",
+}
+
+/** The 14 allergens the EU Food Information for Consumers Regulation (1169/2011) requires to be declared. */
+export enum Allergen {
+    Gluten = "Gluten",
+    Crustaceans = "Crustaceans",
+    Eggs = "Eggs",
+    Fish = "Fish",
+    Peanuts = "Peanuts",
+    Soy = "Soy",
+    Milk = "Milk",
+    TreeNuts = "TreeNuts",
+    Celery = "Celery",
+    Mustard = "Mustard",
+    Sesame = "Sesame",
+    Sulphites = "Sulphites",
+    Lupin = "Lupin",
+    Molluscs = "Molluscs",
+}
+
+/** A single coach tag, as returned by the food-tags slice and embedded as a chip on food and recipe summaries. */
+export interface FoodTagDto {
+    /** Public identifier of the tag. */
+    tagId?: string;
+    /** Tag label. */
+    name?: string;
+    /** Optional free-text description. */
+    description?: string | undefined;
+    /** Display color as a lowercase 6-digit hex string, e.g. "#3b82f6". */
+    colorHex?: string;
+}
+
 /** Request model for updating an existing recipe. */
 export interface UpdateRecipeRequest {
+    /** Optimistic concurrency version. Must match the current document version. */
+    version?: number;
     /** Updated name of the recipe. */
     name: string;
     /** Updated description or preparation instructions. */
     description?: string | undefined;
-    /** Estimated preparation/cooking time in minutes. */
+    /** Estimated preparation time in minutes. */
     prepTimeMinutes?: number | undefined;
-    /** Ordered preparation steps. */
+    /** Cooking time in minutes. */
+    cookTimeMinutes?: number | undefined;
+    /** Number of servings the recipe yields. Must be greater than zero. */
+    servings?: number;
+    /** Preparation difficulty; null clears it. */
+    difficulty?: RecipeDifficulty | undefined;
+    /** Meal types the recipe is suited for. At least one is required. */
+    mealTypes: RecipeMealType[];
+    /** Dietary preferences the recipe satisfies. */
+    dietaryPreferences?: DietaryPreference[];
+    /** Ordered preparation steps (list order is step order). Blank steps are dropped; at most 50,
+each at most 2000 characters. */
     steps?: string[] | undefined;
     /** Optional tip or note. */
     note?: string | undefined;
@@ -18944,14 +20530,77 @@ export interface RecipeSummaryDto {
     dateCreated?: string;
     /** Distinct food categories from the recipe's ingredients. */
     foodCategories?: string[];
+    /** Optimistic concurrency version. Clients must echo this value back on update. */
+    version?: number;
+    /** True when the recipe belongs to the platform catalog rather than a coach. */
+    isSystem?: boolean;
+    /** Number of servings the recipe yields. */
+    servings?: number;
+    /** Meal types the recipe is suited for. */
+    mealTypes?: RecipeMealType[];
+    /** Cooking time in minutes, separate from PrepTimeMinutes. */
+    cookTimeMinutes?: number | undefined;
+    /** The caller's own tags on this recipe, ordered by name. Never another coach's tags. */
+    tags?: FoodTagDto[];
 }
 
 /** Request model for searching recipes. */
 export interface SearchRecipesRequest {
 }
 
+/** Scopes a food search to a subset of owners — backs the Ingredients page's "Owner" filter pill. Selecting several values ORs them together; none selected applies no owner filter. */
+export enum FoodOwnerFilter {
+    Mine = "Mine",
+    System = "System",
+    OtherCoaches = "OtherCoaches",
+}
+
+/** Column a recipe search can be sorted by. Direction is a FoodSortDirection. */
+export enum RecipeSortField {
+    Name = "Name",
+    CaloriesPerServing = "CaloriesPerServing",
+    Servings = "Servings",
+    Library = "Library",
+    DateCreated = "DateCreated",
+}
+
+/** Sort direction for a FoodSortField. Named to avoid ambiguity with MongoDB.Driver.SortDirection, which is in scope wherever Mongo sort builders are used. */
+export enum FoodSortDirection {
+    Ascending = "Ascending",
+    Descending = "Descending",
+}
+
+/** The resulting tag set assigned to the recipe, for the calling nutritionist. */
+export interface ReplaceRecipeTagAssignmentsResponse {
+    /** Public identifier of the recipe the tags were assigned to. */
+    recipeId?: string;
+    /** The tags now assigned, ordered by name. */
+    tags?: FoodTagDto[];
+}
+
+/** Request body for replacing the full set of tags assigned to a recipe. RecipeId is bound from the route. */
+export interface ReplaceRecipeTagAssignmentsRequest {
+    /** Public identifiers of the tags to assign. An empty list clears every assignment the
+caller holds for this recipe. */
+    tagIds: string[];
+}
+
+/** Request model for removing one gallery image from a recipe. */
+export interface RemoveRecipeGalleryImageRequest {
+}
+
+/** Request model for promoting a gallery image to the recipe's main image. */
+export interface PromoteRecipeGalleryImageRequest {
+    /** The exact stored gallery URL to promote. */
+    imageUrl: string;
+}
+
 /** Request model for retrieving a single recipe. */
 export interface GetRecipeRequest {
+}
+
+/** Request model for removing a recipe's main image. */
+export interface DeleteRecipeImageRequest {
 }
 
 /** Request model for deleting a recipe. */
@@ -18962,17 +20611,28 @@ export interface DeleteRecipeRequest {
 export interface CreateRecipeRequest {
     /** Name of the recipe. */
     name: string;
-    /** Optional description or preparation instructions. */
+    /** Optional description. */
     description?: string | undefined;
-    /** Estimated preparation/cooking time in minutes. */
+    /** Estimated preparation time in minutes. */
     prepTimeMinutes?: number | undefined;
-    /** Ordered preparation steps. */
+    /** Cooking time in minutes. */
+    cookTimeMinutes?: number | undefined;
+    /** Number of servings the recipe yields. Must be greater than zero. */
+    servings?: number;
+    /** Optional preparation difficulty. */
+    difficulty?: RecipeDifficulty | undefined;
+    /** Meal types the recipe is suited for. At least one is required. */
+    mealTypes: RecipeMealType[];
+    /** Dietary preferences the recipe satisfies. */
+    dietaryPreferences?: DietaryPreference[];
+    /** Ordered preparation steps (list order is step order). Blank steps are dropped; at most 50,
+each at most 2000 characters. */
     steps?: string[] | undefined;
     /** Optional tip or note. */
     note?: string | undefined;
-    /** List of food items to include in the recipe. */
+    /** List of food items to include in the recipe. At least one is required. */
     foods: RecipeFoodDto[];
-    /** Visibility of the recipe. Defaults to Public when omitted. */
+    /** Visibility of the recipe. Defaults to Private when omitted. */
     visibility?: RecipeVisibility;
 }
 
@@ -19423,13 +21083,17 @@ export interface CreateRequestResponse {
     createdAt?: string;
 }
 
-/** Request body for creating a new photo diary request. Exactly one of LinkId or PendingInviteId must be set. */
+/** Request body for creating a new photo diary request. Exactly one of ClientId or PendingInviteId must be set. */
 export interface CreateRequestRequest {
-    /** Internal ID of an existing client-professional link.
-Mutually exclusive with PendingInviteId. */
-    linkId?: number | undefined;
-    /** Internal ID of a pending invite.
-Mutually exclusive with LinkId. */
+    /** Public identifier of the client (ClientProfile.PublicId) this request targets,
+resolved server-side to the caller's own active link. Mutually exclusive with
+PendingInviteId. */
+    clientId?: string | undefined;
+    /** Internal ID of a pending invite. Mutually exclusive with ClientId.
+Deliberately left as the internal long primary key, unlike ClientId:
+a pending invite has no client-facing identity yet — no ClientProfile exists until
+the invite is accepted — so there is no public Guid to address it by. Widening this
+arm to a public identifier is a separate, undecided change and knowingly out of scope here. */
     pendingInviteId?: number | undefined;
     /** Optional MongoDB external identifier of the nutrition or training plan this request is scoped to.
 When set, must belong to the same client as the link/invite. */
@@ -20145,25 +21809,64 @@ export interface CalculateGoalsRequest {
 export interface UnarchiveConversationRequest {
 }
 
+/** A conversation as surfaced to the caller — used by both the conversation list and get-or-create-conversation responses. */
 export interface ConversationDto {
-    id?: string;
+    /** The conversation's Conversation.PublicId. Null for a live-roster placeholder row
+(a linked client with no conversation yet) that still matched the requested filter chip —
+see GetConversationsEndpoint's roster-filter path. */
+    id?: string | undefined;
+    /** The other party in the conversation. */
     participant?: ParticipantDto;
+    /** Preview text of the last message, truncated to 300 characters. */
     lastMessage?: string;
+    /** Timestamp of the last message, or the conversation's creation time if empty. */
     lastMessageAt?: string;
+    /** Whether the caller sent the last message. */
     lastMessageIsOwn?: boolean;
+    /** Number of unread messages sent by the other party. */
     unreadCount?: number;
+    /** Whether the last message carries an image attachment. The client renders a localized
+photo marker instead of raw text when this is true and LastMessage is
+empty — never a literal stored in the database. */
+    lastMessageHasImage?: boolean;
+    /** The cooperation event type of the last message, when it was a system-generated event
+row rather than plain text. Null when the last message is plain text. */
+    lastMessageEventType?: ChatEventType | undefined;
+    /** Whether the professional-client collaboration has ended. */
     isFormer?: boolean;
+    /** True exactly when sending in this thread would be refused for the caller with
+CONVERSATION_LOCKED (a professional in an invite-only thread). The web disables the
+composer on it. */
+    isSendLocked?: boolean;
 }
 
+/** The other party in a conversation, as surfaced to the caller. */
 export interface ParticipantDto {
+    /** The participant's ApplicationUser.Id. */
     id?: string;
+    /** The participant's display name. */
     name?: string;
+    /** Two-letter initials fallback for the avatar badge. */
     initials?: string;
+    /** Whether the participant currently has a live SignalR connection. */
     online?: boolean;
     /** Avatar URL for the participant. For professionals, prefers the professional-profile
 avatar; falls back to the user-level avatar. For clients, uses the user-level avatar.
 Null when neither has been uploaded. */
     avatarBlobUrl?: string | undefined;
+    /** The client participant's ClientProfile.PublicId. Null when the participant is a
+professional (a professional-side conversation row has no client-profile identity to
+surface). Lets the inbox deep-link to /clients/:clientId without a second lookup. */
+    clientPublicId?: string | undefined;
+}
+
+/** The kind of professional-client cooperation event a ChatMessage with Event represents. The actor is the row's SenderUserId — no separate actor-name payload is stored. */
+export enum ChatEventType {
+    Invited = "Invited",
+    Requested = "Requested",
+    Accepted = "Accepted",
+    Declined = "Declined",
+    Withdrawn = "Withdrawn",
 }
 
 export interface StartConversationRequest {
@@ -20177,10 +21880,21 @@ export interface SendMessageResponse {
     text?: string;
     timestamp?: string;
     isRead?: boolean;
+    /** Short-lived signed URL for the image attachment, or null for a text-only message. */
+    imageUrl?: string | undefined;
+    imageWidth?: number | undefined;
+    imageHeight?: number | undefined;
 }
 
 export interface SendMessageRequest {
-    text: string;
+    text?: string;
+    /** References a staged upload from GenerateChatImageUploadUrlEndpoint. Optional —
+when absent, the message is text-only. */
+    imageUploadId?: string | undefined;
+    /** Client-reported layout hint. Never trusted for security; ignored unless ImageUploadId is set. */
+    imageWidth?: number | undefined;
+    /** Client-reported layout hint. Never trusted for security; ignored unless ImageUploadId is set. */
+    imageHeight?: number | undefined;
 }
 
 export interface MarkConversationReadRequest {
@@ -20197,12 +21911,43 @@ export interface MessageDto {
     text?: string;
     timestamp?: string;
     isRead?: boolean;
+    /** Short-lived signed URL for the image attachment, or null for a text-only message. */
+    imageUrl?: string | undefined;
+    imageWidth?: number | undefined;
+    imageHeight?: number | undefined;
+    /** Discriminates a plain message from a system-generated cooperation event. */
+    kind?: ChatMessageKind;
+    /** The cooperation event type, when Kind is Event. */
+    eventType?: ChatEventType | undefined;
+}
+
+/** Discriminates a ChatMessage row between free-form text authored by a participant and a system-generated cooperation event (invite sent, request accepted, etc.) rendered inline in the same thread. */
+export enum ChatMessageKind {
+    Text = "Text",
+    Event = "Event",
 }
 
 export interface GetMessagesRequest {
 }
 
+/** Request model for listing the authenticated user's conversations. */
 export interface GetConversationsRequest {
+}
+
+/** Per-chip conversation counts for the inbox filter dropdown, over the caller's live client roster (live links only, archived links excluded). Independent of the archived display toggle — see GetConversationFilterCountsEndpoint. */
+export interface GetConversationFilterCountsResponse {
+    /** Total rows in the caller's live roster. */
+    all?: number;
+    /** Rows with at least one unread message from the client. */
+    unreadMessages?: number;
+    /** Rows with no conversation, or a conversation with zero messages. */
+    noMessages?: number;
+    /** Rows with a responded, not-yet-reviewed weekly check-in. */
+    newCheckIns?: number;
+    /** Rows with an expired or overdue-unanswered weekly check-in. */
+    missingCheckIns?: number;
+    /** Rows whose active plan window ends within 14 days. */
+    endingSoon?: number;
 }
 
 export interface ConversationContextResponse {
@@ -20216,6 +21961,52 @@ export interface ConversationContextResponse {
 }
 
 export interface GetConversationContextRequest {
+}
+
+/** One ISO week's coach vs. client message counts for a trainer/client conversation. */
+export interface WeeklyMessageStatsDto {
+    /** The Monday that starts this ISO week, in the caller's time zone. */
+    weekStart?: string;
+    /** Messages sent by the caller (the trainer/nutritionist) during this week. Every
+system-generated message in a coach-client thread (broadcasts, invite greetings, request
+accept/reject) is attributed to the coach, so this counts those alongside typed replies —
+not just messages the coach personally typed. */
+    coachMessages?: number;
+    /** Messages sent by the client during this week. */
+    clientMessages?: number;
+}
+
+/** Request model for retrieving a client's weekly coach/client message counts. */
+export interface GetClientMessageStatsRequest {
+}
+
+/** Response for a chat image upload-url request. */
+export interface GenerateChatImageUploadUrlResponse {
+    /** The pre-signed URL the client should PUT the image bytes to. */
+    uploadUrl?: string;
+    /** The identifier to pass as SendMessageRequest.ImageUploadId once the PUT completes. */
+    uploadId?: string;
+}
+
+/** Request for generating a chat image upload URL. */
+export interface GenerateChatImageUploadUrlRequest {
+    contentType?: string;
+    sizeBytes?: number;
+}
+
+/** Response for a message broadcast. */
+export interface BroadcastMessageResponse {
+    /** The number of distinct recipients the message was sent to. */
+    sentCount?: number;
+}
+
+/** Request to send the same text message to several clients at once. */
+export interface BroadcastMessageRequest {
+    /** The recipients' ClientProfile.PublicId. Duplicates are ignored. */
+    clientPublicIds: string[];
+    /** The message text. Supports {{firstName}} and {{fullName}} placeholders,
+substituted per recipient before the message is sent. */
+    text: string;
 }
 
 export interface ArchiveConversationRequest {
@@ -20374,6 +22165,16 @@ export interface UploadFoodImageUrlRequest {
     sizeBytes?: number;
 }
 
+/** Request body for renaming, recoloring, or redescribing a food tag. TagId is bound from the route. */
+export interface UpdateFoodTagRequest {
+    /** Tag label. Unique (case-insensitive) per owning nutritionist. */
+    name: string;
+    /** Optional free-text description. */
+    description?: string | undefined;
+    /** Display color as a 6-digit hex string, e.g. "#3b82f6". */
+    colorHex: string;
+}
+
 /** Common response DTO for food items used across multiple endpoints. */
 export interface FoodSummary {
     /** Public-facing food identifier. */
@@ -20390,9 +22191,13 @@ export interface FoodSummary {
     nameDe?: string | undefined;
     /** Nutritional values per 100 grams. */
     nutrientValue?: NutrientValueDto;
-    /** Allergen identifiers. */
-    allergens?: string[];
-    /** Common serving sizes. */
+    /** Allergens contained in this food. */
+    allergens?: Allergen[];
+    /** Dietary preferences this food satisfies. */
+    dietaryPreferences?: DietaryPreference[];
+    /** The caller's own coach-private tags on this food; empty if the caller has none assigned. */
+    tags?: FoodTagDto[];
+    /** Common serving sizes. The first entry is the default serving. */
     commonServings?: ServingSizeDto[];
     /** Food category. */
     category?: FoodCategory;
@@ -20409,6 +22214,11 @@ foods/{foodId}/gallery-{n}.{ext}. */
     /** True when the authenticated caller is the nutritionist who created this food.
 Clients can use this flag to decide whether to show edit/delete affordances. */
     isOwnedByCurrentUser?: boolean;
+    /** True when this food has no owning nutritionist (a platform system/catalog entry).
+Lets clients distinguish the three Library badge states — System, Mine
+(IsOwnedByCurrentUser), and Shared (another coach's Public food, neither of
+the above) — without exposing the owner's identifier itself. */
+    isSystem?: boolean;
 }
 
 /** Nutrient values DTO for API responses. */
@@ -20481,10 +22291,12 @@ Only the food's creator can change this value. */
     visibility?: FoodVisibility | undefined;
     /** Updated user note. */
     note?: string | undefined;
-    /** Updated allergen identifiers. */
-    allergens?: string[];
-    /** Updated common serving sizes. */
-    commonServings?: ServingSizeDto[];
+    /** Updated allergens contained in this food. */
+    allergens?: Allergen[];
+    /** Updated dietary preferences this food satisfies. */
+    dietaryPreferences?: DietaryPreference[];
+    /** Updated common serving sizes. The first entry is the default serving and is required. */
+    commonServings: ServingSizeDto[];
 }
 
 /** Response model for food search results. */
@@ -20501,6 +22313,36 @@ export interface SearchFoodsResponse {
 
 /** Request model for searching foods. */
 export interface SearchFoodsRequest {
+}
+
+/** Sortable columns on the Ingredients page's food search. */
+export enum FoodSortField {
+    Name = "Name",
+    Calories = "Calories",
+    Category = "Category",
+    Library = "Library",
+    DateCreated = "DateCreated",
+}
+
+/** The resulting tag set assigned to the food, for the calling nutritionist. */
+export interface ReplaceFoodTagAssignmentsResponse {
+    /** Public identifier of the food the tags were assigned to. */
+    foodId?: string;
+    /** The tags now assigned, ordered by name. */
+    tags?: FoodTagDto[];
+}
+
+/** Request body for replacing the full set of tags assigned to a food. FoodId is bound from the route. */
+export interface ReplaceFoodTagAssignmentsRequest {
+    /** Public identifiers of the tags to assign. An empty list clears every assignment the
+caller holds for this food. */
+    tagIds: string[];
+}
+
+/** The food tags owned by the calling nutritionist. */
+export interface GetFoodTagsResponse {
+    /** The caller's food tags, ordered by name. */
+    tags?: FoodTagDto[];
 }
 
 /** Request model for retrieving a single food by its external ID. */
@@ -20523,8 +22365,26 @@ export interface GetCustomFoodsResponse {
 export interface GetCustomFoodsRequest {
 }
 
+/** Request for deleting a food tag. Bodyless — TagId is bound from the route. */
+export interface DeleteFoodTagRequest {
+}
+
+/** Request model for removing a food's main image. */
+export interface DeleteFoodImageRequest {
+}
+
 /** Request model for soft-deleting a custom food. */
 export interface DeleteFoodRequest {
+}
+
+/** Request body for creating a food tag owned by the calling nutritionist. */
+export interface CreateFoodTagRequest {
+    /** Tag label. Unique (case-insensitive) per owning nutritionist. */
+    name: string;
+    /** Optional free-text description. */
+    description?: string | undefined;
+    /** Display color as a 6-digit hex string, e.g. "#3b82f6". */
+    colorHex: string;
 }
 
 /** Request model for creating a custom food. */
@@ -20541,14 +22401,17 @@ export interface CreateFoodRequest {
     nutrientValue?: NutrientValueDto;
     /** Food category. */
     category?: FoodCategory;
-    /** Visibility of the food. Defaults to Public when omitted. */
+    /** Visibility of the food. Defaults to Private when omitted —
+a coach-authored ingredient starts out visible only to its creator. */
     visibility?: FoodVisibility;
     /** Optional user note. */
     note?: string | undefined;
-    /** Allergen identifiers. */
-    allergens?: string[];
-    /** Common serving sizes. */
-    commonServings?: ServingSizeDto[];
+    /** Allergens contained in this food. */
+    allergens?: Allergen[];
+    /** Dietary preferences this food satisfies. */
+    dietaryPreferences?: DietaryPreference[];
+    /** Common serving sizes. The first entry is the default serving and is required. */
+    commonServings: ServingSizeDto[];
 }
 
 /** Request model for confirming the uploaded food image blob URL. */
@@ -21028,7 +22891,7 @@ Missing entries imply a fresh document (server will accept Version=null/1). */
     /** Per-session, per-exercise completed set numbers for today. Keyed by
 SessionId → ExerciseExternalId → list of 1-based SetNumbers whose
 CompletedAt is non-null in the latest
-WorkoutLog for that session on today's date.
+SessionExecution for that session on today's date.
 Empty when no live-training progress has been logged for today.
 Keeps per-set state out of the planning-document tree (Sessions) which
 represents prescription, not actuals. */
@@ -21076,20 +22939,22 @@ Union of two sources — read this before consuming the field. The value set is
 the union of:
 Every id in the session's CompletedExerciseInstanceIds,
 carried verbatim — these already identify a single placement.
-Performance-derived completion, fanned out to every sibling instance sharing the
-same catalog id. WorkoutExercise (the live-training-assistant side of
-Performance) carries only ExerciseExternalId
-— it has NO instance id, so a fully-logged exercise from a live workout cannot be
-attributed to one specific placement. Rather than silently omitting it (which would make
-this field strictly LESS complete than the catalog-keyed fields it supersedes, and a
-session finished through the live-training assistant would render with no ticks at all),
-every ExerciseId in the session whose
-ExerciseExternalId matches a fully-logged Performance
-exercise is added here too. Concretely: if a session holds catalog exercise X both
-standalone and nested in a workout, and the client fully logs X via the live-training
-assistant, BOTH instance ids appear in this field — the write path cannot distinguish
-which placement was actually performed, so both are reported complete rather than
-neither.
+Performance-derived completion, attributed placement-exact (#938).
+WorkoutExercise (the live-training-assistant side of
+Performance) carries only
+ExerciseExternalId plus its containing
+WorkoutId — no instance id — so attribution goes through
+ResolveMatchedPlacements: a
+fully-logged exercise is attributed to the ONE placement its containing workout resolves to
+when unambiguous; fanned out across every TIED instance when the same catalog exercise is
+placed twice under the same workout (or twice standalone) — genuinely unresolvable, since
+WorkoutExercise carries neither an instance id nor an order; and fanned out
+across every sibling instance sharing the catalog id ONLY when attribution is genuinely
+impossible (no workout in the session matches the logged placement at all). Concretely: if a
+session holds catalog exercise X both standalone and nested in a REAL workout, and the
+client fully logs X against that real workout via the live-training assistant, only the
+NESTED instance id appears here — the standalone placement is a different, unambiguous
+container and is not reported complete.
 Empty dictionary when no active plan exists or no session has any completed exercise for
 today. Additive alongside CompletedExerciseIdsBySession and
 CompletedExerciseIdsByWorkoutAndSession, which keep their existing
@@ -21359,6 +23224,63 @@ export interface GenerateSessionPhotoUploadUrlRequest {
     sizeBytes?: number;
 }
 
+/** A single client tag, as returned by every action in the ClientTags slice. */
+export interface ClientTagDto {
+    /** Public identifier of the tag. */
+    tagId?: string;
+    /** Tag label. */
+    name?: string;
+    /** Optional free-text description. */
+    description?: string | undefined;
+    /** Display color as a lowercase 6-digit hex string, e.g. "#3b82f6". */
+    colorHex?: string;
+}
+
+/** Request body for renaming, recoloring, or redescribing a client tag. TagId is bound from the route. */
+export interface UpdateClientTagRequest {
+    /** Tag label. Unique per owning professional. */
+    name: string;
+    /** Optional free-text description. */
+    description?: string | undefined;
+    /** Display color as a 6-digit hex string, e.g. "#3b82f6". */
+    colorHex: string;
+}
+
+/** The resulting tag set assigned to the client, for the caller's link. */
+export interface ReplaceClientTagAssignmentsResponse {
+    /** Public identifier of the client the tags were assigned to. */
+    clientId?: string;
+    /** The tags now assigned, ordered by name. */
+    tags?: ClientTagDto[];
+}
+
+/** Request body for replacing the full set of tags assigned to a client. ClientId is bound from the route. */
+export interface ReplaceClientTagAssignmentsRequest {
+    /** Public identifiers of the tags to assign. An empty list clears every assignment for the
+caller's link to this client. */
+    tagIds: string[];
+}
+
+/** The tags owned by the calling professional. */
+export interface GetClientTagsResponse {
+    /** The caller's tags, ordered by name. */
+    tags?: ClientTagDto[];
+}
+
+/** Request for deleting a client tag. Bodyless — TagId is bound from the route. */
+export interface DeleteClientTagRequest {
+}
+
+/** Request body for creating a client tag owned by the calling professional. */
+export interface CreateClientTagRequest {
+    /** Tag label. Unique per owning professional. */
+    name: string;
+    /** Optional free-text description. */
+    description?: string | undefined;
+    /** Display color as a 6-digit hex string, e.g. "#3b82f6". */
+    colorHex: string;
+}
+
 /** Response model returned after sending a client request. */
 export interface SendClientRequestResponse {
     publicId?: string;
@@ -21397,101 +23319,6 @@ export interface ClientRequestDto {
     status?: ClientRequestStatus;
     sentAt?: string;
     respondedAt?: string | undefined;
-}
-
-/** Response shape for a single PlanPhoto record. Shared across the FinalizePlanPhoto and GetPlanPhotos slices within the ClientPlans feature area — both surfaces expose the same projection. */
-export interface PlanPhotoResponse {
-    /** Public identifier of the photo record. */
-    id?: string;
-    /** Canonical, permanent blob storage identity for the photo. NOT directly fetchable for
-client-photo prefixes (the bucket carries no public-read grant there) — this is the
-write-path identity key, safe to echo back unchanged on a subsequent save. Never render
-this as an <img>/Image source; use DisplayUrl instead. */
-    blobUrl?: string;
-    /** Short-lived pre-signed GET URL for actually fetching the photo bytes. Expires after
-MinIO:ReadUrlExpiryMinutes (default 15 minutes) — presentation-only, re-fetch
-rather than persisting, caching, or echoing it back on a write. Never conflate this with
-BlobUrl: a client that submits this value back on a save would permanently
-store an expiring signature (F9 follow-up). */
-    displayUrl?: string;
-    /** Display / filtering category (Food / Body / FreeForm). */
-    category?: PlanPhotoCategory;
-    /** Optional caption. */
-    description?: string | undefined;
-    /** When the photo was taken (or uploaded), in UTC. */
-    takenAt?: string;
-    /** MongoDB MealLog ObjectId string for food photos. Null for non-food photos. */
-    mealLogId?: string | undefined;
-    /** External plan identifier this photo belongs to. */
-    planId?: string | undefined;
-    /** Whether this is a nutrition or training plan photo. */
-    planType?: PlanPhotoType | undefined;
-    /** When the record was created. */
-    dateCreated?: string;
-    /** The ApplicationUser.Id of the uploader. */
-    uploadedByUserId?: string;
-    /** The diary request this photo is associated with, or null if none. */
-    diaryRequestId?: string | undefined;
-}
-
-/** Categorises a PlanPhoto for display grouping and filtering in the app. Maps to the three chips shown in the Fotky plánu gallery (Jídlo / Tělo / Volné). */
-export enum PlanPhotoCategory {
-    Food = "Food",
-    Body = "Body",
-    FreeForm = "FreeForm",
-    Training = "Training",
-}
-
-/** Identifies whether a PlanPhoto is associated with a nutrition plan or a training plan. */
-export enum PlanPhotoType {
-    Nutrition = "Nutrition",
-    Training = "Training",
-}
-
-/** Request model for listing plan photos with optional category filter and pagination. */
-export interface GetPlanPhotosRequest {
-}
-
-/** Response for the plan photo upload URL generation endpoint. Consistent with the shape used by GenerateMealPhotoUploadUrlEndpoint and GenerateDayPhotoUploadUrlEndpoint. */
-export interface GeneratePlanPhotoUploadUrlResponse {
-    /** Time-limited pre-signed PUT URL for direct upload to blob storage. */
-    uploadUrl?: string;
-    /** The permanent blob URL where the image will be accessible after upload.
-Pass this to POST /client/plans/{planId}/photos to finalize the record. */
-    blobUrl?: string;
-}
-
-/** Request model for generating a pre-signed plan photo upload URL. */
-export interface GeneratePlanPhotoUploadUrlRequest {
-    /** MIME type of the image file (e.g. "image/jpeg", "image/png", "image/webp", "image/heic", "image/heif") */
-    contentType: string;
-    /** Declared file size in bytes. Must not exceed 5 MiB. */
-    sizeBytes?: number;
-}
-
-/** Request model for finalizing a plan photo upload by inserting a PlanPhoto row. The caller must have already uploaded the photo to blob storage using the URL from POST /client/plans/{planId}/photos/upload-url. */
-export interface FinalizePlanPhotoRequest {
-    /** Permanent blob URL returned by the upload-url endpoint. */
-    blobUrl: string;
-    /** Display / filtering category (Food / Body / FreeForm). */
-    category?: PlanPhotoCategory;
-    /** Optional caption / description (max 500 chars). */
-    description?: string | undefined;
-    /** When the photo was taken. Defaults to UtcNow when not provided. */
-    takenAt?: string | undefined;
-    /** MongoDB MealLog ObjectId string. Required when Category is
-Food, otherwise ignored. */
-    mealLogId?: string | undefined;
-    /** Optional diary request ID. When set, the photo is linked to this diary request.
-The diary request must be owned by the calling client and must be in
-Accepted or
-InProgress status.
-On the first upload for an Accepted request the request is transitioned to InProgress. */
-    diaryRequestId?: string | undefined;
-}
-
-/** Request model for deleting a plan photo by its public identifier. */
-export interface DeletePlanPhotoRequest {
 }
 
 /** Response for GET /trainer/clients/{id}/photos. Design decision — discriminated response in a single envelope: The endpoint serves two shapes depending on the groupByMonth query flag rather than splitting into two routes, because the filtering/auth logic is identical and a single URL is easier to cache and document. Exactly one of Photos or Groups will be non-null in any response: groupByMonth=false (default): Photos is populated,  Groups is null. Pagination applies to individual photos. groupByMonth=true: Groups is populated,  Photos is null. Pagination applies to month groups (one page = N groups). The X-Total-Count response header always reflects the total count of the active collection (photos or groups). */
@@ -21539,6 +23366,20 @@ Null when PlanId is null. */
     diaryRequestId?: string | undefined;
 }
 
+/** Categorises a PlanPhoto for display grouping and filtering in the app. Maps to the three chips shown in the Fotky plánu gallery (Jídlo / Tělo / Volné). */
+export enum PlanPhotoCategory {
+    Food = "Food",
+    Body = "Body",
+    FreeForm = "FreeForm",
+    Training = "Training",
+}
+
+/** Identifies whether a PlanPhoto is associated with a nutrition plan or a training plan. */
+export enum PlanPhotoType {
+    Nutrition = "Nutrition",
+    Training = "Training",
+}
+
 /** Represents a calendar-month bucket of plan photos returned when groupByMonth=true is passed to the aggregation endpoints. */
 export interface MonthGroupResponse {
     /** ISO-8601 year-month key derived from TakenAt,
@@ -21553,6 +23394,45 @@ TakenAt descending. */
 export interface GetTrainerClientPhotosRequest {
 }
 
+/** Response shape for a single PlanPhoto record. Shared across the FinalizePlanPhoto and GetPlanPhotos slices — both surfaces expose the same projection. */
+export interface PlanPhotoResponse {
+    /** Public identifier of the photo record. */
+    id?: string;
+    /** Canonical, permanent blob storage identity for the photo. NOT directly fetchable for
+client-photo prefixes (the bucket carries no public-read grant there) — this is the
+write-path identity key, safe to echo back unchanged on a subsequent save. Never render
+this as an <img>/Image source; use DisplayUrl instead. */
+    blobUrl?: string;
+    /** Short-lived pre-signed GET URL for actually fetching the photo bytes. Expires after
+MinIO:ReadUrlExpiryMinutes (default 15 minutes) — presentation-only, re-fetch
+rather than persisting, caching, or echoing it back on a write. Never conflate this with
+BlobUrl: a client that submits this value back on a save would permanently
+store an expiring signature (F9 follow-up). */
+    displayUrl?: string;
+    /** Display / filtering category (Food / Body / FreeForm). */
+    category?: PlanPhotoCategory;
+    /** Optional caption. */
+    description?: string | undefined;
+    /** When the photo was taken (or uploaded), in UTC. */
+    takenAt?: string;
+    /** MongoDB MealLog ObjectId string for food photos. Null for non-food photos. */
+    mealLogId?: string | undefined;
+    /** External plan identifier this photo belongs to. */
+    planId?: string | undefined;
+    /** Whether this is a nutrition or training plan photo. */
+    planType?: PlanPhotoType | undefined;
+    /** When the record was created. */
+    dateCreated?: string;
+    /** The ApplicationUser.Id of the uploader. */
+    uploadedByUserId?: string;
+    /** The diary request this photo is associated with, or null if none. */
+    diaryRequestId?: string | undefined;
+}
+
+/** Request model for listing plan photos with optional category filter and pagination. */
+export interface GetPlanPhotosRequest {
+}
+
 /** Response for GET /client/me/photos. Uses the same discriminated-envelope design as the trainer variant: exactly one of Photos or Groups is non-null. */
 export interface GetMyPhotosResponse {
     /** Flat list of photo records. Populated when groupByMonth=false. */
@@ -21563,6 +23443,48 @@ export interface GetMyPhotosResponse {
 
 /** Query parameters for GET /client/me/photos. */
 export interface GetMyPhotosRequest {
+}
+
+/** Response for the plan photo upload URL generation endpoint. Consistent with the shape used by GenerateMealPhotoUploadUrlEndpoint and GenerateDayPhotoUploadUrlEndpoint. */
+export interface GeneratePlanPhotoUploadUrlResponse {
+    /** Time-limited pre-signed PUT URL for direct upload to blob storage. */
+    uploadUrl?: string;
+    /** The permanent blob URL where the image will be accessible after upload.
+Pass this to POST /client/plans/{planId}/photos to finalize the record. */
+    blobUrl?: string;
+}
+
+/** Request model for generating a pre-signed plan photo upload URL. */
+export interface GeneratePlanPhotoUploadUrlRequest {
+    /** MIME type of the image file (e.g. "image/jpeg", "image/png", "image/webp", "image/heic", "image/heif") */
+    contentType: string;
+    /** Declared file size in bytes. Must not exceed 5 MiB. */
+    sizeBytes?: number;
+}
+
+/** Request model for finalizing a plan photo upload by inserting a PlanPhoto row. The caller must have already uploaded the photo to blob storage using the URL from POST /client/plans/{planId}/photos/upload-url. */
+export interface FinalizePlanPhotoRequest {
+    /** Permanent blob URL returned by the upload-url endpoint. */
+    blobUrl: string;
+    /** Display / filtering category (Food / Body / FreeForm). */
+    category?: PlanPhotoCategory;
+    /** Optional caption / description (max 500 chars). */
+    description?: string | undefined;
+    /** When the photo was taken. Defaults to UtcNow when not provided. */
+    takenAt?: string | undefined;
+    /** MongoDB MealLog ObjectId string. Required when Category is
+Food, otherwise ignored. */
+    mealLogId?: string | undefined;
+    /** Optional diary request ID. When set, the photo is linked to this diary request.
+The diary request must be owned by the calling client and must be in
+Accepted or
+InProgress status.
+On the first upload for an Accepted request the request is transitioned to InProgress. */
+    diaryRequestId?: string | undefined;
+}
+
+/** Request model for deleting a plan photo by its public identifier. */
+export interface DeletePlanPhotoRequest {
 }
 
 /** Request model for un-logging (removing) a previously logged meal for the current day. */

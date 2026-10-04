@@ -8,6 +8,7 @@ using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace FitnessPlatform.Application.Features.Trainers.PendingInvites.Create;
@@ -16,14 +17,23 @@ namespace FitnessPlatform.Application.Features.Trainers.PendingInvites.Create;
 /// Endpoint for creating a pending client invitation.
 /// Creates both a PendingInvite record and an InvitationToken, then sends the invitation email.
 /// Also creates an in-app notification and sends a real-time event if the client already has an
-/// account. Does NOT seed a chat message — see the claude-security F8 note in
-/// <see cref="HandleAsync"/>; that side effect is deferred to acceptance time.
+/// account. If that account belongs to a CLIENT and its email is already verified, immediately
+/// seeds the professional-client conversation with an Invited cooperation event — see the
+/// maintainer ruling in <see cref="HandleAsync"/>. For an unverified or nonexistent client
+/// account, the identical rows are written later, once the email is verified, by
+/// <c>VerifyEmailEndpoint</c> via <see cref="IPendingInviteConversationSeeder"/>.
+/// An email that belongs to a coaching professional gets the same success response and a stored
+/// <see cref="PendingInvite"/> row that behaves identically for the inviter, but no token, email,
+/// notification, realtime event or conversation — so the response never reveals that the address
+/// is a coach account.
 /// </summary>
 public class CreatePendingInviteEndpoint(
     IApplicationDbContext db,
-    IEmailService emailService,
+    IBackgroundEmailQueue emailQueue,
     INotificationService notificationService,
     IRealtimeNotifier notifier,
+    IConversationSeedService conversationSeedService,
+    UserManager<ApplicationUser> userManager,
     ILogger<CreatePendingInviteEndpoint> logger) : Endpoint<CreatePendingInviteRequest, CreatePendingInviteResponse>
 {
     /// <summary>
@@ -44,6 +54,8 @@ public class CreatePendingInviteEndpoint(
         {
             s.Summary = "Create a pending invitation";
             s.Description = "Creates a pending invitation for a client, sends an invitation email with a one-time token valid for 7 days.";
+            s.Responses[StatusCodes.Status400BadRequest] =
+                "Requested scope exceeds the caller's held roles.";
         });
     }
 
@@ -85,6 +97,23 @@ public class CreatePendingInviteEndpoint(
                 ErrorCodes.RequestedScopeExceedsHeldRoles,
                 "Requested scope exceeds the caller's held roles.");
             return;
+        }
+
+        // An email that belongs to an account holding a coaching professional role (Trainer or
+        // Nutritionist — even with Client as a second role) is not rejected: rejecting would let
+        // the caller probe which addresses are coach accounts. Such an invite is stored as a
+        // silent row instead — see the class remarks.
+        var normalizedInviteeEmailForRoleCheck = req.Email.ToUpper();
+        var inviteeUserForRoleCheck = await db.Users
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.NormalizedEmail == normalizedInviteeEmailForRoleCheck, ct);
+
+        var isProfessionalInvitee = false;
+
+        if (inviteeUserForRoleCheck is not null)
+        {
+            var inviteeRoles = await userManager.GetRolesAsync(inviteeUserForRoleCheck);
+            isProfessionalInvitee = inviteeRoles.Contains(AppRoles.Trainer) || inviteeRoles.Contains(AppRoles.Nutritionist);
         }
 
         // Reject a duplicate pending invite for the same professional and email — repeatedly
@@ -141,7 +170,7 @@ public class CreatePendingInviteEndpoint(
                 (_, cp) => cp.Id)
             .FirstOrDefaultAsync(ct);
 
-        if (inviteeClientProfileId != 0)
+        if (inviteeClientProfileId != 0 && !isProfessionalInvitee)
         {
             // Same derivation the accept paths use: the professional's held roles narrowed by
             // the scope they requested. Kept in step with AcceptClientInviteEndpoint — if that
@@ -185,8 +214,6 @@ public class CreatePendingInviteEndpoint(
         var pendingInvite = new PendingInvite
         {
             ProfessionalProfileId = professionalProfile.Id,
-            FirstName = req.FirstName,
-            LastName = req.LastName,
             Email = req.Email,
             Message = req.Message,
             SentAt = DateTime.UtcNow,
@@ -195,6 +222,18 @@ public class CreatePendingInviteEndpoint(
         };
 
         db.PendingInvites.Add(pendingInvite);
+
+        if (isProfessionalInvitee)
+        {
+            await db.SaveChangesAsync(ct);
+
+            logger.LogInformation(
+                "Silent pending invitation stored from professional {ProfessionalId} to a coaching account",
+                professionalProfile.PublicId);
+
+            await Send.ResponseAsync(BuildResponse(pendingInvite, req.QuestionnairePublicId), cancellation: ct);
+            return;
+        }
 
         // Create the InvitationToken so the accept flow still works. Stamped with the
         // same requested scope so AcceptInvitationEndpoint (token-based accept) honors
@@ -219,7 +258,18 @@ public class CreatePendingInviteEndpoint(
         var trainerName = $"{trainerUser.FirstName} {trainerUser.LastName}";
 
         var language = HttpContext.Request.Headers.AcceptLanguage.FirstOrDefault() ?? "en";
-        await emailService.SendInvitationEmailAsync(req.Email, trainerName, tokenValue, language, req.Message, ct);
+
+        // Enqueue the send fire-and-forget (#1109): an SMTP failure in the background worker
+        // must never turn a successful invite creation into a 500, or skip the notification,
+        // realtime event, and #1100 chat seed below. TryEnqueue is non-blocking; a full or
+        // completed queue drops the send and logs rather than falling back to a synchronous
+        // send that would reintroduce exactly the failure mode this closes.
+        if (!emailQueue.TryEnqueue(new InvitationEmailWorkItem(req.Email, trainerName, tokenValue, language, req.Message)))
+        {
+            logger.LogWarning(
+                "Background email queue full; dropped invitation email enqueue for {Email}.",
+                req.Email);
+        }
 
         // If the invited client already has an account, create an in-app notification + real-time event
         var reqEmailLower = req.Email.ToLower();
@@ -229,13 +279,21 @@ public class CreatePendingInviteEndpoint(
 
         if (existingUser is not null)
         {
-            // claude-security F8: this branch used to ALSO seed a conversation and write the
-            // caller's free-text message into it, before the invitee had agreed to anything.
-            // That let any professional account drop attacker-written prose straight into an
-            // arbitrary stranger's message stream, addressed only by guessing their email.
-            // The conversation seed is deferred to acceptance — AcceptClientInviteEndpoint and
-            // AcceptInvitationEndpoint both already seed it from the invite's stored Message
-            // (#768), so nothing is lost, it just waits for consent.
+            // MAINTAINER RULING 2026-09-23 (closed, do not reopen): F8 is reversed. This branch
+            // used to defer the conversation seed to acceptance — claude-security's original F8
+            // finding was that seeding it here let any professional account drop attacker-written
+            // prose straight into an arbitrary stranger's message stream, addressed only by
+            // guessing their email. The maintainer's call: for a VERIFIED account, seed the
+            // conversation and write the Invited event (plus the message beneath it, if any)
+            // immediately below, instead of waiting for accept.
+            //
+            // Accepted risk: an authenticated professional who already knows a registered,
+            // verified email address can write an entry into that account's own message thread
+            // before the invitee has agreed to anything. This is bounded, not open-ended — by
+            // AppPolicies.PendingInviteRateLimit and by MaxOutstandingInvitesPerProfessional
+            // (200) above, both of which cap the fan-out a single abusive account can build.
+            // An unverified or nonexistent account gets no thread here — VerifyEmailEndpoint
+            // seeds the identical rows once the account is verified (R4).
             //
             // The notification and realtime event below stay: their payload is composed here
             // from the professional's own profile and the invite id, the invitee needs some
@@ -266,21 +324,42 @@ public class CreatePendingInviteEndpoint(
                     message = pendingInvite.Message
                 },
                 ct);
+
+            // Verified CLIENT accounts only (R4), never a self-invite — an unverified
+            // invitee gets no thread until VerifyEmailEndpoint seeds the identical rows,
+            // and a verified peer professional or the caller's own email gets no thread
+            // at all (#1108 review: EmailConfirmed alone let a professional seed a
+            // conversation into a peer's or their own message stream).
+            if (existingUser.EmailConfirmed
+                && inviteeClientProfileId != 0
+                && existingUser.Id != professionalProfile.UserId)
+            {
+                await conversationSeedService.AppendCooperationEventAsync(
+                    professionalProfile.UserId,
+                    existingUser.Id,
+                    professionalProfile.UserId,
+                    ChatEventType.Invited,
+                    pendingInvite.PublicId,
+                    pendingInvite.Message,
+                    createConversationIfMissing: true,
+                    ct);
+            }
         }
 
         logger.LogInformation(
             "Pending invitation created from professional {ProfessionalId} to {Email}",
             professionalProfile.PublicId, req.Email);
 
-        await Send.ResponseAsync(new CreatePendingInviteResponse
+        await Send.ResponseAsync(BuildResponse(pendingInvite, req.QuestionnairePublicId), cancellation: ct);
+    }
+
+    private static CreatePendingInviteResponse BuildResponse(PendingInvite pendingInvite, Guid? questionnairePublicId) =>
+        new()
         {
             Id = pendingInvite.Id,
             PublicId = pendingInvite.PublicId,
-            FirstName = pendingInvite.FirstName,
-            LastName = pendingInvite.LastName,
             Email = pendingInvite.Email,
             SentAt = pendingInvite.SentAt,
-            QuestionnairePublicId = req.QuestionnairePublicId
-        }, cancellation: ct);
-    }
+            QuestionnairePublicId = questionnairePublicId
+        };
 }

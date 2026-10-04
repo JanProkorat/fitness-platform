@@ -73,7 +73,7 @@ public class GetClientProgressEndpointTests
         var db = CreateDb();
 
         _complianceService.CalculateComplianceAsync(
-                _clientUserId, Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
+                _clientUserId, Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>(), Arg.Any<Guid?>())
             .Returns(new ComplianceResult
             {
                 CompliancePercent = 75m,
@@ -85,7 +85,7 @@ public class GetClientProgressEndpointTests
         // combined figure, since that returned a streak weighted by the domain a single-flag
         // caller's link denies.
         _complianceService.CalculateStreakAsync(
-                _clientUserId, Arg.Any<ComplianceDiscipline>(), Arg.Any<CancellationToken>())
+                _clientUserId, Arg.Any<ComplianceDiscipline>(), Arg.Any<CancellationToken>(), Arg.Any<Guid?>())
             .Returns(4);
 
         _complianceService.CalculateAverageMacrosAsync(

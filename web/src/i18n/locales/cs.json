@@ -1,5 +1,6 @@
 {
   "common": {
+    "appName": "GoodFellas",
     "loading": "Načítání...",
     "save": "Uložit změny",
     "saving": "Ukládám...",
@@ -92,9 +93,9 @@
     "forgotPasswordLoading": "Odesílám...",
     "forgotPasswordSuccess": "Pokud email existuje, odkaz pro obnovení byl odeslán.",
     "forgotPasswordError": "Něco se pokazilo. Zkuste to znovu.",
-    "inviteAccepted": "Pozvánka přijata! Nyní jste propojeni se svým trenérem.",
+    "inviteAccepted": "Pozvánka přijata! Nyní jste propojeni se svým koučem.",
     "inviteExpired": "Tato pozvánka vypršela nebo je neplatná.",
-    "inviteRegisterHint": "Vytvořte si účet pro přijetí pozvánky od vašeho trenéra.",
+    "inviteRegisterHint": "Vytvořte si účet pro přijetí pozvánky od vašeho kouče.",
     "verifyEmailTitle": "Ověřte svůj e-mail",
     "verifyEmailSubtitle": "Na váš e-mail jsme odeslali ověřovací odkaz. Klikněte na něj pro aktivaci účtu.",
     "verifyEmailCheckSpam": "Zkontrolujte i složku se spamem.",
@@ -171,16 +172,26 @@
   "downloadApp": {
     "title": "Stáhněte si aplikaci",
     "subtitle": "Klientská část GF Platform je dostupná výhradně v mobilní aplikaci.",
-    "description": "Stáhněte si aplikaci pro spojení s trenérem, sledování pokroku a plnění personalizovaných plánů.",
+    "description": "Stáhněte si aplikaci pro spojení s koučem, sledování pokroku a plnění personalizovaných plánů.",
     "appStore": "Stáhnout na App Store",
     "googlePlay": "Stáhnout na Google Play",
     "comingSoon": "Mobilní aplikace se připravuje",
     "comingSoonHint": "Pracujeme na mobilní aplikaci GF Platform. Sledujte novinky!"
   },
+  "shell": {
+    "comingSoon": "Tato stránka je připravována.",
+    "notFoundTitle": "Stránka nenalezena",
+    "notFoundBody": "Stránka, kterou hledáte, neexistuje.",
+    "backToClients": "Zpět na klienty",
+    "openNavigation": "Otevřít navigaci",
+    "navigationTitle": "Navigace"
+  },
   "sidebar": {
     "dashboard": "Dashboard",
     "profile": "Profil",
     "clients": "Klienti",
+    "inbox": "Zprávy",
+    "ingredients": "Suroviny",
     "foods": "Potraviny",
     "plans": "Plány",
     "settings": "Nastavení",
@@ -192,6 +203,9 @@
     "clientsSection": "KLIENTI",
     "searchClients": "Hledat klienta...",
     "databaseSection": "DATABÁZE",
+    "clientManagementSection": "Správa klientů",
+    "nutritionSection": "Výživa",
+    "help": "Nápověda a podpora",
     "trainingPlan": "Tréninkový plán",
     "mealPlan": "Jídelníček",
     "questionnaires": "Dotazníky",
@@ -213,6 +227,12 @@
     "planSubmenu": {
       "empty": "Zatím žádné plány"
     }
+  },
+  "roles": {
+    "admin": "Administrátor",
+    "trainer": "Osobní trenér",
+    "nutritionist": "Výživový poradce",
+    "client": "Klient"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -300,6 +320,89 @@
   "clients": {
     "title": "Klienti",
     "subtitle": "Správa a přehled klientů",
+    "tabs": {
+      "active": "Aktivní",
+      "paused": "Pozastavení",
+      "archived": "Archivovaní",
+      "pending": "Čekající"
+    },
+    "searchPlaceholder": "Hledat klienty...",
+    "chips": {
+      "groupLabel": "Filtrovat klienty",
+      "all": "Vše",
+      "unreadMessages": "Nepřečtené zprávy",
+      "noMessages": "Bez zpráv",
+      "newCheckIns": "Nové check-iny",
+      "missingCheckIns": "Chybějící check-iny",
+      "endingSoon": "Brzy končící"
+    },
+    "tagFilter": {
+      "label": "Vybrat štítky",
+      "empty": "Zatím jste nevytvořili žádné štítky."
+    },
+    "table": {
+      "columnClient": "Klient",
+      "columnStatus": "Stav",
+      "columnTags": "Štítky",
+      "columnUnread": "Nepřečtené",
+      "columnPlans": "Plány",
+      "unreadTooltip_one": "{{count}} nepřečtená zpráva",
+      "unreadTooltip_few": "{{count}} nepřečtené zprávy",
+      "unreadTooltip_many": "{{count}} nepřečtené zprávy",
+      "unreadTooltip_other": "{{count}} nepřečtených zpráv",
+      "activePlanCount_one": "{{count}} aktivní plán",
+      "activePlanCount_few": "{{count}} aktivní plány",
+      "activePlanCount_many": "{{count}} aktivního plánu",
+      "activePlanCount_other": "{{count}} aktivních plánů",
+      "noActivePlans": "Žádné aktivní plány",
+      "planType": {
+        "nutrition": "Výživa",
+        "training": "Trénink"
+      },
+      "selectAll": "Vybrat všechny klienty na této stránce",
+      "selectRow": "Vybrat {{name}}"
+    },
+    "rowMenu": {
+      "open": "Otevřít nabídku řádku",
+      "viewDetail": "Otevřít detail klienta"
+    },
+    "noResultsForFilters": "Žádní klienti neodpovídají zvoleným filtrům.",
+    "clearFilters": "Zrušit filtry",
+    "retry": "Zkusit znovu",
+    "pagination": {
+      "viewing": "Zobrazeno {{count}} z {{total}}"
+    },
+    "pendingTable": {
+      "columnName": "Jméno",
+      "columnEmail": "E-mail",
+      "columnType": "Typ",
+      "columnSentAt": "Odesláno",
+      "kindInvite": "Pozvánka odeslána",
+      "kindRequest": "Přijata žádost",
+      "empty": "Žádné čekající pozvánky ani žádosti.",
+      "accept": "Přijmout",
+      "reject": "Odmítnout",
+      "cancel": "Zrušit"
+    },
+    "tags": {
+      "createError": "Štítek se nepodařilo vytvořit. Zkuste to prosím znovu.",
+      "updateError": "Štítek se nepodařilo upravit. Zkuste to prosím znovu.",
+      "deleteError": "Štítek se nepodařilo smazat. Zkuste to prosím znovu.",
+      "assignError": "Štítky klienta se nepodařilo upravit. Zkuste to prosím znovu."
+    },
+    "broadcast": {
+      "success": "Zpráva byla odeslána.",
+      "error": "Zprávu se nepodařilo odeslat. Zkuste to prosím znovu."
+    },
+    "addClient": {
+      "success": "Pozvánka byla odeslána.",
+      "error": "Pozvánku se nepodařilo odeslat. Zkuste to prosím znovu."
+    },
+    "pending": {
+      "cancelError": "Pozvánku se nepodařilo zrušit. Zkuste to prosím znovu.",
+      "acceptError": "Žádost se nepodařilo přijmout. Zkuste to prosím znovu.",
+      "rejectError": "Žádost se nepodařilo odmítnout. Zkuste to prosím znovu."
+    },
     "inviteClient": "+ Pozvat klienta",
     "inviteNewClient": "Pozvat nového klienta",
     "inviteSent": "Pozvánka odeslána!",
@@ -311,7 +414,6 @@
     "backToClients": "Klienti",
     "clientDetail": "Detail klienta",
     "comingSoon": "Připravuje se",
-    "comingSoonHint": "Detail klienta bude dostupný v další fázi",
     "overview": "Přehled",
     "compliance": "Compliance",
     "streak": "Série dní",
@@ -485,13 +587,74 @@
       "Cut": "Redukce (deficit)",
       "Maintain": "Udržení",
       "Bulk": "Nabírání (surplus)"
+    },
+    "selectionBar": {
+      "count_one": "{{count}} vybraný klient",
+      "count_few": "{{count}} vybraní klienti",
+      "count_many": "{{count}} vybraných klientů",
+      "count_other": "{{count}} vybraných klientů",
+      "broadcast": "Odeslat zprávu",
+      "cancel": "Zrušit"
+    },
+    "broadcastDrawer": {
+      "title": "Hromadná zpráva",
+      "description_one": "Odeslat tuto zprávu {{count}} vybranému klientovi.",
+      "description_few": "Odeslat tuto zprávu {{count}} vybraným klientům.",
+      "description_many": "Odeslat tuto zprávu {{count}} vybraným klientům.",
+      "description_other": "Odeslat tuto zprávu {{count}} vybraným klientům.",
+      "placeholder": "Napište zprávu...",
+      "insertFirstName": "Vložit křestní jméno",
+      "insertFullName": "Vložit celé jméno",
+      "send": "Odeslat",
+      "validation": {
+        "textRequired": "Text zprávy je povinný."
+      }
+    },
+    "tagPicker": {
+      "open": "Přiřadit štítky",
+      "createTag": "Vytvořit štítek",
+      "createTitle": "Vytvořit nový štítek",
+      "createDescription": "Štítky vám pomohou třídit a filtrovat klienty.",
+      "nameLabel": "Název",
+      "namePlaceholder": "Zadejte název štítku",
+      "colorLabel": "Barva",
+      "descriptionLabel": "Popis",
+      "descriptionPlaceholder": "Zadejte popis štítku",
+      "previewLabel": "Náhled",
+      "previewSampleName": "Náhled štítku",
+      "createSubmit": "Vytvořit štítek",
+      "colors": {
+        "red": "Červená",
+        "orange": "Oranžová",
+        "yellow": "Žlutá",
+        "green": "Zelená",
+        "blue": "Modrá",
+        "purple": "Fialová",
+        "pink": "Růžová",
+        "grey": "Šedá"
+      },
+      "validation": {
+        "nameRequired": "Název štítku je povinný.",
+        "colorInvalid": "Zadejte platnou hex barvu (např. #3B82F6)."
+      }
+    },
+    "addClientDrawer": {
+      "title": "Pozvat nového klienta",
+      "description": "Klient obdrží e-mailovou pozvánku k vytvoření účtu a propojení s vámi.",
+      "emailLabel": "E-mail",
+      "messageLabel": "Zpráva (nepovinné)",
+      "submit": "Odeslat pozvánku",
+      "validation": {
+        "emailRequired": "E-mail je povinný.",
+        "emailInvalid": "Zadejte platnou e-mailovou adresu."
+      }
     }
   },
   "profile": {
     "title": "Nastavení profilu",
     "subtitle": "Správa osobních údajů",
     "tabPersonal": "Osobní údaje",
-    "tabTrainer": "Profil trenéra",
+    "tabTrainer": "Profil kouče",
     "firstName": "Jméno",
     "lastName": "Příjmení",
     "bio": "Bio",
@@ -500,10 +663,10 @@
     "specializationPlaceholder": "např. Silový trénink, Jóga, Výživa",
     "yearsOfExperience": "Roky zkušeností",
     "saved": "Profil uložen",
-    "trainerSaved": "Profil trenéra uložen",
+    "trainerSaved": "Profil kouče uložen",
     "saveError": "Chyba při ukládání",
     "loadError": "Nepodařilo se načíst údaje profilu",
-    "trainerProfileLoadError": "Nepodařilo se načíst profil trenéra",
+    "trainerProfileLoadError": "Nepodařilo se načíst profil kouče",
     "rolesTitle": "Role",
     "rolesSubtitle": "Vyber, jaké služby poskytuješ klientům. Role lze kombinovat.",
     "trainerRoleDesc": "Silový trénink, kardio, rehabilitace, kondice",
@@ -658,71 +821,382 @@
       "uploadGalleryError": "Nepodařilo se přidat fotku do galerie"
     }
   },
+  "ingredients": {
+    "title": "Suroviny",
+    "newIngredient": "+ Nová surovina",
+    "searchPlaceholder": "Hledat suroviny…",
+    "retry": "Zkusit znovu",
+    "noResultsForFilters": "Žádné suroviny neodpovídají filtrům.",
+    "clearFilters": "Zrušit filtry",
+    "deleteSuccess": "Surovina byla smazána.",
+    "deleteError": "Surovinu se nepodařilo smazat. Zkuste to prosím znovu.",
+    "filters": {
+      "category": "Kategorie"
+    },
+    "table": {
+      "columnName": "Název",
+      "columnCalories": "Kalorie",
+      "columnNutrients": "Živiny",
+      "columnCategory": "Kategorie",
+      "columnTags": "Štítky",
+      "columnLibrary": "Knihovna",
+      "caloriesValue": "{{count}} kcal / 100 g",
+      "proteinValue": "B: {{count}} g",
+      "carbsValue": "S: {{count}} g",
+      "fatValue": "T: {{count}} g"
+    },
+    "tags": {
+      "createError": "Štítek se nepodařilo vytvořit. Zkuste to prosím znovu.",
+      "updateError": "Štítek se nepodařilo aktualizovat. Zkuste to prosím znovu.",
+      "deleteError": "Štítek se nepodařilo smazat. Zkuste to prosím znovu.",
+      "assignError": "Štítky u této suroviny se nepodařilo aktualizovat. Zkuste to prosím znovu."
+    },
+    "category": {
+      "Other": "Ostatní",
+      "Fruit": "Ovoce",
+      "Vegetables": "Zelenina",
+      "Meat": "Maso",
+      "FishAndSeafood": "Ryby a mořské plody",
+      "Dairy": "Mléčné výrobky",
+      "GrainsAndCereals": "Obiloviny",
+      "Legumes": "Luštěniny",
+      "NutsAndSeeds": "Ořechy a semena",
+      "OilsAndFats": "Oleje a tuky",
+      "SweetsAndSnacks": "Sladkosti a svačiny",
+      "Beverages": "Nápoje",
+      "Supplements": "Doplňky stravy"
+    },
+    "allergen": {
+      "Gluten": "Lepek",
+      "Crustaceans": "Korýši",
+      "Eggs": "Vejce",
+      "Fish": "Ryby",
+      "Peanuts": "Arašídy",
+      "Soy": "Sója",
+      "Milk": "Mléko",
+      "TreeNuts": "Ořechy",
+      "Celery": "Celer",
+      "Mustard": "Hořčice",
+      "Sesame": "Sezam",
+      "Sulphites": "Siřičitany",
+      "Lupin": "Vlčí bob",
+      "Molluscs": "Měkkýši"
+    },
+    "dietaryPreference": {
+      "Vegan": "Veganské",
+      "Vegetarian": "Vegetariánské",
+      "Pescatarian": "Pescetariánské",
+      "GlutenFree": "Bezlepkové",
+      "LactoseFree": "Bez laktózy",
+      "DairyFree": "Bez mléčných výrobků",
+      "Keto": "Keto",
+      "LowCarb": "Nízkosacharidové"
+    },
+    "unit": {
+      "portion": "Porce",
+      "piece": "Kus",
+      "slice": "Plátek",
+      "cup": "Hrnek",
+      "tbsp": "Polévková lžíce",
+      "tsp": "Čajová lžička",
+      "handful": "Hrst",
+      "glass": "Sklenice",
+      "pack": "Balení",
+      "can": "Plechovka",
+      "tub": "Kelímek",
+      "head": "Hlávka",
+      "clove": "Stroužek",
+      "bunch": "Svazek",
+      "scoop": "Odměrka"
+    },
+    "drawer": {
+      "createTitle": "Nová surovina",
+      "editTitle": "Upravit surovinu",
+      "viewTitle": "Surovina",
+      "subtitleCreate": "Přidejte novou surovinu do své knihovny",
+      "subtitleEdit": "Upravte údaje o této surovině",
+      "subtitleView": "Podrobnosti o surovině",
+      "basicInfo": "Základní informace",
+      "nutritionalInfo": "Nutriční informace",
+      "tagsClassification": "Štítky a klasifikace",
+      "name": "Název",
+      "namePlaceholder": "Zadejte název",
+      "nameRequired": "Název je povinný.",
+      "zeroPlaceholder": "0",
+      "category": "Kategorie",
+      "categoryPlaceholder": "Vyberte kategorii",
+      "categoryRequired": "Kategorie je povinná.",
+      "calories": "Kalorie / 100 g",
+      "caloriesRequired": "Kalorie jsou povinné.",
+      "protein": "Bílkoviny / 100 g",
+      "proteinRequired": "Bílkoviny jsou povinné.",
+      "carbs": "Sacharidy / 100 g",
+      "carbsRequired": "Sacharidy jsou povinné.",
+      "fat": "Tuky / 100 g",
+      "fatRequired": "Tuky jsou povinné.",
+      "fiber": "Vláknina / 100 g",
+      "macroMinRequired": "Musí být 0 nebo více.",
+      "unit": "Jednotka",
+      "unitPlaceholder": "Vyberte jednotku",
+      "unitRequired": "Jednotka je povinná.",
+      "servingSize": "Hmotnost jednotky (g)",
+      "servingSizeRequired": "Hmotnost jednotky je povinná.",
+      "dietaryPreferences": "Dietní preference",
+      "dietaryPreferencesPlaceholder": "Vyberte preference",
+      "allergens": "Obsahuje alergeny",
+      "allergensPlaceholder": "Vyberte alergeny",
+      "myTags": "Moje štítky",
+      "save": "Uložit surovinu",
+      "delete": "Smazat",
+      "createSuccess": "Surovina byla vytvořena.",
+      "createError": "Surovinu se nepodařilo vytvořit. Zkuste to prosím znovu.",
+      "updateSuccess": "Surovina byla aktualizována.",
+      "updateError": "Surovinu se nepodařilo aktualizovat. Zkuste to prosím znovu."
+    },
+    "deleteDialog": {
+      "title": "Smazat surovinu",
+      "description": "Opravdu chcete smazat „{{name}}“? Tuto akci nelze vrátit zpět.",
+      "confirm": "Smazat"
+    },
+    "picture": {
+      "removeConfirmDescription": "Opravdu chcete odebrat obrázek této suroviny? Tuto akci nelze vrátit zpět.",
+      "alt": "Obrázek suroviny"
+    }
+  },
+  "library": {
+    "badge": {
+      "system": "Systémová",
+      "mine": "Moje",
+      "shared": "Sdílená"
+    },
+    "visibility": {
+      "label": "Viditelnost",
+      "options": {
+        "Private": "Soukromé",
+        "Public": "Veřejné"
+      },
+      "hint": {
+        "Private": {
+          "recipe": "Tento recept vidíte a používáte jen vy.",
+          "ingredient": "Tuto surovinu vidíte a používáte jen vy."
+        },
+        "Public": {
+          "recipe": "Tento recept vidí a mohou používat všichni koučové.",
+          "ingredient": "Tuto surovinu vidí a mohou používat všichni koučové."
+        }
+      }
+    },
+    "pagination": {
+      "viewing": "Zobrazeno {{count}} z {{total}}"
+    },
+    "sortButtonLabel": "Seřadit podle: {{column}}",
+    "tags": {
+      "filter": "Štítky",
+      "empty": "Zatím žádné štítky.",
+      "open": "Přiřadit štítky",
+      "createTag": "Vytvořit štítek",
+      "createTitle": "Vytvořit nový štítek",
+      "createDescription": "Štítky vám pomohou třídit a filtrovat suroviny a recepty.",
+      "editTitle": "Upravit štítek",
+      "editDescription": "Přejmenujte, změňte barvu nebo popis tohoto štítku.",
+      "editTag": "Upravit „{{name}}“",
+      "deleteTag": "Smazat",
+      "deleteConfirmTitle": "Smazat štítek",
+      "deleteConfirmDescription": "Opravdu chcete smazat štítek „{{name}}“? Bude odebrán ze všech surovin a receptů, ke kterým je přiřazen. Tuto akci nelze vrátit zpět.",
+      "deleteConfirmSubmit": "Smazat",
+      "nameLabel": "Název",
+      "namePlaceholder": "Zadejte název štítku",
+      "colorLabel": "Barva",
+      "descriptionLabel": "Popis",
+      "descriptionPlaceholder": "Zadejte popis štítku",
+      "previewLabel": "Náhled",
+      "previewSampleName": "Náhled štítku",
+      "createSubmit": "Vytvořit štítek",
+      "editSubmit": "Uložit změny",
+      "colors": {
+        "red": "Červená",
+        "orange": "Oranžová",
+        "yellow": "Žlutá",
+        "green": "Zelená",
+        "blue": "Modrá",
+        "purple": "Fialová",
+        "pink": "Růžová",
+        "grey": "Šedá"
+      },
+      "validation": {
+        "nameRequired": "Název štítku je povinný.",
+        "colorInvalid": "Zadejte platnou hex barvu (např. #3B82F6)."
+      }
+    },
+    "filters": {
+      "owner": "Vlastník",
+      "ownerOptions": {
+        "Mine": "Moje",
+        "System": "Systémové",
+        "OtherCoaches": "Ostatní koučové"
+      }
+    },
+    "picture": {
+      "sectionLabel": "Obrázek",
+      "upload": "Nahrát obrázek",
+      "dropHint": "Přetáhněte obrázek sem nebo klikněte pro výběr",
+      "dropLimits": "JPEG, PNG nebo WebP, max. 5 MB.",
+      "replace": "Nahradit obrázek",
+      "remove": "Odebrat obrázek",
+      "removeConfirmTitle": "Odebrat obrázek",
+      "removeConfirmSubmit": "Odebrat",
+      "removeSuccess": "Obrázek byl odebrán.",
+      "removeError": "Obrázek se nepodařilo odebrat. Zkuste to prosím znovu.",
+      "uploadError": "Obrázek se nepodařilo nahrát. Zkuste to prosím znovu.",
+      "thumbnailAlt": "Obrázek – {{name}}",
+      "viewPicture": "Zobrazit obrázek",
+      "viewPictureOf": "Zobrazit obrázek – {{name}}",
+      "previous": "Předchozí obrázek",
+      "next": "Další obrázek"
+    }
+  },
   "recipes": {
     "title": "Recepty",
-    "subtitle": "Vytvářejte a spravujte znovupoužitelné recepty",
-    "pageTitle": "Knihovna receptů",
-    "pageSubtitle": "Vytvářejte, organizujte a používejte recepty s kompletním nutričním přehledem",
-    "viewTable": "Tabulka",
-    "viewList": "Seznam",
-    "viewCards": "Karty",
-    "sort": "Seřadit",
-    "prepTime": "Čas přípravy",
-    "search": "Hledat recepty...",
-    "searchAriaLabel": "Hledat recepty",
-    "addRecipe": "Nový recept",
-    "editRecipe": "Upravit recept",
-    "recipeName": "Název receptu",
-    "recipeNamePlaceholder": "např. Kuřecí stir-fry",
-    "description": "Postup přípravy",
-    "descriptionPlaceholder": "Jak připravit tento recept...",
-    "foods": "Ingredience",
-    "pieces": "Kusy",
-    "serving": "Porce",
-    "addFood": "+ Přidat ingredienci",
-    "noRecipes": "Zatím žádné recepty",
-    "noRecipesHint": "Vytvořte první recept pomocí tlačítka výše",
-    "created": "Recept vytvořen",
-    "updated": "Recept aktualizován",
-    "deleted": "Recept smazán",
-    "createError": "Nepodařilo se vytvořit recept",
-    "updateError": "Nepodařilo se uložit recept",
-    "deleteError": "Nepodařilo se smazat recept",
-    "confirmDelete": "Opravdu chcete tento recept smazat?",
-    "deleteConfirmTitle": "Smazat recept",
-    "deleteConfirmMessage": "Opravdu chcete smazat \"{{name}}\"? Tuto akci nelze vrátit.",
-    "deleteRecipe": "Smazat",
-    "createRecipe": "Vytvořit recept",
-    "nutritionPerRecipe": "Výživa / recept",
-    "autoCalculated": "Přepočítáno ze součtu ingrediencí",
-    "note": "Tip / poznámka",
-    "notePlaceholder": "Tipy na variace, doporučení...",
-    "stepsLabel": "Postup přípravy",
-    "addStep": "Přidat krok",
-    "stepPlaceholder": "Krok",
-    "discardChanges": "Zpět na detail",
-    "fromRecipe": "Z receptu",
-    "portions": "Porce",
-    "searchRecipes": "Hledat recepty...",
-    "noResults": "Žádné recepty nenalezeny",
-    "foodCount": "{{count}} ingrediencí",
-    "totalKcal": "{{kcal}} kcal",
-    "ingredientNote": "Poznámka",
-    "ingredientNotePlaceholder": "např. jemně nakrájené, pokojová teplota...",
-    "visibilityPublic": "Veřejný",
-    "visibilityPrivate": "Soukromý",
-    "visibilityHint": "Veřejné recepty vidí všichni nutricionisté. Upravovat je můžete pouze vy.",
-    "image": {
-      "mainHeading": "Hlavní fotka",
-      "mainEmpty": "Žádná hlavní fotka. Klikněte pro nahrání.",
-      "galleryHeading": "Galerie fotek",
-      "galleryEmpty": "Zatím žádné fotky v galerii.",
-      "addPhoto": "+ Přidat fotku",
-      "galleryFull": "Galerie je plná (max 6 fotek)",
-      "uploadMainSuccess": "Hlavní fotka aktualizována",
-      "uploadMainError": "Nepodařilo se nahrát hlavní fotku",
-      "uploadGallerySuccess": "Fotka přidána do galerie",
-      "uploadGalleryError": "Nepodařilo se přidat fotku do galerie"
+    "searchPlaceholder": "Hledat recepty…",
+    "newRecipe": "+ Nový recept",
+    "retry": "Zkusit znovu",
+    "noResultsForFilters": "Filtrům neodpovídá žádný recept.",
+    "clearFilters": "Zrušit filtry",
+    "deleteSuccess": "Recept byl smazán.",
+    "deleteError": "Recept se nepodařilo smazat. Zkuste to prosím znovu.",
+    "empty": {
+      "title": "Zatím žádné recepty",
+      "hint": "Vytvořte svůj první recept a můžete začít",
+      "create": "Vytvořit recept"
+    },
+    "nutritionistsOnly": {
+      "title": "Recepty jsou dostupné pro výživové poradce",
+      "body": "Váš účet je trenérský, proto pro vás knihovna receptů není dostupná."
+    },
+    "filters": {
+      "mealType": "Typ jídla",
+      "dietaryPreference": "Dietní preference"
+    },
+    "mealType": {
+      "Breakfast": "Snídaně",
+      "Lunch": "Oběd",
+      "Dinner": "Večeře",
+      "Snack": "Svačina",
+      "Dessert": "Dezert"
+    },
+    "difficulty": {
+      "Easy": "Snadné",
+      "Medium": "Střední",
+      "Hard": "Náročné"
+    },
+    "table": {
+      "columnName": "Název",
+      "columnCalories": "Kalorie / porci",
+      "columnNutrients": "Živiny / porci",
+      "columnMealType": "Typ jídla",
+      "columnServings": "Porce",
+      "columnTags": "Štítky",
+      "columnLibrary": "Knihovna",
+      "caloriesValue": "{{count}} kcal",
+      "proteinValue": "B: {{count}} g",
+      "carbsValue": "S: {{count}} g",
+      "fatValue": "T: {{count}} g",
+      "ingredientsCount": "{{count}} surovin",
+      "minutesValue": "{{count}} min"
+    },
+    "drawer": {
+      "createTitle": "Nový recept",
+      "editTitle": "Upravit recept",
+      "viewTitle": "Recept",
+      "subtitleCreate": "Přidejte podrobnosti o receptu",
+      "subtitleEdit": "Upravte podrobnosti tohoto receptu",
+      "subtitleView": "Podrobnosti receptu",
+      "tabDetails": "Detaily",
+      "tabIngredients": "Suroviny",
+      "tabPreparation": "Postup",
+      "tabPictures": "Obrázky",
+      "picturesCreateHint": "Obrázky přidáte po uložení receptu.",
+      "tabsLabel": "Sekce receptu",
+      "name": "Název",
+      "namePlaceholder": "Zadejte název receptu",
+      "nameRequired": "Název je povinný.",
+      "servings": "Počet porcí",
+      "servingsRequired": "Počet porcí musí být celé číslo, alespoň 1.",
+      "description": "Popis",
+      "descriptionPlaceholder": "Popište recept",
+      "recipeDetails": "Detaily receptu",
+      "mealTypes": "Typ jídla",
+      "mealTypesPlaceholder": "Vyberte typy",
+      "mealTypesRequired": "Vyberte alespoň jeden typ jídla.",
+      "difficulty": "Obtížnost",
+      "difficultyNone": "Žádná",
+      "prepTime": "Doba přípravy (volitelné)",
+      "cookTime": "Doba vaření (volitelné)",
+      "timePlaceholder": "např. 10 minut",
+      "minutesInvalid": "Zadejte celé číslo minut.",
+      "allergens": "Alergeny",
+      "allergensNone": "Žádné",
+      "allergensHint": "Odvozeno ze surovin.",
+      "dietaryPreferences": "Dietní preference",
+      "dietaryPreferencesPlaceholder": "Vyberte preference",
+      "save": "Uložit recept",
+      "delete": "Smazat",
+      "createSuccess": "Recept byl vytvořen.",
+      "createError": "Recept se nepodařilo vytvořit. Zkuste to prosím znovu.",
+      "updateSuccess": "Recept byl upraven.",
+      "updateError": "Recept se nepodařilo upravit. Zkuste to prosím znovu.",
+      "loadError": "Recept se nepodařilo načíst. Zkuste to prosím znovu.",
+      "myTags": "Moje štítky"
+    },
+    "tags": {
+      "assignError": "Štítky u tohoto receptu se nepodařilo aktualizovat. Zkuste to prosím znovu."
+    },
+    "ingredientsTab": {
+      "searchPlaceholder": "Hledat suroviny k přidání… (vaše knihovna + systémové)",
+      "searchLabel": "Hledat suroviny k přidání",
+      "searching": "Hledám…",
+      "noResults": "Žádné suroviny nenalezeny.",
+      "empty": "Zatím žádné suroviny. Vyhledejte je výše a přidejte.",
+      "foodsRequired": "Přidejte alespoň jednu surovinu.",
+      "amountLabel": "Množství v gramech pro {{name}}",
+      "amountInvalid": "Zadejte množství větší než 0.",
+      "removeIngredient": "Odebrat {{name}}",
+      "gramsUnit": "g",
+      "kcalValue": "{{count}} kcal",
+      "kcalPer100": "{{count}} kcal / 100 g",
+      "total": "Celkem",
+      "perServing": "Na porci ({{count}})"
+    },
+    "preparation": {
+      "stepLabel": "Krok {{number}}",
+      "stepPlaceholder": "Popište tento krok",
+      "addStep": "+ Přidat krok",
+      "removeStep": "Odebrat krok {{number}}",
+      "reorderStep": "Přesunout krok {{number}}",
+      "hint": "Kroky se klientovi zobrazují v aplikaci v tomto pořadí.",
+      "times": "Příprava {{prep}} · Vaření {{cook}}"
+    },
+    "deleteDialog": {
+      "title": "Smazat recept",
+      "description": "Opravdu chcete smazat „{{name}}“? Tuto akci nelze vrátit zpět.",
+      "confirm": "Smazat"
+    },
+    "picture": {
+      "alt": "Obrázek receptu",
+      "removeConfirmDescription": "Opravdu chcete odebrat obrázek tohoto receptu? Tuto akci nelze vrátit zpět."
+    },
+    "pictures": {
+      "mainLabel": "Hlavní obrázek",
+      "galleryLabel": "Další obrázky",
+      "galleryCount": "{{count}} z {{max}}",
+      "galleryEmpty": "Žádné další obrázky.",
+      "galleryAlt": "Obrázek receptu {{number}}",
+      "addPicture": "Přidat obrázek",
+      "remove": "Odebrat obrázek {{number}}",
+      "setAsMain": "Nastavit jako hlavní",
+      "setAsMainLabel": "Nastavit obrázek {{number}} jako hlavní",
+      "promoteError": "Hlavní obrázek se nepodařilo nastavit. Zkuste to prosím znovu.",
+      "removeConfirmDescription": "Opravdu chcete odebrat tento obrázek? Tuto akci nelze vrátit zpět."
     }
   },
   "nutrition": {
@@ -932,9 +1406,9 @@
     "INVITATION_EXPIRED": "Tato pozvánka vypršela.",
     "ROLE_ALREADY_ASSIGNED": "Tuto roli již máte.",
     "ACCOUNT_DELETION_FAILED": "Smazání účtu se nezdařilo. Zkuste to znovu.",
-    "KCAL_INCONSISTENT": "Hodnota kalorií neodpovídá makroživinám (bílkoviny×4 + sacharidy×4 + tuky×9 ± 10 %).",
+    "KCAL_INCONSISTENT": "Hodnota kalorií neodpovídá makroživinám (bílkoviny×4 + sacharidy×4 + tuky×9 + vláknina×2 ± 10 %).",
     "FOOD_NOT_OWNED": "Můžete upravovat pouze vlastní potraviny.",
-    "TRAINER_PROFILE_MISSING": "Profil trenéra nebyl nalezen.",
+    "TRAINER_PROFILE_MISSING": "Profil kouče nebyl nalezen.",
     "CLIENT_NOT_FOUND": "Klient nebyl nalezen.",
     "NO_CLIENT_RELATIONSHIP": "S tímto klientem nemáte aktivní vztah.",
     "COLLABORATOR_NOT_FOUND": "Spolupracovník nebyl nalezen.",
@@ -961,6 +1435,7 @@
     "OUT_OF_RANGE": "Hodnota je mimo povolený rozsah.",
     "INVALID_DEADLINE_OFFSET_HOURS": "Neplatná lhůta. Povolené hodnoty: 24, 48, 72, 120 nebo 168 hodin.",
     "SESSION_ALREADY_COMPLETED": "Tento trénink byl již dokončen.",
+    "CONVERSATION_LOCKED": "Odpovědět můžete, jakmile klient vaši pozvánku přijme.",
     "SECTION_ALREADY_COMPLETED": "Tato část tréninku byla již dokončena klientem — úpravy nejsou možné.",
     "COMPLETED_AT_IN_FUTURE": "Datum dokončení nesmí být v budoucnosti.",
     "COMPLETED_AT_BEFORE_PLAN_START": "Datum dokončení nesmí být před začátkem plánu.",
@@ -971,7 +1446,27 @@
     "QuestionnaireResponseId": "Tato odpověď na dotazník nebyla nalezena nebo ještě není vyplněná.",
     "PHOTO_DIARY_REQUEST_NOT_FOUND": "Foto-deník nebyl nalezen.",
     "PHOTO_DIARY_REQUEST_FORBIDDEN": "Tento foto-deník vám nepatří.",
-    "PHOTO_DIARY_REQUEST_PLAN_NOT_OWNED": "Zvolený plán nebyl nalezen nebo nepatří tomuto klientovi."
+    "PHOTO_DIARY_REQUEST_PLAN_NOT_OWNED": "Zvolený plán nebyl nalezen nebo nepatří tomuto klientovi.",
+    "BROADCAST_RECIPIENT_LIMIT_EXCEEDED": "Hromadnou zprávu můžete odeslat najednou nejvýše 50 klientům.",
+    "BROADCAST_RECIPIENT_NOT_LINKED": "Jeden z vybraných klientů s vámi již není propojen.",
+    "BROADCAST_MESSAGE_TOO_LONG_AFTER_SUBSTITUTION": "Po doplnění jmen je zpráva příliš dlouhá. Zkraťte prosím text.",
+    "DUPLICATE_PENDING_INVITE": "Pozvánka na tento e-mail už čeká na vyřízení.",
+    "TOO_MANY_PENDING_INVITES": "Dosáhli jste maximálního počtu nevyřízených pozvánek. Počkejte na odpověď nebo některou zrušte.",
+    "PROFESSION_ALREADY_OCCUPIED": "Tento klient už má pro tuto profesi aktivního kouče.",
+    "REQUESTED_SCOPE_EXCEEDS_HELD_ROLES": "Požadovaný přístup přesahuje vaše aktuální role.",
+    "CLIENT_TAG_NAME_ALREADY_EXISTS": "Štítek s tímto názvem už existuje.",
+    "CLIENT_TAG_NOT_FOUND": "Tento štítek se nepodařilo najít.",
+    "FOOD_TAG_NAME_ALREADY_EXISTS": "Štítek s tímto názvem už existuje.",
+    "FOOD_TAG_NOT_FOUND": "Tento štítek se nepodařilo najít.",
+    "INVALID_IMAGE_CONTENT_TYPE": "Podporovány jsou pouze obrázky JPEG, PNG nebo WebP.",
+    "IMAGE_TOO_LARGE": "Obrázek je příliš velký — maximální velikost je 5 MB.",
+    "CHAT_IMAGE_UPLOAD_NOT_FOUND": "Nahraný obrázek nebyl nalezen. Přiložte ho prosím znovu.",
+    "INVALID_BLOB_URL": "Obrázek se nepodařilo uložit. Zkuste ho prosím nahrát znovu.",
+    "RECIPE_VERSION_CONFLICT": "Tento recept byl mezitím změněn jinde. Zavřete ho a otevřete znovu, abyste viděli nejnovější verzi.",
+    "RECIPE_FOOD_NOT_AVAILABLE": "Jedna ze surovin už není dostupná. Odeberte ji a zkuste to znovu.",
+    "RECIPE_NOT_OWNED": "Můžete upravovat jen své vlastní recepty.",
+    "RECIPE_GALLERY_FULL": "Tento recept už má maximální počet obrázků.",
+    "RECIPE_GALLERY_IMAGE_NOT_FOUND": "Tento obrázek už k receptu nepatří. Mohl být změněn jinde."
   },
   "nutritionGoals": {
     "title": "Cíle & makra",
@@ -1763,7 +2258,7 @@
         "nutrition": "Chcete svému výživovému poradci sdělit ještě něco dalšího?"
       },
       "weekOf": "Týden {{range}}",
-      "editLocked": "Váš trenér to již viděl."
+      "editLocked": "Váš kouč to již viděl."
     },
     "flag": {
       "traveling": "Cestování",
@@ -1866,7 +2361,6 @@
       "modeWorkflowDesc": "{{days}} dní postupně, nutricionista vidí fotky živě.",
       "modeHint": "Klient si vybere způsob při akceptaci žádosti.",
       "senderInfo": "Klient uvidí tvé jméno jako odesilatele a tvůj avatar. Po odevzdání fotek budeš dostávat notifikace v reálném čase.",
-      "linkIdMissing": "Nelze odeslat: ID propojení klienta zatím není k dispozici. Toto je známý problém backendu — kontaktujte podporu.",
       "send": "Odeslat žádost",
       "sending": "Odesílání...",
       "successToast": "Žádost o foto-deník odeslána",
@@ -1892,22 +2386,11 @@
     "heightCm": "Výška (cm)",
     "weightKg": "Váha (kg)",
     "profileUpdated": "Profil klienta uložen",
-    "readOnlyFieldHint": "Toto pole nelze z portálu trenéra upravit.",
-    "tabBarLabel": "Záložky klienta",
+    "readOnlyFieldHint": "Toto pole nelze z portálu kouče upravit.",
     "ageYears_one": "{{count}} rok",
     "ageYears_few": "{{count}} roky",
     "ageYears_many": "{{count}} let",
     "ageYears_other": "{{count}} let",
-    "tabs": {
-      "prehled": "Přehled",
-      "mereni": "Měření",
-      "fotky": "Fotky",
-      "aktivita": "Aktivita",
-      "plany": "Plány",
-      "checkiny": "Check-iny",
-      "dotazniky": "Dotazníky",
-      "poznamky": "Poznámky"
-    },
     "verdict": {
       "unavailable": "Hodnocení není k dispozici",
       "onTrack": {
@@ -2119,7 +2602,7 @@
       "linkedPlanCta": "Zobrazit propojený plán: {{name}}"
     },
     "poznamky": {
-      "title": "Poznámky trenéra",
+      "title": "Poznámky kouče",
       "subtitle": "· soukromé, klient nevidí",
       "placeholder": "Přidat poznámku…",
       "saveButton": "Uložit poznámku",
@@ -2135,7 +2618,159 @@
       "editAriaLabel": "Upravit poznámku",
       "deleteAriaLabel": "Smazat poznámku",
       "errorLoading": "Poznámky se nepodařilo načíst"
+    },
+    "overview": {
+      "backAriaLabel": "Zpět na klienty",
+      "tbd": "TBD",
+      "header": {
+        "heightCm": "{{cm}} cm"
+      },
+      "actions": {
+        "chat": "Chat",
+        "tasks": "Úkoly",
+        "notes": "Poznámky",
+        "info": "Info"
+      },
+      "tabs": {
+        "overview": "Přehled",
+        "development": "Vývoj",
+        "nutrition": "Výživa",
+        "workouts": "Tréninky",
+        "storage": "Úložiště",
+        "payment": "Platby",
+        "automations": "Automatizace"
+      },
+      "stats": {
+        "rating": {
+          "label": "Průměrné hodnocení",
+          "caption": "Na základě odpovědí z check-inů"
+        },
+        "payments": {
+          "label": "Platby",
+          "caption": "Pro klienta nebyly nalezeny žádné platby"
+        },
+        "weight": {
+          "label": "Aktuální váha",
+          "value": "{{kg}} kg",
+          "deltaThisWeek": "{{delta}} kg tento týden",
+          "goalWeight": "cíl {{goal}} kg",
+          "empty": "—",
+          "noMeasurements": "Zatím žádná měření"
+        },
+        "clientSince": {
+          "label": "Klientem od",
+          "days_one": "{{count}} den",
+          "days_few": "{{count}} dny",
+          "days_many": "{{count}} dní",
+          "days_other": "{{count}} dní",
+          "started": "Začátek {{date}}"
+        }
+      },
+      "mealPlan": {
+        "heading": "Aktuální jídelníček",
+        "detail": "{{kcal}} kcal • {{carb}} % Sacharidy / {{protein}} % Bílkoviny / {{fat}} % Tuky"
+      },
+      "workout": {
+        "heading": "Poslední trénink",
+        "exercises_one": "{{count}} cvik",
+        "exercises_few": "{{count}} cviky",
+        "exercises_many": "{{count}} cviků",
+        "exercises_other": "{{count}} cviků"
+      },
+      "checkInTrend": {
+        "heading": "Trend check-inů",
+        "last15Days": "Posledních 15 dní",
+        "legend": {
+          "completed": "Splněno",
+          "missed": "Zmeškáno",
+          "upcoming": "Nadcházející"
+        }
+      },
+      "messagesTrend": {
+        "heading": "Trend zpráv",
+        "last4Weeks": "Poslední 4 týdny",
+        "chartAriaLabel": "Zprávy kouče a klienta za poslední 4 týdny. {{summary}}",
+        "chartAriaWeek": "týden od {{date}}: {{coach}} od kouče, {{client}} od klienta",
+        "weekLabel": "W{{index}}",
+        "weekTooltip": "Týden od {{date}}",
+        "legend": {
+          "coach": "Zprávy kouče",
+          "client": "Zprávy klienta"
+        }
+      }
     }
+  },
+  "inbox": {
+    "activeView": "Aktivní",
+    "archivedView": "Archivováno",
+    "searchPlaceholder": "Hledat konverzace...",
+    "emptyState": {
+      "title": "Vyberte konverzaci pro zahájení zprávy",
+      "subtitle": "Zde najdete zprávy od klientů, dotazy k tréninku a údaje z onboardingu."
+    },
+    "filters": {
+      "groupLabel": "Filtrovat konverzace",
+      "all": "Vše",
+      "failedPayments": "Neúspěšné platby",
+      "unreadMessages": "Nepřečtené zprávy",
+      "noMessages": "Bez zpráv",
+      "newCheckIns": "Nové check-iny",
+      "blockedAutomations": "Blokované automatizace",
+      "missingCheckIns": "Chybějící check-iny",
+      "endingSoon": "Brzy končí",
+      "tasksOverdue": "Prošlé úkoly"
+    },
+    "row": {
+      "yesterday": "Včera",
+      "noConversationYet": "Zatím bez zpráv — napište první",
+      "unreadAriaLabel": "Nepřečteno"
+    },
+    "noConversations": "Nebyly nalezeny žádné konverzace",
+    "list": {
+      "photoMarker": "📷 Fotka"
+    },
+    "thread": {
+      "showClient": "Zobrazit klienta",
+      "hideClient": "Skrýt klienta",
+      "clientPanelTitle": "Detail klienta",
+      "settingsAriaLabel": "Nastavení konverzace",
+      "openClientProfileAriaLabel": "Otevřít profil klienta",
+      "loadingOlder": "Načítání starších zpráv…",
+      "imageAlt": "Přiložený obrázek",
+      "imageUnavailable": "Obrázek není dostupný"
+    },
+    "events": {
+      "invited": "Pozvali jste {{name}} ke spolupráci",
+      "requested": "{{name}} vás požádal/a o spolupráci",
+      "accepted": {
+        "own": "Přijali jste žádost od {{name}}",
+        "other": "{{name}} přijal/a vaši pozvánku"
+      },
+      "declined": {
+        "own": "Odmítli jste žádost od {{name}}",
+        "other": "{{name}} odmítl/a vaši pozvánku"
+      },
+      "withdrawn": "Nabídka spolupráce byla zrušena"
+    },
+    "typingIndicator": "Píše…",
+    "composer": {
+      "placeholder": "Napište zprávu...",
+      "sendAriaLabel": "Odeslat zprávu",
+      "attachFileAriaLabel": "Přiložit soubor",
+      "attachImageAriaLabel": "Přiložit obrázek",
+      "sendError": "Zprávu se nepodařilo odeslat. Zkuste to prosím znovu.",
+      "lockedNotice": "Odpovědět můžete, jakmile klient vaši pozvánku přijme.",
+      "imagePreviewAlt": "Náhled obrázku",
+      "removeImageAriaLabel": "Odebrat obrázek",
+      "imageUploadError": "Obrázek se nepodařilo nahrát. Zkuste to prosím znovu."
+    },
+    "video": {
+      "label": "Video"
+    },
+    "deepLink": {
+      "error": "Tuto konverzaci se nepodařilo otevřít."
+    },
+    "loadError": "Doručenou poštu se nepodařilo načíst."
   },
   "messages": {
     "title": "Zprávy",
@@ -2209,5 +2844,263 @@
     "mondayHint": "Plány mohou začínat pouze v pondělí.",
     "weekCountRequired": "Zadejte počet týdnů.",
     "weekCountRange": "Počet týdnů musí být 1 až 52."
+  },
+  "entry": {
+    "brand": "GoodFellas",
+    "eyebrow": "Platforma pro trenéry a výživové poradce",
+    "headline": {
+      "line1": "Vedení klientů",
+      "accent": "bez chaosu"
+    },
+    "sub": "Jídelníčky, tréninkové plány, měření a komunikace na jednom místě. Vy pracujete v prohlížeči, klient má všechno v mobilu.",
+    "points": {
+      "meals": "Jídelníčky po týdnech",
+      "training": "Tréninkové plány",
+      "checkins": "Týdenní check-iny",
+      "chat": "Chat v reálném čase"
+    },
+    "collage": {
+      "strength": "Silový trénink",
+      "conditioning": "Kondice",
+      "nutrition": "Výživa",
+      "coaching": "Konzultace",
+      "progress": "Progres",
+      "note": "Místo pro fotografie — doplní se při stavbě aplikace."
+    },
+    "capabilities": {
+      "eyebrow": "Co platforma umí",
+      "title": "Jedna aplikace místo tabulek, e-mailů a WhatsAppu",
+      "subtitle": "Trenér i výživový poradce pracují nad stejným klientem. Klient vidí jen to, co má schválené.",
+      "nutrition": {
+        "tag": "Výživa",
+        "title": "Jídelníčky po týdnech",
+        "body": "Sestavte týden z receptů a surovin, zkontrolujte makra a publikujte klientovi jen hotové týdny. Rozpracovaný týden zůstává skrytý."
+      },
+      "training": {
+        "tag": "Trénink",
+        "title": "Plány i knihovna cviků",
+        "body": "Poskládejte tréninkovou jednotku přetažením cviků, uložte si ji jako šablonu a příště ji použijte na jedno kliknutí."
+      },
+      "contact": {
+        "tag": "Kontakt",
+        "title": "Check-iny a zprávy",
+        "body": "Klient jednou týdně pošle míry, fotky a jak se cítí. Vy odpovíte v chatu, který běží živě — bez obnovování stránky."
+      }
+    },
+    "audience": {
+      "coaches": {
+        "eyebrow": "Pro kouče",
+        "title": "Práce v prohlížeči",
+        "subtitle": "Portál je stavěný na velký monitor, protože plány se sestavují vsedě u stolu.",
+        "check1": "Přehled klientů se štítky a filtry",
+        "check2": "Pozvánky novým klientům e-mailem",
+        "check3": "Vlastní databáze surovin a receptů",
+        "check4": "Historie měření a fotek na jednom místě"
+      },
+      "clients": {
+        "eyebrow": "Pro klienty",
+        "title": "Aplikace v mobilu",
+        "subtitle": "Klient si nic nesestavuje. Otevře appku a vidí, co má dnes jíst a co trénovat.",
+        "check1": "Dnešní jídla i dnešní trénink",
+        "check2": "Odškrtávání jídel a zapisování sérií",
+        "check3": "Nákupní seznam na celý týden",
+        "check4": "Chat s koučem a upozornění"
+      }
+    },
+    "cta": {
+      "title": "Zkuste to s jedním klientem",
+      "body": "Založte si účet, pozvěte prvního klienta a sestavte mu první týden. Zabere to odpoledne.",
+      "button": "Založit účet kouče"
+    },
+    "footer": "Koučovací portál · Klientská aplikace pro iOS a Android",
+    "login": {
+      "title": "Vítejte zpět",
+      "lede": "Přihlaste se do koučovacího portálu.",
+      "emailLabel": "E-mail",
+      "emailPlaceholder": "trener@example.com",
+      "passwordLabel": "Heslo",
+      "showPassword": "Zobrazit",
+      "hidePassword": "Skrýt",
+      "rememberMe": "Zůstat přihlášen",
+      "forgotPassword": "Zapomenuté heslo?",
+      "submit": "Přihlásit se",
+      "submitting": "Přihlašuji...",
+      "or": "nebo",
+      "google": "Google",
+      "apple": "Apple",
+      "googleComingSoon": "Přihlášení přes Google zatím není dostupné.",
+      "appleComingSoon": "Přihlášení přes Apple zatím není dostupné.",
+      "noAccount": "Nemáte účet?",
+      "createAccount": "Založit účet kouče",
+      "clientNote": {
+        "lead": "Hledáte trenéra či poradce?",
+        "body": "Stáhněte si naši mobilní aplikaci a přidejte se ještě dnes.",
+        "appStore": "App Store",
+        "googlePlay": "Google Play"
+      },
+      "validation": {
+        "emailRequired": "Zadejte e-mail.",
+        "emailInvalid": "Zadejte platný e-mail.",
+        "passwordRequired": "Zadejte heslo."
+      },
+      "errors": {
+        "network": "Nepodařilo se spojit se serverem. Zkontrolujte připojení a zkuste to znovu.",
+        "profileLoadFailed": "Přihlášení proběhlo, ale načtení profilu se nezdařilo. Zkuste to prosím znovu.",
+        "generic": "Přihlášení se nezdařilo. Zkuste to prosím znovu."
+      }
+    },
+    "panel": {
+      "headline": "Přidejte se do naší komunity trenérů a výživových poradců"
+    },
+    "register": {
+      "title": "Založit účet",
+      "lede": "Vyplňte údaje a potvrďte e-mail. Zabere to minutu.",
+      "roleLabel": "Čím se zabýváte?",
+      "roleHint": "Můžete vybrat obojí. Role lze později změnit v nastavení.",
+      "roles": {
+        "trainer": {
+          "name": "Trenér",
+          "description": "Tréninkové plány, cviky, záznam tréninků."
+        },
+        "nutritionist": {
+          "name": "Výživový poradce",
+          "description": "Jídelníčky, recepty, suroviny, makra."
+        }
+      },
+      "firstNameLabel": "Jméno",
+      "firstNamePlaceholder": "Jan",
+      "lastNameLabel": "Příjmení",
+      "lastNamePlaceholder": "Novák",
+      "emailLabel": "E-mail",
+      "emailPlaceholder": "trener@example.com",
+      "passwordLabel": "Heslo",
+      "passwordRules": {
+        "length": "Aspoň 8 znaků",
+        "uppercase": "Velké písmeno",
+        "lowercase": "Malé písmeno",
+        "digit": "Číslice"
+      },
+      "consentLabel": "Souhlasím se zpracováním osobních údajů a s podmínkami použití.",
+      "submit": "Založit účet",
+      "submitting": "Zakládám účet...",
+      "submitHint": "Vyberte roli a vyplňte všechna pole.",
+      "haveAccount": "Už účet máte?",
+      "signIn": "Přihlaste se",
+      "validation": {
+        "roleRequired": "Vyberte alespoň jednu roli.",
+        "firstNameRequired": "Zadejte jméno.",
+        "lastNameRequired": "Zadejte příjmení.",
+        "emailRequired": "Zadejte e-mail.",
+        "emailInvalid": "Zadejte platný e-mail.",
+        "passwordInvalid": "Heslo nesplňuje všechny požadavky výše.",
+        "consentRequired": "Pro založení účtu musíte souhlasit se zpracováním osobních údajů."
+      },
+      "errors": {
+        "duplicateEmail": "Tento e-mail je již zaregistrován.",
+        "network": "Nepodařilo se spojit se serverem. Zkontrolujte připojení a zkuste to znovu.",
+        "generic": "Registraci se nepodařilo dokončit. Zkuste to prosím znovu."
+      },
+      "sent": {
+        "title": "Zkontrolujte poštu",
+        "lede": "Poslali jsme ověřovací odkaz na {{email}}. Odkaz platí 24 hodin.",
+        "note": "Nepřišel? Podívejte se do spamu. Pokud tam není, pošleme ho znovu.",
+        "resend": "Poslat odkaz znovu",
+        "resending": "Odesílám...",
+        "resendConfirmation": "Pokud je to potřeba, poslali jsme nový odkaz.",
+        "wrongEmail": "Špatná adresa?",
+        "changeEmail": "Změnit e-mail"
+      }
+    },
+    "forgotPassword": {
+      "title": "Zapomenuté heslo",
+      "lede": "Zadejte e-mail, kterým se přihlašujete.",
+      "emailLabel": "E-mail",
+      "emailPlaceholder": "trener@example.com",
+      "submit": "Poslat odkaz",
+      "submitting": "Odesílám...",
+      "note": "Odpovíme stejně, ať už účet existuje nebo ne — abychom neprozradili, které e-maily jsou registrované.",
+      "backToLogin": "Zpět na přihlášení",
+      "validation": {
+        "emailRequired": "Zadejte e-mail.",
+        "emailInvalid": "Zadejte platný e-mail."
+      },
+      "errors": {
+        "network": "Nepodařilo se spojit se serverem. Zkontrolujte připojení a zkuste to znovu.",
+        "generic": "Odeslání se nezdařilo. Zkuste to prosím znovu."
+      },
+      "sent": {
+        "title": "Zkontrolujte poštu",
+        "lede": "Pokud pod touto adresou existuje účet, poslali jsme na ni odkaz pro obnovení hesla.",
+        "tryAnother": "Zadat jinou adresu"
+      }
+    },
+    "verifyEmail": {
+      "verifying": "Ověřujeme váš e-mail...",
+      "success": {
+        "title": "E-mail ověřen",
+        "lede": "Váš účet je připravený. Můžete se přihlásit a pustit se do práce.",
+        "cta": "Přejít do portálu",
+        "ctaLoggedOut": "Přejít na přihlášení"
+      },
+      "checkInbox": {
+        "title": "Zkontrolujte poštu",
+        "lede": "Poslali jsme ověřovací odkaz na {{email}}. Klikněte na něj pro aktivaci účtu.",
+        "resend": "Poslat odkaz znovu",
+        "resending": "Odesílám...",
+        "resendConfirmation": "Poslali jsme nový odkaz."
+      },
+      "invalid": {
+        "title": "Odkaz není platný",
+        "noSessionLede": "Tento ověřovací odkaz je neplatný nebo už byl použit.",
+        "backToLogin": "Zpět na přihlášení"
+      },
+      "resendFromExpired": {
+        "prompt": "Pošleme vám nový odkaz na {{email}}.",
+        "button": "Poslat nový odkaz"
+      },
+      "errors": {
+        "network": "Nepodařilo se spojit se serverem. Zkontrolujte připojení a zkuste to znovu.",
+        "generic": "Ověření se nezdařilo. Zkuste to prosím znovu."
+      }
+    },
+    "resetPassword": {
+      "title": "Nastavte si nové heslo",
+      "lede": "Zvolte heslo, které jinde nepoužíváte. Přihlášená zařízení zůstanou přihlášená.",
+      "newPasswordLabel": "Nové heslo",
+      "confirmPasswordLabel": "Heslo znovu",
+      "submit": "Uložit nové heslo",
+      "submitting": "Ukládám...",
+      "note": "Po uložení se přihlaste novým heslem. Odkaz lze použít jen jednou.",
+      "success": {
+        "title": "Heslo bylo změněno",
+        "lede": "Nyní se můžete přihlásit novým heslem.",
+        "cta": "Přejít na přihlášení"
+      },
+      "invalidLink": {
+        "title": "Odkaz není platný",
+        "lede": "Tento odkaz pro obnovení hesla chybí nebo je poškozený.",
+        "cta": "Zpět na přihlášení",
+        "requestNew": "Vyžádat nový odkaz"
+      },
+      "validation": {
+        "passwordInvalid": "Heslo nesplňuje všechny požadavky výše.",
+        "confirmRequired": "Zadejte heslo znovu.",
+        "confirmMismatch": "Hesla se neshodují."
+      },
+      "errors": {
+        "genericFailure": "Tento odkaz pro obnovení hesla už není platný. Vyžádejte si prosím nový.",
+        "passwordField": "Heslo nesplňuje požadavky serveru. Zkuste prosím jiné heslo.",
+        "network": "Nepodařilo se spojit se serverem. Zkontrolujte připojení a zkuste to znovu.",
+        "generic": "Uložení se nezdařilo. Zkuste to prosím znovu."
+      }
+    },
+    "languageSwitch": {
+      "label": "Jazyk",
+      "cs": "CS",
+      "en": "EN",
+      "de": "DE"
+    },
+    "brandMark": "GF",
+    "copyright": "© 2026 GoodFellas"
   }
 }

@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using FitnessPlatform.Application.Domain.Entities;
@@ -159,5 +160,36 @@ public static class TestHelpers
         return httpClient;
     }
 
+    /// <summary>
+    /// Creates a food via a real <c>POST /foods</c> call and returns its <c>FoodId</c>. Sets the
+    /// bearer token on <paramref name="client"/> to <paramref name="ownerToken"/> first.
+    /// Nutrient defaults are self-consistent (10×4 + 10×4 + 5×9 = 125) so
+    /// <c>CreateFoodValidator</c>'s kcal-consistency rule passes without every caller re-deriving
+    /// the arithmetic. Always supplies one <c>CommonServings</c> entry — required since #1115 (the
+    /// food's default serving).
+    /// </summary>
+    public static async Task<Guid> CreateFoodAsync(
+        HttpClient client, string ownerToken, CancellationToken ct,
+        decimal kcal = 125m, decimal protein = 10m, decimal carbs = 10m, decimal fat = 5m)
+    {
+        SetBearerToken(client, ownerToken);
+
+        var response = await client.PostAsJsonAsync("/foods", new
+        {
+            Name = $"Test Food {Guid.NewGuid():N}",
+            NutrientValue = new { Kcal = kcal, Protein = protein, Carbs = carbs, Fat = fat },
+            Allergens = Array.Empty<string>(),
+            CommonServings = new[] { new { Label = "100 g", WeightGrams = 100m } }
+        }, ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created,
+            "food creation must succeed for the integration test to proceed");
+
+        var body = await response.Content.ReadFromJsonAsync<CreatedFoodRef>(cancellationToken: ct);
+        return body!.FoodId;
+    }
+
     private record LoginResult(string AccessToken, string RefreshToken, DateTime ExpiresAt);
+
+    private record CreatedFoodRef(Guid FoodId);
 }

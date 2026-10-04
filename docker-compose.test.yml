@@ -5,8 +5,10 @@
 # parallel runs on different branches coexist on ephemeral host ports.
 #
 # Networking:
-#   All services join the project-scoped `qa-net` network. Only `api`
-#   publishes to a host port (assigned dynamically by docker). web,
+#   All services join the project-scoped `qa-net` network. `api` and
+#   `mailhog-test` publish ephemeral host ports; `minio-test` publishes a
+#   FIXED one (E2E_MINIO_HOST_PORT, default 59000) because presigned URLs
+#   handed to the browser must name it — see that service. web,
 #   mobile-web, and playwright (added in Phase 2) talk to api via internal
 #   DNS — they MUST NOT publish host ports of their own, or parallel runs
 #   collide on host :5173/:8081.
@@ -78,6 +80,13 @@ services:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minio_test_password
     command: server /data --console-address :9001
+    # Published on a FIXED host port, unlike api/mailhog: the api must bake this
+    # address into presigned upload/read URLs at boot (MinIO__PresignEndpoint
+    # below), and a host-run browser — local Playwright and CI's host suite —
+    # cannot resolve minio-test. Two stacks running at once need different
+    # E2E_MINIO_HOST_PORT values or the second one fails to bind.
+    ports:
+      - "${E2E_MINIO_HOST_PORT:-59000}:9000"
     networks:
       - qa-net
     healthcheck:
@@ -199,6 +208,10 @@ services:
       # bucket management, so override the R2-specific settings here.
       MinIO__Secure: "false"
       MinIO__PublicEndpoint: "http://minio-test:9000"
+      # Presigned URLs are handed to the BROWSER, so they must name a host it
+      # can reach — see the port note on minio-test. Server-side calls keep
+      # using MinIO__Endpoint inside the network.
+      MinIO__PresignEndpoint: "localhost:${E2E_MINIO_HOST_PORT:-59000}"
       MinIO__ManageBucket: "true"
       MinIO__PublicUrlIncludesBucket: "true"
       MinIO__AccessKey: "minioadmin"

@@ -53,7 +53,7 @@ public class EmailDispatchWorkerDrainTests
 
         for (var i = 0; i < itemCount; i++)
         {
-            queue.TryEnqueue(new EmailDispatchWorkItem(Email(i), $"token-{i}", "en")).Should().BeTrue(
+            queue.TryEnqueue(new VerificationEmailWorkItem(Email(i), $"token-{i}", "en")).Should().BeTrue(
                 "enqueueing before shutdown begins must always succeed while capacity remains");
         }
 
@@ -96,7 +96,7 @@ public class EmailDispatchWorkerDrainTests
 
         for (var i = 0; i < itemCount; i++)
         {
-            queue.TryEnqueue(new EmailDispatchWorkItem($"{runId}-{i}@drain-test.com", $"token-{i}", "en")).Should().BeTrue(
+            queue.TryEnqueue(new VerificationEmailWorkItem($"{runId}-{i}@drain-test.com", $"token-{i}", "en")).Should().BeTrue(
                 "enqueueing before shutdown begins must always succeed while capacity remains");
         }
 
@@ -139,10 +139,47 @@ public class EmailDispatchWorkerDrainTests
 
         queue.Complete();
 
-        var act = () => queue.TryEnqueue(new EmailDispatchWorkItem("late@drain-test.com", "token", "en"));
+        var act = () => queue.TryEnqueue(new VerificationEmailWorkItem("late@drain-test.com", "token", "en"));
 
         act.Should().NotThrow(
             "a write to a completed channel must fail cleanly so the caller's existing false-return handling (log + generic 200) keeps working");
         act().Should().BeFalse("no new item may be accepted once the queue has been marked complete");
+    }
+
+    /// <summary>
+    /// #1109: the worker must dispatch each concrete work-item subtype to its OWN
+    /// <see cref="IEmailService"/> method — a <see cref="VerificationEmailWorkItem"/> to
+    /// <see cref="IEmailService.SendEmailVerificationAsync"/>, an
+    /// <see cref="InvitationEmailWorkItem"/> to
+    /// <see cref="IEmailService.SendInvitationEmailAsync"/> — never cross-wired.
+    /// </summary>
+    [Fact]
+    public async Task StopAsync_MixedWorkItemTypes_DispatchesEachToItsOwnSendMethod()
+    {
+        var (scopeFactory, emailService) = BuildScopeFactory();
+
+        var queue = new BackgroundEmailQueue();
+        var worker = new EmailDispatchWorker(queue, scopeFactory, NullLogger<EmailDispatchWorker>.Instance);
+
+        var runId = Guid.NewGuid().ToString("N");
+        var verificationEmail = $"{runId}-verify@drain-test.com";
+        var invitationEmail = $"{runId}-invite@drain-test.com";
+
+        queue.TryEnqueue(new VerificationEmailWorkItem(verificationEmail, "verify-token", "en")).Should().BeTrue();
+        queue.TryEnqueue(new InvitationEmailWorkItem(invitationEmail, "Coach Carl", "invite-token", "en", "Welcome!")).Should().BeTrue();
+
+        await worker.StartAsync(TestContext.Current.CancellationToken);
+        await worker.StopAsync(TestContext.Current.CancellationToken);
+
+        emailService.SentVerifications.Should().ContainSingle(v => v.Email == verificationEmail && v.Token == "verify-token",
+            "a VerificationEmailWorkItem must dispatch to SendEmailVerificationAsync");
+        emailService.SentInvitations.Should().ContainSingle(i => i.Email == invitationEmail && i.TrainerName == "Coach Carl",
+            "an InvitationEmailWorkItem must dispatch to SendInvitationEmailAsync, not SendEmailVerificationAsync");
+        emailService.SentVerifications.Should().NotContain(v => v.Email == invitationEmail,
+            "the invitation item must never be routed through the verification send method");
+        emailService.SentInvitations.Should().NotContain(i => i.Email == verificationEmail,
+            "the verification item must never be routed through the invitation send method");
+
+        queue.PendingCount.Should().Be(0);
     }
 }

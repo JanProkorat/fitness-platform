@@ -113,7 +113,7 @@ public class EmailDispatchWorker(
                 try
                 {
                     // Fresh scope per item: the queued item carries only value-copied
-                    // data (email, token, language) — never a service reference — so
+                    // data (email, token, language, ...) — never a service reference — so
                     // resolving IEmailService here always gets a live instance, never
                     // one disposed with a long-gone request scope.
                     using var scope = scopeFactory.CreateScope();
@@ -122,17 +122,38 @@ public class EmailDispatchWorker(
                     // CancellationToken.None: a send picked up during the shutdown drain
                     // (or already in flight when shutdown began) must be allowed to finish
                     // rather than being cancelled mid-send.
-                    await emailService.SendEmailVerificationAsync(item.Email, item.Token, item.Language, CancellationToken.None);
+                    switch (item)
+                    {
+                        case VerificationEmailWorkItem verification:
+                            await emailService.SendEmailVerificationAsync(
+                                verification.Email, verification.Token, verification.Language, CancellationToken.None);
+                            break;
+                        case InvitationEmailWorkItem invitation:
+                            await emailService.SendInvitationEmailAsync(
+                                invitation.Email, invitation.TrainerName, invitation.Token, invitation.Language,
+                                invitation.PersonalMessage, CancellationToken.None);
+                            break;
+                        default:
+                            throw new NotSupportedException(
+                                $"EmailDispatchWorker does not know how to dispatch {item.GetType().Name}.");
+                    }
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
                     // Never surface a send failure anywhere the request path can see it —
                     // the client already received its generic 200 before this ran. The
-                    // token row was already persisted synchronously by the caller, so a
-                    // failed send here does not leave the token store inconsistent.
+                    // token/invite row was already persisted synchronously by the caller,
+                    // so a failed send here does not leave that store inconsistent.
+                    var itemKind = item switch
+                    {
+                        VerificationEmailWorkItem => "verification",
+                        InvitationEmailWorkItem => "invitation",
+                        _ => "unknown"
+                    };
+
                     logger.LogError(ex,
-                        "EmailDispatchWorker: failed to send background verification email to {Email}.",
-                        item.Email);
+                        "EmailDispatchWorker: failed to send background {ItemKind} email to {Email}.",
+                        itemKind, item.Email);
                 }
                 finally
                 {

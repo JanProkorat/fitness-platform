@@ -16,18 +16,6 @@ public class PendingInvite : PublicTimestampableEntity
     public long ProfessionalProfileId { get; set; }
 
     /// <summary>
-    /// First name of the invited person.
-    /// </summary>
-    [MaxLength(100)]
-    public string FirstName { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Last name of the invited person.
-    /// </summary>
-    [MaxLength(100)]
-    public string LastName { get; set; } = string.Empty;
-
-    /// <summary>
     /// Email address of the invited person.
     /// </summary>
     [MaxLength(256)]

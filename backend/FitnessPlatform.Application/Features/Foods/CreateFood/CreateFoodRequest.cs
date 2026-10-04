@@ -39,9 +39,10 @@ public class CreateFoodRequest
     public FoodCategory Category { get; set; } = FoodCategory.Other;
 
     /// <summary>
-    /// Visibility of the food. Defaults to <see cref="FoodVisibility.Public"/> when omitted.
+    /// Visibility of the food. Defaults to <see cref="FoodVisibility.Private"/> when omitted —
+    /// a coach-authored ingredient starts out visible only to its creator.
     /// </summary>
-    public FoodVisibility Visibility { get; set; } = FoodVisibility.Public;
+    public FoodVisibility Visibility { get; set; } = FoodVisibility.Private;
 
     /// <summary>
     /// Optional user note.
@@ -49,12 +50,17 @@ public class CreateFoodRequest
     public string? Note { get; set; }
 
     /// <summary>
-    /// Allergen identifiers.
+    /// Allergens contained in this food.
     /// </summary>
-    public List<string> Allergens { get; set; } = [];
+    public List<Allergen> Allergens { get; set; } = [];
 
     /// <summary>
-    /// Common serving sizes.
+    /// Dietary preferences this food satisfies.
+    /// </summary>
+    public List<DietaryPreference> DietaryPreferences { get; set; } = [];
+
+    /// <summary>
+    /// Common serving sizes. The first entry is the default serving and is required.
     /// </summary>
     public List<ServingSizeDto> CommonServings { get; set; } = [];
 }

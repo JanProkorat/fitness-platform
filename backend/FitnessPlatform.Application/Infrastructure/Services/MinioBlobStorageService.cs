@@ -15,10 +15,25 @@ namespace FitnessPlatform.Application.Infrastructure.Services;
 ///                               access from the Cloudflare dashboard instead)
 ///   - PublicUrlIncludesBucket : false → public read URL is `{publicEndpoint}/{key}`
 ///                               (R2 `pub-*.r2.dev` URLs already map to one bucket)
+///   - PresignEndpoint         : optional host[:port] used ONLY when computing a
+///                               presigned PUT/GET signature — see the field doc on
+///                               <see cref="_presignClient"/> for why this needs a
+///                               separate client.
+///   - PresignSecure           : optional bool for the presign endpoint's scheme;
+///                               defaults to Secure when unset.
 /// </summary>
 public class MinioBlobStorageService : IBlobStorageService
 {
     private readonly IMinioClient _client;
+
+    // Presigning a PUT/GET is a pure local signature computation, but the URL it produces is
+    // handed to a BROWSER, not used server-side — so it must name a host the browser can reach.
+    // Inside docker-compose.test.yml, MinIO:Endpoint is "minio-test:9000" (docker-network-only;
+    // that's what _client talks to for every server-side call), while the browser needs
+    // "localhost:<published-port>". Reusing _client for presigning would sign a URL the browser
+    // can never open. When MinIO:PresignEndpoint is unset (dev, prod/R2 — endpoint is already
+    // browser-reachable), this is just _client; no second connection is opened.
+    private readonly IMinioClient _presignClient;
     private readonly string _bucketName;
     private readonly string _publicEndpoint;
     private readonly bool _manageBucket;
@@ -60,6 +75,35 @@ public class MinioBlobStorageService : IBlobStorageService
         }
 
         _client = builder.Build();
+
+        var presignEndpoint = configuration["MinIO:PresignEndpoint"];
+        if (string.IsNullOrWhiteSpace(presignEndpoint))
+        {
+            _presignClient = _client;
+        }
+        else
+        {
+            var presignSecure = configuration.GetValue("MinIO:PresignSecure", secure);
+
+            // A region MUST be set here, unconditionally — an unset Config.Region makes the SDK
+            // fall back to a network bucket-location lookup against THIS endpoint before signing
+            // (Minio.RequestExtensions.GetRegion / CreateRequest, package Minio 6.0.4), and a
+            // host-facing presign endpoint (e.g. "localhost:<port>") is exactly the address that
+            // is unreachable from inside this container. Falling back to "us-east-1" — the same
+            // default GetRegion itself uses once a lookup completes — keeps the two clients'
+            // signatures equivalent without ever letting the lookup happen.
+            var presignBuilder = new MinioClient()
+                .WithEndpoint(presignEndpoint)
+                .WithCredentials(accessKey, secretKey)
+                .WithRegion(string.IsNullOrWhiteSpace(region) ? "us-east-1" : region);
+
+            if (presignSecure)
+            {
+                presignBuilder = presignBuilder.WithSSL();
+            }
+
+            _presignClient = presignBuilder.Build();
+        }
     }
 
     // Public-read policy applied when ManageBucket=true (local MinIO). For R2,
@@ -101,7 +145,7 @@ public class MinioBlobStorageService : IBlobStorageService
     {
         await EnsureBucketWithPublicReadAsync(ct);
 
-        var uploadUrl = await _client.PresignedPutObjectAsync(
+        var uploadUrl = await _presignClient.PresignedPutObjectAsync(
             new PresignedPutObjectArgs()
                 .WithBucket(_bucketName)
                 .WithObject(containerPath)
@@ -154,7 +198,7 @@ public class MinioBlobStorageService : IBlobStorageService
         // No bucket-existence check here (unlike the write paths above): an object can only be
         // read if it was already uploaded, which already ensured the bucket exists. Presigning
         // a GET is a local signature computation — it needs no network round trip.
-        return await _client.PresignedGetObjectAsync(
+        return await _presignClient.PresignedGetObjectAsync(
             new PresignedGetObjectArgs()
                 .WithBucket(_bucketName)
                 .WithObject(containerPath)
@@ -228,6 +272,56 @@ public class MinioBlobStorageService : IBlobStorageService
                 .WithBucket(_bucketName)
                 .WithObject(containerPath),
             ct);
+    }
+
+    /// <inheritdoc />
+    public async Task<BlobObject?> DownloadAsync(string containerPath, long maxBytesToDownload, CancellationToken ct)
+    {
+        await EnsureBucketWithPublicReadAsync(ct);
+
+        Minio.DataModel.ObjectStat stat;
+        try
+        {
+            stat = await _client.StatObjectAsync(
+                new StatObjectArgs()
+                    .WithBucket(_bucketName)
+                    .WithObject(containerPath),
+                ct);
+        }
+        catch (Minio.Exceptions.ObjectNotFoundException)
+        {
+            return null;
+        }
+
+        if (stat.Size > maxBytesToDownload)
+        {
+            // Report the real size without ever reading the (potentially attacker-inflated) body
+            // into memory — a pre-signed PUT enforces no length, see the interface doc.
+            return new BlobObject(stat.Size, null);
+        }
+
+        if (stat.Size == 0)
+        {
+            // WithOffsetAndLength(0, 0) sends no Range header, so a GET here would be unbounded.
+            return new BlobObject(0, []);
+        }
+
+        using var buffer = new MemoryStream();
+        await _client.GetObjectAsync(
+            new GetObjectArgs()
+                .WithBucket(_bucketName)
+                .WithObject(containerPath)
+                // Bounds the GET to exactly the size just observed by StatObjectAsync above via
+                // an HTTP Range request. StatObjectAsync and GetObjectAsync are two separate calls
+                // and a presigned PUT enforces no length (see the interface doc), so the object
+                // could otherwise be swapped for a larger one in between — without this, a
+                // CopyTo(buffer) with no bound would read the swapped object's full (larger) body
+                // into memory regardless of the size check above.
+                .WithOffsetAndLength(0, stat.Size)
+                .WithCallbackStream(stream => stream.CopyTo(buffer)),
+            ct);
+
+        return new BlobObject(stat.Size, buffer.ToArray());
     }
 
     /// <summary>

@@ -104,8 +104,7 @@ public class DismissRequestEndpoint(
     }
 
     /// <summary>
-    /// Resolves a display name for the client:
-    /// link-based → from the ClientProfile.User navigation; invite-based → from PendingInvite names.
+    /// Resolves a display name for the client from the ClientProfile.User navigation.
     /// Falls back to the email claim if nothing else is available.
     /// </summary>
     private static string ResolveClientName(
@@ -114,9 +113,6 @@ public class DismissRequestEndpoint(
     {
         if (request.Link?.ClientProfile?.User is { } user)
             return $"{user.FirstName} {user.LastName}".Trim();
-
-        if (request.PendingInvite is { } invite)
-            return $"{invite.FirstName} {invite.LastName}".Trim();
 
         return clientEmail ?? string.Empty;
     }

@@ -141,11 +141,15 @@ public class ImageUploadService(IBlobStorageService blobStorage) : IImageUploadS
 
     private static string ScopeToPrefix(ImageUploadScope scope) => scope switch
     {
-        ImageUploadScope.Avatar    => "avatars",
-        ImageUploadScope.Food      => "foods",
-        ImageUploadScope.Recipe    => "recipes",
-        ImageUploadScope.PlanPhoto => "plan-photos",
-        ImageUploadScope.Diary     => "diary",
-        _                          => throw new ArgumentOutOfRangeException(nameof(scope), scope, null)
+        ImageUploadScope.Avatar     => "avatars",
+        ImageUploadScope.Food       => "foods",
+        ImageUploadScope.Recipe     => "recipes",
+        ImageUploadScope.PlanPhoto  => "plan-photos",
+        ImageUploadScope.Diary      => "diary",
+        // Must match FitnessPlatform.Application.Features.Messaging.Shared.ChatImagePolicy.StagingPrefix —
+        // that class rebuilds this same container path directly against IBlobStorageService at send
+        // time (download + delete), bypassing this service, so the two literals cannot drift silently.
+        ImageUploadScope.ChatUpload => "chat-uploads",
+        _                           => throw new ArgumentOutOfRangeException(nameof(scope), scope, null)
     };
 }

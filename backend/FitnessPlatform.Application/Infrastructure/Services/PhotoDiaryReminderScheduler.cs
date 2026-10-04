@@ -389,8 +389,6 @@ public class PhotoDiaryReminderScheduler(
             string clientName;
             if (request.Link?.ClientProfile?.User is { } user)
                 clientName = $"{user.FirstName} {user.LastName}".Trim();
-            else if (request.PendingInvite is { } invite)
-                clientName = $"{invite.FirstName} {invite.LastName}".Trim();
             else
                 clientName = clientUserId.ToString();
 

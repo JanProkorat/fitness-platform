@@ -23,7 +23,7 @@ public class AddMeasurementEndpoint(IApplicationDbContext db) : Endpoint<AddMeas
         {
             s.Summary = "Add a body measurement";
             s.Description = "Records a new body measurement for the authenticated client.";
-            s.Responses[201] = "Measurement created";
+            s.Response<MeasurementDto>(201, "Measurement created");
             s.Responses[401] = "Unauthorized";
         });
     }

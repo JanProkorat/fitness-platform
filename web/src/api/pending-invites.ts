@@ -4,8 +4,6 @@ export interface PendingInviteDto {
   /** Internal integer PK of the PendingInvite row. Used for diary requests. */
   id?: number;
   publicId: string;
-  firstName: string;
-  lastName: string;
   email: string;
   message?: string | null;
   sentAt: string;
@@ -15,8 +13,6 @@ export interface PendingInviteDto {
 }
 
 export interface CreatePendingInviteRequest {
-  firstName: string;
-  lastName: string;
   email: string;
   message?: string | null;
   questionnairePublicId?: string | null;
@@ -26,8 +22,6 @@ export interface CreatePendingInviteResponse {
   /** Internal integer PK of the PendingInvite row. Used for diary requests. */
   id?: number;
   publicId: string;
-  firstName: string;
-  lastName: string;
   email: string;
   sentAt: string;
   questionnairePublicId?: string | null;

@@ -51,11 +51,12 @@ public class CreateRequestEndpointTests(FitnessApiFactory factory)
         return (actor.Http, actor.UserId, actor.Email);
     }
 
-    private async Task<long> InsertLinkAsync(
+    private async Task<(long LinkId, Guid ClientPublicId)> InsertLinkAsync(
         Guid clientUserId,
         Guid professionalUserId,
         bool canViewNutritionPlans = true,
-        bool canViewTrainingPlans = false)
+        bool canViewTrainingPlans = false,
+        bool isActive = true)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -70,7 +71,7 @@ public class CreateRequestEndpointTests(FitnessApiFactory factory)
             ClientProfileId = clientProfile.Id,
             ProfessionalProfileId = profProfile.Id,
             ProfessionalRole = UserRole.Nutritionist,
-            IsActive = true,
+            IsActive = isActive,
             CanViewNutritionPlans = canViewNutritionPlans,
             CanViewTrainingPlans = canViewTrainingPlans,
             PublicId = Guid.NewGuid(),
@@ -78,7 +79,7 @@ public class CreateRequestEndpointTests(FitnessApiFactory factory)
         };
         db.ClientProfessionalLinks.Add(link);
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
-        return link.Id;
+        return (link.Id, clientProfile.PublicId);
     }
 
     /// <summary>
@@ -132,8 +133,6 @@ public class CreateRequestEndpointTests(FitnessApiFactory factory)
         var invite = new PendingInvite
         {
             ProfessionalProfileId = profProfile.Id,
-            FirstName = "Jane",
-            LastName = "Doe",
             Email = inviteeEmail,
             SentAt = DateTime.UtcNow,
             IsAccepted = false,
@@ -153,7 +152,7 @@ public class CreateRequestEndpointTests(FitnessApiFactory factory)
         var (http, _) = await SetupProfessionalAsync();
         var response = await http.PostAsJsonAsync(
             "/trainer/photo-diary-requests",
-            new { LinkId = 1L, PendingInviteId = 2L, DurationDays = 7 },
+            new { ClientId = Guid.NewGuid(), PendingInviteId = 2L, DurationDays = 7 },
             TestContext.Current.CancellationToken);
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
@@ -175,7 +174,7 @@ public class CreateRequestEndpointTests(FitnessApiFactory factory)
         var (http, _) = await SetupProfessionalAsync();
         var response = await http.PostAsJsonAsync(
             "/trainer/photo-diary-requests",
-            new { LinkId = 1L, DurationDays = 0 },
+            new { ClientId = Guid.NewGuid(), DurationDays = 0 },
             TestContext.Current.CancellationToken);
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
@@ -186,12 +185,24 @@ public class CreateRequestEndpointTests(FitnessApiFactory factory)
         var (http, _) = await SetupProfessionalAsync();
         var response = await http.PostAsJsonAsync(
             "/trainer/photo-diary-requests",
-            new { LinkId = 1L, DurationDays = 31 },
+            new { ClientId = Guid.NewGuid(), DurationDays = 31 },
             TestContext.Current.CancellationToken);
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
     // ── Ownership ─────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task Create_UnknownClientId_Returns404()
+    {
+        var (http, _) = await SetupProfessionalAsync();
+
+        var response = await http.PostAsJsonAsync(
+            "/trainer/photo-diary-requests",
+            new { ClientId = Guid.NewGuid(), DurationDays = 7 },
+            TestContext.Current.CancellationToken);
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
 
     [Fact]
     public async Task Create_LinkOwnedByAnotherProfessional_Returns404()
@@ -201,11 +212,30 @@ public class CreateRequestEndpointTests(FitnessApiFactory factory)
         var (_, clientUserId, _) = await SetupClientAsync();
 
         // Link belongs to otherProf, not http's user
-        var linkId = await InsertLinkAsync(clientUserId, otherProfId);
+        var (_, clientPublicId) = await InsertLinkAsync(clientUserId, otherProfId);
 
         var response = await http.PostAsJsonAsync(
             "/trainer/photo-diary-requests",
-            new { LinkId = linkId, DurationDays = 7 },
+            new { ClientId = clientPublicId, DurationDays = 7 },
+            TestContext.Current.CancellationToken);
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Create_LinkArchived_Returns404()
+    {
+        var (http, profId) = await SetupProfessionalAsync();
+        var (_, clientUserId, _) = await SetupClientAsync();
+
+        // Link exists and is owned by the caller, but has been archived (IsActive = false) —
+        // must collapse to the same 404 as an unknown or foreign clientId, never a distinguishable
+        // error, so an archived client's public id (readable off the Archived tab) cannot be used
+        // to create a new request.
+        var (_, clientPublicId) = await InsertLinkAsync(clientUserId, profId, isActive: false);
+
+        var response = await http.PostAsJsonAsync(
+            "/trainer/photo-diary-requests",
+            new { ClientId = clientPublicId, DurationDays = 7 },
             TestContext.Current.CancellationToken);
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
@@ -237,13 +267,13 @@ public class CreateRequestEndpointTests(FitnessApiFactory factory)
         var (http, profId) = await SetupProfessionalAsync();
         var (_, clientUserId, _) = await SetupClientAsync();
         // Active link, but scoped to training only — no nutrition capability.
-        var linkId = await InsertLinkAsync(
+        var (_, clientPublicId) = await InsertLinkAsync(
             clientUserId, profId, canViewNutritionPlans: false, canViewTrainingPlans: true);
         var planId = await InsertNutritionPlanAsync(clientUserId, profId);
 
         var response = await http.PostAsJsonAsync(
             "/trainer/photo-diary-requests",
-            new { LinkId = linkId, PlanId = planId, DurationDays = 7 },
+            new { ClientId = clientPublicId, PlanId = planId, DurationDays = 7 },
             TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
@@ -255,12 +285,12 @@ public class CreateRequestEndpointTests(FitnessApiFactory factory)
         var (http, profId) = await SetupProfessionalAsync("Trainer");
         var (_, clientUserId, _) = await SetupClientAsync();
         // Active link, but scoped to nutrition only (the default) — no training capability.
-        var linkId = await InsertLinkAsync(clientUserId, profId);
+        var (_, clientPublicId) = await InsertLinkAsync(clientUserId, profId);
         var planId = await InsertTrainingPlanAsync(clientUserId, profId);
 
         var response = await http.PostAsJsonAsync(
             "/trainer/photo-diary-requests",
-            new { LinkId = linkId, PlanId = planId, DurationDays = 7 },
+            new { ClientId = clientPublicId, PlanId = planId, DurationDays = 7 },
             TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
@@ -273,12 +303,12 @@ public class CreateRequestEndpointTests(FitnessApiFactory factory)
         var (_, clientUserId, _) = await SetupClientAsync();
         // Active link with the matching capability — positive control for the two 404
         // cases above, proving the gate discriminates rather than denying everything.
-        var linkId = await InsertLinkAsync(clientUserId, profId, canViewNutritionPlans: true);
+        var (_, clientPublicId) = await InsertLinkAsync(clientUserId, profId, canViewNutritionPlans: true);
         var planId = await InsertNutritionPlanAsync(clientUserId, profId);
 
         var response = await http.PostAsJsonAsync(
             "/trainer/photo-diary-requests",
-            new { LinkId = linkId, PlanId = planId, DurationDays = 7 },
+            new { ClientId = clientPublicId, PlanId = planId, DurationDays = 7 },
             TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -294,13 +324,13 @@ public class CreateRequestEndpointTests(FitnessApiFactory factory)
     {
         var (http, profId) = await SetupProfessionalAsync("Trainer");
         var (_, clientUserId, _) = await SetupClientAsync();
-        var linkId = await InsertLinkAsync(
+        var (_, clientPublicId) = await InsertLinkAsync(
             clientUserId, profId, canViewNutritionPlans: false, canViewTrainingPlans: true);
         var planId = await InsertTrainingPlanAsync(clientUserId, profId);
 
         var response = await http.PostAsJsonAsync(
             "/trainer/photo-diary-requests",
-            new { LinkId = linkId, PlanId = planId, DurationDays = 7 },
+            new { ClientId = clientPublicId, PlanId = planId, DurationDays = 7 },
             TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -318,11 +348,11 @@ public class CreateRequestEndpointTests(FitnessApiFactory factory)
     {
         var (http, profId) = await SetupProfessionalAsync();
         var (_, clientUserId, _) = await SetupClientAsync();
-        var linkId = await InsertLinkAsync(clientUserId, profId);
+        var (linkId, clientPublicId) = await InsertLinkAsync(clientUserId, profId);
 
         var response = await http.PostAsJsonAsync(
             "/trainer/photo-diary-requests",
-            new { LinkId = linkId, DurationDays = 14 },
+            new { ClientId = clientPublicId, DurationDays = 14 },
             TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);

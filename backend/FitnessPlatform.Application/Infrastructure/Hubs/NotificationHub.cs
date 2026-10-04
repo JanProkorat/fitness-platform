@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
@@ -64,6 +65,13 @@ public class NotificationHub(
 
         if (conversation is null) return;
 
+        // No typing either way in an invite-only thread: the inviter must not learn the invitee is
+        // active, and the inviter cannot send there anyway.
+        var access = await ProfessionalSendGuard.EvaluateAsync(
+            db, conversation.ProfessionalUserId, conversation.ClientUserId, CancellationToken.None);
+
+        if (access == ProfessionalSendAccess.Locked) return;
+
         var recipientId = conversation.ProfessionalUserId == userGuid
             ? conversation.ClientUserId
             : conversation.ProfessionalUserId;
@@ -92,6 +100,22 @@ public class NotificationHub(
             .Select(c => c.ProfessionalUserId == userGuid ? c.ClientUserId : c.ProfessionalUserId)
             .Distinct()
             .ToListAsync();
+
+        // The user's presence is withheld from professionals whose thread with them is
+        // invite-only (no link, no join request): they must not see the invitee online.
+        var professionalPartnerIds = await db.Conversations
+            .AsNoTracking()
+            .Where(c => c.ClientUserId == userGuid)
+            .Select(c => c.ProfessionalUserId)
+            .Distinct()
+            .ToListAsync();
+
+        var lockedProfessionals = await ProfessionalSendGuard.FindLockedProfessionalsAsync(
+            db, userGuid, professionalPartnerIds, CancellationToken.None);
+
+        partnerIds = partnerIds
+            .Where(partnerId => !lockedProfessionals.Contains(partnerId))
+            .ToList();
 
         var payload = new { userId, isOnline };
 

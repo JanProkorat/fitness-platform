@@ -103,4 +103,21 @@ public interface IMongoContext
     /// Reusable training plan templates collection (#856 sharing-library model, #862).
     /// </summary>
     IMongoCollection<TrainingPlanTemplate> TrainingPlanTemplates { get; }
+
+    /// <summary>
+    /// Coach-private food tags (#1120) — keyed by <see cref="FoodTag.OwnerUserId"/>.
+    /// </summary>
+    IMongoCollection<FoodTag> FoodTags { get; }
+
+    /// <summary>
+    /// Per-owner, per-food tag assignments (#1120) — one document per
+    /// (ownerUserId, foodExternalId) pair.
+    /// </summary>
+    IMongoCollection<FoodTagAssignment> FoodTagAssignments { get; }
+
+    /// <summary>
+    /// Per-owner, per-recipe tag assignments — one document per
+    /// (ownerUserId, recipeExternalId) pair. The tags themselves are <see cref="FoodTags"/>.
+    /// </summary>
+    IMongoCollection<RecipeTagAssignment> RecipeTagAssignments { get; }
 }

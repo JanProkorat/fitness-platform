@@ -32,24 +32,8 @@ public class RecipeImageIntegrationTests(FitnessApiFactory factory)
         return accessToken;
     }
 
-    private static async Task<Guid> CreateFoodAsync(HttpClient client, string ownerToken)
-    {
-        TestHelpers.SetBearerToken(client, ownerToken);
-        var response = await client.PostAsJsonAsync("/foods", new
-        {
-            Name = $"Test Food {Guid.NewGuid():N}",
-            NutrientValue = new { Kcal = 125m, Protein = 10m, Carbs = 10m, Fat = 5m },
-            Allergens = Array.Empty<string>(),
-            CommonServings = Array.Empty<object>()
-        }, TestContext.Current.CancellationToken);
-
-        response.StatusCode.Should().Be(HttpStatusCode.Created,
-            "food creation must succeed so a recipe can reference it");
-
-        var body = await response.Content.ReadFromJsonAsync<FoodRef>(
-            cancellationToken: TestContext.Current.CancellationToken);
-        return body!.FoodId;
-    }
+    private static string NewKey(Guid recipeId, string slot) =>
+        $"recipes/{recipeId}/{slot}-{Guid.NewGuid():N}.jpg";
 
     private static async Task<Guid> CreateRecipeAsync(HttpClient client, string ownerToken, Guid foodId)
     {
@@ -57,6 +41,7 @@ public class RecipeImageIntegrationTests(FitnessApiFactory factory)
         var response = await client.PostAsJsonAsync("/recipes", new
         {
             Name = $"Test Recipe {Guid.NewGuid():N}",
+            MealTypes = new[] { "Lunch" },
             Foods = new[]
             {
                 new { FoodExternalId = foodId, AmountGrams = 100m }
@@ -83,7 +68,7 @@ public class RecipeImageIntegrationTests(FitnessApiFactory factory)
     {
         var client = factory.CreateClient();
         var token = await SeedUserAsync(client, "Nutritionist", "main-happy");
-        var foodId = await CreateFoodAsync(client, token);
+        var foodId = await TestHelpers.CreateFoodAsync(client, token, TestContext.Current.CancellationToken);
         var recipeId = await CreateRecipeAsync(client, token, foodId);
 
         TestHelpers.SetBearerToken(client, token);
@@ -99,21 +84,21 @@ public class RecipeImageIntegrationTests(FitnessApiFactory factory)
 
         body.Should().NotBeNull();
         body!.UploadUrl.Should().NotBeNullOrEmpty();
-        body.BlobUrl.Should().Be($"recipes/{recipeId}/main.jpg");
+        body.BlobUrl.Should().MatchRegex($"^recipes/{recipeId}/main-[0-9a-f]{{32}}\\.jpg$");
     }
 
     // ── Happy path: upload-url — gallery slot (0th entry) ──────────────────────
 
     /// <summary>
-    /// A nutritionist requests an upload URL for the 0th gallery slot.
-    /// <c>blobUrl</c> must equal <c>recipes/{recipeId}/gallery-0.jpg</c>.
+    /// A nutritionist requests an upload URL for the gallery.
+    /// <c>blobUrl</c> must match <c>recipes/{recipeId}/gallery-{guid:N}.jpg</c>.
     /// </summary>
     [Fact]
-    public async Task UploadUrl_Nutritionist_GallerySlot_FirstEntry_Returns200WithGallery0BlobUrl()
+    public async Task UploadUrl_Nutritionist_GallerySlot_FirstEntry_Returns200WithGuidBlobUrl()
     {
         var client = factory.CreateClient();
         var token = await SeedUserAsync(client, "Nutritionist", "gallery-happy");
-        var foodId = await CreateFoodAsync(client, token);
+        var foodId = await TestHelpers.CreateFoodAsync(client, token, TestContext.Current.CancellationToken);
         var recipeId = await CreateRecipeAsync(client, token, foodId);
 
         TestHelpers.SetBearerToken(client, token);
@@ -128,7 +113,7 @@ public class RecipeImageIntegrationTests(FitnessApiFactory factory)
             cancellationToken: TestContext.Current.CancellationToken);
 
         body.Should().NotBeNull();
-        body!.BlobUrl.Should().Be($"recipes/{recipeId}/gallery-0.jpg");
+        body!.BlobUrl.Should().MatchRegex($"^recipes/{recipeId}/gallery-[0-9a-f]{{32}}\\.jpg$");
     }
 
     // ── Ownership gate: upload-url ─────────────────────────────────────────────
@@ -143,7 +128,7 @@ public class RecipeImageIntegrationTests(FitnessApiFactory factory)
         var client = factory.CreateClient();
 
         var tokenA = await SeedUserAsync(client, "Nutritionist", "upload-owner-a");
-        var foodId = await CreateFoodAsync(client, tokenA);
+        var foodId = await TestHelpers.CreateFoodAsync(client, tokenA, TestContext.Current.CancellationToken);
         var recipeId = await CreateRecipeAsync(client, tokenA, foodId);
 
         var tokenB = await SeedUserAsync(client, "Nutritionist", "upload-owner-b");
@@ -171,7 +156,7 @@ public class RecipeImageIntegrationTests(FitnessApiFactory factory)
     {
         var client = factory.CreateClient();
         var token = await SeedUserAsync(client, "Nutritionist", "gallery-full-upload");
-        var foodId = await CreateFoodAsync(client, token);
+        var foodId = await TestHelpers.CreateFoodAsync(client, token, TestContext.Current.CancellationToken);
         var recipeId = await CreateRecipeAsync(client, token, foodId);
 
         TestHelpers.SetBearerToken(client, token);
@@ -181,7 +166,7 @@ public class RecipeImageIntegrationTests(FitnessApiFactory factory)
         {
             var confirmResponse = await client.PutAsJsonAsync(
                 $"/recipes/{recipeId}/image?slot=gallery",
-                new { BlobUrl = $"recipes/{recipeId}/gallery-{i}.jpg" },
+                new { BlobUrl = NewKey(recipeId, "gallery") },
                 TestContext.Current.CancellationToken);
 
             confirmResponse.StatusCode.Should().Be(HttpStatusCode.NoContent,
@@ -212,10 +197,10 @@ public class RecipeImageIntegrationTests(FitnessApiFactory factory)
     {
         var client = factory.CreateClient();
         var token = await SeedUserAsync(client, "Nutritionist", "confirm-main-happy");
-        var foodId = await CreateFoodAsync(client, token);
+        var foodId = await TestHelpers.CreateFoodAsync(client, token, TestContext.Current.CancellationToken);
         var recipeId = await CreateRecipeAsync(client, token, foodId);
 
-        var blobUrl = $"recipes/{recipeId}/main.jpg";
+        var blobUrl = NewKey(recipeId, "main");
 
         TestHelpers.SetBearerToken(client, token);
 
@@ -251,10 +236,10 @@ public class RecipeImageIntegrationTests(FitnessApiFactory factory)
     {
         var client = factory.CreateClient();
         var token = await SeedUserAsync(client, "Nutritionist", "confirm-gallery-happy");
-        var foodId = await CreateFoodAsync(client, token);
+        var foodId = await TestHelpers.CreateFoodAsync(client, token, TestContext.Current.CancellationToken);
         var recipeId = await CreateRecipeAsync(client, token, foodId);
 
-        var galleryBlobUrl = $"recipes/{recipeId}/gallery-0.jpg";
+        var galleryBlobUrl = NewKey(recipeId, "gallery");
 
         TestHelpers.SetBearerToken(client, token);
 
@@ -289,7 +274,7 @@ public class RecipeImageIntegrationTests(FitnessApiFactory factory)
     {
         var client = factory.CreateClient();
         var token = await SeedUserAsync(client, "Nutritionist", "gallery-full-confirm");
-        var foodId = await CreateFoodAsync(client, token);
+        var foodId = await TestHelpers.CreateFoodAsync(client, token, TestContext.Current.CancellationToken);
         var recipeId = await CreateRecipeAsync(client, token, foodId);
 
         TestHelpers.SetBearerToken(client, token);
@@ -299,7 +284,7 @@ public class RecipeImageIntegrationTests(FitnessApiFactory factory)
         {
             var confirmResponse = await client.PutAsJsonAsync(
                 $"/recipes/{recipeId}/image?slot=gallery",
-                new { BlobUrl = $"recipes/{recipeId}/gallery-{i}.jpg" },
+                new { BlobUrl = NewKey(recipeId, "gallery") },
                 TestContext.Current.CancellationToken);
 
             confirmResponse.StatusCode.Should().Be(HttpStatusCode.NoContent,
@@ -309,7 +294,7 @@ public class RecipeImageIntegrationTests(FitnessApiFactory factory)
         // Attempt a 7th confirm — must fail with RECIPE_GALLERY_FULL
         var response = await client.PutAsJsonAsync(
             $"/recipes/{recipeId}/image?slot=gallery",
-            new { BlobUrl = $"recipes/{recipeId}/gallery-6.jpg" },
+            new { BlobUrl = NewKey(recipeId, "gallery") },
             TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
@@ -331,7 +316,7 @@ public class RecipeImageIntegrationTests(FitnessApiFactory factory)
         var client = factory.CreateClient();
 
         var tokenA = await SeedUserAsync(client, "Nutritionist", "confirm-owner-a");
-        var foodId = await CreateFoodAsync(client, tokenA);
+        var foodId = await TestHelpers.CreateFoodAsync(client, tokenA, TestContext.Current.CancellationToken);
         var recipeId = await CreateRecipeAsync(client, tokenA, foodId);
 
         var tokenB = await SeedUserAsync(client, "Nutritionist", "confirm-owner-b");
@@ -339,7 +324,7 @@ public class RecipeImageIntegrationTests(FitnessApiFactory factory)
 
         var response = await client.PutAsJsonAsync(
             $"/recipes/{recipeId}/image?slot=main",
-            new { BlobUrl = $"recipes/{recipeId}/main.jpg" },
+            new { BlobUrl = NewKey(recipeId, "main") },
             TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
@@ -349,10 +334,115 @@ public class RecipeImageIntegrationTests(FitnessApiFactory factory)
             "the Problem Details payload must carry the RECIPE_NOT_OWNED error code");
     }
 
+    // ── Blob URL must match the presigned key ──────────────────────────────────
+
+    [Theory]
+    [InlineData("main")]
+    [InlineData("gallery")]
+    public async Task ConfirmImage_ForeignBlobUrl_Returns400InvalidBlobUrl_AndLeavesRecipeUntouched(string slot)
+    {
+        var client = factory.CreateClient();
+        var token = await SeedUserAsync(client, "Nutritionist", $"confirm-bad-url-{slot}");
+        var foodId = await TestHelpers.CreateFoodAsync(client, token, TestContext.Current.CancellationToken);
+        var recipeId = await CreateRecipeAsync(client, token, foodId);
+
+        TestHelpers.SetBearerToken(client, token);
+
+        // Another recipe's key, an external URL and legacy count/fixed names are all rejected.
+        var otherSlot = slot == "main" ? "gallery" : "main";
+        foreach (var badUrl in new[]
+                 {
+                     NewKey(Guid.NewGuid(), slot), "https://evil.example/x.jpg", $"recipes/{recipeId}/gallery-3.jpg",
+                     $"recipes/{recipeId}/{slot}.jpg", NewKey(recipeId, otherSlot),
+                 })
+        {
+            var response = await client.PutAsJsonAsync(
+                $"/recipes/{recipeId}/image?slot={slot}",
+                new { BlobUrl = badUrl },
+                TestContext.Current.CancellationToken);
+
+            response.StatusCode.Should().Be(HttpStatusCode.BadRequest, badUrl);
+            (await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken))
+                .Should().Contain("INVALID_BLOB_URL");
+        }
+
+        var recipe = await (await client.GetAsync($"/recipes/{recipeId}", TestContext.Current.CancellationToken))
+            .Content.ReadFromJsonAsync<RecipeDetailResponse>(cancellationToken: TestContext.Current.CancellationToken);
+        recipe!.ImageUrl.Should().BeNull();
+        recipe.GalleryImageUrls.Should().BeEmpty();
+    }
+
+    // ── Remove main image ──────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task DeleteImage_Owner_ClearsMainImageOnly_AndIsIdempotent()
+    {
+        var client = factory.CreateClient();
+        var token = await SeedUserAsync(client, "Nutritionist", "delete-image-owner");
+        var foodId = await TestHelpers.CreateFoodAsync(client, token, TestContext.Current.CancellationToken);
+        var recipeId = await CreateRecipeAsync(client, token, foodId);
+
+        TestHelpers.SetBearerToken(client, token);
+        (await client.PutAsJsonAsync($"/recipes/{recipeId}/image?slot=main",
+            new { BlobUrl = NewKey(recipeId, "main") }, TestContext.Current.CancellationToken))
+            .StatusCode.Should().Be(HttpStatusCode.NoContent);
+        (await client.PutAsJsonAsync($"/recipes/{recipeId}/image?slot=gallery",
+            new { BlobUrl = NewKey(recipeId, "gallery") }, TestContext.Current.CancellationToken))
+            .StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        for (var attempt = 0; attempt < 2; attempt++)
+        {
+            var response = await client.DeleteAsync($"/recipes/{recipeId}/image", TestContext.Current.CancellationToken);
+            response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        }
+
+        var recipe = await (await client.GetAsync($"/recipes/{recipeId}", TestContext.Current.CancellationToken))
+            .Content.ReadFromJsonAsync<RecipeDetailResponse>(cancellationToken: TestContext.Current.CancellationToken);
+        recipe!.ImageUrl.Should().BeNull();
+        recipe.GalleryImageUrls.Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task DeleteImage_NonOwner_Returns400RecipeNotOwned_AndKeepsImage()
+    {
+        var client = factory.CreateClient();
+        var tokenA = await SeedUserAsync(client, "Nutritionist", "delete-image-a");
+        var foodId = await TestHelpers.CreateFoodAsync(client, tokenA, TestContext.Current.CancellationToken);
+        var recipeId = await CreateRecipeAsync(client, tokenA, foodId);
+        var mainUrl = NewKey(recipeId, "main");
+        (await client.PutAsJsonAsync($"/recipes/{recipeId}/image?slot=main",
+            new { BlobUrl = mainUrl }, TestContext.Current.CancellationToken))
+            .StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        var tokenB = await SeedUserAsync(client, "Nutritionist", "delete-image-b");
+        TestHelpers.SetBearerToken(client, tokenB);
+
+        var response = await client.DeleteAsync($"/recipes/{recipeId}/image", TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken)).Should().Contain("RECIPE_NOT_OWNED");
+
+        TestHelpers.SetBearerToken(client, tokenA);
+        var recipe = await (await client.GetAsync($"/recipes/{recipeId}", TestContext.Current.CancellationToken))
+            .Content.ReadFromJsonAsync<RecipeDetailResponse>(cancellationToken: TestContext.Current.CancellationToken);
+        recipe!.ImageUrl.Should().Be(mainUrl);
+    }
+
+    [Fact]
+    public async Task DeleteImage_MissingRecipe_Returns404()
+    {
+        var client = factory.CreateClient();
+        var token = await SeedUserAsync(client, "Nutritionist", "delete-image-missing");
+        TestHelpers.SetBearerToken(client, token);
+
+        var response = await client.DeleteAsync($"/recipes/{Guid.NewGuid()}/image", TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
     // ── Local response DTOs (per slice rules — no cross-feature imports) ────────
 
     private record UploadUrlResponse(string UploadUrl, string BlobUrl);
-    private record FoodRef(Guid FoodId);
     private record RecipeRef(Guid RecipeId);
     private record RecipeDetailResponse(Guid RecipeId, string Name, string? ImageUrl, List<string> GalleryImageUrls);
 }

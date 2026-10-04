@@ -1,255 +1,268 @@
-import { forwardRef, useState } from 'react';
+import { useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import LanguageSwitcher from '@/components/LanguageSwitcher';
-import { DarkModeToggle } from '@/components/DarkModeToggle';
-import { apiClient, ApiException } from '@/api/client';
-import { cn } from '@/lib/cn';
-import { PasswordStrengthMeter } from '@/components/PasswordStrengthMeter';
-import { PASSWORD_REQUIREMENTS } from './register-types';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useMutation } from '@tanstack/react-query';
+import axios from 'axios';
+import { CheckIcon, TriangleAlertIcon } from 'lucide-react';
+import { resetPassword } from '@/api/auth';
+import { passwordMeetsAllRules } from '@/lib/password-rules';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import PasswordStrengthRules from '@/components/entry/PasswordStrengthRules';
 
-const PasswordInput = forwardRef<
-  HTMLInputElement,
-  { id: string; placeholder: string } & React.InputHTMLAttributes<HTMLInputElement>
->(({ id, placeholder, ...props }, ref) => {
-  const [show, setShow] = useState(false);
-  return (
-    <div className="auth-password-wrap">
-      <input
-        ref={ref}
-        id={id}
-        type={show ? 'text' : 'password'}
-        className="auth-input"
-        placeholder={placeholder}
-        {...props}
-      />
-      <button
-        type="button"
-        tabIndex={-1}
-        onClick={() => setShow(!show)}
-        className="auth-eye-btn"
-      >
-        {show ? (
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-        ) : (
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-        )}
-      </button>
-    </div>
-  );
-});
-PasswordInput.displayName = 'PasswordInput';
-
-function PasswordRequirements({ password }: { password: string }) {
-  const { t } = useTranslation();
-  return (
-    <div className="auth-pw-reqs">
-      {PASSWORD_REQUIREMENTS.map(({ test, labelKey }) => {
-        const met = test(password);
-        return (
-          <div key={labelKey} className={cn('auth-pw-req', met && 'met')}>
-            <span className="auth-pw-req-dot">
-              {met ? '✓' : ''}
-            </span>
-            {t(labelKey)}
-          </div>
-        );
-      })}
-    </div>
-  );
+interface ResetPasswordFormValues {
+  newPassword: string;
+  confirmPassword: string;
 }
 
+/** Shape of a FastEndpoints validation-failure entry — only `name` is read
+ * here, to tell a `ResetPasswordValidator` field failure (`newPassword`)
+ * apart from the endpoint's own uncoded anti-enumeration ThrowError. */
+interface ValidationErrorEntry {
+  name?: string;
+}
+interface ProblemDetailsBody {
+  errors?: ValidationErrorEntry[];
+}
+
+/**
+ * "/auth/reset-password" — own centred page (prototype `#scene-reset`,
+ * scratchpad gf-register.html). Reads BOTH `token` and `email` from the
+ * query, verbatim, ONCE — URLSearchParams already decodes; a second
+ * decodeURIComponent() would corrupt a token containing a literal '%'.
+ * Missing or malformed either one renders the invalid-link state
+ * immediately: the form never renders and the API is never called
+ * (design-review error path).
+ *
+ * `ResetPasswordEndpoint` returns ONE generic failure for an invalid,
+ * expired, or already-used token AND for an unknown email alike —
+ * deliberate anti-enumeration (#656). This page never tries to
+ * distinguish those. The one exception is a weak-password rejection from
+ * `ResetPasswordValidator`, which runs BEFORE that generic branch and
+ * carries a field-level failure on `newPassword` — surfaced on the
+ * password field instead of the generic banner. Reset does NOT revoke
+ * sessions and does NOT sign the user in (`ResetPasswordEndpoint.cs:43-62`);
+ * copy here must not claim either.
+ */
 export default function ResetPasswordPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const token = searchParams.get('token');
-  const email = searchParams.get('email');
-  const [step, setStep] = useState<'form' | 'success' | 'error'>('form');
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [{ token, email }] = useState(() => ({
+    token: searchParams.get('token'),
+    email: searchParams.get('email'),
+  }));
 
-  const schema = z
-    .object({
-      newPassword: z
-        .string()
-        .min(8, t('validation.passwordMinLength'))
-        .regex(/[a-z]/, t('validation.passwordLowercase'))
-        .regex(/[A-Z]/, t('validation.passwordUppercase'))
-        .regex(/[0-9]/, t('validation.passwordDigit')),
-      confirmPassword: z.string().min(1, t('validation.confirmPassword')),
-    })
-    .refine((d) => d.newPassword === d.confirmPassword, {
-      message: t('validation.passwordsMismatch'),
-      path: ['confirmPassword'],
-    });
+  const emailIsWellFormed = !!email && z.string().email().safeParse(email).success;
+  const linkIsValid = !!token && emailIsWellFormed;
 
-  type ResetForm = z.infer<typeof schema>;
+  const resetSchema = useMemo(
+    () =>
+      z
+        .object({
+          newPassword: z
+            .string()
+            .refine(passwordMeetsAllRules, t('entry.resetPassword.validation.passwordInvalid')),
+          confirmPassword: z.string().min(1, t('entry.resetPassword.validation.confirmRequired')),
+        })
+        .refine((values) => values.newPassword === values.confirmPassword, {
+          message: t('entry.resetPassword.validation.confirmMismatch'),
+          path: ['confirmPassword'],
+        }),
+    [t]
+  );
 
   const {
     register,
     handleSubmit,
-    formState: { errors },
     watch,
-  } = useForm<ResetForm>({
-    resolver: zodResolver(schema),
-    mode: 'onChange',
+    formState: { errors, isValid },
+  } = useForm<ResetPasswordFormValues>({
+    resolver: zodResolver(resetSchema),
+    mode: 'onTouched',
+    defaultValues: { newPassword: '', confirmPassword: '' },
   });
 
-  const watchedPassword = watch('newPassword') || '';
+  const newPassword = watch('newPassword');
 
-  // Invalid link state
-  if (!token || !email) {
-    return (
-      <div className="auth-wrap">
-        <div className="absolute top-4 right-4" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <DarkModeToggle />
-          <LanguageSwitcher />
-        </div>
-        <div className="auth-card" style={{ textAlign: 'center' }}>
-          <div className="mb-4 text-4xl">&#x1F512;</div>
-          <p className="mb-6 text-sm text-red">
-            {t('auth.resetPasswordInvalidLink')}
-          </p>
-          <Link to="/login" className="auth-back">
-            {t('auth.backToLogin')}
-          </Link>
-        </div>
-      </div>
-    );
-  }
+  const resetMutation = useMutation({
+    mutationFn: (values: ResetPasswordFormValues) =>
+      resetPassword({
+        token: token ?? '',
+        email: email ?? '',
+        newPassword: values.newPassword,
+        confirmPassword: values.confirmPassword,
+      }),
+  });
 
-  const onSubmit = async (data: ResetForm) => {
-    setErrorMsg(null);
-    setLoading(true);
-    try {
-      await apiClient.resetPasswordEndpoint({
-        token,
-        email,
-        newPassword: data.newPassword,
-        confirmPassword: data.confirmPassword,
-      });
-      setStep('success');
-    } catch (err) {
-      if (ApiException.isApiException(err) && err.status === 400) {
-        setErrorMsg(t('auth.resetPasswordError'));
-      } else {
-        setErrorMsg(t('auth.resetPasswordError'));
-      }
-      setStep('error');
-    } finally {
-      setLoading(false);
-    }
+  const hasPasswordFieldError = (error: unknown): boolean => {
+    if (!axios.isAxiosError(error)) return false;
+    const body = error.response?.data as ProblemDetailsBody | undefined;
+    return !!body?.errors?.some((entry) => entry.name === 'newPassword');
   };
 
-  // Success state
-  if (step === 'success') {
-    return (
-      <div className="auth-wrap">
-        <div className="absolute top-4 right-4" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <DarkModeToggle />
-          <LanguageSwitcher />
-        </div>
-        <div className="auth-card">
-          <div className="auth-success">
-            <div className="auth-success-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
-            </div>
-            <h1 className="auth-success-title">
-              {t('auth.resetPasswordSuccessTitle')}
-            </h1>
-            <p className="auth-success-text">
-              {t('auth.resetPasswordSuccessText')}
-            </p>
-          </div>
+  const resolveBannerErrorMessage = (error: unknown): string | null => {
+    if (axios.isAxiosError(error)) {
+      if (hasPasswordFieldError(error)) {
+        // Rendered on the password field instead — see passwordFieldErrorMessage below.
+        return null;
+      }
+      if (error.response?.status === 429) {
+        return t('errors.rateLimitRefresh');
+      }
+      if (!error.response) {
+        return t('entry.resetPassword.errors.network');
+      }
+      if (error.response.status === 400) {
+        return t('entry.resetPassword.errors.genericFailure');
+      }
+      return t('entry.resetPassword.errors.generic');
+    }
+    return t('entry.resetPassword.errors.generic');
+  };
 
-          <button
-            type="button"
-            onClick={() => navigate('/login')}
-            className="btn-auth-primary"
-            style={{ marginTop: '24px' }}
-          >
-            {t('auth.goToLoginButton')}
-          </button>
+  const bannerErrorMessage = resetMutation.isError
+    ? resolveBannerErrorMessage(resetMutation.error)
+    : null;
+  const passwordFieldErrorMessage =
+    resetMutation.isError && hasPasswordFieldError(resetMutation.error)
+      ? t('entry.resetPassword.errors.passwordField')
+      : null;
+
+  const onSubmit = (values: ResetPasswordFormValues) => {
+    resetMutation.mutate(values);
+  };
+
+  const brandRow = (
+    <CardHeader>
+      <span className="flex size-7.5 items-center justify-center rounded-md bg-brand text-caption font-bold tracking-wide text-paper">
+        {t('entry.brandMark')}
+      </span>
+      <span>{t('entry.brand')}</span>
+    </CardHeader>
+  );
+
+  const shell = (children: ReactNode) => (
+    <div className="relative flex min-h-screen items-center justify-center bg-paper p-6">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 [background:radial-gradient(120%_70%_at_50%_0%,var(--color-green-soft)_0%,transparent_60%)]"
+      />
+      <Card className="relative">{children}</Card>
+    </div>
+  );
+
+  if (!linkIsValid) {
+    return shell(
+      <>
+        {brandRow}
+        <div className="flex size-11.5 items-center justify-center rounded-full bg-danger-soft text-destructive">
+          <TriangleAlertIcon className="size-5" />
         </div>
-      </div>
+        <CardTitle>{t('entry.resetPassword.invalidLink.title')}</CardTitle>
+        <CardDescription>{t('entry.resetPassword.invalidLink.lede')}</CardDescription>
+        <CardContent>
+          <Button type="button" className="w-full" onClick={() => navigate('/forgot-password')}>
+            {t('entry.resetPassword.invalidLink.requestNew')}
+          </Button>
+          <Button type="button" variant="ghost" className="w-full" onClick={() => navigate('/')}>
+            {t('entry.resetPassword.invalidLink.cta')}
+          </Button>
+        </CardContent>
+      </>
     );
   }
 
-  // Form state (also handles error state — shows form with error message)
-  return (
-    <div className="auth-wrap">
-      <div className="absolute top-4 right-4">
-        <LanguageSwitcher />
-      </div>
+  if (resetMutation.isSuccess) {
+    return shell(
+      <>
+        {brandRow}
+        <div className="flex size-11.5 items-center justify-center rounded-full bg-green-soft text-green-ink">
+          <CheckIcon className="size-5" />
+        </div>
+        <CardTitle>{t('entry.resetPassword.success.title')}</CardTitle>
+        <CardDescription>{t('entry.resetPassword.success.lede')}</CardDescription>
+        <CardContent>
+          <Button type="button" className="w-full" onClick={() => navigate('/')}>
+            {t('entry.resetPassword.success.cta')}
+          </Button>
+        </CardContent>
+      </>
+    );
+  }
 
-      <div className="auth-card">
-        {/* Title */}
-        <h1 className="auth-title">
-          {t('auth.resetPasswordFormHeroTitle')} <span>{t('auth.resetPasswordFormHeroTitleHighlight')}</span>
-        </h1>
-        <p className="auth-sub">
-          {t('auth.resetPasswordFormSubtitle')}
-        </p>
+  return shell(
+    <>
+      {brandRow}
+      <CardTitle>{t('entry.resetPassword.title')}</CardTitle>
+      <CardDescription>{t('entry.resetPassword.lede')}</CardDescription>
 
-        {errorMsg && (
-          <div className="mb-4 rounded-md border border-red bg-red-bg px-4 py-3 text-sm text-red">
-            {errorMsg}
+      <form
+        onSubmit={handleSubmit(onSubmit)}
+        noValidate
+        className="flex w-full flex-col gap-4 text-left"
+      >
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="reset-new-password">{t('entry.resetPassword.newPasswordLabel')}</Label>
+          <Input
+            id="reset-new-password"
+            type="password"
+            autoComplete="new-password"
+            placeholder="••••••••"
+            aria-invalid={!!errors.newPassword || !!passwordFieldErrorMessage}
+            aria-describedby="reset-new-password-rules"
+            {...register('newPassword')}
+          />
+          <div id="reset-new-password-rules">
+            <PasswordStrengthRules password={newPassword} />
           </div>
+          {passwordFieldErrorMessage && (
+            <p className="text-meta text-destructive">{passwordFieldErrorMessage}</p>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="reset-confirm-password">
+            {t('entry.resetPassword.confirmPasswordLabel')}
+          </Label>
+          <Input
+            id="reset-confirm-password"
+            type="password"
+            autoComplete="new-password"
+            placeholder="••••••••"
+            aria-invalid={!!errors.confirmPassword}
+            aria-describedby={errors.confirmPassword ? 'reset-confirm-password-error' : undefined}
+            {...register('confirmPassword')}
+          />
+          {errors.confirmPassword && (
+            <p id="reset-confirm-password-error" className="text-meta text-destructive">
+              {errors.confirmPassword.message}
+            </p>
+          )}
+        </div>
+
+        {bannerErrorMessage && (
+          <p role="alert" className="text-meta text-destructive">
+            {bannerErrorMessage}
+          </p>
         )}
 
-        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-          {/* New password */}
-          <div className="form-group">
-            <label htmlFor="newPassword" className="form-label">
-              {t('auth.newPassword')}
-            </label>
-            <PasswordInput
-              id="newPassword"
-              placeholder={t('auth.newPasswordPlaceholder')}
-              {...register('newPassword')}
-            />
-            <PasswordStrengthMeter password={watchedPassword} />
-            <PasswordRequirements password={watchedPassword} />
-            {errors.newPassword && (
-              <p className="mt-1 text-xs text-red">
-                {errors.newPassword.message}
-              </p>
-            )}
-          </div>
+        <Button type="submit" disabled={!isValid || resetMutation.isPending} className="w-full">
+          {resetMutation.isPending
+            ? t('entry.resetPassword.submitting')
+            : t('entry.resetPassword.submit')}
+        </Button>
 
-          {/* Confirm password */}
-          <div className="form-group">
-            <label htmlFor="confirmPassword" className="form-label">
-              {t('auth.confirmPassword')}
-            </label>
-            <PasswordInput
-              id="confirmPassword"
-              placeholder={t('auth.confirmNewPasswordPlaceholder')}
-              {...register('confirmPassword')}
-            />
-            {errors.confirmPassword && (
-              <p className="mt-1 text-xs text-red">
-                {errors.confirmPassword.message}
-              </p>
-            )}
-          </div>
-
-          {/* Submit */}
-          <button
-            type="submit"
-            disabled={loading}
-            className="btn-auth-primary"
-          >
-            {loading ? t('auth.savingEllipsis') : t('auth.saveNewPasswordButton')}
-          </button>
-        </form>
-      </div>
-    </div>
+        <div className="rounded-r-md border-l-3 border-border bg-sunken px-3.5 py-2.5 text-left text-meta text-muted-foreground">
+          {t('entry.resetPassword.note')}
+        </div>
+      </form>
+    </>
   );
 }

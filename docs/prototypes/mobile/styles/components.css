@@ -231,6 +231,11 @@
 .seg-ctrl{display:flex;background:var(--ios-fill);border-radius:9px;padding:2px;margin:0 20px 16px}
 .seg-opt{flex:1;text-align:center;padding:7px 0;border-radius:7px;font-size:13px;font-weight:var(--sf-med);color:var(--ios-label2);cursor:pointer;transition:background .15s,color .15s}
 .seg-opt.active{background:var(--ios-bg2);color:var(--ios-label);box-shadow:0 1px 4px rgba(0,0,0,.1)}
+.seg-opt.disabled{opacity:.35;pointer-events:none;cursor:default}
+.wk-bar{display:flex;align-items:center;justify-content:center;gap:18px;padding:8px 20px 2px}
+.wk-step{width:30px;height:30px;border-radius:50%;background:var(--ios-fill);display:flex;align-items:center;justify-content:center;font-size:17px;color:var(--ios-blue);cursor:pointer;font-weight:600;flex-shrink:0}
+.wk-step.wk-disabled{opacity:.3;pointer-events:none}
+.wk-lbl{font-size:15px;font-weight:var(--sf-semi);color:var(--ios-label);min-width:130px;text-align:center}
 
 /* Pill tab */
 .pill-tabs{display:flex;gap:8px;padding:4px 20px 8px;overflow-x:auto}

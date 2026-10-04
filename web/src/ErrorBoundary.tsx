@@ -11,28 +11,19 @@ interface FallbackProps {
  */
 export function ErrorFallback({ error }: FallbackProps) {
   return (
-    <div style={{ padding: 40, fontFamily: 'Inter, sans-serif' }}>
-      <h1 style={{ fontSize: 22, fontWeight: 600, marginBottom: 8, color: '#c0392b' }}>
-        Něco se pokazilo
-      </h1>
-      <p style={{ fontSize: 14, color: '#6b6860', marginBottom: 16 }}>
+    <div className="p-10 font-sans">
+      <h1 className="mb-2 text-xl font-semibold text-destructive">Něco se pokazilo</h1>
+      <p className="mb-4 text-sm text-muted-foreground">
         Aplikace narazila na neočekávanou chybu.
       </p>
-      <pre style={{
-        fontSize: 12, padding: 16, background: '#f7f7f5', borderRadius: 6,
-        border: '1px solid rgba(55,53,47,0.09)', overflow: 'auto', color: '#37352f',
-      }}>
+      <pre className="overflow-auto rounded-sm border border-border bg-muted p-4 text-xs text-ink">
         {error?.message}
         {'\n'}
         {error?.stack}
       </pre>
       <button
         onClick={() => window.location.reload()}
-        style={{
-          marginTop: 16, padding: '8px 16px', border: 'none', borderRadius: 6,
-          background: '#37352f', color: '#fff', fontSize: 13, fontWeight: 500,
-          cursor: 'pointer',
-        }}
+        className="mt-4 cursor-pointer rounded-md border-none bg-pill px-4 py-2 text-sm font-medium text-paper"
       >
         Obnovit stránku
       </button>

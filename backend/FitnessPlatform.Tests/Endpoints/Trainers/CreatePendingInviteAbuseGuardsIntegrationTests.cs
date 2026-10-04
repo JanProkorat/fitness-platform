@@ -44,8 +44,6 @@ public class CreatePendingInviteAbuseGuardsIntegrationTests(FitnessApiFactory fa
         // this is exactly the payload the finding describes as attacker-controlled text.
         var inviteResponse = await trainerClient.PostAsJsonAsync("/trainer/pending-invites", new
         {
-            FirstName = "Existing",
-            LastName = "Client",
             Email = clientEmail,
             Message = "This text must not land in the client's inbox before they accept."
         }, cancellationToken: TestContext.Current.CancellationToken);

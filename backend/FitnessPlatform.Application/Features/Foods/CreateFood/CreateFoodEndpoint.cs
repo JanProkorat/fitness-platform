@@ -3,6 +3,7 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Extensions;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.Foods.Shared;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 
@@ -23,6 +24,9 @@ public class CreateFoodEndpoint(IMongoContext mongo) : Endpoint<CreateFoodReques
         {
             s.Summary = "Create custom food";
             s.Description = "Creates a new custom food item. Only nutritionists can create custom foods.";
+            s.Response<FoodSummary>(StatusCodes.Status201Created, "Food created");
+            s.Responses[StatusCodes.Status400BadRequest] = "Invalid request body";
+            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or invalid credentials";
         });
     }
 
@@ -62,7 +66,8 @@ public class CreateFoodEndpoint(IMongoContext mongo) : Endpoint<CreateFoodReques
             },
             Category = req.Category,
             Note = req.Note,
-            Allergens = req.Allergens,
+            Allergens = FoodEnumListMapping.ToStoredNames(req.Allergens),
+            DietaryPreferences = FoodEnumListMapping.ToStoredNames(req.DietaryPreferences),
             CommonServings = req.CommonServings
                 .Select(s => new ServingSize { Label = s.Label, WeightGrams = s.WeightGrams })
                 .ToList(),

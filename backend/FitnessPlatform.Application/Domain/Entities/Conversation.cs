@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using FitnessPlatform.Application.Domain.Common;
+using FitnessPlatform.Application.Domain.Enums;
 
 namespace FitnessPlatform.Application.Domain.Entities;
 
@@ -59,6 +60,20 @@ public class Conversation : PublicTimestampableEntity
     /// When true, new messages from the former trainer don't auto-unarchive.
     /// </summary>
     public bool IsFormer { get; set; }
+
+    /// <summary>
+    /// Whether the last message in this conversation carries an image attachment. Set explicitly
+    /// on every send (true or false) — never inferred from <see cref="LastMessageText"/>, which
+    /// stays an empty string for an image-only message rather than a literal marker.
+    /// </summary>
+    public bool LastMessageHasImage { get; set; }
+
+    /// <summary>
+    /// The cooperation event type of the last message, when it was a
+    /// <see cref="ChatMessageKind.Event"/> row. Null when the last message is
+    /// plain text — reset on every plain-text send.
+    /// </summary>
+    public ChatEventType? LastMessageEventType { get; set; }
 
     /// <summary>
     /// Messages in this conversation.

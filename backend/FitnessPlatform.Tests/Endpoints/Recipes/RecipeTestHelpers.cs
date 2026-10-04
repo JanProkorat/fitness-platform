@@ -41,20 +41,49 @@ public static class RecipeTestHelpers
     /// controls the <see cref="ReplaceOneResult.ModifiedCount"/> the Recipes collection's
     /// <c>ReplaceOneAsync</c> reports — an unstubbed <c>ReplaceOneAsync</c> auto-substitutes a result
     /// whose <c>ModifiedCount</c> is 0, which silently takes UpdateRecipeEndpoint's 409 branch (see
-    /// the precedent at <c>WorkoutTemplateEndpointTests.CreateMockCollection</c>).
+    /// the precedent at <c>WorkoutTemplateEndpointTests.CreateMockCollection</c>). FoodTags and
+    /// RecipeTagAssignments are stubbed with the given documents (empty by default); like every
+    /// mock here the filter is not evaluated, so owner scoping needs a real-Mongo test.
     /// </summary>
     public static IMongoContext CreateMockMongo(
-        Recipe[]? recipes = null, Food[]? foods = null, long modifiedCount = 1)
+        Recipe[]? recipes = null,
+        Food[]? foods = null,
+        long modifiedCount = 1,
+        FoodTag[]? foodTags = null,
+        RecipeTagAssignment[]? assignments = null)
     {
         // Configure each collection FULLY before wiring it into the context — NSubstitute cannot
         // track lastCall state across nested substitute setup.
         var recipeCollection = CreateRecipeCollection((recipes ?? []).ToList(), modifiedCount);
         var foodCollection = CreateFoodCollection((foods ?? []).ToList());
+        var foodTagCollection = CreateReadOnlyCollection((foodTags ?? []).ToList());
+        var assignmentCollection = CreateReadOnlyCollection((assignments ?? []).ToList());
 
         var mongo = Substitute.For<IMongoContext>();
         mongo.Recipes.Returns(recipeCollection);
         mongo.Foods.Returns(foodCollection);
+        mongo.FoodTags.Returns(foodTagCollection);
+        mongo.RecipeTagAssignments.Returns(assignmentCollection);
         return mongo;
+    }
+
+    private static IMongoCollection<T> CreateReadOnlyCollection<T>(List<T> documents)
+    {
+        var collection = Substitute.For<IMongoCollection<T>>();
+
+        collection.FindAsync(
+                Arg.Any<FilterDefinition<T>>(),
+                Arg.Any<FindOptions<T, T>>(),
+                Arg.Any<CancellationToken>())
+            .Returns(_ => CreateCursor(documents));
+
+        collection.CountDocumentsAsync(
+                Arg.Any<FilterDefinition<T>>(),
+                Arg.Any<CountOptions>(),
+                Arg.Any<CancellationToken>())
+            .Returns(documents.Count);
+
+        return collection;
     }
 
     private static IMongoCollection<Recipe> CreateRecipeCollection(
@@ -82,6 +111,16 @@ public static class RecipeTestHelpers
                 Arg.Any<ReplaceOptions>(),
                 Arg.Any<CancellationToken>())
             .Returns(replaceResult);
+
+        // An unstubbed UpdateOneAsync reports ModifiedCount 0, which the picture endpoints read as a failed write.
+        var updateResult = Substitute.For<UpdateResult>();
+        updateResult.ModifiedCount.Returns(modifiedCount);
+        collection.UpdateOneAsync(
+                Arg.Any<FilterDefinition<Recipe>>(),
+                Arg.Any<UpdateDefinition<Recipe>>(),
+                Arg.Any<UpdateOptions>(),
+                Arg.Any<CancellationToken>())
+            .Returns(updateResult);
 
         return collection;
     }

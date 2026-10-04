@@ -78,6 +78,15 @@ public sealed class TrackingBlobStorageService : IBlobStorageService
         return Task.CompletedTask;
     }
 
+    /// <inheritdoc />
+    /// <remarks>
+    /// Test double only — the seed-idempotency tests in this file never exercise the download
+    /// contract, so this doesn't need real bytes. Reports existence via <see cref="_objects"/>
+    /// with no content, matching no known seed-runner consumer.
+    /// </remarks>
+    public Task<BlobObject?> DownloadAsync(string containerPath, long maxBytesToDownload, CancellationToken ct) =>
+        Task.FromResult(_objects.Contains(containerPath) ? new BlobObject(0, []) : null);
+
     /// <summary>
     /// Clears both the presence set and the call log. Part of #1104: with
     /// <see cref="QaSeedRunnerFactory"/> now shared across the whole test class instead of
@@ -313,6 +322,56 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
             .Should().Be(1, "avatar must be uploaded exactly once — idempotency guard prevents re-upload");
         _factory.BlobStorage.UploadCalls.Count(k => k == QaSeedRunner.QaFoodImageBlobKey)
             .Should().Be(1, "food image must be uploaded exactly once — idempotency guard prevents re-upload");
+
+        // #1095 — third client (no conversation, no active plan) linked to qa.trainer exactly once.
+        var client3Count = await db.Users.CountAsync(u => u.Email == QaSeedRunner.Client3Email, ct);
+        client3Count.Should().Be(1, "the QA third-client (#1095) user must be created exactly once");
+
+        var client3Profile = await db.ClientProfiles.FirstAsync(cp => cp.UserId == QaSeedRunner.Client3UserId, ct);
+        var trainerProfile = await db.ProfessionalProfiles.FirstAsync(pp => pp.UserId == QaSeedRunner.TrainerUserId, ct);
+        var client3LinkCount = await db.ClientProfessionalLinks.CountAsync(
+            l => l.ClientProfileId == client3Profile.Id && l.ProfessionalProfileId == trainerProfile.Id, ct);
+        client3LinkCount.Should().Be(1, "the qa.trainer <-> client3 link must be created exactly once");
+
+        // #1095 — inbox conversation + its three messages, created exactly once.
+        var conversationCount = await db.Conversations.CountAsync(
+            c => c.PublicId == QaSeedRunner.QaInboxConversationId, ct);
+        conversationCount.Should().Be(1, "the QA inbox conversation must be created exactly once");
+
+        var inboxMessageIds = new[]
+        {
+            QaSeedRunner.QaInboxMessage1Id,
+            QaSeedRunner.QaInboxMessage2Id,
+            QaSeedRunner.QaInboxMessage3Id,
+        };
+        var inboxMessageCount = await db.ChatMessages.CountAsync(m => inboxMessageIds.Contains(m.PublicId), ct);
+        inboxMessageCount.Should().Be(3, "all three QA inbox messages must be present with no duplicates");
+
+        // #1095 — the two weekly check-in fixtures, created exactly once.
+        var checkInIds = new[]
+        {
+            QaSeedRunner.QaWeeklyCheckInRespondedUnreviewedId,
+            QaSeedRunner.QaWeeklyCheckInExpiredId,
+        };
+        var checkInCount = await db.WeeklyCheckIns.CountAsync(w => checkInIds.Contains(w.Id), ct);
+        checkInCount.Should().Be(2, "both QA weekly check-in fixtures must be present with no duplicates");
+
+        // #1101 — former client (ended link) + its conversation, created exactly once.
+        (await db.Users.CountAsync(u => u.Email == QaSeedRunner.ClientFormerEmail, ct))
+            .Should().Be(1, "the QA former-client (#1101) user must be created exactly once");
+
+        var formerLinks = await db.ClientProfessionalLinks
+            .Where(l => l.ClientProfile.UserId == QaSeedRunner.ClientFormerUserId)
+            .ToListAsync(ct);
+        formerLinks.Should().ContainSingle("the ended qa.trainer <-> former-client link must be created exactly once")
+            .Which.IsActive.Should().BeFalse("the link must stay ended across re-seeds");
+
+        (await db.Conversations.CountAsync(c => c.PublicId == QaSeedRunner.QaEndedLinkConversationId, ct))
+            .Should().Be(1, "the ended-link conversation must be created exactly once");
+
+        var endedLinkMessageIds = new[] { QaSeedRunner.QaEndedLinkMessage1Id, QaSeedRunner.QaEndedLinkMessage2Id };
+        (await db.ChatMessages.CountAsync(m => endedLinkMessageIds.Contains(m.PublicId), ct))
+            .Should().Be(2, "both ended-link messages must be present with no duplicates");
     }
 
     /// <summary>
@@ -384,6 +443,15 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
             Builders<NutritionPlan>.Filter.Empty,
             cancellationToken: ct))
             .Should().Be(0, "minimal seed skips the nutrition plan");
+
+        // #1095 — the inbox conversation, its messages, the weekly check-ins, and the third
+        // client's link are all part of the Rich-only fixture set.
+        (await db.Conversations.CountAsync(c => c.PublicId == QaSeedRunner.QaInboxConversationId, ct))
+            .Should().Be(0, "minimal seed skips the QA inbox conversation");
+        (await db.WeeklyCheckIns.CountAsync(ct))
+            .Should().Be(0, "minimal seed skips all weekly check-ins");
+        (await db.Users.CountAsync(u => u.Email == QaSeedRunner.Client3Email, ct))
+            .Should().Be(0, "minimal seed skips the third client");
 
         // No blob uploads in minimal mode.
         _factory.BlobStorage.UploadCalls.Should().BeEmpty("minimal seed skips both image blobs");
@@ -666,6 +734,55 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
         var day = plan.Weeks[0].Days[0];
         day.DayOfWeek.Should().Be(1, "Monday is day 1");
         day.Meals.Should().HaveCount(3, "Breakfast, Lunch, Dinner");
+    }
+
+    /// <summary>
+    /// #1094 — the QA nutrition plan must carry a <c>StartDate</c> anchored to the current
+    /// week's Monday so <c>PlanWindowResolver</c>'s window <c>[StartDate, StartDate +
+    /// weeks*7)</c> covers today, and a <c>GlobalSettings</c> block whose three gram values
+    /// sum to <c>DailyKcal</c> exactly — the AC 7 macro card relies on
+    /// GET /nutrition/plans/{id} returning non-null globalSettings for the client's active
+    /// nutrition plan.
+    /// </summary>
+    [Fact]
+    public async Task SeedAsync_NutritionPlan_StartDateAnchoredToCurrentMondayWithGlobalSettings()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        await QaSeedRunner.SeedAsync(_factory.Services);
+
+        using var scope = _factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+        var plan = await mongo.NutritionPlans
+            .Find(p => p.ExternalId == QaSeedRunner.QaNutritionPlanExternalId)
+            .FirstOrDefaultAsync(ct);
+
+        plan.Should().NotBeNull("the QA nutrition plan must be seeded");
+        plan!.StartDate.Should().NotBeNull(
+            "the QA nutrition plan must have a StartDate — otherwise PlanWindowResolver treats it as " +
+            "unranged and it never matches today's window");
+        plan.StartDate!.Value.DayOfWeek.Should().Be(DayOfWeek.Monday,
+            "StartDate must anchor to a Monday so PlanDay.DayOfWeek=1 maps to that exact date");
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var windowStart = DateOnly.FromDateTime(plan.StartDate.Value);
+        var windowEnd = windowStart.AddDays(plan.Weeks.Count * 7);
+        today.Should().BeOnOrAfter(windowStart, "today must fall within the plan's resolved window");
+        today.Should().BeBefore(windowEnd, "today must fall within the plan's resolved window");
+
+        plan.GlobalSettings.Should().NotBeNull("the AC 7 macro card needs a non-null globalSettings block");
+        plan.GlobalSettings!.DailyKcal.Should().Be(2500);
+        plan.GlobalSettings.ProteinGrams.Should().Be(160);
+        plan.GlobalSettings.CarbsGrams.Should().Be(240);
+        plan.GlobalSettings.FatGrams.Should().Be(100);
+
+        var kcalFromGrams = 4 * plan.GlobalSettings.ProteinGrams!.Value
+            + 4 * plan.GlobalSettings.CarbsGrams!.Value
+            + 9 * plan.GlobalSettings.FatGrams!.Value;
+        kcalFromGrams.Should().Be(plan.GlobalSettings.DailyKcal!.Value,
+            "the three gram values must sum to DailyKcal exactly so the three rounded macro " +
+            "percentages sum to 100 rather than drifting to 99 or 101");
     }
 
     /// <summary>
@@ -1438,9 +1555,12 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
         answerCount.Should().Be(6, "the 6 answers must not be duplicated on re-seed");
 
         // Total link count: trainer↔client (#474 has 2 pairs = 2 links) + this
-        // nutritionist↔client link = 3 total.
+        // nutritionist↔client link + the #1095 qa.trainer↔client3 link + the #1101 ended
+        // qa.trainer↔former-client link = 5 total.
         var linkCount = await db.ClientProfessionalLinks.CountAsync(ct);
-        linkCount.Should().Be(3, "2 trainer↔client links (#474) + 1 nutritionist↔client link (#720), no duplicates on re-seed");
+        linkCount.Should().Be(5,
+            "2 trainer↔client links (#474) + 1 nutritionist↔client link (#720) + 1 qa.trainer↔client3 " +
+            "link (#1095) + 1 ended qa.trainer↔former-client link (#1101), no duplicates on re-seed");
 
         var nutritionPlan = await mongo.NutritionPlans
             .Find(p => p.ExternalId == QaSeedRunner.QaNutritionPlanExternalId)
@@ -1509,6 +1629,58 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
             "linkedQuestionnaireResponse useMemo performs client-side");
         linked!.Status.Should().Be("Submitted");
         linked.QuestionnaireTitle.Should().Be("QA Onboarding Questionnaire");
+    }
+
+    /// <summary>
+    /// The #1101 former-client thread (ended link, unread client message) must be listed under
+    /// the inbox's All chip and under none of the five roster-driven chips — an ended link is off
+    /// the live roster — and must stay sendable (an ended link never locks a professional's send).
+    /// </summary>
+    [Fact]
+    public async Task HttpFlow_EndedLinkConversation_ListsUnderAllOnly_AndIsNotSendLocked()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        await QaSeedRunner.SeedAsync(_factory.Services);
+
+        var client = _factory.CreateClient();
+        var (accessToken, _) = await TestHelpers.LoginAsync(client, QaSeedRunner.TrainerEmail, "TestSeed1!");
+        TestHelpers.SetBearerToken(client, accessToken);
+
+        async Task<List<InboxRow>> ListAsync(string filter)
+        {
+            var response = await client.GetAsync($"/conversations?filter={filter}", ct);
+            response.EnsureSuccessStatusCode();
+            return (await response.Content.ReadFromJsonAsync<List<InboxRow>>(
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true }, ct))!;
+        }
+
+        var allRows = await ListAsync("All");
+        var endedRow = allRows.Should().ContainSingle(r => r.Id == QaSeedRunner.QaEndedLinkConversationId,
+            "the ended-link thread is unioned into All as an off-roster conversation").Subject;
+        endedRow.IsSendLocked.Should().BeFalse("an ended link stays sendable");
+        endedRow.UnreadCount.Should().Be(1, "the fixture carries one unread client message");
+        endedRow.Participant.Name.Should().Be("QA Former")
+            .And.NotContain("QA Client", "three Playwright specs pick the first row containing 'QA Client'");
+
+        foreach (var chip in new[] { "UnreadMessages", "NoMessages", "NewCheckIns", "MissingCheckIns", "EndingSoon" })
+        {
+            (await ListAsync(chip)).Should().NotContain(r => r.Id == QaSeedRunner.QaEndedLinkConversationId,
+                $"an ended link is off the live roster, so the {chip} chip must not list it");
+        }
+    }
+
+    private sealed class InboxRow
+    {
+        public Guid? Id { get; set; }
+        public InboxParticipant Participant { get; set; } = null!;
+        public int UnreadCount { get; set; }
+        public bool IsSendLocked { get; set; }
+    }
+
+    private sealed class InboxParticipant
+    {
+        public string Name { get; set; } = string.Empty;
     }
 
     /// <summary>

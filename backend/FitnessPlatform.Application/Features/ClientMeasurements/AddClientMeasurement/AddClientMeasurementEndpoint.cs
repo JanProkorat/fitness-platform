@@ -31,7 +31,7 @@ public class AddClientMeasurementEndpoint(
         {
             s.Summary = "Record a client's body measurement";
             s.Description = "Creates a new body measurement for the specified client on behalf of the trainer/nutritionist. Requires an active trainer-client relationship.";
-            s.Responses[201] = "Measurement created";
+            s.Response<MeasurementDto>(201, "Measurement created");
             s.Responses[401] = "Unauthorized";
             s.Responses[404] = "Client not found or no active relationship";
         });

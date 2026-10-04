@@ -407,6 +407,69 @@ public class ResetTestStateEndpointTests(
         count.Should().Be(1, because: "EnsureTrainingPlanAsync must be idempotent — no duplicate plan documents");
     }
 
+    // ── Mongo index recreation (#1124) ──────────────────────────────────────
+
+    /// <summary>
+    /// POST /test/reset drops every MongoDB collection and must recreate the
+    /// startup indexes (via <c>MongoIndexInitializer.StartAsync</c>) before
+    /// re-seeding — otherwise the unique per-owner food-tag name constraint
+    /// silently disappears until the process next restarts.
+    /// </summary>
+    [Fact]
+    public async Task Reset_RecreatesFoodTagIndexes_UniqueOwnerNormalizedNameIndexExists()
+    {
+        var client = _enabledFactory.CreateClient();
+        var ct = TestContext.Current.CancellationToken;
+
+        var response = await client.PostAsync("/test/reset", null, ct);
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        using var scope = _enabledFactory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+        var indexNames = await (await mongo.FoodTags.Indexes.ListAsync(ct)).ToListAsync(ct);
+
+        var ownerNameIndex = indexNames.SingleOrDefault(
+            i => i["name"].AsString == "idx_foodtag_ownerUserId_normalizedName");
+        ownerNameIndex.Should().NotBeNull(
+            because: "MongoIndexInitializer.StartAsync must recreate the foodTags indexes after the reset drops the collection");
+        ownerNameIndex!["unique"].AsBoolean.Should().BeTrue(
+            because: "the per-owner normalized-name constraint must stay unique after the reset");
+    }
+
+    /// <summary>
+    /// The set of index names on a representative collection must be identical
+    /// before and after a reset — proving the reset doesn't just drop indexes
+    /// once and leave the database permanently un-indexed.
+    /// </summary>
+    [Fact]
+    public async Task Reset_CalledTwice_FoodTagIndexNamesUnchanged()
+    {
+        var client = _enabledFactory.CreateClient();
+        var ct = TestContext.Current.CancellationToken;
+
+        var first = await client.PostAsync("/test/reset", null, ct);
+        first.StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        using var scope = _enabledFactory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+        var namesAfterFirst = (await (await mongo.FoodTags.Indexes.ListAsync(ct)).ToListAsync(ct))
+            .Select(i => i["name"].AsString)
+            .OrderBy(n => n)
+            .ToList();
+
+        var second = await client.PostAsync("/test/reset", null, ct);
+        second.StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        var namesAfterSecond = (await (await mongo.FoodTags.Indexes.ListAsync(ct)).ToListAsync(ct))
+            .Select(i => i["name"].AsString)
+            .OrderBy(n => n)
+            .ToList();
+
+        namesAfterSecond.Should().Equal(namesAfterFirst,
+            because: "a second reset must recreate the exact same index set, not accumulate or drop indexes");
+    }
+
     // ── Gate: Testing:Enabled=false ─────────────────────────────────────────
 
     /// <summary>

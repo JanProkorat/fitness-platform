@@ -14,7 +14,11 @@ namespace FitnessPlatform.Application.Features.ClientRequests.CancelClientReques
 /// <summary>
 /// Endpoint for a client to cancel (revoke) a pending request.
 /// </summary>
-public class CancelClientRequestEndpoint(IApplicationDbContext db, IRealtimeNotifier notifier, INotificationService notificationService) : EndpointWithoutRequest
+public class CancelClientRequestEndpoint(
+    IApplicationDbContext db,
+    IRealtimeNotifier notifier,
+    INotificationService notificationService,
+    IConversationSeedService conversationSeedService) : EndpointWithoutRequest
 {
     public override void Configure()
     {
@@ -97,6 +101,18 @@ public class CancelClientRequestEndpoint(IApplicationDbContext db, IRealtimeNoti
             RequestPublicId = request.PublicId,
             ClientName = clientName
         }, ct);
+
+        // A neutral Withdrawn event, written only when a conversation already exists — never
+        // create a thread just to announce there is nothing to see (R3).
+        await conversationSeedService.AppendCooperationEventAsync(
+            profProfile.UserId,
+            userGuid,
+            userGuid,
+            ChatEventType.Withdrawn,
+            request.PublicId,
+            messageText: null,
+            createConversationIfMissing: false,
+            ct);
 
         await Send.NoContentAsync(ct);
     }

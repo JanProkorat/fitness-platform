@@ -19,6 +19,7 @@ public class CreateQuestionnaireEndpoint(IApplicationDbContext db)
         {
             s.Summary = "Create questionnaire";
             s.Description = "Creates a new questionnaire template for the authenticated professional.";
+            s.Response<GetTrainerQuestionnaireResponse>(201, "Questionnaire created");
         });
     }
 

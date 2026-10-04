@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Recipes — proposal</title>
+<!-- Proposal for the two Recipes states the wireframe does not cover: the populated list, and
+     adding ingredients inside the New Recipe drawer. Values mirror docs/design/recipes/inventory.md
+     and docs/design/ingredients/inventory.md. Static mockup, not app code. -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --page: #f8fafc; --card: #ffffff; --line: #e2e8f0; --ink: #0f172a; --ink-2: #475569;
+    --muted: #64748b; --faint: #94a3b8; --chip: #f1f5f9; --primary: #1a5c41; --danger: #ef4444;
+    --side: #121214; --side-active: #1e1e22; --brand: #15803d;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: Inter, system-ui, sans-serif; background: #d7dce3; color: var(--ink); }
+  .label { font: 700 14px Inter; color: #334155; margin: 28px 0 8px 28px; }
+  .frame { width: 1440px; height: 900px; margin: 0 0 12px 28px; display: flex; background: var(--page); position: relative; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,.15); }
+  .side { width: 240px; background: var(--side); padding: 24px 16px; color: var(--muted); font-size: 13px; flex-shrink: 0; }
+  .brand { display: flex; align-items: center; gap: 8px; padding: 0 8px 12px; color: #f8fafc; font-weight: 700; }
+  .brand b { background: var(--brand); border-radius: 6px; width: 32px; height: 32px; display: grid; place-items: center; font-weight: 800; font-size: 14px; }
+  .grp { font-size: 10px; font-weight: 600; text-transform: uppercase; margin: 20px 0 4px; }
+  .item { padding: 8px; border-radius: 6px; font-weight: 500; }
+  .item.on { background: var(--side-active); color: #fff; }
+  .main { flex: 1; padding: 32px; display: flex; flex-direction: column; gap: 24px; min-width: 0; }
+  h1 { margin: 0; font-size: 24px; font-weight: 700; }
+  .row { display: flex; justify-content: space-between; align-items: center; }
+  .search { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 10px 16px; width: 320px; color: var(--faint); font-size: 13px; }
+  .btn { background: var(--primary); color: #fff; border-radius: 8px; padding: 10px 16px; font: 600 13px Inter; border: 0; }
+  .btn.ghost { background: #fff; color: var(--muted); border: 1px solid var(--line); font-size: 14px; }
+  .pills { display: flex; gap: 12px; }
+  .pill { background: #fff; border: 1px solid var(--line); border-radius: 100px; padding: 6px 12px; font-size: 13px; color: var(--ink-2); }
+  .table { background: #fff; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; flex: 1; }
+  .th, .tr { display: flex; gap: 16px; align-items: center; padding: 12px 20px; border-bottom: 1px solid var(--line); }
+  .th { background: var(--page); font-weight: 600; font-size: 13px; color: var(--muted); }
+  .c-img { width: 40px; flex-shrink: 0; } .c-name { flex: 1; min-width: 0; } .c-kcal { width: 150px; } .c-mac { width: 190px; }
+  .c-meal { width: 200px; } .c-srv { width: 80px; } .c-lib { width: 90px; }
+  .thumb { width: 40px; height: 40px; border-radius: 8px; background: linear-gradient(135deg,#fde68a,#fca5a5); }
+  .nm { font-weight: 600; font-size: 14px; } .sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .kc { font-weight: 500; font-size: 13px; color: var(--ink-2); } .mac { font-size: 12px; color: var(--muted); display: flex; gap: 8px; }
+  .badge { display: inline-block; background: var(--chip); border-radius: 4px; padding: 2px 8px; font: 600 11px Inter; color: var(--ink-2); margin: 0 4px 4px 0; }
+  .foot { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--muted); }
+  .pages { display: flex; gap: 8px; } .pg { border: 1px solid var(--line); border-radius: 6px; padding: 6px 12px; font-weight: 600; color: var(--ink-2); background: #fff; }
+  .pg.on { background: #475569; color: #f8fafc; }
+  .overlay { position: absolute; inset: 0 0 0 240px; background: rgba(0,0,0,.4); }
+  .sheet { position: absolute; top: 0; right: 0; bottom: 0; width: 644px; background: #fff; border-left: 1px solid var(--line); padding: 24px; display: flex; flex-direction: column; gap: 20px; }
+  .sh-title { font-size: 18px; font-weight: 700; } .sh-sub { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .form { flex: 1; overflow: hidden; display: flex; flex-direction: column; gap: 14px; }
+  .sec { font: 600 14px Inter; text-transform: uppercase; }
+  .f { display: flex; flex-direction: column; gap: 6px; flex: 1; } .fl { font: 500 13px Inter; } .fl i { color: var(--danger); font-style: normal; }
+  .ctl { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font-size: 14px; color: var(--faint); background: #fff; }
+  .two { display: flex; gap: 16px; }
+  .new { border: 2px dashed #86efac; border-radius: 10px; padding: 12px; background: #f0fdf4; display: flex; flex-direction: column; gap: 8px; }
+  .tag-new { font: 700 10px Inter; color: #15803d; letter-spacing: .04em; }
+  .ing { display: flex; align-items: center; gap: 10px; background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 13px; }
+  .ing .n { flex: 1; font-weight: 600; } .ing .amt { width: 76px; border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; text-align: right; }
+  .ing .k { width: 90px; text-align: right; color: var(--muted); font-size: 12px; } .x { color: var(--faint); }
+  .add { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; color: var(--faint); font-size: 13px; background: #fff; }
+  .tot { display: flex; justify-content: space-between; font-size: 12px; color: var(--ink-2); background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+  .tot b { color: var(--ink); }
+  .note { font-size: 12px; color: #334155; margin: 0 0 0 28px; max-width: 1440px; line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<div class="label">A · Recipes list — populated (not in the wireframe)</div>
+<div class="frame">
+  <div class="side">
+    <div class="brand"><b>GF</b>GoodFellas</div>
+    <div class="grp">Nutrition</div>
+    <div class="item on">Recipes</div><div class="item">Ingredients</div><div class="item">Mealplans</div>
+  </div>
+  <div class="main">
+    <h1>Recipes</h1>
+    <div class="row"><div class="search">Search recipes…</div><button class="btn">+ New Recipe</button></div>
+    <div class="pills"><span class="pill">+ Meal type</span><span class="pill">+ Dietary preferences</span></div>
+    <div class="table">
+      <div class="th"><span class="c-img"></span><span class="c-name">Name</span><span class="c-kcal">Calories / serving</span><span class="c-mac">Nutrients / serving</span><span class="c-meal">Meal type</span><span class="c-srv">Servings</span><span class="c-lib">Library</span></div>
+      <div class="tr"><span class="c-img"><span class="thumb" style="display:block"></span></span><span class="c-name"><div class="nm">Oatmeal carrot cake</div><div class="sub">4 ingredients · 25 min</div></span><span class="c-kcal kc">290 kcal</span><span class="c-mac mac"><span>P: 28 g</span><span>C: 35 g</span><span>F: 3 g</span></span><span class="c-meal"><span class="badge">Breakfast</span><span class="badge">Snack</span></span><span class="c-srv kc">2</span><span class="c-lib"><span class="badge">System</span></span></div>
+      <div class="tr"><span class="c-img"><span class="thumb" style="display:block;background:linear-gradient(135deg,#fbcfe8,#c4b5fd)"></span></span><span class="c-name"><div class="nm">Beets and berries smoothie</div><div class="sub">4 ingredients · 5 min</div></span><span class="c-kcal kc">355 kcal</span><span class="c-mac mac"><span>P: 41 g</span><span>C: 31 g</span><span>F: 8 g</span></span><span class="c-meal"><span class="badge">Breakfast</span></span><span class="c-srv kc">2</span><span class="c-lib"><span class="badge" style="background:#dcfce7;color:#15803d">Mine</span></span></div>
+      <div class="tr"><span class="c-img"><span class="thumb" style="display:block;background:linear-gradient(135deg,#bae6fd,#a7f3d0)"></span></span><span class="c-name"><div class="nm">Protein pudding with vanilla sauce</div><div class="sub">5 ingredients · 10 min</div></span><span class="c-kcal kc">341 kcal</span><span class="c-mac mac"><span>P: 42 g</span><span>C: 23 g</span><span>F: 9 g</span></span><span class="c-meal"><span class="badge">Dessert</span></span><span class="c-srv kc">2</span><span class="c-lib"><span class="badge">System</span></span></div>
+      <div class="tr"><span class="c-img"><span class="thumb" style="display:block;background:linear-gradient(135deg,#fed7aa,#fde68a)"></span></span><span class="c-name"><div class="nm">Chicken rice bowl</div><div class="sub">7 ingredients · 35 min</div></span><span class="c-kcal kc">612 kcal</span><span class="c-mac mac"><span>P: 48 g</span><span>C: 70 g</span><span>F: 14 g</span></span><span class="c-meal"><span class="badge">Lunch</span><span class="badge">Dinner</span></span><span class="c-srv kc">4</span><span class="c-lib"><span class="badge" style="background:#dcfce7;color:#15803d">Mine</span></span></div>
+    </div>
+    <div class="foot"><span>Viewing 4 of 124</span><div class="pages"><span class="pg">Previous</span><span class="pg on">1</span><span class="pg">2</span><span class="pg">…</span><span class="pg">5</span><span class="pg">Next</span></div></div>
+  </div>
+</div>
+<p class="note">Same table pattern as Ingredients. Values are <b>per serving</b> (recipe totals ÷ servings — needs the new Servings field). Filters: Meal type (already stored on recipes, not yet exposed by the API) and Dietary preferences (the list introduced by #1115). Library: "System" for seeded recipes, "Mine" for the coach's own. Clicking a row opens the drawer in edit mode.</p>
+
+<style>
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-top: -4px; }
+  .tab { padding: 10px 14px; font: 600 13px Inter; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+  .tab.on { color: var(--ink); border-bottom-color: var(--primary); }
+  .tab .cnt { background: var(--chip); border-radius: 10px; padding: 1px 7px; font-size: 11px; margin-left: 6px; color: var(--ink-2); }
+  .strip { display: flex; justify-content: space-between; font-size: 12px; color: var(--ink-2); background: var(--page); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+  .strip b { color: var(--ink); }
+  .step { display: flex; gap: 12px; align-items: flex-start; background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 12px; }
+  .grip { color: var(--faint); font-size: 14px; line-height: 20px; cursor: grab; }
+  .num { width: 24px; height: 24px; border-radius: 12px; background: var(--primary); color: #fff; font: 700 12px Inter; display: grid; place-items: center; flex-shrink: 0; }
+  .txt { flex: 1; font-size: 14px; line-height: 20px; color: var(--ink); }
+  .txt.ph { color: var(--faint); }
+  .step .meta { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .addstep { border: 1px dashed #cbd5e1; border-radius: 8px; padding: 12px; font: 600 13px Inter; color: var(--primary); text-align: center; background: #fff; }
+</style>
+
+<div class="label">B1 · New Recipe drawer — tab "Ingredients" (not in the wireframe)</div>
+<div class="frame">
+  <div class="side"><div class="brand"><b>GF</b>GoodFellas</div><div class="grp">Nutrition</div><div class="item on">Recipes</div><div class="item">Ingredients</div><div class="item">Mealplans</div></div>
+  <div class="main"><h1>Recipes</h1></div>
+  <div class="overlay"></div>
+  <div class="sheet">
+    <div class="row"><div><div class="sh-title">New Recipe</div><div class="sh-sub">Add details about your recipe</div></div><span class="x">✕</span></div>
+    <div class="tabs"><span class="tab">Details</span><span class="tab on">Ingredients<span class="cnt">4</span></span><span class="tab">Preparation<span class="cnt">3</span></span></div>
+    <div class="form">
+      <div class="add">🔍 Search ingredients to add… (your library + system)</div>
+      <div class="ing"><span class="n">Oat flakes</span><span class="amt">80 g</span><span class="k">294 kcal</span><span class="x">✕</span></div>
+      <div class="ing"><span class="n">Carrot, raw</span><span class="amt">120 g</span><span class="k">49 kcal</span><span class="x">✕</span></div>
+      <div class="ing"><span class="n">Egg white</span><span class="amt">150 g</span><span class="k">78 kcal</span><span class="x">✕</span></div>
+      <div class="ing"><span class="n">Skyr, plain</span><span class="amt">250 g</span><span class="k">158 kcal</span><span class="x">✕</span></div>
+    </div>
+    <div class="strip"><span>Total <b>579 kcal</b> · P 55 g · C 70 g · F 5 g</span><span>Per serving (2) <b>290 kcal</b> · P 28 g · C 35 g · F 3 g</span></div>
+    <div class="row" style="justify-content:flex-end;gap:12px"><button class="btn ghost">Cancel</button><button class="btn" style="font-size:14px">Save Recipe</button></div>
+  </div>
+</div>
+
+<div class="label">B2 · New Recipe drawer — tab "Preparation" (not in the wireframe)</div>
+<div class="frame">
+  <div class="side"><div class="brand"><b>GF</b>GoodFellas</div><div class="grp">Nutrition</div><div class="item on">Recipes</div><div class="item">Ingredients</div><div class="item">Mealplans</div></div>
+  <div class="main"><h1>Recipes</h1></div>
+  <div class="overlay"></div>
+  <div class="sheet">
+    <div class="row"><div><div class="sh-title">New Recipe</div><div class="sh-sub">Add details about your recipe</div></div><span class="x">✕</span></div>
+    <div class="tabs"><span class="tab">Details</span><span class="tab">Ingredients<span class="cnt">4</span></span><span class="tab on">Preparation<span class="cnt">3</span></span></div>
+    <div class="form">
+      <div class="step"><span class="grip">⋮⋮</span><span class="num">1</span><div class="txt">Blend the oat flakes into a fine flour. Grate the carrot finely.<div class="meta">Oat flakes · Carrot, raw</div></div><span class="x">✕</span></div>
+      <div class="step"><span class="grip">⋮⋮</span><span class="num">2</span><div class="txt">Whisk the egg whites until foamy, fold in the oat flour and carrot. Bake in a small mug in the microwave for 2–3 minutes.<div class="meta">Egg white</div></div><span class="x">✕</span></div>
+      <div class="step"><span class="grip">⋮⋮</span><span class="num">3</span><div class="txt ph">Let it cool, top with skyr and serve.</div><span class="x">✕</span></div>
+      <div class="addstep">+ Add step</div>
+    </div>
+    <div class="strip"><span>Prep <b>10 min</b> · Cook <b>3 min</b></span><span>Steps are shown to the client in the app, in this order.</span></div>
+    <div class="row" style="justify-content:flex-end;gap:12px"><button class="btn ghost">Cancel</button><button class="btn" style="font-size:14px">Save Recipe</button></div>
+  </div>
+</div>
+<p class="note"><b>Drawer is now three tabs</b> instead of one long form. <b>Details</b> = the wireframe's fields unchanged (image, Name, Servings, Description, Meal Type, Difficulty, Prep/Cook time, Dietary Preferences; Allergens shown read-only, derived from the ingredients). <b>Ingredients</b> = search foods, add a line, set grams; totals and per-serving values stay visible at the bottom. <b>Preparation</b> = an ordered list of steps: each step is a text box, reorderable by dragging, removable, "+ Add step" appends one. The small grey line under a step ("Oat flakes · Carrot, raw") is optional — it lists ingredients the step mentions, matched by name; drop it if it's noise. Needs a new backend field: an ordered list of step texts on the recipe.</p>
+
+</body>
+</html>

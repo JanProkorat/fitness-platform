@@ -361,9 +361,43 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("date_updated");
 
+                    b.Property<Guid?>("EventSourceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("event_source_id");
+
+                    b.Property<int?>("EventType")
+                        .HasColumnType("integer")
+                        .HasColumnName("event_type");
+
+                    b.Property<string>("ImageBlobUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("image_blob_url");
+
+                    b.Property<string>("ImageContentType")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("image_content_type");
+
+                    b.Property<int?>("ImageHeight")
+                        .HasColumnType("integer")
+                        .HasColumnName("image_height");
+
+                    b.Property<long?>("ImageSizeBytes")
+                        .HasColumnType("bigint")
+                        .HasColumnName("image_size_bytes");
+
+                    b.Property<int?>("ImageWidth")
+                        .HasColumnType("integer")
+                        .HasColumnName("image_width");
+
                     b.Property<bool>("IsRead")
                         .HasColumnType("boolean")
                         .HasColumnName("is_read");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("integer")
+                        .HasColumnName("kind");
 
                     b.Property<Guid>("PublicId")
                         .HasColumnType("uuid")
@@ -391,6 +425,11 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
 
                     b.HasIndex("ConversationId", "DateCreated")
                         .HasDatabaseName("ix_chat_messages_conversation_id_date_created");
+
+                    b.HasIndex("ConversationId", "EventType", "EventSourceId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_chat_messages_conversation_id_event_type_event_source_id")
+                        .HasFilter("event_source_id IS NOT NULL");
 
                     b.ToTable("chat_messages", (string)null);
                 });
@@ -820,6 +859,100 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                     b.ToTable("client_requests", (string)null);
                 });
 
+            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.ClientTag", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("ColorHex")
+                        .IsRequired()
+                        .HasMaxLength(7)
+                        .HasColumnType("character varying(7)")
+                        .HasColumnName("color_hex");
+
+                    b.Property<DateTime>("DateCreated")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_created");
+
+                    b.Property<DateTime?>("DateUpdated")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_updated");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("description");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("name");
+
+                    b.Property<long>("OwnerProfessionalProfileId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("owner_professional_profile_id");
+
+                    b.Property<Guid>("PublicId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("public_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_client_tags");
+
+                    b.HasIndex("PublicId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_client_tags_public_id");
+
+                    b.HasIndex("OwnerProfessionalProfileId", "Name")
+                        .IsUnique()
+                        .HasDatabaseName("ix_client_tags_owner_professional_profile_id_name");
+
+                    b.ToTable("client_tags", (string)null);
+                });
+
+            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.ClientTagAssignment", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long>("ClientProfessionalLinkId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("client_professional_link_id");
+
+                    b.Property<long>("ClientTagId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("client_tag_id");
+
+                    b.Property<DateTime>("DateCreated")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_created");
+
+                    b.Property<DateTime?>("DateUpdated")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_updated");
+
+                    b.HasKey("Id")
+                        .HasName("pk_client_tag_assignments");
+
+                    b.HasIndex("ClientProfessionalLinkId")
+                        .HasDatabaseName("ix_client_tag_assignments_client_professional_link_id");
+
+                    b.HasIndex("ClientTagId", "ClientProfessionalLinkId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_client_tag_assignments_client_tag_id_client_professional_li");
+
+                    b.ToTable("client_tag_assignments", (string)null);
+                });
+
             modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.CoachSubscription", b =>
                 {
                     b.Property<long>("Id")
@@ -914,6 +1047,14 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                     b.Property<DateTime?>("LastMessageAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("last_message_at");
+
+                    b.Property<int?>("LastMessageEventType")
+                        .HasColumnType("integer")
+                        .HasColumnName("last_message_event_type");
+
+                    b.Property<bool>("LastMessageHasImage")
+                        .HasColumnType("boolean")
+                        .HasColumnName("last_message_has_image");
 
                     b.Property<Guid?>("LastMessageSenderId")
                         .HasColumnType("uuid")
@@ -1190,21 +1331,9 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                         .HasColumnType("character varying(256)")
                         .HasColumnName("email");
 
-                    b.Property<string>("FirstName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("first_name");
-
                     b.Property<bool>("IsAccepted")
                         .HasColumnType("boolean")
                         .HasColumnName("is_accepted");
-
-                    b.Property<string>("LastName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("last_name");
 
                     b.Property<string>("Message")
                         .HasMaxLength(500)
@@ -2502,6 +2631,39 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                     b.Navigation("Questionnaire");
                 });
 
+            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.ClientTag", b =>
+                {
+                    b.HasOne("FitnessPlatform.Application.Domain.Entities.ProfessionalProfile", "OwnerProfessionalProfile")
+                        .WithMany()
+                        .HasForeignKey("OwnerProfessionalProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_client_tags_professional_profiles_owner_professional_profil");
+
+                    b.Navigation("OwnerProfessionalProfile");
+                });
+
+            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.ClientTagAssignment", b =>
+                {
+                    b.HasOne("FitnessPlatform.Application.Domain.Entities.ClientProfessionalLink", "ClientProfessionalLink")
+                        .WithMany()
+                        .HasForeignKey("ClientProfessionalLinkId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_client_tag_assignments_client_professional_links_client_pro");
+
+                    b.HasOne("FitnessPlatform.Application.Domain.Entities.ClientTag", "ClientTag")
+                        .WithMany("Assignments")
+                        .HasForeignKey("ClientTagId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_client_tag_assignments_client_tags_client_tag_id");
+
+                    b.Navigation("ClientProfessionalLink");
+
+                    b.Navigation("ClientTag");
+                });
+
             modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.CoachSubscription", b =>
                 {
                     b.HasOne("FitnessPlatform.Application.Domain.Entities.ProfessionalProfile", "ProfessionalProfile")
@@ -2916,6 +3078,11 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                     b.Navigation("PlanPhotos");
 
                     b.Navigation("ProfessionalLinks");
+                });
+
+            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.ClientTag", b =>
+                {
+                    b.Navigation("Assignments");
                 });
 
             modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.Conversation", b =>

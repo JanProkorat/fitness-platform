@@ -552,7 +552,7 @@ public class GetClientTimelineEndpointTests(FitnessApiFactory factory)
     [Fact]
     public async Task Timeline_MealNutritionAndTrainingPlanSeededOnUserId_AllAppear()
     {
-        var (trainerHttp, trainerProfileId, _) = await SetupTrainerAsync();
+        var (trainerHttp, trainerProfileId, trainerUserId) = await SetupTrainerAsync();
         var (clientPublicId, clientProfileId, clientUserId) = await SetupClientAsync();
         await LinkTrainerToClientAsync(trainerProfileId, clientProfileId);
 
@@ -585,7 +585,7 @@ public class GetClientTimelineEndpointTests(FitnessApiFactory factory)
                 Id = ObjectId.GenerateNewId(),
                 ExternalId = Guid.NewGuid(),
                 ClientId = clientUserId,
-                NutritionistId = Guid.NewGuid(),
+                NutritionistId = trainerUserId,
                 Name = "Timeline Nutrition Plan",
                 Status = NutritionPlanStatus.Active,
                 Weeks = [new PlanWeek { WeekNumber = 1, Status = WeekStatus.Published, DatePublished = nutritionPublishedAt }],
@@ -598,7 +598,7 @@ public class GetClientTimelineEndpointTests(FitnessApiFactory factory)
                 Id = ObjectId.GenerateNewId(),
                 ExternalId = Guid.NewGuid(),
                 ClientId = clientUserId,
-                TrainerId = Guid.NewGuid(),
+                TrainerId = trainerUserId,
                 Name = "Timeline Training Plan",
                 Status = TrainingPlanStatus.Active,
                 Weeks = [new TrainingWeek { WeekNumber = 1, Status = WeekStatus.Published, DatePublished = trainingPublishedAt, Days = [] }],

@@ -1,195 +1,334 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import type { ReactNode } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import axios from 'axios';
+import { CheckIcon, MailIcon, TriangleAlertIcon } from 'lucide-react';
+import { resendVerificationAnonymous, verifyEmail } from '@/api/auth';
+import { getMyProfile } from '@/api/profile';
 import { useAuthStore } from '@/stores/auth';
-import LanguageSwitcher from '@/components/LanguageSwitcher';
-import { DarkModeToggle } from '@/components/DarkModeToggle';
-import api from '@/lib/api';
+import { getApiErrorMessage, getErrorCode } from '@/lib/api-errors';
+import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 
+interface VerifyMutationResult {
+  /** Whether the store's stale `user.emailConfirmed` was refreshed before
+   * rendering the success CTA. False when there was no session to refresh,
+   * or the profile refetch itself failed — the CTA falls back to "/" in
+   * both cases so a stale store can't bounce the user back here via
+   * ProtectedRoute with a now-consumed token. */
+  profileRefreshed: boolean;
+}
+
+/**
+ * "/verify-email" — own centred page (prototype `#scene-verified`,
+ * scratchpad gf-register.html), NOT a panel state. Three distinct callers
+ * (design-review findings, issue #1058 phase 3):
+ *
+ *   1. `?token=…` present            → verify it.
+ *   2. No token, active session      → ProtectedRoute.tsx:18-20 redirects
+ *      every authenticated-but-unverified user here with no token. Render
+ *      "check your inbox" using the session's own email, with a resend.
+ *   3. No token, no session          → invalid-link state linking to "/".
+ *
+ * StrictMode / single-fire (fixed after the initial phase-3 landing — see
+ * git history for the broken `useMutation`-triggered-from-`useEffect`
+ * version): `VerifyEmailEndpoint` CONSUMES the token (sets `UsedAt`), so a
+ * second call with the same token turns a real, successful verification
+ * into a false `INVALID_VERIFICATION_TOKEN` failure. The first version of
+ * this page called `useMutation(...).mutate(token)` from inside a
+ * `useEffect`, guarded by a `useRef` latch to stop the request itself from
+ * firing twice. That latch worked — Playwright confirmed exactly one
+ * `/auth/verify-email` request — but the component never re-rendered once
+ * the mutation settled: React 18/19 StrictMode's dev-only mount → simulated
+ * unmount → remount cycle re-subscribes `useMutation`'s internal observer
+ * on the second (surviving) mount pass, while the single fetch this page
+ * fired belongs to the FIRST pass's subscription — the notification that
+ * fetch produces on settle has nowhere live left to land, so the surviving
+ * component's `verifyMutation` object stays permanently idle even though
+ * the network call it triggered completed. The ref that correctly stopped a
+ * second consuming request also, as a side effect, stopped the only
+ * `useEffect` invocation whose resulting mutation instance would have been
+ * observed by the component actually left on screen.
+ *
+ * `useQuery` does not have this failure mode: the fetch and its result live
+ * in the shared `QueryClient` cache, keyed by `['verify-email', token]`,
+ * external to any one component instance. Both the discarded and the
+ * surviving StrictMode mount subscribe to the SAME cache entry — whichever
+ * one actually issues the request, the query cache dedupes a second
+ * subscriber's fetch for an identical, non-stale key rather than starting a
+ * new one, and every subscriber (including the one still mounted when the
+ * fetch settles) reads from that same entry. `retry: false` plus
+ * `staleTime: Infinity` keep this to exactly one network call for the
+ * token's entire single-use lifetime — no retries on the expected 400, and
+ * no accidental refetch from a window-focus/reconnect event while the user
+ * is reading the result.
+ */
 export default function VerifyEmailPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const token = searchParams.get('token');
+  // Read once, verbatim — URLSearchParams already decodes; a second
+  // decodeURIComponent() would corrupt a token containing a literal '%'.
+  const [token] = useState(() => searchParams.get('token'));
+
+  const isInitialized = useAuthStore((s) => s.isInitialized);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const user = useAuthStore((s) => s.user);
   const setUser = useAuthStore((s) => s.setUser);
   const logout = useAuthStore((s) => s.logout);
 
-  const [verifying, setVerifying] = useState(!!token);
-  const [verified, setVerified] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [resending, setResending] = useState(false);
-  const [resendSuccess, setResendSuccess] = useState(false);
-  const [remainingResends, setRemainingResends] = useState<number | null>(null);
+  const verifyQuery = useQuery({
+    queryKey: ['verify-email', token],
+    queryFn: async (): Promise<VerifyMutationResult> => {
+      // Non-null: this queryFn only ever runs when `enabled` (below) is true.
+      await verifyEmail(token as string);
 
-  // If token in URL, verify it automatically
-  useEffect(() => {
-    if (!token) return;
+      if (!isAuthenticated) {
+        return { profileRefreshed: false };
+      }
 
-    (async () => {
       try {
-        await api.post('/auth/verify-email', { token });
-        setVerified(true);
-        if (user) {
-          setUser({ ...user, emailConfirmed: true });
-        }
-        setTimeout(() => navigate('/dashboard', { replace: true }), 2000);
-      } catch (err: unknown) {
-        const resp = (err as { response?: { data?: { errors?: { errorCode?: string }[] } } })?.response?.data;
-        const errorCode = resp?.errors?.[0]?.errorCode;
-        if (errorCode === 'VERIFICATION_TOKEN_EXPIRED') {
-          setError(t('auth.verifyEmailExpired'));
-        } else {
-          setError(t('auth.verifyEmailInvalid'));
-        }
-      } finally {
-        setVerifying(false);
+        const profile = await getMyProfile();
+        setUser({
+          publicId: profile.userId ?? '',
+          email: profile.email ?? '',
+          firstName: profile.firstName ?? '',
+          lastName: profile.lastName ?? '',
+          roles: profile.roles ?? [],
+          emailConfirmed: profile.emailConfirmed ?? true,
+          avatarBlobUrl: profile.avatarBlobUrl ?? null,
+        });
+        return { profileRefreshed: true };
+      } catch {
+        // Verification itself already succeeded server-side; a failed
+        // profile refresh just means the CTA below falls back to "/"
+        // instead of "/clients" so a stale store can't loop the user.
+        return { profileRefreshed: false };
       }
-    })();
-  }, [token]);
+    },
+    enabled: !!token,
+    retry: false,
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+  });
 
-  const handleResend = async () => {
-    setResending(true);
-    setResendSuccess(false);
-    setError(null);
-    try {
-      const { data: res } = await api.post('/auth/resend-verification');
-      setResendSuccess(true);
-      setRemainingResends(res.remainingResends ?? null);
-    } catch (err: unknown) {
-      const resp = (err as { response?: { data?: { errors?: { errorCode?: string }[] } } })?.response?.data;
-      const errorCode = resp?.errors?.[0]?.errorCode;
-      if (errorCode === 'VERIFICATION_RESEND_LIMIT_REACHED') {
-        setRemainingResends(0);
-      } else {
-        setError(t('auth.verifyEmailInvalid'));
+  const resendMutation = useMutation({
+    mutationFn: (email: string) => resendVerificationAnonymous(email),
+  });
+
+  const resolveErrorMessage = (error: unknown): string => {
+    if (axios.isAxiosError(error)) {
+      if (error.response?.status === 429) {
+        return t('errors.rateLimitRefresh');
       }
-    } finally {
-      setResending(false);
+      if (!error.response) {
+        return t('entry.verifyEmail.errors.network');
+      }
+      return getApiErrorMessage(error, 'entry.verifyEmail.errors.generic');
     }
+    return t('entry.verifyEmail.errors.generic');
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login', { replace: true });
+  const resendErrorMessage = (): string | null => {
+    if (!resendMutation.isError) return null;
+    if (axios.isAxiosError(resendMutation.error)) {
+      if (resendMutation.error.response?.status === 429) {
+        return t('errors.rateLimitRefresh');
+      }
+      if (!resendMutation.error.response) {
+        return t('entry.verifyEmail.errors.network');
+      }
+    }
+    return t('entry.verifyEmail.errors.generic');
   };
 
-  // If already verified, redirect
-  if (user?.emailConfirmed && !token) {
-    navigate('/dashboard', { replace: true });
-    return null;
+  const brandRow = (
+    <CardHeader>
+      <span className="flex size-7.5 items-center justify-center rounded-md bg-brand text-caption font-bold tracking-wide text-paper">
+        {t('entry.brandMark')}
+      </span>
+      <span>{t('entry.brand')}</span>
+    </CardHeader>
+  );
+
+  const shell = (children: ReactNode) => (
+    <div className="relative flex min-h-screen items-center justify-center bg-paper p-6">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 [background:radial-gradient(120%_70%_at_50%_0%,var(--color-green-soft)_0%,transparent_60%)]"
+      />
+      <Card className="relative">{children}</Card>
+    </div>
+  );
+
+  // Not initialized yet — we cannot tell caller 2 (session, no token) apart
+  // from caller 3 (no session, no token) until the auth store has settled.
+  if (!isInitialized) {
+    return shell(brandRow);
   }
 
-  return (
-    <div className="auth-wrap" style={{ position: 'relative' }}>
-      <div style={{ position: 'absolute', top: 16, right: 16, display: 'flex', alignItems: 'center', gap: 4 }}>
-        <DarkModeToggle />
-        <LanguageSwitcher />
-      </div>
-
-      <div className="auth-card">
-        {/* Logo */}
-        <div className="auth-logo">
-          <div className="auth-logo-icon">GF</div>
-          <div>
-            <div className="auth-logo-name">GoodFellas Platform</div>
-            <div className="auth-logo-sub">{t('auth.tagline')}</div>
+  // Caller 1: cold link with a token.
+  if (token) {
+    if (verifyQuery.isSuccess) {
+      const goToClients = verifyQuery.data.profileRefreshed;
+      return shell(
+        <>
+          {brandRow}
+          <div className="flex size-11.5 items-center justify-center rounded-full bg-green-soft text-green-ink">
+            <CheckIcon className="size-5" />
           </div>
+          <CardTitle>{t('entry.verifyEmail.success.title')}</CardTitle>
+          <CardDescription>{t('entry.verifyEmail.success.lede')}</CardDescription>
+          <CardContent>
+            <Button
+              type="button"
+              className="w-full"
+              onClick={() => navigate(goToClients ? '/clients' : '/', { replace: true })}
+            >
+              {goToClients
+                ? t('entry.verifyEmail.success.cta')
+                : t('entry.verifyEmail.success.ctaLoggedOut')}
+            </Button>
+          </CardContent>
+        </>
+      );
+    }
+
+    if (verifyQuery.isError) {
+      const errorCode = getErrorCode(verifyQuery.error);
+      const canResendHere =
+        errorCode === 'VERIFICATION_TOKEN_EXPIRED' && isAuthenticated && !!user?.email;
+
+      return shell(
+        <>
+          {brandRow}
+          <div className="flex size-11.5 items-center justify-center rounded-full bg-danger-soft text-destructive">
+            <TriangleAlertIcon className="size-5" />
+          </div>
+          <CardTitle>{t('entry.verifyEmail.invalid.title')}</CardTitle>
+          <CardDescription>{resolveErrorMessage(verifyQuery.error)}</CardDescription>
+          <CardContent>
+            {canResendHere && user?.email && (
+              <>
+                <p className="text-meta text-muted-foreground">
+                  {t('entry.verifyEmail.resendFromExpired.prompt', { email: user.email })}
+                </p>
+                {resendErrorMessage() && (
+                  <p role="alert" className="text-meta text-destructive">
+                    {resendErrorMessage()}
+                  </p>
+                )}
+                {resendMutation.isSuccess && !resendMutation.isError && (
+                  <p role="status" className="text-meta text-green-ink">
+                    {t('entry.verifyEmail.checkInbox.resendConfirmation')}
+                  </p>
+                )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  disabled={resendMutation.isPending}
+                  onClick={() => resendMutation.mutate(user.email)}
+                >
+                  {resendMutation.isPending
+                    ? t('entry.verifyEmail.checkInbox.resending')
+                    : t('entry.verifyEmail.resendFromExpired.button')}
+                </Button>
+              </>
+            )}
+            <Button
+              type="button"
+              variant={canResendHere ? 'ghost' : 'default'}
+              className="w-full"
+              onClick={() => navigate('/')}
+            >
+              {t('entry.verifyEmail.invalid.backToLogin')}
+            </Button>
+          </CardContent>
+        </>
+      );
+    }
+
+    // Pending / not-yet-started (StrictMode's first commit before the
+    // effect fires).
+    return shell(
+      <>
+        {brandRow}
+        <CardDescription>{t('entry.verifyEmail.verifying')}</CardDescription>
+      </>
+    );
+  }
+
+  // Caller 2: no token, active session — ProtectedRoute redirected here for
+  // an authenticated-but-unverified user. Must render "check your inbox",
+  // never the invalid-link state, or the redirect becomes a dead end.
+  if (isAuthenticated && user && !user.emailConfirmed) {
+    return shell(
+      <>
+        {brandRow}
+        <div className="flex size-11.5 items-center justify-center rounded-full bg-green-soft text-green-ink">
+          <MailIcon className="size-5" />
         </div>
+        <CardTitle>{t('entry.verifyEmail.checkInbox.title')}</CardTitle>
+        <CardDescription>
+          {t('entry.verifyEmail.checkInbox.lede', { email: user.email })}
+        </CardDescription>
+        <CardContent>
+          {resendErrorMessage() && (
+            <p role="alert" className="text-meta text-destructive">
+              {resendErrorMessage()}
+            </p>
+          )}
+          {resendMutation.isSuccess && !resendMutation.isError && (
+            <p role="status" className="text-meta text-green-ink">
+              {t('entry.verifyEmail.checkInbox.resendConfirmation')}
+            </p>
+          )}
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            disabled={resendMutation.isPending}
+            onClick={() => resendMutation.mutate(user.email)}
+          >
+            {resendMutation.isPending
+              ? t('entry.verifyEmail.checkInbox.resending')
+              : t('entry.verifyEmail.checkInbox.resend')}
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            className="w-full"
+            onClick={() => {
+              logout();
+              navigate('/', { replace: true });
+            }}
+          >
+            {t('auth.logout')}
+          </Button>
+        </CardContent>
+      </>
+    );
+  }
 
-        {verifying ? (
-          <div style={{ textAlign: 'center', padding: '24px 0' }}>
-            <div className="auth-title">{t('auth.verifyEmailTitle')}</div>
-            <div className="auth-sub" style={{ marginTop: 8 }}>
-              {t('auth.verifyEmailResending')}
-            </div>
-          </div>
-        ) : verified ? (
-          <>
-            <div className="auth-success">
-              <div className="auth-success-icon">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                  <polyline points="22 4 12 14.01 9 11.01" />
-                </svg>
-              </div>
-              <div className="auth-success-title">{t('auth.verifyEmailSuccess')}</div>
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="auth-success">
-              <div className="auth-success-icon">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-                  <polyline points="22,6 12,13 2,6" />
-                </svg>
-              </div>
-              <div className="auth-success-title">{t('auth.verifyEmailTitle')}</div>
-              <div className="auth-success-text">
-                {t('auth.verifyEmailSubtitle')}
-              </div>
-            </div>
-
-            {user?.email && (
-              <div style={{ marginTop: 16, padding: '12px 14px', background: 'var(--bg2)', borderRadius: 'var(--radius-md)', fontSize: 13, color: 'var(--text2)', textAlign: 'left' }}>
-                <span style={{ color: 'var(--text3)', fontSize: 11, display: 'block', marginBottom: 3 }}>{t('auth.emailColonLabel')}</span>
-                <span style={{ fontWeight: 500, color: 'var(--text)' }}>{user.email}</span>
-              </div>
-            )}
-
-            {error && (
-              <div style={{ marginTop: 12, padding: '10px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--red)', background: 'var(--red-bg)', fontSize: 13, color: 'var(--red)' }}>
-                {error}
-              </div>
-            )}
-
-            {resendSuccess && (
-              <div style={{ marginTop: 12, padding: '10px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--green)', background: 'var(--green-bg)', fontSize: 13, color: 'var(--green)' }}>
-                {t('auth.verifyEmailResent')}
-              </div>
-            )}
-
-            <div style={{ marginTop: 16, fontSize: 13, color: 'var(--text3)', textAlign: 'center' }}>
-              {t('auth.verifyEmailCheckSpam')}
-            </div>
-
-            <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {remainingResends === 0 ? (
-                <div style={{ padding: '10px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--orange)', background: 'var(--orange-bg)', fontSize: 13, color: 'var(--orange)', textAlign: 'center' }}>
-                  {t('auth.verifyEmailResendLimit')}
-                </div>
-              ) : (
-                <>
-                  <button
-                    type="button"
-                    className="btn-auth-primary"
-                    onClick={handleResend}
-                    disabled={resending}
-                  >
-                    {resending ? t('auth.verifyEmailResending') : t('auth.verifyEmailResend')}
-                  </button>
-                  {remainingResends !== null && remainingResends > 0 && (
-                    <div style={{ fontSize: 12, color: 'var(--text3)', textAlign: 'center' }}>
-                      {t('auth.verifyEmailResendRemaining', { count: remainingResends })}
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-
-            <div style={{ marginTop: 16, textAlign: 'center' }}>
-              <button
-                type="button"
-                onClick={handleLogout}
-                style={{ color: 'var(--text3)', cursor: 'pointer', background: 'none', border: 'none', fontFamily: 'inherit', fontSize: 13, padding: 0, textDecoration: 'underline' }}
-              >
-                {t('auth.logout')}
-              </button>
-            </div>
-          </>
-        )}
+  // Caller 3: no token, no session (or an already-confirmed user landing
+  // here directly) — invalid-link state, no API call.
+  return shell(
+    <>
+      {brandRow}
+      <div className="flex size-11.5 items-center justify-center rounded-full bg-danger-soft text-destructive">
+        <TriangleAlertIcon className="size-5" />
       </div>
-    </div>
+      <CardTitle>{t('entry.verifyEmail.invalid.title')}</CardTitle>
+      <CardDescription>{t('entry.verifyEmail.invalid.noSessionLede')}</CardDescription>
+      <CardContent>
+        <Button type="button" className="w-full" onClick={() => navigate('/')}>
+          {t('entry.verifyEmail.invalid.backToLogin')}
+        </Button>
+      </CardContent>
+    </>
   );
 }

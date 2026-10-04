@@ -3,6 +3,7 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Extensions;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.Foods.Shared;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using MongoDB.Driver;
@@ -24,6 +25,10 @@ public class UpdateFoodEndpoint(IMongoContext mongo) : Endpoint<UpdateFoodReques
         {
             s.Summary = "Update custom food";
             s.Description = "Updates a custom food item. Only the nutritionist who created it can edit.";
+            s.Response<FoodSummary>(StatusCodes.Status200OK, "Food updated");
+            s.Responses[StatusCodes.Status400BadRequest] = "Invalid request body, or the food belongs to another nutritionist";
+            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or invalid credentials";
+            s.Responses[StatusCodes.Status404NotFound] = "Food not found, or soft-deleted";
         });
     }
 
@@ -83,7 +88,8 @@ public class UpdateFoodEndpoint(IMongoContext mongo) : Endpoint<UpdateFoodReques
             })
             .Set(f => f.Category, req.Category)
             .Set(f => f.Note, req.Note)
-            .Set(f => f.Allergens, req.Allergens)
+            .Set(f => f.Allergens, FoodEnumListMapping.ToStoredNames(req.Allergens))
+            .Set(f => f.DietaryPreferences, FoodEnumListMapping.ToStoredNames(req.DietaryPreferences))
             .Set(f => f.CommonServings, req.CommonServings
                 .Select(s => new ServingSize { Label = s.Label, WeightGrams = s.WeightGrams })
                 .ToList())
@@ -105,6 +111,11 @@ public class UpdateFoodEndpoint(IMongoContext mongo) : Endpoint<UpdateFoodReques
             cancellationToken: ct);
         var updated = await updatedCursor.FirstOrDefaultAsync(ct);
 
-        await Send.OkAsync(FoodSummary.FromDocument(updated!, currentUserId: nutritionistId), ct);
+        var tagsByFoodId = await FoodTagLookup.GetTagsByFoodIdAsync(mongo, nutritionistId, [req.FoodId], ct);
+
+        await Send.OkAsync(
+            FoodSummary.FromDocument(
+                updated!, currentUserId: nutritionistId, tags: tagsByFoodId.GetValueOrDefault(req.FoodId, [])),
+            ct);
     }
 }

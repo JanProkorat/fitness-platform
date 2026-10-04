@@ -13,9 +13,10 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
-    "label": "1 breast (~175g)",
+    "label": "piece",
     "grams": 175
    }
   ]
@@ -34,9 +35,10 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
-    "label": "1 thigh (~115g)",
+    "label": "piece",
     "grams": 115
    }
   ]
@@ -55,9 +57,10 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
-    "label": "1 portion (150g)",
+    "label": "portion",
     "grams": 150
    }
   ]
@@ -76,9 +79,10 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
-    "label": "1 steak (~200g)",
+    "label": "piece",
     "grams": 200
    }
   ]
@@ -97,9 +101,10 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
-    "label": "1 chop (~150g)",
+    "label": "piece",
     "grams": 150
    }
   ]
@@ -118,9 +123,14 @@
   "sugar": null,
   "saturatedFat": 3.0,
   "allergens": [],
+  "dietaryPreferences": [
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 fillet (~125g)",
+    "label": "piece",
     "grams": 125
    }
   ]
@@ -139,9 +149,14 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 can (~150g)",
+    "label": "can",
     "grams": 150
    }
   ]
@@ -160,9 +175,14 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 fillet (~150g)",
+    "label": "piece",
     "grams": 150
    }
   ]
@@ -181,10 +201,15 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "10 medium (~60g)",
-    "grams": 60
+    "label": "piece",
+    "grams": 6
    }
   ]
  },
@@ -204,9 +229,15 @@
   "allergens": [
    "eggs"
   ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 large (~60g)",
+    "label": "piece",
     "grams": 60
    }
   ]
@@ -227,9 +258,15 @@
   "allergens": [
    "eggs"
   ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 white (~33g)",
+    "label": "piece",
     "grams": 33
    }
   ]
@@ -250,9 +287,14 @@
   "allergens": [
    "milk"
   ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree"
+  ],
   "servings": [
    {
-    "label": "1 cup (~170g)",
+    "label": "cup",
     "grams": 170
    }
   ]
@@ -273,9 +315,14 @@
   "allergens": [
    "milk"
   ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree"
+  ],
   "servings": [
    {
-    "label": "1 cup (~170g)",
+    "label": "cup",
     "grams": 170
    }
   ]
@@ -296,9 +343,14 @@
   "allergens": [
    "milk"
   ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree"
+  ],
   "servings": [
    {
-    "label": "1 cup (~226g)",
+    "label": "cup",
     "grams": 226
    }
   ]
@@ -319,9 +371,14 @@
   "allergens": [
    "milk"
   ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree"
+  ],
   "servings": [
    {
-    "label": "1 ball (~125g)",
+    "label": "piece",
     "grams": 125
    }
   ]
@@ -342,9 +399,14 @@
   "allergens": [
    "milk"
   ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree"
+  ],
   "servings": [
    {
-    "label": "1 slice (~28g)",
+    "label": "slice",
     "grams": 28
    }
   ]
@@ -365,9 +427,14 @@
   "allergens": [
    "milk"
   ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree"
+  ],
   "servings": [
    {
-    "label": "1 glass (~250ml)",
+    "label": "glass",
     "grams": 250
    }
   ]
@@ -388,9 +455,10 @@
   "allergens": [
    "milk"
   ],
+  "dietaryPreferences": [],
   "servings": [
    {
-    "label": "1 scoop (~30g)",
+    "label": "scoop",
     "grams": 30
    }
   ]
@@ -409,9 +477,16 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 cup dry (~185g)",
+    "label": "cup",
     "grams": 185
    }
   ]
@@ -430,9 +505,16 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 cup dry (~185g)",
+    "label": "cup",
     "grams": 185
    }
   ]
@@ -453,9 +535,15 @@
   "allergens": [
    "gluten"
   ],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 cup (~80g)",
+    "label": "cup",
     "grams": 80
    }
   ]
@@ -476,9 +564,15 @@
   "allergens": [
    "gluten"
   ],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 slice (~30g)",
+    "label": "slice",
     "grams": 30
    }
   ]
@@ -499,9 +593,15 @@
   "allergens": [
    "gluten"
   ],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 portion (~80g)",
+    "label": "portion",
     "grams": 80
    }
   ]
@@ -520,9 +620,16 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 medium (~150g)",
+    "label": "piece",
     "grams": 150
    }
   ]
@@ -541,9 +648,16 @@
   "sugar": 4.2,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 medium (~130g)",
+    "label": "piece",
     "grams": 130
    }
   ]
@@ -562,9 +676,16 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 cup dry (~170g)",
+    "label": "cup",
     "grams": 170
    }
   ]
@@ -585,9 +706,15 @@
   "allergens": [
    "gluten"
   ],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 cup dry (~175g)",
+    "label": "cup",
     "grams": 175
    }
   ]
@@ -606,9 +733,16 @@
   "sugar": 12.2,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 medium (~120g)",
+    "label": "piece",
     "grams": 120
    }
   ]
@@ -627,9 +761,16 @@
   "sugar": 10.4,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 medium (~180g)",
+    "label": "piece",
     "grams": 180
    }
   ]
@@ -648,9 +789,16 @@
   "sugar": 10.0,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 cup (~150g)",
+    "label": "cup",
     "grams": 150
    }
   ]
@@ -669,9 +817,16 @@
   "sugar": 4.9,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 cup (~152g)",
+    "label": "cup",
     "grams": 152
    }
   ]
@@ -690,9 +845,16 @@
   "sugar": 9.4,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 medium (~130g)",
+    "label": "piece",
     "grams": 130
    }
   ]
@@ -711,10 +873,17 @@
   "sugar": null,
   "saturatedFat": 2.1,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 half (~68g)",
-    "grams": 68
+    "label": "piece",
+    "grams": 136
    }
   ]
  },
@@ -732,9 +901,16 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 cup chopped (~91g)",
+    "label": "cup",
     "grams": 91
    }
   ]
@@ -753,9 +929,16 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 cup (~30g)",
+    "label": "cup",
     "grams": 30
    }
   ]
@@ -774,9 +957,16 @@
   "sugar": 2.6,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 medium (~123g)",
+    "label": "piece",
     "grams": 123
    }
   ]
@@ -795,9 +985,16 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 medium (~300g)",
+    "label": "piece",
     "grams": 300
    }
   ]
@@ -816,9 +1013,16 @@
   "sugar": 4.7,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 medium (~61g)",
+    "label": "piece",
     "grams": 61
    }
   ]
@@ -837,9 +1041,16 @@
   "sugar": 4.2,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 medium (~120g)",
+    "label": "piece",
     "grams": 120
    }
   ]
@@ -858,9 +1069,16 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 cup (~164g)",
+    "label": "cup",
     "grams": 164
    }
   ]
@@ -879,9 +1097,16 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 cup (~198g)",
+    "label": "cup",
     "grams": 198
    }
   ]
@@ -900,11 +1125,18 @@
   "sugar": null,
   "saturatedFat": 3.7,
   "allergens": [
-   "tree nuts"
+   "treenuts"
+  ],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
   ],
   "servings": [
    {
-    "label": "1 handful (~28g)",
+    "label": "handful",
     "grams": 28
    }
   ]
@@ -925,9 +1157,16 @@
   "allergens": [
    "peanuts"
   ],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 tbsp (~16g)",
+    "label": "tbsp",
     "grams": 16
    }
   ]
@@ -946,11 +1185,18 @@
   "sugar": null,
   "saturatedFat": 6.1,
   "allergens": [
-   "tree nuts"
+   "treenuts"
+  ],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
   ],
   "servings": [
    {
-    "label": "1 handful (~28g)",
+    "label": "handful",
     "grams": 28
    }
   ]
@@ -969,9 +1215,16 @@
   "sugar": null,
   "saturatedFat": 13.8,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 tbsp (~14g)",
+    "label": "tbsp",
     "grams": 14
    }
   ]
@@ -992,9 +1245,14 @@
   "allergens": [
    "milk"
   ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree"
+  ],
   "servings": [
    {
-    "label": "1 tbsp (~14g)",
+    "label": "tbsp",
     "grams": 14
    }
   ]
@@ -1013,9 +1271,16 @@
   "sugar": null,
   "saturatedFat": 82.5,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 tbsp (~14g)",
+    "label": "tbsp",
     "grams": 14
    }
   ]
@@ -1034,9 +1299,10 @@
   "sugar": 82.1,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
-    "label": "1 tbsp (~21g)",
+    "label": "tbsp",
     "grams": 21
    }
   ]
@@ -1058,9 +1324,10 @@
    "milk",
    "soy"
   ],
+  "dietaryPreferences": [],
   "servings": [
    {
-    "label": "1 square (~10g)",
+    "label": "piece",
     "grams": 10
    }
   ]
@@ -1079,9 +1346,16 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 cup (~158g)",
+    "label": "cup",
     "grams": 158
    }
   ]
@@ -1102,9 +1376,14 @@
   "allergens": [
    "milk"
   ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree"
+  ],
   "servings": [
    {
-    "label": "1 cup (~150g)",
+    "label": "cup",
     "grams": 150
    }
   ]
@@ -1125,9 +1404,14 @@
   "allergens": [
    "milk"
   ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree"
+  ],
   "servings": [
    {
-    "label": "1 tub (~150g)",
+    "label": "tub",
     "grams": 150
    }
   ]
@@ -1149,9 +1433,13 @@
    "gluten",
    "milk"
   ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian"
+  ],
   "servings": [
    {
-    "label": "1 piece (~60g)",
+    "label": "piece",
     "grams": 60
    }
   ]
@@ -1172,9 +1460,14 @@
   "allergens": [
    "milk"
   ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree"
+  ],
   "servings": [
    {
-    "label": "1 slice (~30g)",
+    "label": "slice",
     "grams": 30
    }
   ]
@@ -1193,9 +1486,10 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
-    "label": "1 shot (~30ml)",
+    "label": "portion",
     "grams": 30
    }
   ]
@@ -1216,10 +1510,11 @@
   "allergens": [
    "gluten"
   ],
+  "dietaryPreferences": [],
   "servings": [
    {
-    "label": "1/2 cup (~40g)",
-    "grams": 40
+    "label": "cup",
+    "grams": 80
    }
   ]
  },
@@ -1237,9 +1532,10 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
-    "label": "1 tbsp (~15g)",
+    "label": "tbsp",
     "grams": 15
    }
   ]
@@ -1258,9 +1554,16 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 tbsp (~10g)",
+    "label": "tbsp",
     "grams": 10
    }
   ]
@@ -1279,9 +1582,10 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
-    "label": "1 tbsp (~5g)",
+    "label": "tbsp",
     "grams": 5
    }
   ]
@@ -1302,9 +1606,14 @@
   "allergens": [
    "milk"
   ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree"
+  ],
   "servings": [
    {
-    "label": "1 cup (~250ml)",
+    "label": "cup",
     "grams": 250
    }
   ]
@@ -1325,9 +1634,14 @@
   "allergens": [
    "milk"
   ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree"
+  ],
   "servings": [
    {
-    "label": "1 cup (~250ml)",
+    "label": "cup",
     "grams": 250
    }
   ]
@@ -1346,9 +1660,10 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
-    "label": "1 tsp (~5g)",
+    "label": "tsp",
     "grams": 5
    }
   ]
@@ -1369,9 +1684,14 @@
   "allergens": [
    "milk"
   ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree"
+  ],
   "servings": [
    {
-    "label": "1 tbsp (~20g)",
+    "label": "tbsp",
     "grams": 20
    }
   ]
@@ -1392,9 +1712,14 @@
   "allergens": [
    "milk"
   ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree"
+  ],
   "servings": [
    {
-    "label": "1 glass (~250ml)",
+    "label": "glass",
     "grams": 250
    }
   ]
@@ -1413,9 +1738,16 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 cup (~150g)",
+    "label": "cup",
     "grams": 150
    }
   ]
@@ -1434,11 +1766,18 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [
-   "tree nuts"
+   "treenuts"
+  ],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
   ],
   "servings": [
    {
-    "label": "1 handful (~28g)",
+    "label": "handful",
     "grams": 28
    }
   ]
@@ -1457,9 +1796,16 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 portion (~150g)",
+    "label": "portion",
     "grams": 150
    }
   ]
@@ -1481,10 +1827,11 @@
    "gluten",
    "eggs"
   ],
+  "dietaryPreferences": [],
   "servings": [
    {
-    "label": "5 pieces (~30g)",
-    "grams": 30
+    "label": "piece",
+    "grams": 6
    }
   ]
  },
@@ -1502,9 +1849,16 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 cup (~30g)",
+    "label": "cup",
     "grams": 30
    }
   ]
@@ -1523,9 +1877,10 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
-    "label": "1 packet (~40g)",
+    "label": "pack",
     "grams": 40
    }
   ]
@@ -1544,9 +1899,16 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 tbsp (~14g)",
+    "label": "tbsp",
     "grams": 14
    }
   ]
@@ -1565,9 +1927,16 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 tbsp (~9g)",
+    "label": "tbsp",
     "grams": 9
    }
   ]
@@ -1586,9 +1955,10 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
-    "label": "1 tsp (~3g)",
+    "label": "tsp",
     "grams": 3
    }
   ]
@@ -1607,9 +1977,10 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
-    "label": "1 tsp (~4g)",
+    "label": "tsp",
     "grams": 4
    }
   ]
@@ -1628,9 +1999,16 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 tbsp (~10g)",
+    "label": "tbsp",
     "grams": 10
    }
   ]
@@ -1649,9 +2027,16 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 handful (~30g)",
+    "label": "handful",
     "grams": 30
    }
   ]
@@ -1672,9 +2057,15 @@
   "allergens": [
    "gluten"
   ],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 cup (~120g)",
+    "label": "cup",
     "grams": 120
    }
   ]
@@ -1693,10 +2084,11 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
-    "label": "2 slices (~40g)",
-    "grams": 40
+    "label": "slice",
+    "grams": 20
    }
   ]
  },
@@ -1716,9 +2108,15 @@
   "allergens": [
    "gluten"
   ],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 slice (~25g)",
+    "label": "slice",
     "grams": 25
    }
   ]
@@ -1739,9 +2137,14 @@
   "allergens": [
    "milk"
   ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree"
+  ],
   "servings": [
    {
-    "label": "1 tub (~250g)",
+    "label": "tub",
     "grams": 250
    }
   ]
@@ -1760,9 +2163,16 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 cup (~150g)",
+    "label": "cup",
     "grams": 150
    }
   ]
@@ -1783,9 +2193,15 @@
   "allergens": [
    "gluten"
   ],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 slice (~50g)",
+    "label": "slice",
     "grams": 50
    }
   ]
@@ -1806,9 +2222,15 @@
   "allergens": [
    "gluten"
   ],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 slice (~40g)",
+    "label": "slice",
     "grams": 40
    }
   ]
@@ -1827,9 +2249,10 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
-    "label": "1 glass (~250ml)",
+    "label": "glass",
     "grams": 250
    }
   ]
@@ -1848,9 +2271,16 @@
   "sugar": 4.2,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 ks (~110g)",
+    "label": "piece",
     "grams": 110
    }
   ]
@@ -1869,9 +2299,16 @@
   "sugar": 4.2,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 ks (~100g)",
+    "label": "piece",
     "grams": 100
    }
   ]
@@ -1890,9 +2327,16 @@
   "sugar": 1.0,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 stroužek (~5g)",
+    "label": "clove",
     "grams": 5
    }
   ]
@@ -1911,9 +2355,16 @@
   "sugar": 2.3,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 ks (~15g)",
+    "label": "piece",
     "grams": 15
    }
   ]
@@ -1932,9 +2383,16 @@
   "sugar": 7.9,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 ks (~30g)",
+    "label": "piece",
     "grams": 30
    }
   ]
@@ -1953,9 +2411,16 @@
   "sugar": 2.5,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 ks (~300g)",
+    "label": "piece",
     "grams": 300
    }
   ]
@@ -1974,9 +2439,16 @@
   "sugar": 1.9,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 ks (~600g)",
+    "label": "piece",
     "grams": 600
    }
   ]
@@ -1995,9 +2467,16 @@
   "sugar": 1.9,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 svazek (~120g)",
+    "label": "bunch",
     "grams": 120
    }
   ]
@@ -2016,9 +2495,16 @@
   "sugar": 2.1,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 hrst (~20g)",
+    "label": "handful",
     "grams": 20
    }
   ]
@@ -2037,9 +2523,16 @@
   "sugar": 1.2,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 ks (~300g)",
+    "label": "piece",
     "grams": 300
    }
   ]
@@ -2058,9 +2551,16 @@
   "sugar": 3.8,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 hlávka (~1000g)",
+    "label": "head",
     "grams": 1000
    }
   ]
@@ -2079,9 +2579,16 @@
   "sugar": 3.2,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 hlávka (~1000g)",
+    "label": "head",
     "grams": 1000
    }
   ]
@@ -2100,9 +2607,16 @@
   "sugar": 7.9,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 ks (~80g)",
+    "label": "piece",
     "grams": 80
    }
   ]
@@ -2121,9 +2635,16 @@
   "sugar": 5.0,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 hrst (~40g)",
+    "label": "handful",
     "grams": 40
    }
   ]
@@ -2142,9 +2663,16 @@
   "sugar": 3.3,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 hrst (~40g)",
+    "label": "handful",
     "grams": 40
    }
   ]
@@ -2163,9 +2691,16 @@
   "sugar": 4.5,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 plechovka (~165g)",
+    "label": "can",
     "grams": 165
    }
   ]
@@ -2184,9 +2719,16 @@
   "sugar": 3.0,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 ks (~30g)",
+    "label": "piece",
     "grams": 30
    }
   ]
@@ -2205,9 +2747,16 @@
   "sugar": null,
   "saturatedFat": 1.9,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 hrst (~30g)",
+    "label": "handful",
     "grams": 30
    }
   ]
@@ -2226,9 +2775,16 @@
   "sugar": 3.2,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 plechovka (~400g)",
+    "label": "can",
     "grams": 400
    }
   ]
@@ -2247,9 +2803,16 @@
   "sugar": 4.5,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 láhev (~500g)",
+    "label": "pack",
     "grams": 500
    }
   ]
@@ -2268,9 +2831,16 @@
   "sugar": 12.2,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 lžíce (~16g)",
+    "label": "tbsp",
     "grams": 16
    }
   ]
@@ -2291,9 +2861,16 @@
   "allergens": [
    "celery"
   ],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 ks (~80g)",
+    "label": "piece",
     "grams": 80
    }
   ]
@@ -2312,9 +2889,16 @@
   "sugar": 1.7,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 kousek (~15g)",
+    "label": "piece",
     "grams": 15
    }
   ]
@@ -2333,9 +2917,16 @@
   "sugar": null,
   "saturatedFat": 2.0,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 hrst (~30g)",
+    "label": "handful",
     "grams": 30
    }
   ]
@@ -2354,9 +2945,16 @@
   "sugar": 1.7,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 ks (~67g)",
+    "label": "piece",
     "grams": 67
    }
   ]
@@ -2375,9 +2973,16 @@
   "sugar": 13.7,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 ks (~300g)",
+    "label": "piece",
     "grams": 300
    }
   ]
@@ -2396,9 +3001,16 @@
   "sugar": 59.2,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 hrst (~30g)",
+    "label": "handful",
     "grams": 30
    }
   ]
@@ -2417,9 +3029,16 @@
   "sugar": 9.9,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 ks (~60g)",
+    "label": "piece",
     "grams": 60
    }
   ]
@@ -2438,9 +3057,10 @@
   "sugar": null,
   "saturatedFat": 4.0,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
-    "label": "1 porce (~125g)",
+    "label": "portion",
     "grams": 125
    }
   ]
@@ -2459,9 +3079,10 @@
   "sugar": null,
   "saturatedFat": 2.0,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
-    "label": "1 porce (~125g)",
+    "label": "portion",
     "grams": 125
    }
   ]
@@ -2480,9 +3101,10 @@
   "sugar": null,
   "saturatedFat": 2.3,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
-    "label": "1 porce (~125g)",
+    "label": "portion",
     "grams": 125
    }
   ]
@@ -2501,9 +3123,10 @@
   "sugar": null,
   "saturatedFat": 6.5,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
-    "label": "1 porce (~150g)",
+    "label": "portion",
     "grams": 150
    }
   ]
@@ -2522,9 +3145,10 @@
   "sugar": null,
   "saturatedFat": 3.5,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
-    "label": "1 ks (~150g)",
+    "label": "piece",
     "grams": 150
    }
   ]
@@ -2543,9 +3167,10 @@
   "sugar": null,
   "saturatedFat": 5.5,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
-    "label": "1 plátek (~15g)",
+    "label": "slice",
     "grams": 15
    }
   ]
@@ -2564,9 +3189,10 @@
   "sugar": null,
   "saturatedFat": 1.4,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
-    "label": "1 balení (~150g)",
+    "label": "pack",
     "grams": 150
    }
   ]
@@ -2585,9 +3211,10 @@
   "sugar": null,
   "saturatedFat": 4.0,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
-    "label": "1 porce (~150g)",
+    "label": "portion",
     "grams": 150
    }
   ]
@@ -2608,9 +3235,14 @@
   "allergens": [
    "fish"
   ],
+  "dietaryPreferences": [
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 plátek (~20g)",
+    "label": "slice",
     "grams": 20
    }
   ]
@@ -2631,9 +3263,14 @@
   "allergens": [
    "fish"
   ],
+  "dietaryPreferences": [
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 plechovka (~90g)",
+    "label": "can",
     "grams": 90
    }
   ]
@@ -2654,9 +3291,14 @@
   "allergens": [
    "fish"
   ],
+  "dietaryPreferences": [
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 ks (~200g)",
+    "label": "piece",
     "grams": 200
    }
   ]
@@ -2677,9 +3319,14 @@
   "allergens": [
    "fish"
   ],
+  "dietaryPreferences": [
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 steak (~150g)",
+    "label": "piece",
     "grams": 150
    }
   ]
@@ -2700,9 +3347,14 @@
   "allergens": [
    "milk"
   ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree"
+  ],
   "servings": [
    {
-    "label": "1 vanička (~250g)",
+    "label": "tub",
     "grams": 250
    }
   ]
@@ -2723,9 +3375,14 @@
   "allergens": [
    "milk"
   ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree"
+  ],
   "servings": [
    {
-    "label": "1 porce (~100g)",
+    "label": "portion",
     "grams": 100
    }
   ]
@@ -2746,9 +3403,14 @@
   "allergens": [
    "milk"
   ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree"
+  ],
   "servings": [
    {
-    "label": "1 porce (~50g)",
+    "label": "portion",
     "grams": 50
    }
   ]
@@ -2769,9 +3431,14 @@
   "allergens": [
    "milk"
   ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree"
+  ],
   "servings": [
    {
-    "label": "1 plátek (~25g)",
+    "label": "slice",
     "grams": 25
    }
   ]
@@ -2792,9 +3459,10 @@
   "allergens": [
    "milk"
   ],
+  "dietaryPreferences": [],
   "servings": [
    {
-    "label": "1 lžíce strouhaného (~5g)",
+    "label": "tbsp",
     "grams": 5
    }
   ]
@@ -2815,9 +3483,14 @@
   "allergens": [
    "milk"
   ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree"
+  ],
   "servings": [
    {
-    "label": "1 ks (~125g)",
+    "label": "piece",
     "grams": 125
    }
   ]
@@ -2838,9 +3511,14 @@
   "allergens": [
    "milk"
   ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree"
+  ],
   "servings": [
    {
-    "label": "1 porce (~60g)",
+    "label": "portion",
     "grams": 60
    }
   ]
@@ -2861,9 +3539,14 @@
   "allergens": [
    "milk"
   ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree"
+  ],
   "servings": [
    {
-    "label": "1 porce (~50g)",
+    "label": "portion",
     "grams": 50
    }
   ]
@@ -2884,9 +3567,14 @@
   "allergens": [
    "milk"
   ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree"
+  ],
   "servings": [
    {
-    "label": "1 balení (~125g)",
+    "label": "pack",
     "grams": 125
    }
   ]
@@ -2907,9 +3595,14 @@
   "allergens": [
    "milk"
   ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree"
+  ],
   "servings": [
    {
-    "label": "1 lžíce (~20g)",
+    "label": "tbsp",
     "grams": 20
    }
   ]
@@ -2930,9 +3623,14 @@
   "allergens": [
    "milk"
   ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree"
+  ],
   "servings": [
    {
-    "label": "100 ml",
+    "label": "portion",
     "grams": 100
    }
   ]
@@ -2953,9 +3651,14 @@
   "allergens": [
    "milk"
   ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree"
+  ],
   "servings": [
    {
-    "label": "1 sklenice (~250ml)",
+    "label": "glass",
     "grams": 250
    }
   ]
@@ -2976,9 +3679,14 @@
   "allergens": [
    "milk"
   ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree"
+  ],
   "servings": [
    {
-    "label": "1 sklenice (~250ml)",
+    "label": "glass",
     "grams": 250
    }
   ]
@@ -2999,9 +3707,14 @@
   "allergens": [
    "milk"
   ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree"
+  ],
   "servings": [
    {
-    "label": "1 lžíce (~20g)",
+    "label": "tbsp",
     "grams": 20
    }
   ]
@@ -3022,9 +3735,14 @@
   "allergens": [
    "milk"
   ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree"
+  ],
   "servings": [
    {
-    "label": "1 lžíce (~20g)",
+    "label": "tbsp",
     "grams": 20
    }
   ]
@@ -3045,9 +3763,14 @@
   "allergens": [
    "milk"
   ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree"
+  ],
   "servings": [
    {
-    "label": "1 kelímek (~150g)",
+    "label": "tub",
     "grams": 150
    }
   ]
@@ -3068,9 +3791,14 @@
   "allergens": [
    "milk"
   ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree"
+  ],
   "servings": [
    {
-    "label": "1 kelímek (~150g)",
+    "label": "tub",
     "grams": 150
    }
   ]
@@ -3091,9 +3819,16 @@
   "allergens": [
    "soy"
   ],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 balení (~180g)",
+    "label": "pack",
     "grams": 180
    }
   ]
@@ -3114,9 +3849,16 @@
   "allergens": [
    "soy"
   ],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 balení (~180g)",
+    "label": "pack",
     "grams": 180
    }
   ]
@@ -3137,9 +3879,16 @@
   "allergens": [
    "soy"
   ],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 balení (~190g)",
+    "label": "pack",
     "grams": 190
    }
   ]
@@ -3160,9 +3909,16 @@
   "allergens": [
    "soy"
   ],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 hrst (~40g)",
+    "label": "handful",
     "grams": 40
    }
   ]
@@ -3181,9 +3937,16 @@
   "sugar": null,
   "saturatedFat": 0.4,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 porce suchá (~70g)",
+    "label": "portion",
     "grams": 70
    }
   ]
@@ -3202,9 +3965,16 @@
   "sugar": null,
   "saturatedFat": 0.2,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 porce suchá (~70g)",
+    "label": "portion",
     "grams": 70
    }
   ]
@@ -3223,9 +3993,16 @@
   "sugar": 1.0,
   "saturatedFat": 0.1,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 plechovka sceděná (~240g)",
+    "label": "can",
     "grams": 240
    }
   ]
@@ -3244,9 +4021,16 @@
   "sugar": 0.5,
   "saturatedFat": 0.3,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 plechovka sceděná (~240g)",
+    "label": "can",
     "grams": 240
    }
   ]
@@ -3267,9 +4051,15 @@
   "allergens": [
    "gluten"
   ],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 ks (~62g)",
+    "label": "piece",
     "grams": 62
    }
   ]
@@ -3290,9 +4080,10 @@
   "allergens": [
    "gluten"
   ],
+  "dietaryPreferences": [],
   "servings": [
    {
-    "label": "1 balení (~500g)",
+    "label": "pack",
     "grams": 500
    }
   ]
@@ -3313,9 +4104,15 @@
   "allergens": [
    "gluten"
   ],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 porce suchá (~70g)",
+    "label": "portion",
     "grams": 70
    }
   ]
@@ -3334,9 +4131,16 @@
   "sugar": null,
   "saturatedFat": 0.7,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 porce suchá (~70g)",
+    "label": "portion",
     "grams": 70
    }
   ]
@@ -3355,9 +4159,16 @@
   "sugar": null,
   "saturatedFat": 0.5,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 porce suchá (~75g)",
+    "label": "portion",
     "grams": 75
    }
   ]
@@ -3378,9 +4189,15 @@
   "allergens": [
    "gluten"
   ],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 porce (~40g)",
+    "label": "portion",
     "grams": 40
    }
   ]
@@ -3399,9 +4216,16 @@
   "sugar": 8.0,
   "saturatedFat": 0.2,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 porce (~30g)",
+    "label": "portion",
     "grams": 30
    }
   ]
@@ -3422,9 +4246,15 @@
   "allergens": [
    "gluten"
   ],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 lžíce (~8g)",
+    "label": "tbsp",
     "grams": 8
    }
   ]
@@ -3445,9 +4275,15 @@
   "allergens": [
    "gluten"
   ],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 lžíce (~10g)",
+    "label": "tbsp",
     "grams": 10
    }
   ]
@@ -3468,9 +4304,15 @@
   "allergens": [
    "gluten"
   ],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 lžíce (~10g)",
+    "label": "tbsp",
     "grams": 10
    }
   ]
@@ -3489,9 +4331,16 @@
   "sugar": null,
   "saturatedFat": 0,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 lžíce (~10g)",
+    "label": "tbsp",
     "grams": 10
    }
   ]
@@ -3510,9 +4359,16 @@
   "sugar": 1.4,
   "saturatedFat": 8.7,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 lžíce (~10g)",
+    "label": "tbsp",
     "grams": 10
    }
   ]
@@ -3531,9 +4387,16 @@
   "sugar": 2.6,
   "saturatedFat": 4.5,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 lžíce (~10g)",
+    "label": "tbsp",
     "grams": 10
    }
   ]
@@ -3552,9 +4415,16 @@
   "sugar": 3.0,
   "saturatedFat": 4.5,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 lžíce (~10g)",
+    "label": "tbsp",
     "grams": 10
    }
   ]
@@ -3573,11 +4443,18 @@
   "sugar": 4.3,
   "saturatedFat": 4.5,
   "allergens": [
-   "tree nuts"
+   "treenuts"
+  ],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
   ],
   "servings": [
    {
-    "label": "1 hrst (~28g)",
+    "label": "handful",
     "grams": 28
    }
   ]
@@ -3596,11 +4473,18 @@
   "sugar": 7.7,
   "saturatedFat": 5.9,
   "allergens": [
-   "tree nuts"
+   "treenuts"
+  ],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
   ],
   "servings": [
    {
-    "label": "1 hrst (~28g)",
+    "label": "handful",
     "grams": 28
    }
   ]
@@ -3621,9 +4505,16 @@
   "allergens": [
    "peanuts"
   ],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 hrst (~30g)",
+    "label": "handful",
     "grams": 30
    }
   ]
@@ -3645,9 +4536,15 @@
    "eggs",
    "mustard"
   ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
-    "label": "1 lžíce (~15g)",
+    "label": "tbsp",
     "grams": 15
    }
   ]
@@ -3666,9 +4563,10 @@
   "sugar": 2.0,
   "saturatedFat": 16.9,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
-    "label": "1 plechovka (~400ml)",
+    "label": "can",
     "grams": 400
    }
   ]
@@ -3687,9 +4585,10 @@
   "sugar": 1.0,
   "saturatedFat": 5.8,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
-    "label": "1 plechovka (~400ml)",
+    "label": "can",
     "grams": 400
    }
   ]
@@ -3710,9 +4609,10 @@
   "allergens": [
    "mustard"
   ],
+  "dietaryPreferences": [],
   "servings": [
    {
-    "label": "1 lžíce (~15g)",
+    "label": "tbsp",
     "grams": 15
    }
   ]
@@ -3731,9 +4631,10 @@
   "sugar": 21.0,
   "saturatedFat": 0,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
-    "label": "1 lžíce (~17g)",
+    "label": "tbsp",
     "grams": 17
    }
   ]
@@ -3755,9 +4656,10 @@
    "soy",
    "gluten"
   ],
+  "dietaryPreferences": [],
   "servings": [
    {
-    "label": "1 lžíce (~16g)",
+    "label": "tbsp",
     "grams": 16
    }
   ]
@@ -3780,9 +4682,10 @@
    "gluten",
    "sesame"
   ],
+  "dietaryPreferences": [],
   "servings": [
    {
-    "label": "1 lžíce (~16g)",
+    "label": "tbsp",
     "grams": 16
    }
   ]
@@ -3801,9 +4704,10 @@
   "sugar": 15.1,
   "saturatedFat": 0.1,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
-    "label": "1 lžíce (~17g)",
+    "label": "tbsp",
     "grams": 17
    }
   ]
@@ -3823,11 +4727,12 @@
   "saturatedFat": 7.0,
   "allergens": [
    "milk",
-   "tree nuts"
+   "treenuts"
   ],
+  "dietaryPreferences": [],
   "servings": [
    {
-    "label": "1 lžíce (~15g)",
+    "label": "tbsp",
     "grams": 15
    }
   ]
@@ -3846,9 +4751,10 @@
   "sugar": 6.0,
   "saturatedFat": 1.0,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
-    "label": "1 lžíce (~15g)",
+    "label": "tbsp",
     "grams": 15
    }
   ]
@@ -3867,9 +4773,10 @@
   "sugar": 15.0,
   "saturatedFat": 0,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
-    "label": "1 lžíce (~16g)",
+    "label": "tbsp",
     "grams": 16
    }
   ]
@@ -3888,9 +4795,10 @@
   "sugar": 33.0,
   "saturatedFat": 0,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
-    "label": "1 lžíce (~15g)",
+    "label": "tbsp",
     "grams": 15
    }
   ]
@@ -3911,9 +4819,10 @@
   "allergens": [
    "celery"
   ],
+  "dietaryPreferences": [],
   "servings": [
    {
-    "label": "1 hrnek (~250ml)",
+    "label": "cup",
     "grams": 250
    }
   ]
@@ -3934,9 +4843,10 @@
   "allergens": [
    "celery"
   ],
+  "dietaryPreferences": [],
   "servings": [
    {
-    "label": "1 sklenice (~400g)",
+    "label": "pack",
     "grams": 400
    }
   ]
@@ -3955,9 +4865,10 @@
   "sugar": 100.0,
   "saturatedFat": 0,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
-    "label": "1 lžíce (~12g)",
+    "label": "tbsp",
     "grams": 12
    }
   ]
@@ -3976,9 +4887,10 @@
   "sugar": 60.4,
   "saturatedFat": 0,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
-    "label": "1 lžíce (~20g)",
+    "label": "tbsp",
     "grams": 20
    }
   ]
@@ -3997,9 +4909,10 @@
   "sugar": 5.0,
   "saturatedFat": 0,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
-    "label": "1 lžíce (~15g)",
+    "label": "tbsp",
     "grams": 15
    }
   ]
@@ -4020,9 +4933,10 @@
   "allergens": [
    "gluten"
   ],
+  "dietaryPreferences": [],
   "servings": [
    {
-    "label": "1 ks (~8g)",
+    "label": "piece",
     "grams": 8
    }
   ]
