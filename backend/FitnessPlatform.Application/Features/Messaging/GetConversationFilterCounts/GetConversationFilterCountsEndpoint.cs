@@ -15,9 +15,9 @@ namespace FitnessPlatform.Application.Features.Messaging.GetConversationFilterCo
 /// <remarks>
 /// Computed over the same live-roster population and the same
 /// <see cref="ClientRosterFilterClassifier"/> facts <c>GetConversationsEndpoint</c>'s
-/// <c>filter</c> param uses (<see cref="ConversationRosterLoader"/>) — a chip's count and its
-/// membership can never disagree. Trainer/Nutritionist only; a Client caller has no roster to
-/// classify.
+/// <c>filter</c> param uses (<see cref="ConversationRosterLoader"/>). The All count also includes
+/// conversations outside that roster, matching the All list. Trainer/Nutritionist only; a Client
+/// caller has no roster to classify.
 /// </remarks>
 /// <param name="db">Database context.</param>
 /// <param name="mongo">MongoDB context — plan-window lookups for the EndingSoon chip.</param>
@@ -69,6 +69,11 @@ public class GetConversationFilterCountsEndpoint(
 
         var now = timeProvider.GetUtcNow().UtcDateTime;
         var roster = await ConversationRosterLoader.LoadAsync(db, mongo, professionalProfile.Id, userGuid, now, ct);
+        var liveClientIds = roster.Select(r => r.ClientUserId).ToList();
+        var offRosterConversationCount = await db.Conversations
+            .AsNoTracking()
+            .Where(c => c.ProfessionalUserId == userGuid && !liveClientIds.Contains(c.ClientUserId))
+            .CountAsync(ct);
 
         var counts = ClientRosterFilterClassifier.ComputeCounts(
             roster,
@@ -80,7 +85,9 @@ public class GetConversationFilterCountsEndpoint(
 
         await Send.OkAsync(new GetConversationFilterCountsResponse
         {
-            All = counts.All,
+            // All also includes conversations for clients whose link has ended (and clients
+            // otherwise absent from the live roster), matching GetConversationsEndpoint.
+            All = counts.All + offRosterConversationCount,
             UnreadMessages = counts.UnreadMessages,
             NoMessages = counts.NoMessages,
             NewCheckIns = counts.NewCheckIns,

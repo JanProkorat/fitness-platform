@@ -9,6 +9,7 @@ interface Props {
   participant: ParticipantDto;
   showClientPanel: boolean;
   onToggleClientPanel: () => void;
+  isFormer?: boolean;
 }
 
 /**
@@ -19,7 +20,7 @@ interface Props {
  * caller's conversations — messaging has no professional-to-professional
  * thread shape).
  */
-export default function ThreadHeader({ participant, showClientPanel, onToggleClientPanel }: Props) {
+export default function ThreadHeader({ participant, showClientPanel, onToggleClientPanel, isFormer = false }: Props) {
   const { t } = useTranslation();
 
   return (
@@ -52,7 +53,7 @@ export default function ThreadHeader({ participant, showClientPanel, onToggleCli
         >
           <Settings className="size-4" aria-hidden="true" />
         </Button>
-        {participant.clientPublicId ? (
+        {participant.clientPublicId && !isFormer ? (
           <Button type="button" variant="ghost" size="icon-sm" asChild>
             <Link to={`/clients/${participant.clientPublicId}`} aria-label={t('inbox.thread.openClientProfileAriaLabel')}>
               <ExternalLink className="size-4" aria-hidden="true" />

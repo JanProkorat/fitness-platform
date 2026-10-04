@@ -26,6 +26,7 @@ interface Props {
   isOtherPartyTyping: boolean;
   /** `ConversationDto.isSendLocked` — the server would refuse a send here. */
   isSendLocked?: boolean;
+  isFormer?: boolean;
 }
 
 /** True when `message` starts a new calendar day relative to `previous` (or there is no previous message). */
@@ -51,6 +52,7 @@ export default function ThreadPane({
   onToggleClientPanel,
   isOtherPartyTyping,
   isSendLocked = false,
+  isFormer = false,
 }: Props) {
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
@@ -205,7 +207,7 @@ export default function ThreadPane({
 
   return (
     <div className="flex h-full min-w-0 flex-1 flex-col">
-      <ThreadHeader participant={participant} showClientPanel={showClientPanel} onToggleClientPanel={onToggleClientPanel} />
+      <ThreadHeader participant={participant} showClientPanel={showClientPanel} onToggleClientPanel={onToggleClientPanel} isFormer={isFormer} />
 
       <div ref={scrollRef} onScroll={handleScroll} data-testid="thread-message-list" className="flex-1 overflow-y-auto p-4">
         <div ref={contentRef} className="flex flex-col gap-2">
