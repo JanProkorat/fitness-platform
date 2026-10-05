@@ -37,7 +37,7 @@
   --gf-line: #e7e4de; /* borders, hairlines */
   --gf-primary-text: #ffffff; /* text on an ink fill — flips in dark */
   --gf-on-dark: #f6f4f0; /* text on a fixed dark overlay — same in both modes */
-  --gf-scrim: #141414; /* modal/lightbox backdrop — dark in both modes */
+  --gf-scrim: #141414; /* modal/lightbox backdrop — the boards use the same backdrop in both modes */
 
   --gf-sidebar: #141414;
   --gf-sidebar-active: #2a2826;
@@ -115,7 +115,7 @@
   --gf-text-section-title: clamp(26px, 3vw, 34px); /* band H2 */
   --gf-text-cta-title: clamp(24px, 3vw, 32px); /* closing CTA H2 */
 
-  --gf-shadow-panel: 0 1px 2px rgba(15, 23, 42, 0.04), 0 12px 32px rgba(15, 23, 42, 0.06); /* login panel + medallion */
+  --gf-shadow-panel: 0 30px 80px rgba(0, 0, 0, 0.35); /* login panel + medallion */
   --gf-shadow-selection-bar: 0 4px 12px rgba(0, 0, 0, 0.1); /* clients-page bulk-selection bar */
 
   --gf-panel-width: 440px; /* login panel column width */
