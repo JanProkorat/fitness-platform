@@ -48,6 +48,25 @@
 
   --gf-marker: #d2342a; /* brand accent: logo "UP", brand marks */
 
+  /* Home page (PageHome*) mockups and glow washes. */
+  --gf-hero-warm: #ffe7d3; /* hero background wash, top right */
+  --gf-hero-fresh: #e4f2d3; /* hero background wash, bottom right */
+  --gf-hero-rose: #fde4e1; /* hero background wash, top left */
+  --gf-phone-bezel: #141414; /* phone mockup frame */
+  --gf-phone-screen: #f4f3ef; /* phone mockup screen base */
+  --gf-phone-warm: #ffe2c8; /* phone screen glow, top left */
+  --gf-phone-fresh: #ddf0c8; /* phone screen glow, right */
+  --gf-glass: rgba(255, 255, 255, 0.72); /* translucent card on a phone screen */
+  --gf-notif: #1e1e20; /* push-notification banner */
+  --gf-banner: #141414; /* closing "join" banner */
+  --gf-photo-sand: #d9c2ae; /* placeholder photo tints, same in both themes */
+  --gf-photo-tan: #c9b29e;
+  --gf-photo-clay: #bfa48e;
+  --gf-photo-rose: #d7a68e;
+  --gf-photo-sage: #c6c9b0;
+  --gf-photo-mist: #b7c4cf;
+  --gf-photo-peach: #f2c9b1;
+
   --gf-training: #c2510c;
   --gf-training-soft: #ffe8d2;
   --gf-training-ink: #8a3f07;
@@ -180,6 +199,16 @@
 
     --gf-marker: #e5483d;
 
+    --gf-hero-warm: rgba(242, 140, 56, 0.2);
+    --gf-hero-fresh: rgba(140, 193, 82, 0.16);
+    --gf-hero-rose: rgba(229, 72, 61, 0.1);
+    --gf-phone-bezel: #2a2a2d;
+    --gf-phone-screen: #0f0f10;
+    --gf-phone-warm: rgba(242, 140, 56, 0.35);
+    --gf-phone-fresh: rgba(140, 193, 82, 0.28);
+    --gf-glass: rgba(255, 255, 255, 0.08);
+    --gf-banner: #070708;
+
     --gf-training: #f28c38;
     --gf-training-soft: #3a2414;
     --gf-training-ink: #f7a863;
@@ -243,6 +272,24 @@
   /* Brand accent (logo "UP", brand marks). Named `marker` because
      `accent` is already the shadcn hover-fill alias above. */
   --color-marker: var(--gf-marker);
+
+  --color-hero-warm: var(--gf-hero-warm);
+  --color-hero-fresh: var(--gf-hero-fresh);
+  --color-hero-rose: var(--gf-hero-rose);
+  --color-phone-bezel: var(--gf-phone-bezel);
+  --color-phone-screen: var(--gf-phone-screen);
+  --color-phone-warm: var(--gf-phone-warm);
+  --color-phone-fresh: var(--gf-phone-fresh);
+  --color-glass: var(--gf-glass);
+  --color-notif: var(--gf-notif);
+  --color-banner: var(--gf-banner);
+  --color-photo-sand: var(--gf-photo-sand);
+  --color-photo-tan: var(--gf-photo-tan);
+  --color-photo-clay: var(--gf-photo-clay);
+  --color-photo-rose: var(--gf-photo-rose);
+  --color-photo-sage: var(--gf-photo-sage);
+  --color-photo-mist: var(--gf-photo-mist);
+  --color-photo-peach: var(--gf-photo-peach);
 
   --color-training: var(--gf-training);
   --color-training-soft: var(--gf-training-soft);
