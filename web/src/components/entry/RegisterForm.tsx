@@ -355,7 +355,7 @@ export default function RegisterForm() {
 
       <p className="text-meta text-muted-foreground">
         {t('entry.register.haveAccount')}{' '}
-        <Link to="/" className="font-medium text-brand hover:underline">
+        <Link to="/" className="font-medium text-ink underline underline-offset-2">
           {t('entry.register.signIn')}
         </Link>
       </p>

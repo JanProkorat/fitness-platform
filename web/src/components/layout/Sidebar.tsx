@@ -65,13 +65,13 @@ export default function Sidebar({ onNavigate }: Props) {
   const roleLabel = user ? formatRoleLabel(user.roles, t) : '';
 
   return (
-    <aside className="flex h-full w-60 shrink-0 flex-col gap-5 bg-sidebar-bg px-4 py-6">
+    <aside className="flex h-full w-60 shrink-0 flex-col gap-5 bg-sidebar px-4 py-6">
       <div className="flex items-center justify-between gap-2 px-2 pb-3">
         <div className="flex items-center gap-2">
-          <div className="flex size-8 items-center justify-center rounded-sm bg-brand text-body font-extrabold text-paper">
+          <div className="flex size-8 items-center justify-center rounded-sm bg-marker text-body font-extrabold text-sidebar-text">
             GF
           </div>
-          <span className="text-body font-bold text-paper">{t('common.appName')}</span>
+          <span className="text-body font-bold text-sidebar-text">{t('common.appName')}</span>
         </div>
         {/* Inert — no notification surface is built in v1. Matches the
             treatment of Help & Support / Settings below: a disabled
@@ -82,7 +82,7 @@ export default function Sidebar({ onNavigate }: Props) {
           disabled
           title={t('shell.comingSoon')}
           aria-label={t('notifications.title')}
-          className="flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground disabled:cursor-not-allowed"
+          className="flex size-8 shrink-0 items-center justify-center rounded-md text-sidebar-muted disabled:cursor-not-allowed"
         >
           <Bell className="size-4" aria-hidden="true" />
         </button>
@@ -92,14 +92,14 @@ export default function Sidebar({ onNavigate }: Props) {
         {NAV_SECTIONS.map((section) => (
           <div key={section.headerKey} className="flex flex-col gap-1">
             <div className="flex h-3 items-center justify-between px-2">
-              <span className="text-label font-semibold text-muted-foreground uppercase">
+              <span className="text-label font-semibold text-sidebar-muted uppercase">
                 {t(section.headerKey)}
               </span>
               {/* Static decorative glyph — not a collapse control. Two
                   sections of two items each is nothing to collapse, and a
                   working collapse could hide a nav item that
                   shell.smoke.spec.ts asserts is always visible. */}
-              <ChevronDown className="size-3 text-muted-foreground" aria-hidden="true" />
+              <ChevronDown className="size-3 text-sidebar-muted" aria-hidden="true" />
             </div>
             {section.items.map(({ to, labelKey, Icon }) => (
               <NavLink
@@ -110,8 +110,8 @@ export default function Sidebar({ onNavigate }: Props) {
                   cn(
                     'flex h-8 items-center gap-2.5 rounded-sm p-2 text-body transition-colors',
                     isActive
-                      ? 'bg-sidebar-accent font-semibold text-paper'
-                      : 'font-medium text-muted-foreground hover:bg-sidebar-accent/60 hover:text-paper',
+                      ? 'bg-sidebar-active font-semibold text-sidebar-text'
+                      : 'font-medium text-sidebar-muted hover:bg-sidebar-active/60 hover:text-sidebar-text',
                   )
                 }
               >
@@ -128,7 +128,7 @@ export default function Sidebar({ onNavigate }: Props) {
           type="button"
           disabled
           title={t('shell.comingSoon')}
-          className="flex items-center gap-2.5 rounded-sm p-2 text-body text-muted-foreground disabled:cursor-not-allowed"
+          className="flex items-center gap-2.5 rounded-sm p-2 text-body text-sidebar-muted disabled:cursor-not-allowed"
         >
           <HelpCircle className="size-4" aria-hidden="true" />
           {t('sidebar.help')}
@@ -137,7 +137,7 @@ export default function Sidebar({ onNavigate }: Props) {
           type="button"
           disabled
           title={t('shell.comingSoon')}
-          className="flex items-center gap-2.5 rounded-sm p-2 text-body text-muted-foreground disabled:cursor-not-allowed"
+          className="flex items-center gap-2.5 rounded-sm p-2 text-body text-sidebar-muted disabled:cursor-not-allowed"
         >
           <Settings className="size-4" aria-hidden="true" />
           {t('sidebar.settings')}
@@ -147,18 +147,18 @@ export default function Sidebar({ onNavigate }: Props) {
             the render pass before it resolves (TopBar.tsx used the same
             guard previously). */}
         {user && (
-          <div className="flex items-center justify-between gap-2 border-t border-sidebar-accent px-2 pt-3 pb-2">
+          <div className="flex items-center justify-between gap-2 border-t border-sidebar-active px-2 pt-3 pb-2">
             <div className="flex min-w-0 flex-col gap-0.5">
-              <span className="truncate text-meta font-semibold text-paper">
+              <span className="truncate text-meta font-semibold text-sidebar-text">
                 {user.firstName} {user.lastName}
               </span>
-              {roleLabel && <span className="truncate text-label text-faint">{roleLabel}</span>}
+              {roleLabel && <span className="truncate text-label text-sidebar-muted">{roleLabel}</span>}
             </div>
             <button
               type="button"
               onClick={logout}
               aria-label={t('auth.logout')}
-              className="flex shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-paper"
+              className="flex shrink-0 items-center justify-center text-sidebar-muted transition-colors hover:text-sidebar-text"
             >
               <LogOut className="size-3.5" aria-hidden="true" />
             </button>

@@ -14,7 +14,7 @@ export default function Medallion() {
       aria-hidden="true"
       className="fixed top-1/2 z-10 hidden size-14 -translate-y-1/2 translate-x-1/2 items-center justify-center rounded-full border border-border bg-surface shadow-panel panel:right-panel panel:flex"
     >
-      <i className="flex size-10 items-center justify-center rounded-full bg-brand text-body font-bold tracking-wide text-paper not-italic">
+      <i className="flex size-10 items-center justify-center rounded-full bg-marker text-body font-bold tracking-wide text-on-dark not-italic">
         {t('entry.brandMark')}
       </i>
     </div>

@@ -23,7 +23,7 @@ interface Props {
 /**
  * One message bubble. Own messages render right-aligned with the sidebar's
  * dark surface + white text and the coach's own avatar; the other party's
- * render left-aligned with the `bg-bubble` fill and the participant's avatar
+ * render left-aligned with the `bg-sunken` fill and the participant's avatar
  * (docs/design/1095/inbox-inventory.md). A message whose text contains a
  * validated YouTube link renders as an embedded preview card instead of a
  * plain text bubble — the URL is re-validated here via
@@ -64,7 +64,7 @@ export default function MessageBubble({ message, isOwn, otherParticipant, ownIni
       />
       {message.imageUrl ? (
         <div
-          className={cn('max-w-80 overflow-hidden rounded-2xl', isOwn ? 'bg-sidebar-bg text-paper' : 'bg-bubble text-foreground')}
+          className={cn('max-w-80 overflow-hidden rounded-2xl', isOwn ? 'bg-sidebar text-sidebar-text' : 'bg-sunken text-foreground')}
         >
           {imageLoadFailed ? (
             <div
@@ -93,7 +93,7 @@ export default function MessageBubble({ message, isOwn, otherParticipant, ownIni
         <div
           className={cn(
             'max-w-105 whitespace-pre-wrap rounded-2xl px-3.5 py-2.5 text-body break-words',
-            isOwn ? 'bg-sidebar-bg text-paper' : 'bg-bubble text-foreground',
+            isOwn ? 'bg-sidebar text-sidebar-text' : 'bg-sunken text-foreground',
           )}
         >
           {text}

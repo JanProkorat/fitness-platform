@@ -71,7 +71,7 @@ export default function ForgotPasswordForm() {
   if (requestMutation.isSuccess) {
     return (
       <>
-        <div className="flex size-11 items-center justify-center rounded-full bg-green-soft text-green-ink">
+        <div className="flex size-11 items-center justify-center rounded-full bg-success-soft text-success-ink">
           <CheckIcon className="size-5" />
         </div>
 
@@ -84,14 +84,14 @@ export default function ForgotPasswordForm() {
           <button
             type="button"
             onClick={() => requestMutation.reset()}
-            className="font-medium text-brand hover:underline"
+            className="font-medium text-ink underline underline-offset-2"
           >
             {t('entry.forgotPassword.sent.tryAnother')}
           </button>
         </p>
 
         <p className="text-meta text-muted-foreground">
-          <Link to="/" className="font-medium text-brand hover:underline">
+          <Link to="/" className="font-medium text-ink underline underline-offset-2">
             {t('entry.forgotPassword.backToLogin')}
           </Link>
         </p>
@@ -143,7 +143,7 @@ export default function ForgotPasswordForm() {
       </form>
 
       <p className="text-meta text-muted-foreground">
-        <Link to="/" className="font-medium text-brand hover:underline">
+        <Link to="/" className="font-medium text-ink underline underline-offset-2">
           {t('entry.forgotPassword.backToLogin')}
         </Link>
       </p>

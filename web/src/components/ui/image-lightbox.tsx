@@ -22,7 +22,7 @@ interface ImageLightboxProps {
 }
 
 const NAV_BUTTON_CLASS =
-  "absolute top-1/2 -translate-y-1/2 rounded-md p-2 text-paper opacity-80 outline-none transition-opacity hover:opacity-100 focus-visible:ring-3 focus-visible:ring-ring/50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-8"
+  "absolute top-1/2 -translate-y-1/2 rounded-md p-2 text-on-dark opacity-80 outline-none transition-opacity hover:opacity-100 focus-visible:ring-3 focus-visible:ring-ring/50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-8"
 
 /**
  * Full-screen viewer for a picture (#1140) — opens a drawer/card picture over
@@ -47,7 +47,7 @@ function ImageLightbox({ open, onOpenChange, src, alt, gallery }: ImageLightboxP
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogPortal>
-        <DialogOverlay className="bg-ink/90" />
+        <DialogOverlay className="bg-scrim/90" />
         <DialogPrimitive.Content
           data-slot="dialog-content"
           aria-describedby={undefined}
@@ -80,7 +80,7 @@ function ImageLightbox({ open, onOpenChange, src, alt, gallery }: ImageLightboxP
               </button>
             </>
           )}
-          <DialogClose className="absolute top-4 right-4 rounded-md text-paper opacity-80 outline-none transition-opacity hover:opacity-100 focus-visible:ring-3 focus-visible:ring-ring/50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-6">
+          <DialogClose className="absolute top-4 right-4 rounded-md text-on-dark opacity-80 outline-none transition-opacity hover:opacity-100 focus-visible:ring-3 focus-visible:ring-ring/50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-6">
             <XIcon />
             <span className="sr-only">{t("common.close")}</span>
           </DialogClose>

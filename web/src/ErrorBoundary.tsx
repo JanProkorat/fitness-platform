@@ -23,7 +23,7 @@ export function ErrorFallback({ error }: FallbackProps) {
       </pre>
       <button
         onClick={() => window.location.reload()}
-        className="mt-4 cursor-pointer rounded-md border-none bg-pill px-4 py-2 text-sm font-medium text-paper"
+        className="mt-4 cursor-pointer rounded-md border-none bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
       >
         Obnovit stránku
       </button>

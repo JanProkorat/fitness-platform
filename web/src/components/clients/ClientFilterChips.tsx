@@ -78,7 +78,7 @@ export default function ClientFilterChips({ active, counts, onSelect }: Props) {
               <span
                 className={cn(
                   'inline-flex min-w-badge-min items-center justify-center rounded-full px-1.5 py-0.5 text-label font-semibold',
-                  isActive ? 'bg-green-dark text-primary-foreground' : 'text-muted-foreground',
+                  isActive ? 'bg-chip-count text-primary-foreground' : 'text-muted-foreground',
                 )}
               >
                 {count}

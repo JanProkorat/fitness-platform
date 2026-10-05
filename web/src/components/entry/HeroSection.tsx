@@ -28,11 +28,11 @@ export default function HeroSection() {
     <div className="relative flex min-h-0 min-w-0 flex-col justify-start gap-8 overflow-hidden bg-background px-6 pt-11 pb-12 sm:px-9 lg:px-18 panel:col-start-1 panel:min-h-screen">
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 [background:radial-gradient(120%_90%_at_8%_0%,var(--color-green-soft)_0%,transparent_55%)]"
+        className="pointer-events-none absolute inset-0 [background:radial-gradient(120%_90%_at_8%_0%,var(--color-sunken)_0%,transparent_55%)]"
       />
 
       <div className="relative flex items-center gap-2.5 text-body font-semibold text-ink">
-        <span className="flex size-7.5 items-center justify-center rounded-md bg-brand text-caption font-bold tracking-wide text-paper">
+        <span className="flex size-7.5 items-center justify-center rounded-md bg-marker text-caption font-bold tracking-wide text-on-dark">
           {t('entry.brandMark')}
         </span>
         <span>{t('entry.brand')}</span>
@@ -45,7 +45,7 @@ export default function HeroSection() {
         <h1 className="mt-4 mb-4.5 max-w-[12em] text-hero font-bold tracking-[-.02em] text-ink">
           <span>{t('entry.headline.line1')}</span>
           <br />
-          <span className="font-accent text-[1.06em] font-semibold tracking-[-.01em] text-brand italic">
+          <span className="font-display text-[1.06em] font-semibold tracking-[-.01em] text-marker">
             {t('entry.headline.accent')}
           </span>
         </h1>
@@ -56,7 +56,7 @@ export default function HeroSection() {
               key={point}
               className="inline-flex items-center gap-1.75 rounded-full border border-border bg-surface px-3 py-1.5 text-meta font-medium text-ink-2"
             >
-              <span className="size-1.5 shrink-0 rounded-full bg-brand" aria-hidden="true" />
+              <span className="size-1.5 shrink-0 rounded-full bg-marker" aria-hidden="true" />
               <span>{point}</span>
             </li>
           ))}
@@ -69,7 +69,7 @@ export default function HeroSection() {
             <div
               key={label}
               className={
-                'flex min-h-collage-cell items-end overflow-hidden rounded-2xl border border-dashed border-brand/35 bg-sunken p-2.5 ' +
+                'flex min-h-collage-cell items-end overflow-hidden rounded-2xl border border-dashed border-marker/35 bg-sunken p-2.5 ' +
                 (index < 2 ? 'col-span-3' : 'col-span-2')
               }
             >

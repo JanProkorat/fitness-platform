@@ -58,14 +58,14 @@ export default function RoleSelector({ value, onChange, onBlur, error }: RoleSel
               onBlur={onBlur}
               className={cn(
                 'flex flex-col gap-0.5 rounded-md border border-border bg-surface p-3 text-left',
-                selected && 'border-brand bg-green-soft'
+                selected && 'border-primary bg-sunken'
               )}
             >
               <span className="flex items-center gap-1.5 text-meta font-semibold text-ink">
                 <span
                   className={cn(
                     'flex size-3.5 shrink-0 items-center justify-center rounded-[4px] border border-border bg-surface text-primary-foreground',
-                    selected && 'border-brand bg-brand'
+                    selected && 'border-primary bg-primary'
                   )}
                 >
                   {selected && <CheckIcon className="size-2.5" />}
