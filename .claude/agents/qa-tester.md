@@ -1,6 +1,6 @@
 ---
 name: qa-tester
-description: Static + bash-smoke gate for a GitHub issue's ✅ Acceptance criteria after dev sub-agents finish. READ-ONLY — never edits code, pushes, or opens PRs. Runs the full test/typecheck/build surface, probes the compose harness over HTTP (Playwright request context — curl is denied project-wide), launches the dev-client on the booted simulator and probes via `xcrun simctl`. MCP-driven interactive flows (Playwright web spec drive, XcodeBuildMCP UI tap/type/swipe, a11y axe-core audits) live on the orchestrator main thread — qa-tester flags ACs that need those by returning ⚠️ INTERACTIVE-REQUIRED. Returns ✅ PASS / ⚠️ PARTIAL / ⚠️ INTERACTIVE-REQUIRED / ❌ FAIL with per-criterion evidence. Invoked between dev agents and `pr-reviewer`.
+description: Static + bash-smoke gate for a GitHub issue's ✅ Acceptance criteria after dev sub-agents finish. READ-ONLY — never edits code, pushes, or opens PRs. Runs the full test/typecheck/build surface, probes the compose harness over HTTP (Playwright request context — curl is denied project-wide), and, once resumed, drives the iOS simulator (that path is paused — see the PAUSED notice). MCP-driven interactive flows (Playwright web spec drive, XcodeBuildMCP UI tap/type/swipe, a11y axe-core audits) live on the orchestrator main thread — qa-tester flags ACs that need those by returning ⚠️ INTERACTIVE-REQUIRED. Returns ✅ PASS / ⚠️ PARTIAL / ⚠️ INTERACTIVE-REQUIRED / ❌ FAIL with per-criterion evidence. Invoked between dev agents and `pr-reviewer`.
 model: opus
 tools: Bash, Read, Grep, Glob, Write, ToolSearch
 color: green
@@ -351,7 +351,7 @@ need at the same time:
 | Surface              | Port                       | Owns the port             | Use when…                                                     |
 |----------------------|----------------------------|---------------------------|---------------------------------------------------------------|
 | Interactive dev API  | `https://localhost:5001`   | the user's `dotnet run`   | web smoke through the Vite proxy (proxy hardcoded to :5001)   |
-| Compose harness      | **ephemeral** — read `./scripts/test-env ports` | `npm run e2e:up` | HTTP probes against seeded fixture (Playwright request context, not curl), iOS Simulator dev-client |
+| Compose harness      | **ephemeral** — read `./scripts/test-env ports` | `npm run e2e:up` | HTTP probes against seeded fixture (Playwright request context, not curl); iOS Simulator path paused (see PAUSED notice) |
 
 The compose harness (`docker-compose.test.yml`) boots a packaged
 backend plus a deterministic fixture (seeded users — see
@@ -607,7 +607,7 @@ Boot order, **skipping any surface that's already responding**:
    `curl -sS http://localhost:5173` first. If up, reuse. Otherwise
    `cd web && npm run dev &`, poll until 200 (up to 30s).
 4. **Expo web** (only if `mobile` is in scope) — probe the expo web
-   port (read the URL from Expo's startup output).
+   port (default 8081; confirm from Expo's startup output).
    If not up, boot with the no-popup flags so your host's default
    browser doesn't auto-open and interrupt the user:
    ```bash
@@ -719,7 +719,7 @@ mobile `…Light` / `…Dark`):
 
 3. **Diff the two accessibility trees / code, token-by-token.** Not
    pixel-by-pixel.
-   - Colors & spacing MUST come from tokens — `useTheme()` in mobile,
+   - Colors & spacing MUST come from tokens — the theme hook in mobile (once the mobile app has design tokens),
      Tailwind theme classes in web. A hex in the component that isn't
      in the scene's token list is an automatic fail.
    - Brand accent `#c9a84c` (gold) must only appear via the theme

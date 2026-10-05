@@ -19,7 +19,9 @@ This skill crosses all three packages. The orchestrator runs it in phases:
 3. `regen-api` is **not** needed unless you also changed an endpoint contract —
    the event payload is not part of the Swagger surface.
 4. Hand the **Web** section to `web-react`. Wait.
-5. Hand the **Mobile** section to `mobile-expo`. Wait.
+5. Hand the **Mobile** section to `mobile-expo` — but only once the mobile app
+   has a SignalR client. While it has none, skip this step entirely and say so
+   in the summary. Wait.
 6. Verify with the checklist at the bottom.
 
 Never let one sub-agent do all three — the "one sub-agent = one package" rule
@@ -104,8 +106,8 @@ already has broadcasts).
 
 ### 1c. Update the known-events list
 
-The mobile client keeps a `KNOWN_EVENTS` array (see mobile step). Add the new
-event there as part of the mobile phase — not here.
+Once the mobile app has a SignalR client, it keeps a `KNOWN_EVENTS` array (see
+mobile step). Add the new event there as part of the mobile phase — not here.
 
 ---
 
@@ -156,6 +158,10 @@ manually by triggering the backend action and watching devtools network.
 
 ## Step 3 — Mobile (`/mobile`, `mobile-expo` agent)
 
+**Guard: while the mobile app has no SignalR client, skip this whole step and
+state in the summary that mobile was skipped.** Everything below applies only
+once the client exists.
+
 ### 3a. Add to the known-events list
 
 Once the mobile app has a SignalR client (`mobile/src/api/signalr.ts` in the
@@ -173,10 +179,12 @@ const KNOWN_EVENTS = [
 ### 3b. Register the handler
 
 Use the `onEvent` export. Typical places:
-- App-wide: a root effect in `app/_layout.tsx` or a dedicated hook in
-  `src/hooks/` (see `useSignalR.ts` for the pattern)
+- App-wide: a root effect in `mobile/src/app/_layout.tsx` or the app's
+  SignalR hook (once it exists)
 - Screen-scoped: in the screen's `useEffect` cleanup, calling the unsubscribe
   function returned by `onEvent`
+
+Pattern for when the client exists (the `@/api/signalr` module is not there yet):
 
 ```ts
 import { useEffect } from 'react';
@@ -203,8 +211,8 @@ Rules:
 
 ### 3c. Smoke-test
 
-`npx tsc --noEmit` must pass. Run on iOS simulator and confirm the Today /
-Messages screen refreshes without polling.
+`npx tsc --noEmit` must pass. Run on iOS simulator and confirm the screens that
+show this data refresh without polling.
 
 ---
 
@@ -223,13 +231,14 @@ Messages screen refreshes without polling.
 ## Cross-package verification checklist
 
 - [ ] Backend broadcasts the event *after* DB write, not inside the transaction
-- [ ] Event name is lowercase everywhere (backend literal, web key, mobile
-      `KNOWN_EVENTS`, mobile `onEvent` call)
+- [ ] Event name is lowercase everywhere (backend literal, web key, and — once
+      the mobile app has a SignalR client — mobile `KNOWN_EVENTS` and `onEvent`)
 - [ ] Payload contains only ids/timestamps, not full entities
 - [ ] Backend test asserts the notifier was invoked with the right event type
       and user id
 - [ ] Web `tsc --noEmit` clean; handler casts payload without `any`
-- [ ] Mobile `tsc --noEmit` clean; event added to `KNOWN_EVENTS`; unsubscribe
+- [ ] Mobile (only once it has a SignalR client; otherwise "skipped" in the
+      summary): `tsc --noEmit` clean; event added to `KNOWN_EVENTS`; unsubscribe
       returned from `useEffect`
 - [ ] No polling loops introduced anywhere — only `invalidateQueries`
 - [ ] Each sub-agent touched only its own package

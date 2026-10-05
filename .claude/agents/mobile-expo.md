@@ -82,7 +82,8 @@ is available; CI runs the same check.
 ## Commands
 - Dev: `npx expo start --ios` or `--android`
 - Verify via the **`expo-verify`** skill / `expo-build` (compile floor);
-  under the hood that is `npm run typecheck` and `npm run expo-doctor`.
+  never invoke `tsc` or `expo-doctor` directly. Those skills run
+  `npm run typecheck` and `npm run expo-doctor`.
   No automated test suite exists today.
 
 ## Research dispatch (token discipline)
@@ -99,14 +100,11 @@ in root `CLAUDE.md`).
   `regen-api` yourself for `/mobile`. The fresh app has no generated client
   or `npm run generate-api` script yet; adding one is a dependency/config
   decision, so ask first.
-- Adding a new Expo Router screen? Invoke the `mobile-screen` skill for the
+- Adding a new Expo Router screen? Invoke the `expo-screen` skill for the
   scaffold, including the `_layout.tsx` reminder for sub-folders; the theme,
   data-fetching and i18n parts apply once the app has them.
 - Reacting to a realtime event? The `signalr-event` skill is orchestrator-run;
   its Mobile section applies once the app has a SignalR client.
-- Before handing control back, invoke the `progress-update` skill to append a
-  mobile-scoped entry to `docs/PROGRESS.md` (unless the orchestrator will
-  aggregate cross-package changes into a single entry — check first).
 
 ## Branch discipline (parallel safety)
 

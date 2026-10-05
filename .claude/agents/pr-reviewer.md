@@ -460,8 +460,8 @@ You MUST:
      web; in mobile, the design tokens once the app has them). Brand gold
      `#c9a84c` must only appear via the theme entry, never inline.
    - API URLs never hardcoded — always env/config.
-   - `web/src/api/generated.ts` and `mobile/src/api/generated.ts` are
-     WRITE-LOCKED. Any hand-edit of those paths is an AUTOMATIC
+   - `web/src/api/generated.ts` and `mobile/src/api/generated.ts` (once
+     the mobile app has one) are WRITE-LOCKED. Any hand-edit of those paths is an AUTOMATIC
      BLOCKING finding (the `regen-api` skill is the only legal way
      to touch them).
    - i18n: every new user-facing string must land in all three
