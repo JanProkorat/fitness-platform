@@ -674,7 +674,7 @@ mobile `…Light` / `…Dark`):
    - states visible in the scene (empty / loading / error / filled)
 
 2. **Render the actual component through Playwright.**
-   - **Web scenes** (`trainer/*`, `notion/*`) —
+   - **Web boards** (`Page…`, exported under `web/`) —
      - `navigate` to `http://localhost:5173/<route-from-the-branch>`.
      - Snapshot the accessibility tree.
      - Screenshot to `.qa-artifacts/<issue>/rendered-<scene>.png`.
@@ -683,7 +683,7 @@ mobile `…Light` / `…Dark`):
        (and the dark twin).
      - Snapshot that accessibility tree too.
      - Screenshot to `.qa-artifacts/<issue>/prototype-<scene>.png`.
-   - **Mobile scenes** (`mobile/*`) — same pattern against Expo web:
+   - **Mobile boards** (`Glass…`, `Coach…`, exported under `mobile-*/`, `coach-*/`) — same pattern against Expo web:
      - `navigate` to the Expo web URL at the route implemented by the
        branch (read from Expo's startup log — typically
        `http://localhost:8081/<route>`).
