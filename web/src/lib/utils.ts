@@ -3,6 +3,7 @@ import { extendTailwindMerge } from "tailwind-merge"
 
 import {
   ANIMATE_TOKENS,
+  RADIUS_TOKENS,
   SHADOW_TOKENS,
   SPACING_TOKENS,
   TEXT_SIZE_TOKENS,
@@ -47,6 +48,7 @@ const twMerge = extendTailwindMerge({
   extend: {
     theme: {
       text: [...TEXT_SIZE_TOKENS],
+      radius: [...RADIUS_TOKENS],
       shadow: [...SHADOW_TOKENS],
       spacing: [...SPACING_TOKENS],
       tracking: [...TRACKING_TOKENS],
