@@ -43,7 +43,7 @@
 | `scripts/test_wiki_check.py` | Tests for `wiki-check.py` |
 | `scripts/fetch-swagger.py` | Save Swagger JSON from a localhost backend (dev cert accepted) |
 | `scripts/test_fetch_swagger.py` | Tests for `fetch-swagger.py` host refusal |
-| `docs/wiki/screens.json` | Screen inventory — web screens shipped in epic #1052 |
+| `docs/wiki/screens.json` | Screen inventory — starts empty; redesign tasks add entries |
 | `scripts/wiki-api.py` | Render Swagger into one Markdown page per tag |
 | `scripts/test_wiki_api.py` | Tests for `wiki-api.py` |
 | `.github/workflows/e2e.yml` | Add the wiki check step against the harness's live Swagger |
@@ -381,7 +381,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 ---
 
-### Task 2: `fetch-swagger.py` and the first `screens.json`
+### Task 2: `fetch-swagger.py` and the empty `screens.json`
 
 **Files:**
 - Create: `scripts/fetch-swagger.py`
@@ -390,7 +390,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 **Interfaces:**
 - Consumes: `scripts/wiki-check.py` CLI from Task 1.
-- Produces: `python3 scripts/fetch-swagger.py <base-url> <out-file>` (exit 0 and writes the file; exit 1 with message otherwise; only `localhost` / `127.0.0.1`). `docs/wiki/screens.json` with 11 web entries.
+- Produces: `python3 scripts/fetch-swagger.py <base-url> <out-file>` (exit 0 and writes the file; exit 1 with message otherwise; only `localhost` / `127.0.0.1`). `docs/wiki/screens.json` containing `{"screens": []}`.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -538,176 +538,15 @@ python3 scripts/fetch-swagger.py <api_url> /private/tmp/claude-501/-Users-jan-Pr
 ```
 Expected: `fetch-swagger: <N> paths → …` with N > 180.
 
-- [ ] **Step 6: Write `docs/wiki/screens.json`**
+- [ ] **Step 6: Write the empty `docs/wiki/screens.json`**
 
-Facts come from the web inventory: router `web/src/App.tsx:54-73`, guard `web/src/routes/ProtectedRoute.tsx:13,18,23` (Client-only users → `/download-app`; Trainer, Nutritionist, Admin reach the shell), in-page Nutritionist gating at `web/src/pages/RecipesPage.tsx:42-43,65` and `web/src/pages/IngredientsPage.tsx:29-30,77`. `roles` lists who can **use** the screen; in-page restrictions are explained on the wiki page.
+The inventory starts empty; each redesign task adds its screens when it ships
+(decided 2026-10-05). Appendix A holds worked example entries for the current
+web screens — use them as the pattern, not as content.
 
 ```json
 {
-  "screens": [
-    {
-      "id": "web.account.sign-in", "app": "web", "area": "Account", "title": "Sign in", "route": "/",
-      "roles": ["Public"],
-      "files": ["web/src/pages/EntryPage.tsx", "web/src/components/entry/**"],
-      "endpoints": ["POST /auth/login", "GET /users/me", "POST /auth/refresh"],
-      "board": "PageHomeSignIn",
-      "shots": [{ "name": "default" }],
-      "notionPageId": null
-    },
-    {
-      "id": "web.account.register", "app": "web", "area": "Account", "title": "Create account", "route": "/register",
-      "roles": ["Public"],
-      "files": ["web/src/pages/EntryPage.tsx", "web/src/components/entry/**"],
-      "endpoints": ["POST /auth/register", "POST /auth/resend-verification/anonymous"],
-      "board": "PageRegister",
-      "shots": [
-        { "name": "default" },
-        { "name": "check-email", "steps": "fill the form with a fresh e-mail address, pick a role, submit 'Založit účet'" }
-      ],
-      "notionPageId": null
-    },
-    {
-      "id": "web.account.forgot-password", "app": "web", "area": "Account", "title": "Forgot password", "route": "/forgot-password",
-      "roles": ["Public"],
-      "files": ["web/src/pages/EntryPage.tsx", "web/src/components/entry/**"],
-      "endpoints": ["POST /auth/password/reset"],
-      "board": null,
-      "shots": [
-        { "name": "default" },
-        { "name": "sent", "steps": "enter a seeded user's e-mail and submit" }
-      ],
-      "notionPageId": null
-    },
-    {
-      "id": "web.account.verify-email", "app": "web", "area": "Account", "title": "Verify e-mail", "route": "/verify-email",
-      "roles": ["Public"],
-      "files": ["web/src/pages/VerifyEmailPage.tsx"],
-      "endpoints": ["POST /auth/verify-email", "POST /auth/resend-verification/anonymous", "GET /users/me"],
-      "board": "PageRegisterVerified",
-      "shots": [
-        { "name": "check-inbox" },
-        { "name": "invalid-link", "steps": "open the page with an invalid token in the link" }
-      ],
-      "notionPageId": null
-    },
-    {
-      "id": "web.account.reset-password", "app": "web", "area": "Account", "title": "Reset password", "route": "/auth/reset-password",
-      "roles": ["Public"],
-      "files": ["web/src/pages/ResetPasswordPage.tsx"],
-      "endpoints": ["PUT /auth/password/reset"],
-      "board": null,
-      "shots": [
-        { "name": "default", "steps": "open the reset link from the forgot-password e-mail in MailHog" },
-        { "name": "invalid-link", "steps": "open the page without a token" }
-      ],
-      "notionPageId": null
-    },
-    {
-      "id": "web.account.download-app", "app": "web", "area": "Account", "title": "Download the app", "route": "/download-app",
-      "roles": ["Client"],
-      "files": ["web/src/pages/DownloadAppPage.tsx"],
-      "endpoints": [],
-      "board": null,
-      "shots": [{ "name": "default", "steps": "sign in as a seeded client" }],
-      "notionPageId": null
-    },
-    {
-      "id": "web.clients.list", "app": "web", "area": "Clients", "title": "Client list", "route": "/clients",
-      "roles": ["Trainer", "Nutritionist", "Admin"],
-      "files": ["web/src/pages/ClientsPage.tsx", "web/src/components/clients/**"],
-      "endpoints": [
-        "GET /trainer/clients", "GET /trainer/clients/pending",
-        "GET /trainer/client-tags", "POST /trainer/client-tags",
-        "PUT /trainer/client-tags/{tagId}", "DELETE /trainer/client-tags/{tagId}",
-        "PUT /trainer/clients/{clientId}/tags", "POST /trainer/broadcast",
-        "POST /trainer/pending-invites", "DELETE /trainer/pending-invites/{id}",
-        "POST /trainer/client-requests/{publicId}/accept", "POST /trainer/client-requests/{publicId}/reject"
-      ],
-      "board": "PageClients",
-      "shots": [
-        { "name": "default" },
-        { "name": "pending-tab", "steps": "click the 'Čekající' tab" },
-        { "name": "invite-drawer", "steps": "click '+ Pozvat klienta'" },
-        { "name": "broadcast-drawer", "steps": "tick two client rows, click 'Odeslat zprávu' in the selection bar" },
-        { "name": "tag-filter", "steps": "click 'Vybrat štítky'" },
-        { "name": "create-tag", "steps": "click 'Vybrat štítky', then 'Vytvořit štítek'" }
-      ],
-      "notionPageId": null
-    },
-    {
-      "id": "web.clients.detail", "app": "web", "area": "Clients", "title": "Client detail", "route": "/clients/:clientId",
-      "roles": ["Trainer", "Nutritionist", "Admin"],
-      "files": ["web/src/pages/ClientDetailPage.tsx", "web/src/components/client-detail/**"],
-      "endpoints": [
-        "GET /trainer/clients/{clientId}", "GET /trainer/clients/{clientId}/plans",
-        "GET /trainer/clients/{clientId}/measurements", "GET /trainer/clients/{clientId}/message-stats",
-        "GET /nutrition/plans/{planId}", "GET /training/plans/{planId}"
-      ],
-      "board": "PageClientDetail",
-      "shots": [{ "name": "default", "steps": "open a seeded client with an active plan from the client list" }],
-      "notionPageId": null
-    },
-    {
-      "id": "web.inbox.conversations", "app": "web", "area": "Inbox", "title": "Inbox", "route": "/inbox",
-      "roles": ["Trainer", "Nutritionist", "Admin"],
-      "files": ["web/src/pages/InboxPage.tsx", "web/src/components/inbox/**"],
-      "endpoints": [
-        "GET /conversations", "POST /conversations", "GET /conversations/filter-counts",
-        "GET /conversations/{conversationId}/messages", "POST /conversations/{conversationId}/messages",
-        "POST /conversations/{conversationId}/messages/image-upload-url", "POST /conversations/{conversationId}/read",
-        "GET /trainer/clients/{clientId}", "GET /trainer/clients/{clientId}/plans",
-        "GET /trainer/clients/{clientId}/measurements"
-      ],
-      "board": "PageInbox",
-      "shots": [
-        { "name": "empty", "steps": "open /inbox without selecting a conversation" },
-        { "name": "conversation", "steps": "click the first conversation" },
-        { "name": "client-panel", "steps": "click the first conversation, then 'Zobrazit klienta'" },
-        { "name": "archived", "steps": "switch the view toggle to 'Archivováno'" }
-      ],
-      "notionPageId": null
-    },
-    {
-      "id": "web.recipes.library", "app": "web", "area": "Recipes", "title": "Recipe library", "route": "/recipes",
-      "roles": ["Nutritionist"],
-      "files": ["web/src/pages/RecipesPage.tsx", "web/src/components/recipes/**", "web/src/components/library/**", "web/src/components/tags/**"],
-      "endpoints": [
-        "GET /recipes", "POST /recipes", "GET /recipes/{recipeId}", "PUT /recipes/{recipeId}", "DELETE /recipes/{recipeId}",
-        "POST /recipes/{recipeId}/image/upload-url", "PUT /recipes/{recipeId}/image", "DELETE /recipes/{recipeId}/image",
-        "DELETE /recipes/{recipeId}/gallery", "POST /recipes/{recipeId}/gallery/promote",
-        "PUT /trainer/recipes/{recipeId}/tags", "GET /foods/search", "GET /trainer/food-tags"
-      ],
-      "board": "PageRecipesTable",
-      "shots": [
-        { "name": "default" },
-        { "name": "new-recipe", "steps": "click '+ Nový recept'" },
-        { "name": "ingredients-tab", "steps": "open a seeded recipe, click the 'Suroviny' tab" },
-        { "name": "preparation-tab", "steps": "open a seeded recipe, click the 'Postup' tab" },
-        { "name": "pictures-tab", "steps": "open a seeded recipe, click the 'Obrázky' tab" },
-        { "name": "delete-dialog", "steps": "open a recipe you own, click 'Smazat'" }
-      ],
-      "notionPageId": null
-    },
-    {
-      "id": "web.ingredients.library", "app": "web", "area": "Ingredients", "title": "Ingredient library", "route": "/ingredients",
-      "roles": ["Trainer", "Nutritionist"],
-      "files": ["web/src/pages/IngredientsPage.tsx", "web/src/components/ingredients/**", "web/src/components/library/**", "web/src/components/tags/**"],
-      "endpoints": [
-        "GET /foods/search", "POST /foods", "GET /foods/{foodId}", "PUT /foods/{foodId}", "DELETE /foods/{foodId}",
-        "GET /foods/custom", "POST /foods/{foodId}/image/upload-url", "PUT /foods/{foodId}/image", "DELETE /foods/{foodId}/image",
-        "GET /trainer/food-tags", "POST /trainer/food-tags", "PUT /trainer/food-tags/{tagId}", "DELETE /trainer/food-tags/{tagId}",
-        "PUT /trainer/foods/{foodId}/tags"
-      ],
-      "board": "PageIngredients",
-      "shots": [
-        { "name": "default" },
-        { "name": "new-ingredient", "steps": "sign in as the nutritionist, click '+ Nová surovina'" },
-        { "name": "delete-dialog", "steps": "open an ingredient you own, click 'Smazat'" },
-        { "name": "trainer-read-only", "steps": "sign in as the trainer, open any ingredient" }
-      ],
-      "notionPageId": null
-    }
-  ]
+  "screens": []
 }
 ```
 
@@ -718,7 +557,18 @@ python3 scripts/wiki-check.py --swagger /private/tmp/claude-501/-Users-jan-Proje
 ```
 Expected: `wiki-check: docs/wiki/screens.json is valid`.
 
-If an endpoint is reported `not in Swagger`: find its endpoint class under `backend/FitnessPlatform.Application/Features/` and read the route in `Configure()`. If the route differs only in parameter name or casing, fix the entry to the Swagger key. If the endpoint calls `ExcludeFromDescription()` or truly is missing, **stop and report** — do not delete the endpoint from the entry to make the check pass.
+**Dry run on real data.** Copy Appendix A's JSON into
+`<scratchpad>/screens-examples.json` and run:
+
+```bash
+python3 scripts/wiki-check.py --screens <scratchpad>/screens-examples.json --swagger <scratchpad>/swagger.json
+```
+This proves the checker on real entries; it does not block the task. Report
+every problem it prints. For each `not in Swagger`: find the endpoint class
+under `backend/FitnessPlatform.Application/Features/` and its route in
+`Configure()`, and note whether the example entry or Swagger is wrong (an
+`ExcludeFromDescription()` call, or a casing difference). Fix Appendix A
+where the example is wrong; never edit the backend in this task.
 
 Then stop the harness: `./scripts/test-env down` (from the main checkout).
 
@@ -728,7 +578,7 @@ Then stop the harness: `./scripts/test-env down` (from the main checkout).
 chmod +x scripts/fetch-swagger.py scripts/test_fetch_swagger.py
 git add scripts/fetch-swagger.py scripts/test_fetch_swagger.py
 git add -f docs/wiki/screens.json
-git commit -m "1162: Screen inventory for the shipped web screens, Swagger fetch script
+git commit -m "1162: Empty screen inventory and Swagger fetch script
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ```
@@ -1102,7 +952,7 @@ Expected: `6/6 passed`, exit 0.
 ```bash
 python3 scripts/wiki-api.py --swagger /private/tmp/claude-501/-Users-jan-Projects-fitness-platform/0f1c8d29-8bb5-4d33-baeb-807402ec94e5/scratchpad/swagger.json --out /private/tmp/claude-501/-Users-jan-Projects-fitness-platform/0f1c8d29-8bb5-4d33-baeb-807402ec94e5/scratchpad/wiki-api
 ```
-Expected: one `.md` path per tag, no traceback. Open `trainer.md` and confirm `## GET /trainer/clients` lists `page`, `pageSize`, `search` and a `Used by: web.clients.list, …` line.
+Expected: one `.md` path per tag, no traceback. Open `trainer.md` and confirm `## GET /trainer/clients` lists `page`, `pageSize`, `search`. Run it once more with `--screens <scratchpad>/screens-examples.json` (from Task 2) and confirm that line reads `Used by: web.clients.list, …`.
 
 - [ ] **Step 6: Commit**
 
@@ -1188,7 +1038,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ```markdown
 ---
 name: notion-docs
-description: Build and update the GoodFellas Notion wiki — app → area → screen pages explaining every control, real-app screenshots, and an API reference generated from Swagger. Two modes — build (whole tree) and update (after a merge to develop). Main thread only. Invoke on "update the wiki", "update the docs", "build the wiki", or after a develop merge.
+description: Build and update the GoodFellas Notion wiki — app → area → screen pages explaining every control, real-app screenshots, and an API reference generated from Swagger. Two modes — update (at the end of every task, after its PR merges) and build (recovery rebuild). Main thread only. Invoke on "update the wiki", "update the docs", "rebuild the wiki", or after any task's PR merges.
 ---
 
 # notion-docs — the Notion wiki
@@ -1204,10 +1054,13 @@ need the Notion tools; sub-agents have neither. Sub-agents only draft text.
 
 | Mode | When | Reference |
 |---|---|---|
-| `build` | The root page has no app pages, or the user asks to rebuild. | [`references/build.md`](references/build.md) |
-| `update` | After a merge to `develop` (never after a sub-issue merge into an epic branch), or "update the wiki". | [`references/update.md`](references/update.md) |
+| `update` | **End of every task:** after its PR merges — into the epic branch (sub-issue) or `develop` (standalone or epic PR) — or "update the wiki". | [`references/update.md`](references/update.md) |
+| `build` | Recovery only: the tree was lost, or the user asks to rebuild everything. | [`references/build.md`](references/build.md) |
 
-Fetch the root page first. No child pages → `build`. Otherwise `update`.
+Default to `update`. The wiki grows task by task: `screens.json` starts
+empty, and update creates any missing app, area, API reference or glossary
+page the first time it needs one. An epic PR's merge to `develop` still runs
+update; after per-task runs it is usually a no-op.
 
 ## Fixed facts
 
@@ -1242,9 +1095,10 @@ Fetch the root page first. No child pages → `build`. Otherwise `update`.
 - [ ] **Step 2: Write `references/build.md`**
 
 ```markdown
-# Build mode — create the whole wiki
+# Build mode — recreate the whole wiki
 
-Run once, or when the user asks to rebuild. Reuses the root page.
+Recovery only: the tree was lost, or the user asks to rebuild everything.
+Normal growth happens in update mode, task by task. Reuses the root page.
 
 ## 1. Prepare
 
@@ -1300,9 +1154,18 @@ Commit `docs/wiki/screens.json` (`git add -f`). Stop the harness
 - [ ] **Step 3: Write `references/update.md`**
 
 ```markdown
-# Update mode — after a merge to develop
+# Update mode — at the end of every task
 
-Never run after a sub-issue merges into an epic branch.
+Runs after the task's PR merges: into the epic branch for a sub-issue, into
+`develop` for a standalone or epic PR. The wiki grows from here — there is no
+up-front build.
+
+## 0. Make sure the skeleton exists
+
+Fetch the root page. Create whatever this run needs and is missing, using the
+templates in `page-templates.md`: the Main page content, the app page for the
+entry's `app`, the area page for its `area`, "API reference", "Glossary".
+Never recreate a page that exists.
 
 ## 1. What changed
 
@@ -1434,7 +1297,7 @@ git rm .claude/skills/notion-docs/references/bootstrap.md .claude/skills/notion-
 ```bash
 git grep -n -e "bootstrap.md" -e "routing.md" -e "bootstrap mode" -e "changelog" -- .claude CLAUDE.md
 ```
-Expected: no hit that points at the notion-docs skill. For any hit outside the skill (e.g. `.claude/CLAUDE.md` "bootstrap mode" in the task lifecycle), change "bootstrap" to "build" in that line only.
+Expected: no hit that points at the notion-docs skill. Hits in `.claude/CLAUDE.md` (task lifecycle step 8), `.claude/rules/merge-strategy.md`, `pr-reviewer.md` and `ship-epic/SKILL.md` are rewritten in Task 6 — leave them. Report any other hit.
 
 - [ ] **Step 7: Lint the Claude config**
 
@@ -1454,9 +1317,12 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 ---
 
-### Task 6: Keep the inventory current — dev and reviewer rules
+### Task 6: Keep the inventory current, and update the wiki at the end of every task
 
 **Files:**
+- Modify: `.claude/rules/merge-strategy.md` (sections "Sub-issue auto-merge" and "Merge dispatch")
+- Modify: `.claude/CLAUDE.md` ("Task lifecycle reminder" step 8)
+- Modify: `.claude/skills/ship-epic/SKILL.md` (sub-issue merge bullet, Phase 3 step 3, checklist, never-list)
 - Modify: `.claude/agents/web-react.md` (section `## Conventions`, after its paragraph)
 - Modify: `.claude/agents/mobile-expo.md` (section `## Conventions`, after its paragraph)
 - Modify: `.claude/agents/pr-reviewer.md` (frontmatter line `skills: notion-docs`; line ~939 "all 12 items"; post-merge bullet ~801)
@@ -1516,18 +1382,87 @@ with
     covers every file the consolidated commit changed.
 ```
 
-- [ ] **Step 4: Verify**
+- [ ] **Step 4: Move the docs trigger to "end of every task"**
+
+The wiki now updates after **every** task's PR merges, sub-issues included
+(decided 2026-10-05). Replace each old "once per epic / develop only" rule:
+
+1. `.claude/rules/merge-strategy.md`, section "Sub-issue auto-merge" — replace
+   ```markdown
+   - `notion-docs` is **not** dispatched per sub-issue. It runs once
+     after the epic ships to `develop`.
+   ```
+   with
+   ```markdown
+   - Run `notion-docs` (update mode) on the main thread after the
+     merge — the wiki updates at the end of every task, sub-issues
+     included.
+   ```
+2. Same file, "Merge dispatch" step 5 — replace
+   ```markdown
+   5. Orchestrator dispatches `notion-docs` (update mode) to document
+      the change. For an epic merge the docs entry covers all the
+      sub-issues that landed in the consolidated commit — not one per
+      sub-issue.
+   ```
+   with
+   ```markdown
+   5. Orchestrator runs `notion-docs` (update mode) on the main thread.
+      For an epic merge the sub-issues were already documented as they
+      merged, so this run is usually a no-op.
+   ```
+3. `.claude/CLAUDE.md`, "Task lifecycle reminder" step 8 — replace
+   ```markdown
+   8. After merge to `develop` (epic or standalone) → invoke `notion-docs`
+      (update mode). On first use in a fresh workspace → bootstrap mode.
+   ```
+   with
+   ```markdown
+   8. After **every** task's PR merges (sub-issue, standalone or epic) →
+      run `notion-docs` (update mode) on the main thread. It creates any
+      missing wiki pages itself; `build` mode is for recovery only.
+   ```
+4. `.claude/agents/pr-reviewer.md`, `merge-sub-issue` hand-back block —
+   replace
+   ```markdown
+     - DO NOT dispatch `notion-docs` for sub-issue merges — that runs
+       once at the epic merge.
+   ```
+   with
+   ```markdown
+     - Run `notion-docs` (update mode) on the main thread — the wiki
+       updates at the end of every task.
+   ```
+5. `.claude/skills/ship-epic/SKILL.md`:
+   - the sub-issue merge bullet "**Do NOT dispatch `notion-docs`** for
+     sub-issue merges. That fires exactly once, in Phase 3, after the epic
+     merges to `develop`." → "**Run `notion-docs`** (update mode) after
+     each sub-issue merges — the wiki updates at the end of every task.";
+   - Phase 3 step 3 "**Single `notion-docs` pass** for the entire epic. …
+     (they're intermediate; the consolidated commit is what matters)." →
+     "**Final `notion-docs` update** after the epic merges to `develop`.
+     Sub-issues were documented as they merged, so this is usually a
+     no-op; it catches anything the epic PR itself changed.";
+   - checklist item "**Exactly one** `notion-docs` update landed for the
+     entire epic — at the end, after the epic merged to `develop`." →
+     "A `notion-docs` update ran after every sub-issue merge and once
+     after the epic merged to `develop`.";
+   - the "Never invoke `notion-docs` per sub-issue merge. …" bullet in the
+     never-list → delete it (all four lines).
+   - leave the `description:` frontmatter as is (it only names the skill).
+
+- [ ] **Step 5: Verify**
 
 ```bash
-git grep -n -e "12 items" -e "skills: notion-docs" -- .claude
+git grep -n -e "12 items" -e "skills: notion-docs" -e "not\*\* dispatched per sub-issue" -e "DO NOT dispatch \`notion-docs\`" -e "Exactly one\*\* \`notion-docs\`" -e "Never invoke \`notion-docs\` per sub-issue" -e "bootstrap mode" -- .claude CLAUDE.md
 npx -y @carlrannaberg/cclint@0.2.10 --root .
 ```
 Expected: first command no output; cclint no errors (or note that `npx` was denied).
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
-git add .claude/agents/web-react.md .claude/agents/mobile-expo.md .claude/agents/pr-reviewer.md .claude/agents/pr-reviewer/references/review-checklist.md
+git add .claude/agents/web-react.md .claude/agents/mobile-expo.md .claude/agents/pr-reviewer.md .claude/agents/pr-reviewer/references/review-checklist.md .claude/rules/merge-strategy.md .claude/CLAUDE.md .claude/skills/ship-epic/SKILL.md
 git commit -m "1162: Dev and review rules keep the screen inventory current
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
@@ -1553,3 +1488,181 @@ Expected: `13/13`, `6/6`, `3/3 passed`.
 The main thread pushes (`git push -u origin chore/1162-notion-wiki-tooling`), then runs the project gates: `qa-tester` (issue #1162 ACs), then `pr-reviewer` (base `develop`). Merging to `develop` needs the user's same-turn authorization.
 
 - [ ] **Step 4: Stop the time clock** per the private flow once the PR is open.
+
+---
+
+## Appendix A — worked example entries (not committed)
+
+Gathered 2026-10-05 from the web portal as it stood on `develop`. Kept as the
+pattern for the entries redesign tasks will add.
+
+Facts come from the web inventory: router `web/src/App.tsx:54-73`, guard `web/src/routes/ProtectedRoute.tsx:13,18,23` (Client-only users → `/download-app`; Trainer, Nutritionist, Admin reach the shell), in-page Nutritionist gating at `web/src/pages/RecipesPage.tsx:42-43,65` and `web/src/pages/IngredientsPage.tsx:29-30,77`. `roles` lists who can **use** the screen; in-page restrictions are explained on the wiki page.
+
+```json
+{
+  "screens": [
+    {
+      "id": "web.account.sign-in", "app": "web", "area": "Account", "title": "Sign in", "route": "/",
+      "roles": ["Public"],
+      "files": ["web/src/pages/EntryPage.tsx", "web/src/components/entry/**"],
+      "endpoints": ["POST /auth/login", "GET /users/me", "POST /auth/refresh"],
+      "board": "PageHomeSignIn",
+      "shots": [{ "name": "default" }],
+      "notionPageId": null
+    },
+    {
+      "id": "web.account.register", "app": "web", "area": "Account", "title": "Create account", "route": "/register",
+      "roles": ["Public"],
+      "files": ["web/src/pages/EntryPage.tsx", "web/src/components/entry/**"],
+      "endpoints": ["POST /auth/register", "POST /auth/resend-verification/anonymous"],
+      "board": "PageRegister",
+      "shots": [
+        { "name": "default" },
+        { "name": "check-email", "steps": "fill the form with a fresh e-mail address, pick a role, submit 'Založit účet'" }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "web.account.forgot-password", "app": "web", "area": "Account", "title": "Forgot password", "route": "/forgot-password",
+      "roles": ["Public"],
+      "files": ["web/src/pages/EntryPage.tsx", "web/src/components/entry/**"],
+      "endpoints": ["POST /auth/password/reset"],
+      "board": null,
+      "shots": [
+        { "name": "default" },
+        { "name": "sent", "steps": "enter a seeded user's e-mail and submit" }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "web.account.verify-email", "app": "web", "area": "Account", "title": "Verify e-mail", "route": "/verify-email",
+      "roles": ["Public"],
+      "files": ["web/src/pages/VerifyEmailPage.tsx"],
+      "endpoints": ["POST /auth/verify-email", "POST /auth/resend-verification/anonymous", "GET /users/me"],
+      "board": "PageRegisterVerified",
+      "shots": [
+        { "name": "check-inbox" },
+        { "name": "invalid-link", "steps": "open the page with an invalid token in the link" }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "web.account.reset-password", "app": "web", "area": "Account", "title": "Reset password", "route": "/auth/reset-password",
+      "roles": ["Public"],
+      "files": ["web/src/pages/ResetPasswordPage.tsx"],
+      "endpoints": ["PUT /auth/password/reset"],
+      "board": null,
+      "shots": [
+        { "name": "default", "steps": "open the reset link from the forgot-password e-mail in MailHog" },
+        { "name": "invalid-link", "steps": "open the page without a token" }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "web.account.download-app", "app": "web", "area": "Account", "title": "Download the app", "route": "/download-app",
+      "roles": ["Client"],
+      "files": ["web/src/pages/DownloadAppPage.tsx"],
+      "endpoints": [],
+      "board": null,
+      "shots": [{ "name": "default", "steps": "sign in as a seeded client" }],
+      "notionPageId": null
+    },
+    {
+      "id": "web.clients.list", "app": "web", "area": "Clients", "title": "Client list", "route": "/clients",
+      "roles": ["Trainer", "Nutritionist", "Admin"],
+      "files": ["web/src/pages/ClientsPage.tsx", "web/src/components/clients/**"],
+      "endpoints": [
+        "GET /trainer/clients", "GET /trainer/clients/pending",
+        "GET /trainer/client-tags", "POST /trainer/client-tags",
+        "PUT /trainer/client-tags/{tagId}", "DELETE /trainer/client-tags/{tagId}",
+        "PUT /trainer/clients/{clientId}/tags", "POST /trainer/broadcast",
+        "POST /trainer/pending-invites", "DELETE /trainer/pending-invites/{id}",
+        "POST /trainer/client-requests/{publicId}/accept", "POST /trainer/client-requests/{publicId}/reject"
+      ],
+      "board": "PageClients",
+      "shots": [
+        { "name": "default" },
+        { "name": "pending-tab", "steps": "click the 'Čekající' tab" },
+        { "name": "invite-drawer", "steps": "click '+ Pozvat klienta'" },
+        { "name": "broadcast-drawer", "steps": "tick two client rows, click 'Odeslat zprávu' in the selection bar" },
+        { "name": "tag-filter", "steps": "click 'Vybrat štítky'" },
+        { "name": "create-tag", "steps": "click 'Vybrat štítky', then 'Vytvořit štítek'" }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "web.clients.detail", "app": "web", "area": "Clients", "title": "Client detail", "route": "/clients/:clientId",
+      "roles": ["Trainer", "Nutritionist", "Admin"],
+      "files": ["web/src/pages/ClientDetailPage.tsx", "web/src/components/client-detail/**"],
+      "endpoints": [
+        "GET /trainer/clients/{clientId}", "GET /trainer/clients/{clientId}/plans",
+        "GET /trainer/clients/{clientId}/measurements", "GET /trainer/clients/{clientId}/message-stats",
+        "GET /nutrition/plans/{planId}", "GET /training/plans/{planId}"
+      ],
+      "board": "PageClientDetail",
+      "shots": [{ "name": "default", "steps": "open a seeded client with an active plan from the client list" }],
+      "notionPageId": null
+    },
+    {
+      "id": "web.inbox.conversations", "app": "web", "area": "Inbox", "title": "Inbox", "route": "/inbox",
+      "roles": ["Trainer", "Nutritionist", "Admin"],
+      "files": ["web/src/pages/InboxPage.tsx", "web/src/components/inbox/**"],
+      "endpoints": [
+        "GET /conversations", "POST /conversations", "GET /conversations/filter-counts",
+        "GET /conversations/{conversationId}/messages", "POST /conversations/{conversationId}/messages",
+        "POST /conversations/{conversationId}/messages/image-upload-url", "POST /conversations/{conversationId}/read",
+        "GET /trainer/clients/{clientId}", "GET /trainer/clients/{clientId}/plans",
+        "GET /trainer/clients/{clientId}/measurements"
+      ],
+      "board": "PageInbox",
+      "shots": [
+        { "name": "empty", "steps": "open /inbox without selecting a conversation" },
+        { "name": "conversation", "steps": "click the first conversation" },
+        { "name": "client-panel", "steps": "click the first conversation, then 'Zobrazit klienta'" },
+        { "name": "archived", "steps": "switch the view toggle to 'Archivováno'" }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "web.recipes.library", "app": "web", "area": "Recipes", "title": "Recipe library", "route": "/recipes",
+      "roles": ["Nutritionist"],
+      "files": ["web/src/pages/RecipesPage.tsx", "web/src/components/recipes/**", "web/src/components/library/**", "web/src/components/tags/**"],
+      "endpoints": [
+        "GET /recipes", "POST /recipes", "GET /recipes/{recipeId}", "PUT /recipes/{recipeId}", "DELETE /recipes/{recipeId}",
+        "POST /recipes/{recipeId}/image/upload-url", "PUT /recipes/{recipeId}/image", "DELETE /recipes/{recipeId}/image",
+        "DELETE /recipes/{recipeId}/gallery", "POST /recipes/{recipeId}/gallery/promote",
+        "PUT /trainer/recipes/{recipeId}/tags", "GET /foods/search", "GET /trainer/food-tags"
+      ],
+      "board": "PageRecipesTable",
+      "shots": [
+        { "name": "default" },
+        { "name": "new-recipe", "steps": "click '+ Nový recept'" },
+        { "name": "ingredients-tab", "steps": "open a seeded recipe, click the 'Suroviny' tab" },
+        { "name": "preparation-tab", "steps": "open a seeded recipe, click the 'Postup' tab" },
+        { "name": "pictures-tab", "steps": "open a seeded recipe, click the 'Obrázky' tab" },
+        { "name": "delete-dialog", "steps": "open a recipe you own, click 'Smazat'" }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "web.ingredients.library", "app": "web", "area": "Ingredients", "title": "Ingredient library", "route": "/ingredients",
+      "roles": ["Trainer", "Nutritionist"],
+      "files": ["web/src/pages/IngredientsPage.tsx", "web/src/components/ingredients/**", "web/src/components/library/**", "web/src/components/tags/**"],
+      "endpoints": [
+        "GET /foods/search", "POST /foods", "GET /foods/{foodId}", "PUT /foods/{foodId}", "DELETE /foods/{foodId}",
+        "GET /foods/custom", "POST /foods/{foodId}/image/upload-url", "PUT /foods/{foodId}/image", "DELETE /foods/{foodId}/image",
+        "GET /trainer/food-tags", "POST /trainer/food-tags", "PUT /trainer/food-tags/{tagId}", "DELETE /trainer/food-tags/{tagId}",
+        "PUT /trainer/foods/{foodId}/tags"
+      ],
+      "board": "PageIngredients",
+      "shots": [
+        { "name": "default" },
+        { "name": "new-ingredient", "steps": "sign in as the nutritionist, click '+ Nová surovina'" },
+        { "name": "delete-dialog", "steps": "open an ingredient you own, click 'Smazat'" },
+        { "name": "trainer-read-only", "steps": "sign in as the trainer, open any ingredient" }
+      ],
+      "notionPageId": null
+    }
+  ]
+}
+```

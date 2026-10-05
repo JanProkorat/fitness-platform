@@ -24,7 +24,8 @@ without reading code.
 | API docs placement | One API reference + a linked "Technical" list on each screen page |
 | Reader | New team member |
 | Language | English (app screenshots in Czech, the primary locale) |
-| Update trigger | After each merge to `develop`, only what changed |
+| Update trigger | At the end of each task: after its PR merges (into the epic branch or `develop`), only what changed |
+| Starting inventory | Empty — each redesign task adds its screens when it ships (decided 2026-10-05) |
 | API content source | Generated from Swagger, plus error codes and validator rules read from code |
 | Screenshot upload | `scripts/notion-upload.py` (curl stays denied); verified 2026-10-05 |
 
@@ -142,13 +143,18 @@ never deletes an image.
 
 ## 5. Modes and update flow
 
-**Build** — creates the full tree from `screens.json` + Swagger. Run once
-after this lands, and again only if the tree is lost. The Notion root page
-`Fitness & Nutrition Platform` (`3451c0f6-641f-81cf-b502-fbd0e6227e27`) is
-reused.
+**The wiki grows task by task.** `screens.json` starts empty and nothing
+is built up front. Each redesign task that ships a screen adds its entry;
+the update run at the end of that task creates the page. Missing app, area,
+"API reference" and "Glossary" pages are created the first time they are
+needed. The Notion root page `Fitness & Nutrition Platform`
+(`3451c0f6-641f-81cf-b502-fbd0e6227e27`) is reused.
 
-**Update** — after each merge to `develop` (never after a sub-issue merge
-into an epic branch):
+**Build** — recreates the full tree from `screens.json` + Swagger. Only for
+recovery, when the tree is lost or the user asks for a rebuild.
+
+**Update** — at the end of every task: after its PR merges, into the epic
+branch (sub-issue) or `develop` (standalone or epic PR):
 
 1. List the files the merge changed.
 2. Match against `screens.json` `files` → affected screens; changed folders
@@ -169,10 +175,12 @@ it is now.
 ## Repo changes
 
 - Rewrite `.claude/skills/notion-docs/SKILL.md` and its `references/`
-  (`bootstrap.md`, `update.md`, `page-templates.md`); delete
-  `references/routing.md` (replaced by `screens.json`).
-- Add `docs/wiki/screens.json` with entries for the web screens shipped in
-  epic #1052.
+  (`build.md` replacing `bootstrap.md`, `update.md`, `page-templates.md`);
+  delete `references/routing.md` (replaced by `screens.json`).
+- Add an empty `docs/wiki/screens.json` (`{"screens": []}`).
+- Move the docs trigger from "develop merges only" to "every task's merge"
+  in `.claude/rules/merge-strategy.md`, `.claude/CLAUDE.md` (task lifecycle)
+  and `pr-reviewer`.
 - Add `scripts/wiki-api.py`, `scripts/wiki-check.py`; commit the existing
   `scripts/notion-upload.py`.
 - Add a `wiki-check` step to CI.
@@ -181,8 +189,7 @@ it is now.
 
 ## Out of scope
 
-- Writing the wiki content (the first Build run is a separate step after
-  review).
+- Writing any wiki content. Pages appear as redesign tasks ship.
 - Mobile screenshots (blocked on the paused iOS QA path).
 - Dark-theme screenshots for web (no dark theme in the app yet).
 - Fixing Swagger inaccuracies in the backend.
