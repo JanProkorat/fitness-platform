@@ -93,6 +93,12 @@ Assert the outcome. A test whose only assertion is `NotBeNull()` on the
 response proves the call didn't throw — say that with `NotThrowAsync()`, or
 check what actually changed.
 
+## Cancellation token
+
+Pass `TestContext.Current.CancellationToken` (xUnit v3) to every async call
+in a test — the shipped norm, in 285 test files. It lets the runner cancel a
+hung test instead of stalling the whole run.
+
 ## Running tests
 
 - Scoped runs: `dotnet test backend/FitnessPlatform.Tests/FitnessPlatform.Tests.csproj -- --filter-class "<FQN>"`.

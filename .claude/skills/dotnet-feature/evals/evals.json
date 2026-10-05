@@ -3,30 +3,30 @@
   "evals": [
     {
       "id": 0,
-      "name": "archive-absence",
-      "prompt": "Add a POST endpoint to archive an absence. Route: POST api/absences/{id:guid}/archive. Sets IsArchived=true on the AbsenceDo entity. Only a manager of the absence's owner (or administrator) can archive. Returns 204 No Content. Returns 404 if absence not found, 403 if caller has no rights.",
-      "expected_output": "Feature files: PATCH/POST endpoint with AsNoTracking read, guard clauses using Send.NotFoundAsync/Send.ForbidAsync, SaveChangesAsync, integration test stubs for 401/403/404/204.",
+      "name": "archive-meal-template",
+      "prompt": "Add an endpoint to archive a meal template. Route: POST /nutrition/meal-templates/{TemplateId}/archive. Sets ArchivedAt on the MealTemplate document (the field does not exist yet — add it). Only the trainer or nutritionist who owns the template may archive it. Returns 200 with the template's id and archive time. Returns 404 if the template does not exist or is not owned by the caller, 409 if it is already archived.",
+      "expected_output": "Files under Features/MealTemplates/ArchiveMealTemplate/: request with a PascalCase TemplateId matching the route, endpoint gated with Roles(AppRoles.Trainer, AppRoles.Nutritionist), Summary with a Responses entry for 200/400/401/404/409, a plain-class response with a FromDocument factory exposing ExternalId, Send.UnauthorizedAsync guard on the UserId claim, Send.NotFoundAsync for missing or not-owned, this.SendProblemAsync(409, ErrorCodes.X, ...) for already archived, TimeProvider for ArchivedAt, Send.OkAsync(response, ct) on success. No FeatureConfiguration, WithTag, Policies or Send.ErrorsAsync. Tests handed to dotnet-tdd with a 404 not-owned test and no per-endpoint 401/403 test.",
       "files": []
     },
     {
       "id": 1,
-      "name": "absences-overview",
-      "prompt": "Add a GET endpoint: GET api/absences/overview/{year:int}. Returns a projection of the current user's absences grouped by month for the given year. Response shape: { Year, Months: [{ Month, TotalDays, AbsenceCount }] }. Current user identity comes from ICurrentUser. No permission check beyond authentication.",
-      "expected_output": "Query with AsNoTracking and Select projection, FluentValidation validator for year range, integration tests for 401 and 200 with data assertion.",
+      "name": "client-measurement-overview",
+      "prompt": "Add GET /client/measurements/overview/{Year}. Returns the calling client's body measurements grouped by month for the given year. Response shape: { Year, Months: [{ Month, Count, AverageWeightKg }] }. Only the client role may call it.",
+      "expected_output": "EF read with AsNoTracking and a Select projection filtered on the caller's user id, Roles(AppRoles.Client), validator inheriting Validator<T> with a year range rule, response as a plain class (not a record) exposing no long Id. Tests: validator TestValidate for the range, one 400 endpoint test, one 200 integration test using TestActors that asserts the grouped values filtered to the test's own data.",
       "files": []
     },
     {
       "id": 2,
-      "name": "overtime-feature",
-      "prompt": "Scaffold a new Overtime feature. A POST endpoint CreateOvertimeEndpoint (api/overtime) that creates a new OvertimeDo entity with fields: Hours (decimal), Date (DateOnly), UserId (Guid), Note (string, max 500, optional). Employees can create their own overtime; managers can create for their team members. Returns 201 with the created Guid. No existing Overtime feature folder exists — create everything from scratch including the feature configuration, the entity, the EF configuration, the DbSet registration, the migration placeholder, and the integration tests.",
-      "expected_output": "Full feature: FeatureConfiguration, Errors, Entity (AuditableDo + Guid Id), EF configuration, Endpoint, Request class, Validator, integration tests. Correct dispatch to /dotnet-migrate recommended.",
+      "name": "client-milestone-entity",
+      "prompt": "Scaffold a new feature letting a trainer or nutritionist record a milestone for one of their linked clients: POST /trainer/clients/{ClientId}/milestones with Title (required, max 200) and AchievedOn (date). There is no storage for it yet — create the EF entity too. Returns 201 with the milestone's public id.",
+      "expected_output": "New entity in Domain/Entities inheriting PublicTimestampableEntity (no redeclared Id), DbSet registered, migration handed to dotnet-migrate and not applied. AchievedOn is DateOnly. Endpoint checks the caller's live link via IClientLinkAuthorizationService.GetCapabilitiesByClientPublicIdAsync (not only the role) and returns 404 when there is none. Response exposes PublicId. Send.CreatedAtAsync tested through FitnessApiFactory. Includes a 403/404 test for the missing link.",
       "files": []
     },
     {
       "id": 3,
-      "name": "announcements-feature",
-      "prompt": "Add a new Announcements feature. Administrator will be able to create announcements. It has title, text and expiration. New GET endpoint will return all announcements that are not yet expired.",
-      "expected_output": "Full feature with two endpoints (Create, GetActive or similar), AnnouncementDo entity, EF config, integration tests. Tests whether the skill drives the user through an interview (permission specifics, response shape, route naming) before scaffolding.",
+      "name": "announcements-interview",
+      "prompt": "Add announcements. An admin creates them with title, text and expiration. A GET endpoint returns those that have not expired yet.",
+      "expected_output": "Asks only what it cannot infer (who may read announcements, route prefix, storage: EF or Mongo) before scaffolding. Then two actions in their own folders (e.g. CreateAnnouncement, GetActiveAnnouncements) with domain-prefixed, globally unique endpoint names, Roles(AppRoles.Admin) on create, TimeProvider for the expiry comparison, and no empty request DTO (EndpointWithoutRequest for the list if it takes no input).",
       "files": []
     }
   ]

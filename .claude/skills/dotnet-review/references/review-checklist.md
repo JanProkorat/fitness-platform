@@ -1,97 +1,100 @@
 # Review Checklist
 
-Walk every section on every review. Each checkbox maps to one rule file section — cite it in findings.
+Walk every section on every review. Each item names the rule anchor to cite.
+The rule files are the source of truth — if an item here disagrees with one,
+the rule wins; fix this file.
 
-## 1. Architecture (`architecture.md`)
+**[ASPIRATIONAL] items are never findings against existing code.** Several
+rules mark a direction for new code that most of the codebase does not follow
+yet (`internal sealed`, `TimeProvider`, `DontCatchExceptions()`). Flag them
+only on code the diff adds, and at most as a nit.
 
-- [ ] Features under `Features/{Name}/Commands|Queries/` — no horizontal layers
-- [ ] New feature has `IFeatureConfiguration`, parameterless ctor, `[ExcludeFromCodeCoverage]`
-- [ ] No cross-feature namespace imports
-- [ ] No `ControllerBase`, `[ApiController]`, `IMediator`, MediatR
-- [ ] One type per file; file name matches type
-- [ ] Shared DTOs in feature's `Shared/`, not `Common/`
+## 1. Architecture (`rules/architecture.md`)
 
-## 2. API Design (`api-design.md`)
+- [ ] Slice lives in `Features/{Area}/{Action}/`; shared DTOs and error tables in the area's `Shared/` (#vertical-slice-layout)
+- [ ] No `{Feature}FeatureConfiguration`, `Commands/`/`Queries/` split or `Errors/` folder (#vertical-slice-layout)
+- [ ] Feature logic stays in `HandleAsync` — no per-feature service or handler type (#no-horizontal-layers)
+- [ ] Avoid importing from another `Features/{Area}` namespace — a smell, not a ban; shared code belongs in `Domain/` (#no-horizontal-layers)
+- [ ] No AutoMapper/Mapster, MediatR, repository wrappers or `#region` (#banned-patterns)
+- [ ] One type per file; file name matches type (`rules/naming.md#files-and-types`)
 
-- [ ] Return type is `Task<Results<TSuccess, ProblemDetails>>`
-- [ ] `DontCatchExceptions()` in every `Configure()`
-- [ ] `Permissions()` or `Policies()` present — never accidentally anonymous
-- [ ] `.WithName(nameof(...))` + `.WithTag(_featureConfiguration)`
-- [ ] `Summary(s => ...)` documents every response status used
-- [ ] Expected errors use `Send.NotFoundAsync(ct)`, `Send.ForbidAsync(ct)`, `Send.ErrorsAsync(ct)` —  NOT `throw`
-- [ ] `return;` after every `Send.XAsync(ct)` guard call
-- [ ] Route lowercase-kebab; `{id:guid}`, `{year:int}` constraints; RESTful verb
-- [ ] Requests are `class` with `set`; responses are `record` with `init`
+## 2. API design (`rules/api-design.md`)
 
-## 3. Error Handling (`error-handling.md`)
+- [ ] `Configure()` order: verb + absolute route, `Roles(...)`/`AllowAnonymous()`, optional `DontCatchExceptions()`, `Summary(...)` (#configure-structure)
+- [ ] `Summary` has a `Responses[...]` entry for every status the endpoint returns (#configure-structure)
+- [ ] `Roles(AppRoles.X, …)` varargs form — never a string literal, never `Policies(...)` (#authorization)
+- [ ] Endpoints touching a specific client's data check the live link/capability, not just the role (#authorization)
+- [ ] `AllowAnonymous()` only when intentionally public, and `Summary` says why (#authorization)
+- [ ] Endpoint class name is unique across the assembly and domain-prefixed (#endpoint-names)
+- [ ] No request type with zero properties — use `EndpointWithoutRequest` (#empty-request-dtos-crash-at-boot)
+- [ ] Route: leading slash, domain prefix, kebab-case segments, PascalCase parameter matching the request property (#routes)
+- [ ] `Send.*Async(ct)` API, followed by `return;` in guard branches; `Send.ForbiddenAsync`, not `ForbidAsync` (#send-pattern)
+- [ ] 3+ guards before the real work → extracted `Load{Entity}OrRespondAsync` helper (#extract-guards-when-many)
 
-- [ ] No `try/catch` for control flow — only genuine infrastructure calls
-- [ ] No `throw KeyNotFoundException`, `throw UnauthorizedAccessException`, etc. for domain errors
-- [ ] `AddError(...)` + `Send.ErrorsAsync(ct)` when structured error payload is needed (400/409 with codes)
-- [ ] Infrastructure errors (DB down, network) let exceptions propagate — no wrapping
+## 3. Error handling (`rules/error-handling.md`)
 
-## 4. Validation (`validation.md`)
+- [ ] Expected failures write a response: bare `Send.*Async`, `this.SendProblemAsync(...)`, or `this.ThrowErrorWithCode(...)` (#send-for-expected-errors)
+- [ ] No `Send.ErrorsAsync` (0 uses here) (#send-for-expected-errors)
+- [ ] No custom or `KeyNotFoundException`-style throws for expected errors (#no-exceptions-for-control-flow)
+- [ ] No `try/catch` around infrastructure calls unless the failure is recoverable and logged (#exceptions-for-infrastructure)
+- [ ] A client branching on a `SendProblemAsync` code actually reads the top-level `errorCode` (#send-for-expected-errors)
 
-- [ ] Complex-input endpoints have `Validator<TRequest>` (FastEndpoints variant, not `AbstractValidator`)
-- [ ] Every `RuleFor` has `.WithErrorCode(...)` pointing at `Utils/ErrorCodes.cs`
-- [ ] FluentValidation only checks shape — not business rules
-- [ ] Validator is `internal sealed`
+## 4. Validation (`rules/validation.md`)
 
-## 5. Naming (`naming.md`)
+- [ ] Body or non-trivial params → a validator inheriting FastEndpoints' `Validator<T>`, not `AbstractValidator<T>` (#validator-class)
+- [ ] Validator accessibility matches the surrounding slice (#validator-class)
+- [ ] Domain-constraint rules carry `.WithErrorCode(ErrorCodes.X)` + `.WithMessage(...)`; plain shape checks need not (#validator-class)
+- [ ] Error codes are constants on the flat `ErrorCodes` class with `SCREAMING_SNAKE_CASE` values; existing codes not renamed (#error-codes)
+- [ ] Validator checks shape only; existence, ownership and state checks live in the endpoint (#what-goes-where)
+- [ ] Enum request properties validated with `IsInEnum()` on new rules (#no-magic-strings)
 
-- [ ] Endpoints: `{HttpVerb}{Entity}Endpoint`
-- [ ] DB entities: `{Entity}Do : AuditableDo`
-- [ ] Request DTOs: `{Action}{Entity}Request`
-- [ ] Response DTOs: `{Entity}Dto` or `{Entity}{Context}Dto`
-- [ ] Validators: `{Request}Validator`
-- [ ] Error factories: `{Feature}Errors`
-- [ ] Feature config: `{Feature}FeatureConfiguration`
-- [ ] Permissions: `"{domain}.{action}"` lowercase.dot; `"{domain}.{action}_{scope}"` for scoped
-- [ ] Error codes: `"{Domain}.{ErrorName}"` PascalCase.PascalCase
-- [ ] Namespaces: file-scoped, match folder
-- [ ] Test methods: `{Method}_{Scenario}_{ExpectedResult}`
+## 5. Naming (`rules/naming.md`)
 
-## 6. EF Core (`ef-core.md`)
+- [ ] `{Action}Endpoint`, `{Action}Request`, `{Action}Response`, `{Action}Validator` (#file-naming-patterns)
+- [ ] `Shared/` holds `{Name}Dto` and `{Feature}Errors` (#file-naming-patterns)
+- [ ] Migration names are present-tense `{Verb}{Target}` (#migrations)
+- [ ] Tests named `{Method}_{StateUnderTest}_{ExpectedBehavior}` (#test-naming)
+- [ ] Locals have descriptive names — only the listed exceptions (`ct`, `req`, `db`, `mongo`, lambda params…) (#local-variable-naming)
 
-- [ ] Read queries use `.AsNoTracking()`
-- [ ] `.Select(...)` projections for reads
-- [ ] Entities inherit `AuditableDo` — audit fields not set manually
-- [ ] Primary keys are `Guid`
-- [ ] Dates: `DateOnly` / `DateTimeOffset` — no bare `DateTime`
-- [ ] `CancellationToken ct` forwarded to every async EF call
-- [ ] Enums stored as strings (`HasConversion<string>()` or global convention)
-- [ ] Entity config in `IEntityTypeConfiguration<T>` under `Infrastructure/EntityFramework/Configurations/`
-- [ ] Configurations are `internal sealed`
+## 6. EF Core (`rules/ef-core.md`)
 
-## 7. C# Style (`csharp-style.md`)
+- [ ] New entity inherits `BaseEntity` / `TimestampableEntity` / `PublicTimestampableEntity`; does not redeclare `Id` (#entities, #primary-keys)
+- [ ] New entity registered as a `DbSet` (#dbset-registration)
+- [ ] `long Id` never in a response — `PublicId` / `ExternalId` instead (#primary-keys)
+- [ ] Read queries use `AsNoTracking()` and prefer `Select` projections (#asnotracking, #projections)
+- [ ] No N+1 — no `Find`/`FirstOrDefault` inside a loop (#n-plus-one)
+- [ ] New enum columns default to integer; **any global enum conversion or `AlterColumn` on an untouched table is critical** (#enum-storage)
+- [ ] Migration `Up()` read and free of unintended destructive operations (#migrations)
+- [ ] `DateTime` timestamps are the norm — not a finding (#date-types)
 
-- [ ] Primary constructors for DI
-- [ ] Records with `init` for responses; classes with `set` for requests
-- [ ] Endpoint/validator/feature config `internal sealed`
-- [ ] No `DateTime.UtcNow` / `DateTime.Now` — injected `TimeProvider`
-- [ ] No `#region` / `#endregion`
-- [ ] XML `/// <summary>` on public/internal members
-- [ ] File-scoped namespaces
-- [ ] Guard clauses with early return — no nested if/else
-- [ ] Expression-bodied `=>` for single-expression members
-- [ ] Target-typed `new()` where LHS obvious
-- [ ] Every async method takes/forwards `CancellationToken ct` (exact name `ct`)
+## 7. C# style (`rules/csharp-style.md`)
 
-## 8. Testing
+- [ ] Primary constructors for DI (#primary-constructors)
+- [ ] Responses are plain classes with `{ get; set; }` and a `FromDocument`/`FromEntity` factory — not records (#records-for-dtos)
+- [ ] New time-dependent endpoint code injects `TimeProvider` — [ASPIRATIONAL], nit on new code only; never in validators (#timeprovider)
+- [ ] Braces on every `if`/`else`/loop; guard + early return (#guard-clauses)
+- [ ] No bare property alias used ≤2 times (#no-intermediate-variable-aliases)
+- [ ] `CancellationToken ct` last and forwarded to every async call (#async-await)
+- [ ] XML `/// <summary>` on public/internal members; `<inheritdoc />` on `Configure`/`HandleAsync` (#xml-documentation)
+- [ ] No `#region`; comments in English (#no-regions, #comments)
 
-- [ ] New endpoints have integration test class in `.Tests.Integration`
-- [ ] Test class `[Collection(nameof(TestCollections.{Feature}TestCollection))]`
-- [ ] `SetupAsync` calls `app.ResetDatabaseAsync()`
-- [ ] No `DateTime.UtcNow` in tests — `FakeTimeProvider`
-- [ ] `TestContext.Current.CancellationToken` on async ops
-- [ ] Auth headers cleared in `finally` (or via `TestBase.TearDownAsync`)
-- [ ] Coverage order: 401, 403, 400, 404, 409, 200/201/204
-- [ ] Commands assert DB state after HTTP assertion
-- [ ] No mocking of `DbContext` — TestContainers + real Postgres
-- [ ] Seed via `DbContext`, not API calls (except testing the API chain)
+## 8. Testing (`rules/testing.md`)
+
+- [ ] Each behaviour tested once, at the cheapest layer that proves it (#what-each-layer-is-for)
+- [ ] Every ownership/link/capability check has a 403 or 404 test (#authorization)
+- [ ] **No** new per-endpoint "no auth → 401" or "wrong role → 403" tests (#authorization)
+- [ ] Validator rules covered by `TestValidate`, asserting `ErrorCode`/`ErrorMessage`, not `PropertyName`; one 400 test per endpoint (#validation, `rules/validation.md#testing-validators`)
+- [ ] Integration classes use `[Collection(TestCollection.Name)]` + `FitnessApiFactory`; no factory or container per test class (#containers-and-isolation)
+- [ ] Actors from `TestActors`; only the data the test asserts on; no copied helpers (#test-data-small-builders-not-big-setup)
+- [ ] Unique data per test; list/search assertions filtered to the test's own rows; exact-count assertions clear the collection first (#containers-and-isolation)
+- [ ] Assertions check the outcome, not just `NotBeNull()` (#assertions)
+- [ ] `TestContext.Current.CancellationToken` on async calls (#cancellation-token)
+- [ ] Any reported scoped run used `-- --filter-class`, not `--filter` (#running-tests)
 
 ## Common false positives
 
-- `public` on types that *are* a consumed contract (shared with Azure Functions / Frontend) — check if in `Shared/` before flagging.
-- Missing `.WithErrorCode()` on a `.NotEmpty()` FastEndpoints handles generically — acceptable if no localized message needed.
-- `DateTime` in legacy migrations / pre-existing entities — flag as "observed, not introduced".
+- Existing `public class` endpoints/validators, `DateTime.UtcNow`, missing `DontCatchExceptions()` — inherited debt, not introduced by the diff.
+- `Description(b => b.WithName(...))` on the MealTemplates/SessionTemplates slices — redundant but harmless.
+- The two lowercase error codes (`social_email_conflict`, `session_locked`) — known drift; renaming them breaks clients.
+- Issue numbers in code comments — established practice (`rules/csharp-style.md#comments`).
+- `WorkoutTemplate` not implementing `ILibraryDocument` — deliberate (`rules/architecture.md#workouttemplate-is-outside-the-library-contract`).

@@ -1,81 +1,89 @@
 # Testing Conventions (dotnet-tdd reference)
 
-Project-specific .NET testing rules. Read on demand from citations like `skills/dotnet-tdd/references/testing-conventions.md#<anchor>`.
-
-## Philosophy: unit first
-
-Unit by default. Integration only when the scenario needs the full HTTP stack or a real database. When both cover the same case — choose unit.
-
-- **Unit:** validators (`TestValidate`), handler logic (auth, not-found, conflicts), helpers, domain invariants.
-- **Integration:** happy path per endpoint (full stack + DB persistence). Cases exercising DB constraints, transactions, query behavior.
+`rules/testing.md` is the source of truth for backend tests. This file only
+names the concrete types a test file uses, so an agent can write one without
+searching. Where the two disagree, the rule wins — fix this file.
 
 ## Test stack
 
-`xunit.v3`, `Testcontainers.PostgreSql`, `Respawn` (DB reset), `FakeItEasy` (no Moq/NSubstitute), `FluentAssertions`, `FastEndpoints.Testing`.
+One project, `backend/FitnessPlatform.Tests`: xUnit v3, FluentAssertions,
+NSubstitute (+ `MockQueryable.NSubstitute`), `FastEndpoints.Testing`,
+Testcontainers for PostgreSQL and MongoDB. No Moq, no FakeItEasy, no Respawn,
+no separate unit/integration projects.
 
-## Test collections
+## File location
 
-Feature tests share one PostgreSQL container per collection. Collections run sequentially; different collections run in parallel with isolated containers. Collection names: `const string` on a central constants class (CLAUDE.md → TestConstants). Never hardcode.
-
-## Test base
-
-Extends `TestBase`, injects fixture via primary ctor (CLAUDE.md → IntegrationTestFixture):
-
-```csharp
-// Collection name: const string from TestConstants (CLAUDE.md → Collection attribute)
-[Collection(TestConstants.Collections.{Feature}Test)]
-public class CreateOrderEndpointTests(IntegrationTestFixture app) : TestBase  // CLAUDE.md → IntegrationTestFixture
-{
-    protected override async ValueTask SetupAsync() => await app.ResetDatabaseAsync();
-}
-```
+Mirror the feature path: `Features/{Area}/{Action}/` →
+`FitnessPlatform.Tests/Endpoints/{Area}/{Action}EndpointTests.cs`. Validator
+tests are `{Action}ValidatorTests.cs`, either beside them or under
+`FitnessPlatform.Tests/Validators/` — match the area's existing tests.
 
 ## Collection attribute
 
-Every integration test class MUST have a `[Collection(...)]` attribute with the project's collection constant (`CLAUDE.md → Collection attribute`).
+Integration classes take `[Collection(TestCollection.Name)]` and inject
+`FitnessApiFactory` through the primary constructor
+(`Infrastructure/TestCollection.cs`, `Infrastructure/FitnessApiFactory.cs`).
+Never build a `WebApplicationFactory` or a container per test class
+(`rules/testing.md#containers-and-isolation`).
 
-## Reset database first
+```csharp
+[Collection(TestCollection.Name)]
+public class CreateMilestoneEndpointTests(FitnessApiFactory factory)
+{
+    [Fact]
+    public async Task CreateMilestone_LinkedClient_Returns201()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var trainer = await TestActors.Trainer(factory).CreateAsync(ct);
+        var client = await TestActors.Client(factory).CreateAsync(ct);
+        await TestActors.Link(factory, trainer, client).CreateAsync(ct);
 
-`await app.ResetDatabaseAsync();` MUST be the **first line** of `SetupAsync()`. Out of order → stale data → flaky tests.
+        var response = await trainer.Http.PostAsJsonAsync(/* route, body */, ct);
 
-## FakeItEasy only
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+    }
+}
+```
 
-No Moq, no NSubstitute. Do NOT mock `DbContext` in integration tests — use the real container. Unit tests: EF in-memory or a fake is fine.
+## Actors and data
+
+- `Builders/TestActors.cs` — real users with a minted JWT; `actor.Http` is an
+  authenticated `HttpClient`.
+- `Builders/EntityBuilders.cs` (`EntityBuilder.ClientProfile`, …) — entities
+  for unit tests.
+- Unique data per test; filter list assertions to the test's own rows
+  (`rules/testing.md#containers-and-isolation`).
+
+## Endpoint unit tests
+
+`Factory.Create<TEndpoint>(ctx => …, deps…)` with a mocked EF context from
+`Builders/MockDbBuilder.cs` and claims from
+`EndpointTestHelpers.FakeUserClaims(userId, AppRoles.X)`
+(`Endpoints/EndpointTestHelpers.cs`). Link checks are stubbed with
+`EndpointTestHelpers.CreateGrantingLinkAuthorizationService()` or an
+NSubstitute stub returning `null`. Shipped example:
+`Endpoints/ClientMeasurements/GetClientMeasurementsEndpointTests.cs`.
+
+`Builders/MockMongoBuilder.cs` ignores query filters — a test that depends on
+a Mongo filter needs a real container.
 
 ## Cancellation token
 
-Every async call MUST pass `TestContext.Current.CancellationToken` (xUnit v3). Skipping → CI hangs.
+Pass `TestContext.Current.CancellationToken` to every async call
+(`rules/testing.md#cancellation-token`).
 
-## HTTP client
+## Time
 
-`HttpClient` from the fixture (carries auth, points at TestContainers DB). Never instantiate `WebApplicationFactory<Program>` directly (CLAUDE.md → Client factories).
-
-## Fixture
-
-Wraps `AppFixture<Program>`, starts Postgres, applies migrations. Provides `ResetDatabaseAsync()` (Respawn), auth-preconfigured HTTP clients, `app.Services` for seeding + DB assertions. Register `AdjustableTimeProvider` as singleton — a project-local `TimeProvider` subclass that supports both `Advance(TimeSpan)` and `SetUtcNow(DateTimeOffset)` (including backward jumps, which `FakeTimeProvider` from `Microsoft.Extensions.TimeProvider.Testing` disallows).
-
-## Assertions
-
-FluentAssertions. Order: HTTP status → response body → DB state.
-
-## Deterministic GUIDs
-
-Seed data + expected IDs: `new Guid("00000000-0000-0000-0000-000000000001")`. Never `Guid.NewGuid()` for fixed rows. `Guid.NewGuid()` is fine for IDs not asserted by value.
-
-## Red green refactor
-
-One failing test → minimum code to make it pass → cleanup while green. Never write implementation before the test fails for the expected reason (compile error or wrong status code). After GREEN, refactor without changing behavior; tests must stay green at every step.
-
-## One behavior per cycle
-
-Each RED→GREEN cycle exercises exactly one behavior (one acceptance criterion or one error path). If a new test is immediately green, the code is already doing the work — split the test or pick a smaller behavior.
+Endpoints take `TimeProvider`; tests pass `TimeProvider.System`. There is no
+fake clock in this repo — add one and document it if a test needs controlled
+time (`rules/csharp-style.md#timeprovider`).
 
 ## Test ordering
 
-Start with integration happy path (RED → GREEN), then unit tests per failure branch.
-
-| Case | Type |
-|------|------|
-| 200/201/204 happy path + DB verification | Integration |
-| 401, 403, 404, 409 | Unit |
-| 400 Bad Request (validator) | Unit (`TestValidate`) |
+| Case | Layer |
+|---|---|
+| Happy path + persisted state | Integration |
+| 404 / 403 / 409 from the endpoint's own checks (ownership, link, state) | Endpoint unit, or integration when it depends on a real query |
+| Each validator rule | Validator unit (`TestValidate`), asserting `ErrorCode` or `ErrorMessage` |
+| "Validation is wired" | One 400 test per endpoint |
+| No auth → 401, wrong role → 403 | **Not written** — the architecture test covers them (`rules/testing.md#authorization`) |

@@ -284,7 +284,7 @@ says otherwise for that task.
 
 | Skill             | What it does                                                                                                                 |
 |-------------------|------------------------------------------------------------------------------------------------------------------------------|
-| `dotnet-feature`  | Scaffolds a new FastEndpoints vertical slice (request/response/validator/endpoint). Generic template — `.claude/rules/*.md` win where it differs (no FeatureConfiguration, `.WithTag`, `Policies`). From `backend-dotnet`; `dotnet-tdd` for tests. |
+| `dotnet-feature`  | Scaffolds a new FastEndpoints vertical slice (request/response/validator/endpoint) per `.claude/rules/*.md`. From `backend-dotnet`; `dotnet-tdd` for tests. |
 | `mongo-document`  | Scaffolds a new MongoDB root aggregate (Id, ExternalId, Version, audit fields, collection registration). From `backend-dotnet`. |
 | `signalr-event`   | Wires a realtime event end-to-end across backend → web → mobile. Orchestrator-run.                                           |
 | `regen-api`       | Regenerates the TypeScript API client from Swagger. Run by the client sub-agent that needs it.                                |

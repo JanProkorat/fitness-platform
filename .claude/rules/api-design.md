@@ -251,7 +251,8 @@ sites; don't add a fourth.
 
 Role gating is coarse. **A role check is not an ownership check** — an
 endpoint addressing a specific client's data must also verify the caller's
-live link and per-domain capability (`HasAnyPlanAccessAsync` and friends).
+live link and per-domain capability (`IClientLinkAuthorizationService`'s
+`GetCapabilitiesBy…Async`, which returns `null` when there is no live link).
 `IsActive` alone is not sufficient.
 
 No endpoint is anonymous unless intentionally public — then call
