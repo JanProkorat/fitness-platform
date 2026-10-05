@@ -4,27 +4,22 @@
 #
 # WHY THIS EXISTS
 # ---------------
-# In __DEV__ the mobile app talks to the backend over https://localhost:5001
-# (see src/api/client.ts — HTTP is banned because iOS strips the Authorization
-# header across an HTTP->HTTPS redirect). That endpoint is served with the
-# self-signed .NET developer certificate.
+# During development, the mobile app talks to https://localhost:5001 where the
+# backend runs with a self-signed .NET developer certificate. iOS Simulator
+# does not trust this cert by default, so HTTPS connections fail with
+# `net::ERR_FAILED` before any HTTP status code is received.
 #
-# `localhost` is a loopback address, so iOS exempts it from App Transport
-# Security entirely — which means NO app.json / Info.plist key is involved.
-# What DOES gate the connection is TLS certificate trust: iOS evaluates the
-# server cert against the simulator's keychain trust store, and a self-signed
-# cert that isn't in that store fails the handshake. React Native surfaces that
-# as `net::ERR_FAILED` on the request (e.g. the /auth/login POST), with no HTTP
-# status because the response never arrives.
+# This script adds the current .NET dev cert to the simulator's keychain trust
+# store so connections succeed. It is idempotent and best-effort: it never
+# fails if no simulator is booted (which is common during initial setup).
 #
-# The trust store is PER-SIMULATOR and is wiped whenever a simulator is erased,
-# freshly created, or when the dev cert is regenerated. This script re-adds the
-# current dev cert to every booted simulator. It is idempotent and best-effort:
-# it never fails the build if no simulator is booted (that's the common case
-# during `expo start`, where you boot/pick the sim afterwards).
+# The trust store is per-simulator and is wiped when the simulator is erased,
+# freshly created, or when the dev cert is regenerated. Re-run this script in
+# those cases.
 #
-# Run manually:   npm run ios:trust-cert
-# Runs automatically before `npm start` via the `prestart` hook.
+# Usage
+# -----
+# bash mobile/scripts/trust-dev-cert.sh
 
 set -uo pipefail
 
