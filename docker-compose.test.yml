@@ -123,6 +123,10 @@ services:
       retries: 30
 
   seed:
+    # Same image as api (same context and Dockerfile). The tag is per project
+    # by default so parallel branches don't overwrite each other's images;
+    # CI sets E2E_IMAGE_TAG so the images it pre-builds are found by name.
+    image: fp-e2e-backend:${E2E_IMAGE_TAG:-${COMPOSE_PROJECT_NAME:-local}}
     build:
       context: ./backend
     depends_on:
@@ -170,6 +174,7 @@ services:
     restart: "no"
 
   api:
+    image: fp-e2e-backend:${E2E_IMAGE_TAG:-${COMPOSE_PROJECT_NAME:-local}}
     build:
       context: ./backend
     depends_on:
@@ -254,6 +259,7 @@ services:
   # pointed at the internal `api` service. Playwright reaches us via
   # http://web:5173 over qa-net.
   web:
+    image: fp-e2e-web:${E2E_IMAGE_TAG:-${COMPOSE_PROJECT_NAME:-local}}
     build:
       context: ./web
       dockerfile: Dockerfile
@@ -285,6 +291,7 @@ services:
   # screenshots) land in /work/web/playwright-report + /work/web/test-results,
   # which the bind-mount surfaces at .qa-artifacts/<project>/ on the host.
   playwright:
+    image: fp-e2e-playwright:${E2E_IMAGE_TAG:-${COMPOSE_PROJECT_NAME:-local}}
     build:
       context: .
       dockerfile: qa-playwright/Dockerfile
