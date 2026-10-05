@@ -1,213 +1,235 @@
 ---
 name: dotnet-feature
-description: Scaffold a .NET vertical slice — endpoint, request/response, validator, errors, IFeatureConfiguration, test stub. Use when adding a new endpoint, command, query, CRUD op, API route, or Features/{Name}/ folder.
-argument-hint: "<FeatureName> <Action> <description>"
+description: Scaffold a FastEndpoints vertical slice in this backend — Features/{Area}/{Action}/ with endpoint, request, response and validator, following .claude/rules. Use when adding a new endpoint, command, query, CRUD op or API route. Tests go through dotnet-tdd; migrations through dotnet-migrate.
+argument-hint: "<Area> <Action> <description>"
 ---
 
-# Feature Scaffolding
+# Feature scaffolding
 
-**Arguments:** `$ARGUMENTS` — e.g., `Absences Create "Create a new employee absence"`.
+**Arguments:** `$ARGUMENTS` — e.g. `MealTemplates Archive "Archive a meal template"`.
 
-## When to use
-- New endpoint / command / query / CRUD operation in a FastEndpoints + vertical slice project.
-- Adding a `Features/{Name}/` folder.
+The rules files are the source of truth. This skill gives the order of work
+and a skeleton; every convention it names lives in a rule, cited by anchor.
+Where this file and a rule disagree, **the rule wins** — fix this file.
 
 ## When not to use
-- Migration generation → `/dotnet-migrate`.
-- Post-implementation convention check → `/dotnet-review`.
-- Test-first flow → `/dotnet-tdd`.
+
+- Test-first flow → `dotnet-tdd` (it calls back here for the GREEN step).
+- A new EF entity's migration → `dotnet-migrate`. Generate, read `Up()`, never apply.
+- A new MongoDB root document → `mongo-document`.
+- Convention check after writing → `dotnet-review`.
 
 ## Required rules
 
-Load these at invocation — they define every convention enforced while scaffolding:
+Read before writing — nothing under `rules/` loads itself:
 
-- `rules/architecture.md` — vertical-slice layout, feature configuration, banned patterns.
-- `rules/api-design.md` — FastEndpoints REPR, `Configure()` structure, `Send.*` pattern.
-- `rules/validation.md` — when to add a validator, error-code pattern.
-- `rules/error-handling.md` — `Send.*Async(ct)` for expected errors; no exceptions for control flow.
-- `rules/naming.md` — file/type, endpoint/request/response/validator, error-code naming.
-- `rules/csharp-style.md` — records for DTOs, primary constructors, XML docs, `Guid`/`TimeProvider`.
-- `rules/ef-core.md` — `DbContext` injection (consulted only if the scaffold touches EF).
+- `rules/architecture.md` — #vertical-slice-layout, #shared-layers, #no-horizontal-layers, #banned-patterns.
+- `rules/api-design.md` — #configure-structure, #endpoint-names, #empty-request-dtos-crash-at-boot, #handleasync-body, #extract-guards-when-many, #send-pattern, #authorization, #routes.
+- `rules/validation.md` — #validator-class, #error-codes, #what-goes-where.
+- `rules/error-handling.md` — #send-for-expected-errors.
+- `rules/naming.md` — #files-and-types, #file-naming-patterns.
+- `rules/csharp-style.md` — #records-for-dtos, #timeprovider, #entity-identity, #guard-clauses, #xml-documentation.
+- `rules/ef-core.md` — only if the slice touches EF (#entities, #asnotracking, #projections).
 
 ## Steps
 
-1. **Clarify only if missing.** Proceed with `$ARGUMENTS`. Ask only for route, request fields, or business errors you can't infer. Record assumptions in `HANDOFF.md`.
-2. **Read exactly one exemplar** of the same kind:
-   - Command: `Features/{Feature}/Commands/Update/`
-   - Query: `Features/{Feature}/Queries/Detail/`
-   - Entity + EF config: `Database/Entities/{Entity}Do.cs` and its matching configuration. If repo uses `[Table]` + `[MaxLength]` annotations, follow that — don't introduce a configuration class.
-   - If named exemplar missing: one `Glob` for `**/Commands/**/*Endpoint.cs` (or Queries), read the first match.
-3. **Write in this order** (compile never blocks): `Request` → `Validator` → `FeatureConfiguration` (if new) → `Endpoint` → integration test class.
-4. **New DB entity?** Add `{Entity}Do : AuditableDo`, register `DbSet<{Entity}Do>`, then write `HANDOFF.md` dispatching `/dotnet-migrate`. Do not scaffold the migration yourself.
-5. **Test stub:** Use `/dotnet-tdd` for testing
-6. Suggest `/dotnet-review` before commit.
+1. **Clarify only what you can't infer:** route, roles, request fields, which
+   caller may act on which data (ownership), and the coded errors the client
+   must tell apart. Record assumptions in your handoff.
+2. **Read one exemplar of the same shape** before writing:
+   - EF-backed slice: `Features/NutritionPlans/GetPlan/`.
+   - Newer slice, `internal sealed` + `TimeProvider`: `Features/MealTemplates/CreateMealTemplate/`.
+   - Otherwise glob `Features/*/*/*Endpoint.cs` for the nearest match.
+3. **Write in this order:** `Request` → `Validator` → `Response` → `Endpoint`.
+4. **New storage?** EF entity → base class per `rules/ef-core.md#entities`,
+   register the `DbSet`, then hand off to `dotnet-migrate`. Mongo root
+   document → `mongo-document`.
+5. **Tests** → `dotnet-tdd`, at the layers `rules/testing.md` prescribes.
+6. Build (`dotnet-build`), then suggest `dotnet-review`.
 
-## Folder layout
+## Layout
 
 ```
-Features/{Feature}/
-├── {Feature}FeatureConfiguration.cs   # create iff folder has none
-├── Utils/ErrorCodes.cs                # extend (error code constants, used with AddError)
-├── Shared/{Entity}Dto.cs              # only if 2+ endpoints share the shape
-└── Commands/{Action}/   (or Queries/{Action}/ for GET)
-    ├── {Action}{Entity}Endpoint.cs
-    ├── {Action}{Entity}Request.cs     # skip only for EndpointWithoutRequest
-    └── {Action}{Entity}Validator.cs   # skip if 0–1 shape rules
+Features/{Area}/
+├── {Action}/
+│   ├── {Action}Endpoint.cs
+│   ├── {Action}Request.cs      # omit only for EndpointWithoutRequest
+│   ├── {Action}Response.cs     # omit for 204-only endpoints
+│   └── {Action}Validator.cs    # body or non-trivial params
+└── Shared/                     # only once 2+ actions share a DTO or error table
 ```
 
-## Canonical skeletons
+There is no feature-configuration class, no `Commands/`/`Queries/` split and
+no `Errors/` folder in this backend (`rules/architecture.md#vertical-slice-layout`).
 
-### Feature configuration
+## Skeletons
+
+The running example is invented: `MealTemplate` has no `ArchivedAt` field
+today. Copy the shape, not the names.
+
+### Request
 
 ```csharp
-/// <summary>Feature configuration for {feature}.</summary>
-[ExcludeFromCodeCoverage]
-internal sealed class {Feature}FeatureConfiguration : IFeatureConfiguration
+/// <summary>
+/// Request for archiving a meal template.
+/// </summary>
+public class ArchiveMealTemplateRequest
 {
-    /// <summary>Swagger tag info for this feature.</summary>
-    public FeatureInfo Info => new("{Feature}", "{short description}");
+    /// <summary>Route parameter — matches `{TemplateId}` in the route exactly.</summary>
+    public Guid TemplateId { get; set; }
 
-    /// <summary>Register feature-scoped services here.</summary>
-    public IServiceCollection AddFeatureDependencies(IServiceCollection services, IConfiguration configuration)
-        => services;
+    /// <summary>Optional reason shown to the coach.</summary>
+    public string? Reason { get; set; }
 }
 ```
 
-### Request (mutable class, `required` on non-nullable)
+A request with **zero properties crashes the app at boot** — use
+`EndpointWithoutRequest<TResponse>` instead (`rules/api-design.md#empty-request-dtos-crash-at-boot`).
+
+### Validator
 
 ```csharp
-/// <summary>Request for {action} {entity}.</summary>
-public sealed class {Action}{Entity}Request
+/// <summary>
+/// Validates the <see cref="ArchiveMealTemplateRequest"/>.
+/// </summary>
+public class ArchiveMealTemplateValidator : Validator<ArchiveMealTemplateRequest>
 {
-    public required Guid Id { get; init; }           // route param
-    public required string Title { get; set; }       // body field
-    public string? Note { get; set; }                // nullable body field
-}
-```
-
-### Validator (every rule has `.WithErrorCode(...)`)
-
-```csharp
-internal sealed class {Action}{Entity}Validator : Validator<{Action}{Entity}Request>
-{
-    public {Action}{Entity}Validator()
+    /// <summary>
+    /// Initializes validation rules for archiving a meal template.
+    /// </summary>
+    public ArchiveMealTemplateValidator()
     {
-        RuleFor(x => x.Title)
-            .NotEmpty().WithErrorCode(ErrorCodes.Validation.Required);
-        RuleFor(x => x.Note)
-            .MaximumLength(500).WithErrorCode(ErrorCodes.Validation.TooLong);
+        RuleFor(x => x.Reason)
+            .MaximumLength(500)
+            .When(x => x.Reason is not null);
     }
 }
 ```
 
-### Endpoint (Command — linear guards)
+FastEndpoints' `Validator<T>`, never `AbstractValidator<T>`. Domain rules carry
+`.WithErrorCode(ErrorCodes.X)` plus `.WithMessage(...)`; plain shape checks
+usually don't (`rules/validation.md#validator-class`).
+
+### Response
 
 ```csharp
-/// <summary>{Action} {entity} endpoint.</summary>
-internal sealed class {Action}{Entity}Endpoint({DbContext} dbContext)  // DbContext class name from CLAUDE.md → AppDbContext
-    : Endpoint<{Action}{Entity}Request, {Action}{Entity}Response>
+/// <summary>
+/// Archived meal template summary.
+/// </summary>
+public class ArchiveMealTemplateResponse
 {
-    private readonly {Feature}FeatureConfiguration _featureConfiguration = new();
+    /// <summary>Public id of the template.</summary>
+    public Guid TemplateId { get; set; }
 
+    /// <summary>When the template was archived (UTC).</summary>
+    public DateTime ArchivedAt { get; set; }
+
+    /// <summary>Maps the stored document to the response.</summary>
+    public static ArchiveMealTemplateResponse FromDocument(MealTemplate template) => new()
+    {
+        TemplateId = template.ExternalId,
+        ArchivedAt = template.ArchivedAt!.Value,
+    };
+}
+```
+
+A plain class with a `FromDocument` / `FromEntity` factory, not a record
+(`rules/csharp-style.md#records-for-dtos`). Expose `PublicId` / `ExternalId`,
+never an EF `long Id` (`rules/csharp-style.md#entity-identity`).
+
+### Endpoint
+
+```csharp
+/// <summary>
+/// Archives one of the caller's meal templates.
+/// </summary>
+/// <param name="mongo">MongoDB context.</param>
+/// <param name="timeProvider">Clock.</param>
+internal sealed class ArchiveMealTemplateEndpoint(IMongoContext mongo, TimeProvider timeProvider)
+    : Endpoint<ArchiveMealTemplateRequest, ArchiveMealTemplateResponse>
+{
+    /// <inheritdoc />
     public override void Configure()
     {
-        Post("api/{feature}");
-        Description(b => b.WithName(nameof({Action}{Entity}Endpoint)).WithTag(_featureConfiguration));
-        DontCatchExceptions();
-        Policies(nameof(AuthorizationPolicies.{Feature}Write));
+        Post("/nutrition/meal-templates/{TemplateId}/archive");
+        Roles(AppRoles.Trainer, AppRoles.Nutritionist);
+        Summary(s =>
+        {
+            s.Summary = "Archive a meal template";
+            s.Description = "Hides the caller's own meal template from the library.";
+            s.Responses[StatusCodes.Status200OK] = "Archived template";
+            s.Responses[StatusCodes.Status400BadRequest] = "Invalid request";
+            s.Responses[StatusCodes.Status404NotFound] = "Template not found, or not owned by the caller";
+            s.Responses[StatusCodes.Status409Conflict] = "Template is already archived";
+        });
     }
 
-    public override async Task HandleAsync(
-        {Action}{Entity}Request req, CancellationToken ct)
+    /// <inheritdoc />
+    public override async Task HandleAsync(ArchiveMealTemplateRequest req, CancellationToken ct)
     {
-        var entity = new {Entity}Do { /* map req */ };
-        dbContext.{Entities}.Add(entity);
-        await dbContext.SaveChangesAsync(ct);
-        await Send.CreatedAtAsync<{Action}{Entity}Endpoint>(new { entity.Id }, new {Action}{Entity}Response(entity.Id), cancellation: ct);
+        var userId = User.FindFirstValue(AppClaims.UserId);
+
+        if (userId is null)
+        {
+            await Send.UnauthorizedAsync(ct);
+            return;
+        }
+
+        // Load + ownership guard, archive, save — see the rules below.
+        // Expected failure with a code the client branches on:
+        //   await this.SendProblemAsync(409, ErrorCodes.X, "…", ct); return;
+        // Success:
+        //   await Send.OkAsync(ArchiveMealTemplateResponse.FromDocument(template), ct);
     }
 }
 ```
 
-For guard branches: `if (entity is null) { await Send.NotFoundAsync(ct); return; }` per `error-handling.md#send-for-expected-errors`. Use `AddError(...) + Send.ErrorsAsync(ct)` when a structured error code/message is needed in the 400/409 body.
+What each line is answering:
 
-### Endpoint (Query)
-
-```csharp
-public override async Task HandleAsync(
-    {Query}Request req, CancellationToken ct)
-{
-    var dto = await dbContext.{Entities}
-        .AsNoTracking()
-        .Where(x => x.Id == req.Id)
-        .Select(x => new {Entity}Dto { Id = x.Id, Title = x.Title })
-        .FirstOrDefaultAsync(ct);
-
-    if (dto is null)
-    {
-        await Send.NotFoundAsync(ct);
-        return;
-    }
-
-    await Send.OkAsync(dto, ct);
-}
-```
-
-### DTO (record with `init`)
-
-```csharp
-public sealed record {Entity}Dto
-{
-    public required Guid Id { get; init; }
-    public required string Title { get; init; }
-}
-```
-
-### Integration test stub
-
-```csharp
-[Collection(TestConstants.Collections.{Feature}Test)]
-public sealed class {Action}{Entity}EndpointTests(IntegrationTestFixture app) : TestBase
-{
-    protected override async ValueTask SetupAsync() => await app.ResetDatabaseAsync(); 
-
-    [Fact] public async Task HandleAsync_Unauthorized_Returns401() { /* clear auth headers */ }
-    [Fact] public async Task HandleAsync_InsufficientPermission_Returns403() { /* user with wrong role */ }
-    [Fact] public async Task HandleAsync_ValidRequest_ReturnsCreated()
-    {
-        // for commands: assert DB state via app.Services.CreateScope()
-    }
-}
-```
-
-## Non-negotiables
-
-- YES: `internal sealed` on Endpoint, Validator, FeatureConfiguration, EF Configuration
-- YES: `DontCatchExceptions()` and `Permissions(...)` in every `Configure()`
-- YES: `.WithName(nameof(...))` + `.WithTag(_featureConfiguration)`
-- YES: `CancellationToken ct` forwarded on every async call
-- YES: queries use `AsNoTracking()` + `Select()` projection
-- YES: `required` on non-nullable request fields
-- YES: XML `/// <summary>` on public/internal members
-- YES: `Guid` keys; `TimeProvider` for dates; file-scoped namespaces; one type per file
+- **Route** — absolute, domain prefix first, kebab-case segments, PascalCase
+  parameter matching the request property (`rules/api-design.md#routes`).
+- **Roles** — `Roles(AppRoles.X, …)` varargs form, never a string literal or
+  `Policies(...)` (`rules/api-design.md#authorization`).
+- **Ownership** — a role is not an ownership check. Any endpoint that touches a
+  specific client's or coach's data verifies the caller's link and capability
+  (`HasAnyPlanAccessAsync` and friends), or reuses an existing
+  `Load…IfAllowedAsync` extension from `Domain/Extensions/`.
+- **Summary** — mandatory, with a `Responses[...]` entry for every status the
+  endpoint can return (`rules/api-design.md#configure-structure`).
+- **Responses** — `Send.*Async(ct)` for bare statuses, `this.SendProblemAsync`
+  for a coded ProblemDetails, `this.ThrowErrorWithCode` for a coded 400. Always
+  `return;` after a `Send` (`rules/error-handling.md#send-for-expected-errors`).
+  It is `Send.ForbiddenAsync`, not `ForbidAsync`; `Send.ErrorsAsync` is not used.
+- **Three or more guards** → extract `Load{Entity}OrRespondAsync` / reuse an
+  extension (`rules/api-design.md#extract-guards-when-many`).
+- **Class name** — globally unique across the assembly and domain-prefixed;
+  a duplicate crashes the app at boot (`rules/api-design.md#endpoint-names`).
+- **Accessibility** — `internal sealed` is preferred for new code; matching the
+  surrounding slice's `public class` is equally fine (`rules/api-design.md#class-accessibility`).
+- **Clock** — inject `TimeProvider` in new code (`rules/csharp-style.md#timeprovider`).
+- **Data** — EF reads `AsNoTracking()` + `Select` projection; Mongo through
+  `IMongoContext`'s typed collections. No repositories, no MediatR, no mapping
+  library (`rules/architecture.md#banned-patterns`).
+- **Optional:** `DontCatchExceptions()` — allowed, not required
+  (`rules/api-design.md#dont-catch-exceptions`).
 
 ## Don't
 
-- Don't construct `Error.NotFound(...)` inline in endpoints — use `{Feature}Errors` factory.
-- Don't cross feature namespaces; extract to `Shared/` or `Common/`.
-- Don't skip the "Required rules" load step — nothing under `rules/` loads itself.
-- Don't scaffold migrations yourself — hand off to `/dotnet-migrate`.
-- Don't skip `DontCatchExceptions()` — silent 401s follow.
-
-## Escalation
-
-- DB write + external side effect (email, Graph, Excel) → ROP chain with side-effect as `Tap`.
-- Bulk ops / file uploads → ask about validation strategy (base64 vs multipart vs streaming) before scaffolding.
+- Don't add a `{Feature}FeatureConfiguration`, `.WithTag(...)`, `Policies(...)`,
+  `Permissions(...)` or an `AuthorizationPolicies` class — none exist here.
+- Don't call into another `Features/{Area}` namespace; move the shared piece to
+  `Domain/` (`rules/architecture.md#no-horizontal-layers`).
+- Don't apply a migration, only generate it via `dotnet-migrate`.
+- Don't add per-endpoint "no auth → 401" or "wrong role → 403" tests; the
+  architecture test covers them (`rules/testing.md#authorization`).
 
 ## Done when
 
-- [ ] Feature folder matches layout above; one type per file.
-- [ ] `{Feature}FeatureConfiguration.cs` exists (endpoint visible in Swagger).
-- [ ] Endpoint, Request, Validator, Errors, FeatureConfiguration compile: `dotnet build`.
-- [ ] Integration test class has 401 / 403 / happy-path tests minimum.
-- [ ] `dotnet test --filter "FullyQualifiedName~{Action}{Entity}EndpointTests"` runs (may still be red if behaviour not yet implemented).
-- [ ] `/dotnet-review` suggested to user.
+- [ ] Files match the layout above; one type per file; XML docs on public/internal members.
+- [ ] Every rule in "Required rules" is satisfied — re-read the anchors, don't trust memory.
+- [ ] `dotnet-build` passes.
+- [ ] The app still boots (new endpoint name unique, no empty request DTO) — the
+      compose harness or the Playwright CI job proves it; `dotnet test` does not.
+- [ ] Tests handed to `dotnet-tdd`; scoped runs use `-- --filter-class "<FQN>"`
+      (plain `--filter` is silently ignored — `rules/testing.md#running-tests`).
+- [ ] `dotnet-review` suggested.

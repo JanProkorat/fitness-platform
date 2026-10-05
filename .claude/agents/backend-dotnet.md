@@ -152,8 +152,7 @@ FitnessPlatform.Tests/Endpoints/NutritionPlans/PublishWeekEndpointTests.cs
   `NutritionPlan` document, not in a shared service).
 
 When a task says "add feature X": create the slice folder, scaffold via the
-`dotnet-feature` skill (minus its non-repo steps — see "When to reach for a
-skill" below), keep the work inside `HandleAsync`, add the tests
+`dotnet-feature` skill, keep the work inside `HandleAsync`, add the tests
 alongside, and only promote shared code once you've seen it three times.
 
 ## Conventions
@@ -208,10 +207,7 @@ requires the `cwm-roslyn-navigator` dotnet global tool on `$PATH`
 ## When to reach for a skill
 - Creating a brand-new endpoint? Invoke the `dotnet-feature` skill to scaffold
   the request/response/validator/endpoint files, then fill in the handler
-  logic; `dotnet-tdd` for the tests. It is a generic stack template: skip its
-  `{Feature}FeatureConfiguration` / `IFeatureConfiguration`, `.WithTag(...)`,
-  `Policies(...)` / `Permissions(...)` steps, gate with `Roles(AppRoles.X)`,
-  and wherever it disagrees with `.claude/rules/*.md`, the rules win.
+  logic; `dotnet-tdd` for the tests.
 - Adding a new root MongoDB aggregate (not an embedded sub-document)? Invoke
   the `mongo-document` skill to scaffold the class with the required
   `Id`/`ExternalId`/`Version`/audit fields and collection registration.

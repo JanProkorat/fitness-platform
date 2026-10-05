@@ -82,7 +82,6 @@ Hand off to `/dotnet-feature` for scaffolding. Implement only what this test req
 2. Response DTO (if needed)
 3. Entity + EF config + migration (if new table) → `/dotnet-migrate`
 4. `{Action}{Entity}Endpoint.cs`
-5. `{Feature}FeatureConfiguration.cs` (if new)
 
 Rerun filtered test until GREEN.
 
