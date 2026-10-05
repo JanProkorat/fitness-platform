@@ -39,11 +39,10 @@ def workouts_list(mode, t, scope):
 {sec("Strength block 2", "Martin · now · 14", "%%TRAIN%%", cur)}
 {sec("Strength block 1", "Martin · Mar – Jun · 17", "%%MUTED%%", old)}'''
     body = body_top(f'''<div style="padding: 0 20px"><h1 style="{H1}">Workouts</h1></div>
-{search_field("Search workouts or exercises")}
 <div style="padding: 0 16px">{seg(["This plan", "All plans"], "This plan" if this else "All plans")}</div>
 <div style="padding: 0 16px; display: flex; gap: 8px; overflow: hidden">{chip("All", True)}{chip("Strength")}{chip("AMRAP")}{chip("EMOM")}{chip("Tabata")}{chip("For time")}</div>
 {content}''', top=84, gap=14)
-    return screen(f"Workouts {scope}", body + top_bar(gbtn("back", "Back")), t, mode)
+    return screen(f"Workouts {scope}", body + top_bar(gbtn("back", "Back")) + fade() + search_fab(), t, mode)
 
 
 def workout_detail(mode, t):

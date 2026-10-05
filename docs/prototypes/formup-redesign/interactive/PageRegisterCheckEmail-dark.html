@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Register · 2 Check email · Form Up prototype</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@200;300;400;500;600;700&amp;family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#F4F2EE}a:hover{color:#CFCAC2}
+</style>
+
+<style>
+html,body{margin:0}
+body{overflow-x:hidden}
+.fu-hot{cursor:pointer}
+body.fu-show .fu-hot{outline:2px solid rgba(37,99,235,.75);outline-offset:1px}
+#fu-bar{position:fixed;right:16px;bottom:16px;z-index:9999;display:flex;gap:6px;align-items:center;padding:6px;border-radius:14px;background:rgba(20,20,20,.88);color:#fff;font:600 12px system-ui,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.3)}
+#fu-bar a,#fu-bar button,#fu-bar select{height:30px;padding:0 10px;border-radius:9px;border:0;background:rgba(255,255,255,.12);color:#fff;font:inherit;text-decoration:none;display:flex;align-items:center;cursor:pointer}
+#fu-bar .on{background:#fff;color:#141414}
+</style>
+<script>
+(function(){
+  var FLOW = {"Clients": "PageClients", "Inbox": "PageInbox", "Recipes": "PageRecipes", "Ingredients": "PageIngredients", "Plan templates": "PageTemplates", "Forms": "PageForms", "Log out": "PageHome", "^Open Gmail": "PageRegisterVerified", "^Open Outlook": "PageRegisterVerified", "Change email": "PageRegister"}, PAGE = "PageRegisterCheckEmail", THEME = "dark", PAGES = [["PageHome", "Home · full page"], ["PageHomeSignIn", "Home · Sign in dialog"], ["PageRegister", "Register · 1 Account"], ["PageRegisterCheckEmail", "Register · 2 Check email"], ["PageRegisterVerified", "Register · 3 Email verified"], ["PageClients", "Clients"], ["PageClientDetail", "ClientDetail"], ["PageClientNutrition", "ClientDetail · Nutrition tab"], ["PageClientNutritionEmpty", "ClientDetail · Nutrition, no plan yet"], ["PageClientPlanEditor", "Client plan · Library › Templates"], ["PageClientPlanDay", "Client plan · Day view"], ["PageClientPlanDayAddMeal", "Client plan · Day · Add meal drawer"], ["PageClientPlanStartOver", "Client plan · replace with template?"], ["PageClientPlanInfo", "Client plan · Plan info tab"], ["PageClientPlanBlank", "Client plan · blank"], ["PageClientPlanClosed", "Client plan · panel closed"], ["PageInbox", "Inbox"], ["PageRecipes", "Recipes"], ["PageRecipesTable", "Recipes · table view"], ["PageRecipeDrawer", "Recipe drawer · Details tab"], ["PageRecipeDrawerIngredients", "Recipe drawer · Ingredients tab"], ["PageRecipeDrawerPreparation", "Recipe drawer · Preparation tab"], ["PageRecipeDrawerPictures", "Recipe drawer · Pictures tab"], ["PageIngredients", "Ingredients"], ["PageIngredientDrawer", "IngredientDrawer"], ["PageTemplates", "Templates"], ["PageTemplateNew", "TemplateNew"], ["PageTemplateEditorEmpty", "TemplateEditor · empty (no meals chosen)"], ["PageTemplateEditor", "TemplateEditor"], ["PageTemplateMeal", "TemplateMeal"], ["PageTemplateNutrition", "TemplateNutrition"], ["PageTemplateDay", "TemplateDay"], ["PageTemplateDayAddMeal", "TemplateDay · Add meal drawer"], ["PageForms", "Forms"], ["PageFormOnboarding", "Form editor · Client onboarding"], ["PageFormCheckIn", "Form editor · Weekly check-in"]];
+  function key(el){ return (el.getAttribute('aria-label') || el.getAttribute('title') || el.textContent || '').replace(/\s+/g,' ').trim(); }
+  function target(el){
+    var k = key(el);
+    for (var m in FLOW){ var c = m[0], v = m.slice(1); if (c === '^' ? k.indexOf(v) === 0 : c === '*' ? k.indexOf(v) >= 0 : k === m) return FLOW[m]; }
+    return null;
+  }
+  function go(page, theme){ location.href = page + '-' + (theme || THEME) + '.html'; }
+  function fit(){
+    // Boards are fixed-size frames; zoom the frame to the window width and paint the page in its colour.
+    var board = document.body.firstElementChild;
+    if (!board || board.id === 'fu-bar') return;
+    if (!board.dataset.w){ board.dataset.w = board.offsetWidth; document.body.style.background = getComputedStyle(board).backgroundColor; }
+    board.style.zoom = document.documentElement.clientWidth / board.dataset.w;
+  }
+  window.addEventListener('resize', fit);
+  document.addEventListener('DOMContentLoaded', function(){
+    fit();
+    document.querySelectorAll('a,button,tr,[role=tab],[role=radio]').forEach(function(el){ if (target(el)) el.classList.add('fu-hot'); });
+    var bar = document.createElement('div'); bar.id = 'fu-bar';
+    var opts = PAGES.map(function(p){ return '<option value="'+p[0]+'"'+(p[0]===PAGE?' selected':'')+'>'+p[1]+'</option>'; }).join('');
+    bar.innerHTML = '<select aria-label="Jump to screen">'+opts+'</select>'
+      + '<button data-t="light" class="'+(THEME==='light'?'on':'')+'">Light</button><button data-t="dark" class="'+(THEME==='dark'?'on':'')+'">Dark</button>'
+      + '<button data-h="1" title="Show clickable areas (H)">Hotspots</button><a href="../index.html">All screens</a>';
+    document.body.appendChild(bar);
+    bar.querySelector('select').addEventListener('change', function(e){ go(e.target.value); });
+    bar.querySelectorAll('[data-t]').forEach(function(b){ b.addEventListener('click', function(){ go(PAGE, b.getAttribute('data-t')); }); });
+    bar.querySelector('[data-h]').addEventListener('click', function(){ document.body.classList.toggle('fu-show'); });
+  });
+  document.addEventListener('keydown', function(e){ if (e.key === 'h' || e.key === 'H') document.body.classList.toggle('fu-show'); });
+  document.addEventListener('click', function(e){
+    if (e.target.closest && e.target.closest('#fu-bar')) return;
+    var el = e.target.closest ? e.target.closest('a,button,tr,[role=tab],[role=radio]') : null;
+    if (!el) return;
+    e.preventDefault();
+    var t = target(el);
+    if (t) go(t); else if (el.tagName !== 'TR' && !document.body.classList.contains('fu-show')) { document.body.classList.add('fu-show'); setTimeout(function(){ document.body.classList.remove('fu-show'); }, 600); }
+  }, true);
+})();
+</script>
+
+</head>
+<body>
+<div style="width: 1440px; height: 900px; background: radial-gradient(700px 520px at 78% 30%, rgba(242,140,56,0.20), transparent 70%), radial-gradient(620px 520px at 98% 90%, rgba(140,193,82,0.16), transparent 70%), radial-gradient(520px 420px at 0% 0%, rgba(229,72,61,0.10), transparent 70%), #0E0E0F; font-family: 'DM Sans', sans-serif; color: #F4F2EE; overflow: hidden"><header style="height: 76px; padding: 0 64px; display: flex; align-items: center"><span style="font-family: 'Outfit', sans-serif; font-weight: 300; font-size: 20px; letter-spacing: 0.22em; line-height: 1; white-space: nowrap; color: #F4F2EE">FORM <span style="color: #C8382F">UP</span></span><span style="margin-left: auto; font-size: 14px; color: #958F87">Already have an account? <a href="#" style="font-weight: 700; color: #F4F2EE">Sign in</a></span></header><main style="padding: 30px 64px 0; display: flex; justify-content: center"><div style="width: 560px; box-sizing: border-box; border-radius: 22px; border: 1px solid #2A292C; background: #18181A; box-shadow: 0 24px 60px rgba(0,0,0,0.10); padding: 32px 40px 36px; display: flex; flex-direction: column; align-items: center; gap: 18px; text-align: center"><div style="align-self: stretch; padding-bottom: 8px"><div style="display: flex; align-items: center; gap: 12px"><span style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; color: #F4F2EE"><span style="width: 26px; height: 26px; border-radius: 13px; background: #F4F2EE; color: #18181A; display: flex; align-items: center; justify-content: center"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></span>Account</span><span style="flex-grow: 1; height: 2px; border-radius: 1px; background: #F4F2EE"></span><span style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: #F4F2EE"><span style="width: 26px; height: 26px; box-sizing: border-box; border-radius: 13px; background: #E5483D; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700">2</span>Verify email</span><span style="flex-grow: 1; height: 2px; border-radius: 1px; background: #2A292C"></span><span style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; color: #958F87"><span style="width: 26px; height: 26px; box-sizing: border-box; border-radius: 13px; border: 1.5px solid #2A292C; color: #958F87; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700">3</span>Your profile</span></div></div><span style="width: 84px; height: 84px; border-radius: 42px; background: #3A1A17; color: #E5483D; display: flex; align-items: center; justify-content: center"><svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5"></rect><path d="M3.5 7l8.5 6 8.5-6"></path></svg></span><h1 style="margin: 0; font-family: 'Outfit', sans-serif; font-size: 30px; font-weight: 600; letter-spacing: -0.01em">Check your email</h1><p style="margin: 0; font-size: 15px; line-height: 1.6; color: #CFCAC2">We sent a verification link to<br><b style="color: #F4F2EE">jan@coaching.cz</b></p><p style="margin: 0; font-size: 14px; line-height: 1.55; color: #958F87">Click the link in the email to activate your account. It is valid for 24 hours.</p><div style="align-self: stretch; display: flex; gap: 10px; padding-top: 6px"><a href="#" style="flex-grow: 1; flex-basis: 0; height: 44px; border-radius: 12px; border: 1px solid #2A292C; background: #18181A; color: #F4F2EE; text-decoration: none; font-size: 14px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px">Open Gmail<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6"></path><path d="M20 4l-9 9"></path><path d="M18 14v6H4V6h6"></path></svg></a><a href="#" style="flex-grow: 1; flex-basis: 0; height: 44px; border-radius: 12px; border: 1px solid #2A292C; background: #18181A; color: #F4F2EE; text-decoration: none; font-size: 14px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px">Open Outlook<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6"></path><path d="M20 4l-9 9"></path><path d="M18 14v6H4V6h6"></path></svg></a></div><div style="align-self: stretch; border-radius: 12px; background: #0E0E0F; border: 1px solid #2A292C; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; font-size: 13px; line-height: 1.5; color: #958F87; text-align: left"><span style="font-weight: 700; color: #F4F2EE">No email yet?</span><span>Check your spam folder, or wait a minute — it can take a moment to arrive.</span><span style="display: flex; align-items: center; gap: 8px; padding-top: 4px"><span style="font-weight: 600; color: #958F87; opacity: 0.7">Resend email</span><span style="font-size: 12px">· available in 0:42</span></span></div><span style="font-size: 13px; color: #958F87">Wrong address? <a href="#" style="font-weight: 700; color: #F4F2EE">Change email</a></span></div></main></div>
+</body>
+</html>

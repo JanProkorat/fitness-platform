@@ -68,6 +68,10 @@ def chip(label, on=False):
     return f'<button style="height: 32px; padding: 0 12px; border-radius: 16px; {st}; font: 500 13px \'DM Sans\', sans-serif; white-space: nowrap">{label}</button>'
 
 
+def search_fab():
+    return f'<button aria-label="Search" style="position: absolute; right: 20px; bottom: 34px; width: 58px; height: 58px; border-radius: 29px; {GL}; color: %%INK%%; display: flex; align-items: center; justify-content: center; padding: 0">{ic("search", 22, sw="1.8")}</button>'
+
+
 def search_acc():
     return gbtn("search", "Search", size=58)
 
@@ -108,11 +112,10 @@ def coach_search(mode, t):
 <span style="{ROW}; gap: 5px; font-size: 13px; color: %%MUTED%%">{ic("pin", 13, sw="1.7")}{where}</span><span style="font-size: 13px; color: %%INK2%%">{spec}</span>{st}</span>
 <span style="display: flex; color: %%MUTED%%; padding-top: 14px">{ic("chevron", 15)}</span></a>'''
     body = body_top(f'''<div style="padding: 0 20px"><h1 style="{H1}">Find a coach</h1></div>
-{search_field("Name, city or specialty")}
 <div style="padding: 0 16px">{seg(["All", "Trainers", "Nutritionists"], "Trainers")}</div>
 <div style="padding: 0 16px; display: flex; gap: 8px; overflow: hidden">{chip("Online", True)}{chip("Near me")}{chip("Strength")}{chip("Fat loss")}{chip("Beginners")}</div>
 <div style="margin: 0 16px; border-radius: 22px; {CARD}; padding: 0 16px"><div style="padding: 12px 0 2px; font-size: 12px; color: %%MUTED%%">24 trainers</div>{cards}</div>''', top=84, gap=14)
-    return screen("Coach search", body + top_bar(gbtn("back", "Back"), "", gbtn("filter", "More filters")), t, mode)
+    return screen("Coach search", body + top_bar(gbtn("back", "Back"), "", gbtn("filter", "More filters")) + fade() + search_fab(), t, mode)
 
 
 def coach_profile_body():

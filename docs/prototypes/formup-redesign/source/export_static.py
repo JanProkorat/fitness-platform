@@ -8,7 +8,7 @@ import html, json, os, re, sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = sys.argv[1]
 canvas = json.load(open(os.path.join(HERE, "project", "canvas.json")))
-FOLDERS = {"concepts": "concepts", "web": "web", "glass": "mobile-light", "glassdark": "mobile-dark"}
+FOLDERS = {"concepts": "concepts", "web": "web", "glass": "mobile-light", "glassdark": "mobile-dark", "coach": "coach-light", "coachdark": "coach-dark", "logo": "logo"}
 PAGE_NAMES = {p["id"]: p["name"] for p in canvas["pages"]}
 
 
@@ -81,6 +81,6 @@ h1{margin:0 0 4px}h2{margin:48px 0 0;padding-top:16px;border-top:1px solid var(-
 .row a{display:flex;flex-direction:column;gap:6px;color:var(--ink);text-decoration:none;font-size:12px}
 .row img{width:100%;border-radius:12px;border:1px solid var(--line);background:#fff}
 </style></head><body>
-<h1>Form Up redesign</h1><p style="color:var(--muted);margin:0">Static export of the design canvas. Click a screen to open its standalone HTML.</p>
+<h1>Form Up redesign</h1><p style="color:var(--muted);margin:0">Static export of the design canvas. Click a screen to open its standalone HTML. <a href="interactive/index.html" style="color:var(--ink);font-weight:700">Open the clickable web-portal prototype →</a></p>
 """ + "\n".join(parts) + "\n</body></html>\n")
 print(len(manifest), "screens")

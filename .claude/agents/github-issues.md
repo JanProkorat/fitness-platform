@@ -169,9 +169,11 @@ Use the project's conventions verbatim:
 perf ceilings, rollout plan>
 
 ## Prototype
-<paste path(s) under docs/prototypes/{mobile,trainer,notion}/scenes/*.html
-when the change has a visual surface; qa-tester will read them.
-If there's no prototype, say "N/A" explicitly — do not omit the section>
+<name the Form Up redesign board(s) the change implements, light and dark,
+e.g. `PageTemplateDay` (web), `GlassToday` (client app), `CoachClients`
+(coach app) — see `.claude/CLAUDE.md` "Design source of truth" and
+`docs/prototypes/formup-redesign/index.html`; qa-tester compares against them.
+If there's no visual surface, say "N/A" explicitly — do not omit the section>
 
 ## Depends on
 <optional: list other issue numbers this one must wait for, one per line:
@@ -217,9 +219,9 @@ when there are no cross-issue dependencies.>
 
 Rules for the body:
 
-- Link prototype scenes via their per-scene source
-  (`docs/prototypes/.../scenes/*.html`) — never the top-level
-  `docs/*.html` aggregate.
+- Reference design by Form Up redesign board name (`Page…`, `Glass…`,
+  `Coach…`). The old `docs/prototypes/{mobile,trainer,notion}/scenes/*.html`
+  prototypes are superseded — link them only if the user asks for them.
 - Link related issues with `#<N>` and related PRs with `#<N>` — let
   GitHub cross-reference do its job.
 - Do not paste secrets, tokens, or customer data. If the reporter

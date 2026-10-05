@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Register · 3 Email verified · Form Up prototype</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@200;300;400;500;600;700&amp;family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#141414}a:hover{color:#3A3835}
+</style>
+
+<style>
+html,body{margin:0}
+body{overflow-x:hidden}
+.fu-hot{cursor:pointer}
+body.fu-show .fu-hot{outline:2px solid rgba(37,99,235,.75);outline-offset:1px}
+#fu-bar{position:fixed;right:16px;bottom:16px;z-index:9999;display:flex;gap:6px;align-items:center;padding:6px;border-radius:14px;background:rgba(20,20,20,.88);color:#fff;font:600 12px system-ui,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.3)}
+#fu-bar a,#fu-bar button,#fu-bar select{height:30px;padding:0 10px;border-radius:9px;border:0;background:rgba(255,255,255,.12);color:#fff;font:inherit;text-decoration:none;display:flex;align-items:center;cursor:pointer}
+#fu-bar .on{background:#fff;color:#141414}
+</style>
+<script>
+(function(){
+  var FLOW = {"Clients": "PageClients", "Inbox": "PageInbox", "Recipes": "PageRecipes", "Ingredients": "PageIngredients", "Plan templates": "PageTemplates", "Forms": "PageForms", "Log out": "PageHome", "^Set up your profile": "PageClients", "Skip for now and go to the portal": "PageClients"}, PAGE = "PageRegisterVerified", THEME = "light", PAGES = [["PageHome", "Home · full page"], ["PageHomeSignIn", "Home · Sign in dialog"], ["PageRegister", "Register · 1 Account"], ["PageRegisterCheckEmail", "Register · 2 Check email"], ["PageRegisterVerified", "Register · 3 Email verified"], ["PageClients", "Clients"], ["PageClientDetail", "ClientDetail"], ["PageClientNutrition", "ClientDetail · Nutrition tab"], ["PageClientNutritionEmpty", "ClientDetail · Nutrition, no plan yet"], ["PageClientPlanEditor", "Client plan · Library › Templates"], ["PageClientPlanDay", "Client plan · Day view"], ["PageClientPlanDayAddMeal", "Client plan · Day · Add meal drawer"], ["PageClientPlanStartOver", "Client plan · replace with template?"], ["PageClientPlanInfo", "Client plan · Plan info tab"], ["PageClientPlanBlank", "Client plan · blank"], ["PageClientPlanClosed", "Client plan · panel closed"], ["PageInbox", "Inbox"], ["PageRecipes", "Recipes"], ["PageRecipesTable", "Recipes · table view"], ["PageRecipeDrawer", "Recipe drawer · Details tab"], ["PageRecipeDrawerIngredients", "Recipe drawer · Ingredients tab"], ["PageRecipeDrawerPreparation", "Recipe drawer · Preparation tab"], ["PageRecipeDrawerPictures", "Recipe drawer · Pictures tab"], ["PageIngredients", "Ingredients"], ["PageIngredientDrawer", "IngredientDrawer"], ["PageTemplates", "Templates"], ["PageTemplateNew", "TemplateNew"], ["PageTemplateEditorEmpty", "TemplateEditor · empty (no meals chosen)"], ["PageTemplateEditor", "TemplateEditor"], ["PageTemplateMeal", "TemplateMeal"], ["PageTemplateNutrition", "TemplateNutrition"], ["PageTemplateDay", "TemplateDay"], ["PageTemplateDayAddMeal", "TemplateDay · Add meal drawer"], ["PageForms", "Forms"], ["PageFormOnboarding", "Form editor · Client onboarding"], ["PageFormCheckIn", "Form editor · Weekly check-in"]];
+  function key(el){ return (el.getAttribute('aria-label') || el.getAttribute('title') || el.textContent || '').replace(/\s+/g,' ').trim(); }
+  function target(el){
+    var k = key(el);
+    for (var m in FLOW){ var c = m[0], v = m.slice(1); if (c === '^' ? k.indexOf(v) === 0 : c === '*' ? k.indexOf(v) >= 0 : k === m) return FLOW[m]; }
+    return null;
+  }
+  function go(page, theme){ location.href = page + '-' + (theme || THEME) + '.html'; }
+  function fit(){
+    // Boards are fixed-size frames; zoom the frame to the window width and paint the page in its colour.
+    var board = document.body.firstElementChild;
+    if (!board || board.id === 'fu-bar') return;
+    if (!board.dataset.w){ board.dataset.w = board.offsetWidth; document.body.style.background = getComputedStyle(board).backgroundColor; }
+    board.style.zoom = document.documentElement.clientWidth / board.dataset.w;
+  }
+  window.addEventListener('resize', fit);
+  document.addEventListener('DOMContentLoaded', function(){
+    fit();
+    document.querySelectorAll('a,button,tr,[role=tab],[role=radio]').forEach(function(el){ if (target(el)) el.classList.add('fu-hot'); });
+    var bar = document.createElement('div'); bar.id = 'fu-bar';
+    var opts = PAGES.map(function(p){ return '<option value="'+p[0]+'"'+(p[0]===PAGE?' selected':'')+'>'+p[1]+'</option>'; }).join('');
+    bar.innerHTML = '<select aria-label="Jump to screen">'+opts+'</select>'
+      + '<button data-t="light" class="'+(THEME==='light'?'on':'')+'">Light</button><button data-t="dark" class="'+(THEME==='dark'?'on':'')+'">Dark</button>'
+      + '<button data-h="1" title="Show clickable areas (H)">Hotspots</button><a href="../index.html">All screens</a>';
+    document.body.appendChild(bar);
+    bar.querySelector('select').addEventListener('change', function(e){ go(e.target.value); });
+    bar.querySelectorAll('[data-t]').forEach(function(b){ b.addEventListener('click', function(){ go(PAGE, b.getAttribute('data-t')); }); });
+    bar.querySelector('[data-h]').addEventListener('click', function(){ document.body.classList.toggle('fu-show'); });
+  });
+  document.addEventListener('keydown', function(e){ if (e.key === 'h' || e.key === 'H') document.body.classList.toggle('fu-show'); });
+  document.addEventListener('click', function(e){
+    if (e.target.closest && e.target.closest('#fu-bar')) return;
+    var el = e.target.closest ? e.target.closest('a,button,tr,[role=tab],[role=radio]') : null;
+    if (!el) return;
+    e.preventDefault();
+    var t = target(el);
+    if (t) go(t); else if (el.tagName !== 'TR' && !document.body.classList.contains('fu-show')) { document.body.classList.add('fu-show'); setTimeout(function(){ document.body.classList.remove('fu-show'); }, 600); }
+  }, true);
+})();
+</script>
+
+</head>
+<body>
+<div style="width: 1440px; height: 900px; background: radial-gradient(700px 520px at 78% 30%, #FFE7D3, transparent 70%), radial-gradient(620px 520px at 98% 90%, #E4F2D3, transparent 70%), radial-gradient(520px 420px at 0% 0%, #FDE4E1, transparent 70%), #FFFFFF; font-family: 'DM Sans', sans-serif; color: #141414; overflow: hidden"><header style="height: 76px; padding: 0 64px; display: flex; align-items: center"><span style="font-family: 'Outfit', sans-serif; font-weight: 300; font-size: 20px; letter-spacing: 0.22em; line-height: 1; white-space: nowrap; color: #141414">FORM <span style="color: #C8382F">UP</span></span></header><main style="padding: 30px 64px 0; display: flex; justify-content: center"><div style="width: 560px; box-sizing: border-box; border-radius: 22px; border: 1px solid #E7E4DE; background: #FFFFFF; box-shadow: 0 24px 60px rgba(0,0,0,0.10); padding: 32px 40px 36px; display: flex; flex-direction: column; align-items: center; gap: 18px; text-align: center"><div style="align-self: stretch; padding-bottom: 8px"><div style="display: flex; align-items: center; gap: 12px"><span style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; color: #141414"><span style="width: 26px; height: 26px; border-radius: 13px; background: #141414; color: #FFFFFF; display: flex; align-items: center; justify-content: center"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></span>Account</span><span style="flex-grow: 1; height: 2px; border-radius: 1px; background: #141414"></span><span style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; color: #141414"><span style="width: 26px; height: 26px; border-radius: 13px; background: #141414; color: #FFFFFF; display: flex; align-items: center; justify-content: center"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></span>Verify email</span><span style="flex-grow: 1; height: 2px; border-radius: 1px; background: #141414"></span><span style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: #141414"><span style="width: 26px; height: 26px; box-sizing: border-box; border-radius: 13px; background: #D2342A; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700">3</span>Your profile</span></div></div><span style="width: 84px; height: 84px; border-radius: 42px; background: #E3F1D4; color: #3F7D2A; display: flex; align-items: center; justify-content: center"><svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></span><h1 style="margin: 0; font-family: 'Outfit', sans-serif; font-size: 30px; font-weight: 600; letter-spacing: -0.01em">Email verified</h1><p style="margin: 0; font-size: 15px; line-height: 1.6; color: #3A3835">Welcome to Form Up, Jan. Your account is ready.</p><a href="#" style="align-self: stretch; height: 48px; border-radius: 12px; background: #141414; color: #FFFFFF; text-decoration: none; font-size: 15px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px">Set up your profile<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></a><a href="#" style="font-size: 13px; font-weight: 600; color: #6B6863">Skip for now and go to the portal</a><div style="align-self: stretch; display: flex; flex-direction: column; padding-top: 6px"><span style="font-size: 11px; font-weight: 700; letter-spacing: 0.14em; color: #6B6863; text-align: left; padding-bottom: 4px">WHAT’S NEXT</span><div style="display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid #E7E4DE; text-align: left"><span style="width: 34px; height: 34px; flex-shrink: 0; border-radius: 10px; background: #FFFFFF; border: 1px solid #E7E4DE; color: #3A3835; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"></path></svg></span><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 14px; font-weight: 600">Invite your first client</span><span style="font-size: 12px; color: #6B6863">They join with the Form Up app</span></span></div><div style="display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid #E7E4DE; text-align: left"><span style="width: 34px; height: 34px; flex-shrink: 0; border-radius: 10px; background: #FFFFFF; border: 1px solid #E7E4DE; color: #3A3835; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2"></rect><path d="M3.5 10h17"></path><path d="M8 3v4"></path><path d="M16 3v4"></path></svg></span><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 14px; font-weight: 600">Build their first week</span><span style="font-size: 12px; color: #6B6863">From a template or from scratch</span></span></div></div></div></main></div>
+</body>
+</html>
