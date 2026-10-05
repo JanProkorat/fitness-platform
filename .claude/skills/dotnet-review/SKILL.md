@@ -53,8 +53,8 @@ Walk every section of `references/review-checklist.md`. For each finding capture
 | Severity | Examples |
 |----------|----------|
 | Critical | Missing `Roles(...)`, role check without a link/ownership check, `long Id` in a response, duplicate endpoint class name, empty request DTO, destructive or unintended migration, exception for control flow |
-| Warning | Missing `AsNoTracking()` on read, `Summary` missing a returned status, missing `.WithErrorCode()` on a domain rule, missing 403/404 test for an ownership check, missing XML docs |
-| Nit | Cosmetic, or an [ASPIRATIONAL] item on new code (`internal sealed`, `TimeProvider`, `DontCatchExceptions()`) |
+| Warning | Missing `AsNoTracking()` on read, `Summary` missing a returned status, missing `.WithErrorCode()` on a domain rule, missing 403/404 test for an ownership check |
+| Nit | Cosmetic, missing XML docs (a review convention, not compiler-enforced), or an [ASPIRATIONAL] item on new code (`internal sealed`, `TimeProvider`, `DontCatchExceptions()`) |
 
 ## Report format
 

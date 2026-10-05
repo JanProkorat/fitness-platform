@@ -69,7 +69,8 @@ a Mongo filter needs a real container.
 
 ## Cancellation token
 
-Pass `TestContext.Current.CancellationToken` to every async call.
+Pass `TestContext.Current.CancellationToken` to every async call
+(`rules/testing.md#cancellation-token`).
 
 ## Time
 

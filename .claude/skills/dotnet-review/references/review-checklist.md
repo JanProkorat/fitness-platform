@@ -14,7 +14,7 @@ only on code the diff adds, and at most as a nit.
 - [ ] Slice lives in `Features/{Area}/{Action}/`; shared DTOs and error tables in the area's `Shared/` (#vertical-slice-layout)
 - [ ] No `{Feature}FeatureConfiguration`, `Commands/`/`Queries/` split or `Errors/` folder (#vertical-slice-layout)
 - [ ] Feature logic stays in `HandleAsync` — no per-feature service or handler type (#no-horizontal-layers)
-- [ ] No import from another `Features/{Area}` namespace; shared code goes to `Domain/` (#no-horizontal-layers)
+- [ ] Avoid importing from another `Features/{Area}` namespace — a smell, not a ban; shared code belongs in `Domain/` (#no-horizontal-layers)
 - [ ] No AutoMapper/Mapster, MediatR, repository wrappers or `#region` (#banned-patterns)
 - [ ] One type per file; file name matches type (`rules/naming.md#files-and-types`)
 
@@ -88,7 +88,7 @@ only on code the diff adds, and at most as a nit.
 - [ ] Actors from `TestActors`; only the data the test asserts on; no copied helpers (#test-data-small-builders-not-big-setup)
 - [ ] Unique data per test; list/search assertions filtered to the test's own rows; exact-count assertions clear the collection first (#containers-and-isolation)
 - [ ] Assertions check the outcome, not just `NotBeNull()` (#assertions)
-- [ ] `TestContext.Current.CancellationToken` on async calls
+- [ ] `TestContext.Current.CancellationToken` on async calls (#cancellation-token)
 - [ ] Any reported scoped run used `-- --filter-class`, not `--filter` (#running-tests)
 
 ## Common false positives
