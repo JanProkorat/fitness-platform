@@ -5,12 +5,12 @@ follow these. Cite anchors; never restate.
 
 ## Scope to dev-agent mapping
 
-| `scope:*` label | Dev agent        | Folder            |
-|-----------------|------------------|-------------------|
-| `backend`       | `backend-dotnet` | `/backend/**`     |
-| `web`           | `web-react`      | `/web/**`         |
-| `mobile`        | `mobile-expo`    | `/mobile/**`      |
-| `docs-infra`    | (orchestrator)   | `/docs/**`, `.github/**`, root configs |
+| Package label | Dev agent        | Folder            |
+|---------------|------------------|-------------------|
+| `BE`          | `backend-dotnet` | `/backend/**`     |
+| `Web`         | `web-react`      | `/web/**`         |
+| `Mobile`      | `mobile-expo`    | `/mobile/**`      |
+| (none — `Chore` only) | (orchestrator) | `/docs/**`, `.github/**`, `.claude/**`, root configs |
 
 ## Scope to stack mapping
 

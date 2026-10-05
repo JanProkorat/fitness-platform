@@ -1,6 +1,6 @@
 ---
 name: ship-epic
-description: GitHub epic orchestration via epic-branch model — design-review + dispatch children off epic, auto-merge children, open epic PR, same-turn auth merge, notion-docs. Invoke on "ship epic #N". Orchestrator-only.
+description: GitHub epic orchestration via epic-branch model — design-review + dispatch tasks off epic, merge tasks on green CI, QA + review the epic PR once, same-turn auth merge, notion-docs. Invoke on "ship epic #N". Orchestrator-only.
 disable-model-invocation: true
 argument-hint: "<epic-issue-number-or-URL>"
 ---
@@ -20,13 +20,14 @@ The skill follows the project's **epic-branch model** (see
 ```
 develop                                ← only the consolidated epic merges in
  └── feature/<epic-N>-<short>          ← the epic branch (created in Phase 0)
-      ├── feature/<C1>-<short>         ← sub-issue branches (Phase 1)
-      ├── fix/<C2>-<short>             ← merge into the epic branch automatically
-      └── refactor/<C3>-<short>           after dev → qa → review (rule 8a)
+      ├── feature/<C1>-<short>         ← task branches (Phase 1)
+      ├── fix/<C2>-<short>             ← merge into the epic branch on green CI,
+      └── chore/<C3>-<short>              no QA, no review, no user pause
 ```
 
-Sub-issue PRs merge into the **epic branch**, not `develop`. Only
-when every child has landed on the epic branch does the skill open one
+Task PRs merge into the **epic branch**, not `develop`. Only when
+every task has landed on the epic branch does the skill run `qa-tester`
+and `pr-reviewer` — once, on the whole epic — then open one
 consolidated PR against `develop` and pause for explicit same-turn
 user authorization (rule 8b). This is what the user means by "I don't
 want a half-shipped epic on develop".
@@ -51,12 +52,13 @@ want a half-shipped epic on develop".
 
 ## What this skill does NOT do
 
-- Does not merge PRs without explicit in-turn authorization. The merge
-  gate in `.claude/CLAUDE.md` rule 8 still applies — the skill pauses
-  at READY FOR MERGE and hands back the PR URL.
-- Does not bypass the merge exclusion list. PRs touching `main`,
-  `backend/**/Migrations/**`, or Mongo data-mutation scripts still
-  require you to merge them manually.
+- Does not merge the epic PR without explicit in-turn authorization.
+  The merge gate in `.claude/CLAUDE.md` rule 8 still applies — the
+  skill pauses at READY FOR MERGE and hands back the PR URL. Task PRs
+  into the epic branch need no authorization.
+- Does not bypass the merge exclusion list for the epic PR to
+  `develop`. An epic whose diff touches `backend/**/Migrations/**` or
+  Mongo data-mutation scripts is still merged to `develop` by the user.
 - Does not write code itself — dev sub-agents do.
 - Does not replace `github-issues`, `qa-tester`, or `pr-reviewer` — it
   calls them.
@@ -71,12 +73,12 @@ Before running any phase below, confirm:
    stop and ask the user what to do. The epic branch (Phase 0) will
    be created off this fresh `develop`.
 3. Docker is running (required by backend Testcontainers tests) *if*
-   the epic contains any `scope:backend` issue.
+   the epic contains any `BE` task.
 
 Note: there is no longer a "pause at each child / batch-authorize at
-the end" choice. The epic-branch model is the single mode — sub-issue
-PRs auto-merge into the epic branch, and authorization is required
-only once, at the epic merge to `develop` (Phase 3).
+the end" choice. The epic-branch model is the single mode — task
+PRs merge into the epic branch on green CI, and authorization is
+required only once, at the epic merge to `develop` (Phase 2b).
 
 ## State persistence (survives `/clear` and compact)
 
@@ -131,11 +133,11 @@ Actions (orchestrator):
    sanity-check before dispatch:
 
 ```
-| # | Title | scope:* | type:* | Dev agent | Depends on |
-|---|-------|---------|--------|-----------|-----------|
-| 123 | Publish nutrition week | backend | feature | backend-dotnet | — |
-| 124 | Consume publish event in web | web | feature | web-react | 123 |
-| 125 | Mobile toast on publish | mobile | feature | mobile-expo | 123 |
+| # | Title | Package | Kind | Dev agent | Depends on |
+|---|-------|---------|------|-----------|-----------|
+| 123 | Publish nutrition week | BE | Task | backend-dotnet | — |
+| 124 | Consume publish event in web | Web | Task | web-react | 123 |
+| 125 | Mobile toast on publish | Mobile | Task | mobile-expo | 123 |
 ```
 
 4. Decide **parallel vs sequential** per dependency:
@@ -258,7 +260,7 @@ small routine epics don't burn N+1 user touchpoints.
 4. **AC quality:** every child issue body has ≥3 concrete AC bullets
    (well-specified — `github-issues` enforces this on creation, but
    re-verify here).
-5. **Scope-label match:** every child's `scope:*` label matches the
+5. **Package-label match:** every child's `BE` / `Web` / `Mobile` label matches the
    orchestrator's intended dispatch. No orchestrator-side scope
    guesses (a guess is a soft signal that the issue is under-defined).
 
@@ -337,7 +339,8 @@ worktree-create tool with:
 - `commit` / `base`: `origin/$EPIC_BRANCH`
 
 Where `<N>` is the child issue number, `<short>` is ≤20 chars of the
-title slugged, and `<type>` matches the child's `type:*` label.
+title slugged, and `<type>` is the branch prefix for the child's kind label
+(`Task` → `feature`, `Bug` → `fix`, `Chore` → `chore`).
 
 If the MCP isn't reachable in the current session (e.g. running
 ship-epic from an environment without the `git-worktree` server), fall
@@ -379,10 +382,10 @@ fast-path; ship-epic resumes when the user resolves the block).
 Using the `Agent` tool with the correct subagent_type from the
 scope→agent map in `.claude/CLAUDE.md`:
 
-- `scope:backend` → `backend-dotnet`
-- `scope:web` → `web-react`
-- `scope:mobile` → `mobile-expo`
-- `scope:docs-infra` → orchestrator handles it directly
+- `BE` → `backend-dotnet`
+- `Web` → `web-react`
+- `Mobile` → `mobile-expo`
+- `Chore` with no package label → orchestrator handles it directly
 
 The prompt must include:
 
@@ -399,48 +402,36 @@ The prompt must include:
   changed endpoint contracts (backend) or after pulling a backend
   sub-issue merge (web / mobile).
 
-### 1c. Gate loop: dev → qa-tester → pr-reviewer
+### 1d. Open the task PR and merge on green CI
 
-Follow `.claude/CLAUDE.md` rules 6 and 7 literally. Summary:
+Tasks get **no** `qa-tester` run and **no** `pr-reviewer` review. Both
+run once, on the whole epic, in Phase 2. The task's gate is the dev
+sub-agent's own verify skill plus CI.
 
-1. Dev agent finishes → orchestrator dispatches `qa-tester` with the
-   child issue number. Loop dev ↔ qa until `qa-tester` returns
-   OVERALL ✅ PASS.
-2. Orchestrator dispatches `pr-reviewer` to open/update the PR and
-   run the `review` skill. **Pass `base: $EPIC_BRANCH` explicitly** in
-   the dispatch — that's how `pr-reviewer` knows to open the PR
-   against the epic branch and (later) treat the merge as a
-   sub-issue auto-merge.
-3. Loop dev → (qa ∥ review, delta-only — `.claude/CLAUDE.md` rule 7d)
-   until `pr-reviewer` returns OVERALL ✅ READY FOR MERGE.
-4. **Do NOT pause for the user.** Proceed straight to 1d.
-
-### 1d. Auto-merge into the epic branch
-
-Sub-issue PRs auto-merge per rule 8a — no per-PR user pause.
-
-- Re-dispatch `pr-reviewer` in `mode: merge-sub-issue` with the PR
-  number. It runs the pre-merge CI gate, the merge exclusion check and
-  the stacked-PR check, and returns CLEARED TO MERGE with a pinned
-  `gh pr merge <n> <strategy> --delete-branch --match-head-commit <sha>`.
-- **Run that command yourself on the main thread** —
-  `deny-subagent-merge.py` blocks every subagent from merging. Then
-  fast-forward the local epic branch, close the sub-issue via
-  `github-issues` (`Fixes #<N>` doesn't fire off the default branch),
-  and tear down the sub-issue's harness and worktree.
-- If `pr-reviewer` returns BLOCKED (CI red, or the diff hits the
-  merge exclusion list), surface the BLOCKED reason to the user. For
-  CI failures route the fix to the owning dev sub-agent and re-run
-  `qa-tester` → `pr-reviewer` (review pass) → `pr-reviewer` (merge
-  pass). For exclusion BLOCKED (migrations, Mongo data scripts), the
-  user merges that one PR by hand onto the epic branch and tells you
-  to continue.
-- When `pr-reviewer` returns MERGED, remove the worktree. **Prefer
-  the `git-worktree` MCP's worktree-remove tool** with `path:
-  .worktrees/<N>-<short>`. Fallback when the MCP isn't reachable:
-  ```bash
-  git worktree remove .worktrees/<N>-<short>
-  ```
+1. Dev agent finishes, commits, and reports its verify-skill result.
+   A red build or red tests go back to the same agent — never open a
+   PR on a failing self-check.
+2. Push the task branch and open the PR yourself on the main thread:
+   `gh pr create --base "$EPIC_BRANCH" --title "<N>: <short thing>"
+   --label <kind> --label <package…>` with a 2–4 sentence body that
+   says `Part of #$EPIC_N` (not `Fixes` — tasks close at the epic merge).
+3. Wait for CI: `gh pr checks <pr>`, polling ~30s up to 10 min. Red →
+   route the failing job's root cause to the owning dev sub-agent on
+   the same branch, push, wait again. A second red run on the same
+   task → surface to the user.
+4. Green → merge it yourself, **without asking the user**:
+   `gh pr merge <pr> --squash --delete-branch --match-head-commit <sha>`.
+   This holds even when the diff touches migrations or Mongo data
+   scripts — those are caught at the epic PR, which the user merges.
+5. Fast-forward the local epic branch (`git pull --ff-only`), set the
+   child's state entry to `status: "merged"`, and tear down the
+   task's worktree and harness. **Prefer the `git-worktree` MCP's
+   worktree-remove tool** with `path: .worktrees/<N>-<short>`.
+   Fallback when the MCP isn't reachable:
+   ```bash
+   git worktree remove .worktrees/<N>-<short>
+   ```
+   Leave the task issue **open** — it closes when the epic PR merges.
 - **Bring the new epic-branch tip into any in-flight sibling sub-issue
   branches — by merge, never rebase.** A rebase rewrites the pushed
   branch and needs a force-push, which is banned outright (global
@@ -455,13 +446,12 @@ Sub-issue PRs auto-merge per rule 8a — no per-PR user pause.
   git -C .worktrees/<sibling>/ merge --no-edit "origin/$EPIC_BRANCH"
   git -C .worktrees/<sibling>/ push
   ```
-  then re-dispatch `qa-tester` and `pr-reviewer` against the updated
-  sibling before its own merge. The review delta is then the sibling's
-  own new changes only — compare `git diff origin/<epic>...<since>`
-  with `git diff origin/<epic>...HEAD` (rule 7d). On a conflict, stop
-  and resolve it as you would any merge; never `--force`.
-- **Run `notion-docs`** (update mode) after each sub-issue merges — the
-  wiki updates at the end of every task.
+  then wait for the sibling's CI to go green again before its own
+  merge. On a conflict, stop and resolve it as you would any merge;
+  never `--force`.
+- **Do NOT dispatch `notion-docs`** for task merges. That fires
+  exactly once, in Phase 3, after the epic merges to `develop`, run by
+  the main thread.
 
 Move on to the next child issue.
 
@@ -488,37 +478,43 @@ epic branch (or been deferred with their say-so):
    Resolve conflicts the same way you'd resolve any merge. The epic
    PR is squash-merged, so `develop` still gets one commit per epic.
 
-2. Open the **epic PR** with `pr-reviewer`. Dispatch in
+2. **Run QA on the whole epic.** Dispatch `qa-tester` with the epic
+   issue number, `branch: $EPIC_BRANCH`, and the list of task numbers
+   that landed. It checks the acceptance criteria of the epic **and of
+   every task** against the epic branch. Follow `.claude/CLAUDE.md`
+   rules 6 and 6.5 for FAIL / INTERACTIVE-REQUIRED / PARTIAL. A fix
+   lands on a new task-style branch off the epic branch
+   (`fix/<epic-N>-qa-<k>`) and merges per Phase 1d on green CI; then
+   re-run `qa-tester` on the delta.
+
+3. Open the **epic PR** with `pr-reviewer` once QA passes. Dispatch in
    `mode: open-and-review` with:
    - `branch: $EPIC_BRANCH` (the head)
    - `base: develop`
    - issue number = the **epic** issue number (so the PR body links
      `Fixes #<epic-N>` and GitHub auto-closes the epic on merge).
-   - Hand it the list of sub-issue numbers that landed; `pr-reviewer`
-     will compose a body that links `Fixes #<child>` for each, so
-     **GitHub auto-closes every sub-issue on the epic merge** in one
-     atomic transaction.
+   - Hand it the list of task numbers that landed; `pr-reviewer`
+     composes a body with one `Fixes #<task>.` line per task, so
+     GitHub closes every task on the epic merge.
 
-3. `pr-reviewer` runs the same two-pass review on the consolidated
-   diff (`git diff origin/develop...origin/$EPIC_BRANCH`). The
-   sub-reviewer reads it cold — it has not seen the per-sub-issue PRs
-   that already shipped to the epic branch. That's intentional: the
-   epic PR is the unit that lands on `develop`, and a fresh-eyes pass
-   on the union of changes is exactly the gate `develop` deserves.
+4. `pr-reviewer` runs the two-pass review on the consolidated diff
+   (`git diff origin/develop...origin/$EPIC_BRANCH`). This is the
+   **only** code review the epic's tasks get — no task PR was
+   reviewed — so it reviews every line, not a delta.
 
-4. If verdict is 🔁 NEEDS REWORK, route the scope-tagged fix list to
-   the owning dev sub-agent. The fix lands on a **new sub-issue
-   branch off the epic branch** — opened, reviewed, and auto-merged
-   per Phase 1 — never directly on the epic branch. Then re-dispatch
-   `pr-reviewer` against the same epic PR (mode: re-review).
+5. If verdict is 🔁 NEEDS REWORK, route the fix list to the owning
+   dev sub-agent. The fix lands on a **new task-style branch off the
+   epic branch** and merges per Phase 1d on green CI — never directly
+   on the epic branch. Then run a delta round per `.claude/CLAUDE.md`
+   rule 7d (`qa-tester` ∥ `pr-reviewer` `mode: re-review`).
 
-5. When `pr-reviewer` returns ✅ READY FOR MERGE on the epic PR,
+6. When `pr-reviewer` returns ✅ READY FOR MERGE on the epic PR,
    present the URL to the user with a one-paragraph summary of what
    the epic ships:
    ```
    Epic #<N> is ready to merge to develop:
      PR: <url>
-     Sub-issues consolidated: #<C1>, #<C2>, …
+     Tasks consolidated: #<C1>, #<C2>, …
      Strategy on merge: --squash (one commit per epic on develop)
    Reply "merge it" / "go ahead" / "approved, merge" to ship; reply
    "I'll merge this one myself" to defer to manual.
@@ -535,8 +531,7 @@ When the user authorizes:
    the verbatim authorization phrase.
 2. `pr-reviewer` runs the pre-merge CI gate and the merge exclusion
    check, and returns CLEARED TO MERGE with a pinned
-   `gh pr merge <n> <strategy> --delete-branch --match-head-commit <sha>` —
-   `--squash` for `type:feature` (the typical epic shape). **You run
+   `gh pr merge <n> --squash --delete-branch --match-head-commit <sha>`. **You run
    it on the main thread**; subagents can't merge. The squash
    collapses every sub-issue commit into a single commit on `develop`
    named for the epic; `develop` history stays linear and one revert
@@ -553,9 +548,9 @@ When the user authorizes:
      ```bash
      git branch -D "$EPIC_BRANCH" 2>/dev/null || true
      ```
-   - Confirm all sub-issues are closed: `gh issue view <child>
-     --json state` for each child should show `CLOSED` (they were
-     closed by hand at each sub-issue merge in 1d).
+   - Confirm all tasks are closed: `gh issue view <child> --json
+     state` for each should show `CLOSED`. Close any still open by
+     hand via `github-issues`.
 
 ## Phase 3 — Recap, document, close
 
@@ -571,9 +566,9 @@ manually for an excluded epic):
 2. The epic issue itself usually auto-closed via `Fixes #<epic-N>` in
    the PR body. If not, ask the user whether to close it manually —
    sometimes an epic stays open as a tracking issue for a follow-up.
-3. **Final `notion-docs` update** after the epic merges to `develop`.
-   Sub-issues were documented as they merged, so this is usually a
-   no-op; it catches anything the epic PR itself changed.
+3. **`notion-docs` update** after the epic merges to `develop`, run by
+   the main thread (it needs the browser and Notion tools). One run
+   covers every file the epic PR changed.
 
 ---
 
@@ -582,38 +577,33 @@ manually for an excluded epic):
 - [ ] Every child issue referenced by the epic was either shipped
       (auto-merged into the epic branch and then included in the epic
       PR) or explicitly deferred with the user's say-so.
-- [ ] Every sub-issue PR had `qa-tester` = PASS **and** `pr-reviewer`
-      = READY FOR MERGE before its auto-merge — no skipped gates.
-- [ ] The epic PR itself had its own `qa-tester` skip (no AC at the
-      epic level — the children's ACs already passed) and a fresh
-      `pr-reviewer` two-pass review on the consolidated diff before
-      it was authorized for merge.
-- [ ] Every sub-issue merge into the epic branch used the correct
-      strategy per `type:*` label (feature/bug/refactor → squash;
-      docs/chore → rebase).
+- [ ] Every task PR had a passing dev verify-skill run and green CI
+      before it merged into the epic branch.
+- [ ] `qa-tester` returned PASS on the whole epic branch (epic ACs and
+      every task's ACs) **and** `pr-reviewer` returned READY FOR MERGE
+      on the epic PR's full diff before the user was asked to merge.
+- [ ] Every task merge into the epic branch used `--squash`.
 - [ ] The epic PR merged to `develop` with `--squash --delete-branch`
       so the develop history shows one commit per epic.
-- [ ] No PR that hit the merge exclusion list was merged by the skill
-      at either tier (base = `main`, `backend/**/Migrations/**`,
-      Mongo data-mutation scripts) — those went back to the user.
+- [ ] If the epic PR hit the merge exclusion list (migrations, Mongo
+      data-mutation scripts), the user merged it, not the skill.
 - [ ] All `.worktrees/<N>-<short>/` directories removed.
 - [ ] Local `develop` is synced and clean. Local epic branch deleted.
-- [ ] A `notion-docs` update ran after every sub-issue merge and once
-      after the epic merged to `develop`.
+- [ ] A `notion-docs` update ran once, on the main thread, after the
+      epic merged to `develop` (none per task).
 - [ ] Epic issue was auto-closed via `Fixes #<epic-N>` (or commented
       with the final recap if the user opted not to close).
 
 ## Error-recovery notes
 
-- **A child's gates fail repeatedly.** After 3 dev → qa loops on the
-  same child with no progress, stop and surface to the user. Don't
+- **A child's self-check or CI fails repeatedly.** After 3 dev loops
+  on the same child with no progress, stop and surface to the user. Don't
   burn the turn budget in a tight loop; this is the signal to hand
   back or drop the child from the epic. The epic branch holds the
   rest of the work safely while you decide.
-- **A sub-issue auto-merge fails CI.** `pr-reviewer` returns BLOCKED
-  with the failing job name and a root-cause hypothesis. Route the
-  fix to the owning dev sub-agent on the same sub-issue branch, let
-  CI re-run, and re-dispatch `pr-reviewer` (mode: merge-sub-issue).
+- **A task PR fails CI.** Read the failing job (`gh run view <id>
+  --log`), name the root cause, route the fix to the owning dev
+  sub-agent on the same task branch, and let CI re-run.
   Develop is unaffected — only the epic branch is at stake. A second
   CI failure on the same sub-issue still warrants surfacing to the
   user before looping silently.
@@ -630,8 +620,7 @@ manually for an excluded epic):
   user's call, not the skill's.
 - **Session runs out of context mid-epic.** Each sub-issue is an
   independently resumable unit: its branch is pushed, its PR (if any)
-  is open against the epic branch, the last `qa-tester` /
-  `pr-reviewer` verdict is in the PR thread, and the epic branch
+  is open against the epic branch, and the epic branch
   holds the merged work. A fresh session can invoke `ship-epic`
   again with the same epic number; the skill picks up by reading
   the epic branch's git log to see which children have already
@@ -656,12 +645,11 @@ manually for an excluded epic):
 
 - Never merge the **epic PR** (base = `develop`) without same-turn
   authorization. That's the gate that protects `develop`. Rule 8b is
-  not overridden by the skill. Sub-issue PRs (base = epic branch)
-  *do* auto-merge — that's rule 8a — but the epic PR never does.
+  not overridden by the skill. Task PRs (base = epic branch) merge on
+  green CI without asking — that's rule 8a — but the epic PR never does.
 - Never base a sub-issue branch directly off `develop`. They must
   branch off the epic branch so the epic PR captures the full
-  consolidated diff. A sub-issue branch rooted on `develop` will fail
-  `pr-reviewer`'s preflight and be bounced back.
+  consolidated diff. Check `--base` on every `gh pr create` for a task.
 - Never merge a sub-issue PR directly into `develop`. The epic-branch
   model exists specifically so this doesn't happen. If you find
   yourself about to do it, stop — that breaks the user's stated
@@ -670,8 +658,13 @@ manually for an excluded epic):
   issue spans packages, it stays on **one branch** with sequential
   sub-agent dispatches — never fan out across packages for a single
   issue.
-- Never skip a gate to save a round trip. QA and review are the
-  contract; bypassing them defeats the skill's purpose.
+- Never skip the epic-level gates to save a round trip. QA and review
+  on the epic branch are the contract — tasks skip them only because
+  the epic gets them in full.
+- Never invoke `notion-docs` per sub-issue merge. The single
+  invocation lives at Phase 3, after the epic ships to `develop`.
+  N small docs entries for one epic is the failure mode this
+  skill explicitly avoids.
 - Never hand-edit `generated.ts`. If a child changed backend
   contracts, the web/mobile dev agent runs `regen-api` before
   touching call sites.

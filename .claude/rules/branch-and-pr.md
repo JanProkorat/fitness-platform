@@ -6,17 +6,19 @@ All code-bearing work follows this branch-name format:
 <type>/<issue-number>-<short-kebab-description>
 ```
 
-## Branch prefix per type
+## Branch prefix per label
 
-`<type>` matches the issue's `type:*` label:
+`<type>` comes from the issue's kind label:
 
-| Issue type | Branch prefix | Example |
+| Kind label | Branch prefix | Example |
 |---|---|---|
-| `type:feature` | `feature/` | `feature/123-nutrition-plan-publish` |
-| `type:bug` | `fix/` | `fix/124-plan-detail-crash-on-empty-week` |
-| `type:refactor` | `refactor/` | `refactor/125-extract-macro-calculator` |
-| `type:docs` | `docs/` | `docs/126-clarify-regen-api-skill` |
-| `type:chore` | `chore/` | `chore/127-bump-expo-sdk` |
+| `Epic` | `feature/` | `feature/66-photos-epic` |
+| `Task` | `feature/` | `feature/123-nutrition-plan-publish` |
+| `Bug` | `fix/` | `fix/124-plan-detail-crash-on-empty-week` |
+| `Chore` | `chore/` | `chore/127-bump-expo-sdk` |
+
+Older branches use `refactor/` and `docs/`; the CI filters still accept
+them, but new branches use the four rows above.
 
 ## Where the branch is rooted
 
@@ -27,7 +29,7 @@ Depends on whether the issue is part of an epic — see
 |---|---|---|
 | Standalone issue (no parent epic) | `develop` | `develop` |
 | Epic issue (parent of sub-issues) | `develop` | `develop` *(opens at end of epic)* |
-| Sub-issue of an epic | `feature/<epic-N>-<short>` (the epic branch) | the same epic branch |
+| Task of an epic | `feature/<epic-N>-<short>` (the epic branch) | the same epic branch |
 | Release roll-up (rare) | `develop` | `main` |
 
 ## Format rules
@@ -47,11 +49,13 @@ Depends on whether the issue is part of an epic — see
 ## Validation by pr-reviewer
 
 `pr-reviewer` validates **branch format** AND **base branch** on first
-PR creation:
+PR creation (PRs into `develop`). For task PRs into an epic branch,
+which `pr-reviewer` does not see, the main thread checks both before
+`gh pr create`:
 
 - Branch-name mismatch → bounce back to dev sub-agent for rename.
-- Wrong base (e.g. a sub-issue PR opened against `develop` when an
-  epic branch exists) → bounce back to fix the base before review.
+- Wrong base (e.g. a task PR opened against `develop` when an epic
+  branch exists) → fix the base before merging.
 
 ## Parallel sub-agents — one branch each
 
