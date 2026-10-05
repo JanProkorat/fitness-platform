@@ -55,7 +55,7 @@ export default function ClientSelectionBar({ count, onBroadcast, onCancel }: Pro
         </button>
         <button
           type="button"
-          className={cn(ACTION_PILL_CLASSES, 'border border-transparent bg-line text-ink-3')}
+          className={cn(ACTION_PILL_CLASSES, 'border border-transparent bg-line text-ink-2')}
           onClick={onCancel}
         >
           <span className={cn(ICON_SLOT_CLASSES, 'sm:hidden')}>

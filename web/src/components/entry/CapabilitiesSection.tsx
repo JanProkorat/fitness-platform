@@ -1,5 +1,11 @@
 import { useTranslation } from 'react-i18next';
 
+const TAG_CLASSES: Record<string, string> = {
+  nutrition: 'bg-nutrition-soft text-nutrition-ink',
+  training: 'bg-training-soft text-training-ink',
+  contact: 'bg-sunken text-ink-2',
+};
+
 /**
  * "What the platform does" marketing band — three capability cards
  * (spec §6 / prototype `.band` + `.grid3`).
@@ -47,7 +53,12 @@ export default function CapabilitiesSection() {
               key={card.key}
               className="flex flex-col gap-2 rounded-2xl border border-border bg-surface p-5.5 shadow-sm"
             >
-              <span className="mb-1 self-start rounded-sm bg-green-soft px-2 py-0.75 text-label font-semibold tracking-[.1em] text-green-ink uppercase">
+              <span
+                className={
+                  'mb-1 self-start rounded-sm px-2 py-0.75 text-label font-semibold tracking-[.1em] uppercase ' +
+                  TAG_CLASSES[card.key]
+                }
+              >
                 {card.tag}
               </span>
               <h3 className="text-subhead font-semibold text-ink">{card.title}</h3>

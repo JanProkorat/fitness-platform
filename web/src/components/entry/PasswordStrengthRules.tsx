@@ -38,10 +38,10 @@ export default function PasswordStrengthRules({ password }: PasswordStrengthRule
           key={item.key}
           className={cn(
             'flex items-center gap-1.5 text-caption',
-            item.met ? 'text-green-ink' : 'text-faint'
+            item.met ? 'text-success-ink' : 'text-faint'
           )}
         >
-          <span className={cn('size-1 rounded-full', item.met ? 'bg-green-ink' : 'bg-faint')} />
+          <span className={cn('size-1 rounded-full', item.met ? 'bg-success-ink' : 'bg-faint')} />
           {item.label}
         </li>
       ))}

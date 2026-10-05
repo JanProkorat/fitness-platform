@@ -212,7 +212,7 @@ export default function LoginForm() {
           </Label>
           <Link
             to="/forgot-password"
-            className="text-meta font-medium text-brand hover:underline"
+            className="text-meta font-medium text-ink underline underline-offset-2"
           >
             {t('entry.login.forgotPassword')}
           </Link>
@@ -270,7 +270,7 @@ export default function LoginForm() {
 
       <p className="text-meta text-muted-foreground">
         {t('entry.login.noAccount')}{' '}
-        <Link to="/register" className="font-medium text-brand hover:underline">
+        <Link to="/register" className="font-medium text-ink underline underline-offset-2">
           {t('entry.login.createAccount')}
         </Link>
       </p>

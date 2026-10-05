@@ -36,7 +36,7 @@ export default function AudienceSection() {
   ];
 
   return (
-    <section className="min-w-0 border-t border-line-soft py-12 sm:py-16 lg:py-19 panel:col-start-1">
+    <section className="min-w-0 border-t border-line py-12 sm:py-16 lg:py-19 panel:col-start-1">
       <div className="mx-auto max-w-wrap px-6 sm:px-9 lg:px-18">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {panels.map((panel) => (
@@ -55,7 +55,7 @@ export default function AudienceSection() {
               <ul className="flex flex-col gap-2.25">
                 {panel.checks.map((check) => (
                   <li key={check} className="flex items-start gap-2.5 text-body text-ink-2">
-                    <span className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full bg-green-soft text-tick font-bold text-green-ink">
+                    <span className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full bg-success-soft text-tick font-bold text-success-ink">
                       ✓
                     </span>
                     <span>{check}</span>
