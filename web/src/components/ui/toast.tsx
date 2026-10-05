@@ -39,7 +39,7 @@ function ToastRoot({
       data-slot="toast"
       data-variant={variant}
       className={cn(
-        "pointer-events-auto relative flex w-full items-start gap-3 rounded-lg border border-border bg-card p-4 text-card-foreground shadow-panel",
+        "pointer-events-auto relative flex w-full items-start gap-3 rounded-lg border border-border bg-card p-4 text-card-foreground shadow-popover",
         "data-[state=open]:animate-toast-in data-[state=closed]:animate-toast-out",
         "data-[variant=error]:border-destructive/30",
         className
