@@ -151,6 +151,15 @@ the orchestrator loads the Playwright MCP schemas itself.
 
 ## iOS Simulator path — bash-driven smoke + auth bypass
 
+> **PAUSED since #1160.** The mobile app was regenerated from scratch, so
+> `mobile/scripts/qa-build-dev-client.sh`, `qa-fetch-refresh-token.sh` and the
+> `e2e-auth` deep-link handler no longer exist. Do not run this path. For a
+> native-only AC, report it ⚠️ UNVERIFIED with `iOS path paused (#1160)`; for
+> mobile typecheck/doctor, use the `mobile` row of the static checks as usual.
+> The steps below are kept unchanged for when the new app has a sign-in
+> screen; restore the scripts from git (`git show 6c625108^:mobile/scripts/<name>`)
+> and re-add the deep-link handler then.
+
 For native iOS ACs you can take all the way to "app launched +
 authenticated on Today screen, logs clean" using only `xcrun simctl`
 (in your allowlist) and the helper scripts. Anything past that point

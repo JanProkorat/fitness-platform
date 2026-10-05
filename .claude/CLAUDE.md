@@ -178,7 +178,9 @@ says otherwise for that task.
    `mcp__a11y-accessibility__*`). For each AC the qa-tester flagged with
    `met: false` and an interactive-evidence note:
 
-   - **iOS native flows** — load the schemas:
+   - **iOS native flows** — **PAUSED since #1160** (the new app has no
+     dev-client build script or test sign-in yet; see the notice in
+     `agents/qa-tester.md`). When resumed — load the schemas:
      `ToolSearch select:mcp__xcodebuildmcp__list_sims,boot_sim,install_app_sim,launch_app_sim,stop_app_sim,screenshot,snapshot_ui,tap,type_text,swipe,gesture,button,long_press`.
      Resolve the simulator via `list_sims` (precedence: booted → config-
      name → newest installed). Use the dev-client `.app` from
@@ -193,8 +195,8 @@ says otherwise for that task.
      `ToolSearch select:mcp__plugin_playwright_playwright__browser_navigate,browser_click,browser_fill_form,browser_snapshot,browser_take_screenshot,browser_wait_for,browser_evaluate`.
      Point at `:5173` (which proxies to compose harness `:5101`). Pull
      auth from `.auth/<role>.json` (produced by `web/tests/e2e/auth.setup.ts`)
-     or call `mobile/scripts/qa-fetch-refresh-token.sh <role>` and inject
-     into localStorage. Capture accessibility-tree snapshots + screenshots
+     (the `mobile/scripts/qa-fetch-refresh-token.sh` alternative is paused
+     with the iOS path). Capture accessibility-tree snapshots + screenshots
      under `.qa-artifacts/<issue>/orchestrator-web-<scene>.png`.
 
    - **a11y audits** — load the schemas:
