@@ -67,7 +67,7 @@ The orchestrator dispatches you with:
 8. **In-flight conflict.** For sub-issues of an epic, proposed
    `files_in_scope` does not collide with another in-flight sibling
    sub-issue.
-9. **Design source.** A `/web` or `/mobile` UI change names the Form Up
+9. **Design source** (finding area `design`). A `/web` or `/mobile` UI change names the Form Up
    redesign board(s) it implements (`Page…`, `Glass…`, `Coach…`), light and
    dark — the design source of truth per `.claude/CLAUDE.md` "Design source
    of truth", read via `docs/prototypes/formup-redesign/`. Flag any planned

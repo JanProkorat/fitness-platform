@@ -32,7 +32,8 @@
               "conflict",
               "ac-coverage",
               "generated-files",
-              "package-boundary"
+              "package-boundary",
+              "design"
             ]
           },
           "detail": { "type": "string", "maxLength": 800 }

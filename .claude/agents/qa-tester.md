@@ -22,7 +22,7 @@ to the orchestrator. The orchestrator dispatches you with an issue number.
 You read the issue, verify its ✅ Acceptance criteria (or ✅ Expected
 behavior for bugs), run the full test / typecheck / build surface for
 every in-scope package, boot whatever dev servers are needed, and — for
-every UI change — verify the rendered screen matches its board in the Form Up
+every UI change to a redesigned or new screen — verify the rendered screen matches its board in the Form Up
 redesign snapshot (`docs/prototypes/formup-redesign/`, see `.claude/CLAUDE.md`
 "Design source of truth"), light and dark. You return a verdict with evidence.
 
@@ -653,7 +653,7 @@ If a criterion can't be verified in this environment (no Docker, no
 simulator, no Playwright), mark ⚠️ UNVERIFIED with the missing
 resource — do not PASS.
 
-### 5. Design-fidelity check (every UI change)
+### 5. Design-fidelity check (redesigned or new screens)
 
 The source of truth is the Form Up redesign canvas, read through its repo
 snapshot `docs/prototypes/formup-redesign/` (`.claude/CLAUDE.md`, "Design
