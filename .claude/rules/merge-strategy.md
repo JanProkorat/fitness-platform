@@ -58,7 +58,7 @@ on the whole epic, before the epic PR merges to `develop` — see
   passes. The epic PR body carries one `Fixes #<task>.` line per task,
   so the tasks close when the epic merges to `develop`.
 - `notion-docs` is **not** dispatched per task. It runs once after the
-  epic ships to `develop`.
+  epic ships to `develop` (main thread; see Merge dispatch step 5).
 
 ## Authorized merge
 
@@ -104,10 +104,9 @@ to merge:
    local branch best-effort and removes the worktree. A failed
    fast-forward (dirty tree, local commits) is a ⚠️ warning to the
    user, not a rollback — the merge already landed.
-5. Orchestrator dispatches `notion-docs` (update mode) to document
-   the change. For an epic merge the docs entry covers all the
-   sub-issues that landed in the consolidated commit — not one per
-   sub-issue.
+5. Orchestrator runs `notion-docs` (update mode) on the main thread (it
+   needs the browser and Notion tools). For an epic merge it covers all
+   tasks in the consolidated commit.
 
 ## Exclusion list
 

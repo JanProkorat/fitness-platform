@@ -17,6 +17,13 @@ on:
       - '.github/workflows/e2e.yml'
       - 'scripts/test-env'
       - 'qa-playwright/**'
+      - 'docs/wiki/**'
+      - 'scripts/wiki-*'
+      - 'scripts/fetch-swagger.py'
+      - 'scripts/test_wiki_*'
+      - 'scripts/test_fetch_swagger.py'
+      - 'scripts/notion-upload.py'
+      - 'scripts/test_notion_upload.py'
 
 permissions:
   contents: read
@@ -100,6 +107,18 @@ jobs:
             exit 1
           fi
           echo "E2E_API_URL=$api_url" >> "$GITHUB_ENV"
+
+      - name: Wiki screen inventory check
+        # Validates docs/wiki/screens.json against the harness's live Swagger,
+        # so an endpoint rename or a deleted page file fails here, not in Notion.
+        run: |
+          set -euo pipefail
+          python3 scripts/test_wiki_check.py
+          python3 scripts/test_wiki_api.py
+          python3 scripts/test_fetch_swagger.py
+          python3 scripts/test_notion_upload.py
+          curl -ksSf "$E2E_API_URL/swagger/v1/swagger.json" -o "$RUNNER_TEMP/swagger.json"
+          python3 scripts/wiki-check.py --swagger "$RUNNER_TEMP/swagger.json"
 
       - name: Run Playwright tests (host suite — regression smoke)
         run: npx playwright test
