@@ -212,7 +212,7 @@ export default function ClientsPage() {
                   {tabCounts && (
                     <span
                       className={cn(
-                        'inline-flex min-w-badge-min items-center justify-center rounded-full px-1.5 py-0.5 text-label font-semibold',
+                        'inline-flex min-w-badge-min items-center justify-center rounded-full px-1.5 py-px text-label font-bold',
                         isActiveTab ? 'bg-primary text-primary-foreground' : 'bg-line text-muted-foreground',
                       )}
                     >
