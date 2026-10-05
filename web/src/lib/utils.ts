@@ -16,7 +16,7 @@ import {
  * t-shirt sizes (`xs`/`sm`/`md`/...), so a custom scale name like
  * `text-body` falls through to `theme.color`'s catch-all and gets treated
  * as a *text colour* instead of a font size — silently deleting whichever
- * `text-sm`/`text-lg` a base variant set (#1078). `shadow-panel` has the
+ * `text-sm`/`text-lg` a base variant set (#1078). `shadow-dialog` has the
  * identical delete-the-class failure via `theme.shadow`/`theme.color`.
  * `spacing`/`tracking`/`animate` tokens are the milder form: unknown to
  * tailwind-merge, so a real conflict between two such classes just never

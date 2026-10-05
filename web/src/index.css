@@ -115,14 +115,18 @@
   --gf-text-section-title: clamp(26px, 3vw, 34px); /* band H2 */
   --gf-text-cta-title: clamp(24px, 3vw, 32px); /* closing CTA H2 */
 
-  --gf-shadow-panel: 0 30px 80px rgba(0, 0, 0, 0.35); /* login panel + medallion */
+  --gf-shadow-dialog: 0 30px 80px rgba(0, 0, 0, 0.35); /* centred modal (PageClientPlanStartOver) */
+  --gf-shadow-sheet: -12px 0 40px rgba(0, 0, 0, 0.18); /* right-hand drawer (PageClientInviteDrawer) */
+  --gf-shadow-popover: 0 6px 20px rgba(0, 0, 0, 0.12); /* floating pill (PageClients selection bar): menus, popovers, hover cards, toasts */
+  --gf-shadow-card: 0 24px 60px rgba(0, 0, 0, 0.1); /* standalone-page card (PageRegister*) */
+  --gf-shadow-medallion: 0 1px 3px rgba(0, 0, 0, 0.12); /* brand medallion; no board element, board's small-raised value */
   --gf-shadow-selection-bar: 0 4px 12px rgba(0, 0, 0, 0.1); /* clients-page bulk-selection bar */
 
   --gf-panel-width: 440px; /* login panel column width */
   --gf-collage-cell-min-height: clamp(70px, 12vh, 140px); /* hero photo-collage cell */
   --gf-wrap-width: 1044px; /* marketing section content max-width, reused across bands */
   --gf-hero-content-width: 900px; /* hero headline/collage max-width, reused twice in HeroSection */
-  --gf-badge-min-width: 19px; /* filter-chip count badge floor — a single-digit count's glyph advance can render narrower than the badge's own height in a fallback face, squaring off the pill */
+  --gf-badge-min-width: 20px; /* filter-chip count badge floor — a single-digit count's glyph advance can render narrower than the badge's own height in a fallback face, squaring off the pill */
   --gf-swatch-size: 18px; /* create-tag colour-picker swatch diameter */
   --gf-search-width: 280px; /* Ingredients page search input */
   --gf-drawer-width: 560px; /* Ingredient drawer sheet width */
@@ -330,7 +334,11 @@
   --text-cta-title: var(--gf-text-cta-title);
   --text-cta-title--line-height: 1.5;
 
-  --shadow-panel: var(--gf-shadow-panel);
+  --shadow-dialog: var(--gf-shadow-dialog);
+  --shadow-sheet: var(--gf-shadow-sheet);
+  --shadow-popover: var(--gf-shadow-popover);
+  --shadow-card: var(--gf-shadow-card);
+  --shadow-medallion: var(--gf-shadow-medallion);
   --shadow-selection-bar: var(--gf-shadow-selection-bar);
 
   --spacing-panel: var(--gf-panel-width);

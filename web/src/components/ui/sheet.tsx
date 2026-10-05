@@ -50,7 +50,7 @@ function SheetOverlay({
 // #1081 comment on the --animate-sheet-* tokens in index.css for why a
 // single reversible keyframe doesn't work with Radix's Presence.
 const sheetVariants = cva(
-  "fixed z-50 flex flex-col gap-4 border-border bg-card text-card-foreground shadow-panel",
+  "fixed z-50 flex flex-col gap-4 border-border bg-card text-card-foreground shadow-sheet",
   {
     variants: {
       side: {
