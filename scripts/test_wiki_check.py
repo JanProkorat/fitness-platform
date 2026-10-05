@@ -114,6 +114,41 @@ def test_cli_reports_invalid_json_without_traceback():
     assert "is not valid JSON" in result.stdout + result.stderr
 
 
+def test_empty_glob_string_is_reported_not_raised():
+    found = problems_for(screen(files=[""]))
+    assert any("invalid" in p.lower() or "must" in p.lower() for p in found)
+    assert all("Traceback" not in p for p in found)
+
+
+def test_null_in_roles_is_reported_not_raised():
+    found = problems_for(screen(roles=None))
+    assert any("must be a list" in p for p in found)
+
+
+def test_non_string_endpoint_is_reported_not_raised():
+    found = problems_for(screen(endpoints=[5]))
+    assert any("must be" in p.lower() or "string" in p.lower() for p in found)
+
+
+def test_non_string_id_is_reported_not_raised():
+    found = problems_for(screen(id=5))
+    assert any("must be" in p.lower() or "string" in p.lower() for p in found)
+
+
+def test_cli_rejects_swagger_with_non_dict_paths():
+    root = make_repo()
+    screens = root / "screens.json"
+    screens.write_text(json.dumps({"screens": []}))
+    bad_swagger = root / "swagger.json"
+    bad_swagger.write_text(json.dumps({"paths": []}))
+    result = subprocess.run(
+        [sys.executable, str(HERE / "wiki-check.py"), "--screens", str(screens), "--swagger", str(bad_swagger), "--root", str(root)],
+        capture_output=True, text=True)
+    assert result.returncode == 1
+    assert "Traceback" not in result.stderr
+    assert "not a Swagger document" in result.stdout + result.stderr
+
+
 def main() -> int:
     tests = [value for name, value in sorted(globals().items()) if name.startswith("test_")]
     failures = 0

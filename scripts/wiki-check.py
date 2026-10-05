@@ -58,6 +58,36 @@ def check(document: object, swagger: dict, repo_root: Path) -> list[str]:
 def _check_entry(entry: dict, seen_ids: set[str], operations: set[str], repo_root: Path) -> list[str]:
     problems: list[str] = []
 
+    # Type validation: ensure required fields have correct types.
+    if not isinstance(entry["id"], str):
+        problems.append("field 'id' must be a string")
+    if not isinstance(entry["app"], str):
+        problems.append("field 'app' must be a string")
+    if not isinstance(entry["area"], str):
+        problems.append("field 'area' must be a string")
+    if not isinstance(entry["title"], str):
+        problems.append("field 'title' must be a string")
+    if not isinstance(entry["route"], str):
+        problems.append("field 'route' must be a string")
+    if not isinstance(entry["roles"], list):
+        problems.append("field 'roles' must be a list of strings")
+    elif not all(isinstance(r, str) for r in entry["roles"]):
+        problems.append("field 'roles' must be a list of strings")
+    if not isinstance(entry["files"], list):
+        problems.append("field 'files' must be a list of strings")
+    elif not all(isinstance(f, str) for f in entry["files"]):
+        problems.append("field 'files' must be a list of strings")
+    if not isinstance(entry["endpoints"], list):
+        problems.append("field 'endpoints' must be a list of strings")
+    elif not all(isinstance(e, str) for e in entry["endpoints"]):
+        problems.append("field 'endpoints' must be a list of strings")
+    if not isinstance(entry["shots"], list):
+        problems.append("field 'shots' must be a list")
+
+    # Return early if type validation failed.
+    if problems:
+        return problems
+
     if not ID_PATTERN.match(entry["id"]):
         problems.append("id must look like <app>.<area>.<screen> in lowercase")
     elif not entry["id"].startswith(f"{entry['app']}."):
@@ -79,8 +109,12 @@ def _check_entry(entry: dict, seen_ids: set[str], operations: set[str], repo_roo
     for pattern in entry["files"]:
         if pattern.startswith("/") or ".." in Path(pattern).parts:
             problems.append(f"file glob '{pattern}' must be relative to the repo root")
-        elif not any(repo_root.glob(pattern)):
-            problems.append(f"file glob '{pattern}' matches no file")
+        else:
+            try:
+                if not any(repo_root.glob(pattern)):
+                    problems.append(f"file glob '{pattern}' matches no file")
+            except (ValueError, NotImplementedError):
+                problems.append(f"file glob '{pattern}' is invalid")
 
     for endpoint in entry["endpoints"]:
         if not ENDPOINT_PATTERN.match(endpoint):
@@ -114,6 +148,8 @@ def _load_json(path: Path) -> object:
         sys.exit(_fail(f"{path} does not exist"))
     except json.JSONDecodeError as error:
         sys.exit(_fail(f"{path} is not valid JSON: {error}"))
+    except (OSError, UnicodeDecodeError) as error:
+        sys.exit(_fail(f"{path} could not be read: {error}"))
 
 
 def _fail(message: str) -> int:
@@ -129,7 +165,7 @@ def main() -> int:
     args = parser.parse_args()
 
     swagger = _load_json(args.swagger)
-    if not isinstance(swagger, dict):
+    if not isinstance(swagger, dict) or not isinstance(swagger.get("paths"), dict):
         return _fail(f"{args.swagger} is not a Swagger document")
 
     problems = check(_load_json(args.screens), swagger, args.root.resolve())
