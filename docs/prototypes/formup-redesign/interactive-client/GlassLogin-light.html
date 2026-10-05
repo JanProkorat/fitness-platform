@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Login · Form Up prototype</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@200;300;400;500;600;700&amp;family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#141414}a:hover{color:#3A3835}
+</style>
+
+<style>
+html,body{margin:0}
+body{overflow-x:hidden}
+body.fu-device{min-height:100vh;display:flex;align-items:center;justify-content:center;background:#E4E1DC}
+body.fu-device.fu-dark{background:#1C1C1F}
+.fu-hot{cursor:pointer}
+body.fu-show .fu-hot{outline:2px solid rgba(37,99,235,.75);outline-offset:1px}
+#fu-bar{position:fixed;right:16px;bottom:16px;z-index:9999;display:flex;gap:6px;align-items:center;padding:6px;border-radius:14px;background:rgba(20,20,20,.88);color:#fff;font:600 12px system-ui,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.3)}
+#fu-bar a,#fu-bar button,#fu-bar select{height:30px;padding:0 10px;border-radius:9px;border:0;background:rgba(255,255,255,.12);color:#fff;font:inherit;text-decoration:none;display:flex;align-items:center;cursor:pointer}
+#fu-bar .on{background:#fff;color:#141414}
+</style>
+<script>
+(function(){
+  var FLOW = {"Today": "GlassToday", "Training": "GlassTrainingWeek", "Nutrition": "GlassNutrition", "*Messages": "GlassMessagesList", "Sign in": "GlassToday", "Apple": "GlassToday", "Google": "GlassToday", "Create account": "GlassRegister"}, PAGE = "GlassLogin", THEME = "light", PAGES = [["GlassLogin", "Login"], ["GlassRegister", "Register"], ["GlassOnboardingGoal", "OnboardingGoal"], ["GlassOnboardingBasics", "OnboardingBasics"], ["GlassTodayNoCoach", "TodayNoCoach"], ["GlassCoachSearch", "CoachSearch"], ["GlassCoachProfile", "CoachProfile"], ["GlassRequestSheet", "RequestSheet"], ["GlassToday", "Today"], ["GlassTodayV1", "Today · v1 (check-in only)"], ["GlassNotifications", "Notifications"], ["GlassTrainingWeek", "TrainingWeek"], ["GlassTrainingEmpty", "TrainingEmpty"], ["GlassSessionDetail", "SessionDetail"], ["GlassWorkout", "Workout"], ["GlassSessionMixed", "SessionMixed"], ["GlassAmrap", "Amrap"], ["GlassEmom", "Emom"], ["GlassTabata", "Tabata"], ["GlassForTime", "ForTime"], ["GlassDoneStrength", "DoneStrength"], ["GlassDoneAmrap", "DoneAmrap"], ["GlassDoneTabata", "DoneTabata"], ["GlassSessionSummary", "SessionSummary"], ["GlassNutrition", "Nutrition"], ["GlassNutritionEmpty", "NutritionEmpty"], ["GlassMealDetail", "MealDetail"], ["GlassShoppingList", "ShoppingList"], ["GlassMessagesList", "MessagesList"], ["GlassChat", "Chat"], ["GlassProfile", "Profile"], ["GlassMyJourney", "MyJourney"], ["GlassPlanSummary", "PlanSummary"], ["GlassMeasurements", "Measurements"], ["GlassPhotos", "Photos"], ["GlassCheckIn", "CheckIn"], ["GlassSettings", "Settings"], ["GlassTrainingPlan", "TrainingPlan"], ["GlassTrainingWeekDetail", "TrainingWeekDetail"], ["GlassNutritionPlan", "NutritionPlan"], ["GlassNutritionWeekDetail", "NutritionWeekDetail"], ["GlassRecipesPlan", "RecipesPlan"], ["GlassRecipesAll", "RecipesAll"], ["GlassRecipeDetail", "RecipeDetail"], ["GlassCookingSteps", "CookingSteps"], ["GlassIngredientDetail", "IngredientDetail"], ["GlassWorkoutsPlan", "WorkoutsPlan"], ["GlassWorkoutsAll", "WorkoutsAll"], ["GlassWorkoutDetail", "WorkoutDetail"], ["GlassExerciseDetail", "ExerciseDetail"]], DEVICE = true;
+  function key(el){ return (el.getAttribute('aria-label') || el.getAttribute('title') || el.textContent || '').replace(/\s+/g,' ').trim(); }
+  function target(el){
+    // Exact keys win over ^prefix and *contains keys; a null target marks a label as not clickable.
+    var k = key(el), m;
+    if (Object.prototype.hasOwnProperty.call(FLOW, k)) return FLOW[k];
+    for (m in FLOW){ var c = m[0], v = m.slice(1); if (c === '^' ? k.indexOf(v) === 0 : c === '*' ? k.indexOf(v) >= 0 : false) return FLOW[m]; }
+    return null;
+  }
+  function go(page, theme){ location.href = page + '-' + (theme || THEME) + '.html'; }
+  function fit(){
+    // Boards are fixed-size frames. Web: zoom to the window width, page in the board's colour.
+    // Phone: centre the frame, zoomed to fit the window, on a neutral backdrop.
+    var board = document.body.firstElementChild;
+    if (!board || board.id === 'fu-bar') return;
+    if (!board.dataset.w){
+      board.dataset.w = board.offsetWidth; board.dataset.h = board.offsetHeight;
+      if (DEVICE){
+        document.body.classList.add('fu-device'); if (THEME === 'dark') document.body.classList.add('fu-dark');
+        board.style.borderRadius = '48px'; board.style.boxShadow = '0 30px 80px rgba(0,0,0,.28), 0 0 0 10px #0B0B0C';
+      } else {
+        document.body.style.background = getComputedStyle(board).backgroundColor;
+      }
+    }
+    var root = document.documentElement;
+    board.style.zoom = DEVICE ? Math.min((root.clientHeight - 64) / board.dataset.h, (root.clientWidth - 64) / board.dataset.w)
+                              : root.clientWidth / board.dataset.w;
+  }
+  window.addEventListener('resize', fit);
+  document.addEventListener('DOMContentLoaded', function(){
+    fit();
+    document.querySelectorAll('a,button,tr,[role=tab],[role=radio]').forEach(function(el){ if (target(el)) el.classList.add('fu-hot'); });
+    var bar = document.createElement('div'); bar.id = 'fu-bar';
+    var opts = PAGES.map(function(p){ return '<option value="'+p[0]+'"'+(p[0]===PAGE?' selected':'')+'>'+p[1]+'</option>'; }).join('');
+    bar.innerHTML = '<select aria-label="Jump to screen">'+opts+'</select>'
+      + '<button data-t="light" class="'+(THEME==='light'?'on':'')+'">Light</button><button data-t="dark" class="'+(THEME==='dark'?'on':'')+'">Dark</button>'
+      + '<button data-h="1" title="Show clickable areas (H)">Hotspots</button><a href="../index.html">All screens</a>';
+    document.body.appendChild(bar);
+    bar.querySelector('select').addEventListener('change', function(e){ go(e.target.value); });
+    bar.querySelectorAll('[data-t]').forEach(function(b){ b.addEventListener('click', function(){ go(PAGE, b.getAttribute('data-t')); }); });
+    bar.querySelector('[data-h]').addEventListener('click', function(){ document.body.classList.toggle('fu-show'); });
+  });
+  document.addEventListener('keydown', function(e){ if (e.key === 'h' || e.key === 'H') document.body.classList.toggle('fu-show'); });
+  document.addEventListener('click', function(e){
+    if (e.target.closest && e.target.closest('#fu-bar')) return;
+    var el = e.target.closest ? e.target.closest('a,button,tr,[role=tab],[role=radio]') : null;
+    if (!el) return;
+    e.preventDefault();
+    var t = target(el);
+    if (t) go(t); else if (el.tagName !== 'TR' && !document.body.classList.contains('fu-show')) { document.body.classList.add('fu-show'); setTimeout(function(){ document.body.classList.remove('fu-show'); }, 600); }
+  }, true);
+})();
+</script>
+
+</head>
+<body>
+<div style="position: relative; width: 390px; height: 844px; background: #FFFFFF; font-family: 'DM Sans', sans-serif; color: #141414; overflow: hidden">
+<div style="position: absolute; top: 110px; left: 0; right: 0; padding: 0 24px; display: flex; flex-direction: column; gap: 14px">
+<div style="padding-bottom: 22px"><span style="font-family: 'Outfit', sans-serif; font-weight: 300; font-size: 22px; letter-spacing: 0.22em; line-height: 1; white-space: nowrap; color: #141414">FORM <span style="color: #C8382F">UP</span></span></div>
+<h1 style="margin: 0; font-family: 'Outfit', sans-serif; font-size: 30px; line-height: 1.12; font-weight: 600; letter-spacing: -0.015em; font-size: 32px; padding-bottom: 12px">Train and eat<br>with your coach.</h1>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 500; color: #6B6863">Email
+<span style="height: 48px; padding: 0 14px; border-radius: 14px; background: #F6F5F2; border: 1px solid rgba(20,20,20,0.08); display: flex; align-items: center; gap: 10px; font-size: 16px; color: #141414"><span style="display: flex; color: #6B6863"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5.5" width="17" height="13" rx="2"></rect><path d="M4 7l8 6 8-6"></path></svg></span>eva.svobodova@email.cz</span></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 500; color: #6B6863">Password
+<span style="height: 48px; padding: 0 14px; border-radius: 14px; background: #F6F5F2; border: 1px solid rgba(20,20,20,0.08); display: flex; align-items: center; gap: 10px; font-size: 16px; color: #141414"><span style="display: flex; color: #6B6863"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="2"></rect><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"></path></svg></span>••••••••••<span style="margin-left: auto; font-size: 13px; color: #6B6863">Show</span></span></label>
+<a href="#" style="align-self: flex-end; font-size: 13px; font-weight: 500; color: #3A3835; text-decoration: none">Forgot password?</a>
+<button style="height: 52px; border-radius: 26px; border: none; font: 600 16px 'DM Sans', sans-serif; display: flex; align-items: center; justify-content: center; gap: 8px; background: #141414; color: #FFFFFF; margin-top: 6px">Sign in</button>
+<div style="display: flex; align-items: center; gap: 12px; font-size: 12px; color: #6B6863"><span style="flex-grow: 1; height: 1px; background: rgba(20,20,20,0.08)"></span>or<span style="flex-grow: 1; height: 1px; background: rgba(20,20,20,0.08)"></span></div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+<button style="height: 52px; border-radius: 26px; border: none; font: 600 16px 'DM Sans', sans-serif; display: flex; align-items: center; justify-content: center; gap: 8px; height: 46px; background: transparent; border: 1px solid rgba(20,20,20,0.08); color: #141414; font-weight: 500; font-size: 15px"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15.5 4c-.3 1.6-1.6 2.9-3.1 2.8.1-1.5 1.5-2.8 3.1-2.8z"></path><path d="M17.5 12.8c0-2 1.6-3 1.7-3.1-1-1.4-2.4-1.6-2.9-1.6-1.3-.1-2.4.7-3 .7-.6 0-1.6-.7-2.6-.7-1.4 0-2.6.8-3.3 2-1.4 2.4-.4 6 1 8 .7 1 1.4 2 2.4 2 1 0 1.3-.6 2.5-.6s1.5.6 2.5.6c1 0 1.7-1 2.3-2 .7-1 1-2 1-2.1 0 0-1.6-.6-1.6-3.2z"></path></svg>Apple</button>
+<button style="height: 52px; border-radius: 26px; border: none; font: 600 16px 'DM Sans', sans-serif; display: flex; align-items: center; justify-content: center; gap: 8px; height: 46px; background: transparent; border: 1px solid rgba(20,20,20,0.08); color: #141414; font-weight: 500; font-size: 15px"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12.2c0-.6 0-1.1-.1-1.7H12v3.3h4.5a3.9 3.9 0 0 1-1.7 2.5v2.1h2.7c1.6-1.5 2.5-3.6 2.5-6.2z"></path><path d="M12 20.5c2.3 0 4.2-.8 5.5-2.1l-2.7-2.1c-.7.5-1.7.8-2.8.8-2.2 0-4-1.5-4.7-3.4H4.6v2.2A8.5 8.5 0 0 0 12 20.5z"></path><path d="M7.3 13.7a5 5 0 0 1 0-3.4V8.1H4.6a8.5 8.5 0 0 0 0 7.8z"></path><path d="M12 6.9c1.2 0 2.4.4 3.3 1.3l2.4-2.4A8.5 8.5 0 0 0 4.6 8.1l2.7 2.2C8 8.4 9.8 6.9 12 6.9z"></path></svg>Google</button>
+</div>
+</div>
+<span style="position: absolute; left: 0; right: 0; bottom: 44px; text-align: center; font-size: 14px; color: #6B6863">New here? <a href="#" style="font-weight: 600; color: #D2342A; text-decoration: none">Create account</a></span>
+</div>
+</body>
+</html>

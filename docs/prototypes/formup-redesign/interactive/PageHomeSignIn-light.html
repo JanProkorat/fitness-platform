@@ -13,6 +13,8 @@ a{color:#141414}a:hover{color:#3A3835}
 <style>
 html,body{margin:0}
 body{overflow-x:hidden}
+body.fu-device{min-height:100vh;display:flex;align-items:center;justify-content:center;background:#E4E1DC}
+body.fu-device.fu-dark{background:#1C1C1F}
 .fu-hot{cursor:pointer}
 body.fu-show .fu-hot{outline:2px solid rgba(37,99,235,.75);outline-offset:1px}
 #fu-bar{position:fixed;right:16px;bottom:16px;z-index:9999;display:flex;gap:6px;align-items:center;padding:6px;border-radius:14px;background:rgba(20,20,20,.88);color:#fff;font:600 12px system-ui,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.3)}
@@ -21,20 +23,33 @@ body.fu-show .fu-hot{outline:2px solid rgba(37,99,235,.75);outline-offset:1px}
 </style>
 <script>
 (function(){
-  var FLOW = {"Clients": "PageClients", "Inbox": "PageInbox", "Recipes": "PageRecipes", "Ingredients": "PageIngredients", "Plan templates": "PageTemplates", "Forms": "PageForms", "Log out": "PageHome", "Close": "PageHome", "Sign in": "PageClients", "Create account": "PageRegister"}, PAGE = "PageHomeSignIn", THEME = "light", PAGES = [["PageHome", "Home · full page"], ["PageHomeSignIn", "Home · Sign in dialog"], ["PageRegister", "Register · 1 Account"], ["PageRegisterCheckEmail", "Register · 2 Check email"], ["PageRegisterVerified", "Register · 3 Email verified"], ["PageClients", "Clients"], ["PageClientDetail", "ClientDetail"], ["PageClientNutrition", "ClientDetail · Nutrition tab"], ["PageClientNutritionEmpty", "ClientDetail · Nutrition, no plan yet"], ["PageClientPlanEditor", "Client plan · Library › Templates"], ["PageClientPlanDay", "Client plan · Day view"], ["PageClientPlanDayAddMeal", "Client plan · Day · Add meal drawer"], ["PageClientPlanStartOver", "Client plan · replace with template?"], ["PageClientPlanInfo", "Client plan · Plan info tab"], ["PageClientPlanBlank", "Client plan · blank"], ["PageClientPlanClosed", "Client plan · panel closed"], ["PageInbox", "Inbox"], ["PageRecipes", "Recipes"], ["PageRecipesTable", "Recipes · table view"], ["PageRecipeDrawer", "Recipe drawer · Details tab"], ["PageRecipeDrawerIngredients", "Recipe drawer · Ingredients tab"], ["PageRecipeDrawerPreparation", "Recipe drawer · Preparation tab"], ["PageRecipeDrawerPictures", "Recipe drawer · Pictures tab"], ["PageIngredients", "Ingredients"], ["PageIngredientDrawer", "IngredientDrawer"], ["PageTemplates", "Templates"], ["PageTemplateNew", "TemplateNew"], ["PageTemplateEditorEmpty", "TemplateEditor · empty (no meals chosen)"], ["PageTemplateEditor", "TemplateEditor"], ["PageTemplateMeal", "TemplateMeal"], ["PageTemplateNutrition", "TemplateNutrition"], ["PageTemplateDay", "TemplateDay"], ["PageTemplateDayAddMeal", "TemplateDay · Add meal drawer"], ["PageForms", "Forms"], ["PageFormOnboarding", "Form editor · Client onboarding"], ["PageFormCheckIn", "Form editor · Weekly check-in"]];
+  var FLOW = {"Clients": "PageClients", "Inbox": "PageInbox", "Recipes": "PageRecipes", "Ingredients": "PageIngredients", "Plan templates": "PageTemplates", "Forms": "PageForms", "Log out": "PageHome", "Close": "PageHome", "Sign in": "PageClients", "Create account": "PageRegister"}, PAGE = "PageHomeSignIn", THEME = "light", PAGES = [["PageHome", "Home · full page"], ["PageHomeSignIn", "Home · Sign in dialog"], ["PageRegister", "Register · 1 Account"], ["PageRegisterCheckEmail", "Register · 2 Check email"], ["PageRegisterVerified", "Register · 3 Email verified"], ["PageClients", "Clients"], ["PageClientDetail", "ClientDetail"], ["PageClientNutrition", "ClientDetail · Nutrition tab"], ["PageClientNutritionEmpty", "ClientDetail · Nutrition, no plan yet"], ["PageClientPlanEditor", "Client plan · Library › Templates"], ["PageClientPlanDay", "Client plan · Day view"], ["PageClientPlanDayAddMeal", "Client plan · Day · Add meal drawer"], ["PageClientPlanStartOver", "Client plan · replace with template?"], ["PageClientPlanInfo", "Client plan · Plan info tab"], ["PageClientPlanBlank", "Client plan · blank"], ["PageClientPlanClosed", "Client plan · panel closed"], ["PageInbox", "Inbox"], ["PageRecipes", "Recipes"], ["PageRecipesTable", "Recipes · table view"], ["PageRecipeDrawer", "Recipe drawer · Details tab"], ["PageRecipeDrawerIngredients", "Recipe drawer · Ingredients tab"], ["PageRecipeDrawerPreparation", "Recipe drawer · Preparation tab"], ["PageRecipeDrawerPictures", "Recipe drawer · Pictures tab"], ["PageIngredients", "Ingredients"], ["PageIngredientDrawer", "IngredientDrawer"], ["PageTemplates", "Templates"], ["PageTemplateNew", "TemplateNew"], ["PageTemplateEditorEmpty", "TemplateEditor · empty (no meals chosen)"], ["PageTemplateEditor", "TemplateEditor"], ["PageTemplateMeal", "TemplateMeal"], ["PageTemplateNutrition", "TemplateNutrition"], ["PageTemplateDay", "TemplateDay"], ["PageTemplateDayAddMeal", "TemplateDay · Add meal drawer"], ["PageForms", "Forms"], ["PageFormOnboarding", "Form editor · Client onboarding"], ["PageFormCheckIn", "Form editor · Weekly check-in"]], DEVICE = false;
   function key(el){ return (el.getAttribute('aria-label') || el.getAttribute('title') || el.textContent || '').replace(/\s+/g,' ').trim(); }
   function target(el){
-    var k = key(el);
-    for (var m in FLOW){ var c = m[0], v = m.slice(1); if (c === '^' ? k.indexOf(v) === 0 : c === '*' ? k.indexOf(v) >= 0 : k === m) return FLOW[m]; }
+    // Exact keys win over ^prefix and *contains keys; a null target marks a label as not clickable.
+    var k = key(el), m;
+    if (Object.prototype.hasOwnProperty.call(FLOW, k)) return FLOW[k];
+    for (m in FLOW){ var c = m[0], v = m.slice(1); if (c === '^' ? k.indexOf(v) === 0 : c === '*' ? k.indexOf(v) >= 0 : false) return FLOW[m]; }
     return null;
   }
   function go(page, theme){ location.href = page + '-' + (theme || THEME) + '.html'; }
   function fit(){
-    // Boards are fixed-size frames; zoom the frame to the window width and paint the page in its colour.
+    // Boards are fixed-size frames. Web: zoom to the window width, page in the board's colour.
+    // Phone: centre the frame, zoomed to fit the window, on a neutral backdrop.
     var board = document.body.firstElementChild;
     if (!board || board.id === 'fu-bar') return;
-    if (!board.dataset.w){ board.dataset.w = board.offsetWidth; document.body.style.background = getComputedStyle(board).backgroundColor; }
-    board.style.zoom = document.documentElement.clientWidth / board.dataset.w;
+    if (!board.dataset.w){
+      board.dataset.w = board.offsetWidth; board.dataset.h = board.offsetHeight;
+      if (DEVICE){
+        document.body.classList.add('fu-device'); if (THEME === 'dark') document.body.classList.add('fu-dark');
+        board.style.borderRadius = '48px'; board.style.boxShadow = '0 30px 80px rgba(0,0,0,.28), 0 0 0 10px #0B0B0C';
+      } else {
+        document.body.style.background = getComputedStyle(board).backgroundColor;
+      }
+    }
+    var root = document.documentElement;
+    board.style.zoom = DEVICE ? Math.min((root.clientHeight - 64) / board.dataset.h, (root.clientWidth - 64) / board.dataset.w)
+                              : root.clientWidth / board.dataset.w;
   }
   window.addEventListener('resize', fit);
   document.addEventListener('DOMContentLoaded', function(){

@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ClientDetail · Form Up prototype</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@200;300;400;500;600;700&amp;family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#141414}a:hover{color:#3A3835}
+</style>
+
+<style>
+html,body{margin:0}
+body{overflow-x:hidden}
+body.fu-device{min-height:100vh;display:flex;align-items:center;justify-content:center;background:#E4E1DC}
+body.fu-device.fu-dark{background:#1C1C1F}
+.fu-hot{cursor:pointer}
+body.fu-show .fu-hot{outline:2px solid rgba(37,99,235,.75);outline-offset:1px}
+#fu-bar{position:fixed;right:16px;bottom:16px;z-index:9999;display:flex;gap:6px;align-items:center;padding:6px;border-radius:14px;background:rgba(20,20,20,.88);color:#fff;font:600 12px system-ui,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.3)}
+#fu-bar a,#fu-bar button,#fu-bar select{height:30px;padding:0 10px;border-radius:9px;border:0;background:rgba(255,255,255,.12);color:#fff;font:inherit;text-decoration:none;display:flex;align-items:center;cursor:pointer}
+#fu-bar .on{background:#fff;color:#141414}
+</style>
+<script>
+(function(){
+  var FLOW = {"Today": "CoachToday", "Clients": "CoachClients", "*Messages": "CoachMessages", "Back": "CoachClients", "Plans": "CoachClientPlans", "Check-ins": "CoachCheckInReview", "Message": "CoachMessages", "^Last check-in": "CoachCheckInReview"}, PAGE = "CoachClientDetail", THEME = "light", PAGES = [["CoachAccountType", "AccountType"], ["CoachRegister", "Register"], ["CoachSetup", "Setup"], ["CoachToday", "Today"], ["CoachNotifications", "Notifications"], ["CoachClients", "Clients"], ["CoachClientsSearch", "ClientsSearch"], ["CoachClientDetail", "ClientDetail"], ["CoachClientPlans", "ClientPlans"], ["CoachCheckInReview", "CheckInReview"], ["CoachFindClients", "FindClients"], ["CoachProspect", "Prospect"], ["CoachJoinRequest", "JoinRequest"], ["CoachInvite", "Invite"], ["CoachMessages", "Messages"], ["CoachBroadcast", "Broadcast"], ["CoachProfile", "Profile"]], DEVICE = true;
+  function key(el){ return (el.getAttribute('aria-label') || el.getAttribute('title') || el.textContent || '').replace(/\s+/g,' ').trim(); }
+  function target(el){
+    // Exact keys win over ^prefix and *contains keys; a null target marks a label as not clickable.
+    var k = key(el), m;
+    if (Object.prototype.hasOwnProperty.call(FLOW, k)) return FLOW[k];
+    for (m in FLOW){ var c = m[0], v = m.slice(1); if (c === '^' ? k.indexOf(v) === 0 : c === '*' ? k.indexOf(v) >= 0 : false) return FLOW[m]; }
+    return null;
+  }
+  function go(page, theme){ location.href = page + '-' + (theme || THEME) + '.html'; }
+  function fit(){
+    // Boards are fixed-size frames. Web: zoom to the window width, page in the board's colour.
+    // Phone: centre the frame, zoomed to fit the window, on a neutral backdrop.
+    var board = document.body.firstElementChild;
+    if (!board || board.id === 'fu-bar') return;
+    if (!board.dataset.w){
+      board.dataset.w = board.offsetWidth; board.dataset.h = board.offsetHeight;
+      if (DEVICE){
+        document.body.classList.add('fu-device'); if (THEME === 'dark') document.body.classList.add('fu-dark');
+        board.style.borderRadius = '48px'; board.style.boxShadow = '0 30px 80px rgba(0,0,0,.28), 0 0 0 10px #0B0B0C';
+      } else {
+        document.body.style.background = getComputedStyle(board).backgroundColor;
+      }
+    }
+    var root = document.documentElement;
+    board.style.zoom = DEVICE ? Math.min((root.clientHeight - 64) / board.dataset.h, (root.clientWidth - 64) / board.dataset.w)
+                              : root.clientWidth / board.dataset.w;
+  }
+  window.addEventListener('resize', fit);
+  document.addEventListener('DOMContentLoaded', function(){
+    fit();
+    document.querySelectorAll('a,button,tr,[role=tab],[role=radio]').forEach(function(el){ if (target(el)) el.classList.add('fu-hot'); });
+    var bar = document.createElement('div'); bar.id = 'fu-bar';
+    var opts = PAGES.map(function(p){ return '<option value="'+p[0]+'"'+(p[0]===PAGE?' selected':'')+'>'+p[1]+'</option>'; }).join('');
+    bar.innerHTML = '<select aria-label="Jump to screen">'+opts+'</select>'
+      + '<button data-t="light" class="'+(THEME==='light'?'on':'')+'">Light</button><button data-t="dark" class="'+(THEME==='dark'?'on':'')+'">Dark</button>'
+      + '<button data-h="1" title="Show clickable areas (H)">Hotspots</button><a href="../index.html">All screens</a>';
+    document.body.appendChild(bar);
+    bar.querySelector('select').addEventListener('change', function(e){ go(e.target.value); });
+    bar.querySelectorAll('[data-t]').forEach(function(b){ b.addEventListener('click', function(){ go(PAGE, b.getAttribute('data-t')); }); });
+    bar.querySelector('[data-h]').addEventListener('click', function(){ document.body.classList.toggle('fu-show'); });
+  });
+  document.addEventListener('keydown', function(e){ if (e.key === 'h' || e.key === 'H') document.body.classList.toggle('fu-show'); });
+  document.addEventListener('click', function(e){
+    if (e.target.closest && e.target.closest('#fu-bar')) return;
+    var el = e.target.closest ? e.target.closest('a,button,tr,[role=tab],[role=radio]') : null;
+    if (!el) return;
+    e.preventDefault();
+    var t = target(el);
+    if (t) go(t); else if (el.tagName !== 'TR' && !document.body.classList.contains('fu-show')) { document.body.classList.add('fu-show'); setTimeout(function(){ document.body.classList.remove('fu-show'); }, 600); }
+  }, true);
+})();
+</script>
+
+</head>
+<body>
+<div style="position: relative; width: 390px; height: 844px; background: #FFFFFF; font-family: 'DM Sans', sans-serif; color: #141414; overflow: hidden">
+<div style="position: absolute; top: 0; left: 0; right: 0; padding-top: 84px; display: flex; flex-direction: column; gap: 12px"><div style="display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 0 20px; text-align: center"><span style="width: 64px; height: 64px; flex-shrink: 0; border-radius: 32px; background: #141414; color: #F6F4F0; font-size: 21px; font-weight: 600; display: flex; align-items: center; justify-content: center">ES</span>
+<h1 style="margin: 0; font-family: 'Outfit', sans-serif; font-size: 30px; line-height: 1.12; font-weight: 600; letter-spacing: -0.015em; font-size: 24px">Eva Svobodová</h1><span style="font-size: 13px; color: #6B6863">34 · Lose fat · client since March</span>
+<span style="display: flex; gap: 6px; padding-top: 2px"><span style="display: inline-flex; align-items: center; gap: 5px; padding: 4px 9px; border-radius: 999px; background: #FFF0E2; color: #B4500C; font-size: 11px; font-weight: 600"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 7v10"></path><path d="M3 9.5v5"></path><path d="M18 7v10"></path><path d="M21 9.5v5"></path><path d="M6 12h12"></path></svg>Training · you</span><span style="display: inline-flex; align-items: center; gap: 5px; padding: 4px 9px; border-radius: 999px; background: #EEF6E3; color: #3F7D2A; font-size: 11px; font-weight: 600"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 19c0-8 5-13 14-14 0 9-5 14-13 14z"></path><path d="M5 19l7-7"></path></svg>Nutrition · Jana K.</span></span></div>
+<div style="padding: 0 16px"><div style="display: flex; padding: 3px; border-radius: 19px; background: rgba(20,20,20,0.05)"><button style="flex-grow: 1; height: 32px; border-radius: 16px; border: none; background: #FFFFFF; box-shadow: 0 1px 3px rgba(0,0,0,0.12); color: #141414; font-weight: 600; font-family: 'DM Sans', sans-serif; font-size: 13px">Overview</button><button style="flex-grow: 1; height: 32px; border-radius: 16px; border: none; background: transparent; color: #6B6863; font-weight: 500; font-family: 'DM Sans', sans-serif; font-size: 13px">Plans</button><button style="flex-grow: 1; height: 32px; border-radius: 16px; border: none; background: transparent; color: #6B6863; font-weight: 500; font-family: 'DM Sans', sans-serif; font-size: 13px">Check-ins</button><button style="flex-grow: 1; height: 32px; border-radius: 16px; border: none; background: transparent; color: #6B6863; font-weight: 500; font-family: 'DM Sans', sans-serif; font-size: 13px">Notes</button></div></div>
+<div style="margin: 0 16px; display: flex; gap: 8px"><button style="flex-grow: 1; height: 56px; border-radius: 16px; background: #FFFFFF; border: 1px solid rgba(20,20,20,0.06); box-shadow: 0 1px 2px rgba(0,0,0,0.04); color: #141414; font: 500 12px 'DM Sans', sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"></path></svg>Message</button><button style="flex-grow: 1; height: 56px; border-radius: 16px; background: #FFFFFF; border: 1px solid rgba(20,20,20,0.06); box-shadow: 0 1px 2px rgba(0,0,0,0.04); color: #141414; font: 500 12px 'DM Sans', sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3.5l1.5-2.5h6L16.5 8H20v11H4z"></path><circle cx="12" cy="13.2" r="3.4"></circle></svg>Ask for photos</button><button style="flex-grow: 1; height: 56px; border-radius: 16px; background: #FFFFFF; border: 1px solid rgba(20,20,20,0.06); box-shadow: 0 1px 2px rgba(0,0,0,0.04); color: #141414; font: 500 12px 'DM Sans', sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="4" width="14" height="16" rx="2"></rect><path d="M9 9h6"></path><path d="M9 13h6"></path><path d="M9 17h3"></path></svg>Add note</button></div>
+<div style="margin: 0 16px; border-radius: 20px; background: #FFFFFF; border: 1px solid rgba(20,20,20,0.06); box-shadow: 0 1px 2px rgba(0,0,0,0.04); padding: 14px 16px; display: flex; align-items: center; gap: 12px"><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 12px; color: #6B6863">Weight</span><span style="font-family: 'Outfit', sans-serif; font-size: 22px; font-weight: 600">72.4 kg</span><span style="font-size: 12px; color: #3F7D2A; font-weight: 600">−3.7 kg since start</span></span><span style="margin-left: auto"><svg width="130" height="40" viewBox="0 0 130 40" aria-hidden="true"><polyline points="0.0,3.0 10.8,5.8 21.7,4.8 32.5,11.3 43.3,14.9 54.2,14.0 65.0,21.4 75.8,25.1 86.7,23.2 97.5,29.6 108.3,32.4 119.2,35.2 130.0,37.0" fill="none" stroke="#141414" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></polyline></svg></span></div>
+<div style="margin: 0 16px; border-radius: 20px; background: #FFFFFF; border: 1px solid rgba(20,20,20,0.06); box-shadow: 0 1px 2px rgba(0,0,0,0.04); padding: 14px 16px; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; font-size: 13px"><span>Training plan · week 6 of 12</span><span style="margin-left: auto; font-weight: 600">17 / 18 sessions</span></div><div style="height: 4px; border-radius: 4px; background: rgba(20,20,20,0.08)"><div style="width: 94%; height: 4px; border-radius: 4px; background: #F28C38"></div></div>
+<div style="display: flex; align-items: center; gap: 6px; padding-top: 4px; font-size: 12px; color: #6B6863"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="2"></rect><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"></path></svg>Nutrition is Jana Kučerová's plan — you see the summary only</div></div>
+<div style="padding: 0 16px"><div style="display: flex; flex-direction: column; gap: 6px"><div style="border-radius: 20px; background: #FFFFFF; border: 1px solid rgba(20,20,20,0.06); box-shadow: 0 1px 2px rgba(0,0,0,0.04); padding: 2px 16px"><a href="#" style="display: flex; align-items: center; gap: 12px; padding: 12px 0;  color: #141414; text-decoration: none"><span style="width: 30px; height: 30px; flex-shrink: 0; border-radius: 15px; background: #FBE7E5; color: #D2342A; display: flex; align-items: center; justify-content: center"><svg width="15.0" height="15.0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="4.5" width="14" height="16.5" rx="2"></rect><path d="M9 4.5h6v3H9z"></path><path d="M9 12h6"></path><path d="M9 16h4"></path></svg></span><span style="display: flex; flex-direction: column; gap: 1px"><span style="font-size: 15px">Last check-in</span></span><span style="margin-left: auto; display: flex; align-items: center; gap: 12px; gap: 6px"><span style="font-size: 14px; color: #6B6863">Sun 27 Sep · reviewed</span><span style="display: flex; color: #6B6863"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></span></span></a><a href="#" style="display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid rgba(20,20,20,0.08); color: #141414; text-decoration: none"><span style="width: 30px; height: 30px; flex-shrink: 0; border-radius: 15px; background: rgba(20,20,20,0.05); color: #3A3835; display: flex; align-items: center; justify-content: center"><svg width="15.0" height="15.0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2"></rect><circle cx="9" cy="10" r="1.6"></circle><path d="M20.5 16l-5-5-9 8.5"></path></svg></span><span style="display: flex; flex-direction: column; gap: 1px"><span style="font-size: 15px">Progress photos</span></span><span style="margin-left: auto; display: flex; align-items: center; gap: 12px; gap: 6px"><span style="font-size: 14px; color: #6B6863">14 · shared</span><span style="display: flex; color: #6B6863"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></span></span></a></div></div></div></div><div style="position: absolute; top: 30px; left: 16px; right: 16px; height: 40px; display: flex; align-items: center; gap: 10px"><div style="width: 64px; display: flex"><button aria-label="Back" style="position: relative; width: 40px; height: 40px; border-radius: 20px; background: rgba(255,255,255,0.58); -webkit-backdrop-filter: blur(22px) saturate(180%); backdrop-filter: blur(22px) saturate(180%); border: 1px solid rgba(255,255,255,0.85); box-shadow: 0 10px 30px rgba(0,0,0,0.14), 0 1px 3px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.9); color: #141414; display: flex; align-items: center; justify-content: center; padding: 0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg></button></div><div style="flex-grow: 1; display: flex; justify-content: center"></div><div style="width: 64px; display: flex; justify-content: flex-end"><button aria-label="More" style="position: relative; width: 40px; height: 40px; border-radius: 20px; background: rgba(255,255,255,0.58); -webkit-backdrop-filter: blur(22px) saturate(180%); backdrop-filter: blur(22px) saturate(180%); border: 1px solid rgba(255,255,255,0.85); box-shadow: 0 10px 30px rgba(0,0,0,0.14), 0 1px 3px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.9); color: #141414; display: flex; align-items: center; justify-content: center; padding: 0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5.5" cy="12" r="1.2"></circle><circle cx="12" cy="12" r="1.2"></circle><circle cx="18.5" cy="12" r="1.2"></circle></svg></button></div></div><div style="position: absolute; left: 0; right: 0; bottom: 0; height: 130px; background: linear-gradient(180deg, transparent, #FFFFFF 55%)"></div>
+</div>
+</body>
+</html>

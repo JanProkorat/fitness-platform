@@ -100,8 +100,8 @@ says otherwise for that task.
 - **Who can read what.** The canvas is a private claude.ai artifact: only the
   main thread can open it (`Artifact` tool, `action: "read"`). Subagents read
   the repo snapshot `docs/prototypes/formup-redesign/` instead (gallery
-  `index.html`, one HTML + PNG per board, clickable web prototype in
-  `interactive/`).
+  `index.html`, one HTML + PNG per board, clickable prototypes in
+  `interactive/` (web), `interactive-client/` and `interactive-coach/`).
 - **Matching a screen to a board.** Boards are named after the screen:
   `source/project/Page<Screen>{C,D}.dc.html` for the web portal (`C` light,
   `D` dark), `Glass<Screen>{Light,Dark}` for the client app,

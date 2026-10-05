@@ -1,13 +1,13 @@
-"""Build the clickable web-portal prototype from the canvas boards.
+"""Build the clickable prototypes from the canvas boards.
 
 Usage: python3 export_interactive.py <out_dir>
-Writes <out_dir>/interactive/: one HTML per web board and theme, wired with a click map,
-a light/dark switch and a screen picker. Press H in the browser to show the hotspots.
+Writes <out_dir>/interactive/ (web portal), interactive-client/ and interactive-coach/ (mobile apps):
+one HTML per board and theme, wired with a click map, a light/dark switch and a screen picker.
+Press H in the browser to show the hotspots.
 """
 import html, json, os, re, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-OUT = os.path.join(sys.argv[1], "interactive")
 canvas = json.load(open(os.path.join(HERE, "project", "canvas.json")))
 
 # Navigation shared by every page with the sidebar or the collapsed rail.
@@ -60,10 +60,111 @@ FLOWS = {
 for tab in ("PageRecipeDrawerIngredients", "PageRecipeDrawerPreparation", "PageRecipeDrawerPictures"):
     FLOWS[tab] = dict(FLOWS["PageRecipeDrawer"], Details="PageRecipeDrawer")
 
+
+def prefixed(prefix, flows):
+    """Write mobile maps with short board names; this adds the Glass/Coach prefix to pages and targets."""
+    return {prefix + page: {k: (prefix + t if t else None) for k, t in fl.items()} for page, fl in flows.items()}
+
+
+# Client app (Glass boards). The tab bar badge renders as "1Messages", hence the * key.
+CLIENT_NAV = {"Today": "GlassToday", "Training": "GlassTrainingWeek", "Nutrition": "GlassNutrition", "*Messages": "GlassMessagesList"}
+_today = {"Notifications": "Notifications", "Profile": "Profile", "Add measurement": "Measurements", "Take progress photo": "Photos",
+          "Fill in check-in": "CheckIn", "^Lower body A": "SessionDetail", "Start Lower body A": "Workout", "Mobility flow": "SessionDetail",
+          "^2 meals eaten": "Nutrition", "^Chicken rice bowl": "MealDetail", "^Salmon, potatoes": "MealDetail"}
+_no_coach = {"Today": "TodayNoCoach", "Training": "TrainingEmpty", "Nutrition": "NutritionEmpty"}
+_open_ing = {"^Open ": "IngredientDetail", "^How to make it": "CookingSteps"}
+CLIENT_FLOWS = prefixed("Glass", {
+    "Login": {"Sign in": "Today", "Apple": "Today", "Google": "Today", "Create account": "Register"},
+    "Register": {"Back": "Login", "Sign in": "Login", "Create account": "OnboardingGoal"},
+    "OnboardingGoal": {"Back": "Register", "Skip": "TodayNoCoach", "Continue": "OnboardingBasics"},
+    "OnboardingBasics": {"Back": "OnboardingGoal", "Skip": "TodayNoCoach", "Continue": "TodayNoCoach"},
+    "TodayNoCoach": dict(_no_coach, **{"Notifications": "Notifications", "^Find a trainer": "CoachSearch", "^Find a nutritionist": "CoachSearch",
+                                       "^Finish your profile": "OnboardingGoal", "Accept": "Today"}),
+    "TrainingEmpty": dict(_no_coach, **{"Find a trainer": "CoachSearch"}),
+    "NutritionEmpty": dict(_no_coach, **{"Find a nutritionist": "CoachSearch"}),
+    "CoachSearch": {"Back": "TodayNoCoach", "^MK ": "CoachProfile", "^TD ": "CoachProfile", "^PV ": "CoachProfile", "^LH ": "CoachProfile"},
+    "CoachProfile": {"Back": "CoachSearch", "Send request": "RequestSheet"},
+    "RequestSheet": {"Send request": "TodayNoCoach"},
+    "Today": _today,
+    "TodayV1": dict(_today, **{"^Weekly check-in": "CheckIn"}),
+    "Notifications": dict(_today, **{"Notifications": "Today", "Mark all read": "Today", "Take photos": "Photos"}),
+    "TrainingWeek": {"Full plan": "TrainingPlan", "Workouts": "WorkoutsPlan", "^Mon": "SessionDetail", "^Wed": "SessionDetail",
+                     "^Today": "SessionDetail", "^Sat": "SessionMixed", "Exercise library": "WorkoutsAll"},
+    "SessionDetail": {"Back": "TrainingWeek", "Start workout": "Workout", "^1. ": "ExerciseDetail", "^2. ": "ExerciseDetail", "^3. ": "ExerciseDetail",
+                      "^4. ": "ExerciseDetail", "^5. ": "ExerciseDetail", "^6. ": "ExerciseDetail"},
+    "SessionMixed": {"Back": "TrainingWeek", "Start workout": "Workout"},
+    "Workout": {"Back": "SessionDetail", "Log set 3": "DoneStrength"},
+    "DoneStrength": {"Start AMRAP": "Amrap"},
+    "Amrap": {"Round done": "DoneAmrap", "End workout": "DoneAmrap"},
+    "DoneAmrap": {"Start Tabata": "Tabata"},
+    "Tabata": {"Skip interval": "DoneTabata", "End workout": "DoneTabata"},
+    "DoneTabata": {"See session summary": "SessionSummary"},
+    "Emom": {"Done": "SessionSummary", "End workout": "SessionSummary"},
+    "ForTime": {"^Finish": "SessionSummary", "End workout": "SessionSummary"},
+    "SessionSummary": {"Finish": "Today"},
+    "Nutrition": {"Full plan": "NutritionPlan", "Recipes": "RecipesPlan", "Shopping list": "ShoppingList"},
+    "MealDetail": dict(_open_ing, **{"Back": "Nutrition", "Log meal": "Nutrition", "Swap meal": "RecipesPlan"}),
+    "ShoppingList": {"Back": "Nutrition"},
+    "MessagesList": {"New message": "Chat", "^MKMartin": "Chat", "^JKJana": "Chat", "^PVPetra": "Chat"},
+    "Chat": {"Back": "MessagesList", "Coach details": "CoachProfile", "^New week published": "TrainingPlan"},
+    "Profile": {"Back": "Today", "My journey": "MyJourney", "^Body measurements": "Measurements", "^Progress photos": "Photos",
+                "^Check-in history": "CheckIn", "Settings": "Settings", "^MKMartin": "Chat", "^JKJana": "Chat"},
+    "MyJourney": {"Back": "Profile", "Photos": "Photos", "^Strength block": "PlanSummary", "^Cut — phase 2": "NutritionPlan"},
+    "PlanSummary": {"Back": "MyJourney", "^All sessions": "TrainingPlan"},
+    "Measurements": {"Back": "Profile"},
+    "CheckIn": {"Back": "Today", "Close": "Today", "Send to Martin": "Today"},
+    "Settings": {"Back": "Profile", "Log out": "Login", "Messages": None},
+    "TrainingPlan": {"Back": "TrainingWeek", "^Weeks 1": "TrainingWeekDetail", "^Week 5": "TrainingWeekDetail",
+                     "^Week 6": "TrainingWeekDetail", "^Week 7": "TrainingWeekDetail"},
+    "TrainingWeekDetail": {"Back": "TrainingPlan", "^Upper body A": "SessionDetail", "^Lower body A": "SessionDetail",
+                           "^Mobility flow": "SessionDetail", "^Easy run": "SessionDetail", "^Full body C": "SessionMixed"},
+    "NutritionPlan": {"Back": "Nutrition", "^Weeks 1": "NutritionWeekDetail", "^Week 7": "NutritionWeekDetail", "^Week 8": "NutritionWeekDetail",
+                      "^Week 9": "NutritionWeekDetail", "^Shopping list": "ShoppingList"},
+    "NutritionWeekDetail": {"Back": "NutritionPlan", "^Shopping list": "ShoppingList", "^Thu 1": "Nutrition"},
+    "RecipesPlan": {"Back": "Nutrition", "All plans": "RecipesAll", "*kcal": "RecipeDetail"},
+    "RecipesAll": {"Back": "Nutrition", "This plan": "RecipesPlan", "*kcal": "RecipeDetail"},
+    "RecipeDetail": dict(_open_ing, Back="RecipesPlan"),
+    "CookingSteps": {"Back to recipe": "RecipeDetail", "^Done": "RecipeDetail"},
+    "IngredientDetail": {"Back to recipe": "RecipeDetail"},
+    "WorkoutsPlan": {"Back": "TrainingWeek", "All plans": "WorkoutsAll", "*exercise": "WorkoutDetail"},
+    "WorkoutsAll": {"Back": "TrainingWeek", "This plan": "WorkoutsPlan", "*exercise": "WorkoutDetail"},
+    "WorkoutDetail": {"Back": "WorkoutsPlan", "^Open ": "ExerciseDetail", "^In your plan": "SessionMixed"},
+    "ExerciseDetail": {"Back to workout": "WorkoutDetail"},
+})
+
+# Coach app (Coach boards).
+COACH_NAV = {"Today": "CoachToday", "Clients": "CoachClients", "*Messages": "CoachMessages"}
+_coach_today = {"Notifications": "Notifications", "Profile": "Profile", "Invite client": "Invite", "^Eva Svobodová": "CheckInReview",
+                "^Tomáš Dvořák": "ClientDetail", "^Lucie Horáková": "JoinRequest", "Accept": "Clients", "^Petr Novotný": "ClientDetail",
+                "^Kateřina Veselá": "ClientPlans", "+ 2 more": "Clients"}
+_roster = {n: "ClientDetail" for n in ("^Eva Svobodová", "^Tomáš Dvořák", "^Kateřina Veselá", "^Petr Novotný", "^Jana Kučerová", "^Ondřej Marek")}
+COACH_FLOWS = prefixed("Coach", {
+    "AccountType": {"Continue": "Register", "^I'm a coach": "Register", "Sign in": "Today"},
+    "Register": {"Back": "AccountType", "Create account": "Setup"},
+    "Setup": {"Back": "Register", "Later": "Today", "Finish": "Today"},
+    "Today": _coach_today,
+    "Notifications": dict(_coach_today, **{"Notifications": "Today", "Mark all read": "Today", "Review": "CheckInReview"}),
+    "Clients": dict(_roster, **{"Find clients": "FindClients", "Invite client": "Invite", "Search": "ClientsSearch"}),
+    "ClientsSearch": {"Close search": "Clients", "^Eva Svobodová": "ClientDetail", "^Evžen Kos": "ClientDetail"},
+    "FindClients": {"My clients": "Clients", "Invite client": "Invite", "Search": "ClientsSearch",
+                    "^LH ": "Prospect", "^MS ": "Prospect", "^BN ": "Prospect", "^DK ": "Prospect"},
+    "Invite": {"Send invitation": "Clients", "Share invite link": "Clients"},
+    "Prospect": {"Back": "FindClients", "Send coaching offer": "FindClients"},
+    "JoinRequest": {"Back": "Today", "Decline": "Today", "Accept": "Clients"},
+    "ClientDetail": {"Back": "Clients", "Plans": "ClientPlans", "Check-ins": "CheckInReview", "Message": "Messages", "^Last check-in": "CheckInReview"},
+    "ClientPlans": {"Back": "Clients", "Overview": "ClientDetail", "Check-ins": "CheckInReview"},
+    "CheckInReview": {"Back": "ClientDetail", "Mark reviewed & reply": "ClientDetail"},
+    "Messages": {"Broadcast": "Broadcast"},
+    "Broadcast": {"Close": "Messages", "Send to 5 clients": "Messages"},
+    "Profile": {"Back": "Today"},
+})
+
 RUNTIME = r"""
 <style>
 html,body{margin:0}
 body{overflow-x:hidden}
+body.fu-device{min-height:100vh;display:flex;align-items:center;justify-content:center;background:#E4E1DC}
+body.fu-device.fu-dark{background:#1C1C1F}
 .fu-hot{cursor:pointer}
 body.fu-show .fu-hot{outline:2px solid rgba(37,99,235,.75);outline-offset:1px}
 #fu-bar{position:fixed;right:16px;bottom:16px;z-index:9999;display:flex;gap:6px;align-items:center;padding:6px;border-radius:14px;background:rgba(20,20,20,.88);color:#fff;font:600 12px system-ui,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.3)}
@@ -72,20 +173,33 @@ body.fu-show .fu-hot{outline:2px solid rgba(37,99,235,.75);outline-offset:1px}
 </style>
 <script>
 (function(){
-  var FLOW = __FLOW__, PAGE = __PAGE__, THEME = __THEME__, PAGES = __PAGES__;
+  var FLOW = __FLOW__, PAGE = __PAGE__, THEME = __THEME__, PAGES = __PAGES__, DEVICE = __DEVICE__;
   function key(el){ return (el.getAttribute('aria-label') || el.getAttribute('title') || el.textContent || '').replace(/\s+/g,' ').trim(); }
   function target(el){
-    var k = key(el);
-    for (var m in FLOW){ var c = m[0], v = m.slice(1); if (c === '^' ? k.indexOf(v) === 0 : c === '*' ? k.indexOf(v) >= 0 : k === m) return FLOW[m]; }
+    // Exact keys win over ^prefix and *contains keys; a null target marks a label as not clickable.
+    var k = key(el), m;
+    if (Object.prototype.hasOwnProperty.call(FLOW, k)) return FLOW[k];
+    for (m in FLOW){ var c = m[0], v = m.slice(1); if (c === '^' ? k.indexOf(v) === 0 : c === '*' ? k.indexOf(v) >= 0 : false) return FLOW[m]; }
     return null;
   }
   function go(page, theme){ location.href = page + '-' + (theme || THEME) + '.html'; }
   function fit(){
-    // Boards are fixed-size frames; zoom the frame to the window width and paint the page in its colour.
+    // Boards are fixed-size frames. Web: zoom to the window width, page in the board's colour.
+    // Phone: centre the frame, zoomed to fit the window, on a neutral backdrop.
     var board = document.body.firstElementChild;
     if (!board || board.id === 'fu-bar') return;
-    if (!board.dataset.w){ board.dataset.w = board.offsetWidth; document.body.style.background = getComputedStyle(board).backgroundColor; }
-    board.style.zoom = document.documentElement.clientWidth / board.dataset.w;
+    if (!board.dataset.w){
+      board.dataset.w = board.offsetWidth; board.dataset.h = board.offsetHeight;
+      if (DEVICE){
+        document.body.classList.add('fu-device'); if (THEME === 'dark') document.body.classList.add('fu-dark');
+        board.style.borderRadius = '48px'; board.style.boxShadow = '0 30px 80px rgba(0,0,0,.28), 0 0 0 10px #0B0B0C';
+      } else {
+        document.body.style.background = getComputedStyle(board).backgroundColor;
+      }
+    }
+    var root = document.documentElement;
+    board.style.zoom = DEVICE ? Math.min((root.clientHeight - 64) / board.dataset.h, (root.clientWidth - 64) / board.dataset.w)
+                              : root.clientWidth / board.dataset.w;
   }
   window.addEventListener('resize', fit);
   document.addEventListener('DOMContentLoaded', function(){
@@ -115,35 +229,43 @@ body.fu-show .fu-hot{outline:2px solid rgba(37,99,235,.75);outline-offset:1px}
 """
 
 
-def page_name(key):
-    return re.sub(r"[CD]\.dc\.html$", "", key)
+# Output folder -> canvas pages (light, dark), board-name suffix pattern, shared nav, per-page maps, start page, phone frame.
+ZONES = [
+    ("interactive", ("web",), r"[CD]\.dc\.html$", NAV, FLOWS, "PageHome", False),
+    ("interactive-client", ("glass", "glassdark"), r"(Light|Dark)\.dc\.html$", CLIENT_NAV, CLIENT_FLOWS, "GlassLogin", True),
+    ("interactive-coach", ("coach", "coachdark"), r"(Light|Dark)\.dc\.html$", COACH_NAV, COACH_FLOWS, "CoachAccountType", True),
+]
 
 
-boards = sorted(((k, b) for k, b in canvas["boards"].items() if b.get("page") == "web"), key=lambda kb: (kb[1]["y"], kb[1]["x"]))
-names = []
-for k, b in boards:
-    n = page_name(k)
-    if n not in [x[0] for x in names]:
-        names.append((n, re.sub(r"^[CD] · ", "", b.get("title", n))))
+def build(folder, pages, suffix, nav, flows, start, device):
+    out = os.path.join(sys.argv[1], folder)
+    boards = sorted(((k, b) for k, b in canvas["boards"].items() if b.get("page") in pages), key=lambda kb: (kb[1]["y"], kb[1]["x"]))
+    names = []
+    for k, b in boards:
+        n = re.sub(suffix, "", k)
+        if n not in [x[0] for x in names]:
+            names.append((n, re.sub(r"^[CD] · ", "", b.get("title", n))))
+    os.makedirs(out, exist_ok=True)
+    for k, b in boards:
+        name, theme = re.sub(suffix, "", k), ("dark" if re.search(r"(D|Dark)\.dc\.html$", k) else "light")
+        src = open(os.path.join(HERE, "project", k)).read()
+        helmet = re.search(r"<helmet>(.*?)</helmet>", src, re.S).group(1).strip()
+        body = re.search(r"</helmet>(.*?)</x-dc>", src, re.S).group(1).strip()
+        flow = dict(nav, **flows.get(name, {}))
+        runtime = (RUNTIME.replace("__FLOW__", json.dumps(flow, ensure_ascii=False)).replace("__PAGE__", json.dumps(name))
+                   .replace("__THEME__", json.dumps(theme)).replace("__PAGES__", json.dumps(names, ensure_ascii=False))
+                   .replace("__DEVICE__", json.dumps(device)))
+        title = re.sub(r"^[CD] · ", "", b.get("title", name))
+        with open(os.path.join(out, f"{name}-{theme}.html"), "w") as f:
+            f.write(f'<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n'
+                    f'<title>{html.escape(title)} · Form Up prototype</title>\n{helmet}\n{runtime}\n</head>\n<body>\n{body}\n</body>\n</html>\n')
+    with open(os.path.join(out, "index.html"), "w") as f:
+        f.write(f'<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Form Up prototype</title>'
+                f'<meta http-equiv="refresh" content="0; url={start}-light.html"></head><body><a href="{start}-light.html">Open the prototype</a></body></html>\n')
+    known = {n for n, _ in names}
+    missing = sorted({t for fl in list(flows.values()) + [nav] for t in fl.values() if t} - known)
+    print(f"{folder}: {len(boards)} screens; unknown targets: {missing}")
 
-os.makedirs(OUT, exist_ok=True)
-count = 0
-for k, b in boards:
-    name, theme = page_name(k), ("dark" if k.endswith("D.dc.html") else "light")
-    src = open(os.path.join(HERE, "project", k)).read()
-    helmet = re.search(r"<helmet>(.*?)</helmet>", src, re.S).group(1).strip()
-    body = re.search(r"</helmet>(.*?)</x-dc>", src, re.S).group(1).strip()
-    flow = dict(NAV, **FLOWS.get(name, {}))
-    runtime = (RUNTIME.replace("__FLOW__", json.dumps(flow, ensure_ascii=False)).replace("__PAGE__", json.dumps(name))
-               .replace("__THEME__", json.dumps(theme)).replace("__PAGES__", json.dumps(names, ensure_ascii=False)))
-    title = re.sub(r"^[CD] · ", "", b.get("title", name))
-    with open(os.path.join(OUT, f"{name}-{theme}.html"), "w") as f:
-        f.write(f'<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n'
-                f'<title>{html.escape(title)} · Form Up prototype</title>\n{helmet}\n{runtime}\n</head>\n<body>\n{body}\n</body>\n</html>\n')
-    count += 1
 
-with open(os.path.join(OUT, "index.html"), "w") as f:
-    f.write('<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Form Up prototype</title>'
-            '<meta http-equiv="refresh" content="0; url=PageHome-light.html"></head><body><a href="PageHome-light.html">Open the prototype</a></body></html>\n')
-missing = sorted({t for fl in FLOWS.values() for t in fl.values()} - {n for n, _ in names})
-print(count, "interactive screens; unknown targets:", missing)
+for zone in ZONES:
+    build(*zone)

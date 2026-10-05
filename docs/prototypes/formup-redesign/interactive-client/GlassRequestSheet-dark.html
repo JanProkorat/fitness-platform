@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RequestSheet · Form Up prototype</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@200;300;400;500;600;700&amp;family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#F5F5F7}a:hover{color:#D1D1D6}
+</style>
+
+<style>
+html,body{margin:0}
+body{overflow-x:hidden}
+body.fu-device{min-height:100vh;display:flex;align-items:center;justify-content:center;background:#E4E1DC}
+body.fu-device.fu-dark{background:#1C1C1F}
+.fu-hot{cursor:pointer}
+body.fu-show .fu-hot{outline:2px solid rgba(37,99,235,.75);outline-offset:1px}
+#fu-bar{position:fixed;right:16px;bottom:16px;z-index:9999;display:flex;gap:6px;align-items:center;padding:6px;border-radius:14px;background:rgba(20,20,20,.88);color:#fff;font:600 12px system-ui,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.3)}
+#fu-bar a,#fu-bar button,#fu-bar select{height:30px;padding:0 10px;border-radius:9px;border:0;background:rgba(255,255,255,.12);color:#fff;font:inherit;text-decoration:none;display:flex;align-items:center;cursor:pointer}
+#fu-bar .on{background:#fff;color:#141414}
+</style>
+<script>
+(function(){
+  var FLOW = {"Today": "GlassToday", "Training": "GlassTrainingWeek", "Nutrition": "GlassNutrition", "*Messages": "GlassMessagesList", "Send request": "GlassTodayNoCoach"}, PAGE = "GlassRequestSheet", THEME = "dark", PAGES = [["GlassLogin", "Login"], ["GlassRegister", "Register"], ["GlassOnboardingGoal", "OnboardingGoal"], ["GlassOnboardingBasics", "OnboardingBasics"], ["GlassTodayNoCoach", "TodayNoCoach"], ["GlassCoachSearch", "CoachSearch"], ["GlassCoachProfile", "CoachProfile"], ["GlassRequestSheet", "RequestSheet"], ["GlassToday", "Today"], ["GlassTodayV1", "Today · v1 (check-in only)"], ["GlassNotifications", "Notifications"], ["GlassTrainingWeek", "TrainingWeek"], ["GlassTrainingEmpty", "TrainingEmpty"], ["GlassSessionDetail", "SessionDetail"], ["GlassWorkout", "Workout"], ["GlassSessionMixed", "SessionMixed"], ["GlassAmrap", "Amrap"], ["GlassEmom", "Emom"], ["GlassTabata", "Tabata"], ["GlassForTime", "ForTime"], ["GlassDoneStrength", "DoneStrength"], ["GlassDoneAmrap", "DoneAmrap"], ["GlassDoneTabata", "DoneTabata"], ["GlassSessionSummary", "SessionSummary"], ["GlassNutrition", "Nutrition"], ["GlassNutritionEmpty", "NutritionEmpty"], ["GlassMealDetail", "MealDetail"], ["GlassShoppingList", "ShoppingList"], ["GlassMessagesList", "MessagesList"], ["GlassChat", "Chat"], ["GlassProfile", "Profile"], ["GlassMyJourney", "MyJourney"], ["GlassPlanSummary", "PlanSummary"], ["GlassMeasurements", "Measurements"], ["GlassPhotos", "Photos"], ["GlassCheckIn", "CheckIn"], ["GlassSettings", "Settings"], ["GlassTrainingPlan", "TrainingPlan"], ["GlassTrainingWeekDetail", "TrainingWeekDetail"], ["GlassNutritionPlan", "NutritionPlan"], ["GlassNutritionWeekDetail", "NutritionWeekDetail"], ["GlassRecipesPlan", "RecipesPlan"], ["GlassRecipesAll", "RecipesAll"], ["GlassRecipeDetail", "RecipeDetail"], ["GlassCookingSteps", "CookingSteps"], ["GlassIngredientDetail", "IngredientDetail"], ["GlassWorkoutsPlan", "WorkoutsPlan"], ["GlassWorkoutsAll", "WorkoutsAll"], ["GlassWorkoutDetail", "WorkoutDetail"], ["GlassExerciseDetail", "ExerciseDetail"]], DEVICE = true;
+  function key(el){ return (el.getAttribute('aria-label') || el.getAttribute('title') || el.textContent || '').replace(/\s+/g,' ').trim(); }
+  function target(el){
+    // Exact keys win over ^prefix and *contains keys; a null target marks a label as not clickable.
+    var k = key(el), m;
+    if (Object.prototype.hasOwnProperty.call(FLOW, k)) return FLOW[k];
+    for (m in FLOW){ var c = m[0], v = m.slice(1); if (c === '^' ? k.indexOf(v) === 0 : c === '*' ? k.indexOf(v) >= 0 : false) return FLOW[m]; }
+    return null;
+  }
+  function go(page, theme){ location.href = page + '-' + (theme || THEME) + '.html'; }
+  function fit(){
+    // Boards are fixed-size frames. Web: zoom to the window width, page in the board's colour.
+    // Phone: centre the frame, zoomed to fit the window, on a neutral backdrop.
+    var board = document.body.firstElementChild;
+    if (!board || board.id === 'fu-bar') return;
+    if (!board.dataset.w){
+      board.dataset.w = board.offsetWidth; board.dataset.h = board.offsetHeight;
+      if (DEVICE){
+        document.body.classList.add('fu-device'); if (THEME === 'dark') document.body.classList.add('fu-dark');
+        board.style.borderRadius = '48px'; board.style.boxShadow = '0 30px 80px rgba(0,0,0,.28), 0 0 0 10px #0B0B0C';
+      } else {
+        document.body.style.background = getComputedStyle(board).backgroundColor;
+      }
+    }
+    var root = document.documentElement;
+    board.style.zoom = DEVICE ? Math.min((root.clientHeight - 64) / board.dataset.h, (root.clientWidth - 64) / board.dataset.w)
+                              : root.clientWidth / board.dataset.w;
+  }
+  window.addEventListener('resize', fit);
+  document.addEventListener('DOMContentLoaded', function(){
+    fit();
+    document.querySelectorAll('a,button,tr,[role=tab],[role=radio]').forEach(function(el){ if (target(el)) el.classList.add('fu-hot'); });
+    var bar = document.createElement('div'); bar.id = 'fu-bar';
+    var opts = PAGES.map(function(p){ return '<option value="'+p[0]+'"'+(p[0]===PAGE?' selected':'')+'>'+p[1]+'</option>'; }).join('');
+    bar.innerHTML = '<select aria-label="Jump to screen">'+opts+'</select>'
+      + '<button data-t="light" class="'+(THEME==='light'?'on':'')+'">Light</button><button data-t="dark" class="'+(THEME==='dark'?'on':'')+'">Dark</button>'
+      + '<button data-h="1" title="Show clickable areas (H)">Hotspots</button><a href="../index.html">All screens</a>';
+    document.body.appendChild(bar);
+    bar.querySelector('select').addEventListener('change', function(e){ go(e.target.value); });
+    bar.querySelectorAll('[data-t]').forEach(function(b){ b.addEventListener('click', function(){ go(PAGE, b.getAttribute('data-t')); }); });
+    bar.querySelector('[data-h]').addEventListener('click', function(){ document.body.classList.toggle('fu-show'); });
+  });
+  document.addEventListener('keydown', function(e){ if (e.key === 'h' || e.key === 'H') document.body.classList.toggle('fu-show'); });
+  document.addEventListener('click', function(e){
+    if (e.target.closest && e.target.closest('#fu-bar')) return;
+    var el = e.target.closest ? e.target.closest('a,button,tr,[role=tab],[role=radio]') : null;
+    if (!el) return;
+    e.preventDefault();
+    var t = target(el);
+    if (t) go(t); else if (el.tagName !== 'TR' && !document.body.classList.contains('fu-show')) { document.body.classList.add('fu-show'); setTimeout(function(){ document.body.classList.remove('fu-show'); }, 600); }
+  }, true);
+})();
+</script>
+
+</head>
+<body>
+<div style="position: relative; width: 390px; height: 844px; background: #0B0B0C; font-family: 'DM Sans', sans-serif; color: #F5F5F7; overflow: hidden">
+<div style="position: absolute; top: 0; left: 0; right: 0; height: 250px; background: linear-gradient(160deg, #3A3A3E, #1B1B1D); display: flex; align-items: flex-end; padding: 0 20px 18px; box-sizing: border-box; color: #F6F4F0; font-size: 12px; letter-spacing: 0.08em">[COACH PHOTO]</div>
+<div style="position: absolute; top: 226px; left: 0; right: 0; bottom: 0; border-radius: 24px 24px 0 0; background: #0B0B0C; padding: 22px 20px 0; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; flex-direction: column; gap: 6px"><span style="display: flex; align-items: center; gap: 12px; gap: 8px"><h1 style="margin: 0; font-family: 'Outfit', sans-serif; font-size: 30px; line-height: 1.12; font-weight: 600; letter-spacing: -0.015em; font-size: 28px">Martin Král</h1><span style="padding: 3px 8px; border-radius: 999px; background: #3A2414; color: #F7A863; font-size: 11px; font-weight: 600">Trainer</span></span><span style="display: flex; align-items: center; gap: 12px; gap: 5px; font-size: 13px; color: #98989F"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0 1 13 0c0 5-6.5 11-6.5 11z"></path><circle cx="12" cy="10" r="2.3"></circle></svg>Prague · also online<span style="margin-left: 8px; display: flex; align-items: center; gap: 12px; gap: 5px; color: #A9D673"><span style="width: 6px; height: 6px; border-radius: 3px; background: #8CC152"></span>Taking clients</span></span></div>
+<p style="margin: 0; font-size: 15px; line-height: 1.55; color: #D1D1D6">[Coach's own bio — written by the coach in their profile. Two or three sentences about how they work.]</p>
+<div style="display: flex; flex-wrap: wrap; gap: 6px"><button style="height: 32px; padding: 0 12px; border-radius: 16px; background: transparent; color: #D1D1D6; border: 1px solid rgba(255,255,255,0.08); font: 500 13px 'DM Sans', sans-serif; white-space: nowrap">Strength</button><button style="height: 32px; padding: 0 12px; border-radius: 16px; background: transparent; color: #D1D1D6; border: 1px solid rgba(255,255,255,0.08); font: 500 13px 'DM Sans', sans-serif; white-space: nowrap">Fat loss</button><button style="height: 32px; padding: 0 12px; border-radius: 16px; background: transparent; color: #D1D1D6; border: 1px solid rgba(255,255,255,0.08); font: 500 13px 'DM Sans', sans-serif; white-space: nowrap">Beginners</button></div>
+<div style="display: flex; flex-direction: column; gap: 6px"><span style="padding: 0 4px; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; color: #98989F">WORKING WITH MARTIN</span><div style="border-radius: 20px; background: #1C1C1E; border: 1px solid rgba(255,255,255,0.05); box-shadow: none; padding: 2px 16px"><a href="#" style="display: flex; align-items: center; gap: 12px; padding: 12px 0;  color: #F5F5F7; text-decoration: none"><span style="width: 30px; height: 30px; flex-shrink: 0; border-radius: 15px; background: #3A2414; color: #F7A863; display: flex; align-items: center; justify-content: center"><svg width="15.0" height="15.0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 7v10"></path><path d="M3 9.5v5"></path><path d="M18 7v10"></path><path d="M21 9.5v5"></path><path d="M6 12h12"></path></svg></span><span style="display: flex; flex-direction: column; gap: 1px"><span style="font-size: 15px">Personal training plan</span></span><span style="margin-left: auto; display: flex; align-items: center; gap: 12px; gap: 6px"></span></a><a href="#" style="display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid rgba(255,255,255,0.08); color: #F5F5F7; text-decoration: none"><span style="width: 30px; height: 30px; flex-shrink: 0; border-radius: 15px; background: #3A1A17; color: #D2342A; display: flex; align-items: center; justify-content: center"><svg width="15.0" height="15.0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="4.5" width="14" height="16.5" rx="2"></rect><path d="M9 4.5h6v3H9z"></path><path d="M9 12h6"></path><path d="M9 16h4"></path></svg></span><span style="display: flex; flex-direction: column; gap: 1px"><span style="font-size: 15px">Weekly check-ins</span></span><span style="margin-left: auto; display: flex; align-items: center; gap: 12px; gap: 6px"></span></a><a href="#" style="display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid rgba(255,255,255,0.08); color: #F5F5F7; text-decoration: none"><span style="width: 30px; height: 30px; flex-shrink: 0; border-radius: 15px; background: rgba(255,255,255,0.06); color: #D1D1D6; display: flex; align-items: center; justify-content: center"><svg width="15.0" height="15.0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"></path></svg></span><span style="display: flex; flex-direction: column; gap: 1px"><span style="font-size: 15px">Chat with your coach</span></span><span style="margin-left: auto; display: flex; align-items: center; gap: 12px; gap: 6px"></span></a></div></div>
+</div><div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4)"></div>
+<div role="dialog" aria-label="Send request" style="position: absolute; left: 8px; right: 8px; bottom: 8px; border-radius: 34px; background: rgba(44,44,48,0.52); -webkit-backdrop-filter: blur(22px) saturate(180%); backdrop-filter: blur(22px) saturate(180%); border: 1px solid rgba(255,255,255,0.14); box-shadow: 0 10px 30px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.14); background: #1C1C1E; padding: 10px 20px 22px; display: flex; flex-direction: column; gap: 14px">
+<span style="align-self: center; width: 36px; height: 5px; border-radius: 3px; background: rgba(255,255,255,0.08)"></span>
+<div style="display: flex; align-items: center; gap: 12px"><span style="width: 40px; height: 40px; flex-shrink: 0; border-radius: 20px; background: #141414; color: #F6F4F0; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center">MK</span><div style="display: flex; flex-direction: column; gap: 2px"><span style="font-family: 'Outfit', sans-serif; font-size: 20px; font-weight: 600">Request Martin</span><span style="font-size: 13px; color: #98989F">He replies within a few days</span></div></div>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #98989F">Message (optional)<span style="min-height: 76px; padding: 12px 14px; box-sizing: border-box; border-radius: 14px; background: #1C1C1E; border: 1px solid rgba(255,255,255,0.08); font-size: 15px; line-height: 1.4; color: #F5F5F7">Hi Martin, I'd like to get stronger and lose a few kilos.</span></label>
+<div style="border-radius: 18px; background: rgba(255,255,255,0.06); padding: 4px 14px">
+<div style="display: flex; align-items: center; gap: 12px; padding: 10px 0"><span style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 500">Share my onboarding answers</span><span style="font-size: 12px; color: #98989F">Goal, height, weight, activity</span></span><span role="switch" aria-checked="true" aria-label="Share onboarding answers" style="width: 48px; height: 28px; flex-shrink: 0; border-radius: 14px; background: #8CC152; position: relative"><span style="position: absolute; top: 2px; right: 2px; width: 24px; height: 24px; border-radius: 12px; background: #FFFFFF; box-shadow: 0 1px 3px rgba(0,0,0,0.25)"></span></span></div>
+<div style="display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid rgba(255,255,255,0.08)"><span style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 500">Share my history</span><span style="font-size: 12px; line-height: 1.4; color: #98989F">Past plans, measurements and photos from before Martin. Change it any time in Settings.</span></span><span role="switch" aria-checked="false" aria-label="Share my history" style="width: 48px; height: 28px; flex-shrink: 0; border-radius: 14px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); box-sizing: border-box; position: relative"><span style="position: absolute; top: 1px; left: 1px; width: 24px; height: 24px; border-radius: 12px; background: #FFFFFF; box-shadow: 0 1px 3px rgba(0,0,0,0.25)"></span></span></div>
+</div>
+<button style="height: 52px; border-radius: 26px; border: none; font: 600 16px 'DM Sans', sans-serif; display: flex; align-items: center; justify-content: center; gap: 8px; background: #F5F5F7; color: #0B0B0C">Send request</button>
+</div>
+</div>
+</body>
+</html>

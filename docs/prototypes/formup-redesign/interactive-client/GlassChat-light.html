@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chat · Form Up prototype</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@200;300;400;500;600;700&amp;family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#141414}a:hover{color:#3A3835}
+</style>
+
+<style>
+html,body{margin:0}
+body{overflow-x:hidden}
+body.fu-device{min-height:100vh;display:flex;align-items:center;justify-content:center;background:#E4E1DC}
+body.fu-device.fu-dark{background:#1C1C1F}
+.fu-hot{cursor:pointer}
+body.fu-show .fu-hot{outline:2px solid rgba(37,99,235,.75);outline-offset:1px}
+#fu-bar{position:fixed;right:16px;bottom:16px;z-index:9999;display:flex;gap:6px;align-items:center;padding:6px;border-radius:14px;background:rgba(20,20,20,.88);color:#fff;font:600 12px system-ui,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.3)}
+#fu-bar a,#fu-bar button,#fu-bar select{height:30px;padding:0 10px;border-radius:9px;border:0;background:rgba(255,255,255,.12);color:#fff;font:inherit;text-decoration:none;display:flex;align-items:center;cursor:pointer}
+#fu-bar .on{background:#fff;color:#141414}
+</style>
+<script>
+(function(){
+  var FLOW = {"Today": "GlassToday", "Training": "GlassTrainingWeek", "Nutrition": "GlassNutrition", "*Messages": "GlassMessagesList", "Back": "GlassMessagesList", "Coach details": "GlassCoachProfile", "^New week published": "GlassTrainingPlan"}, PAGE = "GlassChat", THEME = "light", PAGES = [["GlassLogin", "Login"], ["GlassRegister", "Register"], ["GlassOnboardingGoal", "OnboardingGoal"], ["GlassOnboardingBasics", "OnboardingBasics"], ["GlassTodayNoCoach", "TodayNoCoach"], ["GlassCoachSearch", "CoachSearch"], ["GlassCoachProfile", "CoachProfile"], ["GlassRequestSheet", "RequestSheet"], ["GlassToday", "Today"], ["GlassTodayV1", "Today · v1 (check-in only)"], ["GlassNotifications", "Notifications"], ["GlassTrainingWeek", "TrainingWeek"], ["GlassTrainingEmpty", "TrainingEmpty"], ["GlassSessionDetail", "SessionDetail"], ["GlassWorkout", "Workout"], ["GlassSessionMixed", "SessionMixed"], ["GlassAmrap", "Amrap"], ["GlassEmom", "Emom"], ["GlassTabata", "Tabata"], ["GlassForTime", "ForTime"], ["GlassDoneStrength", "DoneStrength"], ["GlassDoneAmrap", "DoneAmrap"], ["GlassDoneTabata", "DoneTabata"], ["GlassSessionSummary", "SessionSummary"], ["GlassNutrition", "Nutrition"], ["GlassNutritionEmpty", "NutritionEmpty"], ["GlassMealDetail", "MealDetail"], ["GlassShoppingList", "ShoppingList"], ["GlassMessagesList", "MessagesList"], ["GlassChat", "Chat"], ["GlassProfile", "Profile"], ["GlassMyJourney", "MyJourney"], ["GlassPlanSummary", "PlanSummary"], ["GlassMeasurements", "Measurements"], ["GlassPhotos", "Photos"], ["GlassCheckIn", "CheckIn"], ["GlassSettings", "Settings"], ["GlassTrainingPlan", "TrainingPlan"], ["GlassTrainingWeekDetail", "TrainingWeekDetail"], ["GlassNutritionPlan", "NutritionPlan"], ["GlassNutritionWeekDetail", "NutritionWeekDetail"], ["GlassRecipesPlan", "RecipesPlan"], ["GlassRecipesAll", "RecipesAll"], ["GlassRecipeDetail", "RecipeDetail"], ["GlassCookingSteps", "CookingSteps"], ["GlassIngredientDetail", "IngredientDetail"], ["GlassWorkoutsPlan", "WorkoutsPlan"], ["GlassWorkoutsAll", "WorkoutsAll"], ["GlassWorkoutDetail", "WorkoutDetail"], ["GlassExerciseDetail", "ExerciseDetail"]], DEVICE = true;
+  function key(el){ return (el.getAttribute('aria-label') || el.getAttribute('title') || el.textContent || '').replace(/\s+/g,' ').trim(); }
+  function target(el){
+    // Exact keys win over ^prefix and *contains keys; a null target marks a label as not clickable.
+    var k = key(el), m;
+    if (Object.prototype.hasOwnProperty.call(FLOW, k)) return FLOW[k];
+    for (m in FLOW){ var c = m[0], v = m.slice(1); if (c === '^' ? k.indexOf(v) === 0 : c === '*' ? k.indexOf(v) >= 0 : false) return FLOW[m]; }
+    return null;
+  }
+  function go(page, theme){ location.href = page + '-' + (theme || THEME) + '.html'; }
+  function fit(){
+    // Boards are fixed-size frames. Web: zoom to the window width, page in the board's colour.
+    // Phone: centre the frame, zoomed to fit the window, on a neutral backdrop.
+    var board = document.body.firstElementChild;
+    if (!board || board.id === 'fu-bar') return;
+    if (!board.dataset.w){
+      board.dataset.w = board.offsetWidth; board.dataset.h = board.offsetHeight;
+      if (DEVICE){
+        document.body.classList.add('fu-device'); if (THEME === 'dark') document.body.classList.add('fu-dark');
+        board.style.borderRadius = '48px'; board.style.boxShadow = '0 30px 80px rgba(0,0,0,.28), 0 0 0 10px #0B0B0C';
+      } else {
+        document.body.style.background = getComputedStyle(board).backgroundColor;
+      }
+    }
+    var root = document.documentElement;
+    board.style.zoom = DEVICE ? Math.min((root.clientHeight - 64) / board.dataset.h, (root.clientWidth - 64) / board.dataset.w)
+                              : root.clientWidth / board.dataset.w;
+  }
+  window.addEventListener('resize', fit);
+  document.addEventListener('DOMContentLoaded', function(){
+    fit();
+    document.querySelectorAll('a,button,tr,[role=tab],[role=radio]').forEach(function(el){ if (target(el)) el.classList.add('fu-hot'); });
+    var bar = document.createElement('div'); bar.id = 'fu-bar';
+    var opts = PAGES.map(function(p){ return '<option value="'+p[0]+'"'+(p[0]===PAGE?' selected':'')+'>'+p[1]+'</option>'; }).join('');
+    bar.innerHTML = '<select aria-label="Jump to screen">'+opts+'</select>'
+      + '<button data-t="light" class="'+(THEME==='light'?'on':'')+'">Light</button><button data-t="dark" class="'+(THEME==='dark'?'on':'')+'">Dark</button>'
+      + '<button data-h="1" title="Show clickable areas (H)">Hotspots</button><a href="../index.html">All screens</a>';
+    document.body.appendChild(bar);
+    bar.querySelector('select').addEventListener('change', function(e){ go(e.target.value); });
+    bar.querySelectorAll('[data-t]').forEach(function(b){ b.addEventListener('click', function(){ go(PAGE, b.getAttribute('data-t')); }); });
+    bar.querySelector('[data-h]').addEventListener('click', function(){ document.body.classList.toggle('fu-show'); });
+  });
+  document.addEventListener('keydown', function(e){ if (e.key === 'h' || e.key === 'H') document.body.classList.toggle('fu-show'); });
+  document.addEventListener('click', function(e){
+    if (e.target.closest && e.target.closest('#fu-bar')) return;
+    var el = e.target.closest ? e.target.closest('a,button,tr,[role=tab],[role=radio]') : null;
+    if (!el) return;
+    e.preventDefault();
+    var t = target(el);
+    if (t) go(t); else if (el.tagName !== 'TR' && !document.body.classList.contains('fu-show')) { document.body.classList.add('fu-show'); setTimeout(function(){ document.body.classList.remove('fu-show'); }, 600); }
+  }, true);
+})();
+</script>
+
+</head>
+<body>
+<div style="position: relative; width: 390px; height: 844px; background: #FFFFFF; font-family: 'DM Sans', sans-serif; color: #141414; overflow: hidden">
+<div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; padding: 100px 16px 0; display: flex; flex-direction: column; gap: 8px">
+<span style="align-self: center; font-size: 12px; color: #6B6863">Tuesday 18:05</span>
+<div style="align-self: flex-start; max-width: 270px; padding: 10px 14px; border-radius: 20px 20px 20px 6px; background: #FFFFFF; border: 1px solid rgba(20,20,20,0.06); box-shadow: 0 1px 2px rgba(0,0,0,0.04); font-size: 15px; line-height: 1.4">Leg day felt heavy — only 8 reps on the last RDL set.</div>
+<div style="align-self: flex-end; max-width: 270px; padding: 10px 14px; border-radius: 20px 20px 6px 20px; background: #D2342A; color: #FFFFFF; font-size: 15px; line-height: 1.4">That's fine. Keep 62.5 kg and aim for 9 next time.</div>
+<div style="align-self: flex-end; max-width: 270px; padding: 10px 14px; border-radius: 20px 20px 6px 20px; background: #D2342A; color: #FFFFFF; font-size: 15px; line-height: 1.4">How did you sleep this week?</div>
+<div style="align-self: flex-start; max-width: 270px; padding: 10px 14px; border-radius: 20px 20px 20px 6px; background: #FFFFFF; border: 1px solid rgba(20,20,20,0.06); box-shadow: 0 1px 2px rgba(0,0,0,0.04); font-size: 15px; line-height: 1.4">About 6 hours. I'll work on it.</div>
+<span style="align-self: center; font-size: 12px; color: #6B6863; padding-top: 6px">Today 10:30</span>
+<a href="#" style="align-self: flex-start; width: 250px; border-radius: 20px; background: #FFFFFF; border: 1px solid rgba(20,20,20,0.06); box-shadow: 0 1px 2px rgba(0,0,0,0.04); padding: 14px; display: flex; align-items: center; gap: 12px; color: #141414; text-decoration: none">
+<span style="width: 38px; height: 38px; flex-shrink: 0; border-radius: 19px; background: #FFF0E2; color: #B4500C; display: flex; align-items: center; justify-content: center"><svg width="19.0" height="19.0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 7v10"></path><path d="M3 9.5v5"></path><path d="M18 7v10"></path><path d="M21 9.5v5"></path><path d="M6 12h12"></path></svg></span>
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 12px; color: #B4500C; font-weight: 600">New week published</span><span style="font-size: 15px; font-weight: 600">Week 7 · Strength</span><span style="font-size: 12px; color: #6B6863">4 sessions · from Monday</span></span>
+</a>
+<div style="align-self: flex-start; max-width: 270px; padding: 10px 14px; border-radius: 20px 20px 20px 6px; background: #FFFFFF; border: 1px solid rgba(20,20,20,0.06); box-shadow: 0 1px 2px rgba(0,0,0,0.04); font-size: 15px; line-height: 1.4">Thursday is Lower body A again.</div>
+<div style="align-self: flex-end; max-width: 270px; padding: 10px 14px; border-radius: 20px 20px 6px 20px; background: #D2342A; color: #FFFFFF; font-size: 15px; line-height: 1.4">Thanks! See you Thursday</div>
+<span style="align-self: flex-end; font-size: 11px; color: #6B6863">Read 10:43</span>
+</div>
+<div style="position: absolute; top: 30px; left: 16px; right: 16px; height: 40px; display: flex; align-items: center; gap: 10px"><div style="width: 64px; display: flex"><button aria-label="Back" style="position: relative; width: 40px; height: 40px; border-radius: 20px; background: rgba(255,255,255,0.58); -webkit-backdrop-filter: blur(22px) saturate(180%); backdrop-filter: blur(22px) saturate(180%); border: 1px solid rgba(255,255,255,0.85); box-shadow: 0 10px 30px rgba(0,0,0,0.14), 0 1px 3px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.9); color: #141414; display: flex; align-items: center; justify-content: center; padding: 0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg></button></div><div style="flex-grow: 1; display: flex; justify-content: center"><div style="height: 44px; padding: 0 16px 0 6px; border-radius: 22px; background: rgba(255,255,255,0.58); -webkit-backdrop-filter: blur(22px) saturate(180%); backdrop-filter: blur(22px) saturate(180%); border: 1px solid rgba(255,255,255,0.85); box-shadow: 0 10px 30px rgba(0,0,0,0.14), 0 1px 3px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.9); display: flex; align-items: center; gap: 9px"><span style="width: 32px; height: 32px; border-radius: 16px; background: #141414; color: #F6F4F0; font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center">MK</span><span style="display: flex; flex-direction: column"><span style="font-size: 14px; font-weight: 600">Martin Král</span><span style="font-size: 11px; color: #6B6863">Trainer · Nutritionist</span></span></div></div><div style="width: 64px; display: flex; justify-content: flex-end"><button aria-label="Coach details" style="position: relative; width: 40px; height: 40px; border-radius: 20px; background: rgba(255,255,255,0.58); -webkit-backdrop-filter: blur(22px) saturate(180%); backdrop-filter: blur(22px) saturate(180%); border: 1px solid rgba(255,255,255,0.85); box-shadow: 0 10px 30px rgba(0,0,0,0.14), 0 1px 3px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.9); color: #141414; display: flex; align-items: center; justify-content: center; padding: 0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 11v5"></path><path d="M12 8v.1"></path></svg></button></div></div>
+<div style="position: absolute; left: 16px; right: 16px; bottom: 30px; display: flex; gap: 8px; align-items: center">
+<button aria-label="Attach" style="position: relative; width: 46px; height: 46px; border-radius: 23px; background: rgba(255,255,255,0.58); -webkit-backdrop-filter: blur(22px) saturate(180%); backdrop-filter: blur(22px) saturate(180%); border: 1px solid rgba(255,255,255,0.85); box-shadow: 0 10px 30px rgba(0,0,0,0.14), 0 1px 3px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.9); color: #141414; display: flex; align-items: center; justify-content: center; padding: 0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg></button>
+<label style="flex-grow: 1; height: 46px; padding: 0 4px 0 16px; box-sizing: border-box; border-radius: 23px; background: rgba(255,255,255,0.58); -webkit-backdrop-filter: blur(22px) saturate(180%); backdrop-filter: blur(22px) saturate(180%); border: 1px solid rgba(255,255,255,0.85); box-shadow: 0 10px 30px rgba(0,0,0,0.14), 0 1px 3px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.9); display: flex; align-items: center; gap: 8px">
+<input placeholder="Message" aria-label="Message" style="flex-grow: 1; border: none; outline: none; background: transparent; font: 15px 'DM Sans', sans-serif; color: #141414">
+<button aria-label="Send" style="width: 36px; height: 36px; border-radius: 18px; border: none; background: #D2342A; color: #FFFFFF; display: flex; align-items: center; justify-content: center; padding: 0"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5"></path><path d="M6 11l6-6 6 6"></path></svg></button>
+</label>
+</div>
+</div>
+</body>
+</html>

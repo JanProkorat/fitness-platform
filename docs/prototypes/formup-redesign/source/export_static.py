@@ -81,6 +81,6 @@ h1{margin:0 0 4px}h2{margin:48px 0 0;padding-top:16px;border-top:1px solid var(-
 .row a{display:flex;flex-direction:column;gap:6px;color:var(--ink);text-decoration:none;font-size:12px}
 .row img{width:100%;border-radius:12px;border:1px solid var(--line);background:#fff}
 </style></head><body>
-<h1>Form Up redesign</h1><p style="color:var(--muted);margin:0">Static export of the design canvas. Click a screen to open its standalone HTML. <a href="interactive/index.html" style="color:var(--ink);font-weight:700">Open the clickable web-portal prototype →</a></p>
+<h1>Form Up redesign</h1><p style="color:var(--muted);margin:0">Static export of the design canvas. Click a screen to open its standalone HTML. Clickable prototypes: <a href="interactive/index.html" style="color:var(--ink);font-weight:700">web portal</a> · <a href="interactive-client/index.html" style="color:var(--ink);font-weight:700">client app</a> · <a href="interactive-coach/index.html" style="color:var(--ink);font-weight:700">coach app</a></p>
 """ + "\n".join(parts) + "\n</body></html>\n")
 print(len(manifest), "screens")
