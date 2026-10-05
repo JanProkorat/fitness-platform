@@ -50,7 +50,7 @@ export default function VerificationSentState({ email, onWrongEmail }: Verificat
 
   return (
     <>
-      <div className="flex size-11 items-center justify-center rounded-full bg-green-soft text-green-ink">
+      <div className="flex size-11 items-center justify-center rounded-full bg-success-soft text-success-ink">
         <CheckIcon className="size-5" />
       </div>
 
@@ -72,7 +72,7 @@ export default function VerificationSentState({ email, onWrongEmail }: Verificat
       )}
 
       {resendConfirmed && !errorMessage && (
-        <p role="status" className="text-meta text-green-ink">
+        <p role="status" className="text-meta text-success-ink">
           {t('entry.register.sent.resendConfirmation')}
         </p>
       )}
@@ -94,7 +94,7 @@ export default function VerificationSentState({ email, onWrongEmail }: Verificat
         <button
           type="button"
           onClick={onWrongEmail}
-          className="font-medium text-brand hover:underline"
+          className="font-medium text-ink underline underline-offset-2"
         >
           {t('entry.register.sent.changeEmail')}
         </button>

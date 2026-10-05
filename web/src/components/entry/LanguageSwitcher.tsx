@@ -27,7 +27,7 @@ export default function LanguageSwitcher() {
             }}
             className={cn(
               'rounded-sm border border-border px-2.25 py-1 text-caption font-semibold tracking-[.04em] text-muted-foreground',
-              active && 'border-pill bg-pill text-paper'
+              active && 'border-primary bg-primary text-primary-foreground'
             )}
           >
             {t(`entry.languageSwitch.${lng}`)}

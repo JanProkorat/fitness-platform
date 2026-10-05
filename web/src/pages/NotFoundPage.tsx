@@ -10,7 +10,7 @@ export default function NotFoundPage() {
       <p className="text-body text-muted-foreground">{t('shell.notFoundBody')}</p>
       <Link
         to="/clients"
-        className="text-body font-medium text-primary underline-offset-4 hover:underline"
+        className="text-body font-medium text-primary underline underline-offset-4"
       >
         {t('shell.backToClients')}
       </Link>

@@ -11,16 +11,19 @@ const badgeVariants = cva(
         default: "bg-primary text-primary-foreground",
         secondary: "bg-secondary text-secondary-foreground",
         outline: "border-border bg-background text-foreground",
-        destructive: "bg-destructive/10 text-destructive",
+        destructive: "bg-error-soft text-error",
+        // Palette board chips: soft fill + ink text (icon goes in as a child).
+        training: "bg-training-soft text-training-ink",
+        nutrition: "bg-nutrition-soft text-nutrition-ink",
         // Soft-fill status treatment (small rounded rect, not a pill) —
         // Figma frame client-list-02, #1066 phase 6.
-        success: "rounded-sm bg-green-soft text-primary",
+        success: "rounded-sm bg-success-soft text-success-ink",
         // Ingredients table's Library column badge (System/Mine/Shared) —
         // docs/design/ingredients/inventory.md, #1115. Same small-rect
         // treatment as `success` above, not the pill shape `secondary` uses
         // elsewhere (ClientStatusBadge, PendingTable) — a dedicated variant
         // rather than restyling `secondary`, which those already rely on.
-        library: "rounded-sm bg-bubble text-caption font-semibold text-ink-3",
+        library: "rounded-sm bg-sunken text-caption font-semibold text-ink-2",
       },
     },
     defaultVariants: {

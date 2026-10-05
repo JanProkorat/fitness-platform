@@ -12,7 +12,7 @@ interface FallbackProps {
 export function ErrorFallback({ error }: FallbackProps) {
   return (
     <div className="p-10 font-sans">
-      <h1 className="mb-2 text-xl font-semibold text-destructive">Něco se pokazilo</h1>
+      <h1 className="mb-2 text-card-title font-semibold text-destructive">Něco se pokazilo</h1>
       <p className="mb-4 text-sm text-muted-foreground">
         Aplikace narazila na neočekávanou chybu.
       </p>
@@ -23,7 +23,7 @@ export function ErrorFallback({ error }: FallbackProps) {
       </pre>
       <button
         onClick={() => window.location.reload()}
-        className="mt-4 cursor-pointer rounded-md border-none bg-pill px-4 py-2 text-sm font-medium text-paper"
+        className="mt-4 cursor-pointer rounded-md border-none bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
       >
         Obnovit stránku
       </button>

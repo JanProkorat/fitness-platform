@@ -38,7 +38,7 @@ function SheetOverlay({
     <SheetPrimitive.Overlay
       data-slot="sheet-overlay"
       className={cn(
-        "fixed inset-0 z-50 bg-ink/50 data-[state=open]:animate-sheet-overlay-in data-[state=closed]:animate-sheet-overlay-out",
+        "fixed inset-0 z-50 bg-scrim/50 data-[state=open]:animate-sheet-overlay-in data-[state=closed]:animate-sheet-overlay-out",
         className
       )}
       {...props}
@@ -50,7 +50,7 @@ function SheetOverlay({
 // #1081 comment on the --animate-sheet-* tokens in index.css for why a
 // single reversible keyframe doesn't work with Radix's Presence.
 const sheetVariants = cva(
-  "fixed z-50 flex flex-col gap-4 border-border bg-card text-card-foreground shadow-panel",
+  "fixed z-50 flex flex-col gap-4 border-border bg-card text-card-foreground shadow-sheet",
   {
     variants: {
       side: {

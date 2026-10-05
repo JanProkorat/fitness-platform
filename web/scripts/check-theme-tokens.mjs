@@ -113,6 +113,12 @@ const NAMESPACES = [
     isDefaultMatch: (suffix) => /^(\d+(\.\d+)?)?(xs|sm|md|lg|xl)$/.test(suffix),
   },
   {
+    cssPrefix: '--radius-',
+    exportName: 'RADIUS_TOKENS',
+    isDefaultMatch: (suffix) =>
+      ['none', 'full'].includes(suffix) || /^(\d+(\.\d+)?)?(xs|sm|md|lg|xl)$/.test(suffix),
+  },
+  {
     cssPrefix: '--spacing-',
     exportName: 'SPACING_TOKENS',
     isDefaultMatch: (suffix) => suffix === 'px' || (suffix !== '' && !Number.isNaN(Number(suffix))),

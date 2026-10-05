@@ -147,7 +147,7 @@ export default function VerifyEmailPage() {
 
   const brandRow = (
     <CardHeader>
-      <span className="flex size-7.5 items-center justify-center rounded-md bg-brand text-caption font-bold tracking-wide text-paper">
+      <span className="flex size-7.5 items-center justify-center rounded-md bg-marker text-caption font-bold tracking-wide text-on-dark">
         {t('entry.brandMark')}
       </span>
       <span>{t('entry.brand')}</span>
@@ -155,10 +155,10 @@ export default function VerifyEmailPage() {
   );
 
   const shell = (children: ReactNode) => (
-    <div className="relative flex min-h-screen items-center justify-center bg-paper p-6">
+    <div className="relative flex min-h-screen items-center justify-center bg-background p-6">
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 [background:radial-gradient(120%_70%_at_50%_0%,var(--color-green-soft)_0%,transparent_60%)]"
+        className="pointer-events-none absolute inset-0 [background:radial-gradient(120%_70%_at_50%_0%,var(--color-sunken)_0%,transparent_60%)]"
       />
       <Card className="relative">{children}</Card>
     </div>
@@ -177,7 +177,7 @@ export default function VerifyEmailPage() {
       return shell(
         <>
           {brandRow}
-          <div className="flex size-11.5 items-center justify-center rounded-full bg-green-soft text-green-ink">
+          <div className="flex size-11.5 items-center justify-center rounded-full bg-success-soft text-success-ink">
             <CheckIcon className="size-5" />
           </div>
           <CardTitle>{t('entry.verifyEmail.success.title')}</CardTitle>
@@ -205,7 +205,7 @@ export default function VerifyEmailPage() {
       return shell(
         <>
           {brandRow}
-          <div className="flex size-11.5 items-center justify-center rounded-full bg-danger-soft text-destructive">
+          <div className="flex size-11.5 items-center justify-center rounded-full bg-error-soft text-destructive">
             <TriangleAlertIcon className="size-5" />
           </div>
           <CardTitle>{t('entry.verifyEmail.invalid.title')}</CardTitle>
@@ -222,7 +222,7 @@ export default function VerifyEmailPage() {
                   </p>
                 )}
                 {resendMutation.isSuccess && !resendMutation.isError && (
-                  <p role="status" className="text-meta text-green-ink">
+                  <p role="status" className="text-meta text-success-ink">
                     {t('entry.verifyEmail.checkInbox.resendConfirmation')}
                   </p>
                 )}
@@ -269,7 +269,7 @@ export default function VerifyEmailPage() {
     return shell(
       <>
         {brandRow}
-        <div className="flex size-11.5 items-center justify-center rounded-full bg-green-soft text-green-ink">
+        <div className="flex size-11.5 items-center justify-center rounded-full bg-success-soft text-success-ink">
           <MailIcon className="size-5" />
         </div>
         <CardTitle>{t('entry.verifyEmail.checkInbox.title')}</CardTitle>
@@ -283,7 +283,7 @@ export default function VerifyEmailPage() {
             </p>
           )}
           {resendMutation.isSuccess && !resendMutation.isError && (
-            <p role="status" className="text-meta text-green-ink">
+            <p role="status" className="text-meta text-success-ink">
               {t('entry.verifyEmail.checkInbox.resendConfirmation')}
             </p>
           )}
@@ -319,7 +319,7 @@ export default function VerifyEmailPage() {
   return shell(
     <>
       {brandRow}
-      <div className="flex size-11.5 items-center justify-center rounded-full bg-danger-soft text-destructive">
+      <div className="flex size-11.5 items-center justify-center rounded-full bg-error-soft text-destructive">
         <TriangleAlertIcon className="size-5" />
       </div>
       <CardTitle>{t('entry.verifyEmail.invalid.title')}</CardTitle>

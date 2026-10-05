@@ -45,8 +45,8 @@ interface Props {
  * down to zero rows could not clear the filter they just applied.
  *
  * Count sits BEFORE the label ("2 All", not "All 2") and the chip itself is
- * a solid pill (active = green fill, inactive = grey fill) per the Figma
- * wireframe (frame client-list-02, #1066 phase 6).
+ * a solid pill (active = ink fill with a `chip-count` badge, inactive = surface
+ * fill with a line border and ink-2 text).
  */
 export default function ClientFilterChips({ active, counts, onSelect }: Props) {
   const { t } = useTranslation();
@@ -68,17 +68,17 @@ export default function ClientFilterChips({ active, counts, onSelect }: Props) {
             aria-pressed={isActive}
             onClick={() => onSelect(chip)}
             className={cn(
-              'gap-1.5 rounded-full px-3 py-1.5',
+              'h-8 gap-1.5 rounded-full px-3',
               isActive
                 ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                : 'bg-line text-muted-foreground hover:bg-line/80',
+                : 'border-line bg-surface text-ink-2 hover:bg-sunken',
             )}
           >
             {typeof count === 'number' && (
               <span
                 className={cn(
-                  'inline-flex min-w-badge-min items-center justify-center rounded-full px-1.5 py-0.5 text-label font-semibold',
-                  isActive ? 'bg-green-dark text-primary-foreground' : 'text-muted-foreground',
+                  'inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.25 text-label font-bold',
+                  isActive ? 'bg-chip-count text-primary-foreground' : 'text-muted-foreground',
                 )}
               >
                 {count}

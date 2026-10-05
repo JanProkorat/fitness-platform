@@ -136,9 +136,10 @@ test.describe('clients list page', () => {
     const countBadge = allChip.locator('span').first();
     await expect(countBadge).toBeVisible();
     const badgeBox = await countBadge.boundingBox();
-    expect(badgeBox?.height ?? 0).toBeGreaterThan(14);
-    expect(badgeBox?.height ?? 0).toBeLessThan(18);
-    expect(badgeBox?.width ?? 0).toBeGreaterThan(badgeBox?.height ?? 0);
+    // PageClientsC board: min-width 20px, height 20px.
+    expect(badgeBox?.height ?? 0).toBeGreaterThan(19);
+    expect(badgeBox?.height ?? 0).toBeLessThan(21);
+    expect(badgeBox?.width ?? 0).toBeGreaterThanOrEqual(badgeBox?.height ?? 0);
   });
 
   /**

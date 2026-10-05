@@ -5,14 +5,14 @@
  * `extendTailwindMerge({ extend: { theme: { ... } } })` in `utils.ts`.
  *
  * `scripts/check-theme-tokens.mjs` parses `index.css` at build time and
- * fails if a token in one of these five namespaces is missing here (or if
+ * fails if a token in one of these namespaces is missing here (or if
  * an entry here no longer exists in `index.css`) — keep both in sync
  * whenever the theme block changes. Only the token *suffix* (the part
  * after `--text-`, `--shadow-`, etc.) goes in these arrays, matching how
  * tailwind-merge's own theme scale arrays are shaped.
  */
 
-/** `--text-*` — 14 keys. Falls through to tailwind-merge's colour-scale
+/** `--text-*` — 17 keys. Falls through to tailwind-merge's colour-scale
  * catch-all without this: every one of these class names would otherwise be
  * silently deleted as a "text colour" conflict (#1078). */
 export const TEXT_SIZE_TOKENS = [
@@ -25,6 +25,9 @@ export const TEXT_SIZE_TOKENS = [
   'copy',
   'subhead',
   'lede',
+  'card-title',
+  'stat',
+  'display',
   'panel-title',
   'auth-title',
   'hero',
@@ -34,7 +37,12 @@ export const TEXT_SIZE_TOKENS = [
 
 /** `--shadow-*` — same delete-the-class failure mode as text sizes, via
  * tailwind-merge's `shadow-color` catch-all. */
-export const SHADOW_TOKENS = ['panel', 'selection-bar'] as const;
+export const SHADOW_TOKENS = ['dialog', 'sheet', 'popover', 'card', 'medallion', 'selection-bar'] as const;
+
+/** `--radius-*` — only names outside tailwind-merge's t-shirt scale need
+ * listing; without it `rounded-field` is never conflict-resolved against a
+ * caller's `rounded-*`. */
+export const RADIUS_TOKENS = ['field'] as const;
 
 /** `--spacing-*` — unknown to tailwind-merge without this (not deleted,
  * just never conflict-resolved). */
