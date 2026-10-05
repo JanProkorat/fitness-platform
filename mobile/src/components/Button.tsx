@@ -18,7 +18,7 @@ type ButtonProps = {
   style?: StyleProp<ViewStyle>;
 };
 
-type VariantLook = { background: string; foreground: string; shadow?: string };
+type VariantLook = { background: string; foreground: string; shadow?: string; border?: string };
 
 const resolveLook = (theme: Theme, variant: ButtonVariant): VariantLook => {
   const { colors, shadows } = theme;
@@ -28,7 +28,7 @@ const resolveLook = (theme: Theme, variant: ButtonVariant): VariantLook => {
     case 'nutrition':
       return { background: colors.nutrition, foreground: colors.onNutrition, shadow: shadows.nutrition };
     case 'destructive':
-      return { background: colors.error, foreground: colors.onError };
+      return { background: colors.errorSoft, foreground: colors.error, border: colors.error };
     case 'ink':
       return { background: colors.primary, foreground: colors.onPrimary };
   }
@@ -57,7 +57,12 @@ export function Button({
       style={({ pressed }) => [
         styles.base,
         size === 'large' ? styles.large : styles.small,
-        { backgroundColor: look.background, boxShadow: look.shadow },
+        {
+          backgroundColor: look.background,
+          boxShadow: look.shadow,
+          borderColor: look.border,
+          borderWidth: look.border ? theme.sizes.border : 0,
+        },
         pressed && styles.pressed,
         disabled && styles.disabled,
         style,

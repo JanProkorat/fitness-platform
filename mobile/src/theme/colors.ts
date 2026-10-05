@@ -32,7 +32,6 @@ export type Colors = {
   successSoft: string;
   error: string;
   errorSoft: string;
-  onError: string;
 
   segmentSelected: string;
   avatar: string;
@@ -93,7 +92,6 @@ export const lightColors: Colors = {
   successSoft: '#EEF6E3',
   error: '#9F1F17',
   errorSoft: '#FBE3DF',
-  onError: '#FFFFFF',
   segmentSelected: '#FFFFFF',
   glassFill: 'rgba(255,255,255,0.58)',
   glassBorder: 'rgba(255,255,255,0.85)',
@@ -122,7 +120,6 @@ export const darkColors: Colors = {
   successSoft: '#243319',
   error: '#F2705F',
   errorSoft: '#3A1A17',
-  onError: '#141414',
   segmentSelected: '#3A3A3E',
   glassFill: 'rgba(44,44,48,0.52)',
   glassBorder: 'rgba(255,255,255,0.14)',

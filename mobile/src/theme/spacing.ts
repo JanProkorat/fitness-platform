@@ -24,4 +24,5 @@ export const sizes = {
   buttonLarge: 52,
   buttonSmall: 32,
   chip: 32,
+  border: 1,
 } as const;
