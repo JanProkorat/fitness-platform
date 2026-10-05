@@ -34,7 +34,7 @@ BOOTED_UDIDS=$(xcrun simctl list devices booted 2>/dev/null \
   | grep -oE '[0-9A-Fa-f-]{36}' || true)
 
 if [ -z "$BOOTED_UDIDS" ]; then
-  echo "trust-dev-cert: no booted simulator — skipping (boot one, then rerun 'npm run ios:trust-cert')."
+  echo "trust-dev-cert: no booted simulator — skipping (boot one, then rerun 'bash mobile/scripts/trust-dev-cert.sh')."
   exit 0
 fi
 
