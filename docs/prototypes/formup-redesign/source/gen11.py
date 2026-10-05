@@ -40,11 +40,10 @@ def recipes_list(mode, t, scope):
 {sec("Cut — phase 2", "Jana · now · 18", "%%NUTRI%%", cur)}
 {sec("Cut — phase 1", "Jana · Mar – Jun · 23", "%%MUTED%%", old)}'''
     body = body_top(f'''<div style="padding: 0 20px"><h1 style="{H1}">Recipes</h1></div>
-{search_field("Search recipes or ingredients")}
 <div style="padding: 0 16px">{seg(["This plan", "All plans"], "This plan" if this else "All plans")}</div>
 <div style="padding: 0 16px; display: flex; gap: 8px; overflow: hidden">{chip("All", True)}{chip("Breakfast")}{chip("Lunch")}{chip("Dinner")}{chip("Snack")}</div>
 {content}''', top=84, gap=14)
-    return screen(f"Recipes {scope}", body + top_bar(gbtn("back", "Back")), t, mode)
+    return screen(f"Recipes {scope}", body + top_bar(gbtn("back", "Back")) + fade() + search_fab(), t, mode)
 
 
 PORTIONS = 3

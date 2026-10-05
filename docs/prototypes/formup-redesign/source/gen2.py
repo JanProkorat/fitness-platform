@@ -26,6 +26,8 @@ PATHS.update({
     "trash": '<path d="M4.5 7h15"></path><path d="M9.5 7V4.5h5V7"></path><path d="M6.5 7l1 13h9l1-13"></path>',
     "apple": '<path d="M15.5 4c-.3 1.6-1.6 2.9-3.1 2.8.1-1.5 1.5-2.8 3.1-2.8z"></path><path d="M17.5 12.8c0-2 1.6-3 1.7-3.1-1-1.4-2.4-1.6-2.9-1.6-1.3-.1-2.4.7-3 .7-.6 0-1.6-.7-2.6-.7-1.4 0-2.6.8-3.3 2-1.4 2.4-.4 6 1 8 .7 1 1.4 2 2.4 2 1 0 1.3-.6 2.5-.6s1.5.6 2.5.6c1 0 1.7-1 2.3-2 .7-1 1-2 1-2.1 0 0-1.6-.6-1.6-3.2z"></path>',
     "play": '<path d="M6 4l13 8-13 8z"></path>',
+    "form": '<path d="M7 3.5h7l4 4V20a.5.5 0 0 1-.5.5h-10A.5.5 0 0 1 7 20z"></path><path d="M14 3.5V8h4"></path><path d="M10 12h5"></path><path d="M10 16h5"></path>',
+    "bars": '<path d="M6 20v-6"></path><path d="M12 20V8"></path><path d="M18 20v-10"></path>',
     "users2": '<circle cx="9" cy="8" r="3.5"></circle><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"></path>',
 })
 
@@ -43,6 +45,13 @@ for _t in DIRS.values():
     _t.setdefault("OWN_BUBBLE", _t["SIDEBAR"])
     _t.setdefault("OWN_TEXT", _t["SIDEBAR_TEXT"])
 DARK_ON = ""
+for _k, _t in DIRS.items():
+    if _t.get("DARK"):
+        _t.update(NAV_BG="#121214", NAV_ACTIVE="#232226", NAV_TEXT=_t["INK"], NAV_MUTED=_t["MUTED"], NAV_LINE=_t["LINE"], TRAY="#1B1B1E", TRAY_CARD="#26262A", TRAY_EDGE="#3A3A40",
+                  GLOW="radial-gradient(640px 280px at 88% 0%, rgba(242,140,56,0.13), transparent 70%), radial-gradient(520px 260px at 100% 40%, rgba(140,193,82,0.09), transparent 70%), " + _t["GROUND"])
+    else:
+        _t.update(NAV_BG="#141414", NAV_ACTIVE="#2A2826", NAV_TEXT="#F6F4F0", NAV_MUTED="#A8A49C", NAV_LINE="#2A2826", TRAY="#F3F1EC", TRAY_CARD="#FFFFFF", TRAY_EDGE="#D6D1C7",
+                  GLOW="radial-gradient(640px 280px at 88% 0%, #FFF0E2, transparent 70%), radial-gradient(520px 260px at 100% 40%, #EFF7E6, transparent 70%), " + _t["GROUND"])
 
 TAGS = {"Online": "#2563EB", "Competition": "#7C3AED", "Postpartum": "#DB2777", "Beginner": "#64748B", "High protein": "#0E7490", "Pantry": "#64748B"}
 W, H = 1440, 900
@@ -95,34 +104,36 @@ def domain_tile(kind, size=28):
 
 # ---------------------------------------------------------------- shell
 def nav(label, icon, active=False, disabled=False):
-    bg = "%%SIDEBAR_ACTIVE%%" if active else "transparent"
-    col = "%%SIDEBAR_TEXT%%" if active else "%%SIDEBAR_MUTED%%"
-    marker = '<span style="position: absolute; left: 0; top: 9px; bottom: 9px; width: 3px; border-radius: 2px; background: %%MARKER%%"></span>' if active else ""
+    st = "background: %%NAV_ACTIVE%%; border: 1px solid %%NAV_LINE%%" if active else "background: transparent; border: 1px solid transparent"
+    col = "%%NAV_TEXT%%" if active else "%%NAV_MUTED%%"
+    dot = '<span style="margin-left: auto; width: 6px; height: 6px; border-radius: 3px; background: %%MARKER%%"></span>' if active else ""
     op = "; opacity: 0.55" if disabled else ""
-    return f'<a href="#" style="position: relative; display: flex; align-items: center; gap: 11px; height: 36px; padding: 0 12px; border-radius: 8px; background: {bg}; color: {col}; text-decoration: none; font-size: 14px; font-weight: {600 if active else 500}{op}">{marker}{ic(icon, 17)}{label}</a>'
+    return f'<a href="#" style="display: flex; align-items: center; gap: 11px; height: 38px; padding: 0 12px; box-sizing: border-box; border-radius: 10px; {st}; color: {col}; text-decoration: none; font-size: 14px; font-weight: {600 if active else 500}{op}">{ic(icon, 17)}{label}{dot}</a>'
 
 
 def group(label, dot=None):
     d = f'<span style="width: 7px; height: 7px; border-radius: 4px; background: {dot}"></span>' if dot else ""
-    return f'<div style="display: flex; align-items: center; gap: 8px; padding: 18px 12px 6px; font-size: 11px; font-weight: 600; letter-spacing: 0.14em; color: %%SIDEBAR_MUTED%%">{d}{label}<span style="margin-left: auto; display: flex">{ic("chevdown", 14)}</span></div>'
+    return f'<div style="display: flex; align-items: center; gap: 8px; padding: 18px 12px 6px; font-size: 11px; font-weight: 600; letter-spacing: 0.14em; color: %%NAV_MUTED%%">{d}{label}<span style="margin-left: auto; display: flex">{ic("chevdown", 14)}</span></div>'
 
 
 def shell(d, active, main, main_style="padding: 28px 32px; gap: 18px"):
     items = lambda *xs: "".join(nav(l, i, l == active) for l, i in xs)
-    side = f'''<nav aria-label="Main" style="width: 248px; flex-shrink: 0; background: %%SIDEBAR%%; padding: 24px 14px 20px; box-sizing: border-box; display: flex; flex-direction: column; gap: 2px">
-<div style="display: flex; align-items: center; padding: 4px 6px 14px 12px">{logo(d, True, 19)}<button disabled="" aria-label="Notifications" style="margin-left: auto; width: 32px; height: 32px; border-radius: 8px; border: none; background: transparent; color: %%SIDEBAR_MUTED%%; display: flex; align-items: center; justify-content: center">{ic("bell", 17)}</button></div>
+    side = f'''<nav aria-label="Main" style="width: 248px; flex-shrink: 0; background: %%NAV_BG%%; padding: 24px 14px 20px; box-sizing: border-box; display: flex; flex-direction: column; gap: 3px">
+<div style="display: flex; align-items: center; padding: 4px 6px 14px 12px">{logo(d, True, 19)}<button disabled="" aria-label="Notifications" style="margin-left: auto; width: 32px; height: 32px; border-radius: 8px; border: none; background: transparent; color: %%NAV_MUTED%%; display: flex; align-items: center; justify-content: center">{ic("bell", 17)}</button></div>
 {group("CLIENT MANAGEMENT")}{items(("Clients", "users"), ("Inbox", "chat"))}
-{group("NUTRITION", "%%NUTRI_BRIGHT%%")}{items(("Recipes", "book"), ("Ingredients", "leaf"))}
+{group("NUTRITION", "%%NUTRI%%")}{items(("Recipes", "book"), ("Ingredients", "leaf"), ("Plan templates", "calendar"))}
+{group("FORMS")}{items(("Forms", "form"), ("Metrics", "bars"))}
 <div style="margin-top: auto; display: flex; flex-direction: column; gap: 2px; padding-bottom: 12px">{nav("Help &amp; Support", "help", disabled=True)}{nav("Settings", "settings", disabled=True)}</div>
-<div style="display: flex; align-items: center; gap: 11px; padding: 14px 6px 0 12px; border-top: 1px solid %%SIDEBAR_ACTIVE%%">
-{avatar("MK", 32, "%%SIDEBAR_ACTIVE%%", "%%SIDEBAR_TEXT%%")}
-<div style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 13px; font-weight: 600; color: %%SIDEBAR_TEXT%%">Martin Král</span><span style="font-size: 11px; color: %%SIDEBAR_MUTED%%">Personal trainer · Nutritionist</span></div>
-<button aria-label="Log out" style="margin-left: auto; width: 32px; height: 32px; border-radius: 8px; border: none; background: transparent; color: %%SIDEBAR_MUTED%%; display: flex; align-items: center; justify-content: center">{ic("logout", 17)}</button>
+<div style="display: flex; align-items: center; gap: 11px; padding: 14px 6px 0 12px; border-top: 1px solid %%NAV_LINE%%">
+{avatar("MK", 32, "%%NAV_ACTIVE%%", "%%NAV_TEXT%%")}
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 13px; font-weight: 600; color: %%NAV_TEXT%%">Martin Král</span><span style="font-size: 11px; color: %%NAV_MUTED%%">Personal trainer · Nutritionist</span></div>
+<button aria-label="Log out" style="margin-left: auto; width: 32px; height: 32px; border-radius: 8px; border: none; background: transparent; color: %%MARKER%%; display: flex; align-items: center; justify-content: center">{ic("logout", 17)}</button>
 </div>
 </nav>'''
+    main = main.replace("border-radius: 14px;", "border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.05);")
     return f'''<div style="position: relative; width: {W}px; height: {H}px; display: flex; background: %%GROUND%%; {FONT}; color: %%INK%%; overflow: hidden">
 {side}
-<main style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; {main_style}">
+<main style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; background: %%GLOW%%; {main_style}">
 {main}
 </main>
 </div>'''
@@ -206,7 +217,7 @@ def clients(d, t):
 <td style="{TD}; width: 32px"><button aria-label="Open row menu" style="width: 30px; height: 30px; border-radius: 8px; border: none; background: transparent; color: %%MUTED%%; display: flex; align-items: center; justify-content: center">{ic("more", 18)}</button></td>
 </tr>
 '''
-    main = f'''<div style="display: flex; align-items: flex-end">{title_block("Clients", "Client management and overview")}<span style="margin-left: auto">{btn("Invite client", "primary", "plus", 40)}</span></div>
+    main = f'''<div style="display: flex; align-items: flex-end">{title_block("Clients", "Client management and overview", ("CLIENT MANAGEMENT", "%%MARKER%%"))}<span style="margin-left: auto">{btn("Invite client", "primary", "plus", 40)}</span></div>
 {tabs([("Active", "8"), ("Pending", "2"), ("Paused", "1"), ("Archived", "3")], "Active")}
 <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">{search("Search clients...")}{btn("Select tags" + ic("chevdown", 15), "outline", "tag", 36)}
 <span style="width: 1px; height: 24px; background: %%LINE%%; margin: 0 4px"></span>
@@ -247,10 +258,14 @@ def plan_card(title, kind, name, meta, link):
 <div style="display: flex; align-items: center"><h2 style="margin: 0; font-size: 14px; font-weight: 600">{title}</h2><a href="#" style="margin-left: auto; font-size: 13px; font-weight: 700; color: {fg}; text-decoration: none; display: flex; align-items: center; gap: 2px">{link}{ic("chevron", 15)}</a></div>
 <div style="display: flex; align-items: center; gap: 14px"><span style="width: 44px; height: 44px; border-radius: 10px; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center">{ic(icon, 24)}</span><div style="display: flex; flex-direction: column; gap: 4px"><span style="{DISP}; font-size: 18px; font-weight: 600">{name}</span><span style="font-size: 12px">{meta}</span></div></div>
 </div>'''
-    ink = "%%NUTRI_INK%%" if kind == "n" else "%%TRAIN_INK%%"
-    return f'''<div style="background: %%SURFACE%%; border: 1px solid %%LINE%%; border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 14px">
-<div style="display: flex; align-items: center"><h2 style="margin: 0; font-size: 14px; font-weight: 600">{title}</h2><a href="#" style="margin-left: auto; font-size: 13px; font-weight: 600; color: {ink}; text-decoration: none; display: flex; align-items: center; gap: 2px">{link}{ic("chevron", 15)}</a></div>
-<div style="display: flex; align-items: center; gap: 14px">{domain_tile(kind, 44)}<div style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 15px; font-weight: 600">{name}</span><span style="font-size: 12px; color: %%MUTED%%">{meta}</span></div></div>
+    color, label = ("%%NUTRI%%", "MEAL PLAN") if kind == "n" else ("%%TRAIN%%", "TRAINING")
+    bar = ('<div style="display: flex; gap: 2px; height: 5px"><span style="flex: 30; border-radius: 3px; background: %%PROT%%"></span><span style="flex: 40; border-radius: 3px; background: %%CARB%%"></span><span style="flex: 30; border-radius: 3px; background: %%FAT%%"></span></div>'
+           if kind == "n" else '<div style="display: flex; gap: 4px">' + "".join(f'<span style="flex-grow: 1; height: 5px; border-radius: 3px; background: {c}"></span>' for c in ("%%TRAIN%%",) * 4 + ("%%LINE%%",) * 2) + '</div>')
+    sub = "Macros · protein / carbs / fat" if kind == "n" else "Done this week · 4 of 6 sessions"
+    return f'''<div style="background: %%SURFACE%%; border: 1px solid %%LINE%%; border-radius: 14px; padding: 18px 20px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; align-items: center"><span style="display: flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 700; letter-spacing: 0.14em; color: {color}"><span style="width: 7px; height: 7px; border-radius: 4px; background: {color}"></span>{label}</span><span style="margin-left: 10px; font-size: 12px; color: %%MUTED%%">{title}</span><a href="#" style="margin-left: auto; font-size: 13px; font-weight: 600; color: %%INK%%; text-decoration: none; display: flex; align-items: center; gap: 2px">{link}{ic("chevron", 15)}</a></div>
+<div style="display: flex; align-items: center; gap: 14px">{domain_tile(kind, 44)}<div style="display: flex; flex-direction: column; gap: 4px"><span style="{DISP}; font-size: 19px; font-weight: 600">{name}</span><span style="font-size: 12px; color: %%MUTED%%">{meta}</span></div></div>
+<div style="display: flex; flex-direction: column; gap: 6px">{bar}<span style="font-size: 11px; color: %%MUTED%%">{sub}</span></div>
 </div>'''
 
 
@@ -258,20 +273,21 @@ def checkin_card():
     pattern = "cccmcccccmccuuu"
     dots = ""
     for i, ch in enumerate(pattern):
-        col = {"c": "%%INK%%", "m": "%%DANGER%%", "u": "%%LINE%%"}[ch]
+        col = {"c": "%%NUTRI%%", "m": "%%MARKER%%", "u": "%%LINE%%"}[ch]
         dots += f'<span style="height: 26px; border-radius: 6px; background: {col}"></span>'
     leg = lambda c, l: f'<span style="display: flex; align-items: center; gap: 6px"><span style="width: 8px; height: 8px; border-radius: 2px; background: {c}"></span>{l}</span>'
     return f'''<div style="background: %%SURFACE%%; border: 1px solid %%LINE%%; border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 14px">
 <div style="display: flex; align-items: center"><h2 style="margin: 0; font-size: 14px; font-weight: 600">Check-in trend</h2><span style="margin-left: auto; font-size: 12px; color: %%MUTED%%">Last 15 days</span></div>
 <div style="display: grid; grid-template-columns: repeat(15, minmax(0, 1fr)); gap: 5px">{dots}</div>
-<div style="display: flex; gap: 16px; font-size: 12px; color: %%MUTED%%">{leg("%%INK%%", "Completed")}{leg("%%DANGER%%", "Missed")}{leg("%%LINE%%", "Upcoming")}</div>
+<div style="display: flex; gap: 16px; font-size: 12px; color: %%MUTED%%">{leg("%%NUTRI%%", "Sent")}{leg("%%MARKER%%", "Missed")}{leg("%%LINE%%", "Upcoming")}</div>
+<div style="margin-top: auto; display: flex; align-items: center; gap: 10px; padding-top: 14px; border-top: 1px solid %%LINE%%; font-size: 13px; color: %%INK2%%"><span style="width: 30px; height: 30px; border-radius: 9px; background: %%GROUND%%; border: 1px solid %%LINE%%; color: %%INK2%%; display: flex; align-items: center; justify-content: center">{ic("calendar", 15)}</span><span><b>Next check-in</b> · Sunday 5 Oct</span><span style="margin-left: auto; font-size: 12px; color: %%MUTED%%">Reminder goes out automatically</span></div>
 </div>'''
 
 
 def messages_card():
     bars = ""
     for wk, a, b in [("W1", 44, 30), ("W2", 62, 48), ("W3", 38, 52), ("W4", 70, 58)]:
-        bars += f'<div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 6px"><div style="height: 90px; display: flex; align-items: flex-end; gap: 4px"><span style="width: 12px; height: {a}px; border-radius: 4px 4px 0 0; background: %%INK%%"></span><span style="width: 12px; height: {b}px; border-radius: 4px 4px 0 0; background: %%MUTED%%; opacity: 0.4"></span></div><span style="font-size: 11px; color: %%MUTED%%">{wk}</span></div>'
+        bars += f'<div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 6px"><div style="height: 90px; display: flex; align-items: flex-end; gap: 4px"><span style="width: 12px; height: {a}px; border-radius: 4px 4px 0 0; background: {"%%MARKER%%" if wk == "W4" else "%%INK%%"}"></span><span style="width: 12px; height: {b}px; border-radius: 4px 4px 0 0; background: %%MUTED%%; opacity: 0.4"></span></div><span style="font-size: 11px; color: %%MUTED%%">{wk}</span></div>'
     leg = lambda s, l: f'<span style="display: flex; align-items: center; gap: 6px"><span style="width: 8px; height: 8px; border-radius: 2px; background: %%{s}%%"></span>{l}</span>'
     return f'''<div style="background: %%SURFACE%%; border: 1px solid %%LINE%%; border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 12px">
 <div style="display: flex; align-items: center"><h2 style="margin: 0; font-size: 14px; font-weight: 600">Messages trend</h2><span style="margin-left: auto; font-size: 12px; color: %%MUTED%%">Last 4 weeks</span></div>
@@ -300,7 +316,7 @@ def client_detail(d, t):
 {stat_card("AVERAGE RATING", "4.3", "Based on check-in answers")}{stat_card("PAYMENTS", "TBD", "No payments found for client")}{stat_card("CURRENT WEIGHT", "72.4 kg", "−0.6 kg this week • 68 kg goal")}{stat_card("CLIENT SINCE", "214 days", "Started 1 Mar 2026")}
 </div>
 <div style="display: grid; grid-template-columns: 3fr 2fr; gap: 14px">
-{plan_card("Current meal plan", "n", "Cut — phase 2", "2,100 kcal • 40 % Carb / 30 % Protein / 30 % Fat", "Open plan")}
+{plan_card("Current meal plan", "n", "Lean cut — 12 weeks", "2,100 kcal • 40 % Carb / 30 % Protein / 30 % Fat", "Open plan")}
 {plan_card("Latest workout", "t", "Strength block A", "6 exercises • Thursday", "Open plan")}
 </div>
 <div style="display: grid; grid-template-columns: 3fr 2fr; gap: 14px">{checkin_card()}{messages_card()}</div>'''
@@ -327,7 +343,7 @@ def inbox(d, t):
         p = (ic("image", 13) + " " + prev) if prev == "Photo" else prev
         rows += f'''<a href="#" style="display: flex; gap: 12px; padding: 10px; border-radius: 12px; background: {bg}; text-decoration: none; color: %%INK%%">{avatar(ini, 42)}<div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px"><div style="display: flex"><span style="font-size: 14px; font-weight: {700 if unread else 600}">{name}</span><span style="margin-left: auto; font-size: 11px; color: %%MUTED%%">{when}</span></div><div style="display: flex; align-items: center; gap: 8px"><span style="font-size: 12px; color: {"%%INK2%%" if unread else "%%MUTED%%"}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 4px">{p}</span><span style="margin-left: auto">{dot}</span></div></div></a>'''
     incoming = lambda txt: f'<div style="display: flex; gap: 10px; align-items: flex-end">{avatar("ES", 28)}<div style="max-width: 420px; padding: 10px 14px; border-radius: 18px 18px 18px 6px; background: %%SURFACE%%; border: 1px solid %%LINE%%; font-size: 14px; line-height: 1.45">{txt}</div></div>'
-    own = lambda txt: f'<div style="display: flex; gap: 10px; align-items: flex-end; justify-content: flex-end"><div style="max-width: 420px; padding: 10px 14px; border-radius: 18px 18px 6px 18px; background: %%OWN_BUBBLE%%; color: %%OWN_TEXT%%; font-size: 14px; line-height: 1.45">{txt}</div>{avatar("MK", 28, "%%SIDEBAR%%", "%%SIDEBAR_TEXT%%")}</div>'
+    own = lambda txt: f'<div style="display: flex; gap: 10px; align-items: flex-end; justify-content: flex-end"><div style="max-width: 420px; padding: 10px 14px; border-radius: 18px 18px 6px 18px; background: %%MARKER%%; color: #FFFFFF; font-size: 14px; line-height: 1.45">{txt}</div>{avatar("MK", 28, "%%SIDEBAR%%", "%%SIDEBAR_TEXT%%")}</div>'
     thread = f'''<div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; background: %%GROUND%%">
 <div style="display: flex; align-items: center; gap: 12px; padding: 14px 20px; background: %%SURFACE%%; border-bottom: 1px solid %%LINE%%">{avatar("ES", 34)}<span style="font-size: 15px; font-weight: 600">Eva Svobodová</span>
 <div style="margin-left: auto; display: flex; gap: 6px">{btn("Hide client", "outline", "user", 34)}<button disabled="" aria-label="Conversation settings" style="width: 34px; height: 34px; border-radius: 10px; border: none; background: transparent; color: %%MUTED%%; opacity: 0.5; display: flex; align-items: center; justify-content: center">{ic("settings", 17)}</button><a href="#" aria-label="Open client profile" style="width: 34px; height: 34px; border-radius: 10px; color: %%INK2%%; display: flex; align-items: center; justify-content: center">{ic("external", 17)}</a></div></div>
@@ -348,13 +364,13 @@ def inbox(d, t):
 <button aria-label="Attach image" style="width: 34px; height: 34px; border-radius: 17px; border: none; background: transparent; color: %%INK2%%; display: flex; align-items: center; justify-content: center">{ic("image", 17)}</button>
 <input placeholder="Type your message here..." aria-label="Message" style="flex-grow: 1; border: none; outline: none; background: transparent; font: 14px 'DM Sans', sans-serif; color: %%INK%%">
 </div>
-<button aria-label="Send message" style="width: 46px; height: 46px; border-radius: 23px; border: none; background: %%PRIMARY%%; color: %%PRIMARY_TEXT%%; display: flex; align-items: center; justify-content: center">{ic("arrowup", 20, sw="2.2")}</button>
+<button aria-label="Send message" style="width: 46px; height: 46px; border-radius: 23px; border: none; background: %%MARKER%%; color: #FFFFFF; display: flex; align-items: center; justify-content: center">{ic("arrowup", 20, sw="2.2")}</button>
 </div>
 </div>'''
     panel = f'''<aside style="width: 360px; flex-shrink: 0; background: %%SURFACE%%; border-left: 1px solid %%LINE%%; padding: 22px 18px; box-sizing: border-box; display: flex; flex-direction: column; gap: 14px; overflow: hidden">
 {identity("h2")}
 <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">{stat_card("WEIGHT", "72.4 kg", "−0.6 kg this week")}{stat_card("CLIENT SINCE", "214 days", "Started 1 Mar")}</div>
-{plan_card("Current meal plan", "n", "Cut — phase 2", "2,100 kcal • 40/30/30", "Open")}
+{plan_card("Current meal plan", "n", "Lean cut — 12 weeks", "2,100 kcal • 40/30/30", "Open")}
 {plan_card("Latest workout", "t", "Strength block A", "6 exercises • Thursday", "Open")}
 </aside>'''
     main = f'''<div style="width: 290px; flex-shrink: 0; background: %%SURFACE%%; border-right: 1px solid %%LINE%%; padding: 22px 12px; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px">
@@ -560,7 +576,7 @@ for n in canvas["notes"].values():
 row_y = {"A": 0, "B": 1820, "C": 3640, "D": 5460}
 new = []
 for d, t in DIRS.items():
-    BOLD_ON = t["BOLD"]
+    BOLD_ON = ""
     DARK_ON = t["DARK"]
     x = 0
     for label, h, fn in PAGES:

@@ -89,14 +89,31 @@ One part of the hub rule does hold: subagents never push or merge
 (`deny-subagent-merge.py`). The main thread pushes, and runs the pinned
 `gh pr merge` command `pr-reviewer` hands back.
 
-## Prototype locations
+## Design source of truth
 
-Design-fidelity checks read these source files (top-level `docs/*.html`
-artifacts are generated — always read the per-scene source):
+The **Form Up redesign canvas** is the design source of truth for the web
+portal, the client app and the coach app:
+<https://claude.ai/artifact/HFzM8WqykBxJvkLdiqU85h>. Every design check, design
+review and UI test compares against it — light **and** dark — unless the user
+says otherwise for that task.
 
-- Mobile app → `docs/prototypes/mobile/scenes/*.html`
-- Trainer portal → `docs/prototypes/trainer/scenes/*.html`
-- Notion portal → `docs/prototypes/notion/scenes/*.html`
+- **Who can read what.** The canvas is a private claude.ai artifact: only the
+  main thread can open it (`Artifact` tool, `action: "read"`). Subagents read
+  the repo snapshot `docs/prototypes/formup-redesign/` instead (gallery
+  `index.html`, one HTML + PNG per board, clickable web prototype in
+  `interactive/`).
+- **Matching a screen to a board.** Boards are named after the screen:
+  `source/project/Page<Screen>{C,D}.dc.html` for the web portal (`C` light,
+  `D` dark), `Glass<Screen>{Light,Dark}` for the client app,
+  `Coach<Screen>{Light,Dark}` for the coach app. The exported copies are under
+  `web/`, `mobile-light|dark/`, `coach-light|dark/`. Issues and briefs name the
+  board (e.g. `PageTemplateDay`), not a file path.
+- **Keep the snapshot current.** Its README states the canvas version it was
+  exported from. Before a design check, the main thread compares that with the
+  live canvas; if the canvas is newer, re-export (README "Rebuilding") before
+  dispatching agents that rely on it.
+- **Superseded:** the older `docs/prototypes/{mobile,trainer,notion}/scenes/*.html`
+  prototypes. Use them only when the user asks for them explicitly.
 
 ## Routing rules
 

@@ -48,6 +48,9 @@ def macro(lbl, val, color, pct):
     return f'<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 6px"><span style="display: flex; align-items: center; gap: 5px; font-size: 12px; color: %%MUTED%%"><span style="width: 6px; height: 6px; border-radius: 3px; background: {color}"></span>{lbl}</span><span style="font-size: 14px; font-weight: 600">{val}</span>{thin_bar(pct, color, 3)}</div>'
 
 
+UNREAD_BADGE = '<span aria-label="{n} unread" style="position: absolute; top: -6px; right: -10px; min-width: 17px; height: 17px; padding: 0 4px; box-sizing: border-box; border-radius: 9px; background: %%RED%%; color: #FFFFFF; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 2px %%BG%%">{n}</span>'
+
+
 def tabbar(active, accessory):
     items = [("Today", "home", "%%RED%%"), ("Training", "dumbbell", "%%TRAIN_TEXT%%"), ("Nutrition", "leaf", "%%NUTRI_TEXT%%"), ("Messages", "chat", "%%RED%%")]
     out = ""
@@ -55,7 +58,7 @@ def tabbar(active, accessory):
         on = label == active
         bg = "background: %%SEG%%;" if on else ""
         c = col if on else "%%MUTED%%"
-        out += f'<a href="#" style="flex-grow: 1; height: 48px; border-radius: 24px; {bg} color: {c}; {A}; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 10px; font-weight: {600 if on else 500}">{ic(icon, 20, sw="1.8" if on else "1.6")}{label}</a>'
+        out += f'<a href="#" style="flex-grow: 1; height: 48px; border-radius: 24px; {bg} color: {c}; {A}; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 10px; font-weight: {600 if on else 500}"><span style="position: relative; display: flex">{ic(icon, 20, sw="1.8" if on else "1.6")}{UNREAD_BADGE.format(n=1) if label == "Messages" else ""}</span>{label}</a>'
     # accessory is ignored: the round button beside the tab bar was dropped (no clear job in this app)
     return f'''<nav aria-label="Tabs" style="position: absolute; left: 20px; right: 20px; bottom: 28px; height: 58px; padding: 0 5px; box-sizing: border-box; border-radius: 29px; {GL}; display: flex; align-items: center">{out}</nav>'''
 
