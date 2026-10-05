@@ -355,5 +355,6 @@ Intent-to-reality mapping for the removed rows:
 7. Sub-issue PR → re-dispatch `pr-reviewer` (`mode: merge-sub-issue`) to clear
    it, then run its pinned command yourself (no user pause) and close the issue.
    Epic / standalone PR → wait for explicit same-turn merge auth, then the same.
-8. After merge to `develop` (epic or standalone) → invoke `notion-docs`
-   (update mode). On first use in a fresh workspace → bootstrap mode.
+8. After **every** task's PR merges (sub-issue, standalone or epic) →
+   run `notion-docs` (update mode) on the main thread. It creates any
+   missing wiki pages itself; `build` mode is for recovery only.

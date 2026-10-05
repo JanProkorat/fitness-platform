@@ -80,6 +80,13 @@ root `CLAUDE.md` → Web Portal → Key conventions. `src/api/generated.ts` wrap
 the NSwag client and is write-locked — extend it via sibling modules in
 `src/api/`, and if the contract changed, run `regen-api` first.
 
+**Wiki screen inventory.** When you add, remove or rename a routed screen,
+or change which endpoints a screen calls, update its entry in
+`docs/wiki/screens.json` in the same change (`id`, `route`, `files`,
+`endpoints`, `shots`; leave `notionPageId` alone). Check it with
+`python3 scripts/wiki-check.py --swagger <swagger.json>` when a Swagger file
+is available; CI runs the same check.
+
 ## Commands
 - Dev: `npm run dev` (proxies to `https://localhost:5001`)
 - Verify via the **`react-verify`** skill (build+lint+test) / `react-build`

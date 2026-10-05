@@ -196,9 +196,24 @@ for cleanup.
 
 ---
 
+## 13. Wiki screen inventory current
+
+**Citation:** `.claude/skills/notion-docs/SKILL.md` → Fixed facts
+
+```bash
+git diff --name-only origin/<base>...HEAD -- 'web/src/pages/**' 'mobile/src/app/**' 'web/src/App.tsx'
+git diff origin/<base>...HEAD -- docs/wiki/screens.json
+```
+
+A page or route file added, removed or renamed (first command) with no
+matching `screens.json` change (second) → **BLOCKING**. A new API call on a
+screen whose entry's `endpoints` does not list it → **BLOCKING**.
+
+---
+
 ## Done when
 
-- All 12 items walked.
+- All 13 items walked.
 - Findings emitted in the strict 4-line shape.
 - `passes_complete` recorded as `self-only` after first pass; updated
   to `both` after fresh-eyes sub-reviewer agrees.

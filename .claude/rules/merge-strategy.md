@@ -51,8 +51,9 @@ When `pr-reviewer` returns ✅ READY FOR MERGE on a PR whose base is an
 - **Close the sub-issue by hand** via `github-issues`. `Fixes #<N>`
   only fires on merges into the default branch, never into an epic
   branch.
-- `notion-docs` is **not** dispatched per sub-issue. It runs once
-  after the epic ships to `develop`.
+- Run `notion-docs` (update mode) on the main thread after the
+  merge — the wiki updates at the end of every task, sub-issues
+  included.
 
 ## Authorized merge
 
@@ -99,10 +100,9 @@ to merge:
    local branch best-effort and removes the worktree. A failed
    fast-forward (dirty tree, local commits) is a ⚠️ warning to the
    user, not a rollback — the merge already landed.
-5. Orchestrator dispatches `notion-docs` (update mode) to document
-   the change. For an epic merge the docs entry covers all the
-   sub-issues that landed in the consolidated commit — not one per
-   sub-issue.
+5. Orchestrator runs `notion-docs` (update mode) on the main thread.
+   For an epic merge the sub-issues were already documented as they
+   merged, so this run is usually a no-op.
 
 ## Exclusion list
 

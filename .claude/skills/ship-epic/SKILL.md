@@ -460,8 +460,8 @@ Sub-issue PRs auto-merge per rule 8a — no per-PR user pause.
   own new changes only — compare `git diff origin/<epic>...<since>`
   with `git diff origin/<epic>...HEAD` (rule 7d). On a conflict, stop
   and resolve it as you would any merge; never `--force`.
-- **Do NOT dispatch `notion-docs`** for sub-issue merges. That fires
-  exactly once, in Phase 3, after the epic merges to `develop`.
+- **Run `notion-docs`** (update mode) after each sub-issue merges — the
+  wiki updates at the end of every task.
 
 Move on to the next child issue.
 
@@ -571,12 +571,9 @@ manually for an excluded epic):
 2. The epic issue itself usually auto-closed via `Fixes #<epic-N>` in
    the PR body. If not, ask the user whether to close it manually —
    sometimes an epic stays open as a tracking issue for a follow-up.
-3. **Single `notion-docs` pass** for the entire epic. Brief it with
-   the epic number, the merged commit SHA, the list of sub-issues
-   that landed, and the squashed-PR summary. This is the only
-   `notion-docs` invocation in the whole skill — sub-issue merges
-   onto the epic branch were intentionally not documented (they're
-   intermediate; the consolidated commit is what matters).
+3. **Final `notion-docs` update** after the epic merges to `develop`.
+   Sub-issues were documented as they merged, so this is usually a
+   no-op; it catches anything the epic PR itself changed.
 
 ---
 
@@ -601,8 +598,8 @@ manually for an excluded epic):
       Mongo data-mutation scripts) — those went back to the user.
 - [ ] All `.worktrees/<N>-<short>/` directories removed.
 - [ ] Local `develop` is synced and clean. Local epic branch deleted.
-- [ ] **Exactly one** `notion-docs` update landed for the entire
-      epic — at the end, after the epic merged to `develop`.
+- [ ] A `notion-docs` update ran after every sub-issue merge and once
+      after the epic merged to `develop`.
 - [ ] Epic issue was auto-closed via `Fixes #<epic-N>` (or commented
       with the final recap if the user opted not to close).
 
@@ -675,10 +672,6 @@ manually for an excluded epic):
   issue.
 - Never skip a gate to save a round trip. QA and review are the
   contract; bypassing them defeats the skill's purpose.
-- Never invoke `notion-docs` per sub-issue merge. The single
-  invocation lives at Phase 3, after the epic ships to `develop`.
-  N small docs entries for one epic is the failure mode this
-  skill explicitly avoids.
 - Never hand-edit `generated.ts`. If a child changed backend
   contracts, the web/mobile dev agent runs `regen-api` before
   touching call sites.

@@ -4,7 +4,6 @@ description: "Run the PR lifecycle after `qa-tester` returns ✅ PASS — create
 tools: Bash, Read, Grep, Glob, Agent, Write
 model: opus
 color: red
-skills: notion-docs
 memory: local
 ---
 
@@ -798,9 +797,9 @@ After the merge (main thread):
   - Fast-forward the local base (`git pull --ff-only`, never a hard
     reset), delete the local branch best-effort, remove the worktree
     after tearing down its compose harness.
-  - Dispatch `notion-docs` (update mode) to document the shipped change.
-    For an epic merge, the docs entry should cover the union of
-    sub-issues that landed in the consolidated commit.
+  - Run `notion-docs` (update mode) on the main thread — it needs the
+    browser and Notion tools, which sub-agents lack. For an epic merge it
+    covers every file the consolidated commit changed.
 ```
 
 ## Workflow — `merge-sub-issue` (PRs targeting an epic branch)
@@ -909,8 +908,8 @@ After the merge (main thread):
     harness, then remove its worktree.
   - Close the sub-issue via `github-issues` — the keyword won't fire.
   - Merge the new epic tip into these open siblings (no rebase): <list | none>.
-  - DO NOT dispatch `notion-docs` for sub-issue merges — that runs
-    once at the epic merge.
+  - Run `notion-docs` (update mode) on the main thread — the wiki
+    updates at the end of every task.
   - When all sub-issues have merged, dispatch me in
     `mode: open-and-review` with `base: develop` for the epic PR.
 ```
@@ -936,7 +935,7 @@ Severity ladder:
 
 Open
 [`references/review-checklist.md`](pr-reviewer/references/review-checklist.md)
-on every pass and walk all 12 items top-to-bottom. Don't skip even
+on every pass and walk all 13 items top-to-bottom. Don't skip even
 when the diff looks small. The checklist gives you exact grep / `gh`
 commands per rule and flags the right severity. Items 11 (merge
 exclusion list) and 12 (type-label set) terminate the review with
