@@ -1,6 +1,6 @@
 ---
 name: mobile-expo
-description: Use PROACTIVELY for any work touching `/mobile/**` — the React Native + Expo SDK 55 client app (Expo Router, Zustand, TanStack Query). Invoke for screens, components, hooks, stores, API modules, i18n, or styling. Do NOT modify `/backend` or `/web`. Do NOT edit `src/api/generated.ts`. Always use design tokens, never hardcoded colors or spacing.
+description: Use PROACTIVELY for any work touching `/mobile/**` — the React Native + Expo SDK 57 client app (Expo Router, routes in `src/app/`). Invoke for screens, components, hooks, and styling. Do NOT modify `/backend` or `/web`. Do NOT edit `src/api/generated.ts` once it exists. Never hardcode colors or spacing; use the design tokens once the app has them.
 tools: Read, Write, Edit, Grep, Glob, Bash, Agent
 model: sonnet
 permissionMode: acceptEdits
@@ -34,51 +34,42 @@ it to run design-review first (Rule 5.5).
 - [`rules/scope-boundaries.md#package-boundary-rule`](../rules/scope-boundaries.md#package-boundary-rule) — never edit outside `/mobile`.
 - [`rules/branch-and-pr.md#branch-prefix-per-label`](../rules/branch-and-pr.md#branch-prefix-per-label) — branch naming.
 - [`rules/branch-and-pr.md#where-the-branch-is-rooted`](../rules/branch-and-pr.md#where-the-branch-is-rooted) — base branch selection.
-- [`rules/code-style.md#design-tokens-over-hardcoded-values`](../rules/code-style.md#design-tokens-over-hardcoded-values) — `useTheme()` tokens only.
-- [`rules/code-style.md#no-hardcoded-api-base-urls`](../rules/code-style.md#no-hardcoded-api-base-urls) — `EXPO_PUBLIC_API_BASE_URL`.
+- [`rules/code-style.md#design-tokens-over-hardcoded-values`](../rules/code-style.md#design-tokens-over-hardcoded-values) — design tokens only, once the app has them.
+- [`rules/code-style.md#no-hardcoded-api-base-urls`](../rules/code-style.md#no-hardcoded-api-base-urls) — API base URL from env/config.
 - [`rules/code-style.md#no-any-in-typescript`](../rules/code-style.md#no-any-in-typescript) — strict-mode TS.
-- [`rules/code-style.md#generated-files-are-write-locked-if-the-repo-has-one`](../rules/code-style.md#generated-files-are-write-locked-if-the-repo-has-one) — `mobile/src/api/generated.ts` is write-locked; use `regen-api`.
-- Supported locales (`cs`/`en`/`de` — see this repo's `.claude/CLAUDE.md`) in
-  the same PR; the expo pack's i18n rule covers the mechanism generically.
+- [`rules/code-style.md#generated-files-are-write-locked-if-the-repo-has-one`](../rules/code-style.md#generated-files-are-write-locked-if-the-repo-has-one) — `mobile/src/api/generated.ts` is write-locked once it exists; use `regen-api`.
+- Once the app has i18n, new copy lands in every supported locale
+  (`cs`/`en`/`de` — see this repo's `.claude/CLAUDE.md`) in the same PR; the
+  expo pack's i18n rule covers the mechanism generically.
 - Verify via the **`expo-verify`** skill (typecheck+doctor+test) /
   `expo-build` (compile floor). Conventions live in the expo pack's `rules/`
   (code-style, navigation) + this repo's `CLAUDE.md` — cite, don't restate.
 
 ## Stack
-- React Native 0.83, Expo SDK 55, Expo Router (file-based, grouped routes)
+- React Native 0.86, Expo SDK 57, Expo Router (routes in `mobile/src/app/`)
 - TypeScript strict, **no `any`**
-- Zustand stores (auth, today, messages, theme, offline) + MMKV persistence
-- TanStack Query v5 for server data
-- Axios client with refresh-token rotation
-- SignalR via `@microsoft/signalr`
-- i18next (cs, en, de)
+- Restarted from a fresh `create-expo-app` project in #1160; no features yet.
+  i18n, the API client, design tokens and state management are **not set up
+  yet** — each lands with the first screen that needs it. Before using
+  Expo APIs, read `mobile/AGENTS.md` (Expo's own guidance for this SDK).
 
 ## Layout
 ```
-app/                        # Expo Router screens
-  (auth)/                   # Login, Register, VerifyEmail, Questionnaire
-  (client)/                 # Tab navigator (today, messages, discover, plans, profile)
-    training/ nutrition/ measurements/ messages/ discover/
-src/
-  api/             # domain modules + axios client + signalr
-  components/
-    ui/            # primitives (Avatar, Badge, GoldButton, MacroBar, …)
-    today/ messages/ trainers/ training/ nutrition/ notifications/ questionnaire/
-  hooks/           # 11 custom hooks (useTodayState, useSignalR, …)
-  stores/          # Zustand
-  constants/       # design tokens (colors, typography, radius)
-  i18n/            # cs, en, de
-  lib/             # queryClient, toast
+src/app/         # Expo Router screens (`_layout.tsx` + `index.tsx` only)
+assets/          # icons and splash images
+scripts/         # trust-dev-cert.sh
 ```
+Non-route code (components, hooks, stores, API) goes under `src/`, outside
+`src/app/`.
 
 ## Conventions
 
-Conventions (design tokens, styling, state model, realtime, i18n, auth) are
-not restated here — see the expo pack's `rules/` (cited above) and this
-repo's root `CLAUDE.md` → Mobile App → Key conventions. The brand accent
-(`#c9a84c`, gold) and `_layout.tsx`-for-sub-screens gotcha
-([`rules/navigation.md`](../rules/navigation.md)) are the two repo-specific
-facts worth calling out explicitly — everything else, read from the existing
+Conventions are not restated here — see the expo pack's `rules/` (cited
+above) and this repo's root `CLAUDE.md` → Mobile App → Key conventions.
+Add packages with `npx expo install`, and discuss new dependencies first.
+The `_layout.tsx`-for-sub-screens gotcha
+([`rules/navigation.md`](../rules/navigation.md)) is the one repo-specific
+fact worth calling out explicitly — everything else, read from the existing
 pattern via `required_reads`.
 
 **Wiki screen inventory.** When you add, remove or rename a routed screen,
@@ -90,9 +81,10 @@ is available; CI runs the same check.
 
 ## Commands
 - Dev: `npx expo start --ios` or `--android`
-- Verify via the **`expo-verify`** skill (typecheck+doctor) / `expo-build`
-  (compile floor) — never invoke `tsc` / `expo-doctor` directly. No
-  automated test suite exists today.
+- Verify via the **`expo-verify`** skill / `expo-build` (compile floor);
+  never invoke `tsc` or `expo-doctor` directly. Those skills run
+  `npm run typecheck` and `npm run expo-doctor`.
+  No automated test suite exists today.
 
 ## Research dispatch (token discipline)
 
@@ -104,21 +96,15 @@ for ≤2 known files (single exemplar pattern — see Working Principles §6
 in root `CLAUDE.md`).
 
 ## When to reach for a skill
-- Backend contract changed and already built? Run `regen-api` yourself for
-  `/mobile` — it's your package's generated client. The mobile repo does not
-  yet have an `npm run generate-api` script; the skill documents the manual
-  NSwag invocation and asks before adding a script (it's a dependency/config
-  decision). You do NOT need the orchestrator to run regen for you.
-- Adding a new Expo Router screen? Invoke the `mobile-screen` skill to
-  scaffold the `useTheme()` + TanStack Query + i18n shape, including the
-  `_layout.tsx` reminder for sub-folders.
+- Backend contract changed and the app has a generated client? Run
+  `regen-api` yourself for `/mobile`. The fresh app has no generated client
+  or `npm run generate-api` script yet; adding one is a dependency/config
+  decision, so ask first.
+- Adding a new Expo Router screen? Invoke the `expo-screen` skill for the
+  scaffold, including the `_layout.tsx` reminder for sub-folders; the theme,
+  data-fetching and i18n parts apply once the app has them.
 - Reacting to a realtime event? The `signalr-event` skill is orchestrator-run;
-  when it dispatches the Mobile section back to you, it tells you exactly
-  which `KNOWN_EVENTS` entry to add, which handler to register, and which
-  query keys to invalidate.
-- Before handing control back, invoke the `progress-update` skill to append a
-  mobile-scoped entry to `docs/PROGRESS.md` (unless the orchestrator will
-  aggregate cross-package changes into a single entry — check first).
+  its Mobile section applies once the app has a SignalR client.
 
 ## Branch discipline (parallel safety)
 
@@ -209,7 +195,7 @@ If you know you are stopping mid-task, write `status: "incomplete"` with
 
 ## Never
 - Edit anything outside `/mobile`.
-- Edit `src/api/generated.ts`.
-- Hardcode colors, spacing, or typography — use tokens via `useTheme()`.
+- Edit `src/api/generated.ts` (once it exists).
+- Hardcode colors, spacing, or typography — use the design tokens once the app has them.
 - Use `any` or `@ts-ignore` without a justification comment.
 - Add dependencies without asking the orchestrator first.

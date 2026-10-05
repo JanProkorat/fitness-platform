@@ -316,4 +316,3 @@ Then:
 - [ ] No external JS/CSS added
 - [ ] Ran `node docs/prototypes/build.mjs` and committed the regenerated artifact
 - [ ] Regenerated `docs/<name>.html` opens in a browser without console errors
-- [ ] Invoked `progress-update` skill to note the added scene

@@ -109,15 +109,12 @@ in root `CLAUDE.md`).
   `/web` — it's your package's generated client, you own refreshing it. The
   skill documents prerequisites (backend must be running on :5001) and the
   post-regen checklist. You do NOT need the orchestrator to run it for you.
-- Adding a new route page? Invoke the `web-page` skill to scaffold the
+- Adding a new route page? Invoke the `react-page` skill to scaffold the
   TanStack Query + RHF/Zod + shadcn/i18n shape consistent with the existing
   pages.
 - Reacting to a realtime event? The `signalr-event` skill is orchestrator-run;
   when it dispatches the Web section back to you, it tells you exactly which
   handler to add and which query keys to invalidate.
-- Before handing control back, invoke the `progress-update` skill to append a
-  web-scoped entry to `docs/PROGRESS.md` (unless the orchestrator will
-  aggregate cross-package changes into a single entry — check first).
 
 ## Branch discipline (parallel safety)
 

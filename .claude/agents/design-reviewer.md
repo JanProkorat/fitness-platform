@@ -49,7 +49,7 @@ The orchestrator dispatches you with:
    → `/web/**`; `mobile-expo` → `/mobile/**`.
 3. **Architecture fit.** Vertical-slice respected (no horizontal-layer
    creation). No hand-edits to `web/src/api/generated.ts` or
-   `mobile/src/api/generated.ts` (BLOCKING — must regenerate via
+   `mobile/src/api/generated.ts` if present (BLOCKING — must regenerate via
    `regen-api`). Mongo `Version` field bumped where applicable.
 4. **Security.** New backend endpoints have auth attribute + role/policy.
    Client-facing endpoints have ownership check (Trainer ↔ Client link).
@@ -140,8 +140,8 @@ The four enrichments to `approved_scope` (`required_reads`, `error_paths`,
 
 - **`required_reads`** — dev agent reads these BEFORE writing code,
   saves a speculative grep-storm.
-- **`error_paths`** — fe-endpoint TDD mode generates one failing test
-  per entry; qa-tester verifies each scenario as an AC.
+- **`error_paths`** — the dev agent writes one failing test per entry
+  (test-first, `dotnet-tdd`); qa-tester verifies each scenario as an AC.
 - **`needs_library_research`** — only set true when the issue touches
   APIs not used elsewhere. Dev agent dispatches a Haiku research scout.
 - **`estimated_complexity`** — drives ship-epic fast-path eligibility
