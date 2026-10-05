@@ -135,6 +135,16 @@ def test_non_string_id_is_reported_not_raised():
     assert any("must be" in p.lower() or "string" in p.lower() for p in found)
 
 
+def test_id_as_list_is_reported_not_raised():
+    found = problems_for(screen(id=["web", "clients", "list"]))
+    assert any("must be" in p.lower() or "string" in p.lower() for p in found)
+
+
+def test_shot_name_as_list_is_reported_not_raised():
+    found = problems_for(screen(shots=[{"name": ["default"]}]))
+    assert any("name must be a string" in p for p in found)
+
+
 def test_cli_rejects_swagger_with_non_dict_paths():
     root = make_repo()
     screens = root / "screens.json"

@@ -50,7 +50,8 @@ def check(document: object, swagger: dict, repo_root: Path) -> list[str]:
             continue
 
         problems.extend(f"{label}: {problem}" for problem in _check_entry(entry, seen_ids, operations, repo_root))
-        seen_ids.add(entry["id"])
+        if isinstance(entry["id"], str):
+            seen_ids.add(entry["id"])
 
     return problems
 
@@ -129,6 +130,8 @@ def _check_entry(entry: dict, seen_ids: set[str], operations: set[str], repo_roo
         name = shot.get("name") if isinstance(shot, dict) else None
         if not name:
             problems.append(f"shot #{position} has no name")
+        elif not isinstance(name, str):
+            problems.append(f"shot #{position} name must be a string")
         elif name in shot_names:
             problems.append(f"duplicate shot name '{name}'")
         else:

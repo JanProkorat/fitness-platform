@@ -201,7 +201,7 @@ for cleanup.
 **Citation:** `.claude/skills/notion-docs/SKILL.md` → Fixed facts
 
 ```bash
-git diff --name-status -M --diff-filter=ADR origin/<base>...HEAD -- 'web/src/pages/**' 'mobile/src/app/**'
+git diff --name-status -M --diff-filter=ADR origin/<base>...HEAD -- 'web/src/pages/**' 'mobile/app/**' 'mobile/src/app/**'
 git diff origin/<base>...HEAD -- web/src/App.tsx | grep -E '^[+-].*(<Route|path=)'
 git diff origin/<base>...HEAD -- docs/wiki/screens.json
 ```

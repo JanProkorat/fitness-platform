@@ -4,7 +4,7 @@
 Usage: echo '<upload_headers JSON>' | scripts/notion-upload.py <upload_url> <file>
 
 The JSON object is the upload_headers value from notion-create-file-upload; every
-header in it is sent. It is read from stdin so no token appears on a command line.
+header in it is sent. Headers come from stdin so nothing secret is passed as an argument; pipe them from a heredoc rather than echo to keep them out of the shell history.
 
 Only https://api.notion.com/v1/[mcp/]file_uploads/<uuid>/send is accepted, so
 the script cannot be pointed at any other host.

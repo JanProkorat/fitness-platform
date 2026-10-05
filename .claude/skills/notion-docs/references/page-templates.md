@@ -64,8 +64,7 @@ The `wiki-api.py` Markdown, plus under each endpoint:
 6. The script's JSON output contains `suggested_markdown` — place exactly that
    on the page (not a hand-written tag). Unplaced uploads expire within an hour.
 7. Mobile screens: not yet — native iOS Simulator screenshots
-   (`xcrun simctl io booted screenshot`) return with the paused iOS QA path
-   (see `.claude/agents/qa-tester.md`); never use Expo web for wiki screenshots.
+   (`xcrun simctl io booted screenshot`) come back once the mobile app has a test sign-in; never use Expo web for wiki screenshots.
 8. **On failure** (route errors, a step's control not found): keep the
    page's existing image and add the callout
    "⚠️ Screenshot out of date — capture failed on <date>". List it in the
