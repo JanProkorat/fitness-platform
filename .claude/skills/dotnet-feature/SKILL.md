@@ -37,9 +37,13 @@ Read before writing — nothing under `rules/` loads itself:
    caller may act on which data (ownership), and the coded errors the client
    must tell apart. Record assumptions in your handoff.
 2. **Read one exemplar of the same shape** before writing:
-   - EF-backed slice: `Features/NutritionPlans/GetPlan/`.
+   - EF read + link check: `Features/ClientMeasurements/GetClientMeasurements/`.
+   - Mongo read via a shared load-and-authorize extension: `Features/NutritionPlans/GetPlan/`.
    - Newer slice, `internal sealed` + `TimeProvider`: `Features/MealTemplates/CreateMealTemplate/`.
    - Otherwise glob `Features/*/*/*Endpoint.cs` for the nearest match.
+
+   Copy their structure, not their `Summary` — most list fewer `Responses`
+   than they return. The skeleton below is the standard.
 3. **Write in this order:** `Request` → `Validator` → `Response` → `Endpoint`.
 4. **New storage?** EF entity → base class per `rules/ef-core.md#entities`,
    register the `DbSet`, then hand off to `dotnet-migrate`. Mongo root
@@ -92,7 +96,7 @@ A request with **zero properties crashes the app at boot** — use
 /// <summary>
 /// Validates the <see cref="ArchiveMealTemplateRequest"/>.
 /// </summary>
-public class ArchiveMealTemplateValidator : Validator<ArchiveMealTemplateRequest>
+internal sealed class ArchiveMealTemplateValidator : Validator<ArchiveMealTemplateRequest>
 {
     /// <summary>
     /// Initializes validation rules for archiving a meal template.
@@ -100,13 +104,13 @@ public class ArchiveMealTemplateValidator : Validator<ArchiveMealTemplateRequest
     public ArchiveMealTemplateValidator()
     {
         RuleFor(x => x.Reason)
-            .MaximumLength(500)
-            .When(x => x.Reason is not null);
+            .MaximumLength(500);
     }
 }
 ```
 
-FastEndpoints' `Validator<T>`, never `AbstractValidator<T>`. Domain rules carry
+FastEndpoints' `Validator<T>`, never `AbstractValidator<T>`; accessibility
+matches the endpoint and the surrounding slice. Domain rules carry
 `.WithErrorCode(ErrorCodes.X)` plus `.WithMessage(...)`; plain shape checks
 usually don't (`rules/validation.md#validator-class`).
 
@@ -159,6 +163,7 @@ internal sealed class ArchiveMealTemplateEndpoint(IMongoContext mongo, TimeProvi
             s.Description = "Hides the caller's own meal template from the library.";
             s.Responses[StatusCodes.Status200OK] = "Archived template";
             s.Responses[StatusCodes.Status400BadRequest] = "Invalid request";
+            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
             s.Responses[StatusCodes.Status404NotFound] = "Template not found, or not owned by the caller";
             s.Responses[StatusCodes.Status409Conflict] = "Template is already archived";
         });
@@ -191,9 +196,10 @@ What each line is answering:
 - **Roles** — `Roles(AppRoles.X, …)` varargs form, never a string literal or
   `Policies(...)` (`rules/api-design.md#authorization`).
 - **Ownership** — a role is not an ownership check. Any endpoint that touches a
-  specific client's or coach's data verifies the caller's link and capability
-  (`HasAnyPlanAccessAsync` and friends), or reuses an existing
-  `Load…IfAllowedAsync` extension from `Domain/Extensions/`.
+  specific client's data verifies the caller's live link and capability —
+  `IClientLinkAuthorizationService.GetCapabilitiesByClientPublicIdAsync` /
+  `…ByClientUserIdAsync` return `LinkCapabilities?` (`null` = no live link) —
+  or reuses an existing `Load…IfAllowedAsync` extension from `Domain/Extensions/`.
 - **Summary** — mandatory, with a `Responses[...]` entry for every status the
   endpoint can return (`rules/api-design.md#configure-structure`).
 - **Responses** — `Send.*Async(ct)` for bare statuses, `this.SendProblemAsync`

@@ -1,35 +1,38 @@
 ---
 name: dotnet-tdd
-description: Test-first flow for .NET endpoints — red integration test, minimal impl, unit tests for failures, refactor, review. Use on "TDD", "red-green-refactor", test-first, or regression-then-fix.
-argument-hint: "<feature> <endpoint description>"
+description: Test-first flow for this backend's FastEndpoints endpoints — failing integration test, minimal implementation, then one test per failure path at the cheapest layer, refactor, review. Use on "TDD", "red-green-refactor", test-first, or regression-then-fix.
+argument-hint: "<Area> <endpoint description>"
 ---
 
 # TDD Workflow
 
-**Iron law:** the failing integration test is written *before* the endpoint exists.
+**Iron law:** the failing test is written *before* the code it tests.
 
-Red → Green → Refactor: one failing test, minimum code to pass, cleanup while green. Theory + testing conventions (stack, fixtures, collections, cancellation tokens) live in `references/testing-conventions.md`.
+Red → Green → Refactor: one failing test, minimum code to pass, cleanup while
+green. `rules/testing.md` decides which layer each case belongs to; this
+skill only gives the order of work. Where they disagree, the rule wins.
 
 ## When to use
+
 - Adding an endpoint test-first.
-- Reproducing then fixing a bug with a regression test.
+- Reproducing a bug with a failing test, then fixing it.
 - User says "TDD", "red-green-refactor", "test-first".
 
 ## When not to use
-- Scaffolding without test-first → `/dotnet-feature`.
-- Pure convention check → `/dotnet-review`.
+
+- Scaffolding without test-first → `dotnet-feature`.
+- Pure convention check → `dotnet-review`.
 
 ## Required rules
 
-Load these at invocation — nothing under `rules/` loads itself, enumerate explicitly:
+Read before writing — nothing under `rules/` loads itself:
 
-- `skills/dotnet-tdd/references/testing-conventions.md` — test stack, collections, fixtures, cancellation tokens, test ordering.
-- `rules/architecture.md` — vertical-slice layout the tests must respect.
-- `rules/api-design.md` — endpoint shape the integration test exercises.
-- `rules/error-handling.md` — Result + ROP patterns the unit tests assert against.
-- `rules/validation.md` — FluentValidation behaviour under `TestValidate`.
-- `rules/naming.md` — `{Method}_{Scenario}_{ExpectedResult}` test naming.
-- `rules/csharp-style.md` — records for DTOs, `TimeProvider`/`FakeTimeProvider`, `CancellationToken` propagation.
+- `rules/testing.md` — all of it: layers, authorization, validation, builders, isolation, running tests.
+- `skills/dotnet-tdd/references/testing-conventions.md` — the concrete test types (`TestActors`, `FitnessApiFactory`, `MockDbBuilder`, `EndpointTestHelpers`).
+- `rules/validation.md#testing-validators` — `TestValidate`, assert on `ErrorCode`/`ErrorMessage`.
+- `rules/naming.md#test-naming` — `{Method}_{StateUnderTest}_{ExpectedBehavior}`.
+- `rules/api-design.md` — the endpoint shape under test.
+- `rules/error-handling.md#send-for-expected-errors` — which status/code each failure returns.
 
 ## Cycle
 
@@ -39,106 +42,86 @@ RED → GREEN → REFACTOR → REVIEW
 
 One test case per tick — not the whole endpoint.
 
-## Unit-first for failure paths
+## Running tests
 
-Per `references/testing-conventions.md`: unit tests cover all failure branches (401, 403, 400, 404, 409). Integration covers happy path (HTTP stack + real DB).
+Always scope a run to the class you are working on:
+
+```bash
+dotnet test backend/FitnessPlatform.Tests/FitnessPlatform.Tests.csproj -- --filter-class "FitnessPlatform.Tests.Endpoints.{Area}.{Action}EndpointTests"
+```
+
+Plain `dotnet test --filter …` is silently ignored and runs the whole suite
+(`rules/testing.md#running-tests`). Check the reported count matches the
+class — a count in the thousands means the filter did nothing.
 
 ## Step 1 — RED
 
-- Pick simplest success case (command: 201; query: 200 with expected DTO).
-- Create test class in `.Tests.Integration`, follow `references/testing-conventions.md` → Test collections, Test base, Fixture.
-- Run: `dotnet test --filter "FullyQualifiedName~{Action}{Entity}EndpointTests"`.
-- Must fail (compile error or 404/405). **Do not implement until RED.**
-
-Minimum stub:
-
-```csharp
-[Collection(TestConstants.Collections.{Feature}Test)]
-public class {Action}{Entity}EndpointTests(IntegrationTestFixture app) : TestBase
-{
-    protected override async ValueTask SetupAsync() => await app.ResetDatabaseAsync();  
-
-    [Fact]
-    public async Task HandleAsync_ValidRequest_ReturnsCreatedWithId()
-    {
-        AuthTestHelper.SetAuthHeaders(app.Client, Roles.Employee);
-        var response = await app.Client.PostAsJsonAsync(
-            "api/{feature}",
-            new {Action}{Entity}Request { /* minimal valid payload */ },
-            TestContext.Current.CancellationToken);
-
-        response.StatusCode.Should().Be(HttpStatusCode.Created);
-        var id = await response.Content.ReadFromJsonAsync<Guid>(TestContext.Current.CancellationToken);
-        id.Should().NotBeEmpty();
-    }
-}
-```
+- Pick the simplest success case (create: 201; read: 200 with the expected body).
+- Write it as an **integration** test: `[Collection(TestCollection.Name)]`,
+  `FitnessApiFactory`, actors from `TestActors` (shape in
+  `references/testing-conventions.md#collection-attribute`).
+- Run the scoped command. It must fail — compile error or 404/405. **Do not implement until RED.**
 
 ## Step 2 — GREEN
 
-Hand off to `/dotnet-feature` for scaffolding. Implement only what this test requires. Order:
+Hand off to `dotnet-feature` for the slice. Implement only what this test needs:
 
-1. `{Action}{Entity}Request.cs`
-2. Response DTO (if needed)
-3. Entity + EF config + migration (if new table) → `/dotnet-migrate`
-4. `{Action}{Entity}Endpoint.cs`
+1. `{Action}Request.cs`
+2. `{Action}Response.cs` (if the endpoint returns a body)
+3. New EF entity → `dotnet-migrate` (generate and read `Up()`, never apply); new Mongo root document → `mongo-document`
+4. `{Action}Endpoint.cs`
 
-Rerun filtered test until GREEN.
+Rerun the scoped test until GREEN.
 
-## Step 3 — add failure cases (one at a time)
+## Step 3 — failure cases, one at a time
 
-Order per `references/testing-conventions.md#test-ordering`. Failure cases are **unit tests** in `.Tests.Unit`:
+Add each at the cheapest layer that proves it (`rules/testing.md#what-each-layer-is-for`):
 
-1. `HandleAsync_Unauthorized_Returns401`
-2. `HandleAsync_InsufficientPermission_Returns403`
-3. `HandleAsync_InvalidInput_Returns400` (if validator, via `TestValidate`)
-4. `HandleAsync_{Entity}NotFound_Returns404`
-5. `HandleAsync_{Condition}_Returns409` (per business rule)
-6. `HandleAsync_ValidRequest_Persists{Entity}ToDatabase` — **integration**, DB-state assertion
+1. **Validator rules** — one `TestValidate` test per rule and boundary, in `{Action}ValidatorTests`.
+2. **Validation is wired** — exactly one 400 test on the endpoint (`rules/testing.md#validation`).
+3. **Ownership / link / capability** — a 404 or 403 test for every check the endpoint makes itself (`rules/testing.md#authorization`).
+4. **Not found** — 404 for a missing entity.
+5. **Business state** — 409 (or the coded error) per rule.
+6. **Persisted state** — integration test asserting what was stored, not just the status.
 
-Each: RED → GREEN. If a new test is immediately green, it isn't exercising the code you think — fix it first.
+Do **not** write "no auth → 401" or "wrong role → 403" tests. The
+architecture test covers every endpoint's `Roles(...)` declaration.
+
+Each case: RED → GREEN. A new test that is green on first run is not
+exercising the code you think — fix the test first.
 
 ## Step 4 — REFACTOR
 
 Clean up without changing behaviour:
 
-- YES: extract private methods for multi-step logic
-- YES: extract guard branches into named private methods if `HandleAsync` exceeds ~50 lines
-- YES: switch to ROP chain if 3+ sequential fallible guards (`error-handling.md` → "Complex Case")
-- YES: add missing `AsNoTracking()` on reads
-- YES: fill in XML `/// <summary>` docs
-- YES: remove scaffolding comments
+- Extract private methods once `HandleAsync` passes ~50 lines (`rules/api-design.md#endpoint-pattern`).
+- Three or more guards → a `Load{Entity}OrRespondAsync` helper (`rules/api-design.md#extract-guards-when-many`).
+- `AsNoTracking()` on EF reads; XML `/// <summary>` docs; remove scaffolding comments.
 
-After each change: `dotnet test --filter "FullyQualifiedName~{Action}{Entity}EndpointTests"`. Red → revert, try smaller refactor.
+Rerun the scoped class after each change. Red → revert, take a smaller step.
 
 ## Step 5 — REVIEW
 
-Run `/dotnet-review` on the diff. Apply critical fixes, rerun tests.
+Run `dotnet-review` on the diff. Apply its critical fixes, rerun the scoped class.
 
 ## Step 6 — final verification
 
-```bash
-dotnet test       # full suite — no regressions
-dotnet build      # no warnings
-```
-
-## ROP and TDD
-
-Endpoint with 4+ fallible steps (fetch user → permission → domain rule → conflict → save) → one `[Fact]` per step. Each `.Then()` corresponds to one `Returns{status}` test.
+Run `dotnet-verify`. If you are a dev sub-agent, report your scoped runs and
+leave the full suite to the main thread, which owns that gate.
 
 ## Don't
 
-- Don't write the endpoint first and tests second — kills the discriminating signal.
-- Don't write all six tests upfront — loses per-step RED/GREEN rhythm.
-- Don't mock `DbContext` in integration tests — use TestContainers (fakes fine in unit).
-- Don't use `DateTime.UtcNow` in tests — `FakeTimeProvider` via DI.
-- Don't test private methods — test through the HTTP boundary.
-- Don't skip REFACTOR while tests are green — debt compounds.
+- Don't write the endpoint first and the test second — you lose the proof the test can fail.
+- Don't write every test up front — you lose the per-case RED/GREEN signal.
+- Don't mock the database in an integration test; that is what the containers are for.
+- Don't rely on a Mongo mock for filter behaviour — `MockMongoBuilder` ignores filters.
+- Don't assert only `NotBeNull()` — assert the outcome (`rules/testing.md#assertions`).
+- Don't test private methods — go through the endpoint.
 
 ## Done when
 
-- [ ] `dotnet test --filter "FullyQualifiedName~{Action}{Entity}EndpointTests"` green.
-- [ ] Unit tests cover 401/403/400/404/409 as applicable; integration covers happy path + DB state.
-- [ ] `dotnet test` green (full suite, no regressions).
-- [ ] `dotnet build` no warnings.
-- [ ] `/dotnet-review` run; critical findings resolved.
+- [ ] The scoped class is green, run with `-- --filter-class`, and its count matches the class.
+- [ ] Every ownership/link/state check has a failing-path test; validator rules are covered by `TestValidate`; one 400 test proves validation is wired.
+- [ ] No per-endpoint 401/403-by-role tests were added.
+- [ ] `dotnet-verify` passed (or the full suite is handed to the main thread).
+- [ ] `dotnet-review` run; critical findings resolved.

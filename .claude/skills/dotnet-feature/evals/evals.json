@@ -17,9 +17,9 @@
     },
     {
       "id": 2,
-      "name": "trainer-client-note-entity",
-      "prompt": "Scaffold a new feature letting a trainer add a private note to one of their linked clients: POST /trainer/clients/{ClientId}/notes with Text (required, max 2000). There is no storage for it yet — create the EF entity too. Returns 201 with the note's public id.",
-      "expected_output": "New entity in Domain/Entities inheriting PublicTimestampableEntity (no redeclared Id), DbSet registered, migration handed to dotnet-migrate and not applied. Endpoint checks the caller's live link to the client (not only the Trainer role) and returns 404/403 when there is none. Response exposes PublicId. Send.CreatedAtAsync tested through FitnessApiFactory. Includes a 403/404 test for the missing link.",
+      "name": "client-milestone-entity",
+      "prompt": "Scaffold a new feature letting a trainer or nutritionist record a milestone for one of their linked clients: POST /trainer/clients/{ClientId}/milestones with Title (required, max 200) and AchievedOn (date). There is no storage for it yet — create the EF entity too. Returns 201 with the milestone's public id.",
+      "expected_output": "New entity in Domain/Entities inheriting PublicTimestampableEntity (no redeclared Id), DbSet registered, migration handed to dotnet-migrate and not applied. AchievedOn is DateOnly. Endpoint checks the caller's live link via IClientLinkAuthorizationService.GetCapabilitiesByClientPublicIdAsync (not only the role) and returns 404 when there is none. Response exposes PublicId. Send.CreatedAtAsync tested through FitnessApiFactory. Includes a 403/404 test for the missing link.",
       "files": []
     },
     {
