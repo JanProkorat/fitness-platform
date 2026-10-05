@@ -33,15 +33,23 @@ facts live in the root `CLAUDE.md` and in this folder's `CLAUDE.md`.
 │
 ├── skills/              — Invocable workflows (frontmatter `argument-hint`)
 │   ├── ship-epic/          (orchestrator-only, `disable-model-invocation: true`)
-│   ├── debug/              systematic per-status-code investigation
-│   ├── fe-endpoint/        FastEndpoints scaffolder + TDD mode
+│   ├── dotnet-feature/     FastEndpoints vertical-slice scaffolder
+│   ├── dotnet-tdd/         test-first flow for .NET endpoints
+│   ├── dotnet-debug/       systematic per-status-code investigation
+│   ├── dotnet-migrate/     EF Core migration workflow
+│   ├── dotnet-review/      .NET convention review
+│   ├── dotnet-build/ dotnet-verify/   .NET build floor / full verification
 │   ├── mongo-document/     MongoDB root-aggregate scaffolder
 │   ├── signalr-event/      end-to-end realtime event wiring
 │   ├── regen-api/          NSwag-driven generated.ts regen
-│   ├── web-page/           trainer-portal page scaffolder
-│   ├── mobile-screen/      Expo Router screen scaffolder
+│   ├── react-page/         trainer-portal page scaffolder
+│   ├── react-build/ react-verify/     web build floor / full verification
+│   ├── expo-screen/        Expo Router screen scaffolder
+│   ├── expo-build/ expo-verify/       mobile typecheck floor / full verification
+│   ├── frontend-review/    cross-framework frontend review checklist
 │   ├── prototype-scene/    HTML prototype scene scaffolder
-│   ├── notion-docs/        Notion documentation maintenance
+│   ├── notion-docs/        Notion wiki maintenance
+│   ├── daily-resercher/    Claude Code ecosystem survey
 │   ├── root-cause-swarm/   parallel hypothesis exploration (multi-layer bugs)
 │   └── ui-tradeoff/        two-attempt stop rule for animation/layout
 │
@@ -191,8 +199,8 @@ If you want to lift this setup into another project:
   permission shape (deny + ask blocks).
 - **Replace**: dev agents (`backend-dotnet` etc. are project-specific —
   swap for your stack's specialists). Project-fact section of root
-  `CLAUDE.md`. Skill set (lift `debug` and `root-cause-swarm`; replace
-  scaffolding skills like `fe-endpoint` for your framework).
+  `CLAUDE.md`. Skill set (lift `root-cause-swarm` and `ui-tradeoff`; replace
+  stack skills like `dotnet-feature` / `dotnet-debug` for your framework).
 - **Re-evaluate**: `ship-epic` is GitHub-issue-driven; if your project
   doesn't use the epic-branch model, the skill needs heavy rewriting.
   Same for `notion-docs` (Notion-specific).

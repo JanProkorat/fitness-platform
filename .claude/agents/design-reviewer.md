@@ -140,7 +140,7 @@ The four enrichments to `approved_scope` (`required_reads`, `error_paths`,
 
 - **`required_reads`** — dev agent reads these BEFORE writing code,
   saves a speculative grep-storm.
-- **`error_paths`** — fe-endpoint TDD mode generates one failing test
+- **`error_paths`** — the `dotnet-tdd` skill writes one failing test
   per entry; qa-tester verifies each scenario as an AC.
 - **`needs_library_research`** — only set true when the issue touches
   APIs not used elsewhere. Dev agent dispatches a Haiku research scout.
