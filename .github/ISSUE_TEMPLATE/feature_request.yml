@@ -1,7 +1,7 @@
 name: ✨ Feature request
 description: Propose a new capability or improvement.
 title: "[feature] <short summary>"
-labels: ["type:feature", "status:needs-triage"]
+labels: ["Task"]
 body:
   - type: dropdown
     id: scope

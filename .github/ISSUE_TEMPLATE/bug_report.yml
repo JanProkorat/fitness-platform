@@ -1,7 +1,7 @@
 name: 🐞 Bug report
 description: Something isn't working as expected.
 title: "[bug] <short summary>"
-labels: ["type:bug", "status:needs-triage"]
+labels: ["Bug"]
 body:
   - type: markdown
     attributes:

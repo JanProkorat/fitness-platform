@@ -47,7 +47,7 @@
     },
     "merge_strategy": {
       "enum": ["squash", "rebase", null],
-      "description": "Determined by PR's type:* label. squash for feature/bug/refactor; rebase for docs/chore. null when verdict is not READY-FOR-MERGE."
+      "description": "Always squash since #1163 (rebase kept in the enum for old handoffs). null when verdict is not READY-FOR-MERGE."
     },
     "blocked_reason": {
       "type": ["string", "null"],
