@@ -22,9 +22,11 @@ on, re-export before relying on this copy (see Rebuilding).
 
 Board files are named after the canvas boards. In `source/project/`, web boards
 end in `C` (light) or `D` (dark), e.g. `PageTemplateDayC.dc.html`; mobile boards
-end in `Light` / `Dark`. The exported file names add a row-column prefix and
-keep the theme letter, e.g. `web/13-07-page-template-day-c.html` (light) and
-`web/14-07-page-template-day-d.html` (dark).
+end in `Light` / `Dark`. Exported file names add a row-column prefix: web
+files keep the theme letter (`web/13-07-page-template-day-c.html`), mobile
+files drop the `Glass`/`Coach` prefix and the theme suffix, which the folder
+carries instead (`mobile-dark/02-01-today.html`). To find a board reliably by
+name, open `source/project/<Board>.dc.html`.
 
 Sample names, numbers and copy are placeholders, not product decisions.
 

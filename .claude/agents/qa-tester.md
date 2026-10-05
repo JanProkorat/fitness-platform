@@ -86,8 +86,9 @@ Practical consequence:
 - A green AC on a branch that regresses an unrelated test is still a
   FAIL — regression coverage is part of the gate.
 - A green AC on a screen that visibly diverges from its redesign board
-  is still a FAIL — design fidelity is part of the gate for every UI change,
-  unless the dispatch says the user waived it for this task.
+  is still a FAIL — design fidelity is part of the gate for every UI change
+  to a redesigned or new screen, unless the dispatch says the user waived it
+  for this task (step 5 defines "redesigned").
 - "Probably works" is not evidence. Every check needs a concrete
   artefact: a command + its output, a file + line reference, a test name
   that went green, an HTTP response body, a Playwright accessibility-tree
@@ -657,7 +658,15 @@ resource — do not PASS.
 The source of truth is the Form Up redesign canvas, read through its repo
 snapshot `docs/prototypes/formup-redesign/` (`.claude/CLAUDE.md`, "Design
 source of truth"). This step is mandatory whenever the diff touches `/web` or
-`/mobile` UI, unless the dispatch says the user waived it for this task.
+`/mobile` UI on a redesigned or new screen, unless the dispatch says the user
+waived it for this task.
+
+A screen is **redesigned** when the issue names its redesign board, or the
+dispatch says the screen is built to the redesign. A **new** screen is one the
+diff adds. A change to an existing screen that is neither (a bug fix on a
+screen not yet rebuilt to the redesign) is **not applicable**: report
+"Screen not yet redesigned — fidelity check not applicable" and do not FAIL on
+divergence from a board.
 If the snapshot README's canvas version is older than the version the
 dispatch names, report that before comparing.
 
@@ -688,7 +697,7 @@ mobile `…Light` / `…Dark`):
        branch (read from Expo's startup log — typically
        `http://localhost:8081/<route>`).
      - Snapshot accessibility tree + screenshot.
-     - Also open the board via `file://…/docs/prototypes/formup-redesign/mobile-light/<file>.html` (and `mobile-dark/`).
+     - Also open the board via `file://…/docs/prototypes/formup-redesign/<mobile-light|coach-light>/<file>.html` (and the `-dark/` twin): `Glass…` boards live under `mobile-*/`, `Coach…` boards under `coach-*/`.
      - Snapshot accessibility tree + screenshot.
      - If the component uses an Expo-web-unsafe primitive (see
        caveat list in the Playwright section), note it and attach a
@@ -743,9 +752,11 @@ mobile `…Light` / `…Dark`):
    gitignored repo-wide. Lift the gitignore rule for
    `.qa-artifacts/baselines/` to share baselines across machines / CI.
 
-Skip step 5 only when the diff has no `/web` or `/mobile` UI change, or the
-dispatch says the user waived it; note which in the verdict ("No UI change —
-fidelity check not applicable" / "Fidelity check waived by the user").
+Skip step 5 only when the diff has no `/web` or `/mobile` UI change, the
+changed screen is not yet redesigned (see above), or the dispatch says the
+user waived it; note which in the verdict ("No UI change — fidelity check not
+applicable" / "Screen not yet redesigned — fidelity check not applicable" /
+"Fidelity check waived by the user").
 
 ### 5b. Accessibility pass (axe-core MCP, post-AC)
 
@@ -831,7 +842,7 @@ Per-criterion results:
      Evidence: ...
 
 Prototype fidelity:
-  <per-board summary from step 5, light + dark, OR "No UI change" / "Waived by the user">
+  <per-board summary from step 5, light + dark, OR "No UI change" / "Screen not yet redesigned" / "Waived by the user">
 
 Additional findings (not in the AC but blocking):
   - e.g. "de locale missing for 2 new keys — hard fail"
@@ -961,9 +972,9 @@ A malformed handoff exits non-zero — fix and re-run.
   runs on every dispatch — on a delta check (input 4) that means the
   build plus scoped tests for the touched code, with the orchestrator's
   full-suite and CI evidence spot-checked.
-- Skip step 5 on a UI change. Design fidelity against the redesign
-  boards is part of the contract for every UI change unless the user
-  waived it for this task.
+- Skip step 5 on a UI change to a redesigned or new screen. Design
+  fidelity against the redesign boards is part of the contract there
+  unless the user waived it for this task.
 - PASS a web or mobile AC on static checks alone when Playwright was
   expected. Either drive the flow through Playwright, or degrade to
   ⚠️ UNVERIFIED and say Playwright was unavailable.
