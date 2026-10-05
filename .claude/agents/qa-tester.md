@@ -463,24 +463,22 @@ no historical state for fresh accounts.
 
 ## Mobile web boot — known friction
 
-The mobile app's Zustand stores read from `react-native-mmkv` at
-module-load time, which can crash Metro's SSR pre-render on expo-web
-if the stores aren't SSR-guarded. If you see `Tried to access storage
-on the server`, that's the symptom. The current codebase has guards on
-`auth.ts`, `todayStore.ts`, `liveSessionStore.ts`; if a new store
-shows the same crash, route back to `mobile-expo` with "add a
-`typeof window === 'undefined' → return default` guard at the
-module-load read" — do not try to patch it yourself.
+Two failure shapes broke Expo web in the old app (before #1160) and
+will come back as the fresh app grows:
 
-Similarly, any component that imports `react-native-pager-view`
-directly will crash expo-web. There's a platform-split wrapper at
-`mobile/src/components/ui/PagerViewPlatform.tsx` (+ `.web.tsx`). If
-you find a new direct import, flag it as a regression.
+- **Storage read at module load.** A store that reads persistent
+  storage when its module loads crashes Metro's server pre-render on
+  Expo web (`Tried to access storage on the server`). Route back to
+  `mobile-expo` with "guard the module-load read with
+  `typeof window === 'undefined'`" — do not patch it yourself.
+- **Native-only module imported directly.** A component importing a
+  native-only library (the old app's case was `react-native-pager-view`)
+  crashes Expo web unless it goes through a `.web.tsx` platform split.
+  Flag a new direct import as a regression.
 
-These are fragile points — a single import in a new screen can
-rebreak expo-web and block every subsequent interactive QA. Catching
-them in QA is worth a quick `npx expo start --web` smoke run even for
-static-only changes.
+A single import in a new screen can break Expo web and block
+interactive QA, so a quick `npx expo start --web` smoke run is worth it
+even for static-only mobile changes.
 
 ## Inputs you expect from the orchestrator
 
