@@ -1,8 +1,9 @@
-# Update mode — at the end of every task
+# Update mode — after every merge into `develop`
 
-Runs after the task's PR merges: into the epic branch for a sub-issue, into
-`develop` for a standalone or epic PR. The wiki grows from here — there is no
-up-front build.
+Runs after a standalone task's PR merges into `develop`, and once after an epic
+PR merges into `develop`. Never after a task PR merges into an epic branch. An
+epic run covers every file the epic PR changed (`gh pr view <n> --json files`
+below). The wiki grows from here — there is no up-front build.
 
 ## 0. Make sure the skeleton exists
 

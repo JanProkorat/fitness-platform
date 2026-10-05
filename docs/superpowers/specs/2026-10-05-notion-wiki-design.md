@@ -24,7 +24,7 @@ without reading code.
 | API docs placement | One API reference + a linked "Technical" list on each screen page |
 | Reader | New team member |
 | Language | English (app screenshots in Czech, the primary locale) |
-| Update trigger | At the end of each task: after its PR merges (into the epic branch or `develop`), only what changed |
+| Update trigger | After every merge into `develop` — a standalone task after its own merge, an epic once after the whole epic merges; never after a task → epic-branch merge (decided 2026-10-05). Only what changed |
 | Starting inventory | Empty — each redesign task adds its screens when it ships (decided 2026-10-05) |
 | API content source | Generated from Swagger, plus error codes and validator rules read from code |
 | Screenshot upload | `scripts/notion-upload.py` (curl stays denied); verified 2026-10-05 |
@@ -144,7 +144,7 @@ never deletes an image.
 
 **The wiki grows task by task.** `screens.json` starts empty and nothing
 is built up front. Each redesign task that ships a screen adds its entry;
-the update run at the end of that task creates the page. Missing app, area,
+the update run after that task's merge into `develop` creates the page. Missing app, area,
 "API reference" and "Glossary" pages are created the first time they are
 needed. The Notion root page `Fitness & Nutrition Platform`
 (`3451c0f6-641f-81cf-b502-fbd0e6227e27`) is reused.
@@ -152,8 +152,10 @@ needed. The Notion root page `Fitness & Nutrition Platform`
 **Build** — recreates the full tree from `screens.json` + Swagger. Only for
 recovery, when the tree is lost or the user asks for a rebuild.
 
-**Update** — at the end of every task: after its PR merges, into the epic
-branch (sub-issue) or `develop` (standalone or epic PR):
+**Update** — after every merge into `develop`: a standalone task's PR after
+its own merge, an epic PR once after the whole epic merges. Never after a task
+PR merges into an epic branch. An epic run covers every file the epic PR
+changed:
 
 1. List the files the merge changed.
 2. Match against `screens.json` `files` → affected screens; changed folders
@@ -177,9 +179,10 @@ it is now.
   (`build.md` replacing `bootstrap.md`, `update.md`, `page-templates.md`);
   delete `references/routing.md` (replaced by `screens.json`).
 - Add an empty `docs/wiki/screens.json` (`{"screens": []}`).
-- Move the docs trigger from "develop merges only" to "every task's merge"
-  in `.claude/rules/merge-strategy.md`, `.claude/CLAUDE.md` (task lifecycle)
-  and `pr-reviewer`.
+- Make the main thread run the docs update after every merge into `develop`
+  (standalone task or epic PR; never a task → epic-branch merge) in
+  `.claude/rules/merge-strategy.md`, `.claude/CLAUDE.md` (task lifecycle),
+  `ship-epic` and `pr-reviewer`.
 - Add `scripts/wiki-api.py`, `scripts/wiki-check.py`; commit the existing
   `scripts/notion-upload.py`.
 - Add a `wiki-check` step to CI.

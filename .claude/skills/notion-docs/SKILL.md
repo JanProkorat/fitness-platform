@@ -1,6 +1,6 @@
 ---
 name: notion-docs
-description: Build and update the GoodFellas Notion wiki — app → area → screen pages explaining every control, real-app screenshots, and an API reference generated from Swagger. Two modes — update (at the end of every task, after its PR merges) and build (recovery rebuild). Main thread only. Invoke on "update the wiki", "update the docs", "rebuild the wiki", or after any task's PR merges.
+description: Build and update the GoodFellas Notion wiki — app → area → screen pages explaining every control, real-app screenshots, and an API reference generated from Swagger. Two modes — update (after every merge into `develop`: a standalone task PR or an epic PR, never a task PR into an epic branch) and build (recovery rebuild). Main thread only. Invoke on "update the wiki", "update the docs", "rebuild the wiki", or after any PR merges into `develop`.
 ---
 
 # notion-docs — the Notion wiki
@@ -16,13 +16,13 @@ need the Notion tools; sub-agents have neither. Sub-agents only draft text.
 
 | Mode | When | Reference |
 |---|---|---|
-| `update` | **End of every task:** after its PR merges — into the epic branch (sub-issue) or `develop` (standalone or epic PR) — or "update the wiki". | [`references/update.md`](references/update.md) |
+| `update` | **After every merge into `develop`** — a standalone task PR after its own merge, an epic PR once after the whole epic merges — or "update the wiki". Never after a task PR merges into an epic branch. | [`references/update.md`](references/update.md) |
 | `build` | Recovery only: the tree was lost, or the user asks to rebuild everything. | [`references/build.md`](references/build.md) |
 
-Default to `update`. The wiki grows task by task: `screens.json` starts
+Default to `update`. The wiki grows merge by merge: `screens.json` starts
 empty, and update creates any missing app, area, API reference or glossary
-page the first time it needs one. An epic PR's merge to `develop` still runs
-update; after per-task runs it is usually a no-op.
+page the first time it needs one. An epic run covers every file the epic PR
+changed.
 
 ## Fixed facts
 

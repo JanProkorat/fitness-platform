@@ -206,8 +206,8 @@ git diff origin/<base>...HEAD -- web/src/App.tsx | grep -E '^[+-].*(<Route|path=
 git diff origin/<base>...HEAD -- docs/wiki/screens.json
 ```
 
-`<base>` is the PR's base — the epic branch for a sub-issue PR, `develop`
-otherwise. A page or route **added, deleted or renamed** (first two commands
+`<base>` is always `develop` (only PRs into `develop` are reviewed); for an
+epic PR the diff covers all its tasks. A page or route **added, deleted or renamed** (first two commands
 print anything) with no matching `screens.json` change (third command empty)
 → **BLOCKING**. For each changed screen, compare the API calls its diff adds
 (`useQuery`/`useMutation` callers, `src/api/*` functions) against its entry's
