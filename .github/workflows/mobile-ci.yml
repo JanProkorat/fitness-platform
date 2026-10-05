@@ -43,3 +43,7 @@ jobs:
       - name: Expo config + plugin chain check
         run: npx expo config --type prebuild >/dev/null
         working-directory: mobile
+
+      - name: Expo doctor
+        run: npx expo-doctor
+        working-directory: mobile
