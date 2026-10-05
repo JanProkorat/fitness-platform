@@ -37,7 +37,7 @@
   --gf-line: #e7e4de; /* borders, hairlines */
   --gf-primary-text: #ffffff; /* text on an ink fill — flips in dark */
   --gf-on-dark: #f6f4f0; /* text on a fixed dark overlay — same in both modes */
-  --gf-scrim: #141414; /* modal/lightbox backdrop — #0a0a0c in dark mode */
+  --gf-scrim: #141414; /* modal/lightbox backdrop — the boards use the same backdrop in both modes */
 
   --gf-sidebar: #141414;
   --gf-sidebar-active: #2a2826;
@@ -168,8 +168,6 @@
     --gf-faint: #958f87;
     --gf-line: #2a292c;
     --gf-primary-text: #141414;
-    --gf-scrim: #0a0a0c;
-    --gf-shadow-panel: 0 30px 80px rgba(0, 0, 0, 0.35);
 
     --gf-sidebar: #121214;
     --gf-sidebar-active: #232226;
