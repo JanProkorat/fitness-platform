@@ -41,7 +41,7 @@
     },
     "prototype_fidelity_check": {
       "enum": ["pass", "fail", "n/a"],
-      "description": "Whether the rendered UI matches docs/prototypes/<package>/scenes/*.html. n/a for non-UI issues."
+      "description": "Whether the rendered UI matches its Form Up redesign board (docs/prototypes/formup-redesign/), light and dark. n/a for non-UI issues, screens not yet redesigned, or when the user waived the check."
     },
     "verification_runs": {
       "type": "array",

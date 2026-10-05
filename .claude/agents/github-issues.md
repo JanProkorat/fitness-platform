@@ -173,7 +173,8 @@ perf ceilings, rollout plan>
 e.g. `PageTemplateDay` (web), `GlassToday` (client app), `CoachClients`
 (coach app) — see `.claude/CLAUDE.md` "Design source of truth" and
 `docs/prototypes/formup-redesign/index.html`; qa-tester compares against them.
-If there's no visual surface, say "N/A" explicitly — do not omit the section>
+If there's no visual surface, say "N/A" explicitly; for a fix on a screen not
+yet rebuilt to the redesign, say "Not yet redesigned" — do not omit the section>
 
 ## Depends on
 <optional: list other issue numbers this one must wait for, one per line:
