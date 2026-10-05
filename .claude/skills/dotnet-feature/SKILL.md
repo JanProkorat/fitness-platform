@@ -185,6 +185,7 @@ internal sealed class ArchiveMealTemplateEndpoint(IMongoContext mongo, TimeProvi
         //   await this.SendProblemAsync(409, ErrorCodes.X, "…", ct); return;
         // Success:
         //   await Send.OkAsync(ArchiveMealTemplateResponse.FromDocument(template), ct);
+        // No body to return → Send.NoContentAsync(ct), drop the Response type, document 204.
     }
 }
 ```

@@ -25,8 +25,12 @@ Load every rule file at invocation — findings without a cited rule are opinion
 - `rules/validation.md` — FluentValidation rules, `.WithErrorCode(...)`.
 - `rules/naming.md` — files, types, endpoints, routes, error codes, tests.
 - `rules/ef-core.md` — `DbContext` injection, `AsNoTracking`, `N+1`, indexes.
-- `rules/csharp-style.md` — XML docs, primary constructors, records, `Guid`, `TimeProvider`.
-- `skills/dotnet-tdd/references/testing-conventions.md` — test infrastructure checks.
+- `rules/csharp-style.md` — XML docs, primary constructors, response classes, `TimeProvider`.
+- `rules/testing.md` — test layers, authorization tests, isolation, scoped runs.
+- `skills/dotnet-tdd/references/testing-conventions.md` — the concrete test types.
+
+Many rules carry **[ASPIRATIONAL]** sections: a direction for new code, never a
+finding against existing code. Read the label before filing.
 
 ## Scope
 
@@ -48,9 +52,9 @@ Walk every section of `references/review-checklist.md`. For each finding capture
 
 | Severity | Examples |
 |----------|----------|
-| Critical | Missing `DontCatchExceptions()`, try/catch for control flow, missing auth, `DateTime.UtcNow` |
-| Warning | Missing `AsNoTracking()` on read, missing `.WithErrorCode()`, wrong error factory return type, missing XML docs |
-| Nit | Cosmetic — formatting, missing target-typed `new()`, redundant type repetition |
+| Critical | Missing `Roles(...)`, role check without a link/ownership check, `long Id` in a response, duplicate endpoint class name, empty request DTO, destructive or unintended migration, exception for control flow |
+| Warning | Missing `AsNoTracking()` on read, `Summary` missing a returned status, missing `.WithErrorCode()` on a domain rule, missing 403/404 test for an ownership check, missing XML docs |
+| Nit | Cosmetic, or an [ASPIRATIONAL] item on new code (`internal sealed`, `TimeProvider`, `DontCatchExceptions()`) |
 
 ## Report format
 
@@ -65,30 +69,30 @@ Walk every section of `references/review-checklist.md`. For each finding capture
 
 ## Warnings
 
-### 1. [ef-core.md] Missing AsNoTracking on read query
-**File:** Features/Absences/Queries/GetDetail/GetAbsenceDetailEndpoint.cs:67
+### 1. [ef-core.md#asnotracking] Missing AsNoTracking on read query
+**File:** Features/ClientMeasurements/{Action}/{Action}Endpoint.cs:<line>  (format example, not a real finding)
 **Found:**
-    var absence = await dbContext.Absences.FirstOrDefaultAsync(a => a.Id == req.Id, ct);
+    var measurement = await db.BodyMeasurements.FirstOrDefaultAsync(m => m.ClientProfileId == profileId, ct);
 **Fix:**
-    var absence = await dbContext.Absences.AsNoTracking().FirstOrDefaultAsync(a => a.Id == req.Id, ct);
+    var measurement = await db.BodyMeasurements.AsNoTracking().FirstOrDefaultAsync(m => m.ClientProfileId == profileId, ct);
 
 ---
 
 ## Passing
-- Architecture: vertical slice, feature configuration present
+- Architecture: slice under Features/{Area}/{Action}/, logic in HandleAsync
 - Naming: conventions followed throughout
-- Validation: FluentValidation + Result two-level pattern used correctly
+- Validation: shape in the validator, ownership and state in the endpoint
 ```
 
 After report, ask whether to apply critical fixes. Do not apply silently.
 
 ## Source of truth
 
-Every finding cites a rule file (`architecture.md`, `api-design.md`, `error-handling.md`, `validation.md`, `naming.md`, `ef-core.md`, `csharp-style.md`). If you can't name the rule, it's opinion — say so.
+Every finding cites a rule file and anchor (`architecture.md`, `api-design.md`, `error-handling.md`, `validation.md`, `naming.md`, `ef-core.md`, `csharp-style.md`, `testing.md`). If you can't name the rule, it's opinion — say so.
 
 ## Escalation to user
 
-- **Ambiguous cases** (e.g., static helper in `Common/` vs feature) → ask.
+- **Ambiguous cases** (e.g., a helper in the slice vs `Domain/Services/`) → ask.
 - **Pre-existing violations** in untouched code → list as "observed, not introduced by this change".
 - **Rule conflicts** → surface both interpretations, let user pick.
 
