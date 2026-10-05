@@ -45,8 +45,8 @@ interface Props {
  * down to zero rows could not clear the filter they just applied.
  *
  * Count sits BEFORE the label ("2 All", not "All 2") and the chip itself is
- * a solid pill (active = ink fill with a `chip-count` badge, inactive = line
- * fill with muted text).
+ * a solid pill (active = ink fill with a `chip-count` badge, inactive = surface
+ * fill with a line border and ink-2 text).
  */
 export default function ClientFilterChips({ active, counts, onSelect }: Props) {
   const { t } = useTranslation();
@@ -68,10 +68,10 @@ export default function ClientFilterChips({ active, counts, onSelect }: Props) {
             aria-pressed={isActive}
             onClick={() => onSelect(chip)}
             className={cn(
-              'gap-1.5 rounded-full px-3 py-1.5',
+              'h-8 gap-1.5 rounded-full px-3',
               isActive
                 ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                : 'bg-line text-muted-foreground hover:bg-line/80',
+                : 'border-line bg-surface text-ink-2 hover:bg-sunken',
             )}
           >
             {typeof count === 'number' && (
