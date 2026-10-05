@@ -158,8 +158,10 @@ manually by triggering the backend action and watching devtools network.
 
 ### 3a. Add to the known-events list
 
-`mobile/src/api/signalr.ts` has a `KNOWN_EVENTS` array used to pre-register
-no-op handlers (suppresses SignalR warnings). Add the new event:
+Once the mobile app has a SignalR client (`mobile/src/api/signalr.ts` in the
+old app; not set up yet in the fresh app), it keeps a `KNOWN_EVENTS` array used
+to pre-register no-op handlers (suppresses SignalR warnings). If it is not
+there yet, skip this step. Add the new event:
 
 ```ts
 const KNOWN_EVENTS = [

@@ -42,7 +42,7 @@ in current Claude Code — that is a known orchestration-layer constraint.
 
 Practical consequence:
 
-- **You run all static + bash-smoke checks** — typecheck, build, `dotnet test`, HTTP probes against the compose harness (see below — **not** `curl`), log inspection via `xcrun simctl spawn ... log show`, dev-client build via `mobile/scripts/qa-build-dev-client.sh`, deep-link auth bypass via `mobile/scripts/qa-fetch-refresh-token.sh` + `xcrun simctl openurl`. These are sufficient to PASS the regression gate, validate static structure of the fix, prove auth bypass delivery, and assert backend behaviour.
+- **You run all static + bash-smoke checks** — typecheck, build, `dotnet test`, HTTP probes against the compose harness (see below — **not** `curl`), log inspection via `xcrun simctl spawn ... log show`. The iOS dev-client build and deep-link auth bypass are paused (see the PAUSED notice in the iOS Simulator section). These are sufficient to PASS the regression gate, validate static structure of the fix, and assert backend behaviour.
 
 > ### `curl` does not work here — do not try it (#909)
 >
@@ -126,17 +126,16 @@ note that tells the orchestrator exactly which tool to reach for:
   live URL), `test_html_string`, `check_aria_attributes`,
   `check_color_contrast`, `check_orientation_lock`, `get_rules`.
   Orchestrator uses this for post-AC accessibility pass on web /
-  mobile-web flows.
+  Expo-web flows.
 
-**What this sub-agent (qa-tester) can still do for web + mobile-web:**
+**What this sub-agent (qa-tester) can still do for web + Expo web:**
 - Boot the web dev server (`npm run dev:e2e` on `:5173`) and assert
   via `curl` that routes return non-error responses. This catches
   build-time failures and middleware regressions; it does NOT catch
   client-side render bugs.
-- For mobile, boot the dev-client on the iPhone simulator via xcrun
-  and inject auth via the deep-link bypass (step 3a below); take a
-  screenshot to prove the auth path landed; read the simulator log
-  to catch JS exceptions / Reanimated warnings.
+- For mobile native flows, the iOS simulator path is PAUSED since #1160
+  (see the notice in the iOS Simulator section); flag them
+  ⚠️ UNVERIFIED instead.
 - Anything beyond "did the screen change" — i.e. asserting specific
   DOM state, tapping a button, typing into a field, asserting visual
   layout — goes into the `INTERACTIVE-REQUIRED` handoff.
@@ -610,7 +609,7 @@ Boot order, **skipping any surface that's already responding**:
    `curl -sS http://localhost:5173` first. If up, reuse. Otherwise
    `cd web && npm run dev &`, poll until 200 (up to 30s).
 4. **Expo web** (only if `mobile` is in scope) — probe the expo web
-   port (typically :8081; read the URL from expo's startup output).
+   port (read the URL from Expo's startup output).
    If not up, boot with the no-popup flags so your host's default
    browser doesn't auto-open and interrupt the user:
    ```bash
@@ -711,7 +710,7 @@ mobile `…Light` / `…Dark`):
    - **Mobile boards** (`Glass…`, `Coach…`, exported under `mobile-*/`, `coach-*/`) — same pattern against Expo web:
      - `navigate` to the Expo web URL at the route implemented by the
        branch (read from Expo's startup log — typically
-       `http://localhost:8081/<route>`).
+       `http://localhost:<expo-port>/<route>`).
      - Snapshot accessibility tree + screenshot.
      - Also open the board via `file://…/docs/prototypes/formup-redesign/<mobile-light|coach-light>/<file>.html` (and the `-dark/` twin): `Glass…` boards live under `mobile-*/`, `Coach…` boards under `coach-*/`.
      - Snapshot accessibility tree + screenshot.
@@ -743,7 +742,7 @@ mobile `…Light` / `…Dark`):
 
    - Invoke `Skill: playwright-skill:playwright-skill` with the
      visual-regression recipe — capture the current render of every
-     route the AC exercises (web at `:5173`, mobile-web at `:8081`
+     route the AC exercises (web at `:5173`, Expo web at the port from its startup output
      for `react-native-web` AC flows) and diff each against its
      stored baseline at `.qa-artifacts/baselines/<scene>-<route>.png`
      (one baseline per (scene, route) pair, kept globally
@@ -777,8 +776,8 @@ applicable" / "Screen not yet redesigned — fidelity check not applicable" /
 ### 5b. Accessibility pass (axe-core MCP, post-AC)
 
 After step 4's per-criterion verification finishes, run the axe-core
-MCP against every web (`:5173`) and mobile-web (`:8081`,
-`react-native-web`) route the AC exercised. Use
+MCP against every web (`:5173`) and Expo web (port from its
+startup output, `react-native-web`) route the AC exercised. Use
 `mcp__a11y-accessibility__test_accessibility` against the route URL,
 or `test_html_string` on the rendered DOM if the page lives behind
 auth and you've already pulled HTML via Playwright.
@@ -787,7 +786,7 @@ If the diff touches **prototype scenes** under `docs/prototypes/**`
 (also user-facing HTML), audit them too — load each touched scene via
 `file://` and run `test_accessibility`, or read the file and pipe its
 contents to `test_html_string`. Same severity classification as web /
-mobile-web flows.
+Expo-web flows.
 
 Skip the pass when, and only when:
 
@@ -840,7 +839,7 @@ Dev servers:
   compose api (:5101):   started by qa-tester  |  reused  |  not needed
   dotnet run  (:5001):   started by qa-tester  |  reused  |  not needed
   web         (:5173):   started by qa-tester  |  reused  |  not needed
-  expo web    (:8081):   started by qa-tester  |  reused  |  not needed
+  expo web:              started by qa-tester  |  reused  |  not needed
   ios sim:               started by qa-tester  |  reused  |  not needed
 
 Full-surface results (regression gate):
@@ -925,8 +924,6 @@ For each dev server in step 3b marked "started by qa-tester":
   `npm run e2e:logs` and the underlying
   `docker compose -f docker-compose.test.yml ...` (preferred backend
   boot — see "Backend boot — preferred via docker compose").
-- `mobile/scripts/qa-build-dev-client.sh` — produces a cached
-  dev-client `.app` keyed by `git rev-parse HEAD:mobile`.
 - `curl -k` against the locally running servers.
 - Background-process management via `Bash`'s `run_in_background`.
 - `Grep` / `Glob` / `Read` across the repo — including the prototype
