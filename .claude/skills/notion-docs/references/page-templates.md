@@ -58,7 +58,8 @@ The `wiki-api.py` Markdown, plus under each endpoint:
 4. `browser_take_screenshot` to `<scratchpad>/shots/<id>--<shot>.png`.
 5. `notion-create-file-upload` with filename `<id>--<shot>.png` returns
    `upload_url` and `upload_headers`; run
-   `python3 scripts/notion-upload.py <upload_url> "<upload_headers.authorization>" <file>`.
+   `echo '<upload_headers as JSON>' | python3 scripts/notion-upload.py <upload_url> <file>`.
+   The script sends every header in that object.
    The file name must equal the upload's filename.
 6. The script's JSON output contains `suggested_markdown` — place exactly that
    on the page (not a hand-written tag). Unplaced uploads expire within an hour.

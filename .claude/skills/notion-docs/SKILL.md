@@ -30,8 +30,11 @@ update; after per-task runs it is usually a no-op.
 - Screen inventory: `docs/wiki/screens.json` — the only source of which
   screen pages exist. Never create a screen page without an entry.
 - Finding a screen's page: fetch its `notionPageId` if the entry has one;
-  otherwise `notion-search` for `"Screen id: <id>"` within the root page. Create
-  a page only when neither finds it.
+  otherwise `notion-search` for `"Screen id: <id>"` within the root page, then
+  fetch each candidate and accept it only if it contains the exact line
+  `Screen id: <id>` (search is fuzzy and lags new pages). Before creating, also
+  list the area page's children and match the same line. Create a page only
+  when none matches.
 - Page shapes, the screenshot procedure and the drafting brief:
   [`references/page-templates.md`](references/page-templates.md).
 - Scripts: `scripts/wiki-check.py`, `scripts/fetch-swagger.py`,
