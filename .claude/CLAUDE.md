@@ -284,12 +284,12 @@ says otherwise for that task.
 
 | Skill             | What it does                                                                                                                 |
 |-------------------|------------------------------------------------------------------------------------------------------------------------------|
-| `fe-endpoint`     | Scaffolds a new FastEndpoints endpoint (request/response/validator/endpoint + test). Invoked from `backend-dotnet`.          |
+| `dotnet-feature`  | Scaffolds a new FastEndpoints vertical slice (request/response/validator/endpoint). Generic template — `.claude/rules/*.md` win where it differs (no FeatureConfiguration, `.WithTag`, `Policies`). From `backend-dotnet`; `dotnet-tdd` for tests. |
 | `mongo-document`  | Scaffolds a new MongoDB root aggregate (Id, ExternalId, Version, audit fields, collection registration). From `backend-dotnet`. |
 | `signalr-event`   | Wires a realtime event end-to-end across backend → web → mobile. Orchestrator-run.                                           |
 | `regen-api`       | Regenerates the TypeScript API client from Swagger. Run by the client sub-agent that needs it.                                |
-| `web-page`        | Scaffolds a trainer-portal page (TanStack Query + RHF/Zod + shadcn primitives + i18n). From `web-react`.                     |
-| `mobile-screen`   | Scaffolds an Expo Router screen (tokens via `useTheme()` + TanStack Query + i18n). From `mobile-expo`.                       |
+| `react-page`      | Scaffolds a trainer-portal page (TanStack Query + RHF/Zod + shadcn primitives + i18n). From `web-react`.                     |
+| `expo-screen`     | Scaffolds an Expo Router screen (theme tokens, data fetching, i18n once the app has them). From `mobile-expo`.               |
 | `notion-docs`     | Builds + incrementally maintains the project's documentation in Notion.                                                       |
 | `prototype-scene` | Adds a scene to an existing HTML prototype, or scaffolds a new prototype file.                                                |
 | `ask-user-async`  | Posts a blocking question to Slack and ends the session cleanly. Use only when the user has declared AFK mode in the current turn. |

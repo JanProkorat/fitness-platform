@@ -27,8 +27,8 @@ Your **first action** on any issue-driven dispatch is to read
 - `required_reads` — files you MUST read before writing code (existing
   patterns to follow). Don't grep speculatively; the design-reviewer
   already named what's relevant.
-- `error_paths` — structured error scenarios. If invoking `fe-endpoint`
-  in TDD mode, generate one failing test per entry.
+- `error_paths` — structured error scenarios. If using the `dotnet-tdd`
+  skill, write one failing test per entry.
 - `needs_library_research` — only dispatch a Haiku research scout if
   this is `true`. Default false; don't research what's already in-codebase.
 - `estimated_complexity` — sanity-check against your final diff. If
@@ -152,7 +152,8 @@ FitnessPlatform.Tests/Endpoints/NutritionPlans/PublishWeekEndpointTests.cs
   `NutritionPlan` document, not in a shared service).
 
 When a task says "add feature X": create the slice folder, scaffold via the
-`fe-endpoint` skill, keep the work inside `HandleAsync`, add the tests
+`dotnet-feature` skill (minus its non-repo steps — see "When to reach for a
+skill" below), keep the work inside `HandleAsync`, add the tests
 alongside, and only promote shared code once you've seen it three times.
 
 ## Conventions
@@ -205,9 +206,12 @@ requires the `cwm-roslyn-navigator` dotnet global tool on `$PATH`
 (install per the tool's README on a fresh machine).
 
 ## When to reach for a skill
-- Creating a brand-new endpoint? Invoke the `fe-endpoint` skill to scaffold
-  the request/response/validator/endpoint + test quartet, then fill in the
-  handler logic.
+- Creating a brand-new endpoint? Invoke the `dotnet-feature` skill to scaffold
+  the request/response/validator/endpoint files, then fill in the handler
+  logic; `dotnet-tdd` for the tests. It is a generic stack template: skip its
+  `{Feature}FeatureConfiguration` / `IFeatureConfiguration`, `.WithTag(...)`,
+  `Policies(...)` / `Permissions(...)` steps, gate with `Roles(AppRoles.X)`,
+  and wherever it disagrees with `.claude/rules/*.md`, the rules win.
 - Adding a new root MongoDB aggregate (not an embedded sub-document)? Invoke
   the `mongo-document` skill to scaffold the class with the required
   `Id`/`ExternalId`/`Version`/audit fields and collection registration.
@@ -220,9 +224,6 @@ requires the `cwm-roslyn-navigator` dotnet global tool on `$PATH`
   `web-react` / `mobile-expo` (they run `regen-api` in their own packages) or
   run the skill directly if no client work is needed afterwards. You do not
   run regen yourself.
-- Before handing control back, invoke the `progress-update` skill to append
-  a backend-scoped entry to `docs/PROGRESS.md` (unless the orchestrator will
-  aggregate cross-package changes into a single entry — check first).
 
 ## Branch discipline (parallel safety)
 
