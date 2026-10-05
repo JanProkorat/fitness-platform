@@ -22,6 +22,8 @@ on:
       - 'scripts/fetch-swagger.py'
       - 'scripts/test_wiki_*'
       - 'scripts/test_fetch_swagger.py'
+      - 'scripts/notion-upload.py'
+      - 'scripts/test_notion_upload.py'
 
 permissions:
   contents: read
@@ -114,6 +116,7 @@ jobs:
           python3 scripts/test_wiki_check.py
           python3 scripts/test_wiki_api.py
           python3 scripts/test_fetch_swagger.py
+          python3 scripts/test_notion_upload.py
           curl -ksSf "$E2E_API_URL/swagger/v1/swagger.json" -o "$RUNNER_TEMP/swagger.json"
           python3 scripts/wiki-check.py --swagger "$RUNNER_TEMP/swagger.json"
 

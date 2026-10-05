@@ -33,11 +33,23 @@ def _deref(schema: dict, components: dict) -> dict:
     return schema
 
 
+WRAPPER_KEYS = ("allOf", "oneOf", "anyOf")
+
+
+def _wrapped(schema: dict) -> dict | None:
+    """The sole member of a single-element allOf/oneOf/anyOf wrapper, else None."""
+    for key in WRAPPER_KEYS:
+        if len(schema.get(key, [])) == 1:
+            return schema[key][0]
+    return None
+
+
 def _merge_all_of(schema: dict, components: dict) -> dict:
+    inner = _wrapped(schema)
+    if inner is not None:
+        return _merge_all_of(_deref(inner, components), components)
     if "allOf" not in schema:
         return schema
-    if len(schema["allOf"]) == 1:
-        return _merge_all_of(_deref(schema["allOf"][0], components), components)
     merged: dict = {"type": "object", "properties": {}, "required": []}
     for part in schema["allOf"]:
         part = _merge_all_of(_deref(part, components), components)
@@ -61,11 +73,16 @@ def _ref_names(schema: dict, components: dict) -> frozenset:
             if name not in names:
                 names.add(name)
                 pending.append(components.get(name, {}))
-        pending.extend(current.get("allOf", []))
+        inner = _wrapped(current)
+        pending.extend([inner] if inner is not None else current.get("allOf", []))
     return frozenset(names)
 
 
 def type_label(schema: dict, components: dict) -> str:
+    inner = _wrapped(schema)
+    if inner is not None:
+        label = type_label(inner, components)
+        return label + (", nullable" if schema.get("nullable") and not label.endswith(", nullable") else "")
     if "$ref" in schema:
         name = _ref_name(schema["$ref"])
         target = components.get(name, {})

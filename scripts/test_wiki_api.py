@@ -111,6 +111,43 @@ def test_slug():
     assert wiki_api.slug("Client Nutrition & Plans") == "client-nutrition-plans"
 
 
+def test_flatten_oneof_wrapped_enum_ref():
+    components = {
+        "MovementType": {"type": "string", "enum": ["Push", "Pull"]},
+        "Exercise": {"type": "object", "properties": {
+            "movementType": {"nullable": True, "oneOf": [{"$ref": "#/components/schemas/MovementType"}]},
+            "other": {"anyOf": [{"$ref": "#/components/schemas/MovementType"}]},
+        }},
+    }
+    rows = wiki_api.flatten({"$ref": "#/components/schemas/Exercise"}, components)
+    assert rows[0]["type"] == "MovementType (enum: Push, Pull), nullable"
+    assert rows[1]["type"] == "MovementType (enum: Push, Pull)"
+
+
+def test_flatten_oneof_wrapped_object_is_flattened():
+    components = {
+        "Address": {"type": "object", "properties": {"city": {"type": "string"}}},
+        "Person": {"type": "object", "properties": {
+            "address": {"nullable": True, "oneOf": [{"$ref": "#/components/schemas/Address"}]},
+        }},
+    }
+    rows = wiki_api.flatten({"$ref": "#/components/schemas/Person"}, components)
+    assert [row["field"] for row in rows] == ["address", "address.city"]
+    assert rows[0]["type"] == "Address, nullable"
+
+
+def test_flatten_oneof_wrapped_self_reference():
+    components = {
+        "N": {"type": "object", "properties": {
+            "name": {"type": "string"},
+            "parent": {"nullable": True, "oneOf": [{"$ref": "#/components/schemas/N"}]},
+        }},
+    }
+    rows = wiki_api.flatten({"$ref": "#/components/schemas/N"}, components)
+    assert [row["field"] for row in rows] == ["name", "parent"]
+    assert rows[1]["type"].endswith("(recursive)")
+
+
 def test_flatten_allof_wrapped_self_reference():
     # Test allOf-wrapped self-reference (e.g., nullable self-ref) does not cause RecursionError
     components = {
