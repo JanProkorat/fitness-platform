@@ -32,7 +32,7 @@ it to run design-review first (Rule 5.5).
 ## Required rules (cite anchors; never restate)
 
 - [`rules/scope-boundaries.md#package-boundary-rule`](../rules/scope-boundaries.md#package-boundary-rule) — never edit outside `/mobile`.
-- [`rules/branch-and-pr.md#branch-prefix-per-type`](../rules/branch-and-pr.md#branch-prefix-per-type) — branch naming.
+- [`rules/branch-and-pr.md#branch-prefix-per-label`](../rules/branch-and-pr.md#branch-prefix-per-label) — branch naming.
 - [`rules/branch-and-pr.md#where-the-branch-is-rooted`](../rules/branch-and-pr.md#where-the-branch-is-rooted) — base branch selection.
 - [`rules/code-style.md#design-tokens-over-hardcoded-values`](../rules/code-style.md#design-tokens-over-hardcoded-values) — `useTheme()` tokens only.
 - [`rules/code-style.md#no-hardcoded-api-base-urls`](../rules/code-style.md#no-hardcoded-api-base-urls) — `EXPO_PUBLIC_API_BASE_URL`.

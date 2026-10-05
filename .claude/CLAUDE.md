@@ -22,8 +22,8 @@ Project-local workflow agents (also in `.claude/agents/`):
 | Agent              | Role                                                            |
 |--------------------|-----------------------------------------------------------------|
 | `github-issues`    | GitHub issue lifecycle (create, edit, label, triage, close). Not for PRs or code. |
-| `qa-tester`        | Verify a GitHub issue's ✅ Acceptance criteria after dev agents finish. Read-only at the source-tree level. Drives Playwright + iOS Simulator (XcodeBuildMCP) for AC flows. Returns PASS / PARTIAL / FAIL. |
-| `pr-reviewer`      | Runs after `qa-tester` PASS. Creates/updates the PR (against the base the orchestrator passes — see [`rules/branch-and-pr.md`](rules/branch-and-pr.md)), runs a two-pass review (self + fresh-eyes Agent), and merges per [`rules/merge-strategy.md`](rules/merge-strategy.md). |
+| `qa-tester`        | Verify a GitHub issue's ✅ Acceptance criteria after dev agents finish (for an epic: once, on the whole epic branch). Read-only at the source-tree level. Drives Playwright + iOS Simulator (XcodeBuildMCP) for AC flows. Returns PASS / PARTIAL / FAIL. |
+| `pr-reviewer`      | Runs after `qa-tester` PASS, on PRs into `develop` only (never on a task PR into an epic branch). Creates/updates the PR (against the base the orchestrator passes — see [`rules/branch-and-pr.md`](rules/branch-and-pr.md)), runs a two-pass review (self + fresh-eyes Agent), and merges per [`rules/merge-strategy.md`](rules/merge-strategy.md). |
 | `design-reviewer`  | Pre-implementation gate. Reads issue + dispatch brief BEFORE dev agents start. Returns APPROVE / NEEDS-REVISION / BLOCK with structured `approved_scope`. |
 
 ## Project facts
@@ -34,11 +34,16 @@ Project-local workflow agents (also in `.claude/agents/`):
 
 ## Label taxonomy
 
-- `type:*` — `feature`, `bug`, `refactor`, `docs`, `chore`
-- `scope:*` — `backend`, `web`, `mobile`, `docs-infra`
-- `priority:*` — `p1`, `p2`, `p3`
-- `status:*` — `needs-triage`, `blocked`, `in-progress`
-- Extra — `duplicate`, `help wanted`, `invalid`, `wontfix`, `good-first-issue`
+Ten labels, defined in `.github/labels.yml` (the sync job deletes any
+other). **Every new issue gets them** — one kind, one priority, and one
+package label per package whose code it changes:
+
+- **Kind (exactly one)** — `Epic` (a whole feature, screen or module),
+  `Task` (one implementation step of an epic), `Bug`, `Chore`
+  (refactoring, docs, CI, cleanup).
+- **Package (one per package touched)** — `BE`, `Web`, `Mobile`. A
+  `Chore` that touches no package code gets none.
+- **Priority (exactly one)** — `High`, `Medium`, `Low`.
 
 ## Key cross-references
 
@@ -47,7 +52,7 @@ Project-local workflow agents (also in `.claude/agents/`):
 | Scope → dev-agent mapping, package boundaries, scope → stack map | [`rules/scope-boundaries.md`](rules/scope-boundaries.md) |
 | Branch naming, worktree pattern, parallel safety | [`rules/branch-and-pr.md`](rules/branch-and-pr.md) |
 | Epic-branch model (two-tier integration) | [`rules/epic-branch.md`](rules/epic-branch.md) |
-| Merge strategy, sub-issue auto-merge, exclusion list | [`rules/merge-strategy.md`](rules/merge-strategy.md) |
+| Merge strategy, task merge into the epic branch, exclusion list | [`rules/merge-strategy.md`](rules/merge-strategy.md) |
 | Hardcoded-value bans, write-locked generated files | [`rules/code-style.md`](rules/code-style.md) |
 | i18n mechanism (generic) — locale list is repo-specific, see below | [`rules/i18n.md`](rules/i18n.md), "Locales" below |
 | Verification surfaces per scope | [`rules/verification-contract.md`](rules/verification-contract.md) |
@@ -55,7 +60,7 @@ Project-local workflow agents (also in `.claude/agents/`):
 
 ## Scope → stack map
 
-Each `scope:*` label maps to exactly one stack pack. Dev sub-agents and the
+Each package label (`BE` / `Web` / `Mobile`) maps to exactly one stack pack. Dev sub-agents and the
 pack `<stack>-verify`/`<stack>-build` skills use this to decide which pack
 applies to a given path (full detail:
 [`rules/scope-boundaries.md#scope-to-stack-mapping`](rules/scope-boundaries.md#scope-to-stack-mapping)):
@@ -78,13 +83,14 @@ missing-locale fallback), never a fixed locale list of their own.
 
 Branch/PR/merge in this repo follow [`rules/branch-and-pr.md`](rules/branch-and-pr.md)
 + [`rules/merge-strategy.md`](rules/merge-strategy.md) — issue+epic-based,
-with sub-issue PRs merged into the epic branch without a per-PR user pause.
+with task PRs merged into the epic branch on green CI, without QA,
+review or a user pause.
 Where the seeded hub
 [`rules/pr-workflow.md`](rules/pr-workflow.md) / [`rules/git-workflow.md`](rules/git-workflow.md)
 differ (they assume a `/conductor`-style pipeline), **the local rules win**:
 this repo's pipeline is issue+epic-based, and `pr-reviewer` is the sub-agent
-that opens PRs and **clears** merges per
-[`rules/merge-strategy.md#sub-issue-auto-merge`](rules/merge-strategy.md#sub-issue-auto-merge).
+that opens PRs into `develop` and **clears** their merges per
+[`rules/merge-strategy.md#authorized-merge`](rules/merge-strategy.md#authorized-merge).
 One part of the hub rule does hold: subagents never push or merge
 (`deny-subagent-merge.py`). The main thread pushes, and runs the pinned
 `gh pr merge` command `pr-reviewer` hands back.
@@ -147,8 +153,19 @@ says otherwise for that task.
      (create it first), fundamental architecture conflict.
    Skip only for ad-hoc spikes that don't originate from a GitHub issue.
    Doc tweaks and chore PRs still go through it (lightweight pass).
+   Each task of an epic goes through it too — this gate is per task.
+
+5.6. **Epic tasks skip QA and review.** A task PR into an epic branch
+   gets no `qa-tester` (rule 6) and no `pr-reviewer` (rule 7). Its gate
+   is the dev agent's own verify skill plus green CI, then the main
+   thread merges it without asking (rule 8). Rules 6 and 7 run once on
+   the whole epic: `qa-tester` on the epic branch with the epic and all
+   task numbers, then `pr-reviewer` on the epic PR to `develop`. See
+   [`rules/epic-branch.md#branch-merge-flow`](rules/epic-branch.md#branch-merge-flow).
 6. **Acceptance-criteria gate.** Work that starts from a GitHub issue is not
-   "done" until `qa-tester` returns OVERALL ✅ PASS. Sequence:
+   "done" until `qa-tester` returns OVERALL ✅ PASS. For an epic this runs
+   once, on the epic branch, after every task has merged (rule 5.6).
+   Sequence:
    a. Dev sub-agent(s) finish their slice and report back via the dev-handoff
       JSON (see [`schemas/dev-handoff.v1.json`](schemas/dev-handoff.v1.json)).
    b. Orchestrator dispatches `qa-tester` with the issue number.
@@ -215,8 +232,10 @@ says otherwise for that task.
    This playbook is also the path for ad-hoc smoke tests the user asks for
    directly ("run the deep-link bypass against the booted sim"), without
    going through a full qa-tester dispatch.
-7. **Code-review gate.** Once `qa-tester` returns ✅ PASS, the task is not
-   "ready for merge" until `pr-reviewer` returns ✅ READY FOR MERGE. Sequence:
+7. **Code-review gate.** Once `qa-tester` returns ✅ PASS, the work is not
+   "ready for merge" until `pr-reviewer` returns ✅ READY FOR MERGE. Applies
+   to PRs into `develop` — standalone and epic PRs, never task PRs into an
+   epic branch (rule 5.6). Sequence:
    a. Orchestrator dispatches `pr-reviewer` with the issue number, the
       working branch, and the explicit `base` branch (per
       [`rules/branch-and-pr.md`](rules/branch-and-pr.md)).
@@ -245,14 +264,15 @@ says otherwise for that task.
    e. READY FOR MERGE → hand off to the merge gate (rule 8). Skip only for
       tasks that don't produce a PR (doc-only commits, infra-only tweaks
       the user explicitly merges out-of-band).
-8. **Merge gate.** `pr-reviewer` clears the merge and returns a pinned
-   `gh pr merge … --match-head-commit <sha>`; the main thread runs it
-   (subagents can't). Behaviour depends on the PR's base branch:
-   - **Sub-issue PR (base = epic branch)** → merge without a user pause per
-     [`rules/merge-strategy.md#sub-issue-auto-merge`](rules/merge-strategy.md#sub-issue-auto-merge),
-     then close the sub-issue by hand (`Fixes` doesn't fire off the default branch).
-   - **Epic PR / standalone PR (base = `develop`)** → require explicit
-     same-turn user authorization per
+8. **Merge gate.** Subagents can't merge; the main thread always runs the
+   merge command. Behaviour depends on the PR's base branch:
+   - **Task PR (base = epic branch)** → once CI is green, the main thread
+     merges it itself, without `pr-reviewer` and without asking, per
+     [`rules/merge-strategy.md#task-merge-into-the-epic-branch`](rules/merge-strategy.md#task-merge-into-the-epic-branch).
+     The task issue stays open until the epic merges.
+   - **Epic PR / standalone PR (base = `develop`)** → `pr-reviewer` clears
+     it and returns a pinned `gh pr merge … --match-head-commit <sha>`;
+     require explicit same-turn user authorization per
      [`rules/merge-strategy.md#authorized-merge`](rules/merge-strategy.md#authorized-merge).
    - **Excluded PRs** (base=`main`, migrations, Mongo data-mutation scripts) →
      refuse and BLOCK per
@@ -339,21 +359,22 @@ Intent-to-reality mapping for the removed rows:
 1. Read root `CLAUDE.md` before starting. Live documentation is in Notion
    (`notion-docs` maintains it); `docs/PROGRESS.md` is frozen historical context.
 2. **Determine the integration tier.** If a GitHub issue, fetch and check for
-   sub-issue references. Standalone → branch off `develop`. Epic → first create
-   + push the epic branch off `develop`, then dispatch children
-   (`ship-epic` for ≥2 sub-issues). Sub-issue of existing epic → confirm the
+   the `Epic` label or task references. Standalone → branch off `develop`.
+   Epic → first create + push the epic branch off `develop`, then dispatch
+   tasks (`ship-epic` for ≥2 tasks). Task of an existing epic → confirm the
    epic branch is pushed; create it first if not.
 3. Delegate to the correct sub-agent. Always tell the dev sub-agent which
    base branch to root from.
 4. **Stop between phases and wait for confirmation.** If a genuine blocker
    appears and the user has declared AFK mode in the current turn, invoke
    `ask-user-async`. In-session questions still use `AskUserQuestion`.
-5. From a GitHub issue → dispatch `qa-tester` after dev. Loop dev → qa
-   until PASS.
-6. After QA PASS → dispatch `pr-reviewer` with the right base. Loop
-   dev → (qa ∥ review, delta-only — routing rule 7d) until READY FOR MERGE.
-7. Sub-issue PR → re-dispatch `pr-reviewer` (`mode: merge-sub-issue`) to clear
-   it, then run its pinned command yourself (no user pause) and close the issue.
-   Epic / standalone PR → wait for explicit same-turn merge auth, then the same.
+5. Task of an epic → push, open the PR against the epic branch, merge it
+   yourself on green CI (no QA, no review, no user pause). Next task.
+6. Standalone issue, or an epic once all its tasks have merged → dispatch
+   `qa-tester`, loop dev → qa until PASS, then `pr-reviewer` with base
+   `develop`. Loop dev → (qa ∥ review, delta-only — routing rule 7d) until
+   READY FOR MERGE.
+7. Wait for explicit same-turn merge auth, then run `pr-reviewer`'s pinned
+   merge command yourself. For an epic, check every task issue closed.
 8. After merge to `develop` (epic or standalone) → invoke `notion-docs`
    (update mode). On first use in a fresh workspace → bootstrap mode.

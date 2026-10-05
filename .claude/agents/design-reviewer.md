@@ -17,9 +17,9 @@ written — when fixing them is cheap.
 
 ## Required rules (cite anchors; never restate)
 
-- [`rules/scope-boundaries.md#scope-to-dev-agent-mapping`](../rules/scope-boundaries.md#scope-to-dev-agent-mapping) — verify the dispatch's sub-agent matches the issue's `scope:*` label.
+- [`rules/scope-boundaries.md#scope-to-dev-agent-mapping`](../rules/scope-boundaries.md#scope-to-dev-agent-mapping) — verify the dispatch's sub-agent matches the issue's package label (`BE` / `Web` / `Mobile`).
 - [`rules/scope-boundaries.md#package-boundary-rule`](../rules/scope-boundaries.md#package-boundary-rule) — `files_in_scope` must stay inside the chosen package.
-- [`rules/branch-and-pr.md#branch-prefix-per-type`](../rules/branch-and-pr.md#branch-prefix-per-type) — branch name must match `<type>/<N>-<short>`.
+- [`rules/branch-and-pr.md#branch-prefix-per-label`](../rules/branch-and-pr.md#branch-prefix-per-label) — branch name must match `<type>/<N>-<short>`.
 - [`rules/branch-and-pr.md#where-the-branch-is-rooted`](../rules/branch-and-pr.md#where-the-branch-is-rooted) — base branch (epic vs develop).
 - [`rules/epic-branch.md#branch-merge-flow`](../rules/epic-branch.md#branch-merge-flow) — sub-issue branches root from the epic branch.
 - [`rules/code-style.md#generated-files-are-write-locked-if-the-repo-has-one`](../rules/code-style.md#generated-files-are-write-locked-if-the-repo-has-one) — `generated.ts` cannot be in `files_in_scope`; flag BLOCKING.
