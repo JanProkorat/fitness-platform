@@ -31,8 +31,9 @@ import LoginPanel from '@/components/entry/LoginPanel';
  * - At and above `panel`: the panel takes column 2 (sticky, spanning every
  *   landing row) and the sections auto-place into column 1.
  *
- * The hero wash is a background layer on this wrapper, sized to the first
- * screen of the landing column so it never runs under the opaque panel.
+ * The wrapper is an `isolate` stacking context so the hero's colour wash
+ * (a negative-z layer inside HomeHero) paints above the page background and
+ * below every section.
  */
 export default function EntryPage() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -42,7 +43,7 @@ export default function EntryPage() {
   }
 
   return (
-    <div className="bg-background bg-no-repeat [background-image:radial-gradient(700px_520px_at_78%_30%,var(--gf-hero-warm),transparent_70%),radial-gradient(620px_520px_at_98%_90%,var(--gf-hero-fresh),transparent_70%),radial-gradient(520px_420px_at_0%_0%,var(--gf-hero-rose),transparent_70%)] [background-size:100%_804px] panel:[background-size:calc(100%-var(--spacing-panel))_804px]">
+    <div className="isolate bg-background">
       <HomeNav />
       <div className="grid grid-cols-1 items-start panel:grid-cols-[minmax(0,1fr)_var(--spacing-panel)]">
         <HomeHero />

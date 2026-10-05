@@ -52,7 +52,7 @@ export default function HomeNav() {
     <header className="flex h-19 items-center gap-4 px-4 sm:px-10 panel:gap-9 panel:px-16">
       <Link
         to="/"
-        className="font-display text-[20px] leading-none font-light tracking-[0.22em] whitespace-nowrap text-ink"
+        className="font-display text-[17px] leading-none font-light tracking-[0.16em] whitespace-nowrap text-ink sm:text-[20px] sm:tracking-[0.22em]"
       >
         {t('home.brand.form')} <span className="text-marker">{t('home.brand.up')}</span>
       </Link>
@@ -70,13 +70,13 @@ export default function HomeNav() {
         <a
           href="/#sign-in"
           onClick={handleSignIn}
-          className="flex h-10 items-center rounded-field border border-border bg-surface px-4 text-copy font-semibold text-ink hover:bg-sunken"
+          className="flex h-10 items-center rounded-field border border-border bg-surface px-3 text-body whitespace-nowrap sm:px-4 sm:text-copy font-semibold text-ink hover:bg-sunken"
         >
           {t('home.nav.signIn')}
         </a>
         <Link
           to="/register"
-          className="flex h-10 items-center rounded-field bg-primary px-4.5 text-copy font-bold text-primary-foreground hover:opacity-90"
+          className="flex h-10 items-center rounded-field bg-primary px-3 text-body whitespace-nowrap sm:px-4.5 sm:text-copy font-bold text-primary-foreground hover:opacity-90"
         >
           {t('home.nav.createAccount')}
         </Link>

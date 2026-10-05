@@ -24,7 +24,7 @@ test('the panel headline does not move across /, /register and /forgot-password'
   // load below is a full navigation (not a client-side swap), so there is
   // no cross-fade in play — this isolates the assertion to layout, not
   // animation timing.
-  const headline = page.getByRole('heading', {
+  const headline = page.getByTestId('login-panel').getByRole('heading', {
     name: 'Join our community of coaches and nutritionists',
   });
 
@@ -190,7 +190,7 @@ test('a client-side login<->register swap focuses the swap CONTAINER (never a fi
 
   // Real client-side swap back to login — focus MUST move to the
   // container, never into the email field.
-  await page.getByRole('link', { name: 'Sign in' }).click();
+  await page.getByTestId('login-panel').getByRole('link', { name: 'Sign in' }).click();
   await expect(page).toHaveURL(/\/$/);
   await expect(swap).toBeFocused();
   await expect(page.getByLabel('Email')).not.toBeFocused();
@@ -213,8 +213,9 @@ test('the client signpost renders on the login form only, not on register or for
   await page.goto('/');
   await page.waitForLoadState('networkidle');
   await expect(page.getByText('Looking for a coach or nutritionist?')).toBeVisible();
-  await expect(page.getByRole('link', { name: 'App Store' })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Google Play' })).toBeVisible();
+  const loginPanel = page.getByTestId('login-panel');
+  await expect(loginPanel.getByRole('link', { name: 'App Store' })).toBeVisible();
+  await expect(loginPanel.getByRole('link', { name: 'Google Play' })).toBeVisible();
 
   await page.goto('/register');
   await page.waitForLoadState('networkidle');

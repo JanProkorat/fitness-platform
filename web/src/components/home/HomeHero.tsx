@@ -15,7 +15,11 @@ export default function HomeHero() {
   const { t } = useTranslation();
 
   return (
-    <section className="@container min-w-0 px-4 pt-6 pb-12 sm:px-10 panel:col-start-1 panel:px-16">
+    <section className="@container relative min-w-0 px-4 pt-6 pb-12 sm:px-10 panel:col-start-1 panel:px-16">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 -top-19 bottom-0 -z-10 bg-no-repeat [background-image:radial-gradient(700px_520px_at_78%_30%,var(--gf-hero-warm),transparent_70%),radial-gradient(620px_520px_at_98%_90%,var(--gf-hero-fresh),transparent_70%),radial-gradient(520px_420px_at_0%_0%,var(--gf-hero-rose),transparent_70%)]"
+      />
       <div className="flex flex-col gap-8 @min-[1240px]:flex-row @min-[1240px]:gap-12">
         <div className="flex max-w-[470px] shrink-0 flex-col gap-5.5 pt-4 @min-[1240px]:pt-8.5">
           <span className="text-meta font-semibold tracking-[0.16em] text-muted-foreground uppercase">
