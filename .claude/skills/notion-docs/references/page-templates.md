@@ -22,7 +22,9 @@ title — one-line purpose — link.
 
 1. **Purpose** — 1–2 sentences; which roles use it.
 2. **Screenshots** — one image per shot, caption = shot name. Light only
-   until the app has a dark theme; then light and dark side by side.
+   until the app has a dark theme; then light and dark side by side. While
+   there is no dark theme, add the callout "Dark mode not available in the app
+   yet — light only."
 3. **How to get here** — route; the link or button that leads here.
 4. **Controls** — table: Control (label as shown, Czech + English) | What it
    does | Options / allowed values | Default | Disabled or hidden when.
@@ -32,6 +34,7 @@ title — one-line purpose — link.
    and what triggers it.
 6. **Technical** — endpoints called (each links to its API reference
    heading), source files from `files`.
+7. **Screen id** — last line of the page: `Screen id: <id>`.
 
 ## API reference page (one per Swagger tag)
 
@@ -45,19 +48,24 @@ The `wiki-api.py` Markdown, plus under each endpoint:
 
 ## Screenshot procedure (main thread)
 
-1. Browser: Playwright tool, Brave. Window 1440×900. Set `localStorage.lang`
-   = `cs` before the first navigation.
+1. Browser: Playwright tool, Brave. Window 1440×900. Navigate to
+   `http://localhost:5173/` first, run `localStorage.setItem('lang','cs')` with
+   `browser_evaluate`, then navigate to the target route.
 2. Sign in as the role the shot needs (credentials in
    `docs/testing/e2e-fixtures.md`). `Public` screens: signed out.
 3. Navigate to the entry's `route` (replace `:param` with a seeded id). Run
    the shot's `steps`. Wait for network idle and for animations to finish.
 4. `browser_take_screenshot` to `<scratchpad>/shots/<id>--<shot>.png`.
-5. `notion-create-file-upload` with filename `<id>--<shot>.png` → then
-   `python3 scripts/notion-upload.py <upload_url> "<authorization>" <file>`.
+5. `notion-create-file-upload` with filename `<id>--<shot>.png` returns
+   `upload_url` and `upload_headers`; run
+   `python3 scripts/notion-upload.py <upload_url> "<upload_headers.authorization>" <file>`.
    The file name must equal the upload's filename.
-6. Place `<image src="file-upload://<file_upload_id>"></image>` on the page.
-   Unplaced uploads expire within an hour.
-7. **On failure** (route errors, a step's control not found): keep the
+6. The script's JSON output contains `suggested_markdown` — place exactly that
+   on the page (not a hand-written tag). Unplaced uploads expire within an hour.
+7. Mobile screens: not yet — native iOS Simulator screenshots
+   (`xcrun simctl io booted screenshot`) return with the paused iOS QA path
+   (see `.claude/agents/qa-tester.md`); never use Expo web for wiki screenshots.
+8. **On failure** (route errors, a step's control not found): keep the
    page's existing image and add the callout
    "⚠️ Screenshot out of date — capture failed on <date>". List it in the
    run summary.

@@ -29,6 +29,9 @@ update; after per-task runs it is usually a no-op.
 - Root page: `Fitness & Nutrition Platform`, id `3451c0f6-641f-81cf-b502-fbd0e6227e27`.
 - Screen inventory: `docs/wiki/screens.json` — the only source of which
   screen pages exist. Never create a screen page without an entry.
+- Finding a screen's page: fetch its `notionPageId` if the entry has one;
+  otherwise `notion-search` for `"Screen id: <id>"` within the root page. Create
+  a page only when neither finds it.
 - Page shapes, the screenshot procedure and the drafting brief:
   [`references/page-templates.md`](references/page-templates.md).
 - Scripts: `scripts/wiki-check.py`, `scripts/fetch-swagger.py`,
@@ -44,11 +47,11 @@ update; after per-task runs it is usually a no-op.
   report, not something to correct in the wiki.
 - A failed screenshot keeps the old image and adds the "screenshot out of
   date" callout; never delete an image because a capture failed.
-- After creating a screen page, write its id into `notionPageId` in
-  `screens.json` and commit that change on the current branch.
+- Every screen page ends with a last line `Screen id: <id>`. Nothing is
+  committed after a merge.
 
 ## Done when
 
 - `python3 scripts/wiki-check.py --swagger <fresh swagger>` passes.
-- Every entry in `screens.json` has a page, and its `notionPageId` is set.
+- Every entry in `screens.json` has exactly one page carrying its `Screen id:` line.
 - The run summary lists pages created, updated, trashed and failed shots.

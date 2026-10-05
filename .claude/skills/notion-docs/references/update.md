@@ -7,9 +7,10 @@ up-front build.
 ## 0. Make sure the skeleton exists
 
 Fetch the root page. Create whatever this run needs and is missing, using the
-templates in `page-templates.md`: the Main page content, the app page for the
-entry's `app`, the area page for its `area`, "API reference", "Glossary".
-Never recreate a page that exists.
+templates in `page-templates.md`: the Main page content, "API reference",
+"Glossary", and the app and area pages only for entries this run touches. A
+backend-only change creates only "API reference" (and the tag page) if
+missing. Never recreate a page that exists.
 
 ## 1. What changed
 
@@ -28,13 +29,16 @@ Nothing affected → report "wiki unchanged" and stop.
 
 ## 2. Prepare
 
-Same as build step 1, but skip booting the web portal when no screen is affected.
+Same as build step 1 (including `E2E_API_URL=<api_url>` for the portal), but skip booting the web portal when no screen is affected.
 
 ## 3. Apply
 
+- **Finding a page:** if the entry has a `notionPageId`, fetch it; otherwise
+  `notion-search` for `"Screen id: <id>"` within the root page. Create a page
+  only when neither finds it.
 - **Affected screen:** re-draft its text (drafting brief), retake its shots,
   replace the page body. Keep the page id.
-- **New screen:** as build step 3, and add its link to the area page (create
+- **New screen:** as build step 3 (ending with the `Screen id: <id>` line), and add its link to the area page (create
   the area page if it is new).
 - **Removed screen:** move its page to the trash (replace the area page's
   content without that child, `allow_deleting_content: true`); remove its
@@ -43,5 +47,5 @@ Same as build step 1, but skip booting the web portal when no screen is affected
 
 ## 4. Finish
 
-Commit any `notionPageId` changes. Stop the harness and dev server. Report:
+Stop the harness and dev server. Report:
 pages updated / created / trashed, failed shots.

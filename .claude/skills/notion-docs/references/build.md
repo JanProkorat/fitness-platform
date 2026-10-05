@@ -5,9 +5,11 @@ Normal growth happens in update mode, task by task. Reuses the root page.
 
 ## 1. Prepare
 
-1. Boot the test harness from the repo root: `./scripts/test-env up`, then
-   `./scripts/test-env ports` → `api_url`. Start the web portal against it
-   (`npm run dev:e2e` in `web/`, port 5173). Kill anything already on :5173
+1. If `.env.test` is missing at the repo root, run `npm run e2e:setup` (in a
+   worktree, symlink the main checkout's `.env.test`) — never write `.env*`
+   files by hand. Boot the test harness from the repo root: `./scripts/test-env up`,
+   then `./scripts/test-env ports` → `api_url`. Start the web portal against it
+   (`E2E_API_URL=<api_url> npm run dev:e2e` in `web/`, port 5173). Kill anything already on :5173
    from another worktree first (`lsof -i :5173`).
 2. `python3 scripts/fetch-swagger.py <api_url> <scratchpad>/swagger.json`.
 3. `python3 scripts/wiki-check.py --swagger <scratchpad>/swagger.json` —
@@ -32,12 +34,12 @@ For each entry in `screens.json`:
 3. Create the screen page under its area page from the **Screen page**
    template: drafted text + uploaded images. Links in "Technical" point to
    the endpoint's heading on its API reference page.
-4. Write the page id into the entry's `notionPageId`.
+4. End the page with the line `Screen id: <id>`.
 
 ## 4. API reference
 
 Create one child page of "API reference" per file in `<scratchpad>/wiki-api/`,
-titled with the tag. Before publishing, enrich each endpoint with the
+titled with the file's H1 (the Swagger tag), not the file name. Before publishing, enrich each endpoint with the
 **error codes** and **validation rules** section (see `page-templates.md`),
 read from the endpoint folder under `backend/FitnessPlatform.Application/Features/`.
 Replace each `Used by` screen id with a mention of that screen's page.
@@ -50,5 +52,5 @@ with the English meaning (e.g. "kouč — coach").
 
 ## 6. Finish
 
-Commit `docs/wiki/screens.json` (`git add -f`). Stop the harness
+Stop the harness
 (`./scripts/test-env down`) and the dev server. Report the summary.

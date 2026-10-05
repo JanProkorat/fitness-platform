@@ -93,8 +93,7 @@ creates a screen page without an entry.
 - `board` — redesign board name, for reference only (never screenshotted).
 - `shots` — each captured in every available theme; `steps` are the clicks
   needed to reach that state.
-- `notionPageId` — written by the wiki tool after creating the page; later
-  runs update that page instead of creating a duplicate.
+- `notionPageId` — optional hint, set by hand when known. Runs find a screen's page by its `Screen id: <id>` line, so nothing is committed after a merge.
 
 Descriptions (purpose, controls, states) are **not** stored here — they are
 written from code and live only in Notion.
