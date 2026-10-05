@@ -23,8 +23,6 @@
  *   dockerised qa-playwright container overrides baseURL to http://web:5173
  *   via PLAYWRIGHT_BASE_URL — the `web` service is on the same qa-net
  *   network so DNS resolution works inside the browser context.
- *   Specs that target mobile-web (e.g. user-avatar-upload) override the
- *   per-test baseURL via test.use({ baseURL: 'http://mobile-web:8081' }).
  *
  * TLS note: the compose harness uses a self-signed dev cert. Set
  * `ignoreHTTPSErrors: true` on the browser context so fetch/XHR calls inside
@@ -185,14 +183,10 @@ export default defineConfig({
 
     // ─── Client-scoped specs ──────────────────────────────────────────────────
     // Picks up only tests/e2e/client/**. Add new client-role specs there.
-    // user-avatar-upload targets the dockerised mobile-web service via
-    // PLAYWRIGHT_BASE_URL=http://mobile-web:8081 — that DNS only resolves
-    // inside the qa-net network, so we exclude the spec from host runs.
     {
       name: 'client',
       dependencies: ['setup'],
       testMatch: /client\/.+\.spec\.ts/,
-      testIgnore: IN_CONTAINER ? [] : [/client\/user-avatar-upload\.spec\.ts/],
       use: {
         ...devices['Desktop Chrome'],
         storageState: '.auth/client.json',

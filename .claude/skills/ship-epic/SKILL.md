@@ -450,7 +450,8 @@ sub-agent's own verify skill plus CI.
   merge. On a conflict, stop and resolve it as you would any merge;
   never `--force`.
 - **Do NOT dispatch `notion-docs`** for task merges. That fires
-  exactly once, in Phase 3, after the epic merges to `develop`.
+  exactly once, in Phase 3, after the epic merges to `develop`, run by
+  the main thread.
 
 Move on to the next child issue.
 
@@ -565,12 +566,9 @@ manually for an excluded epic):
 2. The epic issue itself usually auto-closed via `Fixes #<epic-N>` in
    the PR body. If not, ask the user whether to close it manually —
    sometimes an epic stays open as a tracking issue for a follow-up.
-3. **Single `notion-docs` pass** for the entire epic. Brief it with
-   the epic number, the merged commit SHA, the list of sub-issues
-   that landed, and the squashed-PR summary. This is the only
-   `notion-docs` invocation in the whole skill — sub-issue merges
-   onto the epic branch were intentionally not documented (they're
-   intermediate; the consolidated commit is what matters).
+3. **`notion-docs` update** after the epic merges to `develop`, run by
+   the main thread (it needs the browser and Notion tools). One run
+   covers every file the epic PR changed.
 
 ---
 
@@ -591,8 +589,8 @@ manually for an excluded epic):
       data-mutation scripts), the user merged it, not the skill.
 - [ ] All `.worktrees/<N>-<short>/` directories removed.
 - [ ] Local `develop` is synced and clean. Local epic branch deleted.
-- [ ] **Exactly one** `notion-docs` update landed for the entire
-      epic — at the end, after the epic merged to `develop`.
+- [ ] A `notion-docs` update ran once, on the main thread, after the
+      epic merged to `develop` (none per task).
 - [ ] Epic issue was auto-closed via `Fixes #<epic-N>` (or commented
       with the final recap if the user opted not to close).
 

@@ -47,6 +47,11 @@ launchSettings.json
 backend/swagger.json
 
 # =========================
+# Python
+# =========================
+__pycache__/
+
+# =========================
 # Node / React
 # =========================
 node_modules/

@@ -10,10 +10,8 @@
 # Build context = repo root, so the COPY paths reach into web/ and
 # qa-playwright/.
 #
-# Network behaviour: only this container reads the qa-net DNS for `web`,
-# `mobile-web`, and `api`. Specs target http://web:5173 by default; the
-# user-avatar-upload spec overrides baseURL to http://mobile-web:8081 in
-# its own test.use() block.
+# Network behaviour: only this container reads the qa-net DNS for `web`
+# and `api`. Specs target http://web:5173.
 
 FROM mcr.microsoft.com/playwright:v1.60.0-jammy
 
@@ -46,11 +44,8 @@ COPY qa-playwright/named-flow-runner.sh /work/named-flow-runner.sh
 COPY qa-playwright/flows.json /work/flows.json
 RUN chmod +x /work/named-flow-runner.sh
 
-# Default baseURL for the test browser context. Specs may override via
-# test.use({ baseURL: '...' }) for mobile-web flows.
+# Default baseURL for the test browser context.
 ENV PLAYWRIGHT_BASE_URL=http://web:5173
-# Mobile-web baseURL — read by user-avatar-upload.spec.ts via test.use().
-ENV MOBILE_WEB_BASE_URL=http://mobile-web:8081
 ENV PLAYWRIGHT_IN_CONTAINER=true
 ENV E2E_API_URL=https://api:8080
 ENV CI=true

@@ -196,9 +196,30 @@ for cleanup.
 
 ---
 
+## 13. Wiki screen inventory current
+
+**Citation:** `.claude/skills/notion-docs/SKILL.md` → Fixed facts
+
+```bash
+git diff --name-status -M --diff-filter=ADR origin/<base>...HEAD -- 'web/src/pages/**' 'mobile/app/**' 'mobile/src/app/**'
+git diff origin/<base>...HEAD -- web/src/App.tsx | grep -E '^[+-].*(<Route|path=)'
+git diff origin/<base>...HEAD -- docs/wiki/screens.json
+```
+
+`<base>` is always `develop` (only PRs into `develop` are reviewed); for an
+epic PR the diff covers all its tasks. A page or route **added, deleted or renamed** (first two commands
+print anything) with no matching `screens.json` change (third command empty)
+→ **BLOCKING**. For each changed screen, compare the API calls its diff adds
+(`useQuery`/`useMutation` callers, `src/api/*` functions) against its entry's
+`endpoints`; a new call that is not listed → **BLOCKING**. CI's "Wiki screen
+inventory check" step catches stale entries (a listed file or endpoint that
+no longer exists), not missing ones — that is this item's job.
+
+---
+
 ## Done when
 
-- All 12 items walked.
+- All 13 items walked.
 - Findings emitted in the strict 4-line shape.
 - `passes_complete` recorded as `self-only` after first pass; updated
   to `both` after fresh-eyes sub-reviewer agrees.
