@@ -798,8 +798,9 @@ After the merge (main thread):
     reset), delete the local branch best-effort, remove the worktree
     after tearing down its compose harness.
   - Run `notion-docs` (update mode) on the main thread — it needs the
-    browser and Notion tools, which sub-agents lack. For an epic merge it
-    covers every file the consolidated commit changed.
+    browser and Notion tools, which sub-agents lack. For an epic merge the
+    sub-issues were already documented as they merged; this run covers
+    anything not yet documented and is usually a no-op.
 ```
 
 ## Workflow — `merge-sub-issue` (PRs targeting an epic branch)

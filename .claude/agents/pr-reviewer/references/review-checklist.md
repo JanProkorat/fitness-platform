@@ -201,13 +201,19 @@ for cleanup.
 **Citation:** `.claude/skills/notion-docs/SKILL.md` → Fixed facts
 
 ```bash
-git diff --name-only origin/<base>...HEAD -- 'web/src/pages/**' 'mobile/src/app/**' 'web/src/App.tsx'
+git diff --name-status -M --diff-filter=ADR origin/<base>...HEAD -- 'web/src/pages/**' 'mobile/src/app/**'
+git diff origin/<base>...HEAD -- web/src/App.tsx | grep -E '^[+-].*(<Route|path=)'
 git diff origin/<base>...HEAD -- docs/wiki/screens.json
 ```
 
-A page or route file added, removed or renamed (first command) with no
-matching `screens.json` change (second) → **BLOCKING**. A new API call on a
-screen whose entry's `endpoints` does not list it → **BLOCKING**.
+`<base>` is the PR's base — the epic branch for a sub-issue PR, `develop`
+otherwise. A page or route **added, deleted or renamed** (first two commands
+print anything) with no matching `screens.json` change (third command empty)
+→ **BLOCKING**. For each changed screen, compare the API calls its diff adds
+(`useQuery`/`useMutation` callers, `src/api/*` functions) against its entry's
+`endpoints`; a new call that is not listed → **BLOCKING**. CI's "Wiki screen
+inventory check" step catches stale entries (a listed file or endpoint that
+no longer exists), not missing ones — that is this item's job.
 
 ---
 
