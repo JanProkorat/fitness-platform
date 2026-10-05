@@ -12,6 +12,7 @@ on, re-export before relying on this copy (see Rebuilding).
 |---|---|
 | `index.html` | Gallery of every board, grouped by canvas page and row |
 | `interactive/` | Clickable web-portal prototype, light and dark (open `interactive/index.html`) |
+| `interactive-client/`, `interactive-coach/` | Clickable client-app and coach-app prototypes, light and dark, shown in a phone frame |
 | `web/` | Web portal: entry page, registration, clients, inbox, recipes, ingredients, plan templates, forms — light and dark |
 | `mobile-light/`, `mobile-dark/` | Client mobile app (Liquid Glass) |
 | `coach-light/`, `coach-dark/` | Coach mobile app |
@@ -27,10 +28,14 @@ keep the theme letter, e.g. `web/13-07-page-template-day-c.html` (light) and
 
 Sample names, numbers and copy are placeholders, not product decisions.
 
-## Clickable prototype
+## Clickable prototypes
 
 `interactive/` holds one page per web board and theme. The sidebar, tabs,
 switches, drawers, dialogs and the library panel link to the matching board.
+`interactive-client/` (starts at Login) and `interactive-coach/` (starts at
+account type) do the same for the mobile apps: the tab bar, back buttons, list
+rows and primary buttons link through, and the phone is centred and scaled to
+the window.
 The floating bar at the bottom right switches light/dark, jumps to any screen
 and toggles **Hotspots** (or press `H`) to show what is clickable. Interactions
 are approximations: a click jumps to the board that shows the result.
@@ -40,7 +45,7 @@ are approximations: a click jumps to the board that shows the result.
 ```bash
 cd source
 python3 export_static.py ..          # boards → standalone HTML + index.html + screens.json
-python3 export_interactive.py ..     # boards → clickable prototype in ../interactive/
+python3 export_interactive.py ..     # boards → clickable prototypes in ../interactive*/
 node screenshot.mjs ..               # PNG per screen (uses web/node_modules/playwright and Brave)
 ```
 
