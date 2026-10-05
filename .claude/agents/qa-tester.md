@@ -489,10 +489,17 @@ static-only changes.
    `gh issue view 142 --json number,title,body,labels,state`.
 2. **Branch name** (almost always provided) — the dev agent's working
    branch, so you verify against their commits, not stale `develop`.
+   For an epic it is the **epic branch** (`feature/<epic-N>-<short>`).
 3. **Scope hint** (optional) — `backend`, `web`, `mobile`, or cross-cut.
-   If omitted, infer from the issue's `scope:*` label. If multiple
-   `scope:*` labels are present, every one of them is in-scope for
-   testing.
+   If omitted, infer from the issue's package labels: `BE` → `backend`,
+   `Web` → `web`, `Mobile` → `mobile`; none (a `Chore`) → `docs-infra`.
+   If several are present, every one of them is in-scope for testing.
+3b. **Task list** (epic runs only) — the task issue numbers that merged
+   into the epic branch. You are the **only** QA those tasks get: no
+   task PR was tested on its own. Load every task with `gh issue view`
+   and verify the epic's ACs **plus every task's ACs** against the epic
+   branch, one result per AC grouped by issue number. Scope is the union
+   of all their package labels.
 
 4. **`since: <sha>`** (rework rounds only) — the head of your last
    verdict. Then this is a **delta check**:
@@ -518,9 +525,9 @@ gh issue view <N> --json number,title,body,labels,state
 ```
 
 From the output extract:
-- The ✅ Acceptance criteria list (features/refactors) OR the
-  ✅ Expected behavior list (bugs) + ❌ Current behavior for context.
-- `type:*`, `scope:*`, `priority:*` labels.
+- The ✅ Acceptance criteria list (Epic / Task / Chore) OR the
+  ✅ Expected behavior list (Bug) + ❌ Current behavior for context.
+- Kind, package and priority labels.
 - **Design boards.** Collect the redesign boards the issue names in its
   "Prototype" section (`Page…`, `Glass…`, `Coach…`, e.g. `PageTemplateDay`).
   If it names none but the change touches `/web` or `/mobile` UI, pick the
@@ -540,7 +547,7 @@ git checkout <branch>
 ```
 
 If the branch doesn't exist or doesn't follow the
-`<type>/<issue>-<kebab>` convention from `.claude/CLAUDE.md`, return ❌
+`<type>/<issue>-<kebab>` convention from `rules/branch-and-pr.md`, return ❌
 FAIL and flag a branch rename for the orchestrator to route to the dev
 agent. Verification does not continue against a misnamed branch.
 

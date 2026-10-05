@@ -42,7 +42,7 @@ return immediately with a request to run design-review first.
 
 - [`rules/scope-boundaries.md#package-boundary-rule`](../rules/scope-boundaries.md#package-boundary-rule) — never edit outside `/backend`.
 - [`rules/scope-boundaries.md#cross-package-coordination`](../rules/scope-boundaries.md#cross-package-coordination) — sequential dispatch when web/mobile follow.
-- [`rules/branch-and-pr.md#branch-prefix-per-type`](../rules/branch-and-pr.md#branch-prefix-per-type) — branch naming.
+- [`rules/branch-and-pr.md#branch-prefix-per-label`](../rules/branch-and-pr.md#branch-prefix-per-label) — branch naming.
 - [`rules/branch-and-pr.md#where-the-branch-is-rooted`](../rules/branch-and-pr.md#where-the-branch-is-rooted) — base branch selection.
 - [`rules/architecture.md#banned-patterns`](../rules/architecture.md#banned-patterns) — vertical-slice anti-patterns (no repository/service layers).
 - [`rules/error-handling.md`](../rules/error-handling.md) — expected errors via `Send.XAsync`, Problem Details on the rest.

@@ -156,6 +156,12 @@
   "h": 900
  },
  {
+  "html": "web/05-12-page-client-invite-drawer-c.html",
+  "png": "web/05-12-page-client-invite-drawer-c.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
   "html": "web/06-01-page-clients-d.html",
   "png": "web/06-01-page-clients-d.png",
   "w": 1440,
@@ -218,6 +224,12 @@
  {
   "html": "web/06-11-page-client-plan-closed-d.html",
   "png": "web/06-11-page-client-plan-closed-d.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/06-12-page-client-invite-drawer-d.html",
+  "png": "web/06-12-page-client-invite-drawer-d.png",
   "w": 1440,
   "h": 900
  },
