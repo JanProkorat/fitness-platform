@@ -1897,6 +1897,22 @@
       "w": 390,
       "x": 2630,
       "y": 0
+    },
+    "PageClientInviteDrawerC.dc.html": {
+      "h": 900,
+      "page": "web",
+      "title": "C · Clients · Invite client drawer",
+      "w": 1440,
+      "x": 16720,
+      "y": 11260
+    },
+    "PageClientInviteDrawerD.dc.html": {
+      "h": 900,
+      "page": "web",
+      "title": "D · Clients · Invite client drawer",
+      "w": 1440,
+      "x": 16720,
+      "y": 12760
     }
   },
   "createdOnFiles": {
@@ -2245,7 +2261,7 @@
       "kind": "title1",
       "maxW": 8000,
       "page": "web",
-      "text": "Clients — list, detail, nutrition tab, client plan editor (week, day, add meal, replace, plan info, blank, panel closed)  ·  light above, dark below",
+      "text": "Clients — list, invite drawer, detail, nutrition tab, client plan editor (week, day, add meal, replace, plan info, blank, panel closed)  ·  light above, dark below",
       "w": 240,
       "x": 0,
       "y": 10960
@@ -2533,7 +2549,9 @@
     "PageTemplateDayAddMealC.dc.html",
     "PageClientPlanDayAddMealC.dc.html",
     "PageTemplateDayAddMealD.dc.html",
-    "PageClientPlanDayAddMealD.dc.html"
+    "PageClientPlanDayAddMealD.dc.html",
+    "PageClientInviteDrawerC.dc.html",
+    "PageClientInviteDrawerD.dc.html"
   ],
   "pages": [
     {
