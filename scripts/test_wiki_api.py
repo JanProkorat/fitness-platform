@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import importlib.util
+import json
+import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -106,6 +109,136 @@ def test_untagged_operation_without_security_is_public():
 def test_slug():
     assert wiki_api.slug("Trainer") == "trainer"
     assert wiki_api.slug("Client Nutrition & Plans") == "client-nutrition-plans"
+
+
+def test_flatten_allof_wrapped_self_reference():
+    # Test allOf-wrapped self-reference (e.g., nullable self-ref) does not cause RecursionError
+    components = {
+        "N": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+                "parent": {"nullable": True, "allOf": [{"$ref": "#/components/schemas/N"}]},
+            },
+        }
+    }
+    rows = wiki_api.flatten({"$ref": "#/components/schemas/N"}, components)
+    assert [row["field"] for row in rows] == ["name", "parent"]
+    assert rows[1]["type"].endswith("(recursive)")
+
+
+def test_flatten_array_of_allof_wrapped_self_ref():
+    # Test array of allOf-wrapped self-refs terminates
+    components = {
+        "N": {
+            "type": "object",
+            "properties": {
+                "children": {"type": "array", "items": {"allOf": [{"$ref": "#/components/schemas/N"}]}},
+            },
+        }
+    }
+    rows = wiki_api.flatten({"$ref": "#/components/schemas/N"}, components)
+    assert [row["field"] for row in rows] == ["children"]
+    assert rows[0]["type"] == "array of N (recursive)"
+
+
+def test_flatten_mutual_recursion():
+    # Test mutual recursion A -> B -> A terminates and marks edges recursive
+    components = {
+        "A": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+                "b": {"$ref": "#/components/schemas/B"},
+            },
+        },
+        "B": {
+            "type": "object",
+            "properties": {
+                "label": {"type": "string"},
+                "a": {"$ref": "#/components/schemas/A"},
+            },
+        }
+    }
+    rows = wiki_api.flatten({"$ref": "#/components/schemas/A"}, components)
+    assert [row["field"] for row in rows] == ["name", "b", "b.label", "b.a"]
+    assert rows[3]["type"].endswith("(recursive)")  # b.a is recursive
+
+
+def test_render_tag_resolves_parameter_refs():
+    # Test parameter $ref resolution
+    swagger = {
+        "paths": {
+            "/test": {
+                "get": {
+                    "tags": ["Test"],
+                    "parameters": [
+                        {"$ref": "#/components/parameters/PageParam"},
+                    ],
+                    "responses": {"200": {"description": "OK"}},
+                }
+            }
+        },
+        "components": {
+            "parameters": {
+                "PageParam": {
+                    "name": "page",
+                    "in": "query",
+                    "schema": {"type": "integer"},
+                    "required": True,
+                    "description": "Page number",
+                }
+            },
+            "schemas": {}
+        }
+    }
+    page = wiki_api.render_tag("Test", [("get", "/test", swagger["paths"]["/test"]["get"])], swagger, {})
+    assert "| page | query | integer | yes | Page number |" in page
+
+
+def test_render_tag_includes_path_level_parameters():
+    # Test path-level parameters are included before operation parameters
+    swagger = {
+        "paths": {
+            "/items/{id}": {
+                "parameters": [
+                    {"name": "id", "in": "path", "required": True, "schema": {"type": "string"}, "description": "Item ID"}
+                ],
+                "get": {
+                    "tags": ["Items"],
+                    "parameters": [
+                        {"name": "format", "in": "query", "schema": {"type": "string"}, "description": "Response format"}
+                    ],
+                    "responses": {"200": {"description": "OK"}},
+                }
+            }
+        },
+        "components": {"schemas": {}}
+    }
+    page = wiki_api.render_tag("Items", [("get", "/items/{id}", swagger["paths"]["/items/{id}"]["get"])], swagger, {})
+    # id should come before format
+    assert "| id | path | string | yes | Item ID |" in page
+    assert "| format | query | string | no | Response format |" in page
+    id_idx = page.find("| id | path")
+    format_idx = page.find("| format | query")
+    assert id_idx < format_idx
+
+
+def test_main_missing_swagger_file():
+    # Test CLI error handling for missing swagger file
+    with tempfile.TemporaryDirectory() as tmpdir:
+        out_dir = Path(tmpdir) / "out"
+        result = subprocess.run(
+            [sys.executable, str(HERE / "wiki-api.py"),
+             "--swagger", "/nonexistent/swagger.json",
+             "--screens", str(HERE / "test_wiki_api.py"),  # dummy file
+             "--out", str(out_dir)],
+            capture_output=True,
+            text=True
+        )
+        assert result.returncode == 1
+        assert "wiki-api:" in result.stderr
+        assert "not found" in result.stderr
 
 
 def main() -> int:

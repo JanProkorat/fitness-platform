@@ -50,6 +50,21 @@ def _body(schema: dict, components: dict) -> dict:
     return _merge_all_of(_deref(schema, components), components)
 
 
+def _ref_names(schema: dict, components: dict) -> frozenset:
+    """Names of the components a schema resolves to through $ref and allOf."""
+    names: set[str] = set()
+    pending = [schema]
+    while pending:
+        current = pending.pop()
+        if "$ref" in current:
+            name = _ref_name(current["$ref"])
+            if name not in names:
+                names.add(name)
+                pending.append(components.get(name, {}))
+        pending.extend(current.get("allOf", []))
+    return frozenset(names)
+
+
 def type_label(schema: dict, components: dict) -> str:
     if "$ref" in schema:
         name = _ref_name(schema["$ref"])
@@ -69,11 +84,10 @@ def type_label(schema: dict, components: dict) -> str:
 
 
 def flatten(schema: dict, components: dict, prefix: str = "", seen: frozenset = frozenset()) -> list[dict]:
-    if "$ref" in schema:
-        name = _ref_name(schema["$ref"])
-        if name in seen:
-            return []
-        seen = seen | {name}
+    names = _ref_names(schema, components)
+    if names & seen:
+        return []
+    seen = seen | names
 
     body = _body(schema, components)
     if body.get("type") == "array":
@@ -86,7 +100,7 @@ def flatten(schema: dict, components: dict, prefix: str = "", seen: frozenset = 
         target = _body(prop, components)
         is_array = target.get("type") == "array"
         nested = target.get("items", {}) if is_array else prop
-        recursive = "$ref" in nested and _ref_name(nested["$ref"]) in seen
+        recursive = bool(_ref_names(nested, components) & seen)
 
         rows.append({
             "field": field,
@@ -138,6 +152,7 @@ def _field_table(rows: list[dict]) -> list[str]:
 
 def render_tag(tag: str, operations: list[tuple[str, str, dict]], swagger: dict, used_by: dict[str, list[str]]) -> str:
     components = swagger.get("components", {}).get("schemas", {})
+    parameters_components = swagger.get("components", {}).get("parameters", {})
     lines = [f"# {tag}", ""]
 
     for method, path, operation in operations:
@@ -149,10 +164,24 @@ def render_tag(tag: str, operations: list[tuple[str, str, dict]], swagger: dict,
         lines += [f"**Roles:** {roles_label(operation, swagger)}", ""]
         lines += [f"**Used by:** {', '.join(used_by.get(key, [])) or 'no documented screen'}", ""]
 
-        parameters = operation.get("parameters", [])
-        if parameters:
+        # Collect path-level and operation-level parameters
+        path_item = swagger.get("paths", {}).get(path, {})
+        path_params = path_item.get("parameters", [])
+        operation_params = operation.get("parameters", [])
+
+        # Resolve $refs in parameters
+        all_params = []
+        for param in path_params + operation_params:
+            if "$ref" in param:
+                param_name = _ref_name(param["$ref"])
+                resolved = parameters_components.get(param_name, param)
+                all_params.append(resolved)
+            else:
+                all_params.append(param)
+
+        if all_params:
             lines += ["### Parameters", "", "| Name | In | Type | Required | Description |", "|---|---|---|---|---|"]
-            for parameter in parameters:
+            for parameter in all_params:
                 lines.append(
                     f"| {_cell(parameter['name'])} | {parameter.get('in', '')} "
                     f"| {_cell(type_label(parameter.get('schema', {}), components))} "
@@ -184,11 +213,43 @@ def main() -> int:
     parser.add_argument("--out", required=True, type=Path)
     args = parser.parse_args()
 
-    swagger = json.loads(args.swagger.read_text(encoding="utf-8"))
+    try:
+        if not args.swagger.exists():
+            print(f"wiki-api: swagger file not found: {args.swagger}", file=sys.stderr)
+            return 1
+        swagger_text = args.swagger.read_text(encoding="utf-8")
+        swagger = json.loads(swagger_text)
+    except json.JSONDecodeError as e:
+        print(f"wiki-api: swagger is not valid JSON: {e}", file=sys.stderr)
+        return 1
+    except (FileNotFoundError, OSError) as e:
+        print(f"wiki-api: cannot read swagger file: {e}", file=sys.stderr)
+        return 1
+
+    try:
+        if not args.screens.exists():
+            print(f"wiki-api: screens file not found: {args.screens}", file=sys.stderr)
+            return 1
+        screens_text = args.screens.read_text(encoding="utf-8")
+        screens_data = json.loads(screens_text)
+    except json.JSONDecodeError as e:
+        print(f"wiki-api: screens is not valid JSON: {e}", file=sys.stderr)
+        return 1
+    except (FileNotFoundError, OSError) as e:
+        print(f"wiki-api: cannot read screens file: {e}", file=sys.stderr)
+        return 1
+
     used_by: dict[str, list[str]] = {}
-    for screen in json.loads(args.screens.read_text(encoding="utf-8"))["screens"]:
-        for endpoint in screen["endpoints"]:
-            used_by.setdefault(endpoint, []).append(screen["id"])
+    try:
+        for screen in screens_data.get("screens", []):
+            if "endpoints" not in screen:
+                print(f"wiki-api: screen entry missing 'endpoints': {screen.get('id', '?')}", file=sys.stderr)
+                return 1
+            for endpoint in screen["endpoints"]:
+                used_by.setdefault(endpoint, []).append(screen["id"])
+    except (TypeError, AttributeError) as e:
+        print(f"wiki-api: invalid screens structure: {e}", file=sys.stderr)
+        return 1
 
     args.out.mkdir(parents=True, exist_ok=True)
     for tag, operations in sorted(group_by_tag(swagger).items()):
