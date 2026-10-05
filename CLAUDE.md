@@ -10,7 +10,7 @@ mobile app.
 |---|---|---|
 | Backend API | `/backend` | ASP.NET Core 10, FastEndpoints, PostgreSQL + MongoDB |
 | Web Portal | `/web` | React 19, TypeScript, Vite 7, Tailwind CSS 4 |
-| Mobile App | `/mobile` | React Native 0.83, Expo SDK 55, Expo Router |
+| Mobile App | `/mobile` | React Native 0.86, Expo SDK 57, Expo Router |
 
 ---
 
@@ -40,7 +40,7 @@ npm run e2e:down                    # docker compose down -v
 **Swagger docs (dev):** http://localhost:5000/swagger (HTTP) or https://localhost:5001/swagger (HTTPS)
 **E2E Swagger:** https://localhost:5101/swagger (compose harness, dev cert; runs alongside dev API)
 **E2E fixture credentials:** see `docs/testing/e2e-fixtures.md`
-**API type generation:** `npm run generate-api` in `/web` or `/mobile`
+**API type generation:** `npm run generate-api` in `/web` (not set up yet in the fresh `/mobile`)
 
 ---
 
@@ -49,7 +49,7 @@ npm run e2e:down                    # docker compose down -v
 ```
 ┌─────────────┐     ┌──────────────┐
 │  Web Portal │────>│              │<────│ Mobile App  │
-│  (React 19) │     │   REST API   │     │  (Expo 55) │
+│  (React 19) │     │   REST API   │     │  (Expo 57) │
 └─────────────┘     │  .NET 10     │     └─────────────┘
                     │  FastEndpts  │
                     └──────┬───────┘
@@ -169,66 +169,31 @@ src/
 
 ## Mobile App (`/mobile`)
 
-Client-facing app (iOS + Android). Trainers see a simplified admin view.
+Client app (iOS + Android), restarted from a fresh `create-expo-app`
+project in #1160 for the Form Up redesign. No features yet — screens are
+rebuilt against the `Glass*` (client) and `Coach*` (coach) boards. The old
+app is in git history before #1160.
 
 ### Structure
 
 ```
-app/                           — Expo Router file-based screens (35 files)
-  (auth)/                      — Login, Register, Verify email, Questionnaire
-  (client)/                    — Tab navigator (Today, Messages, Discover, Plans, Profile)
-    training/                  — Session detail, workout logging, history
-    nutrition/                 — Meal detail, shopping list, week overview
-    measurements/              — Body measurements
-    messages/                  — Chat threads, archived
-    discover/                  — Trainer search, profiles, invite
-src/
-  api/             — 12 modules (axios client, SignalR, domain APIs)
-  components/      — 60 components across 8 folders
-    ui/            — 15 primitives (Avatar, Badge, GoldButton, MacroBar, etc.)
-    today/         — 7 (HasTrainerState, NoTrainerState, PlanPendingState, etc.)
-    messages/      — 10 (ChatInputBar, MessageBubble, ConversationRow, etc.)
-    trainers/      — 8 (TrainerCard, DiscoveryFilters, SendInviteSheet, etc.)
-    training/      — 3 (TrainingCard, ExerciseRow, SessionChip)
-    nutrition/     — 2 (NutritionCard, MealRow)
-    notifications/ — 5 (NotificationSheet, InviteCard, QuestionnaireBanner)
-    questionnaire/ — 3 (QuestionScreen, RadioGroup, ScaleInput)
-  hooks/           — 11 custom hooks
-  stores/          — 5 Zustand stores (auth, today, messages, theme, offline)
-  constants/       — Design tokens (colors, typography, radius)
-  i18n/            — cs, en, de translations
-  lib/             — queryClient, toast
+src/app/         — Expo Router screens (`_layout.tsx` + `index.tsx` only)
+assets/          — icons and splash images
+scripts/         — trust-dev-cert.sh (simulator trusts the .NET dev cert)
+AGENTS.md        — Expo's own guidance for this SDK (read before Expo APIs)
 ```
+
+Non-route code (components, hooks, stores, API) goes under `src/`, outside
+`src/app/`. i18n, the API client, design tokens and state management are not
+set up yet — each lands with the first screen that needs it.
 
 ### Key conventions
 
 - TypeScript strict mode, no `any`
-- Design tokens in `constants/` — always use `useTheme()`, never hardcode colors
-- Brand accent: `#c9a84c` (gold)
+- Never hardcode colors, fonts or spacing — use the design tokens once they exist
 - `StyleSheet.create` for layout styles; inline only for small tweaks
-- Components: PascalCase, named export + default export
-- State: Zustand for app state, TanStack Query for server data, MMKV for persistence
-- Real-time: SignalR events drive query invalidation (no polling)
-- Auth: JWT in memory, refresh token rotation, auto-retry on 401
-
-### Auth flow
-
-```
-App start → restore session from SecureStore
-  ├── unauthenticated → (auth)/login
-  └── authenticated
-       ├── pending questionnaire → (client)/questionnaire
-       └── ready → (client)/index (Today screen)
-```
-
-### Today screen states
-
-```
-useTodayState() resolves:
-  no-trainer    → NoTrainerState (find trainer CTA)
-  plan-pending  → PlanPendingState (plan banners, schedule preview)
-  has-trainer   → HasTrainerState (stats, training card, nutrition card)
-```
+- Add packages with `npx expo install`, and discuss new dependencies first
+- Verify: `npm run typecheck` and `npm run expo-doctor`
 
 ---
 

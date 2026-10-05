@@ -8,10 +8,9 @@
 #   All services join the project-scoped `qa-net` network. `api` and
 #   `mailhog-test` publish ephemeral host ports; `minio-test` publishes a
 #   FIXED one (E2E_MINIO_HOST_PORT, default 59000) because presigned URLs
-#   handed to the browser must name it — see that service. web,
-#   mobile-web, and playwright (added in Phase 2) talk to api via internal
-#   DNS — they MUST NOT publish host ports of their own, or parallel runs
-#   collide on host :5173/:8081.
+#   handed to the browser must name it — see that service. web and
+#   playwright talk to api via internal DNS — they MUST NOT publish host
+#   ports of their own, or parallel runs collide on host :5173.
 #
 # Container names:
 #   No `container_name:` entries — compose names containers as
@@ -217,12 +216,11 @@ services:
       MinIO__AccessKey: "minioadmin"
       MinIO__SecretKey: "minio_test_password"
       # localhost entries cover host-Playwright + the existing dev workflow.
-      # Phase 2 adds CORS entries for the internal `web` and `mobile-web`
-      # service DNS names so the containerised Playwright can hit the API.
+      # The internal `web` service DNS name lets the containerised
+      # Playwright hit the API.
       Cors__AllowedOrigins__0: "http://localhost:5173"
       Cors__AllowedOrigins__1: "http://localhost:8081"
       Cors__AllowedOrigins__2: "http://web:5173"
-      Cors__AllowedOrigins__3: "http://mobile-web:8081"
       RateLimiting__Disabled: "true"
       # Override appsettings.Development.json, which selects the live Resend
       # service. See the note on the mailhog-test service.
@@ -280,32 +278,6 @@ services:
       retries: 30
       start_period: 10s
 
-  # ── mobile-web (client app as RN-Web bundle) ──────────────────────────────
-  # Internal-only (no host port). Static bundle from `expo export --platform web`
-  # served with `serve`. SPA was built with EXPO_PUBLIC_API_BASE_URL=https://api:8080
-  # baked in, so XHR is cross-origin to `api` — CORS is allow-listed above.
-  mobile-web:
-    build:
-      context: ./mobile
-      dockerfile: Dockerfile.web
-    depends_on:
-      api:
-        condition: service_healthy
-    expose:
-      - "8081"
-    networks:
-      - qa-net
-    healthcheck:
-      test:
-        - "CMD"
-        - "node"
-        - "-e"
-        - "require('http').get('http://localhost:8081/',r=>process.exit(r.statusCode<400?0:1)).on('error',()=>process.exit(1))"
-      interval: 5s
-      timeout: 5s
-      retries: 30
-      start_period: 10s
-
   # ── Playwright runner ─────────────────────────────────────────────────────
   # Idle long-lived container. `scripts/test-env run <flow>` invokes
   # `docker compose exec playwright /work/named-flow-runner.sh <flow>`
@@ -321,13 +293,10 @@ services:
         condition: service_healthy
       web:
         condition: service_healthy
-      mobile-web:
-        condition: service_healthy
     environment:
       # Mirror the build-time env so npm scripts inside the container can
       # read the same values when invoked via `exec`.
       PLAYWRIGHT_BASE_URL: "http://web:5173"
-      MOBILE_WEB_BASE_URL: "http://mobile-web:8081"
       PLAYWRIGHT_IN_CONTAINER: "true"
       E2E_API_URL: "https://api:8080"
       CI: "true"

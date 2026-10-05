@@ -4,7 +4,7 @@
  * The Web Crypto spec gates crypto.randomUUID (and crypto.subtle) on secure
  * context (HTTPS or localhost). crypto.getRandomValues is available in all
  * contexts. This polyfill fills the gap so the app works on:
- *   - The dockerised e2e harness (http://web:5173, http://mobile-web:8081)
+ *   - The dockerised e2e harness (http://web:5173)
  *   - HTTP/LAN deployments (staging over plain HTTP, etc.)
  *
  * In secure contexts the native implementation is used unchanged (the `typeof`

@@ -7,7 +7,7 @@
 #   seed [--kind=minimal|rich] Re-run the seed container against the current branch's stack.
 #   run <flow>                 Execute a named Playwright flow inside the harness.
 #   down [<branch>]            Tear down the branch's stack and clean up volumes + state file.
-#   logs <service> [<branch>]  Follow a service's logs (api/web/mobile-web/playwright/postgres-test/...).
+#   logs <service> [<branch>]  Follow a service's logs (api/web/playwright/postgres-test/...).
 #   logs-tail <service> [<branch>] [<lines>]
 #                              One-shot dump of the last <lines> log lines (default 500) and exit.
 #                              Used by CI's failure-dump step; do not use for interactive tailing.
@@ -25,7 +25,7 @@
 #   BRANCH, and the resolved API host port. gitignored. Removed on `down`.
 #
 # Network:
-#   docker compose declares a project-scoped network (qa-net). web/mobile-web/playwright
+#   docker compose declares a project-scoped network (qa-net). web/playwright
 #   communicate over internal DNS — only api publishes a host port (ephemeral, picked
 #   by docker on `up`, surfaced via this CLI).
 
@@ -265,8 +265,8 @@ cmd_run() {
     exit 1
   fi
 
-  # Gate on the api healthcheck. web + mobile-web don't need an explicit wait
-  # here because the playwright service `depends_on` them with
+  # Gate on the api healthcheck. web doesn't need an explicit wait
+  # here because the playwright service `depends_on` it with
   # `condition: service_healthy` in docker-compose.test.yml — compose won't
   # start the runner until they're up. api is the only service we still need
   # to gate on directly because the playwright container can be exec'd into
