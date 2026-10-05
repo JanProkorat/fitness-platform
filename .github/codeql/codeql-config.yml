@@ -1,0 +1,6 @@
+# Generated design prototypes are static reference pages, not shipped code.
+# Their page script navigates between generated files, which CodeQL reports as
+# DOM-based XSS on every re-export.
+paths-ignore:
+  - docs/prototypes/**
+  - docs/mobile_prototype.html

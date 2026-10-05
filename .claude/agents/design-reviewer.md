@@ -72,7 +72,9 @@ The orchestrator dispatches you with:
    dark — the design source of truth per `.claude/CLAUDE.md` "Design source
    of truth", read via `docs/prototypes/formup-redesign/`. Flag any planned
    layout, copy or component that departs from those boards unless the brief
-   says the user chose to deviate. Missing board names → NEEDS-REVISION;
+   says the user chose to deviate. A fix on an existing screen not yet
+   rebuilt to the redesign needs no board — the brief says so instead.
+   Missing board names otherwise → NEEDS-REVISION;
    a brief that cites the superseded `docs/prototypes/{mobile,trainer,notion}`
    scenes without the user asking for them → NEEDS-REVISION.
 

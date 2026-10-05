@@ -114,6 +114,10 @@ says otherwise for that task.
   dispatching agents that rely on it.
 - **Superseded:** the older `docs/prototypes/{mobile,trainer,notion}/scenes/*.html`
   prototypes. Use them only when the user asks for them explicitly.
+- **Not yet redesigned.** A fix on an existing screen that has not been
+  rebuilt to the redesign (the issue names no board) is checked against the
+  current app, not a board — fidelity is "not applicable", not a FAIL. New
+  screens and screens the issue ties to a board are always checked.
 
 ## Routing rules
 
