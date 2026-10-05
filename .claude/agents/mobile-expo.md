@@ -81,6 +81,13 @@ repo's root `CLAUDE.md` → Mobile App → Key conventions. The brand accent
 facts worth calling out explicitly — everything else, read from the existing
 pattern via `required_reads`.
 
+**Wiki screen inventory.** When you add, remove or rename a routed screen,
+or change which endpoints a screen calls, update its entry in
+`docs/wiki/screens.json` in the same change (`id`, `route`, `files`,
+`endpoints`, `shots`; leave `notionPageId` alone). Check it with
+`python3 scripts/wiki-check.py --swagger <swagger.json>` when a Swagger file
+is available; CI runs the same check.
+
 ## Commands
 - Dev: `npx expo start --ios` or `--android`
 - Verify via the **`expo-verify`** skill (typecheck+doctor) / `expo-build`

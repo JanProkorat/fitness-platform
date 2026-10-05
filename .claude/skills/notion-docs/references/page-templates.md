@@ -1,266 +1,86 @@
-# Page templates
+# Page templates, screenshot procedure, drafting brief
 
-The canonical shape of each page type the skill produces. Treat these as
-**structural** templates, not literal copy-paste content. The generator
-fills in project-specific detail from the code.
+## Main page
 
-Every leaf page ends with a `## Recent changes` section; `update.md`
-appends dated bullets there.
+- What the platform is (one paragraph): coaches (trainers, nutritionists)
+  manage clients on the web portal; clients use the mobile app.
+- Who uses which app — a 3-row table.
+- How to read this wiki: app → area → screen; API reference; glossary.
+- Links to the app pages, API reference, glossary.
 
----
+## App page
 
-## Page tree
+Purpose of the app, who signs in, how to reach it (URL / store), then a list
+of its area pages with one line each.
 
-```
-GoodFellas — Fitness & Nutrition Platform       [Root page]
-├── Architecture & Conventions                   [Architecture hub]
-│   ├── System overview                          [Arch leaf]
-│   ├── Auth & roles
-│   ├── SignalR realtime
-│   ├── Storage (Postgres, Mongo, MinIO)
-│   └── i18n & design tokens
-├── Backend                                      [Backend hub]
-│   ├── Features                                 [Features hub]
-│   │   ├── Auth, Client, ClientMeasurements, … [Feature page × ~18]
-│   ├── Entities (PostgreSQL)                    [Entities hub]
-│   │   └── User, Role, RefreshToken, …          [Entity page × ~22]
-│   ├── Documents (MongoDB)                      [Documents hub]
-│   │   └── TrainingWeek, Food, Recipe, …        [Document page × ~23]
-│   └── Services
-├── Web                                          [Web hub]
-│   ├── Pages
-│   │   └── LoginPage, DashboardPage, …          [Web page × ~21]
-│   └── Components
-├── Mobile                                       [Mobile hub]
-│   ├── Screens
-│   │   └── (auth)/login, (client)/index, …      [Mobile screen page × ~35]
-│   └── Components
-├── Prototypes
-│   ├── Mobile prototype                         [Prototype page]
-│   ├── Trainer prototype
-│   └── Notion portal
-├── Domain glossary
-└── Changelog
-```
+## Area page
 
----
+What the area is for (2–3 sentences), then its screens as a list:
+title — one-line purpose — link.
 
-## Root page
+## Screen page (in this order)
 
-**Title:** `GoodFellas — Fitness & Nutrition Platform`
+1. **Purpose** — 1–2 sentences; which roles use it.
+2. **Screenshots** — one image per shot, caption = shot name. Light only
+   until the app has a dark theme; then light and dark side by side. While
+   there is no dark theme, add the callout "Dark mode not available in the app
+   yet — light only."
+3. **How to get here** — route; the link or button that leads here.
+4. **Controls** — table: Control (label as shown, Czech + English) | What it
+   does | Options / allowed values | Default | Disabled or hidden when.
+   Every button, dropdown, input, toggle, tab, filter chip, collapsible and
+   row action gets a row.
+5. **States** — empty, loading, error, role-dependent: what it looks like
+   and what triggers it.
+6. **Technical** — endpoints called (each links to its API reference
+   heading), source files from `files`.
+7. **Screen id** — last line of the page: `Screen id: <id>`.
 
-**Body:**
-- Callout: "Canonical project documentation. Machine-maintained by the
-  `notion-docs` skill. Don't hand-edit generated sections."
-- One paragraph: multi-user fitness platform connecting trainers,
-  nutritionists, and clients. 3 packages.
-- Table: package → path → tech stack (from root `CLAUDE.md`).
-- Links to each top-level hub page.
-- "Recent cross-cutting changes" list (last 5 Changelog entries that
-  touched >1 package; the skill trims this on each update).
+## API reference page (one per Swagger tag)
 
----
+The `wiki-api.py` Markdown, plus under each endpoint:
 
-## Architecture hub
+- **Error codes** — table: Code | When. Read `SendProblemAsync(...)` and
+  `ThrowErrorWithCode(...)` calls in the endpoint; codes are the values in
+  `Domain/Constants/ErrorCodes.cs`.
+- **Validation rules** — one bullet per rule from the endpoint's
+  `*Validator.cs`.
 
-**Title:** `Architecture & Conventions`
+## Screenshot procedure (main thread)
 
-**Body:**
-- One-paragraph intro pulled from root `CLAUDE.md` "Architecture" section.
-- Links to the 5 sub-pages.
-- Shared conventions list (i18n, API type generation, git branches, no
-  hardcoded URLs, SignalR lowercase event names).
+1. Browser: Playwright tool, Brave. Window 1440×900. Navigate to
+   `http://localhost:5173/` first, run `localStorage.setItem('lang','cs')` with
+   `browser_evaluate`, then navigate to the target route.
+2. Sign in as the role the shot needs (credentials in
+   `docs/testing/e2e-fixtures.md`). `Public` screens: signed out.
+3. Navigate to the entry's `route` (replace `:param` with a seeded id). Run
+   the shot's `steps`. Wait for network idle and for animations to finish.
+4. `browser_take_screenshot` to `<scratchpad>/shots/<id>--<shot>.png`.
+5. `notion-create-file-upload` with filename `<id>--<shot>.png` returns
+   `upload_url` and `upload_headers`; run
+   `echo '<upload_headers as JSON>' | python3 scripts/notion-upload.py <upload_url> <file>`.
+   The script sends every header in that object.
+   The file name must equal the upload's filename.
+6. The script's JSON output contains `suggested_markdown` — place exactly that
+   on the page (not a hand-written tag). Unplaced uploads expire within an hour.
+7. Mobile screens: not yet — native iOS Simulator screenshots
+   (`xcrun simctl io booted screenshot`) come back once the mobile app has a test sign-in; never use Expo web for wiki screenshots.
+8. **On failure** (route errors, a step's control not found): keep the
+   page's existing image and add the callout
+   "⚠️ Screenshot out of date — capture failed on <date>". List it in the
+   run summary.
 
-### Arch leaf pages
+## Drafting brief (send to a Sonnet sub-agent per screen)
 
-Each: intro paragraph, bullet list of current conventions, links to the
-source files. Examples:
-
-- **System overview**: diagram description + request flow (web/mobile →
-  REST API → Postgres/Mongo; SignalR hub; MinIO for blobs).
-- **Auth & roles**: AppRoles constants, JWT lifetimes, refresh rotation,
-  invite flow in prose.
-- **SignalR realtime**: hub path, event naming convention, presence.
-- **Storage**: what's in Postgres vs Mongo vs MinIO; Version field rule
-  for Mongo aggregates.
-- **i18n & design tokens**: three locales; where design tokens live;
-  rule "no hardcoded colors/spacing".
-
----
-
-## Feature page
-
-**Title:** `<Feature folder name>` (e.g. `Nutrition Plans`)
-
-**Body sections:**
-1. **Overview** — one paragraph: what the feature owns, which clients
-   consume it.
-2. **Endpoints** — table with columns: `Route` · `Verb` · `Roles` ·
-   `Purpose` (one-liner per endpoint). Pull from the `Configure()`
-   method of each endpoint in the folder.
-3. **Related entities/documents** — links to Backend/Entities and
-   Backend/Documents pages the feature reads/writes.
-4. **Realtime events** — if the feature broadcasts any SignalR events,
-   list them here with lowercase names.
-5. **Recent changes** — running log, newest first (update mode appends).
-
----
-
-## Entity page
-
-**Title:** `<EntityClassName>`
-
-**Body:**
-1. **Purpose** — one sentence.
-2. **Table** — table name (snake_case via EF).
-3. **Fields** — bulleted list: name · type · nullability · short note.
-   Only the interesting ones; routine audit fields can be "standard audit
-   timestamps (CreatedAt, UpdatedAt)".
-4. **Relationships** — bulleted: `→ OtherEntity (FK)` / `← OtherEntity`.
-5. **Notes** — unique constraints, soft-delete flag, indexes worth
-   mentioning.
-6. **Recent changes**.
-
----
-
-## Document page
-
-**Title:** `<DocumentClassName>`
-
-**Body:**
-1. **Purpose** — one sentence.
-2. **Collection** — MongoDB collection name.
-3. **Versioning** — state whether it's a root aggregate (has `Version`
-   concurrency field) or embedded.
-4. **Fields** — bulleted list: name · type · short note. Group by
-   conceptual section if the doc is large (e.g. `TrainingWeek` has
-   sessions → exercises → sets).
-5. **Indexes** — if any are declared.
-6. **Recent changes**.
-
----
-
-## Web page (route)
-
-**Title:** `<PageComponentName>` (e.g. `NutritionPlansPage`)
-
-**Body:**
-1. **Route** — Vite/React Router path.
-2. **Purpose** — one sentence.
-3. **Data** — TanStack Query hooks the page uses; mutations.
-4. **Key components** — list the top-level children from the page body.
-5. **Realtime** — SignalR events the page subscribes to (via
-   `useSignalR`).
-6. **i18n keys** — key prefix(es) used.
-7. **Prototype preview** — *optional*. If this page has an obvious
-   matching scene in the trainer or notion prototype, add an `embed`
-   block with the scene-anchored Pages URL, e.g.
-   `https://janprokorat.github.io/fitness-platform/trainer_prototype.html?scene=profil`.
-   The `SCREENS` keys in `docs/prototypes/trainer/scripts/nav.js` are the
-   allowed trainer scene ids; `docs/prototypes/notion/scenes/*.html`
-   `<section id="s-*">` IDs are the allowed notion ones. Skip this
-   section if the match isn't obvious — a wrong link is worse than no
-   link.
-8. **Recent changes**.
-
----
-
-## Mobile screen page
-
-**Title:** `<screen path>` (e.g. `(client)/nutrition/meal`)
-
-**Body:**
-1. **Route** — Expo Router path (file path).
-2. **Auth state** — unauthenticated / authenticated / trainer-only /
-   questionnaire-gated.
-3. **State sources** — stores (Zustand), queries (TanStack), local state.
-4. **Key components** — list from the screen body.
-5. **Realtime** — SignalR events that invalidate queries on this screen.
-6. **i18n keys** — key prefix(es).
-7. **Prototype preview** — *optional*. If this screen has a matching
-   mobile prototype scene, add an `embed` block with the scene-anchored
-   URL, e.g.
-   `https://janprokorat.github.io/fitness-platform/mobile_prototype.html?scene=ph-today`.
-   Valid scene ids come from `docs/prototypes/mobile/scripts/nav.js`
-   (the `showPhone` title map). Skip if the match isn't obvious.
-8. **Recent changes**.
-
----
-
-## Prototype page
-
-**Title:** `<Prototype name>` (e.g. `Mobile prototype`)
-
-**Body:**
-1. **Live preview** — a Notion `embed` block at the top of the page
-   pointing at the prototype's GitHub Pages URL. Always include it.
-
-   | Prototype           | Embed URL                                                                 |
-   |---------------------|----------------------------------------------------------------------------|
-   | `Mobile prototype`  | `https://janprokorat.github.io/fitness-platform/mobile_prototype.html`     |
-   | `Trainer prototype` | `https://janprokorat.github.io/fitness-platform/trainer_prototype.html`    |
-   | `Notion portal`     | `https://janprokorat.github.io/fitness-platform/notion_portal.html`        |
-
-   The embed renders the whole prototype inline — readers navigate via
-   its own nav bar. Because Pages serves from `develop:/docs`, every
-   merge to `develop` automatically updates what the embed shows.
-
-2. **Artefact** — path to the generated HTML
-   (e.g. `docs/mobile_prototype.html`).
-3. **Source tree** — path to the `docs/prototypes/<name>/` folder.
-4. **Build** — the one-line command: `node docs/prototypes/build.mjs`.
-5. **Scenes** — table: `Scene ID` · `File` · `Purpose` · `Deep link`.
-   IDs grep from `scenes/*.html` (mobile/trainer use `ph-*`; notion
-   uses `s-*`). `Deep link` is the same Pages URL with `?scene=<id>`
-   appended (e.g. `…/trainer_prototype.html?scene=profil`). Render as
-   a plain Notion link in the table — don't embed every row (one embed
-   per page is enough; deep links are for readers who want to open a
-   single scene in a new tab).
-6. **Recent changes**.
-
----
-
-## Changelog page
-
-**Title:** `Changelog`
-
-**Body:**
-- Intro callout: "Each task that changes code, prototypes, or
-  conventions appends a dated entry here. Newest first.
-  Machine-maintained by the `notion-docs` skill."
-- Entries appended in reverse-chronological order by `update` mode.
-
-Entry format (exactly matches old PROGRESS.md so the muscle memory
-transfers):
-
-```
-## YYYY-MM-DD — <one-line task summary>
-
-### Backend (`/backend`)            ← only if the task touched backend
-
-**Added: `Features/NutritionPlans/ArchivePlan/`:**
-- Concrete bullets. Paths in backticks.
-- Why when non-obvious.
-
-**Modified: `Domain/Constants/ErrorCodes.cs`:**
-- Added `PlanAlreadyArchived` code.
-
-### Web (`/web`)                    ← only if touched
-
-**Regenerated: `src/api/generated.ts`** via `npm run generate-api`.
-```
-
-Use `### Mobile (`/mobile`)` and `### Repo root (`.claude/`)` as the
-other sub-headings. Omit headings for untouched packages.
-
----
-
-## Domain glossary
-
-**Title:** `Domain glossary`
-
-**Body:** bulleted term → definition list. Target length: 15-25 terms.
-Include at least: Nutrition Plan, Training Plan, Training Week,
-Workout Log, Training Session, Exercise, Set, Food, Recipe, Meal,
-Questionnaire, Client Request vs Invite, Version field, External ID,
-Published vs Draft plan, Archive.
+> Read-only. Write the text for one wiki page about a screen of the
+> GoodFellas app, for a new team member. English, plain, short sentences.
+> Screen: `<id>` — `<title>`, route `<route>`, roles `<roles>`.
+> Source files: `<files>`. Endpoints: `<endpoints>`.
+> UI labels: read Czech from `web/src/i18n/locales/cs.json` and English from
+> `en.json` (for mobile, the `mobile/src/i18n/locales/` files).
+> Return Markdown only, with exactly these sections: Purpose, How to get
+> here, Controls (table with the five columns: Control | What it does |
+> Options / allowed values | Default | Disabled or hidden when), States.
+> Cover every interactive element in the source files. For each claim you
+> are unsure of, append "(unverified)". Do not include screenshots or
+> endpoint docs.

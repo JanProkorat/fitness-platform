@@ -157,7 +157,8 @@ Per-project mapping (lifted from the global `~/.claude/CLAUDE.md` matrix):
 | `github-issues` | sonnet | Mechanical lifecycle work. |
 
 Skill-internal: `root-cause-swarm` falsification probes → haiku;
-`notion-docs` bootstrap → opus, update → sonnet.
+`notion-docs` runs on the main thread (browser + Notion tools); its
+page-text drafting sub-agents use sonnet.
 
 ---
 

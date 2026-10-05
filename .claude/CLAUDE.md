@@ -378,5 +378,6 @@ Intent-to-reality mapping for the removed rows:
    READY FOR MERGE.
 7. Wait for explicit same-turn merge auth, then run `pr-reviewer`'s pinned
    merge command yourself. For an epic, check every task issue closed.
-8. After merge to `develop` (epic or standalone) → invoke `notion-docs`
-   (update mode). On first use in a fresh workspace → bootstrap mode.
+8. After merge to `develop` (epic or standalone) → run `notion-docs`
+   (update mode) on the main thread. It creates any missing wiki pages
+   itself; `build` mode is for recovery only.
