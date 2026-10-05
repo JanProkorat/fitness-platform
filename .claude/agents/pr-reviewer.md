@@ -290,11 +290,12 @@ not improvise a parallel checklist.
 - TypeScript: no `any`, no `@ts-ignore` without a justifying comment
   (web + mobile).
 - Hardcoded values banned in /web and /mobile — colors, spacing, font
-  sizes, radii must come from design tokens (`useTheme()` in mobile,
-  Tailwind theme in web). Brand gold `#c9a84c` must only appear via
-  the theme entry, never inline.
+  sizes, radii must come from design tokens (Tailwind theme in web; in
+  mobile, the design tokens once the app has them). Brand gold `#c9a84c`
+  must only appear via the theme entry, never inline.
 - API URLs never hardcoded — always env/config.
-- `web/src/api/generated.ts` and `mobile/src/api/generated.ts` are
+- `web/src/api/generated.ts` and `mobile/src/api/generated.ts` (once
+  the mobile app has one) are
   WRITE-LOCKED. Any hand-edit of those paths is an AUTOMATIC BLOCKING
   finding — the `regen-api` skill is the only legal path.
 - i18n: every new user-facing string must land in `cs`, `en`, `de`.
@@ -455,12 +456,12 @@ You MUST:
    - TypeScript: no `any`, no `@ts-ignore` without a justifying
      comment (web + mobile).
    - Hardcoded values banned: colors, spacing, font sizes, radii in
-     /web and /mobile must come from design tokens (`useTheme()` in
-     mobile, Tailwind theme in web). Brand gold `#c9a84c` must only
-     appear via the theme entry, never inline.
+     /web and /mobile must come from design tokens (Tailwind theme in
+     web; in mobile, the design tokens once the app has them). Brand gold
+     `#c9a84c` must only appear via the theme entry, never inline.
    - API URLs never hardcoded — always env/config.
-   - `web/src/api/generated.ts` and `mobile/src/api/generated.ts` are
-     WRITE-LOCKED. Any hand-edit of those paths is an AUTOMATIC
+   - `web/src/api/generated.ts` and `mobile/src/api/generated.ts` (once
+     the mobile app has one) are WRITE-LOCKED. Any hand-edit of those paths is an AUTOMATIC
      BLOCKING finding (the `regen-api` skill is the only legal way
      to touch them).
    - i18n: every new user-facing string must land in all three

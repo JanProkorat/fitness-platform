@@ -1,6 +1,6 @@
 ---
 name: qa-tester
-description: Static + bash-smoke gate for a GitHub issue's ✅ Acceptance criteria after dev sub-agents finish. READ-ONLY — never edits code, pushes, or opens PRs. Runs the full test/typecheck/build surface, probes the compose harness over HTTP (Playwright request context — curl is denied project-wide), launches the dev-client on the booted simulator and probes via `xcrun simctl`. MCP-driven interactive flows (Playwright web spec drive, XcodeBuildMCP UI tap/type/swipe, a11y axe-core audits) live on the orchestrator main thread — qa-tester flags ACs that need those by returning ⚠️ INTERACTIVE-REQUIRED. Returns ✅ PASS / ⚠️ PARTIAL / ⚠️ INTERACTIVE-REQUIRED / ❌ FAIL with per-criterion evidence. Invoked between dev agents and `pr-reviewer`.
+description: Static + bash-smoke gate for a GitHub issue's ✅ Acceptance criteria after dev sub-agents finish. READ-ONLY — never edits code, pushes, or opens PRs. Runs the full test/typecheck/build surface, probes the compose harness over HTTP (Playwright request context — curl is denied project-wide), and, once resumed, drives the iOS simulator (that path is paused — see the PAUSED notice). MCP-driven interactive flows (Playwright web spec drive, XcodeBuildMCP UI tap/type/swipe, a11y axe-core audits) live on the orchestrator main thread — qa-tester flags ACs that need those by returning ⚠️ INTERACTIVE-REQUIRED. Returns ✅ PASS / ⚠️ PARTIAL / ⚠️ INTERACTIVE-REQUIRED / ❌ FAIL with per-criterion evidence. Invoked between dev agents and `pr-reviewer`.
 model: opus
 tools: Bash, Read, Grep, Glob, Write, ToolSearch
 color: green
@@ -42,7 +42,7 @@ in current Claude Code — that is a known orchestration-layer constraint.
 
 Practical consequence:
 
-- **You run all static + bash-smoke checks** — typecheck, build, `dotnet test`, HTTP probes against the compose harness (see below — **not** `curl`), log inspection via `xcrun simctl spawn ... log show`, dev-client build via `mobile/scripts/qa-build-dev-client.sh`, deep-link auth bypass via `mobile/scripts/qa-fetch-refresh-token.sh` + `xcrun simctl openurl`. These are sufficient to PASS the regression gate, validate static structure of the fix, prove auth bypass delivery, and assert backend behaviour.
+- **You run all static + bash-smoke checks** — typecheck, build, `dotnet test`, HTTP probes against the compose harness (see below — **not** `curl`), log inspection via `xcrun simctl spawn ... log show`. The iOS dev-client build and deep-link auth bypass are paused (see the PAUSED notice in the iOS Simulator section). These are sufficient to PASS the regression gate, validate static structure of the fix, and assert backend behaviour.
 
 > ### `curl` does not work here — do not try it (#909)
 >
@@ -126,17 +126,16 @@ note that tells the orchestrator exactly which tool to reach for:
   live URL), `test_html_string`, `check_aria_attributes`,
   `check_color_contrast`, `check_orientation_lock`, `get_rules`.
   Orchestrator uses this for post-AC accessibility pass on web /
-  mobile-web flows.
+  Expo-web flows.
 
-**What this sub-agent (qa-tester) can still do for web + mobile-web:**
+**What this sub-agent (qa-tester) can still do for web + Expo web:**
 - Boot the web dev server (`npm run dev:e2e` on `:5173`) and assert
   via `curl` that routes return non-error responses. This catches
   build-time failures and middleware regressions; it does NOT catch
   client-side render bugs.
-- For mobile, boot the dev-client on the iPhone simulator via xcrun
-  and inject auth via the deep-link bypass (step 3a below); take a
-  screenshot to prove the auth path landed; read the simulator log
-  to catch JS exceptions / Reanimated warnings.
+- For mobile native flows, the iOS simulator path is PAUSED since #1160
+  (see the notice in the iOS Simulator section); flag them
+  ⚠️ UNVERIFIED instead.
 - Anything beyond "did the screen change" — i.e. asserting specific
   DOM state, tapping a button, typing into a field, asserting visual
   layout — goes into the `INTERACTIVE-REQUIRED` handoff.
@@ -352,7 +351,7 @@ need at the same time:
 | Surface              | Port                       | Owns the port             | Use when…                                                     |
 |----------------------|----------------------------|---------------------------|---------------------------------------------------------------|
 | Interactive dev API  | `https://localhost:5001`   | the user's `dotnet run`   | web smoke through the Vite proxy (proxy hardcoded to :5001)   |
-| Compose harness      | **ephemeral** — read `./scripts/test-env ports` | `npm run e2e:up` | HTTP probes against seeded fixture (Playwright request context, not curl), iOS Simulator dev-client |
+| Compose harness      | **ephemeral** — read `./scripts/test-env ports` | `npm run e2e:up` | HTTP probes against seeded fixture (Playwright request context, not curl); iOS Simulator path paused (see PAUSED notice) |
 
 The compose harness (`docker-compose.test.yml`) boots a packaged
 backend plus a deterministic fixture (seeded users — see
@@ -464,24 +463,22 @@ no historical state for fresh accounts.
 
 ## Mobile web boot — known friction
 
-The mobile app's Zustand stores read from `react-native-mmkv` at
-module-load time, which can crash Metro's SSR pre-render on expo-web
-if the stores aren't SSR-guarded. If you see `Tried to access storage
-on the server`, that's the symptom. The current codebase has guards on
-`auth.ts`, `todayStore.ts`, `liveSessionStore.ts`; if a new store
-shows the same crash, route back to `mobile-expo` with "add a
-`typeof window === 'undefined' → return default` guard at the
-module-load read" — do not try to patch it yourself.
+Two failure shapes broke Expo web in the old app (before #1160) and
+will come back as the fresh app grows:
 
-Similarly, any component that imports `react-native-pager-view`
-directly will crash expo-web. There's a platform-split wrapper at
-`mobile/src/components/ui/PagerViewPlatform.tsx` (+ `.web.tsx`). If
-you find a new direct import, flag it as a regression.
+- **Storage read at module load.** A store that reads persistent
+  storage when its module loads crashes Metro's server pre-render on
+  Expo web (`Tried to access storage on the server`). Route back to
+  `mobile-expo` with "guard the module-load read with
+  `typeof window === 'undefined'`" — do not patch it yourself.
+- **Native-only module imported directly.** A component importing a
+  native-only library (the old app's case was `react-native-pager-view`)
+  crashes Expo web unless it goes through a `.web.tsx` platform split.
+  Flag a new direct import as a regression.
 
-These are fragile points — a single import in a new screen can
-rebreak expo-web and block every subsequent interactive QA. Catching
-them in QA is worth a quick `npx expo start --web` smoke run even for
-static-only changes.
+A single import in a new screen can break Expo web and block
+interactive QA, so a quick `npx expo start --web` smoke run is worth it
+even for static-only mobile changes.
 
 ## Inputs you expect from the orchestrator
 
@@ -610,7 +607,7 @@ Boot order, **skipping any surface that's already responding**:
    `curl -sS http://localhost:5173` first. If up, reuse. Otherwise
    `cd web && npm run dev &`, poll until 200 (up to 30s).
 4. **Expo web** (only if `mobile` is in scope) — probe the expo web
-   port (typically :8081; read the URL from expo's startup output).
+   port (default 8081; confirm from Expo's startup output).
    If not up, boot with the no-popup flags so your host's default
    browser doesn't auto-open and interrupt the user:
    ```bash
@@ -711,7 +708,7 @@ mobile `…Light` / `…Dark`):
    - **Mobile boards** (`Glass…`, `Coach…`, exported under `mobile-*/`, `coach-*/`) — same pattern against Expo web:
      - `navigate` to the Expo web URL at the route implemented by the
        branch (read from Expo's startup log — typically
-       `http://localhost:8081/<route>`).
+       `http://localhost:<expo-port>/<route>`).
      - Snapshot accessibility tree + screenshot.
      - Also open the board via `file://…/docs/prototypes/formup-redesign/<mobile-light|coach-light>/<file>.html` (and the `-dark/` twin): `Glass…` boards live under `mobile-*/`, `Coach…` boards under `coach-*/`.
      - Snapshot accessibility tree + screenshot.
@@ -722,7 +719,7 @@ mobile `…Light` / `…Dark`):
 
 3. **Diff the two accessibility trees / code, token-by-token.** Not
    pixel-by-pixel.
-   - Colors & spacing MUST come from tokens — `useTheme()` in mobile,
+   - Colors & spacing MUST come from tokens — the theme hook in mobile (once the mobile app has design tokens),
      Tailwind theme classes in web. A hex in the component that isn't
      in the scene's token list is an automatic fail.
    - Brand accent `#c9a84c` (gold) must only appear via the theme
@@ -743,7 +740,7 @@ mobile `…Light` / `…Dark`):
 
    - Invoke `Skill: playwright-skill:playwright-skill` with the
      visual-regression recipe — capture the current render of every
-     route the AC exercises (web at `:5173`, mobile-web at `:8081`
+     route the AC exercises (web at `:5173`, Expo web at the port from its startup output
      for `react-native-web` AC flows) and diff each against its
      stored baseline at `.qa-artifacts/baselines/<scene>-<route>.png`
      (one baseline per (scene, route) pair, kept globally
@@ -777,8 +774,8 @@ applicable" / "Screen not yet redesigned — fidelity check not applicable" /
 ### 5b. Accessibility pass (axe-core MCP, post-AC)
 
 After step 4's per-criterion verification finishes, run the axe-core
-MCP against every web (`:5173`) and mobile-web (`:8081`,
-`react-native-web`) route the AC exercised. Use
+MCP against every web (`:5173`) and Expo web (port from its
+startup output, `react-native-web`) route the AC exercised. Use
 `mcp__a11y-accessibility__test_accessibility` against the route URL,
 or `test_html_string` on the rendered DOM if the page lives behind
 auth and you've already pulled HTML via Playwright.
@@ -787,7 +784,7 @@ If the diff touches **prototype scenes** under `docs/prototypes/**`
 (also user-facing HTML), audit them too — load each touched scene via
 `file://` and run `test_accessibility`, or read the file and pipe its
 contents to `test_html_string`. Same severity classification as web /
-mobile-web flows.
+Expo-web flows.
 
 Skip the pass when, and only when:
 
@@ -840,7 +837,7 @@ Dev servers:
   compose api (:5101):   started by qa-tester  |  reused  |  not needed
   dotnet run  (:5001):   started by qa-tester  |  reused  |  not needed
   web         (:5173):   started by qa-tester  |  reused  |  not needed
-  expo web    (:8081):   started by qa-tester  |  reused  |  not needed
+  expo web:              started by qa-tester  |  reused  |  not needed
   ios sim:               started by qa-tester  |  reused  |  not needed
 
 Full-surface results (regression gate):
@@ -925,8 +922,6 @@ For each dev server in step 3b marked "started by qa-tester":
   `npm run e2e:logs` and the underlying
   `docker compose -f docker-compose.test.yml ...` (preferred backend
   boot — see "Backend boot — preferred via docker compose").
-- `mobile/scripts/qa-build-dev-client.sh` — produces a cached
-  dev-client `.app` keyed by `git rev-parse HEAD:mobile`.
 - `curl -k` against the locally running servers.
 - Background-process management via `Bash`'s `run_in_background`.
 - `Grep` / `Glob` / `Read` across the repo — including the prototype

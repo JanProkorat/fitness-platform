@@ -49,7 +49,7 @@ The orchestrator dispatches you with:
    → `/web/**`; `mobile-expo` → `/mobile/**`.
 3. **Architecture fit.** Vertical-slice respected (no horizontal-layer
    creation). No hand-edits to `web/src/api/generated.ts` or
-   `mobile/src/api/generated.ts` (BLOCKING — must regenerate via
+   `mobile/src/api/generated.ts` if present (BLOCKING — must regenerate via
    `regen-api`). Mongo `Version` field bumped where applicable.
 4. **Security.** New backend endpoints have auth attribute + role/policy.
    Client-facing endpoints have ownership check (Trainer ↔ Client link).
