@@ -64,7 +64,7 @@ export default function RoleSelector({ value, onChange, onBlur, error }: RoleSel
               <span className="flex items-center gap-1.5 text-meta font-semibold text-ink">
                 <span
                   className={cn(
-                    'flex size-3.5 shrink-0 items-center justify-center rounded-[4px] border border-border bg-surface text-primary-foreground',
+                    'flex size-3.5 shrink-0 items-center justify-center rounded-xs border border-border bg-surface text-primary-foreground',
                     selected && 'border-primary bg-primary'
                   )}
                 >

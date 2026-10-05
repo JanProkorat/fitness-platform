@@ -106,8 +106,11 @@
   --gf-text-copy: 14px; /* audience panel body copy, CTA band body */
   --gf-text-subhead: 15px; /* capability card title, band lede */
   --gf-text-lede: 18px; /* hero sub-headline */
+  --gf-text-card-title: 19px; /* plan/template card title, error heading */
   --gf-text-panel-title: 18px; /* audience panel heading */
   --gf-text-auth-title: 22px; /* login panel heading */
+  --gf-text-stat: 26px; /* stat figures, empty-state heading */
+  --gf-text-display: 30px; /* large page heading on the Page*C boards */
   --gf-text-hero: clamp(38px, 4.4vw, 58px); /* hero H1 */
   --gf-text-section-title: clamp(26px, 3vw, 34px); /* band H2 */
   --gf-text-cta-title: clamp(24px, 3vw, 32px); /* closing CTA H2 */
@@ -310,6 +313,12 @@
   --text-subhead--line-height: 1.5;
   --text-lede: var(--gf-text-lede);
   --text-lede--line-height: 1.6;
+  --text-card-title: var(--gf-text-card-title);
+  --text-card-title--line-height: 1.2;
+  --text-stat: var(--gf-text-stat);
+  --text-stat--line-height: 1.2;
+  --text-display: var(--gf-text-display);
+  --text-display--line-height: 1.2;
   --text-panel-title: var(--gf-text-panel-title);
   --text-panel-title--line-height: 1.2;
   --text-auth-title: var(--gf-text-auth-title);

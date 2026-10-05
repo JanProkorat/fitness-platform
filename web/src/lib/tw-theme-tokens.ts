@@ -12,7 +12,7 @@
  * tailwind-merge's own theme scale arrays are shaped.
  */
 
-/** `--text-*` — 14 keys. Falls through to tailwind-merge's colour-scale
+/** `--text-*` — 17 keys. Falls through to tailwind-merge's colour-scale
  * catch-all without this: every one of these class names would otherwise be
  * silently deleted as a "text colour" conflict (#1078). */
 export const TEXT_SIZE_TOKENS = [
@@ -25,6 +25,9 @@ export const TEXT_SIZE_TOKENS = [
   'copy',
   'subhead',
   'lede',
+  'card-title',
+  'stat',
+  'display',
   'panel-title',
   'auth-title',
   'hero',

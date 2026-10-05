@@ -45,8 +45,8 @@ interface Props {
  * down to zero rows could not clear the filter they just applied.
  *
  * Count sits BEFORE the label ("2 All", not "All 2") and the chip itself is
- * a solid pill (active = green fill, inactive = grey fill) per the Figma
- * wireframe (frame client-list-02, #1066 phase 6).
+ * a solid pill (active = ink fill with a `chip-count` badge, inactive = line
+ * fill with muted text).
  */
 export default function ClientFilterChips({ active, counts, onSelect }: Props) {
   const { t } = useTranslation();
