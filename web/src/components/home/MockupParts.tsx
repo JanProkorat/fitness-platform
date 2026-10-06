@@ -104,7 +104,7 @@ export function MealDot({ done, size = 'size-5' }: { done: boolean; size?: strin
 /** Eyebrow label above a section title. */
 export function Eyebrow({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
-    <span className={`text-meta font-bold tracking-eyebrow uppercase ${className}`}>{children}</span>
+    <span className={`text-home-meta font-bold tracking-eyebrow uppercase ${className}`}>{children}</span>
   );
 }
 
@@ -120,12 +120,12 @@ interface FeatureItemProps {
 export function FeatureItem({ icon, tone, title, description }: FeatureItemProps) {
   return (
     <div className="flex gap-3.5">
-      <span className={`flex size-9.5 shrink-0 items-center justify-center rounded-xl ${tone}`}>
+      <span className={`flex size-9.5 @min-[1340px]:size-10 @min-[1472px]:size-10.5 @min-[1592px]:size-11.5 @min-[1760px]:size-12.5 @min-[1940px]:size-14 shrink-0 items-center justify-center rounded-xl ${tone}`}>
         {icon}
       </span>
       <span className="flex flex-col gap-1">
         <span className="text-home-feature-title font-bold text-ink">{title}</span>
-        <span className="text-copy leading-normal text-muted-foreground">{description}</span>
+        <span className="text-home-copy leading-normal text-muted-foreground">{description}</span>
       </span>
     </div>
   );
@@ -139,8 +139,11 @@ interface StoreLinksProps {
 
 /** App Store / Google Play placeholders; real store URLs land with the app release. */
 export function StoreLinks({ appStore, googlePlay, size = 'md' }: StoreLinksProps) {
-  const sizing = size === 'md' ? 'h-10 px-3.5' : 'h-8.5 px-3.5';
-  const base = `inline-flex items-center gap-1.75 rounded-field border border-border bg-surface text-body font-semibold whitespace-nowrap text-ink hover:bg-sunken ${sizing}`;
+  const sizing =
+    size === 'md'
+      ? 'h-10 @min-[1340px]:h-10.5 @min-[1472px]:h-11 @min-[1592px]:h-12 @min-[1760px]:h-13 @min-[1940px]:h-14.5 px-3.5 text-home-body'
+      : 'h-8.5 px-3.5 text-body';
+  const base = `inline-flex items-center gap-1.75 rounded-field border border-border bg-surface font-semibold whitespace-nowrap text-ink hover:bg-sunken ${sizing}`;
   return (
     <>
       <a href="#" className={base}>

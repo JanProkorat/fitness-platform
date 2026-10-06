@@ -217,6 +217,7 @@
    its type does. Scale factors: 1.04, 1.1, 1.2, 1.3, 1.45. */
 @media (min-width: 1484px) {
   :root {
+    --gf-text-home-banner: 35px;
     --gf-text-home-hero: 58px;
     --gf-text-home-heading: 40px;
     --gf-text-home-lead: 17px;
@@ -232,6 +233,7 @@
 
 @media (min-width: 1616px) {
   :root {
+    --gf-text-home-banner: 37px;
     --gf-text-home-hero: 62px;
     --gf-text-home-heading: 42px;
     --gf-text-home-lead: 18px;
@@ -247,6 +249,7 @@
 
 @media (min-width: 1736px) {
   :root {
+    --gf-text-home-banner: 41px;
     --gf-text-home-hero: 67px;
     --gf-text-home-heading: 46px;
     --gf-text-home-lead: 19px;
@@ -262,6 +265,7 @@
 
 @media (min-width: 2216px) {
   :root {
+    --gf-text-home-banner: 44px;
     --gf-text-home-hero: 73px;
     --gf-text-home-heading: 49px;
     --gf-text-home-lead: 21px;
@@ -277,6 +281,7 @@
 
 @media (min-width: 2576px) {
   :root {
+    --gf-text-home-banner: 49px;
     --gf-text-home-hero: 81px;
     --gf-text-home-heading: 55px;
     --gf-text-home-lead: 23px;
