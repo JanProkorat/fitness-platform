@@ -120,7 +120,7 @@ export default function HeroMockup() {
         </svg>
 
         <div className="absolute top-[52px] left-[612px] flex w-[246px] items-start gap-2.5 rounded-2xl bg-notif px-3 py-2.5 text-on-dark shadow-popover">
-          <span className="flex size-[26px] shrink-0 items-center justify-center rounded-thumb border border-on-dark/20 bg-scrim font-display text-mockup-badge font-semibold text-marker">
+          <span className="flex size-[26px] shrink-0 items-center justify-center rounded-thumb border border-on-dark/20 bg-scrim font-display text-mockup-badge font-semibold text-marker-bright">
             {t('home.mock.notifBadge')}
           </span>
           <span className="flex flex-col gap-0.5 text-mockup-notif">

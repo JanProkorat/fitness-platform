@@ -2990,6 +2990,7 @@
       "forCoaches": "For coaches",
       "forNutritionists": "For nutritionists",
       "mobileApp": "Mobile app",
+      "questions": "Q&A",
       "signIn": "Sign in",
       "createAccount": "Create account",
       "menuLabel": "{{code}}, language and theme",
@@ -3024,7 +3025,14 @@
         "build": "Drag recipes and exercises into the week. Macros add up as you go.",
         "publish": "Finished weeks go to your client’s phone in one click. Drafts stay hidden.",
         "follow": "Your client ticks off meals and workouts. You see it as it happens.",
-        "see": "Every Sunday the check-in arrives: weight, photos and how the week felt."
+        "see": "Once a week the check-in arrives: weight, photos and how the week felt."
+      },
+      "phone": {
+        "label": "On your client’s phone",
+        "empty": "Nothing yet. Drafts stay hidden until you publish.",
+        "ready": { "title": "Week 5 is ready", "body": "Jan published 7 days of meals and 3 workouts." },
+        "workout": { "title": "Workout done", "body": "Upper body A · 52 min · all sets logged." },
+        "checkin": { "title": "Check-in sent", "body": "68.4 kg · energy 4/5 · 3 progress photos." }
       }
     },
     "coaches": {
@@ -3043,6 +3051,18 @@
         "watch": {
           "title": "Watch it happen",
           "desc": "Your client logs every set during the workout. You see what they lifted, and how it felt."
+        },
+        "library": {
+          "title": "Exercise library with videos",
+          "desc": "Every exercise comes with a short video, so your client sees the form before the first set."
+        },
+        "progress": {
+          "title": "Progress over time",
+          "desc": "Weight, body measurements and progress photos, charted week by week for every client."
+        },
+        "intake": {
+          "title": "Intake questionnaires",
+          "desc": "Send an onboarding form before the first session and read the answers in the client’s profile."
         }
       }
     },
@@ -3062,17 +3082,56 @@
         "alongside": {
           "title": "Work alongside the trainer",
           "desc": "A client can have a nutritionist and a coach. Each of you owns your own plan."
+        },
+        "foods": {
+          "title": "Food database built in",
+          "desc": "Search products from Open Food Facts, or add your own ingredients with their macros."
+        },
+        "templates": {
+          "title": "Meal templates",
+          "desc": "Save a breakfast or a whole day once, then drop it into any client’s plan."
+        },
+        "diary": {
+          "title": "Photo diary",
+          "desc": "Ask your client for photos of their meals and see what they really ate that day."
         }
       }
     },
     "app": {
       "eyebrow": "The mobile app",
       "title": "One app for your clients — and for you",
-      "lead": "For your clients, the app is where everything happens: today’s meals and workouts, the chat with you and the Sunday check-in. You get the same app with a coach view — see who needs you, review check-ins and reply from anywhere.",
+      "lead": "For your clients, the app is where everything happens: today’s meals and workouts, the chat with you and the weekly check-in. You get the same app with a coach view — see who needs you, review check-ins and reply from anywhere.",
       "appStore": "App Store",
       "googlePlay": "Google Play",
       "clients": { "badge": "Your clients", "caption": "Their main tool, every day" },
       "you": { "badge": "You", "caption": "Your clients in your pocket" }
+    },
+    "questions": {
+      "eyebrow": "Questions",
+      "title": "Before you start",
+      "items": {
+        "pay": { "q": "Does my client pay for the app?", "a": "No. The mobile app is free for your clients." },
+        "invite": {
+          "q": "How do I bring my clients over?",
+          "a": "Invite them by email from the portal. They install the app and land straight in your client list."
+        },
+        "drafts": {
+          "q": "Will my client see unfinished weeks?",
+          "a": "No. Clients only see the weeks you publish. Drafts stay hidden until you are ready."
+        },
+        "share": {
+          "q": "Can a trainer and a nutritionist share a client?",
+          "a": "Yes. Each of you owns your own plan, and the client sees both in one app."
+        },
+        "reuse": {
+          "q": "Can I reuse plans across clients?",
+          "a": "Yes. Save sessions, meals or a whole plan as a template and give it to the next client in one click."
+        },
+        "languages": {
+          "q": "Which languages does Form Up speak?",
+          "a": "Czech, English and German — in the web portal and in the mobile app."
+        }
+      }
     },
     "join": {
       "title": "Join our community of coaches and nutritionists",
@@ -3140,6 +3199,7 @@
       },
       "muscles": { "chest": "Chest", "back": "Back", "shoulders": "Shoulders" },
       "bodyweight": "body",
+      "setsMax": "3 × max",
       "rest": { "min": "{{value}} min", "s": "{{value}} s" },
       "liveTitle": "Live · Petra is training",
       "liveSet": "Bench press · set 3 of 4",
@@ -3151,7 +3211,21 @@
         "greekYogurt": "Greek yogurt",
         "blueberries": "Blueberries"
       },
-      "sundayWeek": "Sunday · week 5",
+      "sundayWeek": "Week 5",
+      "todayMeta": "Today · 45 min",
+      "blockProgress": "2 of 4",
+      "setNext": "3 × 10 · set 1 next",
+      "logSet": "Log set",
+      "lunchOnTarget": "Lunch · on target",
+      "macros": { "protein": "Protein", "carbs": "Carbs", "fat": "Fat" },
+      "ingredients": {
+        "title": "Ingredients",
+        "chickenBreast": "Chicken breast",
+        "basmatiRice": "Basmati rice",
+        "broccoli": "Broccoli",
+        "oliveOil": "Olive oil"
+      },
+      "markEaten": "Mark as eaten",
       "weeklyCheckIn": "Weekly check-in",
       "weight": "Weight",
       "progressPhotos": "Progress photos",

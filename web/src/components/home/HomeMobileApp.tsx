@@ -10,8 +10,9 @@ import {
 
 // Scales only the aria-hidden phone pair so the badge and caption keep their type-scale size.
 // Row = 2 x (2 x 250 + 26) x zoom + 113 = 1052 x zoom + 113; every step keeps at least 16px spare.
+// The width ladder sets --mz; home-zoom-phones caps it by window height (see index.css).
 const PHONES_ZOOM =
-  'lg:[zoom:0.71] lg:@min-[960px]:[zoom:0.78] lg:@min-[1040px]:[zoom:0.86] lg:@min-[1120px]:[zoom:0.93] lg:@min-[1182px]:[zoom:1] lg:@min-[1340px]:[zoom:1.03] lg:@min-[1472px]:[zoom:1.1] lg:@min-[1592px]:[zoom:1.2] lg:@min-[1760px]:[zoom:1.3] lg:@min-[1940px]:[zoom:1.45]';
+  'lg:home-zoom-phones lg:[--mz:0.71] lg:@min-[960px]:[--mz:0.78] lg:@min-[1040px]:[--mz:0.86] lg:@min-[1120px]:[--mz:0.93] lg:@min-[1182px]:[--mz:1] lg:@min-[1340px]:[--mz:1.03] lg:@min-[1472px]:[--mz:1.1] lg:@min-[1592px]:[--mz:1.2] lg:@min-[1760px]:[--mz:1.3] lg:@min-[1940px]:[--mz:1.45]';
 
 function PhoneGroup({
   badge,
@@ -51,9 +52,9 @@ export default function HomeMobileApp() {
     <section
       id="mobile-app"
       tabIndex={-1}
-      className="flex scroll-mt-6 flex-col justify-center px-4 pt-14 pb-16 outline-none sm:px-10 lg:min-h-svh lg:px-16 lg:pt-24 lg:pb-22.5"
+      className="flex flex-col justify-center px-4 pt-14 pb-16 outline-none sm:px-10 lg:home-section-pad lg:min-h-svh lg:px-16"
     >
-      <div className="@container mx-auto flex w-full max-w-home flex-col items-center gap-12">
+      <div className="@container home-tier-phones mx-auto flex w-full max-w-home flex-col items-center gap-12 lg:gap-[clamp(1.5rem,4svh,3rem)]">
         <div className="flex flex-col items-center gap-3.5 text-center">
           <Eyebrow className="text-marker">{t('home.app.eyebrow')}</Eyebrow>
           <h2 className="font-display text-home-heading font-semibold tracking-heading text-ink">
@@ -77,7 +78,7 @@ export default function HomeMobileApp() {
           <span className="hidden w-px self-stretch bg-border lg:block" />
           <PhoneGroup
             badge={t('home.app.you.badge')}
-            badgeTone="bg-marker text-on-dark"
+            badgeTone="bg-marker-solid text-on-dark"
             caption={t('home.app.you.caption')}
             phonesClassName={PHONES_ZOOM}
           >

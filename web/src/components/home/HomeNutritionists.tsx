@@ -1,7 +1,23 @@
 // Pixel sizes and positions in this file are illustration drawing copied from the board, not layout tokens.
 import { useTranslation } from 'react-i18next';
-import { Eyebrow, FeatureItem, FloatCard, MacroBar, WindowFrame } from '@/components/home/MockupParts';
-import { IconCalendar, IconCheck, IconPeople, IconSliders } from '@/components/home/HomeIcons';
+import {
+  Eyebrow,
+  FeatureItem,
+  FeatureRow,
+  FloatCard,
+  MacroBar,
+  WindowFrame,
+} from '@/components/home/MockupParts';
+import { MealPhone } from '@/components/home/HomePhones';
+import {
+  IconCalendar,
+  IconCamera,
+  IconCheck,
+  IconDatabase,
+  IconPeople,
+  IconSliders,
+  IconTemplate,
+} from '@/components/home/HomeIcons';
 
 type Verdict = 'ok' | 'over' | 'under';
 
@@ -53,7 +69,7 @@ const MEAL_ROWS: ReadonlyArray<{
 
 const VERDICT_STYLE: Record<Verdict, { cell: string; label: string }> = {
   ok: { cell: 'bg-nutrition-soft', label: 'text-nutrition-ink' },
-  over: { cell: 'bg-training-soft', label: 'text-training' },
+  over: { cell: 'bg-training-soft', label: 'text-training-ink' },
   under: { cell: 'bg-surface', label: 'text-muted-foreground' },
 };
 
@@ -75,14 +91,16 @@ const LEGEND = [
 
 const LEGEND_KCAL = 2100;
 
+// Window (640) plus the 120 the client phone overhangs on the right = 760 x zoom, which has to fit the
+// space beside the text column at every step.
+const MOCKUP_ZOOM =
+  'lg:home-zoom-mock lg:[--mz:0.54] lg:@min-[960px]:[--mz:0.62] lg:@min-[1040px]:[--mz:0.72] lg:@min-[1120px]:[--mz:0.83] lg:@min-[1200px]:[--mz:0.94] lg:@min-[1290px]:[--mz:1] lg:@min-[1340px]:[--mz:1.03] lg:@min-[1472px]:[--mz:1.1] lg:@min-[1592px]:[--mz:1.2] lg:@min-[1760px]:[--mz:1.3] lg:@min-[1940px]:[--mz:1.45]';
+
 function NutritionMockup() {
   const { t, i18n } = useTranslation();
 
   return (
-    <div
-      aria-hidden="true"
-      className="relative w-[640px] max-w-full lg:[zoom:0.62] lg:@min-[960px]:[zoom:0.74] lg:@min-[1040px]:[zoom:0.86] lg:@min-[1120px]:[zoom:0.98] lg:@min-[1200px]:[zoom:1] lg:@min-[1340px]:[zoom:1.03] lg:@min-[1472px]:[zoom:1.1] lg:@min-[1592px]:[zoom:1.2] lg:@min-[1760px]:[zoom:1.3] lg:@min-[1940px]:[zoom:1.45]"
-    >
+    <div aria-hidden="true" className={`relative w-[640px] max-w-full ${MOCKUP_ZOOM}`}>
       <WindowFrame title={t('home.mock.planTitle')} subtitle={t('home.mock.nutritionView')}>
         <div className="grid grid-cols-[70px_repeat(4,minmax(0,1fr))] gap-2 px-4 pt-3.5 pb-4">
           <span />
@@ -116,6 +134,10 @@ function NutritionMockup() {
           ))}
         </div>
       </WindowFrame>
+
+      <div className="absolute top-10 -right-[120px] hidden lg:block">
+        <MealPhone />
+      </div>
 
       <FloatCard className="absolute top-[calc(100%-34px)] -left-9 flex w-[250px] flex-col px-3.5 py-3">
         <span className="pb-1.5 text-body font-bold text-ink">{t('home.mock.shoppingList')}</span>
@@ -173,7 +195,7 @@ function MealRow({
         >
           <span className="flex items-baseline gap-0.75">
             <span className="text-mockup-figure font-semibold text-ink">{cell.kcal}</span>
-            <span className="text-mockup-xs text-muted-foreground">{t('home.mock.kcal')}</span>
+            <span className="text-mockup-xs text-muted-tint">{t('home.mock.kcal')}</span>
           </span>
           <span className={`text-mockup-xs font-bold ${VERDICT_STYLE[cell.verdict].label}`}>
             {cell.delta ?? t('home.mock.onTarget')}
@@ -195,39 +217,63 @@ export default function HomeNutritionists() {
     <section
       id="for-nutritionists"
       tabIndex={-1}
-      className="flex scroll-mt-6 flex-col justify-center bg-surface px-4 pt-14 pb-24 outline-none sm:px-10 lg:min-h-svh lg:px-16 lg:pt-24 lg:pb-48"
+      className="flex flex-col justify-center overflow-x-clip px-4 py-14 outline-none sm:px-10 lg:home-section-pad lg:min-h-svh lg:px-16"
     >
-      <div className="@container mx-auto flex w-full max-w-home flex-col gap-12 lg:flex-row-reverse lg:items-center lg:gap-16">
-        <div className="flex max-w-105 @min-[1340px]:max-w-109 @min-[1472px]:max-w-115.5 @min-[1592px]:max-w-126 @min-[1760px]:max-w-136.5 @min-[1940px]:max-w-152 shrink-0 flex-col gap-4.5">
-          <Eyebrow className="text-nutrition">{t('home.nutritionists.eyebrow')}</Eyebrow>
-          <h2 className="font-display text-home-heading font-semibold tracking-heading text-ink">
-            {t('home.nutritionists.title')}
-          </h2>
-          <p className="text-home-lead text-ink-2">{t('home.nutritionists.lead')}</p>
-          <div className="flex flex-col gap-4 pt-1.5">
-            <FeatureItem
-              icon={<IconCalendar />}
-              tone="bg-nutrition-soft text-nutrition-ink"
-              title={t('home.nutritionists.features.plans.title')}
-              description={t('home.nutritionists.features.plans.desc')}
-            />
-            <FeatureItem
-              icon={<IconSliders />}
-              tone="bg-nutrition-soft text-nutrition-ink"
-              title={t('home.nutritionists.features.macros.title')}
-              description={t('home.nutritionists.features.macros.desc')}
-            />
-            <FeatureItem
-              icon={<IconPeople />}
-              tone="bg-nutrition-soft text-nutrition-ink"
-              title={t('home.nutritionists.features.alongside.title')}
-              description={t('home.nutritionists.features.alongside.desc')}
-            />
+      <div className="@container home-tier mx-auto flex w-full max-w-home flex-col">
+        <div className="flex flex-col gap-12 lg:flex-row-reverse lg:items-center lg:gap-16">
+          <div className="flex max-w-105 @min-[1340px]:max-w-109 @min-[1472px]:max-w-115.5 @min-[1592px]:max-w-126 @min-[1760px]:max-w-136.5 @min-[1940px]:max-w-152 shrink-0 flex-col gap-4.5">
+            <Eyebrow className="text-nutrition">{t('home.nutritionists.eyebrow')}</Eyebrow>
+            <h2 className="font-display text-home-heading font-semibold tracking-heading text-ink">
+              {t('home.nutritionists.title')}
+            </h2>
+            <p className="text-home-lead text-ink-2">{t('home.nutritionists.lead')}</p>
+            <div className="flex flex-col gap-4 pt-1.5">
+              <FeatureItem
+                icon={<IconCalendar />}
+                tone="bg-nutrition-soft text-nutrition-ink"
+                title={t('home.nutritionists.features.plans.title')}
+                description={t('home.nutritionists.features.plans.desc')}
+              />
+              <FeatureItem
+                icon={<IconSliders />}
+                tone="bg-nutrition-soft text-nutrition-ink"
+                title={t('home.nutritionists.features.macros.title')}
+                description={t('home.nutritionists.features.macros.desc')}
+              />
+              <FeatureItem
+                icon={<IconPeople />}
+                tone="bg-nutrition-soft text-nutrition-ink"
+                title={t('home.nutritionists.features.alongside.title')}
+                description={t('home.nutritionists.features.alongside.desc')}
+              />
+            </div>
+          </div>
+          <div className="hidden min-w-0 grow justify-center @min-[640px]:flex">
+            <NutritionMockup />
           </div>
         </div>
-        <div className="hidden min-w-0 grow justify-center pb-10 @min-[640px]:flex">
-          <NutritionMockup />
-        </div>
+        {/* Reserves the room the shopping list and the client phone hang below the window. */}
+        <div aria-hidden="true" className={`h-12 @min-[640px]:h-36 lg:h-(--home-spacer-nutritionists) ${MOCKUP_ZOOM}`} />
+        <FeatureRow>
+          <FeatureItem
+            icon={<IconDatabase />}
+            tone="bg-nutrition-soft text-nutrition-ink"
+            title={t('home.nutritionists.features.foods.title')}
+            description={t('home.nutritionists.features.foods.desc')}
+          />
+          <FeatureItem
+            icon={<IconTemplate />}
+            tone="bg-nutrition-soft text-nutrition-ink"
+            title={t('home.nutritionists.features.templates.title')}
+            description={t('home.nutritionists.features.templates.desc')}
+          />
+          <FeatureItem
+            icon={<IconCamera />}
+            tone="bg-nutrition-soft text-nutrition-ink"
+            title={t('home.nutritionists.features.diary.title')}
+            description={t('home.nutritionists.features.diary.desc')}
+          />
+        </FeatureRow>
       </div>
     </section>
   );

@@ -2989,6 +2989,7 @@
       "forCoaches": "Für Coaches",
       "forNutritionists": "Für Ernährungsberater",
       "mobileApp": "Mobile App",
+      "questions": "Q&A",
       "signIn": "Anmelden",
       "createAccount": "Konto erstellen",
       "menuLabel": "{{code}}, Sprache und Design",
@@ -3023,7 +3024,14 @@
         "build": "Ziehen Sie Rezepte und Übungen in die Woche. Die Makros summieren sich von selbst.",
         "publish": "Fertige Wochen landen mit einem Klick auf dem Handy Ihres Kunden. Entwürfe bleiben verborgen.",
         "follow": "Ihr Kunde hakt Mahlzeiten und Trainings ab. Sie sehen es sofort.",
-        "see": "Jeden Sonntag kommt der Check-in: Gewicht, Fotos und wie die Woche lief."
+        "see": "Einmal pro Woche kommt der Check-in: Gewicht, Fotos und wie die Woche lief."
+      },
+      "phone": {
+        "label": "Auf dem Handy Ihres Kunden",
+        "empty": "Noch nichts. Entwürfe bleiben verborgen, bis Sie veröffentlichen.",
+        "ready": { "title": "Woche 5 ist bereit", "body": "Jan hat 7 Tage Mahlzeiten und 3 Trainings veröffentlicht." },
+        "workout": { "title": "Training erledigt", "body": "Oberkörper A · 52 Min. · alle Sätze protokolliert." },
+        "checkin": { "title": "Check-in gesendet", "body": "68,4 kg · Energie 4/5 · 3 Fortschrittsfotos." }
       }
     },
     "coaches": {
@@ -3042,6 +3050,18 @@
         "watch": {
           "title": "Live dabei sein",
           "desc": "Ihr Kunde protokolliert jeden Satz während des Trainings. Sie sehen, was er gehoben hat und wie es sich anfühlte."
+        },
+        "library": {
+          "title": "Übungsbibliothek mit Videos",
+          "desc": "Zu jeder Übung gehört ein kurzes Video, damit Ihr Kunde die Ausführung vor dem ersten Satz sieht."
+        },
+        "progress": {
+          "title": "Fortschritt im Zeitverlauf",
+          "desc": "Gewicht, Körpermaße und Fortschrittsfotos, Woche für Woche als Diagramm für jeden Kunden."
+        },
+        "intake": {
+          "title": "Aufnahmefragebögen",
+          "desc": "Senden Sie vor der ersten Einheit einen Einstiegsbogen und lesen Sie die Antworten im Kundenprofil."
         }
       }
     },
@@ -3061,17 +3081,56 @@
         "alongside": {
           "title": "Zusammenarbeit mit dem Trainer",
           "desc": "Ein Kunde kann Ernährungsberater und Coach haben. Jeder von Ihnen verantwortet seinen eigenen Plan."
+        },
+        "foods": {
+          "title": "Lebensmitteldatenbank integriert",
+          "desc": "Suchen Sie Produkte aus Open Food Facts oder fügen Sie eigene Zutaten mit ihren Makros hinzu."
+        },
+        "templates": {
+          "title": "Mahlzeitenvorlagen",
+          "desc": "Speichern Sie ein Frühstück oder einen ganzen Tag einmal und fügen Sie es in jeden Kundenplan ein."
+        },
+        "diary": {
+          "title": "Fototagebuch",
+          "desc": "Bitten Sie Ihren Kunden um Fotos seiner Mahlzeiten und sehen Sie, was er an dem Tag wirklich gegessen hat."
         }
       }
     },
     "app": {
       "eyebrow": "Die mobile App",
       "title": "Eine App für Ihre Kunden — und für Sie",
-      "lead": "Für Ihre Kunden ist die App der Ort, an dem alles passiert: die heutigen Mahlzeiten und Trainings, der Chat mit Ihnen und der Sonntags-Check-in. Sie erhalten dieselbe App mit Coach-Ansicht — sehen Sie, wer Sie braucht, prüfen Sie Check-ins und antworten Sie von überall.",
+      "lead": "Für Ihre Kunden ist die App der Ort, an dem alles passiert: die heutigen Mahlzeiten und Trainings, der Chat mit Ihnen und der wöchentliche Check-in. Sie erhalten dieselbe App mit Coach-Ansicht — sehen Sie, wer Sie braucht, prüfen Sie Check-ins und antworten Sie von überall.",
       "appStore": "App Store",
       "googlePlay": "Google Play",
       "clients": { "badge": "Ihre Kunden", "caption": "Ihr wichtigstes Werkzeug, jeden Tag" },
       "you": { "badge": "Sie", "caption": "Ihre Kunden in Ihrer Tasche" }
+    },
+    "questions": {
+      "eyebrow": "Fragen",
+      "title": "Bevor Sie starten",
+      "items": {
+        "pay": { "q": "Zahlt mein Kunde für die App?", "a": "Nein. Die mobile App ist für Ihre Kunden kostenlos." },
+        "invite": {
+          "q": "Wie hole ich meine Kunden an Bord?",
+          "a": "Laden Sie sie per E-Mail aus dem Portal ein. Sie installieren die App und landen direkt in Ihrer Kundenliste."
+        },
+        "drafts": {
+          "q": "Sieht mein Kunde unfertige Wochen?",
+          "a": "Nein. Kunden sehen nur die Wochen, die Sie veröffentlichen. Entwürfe bleiben verborgen, bis Sie bereit sind."
+        },
+        "share": {
+          "q": "Können sich ein Trainer und ein Ernährungsberater einen Kunden teilen?",
+          "a": "Ja. Jeder von Ihnen verantwortet seinen eigenen Plan, und der Kunde sieht beide in einer App."
+        },
+        "reuse": {
+          "q": "Kann ich Pläne für mehrere Kunden wiederverwenden?",
+          "a": "Ja. Speichern Sie Einheiten, Mahlzeiten oder einen ganzen Plan als Vorlage und geben Sie ihn mit einem Klick an den nächsten Kunden."
+        },
+        "languages": {
+          "q": "Welche Sprachen spricht Form Up?",
+          "a": "Tschechisch, Englisch und Deutsch — im Webportal und in der mobilen App."
+        }
+      }
     },
     "join": {
       "title": "Werden Sie Teil unserer Community aus Coaches und Ernährungsberatern",
@@ -3139,6 +3198,7 @@
       },
       "muscles": { "chest": "Brust", "back": "Rücken", "shoulders": "Schultern" },
       "bodyweight": "Körpergewicht",
+      "setsMax": "3 × max.",
       "rest": { "min": "{{value}} Min.", "s": "{{value}} Sek." },
       "liveTitle": "Live · Petra trainiert gerade",
       "liveSet": "Bankdrücken · Satz 3 von 4",
@@ -3150,7 +3210,21 @@
         "greekYogurt": "Griechischer Joghurt",
         "blueberries": "Heidelbeeren"
       },
-      "sundayWeek": "Sonntag · Woche 5",
+      "sundayWeek": "Woche 5",
+      "todayMeta": "Heute · 45 Min.",
+      "blockProgress": "2 von 4",
+      "setNext": "3 × 10 · Satz 1 als Nächstes",
+      "logSet": "Satz protokollieren",
+      "lunchOnTarget": "Mittagessen · im Ziel",
+      "macros": { "protein": "Eiweiß", "carbs": "Kohlenhydrate", "fat": "Fett" },
+      "ingredients": {
+        "title": "Zutaten",
+        "chickenBreast": "Hähnchenbrust",
+        "basmatiRice": "Basmatireis",
+        "broccoli": "Brokkoli",
+        "oliveOil": "Olivenöl"
+      },
+      "markEaten": "Als gegessen markieren",
       "weeklyCheckIn": "Wöchentlicher Check-in",
       "weight": "Gewicht",
       "progressPhotos": "Fortschrittsfotos",
