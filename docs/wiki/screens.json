@@ -158,19 +158,7 @@
       "roles": ["Trainer", "Nutritionist"],
       "files": [
         "web/src/pages/ClientsPage.tsx",
-        "web/src/components/clients/ClientsTable.tsx",
-        "web/src/components/clients/ClientFilterChips.tsx",
-        "web/src/components/clients/ClientTagFilterPopover.tsx",
-        "web/src/components/clients/ClientTagPickerPopover.tsx",
-        "web/src/components/clients/ClientsPagination.tsx",
-        "web/src/components/clients/ClientSelectionBar.tsx",
-        "web/src/components/clients/BroadcastDrawer.tsx",
-        "web/src/components/clients/PendingTable.tsx",
-        "web/src/components/clients/ClientsEmptyState.tsx",
-        "web/src/components/clients/ClientStatusBadge.tsx",
-        "web/src/components/clients/ClientRowMenu.tsx",
-        "web/src/components/clients/PlanIconsCell.tsx",
-        "web/src/components/clients/HorizontalDumbbellIcon.tsx",
+        "web/src/components/clients/**",
         "web/src/hooks/useClientsQueries.ts",
         "web/src/hooks/useClientListParams.ts",
         "web/src/api/clients.ts",
@@ -184,8 +172,6 @@
         "DELETE /trainer/pending-invites/{id}",
         "GET /trainer/client-tags",
         "POST /trainer/client-tags",
-        "PUT /trainer/client-tags/{tagId}",
-        "DELETE /trainer/client-tags/{tagId}",
         "PUT /trainer/clients/{clientId}/tags",
         "POST /trainer/broadcast",
         "POST /trainer/client-requests/{publicId}/accept",
@@ -207,6 +193,7 @@
       "roles": ["Trainer", "Nutritionist"],
       "files": [
         "web/src/components/clients/AddClientDrawer.tsx",
+        "web/src/hooks/useClientsQueries.ts",
         "web/src/hooks/useQuestionnaireQueries.ts",
         "web/src/api/pending-invites.ts",
         "web/src/api/questionnaires.ts"
@@ -217,7 +204,7 @@
       ],
       "board": "PageClientInviteDrawer",
       "shots": [
-        { "name": "default", "steps": "click the button 'Pozvat klienta' and wait for the drawer to open" }
+        { "name": "default", "steps": "click the header button 'Pozvat klienta' (not the empty-state one) and wait for the drawer to open" }
       ],
       "notionPageId": null
     }
