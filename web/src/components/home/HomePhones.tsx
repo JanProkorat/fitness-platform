@@ -1,7 +1,7 @@
 // Pixel sizes and positions in this file are illustration drawing copied from the board, not layout tokens.
 import { useTranslation } from 'react-i18next';
 import { GlassCard, MealDot, PhoneFrame } from '@/components/home/MockupParts';
-import { IconArrowUp, IconDumbbell } from '@/components/home/HomeIcons';
+import { IconArrowUp, IconCheck, IconDumbbell } from '@/components/home/HomeIcons';
 
 interface TodayMeal {
   kind: 'breakfast' | 'snack' | 'lunch' | 'dinner';
@@ -78,7 +78,7 @@ export function CheckInPhone() {
   return (
     <PhoneFrame className="mt-12.5">
       <div className="flex flex-col gap-0.5 px-1.5 py-1">
-        <span className="text-caption text-muted-foreground">{t('home.mock.checkInWeek')}</span>
+        <span className="text-caption text-muted-foreground">{t('home.mock.sundayWeek')}</span>
         <span className="font-display text-mockup-title font-semibold">{t('home.mock.weeklyCheckIn')}</span>
       </div>
       <GlassCard className="rounded-card px-3.5 py-3">
@@ -112,7 +112,7 @@ export function CheckInPhone() {
           ))}
         </div>
       </GlassCard>
-      <span className="mt-auto flex h-10 items-center justify-center rounded-full bg-marker text-body font-bold text-on-dark">
+      <span className="mt-auto flex h-10 items-center justify-center rounded-full bg-marker-solid text-body font-bold text-on-dark">
         {t('home.mock.sendToCoach')}
       </span>
     </PhoneFrame>
@@ -233,6 +233,129 @@ export function CoachCheckInPhone() {
           <IconArrowUp />
         </span>
       </div>
+    </PhoneFrame>
+  );
+}
+
+interface WorkoutRow {
+  /** `null` means the "set 1 next" caption. */
+  sets: string | null;
+  exercise: 'benchPress' | 'barbellRow' | 'overheadPress' | 'pullUp';
+  /** `null` means bodyweight. */
+  load: string | null;
+  done: boolean;
+  active?: boolean;
+}
+
+const WORKOUT_ROWS: WorkoutRow[] = [
+  { sets: '4 × 8', exercise: 'benchPress', load: '60 kg', done: true },
+  { sets: '4 × 10', exercise: 'barbellRow', load: '50 kg', done: true },
+  { sets: null, exercise: 'overheadPress', load: '35 kg', done: false, active: true },
+  { sets: 'max', exercise: 'pullUp', load: null, done: false },
+];
+
+/** Client app: the workout in progress, shown next to the coach's session template. */
+export function WorkoutPhone({ className = '' }: { className?: string }) {
+  const { t } = useTranslation();
+
+  return (
+    <PhoneFrame height="h-[470px]" className={className}>
+      <div className="flex flex-col gap-0.5 px-1.5 pt-1.5">
+        <span className="text-caption text-muted-foreground">{t('home.mock.todayMeta')}</span>
+        <span className="font-display text-mockup-title font-semibold text-ink">{t('home.mock.workoutName')}</span>
+      </div>
+      <GlassCard className="flex flex-col gap-0.5 rounded-glass px-1.5 pt-2.5 pb-1.5">
+        <span className="flex px-2.5 pb-1.5 text-meta font-bold text-ink">
+          {t('home.mock.blockA')}
+          <span className="ml-auto font-medium text-muted-foreground">{t('home.mock.blockProgress')}</span>
+        </span>
+        {WORKOUT_ROWS.map((row) => (
+          <div
+            key={row.exercise}
+            className={`box-border flex h-11 items-center gap-2.5 rounded-xl border-2 px-2.5 ${
+              row.active ? 'border-training' : 'border-transparent'
+            }`}
+          >
+            {row.done ? (
+              <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-training text-on-training">
+                <IconCheck size={12} />
+              </span>
+            ) : (
+              <span className="size-[17px] shrink-0 rounded-full border-[1.5px] border-muted-foreground" />
+            )}
+            <span className="flex min-w-0 flex-col gap-px">
+              <span className="text-mockup-xs text-muted-foreground">
+                {row.sets === null ? t('home.mock.setNext') : row.sets === 'max' ? t('home.mock.setsMax') : row.sets}
+              </span>
+              <span className="text-meta font-semibold whitespace-nowrap text-ink">
+                {t(`home.mock.exercises.${row.exercise}`)}
+              </span>
+            </span>
+            <span className="ml-auto text-caption whitespace-nowrap text-muted-foreground">
+              {row.load ?? t('home.mock.bodyweight')}
+            </span>
+          </div>
+        ))}
+      </GlassCard>
+      <span className="mt-auto flex h-11 items-center justify-center rounded-2xl bg-primary text-body font-bold text-primary-foreground">
+        {t('home.mock.logSet')}
+      </span>
+    </PhoneFrame>
+  );
+}
+
+const MACROS = [
+  { key: 'protein', grams: '48 g', bar: 'bg-macro-protein', width: 'w-[80%]' },
+  { key: 'carbs', grams: '62 g', bar: 'bg-macro-carbs', width: 'w-[65%]' },
+  { key: 'fat', grams: '18 g', bar: 'bg-macro-fat', width: 'w-[45%]' },
+] as const;
+
+const INGREDIENTS = [
+  { key: 'chickenBreast', amount: '150 g' },
+  { key: 'basmatiRice', amount: '80 g' },
+  { key: 'broccoli', amount: '100 g' },
+  { key: 'oliveOil', amount: '10 g' },
+] as const;
+
+/** Client app: one meal with its macros and ingredients, shown next to the nutritionist's plan. */
+export function MealPhone({ className = '' }: { className?: string }) {
+  const { t } = useTranslation();
+
+  return (
+    <PhoneFrame height="h-[470px]" className={className}>
+      <div className="flex flex-col gap-0.5 px-1.5 pt-1.5">
+        <span className="text-caption text-muted-foreground">{t('home.mock.lunchOnTarget')}</span>
+        <span className="font-display text-mockup-title font-semibold text-ink">
+          {t('home.mock.foods.chickenBowl')}
+        </span>
+      </div>
+      <GlassCard className="flex flex-col gap-0.5 rounded-glass px-1.5 pt-3 pb-2">
+        <span className="flex items-baseline gap-1 px-2.5 pt-0.5 pb-2">
+          <span className="font-display text-stat font-semibold text-ink">640</span>
+          <span className="text-caption text-muted-foreground">{t('home.mock.kcal')}</span>
+        </span>
+        <div className="flex gap-2.5 px-2.5 pb-1.5">
+          {MACROS.map((macro) => (
+            <span key={macro.key} className="flex flex-1 flex-col gap-1">
+              <span className="text-mockup-xs text-muted-foreground">{t(`home.mock.macros.${macro.key}`)}</span>
+              <span className="text-meta font-bold text-ink">{macro.grams}</span>
+              <span className={`h-1 rounded-xs ${macro.bar} ${macro.width}`} />
+            </span>
+          ))}
+        </div>
+      </GlassCard>
+      <GlassCard className="flex flex-col gap-0.5 rounded-glass px-1.5 pt-2.5 pb-1">
+        <span className="px-2.5 pb-0.5 text-meta font-bold text-ink">{t('home.mock.ingredients.title')}</span>
+        {INGREDIENTS.map((ingredient) => (
+          <span key={ingredient.key} className="flex h-8.5 items-center px-2.5 text-meta text-ink">
+            {t(`home.mock.ingredients.${ingredient.key}`)}
+            <span className="ml-auto text-muted-foreground">{ingredient.amount}</span>
+          </span>
+        ))}
+      </GlassCard>
+      <span className="mt-auto flex h-11 items-center justify-center rounded-2xl bg-primary text-body font-bold text-primary-foreground">
+        {t('home.mock.markEaten')}
+      </span>
     </PhoneFrame>
   );
 }

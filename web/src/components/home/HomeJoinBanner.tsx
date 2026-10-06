@@ -16,7 +16,7 @@ export default function HomeJoinBanner() {
         </div>
         <Link
           to="/register"
-          className="flex h-13 min-[1484px]:h-14 min-[1616px]:h-15 min-[1736px]:h-16 min-[2216px]:h-17 min-[2576px]:h-19 items-center rounded-xl bg-marker px-6.5 text-home-subhead font-bold whitespace-nowrap text-on-dark hover:opacity-90 sm:ml-auto"
+          className="flex h-13 min-[1484px]:h-14 min-[1616px]:h-15 min-[1736px]:h-16 min-[2216px]:h-17 min-[2576px]:h-19 items-center rounded-xl bg-marker-solid px-6.5 text-home-subhead font-bold whitespace-nowrap text-on-dark hover:opacity-90 sm:ml-auto"
         >
           {t('home.join.cta')}
         </Link>

@@ -3098,6 +3098,7 @@
       "forCoaches": "Pro trenéry",
       "forNutritionists": "Pro nutriční poradce",
       "mobileApp": "Mobilní aplikace",
+      "questions": "Q&A",
       "signIn": "Přihlásit se",
       "createAccount": "Vytvořit účet",
       "menuLabel": "{{code}}, jazyk a vzhled",
@@ -3132,7 +3133,14 @@
         "build": "Přetahujte recepty a cviky do týdne. Makra se sčítají samy.",
         "publish": "Hotové týdny se jedním klikem objeví v telefonu klienta. Rozpracované zůstávají skryté.",
         "follow": "Klient odškrtává jídla a tréninky. Vy to vidíte v reálném čase.",
-        "see": "Každý týden dorazí check-in: váha, fotky a jaký týden byl."
+        "see": "Jednou týdně dorazí check-in: váha, fotky a jaký týden byl."
+      },
+      "phone": {
+        "label": "V telefonu klienta",
+        "empty": "Zatím nic. Rozpracované týdny zůstávají skryté, dokud je nezveřejníte.",
+        "ready": { "title": "Týden 5 je připraven", "body": "Jan zveřejnil 7 dní jídel a 3 tréninky." },
+        "workout": { "title": "Trénink hotový", "body": "Horní polovina těla A · 52 min · všechny série zapsány." },
+        "checkin": { "title": "Check-in odeslán", "body": "68,4 kg · energie 4/5 · 3 fotky pokroku." }
       }
     },
     "coaches": {
@@ -3151,6 +3159,18 @@
         "watch": {
           "title": "Sledujte to v reálném čase",
           "desc": "Klient zapisuje každou sérii během tréninku. Vidíte, co zvedl a jak se mu dařilo."
+        },
+        "library": {
+          "title": "Knihovna cviků s videi",
+          "desc": "Ke každému cviku patří krátké video, takže klient uvidí správné provedení ještě před první sérií."
+        },
+        "progress": {
+          "title": "Pokrok v čase",
+          "desc": "Váha, tělesné míry a fotky pokroku v grafech po týdnech u každého klienta."
+        },
+        "intake": {
+          "title": "Vstupní dotazníky",
+          "desc": "Pošlete úvodní dotazník před první schůzkou a odpovědi si přečtěte v profilu klienta."
         }
       }
     },
@@ -3170,6 +3190,18 @@
         "alongside": {
           "title": "Spolupráce s trenérem",
           "desc": "Klient může mít nutričního poradce i trenéra. Každý z vás vlastní svůj plán."
+        },
+        "foods": {
+          "title": "Databáze potravin v aplikaci",
+          "desc": "Vyhledávejte produkty z Open Food Facts nebo přidejte vlastní suroviny s jejich makry."
+        },
+        "templates": {
+          "title": "Šablony jídel",
+          "desc": "Uložte snídani nebo celý den jednou a vložte je do plánu kteréhokoli klienta."
+        },
+        "diary": {
+          "title": "Fotodeník",
+          "desc": "Požádejte klienta o fotky jídel a uvidíte, co ten den skutečně snědl."
         }
       }
     },
@@ -3181,6 +3213,33 @@
       "googlePlay": "Google Play",
       "clients": { "badge": "Vaši klienti", "caption": "Jejich hlavní nástroj, každý den" },
       "you": { "badge": "Vy", "caption": "Vaši klienti v kapse" }
+    },
+    "questions": {
+      "eyebrow": "Dotazy",
+      "title": "Než začnete",
+      "items": {
+        "pay": { "q": "Platí můj klient za aplikaci?", "a": "Ne. Mobilní aplikace je pro vaše klienty zdarma." },
+        "invite": {
+          "q": "Jak k sobě přivedu své klienty?",
+          "a": "Pozvěte je e-mailem z portálu. Nainstalují si aplikaci a rovnou se ocitnou ve vašem seznamu klientů."
+        },
+        "drafts": {
+          "q": "Uvidí klient nedokončené týdny?",
+          "a": "Ne. Klienti vidí jen týdny, které zveřejníte. Rozpracované zůstávají skryté, dokud nebudete připraveni."
+        },
+        "share": {
+          "q": "Může si klienta sdílet trenér a nutriční poradce?",
+          "a": "Ano. Každý z vás vlastní svůj plán a klient vidí oba v jedné aplikaci."
+        },
+        "reuse": {
+          "q": "Můžu plány používat u více klientů?",
+          "a": "Ano. Uložte tréninky, jídla nebo celý plán jako šablonu a dejte ji dalšímu klientovi jedním klikem."
+        },
+        "languages": {
+          "q": "V jakých jazycích Form Up mluví?",
+          "a": "Česky, anglicky a německy — ve webovém portálu i v mobilní aplikaci."
+        }
+      }
     },
     "join": {
       "title": "Připojte se ke komunitě trenérů a nutričních poradců",
@@ -3248,6 +3307,7 @@
       },
       "muscles": { "chest": "Hrudník", "back": "Záda", "shoulders": "Ramena" },
       "bodyweight": "vlastní váha",
+      "setsMax": "3 × max",
       "rest": { "min": "{{value}} min", "s": "{{value}} s" },
       "liveTitle": "Živě · Petra právě cvičí",
       "liveSet": "Bench press · série 3 ze 4",
@@ -3259,7 +3319,21 @@
         "greekYogurt": "Řecký jogurt",
         "blueberries": "Borůvky"
       },
-      "checkInWeek": "Týden 5",
+      "sundayWeek": "Týden 5",
+      "todayMeta": "Dnes · 45 min",
+      "blockProgress": "2 ze 4",
+      "setNext": "3 × 10 · další je 1. série",
+      "logSet": "Zapsat sérii",
+      "lunchOnTarget": "Oběd · v cíli",
+      "macros": { "protein": "Bílkoviny", "carbs": "Sacharidy", "fat": "Tuky" },
+      "ingredients": {
+        "title": "Suroviny",
+        "chickenBreast": "Kuřecí prsa",
+        "basmatiRice": "Rýže basmati",
+        "broccoli": "Brokolice",
+        "oliveOil": "Olivový olej"
+      },
+      "markEaten": "Označit jako snězené",
       "weeklyCheckIn": "Týdenní check-in",
       "weight": "Váha",
       "progressPhotos": "Fotky pokroku",

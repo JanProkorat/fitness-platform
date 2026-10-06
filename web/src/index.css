@@ -49,6 +49,10 @@
   --gf-chip-count: #3a3835; /* count badge inside an active (ink) filter chip */
 
   --gf-marker: #d2342a; /* brand accent: logo "UP", brand marks */
+  --gf-marker-solid: #c8352b; /* marker fill behind light text (4.5:1), both themes */
+  --gf-marker-bright: #ee5a4f; /* marker glyphs on the always-dark notification and scrim surfaces */
+  --gf-marker-text: #d2342a; /* marker text on the page surface; lighter in dark */
+  --gf-muted-tint: #6b6863; /* muted caption inside tinted mockup cells; lighter in dark */
 
   /* Home page (PageHome*) mockups and glow washes. */
   --gf-hero-warm: #ffe7d3; /* hero background wash, top right */
@@ -215,8 +219,10 @@
    above the matching container-query step on the home sections
    (@min-[1340px], 1472, 1592, 1760, 1940 of content width; 128px of side
    padding plus a scrollbar), so a section's layout and mockups grow before
-   its type does. Scale factors: 1.04, 1.1, 1.2, 1.3, 1.45. */
-@media (min-width: 1484px) {
+   its type does. Scale factors: 1.04, 1.1, 1.2, 1.3, 1.45. The steps also need
+   a window at least 1000px tall: a full-screen section has to fit one window,
+   and larger type on a wide-but-short window would push it past 100svh. */
+@media (min-width: 1484px) and (min-height: 1000px) {
   :root {
     --gf-text-home-banner: 35px;
     --gf-text-home-hero: 58px;
@@ -232,7 +238,7 @@
   }
 }
 
-@media (min-width: 1616px) {
+@media (min-width: 1616px) and (min-height: 1000px) {
   :root {
     --gf-text-home-banner: 37px;
     --gf-text-home-hero: 62px;
@@ -248,7 +254,7 @@
   }
 }
 
-@media (min-width: 1736px) {
+@media (min-width: 1736px) and (min-height: 1000px) {
   :root {
     --gf-text-home-banner: 41px;
     --gf-text-home-hero: 67px;
@@ -264,7 +270,7 @@
   }
 }
 
-@media (min-width: 2216px) {
+@media (min-width: 2216px) and (min-height: 1000px) {
   :root {
     --gf-text-home-banner: 44px;
     --gf-text-home-hero: 73px;
@@ -280,7 +286,7 @@
   }
 }
 
-@media (min-width: 2576px) {
+@media (min-width: 2576px) and (min-height: 1000px) {
   :root {
     --gf-text-home-banner: 49px;
     --gf-text-home-hero: 81px;
@@ -294,6 +300,218 @@
     --gf-text-home-meta: 17px;
     --gf-text-home-subhead: 22px;
   }
+}
+
+/* Short desktop windows (1280x720 and the like): the section type steps down a notch so a
+   full-screen section still fits one window. */
+@media (min-width: 1024px) and (max-height: 800px) {
+  :root {
+    --gf-text-home-banner: 30px;
+    --gf-text-home-heading: 34px;
+    --gf-text-home-lead: 15px;
+    --gf-text-home-feature-title: 15px;
+    --gf-text-home-step-title: 18px;
+    --gf-text-home-body: 12px;
+    --gf-text-home-copy: 13px;
+    --gf-text-home-meta: 11px;
+  }
+}
+
+/* Window-height caps for the home mockups. A mockup's zoom is min(width ladder, cap), so on a wide
+   but short window it cannot push a full-screen section past 100svh. Each cap is the largest zoom
+   whose section still fits at the bottom of its height band (about 5% spare); the phones cap is
+   steeper because the four-phone section is the tallest. The spacers are the room the phones and
+   floating cards hang below a mockup; they shrink on short windows. */
+:root {
+  --home-cap-card: 10;
+  --home-cap-mock: 10;
+  --home-cap-phones: 10;
+  --home-spacer-coaches: 76px;
+  --home-spacer-nutritionists: 160px;
+}
+
+@media (max-height: 999px) {
+  :root {
+    --home-cap-mock: 1.15;
+  }
+}
+
+@media (max-height: 799px) {
+  :root {
+    --home-cap-mock: 1;
+    --home-spacer-coaches: 40px;
+    --home-spacer-nutritionists: 140px;
+  }
+}
+
+@media (max-height: 699px) {
+  :root {
+    --home-cap-card: 0.8;
+    --home-cap-mock: 0.85;
+  }
+}
+
+@media (max-height: 1319px) {
+  :root {
+    --home-cap-phones: 1.3;
+  }
+}
+
+@media (max-height: 1239px) {
+  :root {
+    --home-cap-phones: 1.2;
+  }
+}
+
+@media (max-height: 1159px) {
+  :root {
+    --home-cap-phones: 1.06;
+  }
+}
+
+@media (max-height: 1079px) {
+  :root {
+    --home-cap-phones: 1.03;
+  }
+}
+
+@media (max-height: 1039px) {
+  :root {
+    --home-cap-phones: 0.97;
+  }
+}
+
+@media (max-height: 999px) {
+  :root {
+    --home-cap-phones: 0.94;
+  }
+}
+
+@media (max-height: 959px) {
+  :root {
+    --home-cap-phones: 0.9;
+  }
+}
+
+@media (max-height: 929px) {
+  :root {
+    --home-cap-phones: 0.85;
+  }
+}
+
+@media (max-height: 899px) {
+  :root {
+    --home-cap-phones: 0.76;
+  }
+}
+
+@media (max-height: 839px) {
+  :root {
+    --home-cap-phones: 0.71;
+  }
+}
+
+@media (max-height: 800px) {
+  :root {
+    --home-cap-phones: 0.68;
+  }
+}
+
+@media (max-height: 759px) {
+  :root {
+    --home-cap-phones: 0.62;
+  }
+}
+
+@media (max-height: 719px) {
+  :root {
+    --home-cap-phones: 0.6;
+  }
+}
+
+@media (max-height: 699px) {
+  :root {
+    --home-cap-phones: 0.5;
+  }
+}
+
+@media (max-height: 639px) {
+  :root {
+    --home-cap-phones: 0.45;
+  }
+}
+
+/* Large windows: a section's content block is zoomed by --home-tier, so it keeps growing past the
+   point where the width ladders and type steps stop. Inside the zoomed block the layout sees a
+   ~1.6k-wide container, so the ladders and type fall back to the 1616px step; the tiers pair a
+   minimum width (so the zoomed block still fits across) with a minimum height. The phones cap is
+   lowered because the tier already scales them. */
+@media (min-width: 2300px) and (min-height: 1300px) {
+  :root {
+    --home-tier: 1.3; --home-tier-phones: 1.15;
+    --home-cap-phones: 1;
+    --gf-text-home-banner: 37px;
+    --gf-text-home-hero: 62px;
+    --gf-text-home-heading: 42px;
+    --gf-text-home-lead: 18px;
+    --gf-text-home-sub: 19px;
+    --gf-text-home-feature-title: 18px;
+    --gf-text-home-step-title: 22px;
+    --gf-text-home-body: 14px;
+    --gf-text-home-copy: 15px;
+    --gf-text-home-meta: 13px;
+    --gf-text-home-subhead: 17px;
+  }
+}
+
+@media (min-width: 2300px) and (min-height: 1400px) {
+  :root {
+    --home-tier: 1.6; --home-tier-phones: 1.3;
+  }
+}
+
+@media (min-width: 2500px) and (min-height: 1600px) {
+  :root {
+    --home-tier: 1.85; --home-tier-phones: 1.45;
+  }
+}
+
+@media (min-width: 3000px) and (min-height: 1800px) {
+  :root {
+    --home-tier: 2.05; --home-tier-phones: 1.6;
+  }
+}
+
+@media (min-width: 3400px) and (min-height: 2000px) {
+  :root {
+    --home-tier: 2.3; --home-tier-phones: 1.8;
+  }
+}
+
+@utility home-tier {
+  zoom: var(--home-tier, 1);
+}
+
+@utility home-tier-phones {
+  zoom: var(--home-tier-phones, 1);
+}
+
+/* Mockup zoom: the width ladder sets --mz, the window height caps it. */
+@utility home-zoom-card {
+  zoom: min(var(--mz, 1), var(--home-cap-card));
+}
+
+@utility home-zoom-mock {
+  zoom: min(var(--mz, 1), var(--home-cap-mock));
+}
+
+@utility home-zoom-phones {
+  zoom: min(var(--mz, 1), var(--home-cap-phones));
+}
+
+/* Vertical padding of a full-screen home section on desktop: shrinks with the window height. */
+@utility home-section-pad {
+  padding-block: clamp(1rem, 4.5svh, 7rem);
 }
 
 /* Dark values, read from the Page*D boards. Each literal is declared once as
@@ -314,6 +532,8 @@
   --gf-sidebar-active-dark: #232226;
   --gf-chip-count-dark: #cfcac2;
   --gf-marker-dark: #e5483d;
+  --gf-marker-text-dark: #ee5a4f;
+  --gf-muted-tint-dark: #b0aaa1;
   --gf-hero-warm-dark: rgba(242, 140, 56, 0.2);
   --gf-hero-fresh-dark: rgba(140, 193, 82, 0.16);
   --gf-hero-rose-dark: rgba(229, 72, 61, 0.1);
@@ -354,6 +574,8 @@
   --gf-sidebar-active: var(--gf-sidebar-active-dark);
   --gf-chip-count: var(--gf-chip-count-dark);
   --gf-marker: var(--gf-marker-dark);
+  --gf-marker-text: var(--gf-marker-text-dark);
+  --gf-muted-tint: var(--gf-muted-tint-dark);
   --gf-hero-warm: var(--gf-hero-warm-dark);
   --gf-hero-fresh: var(--gf-hero-fresh-dark);
   --gf-hero-rose: var(--gf-hero-rose-dark);
@@ -390,6 +612,8 @@
     --gf-sidebar-active: var(--gf-sidebar-active-dark);
     --gf-chip-count: var(--gf-chip-count-dark);
     --gf-marker: var(--gf-marker-dark);
+    --gf-marker-text: var(--gf-marker-text-dark);
+    --gf-muted-tint: var(--gf-muted-tint-dark);
     --gf-hero-warm: var(--gf-hero-warm-dark);
     --gf-hero-fresh: var(--gf-hero-fresh-dark);
     --gf-hero-rose: var(--gf-hero-rose-dark);
@@ -460,6 +684,10 @@
   /* Brand accent (logo "UP", brand marks). Named `marker` because
      `accent` is already the shadcn hover-fill alias above. */
   --color-marker: var(--gf-marker);
+  --color-marker-solid: var(--gf-marker-solid);
+  --color-marker-bright: var(--gf-marker-bright);
+  --color-marker-text: var(--gf-marker-text);
+  --color-muted-tint: var(--gf-muted-tint);
 
   --color-hero-warm: var(--gf-hero-warm);
   --color-hero-fresh: var(--gf-hero-fresh);
@@ -967,4 +1195,23 @@
   :disabled {
     cursor: not-allowed;
   }
+}
+
+/* One continuous colour wash behind the whole home page (PageHome* boards): soft warm, fresh and
+   rose patches down the page over the base colour, so no section paints its own fill. Positions are
+   measured from the page top, as on the boards; the colours are the --gf-hero-* tokens. */
+@utility home-page-wash {
+  background-repeat: no-repeat;
+  background-image:
+    radial-gradient(700px 520px at 78% 270px, var(--gf-hero-warm), transparent 70%),
+    radial-gradient(620px 520px at 98% 810px, var(--gf-hero-fresh), transparent 70%),
+    radial-gradient(520px 420px at 0% 0px, var(--gf-hero-rose), transparent 70%),
+    radial-gradient(760px 560px at 8% 1500px, var(--gf-hero-fresh), transparent 70%),
+    radial-gradient(700px 520px at 92% 2150px, var(--gf-hero-warm), transparent 70%),
+    radial-gradient(620px 480px at 35% 2700px, var(--gf-hero-rose), transparent 70%),
+    radial-gradient(760px 560px at 96% 3250px, var(--gf-hero-fresh), transparent 70%),
+    radial-gradient(700px 520px at 6% 3800px, var(--gf-hero-warm), transparent 70%),
+    radial-gradient(620px 480px at 70% 4350px, var(--gf-hero-rose), transparent 70%),
+    radial-gradient(760px 560px at 15% 4950px, var(--gf-hero-fresh), transparent 70%),
+    radial-gradient(700px 520px at 88% 5400px, var(--gf-hero-warm), transparent 70%);
 }
