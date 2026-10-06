@@ -74,9 +74,16 @@ export default function StoreButtons({ className, variant = 'icon' }: StoreButto
             disabled
             aria-label={`${name} — ${t('entry.register.stores.comingSoon')}`}
             title={t('entry.register.stores.comingSoon')}
-            className={cn(wide ? WIDE_BUTTON_CLASS : ICON_BUTTON_CLASS, 'cursor-not-allowed opacity-50')}
+            className={cn(
+              wide ? WIDE_BUTTON_CLASS : ICON_BUTTON_CLASS,
+              'cursor-not-allowed opacity-50',
+              !wide && 'w-auto gap-1.5 px-3'
+            )}
           >
             {content}
+            <span className={cn('font-medium', wide ? 'text-caption' : 'text-meta')}>
+              {t('entry.register.stores.comingSoon')}
+            </span>
           </button>
         );
       })}

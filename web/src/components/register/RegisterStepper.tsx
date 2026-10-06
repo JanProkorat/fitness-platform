@@ -53,8 +53,8 @@ export default function RegisterStepper({ current, finalStep }: RegisterStepperP
               )}
             >
               <StepMarker state={state} number={number} />
-              {/* The label of a not-yet-reached step hides on phones so three steps fit. */}
-              <span className={cn(state === 'todo' && 'hidden sm:inline')}>{step.label}</span>
+              {/* Only the current step keeps its label on phones so three steps fit. */}
+              <span className={cn(state !== 'current' && 'hidden sm:inline')}>{step.label}</span>
             </span>
             {index < steps.length - 1 && (
               <span

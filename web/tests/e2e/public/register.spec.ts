@@ -106,6 +106,8 @@ test('the client card is exclusive with the coach cards and adds a required heal
 
   // Back to a coach role: the hidden consent goes away and no longer counts.
   await trainer.click();
+  await expect(trainer).toHaveAttribute('aria-pressed', 'true');
+  await expect(client).toHaveAttribute('aria-pressed', 'false');
   await expect(page.getByRole('checkbox')).toHaveCount(1);
   await expect(submit).toBeEnabled();
 });
