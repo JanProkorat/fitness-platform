@@ -867,7 +867,7 @@ Before returning your verdict to the orchestrator, write
       "detail": "<one-line context>"
     }
   ],
-  "merge_strategy": "squash | rebase | null",
+  "merge_strategy": "squash | null",
   "blocked_reason": null,
   "ci_status": "pass | fail | pending | n/a"
 }
