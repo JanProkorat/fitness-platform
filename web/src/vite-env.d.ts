@@ -10,6 +10,10 @@ interface ImportMetaEnv {
    * Must match exactly (e.g. https://app.example.com).
    */
   readonly VITE_APPLE_REDIRECT_URI: string;
+  /** App Store listing URL; unset or empty renders the store button disabled. */
+  readonly VITE_APP_STORE_URL?: string;
+  /** Google Play listing URL; unset or empty renders the store button disabled. */
+  readonly VITE_GOOGLE_PLAY_URL?: string;
 }
 
 interface ImportMeta {
