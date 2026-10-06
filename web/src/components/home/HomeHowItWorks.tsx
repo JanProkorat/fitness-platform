@@ -123,15 +123,15 @@ function StepCard({ index, stepKey, children }: { index: number; stepKey: string
     <div className="flex min-w-0 flex-col gap-3.5">
       <div
         aria-hidden="true"
-        className="box-border flex h-[196px] flex-col justify-center rounded-card border border-border bg-surface p-5 lg:[zoom:0.65] lg:@min-[960px]:[zoom:0.72] lg:@min-[1040px]:[zoom:0.79] lg:@min-[1120px]:[zoom:0.85] lg:@min-[1200px]:[zoom:0.92] lg:@min-[1290px]:[zoom:1]"
+        className="box-border flex h-[196px] flex-col justify-center rounded-card border border-border bg-surface p-5 lg:[zoom:0.65] lg:@min-[960px]:[zoom:0.72] lg:@min-[1040px]:[zoom:0.79] lg:@min-[1120px]:[zoom:0.85] lg:@min-[1200px]:[zoom:0.92] lg:@min-[1290px]:[zoom:1] lg:@min-[1340px]:[zoom:1.03] lg:@min-[1472px]:[zoom:1.1] lg:@min-[1592px]:[zoom:1.2] lg:@min-[1760px]:[zoom:1.3] lg:@min-[1940px]:[zoom:1.45]"
       >
         {children}
       </div>
       <div className="flex items-baseline gap-2.5">
-        <span className="font-display text-subhead font-semibold text-marker">{index}</span>
+        <span className="font-display text-home-subhead font-semibold text-marker">{index}</span>
         <h3 className="font-display text-home-step-title font-semibold text-ink">{t(`home.steps.${stepKey}.title`)}</h3>
       </div>
-      <p className="text-copy text-muted-foreground">{t(`home.how.steps.${stepKey}`)}</p>
+      <p className="text-home-copy text-muted-foreground">{t(`home.how.steps.${stepKey}`)}</p>
     </div>
   );
 }
@@ -144,27 +144,29 @@ export default function HomeHowItWorks() {
     <section
       id="how-it-works"
       tabIndex={-1}
-      className="@container flex scroll-mt-6 outline-none flex-col gap-9 border-y border-border bg-surface px-4 py-14 sm:px-10 lg:px-16 lg:py-20"
+      className="flex scroll-mt-6 flex-col justify-center border-y border-border bg-surface px-4 py-14 outline-none sm:px-10 lg:min-h-svh lg:px-16 lg:py-20"
     >
-      <div className="flex flex-col gap-2.5">
-        <Eyebrow className="text-muted-foreground">{t('home.how.eyebrow')}</Eyebrow>
-        <h2 className="font-display text-home-heading font-semibold tracking-heading text-ink">
-          {t('home.how.title')}
-        </h2>
-      </div>
-      <div className="grid grid-cols-1 gap-5.5 max-lg:@min-[560px]:grid-cols-2 lg:grid-cols-4">
-        <StepCard index={1} stepKey="build">
-          <BuildMock />
-        </StepCard>
-        <StepCard index={2} stepKey="publish">
-          <PublishMock />
-        </StepCard>
-        <StepCard index={3} stepKey="follow">
-          <FollowMock />
-        </StepCard>
-        <StepCard index={4} stepKey="see">
-          <SeeMock />
-        </StepCard>
+      <div className="@container mx-auto flex w-full max-w-home flex-col gap-9">
+        <div className="flex flex-col gap-2.5">
+          <Eyebrow className="text-muted-foreground">{t('home.how.eyebrow')}</Eyebrow>
+          <h2 className="font-display text-home-heading font-semibold tracking-heading text-ink">
+            {t('home.how.title')}
+          </h2>
+        </div>
+        <div className="grid grid-cols-1 gap-5.5 max-lg:@min-[560px]:grid-cols-2 lg:grid-cols-4">
+          <StepCard index={1} stepKey="build">
+            <BuildMock />
+          </StepCard>
+          <StepCard index={2} stepKey="publish">
+            <PublishMock />
+          </StepCard>
+          <StepCard index={3} stepKey="follow">
+            <FollowMock />
+          </StepCard>
+          <StepCard index={4} stepKey="see">
+            <SeeMock />
+          </StepCard>
+        </div>
       </div>
     </section>
   );

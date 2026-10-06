@@ -12,7 +12,7 @@
  * tailwind-merge's own theme scale arrays are shaped.
  */
 
-/** `--text-*` — 30 keys. Falls through to tailwind-merge's colour-scale
+/** `--text-*` — 34 keys. Falls through to tailwind-merge's colour-scale
  * catch-all without this: every one of these class names would otherwise be
  * silently deleted as a "text colour" conflict (#1078). */
 export const TEXT_SIZE_TOKENS = [
@@ -37,6 +37,10 @@ export const TEXT_SIZE_TOKENS = [
   'home-sub',
   'home-feature-title',
   'home-step-title',
+  'home-body',
+  'home-copy',
+  'home-meta',
+  'home-subhead',
   'home-wordmark',
   'home-wordmark-sm',
   'mockup-xs',

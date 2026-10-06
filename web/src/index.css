@@ -140,6 +140,10 @@
   --gf-text-home-sub: 17px; /* hero sub-headline */
   --gf-text-home-feature-title: 16px; /* feature list title */
   --gf-text-home-step-title: 20px; /* how-it-works step title */
+  --gf-text-home-body: 13px; /* small copy inside the home sections */
+  --gf-text-home-copy: 14px; /* paragraph copy inside the home sections */
+  --gf-text-home-meta: 12px; /* eyebrow-level labels inside the home sections */
+  --gf-text-home-subhead: 15px; /* hero button labels, step numerals */
   --gf-text-home-wordmark: 20px; /* nav wordmark */
   --gf-text-home-wordmark-sm: 17px; /* nav wordmark on phones */
   --gf-text-mockup-xs: 10px; /* micro labels inside mockups */
@@ -149,6 +153,11 @@
   --gf-text-mockup-title: 20px; /* phone screen title */
   --gf-text-mockup-greeting: 21px; /* phone greeting */
   --gf-text-mockup-weight: 24px; /* weight reading on the coach phone */
+
+  /* Width cap of the home sections' content, only reached above 1440px wide
+     (1312px of content at 1440). Grows with the viewport from 1920px up so
+     2560px gets a visibly larger layout than 1920px. */
+  --gf-container-home: clamp(101.25rem, calc(50vw + 41.25rem), 122rem);
 
   --gf-tracking-eyebrow: 0.16em; /* section eyebrow */
   --gf-tracking-wordmark: 0.22em;
@@ -199,6 +208,86 @@
   --input: var(--gf-line);
   --ring: var(--gf-ink);
   --radius: var(--gf-radius-md);
+}
+
+/* Home page type steps above 1440px wide. Each viewport threshold sits 16px
+   above the matching container-query step on the home sections
+   (@min-[1340px], 1472, 1592, 1760, 1940 of content width; 128px of side
+   padding plus a scrollbar), so a section's layout and mockups grow before
+   its type does. Scale factors: 1.04, 1.1, 1.2, 1.3, 1.45. */
+@media (min-width: 1484px) {
+  :root {
+    --gf-text-home-hero: 58px;
+    --gf-text-home-heading: 40px;
+    --gf-text-home-lead: 17px;
+    --gf-text-home-sub: 18px;
+    --gf-text-home-feature-title: 17px;
+    --gf-text-home-step-title: 21px;
+    --gf-text-home-body: 14px;
+    --gf-text-home-copy: 15px;
+    --gf-text-home-meta: 13px;
+    --gf-text-home-subhead: 16px;
+  }
+}
+
+@media (min-width: 1616px) {
+  :root {
+    --gf-text-home-hero: 62px;
+    --gf-text-home-heading: 42px;
+    --gf-text-home-lead: 18px;
+    --gf-text-home-sub: 19px;
+    --gf-text-home-feature-title: 18px;
+    --gf-text-home-step-title: 22px;
+    --gf-text-home-body: 14px;
+    --gf-text-home-copy: 15px;
+    --gf-text-home-meta: 13px;
+    --gf-text-home-subhead: 17px;
+  }
+}
+
+@media (min-width: 1736px) {
+  :root {
+    --gf-text-home-hero: 67px;
+    --gf-text-home-heading: 46px;
+    --gf-text-home-lead: 19px;
+    --gf-text-home-sub: 20px;
+    --gf-text-home-feature-title: 19px;
+    --gf-text-home-step-title: 24px;
+    --gf-text-home-body: 16px;
+    --gf-text-home-copy: 17px;
+    --gf-text-home-meta: 14px;
+    --gf-text-home-subhead: 18px;
+  }
+}
+
+@media (min-width: 2216px) {
+  :root {
+    --gf-text-home-hero: 73px;
+    --gf-text-home-heading: 49px;
+    --gf-text-home-lead: 21px;
+    --gf-text-home-sub: 22px;
+    --gf-text-home-feature-title: 21px;
+    --gf-text-home-step-title: 26px;
+    --gf-text-home-body: 17px;
+    --gf-text-home-copy: 18px;
+    --gf-text-home-meta: 16px;
+    --gf-text-home-subhead: 20px;
+  }
+}
+
+@media (min-width: 2576px) {
+  :root {
+    --gf-text-home-hero: 81px;
+    --gf-text-home-heading: 55px;
+    --gf-text-home-lead: 23px;
+    --gf-text-home-sub: 25px;
+    --gf-text-home-feature-title: 23px;
+    --gf-text-home-step-title: 29px;
+    --gf-text-home-body: 19px;
+    --gf-text-home-copy: 20px;
+    --gf-text-home-meta: 17px;
+    --gf-text-home-subhead: 22px;
+  }
 }
 
 /* Dark values, read from the Page*D boards. Each literal is declared once as
@@ -405,6 +494,8 @@
   --color-macro-fat: var(--gf-macro-fat);
   --color-macro-fibre: var(--gf-macro-fibre);
 
+  --container-home: var(--gf-container-home);
+
   --radius-xs: var(--gf-radius-xs);
   --radius-sm: var(--gf-radius-sm);
   --radius-md: var(--gf-radius-md);
@@ -483,6 +574,14 @@
   --text-home-feature-title--line-height: 1.3;
   --text-home-step-title: var(--gf-text-home-step-title);
   --text-home-step-title--line-height: 1.2;
+  --text-home-body: var(--gf-text-home-body);
+  --text-home-body--line-height: 1.2;
+  --text-home-copy: var(--gf-text-home-copy);
+  --text-home-copy--line-height: 1.5;
+  --text-home-meta: var(--gf-text-home-meta);
+  --text-home-meta--line-height: 1.2;
+  --text-home-subhead: var(--gf-text-home-subhead);
+  --text-home-subhead--line-height: 1.5;
   --text-home-wordmark: var(--gf-text-home-wordmark);
   --text-home-wordmark--line-height: 1;
   --text-home-wordmark-sm: var(--gf-text-home-wordmark-sm);

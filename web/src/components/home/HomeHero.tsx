@@ -16,14 +16,14 @@ export default function HomeHero() {
   const { t } = useTranslation();
 
   return (
-    <section className="@container relative min-w-0 px-4 pt-6 pb-12 sm:px-10 lg:px-16">
+    <section className="relative flex min-w-0 flex-col justify-center px-4 pt-6 pb-12 sm:px-10 lg:min-h-[calc(100svh-var(--spacing)*19)] lg:px-16">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-x-0 -top-19 bottom-0 -z-10 bg-no-repeat [background-image:radial-gradient(700px_520px_at_78%_30%,var(--gf-hero-warm),transparent_70%),radial-gradient(620px_520px_at_98%_90%,var(--gf-hero-fresh),transparent_70%),radial-gradient(520px_420px_at_0%_0%,var(--gf-hero-rose),transparent_70%)]"
       />
-      <div className="flex flex-col gap-8 lg:flex-row lg:gap-12">
-        <div className="flex max-w-117.5 shrink-0 flex-col gap-5.5 pt-4 lg:pt-8.5">
-          <span className="text-meta font-semibold tracking-eyebrow text-muted-foreground uppercase">
+      <div className="@container mx-auto flex w-full max-w-home flex-col gap-8 lg:flex-row lg:gap-12">
+        <div className="flex max-w-117.5 @min-[1340px]:max-w-122.5 @min-[1472px]:max-w-129 @min-[1592px]:max-w-141 @min-[1760px]:max-w-153 @min-[1940px]:max-w-170.5 shrink-0 flex-col gap-5.5 pt-4 lg:pt-8.5">
+          <span className="text-home-meta font-semibold tracking-eyebrow text-muted-foreground uppercase">
             {t('home.hero.eyebrow')}
           </span>
           <h1 className="font-display text-home-hero font-semibold tracking-hero text-ink">
@@ -33,20 +33,20 @@ export default function HomeHero() {
           <div className="flex flex-wrap gap-2.5 pt-1.5">
             <Link
               to="/register"
-              className="flex h-12.5 items-center rounded-xl bg-primary px-6 text-subhead font-bold text-primary-foreground hover:opacity-90"
+              className="flex h-12.5 @min-[1340px]:h-13 @min-[1472px]:h-14 @min-[1592px]:h-15 @min-[1760px]:h-16 @min-[1940px]:h-18 items-center rounded-xl bg-primary px-6 text-home-subhead font-bold text-primary-foreground hover:opacity-90"
             >
               {t('home.hero.createAccount')}
             </Link>
             <a
               href="#how-it-works"
               onClick={scrollToAnchor}
-              className="flex h-12.5 items-center gap-2 rounded-xl border border-border bg-surface px-5 text-subhead font-semibold text-ink hover:bg-sunken"
+              className="flex h-12.5 @min-[1340px]:h-13 @min-[1472px]:h-14 @min-[1592px]:h-15 @min-[1760px]:h-16 @min-[1940px]:h-18 items-center gap-2 rounded-xl border border-border bg-surface px-5 text-home-subhead font-semibold text-ink hover:bg-sunken"
             >
               <IconPlay size={14} />
               {t('home.hero.seeInAction')}
             </a>
           </div>
-          <span className="flex items-center gap-2 text-body text-muted-foreground">
+          <span className="flex items-center gap-2 text-home-body text-muted-foreground">
             <IconPeople size={15} />
             {t('home.hero.note')}
           </span>
@@ -56,18 +56,18 @@ export default function HomeHero() {
           <div className="hidden @min-[820px]:block">
             <HeroMockup />
           </div>
-          <ol className="grid max-w-191.5 grid-cols-2 gap-x-4.5 gap-y-5 max-lg:@min-[820px]:grid-cols-4 lg:@min-[1060px]:grid-cols-4">
+          <ol className="grid max-w-191.5 @min-[1340px]:max-w-199 @min-[1472px]:max-w-210.5 @min-[1592px]:max-w-230 @min-[1760px]:max-w-249 @min-[1940px]:max-w-278 grid-cols-2 gap-x-4.5 gap-y-5 max-lg:@min-[820px]:grid-cols-4 lg:@min-[1060px]:grid-cols-4">
             {STEPS.map((step, index) => (
               <li key={step.key} className="flex flex-col gap-1.5">
                 <div className="h-0.75 rounded-xs bg-border">
                   <div className={`h-0.75 rounded-xs ${step.progress} ${step.bar}`} />
                 </div>
                 <span
-                  className={`text-body font-bold ${index < 2 ? 'text-ink' : 'text-muted-foreground'}`}
+                  className={`text-home-body font-bold ${index < 2 ? 'text-ink' : 'text-muted-foreground'}`}
                 >
                   {index + 1} · {t(`home.steps.${step.key}.title`)}
                 </span>
-                <span className="text-meta text-muted-foreground">
+                <span className="text-home-meta text-muted-foreground">
                   {t(`home.hero.steps.${step.key}`)}
                 </span>
               </li>
