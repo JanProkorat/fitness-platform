@@ -24114,6 +24114,8 @@ export interface VerifyEmailResponse {
     message?: string;
     /** The verified email address. */
     email?: string;
+    /** First name of the verified account. */
+    firstName?: string;
     /** Roles held by the verified account. */
     roles?: string[];
 }
