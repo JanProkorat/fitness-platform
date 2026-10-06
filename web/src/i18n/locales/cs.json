@@ -318,6 +318,7 @@
     "activityDaysAgo_other": "{{count}} dní"
   },
   "clients": {
+    "eyebrow": "Správa klientů",
     "title": "Klienti",
     "subtitle": "Správa a přehled klientů",
     "tabs": {
@@ -403,7 +404,7 @@
       "acceptError": "Žádost se nepodařilo přijmout. Zkuste to prosím znovu.",
       "rejectError": "Žádost se nepodařilo odmítnout. Zkuste to prosím znovu."
     },
-    "inviteClient": "+ Pozvat klienta",
+    "inviteClient": "Pozvat klienta",
     "inviteNewClient": "Pozvat nového klienta",
     "inviteSent": "Pozvánka odeslána!",
     "inviteError": "Chyba při odesílání pozvánky",
@@ -639,14 +640,40 @@
       }
     },
     "addClientDrawer": {
-      "title": "Pozvat nového klienta",
-      "description": "Klient obdrží e-mailovou pozvánku k vytvoření účtu a propojení s vámi.",
+      "title": "Pozvat klienta",
+      "description": "Pošleme mu e-mailem odkaz, přes který se k vám připojí na Form Up",
+      "sections": {
+        "client": "Klient",
+        "scope": "Co budete vést",
+        "onboarding": "Úvodní formulář",
+        "message": "Osobní zpráva"
+      },
       "emailLabel": "E-mail",
-      "messageLabel": "Zpráva (nepovinné)",
+      "emailHelper": "Už je na Form Up? Pozvánka mu dorazí i do zpráv.",
+      "scope": {
+        "training": "Trénink",
+        "nutrition": "Výživa",
+        "both": "Obojí"
+      },
+      "scopeHelper": "Určuje, které jeho plány uvidíte a budete moci upravovat.",
+      "questionnaireLabel": "Formulář k odeslání",
+      "questionnaireNone": "Žádný",
+      "questionnaireOption_one": "{{title}} · {{count}} otázka",
+      "questionnaireOption_few": "{{title}} · {{count}} otázky",
+      "questionnaireOption_many": "{{title}} · {{count}} otázky",
+      "questionnaireOption_other": "{{title}} · {{count}} otázek",
+      "questionnaireHelperDefault": "Vyplní ho hned po přijetí pozvánky. Můžete vybrat i jiný aktivní formulář.",
+      "questionnaireHelper": "Vyplní ho hned po přijetí pozvánky. Vyberte „Žádný“, pokud ho nechcete posílat.",
+      "questionnaireLoadError": "Formuláře se nepodařilo načíst. Pozvánku můžete odeslat i bez nich.",
+      "optional": "(nepovinné)",
+      "messageLabel": "Zpráva v e-mailu s pozvánkou",
+      "footerNote": "Pozvánka zůstane v části Čekající, dokud ji klient nepřijme",
       "submit": "Odeslat pozvánku",
       "validation": {
         "emailRequired": "E-mail je povinný.",
-        "emailInvalid": "Zadejte platnou e-mailovou adresu."
+        "emailInvalid": "Zadejte platnou e-mailovou adresu.",
+        "emailTooLong": "E-mail může mít nejvýše 100 znaků.",
+        "messageTooLong": "Zpráva může mít nejvýše 500 znaků."
       }
     }
   },

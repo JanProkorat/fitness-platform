@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Search } from 'lucide-react';
+import { Plus, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -186,12 +186,17 @@ export default function ClientsPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="flex flex-col gap-1.5">
+          <span className="flex items-center gap-1.75 text-label font-semibold tracking-label text-marker uppercase">
+            <span className="size-1.75 rounded-full bg-marker" aria-hidden="true" />
+            {t('clients.eyebrow')}
+          </span>
           <h1 className="text-title font-bold text-ink">{t('clients.title')}</h1>
           <p className="text-body text-muted-foreground">{t('clients.subtitle')}</p>
         </div>
-        <Button type="button" size="lg" onClick={() => setAddClientOpen(true)}>
+        <Button type="button" size="lg" className="gap-1.75 px-3.5 font-semibold" onClick={() => setAddClientOpen(true)}>
+          <Plus aria-hidden="true" />
           {t('clients.inviteClient')}
         </Button>
       </div>
@@ -227,11 +232,10 @@ export default function ClientsPage() {
       </Tabs>
 
       {!isPendingTab && (
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="relative w-full max-w-xs">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative w-full max-w-search">
               <Search
-                className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
+                className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
                 aria-hidden="true"
               />
               <Input
@@ -239,13 +243,12 @@ export default function ClientsPage() {
                 value={searchInput}
                 onChange={(event) => setSearchInput(event.target.value)}
                 placeholder={t('clients.searchPlaceholder')}
-                className="h-8 pl-8"
+                className="h-9 pl-9"
                 aria-label={t('clients.searchPlaceholder')}
               />
-            </div>
-            <ClientTagFilterPopover selectedTagIds={filters.tagIds} onChange={setTagIds} />
           </div>
-
+          <ClientTagFilterPopover selectedTagIds={filters.tagIds} onChange={setTagIds} />
+          <span className="hidden h-6 w-px bg-line sm:block" aria-hidden="true" />
           <ClientFilterChips active={filters.chip} counts={clientsQuery.data?.filterCounts} onSelect={setChip} />
         </div>
       )}
@@ -258,7 +261,7 @@ export default function ClientsPage() {
           onRetry={() => void pendingQuery.refetch()}
         />
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-border bg-card">
+        <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-selection-bar">
           <ClientsTable
             clients={clientsQuery.data?.clients ?? []}
             isPending={clientsQuery.isPending}

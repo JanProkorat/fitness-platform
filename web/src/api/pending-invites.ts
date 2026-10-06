@@ -1,4 +1,5 @@
 import api from '@/lib/api';
+import type { LinkCapabilityScope } from '@/api/generated';
 
 export interface PendingInviteDto {
   /** Internal integer PK of the PendingInvite row. Used for diary requests. */
@@ -16,6 +17,8 @@ export interface CreatePendingInviteRequest {
   email: string;
   message?: string | null;
   questionnairePublicId?: string | null;
+  /** Only sent by a professional holding both roles; omitted so the server defaults to the held roles. */
+  requestedScope?: LinkCapabilityScope;
 }
 
 export interface CreatePendingInviteResponse {

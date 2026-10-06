@@ -314,6 +314,7 @@
     "activityDaysAgo_other": "vor {{count}} Tagen"
   },
   "clients": {
+    "eyebrow": "Klientenverwaltung",
     "title": "Klienten",
     "subtitle": "Verwaltung und Übersicht der Klienten",
     "tabs": {
@@ -395,7 +396,7 @@
       "acceptError": "Anfrage konnte nicht angenommen werden. Bitte versuchen Sie es erneut.",
       "rejectError": "Anfrage konnte nicht abgelehnt werden. Bitte versuchen Sie es erneut."
     },
-    "inviteClient": "+ Klient einladen",
+    "inviteClient": "Klient einladen",
     "inviteNewClient": "Neuen Klienten einladen",
     "inviteSent": "Einladung gesendet!",
     "inviteError": "Fehler beim Senden der Einladung",
@@ -617,14 +618,38 @@
       }
     },
     "addClientDrawer": {
-      "title": "Neuen Klienten einladen",
-      "description": "Der Klient erhält eine E-Mail-Einladung, ein Konto zu erstellen und sich mit Ihnen zu verbinden.",
+      "title": "Klient einladen",
+      "description": "Wir senden eine E-Mail mit einem Link, über den er sich bei Form Up mit Ihnen verbindet",
+      "sections": {
+        "client": "Klient",
+        "scope": "Was Sie betreuen",
+        "onboarding": "Onboarding-Formular",
+        "message": "Persönliche Nachricht"
+      },
       "emailLabel": "E-Mail",
-      "messageLabel": "Nachricht (optional)",
+      "emailHelper": "Schon bei Form Up? Die Einladung erscheint auch in seinen Nachrichten.",
+      "scope": {
+        "training": "Training",
+        "nutrition": "Ernährung",
+        "both": "Beides"
+      },
+      "scopeHelper": "Legt fest, welche seiner Pläne Sie sehen und bearbeiten können.",
+      "questionnaireLabel": "Zu sendendes Formular",
+      "questionnaireNone": "Keines",
+      "questionnaireOption_one": "{{title}} · {{count}} Frage",
+      "questionnaireOption_other": "{{title}} · {{count}} Fragen",
+      "questionnaireHelperDefault": "Er füllt es gleich nach der Annahme aus. Sie können auch ein anderes aktives Formular wählen.",
+      "questionnaireHelper": "Er füllt es gleich nach der Annahme aus. Wählen Sie „Keines“, um es zu überspringen.",
+      "questionnaireLoadError": "Die Formulare konnten nicht geladen werden. Sie können die Einladung trotzdem ohne Formular senden.",
+      "optional": "(optional)",
+      "messageLabel": "Nachricht in der Einladungs-E-Mail",
+      "footerNote": "Die Einladung bleibt unter Ausstehend, bis er sie annimmt",
       "submit": "Einladung senden",
       "validation": {
         "emailRequired": "E-Mail ist erforderlich.",
-        "emailInvalid": "Geben Sie eine gültige E-Mail-Adresse ein."
+        "emailInvalid": "Geben Sie eine gültige E-Mail-Adresse ein.",
+        "emailTooLong": "Die E-Mail darf höchstens 100 Zeichen lang sein.",
+        "messageTooLong": "Die Nachricht darf höchstens 500 Zeichen lang sein."
       }
     }
   },

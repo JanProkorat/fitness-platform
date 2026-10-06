@@ -53,12 +53,27 @@ test.describe('clients list page', () => {
   });
 
   test('inviting a new client sends the invite and closes the drawer', async ({ page }) => {
-    await page.getByRole('button', { name: '+ Invite client' }).click();
-    await expect(page.getByRole('heading', { name: 'Invite a new client' })).toBeVisible();
+    await page.getByRole('button', { name: 'Invite client', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Invite client', exact: true })).toBeVisible();
 
     const uniqueSuffix = Date.now();
-    await page.getByLabel('Email').fill(`qa.invite.${uniqueSuffix}@fitnessplatform.test`);
-    await page.getByLabel('Email').press('Tab');
+    await page.getByRole('textbox', { name: 'Email', exact: true }).fill(`qa.invite.${uniqueSuffix}@fitnessplatform.test`);
+    await page.getByRole('textbox', { name: 'Email', exact: true }).press('Tab');
+
+    // Onboarding form select: "None" is always offered, and "None" sends a null questionnaire.
+    const questionnaireSelect = page.getByLabel('Form to send');
+    await expect(questionnaireSelect.locator('option', { hasText: 'None' })).toHaveCount(1);
+    await questionnaireSelect.selectOption({ label: 'None' });
+
+    // Personal message: live counter, and over 500 characters is blocked.
+    const message = page.getByLabel('Message in the invite email');
+    await expect(page.getByText('0 / 500', { exact: true })).toBeVisible();
+    await message.fill('Hello there');
+    await expect(page.getByText('11 / 500', { exact: true })).toBeVisible();
+    await message.fill('x'.repeat(501));
+    await expect(page.getByText('501 / 500', { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Send invitation' })).toBeDisabled();
+    await message.fill('Hello there');
 
     const submitButton = page.getByRole('button', { name: 'Send invitation' });
     await expect(submitButton).toBeEnabled();
@@ -68,7 +83,7 @@ test.describe('clients list page', () => {
     // aria-live announcer span — scope to the visible title so this doesn't
     // hit a strict-mode "resolved to 2 elements" violation.
     await expect(page.getByText('Invitation sent.', { exact: true })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Invite a new client' })).not.toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Invite client', exact: true })).not.toBeVisible();
   });
 
   /**
@@ -83,18 +98,18 @@ test.describe('clients list page', () => {
    * trainer (Program.cs:178-188).
    */
   test('inviting a coach email takes the normal success path', async ({ page }) => {
-    await page.getByRole('button', { name: '+ Invite client' }).click();
-    await expect(page.getByRole('heading', { name: 'Invite a new client' })).toBeVisible();
+    await page.getByRole('button', { name: 'Invite client', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Invite client', exact: true })).toBeVisible();
 
-    await page.getByLabel('Email').fill('qa.nutri@fitnessplatform.test');
-    await page.getByLabel('Email').press('Tab');
+    await page.getByRole('textbox', { name: 'Email', exact: true }).fill('qa.nutri@fitnessplatform.test');
+    await page.getByRole('textbox', { name: 'Email', exact: true }).press('Tab');
 
     const submitButton = page.getByRole('button', { name: 'Send invitation' });
     await expect(submitButton).toBeEnabled();
     await submitButton.click();
 
     await expect(page.getByText('Invitation sent.', { exact: true })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Invite a new client' })).not.toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Invite client', exact: true })).not.toBeVisible();
   });
 
   /**
@@ -118,10 +133,12 @@ test.describe('clients list page', () => {
     const searchBox = page.getByPlaceholder('Search clients...');
     await expect(searchBox).toBeVisible();
     const searchHeight = (await searchBox.boundingBox())?.height ?? 0;
-    expect(searchHeight).toBeGreaterThan(30);
-    expect(searchHeight).toBeLessThan(34);
+    // PageClientsC board: 36px search field.
+    expect(searchHeight).toBeGreaterThan(35);
+    expect(searchHeight).toBeLessThan(37);
 
-    const navSectionHeader = page.getByText('Client management', { exact: true });
+    // The page eyebrow repeats this copy, so scope to the sidebar nav.
+    const navSectionHeader = page.locator('nav').getByText('Client management', { exact: true });
     await expect(navSectionHeader).toBeVisible();
     const navHeaderHeight = (await navSectionHeader.boundingBox())?.height ?? 0;
     expect(navHeaderHeight).toBeGreaterThan(10);
@@ -186,8 +203,8 @@ test.describe('clients list page', () => {
   test('the add-client drawer content and overlay animate with distinct enter/exit keyframes and suspend removal on close (#1081)', async ({
     page,
   }) => {
-    await page.getByRole('button', { name: '+ Invite client' }).click();
-    await expect(page.getByRole('heading', { name: 'Invite a new client' })).toBeVisible();
+    await page.getByRole('button', { name: 'Invite client', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Invite client', exact: true })).toBeVisible();
 
     const dialog = page.getByRole('dialog');
     const overlay = page.locator("[data-slot='sheet-overlay']");

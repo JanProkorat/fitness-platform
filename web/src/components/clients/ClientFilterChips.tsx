@@ -52,7 +52,7 @@ export default function ClientFilterChips({ active, counts, onSelect }: Props) {
   const { t } = useTranslation();
 
   return (
-    <div className="flex flex-wrap gap-2" role="group" aria-label={t('clients.chips.groupLabel')}>
+    <div className="contents" role="group" aria-label={t('clients.chips.groupLabel')}>
       {CHIP_ORDER.map((chip) => {
         const count = counts?.[CHIP_COUNT_KEY[chip]];
         const isZero = chip !== ClientListFilter.All && count === 0;

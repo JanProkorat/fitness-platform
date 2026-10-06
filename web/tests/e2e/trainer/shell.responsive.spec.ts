@@ -43,6 +43,43 @@ test.describe('app shell responsive behaviour', () => {
     }
   });
 
+  for (const width of [1024, 1440]) {
+    test.describe(`${width}px`, () => {
+      test.use({ viewport: { width, height: 900 } });
+
+      const measure = (page: import('@playwright/test').Page) =>
+        page.evaluate(() => {
+          const main = document.querySelector('main');
+          return {
+            pageScroll: document.documentElement.scrollWidth - window.innerWidth,
+            mainScroll: main ? main.scrollWidth - main.clientWidth : 0,
+          };
+        });
+
+      for (const { path } of ROUTES) {
+        test(`${path} has no horizontal overflow`, async ({ page }) => {
+          await page.goto(path);
+          await page.waitForLoadState('networkidle');
+
+          const { pageScroll, mainScroll } = await measure(page);
+          expect(pageScroll).toBeLessThanOrEqual(0);
+          expect(mainScroll).toBeLessThanOrEqual(0);
+        });
+      }
+
+      test('a client detail page has no horizontal overflow', async ({ page }) => {
+        await page.goto('/clients');
+        await page.waitForLoadState('networkidle');
+        await page.locator('a[href^="/clients/"]').first().click();
+        await page.waitForLoadState('networkidle');
+
+        const { pageScroll, mainScroll } = await measure(page);
+        expect(pageScroll).toBeLessThanOrEqual(0);
+        expect(mainScroll).toBeLessThanOrEqual(0);
+      });
+    });
+  }
+
   test.describe('390px', () => {
     test.use({ viewport: { width: 390, height: 844 } });
 

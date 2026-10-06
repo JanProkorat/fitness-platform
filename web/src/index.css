@@ -61,6 +61,8 @@
   --gf-hero-warm: #ffe7d3; /* hero background wash, top right */
   --gf-hero-fresh: #e4f2d3; /* hero background wash, bottom right */
   --gf-hero-rose: #fde4e1; /* hero background wash, top left */
+  --gf-page-glow-warm: #fff0e2; /* portal page glow, top right (PageClientsC) */
+  --gf-page-glow-fresh: #eff7e6; /* portal page glow, right edge */
   --gf-phone-bezel: #141414; /* phone mockup frame */
   --gf-phone-screen: #f4f3ef; /* phone mockup screen base */
   --gf-phone-warm: #ffe2c8; /* phone screen glow, top left */
@@ -540,6 +542,10 @@
   --gf-hero-warm-dark: rgba(242, 140, 56, 0.2);
   --gf-hero-fresh-dark: rgba(140, 193, 82, 0.16);
   --gf-hero-rose-dark: rgba(229, 72, 61, 0.1);
+  --gf-page-glow-warm-dark: rgba(242, 140, 56, 0.13);
+  --gf-page-glow-fresh-dark: rgba(140, 193, 82, 0.09);
+  --gf-sidebar-text-dark: #f4f2ee;
+  --gf-sidebar-muted-dark: #958f87;
   --gf-phone-bezel-dark: #2a2a2d;
   --gf-phone-screen-dark: #0f0f10;
   --gf-phone-warm-dark: rgba(242, 140, 56, 0.35);
@@ -582,6 +588,10 @@
   --gf-hero-warm: var(--gf-hero-warm-dark);
   --gf-hero-fresh: var(--gf-hero-fresh-dark);
   --gf-hero-rose: var(--gf-hero-rose-dark);
+  --gf-page-glow-warm: var(--gf-page-glow-warm-dark);
+  --gf-page-glow-fresh: var(--gf-page-glow-fresh-dark);
+  --gf-sidebar-text: var(--gf-sidebar-text-dark);
+  --gf-sidebar-muted: var(--gf-sidebar-muted-dark);
   --gf-phone-bezel: var(--gf-phone-bezel-dark);
   --gf-phone-screen: var(--gf-phone-screen-dark);
   --gf-phone-warm: var(--gf-phone-warm-dark);
@@ -620,6 +630,10 @@
     --gf-hero-warm: var(--gf-hero-warm-dark);
     --gf-hero-fresh: var(--gf-hero-fresh-dark);
     --gf-hero-rose: var(--gf-hero-rose-dark);
+    --gf-page-glow-warm: var(--gf-page-glow-warm-dark);
+    --gf-page-glow-fresh: var(--gf-page-glow-fresh-dark);
+    --gf-sidebar-text: var(--gf-sidebar-text-dark);
+    --gf-sidebar-muted: var(--gf-sidebar-muted-dark);
     --gf-phone-bezel: var(--gf-phone-bezel-dark);
     --gf-phone-screen: var(--gf-phone-screen-dark);
     --gf-phone-warm: var(--gf-phone-warm-dark);
@@ -1235,6 +1249,15 @@
     radial-gradient(620px 480px at 70% 4350px, var(--gf-hero-rose), transparent 70%),
     radial-gradient(760px 560px at 15% 4950px, var(--gf-hero-fresh), transparent 70%),
     radial-gradient(700px 520px at 88% 5400px, var(--gf-hero-warm), transparent 70%);
+}
+
+/* Portal page glow (PageClients* boards): a warm and a fresh wash from the top right over the page
+   ground, painted on the shell's <main>. */
+@utility bg-page-glow {
+  background-repeat: no-repeat;
+  background-image:
+    radial-gradient(640px 280px at 88% 0%, var(--gf-page-glow-warm), transparent 70%),
+    radial-gradient(520px 260px at 100% 40%, var(--gf-page-glow-fresh), transparent 70%);
 }
 
 /* Same three --gf-hero-* patches as the top of home-page-wash, positioned in percent so they track

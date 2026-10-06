@@ -1,12 +1,11 @@
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
-import { MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { ClientSummary } from '@/api/clients';
-import ClientAvatar from '@/components/clients/ClientAvatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import ClientStatusBadge from '@/components/clients/ClientStatusBadge';
 import ClientTagPill from '@/components/clients/ClientTagPill';
 import ClientTagPickerPopover from '@/components/clients/ClientTagPickerPopover';
@@ -16,6 +15,11 @@ import ClientsEmptyState from '@/components/clients/ClientsEmptyState';
 
 const COLUMN_COUNT = 7;
 const SKELETON_ROW_COUNT = 5;
+const CELL_CLASS = 'px-4 py-2.75 text-body';
+
+function initials(firstName?: string, lastName?: string): string {
+  return `${firstName?.[0] ?? ''}${lastName?.[0] ?? ''}`.toUpperCase() || '?';
+}
 
 interface Props {
   clients: ClientSummary[];
@@ -51,7 +55,7 @@ export default function ClientsTable({
 
   return (
     <Table>
-      <TableHeader className="bg-muted">
+      <TableHeader className="bg-card">
         <TableRow>
           <TableHead className="w-10">
             <Checkbox
@@ -114,7 +118,7 @@ export default function ClientsTable({
             const canOpenDetail = Boolean(rowId) && client.isActive !== false;
             return (
               <TableRow key={client.publicId}>
-                <TableCell>
+                <TableCell className={CELL_CLASS}>
                   <Checkbox
                     checked={Boolean(rowId) && selectedIds.has(rowId)}
                     onCheckedChange={() => rowId && onToggleRow(rowId)}
@@ -124,13 +128,14 @@ export default function ClientsTable({
                     })}
                   />
                 </TableCell>
-                <TableCell>
+                <TableCell className={CELL_CLASS}>
                   <div className="flex items-center gap-2.5">
-                    <ClientAvatar
-                      firstName={client.firstName}
-                      lastName={client.lastName}
-                      avatarBlobUrl={client.avatarBlobUrl}
-                    />
+                    <Avatar className="size-8.5">
+                      {client.avatarBlobUrl && <AvatarImage src={client.avatarBlobUrl} alt="" />}
+                      <AvatarFallback className="bg-background text-label font-semibold text-ink-2">
+                        {initials(client.firstName, client.lastName)}
+                      </AvatarFallback>
+                    </Avatar>
                     <div className="flex flex-col">
                       {canOpenDetail ? (
                         <Link to={`/clients/${rowId}`} className="font-medium text-foreground hover:underline">
@@ -145,10 +150,10 @@ export default function ClientsTable({
                     </div>
                   </div>
                 </TableCell>
-                <TableCell>
+                <TableCell className={CELL_CLASS}>
                   <ClientStatusBadge status={client.status} />
                 </TableCell>
-                <TableCell>
+                <TableCell className={CELL_CLASS}>
                   <div className="flex flex-wrap items-center gap-1">
                     {(client.tags ?? []).map((tag) => (
                       <ClientTagPill key={tag.tagId} tag={tag} />
@@ -156,19 +161,18 @@ export default function ClientsTable({
                     <ClientTagPickerPopover client={client} />
                   </div>
                 </TableCell>
-                <TableCell className="text-center">
+                <TableCell className={`${CELL_CLASS} text-center`}>
                   {(client.unreadMessageCount ?? 0) > 0 && (
                     <span
-                      className="inline-flex items-center gap-1 text-primary"
+                      className="inline-flex h-5.5 min-w-5.5 items-center justify-center rounded-full bg-marker-solid px-1.5 text-label font-bold text-on-dark"
                       title={t('clients.table.unreadTooltip', { count: client.unreadMessageCount ?? 0 })}
                       aria-label={t('clients.table.unreadTooltip', { count: client.unreadMessageCount ?? 0 })}
                     >
-                      <MessageCircle className="size-4" aria-hidden="true" />
                       {client.unreadMessageCount}
                     </span>
                   )}
                 </TableCell>
-                <TableCell>
+                <TableCell className={CELL_CLASS}>
                   <PlanIconsCell
                     activePlans={client.activePlans ?? []}
                     firstName={client.firstName}
@@ -176,7 +180,7 @@ export default function ClientsTable({
                     avatarBlobUrl={client.avatarBlobUrl}
                   />
                 </TableCell>
-                <TableCell>
+                <TableCell className={CELL_CLASS}>
                   <ClientRowMenu publicId={canOpenDetail ? rowId : ''} />
                 </TableCell>
               </TableRow>
