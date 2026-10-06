@@ -1,3 +1,61 @@
 {
-  "screens": []
+  "screens": [
+    {
+      "id": "web.entry.home",
+      "app": "web",
+      "area": "Entry",
+      "title": "Landing page",
+      "route": "/",
+      "roles": ["Public"],
+      "files": [
+        "web/src/pages/EntryPage.tsx",
+        "web/src/components/home/**",
+        "web/src/stores/theme.ts"
+      ],
+      "endpoints": [],
+      "board": "PageHome",
+      "shots": [
+        { "name": "default" },
+        { "name": "how-it-works", "steps": "click the nav link 'Jak to funguje' and wait for the scroll to finish" }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "web.entry.sign-in",
+      "app": "web",
+      "area": "Entry",
+      "title": "Sign-in dialog",
+      "route": "/login",
+      "roles": ["Public"],
+      "files": [
+        "web/src/components/entry/LoginForm.tsx",
+        "web/src/components/entry/EntryDialogTitle.tsx"
+      ],
+      "endpoints": ["POST /auth/login", "GET /users/me"],
+      "board": "PageHomeSignIn",
+      "shots": [
+        { "name": "default" },
+        { "name": "invalid-credentials", "steps": "type any email and a wrong password, click 'Přihlásit se', wait for the error" }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "web.entry.forgot-password",
+      "app": "web",
+      "area": "Entry",
+      "title": "Forgot password",
+      "route": "/forgot-password",
+      "roles": ["Public"],
+      "files": [
+        "web/src/components/entry/ForgotPasswordForm.tsx"
+      ],
+      "endpoints": ["POST /auth/password/reset"],
+      "board": null,
+      "shots": [
+        { "name": "default" },
+        { "name": "sent", "steps": "type any email, click 'Poslat odkaz', wait for the confirmation" }
+      ],
+      "notionPageId": null
+    }
+  ]
 }
