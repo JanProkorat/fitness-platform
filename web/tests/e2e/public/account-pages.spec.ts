@@ -1,6 +1,6 @@
 /**
- * Account-flow pages spanning multiple routes — the panel layout
- * ("/", "/register", "/forgot-password"), "/verify-email" and
+ * Account-flow pages spanning multiple routes — the sign-in dialog routes
+ * ("/login", "/register", "/forgot-password"), "/verify-email" and
  * "/auth/reset-password" — #1058 phase 4.
  *
  * Runs under the `public` project (playwright.config.ts) — no `setup`
@@ -16,33 +16,55 @@ test.beforeEach(async ({ page }) => {
   await page.addInitScript("window.localStorage.setItem('lang', 'en');");
 });
 
-test('the panel headline does not move across /, /register and /forgot-password', async ({ page }) => {
-  // Regression: LoginPanel's headline and the form swap area used to share
-  // one centred flex column, so the headline drifted up/down every time the
-  // active form's height changed. Fixed by pinning the headline to its own
-  // `auto` grid row, sibling to the swap area (#1058 phase 1). Each page
-  // load below is a full navigation (not a client-side swap), so there is
-  // no cross-fade in play — this isolates the assertion to layout, not
-  // animation timing.
-  const headline = page.getByTestId('login-panel').getByRole('heading', {
-    name: 'Join our community of coaches and nutritionists',
-  });
-
-  await page.goto('/');
-  await page.waitForLoadState('networkidle');
-  const loginBox = await headline.boundingBox();
-
+test('/register and /forgot-password render their forms in the same dialog, each with an accessible name', async ({
+  page,
+}) => {
   await page.goto('/register');
-  await page.waitForLoadState('networkidle');
-  const registerBox = await headline.boundingBox();
+  await expect(page.getByRole('dialog', { name: 'Create account' })).toBeVisible();
 
   await page.goto('/forgot-password');
-  await page.waitForLoadState('networkidle');
-  const forgotBox = await headline.boundingBox();
+  await expect(page.getByRole('dialog', { name: 'Forgot password' })).toBeVisible();
+});
 
-  expect(loginBox).not.toBeNull();
-  expect(registerBox?.y).toBe(loginBox?.y);
-  expect(forgotBox?.y).toBe(loginBox?.y);
+test('swapping between the form routes keeps one dialog mounted and focuses the container, never a field', async ({
+  page,
+}) => {
+  // Regression: focusing the first field of RegisterForm (React Hook Form,
+  // `mode: 'onTouched'`) made the user's next click blur it first, render its
+  // "required" error, grow the form and swallow that click. On open, only
+  // /login focuses a field (Email); /register and /forgot-password focus the
+  // dialog container, and a client-side swap inside the open dialog must do
+  // the same without closing and reopening it.
+  await page.goto('/register');
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toBeFocused();
+  await expect(page.getByLabel('First name')).not.toBeFocused();
+
+  const dialogHandle = await dialog.elementHandle();
+
+  await dialog.getByRole('link', { name: 'Sign in' }).click();
+  await expect(page).toHaveURL(/\/login$/);
+  await expect(dialog.getByLabel('Email')).toBeVisible();
+  await expect(page.getByLabel('First name')).toHaveCount(0);
+  expect(await dialogHandle?.evaluate((node) => node.isConnected)).toBe(true);
+  await expect(page.getByLabel('Email')).not.toBeFocused();
+
+  await dialog.getByRole('link', { name: 'Create account' }).click();
+  await expect(page).toHaveURL(/\/register$/);
+  await expect(dialog).toBeFocused();
+  await expect(page.getByLabel('First name')).not.toBeFocused();
+  expect(await dialogHandle?.evaluate((node) => node.isConnected)).toBe(true);
+});
+
+test('the login form has no client app signpost', async ({ page }) => {
+  // Reverses the #1058 AC 8 signpost: the sign-in board has none.
+  await page.goto('/login');
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByText('Looking for a coach or nutritionist?')).toHaveCount(0);
+  await expect(dialog.getByRole('link', { name: 'App Store' })).toHaveCount(0);
+  await expect(dialog.getByRole('link', { name: 'Google Play' })).toHaveCount(0);
+  await expect(dialog.getByText('New to Form Up?')).toBeVisible();
 });
 
 test('/forgot-password returns the same confirmation copy for an existing and a non-existent address', async ({
@@ -149,82 +171,7 @@ test('/verify-email?token=<bogus> calls /auth/verify-email exactly once', async 
   expect(verifyCalls).toHaveLength(1);
 });
 
-test('a client-side login<->register swap focuses the swap CONTAINER (never a field), but a cold load never steals focus', async ({
-  page,
-}) => {
-  // Regression (#1058 AC 15), two rounds:
-  //
-  // Round 1 — LoginPanel's focus effect reset its own "already focused"
-  // guard inside a cleanup function. React runs an effect's cleanup before
-  // EVERY re-run triggered by a dependency change, not only on unmount, so
-  // the guard re-armed on every single swap and the effect's `.focus()`
-  // call was unreachable dead code — confirmed via `document.activeElement`
-  // staying BODY at +0..+2500ms after a real swap.
-  //
-  // Round 2 — the round-1 fix focused the new form's first FIELD directly
-  // (e.g. #entry-firstName). RegisterForm runs React Hook Form in
-  // `mode: 'onTouched'`, so the swapped-in user's very next click ANYWHERE
-  // blurred that never-typed field first, marking it touched, rendering its
-  // "required" error, growing the form, and (via `self-center-safe`)
-  // re-centring the swap row out from under the pointer between mousedown
-  // and mouseup — swallowing that click entirely (see register.spec.ts's
-  // dedicated repro of the swallowed-click bug). Fixed by giving the swap
-  // wrapper itself `tabIndex={-1}` (`data-testid="entry-swap"`) and focusing
-  // THAT instead of any field inside it.
-  //
-  // All three properties matter: a cold load must NOT steal focus, a real
-  // swap MUST move focus onto the container, and no FIELD is ever focused.
-  const swap = page.getByTestId('entry-swap');
 
-  await page.goto('/');
-  await page.waitForLoadState('networkidle');
-  await page.waitForTimeout(300);
-  await expect(swap).not.toBeFocused();
-  await expect(page.getByLabel('Email')).not.toBeFocused();
-
-  await page.goto('/register');
-  await page.waitForLoadState('networkidle');
-  await page.waitForTimeout(300);
-  await expect(swap).not.toBeFocused();
-  await expect(page.getByLabel('First name')).not.toBeFocused();
-
-  // Real client-side swap back to login — focus MUST move to the
-  // container, never into the email field.
-  await page.getByTestId('login-panel').getByRole('link', { name: 'Sign in' }).click();
-  await expect(page).toHaveURL(/\/$/);
-  await expect(swap).toBeFocused();
-  await expect(page.getByLabel('Email')).not.toBeFocused();
-
-  // And swapping forward to register again — same expectation.
-  await page.getByRole('link', { name: 'Create a coach account' }).click();
-  await expect(page).toHaveURL(/\/register$/);
-  await expect(swap).toBeFocused();
-  await expect(page.getByLabel('First name')).not.toBeFocused();
-});
-
-test('the client signpost renders on the login form only, not on register or forgot-password', async ({
-  page,
-}) => {
-  // Regression (#1058 AC 8): the "looking for a coach or nutritionist?"
-  // signpost + App Store/Google Play buttons were approved in prototype
-  // review (twice — first to add it, then to restrict it to the login form)
-  // but never built. Asserts both presence on login AND absence on the
-  // other two forms, which was the explicit product decision.
-  await page.goto('/');
-  await page.waitForLoadState('networkidle');
-  await expect(page.getByText('Looking for a coach or nutritionist?')).toBeVisible();
-  const loginPanel = page.getByTestId('login-panel');
-  await expect(loginPanel.getByRole('link', { name: 'App Store' })).toBeVisible();
-  await expect(loginPanel.getByRole('link', { name: 'Google Play' })).toBeVisible();
-
-  await page.goto('/register');
-  await page.waitForLoadState('networkidle');
-  await expect(page.getByText('Looking for a coach or nutritionist?')).toHaveCount(0);
-
-  await page.goto('/forgot-password');
-  await page.waitForLoadState('networkidle');
-  await expect(page.getByText('Looking for a coach or nutritionist?')).toHaveCount(0);
-});
 
 test('/auth/reset-password with no query params renders the invalid-link state with no password inputs; with token+email it renders the form', async ({
   page,

@@ -6,7 +6,7 @@ export default function HomeJoinBanner() {
   const { t } = useTranslation();
 
   return (
-    <section className="px-4 sm:px-10 panel:col-start-1 panel:px-16">
+    <section className="px-4 sm:px-10 lg:px-16">
       <div className="flex flex-col items-start gap-6 rounded-3xl border border-border bg-banner px-7 py-10 sm:flex-row sm:items-center sm:gap-8 sm:px-13 sm:py-12">
         <div className="flex flex-col gap-2.5">
           <h2 className="font-display text-home-banner font-semibold text-on-dark">

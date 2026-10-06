@@ -143,7 +143,8 @@ export default function HomeHowItWorks() {
   return (
     <section
       id="how-it-works"
-      className="@container flex scroll-mt-6 flex-col gap-9 border-y border-border bg-surface px-4 py-14 sm:px-10 panel:col-start-1 panel:px-16 panel:py-20"
+      tabIndex={-1}
+      className="@container flex scroll-mt-6 outline-none flex-col gap-9 border-y border-border bg-surface px-4 py-14 sm:px-10 lg:px-16 lg:py-20"
     >
       <div className="flex flex-col gap-2.5">
         <Eyebrow className="text-muted-foreground">{t('home.how.eyebrow')}</Eyebrow>

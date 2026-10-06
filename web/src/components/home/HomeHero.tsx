@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import HeroMockup from '@/components/home/HeroMockup';
 import { IconPeople, IconPlay } from '@/components/home/HomeIcons';
+import { scrollToAnchor } from '@/components/home/smoothAnchor';
 
 const STEPS = [
   { key: 'build', progress: 'w-full', bar: 'bg-ink' },
@@ -15,7 +16,7 @@ export default function HomeHero() {
   const { t } = useTranslation();
 
   return (
-    <section className="@container relative min-w-0 px-4 pt-6 pb-12 sm:px-10 panel:col-start-1 panel:px-16">
+    <section className="@container relative min-w-0 px-4 pt-6 pb-12 sm:px-10 lg:px-16">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-x-0 -top-19 bottom-0 -z-10 bg-no-repeat [background-image:radial-gradient(700px_520px_at_78%_30%,var(--gf-hero-warm),transparent_70%),radial-gradient(620px_520px_at_98%_90%,var(--gf-hero-fresh),transparent_70%),radial-gradient(520px_420px_at_0%_0%,var(--gf-hero-rose),transparent_70%)]"
@@ -38,6 +39,7 @@ export default function HomeHero() {
             </Link>
             <a
               href="#how-it-works"
+              onClick={scrollToAnchor}
               className="flex h-[50px] items-center gap-2 rounded-xl border border-border bg-surface px-5 text-subhead font-semibold text-ink hover:bg-sunken"
             >
               <IconPlay size={14} />

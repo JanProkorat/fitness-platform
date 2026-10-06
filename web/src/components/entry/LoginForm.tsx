@@ -6,14 +6,14 @@ import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import axios from 'axios';
-import { Apple, EyeIcon, EyeOffIcon, PlayCircle } from 'lucide-react';
+import { Apple, EyeIcon, EyeOffIcon } from 'lucide-react';
 import { login as loginRequest } from '@/api/auth';
 import { getMyProfile } from '@/api/profile';
 import type { GetProfileResponse } from '@/api/generated';
 import { useAuthStore } from '@/stores/auth';
 import { getApiErrorMessage } from '@/lib/api-errors';
-import { Button, buttonVariants } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import EntryDialogTitle from '@/components/entry/EntryDialogTitle';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -35,9 +35,9 @@ interface LoginFormValues {
 
 /**
  * Login form — email/password fields, Google/Apple (disabled, see below),
- * and the links into the register / forgot-password routes (spec §6 /
- * prototype `.auth`). Rendered inside LoginPanel's swap area at "/"
- * (App.tsx's pathless layout route under EntryPage).
+ * and the links into the register / forgot-password routes. Rendered inside
+ * the sign-in dialog at "/login" (App.tsx's pathless layout route under
+ * EntryPage).
  *
  * Google and Apple sign-in ship disabled for this issue: there is no Google
  * client id configured in this repo's env, Apple needs a domain-verified
@@ -142,8 +142,8 @@ export default function LoginForm() {
   return (
     <>
       <div>
-        <h3 className="text-auth-title font-bold text-ink">{t('entry.login.title')}</h3>
-        <p className="mt-1.5 text-meta text-muted-foreground">{t('entry.login.lede')}</p>
+        <EntryDialogTitle>{t('entry.login.title')}</EntryDialogTitle>
+        <p className="mt-1 text-body text-muted-foreground">{t('entry.login.lede')}</p>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4.5">
@@ -151,6 +151,7 @@ export default function LoginForm() {
           <Label htmlFor="entry-email">{t('entry.login.emailLabel')}</Label>
           <Input
             id="entry-email"
+            className="h-11 px-3.5 text-copy"
             type="email"
             autoComplete="email"
             placeholder={t('entry.login.emailPlaceholder')}
@@ -175,7 +176,7 @@ export default function LoginForm() {
               placeholder="••••••••"
               aria-invalid={!!errors.password}
               aria-describedby={errors.password ? 'entry-password-error' : undefined}
-              className="pr-16"
+              className="h-11 px-3.5 pr-16 text-copy"
               {...register('password')}
             />
             <button
@@ -224,7 +225,11 @@ export default function LoginForm() {
           </p>
         )}
 
-        <Button type="submit" disabled={loginMutation.isPending} className="w-full">
+        <Button
+          type="submit"
+          disabled={loginMutation.isPending}
+          className="h-11.5 w-full rounded-xl text-subhead font-bold"
+        >
           {loginMutation.isPending ? t('entry.login.submitting') : t('entry.login.submit')}
         </Button>
       </form>
@@ -236,41 +241,18 @@ export default function LoginForm() {
       </div>
 
       <div className="grid grid-cols-2 gap-2.5">
-        <Button type="button" variant="outline" disabled title={t('entry.login.googleComingSoon')}>
+        <Button type="button" variant="outline" disabled className="h-10.5 font-semibold" title={t('entry.login.googleComingSoon')}>
           {t('entry.login.google')}
         </Button>
-        <Button type="button" variant="outline" disabled title={t('entry.login.appleComingSoon')}>
+        <Button type="button" variant="outline" disabled className="h-10.5 font-semibold" title={t('entry.login.appleComingSoon')}>
+          <Apple className="size-4" aria-hidden="true" />
           {t('entry.login.apple')}
         </Button>
       </div>
 
-      {/*
-       * Client signpost (#1058 AC 8) — login form only. Someone already
-       * filling in the register or forgot-password form has shown which
-       * side they are on; repeating this there would just be noise
-       * (explicit product decision, prototype `scratchpad/gf-register.html`
-       * lines ~447-456).
-       */}
-      <div className="flex flex-col gap-2.5 rounded-md border border-border bg-sunken p-3.5">
-        <p className="text-meta text-muted-foreground">
-          <strong className="font-semibold text-ink">{t('entry.login.clientNote.lead')}</strong>{' '}
-          {t('entry.login.clientNote.body')}
-        </p>
-        <div className="flex flex-wrap gap-2">
-          <a href="#" className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'gap-1.5')}>
-            <Apple className="size-3.5" />
-            {t('entry.login.clientNote.appStore')}
-          </a>
-          <a href="#" className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'gap-1.5')}>
-            <PlayCircle className="size-3.5" />
-            {t('entry.login.clientNote.googlePlay')}
-          </a>
-        </div>
-      </div>
-
-      <p className="text-meta text-muted-foreground">
+      <p className="text-center text-body text-muted-foreground">
         {t('entry.login.noAccount')}{' '}
-        <Link to="/register" className="font-medium text-ink underline underline-offset-2">
+        <Link to="/register" className="font-bold text-ink underline underline-offset-2">
           {t('entry.login.createAccount')}
         </Link>
       </p>

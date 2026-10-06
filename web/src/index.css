@@ -130,7 +130,6 @@
   --gf-text-auth-title: 22px; /* login panel heading */
   --gf-text-stat: 26px; /* stat figures, empty-state heading */
   --gf-text-display: 30px; /* large page heading on the Page*C boards */
-  --gf-text-hero: clamp(38px, 4.4vw, 58px); /* hero H1 */
   --gf-text-section-title: clamp(26px, 3vw, 34px); /* band H2 */
   --gf-text-cta-title: clamp(24px, 3vw, 32px); /* closing CTA H2 */
 
@@ -171,23 +170,17 @@
   --gf-shadow-sheet: -12px 0 40px rgba(0, 0, 0, 0.18); /* right-hand drawer (PageClientInviteDrawer) */
   --gf-shadow-popover: 0 6px 20px rgba(0, 0, 0, 0.12); /* floating pill (PageClients selection bar): menus, popovers, hover cards, toasts */
   --gf-shadow-card: 0 24px 60px rgba(0, 0, 0, 0.1); /* standalone-page card (PageRegister*) */
-  --gf-shadow-medallion: 0 1px 3px rgba(0, 0, 0, 0.12); /* brand medallion; no board element, board's small-raised value */
   --gf-shadow-selection-bar: 0 4px 12px rgba(0, 0, 0, 0.1); /* clients-page bulk-selection bar */
+  --gf-blur-scrim: 3px; /* backdrop blur behind the sign-in dialog (PageHomeSignIn*) */
 
-  --gf-panel-width: 440px; /* login panel column width */
   --gf-collage-cell-min-height: clamp(70px, 12vh, 140px); /* hero photo-collage cell */
   --gf-wrap-width: 1044px; /* marketing section content max-width, reused across bands */
-  --gf-hero-content-width: 900px; /* hero headline/collage max-width, reused twice in HeroSection */
   --gf-badge-min-width: 20px; /* filter-chip count badge floor — a single-digit count's glyph advance can render narrower than the badge's own height in a fallback face, squaring off the pill */
   --gf-swatch-size: 18px; /* create-tag colour-picker swatch diameter */
   --gf-search-width: 280px; /* Ingredients page search input */
   --gf-drawer-width: 560px; /* Ingredient drawer sheet width */
   --gf-drawer-wide-width: 644px; /* Recipe drawer sheet width */
   --gf-tracking-label: 0.14em; /* eyebrow/section-label letter-spacing, reused 3x */
-  /* 960px collapse breakpoint is declared as a literal directly in
-     `--breakpoint-panel` below, not aliased through a --gf-* raw token:
-     Tailwind compiles `--breakpoint-*` into literal `@media` rules at
-     build time and cannot resolve a var() reference there. */
 
   /* ---- Tier 2: shadcn/ui semantic aliases ---- */
   --background: var(--gf-ground);
@@ -374,15 +367,14 @@
          browser-default rendering these multi-line marketing paragraphs
          already ship with (#1055) -- tightening them to 1.2 would cramp
          running copy, worse in cs/de where strings run longer.
-       - clamp() tokens (hero, section-title, cta-title): unitless ratios
-         (the only correct form when font-size is viewport-dependent).
-         hero folds in the leading-[1.04] already shipped on
-         HeroSection.tsx's <h1>; section-title/cta-title get the same
-         "reproduce current rendering" treatment as the prose group, since
-         neither carries a shipped override or Figma evidence of its own.
-     lede is prose in role but keeps its own already-shipped 1.6 (folded
-     in from HeroSection.tsx's <p>), tighter than the 1.5 default because
-     that's what's already live on the signed-off page. */
+       - clamp() tokens (section-title, cta-title): unitless ratios
+         (the only correct form when font-size is viewport-dependent),
+         with the same "reproduce current rendering" treatment as the
+         prose group, since neither carries a shipped override or Figma
+         evidence of its own.
+     lede is prose in role but keeps its own already-shipped 1.6, tighter
+     than the 1.5 default because that's what's already live on the
+     signed-off page. */
   --text-title: var(--gf-text-title);
   --text-title--line-height: 1.2;
   --text-body: var(--gf-text-body);
@@ -413,8 +405,6 @@
   --text-panel-title--line-height: 1.2;
   --text-auth-title: var(--gf-text-auth-title);
   --text-auth-title--line-height: 1.2;
-  --text-hero: var(--gf-text-hero);
-  --text-hero--line-height: 1.04;
   --text-section-title: var(--gf-text-section-title);
   --text-section-title--line-height: 1.5;
   --text-cta-title: var(--gf-text-cta-title);
@@ -458,13 +448,12 @@
   --shadow-sheet: var(--gf-shadow-sheet);
   --shadow-popover: var(--gf-shadow-popover);
   --shadow-card: var(--gf-shadow-card);
-  --shadow-medallion: var(--gf-shadow-medallion);
   --shadow-selection-bar: var(--gf-shadow-selection-bar);
 
-  --spacing-panel: var(--gf-panel-width);
+  --blur-scrim: var(--gf-blur-scrim);
+
   --spacing-collage-cell: var(--gf-collage-cell-min-height);
   --spacing-wrap: var(--gf-wrap-width);
-  --spacing-hero-content: var(--gf-hero-content-width);
   --spacing-badge-min: var(--gf-badge-min-width);
   --spacing-swatch: var(--gf-swatch-size);
   --spacing-search: var(--gf-search-width);
@@ -479,17 +468,6 @@
   --tracking-hero: var(--gf-tracking-hero);
   --tracking-badge: var(--gf-tracking-badge);
   --tracking-caps: var(--gf-tracking-caps);
-
-  /* Literal, not a var() alias — see the comment on --gf-panel-width above. */
-  --breakpoint-panel: 960px;
-
-  /* ---- Entry panel cross-fade (#1058) ----
-     Tailwind v4 turns a `--animate-*` theme token into the `animate-*`
-     utility (`animate-panel-in` / `animate-panel-out`); the keyframes
-     themselves are declared as a plain top-level @keyframes rule below,
-     same as any other CSS custom property that references one. */
-  --animate-panel-in: panel-in 200ms ease-out;
-  --animate-panel-out: panel-out 120ms ease-in forwards;
 
   /* ---- Sheet (drawer) open/close (#1081) ----
      Radix's Presence gates the close-unmount on the *name* of the
@@ -532,28 +510,6 @@
   --animate-popper-out-right: popper-out-right 100ms ease-in forwards;
   --animate-toast-in: toast-in 200ms ease-out;
   --animate-toast-out: toast-out 150ms ease-in forwards;
-}
-
-@keyframes panel-in {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-@keyframes panel-out {
-  from {
-    opacity: 1;
-    transform: none;
-  }
-  to {
-    opacity: 0;
-    transform: translateY(-6px);
-  }
 }
 
 @keyframes sheet-in-right {

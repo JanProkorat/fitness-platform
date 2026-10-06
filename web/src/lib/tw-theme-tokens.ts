@@ -12,7 +12,7 @@
  * tailwind-merge's own theme scale arrays are shaped.
  */
 
-/** `--text-*` — 33 keys. Falls through to tailwind-merge's colour-scale
+/** `--text-*` — 32 keys. Falls through to tailwind-merge's colour-scale
  * catch-all without this: every one of these class names would otherwise be
  * silently deleted as a "text colour" conflict (#1078). */
 export const TEXT_SIZE_TOKENS = [
@@ -30,7 +30,6 @@ export const TEXT_SIZE_TOKENS = [
   'display',
   'panel-title',
   'auth-title',
-  'hero',
   'section-title',
   'cta-title',
   'home-hero',
@@ -53,7 +52,7 @@ export const TEXT_SIZE_TOKENS = [
 
 /** `--shadow-*` — same delete-the-class failure mode as text sizes, via
  * tailwind-merge's `shadow-color` catch-all. */
-export const SHADOW_TOKENS = ['dialog', 'sheet', 'popover', 'card', 'medallion', 'selection-bar'] as const;
+export const SHADOW_TOKENS = ['dialog', 'sheet', 'popover', 'card', 'selection-bar'] as const;
 
 /** `--radius-*` — only names outside tailwind-merge's t-shirt scale need
  * listing; without it `rounded-field` is never conflict-resolved against a
@@ -63,10 +62,8 @@ export const RADIUS_TOKENS = ['field', 'thumb', 'tile', 'card', 'glass', 'phone'
 /** `--spacing-*` — unknown to tailwind-merge without this (not deleted,
  * just never conflict-resolved). */
 export const SPACING_TOKENS = [
-  'panel',
   'wrap',
   'collage-cell',
-  'hero-content',
   'badge-min',
   'swatch',
   'search',
@@ -88,8 +85,6 @@ export const TRACKING_TOKENS = [
 
 /** `--animate-*` — same unknown-class shape as spacing. */
 export const ANIMATE_TOKENS = [
-  'panel-in',
-  'panel-out',
   'sheet-in-right',
   'sheet-out-right',
   'sheet-in-left',

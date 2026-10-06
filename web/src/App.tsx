@@ -38,21 +38,22 @@ export default function App() {
         <Routes>
           {/*
            * Public routes — MUST stay outside ProtectedRoute. ProtectedRoute
-           * redirects an unauthenticated visitor to "/", an unconfirmed user
-           * to "/verify-email", and a client-only user to "/download-app";
+           * redirects an unauthenticated visitor to "/login", an unconfirmed
+           * user to "/verify-email", and a client-only user to "/download-app";
            * mounting any of these inside ProtectedRoute re-enters the same
            * guard and infinite-loops instead of rendering.
            *
-           * EntryPage is a pathless layout route (#1058): it renders the
-           * marketing column plus LoginPanel's shell once, and LoginPanel's
-           * swap area (via useOutlet(), see that component) renders whichever
-           * of the three child routes below is active. Do NOT collapse these
-           * into a single `path="/:authMode?"` route — an optional param
-           * segment swallows every unmatched path ahead of the catch-all
-           * NotFound route.
+           * EntryPage is a pathless layout route: it renders the landing page
+           * once plus one sign-in dialog, which is open on every child route
+           * except "/" and renders whichever form route is active (via
+           * useOutlet(), see that component). Do NOT collapse these into a
+           * single `path="/:authMode?"` route — an optional param segment
+           * swallows every unmatched path ahead of the catch-all NotFound
+           * route.
            */}
           <Route element={<EntryPage />}>
-            <Route path="/" element={<LoginForm />} />
+            <Route path="/" element={null} />
+            <Route path="/login" element={<LoginForm />} />
             <Route path="/register" element={<RegisterForm />} />
             <Route path="/forgot-password" element={<ForgotPasswordForm />} />
           </Route>

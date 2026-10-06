@@ -2802,72 +2802,6 @@
   },
   "entry": {
     "brand": "GoodFellas",
-    "eyebrow": "Platform for coaches and nutritionists",
-    "headline": {
-      "line1": "Client coaching",
-      "accent": "without the mess"
-    },
-    "sub": "Meal plans, training plans, measurements and messaging in one place. You work in the browser, your client gets it all on their phone.",
-    "points": {
-      "meals": "Meal plans by week",
-      "training": "Training plans",
-      "checkins": "Weekly check-ins",
-      "chat": "Live chat"
-    },
-    "collage": {
-      "strength": "Strength",
-      "conditioning": "Conditioning",
-      "nutrition": "Nutrition",
-      "coaching": "Coaching",
-      "progress": "Progress",
-      "note": "Photography goes here — added when the app is built."
-    },
-    "capabilities": {
-      "eyebrow": "What it does",
-      "title": "One app instead of spreadsheets, email and WhatsApp",
-      "subtitle": "A trainer and a nutritionist work on the same client. The client sees only what has been published.",
-      "nutrition": {
-        "tag": "Nutrition",
-        "title": "Meal plans by week",
-        "body": "Build a week from recipes and ingredients, check the macros, and publish only finished weeks. A week in progress stays hidden."
-      },
-      "training": {
-        "tag": "Training",
-        "title": "Plans and an exercise library",
-        "body": "Drag exercises into a session, save it as a template, and reuse it next time in one click."
-      },
-      "contact": {
-        "tag": "Contact",
-        "title": "Check-ins and messages",
-        "body": "Once a week your client sends measurements, photos and how they feel. You reply in a chat that updates live — no page refresh."
-      }
-    },
-    "audience": {
-      "coaches": {
-        "eyebrow": "For coaches",
-        "title": "Built for the browser",
-        "subtitle": "The portal is made for a large screen, because plans get built sitting at a desk.",
-        "check1": "Client list with tags and filters",
-        "check2": "Email invites for new clients",
-        "check3": "Your own ingredient and recipe database",
-        "check4": "Measurement and photo history in one place"
-      },
-      "clients": {
-        "eyebrow": "For clients",
-        "title": "An app on their phone",
-        "subtitle": "Clients build nothing. They open the app and see what to eat and what to train today.",
-        "check1": "Today's meals and today's session",
-        "check2": "Tick off meals, log your sets",
-        "check3": "A shopping list for the whole week",
-        "check4": "Chat with the coach, plus alerts"
-      }
-    },
-    "cta": {
-      "title": "Try it with one client",
-      "body": "Create an account, invite your first client, and build their first week. It takes an afternoon.",
-      "button": "Create a coach account"
-    },
-    "footer": "Coach portal · Client app for iOS and Android",
     "login": {
       "title": "Welcome back",
       "lede": "Sign in to the coach portal.",
@@ -2885,14 +2819,8 @@
       "apple": "Apple",
       "googleComingSoon": "Google sign-in is not available yet.",
       "appleComingSoon": "Apple sign-in is not available yet.",
-      "noAccount": "No account yet?",
-      "createAccount": "Create a coach account",
-      "clientNote": {
-        "lead": "Looking for a coach or nutritionist?",
-        "body": "Download our mobile app and join today.",
-        "appStore": "App Store",
-        "googlePlay": "Google Play"
-      },
+      "noAccount": "New to Form Up?",
+      "createAccount": "Create account",
       "validation": {
         "emailRequired": "Enter your email.",
         "emailInvalid": "Enter a valid email address.",
@@ -2903,9 +2831,6 @@
         "profileLoadFailed": "You're signed in, but loading your profile failed. Please try again.",
         "generic": "Sign in failed. Please try again."
       }
-    },
-    "panel": {
-      "headline": "Join our community of coaches and nutritionists"
     },
     "register": {
       "title": "Create account",
