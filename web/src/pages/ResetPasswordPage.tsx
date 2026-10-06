@@ -171,7 +171,7 @@ export default function ResetPasswordPage() {
           <Button type="button" className="w-full" onClick={() => navigate('/forgot-password')}>
             {t('entry.resetPassword.invalidLink.requestNew')}
           </Button>
-          <Button type="button" variant="ghost" className="w-full" onClick={() => navigate('/')}>
+          <Button type="button" variant="ghost" className="w-full" onClick={() => navigate('/login')}>
             {t('entry.resetPassword.invalidLink.cta')}
           </Button>
         </CardContent>
@@ -189,7 +189,7 @@ export default function ResetPasswordPage() {
         <CardTitle>{t('entry.resetPassword.success.title')}</CardTitle>
         <CardDescription>{t('entry.resetPassword.success.lede')}</CardDescription>
         <CardContent>
-          <Button type="button" className="w-full" onClick={() => navigate('/')}>
+          <Button type="button" className="w-full" onClick={() => navigate('/login')}>
             {t('entry.resetPassword.success.cta')}
           </Button>
         </CardContent>

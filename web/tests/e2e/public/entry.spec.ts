@@ -1,5 +1,6 @@
 /**
- * Public entry page ("/") — unauthenticated visitor flow (#1055).
+ * Public landing page and sign-in dialog — unauthenticated visitor flow
+ * (#1055, #1183).
  *
  * Runs under the `public` project (playwright.config.ts) — no `setup`
  * dependency, no `storageState`, so the browser context starts genuinely
@@ -33,33 +34,102 @@ function requireSeedPassword(): string {
   return password;
 }
 
-test('unauthenticated visitor sees the entry page at /', async ({ page }) => {
+test('/ is the landing page with the sign-in dialog closed', async ({ page }) => {
   await page.goto('/');
-  await page.waitForLoadState('networkidle');
 
   await expect(page).toHaveURL(/\/$/);
-  await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible();
-  await expect(page.getByLabel('Email')).toBeVisible();
-  await expect(page.getByLabel('Password')).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+});
+
+test('/login opens the sign-in dialog over the landing page', async ({ page }) => {
+  await page.goto('/login');
+
+  const dialog = page.getByRole('dialog', { name: 'Welcome back' });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByLabel('Email')).toBeFocused();
+  await expect(dialog.getByLabel('Password')).toBeVisible();
+  await expect(page.locator('h1')).toBeAttached();
+});
+
+test('the nav Sign in link opens the dialog', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('link', { name: 'Sign in' }).click();
+
+  await expect(page).toHaveURL(/\/login$/);
+  await expect(page.getByRole('dialog', { name: 'Welcome back' })).toBeVisible();
+});
+
+test('Escape closes the dialog and returns to / with focus on Sign in', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('link', { name: 'Sign in' }).click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+
+  await page.keyboard.press('Escape');
+
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByRole('link', { name: 'Sign in' })).toBeFocused();
+});
+
+test('the close button closes the dialog and returns to /', async ({ page }) => {
+  await page.goto('/login');
+  await page.getByRole('dialog').getByRole('button', { name: 'Close' }).click();
+
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByRole('link', { name: 'Sign in' })).toBeFocused();
+});
+
+test('closing the dialog replaces history, so Back does not reopen it', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('link', { name: 'Sign in' }).click();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+
+  await page.goBack();
+
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+});
+
+test('a logged-out visit to /clients lands on /login with the dialog open', async ({ page }) => {
+  await page.goto('/clients');
+
+  await expect(page).toHaveURL(/\/login$/);
+  await expect(page.getByRole('dialog', { name: 'Welcome back' })).toBeVisible();
+});
+
+test('the section links smooth-scroll to their section and set the hash', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'How it works' }).click();
+
+  await expect(page).toHaveURL(/#how-it-works$/);
+  const section = page.locator('#how-it-works');
+  await expect(section).toBeFocused();
+  await expect(section).toBeInViewport();
 });
 
 test('valid credentials navigate to /clients', async ({ page }) => {
   const password = requireSeedPassword();
 
-  await page.goto('/');
-  await page.getByLabel('Email').fill(TRAINER_EMAIL);
-  await page.getByLabel('Password').fill(password);
-  await page.getByRole('button', { name: 'Sign in' }).click();
+  await page.goto('/login');
+  const dialog = page.getByRole('dialog');
+  await dialog.getByLabel('Email').fill(TRAINER_EMAIL);
+  await dialog.getByLabel('Password').fill(password);
+  await dialog.getByRole('button', { name: 'Sign in' }).click();
 
   await expect(page).toHaveURL(/\/clients$/);
 });
 
-test('invalid credentials show an error and stay on /', async ({ page }) => {
-  await page.goto('/');
-  await page.getByLabel('Email').fill(TRAINER_EMAIL);
-  await page.getByLabel('Password').fill('definitely-the-wrong-password');
-  await page.getByRole('button', { name: 'Sign in' }).click();
+test('invalid credentials show an error and stay on /login', async ({ page }) => {
+  await page.goto('/login');
+  const dialog = page.getByRole('dialog');
+  await dialog.getByLabel('Email').fill(TRAINER_EMAIL);
+  await dialog.getByLabel('Password').fill('definitely-the-wrong-password');
+  await dialog.getByRole('button', { name: 'Sign in' }).click();
 
-  await expect(page.getByRole('alert')).toHaveText('Invalid email or password.');
-  await expect(page).toHaveURL(/\/$/);
+  await expect(dialog.getByRole('alert')).toHaveText('Invalid email or password.');
+  await expect(page).toHaveURL(/\/login$/);
+  await expect(dialog).toBeVisible();
 });
