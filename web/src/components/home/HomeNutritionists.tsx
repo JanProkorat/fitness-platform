@@ -94,7 +94,7 @@ const LEGEND_KCAL = 2100;
 // Window (640) plus the 120 the client phone overhangs on the right = 760 x zoom, which has to fit the
 // space beside the text column at every step.
 const MOCKUP_ZOOM =
-  'lg:[zoom:0.54] lg:@min-[960px]:[zoom:0.62] lg:@min-[1040px]:[zoom:0.72] lg:@min-[1120px]:[zoom:0.83] lg:@min-[1200px]:[zoom:0.94] lg:@min-[1290px]:[zoom:1] lg:@min-[1340px]:[zoom:1.03] lg:@min-[1472px]:[zoom:1.1] lg:@min-[1592px]:[zoom:1.2] lg:@min-[1760px]:[zoom:1.3] lg:@min-[1940px]:[zoom:1.45]';
+  'lg:home-zoom-mock lg:[--mz:0.54] lg:@min-[960px]:[--mz:0.62] lg:@min-[1040px]:[--mz:0.72] lg:@min-[1120px]:[--mz:0.83] lg:@min-[1200px]:[--mz:0.94] lg:@min-[1290px]:[--mz:1] lg:@min-[1340px]:[--mz:1.03] lg:@min-[1472px]:[--mz:1.1] lg:@min-[1592px]:[--mz:1.2] lg:@min-[1760px]:[--mz:1.3] lg:@min-[1940px]:[--mz:1.45]';
 
 function NutritionMockup() {
   const { t, i18n } = useTranslation();
@@ -217,7 +217,7 @@ export default function HomeNutritionists() {
     <section
       id="for-nutritionists"
       tabIndex={-1}
-      className="flex scroll-mt-6 flex-col justify-center px-4 py-14 outline-none sm:px-10 lg:min-h-svh lg:px-16 lg:py-24"
+      className="flex flex-col justify-center px-4 py-14 outline-none sm:px-10 lg:home-section-pad lg:min-h-svh lg:px-16"
     >
       <div className="@container mx-auto flex w-full max-w-home flex-col">
         <div className="flex flex-col gap-12 lg:flex-row-reverse lg:items-center lg:gap-16">
@@ -253,7 +253,7 @@ export default function HomeNutritionists() {
           </div>
         </div>
         {/* Reserves the room the shopping list and the client phone hang below the window. */}
-        <div aria-hidden="true" className={`h-12 @min-[640px]:h-36 lg:h-[160px] ${MOCKUP_ZOOM}`} />
+        <div aria-hidden="true" className={`h-12 @min-[640px]:h-36 lg:h-(--home-spacer-nutritionists) ${MOCKUP_ZOOM}`} />
         <FeatureRow>
           <FeatureItem
             icon={<IconDatabase />}

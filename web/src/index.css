@@ -215,8 +215,10 @@
    above the matching container-query step on the home sections
    (@min-[1340px], 1472, 1592, 1760, 1940 of content width; 128px of side
    padding plus a scrollbar), so a section's layout and mockups grow before
-   its type does. Scale factors: 1.04, 1.1, 1.2, 1.3, 1.45. */
-@media (min-width: 1484px) {
+   its type does. Scale factors: 1.04, 1.1, 1.2, 1.3, 1.45. The steps also need
+   a window at least 1000px tall: a full-screen section has to fit one window,
+   and larger type on a wide-but-short window would push it past 100svh. */
+@media (min-width: 1484px) and (min-height: 1000px) {
   :root {
     --gf-text-home-banner: 35px;
     --gf-text-home-hero: 58px;
@@ -232,7 +234,7 @@
   }
 }
 
-@media (min-width: 1616px) {
+@media (min-width: 1616px) and (min-height: 1000px) {
   :root {
     --gf-text-home-banner: 37px;
     --gf-text-home-hero: 62px;
@@ -248,7 +250,7 @@
   }
 }
 
-@media (min-width: 1736px) {
+@media (min-width: 1736px) and (min-height: 1000px) {
   :root {
     --gf-text-home-banner: 41px;
     --gf-text-home-hero: 67px;
@@ -264,7 +266,7 @@
   }
 }
 
-@media (min-width: 2216px) {
+@media (min-width: 2216px) and (min-height: 1000px) {
   :root {
     --gf-text-home-banner: 44px;
     --gf-text-home-hero: 73px;
@@ -280,7 +282,7 @@
   }
 }
 
-@media (min-width: 2576px) {
+@media (min-width: 2576px) and (min-height: 1000px) {
   :root {
     --gf-text-home-banner: 49px;
     --gf-text-home-hero: 81px;
@@ -294,6 +296,163 @@
     --gf-text-home-meta: 17px;
     --gf-text-home-subhead: 22px;
   }
+}
+
+/* Short desktop windows (1280x720 and the like): the section type steps down a notch so a
+   full-screen section still fits one window. */
+@media (min-width: 1024px) and (max-height: 800px) {
+  :root {
+    --gf-text-home-banner: 30px;
+    --gf-text-home-heading: 34px;
+    --gf-text-home-lead: 15px;
+    --gf-text-home-feature-title: 15px;
+    --gf-text-home-step-title: 18px;
+    --gf-text-home-body: 12px;
+    --gf-text-home-copy: 13px;
+    --gf-text-home-meta: 11px;
+  }
+}
+
+/* Window-height caps for the home mockups. A mockup's zoom is min(width ladder, cap), so on a wide
+   but short window it cannot push a full-screen section past 100svh. Each cap is the largest zoom
+   whose section still fits at the bottom of its height band (about 5% spare); the phones cap is
+   steeper because the four-phone section is the tallest. The spacers are the room the phones and
+   floating cards hang below a mockup; they shrink on short windows. */
+:root {
+  --home-cap-card: 10;
+  --home-cap-mock: 10;
+  --home-cap-phones: 10;
+  --home-spacer-coaches: 76px;
+  --home-spacer-nutritionists: 160px;
+}
+
+@media (max-height: 999px) {
+  :root {
+    --home-cap-mock: 1.15;
+  }
+}
+
+@media (max-height: 799px) {
+  :root {
+    --home-cap-mock: 1;
+    --home-spacer-coaches: 40px;
+    --home-spacer-nutritionists: 140px;
+  }
+}
+
+@media (max-height: 699px) {
+  :root {
+    --home-cap-card: 0.8;
+    --home-cap-mock: 0.85;
+  }
+}
+
+@media (max-height: 1319px) {
+  :root {
+    --home-cap-phones: 1.3;
+  }
+}
+
+@media (max-height: 1239px) {
+  :root {
+    --home-cap-phones: 1.2;
+  }
+}
+
+@media (max-height: 1159px) {
+  :root {
+    --home-cap-phones: 1.09;
+  }
+}
+
+@media (max-height: 1079px) {
+  :root {
+    --home-cap-phones: 1.03;
+  }
+}
+
+@media (max-height: 1039px) {
+  :root {
+    --home-cap-phones: 0.97;
+  }
+}
+
+@media (max-height: 999px) {
+  :root {
+    --home-cap-phones: 0.94;
+  }
+}
+
+@media (max-height: 959px) {
+  :root {
+    --home-cap-phones: 0.9;
+  }
+}
+
+@media (max-height: 929px) {
+  :root {
+    --home-cap-phones: 0.85;
+  }
+}
+
+@media (max-height: 899px) {
+  :root {
+    --home-cap-phones: 0.76;
+  }
+}
+
+@media (max-height: 839px) {
+  :root {
+    --home-cap-phones: 0.71;
+  }
+}
+
+@media (max-height: 800px) {
+  :root {
+    --home-cap-phones: 0.68;
+  }
+}
+
+@media (max-height: 759px) {
+  :root {
+    --home-cap-phones: 0.62;
+  }
+}
+
+@media (max-height: 719px) {
+  :root {
+    --home-cap-phones: 0.6;
+  }
+}
+
+@media (max-height: 699px) {
+  :root {
+    --home-cap-phones: 0.5;
+  }
+}
+
+@media (max-height: 639px) {
+  :root {
+    --home-cap-phones: 0.45;
+  }
+}
+
+/* Mockup zoom: the width ladder sets --mz, the window height caps it. */
+@utility home-zoom-card {
+  zoom: min(var(--mz, 1), var(--home-cap-card));
+}
+
+@utility home-zoom-mock {
+  zoom: min(var(--mz, 1), var(--home-cap-mock));
+}
+
+@utility home-zoom-phones {
+  zoom: min(var(--mz, 1), var(--home-cap-phones));
+}
+
+/* Vertical padding of a full-screen home section on desktop: shrinks with the window height. */
+@utility home-section-pad {
+  padding-block: clamp(1rem, 4.5svh, 4rem);
 }
 
 /* Dark values, read from the Page*D boards. Each literal is declared once as

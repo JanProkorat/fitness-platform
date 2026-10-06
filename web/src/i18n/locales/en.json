@@ -3005,8 +3005,6 @@
       "createAccount": "Create account",
       "seeInAction": "See it in action",
       "note": "Web portal for planning, mobile app for you and your clients.",
-      "getApp": "Get the mobile app",
-      "getAppNote": "Free for your clients, on iPhone and Android.",
       "steps": {
         "build": "Drag a recipe into the day",
         "publish": "One click — it’s on their phone",

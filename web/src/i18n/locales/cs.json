@@ -3035,7 +3035,7 @@
       "forCoaches": "Pro trenéry",
       "forNutritionists": "Pro nutriční poradce",
       "mobileApp": "Mobilní aplikace",
-      "questions": "Dotazy",
+      "questions": "Q&A",
       "signIn": "Přihlásit se",
       "createAccount": "Vytvořit účet",
       "menuLabel": "{{code}}, jazyk a vzhled",
@@ -3050,8 +3050,6 @@
       "createAccount": "Vytvořit účet",
       "seeInAction": "Podívat se, jak to funguje",
       "note": "Webový portál pro plánování, mobilní aplikace pro vás i vaše klienty.",
-      "getApp": "Stáhněte si mobilní aplikaci",
-      "getAppNote": "Pro vaše klienty zdarma, na iPhonu i Androidu.",
       "steps": {
         "build": "Přetáhněte recept do dne",
         "publish": "Jedním klikem je v jejich telefonu",

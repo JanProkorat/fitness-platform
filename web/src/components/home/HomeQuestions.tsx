@@ -15,7 +15,7 @@ export default function HomeQuestions() {
     <section
       id="questions"
       tabIndex={-1}
-      className="flex scroll-mt-6 flex-col justify-center px-4 py-14 outline-none sm:px-10 lg:min-h-svh lg:px-16 lg:py-24"
+      className="flex flex-1 flex-col justify-center px-4 py-14 outline-none sm:px-10 lg:home-section-pad lg:px-16"
     >
       <div className="@container mx-auto flex w-full max-w-home flex-col items-center gap-10">
         <div className="flex flex-col items-center gap-3.5 text-center">

@@ -83,9 +83,11 @@ export default function EntryPage() {
       <HomeCoaches />
       <HomeNutritionists />
       <HomeMobileApp />
-      <HomeQuestions />
-      <HomeJoinBanner />
-      <HomeFooter />
+      <div className="flex flex-col lg:min-h-svh">
+        <HomeQuestions />
+        <HomeJoinBanner />
+        <HomeFooter />
+      </div>
 
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent

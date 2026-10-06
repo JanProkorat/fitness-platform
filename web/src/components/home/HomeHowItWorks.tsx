@@ -123,7 +123,7 @@ function StepCard({ index, stepKey, children }: { index: number; stepKey: string
     <div className="flex min-w-0 flex-col gap-3.5">
       <div
         aria-hidden="true"
-        className="box-border flex h-[196px] flex-col justify-center rounded-card border border-border bg-surface p-5 lg:[zoom:0.65] lg:@min-[960px]:[zoom:0.72] lg:@min-[1040px]:[zoom:0.79] lg:@min-[1120px]:[zoom:0.85] lg:@min-[1200px]:[zoom:0.92] lg:@min-[1290px]:[zoom:1] lg:@min-[1340px]:[zoom:1.03] lg:@min-[1472px]:[zoom:1.1] lg:@min-[1592px]:[zoom:1.2] lg:@min-[1760px]:[zoom:1.3] lg:@min-[1940px]:[zoom:1.45]"
+        className="box-border flex h-[196px] flex-col justify-center rounded-card border border-border bg-surface p-5 lg:home-zoom-card lg:[--mz:0.65] lg:@min-[960px]:[--mz:0.72] lg:@min-[1040px]:[--mz:0.79] lg:@min-[1120px]:[--mz:0.85] lg:@min-[1200px]:[--mz:0.92] lg:@min-[1290px]:[--mz:1] lg:@min-[1340px]:[--mz:1.03] lg:@min-[1472px]:[--mz:1.1] lg:@min-[1592px]:[--mz:1.2] lg:@min-[1760px]:[--mz:1.3] lg:@min-[1940px]:[--mz:1.45]"
       >
         {children}
       </div>
@@ -187,7 +187,7 @@ export default function HomeHowItWorks() {
     <section
       id="how-it-works"
       tabIndex={-1}
-      className="flex scroll-mt-6 flex-col justify-center px-4 py-14 outline-none sm:px-10 lg:min-h-svh lg:px-16 lg:py-20"
+      className="flex flex-col justify-center px-4 py-14 outline-none sm:px-10 lg:home-section-pad lg:min-h-svh lg:px-16"
     >
       <div className="@container mx-auto flex w-full max-w-home flex-col gap-9">
         <div className="flex flex-col gap-2.5">

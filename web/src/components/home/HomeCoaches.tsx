@@ -64,7 +64,7 @@ function SessionRow({ row }: { row: BlockRow }) {
 // Window (700) plus the 110 the client phone overhangs on the right = 810 x zoom, which has to fit the
 // space beside the text column at every step.
 const MOCKUP_ZOOM =
-  'lg:[zoom:0.5] lg:@min-[960px]:[zoom:0.58] lg:@min-[1040px]:[zoom:0.68] lg:@min-[1120px]:[zoom:0.78] lg:@min-[1200px]:[zoom:0.88] lg:@min-[1290px]:[zoom:0.99] lg:@min-[1340px]:[zoom:1.03] lg:@min-[1472px]:[zoom:1.1] lg:@min-[1592px]:[zoom:1.2] lg:@min-[1760px]:[zoom:1.3] lg:@min-[1940px]:[zoom:1.45]';
+  'lg:home-zoom-mock lg:[--mz:0.5] lg:@min-[960px]:[--mz:0.58] lg:@min-[1040px]:[--mz:0.68] lg:@min-[1120px]:[--mz:0.78] lg:@min-[1200px]:[--mz:0.88] lg:@min-[1290px]:[--mz:0.99] lg:@min-[1340px]:[--mz:1.03] lg:@min-[1472px]:[--mz:1.1] lg:@min-[1592px]:[--mz:1.2] lg:@min-[1760px]:[--mz:1.3] lg:@min-[1940px]:[--mz:1.45]';
 
 function SessionMockup() {
   const { t } = useTranslation();
@@ -146,7 +146,7 @@ export default function HomeCoaches() {
     <section
       id="for-coaches"
       tabIndex={-1}
-      className="flex scroll-mt-6 flex-col justify-center px-4 py-14 outline-none sm:px-10 lg:min-h-svh lg:px-16 lg:py-24"
+      className="flex flex-col justify-center px-4 py-14 outline-none sm:px-10 lg:home-section-pad lg:min-h-svh lg:px-16"
     >
       <div className="@container mx-auto flex w-full max-w-home flex-col">
         <div className="flex flex-col gap-12 lg:flex-row lg:items-center lg:gap-16">
@@ -182,7 +182,7 @@ export default function HomeCoaches() {
           </div>
         </div>
         {/* Reserves the room the live card and the client phone hang below the window. */}
-        <div aria-hidden="true" className={`h-12 @min-[640px]:h-9 lg:h-[76px] ${MOCKUP_ZOOM}`} />
+        <div aria-hidden="true" className={`h-12 @min-[640px]:h-9 lg:h-(--home-spacer-coaches) ${MOCKUP_ZOOM}`} />
         <FeatureRow>
           <FeatureItem
             icon={<IconVideo />}

@@ -136,7 +136,7 @@ export function FeatureItem({ icon, tone, title, description }: FeatureItemProps
 /** Full-width row of three more features under a section's mockup, set off by a hairline. */
 export function FeatureRow({ children }: { children: ReactNode }) {
   return (
-    <div className="grid grid-cols-1 gap-6 border-t border-border pt-10 @min-[760px]:grid-cols-3 @min-[760px]:gap-10">
+    <div className="grid grid-cols-1 gap-6 border-t border-border pt-10 lg:pt-[clamp(1.25rem,4svh,2.5rem)] @min-[760px]:grid-cols-3 @min-[760px]:gap-10">
       {children}
     </div>
   );

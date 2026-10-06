@@ -2,7 +2,6 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import HeroMockup from '@/components/home/HeroMockup';
 import { IconPeople, IconPlay } from '@/components/home/HomeIcons';
-import { StoreLinks } from '@/components/home/MockupParts';
 import { scrollToAnchor } from '@/components/home/smoothAnchor';
 
 const STEPS = [
@@ -47,15 +46,6 @@ export default function HomeHero() {
             <IconPeople size={15} />
             {t('home.hero.note')}
           </span>
-          <div className="mt-auto flex max-w-110 flex-wrap items-center gap-x-5 gap-y-3 border-t border-border pt-5.5">
-            <span className="flex flex-col gap-0.75">
-              <span className="text-home-copy font-bold text-ink">{t('home.hero.getApp')}</span>
-              <span className="text-home-body text-muted-foreground">{t('home.hero.getAppNote')}</span>
-            </span>
-            <div className="flex gap-2.5 sm:ml-auto">
-              <StoreLinks appStore={t('home.app.appStore')} googlePlay={t('home.app.googlePlay')} />
-            </div>
-          </div>
         </div>
 
         <div className="flex min-w-0 flex-col gap-5.5">
