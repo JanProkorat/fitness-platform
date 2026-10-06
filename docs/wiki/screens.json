@@ -60,6 +60,94 @@
         { "name": "sent", "steps": "type any email, click 'Poslat odkaz', wait for the confirmation" }
       ],
       "notionPageId": null
+    },
+    {
+      "id": "web.entry.register",
+      "app": "web",
+      "area": "Entry",
+      "title": "Register",
+      "route": "/register",
+      "roles": ["Public"],
+      "files": [
+        "web/src/pages/RegisterPage.tsx",
+        "web/src/components/entry/RegisterForm.tsx",
+        "web/src/components/entry/RoleSelector.tsx",
+        "web/src/components/register/RegisterShell.tsx",
+        "web/src/components/register/RegisterStepper.tsx",
+        "web/src/components/register/RegisterAside.tsx",
+        "web/src/components/register/PasswordStrengthBar.tsx",
+        "web/src/components/register/roles.ts",
+        "web/src/components/register/StoreButtons.tsx",
+        "web/src/components/register/storeLinks.ts"
+      ],
+      "endpoints": ["POST /auth/register"],
+      "board": "PageRegister",
+      "shots": [
+        { "name": "default", "steps": "click 'Osobní trenér'" },
+        { "name": "client", "steps": "click 'Cvičím pro sebe' (board PageRegisterClient); the health-data consent appears under the terms" }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "web.entry.check-email",
+      "app": "web",
+      "area": "Entry",
+      "title": "Check your email",
+      "route": "/register",
+      "roles": ["Public"],
+      "files": [
+        "web/src/components/entry/VerificationSentState.tsx",
+        "web/src/components/register/RegisterShell.tsx",
+        "web/src/components/register/RegisterStepper.tsx"
+      ],
+      "endpoints": ["POST /auth/resend-verification/anonymous"],
+      "board": "PageRegisterCheckEmail",
+      "shots": [
+        { "name": "default", "steps": "on /register click 'Osobní trenér', fill the form with a new email, tick the consent, click 'Založit účet', wait for 'Zkontrolujte poštu'" }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "web.entry.get-the-app",
+      "app": "web",
+      "area": "Entry",
+      "title": "Get the app (client email verified)",
+      "route": "/verify-email",
+      "roles": ["Public"],
+      "files": [
+        "web/src/pages/VerifyEmailPage.tsx",
+        "web/src/components/register/GetAppState.tsx",
+        "web/src/components/register/StoreButtons.tsx",
+        "web/src/components/register/storeLinks.ts",
+        "web/src/components/register/RegisterShell.tsx",
+        "web/src/components/register/RegisterStepper.tsx"
+      ],
+      "endpoints": ["POST /auth/verify-email"],
+      "board": "PageRegisterGetApp",
+      "shots": [
+        { "name": "default", "steps": "register a client ('Cvičím pro sebe') with a new email; read the verification email in the harness MailHog (UI port: docker compose port mailhog-test 8025); open its link on the dev server, replacing the host with the dev server's if it differs and keeping ?token=; open it only once (the token is single-use)" }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "web.entry.coach-verified",
+      "app": "web",
+      "area": "Entry",
+      "title": "Email verified (coach)",
+      "route": "/verify-email",
+      "roles": ["Public"],
+      "files": [
+        "web/src/pages/VerifyEmailPage.tsx",
+        "web/src/components/register/CoachVerifiedState.tsx",
+        "web/src/components/register/RegisterShell.tsx",
+        "web/src/components/register/RegisterStepper.tsx"
+      ],
+      "endpoints": ["POST /auth/verify-email", "GET /users/me"],
+      "board": "PageRegisterVerified",
+      "shots": [
+        { "name": "default", "steps": "register a trainer ('Osobní trenér') with a new email; read the verification email in the harness MailHog (UI port: docker compose port mailhog-test 8025); open its link on the dev server, replacing the host with the dev server's if it differs and keeping ?token=; open it only once (the token is single-use)" }
+      ],
+      "notionPageId": null
     }
   ]
 }
