@@ -49,6 +49,10 @@
   --gf-chip-count: #3a3835; /* count badge inside an active (ink) filter chip */
 
   --gf-marker: #d2342a; /* brand accent: logo "UP", brand marks */
+  --gf-marker-solid: #c8352b; /* marker fill behind light text (4.5:1), both themes */
+  --gf-marker-bright: #ee5a4f; /* marker glyphs on the always-dark notification and scrim surfaces */
+  --gf-marker-text: #d2342a; /* marker text on the page surface; lighter in dark */
+  --gf-muted-tint: #6b6863; /* muted caption inside tinted mockup cells; lighter in dark */
 
   /* Home page (PageHome*) mockups and glow washes. */
   --gf-hero-warm: #ffe7d3; /* hero background wash, top right */
@@ -528,6 +532,8 @@
   --gf-sidebar-active-dark: #232226;
   --gf-chip-count-dark: #cfcac2;
   --gf-marker-dark: #e5483d;
+  --gf-marker-text-dark: #ee5a4f;
+  --gf-muted-tint-dark: #b0aaa1;
   --gf-hero-warm-dark: rgba(242, 140, 56, 0.2);
   --gf-hero-fresh-dark: rgba(140, 193, 82, 0.16);
   --gf-hero-rose-dark: rgba(229, 72, 61, 0.1);
@@ -568,6 +574,8 @@
   --gf-sidebar-active: var(--gf-sidebar-active-dark);
   --gf-chip-count: var(--gf-chip-count-dark);
   --gf-marker: var(--gf-marker-dark);
+  --gf-marker-text: var(--gf-marker-text-dark);
+  --gf-muted-tint: var(--gf-muted-tint-dark);
   --gf-hero-warm: var(--gf-hero-warm-dark);
   --gf-hero-fresh: var(--gf-hero-fresh-dark);
   --gf-hero-rose: var(--gf-hero-rose-dark);
@@ -604,6 +612,8 @@
     --gf-sidebar-active: var(--gf-sidebar-active-dark);
     --gf-chip-count: var(--gf-chip-count-dark);
     --gf-marker: var(--gf-marker-dark);
+    --gf-marker-text: var(--gf-marker-text-dark);
+    --gf-muted-tint: var(--gf-muted-tint-dark);
     --gf-hero-warm: var(--gf-hero-warm-dark);
     --gf-hero-fresh: var(--gf-hero-fresh-dark);
     --gf-hero-rose: var(--gf-hero-rose-dark);
@@ -674,6 +684,10 @@
   /* Brand accent (logo "UP", brand marks). Named `marker` because
      `accent` is already the shadcn hover-fill alias above. */
   --color-marker: var(--gf-marker);
+  --color-marker-solid: var(--gf-marker-solid);
+  --color-marker-bright: var(--gf-marker-bright);
+  --color-marker-text: var(--gf-marker-text);
+  --color-muted-tint: var(--gf-muted-tint);
 
   --color-hero-warm: var(--gf-hero-warm);
   --color-hero-fresh: var(--gf-hero-fresh);

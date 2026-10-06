@@ -141,7 +141,7 @@ function PhoneNotification({ kind }: { kind: 'ready' | 'workout' | 'checkin' }) 
 
   return (
     <div className="box-border flex items-start gap-2.5 rounded-2xl bg-notif px-3 py-2.5 text-on-dark shadow-popover">
-      <span className="flex size-[26px] shrink-0 items-center justify-center rounded-thumb border border-on-dark/20 bg-scrim font-display text-mockup-badge font-semibold text-marker">
+      <span className="flex size-[26px] shrink-0 items-center justify-center rounded-thumb border border-on-dark/20 bg-scrim font-display text-mockup-badge font-semibold text-marker-bright">
         {t('home.mock.notifBadge')}
       </span>
       <span className="flex grow flex-col gap-0.5 text-mockup-notif">

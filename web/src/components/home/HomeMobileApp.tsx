@@ -78,7 +78,7 @@ export default function HomeMobileApp() {
           <span className="hidden w-px self-stretch bg-border lg:block" />
           <PhoneGroup
             badge={t('home.app.you.badge')}
-            badgeTone="bg-marker text-on-dark"
+            badgeTone="bg-marker-solid text-on-dark"
             caption={t('home.app.you.caption')}
             phonesClassName={PHONES_ZOOM}
           >

@@ -112,7 +112,7 @@ export function CheckInPhone() {
           ))}
         </div>
       </GlassCard>
-      <span className="mt-auto flex h-10 items-center justify-center rounded-full bg-marker text-body font-bold text-on-dark">
+      <span className="mt-auto flex h-10 items-center justify-center rounded-full bg-marker-solid text-body font-bold text-on-dark">
         {t('home.mock.sendToCoach')}
       </span>
     </PhoneFrame>

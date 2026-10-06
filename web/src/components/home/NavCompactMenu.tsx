@@ -48,10 +48,12 @@ export default function NavCompactMenu() {
       <DropdownMenuContent
         align="end"
         onCloseAutoFocus={(event) => {
-          // The scroll target takes focus itself; the menu must not pull it back to the trigger.
+          // The menu must not pull focus back to the trigger; the section takes it once the menu has
+          // closed (focusing it while the menu is still open does not stick).
           if (jumpedRef.current) {
             event.preventDefault();
             jumpedRef.current = false;
+            document.getElementById(QUESTIONS_SECTION_ID)?.focus({ preventScroll: true });
           }
         }}
       >

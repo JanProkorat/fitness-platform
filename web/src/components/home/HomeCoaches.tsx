@@ -122,7 +122,7 @@ function SessionMockup() {
         <WorkoutPhone />
       </div>
       <FloatCard className="absolute left-0 -bottom-8.5 flex w-[290px] flex-col gap-1.5 px-3.5 py-3 @min-[820px]:-left-10">
-        <span className="flex items-center gap-1.5 text-caption font-bold tracking-caps text-marker uppercase">
+        <span className="flex items-center gap-1.5 text-caption font-bold tracking-caps text-marker-text uppercase">
           <span className="size-[7px] rounded-full bg-marker" />
           {t('home.mock.liveTitle')}
         </span>

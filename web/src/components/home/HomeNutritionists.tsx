@@ -69,7 +69,7 @@ const MEAL_ROWS: ReadonlyArray<{
 
 const VERDICT_STYLE: Record<Verdict, { cell: string; label: string }> = {
   ok: { cell: 'bg-nutrition-soft', label: 'text-nutrition-ink' },
-  over: { cell: 'bg-training-soft', label: 'text-training' },
+  over: { cell: 'bg-training-soft', label: 'text-training-ink' },
   under: { cell: 'bg-surface', label: 'text-muted-foreground' },
 };
 
@@ -195,7 +195,7 @@ function MealRow({
         >
           <span className="flex items-baseline gap-0.75">
             <span className="text-mockup-figure font-semibold text-ink">{cell.kcal}</span>
-            <span className="text-mockup-xs text-muted-foreground">{t('home.mock.kcal')}</span>
+            <span className="text-mockup-xs text-muted-tint">{t('home.mock.kcal')}</span>
           </span>
           <span className={`text-mockup-xs font-bold ${VERDICT_STYLE[cell.verdict].label}`}>
             {cell.delta ?? t('home.mock.onTarget')}
