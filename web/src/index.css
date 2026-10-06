@@ -1215,3 +1215,13 @@
     radial-gradient(760px 560px at 15% 4950px, var(--gf-hero-fresh), transparent 70%),
     radial-gradient(700px 520px at 88% 5400px, var(--gf-hero-warm), transparent 70%);
 }
+
+/* Same three --gf-hero-* patches as the top of home-page-wash, positioned in percent so they track
+   the viewport-high register page instead of a long scrolling one. */
+@utility register-page-wash {
+  background-repeat: no-repeat;
+  background-image:
+    radial-gradient(700px 520px at 78% 30%, var(--gf-hero-warm), transparent 70%),
+    radial-gradient(620px 520px at 98% 90%, var(--gf-hero-fresh), transparent 70%),
+    radial-gradient(520px 420px at 0% 0%, var(--gf-hero-rose), transparent 70%);
+}

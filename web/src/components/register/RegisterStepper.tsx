@@ -15,7 +15,7 @@ function StepMarker({ state, number }: { state: 'done' | 'current' | 'todo'; num
       className={cn(
         'box-border flex size-6.5 shrink-0 items-center justify-center rounded-full text-meta font-bold',
         state === 'done' && 'bg-primary text-primary-foreground',
-        state === 'current' && 'bg-marker text-on-dark',
+        state === 'current' && 'bg-marker-solid text-on-dark',
         state === 'todo' && 'border-[1.5px] border-border text-muted-foreground'
       )}
     >

@@ -20,7 +20,7 @@ export default function RegisterShell({ children, showSignIn = true }: RegisterS
     <div className="relative isolate min-h-dvh overflow-x-clip bg-background text-ink">
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 -z-10 bg-no-repeat [background-image:radial-gradient(700px_520px_at_78%_30%,var(--gf-hero-warm),transparent_70%),radial-gradient(620px_520px_at_98%_90%,var(--gf-hero-fresh),transparent_70%),radial-gradient(520px_420px_at_0%_0%,var(--gf-hero-rose),transparent_70%)]"
+        className="pointer-events-none absolute inset-0 -z-10 register-page-wash"
       />
       <header className="flex h-19 items-center gap-4 px-4 sm:px-10 lg:px-16">
         <Link
