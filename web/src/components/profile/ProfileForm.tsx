@@ -218,15 +218,19 @@ export default function ProfileForm({ me, trainer }: Props) {
               <Button
                 type="submit"
                 size="lg"
-                className="px-4 font-semibold"
-                disabled={!isDirty || saveMutation.isPending}
+                className="px-4 font-semibold aria-disabled:cursor-default aria-disabled:hover:bg-primary"
+                aria-disabled={!isDirty || saveMutation.isPending}
+                onClick={(event) => {
+                  // Clean or saving: keep the primary look but do nothing.
+                  if (!isDirty || saveMutation.isPending) event.preventDefault();
+                }}
               >
                 {saveMutation.isPending ? t('common.saving') : t('common.save')}
               </Button>
             </>
           }
         />
-        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_19rem] xl:grid-cols-[minmax(0,1fr)_22rem]">
+        <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
           <div className="flex min-w-0 flex-col gap-4">
             <PhotoNameSection professionalAvatarUrl={trainer.avatarBlobUrl} userAvatarUrl={me.avatarBlobUrl} />
             <AccountSection email={me.email ?? ''} />

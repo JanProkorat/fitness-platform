@@ -728,8 +728,8 @@
     "socialNetworks": "Sociální sítě",
     "marketplaceVisibility": "Viditelnost v Marketplace",
     "characters": "znaků",
-    "linkedin": "LinkedIn profil",
-    "instagram": "Instagram handle",
+    "linkedin": "LinkedIn",
+    "instagram": "Instagram",
     "website": "Webová stránka",
     "showInSearch": "Zobrazit profil ve vyhledávání",
     "showInSearchDesc": "Klienti vás mohou najít a kontaktovat přes marketplace",
@@ -814,7 +814,7 @@
       "visibility": {
         "title": "Viditelnost",
         "description": "Určete, kdo vás může najít.",
-        "showInSearch": "Zobrazit mě ve vyhledávání",
+        "showInSearch": "Zobrazit mě ve vyhledávání trenérů",
         "showInSearchHint": "Klienti, kteří v aplikaci hledají trenéra, najdou váš profil.",
         "acceptNewClients": "Přijímám nové klienty",
         "acceptNewClientsHint": "Vypněte, když jste plní. Profil zůstane viditelný se štítkem „Nepřijímám klienty“."
@@ -829,6 +829,7 @@
         "taking": "Přijímám nové klienty",
         "notTaking": "Nepřijímám klienty",
         "price": "Cena",
+        "perMonth": "/ měsíc",
         "languages": "Jazyky",
         "certificates_one": "{{count}} certifikát",
         "certificates_few": "{{count}} certifikáty",

@@ -1,20 +1,24 @@
 import { useFormContext } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
-import { Briefcase, Camera, Globe, type LucideIcon } from 'lucide-react';
+import { Globe } from 'lucide-react';
+import type { ComponentType, SVGProps } from 'react';
+import { InstagramIcon, LinkedinIcon } from '@/components/profile/SocialIcons';
+
+type LinkIcon = ComponentType<SVGProps<SVGSVGElement>>;
 import { Input } from '@/components/ui/input';
 import { Field, ProfileSection } from '@/components/profile/ProfileSection';
 import type { ProfileFormValues } from '@/components/profile/profile-form';
 
 const LINKS: {
   name: 'website' | 'instagram' | 'linkedIn';
-  Icon: LucideIcon;
+  Icon: LinkIcon;
   labelKey: string;
   placeholderKey: string;
   autoComplete?: string;
 }[] = [
   { name: 'website', Icon: Globe, labelKey: 'profile.website', placeholderKey: 'profile.page.links.websitePlaceholder' },
-  { name: 'instagram', Icon: Camera, labelKey: 'profile.instagram', placeholderKey: 'profile.page.links.instagramPlaceholder' },
-  { name: 'linkedIn', Icon: Briefcase, labelKey: 'profile.linkedin', placeholderKey: 'profile.page.links.linkedinPlaceholder' },
+  { name: 'instagram', Icon: InstagramIcon, labelKey: 'profile.instagram', placeholderKey: 'profile.page.links.instagramPlaceholder' },
+  { name: 'linkedIn', Icon: LinkedinIcon, labelKey: 'profile.linkedin', placeholderKey: 'profile.page.links.linkedinPlaceholder' },
 ];
 
 export default function LinksSection() {

@@ -705,8 +705,8 @@
     "socialNetworks": "Social networks",
     "marketplaceVisibility": "Marketplace Visibility",
     "characters": "characters",
-    "linkedin": "LinkedIn profile",
-    "instagram": "Instagram handle",
+    "linkedin": "LinkedIn",
+    "instagram": "Instagram",
     "website": "Website",
     "showInSearch": "Show profile in search",
     "showInSearchDesc": "Clients can find and contact you via marketplace",
@@ -791,7 +791,7 @@
       "visibility": {
         "title": "Visibility",
         "description": "Control who can find you.",
-        "showInSearch": "Show me in search",
+        "showInSearch": "Show me in coach search",
         "showInSearchHint": "Clients looking for a coach in the app can find your profile.",
         "acceptNewClients": "Accepting new clients",
         "acceptNewClientsHint": "Turn off when you are full. Your profile stays visible with \"Not taking clients\"."
@@ -806,6 +806,7 @@
         "taking": "Taking new clients",
         "notTaking": "Not taking clients",
         "price": "Price",
+        "perMonth": "/ month",
         "languages": "Languages",
         "certificates_one": "{{count}} certificate",
         "certificates_other": "{{count}} certificates",

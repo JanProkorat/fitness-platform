@@ -1,6 +1,7 @@
 import { useFormContext, useWatch } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
-import { Briefcase, Camera, Eye, Globe, MapPin } from 'lucide-react';
+import { Eye, Globe, MapPin } from 'lucide-react';
+import { InstagramIcon, LinkedinIcon } from '@/components/profile/SocialIcons';
 import ProfileAvatar from '@/components/profile/ProfileAvatar';
 import { initialsOf, type ProfileFormValues } from '@/components/profile/profile-form';
 
@@ -35,12 +36,12 @@ export default function ProfilePreviewCard({ avatarUrl, roles }: Props) {
   const certificateCount = (values.certificates ?? []).filter((item) => item.title.trim() !== '').length;
   const links = [
     { key: 'website', Icon: Globe, value: values.website, label: t('profile.website') },
-    { key: 'instagram', Icon: Camera, value: values.instagram, label: t('profile.instagram') },
-    { key: 'linkedIn', Icon: Briefcase, value: values.linkedIn, label: t('profile.linkedin') },
+    { key: 'instagram', Icon: InstagramIcon, value: values.instagram, label: t('profile.instagram') },
+    { key: 'linkedIn', Icon: LinkedinIcon, value: values.linkedIn, label: t('profile.linkedin') },
   ].filter((link) => link.value?.trim());
 
   return (
-    <aside aria-label={t('profile.page.preview.title')} className="flex flex-col gap-3 lg:sticky lg:top-0 lg:self-start">
+    <aside aria-label={t('profile.page.preview.title')} className="flex flex-col gap-3 xl:sticky xl:top-0 xl:self-start">
       <h2 className="flex items-center gap-1.75 text-label font-semibold tracking-label text-muted-foreground uppercase">
         <Eye className="size-3.5" aria-hidden="true" />
         {t('profile.page.preview.title')}
@@ -99,7 +100,10 @@ export default function ProfilePreviewCard({ avatarUrl, roles }: Props) {
             <dt className="text-label font-semibold tracking-label text-muted-foreground uppercase">
               {t('profile.page.preview.price')}
             </dt>
-            <dd className="truncate text-body font-semibold text-ink">{values.estimatedPrice?.trim() || '—'}</dd>
+            <dd className="truncate text-body font-semibold text-ink">{values.estimatedPrice?.trim()
+                ? `${values.estimatedPrice.trim()} ${t('profile.page.preview.perMonth')}`
+                : '—'}
+            </dd>
           </div>
           <div className="flex min-w-0 flex-col gap-1 border-l border-border p-4">
             <dt className="text-label font-semibold tracking-label text-muted-foreground uppercase">

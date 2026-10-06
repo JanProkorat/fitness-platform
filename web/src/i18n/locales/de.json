@@ -704,8 +704,8 @@
     "socialNetworks": "Soziale Netzwerke",
     "marketplaceVisibility": "Sichtbarkeit im Marketplace",
     "characters": "Zeichen",
-    "linkedin": "LinkedIn-Profil",
-    "instagram": "Instagram-Handle",
+    "linkedin": "LinkedIn",
+    "instagram": "Instagram",
     "website": "Webseite",
     "showInSearch": "Profil in Suche anzeigen",
     "showInSearchDesc": "Klienten können Sie über den Marketplace finden und kontaktieren",
@@ -790,7 +790,7 @@
       "visibility": {
         "title": "Sichtbarkeit",
         "description": "Lege fest, wer dich finden kann.",
-        "showInSearch": "In der Suche anzeigen",
+        "showInSearch": "In der Coach-Suche anzeigen",
         "showInSearchHint": "Kunden, die in der App einen Coach suchen, finden dein Profil.",
         "acceptNewClients": "Nehme neue Kunden an",
         "acceptNewClientsHint": "Schalte aus, wenn du ausgelastet bist. Dein Profil bleibt mit „Keine neuen Kunden“ sichtbar."
@@ -805,6 +805,7 @@
         "taking": "Nimmt neue Kunden an",
         "notTaking": "Keine neuen Kunden",
         "price": "Preis",
+        "perMonth": "/ Monat",
         "languages": "Sprachen",
         "certificates_one": "{{count}} Zertifikat",
         "certificates_other": "{{count}} Zertifikate",
