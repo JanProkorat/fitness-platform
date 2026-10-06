@@ -57,8 +57,8 @@ test.describe('clients list page', () => {
     await expect(page.getByRole('heading', { name: 'Invite client', exact: true })).toBeVisible();
 
     const uniqueSuffix = Date.now();
-    await page.getByLabel('Email').fill(`qa.invite.${uniqueSuffix}@fitnessplatform.test`);
-    await page.getByLabel('Email').press('Tab');
+    await page.getByRole('textbox', { name: 'Email', exact: true }).fill(`qa.invite.${uniqueSuffix}@fitnessplatform.test`);
+    await page.getByRole('textbox', { name: 'Email', exact: true }).press('Tab');
 
     // Onboarding form select: "None" is always offered, and "None" sends a null questionnaire.
     const questionnaireSelect = page.getByLabel('Form to send');
@@ -101,8 +101,8 @@ test.describe('clients list page', () => {
     await page.getByRole('button', { name: 'Invite client', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Invite client', exact: true })).toBeVisible();
 
-    await page.getByLabel('Email').fill('qa.nutri@fitnessplatform.test');
-    await page.getByLabel('Email').press('Tab');
+    await page.getByRole('textbox', { name: 'Email', exact: true }).fill('qa.nutri@fitnessplatform.test');
+    await page.getByRole('textbox', { name: 'Email', exact: true }).press('Tab');
 
     const submitButton = page.getByRole('button', { name: 'Send invitation' });
     await expect(submitButton).toBeEnabled();
