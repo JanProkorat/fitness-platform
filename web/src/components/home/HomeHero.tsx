@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import HeroMockup from '@/components/home/HeroMockup';
 import { IconPeople, IconPlay } from '@/components/home/HomeIcons';
+import { StoreLinks } from '@/components/home/MockupParts';
 import { scrollToAnchor } from '@/components/home/smoothAnchor';
 
 const STEPS = [
@@ -17,10 +18,6 @@ export default function HomeHero() {
 
   return (
     <section className="relative flex min-w-0 flex-col justify-center px-4 pt-6 pb-12 sm:px-10 lg:min-h-[calc(100svh-var(--spacing)*19)] lg:px-16">
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 -top-19 bottom-0 -z-10 bg-no-repeat [background-image:radial-gradient(700px_520px_at_78%_30%,var(--gf-hero-warm),transparent_70%),radial-gradient(620px_520px_at_98%_90%,var(--gf-hero-fresh),transparent_70%),radial-gradient(520px_420px_at_0%_0%,var(--gf-hero-rose),transparent_70%)]"
-      />
       <div className="@container mx-auto flex w-full max-w-home flex-col gap-8 lg:flex-row lg:gap-12">
         <div className="flex max-w-117.5 @min-[1340px]:max-w-122.5 @min-[1472px]:max-w-129 @min-[1592px]:max-w-141 @min-[1760px]:max-w-153 @min-[1940px]:max-w-170.5 shrink-0 flex-col gap-5.5 pt-4 lg:pt-8.5">
           <span className="text-home-meta font-semibold tracking-eyebrow text-muted-foreground uppercase">
@@ -50,6 +47,15 @@ export default function HomeHero() {
             <IconPeople size={15} />
             {t('home.hero.note')}
           </span>
+          <div className="mt-auto flex max-w-110 flex-wrap items-center gap-x-5 gap-y-3 border-t border-border pt-5.5">
+            <span className="flex flex-col gap-0.75">
+              <span className="text-home-copy font-bold text-ink">{t('home.hero.getApp')}</span>
+              <span className="text-home-body text-muted-foreground">{t('home.hero.getAppNote')}</span>
+            </span>
+            <div className="flex gap-2.5 sm:ml-auto">
+              <StoreLinks appStore={t('home.app.appStore')} googlePlay={t('home.app.googlePlay')} />
+            </div>
+          </div>
         </div>
 
         <div className="flex min-w-0 flex-col gap-5.5">

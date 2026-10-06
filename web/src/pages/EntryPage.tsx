@@ -11,6 +11,7 @@ import HomeHowItWorks from '@/components/home/HomeHowItWorks';
 import HomeCoaches from '@/components/home/HomeCoaches';
 import HomeNutritionists from '@/components/home/HomeNutritionists';
 import HomeMobileApp from '@/components/home/HomeMobileApp';
+import HomeQuestions from '@/components/home/HomeQuestions';
 import HomeJoinBanner from '@/components/home/HomeJoinBanner';
 import HomeFooter from '@/components/home/HomeFooter';
 
@@ -75,13 +76,14 @@ export default function EntryPage() {
   };
 
   return (
-    <div className="isolate bg-background">
+    <div className="home-page-wash isolate bg-background">
       <HomeNav />
       <HomeHero />
       <HomeHowItWorks />
       <HomeCoaches />
       <HomeNutritionists />
       <HomeMobileApp />
+      <HomeQuestions />
       <HomeJoinBanner />
       <HomeFooter />
 

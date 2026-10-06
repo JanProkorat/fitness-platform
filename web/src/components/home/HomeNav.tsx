@@ -10,6 +10,7 @@ const NAV_LINKS = [
   { id: 'for-coaches', key: 'forCoaches' },
   { id: 'for-nutritionists', key: 'forNutritionists' },
   { id: 'mobile-app', key: 'mobileApp' },
+  { id: 'questions', key: 'questions' },
 ] as const;
 
 /** DOM id of the nav Sign in link; the sign-in dialog returns focus here on close. */

@@ -1,0 +1,51 @@
+import { useTranslation } from 'react-i18next';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Eyebrow } from '@/components/home/MockupParts';
+
+const COLUMNS = [
+  ['pay', 'invite', 'drafts'],
+  ['share', 'reuse', 'languages'],
+] as const;
+
+/** "Before you start": six common questions in a two-column accordion, the first one open. */
+export default function HomeQuestions() {
+  const { t } = useTranslation();
+
+  return (
+    <section
+      id="questions"
+      tabIndex={-1}
+      className="flex scroll-mt-6 flex-col justify-center px-4 py-14 outline-none sm:px-10 lg:min-h-svh lg:px-16 lg:py-24"
+    >
+      <div className="@container mx-auto flex w-full max-w-home flex-col items-center gap-10">
+        <div className="flex flex-col items-center gap-3.5 text-center">
+          <Eyebrow className="text-nutrition-ink">{t('home.questions.eyebrow')}</Eyebrow>
+          <h2 className="font-display text-home-heading font-semibold tracking-heading text-ink">
+            {t('home.questions.title')}
+          </h2>
+        </div>
+        <div className="grid w-full grid-cols-1 items-start gap-3 lg:grid-cols-2 lg:gap-x-6">
+          {COLUMNS.map((column, columnIndex) => (
+            <Accordion
+              key={column[0]}
+              type="multiple"
+              defaultValue={columnIndex === 0 ? [column[0]] : []}
+              className="flex flex-col gap-3"
+            >
+              {column.map((item) => (
+                <AccordionItem key={item} value={item}>
+                  <AccordionTrigger className="text-home-feature-title font-bold text-ink">
+                    {t(`home.questions.items.${item}.q`)}
+                  </AccordionTrigger>
+                  <AccordionContent className="text-home-copy text-muted-foreground">
+                    {t(`home.questions.items.${item}.a`)}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}

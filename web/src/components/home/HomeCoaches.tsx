@@ -1,14 +1,18 @@
 // Pixel sizes and positions in this file are illustration drawing copied from the board, not layout tokens.
 import { useTranslation } from 'react-i18next';
-import { Eyebrow, FeatureItem, FloatCard, WindowFrame } from '@/components/home/MockupParts';
+import { Eyebrow, FeatureItem, FeatureRow, FloatCard, WindowFrame } from '@/components/home/MockupParts';
+import { WorkoutPhone } from '@/components/home/HomePhones';
 import {
+  IconChart,
+  IconCheck,
+  IconClipboard,
   IconCopy,
   IconDumbbell,
   IconGrip,
   IconPlay,
   IconPulse,
   IconSearch,
-  IconCheck,
+  IconVideo,
 } from '@/components/home/HomeIcons';
 
 const LIBRARY = [
@@ -57,14 +61,16 @@ function SessionRow({ row }: { row: BlockRow }) {
   );
 }
 
+// Window (700) plus the 110 the client phone overhangs on the right = 810 x zoom, which has to fit the
+// space beside the text column at every step.
+const MOCKUP_ZOOM =
+  'lg:[zoom:0.5] lg:@min-[960px]:[zoom:0.58] lg:@min-[1040px]:[zoom:0.68] lg:@min-[1120px]:[zoom:0.78] lg:@min-[1200px]:[zoom:0.88] lg:@min-[1290px]:[zoom:0.99] lg:@min-[1340px]:[zoom:1.03] lg:@min-[1472px]:[zoom:1.1] lg:@min-[1592px]:[zoom:1.2] lg:@min-[1760px]:[zoom:1.3] lg:@min-[1940px]:[zoom:1.45]';
+
 function SessionMockup() {
   const { t } = useTranslation();
 
   return (
-    <div
-      aria-hidden="true"
-      className="relative w-[700px] max-w-full lg:[zoom:0.56] lg:@min-[960px]:[zoom:0.67] lg:@min-[1040px]:[zoom:0.79] lg:@min-[1120px]:[zoom:0.9] lg:@min-[1200px]:[zoom:1] lg:@min-[1340px]:[zoom:1.03] lg:@min-[1472px]:[zoom:1.1] lg:@min-[1592px]:[zoom:1.2] lg:@min-[1760px]:[zoom:1.3] lg:@min-[1940px]:[zoom:1.45]"
-    >
+    <div aria-hidden="true" className={`relative w-[700px] max-w-full ${MOCKUP_ZOOM}`}>
       <WindowFrame title={t('home.mock.workoutName')} subtitle={t('home.mock.sessionKind')}>
         <div className="relative flex gap-3.5 p-3.5">
           <div className="flex w-[200px] shrink-0 flex-col gap-2">
@@ -112,7 +118,10 @@ function SessionMockup() {
           </div>
         </div>
       </WindowFrame>
-      <FloatCard className="absolute right-0 -bottom-8.5 flex w-[290px] flex-col gap-1.5 px-3.5 py-3 @min-[820px]:-right-6">
+      <div className="absolute top-1/2 -right-[110px] hidden -translate-y-1/2 lg:block">
+        <WorkoutPhone />
+      </div>
+      <FloatCard className="absolute left-0 -bottom-8.5 flex w-[290px] flex-col gap-1.5 px-3.5 py-3 @min-[820px]:-left-10">
         <span className="flex items-center gap-1.5 text-caption font-bold tracking-caps text-marker uppercase">
           <span className="size-[7px] rounded-full bg-marker" />
           {t('home.mock.liveTitle')}
@@ -139,37 +148,61 @@ export default function HomeCoaches() {
       tabIndex={-1}
       className="flex scroll-mt-6 flex-col justify-center px-4 py-14 outline-none sm:px-10 lg:min-h-svh lg:px-16 lg:py-24"
     >
-      <div className="@container mx-auto flex w-full max-w-home flex-col gap-12 lg:flex-row lg:items-center lg:gap-16">
-        <div className="flex max-w-105 @min-[1340px]:max-w-109 @min-[1472px]:max-w-115.5 @min-[1592px]:max-w-126 @min-[1760px]:max-w-136.5 @min-[1940px]:max-w-152 shrink-0 flex-col gap-4.5">
-          <Eyebrow className="text-training">{t('home.coaches.eyebrow')}</Eyebrow>
-          <h2 className="font-display text-home-heading font-semibold tracking-heading text-ink">
-            {t('home.coaches.title')}
-          </h2>
-          <p className="text-home-lead text-ink-2">{t('home.coaches.lead')}</p>
-          <div className="flex flex-col gap-4 pt-1.5">
-            <FeatureItem
-              icon={<IconDumbbell />}
-              tone="bg-training-soft text-training"
-              title={t('home.coaches.features.sessions.title')}
-              description={t('home.coaches.features.sessions.desc')}
-            />
-            <FeatureItem
-              icon={<IconCopy />}
-              tone="bg-training-soft text-training"
-              title={t('home.coaches.features.templates.title')}
-              description={t('home.coaches.features.templates.desc')}
-            />
-            <FeatureItem
-              icon={<IconPulse />}
-              tone="bg-error-soft text-marker"
-              title={t('home.coaches.features.watch.title')}
-              description={t('home.coaches.features.watch.desc')}
-            />
+      <div className="@container mx-auto flex w-full max-w-home flex-col">
+        <div className="flex flex-col gap-12 lg:flex-row lg:items-center lg:gap-16">
+          <div className="flex max-w-105 @min-[1340px]:max-w-109 @min-[1472px]:max-w-115.5 @min-[1592px]:max-w-126 @min-[1760px]:max-w-136.5 @min-[1940px]:max-w-152 shrink-0 flex-col gap-4.5">
+            <Eyebrow className="text-training">{t('home.coaches.eyebrow')}</Eyebrow>
+            <h2 className="font-display text-home-heading font-semibold tracking-heading text-ink">
+              {t('home.coaches.title')}
+            </h2>
+            <p className="text-home-lead text-ink-2">{t('home.coaches.lead')}</p>
+            <div className="flex flex-col gap-4 pt-1.5">
+              <FeatureItem
+                icon={<IconDumbbell />}
+                tone="bg-training-soft text-training"
+                title={t('home.coaches.features.sessions.title')}
+                description={t('home.coaches.features.sessions.desc')}
+              />
+              <FeatureItem
+                icon={<IconCopy />}
+                tone="bg-training-soft text-training"
+                title={t('home.coaches.features.templates.title')}
+                description={t('home.coaches.features.templates.desc')}
+              />
+              <FeatureItem
+                icon={<IconPulse />}
+                tone="bg-error-soft text-marker"
+                title={t('home.coaches.features.watch.title')}
+                description={t('home.coaches.features.watch.desc')}
+              />
+            </div>
+          </div>
+          <div className="hidden min-w-0 grow justify-center @min-[640px]:flex">
+            <SessionMockup />
           </div>
         </div>
-        <div className="hidden min-w-0 grow justify-center pb-8 @min-[640px]:flex">
-          <SessionMockup />
-        </div>
+        {/* Reserves the room the live card and the client phone hang below the window. */}
+        <div aria-hidden="true" className={`h-12 @min-[640px]:h-9 lg:h-[76px] ${MOCKUP_ZOOM}`} />
+        <FeatureRow>
+          <FeatureItem
+            icon={<IconVideo />}
+            tone="bg-training-soft text-training"
+            title={t('home.coaches.features.library.title')}
+            description={t('home.coaches.features.library.desc')}
+          />
+          <FeatureItem
+            icon={<IconChart />}
+            tone="bg-training-soft text-training"
+            title={t('home.coaches.features.progress.title')}
+            description={t('home.coaches.features.progress.desc')}
+          />
+          <FeatureItem
+            icon={<IconClipboard />}
+            tone="bg-training-soft text-training"
+            title={t('home.coaches.features.intake.title')}
+            description={t('home.coaches.features.intake.desc')}
+          />
+        </FeatureRow>
       </div>
     </section>
   );

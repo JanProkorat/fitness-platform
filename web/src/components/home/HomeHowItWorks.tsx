@@ -2,7 +2,7 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Eyebrow, MacroBar, MealDot } from '@/components/home/MockupParts';
-import { IconChevronRight, IconCursor } from '@/components/home/HomeIcons';
+import { IconChevronRight, IconCursor, IconEyeOff } from '@/components/home/HomeIcons';
 
 const TILE =
   'box-border flex h-[54px] flex-col gap-0.75 rounded-tile border border-border bg-surface px-2.25 py-1.75';
@@ -136,6 +136,49 @@ function StepCard({ index, stepKey, children }: { index: number; stepKey: string
   );
 }
 
+function PhoneNotification({ kind }: { kind: 'ready' | 'workout' | 'checkin' }) {
+  const { t } = useTranslation();
+
+  return (
+    <div className="box-border flex items-start gap-2.5 rounded-2xl bg-notif px-3 py-2.5 text-on-dark shadow-popover">
+      <span className="flex size-[26px] shrink-0 items-center justify-center rounded-thumb border border-on-dark/20 bg-scrim font-display text-mockup-badge font-semibold text-marker">
+        {t('home.mock.notifBadge')}
+      </span>
+      <span className="flex grow flex-col gap-0.5 text-mockup-notif">
+        <span className="flex font-bold">
+          {t(`home.how.phone.${kind}.title`)}
+          <span className="ml-auto font-normal opacity-60">{t('home.mock.notifNow')}</span>
+        </span>
+        <span>{t(`home.how.phone.${kind}.body`)}</span>
+      </span>
+    </div>
+  );
+}
+
+/** What the client's phone shows for the four moments: nothing while drafting, then three notifications. */
+function ClientPhoneRow() {
+  const { t } = useTranslation();
+
+  return (
+    <div className="flex flex-col gap-3.5 border-t border-border pt-8">
+      <span className="text-home-meta font-bold tracking-eyebrow text-muted-foreground uppercase">
+        {t('home.how.phone.label')}
+      </span>
+      <div className="grid grid-cols-1 items-center gap-5.5 max-lg:@min-[560px]:grid-cols-2 lg:grid-cols-4">
+        <div className="flex items-center gap-2.5 rounded-2xl border-[1.5px] border-dashed border-border px-3 py-2.5 text-mockup-notif text-muted-foreground">
+          <span className="shrink-0">
+            <IconEyeOff />
+          </span>
+          <span>{t('home.how.phone.empty')}</span>
+        </div>
+        <PhoneNotification kind="ready" />
+        <PhoneNotification kind="workout" />
+        <PhoneNotification kind="checkin" />
+      </div>
+    </div>
+  );
+}
+
 /** "How it works": one client week in four moments, each with a small product vignette. */
 export default function HomeHowItWorks() {
   const { t } = useTranslation();
@@ -144,7 +187,7 @@ export default function HomeHowItWorks() {
     <section
       id="how-it-works"
       tabIndex={-1}
-      className="flex scroll-mt-6 flex-col justify-center border-y border-border bg-surface px-4 py-14 outline-none sm:px-10 lg:min-h-svh lg:px-16 lg:py-20"
+      className="flex scroll-mt-6 flex-col justify-center px-4 py-14 outline-none sm:px-10 lg:min-h-svh lg:px-16 lg:py-20"
     >
       <div className="@container mx-auto flex w-full max-w-home flex-col gap-9">
         <div className="flex flex-col gap-2.5">
@@ -167,6 +210,7 @@ export default function HomeHowItWorks() {
             <SeeMock />
           </StepCard>
         </div>
+        <ClientPhoneRow />
       </div>
     </section>
   );

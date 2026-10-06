@@ -55,18 +55,20 @@ const PHONE_SCREEN_GLOW =
 interface PhoneFrameProps {
   /** `hero` is the slightly wider device used in the hero collage. */
   size?: 'hero' | 'standard';
+  /** Tailwind height class; the section phones are slightly shorter than the app-section ones. */
+  height?: string;
   className?: string;
   children: ReactNode;
 }
 
 /** Decorative phone body with a status bar; screen content goes in `children`. */
-export function PhoneFrame({ size = 'standard', className = '', children }: PhoneFrameProps) {
+export function PhoneFrame({ size = 'standard', height = 'h-[500px]', className = '', children }: PhoneFrameProps) {
   const dimensions =
     size === 'hero' ? 'w-[270px] rounded-phone-hero' : 'w-[250px] rounded-phone';
   return (
     <div
       aria-hidden="true"
-      className={`relative flex h-[500px] shrink-0 flex-col gap-3 overflow-hidden border-[9px] border-phone-bezel bg-phone-screen p-3.5 text-ink shadow-dialog ${PHONE_SCREEN_GLOW} ${dimensions} ${className}`}
+      className={`relative flex ${height} shrink-0 flex-col gap-3 overflow-hidden border-[9px] border-phone-bezel bg-phone-screen p-3.5 text-ink shadow-dialog ${PHONE_SCREEN_GLOW} ${dimensions} ${className}`}
     >
       <div className="flex items-center justify-between px-2 text-caption font-semibold text-ink">
         <span>9:41</span>
@@ -127,6 +129,15 @@ export function FeatureItem({ icon, tone, title, description }: FeatureItemProps
         <span className="text-home-feature-title font-bold text-ink">{title}</span>
         <span className="text-home-copy leading-normal text-muted-foreground">{description}</span>
       </span>
+    </div>
+  );
+}
+
+/** Full-width row of three more features under a section's mockup, set off by a hairline. */
+export function FeatureRow({ children }: { children: ReactNode }) {
+  return (
+    <div className="grid grid-cols-1 gap-6 border-t border-border pt-10 @min-[760px]:grid-cols-3 @min-[760px]:gap-10">
+      {children}
     </div>
   );
 }

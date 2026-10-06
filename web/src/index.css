@@ -968,3 +968,22 @@
     cursor: not-allowed;
   }
 }
+
+/* One continuous colour wash behind the whole home page (PageHome* boards): soft warm, fresh and
+   rose patches down the page over the base colour, so no section paints its own fill. Positions are
+   measured from the page top, as on the boards; the colours are the --gf-hero-* tokens. */
+@utility home-page-wash {
+  background-repeat: no-repeat;
+  background-image:
+    radial-gradient(700px 520px at 78% 270px, var(--gf-hero-warm), transparent 70%),
+    radial-gradient(620px 520px at 98% 810px, var(--gf-hero-fresh), transparent 70%),
+    radial-gradient(520px 420px at 0% 0px, var(--gf-hero-rose), transparent 70%),
+    radial-gradient(760px 560px at 8% 1500px, var(--gf-hero-fresh), transparent 70%),
+    radial-gradient(700px 520px at 92% 2150px, var(--gf-hero-warm), transparent 70%),
+    radial-gradient(620px 480px at 35% 2700px, var(--gf-hero-rose), transparent 70%),
+    radial-gradient(760px 560px at 96% 3250px, var(--gf-hero-fresh), transparent 70%),
+    radial-gradient(700px 520px at 6% 3800px, var(--gf-hero-warm), transparent 70%),
+    radial-gradient(620px 480px at 70% 4350px, var(--gf-hero-rose), transparent 70%),
+    radial-gradient(760px 560px at 15% 4950px, var(--gf-hero-fresh), transparent 70%),
+    radial-gradient(700px 520px at 88% 5400px, var(--gf-hero-warm), transparent 70%);
+}

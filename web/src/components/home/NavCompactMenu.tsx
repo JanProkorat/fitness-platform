@@ -1,5 +1,7 @@
-import { GlobeIcon, MoonIcon, SunIcon } from 'lucide-react';
+import { useRef } from 'react';
+import { GlobeIcon, MessageCircleQuestionIcon, MoonIcon, SunIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { scrollToId } from '@/components/home/smoothAnchor';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,6 +14,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useThemeStore } from '@/stores/theme';
 
+const QUESTIONS_SECTION_ID = 'questions';
 const LANGUAGES = ['cs', 'en', 'de'] as const;
 type Language = (typeof LANGUAGES)[number];
 
@@ -28,6 +31,7 @@ export default function NavCompactMenu() {
   const code = t(`entry.languageSwitch.${current}`);
   const toDark = theme === 'light';
   const ThemeIcon = toDark ? MoonIcon : SunIcon;
+  const jumpedRef = useRef(false);
 
   return (
     <DropdownMenu>
@@ -41,7 +45,25 @@ export default function NavCompactMenu() {
           {code}
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
+      <DropdownMenuContent
+        align="end"
+        onCloseAutoFocus={(event) => {
+          // The scroll target takes focus itself; the menu must not pull it back to the trigger.
+          if (jumpedRef.current) {
+            event.preventDefault();
+            jumpedRef.current = false;
+          }
+        }}
+      >
+        <DropdownMenuItem
+          onSelect={() => {
+            jumpedRef.current = scrollToId(QUESTIONS_SECTION_ID);
+          }}
+        >
+          <MessageCircleQuestionIcon aria-hidden="true" />
+          {t('home.nav.questions')}
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
         <DropdownMenuLabel>{t('entry.languageSwitch.label')}</DropdownMenuLabel>
         <DropdownMenuRadioGroup
           value={current}
