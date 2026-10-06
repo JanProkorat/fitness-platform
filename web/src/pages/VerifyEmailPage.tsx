@@ -15,7 +15,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 interface VerifyMutationResult {
   /** Whether the store's stale `user.emailConfirmed` was refreshed before
    * rendering the success CTA. False when there was no session to refresh,
-   * or the profile refetch itself failed — the CTA falls back to "/" in
+   * or the profile refetch itself failed — the CTA falls back to "/login" in
    * both cases so a stale store can't bounce the user back here via
    * ProtectedRoute with a now-consumed token. */
   profileRefreshed: boolean;
@@ -30,7 +30,7 @@ interface VerifyMutationResult {
  *   2. No token, active session      → ProtectedRoute.tsx:18-20 redirects
  *      every authenticated-but-unverified user here with no token. Render
  *      "check your inbox" using the session's own email, with a resend.
- *   3. No token, no session          → invalid-link state linking to "/".
+ *   3. No token, no session          → invalid-link state linking to "/login".
  *
  * StrictMode / single-fire (fixed after the initial phase-3 landing — see
  * git history for the broken `useMutation`-triggered-from-`useEffect`
@@ -103,7 +103,7 @@ export default function VerifyEmailPage() {
         return { profileRefreshed: true };
       } catch {
         // Verification itself already succeeded server-side; a failed
-        // profile refresh just means the CTA below falls back to "/"
+        // profile refresh just means the CTA below falls back to "/login"
         // instead of "/clients" so a stale store can't loop the user.
         return { profileRefreshed: false };
       }
@@ -186,7 +186,7 @@ export default function VerifyEmailPage() {
             <Button
               type="button"
               className="w-full"
-              onClick={() => navigate(goToClients ? '/clients' : '/', { replace: true })}
+              onClick={() => navigate(goToClients ? '/clients' : '/login', { replace: true })}
             >
               {goToClients
                 ? t('entry.verifyEmail.success.cta')
@@ -243,7 +243,7 @@ export default function VerifyEmailPage() {
               type="button"
               variant={canResendHere ? 'ghost' : 'default'}
               className="w-full"
-              onClick={() => navigate('/')}
+              onClick={() => navigate('/login')}
             >
               {t('entry.verifyEmail.invalid.backToLogin')}
             </Button>
@@ -304,7 +304,7 @@ export default function VerifyEmailPage() {
             className="w-full"
             onClick={() => {
               logout();
-              navigate('/', { replace: true });
+              navigate('/login', { replace: true });
             }}
           >
             {t('auth.logout')}
@@ -325,7 +325,7 @@ export default function VerifyEmailPage() {
       <CardTitle>{t('entry.verifyEmail.invalid.title')}</CardTitle>
       <CardDescription>{t('entry.verifyEmail.invalid.noSessionLede')}</CardDescription>
       <CardContent>
-        <Button type="button" className="w-full" onClick={() => navigate('/')}>
+        <Button type="button" className="w-full" onClick={() => navigate('/login')}>
           {t('entry.verifyEmail.invalid.backToLogin')}
         </Button>
       </CardContent>

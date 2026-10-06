@@ -12,7 +12,7 @@
  * tailwind-merge's own theme scale arrays are shaped.
  */
 
-/** `--text-*` — 17 keys. Falls through to tailwind-merge's colour-scale
+/** `--text-*` — 30 keys. Falls through to tailwind-merge's colour-scale
  * catch-all without this: every one of these class names would otherwise be
  * silently deleted as a "text colour" conflict (#1078). */
 export const TEXT_SIZE_TOKENS = [
@@ -30,27 +30,36 @@ export const TEXT_SIZE_TOKENS = [
   'display',
   'panel-title',
   'auth-title',
-  'hero',
-  'section-title',
-  'cta-title',
+  'home-hero',
+  'home-heading',
+  'home-banner',
+  'home-lead',
+  'home-sub',
+  'home-feature-title',
+  'home-step-title',
+  'home-wordmark',
+  'home-wordmark-sm',
+  'mockup-xs',
+  'mockup-badge',
+  'mockup-notif',
+  'mockup-figure',
+  'mockup-title',
+  'mockup-greeting',
+  'mockup-weight',
 ] as const;
 
 /** `--shadow-*` — same delete-the-class failure mode as text sizes, via
  * tailwind-merge's `shadow-color` catch-all. */
-export const SHADOW_TOKENS = ['dialog', 'sheet', 'popover', 'card', 'medallion', 'selection-bar'] as const;
+export const SHADOW_TOKENS = ['dialog', 'sheet', 'popover', 'card', 'selection-bar'] as const;
 
 /** `--radius-*` — only names outside tailwind-merge's t-shirt scale need
  * listing; without it `rounded-field` is never conflict-resolved against a
  * caller's `rounded-*`. */
-export const RADIUS_TOKENS = ['field'] as const;
+export const RADIUS_TOKENS = ['field', 'thumb', 'tile', 'card', 'glass', 'phone', 'phone-hero'] as const;
 
 /** `--spacing-*` — unknown to tailwind-merge without this (not deleted,
  * just never conflict-resolved). */
 export const SPACING_TOKENS = [
-  'panel',
-  'wrap',
-  'collage-cell',
-  'hero-content',
   'badge-min',
   'swatch',
   'search',
@@ -59,12 +68,19 @@ export const SPACING_TOKENS = [
 ] as const;
 
 /** `--tracking-*` — same unknown-class shape as spacing. */
-export const TRACKING_TOKENS = ['label'] as const;
+export const TRACKING_TOKENS = [
+  'label',
+  'eyebrow',
+  'wordmark',
+  'wordmark-sm',
+  'heading',
+  'hero',
+  'badge',
+  'caps',
+] as const;
 
 /** `--animate-*` — same unknown-class shape as spacing. */
 export const ANIMATE_TOKENS = [
-  'panel-in',
-  'panel-out',
   'sheet-in-right',
   'sheet-out-right',
   'sheet-in-left',

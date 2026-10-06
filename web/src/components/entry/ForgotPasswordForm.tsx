@@ -9,6 +9,7 @@ import axios from 'axios';
 import { CheckIcon } from 'lucide-react';
 import { requestPasswordReset } from '@/api/auth';
 import { Button } from '@/components/ui/button';
+import EntryDialogTitle from '@/components/entry/EntryDialogTitle';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
@@ -76,7 +77,7 @@ export default function ForgotPasswordForm() {
         </div>
 
         <div>
-          <p className="text-auth-title font-bold text-ink">{t('entry.forgotPassword.sent.title')}</p>
+          <EntryDialogTitle>{t('entry.forgotPassword.sent.title')}</EntryDialogTitle>
           <p className="mt-1.5 text-meta text-muted-foreground">{t('entry.forgotPassword.sent.lede')}</p>
         </div>
 
@@ -91,7 +92,7 @@ export default function ForgotPasswordForm() {
         </p>
 
         <p className="text-meta text-muted-foreground">
-          <Link to="/" className="font-medium text-ink underline underline-offset-2">
+          <Link to="/login" className="font-medium text-ink underline underline-offset-2">
             {t('entry.forgotPassword.backToLogin')}
           </Link>
         </p>
@@ -102,7 +103,7 @@ export default function ForgotPasswordForm() {
   return (
     <>
       <div>
-        <h3 className="text-auth-title font-bold text-ink">{t('entry.forgotPassword.title')}</h3>
+        <EntryDialogTitle>{t('entry.forgotPassword.title')}</EntryDialogTitle>
         <p className="mt-1.5 text-meta text-muted-foreground">{t('entry.forgotPassword.lede')}</p>
       </div>
 
@@ -143,7 +144,7 @@ export default function ForgotPasswordForm() {
       </form>
 
       <p className="text-meta text-muted-foreground">
-        <Link to="/" className="font-medium text-ink underline underline-offset-2">
+        <Link to="/login" className="font-medium text-ink underline underline-offset-2">
           {t('entry.forgotPassword.backToLogin')}
         </Link>
       </p>
