@@ -182,12 +182,12 @@ Base branch = `main` → **BLOCKED** unconditionally.
 
 ---
 
-## 12. Type-label set
+## 12. Kind-label set
 
 **Citation:** [`rules/merge-strategy.md#strategy-mapping`](../../../rules/merge-strategy.md#strategy-mapping)
 
 ```bash
-gh pr view <N> --json labels --jq '[.labels[].name] | map(select(startswith("type:"))) | length'
+gh pr view <N> --json labels --jq '[.labels[].name] | map(select(. == "Epic" or . == "Task" or . == "Bug" or . == "Chore")) | length'
 ```
 
 Must be exactly `1`. Zero → **BLOCKED**, route to `github-issues` for

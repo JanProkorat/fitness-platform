@@ -781,7 +781,7 @@ Open
 on every pass and walk all 13 items top-to-bottom. Don't skip even
 when the diff looks small. The checklist gives you exact grep / `gh`
 commands per rule and flags the right severity. Items 11 (merge
-exclusion list) and 12 (type-label set) terminate the review with
+exclusion list) and 12 (kind-label set) terminate the review with
 `verdict: BLOCKED` rather than emitting findings.
 
 ## Hard rules (never break)
