@@ -216,10 +216,13 @@ export function useRecipeListParams(): UseRecipeListParamsResult {
 
   const cycleSort = useCallback(
     (field: RecipeSortField) => {
-      const next = nextSortState({ sortBy: filters.sortBy, sortDir: filters.sortDir }, field);
+      // Read the live URL: React Router re-renders in a transition, so rendered
+      // params can lag the URL during rapid clicks.
+      const current = parseSort(new URLSearchParams(window.location.search).get('sort'));
+      const next = nextSortState(current, field);
       update({ sort: serializeSort(next), page: null });
     },
-    [update, filters.sortBy, filters.sortDir],
+    [update],
   );
 
   const setPage = useCallback(

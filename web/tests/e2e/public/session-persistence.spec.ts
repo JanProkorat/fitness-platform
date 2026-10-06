@@ -25,16 +25,16 @@ function requireSeedPassword(): string {
 }
 
 async function login(page: Page, email: string, keepSignedIn: boolean): Promise<void> {
-  await page.goto('/');
-  await page.getByLabel('Email').fill(email);
-  await page.getByLabel('Password').fill(requireSeedPassword());
+  await page.goto('/login');
+  await page.getByRole('dialog').getByLabel('Email').fill(email);
+  await page.getByRole('dialog').getByLabel('Password').fill(requireSeedPassword());
   const keepSignedInBox = page.getByRole('checkbox', { name: 'Keep me signed in' });
   if (keepSignedIn) {
     await keepSignedInBox.check();
   } else {
     await keepSignedInBox.uncheck();
   }
-  await page.getByRole('button', { name: 'Sign in' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Sign in' }).click();
 }
 
 async function readToken(page: Page, store: 'localStorage' | 'sessionStorage'): Promise<string | null> {
@@ -63,7 +63,7 @@ test('unticked: a new tab (fresh sessionStorage) is signed out', async ({ page, 
 
   const otherTab = await context.newPage();
   await otherTab.goto('/clients');
-  await expect(otherTab).toHaveURL(/\/$/);
+  await expect(otherTab).toHaveURL(/\/login$/);
 });
 
 test('ticked: refresh token lives only in localStorage, survives a reload and stays there after rotation', async ({
@@ -92,7 +92,7 @@ test('/download-app offers a logout that clears both stores (client-only user)',
 
   await page.getByRole('button', { name: 'Log out' }).click();
 
-  await expect(page).toHaveURL(/\/$/);
+  await expect(page).toHaveURL(/\/login$/);
   expect(await readToken(page, 'sessionStorage')).toBeNull();
   expect(await readToken(page, 'localStorage')).toBeNull();
 });
@@ -122,7 +122,7 @@ test('the unverified-session /verify-email state offers a logout', async ({ page
 
   await page.getByRole('button', { name: 'Log out' }).click();
 
-  await expect(page).toHaveURL(/\/$/);
+  await expect(page).toHaveURL(/\/login$/);
   expect(await readToken(page, 'localStorage')).toBeNull();
   expect(await readToken(page, 'sessionStorage')).toBeNull();
 });
