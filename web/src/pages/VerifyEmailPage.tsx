@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { CheckIcon, MailIcon, TriangleAlertIcon } from 'lucide-react';
+import { MailIcon, TriangleAlertIcon } from 'lucide-react';
 import { resendVerificationAnonymous, verifyEmail } from '@/api/auth';
 import { getMyProfile } from '@/api/profile';
 import { useAuthStore } from '@/stores/auth';
@@ -12,17 +12,17 @@ import { getApiErrorMessage, getErrorCode } from '@/lib/api-errors';
 import { Button } from '@/components/ui/button';
 import RegisterShell from '@/components/register/RegisterShell';
 import GetAppState from '@/components/register/GetAppState';
+import CoachVerifiedState from '@/components/register/CoachVerifiedState';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 
 interface VerifyMutationResult {
-  /** Whether the store's stale `user.emailConfirmed` was refreshed before
-   * rendering the success CTA. False when there was no session to refresh,
-   * or the profile refetch itself failed — the CTA falls back to "/login" in
-   * both cases so a stale store can't bounce the user back here via
-   * ProtectedRoute with a now-consumed token. */
-  profileRefreshed: boolean;
+  /** True when a stored session exists but its `emailConfirmed` could not be refreshed:
+   * the coach actions then lead to "/login" so ProtectedRoute can't bounce the user back
+   * here with a now-consumed token. */
+  staleSession: boolean;
+  firstName: string;
   /** Set when the verified account is client-only: the page shows the get-the-app state. */
-  client: { email: string; firstName: string } | null;
+  client: { email: string } | null;
 }
 
 /** Client-only account — same predicate as ProtectedRoute. */
@@ -97,15 +97,14 @@ export default function VerifyEmailPage() {
       // Non-null: this queryFn only ever runs when `enabled` (below) is true.
       const verified = await verifyEmail(token as string);
 
+      const firstName = verified.firstName?.trim() ?? '';
+
       if (isClientOnly(verified.roles)) {
-        return {
-          profileRefreshed: false,
-          client: { email: verified.email ?? '', firstName: verified.firstName?.trim() ?? '' },
-        };
+        return { staleSession: false, firstName, client: { email: verified.email ?? '' } };
       }
 
       if (!isAuthenticated) {
-        return { profileRefreshed: false, client: null };
+        return { staleSession: false, firstName, client: null };
       }
 
       try {
@@ -119,12 +118,12 @@ export default function VerifyEmailPage() {
           emailConfirmed: profile.emailConfirmed ?? true,
           avatarBlobUrl: profile.avatarBlobUrl ?? null,
         });
-        return { profileRefreshed: true, client: null };
+        return { staleSession: false, firstName, client: null };
       } catch {
         // Verification itself already succeeded server-side; a failed
-        // profile refresh just means the CTA below falls back to "/login"
+        // profile refresh just means the actions fall back to "/login"
         // instead of "/clients" so a stale store can't loop the user.
-        return { profileRefreshed: false, client: null };
+        return { staleSession: true, firstName, client: null };
       }
     },
     enabled: !!token,
@@ -196,34 +195,20 @@ export default function VerifyEmailPage() {
         <RegisterShell showSignIn={false}>
           <GetAppState
             email={verifyQuery.data.client.email}
-            firstName={verifyQuery.data.client.firstName}
+            firstName={verifyQuery.data.firstName}
           />
         </RegisterShell>
       );
     }
 
     if (verifyQuery.isSuccess) {
-      const goToClients = verifyQuery.data.profileRefreshed;
-      return shell(
-        <>
-          {brandRow}
-          <div className="flex size-11.5 items-center justify-center rounded-full bg-success-soft text-success-ink">
-            <CheckIcon className="size-5" />
-          </div>
-          <CardTitle>{t('entry.verifyEmail.success.title')}</CardTitle>
-          <CardDescription>{t('entry.verifyEmail.success.lede')}</CardDescription>
-          <CardContent>
-            <Button
-              type="button"
-              className="w-full"
-              onClick={() => navigate(goToClients ? '/clients' : '/login', { replace: true })}
-            >
-              {goToClients
-                ? t('entry.verifyEmail.success.cta')
-                : t('entry.verifyEmail.success.ctaLoggedOut')}
-            </Button>
-          </CardContent>
-        </>
+      return (
+        <RegisterShell showSignIn={false}>
+          <CoachVerifiedState
+            firstName={verifyQuery.data.firstName}
+            to={verifyQuery.data.staleSession ? '/login' : '/clients'}
+          />
+        </RegisterShell>
       );
     }
 

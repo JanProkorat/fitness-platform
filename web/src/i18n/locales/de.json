@@ -2971,10 +2971,17 @@
     "verifyEmail": {
       "verifying": "E-Mail wird bestätigt...",
       "success": {
-        "title": "E-Mail bestätigt",
-        "lede": "Ihr Konto ist bereit. Sie können sich anmelden und loslegen.",
-        "cta": "Zum Portal",
-        "ctaLoggedOut": "Zur Anmeldung"
+        "title": "E-Mail bestätigt"
+      },
+      "coach": {
+        "ready": "Ihr Konto ist bereit.",
+        "setUpProfile": "Profil einrichten",
+        "skip": "Vorerst überspringen und zum Portal",
+        "nextHeading": "WIE ES WEITERGEHT",
+        "inviteTitle": "Laden Sie Ihren ersten Klienten ein",
+        "inviteHint": "Er tritt über die Form-Up-App bei",
+        "buildTitle": "Erstellen Sie die erste Woche",
+        "buildHint": "Aus einer Vorlage oder von Grund auf"
       },
       "getApp": {
         "welcomeNamed": "Willkommen bei Form Up, {{firstName}}.",

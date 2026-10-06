@@ -1,6 +1,6 @@
 /**
  * "/verify-email?token=…" after a successful verification: a client-only
- * account lands on the get-the-app state, a coach keeps the portal card. The
+ * account lands on the get-the-app state, a coach on the profile step. The
  * verify call is faked with page.route, so the token is never consumed.
  *
  * Runs under the `public` project — signed-out context, like account-pages.spec.ts.
@@ -62,17 +62,27 @@ test('a verified client without a first name gets the name-less welcome line', a
   await expect(page.getByText('Welcome to Form Up,')).toHaveCount(0);
 });
 
-test('a verified coach keeps the portal success card', async ({ page }) => {
-  await fakeVerify(page, {
+test('a verified coach sees the profile step with both actions leading to the portal', async ({ page }) => {
+  const calls = await fakeVerify(page, {
     message: 'Email verified.',
     email: 'coach@example.com',
-    firstName: 'Eva',
+    firstName: 'Jan',
     roles: ['Trainer'],
   });
 
   await page.goto('/verify-email?token=fake-coach-token');
 
   await expect(page.getByRole('heading', { name: 'Email verified' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Go to sign in' })).toBeVisible();
-  await expect(page.getByText('Welcome to Form Up')).toHaveCount(0);
+  await expect(page.getByText('Welcome to Form Up, Jan. Your account is ready.')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Set up your profile' })).toHaveAttribute('href', '/clients');
+  await expect(page.getByRole('link', { name: 'Skip for now and go to the portal' })).toHaveAttribute(
+    'href',
+    '/clients'
+  );
+  await expect(page.getByText('Invite your first client')).toBeVisible();
+  await expect(page.getByRole('list', { name: 'Registration progress' })).toBeVisible();
+
+  await expect(page.getByRole('button', { name: /App Store|Google Play/ })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Sign in' })).toHaveCount(0);
+  expect(calls).toHaveLength(1);
 });

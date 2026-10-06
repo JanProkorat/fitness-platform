@@ -2972,10 +2972,17 @@
     "verifyEmail": {
       "verifying": "Verifying your email...",
       "success": {
-        "title": "Email verified",
-        "lede": "Your account is ready. You can sign in and get to work.",
-        "cta": "Go to the portal",
-        "ctaLoggedOut": "Go to sign in"
+        "title": "Email verified"
+      },
+      "coach": {
+        "ready": "Your account is ready.",
+        "setUpProfile": "Set up your profile",
+        "skip": "Skip for now and go to the portal",
+        "nextHeading": "WHAT’S NEXT",
+        "inviteTitle": "Invite your first client",
+        "inviteHint": "They join with the Form Up app",
+        "buildTitle": "Build their first week",
+        "buildHint": "From a template or from scratch"
       },
       "getApp": {
         "welcomeNamed": "Welcome to Form Up, {{firstName}}.",

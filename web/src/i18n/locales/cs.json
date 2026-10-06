@@ -3017,10 +3017,17 @@
     "verifyEmail": {
       "verifying": "Ověřujeme váš e-mail...",
       "success": {
-        "title": "E-mail ověřen",
-        "lede": "Váš účet je připravený. Můžete se přihlásit a pustit se do práce.",
-        "cta": "Přejít do portálu",
-        "ctaLoggedOut": "Přejít na přihlášení"
+        "title": "E-mail ověřen"
+      },
+      "coach": {
+        "ready": "Váš účet je připravený.",
+        "setUpProfile": "Nastavit profil",
+        "skip": "Prozatím přeskočit a přejít do portálu",
+        "nextHeading": "CO DÁL",
+        "inviteTitle": "Pozvěte prvního klienta",
+        "inviteHint": "Připojí se přes aplikaci Form Up",
+        "buildTitle": "Sestavte mu první týden",
+        "buildHint": "Ze šablony nebo od nuly"
       },
       "getApp": {
         "welcomeNamed": "Vítejte ve Form Up, {{firstName}}.",
