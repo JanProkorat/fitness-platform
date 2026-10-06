@@ -79,12 +79,11 @@ export default defineConfig({
   // flattened (no role subfolder) so no testMatch pattern can find them.
   // That flattening is what actually holds the quarantine, for every
   // project. This root-level testIgnore is NOT a second independent guard
-  // for the `client` and `nutritionist` projects below: Playwright project
-  // config replaces (does not merge with) the root value, and both of
-  // those projects set their own project-level `testIgnore`, so this root
-  // setting is inert for them regardless of PLAYWRIGHT_IN_CONTAINER. It
-  // only adds real protection for projects that don't set their own
-  // testIgnore (`setup`, `trainer`).
+  // for the projects that set their own `testIgnore` (`trainer`,
+  // `nutritionist`): Playwright project config replaces (does not merge
+  // with) the root value, so this root setting is inert for them. It only
+  // adds real protection for projects that don't set their own testIgnore
+  // (`setup`, `trainer-chat`, `nutritionist-chat`).
   testIgnore: /_legacy\//,
 
   globalSetup: './tests/e2e/global-setup.ts',
@@ -92,8 +91,9 @@ export default defineConfig({
   /* Retries: 2 in CI, 0 locally (dev gets immediate feedback) */
   retries: process.env['CI'] ? 2 : 0,
 
-  /* Workers: 1 in CI for reproducibility, undefined (cpu-count) locally */
-  workers: process.env['CI'] ? 1 : undefined,
+  /* Workers: 4 in CI, undefined (cpu-count) locally. Specs that share mutable
+     seeded state run in the single-worker `*-chat` projects below. */
+  workers: process.env['CI'] ? 4 : undefined,
 
   reporter: process.env['CI']
     ? [['list'], ['html', { open: 'never' }]]
@@ -161,7 +161,26 @@ export default defineConfig({
       name: 'trainer',
       dependencies: ['setup'],
       testMatch: /trainer\/.+\.spec\.ts/,
-      testIgnore: [/trainer\/inbox-attachments\.spec\.ts/],
+      testIgnore: [
+        /trainer\/inbox-attachments\.spec\.ts/,
+        /trainer\/(client-detail|clients|inbox-cooperation-events|inbox)\.spec\.ts/,
+      ],
+      use: {
+        ...devices['Desktop Chrome'],
+      },
+    },
+
+    // ─── Trainer chat specs ───────────────────────────────────────────────────
+    // client-detail, clients, inbox-cooperation-events and inbox share the seeded
+    // QA Client conversation's read state (inbox marks it read; the others expect
+    // its unread state) and look it up by the "QA Client" substring, which
+    // QA Client2 also matches. `workers: 1` keeps them serial, in alphabetical
+    // file order, as they ran before the suite went parallel.
+    {
+      name: 'trainer-chat',
+      dependencies: ['setup'],
+      workers: 1,
+      testMatch: /trainer\/(client-detail|clients|inbox-cooperation-events|inbox)\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
       },
@@ -171,10 +190,10 @@ export default defineConfig({
     // inbox-attachments.spec.ts only. Split out of `trainer` (#1096) because it
     // mutates the seeded QA Client conversation's read state, which
     // inbox.spec.ts and clients.spec.ts both depend on staying unread.
-    // `dependencies: ['trainer']` makes it run after every trainer test.
+    // `dependencies` make it run after every trainer and trainer-chat test.
     {
       name: 'trainer-media',
-      dependencies: ['trainer'],
+      dependencies: ['trainer', 'trainer-chat'],
       testMatch: /trainer\/inbox-attachments\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
@@ -212,11 +231,30 @@ export default defineConfig({
       dependencies: ['setup'],
       testMatch: /nutritionist\/.+\.spec\.ts/,
       testIgnore: IN_CONTAINER
-        ? [/nutritionist\/recipe-tags\.spec\.ts/]
+        ? [
+            /nutritionist\/recipe-tags\.spec\.ts/,
+            /nutritionist\/(client-detail-meal-plan|inbox-cooperation-events)\.spec\.ts/,
+          ]
         : [
             /nutritionist\/food-admin-upload\.spec\.ts/,
             /nutritionist\/recipe-tags\.spec\.ts/,
+            /nutritionist\/(client-detail-meal-plan|inbox-cooperation-events)\.spec\.ts/,
           ],
+      use: {
+        ...devices['Desktop Chrome'],
+      },
+    },
+
+    // ─── Nutritionist chat specs ──────────────────────────────────────────────
+    // client-detail-meal-plan and inbox-cooperation-events both use the
+    // qa.client2 roster: the meal-plan spec matches a loose /QA Client/ row,
+    // which the cooperation-events spec's client request changes. `workers: 1`
+    // keeps them serial, in alphabetical file order.
+    {
+      name: 'nutritionist-chat',
+      dependencies: ['setup'],
+      workers: 1,
+      testMatch: /nutritionist\/(client-detail-meal-plan|inbox-cooperation-events)\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
       },
