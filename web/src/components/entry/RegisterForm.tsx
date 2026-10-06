@@ -11,6 +11,7 @@ import { getApiErrorMessage, getErrorCode } from '@/lib/api-errors';
 import { passwordMeetsAllRules } from '@/lib/password-rules';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import EntryDialogTitle from '@/components/entry/EntryDialogTitle';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -194,7 +195,7 @@ export default function RegisterForm() {
   return (
     <>
       <div>
-        <h3 className="text-auth-title font-bold text-ink">{t('entry.register.title')}</h3>
+        <EntryDialogTitle>{t('entry.register.title')}</EntryDialogTitle>
         <p className="mt-1.5 text-meta text-muted-foreground">{t('entry.register.lede')}</p>
       </div>
 
@@ -355,7 +356,7 @@ export default function RegisterForm() {
 
       <p className="text-meta text-muted-foreground">
         {t('entry.register.haveAccount')}{' '}
-        <Link to="/" className="font-medium text-ink underline underline-offset-2">
+        <Link to="/login" className="font-medium text-ink underline underline-offset-2">
           {t('entry.register.signIn')}
         </Link>
       </p>

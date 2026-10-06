@@ -6,14 +6,14 @@ import { cn } from '@/lib/utils';
  * Standalone-page card primitive (prototype `.card`, scratchpad
  * gf-register.html) — the centred single-card shell used by the
  * verify-email and reset-password pages (#1058 phase 3). Not used inside
- * LoginPanel's split layout; those forms render directly in the panel.
+ * the sign-in dialog, which has its own shell.
  */
 function Card({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
       data-slot="card"
       className={cn(
-        'flex w-full max-w-panel flex-col items-center gap-4 rounded-2xl border border-border bg-surface p-7 text-center shadow-card sm:p-9',
+        'flex w-full max-w-110 flex-col items-center gap-4 rounded-2xl border border-border bg-surface p-7 text-center shadow-card sm:p-9',
         className
       )}
       {...props}
