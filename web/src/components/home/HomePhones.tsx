@@ -71,14 +71,14 @@ export function TodayPhone({ size = 'standard' }: { size?: 'hero' | 'standard' }
   );
 }
 
-/** Client app: the Sunday check-in form. */
+/** Client app: the weekly check-in form. */
 export function CheckInPhone() {
   const { t } = useTranslation();
 
   return (
     <PhoneFrame className="mt-12.5">
       <div className="flex flex-col gap-0.5 px-1.5 py-1">
-        <span className="text-caption text-muted-foreground">{t('home.mock.sundayWeek')}</span>
+        <span className="text-caption text-muted-foreground">{t('home.mock.checkInWeek')}</span>
         <span className="font-display text-mockup-title font-semibold">{t('home.mock.weeklyCheckIn')}</span>
       </div>
       <GlassCard className="rounded-card px-3.5 py-3">
