@@ -141,8 +141,8 @@ test('/verify-email?token=<bogus> calls /auth/verify-email exactly once', async 
   // CONSUMES the token (sets UsedAt) — a second call with the same token
   // would turn a real, successful verification into a false
   // INVALID_VERIFICATION_TOKEN failure. VerifyEmailPage guards this with a
-  // never-reset `verifyStartedRef` latch (unlike LoginPanel's focus-guard
-  // ref, which resets per navigation because it must fire once per swap).
+  // never-reset `verifyStartedRef` latch (a per-navigation focus guard, by
+  // contrast, must reset because it fires once per route swap).
   //
   // This spec also guards the page SETTLING at all. It was briefly disabled
   // because the page hung on "Verifying your email..." forever: the ref latch

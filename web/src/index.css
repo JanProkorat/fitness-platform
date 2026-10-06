@@ -130,8 +130,6 @@
   --gf-text-auth-title: 22px; /* login panel heading */
   --gf-text-stat: 26px; /* stat figures, empty-state heading */
   --gf-text-display: 30px; /* large page heading on the Page*C boards */
-  --gf-text-section-title: clamp(26px, 3vw, 34px); /* band H2 */
-  --gf-text-cta-title: clamp(24px, 3vw, 32px); /* closing CTA H2 */
 
   /* Home page (PageHome*) type roles. */
   --gf-text-home-hero: clamp(38px, 3.9vw, 56px); /* hero H1: 56px from 1440px wide */
@@ -173,8 +171,6 @@
   --gf-shadow-selection-bar: 0 4px 12px rgba(0, 0, 0, 0.1); /* clients-page bulk-selection bar */
   --gf-blur-scrim: 3px; /* backdrop blur behind the sign-in dialog (PageHomeSignIn*) */
 
-  --gf-collage-cell-min-height: clamp(70px, 12vh, 140px); /* hero photo-collage cell */
-  --gf-wrap-width: 1044px; /* marketing section content max-width, reused across bands */
   --gf-badge-min-width: 20px; /* filter-chip count badge floor — a single-digit count's glyph advance can render narrower than the badge's own height in a fallback face, squaring off the pill */
   --gf-swatch-size: 18px; /* create-tag colour-picker swatch diameter */
   --gf-search-width: 280px; /* Ingredients page search input */
@@ -367,11 +363,6 @@
          browser-default rendering these multi-line marketing paragraphs
          already ship with (#1055) -- tightening them to 1.2 would cramp
          running copy, worse in cs/de where strings run longer.
-       - clamp() tokens (section-title, cta-title): unitless ratios
-         (the only correct form when font-size is viewport-dependent),
-         with the same "reproduce current rendering" treatment as the
-         prose group, since neither carries a shipped override or Figma
-         evidence of its own.
      lede is prose in role but keeps its own already-shipped 1.6, tighter
      than the 1.5 default because that's what's already live on the
      signed-off page. */
@@ -405,10 +396,6 @@
   --text-panel-title--line-height: 1.2;
   --text-auth-title: var(--gf-text-auth-title);
   --text-auth-title--line-height: 1.2;
-  --text-section-title: var(--gf-text-section-title);
-  --text-section-title--line-height: 1.5;
-  --text-cta-title: var(--gf-text-cta-title);
-  --text-cta-title--line-height: 1.5;
 
   /* ---- Home page scale ---- */
   --text-home-hero: var(--gf-text-home-hero);
@@ -452,8 +439,6 @@
 
   --blur-scrim: var(--gf-blur-scrim);
 
-  --spacing-collage-cell: var(--gf-collage-cell-min-height);
-  --spacing-wrap: var(--gf-wrap-width);
   --spacing-badge-min: var(--gf-badge-min-width);
   --spacing-swatch: var(--gf-swatch-size);
   --spacing-search: var(--gf-search-width);

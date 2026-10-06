@@ -105,7 +105,7 @@ export default function EntryPage() {
           <div key={displayed.key} className="flex flex-col gap-4">
             {displayed.element}
           </div>
-          <DialogClose className="absolute top-7 right-6 flex size-8.5 items-center justify-center rounded-full text-ink-2 outline-none hover:bg-sunken focus-visible:ring-3 focus-visible:ring-ring/50 sm:right-8">
+          <DialogClose className="absolute top-7 right-6 flex size-8.5 items-center justify-center rounded-full bg-background text-ink-2 outline-none hover:bg-sunken focus-visible:ring-3 focus-visible:ring-ring/50 sm:right-8">
             <XIcon className="size-4" aria-hidden="true" />
             <span className="sr-only">{t('common.close')}</span>
           </DialogClose>

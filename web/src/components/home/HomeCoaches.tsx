@@ -137,7 +137,7 @@ export default function HomeCoaches() {
       className="@container flex scroll-mt-6 outline-none flex-col gap-12 px-4 py-14 sm:px-10 lg:px-16 lg:py-24"
     >
       <div className="flex flex-col gap-12 @min-[1200px]:flex-row @min-[1200px]:items-center @min-[1200px]:gap-16">
-        <div className="flex max-w-[420px] shrink-0 flex-col gap-4.5">
+        <div className="flex max-w-105 shrink-0 flex-col gap-4.5">
           <Eyebrow className="text-training">{t('home.coaches.eyebrow')}</Eyebrow>
           <h2 className="font-display text-home-heading font-semibold tracking-heading text-ink">
             {t('home.coaches.title')}

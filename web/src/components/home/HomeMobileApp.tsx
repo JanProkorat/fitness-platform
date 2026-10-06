@@ -49,7 +49,7 @@ export default function HomeMobileApp() {
         <h2 className="font-display text-home-heading font-semibold tracking-heading text-ink">
           {t('home.app.title')}
         </h2>
-        <p className="max-w-[680px] text-home-lead text-ink-2">{t('home.app.lead')}</p>
+        <p className="max-w-170 text-home-lead text-ink-2">{t('home.app.lead')}</p>
         <div className="flex flex-wrap justify-center gap-2.5">
           <StoreLinks appStore={t('home.app.appStore')} googlePlay={t('home.app.googlePlay')} />
         </div>

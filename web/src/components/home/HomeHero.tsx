@@ -22,7 +22,7 @@ export default function HomeHero() {
         className="pointer-events-none absolute inset-x-0 -top-19 bottom-0 -z-10 bg-no-repeat [background-image:radial-gradient(700px_520px_at_78%_30%,var(--gf-hero-warm),transparent_70%),radial-gradient(620px_520px_at_98%_90%,var(--gf-hero-fresh),transparent_70%),radial-gradient(520px_420px_at_0%_0%,var(--gf-hero-rose),transparent_70%)]"
       />
       <div className="flex flex-col gap-8 @min-[1240px]:flex-row @min-[1240px]:gap-12">
-        <div className="flex max-w-[470px] shrink-0 flex-col gap-5.5 pt-4 @min-[1240px]:pt-8.5">
+        <div className="flex max-w-117.5 shrink-0 flex-col gap-5.5 pt-4 @min-[1240px]:pt-8.5">
           <span className="text-meta font-semibold tracking-eyebrow text-muted-foreground uppercase">
             {t('home.hero.eyebrow')}
           </span>
@@ -33,14 +33,14 @@ export default function HomeHero() {
           <div className="flex flex-wrap gap-2.5 pt-1.5">
             <Link
               to="/register"
-              className="flex h-[50px] items-center rounded-xl bg-primary px-6 text-subhead font-bold text-primary-foreground hover:opacity-90"
+              className="flex h-12.5 items-center rounded-xl bg-primary px-6 text-subhead font-bold text-primary-foreground hover:opacity-90"
             >
               {t('home.hero.createAccount')}
             </Link>
             <a
               href="#how-it-works"
               onClick={scrollToAnchor}
-              className="flex h-[50px] items-center gap-2 rounded-xl border border-border bg-surface px-5 text-subhead font-semibold text-ink hover:bg-sunken"
+              className="flex h-12.5 items-center gap-2 rounded-xl border border-border bg-surface px-5 text-subhead font-semibold text-ink hover:bg-sunken"
             >
               <IconPlay size={14} />
               {t('home.hero.seeInAction')}
@@ -56,11 +56,11 @@ export default function HomeHero() {
           <div className="hidden @min-[820px]:block">
             <HeroMockup />
           </div>
-          <ol className="grid max-w-[766px] grid-cols-2 gap-x-4.5 gap-y-5 @min-[820px]:grid-cols-4">
+          <ol className="grid max-w-191.5 grid-cols-2 gap-x-4.5 gap-y-5 @min-[820px]:grid-cols-4">
             {STEPS.map((step, index) => (
               <li key={step.key} className="flex flex-col gap-1.5">
-                <div className="h-[3px] rounded-xs bg-border">
-                  <div className={`h-[3px] rounded-xs ${step.progress} ${step.bar}`} />
+                <div className="h-0.75 rounded-xs bg-border">
+                  <div className={`h-0.75 rounded-xs ${step.progress} ${step.bar}`} />
                 </div>
                 <span
                   className={`text-body font-bold ${index < 2 ? 'text-ink' : 'text-muted-foreground'}`}
