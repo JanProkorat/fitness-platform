@@ -19,6 +19,9 @@
 #                              missing. CI sets it after pre-building with cached layers; local
 #                              runs leave it unset so `up` always rebuilds and never runs a stale image.
 #   E2E_IMAGE_TAG              Tag for the harness images. Defaults to the compose project name.
+#   TEST_ENV_SERVICES          Space-separated services for `up` to start (plus their dependencies).
+#                              Unset starts all. CI sets "api": its host suite needs no web or
+#                              playwright container. `run <flow>` needs both, so leave it unset there.
 #
 # Project naming:
 #   sanitized-branch + sha1(branch || hostname)[:6] → COMPOSE_PROJECT_NAME
@@ -180,7 +183,9 @@ cmd_up() {
   if [[ "${TEST_ENV_NO_BUILD:-}" == "1" ]]; then
     build_flag="--no-build"
   fi
-  compose "$project" up -d "$build_flag" >&2
+  # Unquoted on purpose: TEST_ENV_SERVICES is a space-separated service list.
+  # shellcheck disable=SC2086
+  compose "$project" up -d "$build_flag" ${TEST_ENV_SERVICES:-} >&2
 
   if ! wait_for_healthy "$project" api 90; then
     err "api failed to become healthy within 90s — dumping last 100 log lines:"
