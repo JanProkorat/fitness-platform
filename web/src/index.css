@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* `short:` applies on two-column (lg+) desktop windows at most 50rem tall; phones and tall windows are unaffected. */
+@custom-variant short (@media (min-width: 64rem) and (max-height: 50rem));
+
 /*
  * Form Up design tokens — palette "C · Ink & Red, energetic".
  * Source: docs/prototypes/formup-redesign/source/gen.py (DIRS["C"] light) and
@@ -913,6 +916,24 @@
   --animate-popper-out-right: popper-out-right 100ms ease-in forwards;
   --animate-toast-in: toast-in 200ms ease-out;
   --animate-toast-out: toast-out 150ms ease-in forwards;
+
+  /* One duration for every register-page animation (consent rows/errors and
+     the role-dependent copy swap) so they stay in sync. */
+  --register-motion: 400ms;
+
+  /* Content swap (role-dependent copy): fade + short rise on a keyed element. */
+  --animate-content-in: content-in var(--register-motion) ease-out;
+}
+
+@keyframes content-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes sheet-in-right {
@@ -1237,4 +1258,14 @@
   background-image:
     radial-gradient(640px 280px at 88% 0%, var(--gf-page-glow-warm), transparent 70%),
     radial-gradient(520px 260px at 100% 40%, var(--gf-page-glow-fresh), transparent 70%);
+}
+
+/* Same three --gf-hero-* patches as the top of home-page-wash, positioned in percent so they track
+   the viewport-high register page instead of a long scrolling one. */
+@utility register-page-wash {
+  background-repeat: no-repeat;
+  background-image:
+    radial-gradient(700px 520px at 78% 30%, var(--gf-hero-warm), transparent 70%),
+    radial-gradient(620px 520px at 98% 90%, var(--gf-hero-fresh), transparent 70%),
+    radial-gradient(520px 420px at 0% 0%, var(--gf-hero-rose), transparent 70%);
 }

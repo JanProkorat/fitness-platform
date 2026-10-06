@@ -21,12 +21,14 @@ namespace FitnessPlatform.Application.Features.Auth.VerifyEmail;
 /// RegisterEndpoint so an invite thread never exists for an unverified account).
 /// </param>
 /// <param name="logger">Logger for the seeder's non-fatal failure path.</param>
+/// <param name="userManager">Used to read the verified account's roles.</param>
 public class VerifyEmailEndpoint(
     IApplicationDbContext db,
     IRealtimeNotifier notifier,
     IPendingInviteConversationSeeder inviteConversationSeeder,
-    ILogger<VerifyEmailEndpoint> logger)
-    : Endpoint<VerifyEmailRequest>
+    ILogger<VerifyEmailEndpoint> logger,
+    UserManager<ApplicationUser> userManager)
+    : Endpoint<VerifyEmailRequest, VerifyEmailResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -38,6 +40,8 @@ public class VerifyEmailEndpoint(
         {
             s.Summary = "Verify email address";
             s.Description = "Verifies a user's email address using the token sent via email. Token is valid for 24 hours.";
+            s.Responses[StatusCodes.Status200OK] = "Email verified; returns the account email and roles";
+            s.Responses[StatusCodes.Status400BadRequest] = "Invalid, already used or expired verification token";
         });
     }
 
@@ -90,6 +94,14 @@ public class VerifyEmailEndpoint(
 
         await notifier.NotifyAsync(token.UserId, "emailverified", new { }, ct);
 
-        await Send.OkAsync(new { message = "Email verified successfully." }, ct);
+        var roles = await userManager.GetRolesAsync(token.User);
+
+        await Send.OkAsync(new VerifyEmailResponse
+        {
+            Message = "Email verified successfully.",
+            Email = token.User.Email ?? string.Empty,
+            FirstName = token.User.FirstName,
+            Roles = [.. roles]
+        }, ct);
     }
 }

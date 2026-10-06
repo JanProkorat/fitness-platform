@@ -10449,15 +10449,15 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("`weeks` is outside 1-26", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or unreadable caller identity", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
+            return throwException("Caller lacks the Trainer or Nutritionist role", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -16667,9 +16667,9 @@ export class ApiClient {
 
     /**
      * Verify email address
-     * @return No Content
+     * @return Email verified; returns the account email and roles
      */
-    verifyEmailEndpoint(verifyEmailRequest: VerifyEmailRequest, signal?: AbortSignal): Promise<void> {
+    verifyEmailEndpoint(verifyEmailRequest: VerifyEmailRequest, signal?: AbortSignal): Promise<VerifyEmailResponse> {
         let url_ = this.baseUrl + "/auth/verify-email";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -16681,6 +16681,7 @@ export class ApiClient {
             url: url_,
             headers: {
                 "Content-Type": "application/json",
+                "Accept": "application/json"
             },
             signal
         };
@@ -16696,7 +16697,7 @@ export class ApiClient {
         });
     }
 
-    protected processVerifyEmailEndpoint(response: AxiosResponse): Promise<void> {
+    protected processVerifyEmailEndpoint(response: AxiosResponse): Promise<VerifyEmailResponse> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -16706,15 +16707,18 @@ export class ApiClient {
                 }
             }
         }
-        if (status === 204) {
+        if (status === 200) {
             const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<VerifyEmailResponse>(result200);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<void>(null as any);
+        return Promise.resolve<VerifyEmailResponse>(null as any);
     }
 
     /**
@@ -24102,6 +24106,18 @@ export interface CollaborationDto {
 personal avatar when the professional-profile-specific one isn't set.
 Null when neither is uploaded. */
     avatarBlobUrl?: string | undefined;
+}
+
+/** Response returned after an email address has been verified. */
+export interface VerifyEmailResponse {
+    /** Human-readable confirmation message. */
+    message?: string;
+    /** The verified email address. */
+    email?: string;
+    /** First name of the verified account. */
+    firstName?: string;
+    /** Roles held by the verified account. */
+    roles?: string[];
 }
 
 /** Request model for email verification. */

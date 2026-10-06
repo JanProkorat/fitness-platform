@@ -2857,26 +2857,37 @@
       }
     },
     "register": {
-      "title": "Create account",
-      "lede": "Fill in your details and confirm your email. Takes a minute.",
-      "roleLabel": "What do you do?",
-      "roleHint": "You can pick both. Roles can be changed later in settings.",
+      "title": "Join our community",
+      "lede": "Create your account. It takes a minute.",
+      "steps": {
+        "label": "Registration progress",
+        "account": "Account",
+        "verify": "Verify email",
+        "profile": "Your profile",
+        "getApp": "Get the app"
+      },
+      "roleLabel": "I’m joining as",
+      "roleHint": "Coaches can pick both roles. Training for yourself is a separate account type.",
       "roles": {
         "trainer": {
-          "name": "Trainer",
-          "description": "Training plans, exercises, workout logging."
+          "name": "Personal trainer",
+          "description": "Training plans and live workouts"
         },
         "nutritionist": {
           "name": "Nutritionist",
-          "description": "Meal plans, recipes, ingredients, macros."
+          "description": "Meal plans and recipes"
+        },
+        "client": {
+          "name": "I train for myself",
+          "description": "Find a coach and follow your plan"
         }
       },
       "firstNameLabel": "First name",
       "firstNamePlaceholder": "Jan",
       "lastNameLabel": "Last name",
-      "lastNamePlaceholder": "Novak",
+      "lastNamePlaceholder": "Novák",
       "emailLabel": "Email",
-      "emailPlaceholder": "coach@example.com",
+      "emailPlaceholder": "jan@example.com",
       "passwordLabel": "Password",
       "passwordRules": {
         "length": "At least 8 characters",
@@ -2884,33 +2895,77 @@
         "lowercase": "Lowercase letter",
         "digit": "Digit"
       },
-      "consentLabel": "I agree to the processing of my personal data and to the terms of use.",
+      "passwordStrength": {
+        "weak": "Weak",
+        "fair": "Fair",
+        "good": "Good",
+        "strong": "Strong"
+      },
+      "passwordHint": "at least 8 characters with an uppercase letter, a lowercase letter and a digit",
+      "consentLabel": "I agree to the <terms>Terms</terms> and the <privacy>Privacy policy</privacy>.",
+      "healthConsentLabel": "I agree to the processing of my health data — body measurements, workout records and progress photos — so my coach can see them.",
       "submit": "Create account",
       "submitting": "Creating account...",
-      "submitHint": "Select a role and fill in every field.",
+      "submitHint": "Choose how you’re joining and fill in every field.",
       "haveAccount": "Already have an account?",
       "signIn": "Sign in",
       "validation": {
-        "roleRequired": "Select at least one role.",
+        "roleRequired": "Select how you’re joining.",
         "firstNameRequired": "Enter your first name.",
         "lastNameRequired": "Enter your last name.",
         "emailRequired": "Enter your email.",
         "emailInvalid": "Enter a valid email address.",
         "passwordInvalid": "Password does not meet all the requirements above.",
-        "consentRequired": "You must agree to the processing of your personal data to create an account."
+        "consentRequired": "You must agree to the Terms and the Privacy policy to create an account.",
+        "healthConsentRequired": "You must agree to the processing of your health data to create an account."
       },
       "errors": {
         "duplicateEmail": "This email is already registered.",
         "network": "Could not reach the server. Check your connection and try again.",
         "generic": "Could not complete registration. Please try again."
       },
+      "aside": {
+        "coach": {
+          "eyebrow": "Your first afternoon",
+          "titleLead": "From sign-up to your first client’s week",
+          "titleAccent": "in four steps.",
+          "steps": {
+            "account": { "title": "Create your account", "body": "Name, email and what you do." },
+            "profile": { "title": "Set up your profile", "body": "Photo, specialties and a short bio — so clients can find you in the app." },
+            "invite": { "title": "Invite your first client", "body": "Send an invite by email. They join with the Form Up app." },
+            "week": { "title": "Build their first week", "body": "Start from a template or from scratch, then publish." }
+          },
+          "app": {
+            "title": "Get the app too",
+            "body": "Your clients live in it — and you can follow them from your phone."
+          }
+        },
+        "client": {
+          "eyebrow": "How it works for you",
+          "titleLead": "Your coach plans it.",
+          "titleAccent": "You train in the app.",
+          "steps": {
+            "account": { "title": "Create your account", "body": "Name, email and a password." },
+            "app": { "title": "Get the Form Up app", "body": "On your phone, sign in with the same email." },
+            "coach": { "title": "Find your coach", "body": "Search for a trainer or nutritionist — or accept an invite you got." },
+            "plan": { "title": "Follow your plan", "body": "Workouts, meals and check-ins, all in the app." }
+          }
+        }
+      },
+      "stores": {
+        "appStore": "App Store",
+        "googlePlay": "Google Play",
+        "comingSoon": "Coming soon"
+      },
       "sent": {
         "title": "Check your email",
-        "lede": "We sent a verification link to {{email}}. The link is valid for 24 hours.",
-        "note": "Didn't get it? Check your spam folder. If it's not there, we'll resend it.",
-        "resend": "Resend link",
+        "lede": "We sent a verification link to",
+        "noteTitle": "No email yet?",
+        "note": "Check your spam folder, or wait a minute — it can take a moment to arrive.",
+        "resend": "Resend email",
+        "resendIn": "available in {{time}}",
         "resending": "Sending...",
-        "resendConfirmation": "If needed, we've sent a new link.",
+        "resendConfirmation": "If needed, we’ve sent a new link.",
         "wrongEmail": "Wrong address?",
         "changeEmail": "Change email"
       }
@@ -2941,10 +2996,25 @@
     "verifyEmail": {
       "verifying": "Verifying your email...",
       "success": {
-        "title": "Email verified",
-        "lede": "Your account is ready. You can sign in and get to work.",
-        "cta": "Go to the portal",
-        "ctaLoggedOut": "Go to sign in"
+        "title": "Email verified"
+      },
+      "coach": {
+        "ready": "Your account is ready.",
+        "setUpProfile": "Set up your profile",
+        "skip": "Skip for now and go to the portal",
+        "nextHeading": "WHAT’S NEXT",
+        "inviteTitle": "Invite your first client",
+        "inviteHint": "They join with the Form Up app",
+        "buildTitle": "Build their first week",
+        "buildHint": "From a template or from scratch"
+      },
+      "getApp": {
+        "welcomeNamed": "Welcome to Form Up, {{firstName}}.",
+        "welcome": "Welcome to Form Up.",
+        "ready": "Your account is ready — everything else happens in the app.",
+        "downloadOn": "Download on the",
+        "getItOn": "Get it on",
+        "signInWith": "In the app, sign in with"
       },
       "checkInbox": {
         "title": "Check your email",

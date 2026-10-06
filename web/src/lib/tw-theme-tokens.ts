@@ -85,6 +85,7 @@ export const TRACKING_TOKENS = [
 
 /** `--animate-*` — same unknown-class shape as spacing. */
 export const ANIMATE_TOKENS = [
+  'content-in',
   'sheet-in-right',
   'sheet-out-right',
   'sheet-in-left',

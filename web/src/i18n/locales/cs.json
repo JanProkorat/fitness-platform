@@ -2904,18 +2904,29 @@
       }
     },
     "register": {
-      "title": "Založit účet",
-      "lede": "Vyplňte údaje a potvrďte e-mail. Zabere to minutu.",
-      "roleLabel": "Čím se zabýváte?",
-      "roleHint": "Můžete vybrat obojí. Role lze později změnit v nastavení.",
+      "title": "Přidejte se k nám",
+      "lede": "Založte si účet. Zabere to minutu.",
+      "steps": {
+        "label": "Průběh registrace",
+        "account": "Účet",
+        "verify": "Ověření e-mailu",
+        "profile": "Váš profil",
+        "getApp": "Aplikace"
+      },
+      "roleLabel": "Přidávám se jako",
+      "roleHint": "Profesionálové mohou vybrat obě role. Cvičení pro sebe je samostatný typ účtu.",
       "roles": {
         "trainer": {
-          "name": "Trenér",
-          "description": "Tréninkové plány, cviky, záznam tréninků."
+          "name": "Osobní trenér",
+          "description": "Tréninkové plány a živé tréninky"
         },
         "nutritionist": {
-          "name": "Výživový poradce",
-          "description": "Jídelníčky, recepty, suroviny, makra."
+          "name": "Nutriční poradce",
+          "description": "Jídelníčky a recepty"
+        },
+        "client": {
+          "name": "Cvičím pro sebe",
+          "description": "Najděte si trenéra a sledujte svůj plán"
         }
       },
       "firstNameLabel": "Jméno",
@@ -2923,7 +2934,7 @@
       "lastNameLabel": "Příjmení",
       "lastNamePlaceholder": "Novák",
       "emailLabel": "E-mail",
-      "emailPlaceholder": "trener@example.com",
+      "emailPlaceholder": "jan@example.com",
       "passwordLabel": "Heslo",
       "passwordRules": {
         "length": "Aspoň 8 znaků",
@@ -2931,31 +2942,75 @@
         "lowercase": "Malé písmeno",
         "digit": "Číslice"
       },
-      "consentLabel": "Souhlasím se zpracováním osobních údajů a s podmínkami použití.",
+      "passwordStrength": {
+        "weak": "Slabé",
+        "fair": "Průměrné",
+        "good": "Dobré",
+        "strong": "Silné"
+      },
+      "passwordHint": "aspoň 8 znaků s velkým písmenem, malým písmenem a číslicí",
+      "consentLabel": "Souhlasím s <terms>Podmínkami použití</terms> a <privacy>Zásadami ochrany osobních údajů</privacy>.",
+      "healthConsentLabel": "Souhlasím se zpracováním svých zdravotních údajů — tělesných měření, záznamů tréninků a fotek pokroku — aby je mohl vidět můj trenér.",
       "submit": "Založit účet",
       "submitting": "Zakládám účet...",
-      "submitHint": "Vyberte roli a vyplňte všechna pole.",
+      "submitHint": "Vyberte, jak se přidáváte, a vyplňte všechna pole.",
       "haveAccount": "Už účet máte?",
       "signIn": "Přihlaste se",
       "validation": {
-        "roleRequired": "Vyberte alespoň jednu roli.",
+        "roleRequired": "Vyberte, jak se přidáváte.",
         "firstNameRequired": "Zadejte jméno.",
         "lastNameRequired": "Zadejte příjmení.",
         "emailRequired": "Zadejte e-mail.",
         "emailInvalid": "Zadejte platný e-mail.",
         "passwordInvalid": "Heslo nesplňuje všechny požadavky výše.",
-        "consentRequired": "Pro založení účtu musíte souhlasit se zpracováním osobních údajů."
+        "consentRequired": "Pro založení účtu musíte souhlasit s Podmínkami použití a Zásadami ochrany osobních údajů.",
+        "healthConsentRequired": "Pro založení účtu musíte souhlasit se zpracováním zdravotních údajů."
       },
       "errors": {
         "duplicateEmail": "Tento e-mail je již zaregistrován.",
         "network": "Nepodařilo se spojit se serverem. Zkontrolujte připojení a zkuste to znovu.",
         "generic": "Registraci se nepodařilo dokončit. Zkuste to prosím znovu."
       },
+      "aside": {
+        "coach": {
+          "eyebrow": "Vaše první odpoledne",
+          "titleLead": "Od registrace k týdnu vašeho prvního klienta",
+          "titleAccent": "ve čtyřech krocích.",
+          "steps": {
+            "account": { "title": "Založte si účet", "body": "Jméno, e-mail a čemu se věnujete." },
+            "profile": { "title": "Vyplňte profil", "body": "Fotka, specializace a krátké bio — aby vás klienti našli v aplikaci." },
+            "invite": { "title": "Pozvěte prvního klienta", "body": "Pošlete pozvánku e-mailem. Klient se připojí přes aplikaci Form Up." },
+            "week": { "title": "Připravte jeho první týden", "body": "Začněte ze šablony nebo od nuly a pak plán zveřejněte." }
+          },
+          "app": {
+            "title": "Stáhněte si i aplikaci",
+            "body": "Vaši klienti v ní žijí — a vy je můžete sledovat z telefonu."
+          }
+        },
+        "client": {
+          "eyebrow": "Jak to funguje pro vás",
+          "titleLead": "Plán vám připraví trenér.",
+          "titleAccent": "Vy trénujete v aplikaci.",
+          "steps": {
+            "account": { "title": "Založte si účet", "body": "Jméno, e-mail a heslo." },
+            "app": { "title": "Stáhněte si aplikaci Form Up", "body": "V telefonu se přihlaste stejným e-mailem." },
+            "coach": { "title": "Najděte si trenéra", "body": "Vyhledejte trenéra nebo nutričního poradce — nebo přijměte pozvánku, kterou jste dostali." },
+            "plan": { "title": "Sledujte svůj plán", "body": "Tréninky, jídelníček i check-iny, vše v aplikaci." }
+          }
+        }
+      },
+      "stores": {
+        "appStore": "App Store",
+        "googlePlay": "Google Play",
+        "comingSoon": "Již brzy"
+      },
       "sent": {
         "title": "Zkontrolujte poštu",
-        "lede": "Poslali jsme ověřovací odkaz na {{email}}. Odkaz platí 24 hodin.",
-        "note": "Nepřišel? Podívejte se do spamu. Pokud tam není, pošleme ho znovu.",
-        "resend": "Poslat odkaz znovu",
+        "lede": "Poslali jsme ověřovací odkaz na",
+        "noteTitle": "Ještě nic nepřišlo?",
+        "note": "Podívejte se do spamu, nebo chvilku počkejte — doručení může chvíli trvat.",
+        "resend": "Poslat e-mail znovu",
+        "resendIn": "dostupné za {{time}}",
         "resending": "Odesílám...",
         "resendConfirmation": "Pokud je to potřeba, poslali jsme nový odkaz.",
         "wrongEmail": "Špatná adresa?",
@@ -2988,10 +3043,25 @@
     "verifyEmail": {
       "verifying": "Ověřujeme váš e-mail...",
       "success": {
-        "title": "E-mail ověřen",
-        "lede": "Váš účet je připravený. Můžete se přihlásit a pustit se do práce.",
-        "cta": "Přejít do portálu",
-        "ctaLoggedOut": "Přejít na přihlášení"
+        "title": "E-mail ověřen"
+      },
+      "coach": {
+        "ready": "Váš účet je připravený.",
+        "setUpProfile": "Nastavit profil",
+        "skip": "Prozatím přeskočit a přejít do portálu",
+        "nextHeading": "CO DÁL",
+        "inviteTitle": "Pozvěte prvního klienta",
+        "inviteHint": "Připojí se přes aplikaci Form Up",
+        "buildTitle": "Sestavte mu první týden",
+        "buildHint": "Ze šablony nebo od nuly"
+      },
+      "getApp": {
+        "welcomeNamed": "Vítejte ve Form Up, {{firstName}}.",
+        "welcome": "Vítejte ve Form Up.",
+        "ready": "Váš účet je připravený — vše ostatní se děje v aplikaci.",
+        "downloadOn": "Stáhnout z",
+        "getItOn": "Získejte na",
+        "signInWith": "V aplikaci se přihlaste e-mailem"
       },
       "checkInbox": {
         "title": "Zkontrolujte poštu",
