@@ -1,6 +1,6 @@
 /**
  * Account-flow pages spanning multiple routes — the sign-in dialog routes
- * ("/login", "/register", "/forgot-password"), "/verify-email" and
+ * ("/login", "/forgot-password"), the "/register" page, "/verify-email" and
  * "/auth/reset-password" — #1058 phase 4.
  *
  * Runs under the `public` project (playwright.config.ts) — no `setup`
@@ -16,43 +16,43 @@ test.beforeEach(async ({ page }) => {
   await page.addInitScript("window.localStorage.setItem('lang', 'en');");
 });
 
-test('/register and /forgot-password render their forms in the same dialog, each with an accessible name', async ({
+test('/forgot-password renders its form in a dialog with an accessible name, and /register is a page without one', async ({
   page,
 }) => {
-  await page.goto('/register');
-  await expect(page.getByRole('dialog', { name: 'Create account' })).toBeVisible();
-
   await page.goto('/forgot-password');
   await expect(page.getByRole('dialog', { name: 'Forgot password' })).toBeVisible();
+
+  await page.goto('/register');
+  await expect(page.getByRole('heading', { name: 'Join our community' })).toBeVisible();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
 });
 
-test('swapping between the form routes keeps one dialog mounted and focuses the container, never a field', async ({
+test('swapping between /login and /forgot-password keeps one dialog mounted and focuses the container, never a field', async ({
   page,
 }) => {
-  // Regression: focusing the first field of RegisterForm (React Hook Form,
-  // `mode: 'onTouched'`) made the user's next click blur it first, render its
-  // "required" error, grow the form and swallow that click. On open, only
-  // /login focuses a field (Email); /register and /forgot-password focus the
-  // dialog container, and a client-side swap inside the open dialog must do
-  // the same without closing and reopening it.
-  await page.goto('/register');
+  // Regression: focusing the first field of a form (React Hook Form,
+  // `mode: 'onTouched'`) makes the user's next click blur it first, render
+  // its "required" error, grow the form and swallow that click. On open, only
+  // /login focuses a field (Email); /forgot-password focuses the dialog
+  // container, and a client-side swap inside the open dialog must do the same
+  // without closing and reopening it.
+  await page.goto('/forgot-password');
   const dialog = page.getByRole('dialog');
   await expect(dialog).toBeFocused();
-  await expect(page.getByLabel('First name')).not.toBeFocused();
+  await expect(page.getByLabel('Email')).not.toBeFocused();
 
   const dialogHandle = await dialog.elementHandle();
 
-  await dialog.getByRole('link', { name: 'Sign in' }).click();
+  await dialog.getByRole('link', { name: 'Back to sign in' }).first().click();
   await expect(page).toHaveURL(/\/login$/);
-  await expect(dialog.getByLabel('Email')).toBeVisible();
-  await expect(page.getByLabel('First name')).toHaveCount(0);
+  await expect(dialog.getByLabel('Password')).toBeVisible();
   expect(await dialogHandle?.evaluate((node) => node.isConnected)).toBe(true);
   await expect(page.getByLabel('Email')).not.toBeFocused();
 
-  await dialog.getByRole('link', { name: 'Create account' }).click();
-  await expect(page).toHaveURL(/\/register$/);
+  await dialog.getByRole('link', { name: 'Forgot password?' }).click();
+  await expect(page).toHaveURL(/\/forgot-password$/);
   await expect(dialog).toBeFocused();
-  await expect(page.getByLabel('First name')).not.toBeFocused();
+  await expect(page.getByLabel('Email')).not.toBeFocused();
   expect(await dialogHandle?.evaluate((node) => node.isConnected)).toBe(true);
 });
 

@@ -8,8 +8,8 @@ import ProtectedRoute from '@/routes/ProtectedRoute';
 import AppShell from '@/components/layout/AppShell';
 import EntryPage from '@/pages/EntryPage';
 import LoginForm from '@/components/entry/LoginForm';
-import RegisterForm from '@/components/entry/RegisterForm';
 import ForgotPasswordForm from '@/components/entry/ForgotPasswordForm';
+import RegisterPage from '@/pages/RegisterPage';
 import VerifyEmailPage from '@/pages/VerifyEmailPage';
 import ResetPasswordPage from '@/pages/ResetPasswordPage';
 import DownloadAppPage from '@/pages/DownloadAppPage';
@@ -54,9 +54,9 @@ export default function App() {
           <Route element={<EntryPage />}>
             <Route path="/" element={null} />
             <Route path="/login" element={<LoginForm />} />
-            <Route path="/register" element={<RegisterForm />} />
             <Route path="/forgot-password" element={<ForgotPasswordForm />} />
           </Route>
+          <Route path="/register" element={<RegisterPage />} />
           <Route path="/verify-email" element={<VerifyEmailPage />} />
           <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
           <Route path="/download-app" element={<DownloadAppPage />} />
