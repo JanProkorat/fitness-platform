@@ -195,6 +195,7 @@
     "foods": "Lebensmittel",
     "plans": "Pläne",
     "settings": "Einstellungen",
+    "profileLink": "Profil öffnen",
     "recipes": "Rezepte",
     "exercises": "Übungen",
     "sectionTemplates": "Workouts",
@@ -718,7 +719,113 @@
     "stay": "Bleiben",
     "leaveWithoutSaving": "Ohne Speichern verlassen",
     "tabQuestionnaires": "Fragebögen",
-    "questionnairesPlaceholder": "Fragebogenverwaltung kommt bald."
+    "questionnairesPlaceholder": "Fragebogenverwaltung kommt bald.",
+    "page": {
+      "eyebrow": "Konto",
+      "title": "Dein Profil",
+      "subtitle": "Was Kunden sehen, wenn sie dich finden, und wie sie dich erreichen",
+      "allSaved": "Alle Änderungen gespeichert",
+      "saved": "Profil gespeichert",
+      "photo": {
+        "title": "Foto und Name",
+        "description": "Kunden sehen das auf deinem Profil, in der Suche und im Chat.",
+        "upload": "Foto hochladen",
+        "uploading": "Wird hochgeladen...",
+        "remove": "Entfernen",
+        "hint": "Ein quadratisches Foto deines Gesichts funktioniert am besten.",
+        "removed": "Foto entfernt",
+        "removeError": "Das Foto konnte nicht entfernt werden. Bitte versuche es erneut.",
+        "badType": "Wähle ein JPG-, PNG- oder WebP-Bild.",
+        "tooLarge": "Das Foto darf höchstens 5 MB groß sein."
+      },
+      "account": {
+        "title": "Konto",
+        "description": "Privat — nur du und die Kunden, mit denen du arbeitest, sehen das.",
+        "emailHint": "Mit dieser Adresse meldest du dich an.",
+        "phoneHint": "Optional.",
+        "timeZone": "Zeitzone",
+        "timeZoneHint": "Check-in-Erinnerungen und Sitzungszeiten richten sich danach."
+      },
+      "about": {
+        "title": "Über dich",
+        "description": "Das Erste, was ein Kunde liest, bevor er dir eine Anfrage schickt.",
+        "bioHint": "Wem du hilfst, wie du arbeitest und was ein Kunde im ersten Monat erwarten kann.",
+        "cityHint": "In der Suche sichtbar; Kunden filtern danach.",
+        "price": "Preis pro Monat",
+        "priceHint": "Freier Text, z. B. „ab 100 €“."
+      },
+      "expertise": {
+        "title": "Expertise",
+        "description": "Was du trainierst, in welchen Sprachen und was dich qualifiziert.",
+        "specializationsHint": "Mit Enter hinzufügen. Kunden suchen danach.",
+        "languagesHint": "Sprachen, in denen du Sitzungen hältst und chattest.",
+        "certificates": "Zertifikate und Ausbildung",
+        "addCertificate": "Zertifikat hinzufügen",
+        "certificateTitle": "Zertifikat oder Abschluss",
+        "certificateIssuer": "Aussteller oder Schule",
+        "certificateYear": "Jahr",
+        "certificateTitleLabel": "Titel von Zertifikat {{number}}",
+        "certificateIssuerLabel": "Aussteller von Zertifikat {{number}}",
+        "certificateYearLabel": "Jahr von Zertifikat {{number}}",
+        "reorderCertificate": "Zertifikat {{number}} verschieben",
+        "removeCertificate": "Zertifikat {{number}} entfernen"
+      },
+      "work": {
+        "title": "Wie du arbeitest",
+        "description": "Kunden filtern die Suche danach.",
+        "online": "Online",
+        "onlineHint": "Pläne, Chat und Check-ins in der App. Keine persönlichen Treffen.",
+        "inPerson": "Persönlich",
+        "inPersonHint": "Du trainierst Kunden persönlich, im Studio oder draußen.",
+        "both": "Beides",
+        "bothHint": "Persönliche Sitzungen plus Online-Pläne und Check-ins."
+      },
+      "links": {
+        "title": "Links",
+        "description": "Optional. Wird als Symbole auf deinem öffentlichen Profil angezeigt.",
+        "websitePlaceholder": "deinewebsite.de",
+        "instagramPlaceholder": "@deinprofil",
+        "linkedinPlaceholder": "linkedin.com/in/..."
+      },
+      "visibility": {
+        "title": "Sichtbarkeit",
+        "description": "Lege fest, wer dich finden kann.",
+        "showInSearch": "In der Suche anzeigen",
+        "showInSearchHint": "Kunden, die in der App einen Coach suchen, finden dein Profil.",
+        "acceptNewClients": "Nehme neue Kunden an",
+        "acceptNewClientsHint": "Schalte aus, wenn du ausgelastet bist. Dein Profil bleibt mit „Keine neuen Kunden“ sichtbar."
+      },
+      "preview": {
+        "title": "So sehen Kunden dich",
+        "noName": "Dein Name",
+        "noBio": "Hier erscheint deine Bio.",
+        "online": "Online",
+        "inPerson": "Persönlich",
+        "both": "Online & persönlich",
+        "taking": "Nimmt neue Kunden an",
+        "notTaking": "Keine neuen Kunden",
+        "price": "Preis",
+        "languages": "Sprachen",
+        "certificates_one": "{{count}} Zertifikat",
+        "certificates_other": "{{count}} Zertifikate",
+        "note": "Aktualisiert sich beim Tippen. Kunden sehen diese Karte in der Suche und über deinen Einladungslink."
+      },
+      "validation": {
+        "required": "Dieses Feld ist erforderlich.",
+        "tooLong": "Verwende höchstens {{max}} Zeichen.",
+        "listTooLong": "Zu viele Einträge — entferne einige.",
+        "year": "Gib eine vierstellige Jahreszahl ein.",
+        "invalidTimeZone": "Diese Zeitzone wird nicht unterstützt. Wähle eine andere.",
+        "invalidCertificates": "Einige Zertifikate konnten nicht gespeichert werden. Prüfe ihre Titel.",
+        "serverInvalid": "Dieser Wert wurde abgelehnt. Bitte prüfe ihn."
+      },
+      "error": {
+        "forbidden": "Nur Trainer und Ernährungsberater haben ein Berufsprofil.",
+        "notFound": "Du hast noch kein Berufsprofil.",
+        "generic": "Dein Profil konnte nicht geladen werden. Bitte versuche es erneut.",
+        "retry": "Erneut versuchen"
+      }
+    }
   },
   "invite": {
     "title": "Neuen Klienten einladen",

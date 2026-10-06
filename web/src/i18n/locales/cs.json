@@ -195,6 +195,7 @@
     "foods": "Potraviny",
     "plans": "Plány",
     "settings": "Nastavení",
+    "profileLink": "Otevřít profil",
     "recipes": "Recepty",
     "exercises": "Cviky",
     "sectionTemplates": "Workouty",
@@ -742,7 +743,115 @@
     "stay": "Zůstat",
     "leaveWithoutSaving": "Odejít bez uložení",
     "tabQuestionnaires": "Dotazníky",
-    "questionnairesPlaceholder": "Správa dotazníků bude brzy k dispozici."
+    "questionnairesPlaceholder": "Správa dotazníků bude brzy k dispozici.",
+    "page": {
+      "eyebrow": "Účet",
+      "title": "Váš profil",
+      "subtitle": "Co klienti uvidí, když vás najdou, a jak se vám ozvou",
+      "allSaved": "Všechny změny uloženy",
+      "saved": "Profil uložen",
+      "photo": {
+        "title": "Fotka a jméno",
+        "description": "Klienti to uvidí na vašem profilu, ve vyhledávání a v chatu.",
+        "upload": "Nahrát fotku",
+        "uploading": "Nahrávám...",
+        "remove": "Odstranit",
+        "hint": "Nejlépe funguje čtvercová fotka obličeje.",
+        "removed": "Fotka odstraněna",
+        "removeError": "Fotku se nepodařilo odstranit. Zkuste to prosím znovu.",
+        "badType": "Vyberte obrázek JPG, PNG nebo WebP.",
+        "tooLarge": "Fotka může mít nejvýše 5 MB."
+      },
+      "account": {
+        "title": "Účet",
+        "description": "Soukromé — vidíte to jen vy a klienti, se kterými pracujete.",
+        "emailHint": "Přihlašujete se touto adresou.",
+        "phoneHint": "Nepovinné.",
+        "timeZone": "Časové pásmo",
+        "timeZoneHint": "Připomínky check-inů a časy lekcí se řídí jím."
+      },
+      "about": {
+        "title": "O vás",
+        "description": "První, co klient přečte, než vám pošle žádost.",
+        "bioHint": "Komu pomáháte, jak pracujete a co může klient čekat v prvním měsíci.",
+        "cityHint": "Zobrazuje se ve vyhledávání, klienti podle něj filtrují.",
+        "price": "Cena za měsíc",
+        "priceHint": "Volný text, např. „od 2 500 Kč“."
+      },
+      "expertise": {
+        "title": "Odbornost",
+        "description": "Co trénujete, v jakých jazycích a čím se prokazujete.",
+        "specializationsHint": "Přidáte stiskem Enter. Klienti podle nich hledají.",
+        "languagesHint": "Jazyky, ve kterých vedete lekce a píšete v chatu.",
+        "certificates": "Certifikáty a vzdělání",
+        "addCertificate": "Přidat certifikát",
+        "certificateTitle": "Certifikát nebo titul",
+        "certificateIssuer": "Vydavatel nebo škola",
+        "certificateYear": "Rok",
+        "certificateTitleLabel": "Název certifikátu {{number}}",
+        "certificateIssuerLabel": "Vydavatel certifikátu {{number}}",
+        "certificateYearLabel": "Rok certifikátu {{number}}",
+        "reorderCertificate": "Přesunout certifikát {{number}}",
+        "removeCertificate": "Odebrat certifikát {{number}}"
+      },
+      "work": {
+        "title": "Jak pracujete",
+        "description": "Podle toho klienti filtrují vyhledávání.",
+        "online": "Online",
+        "onlineHint": "Plány, chat a check-iny v aplikaci. Žádná osobní setkání.",
+        "inPerson": "Osobně",
+        "inPersonHint": "Klienty trénujete osobně, v posilovně nebo venku.",
+        "both": "Obojí",
+        "bothHint": "Osobní lekce plus online plány a check-iny."
+      },
+      "links": {
+        "title": "Odkazy",
+        "description": "Nepovinné. Zobrazí se jako ikony na vašem veřejném profilu.",
+        "websitePlaceholder": "vasweb.cz",
+        "instagramPlaceholder": "@vasprofil",
+        "linkedinPlaceholder": "linkedin.com/in/..."
+      },
+      "visibility": {
+        "title": "Viditelnost",
+        "description": "Určete, kdo vás může najít.",
+        "showInSearch": "Zobrazit mě ve vyhledávání",
+        "showInSearchHint": "Klienti, kteří v aplikaci hledají trenéra, najdou váš profil.",
+        "acceptNewClients": "Přijímám nové klienty",
+        "acceptNewClientsHint": "Vypněte, když jste plní. Profil zůstane viditelný se štítkem „Nepřijímám klienty“."
+      },
+      "preview": {
+        "title": "Jak vás uvidí klienti",
+        "noName": "Vaše jméno",
+        "noBio": "Zde se zobrazí vaše bio.",
+        "online": "Online",
+        "inPerson": "Osobně",
+        "both": "Online i osobně",
+        "taking": "Přijímám nové klienty",
+        "notTaking": "Nepřijímám klienty",
+        "price": "Cena",
+        "languages": "Jazyky",
+        "certificates_one": "{{count}} certifikát",
+        "certificates_few": "{{count}} certifikáty",
+        "certificates_many": "{{count}} certifikátu",
+        "certificates_other": "{{count}} certifikátů",
+        "note": "Mění se, jak píšete. Klienti vidí tuto kartu ve vyhledávání a na odkazu s pozvánkou."
+      },
+      "validation": {
+        "required": "Toto pole je povinné.",
+        "tooLong": "Použijte nejvýše {{max}} znaků.",
+        "listTooLong": "Příliš mnoho položek — některé odeberte.",
+        "year": "Zadejte čtyřciferný rok.",
+        "invalidTimeZone": "Toto časové pásmo není podporováno. Vyberte jiné.",
+        "invalidCertificates": "Některé certifikáty se nepodařilo uložit. Zkontrolujte jejich názvy.",
+        "serverInvalid": "Tato hodnota byla odmítnuta. Zkontrolujte ji."
+      },
+      "error": {
+        "forbidden": "Profesní profil mají jen trenéři a nutriční poradci.",
+        "notFound": "Zatím nemáte profesní profil.",
+        "generic": "Profil se nepodařilo načíst. Zkuste to prosím znovu.",
+        "retry": "Zkusit znovu"
+      }
+    }
   },
   "invite": {
     "title": "Pozvat nového klienta",

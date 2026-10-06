@@ -18,6 +18,7 @@ import ClientDetailPage from '@/pages/ClientDetailPage';
 import InboxPage from '@/pages/InboxPage';
 import IngredientsPage from '@/pages/IngredientsPage';
 import RecipesPage from '@/pages/RecipesPage';
+import ProfilePage from '@/pages/ProfilePage';
 import NotFoundPage from '@/pages/NotFoundPage';
 
 export default function App() {
@@ -68,6 +69,7 @@ export default function App() {
               <Route path="/inbox" element={<InboxPage />} />
               <Route path="/ingredients" element={<IngredientsPage />} />
               <Route path="/recipes" element={<RecipesPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
             </Route>
           </Route>
 

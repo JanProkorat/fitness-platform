@@ -7,8 +7,10 @@ import RegisterStepper from '@/components/register/RegisterStepper';
 
 interface CoachVerifiedStateProps {
   firstName: string;
-  /** Where both actions lead; "/login" when the stored session is stale and cannot pass the auth guard. */
-  to: '/clients' | '/login';
+  /** Primary action target; "/login" (carrying return-to /profile) when the stored session is stale. */
+  profileTo: '/profile' | '/login';
+  /** Skip link target; "/login" when the stored session is stale and cannot pass the auth guard. */
+  skipTo: '/clients' | '/login';
 }
 
 function NextStep({ icon: Icon, title, hint }: { icon: LucideIcon; title: string; hint: string }) {
@@ -26,7 +28,7 @@ function NextStep({ icon: Icon, title, hint }: { icon: LucideIcon; title: string
 }
 
 /** Final register step for coaches: the account is verified, next they set up a profile or enter the portal. */
-export default function CoachVerifiedState({ firstName, to }: CoachVerifiedStateProps) {
+export default function CoachVerifiedState({ firstName, profileTo, skipTo }: CoachVerifiedStateProps) {
   const { t } = useTranslation();
 
   return (
@@ -51,13 +53,17 @@ export default function CoachVerifiedState({ firstName, to }: CoachVerifiedState
         </p>
 
         <Button asChild className="h-12 gap-2 self-stretch rounded-field text-subhead font-bold">
-          <Link to={to} replace>
+          <Link
+            to={profileTo}
+            replace
+            state={profileTo === '/login' ? { from: '/profile' } : undefined}
+          >
             {t('entry.verifyEmail.coach.setUpProfile')}
             <ChevronRightIcon aria-hidden="true" />
           </Link>
         </Button>
         <Link
-          to={to}
+          to={skipTo}
           replace
           className="text-body font-semibold text-muted-foreground underline hover:text-ink"
         >

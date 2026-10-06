@@ -29,6 +29,11 @@ export async function updateMyProfile(payload: UpdateMyProfilePayload): Promise<
   await api.put('/users/me', payload);
 }
 
+/** PUT /users/me/timezone — IANA zone id; 400 INVALID_TIME_ZONE when .NET cannot resolve it. */
+export async function updateMyTimeZone(timeZone: string): Promise<void> {
+  await api.put('/users/me/timezone', { timeZone });
+}
+
 /** GET /trainer/profile — trainer/nutritionist professional profile fields. */
 export async function getTrainerProfile(): Promise<GetProfessionalProfileResponse> {
   const { data } = await api.get<GetProfessionalProfileResponse>('/trainer/profile');
