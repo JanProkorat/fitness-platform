@@ -10,6 +10,7 @@ import type { LucideIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import StoreButtons from '@/components/register/StoreButtons';
+import { SOME_STORE_MISSING } from '@/components/register/storeLinks';
 
 export type RegisterAsideVariant = 'coach' | 'client';
 
@@ -90,6 +91,11 @@ export default function RegisterAside({ variant }: { variant: RegisterAsideVaria
             <span className="text-body leading-normal text-muted-foreground">
               {t(`${base}.app.body`)}
             </span>
+            {SOME_STORE_MISSING && (
+              <span className="text-caption font-medium text-muted-foreground">
+                {t('entry.register.stores.comingSoon')}
+              </span>
+            )}
           </span>
           <StoreButtons className="shrink-0" />
         </div>

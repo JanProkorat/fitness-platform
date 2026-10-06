@@ -2,6 +2,7 @@ import { AppleIcon, PlayIcon } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
+import { APP_STORE_URL, GOOGLE_PLAY_URL } from '@/components/register/storeLinks';
 
 const ICON_BUTTON_CLASS =
   'flex h-10 w-11 items-center justify-center rounded-field border border-border bg-surface text-ink outline-none focus-visible:ring-3 focus-visible:ring-ring/50';
@@ -9,11 +10,6 @@ const ICON_BUTTON_CLASS =
 const WIDE_BUTTON_CLASS =
   'flex h-14 flex-1 items-center justify-center gap-2.5 rounded-xl bg-primary text-primary-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50';
 
-/** A store link is only trusted when it is an absolute http(s) URL. */
-function storeUrl(value: string | undefined): string | null {
-  const trimmed = value?.trim();
-  return trimmed && /^https?:\/\//i.test(trimmed) ? trimmed : null;
-}
 
 interface StoreButtonsProps {
   className?: string;
@@ -31,8 +27,8 @@ export default function StoreButtons({ className, variant = 'icon' }: StoreButto
   const wide = variant === 'wide';
 
   const stores: { id: 'appStore' | 'googlePlay'; Icon: LucideIcon; url: string | null }[] = [
-    { id: 'appStore', Icon: AppleIcon, url: storeUrl(import.meta.env.VITE_APP_STORE_URL) },
-    { id: 'googlePlay', Icon: PlayIcon, url: storeUrl(import.meta.env.VITE_GOOGLE_PLAY_URL) },
+    { id: 'appStore', Icon: AppleIcon, url: APP_STORE_URL },
+    { id: 'googlePlay', Icon: PlayIcon, url: GOOGLE_PLAY_URL },
   ];
 
   return (
@@ -74,16 +70,12 @@ export default function StoreButtons({ className, variant = 'icon' }: StoreButto
             disabled
             aria-label={`${name} — ${t('entry.register.stores.comingSoon')}`}
             title={t('entry.register.stores.comingSoon')}
-            className={cn(
-              wide ? WIDE_BUTTON_CLASS : ICON_BUTTON_CLASS,
-              'cursor-not-allowed opacity-50',
-              !wide && 'w-auto gap-1.5 px-3'
-            )}
+            className={cn(wide ? WIDE_BUTTON_CLASS : ICON_BUTTON_CLASS, 'cursor-not-allowed opacity-50')}
           >
             {content}
-            <span className={cn('font-medium', wide ? 'text-caption' : 'text-meta')}>
-              {t('entry.register.stores.comingSoon')}
-            </span>
+            {wide && (
+              <span className="text-caption font-medium">{t('entry.register.stores.comingSoon')}</span>
+            )}
           </button>
         );
       })}
