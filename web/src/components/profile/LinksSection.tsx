@@ -3,11 +3,11 @@ import { useTranslation } from 'react-i18next';
 import { Globe } from 'lucide-react';
 import type { ComponentType, SVGProps } from 'react';
 import { InstagramIcon, LinkedinIcon } from '@/components/profile/SocialIcons';
-
-type LinkIcon = ComponentType<SVGProps<SVGSVGElement>>;
 import { Input } from '@/components/ui/input';
 import { Field, ProfileSection } from '@/components/profile/ProfileSection';
 import type { ProfileFormValues } from '@/components/profile/profile-form';
+
+type LinkIcon = ComponentType<SVGProps<SVGSVGElement>>;
 
 const LINKS: {
   name: 'website' | 'instagram' | 'linkedIn';

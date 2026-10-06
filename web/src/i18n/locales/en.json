@@ -817,6 +817,7 @@
         "tooLong": "Use at most {{max}} characters.",
         "listTooLong": "Too many entries — remove some.",
         "year": "Use a four-digit year.",
+        "certificateTitleRequired": "Add a title for this certificate.",
         "invalidTimeZone": "This time zone is not supported. Choose another one.",
         "invalidCertificates": "Some certificates could not be saved. Check their titles.",
         "serverInvalid": "This value was rejected. Please check it."

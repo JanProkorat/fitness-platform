@@ -842,6 +842,7 @@
         "tooLong": "Použijte nejvýše {{max}} znaků.",
         "listTooLong": "Příliš mnoho položek — některé odeberte.",
         "year": "Zadejte čtyřciferný rok.",
+        "certificateTitleRequired": "Doplňte název certifikátu.",
         "invalidTimeZone": "Toto časové pásmo není podporováno. Vyberte jiné.",
         "invalidCertificates": "Některé certifikáty se nepodařilo uložit. Zkontrolujte jejich názvy.",
         "serverInvalid": "Tato hodnota byla odmítnuta. Zkontrolujte ji."

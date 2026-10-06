@@ -816,6 +816,7 @@
         "tooLong": "Verwende höchstens {{max}} Zeichen.",
         "listTooLong": "Zu viele Einträge — entferne einige.",
         "year": "Gib eine vierstellige Jahreszahl ein.",
+        "certificateTitleRequired": "Gib einen Titel für dieses Zertifikat ein.",
         "invalidTimeZone": "Diese Zeitzone wird nicht unterstützt. Wähle eine andere.",
         "invalidCertificates": "Einige Zertifikate konnten nicht gespeichert werden. Prüfe ihre Titel.",
         "serverInvalid": "Dieser Wert wurde abgelehnt. Bitte prüfe ihn."

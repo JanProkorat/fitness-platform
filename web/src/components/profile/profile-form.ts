@@ -199,7 +199,19 @@ export function createProfileSchema(t: TFunction) {
           year: z.string().max(4, t('profile.page.validation.year')),
         }),
       )
-      .refine((list) => serializeCertificates(list).length <= CERTIFICATES_JSON_MAX, t('profile.page.validation.listTooLong')),
+      .refine((list) => serializeCertificates(list).length <= CERTIFICATES_JSON_MAX, t('profile.page.validation.listTooLong'))
+      .superRefine((list, ctx) => {
+        // Fully empty rows are dropped on save; a row with only an issuer or year needs a title.
+        list.forEach((item, index) => {
+          if (item.title.trim() === '' && (item.issuer.trim() !== '' || item.year.trim() !== '')) {
+            ctx.addIssue({
+              code: 'custom',
+              message: t('profile.page.validation.certificateTitleRequired'),
+              path: [index, 'title'],
+            });
+          }
+        });
+      }),
     collaborationType: z.enum(['online', 'inperson', 'both']),
     website: z.string().max(LINK_MAX, t('profile.page.validation.tooLong', { max: LINK_MAX })),
     instagram: z.string().max(LINK_MAX, t('profile.page.validation.tooLong', { max: LINK_MAX })),
