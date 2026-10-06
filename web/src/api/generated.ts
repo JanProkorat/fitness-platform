@@ -3034,6 +3034,13 @@ export class ApiClient {
             const _responseText = response.data;
             return Promise.resolve<void>(null as any);
 
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
         } else if (status === 401) {
             const _responseText = response.data;
             return throwException("Unauthorized", status, _responseText, _headers);
@@ -19132,6 +19139,8 @@ export interface GetProfessionalProfileResponse {
     showInSearch?: boolean;
     /** Whether the professional is currently accepting new clients. */
     acceptNewClients?: boolean;
+    /** Professional avatar blob URL; null when unset (no fallback to the user avatar). */
+    avatarBlobUrl?: string | undefined;
 }
 
 /** Response model for the trainer's Pending tab. */
