@@ -10,6 +10,7 @@
       "files": [
         "web/src/pages/EntryPage.tsx",
         "web/src/components/home/**",
+        "web/src/components/entry/LanguageSwitcher.tsx",
         "web/src/stores/theme.ts"
       ],
       "endpoints": [],
@@ -28,6 +29,7 @@
       "route": "/login",
       "roles": ["Public"],
       "files": [
+        "web/src/pages/EntryPage.tsx",
         "web/src/components/entry/LoginForm.tsx",
         "web/src/components/entry/EntryDialogTitle.tsx"
       ],
@@ -47,7 +49,9 @@
       "route": "/forgot-password",
       "roles": ["Public"],
       "files": [
-        "web/src/components/entry/ForgotPasswordForm.tsx"
+        "web/src/pages/EntryPage.tsx",
+        "web/src/components/entry/ForgotPasswordForm.tsx",
+        "web/src/components/entry/EntryDialogTitle.tsx"
       ],
       "endpoints": ["POST /auth/password/reset"],
       "board": null,
