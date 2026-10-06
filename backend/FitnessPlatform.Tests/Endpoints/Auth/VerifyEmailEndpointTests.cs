@@ -100,7 +100,7 @@ public class VerifyEmailEndpointTests
     [Theory]
     [InlineData("client@example.com", AppRoles.Client)]
     [InlineData("trainer@example.com", AppRoles.Trainer)]
-    public async Task HandleAsync_ValidToken_ReturnsEmailAndRoles(string email, string role)
+    public async Task HandleAsync_ValidToken_ReturnsAccountDetails(string email, string role)
     {
         var userId = Guid.NewGuid();
         var user = CreateUser(userId, email);
@@ -119,6 +119,7 @@ public class VerifyEmailEndpointTests
         await ep.HandleAsync(new VerifyEmailRequest { Token = "roles-token" }, TestContext.Current.CancellationToken);
 
         ep.Response.Email.Should().Be(email);
+        ep.Response.FirstName.Should().Be("John");
         ep.Response.Roles.Should().Equal(role);
         ep.Response.Message.Should().Be("Email verified successfully.");
     }

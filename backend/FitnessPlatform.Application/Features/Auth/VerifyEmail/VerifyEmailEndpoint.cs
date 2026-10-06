@@ -100,6 +100,7 @@ public class VerifyEmailEndpoint(
         {
             Message = "Email verified successfully.",
             Email = token.User.Email ?? string.Empty,
+            FirstName = token.User.FirstName,
             Roles = [.. roles]
         }, ct);
     }

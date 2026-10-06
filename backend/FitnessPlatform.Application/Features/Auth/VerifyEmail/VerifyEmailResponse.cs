@@ -16,6 +16,11 @@ public class VerifyEmailResponse
     public string Email { get; set; } = string.Empty;
 
     /// <summary>
+    /// First name of the verified account.
+    /// </summary>
+    public string FirstName { get; set; } = string.Empty;
+
+    /// <summary>
     /// Roles held by the verified account.
     /// </summary>
     public List<string> Roles { get; set; } = [];
