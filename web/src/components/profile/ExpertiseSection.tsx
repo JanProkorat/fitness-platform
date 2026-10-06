@@ -51,10 +51,11 @@ function CertificateRow({ item, index, titleError, onChange, onRemove }: Certifi
             placeholder={t('profile.page.expertise.certificateTitle')}
             aria-label={t('profile.page.expertise.certificateTitleLabel', { number: position })}
             aria-invalid={!!titleError}
+            aria-describedby={titleError ? `profile-certificate-${item.id}-title-error` : undefined}
             className="h-9"
           />
           {titleError && (
-            <p role="alert" className="text-meta text-error">
+            <p id={`profile-certificate-${item.id}-title-error`} role="alert" className="text-meta text-error">
               {titleError}
             </p>
           )}
