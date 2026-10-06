@@ -75,7 +75,7 @@ export default function HeroMockup() {
   return (
     <div
       aria-hidden="true"
-      className="h-[494px] w-[768px] lg:[zoom:0.46] lg:@min-[960px]:[zoom:0.56] lg:@min-[1040px]:[zoom:0.67] lg:@min-[1120px]:[zoom:0.78] lg:@min-[1200px]:[zoom:0.88] lg:@min-[1286px]:[zoom:1]"
+      className="h-[494px] w-[768px] lg:[zoom:0.46] lg:@min-[960px]:[zoom:0.56] lg:@min-[1040px]:[zoom:0.67] lg:@min-[1120px]:[zoom:0.78] lg:@min-[1200px]:[zoom:0.88] lg:@min-[1286px]:[zoom:1] lg:@min-[1340px]:[zoom:1.03] lg:@min-[1472px]:[zoom:1.1] lg:@min-[1592px]:[zoom:1.2] lg:@min-[1760px]:[zoom:1.3] lg:@min-[1940px]:[zoom:1.45]"
     >
       <div className="relative h-[560px] w-[872px] origin-top-left scale-[0.88]">
         <WindowFrame

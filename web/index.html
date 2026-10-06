@@ -8,6 +8,20 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@200;300;400;500;600;700&display=swap" rel="stylesheet" />
     <title>GF Platform</title>
+    <script>
+      // Applies a stored theme choice before first paint. Without one, no attribute is set and the
+      // OS preference stays in charge. The key must match THEME_STORAGE_KEY in src/stores/theme.ts.
+      (function () {
+        try {
+          var storedTheme = window.localStorage.getItem('theme');
+          if (storedTheme === 'light' || storedTheme === 'dark') {
+            document.documentElement.setAttribute('data-theme', storedTheme);
+          }
+        } catch (error) {
+          /* storage unavailable: fall back to the OS preference */
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

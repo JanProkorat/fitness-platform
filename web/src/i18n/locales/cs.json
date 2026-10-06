@@ -2849,7 +2849,7 @@
     "brand": "GoodFellas",
     "login": {
       "title": "Vítejte zpět",
-      "lede": "Přihlaste se do koučovacího portálu.",
+      "lede": "Přihlaste se do trenérského portálu.",
       "emailLabel": "E-mail",
       "emailPlaceholder": "trener@example.com",
       "passwordLabel": "Heslo",
@@ -3032,14 +3032,17 @@
     "nav": {
       "label": "Hlavní",
       "howItWorks": "Jak to funguje",
-      "forCoaches": "Pro kouče",
-      "forNutritionists": "Pro nutriční terapeuty",
+      "forCoaches": "Pro trenéry",
+      "forNutritionists": "Pro nutriční poradce",
       "mobileApp": "Mobilní aplikace",
       "signIn": "Přihlásit se",
-      "createAccount": "Vytvořit účet"
+      "createAccount": "Vytvořit účet",
+      "menuLabel": "{{code}}, jazyk a vzhled",
+      "themeToDark": "Přepnout na tmavý vzhled",
+      "themeToLight": "Přepnout na světlý vzhled"
     },
     "hero": {
-      "eyebrow": "Pro osobní trenéry a nutriční terapeuty",
+      "eyebrow": "Pro osobní trenéry a nutriční poradce",
       "headline": "Vaši klienti, pryč od tabulek",
       "headlineAccent": "a WhatsAppu.",
       "sub": "Sestavujte jídelníčky a tréninkové plány na webu. Vaši klienti je mají v telefonu, odškrtávají každé jídlo i trénink a jednou týdně vám pošlou check-in.",
@@ -3070,7 +3073,7 @@
       }
     },
     "coaches": {
-      "eyebrow": "Pro kouče",
+      "eyebrow": "Pro trenéry",
       "title": "Tréninkové plány, které klienti opravdu dodržují",
       "lead": "Naplánujte týden v portálu. V posilovně má klient každý cvik, video i váhu v telefonu.",
       "features": {
@@ -3089,7 +3092,7 @@
       }
     },
     "nutritionists": {
-      "eyebrow": "Pro nutriční terapeuty",
+      "eyebrow": "Pro nutriční poradce",
       "title": "Jídelníčky, které sedí",
       "lead": "Recepty, suroviny a cíle na jednom místě. Klient dostane plán i nákupní seznam na celý týden.",
       "features": {
@@ -3103,21 +3106,21 @@
         },
         "alongside": {
           "title": "Spolupráce s trenérem",
-          "desc": "Klient může mít nutričního terapeuta i kouče. Každý z vás vlastní svůj plán."
+          "desc": "Klient může mít nutričního poradce i trenéra. Každý z vás vlastní svůj plán."
         }
       }
     },
     "app": {
       "eyebrow": "Mobilní aplikace",
       "title": "Jedna aplikace pro vaše klienty — i pro vás",
-      "lead": "Pro klienty je aplikace místem, kde se děje všechno: dnešní jídla a tréninky, chat s vámi a nedělní check-in. Vy dostanete stejnou aplikaci s pohledem kouče — uvidíte, kdo vás potřebuje, projdete check-iny a odpovíte odkudkoli.",
+      "lead": "Pro klienty je aplikace místem, kde se děje všechno: dnešní jídla a tréninky, chat s vámi a nedělní check-in. Vy dostanete stejnou aplikaci s pohledem trenéra — uvidíte, kdo vás potřebuje, projdete check-iny a odpovíte odkudkoli.",
       "appStore": "App Store",
       "googlePlay": "Google Play",
       "clients": { "badge": "Vaši klienti", "caption": "Jejich hlavní nástroj, každý den" },
       "you": { "badge": "Vy", "caption": "Vaši klienti v kapse" }
     },
     "join": {
-      "title": "Připojte se ke komunitě koučů a nutričních terapeutů",
+      "title": "Připojte se ke komunitě trenérů a nutričních poradců",
       "sub": "Založte si účet, pozvěte prvního klienta a sestavte mu první týden ještě dnes odpoledne.",
       "cta": "Vytvořit účet"
     },
@@ -3199,7 +3202,7 @@
       "progressPhotos": "Fotky pokroku",
       "energyThisWeek": "Energie tento týden",
       "sendToCoach": "Odeslat Janovi",
-      "coachClients": "Kouč · 12 klientů",
+      "coachClients": "Trenér · 12 klientů",
       "clientsTitle": "Klienti",
       "needsYou": "Potřebují vás · 2",
       "onTrack": "Jde to dobře",

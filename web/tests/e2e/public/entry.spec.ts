@@ -110,6 +110,44 @@ test('the section links smooth-scroll to their section and set the hash', async 
   await expect(section).toBeInViewport();
 });
 
+test('the language switcher is in the header, not the footer', async ({ page }) => {
+  await page.goto('/');
+
+  await expect(page.locator('header').getByRole('group', { name: 'Language' })).toBeVisible();
+  await expect(page.locator('footer').getByRole('group', { name: 'Language' })).toHaveCount(0);
+});
+
+// String bodies, like the init script above: the e2e tsconfig has no DOM lib.
+const BODY_BACKGROUND = "getComputedStyle(document.body).backgroundColor";
+const DARK_GROUND = 'rgb(14, 14, 15)';
+const LIGHT_GROUND = 'rgb(255, 255, 255)';
+
+test('the theme toggle switches to dark and the choice survives a reload', async ({ page }) => {
+  await page.emulateMedia({ colorScheme: 'light' });
+  await page.goto('/');
+  await expect(page.locator('html')).not.toHaveAttribute('data-theme', /.+/);
+  expect(await page.evaluate(BODY_BACKGROUND)).toBe(LIGHT_GROUND);
+
+  await page.locator('header').getByRole('button', { name: 'Switch to dark' }).click();
+
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  expect(await page.evaluate(BODY_BACKGROUND)).toBe(DARK_GROUND);
+
+  await page.reload();
+
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  expect(await page.evaluate(BODY_BACKGROUND)).toBe(DARK_GROUND);
+  await expect(page.locator('header').getByRole('button', { name: 'Switch to light' })).toBeVisible();
+});
+
+test('with the OS in dark mode and no stored choice the page is dark', async ({ page }) => {
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await page.goto('/');
+
+  await expect(page.locator('html')).not.toHaveAttribute('data-theme', /.+/);
+  expect(await page.evaluate(BODY_BACKGROUND)).toBe(DARK_GROUND);
+});
+
 test('valid credentials navigate to /clients', async ({ page }) => {
   const password = requireSeedPassword();
 

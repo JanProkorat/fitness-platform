@@ -2991,7 +2991,10 @@
       "forNutritionists": "For nutritionists",
       "mobileApp": "Mobile app",
       "signIn": "Sign in",
-      "createAccount": "Create account"
+      "createAccount": "Create account",
+      "menuLabel": "{{code}}, language and theme",
+      "themeToDark": "Switch to dark",
+      "themeToLight": "Switch to light"
     },
     "hero": {
       "eyebrow": "For personal trainers and nutritionists",

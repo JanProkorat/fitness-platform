@@ -1,8 +1,7 @@
 import { useTranslation } from 'react-i18next';
-import LanguageSwitcher from '@/components/entry/LanguageSwitcher';
 import { StoreLinks } from '@/components/home/MockupParts';
 
-/** Page footer: copyright, store links and the language switch. */
+/** Page footer: copyright, and store links. */
 export default function HomeFooter() {
   const { t } = useTranslation();
 
@@ -15,9 +14,6 @@ export default function HomeFooter() {
         googlePlay={t('home.app.googlePlay')}
         size="sm"
       />
-      <div className="sm:ml-3">
-        <LanguageSwitcher />
-      </div>
     </footer>
   );
 }
