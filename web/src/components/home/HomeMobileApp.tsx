@@ -8,15 +8,22 @@ import {
   TodayPhone,
 } from '@/components/home/HomePhones';
 
+// Scales only the aria-hidden phone pair so the badge and caption keep their type-scale size.
+// Row = 2 x (2 x 250 + 26) x zoom + 113 = 1052 x zoom + 113; every step keeps at least 16px spare.
+const PHONES_ZOOM =
+  'lg:[zoom:0.71] lg:@min-[960px]:[zoom:0.78] lg:@min-[1040px]:[zoom:0.86] lg:@min-[1120px]:[zoom:0.93] lg:@min-[1182px]:[zoom:1]';
+
 function PhoneGroup({
   badge,
   badgeTone,
   caption,
+  phonesClassName,
   children,
 }: {
   badge: string;
   badgeTone: string;
   caption: string;
+  phonesClassName: string;
   children: ReactNode;
 }) {
   return (
@@ -29,7 +36,9 @@ function PhoneGroup({
         </span>
         <span className="text-body text-muted-foreground">{caption}</span>
       </div>
-      <div className="flex flex-wrap items-start justify-center gap-6.5">{children}</div>
+      <div className={`flex flex-wrap items-start justify-center gap-6.5 ${phonesClassName}`}>
+        {children}
+      </div>
     </div>
   );
 }
@@ -54,11 +63,12 @@ export default function HomeMobileApp() {
           <StoreLinks appStore={t('home.app.appStore')} googlePlay={t('home.app.googlePlay')} />
         </div>
       </div>
-      <div className="flex flex-col items-center gap-14 lg:flex-row lg:items-start lg:[zoom:0.75] lg:@min-[960px]:[zoom:0.82] lg:@min-[1040px]:[zoom:0.89] lg:@min-[1120px]:[zoom:0.96] lg:@min-[1170px]:[zoom:1]">
+      <div className="flex flex-col items-center gap-14 lg:flex-row lg:items-start">
         <PhoneGroup
           badge={t('home.app.clients.badge')}
           badgeTone="bg-primary text-primary-foreground"
           caption={t('home.app.clients.caption')}
+          phonesClassName={PHONES_ZOOM}
         >
           <TodayPhone />
           <CheckInPhone />
@@ -68,6 +78,7 @@ export default function HomeMobileApp() {
           badge={t('home.app.you.badge')}
           badgeTone="bg-marker text-on-dark"
           caption={t('home.app.you.caption')}
+          phonesClassName={PHONES_ZOOM}
         >
           <CoachClientsPhone />
           <CoachCheckInPhone />
