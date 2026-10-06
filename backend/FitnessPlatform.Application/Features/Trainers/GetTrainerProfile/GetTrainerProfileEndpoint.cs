@@ -58,7 +58,8 @@ public class GetProfessionalProfileEndpoint(IApplicationDbContext db) : Endpoint
             Instagram = profile.Instagram,
             Website = profile.Website,
             ShowInSearch = profile.ShowInSearch,
-            AcceptNewClients = profile.AcceptNewClients
+            AcceptNewClients = profile.AcceptNewClients,
+            AvatarBlobUrl = profile.AvatarBlobUrl
         }, ct);
     }
 }
