@@ -3036,7 +3036,9 @@
       "forNutritionists": "Pro nutriční terapeuty",
       "mobileApp": "Mobilní aplikace",
       "signIn": "Přihlásit se",
-      "createAccount": "Vytvořit účet"
+      "createAccount": "Vytvořit účet",
+      "themeToDark": "Přepnout na tmavý vzhled",
+      "themeToLight": "Přepnout na světlý vzhled"
     },
     "hero": {
       "eyebrow": "Pro osobní trenéry a nutriční terapeuty",

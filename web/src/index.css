@@ -21,7 +21,8 @@
  *      equivalent) so `bg-primary`, `text-foreground`, `rounded-lg`,
  *      `bg-training-soft`, `text-title` etc. all resolve back to tier 1.
  *
- * Dark mode follows the OS setting; there is no toggle.
+ * Dark mode follows the OS setting until the user picks a theme with the
+ * landing-page toggle; the choice is stored and sets data-theme on <html>.
  */
 :root {
   color-scheme: light dark;
@@ -200,49 +201,119 @@
   --radius: var(--gf-radius-md);
 }
 
-/* Dark values, read from the Page*D boards. Only the raw tier changes —
+/* Dark values, read from the Page*D boards. Each literal is declared once as
+   --gf-<name>-dark; the explicit and the OS-driven dark selectors below only
+   alias them, so the two mechanisms cannot drift. Only the raw tier changes —
    everything aliased from it follows. */
+:root {
+  --gf-ground-dark: #0e0e0f;
+  --gf-surface-dark: #18181a;
+  --gf-sunken-dark: #26262a;
+  --gf-ink-dark: #f4f2ee;
+  --gf-ink-2-dark: #cfcac2;
+  --gf-muted-dark: #958f87;
+  --gf-faint-dark: #958f87;
+  --gf-line-dark: #2a292c;
+  --gf-primary-text-dark: #141414;
+  --gf-sidebar-dark: #121214;
+  --gf-sidebar-active-dark: #232226;
+  --gf-chip-count-dark: #cfcac2;
+  --gf-marker-dark: #e5483d;
+  --gf-hero-warm-dark: rgba(242, 140, 56, 0.2);
+  --gf-hero-fresh-dark: rgba(140, 193, 82, 0.16);
+  --gf-hero-rose-dark: rgba(229, 72, 61, 0.1);
+  --gf-phone-bezel-dark: #2a2a2d;
+  --gf-phone-screen-dark: #0f0f10;
+  --gf-phone-warm-dark: rgba(242, 140, 56, 0.35);
+  --gf-phone-fresh-dark: rgba(140, 193, 82, 0.28);
+  --gf-glass-dark: rgba(255, 255, 255, 0.08);
+  --gf-banner-dark: #070708;
+  --gf-training-dark: #f28c38;
+  --gf-training-soft-dark: #3a2414;
+  --gf-training-ink-dark: #f7a863;
+  --gf-on-training-dark: #141414;
+  --gf-nutrition-dark: #8cc152;
+  --gf-nutrition-soft-dark: #243319;
+  --gf-nutrition-ink-dark: #a9d673;
+  --gf-on-nutrition-dark: #141414;
+  --gf-error-dark: #f2705f;
+  --gf-error-soft-dark: #3a1a17;
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --gf-ground: var(--gf-ground-dark);
+  --gf-surface: var(--gf-surface-dark);
+  --gf-sunken: var(--gf-sunken-dark);
+  --gf-ink: var(--gf-ink-dark);
+  --gf-ink-2: var(--gf-ink-2-dark);
+  --gf-muted: var(--gf-muted-dark);
+  --gf-faint: var(--gf-faint-dark);
+  --gf-line: var(--gf-line-dark);
+  --gf-primary-text: var(--gf-primary-text-dark);
+  --gf-sidebar: var(--gf-sidebar-dark);
+  --gf-sidebar-active: var(--gf-sidebar-active-dark);
+  --gf-chip-count: var(--gf-chip-count-dark);
+  --gf-marker: var(--gf-marker-dark);
+  --gf-hero-warm: var(--gf-hero-warm-dark);
+  --gf-hero-fresh: var(--gf-hero-fresh-dark);
+  --gf-hero-rose: var(--gf-hero-rose-dark);
+  --gf-phone-bezel: var(--gf-phone-bezel-dark);
+  --gf-phone-screen: var(--gf-phone-screen-dark);
+  --gf-phone-warm: var(--gf-phone-warm-dark);
+  --gf-phone-fresh: var(--gf-phone-fresh-dark);
+  --gf-glass: var(--gf-glass-dark);
+  --gf-banner: var(--gf-banner-dark);
+  --gf-training: var(--gf-training-dark);
+  --gf-training-soft: var(--gf-training-soft-dark);
+  --gf-training-ink: var(--gf-training-ink-dark);
+  --gf-on-training: var(--gf-on-training-dark);
+  --gf-nutrition: var(--gf-nutrition-dark);
+  --gf-nutrition-soft: var(--gf-nutrition-soft-dark);
+  --gf-nutrition-ink: var(--gf-nutrition-ink-dark);
+  --gf-on-nutrition: var(--gf-on-nutrition-dark);
+  --gf-error: var(--gf-error-dark);
+  --gf-error-soft: var(--gf-error-soft-dark);
+}
+
 @media (prefers-color-scheme: dark) {
-  :root {
-    --gf-ground: #0e0e0f;
-    --gf-surface: #18181a;
-    --gf-sunken: #26262a;
-    --gf-ink: #f4f2ee;
-    --gf-ink-2: #cfcac2;
-    --gf-muted: #958f87;
-    --gf-faint: #958f87;
-    --gf-line: #2a292c;
-    --gf-primary-text: #141414;
-
-    --gf-sidebar: #121214;
-    --gf-sidebar-active: #232226;
-
-    --gf-chip-count: #cfcac2;
-
-    --gf-marker: #e5483d;
-
-    --gf-hero-warm: rgba(242, 140, 56, 0.2);
-    --gf-hero-fresh: rgba(140, 193, 82, 0.16);
-    --gf-hero-rose: rgba(229, 72, 61, 0.1);
-    --gf-phone-bezel: #2a2a2d;
-    --gf-phone-screen: #0f0f10;
-    --gf-phone-warm: rgba(242, 140, 56, 0.35);
-    --gf-phone-fresh: rgba(140, 193, 82, 0.28);
-    --gf-glass: rgba(255, 255, 255, 0.08);
-    --gf-banner: #070708;
-
-    --gf-training: #f28c38;
-    --gf-training-soft: #3a2414;
-    --gf-training-ink: #f7a863;
-    --gf-on-training: #141414;
-
-    --gf-nutrition: #8cc152;
-    --gf-nutrition-soft: #243319;
-    --gf-nutrition-ink: #a9d673;
-    --gf-on-nutrition: #141414;
-
-    --gf-error: #f2705f;
-    --gf-error-soft: #3a1a17;
+  :root:not([data-theme='light']) {
+    --gf-ground: var(--gf-ground-dark);
+    --gf-surface: var(--gf-surface-dark);
+    --gf-sunken: var(--gf-sunken-dark);
+    --gf-ink: var(--gf-ink-dark);
+    --gf-ink-2: var(--gf-ink-2-dark);
+    --gf-muted: var(--gf-muted-dark);
+    --gf-faint: var(--gf-faint-dark);
+    --gf-line: var(--gf-line-dark);
+    --gf-primary-text: var(--gf-primary-text-dark);
+    --gf-sidebar: var(--gf-sidebar-dark);
+    --gf-sidebar-active: var(--gf-sidebar-active-dark);
+    --gf-chip-count: var(--gf-chip-count-dark);
+    --gf-marker: var(--gf-marker-dark);
+    --gf-hero-warm: var(--gf-hero-warm-dark);
+    --gf-hero-fresh: var(--gf-hero-fresh-dark);
+    --gf-hero-rose: var(--gf-hero-rose-dark);
+    --gf-phone-bezel: var(--gf-phone-bezel-dark);
+    --gf-phone-screen: var(--gf-phone-screen-dark);
+    --gf-phone-warm: var(--gf-phone-warm-dark);
+    --gf-phone-fresh: var(--gf-phone-fresh-dark);
+    --gf-glass: var(--gf-glass-dark);
+    --gf-banner: var(--gf-banner-dark);
+    --gf-training: var(--gf-training-dark);
+    --gf-training-soft: var(--gf-training-soft-dark);
+    --gf-training-ink: var(--gf-training-ink-dark);
+    --gf-on-training: var(--gf-on-training-dark);
+    --gf-nutrition: var(--gf-nutrition-dark);
+    --gf-nutrition-soft: var(--gf-nutrition-soft-dark);
+    --gf-nutrition-ink: var(--gf-nutrition-ink-dark);
+    --gf-on-nutrition: var(--gf-on-nutrition-dark);
+    --gf-error: var(--gf-error-dark);
+    --gf-error-soft: var(--gf-error-soft-dark);
   }
 }
 

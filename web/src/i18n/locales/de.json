@@ -2990,7 +2990,9 @@
       "forNutritionists": "Für Ernährungsberater",
       "mobileApp": "Mobile App",
       "signIn": "Anmelden",
-      "createAccount": "Konto erstellen"
+      "createAccount": "Konto erstellen",
+      "themeToDark": "Zum dunklen Design wechseln",
+      "themeToLight": "Zum hellen Design wechseln"
     },
     "hero": {
       "eyebrow": "Für Personal Trainer und Ernährungsberater",
