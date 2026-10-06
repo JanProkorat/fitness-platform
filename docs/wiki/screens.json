@@ -207,6 +207,35 @@
         { "name": "default", "steps": "click the header button 'Pozvat klienta' (not the empty-state one) and wait for the drawer to open" }
       ],
       "notionPageId": null
+    },
+    {
+      "id": "web.profile",
+      "app": "web",
+      "area": "Account",
+      "title": "Coach profile",
+      "route": "/profile",
+      "roles": ["Trainer", "Nutritionist"],
+      "files": [
+        "web/src/pages/ProfilePage.tsx",
+        "web/src/components/profile/**",
+        "web/src/api/profile.ts",
+        "web/src/api/avatar.ts"
+      ],
+      "endpoints": [
+        "GET /users/me",
+        "PUT /users/me",
+        "PUT /users/me/timezone",
+        "GET /trainer/profile",
+        "PUT /trainer/profile",
+        "POST /professionals/me/avatar/upload-url",
+        "PUT /professionals/me/avatar",
+        "DELETE /professionals/me/avatar"
+      ],
+      "board": "PageProfile",
+      "shots": [
+        { "name": "default" }
+      ],
+      "notionPageId": null
     }
   ]
 }
