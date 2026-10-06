@@ -1314,6 +1314,22 @@
       "x": 1520,
       "y": 15540
     },
+    "PageClientInviteDrawerC.dc.html": {
+      "h": 900,
+      "page": "web",
+      "title": "C · Clients · Invite client drawer",
+      "w": 1440,
+      "x": 16720,
+      "y": 14040
+    },
+    "PageClientInviteDrawerD.dc.html": {
+      "h": 900,
+      "page": "web",
+      "title": "D · Clients · Invite client drawer",
+      "w": 1440,
+      "x": 16720,
+      "y": 15540
+    },
     "PageClientNutritionC.dc.html": {
       "h": 1380,
       "page": "web",
@@ -1722,12 +1738,60 @@
       "x": 1520,
       "y": 12540
     },
+    "PageRegisterClientC.dc.html": {
+      "h": 1060,
+      "page": "web",
+      "title": "C · Register · Client · 1 Account",
+      "w": 1440,
+      "x": 4560,
+      "y": 11420
+    },
+    "PageRegisterClientCheckEmailC.dc.html": {
+      "h": 900,
+      "page": "web",
+      "title": "C · Register · Client · 2 Check email",
+      "w": 1440,
+      "x": 6080,
+      "y": 11420
+    },
+    "PageRegisterClientCheckEmailD.dc.html": {
+      "h": 900,
+      "page": "web",
+      "title": "D · Register · Client · 2 Check email",
+      "w": 1440,
+      "x": 6080,
+      "y": 12540
+    },
+    "PageRegisterClientD.dc.html": {
+      "h": 1060,
+      "page": "web",
+      "title": "D · Register · Client · 1 Account",
+      "w": 1440,
+      "x": 4560,
+      "y": 12540
+    },
     "PageRegisterD.dc.html": {
       "h": 1000,
       "page": "web",
       "title": "D · Register · 1 Account",
       "w": 1440,
       "x": 0,
+      "y": 12540
+    },
+    "PageRegisterGetAppC.dc.html": {
+      "h": 900,
+      "page": "web",
+      "title": "C · Register · Client · 3 Get the app",
+      "w": 1440,
+      "x": 7600,
+      "y": 11420
+    },
+    "PageRegisterGetAppD.dc.html": {
+      "h": 900,
+      "page": "web",
+      "title": "D · Register · Client · 3 Get the app",
+      "w": 1440,
+      "x": 7600,
       "y": 12540
     },
     "PageRegisterVerifiedC.dc.html": {
@@ -1897,22 +1961,6 @@
       "w": 390,
       "x": 2630,
       "y": 0
-    },
-    "PageClientInviteDrawerC.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "C · Clients · Invite client drawer",
-      "w": 1440,
-      "x": 16720,
-      "y": 14040
-    },
-    "PageClientInviteDrawerD.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "D · Clients · Invite client drawer",
-      "w": 1440,
-      "x": 16720,
-      "y": 15540
     }
   },
   "createdOnFiles": {
@@ -2250,9 +2298,9 @@
     },
     "webRow2": {
       "kind": "title1",
-      "maxW": 4480,
+      "maxW": 8000,
       "page": "web",
-      "text": "Registration — account, check email, email verified  ·  light above, dark below",
+      "text": "Registration — coach: account, check email, verified  ·  client: account, get the app  ·  light above, dark below",
       "w": 240,
       "x": 0,
       "y": 11120
@@ -2551,7 +2599,13 @@
     "PageTemplateDayAddMealD.dc.html",
     "PageClientPlanDayAddMealD.dc.html",
     "PageClientInviteDrawerC.dc.html",
-    "PageClientInviteDrawerD.dc.html"
+    "PageClientInviteDrawerD.dc.html",
+    "PageRegisterClientC.dc.html",
+    "PageRegisterGetAppC.dc.html",
+    "PageRegisterClientD.dc.html",
+    "PageRegisterGetAppD.dc.html",
+    "PageRegisterClientCheckEmailC.dc.html",
+    "PageRegisterClientCheckEmailD.dc.html"
   ],
   "pages": [
     {
