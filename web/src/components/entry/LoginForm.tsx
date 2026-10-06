@@ -151,6 +151,7 @@ export default function LoginForm() {
           <Label htmlFor="entry-email">{t('entry.login.emailLabel')}</Label>
           <Input
             id="entry-email"
+            className="h-11 px-3.5 text-copy"
             type="email"
             autoComplete="email"
             placeholder={t('entry.login.emailPlaceholder')}
@@ -175,7 +176,7 @@ export default function LoginForm() {
               placeholder="••••••••"
               aria-invalid={!!errors.password}
               aria-describedby={errors.password ? 'entry-password-error' : undefined}
-              className="pr-16"
+              className="h-11 px-3.5 pr-16 text-copy"
               {...register('password')}
             />
             <button
@@ -224,7 +225,11 @@ export default function LoginForm() {
           </p>
         )}
 
-        <Button type="submit" disabled={loginMutation.isPending} className="w-full">
+        <Button
+          type="submit"
+          disabled={loginMutation.isPending}
+          className="h-11.5 w-full rounded-xl text-subhead font-bold"
+        >
           {loginMutation.isPending ? t('entry.login.submitting') : t('entry.login.submit')}
         </Button>
       </form>
@@ -236,10 +241,10 @@ export default function LoginForm() {
       </div>
 
       <div className="grid grid-cols-2 gap-2.5">
-        <Button type="button" variant="outline" disabled title={t('entry.login.googleComingSoon')}>
+        <Button type="button" variant="outline" disabled className="h-10.5 font-semibold" title={t('entry.login.googleComingSoon')}>
           {t('entry.login.google')}
         </Button>
-        <Button type="button" variant="outline" disabled title={t('entry.login.appleComingSoon')}>
+        <Button type="button" variant="outline" disabled className="h-10.5 font-semibold" title={t('entry.login.appleComingSoon')}>
           <Apple className="size-4" aria-hidden="true" />
           {t('entry.login.apple')}
         </Button>
