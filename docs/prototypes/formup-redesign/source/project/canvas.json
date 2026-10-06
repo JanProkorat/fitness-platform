@@ -1618,6 +1618,22 @@
       "x": 0,
       "y": 23280
     },
+    "PageProfileC.dc.html": {
+      "h": 2540,
+      "page": "web",
+      "title": "C · Coach profile",
+      "w": 1440,
+      "x": 0,
+      "y": 29620
+    },
+    "PageProfileD.dc.html": {
+      "h": 2540,
+      "page": "web",
+      "title": "D · Coach profile",
+      "w": 1440,
+      "x": 0,
+      "y": 32280
+    },
     "PageRecipeDrawerC.dc.html": {
       "h": 900,
       "page": "web",
@@ -2358,6 +2374,15 @@
       "w": 240,
       "x": 0,
       "y": 26800
+    },
+    "webRow9": {
+      "kind": "title1",
+      "maxW": 1440,
+      "page": "web",
+      "text": "Coach profile  ·  light above, dark below",
+      "w": 240,
+      "x": 0,
+      "y": 29320
     }
   },
   "order": [
@@ -2605,7 +2630,9 @@
     "PageRegisterClientD.dc.html",
     "PageRegisterGetAppD.dc.html",
     "PageRegisterClientCheckEmailC.dc.html",
-    "PageRegisterClientCheckEmailD.dc.html"
+    "PageRegisterClientCheckEmailD.dc.html",
+    "PageProfileC.dc.html",
+    "PageProfileD.dc.html"
   ],
   "pages": [
     {
