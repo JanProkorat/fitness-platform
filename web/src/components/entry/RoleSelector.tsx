@@ -1,10 +1,46 @@
-import { CheckIcon } from 'lucide-react';
+import { DumbbellIcon, LeafIcon, UserIcon } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 
-export type RegistrableRole = 'Trainer' | 'Nutritionist';
+import { toggleRole, type RegistrableRole } from '@/components/register/roles';
 
-const ROLE_IDS: RegistrableRole[] = ['Trainer', 'Nutritionist'];
+interface RoleCardStyle {
+  icon: LucideIcon;
+  iconBox: string;
+  selected: string;
+  indicator: string;
+}
+
+const ROLE_CARDS: { role: RegistrableRole; style: RoleCardStyle }[] = [
+  {
+    role: 'Trainer',
+    style: {
+      icon: DumbbellIcon,
+      iconBox: 'bg-training-soft text-training',
+      selected: 'border-training bg-training-soft ring-1 ring-inset ring-training',
+      indicator: 'border-5 border-training bg-surface',
+    },
+  },
+  {
+    role: 'Nutritionist',
+    style: {
+      icon: LeafIcon,
+      iconBox: 'bg-nutrition-soft text-nutrition',
+      selected: 'border-nutrition bg-nutrition-soft ring-1 ring-inset ring-nutrition',
+      indicator: 'border-5 border-nutrition bg-surface',
+    },
+  },
+  {
+    role: 'Client',
+    style: {
+      icon: UserIcon,
+      iconBox: 'bg-error-soft text-marker',
+      selected: 'border-marker bg-error-soft ring-1 ring-inset ring-marker',
+      indicator: 'border-5 border-marker bg-surface',
+    },
+  },
+];
 
 interface RoleSelectorProps {
   value: RegistrableRole[];
@@ -12,68 +48,70 @@ interface RoleSelectorProps {
   /**
    * Forwards RHF Controller's `field.onBlur` so a real blur on one of these
    * buttons marks the field "touched" (RegisterForm uses `mode: 'onTouched'`)
-   * the same way a registered text input's blur does — required for the
-   * field to start revalidating on every subsequent change/click, not just
-   * on blur. Without this wired at all, toggling a role never told
-   * react-hook-form anything changed, so `formState.isValid` stayed stale at
-   * whatever it was before the toggle — the root cause of the submit button
-   * never unlocking.
+   * and it revalidates on every later change, not only on blur. Without it a
+   * role toggle never told react-hook-form anything, so `formState.isValid`
+   * stayed stale and the submit button never unlocked.
    */
   onBlur?: () => void;
   error?: string;
 }
 
 /**
- * Register-form role picker (prototype `.roles` / `.role`, scratchpad
- * gf-register.html). Trainer and Nutritionist only — Client is never
- * offered here (clients arrive by invite and use the mobile app, see
- * `RegisterValidator.cs`'s rejection of Client combined with a coach
- * role). Both may be selected at once: the backend takes a list and the
- * platform supports dual-role professionals (design-review finding #2).
+ * Register-page role picker: Personal trainer, Nutritionist and "I train for
+ * myself" (Client) cards. The coach roles combine; Client excludes them
+ * (see `toggleRole`).
  */
 export default function RoleSelector({ value, onChange, onBlur, error }: RoleSelectorProps) {
   const { t } = useTranslation();
 
-  const toggle = (role: RegistrableRole) => {
-    onChange(value.includes(role) ? value.filter((r) => r !== role) : [...value, role]);
-  };
-
   return (
-    <div className="flex flex-col gap-1.5">
-      <span className="text-meta font-medium text-ink-2">{t('entry.register.roleLabel')}</span>
+    <div className="flex flex-col gap-2 short:gap-1.5">
+      <span className="text-body font-medium text-ink-2">{t('entry.register.roleLabel')}</span>
       <div
         role="group"
         aria-label={t('entry.register.roleLabel')}
         aria-describedby={error ? 'entry-role-error' : undefined}
-        className="grid grid-cols-2 gap-2.5"
+        className="grid grid-cols-1 gap-2.5 sm:grid-cols-3"
       >
-        {ROLE_IDS.map((role) => {
+        {ROLE_CARDS.map(({ role, style }) => {
           const selected = value.includes(role);
+          const Icon = style.icon;
+          const key = role.toLowerCase();
           return (
             <button
               key={role}
               type="button"
               aria-pressed={selected}
-              onClick={() => toggle(role)}
+              onClick={() => onChange(toggleRole(value, role))}
               onBlur={onBlur}
               className={cn(
-                'flex flex-col gap-0.5 rounded-md border border-border bg-surface p-3 text-left',
-                selected && 'border-primary bg-sunken'
+                'flex flex-col gap-2 rounded-2xl border border-border bg-surface p-3.5 text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50 short:flex-row short:items-center short:gap-2 short:p-2.5',
+                selected && style.selected
               )}
             >
-              <span className="flex items-center gap-1.5 text-meta font-semibold text-ink">
+              {/* On short screens the wrapper dissolves so icon, name and radio sit in one row. */}
+              <span className="flex items-center short:contents">
                 <span
                   className={cn(
-                    'flex size-3.5 shrink-0 items-center justify-center rounded-xs border border-border bg-surface text-primary-foreground',
-                    selected && 'border-primary bg-primary'
+                    'flex size-8.5 shrink-0 items-center justify-center rounded-field short:size-7',
+                    style.iconBox
                   )}
                 >
-                  {selected && <CheckIcon className="size-2.5" />}
+                  <Icon className="size-4.5 short:size-4" aria-hidden="true" />
                 </span>
-                {t(`entry.register.roles.${role.toLowerCase()}.name`)}
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    'ml-auto box-border size-4.5 shrink-0 rounded-full border-[1.5px] border-muted-foreground short:order-last',
+                    selected && style.indicator
+                  )}
+                />
               </span>
-              <span className="text-caption text-muted-foreground">
-                {t(`entry.register.roles.${role.toLowerCase()}.description`)}
+              <span className="text-subhead font-bold text-ink short:text-body short:leading-tight">
+                {t(`entry.register.roles.${key}.name`)}
+              </span>
+              <span className="text-meta leading-normal text-muted-foreground short:hidden">
+                {t(`entry.register.roles.${key}.description`)}
               </span>
             </button>
           );

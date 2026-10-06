@@ -15,7 +15,7 @@ import HomeQuestions from '@/components/home/HomeQuestions';
 import HomeJoinBanner from '@/components/home/HomeJoinBanner';
 import HomeFooter from '@/components/home/HomeFooter';
 
-const DIALOG_PATHS = ['/login', '/register', '/forgot-password'];
+const DIALOG_PATHS = ['/login', '/forgot-password'];
 const LOGIN_PATH = '/login';
 
 interface DisplayedForm {
@@ -24,7 +24,7 @@ interface DisplayedForm {
 }
 
 /**
- * Public entry layout route ("/", "/login", "/register", "/forgot-password"),
+ * Public entry layout route ("/", "/login", "/forgot-password"),
  * a pathless layout route in App.tsx. The landing page always renders; the
  * dialog is open on every path except "/" and shows whichever child route's
  * form is active. This page has no `<Outlet />` of its own: `useOutlet()`
@@ -32,16 +32,16 @@ interface DisplayedForm {
  * dialog plays its closing animation (by then the route is "/", whose child
  * renders nothing).
  *
- * One Dialog stays mounted across the three form routes, so switching between
+ * One Dialog stays mounted across the two form routes, so switching between
  * them swaps the content in place instead of closing and reopening. Closing
  * navigates to "/" with `replace`, so Back does not reopen a dialog the user
- * just dismissed.
+ * just dismissed. Registration is a full page of its own (RegisterPage), not
+ * a dialog route.
  *
- * Focus: on open, Email is focused on the login route only; on register and
- * forgot-password the dialog container takes focus, because focusing the first
- * field there would mark it touched (the register form validates on touch)
- * and swallow the user's first click. On close, focus returns to the nav's
- * Sign in link.
+ * Focus: on open, Email is focused on the login route only; on
+ * forgot-password the dialog container takes focus, so no field is marked
+ * touched and swallows the user's first click. On close, focus returns to the
+ * nav's Sign in link.
  */
 export default function EntryPage() {
   const { t } = useTranslation();

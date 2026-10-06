@@ -4,6 +4,8 @@ using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.Auth.VerifyEmail;
 using FitnessPlatform.Tests.Builders;
+using FitnessPlatform.Application.Domain.Constants;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 
@@ -30,8 +32,10 @@ public class VerifyEmailEndpointTests
         EmailConfirmed = false
     };
 
+    private readonly UserManager<ApplicationUser> _userManager = EndpointTestHelpers.CreateFakeUserManager();
+
     private VerifyEmailEndpoint CreateEndpoint(Application.Infrastructure.Data.IApplicationDbContext db) =>
-        Factory.Create<VerifyEmailEndpoint>(db, _notifier, _inviteConversationSeeder, _logger);
+        Factory.Create<VerifyEmailEndpoint>(db, _notifier, _inviteConversationSeeder, _logger, _userManager);
 
     [Fact]
     public async Task HandleAsync_ValidToken_ConfirmsEmail_AndNotifies()
@@ -68,6 +72,7 @@ public class VerifyEmailEndpointTests
         await act.Should().ThrowAsync<ValidationFailureException>();
         await _inviteConversationSeeder.DidNotReceiveWithAnyArgs().SeedForNewUserAsync(
             default!, TestContext.Current.CancellationToken);
+        await _userManager.DidNotReceiveWithAnyArgs().GetRolesAsync(default!);
     }
 
     [Fact]
@@ -89,6 +94,34 @@ public class VerifyEmailEndpointTests
         var act = () => ep.HandleAsync(new VerifyEmailRequest { Token = "expired-token" }, TestContext.Current.CancellationToken);
 
         await act.Should().ThrowAsync<ValidationFailureException>();
+        await _userManager.DidNotReceiveWithAnyArgs().GetRolesAsync(default!);
+    }
+
+    [Theory]
+    [InlineData("client@example.com", AppRoles.Client)]
+    [InlineData("trainer@example.com", AppRoles.Trainer)]
+    public async Task HandleAsync_ValidToken_ReturnsAccountDetails(string email, string role)
+    {
+        var userId = Guid.NewGuid();
+        var user = CreateUser(userId, email);
+        var token = new EmailVerificationToken
+        {
+            UserId = userId,
+            User = user,
+            Token = "roles-token",
+            ExpiresAt = DateTime.UtcNow.AddHours(1)
+        };
+        _userManager.GetRolesAsync(user).Returns(Task.FromResult<IList<string>>([role]));
+
+        var db = new MockDbBuilder().With(user).With(token).Build();
+        var ep = CreateEndpoint(db);
+
+        await ep.HandleAsync(new VerifyEmailRequest { Token = "roles-token" }, TestContext.Current.CancellationToken);
+
+        ep.Response.Email.Should().Be(email);
+        ep.Response.FirstName.Should().Be("John");
+        ep.Response.Roles.Should().Equal(role);
+        ep.Response.Message.Should().Be("Email verified successfully.");
     }
 
     /// <summary>

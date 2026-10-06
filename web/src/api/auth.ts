@@ -5,7 +5,11 @@ import type {
   RequestPasswordResetRequest,
   ResetPasswordRequest,
 } from '@/api/client';
-import type { AnonymousResendVerificationResponse, VerifyEmailRequest } from '@/api/generated';
+import type {
+  AnonymousResendVerificationResponse,
+  VerifyEmailRequest,
+  VerifyEmailResponse,
+} from '@/api/generated';
 import api from '@/lib/api';
 
 /**
@@ -136,9 +140,10 @@ export async function resendVerificationAnonymous(
  * in this file — the generated `verifyEmailEndpoint` throws `ApiException`,
  * which `lib/api-errors.ts` cannot read.
  */
-export async function verifyEmail(token: string): Promise<void> {
+export async function verifyEmail(token: string): Promise<VerifyEmailResponse> {
   const payload: VerifyEmailRequest = { token };
-  await api.post('/auth/verify-email', payload);
+  const { data } = await api.post<VerifyEmailResponse>('/auth/verify-email', payload);
+  return data;
 }
 
 /**

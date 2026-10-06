@@ -34,40 +34,82 @@ async function fillValidRegisterForm(
   page: import('@playwright/test').Page,
   email: string
 ): Promise<void> {
-  await page.getByRole('button', { name: /^Trainer/ }).click();
+  await page.getByRole('button', { name: /^Personal trainer/ }).click();
   await page.getByLabel('First name').fill('Ada');
   await page.getByLabel('Last name').fill('Lovelace');
   await page.getByLabel('Email').fill(email);
   await page.getByLabel('Password', { exact: true }).fill(VALID_PASSWORD);
 }
 
-// The dialog opens with a scale animation, which skews boundingBox() heights
-// until it finishes — measure only once every animation has settled.
+// Measure only once every animation has settled, so boundingBox() heights are
+// not skewed by a transition still in flight.
 async function settleAnimations(page: Page): Promise<void> {
   await page.evaluate('Promise.all(document.getAnimations().map((animation) => animation.finished))');
 }
 
-test('/register deep-links straight to the register form, and the login<->register swap works by clicking', async ({
+test('/register is a full page that deep-links, and Sign in opens the landing dialog', async ({
   page,
 }) => {
-  // Regression: EntryPage is a pathless layout route with routed children
-  // swapped inside one dialog — a routing mismatch here would leave a cold
-  // /register load stuck showing the login form.
+  // Regression: /register used to be a dialog route under EntryPage. It is its
+  // own page now — no dialog, no landing sections — and the header Sign in
+  // link goes to /login, which opens the landing page's sign-in dialog.
   await page.goto('/register');
   await page.waitForLoadState('networkidle');
 
   await expect(page).toHaveURL(/\/register$/);
-  await expect(page.getByRole('heading', { name: 'Create account' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Join our community' })).toBeVisible();
   await expect(page.getByLabel('First name')).toBeVisible();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
 
-  const dialog = page.getByRole('dialog');
-  await dialog.getByRole('link', { name: 'Sign in' }).click();
+  await page.getByRole('link', { name: 'Sign in' }).click();
   await expect(page).toHaveURL(/\/login$/);
-  await expect(dialog.getByText('Welcome back')).toBeVisible();
+  await expect(page.getByRole('dialog').getByText('Welcome back')).toBeVisible();
 
-  await dialog.getByRole('link', { name: 'Create account' }).click();
+  await page.getByRole('dialog').getByRole('link', { name: 'Create account' }).click();
   await expect(page).toHaveURL(/\/register$/);
-  await expect(dialog.getByText('Create account').first()).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Join our community' })).toBeVisible();
+});
+
+test('the client card is exclusive with the coach cards and adds a required health-data consent', async ({
+  page,
+}) => {
+  await page.goto('/register');
+
+  const trainer = page.getByRole('button', { name: /^Personal trainer/ });
+  const nutritionist = page.getByRole('button', { name: /^Nutritionist/ });
+  const client = page.getByRole('button', { name: /^I train for myself/ });
+
+  // Coach roles combine; a coach sees only the terms checkbox.
+  await trainer.click();
+  await nutritionist.click();
+  await expect(trainer).toHaveAttribute('aria-pressed', 'true');
+  await expect(nutritionist).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('checkbox')).toHaveCount(1);
+
+  // Client replaces them and reveals the health-data consent.
+  await client.click();
+  await expect(client).toHaveAttribute('aria-pressed', 'true');
+  await expect(trainer).toHaveAttribute('aria-pressed', 'false');
+  await expect(nutritionist).toHaveAttribute('aria-pressed', 'false');
+  await expect(page.getByRole('checkbox')).toHaveCount(2);
+
+  await page.getByLabel('First name').fill('Ada');
+  await page.getByLabel('Last name').fill('Lovelace');
+  await page.getByLabel('Email').fill(uniqueEmail('client-consent'));
+  await page.getByLabel('Password', { exact: true }).fill(VALID_PASSWORD);
+
+  const submit = page.getByRole('button', { name: 'Create account' });
+  await page.getByRole('checkbox', { name: /Terms/ }).check();
+  await expect(submit).toBeDisabled();
+  await page.getByRole('checkbox', { name: /health data/ }).check();
+  await expect(submit).toBeEnabled();
+
+  // Back to a coach role: the hidden consent goes away and no longer counts.
+  await trainer.click();
+  await expect(trainer).toHaveAttribute('aria-pressed', 'true');
+  await expect(client).toHaveAttribute('aria-pressed', 'false');
+  await expect(page.getByRole('checkbox')).toHaveCount(1);
+  await expect(submit).toBeEnabled();
 });
 
 test('submit is disabled on an empty form and enables the instant consent is ticked, with no blur/Tab afterward', async ({
@@ -98,20 +140,15 @@ test('submit is disabled on an empty form and enables the instant consent is tic
   await expect(submit).toBeEnabled();
 });
 
-test('arriving at /register via a client-side swap does not swallow the first click on the consent checkbox', async ({
+test('arriving at /register via a client-side navigation does not swallow the first click on the consent checkbox', async ({
   page,
 }) => {
-  // Regression (#1058 AC 15, round 2): the swap-focus logic used to focus
-  // the register form's empty #entry-firstName field directly.
-  // RegisterForm runs React Hook Form in `mode: 'onTouched'`, so the very
-  // next click ANYWHERE blurred that never-typed field first — marking it
-  // touched, rendering "Enter your first name.", growing the form ~24px,
-  // and (via `self-center-safe`) re-centring the swap row out from under the
-  // pointer between mousedown and mouseup, so the click never reached the
-  // checkbox at all. A cold `page.goto('/register')` never focuses anything,
-  // so it can't exercise this path — this MUST arrive via a real
-  // client-side swap. Fixed by focusing the dialog container instead of any
-  // field (see EntryPage.tsx's onOpenAutoFocus).
+  // Regression: focusing the register form's empty first-name field made the
+  // next click blur it first — RegisterForm runs React Hook Form in
+  // `mode: 'onTouched'`, so that rendered "Enter your first name.", grew the
+  // form and moved the checkbox out from under the pointer. Nothing may take
+  // focus on arrival. A cold `page.goto('/register')` never focuses anything,
+  // so this arrives from the sign-in dialog's Create account link instead.
   await page.goto('/login');
   await page.getByRole('dialog').getByRole('link', { name: 'Create account' }).click();
   await expect(page).toHaveURL(/\/register$/);
@@ -168,6 +205,14 @@ test('a successful registration reaches the check-your-email state, shows the ad
   await expect(page.getByText('Check your email')).toBeVisible();
   await expect(page.getByText(email)).toBeVisible();
   await expect(page).toHaveURL(/\/register$/);
+
+  // The resend wait is client-side and starts on arrival.
+  await expect(page.getByRole('button', { name: 'Resend email' })).toBeDisabled();
+  await expect(page.getByText(/available in \d:\d\d/)).toBeVisible();
+
+  // "Change email" returns to the form with the typed values still in place.
+  await page.getByRole('button', { name: 'Change email' }).click();
+  await expect(page.getByLabel('First name')).toHaveValue('Ada');
 });
 
 test('a duplicate email surfaces a localized message and never the raw "already taken" string', async ({

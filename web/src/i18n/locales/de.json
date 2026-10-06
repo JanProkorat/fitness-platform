@@ -2832,26 +2832,37 @@
       }
     },
     "register": {
-      "title": "Konto erstellen",
-      "lede": "Geben Sie Ihre Daten ein und bestätigen Sie Ihre E-Mail-Adresse. Das dauert eine Minute.",
-      "roleLabel": "Womit beschäftigen Sie sich?",
-      "roleHint": "Sie können beides wählen. Rollen können später in den Einstellungen geändert werden.",
+      "title": "Werden Sie Teil der Community",
+      "lede": "Erstellen Sie Ihr Konto. Das dauert eine Minute.",
+      "steps": {
+        "label": "Registrierungsfortschritt",
+        "account": "Konto",
+        "verify": "E-Mail bestätigen",
+        "profile": "Ihr Profil",
+        "getApp": "App holen"
+      },
+      "roleLabel": "Ich melde mich an als",
+      "roleHint": "Fachleute können beide Rollen wählen. Training für sich selbst ist ein eigener Kontotyp.",
       "roles": {
         "trainer": {
-          "name": "Trainer",
-          "description": "Trainingspläne, Übungen, Trainingsprotokoll."
+          "name": "Personal Trainer",
+          "description": "Trainingspläne und Live-Workouts"
         },
         "nutritionist": {
           "name": "Ernährungsberater",
-          "description": "Ernährungspläne, Rezepte, Zutaten, Makros."
+          "description": "Ernährungspläne und Rezepte"
+        },
+        "client": {
+          "name": "Ich trainiere für mich",
+          "description": "Finden Sie einen Trainer und folgen Sie Ihrem Plan"
         }
       },
       "firstNameLabel": "Vorname",
       "firstNamePlaceholder": "Jan",
       "lastNameLabel": "Nachname",
-      "lastNamePlaceholder": "Novak",
+      "lastNamePlaceholder": "Novák",
       "emailLabel": "E-Mail",
-      "emailPlaceholder": "trainer@example.com",
+      "emailPlaceholder": "jan@example.com",
       "passwordLabel": "Passwort",
       "passwordRules": {
         "length": "Mindestens 8 Zeichen",
@@ -2859,31 +2870,75 @@
         "lowercase": "Kleinbuchstabe",
         "digit": "Ziffer"
       },
-      "consentLabel": "Ich stimme der Verarbeitung meiner personenbezogenen Daten und den Nutzungsbedingungen zu.",
+      "passwordStrength": {
+        "weak": "Schwach",
+        "fair": "Mittel",
+        "good": "Gut",
+        "strong": "Stark"
+      },
+      "passwordHint": "mindestens 8 Zeichen mit Großbuchstabe, Kleinbuchstabe und Ziffer",
+      "consentLabel": "Ich stimme den <terms>Nutzungsbedingungen</terms> und der <privacy>Datenschutzerklärung</privacy> zu.",
+      "healthConsentLabel": "Ich stimme der Verarbeitung meiner Gesundheitsdaten zu — Körpermaße, Trainingsprotokolle und Fortschrittsfotos — damit mein Trainer sie sehen kann.",
       "submit": "Konto erstellen",
       "submitting": "Konto wird erstellt...",
-      "submitHint": "Wählen Sie eine Rolle aus und füllen Sie alle Felder aus.",
+      "submitHint": "Wählen Sie, wie Sie sich anmelden, und füllen Sie alle Felder aus.",
       "haveAccount": "Sie haben bereits ein Konto?",
       "signIn": "Anmelden",
       "validation": {
-        "roleRequired": "Wählen Sie mindestens eine Rolle aus.",
+        "roleRequired": "Wählen Sie, wie Sie sich anmelden.",
         "firstNameRequired": "Geben Sie Ihren Vornamen ein.",
         "lastNameRequired": "Geben Sie Ihren Nachnamen ein.",
         "emailRequired": "Geben Sie Ihre E-Mail-Adresse ein.",
         "emailInvalid": "Geben Sie eine gültige E-Mail-Adresse ein.",
         "passwordInvalid": "Das Passwort erfüllt nicht alle oben genannten Anforderungen.",
-        "consentRequired": "Sie müssen der Verarbeitung Ihrer personenbezogenen Daten zustimmen, um ein Konto zu erstellen."
+        "consentRequired": "Sie müssen den Nutzungsbedingungen und der Datenschutzerklärung zustimmen, um ein Konto zu erstellen.",
+        "healthConsentRequired": "Sie müssen der Verarbeitung Ihrer Gesundheitsdaten zustimmen, um ein Konto zu erstellen."
       },
       "errors": {
         "duplicateEmail": "Diese E-Mail-Adresse ist bereits registriert.",
         "network": "Der Server konnte nicht erreicht werden. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
         "generic": "Die Registrierung konnte nicht abgeschlossen werden. Bitte versuchen Sie es erneut."
       },
+      "aside": {
+        "coach": {
+          "eyebrow": "Ihr erster Nachmittag",
+          "titleLead": "Von der Anmeldung zur ersten Woche Ihres ersten Klienten",
+          "titleAccent": "in vier Schritten.",
+          "steps": {
+            "account": { "title": "Konto erstellen", "body": "Name, E-Mail und was Sie tun." },
+            "profile": { "title": "Profil einrichten", "body": "Foto, Spezialgebiete und eine kurze Bio — damit Klienten Sie in der App finden." },
+            "invite": { "title": "Ersten Klienten einladen", "body": "Senden Sie eine Einladung per E-Mail. Er tritt mit der Form-Up-App bei." },
+            "week": { "title": "Seine erste Woche aufbauen", "body": "Starten Sie mit einer Vorlage oder von Grund auf und veröffentlichen Sie dann." }
+          },
+          "app": {
+            "title": "Holen Sie sich auch die App",
+            "body": "Ihre Klienten leben darin — und Sie können sie von Ihrem Handy aus begleiten."
+          }
+        },
+        "client": {
+          "eyebrow": "So funktioniert es für Sie",
+          "titleLead": "Ihr Trainer plant.",
+          "titleAccent": "Sie trainieren in der App.",
+          "steps": {
+            "account": { "title": "Konto erstellen", "body": "Name, E-Mail und ein Passwort." },
+            "app": { "title": "Form-Up-App holen", "body": "Melden Sie sich am Handy mit derselben E-Mail an." },
+            "coach": { "title": "Trainer finden", "body": "Suchen Sie einen Trainer oder Ernährungsberater — oder nehmen Sie eine erhaltene Einladung an." },
+            "plan": { "title": "Ihrem Plan folgen", "body": "Workouts, Mahlzeiten und Check-ins, alles in der App." }
+          }
+        }
+      },
+      "stores": {
+        "appStore": "App Store",
+        "googlePlay": "Google Play",
+        "comingSoon": "Demnächst"
+      },
       "sent": {
         "title": "Prüfen Sie Ihr Postfach",
-        "lede": "Wir haben einen Bestätigungslink an {{email}} gesendet. Der Link ist 24 Stunden gültig.",
-        "note": "Nicht angekommen? Prüfen Sie Ihren Spam-Ordner. Falls er dort auch nicht ist, senden wir ihn erneut.",
-        "resend": "Link erneut senden",
+        "lede": "Wir haben einen Bestätigungslink gesendet an",
+        "noteTitle": "Noch keine E-Mail?",
+        "note": "Prüfen Sie Ihren Spam-Ordner oder warten Sie eine Minute — die Zustellung kann einen Moment dauern.",
+        "resend": "E-Mail erneut senden",
+        "resendIn": "verfügbar in {{time}}",
         "resending": "Wird gesendet...",
         "resendConfirmation": "Falls nötig, haben wir einen neuen Link gesendet.",
         "wrongEmail": "Falsche Adresse?",
@@ -2916,10 +2971,25 @@
     "verifyEmail": {
       "verifying": "E-Mail wird bestätigt...",
       "success": {
-        "title": "E-Mail bestätigt",
-        "lede": "Ihr Konto ist bereit. Sie können sich anmelden und loslegen.",
-        "cta": "Zum Portal",
-        "ctaLoggedOut": "Zur Anmeldung"
+        "title": "E-Mail bestätigt"
+      },
+      "coach": {
+        "ready": "Ihr Konto ist bereit.",
+        "setUpProfile": "Profil einrichten",
+        "skip": "Vorerst überspringen und zum Portal",
+        "nextHeading": "WIE ES WEITERGEHT",
+        "inviteTitle": "Laden Sie Ihren ersten Klienten ein",
+        "inviteHint": "Er tritt über die Form-Up-App bei",
+        "buildTitle": "Erstellen Sie die erste Woche",
+        "buildHint": "Aus einer Vorlage oder von Grund auf"
+      },
+      "getApp": {
+        "welcomeNamed": "Willkommen bei Form Up, {{firstName}}.",
+        "welcome": "Willkommen bei Form Up.",
+        "ready": "Ihr Konto ist bereit — alles Weitere passiert in der App.",
+        "downloadOn": "Laden im",
+        "getItOn": "Jetzt bei",
+        "signInWith": "Melden Sie sich in der App an mit"
       },
       "checkInbox": {
         "title": "Prüfen Sie Ihr Postfach",
