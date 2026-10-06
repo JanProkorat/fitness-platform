@@ -17,12 +17,12 @@ export default function RegisterShell({ children, showSignIn = true }: RegisterS
   const { t } = useTranslation();
 
   return (
-    <div className="relative isolate min-h-dvh overflow-x-clip bg-background text-ink">
+    <div className="relative isolate flex min-h-dvh flex-col overflow-x-clip bg-background text-ink">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 -z-10 register-page-wash"
       />
-      <header className="flex h-19 items-center short:h-13 gap-4 px-4 sm:px-10 lg:px-16">
+      <header className="flex h-19 shrink-0items-center short:h-13 gap-4 px-4 sm:px-10 lg:px-16">
         <Link
           to="/"
           className="font-display text-home-wordmark-sm font-light tracking-wordmark-sm whitespace-nowrap text-ink sm:text-home-wordmark sm:tracking-wordmark"

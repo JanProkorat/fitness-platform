@@ -13,8 +13,8 @@ export default function GetAppState({ email, firstName }: GetAppStateProps) {
   const { t } = useTranslation();
 
   return (
-    <main className="flex justify-center px-4 pt-8 pb-16 short:pt-2 short:pb-6 sm:px-10">
-      <div className="flex w-full max-w-140 flex-col items-center gap-4.5 rounded-glass border border-border bg-surface px-5 pt-8 pb-9 text-center shadow-card short:gap-3 short:pt-5 short:pb-6 sm:px-10">
+    <main className="flex flex-1 flex-col items-center px-4 pt-8 pb-16 short:pt-2 short:pb-6 sm:px-10 sm:py-12 short:sm:py-4">
+      <div className="my-auto flex w-full max-w-140 flex-col items-center gap-4.5 rounded-glass border border-border bg-surface px-5 pt-8 pb-9 text-center shadow-card short:gap-3 short:pt-5 short:pb-6 sm:px-10">
         <div className="self-stretch pb-2 text-left">
           <RegisterStepper current={3} finalStep="getApp" />
         </div>

@@ -79,7 +79,7 @@ export default function VerificationSentState({
   };
 
   return (
-    <div className="flex w-full max-w-140 flex-col items-center gap-4.5 rounded-glass border border-border bg-surface px-5 pt-8 pb-9 text-center shadow-card short:gap-3 short:pt-5 short:pb-6 sm:px-10">
+    <div className="my-auto flex w-full max-w-140 flex-col items-center gap-4.5 rounded-glass border border-border bg-surface px-5 pt-8 pb-9 text-center shadow-card short:gap-3 short:pt-5 short:pb-6 sm:px-10">
       <div className="self-stretch pb-2 text-left">
         <RegisterStepper current={2} finalStep={isClient ? 'getApp' : 'profile'} />
       </div>

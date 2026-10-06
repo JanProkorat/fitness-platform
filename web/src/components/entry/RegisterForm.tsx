@@ -179,7 +179,7 @@ export default function RegisterForm() {
 
   if (registerMutation.isSuccess) {
     return (
-      <main className="flex justify-center px-4 pt-8 pb-16 short:pt-2 short:pb-6 sm:px-10">
+      <main className="flex flex-1 flex-col items-center px-4 pt-8 pb-16 short:pt-2 short:pb-6 sm:px-10 sm:py-12 short:sm:py-4">
         <VerificationSentState
           email={registerMutation.variables?.email ?? ''}
           isClient={registerMutation.variables?.roles.includes('Client') ?? false}
@@ -193,228 +193,230 @@ export default function RegisterForm() {
   const termsEmphasis = <span className="font-semibold text-ink" />;
 
   return (
-    <main className="flex flex-col items-center gap-10 px-4 pt-3 pb-16 short:pt-0 short:pb-6 sm:px-10 lg:flex-row lg:items-start lg:justify-center lg:gap-15">
-      <div className="flex w-full max-w-150 flex-col gap-4.5 rounded-glass border border-border bg-surface px-5 py-8 shadow-card short:gap-3 short:py-5 sm:px-9">
-        <RegisterStepper current={1} finalStep={isClient ? 'getApp' : 'profile'} />
+    <main className="flex flex-1 flex-col px-4 pt-3 pb-16 short:pt-0 short:pb-6 sm:px-10 lg:py-9 short:lg:py-3">
+      <div className="my-auto flex flex-col items-center gap-10 lg:flex-row lg:items-start lg:justify-center lg:gap-15">
+        <div className="flex w-full max-w-150 flex-col gap-4.5 rounded-glass border border-border bg-surface px-5 py-8 shadow-card short:gap-3 short:py-5 sm:px-9">
+          <RegisterStepper current={1} finalStep={isClient ? 'getApp' : 'profile'} />
 
-        <div className="flex flex-col gap-1.5 pt-1.5 short:gap-0.5 short:pt-0">
-          <h1 className="font-display text-display font-semibold tracking-heading text-ink short:text-card-title">
-            {t('entry.register.title')}
-          </h1>
-          <p className="text-copy text-muted-foreground">{t('entry.register.lede')}</p>
-        </div>
-
-        <form
-          onSubmit={(event) => {
-            // Defense in depth, see the `mode` comment above: a submission
-            // forced past the disabled button must not run handleSubmit's
-            // full-schema validation and dump every error at once.
-            if (!isValid) {
-              event.preventDefault();
-              return;
-            }
-            void handleSubmit(onSubmit)(event);
-          }}
-          noValidate
-          className="flex flex-col gap-4.5 short:gap-2.5"
-        >
-          <Controller
-            control={control}
-            name="roles"
-            render={({ field }) => (
-              <RoleSelector
-                value={field.value}
-                onChange={(next) => {
-                  field.onChange(next);
-                  if (!next.includes('Client')) {
-                    // A hidden, ticked health consent must never linger once
-                    // the client card is deselected.
-                    setValue('healthDataConsent', false);
-                  }
-                }}
-                onBlur={field.onBlur}
-                error={errors.roles?.message}
-              />
-            )}
-          />
-
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="entry-firstName">{t('entry.register.firstNameLabel')}</Label>
-              <Input
-                id="entry-firstName"
-                className={inputClass}
-                autoComplete="given-name"
-                placeholder={t('entry.register.firstNamePlaceholder')}
-                aria-invalid={!!errors.firstName}
-                aria-describedby={errors.firstName ? 'entry-firstName-error' : undefined}
-                {...register('firstName')}
-              />
-              {errors.firstName && (
-                <p id="entry-firstName-error" className="text-meta text-destructive">
-                  {errors.firstName.message}
-                </p>
-              )}
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="entry-lastName">{t('entry.register.lastNameLabel')}</Label>
-              <Input
-                id="entry-lastName"
-                className={inputClass}
-                autoComplete="family-name"
-                placeholder={t('entry.register.lastNamePlaceholder')}
-                aria-invalid={!!errors.lastName}
-                aria-describedby={errors.lastName ? 'entry-lastName-error' : undefined}
-                {...register('lastName')}
-              />
-              {errors.lastName && (
-                <p id="entry-lastName-error" className="text-meta text-destructive">
-                  {errors.lastName.message}
-                </p>
-              )}
-            </div>
+          <div className="flex flex-col gap-1.5 pt-1.5 short:gap-0.5 short:pt-0">
+            <h1 className="font-display text-display font-semibold tracking-heading text-ink short:text-card-title">
+              {t('entry.register.title')}
+            </h1>
+            <p className="text-copy text-muted-foreground">{t('entry.register.lede')}</p>
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="entry-register-email">{t('entry.register.emailLabel')}</Label>
-            <Input
-              id="entry-register-email"
-              className={inputClass}
-              type="email"
-              autoComplete="email"
-              placeholder={t('entry.register.emailPlaceholder')}
-              aria-invalid={!!errors.email}
-              aria-describedby={errors.email ? 'entry-register-email-error' : undefined}
-              {...register('email')}
+          <form
+            onSubmit={(event) => {
+              // Defense in depth, see the `mode` comment above: a submission
+              // forced past the disabled button must not run handleSubmit's
+              // full-schema validation and dump every error at once.
+              if (!isValid) {
+                event.preventDefault();
+                return;
+              }
+              void handleSubmit(onSubmit)(event);
+            }}
+            noValidate
+            className="flex flex-col gap-4.5 short:gap-2.5"
+          >
+            <Controller
+              control={control}
+              name="roles"
+              render={({ field }) => (
+                <RoleSelector
+                  value={field.value}
+                  onChange={(next) => {
+                    field.onChange(next);
+                    if (!next.includes('Client')) {
+                      // A hidden, ticked health consent must never linger once
+                      // the client card is deselected.
+                      setValue('healthDataConsent', false);
+                    }
+                  }}
+                  onBlur={field.onBlur}
+                  error={errors.roles?.message}
+                />
+              )}
             />
-            {errors.email && (
-              <p id="entry-register-email-error" className="text-meta text-destructive">
-                {errors.email.message}
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="entry-firstName">{t('entry.register.firstNameLabel')}</Label>
+                <Input
+                  id="entry-firstName"
+                  className={inputClass}
+                  autoComplete="given-name"
+                  placeholder={t('entry.register.firstNamePlaceholder')}
+                  aria-invalid={!!errors.firstName}
+                  aria-describedby={errors.firstName ? 'entry-firstName-error' : undefined}
+                  {...register('firstName')}
+                />
+                {errors.firstName && (
+                  <p id="entry-firstName-error" className="text-meta text-destructive">
+                    {errors.firstName.message}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="entry-lastName">{t('entry.register.lastNameLabel')}</Label>
+                <Input
+                  id="entry-lastName"
+                  className={inputClass}
+                  autoComplete="family-name"
+                  placeholder={t('entry.register.lastNamePlaceholder')}
+                  aria-invalid={!!errors.lastName}
+                  aria-describedby={errors.lastName ? 'entry-lastName-error' : undefined}
+                  {...register('lastName')}
+                />
+                {errors.lastName && (
+                  <p id="entry-lastName-error" className="text-meta text-destructive">
+                    {errors.lastName.message}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="entry-register-email">{t('entry.register.emailLabel')}</Label>
+              <Input
+                id="entry-register-email"
+                className={inputClass}
+                type="email"
+                autoComplete="email"
+                placeholder={t('entry.register.emailPlaceholder')}
+                aria-invalid={!!errors.email}
+                aria-describedby={errors.email ? 'entry-register-email-error' : undefined}
+                {...register('email')}
+              />
+              {errors.email && (
+                <p id="entry-register-email-error" className="text-meta text-destructive">
+                  {errors.email.message}
+                </p>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="entry-register-password">{t('entry.register.passwordLabel')}</Label>
+              <div className="relative">
+                <Input
+                  id="entry-register-password"
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="new-password"
+                  placeholder="••••••••"
+                  aria-invalid={!!errors.password}
+                  aria-describedby="entry-register-password-hint"
+                  className={cn(inputClass, 'pr-16')}
+                  {...register('password')}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((visible) => !visible)}
+                  aria-label={
+                    showPassword ? t('entry.login.hidePassword') : t('entry.login.showPassword')
+                  }
+                  className="absolute inset-y-0 right-2 inline-flex items-center gap-1 text-caption font-semibold text-muted-foreground"
+                >
+                  {showPassword ? (
+                    <EyeOffIcon className="size-3.5" />
+                  ) : (
+                    <EyeIcon className="size-3.5" />
+                  )}
+                  {showPassword ? t('entry.login.hidePassword') : t('entry.login.showPassword')}
+                </button>
+              </div>
+              <PasswordStrengthBar password={password} id="entry-register-password-hint" />
+            </div>
+
+            <Controller
+              control={control}
+              name="gdprConsent"
+              render={({ field }) => (
+                <label
+                  htmlFor="entry-gdpr-consent"
+                  className="flex items-start gap-2.5 text-body leading-normal text-ink-2"
+                >
+                  <Checkbox
+                    id="entry-gdpr-consent"
+                    className="mt-0.5"
+                    checked={field.value}
+                    aria-invalid={!!errors.gdprConsent}
+                    onCheckedChange={(checked) => field.onChange(checked === true)}
+                    onBlur={field.onBlur}
+                  />
+                  <span>
+                    <Trans
+                      i18nKey="entry.register.consentLabel"
+                      components={{ terms: termsEmphasis, privacy: termsEmphasis }}
+                    />
+                  </span>
+                </label>
+              )}
+            />
+            {errors.gdprConsent && (
+              <p className="text-meta text-destructive">{errors.gdprConsent.message}</p>
+            )}
+
+            {isClient && (
+              <>
+                <Controller
+                  control={control}
+                  name="healthDataConsent"
+                  render={({ field }) => (
+                    <label
+                      htmlFor="entry-health-consent"
+                      className="flex items-start gap-2.5 text-body leading-normal text-ink-2"
+                    >
+                      <Checkbox
+                        id="entry-health-consent"
+                        className="mt-0.5"
+                        checked={field.value}
+                        aria-invalid={!!errors.healthDataConsent}
+                        onCheckedChange={(checked) => field.onChange(checked === true)}
+                        onBlur={field.onBlur}
+                      />
+                      <span>{t('entry.register.healthConsentLabel')}</span>
+                    </label>
+                  )}
+                />
+                {errors.healthDataConsent && (
+                  <p className="text-meta text-destructive">{errors.healthDataConsent.message}</p>
+                )}
+              </>
+            )}
+
+            {bannerErrorMessage && (
+              <p role="alert" className="text-meta text-destructive">
+                {bannerErrorMessage}
               </p>
             )}
-          </div>
 
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="entry-register-password">{t('entry.register.passwordLabel')}</Label>
-            <div className="relative">
-              <Input
-                id="entry-register-password"
-                type={showPassword ? 'text' : 'password'}
-                autoComplete="new-password"
-                placeholder="••••••••"
-                aria-invalid={!!errors.password}
-                aria-describedby="entry-register-password-hint"
-                className={cn(inputClass, 'pr-16')}
-                {...register('password')}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword((visible) => !visible)}
-                aria-label={
-                  showPassword ? t('entry.login.hidePassword') : t('entry.login.showPassword')
-                }
-                className="absolute inset-y-0 right-2 inline-flex items-center gap-1 text-caption font-semibold text-muted-foreground"
-              >
-                {showPassword ? (
-                  <EyeOffIcon className="size-3.5" />
-                ) : (
-                  <EyeIcon className="size-3.5" />
-                )}
-                {showPassword ? t('entry.login.hidePassword') : t('entry.login.showPassword')}
-              </button>
-            </div>
-            <PasswordStrengthBar password={password} id="entry-register-password-hint" />
-          </div>
-
-          <Controller
-            control={control}
-            name="gdprConsent"
-            render={({ field }) => (
-              <label
-                htmlFor="entry-gdpr-consent"
-                className="flex items-start gap-2.5 text-body leading-normal text-ink-2"
-              >
-                <Checkbox
-                  id="entry-gdpr-consent"
-                  className="mt-0.5"
-                  checked={field.value}
-                  aria-invalid={!!errors.gdprConsent}
-                  onCheckedChange={(checked) => field.onChange(checked === true)}
-                  onBlur={field.onBlur}
-                />
-                <span>
-                  <Trans
-                    i18nKey="entry.register.consentLabel"
-                    components={{ terms: termsEmphasis, privacy: termsEmphasis }}
-                  />
-                </span>
-              </label>
-            )}
-          />
-          {errors.gdprConsent && (
-            <p className="text-meta text-destructive">{errors.gdprConsent.message}</p>
-          )}
-
-          {isClient && (
-            <>
-              <Controller
-                control={control}
-                name="healthDataConsent"
-                render={({ field }) => (
-                  <label
-                    htmlFor="entry-health-consent"
-                    className="flex items-start gap-2.5 text-body leading-normal text-ink-2"
-                  >
-                    <Checkbox
-                      id="entry-health-consent"
-                      className="mt-0.5"
-                      checked={field.value}
-                      aria-invalid={!!errors.healthDataConsent}
-                      onCheckedChange={(checked) => field.onChange(checked === true)}
-                      onBlur={field.onBlur}
-                    />
-                    <span>{t('entry.register.healthConsentLabel')}</span>
-                  </label>
-                )}
-              />
-              {errors.healthDataConsent && (
-                <p className="text-meta text-destructive">{errors.healthDataConsent.message}</p>
-              )}
-            </>
-          )}
-
-          {bannerErrorMessage && (
-            <p role="alert" className="text-meta text-destructive">
-              {bannerErrorMessage}
+            <Button
+              type="submit"
+              disabled={!isValid || registerMutation.isPending}
+              aria-describedby={!isValid ? 'entry-register-submit-hint' : undefined}
+              className="h-12 w-full rounded-xl text-subhead font-bold short:h-10"
+            >
+              {registerMutation.isPending
+                ? t('entry.register.submitting')
+                : t('entry.register.submit')}
+            </Button>
+            {/*
+              Always rendered so its line is reserved whether or not it shows —
+              the card never grows or shifts as validity changes.
+            */}
+            <p
+              id="entry-register-submit-hint"
+              className={cn('-mt-2 text-caption short:-mt-1 text-muted-foreground', isValid && 'invisible')}
+            >
+              {t('entry.register.submitHint')}
             </p>
-          )}
+          </form>
+        </div>
 
-          <Button
-            type="submit"
-            disabled={!isValid || registerMutation.isPending}
-            aria-describedby={!isValid ? 'entry-register-submit-hint' : undefined}
-            className="h-12 w-full rounded-xl text-subhead font-bold short:h-10"
-          >
-            {registerMutation.isPending
-              ? t('entry.register.submitting')
-              : t('entry.register.submit')}
-          </Button>
-          {/*
-            Always rendered so its line is reserved whether or not it shows —
-            the card never grows or shifts as validity changes.
-          */}
-          <p
-            id="entry-register-submit-hint"
-            className={cn('-mt-2 text-caption short:-mt-1 text-muted-foreground', isValid && 'invisible')}
-          >
-            {t('entry.register.submitHint')}
-          </p>
-        </form>
-      </div>
-
-      <div className="w-full max-w-150 lg:w-117.5">
-        <RegisterAside variant={isClient ? 'client' : 'coach'} />
+        <div className="w-full max-w-150 lg:w-117.5">
+          <RegisterAside variant={isClient ? 'client' : 'coach'} />
+        </div>
       </div>
     </main>
   );
