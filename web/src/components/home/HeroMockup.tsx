@@ -73,7 +73,10 @@ export default function HeroMockup() {
   const { t } = useTranslation();
 
   return (
-    <div aria-hidden="true" className="h-[494px] w-[768px]">
+    <div
+      aria-hidden="true"
+      className="h-[494px] w-[768px] lg:[zoom:0.46] lg:@min-[960px]:[zoom:0.56] lg:@min-[1040px]:[zoom:0.67] lg:@min-[1120px]:[zoom:0.78] lg:@min-[1200px]:[zoom:0.88] lg:@min-[1286px]:[zoom:1]"
+    >
       <div className="relative h-[560px] w-[872px] origin-top-left scale-[0.88]">
         <WindowFrame
           title={t('home.mock.planTitle')}

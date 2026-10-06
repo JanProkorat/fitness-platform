@@ -21,8 +21,8 @@ export default function HomeHero() {
         aria-hidden="true"
         className="pointer-events-none absolute inset-x-0 -top-19 bottom-0 -z-10 bg-no-repeat [background-image:radial-gradient(700px_520px_at_78%_30%,var(--gf-hero-warm),transparent_70%),radial-gradient(620px_520px_at_98%_90%,var(--gf-hero-fresh),transparent_70%),radial-gradient(520px_420px_at_0%_0%,var(--gf-hero-rose),transparent_70%)]"
       />
-      <div className="flex flex-col gap-8 @min-[1240px]:flex-row @min-[1240px]:gap-12">
-        <div className="flex max-w-117.5 shrink-0 flex-col gap-5.5 pt-4 @min-[1240px]:pt-8.5">
+      <div className="flex flex-col gap-8 lg:flex-row lg:gap-12">
+        <div className="flex max-w-117.5 shrink-0 flex-col gap-5.5 pt-4 lg:pt-8.5">
           <span className="text-meta font-semibold tracking-eyebrow text-muted-foreground uppercase">
             {t('home.hero.eyebrow')}
           </span>
@@ -56,7 +56,7 @@ export default function HomeHero() {
           <div className="hidden @min-[820px]:block">
             <HeroMockup />
           </div>
-          <ol className="grid max-w-191.5 grid-cols-2 gap-x-4.5 gap-y-5 @min-[820px]:grid-cols-4">
+          <ol className="grid max-w-191.5 grid-cols-2 gap-x-4.5 gap-y-5 max-lg:@min-[820px]:grid-cols-4 lg:@min-[1060px]:grid-cols-4">
             {STEPS.map((step, index) => (
               <li key={step.key} className="flex flex-col gap-1.5">
                 <div className="h-0.75 rounded-xs bg-border">

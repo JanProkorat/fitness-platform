@@ -79,7 +79,10 @@ function NutritionMockup() {
   const { t, i18n } = useTranslation();
 
   return (
-    <div aria-hidden="true" className="relative w-[640px] max-w-full">
+    <div
+      aria-hidden="true"
+      className="relative w-[640px] max-w-full lg:[zoom:0.62] lg:@min-[960px]:[zoom:0.74] lg:@min-[1040px]:[zoom:0.86] lg:@min-[1120px]:[zoom:0.98] lg:@min-[1200px]:[zoom:1]"
+    >
       <WindowFrame title={t('home.mock.planTitle')} subtitle={t('home.mock.nutritionView')}>
         <div className="grid grid-cols-[70px_repeat(4,minmax(0,1fr))] gap-2 px-4 pt-3.5 pb-4">
           <span />
@@ -194,7 +197,7 @@ export default function HomeNutritionists() {
       tabIndex={-1}
       className="@container flex scroll-mt-6 outline-none flex-col bg-surface px-4 pt-14 pb-24 sm:px-10 lg:px-16 lg:pt-24 lg:pb-48"
     >
-      <div className="flex flex-col gap-12 @min-[1200px]:flex-row-reverse @min-[1200px]:items-center @min-[1200px]:gap-16">
+      <div className="flex flex-col gap-12 lg:flex-row-reverse lg:items-center lg:gap-16">
         <div className="flex max-w-105 shrink-0 flex-col gap-4.5">
           <Eyebrow className="text-nutrition">{t('home.nutritionists.eyebrow')}</Eyebrow>
           <h2 className="font-display text-home-heading font-semibold tracking-heading text-ink">

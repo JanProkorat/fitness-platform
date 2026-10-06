@@ -123,7 +123,7 @@ function StepCard({ index, stepKey, children }: { index: number; stepKey: string
     <div className="flex min-w-0 flex-col gap-3.5">
       <div
         aria-hidden="true"
-        className="box-border flex h-[196px] flex-col justify-center rounded-card border border-border bg-surface p-5"
+        className="box-border flex h-[196px] flex-col justify-center rounded-card border border-border bg-surface p-5 lg:[zoom:0.65] lg:@min-[960px]:[zoom:0.72] lg:@min-[1040px]:[zoom:0.79] lg:@min-[1120px]:[zoom:0.85] lg:@min-[1200px]:[zoom:0.92] lg:@min-[1290px]:[zoom:1]"
       >
         {children}
       </div>
@@ -152,7 +152,7 @@ export default function HomeHowItWorks() {
           {t('home.how.title')}
         </h2>
       </div>
-      <div className="grid grid-cols-1 gap-5.5 @min-[560px]:grid-cols-2 @min-[1240px]:grid-cols-4">
+      <div className="grid grid-cols-1 gap-5.5 max-lg:@min-[560px]:grid-cols-2 lg:grid-cols-4">
         <StepCard index={1} stepKey="build">
           <BuildMock />
         </StepCard>
