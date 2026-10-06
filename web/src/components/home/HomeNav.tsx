@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { scrollToAnchor } from '@/components/home/smoothAnchor';
 import { useTranslation } from 'react-i18next';
+import Wordmark from '@/components/brand/Wordmark';
 import LanguageSwitcher from '@/components/entry/LanguageSwitcher';
 import NavCompactMenu from '@/components/home/NavCompactMenu';
 import ThemeToggle from '@/components/home/ThemeToggle';
@@ -22,12 +23,7 @@ export default function HomeNav() {
 
   return (
     <header className="flex h-19 items-center gap-4 px-4 sm:px-10 lg:gap-3 lg:px-16 xl:gap-9">
-      <Link
-        to="/"
-        className="font-display text-home-wordmark-sm font-light tracking-wordmark-sm whitespace-nowrap text-ink sm:text-home-wordmark sm:tracking-wordmark"
-      >
-        {t('home.brand.form')} <span className="text-marker">{t('home.brand.up')}</span>
-      </Link>
+      <Wordmark to="/" />
       <nav
         aria-label={t('home.nav.label')}
         className="ml-2 hidden gap-4 text-body font-medium text-ink-2 lg:flex xl:ml-6 xl:gap-7 xl:text-copy"
