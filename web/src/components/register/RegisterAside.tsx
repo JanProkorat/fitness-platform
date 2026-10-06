@@ -9,6 +9,7 @@ import {
 import type { LucideIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
+import { useChanged } from '@/hooks/useChanged';
 import StoreButtons from '@/components/register/StoreButtons';
 import { SOME_STORE_MISSING } from '@/components/register/storeLinks';
 
@@ -34,9 +35,16 @@ export default function RegisterAside({ variant }: { variant: RegisterAsideVaria
   const { t } = useTranslation();
   const steps = STEPS[variant];
   const base = `entry.register.aside.${variant}`;
+  const swapped = useChanged(variant);
 
   return (
-    <aside className="flex flex-col gap-6 lg:pt-7 short:gap-4 short:pt-3">
+    <aside
+      key={variant}
+      className={cn(
+        'flex flex-col gap-6 lg:pt-7 short:gap-4 short:pt-3',
+        swapped && 'animate-content-in motion-reduce:animate-none'
+      )}
+    >
       <p className="text-meta font-semibold tracking-eyebrow text-muted-foreground uppercase">
         {t(`${base}.eyebrow`)}
       </p>

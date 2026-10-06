@@ -357,8 +357,24 @@ export default function RegisterForm() {
               <p className="text-meta text-destructive">{errors.gdprConsent.message}</p>
             )}
 
-            {isClient && (
-              <>
+            {/*
+              Stays mounted so the row can collapse/expand. While collapsed it
+              is inert + aria-hidden + invisible: not focusable, not announced,
+              and not a role=checkbox. The negative margin cancels the form's
+              flex gap so a collapsed row takes no space at all; visibility is
+              in the transition list so it flips at the end of the collapse.
+            */}
+            <div
+              aria-hidden={!isClient}
+              inert={!isClient}
+              className={cn(
+                'grid transition-[grid-template-rows,margin-top,opacity,visibility] duration-200 ease-out motion-reduce:transition-none',
+                isClient
+                  ? 'visible mt-0 grid-rows-[1fr] opacity-100'
+                  : 'invisible -mt-4.5 grid-rows-[0fr] opacity-0 short:-mt-2.5'
+              )}
+            >
+              <div className="-mx-1 flex flex-col gap-4.5 overflow-hidden px-1 short:gap-2.5">
                 <Controller
                   control={control}
                   name="healthDataConsent"
@@ -382,8 +398,8 @@ export default function RegisterForm() {
                 {errors.healthDataConsent && (
                   <p className="text-meta text-destructive">{errors.healthDataConsent.message}</p>
                 )}
-              </>
-            )}
+              </div>
+            </div>
 
             {bannerErrorMessage && (
               <p role="alert" className="text-meta text-destructive">

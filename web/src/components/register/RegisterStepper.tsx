@@ -1,6 +1,7 @@
 import { CheckIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
+import { useChanged } from '@/hooks/useChanged';
 
 interface RegisterStepperProps {
   /** 1 = filling in the account form, 2 = waiting for email verification, 3 = verified. */
@@ -27,6 +28,7 @@ function StepMarker({ state, number }: { state: 'done' | 'current' | 'todo'; num
 /** Three-step progress header of the register card. */
 export default function RegisterStepper({ current, finalStep }: RegisterStepperProps) {
   const { t } = useTranslation();
+  const swapped = useChanged(finalStep);
 
   const steps = [
     { label: t('entry.register.steps.account') },
@@ -54,7 +56,15 @@ export default function RegisterStepper({ current, finalStep }: RegisterStepperP
             >
               <StepMarker state={state} number={number} />
               {/* Only the current step keeps its label on phones so three steps fit. */}
-              <span className={cn(state !== 'current' && 'hidden sm:inline')}>{step.label}</span>
+              <span
+                key={index === 2 ? finalStep : 'static'}
+                className={cn(
+                  state !== 'current' && 'hidden sm:inline',
+                  index === 2 && swapped && 'animate-content-in motion-reduce:animate-none'
+                )}
+              >
+                {step.label}
+              </span>
             </span>
             {index < steps.length - 1 && (
               <span
