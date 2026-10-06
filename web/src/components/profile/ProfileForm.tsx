@@ -13,7 +13,7 @@ import {
   updateTrainerProfile,
 } from '@/api/profile';
 import { useAuthStore } from '@/stores/auth';
-import { getApiErrorMessage, getErrorCode, showApiError, showSuccess } from '@/lib/api-errors';
+import { getErrorCode, showApiError, showSuccess } from '@/lib/api-errors';
 import { Button } from '@/components/ui/button';
 import PhotoNameSection from '@/components/profile/PhotoNameSection';
 import AccountSection from '@/components/profile/AccountSection';
@@ -114,7 +114,8 @@ export default function ProfileForm({ me, trainer }: Props) {
       if (!target) continue;
       const message = isCertificates
         ? t('profile.page.validation.invalidCertificates')
-        : getApiErrorMessage(error, 'profile.page.validation.serverInvalid');
+        : (entry.code ? t(`apiErrors.${entry.code}`, { defaultValue: '' }) : '') ||
+          t('profile.page.validation.serverInvalid');
       setError(target, { message });
       mapped = true;
     }
