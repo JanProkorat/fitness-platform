@@ -186,7 +186,7 @@ export default function HomeNutritionists() {
   return (
     <section
       id="for-nutritionists"
-      className="@container flex scroll-mt-6 flex-col bg-surface px-4 pt-14 pb-24 sm:px-10 panel:col-start-1 panel:px-16 panel:pt-24 panel:pb-48"
+      className="@container flex scroll-mt-6 flex-col bg-surface px-4 pt-14 pb-24 sm:px-10 lg:px-16 lg:pt-24 lg:pb-48"
     >
       <div className="flex flex-col gap-12 @min-[1200px]:flex-row-reverse @min-[1200px]:items-center @min-[1200px]:gap-16">
         <div className="flex max-w-[420px] shrink-0 flex-col gap-4.5">

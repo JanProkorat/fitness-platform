@@ -5,6 +5,7 @@ import axios from 'axios';
 import { CheckIcon } from 'lucide-react';
 import { resendVerificationAnonymous } from '@/api/auth';
 import { Button } from '@/components/ui/button';
+import EntryDialogTitle from '@/components/entry/EntryDialogTitle';
 
 interface VerificationSentStateProps {
   email: string;
@@ -55,7 +56,7 @@ export default function VerificationSentState({ email, onWrongEmail }: Verificat
       </div>
 
       <div>
-        <p className="text-auth-title font-bold text-ink">{t('entry.register.sent.title')}</p>
+        <EntryDialogTitle>{t('entry.register.sent.title')}</EntryDialogTitle>
         <p className="mt-1.5 text-meta text-muted-foreground">
           {t('entry.register.sent.lede', { email })}
         </p>
