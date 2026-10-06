@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -39,6 +39,29 @@ interface RegisterFormValues {
  * (see `api/auth.ts#register`).
  */
 const DUPLICATE_EMAIL_PATTERN = /already taken|already registered/i;
+
+/**
+ * Grows/fades its children in and out while staying mounted. Collapsed it is
+ * inert, aria-hidden and invisible (not focusable, not announced); the
+ * negative margin cancels the parent's flex gap so it takes no space, and
+ * visibility is in the transition list so it flips at the end of the collapse.
+ */
+function Collapse({ open, children }: { open: boolean; children: ReactNode }) {
+  return (
+    <div
+      aria-hidden={!open}
+      inert={!open}
+      className={cn(
+        'grid transition-[grid-template-rows,margin-top,opacity,visibility] duration-(--register-motion) ease-out motion-reduce:transition-none',
+        open
+          ? 'visible mt-0 grid-rows-[1fr] opacity-100'
+          : 'invisible -mt-4.5 grid-rows-[0fr] opacity-0 short:-mt-2.5'
+      )}
+    >
+      <div className="-mx-1 overflow-hidden px-1">{children}</div>
+    </div>
+  );
+}
 
 /**
  * Body of the `/register` page: the account form beside a role-aware
@@ -353,28 +376,15 @@ export default function RegisterForm() {
                 </label>
               )}
             />
-            {errors.gdprConsent && (
-              <p className="text-meta text-destructive">{errors.gdprConsent.message}</p>
-            )}
+            <Collapse open={!!errors.gdprConsent}>
+              <p className="text-meta text-destructive">
+                {t('entry.register.validation.consentRequired')}
+              </p>
+            </Collapse>
 
-            {/*
-              Stays mounted so the row can collapse/expand. While collapsed it
-              is inert + aria-hidden + invisible: not focusable, not announced,
-              and not a role=checkbox. The negative margin cancels the form's
-              flex gap so a collapsed row takes no space at all; visibility is
-              in the transition list so it flips at the end of the collapse.
-            */}
-            <div
-              aria-hidden={!isClient}
-              inert={!isClient}
-              className={cn(
-                'grid transition-[grid-template-rows,margin-top,opacity,visibility] duration-200 ease-out motion-reduce:transition-none',
-                isClient
-                  ? 'visible mt-0 grid-rows-[1fr] opacity-100'
-                  : 'invisible -mt-4.5 grid-rows-[0fr] opacity-0 short:-mt-2.5'
-              )}
-            >
-              <div className="-mx-1 flex flex-col gap-4.5 overflow-hidden px-1 short:gap-2.5">
+            {/* Stays mounted so the health-consent row can collapse and expand. */}
+            <Collapse open={isClient}>
+              <div className="flex flex-col gap-4.5 short:gap-2.5">
                 <Controller
                   control={control}
                   name="healthDataConsent"
@@ -395,26 +405,13 @@ export default function RegisterForm() {
                     </label>
                   )}
                 />
-                {/* Always mounted so it can grow/fade; same collapse recipe as the row. */}
-                <div
-                  data-testid="health-consent-error"
-                  aria-hidden={!errors.healthDataConsent}
-                  inert={!errors.healthDataConsent}
-                  className={cn(
-                    'grid transition-[grid-template-rows,margin-top,opacity,visibility] duration-200 ease-out motion-reduce:transition-none',
-                    errors.healthDataConsent
-                      ? 'visible mt-0 grid-rows-[1fr] opacity-100'
-                      : 'invisible -mt-4.5 grid-rows-[0fr] opacity-0 short:-mt-2.5'
-                  )}
-                >
-                  <div className="overflow-hidden">
-                    <p className="text-meta text-destructive">
-                      {t('entry.register.validation.healthConsentRequired')}
-                    </p>
-                  </div>
-                </div>
+                <Collapse open={!!errors.healthDataConsent}>
+                  <p className="text-meta text-destructive">
+                    {t('entry.register.validation.healthConsentRequired')}
+                  </p>
+                </Collapse>
               </div>
-            </div>
+            </Collapse>
 
             {bannerErrorMessage && (
               <p role="alert" className="text-meta text-destructive">
