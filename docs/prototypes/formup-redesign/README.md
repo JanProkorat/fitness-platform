@@ -5,7 +5,7 @@ the web portal and the mobile apps:
 <https://claude.ai/artifact/HFzM8WqykBxJvkLdiqU85h> (private claude.ai Design
 artifact — only the main Claude session can open it; agents read this snapshot).
 
-**Snapshot of canvas version 147, exported 2026-10-06.** If the canvas has moved
+**Snapshot of canvas version 151, exported 2026-10-06.** If the canvas has moved
 on, re-export before relying on this copy (see Rebuilding).
 
 | Path | Contents |
@@ -13,7 +13,7 @@ on, re-export before relying on this copy (see Rebuilding).
 | `index.html` | Gallery of every board, grouped by canvas page and row |
 | `interactive/` | Clickable web-portal prototype, light and dark (open `interactive/index.html`) |
 | `interactive-client/`, `interactive-coach/` | Clickable client-app and coach-app prototypes, light and dark, shown in a phone frame |
-| `web/` | Web portal: entry page, registration, clients, inbox, recipes, ingredients, plan templates, forms — light and dark |
+| `web/` | Web portal: entry page, registration, clients, inbox, recipes, ingredients, plan templates, forms, coach profile — light and dark |
 | `mobile-light/`, `mobile-dark/` | Client mobile app (Liquid Glass) |
 | `coach-light/`, `coach-dark/` | Coach mobile app |
 | `concepts/`, `logo/` | Colour concept frames and logo explorations |

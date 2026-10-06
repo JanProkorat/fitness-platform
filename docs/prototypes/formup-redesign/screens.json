@@ -510,6 +510,18 @@
   "h": 900
  },
  {
+  "html": "web/17-01-page-profile-c.html",
+  "png": "web/17-01-page-profile-c.png",
+  "w": 1440,
+  "h": 2540
+ },
+ {
+  "html": "web/18-01-page-profile-d.html",
+  "png": "web/18-01-page-profile-d.png",
+  "w": 1440,
+  "h": 2540
+ },
+ {
   "html": "mobile-light/01-01-login.html",
   "png": "mobile-light/01-01-login.png",
   "w": 390,
