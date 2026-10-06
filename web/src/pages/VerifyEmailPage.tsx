@@ -10,6 +10,8 @@ import { getMyProfile } from '@/api/profile';
 import { useAuthStore } from '@/stores/auth';
 import { getApiErrorMessage, getErrorCode } from '@/lib/api-errors';
 import { Button } from '@/components/ui/button';
+import RegisterShell from '@/components/register/RegisterShell';
+import GetAppState from '@/components/register/GetAppState';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 
 interface VerifyMutationResult {
@@ -19,6 +21,16 @@ interface VerifyMutationResult {
    * both cases so a stale store can't bounce the user back here via
    * ProtectedRoute with a now-consumed token. */
   profileRefreshed: boolean;
+  /** Set when the verified account is client-only: the page shows the get-the-app state. */
+  client: { email: string; firstName: string } | null;
+}
+
+/** Client-only account — same predicate as ProtectedRoute. */
+function isClientOnly(roles: string[] | undefined): boolean {
+  return (
+    !!roles?.includes('Client') &&
+    !roles.some((role) => ['Trainer', 'Nutritionist', 'Admin'].includes(role))
+  );
 }
 
 /**
@@ -83,10 +95,17 @@ export default function VerifyEmailPage() {
     queryKey: ['verify-email', token],
     queryFn: async (): Promise<VerifyMutationResult> => {
       // Non-null: this queryFn only ever runs when `enabled` (below) is true.
-      await verifyEmail(token as string);
+      const verified = await verifyEmail(token as string);
+
+      if (isClientOnly(verified.roles)) {
+        return {
+          profileRefreshed: false,
+          client: { email: verified.email ?? '', firstName: verified.firstName?.trim() ?? '' },
+        };
+      }
 
       if (!isAuthenticated) {
-        return { profileRefreshed: false };
+        return { profileRefreshed: false, client: null };
       }
 
       try {
@@ -100,12 +119,12 @@ export default function VerifyEmailPage() {
           emailConfirmed: profile.emailConfirmed ?? true,
           avatarBlobUrl: profile.avatarBlobUrl ?? null,
         });
-        return { profileRefreshed: true };
+        return { profileRefreshed: true, client: null };
       } catch {
         // Verification itself already succeeded server-side; a failed
         // profile refresh just means the CTA below falls back to "/login"
         // instead of "/clients" so a stale store can't loop the user.
-        return { profileRefreshed: false };
+        return { profileRefreshed: false, client: null };
       }
     },
     enabled: !!token,
@@ -172,6 +191,17 @@ export default function VerifyEmailPage() {
 
   // Caller 1: cold link with a token.
   if (token) {
+    if (verifyQuery.isSuccess && verifyQuery.data.client) {
+      return (
+        <RegisterShell showSignIn={false}>
+          <GetAppState
+            email={verifyQuery.data.client.email}
+            firstName={verifyQuery.data.client.firstName}
+          />
+        </RegisterShell>
+      );
+    }
+
     if (verifyQuery.isSuccess) {
       const goToClients = verifyQuery.data.profileRefreshed;
       return shell(

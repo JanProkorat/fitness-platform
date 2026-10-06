@@ -2977,6 +2977,14 @@
         "cta": "Go to the portal",
         "ctaLoggedOut": "Go to sign in"
       },
+      "getApp": {
+        "welcomeNamed": "Welcome to Form Up, {{firstName}}.",
+        "welcome": "Welcome to Form Up.",
+        "ready": "Your account is ready — everything else happens in the app.",
+        "downloadOn": "Download on the",
+        "getItOn": "Get it on",
+        "signInWith": "In the app, sign in with"
+      },
       "checkInbox": {
         "title": "Check your email",
         "lede": "We sent a verification link to {{email}}. Click it to activate your account.",

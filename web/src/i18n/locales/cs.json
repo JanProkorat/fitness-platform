@@ -3022,6 +3022,14 @@
         "cta": "Přejít do portálu",
         "ctaLoggedOut": "Přejít na přihlášení"
       },
+      "getApp": {
+        "welcomeNamed": "Vítejte ve Form Up, {{firstName}}.",
+        "welcome": "Vítejte ve Form Up.",
+        "ready": "Váš účet je připravený — vše ostatní se děje v aplikaci.",
+        "downloadOn": "Stáhnout z",
+        "getItOn": "Získejte na",
+        "signInWith": "V aplikaci se přihlaste e-mailem"
+      },
       "checkInbox": {
         "title": "Zkontrolujte poštu",
         "lede": "Poslali jsme ověřovací odkaz na {{email}}. Klikněte na něj pro aktivaci účtu.",

@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next';
 
 interface RegisterShellProps {
   children: ReactNode;
+  /** Hide the "Already have an account? Sign in" link (the get-the-app page has no portal link). */
+  showSignIn?: boolean;
 }
 
 /**
@@ -11,7 +13,7 @@ interface RegisterShellProps {
  * the home hero, the wordmark and the "Already have an account? Sign in"
  * header. Sign in goes to /login, which opens the landing page's dialog.
  */
-export default function RegisterShell({ children }: RegisterShellProps) {
+export default function RegisterShell({ children, showSignIn = true }: RegisterShellProps) {
   const { t } = useTranslation();
 
   return (
@@ -27,12 +29,14 @@ export default function RegisterShell({ children }: RegisterShellProps) {
         >
           {t('home.brand.form')} <span className="text-marker">{t('home.brand.up')}</span>
         </Link>
-        <p className="ml-auto text-right text-meta text-muted-foreground sm:text-copy">
-          {t('entry.register.haveAccount')}{' '}
-          <Link to="/login" className="font-bold text-ink underline underline-offset-2">
-            {t('entry.register.signIn')}
-          </Link>
-        </p>
+        {showSignIn && (
+          <p className="ml-auto text-right text-meta text-muted-foreground sm:text-copy">
+            {t('entry.register.haveAccount')}{' '}
+            <Link to="/login" className="font-bold text-ink underline underline-offset-2">
+              {t('entry.register.signIn')}
+            </Link>
+          </p>
+        )}
       </header>
       {children}
     </div>

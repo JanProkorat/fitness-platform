@@ -2976,6 +2976,14 @@
         "cta": "Zum Portal",
         "ctaLoggedOut": "Zur Anmeldung"
       },
+      "getApp": {
+        "welcomeNamed": "Willkommen bei Form Up, {{firstName}}.",
+        "welcome": "Willkommen bei Form Up.",
+        "ready": "Ihr Konto ist bereit — alles Weitere passiert in der App.",
+        "downloadOn": "Laden im",
+        "getItOn": "Jetzt bei",
+        "signInWith": "Melden Sie sich in der App an mit"
+      },
       "checkInbox": {
         "title": "Prüfen Sie Ihr Postfach",
         "lede": "Wir haben einen Bestätigungslink an {{email}} gesendet. Klicken Sie darauf, um Ihr Konto zu aktivieren.",

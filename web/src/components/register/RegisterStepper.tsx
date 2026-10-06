@@ -3,8 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 
 interface RegisterStepperProps {
-  /** 1 = filling in the account form, 2 = waiting for email verification. */
-  current: 1 | 2;
+  /** 1 = filling in the account form, 2 = waiting for email verification, 3 = verified. */
+  current: 1 | 2 | 3;
   /** Label of the last step: coaches set up a profile, clients get the app. */
   finalStep: 'profile' | 'getApp';
 }
