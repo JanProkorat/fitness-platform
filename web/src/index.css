@@ -437,6 +437,61 @@
   }
 }
 
+/* Large windows: a section's content block is zoomed by --home-tier, so it keeps growing past the
+   point where the width ladders and type steps stop. Inside the zoomed block the layout sees a
+   ~1.6k-wide container, so the ladders and type fall back to the 1616px step; the tiers pair a
+   minimum width (so the zoomed block still fits across) with a minimum height. The phones cap is
+   lowered because the tier already scales them. */
+@media (min-width: 2300px) and (min-height: 1300px) {
+  :root {
+    --home-tier: 1.3; --home-tier-phones: 1.15;
+    --home-cap-phones: 1;
+    --gf-text-home-banner: 37px;
+    --gf-text-home-hero: 62px;
+    --gf-text-home-heading: 42px;
+    --gf-text-home-lead: 18px;
+    --gf-text-home-sub: 19px;
+    --gf-text-home-feature-title: 18px;
+    --gf-text-home-step-title: 22px;
+    --gf-text-home-body: 14px;
+    --gf-text-home-copy: 15px;
+    --gf-text-home-meta: 13px;
+    --gf-text-home-subhead: 17px;
+  }
+}
+
+@media (min-width: 2300px) and (min-height: 1400px) {
+  :root {
+    --home-tier: 1.6; --home-tier-phones: 1.3;
+  }
+}
+
+@media (min-width: 2500px) and (min-height: 1600px) {
+  :root {
+    --home-tier: 1.85; --home-tier-phones: 1.45;
+  }
+}
+
+@media (min-width: 3000px) and (min-height: 1800px) {
+  :root {
+    --home-tier: 2.05; --home-tier-phones: 1.6;
+  }
+}
+
+@media (min-width: 3400px) and (min-height: 2000px) {
+  :root {
+    --home-tier: 2.3; --home-tier-phones: 1.8;
+  }
+}
+
+@utility home-tier {
+  zoom: var(--home-tier, 1);
+}
+
+@utility home-tier-phones {
+  zoom: var(--home-tier-phones, 1);
+}
+
 /* Mockup zoom: the width ladder sets --mz, the window height caps it. */
 @utility home-zoom-card {
   zoom: min(var(--mz, 1), var(--home-cap-card));
@@ -452,7 +507,7 @@
 
 /* Vertical padding of a full-screen home section on desktop: shrinks with the window height. */
 @utility home-section-pad {
-  padding-block: clamp(1rem, 4.5svh, 4rem);
+  padding-block: clamp(1rem, 4.5svh, 7rem);
 }
 
 /* Dark values, read from the Page*D boards. Each literal is declared once as

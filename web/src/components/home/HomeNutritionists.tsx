@@ -219,7 +219,7 @@ export default function HomeNutritionists() {
       tabIndex={-1}
       className="flex flex-col justify-center px-4 py-14 outline-none sm:px-10 lg:home-section-pad lg:min-h-svh lg:px-16"
     >
-      <div className="@container mx-auto flex w-full max-w-home flex-col">
+      <div className="@container home-tier mx-auto flex w-full max-w-home flex-col">
         <div className="flex flex-col gap-12 lg:flex-row-reverse lg:items-center lg:gap-16">
           <div className="flex max-w-105 @min-[1340px]:max-w-109 @min-[1472px]:max-w-115.5 @min-[1592px]:max-w-126 @min-[1760px]:max-w-136.5 @min-[1940px]:max-w-152 shrink-0 flex-col gap-4.5">
             <Eyebrow className="text-nutrition">{t('home.nutritionists.eyebrow')}</Eyebrow>

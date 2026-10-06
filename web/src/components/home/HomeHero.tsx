@@ -17,7 +17,7 @@ export default function HomeHero() {
 
   return (
     <section className="relative flex min-w-0 flex-col justify-center px-4 pt-6 pb-12 sm:px-10 lg:min-h-[calc(100svh-var(--spacing)*19)] lg:px-16">
-      <div className="@container mx-auto flex w-full max-w-home flex-col gap-8 lg:flex-row lg:gap-12">
+      <div className="@container home-tier mx-auto flex w-full max-w-home flex-col gap-8 lg:flex-row lg:gap-12">
         <div className="flex max-w-117.5 @min-[1340px]:max-w-122.5 @min-[1472px]:max-w-129 @min-[1592px]:max-w-141 @min-[1760px]:max-w-153 @min-[1940px]:max-w-170.5 shrink-0 flex-col gap-5.5 pt-4 lg:pt-8.5">
           <span className="text-home-meta font-semibold tracking-eyebrow text-muted-foreground uppercase">
             {t('home.hero.eyebrow')}

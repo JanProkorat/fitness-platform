@@ -54,7 +54,7 @@ export default function HomeMobileApp() {
       tabIndex={-1}
       className="flex flex-col justify-center px-4 pt-14 pb-16 outline-none sm:px-10 lg:home-section-pad lg:min-h-svh lg:px-16"
     >
-      <div className="@container mx-auto flex w-full max-w-home flex-col items-center gap-12 lg:gap-[clamp(1.5rem,4svh,3rem)]">
+      <div className="@container home-tier-phones mx-auto flex w-full max-w-home flex-col items-center gap-12 lg:gap-[clamp(1.5rem,4svh,3rem)]">
         <div className="flex flex-col items-center gap-3.5 text-center">
           <Eyebrow className="text-marker">{t('home.app.eyebrow')}</Eyebrow>
           <h2 className="font-display text-home-heading font-semibold tracking-heading text-ink">
