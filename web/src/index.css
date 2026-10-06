@@ -48,6 +48,25 @@
 
   --gf-marker: #d2342a; /* brand accent: logo "UP", brand marks */
 
+  /* Home page (PageHome*) mockups and glow washes. */
+  --gf-hero-warm: #ffe7d3; /* hero background wash, top right */
+  --gf-hero-fresh: #e4f2d3; /* hero background wash, bottom right */
+  --gf-hero-rose: #fde4e1; /* hero background wash, top left */
+  --gf-phone-bezel: #141414; /* phone mockup frame */
+  --gf-phone-screen: #f4f3ef; /* phone mockup screen base */
+  --gf-phone-warm: #ffe2c8; /* phone screen glow, top left */
+  --gf-phone-fresh: #ddf0c8; /* phone screen glow, right */
+  --gf-glass: rgba(255, 255, 255, 0.72); /* translucent card on a phone screen */
+  --gf-notif: #1e1e20; /* push-notification banner */
+  --gf-banner: #141414; /* closing "join" banner */
+  --gf-photo-sand: #d9c2ae; /* placeholder photo tints, same in both themes */
+  --gf-photo-tan: #c9b29e;
+  --gf-photo-clay: #bfa48e;
+  --gf-photo-rose: #d7a68e;
+  --gf-photo-sage: #c6c9b0;
+  --gf-photo-mist: #b7c4cf;
+  --gf-photo-peach: #f2c9b1;
+
   --gf-training: #c2510c;
   --gf-training-soft: #ffe8d2;
   --gf-training-ink: #8a3f07;
@@ -115,6 +134,39 @@
   --gf-text-section-title: clamp(26px, 3vw, 34px); /* band H2 */
   --gf-text-cta-title: clamp(24px, 3vw, 32px); /* closing CTA H2 */
 
+  /* Home page (PageHome*) type roles. */
+  --gf-text-home-hero: clamp(38px, 3.9vw, 56px); /* hero H1: 56px from 1440px wide */
+  --gf-text-home-heading: 38px; /* section H2 */
+  --gf-text-home-banner: 34px; /* closing banner H2 */
+  --gf-text-home-lead: 16px; /* section lead paragraph */
+  --gf-text-home-sub: 17px; /* hero sub-headline */
+  --gf-text-home-feature-title: 16px; /* feature list title */
+  --gf-text-home-step-title: 20px; /* how-it-works step title */
+  --gf-text-home-wordmark: 20px; /* nav wordmark */
+  --gf-text-home-wordmark-sm: 17px; /* nav wordmark on phones */
+  --gf-text-mockup-xs: 10px; /* micro labels inside mockups */
+  --gf-text-mockup-badge: 9px; /* app-icon initials in the notification */
+  --gf-text-mockup-notif: 11px; /* notification body */
+  --gf-text-mockup-figure: 16px; /* kcal figure in a plan cell */
+  --gf-text-mockup-title: 20px; /* phone screen title */
+  --gf-text-mockup-greeting: 21px; /* phone greeting */
+  --gf-text-mockup-weight: 24px; /* weight reading on the coach phone */
+
+  --gf-tracking-eyebrow: 0.16em; /* section eyebrow */
+  --gf-tracking-wordmark: 0.22em;
+  --gf-tracking-wordmark-sm: 0.16em;
+  --gf-tracking-heading: -0.015em;
+  --gf-tracking-hero: -0.025em;
+  --gf-tracking-badge: 0.06em;
+  --gf-tracking-caps: 0.08em; /* small uppercase labels inside mockups */
+
+  --gf-radius-thumb: 7px; /* thumbnails inside mockups */
+  --gf-radius-tile: 9px; /* meal tiles and small mockup cards */
+  --gf-radius-card: 18px; /* step cards and phone cards */
+  --gf-radius-glass: 20px; /* large translucent phone cards */
+  --gf-radius-phone: 44px; /* phone body */
+  --gf-radius-phone-hero: 46px; /* hero phone body */
+
   --gf-shadow-dialog: 0 30px 80px rgba(0, 0, 0, 0.35); /* centred modal (PageClientPlanStartOver) */
   --gf-shadow-sheet: -12px 0 40px rgba(0, 0, 0, 0.18); /* right-hand drawer (PageClientInviteDrawer) */
   --gf-shadow-popover: 0 6px 20px rgba(0, 0, 0, 0.12); /* floating pill (PageClients selection bar): menus, popovers, hover cards, toasts */
@@ -180,6 +232,16 @@
 
     --gf-marker: #e5483d;
 
+    --gf-hero-warm: rgba(242, 140, 56, 0.2);
+    --gf-hero-fresh: rgba(140, 193, 82, 0.16);
+    --gf-hero-rose: rgba(229, 72, 61, 0.1);
+    --gf-phone-bezel: #2a2a2d;
+    --gf-phone-screen: #0f0f10;
+    --gf-phone-warm: rgba(242, 140, 56, 0.35);
+    --gf-phone-fresh: rgba(140, 193, 82, 0.28);
+    --gf-glass: rgba(255, 255, 255, 0.08);
+    --gf-banner: #070708;
+
     --gf-training: #f28c38;
     --gf-training-soft: #3a2414;
     --gf-training-ink: #f7a863;
@@ -244,6 +306,24 @@
      `accent` is already the shadcn hover-fill alias above. */
   --color-marker: var(--gf-marker);
 
+  --color-hero-warm: var(--gf-hero-warm);
+  --color-hero-fresh: var(--gf-hero-fresh);
+  --color-hero-rose: var(--gf-hero-rose);
+  --color-phone-bezel: var(--gf-phone-bezel);
+  --color-phone-screen: var(--gf-phone-screen);
+  --color-phone-warm: var(--gf-phone-warm);
+  --color-phone-fresh: var(--gf-phone-fresh);
+  --color-glass: var(--gf-glass);
+  --color-notif: var(--gf-notif);
+  --color-banner: var(--gf-banner);
+  --color-photo-sand: var(--gf-photo-sand);
+  --color-photo-tan: var(--gf-photo-tan);
+  --color-photo-clay: var(--gf-photo-clay);
+  --color-photo-rose: var(--gf-photo-rose);
+  --color-photo-sage: var(--gf-photo-sage);
+  --color-photo-mist: var(--gf-photo-mist);
+  --color-photo-peach: var(--gf-photo-peach);
+
   --color-training: var(--gf-training);
   --color-training-soft: var(--gf-training-soft);
   --color-training-ink: var(--gf-training-ink);
@@ -275,6 +355,12 @@
      for the 8px button/input radius (button.tsx's `rounded-lg`). This is
      the true "large" radius (16px) for cards, panels, collage cells. */
   --radius-2xl: var(--gf-radius-lg);
+  --radius-thumb: var(--gf-radius-thumb);
+  --radius-tile: var(--gf-radius-tile);
+  --radius-card: var(--gf-radius-card);
+  --radius-glass: var(--gf-radius-glass);
+  --radius-phone: var(--gf-radius-phone);
+  --radius-phone-hero: var(--gf-radius-phone-hero);
 
   /* Every --text-* token below is paired with a --text-*--line-height
      modifier (#1079) -- Tailwind v4 resolves these together, so e.g.
@@ -334,6 +420,40 @@
   --text-cta-title: var(--gf-text-cta-title);
   --text-cta-title--line-height: 1.5;
 
+  /* ---- Home page scale ---- */
+  --text-home-hero: var(--gf-text-home-hero);
+  --text-home-hero--line-height: 1.04;
+  --text-home-heading: var(--gf-text-home-heading);
+  --text-home-heading--line-height: 1.1;
+  --text-home-banner: var(--gf-text-home-banner);
+  --text-home-banner--line-height: 1.2;
+  --text-home-lead: var(--gf-text-home-lead);
+  --text-home-lead--line-height: 1.6;
+  --text-home-sub: var(--gf-text-home-sub);
+  --text-home-sub--line-height: 1.6;
+  --text-home-feature-title: var(--gf-text-home-feature-title);
+  --text-home-feature-title--line-height: 1.3;
+  --text-home-step-title: var(--gf-text-home-step-title);
+  --text-home-step-title--line-height: 1.2;
+  --text-home-wordmark: var(--gf-text-home-wordmark);
+  --text-home-wordmark--line-height: 1;
+  --text-home-wordmark-sm: var(--gf-text-home-wordmark-sm);
+  --text-home-wordmark-sm--line-height: 1;
+  --text-mockup-xs: var(--gf-text-mockup-xs);
+  --text-mockup-xs--line-height: 1.2;
+  --text-mockup-badge: var(--gf-text-mockup-badge);
+  --text-mockup-badge--line-height: 1.2;
+  --text-mockup-notif: var(--gf-text-mockup-notif);
+  --text-mockup-notif--line-height: 1.35;
+  --text-mockup-figure: var(--gf-text-mockup-figure);
+  --text-mockup-figure--line-height: 1.2;
+  --text-mockup-title: var(--gf-text-mockup-title);
+  --text-mockup-title--line-height: 1.2;
+  --text-mockup-greeting: var(--gf-text-mockup-greeting);
+  --text-mockup-greeting--line-height: 1.2;
+  --text-mockup-weight: var(--gf-text-mockup-weight);
+  --text-mockup-weight--line-height: 1.2;
+
   --shadow-dialog: var(--gf-shadow-dialog);
   --shadow-sheet: var(--gf-shadow-sheet);
   --shadow-popover: var(--gf-shadow-popover);
@@ -352,6 +472,13 @@
   --spacing-drawer-wide: var(--gf-drawer-wide-width);
 
   --tracking-label: var(--gf-tracking-label);
+  --tracking-eyebrow: var(--gf-tracking-eyebrow);
+  --tracking-wordmark: var(--gf-tracking-wordmark);
+  --tracking-wordmark-sm: var(--gf-tracking-wordmark-sm);
+  --tracking-heading: var(--gf-tracking-heading);
+  --tracking-hero: var(--gf-tracking-hero);
+  --tracking-badge: var(--gf-tracking-badge);
+  --tracking-caps: var(--gf-tracking-caps);
 
   /* Literal, not a var() alias — see the comment on --gf-panel-width above. */
   --breakpoint-panel: 960px;

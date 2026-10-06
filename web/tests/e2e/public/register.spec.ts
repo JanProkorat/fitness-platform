@@ -55,7 +55,7 @@ test('/register deep-links straight to the register form, and the login<->regist
   await expect(page.getByRole('heading', { name: 'Create account' })).toBeVisible();
   await expect(page.getByLabel('First name')).toBeVisible();
 
-  await page.getByRole('link', { name: 'Sign in' }).click();
+  await page.getByTestId('login-panel').getByRole('link', { name: 'Sign in' }).click();
   await expect(page).toHaveURL(/\/$/);
   await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible();
 

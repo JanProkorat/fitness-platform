@@ -149,7 +149,11 @@ export default function LoginPanel() {
   }, [display.key]);
 
   return (
-    <div className="grid grid-rows-[auto_1fr_auto] gap-4.5 border-t border-border bg-surface px-7 py-10 sm:px-11 panel:sticky panel:top-0 panel:col-start-2 panel:row-span-full panel:h-screen panel:overflow-y-auto panel:border-t-0 panel:border-l panel:py-8">
+    <div
+      id="sign-in"
+      data-testid="login-panel"
+      className="grid grid-rows-[auto_1fr_auto] gap-4.5 border-t border-border bg-surface px-7 py-10 sm:px-11 panel:sticky panel:top-0 panel:col-start-2 panel:row-span-7 panel:h-screen panel:overflow-y-auto panel:border-t-0 panel:border-l panel:py-8"
+    >
       <h2 className="text-auth-title font-bold text-ink">{t('entry.panel.headline')}</h2>
 
       <div
