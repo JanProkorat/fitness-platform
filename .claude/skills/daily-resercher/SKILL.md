@@ -42,7 +42,7 @@ search when an explicit topic isn't represented in any of them.
 
 If the user names a specific topic ("a11y", "i18n", "security", "Roslyn") and
 none of the above surface a strong match, then run `WebSearch` with the
-**Haiku** model per Working Principles §6 — never with Opus or Sonnet, since
+**Haiku** model per the global `CLAUDE.md` "Token efficiency" section — never with Opus or Sonnet, since
 these calls return long-form pages and burn context.
 
 ## Survey procedure

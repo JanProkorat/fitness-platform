@@ -672,7 +672,7 @@ Handle each status:
 - **Any `fail` row** → STOP. Do NOT merge. Return BLOCKED with the
   failing job name, a one-line root-cause hypothesis from reading
   the failing job's log, and a scope-tagged fix list. Prefer the
-  tightest fetch first to keep context lean per Working Principles §6:
+  tightest fetch first to keep context lean per the global `CLAUDE.md` "Token efficiency" section:
   if a GitHub MCP is configured (see `.mcp.json`), use
   `mcp__github__get_workflow_run_logs` with `tail_lines: 200`;
   otherwise `gh run view <run-id> --log-failed --job <failing-job-id>`

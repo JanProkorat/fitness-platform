@@ -92,8 +92,8 @@ When you need to find existing patterns to model from (>5 files to read),
 **dispatch an `Explore` sub-agent with `model: "haiku"`** instead of
 reading them inline. Inline reads pollute your context with files you'll
 forget; Explore returns a summary you can act on. Reserve inline reads
-for ≤2 known files (single exemplar pattern — see Working Principles §6
-in root `CLAUDE.md`).
+for ≤2 known files (single exemplar pattern — see the global `CLAUDE.md`
+"Token efficiency" section).
 
 ## When to reach for a skill
 - Backend contract changed and the app has a generated client? Run
