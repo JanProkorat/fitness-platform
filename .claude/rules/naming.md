@@ -1,4 +1,6 @@
 ---
+paths:
+  - "backend/**"
 description: Naming conventions for files, types, routes, and identifiers
 ---
 

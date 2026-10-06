@@ -1,3 +1,8 @@
+---
+paths:
+  - "backend/**"
+---
+
 # Testing Rules (backend)
 
 > **Descriptive.** Written in #1104 after the suite was cut from 15 min to

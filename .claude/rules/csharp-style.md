@@ -1,4 +1,6 @@
 ---
+paths:
+  - "backend/**"
 description: C# language and style rules for the FitnessPlatform backend
 ---
 

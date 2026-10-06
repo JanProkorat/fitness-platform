@@ -1,4 +1,6 @@
 ---
+paths:
+  - "backend/**"
 description: FluentValidation rules for request DTOs in the FitnessPlatform backend
 ---
 

@@ -1,3 +1,8 @@
+---
+paths:
+  - ".claude/state/**"
+---
+
 # Rules: Epic-branch model
 
 Epics — issues that enumerate sub-issues in their body — do **not**

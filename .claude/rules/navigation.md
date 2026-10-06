@@ -1,4 +1,6 @@
 ---
+paths:
+  - "mobile/**"
 description: Expo Router navigation conventions — route groups, sub-screen layouts, dynamic segments
 ---
 

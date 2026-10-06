@@ -1,4 +1,6 @@
 ---
+paths:
+  - ".claude/schemas/**"
 description: Guidelines for authoring JSON Schemas under .claude/schemas/
 ---
 

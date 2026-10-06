@@ -1,3 +1,8 @@
+---
+paths:
+  - ".claude/state/**"
+---
+
 # Rules: Merge strategy & gate
 
 The merge gate has two sub-rules depending on the PR's base branch.

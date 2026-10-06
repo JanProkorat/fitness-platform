@@ -1,4 +1,6 @@
 ---
+paths:
+  - "backend/**"
 description: Vertical slice architecture rules for the FitnessPlatform .NET backend
 ---
 

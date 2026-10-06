@@ -7,6 +7,11 @@ are applied consistently.
 Detailed conventions live in [`rules/*.md`](rules/) — cite anchors, never
 restate. Citation format: `rules/<file>.md#<anchor>`.
 
+Rules are path-scoped (`paths:` frontmatter): backend rules load on `backend/**`,
+client rules on `web/**`/`mobile/**`, pipeline rules on `.claude/state/**`.
+None preload. A citation is a load instruction — `Read` the cited rule file
+before acting on it if it is not already in context.
+
 ## Sub-agents
 
 Project-local dev agents (live in `.claude/agents/`):
