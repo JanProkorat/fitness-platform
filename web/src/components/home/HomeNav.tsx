@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { scrollToAnchor } from '@/components/home/smoothAnchor';
 import { useTranslation } from 'react-i18next';
 
 const NAV_LINKS = [
@@ -28,7 +29,7 @@ export default function HomeNav() {
         className="ml-6 hidden gap-7 text-copy font-medium text-ink-2 lg:flex"
       >
         {NAV_LINKS.map((link) => (
-          <a key={link.id} href={`#${link.id}`} className="hover:text-ink">
+          <a key={link.id} href={`#${link.id}`} onClick={scrollToAnchor} className="hover:text-ink">
             {t(`home.nav.${link.key}`)}
           </a>
         ))}

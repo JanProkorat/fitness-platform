@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import HeroMockup from '@/components/home/HeroMockup';
 import { IconPeople, IconPlay } from '@/components/home/HomeIcons';
+import { scrollToAnchor } from '@/components/home/smoothAnchor';
 
 const STEPS = [
   { key: 'build', progress: 'w-full', bar: 'bg-ink' },
@@ -38,6 +39,7 @@ export default function HomeHero() {
             </Link>
             <a
               href="#how-it-works"
+              onClick={scrollToAnchor}
               className="flex h-[50px] items-center gap-2 rounded-xl border border-border bg-surface px-5 text-subhead font-semibold text-ink hover:bg-sunken"
             >
               <IconPlay size={14} />

@@ -133,7 +133,8 @@ export default function HomeCoaches() {
   return (
     <section
       id="for-coaches"
-      className="@container flex scroll-mt-6 flex-col gap-12 px-4 py-14 sm:px-10 lg:px-16 lg:py-24"
+      tabIndex={-1}
+      className="@container flex scroll-mt-6 outline-none flex-col gap-12 px-4 py-14 sm:px-10 lg:px-16 lg:py-24"
     >
       <div className="flex flex-col gap-12 @min-[1200px]:flex-row @min-[1200px]:items-center @min-[1200px]:gap-16">
         <div className="flex max-w-[420px] shrink-0 flex-col gap-4.5">

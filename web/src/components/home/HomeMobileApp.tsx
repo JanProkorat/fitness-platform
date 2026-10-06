@@ -41,7 +41,8 @@ export default function HomeMobileApp() {
   return (
     <section
       id="mobile-app"
-      className="@container flex scroll-mt-6 flex-col items-center gap-12 px-4 pt-14 pb-16 sm:px-10 lg:px-16 lg:pt-24 lg:pb-22.5"
+      tabIndex={-1}
+      className="@container flex scroll-mt-6 outline-none flex-col items-center gap-12 px-4 pt-14 pb-16 sm:px-10 lg:px-16 lg:pt-24 lg:pb-22.5"
     >
       <div className="flex flex-col items-center gap-3.5 text-center">
         <Eyebrow className="text-marker">{t('home.app.eyebrow')}</Eyebrow>
