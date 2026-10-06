@@ -1304,7 +1304,7 @@
       "title": "C · ClientDetail",
       "w": 1440,
       "x": 1520,
-      "y": 11260
+      "y": 14040
     },
     "PageClientDetailD.dc.html": {
       "h": 900,
@@ -1312,7 +1312,7 @@
       "title": "D · ClientDetail",
       "w": 1440,
       "x": 1520,
-      "y": 12760
+      "y": 15540
     },
     "PageClientNutritionC.dc.html": {
       "h": 1380,
@@ -1320,7 +1320,7 @@
       "title": "C · ClientDetail · Nutrition tab",
       "w": 1440,
       "x": 3040,
-      "y": 11260
+      "y": 14040
     },
     "PageClientNutritionD.dc.html": {
       "h": 1380,
@@ -1328,7 +1328,7 @@
       "title": "D · ClientDetail · Nutrition tab",
       "w": 1440,
       "x": 3040,
-      "y": 12760
+      "y": 15540
     },
     "PageClientNutritionEmptyC.dc.html": {
       "h": 900,
@@ -1336,7 +1336,7 @@
       "title": "C · ClientDetail · Nutrition, no plan yet",
       "w": 1440,
       "x": 4560,
-      "y": 11260
+      "y": 14040
     },
     "PageClientNutritionEmptyD.dc.html": {
       "h": 900,
@@ -1344,7 +1344,7 @@
       "title": "D · ClientDetail · Nutrition, no plan yet",
       "w": 1440,
       "x": 4560,
-      "y": 12760
+      "y": 15540
     },
     "PageClientPlanBlankC.dc.html": {
       "h": 900,
@@ -1352,7 +1352,7 @@
       "title": "C · Client plan · blank",
       "w": 1440,
       "x": 13680,
-      "y": 11260
+      "y": 14040
     },
     "PageClientPlanBlankD.dc.html": {
       "h": 900,
@@ -1360,7 +1360,7 @@
       "title": "D · Client plan · blank",
       "w": 1440,
       "x": 13680,
-      "y": 12760
+      "y": 15540
     },
     "PageClientPlanClosedC.dc.html": {
       "h": 900,
@@ -1368,7 +1368,7 @@
       "title": "C · Client plan · panel closed",
       "w": 1440,
       "x": 15200,
-      "y": 11260
+      "y": 14040
     },
     "PageClientPlanClosedD.dc.html": {
       "h": 900,
@@ -1376,7 +1376,7 @@
       "title": "D · Client plan · panel closed",
       "w": 1440,
       "x": 15200,
-      "y": 12760
+      "y": 15540
     },
     "PageClientPlanDayAddMealC.dc.html": {
       "h": 900,
@@ -1384,7 +1384,7 @@
       "title": "C · Client plan · Day · Add meal drawer",
       "w": 1440,
       "x": 9120,
-      "y": 11260
+      "y": 14040
     },
     "PageClientPlanDayAddMealD.dc.html": {
       "h": 900,
@@ -1392,7 +1392,7 @@
       "title": "D · Client plan · Day · Add meal drawer",
       "w": 1440,
       "x": 9120,
-      "y": 12760
+      "y": 15540
     },
     "PageClientPlanDayC.dc.html": {
       "h": 900,
@@ -1400,7 +1400,7 @@
       "title": "C · Client plan · Day view",
       "w": 1440,
       "x": 7600,
-      "y": 11260
+      "y": 14040
     },
     "PageClientPlanDayD.dc.html": {
       "h": 900,
@@ -1408,7 +1408,7 @@
       "title": "D · Client plan · Day view",
       "w": 1440,
       "x": 7600,
-      "y": 12760
+      "y": 15540
     },
     "PageClientPlanEditorC.dc.html": {
       "h": 900,
@@ -1416,7 +1416,7 @@
       "title": "C · Client plan · Library › Templates",
       "w": 1440,
       "x": 6080,
-      "y": 11260
+      "y": 14040
     },
     "PageClientPlanEditorD.dc.html": {
       "h": 900,
@@ -1424,7 +1424,7 @@
       "title": "D · Client plan · Library › Templates",
       "w": 1440,
       "x": 6080,
-      "y": 12760
+      "y": 15540
     },
     "PageClientPlanInfoC.dc.html": {
       "h": 900,
@@ -1432,7 +1432,7 @@
       "title": "C · Client plan · Plan info tab",
       "w": 1440,
       "x": 12160,
-      "y": 11260
+      "y": 14040
     },
     "PageClientPlanInfoD.dc.html": {
       "h": 900,
@@ -1440,7 +1440,7 @@
       "title": "D · Client plan · Plan info tab",
       "w": 1440,
       "x": 12160,
-      "y": 12760
+      "y": 15540
     },
     "PageClientPlanStartOverC.dc.html": {
       "h": 900,
@@ -1448,7 +1448,7 @@
       "title": "C · Client plan · replace with template?",
       "w": 1440,
       "x": 10640,
-      "y": 11260
+      "y": 14040
     },
     "PageClientPlanStartOverD.dc.html": {
       "h": 900,
@@ -1456,7 +1456,7 @@
       "title": "D · Client plan · replace with template?",
       "w": 1440,
       "x": 10640,
-      "y": 12760
+      "y": 15540
     },
     "PageClientsC.dc.html": {
       "h": 900,
@@ -1464,7 +1464,7 @@
       "title": "C · Clients",
       "w": 1440,
       "x": 0,
-      "y": 11260
+      "y": 14040
     },
     "PageClientsD.dc.html": {
       "h": 900,
@@ -1472,7 +1472,7 @@
       "title": "D · Clients",
       "w": 1440,
       "x": 0,
-      "y": 12760
+      "y": 15540
     },
     "PageFormCheckInC.dc.html": {
       "h": 900,
@@ -1480,7 +1480,7 @@
       "title": "C · Form editor · Weekly check-in",
       "w": 1440,
       "x": 3040,
-      "y": 24320
+      "y": 27100
     },
     "PageFormCheckInD.dc.html": {
       "h": 900,
@@ -1488,7 +1488,7 @@
       "title": "D · Form editor · Weekly check-in",
       "w": 1440,
       "x": 3040,
-      "y": 25340
+      "y": 28120
     },
     "PageFormOnboardingC.dc.html": {
       "h": 900,
@@ -1496,7 +1496,7 @@
       "title": "C · Form editor · Client onboarding",
       "w": 1440,
       "x": 1520,
-      "y": 24320
+      "y": 27100
     },
     "PageFormOnboardingD.dc.html": {
       "h": 900,
@@ -1504,7 +1504,7 @@
       "title": "D · Form editor · Client onboarding",
       "w": 1440,
       "x": 1520,
-      "y": 25340
+      "y": 28120
     },
     "PageFormsC.dc.html": {
       "h": 900,
@@ -1512,7 +1512,7 @@
       "title": "C · Forms",
       "w": 1440,
       "x": 0,
-      "y": 24320
+      "y": 27100
     },
     "PageFormsD.dc.html": {
       "h": 900,
@@ -1520,10 +1520,10 @@
       "title": "D · Forms",
       "w": 1440,
       "x": 0,
-      "y": 25340
+      "y": 28120
     },
     "PageHomeC.dc.html": {
-      "h": 4010,
+      "h": 5400,
       "page": "web",
       "title": "C · Home · full page",
       "w": 1440,
@@ -1531,12 +1531,12 @@
       "y": 0
     },
     "PageHomeD.dc.html": {
-      "h": 4010,
+      "h": 5400,
       "page": "web",
       "title": "D · Home · full page",
       "w": 1440,
       "x": 0,
-      "y": 4130
+      "y": 5520
     },
     "PageHomeSignInC.dc.html": {
       "h": 900,
@@ -1552,7 +1552,7 @@
       "title": "D · Home · Sign in dialog",
       "w": 1440,
       "x": 1520,
-      "y": 4130
+      "y": 5520
     },
     "PageInboxC.dc.html": {
       "h": 900,
@@ -1560,7 +1560,7 @@
       "title": "C · Inbox",
       "w": 1440,
       "x": 0,
-      "y": 14640
+      "y": 17420
     },
     "PageInboxD.dc.html": {
       "h": 900,
@@ -1568,7 +1568,7 @@
       "title": "D · Inbox",
       "w": 1440,
       "x": 0,
-      "y": 15660
+      "y": 18440
     },
     "PageIngredientDrawerC.dc.html": {
       "h": 900,
@@ -1576,7 +1576,7 @@
       "title": "C · IngredientDrawer",
       "w": 1440,
       "x": 1520,
-      "y": 19480
+      "y": 22260
     },
     "PageIngredientDrawerD.dc.html": {
       "h": 900,
@@ -1584,7 +1584,7 @@
       "title": "D · IngredientDrawer",
       "w": 1440,
       "x": 1520,
-      "y": 20500
+      "y": 23280
     },
     "PageIngredientsC.dc.html": {
       "h": 900,
@@ -1592,7 +1592,7 @@
       "title": "C · Ingredients",
       "w": 1440,
       "x": 0,
-      "y": 19480
+      "y": 22260
     },
     "PageIngredientsD.dc.html": {
       "h": 900,
@@ -1600,7 +1600,7 @@
       "title": "D · Ingredients",
       "w": 1440,
       "x": 0,
-      "y": 20500
+      "y": 23280
     },
     "PageRecipeDrawerC.dc.html": {
       "h": 900,
@@ -1608,7 +1608,7 @@
       "title": "C · Recipe drawer · Details tab",
       "w": 1440,
       "x": 3040,
-      "y": 17060
+      "y": 19840
     },
     "PageRecipeDrawerD.dc.html": {
       "h": 900,
@@ -1616,7 +1616,7 @@
       "title": "D · Recipe drawer · Details tab",
       "w": 1440,
       "x": 3040,
-      "y": 18080
+      "y": 20860
     },
     "PageRecipeDrawerIngredientsC.dc.html": {
       "h": 900,
@@ -1624,7 +1624,7 @@
       "title": "C · Recipe drawer · Ingredients tab",
       "w": 1440,
       "x": 4560,
-      "y": 17060
+      "y": 19840
     },
     "PageRecipeDrawerIngredientsD.dc.html": {
       "h": 900,
@@ -1632,7 +1632,7 @@
       "title": "D · Recipe drawer · Ingredients tab",
       "w": 1440,
       "x": 4560,
-      "y": 18080
+      "y": 20860
     },
     "PageRecipeDrawerPicturesC.dc.html": {
       "h": 900,
@@ -1640,7 +1640,7 @@
       "title": "C · Recipe drawer · Pictures tab",
       "w": 1440,
       "x": 7600,
-      "y": 17060
+      "y": 19840
     },
     "PageRecipeDrawerPicturesD.dc.html": {
       "h": 900,
@@ -1648,7 +1648,7 @@
       "title": "D · Recipe drawer · Pictures tab",
       "w": 1440,
       "x": 7600,
-      "y": 18080
+      "y": 20860
     },
     "PageRecipeDrawerPreparationC.dc.html": {
       "h": 900,
@@ -1656,7 +1656,7 @@
       "title": "C · Recipe drawer · Preparation tab",
       "w": 1440,
       "x": 6080,
-      "y": 17060
+      "y": 19840
     },
     "PageRecipeDrawerPreparationD.dc.html": {
       "h": 900,
@@ -1664,7 +1664,7 @@
       "title": "D · Recipe drawer · Preparation tab",
       "w": 1440,
       "x": 6080,
-      "y": 18080
+      "y": 20860
     },
     "PageRecipesC.dc.html": {
       "h": 900,
@@ -1672,7 +1672,7 @@
       "title": "C · Recipes",
       "w": 1440,
       "x": 0,
-      "y": 17060
+      "y": 19840
     },
     "PageRecipesD.dc.html": {
       "h": 900,
@@ -1680,7 +1680,7 @@
       "title": "D · Recipes",
       "w": 1440,
       "x": 0,
-      "y": 18080
+      "y": 20860
     },
     "PageRecipesTableC.dc.html": {
       "h": 900,
@@ -1688,7 +1688,7 @@
       "title": "C · Recipes · table view",
       "w": 1440,
       "x": 1520,
-      "y": 17060
+      "y": 19840
     },
     "PageRecipesTableD.dc.html": {
       "h": 900,
@@ -1696,7 +1696,7 @@
       "title": "D · Recipes · table view",
       "w": 1440,
       "x": 1520,
-      "y": 18080
+      "y": 20860
     },
     "PageRegisterC.dc.html": {
       "h": 1000,
@@ -1704,7 +1704,7 @@
       "title": "C · Register · 1 Account",
       "w": 1440,
       "x": 0,
-      "y": 8640
+      "y": 11420
     },
     "PageRegisterCheckEmailC.dc.html": {
       "h": 900,
@@ -1712,7 +1712,7 @@
       "title": "C · Register · 2 Check email",
       "w": 1440,
       "x": 1520,
-      "y": 8640
+      "y": 11420
     },
     "PageRegisterCheckEmailD.dc.html": {
       "h": 900,
@@ -1720,7 +1720,7 @@
       "title": "D · Register · 2 Check email",
       "w": 1440,
       "x": 1520,
-      "y": 9760
+      "y": 12540
     },
     "PageRegisterD.dc.html": {
       "h": 1000,
@@ -1728,7 +1728,7 @@
       "title": "D · Register · 1 Account",
       "w": 1440,
       "x": 0,
-      "y": 9760
+      "y": 12540
     },
     "PageRegisterVerifiedC.dc.html": {
       "h": 900,
@@ -1736,7 +1736,7 @@
       "title": "C · Register · 3 Email verified",
       "w": 1440,
       "x": 3040,
-      "y": 8640
+      "y": 11420
     },
     "PageRegisterVerifiedD.dc.html": {
       "h": 900,
@@ -1744,7 +1744,7 @@
       "title": "D · Register · 3 Email verified",
       "w": 1440,
       "x": 3040,
-      "y": 9760
+      "y": 12540
     },
     "PageTemplateDayAddMealC.dc.html": {
       "h": 900,
@@ -1752,7 +1752,7 @@
       "title": "C · TemplateDay · Add meal drawer",
       "w": 1440,
       "x": 10640,
-      "y": 21900
+      "y": 24680
     },
     "PageTemplateDayAddMealD.dc.html": {
       "h": 900,
@@ -1760,7 +1760,7 @@
       "title": "D · TemplateDay · Add meal drawer",
       "w": 1440,
       "x": 10640,
-      "y": 22920
+      "y": 25700
     },
     "PageTemplateDayC.dc.html": {
       "h": 900,
@@ -1768,7 +1768,7 @@
       "title": "C · TemplateDay",
       "w": 1440,
       "x": 9120,
-      "y": 21900
+      "y": 24680
     },
     "PageTemplateDayD.dc.html": {
       "h": 900,
@@ -1776,7 +1776,7 @@
       "title": "D · TemplateDay",
       "w": 1440,
       "x": 9120,
-      "y": 22920
+      "y": 25700
     },
     "PageTemplateEditorC.dc.html": {
       "h": 900,
@@ -1784,7 +1784,7 @@
       "title": "C · TemplateEditor",
       "w": 1440,
       "x": 4560,
-      "y": 21900
+      "y": 24680
     },
     "PageTemplateEditorD.dc.html": {
       "h": 900,
@@ -1792,7 +1792,7 @@
       "title": "D · TemplateEditor",
       "w": 1440,
       "x": 4560,
-      "y": 22920
+      "y": 25700
     },
     "PageTemplateEditorEmptyC.dc.html": {
       "h": 900,
@@ -1800,7 +1800,7 @@
       "title": "C · TemplateEditor · empty (no meals chosen)",
       "w": 1440,
       "x": 3040,
-      "y": 21900
+      "y": 24680
     },
     "PageTemplateEditorEmptyD.dc.html": {
       "h": 900,
@@ -1808,7 +1808,7 @@
       "title": "D · TemplateEditor · empty (no meals chosen)",
       "w": 1440,
       "x": 3040,
-      "y": 22920
+      "y": 25700
     },
     "PageTemplateMealC.dc.html": {
       "h": 900,
@@ -1816,7 +1816,7 @@
       "title": "C · TemplateMeal",
       "w": 1440,
       "x": 6080,
-      "y": 21900
+      "y": 24680
     },
     "PageTemplateMealD.dc.html": {
       "h": 900,
@@ -1824,7 +1824,7 @@
       "title": "D · TemplateMeal",
       "w": 1440,
       "x": 6080,
-      "y": 22920
+      "y": 25700
     },
     "PageTemplateNewC.dc.html": {
       "h": 900,
@@ -1832,7 +1832,7 @@
       "title": "C · TemplateNew",
       "w": 1440,
       "x": 1520,
-      "y": 21900
+      "y": 24680
     },
     "PageTemplateNewD.dc.html": {
       "h": 900,
@@ -1840,7 +1840,7 @@
       "title": "D · TemplateNew",
       "w": 1440,
       "x": 1520,
-      "y": 22920
+      "y": 25700
     },
     "PageTemplateNutritionC.dc.html": {
       "h": 900,
@@ -1848,7 +1848,7 @@
       "title": "C · TemplateNutrition",
       "w": 1440,
       "x": 7600,
-      "y": 21900
+      "y": 24680
     },
     "PageTemplateNutritionD.dc.html": {
       "h": 900,
@@ -1856,7 +1856,7 @@
       "title": "D · TemplateNutrition",
       "w": 1440,
       "x": 7600,
-      "y": 22920
+      "y": 25700
     },
     "PageTemplatesC.dc.html": {
       "h": 900,
@@ -1864,7 +1864,7 @@
       "title": "C · Templates",
       "w": 1440,
       "x": 0,
-      "y": 21900
+      "y": 24680
     },
     "PageTemplatesD.dc.html": {
       "h": 900,
@@ -1872,7 +1872,7 @@
       "title": "D · Templates",
       "w": 1440,
       "x": 0,
-      "y": 22920
+      "y": 25700
     },
     "TodayC.dc.html": {
       "h": 844,
@@ -1904,7 +1904,7 @@
       "title": "C · Clients · Invite client drawer",
       "w": 1440,
       "x": 16720,
-      "y": 11260
+      "y": 14040
     },
     "PageClientInviteDrawerD.dc.html": {
       "h": 900,
@@ -1912,7 +1912,7 @@
       "title": "D · Clients · Invite client drawer",
       "w": 1440,
       "x": 16720,
-      "y": 12760
+      "y": 15540
     }
   },
   "createdOnFiles": {
@@ -2255,7 +2255,7 @@
       "text": "Registration — account, check email, email verified  ·  light above, dark below",
       "w": 240,
       "x": 0,
-      "y": 8340
+      "y": 11120
     },
     "webRow3": {
       "kind": "title1",
@@ -2264,7 +2264,7 @@
       "text": "Clients — list, invite drawer, detail, nutrition tab, client plan editor (week, day, add meal, replace, plan info, blank, panel closed)  ·  light above, dark below",
       "w": 240,
       "x": 0,
-      "y": 10960
+      "y": 13740
     },
     "webRow4": {
       "kind": "title1",
@@ -2273,7 +2273,7 @@
       "text": "Inbox  ·  light above, dark below",
       "w": 240,
       "x": 0,
-      "y": 14340
+      "y": 17120
     },
     "webRow5": {
       "kind": "title1",
@@ -2282,7 +2282,7 @@
       "text": "Recipes — cards, table, drawer (Details, Ingredients, Preparation, Pictures tabs)  ·  light above, dark below",
       "w": 240,
       "x": 0,
-      "y": 16760
+      "y": 19540
     },
     "webRow6": {
       "kind": "title1",
@@ -2291,7 +2291,7 @@
       "text": "Ingredients — list and edit drawer  ·  light above, dark below",
       "w": 240,
       "x": 0,
-      "y": 19180
+      "y": 21960
     },
     "webRow7": {
       "kind": "title1",
@@ -2300,7 +2300,7 @@
       "text": "Plan templates — list, new template, empty editor, editor (week, meal panel, nutrition, day, add meal)  ·  light above, dark below",
       "w": 240,
       "x": 0,
-      "y": 21600
+      "y": 24380
     },
     "webRow8": {
       "kind": "title1",
@@ -2309,7 +2309,7 @@
       "text": "Forms — list, onboarding form editor, weekly check-in editor  ·  light above, dark below",
       "w": 240,
       "x": 0,
-      "y": 24020
+      "y": 26800
     }
   },
   "order": [
