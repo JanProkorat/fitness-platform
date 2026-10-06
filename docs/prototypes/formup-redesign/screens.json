@@ -33,7 +33,7 @@
   "html": "web/01-01-page-home-c.html",
   "png": "web/01-01-page-home-c.png",
   "w": 1440,
-  "h": 4010
+  "h": 5400
  },
  {
   "html": "web/01-02-page-home-sign-in-c.html",
@@ -45,7 +45,7 @@
   "html": "web/02-01-page-home-d.html",
   "png": "web/02-01-page-home-d.png",
   "w": 1440,
-  "h": 4010
+  "h": 5400
  },
  {
   "html": "web/02-02-page-home-sign-in-d.html",
@@ -72,6 +72,24 @@
   "h": 900
  },
  {
+  "html": "web/03-04-page-register-client-c.html",
+  "png": "web/03-04-page-register-client-c.png",
+  "w": 1440,
+  "h": 1060
+ },
+ {
+  "html": "web/03-05-page-register-client-check-email-c.html",
+  "png": "web/03-05-page-register-client-check-email-c.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/03-06-page-register-get-app-c.html",
+  "png": "web/03-06-page-register-get-app-c.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
   "html": "web/04-01-page-register-d.html",
   "png": "web/04-01-page-register-d.png",
   "w": 1440,
@@ -86,6 +104,24 @@
  {
   "html": "web/04-03-page-register-verified-d.html",
   "png": "web/04-03-page-register-verified-d.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/04-04-page-register-client-d.html",
+  "png": "web/04-04-page-register-client-d.png",
+  "w": 1440,
+  "h": 1060
+ },
+ {
+  "html": "web/04-05-page-register-client-check-email-d.html",
+  "png": "web/04-05-page-register-client-check-email-d.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/04-06-page-register-get-app-d.html",
+  "png": "web/04-06-page-register-get-app-d.png",
   "w": 1440,
   "h": 900
  },

@@ -1,2587 +1,2641 @@
 {
-  "v": 3,
-  "attachments": {},
-  "boards": {
-    "CoachAccountTypeDark.dc.html": {
-      "h": 844,
-      "page": "coachdark",
-      "title": "AccountType",
-      "w": 390,
-      "x": 0,
-      "y": 0
-    },
-    "CoachAccountTypeLight.dc.html": {
-      "h": 844,
-      "page": "coach",
-      "title": "AccountType",
-      "w": 390,
-      "x": 0,
-      "y": 0
-    },
-    "CoachBroadcastDark.dc.html": {
-      "h": 844,
-      "page": "coachdark",
-      "title": "Broadcast",
-      "w": 390,
-      "x": 470,
-      "y": 3792
-    },
-    "CoachBroadcastLight.dc.html": {
-      "h": 844,
-      "page": "coach",
-      "title": "Broadcast",
-      "w": 390,
-      "x": 470,
-      "y": 3792
-    },
-    "CoachCheckInReviewDark.dc.html": {
-      "h": 844,
-      "page": "coachdark",
-      "title": "CheckInReview",
-      "w": 390,
-      "x": 2820,
-      "y": 1264
-    },
-    "CoachCheckInReviewLight.dc.html": {
-      "h": 844,
-      "page": "coach",
-      "title": "CheckInReview",
-      "w": 390,
-      "x": 2820,
-      "y": 1264
-    },
-    "CoachClientDetailDark.dc.html": {
-      "h": 844,
-      "page": "coachdark",
-      "title": "ClientDetail",
-      "w": 390,
-      "x": 1880,
-      "y": 1264
-    },
-    "CoachClientDetailLight.dc.html": {
-      "h": 844,
-      "page": "coach",
-      "title": "ClientDetail",
-      "w": 390,
-      "x": 1880,
-      "y": 1264
-    },
-    "CoachClientPlansDark.dc.html": {
-      "h": 844,
-      "page": "coachdark",
-      "title": "ClientPlans",
-      "w": 390,
-      "x": 2350,
-      "y": 1264
-    },
-    "CoachClientPlansLight.dc.html": {
-      "h": 844,
-      "page": "coach",
-      "title": "ClientPlans",
-      "w": 390,
-      "x": 2350,
-      "y": 1264
-    },
-    "CoachClientsDark.dc.html": {
-      "h": 844,
-      "page": "coachdark",
-      "title": "Clients",
-      "w": 390,
-      "x": 940,
-      "y": 1264
-    },
-    "CoachClientsLight.dc.html": {
-      "h": 844,
-      "page": "coach",
-      "title": "Clients",
-      "w": 390,
-      "x": 940,
-      "y": 1264
-    },
-    "CoachClientsSearchDark.dc.html": {
-      "h": 844,
-      "page": "coachdark",
-      "title": "ClientsSearch",
-      "w": 390,
-      "x": 1410,
-      "y": 1264
-    },
-    "CoachClientsSearchLight.dc.html": {
-      "h": 844,
-      "page": "coach",
-      "title": "ClientsSearch",
-      "w": 390,
-      "x": 1410,
-      "y": 1264
-    },
-    "CoachFindClientsDark.dc.html": {
-      "h": 844,
-      "page": "coachdark",
-      "title": "FindClients",
-      "w": 390,
-      "x": 0,
-      "y": 2528
-    },
-    "CoachFindClientsLight.dc.html": {
-      "h": 844,
-      "page": "coach",
-      "title": "FindClients",
-      "w": 390,
-      "x": 0,
-      "y": 2528
-    },
-    "CoachInviteDark.dc.html": {
-      "h": 844,
-      "page": "coachdark",
-      "title": "Invite",
-      "w": 390,
-      "x": 1410,
-      "y": 2528
-    },
-    "CoachInviteLight.dc.html": {
-      "h": 844,
-      "page": "coach",
-      "title": "Invite",
-      "w": 390,
-      "x": 1410,
-      "y": 2528
-    },
-    "CoachJoinRequestDark.dc.html": {
-      "h": 844,
-      "page": "coachdark",
-      "title": "JoinRequest",
-      "w": 390,
-      "x": 940,
-      "y": 2528
-    },
-    "CoachJoinRequestLight.dc.html": {
-      "h": 844,
-      "page": "coach",
-      "title": "JoinRequest",
-      "w": 390,
-      "x": 940,
-      "y": 2528
-    },
-    "CoachMessagesDark.dc.html": {
-      "h": 844,
-      "page": "coachdark",
-      "title": "Messages",
-      "w": 390,
-      "x": 0,
-      "y": 3792
-    },
-    "CoachMessagesLight.dc.html": {
-      "h": 844,
-      "page": "coach",
-      "title": "Messages",
-      "w": 390,
-      "x": 0,
-      "y": 3792
-    },
-    "CoachNotificationsDark.dc.html": {
-      "h": 844,
-      "page": "coachdark",
-      "title": "Notifications",
-      "w": 390,
-      "x": 470,
-      "y": 1264
-    },
-    "CoachNotificationsLight.dc.html": {
-      "h": 844,
-      "page": "coach",
-      "title": "Notifications",
-      "w": 390,
-      "x": 470,
-      "y": 1264
-    },
-    "CoachProfileDark.dc.html": {
-      "h": 844,
-      "page": "coachdark",
-      "title": "Profile",
-      "w": 390,
-      "x": 940,
-      "y": 3792
-    },
-    "CoachProfileLight.dc.html": {
-      "h": 844,
-      "page": "coach",
-      "title": "Profile",
-      "w": 390,
-      "x": 940,
-      "y": 3792
-    },
-    "CoachProspectDark.dc.html": {
-      "h": 844,
-      "page": "coachdark",
-      "title": "Prospect",
-      "w": 390,
-      "x": 470,
-      "y": 2528
-    },
-    "CoachProspectLight.dc.html": {
-      "h": 844,
-      "page": "coach",
-      "title": "Prospect",
-      "w": 390,
-      "x": 470,
-      "y": 2528
-    },
-    "CoachRegisterDark.dc.html": {
-      "h": 844,
-      "page": "coachdark",
-      "title": "Register",
-      "w": 390,
-      "x": 470,
-      "y": 0
-    },
-    "CoachRegisterLight.dc.html": {
-      "h": 844,
-      "page": "coach",
-      "title": "Register",
-      "w": 390,
-      "x": 470,
-      "y": 0
-    },
-    "CoachSetupDark.dc.html": {
-      "h": 844,
-      "page": "coachdark",
-      "title": "Setup",
-      "w": 390,
-      "x": 940,
-      "y": 0
-    },
-    "CoachSetupLight.dc.html": {
-      "h": 844,
-      "page": "coach",
-      "title": "Setup",
-      "w": 390,
-      "x": 940,
-      "y": 0
-    },
-    "CoachTodayDark.dc.html": {
-      "h": 844,
-      "page": "coachdark",
-      "title": "Today",
-      "w": 390,
-      "x": 0,
-      "y": 1264
-    },
-    "CoachTodayLight.dc.html": {
-      "h": 844,
-      "page": "coach",
-      "title": "Today",
-      "w": 390,
-      "x": 0,
-      "y": 1264
-    },
-    "GlassAmrapDark.dc.html": {
-      "h": 844,
-      "page": "glassdark",
-      "title": "Amrap",
-      "w": 390,
-      "x": 470,
-      "y": 2528
-    },
-    "GlassAmrapLight.dc.html": {
-      "h": 844,
-      "page": "glass",
-      "title": "Amrap",
-      "w": 390,
-      "x": 470,
-      "y": 2528
-    },
-    "GlassChatDark.dc.html": {
-      "h": 844,
-      "page": "glassdark",
-      "title": "Chat",
-      "w": 390,
-      "x": 470,
-      "y": 6320
-    },
-    "GlassChatLight.dc.html": {
-      "h": 844,
-      "page": "glass",
-      "title": "Chat",
-      "w": 390,
-      "x": 470,
-      "y": 6320
-    },
-    "GlassCheckInDark.dc.html": {
-      "h": 844,
-      "page": "glassdark",
-      "title": "CheckIn",
-      "w": 390,
-      "x": 2350,
-      "y": 7584
-    },
-    "GlassCheckInLight.dc.html": {
-      "h": 844,
-      "page": "glass",
-      "title": "CheckIn",
-      "w": 390,
-      "x": 2350,
-      "y": 7584
-    },
-    "GlassCoachProfileDark.dc.html": {
-      "h": 844,
-      "page": "glassdark",
-      "title": "CoachProfile",
-      "w": 390,
-      "x": 2820,
-      "y": 0
-    },
-    "GlassCoachProfileLight.dc.html": {
-      "h": 844,
-      "page": "glass",
-      "title": "CoachProfile",
-      "w": 390,
-      "x": 2820,
-      "y": 0
-    },
-    "GlassCoachSearchDark.dc.html": {
-      "h": 844,
-      "page": "glassdark",
-      "title": "CoachSearch",
-      "w": 390,
-      "x": 2350,
-      "y": 0
-    },
-    "GlassCoachSearchLight.dc.html": {
-      "h": 844,
-      "page": "glass",
-      "title": "CoachSearch",
-      "w": 390,
-      "x": 2350,
-      "y": 0
-    },
-    "GlassCookingStepsDark.dc.html": {
-      "h": 844,
-      "page": "glassdark",
-      "title": "CookingSteps",
-      "w": 390,
-      "x": 1410,
-      "y": 10112
-    },
-    "GlassCookingStepsLight.dc.html": {
-      "h": 844,
-      "page": "glass",
-      "title": "CookingSteps",
-      "w": 390,
-      "x": 1410,
-      "y": 10112
-    },
-    "GlassDoneAmrapDark.dc.html": {
-      "h": 844,
-      "page": "glassdark",
-      "title": "DoneAmrap",
-      "w": 390,
-      "x": 470,
-      "y": 3792
-    },
-    "GlassDoneAmrapLight.dc.html": {
-      "h": 844,
-      "page": "glass",
-      "title": "DoneAmrap",
-      "w": 390,
-      "x": 470,
-      "y": 3792
-    },
-    "GlassDoneStrengthDark.dc.html": {
-      "h": 844,
-      "page": "glassdark",
-      "title": "DoneStrength",
-      "w": 390,
-      "x": 0,
-      "y": 3792
-    },
-    "GlassDoneStrengthLight.dc.html": {
-      "h": 844,
-      "page": "glass",
-      "title": "DoneStrength",
-      "w": 390,
-      "x": 0,
-      "y": 3792
-    },
-    "GlassDoneTabataDark.dc.html": {
-      "h": 844,
-      "page": "glassdark",
-      "title": "DoneTabata",
-      "w": 390,
-      "x": 940,
-      "y": 3792
-    },
-    "GlassDoneTabataLight.dc.html": {
-      "h": 844,
-      "page": "glass",
-      "title": "DoneTabata",
-      "w": 390,
-      "x": 940,
-      "y": 3792
-    },
-    "GlassEmomDark.dc.html": {
-      "h": 844,
-      "page": "glassdark",
-      "title": "Emom",
-      "w": 390,
-      "x": 940,
-      "y": 2528
-    },
-    "GlassEmomLight.dc.html": {
-      "h": 844,
-      "page": "glass",
-      "title": "Emom",
-      "w": 390,
-      "x": 940,
-      "y": 2528
-    },
-    "GlassExerciseDetailDark.dc.html": {
-      "h": 844,
-      "page": "glassdark",
-      "title": "ExerciseDetail",
-      "w": 390,
-      "x": 1410,
-      "y": 11376
-    },
-    "GlassExerciseDetailLight.dc.html": {
-      "h": 844,
-      "page": "glass",
-      "title": "ExerciseDetail",
-      "w": 390,
-      "x": 1410,
-      "y": 11376
-    },
-    "GlassForTimeDark.dc.html": {
-      "h": 844,
-      "page": "glassdark",
-      "title": "ForTime",
-      "w": 390,
-      "x": 1880,
-      "y": 2528
-    },
-    "GlassForTimeLight.dc.html": {
-      "h": 844,
-      "page": "glass",
-      "title": "ForTime",
-      "w": 390,
-      "x": 1880,
-      "y": 2528
-    },
-    "GlassIngredientDetailDark.dc.html": {
-      "h": 844,
-      "page": "glassdark",
-      "title": "IngredientDetail",
-      "w": 390,
-      "x": 1880,
-      "y": 10112
-    },
-    "GlassIngredientDetailLight.dc.html": {
-      "h": 844,
-      "page": "glass",
-      "title": "IngredientDetail",
-      "w": 390,
-      "x": 1880,
-      "y": 10112
-    },
-    "GlassLoginDark.dc.html": {
-      "h": 844,
-      "page": "glassdark",
-      "title": "Login",
-      "w": 390,
-      "x": 0,
-      "y": 0
-    },
-    "GlassLoginLight.dc.html": {
-      "h": 844,
-      "page": "glass",
-      "title": "Login",
-      "w": 390,
-      "x": 0,
-      "y": 0
-    },
-    "GlassMealDetailDark.dc.html": {
-      "h": 844,
-      "page": "glassdark",
-      "title": "MealDetail",
-      "w": 390,
-      "x": 940,
-      "y": 5056
-    },
-    "GlassMealDetailLight.dc.html": {
-      "h": 844,
-      "page": "glass",
-      "title": "MealDetail",
-      "w": 390,
-      "x": 940,
-      "y": 5056
-    },
-    "GlassMeasurementsDark.dc.html": {
-      "h": 844,
-      "page": "glassdark",
-      "title": "Measurements",
-      "w": 390,
-      "x": 1410,
-      "y": 7584
-    },
-    "GlassMeasurementsLight.dc.html": {
-      "h": 844,
-      "page": "glass",
-      "title": "Measurements",
-      "w": 390,
-      "x": 1410,
-      "y": 7584
-    },
-    "GlassMessagesListDark.dc.html": {
-      "h": 844,
-      "page": "glassdark",
-      "title": "MessagesList",
-      "w": 390,
-      "x": 0,
-      "y": 6320
-    },
-    "GlassMessagesListLight.dc.html": {
-      "h": 844,
-      "page": "glass",
-      "title": "MessagesList",
-      "w": 390,
-      "x": 0,
-      "y": 6320
-    },
-    "GlassMyJourneyDark.dc.html": {
-      "h": 844,
-      "page": "glassdark",
-      "title": "MyJourney",
-      "w": 390,
-      "x": 470,
-      "y": 7584
-    },
-    "GlassMyJourneyLight.dc.html": {
-      "h": 844,
-      "page": "glass",
-      "title": "MyJourney",
-      "w": 390,
-      "x": 470,
-      "y": 7584
-    },
-    "GlassNotificationsDark.dc.html": {
-      "h": 844,
-      "page": "glassdark",
-      "title": "Notifications",
-      "w": 390,
-      "x": 940,
-      "y": 1264
-    },
-    "GlassNotificationsLight.dc.html": {
-      "h": 844,
-      "page": "glass",
-      "title": "Notifications",
-      "w": 390,
-      "x": 940,
-      "y": 1264
-    },
-    "GlassNutritionDark.dc.html": {
-      "h": 844,
-      "page": "glassdark",
-      "title": "Nutrition",
-      "w": 390,
-      "x": 0,
-      "y": 5056
-    },
-    "GlassNutritionEmptyDark.dc.html": {
-      "h": 844,
-      "page": "glassdark",
-      "title": "NutritionEmpty",
-      "w": 390,
-      "x": 470,
-      "y": 5056
-    },
-    "GlassNutritionEmptyLight.dc.html": {
-      "h": 844,
-      "page": "glass",
-      "title": "NutritionEmpty",
-      "w": 390,
-      "x": 470,
-      "y": 5056
-    },
-    "GlassNutritionLight.dc.html": {
-      "h": 844,
-      "page": "glass",
-      "title": "Nutrition",
-      "w": 390,
-      "x": 0,
-      "y": 5056
-    },
-    "GlassNutritionPlanDark.dc.html": {
-      "h": 844,
-      "page": "glassdark",
-      "title": "NutritionPlan",
-      "w": 390,
-      "x": 940,
-      "y": 8848
-    },
-    "GlassNutritionPlanLight.dc.html": {
-      "h": 844,
-      "page": "glass",
-      "title": "NutritionPlan",
-      "w": 390,
-      "x": 940,
-      "y": 8848
-    },
-    "GlassNutritionWeekDetailDark.dc.html": {
-      "h": 844,
-      "page": "glassdark",
-      "title": "NutritionWeekDetail",
-      "w": 390,
-      "x": 1410,
-      "y": 8848
-    },
-    "GlassNutritionWeekDetailLight.dc.html": {
-      "h": 844,
-      "page": "glass",
-      "title": "NutritionWeekDetail",
-      "w": 390,
-      "x": 1410,
-      "y": 8848
-    },
-    "GlassOnboardingBasicsDark.dc.html": {
-      "h": 844,
-      "page": "glassdark",
-      "title": "OnboardingBasics",
-      "w": 390,
-      "x": 1410,
-      "y": 0
-    },
-    "GlassOnboardingBasicsLight.dc.html": {
-      "h": 844,
-      "page": "glass",
-      "title": "OnboardingBasics",
-      "w": 390,
-      "x": 1410,
-      "y": 0
-    },
-    "GlassOnboardingGoalDark.dc.html": {
-      "h": 844,
-      "page": "glassdark",
-      "title": "OnboardingGoal",
-      "w": 390,
-      "x": 940,
-      "y": 0
-    },
-    "GlassOnboardingGoalLight.dc.html": {
-      "h": 844,
-      "page": "glass",
-      "title": "OnboardingGoal",
-      "w": 390,
-      "x": 940,
-      "y": 0
-    },
-    "GlassPhotosDark.dc.html": {
-      "h": 844,
-      "page": "glassdark",
-      "title": "Photos",
-      "w": 390,
-      "x": 1880,
-      "y": 7584
-    },
-    "GlassPhotosLight.dc.html": {
-      "h": 844,
-      "page": "glass",
-      "title": "Photos",
-      "w": 390,
-      "x": 1880,
-      "y": 7584
-    },
-    "GlassPlanSummaryDark.dc.html": {
-      "h": 844,
-      "page": "glassdark",
-      "title": "PlanSummary",
-      "w": 390,
-      "x": 940,
-      "y": 7584
-    },
-    "GlassPlanSummaryLight.dc.html": {
-      "h": 844,
-      "page": "glass",
-      "title": "PlanSummary",
-      "w": 390,
-      "x": 940,
-      "y": 7584
-    },
-    "GlassProfileDark.dc.html": {
-      "h": 844,
-      "page": "glassdark",
-      "title": "Profile",
-      "w": 390,
-      "x": 0,
-      "y": 7584
-    },
-    "GlassProfileLight.dc.html": {
-      "h": 844,
-      "page": "glass",
-      "title": "Profile",
-      "w": 390,
-      "x": 0,
-      "y": 7584
-    },
-    "GlassRecipeDetailDark.dc.html": {
-      "h": 844,
-      "page": "glassdark",
-      "title": "RecipeDetail",
-      "w": 390,
-      "x": 940,
-      "y": 10112
-    },
-    "GlassRecipeDetailLight.dc.html": {
-      "h": 844,
-      "page": "glass",
-      "title": "RecipeDetail",
-      "w": 390,
-      "x": 940,
-      "y": 10112
-    },
-    "GlassRecipesAllDark.dc.html": {
-      "h": 844,
-      "page": "glassdark",
-      "title": "RecipesAll",
-      "w": 390,
-      "x": 470,
-      "y": 10112
-    },
-    "GlassRecipesAllLight.dc.html": {
-      "h": 844,
-      "page": "glass",
-      "title": "RecipesAll",
-      "w": 390,
-      "x": 470,
-      "y": 10112
-    },
-    "GlassRecipesPlanDark.dc.html": {
-      "h": 844,
-      "page": "glassdark",
-      "title": "RecipesPlan",
-      "w": 390,
-      "x": 0,
-      "y": 10112
-    },
-    "GlassRecipesPlanLight.dc.html": {
-      "h": 844,
-      "page": "glass",
-      "title": "RecipesPlan",
-      "w": 390,
-      "x": 0,
-      "y": 10112
-    },
-    "GlassRegisterDark.dc.html": {
-      "h": 844,
-      "page": "glassdark",
-      "title": "Register",
-      "w": 390,
-      "x": 470,
-      "y": 0
-    },
-    "GlassRegisterLight.dc.html": {
-      "h": 844,
-      "page": "glass",
-      "title": "Register",
-      "w": 390,
-      "x": 470,
-      "y": 0
-    },
-    "GlassRequestSheetDark.dc.html": {
-      "h": 844,
-      "page": "glassdark",
-      "title": "RequestSheet",
-      "w": 390,
-      "x": 3290,
-      "y": 0
-    },
-    "GlassRequestSheetLight.dc.html": {
-      "h": 844,
-      "page": "glass",
-      "title": "RequestSheet",
-      "w": 390,
-      "x": 3290,
-      "y": 0
-    },
-    "GlassSessionDetailDark.dc.html": {
-      "h": 844,
-      "page": "glassdark",
-      "title": "SessionDetail",
-      "w": 390,
-      "x": 2350,
-      "y": 1264
-    },
-    "GlassSessionDetailLight.dc.html": {
-      "h": 844,
-      "page": "glass",
-      "title": "SessionDetail",
-      "w": 390,
-      "x": 2350,
-      "y": 1264
-    },
-    "GlassSessionMixedDark.dc.html": {
-      "h": 844,
-      "page": "glassdark",
-      "title": "SessionMixed",
-      "w": 390,
-      "x": 0,
-      "y": 2528
-    },
-    "GlassSessionMixedLight.dc.html": {
-      "h": 844,
-      "page": "glass",
-      "title": "SessionMixed",
-      "w": 390,
-      "x": 0,
-      "y": 2528
-    },
-    "GlassSessionSummaryDark.dc.html": {
-      "h": 844,
-      "page": "glassdark",
-      "title": "SessionSummary",
-      "w": 390,
-      "x": 1410,
-      "y": 3792
-    },
-    "GlassSessionSummaryLight.dc.html": {
-      "h": 844,
-      "page": "glass",
-      "title": "SessionSummary",
-      "w": 390,
-      "x": 1410,
-      "y": 3792
-    },
-    "GlassSettingsDark.dc.html": {
-      "h": 844,
-      "page": "glassdark",
-      "title": "Settings",
-      "w": 390,
-      "x": 2820,
-      "y": 7584
-    },
-    "GlassSettingsLight.dc.html": {
-      "h": 844,
-      "page": "glass",
-      "title": "Settings",
-      "w": 390,
-      "x": 2820,
-      "y": 7584
-    },
-    "GlassShoppingListDark.dc.html": {
-      "h": 844,
-      "page": "glassdark",
-      "title": "ShoppingList",
-      "w": 390,
-      "x": 1410,
-      "y": 5056
-    },
-    "GlassShoppingListLight.dc.html": {
-      "h": 844,
-      "page": "glass",
-      "title": "ShoppingList",
-      "w": 390,
-      "x": 1410,
-      "y": 5056
-    },
-    "GlassTabataDark.dc.html": {
-      "h": 844,
-      "page": "glassdark",
-      "title": "Tabata",
-      "w": 390,
-      "x": 1410,
-      "y": 2528
-    },
-    "GlassTabataLight.dc.html": {
-      "h": 844,
-      "page": "glass",
-      "title": "Tabata",
-      "w": 390,
-      "x": 1410,
-      "y": 2528
-    },
-    "GlassTodayDark.dc.html": {
-      "h": 844,
-      "page": "glassdark",
-      "title": "Today",
-      "w": 390,
-      "x": 0,
-      "y": 1264
-    },
-    "GlassTodayLight.dc.html": {
-      "h": 844,
-      "page": "glass",
-      "title": "Today",
-      "w": 390,
-      "x": 0,
-      "y": 1264
-    },
-    "GlassTodayNoCoachDark.dc.html": {
-      "h": 844,
-      "page": "glassdark",
-      "title": "TodayNoCoach",
-      "w": 390,
-      "x": 1880,
-      "y": 0
-    },
-    "GlassTodayNoCoachLight.dc.html": {
-      "h": 844,
-      "page": "glass",
-      "title": "TodayNoCoach",
-      "w": 390,
-      "x": 1880,
-      "y": 0
-    },
-    "GlassTodayV1Dark.dc.html": {
-      "h": 844,
-      "page": "glassdark",
-      "title": "Today · v1 (check-in only)",
-      "w": 390,
-      "x": 470,
-      "y": 1264
-    },
-    "GlassTodayV1Light.dc.html": {
-      "h": 844,
-      "page": "glass",
-      "title": "Today · v1 (check-in only)",
-      "w": 390,
-      "x": 470,
-      "y": 1264
-    },
-    "GlassTrainingEmptyDark.dc.html": {
-      "h": 844,
-      "page": "glassdark",
-      "title": "TrainingEmpty",
-      "w": 390,
-      "x": 1880,
-      "y": 1264
-    },
-    "GlassTrainingEmptyLight.dc.html": {
-      "h": 844,
-      "page": "glass",
-      "title": "TrainingEmpty",
-      "w": 390,
-      "x": 1880,
-      "y": 1264
-    },
-    "GlassTrainingPlanDark.dc.html": {
-      "h": 844,
-      "page": "glassdark",
-      "title": "TrainingPlan",
-      "w": 390,
-      "x": 0,
-      "y": 8848
-    },
-    "GlassTrainingPlanLight.dc.html": {
-      "h": 844,
-      "page": "glass",
-      "title": "TrainingPlan",
-      "w": 390,
-      "x": 0,
-      "y": 8848
-    },
-    "GlassTrainingWeekDark.dc.html": {
-      "h": 844,
-      "page": "glassdark",
-      "title": "TrainingWeek",
-      "w": 390,
-      "x": 1410,
-      "y": 1264
-    },
-    "GlassTrainingWeekDetailDark.dc.html": {
-      "h": 844,
-      "page": "glassdark",
-      "title": "TrainingWeekDetail",
-      "w": 390,
-      "x": 470,
-      "y": 8848
-    },
-    "GlassTrainingWeekDetailLight.dc.html": {
-      "h": 844,
-      "page": "glass",
-      "title": "TrainingWeekDetail",
-      "w": 390,
-      "x": 470,
-      "y": 8848
-    },
-    "GlassTrainingWeekLight.dc.html": {
-      "h": 844,
-      "page": "glass",
-      "title": "TrainingWeek",
-      "w": 390,
-      "x": 1410,
-      "y": 1264
-    },
-    "GlassWorkoutDark.dc.html": {
-      "h": 844,
-      "page": "glassdark",
-      "title": "Workout",
-      "w": 390,
-      "x": 2820,
-      "y": 1264
-    },
-    "GlassWorkoutDetailDark.dc.html": {
-      "h": 844,
-      "page": "glassdark",
-      "title": "WorkoutDetail",
-      "w": 390,
-      "x": 940,
-      "y": 11376
-    },
-    "GlassWorkoutDetailLight.dc.html": {
-      "h": 844,
-      "page": "glass",
-      "title": "WorkoutDetail",
-      "w": 390,
-      "x": 940,
-      "y": 11376
-    },
-    "GlassWorkoutLight.dc.html": {
-      "h": 844,
-      "page": "glass",
-      "title": "Workout",
-      "w": 390,
-      "x": 2820,
-      "y": 1264
-    },
-    "GlassWorkoutsAllDark.dc.html": {
-      "h": 844,
-      "page": "glassdark",
-      "title": "WorkoutsAll",
-      "w": 390,
-      "x": 470,
-      "y": 11376
-    },
-    "GlassWorkoutsAllLight.dc.html": {
-      "h": 844,
-      "page": "glass",
-      "title": "WorkoutsAll",
-      "w": 390,
-      "x": 470,
-      "y": 11376
-    },
-    "GlassWorkoutsPlanDark.dc.html": {
-      "h": 844,
-      "page": "glassdark",
-      "title": "WorkoutsPlan",
-      "w": 390,
-      "x": 0,
-      "y": 11376
-    },
-    "GlassWorkoutsPlanLight.dc.html": {
-      "h": 844,
-      "page": "glass",
-      "title": "WorkoutsPlan",
-      "w": 390,
-      "x": 0,
-      "y": 11376
-    },
-    "Logo1.dc.html": {
-      "h": 470,
-      "page": "logo",
-      "title": "Direction 1",
-      "w": 760,
-      "x": 0,
-      "y": 0
-    },
-    "Logo10.dc.html": {
-      "h": 470,
-      "page": "logo",
-      "title": "Direction 10",
-      "w": 760,
-      "x": 0,
-      "y": 2070
-    },
-    "Logo11.dc.html": {
-      "h": 470,
-      "page": "logo",
-      "title": "Direction 11",
-      "w": 760,
-      "x": 840,
-      "y": 2070
-    },
-    "Logo12.dc.html": {
-      "h": 470,
-      "page": "logo",
-      "title": "Direction 12",
-      "w": 760,
-      "x": 1680,
-      "y": 2070
-    },
-    "Logo13.dc.html": {
-      "h": 470,
-      "page": "logo",
-      "title": "Direction 13",
-      "w": 760,
-      "x": 0,
-      "y": 2960
-    },
-    "Logo14.dc.html": {
-      "h": 470,
-      "page": "logo",
-      "title": "Direction 14",
-      "w": 760,
-      "x": 840,
-      "y": 2960
-    },
-    "Logo15.dc.html": {
-      "h": 470,
-      "page": "logo",
-      "title": "Direction 15",
-      "w": 760,
-      "x": 0,
-      "y": 3550
-    },
-    "Logo16.dc.html": {
-      "h": 470,
-      "page": "logo",
-      "title": "Direction 16",
-      "w": 760,
-      "x": 840,
-      "y": 3550
-    },
-    "Logo17.dc.html": {
-      "h": 620,
-      "page": "logo",
-      "title": "Direction 17",
-      "w": 760,
-      "x": 0,
-      "y": 4440
-    },
-    "Logo18.dc.html": {
-      "h": 620,
-      "page": "logo",
-      "title": "Direction 18",
-      "w": 760,
-      "x": 840,
-      "y": 4440
-    },
-    "Logo19.dc.html": {
-      "h": 620,
-      "page": "logo",
-      "title": "Direction 19",
-      "w": 760,
-      "x": 0,
-      "y": 5180
-    },
-    "Logo2.dc.html": {
-      "h": 470,
-      "page": "logo",
-      "title": "Direction 2",
-      "w": 760,
-      "x": 840,
-      "y": 0
-    },
-    "Logo20.dc.html": {
-      "h": 620,
-      "page": "logo",
-      "title": "Direction 20",
-      "w": 760,
-      "x": 840,
-      "y": 5180
-    },
-    "Logo21.dc.html": {
-      "h": 700,
-      "page": "logo",
-      "title": "A · Dynamic F",
-      "w": 1100,
-      "x": 0,
-      "y": 6400
-    },
-    "Logo22.dc.html": {
-      "h": 700,
-      "page": "logo",
-      "title": "B · Hidden Arrow",
-      "w": 1100,
-      "x": 1180,
-      "y": 6400
-    },
-    "Logo23.dc.html": {
-      "h": 700,
-      "page": "logo",
-      "title": "C · Progress Line",
-      "w": 1100,
-      "x": 2360,
-      "y": 6400
-    },
-    "Logo24.dc.html": {
-      "h": 700,
-      "page": "logo",
-      "title": "1 · Core Balance",
-      "w": 1100,
-      "x": 0,
-      "y": 7600
-    },
-    "Logo25.dc.html": {
-      "h": 700,
-      "page": "logo",
-      "title": "2 · Progress Plan",
-      "w": 1100,
-      "x": 1180,
-      "y": 7600
-    },
-    "Logo26.dc.html": {
-      "h": 700,
-      "page": "logo",
-      "title": "3 · Athlete & Guide",
-      "w": 1100,
-      "x": 2360,
-      "y": 7600
-    },
-    "Logo3.dc.html": {
-      "h": 470,
-      "page": "logo",
-      "title": "Direction 3",
-      "w": 760,
-      "x": 1680,
-      "y": 0
-    },
-    "Logo4.dc.html": {
-      "h": 470,
-      "page": "logo",
-      "title": "Direction 4",
-      "w": 760,
-      "x": 0,
-      "y": 590
-    },
-    "Logo5.dc.html": {
-      "h": 470,
-      "page": "logo",
-      "title": "Direction 5",
-      "w": 760,
-      "x": 840,
-      "y": 590
-    },
-    "Logo6.dc.html": {
-      "h": 470,
-      "page": "logo",
-      "title": "Direction 6",
-      "w": 760,
-      "x": 1680,
-      "y": 590
-    },
-    "Logo7.dc.html": {
-      "h": 470,
-      "page": "logo",
-      "title": "Direction 7",
-      "w": 760,
-      "x": 0,
-      "y": 1480
-    },
-    "Logo8.dc.html": {
-      "h": 470,
-      "page": "logo",
-      "title": "Direction 8",
-      "w": 760,
-      "x": 840,
-      "y": 1480
-    },
-    "Logo9.dc.html": {
-      "h": 470,
-      "page": "logo",
-      "title": "Direction 9",
-      "w": 760,
-      "x": 1680,
-      "y": 1480
-    },
-    "Main.dc.html": {
-      "h": 900,
-      "page": "concepts",
-      "title": "C · Palette",
-      "w": 560,
-      "x": 0,
-      "y": 0
-    },
-    "NutritionC.dc.html": {
-      "h": 844,
-      "page": "concepts",
-      "title": "C · Nutrition",
-      "w": 390,
-      "x": 3100,
-      "y": 0
-    },
-    "PageClientDetailC.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "C · ClientDetail",
-      "w": 1440,
-      "x": 1520,
-      "y": 11260
-    },
-    "PageClientDetailD.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "D · ClientDetail",
-      "w": 1440,
-      "x": 1520,
-      "y": 12760
-    },
-    "PageClientNutritionC.dc.html": {
-      "h": 1380,
-      "page": "web",
-      "title": "C · ClientDetail · Nutrition tab",
-      "w": 1440,
-      "x": 3040,
-      "y": 11260
-    },
-    "PageClientNutritionD.dc.html": {
-      "h": 1380,
-      "page": "web",
-      "title": "D · ClientDetail · Nutrition tab",
-      "w": 1440,
-      "x": 3040,
-      "y": 12760
-    },
-    "PageClientNutritionEmptyC.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "C · ClientDetail · Nutrition, no plan yet",
-      "w": 1440,
-      "x": 4560,
-      "y": 11260
-    },
-    "PageClientNutritionEmptyD.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "D · ClientDetail · Nutrition, no plan yet",
-      "w": 1440,
-      "x": 4560,
-      "y": 12760
-    },
-    "PageClientPlanBlankC.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "C · Client plan · blank",
-      "w": 1440,
-      "x": 13680,
-      "y": 11260
-    },
-    "PageClientPlanBlankD.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "D · Client plan · blank",
-      "w": 1440,
-      "x": 13680,
-      "y": 12760
-    },
-    "PageClientPlanClosedC.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "C · Client plan · panel closed",
-      "w": 1440,
-      "x": 15200,
-      "y": 11260
-    },
-    "PageClientPlanClosedD.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "D · Client plan · panel closed",
-      "w": 1440,
-      "x": 15200,
-      "y": 12760
-    },
-    "PageClientPlanDayAddMealC.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "C · Client plan · Day · Add meal drawer",
-      "w": 1440,
-      "x": 9120,
-      "y": 11260
-    },
-    "PageClientPlanDayAddMealD.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "D · Client plan · Day · Add meal drawer",
-      "w": 1440,
-      "x": 9120,
-      "y": 12760
-    },
-    "PageClientPlanDayC.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "C · Client plan · Day view",
-      "w": 1440,
-      "x": 7600,
-      "y": 11260
-    },
-    "PageClientPlanDayD.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "D · Client plan · Day view",
-      "w": 1440,
-      "x": 7600,
-      "y": 12760
-    },
-    "PageClientPlanEditorC.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "C · Client plan · Library › Templates",
-      "w": 1440,
-      "x": 6080,
-      "y": 11260
-    },
-    "PageClientPlanEditorD.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "D · Client plan · Library › Templates",
-      "w": 1440,
-      "x": 6080,
-      "y": 12760
-    },
-    "PageClientPlanInfoC.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "C · Client plan · Plan info tab",
-      "w": 1440,
-      "x": 12160,
-      "y": 11260
-    },
-    "PageClientPlanInfoD.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "D · Client plan · Plan info tab",
-      "w": 1440,
-      "x": 12160,
-      "y": 12760
-    },
-    "PageClientPlanStartOverC.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "C · Client plan · replace with template?",
-      "w": 1440,
-      "x": 10640,
-      "y": 11260
-    },
-    "PageClientPlanStartOverD.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "D · Client plan · replace with template?",
-      "w": 1440,
-      "x": 10640,
-      "y": 12760
-    },
-    "PageClientsC.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "C · Clients",
-      "w": 1440,
-      "x": 0,
-      "y": 11260
-    },
-    "PageClientsD.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "D · Clients",
-      "w": 1440,
-      "x": 0,
-      "y": 12760
-    },
-    "PageFormCheckInC.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "C · Form editor · Weekly check-in",
-      "w": 1440,
-      "x": 3040,
-      "y": 24320
-    },
-    "PageFormCheckInD.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "D · Form editor · Weekly check-in",
-      "w": 1440,
-      "x": 3040,
-      "y": 25340
-    },
-    "PageFormOnboardingC.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "C · Form editor · Client onboarding",
-      "w": 1440,
-      "x": 1520,
-      "y": 24320
-    },
-    "PageFormOnboardingD.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "D · Form editor · Client onboarding",
-      "w": 1440,
-      "x": 1520,
-      "y": 25340
-    },
-    "PageFormsC.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "C · Forms",
-      "w": 1440,
-      "x": 0,
-      "y": 24320
-    },
-    "PageFormsD.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "D · Forms",
-      "w": 1440,
-      "x": 0,
-      "y": 25340
-    },
-    "PageHomeC.dc.html": {
-      "h": 4010,
-      "page": "web",
-      "title": "C · Home · full page",
-      "w": 1440,
-      "x": 0,
-      "y": 0
-    },
-    "PageHomeD.dc.html": {
-      "h": 4010,
-      "page": "web",
-      "title": "D · Home · full page",
-      "w": 1440,
-      "x": 0,
-      "y": 4130
-    },
-    "PageHomeSignInC.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "C · Home · Sign in dialog",
-      "w": 1440,
-      "x": 1520,
-      "y": 0
-    },
-    "PageHomeSignInD.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "D · Home · Sign in dialog",
-      "w": 1440,
-      "x": 1520,
-      "y": 4130
-    },
-    "PageInboxC.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "C · Inbox",
-      "w": 1440,
-      "x": 0,
-      "y": 14640
-    },
-    "PageInboxD.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "D · Inbox",
-      "w": 1440,
-      "x": 0,
-      "y": 15660
-    },
-    "PageIngredientDrawerC.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "C · IngredientDrawer",
-      "w": 1440,
-      "x": 1520,
-      "y": 19480
-    },
-    "PageIngredientDrawerD.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "D · IngredientDrawer",
-      "w": 1440,
-      "x": 1520,
-      "y": 20500
-    },
-    "PageIngredientsC.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "C · Ingredients",
-      "w": 1440,
-      "x": 0,
-      "y": 19480
-    },
-    "PageIngredientsD.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "D · Ingredients",
-      "w": 1440,
-      "x": 0,
-      "y": 20500
-    },
-    "PageRecipeDrawerC.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "C · Recipe drawer · Details tab",
-      "w": 1440,
-      "x": 3040,
-      "y": 17060
-    },
-    "PageRecipeDrawerD.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "D · Recipe drawer · Details tab",
-      "w": 1440,
-      "x": 3040,
-      "y": 18080
-    },
-    "PageRecipeDrawerIngredientsC.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "C · Recipe drawer · Ingredients tab",
-      "w": 1440,
-      "x": 4560,
-      "y": 17060
-    },
-    "PageRecipeDrawerIngredientsD.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "D · Recipe drawer · Ingredients tab",
-      "w": 1440,
-      "x": 4560,
-      "y": 18080
-    },
-    "PageRecipeDrawerPicturesC.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "C · Recipe drawer · Pictures tab",
-      "w": 1440,
-      "x": 7600,
-      "y": 17060
-    },
-    "PageRecipeDrawerPicturesD.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "D · Recipe drawer · Pictures tab",
-      "w": 1440,
-      "x": 7600,
-      "y": 18080
-    },
-    "PageRecipeDrawerPreparationC.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "C · Recipe drawer · Preparation tab",
-      "w": 1440,
-      "x": 6080,
-      "y": 17060
-    },
-    "PageRecipeDrawerPreparationD.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "D · Recipe drawer · Preparation tab",
-      "w": 1440,
-      "x": 6080,
-      "y": 18080
-    },
-    "PageRecipesC.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "C · Recipes",
-      "w": 1440,
-      "x": 0,
-      "y": 17060
-    },
-    "PageRecipesD.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "D · Recipes",
-      "w": 1440,
-      "x": 0,
-      "y": 18080
-    },
-    "PageRecipesTableC.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "C · Recipes · table view",
-      "w": 1440,
-      "x": 1520,
-      "y": 17060
-    },
-    "PageRecipesTableD.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "D · Recipes · table view",
-      "w": 1440,
-      "x": 1520,
-      "y": 18080
-    },
-    "PageRegisterC.dc.html": {
-      "h": 1000,
-      "page": "web",
-      "title": "C · Register · 1 Account",
-      "w": 1440,
-      "x": 0,
-      "y": 8640
-    },
-    "PageRegisterCheckEmailC.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "C · Register · 2 Check email",
-      "w": 1440,
-      "x": 1520,
-      "y": 8640
-    },
-    "PageRegisterCheckEmailD.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "D · Register · 2 Check email",
-      "w": 1440,
-      "x": 1520,
-      "y": 9760
-    },
-    "PageRegisterD.dc.html": {
-      "h": 1000,
-      "page": "web",
-      "title": "D · Register · 1 Account",
-      "w": 1440,
-      "x": 0,
-      "y": 9760
-    },
-    "PageRegisterVerifiedC.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "C · Register · 3 Email verified",
-      "w": 1440,
-      "x": 3040,
-      "y": 8640
-    },
-    "PageRegisterVerifiedD.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "D · Register · 3 Email verified",
-      "w": 1440,
-      "x": 3040,
-      "y": 9760
-    },
-    "PageTemplateDayAddMealC.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "C · TemplateDay · Add meal drawer",
-      "w": 1440,
-      "x": 10640,
-      "y": 21900
-    },
-    "PageTemplateDayAddMealD.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "D · TemplateDay · Add meal drawer",
-      "w": 1440,
-      "x": 10640,
-      "y": 22920
-    },
-    "PageTemplateDayC.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "C · TemplateDay",
-      "w": 1440,
-      "x": 9120,
-      "y": 21900
-    },
-    "PageTemplateDayD.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "D · TemplateDay",
-      "w": 1440,
-      "x": 9120,
-      "y": 22920
-    },
-    "PageTemplateEditorC.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "C · TemplateEditor",
-      "w": 1440,
-      "x": 4560,
-      "y": 21900
-    },
-    "PageTemplateEditorD.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "D · TemplateEditor",
-      "w": 1440,
-      "x": 4560,
-      "y": 22920
-    },
-    "PageTemplateEditorEmptyC.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "C · TemplateEditor · empty (no meals chosen)",
-      "w": 1440,
-      "x": 3040,
-      "y": 21900
-    },
-    "PageTemplateEditorEmptyD.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "D · TemplateEditor · empty (no meals chosen)",
-      "w": 1440,
-      "x": 3040,
-      "y": 22920
-    },
-    "PageTemplateMealC.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "C · TemplateMeal",
-      "w": 1440,
-      "x": 6080,
-      "y": 21900
-    },
-    "PageTemplateMealD.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "D · TemplateMeal",
-      "w": 1440,
-      "x": 6080,
-      "y": 22920
-    },
-    "PageTemplateNewC.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "C · TemplateNew",
-      "w": 1440,
-      "x": 1520,
-      "y": 21900
-    },
-    "PageTemplateNewD.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "D · TemplateNew",
-      "w": 1440,
-      "x": 1520,
-      "y": 22920
-    },
-    "PageTemplateNutritionC.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "C · TemplateNutrition",
-      "w": 1440,
-      "x": 7600,
-      "y": 21900
-    },
-    "PageTemplateNutritionD.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "D · TemplateNutrition",
-      "w": 1440,
-      "x": 7600,
-      "y": 22920
-    },
-    "PageTemplatesC.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "C · Templates",
-      "w": 1440,
-      "x": 0,
-      "y": 21900
-    },
-    "PageTemplatesD.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "D · Templates",
-      "w": 1440,
-      "x": 0,
-      "y": 22920
-    },
-    "TodayC.dc.html": {
-      "h": 844,
-      "page": "concepts",
-      "title": "C · Today",
-      "w": 390,
-      "x": 2160,
-      "y": 0
-    },
-    "WebC.dc.html": {
-      "h": 900,
-      "page": "concepts",
-      "title": "C · Web",
-      "w": 1440,
-      "x": 640,
-      "y": 0
-    },
-    "WorkoutC.dc.html": {
-      "h": 844,
-      "page": "concepts",
-      "title": "C · Workout",
-      "w": 390,
-      "x": 2630,
-      "y": 0
-    },
-    "PageClientInviteDrawerC.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "C · Clients · Invite client drawer",
-      "w": 1440,
-      "x": 16720,
-      "y": 11260
-    },
-    "PageClientInviteDrawerD.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "D · Clients · Invite client drawer",
-      "w": 1440,
-      "x": 16720,
-      "y": 12760
-    }
+ "v": 3,
+ "attachments": {},
+ "boards": {
+  "CoachAccountTypeDark.dc.html": {
+   "h": 844,
+   "page": "coachdark",
+   "title": "AccountType",
+   "w": 390,
+   "x": 0,
+   "y": 0
   },
-  "createdOnFiles": {
-    "at": "2026-10-01T13:42:58Z",
-    "v": 1
+  "CoachAccountTypeLight.dc.html": {
+   "h": 844,
+   "page": "coach",
+   "title": "AccountType",
+   "w": 390,
+   "x": 0,
+   "y": 0
   },
-  "designSystems": [],
-  "launch": {
-    "view": "canvas"
+  "CoachBroadcastDark.dc.html": {
+   "h": 844,
+   "page": "coachdark",
+   "title": "Broadcast",
+   "w": 390,
+   "x": 470,
+   "y": 3792
   },
-  "notes": {
-    "coach0": {
-      "kind": "title1",
-      "maxW": 3210,
-      "page": "coach",
-      "text": "Coach — today & clients",
-      "w": 240,
-      "x": 0,
-      "y": 964
-    },
-    "coach1": {
-      "kind": "title1",
-      "maxW": 1800,
-      "page": "coach",
-      "text": "Coach — growing: find clients, offers, requests, invites",
-      "w": 240,
-      "x": 0,
-      "y": 2228
-    },
-    "coach2": {
-      "kind": "title1",
-      "maxW": 1330,
-      "page": "coach",
-      "text": "Coach — messages & profile",
-      "w": 240,
-      "x": 0,
-      "y": 3492
-    },
-    "coachS": {
-      "kind": "title1",
-      "maxW": 1330,
-      "page": "coach",
-      "text": "Coach — sign up (sign-in is shared with clients)",
-      "w": 240,
-      "x": 0,
-      "y": -300
-    },
-    "coachdark0": {
-      "kind": "title1",
-      "maxW": 3210,
-      "page": "coachdark",
-      "text": "Coach — today & clients",
-      "w": 240,
-      "x": 0,
-      "y": 964
-    },
-    "coachdark1": {
-      "kind": "title1",
-      "maxW": 1800,
-      "page": "coachdark",
-      "text": "Coach — growing: find clients, offers, requests, invites",
-      "w": 240,
-      "x": 0,
-      "y": 2228
-    },
-    "coachdark2": {
-      "kind": "title1",
-      "maxW": 1330,
-      "page": "coachdark",
-      "text": "Coach — messages & profile",
-      "w": 240,
-      "x": 0,
-      "y": 3492
-    },
-    "coachdarkS": {
-      "kind": "title1",
-      "maxW": 1330,
-      "page": "coachdark",
-      "text": "Coach — sign up (sign-in is shared with clients)",
-      "w": 240,
-      "x": 0,
-      "y": -300
-    },
-    "logoTitle": {
-      "kind": "title1",
-      "maxW": 2440,
-      "page": "logo",
-      "text": "Logo & app icon — six directions, each as icon, small sizes and wordmark lockup",
-      "w": 240,
-      "x": 0,
-      "y": -300
-    },
-    "logoTitle2": {
-      "kind": "title1",
-      "maxW": 2440,
-      "page": "logo",
-      "text": "Round 2 — marks from the field: plate, kettlebell, arms up, check-in, bowl, whistle",
-      "w": 240,
-      "x": 0,
-      "y": 1180
-    },
-    "logoTitle3": {
-      "kind": "title1",
-      "maxW": 1600,
-      "page": "logo",
-      "text": "Round 3 — shapes built from F and U",
-      "w": 240,
-      "x": 0,
-      "y": 2660
-    },
-    "logoTitle4": {
-      "kind": "title1",
-      "maxW": 1600,
-      "page": "logo",
-      "text": "Round 4 — solid, angular marks in the Athlete Zone style",
-      "w": 240,
-      "x": 0,
-      "y": 4140
-    },
-    "logoTitle5": {
-      "kind": "title1",
-      "maxW": 3460,
-      "page": "logo",
-      "text": "Round 5 — thin geometric wordmark from your reference, with three concepts: Dynamic F, Hidden Arrow, Progress Line",
-      "w": 240,
-      "x": 0,
-      "y": 6100
-    },
-    "logoTitle6": {
-      "kind": "title1",
-      "maxW": 3460,
-      "page": "logo",
-      "text": "Round 6 — symbols: barbell + leaf, checkbox arrow, guided path (with the thin wordmark)",
-      "w": 240,
-      "x": 0,
-      "y": 7300
-    },
-    "mD0": {
-      "kind": "title1",
-      "maxW": 3680,
-      "page": "glassdark",
-      "text": "Start — sign in, onboarding, finding a coach",
-      "w": 240,
-      "x": 0,
-      "y": -300
-    },
-    "mD1": {
-      "kind": "title1",
-      "maxW": 3210,
-      "page": "glassdark",
-      "text": "Today & Training",
-      "w": 240,
-      "x": 0,
-      "y": 964
-    },
-    "mD2": {
-      "kind": "title1",
-      "maxW": 1800,
-      "page": "glassdark",
-      "text": "Nutrition",
-      "w": 240,
-      "x": 0,
-      "y": 4756
-    },
-    "mD3": {
-      "kind": "title1",
-      "maxW": 860,
-      "page": "glassdark",
-      "text": "Messages",
-      "w": 240,
-      "x": 0,
-      "y": 6020
-    },
-    "mD4": {
-      "kind": "title1",
-      "maxW": 3210,
-      "page": "glassdark",
-      "text": "Profile & progress — measurements, photos and journey come after v1",
-      "w": 240,
-      "x": 0,
-      "y": 7284
-    },
-    "mDE": {
-      "kind": "title1",
-      "maxW": 1800,
-      "page": "glassdark",
-      "text": "Finishing — workout done (A, B, C) and session summary",
-      "w": 240,
-      "x": 0,
-      "y": 3492
-    },
-    "mDF": {
-      "kind": "title1",
-      "maxW": 2270,
-      "page": "glassdark",
-      "text": "Training formats — mixed session, AMRAP, EMOM, Tabata, For Time",
-      "w": 240,
-      "x": 0,
-      "y": 2228
-    },
-    "mDP": {
-      "kind": "title1",
-      "maxW": 1800,
-      "page": "glassdark",
-      "text": "Browsing the whole plan — overview and week, from \"Full plan\" in each tab",
-      "w": 240,
-      "x": 0,
-      "y": 8548
-    },
-    "mDR": {
-      "kind": "title1",
-      "maxW": 8000,
-      "page": "glassdark",
-      "text": "Recipes — cards, table, drawer (Details, Ingredients, Preparation, Pictures tabs)  ·  light above, dark below",
-      "w": 240,
-      "x": 0,
-      "y": 9812
-    },
-    "mDW": {
-      "kind": "title1",
-      "maxW": 1800,
-      "page": "glassdark",
-      "text": "Workouts — this plan / all plans, workout detail, exercise detail",
-      "w": 240,
-      "x": 0,
-      "y": 11076
-    },
-    "mL0": {
-      "kind": "title1",
-      "maxW": 3680,
-      "page": "glass",
-      "text": "Start — sign in, onboarding, finding a coach",
-      "w": 240,
-      "x": 0,
-      "y": -300
-    },
-    "mL1": {
-      "kind": "title1",
-      "maxW": 3210,
-      "page": "glass",
-      "text": "Today & Training",
-      "w": 240,
-      "x": 0,
-      "y": 964
-    },
-    "mL2": {
-      "kind": "title1",
-      "maxW": 1800,
-      "page": "glass",
-      "text": "Nutrition",
-      "w": 240,
-      "x": 0,
-      "y": 4756
-    },
-    "mL3": {
-      "kind": "title1",
-      "maxW": 860,
-      "page": "glass",
-      "text": "Messages",
-      "w": 240,
-      "x": 0,
-      "y": 6020
-    },
-    "mL4": {
-      "kind": "title1",
-      "maxW": 3210,
-      "page": "glass",
-      "text": "Profile & progress — measurements, photos and journey come after v1",
-      "w": 240,
-      "x": 0,
-      "y": 7284
-    },
-    "mLE": {
-      "kind": "title1",
-      "maxW": 1800,
-      "page": "glass",
-      "text": "Finishing — workout done (A, B, C) and session summary",
-      "w": 240,
-      "x": 0,
-      "y": 3492
-    },
-    "mLF": {
-      "kind": "title1",
-      "maxW": 2270,
-      "page": "glass",
-      "text": "Training formats — mixed session, AMRAP, EMOM, Tabata, For Time",
-      "w": 240,
-      "x": 0,
-      "y": 2228
-    },
-    "mLP": {
-      "kind": "title1",
-      "maxW": 1800,
-      "page": "glass",
-      "text": "Browsing the whole plan — overview and week, from \"Full plan\" in each tab",
-      "w": 240,
-      "x": 0,
-      "y": 8548
-    },
-    "mLR": {
-      "kind": "title1",
-      "maxW": 8000,
-      "page": "glass",
-      "text": "Recipes — cards, table, drawer (Details, Ingredients, Preparation, Pictures tabs)  ·  light above, dark below",
-      "w": 240,
-      "x": 0,
-      "y": 9812
-    },
-    "mLW": {
-      "kind": "title1",
-      "maxW": 1800,
-      "page": "glass",
-      "text": "Workouts — this plan / all plans, workout detail, exercise detail",
-      "w": 240,
-      "x": 0,
-      "y": 11076
-    },
-    "titleC": {
-      "kind": "title1",
-      "maxW": 3490,
-      "page": "concepts",
-      "text": "C · B made energetic — white web with solid colour blocks, dark mobile with bright sections",
-      "w": 240,
-      "x": 0,
-      "y": -300
-    },
-    "webRow1": {
-      "kind": "title1",
-      "maxW": 2960,
-      "page": "web",
-      "text": "Entry page — landing page and sign-in dialog  ·  light above, dark below",
-      "w": 240,
-      "x": 0,
-      "y": -300
-    },
-    "webRow2": {
-      "kind": "title1",
-      "maxW": 4480,
-      "page": "web",
-      "text": "Registration — account, check email, email verified  ·  light above, dark below",
-      "w": 240,
-      "x": 0,
-      "y": 8340
-    },
-    "webRow3": {
-      "kind": "title1",
-      "maxW": 8000,
-      "page": "web",
-      "text": "Clients — list, invite drawer, detail, nutrition tab, client plan editor (week, day, add meal, replace, plan info, blank, panel closed)  ·  light above, dark below",
-      "w": 240,
-      "x": 0,
-      "y": 10960
-    },
-    "webRow4": {
-      "kind": "title1",
-      "maxW": 1440,
-      "page": "web",
-      "text": "Inbox  ·  light above, dark below",
-      "w": 240,
-      "x": 0,
-      "y": 14340
-    },
-    "webRow5": {
-      "kind": "title1",
-      "maxW": 8000,
-      "page": "web",
-      "text": "Recipes — cards, table, drawer (Details, Ingredients, Preparation, Pictures tabs)  ·  light above, dark below",
-      "w": 240,
-      "x": 0,
-      "y": 16760
-    },
-    "webRow6": {
-      "kind": "title1",
-      "maxW": 2960,
-      "page": "web",
-      "text": "Ingredients — list and edit drawer  ·  light above, dark below",
-      "w": 240,
-      "x": 0,
-      "y": 19180
-    },
-    "webRow7": {
-      "kind": "title1",
-      "maxW": 8000,
-      "page": "web",
-      "text": "Plan templates — list, new template, empty editor, editor (week, meal panel, nutrition, day, add meal)  ·  light above, dark below",
-      "w": 240,
-      "x": 0,
-      "y": 21600
-    },
-    "webRow8": {
-      "kind": "title1",
-      "maxW": 4480,
-      "page": "web",
-      "text": "Forms — list, onboarding form editor, weekly check-in editor  ·  light above, dark below",
-      "w": 240,
-      "x": 0,
-      "y": 24020
-    }
+  "CoachBroadcastLight.dc.html": {
+   "h": 844,
+   "page": "coach",
+   "title": "Broadcast",
+   "w": 390,
+   "x": 470,
+   "y": 3792
   },
-  "order": [
-    "Main.dc.html",
-    "WebC.dc.html",
-    "TodayC.dc.html",
-    "WorkoutC.dc.html",
-    "NutritionC.dc.html",
-    "GlassTodayLight.dc.html",
-    "GlassWorkoutLight.dc.html",
-    "GlassNutritionLight.dc.html",
-    "GlassChatLight.dc.html",
-    "GlassTodayDark.dc.html",
-    "GlassWorkoutDark.dc.html",
-    "GlassNutritionDark.dc.html",
-    "GlassChatDark.dc.html",
-    "GlassLoginLight.dc.html",
-    "GlassRegisterLight.dc.html",
-    "GlassOnboardingGoalLight.dc.html",
-    "GlassOnboardingBasicsLight.dc.html",
-    "GlassCheckInLight.dc.html",
-    "GlassLoginDark.dc.html",
-    "GlassRegisterDark.dc.html",
-    "GlassOnboardingGoalDark.dc.html",
-    "GlassOnboardingBasicsDark.dc.html",
-    "GlassCheckInDark.dc.html",
-    "GlassTodayNoCoachLight.dc.html",
-    "GlassCoachSearchLight.dc.html",
-    "GlassCoachProfileLight.dc.html",
-    "GlassRequestSheetLight.dc.html",
-    "GlassTrainingWeekLight.dc.html",
-    "GlassTrainingEmptyLight.dc.html",
-    "GlassSessionDetailLight.dc.html",
-    "GlassNutritionEmptyLight.dc.html",
-    "GlassMealDetailLight.dc.html",
-    "GlassShoppingListLight.dc.html",
-    "GlassMessagesListLight.dc.html",
-    "GlassProfileLight.dc.html",
-    "GlassMyJourneyLight.dc.html",
-    "GlassPlanSummaryLight.dc.html",
-    "GlassMeasurementsLight.dc.html",
-    "GlassPhotosLight.dc.html",
-    "GlassSettingsLight.dc.html",
-    "GlassTodayNoCoachDark.dc.html",
-    "GlassCoachSearchDark.dc.html",
-    "GlassCoachProfileDark.dc.html",
-    "GlassRequestSheetDark.dc.html",
-    "GlassTrainingWeekDark.dc.html",
-    "GlassTrainingEmptyDark.dc.html",
-    "GlassSessionDetailDark.dc.html",
-    "GlassNutritionEmptyDark.dc.html",
-    "GlassMealDetailDark.dc.html",
-    "GlassShoppingListDark.dc.html",
-    "GlassMessagesListDark.dc.html",
-    "GlassProfileDark.dc.html",
-    "GlassMyJourneyDark.dc.html",
-    "GlassPlanSummaryDark.dc.html",
-    "GlassMeasurementsDark.dc.html",
-    "GlassPhotosDark.dc.html",
-    "GlassSettingsDark.dc.html",
-    "GlassSessionMixedLight.dc.html",
-    "GlassAmrapLight.dc.html",
-    "GlassEmomLight.dc.html",
-    "GlassTabataLight.dc.html",
-    "GlassForTimeLight.dc.html",
-    "GlassSessionMixedDark.dc.html",
-    "GlassAmrapDark.dc.html",
-    "GlassEmomDark.dc.html",
-    "GlassTabataDark.dc.html",
-    "GlassForTimeDark.dc.html",
-    "GlassDoneStrengthLight.dc.html",
-    "GlassDoneAmrapLight.dc.html",
-    "GlassDoneTabataLight.dc.html",
-    "GlassSessionSummaryLight.dc.html",
-    "GlassDoneStrengthDark.dc.html",
-    "GlassDoneAmrapDark.dc.html",
-    "GlassDoneTabataDark.dc.html",
-    "GlassSessionSummaryDark.dc.html",
-    "GlassTrainingPlanLight.dc.html",
-    "GlassTrainingWeekDetailLight.dc.html",
-    "GlassNutritionPlanLight.dc.html",
-    "GlassNutritionWeekDetailLight.dc.html",
-    "GlassTrainingPlanDark.dc.html",
-    "GlassTrainingWeekDetailDark.dc.html",
-    "GlassNutritionPlanDark.dc.html",
-    "GlassNutritionWeekDetailDark.dc.html",
-    "GlassRecipesPlanLight.dc.html",
-    "GlassRecipesAllLight.dc.html",
-    "GlassRecipeDetailLight.dc.html",
-    "GlassIngredientDetailLight.dc.html",
-    "GlassRecipesPlanDark.dc.html",
-    "GlassRecipesAllDark.dc.html",
-    "GlassRecipeDetailDark.dc.html",
-    "GlassIngredientDetailDark.dc.html",
-    "GlassCookingStepsLight.dc.html",
-    "GlassCookingStepsDark.dc.html",
-    "GlassTodayV1Light.dc.html",
-    "GlassTodayV1Dark.dc.html",
-    "GlassWorkoutsPlanLight.dc.html",
-    "GlassWorkoutsAllLight.dc.html",
-    "GlassWorkoutDetailLight.dc.html",
-    "GlassExerciseDetailLight.dc.html",
-    "GlassWorkoutsPlanDark.dc.html",
-    "GlassWorkoutsAllDark.dc.html",
-    "GlassWorkoutDetailDark.dc.html",
-    "GlassExerciseDetailDark.dc.html",
-    "CoachTodayLight.dc.html",
-    "CoachClientsLight.dc.html",
-    "CoachClientDetailLight.dc.html",
-    "CoachClientPlansLight.dc.html",
-    "CoachCheckInReviewLight.dc.html",
-    "CoachFindClientsLight.dc.html",
-    "CoachProspectLight.dc.html",
-    "CoachJoinRequestLight.dc.html",
-    "CoachInviteLight.dc.html",
-    "CoachMessagesLight.dc.html",
-    "CoachBroadcastLight.dc.html",
-    "CoachProfileLight.dc.html",
-    "CoachTodayDark.dc.html",
-    "CoachClientsDark.dc.html",
-    "CoachClientDetailDark.dc.html",
-    "CoachClientPlansDark.dc.html",
-    "CoachCheckInReviewDark.dc.html",
-    "CoachFindClientsDark.dc.html",
-    "CoachProspectDark.dc.html",
-    "CoachJoinRequestDark.dc.html",
-    "CoachInviteDark.dc.html",
-    "CoachMessagesDark.dc.html",
-    "CoachBroadcastDark.dc.html",
-    "CoachProfileDark.dc.html",
-    "CoachAccountTypeLight.dc.html",
-    "CoachRegisterLight.dc.html",
-    "CoachSetupLight.dc.html",
-    "CoachAccountTypeDark.dc.html",
-    "CoachRegisterDark.dc.html",
-    "CoachSetupDark.dc.html",
-    "CoachClientsSearchLight.dc.html",
-    "CoachClientsSearchDark.dc.html",
-    "GlassNotificationsLight.dc.html",
-    "CoachNotificationsLight.dc.html",
-    "GlassNotificationsDark.dc.html",
-    "CoachNotificationsDark.dc.html",
-    "Logo1.dc.html",
-    "Logo2.dc.html",
-    "Logo3.dc.html",
-    "Logo4.dc.html",
-    "Logo5.dc.html",
-    "Logo6.dc.html",
-    "Logo7.dc.html",
-    "Logo8.dc.html",
-    "Logo9.dc.html",
-    "Logo10.dc.html",
-    "Logo11.dc.html",
-    "Logo12.dc.html",
-    "Logo13.dc.html",
-    "Logo14.dc.html",
-    "Logo15.dc.html",
-    "Logo16.dc.html",
-    "Logo17.dc.html",
-    "Logo18.dc.html",
-    "Logo19.dc.html",
-    "Logo20.dc.html",
-    "Logo21.dc.html",
-    "Logo22.dc.html",
-    "Logo23.dc.html",
-    "Logo24.dc.html",
-    "Logo25.dc.html",
-    "Logo26.dc.html",
-    "PageClientsC.dc.html",
-    "PageClientDetailC.dc.html",
-    "PageInboxC.dc.html",
-    "PageIngredientsC.dc.html",
-    "PageIngredientDrawerC.dc.html",
-    "PageClientsD.dc.html",
-    "PageClientDetailD.dc.html",
-    "PageInboxD.dc.html",
-    "PageIngredientsD.dc.html",
-    "PageIngredientDrawerD.dc.html",
-    "PageTemplatesC.dc.html",
-    "PageTemplateNewC.dc.html",
-    "PageTemplateEditorC.dc.html",
-    "PageTemplateMealC.dc.html",
-    "PageTemplatesD.dc.html",
-    "PageTemplateNewD.dc.html",
-    "PageTemplateEditorD.dc.html",
-    "PageTemplateMealD.dc.html",
-    "PageTemplateNutritionC.dc.html",
-    "PageTemplateDayC.dc.html",
-    "PageTemplateNutritionD.dc.html",
-    "PageTemplateDayD.dc.html",
-    "PageHomeC.dc.html",
-    "PageHomeSignInC.dc.html",
-    "PageHomeD.dc.html",
-    "PageHomeSignInD.dc.html",
-    "PageRegisterC.dc.html",
-    "PageRegisterD.dc.html",
-    "PageRegisterCheckEmailC.dc.html",
-    "PageRegisterVerifiedC.dc.html",
-    "PageRegisterCheckEmailD.dc.html",
-    "PageRegisterVerifiedD.dc.html",
-    "PageClientNutritionC.dc.html",
-    "PageClientNutritionEmptyC.dc.html",
-    "PageClientNutritionD.dc.html",
-    "PageClientNutritionEmptyD.dc.html",
-    "PageTemplateEditorEmptyC.dc.html",
-    "PageTemplateEditorEmptyD.dc.html",
-    "PageRecipesC.dc.html",
-    "PageRecipeDrawerC.dc.html",
-    "PageRecipesD.dc.html",
-    "PageRecipeDrawerD.dc.html",
-    "PageRecipesTableC.dc.html",
-    "PageRecipeDrawerIngredientsC.dc.html",
-    "PageRecipesTableD.dc.html",
-    "PageRecipeDrawerIngredientsD.dc.html",
-    "PageRecipeDrawerPreparationC.dc.html",
-    "PageRecipeDrawerPicturesC.dc.html",
-    "PageRecipeDrawerPreparationD.dc.html",
-    "PageRecipeDrawerPicturesD.dc.html",
-    "PageFormsC.dc.html",
-    "PageFormOnboardingC.dc.html",
-    "PageFormCheckInC.dc.html",
-    "PageFormsD.dc.html",
-    "PageFormOnboardingD.dc.html",
-    "PageFormCheckInD.dc.html",
-    "PageClientPlanEditorC.dc.html",
-    "PageClientPlanStartOverC.dc.html",
-    "PageClientPlanBlankC.dc.html",
-    "PageClientPlanEditorD.dc.html",
-    "PageClientPlanStartOverD.dc.html",
-    "PageClientPlanBlankD.dc.html",
-    "PageClientPlanInfoC.dc.html",
-    "PageClientPlanInfoD.dc.html",
-    "PageClientPlanClosedC.dc.html",
-    "PageClientPlanClosedD.dc.html",
-    "PageClientPlanDayC.dc.html",
-    "PageClientPlanDayD.dc.html",
-    "PageTemplateDayAddMealC.dc.html",
-    "PageClientPlanDayAddMealC.dc.html",
-    "PageTemplateDayAddMealD.dc.html",
-    "PageClientPlanDayAddMealD.dc.html",
-    "PageClientInviteDrawerC.dc.html",
-    "PageClientInviteDrawerD.dc.html"
-  ],
-  "pages": [
-    {
-      "id": "concepts",
-      "name": "Concepts"
-    },
-    {
-      "id": "web",
-      "name": "Web pages redesigned"
-    },
-    {
-      "id": "glass",
-      "name": "Mobile app — light"
-    },
-    {
-      "id": "glassdark",
-      "name": "Mobile app — dark"
-    },
-    {
-      "id": "coach",
-      "name": "Coach app — light"
-    },
-    {
-      "id": "coachdark",
-      "name": "Coach app — dark"
-    },
-    {
-      "id": "logo",
-      "name": "Logo & icon"
-    }
-  ],
-  "title": "Form Up colour directions"
+  "CoachCheckInReviewDark.dc.html": {
+   "h": 844,
+   "page": "coachdark",
+   "title": "CheckInReview",
+   "w": 390,
+   "x": 2820,
+   "y": 1264
+  },
+  "CoachCheckInReviewLight.dc.html": {
+   "h": 844,
+   "page": "coach",
+   "title": "CheckInReview",
+   "w": 390,
+   "x": 2820,
+   "y": 1264
+  },
+  "CoachClientDetailDark.dc.html": {
+   "h": 844,
+   "page": "coachdark",
+   "title": "ClientDetail",
+   "w": 390,
+   "x": 1880,
+   "y": 1264
+  },
+  "CoachClientDetailLight.dc.html": {
+   "h": 844,
+   "page": "coach",
+   "title": "ClientDetail",
+   "w": 390,
+   "x": 1880,
+   "y": 1264
+  },
+  "CoachClientPlansDark.dc.html": {
+   "h": 844,
+   "page": "coachdark",
+   "title": "ClientPlans",
+   "w": 390,
+   "x": 2350,
+   "y": 1264
+  },
+  "CoachClientPlansLight.dc.html": {
+   "h": 844,
+   "page": "coach",
+   "title": "ClientPlans",
+   "w": 390,
+   "x": 2350,
+   "y": 1264
+  },
+  "CoachClientsDark.dc.html": {
+   "h": 844,
+   "page": "coachdark",
+   "title": "Clients",
+   "w": 390,
+   "x": 940,
+   "y": 1264
+  },
+  "CoachClientsLight.dc.html": {
+   "h": 844,
+   "page": "coach",
+   "title": "Clients",
+   "w": 390,
+   "x": 940,
+   "y": 1264
+  },
+  "CoachClientsSearchDark.dc.html": {
+   "h": 844,
+   "page": "coachdark",
+   "title": "ClientsSearch",
+   "w": 390,
+   "x": 1410,
+   "y": 1264
+  },
+  "CoachClientsSearchLight.dc.html": {
+   "h": 844,
+   "page": "coach",
+   "title": "ClientsSearch",
+   "w": 390,
+   "x": 1410,
+   "y": 1264
+  },
+  "CoachFindClientsDark.dc.html": {
+   "h": 844,
+   "page": "coachdark",
+   "title": "FindClients",
+   "w": 390,
+   "x": 0,
+   "y": 2528
+  },
+  "CoachFindClientsLight.dc.html": {
+   "h": 844,
+   "page": "coach",
+   "title": "FindClients",
+   "w": 390,
+   "x": 0,
+   "y": 2528
+  },
+  "CoachInviteDark.dc.html": {
+   "h": 844,
+   "page": "coachdark",
+   "title": "Invite",
+   "w": 390,
+   "x": 1410,
+   "y": 2528
+  },
+  "CoachInviteLight.dc.html": {
+   "h": 844,
+   "page": "coach",
+   "title": "Invite",
+   "w": 390,
+   "x": 1410,
+   "y": 2528
+  },
+  "CoachJoinRequestDark.dc.html": {
+   "h": 844,
+   "page": "coachdark",
+   "title": "JoinRequest",
+   "w": 390,
+   "x": 940,
+   "y": 2528
+  },
+  "CoachJoinRequestLight.dc.html": {
+   "h": 844,
+   "page": "coach",
+   "title": "JoinRequest",
+   "w": 390,
+   "x": 940,
+   "y": 2528
+  },
+  "CoachMessagesDark.dc.html": {
+   "h": 844,
+   "page": "coachdark",
+   "title": "Messages",
+   "w": 390,
+   "x": 0,
+   "y": 3792
+  },
+  "CoachMessagesLight.dc.html": {
+   "h": 844,
+   "page": "coach",
+   "title": "Messages",
+   "w": 390,
+   "x": 0,
+   "y": 3792
+  },
+  "CoachNotificationsDark.dc.html": {
+   "h": 844,
+   "page": "coachdark",
+   "title": "Notifications",
+   "w": 390,
+   "x": 470,
+   "y": 1264
+  },
+  "CoachNotificationsLight.dc.html": {
+   "h": 844,
+   "page": "coach",
+   "title": "Notifications",
+   "w": 390,
+   "x": 470,
+   "y": 1264
+  },
+  "CoachProfileDark.dc.html": {
+   "h": 844,
+   "page": "coachdark",
+   "title": "Profile",
+   "w": 390,
+   "x": 940,
+   "y": 3792
+  },
+  "CoachProfileLight.dc.html": {
+   "h": 844,
+   "page": "coach",
+   "title": "Profile",
+   "w": 390,
+   "x": 940,
+   "y": 3792
+  },
+  "CoachProspectDark.dc.html": {
+   "h": 844,
+   "page": "coachdark",
+   "title": "Prospect",
+   "w": 390,
+   "x": 470,
+   "y": 2528
+  },
+  "CoachProspectLight.dc.html": {
+   "h": 844,
+   "page": "coach",
+   "title": "Prospect",
+   "w": 390,
+   "x": 470,
+   "y": 2528
+  },
+  "CoachRegisterDark.dc.html": {
+   "h": 844,
+   "page": "coachdark",
+   "title": "Register",
+   "w": 390,
+   "x": 470,
+   "y": 0
+  },
+  "CoachRegisterLight.dc.html": {
+   "h": 844,
+   "page": "coach",
+   "title": "Register",
+   "w": 390,
+   "x": 470,
+   "y": 0
+  },
+  "CoachSetupDark.dc.html": {
+   "h": 844,
+   "page": "coachdark",
+   "title": "Setup",
+   "w": 390,
+   "x": 940,
+   "y": 0
+  },
+  "CoachSetupLight.dc.html": {
+   "h": 844,
+   "page": "coach",
+   "title": "Setup",
+   "w": 390,
+   "x": 940,
+   "y": 0
+  },
+  "CoachTodayDark.dc.html": {
+   "h": 844,
+   "page": "coachdark",
+   "title": "Today",
+   "w": 390,
+   "x": 0,
+   "y": 1264
+  },
+  "CoachTodayLight.dc.html": {
+   "h": 844,
+   "page": "coach",
+   "title": "Today",
+   "w": 390,
+   "x": 0,
+   "y": 1264
+  },
+  "GlassAmrapDark.dc.html": {
+   "h": 844,
+   "page": "glassdark",
+   "title": "Amrap",
+   "w": 390,
+   "x": 470,
+   "y": 2528
+  },
+  "GlassAmrapLight.dc.html": {
+   "h": 844,
+   "page": "glass",
+   "title": "Amrap",
+   "w": 390,
+   "x": 470,
+   "y": 2528
+  },
+  "GlassChatDark.dc.html": {
+   "h": 844,
+   "page": "glassdark",
+   "title": "Chat",
+   "w": 390,
+   "x": 470,
+   "y": 6320
+  },
+  "GlassChatLight.dc.html": {
+   "h": 844,
+   "page": "glass",
+   "title": "Chat",
+   "w": 390,
+   "x": 470,
+   "y": 6320
+  },
+  "GlassCheckInDark.dc.html": {
+   "h": 844,
+   "page": "glassdark",
+   "title": "CheckIn",
+   "w": 390,
+   "x": 2350,
+   "y": 7584
+  },
+  "GlassCheckInLight.dc.html": {
+   "h": 844,
+   "page": "glass",
+   "title": "CheckIn",
+   "w": 390,
+   "x": 2350,
+   "y": 7584
+  },
+  "GlassCoachProfileDark.dc.html": {
+   "h": 844,
+   "page": "glassdark",
+   "title": "CoachProfile",
+   "w": 390,
+   "x": 2820,
+   "y": 0
+  },
+  "GlassCoachProfileLight.dc.html": {
+   "h": 844,
+   "page": "glass",
+   "title": "CoachProfile",
+   "w": 390,
+   "x": 2820,
+   "y": 0
+  },
+  "GlassCoachSearchDark.dc.html": {
+   "h": 844,
+   "page": "glassdark",
+   "title": "CoachSearch",
+   "w": 390,
+   "x": 2350,
+   "y": 0
+  },
+  "GlassCoachSearchLight.dc.html": {
+   "h": 844,
+   "page": "glass",
+   "title": "CoachSearch",
+   "w": 390,
+   "x": 2350,
+   "y": 0
+  },
+  "GlassCookingStepsDark.dc.html": {
+   "h": 844,
+   "page": "glassdark",
+   "title": "CookingSteps",
+   "w": 390,
+   "x": 1410,
+   "y": 10112
+  },
+  "GlassCookingStepsLight.dc.html": {
+   "h": 844,
+   "page": "glass",
+   "title": "CookingSteps",
+   "w": 390,
+   "x": 1410,
+   "y": 10112
+  },
+  "GlassDoneAmrapDark.dc.html": {
+   "h": 844,
+   "page": "glassdark",
+   "title": "DoneAmrap",
+   "w": 390,
+   "x": 470,
+   "y": 3792
+  },
+  "GlassDoneAmrapLight.dc.html": {
+   "h": 844,
+   "page": "glass",
+   "title": "DoneAmrap",
+   "w": 390,
+   "x": 470,
+   "y": 3792
+  },
+  "GlassDoneStrengthDark.dc.html": {
+   "h": 844,
+   "page": "glassdark",
+   "title": "DoneStrength",
+   "w": 390,
+   "x": 0,
+   "y": 3792
+  },
+  "GlassDoneStrengthLight.dc.html": {
+   "h": 844,
+   "page": "glass",
+   "title": "DoneStrength",
+   "w": 390,
+   "x": 0,
+   "y": 3792
+  },
+  "GlassDoneTabataDark.dc.html": {
+   "h": 844,
+   "page": "glassdark",
+   "title": "DoneTabata",
+   "w": 390,
+   "x": 940,
+   "y": 3792
+  },
+  "GlassDoneTabataLight.dc.html": {
+   "h": 844,
+   "page": "glass",
+   "title": "DoneTabata",
+   "w": 390,
+   "x": 940,
+   "y": 3792
+  },
+  "GlassEmomDark.dc.html": {
+   "h": 844,
+   "page": "glassdark",
+   "title": "Emom",
+   "w": 390,
+   "x": 940,
+   "y": 2528
+  },
+  "GlassEmomLight.dc.html": {
+   "h": 844,
+   "page": "glass",
+   "title": "Emom",
+   "w": 390,
+   "x": 940,
+   "y": 2528
+  },
+  "GlassExerciseDetailDark.dc.html": {
+   "h": 844,
+   "page": "glassdark",
+   "title": "ExerciseDetail",
+   "w": 390,
+   "x": 1410,
+   "y": 11376
+  },
+  "GlassExerciseDetailLight.dc.html": {
+   "h": 844,
+   "page": "glass",
+   "title": "ExerciseDetail",
+   "w": 390,
+   "x": 1410,
+   "y": 11376
+  },
+  "GlassForTimeDark.dc.html": {
+   "h": 844,
+   "page": "glassdark",
+   "title": "ForTime",
+   "w": 390,
+   "x": 1880,
+   "y": 2528
+  },
+  "GlassForTimeLight.dc.html": {
+   "h": 844,
+   "page": "glass",
+   "title": "ForTime",
+   "w": 390,
+   "x": 1880,
+   "y": 2528
+  },
+  "GlassIngredientDetailDark.dc.html": {
+   "h": 844,
+   "page": "glassdark",
+   "title": "IngredientDetail",
+   "w": 390,
+   "x": 1880,
+   "y": 10112
+  },
+  "GlassIngredientDetailLight.dc.html": {
+   "h": 844,
+   "page": "glass",
+   "title": "IngredientDetail",
+   "w": 390,
+   "x": 1880,
+   "y": 10112
+  },
+  "GlassLoginDark.dc.html": {
+   "h": 844,
+   "page": "glassdark",
+   "title": "Login",
+   "w": 390,
+   "x": 0,
+   "y": 0
+  },
+  "GlassLoginLight.dc.html": {
+   "h": 844,
+   "page": "glass",
+   "title": "Login",
+   "w": 390,
+   "x": 0,
+   "y": 0
+  },
+  "GlassMealDetailDark.dc.html": {
+   "h": 844,
+   "page": "glassdark",
+   "title": "MealDetail",
+   "w": 390,
+   "x": 940,
+   "y": 5056
+  },
+  "GlassMealDetailLight.dc.html": {
+   "h": 844,
+   "page": "glass",
+   "title": "MealDetail",
+   "w": 390,
+   "x": 940,
+   "y": 5056
+  },
+  "GlassMeasurementsDark.dc.html": {
+   "h": 844,
+   "page": "glassdark",
+   "title": "Measurements",
+   "w": 390,
+   "x": 1410,
+   "y": 7584
+  },
+  "GlassMeasurementsLight.dc.html": {
+   "h": 844,
+   "page": "glass",
+   "title": "Measurements",
+   "w": 390,
+   "x": 1410,
+   "y": 7584
+  },
+  "GlassMessagesListDark.dc.html": {
+   "h": 844,
+   "page": "glassdark",
+   "title": "MessagesList",
+   "w": 390,
+   "x": 0,
+   "y": 6320
+  },
+  "GlassMessagesListLight.dc.html": {
+   "h": 844,
+   "page": "glass",
+   "title": "MessagesList",
+   "w": 390,
+   "x": 0,
+   "y": 6320
+  },
+  "GlassMyJourneyDark.dc.html": {
+   "h": 844,
+   "page": "glassdark",
+   "title": "MyJourney",
+   "w": 390,
+   "x": 470,
+   "y": 7584
+  },
+  "GlassMyJourneyLight.dc.html": {
+   "h": 844,
+   "page": "glass",
+   "title": "MyJourney",
+   "w": 390,
+   "x": 470,
+   "y": 7584
+  },
+  "GlassNotificationsDark.dc.html": {
+   "h": 844,
+   "page": "glassdark",
+   "title": "Notifications",
+   "w": 390,
+   "x": 940,
+   "y": 1264
+  },
+  "GlassNotificationsLight.dc.html": {
+   "h": 844,
+   "page": "glass",
+   "title": "Notifications",
+   "w": 390,
+   "x": 940,
+   "y": 1264
+  },
+  "GlassNutritionDark.dc.html": {
+   "h": 844,
+   "page": "glassdark",
+   "title": "Nutrition",
+   "w": 390,
+   "x": 0,
+   "y": 5056
+  },
+  "GlassNutritionEmptyDark.dc.html": {
+   "h": 844,
+   "page": "glassdark",
+   "title": "NutritionEmpty",
+   "w": 390,
+   "x": 470,
+   "y": 5056
+  },
+  "GlassNutritionEmptyLight.dc.html": {
+   "h": 844,
+   "page": "glass",
+   "title": "NutritionEmpty",
+   "w": 390,
+   "x": 470,
+   "y": 5056
+  },
+  "GlassNutritionLight.dc.html": {
+   "h": 844,
+   "page": "glass",
+   "title": "Nutrition",
+   "w": 390,
+   "x": 0,
+   "y": 5056
+  },
+  "GlassNutritionPlanDark.dc.html": {
+   "h": 844,
+   "page": "glassdark",
+   "title": "NutritionPlan",
+   "w": 390,
+   "x": 940,
+   "y": 8848
+  },
+  "GlassNutritionPlanLight.dc.html": {
+   "h": 844,
+   "page": "glass",
+   "title": "NutritionPlan",
+   "w": 390,
+   "x": 940,
+   "y": 8848
+  },
+  "GlassNutritionWeekDetailDark.dc.html": {
+   "h": 844,
+   "page": "glassdark",
+   "title": "NutritionWeekDetail",
+   "w": 390,
+   "x": 1410,
+   "y": 8848
+  },
+  "GlassNutritionWeekDetailLight.dc.html": {
+   "h": 844,
+   "page": "glass",
+   "title": "NutritionWeekDetail",
+   "w": 390,
+   "x": 1410,
+   "y": 8848
+  },
+  "GlassOnboardingBasicsDark.dc.html": {
+   "h": 844,
+   "page": "glassdark",
+   "title": "OnboardingBasics",
+   "w": 390,
+   "x": 1410,
+   "y": 0
+  },
+  "GlassOnboardingBasicsLight.dc.html": {
+   "h": 844,
+   "page": "glass",
+   "title": "OnboardingBasics",
+   "w": 390,
+   "x": 1410,
+   "y": 0
+  },
+  "GlassOnboardingGoalDark.dc.html": {
+   "h": 844,
+   "page": "glassdark",
+   "title": "OnboardingGoal",
+   "w": 390,
+   "x": 940,
+   "y": 0
+  },
+  "GlassOnboardingGoalLight.dc.html": {
+   "h": 844,
+   "page": "glass",
+   "title": "OnboardingGoal",
+   "w": 390,
+   "x": 940,
+   "y": 0
+  },
+  "GlassPhotosDark.dc.html": {
+   "h": 844,
+   "page": "glassdark",
+   "title": "Photos",
+   "w": 390,
+   "x": 1880,
+   "y": 7584
+  },
+  "GlassPhotosLight.dc.html": {
+   "h": 844,
+   "page": "glass",
+   "title": "Photos",
+   "w": 390,
+   "x": 1880,
+   "y": 7584
+  },
+  "GlassPlanSummaryDark.dc.html": {
+   "h": 844,
+   "page": "glassdark",
+   "title": "PlanSummary",
+   "w": 390,
+   "x": 940,
+   "y": 7584
+  },
+  "GlassPlanSummaryLight.dc.html": {
+   "h": 844,
+   "page": "glass",
+   "title": "PlanSummary",
+   "w": 390,
+   "x": 940,
+   "y": 7584
+  },
+  "GlassProfileDark.dc.html": {
+   "h": 844,
+   "page": "glassdark",
+   "title": "Profile",
+   "w": 390,
+   "x": 0,
+   "y": 7584
+  },
+  "GlassProfileLight.dc.html": {
+   "h": 844,
+   "page": "glass",
+   "title": "Profile",
+   "w": 390,
+   "x": 0,
+   "y": 7584
+  },
+  "GlassRecipeDetailDark.dc.html": {
+   "h": 844,
+   "page": "glassdark",
+   "title": "RecipeDetail",
+   "w": 390,
+   "x": 940,
+   "y": 10112
+  },
+  "GlassRecipeDetailLight.dc.html": {
+   "h": 844,
+   "page": "glass",
+   "title": "RecipeDetail",
+   "w": 390,
+   "x": 940,
+   "y": 10112
+  },
+  "GlassRecipesAllDark.dc.html": {
+   "h": 844,
+   "page": "glassdark",
+   "title": "RecipesAll",
+   "w": 390,
+   "x": 470,
+   "y": 10112
+  },
+  "GlassRecipesAllLight.dc.html": {
+   "h": 844,
+   "page": "glass",
+   "title": "RecipesAll",
+   "w": 390,
+   "x": 470,
+   "y": 10112
+  },
+  "GlassRecipesPlanDark.dc.html": {
+   "h": 844,
+   "page": "glassdark",
+   "title": "RecipesPlan",
+   "w": 390,
+   "x": 0,
+   "y": 10112
+  },
+  "GlassRecipesPlanLight.dc.html": {
+   "h": 844,
+   "page": "glass",
+   "title": "RecipesPlan",
+   "w": 390,
+   "x": 0,
+   "y": 10112
+  },
+  "GlassRegisterDark.dc.html": {
+   "h": 844,
+   "page": "glassdark",
+   "title": "Register",
+   "w": 390,
+   "x": 470,
+   "y": 0
+  },
+  "GlassRegisterLight.dc.html": {
+   "h": 844,
+   "page": "glass",
+   "title": "Register",
+   "w": 390,
+   "x": 470,
+   "y": 0
+  },
+  "GlassRequestSheetDark.dc.html": {
+   "h": 844,
+   "page": "glassdark",
+   "title": "RequestSheet",
+   "w": 390,
+   "x": 3290,
+   "y": 0
+  },
+  "GlassRequestSheetLight.dc.html": {
+   "h": 844,
+   "page": "glass",
+   "title": "RequestSheet",
+   "w": 390,
+   "x": 3290,
+   "y": 0
+  },
+  "GlassSessionDetailDark.dc.html": {
+   "h": 844,
+   "page": "glassdark",
+   "title": "SessionDetail",
+   "w": 390,
+   "x": 2350,
+   "y": 1264
+  },
+  "GlassSessionDetailLight.dc.html": {
+   "h": 844,
+   "page": "glass",
+   "title": "SessionDetail",
+   "w": 390,
+   "x": 2350,
+   "y": 1264
+  },
+  "GlassSessionMixedDark.dc.html": {
+   "h": 844,
+   "page": "glassdark",
+   "title": "SessionMixed",
+   "w": 390,
+   "x": 0,
+   "y": 2528
+  },
+  "GlassSessionMixedLight.dc.html": {
+   "h": 844,
+   "page": "glass",
+   "title": "SessionMixed",
+   "w": 390,
+   "x": 0,
+   "y": 2528
+  },
+  "GlassSessionSummaryDark.dc.html": {
+   "h": 844,
+   "page": "glassdark",
+   "title": "SessionSummary",
+   "w": 390,
+   "x": 1410,
+   "y": 3792
+  },
+  "GlassSessionSummaryLight.dc.html": {
+   "h": 844,
+   "page": "glass",
+   "title": "SessionSummary",
+   "w": 390,
+   "x": 1410,
+   "y": 3792
+  },
+  "GlassSettingsDark.dc.html": {
+   "h": 844,
+   "page": "glassdark",
+   "title": "Settings",
+   "w": 390,
+   "x": 2820,
+   "y": 7584
+  },
+  "GlassSettingsLight.dc.html": {
+   "h": 844,
+   "page": "glass",
+   "title": "Settings",
+   "w": 390,
+   "x": 2820,
+   "y": 7584
+  },
+  "GlassShoppingListDark.dc.html": {
+   "h": 844,
+   "page": "glassdark",
+   "title": "ShoppingList",
+   "w": 390,
+   "x": 1410,
+   "y": 5056
+  },
+  "GlassShoppingListLight.dc.html": {
+   "h": 844,
+   "page": "glass",
+   "title": "ShoppingList",
+   "w": 390,
+   "x": 1410,
+   "y": 5056
+  },
+  "GlassTabataDark.dc.html": {
+   "h": 844,
+   "page": "glassdark",
+   "title": "Tabata",
+   "w": 390,
+   "x": 1410,
+   "y": 2528
+  },
+  "GlassTabataLight.dc.html": {
+   "h": 844,
+   "page": "glass",
+   "title": "Tabata",
+   "w": 390,
+   "x": 1410,
+   "y": 2528
+  },
+  "GlassTodayDark.dc.html": {
+   "h": 844,
+   "page": "glassdark",
+   "title": "Today",
+   "w": 390,
+   "x": 0,
+   "y": 1264
+  },
+  "GlassTodayLight.dc.html": {
+   "h": 844,
+   "page": "glass",
+   "title": "Today",
+   "w": 390,
+   "x": 0,
+   "y": 1264
+  },
+  "GlassTodayNoCoachDark.dc.html": {
+   "h": 844,
+   "page": "glassdark",
+   "title": "TodayNoCoach",
+   "w": 390,
+   "x": 1880,
+   "y": 0
+  },
+  "GlassTodayNoCoachLight.dc.html": {
+   "h": 844,
+   "page": "glass",
+   "title": "TodayNoCoach",
+   "w": 390,
+   "x": 1880,
+   "y": 0
+  },
+  "GlassTodayV1Dark.dc.html": {
+   "h": 844,
+   "page": "glassdark",
+   "title": "Today · v1 (check-in only)",
+   "w": 390,
+   "x": 470,
+   "y": 1264
+  },
+  "GlassTodayV1Light.dc.html": {
+   "h": 844,
+   "page": "glass",
+   "title": "Today · v1 (check-in only)",
+   "w": 390,
+   "x": 470,
+   "y": 1264
+  },
+  "GlassTrainingEmptyDark.dc.html": {
+   "h": 844,
+   "page": "glassdark",
+   "title": "TrainingEmpty",
+   "w": 390,
+   "x": 1880,
+   "y": 1264
+  },
+  "GlassTrainingEmptyLight.dc.html": {
+   "h": 844,
+   "page": "glass",
+   "title": "TrainingEmpty",
+   "w": 390,
+   "x": 1880,
+   "y": 1264
+  },
+  "GlassTrainingPlanDark.dc.html": {
+   "h": 844,
+   "page": "glassdark",
+   "title": "TrainingPlan",
+   "w": 390,
+   "x": 0,
+   "y": 8848
+  },
+  "GlassTrainingPlanLight.dc.html": {
+   "h": 844,
+   "page": "glass",
+   "title": "TrainingPlan",
+   "w": 390,
+   "x": 0,
+   "y": 8848
+  },
+  "GlassTrainingWeekDark.dc.html": {
+   "h": 844,
+   "page": "glassdark",
+   "title": "TrainingWeek",
+   "w": 390,
+   "x": 1410,
+   "y": 1264
+  },
+  "GlassTrainingWeekDetailDark.dc.html": {
+   "h": 844,
+   "page": "glassdark",
+   "title": "TrainingWeekDetail",
+   "w": 390,
+   "x": 470,
+   "y": 8848
+  },
+  "GlassTrainingWeekDetailLight.dc.html": {
+   "h": 844,
+   "page": "glass",
+   "title": "TrainingWeekDetail",
+   "w": 390,
+   "x": 470,
+   "y": 8848
+  },
+  "GlassTrainingWeekLight.dc.html": {
+   "h": 844,
+   "page": "glass",
+   "title": "TrainingWeek",
+   "w": 390,
+   "x": 1410,
+   "y": 1264
+  },
+  "GlassWorkoutDark.dc.html": {
+   "h": 844,
+   "page": "glassdark",
+   "title": "Workout",
+   "w": 390,
+   "x": 2820,
+   "y": 1264
+  },
+  "GlassWorkoutDetailDark.dc.html": {
+   "h": 844,
+   "page": "glassdark",
+   "title": "WorkoutDetail",
+   "w": 390,
+   "x": 940,
+   "y": 11376
+  },
+  "GlassWorkoutDetailLight.dc.html": {
+   "h": 844,
+   "page": "glass",
+   "title": "WorkoutDetail",
+   "w": 390,
+   "x": 940,
+   "y": 11376
+  },
+  "GlassWorkoutLight.dc.html": {
+   "h": 844,
+   "page": "glass",
+   "title": "Workout",
+   "w": 390,
+   "x": 2820,
+   "y": 1264
+  },
+  "GlassWorkoutsAllDark.dc.html": {
+   "h": 844,
+   "page": "glassdark",
+   "title": "WorkoutsAll",
+   "w": 390,
+   "x": 470,
+   "y": 11376
+  },
+  "GlassWorkoutsAllLight.dc.html": {
+   "h": 844,
+   "page": "glass",
+   "title": "WorkoutsAll",
+   "w": 390,
+   "x": 470,
+   "y": 11376
+  },
+  "GlassWorkoutsPlanDark.dc.html": {
+   "h": 844,
+   "page": "glassdark",
+   "title": "WorkoutsPlan",
+   "w": 390,
+   "x": 0,
+   "y": 11376
+  },
+  "GlassWorkoutsPlanLight.dc.html": {
+   "h": 844,
+   "page": "glass",
+   "title": "WorkoutsPlan",
+   "w": 390,
+   "x": 0,
+   "y": 11376
+  },
+  "Logo1.dc.html": {
+   "h": 470,
+   "page": "logo",
+   "title": "Direction 1",
+   "w": 760,
+   "x": 0,
+   "y": 0
+  },
+  "Logo10.dc.html": {
+   "h": 470,
+   "page": "logo",
+   "title": "Direction 10",
+   "w": 760,
+   "x": 0,
+   "y": 2070
+  },
+  "Logo11.dc.html": {
+   "h": 470,
+   "page": "logo",
+   "title": "Direction 11",
+   "w": 760,
+   "x": 840,
+   "y": 2070
+  },
+  "Logo12.dc.html": {
+   "h": 470,
+   "page": "logo",
+   "title": "Direction 12",
+   "w": 760,
+   "x": 1680,
+   "y": 2070
+  },
+  "Logo13.dc.html": {
+   "h": 470,
+   "page": "logo",
+   "title": "Direction 13",
+   "w": 760,
+   "x": 0,
+   "y": 2960
+  },
+  "Logo14.dc.html": {
+   "h": 470,
+   "page": "logo",
+   "title": "Direction 14",
+   "w": 760,
+   "x": 840,
+   "y": 2960
+  },
+  "Logo15.dc.html": {
+   "h": 470,
+   "page": "logo",
+   "title": "Direction 15",
+   "w": 760,
+   "x": 0,
+   "y": 3550
+  },
+  "Logo16.dc.html": {
+   "h": 470,
+   "page": "logo",
+   "title": "Direction 16",
+   "w": 760,
+   "x": 840,
+   "y": 3550
+  },
+  "Logo17.dc.html": {
+   "h": 620,
+   "page": "logo",
+   "title": "Direction 17",
+   "w": 760,
+   "x": 0,
+   "y": 4440
+  },
+  "Logo18.dc.html": {
+   "h": 620,
+   "page": "logo",
+   "title": "Direction 18",
+   "w": 760,
+   "x": 840,
+   "y": 4440
+  },
+  "Logo19.dc.html": {
+   "h": 620,
+   "page": "logo",
+   "title": "Direction 19",
+   "w": 760,
+   "x": 0,
+   "y": 5180
+  },
+  "Logo2.dc.html": {
+   "h": 470,
+   "page": "logo",
+   "title": "Direction 2",
+   "w": 760,
+   "x": 840,
+   "y": 0
+  },
+  "Logo20.dc.html": {
+   "h": 620,
+   "page": "logo",
+   "title": "Direction 20",
+   "w": 760,
+   "x": 840,
+   "y": 5180
+  },
+  "Logo21.dc.html": {
+   "h": 700,
+   "page": "logo",
+   "title": "A · Dynamic F",
+   "w": 1100,
+   "x": 0,
+   "y": 6400
+  },
+  "Logo22.dc.html": {
+   "h": 700,
+   "page": "logo",
+   "title": "B · Hidden Arrow",
+   "w": 1100,
+   "x": 1180,
+   "y": 6400
+  },
+  "Logo23.dc.html": {
+   "h": 700,
+   "page": "logo",
+   "title": "C · Progress Line",
+   "w": 1100,
+   "x": 2360,
+   "y": 6400
+  },
+  "Logo24.dc.html": {
+   "h": 700,
+   "page": "logo",
+   "title": "1 · Core Balance",
+   "w": 1100,
+   "x": 0,
+   "y": 7600
+  },
+  "Logo25.dc.html": {
+   "h": 700,
+   "page": "logo",
+   "title": "2 · Progress Plan",
+   "w": 1100,
+   "x": 1180,
+   "y": 7600
+  },
+  "Logo26.dc.html": {
+   "h": 700,
+   "page": "logo",
+   "title": "3 · Athlete & Guide",
+   "w": 1100,
+   "x": 2360,
+   "y": 7600
+  },
+  "Logo3.dc.html": {
+   "h": 470,
+   "page": "logo",
+   "title": "Direction 3",
+   "w": 760,
+   "x": 1680,
+   "y": 0
+  },
+  "Logo4.dc.html": {
+   "h": 470,
+   "page": "logo",
+   "title": "Direction 4",
+   "w": 760,
+   "x": 0,
+   "y": 590
+  },
+  "Logo5.dc.html": {
+   "h": 470,
+   "page": "logo",
+   "title": "Direction 5",
+   "w": 760,
+   "x": 840,
+   "y": 590
+  },
+  "Logo6.dc.html": {
+   "h": 470,
+   "page": "logo",
+   "title": "Direction 6",
+   "w": 760,
+   "x": 1680,
+   "y": 590
+  },
+  "Logo7.dc.html": {
+   "h": 470,
+   "page": "logo",
+   "title": "Direction 7",
+   "w": 760,
+   "x": 0,
+   "y": 1480
+  },
+  "Logo8.dc.html": {
+   "h": 470,
+   "page": "logo",
+   "title": "Direction 8",
+   "w": 760,
+   "x": 840,
+   "y": 1480
+  },
+  "Logo9.dc.html": {
+   "h": 470,
+   "page": "logo",
+   "title": "Direction 9",
+   "w": 760,
+   "x": 1680,
+   "y": 1480
+  },
+  "Main.dc.html": {
+   "h": 900,
+   "page": "concepts",
+   "title": "C · Palette",
+   "w": 560,
+   "x": 0,
+   "y": 0
+  },
+  "NutritionC.dc.html": {
+   "h": 844,
+   "page": "concepts",
+   "title": "C · Nutrition",
+   "w": 390,
+   "x": 3100,
+   "y": 0
+  },
+  "PageClientDetailC.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "C · ClientDetail",
+   "w": 1440,
+   "x": 1520,
+   "y": 14040
+  },
+  "PageClientDetailD.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "D · ClientDetail",
+   "w": 1440,
+   "x": 1520,
+   "y": 15540
+  },
+  "PageClientNutritionC.dc.html": {
+   "h": 1380,
+   "page": "web",
+   "title": "C · ClientDetail · Nutrition tab",
+   "w": 1440,
+   "x": 3040,
+   "y": 14040
+  },
+  "PageClientNutritionD.dc.html": {
+   "h": 1380,
+   "page": "web",
+   "title": "D · ClientDetail · Nutrition tab",
+   "w": 1440,
+   "x": 3040,
+   "y": 15540
+  },
+  "PageClientNutritionEmptyC.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "C · ClientDetail · Nutrition, no plan yet",
+   "w": 1440,
+   "x": 4560,
+   "y": 14040
+  },
+  "PageClientNutritionEmptyD.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "D · ClientDetail · Nutrition, no plan yet",
+   "w": 1440,
+   "x": 4560,
+   "y": 15540
+  },
+  "PageClientPlanBlankC.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "C · Client plan · blank",
+   "w": 1440,
+   "x": 13680,
+   "y": 14040
+  },
+  "PageClientPlanBlankD.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "D · Client plan · blank",
+   "w": 1440,
+   "x": 13680,
+   "y": 15540
+  },
+  "PageClientPlanClosedC.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "C · Client plan · panel closed",
+   "w": 1440,
+   "x": 15200,
+   "y": 14040
+  },
+  "PageClientPlanClosedD.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "D · Client plan · panel closed",
+   "w": 1440,
+   "x": 15200,
+   "y": 15540
+  },
+  "PageClientPlanDayAddMealC.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "C · Client plan · Day · Add meal drawer",
+   "w": 1440,
+   "x": 9120,
+   "y": 14040
+  },
+  "PageClientPlanDayAddMealD.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "D · Client plan · Day · Add meal drawer",
+   "w": 1440,
+   "x": 9120,
+   "y": 15540
+  },
+  "PageClientPlanDayC.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "C · Client plan · Day view",
+   "w": 1440,
+   "x": 7600,
+   "y": 14040
+  },
+  "PageClientPlanDayD.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "D · Client plan · Day view",
+   "w": 1440,
+   "x": 7600,
+   "y": 15540
+  },
+  "PageClientPlanEditorC.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "C · Client plan · Library › Templates",
+   "w": 1440,
+   "x": 6080,
+   "y": 14040
+  },
+  "PageClientPlanEditorD.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "D · Client plan · Library › Templates",
+   "w": 1440,
+   "x": 6080,
+   "y": 15540
+  },
+  "PageClientPlanInfoC.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "C · Client plan · Plan info tab",
+   "w": 1440,
+   "x": 12160,
+   "y": 14040
+  },
+  "PageClientPlanInfoD.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "D · Client plan · Plan info tab",
+   "w": 1440,
+   "x": 12160,
+   "y": 15540
+  },
+  "PageClientPlanStartOverC.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "C · Client plan · replace with template?",
+   "w": 1440,
+   "x": 10640,
+   "y": 14040
+  },
+  "PageClientPlanStartOverD.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "D · Client plan · replace with template?",
+   "w": 1440,
+   "x": 10640,
+   "y": 15540
+  },
+  "PageClientsC.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "C · Clients",
+   "w": 1440,
+   "x": 0,
+   "y": 14040
+  },
+  "PageClientsD.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "D · Clients",
+   "w": 1440,
+   "x": 0,
+   "y": 15540
+  },
+  "PageFormCheckInC.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "C · Form editor · Weekly check-in",
+   "w": 1440,
+   "x": 3040,
+   "y": 27100
+  },
+  "PageFormCheckInD.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "D · Form editor · Weekly check-in",
+   "w": 1440,
+   "x": 3040,
+   "y": 28120
+  },
+  "PageFormOnboardingC.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "C · Form editor · Client onboarding",
+   "w": 1440,
+   "x": 1520,
+   "y": 27100
+  },
+  "PageFormOnboardingD.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "D · Form editor · Client onboarding",
+   "w": 1440,
+   "x": 1520,
+   "y": 28120
+  },
+  "PageFormsC.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "C · Forms",
+   "w": 1440,
+   "x": 0,
+   "y": 27100
+  },
+  "PageFormsD.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "D · Forms",
+   "w": 1440,
+   "x": 0,
+   "y": 28120
+  },
+  "PageHomeC.dc.html": {
+   "h": 5400,
+   "page": "web",
+   "title": "C · Home · full page",
+   "w": 1440,
+   "x": 0,
+   "y": 0
+  },
+  "PageHomeD.dc.html": {
+   "h": 5400,
+   "page": "web",
+   "title": "D · Home · full page",
+   "w": 1440,
+   "x": 0,
+   "y": 5520
+  },
+  "PageHomeSignInC.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "C · Home · Sign in dialog",
+   "w": 1440,
+   "x": 1520,
+   "y": 0
+  },
+  "PageHomeSignInD.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "D · Home · Sign in dialog",
+   "w": 1440,
+   "x": 1520,
+   "y": 5520
+  },
+  "PageInboxC.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "C · Inbox",
+   "w": 1440,
+   "x": 0,
+   "y": 17420
+  },
+  "PageInboxD.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "D · Inbox",
+   "w": 1440,
+   "x": 0,
+   "y": 18440
+  },
+  "PageIngredientDrawerC.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "C · IngredientDrawer",
+   "w": 1440,
+   "x": 1520,
+   "y": 22260
+  },
+  "PageIngredientDrawerD.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "D · IngredientDrawer",
+   "w": 1440,
+   "x": 1520,
+   "y": 23280
+  },
+  "PageIngredientsC.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "C · Ingredients",
+   "w": 1440,
+   "x": 0,
+   "y": 22260
+  },
+  "PageIngredientsD.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "D · Ingredients",
+   "w": 1440,
+   "x": 0,
+   "y": 23280
+  },
+  "PageRecipeDrawerC.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "C · Recipe drawer · Details tab",
+   "w": 1440,
+   "x": 3040,
+   "y": 19840
+  },
+  "PageRecipeDrawerD.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "D · Recipe drawer · Details tab",
+   "w": 1440,
+   "x": 3040,
+   "y": 20860
+  },
+  "PageRecipeDrawerIngredientsC.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "C · Recipe drawer · Ingredients tab",
+   "w": 1440,
+   "x": 4560,
+   "y": 19840
+  },
+  "PageRecipeDrawerIngredientsD.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "D · Recipe drawer · Ingredients tab",
+   "w": 1440,
+   "x": 4560,
+   "y": 20860
+  },
+  "PageRecipeDrawerPicturesC.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "C · Recipe drawer · Pictures tab",
+   "w": 1440,
+   "x": 7600,
+   "y": 19840
+  },
+  "PageRecipeDrawerPicturesD.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "D · Recipe drawer · Pictures tab",
+   "w": 1440,
+   "x": 7600,
+   "y": 20860
+  },
+  "PageRecipeDrawerPreparationC.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "C · Recipe drawer · Preparation tab",
+   "w": 1440,
+   "x": 6080,
+   "y": 19840
+  },
+  "PageRecipeDrawerPreparationD.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "D · Recipe drawer · Preparation tab",
+   "w": 1440,
+   "x": 6080,
+   "y": 20860
+  },
+  "PageRecipesC.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "C · Recipes",
+   "w": 1440,
+   "x": 0,
+   "y": 19840
+  },
+  "PageRecipesD.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "D · Recipes",
+   "w": 1440,
+   "x": 0,
+   "y": 20860
+  },
+  "PageRecipesTableC.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "C · Recipes · table view",
+   "w": 1440,
+   "x": 1520,
+   "y": 19840
+  },
+  "PageRecipesTableD.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "D · Recipes · table view",
+   "w": 1440,
+   "x": 1520,
+   "y": 20860
+  },
+  "PageRegisterC.dc.html": {
+   "h": 1000,
+   "page": "web",
+   "title": "C · Register · 1 Account",
+   "w": 1440,
+   "x": 0,
+   "y": 11420
+  },
+  "PageRegisterCheckEmailC.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "C · Register · 2 Check email",
+   "w": 1440,
+   "x": 1520,
+   "y": 11420
+  },
+  "PageRegisterCheckEmailD.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "D · Register · 2 Check email",
+   "w": 1440,
+   "x": 1520,
+   "y": 12540
+  },
+  "PageRegisterD.dc.html": {
+   "h": 1000,
+   "page": "web",
+   "title": "D · Register · 1 Account",
+   "w": 1440,
+   "x": 0,
+   "y": 12540
+  },
+  "PageRegisterVerifiedC.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "C · Register · 3 Email verified",
+   "w": 1440,
+   "x": 3040,
+   "y": 11420
+  },
+  "PageRegisterVerifiedD.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "D · Register · 3 Email verified",
+   "w": 1440,
+   "x": 3040,
+   "y": 12540
+  },
+  "PageTemplateDayAddMealC.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "C · TemplateDay · Add meal drawer",
+   "w": 1440,
+   "x": 10640,
+   "y": 24680
+  },
+  "PageTemplateDayAddMealD.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "D · TemplateDay · Add meal drawer",
+   "w": 1440,
+   "x": 10640,
+   "y": 25700
+  },
+  "PageTemplateDayC.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "C · TemplateDay",
+   "w": 1440,
+   "x": 9120,
+   "y": 24680
+  },
+  "PageTemplateDayD.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "D · TemplateDay",
+   "w": 1440,
+   "x": 9120,
+   "y": 25700
+  },
+  "PageTemplateEditorC.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "C · TemplateEditor",
+   "w": 1440,
+   "x": 4560,
+   "y": 24680
+  },
+  "PageTemplateEditorD.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "D · TemplateEditor",
+   "w": 1440,
+   "x": 4560,
+   "y": 25700
+  },
+  "PageTemplateEditorEmptyC.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "C · TemplateEditor · empty (no meals chosen)",
+   "w": 1440,
+   "x": 3040,
+   "y": 24680
+  },
+  "PageTemplateEditorEmptyD.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "D · TemplateEditor · empty (no meals chosen)",
+   "w": 1440,
+   "x": 3040,
+   "y": 25700
+  },
+  "PageTemplateMealC.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "C · TemplateMeal",
+   "w": 1440,
+   "x": 6080,
+   "y": 24680
+  },
+  "PageTemplateMealD.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "D · TemplateMeal",
+   "w": 1440,
+   "x": 6080,
+   "y": 25700
+  },
+  "PageTemplateNewC.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "C · TemplateNew",
+   "w": 1440,
+   "x": 1520,
+   "y": 24680
+  },
+  "PageTemplateNewD.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "D · TemplateNew",
+   "w": 1440,
+   "x": 1520,
+   "y": 25700
+  },
+  "PageTemplateNutritionC.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "C · TemplateNutrition",
+   "w": 1440,
+   "x": 7600,
+   "y": 24680
+  },
+  "PageTemplateNutritionD.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "D · TemplateNutrition",
+   "w": 1440,
+   "x": 7600,
+   "y": 25700
+  },
+  "PageTemplatesC.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "C · Templates",
+   "w": 1440,
+   "x": 0,
+   "y": 24680
+  },
+  "PageTemplatesD.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "D · Templates",
+   "w": 1440,
+   "x": 0,
+   "y": 25700
+  },
+  "TodayC.dc.html": {
+   "h": 844,
+   "page": "concepts",
+   "title": "C · Today",
+   "w": 390,
+   "x": 2160,
+   "y": 0
+  },
+  "WebC.dc.html": {
+   "h": 900,
+   "page": "concepts",
+   "title": "C · Web",
+   "w": 1440,
+   "x": 640,
+   "y": 0
+  },
+  "WorkoutC.dc.html": {
+   "h": 844,
+   "page": "concepts",
+   "title": "C · Workout",
+   "w": 390,
+   "x": 2630,
+   "y": 0
+  },
+  "PageClientInviteDrawerC.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "C · Clients · Invite client drawer",
+   "w": 1440,
+   "x": 16720,
+   "y": 14040
+  },
+  "PageClientInviteDrawerD.dc.html": {
+   "h": 900,
+   "page": "web",
+   "title": "D · Clients · Invite client drawer",
+   "w": 1440,
+   "x": 16720,
+   "y": 15540
+  },
+  "PageRegisterClientC.dc.html": {
+   "x": 4560,
+   "y": 11420,
+   "w": 1440,
+   "h": 1060,
+   "page": "web",
+   "title": "C · Register · Client · 1 Account"
+  },
+  "PageRegisterGetAppC.dc.html": {
+   "x": 7600,
+   "y": 11420,
+   "w": 1440,
+   "h": 900,
+   "page": "web",
+   "title": "C · Register · Client · 3 Get the app"
+  },
+  "PageRegisterClientD.dc.html": {
+   "x": 4560,
+   "y": 12540,
+   "w": 1440,
+   "h": 1060,
+   "page": "web",
+   "title": "D · Register · Client · 1 Account"
+  },
+  "PageRegisterGetAppD.dc.html": {
+   "x": 7600,
+   "y": 12540,
+   "w": 1440,
+   "h": 900,
+   "page": "web",
+   "title": "D · Register · Client · 3 Get the app"
+  },
+  "PageRegisterClientCheckEmailC.dc.html": {
+   "x": 6080,
+   "y": 11420,
+   "w": 1440,
+   "h": 900,
+   "page": "web",
+   "title": "C · Register · Client · 2 Check email"
+  },
+  "PageRegisterClientCheckEmailD.dc.html": {
+   "x": 6080,
+   "y": 12540,
+   "w": 1440,
+   "h": 900,
+   "page": "web",
+   "title": "D · Register · Client · 2 Check email"
+  }
+ },
+ "createdOnFiles": {
+  "at": "2026-10-01T13:42:58Z",
+  "v": 1
+ },
+ "designSystems": [],
+ "launch": {
+  "view": "canvas"
+ },
+ "notes": {
+  "coach0": {
+   "kind": "title1",
+   "maxW": 3210,
+   "page": "coach",
+   "text": "Coach — today & clients",
+   "w": 240,
+   "x": 0,
+   "y": 964
+  },
+  "coach1": {
+   "kind": "title1",
+   "maxW": 1800,
+   "page": "coach",
+   "text": "Coach — growing: find clients, offers, requests, invites",
+   "w": 240,
+   "x": 0,
+   "y": 2228
+  },
+  "coach2": {
+   "kind": "title1",
+   "maxW": 1330,
+   "page": "coach",
+   "text": "Coach — messages & profile",
+   "w": 240,
+   "x": 0,
+   "y": 3492
+  },
+  "coachS": {
+   "kind": "title1",
+   "maxW": 1330,
+   "page": "coach",
+   "text": "Coach — sign up (sign-in is shared with clients)",
+   "w": 240,
+   "x": 0,
+   "y": -300
+  },
+  "coachdark0": {
+   "kind": "title1",
+   "maxW": 3210,
+   "page": "coachdark",
+   "text": "Coach — today & clients",
+   "w": 240,
+   "x": 0,
+   "y": 964
+  },
+  "coachdark1": {
+   "kind": "title1",
+   "maxW": 1800,
+   "page": "coachdark",
+   "text": "Coach — growing: find clients, offers, requests, invites",
+   "w": 240,
+   "x": 0,
+   "y": 2228
+  },
+  "coachdark2": {
+   "kind": "title1",
+   "maxW": 1330,
+   "page": "coachdark",
+   "text": "Coach — messages & profile",
+   "w": 240,
+   "x": 0,
+   "y": 3492
+  },
+  "coachdarkS": {
+   "kind": "title1",
+   "maxW": 1330,
+   "page": "coachdark",
+   "text": "Coach — sign up (sign-in is shared with clients)",
+   "w": 240,
+   "x": 0,
+   "y": -300
+  },
+  "logoTitle": {
+   "kind": "title1",
+   "maxW": 2440,
+   "page": "logo",
+   "text": "Logo & app icon — six directions, each as icon, small sizes and wordmark lockup",
+   "w": 240,
+   "x": 0,
+   "y": -300
+  },
+  "logoTitle2": {
+   "kind": "title1",
+   "maxW": 2440,
+   "page": "logo",
+   "text": "Round 2 — marks from the field: plate, kettlebell, arms up, check-in, bowl, whistle",
+   "w": 240,
+   "x": 0,
+   "y": 1180
+  },
+  "logoTitle3": {
+   "kind": "title1",
+   "maxW": 1600,
+   "page": "logo",
+   "text": "Round 3 — shapes built from F and U",
+   "w": 240,
+   "x": 0,
+   "y": 2660
+  },
+  "logoTitle4": {
+   "kind": "title1",
+   "maxW": 1600,
+   "page": "logo",
+   "text": "Round 4 — solid, angular marks in the Athlete Zone style",
+   "w": 240,
+   "x": 0,
+   "y": 4140
+  },
+  "logoTitle5": {
+   "kind": "title1",
+   "maxW": 3460,
+   "page": "logo",
+   "text": "Round 5 — thin geometric wordmark from your reference, with three concepts: Dynamic F, Hidden Arrow, Progress Line",
+   "w": 240,
+   "x": 0,
+   "y": 6100
+  },
+  "logoTitle6": {
+   "kind": "title1",
+   "maxW": 3460,
+   "page": "logo",
+   "text": "Round 6 — symbols: barbell + leaf, checkbox arrow, guided path (with the thin wordmark)",
+   "w": 240,
+   "x": 0,
+   "y": 7300
+  },
+  "mD0": {
+   "kind": "title1",
+   "maxW": 3680,
+   "page": "glassdark",
+   "text": "Start — sign in, onboarding, finding a coach",
+   "w": 240,
+   "x": 0,
+   "y": -300
+  },
+  "mD1": {
+   "kind": "title1",
+   "maxW": 3210,
+   "page": "glassdark",
+   "text": "Today & Training",
+   "w": 240,
+   "x": 0,
+   "y": 964
+  },
+  "mD2": {
+   "kind": "title1",
+   "maxW": 1800,
+   "page": "glassdark",
+   "text": "Nutrition",
+   "w": 240,
+   "x": 0,
+   "y": 4756
+  },
+  "mD3": {
+   "kind": "title1",
+   "maxW": 860,
+   "page": "glassdark",
+   "text": "Messages",
+   "w": 240,
+   "x": 0,
+   "y": 6020
+  },
+  "mD4": {
+   "kind": "title1",
+   "maxW": 3210,
+   "page": "glassdark",
+   "text": "Profile & progress — measurements, photos and journey come after v1",
+   "w": 240,
+   "x": 0,
+   "y": 7284
+  },
+  "mDE": {
+   "kind": "title1",
+   "maxW": 1800,
+   "page": "glassdark",
+   "text": "Finishing — workout done (A, B, C) and session summary",
+   "w": 240,
+   "x": 0,
+   "y": 3492
+  },
+  "mDF": {
+   "kind": "title1",
+   "maxW": 2270,
+   "page": "glassdark",
+   "text": "Training formats — mixed session, AMRAP, EMOM, Tabata, For Time",
+   "w": 240,
+   "x": 0,
+   "y": 2228
+  },
+  "mDP": {
+   "kind": "title1",
+   "maxW": 1800,
+   "page": "glassdark",
+   "text": "Browsing the whole plan — overview and week, from \"Full plan\" in each tab",
+   "w": 240,
+   "x": 0,
+   "y": 8548
+  },
+  "mDR": {
+   "kind": "title1",
+   "maxW": 8000,
+   "page": "glassdark",
+   "text": "Recipes — cards, table, drawer (Details, Ingredients, Preparation, Pictures tabs)  ·  light above, dark below",
+   "w": 240,
+   "x": 0,
+   "y": 9812
+  },
+  "mDW": {
+   "kind": "title1",
+   "maxW": 1800,
+   "page": "glassdark",
+   "text": "Workouts — this plan / all plans, workout detail, exercise detail",
+   "w": 240,
+   "x": 0,
+   "y": 11076
+  },
+  "mL0": {
+   "kind": "title1",
+   "maxW": 3680,
+   "page": "glass",
+   "text": "Start — sign in, onboarding, finding a coach",
+   "w": 240,
+   "x": 0,
+   "y": -300
+  },
+  "mL1": {
+   "kind": "title1",
+   "maxW": 3210,
+   "page": "glass",
+   "text": "Today & Training",
+   "w": 240,
+   "x": 0,
+   "y": 964
+  },
+  "mL2": {
+   "kind": "title1",
+   "maxW": 1800,
+   "page": "glass",
+   "text": "Nutrition",
+   "w": 240,
+   "x": 0,
+   "y": 4756
+  },
+  "mL3": {
+   "kind": "title1",
+   "maxW": 860,
+   "page": "glass",
+   "text": "Messages",
+   "w": 240,
+   "x": 0,
+   "y": 6020
+  },
+  "mL4": {
+   "kind": "title1",
+   "maxW": 3210,
+   "page": "glass",
+   "text": "Profile & progress — measurements, photos and journey come after v1",
+   "w": 240,
+   "x": 0,
+   "y": 7284
+  },
+  "mLE": {
+   "kind": "title1",
+   "maxW": 1800,
+   "page": "glass",
+   "text": "Finishing — workout done (A, B, C) and session summary",
+   "w": 240,
+   "x": 0,
+   "y": 3492
+  },
+  "mLF": {
+   "kind": "title1",
+   "maxW": 2270,
+   "page": "glass",
+   "text": "Training formats — mixed session, AMRAP, EMOM, Tabata, For Time",
+   "w": 240,
+   "x": 0,
+   "y": 2228
+  },
+  "mLP": {
+   "kind": "title1",
+   "maxW": 1800,
+   "page": "glass",
+   "text": "Browsing the whole plan — overview and week, from \"Full plan\" in each tab",
+   "w": 240,
+   "x": 0,
+   "y": 8548
+  },
+  "mLR": {
+   "kind": "title1",
+   "maxW": 8000,
+   "page": "glass",
+   "text": "Recipes — cards, table, drawer (Details, Ingredients, Preparation, Pictures tabs)  ·  light above, dark below",
+   "w": 240,
+   "x": 0,
+   "y": 9812
+  },
+  "mLW": {
+   "kind": "title1",
+   "maxW": 1800,
+   "page": "glass",
+   "text": "Workouts — this plan / all plans, workout detail, exercise detail",
+   "w": 240,
+   "x": 0,
+   "y": 11076
+  },
+  "titleC": {
+   "kind": "title1",
+   "maxW": 3490,
+   "page": "concepts",
+   "text": "C · B made energetic — white web with solid colour blocks, dark mobile with bright sections",
+   "w": 240,
+   "x": 0,
+   "y": -300
+  },
+  "webRow1": {
+   "kind": "title1",
+   "maxW": 2960,
+   "page": "web",
+   "text": "Entry page — landing page and sign-in dialog  ·  light above, dark below",
+   "w": 240,
+   "x": 0,
+   "y": -300
+  },
+  "webRow2": {
+   "kind": "title1",
+   "maxW": 9040,
+   "page": "web",
+   "text": "Registration — coach: account, check email, verified  ·  client: account, get the app  ·  light above, dark below",
+   "w": 240,
+   "x": 0,
+   "y": 11120
+  },
+  "webRow3": {
+   "kind": "title1",
+   "maxW": 8000,
+   "page": "web",
+   "text": "Clients — list, invite drawer, detail, nutrition tab, client plan editor (week, day, add meal, replace, plan info, blank, panel closed)  ·  light above, dark below",
+   "w": 240,
+   "x": 0,
+   "y": 13740
+  },
+  "webRow4": {
+   "kind": "title1",
+   "maxW": 1440,
+   "page": "web",
+   "text": "Inbox  ·  light above, dark below",
+   "w": 240,
+   "x": 0,
+   "y": 17120
+  },
+  "webRow5": {
+   "kind": "title1",
+   "maxW": 8000,
+   "page": "web",
+   "text": "Recipes — cards, table, drawer (Details, Ingredients, Preparation, Pictures tabs)  ·  light above, dark below",
+   "w": 240,
+   "x": 0,
+   "y": 19540
+  },
+  "webRow6": {
+   "kind": "title1",
+   "maxW": 2960,
+   "page": "web",
+   "text": "Ingredients — list and edit drawer  ·  light above, dark below",
+   "w": 240,
+   "x": 0,
+   "y": 21960
+  },
+  "webRow7": {
+   "kind": "title1",
+   "maxW": 8000,
+   "page": "web",
+   "text": "Plan templates — list, new template, empty editor, editor (week, meal panel, nutrition, day, add meal)  ·  light above, dark below",
+   "w": 240,
+   "x": 0,
+   "y": 24380
+  },
+  "webRow8": {
+   "kind": "title1",
+   "maxW": 4480,
+   "page": "web",
+   "text": "Forms — list, onboarding form editor, weekly check-in editor  ·  light above, dark below",
+   "w": 240,
+   "x": 0,
+   "y": 26800
+  }
+ },
+ "order": [
+  "Main.dc.html",
+  "WebC.dc.html",
+  "TodayC.dc.html",
+  "WorkoutC.dc.html",
+  "NutritionC.dc.html",
+  "GlassTodayLight.dc.html",
+  "GlassWorkoutLight.dc.html",
+  "GlassNutritionLight.dc.html",
+  "GlassChatLight.dc.html",
+  "GlassTodayDark.dc.html",
+  "GlassWorkoutDark.dc.html",
+  "GlassNutritionDark.dc.html",
+  "GlassChatDark.dc.html",
+  "GlassLoginLight.dc.html",
+  "GlassRegisterLight.dc.html",
+  "GlassOnboardingGoalLight.dc.html",
+  "GlassOnboardingBasicsLight.dc.html",
+  "GlassCheckInLight.dc.html",
+  "GlassLoginDark.dc.html",
+  "GlassRegisterDark.dc.html",
+  "GlassOnboardingGoalDark.dc.html",
+  "GlassOnboardingBasicsDark.dc.html",
+  "GlassCheckInDark.dc.html",
+  "GlassTodayNoCoachLight.dc.html",
+  "GlassCoachSearchLight.dc.html",
+  "GlassCoachProfileLight.dc.html",
+  "GlassRequestSheetLight.dc.html",
+  "GlassTrainingWeekLight.dc.html",
+  "GlassTrainingEmptyLight.dc.html",
+  "GlassSessionDetailLight.dc.html",
+  "GlassNutritionEmptyLight.dc.html",
+  "GlassMealDetailLight.dc.html",
+  "GlassShoppingListLight.dc.html",
+  "GlassMessagesListLight.dc.html",
+  "GlassProfileLight.dc.html",
+  "GlassMyJourneyLight.dc.html",
+  "GlassPlanSummaryLight.dc.html",
+  "GlassMeasurementsLight.dc.html",
+  "GlassPhotosLight.dc.html",
+  "GlassSettingsLight.dc.html",
+  "GlassTodayNoCoachDark.dc.html",
+  "GlassCoachSearchDark.dc.html",
+  "GlassCoachProfileDark.dc.html",
+  "GlassRequestSheetDark.dc.html",
+  "GlassTrainingWeekDark.dc.html",
+  "GlassTrainingEmptyDark.dc.html",
+  "GlassSessionDetailDark.dc.html",
+  "GlassNutritionEmptyDark.dc.html",
+  "GlassMealDetailDark.dc.html",
+  "GlassShoppingListDark.dc.html",
+  "GlassMessagesListDark.dc.html",
+  "GlassProfileDark.dc.html",
+  "GlassMyJourneyDark.dc.html",
+  "GlassPlanSummaryDark.dc.html",
+  "GlassMeasurementsDark.dc.html",
+  "GlassPhotosDark.dc.html",
+  "GlassSettingsDark.dc.html",
+  "GlassSessionMixedLight.dc.html",
+  "GlassAmrapLight.dc.html",
+  "GlassEmomLight.dc.html",
+  "GlassTabataLight.dc.html",
+  "GlassForTimeLight.dc.html",
+  "GlassSessionMixedDark.dc.html",
+  "GlassAmrapDark.dc.html",
+  "GlassEmomDark.dc.html",
+  "GlassTabataDark.dc.html",
+  "GlassForTimeDark.dc.html",
+  "GlassDoneStrengthLight.dc.html",
+  "GlassDoneAmrapLight.dc.html",
+  "GlassDoneTabataLight.dc.html",
+  "GlassSessionSummaryLight.dc.html",
+  "GlassDoneStrengthDark.dc.html",
+  "GlassDoneAmrapDark.dc.html",
+  "GlassDoneTabataDark.dc.html",
+  "GlassSessionSummaryDark.dc.html",
+  "GlassTrainingPlanLight.dc.html",
+  "GlassTrainingWeekDetailLight.dc.html",
+  "GlassNutritionPlanLight.dc.html",
+  "GlassNutritionWeekDetailLight.dc.html",
+  "GlassTrainingPlanDark.dc.html",
+  "GlassTrainingWeekDetailDark.dc.html",
+  "GlassNutritionPlanDark.dc.html",
+  "GlassNutritionWeekDetailDark.dc.html",
+  "GlassRecipesPlanLight.dc.html",
+  "GlassRecipesAllLight.dc.html",
+  "GlassRecipeDetailLight.dc.html",
+  "GlassIngredientDetailLight.dc.html",
+  "GlassRecipesPlanDark.dc.html",
+  "GlassRecipesAllDark.dc.html",
+  "GlassRecipeDetailDark.dc.html",
+  "GlassIngredientDetailDark.dc.html",
+  "GlassCookingStepsLight.dc.html",
+  "GlassCookingStepsDark.dc.html",
+  "GlassTodayV1Light.dc.html",
+  "GlassTodayV1Dark.dc.html",
+  "GlassWorkoutsPlanLight.dc.html",
+  "GlassWorkoutsAllLight.dc.html",
+  "GlassWorkoutDetailLight.dc.html",
+  "GlassExerciseDetailLight.dc.html",
+  "GlassWorkoutsPlanDark.dc.html",
+  "GlassWorkoutsAllDark.dc.html",
+  "GlassWorkoutDetailDark.dc.html",
+  "GlassExerciseDetailDark.dc.html",
+  "CoachTodayLight.dc.html",
+  "CoachClientsLight.dc.html",
+  "CoachClientDetailLight.dc.html",
+  "CoachClientPlansLight.dc.html",
+  "CoachCheckInReviewLight.dc.html",
+  "CoachFindClientsLight.dc.html",
+  "CoachProspectLight.dc.html",
+  "CoachJoinRequestLight.dc.html",
+  "CoachInviteLight.dc.html",
+  "CoachMessagesLight.dc.html",
+  "CoachBroadcastLight.dc.html",
+  "CoachProfileLight.dc.html",
+  "CoachTodayDark.dc.html",
+  "CoachClientsDark.dc.html",
+  "CoachClientDetailDark.dc.html",
+  "CoachClientPlansDark.dc.html",
+  "CoachCheckInReviewDark.dc.html",
+  "CoachFindClientsDark.dc.html",
+  "CoachProspectDark.dc.html",
+  "CoachJoinRequestDark.dc.html",
+  "CoachInviteDark.dc.html",
+  "CoachMessagesDark.dc.html",
+  "CoachBroadcastDark.dc.html",
+  "CoachProfileDark.dc.html",
+  "CoachAccountTypeLight.dc.html",
+  "CoachRegisterLight.dc.html",
+  "CoachSetupLight.dc.html",
+  "CoachAccountTypeDark.dc.html",
+  "CoachRegisterDark.dc.html",
+  "CoachSetupDark.dc.html",
+  "CoachClientsSearchLight.dc.html",
+  "CoachClientsSearchDark.dc.html",
+  "GlassNotificationsLight.dc.html",
+  "CoachNotificationsLight.dc.html",
+  "GlassNotificationsDark.dc.html",
+  "CoachNotificationsDark.dc.html",
+  "Logo1.dc.html",
+  "Logo2.dc.html",
+  "Logo3.dc.html",
+  "Logo4.dc.html",
+  "Logo5.dc.html",
+  "Logo6.dc.html",
+  "Logo7.dc.html",
+  "Logo8.dc.html",
+  "Logo9.dc.html",
+  "Logo10.dc.html",
+  "Logo11.dc.html",
+  "Logo12.dc.html",
+  "Logo13.dc.html",
+  "Logo14.dc.html",
+  "Logo15.dc.html",
+  "Logo16.dc.html",
+  "Logo17.dc.html",
+  "Logo18.dc.html",
+  "Logo19.dc.html",
+  "Logo20.dc.html",
+  "Logo21.dc.html",
+  "Logo22.dc.html",
+  "Logo23.dc.html",
+  "Logo24.dc.html",
+  "Logo25.dc.html",
+  "Logo26.dc.html",
+  "PageClientsC.dc.html",
+  "PageClientDetailC.dc.html",
+  "PageInboxC.dc.html",
+  "PageIngredientsC.dc.html",
+  "PageIngredientDrawerC.dc.html",
+  "PageClientsD.dc.html",
+  "PageClientDetailD.dc.html",
+  "PageInboxD.dc.html",
+  "PageIngredientsD.dc.html",
+  "PageIngredientDrawerD.dc.html",
+  "PageTemplatesC.dc.html",
+  "PageTemplateNewC.dc.html",
+  "PageTemplateEditorC.dc.html",
+  "PageTemplateMealC.dc.html",
+  "PageTemplatesD.dc.html",
+  "PageTemplateNewD.dc.html",
+  "PageTemplateEditorD.dc.html",
+  "PageTemplateMealD.dc.html",
+  "PageTemplateNutritionC.dc.html",
+  "PageTemplateDayC.dc.html",
+  "PageTemplateNutritionD.dc.html",
+  "PageTemplateDayD.dc.html",
+  "PageHomeC.dc.html",
+  "PageHomeSignInC.dc.html",
+  "PageHomeD.dc.html",
+  "PageHomeSignInD.dc.html",
+  "PageRegisterC.dc.html",
+  "PageRegisterD.dc.html",
+  "PageRegisterCheckEmailC.dc.html",
+  "PageRegisterVerifiedC.dc.html",
+  "PageRegisterCheckEmailD.dc.html",
+  "PageRegisterVerifiedD.dc.html",
+  "PageClientNutritionC.dc.html",
+  "PageClientNutritionEmptyC.dc.html",
+  "PageClientNutritionD.dc.html",
+  "PageClientNutritionEmptyD.dc.html",
+  "PageTemplateEditorEmptyC.dc.html",
+  "PageTemplateEditorEmptyD.dc.html",
+  "PageRecipesC.dc.html",
+  "PageRecipeDrawerC.dc.html",
+  "PageRecipesD.dc.html",
+  "PageRecipeDrawerD.dc.html",
+  "PageRecipesTableC.dc.html",
+  "PageRecipeDrawerIngredientsC.dc.html",
+  "PageRecipesTableD.dc.html",
+  "PageRecipeDrawerIngredientsD.dc.html",
+  "PageRecipeDrawerPreparationC.dc.html",
+  "PageRecipeDrawerPicturesC.dc.html",
+  "PageRecipeDrawerPreparationD.dc.html",
+  "PageRecipeDrawerPicturesD.dc.html",
+  "PageFormsC.dc.html",
+  "PageFormOnboardingC.dc.html",
+  "PageFormCheckInC.dc.html",
+  "PageFormsD.dc.html",
+  "PageFormOnboardingD.dc.html",
+  "PageFormCheckInD.dc.html",
+  "PageClientPlanEditorC.dc.html",
+  "PageClientPlanStartOverC.dc.html",
+  "PageClientPlanBlankC.dc.html",
+  "PageClientPlanEditorD.dc.html",
+  "PageClientPlanStartOverD.dc.html",
+  "PageClientPlanBlankD.dc.html",
+  "PageClientPlanInfoC.dc.html",
+  "PageClientPlanInfoD.dc.html",
+  "PageClientPlanClosedC.dc.html",
+  "PageClientPlanClosedD.dc.html",
+  "PageClientPlanDayC.dc.html",
+  "PageClientPlanDayD.dc.html",
+  "PageTemplateDayAddMealC.dc.html",
+  "PageClientPlanDayAddMealC.dc.html",
+  "PageTemplateDayAddMealD.dc.html",
+  "PageClientPlanDayAddMealD.dc.html",
+  "PageClientInviteDrawerC.dc.html",
+  "PageClientInviteDrawerD.dc.html",
+  "PageRegisterClientC.dc.html",
+  "PageRegisterGetAppC.dc.html",
+  "PageRegisterClientD.dc.html",
+  "PageRegisterGetAppD.dc.html",
+  "PageRegisterClientCheckEmailC.dc.html",
+  "PageRegisterClientCheckEmailD.dc.html"
+ ],
+ "pages": [
+  {
+   "id": "concepts",
+   "name": "Concepts"
+  },
+  {
+   "id": "web",
+   "name": "Web pages redesigned"
+  },
+  {
+   "id": "glass",
+   "name": "Mobile app — light"
+  },
+  {
+   "id": "glassdark",
+   "name": "Mobile app — dark"
+  },
+  {
+   "id": "coach",
+   "name": "Coach app — light"
+  },
+  {
+   "id": "coachdark",
+   "name": "Coach app — dark"
+  },
+  {
+   "id": "logo",
+   "name": "Logo & icon"
+  }
+ ],
+ "title": "Form Up colour directions"
 }
