@@ -42,7 +42,7 @@ export default function ClientsPagination({ rowCount, page, pageSize, totalCount
           <ChevronLeft className="size-4" aria-hidden="true" />
           {t('common.previous')}
         </Button>
-        <span className="flex size-7 items-center justify-center rounded-full bg-line text-body font-medium text-ink">
+        <span className="flex size-7 items-center justify-center rounded-full bg-primary text-body font-semibold text-primary-foreground">
           {page}
         </span>
         <Button

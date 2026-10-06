@@ -232,9 +232,8 @@ export default function ClientsPage() {
       </Tabs>
 
       {!isPendingTab && (
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="relative w-full max-w-search">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative w-full max-w-search">
               <Search
                 className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
                 aria-hidden="true"
@@ -247,10 +246,9 @@ export default function ClientsPage() {
                 className="h-9 pl-9"
                 aria-label={t('clients.searchPlaceholder')}
               />
-            </div>
-            <ClientTagFilterPopover selectedTagIds={filters.tagIds} onChange={setTagIds} />
           </div>
-
+          <ClientTagFilterPopover selectedTagIds={filters.tagIds} onChange={setTagIds} />
+          <span className="hidden h-6 w-px bg-line sm:block" aria-hidden="true" />
           <ClientFilterChips active={filters.chip} counts={clientsQuery.data?.filterCounts} onSelect={setChip} />
         </div>
       )}

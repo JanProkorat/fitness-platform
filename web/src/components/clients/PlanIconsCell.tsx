@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { Dumbbell, Utensils } from 'lucide-react';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import ClientAvatar from '@/components/clients/ClientAvatar';
+import HorizontalDumbbellIcon from '@/components/clients/HorizontalDumbbellIcon';
 import { Profession, type ClientActivePlanDto } from '@/api/generated';
 
 interface Props {
@@ -45,7 +46,7 @@ export default function PlanIconsCell({ activePlans, firstName, lastName, avatar
         >
           {hasTraining && (
             <span className="flex size-7 items-center justify-center rounded-lg bg-training-soft text-training-ink">
-              <Dumbbell className="size-4" aria-hidden="true" />
+              <HorizontalDumbbellIcon className="size-4" />
             </span>
           )}
           {hasNutrition && (

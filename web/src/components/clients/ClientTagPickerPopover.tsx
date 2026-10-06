@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, Tag as TagIcon } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -60,8 +60,15 @@ export default function ClientTagPickerPopover({ client }: Props) {
     <>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
-          <Button ref={triggerRef} type="button" variant="ghost" size="icon-xs" aria-label={t('clients.tagPicker.open')}>
-            <TagIcon className="size-3.5" aria-hidden="true" />
+          <Button
+            ref={triggerRef}
+            type="button"
+            variant="ghost"
+            size="icon-xs"
+            className="size-6 rounded-md border border-dashed border-line text-muted-foreground"
+            aria-label={t('clients.tagPicker.open')}
+          >
+            <Plus className="size-3.25" aria-hidden="true" />
           </Button>
         </PopoverTrigger>
         <PopoverContent align="start" className="w-64">
