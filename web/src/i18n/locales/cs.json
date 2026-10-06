@@ -3132,7 +3132,7 @@
         "build": "Přetahujte recepty a cviky do týdne. Makra se sčítají samy.",
         "publish": "Hotové týdny se jedním klikem objeví v telefonu klienta. Rozpracované zůstávají skryté.",
         "follow": "Klient odškrtává jídla a tréninky. Vy to vidíte v reálném čase.",
-        "see": "Každou neděli dorazí check-in: váha, fotky a jaký týden byl."
+        "see": "Každý týden dorazí check-in: váha, fotky a jaký týden byl."
       }
     },
     "coaches": {
@@ -3176,7 +3176,7 @@
     "app": {
       "eyebrow": "Mobilní aplikace",
       "title": "Jedna aplikace pro vaše klienty — i pro vás",
-      "lead": "Pro klienty je aplikace místem, kde se děje všechno: dnešní jídla a tréninky, chat s vámi a nedělní check-in. Vy dostanete stejnou aplikaci s pohledem trenéra — uvidíte, kdo vás potřebuje, projdete check-iny a odpovíte odkudkoli.",
+      "lead": "Pro klienty je aplikace místem, kde se děje všechno: dnešní jídla a tréninky, chat s vámi a týdenní check-in. Vy dostanete stejnou aplikaci s pohledem trenéra — uvidíte, kdo vás potřebuje, projdete check-iny a odpovíte odkudkoli.",
       "appStore": "App Store",
       "googlePlay": "Google Play",
       "clients": { "badge": "Vaši klienti", "caption": "Jejich hlavní nástroj, každý den" },

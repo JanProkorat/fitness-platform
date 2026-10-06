@@ -3086,7 +3086,7 @@
         "build": "Ziehen Sie Rezepte und Übungen in die Woche. Die Makros summieren sich von selbst.",
         "publish": "Fertige Wochen landen mit einem Klick auf dem Handy Ihres Kunden. Entwürfe bleiben verborgen.",
         "follow": "Ihr Kunde hakt Mahlzeiten und Trainings ab. Sie sehen es sofort.",
-        "see": "Jeden Sonntag kommt der Check-in: Gewicht, Fotos und wie die Woche lief."
+        "see": "Jede Woche kommt der Check-in: Gewicht, Fotos und wie die Woche lief."
       }
     },
     "coaches": {
@@ -3130,7 +3130,7 @@
     "app": {
       "eyebrow": "Die mobile App",
       "title": "Eine App für Ihre Kunden — und für Sie",
-      "lead": "Für Ihre Kunden ist die App der Ort, an dem alles passiert: die heutigen Mahlzeiten und Trainings, der Chat mit Ihnen und der Sonntags-Check-in. Sie erhalten dieselbe App mit Coach-Ansicht — sehen Sie, wer Sie braucht, prüfen Sie Check-ins und antworten Sie von überall.",
+      "lead": "Für Ihre Kunden ist die App der Ort, an dem alles passiert: die heutigen Mahlzeiten und Trainings, der Chat mit Ihnen und der wöchentliche Check-in. Sie erhalten dieselbe App mit Coach-Ansicht — sehen Sie, wer Sie braucht, prüfen Sie Check-ins und antworten Sie von überall.",
       "appStore": "App Store",
       "googlePlay": "Google Play",
       "clients": { "badge": "Ihre Kunden", "caption": "Ihr wichtigstes Werkzeug, jeden Tag" },

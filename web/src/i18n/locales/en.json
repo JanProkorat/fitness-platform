@@ -3087,7 +3087,7 @@
         "build": "Drag recipes and exercises into the week. Macros add up as you go.",
         "publish": "Finished weeks go to your client’s phone in one click. Drafts stay hidden.",
         "follow": "Your client ticks off meals and workouts. You see it as it happens.",
-        "see": "Every Sunday the check-in arrives: weight, photos and how the week felt."
+        "see": "Every week the check-in arrives: weight, photos and how the week felt."
       }
     },
     "coaches": {
@@ -3131,7 +3131,7 @@
     "app": {
       "eyebrow": "The mobile app",
       "title": "One app for your clients — and for you",
-      "lead": "For your clients, the app is where everything happens: today’s meals and workouts, the chat with you and the Sunday check-in. You get the same app with a coach view — see who needs you, review check-ins and reply from anywhere.",
+      "lead": "For your clients, the app is where everything happens: today’s meals and workouts, the chat with you and the weekly check-in. You get the same app with a coach view — see who needs you, review check-ins and reply from anywhere.",
       "appStore": "App Store",
       "googlePlay": "Google Play",
       "clients": { "badge": "Your clients", "caption": "Their main tool, every day" },
