@@ -2992,7 +2992,7 @@
       "mobileApp": "Mobile app",
       "signIn": "Sign in",
       "createAccount": "Create account",
-      "menuLabel": "Language and theme",
+      "menuLabel": "{{code}}, language and theme",
       "themeToDark": "Switch to dark",
       "themeToLight": "Switch to light"
     },

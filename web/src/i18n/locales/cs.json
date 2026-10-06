@@ -3037,7 +3037,7 @@
       "mobileApp": "Mobilní aplikace",
       "signIn": "Přihlásit se",
       "createAccount": "Vytvořit účet",
-      "menuLabel": "Jazyk a vzhled",
+      "menuLabel": "{{code}}, jazyk a vzhled",
       "themeToDark": "Přepnout na tmavý vzhled",
       "themeToLight": "Přepnout na světlý vzhled"
     },

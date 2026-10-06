@@ -25,6 +25,7 @@ export default function NavCompactMenu() {
   const theme = useThemeStore((s) => s.theme);
   const toggleTheme = useThemeStore((s) => s.toggleTheme);
   const current = isLanguage(i18n.language) ? i18n.language : 'cs';
+  const code = t(`entry.languageSwitch.${current}`);
   const toDark = theme === 'light';
   const ThemeIcon = toDark ? MoonIcon : SunIcon;
 
@@ -33,11 +34,11 @@ export default function NavCompactMenu() {
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          aria-label={t('home.nav.menuLabel')}
+          aria-label={t('home.nav.menuLabel', { code })}
           className="flex h-10 items-center gap-1.5 rounded-field border border-border bg-surface px-2.5 text-caption font-semibold tracking-caps text-ink hover:bg-sunken"
         >
           <GlobeIcon className="size-4" aria-hidden="true" />
-          {t(`entry.languageSwitch.${current}`)}
+          {code}
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">

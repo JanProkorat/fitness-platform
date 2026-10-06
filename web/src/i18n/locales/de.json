@@ -2991,7 +2991,7 @@
       "mobileApp": "Mobile App",
       "signIn": "Anmelden",
       "createAccount": "Konto erstellen",
-      "menuLabel": "Sprache und Design",
+      "menuLabel": "{{code}}, Sprache und Design",
       "themeToDark": "Zum dunklen Design wechseln",
       "themeToLight": "Zum hellen Design wechseln"
     },

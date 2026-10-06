@@ -13,7 +13,8 @@
  * Three tiers, in order — every later tier is an ALIAS of the one before
  * it, never a second literal value:
  *   1. Raw tokens (--gf-*)     — source of truth. Light values in :root; the
- *      dark values are overridden in the prefers-color-scheme block below.
+ *      dark values live in the --gf-*-dark aliases, applied via data-theme
+ *      or, with no stored choice, the prefers-color-scheme fallback below.
  *   2. shadcn/ui semantic vars — components/ui/** reference ONLY these names
  *      (--background, --foreground, --primary, --border, --radius, ...).
  *   3. @theme inline           — Tailwind v4's utility-generation layer;
