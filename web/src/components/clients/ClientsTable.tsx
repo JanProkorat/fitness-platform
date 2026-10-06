@@ -1,6 +1,5 @@
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
-import { MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -51,7 +50,7 @@ export default function ClientsTable({
 
   return (
     <Table>
-      <TableHeader className="bg-muted">
+      <TableHeader className="bg-card">
         <TableRow>
           <TableHead className="w-10">
             <Checkbox
@@ -159,11 +158,10 @@ export default function ClientsTable({
                 <TableCell className="text-center">
                   {(client.unreadMessageCount ?? 0) > 0 && (
                     <span
-                      className="inline-flex items-center gap-1 text-primary"
+                      className="inline-flex h-5.5 min-w-5.5 items-center justify-center rounded-full bg-marker-solid px-1.5 text-label font-bold text-on-dark"
                       title={t('clients.table.unreadTooltip', { count: client.unreadMessageCount ?? 0 })}
                       aria-label={t('clients.table.unreadTooltip', { count: client.unreadMessageCount ?? 0 })}
                     >
-                      <MessageCircle className="size-4" aria-hidden="true" />
                       {client.unreadMessageCount}
                     </span>
                   )}

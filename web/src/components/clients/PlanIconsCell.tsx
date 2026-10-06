@@ -40,11 +40,19 @@ export default function PlanIconsCell({ activePlans, firstName, lastName, avatar
       <HoverCardTrigger asChild>
         <button
           type="button"
-          className="flex items-center gap-1.5 text-muted-foreground transition-colors hover:text-foreground"
+          className="flex items-center gap-1.5 rounded-lg outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
           aria-label={t('clients.table.activePlanCount', { count: activePlans.length })}
         >
-          {hasTraining && <Dumbbell className="size-4" aria-hidden="true" />}
-          {hasNutrition && <Utensils className="size-4" aria-hidden="true" />}
+          {hasTraining && (
+            <span className="flex size-7 items-center justify-center rounded-lg bg-training-soft text-training-ink">
+              <Dumbbell className="size-4" aria-hidden="true" />
+            </span>
+          )}
+          {hasNutrition && (
+            <span className="flex size-7 items-center justify-center rounded-lg bg-nutrition-soft text-nutrition-ink">
+              <Utensils className="size-4" aria-hidden="true" />
+            </span>
+          )}
         </button>
       </HoverCardTrigger>
       <HoverCardContent align="start" className="w-64">

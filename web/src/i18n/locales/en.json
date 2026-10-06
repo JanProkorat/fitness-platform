@@ -314,6 +314,7 @@
     "activityDaysAgo_other": "{{count}} days ago"
   },
   "clients": {
+    "eyebrow": "Client management",
     "title": "Clients",
     "subtitle": "Client management and overview",
     "tabs": {
@@ -395,7 +396,7 @@
       "acceptError": "Couldn't accept the request. Please try again.",
       "rejectError": "Couldn't reject the request. Please try again."
     },
-    "inviteClient": "+ Invite client",
+    "inviteClient": "Invite client",
     "inviteNewClient": "Invite a new client",
     "inviteSent": "Invitation sent!",
     "inviteError": "Error sending invitation",
@@ -618,14 +619,37 @@
       }
     },
     "addClientDrawer": {
-      "title": "Invite a new client",
-      "description": "The client will receive an email invitation to create an account and connect with you.",
+      "title": "Invite client",
+      "description": "We'll email them a link to join you on Form Up",
+      "sections": {
+        "client": "Client",
+        "scope": "What you'll coach",
+        "onboarding": "Onboarding form",
+        "message": "Personal message"
+      },
       "emailLabel": "Email",
-      "messageLabel": "Message (optional)",
+      "emailHelper": "Already on Form Up? The invite also arrives in their messages.",
+      "scope": {
+        "training": "Training",
+        "nutrition": "Nutrition",
+        "both": "Both"
+      },
+      "scopeHelper": "Sets which of their plans you can see and edit.",
+      "questionnaireLabel": "Form to send",
+      "questionnaireNone": "None",
+      "questionnaireOption_one": "{{title}} · {{count}} question",
+      "questionnaireOption_other": "{{title}} · {{count}} questions",
+      "questionnaireHelper": "They fill it in right after accepting. Pick “None” to skip it.",
+      "questionnaireLoadError": "Couldn't load your forms. You can still send the invite without one.",
+      "optional": "(optional)",
+      "messageLabel": "Message in the invite email",
+      "footerNote": "The invite stays under Pending until they accept",
       "submit": "Send invitation",
       "validation": {
         "emailRequired": "Email is required.",
-        "emailInvalid": "Enter a valid email address."
+        "emailInvalid": "Enter a valid email address.",
+        "emailTooLong": "Email can be at most 100 characters.",
+        "messageTooLong": "The message can be at most 500 characters."
       }
     }
   },
