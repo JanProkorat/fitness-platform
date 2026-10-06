@@ -13,17 +13,17 @@ export default function GetAppState({ email, firstName }: GetAppStateProps) {
   const { t } = useTranslation();
 
   return (
-    <main className="flex justify-center px-4 pt-8 pb-16 sm:px-10">
-      <div className="flex w-full max-w-140 flex-col items-center gap-4.5 rounded-glass border border-border bg-surface px-5 pt-8 pb-9 text-center shadow-card sm:px-10">
+    <main className="flex justify-center px-4 pt-8 pb-16 short:pt-2 short:pb-6 sm:px-10">
+      <div className="flex w-full max-w-140 flex-col items-center gap-4.5 rounded-glass border border-border bg-surface px-5 pt-8 pb-9 text-center shadow-card short:gap-3 short:pt-5 short:pb-6 sm:px-10">
         <div className="self-stretch pb-2 text-left">
           <RegisterStepper current={3} finalStep="getApp" />
         </div>
 
-        <span className="flex size-21 items-center justify-center rounded-full bg-success-soft text-success-ink">
-          <CheckIcon className="size-9.5" strokeWidth={2} aria-hidden="true" />
+        <span className="flex size-21 items-center justify-center rounded-full bg-success-soft text-success-ink short:size-14">
+          <CheckIcon className="size-9.5 short:size-7" strokeWidth={2} aria-hidden="true" />
         </span>
 
-        <h1 className="font-display text-display font-semibold tracking-heading text-ink">
+        <h1 className="font-display text-display font-semibold tracking-heading text-ink short:text-card-title">
           {t('entry.verifyEmail.success.title')}
         </h1>
         <p className="text-subhead text-ink-2">

@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* `short:` applies on two-column (lg+) desktop windows at most 50rem tall; phones and tall windows are unaffected. */
+@custom-variant short (@media (min-width: 64rem) and (max-height: 50rem));
+
 /*
  * Form Up design tokens — palette "C · Ink & Red, energetic".
  * Source: docs/prototypes/formup-redesign/source/gen.py (DIRS["C"] light) and

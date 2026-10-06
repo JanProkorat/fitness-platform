@@ -36,14 +36,14 @@ export default function RegisterAside({ variant }: { variant: RegisterAsideVaria
   const base = `entry.register.aside.${variant}`;
 
   return (
-    <aside className="flex flex-col gap-6 lg:pt-7">
+    <aside className="flex flex-col gap-6 lg:pt-7 short:gap-4 short:pt-3">
       <p className="text-meta font-semibold tracking-eyebrow text-muted-foreground uppercase">
         {t(`${base}.eyebrow`)}
       </p>
-      <h2 className="font-display text-home-banner font-semibold tracking-heading text-ink">
+      <h2 className="font-display text-home-banner font-semibold tracking-heading text-ink short:text-card-title">
         {t(`${base}.titleLead`)} <span className="text-marker">{t(`${base}.titleAccent`)}</span>
       </h2>
-      <ol className="flex flex-col gap-5.5">
+      <ol className="flex flex-col gap-5.5 short:gap-3.5">
         {steps.map((step, index) => {
           const Icon = step.icon;
           const first = index === 0;

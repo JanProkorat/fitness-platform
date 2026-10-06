@@ -79,16 +79,16 @@ export default function VerificationSentState({
   };
 
   return (
-    <div className="flex w-full max-w-140 flex-col items-center gap-4.5 rounded-glass border border-border bg-surface px-5 pt-8 pb-9 text-center shadow-card sm:px-10">
+    <div className="flex w-full max-w-140 flex-col items-center gap-4.5 rounded-glass border border-border bg-surface px-5 pt-8 pb-9 text-center shadow-card short:gap-3 short:pt-5 short:pb-6 sm:px-10">
       <div className="self-stretch pb-2 text-left">
         <RegisterStepper current={2} finalStep={isClient ? 'getApp' : 'profile'} />
       </div>
 
-      <span className="flex size-21 items-center justify-center rounded-full bg-error-soft text-marker">
-        <MailIcon className="size-9.5" strokeWidth={1.8} aria-hidden="true" />
+      <span className="flex size-21 items-center justify-center rounded-full bg-error-soft text-marker short:size-14">
+        <MailIcon className="size-9.5 short:size-7" strokeWidth={1.8} aria-hidden="true" />
       </span>
 
-      <h1 className="font-display text-display font-semibold tracking-heading text-ink">
+      <h1 className="font-display text-display font-semibold tracking-heading text-ink short:text-card-title">
         {t('entry.register.sent.title')}
       </h1>
       <p className="text-subhead text-ink-2">

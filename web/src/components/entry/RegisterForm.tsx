@@ -179,7 +179,7 @@ export default function RegisterForm() {
 
   if (registerMutation.isSuccess) {
     return (
-      <main className="flex justify-center px-4 pt-8 pb-16 sm:px-10">
+      <main className="flex justify-center px-4 pt-8 pb-16 short:pt-2 short:pb-6 sm:px-10">
         <VerificationSentState
           email={registerMutation.variables?.email ?? ''}
           isClient={registerMutation.variables?.roles.includes('Client') ?? false}
@@ -189,16 +189,16 @@ export default function RegisterForm() {
     );
   }
 
-  const inputClass = 'h-11 px-3.5 text-copy';
+  const inputClass = 'h-11 px-3.5 text-copy short:h-10';
   const termsEmphasis = <span className="font-semibold text-ink" />;
 
   return (
-    <main className="flex flex-col items-center gap-10 px-4 pt-3 pb-16 sm:px-10 lg:flex-row lg:items-start lg:justify-center lg:gap-15">
-      <div className="flex w-full max-w-150 flex-col gap-4.5 rounded-glass border border-border bg-surface px-5 py-8 shadow-card sm:px-9">
+    <main className="flex flex-col items-center gap-10 px-4 pt-3 pb-16 short:pt-0 short:pb-6 sm:px-10 lg:flex-row lg:items-start lg:justify-center lg:gap-15">
+      <div className="flex w-full max-w-150 flex-col gap-4.5 rounded-glass border border-border bg-surface px-5 py-8 shadow-card short:gap-3 short:py-5 sm:px-9">
         <RegisterStepper current={1} finalStep={isClient ? 'getApp' : 'profile'} />
 
-        <div className="flex flex-col gap-1.5 pt-1.5">
-          <h1 className="font-display text-display font-semibold tracking-heading text-ink">
+        <div className="flex flex-col gap-1.5 pt-1.5 short:gap-0.5 short:pt-0">
+          <h1 className="font-display text-display font-semibold tracking-heading text-ink short:text-card-title">
             {t('entry.register.title')}
           </h1>
           <p className="text-copy text-muted-foreground">{t('entry.register.lede')}</p>
@@ -216,7 +216,7 @@ export default function RegisterForm() {
             void handleSubmit(onSubmit)(event);
           }}
           noValidate
-          className="flex flex-col gap-4.5"
+          className="flex flex-col gap-4.5 short:gap-2.5"
         >
           <Controller
             control={control}
@@ -394,7 +394,7 @@ export default function RegisterForm() {
             type="submit"
             disabled={!isValid || registerMutation.isPending}
             aria-describedby={!isValid ? 'entry-register-submit-hint' : undefined}
-            className="h-12 w-full rounded-xl text-subhead font-bold"
+            className="h-12 w-full rounded-xl text-subhead font-bold short:h-10"
           >
             {registerMutation.isPending
               ? t('entry.register.submitting')
@@ -406,7 +406,7 @@ export default function RegisterForm() {
           */}
           <p
             id="entry-register-submit-hint"
-            className={cn('-mt-2 text-caption text-muted-foreground', isValid && 'invisible')}
+            className={cn('-mt-2 text-caption short:-mt-1 text-muted-foreground', isValid && 'invisible')}
           >
             {t('entry.register.submitHint')}
           </p>

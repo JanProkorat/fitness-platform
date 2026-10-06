@@ -65,7 +65,7 @@ export default function RoleSelector({ value, onChange, onBlur, error }: RoleSel
   const { t } = useTranslation();
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2 short:gap-1.5">
       <span className="text-body font-medium text-ink-2">{t('entry.register.roleLabel')}</span>
       <div
         role="group"
@@ -85,31 +85,32 @@ export default function RoleSelector({ value, onChange, onBlur, error }: RoleSel
               onClick={() => onChange(toggleRole(value, role))}
               onBlur={onBlur}
               className={cn(
-                'flex flex-col gap-2 rounded-2xl border border-border bg-surface p-3.5 text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
+                'flex flex-col gap-2 rounded-2xl border border-border bg-surface p-3.5 text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50 short:flex-row short:items-center short:gap-2 short:p-2.5',
                 selected && style.selected
               )}
             >
-              <span className="flex items-center">
+              {/* On short screens the wrapper dissolves so icon, name and radio sit in one row. */}
+              <span className="flex items-center short:contents">
                 <span
                   className={cn(
-                    'flex size-8.5 items-center justify-center rounded-field',
+                    'flex size-8.5 shrink-0 items-center justify-center rounded-field short:size-7',
                     style.iconBox
                   )}
                 >
-                  <Icon className="size-4.5" aria-hidden="true" />
+                  <Icon className="size-4.5 short:size-4" aria-hidden="true" />
                 </span>
                 <span
                   aria-hidden="true"
                   className={cn(
-                    'ml-auto box-border size-4.5 rounded-full border-[1.5px] border-muted-foreground',
+                    'ml-auto box-border size-4.5 shrink-0 rounded-full border-[1.5px] border-muted-foreground short:order-last',
                     selected && style.indicator
                   )}
                 />
               </span>
-              <span className="text-subhead font-bold text-ink">
+              <span className="text-subhead font-bold text-ink short:text-body short:leading-tight">
                 {t(`entry.register.roles.${key}.name`)}
               </span>
-              <span className="text-meta leading-normal text-muted-foreground">
+              <span className="text-meta leading-normal text-muted-foreground short:hidden">
                 {t(`entry.register.roles.${key}.description`)}
               </span>
             </button>
