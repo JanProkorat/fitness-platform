@@ -36,6 +36,9 @@ jobs:
       # spawns a fresh shell, so we cannot rely on the CLI's `current_branch`
       # fallback — actions/checkout produces a detached HEAD).
       TEST_ENV_BRANCH: ${{ github.head_ref || github.ref_name }}
+      # One image tag for the bake step and `test-env up`, so `up` finds the
+      # images bake loaded instead of looking for per-project names.
+      E2E_IMAGE_TAG: ci
 
     steps:
       - name: Checkout code
@@ -70,6 +73,28 @@ jobs:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           QA_SEED_PASSWORD: ${{ secrets.QA_SEED_PASSWORD }}
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Builds the harness images with layers cached in the GitHub Actions
+      # cache, so a run that changes nothing under backend/ or web/ reuses
+      # every layer. The cache is keyed by layer inputs, so a changed file
+      # rebuilds from the first layer that copies it — never a stale image.
+      # Only api is built (seed shares its image): the host suite below needs
+      # no web or playwright container, and Boot starts only api. Re-enabling
+      # the named flows means adding web,playwright here and dropping
+      # TEST_ENV_SERVICES from Boot.
+      - name: Build harness images (cached)
+        uses: docker/bake-action@v6
+        with:
+          source: .
+          files: docker-compose.test.yml
+          targets: api
+          load: true
+          set: |
+            api.cache-from=type=gha,scope=e2e-api
+            api.cache-to=type=gha,mode=max,scope=e2e-api
+
       - name: Install web dependencies
         run: npm ci
         working-directory: web
@@ -95,7 +120,12 @@ jobs:
         # scripts/test-env up waits for the api healthcheck before returning;
         # if it exits 0 the stack is ready. The JSON envelope is captured to
         # the GITHUB_ENV so later steps can read api_url without re-shelling
-        # into the CLI.
+        # into the CLI. TEST_ENV_NO_BUILD makes `up` use the baked images and
+        # fail loudly if one is missing, instead of rebuilding it uncached.
+        # TEST_ENV_SERVICES starts api and its dependencies only.
+        env:
+          TEST_ENV_NO_BUILD: '1'
+          TEST_ENV_SERVICES: api
         run: |
           set -euo pipefail
           envelope=$(./scripts/test-env up "$TEST_ENV_BRANCH")

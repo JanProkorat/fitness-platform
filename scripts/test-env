@@ -14,6 +14,15 @@
 #   health [<branch>]          curl the resolved api host port; print HTTP status.
 #   ports [<branch>]           Print the active stack's project name + resolved api host port.
 #
+# Environment:
+#   TEST_ENV_NO_BUILD=1        `up` uses already-built images (--no-build) and fails if one is
+#                              missing. CI sets it after pre-building with cached layers; local
+#                              runs leave it unset so `up` always rebuilds and never runs a stale image.
+#   E2E_IMAGE_TAG              Tag for the harness images. Defaults to the compose project name.
+#   TEST_ENV_SERVICES          Space-separated services for `up` to start (plus their dependencies).
+#                              Unset starts all. CI sets "api": its host suite needs no web or
+#                              playwright container. `run <flow>` needs both, so leave it unset there.
+#
 # Project naming:
 #   sanitized-branch + sha1(branch || hostname)[:6] → COMPOSE_PROJECT_NAME
 #   Stable per (branch, host) — so two `up`s with the same branch on the same host
@@ -170,7 +179,13 @@ cmd_up() {
   # In CI (non-TTY) buildkit's progress is written to stdout by default; if
   # we let it through, callers that do `$(scripts/test-env up)` would get
   # build chatter prefixed onto the JSON line and jq would choke.
-  compose "$project" up -d --build >&2
+  local build_flag="--build"
+  if [[ "${TEST_ENV_NO_BUILD:-}" == "1" ]]; then
+    build_flag="--no-build"
+  fi
+  # Unquoted on purpose: TEST_ENV_SERVICES is a space-separated service list.
+  # shellcheck disable=SC2086
+  compose "$project" up -d "$build_flag" ${TEST_ENV_SERVICES:-} >&2
 
   if ! wait_for_healthy "$project" api 90; then
     err "api failed to become healthy within 90s — dumping last 100 log lines:"
