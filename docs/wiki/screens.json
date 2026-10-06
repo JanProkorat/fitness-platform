@@ -209,7 +209,7 @@
       "notionPageId": null
     },
     {
-      "id": "web.profile",
+      "id": "web.account.profile",
       "app": "web",
       "area": "Account",
       "title": "Coach profile",
