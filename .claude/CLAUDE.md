@@ -256,8 +256,6 @@ check the skill actually resolves first.
 | `code-review:code-review`      | Non-trivial backend changes or cross-package diffs        |
 | `frontend-design:frontend-design` | New web page or mobile screen ready for review          |
 | `wcag-audit`                   | Any screen with forms, tables, modals, or colour-critical UI |
-| `superpowers:testing-strategy`-shaped work | Use the stack packs instead: `dotnet-tdd`, `dotnet-verify`, `react-verify`, `expo-verify` |
-| `remember:remember`            | Persisting session state worth carrying forward            |
 
 No `engineering:*`, `design:*` or `gc-sec-review` skill is part of this workflow (#911).
 Security review → `claude-security`; code review → `code-review:code-review`;
