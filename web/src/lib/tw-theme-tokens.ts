@@ -12,7 +12,7 @@
  * tailwind-merge's own theme scale arrays are shaped.
  */
 
-/** `--text-*` — 32 keys. Falls through to tailwind-merge's colour-scale
+/** `--text-*` — 30 keys. Falls through to tailwind-merge's colour-scale
  * catch-all without this: every one of these class names would otherwise be
  * silently deleted as a "text colour" conflict (#1078). */
 export const TEXT_SIZE_TOKENS = [
@@ -30,8 +30,6 @@ export const TEXT_SIZE_TOKENS = [
   'display',
   'panel-title',
   'auth-title',
-  'section-title',
-  'cta-title',
   'home-hero',
   'home-heading',
   'home-banner',
@@ -62,8 +60,6 @@ export const RADIUS_TOKENS = ['field', 'thumb', 'tile', 'card', 'glass', 'phone'
 /** `--spacing-*` — unknown to tailwind-merge without this (not deleted,
  * just never conflict-resolved). */
 export const SPACING_TOKENS = [
-  'wrap',
-  'collage-cell',
   'badge-min',
   'swatch',
   'search',

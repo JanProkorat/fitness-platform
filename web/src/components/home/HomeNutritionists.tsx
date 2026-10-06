@@ -67,18 +67,22 @@ const SHOPPING = [
 ] as const;
 
 const LEGEND = [
-  { dot: 'bg-nutrition', label: '2,100 kcal' },
-  { dot: 'bg-macro-protein', label: 'P 150' },
-  { dot: 'bg-macro-carbs', label: 'C 220' },
-  { dot: 'bg-macro-fat', label: 'F 70' },
-  { dot: 'bg-macro-fibre', label: 'Fib 30' },
+  { dot: 'bg-macro-protein', key: 'proteinShort', grams: 150 },
+  { dot: 'bg-macro-carbs', key: 'carbsShort', grams: 220 },
+  { dot: 'bg-macro-fat', key: 'fatShort', grams: 70 },
+  { dot: 'bg-macro-fibre', key: 'fiberShort', grams: 30 },
 ] as const;
+
+const LEGEND_KCAL = 2100;
 
 function NutritionMockup() {
   const { t, i18n } = useTranslation();
 
   return (
-    <div aria-hidden="true" className="relative w-[640px] max-w-full">
+    <div
+      aria-hidden="true"
+      className="relative w-[640px] max-w-full lg:[zoom:0.62] lg:@min-[960px]:[zoom:0.74] lg:@min-[1040px]:[zoom:0.86] lg:@min-[1120px]:[zoom:0.98] lg:@min-[1200px]:[zoom:1]"
+    >
       <WindowFrame title={t('home.mock.planTitle')} subtitle={t('home.mock.nutritionView')}>
         <div className="grid grid-cols-[70px_repeat(4,minmax(0,1fr))] gap-2 px-4 pt-3.5 pb-4">
           <span />
@@ -135,10 +139,14 @@ function NutritionMockup() {
       </FloatCard>
 
       <div className="absolute -top-[26px] -right-5 hidden gap-1.5 rounded-xl border border-border bg-surface px-2.5 py-2 text-caption font-semibold text-ink shadow-popover @min-[760px]:flex">
+        <span className="inline-flex items-center gap-1.25">
+          <span className="size-[7px] rounded-full bg-nutrition" />
+          {LEGEND_KCAL.toLocaleString(i18n.language)} {t('home.mock.kcal')}
+        </span>
         {LEGEND.map((entry) => (
-          <span key={entry.label} className="inline-flex items-center gap-1.25">
+          <span key={entry.key} className="inline-flex items-center gap-1.25">
             <span className={`size-[7px] rounded-full ${entry.dot}`} />
-            {entry.label}
+            {t(`nutrition.${entry.key}`)} {entry.grams}
           </span>
         ))}
       </div>
@@ -189,8 +197,8 @@ export default function HomeNutritionists() {
       tabIndex={-1}
       className="@container flex scroll-mt-6 outline-none flex-col bg-surface px-4 pt-14 pb-24 sm:px-10 lg:px-16 lg:pt-24 lg:pb-48"
     >
-      <div className="flex flex-col gap-12 @min-[1200px]:flex-row-reverse @min-[1200px]:items-center @min-[1200px]:gap-16">
-        <div className="flex max-w-[420px] shrink-0 flex-col gap-4.5">
+      <div className="flex flex-col gap-12 lg:flex-row-reverse lg:items-center lg:gap-16">
+        <div className="flex max-w-105 shrink-0 flex-col gap-4.5">
           <Eyebrow className="text-nutrition">{t('home.nutritionists.eyebrow')}</Eyebrow>
           <h2 className="font-display text-home-heading font-semibold tracking-heading text-ink">
             {t('home.nutritionists.title')}

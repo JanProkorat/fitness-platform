@@ -49,12 +49,12 @@ export default function HomeMobileApp() {
         <h2 className="font-display text-home-heading font-semibold tracking-heading text-ink">
           {t('home.app.title')}
         </h2>
-        <p className="max-w-[680px] text-home-lead text-ink-2">{t('home.app.lead')}</p>
+        <p className="max-w-170 text-home-lead text-ink-2">{t('home.app.lead')}</p>
         <div className="flex flex-wrap justify-center gap-2.5">
           <StoreLinks appStore={t('home.app.appStore')} googlePlay={t('home.app.googlePlay')} />
         </div>
       </div>
-      <div className="flex flex-col items-center gap-14 @min-[1240px]:flex-row @min-[1240px]:items-start">
+      <div className="flex flex-col items-center gap-14 lg:flex-row lg:items-start lg:[zoom:0.75] lg:@min-[960px]:[zoom:0.82] lg:@min-[1040px]:[zoom:0.89] lg:@min-[1120px]:[zoom:0.96] lg:@min-[1170px]:[zoom:1]">
         <PhoneGroup
           badge={t('home.app.clients.badge')}
           badgeTone="bg-primary text-primary-foreground"
@@ -63,7 +63,7 @@ export default function HomeMobileApp() {
           <TodayPhone />
           <CheckInPhone />
         </PhoneGroup>
-        <span className="hidden w-px self-stretch bg-border @min-[1240px]:block" />
+        <span className="hidden w-px self-stretch bg-border lg:block" />
         <PhoneGroup
           badge={t('home.app.you.badge')}
           badgeTone="bg-marker text-on-dark"

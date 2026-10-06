@@ -146,7 +146,7 @@ export default function LoginForm() {
         <p className="mt-1 text-body text-muted-foreground">{t('entry.login.lede')}</p>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4.5">
+      <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="entry-email">{t('entry.login.emailLabel')}</Label>
           <Input

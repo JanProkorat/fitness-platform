@@ -120,7 +120,7 @@ interface FeatureItemProps {
 export function FeatureItem({ icon, tone, title, description }: FeatureItemProps) {
   return (
     <div className="flex gap-3.5">
-      <span className={`flex size-[38px] shrink-0 items-center justify-center rounded-xl ${tone}`}>
+      <span className={`flex size-9.5 shrink-0 items-center justify-center rounded-xl ${tone}`}>
         {icon}
       </span>
       <span className="flex flex-col gap-1">
@@ -139,7 +139,7 @@ interface StoreLinksProps {
 
 /** App Store / Google Play placeholders; real store URLs land with the app release. */
 export function StoreLinks({ appStore, googlePlay, size = 'md' }: StoreLinksProps) {
-  const sizing = size === 'md' ? 'h-10 px-3.5' : 'h-[34px] px-3.5';
+  const sizing = size === 'md' ? 'h-10 px-3.5' : 'h-8.5 px-3.5';
   const base = `inline-flex items-center gap-1.75 rounded-field border border-border bg-surface text-body font-semibold whitespace-nowrap text-ink hover:bg-sunken ${sizing}`;
   return (
     <>

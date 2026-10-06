@@ -2979,8 +2979,7 @@
       "en": "EN",
       "de": "DE"
     },
-    "brandMark": "GF",
-    "copyright": "© 2026 GoodFellas"
+    "brandMark": "GF"
   },
   "home": {
     "brand": { "form": "FORM", "up": "UP" },
@@ -3077,7 +3076,7 @@
       "cta": "Konto erstellen"
     },
     "footer": {
-      "copyright": "© 2026 Form Up",
+      "copyright": "© {{year}} Form Up",
       "getApp": "Holen Sie sich die Form-Up-App:"
     },
     "mock": {
