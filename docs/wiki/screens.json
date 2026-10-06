@@ -148,6 +148,65 @@
         { "name": "default", "steps": "register a trainer ('Osobní trenér') with a new email; read the verification email in the harness MailHog (UI port: docker compose port mailhog-test 8025); open its link on the dev server, replacing the host with the dev server's if it differs and keeping ?token=; open it only once (the token is single-use)" }
       ],
       "notionPageId": null
+    },
+    {
+      "id": "web.clients.list",
+      "app": "web",
+      "area": "Clients",
+      "title": "Clients list",
+      "route": "/clients",
+      "roles": ["Trainer", "Nutritionist"],
+      "files": [
+        "web/src/pages/ClientsPage.tsx",
+        "web/src/components/clients/**",
+        "web/src/hooks/useClientsQueries.ts",
+        "web/src/hooks/useClientListParams.ts",
+        "web/src/api/clients.ts",
+        "web/src/api/client-tags.ts",
+        "web/src/api/broadcast.ts",
+        "web/src/api/client-requests.ts"
+      ],
+      "endpoints": [
+        "GET /trainer/clients",
+        "GET /trainer/clients/pending",
+        "DELETE /trainer/pending-invites/{id}",
+        "GET /trainer/client-tags",
+        "POST /trainer/client-tags",
+        "PUT /trainer/clients/{clientId}/tags",
+        "POST /trainer/broadcast",
+        "POST /trainer/client-requests/{publicId}/accept",
+        "POST /trainer/client-requests/{publicId}/reject"
+      ],
+      "board": "PageClients",
+      "shots": [
+        { "name": "default" },
+        { "name": "pending", "steps": "click the tab 'Čekající' and wait for the table to load" }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "web.clients.invite",
+      "app": "web",
+      "area": "Clients",
+      "title": "Invite client drawer",
+      "route": "/clients",
+      "roles": ["Trainer", "Nutritionist"],
+      "files": [
+        "web/src/components/clients/AddClientDrawer.tsx",
+        "web/src/hooks/useClientsQueries.ts",
+        "web/src/hooks/useQuestionnaireQueries.ts",
+        "web/src/api/pending-invites.ts",
+        "web/src/api/questionnaires.ts"
+      ],
+      "endpoints": [
+        "POST /trainer/pending-invites",
+        "GET /trainer/questionnaires"
+      ],
+      "board": "PageClientInviteDrawer",
+      "shots": [
+        { "name": "default", "steps": "click the header button 'Pozvat klienta' (not the empty-state one) and wait for the drawer to open" }
+      ],
+      "notionPageId": null
     }
   ]
 }
