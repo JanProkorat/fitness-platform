@@ -33,7 +33,7 @@ const BLOCK_ROWS: BlockRow[] = [
   { exercise: 'benchPress', sets: '4 × 8', load: { kind: 'kg', value: 60 }, rest: { kind: 'min', value: 2 } },
   { exercise: 'barbellRow', sets: '4 × 10', load: { kind: 'kg', value: 50 }, rest: { kind: 's', value: 90 } },
   { exercise: 'overheadPress', sets: '3 × 8', load: { kind: 'kg', value: 35 }, rest: { kind: 's', value: 90 } },
-  { exercise: 'pullUp', sets: '3 × max', load: { kind: 'body' }, rest: { kind: 'min', value: 2 } },
+  { exercise: 'pullUp', sets: 'max', load: { kind: 'body' }, rest: { kind: 'min', value: 2 } },
 ];
 
 const ROW_GRID =
@@ -50,7 +50,7 @@ function SessionRow({ row }: { row: BlockRow }) {
       <span className="truncate text-body font-semibold text-ink">
         {t(`home.mock.exercises.${row.exercise}`)}
       </span>
-      <span className="text-meta font-semibold text-ink">{row.sets}</span>
+      <span className="text-meta font-semibold text-ink">{row.sets === 'max' ? t('home.mock.setsMax') : row.sets}</span>
       <span className="text-meta text-ink-2">
         {row.load.kind === 'kg' ? `${row.load.value} kg` : t('home.mock.bodyweight')}
       </span>
@@ -146,7 +146,7 @@ export default function HomeCoaches() {
     <section
       id="for-coaches"
       tabIndex={-1}
-      className="flex flex-col justify-center px-4 py-14 outline-none sm:px-10 lg:home-section-pad lg:min-h-svh lg:px-16"
+      className="flex flex-col justify-center overflow-x-clip px-4 py-14 outline-none sm:px-10 lg:home-section-pad lg:min-h-svh lg:px-16"
     >
       <div className="@container home-tier mx-auto flex w-full max-w-home flex-col">
         <div className="flex flex-col gap-12 lg:flex-row lg:items-center lg:gap-16">

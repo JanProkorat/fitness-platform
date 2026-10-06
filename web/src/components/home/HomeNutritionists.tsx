@@ -217,7 +217,7 @@ export default function HomeNutritionists() {
     <section
       id="for-nutritionists"
       tabIndex={-1}
-      className="flex flex-col justify-center px-4 py-14 outline-none sm:px-10 lg:home-section-pad lg:min-h-svh lg:px-16"
+      className="flex flex-col justify-center overflow-x-clip px-4 py-14 outline-none sm:px-10 lg:home-section-pad lg:min-h-svh lg:px-16"
     >
       <div className="@container home-tier mx-auto flex w-full max-w-home flex-col">
         <div className="flex flex-col gap-12 lg:flex-row-reverse lg:items-center lg:gap-16">

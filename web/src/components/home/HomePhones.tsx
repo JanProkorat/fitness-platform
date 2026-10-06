@@ -251,7 +251,7 @@ const WORKOUT_ROWS: WorkoutRow[] = [
   { sets: '4 × 8', exercise: 'benchPress', load: '60 kg', done: true },
   { sets: '4 × 10', exercise: 'barbellRow', load: '50 kg', done: true },
   { sets: null, exercise: 'overheadPress', load: '35 kg', done: false, active: true },
-  { sets: '3 × max', exercise: 'pullUp', load: null, done: false },
+  { sets: 'max', exercise: 'pullUp', load: null, done: false },
 ];
 
 /** Client app: the workout in progress, shown next to the coach's session template. */
@@ -285,7 +285,7 @@ export function WorkoutPhone({ className = '' }: { className?: string }) {
             )}
             <span className="flex min-w-0 flex-col gap-px">
               <span className="text-mockup-xs text-muted-foreground">
-                {row.sets ?? t('home.mock.setNext')}
+                {row.sets === null ? t('home.mock.setNext') : row.sets === 'max' ? t('home.mock.setsMax') : row.sets}
               </span>
               <span className="text-meta font-semibold whitespace-nowrap text-ink">
                 {t(`home.mock.exercises.${row.exercise}`)}

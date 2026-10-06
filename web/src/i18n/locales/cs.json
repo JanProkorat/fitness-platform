@@ -3244,6 +3244,7 @@
       },
       "muscles": { "chest": "Hrudník", "back": "Záda", "shoulders": "Ramena" },
       "bodyweight": "vlastní váha",
+      "setsMax": "3 × max",
       "rest": { "min": "{{value}} min", "s": "{{value}} s" },
       "liveTitle": "Živě · Petra právě cvičí",
       "liveSet": "Bench press · série 3 ze 4",

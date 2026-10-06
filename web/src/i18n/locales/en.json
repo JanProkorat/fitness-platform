@@ -3199,6 +3199,7 @@
       },
       "muscles": { "chest": "Chest", "back": "Back", "shoulders": "Shoulders" },
       "bodyweight": "body",
+      "setsMax": "3 × max",
       "rest": { "min": "{{value}} min", "s": "{{value}} s" },
       "liveTitle": "Live · Petra is training",
       "liveSet": "Bench press · set 3 of 4",

@@ -3198,6 +3198,7 @@
       },
       "muscles": { "chest": "Brust", "back": "Rücken", "shoulders": "Schultern" },
       "bodyweight": "Körpergewicht",
+      "setsMax": "3 × max.",
       "rest": { "min": "{{value}} Min.", "s": "{{value}} Sek." },
       "liveTitle": "Live · Petra trainiert gerade",
       "liveSet": "Bankdrücken · Satz 3 von 4",
