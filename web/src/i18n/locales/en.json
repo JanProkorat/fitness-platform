@@ -639,6 +639,7 @@
       "questionnaireNone": "None",
       "questionnaireOption_one": "{{title}} · {{count}} question",
       "questionnaireOption_other": "{{title}} · {{count}} questions",
+      "questionnaireHelperDefault": "They fill it in right after accepting. You can pick another active form instead.",
       "questionnaireHelper": "They fill it in right after accepting. Pick “None” to skip it.",
       "questionnaireLoadError": "Couldn't load your forms. You can still send the invite without one.",
       "optional": "(optional)",

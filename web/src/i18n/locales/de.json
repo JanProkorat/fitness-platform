@@ -638,6 +638,7 @@
       "questionnaireNone": "Keines",
       "questionnaireOption_one": "{{title}} · {{count}} Frage",
       "questionnaireOption_other": "{{title}} · {{count}} Fragen",
+      "questionnaireHelperDefault": "Er füllt es gleich nach der Annahme aus. Sie können auch ein anderes aktives Formular wählen.",
       "questionnaireHelper": "Er füllt es gleich nach der Annahme aus. Wählen Sie „Keines“, um es zu überspringen.",
       "questionnaireLoadError": "Die Formulare konnten nicht geladen werden. Sie können die Einladung trotzdem ohne Formular senden.",
       "optional": "(optional)",

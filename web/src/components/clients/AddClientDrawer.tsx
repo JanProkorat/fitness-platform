@@ -83,6 +83,8 @@ function InviteForm({ onClose }: { onClose: () => void }) {
   const activeQuestionnaires = (questionnairesQuery.data ?? []).filter((questionnaire) => questionnaire.isActive);
   const defaultQuestionnaireId =
     activeQuestionnaires.find((questionnaire) => questionnaire.isDefault)?.publicId ?? NO_QUESTIONNAIRE;
+  // The server falls back to the active default form, so "None" only skips when no default exists.
+  const hasDefaultQuestionnaire = defaultQuestionnaireId !== NO_QUESTIONNAIRE;
   const questionnaireId = questionnaireChoice ?? defaultQuestionnaireId;
 
   const schema = z.object({
@@ -187,7 +189,9 @@ function InviteForm({ onClose }: { onClose: () => void }) {
                 onChange={(event) => setQuestionnaireChoice(event.target.value)}
                 className="h-10 w-full appearance-none rounded-field border border-input bg-background pr-9 pl-3 text-body text-foreground outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <option value={NO_QUESTIONNAIRE}>{t('clients.addClientDrawer.questionnaireNone')}</option>
+                {!hasDefaultQuestionnaire && (
+                  <option value={NO_QUESTIONNAIRE}>{t('clients.addClientDrawer.questionnaireNone')}</option>
+                )}
                 {activeQuestionnaires.map((questionnaire) => (
                   <option key={questionnaire.publicId} value={questionnaire.publicId}>
                     {t('clients.addClientDrawer.questionnaireOption', {
@@ -205,7 +209,13 @@ function InviteForm({ onClose }: { onClose: () => void }) {
             {questionnairesQuery.isError ? (
               <p className="text-meta text-destructive">{t('clients.addClientDrawer.questionnaireLoadError')}</p>
             ) : (
-              <p className="text-meta text-muted-foreground">{t('clients.addClientDrawer.questionnaireHelper')}</p>
+              <p className="text-meta text-muted-foreground">
+                {t(
+                  hasDefaultQuestionnaire
+                    ? 'clients.addClientDrawer.questionnaireHelperDefault'
+                    : 'clients.addClientDrawer.questionnaireHelper',
+                )}
+              </p>
             )}
           </div>
         </Section>
@@ -224,6 +234,9 @@ function InviteForm({ onClose }: { onClose: () => void }) {
               aria-invalid={messageTooLong}
               {...register('message')}
             />
+            {messageTooLong && (
+              <p className="text-meta text-destructive">{t('clients.addClientDrawer.validation.messageTooLong')}</p>
+            )}
             <span
               className={cn('self-end text-meta', messageTooLong ? 'text-destructive' : 'text-muted-foreground')}
               aria-live="polite"

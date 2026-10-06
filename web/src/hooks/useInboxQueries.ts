@@ -9,6 +9,7 @@ import {
   startConversation,
 } from '@/api/conversations';
 import { getRfc7807ErrorCode, showApiError } from '@/lib/api-errors';
+import { useAuthStore } from '@/stores/auth';
 import type { ChatImageUploadUrlPayload, SendMessagePayload } from '@/api/conversations';
 import type { ClientListFilter } from '@/api/generated';
 
@@ -24,9 +25,13 @@ export function useConversations(archived: boolean, filter: ClientListFilter) {
 
 /** Per-filter-chip counts for the dropdown's "(n)" labels. */
 export function useConversationFilterCounts() {
+  const isProfessional = useAuthStore(
+    (state) => state.user?.roles.some((role) => role === 'Trainer' || role === 'Nutritionist') ?? false,
+  );
   return useQuery({
     queryKey: ['conversations', 'filter-counts'],
     queryFn: getConversationFilterCounts,
+    enabled: isProfessional,
   });
 }
 

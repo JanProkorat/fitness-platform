@@ -662,6 +662,7 @@
       "questionnaireOption_few": "{{title}} · {{count}} otázky",
       "questionnaireOption_many": "{{title}} · {{count}} otázky",
       "questionnaireOption_other": "{{title}} · {{count}} otázek",
+      "questionnaireHelperDefault": "Vyplní ho hned po přijetí pozvánky. Můžete vybrat i jiný aktivní formulář.",
       "questionnaireHelper": "Vyplní ho hned po přijetí pozvánky. Vyberte „Žádný“, pokud ho nechcete posílat.",
       "questionnaireLoadError": "Formuláře se nepodařilo načíst. Pozvánku můžete odeslat i bez nich.",
       "optional": "(nepovinné)",
