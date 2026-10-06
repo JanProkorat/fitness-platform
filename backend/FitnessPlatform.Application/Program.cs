@@ -484,3 +484,5 @@ using (var migrationScope = app.Services.CreateScope())
 }
 
 app.Run();
+
+// Temporary: proves a backend change rebuilds the E2E image. Reverted in the next commit.
