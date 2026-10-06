@@ -1,3 +1,4 @@
+// Pixel sizes and positions in this file are illustration drawing copied from the board, not layout tokens.
 import { useTranslation } from 'react-i18next';
 import { FloatCard, MacroBar, WindowFrame } from '@/components/home/MockupParts';
 import { TodayPhone } from '@/components/home/HomePhones';
@@ -90,7 +91,7 @@ export default function HeroMockup() {
               <PlanRow key={row.meal} meal={t(`home.mock.meals.${row.meal}`)} cells={row.cells} />
             ))}
           </div>
-          <span className="absolute top-[11px] right-4 rounded-sm bg-nutrition-soft px-2 py-[3px] text-[10px] font-bold tracking-[0.06em] text-nutrition-ink">
+          <span className="absolute top-[11px] right-4 rounded-sm bg-nutrition-soft px-2 py-0.75 text-mockup-xs font-bold tracking-badge text-nutrition-ink">
             {t('home.mock.published')}
           </span>
         </WindowFrame>
@@ -116,10 +117,10 @@ export default function HeroMockup() {
         </svg>
 
         <div className="absolute top-[52px] left-[612px] flex w-[246px] items-start gap-2.5 rounded-2xl bg-notif px-3 py-2.5 text-on-dark shadow-popover">
-          <span className="flex size-[26px] shrink-0 items-center justify-center rounded-[7px] border border-on-dark/20 bg-scrim font-display text-[9px] font-semibold text-marker">
+          <span className="flex size-[26px] shrink-0 items-center justify-center rounded-thumb border border-on-dark/20 bg-scrim font-display text-mockup-badge font-semibold text-marker">
             {t('home.mock.notifBadge')}
           </span>
-          <span className="flex flex-col gap-0.5 text-caption leading-[1.35]">
+          <span className="flex flex-col gap-0.5 text-mockup-notif">
             <span className="flex font-bold">
               {t('home.mock.notifApp')}
               <span className="ml-auto font-normal opacity-60">{t('home.mock.notifNow')}</span>
@@ -156,7 +157,7 @@ function PlanRow({ meal, cells }: { meal: string; cells: PlanCell[] }) {
       {cells.map((cell, index) => (
         <div
           key={`${cell.food}-${index}`}
-          className={`box-border flex h-16 flex-col gap-[3px] rounded-field bg-surface p-2 ${
+          className={`box-border flex h-16 flex-col gap-0.75 rounded-field bg-surface p-2 ${
             cell.highlighted
               ? 'border-2 border-marker shadow-popover'
               : 'border border-border'
@@ -165,7 +166,7 @@ function PlanRow({ meal, cells }: { meal: string; cells: PlanCell[] }) {
           <span className="truncate text-caption font-semibold text-ink">
             {t(`home.mock.foods.${cell.food}`)}
           </span>
-          <span className="text-[10px] text-muted-foreground">
+          <span className="text-mockup-xs text-muted-foreground">
             {cell.kcal} {t('home.mock.kcal')}
           </span>
           <span className="mt-auto">

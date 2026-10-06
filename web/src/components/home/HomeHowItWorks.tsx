@@ -1,10 +1,11 @@
+// Pixel sizes and positions in this file are illustration drawing copied from the board, not layout tokens.
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Eyebrow, MacroBar, MealDot } from '@/components/home/MockupParts';
 import { IconChevronRight, IconCursor } from '@/components/home/HomeIcons';
 
 const TILE =
-  'box-border flex h-[54px] flex-col gap-[3px] rounded-[9px] border border-border bg-surface px-[9px] py-[7px]';
+  'box-border flex h-[54px] flex-col gap-0.75 rounded-tile border border-border bg-surface px-2.25 py-1.75';
 
 function BuildMock() {
   const { t } = useTranslation();
@@ -19,17 +20,17 @@ function BuildMock() {
       {tiles.map((tile) => (
         <div key={tile.food} className={TILE}>
           <span className="text-caption font-semibold text-ink">{t(`home.mock.foods.${tile.food}`)}</span>
-          <span className="text-[10px] text-muted-foreground">
+          <span className="text-mockup-xs text-muted-foreground">
             {tile.kcal} {t('home.mock.kcal')}
           </span>
         </div>
       ))}
-      <div className="h-[54px] rounded-[9px] border-[1.5px] border-dashed border-nutrition bg-nutrition-soft" />
+      <div className="h-[54px] rounded-tile border-[1.5px] border-dashed border-nutrition bg-nutrition-soft" />
       <div className="absolute top-[74px] left-[118px] flex w-[140px] -rotate-4 items-center gap-2 rounded-field border border-border bg-surface px-2.5 py-2 shadow-card">
-        <span className="size-[26px] rounded-[7px] bg-photo-peach" />
+        <span className="size-[26px] rounded-thumb bg-photo-peach" />
         <span className="flex flex-col">
           <span className="text-caption font-bold text-ink">{t('home.mock.foods.chickenBowl')}</span>
-          <span className="text-[10px] text-muted-foreground">640 {t('home.mock.kcal')}</span>
+          <span className="text-mockup-xs text-muted-foreground">640 {t('home.mock.kcal')}</span>
         </span>
       </div>
       <div className="absolute top-[112px] left-[236px]">
@@ -53,11 +54,11 @@ function PublishMock() {
       <span className="text-marker">
         <IconChevronRight />
       </span>
-      <div className="box-border flex h-[118px] w-[78px] shrink-0 flex-col gap-[5px] rounded-[18px] border-4 border-ink px-1.5 py-2">
+      <div className="box-border flex h-[118px] w-[78px] shrink-0 flex-col gap-1.25 rounded-card border-4 border-ink px-1.5 py-2">
         <span className="h-5 rounded-sm bg-marker" />
-        <span className="h-2 rounded-[3px] bg-border" />
-        <span className="h-2 w-[70%] rounded-[3px] bg-border" />
-        <span className="h-2 rounded-[3px] bg-border" />
+        <span className="h-2 rounded-xs bg-border" />
+        <span className="h-2 w-[70%] rounded-xs bg-border" />
+        <span className="h-2 rounded-xs bg-border" />
       </div>
     </div>
   );
@@ -74,10 +75,10 @@ function FollowMock() {
   return (
     <div className="flex flex-col">
       {rows.map((row) => (
-        <div key={row.kind} className="flex items-center gap-[9px] border-t border-border py-[7px]">
+        <div key={row.kind} className="flex items-center gap-2.25 border-t border-border py-1.75">
           <MealDot done={row.done} size={row.done ? 'size-[18px]' : 'size-4'} />
           <span className="flex flex-col">
-            <span className="text-[10px] text-muted-foreground">{t(`home.mock.meals.${row.kind}`)}</span>
+            <span className="text-mockup-xs text-muted-foreground">{t(`home.mock.meals.${row.kind}`)}</span>
             <span className="text-meta font-semibold text-ink">{t(`home.mock.foods.${row.food}`)}</span>
           </span>
           <span className="ml-auto text-caption text-muted-foreground">{row.kcal}</span>
@@ -101,7 +102,7 @@ function SeeMock() {
       <div className="flex items-baseline gap-2">
         <span className="font-display text-stat font-semibold text-ink">{t('home.mock.weightValue')}</span>
         <span className="text-meta text-muted-foreground">{t('home.mock.kg')}</span>
-        <span className="ml-auto rounded-sm bg-nutrition-soft px-2 py-[3px] text-caption font-bold text-nutrition-ink">
+        <span className="ml-auto rounded-sm bg-nutrition-soft px-2 py-0.75 text-caption font-bold text-nutrition-ink">
           {t('home.mock.weightDelta')}
         </span>
       </div>
@@ -122,15 +123,15 @@ function StepCard({ index, stepKey, children }: { index: number; stepKey: string
     <div className="flex min-w-0 flex-col gap-3.5">
       <div
         aria-hidden="true"
-        className="box-border flex h-[196px] flex-col justify-center rounded-[18px] border border-border bg-surface p-5"
+        className="box-border flex h-[196px] flex-col justify-center rounded-card border border-border bg-surface p-5"
       >
         {children}
       </div>
       <div className="flex items-baseline gap-2.5">
         <span className="font-display text-subhead font-semibold text-marker">{index}</span>
-        <h3 className="font-display text-[20px] font-semibold text-ink">{t(`home.steps.${stepKey}.title`)}</h3>
+        <h3 className="font-display text-home-step-title font-semibold text-ink">{t(`home.steps.${stepKey}.title`)}</h3>
       </div>
-      <p className="text-copy leading-[1.55] text-muted-foreground">{t(`home.how.steps.${stepKey}`)}</p>
+      <p className="text-copy text-muted-foreground">{t(`home.how.steps.${stepKey}`)}</p>
     </div>
   );
 }
@@ -146,7 +147,7 @@ export default function HomeHowItWorks() {
     >
       <div className="flex flex-col gap-2.5">
         <Eyebrow className="text-muted-foreground">{t('home.how.eyebrow')}</Eyebrow>
-        <h2 className="font-display text-[38px] leading-[1.15] font-semibold tracking-[-0.015em] text-ink">
+        <h2 className="font-display text-home-heading font-semibold tracking-heading text-ink">
           {t('home.how.title')}
         </h2>
       </div>

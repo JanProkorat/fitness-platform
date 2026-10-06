@@ -23,7 +23,7 @@ function PhoneGroup({
     <div className="flex flex-col items-center gap-4.5">
       <div className="flex flex-col items-center gap-1">
         <span
-          className={`rounded-full px-3 py-[5px] text-meta font-bold tracking-[0.06em] uppercase ${badgeTone}`}
+          className={`rounded-full px-3 py-1.25 text-meta font-bold tracking-badge uppercase ${badgeTone}`}
         >
           {badge}
         </span>
@@ -41,14 +41,14 @@ export default function HomeMobileApp() {
   return (
     <section
       id="mobile-app"
-      className="@container flex scroll-mt-6 flex-col items-center gap-12 px-4 pt-14 pb-16 sm:px-10 panel:col-start-1 panel:px-16 panel:pt-24 panel:pb-[90px]"
+      className="@container flex scroll-mt-6 flex-col items-center gap-12 px-4 pt-14 pb-16 sm:px-10 panel:col-start-1 panel:px-16 panel:pt-24 panel:pb-22.5"
     >
       <div className="flex flex-col items-center gap-3.5 text-center">
         <Eyebrow className="text-marker">{t('home.app.eyebrow')}</Eyebrow>
-        <h2 className="font-display text-[38px] leading-[1.15] font-semibold tracking-[-0.015em] text-ink">
+        <h2 className="font-display text-home-heading font-semibold tracking-heading text-ink">
           {t('home.app.title')}
         </h2>
-        <p className="max-w-[680px] text-[16px] leading-[1.6] text-ink-2">{t('home.app.lead')}</p>
+        <p className="max-w-[680px] text-home-lead text-ink-2">{t('home.app.lead')}</p>
         <div className="flex flex-wrap justify-center gap-2.5">
           <StoreLinks appStore={t('home.app.appStore')} googlePlay={t('home.app.googlePlay')} />
         </div>

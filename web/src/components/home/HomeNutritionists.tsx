@@ -1,3 +1,4 @@
+// Pixel sizes and positions in this file are illustration drawing copied from the board, not layout tokens.
 import { useTranslation } from 'react-i18next';
 import { Eyebrow, FeatureItem, FloatCard, MacroBar, WindowFrame } from '@/components/home/MockupParts';
 import { IconCalendar, IconCheck, IconPeople, IconSliders } from '@/components/home/HomeIcons';
@@ -92,7 +93,7 @@ function NutritionMockup() {
           {DAY_TOTALS.map((day) => (
             <div
               key={day.kcal}
-              className="flex flex-col gap-1 rounded-[9px] border border-border bg-surface px-2 py-[7px]"
+              className="flex flex-col gap-1 rounded-tile border border-border bg-surface px-2 py-1.75"
             >
               <span
                 className={`text-meta font-bold ${day.tone === 'warn' ? 'text-training' : 'text-ink'}`}
@@ -115,7 +116,7 @@ function NutritionMockup() {
       <FloatCard className="absolute top-[calc(100%-34px)] -left-9 flex w-[250px] flex-col px-3.5 py-3">
         <span className="pb-1.5 text-body font-bold text-ink">{t('home.mock.shoppingList')}</span>
         {SHOPPING.map((entry) => (
-          <div key={entry.item} className="flex items-center gap-[9px] border-t border-border py-1.5">
+          <div key={entry.item} className="flex items-center gap-2.25 border-t border-border py-1.5">
             {entry.done ? (
               <span className="flex size-4 items-center justify-center rounded-xs bg-nutrition text-on-nutrition">
                 <IconCheck size={10} strokeWidth={2.8} />
@@ -135,7 +136,7 @@ function NutritionMockup() {
 
       <div className="absolute -top-[26px] -right-5 hidden gap-1.5 rounded-xl border border-border bg-surface px-2.5 py-2 text-caption font-semibold text-ink shadow-popover @min-[760px]:flex">
         {LEGEND.map((entry) => (
-          <span key={entry.label} className="inline-flex items-center gap-[5px]">
+          <span key={entry.label} className="inline-flex items-center gap-1.25">
             <span className={`size-[7px] rounded-full ${entry.dot}`} />
             {entry.label}
           </span>
@@ -162,11 +163,11 @@ function MealRow({
           key={index}
           className={`box-border flex h-[66px] flex-col gap-0.5 rounded-field border border-border p-2 ${VERDICT_STYLE[cell.verdict].cell}`}
         >
-          <span className="flex items-baseline gap-[3px]">
-            <span className="text-[16px] font-semibold text-ink">{cell.kcal}</span>
-            <span className="text-[10px] text-muted-foreground">{t('home.mock.kcal')}</span>
+          <span className="flex items-baseline gap-0.75">
+            <span className="text-mockup-figure font-semibold text-ink">{cell.kcal}</span>
+            <span className="text-mockup-xs text-muted-foreground">{t('home.mock.kcal')}</span>
           </span>
-          <span className={`text-[10px] font-bold ${VERDICT_STYLE[cell.verdict].label}`}>
+          <span className={`text-mockup-xs font-bold ${VERDICT_STYLE[cell.verdict].label}`}>
             {cell.delta ?? t('home.mock.onTarget')}
           </span>
           <span className="mt-auto">
@@ -190,10 +191,10 @@ export default function HomeNutritionists() {
       <div className="flex flex-col gap-12 @min-[1200px]:flex-row-reverse @min-[1200px]:items-center @min-[1200px]:gap-16">
         <div className="flex max-w-[420px] shrink-0 flex-col gap-4.5">
           <Eyebrow className="text-nutrition">{t('home.nutritionists.eyebrow')}</Eyebrow>
-          <h2 className="font-display text-[38px] leading-[1.1] font-semibold tracking-[-0.015em] text-ink">
+          <h2 className="font-display text-home-heading font-semibold tracking-heading text-ink">
             {t('home.nutritionists.title')}
           </h2>
-          <p className="text-[16px] leading-[1.6] text-ink-2">{t('home.nutritionists.lead')}</p>
+          <p className="text-home-lead text-ink-2">{t('home.nutritionists.lead')}</p>
           <div className="flex flex-col gap-4 pt-1.5">
             <FeatureItem
               icon={<IconCalendar />}

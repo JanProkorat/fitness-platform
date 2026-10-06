@@ -22,13 +22,13 @@ export default function HomeHero() {
       />
       <div className="flex flex-col gap-8 @min-[1240px]:flex-row @min-[1240px]:gap-12">
         <div className="flex max-w-[470px] shrink-0 flex-col gap-5.5 pt-4 @min-[1240px]:pt-8.5">
-          <span className="text-meta font-semibold tracking-[0.16em] text-muted-foreground uppercase">
+          <span className="text-meta font-semibold tracking-eyebrow text-muted-foreground uppercase">
             {t('home.hero.eyebrow')}
           </span>
-          <h1 className="font-display text-hero font-semibold tracking-[-0.025em] text-ink">
+          <h1 className="font-display text-home-hero font-semibold tracking-hero text-ink">
             {t('home.hero.headline')} <span className="text-marker">{t('home.hero.headlineAccent')}</span>
           </h1>
-          <p className="text-[17px] leading-[1.6] text-ink-2">{t('home.hero.sub')}</p>
+          <p className="text-home-sub text-ink-2">{t('home.hero.sub')}</p>
           <div className="flex flex-wrap gap-2.5 pt-1.5">
             <Link
               to="/register"

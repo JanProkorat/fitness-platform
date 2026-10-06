@@ -1,3 +1,4 @@
+// Pixel sizes and positions in this file are illustration drawing copied from the board, not layout tokens.
 import { useTranslation } from 'react-i18next';
 import { Eyebrow, FeatureItem, FloatCard, WindowFrame } from '@/components/home/MockupParts';
 import {
@@ -74,7 +75,7 @@ function SessionMockup() {
                 className="flex items-center gap-2.5 rounded-field border border-border bg-surface p-2"
               >
                 <span
-                  className={`flex h-8 w-10 items-center justify-center rounded-[7px] text-on-dark ${item.tint}`}
+                  className={`flex h-8 w-10 items-center justify-center rounded-thumb text-on-dark ${item.tint}`}
                 >
                   <IconPlay size={12} />
                 </span>
@@ -82,7 +83,7 @@ function SessionMockup() {
                   <span className="text-meta font-semibold text-ink">
                     {t(`home.mock.exercises.${item.exercise}`)}
                   </span>
-                  <span className="text-[10px] text-muted-foreground">
+                  <span className="text-mockup-xs text-muted-foreground">
                     {t(`home.mock.muscles.${item.muscle}`)}
                   </span>
                 </span>
@@ -90,26 +91,26 @@ function SessionMockup() {
             ))}
           </div>
           <div className="flex min-w-0 grow flex-col gap-2">
-            <span className="text-caption font-semibold tracking-[0.1em] text-muted-foreground uppercase">
+            <span className="text-caption font-semibold tracking-caps text-muted-foreground uppercase">
               {t('home.mock.blockA')}
             </span>
             <SessionRow row={BLOCK_ROWS[0]} />
             <SessionRow row={BLOCK_ROWS[1]} />
-            <div className="-my-[3px] h-0.5 rounded-xs bg-marker" />
+            <div className="-my-0.75 h-0.5 rounded-xs bg-marker" />
             <SessionRow row={BLOCK_ROWS[2]} />
             <SessionRow row={BLOCK_ROWS[3]} />
           </div>
           <div className="absolute top-32 left-[330px] flex w-[190px] -rotate-3 items-center gap-2.5 rounded-field border border-border bg-surface p-2 shadow-card">
-            <span className="h-8 w-10 rounded-[7px] bg-photo-rose" />
+            <span className="h-8 w-10 rounded-thumb bg-photo-rose" />
             <span className="flex flex-col">
               <span className="text-meta font-bold text-ink">{t('home.mock.exercises.facePull')}</span>
-              <span className="text-[10px] text-muted-foreground">3 × 15</span>
+              <span className="text-mockup-xs text-muted-foreground">3 × 15</span>
             </span>
           </div>
         </div>
       </WindowFrame>
       <FloatCard className="absolute right-0 -bottom-8.5 flex w-[290px] flex-col gap-1.5 px-3.5 py-3 @min-[820px]:-right-6">
-        <span className="flex items-center gap-1.5 text-caption font-bold tracking-[0.08em] text-marker uppercase">
+        <span className="flex items-center gap-1.5 text-caption font-bold tracking-caps text-marker uppercase">
           <span className="size-[7px] rounded-full bg-marker" />
           {t('home.mock.liveTitle')}
         </span>
@@ -137,10 +138,10 @@ export default function HomeCoaches() {
       <div className="flex flex-col gap-12 @min-[1200px]:flex-row @min-[1200px]:items-center @min-[1200px]:gap-16">
         <div className="flex max-w-[420px] shrink-0 flex-col gap-4.5">
           <Eyebrow className="text-training">{t('home.coaches.eyebrow')}</Eyebrow>
-          <h2 className="font-display text-[38px] leading-[1.1] font-semibold tracking-[-0.015em] text-ink">
+          <h2 className="font-display text-home-heading font-semibold tracking-heading text-ink">
             {t('home.coaches.title')}
           </h2>
-          <p className="text-[16px] leading-[1.6] text-ink-2">{t('home.coaches.lead')}</p>
+          <p className="text-home-lead text-ink-2">{t('home.coaches.lead')}</p>
           <div className="flex flex-col gap-4 pt-1.5">
             <FeatureItem
               icon={<IconDumbbell />}

@@ -1,3 +1,4 @@
+// Pixel sizes and positions in this file are illustration drawing copied from the board, not layout tokens.
 import { useTranslation } from 'react-i18next';
 import { GlassCard, MealDot, PhoneFrame } from '@/components/home/MockupParts';
 import { IconArrowUp, IconDumbbell } from '@/components/home/HomeIcons';
@@ -27,11 +28,11 @@ export function TodayPhone({ size = 'standard' }: { size?: 'hero' | 'standard' }
     <PhoneFrame size={size}>
       <div className="flex flex-col gap-0.5 px-1.5 pt-1.5">
         <span className="text-caption text-muted-foreground">{t('home.mock.date')}</span>
-        <span className="font-display text-[21px] font-semibold text-ink">
+        <span className="font-display text-mockup-greeting font-semibold text-ink">
           {t('home.mock.greeting')}
         </span>
       </div>
-      <GlassCard className="flex flex-col gap-0.5 rounded-[20px] px-1.5 pt-2.5 pb-1.5">
+      <GlassCard className="flex flex-col gap-0.5 rounded-glass px-1.5 pt-2.5 pb-1.5">
         <span className="flex px-2.5 pb-1.5 text-meta font-bold text-ink">
           {t('home.mock.todaysMeals')}
           <span className="ml-auto font-medium text-muted-foreground">{t('home.mock.mealsProgress')}</span>
@@ -45,7 +46,7 @@ export function TodayPhone({ size = 'standard' }: { size?: 'hero' | 'standard' }
           >
             <MealDot done={meal.done} size={meal.done ? 'size-5' : 'size-[18px]'} />
             <span className="flex min-w-0 flex-col gap-px">
-              <span className="text-[10px] text-muted-foreground">{t(`home.mock.meals.${meal.kind}`)}</span>
+              <span className="text-mockup-xs text-muted-foreground">{t(`home.mock.meals.${meal.kind}`)}</span>
               <span className="text-meta font-semibold whitespace-nowrap text-ink">
                 {t(`home.mock.foods.${meal.food}`)}
               </span>
@@ -54,7 +55,7 @@ export function TodayPhone({ size = 'standard' }: { size?: 'hero' | 'standard' }
           </div>
         ))}
       </GlassCard>
-      <GlassCard className="flex items-center gap-2.5 rounded-[20px] px-3.5 py-3">
+      <GlassCard className="flex items-center gap-2.5 rounded-glass px-3.5 py-3">
         <span className="flex size-[34px] items-center justify-center rounded-field bg-training-soft text-training">
           <IconDumbbell />
         </span>
@@ -75,12 +76,12 @@ export function CheckInPhone() {
   const { t } = useTranslation();
 
   return (
-    <PhoneFrame className="mt-[50px]">
+    <PhoneFrame className="mt-12.5">
       <div className="flex flex-col gap-0.5 px-1.5 py-1">
         <span className="text-caption text-muted-foreground">{t('home.mock.sundayWeek')}</span>
-        <span className="font-display text-[20px] font-semibold">{t('home.mock.weeklyCheckIn')}</span>
+        <span className="font-display text-mockup-title font-semibold">{t('home.mock.weeklyCheckIn')}</span>
       </div>
-      <GlassCard className="rounded-[18px] px-3.5 py-3">
+      <GlassCard className="rounded-card px-3.5 py-3">
         <span className="text-caption text-muted-foreground">{t('home.mock.weight')}</span>
         <div className="flex items-baseline gap-1.5">
           <span className="font-display text-stat font-semibold">{t('home.mock.weightValue')}</span>
@@ -88,7 +89,7 @@ export function CheckInPhone() {
           <span className="ml-auto text-caption font-bold text-nutrition">{t('home.mock.weightDeltaShort')}</span>
         </div>
       </GlassCard>
-      <GlassCard className="rounded-[18px] px-3.5 py-3">
+      <GlassCard className="rounded-card px-3.5 py-3">
         <span className="text-caption text-muted-foreground">{t('home.mock.progressPhotos')}</span>
         <div className="flex gap-1.5 pt-1.5">
           {PHOTO_TINTS.map((tint) => (
@@ -96,13 +97,13 @@ export function CheckInPhone() {
           ))}
         </div>
       </GlassCard>
-      <GlassCard className="rounded-[18px] px-3.5 py-3">
+      <GlassCard className="rounded-card px-3.5 py-3">
         <span className="text-caption text-muted-foreground">{t('home.mock.energyThisWeek')}</span>
-        <div className="flex gap-[5px] pt-1.5">
+        <div className="flex gap-1.25 pt-1.5">
           {[1, 2, 3, 4, 5].map((level) => (
             <span
               key={level}
-              className={`flex h-[30px] grow items-center justify-center rounded-[9px] text-meta font-bold ${
+              className={`flex h-[30px] grow items-center justify-center rounded-tile text-meta font-bold ${
                 level === 4 ? 'bg-marker text-on-dark' : 'border border-muted-foreground/30'
               }`}
             >
@@ -141,7 +142,7 @@ function ClientList({ rows }: { rows: ClientRow[] }) {
   return rows.map((row) => (
     <div
       key={row.name}
-      className="flex items-center gap-2.5 border-t border-muted-foreground/20 px-1 py-[9px]"
+      className="flex items-center gap-2.5 border-t border-muted-foreground/20 px-1 py-2.25"
     >
       <span className={`size-8 rounded-full ${row.tint}`} />
       <span className="flex flex-col gap-px">
@@ -160,16 +161,16 @@ export function CoachClientsPhone() {
     <PhoneFrame>
       <div className="flex flex-col gap-0.5 px-1.5 py-1">
         <span className="text-caption text-muted-foreground">{t('home.mock.coachClients')}</span>
-        <span className="font-display text-[20px] font-semibold">{t('home.mock.clientsTitle')}</span>
+        <span className="font-display text-mockup-title font-semibold">{t('home.mock.clientsTitle')}</span>
       </div>
-      <GlassCard className="rounded-[18px] px-3 py-2.5">
-        <span className="text-caption font-bold tracking-[0.08em] text-marker uppercase">
+      <GlassCard className="rounded-card px-3 py-2.5">
+        <span className="text-caption font-bold tracking-caps text-marker uppercase">
           {t('home.mock.needsYou')}
         </span>
         <ClientList rows={NEEDS_YOU} />
       </GlassCard>
-      <GlassCard className="rounded-[18px] px-3 py-2.5">
-        <span className="text-caption font-bold tracking-[0.08em] text-muted-foreground uppercase">
+      <GlassCard className="rounded-card px-3 py-2.5">
+        <span className="text-caption font-bold tracking-caps text-muted-foreground uppercase">
           {t('home.mock.onTrack')}
         </span>
         <ClientList rows={ON_TRACK} />
@@ -192,14 +193,14 @@ export function CoachCheckInPhone() {
   const { t } = useTranslation();
 
   return (
-    <PhoneFrame className="mt-[50px]">
+    <PhoneFrame className="mt-12.5">
       <div className="flex flex-col gap-0.5 px-1.5 py-1">
         <span className="text-caption text-muted-foreground">{t('home.mock.reviewSubtitle')}</span>
-        <span className="font-display text-[20px] font-semibold">{t('home.mock.reviewTitle')}</span>
+        <span className="font-display text-mockup-title font-semibold">{t('home.mock.reviewTitle')}</span>
       </div>
-      <GlassCard className="rounded-[18px] px-3 py-2.5">
+      <GlassCard className="rounded-card px-3 py-2.5">
         <div className="flex items-baseline gap-1.5">
-          <span className="font-display text-[24px] font-semibold">{t('home.mock.weightValue')}</span>
+          <span className="font-display text-mockup-weight font-semibold">{t('home.mock.weightValue')}</span>
           <span className="text-meta text-muted-foreground">{t('home.mock.kg')}</span>
           <span className="ml-auto text-caption font-bold text-nutrition">{t('home.mock.trendDelta')}</span>
         </div>
@@ -216,10 +217,10 @@ export function CoachCheckInPhone() {
           ))}
         </svg>
       </GlassCard>
-      <GlassCard className="rounded-[18px] px-3 py-2.5">
+      <GlassCard className="rounded-card px-3 py-2.5">
         <div className="flex gap-1.5">
           {PHOTO_TINTS.map((tint) => (
-            <span key={tint} className={`h-[54px] grow rounded-[9px] ${tint}`} />
+            <span key={tint} className={`h-[54px] grow rounded-tile ${tint}`} />
           ))}
         </div>
         <span className="block pt-2 text-caption text-muted-foreground">{t('home.mock.reviewQuote')}</span>

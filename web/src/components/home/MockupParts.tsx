@@ -1,3 +1,4 @@
+// Pixel sizes and positions in this file are illustration drawing copied from the board, not layout tokens.
 import type { ReactNode } from 'react';
 import { IconApple, IconCheck, IconPlay } from '@/components/home/HomeIcons';
 
@@ -61,7 +62,7 @@ interface PhoneFrameProps {
 /** Decorative phone body with a status bar; screen content goes in `children`. */
 export function PhoneFrame({ size = 'standard', className = '', children }: PhoneFrameProps) {
   const dimensions =
-    size === 'hero' ? 'w-[270px] rounded-[46px]' : 'w-[250px] rounded-[44px]';
+    size === 'hero' ? 'w-[270px] rounded-phone-hero' : 'w-[250px] rounded-phone';
   return (
     <div
       aria-hidden="true"
@@ -103,7 +104,7 @@ export function MealDot({ done, size = 'size-5' }: { done: boolean; size?: strin
 /** Eyebrow label above a section title. */
 export function Eyebrow({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
-    <span className={`text-meta font-bold tracking-[0.16em] uppercase ${className}`}>{children}</span>
+    <span className={`text-meta font-bold tracking-eyebrow uppercase ${className}`}>{children}</span>
   );
 }
 
@@ -123,7 +124,7 @@ export function FeatureItem({ icon, tone, title, description }: FeatureItemProps
         {icon}
       </span>
       <span className="flex flex-col gap-1">
-        <span className="text-[16px] font-bold text-ink">{title}</span>
+        <span className="text-home-feature-title font-bold text-ink">{title}</span>
         <span className="text-copy leading-normal text-muted-foreground">{description}</span>
       </span>
     </div>
@@ -139,7 +140,7 @@ interface StoreLinksProps {
 /** App Store / Google Play placeholders; real store URLs land with the app release. */
 export function StoreLinks({ appStore, googlePlay, size = 'md' }: StoreLinksProps) {
   const sizing = size === 'md' ? 'h-10 px-3.5' : 'h-[34px] px-3.5';
-  const base = `inline-flex items-center gap-[7px] rounded-field border border-border bg-surface text-body font-semibold whitespace-nowrap text-ink hover:bg-sunken ${sizing}`;
+  const base = `inline-flex items-center gap-1.75 rounded-field border border-border bg-surface text-body font-semibold whitespace-nowrap text-ink hover:bg-sunken ${sizing}`;
   return (
     <>
       <a href="#" className={base}>

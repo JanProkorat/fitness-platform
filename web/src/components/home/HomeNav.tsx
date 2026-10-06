@@ -52,7 +52,7 @@ export default function HomeNav() {
     <header className="flex h-19 items-center gap-4 px-4 sm:px-10 panel:gap-9 panel:px-16">
       <Link
         to="/"
-        className="font-display text-[17px] leading-none font-light tracking-[0.16em] whitespace-nowrap text-ink sm:text-[20px] sm:tracking-[0.22em]"
+        className="font-display text-home-wordmark-sm font-light tracking-wordmark-sm whitespace-nowrap text-ink sm:text-home-wordmark sm:tracking-wordmark"
       >
         {t('home.brand.form')} <span className="text-marker">{t('home.brand.up')}</span>
       </Link>

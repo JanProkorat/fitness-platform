@@ -134,6 +134,39 @@
   --gf-text-section-title: clamp(26px, 3vw, 34px); /* band H2 */
   --gf-text-cta-title: clamp(24px, 3vw, 32px); /* closing CTA H2 */
 
+  /* Home page (PageHome*) type roles. */
+  --gf-text-home-hero: clamp(38px, 3.9vw, 56px); /* hero H1: 56px from 1440px wide */
+  --gf-text-home-heading: 38px; /* section H2 */
+  --gf-text-home-banner: 34px; /* closing banner H2 */
+  --gf-text-home-lead: 16px; /* section lead paragraph */
+  --gf-text-home-sub: 17px; /* hero sub-headline */
+  --gf-text-home-feature-title: 16px; /* feature list title */
+  --gf-text-home-step-title: 20px; /* how-it-works step title */
+  --gf-text-home-wordmark: 20px; /* nav wordmark */
+  --gf-text-home-wordmark-sm: 17px; /* nav wordmark on phones */
+  --gf-text-mockup-xs: 10px; /* micro labels inside mockups */
+  --gf-text-mockup-badge: 9px; /* app-icon initials in the notification */
+  --gf-text-mockup-notif: 11px; /* notification body */
+  --gf-text-mockup-figure: 16px; /* kcal figure in a plan cell */
+  --gf-text-mockup-title: 20px; /* phone screen title */
+  --gf-text-mockup-greeting: 21px; /* phone greeting */
+  --gf-text-mockup-weight: 24px; /* weight reading on the coach phone */
+
+  --gf-tracking-eyebrow: 0.16em; /* section eyebrow */
+  --gf-tracking-wordmark: 0.22em;
+  --gf-tracking-wordmark-sm: 0.16em;
+  --gf-tracking-heading: -0.015em;
+  --gf-tracking-hero: -0.025em;
+  --gf-tracking-badge: 0.06em;
+  --gf-tracking-caps: 0.08em; /* small uppercase labels inside mockups */
+
+  --gf-radius-thumb: 7px; /* thumbnails inside mockups */
+  --gf-radius-tile: 9px; /* meal tiles and small mockup cards */
+  --gf-radius-card: 18px; /* step cards and phone cards */
+  --gf-radius-glass: 20px; /* large translucent phone cards */
+  --gf-radius-phone: 44px; /* phone body */
+  --gf-radius-phone-hero: 46px; /* hero phone body */
+
   --gf-shadow-dialog: 0 30px 80px rgba(0, 0, 0, 0.35); /* centred modal (PageClientPlanStartOver) */
   --gf-shadow-sheet: -12px 0 40px rgba(0, 0, 0, 0.18); /* right-hand drawer (PageClientInviteDrawer) */
   --gf-shadow-popover: 0 6px 20px rgba(0, 0, 0, 0.12); /* floating pill (PageClients selection bar): menus, popovers, hover cards, toasts */
@@ -322,6 +355,12 @@
      for the 8px button/input radius (button.tsx's `rounded-lg`). This is
      the true "large" radius (16px) for cards, panels, collage cells. */
   --radius-2xl: var(--gf-radius-lg);
+  --radius-thumb: var(--gf-radius-thumb);
+  --radius-tile: var(--gf-radius-tile);
+  --radius-card: var(--gf-radius-card);
+  --radius-glass: var(--gf-radius-glass);
+  --radius-phone: var(--gf-radius-phone);
+  --radius-phone-hero: var(--gf-radius-phone-hero);
 
   /* Every --text-* token below is paired with a --text-*--line-height
      modifier (#1079) -- Tailwind v4 resolves these together, so e.g.
@@ -381,6 +420,40 @@
   --text-cta-title: var(--gf-text-cta-title);
   --text-cta-title--line-height: 1.5;
 
+  /* ---- Home page scale ---- */
+  --text-home-hero: var(--gf-text-home-hero);
+  --text-home-hero--line-height: 1.04;
+  --text-home-heading: var(--gf-text-home-heading);
+  --text-home-heading--line-height: 1.1;
+  --text-home-banner: var(--gf-text-home-banner);
+  --text-home-banner--line-height: 1.2;
+  --text-home-lead: var(--gf-text-home-lead);
+  --text-home-lead--line-height: 1.6;
+  --text-home-sub: var(--gf-text-home-sub);
+  --text-home-sub--line-height: 1.6;
+  --text-home-feature-title: var(--gf-text-home-feature-title);
+  --text-home-feature-title--line-height: 1.3;
+  --text-home-step-title: var(--gf-text-home-step-title);
+  --text-home-step-title--line-height: 1.2;
+  --text-home-wordmark: var(--gf-text-home-wordmark);
+  --text-home-wordmark--line-height: 1;
+  --text-home-wordmark-sm: var(--gf-text-home-wordmark-sm);
+  --text-home-wordmark-sm--line-height: 1;
+  --text-mockup-xs: var(--gf-text-mockup-xs);
+  --text-mockup-xs--line-height: 1.2;
+  --text-mockup-badge: var(--gf-text-mockup-badge);
+  --text-mockup-badge--line-height: 1.2;
+  --text-mockup-notif: var(--gf-text-mockup-notif);
+  --text-mockup-notif--line-height: 1.35;
+  --text-mockup-figure: var(--gf-text-mockup-figure);
+  --text-mockup-figure--line-height: 1.2;
+  --text-mockup-title: var(--gf-text-mockup-title);
+  --text-mockup-title--line-height: 1.2;
+  --text-mockup-greeting: var(--gf-text-mockup-greeting);
+  --text-mockup-greeting--line-height: 1.2;
+  --text-mockup-weight: var(--gf-text-mockup-weight);
+  --text-mockup-weight--line-height: 1.2;
+
   --shadow-dialog: var(--gf-shadow-dialog);
   --shadow-sheet: var(--gf-shadow-sheet);
   --shadow-popover: var(--gf-shadow-popover);
@@ -399,6 +472,13 @@
   --spacing-drawer-wide: var(--gf-drawer-wide-width);
 
   --tracking-label: var(--gf-tracking-label);
+  --tracking-eyebrow: var(--gf-tracking-eyebrow);
+  --tracking-wordmark: var(--gf-tracking-wordmark);
+  --tracking-wordmark-sm: var(--gf-tracking-wordmark-sm);
+  --tracking-heading: var(--gf-tracking-heading);
+  --tracking-hero: var(--gf-tracking-hero);
+  --tracking-badge: var(--gf-tracking-badge);
+  --tracking-caps: var(--gf-tracking-caps);
 
   /* Literal, not a var() alias — see the comment on --gf-panel-width above. */
   --breakpoint-panel: 960px;
