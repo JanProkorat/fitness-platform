@@ -395,9 +395,24 @@ export default function RegisterForm() {
                     </label>
                   )}
                 />
-                {errors.healthDataConsent && (
-                  <p className="text-meta text-destructive">{errors.healthDataConsent.message}</p>
-                )}
+                {/* Always mounted so it can grow/fade; same collapse recipe as the row. */}
+                <div
+                  data-testid="health-consent-error"
+                  aria-hidden={!errors.healthDataConsent}
+                  inert={!errors.healthDataConsent}
+                  className={cn(
+                    'grid transition-[grid-template-rows,margin-top,opacity,visibility] duration-200 ease-out motion-reduce:transition-none',
+                    errors.healthDataConsent
+                      ? 'visible mt-0 grid-rows-[1fr] opacity-100'
+                      : 'invisible -mt-4.5 grid-rows-[0fr] opacity-0 short:-mt-2.5'
+                  )}
+                >
+                  <div className="overflow-hidden">
+                    <p className="text-meta text-destructive">
+                      {t('entry.register.validation.healthConsentRequired')}
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
 
