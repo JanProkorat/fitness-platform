@@ -84,6 +84,7 @@ test('the close button closes the dialog and returns to /', async ({ page }) => 
 test('closing the dialog replaces history, so Back does not reopen it', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('link', { name: 'Sign in' }).click();
+  await expect(page.getByRole('dialog')).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).toHaveCount(0);
 
