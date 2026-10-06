@@ -1,4 +1,7 @@
 ---
+paths:
+  - "web/**"
+  - "mobile/**"
 description: State and data-fetching conventions for React Native / Expo apps — query cache vs. app-state store, realtime invalidation
 ---
 

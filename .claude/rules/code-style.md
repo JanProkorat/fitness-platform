@@ -1,4 +1,7 @@
 ---
+paths:
+  - "web/**"
+  - "mobile/**"
 description: React Native / Expo code style rules — strict typing, design tokens, component conventions
 ---
 

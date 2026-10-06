@@ -7,6 +7,11 @@ are applied consistently.
 Detailed conventions live in [`rules/*.md`](rules/) — cite anchors, never
 restate. Citation format: `rules/<file>.md#<anchor>`.
 
+Rules are path-scoped (`paths:` frontmatter): backend rules load on `backend/**`,
+client rules on `web/**`/`mobile/**`, pipeline rules on `.claude/state/**`.
+None preload. A citation is a load instruction — `Read` the cited rule file
+before acting on it if it is not already in context.
+
 ## Sub-agents
 
 Project-local dev agents (live in `.claude/agents/`):
@@ -54,30 +59,12 @@ package label per package whose code it changes:
 | Epic-branch model (two-tier integration) | [`rules/epic-branch.md`](rules/epic-branch.md) |
 | Merge strategy, task merge into the epic branch, exclusion list | [`rules/merge-strategy.md`](rules/merge-strategy.md) |
 | Hardcoded-value bans, write-locked generated files | [`rules/code-style.md`](rules/code-style.md) |
-| i18n mechanism (generic) — locale list is repo-specific, see below | [`rules/i18n.md`](rules/i18n.md), "Locales" below |
+| i18n mechanism (generic) — locale list is in root `CLAUDE.md` | [`rules/i18n.md`](rules/i18n.md) |
 | Verification surfaces per scope | [`rules/verification-contract.md`](rules/verification-contract.md) |
 | Backend test layers, builders, isolation, CI time budget | [`rules/testing.md`](rules/testing.md) |
 
-## Scope → stack map
-
-Each package label (`BE` / `Web` / `Mobile`) maps to exactly one stack pack. Dev sub-agents and the
-pack `<stack>-verify`/`<stack>-build` skills use this to decide which pack
-applies to a given path (full detail:
-[`rules/scope-boundaries.md#scope-to-stack-mapping`](rules/scope-boundaries.md#scope-to-stack-mapping)):
-
-| Path glob    | Stack    | Verify skill    |
-|--------------|----------|-----------------|
-| `/backend/**`| `dotnet` | `dotnet-verify`  |
-| `/web/**`    | `react`  | `react-verify`   |
-| `/mobile/**` | `expo`   | `expo-verify`    |
-
-## Locales
-
-Supported locales: `cs` (primary), `en`, `de`; files at
-`web/src/i18n/locales/*.json` and `mobile/src/i18n/locales/*.json`. This is
-the repo-specific fact the generic react/expo pack `i18n` rule defers to —
-the packs describe the i18n *mechanism* (keys, `useTranslation()`,
-missing-locale fallback), never a fixed locale list of their own.
+Scope → stack map: [`rules/scope-boundaries.md#scope-to-stack-mapping`](rules/scope-boundaries.md#scope-to-stack-mapping).
+Locales: root `CLAUDE.md` → Shared Conventions.
 
 ## Branch / PR / merge precedence
 
@@ -189,51 +176,9 @@ says otherwise for that task.
    save a round trip — the AC is the contract.
 
 6.5. **Orchestrator-driven interactive QA playbook.** Triggered when
-   `qa-tester` returns ⚠️ INTERACTIVE-REQUIRED. The orchestrator's main
-   thread has the MCP tool surface the sub-agent lacks (`mcp__xcodebuildmcp__*`
-   ui-automation, `mcp__plugin_playwright_playwright__*`,
-   `mcp__a11y-accessibility__*`). For each AC the qa-tester flagged with
-   `met: false` and an interactive-evidence note:
-
-   - **iOS native flows** — **PAUSED since #1160** (the new app has no
-     dev-client build script or test sign-in yet; see the notice in
-     `agents/qa-tester.md`). When resumed — load the schemas:
-     `ToolSearch select:mcp__xcodebuildmcp__list_sims,boot_sim,install_app_sim,launch_app_sim,stop_app_sim,screenshot,snapshot_ui,tap,type_text,swipe,gesture,button,long_press`.
-     Resolve the simulator via `list_sims` (precedence: booted → config-
-     name → newest installed). Use the dev-client `.app` from
-     `mobile/.qa-cache/<sha>.app` (built fresh by qa-tester in step C of
-     its iOS path). Drive via `snapshot_ui` → `tap` by accessibility id
-     → `type_text` / `swipe` as the AC requires. Capture evidence to
-     `.qa-artifacts/<issue>/orchestrator-<scene>.png`. If the iOS
-     "Open in App?" prompt appears after `xcrun simctl openurl`, snapshot
-     and tap the "Otevřít" / "Open" button before proceeding.
-
-   - **Web spec drive** — load the schemas:
-     `ToolSearch select:mcp__plugin_playwright_playwright__browser_navigate,browser_click,browser_fill_form,browser_snapshot,browser_take_screenshot,browser_wait_for,browser_evaluate`.
-     Point at `:5173` (which proxies to compose harness `:5101`). Pull
-     auth from `.auth/<role>.json` (produced by `web/tests/e2e/auth.setup.ts`)
-     (the `mobile/scripts/qa-fetch-refresh-token.sh` alternative is paused
-     with the iOS path). Capture accessibility-tree snapshots + screenshots
-     under `.qa-artifacts/<issue>/orchestrator-web-<scene>.png`.
-
-   - **a11y audits** — load the schemas:
-     `ToolSearch select:mcp__a11y-accessibility__test_accessibility,test_html_string,check_aria_attributes,check_color_contrast`.
-     Run after the interactive drive lands on the target screen.
-
-   - **Consolidation** — write the orchestrator's findings as a final
-     section in `state/handoff-qa-<issue>.json` (extend the existing file
-     in place, do not rewrite the qa-tester sub-agent's portion). Update
-     `verdict` from `INTERACTIVE-REQUIRED` to `PASS` if all flagged ACs
-     are now verified, `FAIL` if any interactive check shows a defect, or
-     keep `PARTIAL` if some ACs remain blocked on fixture gaps.
-
-   - **Teardown** — same rule as qa-tester step 8: leave a pre-booted
-     user-owned simulator running, only shut down sims the orchestrator
-     itself booted. Uninstall the dev-client `.app` either way.
-
-   This playbook is also the path for ad-hoc smoke tests the user asks for
-   directly ("run the deep-link bypass against the booted sim"), without
-   going through a full qa-tester dispatch.
+   `qa-tester` returns ⚠️ INTERACTIVE-REQUIRED, or when the user asks for an
+   ad-hoc smoke test. `Read` [`docs/interactive-qa-playbook.md`](docs/interactive-qa-playbook.md)
+   first and follow it.
 7. **Code-review gate.** Once `qa-tester` returns ✅ PASS, the work is not
    "ready for merge" until `pr-reviewer` returns ✅ READY FOR MERGE. Applies
    to PRs into `develop` — standalone and epic PRs, never task PRs into an
@@ -311,30 +256,11 @@ check the skill actually resolves first.
 | `code-review:code-review`      | Non-trivial backend changes or cross-package diffs        |
 | `frontend-design:frontend-design` | New web page or mobile screen ready for review          |
 | `wcag-audit`                   | Any screen with forms, tables, modals, or colour-critical UI |
-| `superpowers:testing-strategy`-shaped work | Use the stack packs instead: `dotnet-tdd`, `dotnet-verify`, `react-verify`, `expo-verify` |
-| `remember:remember`            | Persisting session state worth carrying forward            |
 
-### Removed 2026-08-06 (#911) — these never existed
-
-The table previously listed `gc-sec-review`, four `engineering:*` skills and
-five `design:*` skills. **There is no `engineering` plugin and no `design`
-plugin installed**, and `gc-sec-review` does not resolve either — invoking it
-returns `Unknown skill`. Ten of ten rows were fiction, and the routing rules
-pointed the security gate at one of them, so an orchestrator following this
-file reached for a tool that was never there. Found during epic #856's security
-review, which fell back to `owasp-security`.
-
-Intent-to-reality mapping for the removed rows:
-
-- security review after auth/ownership changes → **`claude-security`** (installed
-  2026-08-06 specifically to close this gap), with `owasp-security` as reference
-  guidance while writing the code
-- code review → **`code-review:code-review`**, or the `/review` command
-- design critique / design system → **`frontend-design:frontend-design`**
-- accessibility review → **`wcag-audit`**
-- testing strategy → no direct equivalent; use the stack `*-verify` skills
-- architecture / standup / ux-copy → **no equivalent installed.** Do the work
-  inline rather than reaching for a skill that is not there.
+No `engineering:*`, `design:*` or `gc-sec-review` skill is part of this workflow (#911).
+Security review → `claude-security`; code review → `code-review:code-review`;
+design → `frontend-design:frontend-design`; accessibility → `wcag-audit`;
+testing strategy → the stack `*-verify` skills; anything else → do it inline.
 
 ## Guardrails (enforced by hooks)
 

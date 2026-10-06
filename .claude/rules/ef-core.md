@@ -1,4 +1,6 @@
 ---
+paths:
+  - "backend/**"
 description: EF Core rules for entities, DbContext, and queries
 ---
 

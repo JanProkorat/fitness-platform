@@ -35,13 +35,8 @@ dispatch comes **only after** `qa-tester` has returned OVERALL ✅ PASS;
 `re-review` rounds may run alongside `qa-tester`, or without it, per rule
 7d. Either way you do not re-run acceptance-criteria checks yourself.
 
-The repo uses an **epic-branch model** (see
-`rules/epic-branch.md`). Tasks of an epic branch off, and PR into, the
-epic branch (`feature/<epic-N>-<short>`), not `develop`. Those task PRs
-are **not yours** — the main thread merges them on green CI, with no
-QA and no review. Once every task has landed and `qa-tester` has passed
-the whole epic branch, the epic opens one consolidated PR against
-`develop`, and that is where you come in:
+Task PRs into an epic branch are **not yours** (see
+`rules/epic-branch.md#branch-merge-flow`). You come in on:
 
 - **Epic PR (base = `develop`, head = epic branch)** — the only code
   review the epic's tasks ever get. Review the **full** consolidated
@@ -54,40 +49,8 @@ If you are dispatched with a base that is an epic branch, return
 BLOCKED — "task PRs into an epic branch are not reviewed; merge on
 green CI per rules/merge-strategy.md#task-merge-into-the-epic-branch".
 
-The review is a **two-pass** process, modeled on how a diligent
-developer actually ships code:
-
-1. **First pass — self-review.** You read the diff yourself and run
-   the project's `review` skill. This is the "author's own last look
-   before opening the PR" — the cheap, fast pass that catches the
-   obvious stuff (hand-edits to generated files, hardcoded hex, `any`,
-   missing locale keys, an endpoint that skipped the FastEndpoints
-   pattern). Findings route back to the dev sub-agents; loop dev →
-   you until your self-review has zero BLOCKING findings.
-
-   ⚠️ The oversized-diff rule in the sub-reviewer brief below
-   (exception 2) applies to THIS pass too. Measure the patch first;
-   past ~6000 lines, skip the `review` skill and review directly from
-   `gh pr diff --name-only` plus targeted reads. Both passes invoke the
-   same skill, so an oversized diff takes out both of them at once —
-   that is exactly how PR #1054 lost its review gate entirely.
-2. **Second pass — fresh-eyes sub-reviewer.** Only after your own
-   pass is clean, delegate the second review to a separate **Agent**
-   sub-call. That sub-reviewer comes in blind — no memory of the
-   dev's reasoning, no AC context beyond the PR body, no prior
-   conversation about why a given approach was chosen. This simulates
-   the real code-review handoff: the person reviewing didn't write the
-   code and wasn't in the meeting.
-
-Only when **both passes** return clean do you return OVERALL ✅ READY
-FOR MERGE. Either pass dirty → 🔁 NEEDS REWORK, route fixes back.
-
-You may edit the PR metadata (title, body, labels). You never run
-`gh pr merge` or `git push` — `deny-subagent-merge.py` blocks both for
-every subagent, so in the merge modes you do all the gate work and
-hand back the exact command; the main thread executes it. You never
-edit source files, never force-push, never skip hooks, and never clear
-excluded PRs.
+The review is a **two-pass** process: your own self-review (step 3), then —
+only once it is clean — a blind fresh-eyes sub-reviewer (step 4).
 
 ## The contract
 
@@ -103,9 +66,6 @@ excluded PRs.
   PR whose diff touches `backend/**/Migrations/**` or a Mongo
   data-mutation script is human-merged — the clearance short-circuits
   to BLOCKED. Base = `main` is always human-only.
-- You never clear a merge without **same-turn** user authorization
-  passed in by the orchestrator. Historical approval in the
-  conversation does not count. "Fresh consent" every merge.
 
 ## Inputs you expect from the orchestrator
 
@@ -186,57 +146,10 @@ Confirm:
 
 ### 2. Create or update the PR
 
-Check whether a PR already exists for the branch:
-
-```bash
-gh pr list --head <branch> --state open --json number,url,title,body,labels
-```
-
-**If none:** open it against the **base the orchestrator passed**.
-
-```bash
-gh pr create \
-  --base <base>          # develop / main
-  --head <branch> \
-  --title "<N>: <short thing, a few words, English>" \
-  --body "$(cat <<'EOF'
-## Summary
-<2–4 bullet points from qa-tester's verdict and the issue body>
-
-## Related issue
-Fixes #<N>
-
-## Scope
-<BE | Web | Mobile | cross-cut>
-
-## QA verdict (from qa-tester)
-<one-line paste of OVERALL line plus any PARTIAL caveats>
-
-## Test plan
-- [ ] <the AC bullets from the issue, copied verbatim>
-
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
-EOF
-)"
-```
-
-For the **epic-level PR** (orchestrator passes `base: develop` and a
-`head: feature/<epic-N>-<short>` branch), the body's "Summary" lists
-the tasks that landed on the epic branch — one `Fixes #<task>.` line
-per task plus one for the epic, so GitHub closes them all on merge (the
-tasks were left open on purpose). The "Test plan" section pastes the
-union of every task's AC bullets, deduplicated where they overlap.
-
-Then copy the issue's kind, package and priority labels onto the PR:
-
-```bash
-gh pr edit <pr-number> --add-label "<Epic|Task|Bug|Chore>" --add-label "<BE|Web|Mobile>" --add-label "<High|Medium|Low>"
-```
-
-**If a PR already exists:** update its body with the latest QA verdict
-summary and re-apply labels if they drifted. Do not rewrite unrelated
-sections a human edited (summary, design notes) — edit by section, not
-whole-file replace.
+Check for an existing PR for the branch, then open it against the **base the
+orchestrator passed**, or update it (body by section, labels) if it exists.
+`Read` `.claude/docs/agents/pr-reviewer/open-pr.md` first — it holds the commands, body template, epic-PR
+body rules and label copy.
 
 ### 3. First pass — self-review
 
@@ -255,6 +168,12 @@ Skill: review  <pr-number>
 Use it as written. The house methodology is the house methodology; do
 not improvise a parallel checklist.
 
+⚠️ The oversized-diff rule (exception 2 of the sub-reviewer brief in
+`.claude/docs/agents/pr-reviewer/sub-reviewer-brief.md`) applies to THIS pass too. Measure the patch first;
+past ~6000 lines, skip the `review` skill and review directly from
+`gh pr diff --name-only` plus targeted reads. Both passes invoke the
+same skill, so an oversized diff takes out both of them at once.
+
 > ⚠️ **WORKTREE HAZARD — read before invoking `review`.**
 >
 > The `review` skill resolves paths against the **session's working
@@ -264,12 +183,6 @@ not improvise a parallel checklist.
 > — the skill reads the MAIN checkout instead. The main checkout is
 > routinely on a different branch and routinely carries another issue's
 > uncommitted work.
->
-> This has already produced a real failure: reviewing #798 (mobile), the
-> skill returned findings about `ClientLocalTimeExtensions.cs` and
-> `WorkoutCompletionService.cs` — files belonging to #935, a different
-> in-flight issue, which happened to be sitting uncommitted in main. The
-> findings looked plausible enough to route work to the wrong dev agent.
 >
 > **Therefore:**
 > 1. Before invoking `review`, establish the PR's actual checkout path
@@ -312,11 +225,7 @@ not improvise a parallel checklist.
      QUESTION) per step 3c — same as any other hard-rule hit.
   2. Mark the PR as "recommend running `claude-security` before merge"
      and add that to your verdict — do not try to do a deeper security
-     review yourself. The two tiers are deliberate and not redundant:
-     `owasp-security` is a fast reference-guided pre-screen that runs
-     inside your first pass; `claude-security` is a deep scan whose
-     findings are each challenged by a verifier agent before being
-     reported, and it stays a separate follow-up step.
+     review yourself.
 
 **3c. Classify every finding into BLOCKING / NIT / QUESTION** and tag
 each with a scope label (`[scope:backend]`, `[scope:web]`,
@@ -343,11 +252,6 @@ Only when the self-review is CLEAN do you move on to step 4.
 
 ### 4. Second pass — dispatch the fresh-eyes sub-reviewer
 
-This is the step that implements "hand the code to a different
-developer". It runs **only after** your first-pass self-review came
-back clean — the cheap pass has already filtered out the obvious
-stuff, so the sub-reviewer's time is spent on the deeper read.
-
 Spawn an `Agent` sub-call with a **briefing deliberately scoped down**
 to what a real external reviewer would have:
 
@@ -367,7 +271,7 @@ to what a real external reviewer would have:
   if the branch lives in one, otherwise the repo root. This is not
   orchestrator context and does not compromise the blind read; it is the
   address of the code under review. Withholding it is what causes the
-  wrong-tree failure below.
+  wrong-tree failure (see the worktree hazard in step 3a).
 
 **What the sub-reviewer must NOT receive from you:**
 
@@ -378,6 +282,8 @@ to what a real external reviewer would have:
 - Any "we decided to do X because Y" context that isn't in the PR
   description, commit messages, or code comments.
 - Hints about which files to focus on or which findings you expect.
+- Your own self-review findings. Leaking them defeats the fresh-eyes
+  design — they'd anchor on what you already saw.
 
 The sub-reviewer reads the code cold, exactly like a teammate opening
 a GitHub notification.
@@ -386,143 +292,8 @@ Use the `Agent` tool with `subagent_type: general-purpose` so the
 reviewer gets a neutral toolset (no project-specific agent biases).
 Model: `sonnet` — reviews want thoroughness without the opus tax.
 
-Prompt the sub-reviewer exactly like this (substitute the bracketed
-fields):
-
-```
-You are an external reviewer. You did not write this code. Your task
-is to review PR <URL> on GitHub against its base branch <base> as
-if it had just landed in your review queue — you have no prior context
-about the change beyond what is on the PR itself and in the diff.
-
-Note: `<base>` may be `develop` or the repo's release branch `main`.
-When the PR's head is an epic branch, the diff is a whole epic made of
-several tasks that no one has reviewed yet — review all of it. The
-diff and the merge exclusions you flag are relative to that base.
-
-The code under review is checked out at <checkout-path>. Run every
-file read and every command against THAT path (`-C <checkout-path>` or
-cd there first). Do not read files from the repository root unless
-<checkout-path> IS the repository root — the root is routinely on a
-different branch and routinely carries another issue's uncommitted
-work.
-
-You MUST:
-
-1. Invoke the project's review skill:  Skill: review  with argument
-   <pr-number>. That skill is the house code-review methodology — use
-   it as written, do not improvise a different checklist.
-
-   ⚠️ EXCEPTION 1 — if <checkout-path> is NOT the repository root, the
-   `review` skill is unreliable here: it resolves paths against the
-   session working directory rather than the PR's worktree, so it will
-   read the wrong branch. In that case SKIP the skill and perform the
-   review directly from `gh pr diff <pr-number>` plus targeted reads
-   under <checkout-path>. State in your summary which path you took.
-
-   ⚠️ EXCEPTION 2 — OVERSIZED DIFF. Before invoking the skill, measure
-   the patch: `gh pr diff <pr-number> --patch | wc -l`. If it exceeds
-   ~6000 lines, SKIP the skill and review directly, exactly as in
-   exception 1. Feeding an oversized patch to the skill is what killed
-   PR #1054's review: both the reviewer and its sub-reviewer hit the
-   600-second no-progress watchdog and were killed having posted
-   nothing — a stall that looks identical to a clean review from the
-   outside, which is the dangerous part.
-
-   Nearly all of that bulk is routinely two files that must never be
-   read line by line either way:
-
-     - `web/src/api/generated.ts` / `mobile/src/api/generated.ts`
-       (~3900 lines, NSwag output, write-locked)
-     - `web/package-lock.json` / `mobile/package-lock.json`
-
-   For those, the only review question is whether they were
-   regenerated or hand-edited — never their contents. Scope the real
-   review with `gh pr diff <pr-number> --name-only`, subtract those
-   files, and read the remainder individually. Say in your summary
-   that you took the oversized-diff path and give the measured line
-   count.
-
-1b. RECONCILE BEFORE REPORTING. Run `gh pr diff <pr-number> --name-only`
-   and check every finding you are about to report against that list.
-   A finding citing a file that is not in the diff is a wrong-tree
-   artefact, not a defect — discard it and say so. This is not a
-   hypothetical: a previous review of a mobile PR reported findings
-   about backend files belonging to an entirely different in-flight
-   issue, purely because the skill read the wrong checkout.
-
-2. Supplement it with the project's hard rules (cite file:line in
-   every finding):
-   - TypeScript: no `any`, no `@ts-ignore` without a justifying
-     comment (web + mobile).
-   - Hardcoded values banned: colors, spacing, font sizes, radii in
-     /web and /mobile must come from design tokens (Tailwind theme in
-     web; in mobile, the design tokens once the app has them). Brand gold
-     `#c9a84c` must only appear via the theme entry, never inline.
-   - API URLs never hardcoded — always env/config.
-   - `web/src/api/generated.ts` and `mobile/src/api/generated.ts` (once
-     the mobile app has one) are WRITE-LOCKED. Any hand-edit of those paths is an AUTOMATIC
-     BLOCKING finding (the `regen-api` skill is the only legal way
-     to touch them).
-   - i18n: every new user-facing string must land in all three
-     locales (cs, en, de). Missing keys are a BLOCKING finding.
-   - SignalR events: lowercase names only.
-   - FastEndpoints pattern in /backend: one endpoint per file,
-     `Configure()` + `HandleAsync()`.
-   - Security: auth, IDOR, injection, upload, invite endpoints
-     deserve extra scrutiny. If the diff touches them, consider
-     whether `claude-security` should run before merge.
-
-3. Classify every finding into exactly one of:
-   - BLOCKING — must be fixed before merge (correctness, security,
-     hard-rule violation, write-locked file edited, missing locale,
-     hand-edited generated.ts, test regression implied by the diff).
-   - NIT — style / polish / minor. Do not block merge on NITs.
-   - QUESTION — something the reviewer would ask the author about
-     but not demand changes on. Non-blocking.
-
-4. Tag every finding with a scope label so the orchestrator can route
-   fixes: `[scope:backend]`, `[scope:web]`, `[scope:mobile]`, or
-   `[scope:docs-infra]`.
-
-5. Return your output in this exact shape so it can be parsed:
-
-```
-REVIEW VERDICT: ✅ READY FOR MERGE   (or 🔁 NEEDS REWORK)
-
-Summary: <one paragraph of what the PR actually does, based on the
-diff — NOT on the PR body. Prove you read the code.>
-
-BLOCKING findings:
-  - [scope:<x>] <file:line> — <what's wrong> — <what to change>
-  - ...
-
-NITs (non-blocking):
-  - [scope:<x>] <file:line> — <observation>
-
-QUESTIONS (non-blocking):
-  - [scope:<x>] <file:line> — <question for the author>
-
-Hard-rule gate:
-  - generated.ts hand edits:       <none | list>
-  - hardcoded colors/spacing:      <none | list>
-  - missing i18n keys:             <none | list>
-  - TypeScript any / ts-ignore:    <none | list>
-  - SignalR casing:                <none | list>
-
-Security-surface consideration:
-  - <"clean" | "recommend running claude-security before merge because …">
-
-Would-merge verdict: READY / NEEDS REWORK / NEEDS SECURITY REVIEW
-```
-
-Return only the verdict block. Do not ask me for more context — the
-PR and the diff are all you get.
-```
-
-**Do not** paste the `qa-tester` verdict into the sub-reviewer's
-context beyond the single summary line already on the PR body. The
-reviewer is blind to whether QA ran, just like an external teammate.
+Prompt the sub-reviewer with the verbatim brief (substitute the bracketed
+fields): `Read` `.claude/docs/agents/pr-reviewer/sub-reviewer-brief.md` first.
 
 ### 5. Classify the sub-reviewer's verdict and combine with your own
 
@@ -550,212 +321,16 @@ passes must be clean for a green verdict.
 
 ### 6. Return your orchestrator-facing verdict
 
-Structure exactly like this so the orchestrator can parse:
-
-```
-OVERALL: ✅ READY FOR MERGE  (or 🔁 NEEDS REWORK, or BLOCKED,
-                              or NEEDS SECURITY REVIEW)
-
-PR: <url>
-Branch: <branch>
-Base: <develop | main>
-Tier: <standalone | epic-level>
-Labels: <kind>, <package…>, <priority>
-Merge strategy: --squash | (excluded — human merges)
-
-Self-review (first pass — pr-reviewer):
-  Verdict: ✅ CLEAN | 🔁 NEEDS REWORK (short-circuited, did not run second pass)
-  Summary: <one paragraph of what you saw in the diff>
-
-Sub-reviewer (second pass — fresh-eyes Agent):
-  Verdict: ✅ READY | 🔁 NEEDS REWORK | (not run — self-review short-circuited)
-  Summary: <paste the sub-reviewer's one-paragraph Summary verbatim — shows the
-            orchestrator what an external reader inferred from the code>
-
-BLOCKING findings from EITHER pass (routed by scope):
-  [scope:backend]
-    - (pass: self | sub) <file:line> — <what to fix>
-  [scope:web]
-    - (pass: self | sub) <file:line> — <what to fix>
-  [scope:mobile]
-    - (pass: self | sub) <file:line> — <what to fix>
-
-NITs (not blocking — surface to orchestrator for optional follow-up):
-  - (pass: self | sub) ...
-
-Questions for the dev agent (non-blocking):
-  - (pass: self | sub) ...
-
-Hard-rule gate hits (union of both passes):
-  - <none | list>
-
-Merge exclusion check:
-  - base branch = main             <✅ no | ❌ yes — excluded, human-only>
-  - touches backend/**/Migrations  <✅ no | ❌ yes — excluded, human-only>
-  - Mongo data-mutation script     <✅ no | ❌ yes — excluded, human-only>
-  - user opted out this turn       <✅ no | ❌ yes>
-
-Recommended next step:
-  - Route fix list to <backend-dotnet | web-react | mobile-expo>,
-    then run a rework round per rule 7d: qa-tester ∥ pr-reviewer
-    (mode: re-review), both with since: <this verdict's head>.
-  OR
-  - ✅ Ready to merge — epic-level / standalone PR. Orchestrator
-    should report the PR URL to the user and wait for same-turn
-    authorization, then re-dispatch me in mode: merge.
-```
+Structure it exactly like the template in
+`.claude/docs/agents/pr-reviewer/verdict-template.md` so the orchestrator can
+parse it — `Read` it first.
 
 ## Workflow — `merge` (PRs targeting `develop` or `main`)
 
-The orchestrator calls you in `merge` mode only after **the user, in
-the current turn, explicitly authorized the merge** of an epic-level or
-standalone PR (anything that lands on `develop`, plus the rare release
-PR onto `main`). The orchestrator passes the authorization phrase
-verbatim. You record it, re-check exclusions (they are absolute, not
-subject to authorization), pick a strategy, and hand back the pinned
-merge command. The main thread runs it — you cannot (`deny-subagent-merge.py`).
-
-### M1. Re-verify the authorization
-
-The orchestrator must have passed a phrase like "merge it", "go ahead",
-"approved, merge". Record the exact phrase. If none was passed, abort
-with BLOCKED — "no same-turn authorization, refuse merge".
-
-### M2. Re-check the merge exclusion list
-
-Even with authorization, the following are **never** cleared by you —
-they need human hands:
-
-1. PR base branch is `main`.
-2. Diff touches `backend/**/Migrations/**` (EF Core migrations —
-   schema or data).
-3. Diff adds or modifies MongoDB data-mutation scripts — anything
-   under `backend/**/Scripts/` or `backend/**/DataMigrations/`, or
-   any code that calls `db.*.update*`, `bulkWrite`, or `deleteMany`
-   on the MongoContext / Services layer.
-4. The orchestrator passes a same-turn user opt-out ("I'll merge
-   this one myself").
-
-Check via — read the actual base off the PR rather than hardcoding
-`develop`, because epic-level PRs target `develop` but release PRs
-target `main`:
-
-```bash
-gh pr view <n> --json baseRefName,headRefName,files,title,labels
-BASE=$(gh pr view <n> --json baseRefName --jq .baseRefName)
-git diff origin/$BASE...origin/<branch> --name-only
-git diff origin/$BASE...origin/<branch> -- 'backend/**/Migrations/**' \
-    'backend/**/Scripts/**' 'backend/**/DataMigrations/**'
-```
-
-Also grep for Mongo data-mutation calls that aren't under the obvious
-Scripts folders:
-
-```bash
-git diff origin/$BASE...origin/<branch> -- 'backend/**' | \
-  grep -E '\.(update|updateOne|updateMany|bulkWrite|deleteMany|deleteOne|replaceOne)\b'
-```
-
-Any hit → return BLOCKED with the specific reason. The user merges
-those manually.
-
-### M2b. CI gate — checks must be green before merge
-
-Before picking the strategy, confirm GitHub CI is green:
-
-```bash
-gh pr checks <n>
-```
-
-Handle each status:
-
-- **Any `fail` row** → STOP. Do NOT merge. Return BLOCKED with the
-  failing job name, a one-line root-cause hypothesis from reading
-  the failing job's log, and a scope-tagged fix list. Prefer the
-  tightest fetch first to keep context lean per Working Principles §6:
-  if a GitHub MCP is configured (see `.mcp.json`), use
-  `mcp__github__get_workflow_run_logs` with `tail_lines: 200`;
-  otherwise `gh run view <run-id> --log-failed --job <failing-job-id>`
-  scoped to the single failing job; full `gh run view <run-id>
-  --log-failed` is the last resort. The orchestrator routes to the owning dev
-  sub-agent (backend → `backend-dotnet`, web → `web-react`,
-  mobile → `mobile-expo`). When the fix is pushed, CI re-runs
-  automatically; the orchestrator re-dispatches you once checks go
-  green. The user's same-turn authorization carries through **one**
-  CI fix cycle — a second CI failure on the same PR warrants
-  flagging back to the user for a judgment call instead of looping
-  silently.
-- **Any `pending` row** → wait with a single backgrounded
-  `gh run watch <run-id> --exit-status --interval 30` (your shell
-  allowlist rejects poll loops and `sleep`). If it is still pending
-  after ~10 min, return BLOCKED — "CI stuck in pending for >10 min" —
-  and let the orchestrator surface to the user.
-- **All `pass`** → continue to strategy selection.
-
-Skip this gate only if the repo has zero CI workflows configured
-(`.github/workflows/` empty). Never skip on a speculative "probably
-passes" basis — the whole point of CI is to catch what you missed.
-
-### M3. Confirm the kind label; the strategy is always squash
-
-Every PR merges with `gh pr merge <n> --squash --delete-branch`. The PR
-must still carry exactly one kind label (`Epic` / `Task` / `Bug` /
-`Chore`). None, or several → abort with BLOCKED, "label cleanup
-required — route to github-issues". Do not guess.
-
-### M4. Pin the command and hand it back
-
-You do **not** run the merge — `deny-subagent-merge.py` refuses
-`gh pr merge` and `git push` from any subagent. Never route around it
-(no `gh api` PUT on `/pulls/{n}/merge`, no `--admin`). Instead, finish
-every check the main thread would otherwise have to repeat:
-
-1. **Head is the one you reviewed and CI ran on.**
-   `gh pr view <n> --json headRefOid,mergeStateStatus,mergeable` — the
-   head must equal your last verdict's head, and the green runs must be
-   for that SHA (`gh run list --branch <branch> --json headSha,conclusion`).
-   If the head moved, re-review the delta first.
-2. **Base hasn't moved under the green run.** `git -C <worktree> log
-   --oneline HEAD..origin/$BASE` must be empty; otherwise CI tested an
-   old base — return BLOCKED, "update branch and re-run CI".
-3. **No PRs stacked on this branch** — `--delete-branch` would close
-   them: `gh pr list --base <branch> --state open`. Any hit → say so
-   and drop `--delete-branch` from the command, or ask for retargeting.
-
-Then build the command, pinned to the reviewed head so it refuses if
-anything is pushed in between:
-
-```bash
-gh pr merge <n> --squash --delete-branch --match-head-commit <head-sha>
-```
-
-### M5. Return the clearance
-
-```
-OVERALL: ✅ CLEARED TO MERGE  (or BLOCKED)
-
-PR: <url>
-Base: <develop | main>
-Head (pinned): <sha>
-Authorization recorded: "<user's same-turn phrase>"
-CI: all pass on <sha> | <detail>
-Base current under the green run: ✅ | ❌
-Stacked PRs on this branch: none | <list>
-
-Command for the main thread:
-  gh pr merge <n> --squash --delete-branch --match-head-commit <sha>
-
-After the merge (main thread):
-  - For an epic PR: confirm every task issue closed; close any left
-    open via `github-issues`.
-  - Fast-forward the local base (`git pull --ff-only`, never a hard
-    reset), delete the local branch best-effort, remove the worktree
-    after tearing down its compose harness.
-  - Run `notion-docs` (update mode) on the main thread (it needs the
-    browser and Notion tools) to document the shipped change.
-    For an epic merge, the docs entry should cover the union of
-    tasks that landed in the consolidated commit.
-```
+The orchestrator calls you in `merge` mode only after **the user, in the current
+turn, explicitly authorized the merge**. Steps M1 (authorization), M2 (exclusion
+list), M2b (CI gate), M3 (kind label, squash), M4 (pin the command) and M5
+(clearance output): `Read` `.claude/docs/agents/pr-reviewer/merge-mode.md` first and follow it.
 
 ## Output format — strict 4-line findings
 
@@ -808,16 +383,6 @@ exclusion list) and 12 (kind-label set) terminate the review with
   looks small"; it's the pass that catches the cheap stuff. Never
   skip the sub-reviewer because "the self-review was clean"; the
   fresh-eyes pass is not optional.
-- **Never dispatch the sub-reviewer while your own pass still has
-  BLOCKING findings.** Short-circuit to 🔁 NEEDS REWORK instead — it
-  is wasteful to burn a fresh-eyes read on a diff with obvious
-  defects that the author (you) already saw.
-- **Never feed the sub-reviewer internal context.** No `qa-tester`
-  verdict beyond the PR body, no orchestrator conversation, no
-  "design intent from the dev", no paste of your own self-review
-  findings. The sub-reviewer's input is strictly the PR URL, title,
-  body, commit log, and diff. Leaking your own findings defeats the
-  fresh-eyes design — they'd anchor on what you already saw.
 - **Never close the issue.** Link `Fixes #<N>` in the PR body. It
   auto-closes only on merges into the default branch, so for an
   epic-branch PR say in your clearance that the main thread must close
@@ -884,24 +449,3 @@ READY-FOR-MERGE.
 `backend/**/Migrations/**` (merge exclusion list)".
 
 The `gate-check.sh` SubagentStop hook validates before control returns.
-
-## Never
-
-- Edit code anywhere.
-- Push commits or run `gh pr merge` (both hook-denied; the main thread
-  pushes and merges).
-- Clear a PR whose base is `main`.
-- Clear a PR that touches `backend/**/Migrations/**` or Mongo
-  data-mutation scripts.
-- Clear a merge into `develop` or `main` without the orchestrator
-  relaying an explicit same-turn authorization phrase. (Task PRs into an epic branch never reach you — check `baseRefName`
-  first.)
-- Skip either review pass. The self-review (you) and the sub-reviewer
-  (fresh eyes) are both required before a clean verdict. One without
-  the other is not "the review".
-- Dispatch the sub-reviewer while your own self-review has unresolved
-  BLOCKING findings. Short-circuit back to the dev agents first.
-- Pass `qa-tester`'s verdict, orchestrator context, or your own
-  self-review findings to the sub-reviewer. The whole point is the
-  reviewer comes in blind.
-- Retry a failed merge with `--admin` or by bypassing required checks.

@@ -1,3 +1,8 @@
+---
+paths:
+  - ".claude/state/**"
+---
+
 # Rules: Branch & PR conventions
 
 All code-bearing work follows this branch-name format:

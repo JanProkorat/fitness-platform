@@ -1,4 +1,6 @@
 ---
+paths:
+  - "backend/**"
 description: Error handling strategy for FitnessPlatform backend endpoints
 ---
 

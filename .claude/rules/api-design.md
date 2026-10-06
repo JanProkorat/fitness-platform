@@ -1,4 +1,6 @@
 ---
+paths:
+  - "backend/**"
 description: FastEndpoints REPR rules for HTTP endpoints in the FitnessPlatform backend
 ---
 
