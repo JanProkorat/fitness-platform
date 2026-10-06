@@ -1,6 +1,9 @@
 import { Link } from 'react-router-dom';
 import { scrollToAnchor } from '@/components/home/smoothAnchor';
 import { useTranslation } from 'react-i18next';
+import LanguageSwitcher from '@/components/entry/LanguageSwitcher';
+import NavCompactMenu from '@/components/home/NavCompactMenu';
+import ThemeToggle from '@/components/home/ThemeToggle';
 
 const NAV_LINKS = [
   { id: 'how-it-works', key: 'howItWorks' },
@@ -34,7 +37,14 @@ export default function HomeNav() {
           </a>
         ))}
       </nav>
-      <div className="ml-auto flex items-center gap-2.5">
+      <div className="ml-auto flex items-center gap-1.5 sm:gap-2.5">
+        <div className="sm:hidden">
+          <NavCompactMenu />
+        </div>
+        <div className="hidden items-center gap-2.5 sm:flex">
+          <LanguageSwitcher />
+          <ThemeToggle />
+        </div>
         <Link
           id={SIGN_IN_LINK_ID}
           to="/login"
@@ -44,7 +54,7 @@ export default function HomeNav() {
         </Link>
         <Link
           to="/register"
-          className="flex h-10 items-center rounded-field bg-primary px-3 text-body whitespace-nowrap sm:px-4.5 sm:text-copy font-bold text-primary-foreground hover:opacity-90"
+          className="hidden h-10 items-center rounded-field bg-primary px-3 text-body whitespace-nowrap md:flex sm:px-4.5 sm:text-copy font-bold text-primary-foreground hover:opacity-90"
         >
           {t('home.nav.createAccount')}
         </Link>
