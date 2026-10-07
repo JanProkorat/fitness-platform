@@ -18,6 +18,8 @@ import ClientDetailPage from '@/pages/ClientDetailPage';
 import InboxPage from '@/pages/InboxPage';
 import IngredientsPage from '@/pages/IngredientsPage';
 import RecipesPage from '@/pages/RecipesPage';
+import PlanTemplatesPage from '@/pages/PlanTemplatesPage';
+import PlanTemplateEditorPlaceholderPage from '@/pages/PlanTemplateEditorPlaceholderPage';
 import ProfilePage from '@/pages/ProfilePage';
 import NotFoundPage from '@/pages/NotFoundPage';
 
@@ -69,6 +71,8 @@ export default function App() {
               <Route path="/inbox" element={<InboxPage />} />
               <Route path="/ingredients" element={<IngredientsPage />} />
               <Route path="/recipes" element={<RecipesPage />} />
+              <Route path="/plan-templates" element={<PlanTemplatesPage />} />
+              <Route path="/plan-templates/:templateId" element={<PlanTemplateEditorPlaceholderPage />} />
               <Route path="/profile" element={<ProfilePage />} />
             </Route>
           </Route>
