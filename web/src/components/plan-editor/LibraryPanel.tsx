@@ -35,27 +35,20 @@ interface CardProps {
 function LibraryCard({ dragId, item, name, subtitle, imageUrl, canAdd, disabled, onAdd }: CardProps) {
   const { t } = useTranslation();
   const [imageFailed, setImageFailed] = useState(false);
-  const { ref, handleRef, isDragging } = useDraggable({ id: dragId, data: { item }, disabled });
+  const { ref, isDragging } = useDraggable({ id: dragId, data: { item }, disabled });
 
   return (
     <li
       ref={ref}
       data-testid="library-card"
+      aria-label={disabled ? undefined : t('planEditor.library.drag', { name })}
       className={cn(
         'flex items-center gap-3 rounded-xl border border-line bg-card p-2.5 shadow-panel',
+        !disabled && 'cursor-grab active:cursor-grabbing',
         isDragging && 'opacity-50',
       )}
     >
-      {!disabled && (
-        <button
-          type="button"
-          ref={handleRef}
-          aria-label={t('planEditor.library.drag', { name })}
-          className="cursor-grab text-faint"
-        >
-          <GripVertical className="size-4" aria-hidden="true" />
-        </button>
-      )}
+      {!disabled && <GripVertical className="size-4 shrink-0 text-faint" aria-hidden="true" />}
       <div className="size-10 shrink-0 overflow-hidden rounded-lg bg-nutrition-soft">
         {imageUrl && !imageFailed && (
           <img src={imageUrl} alt="" className="size-full object-cover" onError={() => setImageFailed(true)} />

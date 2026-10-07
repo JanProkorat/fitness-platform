@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { KeyboardSensor, PointerActivationConstraints, PointerSensor } from '@dnd-kit/dom';
 import { DragDropProvider, DragOverlay } from '@dnd-kit/react';
 import { AlertTriangle, PanelLeftOpen } from 'lucide-react';
 import { MealKind } from '@/api/generated';
@@ -52,6 +53,17 @@ interface Props {
   /** Drops local edits and loads the latest server version (offered after a conflict). */
   onReload: () => void;
 }
+
+/** Whole-card drags: a short mouse move starts one, touch needs a press so the list still scrolls. */
+const DRAG_SENSORS = [
+  PointerSensor.configure({
+    activationConstraints: (event) =>
+      event.pointerType === 'touch'
+        ? [new PointerActivationConstraints.Delay({ value: 250, tolerance: 5 })]
+        : [new PointerActivationConstraints.Distance({ value: 5 })],
+  }),
+  KeyboardSensor,
+];
 
 function isLibraryItem(value: unknown): value is LibraryItem {
   if (typeof value !== 'object' || value === null || !('type' in value)) {
@@ -202,6 +214,7 @@ export default function PlanEditor({
 
   return (
     <DragDropProvider
+      sensors={DRAG_SENSORS}
       onDragEnd={(event) => {
         if (event.canceled) {
           return;
@@ -326,7 +339,7 @@ export default function PlanEditor({
         </div>
       </div>
 
-      <DragOverlay>
+      <DragOverlay dropAnimation={null}>
         {(source) => {
           const item = readItem(source.data);
           return item ? (

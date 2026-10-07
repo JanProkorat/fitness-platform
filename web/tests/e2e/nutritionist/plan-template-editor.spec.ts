@@ -231,7 +231,7 @@ test.describe('plan template editor', () => {
       await page.getByLabel('Search recipes…').fill(recipeName);
       const recipeCard = page.getByTestId('library-card').filter({ hasText: recipeName });
       await expect(recipeCard).toHaveCount(1);
-      await dragTo(page, recipeCard.getByRole('button', { name: /^Drag / }), cell(page, 1, 0));
+      await dragTo(page, recipeCard, cell(page, 1, 0));
       await expect(cell(page, 1, 0)).toContainText(recipeName);
       await expect(page.getByTestId('day-total').first()).not.toContainText(/^0 kcal/);
       await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes');
