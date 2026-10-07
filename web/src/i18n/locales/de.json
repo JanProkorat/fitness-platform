@@ -1210,7 +1210,7 @@
       "columnServings": "Portionen",
       "columnTags": "Tags",
       "columnLibrary": "Bibliothek",
-      "caloriesValue": "{{count}} kcal",
+      "caloriesUnit": "kcal",
       "proteinValue": "P: {{count}} g",
       "carbsValue": "K: {{count}} g",
       "fatValue": "F: {{count}} g",

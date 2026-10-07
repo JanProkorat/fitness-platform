@@ -87,7 +87,7 @@ export default function IngredientsPage() {
       <PageHeader eyebrow={t('library.eyebrow')} title={t('ingredients.title')} />
 
       <div className="flex flex-wrap items-center gap-3">
-        <div className="relative w-full max-w-search">
+        <div className="relative min-w-40 max-w-search flex-1">
           <Search
             className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
             aria-hidden="true"

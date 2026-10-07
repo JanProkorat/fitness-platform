@@ -1211,7 +1211,7 @@
       "columnServings": "Servings",
       "columnTags": "Tags",
       "columnLibrary": "Library",
-      "caloriesValue": "{{count}} kcal",
+      "caloriesUnit": "kcal",
       "proteinValue": "P: {{count}} g",
       "carbsValue": "C: {{count}} g",
       "fatValue": "F: {{count}} g",

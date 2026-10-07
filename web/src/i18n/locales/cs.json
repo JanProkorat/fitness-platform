@@ -1234,7 +1234,7 @@
       "columnServings": "Porce",
       "columnTags": "Štítky",
       "columnLibrary": "Knihovna",
-      "caloriesValue": "{{count}} kcal",
+      "caloriesUnit": "kcal",
       "proteinValue": "B: {{count}} g",
       "carbsValue": "S: {{count}} g",
       "fatValue": "T: {{count}} g",

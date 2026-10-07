@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { FoodSortDirection, RecipeSortField, type RecipeSummaryDto } from '@/api/recipe-types';
 import LibraryBadge from '@/components/library/LibraryBadge';
 import Thumbnail from '@/components/library/Thumbnail';
+import NutrientDots from '@/components/library/NutrientDots';
 import TagPill from '@/components/tags/TagPill';
 import SortableColumnHeader from '@/components/library/SortableColumnHeader';
 import { sortAriaValue } from '@/components/library/sortAria';
@@ -65,29 +66,29 @@ export default function RecipesTable({
 
   return (
     <>
-      <Table>
+      <Table className="min-w-280">
         <TableHeader className="sticky top-0 z-10 bg-card">
           <TableRow>
             <TableHead className="px-4 py-3.5 text-meta font-semibold" aria-sort={sortAriaValue(sortBy, sortDir, RecipeSortField.Name)}>
               <SortableColumnHeader {...sortableHeaderProps(RecipeSortField.Name, t('recipes.table.columnName'))} />
             </TableHead>
             <TableHead
-              className="w-45 px-4 py-3.5 text-meta font-semibold"
+              className="w-28 px-4 py-3.5 text-meta font-semibold"
               aria-sort={sortAriaValue(sortBy, sortDir, RecipeSortField.CaloriesPerServing)}
             >
               <SortableColumnHeader
                 {...sortableHeaderProps(RecipeSortField.CaloriesPerServing, t('recipes.table.columnCalories'))}
               />
             </TableHead>
-            <TableHead className="w-55 px-4 py-3.5 text-meta font-semibold">{t('recipes.table.columnNutrients')}</TableHead>
-            <TableHead className="w-45 px-4 py-3.5 text-meta font-semibold">{t('recipes.table.columnMealType')}</TableHead>
-            <TableHead className="w-30 px-4 py-3.5 text-meta font-semibold" aria-sort={sortAriaValue(sortBy, sortDir, RecipeSortField.Servings)}>
+            <TableHead className="px-4 py-3.5 text-meta font-semibold">{t('recipes.table.columnNutrients')}</TableHead>
+            <TableHead className="w-36 px-4 py-3.5 text-meta font-semibold">{t('recipes.table.columnMealType')}</TableHead>
+            <TableHead className="w-24 px-4 py-3.5 text-meta font-semibold" aria-sort={sortAriaValue(sortBy, sortDir, RecipeSortField.Servings)}>
               <SortableColumnHeader
                 {...sortableHeaderProps(RecipeSortField.Servings, t('recipes.table.columnServings'))}
               />
             </TableHead>
-            <TableHead className="w-45 px-4 py-3.5 text-meta font-semibold">{t('recipes.table.columnTags')}</TableHead>
-            <TableHead className="w-25 px-4 py-3.5 text-meta font-semibold" aria-sort={sortAriaValue(sortBy, sortDir, RecipeSortField.Library)}>
+            <TableHead className="w-32 px-4 py-3.5 text-meta font-semibold">{t('recipes.table.columnTags')}</TableHead>
+            <TableHead className="w-28 px-4 py-3.5 text-meta font-semibold" aria-sort={sortAriaValue(sortBy, sortDir, RecipeSortField.Library)}>
               <SortableColumnHeader
                 {...sortableHeaderProps(RecipeSortField.Library, t('recipes.table.columnLibrary'))}
               />
@@ -162,20 +163,22 @@ export default function RecipesTable({
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell className="w-45 px-4 py-2.75 text-body font-medium text-muted-foreground">
-                    {t('recipes.table.caloriesValue', { count: Math.round(macros.kcal) })}
+                  <TableCell className="px-4 py-2.75 text-copy">
+                    <span className="font-semibold text-ink">{Math.round(macros.kcal)}</span>{' '}
+                    <span className="text-ink-2">{t('recipes.table.caloriesUnit')}</span>
                   </TableCell>
-                  <TableCell className="w-55 px-4 py-2.75 text-meta text-muted-foreground">
-                    <div className="flex items-center gap-2">
-                      <span>{t('recipes.table.proteinValue', { count: Math.round(macros.protein) })}</span>
-                      <span>{t('recipes.table.carbsValue', { count: Math.round(macros.carbs) })}</span>
-                      <span>{t('recipes.table.fatValue', { count: Math.round(macros.fat) })}</span>
-                    </div>
+                  <TableCell className="px-4 py-2.75">
+                    <NutrientDots
+                      protein={Math.round(macros.protein)}
+                      carbs={Math.round(macros.carbs)}
+                      fat={Math.round(macros.fat)}
+                      fibre={Math.round(macros.fiber)}
+                    />
                   </TableCell>
-                  <TableCell className="w-45 px-4 py-2.75">
+                  <TableCell className="px-4 py-2.75">
                     <div className="flex flex-wrap items-center gap-1">
                       {(recipe.mealTypes ?? []).map((mealType) => (
-                        <Badge key={mealType} variant="library">
+                        <Badge key={mealType} variant="outline" className="px-2.5 py-1 text-meta font-semibold">
                           {t(`recipes.mealType.${mealType}`)}
                         </Badge>
                       ))}

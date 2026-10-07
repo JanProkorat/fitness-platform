@@ -14,6 +14,8 @@ interface Props {
   selected: string[];
   onChange: (values: string[]) => void;
   id?: string;
+  /** Selected-value pill colour: green by default, red outline for warnings such as allergens. */
+  tone?: 'nutrition' | 'error';
 }
 
 /**
@@ -21,7 +23,7 @@ interface Props {
  * a fixed, enum-backed option list, unlike the free-form tag input. Built on
  * the same Popover + Checkbox primitives as the filter-bar popovers.
  */
-export default function MultiSelectPopover({ placeholder, options, selected, onChange, id }: Props) {
+export default function MultiSelectPopover({ placeholder, options, selected, onChange, id, tone = 'nutrition' }: Props) {
   function toggle(value: string) {
     onChange(selected.includes(value) ? selected.filter((v) => v !== value) : [...selected, value]);
   }
@@ -44,7 +46,12 @@ export default function MultiSelectPopover({ placeholder, options, selected, onC
               {selectedLabels.map((label) => (
                 <span
                   key={label}
-                  className="rounded-full bg-nutrition-soft px-2.5 py-1 text-meta font-semibold text-nutrition-ink"
+                  className={cn(
+                    'rounded-full px-2.5 py-1 text-meta font-semibold',
+                    tone === 'error'
+                      ? 'border border-error bg-background text-error'
+                      : 'bg-nutrition-soft text-nutrition-ink',
+                  )}
                 >
                   {label}
                 </span>

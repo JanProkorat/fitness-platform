@@ -11,6 +11,7 @@ import Thumbnail from '@/components/library/Thumbnail';
 import SortableColumnHeader from '@/components/library/SortableColumnHeader';
 import { sortAriaValue } from '@/components/library/sortAria';
 import { foodImageCacheKey } from '@/hooks/useIngredientsQueries';
+import NutrientDots from '@/components/library/NutrientDots';
 import TagPill from '@/components/tags/TagPill';
 
 /** The picture currently shown in the table-level lightbox (#1140), or
@@ -25,21 +26,6 @@ const COLUMN_COUNT = 6;
 
 const HEAD_CLASS = 'px-4 py-3.5 text-meta font-semibold';
 const CELL_CLASS = 'px-4 py-2.75';
-
-interface NutrientProps {
-  dotClassName: string;
-  label: string;
-}
-
-/** One macro in the Nutrients column: a coloured dot followed by e.g. "P 23 g". */
-function Nutrient({ dotClassName, label }: NutrientProps) {
-  return (
-    <span className="inline-flex items-center gap-1.5">
-      <span className={`size-1.5 shrink-0 rounded-full ${dotClassName}`} aria-hidden="true" />
-      {label}
-    </span>
-  );
-}
 
 interface Props {
   foods: FoodSummary[];
@@ -85,7 +71,7 @@ export default function IngredientsTable({
 
   return (
     <>
-      <Table>
+      <Table className="min-w-240">
       {/* `sticky top-0` pins the header to the page's own vertical scroller
           (see IngredientsPage.tsx's `overflow-visible` override on
           `ui/table.tsx`'s horizontal-scroll wrapper). `bg-muted` is already
@@ -104,14 +90,14 @@ export default function IngredientsTable({
               {...sortableHeaderProps(FoodSortField.Calories, t('ingredients.table.columnCalories'))}
             />
           </TableHead>
-          <TableHead className={`w-64 ${HEAD_CLASS}`}>{t('ingredients.table.columnNutrients')}</TableHead>
-          <TableHead className={`w-45 ${HEAD_CLASS}`} aria-sort={sortAriaValue(sortBy, sortDir, FoodSortField.Category)}>
+          <TableHead className={`${HEAD_CLASS}`}>{t('ingredients.table.columnNutrients')}</TableHead>
+          <TableHead className={`w-40 ${HEAD_CLASS}`} aria-sort={sortAriaValue(sortBy, sortDir, FoodSortField.Category)}>
             <SortableColumnHeader
               {...sortableHeaderProps(FoodSortField.Category, t('ingredients.table.columnCategory'))}
             />
           </TableHead>
-          <TableHead className={`w-45 ${HEAD_CLASS}`}>{t('ingredients.table.columnTags')}</TableHead>
-          <TableHead className={`w-30 ${HEAD_CLASS}`} aria-sort={sortAriaValue(sortBy, sortDir, FoodSortField.Library)}>
+          <TableHead className={`w-40 ${HEAD_CLASS}`}>{t('ingredients.table.columnTags')}</TableHead>
+          <TableHead className={`w-28 ${HEAD_CLASS}`} aria-sort={sortAriaValue(sortBy, sortDir, FoodSortField.Library)}>
             <SortableColumnHeader
               {...sortableHeaderProps(FoodSortField.Library, t('ingredients.table.columnLibrary'))}
             />
@@ -182,25 +168,13 @@ export default function IngredientsTable({
                 <span className="font-semibold text-ink">{food.nutrientValue?.kcal ?? 0}</span>{' '}
                 <span className="text-ink-2">{t('ingredients.table.caloriesUnit')}</span>
               </TableCell>
-              <TableCell className={`${CELL_CLASS} text-meta whitespace-normal text-ink-2`}>
-                <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-                  <Nutrient
-                    dotClassName="bg-macro-protein"
-                    label={t('ingredients.table.proteinValue', { count: food.nutrientValue?.protein ?? 0 })}
-                  />
-                  <Nutrient
-                    dotClassName="bg-macro-carbs"
-                    label={t('ingredients.table.carbsValue', { count: food.nutrientValue?.carbs ?? 0 })}
-                  />
-                  <Nutrient
-                    dotClassName="bg-macro-fat"
-                    label={t('ingredients.table.fatValue', { count: food.nutrientValue?.fat ?? 0 })}
-                  />
-                  <Nutrient
-                    dotClassName="bg-macro-fibre"
-                    label={t('ingredients.table.fibreValue', { count: food.nutrientValue?.fiber ?? 0 })}
-                  />
-                </div>
+              <TableCell className={`${CELL_CLASS}`}>
+                <NutrientDots
+                  protein={food.nutrientValue?.protein ?? 0}
+                  carbs={food.nutrientValue?.carbs ?? 0}
+                  fat={food.nutrientValue?.fat ?? 0}
+                  fibre={food.nutrientValue?.fiber ?? 0}
+                />
               </TableCell>
               <TableCell className={`${CELL_CLASS} text-copy text-ink-2`}>
                 {food.category && t(`ingredients.category.${food.category}`)}
