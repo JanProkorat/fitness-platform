@@ -23,7 +23,7 @@ interface Props {
 
 /**
  * Small square thumbnail shown to the left of a row's name in the Ingredients
- * and Recipes tables. Falls back to a neutral placeholder when there is no
+ * and Recipes tables. Falls back to a "no image" icon when there is no
  * picture, or if the stored URL fails to load. When a picture IS loaded, the
  * thumbnail becomes its own button so activating it opens the lightbox
  * instead of the row's own click — `stopPropagation` keeps the two apart.
@@ -40,7 +40,7 @@ export default function Thumbnail({ cacheKey, imageUrl, name, className, onViewP
   return (
     <div
       className={cn(
-        'flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-md bg-muted',
+        'flex size-8.5 shrink-0 items-center justify-center overflow-hidden rounded-md bg-muted',
         className,
       )}
     >

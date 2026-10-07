@@ -10,9 +10,12 @@ export interface Macros {
 const ZERO_MACROS: Macros = { kcal: 0, protein: 0, carbs: 0, fat: 0 };
 
 /** A recipe's totals divided by its servings (servings below 1 count as 1). */
-export function perServing(totals: NutrientTotals | undefined, servings: number | undefined): Macros {
+export function perServing(
+  totals: NutrientTotals | undefined,
+  servings: number | undefined,
+): Macros & { fiber: number } {
   if (!totals) {
-    return ZERO_MACROS;
+    return { ...ZERO_MACROS, fiber: 0 };
   }
   const divisor = servings && servings >= 1 ? servings : 1;
   return {
@@ -20,6 +23,7 @@ export function perServing(totals: NutrientTotals | undefined, servings: number 
     protein: (totals.protein ?? 0) / divisor,
     carbs: (totals.carbs ?? 0) / divisor,
     fat: (totals.fat ?? 0) / divisor,
+    fiber: (totals.fiber ?? 0) / divisor,
   };
 }
 

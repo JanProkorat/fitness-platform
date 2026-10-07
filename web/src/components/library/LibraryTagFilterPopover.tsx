@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Pencil, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import FilterChip from '@/components/library/FilterChip';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useCreateFoodTag, useDeleteFoodTag, useFoodTags, useUpdateFoodTag } from '@/hooks/useIngredientsQueries';
 import TagFormDialog, { DEFAULT_TAG_COLOR, type TagFormValues } from '@/components/tags/TagFormDialog';
@@ -120,11 +121,7 @@ export default function LibraryTagFilterPopover({ selectedTagIds, onChange }: Pr
     <>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
-          <Button ref={triggerRef} type="button" variant="outline" size="sm" className="gap-1.5 rounded-full">
-            <Plus className="size-3" aria-hidden="true" />
-            {t('library.tags.filter')}
-            {selectedTagIds.length > 0 && <span className="text-caption">{selectedTagIds.length}</span>}
-          </Button>
+          <FilterChip ref={triggerRef} label={t('library.tags.filter')} count={selectedTagIds.length} />
         </PopoverTrigger>
         <PopoverContent align="start" className="w-64">
           {tagsQuery.isPending ? (

@@ -1,5 +1,4 @@
-import { Plus } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import FilterChip from '@/components/library/FilterChip';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
@@ -26,11 +25,7 @@ export default function OptionFilterPopover<TValue extends string>({ label, opti
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button type="button" variant="outline" size="sm" className="gap-1.5 rounded-full">
-          <Plus className="size-3" aria-hidden="true" />
-          {label}
-          {selected.length > 0 && <span className="text-caption">{selected.length}</span>}
-        </Button>
+        <FilterChip label={label} count={selected.length} />
       </PopoverTrigger>
       <PopoverContent align="start" className="w-56">
         <ul className="flex max-h-72 flex-col gap-2.5 overflow-y-auto">

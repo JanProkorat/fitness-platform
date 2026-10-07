@@ -1,6 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Plus } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import FilterChip from '@/components/library/FilterChip';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { FoodOwnerFilter } from '@/api/food-types';
@@ -32,11 +31,7 @@ export default function OwnerFilterPopover({ selectedOwners, onChange }: Props) 
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button type="button" variant="outline" size="sm" className="gap-1.5 rounded-full">
-          <Plus className="size-3" aria-hidden="true" />
-          {t('library.filters.owner')}
-          {selectedOwners.length > 0 && <span className="text-caption">{selectedOwners.length}</span>}
-        </Button>
+        <FilterChip label={t('library.filters.owner')} count={selectedOwners.length} />
       </PopoverTrigger>
       <PopoverContent align="start" className="w-56">
         <ul className="flex flex-col gap-2.5">
