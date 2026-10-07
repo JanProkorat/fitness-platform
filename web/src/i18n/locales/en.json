@@ -3080,13 +3080,13 @@
       }
     },
     "forgotPassword": {
-      "title": "Forgot password",
-      "lede": "Enter the email you sign in with.",
+      "title": "Reset your password",
+      "lede": "Enter the email you sign in with. We'll send you a link to set a new password.",
       "emailLabel": "Email",
       "emailPlaceholder": "coach@example.com",
-      "submit": "Send link",
+      "submit": "Send reset link",
       "submitting": "Sending...",
-      "note": "We reply the same way whether or not an account exists — so we never reveal which emails are registered.",
+      "createAccount": "Create account",
       "backToLogin": "Back to sign in",
       "validation": {
         "emailRequired": "Enter your email.",
@@ -3094,12 +3094,14 @@
       },
       "errors": {
         "network": "Could not reach the server. Check your connection and try again.",
-        "generic": "Sending failed. Please try again."
+        "generic": "Sending failed. Please try again.",
+        "notRegistered": "No account uses this email."
       },
       "sent": {
         "title": "Check your email",
-        "lede": "If an account exists for this address, we've sent it a password reset link.",
-        "tryAnother": "Use a different address"
+        "lede": "We've sent a link to reset your password to <email>{{email}}</email>.",
+        "info": "The link works once and expires after 24 hours. Not in your inbox? Check spam, or send it again.",
+        "resend": "Send again"
       }
     },
     "verifyEmail": {
@@ -3148,30 +3150,43 @@
     },
     "resetPassword": {
       "title": "Set a new password",
-      "lede": "Choose a password you don't use elsewhere. Signed-in devices stay signed in.",
+      "lede": "For {{email}}. Choose one you don't use anywhere else.",
       "newPasswordLabel": "New password",
-      "confirmPasswordLabel": "Confirm password",
+      "confirmPasswordLabel": "Repeat new password",
+      "show": "Show",
+      "hide": "Hide",
+      "showNewPassword": "Show new password",
+      "hideNewPassword": "Hide new password",
+      "showRepeatPassword": "Show repeated password",
+      "hideRepeatPassword": "Hide repeated password",
       "submit": "Save new password",
       "submitting": "Saving...",
-      "note": "Sign in with your new password afterwards. The link can only be used once.",
-      "success": {
-        "title": "Password changed",
-        "lede": "You can now sign in with your new password.",
-        "cta": "Go to sign in"
+      "rules": {
+        "label": "Password rules",
+        "length": "At least 8 characters",
+        "uppercase": "An uppercase letter",
+        "lowercase": "A lowercase letter",
+        "digit": "A number",
+        "met": ", met",
+        "notMet": ", not met yet"
       },
-      "invalidLink": {
-        "title": "This link isn't valid",
-        "lede": "This password reset link is missing or malformed.",
-        "cta": "Back to sign in",
-        "requestNew": "Request a new link"
+      "done": {
+        "title": "Password changed",
+        "lede": "You can sign in with your new password now. For your security, you've been signed out on your other devices.",
+        "cta": "Sign in"
+      },
+      "expired": {
+        "title": "This link has expired",
+        "lede": "Reset links work once and only for 24 hours. Ask for a new one and use the latest email.",
+        "cta": "Send a new link",
+        "backToLogin": "Back to sign in"
       },
       "validation": {
-        "passwordInvalid": "Password doesn't meet all the requirements above.",
+        "passwordInvalid": "Password doesn't meet all the requirements below.",
         "confirmRequired": "Enter your password again.",
         "confirmMismatch": "Passwords don't match."
       },
       "errors": {
-        "genericFailure": "This password reset link is no longer valid. Please request a new one.",
         "passwordField": "Password doesn't meet the server's requirements. Please try a different one.",
         "network": "Could not reach the server. Check your connection and try again.",
         "generic": "Saving failed. Please try again."

@@ -3127,13 +3127,13 @@
       }
     },
     "forgotPassword": {
-      "title": "Zapomenuté heslo",
-      "lede": "Zadejte e-mail, kterým se přihlašujete.",
+      "title": "Obnovení hesla",
+      "lede": "Zadejte e-mail, kterým se přihlašujete. Pošleme vám odkaz pro nastavení nového hesla.",
       "emailLabel": "E-mail",
       "emailPlaceholder": "trener@example.com",
-      "submit": "Poslat odkaz",
+      "submit": "Poslat odkaz pro obnovení",
       "submitting": "Odesílám...",
-      "note": "Odpovíme stejně, ať už účet existuje nebo ne — abychom neprozradili, které e-maily jsou registrované.",
+      "createAccount": "Vytvořit účet",
       "backToLogin": "Zpět na přihlášení",
       "validation": {
         "emailRequired": "Zadejte e-mail.",
@@ -3141,12 +3141,14 @@
       },
       "errors": {
         "network": "Nepodařilo se spojit se serverem. Zkontrolujte připojení a zkuste to znovu.",
-        "generic": "Odeslání se nezdařilo. Zkuste to prosím znovu."
+        "generic": "Odeslání se nezdařilo. Zkuste to prosím znovu.",
+        "notRegistered": "Tento e-mail nepatří žádnému účtu."
       },
       "sent": {
         "title": "Zkontrolujte poštu",
-        "lede": "Pokud pod touto adresou existuje účet, poslali jsme na ni odkaz pro obnovení hesla.",
-        "tryAnother": "Zadat jinou adresu"
+        "lede": "Poslali jsme odkaz pro obnovení hesla na adresu <email>{{email}}</email>.",
+        "info": "Odkaz funguje jednou a vyprší za 24 hodin. Nic v doručené poště? Podívejte se do spamu, nebo odkaz pošlete znovu.",
+        "resend": "Poslat znovu"
       }
     },
     "verifyEmail": {
@@ -3195,30 +3197,43 @@
     },
     "resetPassword": {
       "title": "Nastavte si nové heslo",
-      "lede": "Zvolte heslo, které jinde nepoužíváte. Přihlášená zařízení zůstanou přihlášená.",
+      "lede": "Pro {{email}}. Zvolte heslo, které nepoužíváte nikde jinde.",
       "newPasswordLabel": "Nové heslo",
-      "confirmPasswordLabel": "Heslo znovu",
+      "confirmPasswordLabel": "Nové heslo znovu",
+      "show": "Zobrazit",
+      "hide": "Skrýt",
+      "showNewPassword": "Zobrazit nové heslo",
+      "hideNewPassword": "Skrýt nové heslo",
+      "showRepeatPassword": "Zobrazit zopakované heslo",
+      "hideRepeatPassword": "Skrýt zopakované heslo",
       "submit": "Uložit nové heslo",
       "submitting": "Ukládám...",
-      "note": "Po uložení se přihlaste novým heslem. Odkaz lze použít jen jednou.",
-      "success": {
-        "title": "Heslo bylo změněno",
-        "lede": "Nyní se můžete přihlásit novým heslem.",
-        "cta": "Přejít na přihlášení"
+      "rules": {
+        "label": "Požadavky na heslo",
+        "length": "Alespoň 8 znaků",
+        "uppercase": "Velké písmeno",
+        "lowercase": "Malé písmeno",
+        "digit": "Číslo",
+        "met": ", splněno",
+        "notMet": ", zatím nesplněno"
       },
-      "invalidLink": {
-        "title": "Odkaz není platný",
-        "lede": "Tento odkaz pro obnovení hesla chybí nebo je poškozený.",
-        "cta": "Zpět na přihlášení",
-        "requestNew": "Vyžádat nový odkaz"
+      "done": {
+        "title": "Heslo bylo změněno",
+        "lede": "Nyní se můžete přihlásit novým heslem. Z bezpečnostních důvodů jsme vás odhlásili na ostatních zařízeních.",
+        "cta": "Přihlásit se"
+      },
+      "expired": {
+        "title": "Platnost odkazu vypršela",
+        "lede": "Odkazy pro obnovení hesla fungují jen jednou a pouze 24 hodin. Požádejte o nový a použijte nejnovější e-mail.",
+        "cta": "Poslat nový odkaz",
+        "backToLogin": "Zpět na přihlášení"
       },
       "validation": {
-        "passwordInvalid": "Heslo nesplňuje všechny požadavky výše.",
+        "passwordInvalid": "Heslo nesplňuje všechny požadavky níže.",
         "confirmRequired": "Zadejte heslo znovu.",
         "confirmMismatch": "Hesla se neshodují."
       },
       "errors": {
-        "genericFailure": "Tento odkaz pro obnovení hesla už není platný. Vyžádejte si prosím nový.",
         "passwordField": "Heslo nesplňuje požadavky serveru. Zkuste prosím jiné heslo.",
         "network": "Nepodařilo se spojit se serverem. Zkontrolujte připojení a zkuste to znovu.",
         "generic": "Uložení se nezdařilo. Zkuste to prosím znovu."

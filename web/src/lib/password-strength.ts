@@ -1,8 +1,6 @@
 /**
- * Shared password-strength scoring, used by both the registration wizard
- * (RegisterStep2) and the reset-password form (ResetPasswordPage). Kept as
- * plain functions (not a hook) so the score can be computed synchronously
- * from the current field value without extra render cycles.
+ * Legacy strength-meter scorer; nothing imports it now. The live rule checks
+ * (register and reset-password) use `password-rules.ts`.
  */
 export function computePasswordStrength(pwd: string): number {
   let score = 0;

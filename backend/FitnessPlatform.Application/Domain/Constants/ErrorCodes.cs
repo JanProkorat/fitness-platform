@@ -10,6 +10,9 @@ public static class ErrorCodes
     /// <summary>Invalid email or password during login.</summary>
     public const string InvalidCredentials = "INVALID_CREDENTIALS";
 
+    /// <summary>No account uses the email submitted to the password reset request.</summary>
+    public const string EmailNotRegistered = "EMAIL_NOT_REGISTERED";
+
     /// <summary>Google-verified email matches a password-only account with no Google external login. The user should sign in with their password.</summary>
     public const string SocialEmailConflict = "social_email_conflict";
 

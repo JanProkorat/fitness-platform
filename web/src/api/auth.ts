@@ -148,9 +148,8 @@ export async function verifyEmail(token: string): Promise<VerifyEmailResponse> {
 
 /**
  * POST /auth/password/reset
- * Requests a password reset link. Always returns 200 whether or not the
- * account exists (anti-enumeration) — never branch UI copy on this call
- * succeeding vs. "the account was found".
+ * Requests a password reset link. Returns 200 when sent; 404 with errorCode
+ * EMAIL_NOT_REGISTERED for an unknown email; 429 when rate limited.
  *
  * Note the verb collision with `resetPassword` below: both endpoints live
  * at the same path, distinguished only by HTTP verb (`RequestPasswordResetEndpoint`
@@ -166,8 +165,9 @@ export async function requestPasswordReset(email: string): Promise<void> {
  * Completes a password reset using the token + email from the reset link.
  * Returns one generic failure for an invalid/expired/already-used token AND
  * for an unknown email (anti-enumeration, #656) — do not try to distinguish
- * them client-side. Does NOT revoke sessions and does NOT sign the caller
- * in (`ResetPasswordEndpoint.cs:43-62`).
+ * them client-side. A weak password is a 400 with a `newPassword` field
+ * error. Success revokes all of the user's refresh tokens; it does not sign
+ * the caller in.
  */
 export async function resetPassword(payload: ResetPasswordRequest): Promise<void> {
   await api.put('/auth/password/reset', payload);

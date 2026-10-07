@@ -1,7 +1,7 @@
 /**
  * Account-flow pages spanning multiple routes — the sign-in dialog routes
- * ("/login", "/forgot-password"), the "/register" page, "/verify-email" and
- * "/auth/reset-password" — #1058 phase 4.
+ * ("/login", "/forgot-password", "/auth/reset-password"), the "/register"
+ * page and "/verify-email" — #1058 phase 4.
  *
  * Runs under the `public` project (playwright.config.ts) — no `setup`
  * dependency, no `storageState`, genuinely signed-out context, matching
@@ -20,7 +20,7 @@ test('/forgot-password renders its form in a dialog with an accessible name, and
   page,
 }) => {
   await page.goto('/forgot-password');
-  await expect(page.getByRole('dialog', { name: 'Forgot password' })).toBeVisible();
+  await expect(page.getByRole('dialog', { name: 'Reset your password' })).toBeVisible();
 
   await page.goto('/register');
   await expect(page.getByRole('heading', { name: 'Join our community' })).toBeVisible();
@@ -67,23 +67,17 @@ test('the login form has no client app signpost', async ({ page }) => {
   await expect(dialog.getByText('New to Form Up?')).toBeVisible();
 });
 
-test('/forgot-password returns the same confirmation copy for an existing and a non-existent address', async ({
+test('/forgot-password shows an inline error for an unknown address and the sent step for a known one', async ({
   page,
   request,
 }) => {
-  // Regression / anti-enumeration (#656): RequestPasswordResetEndpoint
-  // always returns 200 whether or not the account exists, and awaits the
-  // email send SYNCHRONOUSLY (unlike registration's verification email,
-  // which is queued) — so the UI must show identical confirmation copy for
-  // both cases.
+  // RequestPasswordResetEndpoint answers 404 EMAIL_NOT_REGISTERED for an
+  // unknown address and awaits the email send synchronously for a known one.
   //
-  // Since #1059 the compose harness captures outbound mail in MailHog
-  // instead of sending it for real, so any recipient address works here —
-  // this no longer needs to be a real, deliverable inbox. Kept as a fixed
-  // synthetic address purely so the "exists" case is a stable, reusable
-  // account rather than a fresh one per run; registered here via a direct
-  // API call (idempotent — a 400 "already registered" is fine, we only need
-  // the account to exist).
+  // The compose harness captures outbound mail in MailHog, so any recipient
+  // address works. A fixed synthetic address keeps the "known" case a stable,
+  // reusable account; it is registered via a direct API call (idempotent — a
+  // 400 "already registered" is fine, we only need the account to exist).
   const existingEmail = 'existing-owner@example.com';
   await request.post('/auth/register', {
     data: {
@@ -97,22 +91,33 @@ test('/forgot-password returns the same confirmation copy for an existing and a 
     },
   });
 
-  // Straight apostrophe — matches the literal en.json string verbatim, not
-  // a "smart quote" the source doesn't actually use.
-  const sentCopy = "If an account exists for this address, we've sent it a password reset link.";
-
   await page.goto('/forgot-password');
-  await page.getByLabel('Email').fill(existingEmail);
-  await page.getByRole('button', { name: 'Send link' }).click();
-  // The "existing" case still awaits a real, synchronous outbound-mail call
-  // (captured by MailHog rather than actually delivered, per #1059 — see the
-  // comment above) — allow more than the default 5s.
-  await expect(page.getByText(sentCopy)).toBeVisible({ timeout: 15_000 });
+  const dialog = page.getByRole('dialog', { name: 'Reset your password' });
+  const email = page.getByLabel('Email');
 
-  await page.goto('/forgot-password');
-  await page.getByLabel('Email').fill('definitely-does-not-exist@example.com');
-  await page.getByRole('button', { name: 'Send link' }).click();
-  await expect(page.getByText(sentCopy)).toBeVisible();
+  await email.fill('definitely-does-not-exist@example.com');
+  await page.getByRole('button', { name: 'Send reset link' }).click();
+  await expect(dialog.getByText('No account uses this email.')).toBeVisible();
+  await expect(email).toHaveAttribute('aria-invalid', 'true');
+  await expect(dialog.getByRole('link', { name: 'Create account' })).toHaveAttribute(
+    'href',
+    '/register'
+  );
+  await expect(dialog.getByRole('heading', { name: 'Check your email' })).toHaveCount(0);
+
+  await email.fill(existingEmail);
+  await page.getByRole('button', { name: 'Send reset link' }).click();
+  // The known case awaits a synchronous outbound-mail call — allow more than
+  // the default 5s.
+  await expect(page.getByRole('dialog', { name: 'Check your email' })).toBeVisible({
+    timeout: 15_000,
+  });
+  await expect(page.getByText(existingEmail)).toBeVisible();
+
+  // "Send again" stays on the sent step.
+  await page.getByRole('button', { name: 'Send again' }).click();
+  await expect(page.getByRole('button', { name: 'Send again' })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText(existingEmail)).toBeVisible();
 });
 
 test('/verify-email with no token and no session renders the invalid-link state and calls no /auth/ endpoint', async ({
@@ -173,33 +178,106 @@ test('/verify-email?token=<bogus> calls /auth/verify-email exactly once', async 
 
 
 
-test('/auth/reset-password with no query params renders the invalid-link state with no password inputs; with token+email it renders the form', async ({
+test('/auth/reset-password with no query params renders the expired step with no password inputs; with token+email it renders the form', async ({
   page,
 }) => {
-  // Regression: ResetPasswordPage reads `token` and `email` from the query
-  // ONCE and gates on `!!token && emailIsWellFormed` — a missing/malformed
-  // either one must render the invalid-link state immediately, WITHOUT
-  // mounting the password form or calling the API. Token validity itself is
-  // only ever checked server-side on submit (`ResetPasswordEndpoint`), so
-  // any non-empty token value plus a syntactically valid email is enough to
-  // render the form — a literally empty `?token=&email=` is indistinguishable
-  // from "no query params" (`URLSearchParams.get` returns `''`, which is
-  // falsy), so both must show the same invalid-link state.
+  // ResetPasswordForm reads `token` and `email` from the query ONCE; a
+  // missing/malformed either one must render the expired step immediately,
+  // WITHOUT mounting the password form or calling the API. Token validity is
+  // only checked server-side on submit, so any non-empty token plus a
+  // syntactically valid email renders the form. A literally empty
+  // `?token=&email=` reads as falsy, so it shows the expired step too.
   await page.goto('/auth/reset-password');
   await page.waitForLoadState('networkidle');
 
-  await expect(page.getByRole('heading', { name: "This link isn't valid" })).toBeVisible();
+  await expect(page.getByRole('dialog', { name: 'This link has expired' })).toBeVisible();
   await expect(page.locator('input[type="password"]')).toHaveCount(0);
 
   await page.goto('/auth/reset-password?token=&email=');
   await page.waitForLoadState('networkidle');
 
-  await expect(page.getByRole('heading', { name: "This link isn't valid" })).toBeVisible();
+  await expect(page.getByRole('dialog', { name: 'This link has expired' })).toBeVisible();
   await expect(page.locator('input[type="password"]')).toHaveCount(0);
 
   await page.goto('/auth/reset-password?token=some-reset-token-value&email=someone%40example.com');
   await page.waitForLoadState('networkidle');
 
-  await expect(page.getByRole('heading', { name: 'Set a new password' })).toBeVisible();
+  const dialog = page.getByRole('dialog', { name: 'Set a new password' });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByText('For someone@example.com.')).toBeVisible();
   await expect(page.locator('input[type="password"]')).toHaveCount(2);
+});
+
+test('/auth/reset-password: a bogus token with a valid password lands on the expired step', async ({
+  page,
+}) => {
+  // The endpoint answers one generic 400 for a bad, expired or used token and
+  // for an unknown email, so the web shows the expired step for it.
+  await page.goto('/auth/reset-password?token=definitely-bogus-token&email=someone%40example.com');
+
+  await page.getByLabel('New password', { exact: true }).fill('CorrectHorse9');
+  await page.getByLabel('Repeat new password').fill('CorrectHorse9');
+  await page.getByRole('button', { name: 'Save new password' }).click();
+
+  await expect(page.getByRole('dialog', { name: 'This link has expired' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Send a new link' })).toBeVisible();
+  await expect(page.locator('input[type="password"]')).toHaveCount(0);
+});
+
+test('/auth/reset-password: Show/Hide toggles each field and a mismatch is flagged', async ({
+  page,
+}) => {
+  await page.goto('/auth/reset-password?token=some-reset-token-value&email=someone%40example.com');
+
+  const newPassword = page.getByLabel('New password', { exact: true });
+  await page.getByRole('button', { name: 'Show new password' }).click();
+  await expect(newPassword).toHaveAttribute('type', 'text');
+  await page.getByRole('button', { name: 'Hide new password' }).click();
+  await expect(newPassword).toHaveAttribute('type', 'password');
+
+  await newPassword.fill('CorrectHorse9');
+  await page.getByLabel('Repeat new password').fill('Different9x');
+  await page.getByRole('button', { name: 'Save new password' }).click();
+  await expect(page.getByText("Passwords don't match.")).toBeVisible();
+});
+
+test('/auth/reset-password: a signed-in browser still reaches the form and is signed out after a reset', async ({
+  page,
+}) => {
+  // EntryPage must not bounce an authenticated visitor to /clients on the
+  // reset route, and a successful reset clears the local session so "Sign in"
+  // opens /login. The API is mocked: restoring a session needs a real refresh
+  // token, and a real reset token needs the mail harness.
+  await page.route('**/auth/refresh', (route) =>
+    route.fulfill({ json: { accessToken: 'access-token', refreshToken: 'refresh-token' } })
+  );
+  await page.route('**/users/me', (route) =>
+    route.fulfill({
+      json: {
+        userId: 'u-1',
+        email: 'someone@example.com',
+        firstName: 'Some',
+        lastName: 'One',
+        roles: ['Trainer'],
+        emailConfirmed: true,
+      },
+    })
+  );
+  await page.route('**/auth/password/reset', (route) => route.fulfill({ status: 200, json: {} }));
+  await page.addInitScript("window.localStorage.setItem('refreshToken', 'stored-refresh-token');");
+
+  await page.goto('/auth/reset-password?token=some-reset-token-value&email=someone%40example.com');
+  await expect(page.getByRole('dialog', { name: 'Set a new password' })).toBeVisible();
+  await expect(page).toHaveURL(/\/auth\/reset-password/);
+
+  await page.getByLabel('New password', { exact: true }).fill('CorrectHorse9');
+  await page.getByLabel('Repeat new password').fill('CorrectHorse9');
+  await page.getByRole('button', { name: 'Save new password' }).click();
+
+  await expect(page.getByRole('dialog', { name: 'Password changed' })).toBeVisible();
+  expect(await page.evaluate(() => window.localStorage.getItem('refreshToken'))).toBeNull();
+
+  await page.getByRole('dialog').getByRole('button', { name: 'Sign in' }).click();
+  await expect(page).toHaveURL(/\/login$/);
+  await expect(page.getByRole('dialog', { name: 'Welcome back' })).toBeVisible();
 });

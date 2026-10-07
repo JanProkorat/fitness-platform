@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 export default function EntryDialogTitle({ className, ...props }: ComponentProps<typeof DialogTitle>) {
   return (
     <DialogTitle
-      className={cn('font-display text-stat leading-tight font-semibold text-ink', className)}
+      className={cn('pr-11 font-display text-stat leading-tight font-semibold text-ink', className)}
       {...props}
     />
   );
