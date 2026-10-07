@@ -17,7 +17,7 @@ const QA_CLIENT_NAME = /QA Client/;
  * (see the file header comment) also renders a row once the "All" filter
  * lists every live-roster client, so the unanchored `QA_CLIENT_NAME` regex
  * alone resolves to two buttons — a strict-mode violation. Scoping to the
- * row's `span.font-bold` name text via `exact: true` (same element
+ * row's `[data-testid="inbox-row-name"]` name text via `exact: true` (same element
  * `getInboxRowNames` below reads) excludes "QA Client3" without excluding
  * the avatar's initials-fallback text ahead of it in DOM order.
  */
@@ -63,7 +63,7 @@ async function getInboxRowNames(page: Page): Promise<string[]> {
   // avatar's initials-fallback text ("QC") ahead of the name in DOM order,
   // so reading the button's whole innerText and taking the first line picks
   // up the initials, not the name.
-  const names = page.locator('button span.font-bold');
+  const names = page.locator('[data-testid="inbox-row-name"]');
   return (await names.allInnerTexts()).map((t) => t.trim()).sort();
 }
 

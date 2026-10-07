@@ -63,7 +63,7 @@ export default function ConversationRow({ conversation, isSelected, onSelect }: 
       />
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex items-center justify-between gap-2">
-          <span className={cn('truncate text-copy text-ink', hasUnread ? 'font-bold' : 'font-semibold')}>
+          <span data-testid="inbox-row-name" className={cn('truncate text-copy text-ink', hasUnread ? 'font-bold' : 'font-semibold')}>
             {participant?.name}
           </span>
           <span className="shrink-0 text-caption text-muted-foreground">
