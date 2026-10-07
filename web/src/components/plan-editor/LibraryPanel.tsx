@@ -1,0 +1,285 @@
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useDraggable } from '@dnd-kit/react';
+import { BookOpen, GripVertical, PanelLeftClose, Plus, Search, SlidersHorizontal } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
+import { FoodSortDirection } from '@/api/food-types';
+import type { FoodSummary, RecipeSummaryDto } from '@/api/generated';
+import { useIngredients } from '@/hooks/useIngredientsQueries';
+import { useRecipes } from '@/hooks/useRecipesQueries';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { perServing } from '@/lib/recipe-nutrition';
+import { cn } from '@/lib/utils';
+import { foodToItem, recipeToItem } from '@/components/plan-editor/plan-editor-library';
+import type { LibraryItem } from '@/components/plan-editor/plan-editor-types';
+
+const PAGE_SIZE = 25;
+const TAB_CLASS =
+  'inline-flex h-10 items-center rounded-full border px-4 text-body font-semibold outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50';
+
+type LibraryTab = 'recipes' | 'ingredients';
+
+interface CardProps {
+  dragId: string;
+  item: LibraryItem;
+  name: string;
+  subtitle: string;
+  imageUrl?: string;
+  canAdd: boolean;
+  disabled: boolean;
+  onAdd: (item: LibraryItem) => void;
+}
+
+function LibraryCard({ dragId, item, name, subtitle, imageUrl, canAdd, disabled, onAdd }: CardProps) {
+  const { t } = useTranslation();
+  const [imageFailed, setImageFailed] = useState(false);
+  const { ref, handleRef, isDragging } = useDraggable({ id: dragId, data: { item }, disabled });
+
+  return (
+    <li
+      ref={ref}
+      data-testid="library-card"
+      className={cn(
+        'flex items-center gap-3 rounded-xl border border-line bg-card p-2.5 shadow-panel',
+        isDragging && 'opacity-50',
+      )}
+    >
+      {!disabled && (
+        <button
+          type="button"
+          ref={handleRef}
+          aria-label={t('planEditor.library.drag', { name })}
+          className="cursor-grab text-faint"
+        >
+          <GripVertical className="size-4" aria-hidden="true" />
+        </button>
+      )}
+      <div className="size-10 shrink-0 overflow-hidden rounded-lg bg-nutrition-soft">
+        {imageUrl && !imageFailed && (
+          <img src={imageUrl} alt="" className="size-full object-cover" onError={() => setImageFailed(true)} />
+        )}
+      </div>
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="truncate text-copy font-semibold text-ink">{name}</span>
+        <span className="truncate text-meta text-muted-foreground">{subtitle}</span>
+      </div>
+      {!disabled && (
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="shrink-0 rounded-full"
+          disabled={!canAdd}
+          title={canAdd ? undefined : t('planEditor.library.selectMealFirst')}
+          aria-label={t('planEditor.library.add', { name })}
+          onClick={() => onAdd(item)}
+        >
+          <Plus aria-hidden="true" />
+        </Button>
+      )}
+    </li>
+  );
+}
+
+function macroLine(t: (key: string, options?: Record<string, unknown>) => string, macros: Macros): string {
+  return t('planEditor.library.macros', {
+    kcal: Math.round(macros.kcal),
+    protein: Math.round(macros.protein),
+    carbs: Math.round(macros.carbs),
+    fat: Math.round(macros.fat),
+  });
+}
+
+interface Macros {
+  kcal: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+}
+
+interface Props {
+  /** Whether a grid cell is selected, i.e. whether "+" has somewhere to add to. */
+  canAdd: boolean;
+  disabled: boolean;
+  onAdd: (item: LibraryItem) => void;
+  onCollapse: () => void;
+}
+
+/** Left panel with the nutritionist's recipes and ingredients, draggable onto the week grid. */
+export default function LibraryPanel({ canAdd, disabled, onAdd, onCollapse }: Props) {
+  const { t, i18n } = useTranslation();
+  const [tab, setTab] = useState<LibraryTab>('recipes');
+  const [searchInput, setSearchInput] = useState('');
+  const search = useDebouncedValue(searchInput, 300);
+
+  const recipesQuery = useRecipes(
+    {
+      search,
+      mealTypes: [],
+      dietaryPreferences: [],
+      owners: [],
+      tags: [],
+      sortBy: null,
+      sortDir: FoodSortDirection.Ascending,
+      page: 1,
+      pageSize: PAGE_SIZE,
+    },
+    true,
+  );
+  const ingredientsQuery = useIngredients({
+    search,
+    categories: [],
+    tags: [],
+    owners: [],
+    sortBy: null,
+    sortDir: FoodSortDirection.Ascending,
+    page: 1,
+    pageSize: PAGE_SIZE,
+  });
+
+  const activeQuery = tab === 'recipes' ? recipesQuery : ingredientsQuery;
+  const recipes: RecipeSummaryDto[] = recipesQuery.data?.recipes ?? [];
+  const foods: FoodSummary[] = ingredientsQuery.data?.foods ?? [];
+
+  return (
+    <aside
+      aria-label={t('planEditor.library.title')}
+      className="flex h-full w-80 shrink-0 flex-col gap-4 overflow-hidden rounded-2xl border border-line bg-sunken p-4"
+    >
+      <div className="flex items-center gap-2">
+        <BookOpen className="size-4 shrink-0 text-ink" aria-hidden="true" />
+        <span className="text-label font-semibold tracking-label text-ink uppercase">
+          {t('planEditor.library.title')}
+        </span>
+        <span className="min-w-0 flex-1 truncate text-meta text-muted-foreground">
+          {t('planEditor.library.counts', {
+            recipes: recipesQuery.data?.totalCount ?? 0,
+            ingredients: ingredientsQuery.data?.totalCount ?? 0,
+          })}
+        </span>
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          aria-label={t('planEditor.library.collapse')}
+          onClick={onCollapse}
+        >
+          <PanelLeftClose aria-hidden="true" />
+        </Button>
+      </div>
+
+      <div role="tablist" aria-label={t('planEditor.library.title')} className="flex gap-2">
+        {(['recipes', 'ingredients'] as const).map((value) => (
+          <button
+            key={value}
+            type="button"
+            role="tab"
+            aria-selected={tab === value}
+            onClick={() => setTab(value)}
+            className={cn(
+              TAB_CLASS,
+              tab === value
+                ? 'border-ink bg-ink text-primary-foreground'
+                : 'border-line bg-card text-ink hover:bg-muted',
+            )}
+          >
+            {t(`planEditor.library.${value}`)}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex items-center gap-2">
+        <div className="relative min-w-0 flex-1">
+          <Search
+            className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+            aria-hidden="true"
+          />
+          <Input
+            type="search"
+            value={searchInput}
+            onChange={(event) => setSearchInput(event.target.value)}
+            placeholder={t(`planEditor.library.search_${tab}`)}
+            aria-label={t(`planEditor.library.search_${tab}`)}
+            className="h-10 pl-9"
+          />
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="icon-lg"
+          disabled
+          aria-label={t('planEditor.library.filters')}
+          title={t('planEditor.comingSoon')}
+        >
+          <SlidersHorizontal aria-hidden="true" />
+        </Button>
+      </div>
+
+      <p className="text-meta text-muted-foreground">{t('planEditor.library.hint')}</p>
+
+      <div className="-mr-1 min-h-0 flex-1 overflow-y-auto pr-1">
+        {activeQuery.isPending && (
+          <div className="flex flex-col gap-2">
+            {Array.from({ length: 5 }, (_, index) => (
+              <Skeleton key={index} className="h-16 w-full rounded-xl" />
+            ))}
+          </div>
+        )}
+        {activeQuery.isError && (
+          <div className="flex flex-col items-start gap-2">
+            <p className="text-body text-muted-foreground">{t('planEditor.library.loadError')}</p>
+            <Button type="button" variant="outline" size="sm" onClick={() => void activeQuery.refetch()}>
+              {t('planEditor.library.retry')}
+            </Button>
+          </div>
+        )}
+        {!activeQuery.isPending && !activeQuery.isError && (
+          <ul className="flex flex-col gap-2">
+            {tab === 'recipes' &&
+              recipes.map((recipe) => (
+                <LibraryCard
+                  key={recipe.recipeId}
+                  dragId={`recipe:${recipe.recipeId}`}
+                  item={recipeToItem(recipe)}
+                  name={recipe.name ?? ''}
+                  subtitle={macroLine(t, perServing(recipe.totalNutrients, recipe.servings))}
+                  imageUrl={recipe.imageUrl}
+                  canAdd={canAdd}
+                  disabled={disabled}
+                  onAdd={onAdd}
+                />
+              ))}
+            {tab === 'ingredients' &&
+              foods.map((food) => {
+                const localized =
+                  i18n.language.startsWith('cs') ? food.nameCs : i18n.language.startsWith('de') ? food.nameDe : food.nameEn;
+                return (
+                  <LibraryCard
+                    key={food.foodId}
+                    dragId={`food:${food.foodId}`}
+                    item={foodToItem(food)}
+                    name={localized || food.name || food.rawName || ''}
+                    subtitle={`${macroLine(t, {
+                      kcal: food.nutrientValue?.kcal ?? 0,
+                      protein: food.nutrientValue?.protein ?? 0,
+                      carbs: food.nutrientValue?.carbs ?? 0,
+                      fat: food.nutrientValue?.fat ?? 0,
+                    })} ${t('planEditor.library.per100')}`}
+                    imageUrl={food.imageUrl}
+                    canAdd={canAdd}
+                    disabled={disabled}
+                    onAdd={onAdd}
+                  />
+                );
+              })}
+            {((tab === 'recipes' && recipes.length === 0) || (tab === 'ingredients' && foods.length === 0)) && (
+              <li className="text-body text-muted-foreground">{t('planEditor.library.empty')}</li>
+            )}
+          </ul>
+        )}
+      </div>
+    </aside>
+  );
+}

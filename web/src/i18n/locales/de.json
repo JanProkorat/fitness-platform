@@ -1506,8 +1506,114 @@
       }
     }
   },
+  "planEditor": {
+    "nameLabel": "Planname",
+    "undo": "Rückgängig",
+    "save": "Speichern",
+    "comingSoon": "Demnächst",
+    "dayTotal": "Tagessumme",
+    "dayNote": "Tagesnotiz: {{note}}",
+    "saveError": "Speichern fehlgeschlagen. Ihre Änderungen sind noch da — versuchen Sie es erneut.",
+    "status": {
+      "saving": "Speichern…",
+      "unsaved": "Ungespeicherte Änderungen",
+      "saved": "Gespeichert"
+    },
+    "toggles": {
+      "range": "Bereich",
+      "view": "Ansicht",
+      "week": "Woche",
+      "day": "Tag",
+      "meals": "Mahlzeiten",
+      "nutrition": "Nährwerte"
+    },
+    "days": {
+      "1": "Mo",
+      "2": "Di",
+      "3": "Mi",
+      "4": "Do",
+      "5": "Fr",
+      "6": "Sa",
+      "7": "So"
+    },
+    "rows": {
+      "breakfast": "Frühstück",
+      "snack": "Snack",
+      "lunch": "Mittagessen",
+      "dinner": "Abendessen",
+      "preWorkout": "Vor dem Training",
+      "postWorkout": "Nach dem Training"
+    },
+    "grid": {
+      "label": "Mahlzeiten der Woche"
+    },
+    "cell": {
+      "label": "{{day}}, Mahlzeit {{row}}",
+      "empty": "Leer",
+      "kcal": "{{kcal}} kcal",
+      "items_one": "{{count}} Eintrag",
+      "items_other": "{{count}} Einträge",
+      "macros": "E {{protein}} · K {{carbs}} · F {{fat}} · Bal {{fiber}}"
+    },
+    "weeks": {
+      "label": "Wochen",
+      "previous": "Vorherige Wochen",
+      "next": "Weitere Wochen",
+      "add": "Woche hinzufügen",
+      "week": "Woche {{number}}",
+      "position": "Woche {{current}} von {{total}}"
+    },
+    "averages": {
+      "label": "Ø pro Tag",
+      "fiber": "Bal {{grams}} g",
+      "kcal": "{{value}} kcal",
+      "kcalOfTarget": "{{value}} / {{target}} kcal",
+      "protein": "E {{value}}",
+      "carbs": "K {{value}}",
+      "fat": "F {{value}}",
+      "weekTotal": "· Woche gesamt {{kcal}} kcal",
+      "details": "Details"
+    },
+    "picker": {
+      "title": "Welche Mahlzeiten hat ein Tag?",
+      "body": "Jede Mahlzeit wird zu einer Zeile der Woche. Fügen Sie eine Art zweimal hinzu für zwei Snacks. Sie können die Zeilen später umsortieren oder entfernen.",
+      "mostCommon": "am häufigsten",
+      "addOneByOne": "Oder einzeln hinzufügen",
+      "done": "Fertig"
+    },
+    "library": {
+      "title": "Bibliothek",
+      "counts": "{{recipes}} Rezepte · {{ingredients}} Zutaten",
+      "recipes": "Rezepte",
+      "ingredients": "Zutaten",
+      "search_recipes": "Rezepte suchen…",
+      "search_ingredients": "Zutaten suchen…",
+      "filters": "Filter",
+      "hint": "Auf eine Mahlzeit ziehen oder eine Mahlzeit wählen und + drücken. Eine Mahlzeit kann mehrere Rezepte und Zutaten enthalten.",
+      "drag": "{{name}} ziehen",
+      "add": "{{name}} zur gewählten Mahlzeit hinzufügen",
+      "selectMealFirst": "Wählen Sie zuerst eine Mahlzeit in der Woche",
+      "collapse": "Bibliothek ausblenden",
+      "expand": "Bibliothek einblenden",
+      "macros": "{{kcal}} kcal · E {{protein}} · K {{carbs}} · F {{fat}}",
+      "per100": "pro 100 g",
+      "empty": "Nichts gefunden.",
+      "loadError": "Die Bibliothek konnte nicht geladen werden.",
+      "retry": "Erneut versuchen"
+    },
+    "conflict": {
+      "message": "Diese Vorlage wurde seit dem Öffnen woanders geändert. Ihre Änderungen bleiben hier erhalten, nichts wurde überschrieben. Beim Neuladen der aktuellen Version gehen Ihre Änderungen verloren.",
+      "reload": "Aktuelle Version laden"
+    },
+    "leave": {
+      "title": "Ohne Speichern verlassen?",
+      "body": "Sie haben ungespeicherte Änderungen. Wenn Sie jetzt gehen, gehen sie verloren.",
+      "stay": "Weiter bearbeiten",
+      "discard": "Verlassen"
+    }
+  },
   "planTemplates": {
-    "title": "Planvorlagen",
+    "title":"Planvorlagen",
     "subtitle": "Wiederverwendbare Ernährungspläne — einmal erstellen, jedem Klienten zuweisen",
     "newTemplate": "Neue Vorlage",
     "searchPlaceholder": "Vorlagen suchen…",
@@ -1594,9 +1700,13 @@
       "snack2": "Snack 2",
       "dinner": "Abendessen"
     },
-    "editorPlaceholder": {
-      "back": "Planvorlagen",
-      "body": "Der Vorlagen-Editor kommt bald."
+    "editor": {
+      "title": "Vorlagen-Editor",
+      "readOnly": "Diese Vorlage gehört einem anderen Ernährungsberater. Sie können sie ansehen, aber nur der Eigentümer kann sie ändern. Kopieren Sie sie in der Liste, um eine eigene zu erhalten.",
+      "notFound": {
+        "title": "Vorlage nicht gefunden",
+        "body": "Sie wurde möglicherweise gelöscht oder ist nicht mit Ihnen geteilt."
+      }
     }
   },
   "richTextEditor": {
