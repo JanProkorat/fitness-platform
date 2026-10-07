@@ -62,7 +62,7 @@ export default function PlanTemplateEditorPage() {
 
   if (!isNutritionist || status === 403) {
     return (
-      <div className="flex h-full flex-col gap-4">
+      <div className="flex h-full flex-col gap-4 p-6">
         <PageHeader eyebrow={t('planTemplates.title')} title={t('planTemplates.editor.title')} />
         <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
           <Lock className="size-8 text-muted-foreground" aria-hidden="true" />
@@ -75,7 +75,7 @@ export default function PlanTemplateEditorPage() {
 
   if (templateQuery.isPending) {
     return (
-      <div className="flex h-full flex-col gap-4">
+      <div className="flex h-full flex-col gap-4 p-6">
         <Skeleton className="h-10 w-80" />
         <Skeleton className="h-full w-full rounded-2xl" />
       </div>
@@ -84,7 +84,7 @@ export default function PlanTemplateEditorPage() {
 
   if (templateQuery.isError) {
     return (
-      <div className="flex h-full flex-col gap-4">
+      <div className="flex h-full flex-col gap-4 p-6">
         <BackLink />
         {status === 404 ? (
           <div className="flex flex-col items-start gap-1">

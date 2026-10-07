@@ -72,8 +72,11 @@ export default function App() {
               <Route path="/ingredients" element={<IngredientsPage />} />
               <Route path="/recipes" element={<RecipesPage />} />
               <Route path="/plan-templates" element={<PlanTemplatesPage />} />
-              <Route path="/plan-templates/:templateId" element={<PlanTemplateEditorPage />} />
               <Route path="/profile" element={<ProfilePage />} />
+            </Route>
+            {/* Full-bleed workspace: icon-rail sidebar, no main padding (PageTemplateEditor). */}
+            <Route element={<AppShell variant="editor" />}>
+              <Route path="/plan-templates/:templateId" element={<PlanTemplateEditorPage />} />
             </Route>
           </Route>
 

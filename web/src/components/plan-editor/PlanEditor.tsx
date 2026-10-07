@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DragDropProvider, DragOverlay } from '@dnd-kit/react';
 import { AlertTriangle, PanelLeftOpen } from 'lucide-react';
 import { MealKind } from '@/api/generated';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import {
   Dialog,
   DialogContent,
@@ -101,6 +102,9 @@ export default function PlanEditor({
   const [libraryOpen, setLibraryOpen] = useState(true);
   const [pickerSession, setPickerSession] = useState(false);
   const [leaveOpen, setLeaveOpen] = useState(false);
+  const expandRef = useRef<HTMLButtonElement>(null);
+  const collapseRef = useRef<HTMLButtonElement>(null);
+  const libraryToggled = useRef(false);
 
   const currentIndex = Math.min(weekIndex, doc.weeks.length - 1);
   const week = doc.weeks[currentIndex];
@@ -115,6 +119,19 @@ export default function PlanEditor({
     window.addEventListener('beforeunload', warn);
     return () => window.removeEventListener('beforeunload', warn);
   }, [dirty]);
+
+  // Keep keyboard focus on the visible toggle: the collapse button goes inert, the expand button unmounts.
+  useEffect(() => {
+    if (!libraryToggled.current) {
+      return;
+    }
+    (libraryOpen ? collapseRef : expandRef).current?.focus({ preventScroll: true });
+  }, [libraryOpen]);
+
+  function toggleLibrary(open: boolean) {
+    libraryToggled.current = true;
+    setLibraryOpen(open);
+  }
 
   function selectWeek(index: number) {
     setWeekIndex(index);
@@ -197,25 +214,35 @@ export default function PlanEditor({
         }
       }}
     >
-      <div className="flex h-full min-h-0 gap-4">
-        {libraryOpen && !readOnly && (
-          <LibraryPanel
-            canAdd={selected !== null}
-            disabled={readOnly}
-            onAdd={(item) => selected && addToCell(item, selected)}
-            onCollapse={() => setLibraryOpen(false)}
-          />
+      <div className="flex h-full min-h-0">
+        {!readOnly && (
+          <div
+            className={cn(
+              'shrink-0 overflow-hidden transition-[width] duration-300 ease-out motion-reduce:transition-none',
+              libraryOpen ? 'w-80' : 'w-0',
+            )}
+          >
+            <LibraryPanel
+              open={libraryOpen}
+              collapseRef={collapseRef}
+              canAdd={selected !== null}
+              disabled={readOnly}
+              onAdd={(item) => selected && addToCell(item, selected)}
+              onCollapse={() => toggleLibrary(false)}
+            />
+          </div>
         )}
 
-        <div className="flex min-w-0 flex-1 flex-col gap-4 overflow-y-auto pr-1">
+        <div className="flex min-w-0 flex-1 flex-col gap-4 overflow-y-auto p-6">
           <div className="flex items-start gap-3">
             {!libraryOpen && !readOnly && (
               <Button
+                ref={expandRef}
                 type="button"
                 variant="outline"
                 size="icon-lg"
                 aria-label={t('planEditor.library.expand')}
-                onClick={() => setLibraryOpen(true)}
+                onClick={() => toggleLibrary(true)}
               >
                 <PanelLeftOpen aria-hidden="true" />
               </Button>

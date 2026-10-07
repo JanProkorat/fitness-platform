@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type Ref } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDraggable } from '@dnd-kit/react';
 import { BookOpen, GripVertical, PanelLeftClose, Plus, Search, SlidersHorizontal } from 'lucide-react';
@@ -105,10 +105,13 @@ interface Props {
   disabled: boolean;
   onAdd: (item: LibraryItem) => void;
   onCollapse: () => void;
+  /** Collapsed panels slide out and become inert (no tab stops, hidden from assistive tech). */
+  open: boolean;
+  collapseRef?: Ref<HTMLButtonElement>;
 }
 
 /** Left panel with the nutritionist's recipes and ingredients, draggable onto the week grid. */
-export default function LibraryPanel({ canAdd, disabled, onAdd, onCollapse }: Props) {
+export default function LibraryPanel({ canAdd, disabled, onAdd, onCollapse, open, collapseRef }: Props) {
   const { t, i18n } = useTranslation();
   const [tab, setTab] = useState<LibraryTab>('recipes');
   const [searchInput, setSearchInput] = useState('');
@@ -146,7 +149,11 @@ export default function LibraryPanel({ canAdd, disabled, onAdd, onCollapse }: Pr
   return (
     <aside
       aria-label={t('planEditor.library.title')}
-      className="flex h-full w-80 shrink-0 flex-col gap-4 overflow-hidden rounded-2xl border border-line bg-sunken p-4"
+      inert={!open}
+      className={cn(
+        'flex h-full w-80 shrink-0 flex-col gap-3 overflow-hidden border-r-2 border-line bg-sunken px-4 py-4.5 transition-transform duration-300 ease-out motion-reduce:transition-none',
+        !open && '-translate-x-full',
+      )}
     >
       <div className="flex items-center gap-2">
         <BookOpen className="size-4 shrink-0 text-ink" aria-hidden="true" />
@@ -160,6 +167,7 @@ export default function LibraryPanel({ canAdd, disabled, onAdd, onCollapse }: Pr
           })}
         </span>
         <Button
+          ref={collapseRef}
           type="button"
           variant="outline"
           size="icon"

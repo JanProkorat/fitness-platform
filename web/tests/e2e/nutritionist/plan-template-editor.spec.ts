@@ -324,7 +324,7 @@ test.describe('plan template editor', () => {
   test('a template that does not exist shows a not-found state with a way back', async ({ page }) => {
     await page.goto('/plan-templates/00000000-0000-4000-8000-000000000000');
     await expect(page.getByText('Template not found')).toBeVisible();
-    await page.getByRole('link', { name: 'Plan templates' }).click();
+    await page.getByRole('main').getByRole('link', { name: 'Plan templates' }).click();
     await expect(page).toHaveURL(/\/plan-templates$/);
   });
 });

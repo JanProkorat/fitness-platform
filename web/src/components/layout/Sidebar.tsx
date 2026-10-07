@@ -66,15 +66,87 @@ function formatRoleLabel(roles: string[], t: (key: string) => string): string {
 interface Props {
   /** Fired when a nav link is activated — used to close the mobile off-canvas drawer. */
   onNavigate?: () => void;
+  /** Icon-only rail (64px) for full-bleed routes such as the plan template editor. */
+  compact?: boolean;
 }
 
-export default function Sidebar({ onNavigate }: Props) {
+const RAIL_ITEM =
+  'relative flex size-10 items-center justify-center rounded-field outline-none transition-colors focus-visible:ring-2 focus-visible:ring-sidebar-text/60';
+
+export default function Sidebar({ onNavigate, compact = false }: Props) {
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const roleLabel = user ? formatRoleLabel(user.roles, t) : '';
   const filterCounts = useConversationFilterCounts();
   const hasUnread = (filterCounts.data?.unreadMessages ?? 0) > 0;
+
+  if (compact) {
+    return (
+      <aside className="flex h-full w-16 shrink-0 flex-col bg-sidebar">
+        <nav
+          aria-label={t('shell.navigationTitle')}
+          className="flex h-full flex-col items-center gap-1.5 py-4.5"
+        >
+          {[...NAV_SECTIONS[0].items, ...NAV_SECTIONS[1].items].map(({ to, labelKey, Icon }) => (
+            <NavLink
+              key={to}
+              to={to}
+              onClick={onNavigate}
+              title={t(labelKey)}
+              aria-label={t(labelKey)}
+              className={({ isActive }) =>
+                cn(
+                  RAIL_ITEM,
+                  isActive
+                    ? 'bg-sidebar-active text-sidebar-text'
+                    : 'text-sidebar-muted hover:bg-sidebar-active/60 hover:text-sidebar-text',
+                )
+              }
+            >
+              <Icon className="size-4.5" aria-hidden="true" />
+              {to === '/clients' && hasUnread && (
+                <span
+                  role="img"
+                  aria-label={t('clients.chips.unreadMessages')}
+                  data-testid="sidebar-unread-dot"
+                  className="absolute top-2 right-2 size-2 rounded-full bg-marker-bright"
+                />
+              )}
+            </NavLink>
+          ))}
+
+          {user && (
+            <div className="mt-auto flex flex-col items-center gap-1.5">
+              <button
+                type="button"
+                onClick={logout}
+                title={t('auth.logout')}
+                aria-label={t('auth.logout')}
+                className={cn(RAIL_ITEM, 'text-marker hover:opacity-80')}
+              >
+                <LogOut className="size-4" aria-hidden="true" />
+              </button>
+              <NavLink
+                to="/profile"
+                onClick={onNavigate}
+                title={t('sidebar.profileLink')}
+                aria-label={t('sidebar.profileLink')}
+                className={({ isActive }) => cn(RAIL_ITEM, isActive ? 'bg-sidebar-active' : 'hover:bg-sidebar-active/60')}
+              >
+                <span
+                  aria-hidden="true"
+                  className="flex size-8 items-center justify-center rounded-full bg-sidebar-active text-meta font-semibold text-sidebar-text"
+                >
+                  {initialsOf(user.firstName, user.lastName)}
+                </span>
+              </NavLink>
+            </div>
+          )}
+        </nav>
+      </aside>
+    );
+  }
 
   return (
     <aside className="flex h-full w-62 shrink-0 flex-col bg-sidebar">
