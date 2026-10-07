@@ -30,6 +30,7 @@ test('app shell renders the v1 nav and routes between pages', async ({ page }) =
   await expect(nav.getByText('Inbox', { exact: true })).toBeVisible();
   await expect(nav.getByText('Ingredients', { exact: true })).toBeVisible();
   await expect(nav.getByText('Recipes', { exact: true })).toBeVisible();
+  await expect(nav.getByText('Plan templates', { exact: true })).toBeVisible();
 
   // Top bar renders the sign-out control.
   await expect(page.getByRole('button', { name: 'Log out' })).toBeVisible();
