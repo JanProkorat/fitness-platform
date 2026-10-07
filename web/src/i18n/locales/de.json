@@ -3080,13 +3080,13 @@
       }
     },
     "forgotPassword": {
-      "title": "Passwort vergessen",
-      "lede": "Geben Sie die E-Mail-Adresse ein, mit der Sie sich anmelden.",
+      "title": "Passwort zurücksetzen",
+      "lede": "Geben Sie die E-Mail-Adresse ein, mit der Sie sich anmelden. Wir senden Ihnen einen Link, um ein neues Passwort festzulegen.",
       "emailLabel": "E-Mail",
       "emailPlaceholder": "trainer@example.com",
-      "submit": "Link senden",
+      "submit": "Link zum Zurücksetzen senden",
       "submitting": "Wird gesendet...",
-      "note": "Wir antworten immer gleich, unabhängig davon, ob ein Konto existiert — so verraten wir nie, welche E-Mail-Adressen registriert sind.",
+      "createAccount": "Konto erstellen",
       "backToLogin": "Zurück zur Anmeldung",
       "validation": {
         "emailRequired": "Geben Sie Ihre E-Mail-Adresse ein.",
@@ -3094,12 +3094,14 @@
       },
       "errors": {
         "network": "Verbindung zum Server fehlgeschlagen. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
-        "generic": "Senden fehlgeschlagen. Bitte versuchen Sie es erneut."
+        "generic": "Senden fehlgeschlagen. Bitte versuchen Sie es erneut.",
+        "notRegistered": "Zu dieser E-Mail-Adresse gibt es kein Konto."
       },
       "sent": {
         "title": "Prüfen Sie Ihr Postfach",
-        "lede": "Falls unter dieser Adresse ein Konto existiert, haben wir einen Link zum Zurücksetzen des Passworts gesendet.",
-        "tryAnother": "Andere Adresse verwenden"
+        "lede": "Wir haben einen Link zum Zurücksetzen Ihres Passworts an <email>{{email}}</email> gesendet.",
+        "info": "Der Link funktioniert nur einmal und läuft nach 24 Stunden ab. Nichts im Posteingang? Prüfen Sie den Spam-Ordner oder senden Sie ihn erneut.",
+        "resend": "Erneut senden"
       }
     },
     "verifyEmail": {
@@ -3148,30 +3150,43 @@
     },
     "resetPassword": {
       "title": "Neues Passwort festlegen",
-      "lede": "Wählen Sie ein Passwort, das Sie nicht anderswo verwenden. Angemeldete Geräte bleiben angemeldet.",
+      "lede": "Für {{email}}. Wählen Sie ein Passwort, das Sie nirgendwo sonst verwenden.",
       "newPasswordLabel": "Neues Passwort",
-      "confirmPasswordLabel": "Passwort wiederholen",
+      "confirmPasswordLabel": "Neues Passwort wiederholen",
+      "show": "Anzeigen",
+      "hide": "Verbergen",
+      "showNewPassword": "Neues Passwort anzeigen",
+      "hideNewPassword": "Neues Passwort verbergen",
+      "showRepeatPassword": "Wiederholtes Passwort anzeigen",
+      "hideRepeatPassword": "Wiederholtes Passwort verbergen",
       "submit": "Neues Passwort speichern",
       "submitting": "Wird gespeichert...",
-      "note": "Melden Sie sich danach mit Ihrem neuen Passwort an. Der Link kann nur einmal verwendet werden.",
-      "success": {
-        "title": "Passwort geändert",
-        "lede": "Sie können sich jetzt mit Ihrem neuen Passwort anmelden.",
-        "cta": "Zur Anmeldung"
+      "rules": {
+        "label": "Passwortanforderungen",
+        "length": "Mindestens 8 Zeichen",
+        "uppercase": "Ein Großbuchstabe",
+        "lowercase": "Ein Kleinbuchstabe",
+        "digit": "Eine Ziffer",
+        "met": ", erfüllt",
+        "notMet": ", noch nicht erfüllt"
       },
-      "invalidLink": {
-        "title": "Dieser Link ist ungültig",
-        "lede": "Dieser Link zum Zurücksetzen des Passworts fehlt oder ist fehlerhaft.",
-        "cta": "Zurück zur Anmeldung",
-        "requestNew": "Neuen Link anfordern"
+      "done": {
+        "title": "Passwort geändert",
+        "lede": "Sie können sich jetzt mit Ihrem neuen Passwort anmelden. Zu Ihrer Sicherheit wurden Sie auf Ihren anderen Geräten abgemeldet.",
+        "cta": "Anmelden"
+      },
+      "expired": {
+        "title": "Dieser Link ist abgelaufen",
+        "lede": "Links zum Zurücksetzen funktionieren nur einmal und nur 24 Stunden lang. Fordern Sie einen neuen an und verwenden Sie die neueste E-Mail.",
+        "cta": "Neuen Link senden",
+        "backToLogin": "Zurück zur Anmeldung"
       },
       "validation": {
-        "passwordInvalid": "Das Passwort erfüllt nicht alle oben genannten Anforderungen.",
+        "passwordInvalid": "Das Passwort erfüllt nicht alle Anforderungen unten.",
         "confirmRequired": "Geben Sie das Passwort erneut ein.",
         "confirmMismatch": "Die Passwörter stimmen nicht überein."
       },
       "errors": {
-        "genericFailure": "Dieser Link zum Zurücksetzen des Passworts ist nicht mehr gültig. Bitte fordern Sie einen neuen an.",
         "passwordField": "Das Passwort erfüllt nicht die Anforderungen des Servers. Bitte versuchen Sie ein anderes.",
         "network": "Verbindung zum Server fehlgeschlagen. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
         "generic": "Speichern fehlgeschlagen. Bitte versuchen Sie es erneut."

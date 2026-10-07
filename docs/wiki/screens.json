@@ -54,10 +54,32 @@
         "web/src/components/entry/EntryDialogTitle.tsx"
       ],
       "endpoints": ["POST /auth/password/reset"],
-      "board": null,
+      "board": "PageResetRequest",
       "shots": [
         { "name": "default" },
-        { "name": "sent", "steps": "type any email, click 'Poslat odkaz', wait for the confirmation" }
+        { "name": "not-registered", "steps": "type an email with no account (e.g. nobody@example.com), click 'Poslat odkaz pro obnovení', wait for the error under the field" },
+        { "name": "sent", "steps": "type qa.trainer@fitnessplatform.test, click 'Poslat odkaz pro obnovení', wait for 'Zkontrolujte poštu' (board PageResetCheckEmail)" }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "web.entry.reset-password",
+      "app": "web",
+      "area": "Entry",
+      "title": "Reset password",
+      "route": "/auth/reset-password",
+      "roles": ["Public"],
+      "files": [
+        "web/src/pages/EntryPage.tsx",
+        "web/src/components/entry/ResetPasswordForm.tsx",
+        "web/src/components/entry/PasswordStrengthRules.tsx",
+        "web/src/components/entry/EntryDialogTitle.tsx"
+      ],
+      "endpoints": ["PUT /auth/password/reset"],
+      "board": "PageResetNewPassword",
+      "shots": [
+        { "name": "default", "steps": "open /auth/reset-password?token=x&email=someone%40example.com" },
+        { "name": "expired", "steps": "open /auth/reset-password with no query parameters; 'Platnost odkazu vypršela' shows (board PageResetExpired)" }
       ],
       "notionPageId": null
     },
