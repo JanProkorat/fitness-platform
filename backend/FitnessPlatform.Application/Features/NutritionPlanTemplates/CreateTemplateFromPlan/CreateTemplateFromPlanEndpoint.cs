@@ -33,6 +33,8 @@ public class CreateTemplateFromPlanEndpoint(
     {
         Post("/nutrition/plan-templates/from-plan");
         Roles(AppRoles.Nutritionist);
+        Description(b => b.ClearDefaultProduces(StatusCodes.Status200OK)
+            .Produces<NutritionPlanTemplateSummaryDto>(StatusCodes.Status201Created));
         Summary(s =>
         {
             s.Summary = "Save a nutrition plan as a template";

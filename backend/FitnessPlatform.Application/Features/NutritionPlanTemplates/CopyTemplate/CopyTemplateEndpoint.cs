@@ -27,6 +27,8 @@ public class CopyTemplateEndpoint(IMongoContext mongo, TimeProvider timeProvider
     {
         Post("/nutrition/plan-templates/{TemplateId}/copy");
         Roles(AppRoles.Nutritionist);
+        Description(b => b.ClearDefaultProduces(StatusCodes.Status200OK)
+            .Produces<NutritionPlanTemplateSummaryDto>(StatusCodes.Status201Created));
         Summary(s =>
         {
             s.Summary = "Copy a nutrition plan template";

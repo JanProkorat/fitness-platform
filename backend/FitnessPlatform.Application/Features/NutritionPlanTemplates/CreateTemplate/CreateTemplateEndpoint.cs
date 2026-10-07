@@ -23,6 +23,8 @@ public class CreateTemplateEndpoint(IMongoContext mongo, TimeProvider timeProvid
     {
         Post("/nutrition/plan-templates");
         Roles(AppRoles.Nutritionist);
+        Description(b => b.ClearDefaultProduces(StatusCodes.Status200OK)
+            .Produces<NutritionPlanTemplateSummaryDto>(StatusCodes.Status201Created));
         Summary(s =>
         {
             s.Summary = "Create a nutrition plan template";
