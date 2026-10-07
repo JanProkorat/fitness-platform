@@ -20,7 +20,7 @@ interface MacroProps {
 function MacroColumn({ label, value, target, unit, language, dotClass, barClass }: MacroProps) {
   const fill = target ? Math.min(100, (value / target) * 100) : 0;
   return (
-    <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+    <div className="flex min-w-40 flex-1 flex-col gap-1.5">
       <div className="flex items-baseline gap-1.5 text-body whitespace-nowrap">
         <span className={cn('size-1.75 shrink-0 self-center rounded-full', dotClass)} aria-hidden="true" />
         <span className="text-muted-foreground">{label}</span>

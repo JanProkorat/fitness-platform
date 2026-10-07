@@ -162,7 +162,7 @@ function MealCell({
           collisionPadding={16}
           sideOffset={8}
           data-testid="meal-detail"
-          className="max-h-(--radix-popover-content-available-height) w-2xl overflow-y-auto rounded-2xl border-line bg-card p-5"
+          className="max-h-(--radix-popover-content-available-height) w-lg overflow-y-auto rounded-2xl border-line bg-card p-5"
           onOpenAutoFocus={(event) => event.preventDefault()}
           onInteractOutside={(event) => {
             const target = event.target;

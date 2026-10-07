@@ -12,14 +12,6 @@ import { MAX_NOTE_LENGTH } from '@/components/plan-editor/plan-editor-types';
 /** The four types the board offers; "snack" becomes the morning or afternoon snack per day. */
 const KIND_OPTIONS: readonly MealKind[] = [MealKind.Breakfast, MealKind.MorningSnack, MealKind.Lunch, MealKind.Dinner];
 
-const NEXT_KIND: Partial<Record<MealKind, MealKind>> = {
-  [MealKind.Breakfast]: MealKind.MorningSnack,
-  [MealKind.MorningSnack]: MealKind.Lunch,
-  [MealKind.AfternoonSnack]: MealKind.Dinner,
-  [MealKind.Lunch]: MealKind.AfternoonSnack,
-  [MealKind.Dinner]: MealKind.MorningSnack,
-};
-
 function optionKind(kind: MealKind): MealKind {
   return kind === MealKind.AfternoonSnack ? MealKind.MorningSnack : kind;
 }
@@ -33,7 +25,7 @@ interface FormProps {
 
 function AddMealForm({ dayKinds, afterKind, onSubmit, onCancel }: FormProps) {
   const { t } = useTranslation();
-  const [kind, setKind] = useState<MealKind>(afterKind ? optionKind(NEXT_KIND[afterKind] ?? MealKind.Breakfast) : MealKind.Breakfast);
+  const [kind, setKind] = useState<MealKind>(afterKind ? optionKind(afterKind) : MealKind.Breakfast);
   const [note, setNote] = useState('');
   const hasKind = dayKinds.some((existing) => optionKind(existing) === kind);
 
