@@ -82,6 +82,17 @@ public class NutritionPlanTemplateDetailDto
     public int WeekCount { get; set; }
 
     /// <summary>
+    /// Most common meal count over the template's non-empty days (days with at least one meal,
+    /// across all weeks); ties resolve to the smaller count. Null when no day has a meal.
+    /// </summary>
+    public int? MealsPerDay { get; set; }
+
+    /// <summary>
+    /// Average kcal per non-empty day, in whole kcal. Null when no day has a meal.
+    /// </summary>
+    public decimal? AvgKcalPerDay { get; set; }
+
+    /// <summary>
     /// Who can read this entry besides its owner.
     /// </summary>
     public LibraryVisibility Visibility { get; set; }
@@ -122,6 +133,8 @@ public class NutritionPlanTemplateDetailDto
         Supplements = template.Supplements.Select(TemplateSupplementDto.FromDocument).ToList(),
         Weeks = template.Weeks,
         WeekCount = template.WeekCount,
+        MealsPerDay = template.MealsPerDay,
+        AvgKcalPerDay = template.AvgKcalPerDay,
         Visibility = template.Visibility,
         IsOwnedByCurrentUser = template.OwnerId == currentUserId,
         Version = template.Version,
