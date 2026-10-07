@@ -7,7 +7,6 @@ import ThreadPane from '@/components/inbox/ThreadPane';
 import ThreadEmptyState from '@/components/inbox/ThreadEmptyState';
 import ClientSidePanel from '@/components/inbox/ClientSidePanel';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
-import { cn } from '@/lib/utils';
 import { getConversations } from '@/api/conversations';
 import {
   useConversationFilterCounts,
@@ -224,15 +223,9 @@ export default function InboxPage() {
   const isClientPanelOpen = showClientPanel && Boolean(selectedClientPublicId);
 
   return (
-    // The sheet is fixed to the viewport's right edge at the sheet's sm:max-w-sm (24rem);
-    // reserving the same width here, in step with its slide, keeps own messages, the header
-    // toggle and the send button visible instead of hidden beneath it.
-    <div
-      className={cn(
-        '-m-6 flex h-screen overflow-hidden bg-background transition-[padding] duration-300 ease-out motion-reduce:transition-none',
-        isClientPanelOpen && !isPanelDocked && 'sm:pr-96',
-      )}
-    >
+    // Below the docking width the sheet slides over the thread's right edge; the thread keeps
+    // its full width underneath instead of being squeezed.
+    <div className="-m-6 flex h-screen overflow-hidden bg-background">
       <ConversationList
         archived={archived}
         onArchivedChange={setArchived}
