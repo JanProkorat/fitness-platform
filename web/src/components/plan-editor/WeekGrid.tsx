@@ -1,8 +1,10 @@
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDroppable } from '@dnd-kit/react';
 import { StickyNote } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { formatKcal, mealKindLabelKey } from '@/components/plan-editor/plan-editor-format';
+import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover';
+import { DAY_ORDER, formatKcal, GRID_CLASS, mealKindLabelKey } from '@/components/plan-editor/plan-editor-format';
 import { mealItemNames } from '@/components/plan-editor/plan-editor-library';
 import {
   dayTotals,
@@ -15,7 +17,6 @@ import {
 import { weekRows } from '@/components/plan-editor/plan-editor-ops';
 import type { EditorDay, EditorMeal, EditorWeek } from '@/components/plan-editor/plan-editor-types';
 
-const DAY_ORDER = [1, 2, 3, 4, 5, 6, 7] as const;
 const MAX_VISIBLE_EXTRA_NAMES = 2;
 
 const STATUS_TEXT_CLASS: Record<TargetStatus, string> = {
@@ -31,7 +32,7 @@ const STATUS_BAR_CLASS: Record<TargetStatus, string> = {
   off: 'bg-error',
 };
 
-function MacroBar({ totals }: { totals: Totals }) {
+export function MacroBar({ totals }: { totals: Totals }) {
   const parts = [
     { key: 'protein', weight: totals.protein * 4, className: 'bg-macro-protein' },
     { key: 'carbs', weight: totals.carbs * 4, className: 'bg-macro-carbs' },
@@ -55,13 +56,31 @@ interface CellProps {
   weekIndex: number;
   dayOfWeek: number;
   rowIndex: number;
+  /** The label of the row this cell sits in; a meal of another kind says so itself. */
+  rowLabelKey: string;
   meal: EditorMeal | undefined;
   selected: boolean;
   readOnly: boolean;
+  /** True while this cell's meal detail is open. */
+  detailOpen: boolean;
+  detail: ReactNode;
   onSelect: () => void;
+  onDetailClose: () => void;
 }
 
-function MealCell({ weekIndex, dayOfWeek, rowIndex, meal, selected, readOnly, onSelect }: CellProps) {
+function MealCell({
+  weekIndex,
+  dayOfWeek,
+  rowIndex,
+  rowLabelKey,
+  meal,
+  selected,
+  readOnly,
+  detailOpen,
+  detail,
+  onSelect,
+  onDetailClose,
+}: CellProps) {
   const { t, i18n } = useTranslation();
   const { ref, isDropTarget } = useDroppable({
     id: `cell:${weekIndex}:${dayOfWeek}:${rowIndex}`,
@@ -71,56 +90,96 @@ function MealCell({ weekIndex, dayOfWeek, rowIndex, meal, selected, readOnly, on
   const itemCount = meal ? mealItemCount(meal) : 0;
   const names = meal ? mealItemNames(meal, i18n.language) : [];
   const totals = meal ? mealTotals(meal) : null;
+  const ownKeyDiffers = meal !== undefined && mealKindLabelKey(meal.kind) !== rowLabelKey;
+  const extraNames = names.slice(1, 1 + MAX_VISIBLE_EXTRA_NAMES - (ownKeyDiffers ? 1 : 0));
 
   return (
-    <button
-      type="button"
-      ref={ref}
-      data-testid="meal-cell"
-      data-day={dayOfWeek}
-      data-row={rowIndex}
-      aria-pressed={selected}
-      aria-label={t('planEditor.cell.label', { day: t(`planEditor.days.${dayOfWeek}`), row: rowIndex + 1 })}
-      onClick={onSelect}
-      className={cn(
-        'flex h-30 min-w-0 flex-col items-stretch justify-between rounded-xl border p-3 text-left outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50',
-        itemCount === 0 && 'border-dashed border-line bg-transparent',
-        itemCount > 0 && 'border-line bg-card',
-        selected && 'border-solid border-ink ring-2 ring-ink',
-        isDropTarget && 'border-dashed border-nutrition bg-nutrition-soft ring-0',
-      )}
+    <Popover
+      open={detailOpen}
+      modal={false}
+      onOpenChange={(open) => {
+        if (!open) {
+          onDetailClose();
+        }
+      }}
     >
-      {itemCount === 0 ? (
-        <span className="m-auto text-body text-muted-foreground">{t('planEditor.cell.empty')}</span>
-      ) : (
-        <>
-          <span className="flex min-w-0 flex-col gap-0.5">
-            <span className="truncate text-copy font-semibold text-ink">{names[0]}</span>
-            {names.slice(1, 1 + MAX_VISIBLE_EXTRA_NAMES).map((name, index) => (
-              <span key={`${name}-${index}`} className="truncate text-body text-muted-foreground">
-                + {name}
+      <PopoverAnchor asChild>
+        <button
+          type="button"
+          ref={ref}
+          data-testid="meal-cell"
+          data-day={dayOfWeek}
+          data-row={rowIndex}
+          aria-pressed={selected}
+          aria-expanded={meal && itemCount > 0 ? detailOpen : undefined}
+          aria-label={t('planEditor.cell.label', { day: t(`planEditor.days.${dayOfWeek}`), row: rowIndex + 1 })}
+          onClick={onSelect}
+          className={cn(
+            'flex h-30 min-w-0 flex-col items-stretch justify-between rounded-xl border p-3 text-left outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50',
+            itemCount === 0 && 'border-dashed border-line bg-transparent',
+            itemCount > 0 && 'border-line bg-card',
+            selected && 'border-solid border-ink ring-2 ring-ink',
+            isDropTarget && 'border-dashed border-nutrition bg-nutrition-soft ring-0',
+          )}
+        >
+          {itemCount === 0 ? (
+            <span className="m-auto text-body text-muted-foreground">{t('planEditor.cell.empty')}</span>
+          ) : (
+            <>
+              <span className="flex min-w-0 flex-col gap-0.5">
+                {ownKeyDiffers && meal && (
+                  <span className="truncate text-label font-bold tracking-label text-nutrition-ink uppercase">
+                    {t(`planEditor.rows.${mealKindLabelKey(meal.kind)}`)}
+                  </span>
+                )}
+                <span className="truncate text-copy font-semibold text-ink">{names[0]}</span>
+                {extraNames.map((name, index) => (
+                  <span key={`${name}-${index}`} className="truncate text-body text-muted-foreground">
+                    + {name}
+                  </span>
+                ))}
               </span>
-            ))}
-          </span>
-          <span className="flex flex-col gap-1.5">
-            <span className="truncate text-body font-semibold text-ink">
-              {t('planEditor.cell.kcal', { kcal: formatKcal(totals?.kcal ?? 0, i18n.language) })}
-              {itemCount > 1 && (
-                <span className="font-normal text-muted-foreground">
-                  {' · '}
-                  {t('planEditor.cell.items', { count: itemCount })}
+              <span className="flex flex-col gap-1.5">
+                <span className="truncate text-body font-semibold text-ink">
+                  {t('planEditor.cell.kcal', { kcal: formatKcal(totals?.kcal ?? 0, i18n.language) })}
+                  {itemCount > 1 && (
+                    <span className="font-normal text-muted-foreground">
+                      {' · '}
+                      {t('planEditor.cell.items', { count: itemCount })}
+                    </span>
+                  )}
                 </span>
-              )}
-            </span>
-            {totals && <MacroBar totals={totals} />}
-          </span>
-        </>
+                {totals && <MacroBar totals={totals} />}
+              </span>
+            </>
+          )}
+        </button>
+      </PopoverAnchor>
+      {detailOpen && (
+        <PopoverContent
+          side="bottom"
+          align="center"
+          collisionPadding={16}
+          sideOffset={8}
+          data-testid="meal-detail"
+          className="max-h-(--radix-popover-content-available-height) w-2xl overflow-y-auto rounded-2xl border-line bg-card p-5"
+          onOpenAutoFocus={(event) => event.preventDefault()}
+          onInteractOutside={(event) => {
+            const target = event.target;
+            // The library stays usable while a meal is open, and a cell click decides open/close itself.
+            if (target instanceof Element && target.closest('[data-plan-library],[data-testid="meal-cell"]')) {
+              event.preventDefault();
+            }
+          }}
+        >
+          {detail}
+        </PopoverContent>
       )}
-    </button>
+    </Popover>
   );
 }
 
-function DayHeader({ day }: { day: EditorDay | undefined }) {
+export function DayHeader({ day }: { day: EditorDay | undefined }) {
   const { t } = useTranslation();
   const note = day?.note?.trim();
   return (
@@ -144,7 +203,7 @@ function DayHeader({ day }: { day: EditorDay | undefined }) {
   );
 }
 
-function DayTotalCell({ day, target }: { day: EditorDay | undefined; target: number | undefined }) {
+export function DayTotalCell({ day, target }: { day: EditorDay | undefined; target: number | undefined }) {
   const { t, i18n } = useTranslation();
   const totals = day ? dayTotals(day) : null;
   const status = targetStatus(totals?.kcal ?? 0, target);
@@ -186,12 +245,24 @@ interface Props {
   selected: SelectedCell | null;
   readOnly: boolean;
   onSelect: (cell: SelectedCell) => void;
+  /** The cell whose meal detail is open, if any. */
+  detailCell: SelectedCell | null;
+  renderDetail: (cell: SelectedCell) => ReactNode;
+  onDetailClose: () => void;
 }
 
-const GRID_CLASS = 'grid grid-cols-[minmax(0,0.8fr)_repeat(7,minmax(0,1fr))] items-center gap-3';
-
 /** The week as a grid: one column per weekday, a day-total row, then one row per meal. */
-export default function WeekGrid({ week, weekIndex, dailyKcalTarget, selected, readOnly, onSelect }: Props) {
+export default function WeekGrid({
+  week,
+  weekIndex,
+  dailyKcalTarget,
+  selected,
+  readOnly,
+  onSelect,
+  detailCell,
+  renderDetail,
+  onDetailClose,
+}: Props) {
   const { t } = useTranslation();
   const rows = weekRows(week);
   const dayByNumber = new Map(week.days.map((day) => [day.dayOfWeek, day]));
@@ -217,18 +288,25 @@ export default function WeekGrid({ week, weekIndex, dailyKcalTarget, selected, r
           <span className="text-body font-semibold text-muted-foreground">
             {t(`planEditor.rows.${mealKindLabelKey(row.kind)}`)}
           </span>
-          {DAY_ORDER.map((dayOfWeek) => (
-            <MealCell
-              key={dayOfWeek}
-              weekIndex={weekIndex}
-              dayOfWeek={dayOfWeek}
-              rowIndex={row.index}
-              meal={dayByNumber.get(dayOfWeek)?.meals[row.index]}
-              selected={selected?.dayOfWeek === dayOfWeek && selected.rowIndex === row.index}
-              readOnly={readOnly}
-              onSelect={() => onSelect({ dayOfWeek, rowIndex: row.index })}
-            />
-          ))}
+          {DAY_ORDER.map((dayOfWeek) => {
+            const detailOpen = detailCell?.dayOfWeek === dayOfWeek && detailCell.rowIndex === row.index;
+            return (
+              <MealCell
+                key={dayOfWeek}
+                weekIndex={weekIndex}
+                dayOfWeek={dayOfWeek}
+                rowIndex={row.index}
+                rowLabelKey={mealKindLabelKey(row.kind)}
+                meal={dayByNumber.get(dayOfWeek)?.meals[row.index]}
+                selected={selected?.dayOfWeek === dayOfWeek && selected.rowIndex === row.index}
+                readOnly={readOnly}
+                detailOpen={detailOpen}
+                detail={detailOpen ? renderDetail({ dayOfWeek, rowIndex: row.index }) : null}
+                onSelect={() => onSelect({ dayOfWeek, rowIndex: row.index })}
+                onDetailClose={onDetailClose}
+              />
+            );
+          })}
         </div>
       ))}
     </div>

@@ -1580,7 +1580,9 @@
       "body": "Each meal becomes a row of the week. Add a type twice for two snacks. You can reorder or remove them later.",
       "mostCommon": "most common",
       "addOneByOne": "Or add one by one",
-      "done": "Done"
+      "done": "Done",
+      "copyPrefix": "Or",
+      "copyLink": "copy the meals from another template"
     },
     "library": {
       "title": "Library",
@@ -1601,6 +1603,109 @@
       "empty": "Nothing found.",
       "loadError": "Couldn't load the library.",
       "retry": "Retry"
+    },
+    "noteForClient": "Note for the client",
+    "units": {
+      "g": "g",
+      "portion": "portion"
+    },
+    "itemType": {
+      "recipe": "Recipe",
+      "food": "Ingredient"
+    },
+    "item": {
+      "macros": "{{type}} · P {{protein}} · C {{carbs}} · F {{fat}} · Fib {{fiber}}",
+      "amountLabel": "Amount of {{name}}",
+      "remove": "Remove {{name}}"
+    },
+    "dayInitials": {
+      "1": "M",
+      "2": "T",
+      "3": "W",
+      "4": "T",
+      "5": "F",
+      "6": "S",
+      "7": "S"
+    },
+    "daysLong": {
+      "1": "Monday",
+      "2": "Tuesday",
+      "3": "Wednesday",
+      "4": "Thursday",
+      "5": "Friday",
+      "6": "Saturday",
+      "7": "Sunday"
+    },
+    "detail": {
+      "where": "{{day}} · week {{week}}",
+      "title": "{{meal}} · {{kcal}} kcal",
+      "dropHint": "Drag more recipes or ingredients here, or press + in the library",
+      "macros": "P {{protein}} · C {{carbs}} · F {{fat}} · Fib {{fiber}} g",
+      "noNote": "No note",
+      "copyTo": "Copy this meal to",
+      "copy": "Copy",
+      "copied": "Copied to {{days}}."
+    },
+    "day": {
+      "previousWeek": "Previous week",
+      "nextWeek": "Next week",
+      "ofWeeks": "of {{total}} weeks",
+      "weekdays": "Weekdays",
+      "meals": "Meals of the day",
+      "kcal": "kcal",
+      "protein": "Protein",
+      "carbs": "Carbs",
+      "fat": "Fat",
+      "fiber": "Fiber",
+      "addNote": "Add day note",
+      "noteLabel": "Day note",
+      "notePlaceholder": "Note for the client — e.g. “Cook the rice the night before”",
+      "mealNoteLabel": "Note for {{meal}}",
+      "percentOfDay": "{{percent}} % of day",
+      "addAfter": "Add a meal after {{meal}}",
+      "removeMeal": "Remove {{meal}}",
+      "emptyMeal": "Drag a recipe or ingredient here, or select the meal and press + in the library.",
+      "noMeals": "This day has no meals yet.",
+      "limitReached": "A day holds at most {{max}} meals."
+    },
+    "addMeal": {
+      "open": "Add meal",
+      "title": "Add meal",
+      "after": "{{day}} · after {{meal}}",
+      "first": "{{day}} · first meal",
+      "type": "Meal type",
+      "alreadyHas": "This day already has a {{meal}} — a second one is fine.",
+      "optional": "· optional",
+      "emptyHint": "The meal is added empty. Fill it from the library on the left — drag a recipe or ingredient onto it.",
+      "submit": "Add meal"
+    },
+    "nutrition": {
+      "label": "Nutrition by meal",
+      "onTarget": "on target",
+      "kcalUnit": "kcal",
+      "macros": "P {{protein}} · C {{carbs}} · F {{fat}}",
+      "fiber": "Fib {{grams}} g",
+      "legendOn": "Within 15 % of the meal’s share",
+      "legendOver": "Over",
+      "legendUnder": "Under",
+      "shares": "Meal shares: {{shares}} of the day",
+      "share_breakfast": "breakfast",
+      "share_snack": "snack",
+      "share_lunch": "lunch",
+      "share_dinner": "dinner",
+      "share_secondSnack": "2nd snack",
+      "noTarget": "Set a daily kcal target to compare meals with their share of the day."
+    },
+    "copyMeals": {
+      "title": "Copy meals from another template",
+      "body": "Pick a template. Its first week’s meals, items and notes are copied into this empty week.",
+      "search": "Search templates…",
+      "loadError": "Couldn’t load your templates.",
+      "empty": "No other templates found.",
+      "summary": "{{weeks}} weeks · {{meals}} meals a day",
+      "error_gone": "That template is no longer available. The list was refreshed.",
+      "error_empty": "That template has no meals in its first week.",
+      "error_failed": "Couldn’t load that template. Please try again."
     },
     "conflict": {
       "message": "This template was changed somewhere else since you opened it. Your edits are kept here and nothing was overwritten. Reload to get the latest version (this discards your edits).",

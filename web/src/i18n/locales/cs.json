@@ -1605,7 +1605,9 @@
       "body": "Každé jídlo se stane řádkem týdne. Přidáte-li stejný druh dvakrát, máte dvě svačiny. Řádky můžete později přeřadit nebo odebrat.",
       "mostCommon": "nejčastější",
       "addOneByOne": "Nebo přidávejte po jednom",
-      "done": "Hotovo"
+      "done": "Hotovo",
+      "copyPrefix": "Nebo",
+      "copyLink": "zkopírujte jídla z jiné šablony"
     },
     "library": {
       "title": "Knihovna",
@@ -1626,6 +1628,109 @@
       "empty": "Nic nenalezeno.",
       "loadError": "Knihovnu se nepodařilo načíst.",
       "retry": "Zkusit znovu"
+    },
+    "noteForClient": "Poznámka pro klienta",
+    "units": {
+      "g": "g",
+      "portion": "porce"
+    },
+    "itemType": {
+      "recipe": "Recept",
+      "food": "Surovina"
+    },
+    "item": {
+      "macros": "{{type}} · B {{protein}} · S {{carbs}} · T {{fat}} · Vl {{fiber}}",
+      "amountLabel": "Množství: {{name}}",
+      "remove": "Odebrat {{name}}"
+    },
+    "dayInitials": {
+      "1": "P",
+      "2": "Ú",
+      "3": "S",
+      "4": "Č",
+      "5": "P",
+      "6": "S",
+      "7": "N"
+    },
+    "daysLong": {
+      "1": "Pondělí",
+      "2": "Úterý",
+      "3": "Středa",
+      "4": "Čtvrtek",
+      "5": "Pátek",
+      "6": "Sobota",
+      "7": "Neděle"
+    },
+    "detail": {
+      "where": "{{day}} · týden {{week}}",
+      "title": "{{meal}} · {{kcal}} kcal",
+      "dropHint": "Přetáhněte sem další recepty nebo suroviny, nebo stiskněte + v knihovně",
+      "macros": "B {{protein}} · S {{carbs}} · T {{fat}} · Vl {{fiber}} g",
+      "noNote": "Bez poznámky",
+      "copyTo": "Kopírovat toto jídlo na",
+      "copy": "Kopírovat",
+      "copied": "Zkopírováno: {{days}}."
+    },
+    "day": {
+      "previousWeek": "Předchozí týden",
+      "nextWeek": "Další týden",
+      "ofWeeks": "z {{total}} týdnů",
+      "weekdays": "Dny v týdnu",
+      "meals": "Jídla dne",
+      "kcal": "kcal",
+      "protein": "Bílkoviny",
+      "carbs": "Sacharidy",
+      "fat": "Tuky",
+      "fiber": "Vláknina",
+      "addNote": "Přidat poznámku ke dni",
+      "noteLabel": "Poznámka ke dni",
+      "notePlaceholder": "Poznámka pro klienta — např. „Rýži uvařte den předem“",
+      "mealNoteLabel": "Poznámka: {{meal}}",
+      "percentOfDay": "{{percent}} % dne",
+      "addAfter": "Přidat jídlo za: {{meal}}",
+      "removeMeal": "Odebrat: {{meal}}",
+      "emptyMeal": "Přetáhněte sem recept nebo surovinu, nebo jídlo vyberte a stiskněte + v knihovně.",
+      "noMeals": "Tento den zatím nemá žádná jídla.",
+      "limitReached": "Den může mít nejvýše {{max}} jídel."
+    },
+    "addMeal": {
+      "open": "Přidat jídlo",
+      "title": "Přidat jídlo",
+      "after": "{{day}} · za: {{meal}}",
+      "first": "{{day}} · první jídlo",
+      "type": "Druh jídla",
+      "alreadyHas": "Tento den už má jídlo „{{meal}}“ — druhé je v pořádku.",
+      "optional": "· volitelné",
+      "emptyHint": "Jídlo se přidá prázdné. Naplňte ho z knihovny vlevo — přetáhněte na něj recept nebo surovinu.",
+      "submit": "Přidat jídlo"
+    },
+    "nutrition": {
+      "label": "Výživa podle jídel",
+      "onTarget": "v cíli",
+      "kcalUnit": "kcal",
+      "macros": "B {{protein}} · S {{carbs}} · T {{fat}}",
+      "fiber": "Vl {{grams}} g",
+      "legendOn": "Do 15 % podílu jídla",
+      "legendOver": "Nad",
+      "legendUnder": "Pod",
+      "shares": "Podíly jídel: {{shares}} dne",
+      "share_breakfast": "snídaně",
+      "share_snack": "svačina",
+      "share_lunch": "oběd",
+      "share_dinner": "večeře",
+      "share_secondSnack": "2. svačina",
+      "noTarget": "Nastavte denní cíl kcal, abyste mohli jídla porovnat s jejich podílem dne."
+    },
+    "copyMeals": {
+      "title": "Zkopírovat jídla z jiné šablony",
+      "body": "Vyberte šablonu. Jídla, položky a poznámky jejího prvního týdne se zkopírují do tohoto prázdného týdne.",
+      "search": "Hledat šablony…",
+      "loadError": "Šablony se nepodařilo načíst.",
+      "empty": "Žádné další šablony nenalezeny.",
+      "summary": "{{weeks}} týdnů · {{meals}} jídel denně",
+      "error_gone": "Tato šablona už není dostupná. Seznam byl obnoven.",
+      "error_empty": "Tato šablona nemá v prvním týdnu žádná jídla.",
+      "error_failed": "Šablonu se nepodařilo načíst. Zkuste to znovu."
     },
     "conflict": {
       "message": "Šablona se od otevření změnila jinde. Vaše úpravy tu zůstaly a nic se nepřepsalo. Načtením nejnovější verze své úpravy zahodíte.",

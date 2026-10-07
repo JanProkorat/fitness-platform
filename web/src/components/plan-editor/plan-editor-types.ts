@@ -57,6 +57,23 @@ export type LibraryItem = { type: 'recipe'; recipe: EditorRecipe } | { type: 'fo
 
 export type SaveStatus = 'idle' | 'saving' | 'error' | 'conflict';
 
+/** Daily targets the host has for the plan; any of them may be unset. */
+export interface PlanTargets {
+  kcal?: number;
+  protein?: number;
+  carbs?: number;
+  fat?: number;
+  fiber?: number;
+}
+
+export type EditorRange = 'week' | 'day';
+export type EditorView = 'meals' | 'nutrition';
+
+export const MAX_MEALS_PER_DAY = 20;
+export const MAX_SERVINGS = 100;
+export const MAX_GRAMS = 10000;
+export const MAX_NOTE_LENGTH = 500;
+
 export const DAYS_PER_WEEK = 7;
 export const MAX_WEEKS = 52;
 export const MAX_UNDO_STEPS = 50;

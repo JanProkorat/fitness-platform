@@ -62,6 +62,22 @@ export function usePlanTemplate(templateId: string | undefined, enabled = true) 
   });
 }
 
+/** Templates to copy meals from: the first page of a name search. Not part of the main list's cache keys. */
+export function usePlanTemplateSources(search: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ['plan-templates', 'sources', search],
+    queryFn: () => searchPlanTemplates({ search: search || undefined, page: 1, pageSize: 20 }),
+    placeholderData: keepPreviousData,
+    enabled,
+    retry: retryUnlessForbidden,
+  });
+}
+
+/** Loads one template's detail on demand, outside the cache, to read the meals to copy. */
+export function useLoadPlanTemplate() {
+  return useMutation({ mutationFn: (templateId: string) => getPlanTemplate(templateId) });
+}
+
 /**
  * Saves a template's whole content. It does not toast: the editor shows save and conflict errors
  * inline and keeps the user's edits. The detail cache is refreshed only from the server's reply.

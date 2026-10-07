@@ -3,19 +3,19 @@ import { Check, Loader2, Undo2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import type { SaveStatus } from '@/components/plan-editor/plan-editor-types';
+import type { EditorRange, EditorView, SaveStatus } from '@/components/plan-editor/plan-editor-types';
 
 const MAX_NAME_LENGTH = 200;
 
-interface SegmentedProps {
+interface SegmentedProps<T extends string> {
   label: string;
-  options: readonly { value: string; label: string; disabled?: boolean }[];
-  value: string;
+  options: readonly { value: T; label: string }[];
+  value: T;
+  onChange: (value: T) => void;
 }
 
-/** Two-option switch drawn like the board's toggles; options marked disabled do nothing yet. */
-function Segmented({ label, options, value }: SegmentedProps) {
-  const { t } = useTranslation();
+/** Two-option switch drawn like the board's toggles. */
+function Segmented<T extends string>({ label, options, value, onChange }: SegmentedProps<T>) {
   return (
     <div role="group" aria-label={label} className="flex gap-1 rounded-xl bg-muted p-1">
       {options.map((option) => {
@@ -25,13 +25,10 @@ function Segmented({ label, options, value }: SegmentedProps) {
             key={option.value}
             type="button"
             aria-pressed={active}
-            disabled={option.disabled}
-            aria-disabled={option.disabled}
-            title={option.disabled ? t('planEditor.comingSoon') : undefined}
+            onClick={() => onChange(option.value)}
             className={cn(
-              'h-8 rounded-lg px-4 text-copy font-semibold outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
-              active ? 'bg-card text-ink shadow-selection-bar' : 'text-muted-foreground',
-              option.disabled && 'cursor-not-allowed opacity-60',
+              'h-8 cursor-pointer rounded-lg px-4 text-copy font-semibold outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
+              active ? 'bg-card text-ink shadow-selection-bar' : 'text-muted-foreground hover:text-ink',
             )}
           >
             {option.label}
@@ -53,6 +50,10 @@ interface Props {
   canUndo: boolean;
   onUndo: () => void;
   onSave: () => void;
+  range: EditorRange;
+  view: EditorView;
+  onRangeChange: (range: EditorRange) => void;
+  onViewChange: (view: EditorView) => void;
 }
 
 /** Breadcrumb, editable title, save status, view toggles, undo and Save. */
@@ -67,6 +68,10 @@ export default function PlanEditorHeader({
   canUndo,
   onUndo,
   onSave,
+  range,
+  view,
+  onRangeChange,
+  onViewChange,
 }: Props) {
   const { t } = useTranslation();
   const nameInvalid = name.trim() === '';
@@ -123,20 +128,22 @@ export default function PlanEditorHeader({
         )}
       </div>
 
-      <Segmented
+      <Segmented<EditorRange>
         label={t('planEditor.toggles.range')}
-        value="week"
+        value={range}
+        onChange={onRangeChange}
         options={[
           { value: 'week', label: t('planEditor.toggles.week') },
-          { value: 'day', label: t('planEditor.toggles.day'), disabled: true },
+          { value: 'day', label: t('planEditor.toggles.day') },
         ]}
       />
-      <Segmented
+      <Segmented<EditorView>
         label={t('planEditor.toggles.view')}
-        value="meals"
+        value={view}
+        onChange={onViewChange}
         options={[
           { value: 'meals', label: t('planEditor.toggles.meals') },
-          { value: 'nutrition', label: t('planEditor.toggles.nutrition'), disabled: true },
+          { value: 'nutrition', label: t('planEditor.toggles.nutrition') },
         ]}
       />
       {!readOnly && (

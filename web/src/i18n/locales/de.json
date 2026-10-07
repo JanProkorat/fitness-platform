@@ -1579,7 +1579,9 @@
       "body": "Jede Mahlzeit wird zu einer Zeile der Woche. Fügen Sie eine Art zweimal hinzu für zwei Snacks. Sie können die Zeilen später umsortieren oder entfernen.",
       "mostCommon": "am häufigsten",
       "addOneByOne": "Oder einzeln hinzufügen",
-      "done": "Fertig"
+      "done": "Fertig",
+      "copyPrefix": "Oder",
+      "copyLink": "Mahlzeiten aus einer anderen Vorlage kopieren"
     },
     "library": {
       "title": "Bibliothek",
@@ -1600,6 +1602,109 @@
       "empty": "Nichts gefunden.",
       "loadError": "Die Bibliothek konnte nicht geladen werden.",
       "retry": "Erneut versuchen"
+    },
+    "noteForClient": "Notiz für den Klienten",
+    "units": {
+      "g": "g",
+      "portion": "Portion"
+    },
+    "itemType": {
+      "recipe": "Rezept",
+      "food": "Zutat"
+    },
+    "item": {
+      "macros": "{{type}} · E {{protein}} · K {{carbs}} · F {{fat}} · Bal {{fiber}}",
+      "amountLabel": "Menge: {{name}}",
+      "remove": "{{name}} entfernen"
+    },
+    "dayInitials": {
+      "1": "M",
+      "2": "D",
+      "3": "M",
+      "4": "D",
+      "5": "F",
+      "6": "S",
+      "7": "S"
+    },
+    "daysLong": {
+      "1": "Montag",
+      "2": "Dienstag",
+      "3": "Mittwoch",
+      "4": "Donnerstag",
+      "5": "Freitag",
+      "6": "Samstag",
+      "7": "Sonntag"
+    },
+    "detail": {
+      "where": "{{day}} · Woche {{week}}",
+      "title": "{{meal}} · {{kcal}} kcal",
+      "dropHint": "Weitere Rezepte oder Zutaten hierher ziehen oder in der Bibliothek + drücken",
+      "macros": "E {{protein}} · K {{carbs}} · F {{fat}} · Bal {{fiber}} g",
+      "noNote": "Keine Notiz",
+      "copyTo": "Diese Mahlzeit kopieren nach",
+      "copy": "Kopieren",
+      "copied": "Kopiert nach {{days}}."
+    },
+    "day": {
+      "previousWeek": "Vorherige Woche",
+      "nextWeek": "Nächste Woche",
+      "ofWeeks": "von {{total}} Wochen",
+      "weekdays": "Wochentage",
+      "meals": "Mahlzeiten des Tages",
+      "kcal": "kcal",
+      "protein": "Eiweiß",
+      "carbs": "Kohlenhydrate",
+      "fat": "Fett",
+      "fiber": "Ballaststoffe",
+      "addNote": "Tagesnotiz hinzufügen",
+      "noteLabel": "Tagesnotiz",
+      "notePlaceholder": "Notiz für den Klienten — z. B. „Reis am Vortag kochen“",
+      "mealNoteLabel": "Notiz: {{meal}}",
+      "percentOfDay": "{{percent}} % des Tages",
+      "addAfter": "Mahlzeit nach {{meal}} hinzufügen",
+      "removeMeal": "{{meal}} entfernen",
+      "emptyMeal": "Ziehen Sie ein Rezept oder eine Zutat hierher, oder wählen Sie die Mahlzeit und drücken Sie + in der Bibliothek.",
+      "noMeals": "Dieser Tag hat noch keine Mahlzeiten.",
+      "limitReached": "Ein Tag kann höchstens {{max}} Mahlzeiten haben."
+    },
+    "addMeal": {
+      "open": "Mahlzeit hinzufügen",
+      "title": "Mahlzeit hinzufügen",
+      "after": "{{day}} · nach {{meal}}",
+      "first": "{{day}} · erste Mahlzeit",
+      "type": "Mahlzeitentyp",
+      "alreadyHas": "Dieser Tag hat bereits „{{meal}}“ — eine zweite ist in Ordnung.",
+      "optional": "· optional",
+      "emptyHint": "Die Mahlzeit wird leer hinzugefügt. Füllen Sie sie aus der Bibliothek links — ziehen Sie ein Rezept oder eine Zutat darauf.",
+      "submit": "Mahlzeit hinzufügen"
+    },
+    "nutrition": {
+      "label": "Nährwerte je Mahlzeit",
+      "onTarget": "im Ziel",
+      "kcalUnit": "kcal",
+      "macros": "E {{protein}} · K {{carbs}} · F {{fat}}",
+      "fiber": "Bal {{grams}} g",
+      "legendOn": "Innerhalb von 15 % des Mahlzeitenanteils",
+      "legendOver": "Darüber",
+      "legendUnder": "Darunter",
+      "shares": "Mahlzeitenanteile: {{shares}} des Tages",
+      "share_breakfast": "Frühstück",
+      "share_snack": "Snack",
+      "share_lunch": "Mittagessen",
+      "share_dinner": "Abendessen",
+      "share_secondSnack": "2. Snack",
+      "noTarget": "Legen Sie ein tägliches kcal-Ziel fest, um Mahlzeiten mit ihrem Tagesanteil zu vergleichen."
+    },
+    "copyMeals": {
+      "title": "Mahlzeiten aus einer anderen Vorlage kopieren",
+      "body": "Wählen Sie eine Vorlage. Mahlzeiten, Einträge und Notizen ihrer ersten Woche werden in diese leere Woche kopiert.",
+      "search": "Vorlagen suchen…",
+      "loadError": "Ihre Vorlagen konnten nicht geladen werden.",
+      "empty": "Keine weiteren Vorlagen gefunden.",
+      "summary": "{{weeks}} Wochen · {{meals}} Mahlzeiten pro Tag",
+      "error_gone": "Diese Vorlage ist nicht mehr verfügbar. Die Liste wurde aktualisiert.",
+      "error_empty": "Diese Vorlage hat in der ersten Woche keine Mahlzeiten.",
+      "error_failed": "Die Vorlage konnte nicht geladen werden. Bitte erneut versuchen."
     },
     "conflict": {
       "message": "Diese Vorlage wurde seit dem Öffnen woanders geändert. Ihre Änderungen bleiben hier erhalten, nichts wurde überschrieben. Beim Neuladen der aktuellen Version gehen Ihre Änderungen verloren.",

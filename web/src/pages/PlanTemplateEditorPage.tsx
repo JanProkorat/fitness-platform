@@ -7,6 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import type { NutritionPlanTemplateDetailDto } from '@/api/nutrition-plan-templates';
 import PageHeader from '@/components/library/PageHeader';
 import PlanEditor from '@/components/plan-editor/PlanEditor';
+import CopyMealsDialog from '@/components/plan-templates/CopyMealsDialog';
 import { usePlanTemplateEditor } from '@/hooks/usePlanTemplateEditor';
 import { usePlanTemplate } from '@/hooks/usePlanTemplatesQueries';
 import { getErrorStatus } from '@/lib/api-errors';
@@ -26,7 +27,21 @@ function LoadedTemplateEditor({ template, onReload }: LoadedProps) {
   return (
     <PlanEditor
       initial={initial}
-      dailyKcalTarget={template.globalSettings?.dailyKcal}
+      targets={{
+        kcal: template.globalSettings?.dailyKcal ?? undefined,
+        protein: template.globalSettings?.proteinGrams ?? undefined,
+        carbs: template.globalSettings?.carbsGrams ?? undefined,
+        fat: template.globalSettings?.fatGrams ?? undefined,
+        fiber: template.globalSettings?.fiberGrams ?? undefined,
+      }}
+      renderCopyMeals={(slot) => (
+        <CopyMealsDialog
+          open={slot.open}
+          onOpenChange={slot.onOpenChange}
+          currentTemplateId={template.templateId}
+          onApply={slot.onApply}
+        />
+      )}
       readOnly={!template.isOwnedByCurrentUser}
       readOnlyNotice={t('planTemplates.editor.readOnly')}
       breadcrumb={{ label: t('planTemplates.title'), onNavigate: () => navigate('/plan-templates') }}

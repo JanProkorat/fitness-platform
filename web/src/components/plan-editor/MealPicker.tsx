@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Check, Plus, Utensils } from 'lucide-react';
+import { Check, Copy, Plus, Utensils } from 'lucide-react';
 import { MealKind } from '@/api/generated';
 import { mealKindLabelKey } from '@/components/plan-editor/plan-editor-format';
 import { COMMON_MEAL_KINDS } from '@/components/plan-editor/plan-editor-ops';
@@ -18,10 +18,12 @@ interface Props {
   onApplyCommon: () => void;
   onAddKind: (kind: MealKind) => void;
   onDone: () => void;
+  /** Shown as a link on an empty week when the host can offer another template's meals. */
+  onCopyMeals?: () => void;
 }
 
 /** Empty-week card that turns a choice of meals into the week's rows. */
-export default function MealPicker({ hasRows, onApplyCommon, onAddKind, onDone }: Props) {
+export default function MealPicker({ hasRows, onApplyCommon, onAddKind, onDone, onCopyMeals }: Props) {
   const { t } = useTranslation();
 
   return (
@@ -75,6 +77,22 @@ export default function MealPicker({ hasRows, onApplyCommon, onAddKind, onDone }
           ))}
         </div>
       </div>
+
+      {!hasRows && onCopyMeals && (
+        <div className="flex items-center gap-2 border-t border-line pt-4 text-body text-muted-foreground">
+          <Copy className="size-4 shrink-0" aria-hidden="true" />
+          <span>
+            {t('planEditor.picker.copyPrefix')}{' '}
+            <button
+              type="button"
+              onClick={onCopyMeals}
+              className="cursor-pointer font-semibold text-ink underline outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+            >
+              {t('planEditor.picker.copyLink')}
+            </button>
+          </span>
+        </div>
+      )}
 
       {hasRows && (
         <button

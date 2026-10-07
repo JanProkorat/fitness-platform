@@ -1,4 +1,12 @@
-import type { EditorDay, EditorMeal, EditorWeek } from '@/components/plan-editor/plan-editor-types';
+import { MealKind } from '@/api/generated';
+import { foodDisplayName } from '@/components/plan-editor/plan-editor-library';
+import type {
+  EditorDay,
+  EditorFood,
+  EditorMeal,
+  EditorRecipe,
+  EditorWeek,
+} from '@/components/plan-editor/plan-editor-types';
 
 export interface Totals {
   kcal: number;
@@ -42,27 +50,129 @@ function roundTotals(totals: Totals): Totals {
 export function mealTotals(meal: EditorMeal): Totals {
   let totals = ZERO_TOTALS;
   for (const food of meal.foods) {
-    const ratio = food.amountGrams / 100;
-    const per100 = food.nutrientValuePer100Grams;
-    totals = addTotals(totals, {
-      kcal: (per100.kcal ?? 0) * ratio,
-      protein: (per100.protein ?? 0) * ratio,
-      carbs: (per100.carbs ?? 0) * ratio,
-      fat: (per100.fat ?? 0) * ratio,
-      fiber: (per100.fiber ?? 0) * ratio,
-    });
+    totals = addTotals(totals, rawFoodTotals(food));
   }
   for (const recipe of meal.recipes) {
-    const perServing = recipe.nutrientValuePerServing;
-    totals = addTotals(totals, {
-      kcal: (perServing.kcal ?? 0) * recipe.servings,
-      protein: (perServing.protein ?? 0) * recipe.servings,
-      carbs: (perServing.carbs ?? 0) * recipe.servings,
-      fat: (perServing.fat ?? 0) * recipe.servings,
-      fiber: (perServing.fiber ?? 0) * recipe.servings,
-    });
+    totals = addTotals(totals, rawRecipeTotals(recipe));
   }
   return roundTotals(totals);
+}
+
+function rawFoodTotals(food: EditorFood): Totals {
+  const ratio = food.amountGrams / 100;
+  const per100 = food.nutrientValuePer100Grams;
+  return {
+    kcal: (per100.kcal ?? 0) * ratio,
+    protein: (per100.protein ?? 0) * ratio,
+    carbs: (per100.carbs ?? 0) * ratio,
+    fat: (per100.fat ?? 0) * ratio,
+    fiber: (per100.fiber ?? 0) * ratio,
+  };
+}
+
+function rawRecipeTotals(recipe: EditorRecipe): Totals {
+  const perServing = recipe.nutrientValuePerServing;
+  return {
+    kcal: (perServing.kcal ?? 0) * recipe.servings,
+    protein: (perServing.protein ?? 0) * recipe.servings,
+    carbs: (perServing.carbs ?? 0) * recipe.servings,
+    fat: (perServing.fat ?? 0) * recipe.servings,
+    fiber: (perServing.fiber ?? 0) * recipe.servings,
+  };
+}
+
+/** One ingredient's totals at its current amount. */
+export function foodTotals(food: EditorFood): Totals {
+  return roundTotals(rawFoodTotals(food));
+}
+
+/** One recipe's totals at its current servings. */
+export function recipeTotals(recipe: EditorRecipe): Totals {
+  return roundTotals(rawRecipeTotals(recipe));
+}
+
+/** Each meal's share of the daily kcal target on the boards, in percent. Other kinds have none. */
+export const MEAL_SHARE_PERCENT: Partial<Record<MealKind, number>> = {
+  [MealKind.Breakfast]: 25,
+  [MealKind.MorningSnack]: 10,
+  [MealKind.Lunch]: 30,
+  [MealKind.Dinner]: 28,
+  [MealKind.AfternoonSnack]: 7,
+};
+
+/** A meal is "on target" while it stays within this fraction of its expected value. */
+const SHARE_BAND = 0.15;
+
+export type ShareStatus = 'none' | 'on' | 'over' | 'under';
+
+export interface ShareResult {
+  status: ShareStatus;
+  /** Signed deviation from the expected value, in whole percent. */
+  deviationPercent: number;
+}
+
+/** Compares an actual value with what a meal of this kind should carry; `expected` is in the same unit. */
+export function shareStatus(actual: number, expected: number): ShareResult {
+  if (expected <= 0) {
+    return { status: 'none', deviationPercent: 0 };
+  }
+  const deviation = actual / expected - 1;
+  const deviationPercent = Math.round(deviation * 100);
+  if (Math.abs(deviation) <= SHARE_BAND) {
+    return { status: 'on', deviationPercent };
+  }
+  return { status: deviation > 0 ? 'over' : 'under', deviationPercent };
+}
+
+/** A meal's kcal against its fixed share of the daily kcal target. */
+export function mealKcalStatus(kcal: number, kind: MealKind, dailyTarget: number | undefined): ShareResult {
+  const share = MEAL_SHARE_PERCENT[kind];
+  if (!dailyTarget || share === undefined) {
+    return { status: 'none', deviationPercent: 0 };
+  }
+  return shareStatus(kcal, (dailyTarget * share) / 100);
+}
+
+/** A meal's part of the day's kcal against the share its kind should have. */
+export function mealDayShareStatus(kcal: number, dayKcal: number, kind: MealKind): ShareResult {
+  const share = MEAL_SHARE_PERCENT[kind];
+  if (dayKcal <= 0 || share === undefined) {
+    return { status: 'none', deviationPercent: 0 };
+  }
+  return shareStatus((kcal / dayKcal) * 100, share);
+}
+
+/** One recipe or ingredient of a meal, flattened for display; `index` is its position in its own list. */
+export interface MealItemEntry {
+  type: 'recipe' | 'food';
+  index: number;
+  name: string;
+  amount: number;
+  totals: Totals;
+}
+
+/** A meal's items, recipes first (the order the week grid names them in). */
+export function mealItemEntries(meal: EditorMeal, language: string): MealItemEntry[] {
+  return [
+    ...meal.recipes.map(
+      (recipe, index): MealItemEntry => ({
+        type: 'recipe',
+        index,
+        name: recipe.recipeName,
+        amount: recipe.servings,
+        totals: recipeTotals(recipe),
+      }),
+    ),
+    ...meal.foods.map(
+      (food, index): MealItemEntry => ({
+        type: 'food',
+        index,
+        name: foodDisplayName(food, language),
+        amount: food.amountGrams,
+        totals: foodTotals(food),
+      }),
+    ),
+  ];
 }
 
 export function mealItemCount(meal: EditorMeal): number {
