@@ -231,6 +231,75 @@
       "notionPageId": null
     },
     {
+      "id": "web.nutrition.ingredients",
+      "app": "web",
+      "area": "Nutrition",
+      "title": "Ingredients list",
+      "route": "/ingredients",
+      "roles": ["Trainer", "Nutritionist"],
+      "files": [
+        "web/src/pages/IngredientsPage.tsx",
+        "web/src/components/ingredients/IngredientsTable.tsx",
+        "web/src/components/ingredients/IngredientCategoryFilterPopover.tsx",
+        "web/src/components/library/**",
+        "web/src/components/tags/TagPill.tsx",
+        "web/src/hooks/useIngredientsQueries.ts",
+        "web/src/hooks/useIngredientListParams.ts",
+        "web/src/api/foods.ts",
+        "web/src/api/food-tags.ts"
+      ],
+      "endpoints": [
+        "GET /foods/search",
+        "GET /trainer/food-tags",
+        "POST /trainer/food-tags",
+        "PUT /trainer/food-tags/{tagId}",
+        "DELETE /trainer/food-tags/{tagId}"
+      ],
+      "board": "PageIngredients",
+      "shots": [
+        { "name": "default" },
+        { "name": "category-filter", "steps": "sign in as the nutritionist, click the chip 'Kategorie', tick 'Ovoce', close the popover and wait for the table to reload" }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "web.nutrition.ingredient-drawer",
+      "app": "web",
+      "area": "Nutrition",
+      "title": "Ingredient drawer",
+      "route": "/ingredients",
+      "roles": ["Trainer", "Nutritionist"],
+      "files": [
+        "web/src/components/ingredients/IngredientDrawer.tsx",
+        "web/src/components/ingredients/IngredientPictureField.tsx",
+        "web/src/components/ingredients/DeleteIngredientDialog.tsx",
+        "web/src/components/library/PictureField.tsx",
+        "web/src/components/library/MultiSelectPopover.tsx",
+        "web/src/components/library/LibraryTagPickerPopover.tsx",
+        "web/src/components/library/VisibilityToggle.tsx",
+        "web/src/hooks/useIngredientsQueries.ts",
+        "web/src/api/foods.ts",
+        "web/src/api/food-tags.ts"
+      ],
+      "endpoints": [
+        "POST /foods",
+        "PUT /foods/{foodId}",
+        "DELETE /foods/{foodId}",
+        "PUT /trainer/foods/{foodId}/tags",
+        "GET /trainer/food-tags",
+        "POST /trainer/food-tags",
+        "POST /foods/{foodId}/image/upload-url",
+        "PUT /foods/{foodId}/image",
+        "DELETE /foods/{foodId}/image"
+      ],
+      "board": "PageIngredientDrawer",
+      "shots": [
+        { "name": "edit", "steps": "sign in as the nutritionist, click the row 'Banana (medium)' (the nutritionist's own ingredient) and wait for the drawer to open" },
+        { "name": "read-only", "steps": "sign in as the nutritionist, click the row 'Almonds' (a system ingredient) and wait for the read-only drawer to open" }
+      ],
+      "notionPageId": null
+    },
+    {
       "id": "web.account.profile",
       "app": "web",
       "area": "Account",
