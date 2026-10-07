@@ -148,9 +148,8 @@ export async function verifyEmail(token: string): Promise<VerifyEmailResponse> {
 
 /**
  * POST /auth/password/reset
- * Requests a password reset link. Always returns 200 whether or not the
- * account exists (anti-enumeration) — never branch UI copy on this call
- * succeeding vs. "the account was found".
+ * Requests a password reset link. Returns 200 when sent; 404 with errorCode
+ * EMAIL_NOT_REGISTERED for an unknown email; 429 when rate limited.
  *
  * Note the verb collision with `resetPassword` below: both endpoints live
  * at the same path, distinguished only by HTTP verb (`RequestPasswordResetEndpoint`

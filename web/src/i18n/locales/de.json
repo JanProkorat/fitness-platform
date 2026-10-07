@@ -3079,13 +3079,13 @@
       }
     },
     "forgotPassword": {
-      "title": "Passwort vergessen",
-      "lede": "Geben Sie die E-Mail-Adresse ein, mit der Sie sich anmelden.",
+      "title": "Passwort zurücksetzen",
+      "lede": "Geben Sie die E-Mail-Adresse ein, mit der Sie sich anmelden. Wir senden Ihnen einen Link, um ein neues Passwort festzulegen.",
       "emailLabel": "E-Mail",
       "emailPlaceholder": "trainer@example.com",
-      "submit": "Link senden",
+      "submit": "Link zum Zurücksetzen senden",
       "submitting": "Wird gesendet...",
-      "note": "Wir antworten immer gleich, unabhängig davon, ob ein Konto existiert — so verraten wir nie, welche E-Mail-Adressen registriert sind.",
+      "createAccount": "Konto erstellen",
       "backToLogin": "Zurück zur Anmeldung",
       "validation": {
         "emailRequired": "Geben Sie Ihre E-Mail-Adresse ein.",
@@ -3093,12 +3093,14 @@
       },
       "errors": {
         "network": "Verbindung zum Server fehlgeschlagen. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
-        "generic": "Senden fehlgeschlagen. Bitte versuchen Sie es erneut."
+        "generic": "Senden fehlgeschlagen. Bitte versuchen Sie es erneut.",
+        "notRegistered": "Zu dieser E-Mail-Adresse gibt es kein Konto."
       },
       "sent": {
         "title": "Prüfen Sie Ihr Postfach",
-        "lede": "Falls unter dieser Adresse ein Konto existiert, haben wir einen Link zum Zurücksetzen des Passworts gesendet.",
-        "tryAnother": "Andere Adresse verwenden"
+        "lede": "Wir haben einen Link zum Zurücksetzen Ihres Passworts an <email>{{email}}</email> gesendet.",
+        "info": "Der Link funktioniert nur einmal und läuft nach 24 Stunden ab. Nichts im Posteingang? Prüfen Sie den Spam-Ordner oder senden Sie ihn erneut.",
+        "resend": "Erneut senden"
       }
     },
     "verifyEmail": {

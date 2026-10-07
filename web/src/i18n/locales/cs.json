@@ -3127,13 +3127,13 @@
       }
     },
     "forgotPassword": {
-      "title": "Zapomenuté heslo",
-      "lede": "Zadejte e-mail, kterým se přihlašujete.",
+      "title": "Obnovení hesla",
+      "lede": "Zadejte e-mail, kterým se přihlašujete. Pošleme vám odkaz pro nastavení nového hesla.",
       "emailLabel": "E-mail",
       "emailPlaceholder": "trener@example.com",
-      "submit": "Poslat odkaz",
+      "submit": "Poslat odkaz pro obnovení",
       "submitting": "Odesílám...",
-      "note": "Odpovíme stejně, ať už účet existuje nebo ne — abychom neprozradili, které e-maily jsou registrované.",
+      "createAccount": "Vytvořit účet",
       "backToLogin": "Zpět na přihlášení",
       "validation": {
         "emailRequired": "Zadejte e-mail.",
@@ -3141,12 +3141,14 @@
       },
       "errors": {
         "network": "Nepodařilo se spojit se serverem. Zkontrolujte připojení a zkuste to znovu.",
-        "generic": "Odeslání se nezdařilo. Zkuste to prosím znovu."
+        "generic": "Odeslání se nezdařilo. Zkuste to prosím znovu.",
+        "notRegistered": "Tento e-mail nepatří žádnému účtu."
       },
       "sent": {
         "title": "Zkontrolujte poštu",
-        "lede": "Pokud pod touto adresou existuje účet, poslali jsme na ni odkaz pro obnovení hesla.",
-        "tryAnother": "Zadat jinou adresu"
+        "lede": "Poslali jsme odkaz pro obnovení hesla na adresu <email>{{email}}</email>.",
+        "info": "Odkaz funguje jednou a vyprší za 24 hodin. Nic v doručené poště? Podívejte se do spamu, nebo odkaz pošlete znovu.",
+        "resend": "Poslat znovu"
       }
     },
     "verifyEmail": {

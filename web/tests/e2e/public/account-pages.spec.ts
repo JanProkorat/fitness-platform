@@ -20,7 +20,7 @@ test('/forgot-password renders its form in a dialog with an accessible name, and
   page,
 }) => {
   await page.goto('/forgot-password');
-  await expect(page.getByRole('dialog', { name: 'Forgot password' })).toBeVisible();
+  await expect(page.getByRole('dialog', { name: 'Reset your password' })).toBeVisible();
 
   await page.goto('/register');
   await expect(page.getByRole('heading', { name: 'Join our community' })).toBeVisible();
@@ -67,23 +67,17 @@ test('the login form has no client app signpost', async ({ page }) => {
   await expect(dialog.getByText('New to Form Up?')).toBeVisible();
 });
 
-test('/forgot-password returns the same confirmation copy for an existing and a non-existent address', async ({
+test('/forgot-password shows an inline error for an unknown address and the sent step for a known one', async ({
   page,
   request,
 }) => {
-  // Regression / anti-enumeration (#656): RequestPasswordResetEndpoint
-  // always returns 200 whether or not the account exists, and awaits the
-  // email send SYNCHRONOUSLY (unlike registration's verification email,
-  // which is queued) — so the UI must show identical confirmation copy for
-  // both cases.
+  // RequestPasswordResetEndpoint answers 404 EMAIL_NOT_REGISTERED for an
+  // unknown address and awaits the email send synchronously for a known one.
   //
-  // Since #1059 the compose harness captures outbound mail in MailHog
-  // instead of sending it for real, so any recipient address works here —
-  // this no longer needs to be a real, deliverable inbox. Kept as a fixed
-  // synthetic address purely so the "exists" case is a stable, reusable
-  // account rather than a fresh one per run; registered here via a direct
-  // API call (idempotent — a 400 "already registered" is fine, we only need
-  // the account to exist).
+  // The compose harness captures outbound mail in MailHog, so any recipient
+  // address works. A fixed synthetic address keeps the "known" case a stable,
+  // reusable account; it is registered via a direct API call (idempotent — a
+  // 400 "already registered" is fine, we only need the account to exist).
   const existingEmail = 'existing-owner@example.com';
   await request.post('/auth/register', {
     data: {
@@ -97,22 +91,33 @@ test('/forgot-password returns the same confirmation copy for an existing and a 
     },
   });
 
-  // Straight apostrophe — matches the literal en.json string verbatim, not
-  // a "smart quote" the source doesn't actually use.
-  const sentCopy = "If an account exists for this address, we've sent it a password reset link.";
-
   await page.goto('/forgot-password');
-  await page.getByLabel('Email').fill(existingEmail);
-  await page.getByRole('button', { name: 'Send link' }).click();
-  // The "existing" case still awaits a real, synchronous outbound-mail call
-  // (captured by MailHog rather than actually delivered, per #1059 — see the
-  // comment above) — allow more than the default 5s.
-  await expect(page.getByText(sentCopy)).toBeVisible({ timeout: 15_000 });
+  const dialog = page.getByRole('dialog', { name: 'Reset your password' });
+  const email = page.getByLabel('Email');
 
-  await page.goto('/forgot-password');
-  await page.getByLabel('Email').fill('definitely-does-not-exist@example.com');
-  await page.getByRole('button', { name: 'Send link' }).click();
-  await expect(page.getByText(sentCopy)).toBeVisible();
+  await email.fill('definitely-does-not-exist@example.com');
+  await page.getByRole('button', { name: 'Send reset link' }).click();
+  await expect(dialog.getByText('No account uses this email.')).toBeVisible();
+  await expect(email).toHaveAttribute('aria-invalid', 'true');
+  await expect(dialog.getByRole('link', { name: 'Create account' })).toHaveAttribute(
+    'href',
+    '/register'
+  );
+  await expect(dialog.getByRole('heading', { name: 'Check your email' })).toHaveCount(0);
+
+  await email.fill(existingEmail);
+  await page.getByRole('button', { name: 'Send reset link' }).click();
+  // The known case awaits a synchronous outbound-mail call — allow more than
+  // the default 5s.
+  await expect(page.getByRole('dialog', { name: 'Check your email' })).toBeVisible({
+    timeout: 15_000,
+  });
+  await expect(page.getByText(existingEmail)).toBeVisible();
+
+  // "Send again" stays on the sent step.
+  await page.getByRole('button', { name: 'Send again' }).click();
+  await expect(page.getByRole('button', { name: 'Send again' })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText(existingEmail)).toBeVisible();
 });
 
 test('/verify-email with no token and no session renders the invalid-link state and calls no /auth/ endpoint', async ({
