@@ -4,7 +4,6 @@ import { apiClient } from '@/api/client';
 import { getClientPlans } from '@/api/client-plans';
 import { getClientMeasurements } from '@/api/measurements';
 import { Skeleton } from '@/components/ui/skeleton';
-import { cn } from '@/lib/utils';
 import PanelIdentity from '@/components/inbox/panel/PanelIdentity';
 import PanelStats from '@/components/inbox/panel/PanelStats';
 import MealPlanPanelCard from '@/components/inbox/panel/MealPlanPanelCard';
@@ -14,8 +13,6 @@ const MEASUREMENTS_PAGE_SIZE = 50;
 
 interface Props {
   clientPublicId: string;
-  /** Leaves room for the sheet's close button when rendered inside the slide-in drawer. */
-  inSheet?: boolean;
 }
 
 /**
@@ -24,9 +21,9 @@ interface Props {
  * `client-plans` / `client-measurements` query keys with `ClientDetailPage`
  * so both surfaces read one cache entry.
  */
-export default function ClientSidePanel({ clientPublicId, inSheet = false }: Props) {
+export default function ClientSidePanel({ clientPublicId }: Props) {
   const { t } = useTranslation();
-  const containerClass = cn('flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto px-4.5 py-5.5', inSheet && 'pt-14');
+  const containerClass = 'flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto px-4.5 py-5.5';
 
   const dashboardQuery = useQuery({
     queryKey: ['client-dashboard', clientPublicId],

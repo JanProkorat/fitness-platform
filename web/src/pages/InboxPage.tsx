@@ -6,7 +6,6 @@ import ConversationList from '@/components/inbox/ConversationList';
 import ThreadPane from '@/components/inbox/ThreadPane';
 import ThreadEmptyState from '@/components/inbox/ThreadEmptyState';
 import ClientSidePanel from '@/components/inbox/ClientSidePanel';
-import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import { getConversations } from '@/api/conversations';
 import {
   useConversationFilterCounts,
@@ -19,7 +18,7 @@ import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useAuthStore } from '@/stores/auth';
 import { ClientListFilter, type ConversationDto } from '@/api/generated';
 
-/** At and above this width the client panel docks as a third column; below it slides in as a sheet. */
+/** At and above this width the client panel sits beside the list and thread; below it, when open, it replaces the list. */
 const DOCKED_PANEL_QUERY = '(min-width: 1280px)';
 const TYPING_INDICATOR_TIMEOUT_MS = 3500;
 /** Debounces the mark-read call for messages landing in the already-open thread,
@@ -64,7 +63,7 @@ export default function InboxPage() {
   const [filter, setFilter] = useState<ClientListFilter>(ClientListFilter.All);
   const [search, setSearch] = useState('');
   const [selectedParticipantId, setSelectedParticipantId] = useState<string | undefined>(undefined);
-  // null = the user has not toggled yet: open when the panel docks, closed when it would be a sheet.
+  // null = the user has not toggled yet: open at the wide layout, closed below it.
   const [clientPanelOverride, setClientPanelOverride] = useState<boolean | null>(null);
   const isPanelDocked = useMediaQuery(DOCKED_PANEL_QUERY);
   const showClientPanel = clientPanelOverride ?? isPanelDocked;
@@ -222,25 +221,29 @@ export default function InboxPage() {
   const selectedClientPublicId = selectedConversation?.participant?.clientPublicId;
   const isClientPanelOpen = showClientPanel && Boolean(selectedClientPublicId);
 
+  // Below the wide layout there is no room for list, thread and panel together, so an open
+  // panel takes the list's place.
+  const showConversationList = isPanelDocked || !isClientPanelOpen;
+
   return (
-    // Below the docking width the sheet slides over the thread's right edge; the thread keeps
-    // its full width underneath instead of being squeezed.
     <div className="-m-6 flex h-screen overflow-hidden bg-background">
-      <ConversationList
-        archived={archived}
-        onArchivedChange={setArchived}
-        search={search}
-        onSearchChange={setSearch}
-        filter={filter}
-        onFilterChange={setFilter}
-        counts={countsQuery.data}
-        conversations={conversations}
-        isPending={conversationsQuery.isPending}
-        isError={conversationsQuery.isError}
-        onRetry={() => void conversationsQuery.refetch()}
-        selectedParticipantId={selectedParticipantId}
-        onSelectConversation={handleSelectConversation}
-      />
+      {showConversationList && (
+        <ConversationList
+          archived={archived}
+          onArchivedChange={setArchived}
+          search={search}
+          onSearchChange={setSearch}
+          filter={filter}
+          onFilterChange={setFilter}
+          counts={countsQuery.data}
+          conversations={conversations}
+          isPending={conversationsQuery.isPending}
+          isError={conversationsQuery.isError}
+          onRetry={() => void conversationsQuery.refetch()}
+          selectedParticipantId={selectedParticipantId}
+          onSelectConversation={handleSelectConversation}
+        />
+      )}
 
       {selectedConversation?.id && selectedConversation.participant ? (
         <ThreadPane
@@ -256,33 +259,13 @@ export default function InboxPage() {
         <ThreadEmptyState />
       )}
 
-      {isPanelDocked ? (
-        isClientPanelOpen &&
-        selectedClientPublicId && (
-          <aside
-            aria-label={t('inbox.thread.clientPanelTitle')}
-            className="flex h-full w-90 shrink-0 flex-col border-l border-border bg-card"
-          >
-            <ClientSidePanel clientPublicId={selectedClientPublicId} />
-          </aside>
-        )
-      ) : (
-        // Non-modal, backdrop-free drawer: it slides in over the thread's right edge while
-        // the list, thread and composer stay usable. Outside clicks and focus are left
-        // alone so typing a reply never dismisses it.
-        <Sheet open={isClientPanelOpen} onOpenChange={setClientPanelOverride} modal={false}>
-          <SheetContent
-            side="right"
-            hideOverlay
-            aria-describedby={undefined}
-            onInteractOutside={(event) => event.preventDefault()}
-            onOpenAutoFocus={(event) => event.preventDefault()}
-            className="gap-0"
-          >
-            <SheetTitle className="sr-only">{t('inbox.thread.clientPanelTitle')}</SheetTitle>
-            {selectedClientPublicId && <ClientSidePanel clientPublicId={selectedClientPublicId} inSheet />}
-          </SheetContent>
-        </Sheet>
+      {isClientPanelOpen && selectedClientPublicId && (
+        <aside
+          aria-label={t('inbox.thread.clientPanelTitle')}
+          className="flex h-full w-90 shrink-0 flex-col border-l border-border bg-card"
+        >
+          <ClientSidePanel clientPublicId={selectedClientPublicId} />
+        </aside>
       )}
     </div>
   );
