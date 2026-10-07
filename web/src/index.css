@@ -189,6 +189,7 @@
   --gf-shadow-popover: 0 6px 20px rgba(0, 0, 0, 0.12); /* floating pill (PageClients selection bar): menus, popovers, hover cards, toasts */
   --gf-shadow-card: 0 24px 60px rgba(0, 0, 0, 0.1); /* standalone-page card (PageRegister*) */
   --gf-shadow-selection-bar: 0 4px 12px rgba(0, 0, 0, 0.1); /* clients-page bulk-selection bar */
+  --gf-shadow-panel: 0 10px 30px rgba(0, 0, 0, 0.05); /* portal panel cards (PageProfile), same in light and dark */
   --gf-blur-scrim: 3px; /* backdrop blur behind the sign-in dialog (PageHomeSignIn*) */
 
   --gf-badge-min-width: 20px; /* filter-chip count badge floor — a single-digit count's glyph advance can render narrower than the badge's own height in a fallback face, squaring off the pill */
@@ -857,6 +858,7 @@
   --shadow-popover: var(--gf-shadow-popover);
   --shadow-card: var(--gf-shadow-card);
   --shadow-selection-bar: var(--gf-shadow-selection-bar);
+  --shadow-panel: var(--gf-shadow-panel);
 
   --blur-scrim: var(--gf-blur-scrim);
 

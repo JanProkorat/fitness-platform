@@ -54,7 +54,7 @@ export const TEXT_SIZE_TOKENS = [
 
 /** `--shadow-*` — same delete-the-class failure mode as text sizes, via
  * tailwind-merge's `shadow-color` catch-all. */
-export const SHADOW_TOKENS = ['dialog', 'sheet', 'popover', 'card', 'selection-bar'] as const;
+export const SHADOW_TOKENS = ['dialog', 'sheet', 'popover', 'card', 'selection-bar', 'panel'] as const;
 
 /** `--radius-*` — only names outside tailwind-merge's t-shirt scale need
  * listing; without it `rounded-field` is never conflict-resolved against a
