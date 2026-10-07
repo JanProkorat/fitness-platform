@@ -116,7 +116,7 @@ test.describe('inbox chat image attachments', () => {
       timeout: 10_000,
     });
     // Image-only send: LastMessageText is empty, so the row falls back to the localized marker.
-    await expect(qaClientRow(page).getByText('📷 Photo', { exact: true })).toBeVisible();
+    await expect(qaClientRow(page).getByText('Photo', { exact: true })).toBeVisible();
   });
 
   test('an image with a caption renders the image and the caption text below it', async ({ page }) => {

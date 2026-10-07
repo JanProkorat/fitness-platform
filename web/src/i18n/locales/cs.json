@@ -2863,7 +2863,7 @@
     },
     "noConversations": "Nebyly nalezeny žádné konverzace",
     "list": {
-      "photoMarker": "📷 Fotka"
+      "photoMarker": "Fotka"
     },
     "thread": {
       "showClient": "Zobrazit klienta",
@@ -2897,7 +2897,11 @@
         "macrosLegend": "Makra · bílkoviny / sacharidy / tuky"
       },
       "training": {
-        "eyebrow": "Trénink"
+        "eyebrow": "Trénink",
+        "exercises_one": "{{count}} cvik",
+        "exercises_few": "{{count}} cviky",
+        "exercises_many": "{{count}} cviků",
+        "exercises_other": "{{count}} cviků"
       }
     },
     "typingIndicator": "Píše…",

@@ -17,7 +17,7 @@ interface Props {
 
 /** Meal-plan card of the inbox client panel: plan name, kcal + macro split, and the macro bar. */
 export default function MealPlanPanelCard({ clientPublicId, plan, canView, isPending, isError }: Props) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const detailQuery = useQuery({
     // Same key as the client-detail page's meal-plan card, so both share one cache entry.
@@ -59,7 +59,7 @@ export default function MealPlanPanelCard({ clientPublicId, plan, canView, isPen
                   ? t('common.loading')
                   : shares
                     ? t('inbox.panel.mealPlan.detail', {
-                        kcal: settings?.dailyKcal,
+                        kcal: (settings?.dailyKcal ?? 0).toLocaleString(i18n.language),
                         protein: shares.proteinPct,
                         carbs: shares.carbPct,
                         fat: shares.fatPct,

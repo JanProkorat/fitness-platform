@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { Image as ImageIcon } from 'lucide-react';
 import ParticipantAvatar from '@/components/inbox/ParticipantAvatar';
 import { getEventPreviewText } from '@/lib/chatEvents';
 import { cn } from '@/lib/utils';
@@ -74,7 +75,16 @@ export default function ConversationRow({ conversation, isSelected, onSelect }: 
             {hasConversation
               ? conversation.lastMessageEventType != null
                 ? getEventPreviewText(t, conversation.lastMessageEventType, conversation.lastMessageIsOwn ?? false, participant?.name ?? '')
-                : conversation.lastMessage || (conversation.lastMessageHasImage ? t('inbox.list.photoMarker') : '—')
+                : conversation.lastMessage || (
+                    conversation.lastMessageHasImage ? (
+                      <span className="inline-flex items-center gap-1">
+                        <ImageIcon className="size-3.25" aria-hidden="true" />
+                        {t('inbox.list.photoMarker')}
+                      </span>
+                    ) : (
+                      '—'
+                    )
+                  )
               : t('inbox.row.noConversationYet')}
           </span>
           {hasUnread && (

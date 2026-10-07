@@ -63,7 +63,7 @@ export default function TrainingPanelCard({ clientPublicId, plan, canView, isPen
               : detailQuery.isPending
                 ? t('common.loading')
                 : resolved
-                  ? `${t('clientDetail.overview.workout.exercises', { count: resolved.session.allExercises.length })} • ${weekdayLabel(resolved.dayOfWeek, i18n.language)}`
+                  ? `${t('inbox.panel.training.exercises', { count: resolved.session.allExercises.length })} • ${weekdayLabel(resolved.dayOfWeek, i18n.language)}`
                   : '—'
           }
         />

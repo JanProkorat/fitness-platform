@@ -2816,7 +2816,7 @@
     },
     "noConversations": "No conversations found",
     "list": {
-      "photoMarker": "📷 Photo"
+      "photoMarker": "Photo"
     },
     "thread": {
       "showClient": "Show client",
@@ -2850,7 +2850,9 @@
         "macrosLegend": "Macros · protein / carbs / fat"
       },
       "training": {
-        "eyebrow": "Training"
+        "eyebrow": "Training",
+        "exercises_one": "{{count}} exercise",
+        "exercises_other": "{{count}} exercises"
       }
     },
     "typingIndicator": "Typing…",

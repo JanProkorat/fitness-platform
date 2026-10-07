@@ -2815,7 +2815,7 @@
     },
     "noConversations": "Keine Gespräche gefunden",
     "list": {
-      "photoMarker": "📷 Foto"
+      "photoMarker": "Foto"
     },
     "thread": {
       "showClient": "Kunde anzeigen",
@@ -2849,7 +2849,9 @@
         "macrosLegend": "Makros · Eiweiß / Kohlenhydrate / Fett"
       },
       "training": {
-        "eyebrow": "Training"
+        "eyebrow": "Training",
+        "exercises_one": "{{count}} Übung",
+        "exercises_other": "{{count}} Übungen"
       }
     },
     "typingIndicator": "Schreibt gerade…",
