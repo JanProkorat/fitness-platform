@@ -232,7 +232,7 @@ export default function ProfileForm({ me, trainer }: Props) {
           }
         />
         <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
-          <div className="grid min-w-0 items-start gap-4 2xl:grid-cols-2">
+          <div className="grid min-w-0 gap-4 2xl:grid-cols-2">
             <PhotoNameSection professionalAvatarUrl={trainer.avatarBlobUrl} userAvatarUrl={me.avatarBlobUrl} />
             <AccountSection email={me.email ?? ''} />
             <AboutSection />
