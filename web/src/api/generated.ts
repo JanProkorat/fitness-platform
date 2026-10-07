@@ -8811,6 +8811,65 @@ export class ApiClient {
     }
 
     /**
+     * Delete a nutrition plan template
+     * @return No Content
+     */
+    deleteTemplateEndpoint(templateId: string, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/nutrition/plan-templates/{templateId}";
+        if (templateId === undefined || templateId === null)
+            throw new globalThis.Error("The parameter 'templateId' must be defined.");
+        url_ = url_.replace("{templateId}", encodeURIComponent("" + templateId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "DELETE",
+            url: url_,
+            headers: {
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processDeleteTemplateEndpoint(_response);
+        });
+    }
+
+    protected processDeleteTemplateEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * Search nutrition plan templates
      * @param page Page number (1-based).
      * @param pageSize Number of items per page.
@@ -9052,65 +9111,6 @@ export class ApiClient {
     }
 
     /**
-     * Delete a nutrition plan template
-     * @return No Content
-     */
-    deleteTemplateEndpoint(templateId: string, signal?: AbortSignal): Promise<void> {
-        let url_ = this.baseUrl + "/nutrition/plan-templates/{TemplateId}";
-        if (templateId === undefined || templateId === null)
-            throw new globalThis.Error("The parameter 'templateId' must be defined.");
-        url_ = url_.replace("{templateId}", encodeURIComponent("" + templateId));
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "DELETE",
-            url: url_,
-            headers: {
-            },
-            signal
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processDeleteTemplateEndpoint(_response);
-        });
-    }
-
-    protected processDeleteTemplateEndpoint(response: AxiosResponse): Promise<void> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 204) {
-            const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
-
-        } else if (status === 401) {
-            const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
-
-        } else if (status === 403) {
-            const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<void>(null as any);
-    }
-
-    /**
      * Save a nutrition plan as a template
      * @return Created
      */
@@ -9186,7 +9186,7 @@ export class ApiClient {
      * @return Created
      */
     copyTemplateEndpoint(templateId: string, signal?: AbortSignal): Promise<NutritionPlanTemplateSummaryDto> {
-        let url_ = this.baseUrl + "/nutrition/plan-templates/{TemplateId}/copy";
+        let url_ = this.baseUrl + "/nutrition/plan-templates/{templateId}/copy";
         if (templateId === undefined || templateId === null)
             throw new globalThis.Error("The parameter 'templateId' must be defined.");
         url_ = url_.replace("{templateId}", encodeURIComponent("" + templateId));
