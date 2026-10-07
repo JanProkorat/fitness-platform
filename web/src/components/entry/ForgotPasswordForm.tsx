@@ -131,7 +131,7 @@ export default function ForgotPasswordForm() {
           variant="outline"
           disabled={resendMutation.isPending}
           onClick={() => resendMutation.mutate(sentTo)}
-          className="h-11.5 w-full rounded-xl text-subhead font-bold"
+          className="h-11.5 w-full rounded-xl bg-card text-subhead font-bold"
         >
           {resendMutation.isPending
             ? t('entry.forgotPassword.submitting')
