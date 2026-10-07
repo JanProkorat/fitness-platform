@@ -57,6 +57,7 @@ export default defineConfig({
       '/auth': e2eProxy(),
       '/users': e2eProxy(),
       '/trainer': e2eProxy(),
+      '/professionals': e2eProxy(),
       '/swagger': e2eProxy(),
       '/foods': e2eProxy(),
       '/nutrition': e2eProxy(),

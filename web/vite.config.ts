@@ -30,6 +30,7 @@ export default defineConfig({
       '/auth': apiProxy(),
       '/users': apiProxy(),
       '/trainer': apiProxy(),
+      '/professionals': apiProxy(),
       '/swagger': apiProxy(),
       '/foods': apiProxy(),
       '/nutrition': apiProxy(),

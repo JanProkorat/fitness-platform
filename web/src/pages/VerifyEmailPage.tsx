@@ -206,7 +206,8 @@ export default function VerifyEmailPage() {
         <RegisterShell showSignIn={false}>
           <CoachVerifiedState
             firstName={verifyQuery.data.firstName}
-            to={verifyQuery.data.staleSession ? '/login' : '/clients'}
+            profileTo={verifyQuery.data.staleSession ? '/login' : '/profile'}
+            skipTo={verifyQuery.data.staleSession ? '/login' : '/clients'}
           />
         </RegisterShell>
       );

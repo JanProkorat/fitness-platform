@@ -69,4 +69,9 @@ public class GetProfessionalProfileResponse
     /// Whether the professional is currently accepting new clients.
     /// </summary>
     public bool AcceptNewClients { get; set; }
+
+    /// <summary>
+    /// Professional avatar blob URL; null when unset (no fallback to the user avatar).
+    /// </summary>
+    public string? AvatarBlobUrl { get; set; }
 }

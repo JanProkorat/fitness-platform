@@ -1,3 +1,5 @@
+using System.Text.Json;
+using FastEndpoints;
 using FluentValidation;
 
 namespace FitnessPlatform.Application.Features.Trainers.UpdateTrainerProfile;
@@ -5,7 +7,7 @@ namespace FitnessPlatform.Application.Features.Trainers.UpdateTrainerProfile;
 /// <summary>
 /// Validator for the professional profile update request.
 /// </summary>
-public class UpdateProfessionalProfileValidator : AbstractValidator<UpdateProfessionalProfileRequest>
+public class UpdateProfessionalProfileValidator : Validator<UpdateProfessionalProfileRequest>
 {
     /// <inheritdoc />
     public UpdateProfessionalProfileValidator()
@@ -26,7 +28,11 @@ public class UpdateProfessionalProfileValidator : AbstractValidator<UpdateProfes
             .MaximumLength(2000);
 
         RuleFor(x => x.Certificates)
-            .MaximumLength(2000);
+            .MaximumLength(2000)
+            .Must(BeValidCertificatesJson)
+            .WithErrorCode("INVALID_CERTIFICATES")
+            .WithMessage("Certificates must be a JSON array of strings or objects with a non-empty 'title'.")
+            .When(x => !string.IsNullOrEmpty(x.Certificates));
 
         RuleFor(x => x.Languages)
             .MaximumLength(1000);
@@ -44,5 +50,41 @@ public class UpdateProfessionalProfileValidator : AbstractValidator<UpdateProfes
 
         RuleFor(x => x.Website)
             .MaximumLength(200);
+    }
+
+    private static bool BeValidCertificatesJson(string? json)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(json!);
+
+            if (document.RootElement.ValueKind != JsonValueKind.Array)
+            {
+                return false;
+            }
+
+            foreach (var element in document.RootElement.EnumerateArray())
+            {
+                var isValid = element.ValueKind switch
+                {
+                    JsonValueKind.String => true,
+                    JsonValueKind.Object => element.TryGetProperty("title", out var title)
+                        && title.ValueKind == JsonValueKind.String
+                        && !string.IsNullOrWhiteSpace(title.GetString()),
+                    _ => false,
+                };
+
+                if (!isValid)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
     }
 }

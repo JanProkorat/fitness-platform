@@ -36,6 +36,12 @@
   force = true
 
 [[redirects]]
+  from = "/professionals/*"
+  to = "https://dev-fitnessplatform.onrender.com/professionals/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/client/*"
   to = "https://dev-fitnessplatform.onrender.com/client/:splat"
   status = 200

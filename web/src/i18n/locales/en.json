@@ -195,6 +195,7 @@
     "foods": "Foods",
     "plans": "Plans",
     "settings": "Settings",
+    "profileLink": "Open your profile",
     "recipes": "Recipes",
     "exercises": "Exercises",
     "sectionTemplates": "Workouts",
@@ -704,8 +705,8 @@
     "socialNetworks": "Social networks",
     "marketplaceVisibility": "Marketplace Visibility",
     "characters": "characters",
-    "linkedin": "LinkedIn profile",
-    "instagram": "Instagram handle",
+    "linkedin": "LinkedIn",
+    "instagram": "Instagram",
     "website": "Website",
     "showInSearch": "Show profile in search",
     "showInSearchDesc": "Clients can find and contact you via marketplace",
@@ -719,7 +720,115 @@
     "stay": "Stay",
     "leaveWithoutSaving": "Leave without saving",
     "tabQuestionnaires": "Questionnaires",
-    "questionnairesPlaceholder": "Questionnaire management coming soon."
+    "questionnairesPlaceholder": "Questionnaire management coming soon.",
+    "page": {
+      "eyebrow": "Account",
+      "title": "Your profile",
+      "subtitle": "What clients see when they find you, and how they reach you",
+      "allSaved": "All changes saved",
+      "saved": "Profile saved",
+      "photo": {
+        "title": "Photo and name",
+        "description": "Clients see this on your profile, in search and in chat.",
+        "upload": "Upload photo",
+        "uploading": "Uploading...",
+        "remove": "Remove",
+        "hint": "A square photo of your face works best.",
+        "removed": "Photo removed",
+        "removeError": "Failed to remove the photo. Please try again.",
+        "badType": "Choose a JPG, PNG or WebP image.",
+        "tooLarge": "The photo must be 5 MB or smaller."
+      },
+      "account": {
+        "title": "Account",
+        "description": "Private — only you and the clients you work with see these.",
+        "emailHint": "You sign in with this address.",
+        "phoneHint": "Optional.",
+        "timeZone": "Time zone",
+        "timeZoneHint": "Check-in reminders and session times use it."
+      },
+      "about": {
+        "title": "About you",
+        "description": "The first thing a client reads before they send you a request.",
+        "bioHint": "Who you help, how you work, and what a client can expect in the first month.",
+        "cityHint": "Shown in search; clients filter by it.",
+        "price": "Price per month",
+        "priceHint": "Free text, e.g. \"from 2,500 CZK\"."
+      },
+      "expertise": {
+        "title": "Expertise",
+        "description": "What you coach, which languages you coach in, and what qualifies you.",
+        "specializationsHint": "Press Enter to add. Clients search by these.",
+        "languagesHint": "Languages you can run sessions and chat in.",
+        "certificates": "Certificates and education",
+        "addCertificate": "Add certificate",
+        "certificateTitle": "Certificate or degree",
+        "certificateIssuer": "Issuer or school",
+        "certificateYear": "Year",
+        "certificateTitleLabel": "Certificate {{number}} title",
+        "certificateIssuerLabel": "Certificate {{number}} issuer",
+        "certificateYearLabel": "Certificate {{number}} year",
+        "reorderCertificate": "Reorder certificate {{number}}",
+        "removeCertificate": "Remove certificate {{number}}"
+      },
+      "work": {
+        "title": "How you work",
+        "description": "Clients filter search by this.",
+        "online": "Online",
+        "onlineHint": "Plans, chat and check-ins in the app. No meetings in person.",
+        "inPerson": "In person",
+        "inPersonHint": "You train clients face to face, at a gym or outdoors.",
+        "both": "Both",
+        "bothHint": "In-person sessions plus online plans and check-ins."
+      },
+      "links": {
+        "title": "Links",
+        "description": "Optional. Shown as icons on your public profile.",
+        "websitePlaceholder": "yourwebsite.com",
+        "instagramPlaceholder": "@yourhandle",
+        "linkedinPlaceholder": "linkedin.com/in/..."
+      },
+      "visibility": {
+        "title": "Visibility",
+        "description": "Control who can find you.",
+        "showInSearch": "Show me in coach search",
+        "showInSearchHint": "Clients looking for a coach in the app can find your profile.",
+        "acceptNewClients": "Accepting new clients",
+        "acceptNewClientsHint": "Turn off when you are full. Your profile stays visible with \"Not taking clients\"."
+      },
+      "preview": {
+        "title": "How clients see you",
+        "noName": "Your name",
+        "noBio": "Your bio appears here.",
+        "online": "Online",
+        "inPerson": "In person",
+        "both": "Online & in person",
+        "taking": "Taking new clients",
+        "notTaking": "Not taking clients",
+        "price": "Price",
+        "perMonth": "/ month",
+        "languages": "Languages",
+        "certificates_one": "{{count}} certificate",
+        "certificates_other": "{{count}} certificates",
+        "note": "Updates as you type. Clients see this card in search and on your invite link."
+      },
+      "validation": {
+        "required": "This field is required.",
+        "tooLong": "Use at most {{max}} characters.",
+        "listTooLong": "Too many entries — remove some.",
+        "year": "Use a four-digit year.",
+        "certificateTitleRequired": "Add a title for this certificate.",
+        "invalidTimeZone": "This time zone is not supported. Choose another one.",
+        "invalidCertificates": "Some certificates could not be saved. Check their titles.",
+        "serverInvalid": "This value was rejected. Please check it."
+      },
+      "error": {
+        "forbidden": "Only trainers and nutritionists have a professional profile.",
+        "notFound": "You do not have a professional profile yet.",
+        "generic": "Failed to load your profile. Please try again.",
+        "retry": "Try again"
+      }
+    }
   },
   "invite": {
     "title": "Invite new client",

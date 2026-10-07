@@ -88,7 +88,7 @@ public class GetPublicProfileEndpoint(IApplicationDbContext db, UserManager<Appl
             LastName = profile.User.LastName,
             Bio = profile.Bio,
             Specializations = ParseJsonArray(profile.Specializations),
-            Certificates = ParseJsonArray(profile.Certificates),
+            Certificates = ParseCertificateTitles(profile.Certificates),
             Languages = ParseJsonArray(profile.Languages),
             City = profile.City,
             EstimatedPrice = profile.EstimatedPrice,
@@ -116,6 +116,48 @@ public class GetPublicProfileEndpoint(IApplicationDbContext db, UserManager<Appl
             return JsonSerializer.Deserialize<List<string>>(json) ?? [];
         }
         catch
+        {
+            return [];
+        }
+    }
+
+    private static List<string> ParseCertificateTitles(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return [];
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(json);
+
+            if (document.RootElement.ValueKind != JsonValueKind.Array)
+            {
+                return [];
+            }
+
+            var titles = new List<string>();
+
+            foreach (var element in document.RootElement.EnumerateArray())
+            {
+                var title = element.ValueKind switch
+                {
+                    JsonValueKind.String => element.GetString(),
+                    JsonValueKind.Object when element.TryGetProperty("title", out var value)
+                        && value.ValueKind == JsonValueKind.String => value.GetString(),
+                    _ => null,
+                };
+
+                if (!string.IsNullOrWhiteSpace(title))
+                {
+                    titles.Add(title);
+                }
+            }
+
+            return titles;
+        }
+        catch (JsonException)
         {
             return [];
         }

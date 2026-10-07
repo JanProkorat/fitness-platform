@@ -1,17 +1,18 @@
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/stores/auth';
 
 export default function ProtectedRoute() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const isInitialized = useAuthStore((s) => s.isInitialized);
   const user = useAuthStore((s) => s.user);
+  const location = useLocation();
 
   if (!isInitialized) {
     return null;
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/login" replace state={{ from: location.pathname + location.search }} />;
   }
 
   // Block unverified users — redirect to verification page

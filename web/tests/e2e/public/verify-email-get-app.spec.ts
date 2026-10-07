@@ -62,7 +62,7 @@ test('a verified client without a first name gets the name-less welcome line', a
   await expect(page.getByText('Welcome to Form Up,')).toHaveCount(0);
 });
 
-test('a verified coach sees the profile step with both actions leading to the portal', async ({ page }) => {
+test('a verified coach sees the profile step: set up leads to /profile, skip to the portal', async ({ page }) => {
   const calls = await fakeVerify(page, {
     message: 'Email verified.',
     email: 'coach@example.com',
@@ -74,7 +74,7 @@ test('a verified coach sees the profile step with both actions leading to the po
 
   await expect(page.getByRole('heading', { name: 'Email verified' })).toBeVisible();
   await expect(page.getByText('Welcome to Form Up, Jan. Your account is ready.')).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Set up your profile' })).toHaveAttribute('href', '/clients');
+  await expect(page.getByRole('link', { name: 'Set up your profile' })).toHaveAttribute('href', '/profile');
   await expect(page.getByRole('link', { name: 'Skip for now and go to the portal' })).toHaveAttribute(
     'href',
     '/clients'

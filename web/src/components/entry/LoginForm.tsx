@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useTranslation } from 'react-i18next';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import axios from 'axios';
 import { Apple, EyeIcon, EyeOffIcon } from 'lucide-react';
@@ -27,6 +27,21 @@ import { Checkbox } from '@/components/ui/checkbox';
  * instead.
  */
 class ProfileLoadError extends Error {}
+
+/** In-app path only; anything else (protocol-relative, backslash, /login itself) falls back to /clients. */
+function resolveReturnTo(state: unknown): string {
+  const from = (state as { from?: unknown } | null)?.from;
+  if (
+    typeof from === 'string' &&
+    from.startsWith('/') &&
+    !from.startsWith('//') &&
+    !from.startsWith('/\\') &&
+    !from.startsWith('/login')
+  ) {
+    return from;
+  }
+  return '/clients';
+}
 
 interface LoginFormValues {
   email: string;
@@ -52,6 +67,7 @@ interface LoginFormValues {
 export default function LoginForm() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
   const setTokens = useAuthStore((s) => s.setTokens);
   const storeLogin = useAuthStore((s) => s.login);
   const storeLogout = useAuthStore((s) => s.logout);
@@ -113,7 +129,7 @@ export default function LoginForm() {
       );
     },
     onSuccess: () => {
-      navigate('/clients', { replace: true });
+      navigate(resolveReturnTo(location.state), { replace: true });
     },
   });
 

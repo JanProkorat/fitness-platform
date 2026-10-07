@@ -162,24 +162,36 @@ export default function Sidebar({ onNavigate }: Props) {
               the render pass before it resolves (TopBar.tsx used the same
               guard previously). */}
           {user && (
-            <div className="flex items-center gap-2.5 border-t border-sidebar-active px-2 pt-3 pb-2">
-              <span
-                aria-hidden="true"
-                className="flex size-8 shrink-0 items-center justify-center rounded-full bg-sidebar-active text-meta font-semibold text-sidebar-text"
+            <div className="flex items-center gap-1 border-t border-sidebar-active px-2 pt-3 pb-2">
+              <NavLink
+                to="/profile"
+                onClick={onNavigate}
+                title={t('sidebar.profileLink')}
+                className={({ isActive }) =>
+                  cn(
+                    'flex min-w-0 flex-1 items-center gap-2.5 rounded-field p-1 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-sidebar-text/60',
+                    isActive ? 'bg-sidebar-active' : 'hover:bg-sidebar-active/60',
+                  )
+                }
               >
-                {initialsOf(user.firstName, user.lastName)}
-              </span>
-              <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                <span className="truncate text-meta font-semibold text-sidebar-text">
-                  {user.firstName} {user.lastName}
+                <span
+                  aria-hidden="true"
+                  className="flex size-8 shrink-0 items-center justify-center rounded-full bg-sidebar-active text-meta font-semibold text-sidebar-text"
+                >
+                  {initialsOf(user.firstName, user.lastName)}
                 </span>
-                {roleLabel && <span className="truncate text-label text-sidebar-muted">{roleLabel}</span>}
-              </div>
+                <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <span className="truncate text-meta font-semibold text-sidebar-text">
+                    {user.firstName} {user.lastName}
+                  </span>
+                  {roleLabel && <span className="truncate text-label text-sidebar-muted">{roleLabel}</span>}
+                </span>
+              </NavLink>
               <button
                 type="button"
                 onClick={logout}
                 aria-label={t('auth.logout')}
-                className="flex shrink-0 items-center justify-center text-marker transition-opacity hover:opacity-80"
+                className="flex size-8 shrink-0 items-center justify-center text-marker transition-opacity hover:opacity-80"
               >
                 <LogOut className="size-3.5" aria-hidden="true" />
               </button>
