@@ -249,7 +249,7 @@ export default function InboxPage() {
         <ThreadPane
           conversationId={selectedConversation.id}
           participant={selectedConversation.participant}
-          showClientPanel={showClientPanel}
+          showClientPanel={isClientPanelOpen}
           onToggleClientPanel={() => setClientPanelOverride(!showClientPanel)}
           isOtherPartyTyping={isOtherPartyTyping}
           isSendLocked={selectedConversation.isSendLocked ?? false}
