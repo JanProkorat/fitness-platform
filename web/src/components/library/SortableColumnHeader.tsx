@@ -1,4 +1,5 @@
 import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { FoodSortDirection } from '@/api/food-types';
 
 interface SortIconProps {
@@ -8,12 +9,12 @@ interface SortIconProps {
 
 function SortIcon({ active, sortDir }: SortIconProps) {
   if (!active) {
-    return <ArrowUpDown className="size-3.5 text-muted-foreground/50" aria-hidden="true" />;
+    return <ArrowUpDown className="size-3.25 text-muted-foreground/50" aria-hidden="true" />;
   }
   return sortDir === FoodSortDirection.Descending ? (
-    <ArrowDown className="size-3.5" aria-hidden="true" />
+    <ArrowDown className="size-3.25" aria-hidden="true" />
   ) : (
-    <ArrowUp className="size-3.5" aria-hidden="true" />
+    <ArrowUp className="size-3.25" aria-hidden="true" />
   );
 }
 
@@ -37,15 +38,16 @@ export default function SortableColumnHeader<TField extends string>({
   onSortChange,
   sortButtonLabel,
 }: Props<TField>) {
+  const active = sortBy === field;
   return (
     <button
       type="button"
-      className="flex cursor-pointer items-center gap-1"
+      className={cn('flex cursor-pointer items-center gap-1.25', active && 'text-ink')}
       onClick={() => onSortChange(field)}
       aria-label={sortButtonLabel}
     >
       {label}
-      <SortIcon active={sortBy === field} sortDir={sortDir} />
+      <SortIcon active={active} sortDir={sortDir} />
     </button>
   );
 }

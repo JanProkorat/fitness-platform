@@ -958,7 +958,7 @@
   },
   "ingredients": {
     "title": "Suroviny",
-    "newIngredient": "+ Nová surovina",
+    "newIngredient": "Nová surovina",
     "searchPlaceholder": "Hledat suroviny…",
     "retry": "Zkusit znovu",
     "noResultsForFilters": "Žádné suroviny neodpovídají filtrům.",
@@ -975,10 +975,11 @@
       "columnCategory": "Kategorie",
       "columnTags": "Štítky",
       "columnLibrary": "Knihovna",
-      "caloriesValue": "{{count}} kcal / 100 g",
-      "proteinValue": "B: {{count}} g",
-      "carbsValue": "S: {{count}} g",
-      "fatValue": "T: {{count}} g"
+      "caloriesUnit": "kcal / 100 g",
+      "proteinValue": "B {{count}} g",
+      "carbsValue": "S {{count}} g",
+      "fatValue": "T {{count}} g",
+      "fibreValue": "Vl {{count}} g"
     },
     "tags": {
       "createError": "Štítek se nepodařilo vytvořit. Zkuste to prosím znovu.",
@@ -1099,6 +1100,7 @@
     }
   },
   "library": {
+    "eyebrow": "Výživa",
     "badge": {
       "system": "Systémová",
       "mine": "Moje",
@@ -1193,7 +1195,7 @@
   "recipes": {
     "title": "Recepty",
     "searchPlaceholder": "Hledat recepty…",
-    "newRecipe": "+ Nový recept",
+    "newRecipe": "Nový recept",
     "retry": "Zkusit znovu",
     "noResultsForFilters": "Filtrům neodpovídá žádný recept.",
     "clearFilters": "Zrušit filtry",

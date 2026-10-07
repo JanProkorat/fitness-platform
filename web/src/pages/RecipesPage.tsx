@@ -12,6 +12,7 @@ import { DietaryPreference, RecipeMealType, type RecipeSummaryDto } from '@/api/
 import OptionFilterPopover from '@/components/library/OptionFilterPopover';
 import OwnerFilterPopover from '@/components/library/OwnerFilterPopover';
 import LibraryTagFilterPopover from '@/components/library/LibraryTagFilterPopover';
+import PageHeader from '@/components/library/PageHeader';
 import Pagination from '@/components/library/Pagination';
 import RecipesTable from '@/components/recipes/RecipesTable';
 import RecipeDrawer from '@/components/recipes/RecipeDrawer';
@@ -91,7 +92,7 @@ export default function RecipesPage() {
   if (isForbidden) {
     return (
       <div className="flex h-full flex-col gap-4">
-        <h1 className="text-title font-bold text-ink">{t('recipes.title')}</h1>
+        <PageHeader eyebrow={t('library.eyebrow')} title={t('recipes.title')} />
         <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
           <Lock className="size-8 text-muted-foreground" aria-hidden="true" />
           <p className="text-copy font-bold text-ink">{t('recipes.nutritionistsOnly.title')}</p>
@@ -103,12 +104,12 @@ export default function RecipesPage() {
 
   return (
     <div className="flex h-full flex-col gap-4">
-      <h1 className="text-title font-bold text-ink">{t('recipes.title')}</h1>
+      <PageHeader eyebrow={t('library.eyebrow')} title={t('recipes.title')} />
 
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative w-full max-w-search">
           <Search
-            className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
+            className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
             aria-hidden="true"
           />
           <Input
@@ -116,7 +117,7 @@ export default function RecipesPage() {
             value={searchInput}
             onChange={(event) => setSearchInput(event.target.value)}
             placeholder={t('recipes.searchPlaceholder')}
-            className="h-8 pl-8"
+            className="h-9 pl-9"
             aria-label={t('recipes.searchPlaceholder')}
           />
         </div>
@@ -142,7 +143,8 @@ export default function RecipesPage() {
             <LibraryTagFilterPopover selectedTagIds={filters.tags} onChange={setTags} />
           </>
         )}
-        <Button type="button" size="lg" className="ml-auto" onClick={openCreateDrawer}>
+        <Button type="button" size="lg" className="ml-auto gap-1.75 px-3.5 font-semibold" onClick={openCreateDrawer}>
+          <Plus aria-hidden="true" />
           {t('recipes.newRecipe')}
         </Button>
       </div>
@@ -162,7 +164,7 @@ export default function RecipesPage() {
           </Button>
         </div>
       ) : (
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-card">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-line bg-card shadow-panel">
           <div className="flex-1 overflow-y-auto [&_[data-slot=table-container]]:overflow-visible">
             <RecipesTable
               recipes={recipes}

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Search } from 'lucide-react';
+import { Plus, Search } from 'lucide-react';
+import PageHeader from '@/components/library/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuthStore } from '@/stores/auth';
@@ -83,12 +84,12 @@ export default function IngredientsPage() {
     // docs/design/ingredients/inventory.md point 5, main's own overflow-y-auto
     // stays as a graceful fallback if this content is ever taller than that.
     <div className="flex h-full flex-col gap-4">
-      <h1 className="text-title font-bold text-ink">{t('ingredients.title')}</h1>
+      <PageHeader eyebrow={t('library.eyebrow')} title={t('ingredients.title')} />
 
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative w-full max-w-search">
           <Search
-            className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
+            className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
             aria-hidden="true"
           />
           <Input
@@ -96,7 +97,7 @@ export default function IngredientsPage() {
             value={searchInput}
             onChange={(event) => setSearchInput(event.target.value)}
             placeholder={t('ingredients.searchPlaceholder')}
-            className="h-8 pl-8"
+            className="h-9 pl-9"
             aria-label={t('ingredients.searchPlaceholder')}
           />
         </div>
@@ -109,13 +110,14 @@ export default function IngredientsPage() {
             gets no tag UI at all, not even the empty filter pill. */}
         {isNutritionist && <LibraryTagFilterPopover selectedTagIds={filters.tags} onChange={setTags} />}
         {isNutritionist && (
-          <Button type="button" size="lg" className="ml-auto" onClick={openCreateDrawer}>
+          <Button type="button" size="lg" className="ml-auto gap-1.75 px-3.5 font-semibold" onClick={openCreateDrawer}>
+            <Plus aria-hidden="true" />
             {t('ingredients.newIngredient')}
           </Button>
         )}
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-card">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-line bg-card shadow-panel">
         {/* This div is the real vertical scroller. `ui/table.tsx`'s own
             `data-slot="table-container"` wraps the table in `overflow-x-auto`,
             which becomes the nearest ancestor with a non-visible overflow —
@@ -134,7 +136,6 @@ export default function IngredientsPage() {
             hasActiveFilter={hasActiveFilter}
             onClearFilters={clearFilters}
             onRowClick={openRowDrawer}
-            isNutritionist={isNutritionist}
             sortBy={filters.sortBy}
             sortDir={filters.sortDir}
             onSortChange={cycleSort}

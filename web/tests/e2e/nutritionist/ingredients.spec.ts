@@ -241,7 +241,7 @@ test.describe('ingredients page', () => {
         page.getByPlaceholder('Search ingredients…'),
         page.getByRole('button', { name: /^Category\b/ }),
         page.getByRole('button', { name: 'Tags' }),
-        page.getByRole('button', { name: '+ New Ingredient' }),
+        page.getByRole('button', { name: 'New Ingredient' }),
       ].map((locator) => locator.boundingBox()),
     );
 
@@ -349,7 +349,7 @@ test.describe('ingredients page', () => {
     const name = `QA Owner Filter ${uniqueSuffix}`;
 
     // Create a private ingredient first so "Mine" has a deterministic match.
-    await page.getByRole('button', { name: '+ New Ingredient' }).click();
+    await page.getByRole('button', { name: 'New Ingredient' }).click();
     await expect(page.getByRole('heading', { name: 'New Ingredient' })).toBeVisible();
     await page.getByLabel(/^Name\b/).fill(name);
     await page.getByLabel(/^Category\b/).selectOption('Fruit');
@@ -416,7 +416,7 @@ test.describe('ingredients page', () => {
 
   test('a clickable button reports cursor: pointer', async ({ page }) => {
     const cursor = await page
-      .getByRole('button', { name: '+ New Ingredient' })
+      .getByRole('button', { name: 'New Ingredient' })
       .evaluate((element) => getComputedStyle(element).cursor);
     expect(cursor).toBe('pointer');
   });
@@ -444,7 +444,7 @@ test.describe('ingredients page', () => {
     const uniqueSuffix = Date.now();
     const name = `QA E2E Ingredient ${uniqueSuffix}`;
 
-    await page.getByRole('button', { name: '+ New Ingredient' }).click();
+    await page.getByRole('button', { name: 'New Ingredient' }).click();
     await expect(page.getByRole('heading', { name: 'New Ingredient' })).toBeVisible();
 
     await page.getByLabel(/^Name\b/).fill(name);
@@ -498,7 +498,7 @@ test.describe('ingredients page', () => {
       expect(await fetchFoodVisibilityByName(origin, name)).toBe(expected);
     }
 
-    await page.getByRole('button', { name: '+ New Ingredient' }).click();
+    await page.getByRole('button', { name: 'New Ingredient' }).click();
     await expect(page.getByRole('heading', { name: 'New Ingredient' })).toBeVisible();
     await expect(drawer.getByRole('radio', { name: 'Private' })).toBeChecked();
     await expect(drawer.getByText('Only you can see and use this ingredient.')).toBeVisible();
@@ -542,7 +542,7 @@ test.describe('ingredients page', () => {
   });
 
   test('empty submit shows translated required errors, never the raw zod message', async ({ page }) => {
-    await page.getByRole('button', { name: '+ New Ingredient' }).click();
+    await page.getByRole('button', { name: 'New Ingredient' }).click();
     await expect(page.getByRole('heading', { name: 'New Ingredient' })).toBeVisible();
 
     // Unit is deliberately not asserted here — it defaults to "Portion" on
@@ -593,7 +593,7 @@ test.describe('ingredients page', () => {
     const noToastTimeout = { timeout: 200 };
 
     // --- Create path ---
-    await page.getByRole('button', { name: '+ New Ingredient' }).click();
+    await page.getByRole('button', { name: 'New Ingredient' }).click();
     await expect(page.getByRole('heading', { name: 'New Ingredient' })).toBeVisible();
 
     const name = `QA Kcal Check ${Date.now()}`;
@@ -1000,7 +1000,7 @@ test.describe('fibre field and calorie auto-fill (#1126)', () => {
   });
 
   test('typing macros auto-fills Calories in create mode', async ({ page }) => {
-    await page.getByRole('button', { name: '+ New Ingredient' }).click();
+    await page.getByRole('button', { name: 'New Ingredient' }).click();
     const drawer = page.locator('[data-slot="sheet-content"]');
     await expect(drawer.getByRole('heading', { name: 'New Ingredient' })).toBeVisible();
 
@@ -1018,7 +1018,7 @@ test.describe('fibre field and calorie auto-fill (#1126)', () => {
   });
 
   test('a manually entered Calories value survives further macro edits', async ({ page }) => {
-    await page.getByRole('button', { name: '+ New Ingredient' }).click();
+    await page.getByRole('button', { name: 'New Ingredient' }).click();
     const drawer = page.locator('[data-slot="sheet-content"]');
     await expect(drawer.getByRole('heading', { name: 'New Ingredient' })).toBeVisible();
 
@@ -1034,7 +1034,7 @@ test.describe('fibre field and calorie auto-fill (#1126)', () => {
     const uniqueSuffix = Date.now();
     const name = `QA Fibre Round Trip ${uniqueSuffix}`;
 
-    await page.getByRole('button', { name: '+ New Ingredient' }).click();
+    await page.getByRole('button', { name: 'New Ingredient' }).click();
     const createDrawer = page.locator('[data-slot="sheet-content"]');
     await expect(createDrawer.getByRole('heading', { name: 'New Ingredient' })).toBeVisible();
 
@@ -1073,7 +1073,7 @@ test.describe('fibre field and calorie auto-fill (#1126)', () => {
     const uniqueSuffix = Date.now();
     const name = `QA Edit No Autofill ${uniqueSuffix}`;
 
-    await page.getByRole('button', { name: '+ New Ingredient' }).click();
+    await page.getByRole('button', { name: 'New Ingredient' }).click();
     const createDrawer = page.locator('[data-slot="sheet-content"]');
     await createDrawer.getByLabel(/^Name\b/).fill(name);
     await createDrawer.getByLabel(/^Category\b/).selectOption('Fruit');
@@ -1189,7 +1189,7 @@ test.describe('nutrition layout and serving units (#1133)', () => {
   });
 
   test('the nutrition grid rows Protein+Carbs, then Fat+Fibre, then Calories alone', async ({ page }) => {
-    await page.getByRole('button', { name: '+ New Ingredient' }).click();
+    await page.getByRole('button', { name: 'New Ingredient' }).click();
     const drawer = page.locator('[data-slot="sheet-content"]');
     await expect(drawer.getByRole('heading', { name: 'New Ingredient' })).toBeVisible();
     // The heading is visible as soon as the sheet mounts, but its own

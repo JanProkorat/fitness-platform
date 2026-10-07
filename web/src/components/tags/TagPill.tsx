@@ -1,6 +1,10 @@
+import { cn } from '@/lib/utils';
+
 interface Props {
   name: string;
   colorHex?: string | null;
+  /** `table` is the squarer, semibold pill used on the library tables. */
+  variant?: 'default' | 'table';
 }
 
 /**
@@ -11,10 +15,15 @@ interface Props {
  * that genuinely can't be expressed as a static class
  * (rules/code-style.md#design-tokens-over-hardcoded-values).
  */
-export default function TagPill({ name, colorHex }: Props) {
+export default function TagPill({ name, colorHex, variant = 'default' }: Props) {
+  const shape =
+    variant === 'table'
+      ? 'rounded-sm px-2.5 py-1 text-meta font-semibold'
+      : 'rounded-full px-2 py-0.5 text-caption font-medium';
+
   if (!colorHex) {
     return (
-      <span className="inline-flex w-fit items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-caption font-medium text-muted-foreground">
+      <span className={cn('inline-flex w-fit items-center gap-1 bg-muted text-muted-foreground', shape)}>
         {name}
       </span>
     );
@@ -22,7 +31,7 @@ export default function TagPill({ name, colorHex }: Props) {
 
   return (
     <span
-      className="inline-flex w-fit items-center gap-1 rounded-full px-2 py-0.5 text-caption font-medium"
+      className={cn('inline-flex w-fit items-center gap-1', shape)}
       style={{ backgroundColor: `${colorHex}1a`, color: colorHex }}
     >
       {name}

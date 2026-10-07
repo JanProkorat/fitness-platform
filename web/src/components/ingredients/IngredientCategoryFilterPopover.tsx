@@ -1,6 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Plus } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import FilterChip from '@/components/library/FilterChip';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { FoodCategory } from '@/api/food-types';
@@ -47,11 +46,7 @@ export default function IngredientCategoryFilterPopover({ selectedCategories, on
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button type="button" variant="outline" size="sm" className="gap-1.5 rounded-full">
-          <Plus className="size-3" aria-hidden="true" />
-          {t('ingredients.filters.category')}
-          {selectedCategories.length > 0 && <span className="text-caption">{selectedCategories.length}</span>}
-        </Button>
+        <FilterChip label={t('ingredients.filters.category')} count={selectedCategories.length} />
       </PopoverTrigger>
       <PopoverContent align="start" className="w-64">
         <ul className="flex max-h-64 flex-col gap-2.5 overflow-y-auto">

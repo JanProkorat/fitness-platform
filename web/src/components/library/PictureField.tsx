@@ -1,6 +1,6 @@
 import { useRef, useState, type ChangeEvent, type DragEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Image as ImageIcon, ImageOff, Loader2, RefreshCw, Trash2 } from 'lucide-react';
+import { Image as ImageIcon, ImageOff, Loader2, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ImageLightbox } from '@/components/ui/image-lightbox';
@@ -203,8 +203,8 @@ export default function PictureField({
 
   return (
     <div className="flex flex-col gap-3">
-      <h3 className="flex items-center gap-2 text-body font-semibold text-foreground">
-        <ImageIcon className="size-4 text-muted-foreground" aria-hidden="true" />
+      <h3 className="flex items-center gap-2 text-copy font-semibold text-foreground">
+        <ImageIcon className="size-4.25 text-nutrition" aria-hidden="true" />
         {t('library.picture.sectionLabel')}
       </h3>
 
@@ -221,7 +221,7 @@ export default function PictureField({
       {hasImage ? (
         <div
           className={cn(
-            'relative aspect-video w-full overflow-hidden rounded-md bg-muted',
+            'relative h-37.5 w-full overflow-hidden rounded-xl bg-muted',
             !readOnly && isDragOver && 'ring-2 ring-primary',
           )}
           {...dropHandlers}
@@ -262,18 +262,20 @@ export default function PictureField({
               <Button
                 type="button"
                 variant="secondary"
-                size="icon-sm"
+                size="icon"
+                className="size-8.5 rounded-lg bg-surface text-ink shadow-popover"
                 disabled={isBusy}
                 aria-label={t('library.picture.replace')}
                 title={t('library.picture.replace')}
                 onClick={() => fileInputRef.current?.click()}
               >
-                <RefreshCw aria-hidden="true" />
+                <Pencil aria-hidden="true" />
               </Button>
               <Button
                 type="button"
                 variant="secondary"
-                size="icon-sm"
+                size="icon"
+                className="size-8.5 rounded-lg bg-surface text-error shadow-popover"
                 disabled={isBusy}
                 aria-label={t('library.picture.remove')}
                 title={t('library.picture.remove')}
@@ -285,7 +287,7 @@ export default function PictureField({
           )}
         </div>
       ) : readOnly ? (
-        <div className="flex aspect-video w-full items-center justify-center rounded-md bg-muted">
+        <div className="flex h-37.5 w-full items-center justify-center rounded-xl bg-muted">
           <ImageOff className="size-8 text-muted-foreground" aria-hidden="true" />
         </div>
       ) : (
@@ -296,7 +298,7 @@ export default function PictureField({
           title={t('library.picture.upload')}
           aria-disabled={isBusy}
           className={cn(
-            'flex aspect-video w-full flex-col items-center justify-center gap-2 rounded-md border border-dashed border-border bg-muted p-6 text-center transition-colors',
+            'flex h-37.5 w-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-muted p-6 text-center transition-colors',
             !isBusy && 'cursor-pointer',
             isDragOver && 'border-primary bg-primary/5',
             isBusy && 'pointer-events-none opacity-50',
