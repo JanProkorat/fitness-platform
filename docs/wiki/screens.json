@@ -231,6 +231,88 @@
       "notionPageId": null
     },
     {
+      "id": "web.nutrition.ingredients",
+      "app": "web",
+      "area": "Nutrition",
+      "title": "Ingredients list",
+      "route": "/ingredients",
+      "roles": ["Trainer", "Nutritionist"],
+      "files": [
+        "web/src/pages/IngredientsPage.tsx",
+        "web/src/components/ingredients/IngredientsTable.tsx",
+        "web/src/components/ingredients/IngredientCategoryFilterPopover.tsx",
+        "web/src/components/library/PageHeader.tsx",
+        "web/src/components/library/FilterChip.tsx",
+        "web/src/components/library/LibraryTagFilterPopover.tsx",
+        "web/src/components/library/OwnerFilterPopover.tsx",
+        "web/src/components/library/Pagination.tsx",
+        "web/src/components/library/LibraryBadge.tsx",
+        "web/src/components/library/Thumbnail.tsx",
+        "web/src/components/library/SortableColumnHeader.tsx",
+        "web/src/components/library/sortAria.ts",
+        "web/src/components/library/NutrientDots.tsx",
+        "web/src/components/tags/TagPill.tsx",
+        "web/src/components/tags/TagFormDialog.tsx",
+        "web/src/hooks/useIngredientsQueries.ts",
+        "web/src/hooks/useIngredientListParams.ts",
+        "web/src/api/foods.ts",
+        "web/src/api/food-tags.ts"
+      ],
+      "endpoints": [
+        "GET /foods/search",
+        "GET /trainer/food-tags",
+        "POST /trainer/food-tags",
+        "PUT /trainer/food-tags/{tagId}",
+        "DELETE /trainer/food-tags/{tagId}"
+      ],
+      "board": "PageIngredients",
+      "shots": [
+        { "name": "default" },
+        { "name": "category-filter", "steps": "sign in as the nutritionist, click the chip 'Kategorie', tick 'Ovoce', close the popover and wait for the table to reload" }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "web.nutrition.ingredient-drawer",
+      "app": "web",
+      "area": "Nutrition",
+      "title": "Ingredient drawer",
+      "route": "/ingredients",
+      "roles": ["Trainer", "Nutritionist"],
+      "files": [
+        "web/src/components/ingredients/IngredientDrawer.tsx",
+        "web/src/components/ingredients/IngredientPictureField.tsx",
+        "web/src/components/ingredients/DeleteIngredientDialog.tsx",
+        "web/src/components/library/PictureField.tsx",
+        "web/src/components/library/pictureUpload.ts",
+        "web/src/components/library/MultiSelectPopover.tsx",
+        "web/src/components/library/LibraryTagPickerPopover.tsx",
+        "web/src/components/library/VisibilityToggle.tsx",
+        "web/src/components/tags/TagPill.tsx",
+        "web/src/components/tags/TagFormDialog.tsx",
+        "web/src/hooks/useIngredientsQueries.ts",
+        "web/src/api/foods.ts",
+        "web/src/api/food-tags.ts"
+      ],
+      "endpoints": [
+        "POST /foods",
+        "PUT /foods/{foodId}",
+        "DELETE /foods/{foodId}",
+        "PUT /trainer/foods/{foodId}/tags",
+        "GET /trainer/food-tags",
+        "POST /trainer/food-tags",
+        "POST /foods/{foodId}/image/upload-url",
+        "PUT /foods/{foodId}/image",
+        "DELETE /foods/{foodId}/image"
+      ],
+      "board": "PageIngredientDrawer",
+      "shots": [
+        { "name": "edit", "steps": "sign in as the nutritionist, type 'Banana' into the search box, wait for the table to reload, click the row 'Banana (medium)' (the nutritionist's own ingredient) and wait for the drawer to open" },
+        { "name": "read-only", "steps": "sign in as the nutritionist, type 'Mandle' into the search box, wait for the table to reload, click the row 'Mandle' (a system ingredient, Almonds in English) and wait for the read-only drawer to open" }
+      ],
+      "notionPageId": null
+    },
+    {
       "id": "web.account.profile",
       "app": "web",
       "area": "Account",
