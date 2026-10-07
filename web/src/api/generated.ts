@@ -8907,7 +8907,7 @@ export class ApiClient {
 
     /**
      * Create a nutrition plan template
-     * @return Success
+     * @return Created
      */
     createTemplateEndpoint(createNutritionPlanTemplateRequest: CreateNutritionPlanTemplateRequest, signal?: AbortSignal): Promise<NutritionPlanTemplateSummaryDto> {
         let url_ = this.baseUrl + "/nutrition/plan-templates";
@@ -8947,12 +8947,12 @@ export class ApiClient {
                 }
             }
         }
-        if (status === 200) {
+        if (status === 201) {
             const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<NutritionPlanTemplateSummaryDto>(result200);
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = JSON.parse(resultData201);
+            return Promise.resolve<NutritionPlanTemplateSummaryDto>(result201);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -8979,7 +8979,7 @@ export class ApiClient {
     /**
      * Instantiate a nutrition plan template
      * @param templateId The template's public identifier (route parameter).
-     * @return Success
+     * @return Created
      */
     instantiateTemplateEndpoint(templateId: string, instantiateNutritionPlanTemplateRequest: InstantiateNutritionPlanTemplateRequest, signal?: AbortSignal): Promise<InstantiateNutritionPlanTemplateResponse> {
         let url_ = this.baseUrl + "/nutrition/plan-templates/{templateId}/instantiate";
@@ -9022,12 +9022,12 @@ export class ApiClient {
                 }
             }
         }
-        if (status === 200) {
+        if (status === 201) {
             const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<InstantiateNutritionPlanTemplateResponse>(result200);
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = JSON.parse(resultData201);
+            return Promise.resolve<InstantiateNutritionPlanTemplateResponse>(result201);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -9112,7 +9112,7 @@ export class ApiClient {
 
     /**
      * Save a nutrition plan as a template
-     * @return Success
+     * @return Created
      */
     createTemplateFromPlanEndpoint(createNutritionPlanTemplateFromPlanRequest: CreateNutritionPlanTemplateFromPlanRequest, signal?: AbortSignal): Promise<NutritionPlanTemplateSummaryDto> {
         let url_ = this.baseUrl + "/nutrition/plan-templates/from-plan";
@@ -9152,12 +9152,12 @@ export class ApiClient {
                 }
             }
         }
-        if (status === 200) {
+        if (status === 201) {
             const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<NutritionPlanTemplateSummaryDto>(result200);
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = JSON.parse(resultData201);
+            return Promise.resolve<NutritionPlanTemplateSummaryDto>(result201);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -9183,9 +9183,9 @@ export class ApiClient {
 
     /**
      * Copy a nutrition plan template
-     * @return No Content
+     * @return Created
      */
-    copyTemplateEndpoint(templateId: string, signal?: AbortSignal): Promise<void> {
+    copyTemplateEndpoint(templateId: string, signal?: AbortSignal): Promise<NutritionPlanTemplateSummaryDto> {
         let url_ = this.baseUrl + "/nutrition/plan-templates/{TemplateId}/copy";
         if (templateId === undefined || templateId === null)
             throw new globalThis.Error("The parameter 'templateId' must be defined.");
@@ -9196,6 +9196,7 @@ export class ApiClient {
             method: "POST",
             url: url_,
             headers: {
+                "Accept": "application/json"
             },
             signal
         };
@@ -9211,7 +9212,7 @@ export class ApiClient {
         });
     }
 
-    protected processCopyTemplateEndpoint(response: AxiosResponse): Promise<void> {
+    protected processCopyTemplateEndpoint(response: AxiosResponse): Promise<NutritionPlanTemplateSummaryDto> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -9221,9 +9222,12 @@ export class ApiClient {
                 }
             }
         }
-        if (status === 204) {
+        if (status === 201) {
             const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = JSON.parse(resultData201);
+            return Promise.resolve<NutritionPlanTemplateSummaryDto>(result201);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -9237,7 +9241,7 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<void>(null as any);
+        return Promise.resolve<NutritionPlanTemplateSummaryDto>(null as any);
     }
 
     /**
