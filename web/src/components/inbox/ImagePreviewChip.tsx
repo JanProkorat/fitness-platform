@@ -20,7 +20,7 @@ export default function ImagePreviewChip({ previewUrl, onRemove }: Props) {
       <img
         src={previewUrl}
         alt={t('inbox.composer.imagePreviewAlt')}
-        className="size-16 rounded-lg border border-border object-cover"
+        className="size-16 rounded-xl border border-border object-cover"
       />
       <Button
         type="button"

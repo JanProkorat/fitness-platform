@@ -16,9 +16,12 @@ import {
   useStartConversation,
 } from '@/hooks/useInboxQueries';
 import { useSignalR } from '@/hooks/useSignalR';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useAuthStore } from '@/stores/auth';
 import { ClientListFilter, type ConversationDto } from '@/api/generated';
 
+/** At and above this width the client panel docks as a third column; below it slides in as a sheet. */
+const DOCKED_PANEL_QUERY = '(min-width: 1280px)';
 const TYPING_INDICATOR_TIMEOUT_MS = 3500;
 /** Debounces the mark-read call for messages landing in the already-open thread,
  * so a burst (several messages in a row) collapses into one request. */
@@ -62,7 +65,10 @@ export default function InboxPage() {
   const [filter, setFilter] = useState<ClientListFilter>(ClientListFilter.All);
   const [search, setSearch] = useState('');
   const [selectedParticipantId, setSelectedParticipantId] = useState<string | undefined>(undefined);
-  const [showClientPanel, setShowClientPanel] = useState(false);
+  // null = the user has not toggled yet: open when the panel docks, closed when it would be a sheet.
+  const [clientPanelOverride, setClientPanelOverride] = useState<boolean | null>(null);
+  const isPanelDocked = useMediaQuery(DOCKED_PANEL_QUERY);
+  const showClientPanel = clientPanelOverride ?? isPanelDocked;
   const [isOtherPartyTyping, setIsOtherPartyTyping] = useState(false);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const markReadDebounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -214,16 +220,17 @@ export default function InboxPage() {
   );
   useSignalR(signalRHandlers);
 
-  const isClientPanelOpen = showClientPanel && Boolean(selectedConversation?.participant?.clientPublicId);
+  const selectedClientPublicId = selectedConversation?.participant?.clientPublicId;
+  const isClientPanelOpen = showClientPanel && Boolean(selectedClientPublicId);
 
   return (
-    // The drawer is fixed to the viewport's right edge at the sheet's sm:max-w-sm (24rem);
+    // The sheet is fixed to the viewport's right edge at the sheet's sm:max-w-sm (24rem);
     // reserving the same width here, in step with its slide, keeps own messages, the header
     // toggle and the send button visible instead of hidden beneath it.
     <div
       className={cn(
-        '-m-6 flex h-screen overflow-hidden transition-[padding] duration-300 ease-out motion-reduce:transition-none',
-        isClientPanelOpen && 'sm:pr-96',
+        '-m-6 flex h-screen overflow-hidden bg-background transition-[padding] duration-300 ease-out motion-reduce:transition-none',
+        isClientPanelOpen && !isPanelDocked && 'sm:pr-96',
       )}
     >
       <ConversationList
@@ -247,7 +254,7 @@ export default function InboxPage() {
           conversationId={selectedConversation.id}
           participant={selectedConversation.participant}
           showClientPanel={showClientPanel}
-          onToggleClientPanel={() => setShowClientPanel((previous) => !previous)}
+          onToggleClientPanel={() => setClientPanelOverride(!showClientPanel)}
           isOtherPartyTyping={isOtherPartyTyping}
           isSendLocked={selectedConversation.isSendLocked ?? false}
           isFormer={selectedConversation.isFormer ?? false}
@@ -256,28 +263,34 @@ export default function InboxPage() {
         <ThreadEmptyState />
       )}
 
-      {/* Non-modal, backdrop-free drawer: it slides in over the thread's right edge while
-          the list, thread and composer stay usable. Outside clicks and focus are left
-          alone so typing a reply never dismisses it. */}
-      <Sheet
-        open={isClientPanelOpen}
-        onOpenChange={setShowClientPanel}
-        modal={false}
-      >
-        <SheetContent
-          side="right"
-          hideOverlay
-          aria-describedby={undefined}
-          onInteractOutside={(event) => event.preventDefault()}
-          onOpenAutoFocus={(event) => event.preventDefault()}
-          className="gap-0"
-        >
-          <SheetTitle className="sr-only">{t('inbox.thread.clientPanelTitle')}</SheetTitle>
-          {selectedConversation?.participant?.clientPublicId && (
-            <ClientSidePanel clientPublicId={selectedConversation.participant.clientPublicId} />
-          )}
-        </SheetContent>
-      </Sheet>
+      {isPanelDocked ? (
+        isClientPanelOpen &&
+        selectedClientPublicId && (
+          <aside
+            aria-label={t('inbox.thread.clientPanelTitle')}
+            className="flex h-full w-90 shrink-0 flex-col border-l border-border bg-card"
+          >
+            <ClientSidePanel clientPublicId={selectedClientPublicId} />
+          </aside>
+        )
+      ) : (
+        // Non-modal, backdrop-free drawer: it slides in over the thread's right edge while
+        // the list, thread and composer stay usable. Outside clicks and focus are left
+        // alone so typing a reply never dismisses it.
+        <Sheet open={isClientPanelOpen} onOpenChange={setClientPanelOverride} modal={false}>
+          <SheetContent
+            side="right"
+            hideOverlay
+            aria-describedby={undefined}
+            onInteractOutside={(event) => event.preventDefault()}
+            onOpenAutoFocus={(event) => event.preventDefault()}
+            className="gap-0"
+          >
+            <SheetTitle className="sr-only">{t('inbox.thread.clientPanelTitle')}</SheetTitle>
+            {selectedClientPublicId && <ClientSidePanel clientPublicId={selectedClientPublicId} inSheet />}
+          </SheetContent>
+        </Sheet>
+      )}
     </div>
   );
 }

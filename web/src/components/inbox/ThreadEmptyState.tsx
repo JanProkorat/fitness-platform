@@ -5,7 +5,7 @@ export default function ThreadEmptyState() {
   const { t } = useTranslation();
 
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
+    <div className="flex flex-1 flex-col items-center bg-background justify-center gap-3 px-6 text-center">
       <div
         className="flex size-12 items-center justify-center rounded-sm border border-dashed border-border text-title font-extrabold text-muted-foreground"
         aria-hidden="true"

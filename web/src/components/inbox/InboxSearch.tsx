@@ -14,7 +14,7 @@ export default function InboxSearch({ value, onChange }: Props) {
   return (
     <div className="relative w-full">
       <Search
-        className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
+        className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
         aria-hidden="true"
       />
       <Input
@@ -23,7 +23,7 @@ export default function InboxSearch({ value, onChange }: Props) {
         onChange={(event) => onChange(event.target.value)}
         placeholder={t('inbox.searchPlaceholder')}
         aria-label={t('inbox.searchPlaceholder')}
-        className="h-8 pl-8"
+        className="h-9 rounded-field pl-9"
       />
     </div>
   );

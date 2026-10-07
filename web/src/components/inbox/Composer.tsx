@@ -186,7 +186,7 @@ export default function Composer({ conversationId, onSend, isSending, onTyping, 
 
   if (isLocked) {
     return (
-      <div className="flex flex-col gap-2 border-t border-border p-4">
+      <div className="flex flex-col gap-2 border-t border-border bg-card px-5 py-3.5">
         <p
           id="composer-locked-notice"
           data-testid="composer-locked-notice"
@@ -208,19 +208,20 @@ export default function Composer({ conversationId, onSend, isSending, onTyping, 
   }
 
   return (
-    <div className="flex flex-col gap-2 border-t border-border p-4">
+    <div className="flex flex-col gap-2 border-t border-border bg-card px-5 py-3.5">
       {pendingImage && <ImagePreviewChip previewUrl={pendingImage.previewUrl} onRemove={removePendingImage} />}
       {imageError && (
         <p data-testid="composer-image-error" className="px-1 text-caption text-destructive">
           {imageError}
         </p>
       )}
-      <div className="flex items-end gap-2">
-        <div className="flex flex-1 items-end gap-1 rounded-3xl border border-input bg-background px-2 py-1.5">
+      <div className="flex items-center gap-2.5">
+        <div className="flex min-h-11.5 flex-1 items-center gap-1 rounded-full border border-input bg-background px-2 py-1">
           <Button
             type="button"
             variant="ghost"
             size="icon-sm"
+            className="size-8.5 rounded-full text-muted-foreground"
             disabled
             title={t('shell.comingSoon')}
             aria-label={t('inbox.composer.attachFileAriaLabel')}
@@ -231,6 +232,7 @@ export default function Composer({ conversationId, onSend, isSending, onTyping, 
             type="button"
             variant="ghost"
             size="icon-sm"
+            className="size-8.5 rounded-full text-ink-2"
             disabled={isBusy}
             aria-label={t('inbox.composer.attachImageAriaLabel')}
             onClick={() => fileInputRef.current?.click()}
@@ -264,7 +266,7 @@ export default function Composer({ conversationId, onSend, isSending, onTyping, 
         <Button
           type="button"
           size="icon"
-          className="shrink-0 rounded-full"
+          className="size-11.5 shrink-0 rounded-full bg-marker text-on-dark hover:bg-marker/90"
           disabled={(!value.trim() && !pendingImage) || isBusy}
           onClick={() => void submit()}
           aria-label={t('inbox.composer.sendAriaLabel')}
@@ -272,7 +274,7 @@ export default function Composer({ conversationId, onSend, isSending, onTyping, 
           {isBusy ? (
             <Loader2 className="size-4 animate-spin" aria-hidden="true" />
           ) : (
-            <ArrowUp className="size-4" aria-hidden="true" />
+            <ArrowUp className="size-5" aria-hidden="true" />
           )}
         </Button>
       </div>

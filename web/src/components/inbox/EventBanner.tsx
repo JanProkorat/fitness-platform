@@ -20,8 +20,8 @@ export default function EventBanner({ message, isOwn, participantName }: Props) 
   const label = getEventPreviewText(t, message.eventType, isOwn, participantName);
 
   return (
-    <div className="flex w-full justify-center py-1">
-      <span className="max-w-105 rounded-full bg-muted px-3 py-1.5 text-center text-caption text-muted-foreground">
+    <div className="flex w-full justify-center">
+      <span className="max-w-105 rounded-full border border-border bg-card px-3 py-1.25 text-center text-meta text-muted-foreground">
         {label}
       </span>
     </div>

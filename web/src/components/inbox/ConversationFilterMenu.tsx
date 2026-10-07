@@ -67,9 +67,9 @@ export default function ConversationFilterMenu({ active, counts, onSelect }: Pro
       <DropdownMenuTrigger asChild>
         <Button
           type="button"
-          variant="ghost"
+          variant="outline"
           size="sm"
-          className="w-full justify-between px-0 text-muted-foreground hover:bg-transparent hover:text-foreground"
+          className="h-8.5 w-full justify-between rounded-field bg-background px-2.5 text-body font-medium text-ink-2 hover:bg-background hover:text-ink"
         >
           <span>
             {t(FILTER_LABEL_KEY[active])} ({activeCount})

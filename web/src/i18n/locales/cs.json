@@ -2888,6 +2888,18 @@
       },
       "withdrawn": "Nabídka spolupráce byla zrušena"
     },
+    "panel": {
+      "weightLabel": "Váha",
+      "open": "Otevřít",
+      "mealPlan": {
+        "eyebrow": "Jídelníček",
+        "detail": "{{kcal}} kcal • {{protein}}/{{carbs}}/{{fat}}",
+        "macrosLegend": "Makra · bílkoviny / sacharidy / tuky"
+      },
+      "training": {
+        "eyebrow": "Trénink"
+      }
+    },
     "typingIndicator": "Píše…",
     "composer": {
       "placeholder": "Napište zprávu...",

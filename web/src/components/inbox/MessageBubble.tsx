@@ -12,6 +12,10 @@ import type { MessageDto, ParticipantDto } from '@/api/generated';
  * bubble to, so the two stay tied together rather than drifting apart. */
 const IMAGE_BUBBLE_MAX_WIDTH_PX = 320;
 
+/** Own messages: the brand marker fill with a flat bottom-right corner; the other party's: a bordered card with a flat bottom-left corner. */
+const OWN_BUBBLE = 'rounded-br-sm bg-marker text-on-dark';
+const OTHER_BUBBLE = 'rounded-bl-sm border border-border bg-card text-foreground';
+
 interface Props {
   message: MessageDto;
   isOwn: boolean;
@@ -55,16 +59,17 @@ export default function MessageBubble({ message, isOwn, otherParticipant, ownIni
       : undefined;
 
   return (
-    <div className={cn('flex items-end gap-2', isOwn ? 'flex-row-reverse self-end' : 'flex-row self-start')}>
+    <div className={cn('flex items-end gap-2.5', isOwn ? 'flex-row-reverse self-end' : 'flex-row self-start')}>
       <ParticipantAvatar
         name={isOwn ? undefined : otherParticipant?.name}
         initials={isOwn ? ownInitials : otherParticipant?.initials}
         avatarBlobUrl={isOwn ? ownAvatarBlobUrl : otherParticipant?.avatarBlobUrl}
-        className="size-7 shrink-0"
+        className="size-7 shrink-0 shadow-panel"
+        tone={isOwn ? 'own' : 'neutral'}
       />
       {message.imageUrl ? (
         <div
-          className={cn('max-w-80 overflow-hidden rounded-2xl', isOwn ? 'bg-sidebar text-sidebar-text' : 'bg-sunken text-foreground')}
+          className={cn('max-w-80 overflow-hidden rounded-2xl', isOwn ? OWN_BUBBLE : OTHER_BUBBLE)}
         >
           {imageLoadFailed ? (
             <div
@@ -85,15 +90,15 @@ export default function MessageBubble({ message, isOwn, otherParticipant, ownIni
               />
             </a>
           )}
-          {text && <div className="whitespace-pre-wrap px-3.5 py-2.5 text-body break-words">{text}</div>}
+          {text && <div className="whitespace-pre-wrap px-3.5 py-2.5 text-copy break-words">{text}</div>}
         </div>
       ) : videoId ? (
         <YouTubePreviewCard videoId={videoId} caption={caption} alignEnd={isOwn} />
       ) : (
         <div
           className={cn(
-            'max-w-105 whitespace-pre-wrap rounded-2xl px-3.5 py-2.5 text-body break-words',
-            isOwn ? 'bg-sidebar text-sidebar-text' : 'bg-sunken text-foreground',
+            'max-w-105 whitespace-pre-wrap rounded-2xl px-3.5 py-2.5 text-copy break-words',
+            isOwn ? OWN_BUBBLE : OTHER_BUBBLE,
           )}
         >
           {text}

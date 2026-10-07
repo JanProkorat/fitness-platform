@@ -2841,6 +2841,18 @@
       },
       "withdrawn": "The collaboration offer was withdrawn"
     },
+    "panel": {
+      "weightLabel": "Weight",
+      "open": "Open",
+      "mealPlan": {
+        "eyebrow": "Meal plan",
+        "detail": "{{kcal}} kcal • {{protein}}/{{carbs}}/{{fat}}",
+        "macrosLegend": "Macros · protein / carbs / fat"
+      },
+      "training": {
+        "eyebrow": "Training"
+      }
+    },
     "typingIndicator": "Typing…",
     "composer": {
       "placeholder": "Type your message here...",
