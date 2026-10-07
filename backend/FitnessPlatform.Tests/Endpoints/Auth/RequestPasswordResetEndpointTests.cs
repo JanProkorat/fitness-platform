@@ -36,7 +36,7 @@ public class RequestPasswordResetEndpointTests
     }
 
     [Fact]
-    public async Task HandleAsync_NonexistentUser_StillReturns200()
+    public async Task HandleAsync_NonexistentUser_Returns404WithCode()
     {
         var userManager = EndpointTestHelpers.CreateFakeUserManager();
         userManager.FindByEmailAsync("missing@test.com").Returns((ApplicationUser?)null);
@@ -48,20 +48,16 @@ public class RequestPasswordResetEndpointTests
 
         await ep.HandleAsync(new RequestPasswordResetRequest { Email = "missing@test.com" }, CancellationToken.None);
 
-        ep.ValidationFailed.Should().BeFalse();
+        ep.HttpContext.Response.StatusCode.Should().Be(404);
         await emailService.DidNotReceive().SendPasswordResetEmailAsync(
             Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
-    public async Task HandleAsync_ExistingUserEmailSendThrows_StillReturns200_SameAsNonexistentUser()
+    public async Task HandleAsync_ExistingUserEmailSendThrows_StillReturns200()
     {
-        // Regression test for the enumeration oracle: before the fix, an unhandled
-        // exception from the email provider propagated to the global exception
-        // handler and turned into a 500 -- distinguishing an existing address (500)
-        // from a missing one (200) by status code alone. The send failure must be
-        // swallowed (and logged) so this endpoint always returns 200, exactly like
-        // the nonexistent-user branch above.
+        // A provider failure after the token is issued is logged, not surfaced:
+        // the request was valid, so the caller gets 200 rather than a 500.
         var user = new ApplicationUser
         {
             Id = Guid.NewGuid(), Email = "test@test.com", UserName = "test@test.com",

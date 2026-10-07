@@ -243,7 +243,7 @@ public class AuthFlowTests(FitnessApiFactory factory)
     }
 
     [Fact]
-    public async Task PasswordReset_NonExistentEmail_StillReturns200()
+    public async Task PasswordReset_NonExistentEmail_Returns404WithErrorCode()
     {
         var client = factory.CreateClient();
 
@@ -252,7 +252,11 @@ public class AuthFlowTests(FitnessApiFactory factory)
             Email = "nonexistent-" + UniqueEmail()
         }, cancellationToken: TestContext.Current.CancellationToken);
 
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+
+        var body = await response.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>(
+            TestContext.Current.CancellationToken);
+        body.GetProperty("errorCode").GetString().Should().Be("EMAIL_NOT_REGISTERED");
     }
 
     // --- Art. 9 health-data consent integration tests ---
