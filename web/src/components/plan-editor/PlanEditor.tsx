@@ -218,8 +218,8 @@ export default function PlanEditor({
         {!readOnly && (
           <div
             className={cn(
-              'shrink-0 overflow-hidden transition-[width] duration-300 ease-out motion-reduce:transition-none',
-              libraryOpen ? 'w-80' : 'w-0',
+              'relative shrink-0 overflow-hidden transition-[width] duration-300 ease-out motion-reduce:transition-none',
+              libraryOpen ? 'w-80' : 'w-13',
             )}
           >
             <LibraryPanel
@@ -230,23 +230,30 @@ export default function PlanEditor({
               onAdd={(item) => selected && addToCell(item, selected)}
               onCollapse={() => toggleLibrary(false)}
             />
+            <button
+              ref={expandRef}
+              type="button"
+              inert={libraryOpen}
+              aria-label={t('planEditor.library.expand')}
+              title={t('planEditor.library.expand')}
+              onClick={() => toggleLibrary(true)}
+              className={cn(
+                'absolute inset-y-0 left-0 z-10 flex w-13 cursor-pointer flex-col items-center gap-3.5 border-r-2 border-line bg-sunken py-4 shadow-panel outline-none transition-opacity duration-150 focus-visible:ring-3 focus-visible:ring-ring/50 motion-reduce:transition-none',
+                libraryOpen ? 'opacity-0' : 'opacity-100 delay-150 motion-reduce:delay-0',
+              )}
+            >
+              <span className="flex size-9 items-center justify-center rounded-field border border-line bg-card text-ink">
+                <PanelLeftOpen className="size-4" aria-hidden="true" />
+              </span>
+              <span className="text-label font-bold tracking-label text-ink-2 uppercase [writing-mode:vertical-rl] rotate-180">
+                {t('planEditor.library.title')}
+              </span>
+            </button>
           </div>
         )}
 
         <div className="flex min-w-0 flex-1 flex-col gap-4 overflow-y-auto p-6">
           <div className="flex items-start gap-3">
-            {!libraryOpen && !readOnly && (
-              <Button
-                ref={expandRef}
-                type="button"
-                variant="outline"
-                size="icon-lg"
-                aria-label={t('planEditor.library.expand')}
-                onClick={() => toggleLibrary(true)}
-              >
-                <PanelLeftOpen aria-hidden="true" />
-              </Button>
-            )}
             <div className="min-w-0 flex-1">
               <PlanEditorHeader
                 name={doc.name}
