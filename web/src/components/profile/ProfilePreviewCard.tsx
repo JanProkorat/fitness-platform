@@ -52,7 +52,7 @@ export default function ProfilePreviewCard({ avatarUrl, roles }: Props) {
         <Eye className="size-3.5" aria-hidden="true" />
         {t('profile.page.preview.title')}
       </h2>
-      <div className="overflow-hidden rounded-2xl border border-border bg-surface">
+      <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-panel">
         <div className="flex flex-col gap-3 p-5">
           <div className="flex items-center gap-3">
             <ProfileAvatar
