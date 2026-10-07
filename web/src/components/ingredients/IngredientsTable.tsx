@@ -74,7 +74,7 @@ export default function IngredientsTable({
       <Table className="min-w-240">
       {/* `sticky top-0` pins the header to the page's own vertical scroller
           (see IngredientsPage.tsx's `overflow-visible` override on
-          `ui/table.tsx`'s horizontal-scroll wrapper). `bg-muted` is already
+          `ui/table.tsx`'s horizontal-scroll wrapper). `bg-card` is already
           opaque, so scrolled rows don't show through underneath. */}
       <TableHeader className="sticky top-0 z-10 bg-card">
         <TableRow className="border-line hover:bg-transparent">
@@ -90,7 +90,7 @@ export default function IngredientsTable({
               {...sortableHeaderProps(FoodSortField.Calories, t('ingredients.table.columnCalories'))}
             />
           </TableHead>
-          <TableHead className={`${HEAD_CLASS}`}>{t('ingredients.table.columnNutrients')}</TableHead>
+          <TableHead className={HEAD_CLASS}>{t('ingredients.table.columnNutrients')}</TableHead>
           <TableHead className={`w-40 ${HEAD_CLASS}`} aria-sort={sortAriaValue(sortBy, sortDir, FoodSortField.Category)}>
             <SortableColumnHeader
               {...sortableHeaderProps(FoodSortField.Category, t('ingredients.table.columnCategory'))}
@@ -168,7 +168,7 @@ export default function IngredientsTable({
                 <span className="font-semibold text-ink">{food.nutrientValue?.kcal ?? 0}</span>{' '}
                 <span className="text-ink-2">{t('ingredients.table.caloriesUnit')}</span>
               </TableCell>
-              <TableCell className={`${CELL_CLASS}`}>
+              <TableCell className={CELL_CLASS}>
                 <NutrientDots
                   protein={food.nutrientValue?.protein ?? 0}
                   carbs={food.nutrientValue?.carbs ?? 0}

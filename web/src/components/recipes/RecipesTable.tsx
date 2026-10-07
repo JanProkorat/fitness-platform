@@ -18,6 +18,9 @@ import { perServing } from '@/lib/recipe-nutrition';
 const SKELETON_ROW_COUNT = 5;
 const COLUMN_COUNT = 7;
 
+const HEAD_CLASS = 'px-4 py-3.5 text-meta font-semibold';
+const CELL_CLASS = 'px-4 py-2.75';
+
 interface LightboxPicture {
   src: string;
   alt: string;
@@ -69,26 +72,26 @@ export default function RecipesTable({
       <Table className="min-w-280">
         <TableHeader className="sticky top-0 z-10 bg-card">
           <TableRow>
-            <TableHead className="px-4 py-3.5 text-meta font-semibold" aria-sort={sortAriaValue(sortBy, sortDir, RecipeSortField.Name)}>
+            <TableHead className={HEAD_CLASS} aria-sort={sortAriaValue(sortBy, sortDir, RecipeSortField.Name)}>
               <SortableColumnHeader {...sortableHeaderProps(RecipeSortField.Name, t('recipes.table.columnName'))} />
             </TableHead>
             <TableHead
-              className="w-28 px-4 py-3.5 text-meta font-semibold"
+              className={`w-28 ${HEAD_CLASS}`}
               aria-sort={sortAriaValue(sortBy, sortDir, RecipeSortField.CaloriesPerServing)}
             >
               <SortableColumnHeader
                 {...sortableHeaderProps(RecipeSortField.CaloriesPerServing, t('recipes.table.columnCalories'))}
               />
             </TableHead>
-            <TableHead className="px-4 py-3.5 text-meta font-semibold">{t('recipes.table.columnNutrients')}</TableHead>
-            <TableHead className="w-36 px-4 py-3.5 text-meta font-semibold">{t('recipes.table.columnMealType')}</TableHead>
-            <TableHead className="w-24 px-4 py-3.5 text-meta font-semibold" aria-sort={sortAriaValue(sortBy, sortDir, RecipeSortField.Servings)}>
+            <TableHead className={HEAD_CLASS}>{t('recipes.table.columnNutrients')}</TableHead>
+            <TableHead className={`w-36 ${HEAD_CLASS}`}>{t('recipes.table.columnMealType')}</TableHead>
+            <TableHead className={`w-24 ${HEAD_CLASS}`} aria-sort={sortAriaValue(sortBy, sortDir, RecipeSortField.Servings)}>
               <SortableColumnHeader
                 {...sortableHeaderProps(RecipeSortField.Servings, t('recipes.table.columnServings'))}
               />
             </TableHead>
-            <TableHead className="w-32 px-4 py-3.5 text-meta font-semibold">{t('recipes.table.columnTags')}</TableHead>
-            <TableHead className="w-28 px-4 py-3.5 text-meta font-semibold" aria-sort={sortAriaValue(sortBy, sortDir, RecipeSortField.Library)}>
+            <TableHead className={`w-32 ${HEAD_CLASS}`}>{t('recipes.table.columnTags')}</TableHead>
+            <TableHead className={`w-28 ${HEAD_CLASS}`} aria-sort={sortAriaValue(sortBy, sortDir, RecipeSortField.Library)}>
               <SortableColumnHeader
                 {...sortableHeaderProps(RecipeSortField.Library, t('recipes.table.columnLibrary'))}
               />
@@ -149,7 +152,7 @@ export default function RecipesTable({
               ];
               return (
                 <TableRow key={recipe.recipeId} className="cursor-pointer border-line" onClick={() => onRowClick(recipe)}>
-                  <TableCell className="px-4 py-2.75 text-copy font-semibold text-ink">
+                  <TableCell className={`${CELL_CLASS} text-copy font-semibold text-ink`}>
                     <div className="flex items-center gap-3">
                       <Thumbnail
                         cacheKey={recipe.recipeId ? recipeImageCacheKey(recipe.recipeId) : undefined}
@@ -163,11 +166,11 @@ export default function RecipesTable({
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell className="px-4 py-2.75 text-copy">
+                  <TableCell className={`${CELL_CLASS} text-copy`}>
                     <span className="font-semibold text-ink">{Math.round(macros.kcal)}</span>{' '}
                     <span className="text-ink-2">{t('recipes.table.caloriesUnit')}</span>
                   </TableCell>
-                  <TableCell className="px-4 py-2.75">
+                  <TableCell className={CELL_CLASS}>
                     <NutrientDots
                       protein={Math.round(macros.protein)}
                       carbs={Math.round(macros.carbs)}
@@ -175,7 +178,7 @@ export default function RecipesTable({
                       fibre={Math.round(macros.fiber)}
                     />
                   </TableCell>
-                  <TableCell className="px-4 py-2.75">
+                  <TableCell className={CELL_CLASS}>
                     <div className="flex flex-wrap items-center gap-1">
                       {(recipe.mealTypes ?? []).map((mealType) => (
                         <Badge key={mealType} variant="outline" className="px-2.5 py-1 text-meta font-semibold">
@@ -184,15 +187,15 @@ export default function RecipesTable({
                       ))}
                     </div>
                   </TableCell>
-                  <TableCell className="w-30 px-4 py-2.75 text-body text-muted-foreground">{recipe.servings}</TableCell>
-                  <TableCell className="w-45 px-4 py-2.75">
+                  <TableCell className={`${CELL_CLASS} text-body text-muted-foreground`}>{recipe.servings}</TableCell>
+                  <TableCell className={CELL_CLASS}>
                     <div className="flex flex-wrap items-center gap-1">
                       {(recipe.tags ?? []).map((tag) => (
                         <TagPill key={tag.tagId} name={tag.name ?? ''} colorHex={tag.colorHex} variant="table" />
                       ))}
                     </div>
                   </TableCell>
-                  <TableCell className="w-25 px-4 py-2.75">
+                  <TableCell className={CELL_CLASS}>
                     <LibraryBadge isOwnedByCurrentUser={recipe.isOwnedByCurrentUser} isSystem={recipe.isSystem} />
                   </TableCell>
                 </TableRow>

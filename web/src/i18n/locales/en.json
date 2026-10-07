@@ -952,11 +952,7 @@
       "columnCategory": "Category",
       "columnTags": "Tags",
       "columnLibrary": "Library",
-      "caloriesUnit": "kcal / 100g",
-      "proteinValue": "P {{count}} g",
-      "carbsValue": "C {{count}} g",
-      "fatValue": "F {{count}} g",
-      "fibreValue": "Fib {{count}} g"
+      "caloriesUnit": "kcal / 100g"
     },
     "tags": {
       "createError": "Couldn't create the tag. Please try again.",
@@ -1078,6 +1074,12 @@
   },
   "library": {
     "eyebrow": "Nutrition",
+    "nutrient": {
+      "protein": "P {{count}} g",
+      "carbs": "C {{count}} g",
+      "fat": "F {{count}} g",
+      "fibre": "Fib {{count}} g"
+    },
     "badge": {
       "system": "System",
       "mine": "Mine",
@@ -1212,9 +1214,6 @@
       "columnTags": "Tags",
       "columnLibrary": "Library",
       "caloriesUnit": "kcal",
-      "proteinValue": "P: {{count}} g",
-      "carbsValue": "C: {{count}} g",
-      "fatValue": "F: {{count}} g",
       "ingredientsCount": "{{count}} ingredients",
       "minutesValue": "{{count}} min"
     },

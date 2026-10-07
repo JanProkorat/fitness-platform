@@ -106,8 +106,8 @@ export default function IngredientsPage() {
             gets no Owner filter UI at all, not even the empty pill, same
             reasoning as the Tags pill below. */}
         {isNutritionist && <OwnerFilterPopover selectedOwners={filters.owners} onChange={setOwners} />}
-        {/* Food tags are nutritionist-owned (#1120) — a trainer-only coach
-            gets no tag UI at all, not even the empty filter pill. */}
+        {/* Food tags are nutritionist-owned (#1120) — the Tags column shows for
+            every coach, but only a nutritionist gets the tag filter chip. */}
         {isNutritionist && <LibraryTagFilterPopover selectedTagIds={filters.tags} onChange={setTags} />}
         {isNutritionist && (
           <Button type="button" size="lg" className="ml-auto gap-1.75 px-3.5 font-semibold" onClick={openCreateDrawer}>

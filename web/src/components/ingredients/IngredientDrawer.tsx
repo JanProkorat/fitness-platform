@@ -5,9 +5,6 @@ import type { FieldError } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Info, Activity, Tag, Trash2, ChevronDown } from 'lucide-react';
-
-const SELECT_CLASS =
-  'flex h-10 w-full min-w-0 appearance-none rounded-field border border-input bg-background py-1 pr-9 pl-3 text-copy text-foreground outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 aria-invalid:border-destructive';
 import {
   Sheet,
   SheetContent,
@@ -37,6 +34,9 @@ import LibraryTagPickerPopover from '@/components/library/LibraryTagPickerPopove
 import VisibilityToggle from '@/components/library/VisibilityToggle';
 import IngredientPictureField from '@/components/ingredients/IngredientPictureField';
 import TagPill from '@/components/tags/TagPill';
+
+const SELECT_CLASS =
+  'flex h-10 w-full min-w-0 appearance-none rounded-field border border-input bg-background py-1 pr-9 pl-3 text-copy text-foreground outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 aria-invalid:border-destructive';
 
 /** Fixed unit keys for the drawer's Unit select (design-review MINOR finding #8,
  * `docs/design/ingredients/inventory.md`). The label is stored verbatim as
