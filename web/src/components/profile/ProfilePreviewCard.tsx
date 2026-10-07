@@ -1,6 +1,6 @@
 import { useFormContext, useWatch } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
-import { Eye, Globe, MapPin } from 'lucide-react';
+import { Award, Eye, Globe, MapPin } from 'lucide-react';
 import { InstagramIcon, LinkedinIcon } from '@/components/profile/SocialIcons';
 import { instagramUrl, linkedinUrl, websiteUrl } from '@/components/profile/profileLinks';
 import ProfileAvatar from '@/components/profile/ProfileAvatar';
@@ -33,7 +33,13 @@ export default function ProfilePreviewCard({ avatarUrl, roles }: Props) {
   const where = [values.city?.trim(), collaboration].filter(Boolean).join(' · ');
   const tags = values.specializations ?? [];
   const languages = (values.languages ?? []).join(', ');
-  const certificateCount = (values.certificates ?? []).filter((item) => item.title.trim() !== '').length;
+  const certificates = (values.certificates ?? [])
+    .filter((item) => item.title.trim() !== '')
+    .map((item) => ({
+      id: item.id,
+      title: item.title,
+      detail: [item.issuer.trim(), item.year.trim()].filter(Boolean).join(' · '),
+    }));
   const links = [
     { key: 'website', Icon: Globe, href: websiteUrl(values.website), label: t('profile.website') },
     { key: 'instagram', Icon: InstagramIcon, href: instagramUrl(values.instagram), label: t('profile.instagram') },
@@ -108,8 +114,29 @@ export default function ProfilePreviewCard({ avatarUrl, roles }: Props) {
           </div>
         </dl>
 
-        <div className="flex items-center justify-between gap-2 border-t border-border px-4 py-3 text-meta text-muted-foreground">
-          <span className="flex items-center gap-2">
+        {certificates.length > 0 && (
+          <div className="flex flex-col gap-2 border-t border-border p-4">
+            <h3 className="text-label font-semibold tracking-label text-muted-foreground uppercase">
+              {t('profile.page.preview.certificates')}
+            </h3>
+            <ul className="flex flex-col gap-2">
+              {certificates.map((item) => (
+                <li key={item.id} className="flex items-start gap-2.5">
+                  <span className="flex size-7 shrink-0 items-center justify-center rounded-md border border-border bg-surface text-nutrition">
+                    <Award className="size-3.5" aria-hidden="true" />
+                  </span>
+                  <span className="flex min-w-0 flex-col">
+                    <span className="text-body font-medium break-words text-ink">{item.title.trim()}</span>
+                    {item.detail && <span className="text-meta break-words text-muted-foreground">{item.detail}</span>}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {links.length > 0 && (
+          <div className="flex items-center gap-2 border-t border-border px-4 py-3 text-meta text-muted-foreground">
             {links.map(({ key, Icon, href, label }) => (
               <a
                 key={key}
@@ -123,9 +150,8 @@ export default function ProfilePreviewCard({ avatarUrl, roles }: Props) {
                 <Icon className="size-3.5" aria-hidden="true" />
               </a>
             ))}
-          </span>
-          {certificateCount > 0 && <span>{t('profile.page.preview.certificates', { count: certificateCount })}</span>}
-        </div>
+          </div>
+        )}
       </div>
       <p className="text-meta text-muted-foreground">{t('profile.page.preview.note')}</p>
     </aside>

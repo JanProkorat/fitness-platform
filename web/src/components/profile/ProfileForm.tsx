@@ -197,7 +197,7 @@ export default function ProfileForm({ me, trainer }: Props) {
       <form
         noValidate
         onSubmit={handleSubmit((values) => saveMutation.mutate(values))}
-        className="flex w-full max-w-6xl flex-col gap-5"
+        className="flex w-full flex-col gap-5"
       >
         <ProfileHeader
           actions={
@@ -232,14 +232,16 @@ export default function ProfileForm({ me, trainer }: Props) {
           }
         />
         <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
-          <div className="flex min-w-0 flex-col gap-4">
+          <div className="grid min-w-0 items-start gap-4 2xl:grid-cols-2">
             <PhotoNameSection professionalAvatarUrl={trainer.avatarBlobUrl} userAvatarUrl={me.avatarBlobUrl} />
             <AccountSection email={me.email ?? ''} />
             <AboutSection />
             <ExpertiseSection />
             <CollaborationSection />
             <LinksSection />
-            <VisibilitySection />
+            <div className="min-w-0 2xl:col-span-2">
+              <VisibilitySection />
+            </div>
           </div>
           <ProfilePreviewCard avatarUrl={trainer.avatarBlobUrl ?? me.avatarBlobUrl} roles={me.roles ?? []} />
         </div>

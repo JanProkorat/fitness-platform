@@ -37,7 +37,7 @@ export default function ProfilePage() {
           ? 'profile.page.error.notFound'
           : 'profile.page.error.generic';
     return (
-      <div className="flex w-full max-w-6xl flex-col gap-5">
+      <div className="flex w-full flex-col gap-5">
         <ProfileHeader />
         <div
           role="alert"
@@ -68,7 +68,7 @@ export default function ProfilePage() {
 
   if (!meQuery.data || !trainerQuery.data) {
     return (
-      <div className="flex w-full max-w-6xl flex-col gap-5">
+      <div className="flex w-full flex-col gap-5">
         <ProfileHeader />
         <ProfileSkeleton />
       </div>
