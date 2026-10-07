@@ -5,7 +5,9 @@ import {
   deletePlanTemplate,
   getPlanTemplate,
   searchPlanTemplates,
+  updatePlanTemplate,
   type CreateNutritionPlanTemplateRequest,
+  type UpdateNutritionPlanTemplateRequest,
 } from '@/api/nutrition-plan-templates';
 import { getErrorStatus, showApiError, showSuccess } from '@/lib/api-errors';
 import type { PlanTemplateListFilters } from '@/hooks/usePlanTemplateListParams';
@@ -47,12 +49,31 @@ export function usePlanTemplates(filters: PlanTemplateListFilters, enabled: bool
   });
 }
 
-/** One template's detail. */
-export function usePlanTemplate(templateId: string | undefined) {
+/** One template's detail. 403 and 404 are answers, not transient failures, so they are not retried. */
+export function usePlanTemplate(templateId: string | undefined, enabled = true) {
   return useQuery({
     queryKey: ['plan-templates', 'detail', templateId],
     queryFn: () => getPlanTemplate(templateId as string),
-    enabled: Boolean(templateId),
+    enabled: enabled && Boolean(templateId),
+    retry: (failureCount, error) => {
+      const status = getErrorStatus(error);
+      return status !== 403 && status !== 404 && failureCount < 1;
+    },
+  });
+}
+
+/**
+ * Saves a template's whole content. It does not toast: the editor shows save and conflict errors
+ * inline and keeps the user's edits. The detail cache is refreshed only from the server's reply.
+ */
+export function useUpdatePlanTemplate(templateId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (request: UpdateNutritionPlanTemplateRequest) => updatePlanTemplate(templateId, request),
+    onSuccess: (saved) => {
+      queryClient.setQueryData(['plan-templates', 'detail', templateId], saved);
+      queryClient.invalidateQueries({ queryKey: ['plan-templates', 'list'] });
+    },
   });
 }
 

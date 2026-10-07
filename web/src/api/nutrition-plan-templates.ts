@@ -7,11 +7,13 @@ import type {
   NutritionPlanTemplateDetailDto,
   NutritionPlanTemplateSummaryDto,
   PrimaryGoal,
+  UpdateNutritionPlanTemplateRequest,
 } from '@/api/generated';
 
 export { PrimaryGoal, MealKind, LibraryVisibility } from '@/api/generated';
 export type {
   CreateNutritionPlanTemplateRequest,
+  UpdateNutritionPlanTemplateRequest,
   NutritionPlanTemplateDetailDto,
   NutritionPlanTemplateSummaryDto,
   NutritionPlanTemplateWeekRequest,
@@ -66,6 +68,14 @@ export async function createPlanTemplate(
   request: CreateNutritionPlanTemplateRequest,
 ): Promise<NutritionPlanTemplateSummaryDto> {
   return apiClient.createTemplateEndpoint(request);
+}
+
+/** Replace a template's whole content (owner only). `request.version` must echo the loaded value; a stale one is a 409. */
+export async function updatePlanTemplate(
+  templateId: string,
+  request: UpdateNutritionPlanTemplateRequest,
+): Promise<NutritionPlanTemplateDetailDto> {
+  return apiClient.updateTemplateEndpoint(templateId, request);
 }
 
 /** Copy a template into the caller's own library. */

@@ -1530,8 +1530,116 @@
       }
     }
   },
+  "planEditor": {
+    "nameLabel": "Název plánu",
+    "undo": "Zpět",
+    "save": "Uložit",
+    "comingSoon": "Již brzy",
+    "dayTotal": "Součet dne",
+    "dayNote": "Poznámka ke dni: {{note}}",
+    "saveError": "Uložení se nepovedlo. Vaše změny tu zůstaly — zkuste to znovu.",
+    "status": {
+      "saving": "Ukládám…",
+      "unsaved": "Neuložené změny",
+      "saved": "Uloženo"
+    },
+    "toggles": {
+      "range": "Rozsah",
+      "view": "Zobrazení",
+      "week": "Týden",
+      "day": "Den",
+      "meals": "Jídla",
+      "nutrition": "Výživa"
+    },
+    "days": {
+      "1": "Po",
+      "2": "Út",
+      "3": "St",
+      "4": "Čt",
+      "5": "Pá",
+      "6": "So",
+      "7": "Ne"
+    },
+    "rows": {
+      "breakfast": "Snídaně",
+      "snack": "Svačina",
+      "lunch": "Oběd",
+      "dinner": "Večeře",
+      "preWorkout": "Před tréninkem",
+      "postWorkout": "Po tréninku"
+    },
+    "grid": {
+      "label": "Jídla v týdnu"
+    },
+    "cell": {
+      "label": "{{day}}, jídlo {{row}}",
+      "empty": "Prázdné",
+      "kcal": "{{kcal}} kcal",
+      "items_one": "{{count}} položka",
+      "items_few": "{{count}} položky",
+      "items_many": "{{count}} položky",
+      "items_other": "{{count}} položek",
+      "macros": "B {{protein}} · S {{carbs}} · T {{fat}} · Vl {{fiber}}"
+    },
+    "weeks": {
+      "label": "Týdny",
+      "previous": "Předchozí týdny",
+      "next": "Další týdny",
+      "add": "Přidat týden",
+      "week": "Týden {{number}}",
+      "position": "Týden {{current}} z {{total}}"
+    },
+    "averages": {
+      "label": "Průměr na den",
+      "fiber": "Vl {{grams}} g",
+      "kcal": "{{value}} kcal",
+      "kcalOfTarget": "{{value}} / {{target}} kcal",
+      "protein": "B {{value}}",
+      "carbs": "S {{value}}",
+      "fat": "T {{value}}",
+      "weekTotal": "· týden celkem {{kcal}} kcal",
+      "details": "Podrobnosti"
+    },
+    "picker": {
+      "title": "Jaká jídla má jeden den?",
+      "body": "Každé jídlo se stane řádkem týdne. Přidáte-li stejný druh dvakrát, máte dvě svačiny. Řádky můžete později přeřadit nebo odebrat.",
+      "mostCommon": "nejčastější",
+      "addOneByOne": "Nebo přidávejte po jednom",
+      "done": "Hotovo"
+    },
+    "library": {
+      "title": "Knihovna",
+      "counts": "{{recipes}} receptů · {{ingredients}} surovin",
+      "recipes": "Recepty",
+      "ingredients": "Suroviny",
+      "search_recipes": "Hledat recepty…",
+      "search_ingredients": "Hledat suroviny…",
+      "filters": "Filtry",
+      "hint": "Přetáhněte na jídlo, nebo jídlo vyberte a stiskněte +. Jedno jídlo může obsahovat více receptů a surovin.",
+      "drag": "Přetáhnout {{name}}",
+      "add": "Přidat {{name}} do vybraného jídla",
+      "selectMealFirst": "Nejdřív vyberte jídlo v týdnu",
+      "collapse": "Skrýt knihovnu",
+      "expand": "Zobrazit knihovnu",
+      "macros": "{{kcal}} kcal · B {{protein}} · S {{carbs}} · T {{fat}}",
+      "per100": "na 100 g",
+      "empty": "Nic nenalezeno.",
+      "loadError": "Knihovnu se nepodařilo načíst.",
+      "retry": "Zkusit znovu"
+    },
+    "conflict": {
+      "message": "Šablona se od otevření změnila jinde. Vaše úpravy tu zůstaly a nic se nepřepsalo. Načtením nejnovější verze své úpravy zahodíte.",
+      "reload": "Načíst nejnovější"
+    },
+    "leave": {
+      "title": "Odejít bez uložení?",
+      "body": "Máte neuložené změny. Pokud odejdete, přijdete o ně.",
+      "stay": "Pokračovat v úpravách",
+      "discard": "Odejít"
+    }
+  },
   "planTemplates": {
-    "title": "Šablony plánů",
+    "title":"Šablony plánů",
     "subtitle": "Znovupoužitelné jídelníčky — vytvořte jednou, přiřaďte kterémukoli klientovi",
     "newTemplate": "Nová šablona",
     "searchPlaceholder": "Hledat šablony…",
@@ -1622,9 +1730,13 @@
       "snack2": "Svačina 2",
       "dinner": "Večeře"
     },
-    "editorPlaceholder": {
-      "back": "Šablony plánů",
-      "body": "Editor šablon brzy přibude."
+    "editor": {
+      "title": "Editor šablony",
+      "readOnly": "Tato šablona patří jinému nutričnímu poradci. Můžete si ji prohlédnout, ale upravit ji může jen její autor. Chcete-li mít vlastní, zkopírujte ji v seznamu.",
+      "notFound": {
+        "title": "Šablona nenalezena",
+        "body": "Možná byla smazána nebo s vámi není sdílená."
+      }
     }
   },
   "richTextEditor": {

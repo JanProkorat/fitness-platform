@@ -19,7 +19,7 @@ import InboxPage from '@/pages/InboxPage';
 import IngredientsPage from '@/pages/IngredientsPage';
 import RecipesPage from '@/pages/RecipesPage';
 import PlanTemplatesPage from '@/pages/PlanTemplatesPage';
-import PlanTemplateEditorPlaceholderPage from '@/pages/PlanTemplateEditorPlaceholderPage';
+import PlanTemplateEditorPage from '@/pages/PlanTemplateEditorPage';
 import ProfilePage from '@/pages/ProfilePage';
 import NotFoundPage from '@/pages/NotFoundPage';
 
@@ -72,8 +72,11 @@ export default function App() {
               <Route path="/ingredients" element={<IngredientsPage />} />
               <Route path="/recipes" element={<RecipesPage />} />
               <Route path="/plan-templates" element={<PlanTemplatesPage />} />
-              <Route path="/plan-templates/:templateId" element={<PlanTemplateEditorPlaceholderPage />} />
               <Route path="/profile" element={<ProfilePage />} />
+            </Route>
+            {/* Full-bleed workspace: icon-rail sidebar, no main padding (PageTemplateEditor). */}
+            <Route element={<AppShell variant="editor" />}>
+              <Route path="/plan-templates/:templateId" element={<PlanTemplateEditorPage />} />
             </Route>
           </Route>
 

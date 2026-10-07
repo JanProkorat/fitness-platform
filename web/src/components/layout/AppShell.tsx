@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Menu } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import Sidebar from '@/components/layout/Sidebar';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 
@@ -17,15 +18,26 @@ import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
  * grows wider than the viewport — any content that would otherwise overflow
  * (a table, a wide tab list) scrolls within its own container instead of
  * the whole page sliding sideways.
+ *
+ * `variant="editor"` is the opt-in for full-bleed workspaces (the plan template
+ * editor, PageTemplateEditor): the static sidebar collapses to the icon rail and
+ * `<main>` drops its padding and own scrolling so the page can lay out flush
+ * against the rail. Everything else uses the default variant, unchanged. It is
+ * chosen by the layout route in App.tsx (BrowserRouter has no route `handle`).
  */
-export default function AppShell() {
+interface Props {
+  variant?: 'default' | 'editor';
+}
+
+export default function AppShell({ variant = 'default' }: Props) {
   const { t } = useTranslation();
   const [navOpen, setNavOpen] = useState(false);
+  const editor = variant === 'editor';
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       <div className="hidden lg:flex">
-        <Sidebar />
+        <Sidebar compact={editor} />
       </div>
 
       <Sheet open={navOpen} onOpenChange={setNavOpen}>
@@ -36,16 +48,30 @@ export default function AppShell() {
       </Sheet>
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <main className="flex-1 overflow-x-hidden overflow-y-auto overscroll-contain bg-page-glow p-6">
+        <main
+          className={cn(
+            'flex-1 overflow-x-hidden bg-page-glow',
+            editor ? 'flex min-h-0 flex-col overflow-y-hidden' : 'overflow-y-auto overscroll-contain p-6',
+          )}
+        >
           <button
             type="button"
             onClick={() => setNavOpen(true)}
             aria-label={t('shell.openNavigation')}
-            className="mb-4 flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground lg:hidden"
+            className={cn(
+              'flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground lg:hidden',
+              editor ? 'm-3 mb-0' : 'mb-4',
+            )}
           >
             <Menu className="size-4" aria-hidden="true" />
           </button>
-          <Outlet />
+          {editor ? (
+            <div className="min-h-0 flex-1">
+              <Outlet />
+            </div>
+          ) : (
+            <Outlet />
+          )}
         </main>
       </div>
     </div>

@@ -1507,6 +1507,112 @@
       }
     }
   },
+  "planEditor": {
+    "nameLabel": "Plan name",
+    "undo": "Undo",
+    "save": "Save",
+    "comingSoon": "Coming soon",
+    "dayTotal": "Day total",
+    "dayNote": "Day note: {{note}}",
+    "saveError": "Couldn't save. Your changes are still here — try again.",
+    "status": {
+      "saving": "Saving…",
+      "unsaved": "Unsaved changes",
+      "saved": "Saved"
+    },
+    "toggles": {
+      "range": "Range",
+      "view": "View",
+      "week": "Week",
+      "day": "Day",
+      "meals": "Meals",
+      "nutrition": "Nutrition"
+    },
+    "days": {
+      "1": "Mon",
+      "2": "Tue",
+      "3": "Wed",
+      "4": "Thu",
+      "5": "Fri",
+      "6": "Sat",
+      "7": "Sun"
+    },
+    "rows": {
+      "breakfast": "Breakfast",
+      "snack": "Snack",
+      "lunch": "Lunch",
+      "dinner": "Dinner",
+      "preWorkout": "Pre-workout",
+      "postWorkout": "Post-workout"
+    },
+    "grid": {
+      "label": "Week meals"
+    },
+    "cell": {
+      "label": "{{day}}, meal {{row}}",
+      "empty": "Empty",
+      "kcal": "{{kcal}} kcal",
+      "items_one": "{{count}} item",
+      "items_other": "{{count}} items",
+      "macros": "P {{protein}} · C {{carbs}} · F {{fat}} · Fib {{fiber}}"
+    },
+    "weeks": {
+      "label": "Weeks",
+      "previous": "Previous weeks",
+      "next": "Next weeks",
+      "add": "Add week",
+      "week": "Week {{number}}",
+      "position": "Week {{current}} of {{total}}"
+    },
+    "averages": {
+      "label": "Avg per day",
+      "fiber": "Fib {{grams}} g",
+      "kcal": "{{value}} kcal",
+      "kcalOfTarget": "{{value}} / {{target}} kcal",
+      "protein": "P {{value}}",
+      "carbs": "C {{value}}",
+      "fat": "F {{value}}",
+      "weekTotal": "· week total {{kcal}} kcal",
+      "details": "Details"
+    },
+    "picker": {
+      "title": "Which meals does a day have?",
+      "body": "Each meal becomes a row of the week. Add a type twice for two snacks. You can reorder or remove them later.",
+      "mostCommon": "most common",
+      "addOneByOne": "Or add one by one",
+      "done": "Done"
+    },
+    "library": {
+      "title": "Library",
+      "counts": "{{recipes}} recipes · {{ingredients}} ingredients",
+      "recipes": "Recipes",
+      "ingredients": "Ingredients",
+      "search_recipes": "Search recipes…",
+      "search_ingredients": "Search ingredients…",
+      "filters": "Filters",
+      "hint": "Drag onto a meal, or select a meal and press +. A meal can hold several recipes and ingredients.",
+      "drag": "Drag {{name}}",
+      "add": "Add {{name}} to the selected meal",
+      "selectMealFirst": "Select a meal in the week first",
+      "collapse": "Hide library",
+      "expand": "Show library",
+      "macros": "{{kcal}} kcal · P {{protein}} · C {{carbs}} · F {{fat}}",
+      "per100": "per 100 g",
+      "empty": "Nothing found.",
+      "loadError": "Couldn't load the library.",
+      "retry": "Retry"
+    },
+    "conflict": {
+      "message": "This template was changed somewhere else since you opened it. Your edits are kept here and nothing was overwritten. Reload to get the latest version (this discards your edits).",
+      "reload": "Reload latest"
+    },
+    "leave": {
+      "title": "Leave without saving?",
+      "body": "You have unsaved changes. If you leave now they are lost.",
+      "stay": "Keep editing",
+      "discard": "Leave"
+    }
+  },
   "planTemplates": {
     "title": "Plan templates",
     "subtitle": "Reusable nutrition plans — build once, assign to any client",
@@ -1595,9 +1701,13 @@
       "snack2": "Snack 2",
       "dinner": "Dinner"
     },
-    "editorPlaceholder": {
-      "back": "Plan templates",
-      "body": "The template editor is coming soon."
+    "editor": {
+      "title": "Template editor",
+      "readOnly": "This template belongs to another nutritionist. You can look at it, but only its owner can change it. Copy it from the list to make your own.",
+      "notFound": {
+        "title": "Template not found",
+        "body": "It may have been deleted, or it isn't shared with you."
+      }
     }
   },
   "richTextEditor": {
