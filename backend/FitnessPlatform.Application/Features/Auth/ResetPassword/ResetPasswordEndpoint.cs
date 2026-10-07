@@ -59,6 +59,10 @@ public class ResetPasswordEndpoint(
             return;
         }
 
+        // The password change and the session revoke must commit together: Identity's store and
+        // db share one scoped context, so both writes enlist in this transaction.
+        await using var transaction = await db.BeginTransactionAsync(ct);
+
         var result = await userManager.ResetPasswordAsync(user, req.Token, req.NewPassword);
 
         if (!result.Succeeded)
@@ -68,6 +72,7 @@ public class ResetPasswordEndpoint(
         }
 
         await db.RevokeRefreshTokenFamilyAsync(user.Id, timeProvider.GetUtcNow().UtcDateTime, ct);
+        await transaction.CommitAsync(ct);
 
         await Send.OkAsync(new { Message = "Password has been reset successfully." }, ct);
     }

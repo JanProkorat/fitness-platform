@@ -4,7 +4,9 @@ using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Features.Auth.ResetPassword;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore.Storage;
 using NSubstitute;
+using NSubstitute.ExceptionExtensions;
 
 namespace FitnessPlatform.Tests.Endpoints.Auth;
 
@@ -20,6 +22,8 @@ public class ResetPasswordEndpointTests
         };
 
         var db = Substitute.For<IApplicationDbContext>();
+        var transaction = Substitute.For<IDbContextTransaction>();
+        db.BeginTransactionAsync(Arg.Any<CancellationToken>()).Returns(transaction);
         var userManager = EndpointTestHelpers.CreateFakeUserManager();
         userManager.FindByEmailAsync("test@test.com").Returns(user);
         userManager.ResetPasswordAsync(user, "valid-token", "NewPass123!")
@@ -38,6 +42,40 @@ public class ResetPasswordEndpointTests
         ep.ValidationFailed.Should().BeFalse();
         await db.Received(1).RevokeRefreshTokenFamilyAsync(
             user.Id, Arg.Any<DateTime>(), Arg.Any<CancellationToken>());
+        await transaction.Received(1).CommitAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task HandleAsync_RevokeThrows_PropagatesAndDoesNotCommit()
+    {
+        var user = new ApplicationUser
+        {
+            Id = Guid.NewGuid(), Email = "test@test.com", UserName = "test@test.com",
+            FirstName = "T", LastName = "U"
+        };
+
+        var db = Substitute.For<IApplicationDbContext>();
+        var transaction = Substitute.For<IDbContextTransaction>();
+        db.BeginTransactionAsync(Arg.Any<CancellationToken>()).Returns(transaction);
+        db.RevokeRefreshTokenFamilyAsync(user.Id, Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
+            .ThrowsAsync(new InvalidOperationException("revoke failed"));
+        var userManager = EndpointTestHelpers.CreateFakeUserManager();
+        userManager.FindByEmailAsync("test@test.com").Returns(user);
+        userManager.ResetPasswordAsync(user, "valid-token", "NewPass123!")
+            .Returns(IdentityResult.Success);
+
+        var ep = Factory.Create<ResetPasswordEndpoint>(userManager, db, TimeProvider.System);
+
+        var act = () => ep.HandleAsync(new ResetPasswordRequest
+        {
+            Token = "valid-token",
+            Email = "test@test.com",
+            NewPassword = "NewPass123!",
+            ConfirmPassword = "NewPass123!"
+        }, TestContext.Current.CancellationToken);
+
+        await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("revoke failed");
+        await transaction.DidNotReceiveWithAnyArgs().CommitAsync(default);
     }
 
     [Fact]
@@ -71,6 +109,8 @@ public class ResetPasswordEndpointTests
         };
 
         var db = Substitute.For<IApplicationDbContext>();
+        var transaction = Substitute.For<IDbContextTransaction>();
+        db.BeginTransactionAsync(Arg.Any<CancellationToken>()).Returns(transaction);
         var userManager = EndpointTestHelpers.CreateFakeUserManager();
         userManager.FindByEmailAsync("test@test.com").Returns(user);
         userManager.ResetPasswordAsync(user, "bad-token", "NewPass123!")
@@ -88,6 +128,7 @@ public class ResetPasswordEndpointTests
 
         await act.Should().ThrowAsync<ValidationFailureException>();
         await db.DidNotReceiveWithAnyArgs().RevokeRefreshTokenFamilyAsync(default, default, default);
+        await transaction.DidNotReceiveWithAnyArgs().CommitAsync(default);
     }
 
     /// <summary>
