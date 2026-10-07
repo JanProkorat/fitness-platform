@@ -1,6 +1,7 @@
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.AspNetCore.Identity;
 
 namespace FitnessPlatform.Application.Features.Auth.ResetPassword;
@@ -9,7 +10,12 @@ namespace FitnessPlatform.Application.Features.Auth.ResetPassword;
 /// Endpoint for completing a password reset using a token received via email.
 /// </summary>
 /// <param name="userManager">ASP.NET Identity user manager.</param>
-public class ResetPasswordEndpoint(UserManager<ApplicationUser> userManager) : Endpoint<ResetPasswordRequest>
+/// <param name="db">Database context, used to revoke the user's refresh tokens.</param>
+/// <param name="timeProvider">Clock.</param>
+public class ResetPasswordEndpoint(
+    UserManager<ApplicationUser> userManager,
+    IApplicationDbContext db,
+    TimeProvider timeProvider) : Endpoint<ResetPasswordRequest>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -20,7 +26,10 @@ public class ResetPasswordEndpoint(UserManager<ApplicationUser> userManager) : E
         Summary(s =>
         {
             s.Summary = "Reset password";
-            s.Description = "Completes a password reset using the token received via email.";
+            s.Description = "Completes a password reset using the token received via email. On success every refresh token of the user is revoked, signing them out of all devices.";
+            s.Responses[StatusCodes.Status200OK] = "Password reset; all sessions revoked";
+            s.Responses[StatusCodes.Status400BadRequest] = "Invalid input, or invalid/expired reset request";
+            s.Responses[StatusCodes.Status429TooManyRequests] = "Rate limit exceeded";
         });
     }
 
@@ -57,6 +66,8 @@ public class ResetPasswordEndpoint(UserManager<ApplicationUser> userManager) : E
             ThrowError(GenericResetFailureMessage);
             return;
         }
+
+        await db.RevokeRefreshTokenFamilyAsync(user.Id, timeProvider.GetUtcNow().UtcDateTime, ct);
 
         await Send.OkAsync(new { Message = "Password has been reset successfully." }, ct);
     }

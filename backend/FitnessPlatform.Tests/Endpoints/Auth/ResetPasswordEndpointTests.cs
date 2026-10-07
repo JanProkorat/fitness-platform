@@ -2,6 +2,7 @@ using FastEndpoints;
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Features.Auth.ResetPassword;
+using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.AspNetCore.Identity;
 using NSubstitute;
 
@@ -10,7 +11,7 @@ namespace FitnessPlatform.Tests.Endpoints.Auth;
 public class ResetPasswordEndpointTests
 {
     [Fact]
-    public async Task HandleAsync_ValidToken_ResetsPassword()
+    public async Task HandleAsync_ValidToken_ResetsPasswordAndRevokesSessionsOnce()
     {
         var user = new ApplicationUser
         {
@@ -18,12 +19,13 @@ public class ResetPasswordEndpointTests
             FirstName = "T", LastName = "U"
         };
 
+        var db = Substitute.For<IApplicationDbContext>();
         var userManager = EndpointTestHelpers.CreateFakeUserManager();
         userManager.FindByEmailAsync("test@test.com").Returns(user);
         userManager.ResetPasswordAsync(user, "valid-token", "NewPass123!")
             .Returns(IdentityResult.Success);
 
-        var ep = Factory.Create<ResetPasswordEndpoint>(userManager);
+        var ep = Factory.Create<ResetPasswordEndpoint>(userManager, db, TimeProvider.System);
 
         await ep.HandleAsync(new ResetPasswordRequest
         {
@@ -34,15 +36,18 @@ public class ResetPasswordEndpointTests
         }, TestContext.Current.CancellationToken);
 
         ep.ValidationFailed.Should().BeFalse();
+        await db.Received(1).RevokeRefreshTokenFamilyAsync(
+            user.Id, Arg.Any<DateTime>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
-    public async Task HandleAsync_UserNotFound_ThrowsError()
+    public async Task HandleAsync_UserNotFound_ThrowsErrorAndRevokesNothing()
     {
+        var db = Substitute.For<IApplicationDbContext>();
         var userManager = EndpointTestHelpers.CreateFakeUserManager();
         userManager.FindByEmailAsync("missing@test.com").Returns((ApplicationUser?)null);
 
-        var ep = Factory.Create<ResetPasswordEndpoint>(userManager);
+        var ep = Factory.Create<ResetPasswordEndpoint>(userManager, db, TimeProvider.System);
 
         var act = () => ep.HandleAsync(new ResetPasswordRequest
         {
@@ -53,10 +58,11 @@ public class ResetPasswordEndpointTests
         }, CancellationToken.None);
 
         await act.Should().ThrowAsync<ValidationFailureException>();
+        await db.DidNotReceiveWithAnyArgs().RevokeRefreshTokenFamilyAsync(default, default, default);
     }
 
     [Fact]
-    public async Task HandleAsync_InvalidToken_ThrowsError()
+    public async Task HandleAsync_InvalidToken_ThrowsErrorAndRevokesNothing()
     {
         var user = new ApplicationUser
         {
@@ -64,12 +70,13 @@ public class ResetPasswordEndpointTests
             FirstName = "T", LastName = "U"
         };
 
+        var db = Substitute.For<IApplicationDbContext>();
         var userManager = EndpointTestHelpers.CreateFakeUserManager();
         userManager.FindByEmailAsync("test@test.com").Returns(user);
         userManager.ResetPasswordAsync(user, "bad-token", "NewPass123!")
             .Returns(IdentityResult.Failed(new IdentityError { Description = "Invalid token." }));
 
-        var ep = Factory.Create<ResetPasswordEndpoint>(userManager);
+        var ep = Factory.Create<ResetPasswordEndpoint>(userManager, db, TimeProvider.System);
 
         var act = () => ep.HandleAsync(new ResetPasswordRequest
         {
@@ -80,6 +87,7 @@ public class ResetPasswordEndpointTests
         }, CancellationToken.None);
 
         await act.Should().ThrowAsync<ValidationFailureException>();
+        await db.DidNotReceiveWithAnyArgs().RevokeRefreshTokenFamilyAsync(default, default, default);
     }
 
     /// <summary>
@@ -97,15 +105,17 @@ public class ResetPasswordEndpointTests
             FirstName = "T", LastName = "U"
         };
 
+        var db = Substitute.For<IApplicationDbContext>();
+
         var userManagerForMissingEmail = EndpointTestHelpers.CreateFakeUserManager();
         userManagerForMissingEmail.FindByEmailAsync("missing@test.com").Returns((ApplicationUser?)null);
-        var missingEmailEndpoint = Factory.Create<ResetPasswordEndpoint>(userManagerForMissingEmail);
+        var missingEmailEndpoint = Factory.Create<ResetPasswordEndpoint>(userManagerForMissingEmail, db, TimeProvider.System);
 
         var userManagerForExistingEmail = EndpointTestHelpers.CreateFakeUserManager();
         userManagerForExistingEmail.FindByEmailAsync("existing@test.com").Returns(user);
         userManagerForExistingEmail.ResetPasswordAsync(user, "bad-token", "NewPass123!")
             .Returns(IdentityResult.Failed(new IdentityError { Code = "InvalidToken", Description = "Invalid token." }));
-        var existingEmailEndpoint = Factory.Create<ResetPasswordEndpoint>(userManagerForExistingEmail);
+        var existingEmailEndpoint = Factory.Create<ResetPasswordEndpoint>(userManagerForExistingEmail, db, TimeProvider.System);
 
         var missingEmailAct = () => missingEmailEndpoint.HandleAsync(new ResetPasswordRequest
         {

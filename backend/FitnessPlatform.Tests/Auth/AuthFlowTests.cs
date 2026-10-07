@@ -243,6 +243,42 @@ public class AuthFlowTests(FitnessApiFactory factory)
     }
 
     [Fact]
+    public async Task PasswordReset_Success_RevokesOwnRefreshTokensOnly()
+    {
+        EmailService.Reset();
+        var client = factory.CreateClient();
+        var emailA = UniqueEmail();
+        var emailB = UniqueEmail();
+
+        await TestHelpers.RegisterAsync(client, emailA, "TestPass1!", "Anna", "Doe", "Client");
+        await TestHelpers.RegisterAsync(client, emailB, "TestPass1!", "Ben", "Doe", "Client");
+
+        var (_, refreshTokenA) = await TestHelpers.LoginAsync(client, emailA, "TestPass1!");
+        var (_, refreshTokenB) = await TestHelpers.LoginAsync(client, emailB, "TestPass1!");
+
+        await client.PostAsJsonAsync("/auth/password/reset", new { Email = emailA },
+            cancellationToken: TestContext.Current.CancellationToken);
+        var resetToken = EmailService.SentPasswordResets.Single(r => r.Email == emailA).Token;
+
+        var resetResponse = await client.PutAsJsonAsync("/auth/password/reset", new
+        {
+            Token = resetToken,
+            Email = emailA,
+            NewPassword = "NewTestPass1!",
+            ConfirmPassword = "NewTestPass1!"
+        }, cancellationToken: TestContext.Current.CancellationToken);
+        resetResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var refreshA = await client.PostAsJsonAsync("/auth/refresh", new { RefreshToken = refreshTokenA },
+            cancellationToken: TestContext.Current.CancellationToken);
+        refreshA.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+
+        var refreshB = await client.PostAsJsonAsync("/auth/refresh", new { RefreshToken = refreshTokenB },
+            cancellationToken: TestContext.Current.CancellationToken);
+        refreshB.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
     public async Task PasswordReset_NonExistentEmail_Returns404WithErrorCode()
     {
         var client = factory.CreateClient();
