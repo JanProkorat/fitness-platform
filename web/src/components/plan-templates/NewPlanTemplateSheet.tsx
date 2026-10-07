@@ -237,7 +237,7 @@ function NewPlanTemplateForm({ onClose }: { onClose: () => void }) {
           <div className="relative w-56">
             <Input
               id="plan-template-kcal"
-              type="number"
+              type="text"
               inputMode="numeric"
               {...register('dailyKcal', { setValueAs: optionalKcal })}
               aria-invalid={!!errors.dailyKcal}

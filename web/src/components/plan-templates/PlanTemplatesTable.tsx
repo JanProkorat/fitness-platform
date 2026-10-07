@@ -40,7 +40,8 @@ function editedLabel(iso: string | undefined, language: string): string {
   const startOfDay = (date: Date) => new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
   const daysAgo = Math.round((startOfDay(now) - startOfDay(edited)) / DAY_MS);
   if (daysAgo >= 0 && daysAgo < RELATIVE_DAYS_LIMIT) {
-    return new Intl.RelativeTimeFormat(language, { numeric: 'auto' }).format(-daysAgo, 'day');
+    const relative = new Intl.RelativeTimeFormat(language, { numeric: 'auto' }).format(-daysAgo, 'day');
+    return relative.charAt(0).toLocaleUpperCase(language) + relative.slice(1);
   }
   return new Intl.DateTimeFormat(language, { day: 'numeric', month: 'short' }).format(edited);
 }
