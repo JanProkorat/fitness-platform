@@ -8818,9 +8818,11 @@ export class ApiClient {
      * @param goal (optional) Optional filter by primary fitness goal.
      * @param dietaryStyle (optional) Optional filter by dietary style.
      * @param weekCount (optional) Optional filter by exact week count.
+     * @param mealsPerDay (optional) Optional filter by exact meals-per-day (most common meal count over non-empty days).
+     * @param inUse (optional) Optional filter on whether the caller has at least one Active plan instantiated from the template.
      * @return Success
      */
-    searchTemplatesEndpoint(page: number, pageSize: number, search?: string | null | undefined, goal?: PrimaryGoal | null | undefined, dietaryStyle?: DietaryStyle | null | undefined, weekCount?: number | null | undefined, signal?: AbortSignal): Promise<SearchNutritionPlanTemplatesResponse> {
+    searchTemplatesEndpoint(page: number, pageSize: number, search?: string | null | undefined, goal?: PrimaryGoal | null | undefined, dietaryStyle?: DietaryStyle | null | undefined, weekCount?: number | null | undefined, mealsPerDay?: number | null | undefined, inUse?: boolean | null | undefined, signal?: AbortSignal): Promise<SearchNutritionPlanTemplatesResponse> {
         let url_ = this.baseUrl + "/nutrition/plan-templates?";
         if (page === undefined || page === null)
             throw new globalThis.Error("The parameter 'page' must be defined and cannot be null.");
@@ -8838,6 +8840,10 @@ export class ApiClient {
             url_ += "dietaryStyle=" + encodeURIComponent("" + dietaryStyle) + "&";
         if (weekCount !== undefined && weekCount !== null)
             url_ += "weekCount=" + encodeURIComponent("" + weekCount) + "&";
+        if (mealsPerDay !== undefined && mealsPerDay !== null)
+            url_ += "mealsPerDay=" + encodeURIComponent("" + mealsPerDay) + "&";
+        if (inUse !== undefined && inUse !== null)
+            url_ += "inUse=" + encodeURIComponent("" + inUse) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -8876,6 +8882,13 @@ export class ApiClient {
             let resultData200  = _responseText;
             result200 = JSON.parse(resultData200);
             return Promise.resolve<SearchNutritionPlanTemplatesResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -16956,7 +16969,7 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("Invalid input, or invalid/expired reset request", status, _responseText, _headers, result400);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -18125,6 +18138,8 @@ export enum PrimaryGoal {
     Recomposition = "Recomposition",
     Fitness = "Fitness",
     Health = "Health",
+    Maintain = "Maintain",
+    Performance = "Performance",
 }
 
 /** Difficulty level of an exercise. */
@@ -21151,6 +21166,11 @@ export interface NutritionPlanTemplateDetailDto {
     weeks?: TemplateWeek[];
     /** Number of weeks, server-computed from Weeks. */
     weekCount?: number;
+    /** Most common meal count over the template's non-empty days (days with at least one meal,
+across all weeks); ties resolve to the smaller count. Null when no day has a meal. */
+    mealsPerDay?: number | undefined;
+    /** Average kcal per non-empty day, in whole kcal. Null when no day has a meal. */
+    avgKcalPerDay?: number | undefined;
     /** Who can read this entry besides its owner. */
     visibility?: LibraryVisibility;
     /** True when the authenticated caller is the nutritionist who owns this template. */
@@ -21402,6 +21422,14 @@ export interface NutritionPlanTemplateSummaryDto {
     dietaryStyle?: DietaryStyle | undefined;
     /** Number of weeks, server-computed from the template's week tree. */
     weekCount?: number;
+    /** Most common meal count over the template's non-empty days (days with at least one meal,
+across all weeks); ties resolve to the smaller count. Null when no day has a meal. */
+    mealsPerDay?: number | undefined;
+    /** Average kcal per non-empty day, in whole kcal. Null when no day has a meal. */
+    avgKcalPerDay?: number | undefined;
+    /** Number of the caller's own Active plans instantiated from this template; other
+nutritionists' usage is never counted. */
+    usedBy?: number;
     /** Who can read this entry besides its owner. */
     visibility?: LibraryVisibility;
     /** True when the authenticated caller is the nutritionist who owns this template. */
