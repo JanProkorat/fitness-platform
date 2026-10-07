@@ -807,8 +807,7 @@
         "price": "Preis",
         "perMonth": "/ Monat",
         "languages": "Sprachen",
-        "certificates_one": "{{count}} Zertifikat",
-        "certificates_other": "{{count}} Zertifikate",
+        "certificates": "Zertifikate",
         "note": "Aktualisiert sich beim Tippen. Kunden sehen diese Karte in der Suche und über deinen Einladungslink."
       },
       "validation": {

@@ -831,10 +831,7 @@
         "price": "Cena",
         "perMonth": "/ měsíc",
         "languages": "Jazyky",
-        "certificates_one": "{{count}} certifikát",
-        "certificates_few": "{{count}} certifikáty",
-        "certificates_many": "{{count}} certifikátu",
-        "certificates_other": "{{count}} certifikátů",
+        "certificates": "Certifikáty",
         "note": "Mění se, jak píšete. Klienti vidí tuto kartu ve vyhledávání a na odkazu s pozvánkou."
       },
       "validation": {

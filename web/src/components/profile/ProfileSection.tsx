@@ -10,7 +10,7 @@ interface ProfileSectionProps {
 /** Card with a title and one-line description wrapping one group of profile fields. */
 export function ProfileSection({ title, description, children }: ProfileSectionProps) {
   return (
-    <section className="flex flex-col gap-4 rounded-2xl border border-border bg-surface p-5 sm:p-6">
+    <section className="flex h-full flex-col gap-4 rounded-2xl border border-border bg-surface p-5 sm:p-6">
       <header className="flex flex-col gap-1">
         <h2 className="text-panel-title font-semibold tracking-heading text-ink">{title}</h2>
         {description && <p className="text-body text-muted-foreground">{description}</p>}

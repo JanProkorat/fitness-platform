@@ -808,8 +808,7 @@
         "price": "Price",
         "perMonth": "/ month",
         "languages": "Languages",
-        "certificates_one": "{{count}} certificate",
-        "certificates_other": "{{count}} certificates",
+        "certificates": "Certificates",
         "note": "Updates as you type. Clients see this card in search and on your invite link."
       },
       "validation": {
