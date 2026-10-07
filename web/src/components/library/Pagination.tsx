@@ -26,8 +26,8 @@ export default function Pagination({ rowCount, page, pageSize, totalCount, onPag
   }
 
   return (
-    <div className="flex items-center justify-between border-t border-border p-5">
-      <span className="text-caption text-muted-foreground">
+    <div className="flex items-center justify-between border-t border-line px-5 py-4">
+      <span className="text-body text-muted-foreground">
         {t('library.pagination.viewing', { count: rowCount, total: totalCount })}
       </span>
       <div className="flex items-center gap-2">
@@ -35,19 +35,21 @@ export default function Pagination({ rowCount, page, pageSize, totalCount, onPag
           type="button"
           variant="ghost"
           size="sm"
+          className="font-semibold text-ink"
           disabled={page <= 1}
           onClick={() => onPageChange(page - 1)}
         >
           <ChevronLeft className="size-4" aria-hidden="true" />
           {t('common.previous')}
         </Button>
-        <span className="flex size-7 items-center justify-center rounded-full bg-line text-body font-medium text-ink">
+        <span className="flex size-7 items-center justify-center rounded-full bg-ink text-body font-semibold text-primary-foreground shadow-popover">
           {page}
         </span>
         <Button
           type="button"
           variant="ghost"
           size="sm"
+          className="font-semibold text-ink"
           disabled={page >= totalPages}
           onClick={() => onPageChange(page + 1)}
         >

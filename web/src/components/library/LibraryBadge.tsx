@@ -13,10 +13,10 @@ interface Props {
  */
 export default function LibraryBadge({ isOwnedByCurrentUser, isSystem }: Props) {
   const { t } = useTranslation();
-  const labelKey = isSystem
-    ? 'library.badge.system'
+  const [labelKey, variant] = isSystem
+    ? (['library.badge.system', 'library-system'] as const)
     : isOwnedByCurrentUser
-      ? 'library.badge.mine'
-      : 'library.badge.shared';
-  return <Badge variant="library">{t(labelKey)}</Badge>;
+      ? (['library.badge.mine', 'library-mine'] as const)
+      : (['library.badge.shared', 'library-shared'] as const);
+  return <Badge variant={variant}>{t(labelKey)}</Badge>;
 }

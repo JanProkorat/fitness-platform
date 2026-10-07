@@ -171,7 +171,7 @@ test.describe('recipes page', () => {
     const name = `QA Recipe ${Date.now()}`;
     const drawer = page.locator('[data-slot="sheet-content"]');
 
-    await page.getByRole('button', { name: '+ New Recipe' }).click();
+    await page.getByRole('button', { name: 'New Recipe' }).click();
     await expect(drawer.getByRole('heading', { name: 'New Recipe' })).toBeVisible();
 
     // Details tab.
@@ -264,7 +264,7 @@ test.describe('recipes page', () => {
 
   test('create mode keeps the Pictures tab disabled with a hint', async ({ page }) => {
     const drawer = page.locator('[data-slot="sheet-content"]');
-    await page.getByRole('button', { name: '+ New Recipe' }).click();
+    await page.getByRole('button', { name: 'New Recipe' }).click();
     await expect(drawer.getByRole('tab', { name: 'Pictures' })).toBeDisabled();
     await expect(drawer.getByText('Save the recipe to add pictures.')).toBeVisible();
     // The Details tab starts with the name, not a picture field.
@@ -314,7 +314,7 @@ test.describe('recipes page', () => {
 
   test('a decimal Servings value blocks the save', async ({ page }) => {
     const drawer = page.locator('[data-slot="sheet-content"]');
-    await page.getByRole('button', { name: '+ New Recipe' }).click();
+    await page.getByRole('button', { name: 'New Recipe' }).click();
     await drawer.getByLabel(/^Name\b/).fill('QA Decimal Servings');
     await drawer.getByLabel(/^Servings\b/).fill('1.5');
     await drawer.locator('#recipe-meal-types').click();
@@ -335,7 +335,7 @@ test.describe('recipes page', () => {
 
   test('invalid save sends the coach to the tab with the problem', async ({ page }) => {
     const drawer = page.locator('[data-slot="sheet-content"]');
-    await page.getByRole('button', { name: '+ New Recipe' }).click();
+    await page.getByRole('button', { name: 'New Recipe' }).click();
     await drawer.getByRole('button', { name: 'Save Recipe' }).click();
     await expect(page.getByText('Name is required.')).toBeVisible();
     await expect(page.getByText('Select at least one meal type.')).toBeVisible();
@@ -564,7 +564,7 @@ trainerTest.describe('recipes for a trainer-only coach', () => {
   trainerTest('shows a readable nutritionists-only state, not an error', async ({ page }) => {
     await page.goto('/recipes');
     await expect(page.getByText('Recipes are available to nutritionists')).toBeVisible();
-    await expect(page.getByRole('button', { name: '+ New Recipe' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'New Recipe' })).toHaveCount(0);
     await expect(page.locator('[data-slot="toast-viewport"]').getByRole('status')).toHaveCount(0);
   });
 });

@@ -24,6 +24,11 @@ const badgeVariants = cva(
         // elsewhere (ClientStatusBadge, PendingTable) — a dedicated variant
         // rather than restyling `secondary`, which those already rely on.
         library: "rounded-sm bg-sunken text-caption font-semibold text-ink-2",
+        // Library column variants on the Form Up tables: System is plain text,
+        // Mine a dark filled pill, Shared an outlined pill.
+        "library-system": "rounded-md px-2 py-1 text-meta font-semibold text-ink-2",
+        "library-mine": "rounded-md bg-primary px-2 py-1 text-meta font-semibold text-primary-foreground",
+        "library-shared": "rounded-md border-border bg-background px-2 py-1 text-meta font-semibold text-ink",
       },
     },
     defaultVariants: {

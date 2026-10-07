@@ -172,18 +172,18 @@ export default function RecipeIngredientsTab({ lines, onLinesChange, readOnly, s
           <strong className="text-foreground">
             {t('recipes.ingredientsTab.kcalValue', { count: Math.round(total.kcal) })}
           </strong>{' '}
-          · {t('recipes.table.proteinValue', { count: Math.round(total.protein) })} ·{' '}
-          {t('recipes.table.carbsValue', { count: Math.round(total.carbs) })} ·{' '}
-          {t('recipes.table.fatValue', { count: Math.round(total.fat) })}
+          · {t('library.nutrient.protein', { count: Math.round(total.protein) })} ·{' '}
+          {t('library.nutrient.carbs', { count: Math.round(total.carbs) })} ·{' '}
+          {t('library.nutrient.fat', { count: Math.round(total.fat) })}
         </span>
         <span>
           {t('recipes.ingredientsTab.perServing', { count: servings })}{' '}
           <strong className="text-foreground">
             {t('recipes.ingredientsTab.kcalValue', { count: Math.round(perServing.kcal) })}
           </strong>{' '}
-          · {t('recipes.table.proteinValue', { count: Math.round(perServing.protein) })} ·{' '}
-          {t('recipes.table.carbsValue', { count: Math.round(perServing.carbs) })} ·{' '}
-          {t('recipes.table.fatValue', { count: Math.round(perServing.fat) })}
+          · {t('library.nutrient.protein', { count: Math.round(perServing.protein) })} ·{' '}
+          {t('library.nutrient.carbs', { count: Math.round(perServing.carbs) })} ·{' '}
+          {t('library.nutrient.fat', { count: Math.round(perServing.fat) })}
         </span>
       </div>
     </div>

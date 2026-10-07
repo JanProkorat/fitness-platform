@@ -934,7 +934,7 @@
   },
   "ingredients": {
     "title": "Zutaten",
-    "newIngredient": "+ Neue Zutat",
+    "newIngredient": "Neue Zutat",
     "searchPlaceholder": "Zutaten suchen…",
     "retry": "Erneut versuchen",
     "noResultsForFilters": "Keine Zutaten entsprechen Ihren Filtern.",
@@ -951,10 +951,7 @@
       "columnCategory": "Kategorie",
       "columnTags": "Tags",
       "columnLibrary": "Bibliothek",
-      "caloriesValue": "{{count}} kcal / 100 g",
-      "proteinValue": "P: {{count}} g",
-      "carbsValue": "K: {{count}} g",
-      "fatValue": "F: {{count}} g"
+      "caloriesUnit": "kcal / 100 g"
     },
     "tags": {
       "createError": "Der Tag konnte nicht erstellt werden. Bitte versuchen Sie es erneut.",
@@ -1075,6 +1072,13 @@
     }
   },
   "library": {
+    "eyebrow": "Ernährung",
+    "nutrient": {
+      "protein": "P {{count}} g",
+      "carbs": "K {{count}} g",
+      "fat": "F {{count}} g",
+      "fibre": "Bal {{count}} g"
+    },
     "badge": {
       "system": "System",
       "mine": "Meine",
@@ -1169,7 +1173,7 @@
   "recipes": {
     "title": "Rezepte",
     "searchPlaceholder": "Rezepte suchen…",
-    "newRecipe": "+ Neues Rezept",
+    "newRecipe": "Neues Rezept",
     "retry": "Erneut versuchen",
     "noResultsForFilters": "Keine Rezepte passen zu Ihren Filtern.",
     "clearFilters": "Filter zurücksetzen",
@@ -1208,10 +1212,7 @@
       "columnServings": "Portionen",
       "columnTags": "Tags",
       "columnLibrary": "Bibliothek",
-      "caloriesValue": "{{count}} kcal",
-      "proteinValue": "P: {{count}} g",
-      "carbsValue": "K: {{count}} g",
-      "fatValue": "F: {{count}} g",
+      "caloriesUnit": "kcal",
       "ingredientsCount": "{{count}} Zutaten",
       "minutesValue": "{{count}} Min."
     },

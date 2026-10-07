@@ -14,6 +14,8 @@ interface Props {
   selected: string[];
   onChange: (values: string[]) => void;
   id?: string;
+  /** Selected-value pill colour: green by default, red outline for warnings such as allergens. */
+  tone?: 'nutrition' | 'error';
 }
 
 /**
@@ -21,7 +23,7 @@ interface Props {
  * a fixed, enum-backed option list, unlike the free-form tag input. Built on
  * the same Popover + Checkbox primitives as the filter-bar popovers.
  */
-export default function MultiSelectPopover({ placeholder, options, selected, onChange, id }: Props) {
+export default function MultiSelectPopover({ placeholder, options, selected, onChange, id, tone = 'nutrition' }: Props) {
   function toggle(value: string) {
     onChange(selected.includes(value) ? selected.filter((v) => v !== value) : [...selected, value]);
   }
@@ -35,13 +37,29 @@ export default function MultiSelectPopover({ placeholder, options, selected, onC
           type="button"
           id={id}
           className={cn(
-            'flex h-10 w-full min-w-0 items-center justify-between gap-2 rounded-md border border-input bg-background px-3 py-1 text-left text-body text-foreground shadow-none outline-none transition-[color,box-shadow]',
+            'flex min-h-10 w-full min-w-0 items-center justify-between gap-2 rounded-field border border-input bg-background px-3 py-1 text-left text-copy text-foreground shadow-none outline-none transition-[color,box-shadow]',
             'focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50',
           )}
         >
-          <span className={cn('truncate', selectedLabels.length === 0 && 'text-faint')}>
-            {selectedLabels.length > 0 ? selectedLabels.join(', ') : placeholder}
-          </span>
+          {selectedLabels.length > 0 ? (
+            <span className="flex min-w-0 flex-wrap gap-1.5">
+              {selectedLabels.map((label) => (
+                <span
+                  key={label}
+                  className={cn(
+                    'rounded-full px-2.5 py-1 text-meta font-semibold',
+                    tone === 'error'
+                      ? 'border border-error bg-background text-error'
+                      : 'bg-nutrition-soft text-nutrition-ink',
+                  )}
+                >
+                  {label}
+                </span>
+              ))}
+            </span>
+          ) : (
+            <span className="truncate text-faint">{placeholder}</span>
+          )}
           <ChevronDown className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
         </button>
       </PopoverTrigger>
