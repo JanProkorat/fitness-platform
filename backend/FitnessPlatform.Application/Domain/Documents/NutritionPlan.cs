@@ -93,6 +93,13 @@ public class NutritionPlan
     public decimal? TargetWeightKg { get; set; }
 
     /// <summary>
+    /// The template this plan was instantiated from. Set only on instantiation; null otherwise.
+    /// </summary>
+    [BsonElement("sourceTemplateId")]
+    [BsonIgnoreIfNull]
+    public Guid? SourceTemplateId { get; set; }
+
+    /// <summary>
     /// Optimistic concurrency version. Incremented on each update.
     /// </summary>
     [BsonElement("version")]

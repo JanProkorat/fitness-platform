@@ -89,6 +89,22 @@ public class NutritionPlanTemplate : ILibraryDocument
     public int WeekCount { get; set; }
 
     /// <summary>
+    /// Denormalized most-common meal count over non-empty days, server-computed on every write
+    /// path. Null when the template has no non-empty day. Backs the "meals per day" filter.
+    /// </summary>
+    [BsonElement("mealsPerDay")]
+    [BsonIgnoreIfNull]
+    public int? MealsPerDay { get; set; }
+
+    /// <summary>
+    /// Denormalized average kcal per non-empty day, in whole kcal, server-computed on every
+    /// write path. Null when the template has no non-empty day.
+    /// </summary>
+    [BsonElement("avgKcalPerDay")]
+    [BsonIgnoreIfNull]
+    public decimal? AvgKcalPerDay { get; set; }
+
+    /// <summary>
     /// Who can read this entry besides its owner. No initializer — a field-absent document
     /// deserializes to <see cref="LibraryVisibility.Private"/>, the CLR default and the safe
     /// fallback.

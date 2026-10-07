@@ -4,6 +4,7 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.NutritionPlanTemplates.Shared;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 
@@ -17,7 +18,9 @@ namespace FitnessPlatform.Application.Features.NutritionPlanTemplates.CopyTempla
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="timeProvider">Injected time source for audit timestamps.</param>
-public class CopyTemplateEndpoint(IMongoContext mongo, TimeProvider timeProvider) : EndpointWithoutRequest
+/// <param name="macroCalculator">Computes meal kcal for the denormalized list stats.</param>
+public class CopyTemplateEndpoint(IMongoContext mongo, TimeProvider timeProvider, IMacroCalculatorService macroCalculator)
+    : EndpointWithoutRequest
 {
     /// <inheritdoc />
     public override void Configure()
@@ -71,6 +74,8 @@ public class CopyTemplateEndpoint(IMongoContext mongo, TimeProvider timeProvider
             Version = 1,
             DateCreated = timeProvider.GetUtcNow().UtcDateTime
         };
+
+        TemplateStatsCalculator.Apply(copy, macroCalculator);
 
         await mongo.NutritionPlanTemplates.InsertOneAsync(copy, cancellationToken: ct);
 

@@ -2,6 +2,7 @@ using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.NutritionPlanTemplates.Shared;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 
@@ -13,7 +14,8 @@ namespace FitnessPlatform.Application.Features.NutritionPlanTemplates.CreateTemp
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="timeProvider">Injected time source for audit timestamps.</param>
-public class CreateTemplateEndpoint(IMongoContext mongo, TimeProvider timeProvider)
+/// <param name="macroCalculator">Computes meal kcal for the denormalized list stats.</param>
+public class CreateTemplateEndpoint(IMongoContext mongo, TimeProvider timeProvider, IMacroCalculatorService macroCalculator)
     : Endpoint<CreateNutritionPlanTemplateRequest, NutritionPlanTemplateSummaryDto>
 {
     /// <inheritdoc />
@@ -61,6 +63,8 @@ public class CreateTemplateEndpoint(IMongoContext mongo, TimeProvider timeProvid
             Version = 1,
             DateCreated = timeProvider.GetUtcNow().UtcDateTime
         };
+
+        TemplateStatsCalculator.Apply(template, macroCalculator);
 
         await mongo.NutritionPlanTemplates.InsertOneAsync(template, cancellationToken: ct);
 

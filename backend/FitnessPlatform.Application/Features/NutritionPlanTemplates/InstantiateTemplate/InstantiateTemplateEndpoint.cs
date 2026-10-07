@@ -123,6 +123,7 @@ public class InstantiateTemplateEndpoint(
             ClientId = clientUserId,
             NutritionistId = nutritionistId,
             Name = req.Name,
+            SourceTemplateId = template.ExternalId,
             Status = NutritionPlanStatus.Draft,
             GlobalSettings = template.GlobalSettings,
             Goal = template.Goal,
