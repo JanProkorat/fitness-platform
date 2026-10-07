@@ -2,11 +2,11 @@ import { useFormContext, useWatch } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { Eye, Globe, MapPin } from 'lucide-react';
 import { InstagramIcon, LinkedinIcon } from '@/components/profile/SocialIcons';
+import { instagramUrl, linkedinUrl, websiteUrl } from '@/components/profile/profileLinks';
 import ProfileAvatar from '@/components/profile/ProfileAvatar';
 import { initialsOf, type ProfileFormValues } from '@/components/profile/profile-form';
 
 const ROLE_ORDER = ['trainer', 'nutritionist'] as const;
-const MAX_VISIBLE_TAGS = 3;
 
 interface Props {
   avatarUrl: string | undefined;
@@ -35,10 +35,10 @@ export default function ProfilePreviewCard({ avatarUrl, roles }: Props) {
   const languages = (values.languages ?? []).join(', ');
   const certificateCount = (values.certificates ?? []).filter((item) => item.title.trim() !== '').length;
   const links = [
-    { key: 'website', Icon: Globe, value: values.website, label: t('profile.website') },
-    { key: 'instagram', Icon: InstagramIcon, value: values.instagram, label: t('profile.instagram') },
-    { key: 'linkedIn', Icon: LinkedinIcon, value: values.linkedIn, label: t('profile.linkedin') },
-  ].filter((link) => link.value?.trim());
+    { key: 'website', Icon: Globe, href: websiteUrl(values.website), label: t('profile.website') },
+    { key: 'instagram', Icon: InstagramIcon, href: instagramUrl(values.instagram), label: t('profile.instagram') },
+    { key: 'linkedIn', Icon: LinkedinIcon, href: linkedinUrl(values.linkedIn), label: t('profile.linkedin') },
+  ].filter((link): link is typeof link & { href: string } => link.href !== null);
 
   return (
     <aside aria-label={t('profile.page.preview.title')} className="flex flex-col gap-3 xl:sticky xl:top-0 xl:self-start">
@@ -81,16 +81,11 @@ export default function ProfilePreviewCard({ avatarUrl, roles }: Props) {
 
           {tags.length > 0 && (
             <ul className="flex flex-wrap gap-1.5">
-              {tags.slice(0, MAX_VISIBLE_TAGS).map((tag) => (
+              {tags.map((tag) => (
                 <li key={tag} className="rounded-full bg-muted px-2.5 py-1 text-meta font-medium text-ink-2">
                   {tag}
                 </li>
               ))}
-              {tags.length > MAX_VISIBLE_TAGS && (
-                <li className="rounded-full bg-muted px-2.5 py-1 text-meta font-medium text-ink-2">
-                  +{tags.length - MAX_VISIBLE_TAGS}
-                </li>
-              )}
             </ul>
           )}
         </div>
@@ -109,16 +104,24 @@ export default function ProfilePreviewCard({ avatarUrl, roles }: Props) {
             <dt className="text-label font-semibold tracking-label text-muted-foreground uppercase">
               {t('profile.page.preview.languages')}
             </dt>
-            <dd className="truncate text-body font-semibold text-ink">{languages || '—'}</dd>
+            <dd className="text-body font-semibold break-words text-ink">{languages || '—'}</dd>
           </div>
         </dl>
 
         <div className="flex items-center justify-between gap-2 border-t border-border px-4 py-3 text-meta text-muted-foreground">
           <span className="flex items-center gap-2">
-            {links.map(({ key, Icon, label }) => (
-              <span key={key} title={label}>
-                <Icon className="size-3.5" aria-label={label} role="img" />
-              </span>
+            {links.map(({ key, Icon, href, label }) => (
+              <a
+                key={key}
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                title={label}
+                aria-label={label}
+                className="rounded-sm outline-none transition-colors hover:text-ink focus-visible:ring-3 focus-visible:ring-ring/50"
+              >
+                <Icon className="size-3.5" aria-hidden="true" />
+              </a>
             ))}
           </span>
           {certificateCount > 0 && <span>{t('profile.page.preview.certificates', { count: certificateCount })}</span>}

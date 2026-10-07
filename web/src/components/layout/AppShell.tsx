@@ -36,7 +36,7 @@ export default function AppShell() {
       </Sheet>
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-page-glow p-6">
+        <main className="flex-1 overflow-x-hidden overflow-y-auto overscroll-contain bg-page-glow p-6">
           <button
             type="button"
             onClick={() => setNavOpen(true)}
