@@ -8811,239 +8811,11 @@ export class ApiClient {
     }
 
     /**
-     * Search nutrition plan templates
-     * @param page Page number (1-based).
-     * @param pageSize Number of items per page.
-     * @param search (optional) Optional case-insensitive substring match against the template name.
-     * @param goal (optional) Optional filter by primary fitness goal.
-     * @param dietaryStyle (optional) Optional filter by dietary style.
-     * @param weekCount (optional) Optional filter by exact week count.
-     * @return Success
-     */
-    searchTemplatesEndpoint(page: number, pageSize: number, search?: string | null | undefined, goal?: PrimaryGoal | null | undefined, dietaryStyle?: DietaryStyle | null | undefined, weekCount?: number | null | undefined, signal?: AbortSignal): Promise<SearchNutritionPlanTemplatesResponse> {
-        let url_ = this.baseUrl + "/nutrition/plan-templates?";
-        if (page === undefined || page === null)
-            throw new globalThis.Error("The parameter 'page' must be defined and cannot be null.");
-        else
-            url_ += "page=" + encodeURIComponent("" + page) + "&";
-        if (pageSize === undefined || pageSize === null)
-            throw new globalThis.Error("The parameter 'pageSize' must be defined and cannot be null.");
-        else
-            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
-        if (search !== undefined && search !== null)
-            url_ += "search=" + encodeURIComponent("" + search) + "&";
-        if (goal !== undefined && goal !== null)
-            url_ += "goal=" + encodeURIComponent("" + goal) + "&";
-        if (dietaryStyle !== undefined && dietaryStyle !== null)
-            url_ += "dietaryStyle=" + encodeURIComponent("" + dietaryStyle) + "&";
-        if (weekCount !== undefined && weekCount !== null)
-            url_ += "weekCount=" + encodeURIComponent("" + weekCount) + "&";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "GET",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            signal
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processSearchTemplatesEndpoint(_response);
-        });
-    }
-
-    protected processSearchTemplatesEndpoint(response: AxiosResponse): Promise<SearchNutritionPlanTemplatesResponse> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<SearchNutritionPlanTemplatesResponse>(result200);
-
-        } else if (status === 401) {
-            const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
-
-        } else if (status === 403) {
-            const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<SearchNutritionPlanTemplatesResponse>(null as any);
-    }
-
-    /**
-     * Create a nutrition plan template
-     * @return Success
-     */
-    createTemplateEndpoint(createNutritionPlanTemplateRequest: CreateNutritionPlanTemplateRequest, signal?: AbortSignal): Promise<NutritionPlanTemplateSummaryDto> {
-        let url_ = this.baseUrl + "/nutrition/plan-templates";
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(createNutritionPlanTemplateRequest);
-
-        let options_: AxiosRequestConfig = {
-            data: content_,
-            method: "POST",
-            url: url_,
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            },
-            signal
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processCreateTemplateEndpoint(_response);
-        });
-    }
-
-    protected processCreateTemplateEndpoint(response: AxiosResponse): Promise<NutritionPlanTemplateSummaryDto> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<NutritionPlanTemplateSummaryDto>(result200);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status === 401) {
-            const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
-
-        } else if (status === 403) {
-            const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<NutritionPlanTemplateSummaryDto>(null as any);
-    }
-
-    /**
-     * Instantiate a nutrition plan template
-     * @param templateId The template's public identifier (route parameter).
-     * @return Success
-     */
-    instantiateTemplateEndpoint(templateId: string, instantiateNutritionPlanTemplateRequest: InstantiateNutritionPlanTemplateRequest, signal?: AbortSignal): Promise<InstantiateNutritionPlanTemplateResponse> {
-        let url_ = this.baseUrl + "/nutrition/plan-templates/{templateId}/instantiate";
-        if (templateId === undefined || templateId === null)
-            throw new globalThis.Error("The parameter 'templateId' must be defined.");
-        url_ = url_.replace("{templateId}", encodeURIComponent("" + templateId));
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(instantiateNutritionPlanTemplateRequest);
-
-        let options_: AxiosRequestConfig = {
-            data: content_,
-            method: "POST",
-            url: url_,
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            },
-            signal
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processInstantiateTemplateEndpoint(_response);
-        });
-    }
-
-    protected processInstantiateTemplateEndpoint(response: AxiosResponse): Promise<InstantiateNutritionPlanTemplateResponse> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<InstantiateNutritionPlanTemplateResponse>(result200);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status === 401) {
-            const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
-
-        } else if (status === 403) {
-            const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<InstantiateNutritionPlanTemplateResponse>(null as any);
-    }
-
-    /**
      * Delete a nutrition plan template
      * @return No Content
      */
     deleteTemplateEndpoint(templateId: string, signal?: AbortSignal): Promise<void> {
-        let url_ = this.baseUrl + "/nutrition/plan-templates/{TemplateId}";
+        let url_ = this.baseUrl + "/nutrition/plan-templates/{templateId}";
         if (templateId === undefined || templateId === null)
             throw new globalThis.Error("The parameter 'templateId' must be defined.");
         url_ = url_.replace("{templateId}", encodeURIComponent("" + templateId));
@@ -9098,8 +8870,249 @@ export class ApiClient {
     }
 
     /**
-     * Save a nutrition plan as a template
+     * Search nutrition plan templates
+     * @param page Page number (1-based).
+     * @param pageSize Number of items per page.
+     * @param search (optional) Optional case-insensitive substring match against the template name.
+     * @param goal (optional) Optional filter by primary fitness goal.
+     * @param dietaryStyle (optional) Optional filter by dietary style.
+     * @param weekCount (optional) Optional filter by exact week count.
+     * @param mealsPerDay (optional) Optional filter by exact meals-per-day (most common meal count over non-empty days).
+     * @param inUse (optional) Optional filter on whether the caller has at least one Active plan instantiated from the template.
      * @return Success
+     */
+    searchTemplatesEndpoint(page: number, pageSize: number, search?: string | null | undefined, goal?: PrimaryGoal | null | undefined, dietaryStyle?: DietaryStyle | null | undefined, weekCount?: number | null | undefined, mealsPerDay?: number | null | undefined, inUse?: boolean | null | undefined, signal?: AbortSignal): Promise<SearchNutritionPlanTemplatesResponse> {
+        let url_ = this.baseUrl + "/nutrition/plan-templates?";
+        if (page === undefined || page === null)
+            throw new globalThis.Error("The parameter 'page' must be defined and cannot be null.");
+        else
+            url_ += "page=" + encodeURIComponent("" + page) + "&";
+        if (pageSize === undefined || pageSize === null)
+            throw new globalThis.Error("The parameter 'pageSize' must be defined and cannot be null.");
+        else
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        if (search !== undefined && search !== null)
+            url_ += "search=" + encodeURIComponent("" + search) + "&";
+        if (goal !== undefined && goal !== null)
+            url_ += "goal=" + encodeURIComponent("" + goal) + "&";
+        if (dietaryStyle !== undefined && dietaryStyle !== null)
+            url_ += "dietaryStyle=" + encodeURIComponent("" + dietaryStyle) + "&";
+        if (weekCount !== undefined && weekCount !== null)
+            url_ += "weekCount=" + encodeURIComponent("" + weekCount) + "&";
+        if (mealsPerDay !== undefined && mealsPerDay !== null)
+            url_ += "mealsPerDay=" + encodeURIComponent("" + mealsPerDay) + "&";
+        if (inUse !== undefined && inUse !== null)
+            url_ += "inUse=" + encodeURIComponent("" + inUse) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processSearchTemplatesEndpoint(_response);
+        });
+    }
+
+    protected processSearchTemplatesEndpoint(response: AxiosResponse): Promise<SearchNutritionPlanTemplatesResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<SearchNutritionPlanTemplatesResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<SearchNutritionPlanTemplatesResponse>(null as any);
+    }
+
+    /**
+     * Create a nutrition plan template
+     * @return Created
+     */
+    createTemplateEndpoint(createNutritionPlanTemplateRequest: CreateNutritionPlanTemplateRequest, signal?: AbortSignal): Promise<NutritionPlanTemplateSummaryDto> {
+        let url_ = this.baseUrl + "/nutrition/plan-templates";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(createNutritionPlanTemplateRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCreateTemplateEndpoint(_response);
+        });
+    }
+
+    protected processCreateTemplateEndpoint(response: AxiosResponse): Promise<NutritionPlanTemplateSummaryDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 201) {
+            const _responseText = response.data;
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = JSON.parse(resultData201);
+            return Promise.resolve<NutritionPlanTemplateSummaryDto>(result201);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<NutritionPlanTemplateSummaryDto>(null as any);
+    }
+
+    /**
+     * Instantiate a nutrition plan template
+     * @param templateId The template's public identifier (route parameter).
+     * @return Created
+     */
+    instantiateTemplateEndpoint(templateId: string, instantiateNutritionPlanTemplateRequest: InstantiateNutritionPlanTemplateRequest, signal?: AbortSignal): Promise<InstantiateNutritionPlanTemplateResponse> {
+        let url_ = this.baseUrl + "/nutrition/plan-templates/{templateId}/instantiate";
+        if (templateId === undefined || templateId === null)
+            throw new globalThis.Error("The parameter 'templateId' must be defined.");
+        url_ = url_.replace("{templateId}", encodeURIComponent("" + templateId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(instantiateNutritionPlanTemplateRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processInstantiateTemplateEndpoint(_response);
+        });
+    }
+
+    protected processInstantiateTemplateEndpoint(response: AxiosResponse): Promise<InstantiateNutritionPlanTemplateResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 201) {
+            const _responseText = response.data;
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = JSON.parse(resultData201);
+            return Promise.resolve<InstantiateNutritionPlanTemplateResponse>(result201);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<InstantiateNutritionPlanTemplateResponse>(null as any);
+    }
+
+    /**
+     * Save a nutrition plan as a template
+     * @return Created
      */
     createTemplateFromPlanEndpoint(createNutritionPlanTemplateFromPlanRequest: CreateNutritionPlanTemplateFromPlanRequest, signal?: AbortSignal): Promise<NutritionPlanTemplateSummaryDto> {
         let url_ = this.baseUrl + "/nutrition/plan-templates/from-plan";
@@ -9139,12 +9152,12 @@ export class ApiClient {
                 }
             }
         }
-        if (status === 200) {
+        if (status === 201) {
             const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<NutritionPlanTemplateSummaryDto>(result200);
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = JSON.parse(resultData201);
+            return Promise.resolve<NutritionPlanTemplateSummaryDto>(result201);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -9170,10 +9183,10 @@ export class ApiClient {
 
     /**
      * Copy a nutrition plan template
-     * @return No Content
+     * @return Created
      */
-    copyTemplateEndpoint(templateId: string, signal?: AbortSignal): Promise<void> {
-        let url_ = this.baseUrl + "/nutrition/plan-templates/{TemplateId}/copy";
+    copyTemplateEndpoint(templateId: string, signal?: AbortSignal): Promise<NutritionPlanTemplateSummaryDto> {
+        let url_ = this.baseUrl + "/nutrition/plan-templates/{templateId}/copy";
         if (templateId === undefined || templateId === null)
             throw new globalThis.Error("The parameter 'templateId' must be defined.");
         url_ = url_.replace("{templateId}", encodeURIComponent("" + templateId));
@@ -9183,6 +9196,7 @@ export class ApiClient {
             method: "POST",
             url: url_,
             headers: {
+                "Accept": "application/json"
             },
             signal
         };
@@ -9198,7 +9212,7 @@ export class ApiClient {
         });
     }
 
-    protected processCopyTemplateEndpoint(response: AxiosResponse): Promise<void> {
+    protected processCopyTemplateEndpoint(response: AxiosResponse): Promise<NutritionPlanTemplateSummaryDto> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -9208,9 +9222,12 @@ export class ApiClient {
                 }
             }
         }
-        if (status === 204) {
+        if (status === 201) {
             const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = JSON.parse(resultData201);
+            return Promise.resolve<NutritionPlanTemplateSummaryDto>(result201);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -9224,7 +9241,7 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<void>(null as any);
+        return Promise.resolve<NutritionPlanTemplateSummaryDto>(null as any);
     }
 
     /**
@@ -16956,7 +16973,7 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("Invalid input, or invalid/expired reset request", status, _responseText, _headers, result400);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -18125,6 +18142,8 @@ export enum PrimaryGoal {
     Recomposition = "Recomposition",
     Fitness = "Fitness",
     Health = "Health",
+    Maintain = "Maintain",
+    Performance = "Performance",
 }
 
 /** Difficulty level of an exercise. */
@@ -21151,6 +21170,11 @@ export interface NutritionPlanTemplateDetailDto {
     weeks?: TemplateWeek[];
     /** Number of weeks, server-computed from Weeks. */
     weekCount?: number;
+    /** Most common meal count over the template's non-empty days (days with at least one meal,
+across all weeks); ties resolve to the smaller count. Null when no day has a meal. */
+    mealsPerDay?: number | undefined;
+    /** Average kcal per non-empty day, in whole kcal. Null when no day has a meal. */
+    avgKcalPerDay?: number | undefined;
     /** Who can read this entry besides its owner. */
     visibility?: LibraryVisibility;
     /** True when the authenticated caller is the nutritionist who owns this template. */
@@ -21402,6 +21426,14 @@ export interface NutritionPlanTemplateSummaryDto {
     dietaryStyle?: DietaryStyle | undefined;
     /** Number of weeks, server-computed from the template's week tree. */
     weekCount?: number;
+    /** Most common meal count over the template's non-empty days (days with at least one meal,
+across all weeks); ties resolve to the smaller count. Null when no day has a meal. */
+    mealsPerDay?: number | undefined;
+    /** Average kcal per non-empty day, in whole kcal. Null when no day has a meal. */
+    avgKcalPerDay?: number | undefined;
+    /** Number of the caller's own Active plans instantiated from this template; other
+nutritionists' usage is never counted. */
+    usedBy?: number;
     /** Who can read this entry besides its owner. */
     visibility?: LibraryVisibility;
     /** True when the authenticated caller is the nutritionist who owns this template. */

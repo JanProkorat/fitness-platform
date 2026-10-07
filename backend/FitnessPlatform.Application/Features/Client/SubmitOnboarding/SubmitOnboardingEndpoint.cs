@@ -105,6 +105,8 @@ public class SubmitOnboardingEndpoint(IApplicationDbContext dbContext, IAuditSer
             PrimaryGoal.Recomposition => NutritionGoal.Cut, // slight deficit for recomp
             PrimaryGoal.Fitness => NutritionGoal.Maintain,
             PrimaryGoal.Health => NutritionGoal.Maintain,
+            PrimaryGoal.Maintain => NutritionGoal.Maintain,
+            PrimaryGoal.Performance => NutritionGoal.Maintain,
             _ => NutritionGoal.Maintain
         };
 

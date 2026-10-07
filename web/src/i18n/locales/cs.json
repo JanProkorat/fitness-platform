@@ -197,6 +197,7 @@
     "settings": "Nastavení",
     "profileLink": "Otevřít profil",
     "recipes": "Recepty",
+    "planTemplates": "Šablony plánů",
     "exercises": "Cviky",
     "sectionTemplates": "Workouty",
     "trainingPlans": "Tréninkové plány",
@@ -538,6 +539,8 @@
       "Recomposition": "Rekomposice",
       "Fitness": "Zlepšit celkovou kondici",
       "Health": "Zdraví a prevence",
+      "Maintain": "Udržet váhu",
+      "Performance": "Zlepšit výkon",
       "ThreeMonths": "3 měsíce",
       "SixMonths": "6 měsíců",
       "OneYear": "1 rok+",
@@ -1527,6 +1530,103 @@
       }
     }
   },
+  "planTemplates": {
+    "title": "Šablony plánů",
+    "subtitle": "Znovupoužitelné jídelníčky — vytvořte jednou, přiřaďte kterémukoli klientovi",
+    "newTemplate": "Nová šablona",
+    "searchPlaceholder": "Hledat šablony…",
+    "retry": "Zkusit znovu",
+    "noResultsForFilters": "Filtrům neodpovídá žádná šablona.",
+    "clearFilters": "Zrušit filtry",
+    "createError": "Šablonu se nepodařilo vytvořit. Zkuste to prosím znovu.",
+    "copySuccess": "Šablona byla zkopírována do vaší knihovny.",
+    "copyError": "Šablonu se nepodařilo zkopírovat. Zkuste to prosím znovu.",
+    "deleteSuccess": "Šablona byla smazána.",
+    "deleteError": "Šablonu se nepodařilo smazat. Zkuste to prosím znovu.",
+    "empty": {
+      "title": "Zatím žádné šablony plánů",
+      "hint": "Vytvořte první šablonu a používejte ji u více klientů",
+      "create": "Nová šablona"
+    },
+    "nutritionistsOnly": {
+      "title": "Šablony plánů jsou dostupné nutričním poradcům",
+      "body": "Váš účet je trenérský, proto pro vás šablony plánů nejsou dostupné."
+    },
+    "filters": {
+      "goal": "Cíl",
+      "length": "Délka",
+      "mealsPerDay": "Jídel denně",
+      "inUse": "Používané",
+      "inUseYes": "Používané",
+      "inUseNo": "Nepoužívané"
+    },
+    "table": {
+      "columnTemplate": "Šablona",
+      "columnGoal": "Cíl",
+      "columnLength": "Délka",
+      "columnAvgPerDay": "Průměr za den",
+      "columnMealsPerDay": "Jídel / den",
+      "columnUsedBy": "Používá",
+      "columnEdited": "Upraveno",
+      "columnActions": "Akce",
+      "setGoal": "+ Nastavit cíl",
+      "weeks_one": "{{count}} týden",
+      "weeks_few": "{{count}} týdny",
+      "weeks_many": "{{count}} týdne",
+      "weeks_other": "{{count}} týdnů",
+      "kcalUnit": "kcal"
+    },
+    "rowMenu": {
+      "open": "Akce pro {{name}}",
+      "openTemplate": "Otevřít",
+      "copy": "Kopírovat",
+      "delete": "Smazat"
+    },
+    "deleteDialog": {
+      "title": "Smazat šablonu",
+      "description": "Smazat „{{name}}“? Plány, které už z ní vznikly, zůstanou beze změny. Tuto akci nelze vrátit.",
+      "confirm": "Smazat"
+    },
+    "new": {
+      "title": "Nová šablona",
+      "subtitle": "Nastavte rámec — jídla doplníte v editoru",
+      "name": "Název",
+      "namePlaceholder": "např. Redukce — 4 týdny",
+      "nameInvalid": "Zadejte název dlouhý nejvýše 200 znaků.",
+      "description": "Popis",
+      "descriptionPlaceholder": "K čemu tato šablona slouží?",
+      "descriptionInvalid": "Popis může mít nejvýše 2000 znaků.",
+      "goal": "Cíl",
+      "goalHint": "Šablonu nabídneme klientům se stejným cílem.",
+      "goalRequired": "Vyberte cíl.",
+      "weeks": "Počet týdnů",
+      "weeksDecrease": "Méně týdnů",
+      "weeksIncrease": "Více týdnů",
+      "weeksSummary_one": "týden · {{days}} dní",
+      "weeksSummary_few": "týdny · {{days}} dní",
+      "weeksSummary_many": "týdne · {{days}} dní",
+      "weeksSummary_other": "týdnů · {{days}} dní",
+      "meals": "Jídel denně",
+      "mealsHint": "Z nich se stanou řádky editoru. Později je můžete změnit.",
+      "mealsRequired": "Vyberte alespoň jedno jídlo.",
+      "dailyKcal": "Denní kalorický cíl",
+      "optional": "(nepovinné)",
+      "kcalUnit": "kcal",
+      "kcalInvalid": "Zadejte celé číslo kcal od 1 do 20000.",
+      "submit": "Vytvořit a otevřít editor"
+    },
+    "slots": {
+      "breakfast": "Snídaně",
+      "snack": "Svačina",
+      "lunch": "Oběd",
+      "snack2": "Svačina 2",
+      "dinner": "Večeře"
+    },
+    "editorPlaceholder": {
+      "back": "Šablony plánů",
+      "body": "Editor šablon brzy přibude."
+    }
+  },
   "richTextEditor": {
     "placeholder": "Začněte psát...",
     "list": "Seznam",
@@ -1602,7 +1702,10 @@
     "RECIPE_FOOD_NOT_AVAILABLE": "Jedna ze surovin už není dostupná. Odeberte ji a zkuste to znovu.",
     "RECIPE_NOT_OWNED": "Můžete upravovat jen své vlastní recepty.",
     "RECIPE_GALLERY_FULL": "Tento recept už má maximální počet obrázků.",
-    "RECIPE_GALLERY_IMAGE_NOT_FOUND": "Tento obrázek už k receptu nepatří. Mohl být změněn jinde."
+    "RECIPE_GALLERY_IMAGE_NOT_FOUND": "Tento obrázek už k receptu nepatří. Mohl být změněn jinde.",
+    "NUTRITION_PLAN_TEMPLATE_NOT_FOUND": "Tato šablona plánu už neexistuje.",
+    "NUTRITION_PLAN_TEMPLATE_NOT_OWNED": "Měnit můžete jen vlastní šablony plánů.",
+    "NUTRITION_PLAN_TEMPLATE_VERSION_CONFLICT": "Tato šablona plánu byla změněna jinde. Načtěte ji znovu, abyste viděli nejnovější verzi."
   },
   "nutritionGoals": {
     "title": "Cíle & makra",
@@ -1706,6 +1809,8 @@
     "goal_Recomposition": "Rekompozice",
     "goal_Fitness": "Kondice",
     "goal_Health": "Zdraví",
+    "goal_Maintain": "Udržení",
+    "goal_Performance": "Výkon",
     "motivation_Appearance": "Vzhled",
     "motivation_Health": "Zdraví",
     "motivation_Performance": "Výkon",

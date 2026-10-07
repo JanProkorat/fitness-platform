@@ -197,6 +197,7 @@
     "settings": "Settings",
     "profileLink": "Open your profile",
     "recipes": "Recipes",
+    "planTemplates": "Plan templates",
     "exercises": "Exercises",
     "sectionTemplates": "Workouts",
     "trainingPlans": "Training Plans",
@@ -520,6 +521,8 @@
       "Recomposition": "Recomposition",
       "Fitness": "Improve fitness",
       "Health": "Health & prevention",
+      "Maintain": "Maintain weight",
+      "Performance": "Improve performance",
       "ThreeMonths": "3 months",
       "SixMonths": "6 months",
       "OneYear": "1 year+",
@@ -1504,6 +1507,99 @@
       }
     }
   },
+  "planTemplates": {
+    "title": "Plan templates",
+    "subtitle": "Reusable nutrition plans — build once, assign to any client",
+    "newTemplate": "New template",
+    "searchPlaceholder": "Search templates…",
+    "retry": "Retry",
+    "noResultsForFilters": "No templates match your filters.",
+    "clearFilters": "Clear filters",
+    "createError": "Couldn't create the template. Please try again.",
+    "copySuccess": "Template copied to your library.",
+    "copyError": "Couldn't copy the template. Please try again.",
+    "deleteSuccess": "Template deleted.",
+    "deleteError": "Couldn't delete the template. Please try again.",
+    "empty": {
+      "title": "No plan templates yet",
+      "hint": "Create your first template to reuse it across clients",
+      "create": "New template"
+    },
+    "nutritionistsOnly": {
+      "title": "Plan templates are available to nutritionists",
+      "body": "Your account is a trainer account, so plan templates are not available to you."
+    },
+    "filters": {
+      "goal": "Goal",
+      "length": "Length",
+      "mealsPerDay": "Meals per day",
+      "inUse": "In use",
+      "inUseYes": "In use",
+      "inUseNo": "Not in use"
+    },
+    "table": {
+      "columnTemplate": "Template",
+      "columnGoal": "Goal",
+      "columnLength": "Length",
+      "columnAvgPerDay": "Avg per day",
+      "columnMealsPerDay": "Meals / day",
+      "columnUsedBy": "Used by",
+      "columnEdited": "Edited",
+      "columnActions": "Actions",
+      "setGoal": "+ Set goal",
+      "weeks_one": "{{count}} week",
+      "weeks_other": "{{count}} weeks",
+      "kcalUnit": "kcal"
+    },
+    "rowMenu": {
+      "open": "Actions for {{name}}",
+      "openTemplate": "Open",
+      "copy": "Copy",
+      "delete": "Delete"
+    },
+    "deleteDialog": {
+      "title": "Delete template",
+      "description": "Delete \"{{name}}\"? Plans already created from it stay as they are. This can't be undone.",
+      "confirm": "Delete"
+    },
+    "new": {
+      "title": "New template",
+      "subtitle": "Set the frame — you'll fill the meals in the editor",
+      "name": "Name",
+      "namePlaceholder": "e.g. Cut — 4 weeks",
+      "nameInvalid": "Enter a name of up to 200 characters.",
+      "description": "Description",
+      "descriptionPlaceholder": "What is this template for?",
+      "descriptionInvalid": "The description can be at most 2000 characters.",
+      "goal": "Goal",
+      "goalHint": "We suggest this template for clients with the same goal.",
+      "goalRequired": "Choose a goal.",
+      "weeks": "Number of weeks",
+      "weeksDecrease": "Fewer weeks",
+      "weeksIncrease": "More weeks",
+      "weeksSummary_one": "week · {{days}} days",
+      "weeksSummary_other": "weeks · {{days}} days",
+      "meals": "Meals per day",
+      "mealsHint": "These become the rows of the editor. You can change them later.",
+      "mealsRequired": "Choose at least one meal.",
+      "dailyKcal": "Daily calorie target",
+      "optional": "(optional)",
+      "kcalUnit": "kcal",
+      "kcalInvalid": "Enter a whole number of kcal between 1 and 20000.",
+      "submit": "Create & open editor"
+    },
+    "slots": {
+      "breakfast": "Breakfast",
+      "snack": "Snack",
+      "lunch": "Lunch",
+      "snack2": "Snack 2",
+      "dinner": "Dinner"
+    },
+    "editorPlaceholder": {
+      "back": "Plan templates",
+      "body": "The template editor is coming soon."
+    }
+  },
   "richTextEditor": {
     "placeholder": "Start writing...",
     "list": "List",
@@ -1579,7 +1675,10 @@
     "RECIPE_FOOD_NOT_AVAILABLE": "One of the ingredients is no longer available. Remove it and try again.",
     "RECIPE_NOT_OWNED": "You can only change your own recipes.",
     "RECIPE_GALLERY_FULL": "This recipe already has the maximum number of pictures.",
-    "RECIPE_GALLERY_IMAGE_NOT_FOUND": "That picture is no longer part of this recipe. It may have been changed elsewhere."
+    "RECIPE_GALLERY_IMAGE_NOT_FOUND": "That picture is no longer part of this recipe. It may have been changed elsewhere.",
+    "NUTRITION_PLAN_TEMPLATE_NOT_FOUND": "This plan template no longer exists.",
+    "NUTRITION_PLAN_TEMPLATE_NOT_OWNED": "You can only change your own plan templates.",
+    "NUTRITION_PLAN_TEMPLATE_VERSION_CONFLICT": "This plan template was changed elsewhere. Reload it to see the latest version."
   },
   "nutritionGoals": {
     "title": "Goals & Macros",
@@ -1683,6 +1782,8 @@
     "goal_Recomposition": "Recomposition",
     "goal_Fitness": "Fitness",
     "goal_Health": "Health",
+    "goal_Maintain": "Maintain",
+    "goal_Performance": "Performance",
     "motivation_Appearance": "Appearance",
     "motivation_Health": "Health",
     "motivation_Performance": "Performance",

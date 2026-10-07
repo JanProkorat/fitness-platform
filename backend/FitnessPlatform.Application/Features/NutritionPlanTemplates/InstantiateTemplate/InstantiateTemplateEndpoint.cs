@@ -36,6 +36,8 @@ public class InstantiateTemplateEndpoint(
     {
         Post("/nutrition/plan-templates/{TemplateId}/instantiate");
         Roles(AppRoles.Nutritionist);
+        Description(b => b.ClearDefaultProduces(StatusCodes.Status200OK)
+            .Produces<InstantiateNutritionPlanTemplateResponse>(StatusCodes.Status201Created));
         Summary(s =>
         {
             s.Summary = "Instantiate a nutrition plan template";

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import {
   Bell,
   BookOpen,
+  CalendarDays,
   ChevronDown,
   Columns,
   HelpCircle,
@@ -38,6 +39,7 @@ const NAV_SECTIONS = [
     items: [
       { to: '/recipes', labelKey: 'sidebar.recipes', Icon: BookOpen },
       { to: '/ingredients', labelKey: 'sidebar.ingredients', Icon: Columns },
+      { to: '/plan-templates', labelKey: 'sidebar.planTemplates', Icon: CalendarDays },
     ],
   },
 ] as const;

@@ -25,8 +25,10 @@ public class CopyTemplateEndpoint(IMongoContext mongo, TimeProvider timeProvider
     /// <inheritdoc />
     public override void Configure()
     {
-        Post("/nutrition/plan-templates/{TemplateId}/copy");
+        Post("/nutrition/plan-templates/{templateId}/copy");
         Roles(AppRoles.Nutritionist);
+        Description(b => b.ClearDefaultProduces(StatusCodes.Status200OK)
+            .Produces<NutritionPlanTemplateSummaryDto>(StatusCodes.Status201Created));
         Summary(s =>
         {
             s.Summary = "Copy a nutrition plan template";
@@ -46,7 +48,7 @@ public class CopyTemplateEndpoint(IMongoContext mongo, TimeProvider timeProvider
         }
 
         var callerId = Guid.Parse(userId);
-        var templateId = Route<Guid>("TemplateId");
+        var templateId = Route<Guid>("templateId");
 
         var source = await this.LoadLibraryEntryForReadOrRespondAsync(
             mongo.NutritionPlanTemplates, templateId, callerId, NutritionPlanTemplateLibrary.Denial, ct);
