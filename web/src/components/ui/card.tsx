@@ -5,8 +5,8 @@ import { cn } from '@/lib/utils';
 /**
  * Standalone-page card primitive (prototype `.card`, scratchpad
  * gf-register.html) — the centred single-card shell used by the
- * verify-email and reset-password pages (#1058 phase 3). Not used inside
- * the sign-in dialog, which has its own shell.
+ * verify-email page. Not used inside the sign-in dialog, which has its own
+ * shell.
  */
 function Card({ className, ...props }: React.ComponentProps<'div'>) {
   return (

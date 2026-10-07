@@ -1,7 +1,7 @@
 /**
  * Account-flow pages spanning multiple routes — the sign-in dialog routes
- * ("/login", "/forgot-password"), the "/register" page, "/verify-email" and
- * "/auth/reset-password" — #1058 phase 4.
+ * ("/login", "/forgot-password", "/auth/reset-password"), the "/register"
+ * page and "/verify-email" — #1058 phase 4.
  *
  * Runs under the `public` project (playwright.config.ts) — no `setup`
  * dependency, no `storageState`, genuinely signed-out context, matching
@@ -178,33 +178,106 @@ test('/verify-email?token=<bogus> calls /auth/verify-email exactly once', async 
 
 
 
-test('/auth/reset-password with no query params renders the invalid-link state with no password inputs; with token+email it renders the form', async ({
+test('/auth/reset-password with no query params renders the expired step with no password inputs; with token+email it renders the form', async ({
   page,
 }) => {
-  // Regression: ResetPasswordPage reads `token` and `email` from the query
-  // ONCE and gates on `!!token && emailIsWellFormed` — a missing/malformed
-  // either one must render the invalid-link state immediately, WITHOUT
-  // mounting the password form or calling the API. Token validity itself is
-  // only ever checked server-side on submit (`ResetPasswordEndpoint`), so
-  // any non-empty token value plus a syntactically valid email is enough to
-  // render the form — a literally empty `?token=&email=` is indistinguishable
-  // from "no query params" (`URLSearchParams.get` returns `''`, which is
-  // falsy), so both must show the same invalid-link state.
+  // ResetPasswordForm reads `token` and `email` from the query ONCE; a
+  // missing/malformed either one must render the expired step immediately,
+  // WITHOUT mounting the password form or calling the API. Token validity is
+  // only checked server-side on submit, so any non-empty token plus a
+  // syntactically valid email renders the form. A literally empty
+  // `?token=&email=` reads as falsy, so it shows the expired step too.
   await page.goto('/auth/reset-password');
   await page.waitForLoadState('networkidle');
 
-  await expect(page.getByRole('heading', { name: "This link isn't valid" })).toBeVisible();
+  await expect(page.getByRole('dialog', { name: 'This link has expired' })).toBeVisible();
   await expect(page.locator('input[type="password"]')).toHaveCount(0);
 
   await page.goto('/auth/reset-password?token=&email=');
   await page.waitForLoadState('networkidle');
 
-  await expect(page.getByRole('heading', { name: "This link isn't valid" })).toBeVisible();
+  await expect(page.getByRole('dialog', { name: 'This link has expired' })).toBeVisible();
   await expect(page.locator('input[type="password"]')).toHaveCount(0);
 
   await page.goto('/auth/reset-password?token=some-reset-token-value&email=someone%40example.com');
   await page.waitForLoadState('networkidle');
 
-  await expect(page.getByRole('heading', { name: 'Set a new password' })).toBeVisible();
+  const dialog = page.getByRole('dialog', { name: 'Set a new password' });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByText('For someone@example.com.')).toBeVisible();
   await expect(page.locator('input[type="password"]')).toHaveCount(2);
+});
+
+test('/auth/reset-password: a bogus token with a valid password lands on the expired step', async ({
+  page,
+}) => {
+  // The endpoint answers one generic 400 for a bad, expired or used token and
+  // for an unknown email, so the web shows the expired step for it.
+  await page.goto('/auth/reset-password?token=definitely-bogus-token&email=someone%40example.com');
+
+  await page.getByLabel('New password', { exact: true }).fill('CorrectHorse9');
+  await page.getByLabel('Repeat new password').fill('CorrectHorse9');
+  await page.getByRole('button', { name: 'Save new password' }).click();
+
+  await expect(page.getByRole('dialog', { name: 'This link has expired' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Send a new link' })).toBeVisible();
+  await expect(page.locator('input[type="password"]')).toHaveCount(0);
+});
+
+test('/auth/reset-password: Show/Hide toggles each field and a mismatch is flagged', async ({
+  page,
+}) => {
+  await page.goto('/auth/reset-password?token=some-reset-token-value&email=someone%40example.com');
+
+  const newPassword = page.getByLabel('New password', { exact: true });
+  await page.getByRole('button', { name: 'Show new password' }).click();
+  await expect(newPassword).toHaveAttribute('type', 'text');
+  await page.getByRole('button', { name: 'Hide new password' }).click();
+  await expect(newPassword).toHaveAttribute('type', 'password');
+
+  await newPassword.fill('CorrectHorse9');
+  await page.getByLabel('Repeat new password').fill('Different9x');
+  await page.getByRole('button', { name: 'Save new password' }).click();
+  await expect(page.getByText("Passwords don't match.")).toBeVisible();
+});
+
+test('/auth/reset-password: a signed-in browser still reaches the form and is signed out after a reset', async ({
+  page,
+}) => {
+  // EntryPage must not bounce an authenticated visitor to /clients on the
+  // reset route, and a successful reset clears the local session so "Sign in"
+  // opens /login. The API is mocked: restoring a session needs a real refresh
+  // token, and a real reset token needs the mail harness.
+  await page.route('**/auth/refresh', (route) =>
+    route.fulfill({ json: { accessToken: 'access-token', refreshToken: 'refresh-token' } })
+  );
+  await page.route('**/users/me', (route) =>
+    route.fulfill({
+      json: {
+        userId: 'u-1',
+        email: 'someone@example.com',
+        firstName: 'Some',
+        lastName: 'One',
+        roles: ['Trainer'],
+        emailConfirmed: true,
+      },
+    })
+  );
+  await page.route('**/auth/password/reset', (route) => route.fulfill({ status: 200, json: {} }));
+  await page.addInitScript("window.localStorage.setItem('refreshToken', 'stored-refresh-token');");
+
+  await page.goto('/auth/reset-password?token=some-reset-token-value&email=someone%40example.com');
+  await expect(page.getByRole('dialog', { name: 'Set a new password' })).toBeVisible();
+  await expect(page).toHaveURL(/\/auth\/reset-password/);
+
+  await page.getByLabel('New password', { exact: true }).fill('CorrectHorse9');
+  await page.getByLabel('Repeat new password').fill('CorrectHorse9');
+  await page.getByRole('button', { name: 'Save new password' }).click();
+
+  await expect(page.getByRole('dialog', { name: 'Password changed' })).toBeVisible();
+  expect(await page.evaluate(() => window.localStorage.getItem('refreshToken'))).toBeNull();
+
+  await page.getByRole('dialog').getByRole('button', { name: 'Sign in' }).click();
+  await expect(page).toHaveURL(/\/login$/);
+  await expect(page.getByRole('dialog', { name: 'Welcome back' })).toBeVisible();
 });

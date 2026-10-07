@@ -165,8 +165,9 @@ export async function requestPasswordReset(email: string): Promise<void> {
  * Completes a password reset using the token + email from the reset link.
  * Returns one generic failure for an invalid/expired/already-used token AND
  * for an unknown email (anti-enumeration, #656) — do not try to distinguish
- * them client-side. Does NOT revoke sessions and does NOT sign the caller
- * in (`ResetPasswordEndpoint.cs:43-62`).
+ * them client-side. A weak password is a 400 with a `newPassword` field
+ * error. Success revokes all of the user's refresh tokens; it does not sign
+ * the caller in.
  */
 export async function resetPassword(payload: ResetPasswordRequest): Promise<void> {
   await api.put('/auth/password/reset', payload);
