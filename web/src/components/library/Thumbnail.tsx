@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { ImageOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useImageVersion } from '@/hooks/useImageVersion';
 
@@ -22,7 +23,7 @@ interface Props {
 
 /**
  * Small square thumbnail shown to the left of a row's name in the Ingredients
- * and Recipes tables. Falls back to a tinted placeholder when there is no
+ * and Recipes tables. Falls back to a "no image" icon when there is no
  * picture, or if the stored URL fails to load. When a picture IS loaded, the
  * thumbnail becomes its own button so activating it opens the lightbox
  * instead of the row's own click — `stopPropagation` keeps the two apart.
@@ -39,11 +40,11 @@ export default function Thumbnail({ cacheKey, imageUrl, name, className, onViewP
   return (
     <div
       className={cn(
-        'flex size-8.5 shrink-0 items-center justify-center overflow-hidden rounded-md bg-photo-sand',
+        'flex size-8.5 shrink-0 items-center justify-center overflow-hidden rounded-md bg-muted',
         className,
       )}
     >
-      {src && !loadFailed && (
+      {src && !loadFailed ? (
         <button
           type="button"
           aria-label={t('library.picture.viewPictureOf', { name })}
@@ -60,6 +61,8 @@ export default function Thumbnail({ cacheKey, imageUrl, name, className, onViewP
             onError={() => setLoadFailed(true)}
           />
         </button>
+      ) : (
+        <ImageOff className="size-4 text-muted-foreground" aria-hidden="true" />
       )}
     </div>
   );
