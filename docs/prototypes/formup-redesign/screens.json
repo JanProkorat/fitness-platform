@@ -513,13 +513,157 @@
   "html": "web/17-01-page-profile-c.html",
   "png": "web/17-01-page-profile-c.png",
   "w": 1440,
-  "h": 2540
+  "h": 2840
  },
  {
   "html": "web/18-01-page-profile-d.html",
   "png": "web/18-01-page-profile-d.png",
   "w": 1440,
-  "h": 2540
+  "h": 2840
+ },
+ {
+  "html": "web/19-01-page-settings-c.html",
+  "png": "web/19-01-page-settings-c.png",
+  "w": 1440,
+  "h": 1700
+ },
+ {
+  "html": "web/19-02-page-account-menu-c.html",
+  "png": "web/19-02-page-account-menu-c.png",
+  "w": 860,
+  "h": 600
+ },
+ {
+  "html": "web/19-03-page-settings-roles-one-c.html",
+  "png": "web/19-03-page-settings-roles-one-c.png",
+  "w": 860,
+  "h": 600
+ },
+ {
+  "html": "web/19-04-page-settings-disable-c.html",
+  "png": "web/19-04-page-settings-disable-c.png",
+  "w": 860,
+  "h": 800
+ },
+ {
+  "html": "web/19-05-page-settings-remove-trainer-c.html",
+  "png": "web/19-05-page-settings-remove-trainer-c.png",
+  "w": 860,
+  "h": 800
+ },
+ {
+  "html": "web/19-06-page-settings-remove-nutrition-c.html",
+  "png": "web/19-06-page-settings-remove-nutrition-c.png",
+  "w": 860,
+  "h": 800
+ },
+ {
+  "html": "web/19-07-page-settings-password-c.html",
+  "png": "web/19-07-page-settings-password-c.png",
+  "w": 860,
+  "h": 800
+ },
+ {
+  "html": "web/20-01-page-settings-d.html",
+  "png": "web/20-01-page-settings-d.png",
+  "w": 1440,
+  "h": 1700
+ },
+ {
+  "html": "web/20-02-page-account-menu-d.html",
+  "png": "web/20-02-page-account-menu-d.png",
+  "w": 860,
+  "h": 600
+ },
+ {
+  "html": "web/20-03-page-settings-roles-one-d.html",
+  "png": "web/20-03-page-settings-roles-one-d.png",
+  "w": 860,
+  "h": 600
+ },
+ {
+  "html": "web/20-04-page-settings-disable-d.html",
+  "png": "web/20-04-page-settings-disable-d.png",
+  "w": 860,
+  "h": 800
+ },
+ {
+  "html": "web/20-05-page-settings-remove-trainer-d.html",
+  "png": "web/20-05-page-settings-remove-trainer-d.png",
+  "w": 860,
+  "h": 800
+ },
+ {
+  "html": "web/20-06-page-settings-remove-nutrition-d.html",
+  "png": "web/20-06-page-settings-remove-nutrition-d.png",
+  "w": 860,
+  "h": 800
+ },
+ {
+  "html": "web/20-07-page-settings-password-d.html",
+  "png": "web/20-07-page-settings-password-d.png",
+  "w": 860,
+  "h": 800
+ },
+ {
+  "html": "web/21-01-page-reset-request-c.html",
+  "png": "web/21-01-page-reset-request-c.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/21-02-page-reset-check-email-c.html",
+  "png": "web/21-02-page-reset-check-email-c.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/21-03-page-reset-new-password-c.html",
+  "png": "web/21-03-page-reset-new-password-c.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/21-04-page-reset-done-c.html",
+  "png": "web/21-04-page-reset-done-c.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/21-05-page-reset-expired-c.html",
+  "png": "web/21-05-page-reset-expired-c.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/22-01-page-reset-request-d.html",
+  "png": "web/22-01-page-reset-request-d.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/22-02-page-reset-check-email-d.html",
+  "png": "web/22-02-page-reset-check-email-d.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/22-03-page-reset-new-password-d.html",
+  "png": "web/22-03-page-reset-new-password-d.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/22-04-page-reset-done-d.html",
+  "png": "web/22-04-page-reset-done-d.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/22-05-page-reset-expired-d.html",
+  "png": "web/22-05-page-reset-expired-d.png",
+  "w": 1440,
+  "h": 900
  },
  {
   "html": "mobile-light/01-01-login.html",

@@ -12,13 +12,27 @@ canvas = json.load(open(os.path.join(HERE, "project", "canvas.json")))
 
 # Navigation shared by every page with the sidebar or the collapsed rail.
 NAV = {"Clients": "PageClients", "Inbox": "PageInbox", "Recipes": "PageRecipes", "Ingredients": "PageIngredients",
-       "Plan templates": "PageTemplates", "Forms": "PageForms", "Log out": "PageHome"}
+       "Plan templates": "PageTemplates", "Forms": "PageForms", "Log out": "PageHome", "Martin Král": "PageAccountMenu"}
 
 # Per page: visible text, aria-label or title of the clicked element -> target board.
 # A key starting with ^ matches the beginning of the text, * matches anywhere in it.
 FLOWS = {
     "PageHome": {"Sign in": "PageHomeSignIn", "Create account": "PageRegister"},
-    "PageHomeSignIn": {"Close": "PageHome", "Sign in": "PageClients", "Create account": "PageRegister"},
+    "PageHomeSignIn": {"Close": "PageHome", "Sign in": "PageClients", "Create account": "PageRegister", "Forgot password?": "PageResetRequest"},
+    "PageResetRequest": {"Send reset link": "PageResetCheckEmail", "Back to sign in": "PageHomeSignIn"},
+    "PageResetCheckEmail": {"^The link works": "PageResetNewPassword", "Send again": "PageResetCheckEmail", "Back to sign in": "PageHomeSignIn"},
+    "PageResetNewPassword": {"Save new password": "PageResetDone"},
+    "PageResetDone": {"Sign in": "PageHomeSignIn"},
+    "PageResetExpired": {"Send a new link": "PageResetRequest", "Back to sign in": "PageHomeSignIn"},
+    "PageAccountMenu": {"Account menu": "PageClients", "Your profile": "PageProfile", "Settings": "PageSettings"},
+    "PageProfile": {"Settings": "PageSettings"},
+    "PageSettings": {"Change password": "PageSettingsPassword", "Disable account": "PageSettingsDisable", "Remove role": "PageSettingsRemoveTrainer"},
+    "PageSettingsPassword": {"Close": "PageSettings", "Cancel": "PageSettings", "Change password": "PageSettings",
+                             "Forgot your current password?": "PageResetRequest"},
+    "PageSettingsDisable": {"Close": "PageSettings", "Keep my account": "PageSettings", "Disable account": "PageSettings"},
+    "PageSettingsRemoveTrainer": {"Keep role": "PageSettings", "^Remove Personal": "PageSettings"},
+    "PageSettingsRemoveNutrition": {"Keep role": "PageSettings", "^Remove Nutritionist": "PageSettings"},
+    "PageSettingsRolesOne": {"Disable account": "PageSettingsDisable", "Remove role": "PageSettingsDisable"},
     "PageRegister": {"Create account": "PageRegisterCheckEmail", "Sign in": "PageHomeSignIn"},
     "PageRegisterCheckEmail": {"^Open Gmail": "PageRegisterVerified", "^Open Outlook": "PageRegisterVerified", "Change email": "PageRegister"},
     "PageRegisterVerified": {"^Set up your profile": "PageClients", "Skip for now and go to the portal": "PageClients"},
