@@ -111,7 +111,7 @@ export default function AccountMenu({ onNavigate }: Props) {
             <span className="truncate text-meta font-semibold text-sidebar-text">
               {user.firstName} {user.lastName}
             </span>
-            {roleLabel && <span className="truncate text-label text-sidebar-muted">{roleLabel}</span>}
+            {roleLabel && <span className="text-label leading-snug text-sidebar-muted">{roleLabel}</span>}
           </span>
           <ChevronUp
             className={cn('size-4 shrink-0 text-sidebar-text transition-transform', !open && 'rotate-180')}
@@ -120,9 +120,9 @@ export default function AccountMenu({ onNavigate }: Props) {
         </button>
       </PopoverTrigger>
       <PopoverContent
-        side="top"
-        align="start"
-        sideOffset={8}
+        side="right"
+        align="end"
+        sideOffset={14}
         aria-label={t('accountMenu.title')}
         className="flex w-72 flex-col rounded-xl p-2 shadow-popover"
       >

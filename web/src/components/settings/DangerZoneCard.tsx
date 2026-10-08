@@ -64,7 +64,7 @@ export default function DangerZoneCard() {
         <Button
           type="button"
           onClick={() => setConfirmOpen(true)}
-          className="ml-auto h-9 shrink-0 gap-1.75 rounded-field bg-error px-3.5 font-semibold text-white hover:bg-error/90"
+          className="ml-auto h-9 shrink-0 gap-1.75 rounded-field bg-error px-3.5 font-semibold text-primary-foreground hover:bg-error/90"
         >
           <Trash2 className="size-3.75" aria-hidden="true" />
           {t('settings.danger.delete')}
@@ -100,7 +100,7 @@ export default function DangerZoneCard() {
                 setErrorMessage(null);
                 deleteMutation.mutate();
               }}
-              className="bg-error text-white hover:bg-error/90"
+              className="bg-error text-primary-foreground hover:bg-error/90"
             >
               {t('settings.danger.confirmAction')}
             </Button>
