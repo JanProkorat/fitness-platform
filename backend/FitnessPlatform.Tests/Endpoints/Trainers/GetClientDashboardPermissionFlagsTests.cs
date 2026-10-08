@@ -179,6 +179,44 @@ public class GetClientDashboardPermissionFlagsTests
     // three distinct percent values (50/80/20) to discriminate — see comment there.
 
     [Fact]
+    public async Task HandleAsync_NutritionOnlyLink_ReturnsNullSessionCounts_AndNeverReadsSessionExecutions()
+    {
+        var clientUser = EntityBuilder.User.WithEmail("nutrition-only-sessions@test.com")
+            .WithFirstName("Nutrition").WithLastName("Only").Build();
+        var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(21).WithUserId(_trainerId).Build();
+        var clientProfile = EntityBuilder.ClientProfile.WithId(21).WithUser(clientUser).Build();
+        var link = EntityBuilder.ClientProfessionalLink
+            .WithId(301)
+            .WithClientProfile(clientProfile)
+            .WithProfessionalProfile(trainerProfile)
+            .WithCanViewNutritionPlans(true)
+            .WithCanViewTrainingPlans(false)
+            .Build();
+
+        var db = new MockDbBuilder()
+            .With(trainerProfile)
+            .With(clientProfile)
+            .With(link)
+            .Build();
+        var mongo = PlanTestHelpers.CreateMockMongo();
+
+        var ep = Factory.Create<GetClientDashboardEndpoint>(
+            ctx => ctx.Request.HttpContext.User = TrainerPrincipal(_trainerId),
+            db, _audit, _complianceService, mongo, TimeProvider.System);
+
+        await ep.HandleAsync(new GetClientDashboardRequest
+        {
+            ClientId = clientProfile.PublicId
+        }, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+        ep.Response.SessionsCompletedThisWeek.Should().BeNull();
+        ep.Response.SessionsPlannedThisWeek.Should().BeNull();
+        _ = mongo.DidNotReceive().SessionExecutions;
+        _ = mongo.DidNotReceive().TrainingPlans;
+    }
+
+    [Fact]
     public async Task HandleAsync_NutritionOnlyLink_ReturnsNutritionCompliancePercent_AndNutritionOnlyDiscipline()
     {
         // Arrange: link with CanViewNutritionPlans=true, CanViewTrainingPlans=false
