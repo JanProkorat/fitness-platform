@@ -18,32 +18,14 @@ function writeStored(collapsed: boolean): void {
   }
 }
 
-/**
- * Collapsed/expanded state of the app sidebar. The choice is remembered per
- * browser. A `forceCollapsed` route (the plan template editor) always opens
- * collapsed; toggling there lasts for that visit and never overwrites the
- * stored choice.
- */
-export function useSidebarCollapsed(forceCollapsed: boolean) {
-  const [stored, setStored] = useState(readStored);
-  const [visitOverride, setVisitOverride] = useState<boolean | null>(null);
-  const [prevForce, setPrevForce] = useState(forceCollapsed);
-
-  if (prevForce !== forceCollapsed) {
-    setPrevForce(forceCollapsed);
-    setVisitOverride(null);
-  }
-
-  const collapsed = forceCollapsed ? (visitOverride ?? true) : stored;
+/** Collapsed/expanded state of the app sidebar: one choice, remembered per browser, used on every route. */
+export function useSidebarCollapsed() {
+  const [collapsed, setCollapsed] = useState(readStored);
 
   const toggle = useCallback(() => {
-    if (forceCollapsed) {
-      setVisitOverride(!collapsed);
-      return;
-    }
-    setStored(!collapsed);
+    setCollapsed(!collapsed);
     writeStored(!collapsed);
-  }, [forceCollapsed, collapsed]);
+  }, [collapsed]);
 
   return { collapsed, toggle };
 }

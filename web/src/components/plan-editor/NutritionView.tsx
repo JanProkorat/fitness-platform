@@ -1,7 +1,14 @@
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { DayHeader, DayTotalCell, MacroBar } from '@/components/plan-editor/WeekGrid';
-import { DAY_ORDER, formatKcal, GRID_CLASS, mealKindLabelKey } from '@/components/plan-editor/plan-editor-format';
+import {
+  DAY_ORDER,
+  formatKcal,
+  GRID_CLASS,
+  mealKindLabelKey,
+  WEEK_GRID_CLASS,
+  weekGridRows,
+} from '@/components/plan-editor/plan-editor-format';
 import {
   MEAL_SHARE_PERCENT,
   mealItemCount,
@@ -14,10 +21,10 @@ import type { EditorMeal, EditorWeek } from '@/components/plan-editor/plan-edito
 import { MealKind } from '@/api/generated';
 
 const CELL_CLASS: Record<ShareStatus, string> = {
-  none: 'border-line bg-card',
+  none: 'border-raised-line bg-raised',
   on: 'border-transparent bg-success-soft',
   over: 'border-transparent bg-training-soft',
-  under: 'border-line bg-card',
+  under: 'border-raised-line bg-raised',
 };
 const CAPTION_CLASS: Record<ShareStatus, string> = {
   none: 'text-muted-foreground',
@@ -59,7 +66,7 @@ function NutritionCell({ meal, rowLabelKey, dailyKcalTarget }: CellProps) {
     <div
       data-testid="nutrition-cell"
       data-status={result.status}
-      className={cn('flex min-h-0 min-w-0 flex-col justify-between gap-1 rounded-xl border p-3', CELL_CLASS[result.status])}
+      className={cn('flex min-h-0 min-w-0 flex-col justify-between gap-1 rounded-xl border p-3 shadow-raised', CELL_CLASS[result.status])}
     >
       <div className="flex min-w-0 flex-col gap-0.5">
         {ownKeyDiffers && (
@@ -67,12 +74,12 @@ function NutritionCell({ meal, rowLabelKey, dailyKcalTarget }: CellProps) {
             {t(`planEditor.rows.${mealKindLabelKey(meal.kind)}`)}
           </span>
         )}
-        <span className="truncate font-display text-stat font-semibold text-ink">
-          {formatKcal(totals.kcal, i18n.language)}{' '}
+        <span className="flex flex-wrap items-baseline gap-x-1 font-display text-stat font-semibold text-ink">
+          {formatKcal(totals.kcal, i18n.language)}
           <span className="text-body font-normal text-muted-foreground">{t('planEditor.nutrition.kcalUnit')}</span>
         </span>
         {caption && <span className={cn('text-body font-semibold', CAPTION_CLASS[result.status])}>{caption}</span>}
-        <span className="truncate text-body text-ink">
+        <span className="text-body text-ink [overflow-wrap:anywhere]">
           {t('planEditor.nutrition.macros', {
             protein: Math.round(totals.protein),
             carbs: Math.round(totals.carbs),
@@ -118,22 +125,29 @@ export default function NutritionView({ week, dailyKcalTarget }: Props) {
 
   return (
     <div className="flex flex-1 flex-col gap-3">
-      <div role="group" aria-label={t('planEditor.nutrition.label')} className="flex flex-1 flex-col gap-3">
+      <div
+        role="group"
+        aria-label={t('planEditor.nutrition.label')}
+        className={cn(WEEK_GRID_CLASS, 'flex-1')}
+        style={weekGridRows(rows.length, 10)}
+      >
         <div className={GRID_CLASS}>
           <span />
           {DAY_ORDER.map((dayOfWeek) => (
             <DayHeader key={dayOfWeek} day={dayByNumber.get(dayOfWeek) ?? { dayOfWeek, meals: [] }} />
           ))}
         </div>
-        <div className={GRID_CLASS}>
-          <span className="text-body font-semibold text-muted-foreground">{t('planEditor.dayTotal')}</span>
+        <div className={cn(GRID_CLASS, 'items-stretch')}>
+          <span className="self-center text-body font-semibold whitespace-nowrap text-muted-foreground">
+            {t('planEditor.dayTotal')}
+          </span>
           {DAY_ORDER.map((dayOfWeek) => (
             <DayTotalCell key={dayOfWeek} day={dayByNumber.get(dayOfWeek)} target={dailyKcalTarget} />
           ))}
         </div>
         {rows.map((row) => (
-          <div key={row.index} className={cn(GRID_CLASS, 'min-h-40 flex-1 items-stretch')}>
-            <span className="self-center text-body font-semibold text-muted-foreground">
+          <div key={row.index} className={cn(GRID_CLASS, 'items-stretch')}>
+            <span className="self-center text-body font-semibold whitespace-nowrap text-muted-foreground">
               {t(`planEditor.rows.${mealKindLabelKey(row.kind)}`)}
             </span>
             {DAY_ORDER.map((dayOfWeek) => (

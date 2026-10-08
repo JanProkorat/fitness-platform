@@ -209,7 +209,7 @@ test.describe('recipes page', () => {
       await page.reload();
       await page.getByPlaceholder('Search recipes…').fill(name);
       await expect(page.getByRole('cell', { name })).toBeVisible();
-      await expect(page.getByText('Mine', { exact: true })).toBeVisible();
+      await expect(page.getByRole('row', { name }).getByText('Mine', { exact: true })).toBeVisible();
 
       await page.getByRole('cell', { name }).click();
       await expect(drawer.getByRole('heading', { name: 'Edit Recipe' })).toBeVisible();
@@ -302,7 +302,7 @@ test.describe('recipes page', () => {
       await saveAndAssert('Public');
 
       // The owner's badge stays "Mine" whatever the visibility.
-      await expect(page.getByText('Mine', { exact: true })).toBeVisible();
+      await expect(page.getByRole('row', { name }).getByText('Mine', { exact: true })).toBeVisible();
       await page.getByRole('cell', { name }).click();
       await expect(drawer.getByRole('radio', { name: 'Public' })).toBeChecked();
       await drawer.getByRole('radio', { name: 'Private' }).click();

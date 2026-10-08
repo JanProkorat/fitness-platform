@@ -1,11 +1,21 @@
-import type { ReactNode } from 'react';
+import { useCallback, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useDroppable } from '@dnd-kit/react';
+import { useDraggable, useDroppable } from '@dnd-kit/react';
 import { StickyNote } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover';
-import { DAY_ORDER, formatKcal, GRID_CLASS, mealKindLabelKey } from '@/components/plan-editor/plan-editor-format';
-import { mealItemNames } from '@/components/plan-editor/plan-editor-library';
+import MacroDots from '@/components/plan-editor/MacroDots';
+import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Textarea } from '@/components/ui/textarea';
+import { usePopoverBoundary } from '@/components/plan-editor/PopoverBoundary';
+import {
+  DAY_ORDER,
+  formatKcal,
+  GRID_CLASS,
+  mealKindLabelKey,
+  WEEK_GRID_CLASS,
+  weekGridRows,
+} from '@/components/plan-editor/plan-editor-format';
+import { CELL_MEAL_DRAG, GRID_CELL_SENSORS, mealItemNames } from '@/components/plan-editor/plan-editor-library';
 import {
   dayTotals,
   mealItemCount,
@@ -14,8 +24,14 @@ import {
   type TargetStatus,
   type Totals,
 } from '@/components/plan-editor/plan-editor-nutrition';
-import { weekRows } from '@/components/plan-editor/plan-editor-ops';
-import type { EditorDay, EditorMeal, EditorWeek } from '@/components/plan-editor/plan-editor-types';
+import { setDayNote, weekRows } from '@/components/plan-editor/plan-editor-ops';
+import {
+  MAX_NOTE_LENGTH,
+  type EditorDay,
+  type EditorMeal,
+  type EditorWeek,
+} from '@/components/plan-editor/plan-editor-types';
+import type { PlanEditorState } from '@/components/plan-editor/usePlanEditorState';
 
 const STATUS_TEXT_CLASS: Record<TargetStatus, string> = {
   none: 'text-ink',
@@ -80,12 +96,28 @@ function MealCell({
   onDetailClose,
 }: CellProps) {
   const { t, i18n } = useTranslation();
-  const { ref, isDropTarget } = useDroppable({
+  const boundary = usePopoverBoundary();
+  const { ref: dropRef, isDropTarget } = useDroppable({
     id: `cell:${weekIndex}:${dayOfWeek}:${rowIndex}`,
     data: { weekIndex, dayOfWeek, rowIndex },
     disabled: readOnly,
   });
   const itemCount = meal ? mealItemCount(meal) : 0;
+  const draggable = !readOnly && itemCount > 0;
+  const { ref: dragRef, isDragging } = useDraggable({
+    id: `cell-meal:${weekIndex}:${dayOfWeek}:${rowIndex}`,
+    data: { type: CELL_MEAL_DRAG, weekIndex, dayOfWeek, rowIndex, mealId: meal?.mealId },
+    disabled: !draggable,
+    sensors: GRID_CELL_SENSORS,
+  });
+  // The drag library only gets the element while it can be dragged, so it never marks an empty cell aria-disabled.
+  const ref = useCallback(
+    (element: Element | null) => {
+      dropRef(element);
+      dragRef(draggable ? element : null);
+    },
+    [dropRef, dragRef, draggable],
+  );
   const names = meal ? mealItemNames(meal, i18n.language) : [];
   const totals = meal ? mealTotals(meal) : null;
   const ownKeyDiffers = meal !== undefined && mealKindLabelKey(meal.kind) !== rowLabelKey;
@@ -113,11 +145,14 @@ function MealCell({
           aria-label={t('planEditor.cell.label', { day: t(`planEditor.days.${dayOfWeek}`), row: rowIndex + 1 })}
           onClick={onSelect}
           className={cn(
-            'flex min-h-0 min-w-0 flex-col items-stretch justify-between gap-1 rounded-xl border p-3 text-left outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50',
+            'flex min-h-0 min-w-0 flex-col items-stretch justify-between gap-1 rounded-xl border p-3 text-left outline-none transition-[color,background-color,border-color,box-shadow,transform] duration-150 focus-visible:ring-3 focus-visible:ring-ring/50',
             itemCount === 0 && 'border-dashed border-line bg-transparent',
-            itemCount > 0 && 'border-line bg-card',
+            itemCount > 0 && 'border-raised-line bg-raised shadow-raised',
+            draggable &&
+              'cursor-grab hover:-translate-y-px hover:shadow-raised-hover active:cursor-grabbing motion-reduce:hover:translate-y-0',
             selected && 'border-solid border-ink ring-2 ring-ink',
-            isDropTarget && 'border-dashed border-nutrition bg-nutrition-soft ring-0',
+            isDragging && 'opacity-50',
+            isDropTarget && !isDragging && 'border-dashed border-nutrition bg-nutrition-soft shadow-none ring-0',
           )}
         >
           {itemCount === 0 ? (
@@ -157,10 +192,11 @@ function MealCell({
         <PopoverContent
           side="bottom"
           align="center"
+          collisionBoundary={boundary}
           collisionPadding={16}
           sideOffset={8}
           data-testid="meal-detail"
-          className="max-h-(--radix-popover-content-available-height) w-lg overflow-y-auto rounded-2xl border-line bg-card p-5"
+          className="max-h-(--radix-popover-content-available-height) w-140 max-w-[calc(100vw-2rem)] overflow-y-auto rounded-2xl border-line bg-card p-5"
           onOpenAutoFocus={(event) => event.preventDefault()}
           onInteractOutside={(event) => {
             const target = event.target;
@@ -177,26 +213,76 @@ function MealCell({
   );
 }
 
-export function DayHeader({ day }: { day: EditorDay | undefined }) {
+interface DayHeaderProps {
+  day: EditorDay | undefined;
+  /** Where the day's note can be edited; without it (or when `readOnly`) the note is shown as text. */
+  note?: { weekIndex: number; readOnly: boolean; onEdit: PlanEditorState['edit'] };
+}
+
+/** A weekday's name with its note button; the note opens in a small popover. */
+export function DayHeader({ day, note: noteEditing }: DayHeaderProps) {
   const { t } = useTranslation();
+  const boundary = usePopoverBoundary();
+  const [open, setOpen] = useState(false);
+  const dayOfWeek = day?.dayOfWeek ?? 1;
+  const dayName = t(`planEditor.daysLong.${dayOfWeek}`);
   const note = day?.note?.trim();
+  const editable = noteEditing !== undefined && !noteEditing.readOnly;
+
   return (
     <span className="flex items-center justify-center gap-1.5 text-body font-semibold text-ink">
-      {t(`planEditor.days.${day?.dayOfWeek ?? 1}`)}
-      {note ? (
-        <span
-          title={note}
-          role="img"
-          aria-label={t('planEditor.dayNote', { note })}
-          className="flex size-5 items-center justify-center rounded-md bg-nutrition-soft text-nutrition-ink"
-        >
-          <StickyNote className="size-3" aria-hidden="true" />
-        </span>
-      ) : (
-        <span className="flex size-5 items-center justify-center rounded-md bg-muted text-faint" aria-hidden="true">
-          <StickyNote className="size-3" />
-        </span>
-      )}
+      {t(`planEditor.days.${dayOfWeek}`)}
+      <Popover open={open} onOpenChange={setOpen} modal={false}>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            data-testid="day-note-button"
+            data-has-note={note ? 'true' : 'false'}
+            aria-label={t(editable ? 'planEditor.dayNoteEdit' : 'planEditor.dayNoteView', { day: dayName })}
+            title={note}
+            className={cn(
+              'flex size-5 cursor-pointer items-center justify-center rounded-md outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
+              note ? 'bg-nutrition-soft text-nutrition-ink' : 'bg-muted text-faint',
+            )}
+          >
+            <StickyNote className="size-3" aria-hidden="true" />
+          </button>
+        </PopoverTrigger>
+        {open && (
+          <PopoverContent
+            side="bottom"
+            align="center"
+            sideOffset={8}
+            collisionBoundary={boundary}
+            collisionPadding={16}
+            data-testid="day-note-popover"
+            aria-label={dayName}
+            className="flex w-72 flex-col gap-2 rounded-2xl border-line bg-card p-4"
+          >
+            <span className="text-body font-semibold text-ink">{dayName}</span>
+            {editable ? (
+              <Textarea
+                autoFocus
+                rows={4}
+                value={day?.note ?? ''}
+                maxLength={MAX_NOTE_LENGTH}
+                aria-label={t('planEditor.dayNoteField', { day: dayName })}
+                placeholder={t('planEditor.day.notePlaceholder')}
+                onChange={(event) =>
+                  noteEditing.onEdit(
+                    (doc) => setDayNote(doc, noteEditing.weekIndex, dayOfWeek, event.target.value),
+                    `daynote:${noteEditing.weekIndex}:${dayOfWeek}`,
+                  )
+                }
+              />
+            ) : (
+              <p className="text-copy font-normal text-ink [overflow-wrap:anywhere]">
+                {note || t('planEditor.dayNoteNone')}
+              </p>
+            )}
+          </PopoverContent>
+        )}
+      </Popover>
     </span>
   );
 }
@@ -211,21 +297,21 @@ export function DayTotalCell({ day, target }: { day: EditorDay | undefined; targ
     <div
       data-testid="day-total"
       data-status={status}
-      className="flex h-30 min-w-0 flex-col justify-between rounded-xl border border-line bg-card p-3"
+      className="flex h-full min-h-30 min-w-0 flex-col justify-between gap-1 rounded-xl border border-raised-line bg-raised p-3 shadow-raised"
     >
       <span className={cn('text-copy font-semibold', STATUS_TEXT_CLASS[status])}>
         {t('planEditor.cell.kcal', { kcal: formatKcal(totals?.kcal ?? 0, i18n.language) })}
       </span>
-      <div className="h-1 w-full overflow-hidden rounded-full bg-muted" aria-hidden="true">
+      <div className="h-1 w-full shrink-0 overflow-hidden rounded-full bg-muted" aria-hidden="true">
         <div className={cn('h-full rounded-full', STATUS_BAR_CLASS[status])} style={{ width: `${fill}%` }} />
       </div>
-      <span className="text-caption text-muted-foreground">
-        {t('planEditor.cell.macros', {
-          protein: Math.round(totals?.protein ?? 0),
-          carbs: Math.round(totals?.carbs ?? 0),
-          fat: Math.round(totals?.fat ?? 0),
-          fiber: Math.round(totals?.fiber ?? 0),
-        })}
+      <span className="text-caption text-ink">
+        <MacroDots
+          protein={totals?.protein ?? 0}
+          carbs={totals?.carbs ?? 0}
+          fat={totals?.fat ?? 0}
+          fiber={totals?.fiber ?? 0}
+        />
       </span>
     </div>
   );
@@ -247,6 +333,7 @@ interface Props {
   detailCell: SelectedCell | null;
   renderDetail: (cell: SelectedCell) => ReactNode;
   onDetailClose: () => void;
+  onEdit: PlanEditorState['edit'];
 }
 
 /** The week as a grid: one column per weekday, a day-total row, then one row per meal. */
@@ -260,30 +347,42 @@ export default function WeekGrid({
   detailCell,
   renderDetail,
   onDetailClose,
+  onEdit,
 }: Props) {
   const { t } = useTranslation();
   const rows = weekRows(week);
   const dayByNumber = new Map(week.days.map((day) => [day.dayOfWeek, day]));
 
   return (
-    <div role="group" aria-label={t('planEditor.grid.label')} className="flex flex-1 flex-col gap-3">
+    <div
+      role="group"
+      aria-label={t('planEditor.grid.label')}
+      className={cn(WEEK_GRID_CLASS, 'flex-1')}
+      style={weekGridRows(rows.length, 7.5)}
+    >
       <div className={GRID_CLASS}>
         <span />
         {DAY_ORDER.map((dayOfWeek) => (
-          <DayHeader key={dayOfWeek} day={dayByNumber.get(dayOfWeek) ?? { dayOfWeek, meals: [] }} />
+          <DayHeader
+            key={dayOfWeek}
+            day={dayByNumber.get(dayOfWeek) ?? { dayOfWeek, meals: [] }}
+            note={{ weekIndex, readOnly, onEdit }}
+          />
         ))}
       </div>
 
-      <div className={GRID_CLASS}>
-        <span className="text-body font-semibold text-muted-foreground">{t('planEditor.dayTotal')}</span>
+      <div className={cn(GRID_CLASS, 'items-stretch')}>
+        <span className="self-center text-body font-semibold whitespace-nowrap text-muted-foreground">
+          {t('planEditor.dayTotal')}
+        </span>
         {DAY_ORDER.map((dayOfWeek) => (
           <DayTotalCell key={dayOfWeek} day={dayByNumber.get(dayOfWeek)} target={dailyKcalTarget} />
         ))}
       </div>
 
       {rows.map((row) => (
-        <div key={row.index} className={cn(GRID_CLASS, 'min-h-30 flex-1 items-stretch')}>
-          <span className="self-center text-body font-semibold text-muted-foreground">
+        <div key={row.index} className={cn(GRID_CLASS, 'items-stretch')}>
+          <span className="self-center text-body font-semibold whitespace-nowrap text-muted-foreground">
             {t(`planEditor.rows.${mealKindLabelKey(row.kind)}`)}
           </span>
           {DAY_ORDER.map((dayOfWeek) => {

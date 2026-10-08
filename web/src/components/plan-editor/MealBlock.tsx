@@ -1,12 +1,15 @@
+import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useSortable } from '@dnd-kit/react/sortable';
-import { GripVertical, Plus, StickyNote, Trash2 } from 'lucide-react';
+import { useDraggable, useDroppable } from '@dnd-kit/react';
+import { GripVertical, StickyNote, Trash2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import MealItemRow from '@/components/plan-editor/MealItemRow';
 import { mealKindLabelKey } from '@/components/plan-editor/plan-editor-format';
+import { CELL_MEAL_DRAG, MEAL_CARD_SENSORS } from '@/components/plan-editor/plan-editor-library';
 import {
   mealDayShareStatus,
+  mealItemCount,
   mealItemEntries,
   mealTotals,
   type ShareStatus,
@@ -19,7 +22,7 @@ import {
   setMealNote,
   setRecipeServings,
 } from '@/components/plan-editor/plan-editor-ops';
-import { MAX_MEALS_PER_DAY, MAX_NOTE_LENGTH, type EditorMeal } from '@/components/plan-editor/plan-editor-types';
+import { MAX_NOTE_LENGTH, type EditorMeal } from '@/components/plan-editor/plan-editor-types';
 import type { PlanEditorState } from '@/components/plan-editor/usePlanEditorState';
 
 const SHARE_CHIP_CLASS: Record<ShareStatus, string> = {
@@ -32,7 +35,6 @@ const SHARE_CHIP_CLASS: Record<ShareStatus, string> = {
 interface Props {
   meal: EditorMeal;
   index: number;
-  mealCount: number;
   weekIndex: number;
   dayOfWeek: number;
   dayKcal: number;
@@ -40,15 +42,13 @@ interface Props {
   selected: boolean;
   language: string;
   onSelect: () => void;
-  onAddAfter: () => void;
   onEdit: PlanEditorState['edit'];
 }
 
-/** One meal of the day: sortable by its whole card, with its items, note and delete. */
+/** One meal of the day: draggable by its whole card onto another meal to copy it, with its items, note and delete. */
 export default function MealBlock({
   meal,
   index,
-  mealCount,
   weekIndex,
   dayOfWeek,
   dayKcal,
@@ -56,16 +56,29 @@ export default function MealBlock({
   selected,
   language,
   onSelect,
-  onAddAfter,
   onEdit,
 }: Props) {
   const { t } = useTranslation();
-  const { ref, isDragging, isDropTarget } = useSortable({
-    id: meal.mealId,
-    index,
+  const draggable = !readOnly && mealItemCount(meal) > 0;
+  const { ref: dropRef, isDropTarget } = useDroppable({
+    id: `cell:${weekIndex}:${dayOfWeek}:${index}`,
+    data: { weekIndex, dayOfWeek, rowIndex: index },
     disabled: readOnly,
-    data: { type: 'meal', dayOfWeek, rowIndex: index },
   });
+  const { ref: dragRef, isDragging } = useDraggable({
+    id: `cell-meal:${weekIndex}:${dayOfWeek}:${index}`,
+    data: { type: CELL_MEAL_DRAG, weekIndex, dayOfWeek, rowIndex: index, mealId: meal.mealId },
+    disabled: !draggable,
+    sensors: MEAL_CARD_SENSORS,
+  });
+  // The drag library only gets the element while the card can be dragged, so it never marks another one aria-disabled.
+  const ref = useCallback(
+    (element: Element | null) => {
+      dropRef(element);
+      dragRef(draggable ? element : null);
+    },
+    [dropRef, dragRef, draggable],
+  );
   const totals = mealTotals(meal);
   const entries = mealItemEntries(meal, language);
   const share = mealDayShareStatus(totals.kcal, dayKcal, meal.kind);
@@ -80,14 +93,15 @@ export default function MealBlock({
       aria-label={kindLabel}
       onClick={onSelect}
       className={cn(
-        'flex flex-col gap-3 border-b border-line bg-card p-5 outline-none first:rounded-t-xl last:rounded-b-xl last:border-b-0 focus-visible:ring-3 focus-visible:ring-ring/50',
+        'flex flex-col gap-3 rounded-2xl border border-raised-line bg-raised p-5 shadow-raised outline-none transition-[background-color,border-color,box-shadow,transform] duration-150 focus-visible:ring-3 focus-visible:ring-ring/50',
+        draggable && !isDragging && 'hover:-translate-y-px hover:shadow-raised-hover motion-reduce:hover:translate-y-0',
         selected && 'ring-2 ring-ink ring-inset',
-        isDropTarget && !isDragging && 'bg-nutrition-soft',
+        isDropTarget && !isDragging && 'border-nutrition bg-nutrition-soft',
         isDragging && 'opacity-60 shadow-selection-bar',
       )}
     >
-      <div className={cn('flex items-center gap-3', !readOnly && 'cursor-grab active:cursor-grabbing')}>
-        {!readOnly && <GripVertical className="size-4 shrink-0 text-faint" aria-hidden="true" />}
+      <div className={cn('flex items-center gap-3', draggable && 'cursor-grab active:cursor-grabbing')}>
+        {draggable && <GripVertical className="size-4 shrink-0 text-faint" aria-hidden="true" />}
         <h3 className="font-display text-card-title font-semibold text-ink">{kindLabel}</h3>
         <span className="text-copy font-semibold text-ink">
           {t('planEditor.cell.kcal', { kcal: Math.round(totals.kcal) })}
@@ -103,19 +117,6 @@ export default function MealBlock({
         )}
         {!readOnly && (
           <span className="ml-auto flex items-center gap-1">
-            <button
-              type="button"
-              aria-label={t('planEditor.day.addAfter', { meal: kindLabel })}
-              title={t('planEditor.day.addAfter', { meal: kindLabel })}
-              disabled={mealCount >= MAX_MEALS_PER_DAY}
-              onClick={(event) => {
-                event.stopPropagation();
-                onAddAfter();
-              }}
-              className="flex size-8 cursor-pointer items-center justify-center rounded-md text-muted-foreground outline-none hover:text-ink focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              <Plus className="size-4" aria-hidden="true" />
-            </button>
             <button
               type="button"
               aria-label={t('planEditor.day.removeMeal', { meal: kindLabel })}
@@ -140,6 +141,7 @@ export default function MealBlock({
               entry={entry}
               readOnly={readOnly}
               variant="day"
+              position={{ weekIndex, dayOfWeek, mealId: meal.mealId }}
               onAmount={(value) =>
                 onEdit(
                   (doc) =>

@@ -1540,7 +1540,10 @@
     "save": "Uložit",
     "comingSoon": "Již brzy",
     "dayTotal": "Součet dne",
-    "dayNote": "Poznámka ke dni: {{note}}",
+    "dayNoteEdit": "Upravit poznámku: {{day}}",
+    "dayNoteView": "Poznámka: {{day}}",
+    "dayNoteField": "Poznámka ke dni: {{day}}",
+    "dayNoteNone": "Bez poznámky",
     "saveError": "Uložení se nepovedlo. Vaše změny tu zůstaly — zkuste to znovu.",
     "status": {
       "saving": "Ukládám…",
@@ -1601,8 +1604,7 @@
       "protein": "B {{value}}",
       "carbs": "S {{value}}",
       "fat": "T {{value}}",
-      "weekTotal": "· týden celkem {{kcal}} kcal",
-      "details": "Podrobnosti"
+      "weekTotal": "· týden celkem {{kcal}} kcal"
     },
     "picker": {
       "title": "Jaká jídla má jeden den?",
@@ -1631,7 +1633,35 @@
       "per100": "na 100 g",
       "empty": "Nic nenalezeno.",
       "loadError": "Knihovnu se nepodařilo načíst.",
-      "retry": "Zkusit znovu"
+      "retry": "Zkusit znovu",
+      "info": {
+        "open": "Zobrazit detail: {{name}}",
+        "recipeMeta_one": "Recept · na porci · {{count}} porce",
+        "recipeMeta_few": "Recept · na porci · {{count}} porce",
+        "recipeMeta_many": "Recept · na porci · {{count}} porce",
+        "recipeMeta_other": "Recept · na porci · {{count}} porcí",
+        "foodMeta": "Surovina · na 100 g",
+        "kcalPerPortion": "kcal na porci",
+        "kcalPer100": "kcal na 100 g",
+        "ingredientsHeading": "Suroviny · na porci",
+        "ingredientsUnavailable": "Suroviny nejsou dostupné. Recept mohl být smazán nebo nastaven jako soukromý.",
+        "ingredientsError": "Suroviny se nepodařilo načíst."
+      }
+    },
+    "macroShort": {
+      "protein": "B",
+      "carbs": "S",
+      "fat": "T",
+      "fiber": "Vl"
+    },
+    "cardDrop": {
+      "title": "{{target}} už obsahuje jídlo",
+      "body": "Kopírujete <b>{{source}}</b> ({{name}}, {{kcal}} kcal) do <b>{{target}}</b>. Co se má stát s tím, co tam je teď?",
+      "now": "{{target}} nyní",
+      "replaceLabel": "Nahradit",
+      "replaceBody": "{{target}} bude obsahovat jen {{names}} ({{kcal}} kcal).",
+      "addLabel": "Přidat k existujícímu",
+      "addBody": "{{names}} se přidá k položkám {{existing}} ({{kcal}} kcal)."
     },
     "noteForClient": "Poznámka pro klienta",
     "units": {
@@ -1692,19 +1722,19 @@
       "mealNoteLabel": "Poznámka: {{meal}}",
       "percentOfDay": "{{percent}} % dne",
       "percentKcal": "{{percent}} % kcal",
-      "addAfter": "Přidat jídlo za: {{meal}}",
+      "noteShownBelow": "Poznámka je zobrazena níže",
       "removeMeal": "Odebrat: {{meal}}",
       "emptyMeal": "Přetáhněte sem recept nebo surovinu, nebo jídlo vyberte a stiskněte + v knihovně.",
       "noMeals": "Tento den zatím nemá žádná jídla.",
+      "allKindsAdded": "Všechny druhy jídel už v tomto dni jsou",
       "limitReached": "Den může mít nejvýše {{max}} jídel."
     },
     "addMeal": {
       "open": "Přidat jídlo",
       "title": "Přidat jídlo",
-      "after": "{{day}} · za: {{meal}}",
-      "first": "{{day}} · první jídlo",
+      "forDay": "{{day}}",
       "type": "Druh jídla",
-      "alreadyHas": "Tento den už má jídlo „{{meal}}“ — druhé je v pořádku.",
+      "alreadyInDay": "Už v tomto dni je",
       "optional": "· volitelné",
       "emptyHint": "Jídlo se přidá prázdné. Naplňte ho z knihovny vlevo — přetáhněte na něj recept nebo surovinu.",
       "submit": "Přidat jídlo"
@@ -1825,8 +1855,7 @@
       "weeksSummary_many": "týdne · {{days}} dní",
       "weeksSummary_other": "týdnů · {{days}} dní",
       "meals": "Jídel denně",
-      "mealsHint": "Z nich se stanou řádky editoru. Později je můžete změnit.",
-      "mealsRequired": "Vyberte alespoň jedno jídlo.",
+      "mealsHint": "Volitelné. Z nich se stanou řádky editoru; později je můžete přidat nebo změnit.",
       "dailyKcal": "Denní kalorický cíl",
       "optional": "(nepovinné)",
       "kcalUnit": "kcal",
@@ -1838,7 +1867,9 @@
       "snack": "Svačina",
       "lunch": "Oběd",
       "snack2": "Svačina 2",
-      "dinner": "Večeře"
+      "dinner": "Večeře",
+      "preWorkout": "Před tréninkem",
+      "postWorkout": "Po tréninku"
     },
     "editor": {
       "title": "Editor šablony",

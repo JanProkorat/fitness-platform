@@ -14,6 +14,8 @@ import { request as apiRequest } from '@playwright/test';
 import { nutritionistTest as test, trainerTest, expect } from '../fixtures/auth';
 
 const NUTRITIONIST_EMAIL = 'qa.nutri@fitnessplatform.test';
+/** The meal chips that start selected in the New template drawer. */
+const DEFAULT_CHIPS = ['Breakfast', 'Snack', 'Lunch', 'Dinner'];
 
 interface LoginResponseBody {
   accessToken: string;
@@ -163,20 +165,89 @@ test.describe('plan templates page', () => {
     await deleteTemplateViaApi(origin, templateId);
   });
 
-  test('the drawer blocks an empty name, a missing goal and an empty meal selection', async ({ page }) => {
+  test('the drawer blocks an empty name and a missing goal, but not an empty meal selection', async ({ page }) => {
     await page.goto('/plan-templates');
     await page.getByRole('button', { name: 'New template' }).first().click();
     const sheet = page.locator('[data-slot="sheet-content"]');
 
-    for (const label of ['Breakfast', 'Snack', 'Lunch', 'Dinner']) {
+    for (const label of DEFAULT_CHIPS) {
       await sheet.getByRole('button', { name: label, exact: true }).click();
     }
+    await expect(sheet.getByText(/^Optional\. These become the rows of the editor/)).toBeVisible();
     await sheet.getByRole('button', { name: 'Create & open editor' }).click();
 
     await expect(sheet.getByText('Enter a name of up to 200 characters.')).toBeVisible();
     await expect(sheet.getByText('Choose a goal.')).toBeVisible();
-    await expect(sheet.getByText('Choose at least one meal.')).toBeVisible();
+    await expect(sheet.getByText('Choose at least one meal.')).toHaveCount(0);
     await expect(page).toHaveURL(/\/plan-templates$/);
+  });
+
+  test('a template can be created with no meals and opens on the meal picker', async ({ page }) => {
+    const name = `QA No Meals ${Date.now()}`;
+    await page.goto('/plan-templates');
+    await page.getByRole('button', { name: 'New template' }).first().click();
+    const sheet = page.locator('[data-slot="sheet-content"]');
+    await sheet.getByLabel(/^Name\b/).fill(name);
+    await sheet.getByRole('radio', { name: 'Maintain' }).click();
+    for (const label of DEFAULT_CHIPS) {
+      await sheet.getByRole('button', { name: label, exact: true }).click();
+    }
+
+    const createRequest = page.waitForRequest(
+      (request) => request.url().endsWith('/nutrition/plan-templates') && request.method() === 'POST',
+    );
+    await sheet.getByRole('button', { name: 'Create & open editor' }).click();
+    const body = (await createRequest).postDataJSON() as CreateTemplateRequestBody;
+
+    expect(body.weekCount).toBeUndefined();
+    expect(body.weeks).toHaveLength(4);
+    for (const week of body.weeks ?? []) {
+      expect(week.days).toHaveLength(7);
+      expect(week.days?.every((day) => day.meals?.length === 0)).toBe(true);
+    }
+
+    await expect(page).toHaveURL(/\/plan-templates\/[0-9a-f-]{36}$/);
+    await expect(page.getByText('Which meals does a day have?')).toBeVisible();
+    await expect(page.getByTestId('meal-cell')).toHaveCount(0);
+
+    const templateId = page.url().split('/').pop() ?? '';
+    await deleteTemplateViaApi(page.url().split('/plan-templates/')[0] ?? '', templateId);
+  });
+
+  test('Pre-workout and Post-workout chips become editor rows after the day meals', async ({ page }) => {
+    const name = `QA Workout Meals ${Date.now()}`;
+    await page.goto('/plan-templates');
+    await page.getByRole('button', { name: 'New template' }).first().click();
+    const sheet = page.locator('[data-slot="sheet-content"]');
+    await sheet.getByLabel(/^Name\b/).fill(name);
+    await sheet.getByRole('radio', { name: 'Performance' }).click();
+    await sheet.getByRole('button', { name: 'Post-workout', exact: true }).click();
+    await sheet.getByRole('button', { name: 'Pre-workout', exact: true }).click();
+
+    const createRequest = page.waitForRequest(
+      (request) => request.url().endsWith('/nutrition/plan-templates') && request.method() === 'POST',
+    );
+    await sheet.getByRole('button', { name: 'Create & open editor' }).click();
+    const body = (await createRequest).postDataJSON() as CreateTemplateRequestBody;
+
+    for (const day of body.weeks?.[0]?.days ?? []) {
+      expect(day.meals?.map((meal) => meal.kind)).toEqual([
+        'Breakfast',
+        'MorningSnack',
+        'Lunch',
+        'Dinner',
+        'PreWorkout',
+        'PostWorkout',
+      ]);
+    }
+
+    await expect(page).toHaveURL(/\/plan-templates\/[0-9a-f-]{36}$/);
+    const grid = page.getByRole('group', { name: 'Week meals' });
+    await expect(grid.getByText('Pre-workout', { exact: true })).toBeVisible();
+    await expect(grid.getByText('Post-workout', { exact: true })).toBeVisible();
+
+    const templateId = page.url().split('/').pop() ?? '';
+    await deleteTemplateViaApi(page.url().split('/plan-templates/')[0] ?? '', templateId);
   });
 
   test('search and the Goal filter narrow the list', async ({ page, baseURL }) => {

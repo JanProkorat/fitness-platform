@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
-import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import MacroDots from '@/components/plan-editor/MacroDots';
 import { formatKcal } from '@/components/plan-editor/plan-editor-format';
 import { targetStatus, type WeekSummary } from '@/components/plan-editor/plan-editor-nutrition';
 
@@ -12,7 +12,7 @@ const STATUS_DOT_CLASS = {
 } as const;
 
 function Dot({ className }: { className: string }) {
-  return <span className={cn('size-1.75 shrink-0 rounded-full', className)} aria-hidden="true" />;
+  return <span className={cn('size-1.5 shrink-0 rounded-full', className)} aria-hidden="true" />;
 }
 
 interface Props {
@@ -43,35 +43,17 @@ export default function AveragesBar({ summary, dailyKcalTarget }: Props) {
               })}
         </span>
       </span>
-      <span className="flex items-center gap-1.5">
-        <Dot className="bg-macro-protein" />
-        {t('planEditor.averages.protein', { value: Math.round(average.protein) })}
-      </span>
-      <span className="flex items-center gap-1.5">
-        <Dot className="bg-macro-carbs" />
-        {t('planEditor.averages.carbs', { value: Math.round(average.carbs) })}
-      </span>
-      <span className="flex items-center gap-1.5">
-        <Dot className="bg-macro-fat" />
-        {t('planEditor.averages.fat', { value: Math.round(average.fat) })}
-      </span>
-      <span className="flex items-center gap-1.5">
-        <Dot className="bg-macro-fibre" />
-        {t('planEditor.averages.fiber', { grams: Math.round(average.fiber) })}
-      </span>
+      <MacroDots
+        protein={average.protein}
+        carbs={average.carbs}
+        fat={average.fat}
+        fiber={average.fiber}
+        fiberUnit
+        className="gap-x-4"
+      />
       <span className="text-muted-foreground">
         {t('planEditor.averages.weekTotal', { kcal: formatKcal(total.kcal, i18n.language) })}
       </span>
-      <button
-        type="button"
-        disabled
-        aria-disabled="true"
-        title={t('planEditor.comingSoon')}
-        className="ml-auto inline-flex items-center gap-1 text-body text-muted-foreground opacity-60"
-      >
-        {t('planEditor.averages.details')}
-        <ChevronDown className="size-4" aria-hidden="true" />
-      </button>
     </div>
   );
 }

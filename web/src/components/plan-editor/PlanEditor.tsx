@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Feedback, KeyboardSensor, PointerActivationConstraints, PointerSensor } from '@dnd-kit/dom';
+import { AutoScroller, Feedback, KeyboardSensor, PointerSensor } from '@dnd-kit/dom';
 import { move } from '@dnd-kit/helpers';
 import { DragDropProvider, DragOverlay } from '@dnd-kit/react';
 import { AlertTriangle, PanelLeftOpen } from 'lucide-react';
@@ -15,7 +15,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import AddMealSheet from '@/components/plan-editor/AddMealSheet';
 import AveragesBar from '@/components/plan-editor/AveragesBar';
+import CardDropDialog from '@/components/plan-editor/CardDropDialog';
 import DayMacroBar from '@/components/plan-editor/DayMacroBar';
 import DayNavigator from '@/components/plan-editor/DayNavigator';
 import DayView from '@/components/plan-editor/DayView';
@@ -23,31 +25,47 @@ import LibraryPanel from '@/components/plan-editor/LibraryPanel';
 import MealDetail from '@/components/plan-editor/MealDetail';
 import MealPicker from '@/components/plan-editor/MealPicker';
 import NutritionView from '@/components/plan-editor/NutritionView';
+import { PopoverBoundaryContext } from '@/components/plan-editor/PopoverBoundary';
 import PlanEditorHeader from '@/components/plan-editor/PlanEditorHeader';
 import WeekdayPills from '@/components/plan-editor/WeekdayPills';
 import WeekGrid, { type SelectedCell } from '@/components/plan-editor/WeekGrid';
 import WeekTabs from '@/components/plan-editor/WeekTabs';
-import { dayTotals, mealItemCount, weekSummary } from '@/components/plan-editor/plan-editor-nutrition';
+import { mealKindLabelKey } from '@/components/plan-editor/plan-editor-format';
+import {
+  dragActivationConstraints,
+  mealItemNames,
+  foodDisplayName,
+  readCellMealDrag,
+  readMealItemDrag,
+  type CellMealDrag,
+  type MealItemDrag,
+} from '@/components/plan-editor/plan-editor-library';
+import { dayTotals, mealItemCount, mealTotals, weekSummary } from '@/components/plan-editor/plan-editor-nutrition';
 import {
   addItemToCell,
   addMealRow,
+  addMealToDay,
+  CHRONOLOGICAL_KINDS,
   addWeek,
   applyMealKinds,
   COMMON_MEAL_KINDS,
+  type CellCopyMode,
+  copyMealToCell,
   copyWeekMeals,
   nextSnackKind,
-  reorderMeals,
+  reorderMealItems,
   setDayNote,
   weekHasItems,
   weekRows,
 } from '@/components/plan-editor/plan-editor-ops';
-import type {
-  EditorDocument,
-  EditorRange,
-  EditorView,
-  LibraryItem,
-  PlanTargets,
-  SaveStatus,
+import {
+  MAX_MEALS_PER_DAY,
+  type EditorDocument,
+  type EditorRange,
+  type EditorView,
+  type LibraryItem,
+  type PlanTargets,
+  type SaveStatus,
 } from '@/components/plan-editor/plan-editor-types';
 import { usePlanEditorState } from '@/components/plan-editor/usePlanEditorState';
 
@@ -82,16 +100,13 @@ interface Props {
   onReload: () => void;
 }
 
-/** Whole-card drags: a short mouse move starts one, touch needs a press so the list still scrolls. */
-const DRAG_SENSORS = [
-  PointerSensor.configure({
-    activationConstraints: (event) =>
-      event.pointerType === 'touch'
-        ? [new PointerActivationConstraints.Delay({ value: 250, tolerance: 5 })]
-        : [new PointerActivationConstraints.Distance({ value: 5 })],
-  }),
-  KeyboardSensor,
-];
+const DRAG_SENSORS = [PointerSensor.configure({ activationConstraints: dragActivationConstraints }), KeyboardSensor];
+
+interface PendingDrop {
+  weekIndex: number;
+  source: { dayOfWeek: number; mealId: string };
+  target: { dayOfWeek: number; rowIndex: number };
+}
 
 function isLibraryItem(value: unknown): value is LibraryItem {
   if (typeof value !== 'object' || value === null || !('type' in value)) {
@@ -115,10 +130,6 @@ function readCell(data: unknown): SelectedCell | null {
   return typeof candidate.dayOfWeek === 'number' && typeof candidate.rowIndex === 'number'
     ? { dayOfWeek: candidate.dayOfWeek, rowIndex: candidate.rowIndex }
     : null;
-}
-
-function isMealDrag(data: unknown): boolean {
-  return typeof data === 'object' && data !== null && 'type' in data && data.type === 'meal';
 }
 
 function itemName(item: LibraryItem): string {
@@ -153,6 +164,9 @@ export default function PlanEditor({
   const [libraryOpen, setLibraryOpen] = useState(true);
   const [pickerSession, setPickerSession] = useState(false);
   const [leaveOpen, setLeaveOpen] = useState(false);
+  const [pendingDrop, setPendingDrop] = useState<PendingDrop | null>(null);
+  const [addMealOpen, setAddMealOpen] = useState(false);
+  const [scrollArea, setScrollArea] = useState<HTMLElement | null>(null);
   const expandRef = useRef<HTMLButtonElement>(null);
   const collapseRef = useRef<HTMLButtonElement>(null);
   const libraryToggled = useRef(false);
@@ -238,7 +252,6 @@ export default function PlanEditor({
     setDetailCell(null);
     if (next === 'nutrition') {
       setRange('week');
-      setLibraryOpen(false);
     }
   }
 
@@ -268,16 +281,76 @@ export default function PlanEditor({
     );
   }
 
-  function onMealDragEnd(sourceId: unknown, event: Parameters<typeof move>[1]) {
-    const day = week?.days.find((candidate) => candidate.dayOfWeek === dayOfWeek);
-    if (!day || typeof sourceId !== 'string') {
+  /** An empty target takes a week card at once; a filled one asks Replace or Add first. */
+  function onCellMealDrop(source: CellMealDrag, target: SelectedCell) {
+    if (readOnly || source.weekIndex !== currentIndex) {
       return;
     }
-    const ids = day.meals.map((meal) => meal.mealId);
-    const next = move(ids, event);
-    if (next.some((id, index) => id !== ids[index])) {
-      edit((current) => reorderMeals(current, currentIndex, dayOfWeek, next));
+    const targetDay = week?.days.find((day) => day.dayOfWeek === target.dayOfWeek);
+    const targetMeal = targetDay?.meals[target.rowIndex];
+    if (targetMeal?.mealId === source.mealId) {
+      return;
     }
+    const drop = { weekIndex: source.weekIndex, source, target };
+    if (!targetMeal || mealItemCount(targetMeal) === 0) {
+      copyCell(drop, 'replace');
+      return;
+    }
+    setPendingDrop(drop);
+  }
+
+  function copyCell(drop: PendingDrop, mode: CellCopyMode) {
+    setSelected(drop.target);
+    setDetailCell(null);
+    edit((current) =>
+      copyMealToCell(
+        current,
+        drop.weekIndex,
+        { dayOfWeek: drop.source.dayOfWeek, mealId: drop.source.mealId },
+        { dayOfWeek: drop.target.dayOfWeek, rowIndex: drop.target.rowIndex },
+        mode,
+      ),
+    );
+  }
+
+  function resolveDrop(mode: CellCopyMode) {
+    if (pendingDrop) {
+      copyCell(pendingDrop, mode);
+    }
+    setPendingDrop(null);
+  }
+
+  function findMeal(dayOfWeekValue: number, mealId: string) {
+    return week?.days.find((day) => day.dayOfWeek === dayOfWeekValue)?.meals.find((meal) => meal.mealId === mealId);
+  }
+
+  function rowLabelKey(rowIndex: number): string {
+    const row = weekRows(week ?? { weekNumber: 0, days: [] })[rowIndex];
+    return mealKindLabelKey(row?.kind ?? MealKind.Breakfast);
+  }
+
+  /** Reorders a recipe or ingredient inside its own list; a drop outside that list changes nothing. */
+  function onMealItemDragEnd(source: MealItemDrag, event: Parameters<typeof move>[1]) {
+    const meal = findMeal(source.dayOfWeek, source.mealId);
+    const sourceId = event.operation.source?.id;
+    if (!meal || readOnly || source.weekIndex !== currentIndex || typeof sourceId !== 'string') {
+      return;
+    }
+    const list = `${source.mealId}:${source.kind}`;
+    const count = source.kind === 'recipe' ? meal.recipes.length : meal.foods.length;
+    const ids = Array.from({ length: count }, (_, index) => `${list}:${index}`);
+    const to = move(ids, event).indexOf(sourceId);
+    if (to !== -1 && to !== source.index) {
+      edit((current) =>
+        reorderMealItems(current, source.weekIndex, source.dayOfWeek, source.mealId, source.kind, source.index, to),
+      );
+    }
+  }
+
+  /** Adds an empty meal to the active day at its kind's place in the day's order. */
+  function addMeal(kind: MealKind, note: string) {
+    edit((current) => addMealToDay(current, currentIndex, dayOfWeek, kind, note));
+    setAddMealOpen(false);
   }
 
   function addToCell(item: LibraryItem, cell: SelectedCell) {
@@ -341,16 +414,54 @@ export default function PlanEditor({
     return null;
   }
 
+  const allKindsPresent = CHRONOLOGICAL_KINDS.every((kind) => activeDay?.meals.some((meal) => meal.kind === kind));
+  const pendingSource = pendingDrop ? findMeal(pendingDrop.source.dayOfWeek, pendingDrop.source.mealId) : undefined;
+  const pendingTarget = pendingDrop
+    ? week.days.find((day) => day.dayOfWeek === pendingDrop.target.dayOfWeek)?.meals[pendingDrop.target.rowIndex]
+    : undefined;
+  const dropDialog =
+    pendingDrop && pendingSource && pendingTarget
+      ? {
+          source: {
+            dayOfWeek: pendingDrop.source.dayOfWeek,
+            rowLabelKey: mealKindLabelKey(pendingSource.kind),
+            meal: pendingSource,
+          },
+          target: {
+            dayOfWeek: pendingDrop.target.dayOfWeek,
+            rowLabelKey: range === 'day' ? mealKindLabelKey(pendingTarget.kind) : rowLabelKey(pendingDrop.target.rowIndex),
+            meal: pendingTarget,
+          },
+        }
+      : null;
+
   return (
+    <PopoverBoundaryContext.Provider value={scrollArea}>
     <DragDropProvider
       sensors={DRAG_SENSORS}
       plugins={(defaults) => defaults.map((plugin) => (plugin === Feedback ? Feedback.configure({ dropAnimation: null }) : plugin))}
-      onDragEnd={(event) => {
+      onDragStart={(event, manager) => {
+        // The meal popover is a small scrolling box; auto-scroll would move its rows away from the pointer mid-drag.
+        if (readMealItemDrag(event.operation.source?.data)) {
+          manager.registry.plugins.get(AutoScroller)?.disable();
+        }
+      }}
+      onDragEnd={(event, manager) => {
+        manager.registry.plugins.get(AutoScroller)?.enable();
         if (event.canceled) {
           return;
         }
-        if (isMealDrag(event.operation.source?.data)) {
-          onMealDragEnd(event.operation.source?.id, event);
+        const cellMeal = readCellMealDrag(event.operation.source?.data);
+        if (cellMeal) {
+          const dropCell = readCell(event.operation.target?.data);
+          if (dropCell) {
+            onCellMealDrop(cellMeal, dropCell);
+          }
+          return;
+        }
+        const mealItem = readMealItemDrag(event.operation.source?.data);
+        if (mealItem) {
+          onMealItemDragEnd(mealItem, event);
           return;
         }
         const item = readItem(event.operation.source?.data);
@@ -458,6 +569,15 @@ export default function PlanEditor({
                   targets={targets}
                   note={activeDay?.note}
                   readOnly={readOnly}
+                  addMealDisabled={allKindsPresent || (activeDay?.meals.length ?? 0) >= MAX_MEALS_PER_DAY}
+                  addMealTitle={
+                    allKindsPresent
+                      ? t('planEditor.day.allKindsAdded')
+                      : (activeDay?.meals.length ?? 0) >= MAX_MEALS_PER_DAY
+                        ? t('planEditor.day.limitReached', { max: MAX_MEALS_PER_DAY })
+                        : undefined
+                  }
+                  onAddMeal={() => setAddMealOpen(true)}
                   onNoteChange={(note) =>
                     edit((current) => setDayNote(current, currentIndex, dayOfWeek, note), `daynote:${currentIndex}:${dayOfWeek}`)
                   }
@@ -467,6 +587,7 @@ export default function PlanEditor({
           </div>
 
           <div
+            ref={setScrollArea}
             data-testid="editor-scroll"
             className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-6 pt-1 pb-6"
           >
@@ -518,6 +639,7 @@ export default function PlanEditor({
               detailCell={detailCell}
               renderDetail={renderDetail}
               onDetailClose={() => setDetailCell(null)}
+              onEdit={edit}
             />
           )}
 
@@ -541,13 +663,54 @@ export default function PlanEditor({
       <DragOverlay dropAnimation={null}>
         {(source) => {
           const item = readItem(source.data);
-          return item ? (
-            <div className="rounded-xl border border-line bg-card px-4 py-3 text-copy font-semibold text-ink shadow-popover">
-              {itemName(item)}
+          if (item) {
+            return (
+              <div className="rounded-xl border border-line bg-card px-4 py-3 text-copy font-semibold text-ink shadow-popover">
+                {itemName(item)}
+              </div>
+            );
+          }
+          const mealItem = readMealItemDrag(source.data);
+          if (mealItem) {
+            const owner = findMeal(mealItem.dayOfWeek, mealItem.mealId);
+            const label =
+              mealItem.kind === 'recipe'
+                ? owner?.recipes[mealItem.index]?.recipeName
+                : owner?.foods[mealItem.index] && foodDisplayName(owner.foods[mealItem.index], i18n.language);
+            return label ? (
+              <div className="max-w-80 rounded-xl border border-line bg-card px-4 py-3 text-copy font-semibold text-ink shadow-popover [overflow-wrap:anywhere]">
+                {label}
+              </div>
+            ) : null;
+          }
+          const cellMeal = readCellMealDrag(source.data);
+          const meal = cellMeal ? findMeal(cellMeal.dayOfWeek, cellMeal.mealId) : undefined;
+          return meal ? (
+            <div className="flex max-w-60 flex-col gap-0.5 rounded-xl border border-line bg-card px-4 py-3 shadow-popover">
+              <span className="truncate text-copy font-semibold text-ink">{mealItemNames(meal, i18n.language)[0]}</span>
+              <span className="text-body text-muted-foreground">
+                {t('planEditor.cell.kcal', { kcal: Math.round(mealTotals(meal).kcal) })}
+              </span>
             </div>
           ) : null;
         }}
       </DragOverlay>
+
+      <AddMealSheet
+        open={addMealOpen && !readOnly}
+        onOpenChange={setAddMealOpen}
+        dayLabel={t(`planEditor.daysLong.${dayOfWeek}`)}
+        dayKinds={activeDay?.meals.map((meal) => meal.kind) ?? []}
+        onSubmit={addMeal}
+      />
+
+      <CardDropDialog
+        drop={dropDialog}
+        language={i18n.language}
+        onReplace={() => resolveDrop('replace')}
+        onAdd={() => resolveDrop('add')}
+        onCancel={() => setPendingDrop(null)}
+      />
 
       {renderCopyMeals?.({
         open: copyOpen,
@@ -578,5 +741,6 @@ export default function PlanEditor({
         </DialogContent>
       </Dialog>
     </DragDropProvider>
+    </PopoverBoundaryContext.Provider>
   );
 }

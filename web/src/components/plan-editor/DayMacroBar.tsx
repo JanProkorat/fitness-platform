@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { StickyNote } from 'lucide-react';
+import { Plus, StickyNote } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { formatKcal } from '@/components/plan-editor/plan-editor-format';
@@ -70,13 +70,28 @@ interface Props {
   targets: PlanTargets | undefined;
   note: string | undefined;
   readOnly: boolean;
+  addMealDisabled: boolean;
+  addMealTitle: string | undefined;
+  onAddMeal: () => void;
   onNoteChange: (note: string) => void;
 }
 
-/** The day's kcal and macros against the targets, plus the day note. */
-export default function DayMacroBar({ totals, targets, note, readOnly, onNoteChange }: Props) {
+/** The day's kcal and macros against the targets, with the "Add meal" and day-note controls. */
+export default function DayMacroBar({
+  totals,
+  targets,
+  note,
+  readOnly,
+  addMealDisabled,
+  addMealTitle,
+  onAddMeal,
+  onNoteChange,
+}: Props) {
   const { t, i18n } = useTranslation();
   const [editing, setEditing] = useState(false);
+  const hasNote = Boolean(note);
+  // A day with a note keeps its input open; clearing it hides the input again once it loses focus.
+  const showInput = !readOnly && (hasNote || editing);
   const status = KCAL_STATUS_CLASS[targetStatus(totals.kcal, targets?.kcal)];
   const language = i18n.language;
 
@@ -143,26 +158,43 @@ export default function DayMacroBar({ totals, targets, note, readOnly, onNoteCha
           dayKcal={totals.kcal}
         />
         </div>
-        {(!readOnly || Boolean(note)) && (
+        {!readOnly && (
           <button
             type="button"
-            disabled={readOnly}
-            title={note || t('planEditor.day.addNote')}
-            aria-label={note || t('planEditor.day.addNote')}
-            aria-expanded={readOnly ? undefined : editing}
+            data-testid="day-add-meal"
+            disabled={addMealDisabled}
+            title={addMealTitle}
+            aria-label={t('planEditor.addMeal.open')}
+            onClick={onAddMeal}
+            className="inline-flex h-7.5 w-7.5 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-lg border border-line text-body text-ink outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-40 @[56rem]:h-9 @[56rem]:w-auto @[56rem]:px-3"
+          >
+            <Plus className="size-4 shrink-0" aria-hidden="true" />
+            <span className="hidden whitespace-nowrap @[56rem]:inline">{t('planEditor.addMeal.open')}</span>
+          </button>
+        )}
+        {(!readOnly || hasNote) && (
+          <button
+            type="button"
+            data-testid="day-note-toggle"
+            disabled={readOnly || hasNote}
+            title={readOnly ? note : hasNote ? t('planEditor.day.noteShownBelow') : t('planEditor.day.addNote')}
+            aria-label={readOnly ? note : hasNote ? t('planEditor.day.noteLabel') : t('planEditor.day.addNote')}
+            aria-expanded={readOnly ? undefined : showInput}
             onClick={() => setEditing((open) => !open)}
             className={cn(
               'inline-flex h-7.5 w-7.5 shrink-0 items-center justify-center gap-2 rounded-lg border text-body outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-100 @[56rem]:h-9 @[56rem]:w-auto @[56rem]:max-w-48 @[56rem]:px-3',
-              note ? 'border-line text-ink' : 'border-dashed border-line text-muted-foreground',
-              readOnly ? 'cursor-default' : 'cursor-pointer hover:text-ink',
+              hasNote ? 'border-line text-ink' : 'border-dashed border-line text-muted-foreground',
+              readOnly || hasNote ? 'cursor-default' : 'cursor-pointer hover:text-ink',
             )}
           >
             <StickyNote className="size-4 shrink-0" aria-hidden="true" />
-            <span className="hidden truncate @[56rem]:inline">{note || t('planEditor.day.addNote')}</span>
+            <span className="hidden truncate @[56rem]:inline">
+              {readOnly ? note : hasNote ? t('planEditor.day.noteLabel') : t('planEditor.day.addNote')}
+            </span>
           </button>
         )}
       </div>
-      {editing && !readOnly && (
+      {showInput && (
         <div className="relative">
           <StickyNote
             className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
@@ -171,10 +203,11 @@ export default function DayMacroBar({ totals, targets, note, readOnly, onNoteCha
           <Input
             value={note ?? ''}
             maxLength={MAX_NOTE_LENGTH}
-            autoFocus
+            autoFocus={editing}
             aria-label={t('planEditor.day.noteLabel')}
             placeholder={t('planEditor.day.notePlaceholder')}
             onChange={(event) => onNoteChange(event.target.value)}
+            onFocus={() => setEditing(true)}
             onBlur={() => setEditing(false)}
             className="h-10 pl-10"
           />

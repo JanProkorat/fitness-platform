@@ -29,7 +29,7 @@ export const COMMON_MEAL_KINDS: readonly MealKind[] = [
   MealKind.Dinner,
 ];
 
-function kindRank(kind: MealKind): number {
+export function kindRank(kind: MealKind): number {
   return CHRONOLOGICAL_KINDS.indexOf(kind);
 }
 
@@ -265,13 +265,12 @@ export function removeRecipeAt(
   }));
 }
 
-/** Inserts an empty meal into one day after the meal at `afterIndex` (-1 = first). Unchanged at the cap. */
+/** Inserts an empty meal into one day at its kind's place in the day's order. Unchanged at the cap. */
 export function addMealToDay(
   doc: EditorDocument,
   weekIndex: number,
   dayOfWeek: number,
   kind: MealKind,
-  afterIndex: number,
   note?: string,
 ): EditorDocument {
   return updateDay(doc, weekIndex, dayOfWeek, (day) => {
@@ -280,7 +279,8 @@ export function addMealToDay(
     }
     const meals = [...day.meals];
     const created: EditorMeal = { ...newMeal(kind, 0), note: note ? blankToUndefined(note) : undefined };
-    meals.splice(Math.min(afterIndex + 1, meals.length), 0, created);
+    const firstLater = meals.findIndex((meal) => kindRank(meal.kind) > kindRank(kind));
+    meals.splice(firstLater === -1 ? meals.length : firstLater, 0, created);
     return { ...day, meals: renumber(meals) };
   });
 }
@@ -292,21 +292,32 @@ export function removeMeal(doc: EditorDocument, weekIndex: number, dayOfWeek: nu
   }));
 }
 
-/** Puts a day's meals in the given id order; ids not listed keep their relative place at the end. */
-export function reorderMeals(
+/** Moves one recipe or ingredient to another position within its own list of a meal. */
+export function reorderMealItems(
   doc: EditorDocument,
   weekIndex: number,
   dayOfWeek: number,
-  orderedIds: readonly string[],
+  mealId: string,
+  kind: 'recipe' | 'food',
+  from: number,
+  to: number,
 ): EditorDocument {
-  return updateDay(doc, weekIndex, dayOfWeek, (day) => {
-    const rank = (meal: EditorMeal) => {
-      const position = orderedIds.indexOf(meal.mealId);
-      return position === -1 ? orderedIds.length : position;
-    };
-    const sorted = [...day.meals].sort((left, right) => rank(left) - rank(right));
-    return sorted.every((meal, index) => meal === day.meals[index]) ? day : { ...day, meals: renumber(sorted) };
-  });
+  const moveWithin = <T>(items: readonly T[]): T[] => {
+    if (from === to || from < 0 || to < 0 || from >= items.length || to >= items.length) {
+      return [...items];
+    }
+    const next = [...items];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    return next;
+  };
+  return updateMeal(doc, weekIndex, dayOfWeek, mealId, (meal) =>
+    from === to
+      ? meal
+      : kind === 'recipe'
+        ? { ...meal, recipes: moveWithin(meal.recipes) }
+        : { ...meal, foods: moveWithin(meal.foods) },
+  );
 }
 
 function copyContents(source: EditorMeal, target: EditorMeal): EditorMeal {
@@ -353,6 +364,50 @@ export function copyMealToDays(
   }));
 }
 
+export type CellCopyMode = 'replace' | 'add';
+
+/**
+ * Copies one meal onto the cell at `target` in the same week. An empty or missing target meal takes
+ * the source's items and note; a filled one is either replaced (items and note) or extended with the
+ * source's items (its own note stays, the source's note fills in when it has none). Dropping a meal
+ * on its own cell changes nothing.
+ */
+export function copyMealToCell(
+  doc: EditorDocument,
+  weekIndex: number,
+  source: { dayOfWeek: number; mealId: string },
+  target: { dayOfWeek: number; rowIndex: number },
+  mode: CellCopyMode,
+): EditorDocument {
+  const week = doc.weeks[weekIndex];
+  const sourceMeal = week?.days.find((day) => day.dayOfWeek === source.dayOfWeek)?.meals.find((meal) => meal.mealId === source.mealId);
+  const targetDay = week?.days.find((day) => day.dayOfWeek === target.dayOfWeek);
+  if (!week || !sourceMeal || !targetDay || targetDay.meals[target.rowIndex]?.mealId === source.mealId) {
+    return doc;
+  }
+  const rows = weekRows(week);
+  return updateDay(doc, weekIndex, target.dayOfWeek, (day) => {
+    const meals = [...day.meals];
+    for (let index = meals.length; index <= target.rowIndex; index += 1) {
+      meals.push(newMeal(rows[index]?.kind ?? sourceMeal.kind, index + 1));
+    }
+    const existing = meals[target.rowIndex];
+    const filled = existing.foods.length + existing.recipes.length > 0;
+    if (mode === 'replace' || !filled) {
+      meals[target.rowIndex] = copyContents(sourceMeal, existing);
+    } else {
+      const copy = copyContents(sourceMeal, existing);
+      meals[target.rowIndex] = {
+        ...existing,
+        note: existing.note ?? sourceMeal.note,
+        foods: [...existing.foods, ...copy.foods],
+        recipes: [...existing.recipes, ...copy.recipes],
+      };
+    }
+    return { ...day, meals: renumber(meals) };
+  });
+}
+
 /**
  * Replaces an empty week's meals with a copy of another plan's week (items and notes, new ids); every
  * other week without meals gets the same rows, empty. Weeks that already have meals are left alone.
@@ -390,9 +445,4 @@ export function copyWeekMeals(doc: EditorDocument, weekIndex: number, sourceWeek
       };
     }),
   };
-}
-
-/** The snack kind a day gets next: the second snack of a day is the afternoon one. */
-export function nextSnackKindForDay(day: EditorDay | undefined): MealKind {
-  return day?.meals.some((meal) => meal.kind === MealKind.MorningSnack) ? MealKind.AfternoonSnack : MealKind.MorningSnack;
 }

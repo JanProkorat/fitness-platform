@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useSortable } from '@dnd-kit/react/sortable';
 import { Apple, ChefHat, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import MacroDots from '@/components/plan-editor/MacroDots';
 import { MacroBar } from '@/components/plan-editor/WeekGrid';
+import { MEAL_ITEM_DRAG } from '@/components/plan-editor/plan-editor-library';
 import type { MealItemEntry } from '@/components/plan-editor/plan-editor-nutrition';
 import { MAX_GRAMS, MAX_SERVINGS } from '@/components/plan-editor/plan-editor-types';
 
@@ -31,10 +34,11 @@ interface AmountInputProps {
   unit: AmountUnit;
   label: string;
   onCommit: (value: number) => void;
+  className?: string;
 }
 
 /** Number box with its unit inside. An invalid entry is flagged and never committed; blur restores the last good value. */
-export function AmountInput({ value, unit, label, onCommit }: AmountInputProps) {
+export function AmountInput({ value, unit, label, onCommit, className }: AmountInputProps) {
   const { t } = useTranslation();
   const [text, setText] = useState(String(value));
   const [seen, setSeen] = useState(value);
@@ -47,7 +51,7 @@ export function AmountInput({ value, unit, label, onCommit }: AmountInputProps) 
   const invalid = parseAmount(text, unit) === null && text !== String(value);
 
   return (
-    <div className="relative w-36 shrink-0">
+    <div className={cn('relative w-36 shrink-0', className)}>
       <Input
         type="text"
         inputMode="decimal"
@@ -79,30 +83,61 @@ interface Props {
   entry: MealItemEntry;
   readOnly: boolean;
   variant: 'day' | 'popover';
+  /** Where the row lives, so it can be dragged to another place in its own recipe or ingredient list. */
+  position: { weekIndex: number; dayOfWeek: number; mealId: string };
   onAmount: (value: number) => void;
   onRemove: () => void;
 }
 
-/** One recipe or ingredient of a meal: name, amount, kcal and a remove button. */
-export default function MealItemRow({ entry, readOnly, variant, onAmount, onRemove }: Props) {
+/** One recipe or ingredient of a meal: name, amount, kcal and a remove button. Draggable within its list. */
+export default function MealItemRow({ entry, readOnly, variant, position, onAmount, onRemove }: Props) {
   const { t } = useTranslation();
+  const list = `${position.mealId}:${entry.type}`;
+  // Only the meal popover reorders; the Day view's cards stay as they were (a row drag inside a sortable card misplaces the drag preview there).
+  const draggable = !readOnly && variant === 'popover';
+  // No optimistic sorting: rows are keyed by position, so moving DOM nodes ahead of the state change would swap them twice.
+  const { ref, isDragging, isDropTarget } = useSortable({
+    id: `${list}:${entry.index}`,
+    index: entry.index,
+    group: list,
+    type: `meal-item:${list}`,
+    plugins: [],
+    disabled: !draggable,
+    data: {
+      type: MEAL_ITEM_DRAG,
+      weekIndex: position.weekIndex,
+      dayOfWeek: position.dayOfWeek,
+      mealId: position.mealId,
+      kind: entry.type,
+      index: entry.index,
+    },
+  });
   const unit: AmountUnit = entry.type === 'recipe' ? 'portion' : 'g';
   const typeLabel = t(entry.type === 'recipe' ? 'planEditor.itemType.recipe' : 'planEditor.itemType.food');
   const { totals } = entry;
   const detail =
-    variant === 'popover'
-      ? t('planEditor.item.macros', {
-          type: typeLabel,
-          protein: Math.round(totals.protein),
-          carbs: Math.round(totals.carbs),
-          fat: Math.round(totals.fat),
-          fiber: Math.round(totals.fiber),
-        })
-      : typeLabel;
+    variant === 'popover' ? (
+      <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+        <span>{typeLabel}</span>
+        <MacroDots protein={totals.protein} carbs={totals.carbs} fat={totals.fat} fiber={totals.fiber} />
+      </span>
+    ) : (
+      <span className="truncate">{typeLabel}</span>
+    );
   const Icon = entry.type === 'recipe' ? ChefHat : Apple;
 
   return (
-    <li data-testid="meal-item" className="flex items-center gap-3">
+    <li
+      ref={draggable ? ref : undefined}
+      data-testid="meal-item"
+      data-kind={entry.type}
+      className={cn(
+        'flex items-center gap-3',
+        draggable && 'cursor-grab select-none active:cursor-grabbing',
+        isDragging && 'opacity-50',
+        isDropTarget && !isDragging && 'rounded-lg bg-nutrition-soft',
+      )}
+    >
       <span
         className={cn(
           'flex shrink-0 items-center justify-center rounded-lg bg-nutrition-soft text-nutrition-ink',
@@ -113,8 +148,15 @@ export default function MealItemRow({ entry, readOnly, variant, onAmount, onRemo
         <Icon className="size-4" />
       </span>
       <span className="flex min-w-0 flex-1 flex-col">
-        <span className="truncate text-copy font-semibold text-ink">{entry.name}</span>
-        <span className="truncate text-meta text-muted-foreground">{detail}</span>
+        <span
+          className={cn(
+            'text-copy font-semibold text-ink',
+            variant === 'day' ? 'truncate' : '[overflow-wrap:anywhere]',
+          )}
+        >
+          {entry.name}
+        </span>
+        <span className="text-meta text-muted-foreground">{detail}</span>
       </span>
       {readOnly ? (
         <span className="w-24 shrink-0 text-right text-copy text-ink">
@@ -126,12 +168,13 @@ export default function MealItemRow({ entry, readOnly, variant, onAmount, onRemo
           unit={unit}
           label={t('planEditor.item.amountLabel', { name: entry.name })}
           onCommit={onAmount}
+          className={variant === 'popover' ? 'w-28' : undefined}
         />
       )}
       <span
         className={cn(
-          'w-20 shrink-0 text-right text-copy',
-          variant === 'day' ? 'font-semibold text-ink' : 'text-muted-foreground',
+          'shrink-0 text-right text-copy',
+          variant === 'day' ? 'w-20 font-semibold text-ink' : 'w-16 text-muted-foreground',
         )}
       >
         {t('planEditor.cell.kcal', { kcal: Math.round(totals.kcal) })}
