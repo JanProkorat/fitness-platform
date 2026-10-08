@@ -2,7 +2,16 @@ import { MealKind } from '@/api/generated';
 
 export const DAY_ORDER = [1, 2, 3, 4, 5, 6, 7] as const;
 
-export const GRID_CLASS = 'grid grid-cols-[8rem_repeat(7,minmax(0,1fr))] items-center gap-3';
+/** One grid for the whole week: the label column is as wide as the longest label, the days share the rest. */
+export const WEEK_GRID_CLASS = 'grid grid-cols-[max-content_repeat(7,minmax(0,1fr))] gap-3';
+
+/** A row of the week grid, aligned to its columns. */
+export const GRID_CLASS = 'grid grid-cols-subgrid col-span-8 items-center';
+
+/** Rows: header and day totals by content, then the meal rows share the free height. */
+export function weekGridRows(mealRowCount: number, minRowRem: number): { gridTemplateRows: string } {
+  return { gridTemplateRows: `auto auto repeat(${mealRowCount}, minmax(${minRowRem}rem, 1fr))` };
+}
 
 export function formatKcal(value: number, language: string): string {
   return Math.round(value).toLocaleString(language);

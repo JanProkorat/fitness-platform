@@ -6,7 +6,14 @@ import { cn } from '@/lib/utils';
 import MacroDots from '@/components/plan-editor/MacroDots';
 import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Textarea } from '@/components/ui/textarea';
-import { DAY_ORDER, formatKcal, GRID_CLASS, mealKindLabelKey } from '@/components/plan-editor/plan-editor-format';
+import {
+  DAY_ORDER,
+  formatKcal,
+  GRID_CLASS,
+  mealKindLabelKey,
+  WEEK_GRID_CLASS,
+  weekGridRows,
+} from '@/components/plan-editor/plan-editor-format';
 import { CELL_MEAL_DRAG, GRID_CELL_SENSORS, mealItemNames } from '@/components/plan-editor/plan-editor-library';
 import {
   dayTotals,
@@ -341,7 +348,12 @@ export default function WeekGrid({
   const dayByNumber = new Map(week.days.map((day) => [day.dayOfWeek, day]));
 
   return (
-    <div role="group" aria-label={t('planEditor.grid.label')} className="flex flex-1 flex-col gap-3">
+    <div
+      role="group"
+      aria-label={t('planEditor.grid.label')}
+      className={cn(WEEK_GRID_CLASS, 'flex-1')}
+      style={weekGridRows(rows.length, 7.5)}
+    >
       <div className={GRID_CLASS}>
         <span />
         {DAY_ORDER.map((dayOfWeek) => (
@@ -354,15 +366,17 @@ export default function WeekGrid({
       </div>
 
       <div className={cn(GRID_CLASS, 'items-stretch')}>
-        <span className="self-center text-body font-semibold text-muted-foreground">{t('planEditor.dayTotal')}</span>
+        <span className="self-center text-body font-semibold whitespace-nowrap text-muted-foreground">
+          {t('planEditor.dayTotal')}
+        </span>
         {DAY_ORDER.map((dayOfWeek) => (
           <DayTotalCell key={dayOfWeek} day={dayByNumber.get(dayOfWeek)} target={dailyKcalTarget} />
         ))}
       </div>
 
       {rows.map((row) => (
-        <div key={row.index} className={cn(GRID_CLASS, 'min-h-30 flex-1 items-stretch')}>
-          <span className="self-center text-body font-semibold text-muted-foreground">
+        <div key={row.index} className={cn(GRID_CLASS, 'items-stretch')}>
+          <span className="self-center text-body font-semibold whitespace-nowrap text-muted-foreground">
             {t(`planEditor.rows.${mealKindLabelKey(row.kind)}`)}
           </span>
           {DAY_ORDER.map((dayOfWeek) => {
