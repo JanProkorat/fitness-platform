@@ -9,8 +9,15 @@ import { cn } from '@/lib/utils';
 import { mealKindLabelKey } from '@/components/plan-editor/plan-editor-format';
 import { MAX_NOTE_LENGTH } from '@/components/plan-editor/plan-editor-types';
 
-/** The four types the board offers; "snack" becomes the morning or afternoon snack per day. */
-const KIND_OPTIONS: readonly MealKind[] = [MealKind.Breakfast, MealKind.MorningSnack, MealKind.Lunch, MealKind.Dinner];
+/** The types offered; "snack" becomes the morning or afternoon snack per day. */
+const KIND_OPTIONS: readonly MealKind[] = [
+  MealKind.Breakfast,
+  MealKind.MorningSnack,
+  MealKind.Lunch,
+  MealKind.Dinner,
+  MealKind.PreWorkout,
+  MealKind.PostWorkout,
+];
 
 function optionKind(kind: MealKind): MealKind {
   return kind === MealKind.AfternoonSnack ? MealKind.MorningSnack : kind;

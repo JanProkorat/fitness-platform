@@ -1822,8 +1822,7 @@
       "weeksSummary_one": "week · {{days}} days",
       "weeksSummary_other": "weeks · {{days}} days",
       "meals": "Meals per day",
-      "mealsHint": "These become the rows of the editor. You can change them later.",
-      "mealsRequired": "Choose at least one meal.",
+      "mealsHint": "Optional. These become the rows of the editor; you can add or change them later.",
       "dailyKcal": "Daily calorie target",
       "optional": "(optional)",
       "kcalUnit": "kcal",
@@ -1835,7 +1834,9 @@
       "snack": "Snack",
       "lunch": "Lunch",
       "snack2": "Snack 2",
-      "dinner": "Dinner"
+      "dinner": "Dinner",
+      "preWorkout": "Pre-workout",
+      "postWorkout": "Post-workout"
     },
     "editor": {
       "title": "Template editor",

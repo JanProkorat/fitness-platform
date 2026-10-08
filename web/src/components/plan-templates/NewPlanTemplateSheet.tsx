@@ -47,7 +47,7 @@ const formSchema = z.object({
   description: z.string().max(2000),
   goal: z.enum(PrimaryGoal),
   weeks: z.number().int().min(MIN_WEEKS).max(MAX_WEEKS),
-  mealKinds: z.array(z.enum(MealKind)).min(1),
+  mealKinds: z.array(z.enum(MealKind)),
   dailyKcal: z.number().int().min(1).max(MAX_DAILY_KCAL).optional(),
 });
 
@@ -222,11 +222,7 @@ function NewPlanTemplateForm({ onClose }: { onClose: () => void }) {
               );
             })}
           </div>
-          {errors.mealKinds ? (
-            <p className="text-meta text-destructive">{t('planTemplates.new.mealsRequired')}</p>
-          ) : (
-            <p className="text-meta text-muted-foreground">{t('planTemplates.new.mealsHint')}</p>
-          )}
+          <p className="text-meta text-muted-foreground">{t('planTemplates.new.mealsHint')}</p>
         </div>
 
         <div className="flex flex-col gap-1.5">

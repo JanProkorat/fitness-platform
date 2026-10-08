@@ -1821,8 +1821,7 @@
       "weeksSummary_one": "Woche · {{days}} Tage",
       "weeksSummary_other": "Wochen · {{days}} Tage",
       "meals": "Mahlzeiten pro Tag",
-      "mealsHint": "Daraus werden die Zeilen des Editors. Sie können sie später ändern.",
-      "mealsRequired": "Wählen Sie mindestens eine Mahlzeit.",
+      "mealsHint": "Optional. Daraus werden die Zeilen des Editors; Sie können sie später ergänzen oder ändern.",
       "dailyKcal": "Tägliches Kalorienziel",
       "optional": "(optional)",
       "kcalUnit": "kcal",
@@ -1834,7 +1833,9 @@
       "snack": "Snack",
       "lunch": "Mittagessen",
       "snack2": "Snack 2",
-      "dinner": "Abendessen"
+      "dinner": "Abendessen",
+      "preWorkout": "Vor dem Training",
+      "postWorkout": "Nach dem Training"
     },
     "editor": {
       "title": "Vorlagen-Editor",

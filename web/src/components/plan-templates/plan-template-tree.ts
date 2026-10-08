@@ -13,13 +13,15 @@ export interface MealSlot {
   labelKey: string;
 }
 
-/** The five meal-slot chips, in the order the New template board shows them. */
+/** The seven meal-slot chips, in the order the New template board shows them. */
 export const MEAL_SLOTS: readonly MealSlot[] = [
   { kind: MealKind.Breakfast, labelKey: 'breakfast' },
   { kind: MealKind.MorningSnack, labelKey: 'snack' },
   { kind: MealKind.Lunch, labelKey: 'lunch' },
   { kind: MealKind.Dinner, labelKey: 'dinner' },
   { kind: MealKind.AfternoonSnack, labelKey: 'snack2' },
+  { kind: MealKind.PreWorkout, labelKey: 'preWorkout' },
+  { kind: MealKind.PostWorkout, labelKey: 'postWorkout' },
 ];
 
 /** Slots in the order a day's meals run; this is the order sent to the API. */
@@ -29,6 +31,8 @@ const CHRONOLOGICAL_KINDS: readonly MealKind[] = [
   MealKind.Lunch,
   MealKind.AfternoonSnack,
   MealKind.Dinner,
+  MealKind.PreWorkout,
+  MealKind.PostWorkout,
 ];
 
 export const DEFAULT_MEAL_KINDS: readonly MealKind[] = [

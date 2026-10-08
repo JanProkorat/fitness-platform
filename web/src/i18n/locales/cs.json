@@ -1853,8 +1853,7 @@
       "weeksSummary_many": "týdne · {{days}} dní",
       "weeksSummary_other": "týdnů · {{days}} dní",
       "meals": "Jídel denně",
-      "mealsHint": "Z nich se stanou řádky editoru. Později je můžete změnit.",
-      "mealsRequired": "Vyberte alespoň jedno jídlo.",
+      "mealsHint": "Volitelné. Z nich se stanou řádky editoru; později je můžete přidat nebo změnit.",
       "dailyKcal": "Denní kalorický cíl",
       "optional": "(nepovinné)",
       "kcalUnit": "kcal",
@@ -1866,7 +1865,9 @@
       "snack": "Svačina",
       "lunch": "Oběd",
       "snack2": "Svačina 2",
-      "dinner": "Večeře"
+      "dinner": "Večeře",
+      "preWorkout": "Před tréninkem",
+      "postWorkout": "Po tréninku"
     },
     "editor": {
       "title": "Editor šablony",

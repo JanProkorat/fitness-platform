@@ -10,6 +10,8 @@ const ADD_CHIPS: readonly { kind: MealKind; labelKey: string }[] = [
   { kind: MealKind.MorningSnack, labelKey: 'snack' },
   { kind: MealKind.Lunch, labelKey: 'lunch' },
   { kind: MealKind.Dinner, labelKey: 'dinner' },
+  { kind: MealKind.PreWorkout, labelKey: 'preWorkout' },
+  { kind: MealKind.PostWorkout, labelKey: 'postWorkout' },
 ];
 
 interface Props {
