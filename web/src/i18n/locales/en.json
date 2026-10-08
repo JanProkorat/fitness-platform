@@ -1699,15 +1699,15 @@
       "removeMeal": "Remove {{meal}}",
       "emptyMeal": "Drag a recipe or ingredient here, or select the meal and press + in the library.",
       "noMeals": "This day has no meals yet.",
+      "allKindsAdded": "Every meal type is already in this day",
       "limitReached": "A day holds at most {{max}} meals."
     },
     "addMeal": {
       "open": "Add meal",
       "title": "Add meal",
-      "after": "{{day}} · after {{meal}}",
-      "first": "{{day}} · first meal",
+      "forDay": "{{day}}",
       "type": "Meal type",
-      "alreadyHas": "This day already has a {{meal}} — a second one is fine.",
+      "alreadyInDay": "Already in this day",
       "optional": "· optional",
       "emptyHint": "The meal is added empty. Fill it from the library on the left — drag a recipe or ingredient onto it.",
       "submit": "Add meal"

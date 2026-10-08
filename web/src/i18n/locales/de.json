@@ -1698,15 +1698,15 @@
       "removeMeal": "{{meal}} entfernen",
       "emptyMeal": "Ziehen Sie ein Rezept oder eine Zutat hierher, oder wählen Sie die Mahlzeit und drücken Sie + in der Bibliothek.",
       "noMeals": "Dieser Tag hat noch keine Mahlzeiten.",
+      "allKindsAdded": "Alle Mahlzeitentypen sind an diesem Tag bereits vorhanden",
       "limitReached": "Ein Tag kann höchstens {{max}} Mahlzeiten haben."
     },
     "addMeal": {
       "open": "Mahlzeit hinzufügen",
       "title": "Mahlzeit hinzufügen",
-      "after": "{{day}} · nach {{meal}}",
-      "first": "{{day}} · erste Mahlzeit",
+      "forDay": "{{day}}",
       "type": "Mahlzeitentyp",
-      "alreadyHas": "Dieser Tag hat bereits „{{meal}}“ — eine zweite ist in Ordnung.",
+      "alreadyInDay": "Bereits an diesem Tag",
       "optional": "· optional",
       "emptyHint": "Die Mahlzeit wird leer hinzugefügt. Füllen Sie sie aus der Bibliothek links — ziehen Sie ein Rezept oder eine Zutat darauf.",
       "submit": "Mahlzeit hinzufügen"

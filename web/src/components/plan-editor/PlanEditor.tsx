@@ -45,7 +45,7 @@ import {
   addItemToCell,
   addMealRow,
   addMealToDay,
-  nextSnackKindForDay,
+  CHRONOLOGICAL_KINDS,
   addWeek,
   applyMealKinds,
   COMMON_MEAL_KINDS,
@@ -54,7 +54,6 @@ import {
   copyWeekMeals,
   nextSnackKind,
   reorderMealItems,
-  reorderMeals,
   setDayNote,
   weekHasItems,
   weekRows,
@@ -131,10 +130,6 @@ function readCell(data: unknown): SelectedCell | null {
   return typeof candidate.dayOfWeek === 'number' && typeof candidate.rowIndex === 'number'
     ? { dayOfWeek: candidate.dayOfWeek, rowIndex: candidate.rowIndex }
     : null;
-}
-
-function isMealDrag(data: unknown): boolean {
-  return typeof data === 'object' && data !== null && 'type' in data && data.type === 'meal';
 }
 
 function itemName(item: LibraryItem): string {
@@ -286,18 +281,6 @@ export default function PlanEditor({
     );
   }
 
-  function onMealDragEnd(sourceId: unknown, event: Parameters<typeof move>[1]) {
-    const day = week?.days.find((candidate) => candidate.dayOfWeek === dayOfWeek);
-    if (!day || typeof sourceId !== 'string') {
-      return;
-    }
-    const ids = day.meals.map((meal) => meal.mealId);
-    const next = move(ids, event);
-    if (next.some((id, index) => id !== ids[index])) {
-      edit((current) => reorderMeals(current, currentIndex, dayOfWeek, next));
-    }
-  }
-
   /** An empty target takes a week card at once; a filled one asks Replace or Add first. */
   function onCellMealDrop(source: CellMealDrag, target: SelectedCell) {
     if (readOnly || source.weekIndex !== currentIndex) {
@@ -356,18 +339,17 @@ export default function PlanEditor({
     const list = `${source.mealId}:${source.kind}`;
     const count = source.kind === 'recipe' ? meal.recipes.length : meal.foods.length;
     const ids = Array.from({ length: count }, (_, index) => `${list}:${index}`);
-    const to = move(ids, event).indexOf(sourceId);    if (to !== -1 && to !== source.index) {
+    const to = move(ids, event).indexOf(sourceId);
+    if (to !== -1 && to !== source.index) {
       edit((current) =>
         reorderMealItems(current, source.weekIndex, source.dayOfWeek, source.mealId, source.kind, source.index, to),
       );
     }
   }
 
-  /** Adds an empty meal at the end of the active day; a snack becomes the afternoon one when the day has a morning snack. */
+  /** Adds an empty meal to the active day at its kind's place in the day's order. */
   function addMeal(kind: MealKind, note: string) {
-    const meals = activeDay?.meals ?? [];
-    const resolved = kind === MealKind.MorningSnack ? nextSnackKindForDay(activeDay) : kind;
-    edit((current) => addMealToDay(current, currentIndex, dayOfWeek, resolved, meals.length - 1, note));
+    edit((current) => addMealToDay(current, currentIndex, dayOfWeek, kind, note));
     setAddMealOpen(false);
   }
 
@@ -432,6 +414,7 @@ export default function PlanEditor({
     return null;
   }
 
+  const allKindsPresent = CHRONOLOGICAL_KINDS.every((kind) => activeDay?.meals.some((meal) => meal.kind === kind));
   const pendingSource = pendingDrop ? findMeal(pendingDrop.source.dayOfWeek, pendingDrop.source.mealId) : undefined;
   const pendingTarget = pendingDrop
     ? week.days.find((day) => day.dayOfWeek === pendingDrop.target.dayOfWeek)?.meals[pendingDrop.target.rowIndex]
@@ -446,7 +429,7 @@ export default function PlanEditor({
           },
           target: {
             dayOfWeek: pendingDrop.target.dayOfWeek,
-            rowLabelKey: rowLabelKey(pendingDrop.target.rowIndex),
+            rowLabelKey: range === 'day' ? mealKindLabelKey(pendingTarget.kind) : rowLabelKey(pendingDrop.target.rowIndex),
             meal: pendingTarget,
           },
         }
@@ -472,10 +455,6 @@ export default function PlanEditor({
         const mealItem = readMealItemDrag(event.operation.source?.data);
         if (mealItem) {
           onMealItemDragEnd(mealItem, event);
-          return;
-        }
-        if (isMealDrag(event.operation.source?.data)) {
-          onMealDragEnd(event.operation.source?.id, event);
           return;
         }
         const item = readItem(event.operation.source?.data);
@@ -583,11 +562,13 @@ export default function PlanEditor({
                   targets={targets}
                   note={activeDay?.note}
                   readOnly={readOnly}
-                  addMealDisabled={(activeDay?.meals.length ?? 0) >= MAX_MEALS_PER_DAY}
+                  addMealDisabled={allKindsPresent || (activeDay?.meals.length ?? 0) >= MAX_MEALS_PER_DAY}
                   addMealTitle={
-                    (activeDay?.meals.length ?? 0) >= MAX_MEALS_PER_DAY
-                      ? t('planEditor.day.limitReached', { max: MAX_MEALS_PER_DAY })
-                      : undefined
+                    allKindsPresent
+                      ? t('planEditor.day.allKindsAdded')
+                      : (activeDay?.meals.length ?? 0) >= MAX_MEALS_PER_DAY
+                        ? t('planEditor.day.limitReached', { max: MAX_MEALS_PER_DAY })
+                        : undefined
                   }
                   onAddMeal={() => setAddMealOpen(true)}
                   onNoteChange={(note) =>
@@ -712,7 +693,6 @@ export default function PlanEditor({
         open={addMealOpen && !readOnly}
         onOpenChange={setAddMealOpen}
         dayLabel={t(`planEditor.daysLong.${dayOfWeek}`)}
-        afterKind={activeDay?.meals[activeDay.meals.length - 1]?.kind ?? null}
         dayKinds={activeDay?.meals.map((meal) => meal.kind) ?? []}
         onSubmit={addMeal}
       />

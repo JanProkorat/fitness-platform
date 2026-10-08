@@ -64,6 +64,16 @@ export function dragActivationConstraints(event: PointerEvent) {
     : [new PointerActivationConstraints.Distance({ value: 5 })];
 }
 
+/** Day-view meal cards: the whole card drags, but inputs, buttons and `data-no-drag` parts do not start one. */
+export const MEAL_CARD_SENSORS = [
+  PointerSensor.configure({
+    activationConstraints: dragActivationConstraints,
+    preventActivation: (event) =>
+      event.target instanceof Element &&
+      event.target.closest('input, textarea, select, button, a, [data-no-drag]') !== null,
+  }),
+];
+
 /** Library cards: the whole card drags, except children marked `data-no-drag` (the add button). */
 export const LIBRARY_CARD_SENSORS = [
   PointerSensor.configure({

@@ -1726,15 +1726,15 @@
       "removeMeal": "Odebrat: {{meal}}",
       "emptyMeal": "Přetáhněte sem recept nebo surovinu, nebo jídlo vyberte a stiskněte + v knihovně.",
       "noMeals": "Tento den zatím nemá žádná jídla.",
+      "allKindsAdded": "Všechny druhy jídel už v tomto dni jsou",
       "limitReached": "Den může mít nejvýše {{max}} jídel."
     },
     "addMeal": {
       "open": "Přidat jídlo",
       "title": "Přidat jídlo",
-      "after": "{{day}} · za: {{meal}}",
-      "first": "{{day}} · první jídlo",
+      "forDay": "{{day}}",
       "type": "Druh jídla",
-      "alreadyHas": "Tento den už má jídlo „{{meal}}“ — druhé je v pořádku.",
+      "alreadyInDay": "Už v tomto dni je",
       "optional": "· volitelné",
       "emptyHint": "Jídlo se přidá prázdné. Naplňte ho z knihovny vlevo — přetáhněte na něj recept nebo surovinu.",
       "submit": "Přidat jídlo"

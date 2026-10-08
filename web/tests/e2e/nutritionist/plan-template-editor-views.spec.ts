@@ -179,31 +179,75 @@ test.describe('plan template editor views', () => {
     }
   });
 
-  test('Day view: reordering meals by dragging the card is one Undo step', async ({ page, baseURL }) => {
+  test('Day view: dragging a meal card onto a filled meal asks Replace or Add, and one Undo restores it', async ({
+    page,
+    baseURL,
+  }) => {
     const origin = baseURL ?? 'http://localhost:5173';
-    const templateId = await createTemplate(origin, `QA Views Reorder ${Date.now()}`, buildWeeks(1, ['Breakfast', 'Lunch', 'Dinner']));
+    const stamp = Date.now();
+    const breakfastName = `QA Views Day Breakfast ${stamp}`;
+    const lunchName = `QA Views Day Lunch ${stamp}`;
+    const breakfastId = await createRecipe(origin, breakfastName);
+    const lunchId = await createRecipe(origin, lunchName);
+    const templateId = await createTemplate(origin, `QA Views Day Copy ${stamp}`, buildWeeks(1, BREAKFAST_AND_LUNCH));
     try {
       await page.goto(`/plan-templates/${templateId}`);
-      await page.getByRole('button', { name: 'Day', exact: true }).click();
-      const titles = () => page.locator('[data-testid="meal-block"] h3').allInnerTexts();
-      expect(await titles()).toEqual(['Breakfast', 'Lunch', 'Dinner']);
+      await addRecipeToMondayBreakfast(page, breakfastName);
+      await cell(page, 1, 1).click();
+      await page.getByLabel('Search recipes…').fill(lunchName);
+      await page.getByRole('button', { name: new RegExp(`^Add ${lunchName} to the selected meal$`) }).click();
+      await waitForSave(page);
 
-      const from = await page.locator('[data-testid="meal-block"]').first().locator('h3').boundingBox();
-      const to = await page.locator('[data-testid="meal-block"]').nth(2).locator('h3').boundingBox();
+      await page.getByRole('button', { name: 'Day', exact: true }).click();
+      const blocks = page.getByTestId('meal-block');
+      await expect(blocks).toHaveCount(2);
+      const from = await blocks.nth(0).locator('h3').boundingBox();
+      const to = await blocks.nth(1).locator('h3').boundingBox();
       if (!from || !to) {
         throw new Error('[plan-template-editor-views] meal cards are not visible.');
       }
       await page.mouse.move(from.x + 10, from.y + 5);
       await page.mouse.down();
       await page.mouse.move(from.x + 14, from.y + 20, { steps: 4 });
-      await page.mouse.move(to.x + 10, to.y + to.height + 20, { steps: 15 });
+      await page.mouse.move(to.x + 10, to.y + 5, { steps: 15 });
       await page.mouse.up();
-      await expect.poll(titles).not.toEqual(['Breakfast', 'Lunch', 'Dinner']);
+
+      const dialog = page.getByTestId('card-drop-dialog');
+      await expect(dialog).toBeVisible();
+      await dialog.getByRole('button', { name: 'Replace', exact: true }).click();
+      await expect(blocks.nth(1)).toContainText(breakfastName);
+      await expect(blocks.nth(1)).not.toContainText(lunchName);
       await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes');
 
       await page.getByRole('button', { name: 'Undo' }).click();
-      await expect.poll(titles).toEqual(['Breakfast', 'Lunch', 'Dinner']);
+      await expect(blocks.nth(1)).toContainText(lunchName);
+      await expect(blocks.nth(1)).not.toContainText(breakfastName);
       await expect(page.getByTestId('save-status')).toHaveText('Saved');
+    } finally {
+      await deleteTemplate(origin, templateId);
+      await deleteRecipe(origin, breakfastId);
+      await deleteRecipe(origin, lunchId);
+    }
+  });
+
+  test('Day view: the Add meal drawer disables kinds the day has, and a new meal lands in kind order', async ({
+    page,
+    baseURL,
+  }) => {
+    const origin = baseURL ?? 'http://localhost:5173';
+    const templateId = await createTemplate(origin, `QA Views Kinds ${Date.now()}`, buildWeeks(1, ['Breakfast', 'Dinner']));
+    try {
+      await page.goto(`/plan-templates/${templateId}`);
+      await page.getByRole('button', { name: 'Day', exact: true }).click();
+      await page.getByTestId('day-add-meal').click();
+      const drawer = page.getByRole('dialog');
+      await expect(drawer.getByRole('radio', { name: /^Breakfast/ })).toBeDisabled();
+      await expect(drawer.getByRole('radio', { name: /^Dinner/ })).toBeDisabled();
+      await expect(drawer.getByText('Already in this day')).toHaveCount(2);
+
+      await drawer.getByRole('radio', { name: 'Lunch' }).click();
+      await drawer.getByRole('button', { name: 'Add meal' }).click();
+      await expect(page.locator('[data-testid="meal-block"] h3')).toHaveText(['Breakfast', 'Lunch', 'Dinner']);
     } finally {
       await deleteTemplate(origin, templateId);
     }

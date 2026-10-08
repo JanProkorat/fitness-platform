@@ -29,7 +29,7 @@ export const COMMON_MEAL_KINDS: readonly MealKind[] = [
   MealKind.Dinner,
 ];
 
-function kindRank(kind: MealKind): number {
+export function kindRank(kind: MealKind): number {
   return CHRONOLOGICAL_KINDS.indexOf(kind);
 }
 
@@ -265,13 +265,12 @@ export function removeRecipeAt(
   }));
 }
 
-/** Inserts an empty meal into one day after the meal at `afterIndex` (-1 = first). Unchanged at the cap. */
+/** Inserts an empty meal into one day at its kind's place in the day's order. Unchanged at the cap. */
 export function addMealToDay(
   doc: EditorDocument,
   weekIndex: number,
   dayOfWeek: number,
   kind: MealKind,
-  afterIndex: number,
   note?: string,
 ): EditorDocument {
   return updateDay(doc, weekIndex, dayOfWeek, (day) => {
@@ -280,7 +279,8 @@ export function addMealToDay(
     }
     const meals = [...day.meals];
     const created: EditorMeal = { ...newMeal(kind, 0), note: note ? blankToUndefined(note) : undefined };
-    meals.splice(Math.min(afterIndex + 1, meals.length), 0, created);
+    const firstLater = meals.findIndex((meal) => kindRank(meal.kind) > kindRank(kind));
+    meals.splice(firstLater === -1 ? meals.length : firstLater, 0, created);
     return { ...day, meals: renumber(meals) };
   });
 }
@@ -290,23 +290,6 @@ export function removeMeal(doc: EditorDocument, weekIndex: number, dayOfWeek: nu
     ...day,
     meals: renumber(day.meals.filter((meal) => meal.mealId !== mealId)),
   }));
-}
-
-/** Puts a day's meals in the given id order; ids not listed keep their relative place at the end. */
-export function reorderMeals(
-  doc: EditorDocument,
-  weekIndex: number,
-  dayOfWeek: number,
-  orderedIds: readonly string[],
-): EditorDocument {
-  return updateDay(doc, weekIndex, dayOfWeek, (day) => {
-    const rank = (meal: EditorMeal) => {
-      const position = orderedIds.indexOf(meal.mealId);
-      return position === -1 ? orderedIds.length : position;
-    };
-    const sorted = [...day.meals].sort((left, right) => rank(left) - rank(right));
-    return sorted.every((meal, index) => meal === day.meals[index]) ? day : { ...day, meals: renumber(sorted) };
-  });
 }
 
 /** Moves one recipe or ingredient to another position within its own list of a meal. */
@@ -462,9 +445,4 @@ export function copyWeekMeals(doc: EditorDocument, weekIndex: number, sourceWeek
       };
     }),
   };
-}
-
-/** The snack kind a day gets next: the second snack of a day is the afternoon one. */
-export function nextSnackKindForDay(day: EditorDay | undefined): MealKind {
-  return day?.meals.some((meal) => meal.kind === MealKind.MorningSnack) ? MealKind.AfternoonSnack : MealKind.MorningSnack;
 }

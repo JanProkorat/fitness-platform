@@ -1,12 +1,15 @@
+import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useSortable } from '@dnd-kit/react/sortable';
+import { useDraggable, useDroppable } from '@dnd-kit/react';
 import { GripVertical, StickyNote, Trash2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import MealItemRow from '@/components/plan-editor/MealItemRow';
 import { mealKindLabelKey } from '@/components/plan-editor/plan-editor-format';
+import { CELL_MEAL_DRAG, MEAL_CARD_SENSORS } from '@/components/plan-editor/plan-editor-library';
 import {
   mealDayShareStatus,
+  mealItemCount,
   mealItemEntries,
   mealTotals,
   type ShareStatus,
@@ -42,7 +45,7 @@ interface Props {
   onEdit: PlanEditorState['edit'];
 }
 
-/** One meal of the day: sortable by its whole card, with its items, note and delete. */
+/** One meal of the day: draggable by its whole card onto another meal to copy it, with its items, note and delete. */
 export default function MealBlock({
   meal,
   index,
@@ -56,12 +59,26 @@ export default function MealBlock({
   onEdit,
 }: Props) {
   const { t } = useTranslation();
-  const { ref, isDragging, isDropTarget } = useSortable({
-    id: meal.mealId,
-    index,
+  const draggable = !readOnly && mealItemCount(meal) > 0;
+  const { ref: dropRef, isDropTarget } = useDroppable({
+    id: `cell:${weekIndex}:${dayOfWeek}:${index}`,
+    data: { weekIndex, dayOfWeek, rowIndex: index },
     disabled: readOnly,
-    data: { type: 'meal', dayOfWeek, rowIndex: index },
   });
+  const { ref: dragRef, isDragging } = useDraggable({
+    id: `cell-meal:${weekIndex}:${dayOfWeek}:${index}`,
+    data: { type: CELL_MEAL_DRAG, weekIndex, dayOfWeek, rowIndex: index, mealId: meal.mealId },
+    disabled: !draggable,
+    sensors: MEAL_CARD_SENSORS,
+  });
+  // The drag library only gets the element while the card can be dragged, so it never marks another one aria-disabled.
+  const ref = useCallback(
+    (element: Element | null) => {
+      dropRef(element);
+      dragRef(draggable ? element : null);
+    },
+    [dropRef, dragRef, draggable],
+  );
   const totals = mealTotals(meal);
   const entries = mealItemEntries(meal, language);
   const share = mealDayShareStatus(totals.kcal, dayKcal, meal.kind);
@@ -77,14 +94,14 @@ export default function MealBlock({
       onClick={onSelect}
       className={cn(
         'flex flex-col gap-3 rounded-2xl border border-raised-line bg-raised p-5 shadow-raised outline-none transition-[background-color,border-color,box-shadow,transform] duration-150 focus-visible:ring-3 focus-visible:ring-ring/50',
-        !readOnly && !isDragging && 'hover:-translate-y-px hover:shadow-raised-hover motion-reduce:hover:translate-y-0',
+        draggable && !isDragging && 'hover:-translate-y-px hover:shadow-raised-hover motion-reduce:hover:translate-y-0',
         selected && 'ring-2 ring-ink ring-inset',
         isDropTarget && !isDragging && 'border-nutrition bg-nutrition-soft',
         isDragging && 'opacity-60 shadow-selection-bar',
       )}
     >
-      <div className={cn('flex items-center gap-3', !readOnly && 'cursor-grab active:cursor-grabbing')}>
-        {!readOnly && <GripVertical className="size-4 shrink-0 text-faint" aria-hidden="true" />}
+      <div className={cn('flex items-center gap-3', draggable && 'cursor-grab active:cursor-grabbing')}>
+        {draggable && <GripVertical className="size-4 shrink-0 text-faint" aria-hidden="true" />}
         <h3 className="font-display text-card-title font-semibold text-ink">{kindLabel}</h3>
         <span className="text-copy font-semibold text-ink">
           {t('planEditor.cell.kcal', { kcal: Math.round(totals.kcal) })}
