@@ -197,6 +197,7 @@
   --gf-search-width: 280px; /* Ingredients page search input */
   --gf-drawer-width: 560px; /* Ingredient drawer sheet width */
   --gf-drawer-wide-width: 644px; /* Recipe drawer sheet width */
+  --gf-panel-width: 360px; /* Inbox client side-panel width */
   --gf-tracking-label: 0.14em; /* eyebrow/section-label letter-spacing, reused 3x */
 
   /* ---- Tier 2: shadcn/ui semantic aliases ---- */
@@ -867,6 +868,7 @@
   --spacing-search: var(--gf-search-width);
   --spacing-drawer: var(--gf-drawer-width);
   --spacing-drawer-wide: var(--gf-drawer-wide-width);
+  --spacing-panel: var(--gf-panel-width);
 
   --tracking-label: var(--gf-tracking-label);
   --tracking-eyebrow: var(--gf-tracking-eyebrow);

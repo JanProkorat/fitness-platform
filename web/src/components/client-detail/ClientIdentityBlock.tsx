@@ -6,27 +6,18 @@ import type { GetClientDashboardResponse } from '@/api/generated';
 
 interface Props {
   dashboard: GetClientDashboardResponse;
-  /**
-   * `h1` on the client-detail page header (the page's own title); `h2` in
-   * the inbox's "Show client" panel, which is not the page title there.
-   */
-  headingLevel?: 'h1' | 'h2';
   className?: string;
 }
 
 /**
  * Name + status pill + dot-separated meta line (age • sex • height) + a
- * bordered goal chip — extracted from `ClientDetailHeader` (#1094) so the
- * inbox's "Show client" panel (#1095) can reuse it verbatim instead of a
- * second copy. Deliberately carries no left indent of its own: the
+ * bordered goal chip. Deliberately carries no left indent of its own: the
  * client-detail header supplies that by wrapping this block next to its
  * back-arrow link in a shared flex row, so both of this block's internal
- * rows (name and meta) line up under each other automatically. The panel
- * has no back arrow, so it renders flush left with no extra wrapper needed.
+ * rows (name and meta) line up under each other automatically.
  */
-export default function ClientIdentityBlock({ dashboard, headingLevel = 'h1', className }: Props) {
+export default function ClientIdentityBlock({ dashboard, className }: Props) {
   const { t } = useTranslation();
-  const Heading = headingLevel;
 
   const age = dashboard.dateOfBirth ? calculateAge(dashboard.dateOfBirth) : undefined;
   const ageLabel = age != null ? t('clientDetail.ageYears', { count: age }) : undefined;
@@ -42,9 +33,9 @@ export default function ClientIdentityBlock({ dashboard, headingLevel = 'h1', cl
   return (
     <div className={cn('flex flex-col gap-1', className)}>
       <div className="flex items-center gap-2">
-        <Heading className="text-title font-bold text-ink">
+        <h1 className="text-title font-bold text-ink">
           {dashboard.firstName} {dashboard.lastName}
-        </Heading>
+        </h1>
         <ClientStatusBadge status={dashboard.status} />
       </div>
       {(metaSegments.length > 0 || goalLabel) && (

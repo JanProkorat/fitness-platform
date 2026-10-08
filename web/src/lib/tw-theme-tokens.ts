@@ -69,6 +69,7 @@ export const SPACING_TOKENS = [
   'search',
   'drawer',
   'drawer-wide',
+  'panel',
 ] as const;
 
 /** `--tracking-*` — same unknown-class shape as spacing. */
