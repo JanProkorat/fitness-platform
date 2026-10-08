@@ -86,18 +86,20 @@ function MealCell({
     disabled: readOnly,
   });
   const itemCount = meal ? mealItemCount(meal) : 0;
+  const draggable = !readOnly && itemCount > 0;
   const { ref: dragRef, isDragging } = useDraggable({
     id: `cell-meal:${weekIndex}:${dayOfWeek}:${rowIndex}`,
     data: { type: CELL_MEAL_DRAG, weekIndex, dayOfWeek, rowIndex, mealId: meal?.mealId },
-    disabled: readOnly || itemCount === 0,
+    disabled: !draggable,
     sensors: GRID_CELL_SENSORS,
   });
+  // The drag library only gets the element while it can be dragged, so it never marks an empty cell aria-disabled.
   const ref = useCallback(
     (element: Element | null) => {
       dropRef(element);
-      dragRef(element);
+      dragRef(draggable ? element : null);
     },
-    [dropRef, dragRef],
+    [dropRef, dragRef, draggable],
   );
   const names = meal ? mealItemNames(meal, i18n.language) : [];
   const totals = meal ? mealTotals(meal) : null;
