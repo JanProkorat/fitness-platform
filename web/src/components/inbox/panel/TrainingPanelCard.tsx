@@ -92,7 +92,7 @@ export default function TrainingPanelCard({
               />
             ))}
           </div>
-          <p className="text-meta text-muted-foreground">
+          <p className="text-caption text-muted-foreground">
             {t('inbox.panel.training.doneThisWeek', { count: planned, done })}
           </p>
         </div>
