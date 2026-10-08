@@ -2852,7 +2852,9 @@
       "training": {
         "eyebrow": "Training",
         "exercises_one": "{{count}} exercise",
-        "exercises_other": "{{count}} exercises"
+        "exercises_other": "{{count}} exercises",
+        "doneThisWeek_one": "Done this week · {{done}} of {{count}} session",
+        "doneThisWeek_other": "Done this week · {{done}} of {{count}} sessions"
       }
     },
     "typingIndicator": "Typing…",

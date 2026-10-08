@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { Dumbbell } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 import { getTrainingPlan } from '@/api/training-plans';
 import { resolveMostRecentSessionWithDay } from '@/lib/client-metrics';
 import PlanCardShell, { PlanCardSummary } from '@/components/inbox/panel/PlanCardShell';
@@ -18,13 +19,21 @@ interface Props {
   canView: boolean;
   isPending: boolean;
   isError: boolean;
+  /** Sessions done / planned this week, from the client dashboard. */
+  sessionsCompleted?: number;
+  sessionsPlanned?: number;
 }
 
-/**
- * Training card of the inbox client panel: latest workout (session name, exercise count, weekday).
- * The "done this week" progress bar is intentionally absent until the backend exposes a weekly session count.
- */
-export default function TrainingPanelCard({ clientPublicId, plan, canView, isPending, isError }: Props) {
+/** Training card of the inbox client panel: latest workout (session name, exercise count, weekday) and this week's progress. */
+export default function TrainingPanelCard({
+  clientPublicId,
+  plan,
+  canView,
+  isPending,
+  isError,
+  sessionsCompleted,
+  sessionsPlanned,
+}: Props) {
   const { t, i18n } = useTranslation();
 
   const detailQuery = useQuery({
@@ -36,6 +45,10 @@ export default function TrainingPanelCard({ clientPublicId, plan, canView, isPen
 
   const resolved = detailQuery.data ? resolveMostRecentSessionWithDay(detailQuery.data) : undefined;
   const showPlan = !isPending && !isError && canView && plan;
+  const showWeek =
+    Boolean(showPlan) && sessionsCompleted != null && sessionsPlanned != null && sessionsPlanned > 0;
+  const planned = sessionsPlanned ?? 0;
+  const done = Math.min(sessionsCompleted ?? 0, planned);
 
   return (
     <PlanCardShell
@@ -67,6 +80,22 @@ export default function TrainingPanelCard({ clientPublicId, plan, canView, isPen
                   : '—'
           }
         />
+      )}
+
+      {showWeek && (
+        <div className="flex flex-col gap-1.5">
+          <div aria-hidden="true" className="flex gap-1">
+            {Array.from({ length: planned }, (_, index) => (
+              <span
+                key={index}
+                className={cn('h-1.25 flex-1 rounded-full', index < done ? 'bg-training' : 'bg-line')}
+              />
+            ))}
+          </div>
+          <p className="text-caption text-muted-foreground">
+            {t('inbox.panel.training.doneThisWeek', { count: planned, done })}
+          </p>
+        </div>
       )}
     </PlanCardShell>
   );

@@ -83,6 +83,8 @@ export default function ClientSidePanel({ clientPublicId }: Props) {
         canView={plansQuery.data?.canViewTrainingPlans ?? false}
         isPending={plansQuery.isPending}
         isError={plansQuery.isError}
+        sessionsCompleted={dashboard.sessionsCompletedThisWeek}
+        sessionsPlanned={dashboard.sessionsPlannedThisWeek}
       />
     </div>
   );

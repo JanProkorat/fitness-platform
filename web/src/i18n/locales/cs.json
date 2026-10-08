@@ -2901,7 +2901,11 @@
         "exercises_one": "{{count}} cvik",
         "exercises_few": "{{count}} cviky",
         "exercises_many": "{{count}} cviků",
-        "exercises_other": "{{count}} cviků"
+        "exercises_other": "{{count}} cviků",
+        "doneThisWeek_one": "Tento týden splněno · {{done}} z {{count}} tréninku",
+        "doneThisWeek_few": "Tento týden splněno · {{done}} z {{count}} tréninků",
+        "doneThisWeek_many": "Tento týden splněno · {{done}} z {{count}} tréninku",
+        "doneThisWeek_other": "Tento týden splněno · {{done}} z {{count}} tréninků"
       }
     },
     "typingIndicator": "Píše…",
