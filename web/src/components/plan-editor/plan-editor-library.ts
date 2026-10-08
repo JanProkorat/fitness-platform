@@ -45,8 +45,13 @@ export const LIBRARY_CARD_SENSORS = [
   }),
 ];
 
-/** Week-grid cells: pointer only, so Enter and Space on a focused cell keep opening the meal. */
-export const GRID_CELL_SENSORS = [PointerSensor.configure({ activationConstraints: dragActivationConstraints })];
+/**
+ * Week-grid cells: pointer only, so Enter and Space on a focused cell keep opening the meal. The cell
+ * is itself a button, so a press on its text must not count as one on an interactive child.
+ */
+export const GRID_CELL_SENSORS = [
+  PointerSensor.configure({ activationConstraints: dragActivationConstraints, preventActivation: () => false }),
+];
 
 /** A library recipe as a one-serving plan item (values divided by the recipe's servings). */
 export function recipeToItem(recipe: RecipeSummaryDto): LibraryItem {

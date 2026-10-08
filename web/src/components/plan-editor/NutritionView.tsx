@@ -67,12 +67,12 @@ function NutritionCell({ meal, rowLabelKey, dailyKcalTarget }: CellProps) {
             {t(`planEditor.rows.${mealKindLabelKey(meal.kind)}`)}
           </span>
         )}
-        <span className="truncate font-display text-stat font-semibold text-ink">
-          {formatKcal(totals.kcal, i18n.language)}{' '}
+        <span className="flex flex-wrap items-baseline gap-x-1 font-display text-stat font-semibold text-ink">
+          {formatKcal(totals.kcal, i18n.language)}
           <span className="text-body font-normal text-muted-foreground">{t('planEditor.nutrition.kcalUnit')}</span>
         </span>
         {caption && <span className={cn('text-body font-semibold', CAPTION_CLASS[result.status])}>{caption}</span>}
-        <span className="truncate text-body text-ink">
+        <span className="text-body text-ink [overflow-wrap:anywhere]">
           {t('planEditor.nutrition.macros', {
             protein: Math.round(totals.protein),
             carbs: Math.round(totals.carbs),
