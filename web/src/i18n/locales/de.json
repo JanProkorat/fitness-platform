@@ -235,6 +235,110 @@
     "nutritionist": "Ernährungsberater",
     "client": "Klient"
   },
+  "accountMenu": {
+    "trigger": "Kontomenü",
+    "title": "Konto",
+    "profile": "Dein Profil",
+    "settings": "Einstellungen",
+    "language": "Sprache",
+    "theme": "Design",
+    "languages": {
+      "cs": "Čeština",
+      "en": "English",
+      "de": "Deutsch"
+    },
+    "themes": {
+      "light": "Hell",
+      "dark": "Dunkel",
+      "system": "System"
+    }
+  },
+  "settings": {
+    "eyebrow": "Konto",
+    "title": "Einstellungen",
+    "subtitle": "Anmeldung, Benachrichtigungen und die Rollen deines Kontos",
+    "loadError": "Die Einstellungen konnten nicht geladen werden. Bitte lade die Seite neu.",
+    "status": {
+      "saved": "Alle Änderungen gespeichert",
+      "saving": "Wird gespeichert…",
+      "error": "Nicht gespeichert"
+    },
+    "account": {
+      "title": "Konto",
+      "description": "Wie du dich anmeldest und nach welcher Uhr sich deine Erinnerungen richten.",
+      "email": "Anmelde-E-Mail",
+      "emailHint": "Mit dieser Adresse meldest du dich an. Klienten sehen sie auch in deinem Profil.",
+      "timeZone": "Zeitzone",
+      "timeZoneHint": "Check-in-Erinnerungen und Sitzungszeiten nutzen sie.",
+      "timeZoneError": "Die Zeitzone konnte nicht gespeichert werden.",
+      "password": "Passwort",
+      "passwordHint": "Zuletzt geändert am [DATE]. Mit Google angemeldet? Dein Passwort wird dort verwaltet.",
+      "changePassword": "Passwort ändern"
+    },
+    "notifications": {
+      "title": "Benachrichtigungen",
+      "description": "Wähle, wie wir dich über Klientenaktivität informieren. In-App-Benachrichtigungen erscheinen immer.",
+      "event": "Ereignis",
+      "email": "E-Mail",
+      "app": "Coach-App",
+      "emailLabel": "{{event}} per E-Mail",
+      "appLabel": "{{event}} in der Coach-App",
+      "events": {
+        "newMessage": {
+          "title": "Neue Nachricht",
+          "description": "Ein Klient schreibt dir im Chat."
+        },
+        "checkIn": {
+          "title": "Wöchentlicher Check-in eingereicht",
+          "description": "Ein Klient schickt seinen Check-in zur Prüfung."
+        },
+        "joinRequest": {
+          "title": "Beitrittsanfrage",
+          "description": "Jemand möchte dein Klient werden."
+        },
+        "photos": {
+          "title": "Fortschrittsfotos eingereicht",
+          "description": "Ein Klient beantwortet deine Fotoanfrage."
+        },
+        "workout": {
+          "title": "Training beendet",
+          "description": "Ein Klient schließt eine Trainingseinheit ab."
+        }
+      }
+    },
+    "roles": {
+      "title": "Deine Rollen",
+      "description": "Jede Rolle schaltet eigene Werkzeuge frei und erscheint in der Suche unter deinem Namen.",
+      "add": "Rolle hinzufügen",
+      "remove": "Rolle entfernen",
+      "active": "Aktiv",
+      "added": "Rolle hinzugefügt.",
+      "addError": "Die Rolle konnte nicht hinzugefügt werden.",
+      "descriptions": {
+        "trainer": "Workouts, Übungen, Trainingspläne und Vorlagen.",
+        "nutritionist": "Rezepte, Zutaten, Ernährungspläne und Vorlagen."
+      },
+      "note": "Das Entfernen einer Rolle blendet sie in der Suche aus und stoppt neue Arbeit darin: keine neuen Pläne oder Vorlagen und keine neuen Klienten. Laufende Pläne bleiben aktiv, bis sie enden: Klienten protokollieren weiter und du kannst sie anpassen. Danach bleibt alles Geteilte für euch beide sichtbar, nur lesbar. Füge die Rolle jederzeit wieder hinzu, um erneut zu bearbeiten.",
+      "addDialog": {
+        "title": "Rolle {{role}} hinzufügen?",
+        "body": "Du erhältst die Werkzeuge dieser Rolle und erscheinst damit in der Suche. Du kannst sie später wieder entfernen."
+      }
+    },
+    "danger": {
+      "title": "Gefahrenbereich",
+      "description": "Aktionen, die deine Arbeit auf Form Up beenden.",
+      "disableTitle": "Coach-Konto deaktivieren",
+      "disableBody": "Entfernt alle deine Rollen und beendet die Abrechnung, wenn dein aktuelles Abo endet. Deine Daten bleiben, nur lesbar.",
+      "disable": "Konto deaktivieren",
+      "deleteTitle": "Konto löschen",
+      "deleteBody": "Löscht dein Konto, Pläne, Vorlagen und Nachrichten dauerhaft. Klienten verlieren den Zugriff auf Geteiltes. Das kann nicht rückgängig gemacht werden.",
+      "delete": "Konto löschen",
+      "confirmTitle": "Dein Konto löschen?",
+      "confirmBody": "Dein Konto und alles darin wird dauerhaft gelöscht. Das kann nicht rückgängig gemacht werden.",
+      "confirmAction": "Konto löschen",
+      "deleteError": "Das Konto konnte nicht gelöscht werden. Es wurde nichts geändert."
+    }
+  },
   "dashboard": {
     "title": "Dashboard",
     "newClient": "+ Neuer Klient",

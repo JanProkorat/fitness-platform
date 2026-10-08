@@ -6,13 +6,11 @@ import {
   ChevronDown,
   Columns,
   HelpCircle,
-  LogOut,
   MessageSquare,
-  Settings,
   Users,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useAuthStore } from '@/stores/auth';
+import AccountMenu from '@/components/layout/AccountMenu';
 import Wordmark from '@/components/brand/Wordmark';
 import { useConversationFilterCounts } from '@/hooks/useInboxQueries';
 
@@ -42,25 +40,6 @@ const NAV_SECTIONS = [
   },
 ] as const;
 
-/**
- * Fixed precedence for the signed-in user's role line — never `roles[0]`,
- * the backend array order carries no contract (GET /users/me). A dual-role
- * professional legitimately holds more than one of these at once (#776);
- * every held role is shown, joined, rather than picking just one.
- */
-const ROLE_ORDER = ['admin', 'trainer', 'nutritionist', 'client'] as const;
-
-function initialsOf(firstName: string, lastName: string): string {
-  return `${firstName[0] ?? ''}${lastName[0] ?? ''}`.toUpperCase() || '?';
-}
-
-function formatRoleLabel(roles: string[], t: (key: string) => string): string {
-  const held = new Set(roles.map((role) => role.toLowerCase()));
-  return ROLE_ORDER.filter((role) => held.has(role))
-    .map((role) => t(`roles.${role}`))
-    .join(' · ');
-}
-
 interface Props {
   /** Fired when a nav link is activated — used to close the mobile off-canvas drawer. */
   onNavigate?: () => void;
@@ -68,9 +47,6 @@ interface Props {
 
 export default function Sidebar({ onNavigate }: Props) {
   const { t } = useTranslation();
-  const user = useAuthStore((s) => s.user);
-  const logout = useAuthStore((s) => s.logout);
-  const roleLabel = user ? formatRoleLabel(user.roles, t) : '';
   const filterCounts = useConversationFilterCounts();
   const hasUnread = (filterCounts.data?.unreadMessages ?? 0) > 0;
 
@@ -148,55 +124,10 @@ export default function Sidebar({ onNavigate }: Props) {
             <HelpCircle className="size-4" aria-hidden="true" />
             {t('sidebar.help')}
           </button>
-          <button
-            type="button"
-            disabled
-            title={t('shell.comingSoon')}
-            className="flex h-9.5 items-center gap-2.5 rounded-field px-3 text-body text-sidebar-muted disabled:cursor-not-allowed"
-          >
-            <Settings className="size-4" aria-hidden="true" />
-            {t('sidebar.settings')}
-          </button>
 
-          {/* restoreSession() populates `user` asynchronously — guard against
-              the render pass before it resolves (TopBar.tsx used the same
-              guard previously). */}
-          {user && (
-            <div className="flex items-center gap-1 border-t border-sidebar-active px-2 pt-3 pb-2">
-              <NavLink
-                to="/profile"
-                onClick={onNavigate}
-                title={t('sidebar.profileLink')}
-                className={({ isActive }) =>
-                  cn(
-                    'flex min-w-0 flex-1 items-center gap-2.5 rounded-field p-1 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-sidebar-text/60',
-                    isActive ? 'bg-sidebar-active' : 'hover:bg-sidebar-active/60',
-                  )
-                }
-              >
-                <span
-                  aria-hidden="true"
-                  className="flex size-8 shrink-0 items-center justify-center rounded-full bg-sidebar-active text-meta font-semibold text-sidebar-text"
-                >
-                  {initialsOf(user.firstName, user.lastName)}
-                </span>
-                <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                  <span className="truncate text-meta font-semibold text-sidebar-text">
-                    {user.firstName} {user.lastName}
-                  </span>
-                  {roleLabel && <span className="truncate text-label text-sidebar-muted">{roleLabel}</span>}
-                </span>
-              </NavLink>
-              <button
-                type="button"
-                onClick={logout}
-                aria-label={t('auth.logout')}
-                className="flex size-8 shrink-0 items-center justify-center text-marker transition-opacity hover:opacity-80"
-              >
-                <LogOut className="size-3.5" aria-hidden="true" />
-              </button>
-            </div>
-          )}
+          <div className="border-t border-sidebar-active px-2 pt-3 pb-2">
+            <AccountMenu onNavigate={onNavigate} />
+          </div>
         </div>
       </nav>
     </aside>

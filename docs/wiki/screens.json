@@ -340,6 +340,32 @@
         { "name": "default" }
       ],
       "notionPageId": null
+    },
+    {
+      "id": "web.account.settings",
+      "app": "web",
+      "area": "Account",
+      "title": "Settings",
+      "route": "/settings",
+      "roles": ["Trainer", "Nutritionist"],
+      "files": [
+        "web/src/pages/SettingsPage.tsx",
+        "web/src/components/settings/**",
+        "web/src/components/layout/AccountMenu.tsx",
+        "web/src/api/profile.ts",
+        "web/src/api/roles.ts"
+      ],
+      "endpoints": [
+        "GET /users/me",
+        "PUT /users/me/timezone",
+        "POST /users/me/roles",
+        "DELETE /users/me"
+      ],
+      "board": "PageSettings",
+      "shots": [
+        { "name": "default" }
+      ],
+      "notionPageId": null
     }
   ]
 }
