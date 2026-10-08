@@ -95,6 +95,11 @@ public class ApplicationUser : IdentityUser<Guid>
     public string? Language { get; set; }
 
     /// <summary>
+    /// UTC time of the last password change or reset. Null if the password was never changed after registration.
+    /// </summary>
+    public DateTime? PasswordChangedAt { get; set; }
+
+    /// <summary>
     /// Collection of refresh tokens issued to this user.
     /// </summary>
     public ICollection<RefreshToken> RefreshTokens { get; set; } = [];
