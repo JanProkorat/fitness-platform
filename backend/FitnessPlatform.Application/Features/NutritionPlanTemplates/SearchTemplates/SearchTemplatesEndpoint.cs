@@ -70,7 +70,7 @@ public class SearchTemplatesEndpoint(IMongoContext mongo)
             extraFilter = extraFilter is null ? mealsPerDayFilter : extraFilter & mealsPerDayFilter;
         }
 
-        var usageByTemplate = await LoadCallerUsageAsync(callerId, ct);
+        var usageByTemplate = await NutritionPlanTemplateUsage.LoadCallerUsageAsync(mongo, callerId, null, ct);
 
         if (req.InUse.HasValue)
         {
@@ -94,26 +94,5 @@ public class SearchTemplatesEndpoint(IMongoContext mongo)
             Page = req.Page,
             PageSize = req.PageSize
         }, ct);
-    }
-
-    /// <summary>
-    /// Counts the caller's own Active plans per source template. Other nutritionists' plans are
-    /// never counted, so a shared Public template never leaks its owner's client count.
-    /// </summary>
-    private async Task<Dictionary<Guid, int>> LoadCallerUsageAsync(Guid callerId, CancellationToken ct)
-    {
-        var planFilter = Builders<NutritionPlan>.Filter.Eq(p => p.NutritionistId, callerId)
-                         & Builders<NutritionPlan>.Filter.Eq(p => p.Status, NutritionPlanStatus.Active)
-                         & Builders<NutritionPlan>.Filter.Ne(p => p.SourceTemplateId, null);
-
-        var sourceTemplateIds = await mongo.NutritionPlans
-            .Find(planFilter)
-            .Project(p => p.SourceTemplateId)
-            .ToListAsync(ct);
-
-        return sourceTemplateIds
-            .Where(id => id.HasValue)
-            .GroupBy(id => id!.Value)
-            .ToDictionary(group => group.Key, group => group.Count());
     }
 }

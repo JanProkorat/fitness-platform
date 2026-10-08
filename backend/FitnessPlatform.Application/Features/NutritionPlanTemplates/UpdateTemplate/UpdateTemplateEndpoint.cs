@@ -65,7 +65,10 @@ public class UpdateTemplateEndpoint(
             return;
         }
 
-        await Send.OkAsync(NutritionPlanTemplateDetailDto.FromDocument(updated, ownerId), ct);
+        var usage = await NutritionPlanTemplateUsage.LoadCallerUsageAsync(mongo, ownerId, updated.ExternalId, ct);
+
+        await Send.OkAsync(
+            NutritionPlanTemplateDetailDto.FromDocument(updated, ownerId, usage.GetValueOrDefault(updated.ExternalId)), ct);
     }
 
     /// <summary>
