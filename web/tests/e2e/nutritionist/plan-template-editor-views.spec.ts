@@ -158,14 +158,14 @@ test.describe('plan template editor views', () => {
       await amount.fill('2');
       await expect(amount).not.toHaveAttribute('aria-invalid', 'true');
 
-      // Add a Dinner after Breakfast through the drawer, then remove it again.
-      await page.getByRole('button', { name: 'Add a meal after Breakfast' }).click();
+      // Add a Dinner (it goes last) through the macro bar's button and the drawer, then remove it again.
+      await page.getByTestId('day-add-meal').click();
       const drawer = page.getByRole('dialog');
       await drawer.getByRole('radio', { name: 'Dinner' }).click();
       await drawer.getByLabel('Note for the client').fill('Eat early.');
       await drawer.getByRole('button', { name: 'Add meal' }).click();
       await expect(page.getByTestId('meal-block')).toHaveCount(3);
-      await expect(page.getByTestId('meal-block').nth(1).getByRole('heading', { name: 'Dinner' })).toBeVisible();
+      await expect(page.getByTestId('meal-block').nth(2).getByRole('heading', { name: 'Dinner' })).toBeVisible();
       await page.getByRole('button', { name: 'Remove Dinner' }).click();
       await expect(page.getByTestId('meal-block')).toHaveCount(2);
 

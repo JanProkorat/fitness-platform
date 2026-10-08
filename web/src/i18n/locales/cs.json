@@ -1722,7 +1722,7 @@
       "mealNoteLabel": "Poznámka: {{meal}}",
       "percentOfDay": "{{percent}} % dne",
       "percentKcal": "{{percent}} % kcal",
-      "addAfter": "Přidat jídlo za: {{meal}}",
+      "noteShownBelow": "Poznámka je zobrazena níže",
       "removeMeal": "Odebrat: {{meal}}",
       "emptyMeal": "Přetáhněte sem recept nebo surovinu, nebo jídlo vyberte a stiskněte + v knihovně.",
       "noMeals": "Tento den zatím nemá žádná jídla.",

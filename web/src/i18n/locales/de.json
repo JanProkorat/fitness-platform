@@ -1694,7 +1694,7 @@
       "mealNoteLabel": "Notiz: {{meal}}",
       "percentOfDay": "{{percent}} % des Tages",
       "percentKcal": "{{percent}} % kcal",
-      "addAfter": "Mahlzeit nach {{meal}} hinzufügen",
+      "noteShownBelow": "Die Notiz wird unten angezeigt",
       "removeMeal": "{{meal}} entfernen",
       "emptyMeal": "Ziehen Sie ein Rezept oder eine Zutat hierher, oder wählen Sie die Mahlzeit und drücken Sie + in der Bibliothek.",
       "noMeals": "Dieser Tag hat noch keine Mahlzeiten.",

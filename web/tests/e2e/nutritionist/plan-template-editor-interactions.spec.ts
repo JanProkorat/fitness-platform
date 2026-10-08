@@ -475,10 +475,22 @@ test.describe('plan template editor interactions', () => {
       await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes');
 
       await page.getByRole('button', { name: 'Day', exact: true }).click();
-      await expect(page.getByRole('button', { name: note })).toBeVisible();
+      // A day with a note keeps its input open under the macro bar and disables the note button.
+      const dayNote = page.getByTestId('day-macros').getByRole('textbox', { name: 'Day note', exact: true });
+      await expect(dayNote).toHaveValue(note);
+      await expect(page.getByTestId('day-note-toggle')).toBeDisabled();
 
       await page.getByRole('button', { name: 'Undo' }).click();
-      await expect(page.getByRole('button', { name: note })).toHaveCount(0);
+      await expect(dayNote).toHaveCount(0);
+      await expect(page.getByTestId('day-note-toggle')).toBeEnabled();
+
+      // Clearing the text and leaving the field hides the input and enables the button again.
+      await page.getByTestId('day-note-toggle').click();
+      await dayNote.fill('abc');
+      await dayNote.fill('');
+      await dayNote.blur();
+      await expect(dayNote).toHaveCount(0);
+      await expect(page.getByTestId('day-note-toggle')).toBeEnabled();
       await page.getByRole('button', { name: 'Week', exact: true }).click();
       await expect(page.getByRole('button', { name: 'Edit note for Monday' })).toHaveAttribute('data-has-note', 'false');
     } finally {

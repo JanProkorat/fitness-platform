@@ -15,6 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import AddMealSheet from '@/components/plan-editor/AddMealSheet';
 import AveragesBar from '@/components/plan-editor/AveragesBar';
 import CardDropDialog from '@/components/plan-editor/CardDropDialog';
 import DayMacroBar from '@/components/plan-editor/DayMacroBar';
@@ -42,6 +43,8 @@ import { dayTotals, mealItemCount, mealTotals, weekSummary } from '@/components/
 import {
   addItemToCell,
   addMealRow,
+  addMealToDay,
+  nextSnackKindForDay,
   addWeek,
   applyMealKinds,
   COMMON_MEAL_KINDS,
@@ -55,13 +58,14 @@ import {
   weekHasItems,
   weekRows,
 } from '@/components/plan-editor/plan-editor-ops';
-import type {
-  EditorDocument,
-  EditorRange,
-  EditorView,
-  LibraryItem,
-  PlanTargets,
-  SaveStatus,
+import {
+  MAX_MEALS_PER_DAY,
+  type EditorDocument,
+  type EditorRange,
+  type EditorView,
+  type LibraryItem,
+  type PlanTargets,
+  type SaveStatus,
 } from '@/components/plan-editor/plan-editor-types';
 import { usePlanEditorState } from '@/components/plan-editor/usePlanEditorState';
 
@@ -165,6 +169,7 @@ export default function PlanEditor({
   const [pickerSession, setPickerSession] = useState(false);
   const [leaveOpen, setLeaveOpen] = useState(false);
   const [pendingDrop, setPendingDrop] = useState<PendingDrop | null>(null);
+  const [addMealOpen, setAddMealOpen] = useState(false);
   const expandRef = useRef<HTMLButtonElement>(null);
   const collapseRef = useRef<HTMLButtonElement>(null);
   const libraryToggled = useRef(false);
@@ -354,6 +359,14 @@ export default function PlanEditor({
         reorderMealItems(current, source.weekIndex, source.dayOfWeek, source.mealId, source.kind, source.index, to),
       );
     }
+  }
+
+  /** Adds an empty meal at the end of the active day; a snack becomes the afternoon one when the day has a morning snack. */
+  function addMeal(kind: MealKind, note: string) {
+    const meals = activeDay?.meals ?? [];
+    const resolved = kind === MealKind.MorningSnack ? nextSnackKindForDay(activeDay) : kind;
+    edit((current) => addMealToDay(current, currentIndex, dayOfWeek, resolved, meals.length - 1, note));
+    setAddMealOpen(false);
   }
 
   function addToCell(item: LibraryItem, cell: SelectedCell) {
@@ -567,6 +580,13 @@ export default function PlanEditor({
                   targets={targets}
                   note={activeDay?.note}
                   readOnly={readOnly}
+                  addMealDisabled={(activeDay?.meals.length ?? 0) >= MAX_MEALS_PER_DAY}
+                  addMealTitle={
+                    (activeDay?.meals.length ?? 0) >= MAX_MEALS_PER_DAY
+                      ? t('planEditor.day.limitReached', { max: MAX_MEALS_PER_DAY })
+                      : undefined
+                  }
+                  onAddMeal={() => setAddMealOpen(true)}
                   onNoteChange={(note) =>
                     edit((current) => setDayNote(current, currentIndex, dayOfWeek, note), `daynote:${currentIndex}:${dayOfWeek}`)
                   }
@@ -683,6 +703,15 @@ export default function PlanEditor({
           ) : null;
         }}
       </DragOverlay>
+
+      <AddMealSheet
+        open={addMealOpen && !readOnly}
+        onOpenChange={setAddMealOpen}
+        dayLabel={t(`planEditor.daysLong.${dayOfWeek}`)}
+        afterKind={activeDay?.meals[activeDay.meals.length - 1]?.kind ?? null}
+        dayKinds={activeDay?.meals.map((meal) => meal.kind) ?? []}
+        onSubmit={addMeal}
+      />
 
       <CardDropDialog
         drop={dropDialog}

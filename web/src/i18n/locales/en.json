@@ -1695,7 +1695,7 @@
       "mealNoteLabel": "Note for {{meal}}",
       "percentOfDay": "{{percent}} % of day",
       "percentKcal": "{{percent}} % kcal",
-      "addAfter": "Add a meal after {{meal}}",
+      "noteShownBelow": "The note is shown below",
       "removeMeal": "Remove {{meal}}",
       "emptyMeal": "Drag a recipe or ingredient here, or select the meal and press + in the library.",
       "noMeals": "This day has no meals yet.",

@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { useSortable } from '@dnd-kit/react/sortable';
-import { GripVertical, Plus, StickyNote, Trash2 } from 'lucide-react';
+import { GripVertical, StickyNote, Trash2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import MealItemRow from '@/components/plan-editor/MealItemRow';
@@ -19,7 +19,7 @@ import {
   setMealNote,
   setRecipeServings,
 } from '@/components/plan-editor/plan-editor-ops';
-import { MAX_MEALS_PER_DAY, MAX_NOTE_LENGTH, type EditorMeal } from '@/components/plan-editor/plan-editor-types';
+import { MAX_NOTE_LENGTH, type EditorMeal } from '@/components/plan-editor/plan-editor-types';
 import type { PlanEditorState } from '@/components/plan-editor/usePlanEditorState';
 
 const SHARE_CHIP_CLASS: Record<ShareStatus, string> = {
@@ -32,7 +32,6 @@ const SHARE_CHIP_CLASS: Record<ShareStatus, string> = {
 interface Props {
   meal: EditorMeal;
   index: number;
-  mealCount: number;
   weekIndex: number;
   dayOfWeek: number;
   dayKcal: number;
@@ -40,7 +39,6 @@ interface Props {
   selected: boolean;
   language: string;
   onSelect: () => void;
-  onAddAfter: () => void;
   onEdit: PlanEditorState['edit'];
 }
 
@@ -48,7 +46,6 @@ interface Props {
 export default function MealBlock({
   meal,
   index,
-  mealCount,
   weekIndex,
   dayOfWeek,
   dayKcal,
@@ -56,7 +53,6 @@ export default function MealBlock({
   selected,
   language,
   onSelect,
-  onAddAfter,
   onEdit,
 }: Props) {
   const { t } = useTranslation();
@@ -104,19 +100,6 @@ export default function MealBlock({
         )}
         {!readOnly && (
           <span className="ml-auto flex items-center gap-1">
-            <button
-              type="button"
-              aria-label={t('planEditor.day.addAfter', { meal: kindLabel })}
-              title={t('planEditor.day.addAfter', { meal: kindLabel })}
-              disabled={mealCount >= MAX_MEALS_PER_DAY}
-              onClick={(event) => {
-                event.stopPropagation();
-                onAddAfter();
-              }}
-              className="flex size-8 cursor-pointer items-center justify-center rounded-md text-muted-foreground outline-none hover:text-ink focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              <Plus className="size-4" aria-hidden="true" />
-            </button>
             <button
               type="button"
               aria-label={t('planEditor.day.removeMeal', { meal: kindLabel })}
