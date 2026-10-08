@@ -4,6 +4,7 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
@@ -38,7 +39,14 @@ public class GetClientDashboardEndpoint(
         Summary(s =>
         {
             s.Summary = "Get client dashboard";
-            s.Description = "Returns a summary dashboard for a specific client managed by the authenticated trainer.";
+            s.Description = "Returns a summary dashboard for a specific client managed by the authenticated trainer. "
+                + "sessionsCompletedThisWeek / sessionsPlannedThisWeek count the client's training sessions in the current "
+                + "plan week (week follows the client's local date) and are null without training-plan access or an active "
+                + "plan with a published current week.";
+            s.Responses[StatusCodes.Status200OK] = "Client dashboard";
+            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
+            s.Responses[StatusCodes.Status403Forbidden] = "Active link grants neither nutrition nor training visibility";
+            s.Responses[StatusCodes.Status404NotFound] = "Client unknown, or the caller has no active link to it";
         });
     }
 
@@ -230,6 +238,8 @@ public class GetClientDashboardEndpoint(
         // other field on this response. Resolved via the same strict, window-only predicate as
         // the nutrition plan above — no legacy fallback needed since nothing else reads it.
         var hasActiveTrainingPlan = false;
+        int? sessionsCompletedThisWeek = null;
+        int? sessionsPlannedThisWeek = null;
         if (link.CanViewTrainingPlans)
         {
             var trainingPlanFilter = Builders<TrainingPlan>.Filter.And(
@@ -241,6 +251,20 @@ public class GetClientDashboardEndpoint(
             var activeTrainingPlans = await trainingPlanCursor.ToListAsync(ct);
             hasActiveTrainingPlan = PlanWindowResolver.ResolveCurrentPlanStrict(
                 activeTrainingPlans, p => p.StartDate, p => p.Weeks.Count, today) is not null;
+
+            if (activeTrainingPlans.Count > 0)
+            {
+                // The week follows the client's local date, so near local midnight it can differ for an
+                // hour from the UTC-based hasActiveTrainingPlan above.
+                var clientTimeZone = await db.ResolveClientTimeZoneAsync(clientProfile.UserId, ct);
+                var week = WeeklySessionCompletion.ResolveWeek(activeTrainingPlans, now, clientTimeZone);
+
+                if (week is not null)
+                {
+                    sessionsPlannedThisWeek = week.PlannedSessions.Count;
+                    sessionsCompletedThisWeek = await CountCompletedSessionsAsync(week, clientProfile.UserId, ct);
+                }
+            }
         }
 
         var status = ClientStatusClassifier.Classify(
@@ -318,7 +342,33 @@ public class GetClientDashboardEndpoint(
             LatestMeasurement = latestMeasurement,
             CompliancePercent = compliancePercent,
             CurrentStreak = currentStreak,
+            SessionsCompletedThisWeek = sessionsCompletedThisWeek,
+            SessionsPlannedThisWeek = sessionsPlannedThisWeek,
             Onboarding = onboarding
         }, ct);
+    }
+
+    private async Task<int> CountCompletedSessionsAsync(
+        WeeklySessionCompletion.WeekScope week,
+        Guid clientUserId,
+        CancellationToken ct)
+    {
+        if (week.PlannedSessions.Count == 0)
+        {
+            return 0;
+        }
+
+        // Keyed on ApplicationUser.Id, never the client's PublicId — Mongo documents join on the former.
+        var filter = Builders<SessionExecution>.Filter.And(
+            Builders<SessionExecution>.Filter.Eq(e => e.ClientId, clientUserId),
+            Builders<SessionExecution>.Filter.Eq(e => e.PlanId, week.Plan.ExternalId),
+            Builders<SessionExecution>.Filter.In(e => e.SessionId, week.PlannedSessions.Select(s => (Guid?)s.SessionId)),
+            Builders<SessionExecution>.Filter.Gte(e => e.Date, week.WeekStartUtc),
+            Builders<SessionExecution>.Filter.Lt(e => e.Date, week.WeekEndUtc));
+
+        using var cursor = await mongo.SessionExecutions.FindAsync(filter, cancellationToken: ct);
+        var executions = await cursor.ToListAsync(ct);
+
+        return WeeklySessionCompletion.CountCompleted(week, executions);
     }
 }

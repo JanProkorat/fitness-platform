@@ -141,6 +141,20 @@ public class GetClientDashboardResponse
     public int CurrentStreak { get; set; }
 
     /// <summary>
+    /// Planned sessions the client has fully completed in the current plan week (a session counts
+    /// once however many days it was executed). Null when the caller has no training-plan access,
+    /// or there is no active plan, current week or published schedule to count against. Never
+    /// exceeds <see cref="SessionsPlannedThisWeek"/>.
+    /// </summary>
+    public int? SessionsCompletedThisWeek { get; set; }
+
+    /// <summary>
+    /// Sessions scheduled in the current plan week, counted by the same rule as
+    /// <see cref="SessionsCompletedThisWeek"/>. Null in exactly the same cases.
+    /// </summary>
+    public int? SessionsPlannedThisWeek { get; set; }
+
+    /// <summary>
     /// Client's onboarding questionnaire data, or null if not completed.
     /// </summary>
     public OnboardingDataDto? Onboarding { get; set; }
