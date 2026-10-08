@@ -90,7 +90,6 @@ export default function AccountCard({ email, timeZone, saving, onTimeZoneChange 
       <div className="flex items-center gap-4 border-t border-border pt-4.5">
         <div className="flex min-w-0 flex-col gap-0.75">
           <h3 className="text-copy font-semibold text-ink">{t('settings.account.password')}</h3>
-          <p className="text-body text-muted-foreground">{t('settings.account.passwordHint')}</p>
         </div>
         <Button
           type="button"

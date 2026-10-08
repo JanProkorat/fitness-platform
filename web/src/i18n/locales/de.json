@@ -272,7 +272,6 @@
       "timeZoneHint": "Check-in-Erinnerungen und Sitzungszeiten nutzen sie.",
       "timeZoneError": "Die Zeitzone konnte nicht gespeichert werden.",
       "password": "Passwort",
-      "passwordHint": "Zuletzt geändert am [DATE]. Mit Google angemeldet? Dein Passwort wird dort verwaltet.",
       "changePassword": "Passwort ändern"
     },
     "notifications": {

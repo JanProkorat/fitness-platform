@@ -272,7 +272,6 @@
       "timeZoneHint": "Řídí se jím připomínky check-inů a časy sezení.",
       "timeZoneError": "Časové pásmo se nepodařilo uložit.",
       "password": "Heslo",
-      "passwordHint": "Naposledy změněno [DATE]. Přihlašujete se přes Google? Heslo spravuje Google.",
       "changePassword": "Změnit heslo"
     },
     "notifications": {

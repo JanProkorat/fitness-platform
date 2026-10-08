@@ -272,7 +272,6 @@
       "timeZoneHint": "Check-in reminders and session times use it.",
       "timeZoneError": "Could not save the time zone.",
       "password": "Password",
-      "passwordHint": "Last changed [DATE]. Signed in with Google? Your password is managed there.",
       "changePassword": "Change password"
     },
     "notifications": {
