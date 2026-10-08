@@ -266,7 +266,7 @@ test.describe('inbox page', () => {
     await page.goto('/inbox');
     await page.waitForLoadState('networkidle');
     const dashboardResponse = page.waitForResponse(
-      (r) => /\/trainer\/clients\/[^/]+\/dashboard/.test(r.url()) && r.status() === 200,
+      (r) => /\/trainer\/clients\/[0-9a-f-]{36}(\?|$)/.test(r.url()) && r.status() === 200,
     );
     await qaClientRow(page).click();
     const dashboard = (await (await dashboardResponse).json()) as {
