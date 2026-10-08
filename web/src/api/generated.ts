@@ -21179,6 +21179,8 @@ across all weeks); ties resolve to the smaller count. Null when no day has a mea
     visibility?: LibraryVisibility;
     /** True when the authenticated caller is the nutritionist who owns this template. */
     isOwnedByCurrentUser?: boolean;
+    /** Number of the caller's own Active plans built from this template. */
+    usedBy?: number;
     /** Optimistic concurrency version. */
     version?: number;
     /** When the template was created. */
