@@ -346,7 +346,8 @@ test.describe('plan template editor', () => {
     try {
       await page.goto('/plan-templates');
       await page.waitForLoadState('networkidle');
-      const aside = page.locator('aside');
+      // The editor page also has the library <aside>; pick the app sidebar by its main navigation.
+      const aside = page.locator('aside').filter({ has: page.getByRole('navigation', { name: 'Navigation', exact: true }) });
       await expect(aside).toHaveCSS('width', '248px');
 
       await page.goto(`/plan-templates/${templateId}`);
