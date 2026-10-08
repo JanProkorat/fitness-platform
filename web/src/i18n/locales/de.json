@@ -1606,14 +1606,8 @@
       "private": "Privat, nur für Sie sichtbar"
     },
     "averages": {
-      "label": "Ø pro Tag",
-      "fiber": "Bal {{grams}} g",
       "kcal": "{{value}} kcal",
-      "kcalOfTarget": "{{value}} / {{target}} kcal",
-      "protein": "E {{value}}",
-      "carbs": "K {{value}}",
-      "fat": "F {{value}}",
-      "weekTotal": "· Woche gesamt {{kcal}} kcal"
+      "kcalOfTarget": "{{value}} / {{target}} kcal"
     },
     "picker": {
       "title": "Welche Mahlzeiten hat ein Tag?",
@@ -1718,17 +1712,11 @@
       "ofWeeks": "von {{total}} Wochen",
       "weekdays": "Wochentage",
       "meals": "Mahlzeiten des Tages",
-      "kcal": "kcal",
-      "protein": "Eiweiß",
-      "carbs": "Kohlenhydrate",
-      "fat": "Fett",
-      "fiber": "Ballaststoffe",
       "addNote": "Tagesnotiz hinzufügen",
       "noteLabel": "Tagesnotiz",
       "notePlaceholder": "Notiz für den Klienten — z. B. „Reis am Vortag kochen“",
       "mealNoteLabel": "Notiz: {{meal}}",
       "percentOfDay": "{{percent}} % des Tages",
-      "percentKcal": "{{percent}} % kcal",
       "noteShownBelow": "Die Notiz wird unten angezeigt",
       "removeNote": "Tagesnotiz entfernen",
       "removeMeal": "{{meal}} entfernen",

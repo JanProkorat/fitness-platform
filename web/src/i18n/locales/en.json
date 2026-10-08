@@ -1607,14 +1607,8 @@
       "private": "Private to you"
     },
     "averages": {
-      "label": "Avg per day",
-      "fiber": "Fib {{grams}} g",
       "kcal": "{{value}} kcal",
-      "kcalOfTarget": "{{value}} / {{target}} kcal",
-      "protein": "P {{value}}",
-      "carbs": "C {{value}}",
-      "fat": "F {{value}}",
-      "weekTotal": "· week total {{kcal}} kcal"
+      "kcalOfTarget": "{{value}} / {{target}} kcal"
     },
     "picker": {
       "title": "Which meals does a day have?",
@@ -1719,17 +1713,11 @@
       "ofWeeks": "of {{total}} weeks",
       "weekdays": "Weekdays",
       "meals": "Meals of the day",
-      "kcal": "kcal",
-      "protein": "Protein",
-      "carbs": "Carbs",
-      "fat": "Fat",
-      "fiber": "Fiber",
       "addNote": "Add day note",
       "noteLabel": "Day note",
       "notePlaceholder": "Note for the client — e.g. “Cook the rice the night before”",
       "mealNoteLabel": "Note for {{meal}}",
       "percentOfDay": "{{percent}} % of day",
-      "percentKcal": "{{percent}} % kcal",
       "noteShownBelow": "The note is shown below",
       "removeNote": "Remove day note",
       "removeMeal": "Remove {{meal}}",

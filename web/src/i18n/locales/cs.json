@@ -1634,14 +1634,8 @@
       "private": "Soukromá, vidíte jen vy"
     },
     "averages": {
-      "label": "Průměr na den",
-      "fiber": "Vl {{grams}} g",
       "kcal": "{{value}} kcal",
-      "kcalOfTarget": "{{value}} / {{target}} kcal",
-      "protein": "B {{value}}",
-      "carbs": "S {{value}}",
-      "fat": "T {{value}}",
-      "weekTotal": "· týden celkem {{kcal}} kcal"
+      "kcalOfTarget": "{{value}} / {{target}} kcal"
     },
     "picker": {
       "title": "Jaká jídla má jeden den?",
@@ -1748,17 +1742,11 @@
       "ofWeeks": "z {{total}} týdnů",
       "weekdays": "Dny v týdnu",
       "meals": "Jídla dne",
-      "kcal": "kcal",
-      "protein": "Bílkoviny",
-      "carbs": "Sacharidy",
-      "fat": "Tuky",
-      "fiber": "Vláknina",
       "addNote": "Přidat poznámku ke dni",
       "noteLabel": "Poznámka ke dni",
       "notePlaceholder": "Poznámka pro klienta — např. „Rýži uvařte den předem“",
       "mealNoteLabel": "Poznámka: {{meal}}",
       "percentOfDay": "{{percent}} % dne",
-      "percentKcal": "{{percent}} % kcal",
       "noteShownBelow": "Poznámka je zobrazena níže",
       "removeNote": "Odebrat poznámku ke dni",
       "removeMeal": "Odebrat: {{meal}}",

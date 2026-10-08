@@ -75,13 +75,16 @@ export default function PlanSidePanel({ tab, onTabChange, open, onCollapse, coll
                 aria-controls={`${baseId}-${value}-panel`}
                 onClick={() => onTabChange(value)}
                 className={cn(
-                  'cursor-pointer rounded-lg border px-1.5 py-3 text-label font-bold tracking-label whitespace-nowrap uppercase outline-none transition-colors [writing-mode:vertical-rl] rotate-180 focus-visible:ring-3 focus-visible:ring-ring/50',
-                  selected
-                    ? 'border-line bg-card text-ink shadow-panel'
-                    : 'border-transparent text-muted-foreground hover:text-ink',
+                  'relative flex w-7 cursor-pointer flex-col items-center rounded-lg py-2.5 outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50',
+                  selected ? 'bg-card text-ink shadow-panel' : 'text-muted-foreground hover:text-ink',
                 )}
               >
-                {labels[value]}
+                <span className="text-label font-bold tracking-label whitespace-nowrap uppercase [writing-mode:vertical-rl] rotate-180">
+                  {labels[value]}
+                </span>
+                {selected && (
+                  <span className="absolute inset-y-2 -left-1.5 w-0.5 rounded-full bg-ink" aria-hidden="true" />
+                )}
               </button>
             );
           })}
