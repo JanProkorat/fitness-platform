@@ -1,4 +1,4 @@
-import type { MealKind, NutrientValue } from '@/api/generated';
+import type { DietaryStyle, MealKind, NutrientValue, PrimaryGoal } from '@/api/generated';
 
 /** One ingredient in a meal, with the per-100g values snapshotted when it was added. */
 export interface EditorFood {
@@ -49,6 +49,11 @@ export interface EditorWeek {
 /** The part of a plan the editor changes. Everything else stays with the host. */
 export interface EditorDocument {
   name: string;
+  description?: string;
+  goal?: PrimaryGoal;
+  dietaryStyle?: DietaryStyle;
+  /** Daily targets the days and weeks are measured against. */
+  targets: PlanTargets;
   weeks: EditorWeek[];
 }
 
@@ -66,6 +71,7 @@ export interface PlanTargets {
   fiber?: number;
 }
 
+export type EditorSideTab = 'info' | 'library';
 export type EditorRange = 'week' | 'day';
 export type EditorView = 'meals' | 'nutrition';
 

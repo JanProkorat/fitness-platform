@@ -89,9 +89,6 @@ export default function WeekTabs({ weekCount, current, readOnly, onSelect, onAdd
           <Plus aria-hidden="true" />
         </Button>
       )}
-      <span className="ml-auto shrink-0 pl-2 text-body text-muted-foreground">
-        {t('planEditor.weeks.position', { current: current + 1, total: weekCount })}
-      </span>
     </div>
   );
 }

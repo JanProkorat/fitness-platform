@@ -1568,8 +1568,43 @@
       "previous": "Previous weeks",
       "next": "Next weeks",
       "add": "Add week",
-      "week": "Week {{number}}",
-      "position": "Week {{current}} of {{total}}"
+      "week": "Week {{number}}"
+    },
+    "panel": {
+      "tabs": "Side panel"
+    },
+    "info": {
+      "tab": "Template info",
+      "title": "Template info",
+      "name": "Template name",
+      "nameRequired": "Enter a name to save.",
+      "description": "Description",
+      "goal": "Goal",
+      "diet": "Diet",
+      "diets": {
+        "any": "Any",
+        "Standard": "Standard",
+        "Vegetarian": "Vegetarian",
+        "Vegan": "Vegan",
+        "GlutenFree": "Gluten free"
+      },
+      "targets": {
+        "title": "Daily target",
+        "calories": "Calories",
+        "fiber": "Fiber",
+        "protein": "Protein",
+        "carbs": "Carbs",
+        "fat": "Fat",
+        "kcalUnit": "kcal",
+        "hint": "Used for the day totals and colours in the editor."
+      },
+      "average": "Week {{week}} · average per day",
+      "weekTotal": "Week total {{kcal}} kcal · follows the selected week",
+      "usage": "Usage",
+      "usedBy_one": "Used by {{count}} client",
+      "usedBy_other": "Used by {{count}} clients",
+      "shared": "Shared",
+      "private": "Private to you"
     },
     "averages": {
       "label": "Avg per day",
@@ -1696,6 +1731,7 @@
       "percentOfDay": "{{percent}} % of day",
       "percentKcal": "{{percent}} % kcal",
       "noteShownBelow": "The note is shown below",
+      "removeNote": "Remove day note",
       "removeMeal": "Remove {{meal}}",
       "emptyMeal": "Drag a recipe or ingredient here, or select the meal and press + in the library.",
       "noMeals": "This day has no meals yet.",

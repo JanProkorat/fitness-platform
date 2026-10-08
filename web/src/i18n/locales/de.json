@@ -1567,8 +1567,43 @@
       "previous": "Vorherige Wochen",
       "next": "Weitere Wochen",
       "add": "Woche hinzufügen",
-      "week": "Woche {{number}}",
-      "position": "Woche {{current}} von {{total}}"
+      "week": "Woche {{number}}"
+    },
+    "panel": {
+      "tabs": "Seitenleiste"
+    },
+    "info": {
+      "tab": "Vorlageninfo",
+      "title": "Vorlageninfo",
+      "name": "Name der Vorlage",
+      "nameRequired": "Zum Speichern einen Namen eingeben.",
+      "description": "Beschreibung",
+      "goal": "Ziel",
+      "diet": "Ernährungsform",
+      "diets": {
+        "any": "Beliebig",
+        "Standard": "Standard",
+        "Vegetarian": "Vegetarisch",
+        "Vegan": "Vegan",
+        "GlutenFree": "Glutenfrei"
+      },
+      "targets": {
+        "title": "Tagesziel",
+        "calories": "Kalorien",
+        "fiber": "Ballaststoffe",
+        "protein": "Eiweiß",
+        "carbs": "Kohlenhydrate",
+        "fat": "Fett",
+        "kcalUnit": "kcal",
+        "hint": "Wird für die Tagessummen und Farben im Editor verwendet."
+      },
+      "average": "Woche {{week}} · Durchschnitt pro Tag",
+      "weekTotal": "Wochensumme {{kcal}} kcal · folgt der gewählten Woche",
+      "usage": "Nutzung",
+      "usedBy_one": "Von {{count}} Klient genutzt",
+      "usedBy_other": "Von {{count}} Klienten genutzt",
+      "shared": "Geteilt",
+      "private": "Privat, nur für Sie sichtbar"
     },
     "averages": {
       "label": "Ø pro Tag",
@@ -1695,6 +1730,7 @@
       "percentOfDay": "{{percent}} % des Tages",
       "percentKcal": "{{percent}} % kcal",
       "noteShownBelow": "Die Notiz wird unten angezeigt",
+      "removeNote": "Tagesnotiz entfernen",
       "removeMeal": "{{meal}} entfernen",
       "emptyMeal": "Ziehen Sie ein Rezept oder eine Zutat hierher, oder wählen Sie die Mahlzeit und drücken Sie + in der Bibliothek.",
       "noMeals": "Dieser Tag hat noch keine Mahlzeiten.",

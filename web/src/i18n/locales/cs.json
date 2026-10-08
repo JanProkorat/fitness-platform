@@ -1593,8 +1593,45 @@
       "previous": "Předchozí týdny",
       "next": "Další týdny",
       "add": "Přidat týden",
-      "week": "Týden {{number}}",
-      "position": "Týden {{current}} z {{total}}"
+      "week": "Týden {{number}}"
+    },
+    "panel": {
+      "tabs": "Boční panel"
+    },
+    "info": {
+      "tab": "Info o šabloně",
+      "title": "Info o šabloně",
+      "name": "Název šablony",
+      "nameRequired": "Pro uložení zadejte název.",
+      "description": "Popis",
+      "goal": "Cíl",
+      "diet": "Dieta",
+      "diets": {
+        "any": "Libovolná",
+        "Standard": "Standardní",
+        "Vegetarian": "Vegetariánská",
+        "Vegan": "Veganská",
+        "GlutenFree": "Bezlepková"
+      },
+      "targets": {
+        "title": "Denní cíl",
+        "calories": "Kalorie",
+        "fiber": "Vláknina",
+        "protein": "Bílkoviny",
+        "carbs": "Sacharidy",
+        "fat": "Tuky",
+        "kcalUnit": "kcal",
+        "hint": "Používá se pro součty dnů a barvy v editoru."
+      },
+      "average": "Týden {{week}} · průměr na den",
+      "weekTotal": "Součet týdne {{kcal}} kcal · sleduje vybraný týden",
+      "usage": "Použití",
+      "usedBy_one": "Použito u {{count}} klienta",
+      "usedBy_few": "Použito u {{count}} klientů",
+      "usedBy_many": "Použito u {{count}} klientů",
+      "usedBy_other": "Použito u {{count}} klientů",
+      "shared": "Sdílená",
+      "private": "Soukromá, vidíte jen vy"
     },
     "averages": {
       "label": "Průměr na den",
@@ -1723,6 +1760,7 @@
       "percentOfDay": "{{percent}} % dne",
       "percentKcal": "{{percent}} % kcal",
       "noteShownBelow": "Poznámka je zobrazena níže",
+      "removeNote": "Odebrat poznámku ke dni",
       "removeMeal": "Odebrat: {{meal}}",
       "emptyMeal": "Přetáhněte sem recept nebo surovinu, nebo jídlo vyberte a stiskněte + v knihovně.",
       "noMeals": "Tento den zatím nemá žádná jídla.",

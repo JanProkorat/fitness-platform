@@ -16,9 +16,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import AddMealSheet from '@/components/plan-editor/AddMealSheet';
-import AveragesBar from '@/components/plan-editor/AveragesBar';
 import CardDropDialog from '@/components/plan-editor/CardDropDialog';
-import DayMacroBar from '@/components/plan-editor/DayMacroBar';
+import DaySummaryCard from '@/components/plan-editor/DaySummaryCard';
 import DayNavigator from '@/components/plan-editor/DayNavigator';
 import DayView from '@/components/plan-editor/DayView';
 import LibraryPanel from '@/components/plan-editor/LibraryPanel';
@@ -27,6 +26,8 @@ import MealPicker from '@/components/plan-editor/MealPicker';
 import NutritionView from '@/components/plan-editor/NutritionView';
 import { PopoverBoundaryContext } from '@/components/plan-editor/PopoverBoundary';
 import PlanEditorHeader from '@/components/plan-editor/PlanEditorHeader';
+import PlanSidePanel from '@/components/plan-editor/PlanSidePanel';
+import TemplateInfoPanel, { type PlanUsage } from '@/components/plan-editor/TemplateInfoPanel';
 import WeekdayPills from '@/components/plan-editor/WeekdayPills';
 import WeekGrid, { type SelectedCell } from '@/components/plan-editor/WeekGrid';
 import WeekTabs from '@/components/plan-editor/WeekTabs';
@@ -40,7 +41,7 @@ import {
   type CellMealDrag,
   type MealItemDrag,
 } from '@/components/plan-editor/plan-editor-library';
-import { dayTotals, mealItemCount, mealTotals, weekSummary } from '@/components/plan-editor/plan-editor-nutrition';
+import { dayTotals, mealItemCount, mealTotals } from '@/components/plan-editor/plan-editor-nutrition';
 import {
   addItemToCell,
   addMealRow,
@@ -62,9 +63,9 @@ import {
   MAX_MEALS_PER_DAY,
   type EditorDocument,
   type EditorRange,
+  type EditorSideTab,
   type EditorView,
   type LibraryItem,
-  type PlanTargets,
   type SaveStatus,
 } from '@/components/plan-editor/plan-editor-types';
 import { usePlanEditorState } from '@/components/plan-editor/usePlanEditorState';
@@ -86,8 +87,8 @@ export interface CopyMealsSlotProps {
 interface Props {
   /** The document to edit. Remount (change `key`) to load a different one. */
   initial: EditorDocument;
-  /** Daily targets to measure days and meals against. */
-  targets?: PlanTargets;
+  /** How the plan is used, shown on the info tab; omit to hide the usage line. */
+  usage?: PlanUsage;
   /** Renders the host's copy-meals dialog; without it the empty-week card has no copy link. */
   renderCopyMeals?: (props: CopyMealsSlotProps) => ReactNode;
   readOnly: boolean;
@@ -142,7 +143,7 @@ function itemName(item: LibraryItem): string {
  */
 export default function PlanEditor({
   initial,
-  targets,
+  usage,
   renderCopyMeals,
   readOnly,
   readOnlyNotice,
@@ -153,7 +154,8 @@ export default function PlanEditor({
 }: Props) {
   const { t, i18n } = useTranslation();
   const { doc, dirty, canUndo, canRedo, edit, undo, redo, markSaved } = usePlanEditorState(initial);
-  const dailyKcalTarget = targets?.kcal;
+  const targets = doc.targets;
+  const dailyKcalTarget = targets.kcal;
   const [weekIndex, setWeekIndex] = useState(0);
   const [range, setRange] = useState<EditorRange>('week');
   const [view, setView] = useState<EditorView>('meals');
@@ -162,6 +164,7 @@ export default function PlanEditor({
   const [copyOpen, setCopyOpen] = useState(false);
   const [selected, setSelected] = useState<SelectedCell | null>(null);
   const [libraryOpen, setLibraryOpen] = useState(true);
+  const [sideTab, setSideTab] = useState<EditorSideTab>('library');
   const [pickerSession, setPickerSession] = useState(false);
   const [leaveOpen, setLeaveOpen] = useState(false);
   const [pendingDrop, setPendingDrop] = useState<PendingDrop | null>(null);
@@ -478,16 +481,32 @@ export default function PlanEditor({
             data-plan-library
             className={cn(
               'relative shrink-0 overflow-hidden transition-[width] duration-300 ease-out motion-reduce:transition-none',
-              libraryOpen ? 'w-80' : 'w-13',
+              libraryOpen ? 'w-90' : 'w-13',
             )}
           >
-            <LibraryPanel
+            <PlanSidePanel
+              tab={sideTab}
+              onTabChange={setSideTab}
               open={libraryOpen}
               collapseRef={collapseRef}
-              canAdd={selected !== null}
-              disabled={readOnly}
-              onAdd={(item) => selected && addToCell(item, selected)}
               onCollapse={() => toggleLibrary(false)}
+              info={
+                <TemplateInfoPanel
+                  doc={doc}
+                  week={week}
+                  weekNumber={currentIndex + 1}
+                  usage={usage}
+                  readOnly={readOnly}
+                  onEdit={edit}
+                />
+              }
+              library={
+                <LibraryPanel
+                  canAdd={selected !== null}
+                  disabled={readOnly}
+                  onAdd={(item) => selected && addToCell(item, selected)}
+                />
+              }
             />
             <button
               ref={expandRef}
@@ -505,7 +524,7 @@ export default function PlanEditor({
                 <PanelLeftOpen className="size-4" aria-hidden="true" />
               </span>
               <span className="text-label font-bold tracking-label text-ink-2 uppercase [writing-mode:vertical-rl] rotate-180">
-                {t('planEditor.library.title')}
+                {sideTab === 'info' ? t('planEditor.info.tab') : t('planEditor.library.title')}
               </span>
             </button>
           </div>
@@ -564,9 +583,9 @@ export default function PlanEditor({
                     onSelect={setDayOfWeek}
                   />
                 </div>
-                <DayMacroBar
+                <DaySummaryCard
                   totals={activeDay ? dayTotals(activeDay) : dayTotals({ dayOfWeek, meals: [] })}
-                  targets={targets}
+                  kcalTarget={dailyKcalTarget}
                   note={activeDay?.note}
                   readOnly={readOnly}
                   addMealDisabled={allKindsPresent || (activeDay?.meals.length ?? 0) >= MAX_MEALS_PER_DAY}
@@ -610,10 +629,6 @@ export default function PlanEditor({
                 </Button>
               )}
             </div>
-          )}
-
-          {(range === 'week' || rows.length === 0) && (
-            <AveragesBar summary={weekSummary(week)} dailyKcalTarget={dailyKcalTarget} />
           )}
 
           {rows.length > 0 && range === 'day' && (

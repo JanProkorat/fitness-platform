@@ -512,8 +512,8 @@ test.describe('plan template editor interactions', () => {
       await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes');
 
       await page.getByRole('button', { name: 'Day', exact: true }).click();
-      // A day with a note keeps its input open under the macro bar and disables the note button.
-      const dayNote = page.getByTestId('day-macros').getByRole('textbox', { name: 'Day note', exact: true });
+      // A day with a note shows it as a second line inside the day card and disables the note button.
+      const dayNote = page.getByTestId('day-summary').getByRole('textbox', { name: 'Day note', exact: true });
       await expect(dayNote).toHaveValue(note);
       await expect(page.getByTestId('day-note-toggle')).toBeDisabled();
 
@@ -521,11 +521,19 @@ test.describe('plan template editor interactions', () => {
       await expect(dayNote).toHaveCount(0);
       await expect(page.getByTestId('day-note-toggle')).toBeEnabled();
 
-      // Clearing the text and leaving the field hides the input and enables the button again.
+      // With no note the card is one row; Add day note opens the empty line and focuses it.
       await page.getByTestId('day-note-toggle').click();
+      await expect(dayNote).toBeFocused();
       await dayNote.fill('abc');
       await dayNote.fill('');
       await dayNote.blur();
+      await expect(dayNote).toHaveCount(0);
+      await expect(page.getByTestId('day-note-toggle')).toBeEnabled();
+
+      // The cross removes a note in place.
+      await page.getByTestId('day-note-toggle').click();
+      await dayNote.fill(note);
+      await page.getByTestId('day-note-remove').click();
       await expect(dayNote).toHaveCount(0);
       await expect(page.getByTestId('day-note-toggle')).toBeEnabled();
       await page.getByRole('button', { name: 'Week', exact: true }).click();

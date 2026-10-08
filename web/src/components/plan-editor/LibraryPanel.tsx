@@ -1,7 +1,7 @@
-import { useRef, useState, type Ref } from 'react';
+import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDraggable } from '@dnd-kit/react';
-import { BookOpen, GripVertical, PanelLeftClose, Plus, Search, SlidersHorizontal } from 'lucide-react';
+import { BookOpen, GripVertical, Plus, Search, SlidersHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverAnchor } from '@/components/ui/popover';
@@ -145,14 +145,10 @@ interface Props {
   canAdd: boolean;
   disabled: boolean;
   onAdd: (item: LibraryItem) => void;
-  onCollapse: () => void;
-  /** Collapsed panels slide out and become inert (no tab stops, hidden from assistive tech). */
-  open: boolean;
-  collapseRef?: Ref<HTMLButtonElement>;
 }
 
-/** Left panel with the nutritionist's recipes and ingredients, draggable onto the week grid. */
-export default function LibraryPanel({ canAdd, disabled, onAdd, onCollapse, open, collapseRef }: Props) {
+/** Side-panel tab with the nutritionist's recipes and ingredients, draggable onto the week grid. */
+export default function LibraryPanel({ canAdd, disabled, onAdd }: Props) {
   const { t, i18n } = useTranslation();
   const [tab, setTab] = useState<LibraryTab>('recipes');
   const [searchInput, setSearchInput] = useState('');
@@ -188,14 +184,7 @@ export default function LibraryPanel({ canAdd, disabled, onAdd, onCollapse, open
   const foods: FoodSummary[] = ingredientsQuery.data?.foods ?? [];
 
   return (
-    <aside
-      aria-label={t('planEditor.library.title')}
-      inert={!open}
-      className={cn(
-        'flex h-full w-80 shrink-0 flex-col gap-3 overflow-hidden border-r-2 border-line bg-sunken px-4 py-4.5 transition-transform duration-300 ease-out motion-reduce:transition-none',
-        !open && '-translate-x-full',
-      )}
-    >
+    <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden px-4 py-4.5">
       <div className="flex items-center gap-2">
         <BookOpen className="size-4 shrink-0 text-ink" aria-hidden="true" />
         <span className="text-label font-semibold tracking-label text-ink uppercase">
@@ -207,16 +196,6 @@ export default function LibraryPanel({ canAdd, disabled, onAdd, onCollapse, open
             ingredients: ingredientsQuery.data?.totalCount ?? 0,
           })}
         </span>
-        <Button
-          ref={collapseRef}
-          type="button"
-          variant="outline"
-          size="icon"
-          aria-label={t('planEditor.library.collapse')}
-          onClick={onCollapse}
-        >
-          <PanelLeftClose aria-hidden="true" />
-        </Button>
       </div>
 
       <div role="tablist" aria-label={t('planEditor.library.title')} className="flex gap-2">
@@ -335,6 +314,6 @@ export default function LibraryPanel({ canAdd, disabled, onAdd, onCollapse, open
           </ul>
         )}
       </div>
-    </aside>
+    </div>
   );
 }

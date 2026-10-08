@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { MealKind } from '@/api/generated';
+import { MealKind, type GlobalNutritionSettings } from '@/api/generated';
 import type {
   NutritionPlanTemplateDetailDto,
   NutritionPlanTemplateWeekRequest,
@@ -8,7 +8,12 @@ import type {
   UpdateNutritionPlanTemplateRequest,
 } from '@/api/nutrition-plan-templates';
 import type { PlanEditorSaveState } from '@/components/plan-editor/PlanEditor';
-import type { EditorDocument, EditorMeal, EditorWeek } from '@/components/plan-editor/plan-editor-types';
+import type {
+  EditorDocument,
+  EditorMeal,
+  EditorWeek,
+  PlanTargets,
+} from '@/components/plan-editor/plan-editor-types';
 import { useUpdatePlanTemplate } from '@/hooks/usePlanTemplatesQueries';
 import { getApiErrorMessage, getErrorStatus } from '@/lib/api-errors';
 
@@ -57,7 +62,32 @@ export function toEditorDocument(dto: NutritionPlanTemplateDetailDto): EditorDoc
             })),
         })),
     }));
-  return { name: dto.name ?? '', weeks };
+  const settings = dto.globalSettings;
+  return {
+    name: dto.name ?? '',
+    description: nullToUndefined(dto.description),
+    goal: nullToUndefined(dto.goal),
+    dietaryStyle: nullToUndefined(dto.dietaryStyle),
+    targets: {
+      kcal: nullToUndefined(settings?.dailyKcal),
+      protein: nullToUndefined(settings?.proteinGrams),
+      carbs: nullToUndefined(settings?.carbsGrams),
+      fat: nullToUndefined(settings?.fatGrams),
+      fiber: nullToUndefined(settings?.fiberGrams),
+    },
+    weeks,
+  };
+}
+
+function toGlobalSettings(targets: PlanTargets): GlobalNutritionSettings | undefined {
+  const settings: GlobalNutritionSettings = {
+    dailyKcal: targets.kcal,
+    proteinGrams: targets.protein,
+    carbsGrams: targets.carbs,
+    fatGrams: targets.fat,
+    fiberGrams: targets.fiber,
+  };
+  return Object.values(settings).some((value) => value !== undefined) ? settings : undefined;
 }
 
 function toRequestMeal(meal: EditorMeal): TemplateMealRequest {
@@ -84,8 +114,8 @@ function toRequestWeeks(weeks: EditorWeek[]): NutritionPlanTemplateWeekRequest[]
 }
 
 /**
- * The PUT replaces the whole template, so everything the editor does not change (description, goal,
- * dietary style, targets, supplements) is echoed back from the loaded copy.
+ * The PUT replaces the whole template: the info fields and targets come from the editor document, and
+ * what the editor does not change (supplements) is echoed back from the loaded copy.
  */
 export function toUpdateRequest(
   loaded: NutritionPlanTemplateDetailDto,
@@ -94,10 +124,10 @@ export function toUpdateRequest(
 ): UpdateNutritionPlanTemplateRequest {
   return {
     name: doc.name.trim(),
-    description: nullToUndefined(loaded.description),
-    goal: nullToUndefined(loaded.goal),
-    dietaryStyle: nullToUndefined(loaded.dietaryStyle),
-    globalSettings: nullToUndefined(loaded.globalSettings),
+    description: doc.description?.trim() || undefined,
+    goal: doc.goal,
+    dietaryStyle: doc.dietaryStyle,
+    globalSettings: toGlobalSettings(doc.targets),
     supplements: (loaded.supplements ?? []).map((supplement) => ({
       externalId: supplement.externalId,
       name: supplement.name,
