@@ -21,10 +21,10 @@ import type { EditorMeal, EditorWeek } from '@/components/plan-editor/plan-edito
 import { MealKind } from '@/api/generated';
 
 const CELL_CLASS: Record<ShareStatus, string> = {
-  none: 'border-line bg-card',
+  none: 'border-raised-line bg-raised',
   on: 'border-transparent bg-success-soft',
   over: 'border-transparent bg-training-soft',
-  under: 'border-line bg-card',
+  under: 'border-raised-line bg-raised',
 };
 const CAPTION_CLASS: Record<ShareStatus, string> = {
   none: 'text-muted-foreground',
@@ -66,7 +66,7 @@ function NutritionCell({ meal, rowLabelKey, dailyKcalTarget }: CellProps) {
     <div
       data-testid="nutrition-cell"
       data-status={result.status}
-      className={cn('flex min-h-0 min-w-0 flex-col justify-between gap-1 rounded-xl border p-3', CELL_CLASS[result.status])}
+      className={cn('flex min-h-0 min-w-0 flex-col justify-between gap-1 rounded-xl border p-3 shadow-raised', CELL_CLASS[result.status])}
     >
       <div className="flex min-w-0 flex-col gap-0.5">
         {ownKeyDiffers && (

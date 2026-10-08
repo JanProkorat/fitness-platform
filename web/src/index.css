@@ -40,6 +40,9 @@
   --gf-muted: #6b6863; /* labels, inactive nav */
   --gf-faint: #a8a49c; /* placeholder text */
   --gf-line: #e7e4de; /* borders, hairlines */
+  --gf-grid: #f7f5f1; /* tinted surface behind the plan editor's week grid */
+  --gf-raised: #ffffff; /* raised cards on that surface (filled meals, day totals) */
+  --gf-raised-line: #e7e4de; /* their border */
   --gf-primary-text: #ffffff; /* text on an ink fill — flips in dark */
   --gf-on-dark: #f6f4f0; /* text on a fixed dark overlay — same in both modes */
   --gf-scrim: #141414; /* modal/lightbox backdrop — the boards use the same backdrop in both modes */
@@ -190,6 +193,8 @@
   --gf-shadow-card: 0 24px 60px rgba(0, 0, 0, 0.1); /* standalone-page card (PageRegister*) */
   --gf-shadow-selection-bar: 0 4px 12px rgba(0, 0, 0, 0.1); /* clients-page bulk-selection bar */
   --gf-shadow-panel: 0 10px 30px rgba(0, 0, 0, 0.05); /* portal panel cards (PageProfile), same in light and dark */
+  --gf-shadow-raised: 0 1px 2px rgba(20, 20, 20, 0.06), 0 6px 16px rgba(20, 20, 20, 0.07); /* week-grid cards (PageTemplateEditor) */
+  --gf-shadow-raised-hover: 0 2px 4px rgba(20, 20, 20, 0.08), 0 10px 22px rgba(20, 20, 20, 0.1); /* the same, hovered */
   --gf-blur-scrim: 3px; /* backdrop blur behind the sign-in dialog (PageHomeSignIn*) */
 
   --gf-badge-min-width: 20px; /* filter-chip count badge floor — a single-digit count's glyph advance can render narrower than the badge's own height in a fallback face, squaring off the pill */
@@ -533,6 +538,11 @@
   --gf-muted-dark: #958f87;
   --gf-faint-dark: #958f87;
   --gf-line-dark: #2a292c;
+  --gf-grid-dark: #1b1b1e;
+  --gf-raised-dark: #26262a;
+  --gf-raised-line-dark: #34333a;
+  --gf-shadow-raised-dark: 0 1px 2px rgba(0, 0, 0, 0.4), 0 6px 16px rgba(0, 0, 0, 0.35);
+  --gf-shadow-raised-hover-dark: 0 2px 4px rgba(0, 0, 0, 0.5), 0 10px 22px rgba(0, 0, 0, 0.45);
   --gf-primary-text-dark: #141414;
   --gf-sidebar-dark: #121214;
   --gf-sidebar-active-dark: #232226;
@@ -579,6 +589,11 @@
   --gf-muted: var(--gf-muted-dark);
   --gf-faint: var(--gf-faint-dark);
   --gf-line: var(--gf-line-dark);
+  --gf-grid: var(--gf-grid-dark);
+  --gf-raised: var(--gf-raised-dark);
+  --gf-raised-line: var(--gf-raised-line-dark);
+  --gf-shadow-raised: var(--gf-shadow-raised-dark);
+  --gf-shadow-raised-hover: var(--gf-shadow-raised-hover-dark);
   --gf-primary-text: var(--gf-primary-text-dark);
   --gf-sidebar: var(--gf-sidebar-dark);
   --gf-sidebar-active: var(--gf-sidebar-active-dark);
@@ -621,6 +636,11 @@
     --gf-muted: var(--gf-muted-dark);
     --gf-faint: var(--gf-faint-dark);
     --gf-line: var(--gf-line-dark);
+    --gf-grid: var(--gf-grid-dark);
+    --gf-raised: var(--gf-raised-dark);
+    --gf-raised-line: var(--gf-raised-line-dark);
+    --gf-shadow-raised: var(--gf-shadow-raised-dark);
+    --gf-shadow-raised-hover: var(--gf-shadow-raised-hover-dark);
     --gf-primary-text: var(--gf-primary-text-dark);
     --gf-sidebar: var(--gf-sidebar-dark);
     --gf-sidebar-active: var(--gf-sidebar-active-dark);
@@ -691,6 +711,9 @@
   --color-line: var(--gf-line);
   --color-surface: var(--gf-surface);
   --color-sunken: var(--gf-sunken);
+  --color-grid: var(--gf-grid);
+  --color-raised: var(--gf-raised);
+  --color-raised-line: var(--gf-raised-line);
   --color-on-dark: var(--gf-on-dark);
   --color-scrim: var(--gf-scrim);
   --color-chip-count: var(--gf-chip-count);
@@ -859,6 +882,8 @@
   --shadow-card: var(--gf-shadow-card);
   --shadow-selection-bar: var(--gf-shadow-selection-bar);
   --shadow-panel: var(--gf-shadow-panel);
+  --shadow-raised: var(--gf-shadow-raised);
+  --shadow-raised-hover: var(--gf-shadow-raised-hover);
 
   --blur-scrim: var(--gf-blur-scrim);
 

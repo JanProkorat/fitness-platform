@@ -3,7 +3,7 @@ import { MealKind } from '@/api/generated';
 export const DAY_ORDER = [1, 2, 3, 4, 5, 6, 7] as const;
 
 /** One grid for the whole week: the label column is as wide as the longest label, the days share the rest. */
-export const WEEK_GRID_CLASS = 'grid grid-cols-[max-content_repeat(7,minmax(0,1fr))] gap-3';
+export const WEEK_GRID_CLASS = 'grid grid-cols-[max-content_repeat(7,minmax(0,1fr))] gap-3 rounded-2xl bg-grid p-3';
 
 /** A row of the week grid, aligned to its columns. */
 export const GRID_CLASS = 'grid grid-cols-subgrid col-span-8 items-center';

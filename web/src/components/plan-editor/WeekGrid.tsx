@@ -143,13 +143,14 @@ function MealCell({
           aria-label={t('planEditor.cell.label', { day: t(`planEditor.days.${dayOfWeek}`), row: rowIndex + 1 })}
           onClick={onSelect}
           className={cn(
-            'flex min-h-0 min-w-0 flex-col items-stretch justify-between gap-1 rounded-xl border p-3 text-left outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50',
+            'flex min-h-0 min-w-0 flex-col items-stretch justify-between gap-1 rounded-xl border p-3 text-left outline-none transition-[color,background-color,border-color,box-shadow,transform] duration-150 focus-visible:ring-3 focus-visible:ring-ring/50',
             itemCount === 0 && 'border-dashed border-line bg-transparent',
-            itemCount > 0 && 'border-line bg-card',
-            itemCount > 0 && !readOnly && 'cursor-grab active:cursor-grabbing',
+            itemCount > 0 && 'border-raised-line bg-raised shadow-raised',
+            draggable &&
+              'cursor-grab hover:-translate-y-px hover:shadow-raised-hover active:cursor-grabbing motion-reduce:hover:translate-y-0',
             selected && 'border-solid border-ink ring-2 ring-ink',
             isDragging && 'opacity-50',
-            isDropTarget && !isDragging && 'border-dashed border-nutrition bg-nutrition-soft ring-0',
+            isDropTarget && !isDragging && 'border-dashed border-nutrition bg-nutrition-soft shadow-none ring-0',
           )}
         >
           {itemCount === 0 ? (
@@ -291,7 +292,7 @@ export function DayTotalCell({ day, target }: { day: EditorDay | undefined; targ
     <div
       data-testid="day-total"
       data-status={status}
-      className="flex h-full min-h-30 min-w-0 flex-col justify-between gap-1 rounded-xl border border-line bg-card p-3"
+      className="flex h-full min-h-30 min-w-0 flex-col justify-between gap-1 rounded-xl border border-raised-line bg-raised p-3 shadow-raised"
     >
       <span className={cn('text-copy font-semibold', STATUS_TEXT_CLASS[status])}>
         {t('planEditor.cell.kcal', { kcal: formatKcal(totals?.kcal ?? 0, i18n.language) })}
