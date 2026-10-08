@@ -238,7 +238,6 @@ export default function PlanEditor({
     setDetailCell(null);
     if (next === 'nutrition') {
       setRange('week');
-      setLibraryOpen(false);
     }
   }
 

@@ -340,7 +340,7 @@ test.describe('plan template editor', () => {
     }
   });
 
-  test('the editor opens with the sidebar collapsed without overwriting the stored choice', async ({ page, baseURL }) => {
+  test('the sidebar choice is one stored setting for every page, the editor included', async ({ page, baseURL }) => {
     const origin = baseURL ?? 'http://localhost:5173';
     const templateId = await createTemplate(origin, `QA Editor Sidebar ${Date.now()}`, buildWeeks(1, LUNCH_AND_BREAKFAST));
     try {
@@ -348,16 +348,28 @@ test.describe('plan template editor', () => {
       await page.waitForLoadState('networkidle');
       // The editor page also has the library <aside>; pick the app sidebar by its main navigation.
       const aside = page.locator('aside').filter({ has: page.getByRole('navigation', { name: 'Navigation', exact: true }) });
+      const navigation = page.getByRole('navigation', { name: 'Navigation', exact: true });
       await expect(aside).toHaveCSS('width', '248px');
 
+      await navigation.getByRole('button', { name: 'Collapse navigation' }).click();
+      await expect(aside).toHaveCSS('width', '64px');
+
+      // The editor opens with the stored choice, collapsed here.
       await page.goto(`/plan-templates/${templateId}`);
       await page.waitForLoadState('networkidle');
       await expect(aside).toHaveCSS('width', '64px');
 
-      // Expanding here lasts for this visit only.
-      await page.getByRole('navigation').getByRole('button', { name: 'Expand navigation' }).click();
+      // Toggling in the editor writes the same choice, so Back and a reload keep it.
+      await navigation.getByRole('button', { name: 'Expand navigation' }).click();
       await expect(aside).toHaveCSS('width', '248px');
-      expect(await page.evaluate(() => window.localStorage.getItem('sidebar-collapsed'))).toBeNull();
+      expect(await page.evaluate(() => window.localStorage.getItem('sidebar-collapsed'))).toBe('0');
+
+      await page.getByRole('button', { name: 'Back to Plan templates' }).click();
+      await expect(page).toHaveURL(/\/plan-templates$/);
+      await expect(aside).toHaveCSS('width', '248px');
+
+      await page.reload();
+      await expect(aside).toHaveCSS('width', '248px');
     } finally {
       await deleteTemplate(origin, templateId);
     }

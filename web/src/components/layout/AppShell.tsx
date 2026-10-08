@@ -22,8 +22,7 @@ import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
  *
  * The static sidebar collapses to a 64px icon rail on every page; the choice is
  * remembered per browser (`useSidebarCollapsed`). `variant="editor"` is the
- * opt-in for full-bleed workspaces (the plan template editor): it always opens
- * collapsed, and `<main>` drops its padding and own scrolling so the page can
+ * opt-in for full-bleed workspaces (the plan template editor): `<main>` drops its padding and own scrolling so the page can
  * lay out flush against the rail. It is chosen by the layout route in App.tsx
  * (BrowserRouter has no route `handle`).
  */
@@ -35,7 +34,7 @@ export default function AppShell({ variant = 'default' }: Props) {
   const { t } = useTranslation();
   const [navOpen, setNavOpen] = useState(false);
   const editor = variant === 'editor';
-  const { collapsed, toggle } = useSidebarCollapsed(editor);
+  const { collapsed, toggle } = useSidebarCollapsed();
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
