@@ -50,9 +50,9 @@ export default function DayView({
   }
 
   return (
-    <div className="flex flex-col gap-4" data-testid="day-view">
+    <div className="flex flex-col gap-3 rounded-2xl bg-grid p-3" data-testid="day-view">
       {meals.length > 0 ? (
-        <ul className="flex flex-col rounded-xl border border-line bg-card" aria-label={t('planEditor.day.meals')}>
+        <ul className="flex flex-col gap-3" aria-label={t('planEditor.day.meals')}>
           {meals.map((meal, index) => (
             <MealBlock
               key={meal.mealId}
@@ -72,7 +72,7 @@ export default function DayView({
           ))}
         </ul>
       ) : (
-        <p className="rounded-xl border border-dashed border-line px-4 py-8 text-center text-body text-muted-foreground">
+        <p className="rounded-2xl border border-dashed border-line px-4 py-8 text-center text-body text-muted-foreground">
           {t('planEditor.day.noMeals')}
         </p>
       )}

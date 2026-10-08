@@ -80,9 +80,10 @@ export default function MealBlock({
       aria-label={kindLabel}
       onClick={onSelect}
       className={cn(
-        'flex flex-col gap-3 border-b border-line bg-card p-5 outline-none first:rounded-t-xl last:rounded-b-xl last:border-b-0 focus-visible:ring-3 focus-visible:ring-ring/50',
+        'flex flex-col gap-3 rounded-2xl border border-raised-line bg-raised p-5 shadow-raised outline-none transition-[background-color,border-color,box-shadow,transform] duration-150 focus-visible:ring-3 focus-visible:ring-ring/50',
+        !readOnly && !isDragging && 'hover:-translate-y-px hover:shadow-raised-hover motion-reduce:hover:translate-y-0',
         selected && 'ring-2 ring-ink ring-inset',
-        isDropTarget && !isDragging && 'bg-nutrition-soft',
+        isDropTarget && !isDragging && 'border-nutrition bg-nutrition-soft',
         isDragging && 'opacity-60 shadow-selection-bar',
       )}
     >
