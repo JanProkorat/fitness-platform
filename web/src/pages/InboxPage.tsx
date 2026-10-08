@@ -262,7 +262,7 @@ export default function InboxPage() {
       {isClientPanelOpen && selectedClientPublicId && (
         <aside
           aria-label={t('inbox.thread.clientPanelTitle')}
-          className="flex h-full w-90 shrink-0 flex-col border-l border-border bg-card"
+          className="flex h-full w-panel shrink-0 flex-col border-l border-border bg-card"
         >
           <ClientSidePanel clientPublicId={selectedClientPublicId} />
         </aside>

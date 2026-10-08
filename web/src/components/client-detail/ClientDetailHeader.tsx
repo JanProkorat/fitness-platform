@@ -33,7 +33,7 @@ export default function ClientDetailHeader({ dashboard }: Props) {
         >
           <ArrowLeft className="size-5" aria-hidden="true" />
         </Link>
-        <ClientIdentityBlock dashboard={dashboard} headingLevel="h1" />
+        <ClientIdentityBlock dashboard={dashboard} />
       </div>
 
       <div className="flex items-center gap-2">
