@@ -278,6 +278,9 @@ test.describe('inbox page', () => {
     const panelStatusBadge = panel.locator('[data-slot="badge"]').first();
     await expect(panelStatusBadge).toHaveText(listStatusText);
 
+    // The seeded plan has one session this week; how many are done depends on the weekday.
+    await expect(panel.getByText(/Done this week · \d+ of 1 session$/)).toBeVisible();
+
     await page.getByRole('link', { name: 'Open client profile' }).click();
     await page.waitForLoadState('networkidle');
     await expect(page).toHaveURL(/\/clients\/[0-9a-f-]{36}$/);
