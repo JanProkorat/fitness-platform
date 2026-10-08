@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Feedback, KeyboardSensor, PointerSensor } from '@dnd-kit/dom';
+import { AutoScroller, Feedback, KeyboardSensor, PointerSensor } from '@dnd-kit/dom';
 import { move } from '@dnd-kit/helpers';
 import { DragDropProvider, DragOverlay } from '@dnd-kit/react';
 import { AlertTriangle, PanelLeftOpen } from 'lucide-react';
@@ -440,7 +440,14 @@ export default function PlanEditor({
     <DragDropProvider
       sensors={DRAG_SENSORS}
       plugins={(defaults) => defaults.map((plugin) => (plugin === Feedback ? Feedback.configure({ dropAnimation: null }) : plugin))}
-      onDragEnd={(event) => {
+      onDragStart={(event, manager) => {
+        // The meal popover is a small scrolling box; auto-scroll would move its rows away from the pointer mid-drag.
+        if (readMealItemDrag(event.operation.source?.data)) {
+          manager.registry.plugins.get(AutoScroller)?.disable();
+        }
+      }}
+      onDragEnd={(event, manager) => {
+        manager.registry.plugins.get(AutoScroller)?.enable();
         if (event.canceled) {
           return;
         }

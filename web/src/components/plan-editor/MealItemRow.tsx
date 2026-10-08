@@ -133,7 +133,7 @@ export default function MealItemRow({ entry, readOnly, variant, position, onAmou
       data-kind={entry.type}
       className={cn(
         'flex items-center gap-3',
-        draggable && 'cursor-grab active:cursor-grabbing',
+        draggable && 'cursor-grab select-none active:cursor-grabbing',
         isDragging && 'opacity-50',
         isDropTarget && !isDragging && 'rounded-lg bg-nutrition-soft',
       )}

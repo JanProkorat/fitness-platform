@@ -430,7 +430,7 @@ test.describe('plan template editor interactions', () => {
     }
   });
 
-  test('a recipe removed after the list loaded still shows its summary and says the ingredients are unavailable', async ({
+  test('a recipe whose detail is gone still shows its summary and says the ingredients are unavailable', async ({
     page,
     baseURL,
   }) => {
@@ -440,12 +440,17 @@ test.describe('plan template editor interactions', () => {
     const recipeId = await createRecipe(origin, recipeName);
     const templateId = await createTemplate(origin, `QA Info Gone ${stamp}`);
     try {
+      // The recipe stays in the list; only its detail request answers 404, as after a delete elsewhere.
+      await page.route(`**/recipes/${recipeId}`, (route) =>
+        route.request().method() === 'GET'
+          ? route.fulfill({ status: 404, contentType: 'application/json', body: '{"status":404}' })
+          : route.continue(),
+      );
       await page.goto(`/plan-templates/${templateId}`);
       await page.getByLabel('Search recipes…').fill(recipeName);
       const card = libraryCard(page, recipeName);
       await expect(card).toHaveCount(1);
 
-      await deleteRecipe(origin, recipeId);
       await card.getByRole('button', { name: `Show details of ${recipeName}` }).click();
       const info = page.getByTestId('library-info');
       await expect(info).toBeVisible();
