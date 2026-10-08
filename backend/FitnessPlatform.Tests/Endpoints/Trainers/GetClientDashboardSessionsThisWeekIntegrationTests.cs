@@ -24,8 +24,24 @@ public class GetClientDashboardSessionsThisWeekIntegrationTests(FitnessApiFactor
 {
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
 
-    // The client has no time zone set, so the week is the UTC calendar week.
-    private static readonly DateTime WeekStart = MondayOfWeek(DateTime.UtcNow);
+    // The client has no time zone set, so the week is the UTC calendar week. Set per test by
+    // CreateFixtureAsync, right before seeding, so it is never older than the test itself.
+    private DateTime _weekStart;
+
+    private DateTime WeekStart => _weekStart;
+
+    // The factory has no pinned clock, so a test that straddles UTC midnight could seed one week
+    // and request another. Wait out the seconds around midnight before taking the instant.
+    private static async Task WaitOutMidnightBoundaryAsync()
+    {
+        var timeOfDay = DateTime.UtcNow.TimeOfDay;
+        var margin = TimeSpan.FromSeconds(30);
+
+        if (timeOfDay > TimeSpan.FromDays(1) - margin)
+        {
+            await Task.Delay(TimeSpan.FromDays(1) - timeOfDay + TimeSpan.FromSeconds(1), TestContext.Current.CancellationToken);
+        }
+    }
 
     private static DateTime MondayOfWeek(DateTime instant)
     {
@@ -56,6 +72,9 @@ public class GetClientDashboardSessionsThisWeekIntegrationTests(FitnessApiFactor
     {
         var ct = TestContext.Current.CancellationToken;
         var tag = Guid.NewGuid().ToString("N");
+
+        await WaitOutMidnightBoundaryAsync();
+        _weekStart = MondayOfWeek(DateTime.UtcNow);
 
         var trainer = await TestActors.Trainer(factory).WithEmail($"{tag}@sessions-week-t.com").CreateAsync(ct);
         var client = await TestActors.Client(factory).WithEmail($"{tag}@sessions-week-c.com").CreateAsync(ct);

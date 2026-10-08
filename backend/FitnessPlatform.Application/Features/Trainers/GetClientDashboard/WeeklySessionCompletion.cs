@@ -26,8 +26,9 @@ internal static class WeeklySessionCompletion
 
     /// <summary>
     /// Resolves the current week of the plan whose window contains the client's local today.
-    /// Returns null when no plan is current, the week has no published sessions to show, or the
-    /// current week is past the last published one.
+    /// Returns null when no plan is current, no week is published, or the current week is past the
+    /// last published one or before the first. A published week with no sessions yields an empty
+    /// (0 of 0) scope, not null.
     /// </summary>
     /// <param name="activePlans">The caller's Active training plans for the client.</param>
     /// <param name="instantUtc">The instant to resolve "today" from.</param>

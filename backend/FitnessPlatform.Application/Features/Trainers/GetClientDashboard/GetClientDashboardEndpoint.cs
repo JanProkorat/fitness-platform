@@ -42,7 +42,7 @@ public class GetClientDashboardEndpoint(
             s.Description = "Returns a summary dashboard for a specific client managed by the authenticated trainer. "
                 + "sessionsCompletedThisWeek / sessionsPlannedThisWeek count the client's training sessions in the current "
                 + "plan week (week follows the client's local date) and are null without training-plan access or an active "
-                + "plan with a published current week.";
+                + "plan whose current week is covered by a published week (an unpublished current week uses the latest earlier published one).";
             s.Responses[StatusCodes.Status200OK] = "Client dashboard";
             s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
             s.Responses[StatusCodes.Status403Forbidden] = "Active link grants neither nutrition nor training visibility";
@@ -233,10 +233,10 @@ public class GetClientDashboardEndpoint(
                 activePlans, p => p.StartDate, p => p.Weeks.Count, today) is not null;
         }
 
-        // Active training plan lookup, gated the same way as the nutrition lookup above — only
-        // for a status derivation that must agree with GetClientsEndpoint (#1094), not for any
-        // other field on this response. Resolved via the same strict, window-only predicate as
-        // the nutrition plan above — no legacy fallback needed since nothing else reads it.
+        // Active training plan lookup, gated the same way as the nutrition lookup above. It feeds
+        // the status derivation that must agree with GetClientsEndpoint (#1094) and the
+        // sessions-this-week counts. Resolved via the same strict, window-only predicate as the
+        // nutrition plan above — no legacy fallback needed since nothing else reads it.
         var hasActiveTrainingPlan = false;
         int? sessionsCompletedThisWeek = null;
         int? sessionsPlannedThisWeek = null;
@@ -254,8 +254,8 @@ public class GetClientDashboardEndpoint(
 
             if (activeTrainingPlans.Count > 0)
             {
-                // The week follows the client's local date, so near local midnight it can differ for an
-                // hour from the UTC-based hasActiveTrainingPlan above.
+                // The week follows the client's local date, which can differ from the UTC date used by
+                // hasActiveTrainingPlan above by up to the client's UTC offset (about 13h for Auckland).
                 var clientTimeZone = await db.ResolveClientTimeZoneAsync(clientProfile.UserId, ct);
                 var week = WeeklySessionCompletion.ResolveWeek(activeTrainingPlans, now, clientTimeZone);
 
