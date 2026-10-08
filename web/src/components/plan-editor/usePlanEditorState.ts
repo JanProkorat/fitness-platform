@@ -6,6 +6,8 @@ interface State {
   baseline: EditorDocument;
   baselineJson: string;
   past: EditorDocument[];
+  /** Undone snapshots, newest last; any fresh edit clears it. */
+  future: EditorDocument[];
   /** Key of the last edit, so consecutive edits with the same key share one undo step. */
   lastKey: string | null;
 }
@@ -13,6 +15,7 @@ interface State {
 type Action =
   | { type: 'edit'; update: (doc: EditorDocument) => EditorDocument; coalesceKey: string | null }
   | { type: 'undo' }
+  | { type: 'redo' }
   | { type: 'saved'; baseline: EditorDocument; sent: EditorDocument };
 
 function reducer(state: State, action: Action): State {
@@ -24,14 +27,33 @@ function reducer(state: State, action: Action): State {
       }
       const merge = action.coalesceKey !== null && action.coalesceKey === state.lastKey;
       const past = merge ? state.past : [...state.past, state.doc].slice(-MAX_UNDO_STEPS);
-      return { ...state, doc: next, past, lastKey: action.coalesceKey };
+      return { ...state, doc: next, past, future: [], lastKey: action.coalesceKey };
     }
     case 'undo': {
       const previous = state.past[state.past.length - 1];
       if (!previous) {
         return state;
       }
-      return { ...state, doc: previous, past: state.past.slice(0, -1), lastKey: null };
+      return {
+        ...state,
+        doc: previous,
+        past: state.past.slice(0, -1),
+        future: [...state.future, state.doc].slice(-MAX_UNDO_STEPS),
+        lastKey: null,
+      };
+    }
+    case 'redo': {
+      const next = state.future[state.future.length - 1];
+      if (!next) {
+        return state;
+      }
+      return {
+        ...state,
+        doc: next,
+        past: [...state.past, state.doc].slice(-MAX_UNDO_STEPS),
+        future: state.future.slice(0, -1),
+        lastKey: null,
+      };
     }
     case 'saved':
       return {
@@ -46,7 +68,7 @@ function reducer(state: State, action: Action): State {
 }
 
 function init(initial: EditorDocument): State {
-  return { doc: initial, baseline: initial, baselineJson: JSON.stringify(initial), past: [], lastKey: null };
+  return { doc: initial, baseline: initial, baselineJson: JSON.stringify(initial), past: [], future: [], lastKey: null };
 }
 
 export interface PlanEditorState {
@@ -54,9 +76,11 @@ export interface PlanEditorState {
   /** True when the document differs from the last saved version. */
   dirty: boolean;
   canUndo: boolean;
+  canRedo: boolean;
   /** Applies a change as one undo step, or merges it into the previous step when `coalesceKey` repeats. */
   edit: (update: (doc: EditorDocument) => EditorDocument, coalesceKey?: string) => void;
   undo: () => void;
+  redo: () => void;
   /** Records a successful save: `saved` is the server's copy, `sent` the document that was sent. */
   markSaved: (saved: EditorDocument, sent: EditorDocument) => void;
 }
@@ -74,9 +98,19 @@ export function usePlanEditorState(initial: EditorDocument): PlanEditorState {
     dispatch({ type: 'edit', update, coalesceKey: coalesceKey ?? null });
   }, []);
   const undo = useCallback(() => dispatch({ type: 'undo' }), []);
+  const redo = useCallback(() => dispatch({ type: 'redo' }), []);
   const markSaved = useCallback<PlanEditorState['markSaved']>((saved, sent) => {
     dispatch({ type: 'saved', baseline: saved, sent });
   }, []);
 
-  return { doc: state.doc, dirty, canUndo: state.past.length > 0, edit, undo, markSaved };
+  return {
+    doc: state.doc,
+    dirty,
+    canUndo: state.past.length > 0,
+    canRedo: state.future.length > 0,
+    edit,
+    undo,
+    redo,
+    markSaved,
+  };
 }

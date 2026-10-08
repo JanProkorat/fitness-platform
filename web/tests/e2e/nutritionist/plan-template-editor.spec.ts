@@ -293,6 +293,70 @@ test.describe('plan template editor', () => {
     }
   });
 
+  test('Redo replays an undone edit, and a new edit after Undo clears Redo', async ({ page, baseURL }) => {
+    const origin = baseURL ?? 'http://localhost:5173';
+    const name = `QA Editor Redo ${Date.now()}`;
+    const templateId = await createTemplate(origin, name, buildWeeks(1, LUNCH_AND_BREAKFAST));
+    try {
+      await page.goto(`/plan-templates/${templateId}`);
+      const undo = page.getByRole('button', { name: 'Undo' });
+      const redo = page.getByRole('button', { name: 'Redo' });
+      const nameInput = page.getByLabel('Plan name');
+      await expect(undo).toBeDisabled();
+      await expect(redo).toBeDisabled();
+
+      await nameInput.fill(`${name} A`);
+      await expect(undo).toBeEnabled();
+      await expect(redo).toBeDisabled();
+
+      await undo.click();
+      await expect(nameInput).toHaveValue(name);
+      await expect(redo).toBeEnabled();
+      await expect(undo).toBeDisabled();
+
+      await redo.click();
+      await expect(nameInput).toHaveValue(`${name} A`);
+      await expect(redo).toBeDisabled();
+
+      // A new edit after Undo drops the redo history.
+      await undo.click();
+      await expect(redo).toBeEnabled();
+      await nameInput.fill(`${name} B`);
+      await expect(redo).toBeDisabled();
+
+      // Keyboard: Ctrl+Z undoes outside a text field, Ctrl+Shift+Z redoes.
+      await nameInput.blur();
+      await page.keyboard.press('Control+z');
+      await expect(nameInput).toHaveValue(name);
+      await page.keyboard.press('Control+Shift+z');
+      await expect(nameInput).toHaveValue(`${name} B`);
+    } finally {
+      await deleteTemplate(origin, templateId);
+    }
+  });
+
+  test('Back asks before discarding unsaved edits, like the breadcrumb', async ({ page, baseURL }) => {
+    const origin = baseURL ?? 'http://localhost:5173';
+    const name = `QA Editor Back ${Date.now()}`;
+    const templateId = await createTemplate(origin, name, buildWeeks(1, LUNCH_AND_BREAKFAST));
+    try {
+      await page.goto(`/plan-templates/${templateId}`);
+      await page.getByLabel('Plan name').fill(`${name} edited`);
+      await page.getByRole('button', { name: 'Back to Plan templates' }).click();
+
+      const dialog = page.getByRole('dialog');
+      await expect(dialog.getByRole('heading', { name: 'Leave without saving?' })).toBeVisible();
+      await dialog.getByRole('button', { name: 'Keep editing' }).click();
+      await expect(page).toHaveURL(new RegExp(`/plan-templates/${templateId}$`));
+
+      await page.getByRole('button', { name: 'Back to Plan templates' }).click();
+      await page.getByRole('dialog').getByRole('button', { name: 'Leave' }).click();
+      await expect(page).toHaveURL(/\/plan-templates$/);
+    } finally {
+      await deleteTemplate(origin, templateId);
+    }
+  });
+
   test('a save after the template changed elsewhere shows a conflict and keeps the edits', async ({ page, baseURL }) => {
     const origin = baseURL ?? 'http://localhost:5173';
     const name = `QA Editor Conflict ${Date.now()}`;

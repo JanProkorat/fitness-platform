@@ -38,7 +38,7 @@ export default function WeekdayPills({ week, current, dailyKcalTarget, onSelect 
             data-status={status}
             onClick={() => onSelect(dayOfWeek)}
             className={cn(
-              'inline-flex h-10 cursor-pointer items-center gap-2 rounded-full border px-4 text-copy font-semibold outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50',
+              'inline-flex h-7 cursor-pointer items-center gap-2 rounded-full border px-2.5 text-xs font-semibold outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50',
               active ? 'border-ink bg-ink text-primary-foreground' : 'border-line bg-card text-ink hover:bg-muted',
             )}
           >

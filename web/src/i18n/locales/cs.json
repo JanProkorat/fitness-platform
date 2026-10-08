@@ -1535,6 +1535,8 @@
   "planEditor": {
     "nameLabel": "Název plánu",
     "undo": "Zpět",
+    "redo": "Znovu",
+    "back": "Zpět na {{label}}",
     "save": "Uložit",
     "comingSoon": "Již brzy",
     "dayTotal": "Součet dne",

@@ -1511,6 +1511,8 @@
   "planEditor": {
     "nameLabel": "Planname",
     "undo": "Rückgängig",
+    "redo": "Wiederholen",
+    "back": "Zurück zu {{label}}",
     "save": "Speichern",
     "comingSoon": "Demnächst",
     "dayTotal": "Tagessumme",

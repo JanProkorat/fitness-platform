@@ -35,7 +35,7 @@ export default function WeekTabs({ weekCount, current, readOnly, onSelect, onAdd
       <Button
         type="button"
         variant="outline"
-        size="icon-lg"
+        size="icon-sm"
         className="shrink-0 rounded-full"
         aria-label={t('planEditor.weeks.previous')}
         onClick={() => scrollBy(-1)}
@@ -56,7 +56,7 @@ export default function WeekTabs({ weekCount, current, readOnly, onSelect, onAdd
             aria-selected={index === current}
             onClick={() => onSelect(index)}
             className={cn(
-              'inline-flex h-10 shrink-0 items-center rounded-full border px-4 text-copy font-semibold whitespace-nowrap outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50',
+              'inline-flex h-7 shrink-0 items-center rounded-full border px-2.5 text-xs font-semibold whitespace-nowrap outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50',
               index === current
                 ? 'border-ink bg-ink text-primary-foreground'
                 : 'border-line bg-card text-ink hover:bg-muted',
@@ -69,7 +69,7 @@ export default function WeekTabs({ weekCount, current, readOnly, onSelect, onAdd
       <Button
         type="button"
         variant="outline"
-        size="icon-lg"
+        size="icon-sm"
         className="shrink-0 rounded-full"
         aria-label={t('planEditor.weeks.next')}
         onClick={() => scrollBy(1)}
@@ -80,7 +80,7 @@ export default function WeekTabs({ weekCount, current, readOnly, onSelect, onAdd
         <Button
           type="button"
           variant="outline"
-          size="icon-lg"
+          size="icon-sm"
           className="shrink-0 rounded-full border-dashed"
           aria-label={t('planEditor.weeks.add')}
           disabled={weekCount >= MAX_WEEKS}

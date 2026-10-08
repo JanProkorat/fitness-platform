@@ -16,12 +16,14 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import AveragesBar from '@/components/plan-editor/AveragesBar';
+import DayNavigator from '@/components/plan-editor/DayNavigator';
 import DayView from '@/components/plan-editor/DayView';
 import LibraryPanel from '@/components/plan-editor/LibraryPanel';
 import MealDetail from '@/components/plan-editor/MealDetail';
 import MealPicker from '@/components/plan-editor/MealPicker';
 import NutritionView from '@/components/plan-editor/NutritionView';
 import PlanEditorHeader from '@/components/plan-editor/PlanEditorHeader';
+import WeekdayPills from '@/components/plan-editor/WeekdayPills';
 import WeekGrid, { type SelectedCell } from '@/components/plan-editor/WeekGrid';
 import WeekTabs from '@/components/plan-editor/WeekTabs';
 import { mealItemCount, weekSummary } from '@/components/plan-editor/plan-editor-nutrition';
@@ -137,7 +139,7 @@ export default function PlanEditor({
   onReload,
 }: Props) {
   const { t, i18n } = useTranslation();
-  const { doc, dirty, canUndo, edit, undo, markSaved } = usePlanEditorState(initial);
+  const { doc, dirty, canUndo, canRedo, edit, undo, redo, markSaved } = usePlanEditorState(initial);
   const dailyKcalTarget = targets?.kcal;
   const [weekIndex, setWeekIndex] = useState(0);
   const [range, setRange] = useState<EditorRange>('week');
@@ -166,6 +168,35 @@ export default function PlanEditor({
     window.addEventListener('beforeunload', warn);
     return () => window.removeEventListener('beforeunload', warn);
   }, [dirty]);
+
+  // Cmd/Ctrl+Z undoes, Cmd/Ctrl+Shift+Z and Ctrl+Y redo; inside a text field the field's own undo wins.
+  useEffect(() => {
+    if (readOnly) {
+      return;
+    }
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!(event.metaKey || event.ctrlKey) || event.altKey) {
+        return;
+      }
+      const target = event.target;
+      if (
+        target instanceof HTMLElement &&
+        (target.isContentEditable || target.closest('input, textarea, select, [contenteditable], [role="dialog"]') !== null)
+      ) {
+        return;
+      }
+      const key = event.key.toLowerCase();
+      if (key === 'z' && !event.shiftKey) {
+        event.preventDefault();
+        undo();
+      } else if ((key === 'z' && event.shiftKey) || (key === 'y' && event.ctrlKey && !event.shiftKey)) {
+        event.preventDefault();
+        redo();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [readOnly, undo, redo]);
 
   // Keep keyboard focus on the visible toggle: the collapse button goes inert, the expand button unmounts.
   useEffect(() => {
@@ -366,10 +397,9 @@ export default function PlanEditor({
           </div>
         )}
 
-        <div className="flex min-w-0 flex-1 flex-col gap-4 overflow-y-auto p-6">
-          <div className="flex items-start gap-3">
-            <div className="min-w-0 flex-1">
-              <PlanEditorHeader
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+          <div data-testid="editor-fixed-header" className="flex shrink-0 flex-col gap-2.5 px-6 pt-3 pb-3">
+            <PlanEditorHeader
                 name={doc.name}
                 onNameChange={(name) => edit((current) => ({ ...current, name }), 'name')}
                 breadcrumbLabel={breadcrumb.label}
@@ -378,16 +408,52 @@ export default function PlanEditor({
                 dirty={dirty}
                 saveStatus={saveState.status}
                 canUndo={canUndo}
+                canRedo={canRedo}
                 onUndo={undo}
+                onRedo={redo}
                 onSave={() => void save()}
                 range={range}
                 view={view}
                 onRangeChange={changeRange}
                 onViewChange={changeView}
               />
-            </div>
+
+            {(range === 'week' || rows.length === 0) && (
+              <WeekTabs
+                weekCount={doc.weeks.length}
+                current={currentIndex}
+                readOnly={readOnly}
+                onSelect={selectWeek}
+                onAddWeek={() => {
+                  edit(addWeek);
+                  selectWeek(doc.weeks.length);
+                }}
+              />
+            )}
+
+            {rows.length > 0 && range === 'day' && (
+              <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
+                <DayNavigator
+                  weekIndex={currentIndex}
+                  weekCount={doc.weeks.length}
+                  onWeekChange={(delta) =>
+                    selectWeek(Math.min(Math.max(currentIndex + delta, 0), doc.weeks.length - 1))
+                  }
+                />
+                <WeekdayPills
+                  week={week}
+                  current={dayOfWeek}
+                  dailyKcalTarget={dailyKcalTarget}
+                  onSelect={setDayOfWeek}
+                />
+              </div>
+            )}
           </div>
 
+          <div
+            data-testid="editor-scroll"
+            className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-6 pt-1 pb-6"
+          >
           {readOnly && readOnlyNotice && (
             <p role="note" className="rounded-xl border border-line bg-muted px-4 py-3 text-body text-ink">
               {readOnlyNotice}
@@ -410,19 +476,6 @@ export default function PlanEditor({
           )}
 
           {(range === 'week' || rows.length === 0) && (
-            <WeekTabs
-              weekCount={doc.weeks.length}
-              current={currentIndex}
-              readOnly={readOnly}
-              onSelect={selectWeek}
-              onAddWeek={() => {
-                edit(addWeek);
-                selectWeek(doc.weeks.length);
-              }}
-            />
-          )}
-
-          {(range === 'week' || rows.length === 0) && (
             <AveragesBar summary={weekSummary(week)} dailyKcalTarget={dailyKcalTarget} />
           )}
 
@@ -430,14 +483,11 @@ export default function PlanEditor({
             <DayView
               week={week}
               weekIndex={currentIndex}
-              weekCount={doc.weeks.length}
               dayOfWeek={dayOfWeek}
               targets={targets}
               readOnly={readOnly}
               selected={selected}
               onSelect={setSelected}
-              onDayChange={setDayOfWeek}
-              onWeekChange={(delta) => selectWeek(Math.min(Math.max(currentIndex + delta, 0), doc.weeks.length - 1))}
               onEdit={edit}
             />
           )}
@@ -469,6 +519,7 @@ export default function PlanEditor({
               onCopyMeals={renderCopyMeals ? () => setCopyOpen(true) : undefined}
             />
           )}
+          </div>
         </div>
       </div>
 

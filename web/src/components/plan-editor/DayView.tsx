@@ -5,9 +5,7 @@ import { MealKind } from '@/api/generated';
 import { Button } from '@/components/ui/button';
 import AddMealSheet from '@/components/plan-editor/AddMealSheet';
 import DayMacroBar from '@/components/plan-editor/DayMacroBar';
-import DayNavigator from '@/components/plan-editor/DayNavigator';
 import MealBlock from '@/components/plan-editor/MealBlock';
-import WeekdayPills from '@/components/plan-editor/WeekdayPills';
 import { dayTotals } from '@/components/plan-editor/plan-editor-nutrition';
 import { addMealToDay, nextSnackKindForDay, setDayNote } from '@/components/plan-editor/plan-editor-ops';
 import {
@@ -21,29 +19,23 @@ import type { PlanEditorState } from '@/components/plan-editor/usePlanEditorStat
 interface Props {
   week: EditorWeek;
   weekIndex: number;
-  weekCount: number;
   dayOfWeek: number;
   targets: PlanTargets | undefined;
   readOnly: boolean;
   selected: SelectedCell | null;
   onSelect: (cell: SelectedCell) => void;
-  onDayChange: (dayOfWeek: number) => void;
-  onWeekChange: (delta: -1 | 1) => void;
   onEdit: PlanEditorState['edit'];
 }
 
-/** One weekday of a week: its meals as sortable cards, with the day's kcal and macros on top. */
+/** One weekday of a week: its meals as sortable cards, with the day's kcal and macros on top. The week/day pickers live in the editor's fixed header. */
 export default function DayView({
   week,
   weekIndex,
-  weekCount,
   dayOfWeek,
   targets,
   readOnly,
   selected,
   onSelect,
-  onDayChange,
-  onWeekChange,
   onEdit,
 }: Props) {
   const { t, i18n } = useTranslation();
@@ -63,11 +55,6 @@ export default function DayView({
 
   return (
     <div className="flex flex-col gap-4" data-testid="day-view">
-      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
-        <DayNavigator weekIndex={weekIndex} weekCount={weekCount} onWeekChange={onWeekChange} />
-        <WeekdayPills week={week} current={dayOfWeek} dailyKcalTarget={targets?.kcal} onSelect={onDayChange} />
-      </div>
-
       <DayMacroBar
         totals={totals}
         targets={targets}

@@ -14,34 +14,34 @@ export default function DayNavigator({ weekIndex, weekCount, onWeekChange }: Pro
   const { t } = useTranslation();
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-2.5">
       <Button
         type="button"
         variant="outline"
-        size="icon-lg"
+        size="icon-sm"
         className="shrink-0 rounded-full"
         aria-label={t('planEditor.day.previousWeek')}
         disabled={weekIndex <= 0}
         onClick={() => onWeekChange(-1)}
       >
-        <ChevronLeft aria-hidden="true" />
+        <ChevronLeft className="size-4" aria-hidden="true" />
       </Button>
-      <div className="flex min-w-24 flex-col">
+      <div className="flex min-w-24 flex-col gap-0.5">
         <span className="font-display text-panel-title font-semibold text-ink" data-testid="day-week-title">
           {t('planEditor.weeks.week', { number: weekIndex + 1 })}
         </span>
-        <span className="text-body text-muted-foreground">{t('planEditor.day.ofWeeks', { total: weekCount })}</span>
+        <span className="text-label text-muted-foreground">{t('planEditor.day.ofWeeks', { total: weekCount })}</span>
       </div>
       <Button
         type="button"
         variant="outline"
-        size="icon-lg"
+        size="icon-sm"
         className="shrink-0 rounded-full"
         aria-label={t('planEditor.day.nextWeek')}
         disabled={weekIndex >= weekCount - 1}
         onClick={() => onWeekChange(1)}
       >
-        <ChevronRight aria-hidden="true" />
+        <ChevronRight className="size-4" aria-hidden="true" />
       </Button>
       <div className="hidden items-center gap-1 lg:flex" aria-hidden="true">
         {Array.from({ length: weekCount }, (_, index) => (
