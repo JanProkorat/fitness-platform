@@ -1605,7 +1605,33 @@
       "per100": "pro 100 g",
       "empty": "Nichts gefunden.",
       "loadError": "Die Bibliothek konnte nicht geladen werden.",
-      "retry": "Erneut versuchen"
+      "retry": "Erneut versuchen",
+      "info": {
+        "open": "Details anzeigen: {{name}}",
+        "recipeMeta_one": "Rezept · pro Portion · {{count}} Portion",
+        "recipeMeta_other": "Rezept · pro Portion · {{count}} Portionen",
+        "foodMeta": "Zutat · pro 100 g",
+        "kcalPerPortion": "kcal pro Portion",
+        "kcalPer100": "kcal pro 100 g",
+        "ingredientsHeading": "Zutaten · pro Portion",
+        "ingredientsUnavailable": "Die Zutaten sind nicht verfügbar. Das Rezept wurde möglicherweise gelöscht oder privat gestellt.",
+        "ingredientsError": "Die Zutaten konnten nicht geladen werden."
+      }
+    },
+    "macroShort": {
+      "protein": "E",
+      "carbs": "K",
+      "fat": "F",
+      "fiber": "Bal"
+    },
+    "cardDrop": {
+      "title": "{{target}} enthält bereits Speisen",
+      "body": "Sie kopieren <b>{{source}}</b> ({{name}}, {{kcal}} kcal) nach <b>{{target}}</b>. Was soll mit dem Bestehenden geschehen?",
+      "now": "{{target}} aktuell",
+      "replaceLabel": "Ersetzen",
+      "replaceBody": "{{target}} enthält danach nur noch {{names}} ({{kcal}} kcal).",
+      "addLabel": "Zu Bestehendem hinzufügen",
+      "addBody": "{{names}} wird zu {{existing}} hinzugefügt ({{kcal}} kcal)."
     },
     "noteForClient": "Notiz für den Klienten",
     "units": {

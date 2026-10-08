@@ -1606,7 +1606,33 @@
       "per100": "per 100 g",
       "empty": "Nothing found.",
       "loadError": "Couldn't load the library.",
-      "retry": "Retry"
+      "retry": "Retry",
+      "info": {
+        "open": "Show details of {{name}}",
+        "recipeMeta_one": "Recipe · per portion · {{count}} portion",
+        "recipeMeta_other": "Recipe · per portion · {{count}} portions",
+        "foodMeta": "Ingredient · per 100 g",
+        "kcalPerPortion": "kcal per portion",
+        "kcalPer100": "kcal per 100 g",
+        "ingredientsHeading": "Ingredients · per portion",
+        "ingredientsUnavailable": "The ingredients are unavailable. The recipe may have been removed or made private.",
+        "ingredientsError": "Couldn't load the ingredients."
+      }
+    },
+    "macroShort": {
+      "protein": "P",
+      "carbs": "C",
+      "fat": "F",
+      "fiber": "Fib"
+    },
+    "cardDrop": {
+      "title": "{{target}} already has food",
+      "body": "You are copying <b>{{source}}</b> ({{name}}, {{kcal}} kcal) onto <b>{{target}}</b>. What should happen with what is there now?",
+      "now": "{{target}} now",
+      "replaceLabel": "Replace",
+      "replaceBody": "{{target}} becomes {{names}} only ({{kcal}} kcal).",
+      "addLabel": "Add to existing",
+      "addBody": "{{names}} is added next to {{existing}} ({{kcal}} kcal)."
     },
     "noteForClient": "Note for the client",
     "units": {

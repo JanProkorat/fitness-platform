@@ -4,6 +4,7 @@ import { Copy, Plus, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import MacroDots from '@/components/plan-editor/MacroDots';
 import MealItemRow from '@/components/plan-editor/MealItemRow';
 import { MacroBar } from '@/components/plan-editor/WeekGrid';
 import { DAY_ORDER, mealKindLabelKey } from '@/components/plan-editor/plan-editor-format';
@@ -110,15 +111,15 @@ export default function MealDetail({ meal, weekIndex, weekNumber, dayOfWeek, rea
 
       <div className="flex items-center gap-4 text-body text-ink">
         <span className="font-semibold">{t('planEditor.cell.kcal', { kcal: Math.round(totals.kcal) })}</span>
-        <span className="text-muted-foreground">
-          {t('planEditor.detail.macros', {
-            protein: Math.round(totals.protein),
-            carbs: Math.round(totals.carbs),
-            fat: Math.round(totals.fat),
-            fiber: Math.round(totals.fiber),
-          })}
-        </span>
-        <span className="ml-auto w-40">
+        <MacroDots
+          protein={totals.protein}
+          carbs={totals.carbs}
+          fat={totals.fat}
+          fiber={totals.fiber}
+          fiberUnit
+          className="text-muted-foreground"
+        />
+        <span className="ml-auto w-30 shrink-0">
           <MacroBar totals={totals} />
         </span>
       </div>

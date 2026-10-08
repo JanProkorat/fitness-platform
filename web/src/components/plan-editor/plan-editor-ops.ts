@@ -353,6 +353,50 @@ export function copyMealToDays(
   }));
 }
 
+export type CellCopyMode = 'replace' | 'add';
+
+/**
+ * Copies one meal onto the cell at `target` in the same week. An empty or missing target meal takes
+ * the source's items and note; a filled one is either replaced (items and note) or extended with the
+ * source's items (its own note stays, the source's note fills in when it has none). Dropping a meal
+ * on its own cell changes nothing.
+ */
+export function copyMealToCell(
+  doc: EditorDocument,
+  weekIndex: number,
+  source: { dayOfWeek: number; mealId: string },
+  target: { dayOfWeek: number; rowIndex: number },
+  mode: CellCopyMode,
+): EditorDocument {
+  const week = doc.weeks[weekIndex];
+  const sourceMeal = week?.days.find((day) => day.dayOfWeek === source.dayOfWeek)?.meals.find((meal) => meal.mealId === source.mealId);
+  const targetDay = week?.days.find((day) => day.dayOfWeek === target.dayOfWeek);
+  if (!week || !sourceMeal || !targetDay || targetDay.meals[target.rowIndex]?.mealId === source.mealId) {
+    return doc;
+  }
+  const rows = weekRows(week);
+  return updateDay(doc, weekIndex, target.dayOfWeek, (day) => {
+    const meals = [...day.meals];
+    for (let index = meals.length; index <= target.rowIndex; index += 1) {
+      meals.push(newMeal(rows[index]?.kind ?? sourceMeal.kind, index + 1));
+    }
+    const existing = meals[target.rowIndex];
+    const filled = existing.foods.length + existing.recipes.length > 0;
+    if (mode === 'replace' || !filled) {
+      meals[target.rowIndex] = copyContents(sourceMeal, existing);
+    } else {
+      const copy = copyContents(sourceMeal, existing);
+      meals[target.rowIndex] = {
+        ...existing,
+        note: existing.note ?? sourceMeal.note,
+        foods: [...existing.foods, ...copy.foods],
+        recipes: [...existing.recipes, ...copy.recipes],
+      };
+    }
+    return { ...day, meals: renumber(meals) };
+  });
+}
+
 /**
  * Replaces an empty week's meals with a copy of another plan's week (items and notes, new ids); every
  * other week without meals gets the same rows, empty. Weeks that already have meals are left alone.

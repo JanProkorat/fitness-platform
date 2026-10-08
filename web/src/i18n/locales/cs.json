@@ -1631,7 +1631,35 @@
       "per100": "na 100 g",
       "empty": "Nic nenalezeno.",
       "loadError": "Knihovnu se nepodařilo načíst.",
-      "retry": "Zkusit znovu"
+      "retry": "Zkusit znovu",
+      "info": {
+        "open": "Zobrazit detail: {{name}}",
+        "recipeMeta_one": "Recept · na porci · {{count}} porce",
+        "recipeMeta_few": "Recept · na porci · {{count}} porce",
+        "recipeMeta_many": "Recept · na porci · {{count}} porce",
+        "recipeMeta_other": "Recept · na porci · {{count}} porcí",
+        "foodMeta": "Surovina · na 100 g",
+        "kcalPerPortion": "kcal na porci",
+        "kcalPer100": "kcal na 100 g",
+        "ingredientsHeading": "Suroviny · na porci",
+        "ingredientsUnavailable": "Suroviny nejsou dostupné. Recept mohl být smazán nebo nastaven jako soukromý.",
+        "ingredientsError": "Suroviny se nepodařilo načíst."
+      }
+    },
+    "macroShort": {
+      "protein": "B",
+      "carbs": "S",
+      "fat": "T",
+      "fiber": "Vl"
+    },
+    "cardDrop": {
+      "title": "{{target}} už obsahuje jídlo",
+      "body": "Kopírujete <b>{{source}}</b> ({{name}}, {{kcal}} kcal) do <b>{{target}}</b>. Co se má stát s tím, co tam je teď?",
+      "now": "{{target}} nyní",
+      "replaceLabel": "Nahradit",
+      "replaceBody": "{{target}} bude obsahovat jen {{names}} ({{kcal}} kcal).",
+      "addLabel": "Přidat k existujícímu",
+      "addBody": "{{names}} se přidá k položkám {{existing}} ({{kcal}} kcal)."
     },
     "noteForClient": "Poznámka pro klienta",
     "units": {

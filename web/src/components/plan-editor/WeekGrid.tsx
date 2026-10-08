@@ -1,11 +1,11 @@
-import type { ReactNode } from 'react';
+import { useCallback, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useDroppable } from '@dnd-kit/react';
+import { useDraggable, useDroppable } from '@dnd-kit/react';
 import { StickyNote } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover';
 import { DAY_ORDER, formatKcal, GRID_CLASS, mealKindLabelKey } from '@/components/plan-editor/plan-editor-format';
-import { mealItemNames } from '@/components/plan-editor/plan-editor-library';
+import { CELL_MEAL_DRAG, GRID_CELL_SENSORS, mealItemNames } from '@/components/plan-editor/plan-editor-library';
 import {
   dayTotals,
   mealItemCount,
@@ -80,12 +80,25 @@ function MealCell({
   onDetailClose,
 }: CellProps) {
   const { t, i18n } = useTranslation();
-  const { ref, isDropTarget } = useDroppable({
+  const { ref: dropRef, isDropTarget } = useDroppable({
     id: `cell:${weekIndex}:${dayOfWeek}:${rowIndex}`,
     data: { weekIndex, dayOfWeek, rowIndex },
     disabled: readOnly,
   });
   const itemCount = meal ? mealItemCount(meal) : 0;
+  const { ref: dragRef, isDragging } = useDraggable({
+    id: `cell-meal:${weekIndex}:${dayOfWeek}:${rowIndex}`,
+    data: { type: CELL_MEAL_DRAG, weekIndex, dayOfWeek, rowIndex, mealId: meal?.mealId },
+    disabled: readOnly || itemCount === 0,
+    sensors: GRID_CELL_SENSORS,
+  });
+  const ref = useCallback(
+    (element: Element | null) => {
+      dropRef(element);
+      dragRef(element);
+    },
+    [dropRef, dragRef],
+  );
   const names = meal ? mealItemNames(meal, i18n.language) : [];
   const totals = meal ? mealTotals(meal) : null;
   const ownKeyDiffers = meal !== undefined && mealKindLabelKey(meal.kind) !== rowLabelKey;
@@ -116,8 +129,10 @@ function MealCell({
             'flex min-h-0 min-w-0 flex-col items-stretch justify-between gap-1 rounded-xl border p-3 text-left outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50',
             itemCount === 0 && 'border-dashed border-line bg-transparent',
             itemCount > 0 && 'border-line bg-card',
+            itemCount > 0 && !readOnly && 'cursor-grab active:cursor-grabbing',
             selected && 'border-solid border-ink ring-2 ring-ink',
-            isDropTarget && 'border-dashed border-nutrition bg-nutrition-soft ring-0',
+            isDragging && 'opacity-50',
+            isDropTarget && !isDragging && 'border-dashed border-nutrition bg-nutrition-soft ring-0',
           )}
         >
           {itemCount === 0 ? (
@@ -160,7 +175,7 @@ function MealCell({
           collisionPadding={16}
           sideOffset={8}
           data-testid="meal-detail"
-          className="max-h-(--radix-popover-content-available-height) w-lg overflow-y-auto rounded-2xl border-line bg-card p-5"
+          className="max-h-(--radix-popover-content-available-height) w-140 max-w-[calc(100vw-2rem)] overflow-y-auto rounded-2xl border-line bg-card p-5"
           onOpenAutoFocus={(event) => event.preventDefault()}
           onInteractOutside={(event) => {
             const target = event.target;

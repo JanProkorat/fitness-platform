@@ -1,9 +1,10 @@
-import { useState, type Ref } from 'react';
+import { useRef, useState, type Ref } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDraggable } from '@dnd-kit/react';
 import { BookOpen, GripVertical, PanelLeftClose, Plus, Search, SlidersHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Popover, PopoverAnchor } from '@/components/ui/popover';
 import { Skeleton } from '@/components/ui/skeleton';
 import { FoodSortDirection } from '@/api/food-types';
 import type { FoodSummary, RecipeSummaryDto } from '@/api/generated';
@@ -12,7 +13,9 @@ import { useRecipes } from '@/hooks/useRecipesQueries';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { perServing } from '@/lib/recipe-nutrition';
 import { cn } from '@/lib/utils';
-import { foodToItem, recipeToItem } from '@/components/plan-editor/plan-editor-library';
+import LibraryInfoPopover, { ItemTile, type LibraryInfoSubject } from '@/components/plan-editor/LibraryInfoPopover';
+import MacroDots from '@/components/plan-editor/MacroDots';
+import { foodToItem, LIBRARY_CARD_SENSORS, recipeToItem } from '@/components/plan-editor/plan-editor-library';
 import type { LibraryItem } from '@/components/plan-editor/plan-editor-types';
 
 const PAGE_SIZE = 25;
@@ -24,65 +27,104 @@ type LibraryTab = 'recipes' | 'ingredients';
 interface CardProps {
   dragId: string;
   item: LibraryItem;
+  info: LibraryInfoSubject;
   name: string;
-  subtitle: string;
   imageUrl?: string;
+  macros: Macros;
+  /** Shown after the macros, e.g. "per 100 g". */
+  macrosSuffix?: string;
   canAdd: boolean;
   disabled: boolean;
+  language: string;
   onAdd: (item: LibraryItem) => void;
 }
 
-function LibraryCard({ dragId, item, name, subtitle, imageUrl, canAdd, disabled, onAdd }: CardProps) {
+/** The card drags as a whole; its main button opens the info popover and "+" stays out of the drag. */
+function LibraryCard({
+  dragId,
+  item,
+  info,
+  name,
+  imageUrl,
+  macros,
+  macrosSuffix,
+  canAdd,
+  disabled,
+  language,
+  onAdd,
+}: CardProps) {
   const { t } = useTranslation();
-  const [imageFailed, setImageFailed] = useState(false);
-  const { ref, isDragging } = useDraggable({ id: dragId, data: { item }, disabled });
+  const [infoOpen, setInfoOpen] = useState(false);
+  const infoButtonRef = useRef<HTMLButtonElement>(null);
+  const { ref, isDragging } = useDraggable({ id: dragId, data: { item }, disabled, sensors: LIBRARY_CARD_SENSORS });
 
   return (
-    <li
-      ref={ref}
-      data-testid="library-card"
-      aria-label={disabled ? undefined : t('planEditor.library.drag', { name })}
-      className={cn(
-        'flex items-center gap-3 rounded-xl border border-line bg-card p-2.5 shadow-panel',
-        !disabled && 'cursor-grab active:cursor-grabbing',
-        isDragging && 'opacity-50',
-      )}
-    >
-      {!disabled && <GripVertical className="size-4 shrink-0 text-faint" aria-hidden="true" />}
-      <div className="size-10 shrink-0 overflow-hidden rounded-lg bg-nutrition-soft">
-        {imageUrl && !imageFailed && (
-          <img src={imageUrl} alt="" className="size-full object-cover" onError={() => setImageFailed(true)} />
-        )}
-      </div>
-      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="truncate text-copy font-semibold text-ink">{name}</span>
-        <span className="truncate text-meta text-muted-foreground">{subtitle}</span>
-      </div>
-      {!disabled && (
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          className="shrink-0 rounded-full"
-          disabled={!canAdd}
-          title={canAdd ? undefined : t('planEditor.library.selectMealFirst')}
-          aria-label={t('planEditor.library.add', { name })}
-          onClick={() => onAdd(item)}
+    <Popover open={infoOpen} onOpenChange={setInfoOpen} modal={false}>
+      <PopoverAnchor asChild>
+        <li
+          ref={ref}
+          data-testid="library-card"
+          aria-label={disabled ? undefined : t('planEditor.library.drag', { name })}
+          className={cn(
+            'flex items-center gap-2 rounded-xl border border-line bg-card p-2 shadow-panel',
+            !disabled && 'cursor-grab active:cursor-grabbing',
+            isDragging && 'opacity-50',
+            infoOpen && 'border-ink',
+          )}
         >
-          <Plus aria-hidden="true" />
-        </Button>
+          {!disabled && <GripVertical className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />}
+          <button
+            ref={infoButtonRef}
+            type="button"
+            aria-label={t('planEditor.library.info.open', { name })}
+            aria-expanded={infoOpen}
+            onClick={() => setInfoOpen((open) => !open)}
+            className="flex min-w-0 flex-1 cursor-[inherit] items-center gap-2.5 rounded-lg text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+          >
+            <ItemTile imageUrl={imageUrl} type={item.type} className="size-8.5 rounded-lg" iconClassName="size-4" />
+            <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+              <span className="truncate text-copy font-semibold text-ink">{name}</span>
+              <span className="flex flex-wrap items-center gap-x-2 text-meta text-muted-foreground">
+                <span>{t('planEditor.cell.kcal', { kcal: Math.round(macros.kcal) })}</span>
+                <MacroDots protein={macros.protein} carbs={macros.carbs} fat={macros.fat} />
+                {macrosSuffix && <span>{macrosSuffix}</span>}
+              </span>
+            </span>
+          </button>
+          {!disabled && (
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              data-no-drag
+              className="shrink-0 rounded-full"
+              disabled={!canAdd}
+              title={canAdd ? undefined : t('planEditor.library.selectMealFirst')}
+              aria-label={t('planEditor.library.add', { name })}
+              onPointerDown={(event) => event.stopPropagation()}
+              onClick={(event) => {
+                event.stopPropagation();
+                onAdd(item);
+              }}
+            >
+              <Plus aria-hidden="true" />
+            </Button>
+          )}
+        </li>
+      </PopoverAnchor>
+      {infoOpen && (
+        <LibraryInfoPopover
+          subject={info}
+          language={language}
+          onClose={() => setInfoOpen(false)}
+          onCloseAutoFocus={(event) => {
+            event.preventDefault();
+            infoButtonRef.current?.focus({ preventScroll: true });
+          }}
+        />
       )}
-    </li>
+    </Popover>
   );
-}
-
-function macroLine(t: (key: string, options?: Record<string, unknown>) => string, macros: Macros): string {
-  return t('planEditor.library.macros', {
-    kcal: Math.round(macros.kcal),
-    protein: Math.round(macros.protein),
-    carbs: Math.round(macros.carbs),
-    fat: Math.round(macros.fat),
-  });
 }
 
 interface Macros {
@@ -244,11 +286,13 @@ export default function LibraryPanel({ canAdd, disabled, onAdd, onCollapse, open
                   key={recipe.recipeId}
                   dragId={`recipe:${recipe.recipeId}`}
                   item={recipeToItem(recipe)}
+                  info={{ kind: 'recipe', recipe }}
                   name={recipe.name ?? ''}
-                  subtitle={macroLine(t, perServing(recipe.totalNutrients, recipe.servings))}
+                  macros={perServing(recipe.totalNutrients, recipe.servings)}
                   imageUrl={recipe.imageUrl}
                   canAdd={canAdd}
                   disabled={disabled}
+                  language={i18n.language}
                   onAdd={onAdd}
                 />
               ))}
@@ -256,21 +300,25 @@ export default function LibraryPanel({ canAdd, disabled, onAdd, onCollapse, open
               foods.map((food) => {
                 const localized =
                   i18n.language.startsWith('cs') ? food.nameCs : i18n.language.startsWith('de') ? food.nameDe : food.nameEn;
+                const name = localized || food.name || food.rawName || '';
                 return (
                   <LibraryCard
                     key={food.foodId}
                     dragId={`food:${food.foodId}`}
                     item={foodToItem(food)}
-                    name={localized || food.name || food.rawName || ''}
-                    subtitle={`${macroLine(t, {
+                    info={{ kind: 'food', food, name }}
+                    name={name}
+                    macros={{
                       kcal: food.nutrientValue?.kcal ?? 0,
                       protein: food.nutrientValue?.protein ?? 0,
                       carbs: food.nutrientValue?.carbs ?? 0,
                       fat: food.nutrientValue?.fat ?? 0,
-                    })} ${t('planEditor.library.per100')}`}
+                    }}
+                    macrosSuffix={t('planEditor.library.per100')}
                     imageUrl={food.imageUrl}
                     canAdd={canAdd}
                     disabled={disabled}
+                    language={i18n.language}
                     onAdd={onAdd}
                   />
                 );

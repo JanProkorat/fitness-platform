@@ -1,8 +1,52 @@
+import { PointerActivationConstraints, PointerSensor } from '@dnd-kit/dom';
 import type { FoodSummary, RecipeSummaryDto } from '@/api/generated';
 import type { EditorFood, EditorMeal, LibraryItem } from '@/components/plan-editor/plan-editor-types';
 import { perServing } from '@/lib/recipe-nutrition';
 
 const DEFAULT_AMOUNT_GRAMS = 100;
+
+/** `data.type` of a week-grid cell's drag; the Day view's reorder drags use `'meal'` instead. */
+export const CELL_MEAL_DRAG = 'cell-meal';
+
+export interface CellMealDrag {
+  weekIndex: number;
+  dayOfWeek: number;
+  rowIndex: number;
+  mealId: string;
+}
+
+/** The source of a week-grid card drag, or null for any other drag. */
+export function readCellMealDrag(data: unknown): CellMealDrag | null {
+  if (typeof data !== 'object' || data === null) {
+    return null;
+  }
+  const { type, weekIndex, dayOfWeek, rowIndex, mealId } = data as Record<string, unknown>;
+  return type === CELL_MEAL_DRAG &&
+    typeof weekIndex === 'number' &&
+    typeof dayOfWeek === 'number' &&
+    typeof rowIndex === 'number' &&
+    typeof mealId === 'string'
+    ? { weekIndex, dayOfWeek, rowIndex, mealId }
+    : null;
+}
+
+/** Whole-card drags: a short mouse move starts one, touch needs a press so the list still scrolls. */
+export function dragActivationConstraints(event: PointerEvent) {
+  return event.pointerType === 'touch'
+    ? [new PointerActivationConstraints.Delay({ value: 250, tolerance: 5 })]
+    : [new PointerActivationConstraints.Distance({ value: 5 })];
+}
+
+/** Library cards: the whole card drags, except children marked `data-no-drag` (the add button). */
+export const LIBRARY_CARD_SENSORS = [
+  PointerSensor.configure({
+    activationConstraints: dragActivationConstraints,
+    preventActivation: (event) => event.target instanceof Element && event.target.closest('[data-no-drag]') !== null,
+  }),
+];
+
+/** Week-grid cells: pointer only, so Enter and Space on a focused cell keep opening the meal. */
+export const GRID_CELL_SENSORS = [PointerSensor.configure({ activationConstraints: dragActivationConstraints })];
 
 /** A library recipe as a one-serving plan item (values divided by the recipe's servings). */
 export function recipeToItem(recipe: RecipeSummaryDto): LibraryItem {
