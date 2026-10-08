@@ -300,6 +300,64 @@ test.describe('plan template editor interactions', () => {
     }
   });
 
+  test('items reorder by drag inside the meal popover, within their own list, and one Undo restores it', async ({
+    page,
+    baseURL,
+  }) => {
+    const origin = baseURL ?? 'http://localhost:5173';
+    const stamp = Date.now();
+    const firstName = `QA Order First ${stamp}`;
+    const secondName = `QA Order Second ${stamp}`;
+    const firstId = await createRecipe(origin, firstName);
+    const secondId = await createRecipe(origin, secondName);
+    const templateId = await createTemplate(origin, `QA Order ${stamp}`);
+    try {
+      await page.goto(`/plan-templates/${templateId}`);
+      await addRecipeToBreakfast(page, 1, firstName);
+      await page.getByLabel('Search recipes…').fill(secondName);
+      await page.getByRole('button', { name: new RegExp(`^Add ${secondName} to the selected meal$`) }).click();
+      await libraryPanel(page).getByRole('tab', { name: 'Ingredients' }).click();
+      await page.getByLabel('Search ingredients…').fill('Apple');
+      await page.getByRole('button', { name: /^Add .* to the selected meal$/ }).first().click();
+      await waitForSave(page);
+
+      const detail = page.getByTestId('meal-detail');
+      const itemNames = async () => (await detail.getByTestId('meal-item').allInnerTexts()).map((text) => text.split('\n')[0]);
+      await cell(page, 1, 0).click();
+      await expect(detail).toBeVisible();
+      await expect.poll(itemNames).toEqual([firstName, secondName, expect.stringContaining('Apple')]);
+
+      // An ingredient dropped on the recipe list stays where it is.
+      await dragTo(page, detail.getByTestId('meal-item').nth(2), detail.getByTestId('meal-item').nth(0));
+      await expect.poll(itemNames).toEqual([firstName, secondName, expect.stringContaining('Apple')]);
+      await expect(page.getByTestId('save-status')).toHaveText('Saved');
+
+      // The second recipe moves above the first; recipes stay above ingredients.
+      await dragTo(page, detail.getByTestId('meal-item').nth(1), detail.getByTestId('meal-item').nth(0));
+      await expect.poll(itemNames).toEqual([secondName, firstName, expect.stringContaining('Apple')]);
+      await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes');
+
+      await waitForSave(page);
+      await page.reload();
+      await cell(page, 1, 0).click();
+      await expect.poll(itemNames).toEqual([secondName, firstName, expect.stringContaining('Apple')]);
+
+      // Undo is one step: it restores the original order.
+      await dragTo(page, detail.getByTestId('meal-item').nth(1), detail.getByTestId('meal-item').nth(0));
+      await expect.poll(itemNames).toEqual([firstName, secondName, expect.stringContaining('Apple')]);
+      await page.keyboard.press('Escape');
+      await expect(detail).toHaveCount(0);
+      await page.getByRole('button', { name: 'Undo' }).click();
+      await cell(page, 1, 0).click();
+      await expect.poll(itemNames).toEqual([secondName, firstName, expect.stringContaining('Apple')]);
+      await expect(page.getByTestId('save-status')).toHaveText('Saved');
+    } finally {
+      await deleteTemplate(origin, templateId);
+      await deleteRecipe(origin, firstId);
+      await deleteRecipe(origin, secondId);
+    }
+  });
+
   test('a library card opens an info popover with the ingredients and no steps; + and drag still work', async ({
     page,
     baseURL,
@@ -396,6 +454,35 @@ test.describe('plan template editor interactions', () => {
     } finally {
       await deleteTemplate(origin, templateId);
       await deleteRecipe(origin, recipeId);
+    }
+  });
+
+  test('a day note typed in the Week view shows in the Day view, and Undo removes it', async ({ page, baseURL }) => {
+    const origin = baseURL ?? 'http://localhost:5173';
+    const templateId = await createTemplate(origin, `QA Day Note ${Date.now()}`);
+    const note = 'Cook the rice the night before';
+    try {
+      await page.goto(`/plan-templates/${templateId}`);
+      const noteButton = page.getByRole('button', { name: 'Edit note for Monday' });
+      await expect(noteButton).toHaveAttribute('data-has-note', 'false');
+
+      await noteButton.click();
+      const popover = page.getByTestId('day-note-popover');
+      await popover.getByLabel('Day note for Monday').fill(note);
+      await page.keyboard.press('Escape');
+      await expect(popover).toHaveCount(0);
+      await expect(noteButton).toHaveAttribute('data-has-note', 'true');
+      await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes');
+
+      await page.getByRole('button', { name: 'Day', exact: true }).click();
+      await expect(page.getByRole('button', { name: note })).toBeVisible();
+
+      await page.getByRole('button', { name: 'Undo' }).click();
+      await expect(page.getByRole('button', { name: note })).toHaveCount(0);
+      await page.getByRole('button', { name: 'Week', exact: true }).click();
+      await expect(page.getByRole('button', { name: 'Edit note for Monday' })).toHaveAttribute('data-has-note', 'false');
+    } finally {
+      await deleteTemplate(origin, templateId);
     }
   });
 

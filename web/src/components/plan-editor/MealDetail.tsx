@@ -82,6 +82,7 @@ export default function MealDetail({ meal, weekIndex, weekNumber, dayOfWeek, rea
             entry={entry}
             readOnly={readOnly}
             variant="popover"
+            position={{ weekIndex, dayOfWeek, mealId: meal.mealId }}
             onAmount={(value) =>
               onEdit(
                 (doc) =>

@@ -1516,7 +1516,10 @@
     "save": "Speichern",
     "comingSoon": "Demnächst",
     "dayTotal": "Tagessumme",
-    "dayNote": "Tagesnotiz: {{note}}",
+    "dayNoteEdit": "Notiz bearbeiten: {{day}}",
+    "dayNoteView": "Notiz: {{day}}",
+    "dayNoteField": "Tagesnotiz: {{day}}",
+    "dayNoteNone": "Keine Notiz",
     "saveError": "Speichern fehlgeschlagen. Ihre Änderungen sind noch da — versuchen Sie es erneut.",
     "status": {
       "saving": "Speichern…",
@@ -1575,8 +1578,7 @@
       "protein": "E {{value}}",
       "carbs": "K {{value}}",
       "fat": "F {{value}}",
-      "weekTotal": "· Woche gesamt {{kcal}} kcal",
-      "details": "Details"
+      "weekTotal": "· Woche gesamt {{kcal}} kcal"
     },
     "picker": {
       "title": "Welche Mahlzeiten hat ein Tag?",

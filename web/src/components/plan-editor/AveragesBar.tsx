@@ -1,5 +1,4 @@
 import { useTranslation } from 'react-i18next';
-import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import MacroDots from '@/components/plan-editor/MacroDots';
 import { formatKcal } from '@/components/plan-editor/plan-editor-format';
@@ -55,16 +54,6 @@ export default function AveragesBar({ summary, dailyKcalTarget }: Props) {
       <span className="text-muted-foreground">
         {t('planEditor.averages.weekTotal', { kcal: formatKcal(total.kcal, i18n.language) })}
       </span>
-      <button
-        type="button"
-        disabled
-        aria-disabled="true"
-        title={t('planEditor.comingSoon')}
-        className="ml-auto inline-flex items-center gap-1 text-body text-muted-foreground opacity-60"
-      >
-        {t('planEditor.averages.details')}
-        <ChevronDown className="size-4" aria-hidden="true" />
-      </button>
     </div>
   );
 }

@@ -32,8 +32,11 @@ import { mealKindLabelKey } from '@/components/plan-editor/plan-editor-format';
 import {
   dragActivationConstraints,
   mealItemNames,
+  foodDisplayName,
   readCellMealDrag,
+  readMealItemDrag,
   type CellMealDrag,
+  type MealItemDrag,
 } from '@/components/plan-editor/plan-editor-library';
 import { dayTotals, mealItemCount, mealTotals, weekSummary } from '@/components/plan-editor/plan-editor-nutrition';
 import {
@@ -46,6 +49,7 @@ import {
   copyMealToCell,
   copyWeekMeals,
   nextSnackKind,
+  reorderMealItems,
   reorderMeals,
   setDayNote,
   weekHasItems,
@@ -335,6 +339,23 @@ export default function PlanEditor({
     return mealKindLabelKey(row?.kind ?? MealKind.Breakfast);
   }
 
+  /** Reorders a recipe or ingredient inside its own list; a drop outside that list changes nothing. */
+  function onMealItemDragEnd(source: MealItemDrag, event: Parameters<typeof move>[1]) {
+    const meal = findMeal(source.dayOfWeek, source.mealId);
+    const sourceId = event.operation.source?.id;
+    if (!meal || readOnly || source.weekIndex !== currentIndex || typeof sourceId !== 'string') {
+      return;
+    }
+    const list = `${source.mealId}:${source.kind}`;
+    const count = source.kind === 'recipe' ? meal.recipes.length : meal.foods.length;
+    const ids = Array.from({ length: count }, (_, index) => `${list}:${index}`);
+    const to = move(ids, event).indexOf(sourceId);    if (to !== -1 && to !== source.index) {
+      edit((current) =>
+        reorderMealItems(current, source.weekIndex, source.dayOfWeek, source.mealId, source.kind, source.index, to),
+      );
+    }
+  }
+
   function addToCell(item: LibraryItem, cell: SelectedCell) {
     setPickerSession(false);
     edit((current) => addItemToCell(current, currentIndex, cell.dayOfWeek, cell.rowIndex, item));
@@ -430,6 +451,11 @@ export default function PlanEditor({
           if (dropCell) {
             onCellMealDrop(cellMeal, dropCell);
           }
+          return;
+        }
+        const mealItem = readMealItemDrag(event.operation.source?.data);
+        if (mealItem) {
+          onMealItemDragEnd(mealItem, event);
           return;
         }
         if (isMealDrag(event.operation.source?.data)) {
@@ -601,6 +627,7 @@ export default function PlanEditor({
               detailCell={detailCell}
               renderDetail={renderDetail}
               onDetailClose={() => setDetailCell(null)}
+              onEdit={edit}
             />
           )}
 
@@ -630,6 +657,19 @@ export default function PlanEditor({
                 {itemName(item)}
               </div>
             );
+          }
+          const mealItem = readMealItemDrag(source.data);
+          if (mealItem) {
+            const owner = findMeal(mealItem.dayOfWeek, mealItem.mealId);
+            const label =
+              mealItem.kind === 'recipe'
+                ? owner?.recipes[mealItem.index]?.recipeName
+                : owner?.foods[mealItem.index] && foodDisplayName(owner.foods[mealItem.index], i18n.language);
+            return label ? (
+              <div className="max-w-80 rounded-xl border border-line bg-card px-4 py-3 text-copy font-semibold text-ink shadow-popover [overflow-wrap:anywhere]">
+                {label}
+              </div>
+            ) : null;
           }
           const cellMeal = readCellMealDrag(source.data);
           const meal = cellMeal ? findMeal(cellMeal.dayOfWeek, cellMeal.mealId) : undefined;

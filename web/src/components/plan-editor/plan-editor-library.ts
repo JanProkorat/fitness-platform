@@ -30,6 +30,33 @@ export function readCellMealDrag(data: unknown): CellMealDrag | null {
     : null;
 }
 
+/** `data.type` of a recipe or ingredient row dragged within its own list of a meal. */
+export const MEAL_ITEM_DRAG = 'meal-item';
+
+export interface MealItemDrag {
+  weekIndex: number;
+  dayOfWeek: number;
+  mealId: string;
+  kind: 'recipe' | 'food';
+  index: number;
+}
+
+/** The source of a meal-item reorder drag, or null for any other drag. */
+export function readMealItemDrag(data: unknown): MealItemDrag | null {
+  if (typeof data !== 'object' || data === null) {
+    return null;
+  }
+  const { type, weekIndex, dayOfWeek, mealId, kind, index } = data as Record<string, unknown>;
+  return type === MEAL_ITEM_DRAG &&
+    typeof weekIndex === 'number' &&
+    typeof dayOfWeek === 'number' &&
+    typeof mealId === 'string' &&
+    (kind === 'recipe' || kind === 'food') &&
+    typeof index === 'number'
+    ? { weekIndex, dayOfWeek, mealId, kind, index }
+    : null;
+}
+
 /** Whole-card drags: a short mouse move starts one, touch needs a press so the list still scrolls. */
 export function dragActivationConstraints(event: PointerEvent) {
   return event.pointerType === 'touch'

@@ -125,8 +125,8 @@ export default function NutritionView({ week, dailyKcalTarget }: Props) {
             <DayHeader key={dayOfWeek} day={dayByNumber.get(dayOfWeek) ?? { dayOfWeek, meals: [] }} />
           ))}
         </div>
-        <div className={GRID_CLASS}>
-          <span className="text-body font-semibold text-muted-foreground">{t('planEditor.dayTotal')}</span>
+        <div className={cn(GRID_CLASS, 'items-stretch')}>
+          <span className="self-center text-body font-semibold text-muted-foreground">{t('planEditor.dayTotal')}</span>
           {DAY_ORDER.map((dayOfWeek) => (
             <DayTotalCell key={dayOfWeek} day={dayByNumber.get(dayOfWeek)} target={dailyKcalTarget} />
           ))}

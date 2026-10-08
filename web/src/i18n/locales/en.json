@@ -1517,7 +1517,10 @@
     "save": "Save",
     "comingSoon": "Coming soon",
     "dayTotal": "Day total",
-    "dayNote": "Day note: {{note}}",
+    "dayNoteEdit": "Edit note for {{day}}",
+    "dayNoteView": "Note for {{day}}",
+    "dayNoteField": "Day note for {{day}}",
+    "dayNoteNone": "No note",
     "saveError": "Couldn't save. Your changes are still here — try again.",
     "status": {
       "saving": "Saving…",
@@ -1576,8 +1579,7 @@
       "protein": "P {{value}}",
       "carbs": "C {{value}}",
       "fat": "F {{value}}",
-      "weekTotal": "· week total {{kcal}} kcal",
-      "details": "Details"
+      "weekTotal": "· week total {{kcal}} kcal"
     },
     "picker": {
       "title": "Which meals does a day have?",

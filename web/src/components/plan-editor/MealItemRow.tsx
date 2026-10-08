@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useSortable } from '@dnd-kit/react/sortable';
 import { Apple, ChefHat, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import MacroDots from '@/components/plan-editor/MacroDots';
 import { MacroBar } from '@/components/plan-editor/WeekGrid';
+import { MEAL_ITEM_DRAG } from '@/components/plan-editor/plan-editor-library';
 import type { MealItemEntry } from '@/components/plan-editor/plan-editor-nutrition';
 import { MAX_GRAMS, MAX_SERVINGS } from '@/components/plan-editor/plan-editor-types';
 
@@ -81,13 +83,35 @@ interface Props {
   entry: MealItemEntry;
   readOnly: boolean;
   variant: 'day' | 'popover';
+  /** Where the row lives, so it can be dragged to another place in its own recipe or ingredient list. */
+  position: { weekIndex: number; dayOfWeek: number; mealId: string };
   onAmount: (value: number) => void;
   onRemove: () => void;
 }
 
-/** One recipe or ingredient of a meal: name, amount, kcal and a remove button. */
-export default function MealItemRow({ entry, readOnly, variant, onAmount, onRemove }: Props) {
+/** One recipe or ingredient of a meal: name, amount, kcal and a remove button. Draggable within its list. */
+export default function MealItemRow({ entry, readOnly, variant, position, onAmount, onRemove }: Props) {
   const { t } = useTranslation();
+  const list = `${position.mealId}:${entry.type}`;
+  // Only the meal popover reorders; the Day view's cards stay as they were (a row drag inside a sortable card misplaces the drag preview there).
+  const draggable = !readOnly && variant === 'popover';
+  // No optimistic sorting: rows are keyed by position, so moving DOM nodes ahead of the state change would swap them twice.
+  const { ref, isDragging, isDropTarget } = useSortable({
+    id: `${list}:${entry.index}`,
+    index: entry.index,
+    group: list,
+    type: `meal-item:${list}`,
+    plugins: [],
+    disabled: !draggable,
+    data: {
+      type: MEAL_ITEM_DRAG,
+      weekIndex: position.weekIndex,
+      dayOfWeek: position.dayOfWeek,
+      mealId: position.mealId,
+      kind: entry.type,
+      index: entry.index,
+    },
+  });
   const unit: AmountUnit = entry.type === 'recipe' ? 'portion' : 'g';
   const typeLabel = t(entry.type === 'recipe' ? 'planEditor.itemType.recipe' : 'planEditor.itemType.food');
   const { totals } = entry;
@@ -103,7 +127,17 @@ export default function MealItemRow({ entry, readOnly, variant, onAmount, onRemo
   const Icon = entry.type === 'recipe' ? ChefHat : Apple;
 
   return (
-    <li data-testid="meal-item" className="flex items-center gap-3">
+    <li
+      ref={draggable ? ref : undefined}
+      data-testid="meal-item"
+      data-kind={entry.type}
+      className={cn(
+        'flex items-center gap-3',
+        draggable && 'cursor-grab active:cursor-grabbing',
+        isDragging && 'opacity-50',
+        isDropTarget && !isDragging && 'rounded-lg bg-nutrition-soft',
+      )}
+    >
       <span
         className={cn(
           'flex shrink-0 items-center justify-center rounded-lg bg-nutrition-soft text-nutrition-ink',

@@ -1540,7 +1540,10 @@
     "save": "Uložit",
     "comingSoon": "Již brzy",
     "dayTotal": "Součet dne",
-    "dayNote": "Poznámka ke dni: {{note}}",
+    "dayNoteEdit": "Upravit poznámku: {{day}}",
+    "dayNoteView": "Poznámka: {{day}}",
+    "dayNoteField": "Poznámka ke dni: {{day}}",
+    "dayNoteNone": "Bez poznámky",
     "saveError": "Uložení se nepovedlo. Vaše změny tu zůstaly — zkuste to znovu.",
     "status": {
       "saving": "Ukládám…",
@@ -1601,8 +1604,7 @@
       "protein": "B {{value}}",
       "carbs": "S {{value}}",
       "fat": "T {{value}}",
-      "weekTotal": "· týden celkem {{kcal}} kcal",
-      "details": "Podrobnosti"
+      "weekTotal": "· týden celkem {{kcal}} kcal"
     },
     "picker": {
       "title": "Jaká jídla má jeden den?",

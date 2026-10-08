@@ -309,6 +309,34 @@ export function reorderMeals(
   });
 }
 
+/** Moves one recipe or ingredient to another position within its own list of a meal. */
+export function reorderMealItems(
+  doc: EditorDocument,
+  weekIndex: number,
+  dayOfWeek: number,
+  mealId: string,
+  kind: 'recipe' | 'food',
+  from: number,
+  to: number,
+): EditorDocument {
+  const moveWithin = <T>(items: readonly T[]): T[] => {
+    if (from === to || from < 0 || to < 0 || from >= items.length || to >= items.length) {
+      return [...items];
+    }
+    const next = [...items];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    return next;
+  };
+  return updateMeal(doc, weekIndex, dayOfWeek, mealId, (meal) =>
+    from === to
+      ? meal
+      : kind === 'recipe'
+        ? { ...meal, recipes: moveWithin(meal.recipes) }
+        : { ...meal, foods: moveWithin(meal.foods) },
+  );
+}
+
 function copyContents(source: EditorMeal, target: EditorMeal): EditorMeal {
   return {
     ...target,
