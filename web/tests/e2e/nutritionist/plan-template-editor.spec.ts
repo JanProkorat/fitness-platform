@@ -236,6 +236,11 @@ test.describe('plan template editor', () => {
       await expect(page.getByTestId('day-total').first()).not.toContainText(/^0 kcal/);
       await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes');
 
+      // Only kcal has a target, so Monday's macro bar shows energy shares for protein, carbs and fat.
+      await page.getByRole('button', { name: 'Day', exact: true }).click();
+      await expect(page.getByTestId('day-macros')).toContainText(/\d+ % kcal/);
+      await page.getByRole('button', { name: 'Week', exact: true }).click();
+
       // Select Tuesday's lunch and press + on an ingredient.
       await cell(page, 2, 1).click();
       await page.getByRole('tab', { name: 'Ingredients' }).click();

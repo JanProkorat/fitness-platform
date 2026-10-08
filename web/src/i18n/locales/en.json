@@ -1666,6 +1666,7 @@
       "notePlaceholder": "Note for the client — e.g. “Cook the rice the night before”",
       "mealNoteLabel": "Note for {{meal}}",
       "percentOfDay": "{{percent}} % of day",
+      "percentKcal": "{{percent}} % kcal",
       "addAfter": "Add a meal after {{meal}}",
       "removeMeal": "Remove {{meal}}",
       "emptyMeal": "Drag a recipe or ingredient here, or select the meal and press + in the library.",

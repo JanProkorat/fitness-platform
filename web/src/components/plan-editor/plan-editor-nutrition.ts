@@ -211,7 +211,20 @@ export function weekSummary(week: EditorWeek): WeekSummary {
   };
 }
 
-export type TargetStatus = 'none' | 'on' | 'near' | 'off';
+/** Atwater energy factors, kcal per gram. */
+export const KCAL_PER_GRAM_PROTEIN = 4;
+export const KCAL_PER_GRAM_CARBS = 4;
+export const KCAL_PER_GRAM_FAT = 9;
+
+/** Share of the day's energy a macro supplies, as 0-100; 0 when the day has no kcal. */
+export function energySharePercent(grams: number, kcalPerGram: number, dayKcal: number): number {
+  if (dayKcal <= 0) {
+    return 0;
+  }
+  return Math.min(100, Math.max(0, ((grams * kcalPerGram) / dayKcal) * 100));
+}
+
+export type TargetStatus ='none' | 'on' | 'near' | 'off';
 
 /** Day total against the daily target: within 10% on, 10-20% near, beyond that off. */
 export function targetStatus(kcal: number, target: number | undefined): TargetStatus {

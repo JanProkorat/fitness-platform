@@ -4,7 +4,14 @@ import { StickyNote } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { formatKcal } from '@/components/plan-editor/plan-editor-format';
-import { targetStatus, type Totals } from '@/components/plan-editor/plan-editor-nutrition';
+import {
+  energySharePercent,
+  KCAL_PER_GRAM_CARBS,
+  KCAL_PER_GRAM_FAT,
+  KCAL_PER_GRAM_PROTEIN,
+  targetStatus,
+  type Totals,
+} from '@/components/plan-editor/plan-editor-nutrition';
 import { MAX_NOTE_LENGTH, type PlanTargets } from '@/components/plan-editor/plan-editor-types';
 
 interface MacroProps {
@@ -15,26 +22,38 @@ interface MacroProps {
   language: string;
   dotClass: string;
   barClass: string;
+  /** Without a target: kcal per gram for an energy-share bar, or null for a number only. */
+  energyFactor: number | null;
+  dayKcal: number;
 }
 
-function MacroColumn({ label, value, target, unit, language, dotClass, barClass }: MacroProps) {
-  const fill = target ? Math.min(100, (value / target) * 100) : 0;
+function MacroColumn({ label, value, target, unit, language, dotClass, barClass, energyFactor, dayKcal }: MacroProps) {
+  const { t } = useTranslation();
+  const hasTarget = target !== undefined;
+  const share = !hasTarget && energyFactor !== null ? energySharePercent(value, energyFactor, dayKcal) : null;
+  const fill = hasTarget ? Math.min(100, target ? (value / target) * 100 : 0) : (share ?? 0);
+  const showTrack = hasTarget || share !== null;
   return (
     <div className="flex flex-auto flex-col gap-1.5">
       <div className="flex items-baseline gap-1.5 text-body whitespace-nowrap">
         <span className={cn('size-1.75 shrink-0 self-center rounded-full', dotClass)} aria-hidden="true" />
         <span className="text-muted-foreground">{label}</span>
         <span className="text-copy font-semibold text-ink">{formatKcal(value, language)}</span>
-        {target !== undefined && (
+        {hasTarget && (
           <span className="text-muted-foreground">
             / {formatKcal(target, language)}
             {unit}
           </span>
         )}
+        {share !== null && (
+          <span className="text-muted-foreground">{t('planEditor.day.percentKcal', { percent: Math.round(share) })}</span>
+        )}
       </div>
-      <div className="h-1 w-full overflow-hidden rounded-full bg-muted" aria-hidden="true">
-        <div className={cn('h-full rounded-full', barClass)} style={{ width: `${fill}%` }} />
-      </div>
+      {showTrack && (
+        <div className="h-1 w-full overflow-hidden rounded-full bg-muted" aria-hidden="true">
+          <div className={cn('h-full rounded-full', barClass)} style={{ width: `${fill}%` }} />
+        </div>
+      )}
     </div>
   );
 }
@@ -76,6 +95,8 @@ export default function DayMacroBar({ totals, targets, note, readOnly, onNoteCha
           language={language}
           dotClass={status.dot}
           barClass={status.bar}
+          energyFactor={null}
+          dayKcal={totals.kcal}
         />
         <MacroColumn
           label={t('planEditor.day.protein')}
@@ -85,6 +106,8 @@ export default function DayMacroBar({ totals, targets, note, readOnly, onNoteCha
           language={language}
           dotClass="bg-macro-protein"
           barClass="bg-macro-protein"
+          energyFactor={KCAL_PER_GRAM_PROTEIN}
+          dayKcal={totals.kcal}
         />
         <MacroColumn
           label={t('planEditor.day.carbs')}
@@ -94,6 +117,8 @@ export default function DayMacroBar({ totals, targets, note, readOnly, onNoteCha
           language={language}
           dotClass="bg-macro-carbs"
           barClass="bg-macro-carbs"
+          energyFactor={KCAL_PER_GRAM_CARBS}
+          dayKcal={totals.kcal}
         />
         <MacroColumn
           label={t('planEditor.day.fat')}
@@ -103,6 +128,8 @@ export default function DayMacroBar({ totals, targets, note, readOnly, onNoteCha
           language={language}
           dotClass="bg-macro-fat"
           barClass="bg-macro-fat"
+          energyFactor={KCAL_PER_GRAM_FAT}
+          dayKcal={totals.kcal}
         />
         <MacroColumn
           label={t('planEditor.day.fiber')}
@@ -112,6 +139,8 @@ export default function DayMacroBar({ totals, targets, note, readOnly, onNoteCha
           language={language}
           dotClass="bg-macro-fibre"
           barClass="bg-macro-fibre"
+          energyFactor={null}
+          dayKcal={totals.kcal}
         />
         </div>
         {(!readOnly || Boolean(note)) && (

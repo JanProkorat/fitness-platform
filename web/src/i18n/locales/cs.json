@@ -1691,6 +1691,7 @@
       "notePlaceholder": "Poznámka pro klienta — např. „Rýži uvařte den předem“",
       "mealNoteLabel": "Poznámka: {{meal}}",
       "percentOfDay": "{{percent}} % dne",
+      "percentKcal": "{{percent}} % kcal",
       "addAfter": "Přidat jídlo za: {{meal}}",
       "removeMeal": "Odebrat: {{meal}}",
       "emptyMeal": "Přetáhněte sem recept nebo surovinu, nebo jídlo vyberte a stiskněte + v knihovně.",
