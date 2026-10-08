@@ -16,6 +16,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import AveragesBar from '@/components/plan-editor/AveragesBar';
+import DayMacroBar from '@/components/plan-editor/DayMacroBar';
 import DayNavigator from '@/components/plan-editor/DayNavigator';
 import DayView from '@/components/plan-editor/DayView';
 import LibraryPanel from '@/components/plan-editor/LibraryPanel';
@@ -26,7 +27,7 @@ import PlanEditorHeader from '@/components/plan-editor/PlanEditorHeader';
 import WeekdayPills from '@/components/plan-editor/WeekdayPills';
 import WeekGrid, { type SelectedCell } from '@/components/plan-editor/WeekGrid';
 import WeekTabs from '@/components/plan-editor/WeekTabs';
-import { mealItemCount, weekSummary } from '@/components/plan-editor/plan-editor-nutrition';
+import { dayTotals, mealItemCount, weekSummary } from '@/components/plan-editor/plan-editor-nutrition';
 import {
   addItemToCell,
   addMealRow,
@@ -36,6 +37,7 @@ import {
   copyWeekMeals,
   nextSnackKind,
   reorderMeals,
+  setDayNote,
   weekHasItems,
   weekRows,
 } from '@/components/plan-editor/plan-editor-ops';
@@ -158,6 +160,7 @@ export default function PlanEditor({
   const currentIndex = Math.min(weekIndex, doc.weeks.length - 1);
   const week = doc.weeks[currentIndex];
   const rows = week ? weekRows(week) : [];
+  const activeDay = week?.days.find((candidate) => candidate.dayOfWeek === dayOfWeek);
   const showPicker = !readOnly && (rows.length === 0 || pickerSession);
 
   useEffect(() => {
@@ -434,19 +437,30 @@ export default function PlanEditor({
             )}
 
             {rows.length > 0 && range === 'day' && (
-              <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 px-6 py-3">
-                <DayNavigator
-                  weekIndex={currentIndex}
-                  weekCount={doc.weeks.length}
-                  onWeekChange={(delta) =>
-                    selectWeek(Math.min(Math.max(currentIndex + delta, 0), doc.weeks.length - 1))
+              <div className="flex flex-col gap-3 px-6 pt-3 pb-3">
+                <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
+                  <DayNavigator
+                    weekIndex={currentIndex}
+                    weekCount={doc.weeks.length}
+                    onWeekChange={(delta) =>
+                      selectWeek(Math.min(Math.max(currentIndex + delta, 0), doc.weeks.length - 1))
+                    }
+                  />
+                  <WeekdayPills
+                    week={week}
+                    current={dayOfWeek}
+                    dailyKcalTarget={dailyKcalTarget}
+                    onSelect={setDayOfWeek}
+                  />
+                </div>
+                <DayMacroBar
+                  totals={activeDay ? dayTotals(activeDay) : dayTotals({ dayOfWeek, meals: [] })}
+                  targets={targets}
+                  note={activeDay?.note}
+                  readOnly={readOnly}
+                  onNoteChange={(note) =>
+                    edit((current) => setDayNote(current, currentIndex, dayOfWeek, note), `daynote:${currentIndex}:${dayOfWeek}`)
                   }
-                />
-                <WeekdayPills
-                  week={week}
-                  current={dayOfWeek}
-                  dailyKcalTarget={dailyKcalTarget}
-                  onSelect={setDayOfWeek}
                 />
               </div>
             )}
@@ -486,7 +500,6 @@ export default function PlanEditor({
               week={week}
               weekIndex={currentIndex}
               dayOfWeek={dayOfWeek}
-              targets={targets}
               readOnly={readOnly}
               selected={selected}
               onSelect={setSelected}

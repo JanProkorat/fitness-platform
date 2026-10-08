@@ -4,14 +4,12 @@ import { Plus } from 'lucide-react';
 import { MealKind } from '@/api/generated';
 import { Button } from '@/components/ui/button';
 import AddMealSheet from '@/components/plan-editor/AddMealSheet';
-import DayMacroBar from '@/components/plan-editor/DayMacroBar';
 import MealBlock from '@/components/plan-editor/MealBlock';
 import { dayTotals } from '@/components/plan-editor/plan-editor-nutrition';
-import { addMealToDay, nextSnackKindForDay, setDayNote } from '@/components/plan-editor/plan-editor-ops';
+import { addMealToDay, nextSnackKindForDay } from '@/components/plan-editor/plan-editor-ops';
 import {
   MAX_MEALS_PER_DAY,
   type EditorWeek,
-  type PlanTargets,
 } from '@/components/plan-editor/plan-editor-types';
 import type { SelectedCell } from '@/components/plan-editor/WeekGrid';
 import type { PlanEditorState } from '@/components/plan-editor/usePlanEditorState';
@@ -20,7 +18,6 @@ interface Props {
   week: EditorWeek;
   weekIndex: number;
   dayOfWeek: number;
-  targets: PlanTargets | undefined;
   readOnly: boolean;
   selected: SelectedCell | null;
   onSelect: (cell: SelectedCell) => void;
@@ -32,7 +29,6 @@ export default function DayView({
   week,
   weekIndex,
   dayOfWeek,
-  targets,
   readOnly,
   selected,
   onSelect,
@@ -55,14 +51,6 @@ export default function DayView({
 
   return (
     <div className="flex flex-col gap-4" data-testid="day-view">
-      <DayMacroBar
-        totals={totals}
-        targets={targets}
-        note={day?.note}
-        readOnly={readOnly}
-        onNoteChange={(note) => onEdit((doc) => setDayNote(doc, weekIndex, dayOfWeek, note), `daynote:${weekIndex}:${dayOfWeek}`)}
-      />
-
       {meals.length > 0 ? (
         <ul className="flex flex-col rounded-xl border border-line bg-card" aria-label={t('planEditor.day.meals')}>
           {meals.map((meal, index) => (
