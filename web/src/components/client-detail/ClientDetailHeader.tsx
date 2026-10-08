@@ -12,8 +12,7 @@ interface Props {
 
 /**
  * Client-detail page header (#1094): back arrow, `ClientIdentityBlock`
- * (name, status pill, meta line, goal chip — extracted in #1095 so the
- * inbox's "Show client" panel can reuse it), and four action buttons.
+ * (name, status pill, meta line, goal chip), and four action buttons.
  * Chat is live (#1095) — it navigates to `/inbox?client=<publicId>`, which
  * opens the existing thread with this client or starts one. Tasks/Notes/Info
  * still render disabled with the shell's coming-soon treatment: Tasks has
