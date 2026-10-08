@@ -265,7 +265,14 @@ test.describe('inbox page', () => {
 
     await page.goto('/inbox');
     await page.waitForLoadState('networkidle');
+    const dashboardResponse = page.waitForResponse(
+      (r) => /\/trainer\/clients\/[^/]+\/dashboard/.test(r.url()) && r.status() === 200,
+    );
     await qaClientRow(page).click();
+    const dashboard = (await (await dashboardResponse).json()) as {
+      sessionsCompletedThisWeek?: number | null;
+      sessionsPlannedThisWeek?: number | null;
+    };
     await page.waitForLoadState('networkidle');
 
     // At the default 1280px viewport the panel is docked and open; "Hide client" closes it and
@@ -278,8 +285,16 @@ test.describe('inbox page', () => {
     const panelStatusBadge = panel.locator('[data-slot="badge"]').first();
     await expect(panelStatusBadge).toHaveText(listStatusText);
 
-    // The seeded plan has one session this week; how many are done depends on the weekday.
-    await expect(panel.getByText(/Done this week · \d+ of 1 session$/)).toBeVisible();
+    // The caption mirrors the dashboard numbers (the seeded week varies); hidden when nothing is planned.
+    const done = dashboard.sessionsCompletedThisWeek;
+    const planned = dashboard.sessionsPlannedThisWeek;
+    if (done != null && planned != null && planned > 0) {
+      const shown = Math.min(done, planned);
+      const caption = `Done this week · ${shown} of ${planned} ${planned === 1 ? 'session' : 'sessions'}`;
+      await expect(panel.getByText(caption, { exact: true })).toBeVisible();
+    } else {
+      await expect(panel.getByText(/Done this week/)).toHaveCount(0);
+    }
 
     await page.getByRole('link', { name: 'Open client profile' }).click();
     await page.waitForLoadState('networkidle');
