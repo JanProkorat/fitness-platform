@@ -139,7 +139,7 @@ export default function Sidebar({ onNavigate, collapsed = false, onToggleCollaps
       >
         <div
           className={cn(
-            'flex items-center justify-between gap-2 pb-3 transition-[padding]',
+            'flex items-center justify-between pb-3 transition-[padding]',
             MOTION,
             collapsed ? 'px-1' : 'px-2',
           )}
