@@ -75,4 +75,14 @@ public class GetProfileResponse
     /// Permanent blob URL of the user's avatar, or null if no avatar has been uploaded.
     /// </summary>
     public string? AvatarBlobUrl { get; set; }
+
+    /// <summary>
+    /// Whether the account has a password. False for social-only accounts.
+    /// </summary>
+    public bool HasPassword { get; set; }
+
+    /// <summary>
+    /// UTC time of the last password change or reset, or null if never changed.
+    /// </summary>
+    public DateTime? PasswordChangedAt { get; set; }
 }

@@ -1399,6 +1399,73 @@ export class ApiClient {
     }
 
     /**
+     * Change password
+     * @return Password changed; fresh tokens returned
+     */
+    changePasswordEndpoint(changePasswordRequest: ChangePasswordRequest, signal?: AbortSignal): Promise<ChangePasswordResponse> {
+        let url_ = this.baseUrl + "/users/me/password";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(changePasswordRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processChangePasswordEndpoint(_response);
+        });
+    }
+
+    protected processChangePasswordEndpoint(response: AxiosResponse): Promise<ChangePasswordResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<ChangePasswordResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid input, wrong current password (INVALID_CURRENT_PASSWORD), or account has no password (PASSWORD_NOT_SET)", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ChangePasswordResponse>(null as any);
+    }
+
+    /**
      * Confirm avatar upload
      * @return No Content
      */
@@ -17625,20 +17692,27 @@ export interface CreateWorkoutTemplateSetRequest {
     restSeconds?: number | undefined;
 }
 
+/** RFC7807 compatible problem details/ error response class. this can be used by configuring startup like so: app.UseFastEndpoints(c => c.Errors.UseProblemDetails()) */
 export interface ProblemDetails {
     type?: string;
     title?: string;
     status?: number;
     instance?: string;
     traceId?: string;
+    /** the details of the error */
     detail?: string | undefined;
     errors?: ProblemDetails_Error[];
 }
 
+/** the error details object */
 export interface ProblemDetails_Error {
+    /** the name of the error or property of the dto that caused the error */
     name?: string;
+    /** the reason for the error */
     reason?: string;
+    /** the code of the error */
     code?: string | undefined;
+    /** the severity of the error */
     severity?: string | undefined;
 }
 
@@ -18040,6 +18114,32 @@ Empty for non-client users. */
     timeZone?: string;
     /** Permanent blob URL of the user's avatar, or null if no avatar has been uploaded. */
     avatarBlobUrl?: string | undefined;
+    /** Whether the account has a password. False for social-only accounts. */
+    hasPassword?: boolean;
+    /** UTC time of the last password change or reset, or null if never changed. */
+    passwordChangedAt?: string | undefined;
+}
+
+/** Fresh token pair returned after a password change; all previous refresh tokens are revoked. */
+export interface ChangePasswordResponse {
+    /** New JWT access token. */
+    accessToken?: string;
+    /** New refresh token. */
+    refreshToken?: string;
+    /** UTC expiry of the access token. */
+    expiresAt?: string;
+    /** UTC time the password was changed. */
+    passwordChangedAt?: string;
+}
+
+/** Request for changing the authenticated user's password. */
+export interface ChangePasswordRequest {
+    /** The user's current password. */
+    currentPassword: string;
+    /** The new password. Must satisfy the Identity password policy. */
+    newPassword: string;
+    /** Repeat of the new password; must match NewPassword. */
+    confirmPassword: string;
 }
 
 /** Request model for confirming the uploaded avatar blob URL. */

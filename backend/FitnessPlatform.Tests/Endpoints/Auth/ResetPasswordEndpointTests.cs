@@ -40,6 +40,7 @@ public class ResetPasswordEndpointTests
         }, TestContext.Current.CancellationToken);
 
         ep.ValidationFailed.Should().BeFalse();
+        user.PasswordChangedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromMinutes(1));
         await db.Received(1).RevokeRefreshTokenFamilyAsync(
             user.Id, Arg.Any<DateTime>(), Arg.Any<CancellationToken>());
         await transaction.Received(1).CommitAsync(Arg.Any<CancellationToken>());

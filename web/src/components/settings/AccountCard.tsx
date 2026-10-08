@@ -1,15 +1,19 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import SettingsCard from '@/components/settings/SettingsCard';
+import ChangePasswordDialog from '@/components/settings/ChangePasswordDialog';
+import { formatClientDate } from '@/lib/date-format';
 
 interface Props {
   email: string;
   timeZone: string;
   saving: boolean;
+  hasPassword: boolean;
+  passwordChangedAt: string | undefined;
   onTimeZoneChange: (timeZone: string) => void;
 }
 
@@ -33,8 +37,16 @@ function buildZoneOptions(current: string): { id: string; label: string }[] {
   });
 }
 
-export default function AccountCard({ email, timeZone, saving, onTimeZoneChange }: Props) {
-  const { t } = useTranslation();
+export default function AccountCard({
+  email,
+  timeZone,
+  saving,
+  hasPassword,
+  passwordChangedAt,
+  onTimeZoneChange,
+}: Props) {
+  const { t, i18n } = useTranslation();
+  const [passwordOpen, setPasswordOpen] = useState(false);
   const zones = useMemo(() => buildZoneOptions(timeZone), [timeZone]);
 
   return (
@@ -90,17 +102,32 @@ export default function AccountCard({ email, timeZone, saving, onTimeZoneChange 
       <div className="flex items-center gap-4 border-t border-border pt-4.5">
         <div className="flex min-w-0 flex-col gap-0.75">
           <h3 className="text-copy font-semibold text-ink">{t('settings.account.password')}</h3>
+          {hasPassword ? (
+            passwordChangedAt && (
+              <p className="text-meta text-muted-foreground">
+                {t('settings.account.passwordChanged', {
+                  date: formatClientDate(passwordChangedAt, i18n.language, 'short'),
+                })}
+              </p>
+            )
+          ) : (
+            <p className="text-meta text-muted-foreground">{t('settings.account.passwordManaged')}</p>
+          )}
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          disabled
-          title={t('shell.comingSoon')}
-          className="ml-auto h-9 shrink-0 rounded-field px-3.5 font-semibold"
-        >
-          {t('settings.account.changePassword')}
-        </Button>
+        {hasPassword && (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setPasswordOpen(true)}
+            className="ml-auto h-9 shrink-0 rounded-field px-3.5 font-semibold"
+          >
+            {t('settings.account.changePassword')}
+          </Button>
+        )}
       </div>
+      {hasPassword && (
+        <ChangePasswordDialog open={passwordOpen} onOpenChange={setPasswordOpen} email={email} />
+      )}
     </SettingsCard>
   );
 }

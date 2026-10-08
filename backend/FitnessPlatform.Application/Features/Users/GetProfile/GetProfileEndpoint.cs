@@ -110,7 +110,9 @@ public class GetProfileEndpoint(UserManager<ApplicationUser> userManager, IAppli
             HasPendingQuestionnaire = hasPendingQuestionnaire,
             LinkedRoles = linkedRoles,
             TimeZone = user.TimeZone,
-            AvatarBlobUrl = user.AvatarBlobUrl
+            AvatarBlobUrl = user.AvatarBlobUrl,
+            HasPassword = user.PasswordHash is not null,
+            PasswordChangedAt = user.PasswordChangedAt
         }, ct);
     }
 }

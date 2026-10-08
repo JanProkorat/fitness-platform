@@ -42,6 +42,36 @@ public class GetProfileEndpointTests
         ep.Response.TimeZone.Should().Be("Europe/Prague");
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task HandleAsync_ReportsHasPasswordAndPasswordChangedAt(bool hasPassword)
+    {
+        var changedAt = new DateTime(2026, 10, 1, 8, 30, 0, DateTimeKind.Utc);
+        var user = new ApplicationUser
+        {
+            Id = _userId, Email = "test@test.com", UserName = "test@test.com",
+            FirstName = "John", LastName = "Doe",
+            PasswordHash = hasPassword ? "hash" : null,
+            PasswordChangedAt = hasPassword ? changedAt : null
+        };
+
+        var userManager = EndpointTestHelpers.CreateFakeUserManager();
+        userManager.FindByIdAsync(_userId.ToString()).Returns(user);
+        userManager.GetRolesAsync(user).Returns(["Trainer"]);
+
+        var ep = Factory.Create<GetProfileEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
+                new System.Security.Claims.ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_userId))),
+            userManager, new MockDbBuilder().Build());
+
+        await ep.HandleAsync(CancellationToken.None);
+
+        ep.Response.HasPassword.Should().Be(hasPassword);
+        ep.Response.PasswordChangedAt.Should().Be(hasPassword ? changedAt : null);
+    }
+
     [Fact]
     public async Task HandleAsync_NoClaims_Returns401()
     {

@@ -53,6 +53,12 @@ public static class ErrorCodes
     /// <summary>User already has the requested role.</summary>
     public const string RoleAlreadyAssigned = "ROLE_ALREADY_ASSIGNED";
 
+    /// <summary>The current password supplied for a password change is wrong.</summary>
+    public const string InvalidCurrentPassword = "INVALID_CURRENT_PASSWORD";
+
+    /// <summary>The account has no password (social-only sign-in), so it cannot be changed.</summary>
+    public const string PasswordNotSet = "PASSWORD_NOT_SET";
+
     /// <summary>Account deletion failed.</summary>
     public const string AccountDeletionFailed = "ACCOUNT_DELETION_FAILED";
 
