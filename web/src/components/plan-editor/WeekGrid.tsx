@@ -10,6 +10,7 @@ import {
   DAY_ORDER,
   formatKcal,
   GRID_CLASS,
+  GRID_LABEL_CLASS,
   mealKindLabelKey,
   WEEK_GRID_CLASS,
   weekGridRows,
@@ -210,6 +211,14 @@ function MealCell({
   );
 }
 
+/**
+ * The tinted surface behind the day columns, from the day-total row down. It is absolutely positioned in
+ * that grid area, so it takes no cell, and reaches 12px past the cards on every side.
+ */
+export function GridSurface() {
+  return <div aria-hidden="true" className="absolute -inset-3 -z-10 col-[2/-1] row-[2/-1] rounded-2xl bg-grid" />;
+}
+
 interface DayHeaderProps {
   day: EditorDay | undefined;
   /** Where the day's note can be edited; without it (or when `readOnly`) the note is shown as text. */
@@ -355,7 +364,8 @@ export default function WeekGrid({
       className={cn(WEEK_GRID_CLASS, 'flex-1')}
       style={weekGridRows(rows.length, 7.5)}
     >
-      <div className={GRID_CLASS}>
+      <GridSurface />
+      <div className={cn(GRID_CLASS, 'pb-3')}>
         <span />
         {DAY_ORDER.map((dayOfWeek) => (
           <DayHeader
@@ -367,7 +377,7 @@ export default function WeekGrid({
       </div>
 
       <div className={cn(GRID_CLASS, 'items-stretch')}>
-        <span className="self-center text-body font-semibold whitespace-nowrap text-muted-foreground">
+        <span className={GRID_LABEL_CLASS}>
           {t('planEditor.dayTotal')}
         </span>
         {DAY_ORDER.map((dayOfWeek) => (
@@ -377,7 +387,7 @@ export default function WeekGrid({
 
       {rows.map((row) => (
         <div key={row.index} className={cn(GRID_CLASS, 'items-stretch')}>
-          <span className="self-center text-body font-semibold whitespace-nowrap text-muted-foreground">
+          <span className={GRID_LABEL_CLASS}>
             {t(`planEditor.rows.${mealKindLabelKey(row.kind)}`)}
           </span>
           {DAY_ORDER.map((dayOfWeek) => {

@@ -1,10 +1,11 @@
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
-import { DayHeader, DayTotalCell, MacroBar } from '@/components/plan-editor/WeekGrid';
+import { DayHeader, DayTotalCell, GridSurface, MacroBar } from '@/components/plan-editor/WeekGrid';
 import {
   DAY_ORDER,
   formatKcal,
   GRID_CLASS,
+  GRID_LABEL_CLASS,
   mealKindLabelKey,
   WEEK_GRID_CLASS,
   weekGridRows,
@@ -131,14 +132,15 @@ export default function NutritionView({ week, dailyKcalTarget }: Props) {
         className={cn(WEEK_GRID_CLASS, 'flex-1')}
         style={weekGridRows(rows.length, 10)}
       >
-        <div className={GRID_CLASS}>
+        <GridSurface />
+        <div className={cn(GRID_CLASS, 'pb-3')}>
           <span />
           {DAY_ORDER.map((dayOfWeek) => (
             <DayHeader key={dayOfWeek} day={dayByNumber.get(dayOfWeek) ?? { dayOfWeek, meals: [] }} />
           ))}
         </div>
         <div className={cn(GRID_CLASS, 'items-stretch')}>
-          <span className="self-center text-body font-semibold whitespace-nowrap text-muted-foreground">
+          <span className={GRID_LABEL_CLASS}>
             {t('planEditor.dayTotal')}
           </span>
           {DAY_ORDER.map((dayOfWeek) => (
@@ -147,7 +149,7 @@ export default function NutritionView({ week, dailyKcalTarget }: Props) {
         </div>
         {rows.map((row) => (
           <div key={row.index} className={cn(GRID_CLASS, 'items-stretch')}>
-            <span className="self-center text-body font-semibold whitespace-nowrap text-muted-foreground">
+            <span className={GRID_LABEL_CLASS}>
               {t(`planEditor.rows.${mealKindLabelKey(row.kind)}`)}
             </span>
             {DAY_ORDER.map((dayOfWeek) => (

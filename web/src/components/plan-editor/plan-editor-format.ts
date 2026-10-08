@@ -2,8 +2,14 @@ import { MealKind } from '@/api/generated';
 
 export const DAY_ORDER = [1, 2, 3, 4, 5, 6, 7] as const;
 
-/** One grid for the whole week: the label column is as wide as the longest label, the days share the rest. */
-export const WEEK_GRID_CLASS = 'grid grid-cols-[max-content_repeat(7,minmax(0,1fr))] gap-3 rounded-2xl bg-grid p-3';
+/**
+ * One grid for the whole week: the label column is as wide as the longest label, the days share the rest.
+ * `isolate` keeps the tinted surface (a `-z-10` child) behind the cards but above the page.
+ */
+export const WEEK_GRID_CLASS = 'relative isolate grid grid-cols-[max-content_repeat(7,minmax(0,1fr))] gap-3';
+
+/** Keeps row labels clear of the tinted surface that pads the day columns by 12px. */
+export const GRID_LABEL_CLASS = 'mr-3 self-center text-body font-semibold whitespace-nowrap text-muted-foreground';
 
 /** A row of the week grid, aligned to its columns. */
 export const GRID_CLASS = 'grid grid-cols-subgrid col-span-8 items-center';
