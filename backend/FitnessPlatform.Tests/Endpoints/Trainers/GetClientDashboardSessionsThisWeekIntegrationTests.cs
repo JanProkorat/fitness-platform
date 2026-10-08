@@ -86,7 +86,11 @@ public class GetClientDashboardSessionsThisWeekIntegrationTests(FitnessApiFactor
         return new Fixture(trainer.Http, trainer.UserId, client.PublicId, client.UserId);
     }
 
-    private async Task<Guid> SeedPlanAsync(Fixture fixture, DateTime startDate, params TrainingWeek[] weeks)
+    private async Task<Guid> SeedPlanAsync(Fixture fixture, DateTime startDate, params TrainingWeek[] weeks) =>
+        await SeedPlanAsync(fixture, fixture.TrainerUserId, startDate, weeks);
+
+    private async Task<Guid> SeedPlanAsync(
+        Fixture fixture, Guid authorUserId, DateTime startDate, params TrainingWeek[] weeks)
     {
         using var scope = factory.Services.CreateScope();
         var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
@@ -97,7 +101,7 @@ public class GetClientDashboardSessionsThisWeekIntegrationTests(FitnessApiFactor
             Id = ObjectId.GenerateNewId(),
             ExternalId = planId,
             ClientId = fixture.ClientUserId,
-            TrainerId = fixture.TrainerUserId,
+            TrainerId = authorUserId,
             Name = $"Plan {planId:N}",
             Status = TrainingPlanStatus.Active,
             StartDate = startDate,
@@ -277,6 +281,21 @@ public class GetClientDashboardSessionsThisWeekIntegrationTests(FitnessApiFactor
         var fixture = await CreateFixtureAsync(canViewTrainingPlans: false);
         var session = Session();
         var planId = await SeedPlanAsync(fixture, WeekStart, PublishedWeek(1, (1, session)));
+        await SeedExecutionAsync(CheckboxExecution(fixture, planId, session, WeekStart));
+
+        var (completed, planned) = await GetCountsAsync(fixture);
+
+        completed.Should().BeNull();
+        planned.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetDashboard_ForeignAuthoredTrainingPlan_ReturnsNullCounts()
+    {
+        var fixture = await CreateFixtureAsync();
+        var session = Session();
+        var planId = await SeedPlanAsync(
+            fixture, Guid.NewGuid(), WeekStart, PublishedWeek(1, (1, session)));
         await SeedExecutionAsync(CheckboxExecution(fixture, planId, session, WeekStart));
 
         var (completed, planned) = await GetCountsAsync(fixture);
