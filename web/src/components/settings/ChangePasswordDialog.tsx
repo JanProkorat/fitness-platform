@@ -4,6 +4,7 @@ import type { UseFormRegisterReturn } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useTranslation } from 'react-i18next';
+import { KeyRound } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { changeMyPassword, profileKeys } from '@/api/profile';
 import { requestPasswordReset } from '@/api/auth';
@@ -152,9 +153,18 @@ function ChangePasswordForm({ email, onClose }: { email: string; onClose: () => 
 
   return (
     <>
-      <DialogHeader>
-        <DialogTitle>{t('settings.account.passwordDialog.title')}</DialogTitle>
-        <DialogDescription>{t('settings.account.passwordDialog.lede')}</DialogDescription>
+      <DialogHeader className="flex-row items-start gap-3.5 pr-8 text-left">
+        <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-sunken text-ink">
+          <KeyRound className="size-4.5" aria-hidden="true" />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <DialogTitle className="text-lede font-bold">
+            {t('settings.account.passwordDialog.title')}
+          </DialogTitle>
+          <DialogDescription className="text-copy leading-normal">
+            {t('settings.account.passwordDialog.lede')}
+          </DialogDescription>
+        </div>
       </DialogHeader>
 
       <form
@@ -182,23 +192,20 @@ function ChangePasswordForm({ email, onClose }: { email: string; onClose: () => 
             }
             error={errors.currentPassword?.message}
             registration={register('currentPassword')}
-            labelAside={
-              resetMutation.isSuccess ? null : (
-                <button
-                  type="button"
-                  onClick={() => resetMutation.mutate()}
-                  disabled={resetMutation.isPending}
-                  className="text-meta font-semibold text-ink-2 underline-offset-2 hover:underline disabled:opacity-60"
-                >
-                  {t('settings.account.passwordDialog.forgot')}
-                </button>
-              )
-            }
           />
-          {resetMutation.isSuccess && (
+          {resetMutation.isSuccess ? (
             <p role="status" className="text-meta text-success-ink">
               {t('settings.account.passwordDialog.resetSent', { email })}
             </p>
+          ) : (
+            <button
+              type="button"
+              onClick={() => resetMutation.mutate()}
+              disabled={resetMutation.isPending}
+              className="self-start text-meta font-semibold text-ink underline disabled:opacity-60"
+            >
+              {t('settings.account.passwordDialog.forgot')}
+            </button>
           )}
         </div>
 
@@ -258,7 +265,7 @@ interface Props {
 export default function ChangePasswordDialog({ open, onOpenChange, email }: Props) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent showCloseButton={false} className="max-h-[calc(100dvh-2rem)] max-w-125 overflow-y-auto">
+      <DialogContent className="max-h-[calc(100dvh-2rem)] max-w-125 overflow-y-auto">
         <ChangePasswordForm email={email} onClose={() => onOpenChange(false)} />
       </DialogContent>
     </Dialog>
