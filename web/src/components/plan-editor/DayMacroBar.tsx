@@ -20,8 +20,8 @@ interface MacroProps {
 function MacroColumn({ label, value, target, unit, language, dotClass, barClass }: MacroProps) {
   const fill = target ? Math.min(100, (value / target) * 100) : 0;
   return (
-    <div className="flex min-w-40 flex-1 flex-col gap-1.5">
-      <div className="flex items-baseline gap-1.5 text-body whitespace-nowrap">
+    <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+      <div className="flex items-baseline gap-1.5 overflow-hidden text-body whitespace-nowrap">
         <span className={cn('size-1.75 shrink-0 self-center rounded-full', dotClass)} aria-hidden="true" />
         <span className="text-muted-foreground">{label}</span>
         <span className="text-copy font-semibold text-ink">{formatKcal(value, language)}</span>
@@ -57,14 +57,13 @@ interface Props {
 /** The day's kcal and macros against the targets, plus the day note. */
 export default function DayMacroBar({ totals, targets, note, readOnly, onNoteChange }: Props) {
   const { t, i18n } = useTranslation();
-  const [noteOpen, setNoteOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
   const status = KCAL_STATUS_CLASS[targetStatus(totals.kcal, targets?.kcal)];
-  const showNote = noteOpen || Boolean(note);
   const language = i18n.language;
 
   return (
     <div data-testid="day-macros" className="flex flex-col gap-3 rounded-xl border border-line bg-card px-4 py-3">
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-3 min-[1100px]:flex-nowrap">
         <MacroColumn
           label={t('planEditor.day.kcal')}
           value={totals.kcal}
@@ -110,40 +109,42 @@ export default function DayMacroBar({ totals, targets, note, readOnly, onNoteCha
           dotClass="bg-macro-fibre"
           barClass="bg-macro-fibre"
         />
-        {!readOnly && !showNote && (
+        {(!readOnly || Boolean(note)) && (
           <button
             type="button"
-            onClick={() => setNoteOpen(true)}
-            className="inline-flex h-9 shrink-0 cursor-pointer items-center gap-2 rounded-lg border border-dashed border-line px-3 text-body text-muted-foreground outline-none hover:text-ink focus-visible:ring-3 focus-visible:ring-ring/50"
+            disabled={readOnly}
+            title={note || undefined}
+            aria-expanded={readOnly ? undefined : editing}
+            onClick={() => setEditing((open) => !open)}
+            className={cn(
+              'inline-flex h-9 max-w-48 shrink-0 items-center gap-2 rounded-lg border px-3 text-body outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-100',
+              note ? 'border-line text-ink' : 'border-dashed border-line text-muted-foreground',
+              readOnly ? 'cursor-default' : 'cursor-pointer hover:text-ink',
+            )}
           >
-            <StickyNote className="size-4" aria-hidden="true" />
-            {t('planEditor.day.addNote')}
+            <StickyNote className="size-4 shrink-0" aria-hidden="true" />
+            <span className="truncate">{note || t('planEditor.day.addNote')}</span>
           </button>
         )}
       </div>
-      {showNote &&
-        (readOnly ? (
-          <p className="flex items-center gap-2 text-body text-ink">
-            <StickyNote className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-            {note}
-          </p>
-        ) : (
-          <div className="relative">
-            <StickyNote
-              className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
-              aria-hidden="true"
-            />
-            <Input
-              value={note ?? ''}
-              maxLength={MAX_NOTE_LENGTH}
-              autoFocus={noteOpen && !note}
-              aria-label={t('planEditor.day.noteLabel')}
-              placeholder={t('planEditor.day.notePlaceholder')}
-              onChange={(event) => onNoteChange(event.target.value)}
-              className="h-10 pl-10"
-            />
-          </div>
-        ))}
+      {editing && !readOnly && (
+        <div className="relative">
+          <StickyNote
+            className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+            aria-hidden="true"
+          />
+          <Input
+            value={note ?? ''}
+            maxLength={MAX_NOTE_LENGTH}
+            autoFocus
+            aria-label={t('planEditor.day.noteLabel')}
+            placeholder={t('planEditor.day.notePlaceholder')}
+            onChange={(event) => onNoteChange(event.target.value)}
+            onBlur={() => setEditing(false)}
+            className="h-10 pl-10"
+          />
+        </div>
+      )}
     </div>
   );
 }
