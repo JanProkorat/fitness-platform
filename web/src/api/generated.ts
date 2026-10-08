@@ -3194,7 +3194,7 @@ export class ApiClient {
     /**
      * Get client dashboard
      * @param clientId The client's public ID, provided as a route parameter.
-     * @return Success
+     * @return Client dashboard
      */
     getClientDashboardEndpoint(clientId: string, signal?: AbortSignal): Promise<GetClientDashboardResponse> {
         let url_ = this.baseUrl + "/trainer/clients/{clientId}";
@@ -3242,11 +3242,11 @@ export class ApiClient {
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
+            return throwException("Active link grants neither nutrition nor training visibility", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -16956,7 +16956,7 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("Invalid input, or invalid/expired reset request", status, _responseText, _headers, result400);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -17625,27 +17625,20 @@ export interface CreateWorkoutTemplateSetRequest {
     restSeconds?: number | undefined;
 }
 
-/** RFC7807 compatible problem details/ error response class. this can be used by configuring startup like so: app.UseFastEndpoints(c => c.Errors.UseProblemDetails()) */
 export interface ProblemDetails {
     type?: string;
     title?: string;
     status?: number;
     instance?: string;
     traceId?: string;
-    /** the details of the error */
     detail?: string | undefined;
     errors?: ProblemDetails_Error[];
 }
 
-/** the error details object */
 export interface ProblemDetails_Error {
-    /** the name of the error or property of the dto that caused the error */
     name?: string;
-    /** the reason for the error */
     reason?: string;
-    /** the code of the error */
     code?: string | undefined;
-    /** the severity of the error */
     severity?: string | undefined;
 }
 
@@ -19551,6 +19544,14 @@ Mirrors ClientProfessionalLink.CanViewTrainingPlans. */
     compliancePercent?: number | undefined;
     /** Current streak of consecutive compliant days. */
     currentStreak?: number;
+    /** Planned sessions the client has fully completed in the current plan week (a session counts
+once however many days it was executed). Null when the caller has no training-plan access,
+or there is no active plan, current week or published schedule to count against. Never
+exceeds SessionsPlannedThisWeek. */
+    sessionsCompletedThisWeek?: number | undefined;
+    /** Sessions scheduled in the current plan week, counted by the same rule as
+SessionsCompletedThisWeek. Null in exactly the same cases. */
+    sessionsPlannedThisWeek?: number | undefined;
     /** Client's onboarding questionnaire data, or null if not completed. */
     onboarding?: OnboardingDataDto | undefined;
 }
