@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import MacroDots from '@/components/plan-editor/MacroDots';
 import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Textarea } from '@/components/ui/textarea';
+import { usePopoverBoundary } from '@/components/plan-editor/PopoverBoundary';
 import {
   DAY_ORDER,
   formatKcal,
@@ -95,6 +96,7 @@ function MealCell({
   onDetailClose,
 }: CellProps) {
   const { t, i18n } = useTranslation();
+  const boundary = usePopoverBoundary();
   const { ref: dropRef, isDropTarget } = useDroppable({
     id: `cell:${weekIndex}:${dayOfWeek}:${rowIndex}`,
     data: { weekIndex, dayOfWeek, rowIndex },
@@ -190,6 +192,7 @@ function MealCell({
         <PopoverContent
           side="bottom"
           align="center"
+          collisionBoundary={boundary}
           collisionPadding={16}
           sideOffset={8}
           data-testid="meal-detail"
@@ -219,6 +222,7 @@ interface DayHeaderProps {
 /** A weekday's name with its note button; the note opens in a small popover. */
 export function DayHeader({ day, note: noteEditing }: DayHeaderProps) {
   const { t } = useTranslation();
+  const boundary = usePopoverBoundary();
   const [open, setOpen] = useState(false);
   const dayOfWeek = day?.dayOfWeek ?? 1;
   const dayName = t(`planEditor.daysLong.${dayOfWeek}`);
@@ -249,6 +253,7 @@ export function DayHeader({ day, note: noteEditing }: DayHeaderProps) {
             side="bottom"
             align="center"
             sideOffset={8}
+            collisionBoundary={boundary}
             collisionPadding={16}
             data-testid="day-note-popover"
             aria-label={dayName}

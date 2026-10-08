@@ -448,9 +448,41 @@ test.describe('plan template editor interactions', () => {
       await deleteRecipe(origin, recipeId);
       await card.getByRole('button', { name: `Show details of ${recipeName}` }).click();
       const info = page.getByTestId('library-info');
+      await expect(info).toBeVisible();
       await expect(info).toContainText(recipeName);
       await expect(info).toContainText('kcal per portion');
       await expect(info).toContainText('The ingredients are unavailable');
+    } finally {
+      await deleteTemplate(origin, templateId);
+      await deleteRecipe(origin, recipeId);
+    }
+  });
+
+  test('the meal popover on a bottom-row cell never covers the fixed header, so Save stays clickable', async ({
+    page,
+    baseURL,
+  }) => {
+    const origin = baseURL ?? 'http://localhost:5173';
+    const stamp = Date.now();
+    const recipeName = `QA Popover Bounds ${stamp}`;
+    const recipeId = await createRecipe(origin, recipeName);
+    const templateId = await createTemplate(origin, `QA Popover Bounds ${stamp}`);
+    try {
+      await page.setViewportSize({ width: 1280, height: 720 });
+      await page.goto(`/plan-templates/${templateId}`);
+      await cell(page, 4, 1).click();
+      await page.getByLabel('Search recipes…').fill(recipeName);
+      await page.getByRole('button', { name: new RegExp(`^Add ${recipeName} to the selected meal$`) }).click();
+      await expect(cell(page, 4, 1)).toContainText(recipeName);
+
+      await cell(page, 4, 1).click();
+      const detail = page.getByTestId('meal-detail');
+      await expect(detail).toBeVisible();
+      const header = await page.getByTestId('editor-fixed-header').boundingBox();
+      const popover = await detail.boundingBox();
+      expect((popover?.y ?? 0) + 1).toBeGreaterThanOrEqual((header?.y ?? 0) + (header?.height ?? 0));
+      // A trial click checks that nothing covers the button without pressing it.
+      await page.getByRole('button', { name: 'Save' }).click({ trial: true });
     } finally {
       await deleteTemplate(origin, templateId);
       await deleteRecipe(origin, recipeId);

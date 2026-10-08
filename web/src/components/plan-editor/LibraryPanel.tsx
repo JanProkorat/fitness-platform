@@ -117,6 +117,12 @@ function LibraryCard({
           subject={info}
           language={language}
           onClose={() => setInfoOpen(false)}
+          onInteractOutside={(event) => {
+            // A press on this card's own button is handled by its click (it toggles); don't dismiss first and reopen.
+            if (event.target instanceof Node && infoButtonRef.current?.contains(event.target)) {
+              event.preventDefault();
+            }
+          }}
           onCloseAutoFocus={(event) => {
             event.preventDefault();
             infoButtonRef.current?.focus({ preventScroll: true });

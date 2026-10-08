@@ -25,6 +25,7 @@ import LibraryPanel from '@/components/plan-editor/LibraryPanel';
 import MealDetail from '@/components/plan-editor/MealDetail';
 import MealPicker from '@/components/plan-editor/MealPicker';
 import NutritionView from '@/components/plan-editor/NutritionView';
+import { PopoverBoundaryContext } from '@/components/plan-editor/PopoverBoundary';
 import PlanEditorHeader from '@/components/plan-editor/PlanEditorHeader';
 import WeekdayPills from '@/components/plan-editor/WeekdayPills';
 import WeekGrid, { type SelectedCell } from '@/components/plan-editor/WeekGrid';
@@ -170,6 +171,7 @@ export default function PlanEditor({
   const [leaveOpen, setLeaveOpen] = useState(false);
   const [pendingDrop, setPendingDrop] = useState<PendingDrop | null>(null);
   const [addMealOpen, setAddMealOpen] = useState(false);
+  const [scrollArea, setScrollArea] = useState<HTMLElement | null>(null);
   const expandRef = useRef<HTMLButtonElement>(null);
   const collapseRef = useRef<HTMLButtonElement>(null);
   const libraryToggled = useRef(false);
@@ -451,6 +453,7 @@ export default function PlanEditor({
       : null;
 
   return (
+    <PopoverBoundaryContext.Provider value={scrollArea}>
     <DragDropProvider
       sensors={DRAG_SENSORS}
       plugins={(defaults) => defaults.map((plugin) => (plugin === Feedback ? Feedback.configure({ dropAnimation: null }) : plugin))}
@@ -596,6 +599,7 @@ export default function PlanEditor({
           </div>
 
           <div
+            ref={setScrollArea}
             data-testid="editor-scroll"
             className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-6 pt-1 pb-6"
           >
@@ -750,5 +754,6 @@ export default function PlanEditor({
         </DialogContent>
       </Dialog>
     </DragDropProvider>
+    </PopoverBoundaryContext.Provider>
   );
 }

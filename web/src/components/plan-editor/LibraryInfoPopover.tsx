@@ -117,10 +117,12 @@ interface Props {
   language: string;
   onClose: () => void;
   onCloseAutoFocus: (event: Event) => void;
+  /** Lets the card keep a press on its own button from also counting as an outside click. */
+  onInteractOutside: (event: Event) => void;
 }
 
 /** Picture, kcal, macros and (for a recipe) the ingredient list of a library card; no preparation steps. */
-export default function LibraryInfoPopover({ subject, language, onClose, onCloseAutoFocus }: Props) {
+export default function LibraryInfoPopover({ subject, language, onClose, onCloseAutoFocus, onInteractOutside }: Props) {
   const { t } = useTranslation();
   const isRecipe = subject.kind === 'recipe';
   const name = isRecipe ? (subject.recipe.name ?? '') : subject.name;
@@ -146,6 +148,7 @@ export default function LibraryInfoPopover({ subject, language, onClose, onClose
       aria-label={name}
       data-testid="library-info"
       onCloseAutoFocus={onCloseAutoFocus}
+      onInteractOutside={onInteractOutside}
       className="flex max-h-(--radix-popover-content-available-height) w-90 flex-col gap-3 overflow-y-auto rounded-2xl border-line bg-card p-4"
     >
       <div className="flex items-start gap-3">
