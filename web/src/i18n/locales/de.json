@@ -184,6 +184,8 @@
     "notFoundBody": "Die gesuchte Seite existiert nicht.",
     "backToClients": "Zurück zu Klienten",
     "openNavigation": "Navigation öffnen",
+    "collapseNavigation": "Navigation einklappen",
+    "expandNavigation": "Navigation ausklappen",
     "navigationTitle": "Navigation"
   },
   "sidebar": {

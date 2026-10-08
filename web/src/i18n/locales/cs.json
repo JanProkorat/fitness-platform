@@ -184,6 +184,8 @@
     "notFoundBody": "Stránka, kterou hledáte, neexistuje.",
     "backToClients": "Zpět na klienty",
     "openNavigation": "Otevřít navigaci",
+    "collapseNavigation": "Sbalit navigaci",
+    "expandNavigation": "Rozbalit navigaci",
     "navigationTitle": "Navigace"
   },
   "sidebar": {

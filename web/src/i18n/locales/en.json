@@ -184,6 +184,8 @@
     "notFoundBody": "The page you're looking for doesn't exist.",
     "backToClients": "Back to Clients",
     "openNavigation": "Open navigation",
+    "collapseNavigation": "Collapse navigation",
+    "expandNavigation": "Expand navigation",
     "navigationTitle": "Navigation"
   },
   "sidebar": {
