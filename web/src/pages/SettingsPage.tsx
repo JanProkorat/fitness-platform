@@ -67,6 +67,8 @@ export default function SettingsPage() {
             email={email || (meQuery.data.email ?? '')}
             timeZone={timeZone}
             saving={timeZoneMutation.isPending}
+            hasPassword={meQuery.data.hasPassword ?? true}
+            passwordChangedAt={meQuery.data.passwordChangedAt}
             onTimeZoneChange={(value) => timeZoneMutation.mutate(value)}
           />
         )}

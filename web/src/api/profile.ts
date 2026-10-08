@@ -1,5 +1,7 @@
 import api from '@/lib/api';
+import { apiClient } from '@/api/client';
 import type {
+  ChangePasswordRequest,
   GetProfileResponse,
   GetProfessionalProfileResponse,
 } from '@/api/generated';
@@ -37,6 +39,26 @@ export async function updateMyTimeZone(timeZone: string): Promise<void> {
 /** DELETE /users/me — permanently deletes the signed-in account (204); 400 when the delete fails. */
 export async function deleteMyAccount(): Promise<void> {
   await api.delete('/users/me');
+}
+
+/** Token pair returned by a password change; the old refresh tokens are revoked server-side. */
+export interface ChangePasswordResult {
+  accessToken: string;
+  refreshToken: string;
+  passwordChangedAt: string | undefined;
+}
+
+/** POST /users/me/password — 400 INVALID_CURRENT_PASSWORD / PASSWORD_NOT_SET. */
+export async function changeMyPassword(payload: ChangePasswordRequest): Promise<ChangePasswordResult> {
+  const result = await apiClient.changePasswordEndpoint(payload);
+  if (!result.accessToken || !result.refreshToken) {
+    throw new Error('Password change response carried no tokens');
+  }
+  return {
+    accessToken: result.accessToken,
+    refreshToken: result.refreshToken,
+    passwordChangedAt: result.passwordChangedAt,
+  };
 }
 
 /** GET /trainer/profile — trainer/nutritionist professional profile fields. */
