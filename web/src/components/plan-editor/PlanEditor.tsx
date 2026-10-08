@@ -398,7 +398,7 @@ export default function PlanEditor({
         )}
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-          <div data-testid="editor-fixed-header" className="flex shrink-0 flex-col gap-2.5 px-6 pt-3 pb-3">
+          <div data-testid="editor-fixed-header" className="flex shrink-0 flex-col">
             <PlanEditorHeader
                 name={doc.name}
                 onNameChange={(name) => edit((current) => ({ ...current, name }), 'name')}
@@ -419,20 +419,22 @@ export default function PlanEditor({
               />
 
             {(range === 'week' || rows.length === 0) && (
-              <WeekTabs
-                weekCount={doc.weeks.length}
-                current={currentIndex}
-                readOnly={readOnly}
-                onSelect={selectWeek}
-                onAddWeek={() => {
-                  edit(addWeek);
-                  selectWeek(doc.weeks.length);
-                }}
-              />
+              <div className="px-6 py-3">
+                <WeekTabs
+                  weekCount={doc.weeks.length}
+                  current={currentIndex}
+                  readOnly={readOnly}
+                  onSelect={selectWeek}
+                  onAddWeek={() => {
+                    edit(addWeek);
+                    selectWeek(doc.weeks.length);
+                  }}
+                />
+              </div>
             )}
 
             {rows.length > 0 && range === 'day' && (
-              <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
+              <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 px-6 py-3">
                 <DayNavigator
                   weekIndex={currentIndex}
                   weekCount={doc.weeks.length}
