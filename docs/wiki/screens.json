@@ -358,6 +358,7 @@
       "endpoints": [
         "GET /users/me",
         "PUT /users/me/timezone",
+        "POST /users/me/password",
         "POST /users/me/roles",
         "DELETE /users/me"
       ],
