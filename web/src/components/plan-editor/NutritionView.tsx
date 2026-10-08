@@ -39,7 +39,7 @@ function NutritionCell({ meal, rowLabelKey, dailyKcalTarget }: CellProps) {
       <div
         data-testid="nutrition-cell"
         data-status="empty"
-        className="flex h-40 items-center justify-center rounded-xl border border-dashed border-line text-copy text-faint"
+        className="flex min-h-0 items-center justify-center rounded-xl border border-dashed border-line text-copy text-faint"
       >
         —
       </div>
@@ -59,7 +59,7 @@ function NutritionCell({ meal, rowLabelKey, dailyKcalTarget }: CellProps) {
     <div
       data-testid="nutrition-cell"
       data-status={result.status}
-      className={cn('flex h-40 min-w-0 flex-col justify-between gap-1 rounded-xl border p-3', CELL_CLASS[result.status])}
+      className={cn('flex min-h-0 min-w-0 flex-col justify-between gap-1 rounded-xl border p-3', CELL_CLASS[result.status])}
     >
       <div className="flex min-w-0 flex-col gap-0.5">
         {ownKeyDiffers && (
@@ -117,8 +117,8 @@ export default function NutritionView({ week, dailyKcalTarget }: Props) {
   const dayByNumber = new Map(week.days.map((day) => [day.dayOfWeek, day]));
 
   return (
-    <div className="flex flex-col gap-3">
-      <div role="group" aria-label={t('planEditor.nutrition.label')} className="flex flex-col gap-3">
+    <div className="flex flex-1 flex-col gap-3">
+      <div role="group" aria-label={t('planEditor.nutrition.label')} className="flex flex-1 flex-col gap-3">
         <div className={GRID_CLASS}>
           <span />
           {DAY_ORDER.map((dayOfWeek) => (
@@ -132,8 +132,8 @@ export default function NutritionView({ week, dailyKcalTarget }: Props) {
           ))}
         </div>
         {rows.map((row) => (
-          <div key={row.index} className={GRID_CLASS}>
-            <span className="text-body font-semibold text-muted-foreground">
+          <div key={row.index} className={cn(GRID_CLASS, 'min-h-40 flex-1 items-stretch')}>
+            <span className="self-center text-body font-semibold text-muted-foreground">
               {t(`planEditor.rows.${mealKindLabelKey(row.kind)}`)}
             </span>
             {DAY_ORDER.map((dayOfWeek) => (

@@ -17,8 +17,6 @@ import {
 import { weekRows } from '@/components/plan-editor/plan-editor-ops';
 import type { EditorDay, EditorMeal, EditorWeek } from '@/components/plan-editor/plan-editor-types';
 
-const MAX_VISIBLE_EXTRA_NAMES = 2;
-
 const STATUS_TEXT_CLASS: Record<TargetStatus, string> = {
   none: 'text-ink',
   on: 'text-success',
@@ -91,7 +89,7 @@ function MealCell({
   const names = meal ? mealItemNames(meal, i18n.language) : [];
   const totals = meal ? mealTotals(meal) : null;
   const ownKeyDiffers = meal !== undefined && mealKindLabelKey(meal.kind) !== rowLabelKey;
-  const extraNames = names.slice(1, 1 + MAX_VISIBLE_EXTRA_NAMES - (ownKeyDiffers ? 1 : 0));
+  const extraNames = names.slice(1);
 
   return (
     <Popover
@@ -115,7 +113,7 @@ function MealCell({
           aria-label={t('planEditor.cell.label', { day: t(`planEditor.days.${dayOfWeek}`), row: rowIndex + 1 })}
           onClick={onSelect}
           className={cn(
-            'flex h-30 min-w-0 flex-col items-stretch justify-between rounded-xl border p-3 text-left outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50',
+            'flex min-h-0 min-w-0 flex-col items-stretch justify-between gap-1 rounded-xl border p-3 text-left outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50',
             itemCount === 0 && 'border-dashed border-line bg-transparent',
             itemCount > 0 && 'border-line bg-card',
             selected && 'border-solid border-ink ring-2 ring-ink',
@@ -126,7 +124,7 @@ function MealCell({
             <span className="m-auto text-body text-muted-foreground">{t('planEditor.cell.empty')}</span>
           ) : (
             <>
-              <span className="flex min-w-0 flex-col gap-0.5">
+              <span className="flex min-h-0 min-w-0 flex-1 flex-col gap-0.5 overflow-hidden [mask-image:linear-gradient(to_bottom,black_calc(100%-1.25rem),transparent)]">
                 {ownKeyDiffers && meal && (
                   <span className="truncate text-label font-bold tracking-label text-nutrition-ink uppercase">
                     {t(`planEditor.rows.${mealKindLabelKey(meal.kind)}`)}
@@ -139,7 +137,7 @@ function MealCell({
                   </span>
                 ))}
               </span>
-              <span className="flex flex-col gap-1.5">
+              <span className="flex shrink-0 flex-col gap-1.5">
                 <span className="truncate text-body font-semibold text-ink">
                   {t('planEditor.cell.kcal', { kcal: formatKcal(totals?.kcal ?? 0, i18n.language) })}
                   {itemCount > 1 && (
@@ -268,7 +266,7 @@ export default function WeekGrid({
   const dayByNumber = new Map(week.days.map((day) => [day.dayOfWeek, day]));
 
   return (
-    <div role="group" aria-label={t('planEditor.grid.label')} className="flex flex-col gap-3">
+    <div role="group" aria-label={t('planEditor.grid.label')} className="flex flex-1 flex-col gap-3">
       <div className={GRID_CLASS}>
         <span />
         {DAY_ORDER.map((dayOfWeek) => (
@@ -284,8 +282,8 @@ export default function WeekGrid({
       </div>
 
       {rows.map((row) => (
-        <div key={row.index} className={GRID_CLASS}>
-          <span className="text-body font-semibold text-muted-foreground">
+        <div key={row.index} className={cn(GRID_CLASS, 'min-h-30 flex-1 items-stretch')}>
+          <span className="self-center text-body font-semibold text-muted-foreground">
             {t(`planEditor.rows.${mealKindLabelKey(row.kind)}`)}
           </span>
           {DAY_ORDER.map((dayOfWeek) => {
