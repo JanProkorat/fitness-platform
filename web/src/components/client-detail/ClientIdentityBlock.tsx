@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
+import { calculateAge } from '@/lib/client-metrics';
 import ClientStatusBadge from '@/components/clients/ClientStatusBadge';
 import type { GetClientDashboardResponse } from '@/api/generated';
 
@@ -11,26 +12,6 @@ interface Props {
    */
   headingLevel?: 'h1' | 'h2';
   className?: string;
-}
-
-/** Age in whole years, computed from a birthdate that hasn't necessarily occurred yet this year. */
-function calculateAge(dateOfBirth: string): number | undefined {
-  // Read the calendar date straight from the string so no UTC/local conversion can shift the day.
-  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(dateOfBirth);
-  if (!match) {
-    return undefined;
-  }
-  const birthYear = Number(match[1]);
-  const birthMonth = Number(match[2]);
-  const birthDay = Number(match[3]);
-  const today = new Date();
-  let age = today.getFullYear() - birthYear;
-  const hadBirthdayThisYear =
-    today.getMonth() + 1 > birthMonth || (today.getMonth() + 1 === birthMonth && today.getDate() >= birthDay);
-  if (!hadBirthdayThisYear) {
-    age -= 1;
-  }
-  return age;
 }
 
 /**

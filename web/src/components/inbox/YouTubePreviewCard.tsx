@@ -35,7 +35,7 @@ export default function YouTubePreviewCard({ videoId, caption, alignEnd }: Props
         alt=""
         className="aspect-video w-full rounded-xl border border-border object-cover"
       />
-      <span className="truncate text-caption text-muted-foreground">
+      <span className="truncate text-meta text-muted-foreground">
         {caption ? `${caption} • ` : ''}
         {t('inbox.video.label')}
       </span>

@@ -17,7 +17,7 @@ const QA_CLIENT_NAME = /QA Client/;
  * (see the file header comment) also renders a row once the "All" filter
  * lists every live-roster client, so the unanchored `QA_CLIENT_NAME` regex
  * alone resolves to two buttons — a strict-mode violation. Scoping to the
- * row's `span.font-bold` name text via `exact: true` (same element
+ * row's `[data-testid="inbox-row-name"]` name text via `exact: true` (same element
  * `getInboxRowNames` below reads) excludes "QA Client3" without excluding
  * the avatar's initials-fallback text ahead of it in DOM order.
  */
@@ -63,7 +63,7 @@ async function getInboxRowNames(page: Page): Promise<string[]> {
   // avatar's initials-fallback text ("QC") ahead of the name in DOM order,
   // so reading the button's whole innerText and taking the first line picks
   // up the initials, not the name.
-  const names = page.locator('button span.font-bold');
+  const names = page.locator('[data-testid="inbox-row-name"]');
   return (await names.allInnerTexts()).map((t) => t.trim()).sort();
 }
 
@@ -154,7 +154,7 @@ test.describe('inbox page', () => {
 
     await row.click();
     await page.waitForLoadState('networkidle');
-    await expect(page.getByRole('heading', { name: QA_CLIENT_NAME }).or(page.getByText(QA_CLIENT_NAME).first())).toBeVisible();
+    await expect(page.getByText(QA_CLIENT_NAME).first()).toBeVisible();
 
     // Read mark round-trips through the backend + a list invalidation —
     // re-fetch the row and confirm the unread dot is gone.
@@ -268,8 +268,14 @@ test.describe('inbox page', () => {
     await qaClientRow(page).click();
     await page.waitForLoadState('networkidle');
 
+    // At the default 1280px viewport the panel is docked and open; "Hide client" closes it and
+    // "Show client" brings it back.
+    const panel = page.getByRole('complementary', { name: 'Client details' });
+    await expect(panel).toBeVisible();
+    await page.getByRole('button', { name: 'Hide client' }).click();
+    await expect(panel).toHaveCount(0);
     await page.getByRole('button', { name: 'Show client' }).click();
-    const panelStatusBadge = page.locator('[data-slot="badge"]').first();
+    const panelStatusBadge = panel.locator('[data-slot="badge"]').first();
     await expect(panelStatusBadge).toHaveText(listStatusText);
 
     await page.getByRole('link', { name: 'Open client profile' }).click();
@@ -289,7 +295,7 @@ test.describe('inbox page', () => {
 
     await expect(page).toHaveURL('/inbox');
     await expect(page.getByText('Select a chat to begin messaging')).toHaveCount(0);
-    await expect(page.getByRole('button', { name: 'Show client' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Hide client' })).toBeVisible();
   });
 
   test('a newmessage SignalR event refreshes an open thread without a page reload, and the typing indicator appears and clears (#1095)', async ({

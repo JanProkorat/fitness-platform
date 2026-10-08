@@ -4,12 +4,10 @@ import { apiClient } from '@/api/client';
 import { getClientPlans } from '@/api/client-plans';
 import { getClientMeasurements } from '@/api/measurements';
 import { Skeleton } from '@/components/ui/skeleton';
-import ClientIdentityBlock from '@/components/client-detail/ClientIdentityBlock';
-import ClientOverviewStats from '@/components/client-detail/ClientOverviewStats';
-import MealPlanCard from '@/components/client-detail/MealPlanCard';
-import LatestWorkoutCard from '@/components/client-detail/LatestWorkoutCard';
-import CheckInTrendCard from '@/components/client-detail/CheckInTrendCard';
-import MessagesTrendCard from '@/components/client-detail/MessagesTrendCard';
+import PanelIdentity from '@/components/inbox/panel/PanelIdentity';
+import PanelStats from '@/components/inbox/panel/PanelStats';
+import MealPlanPanelCard from '@/components/inbox/panel/MealPlanPanelCard';
+import TrainingPanelCard from '@/components/inbox/panel/TrainingPanelCard';
 
 const MEASUREMENTS_PAGE_SIZE = 50;
 
@@ -18,14 +16,14 @@ interface Props {
 }
 
 /**
- * The inbox's "Show client" panel (~300px, hidden by default). Reuses the
- * #1094 client-overview card set verbatim, laid out narrower — same query
- * keys as `ClientDetailPage` (`client-dashboard`/`client-plans`/
- * `client-measurements`) so both surfaces share one cache entry rather than
- * fetching twice.
+ * The inbox's client panel: identity, weight / client-since cards, and the
+ * active meal plan and training cards. Shares the `client-dashboard` /
+ * `client-plans` / `client-measurements` query keys with `ClientDetailPage`
+ * so both surfaces read one cache entry.
  */
 export default function ClientSidePanel({ clientPublicId }: Props) {
   const { t } = useTranslation();
+  const containerClass = 'flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto px-4.5 py-5.5';
 
   const dashboardQuery = useQuery({
     queryKey: ['client-dashboard', clientPublicId],
@@ -47,8 +45,9 @@ export default function ClientSidePanel({ clientPublicId }: Props) {
 
   if (dashboardQuery.isPending) {
     return (
-      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4 pt-12">
+      <div className={containerClass}>
         <Skeleton className="h-16 w-full" />
+        <Skeleton className="h-32 w-full" />
         <Skeleton className="h-40 w-full" />
       </div>
     );
@@ -63,31 +62,28 @@ export default function ClientSidePanel({ clientPublicId }: Props) {
   }
 
   const dashboard = dashboardQuery.data;
-  const canViewNutritionPlans = plansQuery.data?.canViewNutritionPlans ?? false;
-  const canViewTrainingPlans = plansQuery.data?.canViewTrainingPlans ?? false;
-  const activeNutritionPlan = plansQuery.data?.plans?.find((p) => p.planType === 'Nutrition' && p.status === 'Active');
-  const activeTrainingPlan = plansQuery.data?.plans?.find((p) => p.planType === 'Training' && p.status === 'Active');
+  const plans = plansQuery.data?.plans;
+  const activeNutritionPlan = plans?.find((p) => p.planType === 'Nutrition' && p.status === 'Active');
+  const activeTrainingPlan = plans?.find((p) => p.planType === 'Training' && p.status === 'Active');
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4 pt-12">
-      <ClientIdentityBlock dashboard={dashboard} headingLevel="h2" />
-
-      <ClientOverviewStats dashboard={dashboard} measurements={measurementsQuery.data?.items ?? []} columns={2} />
-
-      <MealPlanCard
+    <div className={containerClass}>
+      <PanelIdentity dashboard={dashboard} />
+      <PanelStats dashboard={dashboard} measurements={measurementsQuery.data?.items ?? []} />
+      <MealPlanPanelCard
+        clientPublicId={clientPublicId}
         plan={activeNutritionPlan}
-        canView={canViewNutritionPlans}
+        canView={plansQuery.data?.canViewNutritionPlans ?? false}
         isPending={plansQuery.isPending}
         isError={plansQuery.isError}
       />
-      <LatestWorkoutCard
+      <TrainingPanelCard
+        clientPublicId={clientPublicId}
         plan={activeTrainingPlan}
-        canView={canViewTrainingPlans}
+        canView={plansQuery.data?.canViewTrainingPlans ?? false}
         isPending={plansQuery.isPending}
         isError={plansQuery.isError}
       />
-      <CheckInTrendCard />
-      <MessagesTrendCard clientId={clientPublicId} />
     </div>
   );
 }

@@ -206,18 +206,18 @@ export default function ThreadPane({
   const ownInitials = user ? `${user.firstName[0] ?? ''}${user.lastName[0] ?? ''}`.toUpperCase() : '';
 
   return (
-    <div className="flex h-full min-w-0 flex-1 flex-col">
+    <div className="flex h-full min-w-0 flex-1 flex-col bg-background">
       <ThreadHeader participant={participant} showClientPanel={showClientPanel} onToggleClientPanel={onToggleClientPanel} isFormer={isFormer} />
 
-      <div ref={scrollRef} onScroll={handleScroll} data-testid="thread-message-list" className="flex-1 overflow-y-auto p-4">
-        <div ref={contentRef} className="flex flex-col gap-2">
+      <div ref={scrollRef} onScroll={handleScroll} data-testid="thread-message-list" className="flex-1 overflow-y-auto px-6 py-5">
+        <div ref={contentRef} className="flex flex-col gap-3">
           {messagesQuery.isFetchingNextPage && (
             <p className="py-1 text-center text-caption text-muted-foreground">{t('inbox.thread.loadingOlder')}</p>
           )}
           {messages.map((message, index) => {
             const isOwn = Boolean(user) && message.senderId === user?.publicId;
             return (
-              <div key={message.id ?? index} className="flex flex-col gap-2">
+              <div key={message.id ?? index} className="flex flex-col gap-3">
                 {startsNewDay(message, messages[index - 1]) && message.timestamp && <DateSeparator iso={message.timestamp} />}
                 {message.kind === ChatMessageKind.Event ? (
                   <EventBanner message={message} isOwn={isOwn} participantName={participant.name ?? ''} />

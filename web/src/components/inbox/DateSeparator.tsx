@@ -16,7 +16,7 @@ export default function DateSeparator({ iso }: Props) {
   });
 
   return (
-    <div className="flex justify-center py-2">
+    <div className="flex justify-center">
       <span className="text-caption text-muted-foreground">{label}</span>
     </div>
   );
