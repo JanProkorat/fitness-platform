@@ -20,8 +20,8 @@ interface MacroProps {
 function MacroColumn({ label, value, target, unit, language, dotClass, barClass }: MacroProps) {
   const fill = target ? Math.min(100, (value / target) * 100) : 0;
   return (
-    <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-      <div className="flex items-baseline gap-1.5 overflow-hidden text-body whitespace-nowrap">
+    <div className="flex flex-auto flex-col gap-1.5">
+      <div className="flex items-baseline gap-1.5 text-body whitespace-nowrap">
         <span className={cn('size-1.75 shrink-0 self-center rounded-full', dotClass)} aria-hidden="true" />
         <span className="text-muted-foreground">{label}</span>
         <span className="text-copy font-semibold text-ink">{formatKcal(value, language)}</span>
@@ -62,8 +62,12 @@ export default function DayMacroBar({ totals, targets, note, readOnly, onNoteCha
   const language = i18n.language;
 
   return (
-    <div data-testid="day-macros" className="flex flex-col gap-3 rounded-xl border border-line bg-card px-4 py-3">
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-3 min-[1100px]:flex-nowrap">
+    <div
+      data-testid="day-macros"
+      className="@container flex flex-col gap-3 rounded-xl border border-line bg-card px-4 py-3"
+    >
+      <div className="flex items-center gap-4">
+        <div className="flex min-w-0 flex-1 flex-wrap gap-x-4 gap-y-3">
         <MacroColumn
           label={t('planEditor.day.kcal')}
           value={totals.kcal}
@@ -109,21 +113,23 @@ export default function DayMacroBar({ totals, targets, note, readOnly, onNoteCha
           dotClass="bg-macro-fibre"
           barClass="bg-macro-fibre"
         />
+        </div>
         {(!readOnly || Boolean(note)) && (
           <button
             type="button"
             disabled={readOnly}
-            title={note || undefined}
+            title={note || t('planEditor.day.addNote')}
+            aria-label={note || t('planEditor.day.addNote')}
             aria-expanded={readOnly ? undefined : editing}
             onClick={() => setEditing((open) => !open)}
             className={cn(
-              'inline-flex h-9 max-w-48 shrink-0 items-center gap-2 rounded-lg border px-3 text-body outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-100',
+              'inline-flex h-7.5 w-7.5 shrink-0 items-center justify-center gap-2 rounded-lg border text-body outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-100 @[56rem]:h-9 @[56rem]:w-auto @[56rem]:max-w-48 @[56rem]:px-3',
               note ? 'border-line text-ink' : 'border-dashed border-line text-muted-foreground',
               readOnly ? 'cursor-default' : 'cursor-pointer hover:text-ink',
             )}
           >
             <StickyNote className="size-4 shrink-0" aria-hidden="true" />
-            <span className="truncate">{note || t('planEditor.day.addNote')}</span>
+            <span className="hidden truncate @[56rem]:inline">{note || t('planEditor.day.addNote')}</span>
           </button>
         )}
       </div>

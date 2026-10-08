@@ -106,7 +106,11 @@ export default function PlanEditorHeader({
         </span>
         <h1 className="sr-only">{name}</h1>
         {readOnly ? (
-          <span className="min-w-0 truncate font-display text-auth-title font-semibold text-ink" aria-hidden="true">
+          <span
+            className="min-w-0 truncate font-display text-auth-title font-semibold text-ink"
+            title={name}
+            aria-hidden="true"
+          >
             {name}
           </span>
         ) : (
@@ -116,7 +120,8 @@ export default function PlanEditorHeader({
             onChange={(event) => onNameChange(event.target.value)}
             aria-label={t('planEditor.nameLabel')}
             aria-invalid={nameInvalid}
-            className="h-8 min-w-0 flex-1 border-transparent bg-transparent px-2 font-display text-auth-title font-semibold text-ink shadow-none hover:border-line"
+            title={name}
+            className="h-8 min-w-32 flex-1 truncate border-transparent bg-transparent px-2 font-display text-auth-title font-semibold text-ink shadow-none hover:border-line"
           />
         )}
         {!readOnly && (
