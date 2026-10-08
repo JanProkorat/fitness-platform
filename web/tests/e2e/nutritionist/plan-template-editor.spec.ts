@@ -340,6 +340,28 @@ test.describe('plan template editor', () => {
     }
   });
 
+  test('the editor opens with the sidebar collapsed without overwriting the stored choice', async ({ page, baseURL }) => {
+    const origin = baseURL ?? 'http://localhost:5173';
+    const templateId = await createTemplate(origin, `QA Editor Sidebar ${Date.now()}`, buildWeeks(1, LUNCH_AND_BREAKFAST));
+    try {
+      await page.goto('/plan-templates');
+      await page.waitForLoadState('networkidle');
+      const aside = page.locator('aside');
+      await expect(aside).toHaveCSS('width', '248px');
+
+      await page.goto(`/plan-templates/${templateId}`);
+      await page.waitForLoadState('networkidle');
+      await expect(aside).toHaveCSS('width', '64px');
+
+      // Expanding here lasts for this visit only.
+      await page.getByRole('navigation').getByRole('button', { name: 'Expand navigation' }).click();
+      await expect(aside).toHaveCSS('width', '248px');
+      expect(await page.evaluate(() => window.localStorage.getItem('sidebar-collapsed'))).toBeNull();
+    } finally {
+      await deleteTemplate(origin, templateId);
+    }
+  });
+
   test('Back asks before discarding unsaved edits, like the breadcrumb', async ({ page, baseURL }) => {
     const origin = baseURL ?? 'http://localhost:5173';
     const name = `QA Editor Back ${Date.now()}`;

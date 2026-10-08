@@ -80,21 +80,4 @@ test('sidebar shows the Notifications row above Help and collapses to a rail tha
   await expect(aside).toHaveCSS('width', '248px');
 });
 
-test('the plan template editor opens collapsed without overwriting the stored choice', async ({
-  page,
-}) => {
-  await page.goto('/plan-templates');
-  await page.waitForLoadState('networkidle');
-  const aside = page.locator('aside');
-  await expect(aside).toHaveCSS('width', '248px');
-
-  await page.locator('a[href^="/plan-templates/"]').first().click();
-  await page.waitForLoadState('networkidle');
-  await expect(aside).toHaveCSS('width', '64px');
-
-  // Expanding here lasts for this visit only.
-  await page.getByRole('navigation').getByRole('button', { name: 'Expand navigation' }).click();
-  await expect(aside).toHaveCSS('width', '248px');
-  expect(await page.evaluate(() => window.localStorage.getItem('sidebar-collapsed'))).toBeNull();
-});
 
