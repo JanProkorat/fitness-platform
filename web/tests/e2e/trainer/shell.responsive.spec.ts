@@ -111,7 +111,8 @@ test.describe('app shell responsive behaviour', () => {
       await expect(dialog.getByText('Inbox', { exact: true })).toBeVisible();
       await expect(dialog.getByText('Recipes', { exact: true })).toBeVisible();
       await expect(dialog.getByText('Ingredients', { exact: true })).toBeVisible();
-      await expect(dialog.getByRole('button', { name: 'Log out' })).toBeVisible();
+      await dialog.getByRole('button', { name: 'Account menu' }).click();
+      await expect(page.getByRole('button', { name: 'Log out' })).toBeVisible();
     });
 
     /**

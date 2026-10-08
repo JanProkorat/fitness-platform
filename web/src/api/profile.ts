@@ -34,6 +34,11 @@ export async function updateMyTimeZone(timeZone: string): Promise<void> {
   await api.put('/users/me/timezone', { timeZone });
 }
 
+/** DELETE /users/me — permanently deletes the signed-in account (204); 400 when the delete fails. */
+export async function deleteMyAccount(): Promise<void> {
+  await api.delete('/users/me');
+}
+
 /** GET /trainer/profile — trainer/nutritionist professional profile fields. */
 export async function getTrainerProfile(): Promise<GetProfessionalProfileResponse> {
   const { data } = await api.get<GetProfessionalProfileResponse>('/trainer/profile');

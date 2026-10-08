@@ -235,6 +235,109 @@
     "nutritionist": "Výživový poradce",
     "client": "Klient"
   },
+  "accountMenu": {
+    "trigger": "Nabídka účtu",
+    "title": "Účet",
+    "profile": "Váš profil",
+    "settings": "Nastavení",
+    "language": "Jazyk",
+    "theme": "Motiv",
+    "languages": {
+      "cs": "Čeština",
+      "en": "English",
+      "de": "Deutsch"
+    },
+    "themes": {
+      "light": "Světlý",
+      "dark": "Tmavý",
+      "system": "Systém"
+    }
+  },
+  "settings": {
+    "eyebrow": "Účet",
+    "title": "Nastavení",
+    "subtitle": "Přihlášení, oznámení a role na vašem účtu",
+    "loadError": "Nastavení se nepodařilo načíst. Obnovte prosím stránku.",
+    "status": {
+      "saved": "Všechny změny uloženy",
+      "saving": "Ukládání…",
+      "error": "Neuloženo"
+    },
+    "account": {
+      "title": "Účet",
+      "description": "Jak se přihlašujete a podle jakých hodin se řídí vaše připomínky.",
+      "email": "Přihlašovací e-mail",
+      "emailHint": "Touto adresou se přihlašujete. Klienti ji vidí také na vašem profilu.",
+      "timeZone": "Časové pásmo",
+      "timeZoneHint": "Řídí se jím připomínky check-inů a časy sezení.",
+      "timeZoneError": "Časové pásmo se nepodařilo uložit.",
+      "password": "Heslo",
+      "changePassword": "Změnit heslo"
+    },
+    "notifications": {
+      "title": "Oznámení",
+      "description": "Vyberte, jak vás budeme informovat o aktivitě klientů. Oznámení v aplikaci se zobrazují vždy.",
+      "event": "Událost",
+      "email": "E-mail",
+      "app": "Aplikace trenéra",
+      "emailLabel": "{{event}} e-mailem",
+      "appLabel": "{{event}} v aplikaci trenéra",
+      "events": {
+        "newMessage": {
+          "title": "Nová zpráva",
+          "description": "Klient vám napíše v chatu."
+        },
+        "checkIn": {
+          "title": "Odeslaný týdenní check-in",
+          "description": "Klient vám pošle check-in ke kontrole."
+        },
+        "joinRequest": {
+          "title": "Žádost o spolupráci",
+          "description": "Někdo se chce stát vaším klientem."
+        },
+        "photos": {
+          "title": "Odeslané fotky pokroku",
+          "description": "Klient odpoví na vaši žádost o fotky."
+        },
+        "workout": {
+          "title": "Dokončený trénink",
+          "description": "Klient dokončí tréninkové sezení."
+        }
+      }
+    },
+    "roles": {
+      "title": "Vaše role",
+      "description": "Každá role odemyká vlastní nástroje a zobrazuje se pod vaším jménem ve vyhledávání.",
+      "add": "Přidat roli",
+      "remove": "Odebrat roli",
+      "active": "Aktivní",
+      "added": "Role byla přidána.",
+      "addError": "Roli se nepodařilo přidat.",
+      "descriptions": {
+        "trainer": "Tréninky, cviky, tréninkové plány a šablony.",
+        "nutritionist": "Recepty, suroviny, jídelní plány a šablony."
+      },
+      "note": "Odebráním role ji skryjete z vyhledávání a zastavíte novou práci v ní: žádné nové plány ani šablony a žádní noví klienti. Rozpracované plány zůstanou aktivní do konce: klienti dál zapisují a vy je můžete upravovat. Poté zůstane vše, co jste sdíleli, viditelné vám oběma, jen pro čtení. Roli můžete kdykoli přidat zpět a znovu upravovat.",
+      "addDialog": {
+        "title": "Přidat roli: {{role}}?",
+        "body": "Získáte nástroje této role a budete díky ní vidět ve vyhledávání. Později ji můžete znovu odebrat."
+      }
+    },
+    "danger": {
+      "title": "Nebezpečná zóna",
+      "description": "Akce, které ukončí vaši práci ve Form Up.",
+      "disableTitle": "Deaktivovat trenérský účet",
+      "disableBody": "Odebere všechny vaše role a zastaví fakturaci po skončení aktuálního předplatného. Vaše data zůstanou, jen pro čtení.",
+      "disable": "Deaktivovat účet",
+      "deleteTitle": "Smazat účet",
+      "deleteBody": "Trvale smaže váš účet, plány, šablony a zprávy. Klienti ztratí přístup k tomu, co jste sdíleli. Tuto akci nelze vrátit.",
+      "delete": "Smazat účet",
+      "confirmTitle": "Smazat váš účet?",
+      "confirmBody": "Tím trvale smažete svůj účet a vše v něm. Tuto akci nelze vrátit.",
+      "confirmAction": "Smazat účet",
+      "deleteError": "Účet se nepodařilo smazat. Nic se nezměnilo."
+    }
+  },
   "dashboard": {
     "title": "Dashboard",
     "newClient": "+ Nový klient",

@@ -31,8 +31,10 @@ test('app shell renders the v1 nav and routes between pages', async ({ page }) =
   await expect(nav.getByText('Ingredients', { exact: true })).toBeVisible();
   await expect(nav.getByText('Recipes', { exact: true })).toBeVisible();
 
-  // Top bar renders the sign-out control.
+  // The sidebar user card opens the account menu, which holds the sign-out control.
+  await page.getByRole('button', { name: 'Account menu' }).click();
   await expect(page.getByRole('button', { name: 'Log out' })).toBeVisible();
+  await page.keyboard.press('Escape');
 
   // Routing: clicking a different nav item swaps the page heading.
   await expect(page.getByRole('heading', { name: 'Clients' })).toBeVisible();

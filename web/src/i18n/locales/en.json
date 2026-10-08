@@ -235,6 +235,109 @@
     "nutritionist": "Nutritionist",
     "client": "Client"
   },
+  "accountMenu": {
+    "trigger": "Account menu",
+    "title": "Account",
+    "profile": "Your profile",
+    "settings": "Settings",
+    "language": "Language",
+    "theme": "Theme",
+    "languages": {
+      "cs": "Čeština",
+      "en": "English",
+      "de": "Deutsch"
+    },
+    "themes": {
+      "light": "Light",
+      "dark": "Dark",
+      "system": "System"
+    }
+  },
+  "settings": {
+    "eyebrow": "Account",
+    "title": "Settings",
+    "subtitle": "Sign-in, notifications and the roles on your account",
+    "loadError": "Could not load your settings. Please refresh the page.",
+    "status": {
+      "saved": "All changes saved",
+      "saving": "Saving…",
+      "error": "Not saved"
+    },
+    "account": {
+      "title": "Account",
+      "description": "How you sign in, and the clock your reminders follow.",
+      "email": "Sign-in email",
+      "emailHint": "You sign in with this address. Clients also see it on your profile.",
+      "timeZone": "Time zone",
+      "timeZoneHint": "Check-in reminders and session times use it.",
+      "timeZoneError": "Could not save the time zone.",
+      "password": "Password",
+      "changePassword": "Change password"
+    },
+    "notifications": {
+      "title": "Notifications",
+      "description": "Choose how we tell you about client activity. In-app notifications always show.",
+      "event": "Event",
+      "email": "Email",
+      "app": "Coach app",
+      "emailLabel": "{{event}} by email",
+      "appLabel": "{{event}} in the coach app",
+      "events": {
+        "newMessage": {
+          "title": "New message",
+          "description": "A client writes to you in chat."
+        },
+        "checkIn": {
+          "title": "Weekly check-in submitted",
+          "description": "A client sends their check-in for review."
+        },
+        "joinRequest": {
+          "title": "Join request",
+          "description": "Someone asks to become your client."
+        },
+        "photos": {
+          "title": "Progress photos submitted",
+          "description": "A client answers your photo request."
+        },
+        "workout": {
+          "title": "Workout finished",
+          "description": "A client completes a training session."
+        }
+      }
+    },
+    "roles": {
+      "title": "Your roles",
+      "description": "Each role unlocks its own tools and shows under your name in search.",
+      "add": "Add role",
+      "remove": "Remove role",
+      "active": "Active",
+      "added": "Role added.",
+      "addError": "Could not add the role.",
+      "descriptions": {
+        "trainer": "Workouts, exercises, training plans and templates.",
+        "nutritionist": "Recipes, ingredients, meal plans and templates."
+      },
+      "note": "Removing a role hides it from search and stops new work in it: no new plans or templates, and no new clients for it. Plans already in progress stay active until they end: clients keep logging and you can still adjust them. After that, everything you shared stays visible to both of you, read-only. Add the role back any time to edit again.",
+      "addDialog": {
+        "title": "Add the {{role}} role?",
+        "body": "You get the tools for this role and show up in search under it. You can remove it again later."
+      }
+    },
+    "danger": {
+      "title": "Danger zone",
+      "description": "Actions that end your work on Form Up.",
+      "disableTitle": "Disable coach account",
+      "disableBody": "Removes all your roles and stops billing when your current subscription ends. Your data stays, read-only.",
+      "disable": "Disable account",
+      "deleteTitle": "Delete account",
+      "deleteBody": "Permanently erases your account, plans, templates and messages. Clients lose access to what you shared. This can't be undone.",
+      "delete": "Delete account",
+      "confirmTitle": "Delete your account?",
+      "confirmBody": "This permanently erases your account and everything in it. This can't be undone.",
+      "confirmAction": "Delete account",
+      "deleteError": "Could not delete your account. Nothing was changed."
+    }
+  },
   "dashboard": {
     "title": "Dashboard",
     "newClient": "+ New client",
