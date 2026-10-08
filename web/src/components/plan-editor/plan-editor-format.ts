@@ -1,5 +1,9 @@
 import { MealKind } from '@/api/generated';
 
+export const DAY_ORDER = [1, 2, 3, 4, 5, 6, 7] as const;
+
+export const GRID_CLASS = 'grid grid-cols-[minmax(0,0.8fr)_repeat(7,minmax(0,1fr))] items-center gap-3';
+
 export function formatKcal(value: number, language: string): string {
   return Math.round(value).toLocaleString(language);
 }

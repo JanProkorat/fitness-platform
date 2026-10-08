@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Menu } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Sidebar from '@/components/layout/Sidebar';
+import { useSidebarCollapsed } from '@/hooks/useSidebarCollapsed';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 
 /**
@@ -19,11 +20,12 @@ import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
  * (a table, a wide tab list) scrolls within its own container instead of
  * the whole page sliding sideways.
  *
- * `variant="editor"` is the opt-in for full-bleed workspaces (the plan template
- * editor, PageTemplateEditor): the static sidebar collapses to the icon rail and
- * `<main>` drops its padding and own scrolling so the page can lay out flush
- * against the rail. Everything else uses the default variant, unchanged. It is
- * chosen by the layout route in App.tsx (BrowserRouter has no route `handle`).
+ * The static sidebar collapses to a 64px icon rail on every page; the choice is
+ * remembered per browser (`useSidebarCollapsed`). `variant="editor"` is the
+ * opt-in for full-bleed workspaces (the plan template editor): it always opens
+ * collapsed, and `<main>` drops its padding and own scrolling so the page can
+ * lay out flush against the rail. It is chosen by the layout route in App.tsx
+ * (BrowserRouter has no route `handle`).
  */
 interface Props {
   variant?: 'default' | 'editor';
@@ -33,11 +35,12 @@ export default function AppShell({ variant = 'default' }: Props) {
   const { t } = useTranslation();
   const [navOpen, setNavOpen] = useState(false);
   const editor = variant === 'editor';
+  const { collapsed, toggle } = useSidebarCollapsed(editor);
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       <div className="hidden lg:flex">
-        <Sidebar compact={editor} />
+        <Sidebar collapsed={collapsed} onToggleCollapsed={toggle} />
       </div>
 
       <Sheet open={navOpen} onOpenChange={setNavOpen}>

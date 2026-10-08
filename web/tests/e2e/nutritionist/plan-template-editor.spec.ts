@@ -236,6 +236,11 @@ test.describe('plan template editor', () => {
       await expect(page.getByTestId('day-total').first()).not.toContainText(/^0 kcal/);
       await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes');
 
+      // Only kcal has a target, so Monday's macro bar shows energy shares for protein, carbs and fat.
+      await page.getByRole('button', { name: 'Day', exact: true }).click();
+      await expect(page.getByTestId('day-macros')).toContainText(/\d+ % kcal/);
+      await page.getByRole('button', { name: 'Week', exact: true }).click();
+
       // Select Tuesday's lunch and press + on an ingredient.
       await cell(page, 2, 1).click();
       await page.getByRole('tab', { name: 'Ingredients' }).click();
@@ -286,6 +291,93 @@ test.describe('plan template editor', () => {
       await expect(page).toHaveURL(new RegExp(`/plan-templates/${templateId}$`));
 
       await page.getByRole('button', { name: 'Plan templates', exact: true }).click();
+      await page.getByRole('dialog').getByRole('button', { name: 'Leave' }).click();
+      await expect(page).toHaveURL(/\/plan-templates$/);
+    } finally {
+      await deleteTemplate(origin, templateId);
+    }
+  });
+
+  test('Redo replays an undone edit, and a new edit after Undo clears Redo', async ({ page, baseURL }) => {
+    const origin = baseURL ?? 'http://localhost:5173';
+    const name = `QA Editor Redo ${Date.now()}`;
+    const templateId = await createTemplate(origin, name, buildWeeks(1, LUNCH_AND_BREAKFAST));
+    try {
+      await page.goto(`/plan-templates/${templateId}`);
+      const undo = page.getByRole('button', { name: 'Undo' });
+      const redo = page.getByRole('button', { name: 'Redo' });
+      const nameInput = page.getByLabel('Plan name');
+      await expect(undo).toBeDisabled();
+      await expect(redo).toBeDisabled();
+
+      await nameInput.fill(`${name} A`);
+      await expect(undo).toBeEnabled();
+      await expect(redo).toBeDisabled();
+
+      await undo.click();
+      await expect(nameInput).toHaveValue(name);
+      await expect(redo).toBeEnabled();
+      await expect(undo).toBeDisabled();
+
+      await redo.click();
+      await expect(nameInput).toHaveValue(`${name} A`);
+      await expect(redo).toBeDisabled();
+
+      // A new edit after Undo drops the redo history.
+      await undo.click();
+      await expect(redo).toBeEnabled();
+      await nameInput.fill(`${name} B`);
+      await expect(redo).toBeDisabled();
+
+      // Keyboard: Ctrl+Z undoes outside a text field, Ctrl+Shift+Z redoes.
+      await nameInput.blur();
+      await page.keyboard.press('Control+z');
+      await expect(nameInput).toHaveValue(name);
+      await page.keyboard.press('Control+Shift+z');
+      await expect(nameInput).toHaveValue(`${name} B`);
+    } finally {
+      await deleteTemplate(origin, templateId);
+    }
+  });
+
+  test('the editor opens with the sidebar collapsed without overwriting the stored choice', async ({ page, baseURL }) => {
+    const origin = baseURL ?? 'http://localhost:5173';
+    const templateId = await createTemplate(origin, `QA Editor Sidebar ${Date.now()}`, buildWeeks(1, LUNCH_AND_BREAKFAST));
+    try {
+      await page.goto('/plan-templates');
+      await page.waitForLoadState('networkidle');
+      // The editor page also has the library <aside>; pick the app sidebar by its main navigation.
+      const aside = page.locator('aside').filter({ has: page.getByRole('navigation', { name: 'Navigation', exact: true }) });
+      await expect(aside).toHaveCSS('width', '248px');
+
+      await page.goto(`/plan-templates/${templateId}`);
+      await page.waitForLoadState('networkidle');
+      await expect(aside).toHaveCSS('width', '64px');
+
+      // Expanding here lasts for this visit only.
+      await page.getByRole('navigation').getByRole('button', { name: 'Expand navigation' }).click();
+      await expect(aside).toHaveCSS('width', '248px');
+      expect(await page.evaluate(() => window.localStorage.getItem('sidebar-collapsed'))).toBeNull();
+    } finally {
+      await deleteTemplate(origin, templateId);
+    }
+  });
+
+  test('Back asks before discarding unsaved edits, like the breadcrumb', async ({ page, baseURL }) => {
+    const origin = baseURL ?? 'http://localhost:5173';
+    const name = `QA Editor Back ${Date.now()}`;
+    const templateId = await createTemplate(origin, name, buildWeeks(1, LUNCH_AND_BREAKFAST));
+    try {
+      await page.goto(`/plan-templates/${templateId}`);
+      await page.getByLabel('Plan name').fill(`${name} edited`);
+      await page.getByRole('button', { name: 'Back to Plan templates' }).click();
+
+      const dialog = page.getByRole('dialog');
+      await expect(dialog.getByRole('heading', { name: 'Leave without saving?' })).toBeVisible();
+      await dialog.getByRole('button', { name: 'Keep editing' }).click();
+      await expect(page).toHaveURL(new RegExp(`/plan-templates/${templateId}$`));
+
+      await page.getByRole('button', { name: 'Back to Plan templates' }).click();
       await page.getByRole('dialog').getByRole('button', { name: 'Leave' }).click();
       await expect(page).toHaveURL(/\/plan-templates$/);
     } finally {

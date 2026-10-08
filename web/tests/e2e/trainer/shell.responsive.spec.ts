@@ -115,6 +115,10 @@ test.describe('app shell responsive behaviour', () => {
       await expect(dialog.getByText('Ingredients', { exact: true })).toBeVisible();
       await expect(dialog.getByText('Plan templates', { exact: true })).toBeVisible();
       await expect(dialog.getByRole('button', { name: 'Log out' })).toBeVisible();
+      await expect(dialog.getByRole('button', { name: 'Notifications' })).toBeVisible();
+      // The drawer is always full width: no collapse toggle.
+      await expect(dialog.getByRole('button', { name: 'Collapse navigation' })).toHaveCount(0);
+      await expect(dialog.getByRole('button', { name: 'Expand navigation' })).toHaveCount(0);
     });
 
     /**

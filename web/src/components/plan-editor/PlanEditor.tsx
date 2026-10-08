@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { KeyboardSensor, PointerActivationConstraints, PointerSensor } from '@dnd-kit/dom';
+import { Feedback, KeyboardSensor, PointerActivationConstraints, PointerSensor } from '@dnd-kit/dom';
+import { move } from '@dnd-kit/helpers';
 import { DragDropProvider, DragOverlay } from '@dnd-kit/react';
 import { AlertTriangle, PanelLeftOpen } from 'lucide-react';
 import { MealKind } from '@/api/generated';
@@ -15,23 +16,39 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import AveragesBar from '@/components/plan-editor/AveragesBar';
+import DayMacroBar from '@/components/plan-editor/DayMacroBar';
+import DayNavigator from '@/components/plan-editor/DayNavigator';
+import DayView from '@/components/plan-editor/DayView';
 import LibraryPanel from '@/components/plan-editor/LibraryPanel';
+import MealDetail from '@/components/plan-editor/MealDetail';
 import MealPicker from '@/components/plan-editor/MealPicker';
+import NutritionView from '@/components/plan-editor/NutritionView';
 import PlanEditorHeader from '@/components/plan-editor/PlanEditorHeader';
+import WeekdayPills from '@/components/plan-editor/WeekdayPills';
 import WeekGrid, { type SelectedCell } from '@/components/plan-editor/WeekGrid';
 import WeekTabs from '@/components/plan-editor/WeekTabs';
-import { weekSummary } from '@/components/plan-editor/plan-editor-nutrition';
+import { dayTotals, mealItemCount, weekSummary } from '@/components/plan-editor/plan-editor-nutrition';
 import {
   addItemToCell,
   addMealRow,
   addWeek,
   applyMealKinds,
   COMMON_MEAL_KINDS,
+  copyWeekMeals,
   nextSnackKind,
+  reorderMeals,
+  setDayNote,
   weekHasItems,
   weekRows,
 } from '@/components/plan-editor/plan-editor-ops';
-import type { EditorDocument, LibraryItem, SaveStatus } from '@/components/plan-editor/plan-editor-types';
+import type {
+  EditorDocument,
+  EditorRange,
+  EditorView,
+  LibraryItem,
+  PlanTargets,
+  SaveStatus,
+} from '@/components/plan-editor/plan-editor-types';
 import { usePlanEditorState } from '@/components/plan-editor/usePlanEditorState';
 
 export interface PlanEditorSaveState {
@@ -40,10 +57,21 @@ export interface PlanEditorSaveState {
   message?: string;
 }
 
+/** What the host's "copy meals from another plan" dialog needs to open, close and hand a plan back. */
+export interface CopyMealsSlotProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  /** Copies the first week of `source` into the current, empty week. */
+  onApply: (source: EditorDocument) => void;
+}
+
 interface Props {
   /** The document to edit. Remount (change `key`) to load a different one. */
   initial: EditorDocument;
-  dailyKcalTarget?: number;
+  /** Daily targets to measure days and meals against. */
+  targets?: PlanTargets;
+  /** Renders the host's copy-meals dialog; without it the empty-week card has no copy link. */
+  renderCopyMeals?: (props: CopyMealsSlotProps) => ReactNode;
   readOnly: boolean;
   readOnlyNotice?: string;
   breadcrumb: { label: string; onNavigate: () => void };
@@ -89,6 +117,10 @@ function readCell(data: unknown): SelectedCell | null {
     : null;
 }
 
+function isMealDrag(data: unknown): boolean {
+  return typeof data === 'object' && data !== null && 'type' in data && data.type === 'meal';
+}
+
 function itemName(item: LibraryItem): string {
   return item.type === 'recipe' ? item.recipe.recipeName : item.food.foodName;
 }
@@ -99,7 +131,8 @@ function itemName(item: LibraryItem): string {
  */
 export default function PlanEditor({
   initial,
-  dailyKcalTarget,
+  targets,
+  renderCopyMeals,
   readOnly,
   readOnlyNotice,
   breadcrumb,
@@ -107,9 +140,15 @@ export default function PlanEditor({
   onSave,
   onReload,
 }: Props) {
-  const { t } = useTranslation();
-  const { doc, dirty, canUndo, edit, undo, markSaved } = usePlanEditorState(initial);
+  const { t, i18n } = useTranslation();
+  const { doc, dirty, canUndo, canRedo, edit, undo, redo, markSaved } = usePlanEditorState(initial);
+  const dailyKcalTarget = targets?.kcal;
   const [weekIndex, setWeekIndex] = useState(0);
+  const [range, setRange] = useState<EditorRange>('week');
+  const [view, setView] = useState<EditorView>('meals');
+  const [dayOfWeek, setDayOfWeek] = useState(1);
+  const [detailCell, setDetailCell] = useState<SelectedCell | null>(null);
+  const [copyOpen, setCopyOpen] = useState(false);
   const [selected, setSelected] = useState<SelectedCell | null>(null);
   const [libraryOpen, setLibraryOpen] = useState(true);
   const [pickerSession, setPickerSession] = useState(false);
@@ -121,6 +160,7 @@ export default function PlanEditor({
   const currentIndex = Math.min(weekIndex, doc.weeks.length - 1);
   const week = doc.weeks[currentIndex];
   const rows = week ? weekRows(week) : [];
+  const activeDay = week?.days.find((candidate) => candidate.dayOfWeek === dayOfWeek);
   const showPicker = !readOnly && (rows.length === 0 || pickerSession);
 
   useEffect(() => {
@@ -131,6 +171,35 @@ export default function PlanEditor({
     window.addEventListener('beforeunload', warn);
     return () => window.removeEventListener('beforeunload', warn);
   }, [dirty]);
+
+  // Cmd/Ctrl+Z undoes, Cmd/Ctrl+Shift+Z and Ctrl+Y redo; inside a text field the field's own undo wins.
+  useEffect(() => {
+    if (readOnly) {
+      return;
+    }
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!(event.metaKey || event.ctrlKey) || event.altKey) {
+        return;
+      }
+      const target = event.target;
+      if (
+        target instanceof HTMLElement &&
+        (target.isContentEditable || target.closest('input, textarea, select, [contenteditable], [role="dialog"]') !== null)
+      ) {
+        return;
+      }
+      const key = event.key.toLowerCase();
+      if (key === 'z' && !event.shiftKey) {
+        event.preventDefault();
+        undo();
+      } else if ((key === 'z' && event.shiftKey) || (key === 'y' && event.ctrlKey && !event.shiftKey)) {
+        event.preventDefault();
+        redo();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [readOnly, undo, redo]);
 
   // Keep keyboard focus on the visible toggle: the collapse button goes inert, the expand button unmounts.
   useEffect(() => {
@@ -148,7 +217,67 @@ export default function PlanEditor({
   function selectWeek(index: number) {
     setWeekIndex(index);
     setSelected(null);
+    setDetailCell(null);
     setPickerSession(false);
+  }
+
+  /** Day shows meals only and Nutrition shows the whole week, so each choice resets the other toggle. */
+  function changeRange(next: EditorRange) {
+    setRange(next);
+    setDetailCell(null);
+    if (next === 'day') {
+      setView('meals');
+      if (selected) {
+        setDayOfWeek(selected.dayOfWeek);
+      }
+    }
+  }
+
+  function changeView(next: EditorView) {
+    setView(next);
+    setDetailCell(null);
+    if (next === 'nutrition') {
+      setRange('week');
+      setLibraryOpen(false);
+    }
+  }
+
+  function selectCell(cell: SelectedCell) {
+    setSelected(cell);
+    const meal = week?.days.find((day) => day.dayOfWeek === cell.dayOfWeek)?.meals[cell.rowIndex];
+    const reopen = detailCell?.dayOfWeek === cell.dayOfWeek && detailCell.rowIndex === cell.rowIndex;
+    setDetailCell(meal && mealItemCount(meal) > 0 && !reopen ? cell : null);
+  }
+
+  function renderDetail(cell: SelectedCell): ReactNode {
+    const meal = week?.days.find((day) => day.dayOfWeek === cell.dayOfWeek)?.meals[cell.rowIndex];
+    if (!meal || !week) {
+      return null;
+    }
+    return (
+      <MealDetail
+        meal={meal}
+        weekIndex={currentIndex}
+        weekNumber={currentIndex + 1}
+        dayOfWeek={cell.dayOfWeek}
+        readOnly={readOnly}
+        language={i18n.language}
+        onEdit={edit}
+        onClose={() => setDetailCell(null)}
+      />
+    );
+  }
+
+  function onMealDragEnd(sourceId: unknown, event: Parameters<typeof move>[1]) {
+    const day = week?.days.find((candidate) => candidate.dayOfWeek === dayOfWeek);
+    if (!day || typeof sourceId !== 'string') {
+      return;
+    }
+    const ids = day.meals.map((meal) => meal.mealId);
+    const next = move(ids, event);
+    if (next.some((id, index) => id !== ids[index])) {
+      edit((current) => reorderMeals(current, currentIndex, dayOfWeek, next));
+    }
   }
 
   function addToCell(item: LibraryItem, cell: SelectedCell) {
@@ -215,8 +344,13 @@ export default function PlanEditor({
   return (
     <DragDropProvider
       sensors={DRAG_SENSORS}
+      plugins={(defaults) => defaults.map((plugin) => (plugin === Feedback ? Feedback.configure({ dropAnimation: null }) : plugin))}
       onDragEnd={(event) => {
         if (event.canceled) {
+          return;
+        }
+        if (isMealDrag(event.operation.source?.data)) {
+          onMealDragEnd(event.operation.source?.id, event);
           return;
         }
         const item = readItem(event.operation.source?.data);
@@ -230,6 +364,7 @@ export default function PlanEditor({
       <div className="flex h-full min-h-0">
         {!readOnly && (
           <div
+            data-plan-library
             className={cn(
               'relative shrink-0 overflow-hidden transition-[width] duration-300 ease-out motion-reduce:transition-none',
               libraryOpen ? 'w-80' : 'w-13',
@@ -265,10 +400,9 @@ export default function PlanEditor({
           </div>
         )}
 
-        <div className="flex min-w-0 flex-1 flex-col gap-4 overflow-y-auto p-6">
-          <div className="flex items-start gap-3">
-            <div className="min-w-0 flex-1">
-              <PlanEditorHeader
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+          <div data-testid="editor-fixed-header" className="flex shrink-0 flex-col">
+            <PlanEditorHeader
                 name={doc.name}
                 onNameChange={(name) => edit((current) => ({ ...current, name }), 'name')}
                 breadcrumbLabel={breadcrumb.label}
@@ -277,12 +411,65 @@ export default function PlanEditor({
                 dirty={dirty}
                 saveStatus={saveState.status}
                 canUndo={canUndo}
+                canRedo={canRedo}
                 onUndo={undo}
+                onRedo={redo}
                 onSave={() => void save()}
+                range={range}
+                view={view}
+                onRangeChange={changeRange}
+                onViewChange={changeView}
               />
-            </div>
+
+            {(range === 'week' || rows.length === 0) && (
+              <div className="px-6 py-3">
+                <WeekTabs
+                  weekCount={doc.weeks.length}
+                  current={currentIndex}
+                  readOnly={readOnly}
+                  onSelect={selectWeek}
+                  onAddWeek={() => {
+                    edit(addWeek);
+                    selectWeek(doc.weeks.length);
+                  }}
+                />
+              </div>
+            )}
+
+            {rows.length > 0 && range === 'day' && (
+              <div className="flex flex-col gap-3 px-6 pt-3 pb-3">
+                <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
+                  <DayNavigator
+                    weekIndex={currentIndex}
+                    weekCount={doc.weeks.length}
+                    onWeekChange={(delta) =>
+                      selectWeek(Math.min(Math.max(currentIndex + delta, 0), doc.weeks.length - 1))
+                    }
+                  />
+                  <WeekdayPills
+                    week={week}
+                    current={dayOfWeek}
+                    dailyKcalTarget={dailyKcalTarget}
+                    onSelect={setDayOfWeek}
+                  />
+                </div>
+                <DayMacroBar
+                  totals={activeDay ? dayTotals(activeDay) : dayTotals({ dayOfWeek, meals: [] })}
+                  targets={targets}
+                  note={activeDay?.note}
+                  readOnly={readOnly}
+                  onNoteChange={(note) =>
+                    edit((current) => setDayNote(current, currentIndex, dayOfWeek, note), `daynote:${currentIndex}:${dayOfWeek}`)
+                  }
+                />
+              </div>
+            )}
           </div>
 
+          <div
+            data-testid="editor-scroll"
+            className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-6 pt-1 pb-6"
+          >
           {readOnly && readOnlyNotice && (
             <p role="note" className="rounded-xl border border-line bg-muted px-4 py-3 text-body text-ink">
               {readOnlyNotice}
@@ -304,28 +491,38 @@ export default function PlanEditor({
             </div>
           )}
 
-          <WeekTabs
-            weekCount={doc.weeks.length}
-            current={currentIndex}
-            readOnly={readOnly}
-            onSelect={selectWeek}
-            onAddWeek={() => {
-              edit(addWeek);
-              selectWeek(doc.weeks.length);
-            }}
-          />
+          {(range === 'week' || rows.length === 0) && (
+            <AveragesBar summary={weekSummary(week)} dailyKcalTarget={dailyKcalTarget} />
+          )}
 
-          <AveragesBar summary={weekSummary(week)} dailyKcalTarget={dailyKcalTarget} />
+          {rows.length > 0 && range === 'day' && (
+            <DayView
+              week={week}
+              weekIndex={currentIndex}
+              dayOfWeek={dayOfWeek}
+              readOnly={readOnly}
+              selected={selected}
+              onSelect={setSelected}
+              onEdit={edit}
+            />
+          )}
 
-          {rows.length > 0 && (
+          {rows.length > 0 && range === 'week' && view === 'meals' && (
             <WeekGrid
               week={week}
               weekIndex={currentIndex}
               dailyKcalTarget={dailyKcalTarget}
               selected={selected}
               readOnly={readOnly}
-              onSelect={setSelected}
+              onSelect={selectCell}
+              detailCell={detailCell}
+              renderDetail={renderDetail}
+              onDetailClose={() => setDetailCell(null)}
             />
+          )}
+
+          {rows.length > 0 && range === 'week' && view === 'nutrition' && (
+            <NutritionView week={week} dailyKcalTarget={dailyKcalTarget} />
           )}
 
           {showPicker && (
@@ -334,8 +531,10 @@ export default function PlanEditor({
               onApplyCommon={applyCommonMeals}
               onAddKind={addMealKind}
               onDone={() => setPickerSession(false)}
+              onCopyMeals={renderCopyMeals ? () => setCopyOpen(true) : undefined}
             />
           )}
+          </div>
         </div>
       </div>
 
@@ -349,6 +548,18 @@ export default function PlanEditor({
           ) : null;
         }}
       </DragOverlay>
+
+      {renderCopyMeals?.({
+        open: copyOpen,
+        onOpenChange: setCopyOpen,
+        onApply: (source) => {
+          const sourceWeek = source.weeks[0];
+          if (sourceWeek) {
+            edit((current) => copyWeekMeals(current, currentIndex, sourceWeek));
+          }
+          setCopyOpen(false);
+        },
+      })}
 
       <Dialog open={leaveOpen} onOpenChange={setLeaveOpen}>
         <DialogContent>
