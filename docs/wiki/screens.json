@@ -359,6 +359,8 @@
         "GET /users/me",
         "PUT /users/me/timezone",
         "POST /users/me/password",
+        "GET /users/me/notification-preferences",
+        "PUT /users/me/notification-preferences",
         "POST /users/me/roles",
         "DELETE /users/me"
       ],

@@ -112,6 +112,9 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public virtual DbSet<DevicePushToken> DevicePushTokens { get; set; } = null!;
 
     /// <inheritdoc />
+    public virtual DbSet<NotificationPreference> NotificationPreferences { get; set; } = null!;
+
+    /// <inheritdoc />
     public virtual DbSet<Conversation> Conversations { get; set; } = null!;
 
     /// <inheritdoc />
@@ -328,6 +331,15 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             e.HasIndex(l => new { l.DiaryRequestId, l.ClientLocalDate })
                 .IsUnique()
                 .HasDatabaseName("ix_photo_diary_reminder_logs_request_date");
+        });
+
+        builder.Entity<NotificationPreference>(e =>
+        {
+            e.HasIndex(p => new { p.UserId, p.Event }).IsUnique();
+            e.HasOne(p => p.User)
+                .WithMany()
+                .HasForeignKey(p => p.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         builder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);

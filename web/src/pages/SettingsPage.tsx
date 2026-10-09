@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useIsMutating, useMutation, useMutationState, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Check, Loader2, TriangleAlert } from 'lucide-react';
 import { getMyProfile, profileKeys, updateMyTimeZone } from '@/api/profile';
 import { showApiError } from '@/lib/api-errors';
@@ -17,6 +17,7 @@ export default function SettingsPage() {
   const meQuery = useQuery({ queryKey: profileKeys.me, queryFn: getMyProfile });
 
   const timeZoneMutation = useMutation({
+    mutationKey: ['settings', 'timeZone'],
     mutationFn: updateMyTimeZone,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: profileKeys.me }),
     onError: (error) => showApiError(error, 'settings.account.timeZoneError'),
@@ -27,7 +28,15 @@ export default function SettingsPage() {
     ? (timeZoneMutation.variables ?? '')
     : (meQuery.data?.timeZone ?? '');
 
-  const status = timeZoneMutation.isPending ? 'saving' : timeZoneMutation.isError ? 'error' : 'saved';
+  // Every Settings save registers under ['settings', ...]; the status line reflects all of them.
+  const savingCount = useIsMutating({ mutationKey: ['settings'] });
+  const lastSettled = useMutationState({
+    filters: { mutationKey: ['settings'] },
+    select: (m) => ({ status: m.state.status, submittedAt: m.state.submittedAt }),
+  })
+    .filter((m) => m.status === 'success' || m.status === 'error')
+    .sort((a, b) => b.submittedAt - a.submittedAt)[0];
+  const status = savingCount > 0 ? 'saving' : lastSettled?.status === 'error' ? 'error' : 'saved';
 
   return (
     <div className="flex w-full flex-col gap-5.5">

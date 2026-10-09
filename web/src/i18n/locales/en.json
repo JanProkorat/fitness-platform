@@ -308,6 +308,7 @@
       "app": "Coach app",
       "emailLabel": "{{event}} by email",
       "appLabel": "{{event}} in the coach app",
+      "saveError": "Could not save your notification settings.",
       "events": {
         "newMessage": {
           "title": "New message",

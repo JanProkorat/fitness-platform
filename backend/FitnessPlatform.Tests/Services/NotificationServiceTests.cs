@@ -259,4 +259,72 @@ public class NotificationServiceTests(NotificationServiceContainerFixture contai
         stored.Data.Should().Contain("Coach Jana");
         stored.Data.Should().Contain(inviteId.ToString());
     }
+
+    /// <summary>
+    /// Saves a join-request preference row for the user through its own context.
+    /// </summary>
+    private async Task SeedJoinRequestPreferenceAsync(Guid userId, bool pushEnabled)
+    {
+        await using var seedDb = NotificationServiceContainerFixture.BuildDbContext(containerFixture.ConnectionString);
+        seedDb.NotificationPreferences.Add(new NotificationPreference
+        {
+            UserId = userId,
+            Event = NotificationEvent.JoinRequest,
+            EmailEnabled = true,
+            PushEnabled = pushEnabled,
+        });
+        await seedDb.SaveChangesAsync(TestContext.Current.CancellationToken);
+    }
+
+    private static readonly Dictionary<string, string> JoinRequestParameters = new() { ["clientName"] = "Petra" };
+
+    /// <summary>
+    /// A join request with push turned off still writes the in-app row but sends no push.
+    /// </summary>
+    [Fact]
+    public async Task CreateAsync_JoinRequestPushDisabled_WritesInAppRowAndSkipsPush()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var recipientId = await SeedUserAsync("en");
+        await SeedJoinRequestPreferenceAsync(recipientId, pushEnabled: false);
+
+        var sut = BuildSut();
+        await sut.CreateAsync(recipientId, NotificationType.ClientRequestReceived, JoinRequestParameters, ct: ct);
+
+        var stored = await _db.Notifications.AsNoTracking().CountAsync(n => n.RecipientUserId == recipientId, ct);
+
+        stored.Should().Be(1);
+        _push.Calls.Should().BeEmpty();
+    }
+
+    /// <summary>
+    /// A join request with push turned on sends the push.
+    /// </summary>
+    [Fact]
+    public async Task CreateAsync_JoinRequestPushEnabled_SendsPush()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var recipientId = await SeedUserAsync("en");
+        await SeedJoinRequestPreferenceAsync(recipientId, pushEnabled: true);
+
+        var sut = BuildSut();
+        await sut.CreateAsync(recipientId, NotificationType.ClientRequestReceived, JoinRequestParameters, ct: ct);
+
+        _push.Calls.Should().ContainSingle(c => c.UserId == recipientId);
+    }
+
+    /// <summary>
+    /// A join request for a user with no saved row falls back to the default (push on).
+    /// </summary>
+    [Fact]
+    public async Task CreateAsync_JoinRequestNoSavedRow_UsesDefaultAndSendsPush()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var recipientId = await SeedUserAsync("en");
+
+        var sut = BuildSut();
+        await sut.CreateAsync(recipientId, NotificationType.ClientRequestReceived, JoinRequestParameters, ct: ct);
+
+        _push.Calls.Should().ContainSingle(c => c.UserId == recipientId);
+    }
 }

@@ -4,6 +4,7 @@ import type {
   ChangePasswordRequest,
   GetProfileResponse,
   GetProfessionalProfileResponse,
+  NotificationPreferenceDto,
 } from '@/api/generated';
 
 /** GET /users/me — current user's profile (name, phone, avatar, roles). */
@@ -94,7 +95,19 @@ export async function updateTrainerProfile(payload: UpdateTrainerProfilePayload)
   await api.put('/trainer/profile', payload);
 }
 
+/** GET /users/me/notification-preferences — one entry per notification event. */
+export async function getNotificationPreferences(): Promise<NotificationPreferenceDto[]> {
+  const result = await apiClient.getNotificationPreferencesEndpoint();
+  return result.preferences ?? [];
+}
+
+/** PUT /users/me/notification-preferences — replaces the full per-event set (204). */
+export async function updateNotificationPreferences(preferences: NotificationPreferenceDto[]): Promise<void> {
+  await apiClient.updateNotificationPreferencesEndpoint({ preferences });
+}
+
 export const profileKeys = {
   me: ['profile', 'me'] as const,
+  notificationPreferences: ['profile', 'notificationPreferences'] as const,
   trainer: ['profile', 'trainer'] as const,
 };
