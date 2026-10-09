@@ -1,3 +1,4 @@
+using FitnessPlatform.Application.Domain.Authorization;
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
@@ -19,6 +20,7 @@ namespace FitnessPlatform.Application.Features.TrainingPlans.CompleteTrainingPla
 /// Marks an active training plan as completed, ending its lifecycle.
 /// Only the owning trainer can complete a plan, and only if the plan is currently Active.
 /// </summary>
+[RemovedCoachRole(AppRoles.Trainer, RemovedCoachRoleMode.WhilePlanInProgress)]
 public class CompleteTrainingPlanEndpoint(
     IMongoContext mongo,
     IApplicationDbContext db,

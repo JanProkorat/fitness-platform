@@ -1,3 +1,5 @@
+using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Authorization;
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
@@ -12,6 +14,7 @@ namespace FitnessPlatform.Application.Features.Trainers.ClientNotes.CreateNote;
 /// <summary>
 /// Creates a private note for a client. Only accessible to Trainers who have an active link with the client.
 /// </summary>
+[RemovedCoachRole(AppRoles.Trainer, RemovedCoachRoleMode.Refuse)]
 public class CreateNoteEndpoint(
     IApplicationDbContext db,
     IMongoContext mongo,

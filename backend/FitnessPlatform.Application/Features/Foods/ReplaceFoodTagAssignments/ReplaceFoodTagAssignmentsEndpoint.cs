@@ -1,3 +1,5 @@
+using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Authorization;
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
@@ -16,6 +18,7 @@ namespace FitnessPlatform.Application.Features.Foods.ReplaceFoodTagAssignments;
 /// tagging is the tagging coach's own private relationship metadata, never a claim on the food.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
+[RemovedCoachRole(AppRoles.Nutritionist, RemovedCoachRoleMode.Refuse)]
 public class ReplaceFoodTagAssignmentsEndpoint(IMongoContext mongo)
     : Endpoint<ReplaceFoodTagAssignmentsRequest, ReplaceFoodTagAssignmentsResponse>
 {

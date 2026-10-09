@@ -1,3 +1,5 @@
+using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Authorization;
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
@@ -15,6 +17,7 @@ namespace FitnessPlatform.Application.Features.NutritionPlanTemplates.DeleteTemp
 /// indistinguishable from a genuinely missing template.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
+[RemovedCoachRole(AppRoles.Nutritionist, RemovedCoachRoleMode.Refuse)]
 public class DeleteTemplateEndpoint(IMongoContext mongo) : EndpointWithoutRequest
 {
     /// <inheritdoc />

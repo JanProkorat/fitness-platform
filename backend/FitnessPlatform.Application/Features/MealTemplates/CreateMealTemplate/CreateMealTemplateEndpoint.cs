@@ -1,3 +1,5 @@
+using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Authorization;
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
@@ -18,6 +20,7 @@ namespace FitnessPlatform.Application.Features.MealTemplates.CreateMealTemplate;
 /// <param name="macroCalculator">Shared meal-totals calculator (#859 — promoted from the
 /// nutrition-plan write path so both report identical totals for the same underlying meal).</param>
 /// <param name="timeProvider">Injected system clock.</param>
+[RemovedCoachRole(AppRoles.Nutritionist, RemovedCoachRoleMode.Refuse)]
 internal sealed class CreateMealTemplateEndpoint(
     IMongoContext mongo,
     IMacroCalculatorService macroCalculator,

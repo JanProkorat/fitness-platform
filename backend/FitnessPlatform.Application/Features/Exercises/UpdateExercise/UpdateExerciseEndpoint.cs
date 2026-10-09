@@ -1,3 +1,5 @@
+using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Authorization;
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
@@ -14,6 +16,7 @@ namespace FitnessPlatform.Application.Features.Exercises.UpdateExercise;
 /// Uses optimistic concurrency — the client must supply the current Version and it is bumped on each write.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
+[RemovedCoachRole(AppRoles.Trainer, RemovedCoachRoleMode.Refuse)]
 public class UpdateExerciseEndpoint(IMongoContext mongo) : Endpoint<UpdateExerciseRequest, ExerciseSummary>
 {
     /// <inheritdoc />

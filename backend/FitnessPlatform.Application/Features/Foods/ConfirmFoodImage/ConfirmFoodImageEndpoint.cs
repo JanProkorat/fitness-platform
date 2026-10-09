@@ -1,3 +1,4 @@
+using FitnessPlatform.Application.Domain.Authorization;
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
@@ -21,6 +22,7 @@ namespace FitnessPlatform.Application.Features.Foods.ConfirmFoodImage;
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="imageUpload">Image upload service — validates the main-slot blobUrl matches this food's presigned key.</param>
+[RemovedCoachRole(AppRoles.Nutritionist, RemovedCoachRoleMode.Refuse)]
 public class ConfirmFoodImageEndpoint(IMongoContext mongo, IImageUploadService imageUpload) : Endpoint<ConfirmFoodImageRequest>
 {
     private const int GalleryCap = 6;

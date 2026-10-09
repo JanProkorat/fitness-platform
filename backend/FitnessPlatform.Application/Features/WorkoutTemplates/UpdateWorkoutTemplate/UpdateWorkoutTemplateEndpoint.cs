@@ -1,3 +1,5 @@
+using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Authorization;
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
@@ -14,6 +16,7 @@ namespace FitnessPlatform.Application.Features.WorkoutTemplates.UpdateWorkoutTem
 /// Full-state update of a workout template. Uses optimistic concurrency via the Version field.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
+[RemovedCoachRole(AppRoles.Trainer, RemovedCoachRoleMode.Refuse)]
 public class UpdateWorkoutTemplateEndpoint(IMongoContext mongo)
     : Endpoint<UpdateWorkoutTemplateRequest, WorkoutTemplateResponse>
 {

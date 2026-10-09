@@ -1,3 +1,4 @@
+using FitnessPlatform.Application.Domain.Authorization;
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
@@ -9,6 +10,7 @@ using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.TrainingPlans.GetTrainingPlan;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Application.Middleware;
 using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Features.TrainingPlans.UpdateTrainingPlan;
@@ -28,6 +30,7 @@ namespace FitnessPlatform.Application.Features.TrainingPlans.UpdateTrainingPlan;
 /// <param name="db">PostgreSQL context — resolves the client's PublicId for the response.</param>
 /// <param name="linkAuthorizationService">Resolves link capabilities — authorship identifies the
 /// plan, the caller's live link to its client decides access.</param>
+[RemovedCoachRole(AppRoles.Trainer, RemovedCoachRoleMode.WhilePlanInProgress)]
 public class UpdateTrainingPlanEndpoint(
     IMongoContext mongo,
     ISessionLockService lockService,
@@ -81,6 +84,19 @@ public class UpdateTrainingPlanEndpoint(
             (plan, authorizeCt) => AuthorizeAsync(plan, trainerId, authorizeCt),
             async (plan, mutateCt) =>
             {
+                // A removed role may finish its in-progress plans but not push their end date out.
+                if (HttpContext.Items.ContainsKey(RemovedCoachRoleMiddleware.RoleRemovedItemKey)
+                    && plan.StartDate.HasValue
+                    && PlanWindowResolver.EndsLater(plan.StartDate.Value, plan.Weeks.Count, req.StartDate, req.Weeks.Count))
+                {
+                    await this.SendErrorWithCodeAsync(
+                        ErrorCodes.CoachRoleRemoved,
+                        "This coach role was removed; an in-progress plan cannot be extended.",
+                        StatusCodes.Status403Forbidden,
+                        mutateCt);
+                    return false;
+                }
+
                 // Build lookup of existing week statuses
                 var existingWeeks = plan.Weeks.ToDictionary(w => w.WeekNumber);
 

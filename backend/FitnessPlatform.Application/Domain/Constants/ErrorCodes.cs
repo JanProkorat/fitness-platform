@@ -453,4 +453,8 @@ public static class ErrorCodes
     // ── Client Message Stats (#1098) ────────────────────────────────────
     /// <summary>The requested number of weeks for the message stats is outside 1-26.</summary>
     public const string MessageStatsWeeksOutOfRange = "MESSAGE_STATS_WEEKS_OUT_OF_RANGE";
+
+    // ── Remove coach role (#1265) ───────────────────────────────────────
+    /// <summary>The write belongs to a coach role the caller has removed (read-only).</summary>
+    public const string CoachRoleRemoved = "COACH_ROLE_REMOVED";
 }

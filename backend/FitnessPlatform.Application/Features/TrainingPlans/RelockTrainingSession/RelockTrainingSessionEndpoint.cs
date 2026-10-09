@@ -1,3 +1,4 @@
+using FitnessPlatform.Application.Domain.Authorization;
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
@@ -16,6 +17,7 @@ namespace FitnessPlatform.Application.Features.TrainingPlans.RelockTrainingSessi
 /// Emits <c>sessioneditlockchanged</c> (state=Stable) to both client and trainer when a lock is actually released.
 /// Only emits on a real state transition (ReleaseAsync returns true).
 /// </summary>
+[RemovedCoachRole(AppRoles.Trainer, RemovedCoachRoleMode.WhilePlanInProgress)]
 public class RelockTrainingSessionEndpoint(
     IMongoContext mongo,
     ISessionLockService lockService,

@@ -1,3 +1,5 @@
+using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Authorization;
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
@@ -12,6 +14,7 @@ namespace FitnessPlatform.Application.Features.Foods.DeleteFood;
 /// Soft-deletes a custom food item. Only the owning nutritionist can delete.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
+[RemovedCoachRole(AppRoles.Nutritionist, RemovedCoachRoleMode.Refuse)]
 public class DeleteFoodEndpoint(IMongoContext mongo) : Endpoint<DeleteFoodRequest>
 {
     /// <inheritdoc />

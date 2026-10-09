@@ -1,3 +1,5 @@
+using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Authorization;
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
@@ -12,6 +14,7 @@ namespace FitnessPlatform.Application.Features.Recipes.RemoveRecipeGalleryImage;
 /// Removes one gallery image URL from a recipe. The blob is not deleted and the recipe Version is untouched.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
+[RemovedCoachRole(AppRoles.Nutritionist, RemovedCoachRoleMode.Refuse)]
 public class RemoveRecipeGalleryImageEndpoint(IMongoContext mongo) : Endpoint<RemoveRecipeGalleryImageRequest>
 {
     /// <inheritdoc />

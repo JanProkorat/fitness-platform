@@ -1,3 +1,5 @@
+using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Authorization;
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
@@ -16,6 +18,7 @@ namespace FitnessPlatform.Application.Features.SessionTemplates.UpdateSessionTem
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="guard">Shared version-gated fetch-check-replace skeleton.</param>
 /// <param name="timeProvider">Injected system clock.</param>
+[RemovedCoachRole(AppRoles.Trainer, RemovedCoachRoleMode.Refuse)]
 internal sealed class UpdateSessionTemplateEndpoint(
     IMongoContext mongo,
     PlanConcurrencyGuard guard,

@@ -1,3 +1,5 @@
+using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Authorization;
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
@@ -15,6 +17,7 @@ namespace FitnessPlatform.Application.Features.SessionTemplates.DeleteSessionTem
 /// library has no archived/soft-delete member (see <c>ILibraryDocument</c>'s remarks).
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
+[RemovedCoachRole(AppRoles.Trainer, RemovedCoachRoleMode.Refuse)]
 internal sealed class DeleteSessionTemplateEndpoint(IMongoContext mongo)
     : Endpoint<DeleteSessionTemplateRequest, object>
 {

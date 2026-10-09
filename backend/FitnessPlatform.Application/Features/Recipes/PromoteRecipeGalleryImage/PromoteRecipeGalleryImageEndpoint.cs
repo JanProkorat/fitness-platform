@@ -1,3 +1,5 @@
+using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Authorization;
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
@@ -13,6 +15,7 @@ namespace FitnessPlatform.Application.Features.Recipes.PromoteRecipeGalleryImage
 /// gallery position; with no main image the entry simply moves out of the gallery. Version is untouched.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
+[RemovedCoachRole(AppRoles.Nutritionist, RemovedCoachRoleMode.Refuse)]
 public class PromoteRecipeGalleryImageEndpoint(IMongoContext mongo) : Endpoint<PromoteRecipeGalleryImageRequest>
 {
     /// <inheritdoc />

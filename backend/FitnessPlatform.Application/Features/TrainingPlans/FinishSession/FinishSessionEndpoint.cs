@@ -1,3 +1,4 @@
+using FitnessPlatform.Application.Domain.Authorization;
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Common;
@@ -26,6 +27,7 @@ namespace FitnessPlatform.Application.Features.TrainingPlans.FinishSession;
 /// persisted time zone (#935). Whoever writes <see cref="SessionExecution.Date"/> resolves it
 /// from the client's own time zone regardless of which role drove the mutation, so the client's
 /// own Today card reads back the same calendar day this trainer-initiated finish wrote.</param>
+[RemovedCoachRole(AppRoles.Trainer, RemovedCoachRoleMode.WhilePlanInProgress)]
 public class FinishSessionEndpoint(
     IMongoContext mongo,
     IWorkoutCompletionService completionService,

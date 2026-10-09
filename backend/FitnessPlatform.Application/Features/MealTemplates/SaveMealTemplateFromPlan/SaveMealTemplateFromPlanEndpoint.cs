@@ -1,3 +1,5 @@
+using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Authorization;
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
@@ -23,6 +25,7 @@ namespace FitnessPlatform.Application.Features.MealTemplates.SaveMealTemplateFro
 /// <param name="timeProvider">Injected system clock.</param>
 /// <param name="linkAuthorizationService">Resolves link capabilities — authorship identifies the
 /// source plan, the caller's live link to its client decides access.</param>
+[RemovedCoachRole(AppRoles.Nutritionist, RemovedCoachRoleMode.Refuse)]
 internal sealed class SaveMealTemplateFromPlanEndpoint(
     IMongoContext mongo,
     IMacroCalculatorService macroCalculator,

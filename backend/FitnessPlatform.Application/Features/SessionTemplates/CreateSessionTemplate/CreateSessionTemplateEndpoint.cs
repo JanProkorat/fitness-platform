@@ -1,3 +1,5 @@
+using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Authorization;
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
@@ -14,6 +16,7 @@ namespace FitnessPlatform.Application.Features.SessionTemplates.CreateSessionTem
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="timeProvider">Injected system clock.</param>
+[RemovedCoachRole(AppRoles.Trainer, RemovedCoachRoleMode.Refuse)]
 internal sealed class CreateSessionTemplateEndpoint(IMongoContext mongo, TimeProvider timeProvider)
     : Endpoint<CreateSessionTemplateRequest, SessionTemplateDetailResponse>
 {

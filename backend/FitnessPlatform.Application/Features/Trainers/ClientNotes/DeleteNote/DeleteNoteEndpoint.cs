@@ -1,3 +1,5 @@
+using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Authorization;
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
@@ -13,6 +15,7 @@ namespace FitnessPlatform.Application.Features.Trainers.ClientNotes.DeleteNote;
 /// <summary>
 /// Deletes a trainer note. Only the authoring trainer may delete.
 /// </summary>
+[RemovedCoachRole(AppRoles.Trainer, RemovedCoachRoleMode.Refuse)]
 public class DeleteNoteEndpoint(
     IApplicationDbContext db,
     IMongoContext mongo,

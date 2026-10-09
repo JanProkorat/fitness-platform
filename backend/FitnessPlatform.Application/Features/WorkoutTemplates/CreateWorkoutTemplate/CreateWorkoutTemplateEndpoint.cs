@@ -1,3 +1,4 @@
+using FitnessPlatform.Application.Domain.Authorization;
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
@@ -12,6 +13,7 @@ namespace FitnessPlatform.Application.Features.WorkoutTemplates.CreateWorkoutTem
 /// Creates a new workout template for the calling trainer.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
+[RemovedCoachRole(AppRoles.Trainer, RemovedCoachRoleMode.Refuse)]
 public class CreateWorkoutTemplateEndpoint(IMongoContext mongo)
     : Endpoint<CreateWorkoutTemplateRequest, WorkoutTemplateResponse>
 {

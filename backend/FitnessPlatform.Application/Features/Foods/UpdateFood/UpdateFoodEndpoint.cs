@@ -1,3 +1,5 @@
+using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Authorization;
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
@@ -14,6 +16,7 @@ namespace FitnessPlatform.Application.Features.Foods.UpdateFood;
 /// Updates a custom food item. Only the owning nutritionist can edit.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
+[RemovedCoachRole(AppRoles.Nutritionist, RemovedCoachRoleMode.Refuse)]
 public class UpdateFoodEndpoint(IMongoContext mongo) : Endpoint<UpdateFoodRequest, FoodSummary>
 {
     /// <inheritdoc />
