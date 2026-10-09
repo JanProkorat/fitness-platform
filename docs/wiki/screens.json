@@ -450,6 +450,8 @@
         "GET /users/me/roles",
         "POST /users/me/roles",
         "DELETE /users/me/roles/{role}",
+        "POST /users/me/coach-account/disable",
+        "POST /users/me/coach-account/keep",
         "DELETE /users/me"
       ],
       "board": "PageSettings",
