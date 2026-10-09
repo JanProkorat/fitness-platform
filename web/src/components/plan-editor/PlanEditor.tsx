@@ -73,6 +73,8 @@ import {
   type SaveStatus,
 } from '@/components/plan-editor/plan-editor-types';
 import { usePlanEditorState } from '@/components/plan-editor/usePlanEditorState';
+import { useSlideTransition } from '@/components/plan-editor/useSlideTransition';
+import { useSwipeNavigation } from '@/components/plan-editor/useSwipeNavigation';
 
 export interface PlanEditorSaveState {
   status: SaveStatus;
@@ -177,6 +179,8 @@ export default function PlanEditor({
   const expandRef = useRef<HTMLButtonElement>(null);
   const collapseRef = useRef<HTMLButtonElement>(null);
   const libraryToggled = useRef(false);
+  const dragActive = useRef(false);
+  const slide = useSlideTransition();
 
   const currentIndex = Math.min(weekIndex, doc.weeks.length - 1);
   const week = doc.weeks[currentIndex];
@@ -235,12 +239,38 @@ export default function PlanEditor({
     setLibraryOpen(open);
   }
 
-  function selectWeek(index: number) {
-    setWeekIndex(index);
+  /** Every week or day change goes through here: it closes open popovers, then slides the content. */
+  function navigate(target: { week?: number; day?: number }) {
+    const toWeek = target.week ?? currentIndex;
+    const toDay = target.day ?? dayOfWeek;
+    if (toWeek === currentIndex && toDay === dayOfWeek) {
+      return;
+    }
+    slide.start((toWeek !== currentIndex ? toWeek > currentIndex : toDay > dayOfWeek) ? 'next' : 'prev');
+    setWeekIndex(toWeek);
+    setDayOfWeek(toDay);
     setSelected(null);
     setDetailCell(null);
     setPendingRemoval(null);
   }
+
+  /** One swipe step: the day in the Day view (no wrap into the next week), otherwise the week. */
+  function swipe(direction: 'next' | 'prev') {
+    const step = direction === 'next' ? 1 : -1;
+    if (range === 'day' && rows.length > 0) {
+      const nextDay = dayOfWeek + step;
+      if (nextDay >= 1 && nextDay <= 7) {
+        navigate({ day: nextDay });
+      }
+      return;
+    }
+    const nextWeek = currentIndex + step;
+    if (nextWeek >= 0 && nextWeek < doc.weeks.length) {
+      navigate({ week: nextWeek });
+    }
+  }
+
+  useSwipeNavigation(scrollArea, swipe, () => slide.isSliding() || dragActive.current);
 
   /** Day shows meals only and Nutrition shows the whole week, so each choice resets the other toggle. */
   function changeRange(next: EditorRange) {
@@ -477,13 +507,20 @@ export default function PlanEditor({
     <DragDropProvider
       sensors={DRAG_SENSORS}
       plugins={(defaults) => defaults.map((plugin) => (plugin === Feedback ? Feedback.configure({ dropAnimation: null }) : plugin))}
+      onBeforeDragStart={(event) => {
+        if (slide.isSliding()) {
+          event.preventDefault();
+        }
+      }}
       onDragStart={(event, manager) => {
+        dragActive.current = true;
         // The meal popover is a small scrolling box; auto-scroll would move its rows away from the pointer mid-drag.
         if (readMealItemDrag(event.operation.source?.data)) {
           manager.registry.plugins.get(AutoScroller)?.disable();
         }
       }}
       onDragEnd={(event, manager) => {
+        dragActive.current = false;
         manager.registry.plugins.get(AutoScroller)?.enable();
         if (event.canceled) {
           return;
@@ -614,10 +651,10 @@ export default function PlanEditor({
                   weekCount={doc.weeks.length}
                   current={currentIndex}
                   readOnly={readOnly}
-                  onSelect={selectWeek}
+                  onSelect={(index) => navigate({ week: index })}
                   onAddWeek={() => {
                     edit(addWeek);
-                    selectWeek(doc.weeks.length);
+                    navigate({ week: doc.weeks.length });
                   }}
                 />
               </div>
@@ -630,14 +667,14 @@ export default function PlanEditor({
                     weekIndex={currentIndex}
                     weekCount={doc.weeks.length}
                     onWeekChange={(delta) =>
-                      selectWeek(Math.min(Math.max(currentIndex + delta, 0), doc.weeks.length - 1))
+                      navigate({ week: Math.min(Math.max(currentIndex + delta, 0), doc.weeks.length - 1) })
                     }
                   />
                   <WeekdayPills
                     week={week}
                     current={dayOfWeek}
                     dailyKcalTarget={dailyKcalTarget}
-                    onSelect={setDayOfWeek}
+                    onSelect={(day) => navigate({ day })}
                   />
                 </div>
                 <DaySummaryCard
@@ -665,7 +702,7 @@ export default function PlanEditor({
           <div
             ref={setScrollArea}
             data-testid="editor-scroll"
-            className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-6 pt-1 pb-6"
+            className="flex min-h-0 flex-1 touch-pan-y touch-pinch-zoom flex-col gap-4 overflow-y-auto overflow-x-clip overscroll-x-contain px-6 pt-1 pb-6"
           >
           {readOnly && readOnlyNotice && (
             <p role="note" className="rounded-xl border border-line bg-muted px-4 py-3 text-body text-ink">
@@ -688,6 +725,7 @@ export default function PlanEditor({
             </div>
           )}
 
+          <div key={slide.slide?.key ?? 0} data-slide={slide.slide?.direction} className="flex min-w-0 flex-col gap-4">
           {rows.length > 0 && range === 'day' && (
             <DayView
               week={week}
@@ -727,6 +765,7 @@ export default function PlanEditor({
               onCopyMeals={renderCopyMeals ? () => setCopyOpen(true) : undefined}
             />
           )}
+          </div>
           </div>
         </div>
       </div>
