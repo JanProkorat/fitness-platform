@@ -4,7 +4,7 @@ namespace FitnessPlatform.Application.Domain.Authorization;
 
 /// <summary>
 /// Declares how a single-discipline write endpoint behaves after the caller removed that coach role.
-/// Read by <c>RemovedCoachRolePreProcessor</c>; an unannotated write fails closed as <see cref="RemovedCoachRoleMode.Refuse"/>.
+/// Read by <c>RemovedCoachRoleMiddleware</c>; an unannotated write fails closed as <see cref="RemovedCoachRoleMode.Refuse"/>.
 /// </summary>
 /// <param name="role">The endpoint's single coach role (Trainer or Nutritionist).</param>
 /// <param name="mode">Behaviour once that role is removed.</param>

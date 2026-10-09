@@ -92,7 +92,9 @@ public class AcceptClientRequestEndpoint(
         // ProfessionalRole remains a single display label (used elsewhere for UI text) —
         // prefer Nutritionist when both are held, matching prior behavior; the two
         // CanView* flags below are what actually gate plan access and are independent.
-        var professionalRole = isNutritionist ? UserRole.Nutritionist : UserRole.Trainer;
+        var professionalRole = isNutritionist && !CoachRoleStatus.IsRemoved(professionalProfile, AppRoles.Nutritionist)
+            ? UserRole.Nutritionist
+            : UserRole.Trainer;
 
         // A caller-requested scope narrows the CanView* flags below the full set implied
         // by the caller's held roles — it must never widen them. Reject (400), don't
@@ -114,19 +116,20 @@ public class AcceptClientRequestEndpoint(
             return;
         }
 
-        var canViewNutritionPlans = req.RequestedScope switch
-        {
-            LinkCapabilityScope.NutritionOnly => true,
-            LinkCapabilityScope.TrainingOnly => false,
-            _ => isNutritionist
-        };
+        // A removed coach role is read-only: it may not seed a link. Only active roles grant flags.
+        var heldCoachRoles = new[] { AppRoles.Trainer, AppRoles.Nutritionist }.Where(User.IsInRole).ToList();
 
-        var canViewTrainingPlans = req.RequestedScope switch
+        if (!CoachRoleStatus.TryResolveLinkGrant(
+                req.RequestedScope, heldCoachRoles, professionalProfile,
+                out var canViewNutritionPlans, out var canViewTrainingPlans))
         {
-            LinkCapabilityScope.TrainingOnly => true,
-            LinkCapabilityScope.NutritionOnly => false,
-            _ => isTrainer
-        };
+            await this.SendErrorWithCodeAsync(
+                ErrorCodes.CoachRoleRemoved,
+                "This coach role was removed; the account is read-only for it.",
+                StatusCodes.Status403Forbidden,
+                ct);
+            return;
+        }
 
         // Serialize the slot check below against a concurrent link creation for the SAME client
         // (#1009). Under READ COMMITTED neither racer can see the other's uncommitted link, so

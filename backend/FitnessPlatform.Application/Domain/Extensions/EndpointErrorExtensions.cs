@@ -9,18 +9,31 @@ namespace FitnessPlatform.Application.Domain.Extensions;
 public static class EndpointErrorExtensions
 {
     /// <summary>
-    /// Adds a validation failure with an error code and throws immediately (HTTP 400 unless overridden).
+    /// Adds a validation failure with an error code and throws immediately (returns HTTP 400).
     /// </summary>
     /// <param name="endpoint">The endpoint instance.</param>
     /// <param name="errorCode">Machine-readable error code for frontend translation.</param>
     /// <param name="message">Human-readable fallback message.</param>
-    /// <param name="statusCode">HTTP status of the errors response.</param>
-    public static void ThrowErrorWithCode(this IEndpoint endpoint, string errorCode, string message, int statusCode = 400)
+    public static void ThrowErrorWithCode(this IEndpoint endpoint, string errorCode, string message)
     {
         endpoint.ValidationFailures.Add(new ValidationFailure("", message) { ErrorCode = errorCode });
-        endpoint.HttpContext.Response.StatusCode = statusCode;
+        endpoint.HttpContext.Response.StatusCode = 400;
         throw new ValidationFailureException(endpoint.ValidationFailures, message);
     }
+
+    /// <summary>
+    /// Writes a coded <c>errors[]</c> response with a status other than 400 (the throw path is fixed at 400).
+    /// Does NOT throw — the caller must return after this call.
+    /// </summary>
+    /// <param name="endpoint">The endpoint instance.</param>
+    /// <param name="errorCode">Machine-readable error code.</param>
+    /// <param name="message">Human-readable fallback message.</param>
+    /// <param name="statusCode">HTTP status code (e.g. 403).</param>
+    /// <param name="ct">Cancellation token.</param>
+    public static Task SendErrorWithCodeAsync(
+        this IEndpoint endpoint, string errorCode, string message, int statusCode, CancellationToken ct = default) =>
+        endpoint.HttpContext.Response.SendErrorsAsync(
+            [new ValidationFailure("", message) { ErrorCode = errorCode }], statusCode, cancellation: ct);
 
     /// <summary>
     /// Writes an RFC 7807 Problem Details response with the given HTTP status code and error code.

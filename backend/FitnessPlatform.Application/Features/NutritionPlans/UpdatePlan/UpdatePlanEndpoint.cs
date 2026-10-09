@@ -10,6 +10,7 @@ using FitnessPlatform.Application.Features.NutritionPlans.GetPlan;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Application.Middleware;
 using Microsoft.EntityFrameworkCore;
 using MongoDB.Driver;
 
@@ -73,7 +74,7 @@ public class UpdatePlanEndpoint(
             req.Version,
             p => p.Version,
             (plan, authorizeCt) => AuthorizeAsync(plan, nutritionistId, authorizeCt),
-            (plan, _) => MutateAsync(plan, req),
+            (plan, mutateCt) => MutateAsync(plan, req, mutateCt),
             ct);
 
         switch (guardResult.Outcome)
@@ -90,7 +91,7 @@ public class UpdatePlanEndpoint(
                     "Version conflict. The plan was modified concurrently.", ct);
                 return;
             case PlanConcurrencyOutcome.HandledByMutator:
-                // The authorize delegate already wrote its 404.
+                // The authorize delegate wrote its 404, or the mutate delegate refused a removed-role extension.
                 return;
         }
 
@@ -139,14 +140,32 @@ public class UpdatePlanEndpoint(
         return false;
     }
 
+    private async Task<bool> RefuseExtensionAsync(CancellationToken ct)
+    {
+        await this.SendErrorWithCodeAsync(
+            ErrorCodes.CoachRoleRemoved,
+            "This coach role was removed; an in-progress plan cannot be extended.",
+            StatusCodes.Status403Forbidden,
+            ct);
+        return false;
+    }
+
     /// <summary>
     /// Endpoint-specific validation and mutation applied to the fetched plan before the
     /// version-gated replace. Synchronous — declared as returning <c>Task&lt;bool&gt;</c> to
     /// satisfy the guard's mutate-delegate contract. Always returns <c>true</c>: no error path
     /// here writes a response directly, validation failures throw via <c>ThrowError</c> instead.
     /// </summary>
-    private Task<bool> MutateAsync(NutritionPlan plan, UpdatePlanRequest req)
+    private Task<bool> MutateAsync(NutritionPlan plan, UpdatePlanRequest req, CancellationToken ct)
     {
+        // A removed role may finish its in-progress plans but not push their end date out.
+        if (HttpContext.Items.ContainsKey(RemovedCoachRoleMiddleware.RoleRemovedItemKey)
+            && plan.StartDate.HasValue
+            && PlanWindowResolver.EndsLater(plan.StartDate.Value, plan.Weeks.Count, req.StartDate, req.Weeks.Count))
+        {
+            return RefuseExtensionAsync(ct);
+        }
+
         // Build lookup of existing week statuses
         var existingWeeks = plan.Weeks.ToDictionary(w => w.WeekNumber);
 

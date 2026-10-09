@@ -1,5 +1,6 @@
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.AspNetCore.Identity;
@@ -50,6 +51,47 @@ public class CoachRoleStatus(UserManager<ApplicationUser> userManager, IApplicat
             .Where(role => role is AppRoles.Trainer or AppRoles.Nutritionist)
             .Where(role => !IsRemoved(profile, role))
             .ToList();
+
+    /// <summary>
+    /// Resolves the plan-view flags a new or reactivated link may carry, counting only coach roles that
+    /// are not removed. Returns false when the scope covers only a removed role, or when no scope is
+    /// given and every held coach role is removed.
+    /// </summary>
+    /// <param name="scope">The requested scope, or null for the implicit default.</param>
+    /// <param name="heldRoles">Identity roles of the professional.</param>
+    /// <param name="profile">The professional's profile, or null.</param>
+    /// <param name="canViewNutritionPlans">Nutrition flag for the link.</param>
+    /// <param name="canViewTrainingPlans">Training flag for the link.</param>
+    public static bool TryResolveLinkGrant(
+        LinkCapabilityScope? scope,
+        IEnumerable<string> heldRoles,
+        ProfessionalProfile? profile,
+        out bool canViewNutritionPlans,
+        out bool canViewTrainingPlans)
+    {
+        var held = heldRoles.ToList();
+        var active = ActiveRoles(held, profile);
+
+        canViewNutritionPlans = scope switch
+        {
+            LinkCapabilityScope.NutritionOnly => true,
+            LinkCapabilityScope.TrainingOnly => false,
+            _ => active.Contains(AppRoles.Nutritionist),
+        };
+        canViewTrainingPlans = scope switch
+        {
+            LinkCapabilityScope.TrainingOnly => true,
+            LinkCapabilityScope.NutritionOnly => false,
+            _ => active.Contains(AppRoles.Trainer),
+        };
+
+        return scope switch
+        {
+            LinkCapabilityScope.NutritionOnly => !IsRemoved(profile, AppRoles.Nutritionist),
+            LinkCapabilityScope.TrainingOnly => !IsRemoved(profile, AppRoles.Trainer),
+            _ => active.Count > 0 || !held.Any(role => role is AppRoles.Trainer or AppRoles.Nutritionist),
+        };
+    }
 
     /// <summary>
     /// True when <paramref name="role"/> carries a removal marker on the profile.

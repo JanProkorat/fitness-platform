@@ -17,39 +17,37 @@ using MongoDB.Driver;
 namespace FitnessPlatform.Application.Middleware;
 
 /// <summary>
-/// Global pre-processor that makes a removed coach role read-only. Reads, non-coach and dual-discipline
-/// endpoints exit without any database work; an unannotated single-discipline write fails closed as a refusal.
+/// Single global gate that makes a removed coach role read-only. Reads, non-coach and dual-discipline
+/// endpoints pass with no database work; an unannotated single-discipline write fails closed as a refusal.
+/// Runs as middleware rather than a FastEndpoints pre-processor because FastEndpoints still validates the
+/// request after a pre-processor answers, and endpoints that rethrow (DontCatchExceptions) then abort the response.
 /// </summary>
-public sealed class RemovedCoachRolePreProcessor : IGlobalPreProcessor
+/// <param name="next">The next middleware.</param>
+public sealed class RemovedCoachRoleMiddleware(RequestDelegate next)
 {
     /// <summary><see cref="HttpContext.Items"/> key set to true when the caller's role is removed but the write was let through.</summary>
     public const string RoleRemovedItemKey = "RemovedCoachRole.Removed";
 
     private static readonly string[] ReadMethods = ["GET", "HEAD", "OPTIONS"];
 
-    private static readonly ConcurrentDictionary<Microsoft.AspNetCore.Http.Endpoint, GateRule> Rules = new();
+    private static readonly ConcurrentDictionary<Endpoint, GateRule> Rules = new();
 
-    /// <inheritdoc />
-    public async Task PreProcessAsync(IPreProcessorContext context, CancellationToken ct)
+    /// <summary>Applies the gate to one request.</summary>
+    /// <param name="http">The request context.</param>
+    public async Task InvokeAsync(HttpContext http)
     {
-        var http = context.HttpContext;
         var endpoint = http.GetEndpoint();
-
-        if (endpoint is null)
-        {
-            return;
-        }
-
-        var rule = Rules.GetOrAdd(endpoint, Resolve);
+        var rule = endpoint is null ? GateRule.Open : Rules.GetOrAdd(endpoint, Resolve);
 
         if (rule.Mode is null or RemovedCoachRoleMode.Exempt || !http.User.IsInRole(rule.Role))
         {
+            await next(http);
             return;
         }
 
         if (!Guid.TryParse(http.User.FindFirstValue(AppClaims.UserId), out var userId))
         {
-            await RefuseAsync(http, ct);
+            await RefuseAsync(http);
             return;
         }
 
@@ -58,7 +56,7 @@ public sealed class RemovedCoachRolePreProcessor : IGlobalPreProcessor
             .AsNoTracking()
             .Where(profile => profile.UserId == userId)
             .Select(profile => new { profile.TrainerRoleRemovedAt, profile.NutritionistRoleRemovedAt })
-            .FirstOrDefaultAsync(ct);
+            .FirstOrDefaultAsync(http.RequestAborted);
 
         var removed = rule.Role == AppRoles.Trainer
             ? removal?.TrainerRoleRemovedAt is not null
@@ -66,20 +64,22 @@ public sealed class RemovedCoachRolePreProcessor : IGlobalPreProcessor
 
         if (!removed)
         {
+            await next(http);
             return;
         }
 
         if (rule.Mode == RemovedCoachRoleMode.WhilePlanInProgress &&
-            await IsPlanInProgressAsync(http, rule.Role, userId, ct))
+            await IsPlanInProgressAsync(http, rule.Role, userId))
         {
             http.Items[RoleRemovedItemKey] = true;
+            await next(http);
             return;
         }
 
-        await RefuseAsync(http, ct);
+        await RefuseAsync(http);
     }
 
-    private static async Task<bool> IsPlanInProgressAsync(HttpContext http, string role, Guid userId, CancellationToken ct)
+    private static async Task<bool> IsPlanInProgressAsync(HttpContext http, string role, Guid userId)
     {
         if (!Guid.TryParse(http.GetRouteValue("PlanId")?.ToString(), out var planId))
         {
@@ -94,7 +94,7 @@ public sealed class RemovedCoachRolePreProcessor : IGlobalPreProcessor
             var plan = await mongo.TrainingPlans
                 .Find(p => p.ExternalId == planId && p.TrainerId == userId)
                 .Project(p => new { p.Status, p.StartDate, WeekCount = p.Weeks.Count })
-                .FirstOrDefaultAsync(ct);
+                .FirstOrDefaultAsync(http.RequestAborted);
 
             return plan is not null &&
                    plan.Status == TrainingPlanStatus.Active &&
@@ -104,23 +104,23 @@ public sealed class RemovedCoachRolePreProcessor : IGlobalPreProcessor
         var nutritionPlan = await mongo.NutritionPlans
             .Find(p => p.ExternalId == planId && p.NutritionistId == userId)
             .Project(p => new { p.Status, p.StartDate, WeekCount = p.Weeks.Count })
-            .FirstOrDefaultAsync(ct);
+            .FirstOrDefaultAsync(http.RequestAborted);
 
         return nutritionPlan is not null &&
                nutritionPlan.Status == NutritionPlanStatus.Active &&
                PlanWindowResolver.HasNotEnded(nutritionPlan.StartDate, nutritionPlan.WeekCount, today);
     }
 
-    private static Task RefuseAsync(HttpContext http, CancellationToken ct) =>
+    private static Task RefuseAsync(HttpContext http) =>
         http.Response.SendErrorsAsync(
             [new ValidationFailure("", "This coach role was removed; the account is read-only for it.")
             {
                 ErrorCode = ErrorCodes.CoachRoleRemoved,
             }],
             StatusCodes.Status403Forbidden,
-            cancellation: ct);
+            cancellation: http.RequestAborted);
 
-    private static GateRule Resolve(Microsoft.AspNetCore.Http.Endpoint endpoint)
+    private static GateRule Resolve(Endpoint endpoint)
     {
         var methods = endpoint.Metadata.GetMetadata<IHttpMethodMetadata>()?.HttpMethods ?? [];
 

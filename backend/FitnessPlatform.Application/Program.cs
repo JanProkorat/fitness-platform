@@ -449,6 +449,9 @@ app.UseAuthorization();
 app.UseMiddleware<LocaleCaptureMiddleware>();
 app.MapHub<NotificationHub>("/hubs/notifications");
 app.UseRateLimiter();
+// Read-only gate after a coach role is removed (see RemovedCoachRoleAttribute); needs the resolved
+// endpoint and the authenticated user, so it sits after authorization and before the endpoint runs.
+app.UseMiddleware<RemovedCoachRoleMiddleware>();
 // NOTE: ResetTestStateEndpoint is always registered in the route table.
 // The single gate (Testing:Enabled=true) is enforced at request time inside
 // the endpoint's HandleAsync. This avoids a process-wide static route table
@@ -458,8 +461,6 @@ app.UseRateLimiter();
 app.UseFastEndpoints(c =>
 {
     c.Endpoints.ShortNames = true;
-    // One global gate for the read-only state after a coach role is removed (see RemovedCoachRoleAttribute).
-    c.Endpoints.Configurator = ep => ep.PreProcessors(Order.Before, new RemovedCoachRolePreProcessor());
     c.Serializer.Options.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
     c.Errors.UseProblemDetails(x =>
     {
