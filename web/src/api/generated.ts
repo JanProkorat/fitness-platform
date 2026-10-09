@@ -1399,6 +1399,125 @@ export class ApiClient {
     }
 
     /**
+     * Update notification preferences
+     * @return Preferences saved
+     */
+    updateNotificationPreferencesEndpoint(updateNotificationPreferencesRequest: UpdateNotificationPreferencesRequest, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/users/me/notification-preferences";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(updateNotificationPreferencesRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUpdateNotificationPreferencesEndpoint(_response);
+        });
+    }
+
+    protected processUpdateNotificationPreferencesEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Missing, duplicate or unknown event", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Get notification preferences
+     * @return Preferences for all notification events
+     */
+    getNotificationPreferencesEndpoint(signal?: AbortSignal): Promise<GetNotificationPreferencesResponse> {
+        let url_ = this.baseUrl + "/users/me/notification-preferences";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetNotificationPreferencesEndpoint(_response);
+        });
+    }
+
+    protected processGetNotificationPreferencesEndpoint(response: AxiosResponse): Promise<GetNotificationPreferencesResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GetNotificationPreferencesResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GetNotificationPreferencesResponse>(null as any);
+    }
+
+    /**
      * Change password
      * @return Password changed; fresh tokens returned
      */
@@ -18083,6 +18202,31 @@ export interface UpdateProfileRequest {
     phoneNumber?: string | undefined;
 }
 
+/** Full set of notification preferences, one entry per event. */
+export interface UpdateNotificationPreferencesRequest {
+    /** Email and push choice for every notification event. */
+    preferences: NotificationPreferenceDto[];
+}
+
+/** Email and push choice for one notification event. */
+export interface NotificationPreferenceDto {
+    /** The notification event. */
+    event?: NotificationEvent;
+    /** Whether email delivery is enabled. */
+    email?: boolean;
+    /** Whether push delivery is enabled. */
+    push?: boolean;
+}
+
+/** User-facing notification events whose email and push delivery the user can toggle. Stored as an integer; append new members at the end. */
+export enum NotificationEvent {
+    NewMessage = "NewMessage",
+    WeeklyCheckInSubmitted = "WeeklyCheckInSubmitted",
+    JoinRequest = "JoinRequest",
+    ProgressPhotosSubmitted = "ProgressPhotosSubmitted",
+    WorkoutFinished = "WorkoutFinished",
+}
+
 /** Response model for the authenticated user's profile. */
 export interface GetProfileResponse {
     /** User's public ID. */
@@ -18118,6 +18262,12 @@ Empty for non-client users. */
     hasPassword?: boolean;
     /** UTC time of the last password change or reset, or null if never changed. */
     passwordChangedAt?: string | undefined;
+}
+
+/** The caller's notification preferences for all events. */
+export interface GetNotificationPreferencesResponse {
+    /** One entry per notification event. */
+    preferences?: NotificationPreferenceDto[];
 }
 
 /** Fresh token pair returned after a password change; all previous refresh tokens are revoked. */
