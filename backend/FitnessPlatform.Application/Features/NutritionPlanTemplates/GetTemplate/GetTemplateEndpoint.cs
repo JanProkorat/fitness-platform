@@ -48,6 +48,9 @@ public class GetTemplateEndpoint(IMongoContext mongo)
             return;
         }
 
-        await Send.OkAsync(NutritionPlanTemplateDetailDto.FromDocument(template, callerId), ct);
+        var usage = await NutritionPlanTemplateUsage.LoadCallerUsageAsync(mongo, callerId, template.ExternalId, ct);
+
+        await Send.OkAsync(
+            NutritionPlanTemplateDetailDto.FromDocument(template, callerId, usage.GetValueOrDefault(template.ExternalId)), ct);
     }
 }

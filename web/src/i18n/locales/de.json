@@ -184,6 +184,8 @@
     "notFoundBody": "Die gesuchte Seite existiert nicht.",
     "backToClients": "Zurück zu Klienten",
     "openNavigation": "Navigation öffnen",
+    "collapseNavigation": "Navigation einklappen",
+    "expandNavigation": "Navigation ausklappen",
     "navigationTitle": "Navigation"
   },
   "sidebar": {
@@ -197,6 +199,7 @@
     "settings": "Einstellungen",
     "profileLink": "Profil öffnen",
     "recipes": "Rezepte",
+    "planTemplates": "Planvorlagen",
     "exercises": "Übungen",
     "sectionTemplates": "Workouts",
     "trainingPlans": "Trainingspläne",
@@ -693,6 +696,8 @@
       "Recomposition": "Rekomposition",
       "Fitness": "Fitness verbessern",
       "Health": "Gesundheit & Prävention",
+      "Maintain": "Gewicht halten",
+      "Performance": "Leistung steigern",
       "ThreeMonths": "3 Monate",
       "SixMonths": "6 Monate",
       "OneYear": "1 Jahr+",
@@ -1676,6 +1681,385 @@
       }
     }
   },
+  "planEditor": {
+    "nameLabel": "Planname",
+    "undo": "Rückgängig",
+    "redo": "Wiederholen",
+    "back": "Zurück zu {{label}}",
+    "save": "Speichern",
+    "dayTotal": "Tagessumme",
+    "dayNoteEdit": "Notiz bearbeiten: {{day}}",
+    "dayNoteView": "Notiz: {{day}}",
+    "dayNoteField": "Tagesnotiz: {{day}}",
+    "dayNoteNone": "Keine Notiz",
+    "saveError": "Speichern fehlgeschlagen. Ihre Änderungen sind noch da — versuchen Sie es erneut.",
+    "status": {
+      "saving": "Speichern…",
+      "unsaved": "Ungespeicherte Änderungen",
+      "saved": "Gespeichert"
+    },
+    "toggles": {
+      "range": "Bereich",
+      "view": "Ansicht",
+      "week": "Woche",
+      "day": "Tag",
+      "meals": "Mahlzeiten",
+      "nutrition": "Nährwerte"
+    },
+    "days": {
+      "1": "Mo",
+      "2": "Di",
+      "3": "Mi",
+      "4": "Do",
+      "5": "Fr",
+      "6": "Sa",
+      "7": "So"
+    },
+    "rows": {
+      "breakfast": "Frühstück",
+      "snack": "Snack",
+      "lunch": "Mittagessen",
+      "dinner": "Abendessen",
+      "preWorkout": "Vor dem Training",
+      "postWorkout": "Nach dem Training"
+    },
+    "grid": {
+      "label": "Mahlzeiten der Woche"
+    },
+    "cell": {
+      "label": "{{day}}, Mahlzeit {{row}}",
+      "empty": "Leer",
+      "kcal": "{{kcal}} kcal",
+      "items_one": "{{count}} Eintrag",
+      "items_other": "{{count}} Einträge",
+      "macros": "E {{protein}} · K {{carbs}} · F {{fat}} · Bal {{fiber}}"
+    },
+    "weeks": {
+      "label": "Wochen",
+      "previous": "Vorherige Wochen",
+      "next": "Weitere Wochen",
+      "add": "Woche hinzufügen",
+      "week": "Woche {{number}}"
+    },
+    "panel": {
+      "tabs": "Seitenleiste",
+      "open": "{{name}} öffnen"
+    },
+    "info": {
+      "tab": "Vorlageninfo",
+      "name": "Name der Vorlage",
+      "nameRequired": "Zum Speichern einen Namen eingeben.",
+      "description": "Beschreibung",
+      "goal": "Ziel",
+      "diet": "Ernährungsform",
+      "diets": {
+        "any": "Beliebig",
+        "Standard": "Standard",
+        "Vegetarian": "Vegetarisch",
+        "Vegan": "Vegan",
+        "GlutenFree": "Glutenfrei"
+      },
+      "targets": {
+        "title": "Tagesziel",
+        "calories": "Kalorien",
+        "fiber": "Ballaststoffe",
+        "protein": "Eiweiß",
+        "carbs": "Kohlenhydrate",
+        "fat": "Fett",
+        "kcalUnit": "kcal",
+        "hint": "Wird für die Tagessummen und Farben im Editor verwendet."
+      },
+      "average": "Woche {{week}} · Ø pro Tag",
+      "weekTotal": "Woche {{kcal}} kcal",
+      "ofTarget": "/ {{target}} kcal",
+      "deviation": "{{value}} %",
+      "clients_one": "{{count}} Klient",
+      "clients_other": "{{count}} Klienten",
+      "shared": "Geteilt",
+      "private": "Privat · nur Sie"
+    },
+    "averages": {
+      "kcal": "{{value}} kcal",
+      "kcalOfTarget": "{{value}} / {{target}} kcal"
+    },
+    "picker": {
+      "title": "Welche Mahlzeiten hat ein Tag?",
+      "body": "Jede Mahlzeit wird zu einer Zeile der Woche. Fügen Sie eine Art zweimal hinzu für zwei Snacks. Sie können die Zeilen später umsortieren oder entfernen.",
+      "mostCommon": "am häufigsten",
+      "addOneByOne": "Oder einzeln hinzufügen",
+      "doneCount": "Fertig ({{total}})",
+      "copyPrefix": "Oder",
+      "copyLink": "Mahlzeiten aus einer anderen Vorlage kopieren"
+    },
+    "library": {
+      "title": "Bibliothek",
+      "recipes": "Rezepte",
+      "ingredients": "Zutaten",
+      "search_recipes": "Rezepte suchen…",
+      "search_ingredients": "Zutaten suchen…",
+      "filters": "Filter",
+      "kinds": "Rezepte und Zutaten",
+      "filtersPanel": {
+        "title": "Filter",
+        "clearAll": "Alle zurücksetzen",
+        "recipesMatch_one": "Rezept passt · sofort angewendet",
+        "recipesMatch_other": "Rezepte passen · sofort angewendet",
+        "ingredientsMatch_one": "Zutat passt · sofort angewendet",
+        "ingredientsMatch_other": "Zutaten passen · sofort angewendet"
+      },
+      "hint": "Auf eine Mahlzeit ziehen oder eine Mahlzeit wählen und + drücken. Eine Mahlzeit kann mehrere Rezepte und Zutaten enthalten.",
+      "drag": "{{name}} ziehen",
+      "add": "{{name}} zur gewählten Mahlzeit hinzufügen",
+      "selectMealFirst": "Wählen Sie zuerst eine Mahlzeit in der Woche",
+      "collapse": "Bibliothek ausblenden",
+      "expand": "Bibliothek einblenden",
+      "macros": "{{kcal}} kcal · E {{protein}} · K {{carbs}} · F {{fat}}",
+      "per100": "pro 100 g",
+      "empty": "Nichts gefunden.",
+      "loadError": "Die Bibliothek konnte nicht geladen werden.",
+      "retry": "Erneut versuchen",
+      "info": {
+        "open": "Details anzeigen: {{name}}",
+        "recipeMeta_one": "Rezept · pro Portion · {{count}} Portion",
+        "recipeMeta_other": "Rezept · pro Portion · {{count}} Portionen",
+        "foodMeta": "Zutat · pro 100 g",
+        "kcalPerPortion": "kcal pro Portion",
+        "kcalPer100": "kcal pro 100 g",
+        "ingredientsHeading": "Zutaten · pro Portion",
+        "ingredientsUnavailable": "Die Zutaten sind nicht verfügbar. Das Rezept wurde möglicherweise gelöscht oder privat gestellt.",
+        "ingredientsError": "Die Zutaten konnten nicht geladen werden."
+      }
+    },
+    "macroShort": {
+      "protein": "E",
+      "carbs": "K",
+      "fat": "F",
+      "fiber": "Bal"
+    },
+    "removeRow": {
+      "aria": "{{meal}} aus Woche {{week}} entfernen",
+      "title": "{{meal}} aus Woche {{week}} entfernen?",
+      "body_one": "An {{count}} Tag ist etwas eingetragen ({{days}}). Die anderen Wochen behalten diese Zeile. Du kannst das rückgängig machen.",
+      "body_other": "An {{count}} Tagen ist etwas eingetragen ({{days}}). Die anderen Wochen behalten diese Zeile. Du kannst das rückgängig machen.",
+      "confirm": "{{meal}} entfernen"
+    },
+    "cardDrop": {
+      "title": "{{target}} enthält bereits Speisen",
+      "body": "Sie kopieren <b>{{source}}</b> ({{name}}, {{kcal}} kcal) nach <b>{{target}}</b>. Was soll mit dem Bestehenden geschehen?",
+      "now": "{{target}} aktuell",
+      "replaceLabel": "Ersetzen",
+      "replaceBody": "{{target}} enthält danach nur noch {{names}} ({{kcal}} kcal).",
+      "addLabel": "Zu Bestehendem hinzufügen",
+      "addBody": "{{names}} wird zu {{existing}} hinzugefügt ({{kcal}} kcal)."
+    },
+    "noteForClient": "Notiz für den Klienten",
+    "units": {
+      "g": "g",
+      "portion": "Portion"
+    },
+    "itemType": {
+      "recipe": "Rezept",
+      "food": "Zutat"
+    },
+    "item": {
+      "macros": "{{type}} · E {{protein}} · K {{carbs}} · F {{fat}} · Bal {{fiber}}",
+      "amountLabel": "Menge: {{name}}",
+      "remove": "{{name}} entfernen"
+    },
+    "dayInitials": {
+      "1": "M",
+      "2": "D",
+      "3": "M",
+      "4": "D",
+      "5": "F",
+      "6": "S",
+      "7": "S"
+    },
+    "daysLong": {
+      "1": "Montag",
+      "2": "Dienstag",
+      "3": "Mittwoch",
+      "4": "Donnerstag",
+      "5": "Freitag",
+      "6": "Samstag",
+      "7": "Sonntag"
+    },
+    "detail": {
+      "where": "{{day}} · Woche {{week}}",
+      "title": "{{meal}} · {{kcal}} kcal",
+      "dropHint": "Weitere Rezepte oder Zutaten hierher ziehen oder in der Bibliothek + drücken",
+      "macros": "E {{protein}} · K {{carbs}} · F {{fat}} · Bal {{fiber}} g",
+      "noNote": "Keine Notiz",
+      "copyTo": "Diese Mahlzeit kopieren nach",
+      "copy": "Kopieren",
+      "copied": "Kopiert nach {{days}}."
+    },
+    "day": {
+      "previousWeek": "Vorherige Woche",
+      "nextWeek": "Nächste Woche",
+      "ofWeeks": "von {{total}} Wochen",
+      "weekdays": "Wochentage",
+      "meals": "Mahlzeiten des Tages",
+      "addNote": "Tagesnotiz hinzufügen",
+      "noteLabel": "Tagesnotiz",
+      "notePlaceholder": "Notiz für den Klienten — z. B. „Reis am Vortag kochen“",
+      "mealNoteLabel": "Notiz: {{meal}}",
+      "percentOfDay": "{{percent}} % des Tages",
+      "noteShownBelow": "Die Notiz wird unten angezeigt",
+      "removeNote": "Tagesnotiz entfernen",
+      "removeMeal": "{{meal}} entfernen",
+      "emptyMeal": "Ziehen Sie ein Rezept oder eine Zutat hierher, oder wählen Sie die Mahlzeit und drücken Sie + in der Bibliothek.",
+      "noMeals": "Dieser Tag hat noch keine Mahlzeiten.",
+      "allKindsAdded": "Alle Mahlzeitentypen sind an diesem Tag bereits vorhanden",
+      "limitReached": "Ein Tag kann höchstens {{max}} Mahlzeiten haben."
+    },
+    "addMeal": {
+      "open": "Mahlzeit hinzufügen",
+      "title": "Mahlzeit hinzufügen",
+      "forDay": "{{day}}",
+      "type": "Mahlzeitentyp",
+      "alreadyInDay": "Bereits an diesem Tag",
+      "optional": "· optional",
+      "emptyHint": "Die Mahlzeit wird leer hinzugefügt. Füllen Sie sie aus der Bibliothek links — ziehen Sie ein Rezept oder eine Zutat darauf.",
+      "submit": "Mahlzeit hinzufügen"
+    },
+    "nutrition": {
+      "label": "Nährwerte je Mahlzeit",
+      "onTarget": "im Ziel",
+      "kcalUnit": "kcal",
+      "macros": "E {{protein}} · K {{carbs}} · F {{fat}}",
+      "fiber": "Bal {{grams}} g",
+      "legendOn": "Innerhalb von 15 % des Mahlzeitenanteils",
+      "legendOver": "Darüber",
+      "legendUnder": "Darunter",
+      "shares": "Mahlzeitenanteile: {{shares}} des Tages",
+      "share_breakfast": "Frühstück",
+      "share_snack": "Snack",
+      "share_lunch": "Mittagessen",
+      "share_dinner": "Abendessen",
+      "share_secondSnack": "2. Snack",
+      "noTarget": "Legen Sie ein tägliches kcal-Ziel fest, um Mahlzeiten mit ihrem Tagesanteil zu vergleichen."
+    },
+    "copyMeals": {
+      "title": "Mahlzeiten aus einer anderen Vorlage kopieren",
+      "body": "Wählen Sie eine Vorlage. Mahlzeiten, Einträge und Notizen ihrer ersten Woche werden in diese leere Woche kopiert.",
+      "search": "Vorlagen suchen…",
+      "loadError": "Ihre Vorlagen konnten nicht geladen werden.",
+      "empty": "Keine weiteren Vorlagen gefunden.",
+      "summary": "{{weeks}} Wochen · {{meals}} Mahlzeiten pro Tag",
+      "error_gone": "Diese Vorlage ist nicht mehr verfügbar. Die Liste wurde aktualisiert.",
+      "error_empty": "Diese Vorlage hat in der ersten Woche keine Mahlzeiten.",
+      "error_failed": "Die Vorlage konnte nicht geladen werden. Bitte erneut versuchen."
+    },
+    "conflict": {
+      "message": "Diese Vorlage wurde seit dem Öffnen woanders geändert. Ihre Änderungen bleiben hier erhalten, nichts wurde überschrieben. Beim Neuladen der aktuellen Version gehen Ihre Änderungen verloren.",
+      "reload": "Aktuelle Version laden"
+    },
+    "leave": {
+      "title": "Ohne Speichern verlassen?",
+      "body": "Sie haben ungespeicherte Änderungen. Wenn Sie jetzt gehen, gehen sie verloren.",
+      "stay": "Weiter bearbeiten",
+      "discard": "Verlassen"
+    }
+  },
+  "planTemplates": {
+    "title":"Planvorlagen",
+    "subtitle": "Wiederverwendbare Ernährungspläne — einmal erstellen, jedem Klienten zuweisen",
+    "newTemplate": "Neue Vorlage",
+    "searchPlaceholder": "Vorlagen suchen…",
+    "retry": "Erneut versuchen",
+    "noResultsForFilters": "Keine Vorlagen passen zu Ihren Filtern.",
+    "clearFilters": "Filter zurücksetzen",
+    "createError": "Die Vorlage konnte nicht erstellt werden. Bitte versuchen Sie es erneut.",
+    "copySuccess": "Vorlage in Ihre Bibliothek kopiert.",
+    "copyError": "Die Vorlage konnte nicht kopiert werden. Bitte versuchen Sie es erneut.",
+    "deleteSuccess": "Vorlage gelöscht.",
+    "deleteError": "Die Vorlage konnte nicht gelöscht werden. Bitte versuchen Sie es erneut.",
+    "empty": {
+      "title": "Noch keine Planvorlagen",
+      "hint": "Erstellen Sie Ihre erste Vorlage und nutzen Sie sie für mehrere Klienten",
+      "create": "Neue Vorlage"
+    },
+    "nutritionistsOnly": {
+      "title": "Planvorlagen sind für Ernährungsberater verfügbar",
+      "body": "Ihr Konto ist ein Trainerkonto, daher sind Planvorlagen für Sie nicht verfügbar."
+    },
+    "filters": {
+      "goal": "Ziel",
+      "length": "Dauer",
+      "mealsPerDay": "Mahlzeiten pro Tag",
+      "inUse": "In Verwendung",
+      "inUseYes": "In Verwendung",
+      "inUseNo": "Nicht in Verwendung"
+    },
+    "table": {
+      "columnTemplate": "Vorlage",
+      "columnGoal": "Ziel",
+      "columnLength": "Dauer",
+      "columnAvgPerDay": "Ø pro Tag",
+      "columnMealsPerDay": "Mahlzeiten / Tag",
+      "columnUsedBy": "Genutzt von",
+      "columnEdited": "Bearbeitet",
+      "columnActions": "Aktionen",
+      "setGoal": "+ Ziel festlegen",
+      "weeks_one": "{{count}} Woche",
+      "weeks_other": "{{count}} Wochen",
+      "kcalUnit": "kcal"
+    },
+    "rowMenu": {
+      "open": "Aktionen für {{name}}",
+      "openTemplate": "Öffnen",
+      "copy": "Kopieren",
+      "delete": "Löschen"
+    },
+    "deleteDialog": {
+      "title": "Vorlage löschen",
+      "description": "„{{name}}“ löschen? Bereits daraus erstellte Pläne bleiben unverändert. Das lässt sich nicht rückgängig machen.",
+      "confirm": "Löschen"
+    },
+    "new": {
+      "title": "Neue Vorlage",
+      "subtitle": "Legen Sie den Rahmen fest — die Mahlzeiten ergänzen Sie im Editor",
+      "name": "Name",
+      "namePlaceholder": "z. B. Diät — 4 Wochen",
+      "nameInvalid": "Geben Sie einen Namen mit höchstens 200 Zeichen ein.",
+      "description": "Beschreibung",
+      "descriptionPlaceholder": "Wofür ist diese Vorlage gedacht?",
+      "descriptionInvalid": "Die Beschreibung darf höchstens 2000 Zeichen lang sein.",
+      "goal": "Ziel",
+      "goalHint": "Wir schlagen diese Vorlage Klienten mit demselben Ziel vor.",
+      "goalRequired": "Wählen Sie ein Ziel.",
+      "weeks": "Anzahl der Wochen",
+      "weeksDecrease": "Weniger Wochen",
+      "weeksIncrease": "Mehr Wochen",
+      "weeksSummary_one": "Woche · {{days}} Tage",
+      "weeksSummary_other": "Wochen · {{days}} Tage",
+      "meals": "Mahlzeiten pro Tag",
+      "mealsHint": "Optional. Daraus werden die Zeilen des Editors; Sie können sie später ergänzen oder ändern.",
+      "dailyKcal": "Tägliches Kalorienziel",
+      "optional": "(optional)",
+      "kcalUnit": "kcal",
+      "kcalInvalid": "Geben Sie eine ganze Zahl zwischen 1 und 20000 kcal ein.",
+      "submit": "Erstellen & Editor öffnen"
+    },
+    "slots": {
+      "breakfast": "Frühstück",
+      "snack": "Snack",
+      "lunch": "Mittagessen",
+      "snack2": "Snack 2",
+      "dinner": "Abendessen",
+      "preWorkout": "Vor dem Training",
+      "postWorkout": "Nach dem Training"
+    },
+    "editor": {
+      "title": "Vorlagen-Editor",
+      "readOnly": "Diese Vorlage gehört einem anderen Ernährungsberater. Sie können sie ansehen, aber nur der Eigentümer kann sie ändern. Kopieren Sie sie in der Liste, um eine eigene zu erhalten.",
+      "notFound": {
+        "title": "Vorlage nicht gefunden",
+        "body": "Sie wurde möglicherweise gelöscht oder ist nicht mit Ihnen geteilt."
+      }
+    }
+  },
   "richTextEditor": {
     "placeholder": "Beginne zu schreiben...",
     "list": "Liste",
@@ -1754,7 +2138,10 @@
     "RECIPE_GALLERY_FULL": "Dieses Rezept hat bereits die maximale Anzahl an Bildern.",
     "RECIPE_GALLERY_IMAGE_NOT_FOUND": "Dieses Bild gehört nicht mehr zu diesem Rezept. Es wurde möglicherweise an anderer Stelle geändert.",
     "ONLY_COACH_ROLE": "Das ist deine einzige Coach-Rolle, sie kann hier nicht entfernt werden.",
-    "ROLE_NOT_ASSIGNED": "Du hast diese Rolle nicht mehr. Deine Rollen wurden aktualisiert."
+    "ROLE_NOT_ASSIGNED": "Du hast diese Rolle nicht mehr. Deine Rollen wurden aktualisiert.",
+    "NUTRITION_PLAN_TEMPLATE_NOT_FOUND": "Diese Planvorlage existiert nicht mehr.",
+    "NUTRITION_PLAN_TEMPLATE_NOT_OWNED": "Sie können nur Ihre eigenen Planvorlagen ändern.",
+    "NUTRITION_PLAN_TEMPLATE_VERSION_CONFLICT": "Diese Planvorlage wurde an anderer Stelle geändert. Laden Sie sie neu, um die aktuelle Version zu sehen."
   },
   "nutritionGoals": {
     "title": "Ziele & Makros",
@@ -1858,6 +2245,8 @@
     "goal_Recomposition": "Rekomposition",
     "goal_Fitness": "Fitness",
     "goal_Health": "Gesundheit",
+    "goal_Maintain": "Halten",
+    "goal_Performance": "Leistung",
     "motivation_Appearance": "Aussehen",
     "motivation_Health": "Gesundheit",
     "motivation_Performance": "Leistung",

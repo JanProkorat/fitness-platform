@@ -184,6 +184,8 @@
     "notFoundBody": "The page you're looking for doesn't exist.",
     "backToClients": "Back to Clients",
     "openNavigation": "Open navigation",
+    "collapseNavigation": "Collapse navigation",
+    "expandNavigation": "Expand navigation",
     "navigationTitle": "Navigation"
   },
   "sidebar": {
@@ -197,6 +199,7 @@
     "settings": "Settings",
     "profileLink": "Open your profile",
     "recipes": "Recipes",
+    "planTemplates": "Plan templates",
     "exercises": "Exercises",
     "sectionTemplates": "Workouts",
     "trainingPlans": "Training Plans",
@@ -693,6 +696,8 @@
       "Recomposition": "Recomposition",
       "Fitness": "Improve fitness",
       "Health": "Health & prevention",
+      "Maintain": "Maintain weight",
+      "Performance": "Improve performance",
       "ThreeMonths": "3 months",
       "SixMonths": "6 months",
       "OneYear": "1 year+",
@@ -1677,6 +1682,385 @@
       }
     }
   },
+  "planEditor": {
+    "nameLabel": "Plan name",
+    "undo": "Undo",
+    "redo": "Redo",
+    "back": "Back to {{label}}",
+    "save": "Save",
+    "dayTotal": "Day total",
+    "dayNoteEdit": "Edit note for {{day}}",
+    "dayNoteView": "Note for {{day}}",
+    "dayNoteField": "Day note for {{day}}",
+    "dayNoteNone": "No note",
+    "saveError": "Couldn't save. Your changes are still here — try again.",
+    "status": {
+      "saving": "Saving…",
+      "unsaved": "Unsaved changes",
+      "saved": "Saved"
+    },
+    "toggles": {
+      "range": "Range",
+      "view": "View",
+      "week": "Week",
+      "day": "Day",
+      "meals": "Meals",
+      "nutrition": "Nutrition"
+    },
+    "days": {
+      "1": "Mon",
+      "2": "Tue",
+      "3": "Wed",
+      "4": "Thu",
+      "5": "Fri",
+      "6": "Sat",
+      "7": "Sun"
+    },
+    "rows": {
+      "breakfast": "Breakfast",
+      "snack": "Snack",
+      "lunch": "Lunch",
+      "dinner": "Dinner",
+      "preWorkout": "Pre-workout",
+      "postWorkout": "Post-workout"
+    },
+    "grid": {
+      "label": "Week meals"
+    },
+    "cell": {
+      "label": "{{day}}, meal {{row}}",
+      "empty": "Empty",
+      "kcal": "{{kcal}} kcal",
+      "items_one": "{{count}} item",
+      "items_other": "{{count}} items",
+      "macros": "P {{protein}} · C {{carbs}} · F {{fat}} · Fib {{fiber}}"
+    },
+    "weeks": {
+      "label": "Weeks",
+      "previous": "Previous weeks",
+      "next": "Next weeks",
+      "add": "Add week",
+      "week": "Week {{number}}"
+    },
+    "panel": {
+      "tabs": "Side panel",
+      "open": "Open {{name}}"
+    },
+    "info": {
+      "tab": "Template info",
+      "name": "Template name",
+      "nameRequired": "Enter a name to save.",
+      "description": "Description",
+      "goal": "Goal",
+      "diet": "Diet",
+      "diets": {
+        "any": "Any",
+        "Standard": "Standard",
+        "Vegetarian": "Vegetarian",
+        "Vegan": "Vegan",
+        "GlutenFree": "Gluten free"
+      },
+      "targets": {
+        "title": "Daily target",
+        "calories": "Calories",
+        "fiber": "Fiber",
+        "protein": "Protein",
+        "carbs": "Carbs",
+        "fat": "Fat",
+        "kcalUnit": "kcal",
+        "hint": "Used for the day totals and colours in the editor."
+      },
+      "average": "Week {{week}} · avg per day",
+      "weekTotal": "week {{kcal}} kcal",
+      "ofTarget": "/ {{target}} kcal",
+      "deviation": "{{value}} %",
+      "clients_one": "{{count}} client",
+      "clients_other": "{{count}} clients",
+      "shared": "Shared",
+      "private": "Private · only you"
+    },
+    "averages": {
+      "kcal": "{{value}} kcal",
+      "kcalOfTarget": "{{value}} / {{target}} kcal"
+    },
+    "picker": {
+      "title": "Which meals does a day have?",
+      "body": "Each meal becomes a row of the week. Add a type twice for two snacks. You can reorder or remove them later.",
+      "mostCommon": "most common",
+      "addOneByOne": "Or add one by one",
+      "doneCount": "Done ({{total}})",
+      "copyPrefix": "Or",
+      "copyLink": "copy the meals from another template"
+    },
+    "library": {
+      "title": "Library",
+      "recipes": "Recipes",
+      "ingredients": "Ingredients",
+      "search_recipes": "Search recipes…",
+      "search_ingredients": "Search ingredients…",
+      "filters": "Filters",
+      "kinds": "Recipes and ingredients",
+      "filtersPanel": {
+        "title": "Filters",
+        "clearAll": "Clear all",
+        "recipesMatch_one": "recipe matches · applied as you pick",
+        "recipesMatch_other": "recipes match · applied as you pick",
+        "ingredientsMatch_one": "ingredient matches · applied as you pick",
+        "ingredientsMatch_other": "ingredients match · applied as you pick"
+      },
+      "hint": "Drag onto a meal, or select a meal and press +. A meal can hold several recipes and ingredients.",
+      "drag": "Drag {{name}}",
+      "add": "Add {{name}} to the selected meal",
+      "selectMealFirst": "Select a meal in the week first",
+      "collapse": "Hide library",
+      "expand": "Show library",
+      "macros": "{{kcal}} kcal · P {{protein}} · C {{carbs}} · F {{fat}}",
+      "per100": "per 100 g",
+      "empty": "Nothing found.",
+      "loadError": "Couldn't load the library.",
+      "retry": "Retry",
+      "info": {
+        "open": "Show details of {{name}}",
+        "recipeMeta_one": "Recipe · per portion · {{count}} portion",
+        "recipeMeta_other": "Recipe · per portion · {{count}} portions",
+        "foodMeta": "Ingredient · per 100 g",
+        "kcalPerPortion": "kcal per portion",
+        "kcalPer100": "kcal per 100 g",
+        "ingredientsHeading": "Ingredients · per portion",
+        "ingredientsUnavailable": "The ingredients are unavailable. The recipe may have been removed or made private.",
+        "ingredientsError": "Couldn't load the ingredients."
+      }
+    },
+    "macroShort": {
+      "protein": "P",
+      "carbs": "C",
+      "fat": "F",
+      "fiber": "Fib"
+    },
+    "removeRow": {
+      "aria": "Remove {{meal}} from week {{week}}",
+      "title": "Remove {{meal}} from week {{week}}?",
+      "body_one": "{{count}} day has food in it ({{days}}). Other weeks keep their {{meal}}. You can undo this.",
+      "body_other": "{{count}} days have food in it ({{days}}). Other weeks keep their {{meal}}. You can undo this.",
+      "confirm": "Remove {{meal}}"
+    },
+    "cardDrop": {
+      "title": "{{target}} already has food",
+      "body": "You are copying <b>{{source}}</b> ({{name}}, {{kcal}} kcal) onto <b>{{target}}</b>. What should happen with what is there now?",
+      "now": "{{target}} now",
+      "replaceLabel": "Replace",
+      "replaceBody": "{{target}} becomes {{names}} only ({{kcal}} kcal).",
+      "addLabel": "Add to existing",
+      "addBody": "{{names}} is added next to {{existing}} ({{kcal}} kcal)."
+    },
+    "noteForClient": "Note for the client",
+    "units": {
+      "g": "g",
+      "portion": "portion"
+    },
+    "itemType": {
+      "recipe": "Recipe",
+      "food": "Ingredient"
+    },
+    "item": {
+      "macros": "{{type}} · P {{protein}} · C {{carbs}} · F {{fat}} · Fib {{fiber}}",
+      "amountLabel": "Amount of {{name}}",
+      "remove": "Remove {{name}}"
+    },
+    "dayInitials": {
+      "1": "M",
+      "2": "T",
+      "3": "W",
+      "4": "T",
+      "5": "F",
+      "6": "S",
+      "7": "S"
+    },
+    "daysLong": {
+      "1": "Monday",
+      "2": "Tuesday",
+      "3": "Wednesday",
+      "4": "Thursday",
+      "5": "Friday",
+      "6": "Saturday",
+      "7": "Sunday"
+    },
+    "detail": {
+      "where": "{{day}} · week {{week}}",
+      "title": "{{meal}} · {{kcal}} kcal",
+      "dropHint": "Drag more recipes or ingredients here, or press + in the library",
+      "macros": "P {{protein}} · C {{carbs}} · F {{fat}} · Fib {{fiber}} g",
+      "noNote": "No note",
+      "copyTo": "Copy this meal to",
+      "copy": "Copy",
+      "copied": "Copied to {{days}}."
+    },
+    "day": {
+      "previousWeek": "Previous week",
+      "nextWeek": "Next week",
+      "ofWeeks": "of {{total}} weeks",
+      "weekdays": "Weekdays",
+      "meals": "Meals of the day",
+      "addNote": "Add day note",
+      "noteLabel": "Day note",
+      "notePlaceholder": "Note for the client — e.g. “Cook the rice the night before”",
+      "mealNoteLabel": "Note for {{meal}}",
+      "percentOfDay": "{{percent}} % of day",
+      "noteShownBelow": "The note is shown below",
+      "removeNote": "Remove day note",
+      "removeMeal": "Remove {{meal}}",
+      "emptyMeal": "Drag a recipe or ingredient here, or select the meal and press + in the library.",
+      "noMeals": "This day has no meals yet.",
+      "allKindsAdded": "Every meal type is already in this day",
+      "limitReached": "A day holds at most {{max}} meals."
+    },
+    "addMeal": {
+      "open": "Add meal",
+      "title": "Add meal",
+      "forDay": "{{day}}",
+      "type": "Meal type",
+      "alreadyInDay": "Already in this day",
+      "optional": "· optional",
+      "emptyHint": "The meal is added empty. Fill it from the library on the left — drag a recipe or ingredient onto it.",
+      "submit": "Add meal"
+    },
+    "nutrition": {
+      "label": "Nutrition by meal",
+      "onTarget": "on target",
+      "kcalUnit": "kcal",
+      "macros": "P {{protein}} · C {{carbs}} · F {{fat}}",
+      "fiber": "Fib {{grams}} g",
+      "legendOn": "Within 15 % of the meal’s share",
+      "legendOver": "Over",
+      "legendUnder": "Under",
+      "shares": "Meal shares: {{shares}} of the day",
+      "share_breakfast": "breakfast",
+      "share_snack": "snack",
+      "share_lunch": "lunch",
+      "share_dinner": "dinner",
+      "share_secondSnack": "2nd snack",
+      "noTarget": "Set a daily kcal target to compare meals with their share of the day."
+    },
+    "copyMeals": {
+      "title": "Copy meals from another template",
+      "body": "Pick a template. Its first week’s meals, items and notes are copied into this empty week.",
+      "search": "Search templates…",
+      "loadError": "Couldn’t load your templates.",
+      "empty": "No other templates found.",
+      "summary": "{{weeks}} weeks · {{meals}} meals a day",
+      "error_gone": "That template is no longer available. The list was refreshed.",
+      "error_empty": "That template has no meals in its first week.",
+      "error_failed": "Couldn’t load that template. Please try again."
+    },
+    "conflict": {
+      "message": "This template was changed somewhere else since you opened it. Your edits are kept here and nothing was overwritten. Reload to get the latest version (this discards your edits).",
+      "reload": "Reload latest"
+    },
+    "leave": {
+      "title": "Leave without saving?",
+      "body": "You have unsaved changes. If you leave now they are lost.",
+      "stay": "Keep editing",
+      "discard": "Leave"
+    }
+  },
+  "planTemplates": {
+    "title": "Plan templates",
+    "subtitle": "Reusable nutrition plans — build once, assign to any client",
+    "newTemplate": "New template",
+    "searchPlaceholder": "Search templates…",
+    "retry": "Retry",
+    "noResultsForFilters": "No templates match your filters.",
+    "clearFilters": "Clear filters",
+    "createError": "Couldn't create the template. Please try again.",
+    "copySuccess": "Template copied to your library.",
+    "copyError": "Couldn't copy the template. Please try again.",
+    "deleteSuccess": "Template deleted.",
+    "deleteError": "Couldn't delete the template. Please try again.",
+    "empty": {
+      "title": "No plan templates yet",
+      "hint": "Create your first template to reuse it across clients",
+      "create": "New template"
+    },
+    "nutritionistsOnly": {
+      "title": "Plan templates are available to nutritionists",
+      "body": "Your account is a trainer account, so plan templates are not available to you."
+    },
+    "filters": {
+      "goal": "Goal",
+      "length": "Length",
+      "mealsPerDay": "Meals per day",
+      "inUse": "In use",
+      "inUseYes": "In use",
+      "inUseNo": "Not in use"
+    },
+    "table": {
+      "columnTemplate": "Template",
+      "columnGoal": "Goal",
+      "columnLength": "Length",
+      "columnAvgPerDay": "Avg per day",
+      "columnMealsPerDay": "Meals / day",
+      "columnUsedBy": "Used by",
+      "columnEdited": "Edited",
+      "columnActions": "Actions",
+      "setGoal": "+ Set goal",
+      "weeks_one": "{{count}} week",
+      "weeks_other": "{{count}} weeks",
+      "kcalUnit": "kcal"
+    },
+    "rowMenu": {
+      "open": "Actions for {{name}}",
+      "openTemplate": "Open",
+      "copy": "Copy",
+      "delete": "Delete"
+    },
+    "deleteDialog": {
+      "title": "Delete template",
+      "description": "Delete \"{{name}}\"? Plans already created from it stay as they are. This can't be undone.",
+      "confirm": "Delete"
+    },
+    "new": {
+      "title": "New template",
+      "subtitle": "Set the frame — you'll fill the meals in the editor",
+      "name": "Name",
+      "namePlaceholder": "e.g. Cut — 4 weeks",
+      "nameInvalid": "Enter a name of up to 200 characters.",
+      "description": "Description",
+      "descriptionPlaceholder": "What is this template for?",
+      "descriptionInvalid": "The description can be at most 2000 characters.",
+      "goal": "Goal",
+      "goalHint": "We suggest this template for clients with the same goal.",
+      "goalRequired": "Choose a goal.",
+      "weeks": "Number of weeks",
+      "weeksDecrease": "Fewer weeks",
+      "weeksIncrease": "More weeks",
+      "weeksSummary_one": "week · {{days}} days",
+      "weeksSummary_other": "weeks · {{days}} days",
+      "meals": "Meals per day",
+      "mealsHint": "Optional. These become the rows of the editor; you can add or change them later.",
+      "dailyKcal": "Daily calorie target",
+      "optional": "(optional)",
+      "kcalUnit": "kcal",
+      "kcalInvalid": "Enter a whole number of kcal between 1 and 20000.",
+      "submit": "Create & open editor"
+    },
+    "slots": {
+      "breakfast": "Breakfast",
+      "snack": "Snack",
+      "lunch": "Lunch",
+      "snack2": "Snack 2",
+      "dinner": "Dinner",
+      "preWorkout": "Pre-workout",
+      "postWorkout": "Post-workout"
+    },
+    "editor": {
+      "title": "Template editor",
+      "readOnly": "This template belongs to another nutritionist. You can look at it, but only its owner can change it. Copy it from the list to make your own.",
+      "notFound": {
+        "title": "Template not found",
+        "body": "It may have been deleted, or it isn't shared with you."
+      }
+    }
+  },
   "richTextEditor": {
     "placeholder": "Start writing...",
     "list": "List",
@@ -1755,7 +2139,10 @@
     "RECIPE_GALLERY_FULL": "This recipe already has the maximum number of pictures.",
     "RECIPE_GALLERY_IMAGE_NOT_FOUND": "That picture is no longer part of this recipe. It may have been changed elsewhere.",
     "ONLY_COACH_ROLE": "This is your only coach role, so it can’t be removed here.",
-    "ROLE_NOT_ASSIGNED": "You no longer have this role. Your roles have been refreshed."
+    "ROLE_NOT_ASSIGNED": "You no longer have this role. Your roles have been refreshed.",
+    "NUTRITION_PLAN_TEMPLATE_NOT_FOUND": "This plan template no longer exists.",
+    "NUTRITION_PLAN_TEMPLATE_NOT_OWNED": "You can only change your own plan templates.",
+    "NUTRITION_PLAN_TEMPLATE_VERSION_CONFLICT": "This plan template was changed elsewhere. Reload it to see the latest version."
   },
   "nutritionGoals": {
     "title": "Goals & Macros",
@@ -1859,6 +2246,8 @@
     "goal_Recomposition": "Recomposition",
     "goal_Fitness": "Fitness",
     "goal_Health": "Health",
+    "goal_Maintain": "Maintain",
+    "goal_Performance": "Performance",
     "motivation_Appearance": "Appearance",
     "motivation_Health": "Health",
     "motivation_Performance": "Performance",

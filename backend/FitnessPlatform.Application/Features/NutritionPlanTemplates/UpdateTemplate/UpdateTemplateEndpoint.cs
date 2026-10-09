@@ -5,6 +5,7 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Extensions;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.NutritionPlanTemplates.Shared;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
@@ -18,8 +19,13 @@ namespace FitnessPlatform.Application.Features.NutritionPlanTemplates.UpdateTemp
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="guard">Shared version-gated fetch-check-replace-409 skeleton.</param>
 /// <param name="timeProvider">Injected time source for audit timestamps.</param>
+/// <param name="macroCalculator">Computes meal kcal for the denormalized list stats.</param>
 [RemovedCoachRole(AppRoles.Nutritionist, RemovedCoachRoleMode.Refuse)]
-public class UpdateTemplateEndpoint(IMongoContext mongo, PlanConcurrencyGuard guard, TimeProvider timeProvider)
+public class UpdateTemplateEndpoint(
+    IMongoContext mongo,
+    PlanConcurrencyGuard guard,
+    TimeProvider timeProvider,
+    IMacroCalculatorService macroCalculator)
     : Endpoint<UpdateNutritionPlanTemplateRequest, NutritionPlanTemplateDetailDto>
 {
     /// <inheritdoc />
@@ -62,7 +68,10 @@ public class UpdateTemplateEndpoint(IMongoContext mongo, PlanConcurrencyGuard gu
             return;
         }
 
-        await Send.OkAsync(NutritionPlanTemplateDetailDto.FromDocument(updated, ownerId), ct);
+        var usage = await NutritionPlanTemplateUsage.LoadCallerUsageAsync(mongo, ownerId, updated.ExternalId, ct);
+
+        await Send.OkAsync(
+            NutritionPlanTemplateDetailDto.FromDocument(updated, ownerId, usage.GetValueOrDefault(updated.ExternalId)), ct);
     }
 
     /// <summary>
@@ -82,6 +91,7 @@ public class UpdateTemplateEndpoint(IMongoContext mongo, PlanConcurrencyGuard gu
         template.Supplements = TemplateRequestMapper.ToSupplements(req.Supplements);
         template.Weeks = weeks;
         template.WeekCount = weeks.Count;
+        TemplateStatsCalculator.Apply(template, macroCalculator);
         template.DateUpdated = timeProvider.GetUtcNow().UtcDateTime;
         template.Version += 1;
 

@@ -5,6 +5,7 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.NutritionPlanTemplates.Shared;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 
@@ -18,14 +19,18 @@ namespace FitnessPlatform.Application.Features.NutritionPlanTemplates.CopyTempla
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="timeProvider">Injected time source for audit timestamps.</param>
+/// <param name="macroCalculator">Computes meal kcal for the denormalized list stats.</param>
 [RemovedCoachRole(AppRoles.Nutritionist, RemovedCoachRoleMode.Refuse)]
-public class CopyTemplateEndpoint(IMongoContext mongo, TimeProvider timeProvider) : EndpointWithoutRequest
+public class CopyTemplateEndpoint(IMongoContext mongo, TimeProvider timeProvider, IMacroCalculatorService macroCalculator)
+    : EndpointWithoutRequest
 {
     /// <inheritdoc />
     public override void Configure()
     {
-        Post("/nutrition/plan-templates/{TemplateId}/copy");
+        Post("/nutrition/plan-templates/{templateId}/copy");
         Roles(AppRoles.Nutritionist);
+        Description(b => b.ClearDefaultProduces(StatusCodes.Status200OK)
+            .Produces<NutritionPlanTemplateSummaryDto>(StatusCodes.Status201Created));
         Summary(s =>
         {
             s.Summary = "Copy a nutrition plan template";
@@ -45,7 +50,7 @@ public class CopyTemplateEndpoint(IMongoContext mongo, TimeProvider timeProvider
         }
 
         var callerId = Guid.Parse(userId);
-        var templateId = Route<Guid>("TemplateId");
+        var templateId = Route<Guid>("templateId");
 
         var source = await this.LoadLibraryEntryForReadOrRespondAsync(
             mongo.NutritionPlanTemplates, templateId, callerId, NutritionPlanTemplateLibrary.Denial, ct);
@@ -73,6 +78,8 @@ public class CopyTemplateEndpoint(IMongoContext mongo, TimeProvider timeProvider
             Version = 1,
             DateCreated = timeProvider.GetUtcNow().UtcDateTime
         };
+
+        TemplateStatsCalculator.Apply(copy, macroCalculator);
 
         await mongo.NutritionPlanTemplates.InsertOneAsync(copy, cancellationToken: ct);
 

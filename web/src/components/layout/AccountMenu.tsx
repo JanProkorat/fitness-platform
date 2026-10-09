@@ -72,10 +72,12 @@ function SegmentButton({
 interface Props {
   /** Fired when a navigation item is activated — closes the mobile off-canvas drawer. */
   onNavigate?: () => void;
+  /** Rail mode: the trigger shrinks to just the avatar. */
+  collapsed?: boolean;
 }
 
 /** Sidebar user card that opens the account popover (profile, settings, language, theme, log out). */
-export default function AccountMenu({ onNavigate }: Props) {
+export default function AccountMenu({ onNavigate, collapsed = false }: Props) {
   const { t, i18n } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
@@ -99,7 +101,11 @@ export default function AccountMenu({ onNavigate }: Props) {
         <button
           type="button"
           aria-label={t('accountMenu.trigger')}
-          className="flex w-full items-center gap-2.5 rounded-field border border-sidebar-active bg-sidebar-active py-1.75 pr-1.5 pl-2.75 text-left outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-sidebar-text/60"
+          title={collapsed ? t('accountMenu.trigger') : undefined}
+          className={cn(
+            'flex w-full items-center rounded-field border border-sidebar-active bg-sidebar-active text-left outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-sidebar-text/60',
+            collapsed ? 'justify-center p-1.5' : 'gap-2.5 py-1.75 pr-1.5 pl-2.75',
+          )}
         >
           <span
             aria-hidden="true"
@@ -107,16 +113,20 @@ export default function AccountMenu({ onNavigate }: Props) {
           >
             {initials}
           </span>
-          <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-            <span className="truncate text-meta font-semibold text-sidebar-text">
-              {user.firstName} {user.lastName}
-            </span>
-            {roleLabel && <span className="text-label leading-snug text-sidebar-muted">{roleLabel}</span>}
-          </span>
-          <ChevronUp
-            className={cn('size-4 shrink-0 text-sidebar-text transition-transform', !open && 'rotate-180')}
-            aria-hidden="true"
-          />
+          {!collapsed && (
+            <>
+              <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                <span className="truncate text-meta font-semibold text-sidebar-text">
+                  {user.firstName} {user.lastName}
+                </span>
+                {roleLabel && <span className="text-label leading-snug text-sidebar-muted">{roleLabel}</span>}
+              </span>
+              <ChevronUp
+                className={cn('size-4 shrink-0 text-sidebar-text transition-transform', !open && 'rotate-180')}
+                aria-hidden="true"
+              />
+            </>
+          )}
         </button>
       </PopoverTrigger>
       <PopoverContent

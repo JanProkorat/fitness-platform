@@ -23,7 +23,7 @@ public class DeleteTemplateEndpoint(IMongoContext mongo) : EndpointWithoutReques
     /// <inheritdoc />
     public override void Configure()
     {
-        Delete("/nutrition/plan-templates/{TemplateId}");
+        Delete("/nutrition/plan-templates/{templateId}");
         Roles(AppRoles.Nutritionist);
         Summary(s =>
         {
@@ -44,7 +44,7 @@ public class DeleteTemplateEndpoint(IMongoContext mongo) : EndpointWithoutReques
         }
 
         var ownerId = Guid.Parse(userId);
-        var templateId = Route<Guid>("TemplateId");
+        var templateId = Route<Guid>("templateId");
 
         var template = await this.LoadLibraryEntryForWriteOrRespondAsync(
             mongo.NutritionPlanTemplates, templateId, ownerId, NutritionPlanTemplateLibrary.Denial, ct);

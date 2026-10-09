@@ -28,5 +28,15 @@ public enum PrimaryGoal
     /// <summary>
     /// Improve general health and wellbeing.
     /// </summary>
-    Health
+    Health,
+
+    /// <summary>
+    /// Hold current weight and body composition.
+    /// </summary>
+    Maintain,
+
+    /// <summary>
+    /// Fuel athletic performance and training output.
+    /// </summary>
+    Performance
 }
