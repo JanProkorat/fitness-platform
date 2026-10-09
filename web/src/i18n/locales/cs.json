@@ -357,6 +357,7 @@
       "removeError": "Roli se nepodařilo odebrat. Nic se nezměnilo.",
       "loadError": "Vaše role se nepodařilo načíst. Obnovte prosím stránku.",
       "onlyRoleNote": "Toto je vaše jediná role. Její odebrání zakáže váš trenérský účet, stejně jako tlačítko níže.",
+      "noRolesNote": "Váš trenérský účet je deaktivovaný. Přidejte roli a znovu ho aktivujte.",
       "removeDialog": {
         "keep": "Ponechat roli",
         "footnote": "Role okamžitě zmizí z vyhledávání i z vaší profilové karty. Kdykoli ji můžete přidat zpět a znovu upravovat.",
@@ -409,6 +410,32 @@
         }
       }
     },
+    "disableDialog": {
+      "title": "Deaktivovat trenérský účet?",
+      "description": "Tím odeberete všechny své role: {{roles}}. Odebrání jediné role udělá totéž.",
+      "later": {
+        "untilTitle": "Aktivní do {{date}}",
+        "untilBody": "Vše funguje jako dosud až do posledního dne vašeho aktuálního předplatného.",
+        "chargesBody": "Po tomto datu vám nebude nic účtováno. Předplatné se neobnoví.",
+        "plansBody": "Již zahájené plány zůstanou aktivní, dokud neskončí, i po {{date}}, bez poplatku. Tito klienti s vámi zůstanou propojeni do té doby."
+      },
+      "now": {
+        "untilTitle": "Vaše role skončí hned",
+        "untilBody": "Nemáte žádné zaplacené období, proto se deaktivace projeví okamžitě.",
+        "chargesBody": "Už vám nebude nic účtováno.",
+        "plansBody": "Již zahájené plány zůstanou aktivní, dokud neskončí, bez poplatku. Tito klienti s vámi zůstanou propojeni do té doby."
+      },
+      "chargesTitle": "Žádné další platby",
+      "plansTitle": "Rozpracované plány doběhnou do konce",
+      "readOnlyTitle": "Vše ostatní bude jen pro čtení",
+      "readOnlyBody": "Zachováte přístup ke všem svým klientům, plánům, šablonám, receptům i chatům. Jen nic nevytvoříte ani nezměníte.",
+      "footnote": "Rozmysleli jste se? Kdykoli přidejte roli a účet se znovu aktivuje a půjde upravovat.",
+      "keep": "Ponechat účet",
+      "confirm": "Deaktivovat účet",
+      "error": "Trenérský účet se nepodařilo deaktivovat. Nic se nezměnilo.",
+      "endedToast": "Trenérský účet byl deaktivován.",
+      "scheduledToast": "Trenérský účet bude deaktivován na konci období."
+    },
     "danger": {
       "title": "Nebezpečná zóna",
       "description": "Akce, které ukončí vaši práci ve Form Up.",
@@ -421,7 +448,11 @@
       "confirmTitle": "Smazat váš účet?",
       "confirmBody": "Tím trvale smažete svůj účet a vše v něm. Tuto akci nelze vrátit.",
       "confirmAction": "Smazat účet",
-      "deleteError": "Účet se nepodařilo smazat. Nic se nezměnilo."
+      "deleteError": "Účet se nepodařilo smazat. Nic se nezměnilo.",
+      "disabledUntil": "Deaktivováno, aktivní do {{date}}.",
+      "keep": "Ponechat účet",
+      "kept": "Trenérský účet zůstává aktivní.",
+      "keepError": "Trenérský účet se nepodařilo ponechat. Nic se nezměnilo."
     }
   },
   "dashboard": {
@@ -1794,7 +1825,10 @@
     "RECIPE_GALLERY_FULL": "Tento recept už má maximální počet obrázků.",
     "RECIPE_GALLERY_IMAGE_NOT_FOUND": "Tento obrázek už k receptu nepatří. Mohl být změněn jinde.",
     "ONLY_COACH_ROLE": "Toto je vaše jediná trenérská role, proto ji tady nelze odebrat.",
-    "ROLE_NOT_ASSIGNED": "Tuto roli už nemáte. Vaše role byly obnoveny."
+    "ROLE_NOT_ASSIGNED": "Tuto roli už nemáte. Vaše role byly obnoveny.",
+    "NO_ACTIVE_COACH_ROLE": "Nemáte žádnou aktivní trenérskou roli, takže není co deaktivovat. Vaše role byly obnoveny.",
+    "COACH_ACCOUNT_NOT_DISABLING": "Váš trenérský účet se nedeaktivuje. Vaše role byly obnoveny.",
+    "COACH_ACCOUNT_DISABLE_ENDED": "Deaktivace už skončila a nelze ji vrátit. Přidejte roli a účet znovu aktivujte."
   },
   "nutritionGoals": {
     "title": "Cíle & makra",
