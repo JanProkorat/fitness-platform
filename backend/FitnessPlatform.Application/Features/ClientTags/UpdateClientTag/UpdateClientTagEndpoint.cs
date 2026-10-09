@@ -1,3 +1,5 @@
+using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Authorization;
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
@@ -13,6 +15,7 @@ namespace FitnessPlatform.Application.Features.ClientTags.UpdateClientTag;
 /// Updates a client tag's name, description, and color. Only the owning professional may update.
 /// </summary>
 /// <param name="db">Application database context.</param>
+[RemovedCoachRole(RemovedCoachRoleMode.Refuse)]
 public class UpdateClientTagEndpoint(IApplicationDbContext db)
     : Endpoint<UpdateClientTagRequest, ClientTagDto>
 {

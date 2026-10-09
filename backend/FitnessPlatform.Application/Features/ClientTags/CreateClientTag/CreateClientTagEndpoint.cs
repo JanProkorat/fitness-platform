@@ -1,3 +1,5 @@
+using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Authorization;
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
@@ -14,6 +16,7 @@ namespace FitnessPlatform.Application.Features.ClientTags.CreateClientTag;
 /// Creates a new client tag owned by the calling professional.
 /// </summary>
 /// <param name="db">Application database context.</param>
+[RemovedCoachRole(RemovedCoachRoleMode.Refuse)]
 public class CreateClientTagEndpoint(IApplicationDbContext db)
     : Endpoint<CreateClientTagRequest, ClientTagDto>
 {

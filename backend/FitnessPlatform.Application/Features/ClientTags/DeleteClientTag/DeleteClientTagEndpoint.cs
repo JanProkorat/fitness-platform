@@ -1,3 +1,5 @@
+using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Authorization;
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
@@ -11,6 +13,7 @@ namespace FitnessPlatform.Application.Features.ClientTags.DeleteClientTag;
 /// Deletes a client tag and every assignment of it. Only the owning professional may delete.
 /// </summary>
 /// <param name="db">Application database context.</param>
+[RemovedCoachRole(RemovedCoachRoleMode.Refuse)]
 public class DeleteClientTagEndpoint(IApplicationDbContext db) : Endpoint<DeleteClientTagRequest>
 {
     /// <inheritdoc />

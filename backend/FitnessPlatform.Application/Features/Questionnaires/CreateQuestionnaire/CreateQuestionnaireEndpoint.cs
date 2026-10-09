@@ -1,3 +1,5 @@
+using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Authorization;
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
@@ -8,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FitnessPlatform.Application.Features.Questionnaires.CreateQuestionnaire;
 
+[RemovedCoachRole(RemovedCoachRoleMode.Refuse)]
 public class CreateQuestionnaireEndpoint(IApplicationDbContext db)
     : Endpoint<CreateQuestionnaireRequest, GetTrainerQuestionnaireResponse>
 {

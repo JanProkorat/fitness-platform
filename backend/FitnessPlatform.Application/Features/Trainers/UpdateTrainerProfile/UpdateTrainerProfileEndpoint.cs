@@ -1,3 +1,5 @@
+using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Authorization;
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
@@ -13,6 +15,7 @@ namespace FitnessPlatform.Application.Features.Trainers.UpdateTrainerProfile;
 /// </summary>
 /// <param name="db">Database context.</param>
 /// <param name="audit">Audit logging service.</param>
+[RemovedCoachRole(RemovedCoachRoleMode.Exempt, Reason = "The coach's own profile stays editable while no coach role is active.")]
 public class UpdateProfessionalProfileEndpoint(IApplicationDbContext db, IAuditService audit)
     : Endpoint<UpdateProfessionalProfileRequest>
 {

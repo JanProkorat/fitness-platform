@@ -1,3 +1,5 @@
+using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Authorization;
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
@@ -15,6 +17,7 @@ namespace FitnessPlatform.Application.Features.Users.KeepCoachAccount;
 /// <param name="db">Database context.</param>
 /// <param name="audit">Audit logging service.</param>
 /// <param name="timeProvider">Clock.</param>
+[RemovedCoachRole(RemovedCoachRoleMode.Exempt, Reason = "Account lifecycle action that must stay reachable after every role is removed.")]
 internal sealed class KeepCoachAccountEndpoint(
     IApplicationDbContext db,
     IAuditService audit,

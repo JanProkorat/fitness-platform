@@ -350,7 +350,9 @@
       "note": "Das Entfernen einer Rolle blendet sie in der Suche aus und stoppt neue Arbeit darin: keine neuen Pläne oder Vorlagen und keine neuen Klienten. Laufende Pläne bleiben aktiv, bis sie enden: Klienten protokollieren weiter und du kannst sie anpassen. Danach bleibt alles Geteilte für euch beide sichtbar, nur lesbar. Füge die Rolle jederzeit wieder hinzu, um erneut zu bearbeiten.",
       "addDialog": {
         "title": "Rolle {{role}} hinzufügen?",
-        "body": "Du erhältst die Werkzeuge dieser Rolle und erscheinst damit in der Suche. Du kannst sie später wieder entfernen."
+        "body": "Du erhältst die Werkzeuge dieser Rolle und erscheinst damit in der Suche. Du kannst sie später wieder entfernen.",
+        "chooseTitle": "Rolle hinzufügen",
+        "chooseBody": "Wähle, welche Rolle du hinzufügen möchtest. Du erhältst ihre Werkzeuge und erscheinst damit in der Suche. Du kannst sie später wieder entfernen."
       },
       "clients_one": "{{count}} Klient",
       "clients_other": "{{count}} Klienten",

@@ -54,6 +54,8 @@ export default function RolesCard() {
   // With no active role left, Add role is the way to reactivate the account.
   const canAdd = missingRoles.length > 0;
   const onlyRole = heldRoles.length === 1;
+  // With several roles to add, the dialog lets the coach choose; with one, it offers just that one.
+  const choosing = missingRoles.length > 1;
 
   const addMutation = useMutation({
     mutationKey: ['settings', 'roles', 'add'],
@@ -206,10 +208,37 @@ export default function RolesCard() {
         <DialogContent showCloseButton={false}>
           <DialogHeader>
             <DialogTitle>
-              {t('settings.roles.addDialog.title', { role: pendingRole ? t(`roles.${pendingRole.key}`) : '' })}
+              {choosing
+                ? t('settings.roles.addDialog.chooseTitle')
+                : t('settings.roles.addDialog.title', { role: pendingRole ? t(`roles.${pendingRole.key}`) : '' })}
             </DialogTitle>
-            <DialogDescription>{t('settings.roles.addDialog.body')}</DialogDescription>
+            <DialogDescription>
+              {choosing ? t('settings.roles.addDialog.chooseBody') : t('settings.roles.addDialog.body')}
+            </DialogDescription>
           </DialogHeader>
+          {choosing && (
+            <div role="group" aria-label={t('settings.roles.addDialog.chooseTitle')} className="flex gap-0.5 rounded-xl bg-sunken p-0.75">
+              {missingRoles.map((role) => {
+                const { key, Icon } = role;
+                const active = pendingRole?.key === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => setPendingRole(role)}
+                    className={cn(
+                      'inline-flex h-9.5 flex-1 items-center justify-center gap-1.75 rounded-md px-2 text-copy font-semibold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/50',
+                      active ? 'bg-surface text-ink shadow-selection-bar' : 'text-muted-foreground hover:text-ink',
+                    )}
+                  >
+                    <Icon className="size-4" aria-hidden="true" />
+                    {t(`roles.${key}`)}
+                  </button>
+                );
+              })}
+            </div>
+          )}
           <DialogFooter>
             <Button type="button" variant="outline" size="lg" onClick={() => setPendingRole(null)}>
               {t('common.cancel')}

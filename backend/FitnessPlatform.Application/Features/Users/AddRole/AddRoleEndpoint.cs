@@ -1,3 +1,5 @@
+using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Authorization;
 using System.Security.Cryptography;
 using FastEndpoints;
 using FastEndpoints.Security;
@@ -20,6 +22,7 @@ namespace FitnessPlatform.Application.Features.Users.AddRole;
 /// <param name="db">Database context.</param>
 /// <param name="config">Application configuration for JWT settings.</param>
 /// <param name="audit">Audit logging service.</param>
+[RemovedCoachRole(RemovedCoachRoleMode.Exempt, Reason = "Adds or restores a coach role, so it must work when no role is active.")]
 public class AddRoleEndpoint(
     UserManager<ApplicationUser> userManager,
     IApplicationDbContext db,

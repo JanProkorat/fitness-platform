@@ -14,7 +14,8 @@ namespace FitnessPlatform.Tests.Architecture;
 
 /// <summary>
 /// Pins the read-only gate's coverage: every non-read endpoint gated to exactly one coach discipline
-/// declares <see cref="RemovedCoachRoleAttribute"/> with its own role, and nothing else carries it.
+/// declares <see cref="RemovedCoachRoleAttribute"/> with its own role, every non-read endpoint gated to both
+/// coach disciplines (and not Client) declares the role-less form, and nothing else carries either.
 /// </summary>
 [Collection(TestCollection.Name)]
 public class RemovedCoachRoleGateArchitectureTests(FitnessApiFactory factory)
@@ -46,6 +47,12 @@ public class RemovedCoachRoleGateArchitectureTests(FitnessApiFactory factory)
         && roles.Length == 1
         && roles[0] is AppRoles.Trainer or AppRoles.Nutritionist;
 
+    private static bool IsDualDisciplineWrite(string[] methods, string[] roles) =>
+        methods.Any(m => !ReadMethods.Contains(m, StringComparer.OrdinalIgnoreCase))
+        && roles.Contains(AppRoles.Trainer)
+        && roles.Contains(AppRoles.Nutritionist)
+        && !roles.Contains(AppRoles.Client);
+
     [Fact]
     public void EverySingleDisciplineWrite_DeclaresTheAttribute_WithItsOwnRole()
     {
@@ -74,15 +81,44 @@ public class RemovedCoachRoleGateArchitectureTests(FitnessApiFactory factory)
     }
 
     [Fact]
-    public void TheAttribute_IsOnlyOnSingleDisciplineWrites()
+    public void EveryDualDisciplineWrite_DeclaresTheRolelessAttribute()
+    {
+        var violations = new List<string>();
+
+        foreach (var (endpoint, type, methods, roles) in Endpoints().Where(e => IsDualDisciplineWrite(e.Methods, e.Roles)))
+        {
+            var attribute = type.GetCustomAttribute<RemovedCoachRoleAttribute>();
+            var label = $"{string.Join('/', methods)} {endpoint.RoutePattern.RawText} ({type.Name})";
+
+            if (attribute is null)
+            {
+                violations.Add($"{label} has no [RemovedCoachRole]");
+            }
+            else if (attribute.Role is not null)
+            {
+                violations.Add($"{label} declares role {attribute.Role} but is gated to both coach roles");
+            }
+            else if (attribute.Mode == RemovedCoachRoleMode.Exempt && string.IsNullOrWhiteSpace(attribute.Reason))
+            {
+                violations.Add($"{label} is Exempt without a Reason");
+            }
+        }
+
+        violations.Should().BeEmpty("an unannotated dual-discipline write would be refused without anyone deciding it");
+    }
+
+    [Fact]
+    public void TheAttribute_IsOnlyOnCoachWrites_InItsOwnForm()
     {
         var misplaced = Endpoints()
             .Where(e => e.Type.GetCustomAttribute<RemovedCoachRoleAttribute>() is not null)
-            .Where(e => !IsSingleDisciplineWrite(e.Methods, e.Roles))
+            .Where(e => e.Type.GetCustomAttribute<RemovedCoachRoleAttribute>()!.Role is null
+                ? !IsDualDisciplineWrite(e.Methods, e.Roles)
+                : !IsSingleDisciplineWrite(e.Methods, e.Roles))
             .Select(e => $"{string.Join('/', e.Methods)} {e.Endpoint.RoutePattern.RawText} ({e.Type.Name})")
             .ToList();
 
-        misplaced.Should().BeEmpty("reads and dual-discipline endpoints are never gated");
+        misplaced.Should().BeEmpty("reads and endpoints that allow Client are never gated, and each form fits only its own kind of endpoint");
     }
 
     [Fact]
@@ -101,5 +137,18 @@ public class RemovedCoachRoleGateArchitectureTests(FitnessApiFactory factory)
         counts.GetValueOrDefault((AppRoles.Nutritionist, RemovedCoachRoleMode.WhilePlanInProgress)).Should().Be(5);
         counts.GetValueOrDefault((AppRoles.Nutritionist, RemovedCoachRoleMode.Exempt)).Should().Be(1);
         counts.Values.Sum().Should().Be(67);
+    }
+
+    [Fact]
+    public void DualDisciplineAttributeCounts_MatchTheReviewedInventory()
+    {
+        var counts = Endpoints()
+            .Where(e => IsDualDisciplineWrite(e.Methods, e.Roles))
+            .GroupBy(e => e.Type.GetCustomAttribute<RemovedCoachRoleAttribute>()!.Mode)
+            .ToDictionary(g => g.Key, g => g.Count());
+
+        counts.GetValueOrDefault(RemovedCoachRoleMode.Refuse).Should().Be(23);
+        counts.GetValueOrDefault(RemovedCoachRoleMode.Exempt).Should().Be(8);
+        counts.Values.Sum().Should().Be(31);
     }
 }
