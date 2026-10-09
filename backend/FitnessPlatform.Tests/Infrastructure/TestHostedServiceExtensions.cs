@@ -78,6 +78,7 @@ public static class TestHostedServiceExtensions
     [
         typeof(WeeklyCheckInScheduler),
         typeof(PhotoDiaryReminderScheduler),
+        typeof(CoachRoleLinkSweeper),
         typeof(SocialLoginNonceReaperService),
     ];
 
