@@ -4,7 +4,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import type { NutritionPlanTemplateDetailDto } from '@/api/nutrition-plan-templates';
+import { LibraryVisibility, type NutritionPlanTemplateDetailDto } from '@/api/nutrition-plan-templates';
 import PageHeader from '@/components/library/PageHeader';
 import PlanEditor from '@/components/plan-editor/PlanEditor';
 import CopyMealsDialog from '@/components/plan-templates/CopyMealsDialog';
@@ -27,13 +27,7 @@ function LoadedTemplateEditor({ template, onReload }: LoadedProps) {
   return (
     <PlanEditor
       initial={initial}
-      targets={{
-        kcal: template.globalSettings?.dailyKcal ?? undefined,
-        protein: template.globalSettings?.proteinGrams ?? undefined,
-        carbs: template.globalSettings?.carbsGrams ?? undefined,
-        fat: template.globalSettings?.fatGrams ?? undefined,
-        fiber: template.globalSettings?.fiberGrams ?? undefined,
-      }}
+      usage={{ count: template.usedBy ?? 0, shared: template.visibility === LibraryVisibility.Public }}
       renderCopyMeals={(slot) => (
         <CopyMealsDialog
           open={slot.open}

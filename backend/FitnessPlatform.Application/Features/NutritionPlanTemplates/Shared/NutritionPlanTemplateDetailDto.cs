@@ -103,6 +103,11 @@ public class NutritionPlanTemplateDetailDto
     public bool IsOwnedByCurrentUser { get; set; }
 
     /// <summary>
+    /// Number of the caller's own Active plans built from this template.
+    /// </summary>
+    public int UsedBy { get; set; }
+
+    /// <summary>
     /// Optimistic concurrency version.
     /// </summary>
     public int Version { get; set; }
@@ -122,7 +127,9 @@ public class NutritionPlanTemplateDetailDto
     /// </summary>
     /// <param name="template">The nutrition plan template document.</param>
     /// <param name="currentUserId">Id of the authenticated caller.</param>
-    public static NutritionPlanTemplateDetailDto FromDocument(NutritionPlanTemplate template, Guid currentUserId) => new()
+    /// <param name="usedBy">The caller's Active plan count for this template.</param>
+    public static NutritionPlanTemplateDetailDto FromDocument(
+        NutritionPlanTemplate template, Guid currentUserId, int usedBy) => new()
     {
         TemplateId = template.ExternalId,
         Name = template.Name,
@@ -137,6 +144,7 @@ public class NutritionPlanTemplateDetailDto
         AvgKcalPerDay = template.AvgKcalPerDay,
         Visibility = template.Visibility,
         IsOwnedByCurrentUser = template.OwnerId == currentUserId,
+        UsedBy = usedBy,
         Version = template.Version,
         DateCreated = template.DateCreated,
         DateUpdated = template.DateUpdated

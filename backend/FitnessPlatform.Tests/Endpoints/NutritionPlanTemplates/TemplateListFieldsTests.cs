@@ -398,6 +398,88 @@ public class TemplateListFieldsTests(FitnessApiFactory factory)
         notInUse.TotalCount.Should().Be(1);
     }
 
+    // ── detail usedBy ────────────────────────────────────────────────────────
+
+    private static async Task<DetailDto> GetDetailAsync(HttpClient client, Guid templateId)
+    {
+        var response = await client.GetAsync(
+            $"/nutrition/plan-templates/{templateId}", TestContext.Current.CancellationToken);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<DetailDto>(
+            cancellationToken: TestContext.Current.CancellationToken);
+        return body!;
+    }
+
+    [Fact]
+    public async Task GetDetail_OwnerWithTwoActivePlans_ReturnsUsedByTwo()
+    {
+        var (nutritionist, nutritionistId) = await RegisterNutritionistAsync("detail-used");
+        var template = await SeedTemplateAsync(nutritionistId, UniqueName());
+        var otherTemplate = await SeedTemplateAsync(nutritionistId, UniqueName());
+
+        await SeedPlanAsync(nutritionistId, template.ExternalId, NutritionPlanStatus.Active);
+        await SeedPlanAsync(nutritionistId, template.ExternalId, NutritionPlanStatus.Active);
+        await SeedPlanAsync(nutritionistId, otherTemplate.ExternalId, NutritionPlanStatus.Active);
+
+        (await GetDetailAsync(nutritionist, template.ExternalId)).UsedBy.Should().Be(2);
+        (await GetDetailAsync(nutritionist, otherTemplate.ExternalId)).UsedBy.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task GetDetail_DraftAndArchivedPlans_AreNotCounted()
+    {
+        var (nutritionist, nutritionistId) = await RegisterNutritionistAsync("detail-inactive");
+        var template = await SeedTemplateAsync(nutritionistId, UniqueName());
+
+        await SeedPlanAsync(nutritionistId, template.ExternalId, NutritionPlanStatus.Active);
+        await SeedPlanAsync(nutritionistId, template.ExternalId, NutritionPlanStatus.Draft);
+        await SeedPlanAsync(nutritionistId, template.ExternalId, NutritionPlanStatus.Archived);
+
+        (await GetDetailAsync(nutritionist, template.ExternalId)).UsedBy.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task GetDetail_PublicTemplateOfAnotherNutritionist_CountsOnlyCallersOwnPlans()
+    {
+        var (_, ownerId) = await RegisterNutritionistAsync("detail-owner");
+        var (caller, callerId) = await RegisterNutritionistAsync("detail-caller");
+        var template = await SeedTemplateAsync(ownerId, UniqueName(), LibraryVisibility.Public);
+
+        await SeedPlanAsync(ownerId, template.ExternalId, NutritionPlanStatus.Active);
+        await SeedPlanAsync(ownerId, template.ExternalId, NutritionPlanStatus.Active);
+
+        (await GetDetailAsync(caller, template.ExternalId)).UsedBy.Should().Be(0, "the owner's count must not leak");
+
+        await SeedPlanAsync(callerId, template.ExternalId, NutritionPlanStatus.Active);
+
+        (await GetDetailAsync(caller, template.ExternalId)).UsedBy.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Update_Response_ReturnsSameUsedByAsGet()
+    {
+        var (nutritionist, nutritionistId) = await RegisterNutritionistAsync("update-used");
+        var template = await SeedTemplateAsync(nutritionistId, UniqueName());
+
+        await SeedPlanAsync(nutritionistId, template.ExternalId, NutritionPlanStatus.Active);
+        await SeedPlanAsync(nutritionistId, template.ExternalId, NutritionPlanStatus.Active);
+
+        var response = await nutritionist.PutAsJsonAsync(
+            $"/nutrition/plan-templates/{template.ExternalId}",
+            new { Name = template.Name, Version = template.Version, Weeks = BuildRequestWeeks() });
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<DetailDto>(
+            cancellationToken: TestContext.Current.CancellationToken);
+        body!.UsedBy.Should().Be(2);
+        (await GetDetailAsync(nutritionist, template.ExternalId)).UsedBy.Should().Be(body.UsedBy);
+    }
+
+    private sealed class DetailDto
+    {
+        public int UsedBy { get; set; }
+    }
+
     private sealed class SummaryDto
     {
         public Guid TemplateId { get; set; }

@@ -130,9 +130,29 @@ function libraryCard(page: Page, name: string): Locator {
 }
 
 /** Drags with real pointer moves: dnd-kit only starts a drag after the pointer has travelled. */
+/** Scrolls the element into view, then waits until two reads of its box match (popover animations settled). */
+async function settledBox(locator: Locator): Promise<{ x: number; y: number; width: number; height: number } | null> {
+  await locator.scrollIntoViewIfNeeded();
+  let previous = '';
+  let box = await locator.boundingBox();
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    const current = JSON.stringify(box);
+    if (current === previous) {
+      return box;
+    }
+    previous = current;
+    await locator.page().waitForTimeout(50);
+    box = await locator.boundingBox();
+  }
+  return box;
+}
+
 async function dragTo(page: Page, handle: Locator, target: Locator): Promise<void> {
-  const from = await handle.boundingBox();
-  const to = await target.boundingBox();
+  // Scroll both ends into view first, so reading one box cannot move the other.
+  await handle.scrollIntoViewIfNeeded();
+  await target.scrollIntoViewIfNeeded();
+  const from = await settledBox(handle);
+  const to = await settledBox(target);
   if (!from || !to) {
     throw new Error('[plan-template-editor-interactions] drag source or target is not visible.');
   }
@@ -259,7 +279,7 @@ test.describe('plan template editor interactions', () => {
       await waitForSave(page);
 
       await dragTo(page, cell(page, 1, 0), cell(page, 1, 0));
-      await dragTo(page, cell(page, 1, 0), libraryPanel(page).getByRole('tablist'));
+      await dragTo(page, cell(page, 1, 0), libraryPanel(page).getByRole('tablist', { name: 'Recipes and ingredients' }));
       await expect(page.getByTestId('card-drop-dialog')).toHaveCount(0);
       await expect(page.getByTestId('save-status')).toHaveText('Saved');
       await expect(cell(page, 1, 0)).toContainText(recipeName);
@@ -286,8 +306,9 @@ test.describe('plan template editor interactions', () => {
       await page.keyboard.press('Enter');
       const detail = page.getByTestId('meal-detail');
       await expect(detail).toBeVisible();
+      // The popover scales in over ~150 ms; measure once the width has settled.
+      await expect.poll(async () => (await detail.boundingBox())?.width ?? 0).toBeGreaterThan(550);
       const box = await detail.boundingBox();
-      expect(box?.width ?? 0).toBeGreaterThan(550);
       expect(box?.width ?? 0).toBeLessThanOrEqual(560.5);
 
       // Each item row and the totals show P / C / F / Fib with a colour dot.
@@ -318,7 +339,14 @@ test.describe('plan template editor interactions', () => {
       await page.getByRole('button', { name: new RegExp(`^Add ${secondName} to the selected meal$`) }).click();
       await libraryPanel(page).getByRole('tab', { name: 'Ingredients' }).click();
       await page.getByLabel('Search ingredients…').fill('Apple');
-      await page.getByRole('button', { name: /^Add .* to the selected meal$/ }).first().click();
+      // Wait for the filtered list: every card is an Apple row before the first Add is pressed.
+      const ingredientCards = libraryPanel(page).getByTestId('library-card');
+      await expect(ingredientCards.first()).toContainText('Apple');
+      await expect(ingredientCards.filter({ hasNotText: 'Apple' })).toHaveCount(0);
+      await ingredientCards
+        .first()
+        .getByRole('button', { name: /^Add .* to the selected meal$/ })
+        .click();
       await waitForSave(page);
 
       const detail = page.getByTestId('meal-detail');
@@ -512,8 +540,8 @@ test.describe('plan template editor interactions', () => {
       await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes');
 
       await page.getByRole('button', { name: 'Day', exact: true }).click();
-      // A day with a note keeps its input open under the macro bar and disables the note button.
-      const dayNote = page.getByTestId('day-macros').getByRole('textbox', { name: 'Day note', exact: true });
+      // A day with a note shows it as a second line inside the day card and disables the note button.
+      const dayNote = page.getByTestId('day-summary').getByRole('textbox', { name: 'Day note', exact: true });
       await expect(dayNote).toHaveValue(note);
       await expect(page.getByTestId('day-note-toggle')).toBeDisabled();
 
@@ -521,11 +549,19 @@ test.describe('plan template editor interactions', () => {
       await expect(dayNote).toHaveCount(0);
       await expect(page.getByTestId('day-note-toggle')).toBeEnabled();
 
-      // Clearing the text and leaving the field hides the input and enables the button again.
+      // With no note the card is one row; Add day note opens the empty line and focuses it.
       await page.getByTestId('day-note-toggle').click();
+      await expect(dayNote).toBeFocused();
       await dayNote.fill('abc');
       await dayNote.fill('');
       await dayNote.blur();
+      await expect(dayNote).toHaveCount(0);
+      await expect(page.getByTestId('day-note-toggle')).toBeEnabled();
+
+      // The cross removes a note in place.
+      await page.getByTestId('day-note-toggle').click();
+      await dayNote.fill(note);
+      await page.getByTestId('day-note-remove').click();
       await expect(dayNote).toHaveCount(0);
       await expect(page.getByTestId('day-note-toggle')).toBeEnabled();
       await page.getByRole('button', { name: 'Week', exact: true }).click();

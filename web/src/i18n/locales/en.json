@@ -1515,7 +1515,6 @@
     "redo": "Redo",
     "back": "Back to {{label}}",
     "save": "Save",
-    "comingSoon": "Coming soon",
     "dayTotal": "Day total",
     "dayNoteEdit": "Edit note for {{day}}",
     "dayNoteView": "Note for {{day}}",
@@ -1568,18 +1567,47 @@
       "previous": "Previous weeks",
       "next": "Next weeks",
       "add": "Add week",
-      "week": "Week {{number}}",
-      "position": "Week {{current}} of {{total}}"
+      "week": "Week {{number}}"
+    },
+    "panel": {
+      "tabs": "Side panel",
+      "open": "Open {{name}}"
+    },
+    "info": {
+      "tab": "Template info",
+      "name": "Template name",
+      "nameRequired": "Enter a name to save.",
+      "description": "Description",
+      "goal": "Goal",
+      "diet": "Diet",
+      "diets": {
+        "any": "Any",
+        "Standard": "Standard",
+        "Vegetarian": "Vegetarian",
+        "Vegan": "Vegan",
+        "GlutenFree": "Gluten free"
+      },
+      "targets": {
+        "title": "Daily target",
+        "calories": "Calories",
+        "fiber": "Fiber",
+        "protein": "Protein",
+        "carbs": "Carbs",
+        "fat": "Fat",
+        "kcalUnit": "kcal",
+        "hint": "Used for the day totals and colours in the editor."
+      },
+      "average": "Week {{week}} · average per day",
+      "weekTotal": "Week total {{kcal}} kcal · follows the selected week",
+      "usage": "Usage",
+      "usedBy_one": "Used by {{count}} client",
+      "usedBy_other": "Used by {{count}} clients",
+      "shared": "Shared",
+      "private": "Private to you"
     },
     "averages": {
-      "label": "Avg per day",
-      "fiber": "Fib {{grams}} g",
       "kcal": "{{value}} kcal",
-      "kcalOfTarget": "{{value}} / {{target}} kcal",
-      "protein": "P {{value}}",
-      "carbs": "C {{value}}",
-      "fat": "F {{value}}",
-      "weekTotal": "· week total {{kcal}} kcal"
+      "kcalOfTarget": "{{value}} / {{target}} kcal"
     },
     "picker": {
       "title": "Which meals does a day have?",
@@ -1592,12 +1620,20 @@
     },
     "library": {
       "title": "Library",
-      "counts": "{{recipes}} recipes · {{ingredients}} ingredients",
       "recipes": "Recipes",
       "ingredients": "Ingredients",
       "search_recipes": "Search recipes…",
       "search_ingredients": "Search ingredients…",
       "filters": "Filters",
+      "kinds": "Recipes and ingredients",
+      "filtersPanel": {
+        "title": "Filters",
+        "clearAll": "Clear all",
+        "recipesMatch_one": "recipe matches · applied as you pick",
+        "recipesMatch_other": "recipes match · applied as you pick",
+        "ingredientsMatch_one": "ingredient matches · applied as you pick",
+        "ingredientsMatch_other": "ingredients match · applied as you pick"
+      },
       "hint": "Drag onto a meal, or select a meal and press +. A meal can hold several recipes and ingredients.",
       "drag": "Drag {{name}}",
       "add": "Add {{name}} to the selected meal",
@@ -1684,18 +1720,13 @@
       "ofWeeks": "of {{total}} weeks",
       "weekdays": "Weekdays",
       "meals": "Meals of the day",
-      "kcal": "kcal",
-      "protein": "Protein",
-      "carbs": "Carbs",
-      "fat": "Fat",
-      "fiber": "Fiber",
       "addNote": "Add day note",
       "noteLabel": "Day note",
       "notePlaceholder": "Note for the client — e.g. “Cook the rice the night before”",
       "mealNoteLabel": "Note for {{meal}}",
       "percentOfDay": "{{percent}} % of day",
-      "percentKcal": "{{percent}} % kcal",
       "noteShownBelow": "The note is shown below",
+      "removeNote": "Remove day note",
       "removeMeal": "Remove {{meal}}",
       "emptyMeal": "Drag a recipe or ingredient here, or select the meal and press + in the library.",
       "noMeals": "This day has no meals yet.",

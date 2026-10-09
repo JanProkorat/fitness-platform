@@ -236,16 +236,21 @@ test.describe('plan template editor', () => {
       await expect(page.getByTestId('day-total').first()).not.toContainText(/^0 kcal/);
       await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes');
 
-      // Only kcal has a target, so Monday's macro bar shows energy shares for protein, carbs and fat.
+      // Monday's day card is one lean row: total against the kcal target, then the macro dots.
       await page.getByRole('button', { name: 'Day', exact: true }).click();
-      await expect(page.getByTestId('day-macros')).toContainText(/\d+ % kcal/);
+      await expect(page.getByTestId('day-summary')).toContainText('Day total');
+      await expect(page.getByTestId('day-summary')).toContainText(/ \/ [\d,.\s]+ kcal/);
+      await expect(page.getByTestId('day-summary')).toContainText(/P \d+/);
       await page.getByRole('button', { name: 'Week', exact: true }).click();
 
       // Select Tuesday's lunch and press + on an ingredient.
       await cell(page, 2, 1).click();
       await page.getByRole('tab', { name: 'Ingredients' }).click();
       await page.getByLabel('Search ingredients…').fill('Apple');
-      const addButton = page.getByRole('button', { name: /^Add .* to the selected meal$/ }).first();
+      const appleCards = page.getByTestId('library-card');
+      await expect(appleCards.first()).toContainText('Apple');
+      await expect(appleCards.filter({ hasNotText: 'Apple' })).toHaveCount(0);
+      const addButton = appleCards.first().getByRole('button', { name: /^Add .* to the selected meal$/ });
       await expect(addButton).toBeEnabled();
       await addButton.click();
       await expect(cell(page, 2, 1)).not.toContainText('Empty');
