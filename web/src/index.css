@@ -963,6 +963,38 @@
   }
 }
 
+/* Plan editor week/day change: the new content slides in from the side it lies on. Keyed remounts
+   restart it, so a second change mid-slide just starts over. */
+@keyframes slide-in-next {
+  from {
+    opacity: 0;
+    transform: translateX(32px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slide-in-prev {
+  from {
+    opacity: 0;
+    transform: translateX(-32px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+[data-slide='next'] {
+  animation: slide-in-next 200ms ease-out;
+}
+
+[data-slide='prev'] {
+  animation: slide-in-prev 200ms ease-out;
+}
+
 @keyframes sheet-in-right {
   from {
     transform: translateX(100%);
@@ -1223,6 +1255,10 @@
   [data-slot='dropdown-menu-content'],
   [data-slot='toast'] {
     animation-duration: 1ms !important;
+  }
+
+  [data-slide] {
+    animation: none;
   }
 }
 
