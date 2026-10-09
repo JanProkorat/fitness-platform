@@ -1589,6 +1589,66 @@ export class ApiClient {
     }
 
     /**
+     * Keep my coach account
+     * @return Pending disable cleared
+     */
+    keepCoachAccountEndpoint(signal?: AbortSignal): Promise<KeepCoachAccountResponse> {
+        let url_ = this.baseUrl + "/users/me/coach-account/keep";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processKeepCoachAccountEndpoint(_response);
+        });
+    }
+
+    protected processKeepCoachAccountEndpoint(response: AxiosResponse): Promise<KeepCoachAccountResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<KeepCoachAccountResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<KeepCoachAccountResponse>(null as any);
+    }
+
+    /**
      * List my coach roles
      * @return Active coach roles with counts
      */
@@ -1717,6 +1777,66 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<AddRoleResponse>(null as any);
+    }
+
+    /**
+     * Disable my coach account
+     * @return Date the account stops being active and the roles removed by this call
+     */
+    disableCoachAccountEndpoint(signal?: AbortSignal): Promise<DisableCoachAccountResponse> {
+        let url_ = this.baseUrl + "/users/me/coach-account/disable";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processDisableCoachAccountEndpoint(_response);
+        });
+    }
+
+    protected processDisableCoachAccountEndpoint(response: AxiosResponse): Promise<DisableCoachAccountResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<DisableCoachAccountResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<DisableCoachAccountResponse>(null as any);
     }
 
     /**
@@ -18380,6 +18500,12 @@ export interface CoachRoleSummaryDto {
 export interface RemoveCoachRoleRequest {
 }
 
+/** Outcome of undoing a pending coach-account disable. */
+export interface KeepCoachAccountResponse {
+    /** The pending end date after the undo; always null because the disable is cleared. */
+    coachAccountActiveUntil?: string | undefined;
+}
+
 /** Response model for the authenticated user's profile. */
 export interface GetProfileResponse {
     /** User's public ID. */
@@ -18415,6 +18541,8 @@ Empty for non-client users. */
     hasPassword?: boolean;
     /** UTC time of the last password change or reset, or null if never changed. */
     passwordChangedAt?: string | undefined;
+    /** When a pending coach-account disable takes effect (UTC), or null when none is pending. */
+    coachAccountActiveUntil?: string | undefined;
 }
 
 /** The caller's notification preferences for all events. */
@@ -18427,6 +18555,18 @@ export interface GetNotificationPreferencesResponse {
 export interface GetMyCoachRolesResponse {
     /** One entry per active coach role. */
     roles?: CoachRoleSummaryDto[];
+    /** When a pending disable takes effect (UTC); null when the account is not being disabled. */
+    coachAccountActiveUntil?: string | undefined;
+    /** When the account would stop being active if disabled now (UTC); at or before now means at once. */
+    activeUntilIfDisabled?: string | undefined;
+}
+
+/** Outcome of disabling the caller's coach account. */
+export interface DisableCoachAccountResponse {
+    /** When the coach account stops being active (UTC). At or before now means it already ended. */
+    activeUntil?: string;
+    /** Coach roles removed by this call; empty while the disable is only pending. */
+    rolesRemoved?: string[];
 }
 
 /** Fresh token pair returned after a password change; all previous refresh tokens are revoked. */
