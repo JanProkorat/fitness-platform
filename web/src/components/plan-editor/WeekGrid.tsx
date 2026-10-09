@@ -20,8 +20,9 @@ import {
   dayTotals,
   mealItemCount,
   mealTotals,
+  STATUS_BAR_CLASS,
+  STATUS_TEXT_CLASS,
   targetStatus,
-  type TargetStatus,
   type Totals,
 } from '@/components/plan-editor/plan-editor-nutrition';
 import { setDayNote, weekRows } from '@/components/plan-editor/plan-editor-ops';
@@ -32,19 +33,6 @@ import {
   type EditorWeek,
 } from '@/components/plan-editor/plan-editor-types';
 import type { PlanEditorState } from '@/components/plan-editor/usePlanEditorState';
-
-const STATUS_TEXT_CLASS: Record<TargetStatus, string> = {
-  none: 'text-ink',
-  on: 'text-success',
-  near: 'text-training',
-  off: 'text-error',
-};
-const STATUS_BAR_CLASS: Record<TargetStatus, string> = {
-  none: 'bg-ink',
-  on: 'bg-success',
-  near: 'bg-training-bright',
-  off: 'bg-error',
-};
 
 export function MacroBar({ totals }: { totals: Totals }) {
   const parts = [

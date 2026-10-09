@@ -1596,13 +1596,14 @@
         "kcalUnit": "kcal",
         "hint": "Wird für die Tagessummen und Farben im Editor verwendet."
       },
-      "average": "Woche {{week}} · Durchschnitt pro Tag",
-      "weekTotal": "Wochensumme {{kcal}} kcal · folgt der gewählten Woche",
-      "usage": "Nutzung",
-      "usedBy_one": "Von {{count}} Klient genutzt",
-      "usedBy_other": "Von {{count}} Klienten genutzt",
+      "average": "Woche {{week}} · Ø pro Tag",
+      "weekTotal": "Woche {{kcal}} kcal",
+      "ofTarget": "/ {{target}} kcal",
+      "deviation": "{{value}} %",
+      "clients_one": "{{count}} Klient",
+      "clients_other": "{{count}} Klienten",
       "shared": "Geteilt",
-      "private": "Privat, nur für Sie sichtbar"
+      "private": "Privat · nur Sie"
     },
     "averages": {
       "kcal": "{{value}} kcal",
