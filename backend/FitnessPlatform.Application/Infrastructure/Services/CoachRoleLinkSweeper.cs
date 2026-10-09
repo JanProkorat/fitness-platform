@@ -61,6 +61,8 @@ public class CoachRoleLinkSweeper(
     /// <param name="ct">Cancellation token.</param>
     internal async Task TickAsync(DateTime now, CancellationToken ct)
     {
+        await RemoveRolesOfEndedAccountsAsync(now, ct);
+
         List<long> profileIds;
 
         using (var scope = scopeFactory.CreateScope())
@@ -82,6 +84,53 @@ public class CoachRoleLinkSweeper(
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 logger.LogError(ex, "CoachRoleLinkSweeper: failed to sweep professional profile {ProfileId}.", profileId);
+            }
+        }
+    }
+
+    private async Task RemoveRolesOfEndedAccountsAsync(DateTime now, CancellationToken ct)
+    {
+        List<long> profileIds;
+
+        using (var scope = scopeFactory.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
+            profileIds = await db.ProfessionalProfiles
+                .AsNoTracking()
+                .Where(p => p.CoachAccountActiveUntil != null
+                            && p.CoachAccountActiveUntil <= now
+                            && (p.TrainerRoleRemovedAt == null || p.NutritionistRoleRemovedAt == null))
+                .Select(p => p.Id)
+                .ToListAsync(ct);
+        }
+
+        foreach (var profileId in profileIds)
+        {
+            try
+            {
+                using var scope = scopeFactory.CreateScope();
+                var db = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
+                var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+                var remover = scope.ServiceProvider.GetRequiredService<ICoachRoleRemover>();
+
+                var profile = await db.ProfessionalProfiles.AsNoTracking().FirstOrDefaultAsync(p => p.Id == profileId, ct);
+                var user = profile is null ? null : await userManager.FindByIdAsync(profile.UserId.ToString());
+
+                if (profile is null || user is null)
+                {
+                    continue;
+                }
+
+                var activeRoles = CoachRoleStatus.ActiveRoles(await userManager.GetRolesAsync(user), profile);
+
+                if (activeRoles.Count > 0)
+                {
+                    await remover.RemoveAsync(user, profileId, activeRoles, now, ct);
+                }
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                logger.LogError(ex, "CoachRoleLinkSweeper: failed to end coach account of profile {ProfileId}.", profileId);
             }
         }
     }

@@ -4,6 +4,7 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.Users.RemoveCoachRole;
 using FitnessPlatform.Tests.Builders;
 using FluentAssertions;
@@ -26,9 +27,7 @@ public class RemoveCoachRoleEndpointTests
             Substitute.For<ICoachRoleStatus>(),
             Substitute.For<IAuditService>(),
             TimeProvider.System,
-            _notifications,
-            Substitute.For<IRealtimeNotifier>(),
-            NullLogger<RemoveCoachRoleEndpoint>.Instance);
+            Substitute.For<ICoachRoleRemover>());
 
         await ep.HandleAsync(new RemoveCoachRoleRequest { Role = "Trainer" }, CancellationToken.None);
 
@@ -72,9 +71,8 @@ public class RemoveCoachRoleEndpointTests
             coachRoleStatus,
             Substitute.For<IAuditService>(),
             TimeProvider.System,
-            _notifications,
-            Substitute.For<IRealtimeNotifier>(),
-            NullLogger<RemoveCoachRoleEndpoint>.Instance);
+            new CoachRoleRemover(
+                db, _notifications, Substitute.For<IRealtimeNotifier>(), NullLogger<CoachRoleRemover>.Instance));
         ep.HttpContext.User = new ClaimsPrincipal(
             new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(coachId, AppRoles.Trainer)));
 

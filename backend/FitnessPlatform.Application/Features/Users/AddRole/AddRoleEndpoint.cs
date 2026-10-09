@@ -77,21 +77,34 @@ public class AddRoleEndpoint(
                 return;
             }
 
-            CoachRoleStatus.SetRemovedAt(existingProfile!, req.Role, null);
-            await db.SaveChangesAsync(ct);
         }
         else
         {
             await userManager.AddToRoleAsync(user, req.Role);
         }
 
-        // If user doesn't have a ProfessionalProfile yet, create one (Nutritionist → Trainer case)
-        var hasProfile = await db.ProfessionalProfiles.AnyAsync(p => p.UserId == userId, ct);
-        if (!hasProfile)
+        // Adding a role reactivates the coach account: clear the removal marker and any pending disable.
+        // Create the ProfessionalProfile when the user has none yet (Nutritionist → Trainer case).
+        var profile = await db.ProfessionalProfiles.FirstOrDefaultAsync(p => p.UserId == userId, ct);
+        if (profile is null)
         {
             db.ProfessionalProfiles.Add(new ProfessionalProfile { UserId = userId });
-            await db.SaveChangesAsync(ct);
         }
+        else
+        {
+            CoachRoleStatus.SetRemovedAt(profile, req.Role, null);
+            profile.CoachAccountActiveUntil = null;
+
+            var subscription = await db.CoachSubscriptions
+                .FirstOrDefaultAsync(cs => cs.ProfessionalProfileId == profile.Id, ct);
+
+            if (subscription is not null)
+            {
+                subscription.CancelAtPeriodEnd = false;
+            }
+        }
+
+        await db.SaveChangesAsync(ct);
 
         // Audit log
         await audit.LogAsync(

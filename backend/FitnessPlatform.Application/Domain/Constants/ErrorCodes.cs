@@ -457,4 +457,14 @@ public static class ErrorCodes
     // ── Remove coach role (#1265) ───────────────────────────────────────
     /// <summary>The write belongs to a coach role the caller has removed (read-only).</summary>
     public const string CoachRoleRemoved = "COACH_ROLE_REMOVED";
+
+    // ── Disable coach account (#1266) ───────────────────────────────────
+    /// <summary>Every coach role the caller holds is already removed, so there is nothing to disable.</summary>
+    public const string NoActiveCoachRole = "NO_ACTIVE_COACH_ROLE";
+
+    /// <summary>Keep was requested but the coach account has no pending disable.</summary>
+    public const string CoachAccountNotDisabling = "COACH_ACCOUNT_NOT_DISABLING";
+
+    /// <summary>Keep was requested after the disable already took effect; add the role back instead.</summary>
+    public const string CoachAccountDisableEnded = "COACH_ACCOUNT_DISABLE_ENDED";
 }

@@ -46,6 +46,11 @@ public class CoachSubscription : TimestampableEntity
     public DateTimeOffset? CurrentPeriodEndsAt { get; set; }
 
     /// <summary>
+    /// True when the holder disabled the coach account and the subscription should not renew.
+    /// </summary>
+    public bool CancelAtPeriodEnd { get; set; }
+
+    /// <summary>
     /// External payment-provider customer identifier.
     /// </summary>
     public string? ExternalCustomerId { get; set; }

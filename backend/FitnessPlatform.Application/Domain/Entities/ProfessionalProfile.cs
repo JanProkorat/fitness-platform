@@ -105,6 +105,12 @@ public class ProfessionalProfile : PublicTimestampableEntity
     public DateTime? NutritionistRoleRemovedAt { get; set; }
 
     /// <summary>
+    /// When the holder's coach account stops being active (UTC). Null means the account is not being
+    /// disabled; a future value is a pending disable the holder can still undo.
+    /// </summary>
+    public DateTime? CoachAccountActiveUntil { get; set; }
+
+    /// <summary>
     /// Navigation property to the associated user.
     /// </summary>
     public ApplicationUser User { get; set; } = null!;
