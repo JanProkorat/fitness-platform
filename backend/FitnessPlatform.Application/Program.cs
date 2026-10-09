@@ -269,6 +269,8 @@ builder.Services.AddHostedService(sp => sp.GetRequiredService<WeeklyCheckInSched
 // Photo diary reminder scheduler — registered as both singleton (for test access) and hosted service.
 builder.Services.AddSingleton<PhotoDiaryReminderScheduler>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<PhotoDiaryReminderScheduler>());
+builder.Services.AddSingleton<CoachRoleLinkSweeper>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<CoachRoleLinkSweeper>());
 
 // Social login nonce reaper — periodically deletes expired/consumed nonce rows.
 // Registered as singleton (for test access via IServiceProvider) and hosted service.

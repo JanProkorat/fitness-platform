@@ -70,6 +70,33 @@ public class RemoveCoachRoleIntegrationTests(FitnessApiFactory factory)
     }
 
     [Fact]
+    public async Task Remove_NotifiesOnlyClientsWhoseActiveLinkGrantsTheRemovedDiscipline()
+    {
+        var coach = await TestActors.Professional(factory, UserRole.Trainer, UserRole.Nutritionist).CreateAsync(Ct);
+        var trainingClient = await TestActors.Client(factory).CreateAsync(Ct);
+        var nutritionOnlyClient = await TestActors.Client(factory).CreateAsync(Ct);
+        var endedLinkClient = await TestActors.Client(factory).CreateAsync(Ct);
+        await TestActors.Link(factory, coach, trainingClient).CreateAsync(Ct);
+        await TestActors.Link(factory, coach, nutritionOnlyClient).CanViewTrainingPlans(false).CreateAsync(Ct);
+        await TestActors.Link(factory, coach, endedLinkClient).Inactive().CreateAsync(Ct);
+
+        var response = await coach.Http.DeleteAsync("/users/me/roles/Trainer", Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await CountRoleRemovedNotificationsAsync(trainingClient.UserId)).Should().Be(1);
+        (await CountRoleRemovedNotificationsAsync(nutritionOnlyClient.UserId)).Should().Be(0);
+        (await CountRoleRemovedNotificationsAsync(endedLinkClient.UserId)).Should().Be(0);
+    }
+
+    private async Task<int> CountRoleRemovedNotificationsAsync(Guid userId)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        return await db.Notifications.AsNoTracking()
+            .CountAsync(n => n.RecipientUserId == userId && n.Type == NotificationType.CoachRoleRemoved, Ct);
+    }
+
+    [Fact]
     public async Task Remove_OnlyActiveCoachRole_Returns400OnlyCoachRole()
     {
         var coach = await TestActors.Trainer(factory).CreateAsync(Ct);

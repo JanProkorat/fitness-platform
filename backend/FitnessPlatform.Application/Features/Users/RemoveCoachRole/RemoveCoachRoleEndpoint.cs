@@ -2,6 +2,7 @@ using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Domain.Services;
@@ -20,12 +21,18 @@ namespace FitnessPlatform.Application.Features.Users.RemoveCoachRole;
 /// <param name="coachRoleStatus">Resolves which coach roles are active.</param>
 /// <param name="audit">Audit logging service.</param>
 /// <param name="timeProvider">Clock.</param>
+/// <param name="notificationService">Persisted-notification service.</param>
+/// <param name="notifier">Realtime notifier.</param>
+/// <param name="logger">Logger.</param>
 internal sealed class RemoveCoachRoleEndpoint(
     UserManager<ApplicationUser> userManager,
     IApplicationDbContext db,
     ICoachRoleStatus coachRoleStatus,
     IAuditService audit,
-    TimeProvider timeProvider) : Endpoint<RemoveCoachRoleRequest, RemoveCoachRoleResponse>
+    TimeProvider timeProvider,
+    INotificationService notificationService,
+    IRealtimeNotifier notifier,
+    ILogger<RemoveCoachRoleEndpoint> logger) : Endpoint<RemoveCoachRoleRequest, RemoveCoachRoleResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -90,6 +97,8 @@ internal sealed class RemoveCoachRoleEndpoint(
         CoachRoleStatus.SetRemovedAt(profile, role, timeProvider.GetUtcNow().UtcDateTime);
         await db.SaveChangesAsync(ct);
 
+        await NotifyAffectedClientsAsync(user, profile.Id, role, ct);
+
         await audit.LogAsync(
             userId,
             "RemoveCoachRole",
@@ -100,5 +109,59 @@ internal sealed class RemoveCoachRoleEndpoint(
             ct: ct);
 
         await Send.OkAsync(new RemoveCoachRoleResponse { RemovedRole = role, Roles = counts }, ct);
+    }
+
+    /// <summary>
+    /// Tells every client whose active link grants the removed discipline. Best-effort: the removal
+    /// is already saved, so a failure is logged and never reaches the caller.
+    /// </summary>
+    private async Task NotifyAffectedClientsAsync(
+        ApplicationUser coach, long professionalProfileId, string role, CancellationToken ct)
+    {
+        List<Guid> clientUserIds;
+
+        try
+        {
+            clientUserIds = await db.ClientProfessionalLinks
+                .AsNoTracking()
+                .Where(l => l.ProfessionalProfileId == professionalProfileId
+                            && l.IsActive
+                            && (role == AppRoles.Trainer ? l.CanViewTrainingPlans : l.CanViewNutritionPlans))
+                .Select(l => l.ClientProfile.UserId)
+                .ToListAsync(ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogWarning(ex, "RemoveCoachRole: failed to load clients to notify for coach {CoachUserId}.", coach.Id);
+            return;
+        }
+
+        var parameters = new Dictionary<string, string> { ["coachName"] = $"{coach.FirstName} {coach.LastName}" };
+
+        foreach (var clientUserId in clientUserIds)
+        {
+            try
+            {
+                var notification = await notificationService.CreateAsync(
+                    clientUserId, NotificationType.CoachRoleRemoved, parameters, ct: ct);
+
+                await notifier.NotifyAsync(
+                    clientUserId,
+                    "newnotification",
+                    new
+                    {
+                        id = notification.Id,
+                        type = NotificationType.CoachRoleRemoved.ToString(),
+                        data = notification.Data,
+                    },
+                    ct);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                logger.LogWarning(ex,
+                    "RemoveCoachRole: failed to notify client {ClientUserId} about coach {CoachUserId}.",
+                    clientUserId, coach.Id);
+            }
+        }
     }
 }
