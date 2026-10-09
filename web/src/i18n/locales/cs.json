@@ -308,6 +308,7 @@
       "app": "Aplikace trenéra",
       "emailLabel": "{{event}} e-mailem",
       "appLabel": "{{event}} v aplikaci trenéra",
+      "saveError": "Nastavení upozornění se nepodařilo uložit.",
       "events": {
         "newMessage": {
           "title": "Nová zpráva",

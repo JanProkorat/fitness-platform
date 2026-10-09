@@ -308,6 +308,7 @@
       "app": "Coach-App",
       "emailLabel": "{{event}} per E-Mail",
       "appLabel": "{{event}} in der Coach-App",
+      "saveError": "Die Benachrichtigungseinstellungen konnten nicht gespeichert werden.",
       "events": {
         "newMessage": {
           "title": "Neue Nachricht",
