@@ -95,6 +95,17 @@ public class GetProfileEndpoint(UserManager<ApplicationUser> userManager, IAppli
                     && (r.Status == QuestionnaireResponseStatus.Pending || r.Status == QuestionnaireResponseStatus.InProgress), ct);
         }
 
+        DateTime? coachAccountActiveUntil = null;
+
+        if (roles.Contains(AppRoles.Trainer) || roles.Contains(AppRoles.Nutritionist))
+        {
+            coachAccountActiveUntil = await dbContext.ProfessionalProfiles
+                .AsNoTracking()
+                .Where(p => p.UserId == user.Id)
+                .Select(p => p.CoachAccountActiveUntil)
+                .FirstOrDefaultAsync(ct);
+        }
+
         await Send.OkAsync(new GetProfileResponse
         {
             UserId = user.Id,
@@ -112,7 +123,8 @@ public class GetProfileEndpoint(UserManager<ApplicationUser> userManager, IAppli
             TimeZone = user.TimeZone,
             AvatarBlobUrl = user.AvatarBlobUrl,
             HasPassword = user.PasswordHash is not null,
-            PasswordChangedAt = user.PasswordChangedAt
+            PasswordChangedAt = user.PasswordChangedAt,
+            CoachAccountActiveUntil = coachAccountActiveUntil
         }, ct);
     }
 }

@@ -219,6 +219,7 @@ builder.Services.AddSingleton(TimeProvider.System);
 // call site resolves professional/client link capabilities through; see #958, #964.
 builder.Services.AddScoped<IClientLinkAuthorizationService, ClientLinkAuthorizationService>();
 builder.Services.AddScoped<ICoachRoleStatus, CoachRoleStatus>();
+builder.Services.AddScoped<ICoachRoleRemover, CoachRoleRemover>();
 builder.Services.AddScoped<IPrDetectionService, PrDetectionService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IWorkoutCompletionService, WorkoutCompletionService>();

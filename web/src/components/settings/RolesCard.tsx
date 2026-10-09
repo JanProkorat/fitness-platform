@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Dumbbell, Info, Leaf, Plus } from 'lucide-react';
-import { addRole, getMyCoachRoles, removeCoachRole, rolesKeys } from '@/api/roles';
+import { addRole, getMyCoachRoles, isInFuture, removeCoachRole, rolesKeys } from '@/api/roles';
 import { profileKeys } from '@/api/profile';
 import { getApiErrorMessage, getErrorCode, showApiError, showSuccess } from '@/lib/api-errors';
 import { cn } from '@/lib/utils';
@@ -17,6 +17,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
+import DisableAccountDialog from '@/components/settings/DisableAccountDialog';
 import RemoveRoleDialog, { type CoachRoleKey } from '@/components/settings/RemoveRoleDialog';
 import SettingsCard from '@/components/settings/SettingsCard';
 
@@ -40,16 +41,18 @@ export default function RolesCard() {
   const [pendingRole, setPendingRole] = useState<(typeof COACH_ROLES)[number] | null>(null);
   const [removeTarget, setRemoveTarget] = useState<RemoveTarget | null>(null);
   const [removeError, setRemoveError] = useState<string | null>(null);
+  const [disableOpen, setDisableOpen] = useState(false);
 
   const rolesQuery = useQuery({ queryKey: rolesKeys.mine, queryFn: getMyCoachRoles });
-  const summaries = rolesQuery.data ?? [];
+  const summaries = rolesQuery.data?.roles ?? [];
+  const disablePending = isInFuture(rolesQuery.data?.coachAccountActiveUntil ?? null);
 
   const summaryFor = (key: string) => summaries.find((summary) => summary.role.toLowerCase() === key);
   const heldRoles = COACH_ROLES.filter((role) => summaryFor(role.key));
   // A removed role is not in the active list, so it is offered here again.
   const missingRoles = COACH_ROLES.filter((role) => !summaryFor(role.key));
-  // Only a coach can self-assign the other coach role (POST /users/me/roles is gated on them).
-  const canAdd = heldRoles.length > 0 && missingRoles.length > 0;
+  // With no active role left, Add role is the way to reactivate the account.
+  const canAdd = missingRoles.length > 0;
   const onlyRole = heldRoles.length === 1;
 
   const addMutation = useMutation({
@@ -124,6 +127,7 @@ export default function RolesCard() {
         </p>
       ) : (
         <>
+          {heldRoles.length > 0 && (
           <ul className="border-y border-border">
             {heldRoles.map(({ key, apiRole, Icon, tint }) => {
               const summary = summaryFor(key);
@@ -148,17 +152,18 @@ export default function RolesCard() {
                   <Button
                     type="button"
                     variant="outline"
-                    // The last role cannot be removed here until disabling the coach account is wired up.
-                    disabled={onlyRole}
-                    title={onlyRole ? t('shell.comingSoon') : undefined}
+                    // Removing the only role disables the coach account, so it opens that dialog instead.
+                    disabled={onlyRole && disablePending}
                     className="h-8.5 shrink-0 rounded-field px-3 font-semibold text-error"
                     onClick={() =>
-                      setRemoveTarget({
-                        key,
-                        apiRole,
-                        clientCount: summary?.clientCount ?? 0,
-                        sharedWithOtherRoleCount: summary?.sharedWithOtherRoleCount ?? 0,
-                      })
+                      onlyRole
+                        ? setDisableOpen(true)
+                        : setRemoveTarget({
+                            key,
+                            apiRole,
+                            clientCount: summary?.clientCount ?? 0,
+                            sharedWithOtherRoleCount: summary?.sharedWithOtherRoleCount ?? 0,
+                          })
                     }
                   >
                     {t('settings.roles.remove')}
@@ -167,10 +172,15 @@ export default function RolesCard() {
               );
             })}
           </ul>
+          )}
           <div className="flex gap-2.5 rounded-xl bg-sunken px-3.5 py-3 text-ink-2">
             <Info className="mt-px size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
             <p className="text-body leading-normal">
-              {onlyRole ? t('settings.roles.onlyRoleNote') : t('settings.roles.note')}
+              {heldRoles.length === 0
+                ? t('settings.roles.noRolesNote')
+                : onlyRole
+                  ? t('settings.roles.onlyRoleNote')
+                  : t('settings.roles.note')}
             </p>
           </div>
         </>
@@ -189,6 +199,8 @@ export default function RolesCard() {
         }}
         onClose={closeRemoveDialog}
       />
+
+      <DisableAccountDialog open={disableOpen} onClose={() => setDisableOpen(false)} />
 
       <Dialog open={pendingRole !== null} onOpenChange={(open) => !open && setPendingRole(null)}>
         <DialogContent showCloseButton={false}>

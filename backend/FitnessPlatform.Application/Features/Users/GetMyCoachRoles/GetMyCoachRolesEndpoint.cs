@@ -2,6 +2,7 @@ using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.Users.Shared;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -13,7 +14,9 @@ namespace FitnessPlatform.Application.Features.Users.GetMyCoachRoles;
 /// </summary>
 /// <param name="db">Database context.</param>
 /// <param name="coachRoleStatus">Resolves which coach roles are active.</param>
-internal sealed class GetMyCoachRolesEndpoint(IApplicationDbContext db, ICoachRoleStatus coachRoleStatus)
+/// <param name="timeProvider">Clock.</param>
+internal sealed class GetMyCoachRolesEndpoint(
+    IApplicationDbContext db, ICoachRoleStatus coachRoleStatus, TimeProvider timeProvider)
     : EndpointWithoutRequest<GetMyCoachRolesResponse>
 {
     /// <inheritdoc />
@@ -39,23 +42,29 @@ internal sealed class GetMyCoachRolesEndpoint(IApplicationDbContext db, ICoachRo
             return;
         }
 
-        var profileId = await db.ProfessionalProfiles
+        var profile = await db.ProfessionalProfiles
             .AsNoTracking()
             .Where(p => p.UserId == userId)
-            .Select(p => (long?)p.Id)
+            .Select(p => new { p.Id, p.CoachAccountActiveUntil })
             .FirstOrDefaultAsync(ct);
 
-        if (profileId is null)
+        if (profile is null)
         {
             await Send.OkAsync(new GetMyCoachRolesResponse(), ct);
             return;
         }
 
         var activeRoles = await coachRoleStatus.GetActiveRolesAsync(userId, ct);
+        var subscription = await db.CoachSubscriptions
+            .AsNoTracking()
+            .FirstOrDefaultAsync(cs => cs.ProfessionalProfileId == profile.Id, ct);
 
         await Send.OkAsync(new GetMyCoachRolesResponse
         {
-            Roles = await CoachRoleCounts.LoadAsync(db, profileId.Value, activeRoles, ct),
+            Roles = await CoachRoleCounts.LoadAsync(db, profile.Id, activeRoles, ct),
+            CoachAccountActiveUntil = profile.CoachAccountActiveUntil,
+            ActiveUntilIfDisabled = profile.CoachAccountActiveUntil
+                ?? CoachAccountActiveUntilResolver.Resolve(subscription, timeProvider.GetUtcNow().UtcDateTime),
         }, ct);
     }
 }

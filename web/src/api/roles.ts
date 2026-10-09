@@ -35,11 +35,46 @@ function toSummaries(dtos: CoachRoleSummaryDto[] | undefined): CoachRoleSummary[
   return (dtos ?? []).flatMap((dto) => toSummary(dto) ?? []);
 }
 
-/** GET /users/me/roles — the caller's ACTIVE coach roles with client counts. */
-export async function getMyCoachRoles(): Promise<CoachRoleSummary[]> {
-  const result = await apiClient.getMyCoachRolesEndpoint();
-  return toSummaries(result.roles);
+/** The caller's active coach roles plus the coach-account disable dates. */
+export interface MyCoachRoles {
+  roles: CoachRoleSummary[];
+  /** Stored end date while a disable is pending; null otherwise. */
+  coachAccountActiveUntil: string | null;
+  /** Date the account would stop being active if disabled now; at or before now means at once. */
+  activeUntilIfDisabled: string | null;
 }
+
+/** GET /users/me/roles — the caller's ACTIVE coach roles with client counts and disable dates. */
+export async function getMyCoachRoles(): Promise<MyCoachRoles> {
+  const result = await apiClient.getMyCoachRolesEndpoint();
+  return {
+    roles: toSummaries(result.roles),
+    coachAccountActiveUntil: result.coachAccountActiveUntil ?? null,
+    activeUntilIfDisabled: result.activeUntilIfDisabled ?? null,
+  };
+}
+
+/** Outcome of POST /users/me/coach-account/disable. */
+export interface DisableCoachAccountResult {
+  activeUntil: string | null;
+  /** Roles removed by this call; empty while the disable is only pending. */
+  rolesRemoved: string[];
+}
+
+/**
+ * POST /users/me/coach-account/disable — 400 NO_ACTIVE_COACH_ROLE.
+ * The Identity roles stay in the JWT, so no token change follows.
+ */
+export async function disableCoachAccount(): Promise<DisableCoachAccountResult> {
+  const result = await apiClient.disableCoachAccountEndpoint();
+  return { activeUntil: result.activeUntil ?? null, rolesRemoved: result.rolesRemoved ?? [] };
+}
+
+/** POST /users/me/coach-account/keep — 400 COACH_ACCOUNT_NOT_DISABLING / COACH_ACCOUNT_DISABLE_ENDED. */
+export async function keepCoachAccount(): Promise<void> {
+  await apiClient.keepCoachAccountEndpoint();
+}
+
 
 /**
  * DELETE /users/me/roles/{role} — 400 ROLE_NOT_ASSIGNED / ONLY_COACH_ROLE.
@@ -53,3 +88,13 @@ export async function removeCoachRole(role: string): Promise<{ removedRole: stri
 export const rolesKeys = {
   mine: ['roles', 'me'] as const,
 };
+
+/** True when the date is still ahead; at or before now there is no paid period left. */
+export function isInFuture(iso: string | null, now = Date.now()): boolean {
+  return iso !== null && new Date(iso).getTime() > now;
+}
+
+/** Long date in the UI locale, e.g. "31 October 2026". */
+export function formatLongDate(iso: string, locale: string): string {
+  return new Date(iso).toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' });
+}

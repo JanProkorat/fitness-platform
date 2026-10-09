@@ -358,6 +358,7 @@
       "removeError": "Die Rolle konnte nicht entfernt werden. Es wurde nichts geändert.",
       "loadError": "Deine Rollen konnten nicht geladen werden. Bitte lade die Seite neu.",
       "onlyRoleNote": "Das ist deine einzige Rolle. Sie zu entfernen deaktiviert dein Coach-Konto, genau wie die Schaltfläche unten.",
+      "noRolesNote": "Dein Coach-Konto ist deaktiviert. Füge eine Rolle hinzu, um es zu reaktivieren.",
       "removeDialog": {
         "keep": "Rolle behalten",
         "footnote": "Die Rolle verschwindet sofort aus der Suche und von deiner Profilkarte. Füge sie jederzeit wieder hinzu, um erneut zu bearbeiten.",
@@ -396,6 +397,32 @@
         }
       }
     },
+    "disableDialog": {
+      "title": "Dein Coach-Konto deaktivieren?",
+      "description": "Dadurch werden alle deine Rollen entfernt: {{roles}}. Das Entfernen deiner einzigen Rolle bewirkt dasselbe.",
+      "later": {
+        "untilTitle": "Aktiv bis {{date}}",
+        "untilBody": "Alles funktioniert wie bisher bis zum letzten Tag deines aktuellen Abos.",
+        "chargesBody": "Nach diesem Datum wird dir nichts mehr berechnet. Dein Abo verlängert sich nicht.",
+        "plansBody": "Bereits gestartete Pläne bleiben aktiv, bis sie enden, auch nach dem {{date}}, kostenlos. Diese Klienten bleiben bis dahin mit dir verbunden."
+      },
+      "now": {
+        "untilTitle": "Deine Rollen enden jetzt",
+        "untilBody": "Du hast keinen bezahlten Zeitraum mehr, daher wird die Deaktivierung sofort wirksam.",
+        "chargesBody": "Es wird dir nichts mehr berechnet.",
+        "plansBody": "Bereits gestartete Pläne bleiben aktiv, bis sie enden, kostenlos. Diese Klienten bleiben bis dahin mit dir verbunden."
+      },
+      "chargesTitle": "Keine weiteren Kosten",
+      "plansTitle": "Laufende Pläne laufen bis zum Ende",
+      "readOnlyTitle": "Alles andere wird schreibgeschützt",
+      "readOnlyBody": "Du behältst den Zugriff auf alle deine Klienten, Pläne, Vorlagen, Rezepte und Chats. Du kannst nur nichts mehr erstellen oder ändern.",
+      "footnote": "Anders überlegt? Füge jederzeit eine Rolle hinzu, um das Konto zu reaktivieren und wieder zu bearbeiten.",
+      "keep": "Konto behalten",
+      "confirm": "Konto deaktivieren",
+      "error": "Das Coach-Konto konnte nicht deaktiviert werden. Es wurde nichts geändert.",
+      "endedToast": "Coach-Konto deaktiviert.",
+      "scheduledToast": "Dein Coach-Konto wird am Ende des Zeitraums deaktiviert."
+    },
     "danger": {
       "title": "Gefahrenbereich",
       "description": "Aktionen, die deine Arbeit auf Form Up beenden.",
@@ -408,7 +435,11 @@
       "confirmTitle": "Dein Konto löschen?",
       "confirmBody": "Dein Konto und alles darin wird dauerhaft gelöscht. Das kann nicht rückgängig gemacht werden.",
       "confirmAction": "Konto löschen",
-      "deleteError": "Das Konto konnte nicht gelöscht werden. Es wurde nichts geändert."
+      "deleteError": "Das Konto konnte nicht gelöscht werden. Es wurde nichts geändert.",
+      "disabledUntil": "Deaktiviert, aktiv bis {{date}}.",
+      "keep": "Konto behalten",
+      "kept": "Dein Coach-Konto bleibt aktiv.",
+      "keepError": "Das Coach-Konto konnte nicht behalten werden. Es wurde nichts geändert."
     }
   },
   "dashboard": {
@@ -2139,6 +2170,9 @@
     "RECIPE_GALLERY_IMAGE_NOT_FOUND": "Dieses Bild gehört nicht mehr zu diesem Rezept. Es wurde möglicherweise an anderer Stelle geändert.",
     "ONLY_COACH_ROLE": "Das ist deine einzige Coach-Rolle, sie kann hier nicht entfernt werden.",
     "ROLE_NOT_ASSIGNED": "Du hast diese Rolle nicht mehr. Deine Rollen wurden aktualisiert.",
+    "NO_ACTIVE_COACH_ROLE": "Du hast keine aktive Coach-Rolle, daher gibt es nichts zu deaktivieren. Deine Rollen wurden aktualisiert.",
+    "COACH_ACCOUNT_NOT_DISABLING": "Dein Coach-Konto wird nicht deaktiviert. Deine Rollen wurden aktualisiert.",
+    "COACH_ACCOUNT_DISABLE_ENDED": "Die Deaktivierung ist bereits beendet und kann nicht rückgängig gemacht werden. Füge eine Rolle hinzu, um dein Konto zu reaktivieren.",
     "NUTRITION_PLAN_TEMPLATE_NOT_FOUND": "Diese Planvorlage existiert nicht mehr.",
     "NUTRITION_PLAN_TEMPLATE_NOT_OWNED": "Sie können nur Ihre eigenen Planvorlagen ändern.",
     "NUTRITION_PLAN_TEMPLATE_VERSION_CONFLICT": "Diese Planvorlage wurde an anderer Stelle geändert. Laden Sie sie neu, um die aktuelle Version zu sehen."

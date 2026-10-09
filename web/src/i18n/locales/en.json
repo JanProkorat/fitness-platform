@@ -358,6 +358,7 @@
       "removeError": "Could not remove the role. Nothing was changed.",
       "loadError": "Could not load your roles. Please refresh the page.",
       "onlyRoleNote": "This is your only role. Removing it disables your coach account, the same as the button below.",
+      "noRolesNote": "Your coach account is disabled. Add a role to reactivate it.",
       "removeDialog": {
         "keep": "Keep role",
         "footnote": "The role disappears from search and your profile card right away. Add it back any time to edit again.",
@@ -396,6 +397,32 @@
         }
       }
     },
+    "disableDialog": {
+      "title": "Disable your coach account?",
+      "description": "This removes all your roles: {{roles}}. Removing your only role does the same.",
+      "later": {
+        "untilTitle": "Active until {{date}}",
+        "untilBody": "Everything works as now until the last day of your current subscription.",
+        "chargesBody": "You won’t be charged anything after that date. Your subscription won’t renew.",
+        "plansBody": "Plans already started stay active until they end, even after {{date}}, at no charge. Those clients stay connected to you until then."
+      },
+      "now": {
+        "untilTitle": "Your roles end now",
+        "untilBody": "You have no paid period left, so disabling takes effect right away.",
+        "chargesBody": "You won’t be charged anything more.",
+        "plansBody": "Plans already started stay active until they end, at no charge. Those clients stay connected to you until then."
+      },
+      "chargesTitle": "No more charges",
+      "plansTitle": "Plans in progress run to the end",
+      "readOnlyTitle": "Everything else becomes read-only",
+      "readOnlyBody": "You keep access to all your clients, plans, templates, recipes and chats. You just can’t create or change anything.",
+      "footnote": "Changed your mind? Add a role any time to reactivate and edit again.",
+      "keep": "Keep my account",
+      "confirm": "Disable account",
+      "error": "Could not disable your coach account. Nothing was changed.",
+      "endedToast": "Coach account disabled.",
+      "scheduledToast": "Your coach account will be disabled at the end of the period."
+    },
     "danger": {
       "title": "Danger zone",
       "description": "Actions that end your work on Form Up.",
@@ -408,7 +435,11 @@
       "confirmTitle": "Delete your account?",
       "confirmBody": "This permanently erases your account and everything in it. This can't be undone.",
       "confirmAction": "Delete account",
-      "deleteError": "Could not delete your account. Nothing was changed."
+      "deleteError": "Could not delete your account. Nothing was changed.",
+      "disabledUntil": "Disabled, active until {{date}}.",
+      "keep": "Keep my account",
+      "kept": "Your coach account stays active.",
+      "keepError": "Could not keep your coach account. Nothing was changed."
     }
   },
   "dashboard": {
@@ -2140,6 +2171,9 @@
     "RECIPE_GALLERY_IMAGE_NOT_FOUND": "That picture is no longer part of this recipe. It may have been changed elsewhere.",
     "ONLY_COACH_ROLE": "This is your only coach role, so it can’t be removed here.",
     "ROLE_NOT_ASSIGNED": "You no longer have this role. Your roles have been refreshed.",
+    "NO_ACTIVE_COACH_ROLE": "You have no active coach role, so there is nothing to disable. Your roles have been refreshed.",
+    "COACH_ACCOUNT_NOT_DISABLING": "Your coach account is not being disabled. Your roles have been refreshed.",
+    "COACH_ACCOUNT_DISABLE_ENDED": "Disabling has already ended, so it can’t be undone. Add a role to reactivate your account.",
     "NUTRITION_PLAN_TEMPLATE_NOT_FOUND": "This plan template no longer exists.",
     "NUTRITION_PLAN_TEMPLATE_NOT_OWNED": "You can only change your own plan templates.",
     "NUTRITION_PLAN_TEMPLATE_VERSION_CONFLICT": "This plan template was changed elsewhere. Reload it to see the latest version."

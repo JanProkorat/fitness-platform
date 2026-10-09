@@ -85,4 +85,9 @@ public class GetProfileResponse
     /// UTC time of the last password change or reset, or null if never changed.
     /// </summary>
     public DateTime? PasswordChangedAt { get; set; }
+
+    /// <summary>
+    /// When a pending coach-account disable takes effect (UTC), or null when none is pending.
+    /// </summary>
+    public DateTime? CoachAccountActiveUntil { get; set; }
 }
