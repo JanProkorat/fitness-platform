@@ -3204,7 +3204,7 @@
     },
     "noConversations": "Keine Gespräche gefunden",
     "list": {
-      "photoMarker": "📷 Foto"
+      "photoMarker": "Foto"
     },
     "thread": {
       "showClient": "Kunde anzeigen",
@@ -3228,6 +3228,22 @@
         "other": "{{name}} hat Ihre Einladung abgelehnt"
       },
       "withdrawn": "Das Kooperationsangebot wurde zurückgezogen"
+    },
+    "panel": {
+      "weightLabel": "Gewicht",
+      "open": "Öffnen",
+      "mealPlan": {
+        "eyebrow": "Ernährungsplan",
+        "detail": "{{kcal}} kcal • {{protein}}/{{carbs}}/{{fat}}",
+        "macrosLegend": "Makros · Eiweiß / Kohlenhydrate / Fett"
+      },
+      "training": {
+        "eyebrow": "Training",
+        "exercises_one": "{{count}} Übung",
+        "exercises_other": "{{count}} Übungen",
+        "doneThisWeek_one": "Diese Woche erledigt · {{done}} von {{count}} Einheit",
+        "doneThisWeek_other": "Diese Woche erledigt · {{done}} von {{count}} Einheiten"
+      }
     },
     "typingIndicator": "Schreibt gerade…",
     "composer": {

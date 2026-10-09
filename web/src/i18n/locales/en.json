@@ -3205,7 +3205,7 @@
     },
     "noConversations": "No conversations found",
     "list": {
-      "photoMarker": "📷 Photo"
+      "photoMarker": "Photo"
     },
     "thread": {
       "showClient": "Show client",
@@ -3229,6 +3229,22 @@
         "other": "{{name}} declined your invitation"
       },
       "withdrawn": "The collaboration offer was withdrawn"
+    },
+    "panel": {
+      "weightLabel": "Weight",
+      "open": "Open",
+      "mealPlan": {
+        "eyebrow": "Meal plan",
+        "detail": "{{kcal}} kcal • {{protein}}/{{carbs}}/{{fat}}",
+        "macrosLegend": "Macros · protein / carbs / fat"
+      },
+      "training": {
+        "eyebrow": "Training",
+        "exercises_one": "{{count}} exercise",
+        "exercises_other": "{{count}} exercises",
+        "doneThisWeek_one": "Done this week · {{done}} of {{count}} session",
+        "doneThisWeek_other": "Done this week · {{done}} of {{count}} sessions"
+      }
     },
     "typingIndicator": "Typing…",
     "composer": {

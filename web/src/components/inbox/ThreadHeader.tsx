@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
-import { ExternalLink, Settings, User, UserX } from 'lucide-react';
+import { ExternalLink, Settings, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ParticipantAvatar from '@/components/inbox/ParticipantAvatar';
 import type { ParticipantDto } from '@/api/generated';
@@ -24,29 +24,31 @@ export default function ThreadHeader({ participant, showClientPanel, onToggleCli
   const { t } = useTranslation();
 
   return (
-    <div className="flex items-center justify-between gap-2 border-b border-border p-4">
-      <div className="flex items-center gap-2">
+    <div className="flex items-center justify-between gap-3 border-b border-border bg-card px-5 py-3.5">
+      <div className="flex min-w-0 items-center gap-3">
         <ParticipantAvatar
           name={participant.name}
           initials={participant.initials}
           avatarBlobUrl={participant.avatarBlobUrl}
-          className="size-8"
+          className="size-8.5 shrink-0"
         />
-        <span className="text-body font-bold text-ink">{participant.name}</span>
+        <span className="truncate text-subhead font-semibold text-ink">{participant.name}</span>
       </div>
-      <div className="flex items-center gap-2">
-        <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={onToggleClientPanel}>
-          {showClientPanel ? (
-            <UserX className="size-4" aria-hidden="true" />
-          ) : (
-            <User className="size-4" aria-hidden="true" />
-          )}
+      <div className="flex shrink-0 items-center gap-1.5">
+        <Button
+          type="button"
+          variant="outline"
+          className="h-8.5 gap-1.75 rounded-field bg-card px-3.5 text-body font-semibold text-ink"
+          onClick={onToggleClientPanel}
+        >
+          <User className="size-4" aria-hidden="true" />
           {showClientPanel ? t('inbox.thread.hideClient') : t('inbox.thread.showClient')}
         </Button>
         <Button
           type="button"
           variant="ghost"
           size="icon-sm"
+          className="size-8.5 rounded-field text-muted-foreground"
           disabled
           title={t('shell.comingSoon')}
           aria-label={t('inbox.thread.settingsAriaLabel')}
@@ -54,7 +56,7 @@ export default function ThreadHeader({ participant, showClientPanel, onToggleCli
           <Settings className="size-4" aria-hidden="true" />
         </Button>
         {participant.clientPublicId && !isFormer ? (
-          <Button type="button" variant="ghost" size="icon-sm" asChild>
+          <Button type="button" variant="ghost" size="icon-sm" className="size-8.5 rounded-field text-ink-2" asChild>
             <Link to={`/clients/${participant.clientPublicId}`} aria-label={t('inbox.thread.openClientProfileAriaLabel')}>
               <ExternalLink className="size-4" aria-hidden="true" />
             </Link>
@@ -64,6 +66,7 @@ export default function ThreadHeader({ participant, showClientPanel, onToggleCli
             type="button"
             variant="ghost"
             size="icon-sm"
+            className="size-8.5 rounded-field text-muted-foreground"
             disabled
             aria-label={t('inbox.thread.openClientProfileAriaLabel')}
           >

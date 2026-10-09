@@ -1,22 +1,14 @@
 import { useTranslation } from 'react-i18next';
-import { cn } from '@/lib/utils';
-import { calculateAge } from '@/lib/client-metrics';
 import ClientStatusBadge from '@/components/clients/ClientStatusBadge';
+import { calculateAge } from '@/lib/client-metrics';
 import type { GetClientDashboardResponse } from '@/api/generated';
 
 interface Props {
   dashboard: GetClientDashboardResponse;
-  className?: string;
 }
 
-/**
- * Name + status pill + dot-separated meta line (age • sex • height) + a
- * bordered goal chip. Deliberately carries no left indent of its own: the
- * client-detail header supplies that by wrapping this block next to its
- * back-arrow link in a shared flex row, so both of this block's internal
- * rows (name and meta) line up under each other automatically.
- */
-export default function ClientIdentityBlock({ dashboard, className }: Props) {
+/** Client name + status pill, then the "age • sex • height" line with the goal chip. */
+export default function PanelIdentity({ dashboard }: Props) {
   const { t } = useTranslation();
 
   const age = dashboard.dateOfBirth ? calculateAge(dashboard.dateOfBirth) : undefined;
@@ -31,25 +23,18 @@ export default function ClientIdentityBlock({ dashboard, className }: Props) {
   const metaSegments = [ageLabel, sexLabel, heightLabel].filter((segment): segment is string => Boolean(segment));
 
   return (
-    <div className={cn('flex flex-col gap-1', className)}>
-      <div className="flex items-center gap-2">
-        <h1 className="text-title font-bold text-ink">
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-wrap items-center gap-3">
+        <h2 className="font-display text-auth-title font-semibold tracking-heading text-ink">
           {dashboard.firstName} {dashboard.lastName}
-        </h1>
+        </h2>
         <ClientStatusBadge status={dashboard.status} />
       </div>
       {(metaSegments.length > 0 || goalLabel) && (
-        <div className="flex flex-wrap items-center gap-1.5">
-          {metaSegments.length > 0 && (
-            <span className="text-body text-muted-foreground">{metaSegments.join(' • ')}</span>
-          )}
+        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
+          {metaSegments.length > 0 && <span className="text-body text-muted-foreground">{metaSegments.join(' • ')}</span>}
           {goalLabel && (
-            <span
-              className={cn(
-                'rounded-full border border-border px-2 py-0.5 text-caption text-muted-foreground',
-                metaSegments.length > 0 && 'ml-1',
-              )}
-            >
+            <span className="rounded-full border border-border px-2.5 py-0.75 text-meta text-muted-foreground">
               {goalLabel}
             </span>
           )}

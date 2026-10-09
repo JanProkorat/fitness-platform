@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { Image as ImageIcon } from 'lucide-react';
 import ParticipantAvatar from '@/components/inbox/ParticipantAvatar';
 import { getEventPreviewText } from '@/lib/chatEvents';
 import { cn } from '@/lib/utils';
@@ -49,34 +50,46 @@ export default function ConversationRow({ conversation, isSelected, onSelect }: 
       onClick={onSelect}
       aria-current={isSelected ? 'true' : undefined}
       className={cn(
-        'flex w-full items-center gap-2.5 rounded-lg p-2 text-left transition-colors hover:bg-muted',
-        isSelected && 'bg-muted',
+        'flex w-full items-center gap-3 rounded-xl p-2.5 text-left transition-colors hover:bg-background',
+        isSelected && 'bg-background',
       )}
     >
       <ParticipantAvatar
         name={participant?.name}
         initials={participant?.initials}
         avatarBlobUrl={participant?.avatarBlobUrl}
-        className="size-11 shrink-0"
+        className="size-10.5 shrink-0"
+        textClassName="text-copy"
       />
-      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex items-center justify-between gap-2">
-          <span className="truncate text-body font-bold text-ink">{participant?.name}</span>
+          <span data-testid="inbox-row-name" className={cn('truncate text-copy text-ink', hasUnread ? 'font-bold' : 'font-semibold')}>
+            {participant?.name}
+          </span>
           <span className="shrink-0 text-caption text-muted-foreground">
             {hasConversation ? formatRowTime(conversation.lastMessageAt, i18n.language, t('inbox.row.yesterday')) : ''}
           </span>
         </div>
         <div className="flex items-center justify-between gap-2">
-          <span className="truncate text-caption text-muted-foreground">
+          <span className={cn('truncate text-meta', hasUnread ? 'text-ink-2' : 'text-muted-foreground')}>
             {hasConversation
               ? conversation.lastMessageEventType != null
                 ? getEventPreviewText(t, conversation.lastMessageEventType, conversation.lastMessageIsOwn ?? false, participant?.name ?? '')
-                : conversation.lastMessage || (conversation.lastMessageHasImage ? t('inbox.list.photoMarker') : '—')
+                : conversation.lastMessage || (
+                    conversation.lastMessageHasImage ? (
+                      <span className="inline-flex items-center gap-1">
+                        <ImageIcon className="size-3.25" aria-hidden="true" />
+                        {t('inbox.list.photoMarker')}
+                      </span>
+                    ) : (
+                      '—'
+                    )
+                  )
               : t('inbox.row.noConversationYet')}
           </span>
           {hasUnread && (
             <span
-              className="size-2 shrink-0 rounded-full bg-primary"
+              className="size-2 shrink-0 rounded-full bg-marker"
               aria-label={t('inbox.row.unreadAriaLabel')}
               role="status"
             />

@@ -5,7 +5,7 @@ export default function TypingIndicator() {
   const { t } = useTranslation();
 
   return (
-    <div className="flex items-center gap-1 px-3.5 py-1 text-caption text-muted-foreground" role="status">
+    <div className="flex items-center gap-1 pb-3 pl-15.5 pr-6 text-meta text-muted-foreground" role="status">
       {t('inbox.typingIndicator')}
     </div>
   );

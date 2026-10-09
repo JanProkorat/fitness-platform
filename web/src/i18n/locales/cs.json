@@ -3267,7 +3267,7 @@
     },
     "noConversations": "Nebyly nalezeny žádné konverzace",
     "list": {
-      "photoMarker": "📷 Fotka"
+      "photoMarker": "Fotka"
     },
     "thread": {
       "showClient": "Zobrazit klienta",
@@ -3291,6 +3291,26 @@
         "other": "{{name}} odmítl/a vaši pozvánku"
       },
       "withdrawn": "Nabídka spolupráce byla zrušena"
+    },
+    "panel": {
+      "weightLabel": "Váha",
+      "open": "Otevřít",
+      "mealPlan": {
+        "eyebrow": "Jídelníček",
+        "detail": "{{kcal}} kcal • {{protein}}/{{carbs}}/{{fat}}",
+        "macrosLegend": "Makra · bílkoviny / sacharidy / tuky"
+      },
+      "training": {
+        "eyebrow": "Trénink",
+        "exercises_one": "{{count}} cvik",
+        "exercises_few": "{{count}} cviky",
+        "exercises_many": "{{count}} cviků",
+        "exercises_other": "{{count}} cviků",
+        "doneThisWeek_one": "Tento týden splněno · {{done}} z {{count}} tréninku",
+        "doneThisWeek_few": "Tento týden splněno · {{done}} z {{count}} tréninků",
+        "doneThisWeek_many": "Tento týden splněno · {{done}} z {{count}} tréninku",
+        "doneThisWeek_other": "Tento týden splněno · {{done}} z {{count}} tréninků"
+      }
     },
     "typingIndicator": "Píše…",
     "composer": {

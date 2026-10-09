@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Utensils } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getPlan } from '@/api/plans';
+import { computeMacroShares } from '@/lib/client-metrics';
 import type { ClientPlanItem } from '@/api/generated';
 
 interface Props {
@@ -36,20 +37,13 @@ export default function MealPlanCard({ plan, canView, isPending, isError }: Prop
   const fatGrams = globalSettings?.fatGrams;
 
   let macroDetail: string | undefined;
-  if (dailyKcal != null && dailyKcal > 0 && proteinGrams != null && carbsGrams != null && fatGrams != null) {
-    // Percentages are derived from grams, not stored directly — standard
-    // 4 kcal/g (protein, carbs) / 9 kcal/g (fat) conversion over the plan's
-    // daily kcal target (design review, #1094). Independent rounding can
-    // land the three shares up to 1 point off 100, which is the AC's
-    // documented tolerance.
-    const proteinPct = Math.round(((proteinGrams * 4) / dailyKcal) * 100);
-    const carbPct = Math.round(((carbsGrams * 4) / dailyKcal) * 100);
-    const fatPct = Math.round(((fatGrams * 9) / dailyKcal) * 100);
+  const shares = computeMacroShares(dailyKcal, proteinGrams, carbsGrams, fatGrams);
+  if (shares) {
     macroDetail = t('clientDetail.overview.mealPlan.detail', {
       kcal: dailyKcal,
-      carb: carbPct,
-      protein: proteinPct,
-      fat: fatPct,
+      carb: shares.carbPct,
+      protein: shares.proteinPct,
+      fat: shares.fatPct,
     });
   }
 
