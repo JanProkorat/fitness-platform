@@ -1515,7 +1515,6 @@
     "redo": "Redo",
     "back": "Back to {{label}}",
     "save": "Save",
-    "comingSoon": "Coming soon",
     "dayTotal": "Day total",
     "dayNoteEdit": "Edit note for {{day}}",
     "dayNoteView": "Note for {{day}}",
@@ -1571,11 +1570,11 @@
       "week": "Week {{number}}"
     },
     "panel": {
-      "tabs": "Side panel"
+      "tabs": "Side panel",
+      "open": "Open {{name}}"
     },
     "info": {
       "tab": "Template info",
-      "title": "Template info",
       "name": "Template name",
       "nameRequired": "Enter a name to save.",
       "description": "Description",
@@ -1621,12 +1620,20 @@
     },
     "library": {
       "title": "Library",
-      "counts": "{{recipes}} recipes · {{ingredients}} ingredients",
       "recipes": "Recipes",
       "ingredients": "Ingredients",
       "search_recipes": "Search recipes…",
       "search_ingredients": "Search ingredients…",
       "filters": "Filters",
+      "kinds": "Recipes and ingredients",
+      "filtersPanel": {
+        "title": "Filters",
+        "clearAll": "Clear all",
+        "recipesMatch_one": "recipe matches · applied as you pick",
+        "recipesMatch_other": "recipes match · applied as you pick",
+        "ingredientsMatch_one": "ingredient matches · applied as you pick",
+        "ingredientsMatch_other": "ingredients match · applied as you pick"
+      },
       "hint": "Drag onto a meal, or select a meal and press +. A meal can hold several recipes and ingredients.",
       "drag": "Drag {{name}}",
       "add": "Add {{name}} to the selected meal",

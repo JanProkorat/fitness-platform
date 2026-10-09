@@ -27,6 +27,7 @@ import NutritionView from '@/components/plan-editor/NutritionView';
 import { PopoverBoundaryContext } from '@/components/plan-editor/PopoverBoundary';
 import PlanEditorHeader from '@/components/plan-editor/PlanEditorHeader';
 import PlanSidePanel from '@/components/plan-editor/PlanSidePanel';
+import { SIDE_TAB_ICON, SIDE_TABS } from '@/components/plan-editor/plan-editor-side-tabs';
 import TemplateInfoPanel, { type PlanUsage } from '@/components/plan-editor/TemplateInfoPanel';
 import WeekdayPills from '@/components/plan-editor/WeekdayPills';
 import WeekGrid, { type SelectedCell } from '@/components/plan-editor/WeekGrid';
@@ -481,7 +482,7 @@ export default function PlanEditor({
             data-plan-library
             className={cn(
               'relative shrink-0 overflow-hidden transition-[width] duration-300 ease-out motion-reduce:transition-none',
-              libraryOpen ? 'w-90' : 'w-13',
+              libraryOpen ? 'w-80' : 'w-13',
             )}
           >
             <PlanSidePanel
@@ -508,25 +509,48 @@ export default function PlanEditor({
                 />
               }
             />
-            <button
-              ref={expandRef}
-              type="button"
+            <div
+              data-testid="side-panel-strip"
               inert={libraryOpen}
-              aria-label={t('planEditor.library.expand')}
-              title={t('planEditor.library.expand')}
-              onClick={() => toggleLibrary(true)}
               className={cn(
-                'absolute inset-y-0 left-0 z-10 flex w-13 cursor-pointer flex-col items-center gap-3.5 border-r-2 border-line bg-sunken py-4 shadow-panel outline-none transition-opacity duration-150 focus-visible:ring-3 focus-visible:ring-ring/50 motion-reduce:transition-none',
+                'absolute inset-y-0 left-0 z-10 flex w-13 flex-col items-center gap-3.5 border-r-2 border-line bg-sunken py-4 shadow-panel transition-opacity duration-150 motion-reduce:transition-none',
                 libraryOpen ? 'opacity-0' : 'opacity-100 delay-150 motion-reduce:delay-0',
               )}
             >
-              <span className="flex size-9 items-center justify-center rounded-field border border-line bg-card text-ink">
+              <button
+                ref={expandRef}
+                type="button"
+                aria-label={t('planEditor.library.expand')}
+                title={t('planEditor.library.expand')}
+                onClick={() => toggleLibrary(true)}
+                className="flex size-9 cursor-pointer items-center justify-center rounded-field border border-line bg-card text-ink outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+              >
                 <PanelLeftOpen className="size-4" aria-hidden="true" />
-              </span>
-              <span className="text-label font-bold tracking-label text-ink-2 uppercase [writing-mode:vertical-rl] rotate-180">
-                {sideTab === 'info' ? t('planEditor.info.tab') : t('planEditor.library.title')}
-              </span>
-            </button>
+              </button>
+              {SIDE_TABS.map((value) => {
+                const Icon = SIDE_TAB_ICON[value];
+                const label = value === 'info' ? t('planEditor.info.tab') : t('planEditor.library.title');
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    data-testid={`side-strip-${value}`}
+                    aria-label={t('planEditor.panel.open', { name: label })}
+                    title={t('planEditor.panel.open', { name: label })}
+                    onClick={() => {
+                      setSideTab(value);
+                      toggleLibrary(true);
+                    }}
+                    className="flex w-9 cursor-pointer flex-col items-center gap-2 rounded-field py-2 text-ink outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
+                  >
+                    <Icon className="size-3.5 shrink-0" aria-hidden="true" />
+                    <span className="text-label font-bold tracking-label whitespace-nowrap uppercase [writing-mode:vertical-rl] rotate-180">
+                      {label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         )}
 

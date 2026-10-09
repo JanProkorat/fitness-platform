@@ -75,6 +75,47 @@ async function createTemplate(baseURL: string, name: string): Promise<string> {
   });
 }
 
+interface RecipeCreatedBody {
+  recipeId?: string;
+}
+
+interface FoodsSearchBody {
+  foods?: { foodId?: string }[];
+}
+
+async function createRecipe(baseURL: string, name: string, mealType: string): Promise<string> {
+  return withApi(baseURL, async (api, headers) => {
+    const search = await api.get('/foods/search?q=Apple', { headers });
+    const foodId = ((await search.json()) as FoodsSearchBody).foods?.find((food) => food.foodId)?.foodId;
+    if (!foodId) {
+      throw new Error('[plan-template-info] GET /foods/search?q=Apple returned no food.');
+    }
+    const response = await api.post('/recipes', {
+      headers,
+      data: {
+        name,
+        servings: 2,
+        mealTypes: [mealType],
+        dietaryPreferences: [],
+        foods: [{ foodExternalId: foodId, amountGrams: 200 }],
+        steps: ['Mix.'],
+      },
+    });
+    if (!response.ok()) {
+      throw new Error(`[plan-template-info] POST /recipes returned ${response.status()}.`);
+    }
+    const recipeId = ((await response.json()) as RecipeCreatedBody).recipeId;
+    if (!recipeId) {
+      throw new Error('[plan-template-info] POST /recipes returned no recipeId.');
+    }
+    return recipeId;
+  });
+}
+
+async function deleteRecipe(baseURL: string, recipeId: string): Promise<void> {
+  await withApi(baseURL, (api, headers) => api.delete(`/recipes/${recipeId}`, { headers }));
+}
+
 async function readTemplate(baseURL: string, templateId: string): Promise<TemplateBody> {
   return withApi(baseURL, async (api, headers) => {
     const response = await api.get(`/nutrition/plan-templates/${templateId}`, { headers });
@@ -184,6 +225,64 @@ test.describe('Plan template editor: Template info tab', () => {
       await expect(page.getByLabel('Search recipes…')).toBeVisible();
     } finally {
       await deleteTemplate(origin, templateId);
+    }
+  });
+
+  test('the collapsed strip opens the panel on the tab that was clicked', async ({ page, baseURL }) => {
+    const origin = baseURL ?? 'http://localhost:5173';
+    const templateId = await createTemplate(origin, `QA Info Strip ${Date.now()}`);
+    try {
+      await page.goto(`/plan-templates/${templateId}`);
+      await page.getByRole('button', { name: 'Hide library' }).click();
+      const strip = page.getByTestId('side-panel-strip');
+      await expect(strip.getByRole('button', { name: 'Show library' })).toBeVisible();
+
+      await strip.getByTestId('side-strip-info').click();
+      await expect(page.getByRole('tab', { name: 'Template info' })).toHaveAttribute('aria-selected', 'true');
+      await expect(page.getByLabel('Template name')).toBeVisible();
+
+      await page.getByRole('button', { name: 'Hide library' }).click();
+      await strip.getByTestId('side-strip-library').click();
+      await expect(page.getByRole('tab', { name: 'Library' })).toHaveAttribute('aria-selected', 'true');
+      await expect(page.getByLabel('Search recipes…')).toBeVisible();
+    } finally {
+      await deleteTemplate(origin, templateId);
+    }
+  });
+
+  test('the library filter popover narrows the recipe list live and Clear all restores it', async ({
+    page,
+    baseURL,
+  }) => {
+    const origin = baseURL ?? 'http://localhost:5173';
+    const stamp = Date.now();
+    const breakfastName = `QA Filter Breakfast ${stamp}`;
+    const dinnerName = `QA Filter Dinner ${stamp}`;
+    const breakfastId = await createRecipe(origin, breakfastName, 'Breakfast');
+    const dinnerId = await createRecipe(origin, dinnerName, 'Dinner');
+    const templateId = await createTemplate(origin, `QA Filter ${stamp}`);
+    try {
+      await page.goto(`/plan-templates/${templateId}`);
+      await page.getByLabel('Search recipes…').fill(`QA Filter`);
+      const panel = page.getByRole('complementary', { name: 'Library' });
+      const cards = panel.getByTestId('library-card').filter({ hasText: String(stamp) });
+      await expect(cards).toHaveCount(2);
+
+      await panel.getByRole('button', { name: 'Filters' }).click();
+      const filters = page.getByTestId('library-filters');
+      await filters.getByRole('button', { name: 'Breakfast', exact: true }).click();
+      await expect(cards).toHaveCount(1);
+      await expect(cards.first()).toContainText(breakfastName);
+      await expect(panel.getByTestId('library-filter-count')).toHaveText('1');
+      await expect(filters.getByTestId('library-filters-match')).toContainText('recipe');
+
+      await filters.getByTestId('library-filters-clear').click();
+      await expect(cards).toHaveCount(2);
+      await expect(panel.getByTestId('library-filter-count')).toHaveCount(0);
+    } finally {
+      await deleteTemplate(origin, templateId);
+      await deleteRecipe(origin, breakfastId);
+      await deleteRecipe(origin, dinnerId);
     }
   });
 });

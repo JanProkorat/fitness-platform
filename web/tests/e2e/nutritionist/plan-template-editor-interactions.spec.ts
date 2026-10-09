@@ -259,7 +259,7 @@ test.describe('plan template editor interactions', () => {
       await waitForSave(page);
 
       await dragTo(page, cell(page, 1, 0), cell(page, 1, 0));
-      await dragTo(page, cell(page, 1, 0), libraryPanel(page).getByRole('tablist'));
+      await dragTo(page, cell(page, 1, 0), libraryPanel(page).getByRole('tablist', { name: 'Recipes and ingredients' }));
       await expect(page.getByTestId('card-drop-dialog')).toHaveCount(0);
       await expect(page.getByTestId('save-status')).toHaveText('Saved');
       await expect(cell(page, 1, 0)).toContainText(recipeName);
@@ -318,7 +318,14 @@ test.describe('plan template editor interactions', () => {
       await page.getByRole('button', { name: new RegExp(`^Add ${secondName} to the selected meal$`) }).click();
       await libraryPanel(page).getByRole('tab', { name: 'Ingredients' }).click();
       await page.getByLabel('Search ingredients…').fill('Apple');
-      await page.getByRole('button', { name: /^Add .* to the selected meal$/ }).first().click();
+      // Wait for the filtered list: every card is an Apple row before the first Add is pressed.
+      const ingredientCards = libraryPanel(page).getByTestId('library-card');
+      await expect(ingredientCards.first()).toContainText('Apple');
+      await expect(ingredientCards.filter({ hasNotText: 'Apple' })).toHaveCount(0);
+      await ingredientCards
+        .first()
+        .getByRole('button', { name: /^Add .* to the selected meal$/ })
+        .click();
       await waitForSave(page);
 
       const detail = page.getByTestId('meal-detail');

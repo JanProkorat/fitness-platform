@@ -129,9 +129,7 @@ export default function TemplateInfoPanel({ doc, week, weekNumber, usage, readOn
   }
 
   return (
-    <div data-testid="template-info" className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4.5">
-      <span className={SECTION_LABEL_CLASS}>{t('planEditor.info.title')}</span>
-
+    <div data-testid="template-info" className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 pt-3 pb-4.5">
       <div className="flex flex-col gap-1">
         <Label htmlFor={nameId}>
           {t('planEditor.info.name')} <span className="text-destructive">*</span>

@@ -1514,7 +1514,6 @@
     "redo": "Wiederholen",
     "back": "Zurück zu {{label}}",
     "save": "Speichern",
-    "comingSoon": "Demnächst",
     "dayTotal": "Tagessumme",
     "dayNoteEdit": "Notiz bearbeiten: {{day}}",
     "dayNoteView": "Notiz: {{day}}",
@@ -1570,11 +1569,11 @@
       "week": "Woche {{number}}"
     },
     "panel": {
-      "tabs": "Seitenleiste"
+      "tabs": "Seitenleiste",
+      "open": "{{name}} öffnen"
     },
     "info": {
       "tab": "Vorlageninfo",
-      "title": "Vorlageninfo",
       "name": "Name der Vorlage",
       "nameRequired": "Zum Speichern einen Namen eingeben.",
       "description": "Beschreibung",
@@ -1620,12 +1619,20 @@
     },
     "library": {
       "title": "Bibliothek",
-      "counts": "{{recipes}} Rezepte · {{ingredients}} Zutaten",
       "recipes": "Rezepte",
       "ingredients": "Zutaten",
       "search_recipes": "Rezepte suchen…",
       "search_ingredients": "Zutaten suchen…",
       "filters": "Filter",
+      "kinds": "Rezepte und Zutaten",
+      "filtersPanel": {
+        "title": "Filter",
+        "clearAll": "Alle zurücksetzen",
+        "recipesMatch_one": "Rezept passt · sofort angewendet",
+        "recipesMatch_other": "Rezepte passen · sofort angewendet",
+        "ingredientsMatch_one": "Zutat passt · sofort angewendet",
+        "ingredientsMatch_other": "Zutaten passen · sofort angewendet"
+      },
       "hint": "Auf eine Mahlzeit ziehen oder eine Mahlzeit wählen und + drücken. Eine Mahlzeit kann mehrere Rezepte und Zutaten enthalten.",
       "drag": "{{name}} ziehen",
       "add": "{{name}} zur gewählten Mahlzeit hinzufügen",

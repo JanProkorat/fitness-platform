@@ -247,7 +247,10 @@ test.describe('plan template editor', () => {
       await cell(page, 2, 1).click();
       await page.getByRole('tab', { name: 'Ingredients' }).click();
       await page.getByLabel('Search ingredients…').fill('Apple');
-      const addButton = page.getByRole('button', { name: /^Add .* to the selected meal$/ }).first();
+      const appleCards = page.getByTestId('library-card');
+      await expect(appleCards.first()).toContainText('Apple');
+      await expect(appleCards.filter({ hasNotText: 'Apple' })).toHaveCount(0);
+      const addButton = appleCards.first().getByRole('button', { name: /^Add .* to the selected meal$/ });
       await expect(addButton).toBeEnabled();
       await addButton.click();
       await expect(cell(page, 2, 1)).not.toContainText('Empty');

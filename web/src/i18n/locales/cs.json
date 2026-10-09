@@ -1538,7 +1538,6 @@
     "redo": "Znovu",
     "back": "Zpět na {{label}}",
     "save": "Uložit",
-    "comingSoon": "Již brzy",
     "dayTotal": "Součet dne",
     "dayNoteEdit": "Upravit poznámku: {{day}}",
     "dayNoteView": "Poznámka: {{day}}",
@@ -1596,11 +1595,11 @@
       "week": "Týden {{number}}"
     },
     "panel": {
-      "tabs": "Boční panel"
+      "tabs": "Boční panel",
+      "open": "Otevřít: {{name}}"
     },
     "info": {
       "tab": "Info o šabloně",
-      "title": "Info o šabloně",
       "name": "Název šablony",
       "nameRequired": "Pro uložení zadejte název.",
       "description": "Popis",
@@ -1648,12 +1647,24 @@
     },
     "library": {
       "title": "Knihovna",
-      "counts": "{{recipes}} receptů · {{ingredients}} surovin",
       "recipes": "Recepty",
       "ingredients": "Suroviny",
       "search_recipes": "Hledat recepty…",
       "search_ingredients": "Hledat suroviny…",
       "filters": "Filtry",
+      "kinds": "Recepty a ingredience",
+      "filtersPanel": {
+        "title": "Filtry",
+        "clearAll": "Zrušit vše",
+        "recipesMatch_one": "recept odpovídá · použije se hned",
+        "recipesMatch_few": "recepty odpovídají · použije se hned",
+        "recipesMatch_many": "receptu odpovídá · použije se hned",
+        "recipesMatch_other": "receptů odpovídá · použije se hned",
+        "ingredientsMatch_one": "ingredience odpovídá · použije se hned",
+        "ingredientsMatch_few": "ingredience odpovídají · použije se hned",
+        "ingredientsMatch_many": "ingredience odpovídá · použije se hned",
+        "ingredientsMatch_other": "ingrediencí odpovídá · použije se hned"
+      },
       "hint": "Přetáhněte na jídlo, nebo jídlo vyberte a stiskněte +. Jedno jídlo může obsahovat více receptů a surovin.",
       "drag": "Přetáhnout {{name}}",
       "add": "Přidat {{name}} do vybraného jídla",

@@ -1,11 +1,10 @@
-import { useId, type ReactNode, type Ref } from 'react';
+import { useId, type KeyboardEvent, type ReactNode, type Ref } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PanelLeftClose } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { SIDE_TAB_ICON, SIDE_TABS } from '@/components/plan-editor/plan-editor-side-tabs';
 import type { EditorSideTab } from '@/components/plan-editor/plan-editor-types';
-
-const TABS: readonly EditorSideTab[] = ['info', 'library'];
 
 interface Props {
   tab: EditorSideTab;
@@ -18,7 +17,7 @@ interface Props {
   library: ReactNode;
 }
 
-/** Left panel: the Template info and Library tabs, switched with a vertical rail on the right edge. */
+/** Left panel: Template info and Library as header tabs, with the collapse button at the right end. */
 export default function PlanSidePanel({ tab, onTabChange, open, onCollapse, collapseRef, info, library }: Props) {
   const { t } = useTranslation();
   const baseId = useId();
@@ -27,44 +26,35 @@ export default function PlanSidePanel({ tab, onTabChange, open, onCollapse, coll
     library: t('planEditor.library.title'),
   };
 
+  function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') {
+      return;
+    }
+    event.preventDefault();
+    const next = SIDE_TABS[(SIDE_TABS.indexOf(tab) + 1) % SIDE_TABS.length] ?? tab;
+    onTabChange(next);
+    document.getElementById(`${baseId}-${next}-tab`)?.focus();
+  }
+
   return (
     <aside
       aria-label={labels[tab]}
       inert={!open}
       className={cn(
-        'flex h-full w-90 shrink-0 overflow-hidden border-r-2 border-line bg-sunken transition-transform duration-300 ease-out motion-reduce:transition-none',
+        'flex h-full w-80 shrink-0 flex-col overflow-hidden border-r-2 border-line bg-sunken transition-transform duration-300 ease-out motion-reduce:transition-none',
         !open && '-translate-x-full',
       )}
     >
-      <div className="flex min-w-0 flex-1 flex-col">
-        {TABS.map((value) => (
-          <div
-            key={value}
-            id={`${baseId}-${value}-panel`}
-            role="tabpanel"
-            aria-labelledby={`${baseId}-${value}-tab`}
-            hidden={tab !== value}
-            className="flex min-h-0 flex-1 flex-col"
-          >
-            {value === 'info' ? info : library}
-          </div>
-        ))}
-      </div>
-      <div className="flex w-10 shrink-0 flex-col items-center gap-3 border-l border-line py-3">
-        <Button
-          ref={collapseRef}
-          type="button"
-          variant="outline"
-          size="icon-sm"
-          aria-label={t('planEditor.library.collapse')}
-          title={t('planEditor.library.collapse')}
-          onClick={onCollapse}
+      <div className="flex items-center gap-2 px-4 pt-4.5">
+        <div
+          role="tablist"
+          aria-label={t('planEditor.panel.tabs')}
+          onKeyDown={onKeyDown}
+          className="flex items-center gap-4"
         >
-          <PanelLeftClose aria-hidden="true" />
-        </Button>
-        <div role="tablist" aria-orientation="vertical" aria-label={t('planEditor.panel.tabs')} className="flex flex-col gap-2">
-          {TABS.map((value) => {
+          {SIDE_TABS.map((value) => {
             const selected = tab === value;
+            const Icon = SIDE_TAB_ICON[value];
             return (
               <button
                 key={value}
@@ -73,23 +63,44 @@ export default function PlanSidePanel({ tab, onTabChange, open, onCollapse, coll
                 role="tab"
                 aria-selected={selected}
                 aria-controls={`${baseId}-${value}-panel`}
+                tabIndex={selected ? 0 : -1}
                 onClick={() => onTabChange(value)}
                 className={cn(
-                  'relative flex w-7 cursor-pointer flex-col items-center rounded-lg py-2.5 outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50',
-                  selected ? 'bg-card text-ink shadow-panel' : 'text-muted-foreground hover:text-ink',
+                  'flex h-7.5 cursor-pointer items-center gap-1.75 border-b-2 text-label font-bold tracking-label whitespace-nowrap uppercase outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
+                  selected ? 'border-ink text-ink' : 'border-transparent text-muted-foreground hover:text-ink',
                 )}
               >
-                <span className="text-label font-bold tracking-label whitespace-nowrap uppercase [writing-mode:vertical-rl] rotate-180">
-                  {labels[value]}
-                </span>
-                {selected && (
-                  <span className="absolute inset-y-2 -left-1.5 w-0.5 rounded-full bg-ink" aria-hidden="true" />
-                )}
+                <Icon className="size-3.5 shrink-0" aria-hidden="true" />
+                {labels[value]}
               </button>
             );
           })}
         </div>
+        <Button
+          ref={collapseRef}
+          type="button"
+          variant="outline"
+          size="icon"
+          className="ml-auto size-7.5"
+          aria-label={t('planEditor.library.collapse')}
+          title={t('planEditor.library.collapse')}
+          onClick={onCollapse}
+        >
+          <PanelLeftClose aria-hidden="true" />
+        </Button>
       </div>
+      {SIDE_TABS.map((value) => (
+        <div
+          key={value}
+          id={`${baseId}-${value}-panel`}
+          role="tabpanel"
+          aria-labelledby={`${baseId}-${value}-tab`}
+          hidden={tab !== value}
+          className="flex min-h-0 flex-1 flex-col"
+        >
+          {value === 'info' ? info : library}
+        </div>
+      ))}
     </aside>
   );
 }

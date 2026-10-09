@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDraggable } from '@dnd-kit/react';
-import { BookOpen, GripVertical, Plus, Search, SlidersHorizontal } from 'lucide-react';
+import { GripVertical, Plus, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverAnchor } from '@/components/ui/popover';
@@ -11,16 +11,30 @@ import type { FoodSummary, RecipeSummaryDto } from '@/api/generated';
 import { useIngredients } from '@/hooks/useIngredientsQueries';
 import { useRecipes } from '@/hooks/useRecipesQueries';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { useAuthStore } from '@/stores/auth';
 import { perServing } from '@/lib/recipe-nutrition';
 import { cn } from '@/lib/utils';
 import LibraryInfoPopover, { ItemTile, type LibraryInfoSubject } from '@/components/plan-editor/LibraryInfoPopover';
+import {
+  IngredientFiltersContent,
+  LibraryFiltersTrigger,
+  RecipeFiltersContent,
+} from '@/components/plan-editor/LibraryFilters';
+import {
+  countIngredientFilters,
+  countRecipeFilters,
+  EMPTY_INGREDIENT_FILTERS,
+  EMPTY_RECIPE_FILTERS,
+  type IngredientFilterState,
+  type RecipeFilterState,
+} from '@/components/plan-editor/plan-editor-library-filters';
 import MacroDots from '@/components/plan-editor/MacroDots';
 import { foodToItem, LIBRARY_CARD_SENSORS, recipeToItem } from '@/components/plan-editor/plan-editor-library';
 import type { LibraryItem } from '@/components/plan-editor/plan-editor-types';
 
 const PAGE_SIZE = 25;
 const TAB_CLASS =
-  'inline-flex h-10 items-center rounded-full border px-4 text-body font-semibold outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50';
+  'inline-flex h-8 cursor-pointer items-center rounded-full border px-3.5 text-body font-semibold outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50';
 
 type LibraryTab = 'recipes' | 'ingredients';
 
@@ -153,14 +167,15 @@ export default function LibraryPanel({ canAdd, disabled, onAdd }: Props) {
   const [tab, setTab] = useState<LibraryTab>('recipes');
   const [searchInput, setSearchInput] = useState('');
   const search = useDebouncedValue(searchInput, 300);
+  const isNutritionist = useAuthStore((state) => state.user?.roles.includes('Nutritionist') ?? false);
+  // Filters are per tab and stay while switching tabs.
+  const [recipeFilters, setRecipeFilters] = useState<RecipeFilterState>(EMPTY_RECIPE_FILTERS);
+  const [ingredientFilters, setIngredientFilters] = useState<IngredientFilterState>(EMPTY_INGREDIENT_FILTERS);
 
   const recipesQuery = useRecipes(
     {
       search,
-      mealTypes: [],
-      dietaryPreferences: [],
-      owners: [],
-      tags: [],
+      ...recipeFilters,
       sortBy: null,
       sortDir: FoodSortDirection.Ascending,
       page: 1,
@@ -170,9 +185,10 @@ export default function LibraryPanel({ canAdd, disabled, onAdd }: Props) {
   );
   const ingredientsQuery = useIngredients({
     search,
-    categories: [],
-    tags: [],
-    owners: [],
+    categories: ingredientFilters.categories,
+    // Owner and Tags are nutritionist-only, as on the Ingredients page.
+    tags: isNutritionist ? ingredientFilters.tags : [],
+    owners: isNutritionist ? ingredientFilters.owners : [],
     sortBy: null,
     sortDir: FoodSortDirection.Ascending,
     page: 1,
@@ -184,21 +200,12 @@ export default function LibraryPanel({ canAdd, disabled, onAdd }: Props) {
   const foods: FoodSummary[] = ingredientsQuery.data?.foods ?? [];
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden px-4 py-4.5">
-      <div className="flex items-center gap-2">
-        <BookOpen className="size-4 shrink-0 text-ink" aria-hidden="true" />
-        <span className="text-label font-semibold tracking-label text-ink uppercase">
-          {t('planEditor.library.title')}
-        </span>
-        <span className="min-w-0 flex-1 truncate text-meta text-muted-foreground">
-          {t('planEditor.library.counts', {
-            recipes: recipesQuery.data?.totalCount ?? 0,
-            ingredients: ingredientsQuery.data?.totalCount ?? 0,
-          })}
-        </span>
-      </div>
-
-      <div role="tablist" aria-label={t('planEditor.library.title')} className="flex gap-2">
+    <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden px-4 pt-3 pb-4.5">
+      <div
+        role="tablist"
+        aria-label={t('planEditor.library.kinds')}
+        className="flex justify-center gap-1.5"
+      >
         {(['recipes', 'ingredients'] as const).map((value) => (
           <button
             key={value}
@@ -214,36 +221,50 @@ export default function LibraryPanel({ canAdd, disabled, onAdd }: Props) {
             )}
           >
             {t(`planEditor.library.${value}`)}
+            <span className="ml-1.5 font-medium opacity-60">
+              {(value === 'recipes' ? recipesQuery : ingredientsQuery).data?.totalCount ?? 0}
+            </span>
           </button>
         ))}
       </div>
 
-      <div className="flex items-center gap-2">
-        <div className="relative min-w-0 flex-1">
-          <Search
-            className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
-            aria-hidden="true"
+      <Popover>
+        <PopoverAnchor asChild>
+          <div className="flex items-center gap-2">
+            <div className="relative min-w-0 flex-1">
+              <Search
+                className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+                aria-hidden="true"
+              />
+              <Input
+                type="search"
+                value={searchInput}
+                onChange={(event) => setSearchInput(event.target.value)}
+                placeholder={t(`planEditor.library.search_${tab}`)}
+                aria-label={t(`planEditor.library.search_${tab}`)}
+                className="h-9 pl-9"
+              />
+            </div>
+            <LibraryFiltersTrigger
+              count={tab === 'recipes' ? countRecipeFilters(recipeFilters) : countIngredientFilters(ingredientFilters, isNutritionist)}
+            />
+          </div>
+        </PopoverAnchor>
+        {tab === 'recipes' ? (
+          <RecipeFiltersContent
+            filters={recipeFilters}
+            onChange={setRecipeFilters}
+            matchCount={recipesQuery.data?.totalCount}
           />
-          <Input
-            type="search"
-            value={searchInput}
-            onChange={(event) => setSearchInput(event.target.value)}
-            placeholder={t(`planEditor.library.search_${tab}`)}
-            aria-label={t(`planEditor.library.search_${tab}`)}
-            className="h-10 pl-9"
+        ) : (
+          <IngredientFiltersContent
+            filters={ingredientFilters}
+            onChange={setIngredientFilters}
+            matchCount={ingredientsQuery.data?.totalCount}
+            isNutritionist={isNutritionist}
           />
-        </div>
-        <Button
-          type="button"
-          variant="outline"
-          size="icon-lg"
-          disabled
-          aria-label={t('planEditor.library.filters')}
-          title={t('planEditor.comingSoon')}
-        >
-          <SlidersHorizontal aria-hidden="true" />
-        </Button>
-      </div>
+        )}
+      </Popover>
 
       <p className="text-meta text-muted-foreground">{t('planEditor.library.hint')}</p>
 
