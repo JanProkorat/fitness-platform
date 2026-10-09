@@ -1613,7 +1613,7 @@
       "body": "Jede Mahlzeit wird zu einer Zeile der Woche. Fügen Sie eine Art zweimal hinzu für zwei Snacks. Sie können die Zeilen später umsortieren oder entfernen.",
       "mostCommon": "am häufigsten",
       "addOneByOne": "Oder einzeln hinzufügen",
-      "done": "Fertig",
+      "doneCount": "Fertig ({{total}})",
       "copyPrefix": "Oder",
       "copyLink": "Mahlzeiten aus einer anderen Vorlage kopieren"
     },
@@ -1661,6 +1661,13 @@
       "carbs": "K",
       "fat": "F",
       "fiber": "Bal"
+    },
+    "removeRow": {
+      "aria": "{{meal}} aus Woche {{week}} entfernen",
+      "title": "{{meal}} aus Woche {{week}} entfernen?",
+      "body_one": "An {{count}} Tag ist etwas eingetragen ({{days}}). Die anderen Wochen behalten diese Zeile. Du kannst das rückgängig machen.",
+      "body_other": "An {{count}} Tagen ist etwas eingetragen ({{days}}). Die anderen Wochen behalten diese Zeile. Du kannst das rückgängig machen.",
+      "confirm": "{{meal}} entfernen"
     },
     "cardDrop": {
       "title": "{{target}} enthält bereits Speisen",
