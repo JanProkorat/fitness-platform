@@ -19,10 +19,13 @@ namespace FitnessPlatform.Application.Features.NutritionPlanTemplates.CreateTemp
 /// <param name="timeProvider">Injected time source for audit timestamps.</param>
 /// <param name="linkAuthorizationService">Resolves link capabilities — authorship identifies the
 /// source plan, the caller's live link to its client decides access.</param>
+/// <param name="macroCalculator">Computes meal kcal for the denormalized list stats; the plan's stored
+/// day totals can be stale and are never read.</param>
 public class CreateTemplateFromPlanEndpoint(
     IMongoContext mongo,
     TimeProvider timeProvider,
-    IClientLinkAuthorizationService linkAuthorizationService)
+    IClientLinkAuthorizationService linkAuthorizationService,
+    IMacroCalculatorService macroCalculator)
     : Endpoint<CreateNutritionPlanTemplateFromPlanRequest, NutritionPlanTemplateSummaryDto>
 {
     /// <inheritdoc />
@@ -30,6 +33,8 @@ public class CreateTemplateFromPlanEndpoint(
     {
         Post("/nutrition/plan-templates/from-plan");
         Roles(AppRoles.Nutritionist);
+        Description(b => b.ClearDefaultProduces(StatusCodes.Status200OK)
+            .Produces<NutritionPlanTemplateSummaryDto>(StatusCodes.Status201Created));
         Summary(s =>
         {
             s.Summary = "Save a nutrition plan as a template";
@@ -92,6 +97,8 @@ public class CreateTemplateFromPlanEndpoint(
             Version = 1,
             DateCreated = timeProvider.GetUtcNow().UtcDateTime
         };
+
+        TemplateStatsCalculator.Apply(template, macroCalculator);
 
         await mongo.NutritionPlanTemplates.InsertOneAsync(template, cancellationToken: ct);
 

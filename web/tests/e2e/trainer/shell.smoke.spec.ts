@@ -30,6 +30,7 @@ test('app shell renders the v1 nav and routes between pages', async ({ page }) =
   await expect(nav.getByText('Inbox', { exact: true })).toBeVisible();
   await expect(nav.getByText('Ingredients', { exact: true })).toBeVisible();
   await expect(nav.getByText('Recipes', { exact: true })).toBeVisible();
+  await expect(nav.getByText('Plan templates', { exact: true })).toBeVisible();
 
   // Top bar renders the sign-out control.
   await expect(page.getByRole('button', { name: 'Log out' })).toBeVisible();
@@ -40,3 +41,43 @@ test('app shell renders the v1 nav and routes between pages', async ({ page }) =
   await expect(page).toHaveURL(/\/inbox$/);
   await expect(page.getByRole('heading', { name: 'Inbox' })).toBeVisible();
 });
+
+test('sidebar shows the Notifications row above Help and collapses to a rail that survives reload', async ({
+  page,
+}) => {
+  await page.goto('/clients');
+  await page.waitForLoadState('networkidle');
+
+  const aside = page.locator('aside');
+  const nav = page.getByRole('navigation');
+
+  // Bell moved from the header to a (still inert) row directly above Help & Support.
+  const notifications = nav.getByRole('button', { name: 'Notifications' });
+  await expect(notifications).toBeVisible();
+  await expect(notifications).toBeDisabled();
+  await expect(aside).toHaveCSS('width', '248px');
+
+  // Collapse: 64px rail, labels out of reach, focus stays on the (now Expand) toggle.
+  await nav.getByRole('button', { name: 'Collapse navigation' }).click();
+  await expect(aside).toHaveCSS('width', '64px');
+  const expand = nav.getByRole('button', { name: 'Expand navigation' });
+  await expect(expand).toBeFocused();
+  await expect(nav.getByRole('link', { name: 'Clients' })).toBeVisible();
+  await expect(nav.getByRole('button', { name: 'Help & Support' })).toHaveCount(0);
+  await expect(nav.getByRole('button', { name: 'Notifications' })).toBeVisible();
+
+  // The choice is remembered per browser.
+  await page.reload();
+  await page.waitForLoadState('networkidle');
+  await expect(aside).toHaveCSS('width', '64px');
+
+  // Expand again: full sidebar, focus on the Collapse toggle.
+  await nav.getByRole('button', { name: 'Expand navigation' }).click();
+  await expect(aside).toHaveCSS('width', '248px');
+  await expect(nav.getByRole('button', { name: 'Collapse navigation' })).toBeFocused();
+  await page.reload();
+  await page.waitForLoadState('networkidle');
+  await expect(aside).toHaveCSS('width', '248px');
+});
+
+

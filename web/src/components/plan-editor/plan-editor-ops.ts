@@ -1,0 +1,467 @@
+import { MealKind } from '@/api/generated';
+import {
+  DAYS_PER_WEEK,
+  MAX_MEALS_PER_DAY,
+  MAX_WEEKS,
+  type EditorDay,
+  type EditorDocument,
+  type EditorMeal,
+  type EditorWeek,
+  type LibraryItem,
+} from '@/components/plan-editor/plan-editor-types';
+
+/** Slots in the order a day's meals run. */
+export const CHRONOLOGICAL_KINDS: readonly MealKind[] = [
+  MealKind.Breakfast,
+  MealKind.MorningSnack,
+  MealKind.Lunch,
+  MealKind.AfternoonSnack,
+  MealKind.Dinner,
+  MealKind.PreWorkout,
+  MealKind.PostWorkout,
+];
+
+/** The "most common" day: breakfast, one snack, lunch, dinner. */
+export const COMMON_MEAL_KINDS: readonly MealKind[] = [
+  MealKind.Breakfast,
+  MealKind.MorningSnack,
+  MealKind.Lunch,
+  MealKind.Dinner,
+];
+
+export function kindRank(kind: MealKind): number {
+  return CHRONOLOGICAL_KINDS.indexOf(kind);
+}
+
+/** Sorts kinds into the order a day runs. */
+export function sortKinds(kinds: readonly MealKind[]): MealKind[] {
+  return [...kinds].sort((left, right) => kindRank(left) - kindRank(right));
+}
+
+export interface GridRow {
+  index: number;
+  kind: MealKind;
+}
+
+/** Row N of a week is the Nth meal of each day; its kind comes from the first day that has one. */
+export function weekRows(week: EditorWeek): GridRow[] {
+  const rowCount = Math.max(0, ...week.days.map((day) => day.meals.length));
+  return Array.from({ length: rowCount }, (_, index) => {
+    const meal = week.days.map((day) => day.meals[index]).find((candidate) => candidate !== undefined);
+    return { index, kind: meal?.kind ?? MealKind.Breakfast };
+  });
+}
+
+export function weekHasItems(week: EditorWeek): boolean {
+  return week.days.some((day) => day.meals.some((meal) => meal.foods.length + meal.recipes.length > 0));
+}
+
+function newMeal(kind: MealKind, order: number): EditorMeal {
+  return { mealId: crypto.randomUUID(), kind, order, foods: [], recipes: [] };
+}
+
+function emptyDay(dayOfWeek: number, kinds: readonly MealKind[]): EditorDay {
+  return { dayOfWeek, meals: kinds.map((kind, index) => newMeal(kind, index + 1)) };
+}
+
+function updateWeek(doc: EditorDocument, weekIndex: number, update: (week: EditorWeek) => EditorWeek): EditorDocument {
+  return { ...doc, weeks: doc.weeks.map((week, index) => (index === weekIndex ? update(week) : week)) };
+}
+
+/** Gives every given week with no meal rows the same rows, one meal per kind in day order. */
+export function applyMealKinds(
+  doc: EditorDocument,
+  weekIndexes: readonly number[],
+  kinds: readonly MealKind[],
+): EditorDocument {
+  const ordered = sortKinds(kinds);
+  return {
+    ...doc,
+    weeks: doc.weeks.map((week, index) => {
+      if (!weekIndexes.includes(index) || weekRows(week).length > 0) {
+        return week;
+      }
+      return {
+        ...week,
+        days: Array.from({ length: DAYS_PER_WEEK }, (_, dayIndex) => {
+          const existing = week.days.find((day) => day.dayOfWeek === dayIndex + 1);
+          return { ...emptyDay(dayIndex + 1, ordered), note: existing?.note };
+        }),
+      };
+    }),
+  };
+}
+
+/** Adds one meal row of the given kind to a week, keeping the rows in day order. */
+export function addMealRow(doc: EditorDocument, weekIndex: number, kind: MealKind): EditorDocument {
+  return updateWeek(doc, weekIndex, (week) => {
+    const rows = weekRows(week);
+    const kinds = sortKinds([...rows.map((row) => row.kind), kind]);
+    const insertAt = kinds.lastIndexOf(kind);
+    return {
+      ...week,
+      days: Array.from({ length: DAYS_PER_WEEK }, (_, dayIndex) => {
+        const day = week.days.find((candidate) => candidate.dayOfWeek === dayIndex + 1) ?? emptyDay(dayIndex + 1, []);
+        const meals = [...day.meals];
+        meals.splice(insertAt, 0, newMeal(kind, insertAt + 1));
+        return { ...day, meals: meals.map((meal, order) => ({ ...meal, order: order + 1 })) };
+      }),
+    };
+  });
+}
+
+/** Weekdays (ascending) whose meal at the given row holds a recipe or ingredient. */
+export function daysWithFoodInRow(week: EditorWeek, rowIndex: number): number[] {
+  return week.days
+    .filter((day) => {
+      const meal = day.meals[rowIndex];
+      return meal !== undefined && meal.foods.length + meal.recipes.length > 0;
+    })
+    .map((day) => day.dayOfWeek)
+    .sort((left, right) => left - right);
+}
+
+/** Drops the meal at the given row from every day of one week and renumbers what is left. */
+export function removeMealRow(doc: EditorDocument, weekIndex: number, rowIndex: number): EditorDocument {
+  return updateWeek(doc, weekIndex, (week) => ({
+    ...week,
+    days: week.days.map((day) => ({ ...day, meals: renumber(day.meals.filter((_, index) => index !== rowIndex)) })),
+  }));
+}
+
+/** A snack added to a day that already has one becomes the afternoon snack. */
+export function nextSnackKind(week: EditorWeek): MealKind {
+  const hasMorning = weekRows(week).some((row) => row.kind === MealKind.MorningSnack);
+  return hasMorning ? MealKind.AfternoonSnack : MealKind.MorningSnack;
+}
+
+/** Appends an empty week that repeats the last week's meal rows. Returns the doc unchanged at the cap. */
+export function addWeek(doc: EditorDocument): EditorDocument {
+  if (doc.weeks.length >= MAX_WEEKS) {
+    return doc;
+  }
+  const last = doc.weeks[doc.weeks.length - 1];
+  const kinds = last ? weekRows(last).map((row) => row.kind) : [];
+  const weekNumber = doc.weeks.length + 1;
+  return {
+    ...doc,
+    weeks: [
+      ...doc.weeks,
+      { weekNumber, days: Array.from({ length: DAYS_PER_WEEK }, (_, index) => emptyDay(index + 1, kinds)) },
+    ],
+  };
+}
+
+/** Puts a recipe or ingredient into the meal at the given cell, creating the meal when the day lacks it. */
+export function addItemToCell(
+  doc: EditorDocument,
+  weekIndex: number,
+  dayOfWeek: number,
+  rowIndex: number,
+  item: LibraryItem,
+): EditorDocument {
+  return updateWeek(doc, weekIndex, (week) => {
+    const rows = weekRows(week);
+    return {
+      ...week,
+      days: week.days.map((day) => {
+        if (day.dayOfWeek !== dayOfWeek) {
+          return day;
+        }
+        const meals = [...day.meals];
+        for (let index = meals.length; index <= rowIndex; index += 1) {
+          meals.push(newMeal(rows[index]?.kind ?? MealKind.Breakfast, index + 1));
+        }
+        const target = meals[rowIndex];
+        meals[rowIndex] =
+          item.type === 'recipe'
+            ? { ...target, recipes: [...target.recipes, item.recipe] }
+            : { ...target, foods: [...target.foods, item.food] };
+        return { ...day, meals };
+      }),
+    };
+  });
+}
+
+function renumber(meals: EditorMeal[]): EditorMeal[] {
+  return meals.map((meal, index) => (meal.order === index + 1 ? meal : { ...meal, order: index + 1 }));
+}
+
+function updateDay(
+  doc: EditorDocument,
+  weekIndex: number,
+  dayOfWeek: number,
+  update: (day: EditorDay) => EditorDay,
+): EditorDocument {
+  return updateWeek(doc, weekIndex, (week) => ({
+    ...week,
+    days: week.days.map((day) => (day.dayOfWeek === dayOfWeek ? update(day) : day)),
+  }));
+}
+
+function updateMeal(
+  doc: EditorDocument,
+  weekIndex: number,
+  dayOfWeek: number,
+  mealId: string,
+  update: (meal: EditorMeal) => EditorMeal,
+): EditorDocument {
+  return updateDay(doc, weekIndex, dayOfWeek, (day) => ({
+    ...day,
+    meals: day.meals.map((meal) => (meal.mealId === mealId ? update(meal) : meal)),
+  }));
+}
+
+function blankToUndefined(value: string): string | undefined {
+  return value.trim() === '' ? undefined : value;
+}
+
+export function setMealNote(
+  doc: EditorDocument,
+  weekIndex: number,
+  dayOfWeek: number,
+  mealId: string,
+  note: string,
+): EditorDocument {
+  return updateMeal(doc, weekIndex, dayOfWeek, mealId, (meal) => ({ ...meal, note: blankToUndefined(note) }));
+}
+
+export function setDayNote(doc: EditorDocument, weekIndex: number, dayOfWeek: number, note: string): EditorDocument {
+  return updateDay(doc, weekIndex, dayOfWeek, (day) => ({ ...day, note: blankToUndefined(note) }));
+}
+
+export function setFoodAmount(
+  doc: EditorDocument,
+  weekIndex: number,
+  dayOfWeek: number,
+  mealId: string,
+  foodIndex: number,
+  amountGrams: number,
+): EditorDocument {
+  return updateMeal(doc, weekIndex, dayOfWeek, mealId, (meal) => ({
+    ...meal,
+    foods: meal.foods.map((food, index) => (index === foodIndex ? { ...food, amountGrams } : food)),
+  }));
+}
+
+export function setRecipeServings(
+  doc: EditorDocument,
+  weekIndex: number,
+  dayOfWeek: number,
+  mealId: string,
+  recipeIndex: number,
+  servings: number,
+): EditorDocument {
+  return updateMeal(doc, weekIndex, dayOfWeek, mealId, (meal) => ({
+    ...meal,
+    recipes: meal.recipes.map((recipe, index) => (index === recipeIndex ? { ...recipe, servings } : recipe)),
+  }));
+}
+
+export function removeFoodAt(
+  doc: EditorDocument,
+  weekIndex: number,
+  dayOfWeek: number,
+  mealId: string,
+  foodIndex: number,
+): EditorDocument {
+  return updateMeal(doc, weekIndex, dayOfWeek, mealId, (meal) => ({
+    ...meal,
+    foods: meal.foods.filter((_, index) => index !== foodIndex),
+  }));
+}
+
+export function removeRecipeAt(
+  doc: EditorDocument,
+  weekIndex: number,
+  dayOfWeek: number,
+  mealId: string,
+  recipeIndex: number,
+): EditorDocument {
+  return updateMeal(doc, weekIndex, dayOfWeek, mealId, (meal) => ({
+    ...meal,
+    recipes: meal.recipes.filter((_, index) => index !== recipeIndex),
+  }));
+}
+
+/** Inserts an empty meal into one day at its kind's place in the day's order. Unchanged at the cap. */
+export function addMealToDay(
+  doc: EditorDocument,
+  weekIndex: number,
+  dayOfWeek: number,
+  kind: MealKind,
+  note?: string,
+): EditorDocument {
+  return updateDay(doc, weekIndex, dayOfWeek, (day) => {
+    if (day.meals.length >= MAX_MEALS_PER_DAY) {
+      return day;
+    }
+    const meals = [...day.meals];
+    const created: EditorMeal = { ...newMeal(kind, 0), note: note ? blankToUndefined(note) : undefined };
+    const firstLater = meals.findIndex((meal) => kindRank(meal.kind) > kindRank(kind));
+    meals.splice(firstLater === -1 ? meals.length : firstLater, 0, created);
+    return { ...day, meals: renumber(meals) };
+  });
+}
+
+export function removeMeal(doc: EditorDocument, weekIndex: number, dayOfWeek: number, mealId: string): EditorDocument {
+  return updateDay(doc, weekIndex, dayOfWeek, (day) => ({
+    ...day,
+    meals: renumber(day.meals.filter((meal) => meal.mealId !== mealId)),
+  }));
+}
+
+/** Moves one recipe or ingredient to another position within its own list of a meal. */
+export function reorderMealItems(
+  doc: EditorDocument,
+  weekIndex: number,
+  dayOfWeek: number,
+  mealId: string,
+  kind: 'recipe' | 'food',
+  from: number,
+  to: number,
+): EditorDocument {
+  const moveWithin = <T>(items: readonly T[]): T[] => {
+    if (from === to || from < 0 || to < 0 || from >= items.length || to >= items.length) {
+      return [...items];
+    }
+    const next = [...items];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    return next;
+  };
+  return updateMeal(doc, weekIndex, dayOfWeek, mealId, (meal) =>
+    from === to
+      ? meal
+      : kind === 'recipe'
+        ? { ...meal, recipes: moveWithin(meal.recipes) }
+        : { ...meal, foods: moveWithin(meal.foods) },
+  );
+}
+
+function copyContents(source: EditorMeal, target: EditorMeal): EditorMeal {
+  return {
+    ...target,
+    note: source.note,
+    foods: source.foods.map((food) => ({ ...food })),
+    recipes: source.recipes.map((recipe) => ({ ...recipe })),
+  };
+}
+
+/**
+ * Copies a meal's items and note into the meal at the same row on each chosen weekday, creating the
+ * meal when that day is shorter and replacing whatever items it had.
+ */
+export function copyMealToDays(
+  doc: EditorDocument,
+  weekIndex: number,
+  sourceDay: number,
+  mealId: string,
+  targetDays: readonly number[],
+): EditorDocument {
+  const week = doc.weeks[weekIndex];
+  const source = week?.days.find((day) => day.dayOfWeek === sourceDay);
+  const rowIndex = source?.meals.findIndex((meal) => meal.mealId === mealId) ?? -1;
+  const sourceMeal = source?.meals[rowIndex];
+  if (!source || !sourceMeal) {
+    return doc;
+  }
+  return updateWeek(doc, weekIndex, (current) => ({
+    ...current,
+    days: current.days.map((day) => {
+      if (day.dayOfWeek === sourceDay || !targetDays.includes(day.dayOfWeek)) {
+        return day;
+      }
+      const meals = [...day.meals];
+      for (let index = meals.length; index <= rowIndex; index += 1) {
+        const kind = index === rowIndex ? sourceMeal.kind : (source.meals[index]?.kind ?? sourceMeal.kind);
+        meals.push(newMeal(kind, index + 1));
+      }
+      meals[rowIndex] = copyContents(sourceMeal, meals[rowIndex]);
+      return { ...day, meals: renumber(meals) };
+    }),
+  }));
+}
+
+export type CellCopyMode = 'replace' | 'add';
+
+/**
+ * Copies one meal onto the cell at `target` in the same week. An empty or missing target meal takes
+ * the source's items and note; a filled one is either replaced (items and note) or extended with the
+ * source's items (its own note stays, the source's note fills in when it has none). Dropping a meal
+ * on its own cell changes nothing.
+ */
+export function copyMealToCell(
+  doc: EditorDocument,
+  weekIndex: number,
+  source: { dayOfWeek: number; mealId: string },
+  target: { dayOfWeek: number; rowIndex: number },
+  mode: CellCopyMode,
+): EditorDocument {
+  const week = doc.weeks[weekIndex];
+  const sourceMeal = week?.days.find((day) => day.dayOfWeek === source.dayOfWeek)?.meals.find((meal) => meal.mealId === source.mealId);
+  const targetDay = week?.days.find((day) => day.dayOfWeek === target.dayOfWeek);
+  if (!week || !sourceMeal || !targetDay || targetDay.meals[target.rowIndex]?.mealId === source.mealId) {
+    return doc;
+  }
+  const rows = weekRows(week);
+  return updateDay(doc, weekIndex, target.dayOfWeek, (day) => {
+    const meals = [...day.meals];
+    for (let index = meals.length; index <= target.rowIndex; index += 1) {
+      meals.push(newMeal(rows[index]?.kind ?? sourceMeal.kind, index + 1));
+    }
+    const existing = meals[target.rowIndex];
+    const filled = existing.foods.length + existing.recipes.length > 0;
+    if (mode === 'replace' || !filled) {
+      meals[target.rowIndex] = copyContents(sourceMeal, existing);
+    } else {
+      const copy = copyContents(sourceMeal, existing);
+      meals[target.rowIndex] = {
+        ...existing,
+        note: existing.note ?? sourceMeal.note,
+        foods: [...existing.foods, ...copy.foods],
+        recipes: [...existing.recipes, ...copy.recipes],
+      };
+    }
+    return { ...day, meals: renumber(meals) };
+  });
+}
+
+/**
+ * Replaces an empty week's meals with a copy of another plan's week (items and notes, new ids); every
+ * other week without meals gets the same rows, empty. Weeks that already have meals are left alone.
+ */
+export function copyWeekMeals(doc: EditorDocument, weekIndex: number, sourceWeek: EditorWeek): EditorDocument {
+  const copiedDays: EditorDay[] = Array.from({ length: DAYS_PER_WEEK }, (_, dayIndex) => {
+    const sourceDay = sourceWeek.days.find((day) => day.dayOfWeek === dayIndex + 1);
+    return {
+      dayOfWeek: dayIndex + 1,
+      note: sourceDay?.note,
+      meals: renumber(
+        (sourceDay?.meals ?? []).slice(0, MAX_MEALS_PER_DAY).map((meal) => ({
+          ...copyContents(meal, newMeal(meal.kind, meal.order)),
+          time: meal.time,
+        })),
+      ),
+    };
+  });
+  const rowKinds = weekRows({ weekNumber: 0, days: copiedDays }).map((row) => row.kind);
+  return {
+    ...doc,
+    weeks: doc.weeks.map((week, index) => {
+      if (weekRows(week).length > 0) {
+        return week;
+      }
+      if (index === weekIndex) {
+        return { ...week, days: copiedDays.map((day) => ({ ...day, meals: day.meals.map((meal) => ({ ...meal })) })) };
+      }
+      return {
+        ...week,
+        days: Array.from({ length: DAYS_PER_WEEK }, (_, dayIndex) => {
+          const existing = week.days.find((day) => day.dayOfWeek === dayIndex + 1);
+          return { ...emptyDay(dayIndex + 1, rowKinds), note: existing?.note };
+        }),
+      };
+    }),
+  };
+}

@@ -82,6 +82,17 @@ public class NutritionPlanTemplateDetailDto
     public int WeekCount { get; set; }
 
     /// <summary>
+    /// Most common meal count over the template's non-empty days (days with at least one meal,
+    /// across all weeks); ties resolve to the smaller count. Null when no day has a meal.
+    /// </summary>
+    public int? MealsPerDay { get; set; }
+
+    /// <summary>
+    /// Average kcal per non-empty day, in whole kcal. Null when no day has a meal.
+    /// </summary>
+    public decimal? AvgKcalPerDay { get; set; }
+
+    /// <summary>
     /// Who can read this entry besides its owner.
     /// </summary>
     public LibraryVisibility Visibility { get; set; }
@@ -90,6 +101,11 @@ public class NutritionPlanTemplateDetailDto
     /// True when the authenticated caller is the nutritionist who owns this template.
     /// </summary>
     public bool IsOwnedByCurrentUser { get; set; }
+
+    /// <summary>
+    /// Number of the caller's own Active plans built from this template.
+    /// </summary>
+    public int UsedBy { get; set; }
 
     /// <summary>
     /// Optimistic concurrency version.
@@ -111,7 +127,9 @@ public class NutritionPlanTemplateDetailDto
     /// </summary>
     /// <param name="template">The nutrition plan template document.</param>
     /// <param name="currentUserId">Id of the authenticated caller.</param>
-    public static NutritionPlanTemplateDetailDto FromDocument(NutritionPlanTemplate template, Guid currentUserId) => new()
+    /// <param name="usedBy">The caller's Active plan count for this template.</param>
+    public static NutritionPlanTemplateDetailDto FromDocument(
+        NutritionPlanTemplate template, Guid currentUserId, int usedBy) => new()
     {
         TemplateId = template.ExternalId,
         Name = template.Name,
@@ -122,8 +140,11 @@ public class NutritionPlanTemplateDetailDto
         Supplements = template.Supplements.Select(TemplateSupplementDto.FromDocument).ToList(),
         Weeks = template.Weeks,
         WeekCount = template.WeekCount,
+        MealsPerDay = template.MealsPerDay,
+        AvgKcalPerDay = template.AvgKcalPerDay,
         Visibility = template.Visibility,
         IsOwnedByCurrentUser = template.OwnerId == currentUserId,
+        UsedBy = usedBy,
         Version = template.Version,
         DateCreated = template.DateCreated,
         DateUpdated = template.DateUpdated

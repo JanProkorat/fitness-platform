@@ -101,6 +101,26 @@ public class SubmitOnboardingEndpointTests
     }
 
     /// <summary>
+    /// Verifies that the new Maintain and Performance goals map to a maintenance calorie adjustment.
+    /// </summary>
+    [Theory]
+    [InlineData("Maintain")]
+    [InlineData("Performance")]
+    public async Task NewGoalValues_MapToMaintainNutritionGoal(string primaryGoal)
+    {
+        var clientProfile = EntityBuilder.ClientProfile.WithUserId(UserId).Build();
+        var db = new MockDbBuilder().With(clientProfile).Build();
+        var ep = CreateEndpoint(db, _audit, UserId);
+        var request = ValidRequest();
+        request.PrimaryGoal = primaryGoal;
+
+        await ep.HandleAsync(request, CancellationToken.None);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+        _calculator.Received(1).ApplyGoalAdjustment(Arg.Any<decimal>(), NutritionGoal.Maintain);
+    }
+
+    /// <summary>
     /// Verifies that a 404 is returned when no client profile exists for the user.
     /// </summary>
     [Fact]

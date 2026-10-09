@@ -313,6 +313,92 @@
       "notionPageId": null
     },
     {
+      "id": "web.nutrition.plan-templates",
+      "app": "web",
+      "area": "Nutrition",
+      "title": "Plan templates list",
+      "route": "/plan-templates",
+      "roles": ["Nutritionist"],
+      "files": [
+        "web/src/pages/PlanTemplatesPage.tsx",
+        "web/src/components/plan-templates/**",
+        "web/src/components/library/PageHeader.tsx",
+        "web/src/components/library/Pagination.tsx",
+        "web/src/components/library/FilterChip.tsx",
+        "web/src/hooks/usePlanTemplatesQueries.ts",
+        "web/src/hooks/usePlanTemplateListParams.ts",
+        "web/src/api/nutrition-plan-templates.ts"
+      ],
+      "endpoints": [
+        "GET /nutrition/plan-templates",
+        "POST /nutrition/plan-templates/{templateId}/copy",
+        "DELETE /nutrition/plan-templates/{templateId}"
+      ],
+      "board": "PageTemplates",
+      "shots": [
+        { "name": "default" },
+        { "name": "goal-filter", "steps": "sign in as the nutritionist, click the chip 'Cíl', pick the first goal, close the popover and wait for the table to reload" }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "web.nutrition.plan-template-new",
+      "app": "web",
+      "area": "Nutrition",
+      "title": "New plan template sheet",
+      "route": "/plan-templates",
+      "roles": ["Nutritionist"],
+      "files": [
+        "web/src/components/plan-templates/NewPlanTemplateSheet.tsx",
+        "web/src/hooks/usePlanTemplatesQueries.ts",
+        "web/src/api/nutrition-plan-templates.ts"
+      ],
+      "endpoints": [
+        "POST /nutrition/plan-templates"
+      ],
+      "board": "PageTemplateNew",
+      "shots": [
+        { "name": "default", "steps": "sign in as the nutritionist, click the header button 'Nová šablona' and wait for the sheet to open" }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "web.nutrition.plan-template-editor",
+      "app": "web",
+      "area": "Nutrition",
+      "title": "Plan template editor",
+      "route": "/plan-templates/:templateId",
+      "roles": ["Nutritionist"],
+      "files": [
+        "web/src/pages/PlanTemplateEditorPage.tsx",
+        "web/src/components/plan-editor/**",
+        "web/src/components/library/PageHeader.tsx",
+        "web/src/components/plan-templates/**",
+        "web/src/hooks/usePlanTemplateEditor.ts",
+        "web/src/hooks/usePlanTemplatesQueries.ts",
+        "web/src/hooks/useIngredientsQueries.ts",
+        "web/src/hooks/useRecipesQueries.ts",
+        "web/src/api/nutrition-plan-templates.ts",
+        "web/src/api/foods.ts",
+        "web/src/api/food-tags.ts",
+        "web/src/api/recipes.ts"
+      ],
+      "endpoints": [
+        "GET /nutrition/plan-templates",
+        "GET /nutrition/plan-templates/{templateId}",
+        "PUT /nutrition/plan-templates/{templateId}",
+        "GET /foods/search",
+        "GET /trainer/food-tags",
+        "GET /recipes",
+        "GET /recipes/{recipeId}"
+      ],
+      "board": "PageTemplateEditor",
+      "shots": [
+        { "name": "default", "steps": "sign in as the nutritionist, open /plan-templates, click the first row and wait for the editor to load" }
+      ],
+      "notionPageId": null
+    },
+    {
       "id": "web.account.profile",
       "app": "web",
       "area": "Account",
