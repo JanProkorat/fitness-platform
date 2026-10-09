@@ -426,6 +426,42 @@
   "h": 900
  },
  {
+  "html": "web/13-09-page-template-card-drop-c.html",
+  "png": "web/13-09-page-template-card-drop-c.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/13-10-page-template-library-info-c.html",
+  "png": "web/13-10-page-template-library-info-c.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/13-11-page-template-info-c.html",
+  "png": "web/13-11-page-template-info-c.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/13-12-page-template-library-filters-recipes-c.html",
+  "png": "web/13-12-page-template-library-filters-recipes-c.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/13-13-page-template-library-filters-ingredients-c.html",
+  "png": "web/13-13-page-template-library-filters-ingredients-c.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/13-14-page-template-row-remove-c.html",
+  "png": "web/13-14-page-template-row-remove-c.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
   "html": "web/14-01-page-templates-d.html",
   "png": "web/14-01-page-templates-d.png",
   "w": 1440,
@@ -470,6 +506,42 @@
  {
   "html": "web/14-08-page-template-day-add-meal-d.html",
   "png": "web/14-08-page-template-day-add-meal-d.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/14-09-page-template-card-drop-d.html",
+  "png": "web/14-09-page-template-card-drop-d.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/14-10-page-template-library-info-d.html",
+  "png": "web/14-10-page-template-library-info-d.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/14-11-page-template-info-d.html",
+  "png": "web/14-11-page-template-info-d.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/14-12-page-template-library-filters-recipes-d.html",
+  "png": "web/14-12-page-template-library-filters-recipes-d.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/14-13-page-template-library-filters-ingredients-d.html",
+  "png": "web/14-13-page-template-library-filters-ingredients-d.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/14-14-page-template-row-remove-d.html",
+  "png": "web/14-14-page-template-row-remove-d.png",
   "w": 1440,
   "h": 900
  },

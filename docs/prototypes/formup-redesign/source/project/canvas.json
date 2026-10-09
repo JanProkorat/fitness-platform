@@ -1298,22 +1298,6 @@
       "x": 3100,
       "y": 0
     },
-    "PageAccountMenuC.dc.html": {
-      "h": 600,
-      "page": "web",
-      "title": "C · Account menu (popover)",
-      "w": 860,
-      "x": 1520,
-      "y": 35920
-    },
-    "PageAccountMenuD.dc.html": {
-      "h": 600,
-      "page": "web",
-      "title": "D · Account menu (popover)",
-      "w": 860,
-      "x": 1520,
-      "y": 37740
-    },
     "PageClientDetailC.dc.html": {
       "h": 900,
       "page": "web",
@@ -1634,22 +1618,6 @@
       "x": 0,
       "y": 23280
     },
-    "PageProfileC.dc.html": {
-      "h": 2840,
-      "page": "web",
-      "title": "C · Coach profile",
-      "w": 1440,
-      "x": 0,
-      "y": 29620
-    },
-    "PageProfileD.dc.html": {
-      "h": 2840,
-      "page": "web",
-      "title": "D · Coach profile",
-      "w": 1440,
-      "x": 0,
-      "y": 32580
-    },
     "PageRecipeDrawerC.dc.html": {
       "h": 900,
       "page": "web",
@@ -1842,182 +1810,6 @@
       "x": 3040,
       "y": 12540
     },
-    "PageResetCheckEmailC.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "C · Reset password · 2 Check email",
-      "w": 1440,
-      "x": 1520,
-      "y": 39860
-    },
-    "PageResetCheckEmailD.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "D · Reset password · 2 Check email",
-      "w": 1440,
-      "x": 1520,
-      "y": 40880
-    },
-    "PageResetDoneC.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "C · Reset password · 4 Done",
-      "w": 1440,
-      "x": 4560,
-      "y": 39860
-    },
-    "PageResetDoneD.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "D · Reset password · 4 Done",
-      "w": 1440,
-      "x": 4560,
-      "y": 40880
-    },
-    "PageResetExpiredC.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "C · Reset password · Link expired",
-      "w": 1440,
-      "x": 6080,
-      "y": 39860
-    },
-    "PageResetExpiredD.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "D · Reset password · Link expired",
-      "w": 1440,
-      "x": 6080,
-      "y": 40880
-    },
-    "PageResetNewPasswordC.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "C · Reset password · 3 New password",
-      "w": 1440,
-      "x": 3040,
-      "y": 39860
-    },
-    "PageResetNewPasswordD.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "D · Reset password · 3 New password",
-      "w": 1440,
-      "x": 3040,
-      "y": 40880
-    },
-    "PageResetRequestC.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "C · Reset password · 1 Request link",
-      "w": 1440,
-      "x": 0,
-      "y": 39860
-    },
-    "PageResetRequestD.dc.html": {
-      "h": 900,
-      "page": "web",
-      "title": "D · Reset password · 1 Request link",
-      "w": 1440,
-      "x": 0,
-      "y": 40880
-    },
-    "PageSettingsC.dc.html": {
-      "h": 1700,
-      "page": "web",
-      "title": "C · Settings",
-      "w": 1440,
-      "x": 0,
-      "y": 35920
-    },
-    "PageSettingsD.dc.html": {
-      "h": 1700,
-      "page": "web",
-      "title": "D · Settings",
-      "w": 1440,
-      "x": 0,
-      "y": 37740
-    },
-    "PageSettingsDisableC.dc.html": {
-      "h": 800,
-      "page": "web",
-      "title": "C · Settings · Disable account dialog",
-      "w": 860,
-      "x": 3400,
-      "y": 35920
-    },
-    "PageSettingsDisableD.dc.html": {
-      "h": 800,
-      "page": "web",
-      "title": "D · Settings · Disable account dialog",
-      "w": 860,
-      "x": 3400,
-      "y": 37740
-    },
-    "PageSettingsPasswordC.dc.html": {
-      "h": 800,
-      "page": "web",
-      "title": "C · Settings · Change password dialog",
-      "w": 860,
-      "x": 6220,
-      "y": 35920
-    },
-    "PageSettingsPasswordD.dc.html": {
-      "h": 800,
-      "page": "web",
-      "title": "D · Settings · Change password dialog",
-      "w": 860,
-      "x": 6220,
-      "y": 37740
-    },
-    "PageSettingsRemoveNutritionC.dc.html": {
-      "h": 800,
-      "page": "web",
-      "title": "C · Settings · Remove nutritionist role dialog",
-      "w": 860,
-      "x": 5280,
-      "y": 35920
-    },
-    "PageSettingsRemoveNutritionD.dc.html": {
-      "h": 800,
-      "page": "web",
-      "title": "D · Settings · Remove nutritionist role dialog",
-      "w": 860,
-      "x": 5280,
-      "y": 37740
-    },
-    "PageSettingsRemoveTrainerC.dc.html": {
-      "h": 800,
-      "page": "web",
-      "title": "C · Settings · Remove trainer role dialog",
-      "w": 860,
-      "x": 4340,
-      "y": 35920
-    },
-    "PageSettingsRemoveTrainerD.dc.html": {
-      "h": 800,
-      "page": "web",
-      "title": "D · Settings · Remove trainer role dialog",
-      "w": 860,
-      "x": 4340,
-      "y": 37740
-    },
-    "PageSettingsRolesOneC.dc.html": {
-      "h": 600,
-      "page": "web",
-      "title": "C · Settings · Roles, one role",
-      "w": 860,
-      "x": 2460,
-      "y": 35920
-    },
-    "PageSettingsRolesOneD.dc.html": {
-      "h": 600,
-      "page": "web",
-      "title": "D · Settings · Roles, one role",
-      "w": 860,
-      "x": 2460,
-      "y": 37740
-    },
     "PageTemplateDayAddMealC.dc.html": {
       "h": 900,
       "page": "web",
@@ -2169,6 +1961,310 @@
       "w": 390,
       "x": 2630,
       "y": 0
+    },
+    "PageProfileC.dc.html": {
+      "x": 0,
+      "y": 29620,
+      "w": 1440,
+      "h": 2840,
+      "page": "web",
+      "title": "C · Coach profile"
+    },
+    "PageProfileD.dc.html": {
+      "x": 0,
+      "y": 32580,
+      "w": 1440,
+      "h": 2840,
+      "page": "web",
+      "title": "D · Coach profile"
+    },
+    "PageSettingsC.dc.html": {
+      "x": 0,
+      "y": 35920,
+      "w": 1440,
+      "h": 1700,
+      "page": "web",
+      "title": "C · Settings"
+    },
+    "PageAccountMenuC.dc.html": {
+      "x": 1520,
+      "y": 35920,
+      "w": 860,
+      "h": 600,
+      "page": "web",
+      "title": "C · Account menu (popover)"
+    },
+    "PageSettingsD.dc.html": {
+      "x": 0,
+      "y": 37740,
+      "w": 1440,
+      "h": 1700,
+      "page": "web",
+      "title": "D · Settings"
+    },
+    "PageAccountMenuD.dc.html": {
+      "x": 1520,
+      "y": 37740,
+      "w": 860,
+      "h": 600,
+      "page": "web",
+      "title": "D · Account menu (popover)"
+    },
+    "PageSettingsRolesOneC.dc.html": {
+      "x": 2460,
+      "y": 35920,
+      "w": 860,
+      "h": 600,
+      "page": "web",
+      "title": "C · Settings · Roles, one role"
+    },
+    "PageSettingsDisableC.dc.html": {
+      "x": 3400,
+      "y": 35920,
+      "w": 860,
+      "h": 800,
+      "page": "web",
+      "title": "C · Settings · Disable account dialog"
+    },
+    "PageSettingsRemoveTrainerC.dc.html": {
+      "x": 4340,
+      "y": 35920,
+      "w": 860,
+      "h": 800,
+      "page": "web",
+      "title": "C · Settings · Remove trainer role dialog"
+    },
+    "PageSettingsRemoveNutritionC.dc.html": {
+      "x": 5280,
+      "y": 35920,
+      "w": 860,
+      "h": 800,
+      "page": "web",
+      "title": "C · Settings · Remove nutritionist role dialog"
+    },
+    "PageSettingsRolesOneD.dc.html": {
+      "x": 2460,
+      "y": 37740,
+      "w": 860,
+      "h": 600,
+      "page": "web",
+      "title": "D · Settings · Roles, one role"
+    },
+    "PageSettingsDisableD.dc.html": {
+      "x": 3400,
+      "y": 37740,
+      "w": 860,
+      "h": 800,
+      "page": "web",
+      "title": "D · Settings · Disable account dialog"
+    },
+    "PageSettingsRemoveTrainerD.dc.html": {
+      "x": 4340,
+      "y": 37740,
+      "w": 860,
+      "h": 800,
+      "page": "web",
+      "title": "D · Settings · Remove trainer role dialog"
+    },
+    "PageSettingsRemoveNutritionD.dc.html": {
+      "x": 5280,
+      "y": 37740,
+      "w": 860,
+      "h": 800,
+      "page": "web",
+      "title": "D · Settings · Remove nutritionist role dialog"
+    },
+    "PageResetRequestC.dc.html": {
+      "x": 0,
+      "y": 39860,
+      "w": 1440,
+      "h": 900,
+      "page": "web",
+      "title": "C · Reset password · 1 Request link"
+    },
+    "PageResetCheckEmailC.dc.html": {
+      "x": 1520,
+      "y": 39860,
+      "w": 1440,
+      "h": 900,
+      "page": "web",
+      "title": "C · Reset password · 2 Check email"
+    },
+    "PageResetNewPasswordC.dc.html": {
+      "x": 3040,
+      "y": 39860,
+      "w": 1440,
+      "h": 900,
+      "page": "web",
+      "title": "C · Reset password · 3 New password"
+    },
+    "PageResetDoneC.dc.html": {
+      "x": 4560,
+      "y": 39860,
+      "w": 1440,
+      "h": 900,
+      "page": "web",
+      "title": "C · Reset password · 4 Done"
+    },
+    "PageResetExpiredC.dc.html": {
+      "x": 6080,
+      "y": 39860,
+      "w": 1440,
+      "h": 900,
+      "page": "web",
+      "title": "C · Reset password · Link expired"
+    },
+    "PageSettingsPasswordC.dc.html": {
+      "x": 6220,
+      "y": 35920,
+      "w": 860,
+      "h": 800,
+      "page": "web",
+      "title": "C · Settings · Change password dialog"
+    },
+    "PageResetRequestD.dc.html": {
+      "x": 0,
+      "y": 40880,
+      "w": 1440,
+      "h": 900,
+      "page": "web",
+      "title": "D · Reset password · 1 Request link"
+    },
+    "PageResetCheckEmailD.dc.html": {
+      "x": 1520,
+      "y": 40880,
+      "w": 1440,
+      "h": 900,
+      "page": "web",
+      "title": "D · Reset password · 2 Check email"
+    },
+    "PageResetNewPasswordD.dc.html": {
+      "x": 3040,
+      "y": 40880,
+      "w": 1440,
+      "h": 900,
+      "page": "web",
+      "title": "D · Reset password · 3 New password"
+    },
+    "PageResetDoneD.dc.html": {
+      "x": 4560,
+      "y": 40880,
+      "w": 1440,
+      "h": 900,
+      "page": "web",
+      "title": "D · Reset password · 4 Done"
+    },
+    "PageResetExpiredD.dc.html": {
+      "x": 6080,
+      "y": 40880,
+      "w": 1440,
+      "h": 900,
+      "page": "web",
+      "title": "D · Reset password · Link expired"
+    },
+    "PageSettingsPasswordD.dc.html": {
+      "x": 6220,
+      "y": 37740,
+      "w": 860,
+      "h": 800,
+      "page": "web",
+      "title": "D · Settings · Change password dialog"
+    },
+    "PageTemplateCardDropC.dc.html": {
+      "h": 900,
+      "page": "web",
+      "title": "C · TemplateCardDrop · replace or add",
+      "w": 1440,
+      "x": 12160,
+      "y": 24680
+    },
+    "PageTemplateCardDropD.dc.html": {
+      "h": 900,
+      "page": "web",
+      "title": "D · TemplateCardDrop · replace or add",
+      "w": 1440,
+      "x": 12160,
+      "y": 25700
+    },
+    "PageTemplateLibraryInfoC.dc.html": {
+      "h": 900,
+      "page": "web",
+      "title": "C · TemplateLibraryInfo",
+      "w": 1440,
+      "x": 13680,
+      "y": 24680
+    },
+    "PageTemplateLibraryInfoD.dc.html": {
+      "h": 900,
+      "page": "web",
+      "title": "D · TemplateLibraryInfo",
+      "w": 1440,
+      "x": 13680,
+      "y": 25700
+    },
+    "PageTemplateInfoC.dc.html": {
+      "h": 900,
+      "page": "web",
+      "title": "C · TemplateInfo · side panel tab",
+      "w": 1440,
+      "x": 15200,
+      "y": 24680
+    },
+    "PageTemplateInfoD.dc.html": {
+      "h": 900,
+      "page": "web",
+      "title": "D · TemplateInfo · side panel tab",
+      "w": 1440,
+      "x": 15200,
+      "y": 25700
+    },
+    "PageTemplateLibraryFiltersRecipesC.dc.html": {
+      "h": 900,
+      "page": "web",
+      "title": "C · TemplateLibraryFilters · recipes",
+      "w": 1440,
+      "x": 16720,
+      "y": 24680
+    },
+    "PageTemplateLibraryFiltersRecipesD.dc.html": {
+      "h": 900,
+      "page": "web",
+      "title": "D · TemplateLibraryFilters · recipes",
+      "w": 1440,
+      "x": 16720,
+      "y": 25700
+    },
+    "PageTemplateLibraryFiltersIngredientsC.dc.html": {
+      "h": 900,
+      "page": "web",
+      "title": "C · TemplateLibraryFilters · ingredients",
+      "w": 1440,
+      "x": 18240,
+      "y": 24680
+    },
+    "PageTemplateLibraryFiltersIngredientsD.dc.html": {
+      "h": 900,
+      "page": "web",
+      "title": "D · TemplateLibraryFilters · ingredients",
+      "w": 1440,
+      "x": 18240,
+      "y": 25700
+    },
+    "PageTemplateRowRemoveC.dc.html": {
+      "h": 900,
+      "page": "web",
+      "title": "C · TemplateRowRemove · hover ✕ + confirm",
+      "w": 1440,
+      "x": 19760,
+      "y": 24680
+    },
+    "PageTemplateRowRemoveD.dc.html": {
+      "h": 900,
+      "page": "web",
+      "title": "D · TemplateRowRemove · hover ✕ + confirm",
+      "w": 1440,
+      "x": 19760,
+      "y": 25700
     }
   },
   "createdOnFiles": {
@@ -2504,24 +2600,6 @@
       "x": 0,
       "y": -300
     },
-    "webRow10": {
-      "kind": "title1",
-      "maxW": 6160,
-      "page": "web",
-      "text": "Settings  ·  light above, dark below",
-      "w": 240,
-      "x": 0,
-      "y": 35620
-    },
-    "webRow11": {
-      "kind": "title1",
-      "maxW": 7520,
-      "page": "web",
-      "text": "Forgot password  ·  light above, dark below",
-      "w": 240,
-      "x": 0,
-      "y": 39560
-    },
     "webRow2": {
       "kind": "title1",
       "maxW": 8000,
@@ -2593,6 +2671,24 @@
       "w": 240,
       "x": 0,
       "y": 29320
+    },
+    "webRow10": {
+      "kind": "title1",
+      "maxW": 6160,
+      "page": "web",
+      "text": "Settings  ·  light above, dark below",
+      "w": 240,
+      "x": 0,
+      "y": 35620
+    },
+    "webRow11": {
+      "kind": "title1",
+      "maxW": 7520,
+      "page": "web",
+      "text": "Forgot password  ·  light above, dark below",
+      "w": 240,
+      "x": 0,
+      "y": 39560
     }
   },
   "order": [
@@ -2866,7 +2962,19 @@
     "PageResetNewPasswordD.dc.html",
     "PageResetDoneD.dc.html",
     "PageResetExpiredD.dc.html",
-    "PageSettingsPasswordD.dc.html"
+    "PageSettingsPasswordD.dc.html",
+    "PageTemplateCardDropC.dc.html",
+    "PageTemplateCardDropD.dc.html",
+    "PageTemplateLibraryInfoC.dc.html",
+    "PageTemplateLibraryInfoD.dc.html",
+    "PageTemplateInfoC.dc.html",
+    "PageTemplateInfoD.dc.html",
+    "PageTemplateLibraryFiltersRecipesC.dc.html",
+    "PageTemplateLibraryFiltersRecipesD.dc.html",
+    "PageTemplateLibraryFiltersIngredientsC.dc.html",
+    "PageTemplateLibraryFiltersIngredientsD.dc.html",
+    "PageTemplateRowRemoveC.dc.html",
+    "PageTemplateRowRemoveD.dc.html"
   ],
   "pages": [
     {
