@@ -218,6 +218,7 @@ builder.Services.AddSingleton(TimeProvider.System);
 // Client link authorization (cross-DB link verification) — the single entry point every
 // call site resolves professional/client link capabilities through; see #958, #964.
 builder.Services.AddScoped<IClientLinkAuthorizationService, ClientLinkAuthorizationService>();
+builder.Services.AddScoped<ICoachRoleStatus, CoachRoleStatus>();
 builder.Services.AddScoped<IPrDetectionService, PrDetectionService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IWorkoutCompletionService, WorkoutCompletionService>();

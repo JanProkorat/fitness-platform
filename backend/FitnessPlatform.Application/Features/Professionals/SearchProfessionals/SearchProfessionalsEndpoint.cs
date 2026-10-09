@@ -3,6 +3,7 @@ using System.Text.Json;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -76,9 +77,13 @@ public class SearchProfessionalsEndpoint(IApplicationDbContext db, UserManager<A
         foreach (var profile in profiles)
         {
             var allRoles = await userManager.GetRolesAsync(profile.User);
-            var professionalRoles = allRoles
-                .Where(r => r is AppRoles.Trainer or AppRoles.Nutritionist)
-                .ToList();
+            var professionalRoles = CoachRoleStatus.ActiveRoles(allRoles, profile).ToList();
+
+            // A coach with no active coach role is not discoverable.
+            if (professionalRoles.Count == 0)
+            {
+                continue;
+            }
 
             // Filter by role if requested
             if (!string.IsNullOrWhiteSpace(req.Role) &&

@@ -53,6 +53,12 @@ public static class ErrorCodes
     /// <summary>User already has the requested role.</summary>
     public const string RoleAlreadyAssigned = "ROLE_ALREADY_ASSIGNED";
 
+    /// <summary>The caller does not hold the coach role, or it is already removed.</summary>
+    public const string RoleNotAssigned = "ROLE_NOT_ASSIGNED";
+
+    /// <summary>The role is the caller's only active coach role and cannot be removed.</summary>
+    public const string OnlyCoachRole = "ONLY_COACH_ROLE";
+
     /// <summary>The current password supplied for a password change is wrong.</summary>
     public const string InvalidCurrentPassword = "INVALID_CURRENT_PASSWORD";
 

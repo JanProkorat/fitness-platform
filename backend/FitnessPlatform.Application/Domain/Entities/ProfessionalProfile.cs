@@ -95,6 +95,16 @@ public class ProfessionalProfile : PublicTimestampableEntity
     public string? AvatarBlobUrl { get; set; }
 
     /// <summary>
+    /// When the holder removed their Trainer role (UTC). The Identity role is kept; null means active.
+    /// </summary>
+    public DateTime? TrainerRoleRemovedAt { get; set; }
+
+    /// <summary>
+    /// When the holder removed their Nutritionist role (UTC). The Identity role is kept; null means active.
+    /// </summary>
+    public DateTime? NutritionistRoleRemovedAt { get; set; }
+
+    /// <summary>
     /// Navigation property to the associated user.
     /// </summary>
     public ApplicationUser User { get; set; } = null!;
