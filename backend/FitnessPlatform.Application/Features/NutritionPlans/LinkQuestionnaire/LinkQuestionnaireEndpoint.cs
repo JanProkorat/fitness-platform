@@ -1,3 +1,4 @@
+using FitnessPlatform.Application.Domain.Authorization;
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
@@ -18,6 +19,7 @@ namespace FitnessPlatform.Application.Features.NutritionPlans.LinkQuestionnaire;
 /// Links or unlinks a questionnaire response to/from a nutrition plan.
 /// Validates that the response belongs to the same professional and client.
 /// </summary>
+[RemovedCoachRole(AppRoles.Nutritionist, RemovedCoachRoleMode.WhilePlanInProgress)]
 public class LinkQuestionnaireEndpoint(
     IMongoContext mongo,
     IApplicationDbContext db,

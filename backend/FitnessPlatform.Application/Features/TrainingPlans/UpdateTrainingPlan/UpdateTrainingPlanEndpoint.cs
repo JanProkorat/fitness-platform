@@ -1,3 +1,4 @@
+using FitnessPlatform.Application.Domain.Authorization;
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
@@ -28,6 +29,7 @@ namespace FitnessPlatform.Application.Features.TrainingPlans.UpdateTrainingPlan;
 /// <param name="db">PostgreSQL context — resolves the client's PublicId for the response.</param>
 /// <param name="linkAuthorizationService">Resolves link capabilities — authorship identifies the
 /// plan, the caller's live link to its client decides access.</param>
+[RemovedCoachRole(AppRoles.Trainer, RemovedCoachRoleMode.WhilePlanInProgress)]
 public class UpdateTrainingPlanEndpoint(
     IMongoContext mongo,
     ISessionLockService lockService,

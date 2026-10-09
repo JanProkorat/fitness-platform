@@ -458,6 +458,8 @@ app.UseRateLimiter();
 app.UseFastEndpoints(c =>
 {
     c.Endpoints.ShortNames = true;
+    // One global gate for the read-only state after a coach role is removed (see RemovedCoachRoleAttribute).
+    c.Endpoints.Configurator = ep => ep.PreProcessors(Order.Before, new RemovedCoachRolePreProcessor());
     c.Serializer.Options.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
     c.Errors.UseProblemDetails(x =>
     {

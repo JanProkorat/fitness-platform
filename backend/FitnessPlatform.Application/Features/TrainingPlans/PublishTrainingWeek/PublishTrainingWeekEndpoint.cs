@@ -1,3 +1,4 @@
+using FitnessPlatform.Application.Domain.Authorization;
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
@@ -23,6 +24,7 @@ namespace FitnessPlatform.Application.Features.TrainingPlans.PublishTrainingWeek
 /// plans (e.g. a past or future plan) are left untouched (#780).
 /// Defensively clears any stale Editing lock docs for the week's sessions on publish.
 /// </summary>
+[RemovedCoachRole(AppRoles.Trainer, RemovedCoachRoleMode.WhilePlanInProgress)]
 public class PublishTrainingWeekEndpoint(
     IMongoContext mongo,
     IApplicationDbContext db,

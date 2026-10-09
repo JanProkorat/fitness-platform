@@ -1,3 +1,4 @@
+using FitnessPlatform.Application.Domain.Authorization;
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
@@ -22,6 +23,7 @@ namespace FitnessPlatform.Application.Features.SessionTemplates.SaveSessionTempl
 /// <param name="timeProvider">Injected system clock.</param>
 /// <param name="linkAuthorizationService">Resolves link capabilities — authorship identifies the
 /// source plan, the caller's live link to its client decides access.</param>
+[RemovedCoachRole(AppRoles.Trainer, RemovedCoachRoleMode.Refuse)]
 internal sealed class SaveSessionTemplateFromPlanEndpoint(
     IMongoContext mongo,
     TimeProvider timeProvider,

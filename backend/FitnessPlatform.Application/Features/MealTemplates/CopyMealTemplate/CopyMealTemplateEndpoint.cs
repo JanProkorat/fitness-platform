@@ -1,3 +1,4 @@
+using FitnessPlatform.Application.Domain.Authorization;
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
@@ -24,6 +25,7 @@ namespace FitnessPlatform.Application.Features.MealTemplates.CopyMealTemplate;
 /// </remarks>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="timeProvider">Injected system clock.</param>
+[RemovedCoachRole(AppRoles.Nutritionist, RemovedCoachRoleMode.Refuse)]
 internal sealed class CopyMealTemplateEndpoint(IMongoContext mongo, TimeProvider timeProvider)
     : Endpoint<CopyMealTemplateRequest, MealTemplateDetailResponse>
 {

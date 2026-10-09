@@ -9,15 +9,16 @@ namespace FitnessPlatform.Application.Domain.Extensions;
 public static class EndpointErrorExtensions
 {
     /// <summary>
-    /// Adds a validation failure with an error code and throws immediately (returns HTTP 400).
+    /// Adds a validation failure with an error code and throws immediately (HTTP 400 unless overridden).
     /// </summary>
     /// <param name="endpoint">The endpoint instance.</param>
     /// <param name="errorCode">Machine-readable error code for frontend translation.</param>
     /// <param name="message">Human-readable fallback message.</param>
-    public static void ThrowErrorWithCode(this IEndpoint endpoint, string errorCode, string message)
+    /// <param name="statusCode">HTTP status of the errors response.</param>
+    public static void ThrowErrorWithCode(this IEndpoint endpoint, string errorCode, string message, int statusCode = 400)
     {
         endpoint.ValidationFailures.Add(new ValidationFailure("", message) { ErrorCode = errorCode });
-        endpoint.HttpContext.Response.StatusCode = 400;
+        endpoint.HttpContext.Response.StatusCode = statusCode;
         throw new ValidationFailureException(endpoint.ValidationFailures, message);
     }
 

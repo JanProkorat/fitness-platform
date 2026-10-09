@@ -1,3 +1,4 @@
+using FitnessPlatform.Application.Domain.Authorization;
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
@@ -25,6 +26,7 @@ namespace FitnessPlatform.Application.Features.NutritionPlans.UpdatePlan;
 /// <param name="guard">Shared version-gated fetch-check-replace-409 skeleton.</param>
 /// <param name="linkAuthorizationService">Resolves link capabilities — authorship identifies the
 /// plan, the caller's live link to its client decides access.</param>
+[RemovedCoachRole(AppRoles.Nutritionist, RemovedCoachRoleMode.WhilePlanInProgress)]
 public class UpdatePlanEndpoint(
     IMongoContext mongo,
     IMacroCalculatorService macroCalculator,

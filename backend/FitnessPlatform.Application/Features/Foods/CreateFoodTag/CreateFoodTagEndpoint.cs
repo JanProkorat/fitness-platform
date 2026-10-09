@@ -1,3 +1,5 @@
+using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Authorization;
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
@@ -13,6 +15,7 @@ namespace FitnessPlatform.Application.Features.Foods.CreateFoodTag;
 /// Creates a new food tag owned by the calling nutritionist.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
+[RemovedCoachRole(AppRoles.Nutritionist, RemovedCoachRoleMode.Refuse)]
 public class CreateFoodTagEndpoint(IMongoContext mongo) : Endpoint<CreateFoodTagRequest, FoodTagDto>
 {
     /// <inheritdoc />

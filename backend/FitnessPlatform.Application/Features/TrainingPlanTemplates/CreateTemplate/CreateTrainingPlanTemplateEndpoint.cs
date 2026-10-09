@@ -1,3 +1,5 @@
+using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Authorization;
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
@@ -13,6 +15,7 @@ namespace FitnessPlatform.Application.Features.TrainingPlanTemplates.CreateTempl
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="timeProvider">Injected time source for audit timestamps.</param>
+[RemovedCoachRole(AppRoles.Trainer, RemovedCoachRoleMode.Refuse)]
 public class CreateTrainingPlanTemplateEndpoint(IMongoContext mongo, TimeProvider timeProvider)
     : Endpoint<CreateTrainingPlanTemplateRequest, TrainingPlanTemplateSummaryDto>
 {

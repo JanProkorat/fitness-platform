@@ -1,3 +1,4 @@
+using FitnessPlatform.Application.Domain.Authorization;
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
@@ -22,6 +23,7 @@ namespace FitnessPlatform.Application.Features.NutritionPlans.DeletePlan;
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="linkAuthorizationService">Resolves link capabilities — authorship identifies the
 /// plan, the caller's live link to its client decides access.</param>
+[RemovedCoachRole(AppRoles.Nutritionist, RemovedCoachRoleMode.WhilePlanInProgress)]
 public class DeletePlanEndpoint(IMongoContext mongo, IClientLinkAuthorizationService linkAuthorizationService)
     : Endpoint<DeletePlanRequest>
 {

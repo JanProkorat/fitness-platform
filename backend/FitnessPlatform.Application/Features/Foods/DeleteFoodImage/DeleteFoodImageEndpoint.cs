@@ -1,3 +1,5 @@
+using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Authorization;
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
@@ -16,6 +18,7 @@ namespace FitnessPlatform.Application.Features.Foods.DeleteFoodImage;
 /// overwrites it anyway; orphan cleanup is a separate concern.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
+[RemovedCoachRole(AppRoles.Nutritionist, RemovedCoachRoleMode.Refuse)]
 public class DeleteFoodImageEndpoint(IMongoContext mongo) : Endpoint<DeleteFoodImageRequest>
 {
     /// <inheritdoc />

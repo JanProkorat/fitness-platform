@@ -1,3 +1,4 @@
+using FitnessPlatform.Application.Domain.Authorization;
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
@@ -24,6 +25,7 @@ namespace FitnessPlatform.Application.Features.NutritionPlanTemplates.Instantiat
 /// <param name="linkAuthorizationService">Resolves the nutritionist-client link's CanViewNutritionPlans permission.</param>
 /// <param name="db">PostgreSQL context for cross-DB validation.</param>
 /// <param name="timeProvider">Injected time source for audit timestamps.</param>
+[RemovedCoachRole(AppRoles.Nutritionist, RemovedCoachRoleMode.Refuse)]
 public class InstantiateTemplateEndpoint(
     IMongoContext mongo,
     IClientLinkAuthorizationService linkAuthorizationService,

@@ -1,3 +1,4 @@
+using FitnessPlatform.Application.Domain.Authorization;
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
@@ -19,6 +20,7 @@ namespace FitnessPlatform.Application.Features.NutritionPlans.CompletePlan;
 /// Marks an active nutrition plan as completed, ending its lifecycle.
 /// Only the owning nutritionist can complete a plan, and only if the plan is currently Active.
 /// </summary>
+[RemovedCoachRole(AppRoles.Nutritionist, RemovedCoachRoleMode.WhilePlanInProgress)]
 public class CompletePlanEndpoint(
     IMongoContext mongo,
     IApplicationDbContext db,

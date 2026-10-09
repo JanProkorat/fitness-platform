@@ -1,3 +1,5 @@
+using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Authorization;
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
@@ -14,6 +16,7 @@ namespace FitnessPlatform.Application.Features.Exercises.GenerateUploadUrl;
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="blobStorage">Blob storage service.</param>
+[RemovedCoachRole(AppRoles.Trainer, RemovedCoachRoleMode.Refuse)]
 public class GenerateUploadUrlEndpoint(
     IMongoContext mongo,
     IBlobStorageService blobStorage) : Endpoint<GenerateUploadUrlRequest, GenerateUploadUrlResponse>

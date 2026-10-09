@@ -35,6 +35,37 @@ public static class PlanWindowResolver
     }
 
     /// <summary>
+    /// Returns whether the plan's window <c>[StartDate, StartDate + WeekCount * 7)</c> has not ended
+    /// on <paramref name="today"/>. A plan that has not started yet counts; a plan with no start date
+    /// never does.
+    /// </summary>
+    public static bool HasNotEnded(DateTime? startDate, int weekCount, DateOnly today)
+    {
+        if (startDate is null)
+        {
+            return false;
+        }
+
+        return today < DateOnly.FromDateTime(startDate.Value).AddDays(weekCount * 7);
+    }
+
+    /// <summary>
+    /// Returns whether the new window ends later than the old one. An unscheduled new plan counts as
+    /// extending, so a removed-role caller cannot clear the date to dodge the check.
+    /// </summary>
+    public static bool EndsLater(DateTime oldStartDate, int oldWeekCount, DateTime? newStartDate, int newWeekCount)
+    {
+        if (newStartDate is null)
+        {
+            return true;
+        }
+
+        var oldEnd = DateOnly.FromDateTime(oldStartDate).AddDays(oldWeekCount * 7);
+        var newEnd = DateOnly.FromDateTime(newStartDate.Value).AddDays(newWeekCount * 7);
+        return newEnd > oldEnd;
+    }
+
+    /// <summary>
     /// Returns whether two plan windows overlap (share at least one day). Both windows are
     /// half-open: <c>[start, start + weekCount * 7)</c>.
     /// </summary>

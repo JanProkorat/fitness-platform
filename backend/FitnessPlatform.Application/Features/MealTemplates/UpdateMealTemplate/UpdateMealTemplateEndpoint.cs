@@ -1,3 +1,5 @@
+using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Authorization;
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
@@ -18,6 +20,7 @@ namespace FitnessPlatform.Application.Features.MealTemplates.UpdateMealTemplate;
 /// <param name="macroCalculator">Shared meal-totals calculator (#859).</param>
 /// <param name="guard">Shared version-gated fetch-check-replace skeleton.</param>
 /// <param name="timeProvider">Injected system clock.</param>
+[RemovedCoachRole(AppRoles.Nutritionist, RemovedCoachRoleMode.Refuse)]
 internal sealed class UpdateMealTemplateEndpoint(
     IMongoContext mongo,
     IMacroCalculatorService macroCalculator,

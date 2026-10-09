@@ -1,3 +1,4 @@
+using FitnessPlatform.Application.Domain.Authorization;
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
@@ -22,6 +23,7 @@ namespace FitnessPlatform.Application.Features.NutritionPlans.PublishWeek;
 /// client ONLY if their date window overlaps this plan's window — non-overlapping Active plans
 /// (e.g. a past or future plan) are left untouched (#780).
 /// </summary>
+[RemovedCoachRole(AppRoles.Nutritionist, RemovedCoachRoleMode.WhilePlanInProgress)]
 public class PublishWeekEndpoint(
     IMongoContext mongo,
     IApplicationDbContext db,

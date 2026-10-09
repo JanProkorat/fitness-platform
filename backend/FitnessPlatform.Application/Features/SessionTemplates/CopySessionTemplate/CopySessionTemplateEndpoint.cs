@@ -1,3 +1,4 @@
+using FitnessPlatform.Application.Domain.Authorization;
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
@@ -25,6 +26,7 @@ namespace FitnessPlatform.Application.Features.SessionTemplates.CopySessionTempl
 /// </remarks>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="timeProvider">Injected system clock.</param>
+[RemovedCoachRole(AppRoles.Trainer, RemovedCoachRoleMode.Refuse)]
 internal sealed class CopySessionTemplateEndpoint(IMongoContext mongo, TimeProvider timeProvider)
     : Endpoint<CopySessionTemplateRequest, SessionTemplateDetailResponse>
 {

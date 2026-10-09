@@ -1,3 +1,5 @@
+using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Authorization;
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
@@ -12,6 +14,7 @@ namespace FitnessPlatform.Application.Features.Exercises.CreateExercise;
 /// Creates a custom exercise owned by the authenticated trainer.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
+[RemovedCoachRole(AppRoles.Trainer, RemovedCoachRoleMode.Refuse)]
 public class CreateExerciseEndpoint(IMongoContext mongo) : Endpoint<CreateExerciseRequest, ExerciseSummary>
 {
     /// <inheritdoc />
