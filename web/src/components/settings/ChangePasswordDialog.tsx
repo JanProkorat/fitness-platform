@@ -129,6 +129,7 @@ function ChangePasswordForm({ email, onClose }: { email: string; onClose: () => 
   const newPassword = watch('newPassword');
 
   const changeMutation = useMutation({
+    mutationKey: ['settings', 'password'],
     mutationFn: changeMyPassword,
     onSuccess: (result) => {
       // The old refresh tokens are revoked, so the fresh pair must be stored before any further request.

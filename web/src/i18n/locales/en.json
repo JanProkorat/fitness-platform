@@ -348,6 +348,49 @@
       "addDialog": {
         "title": "Add the {{role}} role?",
         "body": "You get the tools for this role and show up in search under it. You can remove it again later."
+      },
+      "clients_one": "{{count}} client",
+      "clients_other": "{{count}} clients",
+      "removed": "Role removed.",
+      "removeError": "Could not remove the role. Nothing was changed.",
+      "loadError": "Could not load your roles. Please refresh the page.",
+      "onlyRoleNote": "This is your only role. Removing it disables your coach account, the same as the button below.",
+      "removeDialog": {
+        "keep": "Keep role",
+        "footnote": "The role disappears from search and your profile card right away. Add it back any time to edit again.",
+        "notified_zero": "No clients are notified",
+        "notified_one": "{{count}} client is notified",
+        "notified_other": "{{count}} clients are notified",
+        "trainer": {
+          "title": "Remove Personal trainer role?",
+          "description": "You’ll keep coaching as a Nutritionist. Nothing is deleted.",
+          "shared_one": "{{count}} also has nutrition with you and stays your client.",
+          "shared_other": "{{count}} also have nutrition with you and stay your clients.",
+          "rest_one": "The other {{count}} stays connected to you until their current plan ends; then coaching ends and their history is archived.",
+          "rest_other": "The other {{count}} stay connected to you until their current plan ends; then coaching ends and their history is archived.",
+          "restAll_one": "This client stays connected to you until their current plan ends; then coaching ends and their history is archived.",
+          "restAll_other": "All {{count}} stay connected to you until their current plan ends; then coaching ends and their history is archived.",
+          "plansTitle": "Plans in progress run to the end",
+          "plansBody": "Training plans already started stay active for you and your clients until they end.",
+          "libraryTitle": "Your training library becomes read-only",
+          "libraryBody": "Exercises, workouts and training templates stay visible but can’t be created, edited or assigned.",
+          "confirm": "Remove Personal trainer"
+        },
+        "nutritionist": {
+          "title": "Remove Nutritionist role?",
+          "description": "You’ll keep coaching as a Personal trainer. Nothing is deleted.",
+          "shared_one": "{{count}} also trains with you and stays your client.",
+          "shared_other": "{{count}} also train with you and stay your clients.",
+          "rest_one": "The other {{count}} stays connected to you until their current plan ends; then coaching ends and their history is archived.",
+          "rest_other": "The other {{count}} stay connected to you until their current plan ends; then coaching ends and their history is archived.",
+          "restAll_one": "This client stays connected to you until their current plan ends; then coaching ends and their history is archived.",
+          "restAll_other": "All {{count}} stay connected to you until their current plan ends; then coaching ends and their history is archived.",
+          "plansTitle": "Plans in progress run to the end",
+          "plansBody": "Meal plans already started stay active for you and your clients until they end.",
+          "libraryTitle": "Your nutrition library becomes read-only",
+          "libraryBody": "Recipes, ingredients and meal plan templates stay visible but can’t be created, edited or assigned.",
+          "confirm": "Remove Nutritionist"
+        }
       }
     },
     "danger": {
@@ -1709,7 +1752,9 @@
     "RECIPE_FOOD_NOT_AVAILABLE": "One of the ingredients is no longer available. Remove it and try again.",
     "RECIPE_NOT_OWNED": "You can only change your own recipes.",
     "RECIPE_GALLERY_FULL": "This recipe already has the maximum number of pictures.",
-    "RECIPE_GALLERY_IMAGE_NOT_FOUND": "That picture is no longer part of this recipe. It may have been changed elsewhere."
+    "RECIPE_GALLERY_IMAGE_NOT_FOUND": "That picture is no longer part of this recipe. It may have been changed elsewhere.",
+    "ONLY_COACH_ROLE": "This is your only coach role, so it can’t be removed here.",
+    "ROLE_NOT_ASSIGNED": "You no longer have this role. Your roles have been refreshed."
   },
   "nutritionGoals": {
     "title": "Goals & Macros",

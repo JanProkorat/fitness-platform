@@ -348,6 +348,49 @@
       "addDialog": {
         "title": "Rolle {{role}} hinzufügen?",
         "body": "Du erhältst die Werkzeuge dieser Rolle und erscheinst damit in der Suche. Du kannst sie später wieder entfernen."
+      },
+      "clients_one": "{{count}} Klient",
+      "clients_other": "{{count}} Klienten",
+      "removed": "Rolle entfernt.",
+      "removeError": "Die Rolle konnte nicht entfernt werden. Es wurde nichts geändert.",
+      "loadError": "Deine Rollen konnten nicht geladen werden. Bitte lade die Seite neu.",
+      "onlyRoleNote": "Das ist deine einzige Rolle. Sie zu entfernen deaktiviert dein Coach-Konto, genau wie die Schaltfläche unten.",
+      "removeDialog": {
+        "keep": "Rolle behalten",
+        "footnote": "Die Rolle verschwindet sofort aus der Suche und von deiner Profilkarte. Füge sie jederzeit wieder hinzu, um erneut zu bearbeiten.",
+        "notified_zero": "Kein Klient wird benachrichtigt",
+        "notified_one": "{{count}} Klient wird benachrichtigt",
+        "notified_other": "{{count}} Klienten werden benachrichtigt",
+        "trainer": {
+          "title": "Rolle Personal Trainer entfernen?",
+          "description": "Du coachst weiter als Ernährungsberater. Nichts wird gelöscht.",
+          "shared_one": "{{count}} hat auch Ernährung bei dir und bleibt dein Klient.",
+          "shared_other": "{{count}} haben auch Ernährung bei dir und bleiben deine Klienten.",
+          "rest_one": "Der andere {{count}} bleibt mit dir verbunden, bis sein aktueller Plan endet; danach endet das Coaching und sein Verlauf wird archiviert.",
+          "rest_other": "Die anderen {{count}} bleiben mit dir verbunden, bis ihr aktueller Plan endet; danach endet das Coaching und ihr Verlauf wird archiviert.",
+          "restAll_one": "Dieser Klient bleibt mit dir verbunden, bis sein aktueller Plan endet; danach endet das Coaching und sein Verlauf wird archiviert.",
+          "restAll_other": "Alle {{count}} bleiben mit dir verbunden, bis ihr aktueller Plan endet; danach endet das Coaching und ihr Verlauf wird archiviert.",
+          "plansTitle": "Laufende Pläne laufen bis zum Ende",
+          "plansBody": "Bereits gestartete Trainingspläne bleiben für dich und deine Klienten aktiv, bis sie enden.",
+          "libraryTitle": "Deine Trainingsbibliothek wird schreibgeschützt",
+          "libraryBody": "Übungen, Workouts und Trainingsvorlagen bleiben sichtbar, können aber nicht erstellt, bearbeitet oder zugewiesen werden.",
+          "confirm": "Personal Trainer entfernen"
+        },
+        "nutritionist": {
+          "title": "Rolle Ernährungsberater entfernen?",
+          "description": "Du coachst weiter als Personal Trainer. Nichts wird gelöscht.",
+          "shared_one": "{{count}} trainiert auch bei dir und bleibt dein Klient.",
+          "shared_other": "{{count}} trainieren auch bei dir und bleiben deine Klienten.",
+          "rest_one": "Der andere {{count}} bleibt mit dir verbunden, bis sein aktueller Plan endet; danach endet das Coaching und sein Verlauf wird archiviert.",
+          "rest_other": "Die anderen {{count}} bleiben mit dir verbunden, bis ihr aktueller Plan endet; danach endet das Coaching und ihr Verlauf wird archiviert.",
+          "restAll_one": "Dieser Klient bleibt mit dir verbunden, bis sein aktueller Plan endet; danach endet das Coaching und sein Verlauf wird archiviert.",
+          "restAll_other": "Alle {{count}} bleiben mit dir verbunden, bis ihr aktueller Plan endet; danach endet das Coaching und ihr Verlauf wird archiviert.",
+          "plansTitle": "Laufende Pläne laufen bis zum Ende",
+          "plansBody": "Bereits gestartete Ernährungspläne bleiben für dich und deine Klienten aktiv, bis sie enden.",
+          "libraryTitle": "Deine Ernährungsbibliothek wird schreibgeschützt",
+          "libraryBody": "Rezepte, Zutaten und Ernährungsplanvorlagen bleiben sichtbar, können aber nicht erstellt, bearbeitet oder zugewiesen werden.",
+          "confirm": "Ernährungsberater entfernen"
+        }
       }
     },
     "danger": {
@@ -1708,7 +1751,9 @@
     "RECIPE_FOOD_NOT_AVAILABLE": "Eine der Zutaten ist nicht mehr verfügbar. Entfernen Sie sie und versuchen Sie es erneut.",
     "RECIPE_NOT_OWNED": "Sie können nur Ihre eigenen Rezepte ändern.",
     "RECIPE_GALLERY_FULL": "Dieses Rezept hat bereits die maximale Anzahl an Bildern.",
-    "RECIPE_GALLERY_IMAGE_NOT_FOUND": "Dieses Bild gehört nicht mehr zu diesem Rezept. Es wurde möglicherweise an anderer Stelle geändert."
+    "RECIPE_GALLERY_IMAGE_NOT_FOUND": "Dieses Bild gehört nicht mehr zu diesem Rezept. Es wurde möglicherweise an anderer Stelle geändert.",
+    "ONLY_COACH_ROLE": "Das ist deine einzige Coach-Rolle, sie kann hier nicht entfernt werden.",
+    "ROLE_NOT_ASSIGNED": "Du hast diese Rolle nicht mehr. Deine Rollen wurden aktualisiert."
   },
   "nutritionGoals": {
     "title": "Ziele & Makros",
