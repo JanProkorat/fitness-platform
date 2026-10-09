@@ -1,7 +1,12 @@
 using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
+using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Infrastructure.Data;
+using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Infrastructure;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace FitnessPlatform.Tests.Endpoints.Users;
 
@@ -85,6 +90,49 @@ public class AddRoleEndpointIntegrationTests(FitnessApiFactory factory)
         body.Should().NotBeNull();
         body!.AddedRole.Should().Be("Nutritionist");
         body.AccessToken.Should().NotBeNullOrEmpty();
+    }
+
+    // ── Add-back: a held-but-removed role is restored ────────────────────────
+
+    [Fact]
+    public async Task Post_RolesMe_AddingBackRemovedRole_Returns200_AndClearsMarker()
+    {
+        var coach = await TestActors.Professional(factory, UserRole.Trainer, UserRole.Nutritionist)
+            .CreateAsync(TestContext.Current.CancellationToken);
+        (await coach.Http.DeleteAsync("/users/me/roles/Trainer", TestContext.Current.CancellationToken))
+            .StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var resp = await coach.Http.PostAsJsonAsync(
+            "/users/me/roles",
+            new { Role = "Trainer" },
+            TestContext.Current.CancellationToken);
+
+        resp.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await resp.Content.ReadFromJsonAsync<AddRoleResult>(
+            cancellationToken: TestContext.Current.CancellationToken);
+        body!.AddedRole.Should().Be("Trainer");
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var profile = await db.ProfessionalProfiles.AsNoTracking().FirstAsync(
+            p => p.UserId == coach.UserId, TestContext.Current.CancellationToken);
+        profile.TrainerRoleRemovedAt.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Post_RolesMe_AddingActiveRole_Returns400RoleAlreadyAssigned()
+    {
+        var coach = await TestActors.Professional(factory, UserRole.Trainer, UserRole.Nutritionist)
+            .CreateAsync(TestContext.Current.CancellationToken);
+
+        var resp = await coach.Http.PostAsJsonAsync(
+            "/users/me/roles",
+            new { Role = "Trainer" },
+            TestContext.Current.CancellationToken);
+
+        resp.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await resp.Content.ReadAsStringAsync(TestContext.Current.CancellationToken))
+            .Should().Contain("ROLE_ALREADY_ASSIGNED");
     }
 
     // ── Local response DTO (per slice rules — no cross-feature imports) ──────
