@@ -1738,6 +1738,7 @@
     "NO_CLIENT_RELATIONSHIP": "S tímto klientem nemáte aktivní vztah.",
     "COLLABORATOR_NOT_FOUND": "Spolupracovník nebyl nalezen.",
     "PLAN_NOT_DRAFT": "Publikovat lze pouze plány ve stavu konceptu.",
+    "COACH_ROLE_REMOVED": "Tuto roli jste odebrali, proto jsou její plány, šablony a položky knihovny jen pro čtení. Rozběhnutý plán lze do konce upravovat, ale nelze ho prodloužit. Po opětovném přidání role v Nastavení půjde znovu upravovat.",
     "START_DATE_NOT_MONDAY": "Datum zahájení musí být pondělí.",
     "START_DATE_IN_PAST": "Datum zahájení nemůže být v minulosti.",
     "START_DATE_LOCKED": "Datum zahájení nelze změnit poté, co nastalo.",

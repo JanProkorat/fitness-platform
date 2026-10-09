@@ -1698,6 +1698,7 @@
     "NO_CLIENT_RELATIONSHIP": "Sie haben keine aktive Beziehung zu diesem Klienten.",
     "COLLABORATOR_NOT_FOUND": "Mitarbeiter nicht gefunden.",
     "PLAN_NOT_DRAFT": "Nur Entwürfe können veröffentlicht werden.",
+    "COACH_ROLE_REMOVED": "Du hast diese Rolle entfernt, daher sind ihre Pläne, Vorlagen und Bibliothekseinträge schreibgeschützt. Ein laufender Plan kann bis zu seinem Ende angepasst, aber nicht verlängert werden. Füge die Rolle in den Einstellungen wieder hinzu, um erneut zu bearbeiten.",
     "START_DATE_NOT_MONDAY": "Das Startdatum muss ein Montag sein.",
     "START_DATE_IN_PAST": "Das Startdatum darf nicht in der Vergangenheit liegen.",
     "START_DATE_LOCKED": "Das Startdatum kann nicht mehr geändert werden, nachdem es erreicht wurde.",

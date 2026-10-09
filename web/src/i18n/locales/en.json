@@ -1699,6 +1699,7 @@
     "NO_CLIENT_RELATIONSHIP": "You don't have an active relationship with this client.",
     "COLLABORATOR_NOT_FOUND": "Collaborator not found.",
     "PLAN_NOT_DRAFT": "Only draft plans can be published.",
+    "COACH_ROLE_REMOVED": "You removed this coach role, so its plans, templates and library items are read-only. A plan in progress can still be adjusted until it ends, but not extended. Add the role back in Settings to edit again.",
     "START_DATE_NOT_MONDAY": "Start date must be a Monday.",
     "START_DATE_IN_PAST": "Start date cannot be in the past.",
     "START_DATE_LOCKED": "Start date cannot be changed after it has arrived.",
