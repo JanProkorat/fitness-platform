@@ -1,3 +1,4 @@
+using FitnessPlatform.Application.Domain.Authorization;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using FastEndpoints;
@@ -27,6 +28,7 @@ namespace FitnessPlatform.Application.Features.Trainers.PendingInvites.Create;
 /// notification, realtime event or conversation — so the response never reveals that the address
 /// is a coach account.
 /// </summary>
+[RemovedCoachRole(RemovedCoachRoleMode.Refuse)]
 public class CreatePendingInviteEndpoint(
     IApplicationDbContext db,
     IBackgroundEmailQueue emailQueue,

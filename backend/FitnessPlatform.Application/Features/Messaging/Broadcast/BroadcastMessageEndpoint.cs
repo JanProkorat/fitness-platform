@@ -1,3 +1,5 @@
+using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Authorization;
 using System.Security.Claims;
 using System.Text.RegularExpressions;
 using FastEndpoints;
@@ -24,6 +26,7 @@ namespace FitnessPlatform.Application.Features.Messaging.Broadcast;
 /// Raises "conversationunarchived" for a recipient whose thread auto-unarchives, mirroring
 /// <c>SendMessageEndpoint</c>'s single-send path.
 /// </param>
+[RemovedCoachRole(RemovedCoachRoleMode.Refuse)]
 public class BroadcastMessageEndpoint(
     IApplicationDbContext db,
     IClientLinkAuthorizationService linkAuthorizationService,

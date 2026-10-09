@@ -1,3 +1,4 @@
+using FitnessPlatform.Application.Domain.Authorization;
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
@@ -23,6 +24,7 @@ namespace FitnessPlatform.Application.Features.Trainers.UpdateClientData;
 /// still 404 on their own), so a <see langword="null"/> result here can only mean "no active
 /// link" — preserving the endpoint's existing 404 (not 403) for that case.
 /// </param>
+[RemovedCoachRole(RemovedCoachRoleMode.Refuse)]
 public class UpdateClientDataEndpoint(
     IApplicationDbContext db,
     UserManager<ApplicationUser> userManager,

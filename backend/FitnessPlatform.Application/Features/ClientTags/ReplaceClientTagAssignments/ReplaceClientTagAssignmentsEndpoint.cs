@@ -1,3 +1,5 @@
+using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Authorization;
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
@@ -16,6 +18,7 @@ namespace FitnessPlatform.Application.Features.ClientTags.ReplaceClientTagAssign
 /// <c>CanView*</c> capability flag.
 /// </summary>
 /// <param name="db">Application database context.</param>
+[RemovedCoachRole(RemovedCoachRoleMode.Refuse)]
 public class ReplaceClientTagAssignmentsEndpoint(IApplicationDbContext db)
     : Endpoint<ReplaceClientTagAssignmentsRequest, ReplaceClientTagAssignmentsResponse>
 {

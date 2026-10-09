@@ -1,3 +1,4 @@
+using FitnessPlatform.Application.Domain.Authorization;
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
@@ -39,6 +40,7 @@ namespace FitnessPlatform.Application.Features.WeeklyCheckIns.MarkCheckInReviewe
 /// </list>
 /// </para>
 /// </remarks>
+[RemovedCoachRole(RemovedCoachRoleMode.Refuse)]
 public class MarkCheckInReviewedEndpoint(
     IApplicationDbContext db,
     IRealtimeNotifier notifier)

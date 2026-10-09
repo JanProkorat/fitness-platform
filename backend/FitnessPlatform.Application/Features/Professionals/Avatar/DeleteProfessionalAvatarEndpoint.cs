@@ -1,3 +1,5 @@
+using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Authorization;
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
@@ -10,6 +12,7 @@ namespace FitnessPlatform.Application.Features.Professionals.Avatar;
 /// Removes the avatar from the calling professional's own profile record.
 /// </summary>
 /// <param name="db">Database context.</param>
+[RemovedCoachRole(RemovedCoachRoleMode.Exempt, Reason = "The coach's own avatar stays editable while no coach role is active.")]
 public class DeleteProfessionalAvatarEndpoint(IApplicationDbContext db)
     : EndpointWithoutRequest
 {

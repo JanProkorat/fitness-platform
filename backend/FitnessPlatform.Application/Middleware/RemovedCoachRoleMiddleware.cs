@@ -4,6 +4,7 @@ using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Authorization;
 using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
@@ -17,8 +18,10 @@ using MongoDB.Driver;
 namespace FitnessPlatform.Application.Middleware;
 
 /// <summary>
-/// Single global gate that makes a removed coach role read-only. Reads, non-coach and dual-discipline
-/// endpoints pass with no database work; an unannotated single-discipline write fails closed as a refusal.
+/// Single global gate that makes a removed coach role read-only. Reads and non-coach endpoints pass with no
+/// database work. A single-discipline write is refused once that role is removed; a dual-discipline write
+/// (Trainer and Nutritionist, no Client) is refused only when the caller has no active coach role left, and an
+/// Admin on an endpoint that allows Admin passes. An unannotated write fails closed as a refusal.
 /// Runs as middleware rather than a FastEndpoints pre-processor because FastEndpoints still validates the
 /// request after a pre-processor answers, and endpoints that rethrow (DontCatchExceptions) then abort the response.
 /// </summary>
@@ -39,7 +42,15 @@ public sealed class RemovedCoachRoleMiddleware(RequestDelegate next)
         var endpoint = http.GetEndpoint();
         var rule = endpoint is null ? GateRule.Open : Rules.GetOrAdd(endpoint, Resolve);
 
-        if (rule.Mode is null or RemovedCoachRoleMode.Exempt || !http.User.IsInRole(rule.Role))
+        if (rule.Mode is null or RemovedCoachRoleMode.Exempt)
+        {
+            await next(http);
+            return;
+        }
+
+        var anyCoach = rule.Role is null;
+
+        if (anyCoach ? rule.AllowsAdmin && http.User.IsInRole(AppRoles.Admin) : !http.User.IsInRole(rule.Role!))
         {
             await next(http);
             return;
@@ -57,6 +68,28 @@ public sealed class RemovedCoachRoleMiddleware(RequestDelegate next)
             .Where(profile => profile.UserId == userId)
             .Select(profile => new { profile.TrainerRoleRemovedAt, profile.NutritionistRoleRemovedAt })
             .FirstOrDefaultAsync(http.RequestAborted);
+
+        if (anyCoach)
+        {
+            var heldRoles = new[] { AppRoles.Trainer, AppRoles.Nutritionist }.Where(http.User.IsInRole);
+            var profile = removal is null
+                ? null
+                : new ProfessionalProfile
+                {
+                    UserId = userId,
+                    TrainerRoleRemovedAt = removal.TrainerRoleRemovedAt,
+                    NutritionistRoleRemovedAt = removal.NutritionistRoleRemovedAt,
+                };
+
+            if (CoachRoleStatus.ActiveRoles(heldRoles, profile).Count > 0)
+            {
+                await next(http);
+                return;
+            }
+
+            await RefuseAsync(http);
+            return;
+        }
 
         var removed = rule.Role == AppRoles.Trainer
             ? removal?.TrainerRoleRemovedAt is not null
@@ -134,19 +167,23 @@ public sealed class RemovedCoachRoleMiddleware(RequestDelegate next)
             .Distinct()
             .ToList();
 
-        if (roles.Count != 1 || roles[0] is not (AppRoles.Trainer or AppRoles.Nutritionist))
-        {
-            return GateRule.Open;
-        }
-
         var attribute = endpoint.Metadata.GetMetadata<EndpointDefinition>()?.EndpointType
             .GetCustomAttribute<RemovedCoachRoleAttribute>();
 
-        return new GateRule(roles[0], attribute?.Mode ?? RemovedCoachRoleMode.Refuse);
+        if (roles.Count == 1 && roles[0] is AppRoles.Trainer or AppRoles.Nutritionist)
+        {
+            return new GateRule(roles[0], attribute?.Mode ?? RemovedCoachRoleMode.Refuse, false);
+        }
+
+        var dualCoach = roles.Contains(AppRoles.Trainer) && roles.Contains(AppRoles.Nutritionist) && !roles.Contains(AppRoles.Client);
+
+        return dualCoach
+            ? new GateRule(null, attribute?.Mode ?? RemovedCoachRoleMode.Refuse, roles.Contains(AppRoles.Admin))
+            : GateRule.Open;
     }
 
-    private sealed record GateRule(string Role, RemovedCoachRoleMode? Mode)
+    private sealed record GateRule(string? Role, RemovedCoachRoleMode? Mode, bool AllowsAdmin)
     {
-        public static GateRule Open { get; } = new(string.Empty, null);
+        public static GateRule Open { get; } = new(null, null, false);
     }
 }

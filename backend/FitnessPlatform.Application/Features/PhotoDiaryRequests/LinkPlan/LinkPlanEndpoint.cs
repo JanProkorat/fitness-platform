@@ -1,3 +1,5 @@
+using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Authorization;
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
@@ -18,6 +20,7 @@ namespace FitnessPlatform.Application.Features.PhotoDiaryRequests.LinkPlan;
 /// plan to a diary after the fact — diary-level (whole-diary) granularity, mirroring #777's
 /// response-level linking rather than linking individual <c>PlanPhoto</c> rows.
 /// </summary>
+[RemovedCoachRole(RemovedCoachRoleMode.Refuse)]
 public class LinkPlanEndpoint(
     IApplicationDbContext db,
     IMongoContext mongo) : Endpoint<LinkPlanRequest, LinkPlanResponse>

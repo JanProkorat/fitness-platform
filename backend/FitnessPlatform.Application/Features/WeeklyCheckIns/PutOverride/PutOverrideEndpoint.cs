@@ -1,3 +1,4 @@
+using FitnessPlatform.Application.Domain.Authorization;
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
@@ -16,6 +17,7 @@ namespace FitnessPlatform.Application.Features.WeeklyCheckIns.PutOverride;
 /// </summary>
 /// <param name="db">Database context.</param>
 /// <param name="linkAuthorizationService">Link capability resolver.</param>
+[RemovedCoachRole(RemovedCoachRoleMode.Refuse)]
 public class PutOverrideEndpoint(IApplicationDbContext db, IClientLinkAuthorizationService linkAuthorizationService)
     : Endpoint<PutOverrideRequest, PutOverrideResponse>
 {

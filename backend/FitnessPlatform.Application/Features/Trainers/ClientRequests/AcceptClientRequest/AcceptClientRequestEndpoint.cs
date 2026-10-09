@@ -1,3 +1,4 @@
+using FitnessPlatform.Application.Domain.Authorization;
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
@@ -16,6 +17,7 @@ namespace FitnessPlatform.Application.Features.Trainers.ClientRequests.AcceptCli
 /// <summary>
 /// Endpoint for a professional to accept a client request, creating a link and optionally assigning a questionnaire.
 /// </summary>
+[RemovedCoachRole(RemovedCoachRoleMode.Refuse)]
 public class AcceptClientRequestEndpoint(
     IApplicationDbContext db,
     IRealtimeNotifier notifier,

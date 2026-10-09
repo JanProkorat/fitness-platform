@@ -1,3 +1,5 @@
+using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Authorization;
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
@@ -18,6 +20,7 @@ namespace FitnessPlatform.Application.Features.ClientMeasurements.AddClientMeasu
 /// <param name="audit">Audit logging service.</param>
 /// <param name="linkAuthorizationService">Link capability service — measurements are not
 /// domain-specific, so any active link (regardless of which domain(s) it grants) is sufficient.</param>
+[RemovedCoachRole(RemovedCoachRoleMode.Refuse)]
 public class AddClientMeasurementEndpoint(
     IApplicationDbContext db, IAuditService audit, IClientLinkAuthorizationService linkAuthorizationService)
     : Endpoint<AddClientMeasurementRequest, MeasurementDto>

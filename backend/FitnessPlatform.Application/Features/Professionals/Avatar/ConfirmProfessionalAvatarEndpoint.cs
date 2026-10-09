@@ -1,3 +1,4 @@
+using FitnessPlatform.Application.Domain.Authorization;
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
@@ -19,6 +20,7 @@ namespace FitnessPlatform.Application.Features.Professionals.Avatar;
 /// </summary>
 /// <param name="db">Database context.</param>
 /// <param name="imageUpload">Image upload service — validates the blobUrl matches the caller's presigned key.</param>
+[RemovedCoachRole(RemovedCoachRoleMode.Exempt, Reason = "The coach's own avatar stays editable while no coach role is active.")]
 public class ConfirmProfessionalAvatarEndpoint(IApplicationDbContext db, IImageUploadService imageUpload)
     : Endpoint<ConfirmProfessionalAvatarRequest>
 {

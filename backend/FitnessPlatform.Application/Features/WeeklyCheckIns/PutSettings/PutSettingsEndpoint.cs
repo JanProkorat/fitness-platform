@@ -1,3 +1,4 @@
+using FitnessPlatform.Application.Domain.Authorization;
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
@@ -15,6 +16,7 @@ namespace FitnessPlatform.Application.Features.WeeklyCheckIns.PutSettings;
 /// Trainer role → Training, Nutritionist role → Nutrition.
 /// </summary>
 /// <param name="db">Database context.</param>
+[RemovedCoachRole(RemovedCoachRoleMode.Refuse)]
 public class PutSettingsEndpoint(IApplicationDbContext db)
     : Endpoint<PutSettingsRequest, PutSettingsResponse>
 {

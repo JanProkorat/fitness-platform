@@ -1,3 +1,5 @@
+using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Authorization;
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
@@ -21,6 +23,7 @@ namespace FitnessPlatform.Application.Features.Users.DisableCoachAccount;
 /// <param name="coachRoleRemover">Removes the coach roles when the account ends now.</param>
 /// <param name="audit">Audit logging service.</param>
 /// <param name="timeProvider">Clock.</param>
+[RemovedCoachRole(RemovedCoachRoleMode.Exempt, Reason = "Account lifecycle action that must stay reachable after every role is removed.")]
 internal sealed class DisableCoachAccountEndpoint(
     UserManager<ApplicationUser> userManager,
     IApplicationDbContext db,
