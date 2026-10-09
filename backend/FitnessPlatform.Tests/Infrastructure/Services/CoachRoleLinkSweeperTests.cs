@@ -228,4 +228,66 @@ public class CoachRoleLinkSweeperTests(FitnessApiFactory factory)
         (await CountNotificationsAsync(client.UserId, NotificationType.CollaborationEndedByRoleRemoval)).Should().Be(1);
         (await CountNotificationsAsync(coach.UserId, NotificationType.CollaborationEndedByRoleRemovalCoach)).Should().Be(1);
     }
+
+    private async Task SetCoachAccountActiveUntilAsync(Actor coach, DateTime activeUntil)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var profile = await db.ProfessionalProfiles.FirstAsync(p => p.UserId == coach.UserId, Ct);
+        profile.CoachAccountActiveUntil = activeUntil;
+        await db.SaveChangesAsync(Ct);
+    }
+
+    private async Task<ProfessionalProfile> ReadProfileAsync(Actor coach)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        return await db.ProfessionalProfiles.AsNoTracking().FirstAsync(p => p.UserId == coach.UserId, Ct);
+    }
+
+    [Fact]
+    public async Task Tick_CoachAccountEnded_RemovesBothRoles_NotifiesClientOnce_AndEndsLinkInSameTick()
+    {
+        var coach = await TestActors.Professional(factory, UserRole.Trainer, UserRole.Nutritionist).CreateAsync(Ct);
+        var client = await TestActors.Client(factory).CreateAsync(Ct);
+        var linkId = await TestActors.Link(factory, coach, client).CreateAsync(Ct);
+        await SetCoachAccountActiveUntilAsync(coach, DateTime.UtcNow.AddMinutes(-5));
+
+        await TickAsync();
+
+        var profile = await ReadProfileAsync(coach);
+        profile.TrainerRoleRemovedAt.Should().NotBeNull();
+        profile.NutritionistRoleRemovedAt.Should().NotBeNull();
+        (await CountNotificationsAsync(client.UserId, NotificationType.CoachRoleRemoved)).Should().Be(1);
+        (await IsLinkActiveAsync(linkId)).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Tick_CoachAccountEnded_SecondTickChangesNothing()
+    {
+        var coach = await TestActors.Professional(factory, UserRole.Trainer, UserRole.Nutritionist).CreateAsync(Ct);
+        var client = await TestActors.Client(factory).CreateAsync(Ct);
+        await TestActors.Link(factory, coach, client).CreateAsync(Ct);
+        await SetCoachAccountActiveUntilAsync(coach, DateTime.UtcNow.AddMinutes(-5));
+
+        await TickAsync();
+        var afterFirst = await ReadProfileAsync(coach);
+        await TickAsync();
+        var afterSecond = await ReadProfileAsync(coach);
+
+        afterSecond.TrainerRoleRemovedAt.Should().Be(afterFirst.TrainerRoleRemovedAt);
+        afterSecond.NutritionistRoleRemovedAt.Should().Be(afterFirst.NutritionistRoleRemovedAt);
+        (await CountNotificationsAsync(client.UserId, NotificationType.CoachRoleRemoved)).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Tick_CoachAccountEndsInTheFuture_KeepsRoles()
+    {
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        await SetCoachAccountActiveUntilAsync(coach, DateTime.UtcNow.AddDays(3));
+
+        await TickAsync();
+
+        (await ReadProfileAsync(coach)).TrainerRoleRemovedAt.Should().BeNull();
+    }
 }

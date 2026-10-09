@@ -93,14 +93,19 @@ public class AddRoleEndpoint(
         else
         {
             CoachRoleStatus.SetRemovedAt(profile, req.Role, null);
-            profile.CoachAccountActiveUntil = null;
 
-            var subscription = await db.CoachSubscriptions
-                .FirstOrDefaultAsync(cs => cs.ProfessionalProfileId == profile.Id, ct);
-
-            if (subscription is not null)
+            // The cancel flag is only ever set together with the disable date.
+            if (profile.CoachAccountActiveUntil is not null)
             {
-                subscription.CancelAtPeriodEnd = false;
+                profile.CoachAccountActiveUntil = null;
+
+                var subscription = await db.CoachSubscriptions
+                    .FirstOrDefaultAsync(cs => cs.ProfessionalProfileId == profile.Id, ct);
+
+                if (subscription is not null)
+                {
+                    subscription.CancelAtPeriodEnd = false;
+                }
             }
         }
 
