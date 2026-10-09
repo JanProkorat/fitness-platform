@@ -1623,14 +1623,15 @@
         "hint": "Používá se pro součty dnů a barvy v editoru."
       },
       "average": "Týden {{week}} · průměr na den",
-      "weekTotal": "Součet týdne {{kcal}} kcal · sleduje vybraný týden",
-      "usage": "Použití",
-      "usedBy_one": "Použito u {{count}} klienta",
-      "usedBy_few": "Použito u {{count}} klientů",
-      "usedBy_many": "Použito u {{count}} klientů",
-      "usedBy_other": "Použito u {{count}} klientů",
+      "weekTotal": "týden {{kcal}} kcal",
+      "ofTarget": "/ {{target}} kcal",
+      "deviation": "{{value}} %",
+      "clients_one": "{{count}} klient",
+      "clients_few": "{{count}} klienti",
+      "clients_many": "{{count}} klienta",
+      "clients_other": "{{count}} klientů",
       "shared": "Sdílená",
-      "private": "Soukromá, vidíte jen vy"
+      "private": "Soukromá · jen vy"
     },
     "averages": {
       "kcal": "{{value}} kcal",

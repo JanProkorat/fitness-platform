@@ -237,3 +237,19 @@ export function targetStatus(kcal: number, target: number | undefined): TargetSt
   }
   return deviation <= 0.2 ? 'near' : 'off';
 }
+
+/** Text colour of a kcal figure by how close it is to the daily target. */
+export const STATUS_TEXT_CLASS: Record<TargetStatus, string> = {
+  none: 'text-ink',
+  on: 'text-success',
+  near: 'text-training',
+  off: 'text-error',
+};
+
+/** Fill colour of a kcal bar by how close it is to the daily target. */
+export const STATUS_BAR_CLASS: Record<TargetStatus, string> = {
+  none: 'bg-ink',
+  on: 'bg-success',
+  near: 'bg-training-bright',
+  off: 'bg-error',
+};

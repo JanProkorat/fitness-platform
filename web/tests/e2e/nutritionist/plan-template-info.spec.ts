@@ -45,24 +45,22 @@ async function withApi<T>(
   }
 }
 
-/** One week of seven days, each holding an empty breakfast. */
-function buildWeeks() {
-  return [
-    {
-      weekNumber: 1,
-      days: Array.from({ length: 7 }, (_, dayIndex) => ({
-        dayOfWeek: dayIndex + 1,
-        meals: [{ kind: 'Breakfast', order: 1, foods: [], recipes: [] }],
-      })),
-    },
-  ];
+/** `count` weeks of seven days, each holding an empty breakfast. */
+function buildWeeks(count: number) {
+  return Array.from({ length: count }, (_, weekIndex) => ({
+    weekNumber: weekIndex + 1,
+    days: Array.from({ length: 7 }, (_day, dayIndex) => ({
+      dayOfWeek: dayIndex + 1,
+      meals: [{ kind: 'Breakfast', order: 1, foods: [], recipes: [] }],
+    })),
+  }));
 }
 
-async function createTemplate(baseURL: string, name: string): Promise<string> {
+async function createTemplate(baseURL: string, name: string, weekCount = 1): Promise<string> {
   return withApi(baseURL, async (api, headers) => {
     const response = await api.post('/nutrition/plan-templates', {
       headers,
-      data: { name, goal: 'Maintain', globalSettings: { dailyKcal: DAILY_KCAL }, weeks: buildWeeks() },
+      data: { name, goal: 'Maintain', globalSettings: { dailyKcal: DAILY_KCAL }, weeks: buildWeeks(weekCount) },
     });
     if (!response.ok()) {
       throw new Error(`[plan-template-info] POST /nutrition/plan-templates returned ${response.status()}.`);
@@ -143,6 +141,7 @@ test.describe('Plan template editor: Template info tab', () => {
       await page.getByLabel('Calories').fill('2400');
       await page.getByLabel('Protein', { exact: true }).fill('150');
       await expect(page.getByTestId('info-week-average')).toContainText(/\/ 2,?400 kcal/);
+      await expect(page.getByTestId('info-week-average')).toContainText('Week 1 · avg per day');
       await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes');
 
       // Goal is optional: the selected chip clears when pressed again.
@@ -218,11 +217,28 @@ test.describe('Plan template editor: Template info tab', () => {
       await expect(infoTab).toHaveAttribute('aria-selected', 'true');
 
       // Usage line: a fresh private template is used by nobody.
-      await expect(page.getByTestId('info-usage')).toContainText('Used by 0 clients');
-      await expect(page.getByTestId('info-usage')).toContainText('Private to you');
+      await expect(page.getByTestId('info-usage')).toContainText('0 clients');
+      await expect(page.getByTestId('info-usage')).toContainText('Private · only you');
 
       await page.getByRole('tab', { name: 'Library' }).click();
       await expect(page.getByLabel('Search recipes…')).toBeVisible();
+    } finally {
+      await deleteTemplate(origin, templateId);
+    }
+  });
+
+  test('the week average card follows the selected week', async ({ page, baseURL }) => {
+    const origin = baseURL ?? 'http://localhost:5173';
+    const templateId = await createTemplate(origin, `QA Info Avg ${Date.now()}`, 2);
+    try {
+      await page.goto(`/plan-templates/${templateId}`);
+      await page.getByRole('tab', { name: 'Template info' }).click();
+      const card = page.getByTestId('info-week-average');
+      await expect(card).toContainText('Week 1 · avg per day');
+      await expect(card).toContainText(`/ ${DAILY_KCAL.toLocaleString('en-US')} kcal`);
+
+      await page.getByRole('tab', { name: 'Week 2' }).click();
+      await expect(card).toContainText('Week 2 · avg per day');
     } finally {
       await deleteTemplate(origin, templateId);
     }

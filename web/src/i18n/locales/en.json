@@ -1597,13 +1597,14 @@
         "kcalUnit": "kcal",
         "hint": "Used for the day totals and colours in the editor."
       },
-      "average": "Week {{week}} · average per day",
-      "weekTotal": "Week total {{kcal}} kcal · follows the selected week",
-      "usage": "Usage",
-      "usedBy_one": "Used by {{count}} client",
-      "usedBy_other": "Used by {{count}} clients",
+      "average": "Week {{week}} · avg per day",
+      "weekTotal": "week {{kcal}} kcal",
+      "ofTarget": "/ {{target}} kcal",
+      "deviation": "{{value}} %",
+      "clients_one": "{{count}} client",
+      "clients_other": "{{count}} clients",
       "shared": "Shared",
-      "private": "Private to you"
+      "private": "Private · only you"
     },
     "averages": {
       "kcal": "{{value}} kcal",
