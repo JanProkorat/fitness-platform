@@ -71,7 +71,7 @@
     "lastName": "Příjmení",
     "role": "Role",
     "roleTrainer": "Trenér",
-    "roleNutritionist": "Výživový poradce",
+    "roleNutritionist": "Nutriční poradce",
     "roleClient": "Klient",
     "gdprConsent": "Souhlasím se zpracováním osobních údajů dle GDPR za účelem poskytování služeb fitness platformy.",
     "healthDataConsent": "Souhlasím se zpracováním zdravotních dat dle GDPR čl. 9 (tělesné míry, výkonnostní záznamy, fotky pokroku).",
@@ -235,7 +235,7 @@
   "roles": {
     "admin": "Administrátor",
     "trainer": "Osobní trenér",
-    "nutritionist": "Výživový poradce",
+    "nutritionist": "Nutriční poradce",
     "client": "Klient"
   },
   "accountMenu": {
@@ -927,7 +927,7 @@
     "trainerRoleDesc": "Silový trénink, kardio, rehabilitace, kondice",
     "nutritionistRoleDesc": "Jídelníčky, makra, stravovací strategie",
     "roleRemovalNotSupported": "Odebrání role zatím není podporováno",
-    "addNutritionistRole": "Pracovat také jako Výživový poradce",
+    "addNutritionistRole": "Pracovat také jako nutriční poradce",
     "addTrainerRole": "Pracovat také jako Trenér",
     "addRoleConfirmTitle": "Přidat roli",
     "addRoleConfirm": "Opravdu chcete přidat tuto roli? Tuto akci nelze vrátit zpět.",
@@ -1436,7 +1436,7 @@
       "create": "Vytvořit recept"
     },
     "nutritionistsOnly": {
-      "title": "Recepty jsou dostupné pro výživové poradce",
+      "title": "Recepty jsou dostupné pro nutriční poradce",
       "body": "Váš účet je trenérský, proto pro vás knihovna receptů není dostupná."
     },
     "filters": {
@@ -3010,7 +3010,7 @@
     },
     "defaultPrompt": {
       "training": "Váš trenér brzy plánuje příští týden. Máte něco speciálního v plánu?",
-      "nutrition": "Váš výživový poradce brzy plánuje příští týden. Máte něco speciálního v plánu?"
+      "nutrition": "Váš nutriční poradce brzy plánuje příští týden. Máte něco speciálního v plánu?"
     },
     "push": {
       "title": "Plánování příštího týdne"
@@ -3023,7 +3023,7 @@
       "skip": "Přeskočit tento týden",
       "notePlaceholder": {
         "training": "Chcete svému trenérovi sdělit ještě něco dalšího?",
-        "nutrition": "Chcete svému výživovému poradci sdělit ještě něco dalšího?"
+        "nutrition": "Chcete svému nutričnímu poradci sdělit ještě něco dalšího?"
       },
       "weekOf": "Týden {{range}}",
       "editLocked": "Váš kouč to již viděl."
