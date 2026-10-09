@@ -28,6 +28,16 @@ public class SearchNutritionPlanTemplatesRequest
     public int? WeekCount { get; set; }
 
     /// <summary>
+    /// Optional filter by exact meals-per-day (most common meal count over non-empty days).
+    /// </summary>
+    public int? MealsPerDay { get; set; }
+
+    /// <summary>
+    /// Optional filter on whether the caller has at least one Active plan instantiated from the template.
+    /// </summary>
+    public bool? InUse { get; set; }
+
+    /// <summary>
     /// Page number (1-based).
     /// </summary>
     public int Page { get; set; } = 1;

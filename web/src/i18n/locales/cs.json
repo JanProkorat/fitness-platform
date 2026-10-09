@@ -184,6 +184,8 @@
     "notFoundBody": "Stránka, kterou hledáte, neexistuje.",
     "backToClients": "Zpět na klienty",
     "openNavigation": "Otevřít navigaci",
+    "collapseNavigation": "Sbalit navigaci",
+    "expandNavigation": "Rozbalit navigaci",
     "navigationTitle": "Navigace"
   },
   "sidebar": {
@@ -197,6 +199,7 @@
     "settings": "Nastavení",
     "profileLink": "Otevřít profil",
     "recipes": "Recepty",
+    "planTemplates": "Šablony plánů",
     "exercises": "Cviky",
     "sectionTemplates": "Workouty",
     "trainingPlans": "Tréninkové plány",
@@ -758,6 +761,8 @@
       "Recomposition": "Rekomposice",
       "Fitness": "Zlepšit celkovou kondici",
       "Health": "Zdraví a prevence",
+      "Maintain": "Udržet váhu",
+      "Performance": "Zlepšit výkon",
       "ThreeMonths": "3 měsíce",
       "SixMonths": "6 měsíců",
       "OneYear": "1 rok+",
@@ -1747,6 +1752,400 @@
       }
     }
   },
+  "planEditor": {
+    "nameLabel": "Název plánu",
+    "undo": "Zpět",
+    "redo": "Znovu",
+    "back": "Zpět na {{label}}",
+    "save": "Uložit",
+    "dayTotal": "Součet dne",
+    "dayNoteEdit": "Upravit poznámku: {{day}}",
+    "dayNoteView": "Poznámka: {{day}}",
+    "dayNoteField": "Poznámka ke dni: {{day}}",
+    "dayNoteNone": "Bez poznámky",
+    "saveError": "Uložení se nepovedlo. Vaše změny tu zůstaly — zkuste to znovu.",
+    "status": {
+      "saving": "Ukládám…",
+      "unsaved": "Neuložené změny",
+      "saved": "Uloženo"
+    },
+    "toggles": {
+      "range": "Rozsah",
+      "view": "Zobrazení",
+      "week": "Týden",
+      "day": "Den",
+      "meals": "Jídla",
+      "nutrition": "Výživa"
+    },
+    "days": {
+      "1": "Po",
+      "2": "Út",
+      "3": "St",
+      "4": "Čt",
+      "5": "Pá",
+      "6": "So",
+      "7": "Ne"
+    },
+    "rows": {
+      "breakfast": "Snídaně",
+      "snack": "Svačina",
+      "lunch": "Oběd",
+      "dinner": "Večeře",
+      "preWorkout": "Před tréninkem",
+      "postWorkout": "Po tréninku"
+    },
+    "grid": {
+      "label": "Jídla v týdnu"
+    },
+    "cell": {
+      "label": "{{day}}, jídlo {{row}}",
+      "empty": "Prázdné",
+      "kcal": "{{kcal}} kcal",
+      "items_one": "{{count}} položka",
+      "items_few": "{{count}} položky",
+      "items_many": "{{count}} položky",
+      "items_other": "{{count}} položek",
+      "macros": "B {{protein}} · S {{carbs}} · T {{fat}} · Vl {{fiber}}"
+    },
+    "weeks": {
+      "label": "Týdny",
+      "previous": "Předchozí týdny",
+      "next": "Další týdny",
+      "add": "Přidat týden",
+      "week": "Týden {{number}}"
+    },
+    "panel": {
+      "tabs": "Boční panel",
+      "open": "Otevřít: {{name}}"
+    },
+    "info": {
+      "tab": "Info o šabloně",
+      "name": "Název šablony",
+      "nameRequired": "Pro uložení zadejte název.",
+      "description": "Popis",
+      "goal": "Cíl",
+      "diet": "Dieta",
+      "diets": {
+        "any": "Libovolná",
+        "Standard": "Standardní",
+        "Vegetarian": "Vegetariánská",
+        "Vegan": "Veganská",
+        "GlutenFree": "Bezlepková"
+      },
+      "targets": {
+        "title": "Denní cíl",
+        "calories": "Kalorie",
+        "fiber": "Vláknina",
+        "protein": "Bílkoviny",
+        "carbs": "Sacharidy",
+        "fat": "Tuky",
+        "kcalUnit": "kcal",
+        "hint": "Používá se pro součty dnů a barvy v editoru."
+      },
+      "average": "Týden {{week}} · průměr na den",
+      "weekTotal": "týden {{kcal}} kcal",
+      "ofTarget": "/ {{target}} kcal",
+      "deviation": "{{value}} %",
+      "clients_one": "{{count}} klient",
+      "clients_few": "{{count}} klienti",
+      "clients_many": "{{count}} klienta",
+      "clients_other": "{{count}} klientů",
+      "shared": "Sdílená",
+      "private": "Soukromá · jen vy"
+    },
+    "averages": {
+      "kcal": "{{value}} kcal",
+      "kcalOfTarget": "{{value}} / {{target}} kcal"
+    },
+    "picker": {
+      "title": "Jaká jídla má jeden den?",
+      "body": "Každé jídlo se stane řádkem týdne. Přidáte-li stejný druh dvakrát, máte dvě svačiny. Řádky můžete později přeřadit nebo odebrat.",
+      "mostCommon": "nejčastější",
+      "addOneByOne": "Nebo přidávejte po jednom",
+      "doneCount": "Hotovo ({{total}})",
+      "copyPrefix": "Nebo",
+      "copyLink": "zkopírujte jídla z jiné šablony"
+    },
+    "library": {
+      "title": "Knihovna",
+      "recipes": "Recepty",
+      "ingredients": "Suroviny",
+      "search_recipes": "Hledat recepty…",
+      "search_ingredients": "Hledat suroviny…",
+      "filters": "Filtry",
+      "kinds": "Recepty a ingredience",
+      "filtersPanel": {
+        "title": "Filtry",
+        "clearAll": "Zrušit vše",
+        "recipesMatch_one": "recept odpovídá · použije se hned",
+        "recipesMatch_few": "recepty odpovídají · použije se hned",
+        "recipesMatch_many": "receptu odpovídá · použije se hned",
+        "recipesMatch_other": "receptů odpovídá · použije se hned",
+        "ingredientsMatch_one": "ingredience odpovídá · použije se hned",
+        "ingredientsMatch_few": "ingredience odpovídají · použije se hned",
+        "ingredientsMatch_many": "ingredience odpovídá · použije se hned",
+        "ingredientsMatch_other": "ingrediencí odpovídá · použije se hned"
+      },
+      "hint": "Přetáhněte na jídlo, nebo jídlo vyberte a stiskněte +. Jedno jídlo může obsahovat více receptů a surovin.",
+      "drag": "Přetáhnout {{name}}",
+      "add": "Přidat {{name}} do vybraného jídla",
+      "selectMealFirst": "Nejdřív vyberte jídlo v týdnu",
+      "collapse": "Skrýt knihovnu",
+      "expand": "Zobrazit knihovnu",
+      "macros": "{{kcal}} kcal · B {{protein}} · S {{carbs}} · T {{fat}}",
+      "per100": "na 100 g",
+      "empty": "Nic nenalezeno.",
+      "loadError": "Knihovnu se nepodařilo načíst.",
+      "retry": "Zkusit znovu",
+      "info": {
+        "open": "Zobrazit detail: {{name}}",
+        "recipeMeta_one": "Recept · na porci · {{count}} porce",
+        "recipeMeta_few": "Recept · na porci · {{count}} porce",
+        "recipeMeta_many": "Recept · na porci · {{count}} porce",
+        "recipeMeta_other": "Recept · na porci · {{count}} porcí",
+        "foodMeta": "Surovina · na 100 g",
+        "kcalPerPortion": "kcal na porci",
+        "kcalPer100": "kcal na 100 g",
+        "ingredientsHeading": "Suroviny · na porci",
+        "ingredientsUnavailable": "Suroviny nejsou dostupné. Recept mohl být smazán nebo nastaven jako soukromý.",
+        "ingredientsError": "Suroviny se nepodařilo načíst."
+      }
+    },
+    "macroShort": {
+      "protein": "B",
+      "carbs": "S",
+      "fat": "T",
+      "fiber": "Vl"
+    },
+    "removeRow": {
+      "aria": "Odebrat {{meal}} z týdne {{week}}",
+      "title": "Odebrat {{meal}} z týdne {{week}}?",
+      "body_one": "{{count}} den má vyplněné jídlo ({{days}}). Ostatní týdny tento řádek ponechají. Odebrání můžete vrátit zpět.",
+      "body_few": "{{count}} dny mají vyplněné jídlo ({{days}}). Ostatní týdny tento řádek ponechají. Odebrání můžete vrátit zpět.",
+      "body_other": "{{count}} dní má vyplněné jídlo ({{days}}). Ostatní týdny tento řádek ponechají. Odebrání můžete vrátit zpět.",
+      "confirm": "Odebrat {{meal}}"
+    },
+    "cardDrop": {
+      "title": "{{target}} už obsahuje jídlo",
+      "body": "Kopírujete <b>{{source}}</b> ({{name}}, {{kcal}} kcal) do <b>{{target}}</b>. Co se má stát s tím, co tam je teď?",
+      "now": "{{target}} nyní",
+      "replaceLabel": "Nahradit",
+      "replaceBody": "{{target}} bude obsahovat jen {{names}} ({{kcal}} kcal).",
+      "addLabel": "Přidat k existujícímu",
+      "addBody": "{{names}} se přidá k položkám {{existing}} ({{kcal}} kcal)."
+    },
+    "noteForClient": "Poznámka pro klienta",
+    "units": {
+      "g": "g",
+      "portion": "porce"
+    },
+    "itemType": {
+      "recipe": "Recept",
+      "food": "Surovina"
+    },
+    "item": {
+      "macros": "{{type}} · B {{protein}} · S {{carbs}} · T {{fat}} · Vl {{fiber}}",
+      "amountLabel": "Množství: {{name}}",
+      "remove": "Odebrat {{name}}"
+    },
+    "dayInitials": {
+      "1": "P",
+      "2": "Ú",
+      "3": "S",
+      "4": "Č",
+      "5": "P",
+      "6": "S",
+      "7": "N"
+    },
+    "daysLong": {
+      "1": "Pondělí",
+      "2": "Úterý",
+      "3": "Středa",
+      "4": "Čtvrtek",
+      "5": "Pátek",
+      "6": "Sobota",
+      "7": "Neděle"
+    },
+    "detail": {
+      "where": "{{day}} · týden {{week}}",
+      "title": "{{meal}} · {{kcal}} kcal",
+      "dropHint": "Přetáhněte sem další recepty nebo suroviny, nebo stiskněte + v knihovně",
+      "macros": "B {{protein}} · S {{carbs}} · T {{fat}} · Vl {{fiber}} g",
+      "noNote": "Bez poznámky",
+      "copyTo": "Kopírovat toto jídlo na",
+      "copy": "Kopírovat",
+      "copied": "Zkopírováno: {{days}}."
+    },
+    "day": {
+      "previousWeek": "Předchozí týden",
+      "nextWeek": "Další týden",
+      "ofWeeks": "z {{total}} týdnů",
+      "weekdays": "Dny v týdnu",
+      "meals": "Jídla dne",
+      "addNote": "Přidat poznámku ke dni",
+      "noteLabel": "Poznámka ke dni",
+      "notePlaceholder": "Poznámka pro klienta — např. „Rýži uvařte den předem“",
+      "mealNoteLabel": "Poznámka: {{meal}}",
+      "percentOfDay": "{{percent}} % dne",
+      "noteShownBelow": "Poznámka je zobrazena níže",
+      "removeNote": "Odebrat poznámku ke dni",
+      "removeMeal": "Odebrat: {{meal}}",
+      "emptyMeal": "Přetáhněte sem recept nebo surovinu, nebo jídlo vyberte a stiskněte + v knihovně.",
+      "noMeals": "Tento den zatím nemá žádná jídla.",
+      "allKindsAdded": "Všechny druhy jídel už v tomto dni jsou",
+      "limitReached": "Den může mít nejvýše {{max}} jídel."
+    },
+    "addMeal": {
+      "open": "Přidat jídlo",
+      "title": "Přidat jídlo",
+      "forDay": "{{day}}",
+      "type": "Druh jídla",
+      "alreadyInDay": "Už v tomto dni je",
+      "optional": "· volitelné",
+      "emptyHint": "Jídlo se přidá prázdné. Naplňte ho z knihovny vlevo — přetáhněte na něj recept nebo surovinu.",
+      "submit": "Přidat jídlo"
+    },
+    "nutrition": {
+      "label": "Výživa podle jídel",
+      "onTarget": "v cíli",
+      "kcalUnit": "kcal",
+      "macros": "B {{protein}} · S {{carbs}} · T {{fat}}",
+      "fiber": "Vl {{grams}} g",
+      "legendOn": "Do 15 % podílu jídla",
+      "legendOver": "Nad",
+      "legendUnder": "Pod",
+      "shares": "Podíly jídel: {{shares}} dne",
+      "share_breakfast": "snídaně",
+      "share_snack": "svačina",
+      "share_lunch": "oběd",
+      "share_dinner": "večeře",
+      "share_secondSnack": "2. svačina",
+      "noTarget": "Nastavte denní cíl kcal, abyste mohli jídla porovnat s jejich podílem dne."
+    },
+    "copyMeals": {
+      "title": "Zkopírovat jídla z jiné šablony",
+      "body": "Vyberte šablonu. Jídla, položky a poznámky jejího prvního týdne se zkopírují do tohoto prázdného týdne.",
+      "search": "Hledat šablony…",
+      "loadError": "Šablony se nepodařilo načíst.",
+      "empty": "Žádné další šablony nenalezeny.",
+      "summary": "{{weeks}} týdnů · {{meals}} jídel denně",
+      "error_gone": "Tato šablona už není dostupná. Seznam byl obnoven.",
+      "error_empty": "Tato šablona nemá v prvním týdnu žádná jídla.",
+      "error_failed": "Šablonu se nepodařilo načíst. Zkuste to znovu."
+    },
+    "conflict": {
+      "message": "Šablona se od otevření změnila jinde. Vaše úpravy tu zůstaly a nic se nepřepsalo. Načtením nejnovější verze své úpravy zahodíte.",
+      "reload": "Načíst nejnovější"
+    },
+    "leave": {
+      "title": "Odejít bez uložení?",
+      "body": "Máte neuložené změny. Pokud odejdete, přijdete o ně.",
+      "stay": "Pokračovat v úpravách",
+      "discard": "Odejít"
+    }
+  },
+  "planTemplates": {
+    "title":"Šablony plánů",
+    "subtitle": "Znovupoužitelné jídelníčky — vytvořte jednou, přiřaďte kterémukoli klientovi",
+    "newTemplate": "Nová šablona",
+    "searchPlaceholder": "Hledat šablony…",
+    "retry": "Zkusit znovu",
+    "noResultsForFilters": "Filtrům neodpovídá žádná šablona.",
+    "clearFilters": "Zrušit filtry",
+    "createError": "Šablonu se nepodařilo vytvořit. Zkuste to prosím znovu.",
+    "copySuccess": "Šablona byla zkopírována do vaší knihovny.",
+    "copyError": "Šablonu se nepodařilo zkopírovat. Zkuste to prosím znovu.",
+    "deleteSuccess": "Šablona byla smazána.",
+    "deleteError": "Šablonu se nepodařilo smazat. Zkuste to prosím znovu.",
+    "empty": {
+      "title": "Zatím žádné šablony plánů",
+      "hint": "Vytvořte první šablonu a používejte ji u více klientů",
+      "create": "Nová šablona"
+    },
+    "nutritionistsOnly": {
+      "title": "Šablony plánů jsou dostupné nutričním poradcům",
+      "body": "Váš účet je trenérský, proto pro vás šablony plánů nejsou dostupné."
+    },
+    "filters": {
+      "goal": "Cíl",
+      "length": "Délka",
+      "mealsPerDay": "Jídel denně",
+      "inUse": "Používané",
+      "inUseYes": "Používané",
+      "inUseNo": "Nepoužívané"
+    },
+    "table": {
+      "columnTemplate": "Šablona",
+      "columnGoal": "Cíl",
+      "columnLength": "Délka",
+      "columnAvgPerDay": "Průměr za den",
+      "columnMealsPerDay": "Jídel / den",
+      "columnUsedBy": "Používá",
+      "columnEdited": "Upraveno",
+      "columnActions": "Akce",
+      "setGoal": "+ Nastavit cíl",
+      "weeks_one": "{{count}} týden",
+      "weeks_few": "{{count}} týdny",
+      "weeks_many": "{{count}} týdne",
+      "weeks_other": "{{count}} týdnů",
+      "kcalUnit": "kcal"
+    },
+    "rowMenu": {
+      "open": "Akce pro {{name}}",
+      "openTemplate": "Otevřít",
+      "copy": "Kopírovat",
+      "delete": "Smazat"
+    },
+    "deleteDialog": {
+      "title": "Smazat šablonu",
+      "description": "Smazat „{{name}}“? Plány, které už z ní vznikly, zůstanou beze změny. Tuto akci nelze vrátit.",
+      "confirm": "Smazat"
+    },
+    "new": {
+      "title": "Nová šablona",
+      "subtitle": "Nastavte rámec — jídla doplníte v editoru",
+      "name": "Název",
+      "namePlaceholder": "např. Redukce — 4 týdny",
+      "nameInvalid": "Zadejte název dlouhý nejvýše 200 znaků.",
+      "description": "Popis",
+      "descriptionPlaceholder": "K čemu tato šablona slouží?",
+      "descriptionInvalid": "Popis může mít nejvýše 2000 znaků.",
+      "goal": "Cíl",
+      "goalHint": "Šablonu nabídneme klientům se stejným cílem.",
+      "goalRequired": "Vyberte cíl.",
+      "weeks": "Počet týdnů",
+      "weeksDecrease": "Méně týdnů",
+      "weeksIncrease": "Více týdnů",
+      "weeksSummary_one": "týden · {{days}} dní",
+      "weeksSummary_few": "týdny · {{days}} dní",
+      "weeksSummary_many": "týdne · {{days}} dní",
+      "weeksSummary_other": "týdnů · {{days}} dní",
+      "meals": "Jídel denně",
+      "mealsHint": "Volitelné. Z nich se stanou řádky editoru; později je můžete přidat nebo změnit.",
+      "dailyKcal": "Denní kalorický cíl",
+      "optional": "(nepovinné)",
+      "kcalUnit": "kcal",
+      "kcalInvalid": "Zadejte celé číslo kcal od 1 do 20000.",
+      "submit": "Vytvořit a otevřít editor"
+    },
+    "slots": {
+      "breakfast": "Snídaně",
+      "snack": "Svačina",
+      "lunch": "Oběd",
+      "snack2": "Svačina 2",
+      "dinner": "Večeře",
+      "preWorkout": "Před tréninkem",
+      "postWorkout": "Po tréninku"
+    },
+    "editor": {
+      "title": "Editor šablony",
+      "readOnly": "Tato šablona patří jinému nutričnímu poradci. Můžete si ji prohlédnout, ale upravit ji může jen její autor. Chcete-li mít vlastní, zkopírujte ji v seznamu.",
+      "notFound": {
+        "title": "Šablona nenalezena",
+        "body": "Možná byla smazána nebo s vámi není sdílená."
+      }
+    }
+  },
   "richTextEditor": {
     "placeholder": "Začněte psát...",
     "list": "Seznam",
@@ -1828,7 +2227,10 @@
     "ROLE_NOT_ASSIGNED": "Tuto roli už nemáte. Vaše role byly obnoveny.",
     "NO_ACTIVE_COACH_ROLE": "Nemáte žádnou aktivní trenérskou roli, takže není co deaktivovat. Vaše role byly obnoveny.",
     "COACH_ACCOUNT_NOT_DISABLING": "Váš trenérský účet se nedeaktivuje. Vaše role byly obnoveny.",
-    "COACH_ACCOUNT_DISABLE_ENDED": "Deaktivace už skončila a nelze ji vrátit. Přidejte roli a účet znovu aktivujte."
+    "COACH_ACCOUNT_DISABLE_ENDED": "Deaktivace už skončila a nelze ji vrátit. Přidejte roli a účet znovu aktivujte.",
+    "NUTRITION_PLAN_TEMPLATE_NOT_FOUND": "Tato šablona plánu už neexistuje.",
+    "NUTRITION_PLAN_TEMPLATE_NOT_OWNED": "Měnit můžete jen vlastní šablony plánů.",
+    "NUTRITION_PLAN_TEMPLATE_VERSION_CONFLICT": "Tato šablona plánu byla změněna jinde. Načtěte ji znovu, abyste viděli nejnovější verzi."
   },
   "nutritionGoals": {
     "title": "Cíle & makra",
@@ -1932,6 +2334,8 @@
     "goal_Recomposition": "Rekompozice",
     "goal_Fitness": "Kondice",
     "goal_Health": "Zdraví",
+    "goal_Maintain": "Udržení",
+    "goal_Performance": "Výkon",
     "motivation_Appearance": "Vzhled",
     "motivation_Health": "Zdraví",
     "motivation_Performance": "Výkon",

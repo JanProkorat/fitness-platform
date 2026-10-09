@@ -82,6 +82,16 @@ export function useRecipe(recipeId: string | undefined) {
   });
 }
 
+/** A recipe's detail for the library info popover: fetched only while it is open, never retried on 404. */
+export function useRecipeInfo(recipeId: string | undefined, open: boolean) {
+  return useQuery({
+    queryKey: ['recipes', 'info', recipeId],
+    queryFn: () => getRecipe(recipeId as string),
+    enabled: open && Boolean(recipeId),
+    retry: (failureCount, error) => getErrorStatus(error) !== 404 && retryUnlessForbidden(failureCount, error),
+  });
+}
+
 /** Ingredient (food) search backing the recipe drawer's Ingredients tab — own + public + system foods. */
 export function useIngredientSearch(term: string) {
   return useQuery({

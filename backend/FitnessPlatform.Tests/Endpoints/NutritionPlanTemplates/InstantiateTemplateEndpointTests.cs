@@ -169,6 +169,7 @@ public class InstantiateTemplateEndpointTests(FitnessApiFactory factory)
         var plan = await FetchPlanAsync(body.PlanId);
         plan.ClientId.Should().Be(clientUserId);
         plan.Status.Should().Be(NutritionPlanStatus.Draft);
+        plan.SourceTemplateId.Should().Be(template.ExternalId);
         plan.Weeks.Should().OnlyContain(w => w.Status == WeekStatus.Draft);
 
         var planMealIds = plan.Weeks.SelectMany(w => w.Days).SelectMany(d => d.Meals).Select(m => m.MealId).ToList();
