@@ -130,9 +130,29 @@ function libraryCard(page: Page, name: string): Locator {
 }
 
 /** Drags with real pointer moves: dnd-kit only starts a drag after the pointer has travelled. */
+/** Scrolls the element into view, then waits until two reads of its box match (popover animations settled). */
+async function settledBox(locator: Locator): Promise<{ x: number; y: number; width: number; height: number } | null> {
+  await locator.scrollIntoViewIfNeeded();
+  let previous = '';
+  let box = await locator.boundingBox();
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    const current = JSON.stringify(box);
+    if (current === previous) {
+      return box;
+    }
+    previous = current;
+    await locator.page().waitForTimeout(50);
+    box = await locator.boundingBox();
+  }
+  return box;
+}
+
 async function dragTo(page: Page, handle: Locator, target: Locator): Promise<void> {
-  const from = await handle.boundingBox();
-  const to = await target.boundingBox();
+  // Scroll both ends into view first, so reading one box cannot move the other.
+  await handle.scrollIntoViewIfNeeded();
+  await target.scrollIntoViewIfNeeded();
+  const from = await settledBox(handle);
+  const to = await settledBox(target);
   if (!from || !to) {
     throw new Error('[plan-template-editor-interactions] drag source or target is not visible.');
   }
@@ -286,8 +306,9 @@ test.describe('plan template editor interactions', () => {
       await page.keyboard.press('Enter');
       const detail = page.getByTestId('meal-detail');
       await expect(detail).toBeVisible();
+      // The popover scales in over ~150 ms; measure once the width has settled.
+      await expect.poll(async () => (await detail.boundingBox())?.width ?? 0).toBeGreaterThan(550);
       const box = await detail.boundingBox();
-      expect(box?.width ?? 0).toBeGreaterThan(550);
       expect(box?.width ?? 0).toBeLessThanOrEqual(560.5);
 
       // Each item row and the totals show P / C / F / Fib with a colour dot.
