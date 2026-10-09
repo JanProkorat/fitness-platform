@@ -322,6 +322,9 @@
       "files": [
         "web/src/pages/PlanTemplatesPage.tsx",
         "web/src/components/plan-templates/**",
+        "web/src/components/library/PageHeader.tsx",
+        "web/src/components/library/Pagination.tsx",
+        "web/src/components/library/FilterChip.tsx",
         "web/src/hooks/usePlanTemplatesQueries.ts",
         "web/src/hooks/usePlanTemplateListParams.ts",
         "web/src/api/nutrition-plan-templates.ts"
@@ -369,6 +372,7 @@
       "files": [
         "web/src/pages/PlanTemplateEditorPage.tsx",
         "web/src/components/plan-editor/**",
+        "web/src/components/library/PageHeader.tsx",
         "web/src/components/plan-templates/**",
         "web/src/hooks/usePlanTemplateEditor.ts",
         "web/src/hooks/usePlanTemplatesQueries.ts",
