@@ -350,7 +350,9 @@
       "note": "Removing a role hides it from search and stops new work in it: no new plans or templates, and no new clients for it. Plans already in progress stay active until they end: clients keep logging and you can still adjust them. After that, everything you shared stays visible to both of you, read-only. Add the role back any time to edit again.",
       "addDialog": {
         "title": "Add the {{role}} role?",
-        "body": "You get the tools for this role and show up in search under it. You can remove it again later."
+        "body": "You get the tools for this role and show up in search under it. You can remove it again later.",
+        "chooseTitle": "Add a role",
+        "chooseBody": "Choose which role to add. You get its tools and show up in search under it. You can remove it again later."
       },
       "clients_one": "{{count}} client",
       "clients_other": "{{count}} clients",

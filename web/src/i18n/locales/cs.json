@@ -350,7 +350,9 @@
       "note": "Odebráním role ji skryjete z vyhledávání a zastavíte novou práci v ní: žádné nové plány ani šablony a žádní noví klienti. Rozpracované plány zůstanou aktivní do konce: klienti dál zapisují a vy je můžete upravovat. Poté zůstane vše, co jste sdíleli, viditelné vám oběma, jen pro čtení. Roli můžete kdykoli přidat zpět a znovu upravovat.",
       "addDialog": {
         "title": "Přidat roli: {{role}}?",
-        "body": "Získáte nástroje této role a budete díky ní vidět ve vyhledávání. Později ji můžete znovu odebrat."
+        "body": "Získáte nástroje této role a budete díky ní vidět ve vyhledávání. Později ji můžete znovu odebrat.",
+        "chooseTitle": "Přidat roli",
+        "chooseBody": "Vyberte, kterou roli chcete přidat. Získáte její nástroje a budete díky ní vidět ve vyhledávání. Později ji můžete znovu odebrat."
       },
       "clients_one": "{{count}} klient",
       "clients_few": "{{count}} klienti",

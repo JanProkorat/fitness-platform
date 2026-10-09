@@ -33,7 +33,7 @@ const ROLE_VISUALS = {
 function Row({ icon, title, children }: { icon: ReactNode; title: string; children?: ReactNode }) {
   return (
     <li className="flex gap-3">
-      <span className="flex size-8 shrink-0 items-center justify-center rounded-[9px] bg-sunken text-ink-2">{icon}</span>
+      <span className="flex size-8 shrink-0 items-center justify-center rounded-tile bg-sunken text-ink-2">{icon}</span>
       <div className="flex flex-col gap-0.5">
         <span className="text-copy font-semibold text-ink">{title}</span>
         {children && <span className="text-body leading-snug text-muted-foreground">{children}</span>}
