@@ -62,10 +62,7 @@ export default function RemoveRoleDialog({
 
   return (
     <Dialog open={role !== null} onOpenChange={(open) => !open && !pending && onClose()}>
-      <DialogContent
-        showCloseButton={false}
-        className="max-w-125 gap-5 rounded-xl px-7 pt-6.5 pb-6 sm:max-w-125"
-      >
+      <DialogContent className="max-w-125 gap-5 rounded-xl px-7 pt-6.5 pb-6 sm:max-w-125">
         {role && visuals && (
           <>
             <DialogHeader className="flex-row items-start gap-3.5 text-left">

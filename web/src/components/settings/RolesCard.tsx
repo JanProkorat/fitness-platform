@@ -107,7 +107,7 @@ export default function RolesCard() {
           <Button
             type="button"
             variant="outline"
-            className="h-8.5 gap-1.75 rounded-field bg-sunken px-3.5 font-semibold text-muted-foreground"
+            className="h-8.5 gap-1.75 rounded-field px-3.5 font-semibold text-ink"
             onClick={() => setPendingRole(missingRoles[0] ?? null)}
           >
             <Plus className="size-3.75" aria-hidden="true" />
