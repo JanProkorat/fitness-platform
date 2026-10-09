@@ -111,6 +111,11 @@ public interface IApplicationDbContext
     DbSet<DevicePushToken> DevicePushTokens { get; set; }
 
     /// <summary>
+    /// Saved per-user email and push choices for notification events.
+    /// </summary>
+    DbSet<NotificationPreference> NotificationPreferences { get; set; }
+
+    /// <summary>
     /// Messaging conversations between professionals and clients.
     /// </summary>
     DbSet<Conversation> Conversations { get; set; }
