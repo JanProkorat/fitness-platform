@@ -1641,7 +1641,7 @@
       "body": "Každé jídlo se stane řádkem týdne. Přidáte-li stejný druh dvakrát, máte dvě svačiny. Řádky můžete později přeřadit nebo odebrat.",
       "mostCommon": "nejčastější",
       "addOneByOne": "Nebo přidávejte po jednom",
-      "done": "Hotovo",
+      "doneCount": "Hotovo ({{total}})",
       "copyPrefix": "Nebo",
       "copyLink": "zkopírujte jídla z jiné šablony"
     },
@@ -1695,6 +1695,14 @@
       "carbs": "S",
       "fat": "T",
       "fiber": "Vl"
+    },
+    "removeRow": {
+      "aria": "Odebrat {{meal}} z týdne {{week}}",
+      "title": "Odebrat {{meal}} z týdne {{week}}?",
+      "body_one": "{{count}} den má vyplněné jídlo ({{days}}). Ostatní týdny tento řádek ponechají. Odebrání můžete vrátit zpět.",
+      "body_few": "{{count}} dny mají vyplněné jídlo ({{days}}). Ostatní týdny tento řádek ponechají. Odebrání můžete vrátit zpět.",
+      "body_other": "{{count}} dní má vyplněné jídlo ({{days}}). Ostatní týdny tento řádek ponechají. Odebrání můžete vrátit zpět.",
+      "confirm": "Odebrat {{meal}}"
     },
     "cardDrop": {
       "title": "{{target}} už obsahuje jídlo",

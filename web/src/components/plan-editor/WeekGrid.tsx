@@ -1,7 +1,7 @@
 import { useCallback, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDraggable, useDroppable } from '@dnd-kit/react';
-import { StickyNote } from 'lucide-react';
+import { StickyNote, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import MacroDots from '@/components/plan-editor/MacroDots';
 import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -334,6 +334,8 @@ interface Props {
   renderDetail: (cell: SelectedCell) => ReactNode;
   onDetailClose: () => void;
   onEdit: PlanEditorState['edit'];
+  /** Asks the host to remove a meal row from this week; without it the row labels have no remove button. */
+  onRemoveRow?: (rowIndex: number) => void;
 }
 
 /** The week as a grid: one column per weekday, a day-total row, then one row per meal. */
@@ -348,6 +350,7 @@ export default function WeekGrid({
   renderDetail,
   onDetailClose,
   onEdit,
+  onRemoveRow,
 }: Props) {
   const { t } = useTranslation();
   const rows = weekRows(week);
@@ -382,8 +385,26 @@ export default function WeekGrid({
 
       {rows.map((row) => (
         <div key={row.index} className={cn(GRID_CLASS, 'items-stretch')}>
-          <span className="self-center text-body font-semibold whitespace-nowrap text-muted-foreground">
+          <span className="group/row flex items-center gap-1.5 self-center text-body font-semibold whitespace-nowrap text-muted-foreground">
             {t(`planEditor.rows.${mealKindLabelKey(row.kind)}`)}
+            {!readOnly && onRemoveRow && (
+              <button
+                type="button"
+                data-testid="remove-row"
+                aria-label={t('planEditor.removeRow.aria', {
+                  meal: t(`planEditor.rows.${mealKindLabelKey(row.kind)}`),
+                  week: weekIndex + 1,
+                })}
+                title={t('planEditor.removeRow.aria', {
+                  meal: t(`planEditor.rows.${mealKindLabelKey(row.kind)}`),
+                  week: weekIndex + 1,
+                })}
+                onClick={() => onRemoveRow(row.index)}
+                className="flex size-5 shrink-0 cursor-pointer items-center justify-center rounded-md border border-line bg-card text-error opacity-0 outline-none group-focus-within/row:opacity-100 group-hover/row:opacity-100 focus-visible:ring-3 focus-visible:ring-ring/50"
+              >
+                <X className="size-3" aria-hidden="true" />
+              </button>
+            )}
           </span>
           {DAY_ORDER.map((dayOfWeek) => {
             const detailOpen = detailCell?.dayOfWeek === dayOfWeek && detailCell.rowIndex === row.index;

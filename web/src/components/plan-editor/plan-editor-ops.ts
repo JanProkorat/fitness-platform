@@ -110,6 +110,25 @@ export function addMealRow(doc: EditorDocument, weekIndex: number, kind: MealKin
   });
 }
 
+/** Weekdays (ascending) whose meal at the given row holds a recipe or ingredient. */
+export function daysWithFoodInRow(week: EditorWeek, rowIndex: number): number[] {
+  return week.days
+    .filter((day) => {
+      const meal = day.meals[rowIndex];
+      return meal !== undefined && meal.foods.length + meal.recipes.length > 0;
+    })
+    .map((day) => day.dayOfWeek)
+    .sort((left, right) => left - right);
+}
+
+/** Drops the meal at the given row from every day of one week and renumbers what is left. */
+export function removeMealRow(doc: EditorDocument, weekIndex: number, rowIndex: number): EditorDocument {
+  return updateWeek(doc, weekIndex, (week) => ({
+    ...week,
+    days: week.days.map((day) => ({ ...day, meals: renumber(day.meals.filter((_, index) => index !== rowIndex)) })),
+  }));
+}
+
 /** A snack added to a day that already has one becomes the afternoon snack. */
 export function nextSnackKind(week: EditorWeek): MealKind {
   const hasMorning = weekRows(week).some((row) => row.kind === MealKind.MorningSnack);

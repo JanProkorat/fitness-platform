@@ -27,6 +27,7 @@ import NutritionView from '@/components/plan-editor/NutritionView';
 import { PopoverBoundaryContext } from '@/components/plan-editor/PopoverBoundary';
 import PlanEditorHeader from '@/components/plan-editor/PlanEditorHeader';
 import PlanSidePanel from '@/components/plan-editor/PlanSidePanel';
+import RemoveMealRowDialog, { type PendingRowRemoval } from '@/components/plan-editor/RemoveMealRowDialog';
 import { SIDE_TAB_ICON, SIDE_TABS } from '@/components/plan-editor/plan-editor-side-tabs';
 import TemplateInfoPanel, { type PlanUsage } from '@/components/plan-editor/TemplateInfoPanel';
 import WeekdayPills from '@/components/plan-editor/WeekdayPills';
@@ -54,7 +55,9 @@ import {
   type CellCopyMode,
   copyMealToCell,
   copyWeekMeals,
+  daysWithFoodInRow,
   nextSnackKind,
+  removeMealRow,
   reorderMealItems,
   setDayNote,
   weekHasItems,
@@ -166,7 +169,7 @@ export default function PlanEditor({
   const [selected, setSelected] = useState<SelectedCell | null>(null);
   const [libraryOpen, setLibraryOpen] = useState(true);
   const [sideTab, setSideTab] = useState<EditorSideTab>('library');
-  const [pickerSession, setPickerSession] = useState(false);
+  const [pendingRemoval, setPendingRemoval] = useState<(PendingRowRemoval & { rowIndex: number }) | null>(null);
   const [leaveOpen, setLeaveOpen] = useState(false);
   const [pendingDrop, setPendingDrop] = useState<PendingDrop | null>(null);
   const [addMealOpen, setAddMealOpen] = useState(false);
@@ -179,7 +182,7 @@ export default function PlanEditor({
   const week = doc.weeks[currentIndex];
   const rows = week ? weekRows(week) : [];
   const activeDay = week?.days.find((candidate) => candidate.dayOfWeek === dayOfWeek);
-  const showPicker = !readOnly && (rows.length === 0 || pickerSession);
+  const showPicker = !readOnly && rows.length === 0;
 
   useEffect(() => {
     if (!dirty) {
@@ -202,7 +205,7 @@ export default function PlanEditor({
       const target = event.target;
       if (
         target instanceof HTMLElement &&
-        (target.isContentEditable || target.closest('input, textarea, select, [contenteditable], [role="dialog"]') !== null)
+        (target.isContentEditable || target.closest('input, textarea, select, [contenteditable], [role="dialog"], [role="alertdialog"]') !== null)
       ) {
         return;
       }
@@ -236,7 +239,7 @@ export default function PlanEditor({
     setWeekIndex(index);
     setSelected(null);
     setDetailCell(null);
-    setPickerSession(false);
+    setPendingRemoval(null);
   }
 
   /** Day shows meals only and Nutrition shows the whole week, so each choice resets the other toggle. */
@@ -358,7 +361,6 @@ export default function PlanEditor({
   }
 
   function addToCell(item: LibraryItem, cell: SelectedCell) {
-    setPickerSession(false);
     edit((current) => addItemToCell(current, currentIndex, cell.dayOfWeek, cell.rowIndex, item));
   }
 
@@ -373,29 +375,60 @@ export default function PlanEditor({
   }
 
   /** Adds a row to this week and to every empty week that has the same rows. */
-  function addMealKind(kind: MealKind) {
-    setPickerSession(true);
-    edit((current) => {
-      const currentWeek = current.weeks[currentIndex];
-      if (!currentWeek) {
-        return current;
-      }
-      const signature = weekRows(currentWeek)
-        .map((row) => row.kind)
-        .join();
-      const kindToAdd = kind === MealKind.MorningSnack ? nextSnackKind(currentWeek) : kind;
-      return current.weeks.reduce(
-        (result, candidate, index) =>
-          index === currentIndex ||
-          (!weekHasItems(candidate) &&
-            weekRows(candidate)
-              .map((row) => row.kind)
-              .join() === signature)
-            ? addMealRow(result, index, kindToAdd)
-            : result,
-        current,
-      );
-    });
+  function withMealKind(current: EditorDocument, kind: MealKind): EditorDocument {
+    const currentWeek = current.weeks[currentIndex];
+    if (!currentWeek) {
+      return current;
+    }
+    const signature = weekRows(currentWeek)
+      .map((row) => row.kind)
+      .join();
+    const kindToAdd = kind === MealKind.MorningSnack ? nextSnackKind(currentWeek) : kind;
+    return current.weeks.reduce(
+      (result, candidate, index) =>
+        index === currentIndex ||
+        (!weekHasItems(candidate) &&
+          weekRows(candidate)
+            .map((row) => row.kind)
+            .join() === signature)
+          ? addMealRow(result, index, kindToAdd)
+          : result,
+      current,
+    );
+  }
+
+  /** Adds every staged meal in one edit, so a single Undo takes them all back. */
+  function addMealKinds(kinds: MealKind[]) {
+    if (kinds.length === 0) {
+      return;
+    }
+    edit((current) => kinds.reduce(withMealKind, current));
+  }
+
+  function removeRow(rowIndex: number) {
+    setSelected(null);
+    setDetailCell(null);
+    edit((current) => removeMealRow(current, currentIndex, rowIndex));
+  }
+
+  /** A row with no food goes at once; one with food asks first. */
+  function requestRemoveRow(rowIndex: number) {
+    if (readOnly || !week) {
+      return;
+    }
+    const days = daysWithFoodInRow(week, rowIndex);
+    if (days.length === 0) {
+      removeRow(rowIndex);
+      return;
+    }
+    setPendingRemoval({ rowIndex, rowLabelKey: rowLabelKey(rowIndex), weekNumber: currentIndex + 1, days });
+  }
+
+  function confirmRemoval() {
+    if (pendingRemoval) {
+      removeRow(pendingRemoval.rowIndex);
+    }
+    setPendingRemoval(null);
   }
 
   async function save() {
@@ -679,6 +712,7 @@ export default function PlanEditor({
               renderDetail={renderDetail}
               onDetailClose={() => setDetailCell(null)}
               onEdit={edit}
+              onRemoveRow={requestRemoveRow}
             />
           )}
 
@@ -688,10 +722,8 @@ export default function PlanEditor({
 
           {showPicker && (
             <MealPicker
-              hasRows={rows.length > 0}
               onApplyCommon={applyCommonMeals}
-              onAddKind={addMealKind}
-              onDone={() => setPickerSession(false)}
+              onDone={addMealKinds}
               onCopyMeals={renderCopyMeals ? () => setCopyOpen(true) : undefined}
             />
           )}
@@ -750,6 +782,8 @@ export default function PlanEditor({
         onAdd={() => resolveDrop('add')}
         onCancel={() => setPendingDrop(null)}
       />
+
+      <RemoveMealRowDialog removal={pendingRemoval} onConfirm={confirmRemoval} onCancel={() => setPendingRemoval(null)} />
 
       {renderCopyMeals?.({
         open: copyOpen,
