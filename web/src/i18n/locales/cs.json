@@ -348,6 +348,65 @@
       "addDialog": {
         "title": "Přidat roli: {{role}}?",
         "body": "Získáte nástroje této role a budete díky ní vidět ve vyhledávání. Později ji můžete znovu odebrat."
+      },
+      "clients_one": "{{count}} klient",
+      "clients_few": "{{count}} klienti",
+      "clients_many": "{{count}} klienta",
+      "clients_other": "{{count}} klientů",
+      "removed": "Role byla odebrána.",
+      "removeError": "Roli se nepodařilo odebrat. Nic se nezměnilo.",
+      "loadError": "Vaše role se nepodařilo načíst. Obnovte prosím stránku.",
+      "onlyRoleNote": "Toto je vaše jediná role. Její odebrání zakáže váš trenérský účet, stejně jako tlačítko níže.",
+      "removeDialog": {
+        "keep": "Ponechat roli",
+        "footnote": "Role okamžitě zmizí z vyhledávání i z vaší profilové karty. Kdykoli ji můžete přidat zpět a znovu upravovat.",
+        "notified_zero": "Žádný klient nebude upozorněn",
+        "notified_one": "{{count}} klient bude upozorněn",
+        "notified_few": "{{count}} klienti budou upozorněni",
+        "notified_many": "{{count}} klienta bude upozorněno",
+        "notified_other": "{{count}} klientů bude upozorněno",
+        "trainer": {
+          "title": "Odebrat roli Osobní trenér?",
+          "description": "Zůstanete nutričním poradcem. Nic se nemaže.",
+          "shared_one": "{{count}} má s vámi také výživu a zůstává vaším klientem.",
+          "shared_few": "{{count}} mají s vámi také výživu a zůstávají vašimi klienty.",
+          "shared_many": "{{count}} klienta má s vámi také výživu a zůstává vašimi klienty.",
+          "shared_other": "{{count}} jich má s vámi také výživu a zůstává vašimi klienty.",
+          "rest_one": "Dalšího {{count}} klienta máte nadále propojeného, dokud neskončí jeho aktuální plán; poté spolupráce skončí a jeho historie se archivuje.",
+          "rest_few": "Další {{count}} klienti zůstanou s vámi propojení, dokud neskončí jejich aktuální plán; poté spolupráce skončí a jejich historie se archivuje.",
+          "rest_many": "Dalších {{count}} klienta zůstane s vámi propojeno, dokud neskončí jejich aktuální plán; poté spolupráce skončí a jejich historie se archivuje.",
+          "rest_other": "Dalších {{count}} klientů zůstane s vámi propojeno, dokud neskončí jejich aktuální plán; poté spolupráce skončí a jejich historie se archivuje.",
+          "restAll_one": "Tento klient zůstane s vámi propojen, dokud neskončí jeho aktuální plán; poté spolupráce skončí a jeho historie se archivuje.",
+          "restAll_few": "Všichni {{count}} klienti zůstanou s vámi propojeni, dokud neskončí jejich aktuální plán; poté spolupráce skončí a jejich historie se archivuje.",
+          "restAll_many": "Všech {{count}} klienta zůstane s vámi propojeno, dokud neskončí jejich aktuální plán; poté spolupráce skončí a jejich historie se archivuje.",
+          "restAll_other": "Všech {{count}} klientů zůstane s vámi propojeno, dokud neskončí jejich aktuální plán; poté spolupráce skončí a jejich historie se archivuje.",
+          "plansTitle": "Rozpracované plány doběhnou do konce",
+          "plansBody": "Již zahájené tréninkové plány zůstanou aktivní pro vás i vaše klienty, dokud neskončí.",
+          "libraryTitle": "Vaše tréninková knihovna bude jen pro čtení",
+          "libraryBody": "Cviky, tréninky a tréninkové šablony zůstanou viditelné, ale nepůjde je vytvářet, upravovat ani přiřazovat.",
+          "confirm": "Odebrat roli Osobní trenér"
+        },
+        "nutritionist": {
+          "title": "Odebrat roli Nutriční poradce?",
+          "description": "Zůstanete osobním trenérem. Nic se nemaže.",
+          "shared_one": "{{count}} s vámi také trénuje a zůstává vaším klientem.",
+          "shared_few": "{{count}} s vámi také trénují a zůstávají vašimi klienty.",
+          "shared_many": "{{count}} klienta s vámi také trénuje a zůstává vašimi klienty.",
+          "shared_other": "{{count}} jich s vámi také trénuje a zůstává vašimi klienty.",
+          "rest_one": "Dalšího {{count}} klienta máte nadále propojeného, dokud neskončí jeho aktuální plán; poté spolupráce skončí a jeho historie se archivuje.",
+          "rest_few": "Další {{count}} klienti zůstanou s vámi propojení, dokud neskončí jejich aktuální plán; poté spolupráce skončí a jejich historie se archivuje.",
+          "rest_many": "Dalších {{count}} klienta zůstane s vámi propojeno, dokud neskončí jejich aktuální plán; poté spolupráce skončí a jejich historie se archivuje.",
+          "rest_other": "Dalších {{count}} klientů zůstane s vámi propojeno, dokud neskončí jejich aktuální plán; poté spolupráce skončí a jejich historie se archivuje.",
+          "restAll_one": "Tento klient zůstane s vámi propojen, dokud neskončí jeho aktuální plán; poté spolupráce skončí a jeho historie se archivuje.",
+          "restAll_few": "Všichni {{count}} klienti zůstanou s vámi propojeni, dokud neskončí jejich aktuální plán; poté spolupráce skončí a jejich historie se archivuje.",
+          "restAll_many": "Všech {{count}} klienta zůstane s vámi propojeno, dokud neskončí jejich aktuální plán; poté spolupráce skončí a jejich historie se archivuje.",
+          "restAll_other": "Všech {{count}} klientů zůstane s vámi propojeno, dokud neskončí jejich aktuální plán; poté spolupráce skončí a jejich historie se archivuje.",
+          "plansTitle": "Rozpracované plány doběhnou do konce",
+          "plansBody": "Již zahájené jídelní plány zůstanou aktivní pro vás i vaše klienty, dokud neskončí.",
+          "libraryTitle": "Vaše nutriční knihovna bude jen pro čtení",
+          "libraryBody": "Recepty, suroviny a šablony jídelních plánů zůstanou viditelné, ale nepůjde je vytvářet, upravovat ani přiřazovat.",
+          "confirm": "Odebrat roli Nutriční poradce"
+        }
       }
     },
     "danger": {
@@ -1732,7 +1791,9 @@
     "RECIPE_FOOD_NOT_AVAILABLE": "Jedna ze surovin už není dostupná. Odeberte ji a zkuste to znovu.",
     "RECIPE_NOT_OWNED": "Můžete upravovat jen své vlastní recepty.",
     "RECIPE_GALLERY_FULL": "Tento recept už má maximální počet obrázků.",
-    "RECIPE_GALLERY_IMAGE_NOT_FOUND": "Tento obrázek už k receptu nepatří. Mohl být změněn jinde."
+    "RECIPE_GALLERY_IMAGE_NOT_FOUND": "Tento obrázek už k receptu nepatří. Mohl být změněn jinde.",
+    "ONLY_COACH_ROLE": "Toto je vaše jediná trenérská role, proto ji tady nelze odebrat.",
+    "ROLE_NOT_ASSIGNED": "Tuto roli už nemáte. Vaše role byly obnoveny."
   },
   "nutritionGoals": {
     "title": "Cíle & makra",

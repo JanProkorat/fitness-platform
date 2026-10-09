@@ -1,19 +1,19 @@
 using FastEndpoints;
-using FluentValidation;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Features.Users.Shared;
+using FluentValidation;
 
-namespace FitnessPlatform.Application.Features.Users.AddRole;
+namespace FitnessPlatform.Application.Features.Users.RemoveCoachRole;
 
 /// <summary>
-/// Validates the <see cref="AddRoleRequest"/>, ensuring only Trainer or Nutritionist roles can be added.
+/// Validates the <see cref="RemoveCoachRoleRequest"/>, allowing only Trainer or Nutritionist.
 /// </summary>
-public class AddRoleValidator : Validator<AddRoleRequest>
+public class RemoveCoachRoleValidator : Validator<RemoveCoachRoleRequest>
 {
     /// <summary>
-    /// Initializes validation rules for adding a role.
+    /// Initializes validation rules for removing a coach role.
     /// </summary>
-    public AddRoleValidator()
+    public RemoveCoachRoleValidator()
     {
         RuleFor(x => x.Role)
             .NotEmpty()

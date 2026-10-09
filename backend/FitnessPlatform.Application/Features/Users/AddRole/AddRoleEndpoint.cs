@@ -5,6 +5,8 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Domain.Services;
+using FitnessPlatform.Application.Features.Users.Shared;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -67,11 +69,21 @@ public class AddRoleEndpoint(
         var currentRoles = await userManager.GetRolesAsync(user);
         if (currentRoles.Contains(req.Role))
         {
-            this.ThrowErrorWithCode(ErrorCodes.RoleAlreadyAssigned, "You already have this role.");
-            return;
-        }
+            // A held-but-removed role is restored instead of rejected.
+            var existingProfile = await db.ProfessionalProfiles.FirstOrDefaultAsync(p => p.UserId == userId, ct);
+            if (!CoachRoleStatus.IsRemoved(existingProfile, req.Role))
+            {
+                this.ThrowErrorWithCode(ErrorCodes.RoleAlreadyAssigned, "You already have this role.");
+                return;
+            }
 
-        await userManager.AddToRoleAsync(user, req.Role);
+            CoachRoleStatus.SetRemovedAt(existingProfile!, req.Role, null);
+            await db.SaveChangesAsync(ct);
+        }
+        else
+        {
+            await userManager.AddToRoleAsync(user, req.Role);
+        }
 
         // If user doesn't have a ProfessionalProfile yet, create one (Nutritionist → Trainer case)
         var hasProfile = await db.ProfessionalProfiles.AnyAsync(p => p.UserId == userId, ct);

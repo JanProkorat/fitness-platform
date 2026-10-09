@@ -1518,6 +1518,208 @@ export class ApiClient {
     }
 
     /**
+     * Remove a coach role
+     * @param role Route parameter. The coach role to remove (Trainer or Nutritionist).
+     * @return Role removed; counts as they stood before the removal
+     */
+    removeCoachRoleEndpoint(role: string, signal?: AbortSignal): Promise<RemoveCoachRoleResponse> {
+        let url_ = this.baseUrl + "/users/me/roles/{role}";
+        if (role === undefined || role === null)
+            throw new globalThis.Error("The parameter 'role' must be defined.");
+        url_ = url_.replace("{role}", encodeURIComponent("" + role));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "DELETE",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processRemoveCoachRoleEndpoint(_response);
+        });
+    }
+
+    protected processRemoveCoachRoleEndpoint(response: AxiosResponse): Promise<RemoveCoachRoleResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<RemoveCoachRoleResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid role, ROLE_NOT_ASSIGNED, or ONLY_COACH_ROLE", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<RemoveCoachRoleResponse>(null as any);
+    }
+
+    /**
+     * List my coach roles
+     * @return Active coach roles with counts
+     */
+    getMyCoachRolesEndpoint(signal?: AbortSignal): Promise<GetMyCoachRolesResponse> {
+        let url_ = this.baseUrl + "/users/me/roles";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetMyCoachRolesEndpoint(_response);
+        });
+    }
+
+    protected processGetMyCoachRolesEndpoint(response: AxiosResponse): Promise<GetMyCoachRolesResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GetMyCoachRolesResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GetMyCoachRolesResponse>(null as any);
+    }
+
+    /**
+     * Add a professional role
+     * @return Success
+     */
+    addRoleEndpoint(addRoleRequest: AddRoleRequest, signal?: AbortSignal): Promise<AddRoleResponse> {
+        let url_ = this.baseUrl + "/users/me/roles";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(addRoleRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processAddRoleEndpoint(_response);
+        });
+    }
+
+    protected processAddRoleEndpoint(response: AxiosResponse): Promise<AddRoleResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<AddRoleResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<AddRoleResponse>(null as any);
+    }
+
+    /**
      * Change password
      * @return Password changed; fresh tokens returned
      */
@@ -1764,77 +1966,6 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<GenerateAvatarUploadUrlResponse>(null as any);
-    }
-
-    /**
-     * Add a professional role
-     * @return Success
-     */
-    addRoleEndpoint(addRoleRequest: AddRoleRequest, signal?: AbortSignal): Promise<AddRoleResponse> {
-        let url_ = this.baseUrl + "/users/me/roles";
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(addRoleRequest);
-
-        let options_: AxiosRequestConfig = {
-            data: content_,
-            method: "POST",
-            url: url_,
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            },
-            signal
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processAddRoleEndpoint(_response);
-        });
-    }
-
-    protected processAddRoleEndpoint(response: AxiosResponse): Promise<AddRoleResponse> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<AddRoleResponse>(result200);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status === 401) {
-            const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
-
-        } else if (status === 403) {
-            const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<AddRoleResponse>(null as any);
     }
 
     /**
@@ -18227,6 +18358,28 @@ export enum NotificationEvent {
     WorkoutFinished = "WorkoutFinished",
 }
 
+/** Result of removing a coach role: the counts as they stood just before the removal. */
+export interface RemoveCoachRoleResponse {
+    /** The role that was removed. */
+    removedRole?: string;
+    /** Counts for every role that was active before the removal, including the removed one. */
+    roles?: CoachRoleSummaryDto[];
+}
+
+/** One active coach role with the client counts the Settings roles card shows. */
+export interface CoachRoleSummaryDto {
+    /** Role name (Trainer or Nutritionist). */
+    role?: string;
+    /** Active client links that grant this role's discipline. */
+    clientCount?: number;
+    /** Of those, links that also grant the other discipline while the other role is active. */
+    sharedWithOtherRoleCount?: number;
+}
+
+/** Request to remove one of the caller's coach roles. */
+export interface RemoveCoachRoleRequest {
+}
+
 /** Response model for the authenticated user's profile. */
 export interface GetProfileResponse {
     /** User's public ID. */
@@ -18268,6 +18421,12 @@ Empty for non-client users. */
 export interface GetNotificationPreferencesResponse {
     /** One entry per notification event. */
     preferences?: NotificationPreferenceDto[];
+}
+
+/** The caller's active coach roles with client counts. */
+export interface GetMyCoachRolesResponse {
+    /** One entry per active coach role. */
+    roles?: CoachRoleSummaryDto[];
 }
 
 /** Fresh token pair returned after a password change; all previous refresh tokens are revoked. */

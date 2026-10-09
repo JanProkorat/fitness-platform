@@ -24,6 +24,7 @@ export default function DangerZoneCard() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const deleteMutation = useMutation({
+    mutationKey: ['settings', 'deleteAccount'],
     mutationFn: deleteMyAccount,
     onSuccess: () => {
       useAuthStore.getState().logout();
