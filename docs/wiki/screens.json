@@ -361,7 +361,9 @@
         "POST /users/me/password",
         "GET /users/me/notification-preferences",
         "PUT /users/me/notification-preferences",
+        "GET /users/me/roles",
         "POST /users/me/roles",
+        "DELETE /users/me/roles/{role}",
         "DELETE /users/me"
       ],
       "board": "PageSettings",
