@@ -993,9 +993,7 @@
         "title": "Účet",
         "description": "Soukromé — vidíte to jen vy a klienti, se kterými pracujete.",
         "emailHint": "Přihlašujete se touto adresou.",
-        "phoneHint": "Nepovinné.",
-        "timeZone": "Časové pásmo",
-        "timeZoneHint": "Připomínky check-inů a časy lekcí se řídí jím."
+        "phoneHint": "Nepovinné."
       },
       "about": {
         "title": "O vás",
@@ -1067,7 +1065,6 @@
         "listTooLong": "Příliš mnoho položek — některé odeberte.",
         "year": "Zadejte čtyřciferný rok.",
         "certificateTitleRequired": "Doplňte název certifikátu.",
-        "invalidTimeZone": "Toto časové pásmo není podporováno. Vyberte jiné.",
         "invalidCertificates": "Některé certifikáty se nepodařilo uložit. Zkontrolujte jejich názvy.",
         "serverInvalid": "Tato hodnota byla odmítnuta. Zkontrolujte ji."
       },
