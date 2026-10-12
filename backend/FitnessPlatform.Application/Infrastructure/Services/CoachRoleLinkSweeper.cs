@@ -88,21 +88,35 @@ public class CoachRoleLinkSweeper(
         }
     }
 
+    /// <summary>
+    /// Ids of profiles whose coach account has ended and whose user still holds a coach role that is
+    /// not yet marked removed.
+    /// </summary>
+    /// <param name="now">Current UTC time.</param>
+    /// <param name="ct">Cancellation token.</param>
+    internal async Task<List<long>> SelectEndedAccountProfileIdsAsync(DateTime now, CancellationToken ct)
+    {
+        using var scope = scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
+
+        var heldCoachRoles = db.UserRoles
+            .Join(db.Roles, ur => ur.RoleId, r => r.Id, (ur, r) => new { ur.UserId, RoleName = r.Name });
+
+        return await db.ProfessionalProfiles
+            .AsNoTracking()
+            .Where(p => p.CoachAccountActiveUntil != null && p.CoachAccountActiveUntil <= now)
+            .Where(p =>
+                (p.TrainerRoleRemovedAt == null
+                 && heldCoachRoles.Any(h => h.UserId == p.UserId && h.RoleName == AppRoles.Trainer))
+                || (p.NutritionistRoleRemovedAt == null
+                    && heldCoachRoles.Any(h => h.UserId == p.UserId && h.RoleName == AppRoles.Nutritionist)))
+            .Select(p => p.Id)
+            .ToListAsync(ct);
+    }
+
     private async Task RemoveRolesOfEndedAccountsAsync(DateTime now, CancellationToken ct)
     {
-        List<long> profileIds;
-
-        using (var scope = scopeFactory.CreateScope())
-        {
-            var db = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
-            profileIds = await db.ProfessionalProfiles
-                .AsNoTracking()
-                .Where(p => p.CoachAccountActiveUntil != null
-                            && p.CoachAccountActiveUntil <= now
-                            && (p.TrainerRoleRemovedAt == null || p.NutritionistRoleRemovedAt == null))
-                .Select(p => p.Id)
-                .ToListAsync(ct);
-        }
+        var profileIds = await SelectEndedAccountProfileIdsAsync(now, ct);
 
         foreach (var profileId in profileIds)
         {
