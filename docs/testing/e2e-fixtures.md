@@ -56,6 +56,8 @@ docker ps --format '{{.Names}}'
 | Trainer 2    | `qa.trainer2@fitnessplatform.test`| `66666666-6666-6666-6666-666666666666`   |
 | Client 3     | `qa.client3@fitnessplatform.test`| `77777777-7777-7777-7777-777777777777`    |
 | Former client | `qa.client.former@fitnessplatform.test` | `88888888-8888-8888-8888-888888888888` |
+| Coach (trainer + nutritionist) | `qa.coach@fitnessplatform.test` | `99999999-9999-9999-9999-999999999999` |
+| Client "QA Duo" | `qa.client.both@fitnessplatform.test` | `44444444-4444-4444-4444-444444444444` |
 
 The second pair (`Client 2` / `Trainer 2`) is dedicated to the multi-section shared-exercise fixture (#474). Client 3 is linked to the QA trainer only — see [the inbox fixture](#seeded-inbox-conversation--weekly-check-ins-1095) — and has no conversation and no active plan. The former client has an **ended** link to the QA trainer and one conversation — see [the ended-link fixture](#ended-link-conversation-1101). They share the same password as the other accounts (`QA_SEED_PASSWORD` from `.env.test`).
 
@@ -681,6 +683,30 @@ Who sees what:
 New answered check-ins are marked reviewed, so the inbox "New check-ins" chip
 still counts only the #1095 row. The waiting check-in is a Pending row for the
 QA client, due two days after reset.
+
+## Seeded both-roles coach (#1311)
+
+A coach with both roles and a client of their own, so the client detail
+Overview's both-roles layout (boards PageClientDetailC/D) can be checked. Rich
+seed only. Because a client may have only one active coach per profession, the
+coach is **not** linked to the QA client; they get the "QA Duo" client instead.
+Both accounts use `QA_SEED_PASSWORD`.
+
+| Fixture | Ids / shape | Expected values |
+|---|---|---|
+| Coach | `qa.coach@fitnessplatform.test`, "QA Coach", roles Trainer + Nutritionist, profile PublicId `99999999-9999-9999-bbbb-000000000001` | — |
+| Client | `qa.client.both@fitnessplatform.test`, "QA Duo", profile PublicId `44444444-4444-4444-aaaa-000000000001` | Height 175 cm, goal LoseFat, target weight 66 kg; other onboarding answers and nutrition targets as the QA client's |
+| Link | One active link, QA Coach → QA Duo, role Nutritionist, `CanViewNutritionPlans` and `CanViewTrainingPlans` both true | Overview shows the both-roles layout |
+| Nutrition plan | `44444444-4444-4444-eeee-000000000001`, "QA Duo Nutrition Plan", author QA Coach, starts last Monday, 2 weeks, 3 meals a day | 2500 kcal, 26/38/36 % |
+| Training plan | `44444444-4444-4444-dddd-000000000001`, "QA Duo Training Plan", author QA Coach, starts this Monday, 1 published week, sessions A/B/C on the reset weekday, +2 and +4 days | — |
+| Session this week | Session A completed, dated today | "Done this week" 1 of 3 |
+| Personal record | `44444444-4444-4444-aadd-000000000001`, dated today | QA Squat 72.5 kg × 8; "PRs this month" 1 on any reset day |
+| Body measurements | 8 weekly, newest yesterday | Weight 73.6 → 70.0 kg |
+| Meal logs | 13 on days −1 … −6 (3, 2, 3, 2, 2, 1), none today | — |
+| Weekly check-ins (Training) | Anchor = next ISO Monday: waiting (current cycle), answered 1, 4 and 6 weeks back (reviewed), missed 5 weeks back | 3 of 4 answered overall |
+
+The training plan covers one week from the reset Monday, so like the other
+fixtures it goes stale a week after `/test/reset`.
 
 ---
 
