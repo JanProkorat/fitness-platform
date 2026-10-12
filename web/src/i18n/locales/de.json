@@ -3382,7 +3382,6 @@
         },
         "footer": {
           "title": "Check-in dieser Woche",
-          "titleLatest": "Letzter Check-in",
           "status": {
             "answered": "Beantwortet",
             "missed": "Nicht beantwortet",
