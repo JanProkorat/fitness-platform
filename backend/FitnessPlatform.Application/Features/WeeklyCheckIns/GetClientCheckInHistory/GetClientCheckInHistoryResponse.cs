@@ -25,4 +25,7 @@ public class CheckInHistoryWeekDto
 
     /// <summary>One of "answered", "missed", "waiting" or "none".</summary>
     public string Status { get; set; } = string.Empty;
+
+    /// <summary>UTC time the check-in that decided this week's status was sent; null for a "none" week.</summary>
+    public DateTime? SentAt { get; set; }
 }

@@ -37,7 +37,8 @@ public class GetClientCheckInHistoryEndpointTests(FitnessApiFactory factory)
         WeeklyCheckInStatus status,
         DateTime? respondedAt = null,
         DateTime? dueAt = null,
-        Profession profession = Profession.Training)
+        Profession profession = Profession.Training,
+        DateTime? sentAt = null)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -48,7 +49,7 @@ public class GetClientCheckInHistoryEndpointTests(FitnessApiFactory factory)
             ProfessionalUserId = professionalUserId,
             Profession = profession,
             WeekStartDate = week,
-            SentAt = DateTime.UtcNow.AddDays(-1),
+            SentAt = sentAt ?? DateTime.UtcNow.AddDays(-1),
             RespondedAt = respondedAt,
             DueAt = dueAt,
             Status = status,
@@ -217,7 +218,46 @@ public class GetClientCheckInHistoryEndpointTests(FitnessApiFactory factory)
         body.TotalCount.Should().Be(0);
     }
 
+    [Fact]
+    public async Task GetHistory_MixedWeeks_SentAtComesFromRowAndIsNullForNone()
+    {
+        var (trainer, client) = await LinkedPairAsync();
+        var anchor = Anchor();
+        var waitingSent = new DateTime(2030, 1, 1, 8, 0, 0, DateTimeKind.Utc);
+        var answeredSent = new DateTime(2030, 1, 2, 8, 0, 0, DateTimeKind.Utc);
+        var missedSent = new DateTime(2030, 1, 3, 8, 0, 0, DateTimeKind.Utc);
+
+        await InsertAsync(client.UserId, trainer.UserId, anchor, WeeklyCheckInStatus.Pending,
+            dueAt: DateTime.UtcNow.AddDays(2), sentAt: waitingSent);
+        await InsertAsync(client.UserId, trainer.UserId, anchor.AddDays(-7), WeeklyCheckInStatus.Responded,
+            respondedAt: DateTime.UtcNow.AddDays(-6), sentAt: answeredSent);
+        await InsertAsync(client.UserId, trainer.UserId, anchor.AddDays(-14), WeeklyCheckInStatus.Expired,
+            sentAt: missedSent);
+
+        var body = await GetAsync(trainer, client.UserId, "?weeks=4");
+
+        body.Weeks.Select(w => w.SentAt).Should().Equal(null, missedSent, answeredSent, waitingSent);
+    }
+
+    [Fact]
+    public async Task GetHistory_SameWeekTwoProfessions_SentAtBelongsToWinningRow()
+    {
+        var (trainer, client) = await LinkedPairAsync();
+        var anchor = Anchor();
+        var losingSent = new DateTime(2030, 2, 1, 8, 0, 0, DateTimeKind.Utc);
+        var winningSent = new DateTime(2030, 2, 2, 8, 0, 0, DateTimeKind.Utc);
+
+        await InsertAsync(client.UserId, trainer.UserId, anchor, WeeklyCheckInStatus.Expired,
+            profession: Profession.Training, sentAt: losingSent);
+        await InsertAsync(client.UserId, trainer.UserId, anchor, WeeklyCheckInStatus.Responded,
+            respondedAt: DateTime.UtcNow.AddHours(-3), profession: Profession.Nutrition, sentAt: winningSent);
+
+        var body = await GetAsync(trainer, client.UserId, "?weeks=1");
+
+        body.Weeks.Should().ContainSingle().Which.SentAt.Should().Be(winningSent);
+    }
+
     private sealed record HistoryBody(List<WeekBody> Weeks, int AnsweredCount, int TotalCount);
 
-    private sealed record WeekBody(DateOnly WeekStartDate, string Status);
+    private sealed record WeekBody(DateOnly WeekStartDate, string Status, DateTime? SentAt);
 }

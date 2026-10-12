@@ -80,28 +80,26 @@ internal sealed class GetClientCheckInHistoryEndpoint(
         var rows = await db.WeeklyCheckIns
             .AsNoTracking()
             .Where(c => c.ClientUserId == req.ClientUserId && c.ProfessionalUserId == professionalUserId)
-            .Select(c => new { c.WeekStartDate, c.RespondedAt, c.Status, c.DueAt })
+            .Select(c => new { c.WeekStartDate, c.RespondedAt, c.Status, c.DueAt, c.SentAt })
             .ToListAsync(ct);
 
-        var statusByWeek = rows
+        var winnerByWeek = rows
             .GroupBy(c => c.WeekStartDate)
             .ToDictionary(
                 group => group.Key,
                 group => group
-                    .Select(c => RowStatus(c.RespondedAt, c.Status, c.DueAt, now))
-                    .MinBy(Rank)!);
+                    .Select(c => (Status: RowStatus(c.RespondedAt, c.Status, c.DueAt, now), c.SentAt))
+                    .MinBy(c => Rank(c.Status)));
 
         var weeks = Enumerable.Range(0, req.Weeks)
             .Select(offset => anchor.AddDays(-7 * (req.Weeks - 1 - offset)))
-            .Select(monday => new CheckInHistoryWeekDto
-            {
-                WeekStartDate = monday,
-                Status = statusByWeek.GetValueOrDefault(monday, None)
-            })
+            .Select(monday => winnerByWeek.TryGetValue(monday, out var winner)
+                ? new CheckInHistoryWeekDto { WeekStartDate = monday, Status = winner.Status, SentAt = winner.SentAt }
+                : new CheckInHistoryWeekDto { WeekStartDate = monday, Status = None })
             .ToList();
 
-        var answeredCount = statusByWeek.Values.Count(status => status == Answered);
-        var missedCount = statusByWeek.Values.Count(status => status == Missed);
+        var answeredCount = winnerByWeek.Values.Count(winner => winner.Status == Answered);
+        var missedCount = winnerByWeek.Values.Count(winner => winner.Status == Missed);
 
         await Send.OkAsync(new GetClientCheckInHistoryResponse
         {
