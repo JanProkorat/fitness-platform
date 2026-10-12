@@ -9,9 +9,8 @@ namespace FitnessPlatform.Application.Features.Messaging.Shared;
 public class ConversationDto
 {
     /// <summary>
-    /// The conversation's <c>Conversation.PublicId</c>. Null for a live-roster placeholder row
-    /// (a linked client with no conversation yet) that still matched the requested filter chip —
-    /// see <c>GetConversationsEndpoint</c>'s roster-filter path.
+    /// The conversation's <c>Conversation.PublicId</c>. Always set by the list endpoint now
+    /// (clients without a conversation are not listed); nullable only to keep the API contract.
     /// </summary>
     public Guid? Id { get; set; }
 

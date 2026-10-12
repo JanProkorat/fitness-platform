@@ -47,16 +47,17 @@ public class GetConversationFilterCountsEndpointTests(FitnessApiFactory factory)
         var (http, trainerId) = await SetupTrainerAsync();
         var (unreadClientId, _) = await SetupLinkedClientAsync(trainerId);
         var (noMessagesClientId, _) = await SetupLinkedClientAsync(trainerId);
-        _ = noMessagesClientId; // no conversation seeded — counts toward NoMessages by construction
+        await SetupLinkedClientAsync(trainerId); // no conversation — must not be counted anywhere
 
         await SeedConversationWithMessageAsync(trainerId, unreadClientId, senderIsClient: true, isRead: false);
+        await SeedEmptyConversationAsync(trainerId, noMessagesClientId);
 
         var response = await http.GetAsync("/conversations/filter-counts", TestContext.Current.CancellationToken);
         var body = await Deserialize(response);
 
-        body!.All.Should().Be(2);
+        body!.All.Should().Be(2, "the linked client with no conversation is not an inbox row");
         body.UnreadMessages.Should().Be(1);
-        body.NoMessages.Should().Be(1);
+        body.NoMessages.Should().Be(1, "an existing zero-message conversation counts; no conversation does not");
     }
 
     [Fact]
@@ -142,6 +143,20 @@ public class GetConversationFilterCountsEndpointTests(FitnessApiFactory factory)
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         return conversation.PublicId;
+    }
+
+    private async Task SeedEmptyConversationAsync(Guid professionalUserId, Guid clientUserId)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        db.Conversations.Add(new Conversation
+        {
+            PublicId = Guid.NewGuid(),
+            ProfessionalUserId = professionalUserId,
+            ClientUserId = clientUserId
+        });
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
     private static async Task<CountsDto?> Deserialize(HttpResponseMessage response) =>

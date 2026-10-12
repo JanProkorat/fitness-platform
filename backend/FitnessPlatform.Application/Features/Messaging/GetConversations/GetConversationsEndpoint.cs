@@ -21,13 +21,10 @@ namespace FitnessPlatform.Application.Features.Messaging.GetConversations;
 /// <see cref="ClientListFilter.All"/>.
 /// <para/>
 /// A professional caller always goes through the live-roster path
-/// (<see cref="ConversationRosterLoader"/>, live links only): every linked client is classified
-/// against <see cref="GetConversationsRequest.Filter"/> — the same six-way chip set
-/// <c>GetClientsEndpoint</c> exposes — whether or not a conversation exists yet, and a client with
-/// no conversation whose facts still match the chip is returned as a placeholder row with
-/// <see cref="ConversationDto.Id"/> null. <c>archived</c> is applied after the chip — a
-/// placeholder row (no conversation, so nothing to archive) survives only when
-/// <c>archived=false</c>.
+/// (<see cref="ConversationRosterLoader"/>, live links only): every linked client that has a
+/// conversation is classified against <see cref="GetConversationsRequest.Filter"/> — the same
+/// six-way chip set <c>GetClientsEndpoint</c> exposes. A linked client with no conversation yet is
+/// not listed. <c>archived</c> is applied after the chip.
 /// <para/>
 /// <see cref="ClientListFilter.All"/> (or an omitted filter) additionally unions in every
 /// conversation whose client is NOT on the live roster (a deactivated/former link, including any
@@ -54,8 +51,9 @@ public class GetConversationsEndpoint(
         Summary(s =>
         {
             s.Summary = "Get conversations";
-            s.Description = "Returns all conversations for the authenticated user, optionally " +
-                             "narrowed by a clients-list-style filter chip (professional callers only).";
+            s.Description = "Returns all existing conversations for the authenticated user, optionally " +
+                             "narrowed by a clients-list-style filter chip (professional callers only). " +
+                             "Linked clients with no conversation yet are not listed.";
             s.Responses[StatusCodes.Status200OK] = "Conversation list, newest activity first.";
             s.Responses[StatusCodes.Status400BadRequest] = "filter is not a member of ClientListFilter, " +
                                                              "or a non-All filter was requested by a Client caller.";
@@ -109,9 +107,7 @@ public class GetConversationsEndpoint(
             r.IsEndingSoon));
 
         var displayed = matched
-            .Where(r => req.Archived
-                ? r.ConversationPublicId is not null && r.IsArchivedByProfessional
-                : r.ConversationPublicId is null || !r.IsArchivedByProfessional)
+            .Where(r => r.IsArchivedByProfessional == req.Archived)
             .Select(r => BuildFromRosterRow(r, userGuid))
             .ToList();
 
@@ -203,9 +199,7 @@ public class GetConversationsEndpoint(
     }
 
     /// <summary>
-    /// Maps a roster row to a <see cref="ConversationDto"/>. <see cref="ConversationDto.Id"/> is
-    /// null when the client has no conversation yet — a placeholder row the inbox still lists
-    /// (e.g. under NoMessages) without a thread to open until the caller sends the first message.
+    /// Maps a roster row (always backed by an existing conversation) to a <see cref="ConversationDto"/>.
     /// </summary>
     private static ConversationDto BuildFromRosterRow(ConversationRosterRow row, Guid userGuid) =>
         new()
