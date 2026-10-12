@@ -1,7 +1,7 @@
-using FitnessPlatform.Application.Domain.Authorization;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using FastEndpoints;
+using FitnessPlatform.Application.Domain.Authorization;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;

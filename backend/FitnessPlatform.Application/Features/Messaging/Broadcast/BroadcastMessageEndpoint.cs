@@ -1,5 +1,5 @@
-using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Authorization;
+using FitnessPlatform.Application.Domain.Enums;
 using System.Security.Claims;
 using System.Text.RegularExpressions;
 using FastEndpoints;
