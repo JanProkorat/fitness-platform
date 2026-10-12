@@ -182,6 +182,15 @@ export function resolveMostRecentSession(plan: RawTrainingPlanDetail): RawTraini
   return resolveMostRecentSessionWithDay(plan)?.session;
 }
 
+/** Localised long weekday name for a 1 (Monday) to 7 (Sunday) day number, or undefined when out of range. */
+export function weekdayName(dayOfWeek: number, locale: string): string | undefined {
+  if (!Number.isInteger(dayOfWeek) || dayOfWeek < 1 || dayOfWeek > 7) {
+    return undefined;
+  }
+  // 1 Jan 2024 is a Monday, so day N of that January lands on weekday N.
+  return new Intl.DateTimeFormat(locale, { weekday: 'long' }).format(new Date(2024, 0, dayOfWeek));
+}
+
 export interface MacroShares {
   proteinPct: number;
   carbPct: number;

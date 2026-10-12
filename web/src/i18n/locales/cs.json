@@ -3385,7 +3385,6 @@
     },
     "overview": {
       "backAriaLabel": "Zpět na klienty",
-      "tbd": "TBD",
       "header": {
         "heightCm": "{{cm}} cm"
       },
@@ -3438,15 +3437,25 @@
         }
       },
       "mealPlan": {
+        "label": "Jídelníček",
         "heading": "Aktuální jídelníček",
+        "openPlan": "Otevřít plán",
+        "macrosCaption": "Makra · bílkoviny / sacharidy / tuky",
         "detail": "{{kcal}} kcal • {{carb}} % Sacharidy / {{protein}} % Bílkoviny / {{fat}} % Tuky"
       },
       "workout": {
+        "label": "Trénink",
+        "openPlan": "Otevřít plán",
+        "doneThisWeek": "Hotovo tento týden · {{done}} z {{total}} sezení",
         "heading": "Poslední trénink",
         "exercises_one": "{{count}} cvik",
         "exercises_few": "{{count}} cviky",
         "exercises_many": "{{count}} cviků",
         "exercises_other": "{{count}} cviků",
+        "cardExercises_one": "{{count}} cvik",
+        "cardExercises_few": "{{count}} cviky",
+        "cardExercises_many": "{{count}} cviků",
+        "cardExercises_other": "{{count}} cviků",
         "noAccess": "Bez přístupu k tréninku"
       },
       "checkInTrend": {

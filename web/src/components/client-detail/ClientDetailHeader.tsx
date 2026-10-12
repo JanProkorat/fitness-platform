@@ -1,9 +1,9 @@
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ClientIdentityBlock from '@/components/client-detail/ClientIdentityBlock';
-import TbdValue from '@/components/client-detail/TbdValue';
+import ClientAvatar from '@/components/clients/ClientAvatar';
 import { getClientDetailBackPath } from '@/lib/clientDetailNavigation';
 import type { GetClientDashboardResponse } from '@/api/generated';
 
@@ -26,24 +26,32 @@ export default function ClientDetailHeader({ dashboard }: Props) {
 
   return (
     <div className="flex flex-wrap items-start justify-between gap-3">
-      <div className="flex items-start gap-2">
+      <div className="flex items-center gap-3">
         <Link
           to={getClientDetailBackPath(location.state)}
           aria-label={t('clientDetail.overview.backAriaLabel')}
-          className="mt-1 text-muted-foreground transition-colors hover:text-foreground"
+          className="text-muted-foreground transition-colors hover:text-foreground"
         >
           <ArrowLeft className="size-5" aria-hidden="true" />
         </Link>
+        <ClientAvatar
+          firstName={dashboard.firstName}
+          lastName={dashboard.lastName}
+          className="size-14"
+          fallbackClassName="bg-primary text-body font-semibold text-primary-foreground"
+        />
         <ClientIdentityBlock dashboard={dashboard} />
       </div>
 
       <div className="flex items-center gap-2">
-        <Button asChild variant="outline" size="sm">
-          <Link to={`/inbox?client=${dashboard.clientPublicId}`}>{t('clientDetail.overview.actions.chat')}</Link>
+        <Button asChild size="sm" className="gap-1.5">
+          <Link to={`/inbox?client=${dashboard.clientPublicId}`}>
+            <MessageSquare className="size-4" aria-hidden="true" />
+            {t('clientDetail.overview.actions.chat')}
+          </Link>
         </Button>
-        <Button type="button" variant="outline" size="sm" disabled title={t('shell.comingSoon')} className="gap-1.5">
+        <Button type="button" variant="outline" size="sm" disabled title={t('shell.comingSoon')}>
           {t('clientDetail.overview.actions.tasks')}
-          <TbdValue />
         </Button>
         <Button type="button" variant="outline" size="sm" disabled title={t('shell.comingSoon')}>
           {t('clientDetail.overview.actions.notes')}

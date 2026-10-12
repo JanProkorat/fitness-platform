@@ -20,7 +20,7 @@ test.describe('client detail — meal plan card', () => {
 
     await expect(page.getByRole('heading', { name: /QA Client/ })).toBeVisible();
 
-    const mealPlanCard = page.locator('div').filter({ has: page.getByRole('heading', { name: 'Current meal plan' }) }).last();
+    const mealPlanCard = page.getByRole('region', { name: 'Current meal plan' });
     await expect(mealPlanCard).toContainText('38 % Carb');
     await expect(mealPlanCard).toContainText('26 % Protein');
     await expect(mealPlanCard).toContainText('36 % Fat');
