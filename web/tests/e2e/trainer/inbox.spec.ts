@@ -147,7 +147,11 @@ test.describe('inbox page', () => {
     await expect(page.getByText('Select a chat to begin messaging')).toHaveCount(0);
     await expect(page.getByPlaceholder('Type your message here...')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Hide client' })).toBeVisible();
-    // The auto-selected first row is QA Client, and opening it marks it read.
+    // The auto-selected first row is QA Client; merely entering the inbox must not mark it read.
+    await expect(qaClientRow(page).locator('[role="status"]')).toBeVisible();
+
+    // The first interaction inside the thread pane marks it read.
+    await page.getByTestId('thread-message-list').click();
     await expect(qaClientRow(page).locator('[role="status"]')).toHaveCount(0);
   });
 
@@ -168,8 +172,8 @@ test.describe('inbox page', () => {
   test('list renders with unread dot, time, and last-message preview; opening the thread marks it read', async ({
     page,
   }) => {
-    // QA Client is the first row and is auto-opened (so already read) on entry; QA Former keeps its
-    // seeded unread message until the trainer opens that thread.
+    // QA Client is auto-opened on entry but stays unread until the trainer interacts; QA Former keeps
+    // its seeded unread message until the trainer opens that thread.
     const row = qaFormerRow(page);
     await expect(row).toBeVisible();
     await expect(row.locator('[role="status"]')).toBeVisible(); // unread dot

@@ -72,6 +72,8 @@ export default function InboxPage() {
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const markReadDebounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const deepLinkHandledRef = useRef(false);
+  /** True while the open thread was preselected on entry and the trainer has not engaged with it yet. */
+  const [isAutoSelected, setIsAutoSelected] = useState(false);
 
   const conversationsQuery = useConversations(archived, filter);
   const countsQuery = useConversationFilterCounts();
@@ -112,10 +114,12 @@ export default function InboxPage() {
 
     const existingRow = conversations.find((c) => c.participant?.clientPublicId === clientParam);
     if (existingRow?.id) {
+      setIsAutoSelected(false);
       setSelectedParticipantId(existingRow.participant?.id);
     } else {
       startConversationMutation.mutate(clientParam, {
         onSuccess: async (conversation) => {
+          setIsAutoSelected(false);
           setSelectedParticipantId(conversation.participant?.id);
           // POST /conversations gets-or-creates: the returned conversation may
           // already exist but be archived, and an archived thread never shows
@@ -161,11 +165,13 @@ export default function InboxPage() {
     }
     const firstParticipantId = conversations[0]?.participant?.id;
     if (firstParticipantId) {
+      setIsAutoSelected(true);
       setSelectedParticipantId(firstParticipantId);
     }
   }, [conversations, conversationsQuery.isPending, hasPendingDeepLink, selectedParticipantId, startConversationMutation.isPending]);
 
   function handleSelectConversation(conversation: (typeof conversations)[number]) {
+    setIsAutoSelected(false);
     setSelectedParticipantId(conversation.participant?.id);
   }
 
@@ -180,7 +186,8 @@ export default function InboxPage() {
         // A message landing in the thread that's already open would otherwise
         // re-light its unread dot until the reader re-opens it. Debounced so a
         // burst of messages collapses into one mark-read call.
-        if (conversationId === selectedConversation?.id) {
+        // Skipped while the thread is only auto-selected: the trainer has not read it yet.
+        if (conversationId === selectedConversation?.id && !isAutoSelected) {
           if (markReadDebounceRef.current) {
             clearTimeout(markReadDebounceRef.current);
           }
@@ -222,7 +229,7 @@ export default function InboxPage() {
     // observer; the wrapping object is a fresh reference every render, so
     // depending on the whole object would re-register the handlers on every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [queryClient, selectedConversation?.id, currentUserId, markReadMutation.mutate],
+    [queryClient, selectedConversation?.id, currentUserId, markReadMutation.mutate, isAutoSelected],
   );
   useSignalR(signalRHandlers);
 
@@ -262,6 +269,8 @@ export default function InboxPage() {
           isOtherPartyTyping={isOtherPartyTyping}
           isSendLocked={selectedConversation.isSendLocked ?? false}
           isFormer={selectedConversation.isFormer ?? false}
+          deferMarkRead={isAutoSelected}
+          onEngage={() => setIsAutoSelected(false)}
         />
       ) : (
         <ThreadEmptyState />

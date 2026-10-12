@@ -27,6 +27,10 @@ interface Props {
   /** `ConversationDto.isSendLocked` — the server would refuse a send here. */
   isSendLocked?: boolean;
   isFormer?: boolean;
+  /** True while the thread was auto-selected: it is shown but not marked read until the trainer engages. */
+  deferMarkRead?: boolean;
+  /** Called on the first user-initiated input inside the pane while `deferMarkRead` is set. */
+  onEngage?: () => void;
 }
 
 /** True when `message` starts a new calendar day relative to `previous` (or there is no previous message). */
@@ -53,6 +57,8 @@ export default function ThreadPane({
   isOtherPartyTyping,
   isSendLocked = false,
   isFormer = false,
+  deferMarkRead = false,
+  onEngage,
 }: Props) {
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
@@ -76,6 +82,8 @@ export default function ThreadPane({
    * lands so the viewport doesn't jump (invariant: scrollHeight - scrollTop). */
   const pendingOlderPageAnchorRef = useRef<number | null>(null);
   const wasFetchingNextPageRef = useRef(false);
+  /** The conversation id already marked read, so each conversation is marked once. */
+  const markedReadConversationIdRef = useRef<string | undefined>(undefined);
 
   const messagesQuery = useConversationMessages(conversationId);
   const markReadMutation = useMarkConversationRead();
@@ -86,19 +94,34 @@ export default function ThreadPane({
     [messagesQuery.data],
   );
 
-  // Mark read once per conversation open, not on every re-render. The actual
-  // "jump to newest" scroll happens below, once the first page has data —
-  // doing it here raced the fetch and left a cold-cache thread stranded at
-  // its oldest loaded message (#1099 review finding).
+  // Reset per-conversation scroll state on open. The actual "jump to newest" scroll
+  // happens below, once the first page has data — doing it here raced the fetch and
+  // left a cold-cache thread stranded at its oldest loaded message (#1099 review finding).
   useEffect(() => {
     if (previousConversationIdRef.current !== conversationId) {
       previousConversationIdRef.current = conversationId;
-      markReadMutation.mutate(conversationId);
       lastMessageIdRef.current = undefined;
       isNearBottomRef.current = true;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally only re-runs when the conversation changes, not on every mutate identity change
   }, [conversationId]);
+
+  // Mark read once per conversation, as soon as it is not deferred (an auto-selected
+  // thread waits for the trainer's first interaction).
+  useEffect(() => {
+    if (deferMarkRead || markedReadConversationIdRef.current === conversationId) {
+      return;
+    }
+    markedReadConversationIdRef.current = conversationId;
+    markReadMutation.mutate(conversationId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally only re-runs when the conversation or deferral changes, not on every mutate identity change
+  }, [conversationId, deferMarkRead]);
+
+  // User-initiated input only; `scroll` is excluded because the pane scrolls itself to the newest message.
+  function handleEngage() {
+    if (deferMarkRead) {
+      onEngage?.();
+    }
+  }
 
   // Scroll to the newest message once the first page for this conversation has
   // rendered, and again whenever a genuinely new message is appended (a realtime
@@ -206,7 +229,14 @@ export default function ThreadPane({
   const ownInitials = user ? `${user.firstName[0] ?? ''}${user.lastName[0] ?? ''}`.toUpperCase() : '';
 
   return (
-    <div className="flex h-full min-w-0 flex-1 flex-col bg-background">
+    <div
+      className="flex h-full min-w-0 flex-1 flex-col bg-background"
+      onPointerDownCapture={handleEngage}
+      onWheelCapture={handleEngage}
+      onTouchStartCapture={handleEngage}
+      onKeyDownCapture={handleEngage}
+      onFocusCapture={handleEngage}
+    >
       <ThreadHeader participant={participant} showClientPanel={showClientPanel} onToggleClientPanel={onToggleClientPanel} isFormer={isFormer} />
 
       <div ref={scrollRef} onScroll={handleScroll} data-testid="thread-message-list" className="flex-1 overflow-y-auto px-6 py-5">
