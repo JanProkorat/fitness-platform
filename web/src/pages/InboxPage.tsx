@@ -15,6 +15,7 @@ import {
 } from '@/hooks/useInboxQueries';
 import { useSignalR } from '@/hooks/useSignalR';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
+import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth';
 import { ClientListFilter, type ConversationDto } from '@/api/generated';
 
@@ -146,19 +147,26 @@ export default function InboxPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once conversations resolve; deepLinkHandledRef guards re-entry
   }, [conversationsQuery.isPending]);
 
+  // Preselect the first chat once the list loads. Only when nothing is selected, and never while a
+  // `?client=` deep link is pending or a start-conversation call is in flight (those own selection).
+  const hasPendingDeepLink = searchParams.has('client');
+  useEffect(() => {
+    if (
+      selectedParticipantId !== undefined ||
+      hasPendingDeepLink ||
+      conversationsQuery.isPending ||
+      startConversationMutation.isPending
+    ) {
+      return;
+    }
+    const firstParticipantId = conversations[0]?.participant?.id;
+    if (firstParticipantId) {
+      setSelectedParticipantId(firstParticipantId);
+    }
+  }, [conversations, conversationsQuery.isPending, hasPendingDeepLink, selectedParticipantId, startConversationMutation.isPending]);
+
   function handleSelectConversation(conversation: (typeof conversations)[number]) {
-    if (conversation.id) {
-      setSelectedParticipantId(conversation.participant?.id);
-      return;
-    }
-    // Null-id placeholder row (a linked client with no conversation yet) — start it.
-    const clientPublicId = conversation.participant?.clientPublicId;
-    if (!clientPublicId) {
-      return;
-    }
-    startConversationMutation.mutate(clientPublicId, {
-      onSuccess: (started) => setSelectedParticipantId(started.participant?.id),
-    });
+    setSelectedParticipantId(conversation.participant?.id);
   }
 
   const signalRHandlers = useMemo(
@@ -259,12 +267,19 @@ export default function InboxPage() {
         <ThreadEmptyState />
       )}
 
-      {isClientPanelOpen && selectedClientPublicId && (
+      {selectedClientPublicId && (
         <aside
           aria-label={t('inbox.thread.clientPanelTitle')}
-          className="flex h-full w-panel shrink-0 flex-col border-l border-border bg-card"
+          aria-hidden={!isClientPanelOpen}
+          inert={!isClientPanelOpen}
+          className={cn(
+            'h-full shrink-0 overflow-hidden bg-card transition-[width] duration-300 ease-out motion-reduce:transition-none',
+            isClientPanelOpen ? 'w-panel border-l border-border' : 'w-0',
+          )}
         >
-          <ClientSidePanel clientPublicId={selectedClientPublicId} />
+          <div className="flex h-full w-panel flex-col">
+            <ClientSidePanel clientPublicId={selectedClientPublicId} />
+          </div>
         </aside>
       )}
     </div>

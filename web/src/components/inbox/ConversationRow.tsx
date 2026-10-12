@@ -32,17 +32,12 @@ function formatRowTime(iso: string | undefined, locale: string, yesterdayLabel: 
 
 /**
  * One conversation-list row: avatar, name, time, last-message preview, and
- * an unread dot when `unreadCount > 0`. A null `id` (a linked client with
- * no conversation yet, matched by the roster-filter path) is still
- * selectable — opening it starts the conversation.
+ * an unread dot when `unreadCount > 0`.
  */
 export default function ConversationRow({ conversation, isSelected, onSelect }: Props) {
   const { t, i18n } = useTranslation();
   const participant = conversation.participant;
   const hasUnread = (conversation.unreadCount ?? 0) > 0;
-  // A placeholder row carries no conversation, so its lastMessageAt is the
-  // default date — show nothing rather than 1 Jan, and invite the coach to write.
-  const hasConversation = conversation.id != null;
 
   return (
     <button
@@ -67,25 +62,23 @@ export default function ConversationRow({ conversation, isSelected, onSelect }: 
             {participant?.name}
           </span>
           <span className="shrink-0 text-caption text-muted-foreground">
-            {hasConversation ? formatRowTime(conversation.lastMessageAt, i18n.language, t('inbox.row.yesterday')) : ''}
+            {formatRowTime(conversation.lastMessageAt, i18n.language, t('inbox.row.yesterday'))}
           </span>
         </div>
         <div className="flex items-center justify-between gap-2">
           <span className={cn('truncate text-meta', hasUnread ? 'text-ink-2' : 'text-muted-foreground')}>
-            {hasConversation
-              ? conversation.lastMessageEventType != null
-                ? getEventPreviewText(t, conversation.lastMessageEventType, conversation.lastMessageIsOwn ?? false, participant?.name ?? '')
-                : conversation.lastMessage || (
-                    conversation.lastMessageHasImage ? (
-                      <span className="inline-flex items-center gap-1">
-                        <ImageIcon className="size-3.25" aria-hidden="true" />
-                        {t('inbox.list.photoMarker')}
-                      </span>
-                    ) : (
-                      '—'
-                    )
+            {conversation.lastMessageEventType != null
+              ? getEventPreviewText(t, conversation.lastMessageEventType, conversation.lastMessageIsOwn ?? false, participant?.name ?? '')
+              : conversation.lastMessage || (
+                  conversation.lastMessageHasImage ? (
+                    <span className="inline-flex items-center gap-1">
+                      <ImageIcon className="size-3.25" aria-hidden="true" />
+                      {t('inbox.list.photoMarker')}
+                    </span>
+                  ) : (
+                    '—'
                   )
-              : t('inbox.row.noConversationYet')}
+                )}
           </span>
           {hasUnread && (
             <span

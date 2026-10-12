@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ExternalLink, Settings, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ParticipantAvatar from '@/components/inbox/ParticipantAvatar';
+import type { ClientDetailLocationState } from '@/lib/clientDetailNavigation';
 import type { ParticipantDto } from '@/api/generated';
 
 interface Props {
@@ -57,7 +58,10 @@ export default function ThreadHeader({ participant, showClientPanel, onToggleCli
         </Button>
         {participant.clientPublicId && !isFormer ? (
           <Button type="button" variant="ghost" size="icon-sm" className="size-8.5 rounded-field text-ink-2" asChild>
-            <Link to={`/clients/${participant.clientPublicId}`} aria-label={t('inbox.thread.openClientProfileAriaLabel')}>
+            <Link
+              to={`/clients/${participant.clientPublicId}`}
+              state={{ returnTo: `/inbox?client=${participant.clientPublicId}` } satisfies ClientDetailLocationState}
+              aria-label={t('inbox.thread.openClientProfileAriaLabel')}>
               <ExternalLink className="size-4" aria-hidden="true" />
             </Link>
           </Button>
