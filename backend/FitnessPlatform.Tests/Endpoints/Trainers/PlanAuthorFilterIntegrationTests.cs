@@ -277,9 +277,9 @@ public class PlanAuthorFilterIntegrationTests(FitnessApiFactory factory)
         var body = await response.Content.ReadFromJsonAsync<GetClientTimelineResponse>(JsonOptions, Ct);
         var ids = body!.Items.Select(i => i.Id).ToList();
 
-        ids.Should().Contain($"nutrition_plan:{ownNutrition}");
-        ids.Should().NotContain($"nutrition_plan:{foreignNutrition}");
-        ids.Should().NotContain($"training_plan:{foreignTraining}");
+        ids.Should().Contain($"nutrition_plan:{ownNutrition}:week:1");
+        ids.Should().NotContain($"nutrition_plan:{foreignNutrition}:week:1");
+        ids.Should().NotContain($"training_plan:{foreignTraining}:week:1");
     }
 
     [Fact]

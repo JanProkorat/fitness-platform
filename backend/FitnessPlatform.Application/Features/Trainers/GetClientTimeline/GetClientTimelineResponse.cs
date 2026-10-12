@@ -45,6 +45,92 @@ public class ClientTimelineItem
     /// locale-specific copy without depending on server-side strings.
     /// </summary>
     public PersonalRecordPayload? PersonalRecord { get; set; }
+
+    /// <summary>Structured payload for <c>meal_day</c> items. Null for all other types.</summary>
+    public TimelineMealDayPayload? MealDay { get; set; }
+
+    /// <summary>Structured payload for <c>workout</c> items. Null for all other types.</summary>
+    public TimelineWorkoutPayload? Workout { get; set; }
+
+    /// <summary>Structured payload for <c>measurement</c> items. Null for all other types.</summary>
+    public TimelineMeasurementPayload? Measurement { get; set; }
+
+    /// <summary>Structured payload for <c>questionnaire</c> items. Null for all other types.</summary>
+    public TimelineQuestionnairePayload? Questionnaire { get; set; }
+
+    /// <summary>
+    /// Structured payload for <c>nutrition_plan_published</c> and <c>training_plan_published</c>
+    /// items. Null for all other types.
+    /// </summary>
+    public TimelinePlanPublishedPayload? PlanPublished { get; set; }
+}
+
+/// <summary>
+/// Structured payload embedded in a <c>meal_day</c> timeline item.
+/// </summary>
+public class TimelineMealDayPayload
+{
+    /// <summary>Number of distinct planned meals logged that day.</summary>
+    public int MealsLogged { get; set; }
+
+    /// <summary>
+    /// Planned meals for that day. Null when the day's plan was not authored by the caller
+    /// or the day has no planned meals.
+    /// </summary>
+    public int? MealsPlanned { get; set; }
+}
+
+/// <summary>
+/// Structured payload embedded in a <c>workout</c> timeline item.
+/// </summary>
+public class TimelineWorkoutPayload
+{
+    /// <summary>Public identifier of the session execution.</summary>
+    public Guid SessionExecutionId { get; set; }
+
+    /// <summary>
+    /// Name of the planned session. Null for ad-hoc workouts and for plans the caller did not author.
+    /// </summary>
+    public string? SessionName { get; set; }
+
+    /// <summary>Number of exercises recorded in the workout.</summary>
+    public int ExerciseCount { get; set; }
+}
+
+/// <summary>
+/// Structured payload embedded in a <c>measurement</c> timeline item.
+/// </summary>
+public class TimelineMeasurementPayload
+{
+    /// <summary>Body weight in kilograms, when recorded.</summary>
+    public decimal? WeightKg { get; set; }
+
+    /// <summary>Body fat percentage, when recorded.</summary>
+    public decimal? BodyFatPercentage { get; set; }
+}
+
+/// <summary>
+/// Structured payload embedded in a <c>questionnaire</c> timeline item.
+/// </summary>
+public class TimelineQuestionnairePayload
+{
+    /// <summary>Title of the submitted questionnaire.</summary>
+    public string QuestionnaireTitle { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// Structured payload embedded in a plan-published timeline item (one item per published week).
+/// </summary>
+public class TimelinePlanPublishedPayload
+{
+    /// <summary>Public identifier of the plan.</summary>
+    public Guid PlanId { get; set; }
+
+    /// <summary>Plan name, when set.</summary>
+    public string? PlanName { get; set; }
+
+    /// <summary>Number of the week that was published.</summary>
+    public int WeekNumber { get; set; }
 }
 
 /// <summary>

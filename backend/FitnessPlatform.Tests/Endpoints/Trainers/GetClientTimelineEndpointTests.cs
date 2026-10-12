@@ -682,7 +682,7 @@ public class GetClientTimelineEndpointTests(FitnessApiFactory factory)
         var item = body!.Items.FirstOrDefault(i => i.Type == "nutrition_plan_published");
         item.Should().NotBeNull(
             "publishing a week over the real HTTP publish endpoint must surface exactly one nutrition_plan_published timeline event");
-        item!.Id.Should().Be($"nutrition_plan:{plan.ExternalId}");
+        item!.Id.Should().Be($"nutrition_plan:{plan.ExternalId}:week:1");
     }
 
     /// <summary>
@@ -718,17 +718,16 @@ public class GetClientTimelineEndpointTests(FitnessApiFactory factory)
         var item = body!.Items.FirstOrDefault(i => i.Type == "training_plan_published");
         item.Should().NotBeNull(
             "publishing a week over the real HTTP publish endpoint must surface exactly one training_plan_published timeline event");
-        item!.Id.Should().Be($"training_plan:{plan.ExternalId}");
+        item!.Id.Should().Be($"training_plan:{plan.ExternalId}:week:1");
     }
 
     /// <summary>
-    /// Test 9 (#1014): a plan whose higher-numbered week was published BEFORE its week 1 must
-    /// still surface exactly one <c>nutrition_plan_published</c> event, dated by the EARLIEST
-    /// published week's date — not the lowest week number's date
-    /// (<c>GetClientPlansEndpoint</c>'s convention, which does not apply here).
+    /// Test 9: a plan with weeks 3 and 1 published (3 first) surfaces ONE
+    /// <c>nutrition_plan_published</c> event per published week, each dated at that week's own
+    /// DatePublished, with a per-week id and the week number in the payload.
     /// </summary>
     [Fact]
-    public async Task Timeline_HigherWeekPublishedEarlierThanWeekOne_UsesEarliestDateAsSingleEvent()
+    public async Task Timeline_MultipleWeeksPublished_EmitsOneEventPerWeek()
     {
         var (nutritionistHttp, nutritionistUserId, clientUserId, clientPublicId) =
             await RegisterNutritionistWithLinkedClientAsync();
@@ -763,21 +762,22 @@ public class GetClientTimelineEndpointTests(FitnessApiFactory factory)
             JsonOptions, cancellationToken: TestContext.Current.CancellationToken);
 
         var nutritionEvents = body!.Items.Where(i => i.Type == "nutrition_plan_published").ToList();
-        nutritionEvents.Should().HaveCount(1, "one event per plan regardless of how many weeks are published");
+        nutritionEvents.Should().HaveCount(2, "one event per published week; week 2 is still a draft");
 
-        // Exact equality, not a proximity window: week3PublishedAt and week1PublishedAt are two
-        // back-to-back HTTP calls, so their real-world gap can be a few milliseconds — far
-        // narrower than a 1-second tolerance could ever discriminate. OccurredAt is derived as
-        // Min() over the same persisted values FetchNutritionPlanAsync reads, so it must be
-        // bit-identical to week3PublishedAt and must NOT equal week1PublishedAt. This is what
-        // actually catches a regression to OrderBy(WeekNumber).First() (the lowest-week-number
-        // form GetClientPlansEndpoint uses, which does not apply here).
-        nutritionEvents[0].OccurredAt.Should().Be(
-            week3PublishedAt,
-            "OccurredAt must be the EARLIEST published week's date — week 3 was published before week 1");
-        nutritionEvents[0].OccurredAt.Should().NotBe(
-            week1PublishedAt,
-            "a regression to the lowest-week-number form would wrongly report week 1's date");
+        // Exact equality: the two publishes are back-to-back calls, so their gap can be a few
+        // milliseconds. OccurredAt is the same persisted value read by FetchNutritionPlanAsync.
+        var week3Event = nutritionEvents.Single(i => i.Id == $"nutrition_plan:{plan.ExternalId}:week:3");
+        week3Event.OccurredAt.Should().Be(week3PublishedAt);
+        week3Event.PlanPublished.Should().NotBeNull();
+        week3Event.PlanPublished!.WeekNumber.Should().Be(3);
+        week3Event.PlanPublished.PlanId.Should().Be(plan.ExternalId);
+        week3Event.PlanPublished.PlanName.Should().Be(plan.Name);
+
+        var week1Event = nutritionEvents.Single(i => i.Id == $"nutrition_plan:{plan.ExternalId}:week:1");
+        week1Event.OccurredAt.Should().Be(week1PublishedAt);
+        week1Event.PlanPublished!.WeekNumber.Should().Be(1);
+
+        body.Items.Select(i => i.Id).Should().OnlyHaveUniqueItems();
     }
 
     /// <summary>
@@ -968,6 +968,335 @@ public class GetClientTimelineEndpointTests(FitnessApiFactory factory)
             "a plan-publish event older than the 90-day lookback must be excluded");
     }
 
+    /// <summary>
+    /// Training-domain equivalent of the multi-week case: two published weeks produce two
+    /// <c>training_plan_published</c> rows with per-week ids and week numbers.
+    /// </summary>
+    [Fact]
+    public async Task Timeline_TrainingMultipleWeeksPublished_EmitsOneEventPerWeek()
+    {
+        var (trainerHttp, trainerUserId, clientUserId, clientPublicId) =
+            await RegisterTrainerWithLinkedClientAsync();
+
+        var plan = BuildDraftTrainingPlan(trainerUserId, clientUserId, weekCount: 3);
+        await SeedTrainingPlanAsync(plan);
+
+        foreach (var weekNumber in new[] { 2, 1 })
+        {
+            var publish = await trainerHttp.PostAsync(
+                $"/training/plans/{plan.ExternalId}/weeks/{weekNumber}/publish",
+                JsonContent.Create(new { PlanId = plan.ExternalId, WeekNumber = weekNumber }),
+                TestContext.Current.CancellationToken);
+            publish.StatusCode.Should().Be(HttpStatusCode.OK);
+        }
+
+        var body = await GetTimelineAsync(trainerHttp, clientPublicId);
+
+        var events = body.Items.Where(i => i.Type == "training_plan_published").ToList();
+        events.Should().HaveCount(2);
+        events.Select(i => i.Id).Should().BeEquivalentTo(
+            [$"training_plan:{plan.ExternalId}:week:1", $"training_plan:{plan.ExternalId}:week:2"]);
+        events.Select(i => i.PlanPublished!.WeekNumber).Should().BeEquivalentTo([1, 2]);
+        events.Select(i => i.OccurredAt).Should().OnlyHaveUniqueItems();
+    }
+
+    /// <summary>
+    /// A meal day carries distinct-meal MealsLogged, and MealsPlanned from the caller's own plan.
+    /// </summary>
+    [Fact]
+    public async Task Timeline_MealDay_OwnPlan_CarriesLoggedAndPlannedCounts()
+    {
+        var (trainerHttp, trainerProfileId, trainerUserId) = await SetupTrainerAsync();
+        var (clientPublicId, clientProfileId, clientUserId) = await SetupClientAsync();
+        await LinkTrainerToClientAsync(trainerProfileId, clientProfileId);
+
+        var day = DateTime.UtcNow.Date.AddDays(-3);
+        var plan = await SeedPlanWithThreeMealsOnDayOneAsync(trainerUserId, clientUserId, day);
+        await SeedMealLogsAsync(clientUserId, plan, day);
+
+        var body = await GetTimelineAsync(trainerHttp, clientPublicId);
+
+        var item = body.Items.Single(i => i.Id == $"meals:{day:yyyy-MM-dd}");
+        item.MealDay.Should().NotBeNull();
+        item.MealDay!.MealsLogged.Should().Be(2, "a meal logged twice counts once");
+        item.MealDay.MealsPlanned.Should().Be(3);
+        item.Title.Should().Be("Zaznamenáno 3 jídel", "the existing title keeps the raw log count");
+    }
+
+    /// <summary>
+    /// A plan written by another coach never leaks its planned meal count.
+    /// </summary>
+    [Fact]
+    public async Task Timeline_MealDay_ForeignPlan_MealsPlannedIsNull()
+    {
+        var (trainerHttp, trainerProfileId, _) = await SetupTrainerAsync();
+        var (clientPublicId, clientProfileId, clientUserId) = await SetupClientAsync();
+        await LinkTrainerToClientAsync(trainerProfileId, clientProfileId);
+
+        var day = DateTime.UtcNow.Date.AddDays(-3);
+        var plan = await SeedPlanWithThreeMealsOnDayOneAsync(Guid.NewGuid(), clientUserId, day);
+        await SeedMealLogsAsync(clientUserId, plan, day);
+
+        var body = await GetTimelineAsync(trainerHttp, clientPublicId);
+
+        var item = body.Items.Single(i => i.Id == $"meals:{day:yyyy-MM-dd}");
+        item.MealDay!.MealsLogged.Should().Be(2);
+        item.MealDay.MealsPlanned.Should().BeNull();
+    }
+
+    /// <summary>
+    /// A workout carries its execution id, exercise count and the session name from the
+    /// caller's own training plan.
+    /// </summary>
+    [Fact]
+    public async Task Timeline_Workout_OwnPlan_CarriesSessionNameAndExerciseCount()
+    {
+        var (trainerHttp, trainerProfileId, trainerUserId) = await SetupTrainerAsync();
+        var (clientPublicId, clientProfileId, clientUserId) = await SetupClientAsync();
+        await LinkTrainerToClientAsync(trainerProfileId, clientProfileId);
+
+        var (plan, sessionId) = await SeedTrainingPlanWithSessionAsync(trainerUserId, clientUserId, "Push day");
+        var executionId = await SeedWorkoutExecutionAsync(clientUserId, plan, sessionId);
+
+        var body = await GetTimelineAsync(trainerHttp, clientPublicId);
+
+        var item = body.Items.Single(i => i.Id == $"workout:{executionId}");
+        item.Workout.Should().NotBeNull();
+        item.Workout!.SessionExecutionId.Should().Be(executionId);
+        item.Workout.SessionName.Should().Be("Push day");
+        item.Workout.ExerciseCount.Should().Be(2);
+    }
+
+    /// <summary>
+    /// A session in another coach's plan never leaks its name.
+    /// </summary>
+    [Fact]
+    public async Task Timeline_Workout_ForeignPlan_SessionNameIsNull()
+    {
+        var (trainerHttp, trainerProfileId, _) = await SetupTrainerAsync();
+        var (clientPublicId, clientProfileId, clientUserId) = await SetupClientAsync();
+        await LinkTrainerToClientAsync(trainerProfileId, clientProfileId);
+
+        var (plan, sessionId) = await SeedTrainingPlanWithSessionAsync(Guid.NewGuid(), clientUserId, "Secret day");
+        var executionId = await SeedWorkoutExecutionAsync(clientUserId, plan, sessionId);
+
+        var body = await GetTimelineAsync(trainerHttp, clientPublicId);
+
+        var item = body.Items.Single(i => i.Id == $"workout:{executionId}");
+        item.Workout!.SessionName.Should().BeNull();
+        item.Workout.ExerciseCount.Should().Be(2);
+    }
+
+    /// <summary>
+    /// A measurement carries weight and body fat.
+    /// </summary>
+    [Fact]
+    public async Task Timeline_Measurement_CarriesWeightAndBodyFat()
+    {
+        var (trainerHttp, trainerProfileId, _) = await SetupTrainerAsync();
+        var (clientPublicId, clientProfileId, _) = await SetupClientAsync();
+        await LinkTrainerToClientAsync(trainerProfileId, clientProfileId);
+
+        var measurementId = Guid.NewGuid();
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            db.BodyMeasurements.Add(new BodyMeasurement
+            {
+                PublicId = measurementId,
+                ClientProfileId = clientProfileId,
+                MeasuredAt = DateTime.UtcNow.AddDays(-2),
+                WeightKg = 81.5m,
+                BodyFatPercentage = 18.2m,
+            });
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        var body = await GetTimelineAsync(trainerHttp, clientPublicId);
+
+        var item = body.Items.Single(i => i.Id == $"measurement:{measurementId}");
+        item.Measurement.Should().NotBeNull();
+        item.Measurement!.WeightKg.Should().Be(81.5m);
+        item.Measurement.BodyFatPercentage.Should().Be(18.2m);
+    }
+
+    /// <summary>
+    /// A submitted questionnaire carries its title.
+    /// </summary>
+    [Fact]
+    public async Task Timeline_Questionnaire_CarriesTitle()
+    {
+        var (trainerHttp, trainerProfileId, trainerUserId) = await SetupTrainerAsync();
+        var (clientPublicId, clientProfileId, clientUserId) = await SetupClientAsync();
+        await LinkTrainerToClientAsync(trainerProfileId, clientProfileId);
+
+        var responseId = Guid.NewGuid();
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var linkId = await db.ClientProfessionalLinks
+                .Where(l => l.ClientProfileId == clientProfileId)
+                .Select(l => l.Id)
+                .FirstAsync(TestContext.Current.CancellationToken);
+
+            var questionnaire = new Questionnaire
+            {
+                PublicId = Guid.NewGuid(),
+                ProfessionalId = trainerUserId,
+                Title = "Intake questionnaire",
+                IsActive = true,
+                DateCreated = DateTime.UtcNow,
+            };
+            db.Questionnaires.Add(questionnaire);
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+            db.QuestionnaireResponses.Add(new QuestionnaireResponse
+            {
+                PublicId = responseId,
+                QuestionnaireId = questionnaire.Id,
+                ClientId = clientUserId,
+                ProfessionalId = trainerUserId,
+                LinkId = linkId,
+                Status = QuestionnaireResponseStatus.Submitted,
+                SubmittedAt = DateTime.UtcNow.AddDays(-2),
+                DateCreated = DateTime.UtcNow,
+            });
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        var body = await GetTimelineAsync(trainerHttp, clientPublicId);
+
+        var item = body.Items.Single(i => i.Id == $"questionnaire:{responseId}");
+        item.Questionnaire.Should().NotBeNull();
+        item.Questionnaire!.QuestionnaireTitle.Should().Be("Intake questionnaire");
+    }
+
+    private async Task<TimelineResponse> GetTimelineAsync(HttpClient http, Guid clientPublicId)
+    {
+        var response = await http.GetAsync(
+            $"/trainer/clients/{clientPublicId}/timeline?limit=100",
+            TestContext.Current.CancellationToken);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var body = await response.Content.ReadFromJsonAsync<TimelineResponse>(
+            JsonOptions, cancellationToken: TestContext.Current.CancellationToken);
+        return body!;
+    }
+
+    /// <summary>
+    /// Seeds a published plan starting on <paramref name="startDate"/> whose first day lists three meals.
+    /// </summary>
+    private async Task<NutritionPlan> SeedPlanWithThreeMealsOnDayOneAsync(
+        Guid nutritionistId, Guid clientUserId, DateTime startDate)
+    {
+        var plan = new NutritionPlan
+        {
+            Id = ObjectId.GenerateNewId(),
+            ExternalId = Guid.NewGuid(),
+            ClientId = clientUserId,
+            NutritionistId = nutritionistId,
+            Name = "Meal count plan",
+            Status = NutritionPlanStatus.Active,
+            StartDate = startDate,
+            Version = 1,
+            DateCreated = DateTime.UtcNow,
+            Weeks =
+            [
+                new PlanWeek
+                {
+                    WeekNumber = 1,
+                    Status = WeekStatus.Published,
+                    // Plan day 1 is the start date; DayOfWeek in a plan is the offset (1 = first day).
+                    Days = [new PlanDay { DayOfWeek = 1, Meals = Enumerable.Range(1, 3)
+                        .Select(order => new PlanMeal { MealId = Guid.NewGuid(), Order = order }).ToList() }],
+                },
+            ],
+        };
+        await SeedNutritionPlanAsync(plan);
+        return plan;
+    }
+
+    /// <summary>
+    /// Logs two distinct plan meals on <paramref name="day"/>, one of them twice.
+    /// </summary>
+    private async Task SeedMealLogsAsync(Guid clientUserId, NutritionPlan plan, DateTime day)
+    {
+        var meals = plan.Weeks[0].Days[0].Meals;
+        using var scope = factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+        foreach (var (mealId, hour) in new[] { (meals[0].MealId, 8), (meals[1].MealId, 12), (meals[1].MealId, 13) })
+        {
+            await mongo.MealLogs.InsertOneAsync(new MealLog
+            {
+                Id = ObjectId.GenerateNewId(),
+                ClientId = clientUserId,
+                PlanId = plan.ExternalId,
+                MealId = mealId,
+                LogDate = day,
+                EatenAt = day.AddHours(hour),
+                FoodsEaten = [],
+            }, cancellationToken: TestContext.Current.CancellationToken);
+        }
+    }
+
+    private async Task<(TrainingPlan Plan, Guid SessionId)> SeedTrainingPlanWithSessionAsync(
+        Guid trainerId, Guid clientUserId, string sessionName)
+    {
+        var sessionId = Guid.NewGuid();
+        var plan = BuildDraftTrainingPlan(trainerId, clientUserId, weekCount: 1);
+        plan.Weeks[0].Days =
+        [
+            new TrainingDay
+            {
+                DayOfWeek = 1,
+                Sessions = [new TrainingSession { SessionId = sessionId, Name = sessionName }],
+            },
+        ];
+        await SeedTrainingPlanAsync(plan);
+        return (plan, sessionId);
+    }
+
+    private async Task<Guid> SeedWorkoutExecutionAsync(Guid clientUserId, TrainingPlan plan, Guid sessionId)
+    {
+        var executionId = Guid.NewGuid();
+        var completedAt = DateTime.UtcNow.AddDays(-1);
+        using var scope = factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+        await mongo.SessionExecutions.InsertOneAsync(new SessionExecution
+        {
+            Id = ObjectId.GenerateNewId(),
+            ExternalId = executionId,
+            ClientId = clientUserId,
+            PlanId = plan.ExternalId,
+            SessionId = sessionId,
+            Date = SessionExecution.ToCompletionDateUtc(completedAt),
+            Status = SessionExecutionStatus.Completed,
+            Performance = new SessionExecutionPerformance
+            {
+                StartedAt = completedAt.AddMinutes(-45),
+                CompletedAt = completedAt,
+                Workouts =
+                [
+                    new LoggedWorkout
+                    {
+                        WorkoutId = Guid.NewGuid(),
+                        Name = "Block",
+                        Exercises =
+                        [
+                            new WorkoutExercise { ExerciseExternalId = Guid.NewGuid(), ExerciseName = "Squat" },
+                            new WorkoutExercise { ExerciseExternalId = Guid.NewGuid(), ExerciseName = "Press" },
+                        ],
+                    },
+                ],
+            },
+            DateCreated = DateTime.UtcNow,
+        }, cancellationToken: TestContext.Current.CancellationToken);
+
+        return executionId;
+    }
+
     // ── local response DTOs ────────────────────────────────────────────────────
 
     private record TimelineResponse(List<TimelineItem> Items);
@@ -979,7 +1308,22 @@ public class GetClientTimelineEndpointTests(FitnessApiFactory factory)
         string Title,
         string? Description,
         string? Icon,
-        PrPayload? PersonalRecord);
+        PrPayload? PersonalRecord,
+        MealDayPayload? MealDay = null,
+        WorkoutPayload? Workout = null,
+        MeasurementPayload? Measurement = null,
+        QuestionnairePayload? Questionnaire = null,
+        PlanPublishedPayload? PlanPublished = null);
+
+    private record MealDayPayload(int MealsLogged, int? MealsPlanned);
+
+    private record WorkoutPayload(Guid SessionExecutionId, string? SessionName, int ExerciseCount);
+
+    private record MeasurementPayload(decimal? WeightKg, decimal? BodyFatPercentage);
+
+    private record QuestionnairePayload(string QuestionnaireTitle);
+
+    private record PlanPublishedPayload(Guid PlanId, string? PlanName, int WeekNumber);
 
     private record PrPayload(
         Guid ExternalId,
