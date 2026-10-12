@@ -130,50 +130,50 @@ export default function RolesCard() {
       ) : (
         <>
           {heldRoles.length > 0 && (
-          <ul className="border-y border-border">
-            {heldRoles.map(({ key, apiRole, Icon, tint }) => {
-              const summary = summaryFor(key);
-              return (
-                <li key={key} className="flex items-center gap-3.5 border-b border-border px-1 py-3.5 last:border-b-0">
-                  <span className={cn('flex size-10 shrink-0 items-center justify-center rounded-field', tint)}>
-                    <Icon className="size-4.5" aria-hidden="true" />
-                  </span>
-                  <div className="flex min-w-0 flex-col gap-0.75">
-                    <span className="flex items-center gap-2">
-                      <span className="text-copy font-semibold text-ink">{t(`roles.${key}`)}</span>
-                      <span className="inline-flex h-5.5 items-center gap-1.25 rounded-full bg-nutrition-soft px-2 text-label font-semibold text-nutrition-ink">
-                        <span className="size-1.5 rounded-full bg-nutrition" aria-hidden="true" />
-                        {t('settings.roles.active')}
-                      </span>
+            <ul className="border-y border-border">
+              {heldRoles.map(({ key, apiRole, Icon, tint }) => {
+                const summary = summaryFor(key);
+                return (
+                  <li key={key} className="flex items-center gap-3.5 border-b border-border px-1 py-3.5 last:border-b-0">
+                    <span className={cn('flex size-10 shrink-0 items-center justify-center rounded-field', tint)}>
+                      <Icon className="size-4.5" aria-hidden="true" />
                     </span>
-                    <span className="text-body text-muted-foreground">{t(`settings.roles.descriptions.${key}`)}</span>
-                  </div>
-                  <span className="ml-auto text-body font-medium whitespace-nowrap text-ink-2">
-                    {t('settings.roles.clients', { count: summary?.clientCount ?? 0 })}
-                  </span>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    // Removing the only role disables the coach account, so it opens that dialog instead.
-                    disabled={onlyRole && disablePending}
-                    className="h-8.5 shrink-0 rounded-field px-3 font-semibold text-error"
-                    onClick={() =>
-                      onlyRole
-                        ? setDisableOpen(true)
-                        : setRemoveTarget({
-                            key,
-                            apiRole,
-                            clientCount: summary?.clientCount ?? 0,
-                            sharedWithOtherRoleCount: summary?.sharedWithOtherRoleCount ?? 0,
-                          })
-                    }
-                  >
-                    {t('settings.roles.remove')}
-                  </Button>
-                </li>
-              );
-            })}
-          </ul>
+                    <div className="flex min-w-0 flex-col gap-0.75">
+                      <span className="flex items-center gap-2">
+                        <span className="text-copy font-semibold text-ink">{t(`roles.${key}`)}</span>
+                        <span className="inline-flex h-5.5 items-center gap-1.25 rounded-full bg-nutrition-soft px-2 text-label font-semibold text-nutrition-ink">
+                          <span className="size-1.5 rounded-full bg-nutrition" aria-hidden="true" />
+                          {t('settings.roles.active')}
+                        </span>
+                      </span>
+                      <span className="text-body text-muted-foreground">{t(`settings.roles.descriptions.${key}`)}</span>
+                    </div>
+                    <span className="ml-auto text-body font-medium whitespace-nowrap text-ink-2">
+                      {t('settings.roles.clients', { count: summary?.clientCount ?? 0 })}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      // Removing the only role disables the coach account, so it opens that dialog instead.
+                      disabled={onlyRole && disablePending}
+                      className="h-8.5 shrink-0 rounded-field px-3 font-semibold text-error"
+                      onClick={() =>
+                        onlyRole
+                          ? setDisableOpen(true)
+                          : setRemoveTarget({
+                              key,
+                              apiRole,
+                              clientCount: summary?.clientCount ?? 0,
+                              sharedWithOtherRoleCount: summary?.sharedWithOtherRoleCount ?? 0,
+                            })
+                      }
+                    >
+                      {t('settings.roles.remove')}
+                    </Button>
+                  </li>
+                );
+              })}
+            </ul>
           )}
           <div className="flex gap-2.5 rounded-xl bg-sunken px-3.5 py-3 text-ink-2">
             <Info className="mt-px size-4 shrink-0 text-muted-foreground" aria-hidden="true" />

@@ -1,6 +1,8 @@
 import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
+import { getMyCoachRoles, rolesKeys } from '@/api/roles';
 import { ChevronUp, LogOut, Monitor, Moon, Settings, Sun, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth';
@@ -16,11 +18,14 @@ const THEMES: { value: ThemePreference; Icon: typeof Sun }[] = [
 
 /**
  * Fixed precedence for the signed-in user's role line — never `roles[0]`,
- * the backend array order carries no contract (GET /users/me). A dual-role
- * professional legitimately holds more than one of these at once (#776);
- * every held role is shown, joined, rather than picking just one.
+ * the array order carries no contract. A dual-role professional legitimately
+ * holds more than one of these at once; every held role is shown, joined.
+ * admin/client come from the JWT roles, trainer/nutritionist from the active
+ * coach roles (GET /users/me/roles), since the JWT keeps removed coach roles.
  */
 const ROLE_ORDER = ['admin', 'trainer', 'nutritionist', 'client'] as const;
+
+const COACH_ROLES = new Set(['trainer', 'nutritionist']);
 
 function initialsOf(firstName: string, lastName: string): string {
   return `${firstName[0] ?? ''}${lastName[0] ?? ''}`.toUpperCase() || '?';
@@ -85,11 +90,25 @@ export default function AccountMenu({ onNavigate, collapsed = false }: Props) {
   const setPreference = useThemeStore((s) => s.setPreference);
   const [open, setOpen] = useState(false);
 
+  const tokenRoles = (user?.roles ?? []).map((role) => role.toLowerCase());
+  const tokenCoachRoles = tokenRoles.filter((role) => COACH_ROLES.has(role));
+  // The endpoint is Trainer/Nutritionist-only — an admin/client-only token would get a 403.
+  const coachRolesQuery = useQuery({
+    queryKey: rolesKeys.mine,
+    queryFn: getMyCoachRoles,
+    enabled: tokenCoachRoles.length > 0,
+  });
+
   // restoreSession() populates `user` asynchronously — guard against the render pass before it resolves.
   if (!user) return null;
 
   const initials = initialsOf(user.firstName, user.lastName);
-  const roleLabel = formatRoleLabel(user.roles, t);
+  // While loading or on error, fall back to the token's coach roles so the line never flickers empty.
+  const activeCoachRoles = coachRolesQuery.data
+    ? coachRolesQuery.data.roles.map((r) => r.role.toLowerCase())
+    : tokenCoachRoles;
+  const nonCoachRoles = tokenRoles.filter((role) => !COACH_ROLES.has(role));
+  const roleLabel = formatRoleLabel([...nonCoachRoles, ...activeCoachRoles], t);
   const close = () => {
     setOpen(false);
     onNavigate?.();
