@@ -1037,6 +1037,82 @@ export class ApiClient {
     }
 
     /**
+     * Get a client's weekly check-in history (trainer)
+     * @param clientUserId Client's ApplicationUser.Id (route parameter).
+     * @param weeks Number of weekly slots to return, ending at the newest check-in week. Default 8, 1 to 26.
+     * @return Check-in history
+     */
+    getClientCheckInHistoryEndpoint(clientUserId: string, weeks: number, signal?: AbortSignal): Promise<GetClientCheckInHistoryResponse> {
+        let url_ = this.baseUrl + "/trainer/clients/{clientUserId}/weekly-check-ins/history?";
+        if (clientUserId === undefined || clientUserId === null)
+            throw new globalThis.Error("The parameter 'clientUserId' must be defined.");
+        url_ = url_.replace("{clientUserId}", encodeURIComponent("" + clientUserId));
+        if (weeks === undefined || weeks === null)
+            throw new globalThis.Error("The parameter 'weeks' must be defined and cannot be null.");
+        else
+            url_ += "weeks=" + encodeURIComponent("" + weeks) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetClientCheckInHistoryEndpoint(_response);
+        });
+    }
+
+    protected processGetClientCheckInHistoryEndpoint(response: AxiosResponse): Promise<GetClientCheckInHistoryResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GetClientCheckInHistoryResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Weeks out of range", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Link grants no capability", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GetClientCheckInHistoryResponse>(null as any);
+    }
+
+    /**
      * Get check-in detail (trainer)
      * @param id Check-in identifier (route parameter).
      * @return Success
@@ -18402,6 +18478,30 @@ export interface ClientCheckInDto {
 export interface GetClientCurrentCheckInRequest {
 }
 
+/** Weekly check-in history of one client for the authenticated professional. */
+export interface GetClientCheckInHistoryResponse {
+    /** Weekly slots, oldest first. The last slot is the newest check-in week. */
+    weeks?: CheckInHistoryWeekDto[];
+    /** Number of weeks the client answered, over all of the caller's check-ins for the client. */
+    answeredCount?: number;
+    /** Number of answered plus missed weeks; in-flight (waiting) weeks are excluded. */
+    totalCount?: number;
+}
+
+/** One weekly slot in the check-in history. */
+export interface CheckInHistoryWeekDto {
+    /** ISO-week Monday of the slot. */
+    weekStartDate?: string;
+    /** One of "answered", "missed", "waiting" or "none". */
+    status?: string;
+    /** UTC time the check-in that decided this week's status was sent; null for a "none" week. */
+    sentAt?: string | undefined;
+}
+
+/** Request for GET /trainer/clients/{clientUserId}/weekly-check-ins/history. */
+export interface GetClientCheckInHistoryRequest {
+}
+
 /** Response for GET /trainer/weekly-check-ins/{id}. */
 export interface GetCheckInDetailResponse {
     /** Check-in identifier. */
@@ -19851,6 +19951,17 @@ Null for all other event types.
 Exposed as typed fields so the web/mobile i18n layer can compose
 locale-specific copy without depending on server-side strings. */
     personalRecord?: PersonalRecordPayload | undefined;
+    /** Structured payload for meal_day items. Null for all other types. */
+    mealDay?: TimelineMealDayPayload | undefined;
+    /** Structured payload for workout items. Null for all other types. */
+    workout?: TimelineWorkoutPayload | undefined;
+    /** Structured payload for measurement items. Null for all other types. */
+    measurement?: TimelineMeasurementPayload | undefined;
+    /** Structured payload for questionnaire items. Null for all other types. */
+    questionnaire?: TimelineQuestionnairePayload | undefined;
+    /** Structured payload for nutrition_plan_published and training_plan_published
+items. Null for all other types. */
+    planPublished?: TimelinePlanPublishedPayload | undefined;
 }
 
 /** Structured payload embedded in a personal_record timeline item. */
@@ -19867,6 +19978,49 @@ export interface PersonalRecordPayload {
     reps?: number;
     /** ExternalId of the workout log that contains this PR set. */
     workoutLogId?: string;
+}
+
+/** Structured payload embedded in a meal_day timeline item. */
+export interface TimelineMealDayPayload {
+    /** Number of distinct planned meals logged that day. */
+    mealsLogged?: number;
+    /** Planned meals for that day. Null when the day's plan was not authored by the caller
+or the day has no planned meals. */
+    mealsPlanned?: number | undefined;
+}
+
+/** Structured payload embedded in a workout timeline item. */
+export interface TimelineWorkoutPayload {
+    /** Public identifier of the session execution. */
+    sessionExecutionId?: string;
+    /** Name of the planned session. Null for ad-hoc workouts and for plans the caller did not author. */
+    sessionName?: string | undefined;
+    /** Number of exercises recorded in the workout. */
+    exerciseCount?: number;
+}
+
+/** Structured payload embedded in a measurement timeline item. */
+export interface TimelineMeasurementPayload {
+    /** Body weight in kilograms, when recorded. */
+    weightKg?: number | undefined;
+    /** Body fat percentage, when recorded. */
+    bodyFatPercentage?: number | undefined;
+}
+
+/** Structured payload embedded in a questionnaire timeline item. */
+export interface TimelineQuestionnairePayload {
+    /** Title of the submitted questionnaire. */
+    questionnaireTitle?: string;
+}
+
+/** Structured payload embedded in a plan-published timeline item (one item per published week). */
+export interface TimelinePlanPublishedPayload {
+    /** Public identifier of the plan. */
+    planId?: string;
+    /** Plan name, when set. */
+    planName?: string | undefined;
+    /** Number of the week that was published. */
+    weekNumber?: number;
 }
 
 /** Request model for retrieving a client's activity timeline. */
@@ -22408,9 +22562,8 @@ export interface UnarchiveConversationRequest {
 
 /** A conversation as surfaced to the caller — used by both the conversation list and get-or-create-conversation responses. */
 export interface ConversationDto {
-    /** The conversation's Conversation.PublicId. Null for a live-roster placeholder row
-(a linked client with no conversation yet) that still matched the requested filter chip —
-see GetConversationsEndpoint's roster-filter path. */
+    /** The conversation's Conversation.PublicId. Always set by the list endpoint now
+(clients without a conversation are not listed); nullable only to keep the API contract. */
     id?: string | undefined;
     /** The other party in the conversation. */
     participant?: ParticipantDto;
