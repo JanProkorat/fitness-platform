@@ -1,9 +1,7 @@
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
-using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Infrastructure.Data;
-using Microsoft.EntityFrameworkCore;
 
 namespace FitnessPlatform.Application.Features.Users.UpdateNotificationPreferences;
 
@@ -37,29 +35,10 @@ internal sealed class UpdateNotificationPreferencesEndpoint(IApplicationDbContex
             return;
         }
 
-        var existing = await db.NotificationPreferences
-            .Where(p => p.UserId == userId)
-            .ToDictionaryAsync(p => p.Event, ct);
-
-        foreach (var item in req.Preferences)
-        {
-            if (existing.TryGetValue(item.Event, out var row))
-            {
-                row.EmailEnabled = item.Email;
-                row.PushEnabled = item.Push;
-                continue;
-            }
-
-            db.NotificationPreferences.Add(new NotificationPreference
-            {
-                UserId = userId,
-                Event = item.Event,
-                EmailEnabled = item.Email,
-                PushEnabled = item.Push,
-            });
-        }
-
-        await db.SaveChangesAsync(ct);
+        await db.UpsertNotificationPreferencesAsync(
+            userId,
+            req.Preferences.Select(item => (item.Event, item.Email, item.Push)).ToList(),
+            ct);
 
         await Send.NoContentAsync(ct);
     }
