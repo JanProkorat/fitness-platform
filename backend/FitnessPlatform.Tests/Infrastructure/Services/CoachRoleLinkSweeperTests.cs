@@ -280,6 +280,47 @@ public class CoachRoleLinkSweeperTests(FitnessApiFactory factory)
         (await CountNotificationsAsync(client.UserId, NotificationType.CoachRoleRemoved)).Should().Be(1);
     }
 
+    private async Task<List<long>> SelectEndedProfileIdsAsync() =>
+        await factory.Services.GetRequiredService<CoachRoleLinkSweeper>()
+            .SelectEndedAccountProfileIdsAsync(DateTime.UtcNow, Ct);
+
+    [Fact]
+    public async Task SelectEndedAccountProfileIds_BothRolesAlreadyMarkedRemoved_IsNotSelected()
+    {
+        var coach = await TestActors.Professional(factory, UserRole.Trainer, UserRole.Nutritionist).CreateAsync(Ct);
+        await SetCoachAccountActiveUntilAsync(coach, DateTime.UtcNow.AddMinutes(-5));
+        await MarkRemovedAsync(coach, UserRole.Trainer);
+        await MarkRemovedAsync(coach, UserRole.Nutritionist);
+
+        var selected = await SelectEndedProfileIdsAsync();
+
+        selected.Should().NotContain((await ReadProfileAsync(coach)).Id);
+    }
+
+    [Fact]
+    public async Task SelectEndedAccountProfileIds_OneRoleNotYetMarkedRemoved_IsSelected()
+    {
+        var coach = await TestActors.Professional(factory, UserRole.Trainer, UserRole.Nutritionist).CreateAsync(Ct);
+        await SetCoachAccountActiveUntilAsync(coach, DateTime.UtcNow.AddMinutes(-5));
+        await MarkRemovedAsync(coach, UserRole.Trainer);
+
+        var selected = await SelectEndedProfileIdsAsync();
+
+        selected.Should().Contain((await ReadProfileAsync(coach)).Id);
+    }
+
+    [Fact]
+    public async Task SelectEndedAccountProfileIds_UnmarkedRoleNotHeldByUser_IsNotSelected()
+    {
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        await SetCoachAccountActiveUntilAsync(coach, DateTime.UtcNow.AddMinutes(-5));
+        await MarkRemovedAsync(coach, UserRole.Trainer);
+
+        var selected = await SelectEndedProfileIdsAsync();
+
+        selected.Should().NotContain((await ReadProfileAsync(coach)).Id);
+    }
+
     [Fact]
     public async Task Tick_CoachAccountEndsInTheFuture_KeepsRoles()
     {

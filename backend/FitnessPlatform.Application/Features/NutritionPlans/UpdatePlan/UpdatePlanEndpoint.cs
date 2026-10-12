@@ -1,6 +1,6 @@
-using FitnessPlatform.Application.Domain.Authorization;
 using System.Security.Claims;
 using FastEndpoints;
+using FitnessPlatform.Application.Domain.Authorization;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
@@ -152,9 +152,8 @@ public class UpdatePlanEndpoint(
 
     /// <summary>
     /// Endpoint-specific validation and mutation applied to the fetched plan before the
-    /// version-gated replace. Synchronous — declared as returning <c>Task&lt;bool&gt;</c> to
-    /// satisfy the guard's mutate-delegate contract. Always returns <c>true</c>: no error path
-    /// here writes a response directly, validation failures throw via <c>ThrowError</c> instead.
+    /// version-gated replace. Returns <c>false</c> after writing a 403 when a removed coach role
+    /// tries to extend an in-progress plan; other validation failures throw via <c>ThrowError</c>.
     /// </summary>
     private Task<bool> MutateAsync(NutritionPlan plan, UpdatePlanRequest req, CancellationToken ct)
     {

@@ -79,6 +79,23 @@ public class NotificationPreferencesIntegrationTests(FitnessApiFactory factory)
     }
 
     [Fact]
+    public async Task Put_TwoParallelFirstSaves_BothReturn204AndCreateFiveRows()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var actor = await TestActors.Client(factory).CreateAsync(ct);
+
+        var statuses = await Task.WhenAll(
+            Enumerable.Range(0, 2).Select(async _ =>
+                (await actor.Http.PutAsJsonAsync(Route, FullSet(email: false, push: true), ct)).StatusCode));
+
+        statuses.Should().OnlyContain(status => status == HttpStatusCode.NoContent);
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        (await db.NotificationPreferences.CountAsync(p => p.UserId == actor.UserId, ct)).Should().Be(5);
+    }
+
+    [Fact]
     public async Task Put_MissingEvent_Returns400()
     {
         var ct = TestContext.Current.CancellationToken;

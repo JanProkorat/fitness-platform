@@ -122,6 +122,19 @@ public class RemovedCoachRoleGateArchitectureTests(FitnessApiFactory factory)
     }
 
     [Fact]
+    public void NoWrite_IsGatedToOneCoachRolePlusAdmin()
+    {
+        var uncovered = Endpoints()
+            .Where(e => e.Methods.Any(m => !ReadMethods.Contains(m, StringComparer.OrdinalIgnoreCase)))
+            .Where(e => e.Roles.Contains(AppRoles.Trainer) != e.Roles.Contains(AppRoles.Nutritionist))
+            .Where(e => e.Roles.Contains(AppRoles.Admin) && !e.Roles.Contains(AppRoles.Client))
+            .Select(e => $"{string.Join('/', e.Methods)} {e.Endpoint.RoutePattern.RawText} ({e.Type.Name})")
+            .ToList();
+
+        uncovered.Should().BeEmpty("a write gated to one coach role plus Admin matches neither attribute form, so the gate leaves it open without anyone deciding it");
+    }
+
+    [Fact]
     public void AttributeCounts_MatchTheReviewedInventory()
     {
         var counts = Endpoints()
