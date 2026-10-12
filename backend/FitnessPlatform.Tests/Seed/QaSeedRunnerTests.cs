@@ -703,7 +703,7 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
 
     /// <summary>
     /// The nutrition plan seeded by <see cref="QaSeedRunner"/> must have Status=Active
-    /// and exactly one Published week with three meals (Breakfast, Lunch, Dinner).
+    /// and two Published weeks, each with seven days of three meals (Breakfast, Lunch, Dinner).
     /// </summary>
     [Fact]
     public async Task SeedAsync_NutritionPlan_HasCorrectShape()
@@ -726,14 +726,346 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
             "NutritionPlan.NutritionistId must be keyed on ApplicationUser.Id (NutriUserId), not the professional profile PublicId, so nutritionist endpoint filters match AppClaims.UserId");
         plan.Status.Should().Be(FitnessPlatform.Application.Domain.Enums.NutritionPlanStatus.Active);
 
-        plan.Weeks.Should().HaveCount(1);
-        plan.Weeks[0].Status.Should().Be(FitnessPlatform.Application.Domain.Enums.WeekStatus.Published);
-        plan.Weeks[0].DatePublished.Should().NotBeNull();
+        plan.Weeks.Should().HaveCount(2);
+        plan.Weeks.Should().AllSatisfy(week =>
+        {
+            week.Status.Should().Be(FitnessPlatform.Application.Domain.Enums.WeekStatus.Published);
+            week.DatePublished.Should().NotBeNull();
+            week.Days.Select(d => d.DayOfWeek).Should().Equal(1, 2, 3, 4, 5, 6, 7);
+            week.Days.Should().AllSatisfy(d => d.Meals.Should().HaveCount(3, "Breakfast, Lunch, Dinner"));
+        });
+        plan.Weeks.SelectMany(w => w.Days).SelectMany(d => d.Meals).Select(m => m.MealId)
+            .Should().OnlyHaveUniqueItems("meal logs key on MealId");
+    }
 
-        plan.Weeks[0].Days.Should().HaveCount(1);
-        var day = plan.Weeks[0].Days[0];
-        day.DayOfWeek.Should().Be(1, "Monday is day 1");
-        day.Meals.Should().HaveCount(3, "Breakfast, Lunch, Dinner");
+    /// <summary>
+    /// #1303 — qa.client gets identity fields, onboarding answers using only codes the web
+    /// <c>clients.values</c> translations know, and derived nutrition targets.
+    /// </summary>
+    [Fact]
+    public async Task SeedAsync_ClientOverview_HasIdentityAndOnboarding()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        await QaSeedRunner.SeedAsync(_factory.Services);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var profile = await db.ClientProfiles
+            .Include(p => p.OnboardingData!).ThenInclude(o => o.NutritionTargets)
+            .FirstAsync(p => p.UserId == QaSeedRunner.ClientUserId, ct);
+
+        profile.DateOfBirth.Should().NotBeNull();
+        profile.HeightCm.Should().Be(182m);
+        profile.WeightKg.Should().Be(80.5m);
+
+        var onboarding = profile.OnboardingData;
+        onboarding.Should().NotBeNull("qa.client has completed onboarding");
+        onboarding!.Sex.Should().Be(BiologicalSex.Male);
+        onboarding.PrimaryGoal.Should().Be(PrimaryGoal.LoseFat);
+        onboarding.TargetWeightKg.Should().Be(76m);
+        onboarding.SleepHours.Should().Be(6);
+        onboarding.StressLevel.Should().Be(4);
+
+        // Codes must exist in web clients.values (en.json) or the card renders raw keys.
+        onboarding.Injuries.Split(',').Should().BeSubsetOf(new[] { "none", "back", "knees", "shoulders" });
+        onboarding.Allergies.Split(',').Should().BeSubsetOf(new[] { "none", "lactose", "gluten", "nuts" });
+        onboarding.PastBlockers.Split(',').Should().BeSubsetOf(new[] { "none", "time", "motivation", "knowledge", "slow_results" });
+        onboarding.PreferredActivities.Split(',').Should().BeSubsetOf(
+            new[] { "strength", "cardio", "hiit", "yoga", "cycling", "martial_arts" });
+        onboarding.Injuries.Should().NotBeEmpty();
+        onboarding.Allergies.Should().NotBeEmpty();
+        onboarding.PastBlockers.Should().NotBeEmpty();
+
+        onboarding.NutritionTargets.Should().NotBeNull();
+        onboarding.NutritionTargets!.Tdee.Should().BeGreaterThan(0);
+        onboarding.NutritionTargets.AdjustedKcal.Should().BeGreaterThan(0);
+        onboarding.NutritionTargets.MealDistribution.Should().NotBeNullOrEmpty();
+    }
+
+    /// <summary>
+    /// #1303 — eight weekly measurements with weight, body fat and waist, oldest to newest
+    /// trending down, the newest in the past and matching the profile weight.
+    /// </summary>
+    [Fact]
+    public async Task SeedAsync_BodyMeasurements_EightWeeklyRowsTrendingDown()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        await QaSeedRunner.SeedAsync(_factory.Services);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var profile = await db.ClientProfiles.FirstAsync(p => p.UserId == QaSeedRunner.ClientUserId, ct);
+        var rows = await db.BodyMeasurements
+            .Where(m => m.ClientProfileId == profile.Id)
+            .OrderBy(m => m.MeasuredAt)
+            .ToListAsync(ct);
+
+        rows.Should().HaveCount(8);
+        rows.Select(m => m.PublicId).Should().BeEquivalentTo(QaSeedRunner.QaBodyMeasurementIds);
+        rows.Should().AllSatisfy(m =>
+        {
+            m.WeightKg.Should().NotBeNull();
+            m.BodyFatPercentage.Should().NotBeNull();
+            m.WaistCm.Should().NotBeNull();
+        });
+        rows.Select(m => m.WeightKg!.Value).Should().BeInDescendingOrder();
+        rows.Select(m => m.MeasuredAt.Date).Distinct().Should().HaveCount(8);
+        rows.Select(m => (rows[^1].MeasuredAt - m.MeasuredAt).TotalDays).Should()
+            .BeEquivalentTo(new[] { 49d, 42d, 35d, 28d, 21d, 14d, 7d, 0d });
+        rows[^1].MeasuredAt.Should().BeBefore(DateTime.UtcNow);
+        rows[^1].WeightKg.Should().Be(profile.WeightKg, "the profile weight is the latest measurement");
+    }
+
+    /// <summary>
+    /// #1303 — 14 meal logs on the six days before today against qa.nutri's plan, each day
+    /// within the plan window with 3 planned meals; none today.
+    /// </summary>
+    [Fact]
+    public async Task SeedAsync_MealLogs_FourteenAgainstNutritionistPlan()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        await QaSeedRunner.SeedAsync(_factory.Services);
+
+        using var scope = _factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+        var plan = await mongo.NutritionPlans
+            .Find(p => p.ExternalId == QaSeedRunner.QaNutritionPlanExternalId)
+            .FirstAsync(ct);
+        var logs = await mongo.MealLogs
+            .Find(l => l.ClientId == QaSeedRunner.ClientUserId)
+            .ToListAsync(ct);
+
+        logs.Should().HaveCount(14);
+        logs.Should().AllSatisfy(l =>
+        {
+            l.PlanId.Should().Be(QaSeedRunner.QaNutritionPlanExternalId);
+            l.EatenAt.Should().NotBeNull();
+            l.EatenAt!.Value.Should().BeBefore(DateTime.UtcNow);
+        });
+
+        var today = DateTime.UtcNow.Date;
+        var perDay = logs.GroupBy(l => l.LogDate.Date).ToDictionary(g => g.Key, g => g.Count());
+        perDay.Keys.Should().BeEquivalentTo(Enumerable.Range(1, 6).Select(d => today.AddDays(-d)));
+
+        foreach (var day in perDay.Keys)
+        {
+            FitnessPlatform.Application.Domain.Services.PlannedMealCounter
+                .GetPlannedMealCountForDate(plan, day)
+                .Should().Be(3, $"{day:yyyy-MM-dd} must have 3 planned meals so the row reads N of 3");
+        }
+
+        // Every log points at a real planned meal of that day.
+        logs.Select(l => l.MealId).Should().OnlyContain(id =>
+            plan.Weeks.SelectMany(w => w.Days).SelectMany(d => d.Meals).Any(m => m.MealId == id));
+    }
+
+    /// <summary>
+    /// #1303 — one personal record on the squat set the completed main-plan execution logged.
+    /// </summary>
+    [Fact]
+    public async Task SeedAsync_PersonalRecord_PointsAtMainExecutionSet()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        await QaSeedRunner.SeedAsync(_factory.Services);
+
+        using var scope = _factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+        var records = await mongo.PersonalRecords
+            .Find(r => r.ClientId == QaSeedRunner.ClientUserId)
+            .ToListAsync(ct);
+
+        var record = records.Should().ContainSingle().Subject;
+        record.ExternalId.Should().Be(QaSeedRunner.QaPersonalRecordExternalId);
+        record.WorkoutLogId.Should().Be(QaSeedRunner.QaMainPlanCompletedExecutionId);
+        record.ExerciseExternalId.Should().Be(QaSeedRunner.StandardExercise1Id);
+        record.WeightKg.Should().Be(85m);
+        record.Reps.Should().Be(8);
+        record.AchievedAt.Should().BeBefore(DateTime.UtcNow).And.BeAfter(DateTime.UtcNow.AddDays(-90));
+    }
+
+    /// <summary>
+    /// #1303 — check-in history around the NextIsoMonday anchor: waiting, answered (reviewed)
+    /// and missed slots; the NewCheckIns chip keeps only the #1095 unreviewed row.
+    /// </summary>
+    [Fact]
+    public async Task SeedAsync_CheckInHistory_HasAnsweredMissedAndWaitingAroundAnchor()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        await QaSeedRunner.SeedAsync(_factory.Services);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var rows = await db.WeeklyCheckIns
+            .Where(w => w.ClientUserId == QaSeedRunner.ClientUserId && w.ProfessionalUserId == QaSeedRunner.TrainerUserId)
+            .OrderBy(w => w.WeekStartDate)
+            .ToListAsync(ct);
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var anchor = today.AddDays(-((int)today.DayOfWeek == 0 ? 6 : (int)today.DayOfWeek - 1) + 7);
+
+        rows.Should().HaveCount(7, "two #1095 rows plus waiting, three answered and one missed");
+        rows.Should().AllSatisfy(r => r.WeekStartDate.DayOfWeek.Should().Be(DayOfWeek.Monday));
+        rows.Select(r => r.WeekStartDate).Should().OnlyHaveUniqueItems();
+
+        var waiting = rows.Single(r => r.Id == QaSeedRunner.QaCheckInWaitingId);
+        waiting.WeekStartDate.Should().Be(anchor);
+        waiting.Status.Should().Be(WeeklyCheckInStatus.Pending);
+        waiting.RespondedAt.Should().BeNull();
+        waiting.DueAt.Should().BeAfter(DateTime.UtcNow);
+
+        var answeredIds = new[]
+        {
+            QaSeedRunner.QaCheckInAnsweredLastWeekId, QaSeedRunner.QaCheckInAnsweredWeek4Id, QaSeedRunner.QaCheckInAnsweredWeek6Id,
+        };
+        rows.Where(r => answeredIds.Contains(r.Id)).Should().HaveCount(3).And.AllSatisfy(r =>
+        {
+            r.RespondedAt.Should().NotBeNull();
+            r.ReviewedByTrainerAt.Should().NotBeNull("new answered rows must not feed the inbox NewCheckIns chip");
+        });
+
+        var missed = rows.Single(r => r.Id == QaSeedRunner.QaCheckInMissedWeek5Id);
+        missed.Status.Should().Be(WeeklyCheckInStatus.Expired);
+        missed.RespondedAt.Should().BeNull();
+        missed.WeekStartDate.Should().Be(anchor.AddDays(-35));
+
+        rows.Where(r => r.RespondedAt != null && r.ReviewedByTrainerAt == null)
+            .Select(r => r.Id).Should().Equal(QaSeedRunner.QaWeeklyCheckInRespondedUnreviewedId);
+        rows.Count(r => r.RespondedAt != null).Should().Be(4, "answered of total reads 4 of 6");
+        rows.Count(r => r.Status == WeeklyCheckInStatus.Expired).Should().Be(2);
+    }
+
+    /// <summary>
+    /// #1303 — one completed execution dated this Monday for a session of the active plan week.
+    /// </summary>
+    [Fact]
+    public async Task SeedAsync_MondaySessionExecution_IsCompletedAndInThePlanWeek()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        await QaSeedRunner.SeedAsync(_factory.Services);
+
+        using var scope = _factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+        var execution = await mongo.SessionExecutions
+            .Find(e => e.ExternalId == QaSeedRunner.QaMondaySessionExecutionId)
+            .FirstAsync(ct);
+
+        var today = DateTime.UtcNow.Date;
+        var monday = today.AddDays(-(((int)today.DayOfWeek == 0 ? 7 : (int)today.DayOfWeek) - 1));
+
+        execution.Status.Should().Be(SessionExecutionStatus.Completed);
+        execution.ClientId.Should().Be(QaSeedRunner.ClientUserId);
+        execution.PlanId.Should().Be(QaSeedRunner.QaTrainingPlanExternalId);
+        execution.Date.Should().Be(monday);
+
+        var plan = await mongo.TrainingPlans
+            .Find(p => p.ExternalId == QaSeedRunner.QaTrainingPlanExternalId)
+            .FirstAsync(ct);
+        plan.Weeks.SelectMany(w => w.Days).SelectMany(d => d.Sessions).Select(s => s.SessionId)
+            .Should().Contain(execution.SessionId!.Value);
+
+        // Unique (clientId, sessionId, date): no other execution shares this session and day.
+        (await mongo.SessionExecutions.CountDocumentsAsync(
+                e => e.ClientId == QaSeedRunner.ClientUserId && e.SessionId == execution.SessionId && e.Date == monday,
+                cancellationToken: ct))
+            .Should().Be(1);
+    }
+
+    /// <summary>
+    /// #1303 — nutrition data stays on qa.nutri: qa.trainer gets no nutrition capability, no
+    /// extra link and no plan authored for qa.client.
+    /// </summary>
+    [Fact]
+    public async Task SeedAsync_ClientOverview_KeepsTrainerWithoutNutritionAccess()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        await QaSeedRunner.SeedAsync(_factory.Services);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+        var trainerLink = await db.ClientProfessionalLinks.SingleAsync(
+            l => l.ClientProfile.UserId == QaSeedRunner.ClientUserId && l.ProfessionalProfile.UserId == QaSeedRunner.TrainerUserId, ct);
+        trainerLink.CanViewNutritionPlans.Should().BeFalse();
+
+        (await mongo.NutritionPlans.CountDocumentsAsync(
+                p => p.ClientId == QaSeedRunner.ClientUserId && p.NutritionistId == QaSeedRunner.TrainerUserId,
+                cancellationToken: ct))
+            .Should().Be(0);
+        (await mongo.NutritionPlans.CountDocumentsAsync(p => p.ClientId == QaSeedRunner.ClientUserId, cancellationToken: ct))
+            .Should().Be(1);
+    }
+
+    /// <summary>
+    /// #1303 — re-running the seed leaves every Overview fixture at its first-run count.
+    /// </summary>
+    [Fact]
+    public async Task SeedAsync_ClientOverview_RunTwice_IsIdempotent()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        await QaSeedRunner.SeedAsync(_factory.Services);
+        await QaSeedRunner.SeedAsync(_factory.Services);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+        var profile = await db.ClientProfiles.FirstAsync(p => p.UserId == QaSeedRunner.ClientUserId, ct);
+        (await db.BodyMeasurements.CountAsync(m => m.ClientProfileId == profile.Id, ct)).Should().Be(8);
+        (await db.ClientOnboardingData.CountAsync(o => o.ClientProfileId == profile.Id, ct)).Should().Be(1);
+        (await db.ClientNutritionTargets.CountAsync(ct)).Should().Be(1);
+        (await db.WeeklyCheckIns.CountAsync(w => w.ClientUserId == QaSeedRunner.ClientUserId, ct)).Should().Be(7);
+        (await mongo.MealLogs.CountDocumentsAsync(l => l.ClientId == QaSeedRunner.ClientUserId, cancellationToken: ct)).Should().Be(14);
+        (await mongo.PersonalRecords.CountDocumentsAsync(r => r.ClientId == QaSeedRunner.ClientUserId, cancellationToken: ct)).Should().Be(1);
+        (await mongo.SessionExecutions.CountDocumentsAsync(
+                e => e.ExternalId == QaSeedRunner.QaMondaySessionExecutionId, cancellationToken: ct))
+            .Should().Be(1);
+    }
+
+    /// <summary>
+    /// #1303 — the minimal kind seeds none of the Overview fixtures.
+    /// </summary>
+    [Fact]
+    public async Task SeedAsync_MinimalKind_SkipsOverviewFixtures()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        Environment.SetEnvironmentVariable("QA_SEED_KIND", "minimal");
+        try
+        {
+            await QaSeedRunner.SeedAsync(_factory.Services);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("QA_SEED_KIND", null);
+        }
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+        var profile = await db.ClientProfiles.FirstAsync(p => p.UserId == QaSeedRunner.ClientUserId, ct);
+        profile.DateOfBirth.Should().BeNull();
+        (await db.BodyMeasurements.CountAsync(ct)).Should().Be(0);
+        (await db.ClientOnboardingData.CountAsync(ct)).Should().Be(0);
+        (await db.WeeklyCheckIns.CountAsync(ct)).Should().Be(0);
+        (await mongo.MealLogs.CountDocumentsAsync(Builders<MealLog>.Filter.Empty, cancellationToken: ct)).Should().Be(0);
+        (await mongo.PersonalRecords.CountDocumentsAsync(Builders<PersonalRecord>.Filter.Empty, cancellationToken: ct)).Should().Be(0);
+        (await mongo.SessionExecutions.CountDocumentsAsync(Builders<SessionExecution>.Filter.Empty, cancellationToken: ct)).Should().Be(0);
     }
 
     /// <summary>
