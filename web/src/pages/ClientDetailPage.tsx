@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { apiClient } from '@/api/client';
 import { getClientPlans } from '@/api/client-plans';
 import { getClientMeasurements } from '@/api/measurements';
+import { resolveOverviewRole } from '@/lib/client-metrics';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import ClientDetailHeader from '@/components/client-detail/ClientDetailHeader';
@@ -19,9 +20,12 @@ import ClientProfileCard from '@/components/client-detail/ClientProfileCard';
 const MEASUREMENTS_PAGE_SIZE = 50;
 
 /**
- * Client-detail page — Overview tab. Header + seven-tab row (six disabled) +
- * three stat cards + two plan cards + check-in trend and weight + recent
- * activity and client profile (boards PageClientDetailC / PageClientDetailD).
+ * Client-detail page — Overview tab. Header + tab row (all but Overview
+ * disabled) + three stat cards + plan card(s) + check-in trend and weight +
+ * recent activity and client profile. A link with both capabilities gets the
+ * two-card layout (PageClientDetailC / D); a trainer-only or nutritionist-only
+ * link gets its own domain's card at full width (PageClientDetailTrainerC / D,
+ * PageClientDetailNutritionistC / D).
  */
 export default function ClientDetailPage() {
   const { t } = useTranslation();
@@ -72,35 +76,53 @@ export default function ClientDetailPage() {
   const activeNutritionPlan = plansQuery.data?.plans?.find((p) => p.planType === 'Nutrition' && p.status === 'Active');
   const activeTrainingPlan = plansQuery.data?.plans?.find((p) => p.planType === 'Training' && p.status === 'Active');
 
+  // The layout follows the dashboard's capability flags: that query has resolved before first paint.
+  const role = resolveOverviewRole(dashboard.canViewNutritionPlans, dashboard.canViewTrainingPlans);
+
+  const mealPlanCard = (
+    <MealPlanCard
+      plan={activeNutritionPlan}
+      canView={canViewNutritionPlans}
+      isPending={plansQuery.isPending}
+      isError={plansQuery.isError}
+    />
+  );
+  const workoutCard = (
+    <LatestWorkoutCard
+      plan={activeTrainingPlan}
+      canView={canViewTrainingPlans}
+      isPending={plansQuery.isPending}
+      isError={plansQuery.isError}
+      sessionsCompleted={dashboard.sessionsCompletedThisWeek}
+      sessionsPlanned={dashboard.sessionsPlannedThisWeek}
+    />
+  );
+
   return (
     <div className="flex flex-col gap-4">
       <ClientDetailHeader dashboard={dashboard} />
-      <ClientDetailTabs />
+      <ClientDetailTabs
+        canViewNutritionPlans={role !== 'trainer'}
+        canViewTrainingPlans={role !== 'nutritionist'}
+      />
 
-      <ClientOverviewStats dashboard={dashboard} clientId={clientId} />
+      <ClientOverviewStats
+        dashboard={dashboard}
+        clientId={clientId}
+        role={role}
+        measurements={measurementsQuery.data?.items ?? []}
+        measurementsPending={measurementsQuery.isPending}
+        measurementsError={measurementsQuery.isError}
+      />
 
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-5">
-        <div className="lg:col-span-3">
-          <MealPlanCard
-            plan={activeNutritionPlan}
-            canView={canViewNutritionPlans}
-            isPending={plansQuery.isPending}
-            isError={plansQuery.isError}
-            noNutritionAccess={dashboard.canViewNutritionPlans === false}
-          />
+      {role === 'both' ? (
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-5">
+          <div className="lg:col-span-3">{mealPlanCard}</div>
+          <div className="lg:col-span-2">{workoutCard}</div>
         </div>
-        <div className="lg:col-span-2">
-          <LatestWorkoutCard
-            plan={activeTrainingPlan}
-            canView={canViewTrainingPlans}
-            isPending={plansQuery.isPending}
-            isError={plansQuery.isError}
-            noTrainingAccess={dashboard.canViewTrainingPlans === false}
-            sessionsCompleted={dashboard.sessionsCompletedThisWeek}
-            sessionsPlanned={dashboard.sessionsPlannedThisWeek}
-          />
-        </div>
-      </div>
+      ) : (
+        <div>{role === 'nutritionist' ? mealPlanCard : workoutCard}</div>
+      )}
 
       <div className="grid grid-cols-1 gap-3.5 lg:grid-cols-5">
         <div className="lg:col-span-3">
@@ -119,7 +141,7 @@ export default function ClientDetailPage() {
 
       <div className="grid grid-cols-1 gap-3.5 lg:grid-cols-2">
         <RecentActivityCard clientId={clientId} />
-        <ClientProfileCard onboarding={dashboard.onboarding} />
+        <ClientProfileCard onboarding={dashboard.onboarding} role={role} />
       </div>
     </div>
   );

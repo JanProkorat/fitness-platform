@@ -129,6 +129,41 @@ export function selectRecentWeightPoints(items: MeasurementDto[], count: number)
     .slice(-count);
 }
 
+export interface WeightChange {
+  /** Newest minus oldest weight of the window, rounded to one decimal. */
+  deltaKg: number;
+  /** Date of the oldest measurement in the window. */
+  sinceIso: string;
+}
+
+/** Weight change across the latest `count` weighed measurements; undefined with fewer than two. */
+export function computeWeightChange(items: MeasurementDto[], count: number): WeightChange | undefined {
+  const points = selectRecentWeightPoints(items, count);
+  if (points.length < 2) {
+    return undefined;
+  }
+  const oldest = points[0];
+  const newest = points[points.length - 1];
+  return { deltaKg: Number((newest.weightKg - oldest.weightKg).toFixed(1)), sinceIso: oldest.measuredAt };
+}
+
+/** Which overview layout a coach's link gets. */
+export type ClientOverviewRole = 'both' | 'trainer' | 'nutritionist';
+
+/** Both capabilities (or, defensively, neither) keep the full layout. */
+export function resolveOverviewRole(
+  canViewNutritionPlans: boolean | undefined,
+  canViewTrainingPlans: boolean | undefined,
+): ClientOverviewRole {
+  if (canViewTrainingPlans === true && canViewNutritionPlans !== true) {
+    return 'trainer';
+  }
+  if (canViewNutritionPlans === true && canViewTrainingPlans !== true) {
+    return 'nutritionist';
+  }
+  return 'both';
+}
+
 export interface ResolvedSession {
   session: RawTrainingSession;
   /** 1 = Monday ... 7 = Sunday, as stored on the plan's day. */

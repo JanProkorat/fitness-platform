@@ -3412,14 +3412,29 @@
           "captionStreak_few": "Posledních 7 dní • série zápisů {{count}} dny",
           "captionStreak_many": "Posledních 7 dní • série zápisů {{count}} dne",
           "captionStreak_other": "Posledních 7 dní • série zápisů {{count}} dní",
-          "empty": "Zatím žádná data",
-          "noAccess": "Bez přístupu k výživě"
+          "empty": "Zatím žádná data"
+        },
+        "trainingCompliance": {
+          "label": "Dodržení tréninku",
+          "value": "{{percent}} %",
+          "caption": "Posledních 7 dní",
+          "captionStreak_one": "Posledních 7 dní • série tréninků {{count}} den",
+          "captionStreak_few": "Posledních 7 dní • série tréninků {{count}} dny",
+          "captionStreak_many": "Posledních 7 dní • série tréninků {{count}} dne",
+          "captionStreak_other": "Posledních 7 dní • série tréninků {{count}} dní",
+          "empty": "Zatím žádná data"
+        },
+        "weightChange": {
+          "label": "Změna váhy",
+          "value": "{{delta}} kg",
+          "since": "Od {{date}}",
+          "sinceGoal": "{{since}} · cíl {{goal}} kg",
+          "empty": "Zatím žádná měření"
         },
         "prs": {
           "label": "Rekordy tento měsíc",
           "lastActive": "Naposledy aktivní {{when}}",
-          "noActivity": "Zatím žádná aktivita",
-          "noAccess": "Bez přístupu k tréninku"
+          "noActivity": "Zatím žádná aktivita"
         },
         "weight": {
           "value": "{{kg}} kg",
@@ -3455,8 +3470,7 @@
         "cardExercises_one": "{{count}} cvik",
         "cardExercises_few": "{{count}} cviky",
         "cardExercises_many": "{{count}} cviků",
-        "cardExercises_other": "{{count}} cviků",
-        "noAccess": "Bez přístupu k tréninku"
+        "cardExercises_other": "{{count}} cviků"
       },
       "checkInTrend": {
         "heading": "Trend check-inů",
