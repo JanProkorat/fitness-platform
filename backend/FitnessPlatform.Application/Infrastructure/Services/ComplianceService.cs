@@ -2,6 +2,7 @@ using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.ClientTraining;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using MongoDB.Driver;
@@ -183,7 +184,7 @@ public class ComplianceService : IComplianceService
         while (currentDate >= floorDate.Value)
         {
             var nutritionPlanned = nutritionPlan is not null
-                ? GetPlannedMealCountForDate(nutritionPlan, currentDate)
+                ? PlannedMealCounter.GetPlannedMealCountForDate(nutritionPlan, currentDate)
                 : 0;
 
             var trainingSessions = trainingPlan is not null
@@ -431,39 +432,9 @@ public class ComplianceService : IComplianceService
 
         for (var date = from.Date; date <= to.Date; date = date.AddDays(1))
         {
-            mealsPlanned += GetPlannedMealCountForDate(plan, date);
+            mealsPlanned += PlannedMealCounter.GetPlannedMealCountForDate(plan, date);
         }
 
         return mealsPlanned;
-    }
-
-    /// <summary>
-    /// Gets the number of planned meals for a specific date based on the plan's
-    /// <see cref="NutritionPlan.StartDate"/> and the set of currently Published weeks.
-    /// A date that falls in a non-published week (or before the plan started) counts
-    /// as zero planned meals.
-    /// </summary>
-    private static int GetPlannedMealCountForDate(NutritionPlan plan, DateTime date)
-    {
-        if (!plan.StartDate.HasValue)
-            return 0;
-
-        var startDate = plan.StartDate.Value.Date;
-        var target = date.Date;
-
-        if (target < startDate)
-            return 0;
-
-        var daysSinceStart = (int)(target - startDate).TotalDays;
-        var weekNumber = daysSinceStart / 7 + 1;
-        // PlanDay.DayOfWeek is 1=Monday … 7=Sunday to match ISO week days.
-        var dayOfWeek = daysSinceStart % 7 + 1;
-
-        var week = plan.Weeks.FirstOrDefault(w => w.WeekNumber == weekNumber);
-        if (week is null || week.Status != WeekStatus.Published)
-            return 0;
-
-        var day = week.Days.FirstOrDefault(d => d.DayOfWeek == dayOfWeek);
-        return day?.Meals.Count ?? 0;
     }
 }
