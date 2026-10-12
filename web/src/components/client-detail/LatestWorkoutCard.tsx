@@ -15,10 +15,12 @@ interface Props {
   /** Whether the plans-list query (which resolves `plan`/`canView`) is still loading. */
   isPending: boolean;
   isError: boolean;
+  /** True for a nutritionist-only link (dashboard.canViewTrainingPlans === false). */
+  noTrainingAccess?: boolean;
 }
 
 /** "Latest workout" card (#1094). Exercise count is derived; estimated minutes is TBD — no duration field exists on any training document. */
-export default function LatestWorkoutCard({ plan, canView, isPending, isError }: Props) {
+export default function LatestWorkoutCard({ plan, canView, isPending, isError, noTrainingAccess = false }: Props) {
   const { t } = useTranslation();
 
   const detailQuery = useQuery({
@@ -35,15 +37,24 @@ export default function LatestWorkoutCard({ plan, canView, isPending, isError }:
     <div className="flex h-full flex-col gap-3 rounded-2xl border border-border bg-card p-4">
       <h2 className="text-body font-semibold text-ink">{t('clientDetail.overview.workout.heading')}</h2>
 
-      {isPending && <Skeleton className="h-10 w-full" />}
+      {noTrainingAccess && (
+        <div className="flex flex-col gap-0.5">
+          <span className="text-body font-bold text-ink">—</span>
+          <span className="text-caption text-muted-foreground">{t('clientDetail.overview.workout.noAccess')}</span>
+        </div>
+      )}
 
-      {!isPending && isError && <p className="text-caption text-muted-foreground">{t('common.loadError')}</p>}
+      {!noTrainingAccess && isPending && <Skeleton className="h-10 w-full" />}
 
-      {!isPending && !isError && (!canView || !plan) && (
+      {!noTrainingAccess && !isPending && isError && (
+        <p className="text-caption text-muted-foreground">{t('common.loadError')}</p>
+      )}
+
+      {!noTrainingAccess && !isPending && !isError && (!canView || !plan) && (
         <p className="text-caption text-muted-foreground">{t('clientDetail.prehled.noActivePlan.training')}</p>
       )}
 
-      {!isPending && !isError && canView && plan && (
+      {!noTrainingAccess && !isPending && !isError && canView && plan && (
         <div className="flex items-center gap-3">
           <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted">
             <Dumbbell className="size-5 text-muted-foreground" aria-hidden="true" />

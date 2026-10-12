@@ -3405,19 +3405,26 @@
         "automations": "Automatizace"
       },
       "stats": {
-        "rating": {
-          "label": "Průměrné hodnocení",
-          "caption": "Na základě odpovědí z check-inů"
+        "mealCompliance": {
+          "label": "Dodržení jídelníčku",
+          "value": "{{percent}} %",
+          "caption": "Posledních 7 dní",
+          "captionStreak_one": "Posledních 7 dní • série zápisů {{count}} den",
+          "captionStreak_few": "Posledních 7 dní • série zápisů {{count}} dny",
+          "captionStreak_many": "Posledních 7 dní • série zápisů {{count}} dne",
+          "captionStreak_other": "Posledních 7 dní • série zápisů {{count}} dní",
+          "empty": "Zatím žádná data",
+          "noAccess": "Bez přístupu k výživě"
         },
-        "payments": {
-          "label": "Platby",
-          "caption": "Pro klienta nebyly nalezeny žádné platby"
+        "prs": {
+          "label": "Rekordy tento měsíc",
+          "lastActive": "Naposledy aktivní {{when}}",
+          "noActivity": "Zatím žádná aktivita",
+          "noAccess": "Bez přístupu k tréninku"
         },
         "weight": {
-          "label": "Aktuální váha",
           "value": "{{kg}} kg",
           "deltaThisWeek": "{{delta}} kg tento týden",
-          "goalWeight": "cíl {{goal}} kg",
           "empty": "—",
           "noMeasurements": "Zatím žádná měření"
         },
@@ -3439,28 +3446,103 @@
         "exercises_one": "{{count}} cvik",
         "exercises_few": "{{count}} cviky",
         "exercises_many": "{{count}} cviků",
-        "exercises_other": "{{count}} cviků"
+        "exercises_other": "{{count}} cviků",
+        "noAccess": "Bez přístupu k tréninku"
       },
       "checkInTrend": {
         "heading": "Trend check-inů",
-        "last15Days": "Posledních 15 dní",
+        "lastWeeks_one": "Poslední {{count}} týden",
+        "lastWeeks_few": "Poslední {{count}} týdny",
+        "lastWeeks_many": "Posledních {{count}} týdne",
+        "lastWeeks_other": "Posledních {{count}} týdnů",
+        "empty": "Zatím nebyl odeslán žádný check-in",
+        "thisWeek": "Tento týden",
+        "weekLabel": "T{{week}}",
         "legend": {
-          "completed": "Splněno",
+          "answered": "Zodpovězeno",
           "missed": "Zmeškáno",
-          "upcoming": "Nadcházející"
+          "waiting": "Čeká na odpověď"
+        },
+        "footer": {
+          "title": "Check-in tohoto týdne",
+          "titleLatest": "Poslední check-in",
+          "status": {
+            "answered": "Zodpovězeno",
+            "missed": "Nezodpovězeno",
+            "waiting": "Zatím nezodpovězeno",
+            "none": "Neodeslán"
+          },
+          "sent": {
+            "answered": "Odesláno {{date}}, zodpovězeno",
+            "missed": "Odesláno {{date}}, nezodpovězeno",
+            "waiting": "Odesláno {{date}}, zatím nezodpovězeno",
+            "none": "Odesláno {{date}}"
+          },
+          "overall": "Celkem zodpovězeno {{answered}} z {{total}}"
         }
       },
-      "messagesTrend": {
-        "heading": "Trend zpráv",
-        "last4Weeks": "Poslední 4 týdny",
-        "chartAriaLabel": "Zprávy kouče a klienta za poslední 4 týdny. {{summary}}",
-        "chartAriaWeek": "týden od {{date}}: {{coach}} od kouče, {{client}} od klienta",
-        "weekLabel": "W{{index}}",
-        "weekTooltip": "Týden od {{date}}",
-        "legend": {
-          "coach": "Zprávy kouče",
-          "client": "Zprávy klienta"
+      "weight": {
+        "heading": "Váha",
+        "lastMeasurements_one": "Poslední {{count}} měření",
+        "lastMeasurements_few": "Poslední {{count}} měření",
+        "lastMeasurements_many": "Posledních {{count}} měření",
+        "lastMeasurements_other": "Posledních {{count}} měření",
+        "value": "{{kg}} kg",
+        "deltaThisWeek": "{{delta}} kg tento týden",
+        "goal": "cíl {{goal}} kg",
+        "empty": "Zatím žádná měření",
+        "bodyFat": "Tělesný tuk {{value}} %",
+        "waist": "Pas {{value}} cm",
+        "pointLabel": "{{date}} · {{kg}} kg",
+        "legendWeight": "Váha",
+        "legendGoal": "Cíl {{goal}} kg",
+        "chartLabel": "Váha se změnila z {{from}} kg na {{to}} kg za posledních {{n}} měření"
+      },
+      "activity": {
+        "heading": "Poslední aktivita",
+        "latest": "Nejnovější",
+        "empty": "Zatím žádná aktivita",
+        "type": {
+          "personal_record": "Nový rekord",
+          "workout": "Trénink dokončen",
+          "meal_day": "Jídla zapsána",
+          "measurement": "Měření",
+          "questionnaire": "Dotazník odeslán",
+          "nutrition_plan_published": "Jídelníček zveřejněn",
+          "training_plan_published": "Tréninkový plán zveřejněn",
+          "linked": "Klient propojen",
+          "unknown": "Aktivita"
+        },
+        "detail": {
+          "personalRecord": "{{exercise}} {{kg}} kg × {{reps}}",
+          "mealsOfPlanned": "{{logged}} ze {{planned}}",
+          "mealsLogged_one": "{{count}} jídlo zapsáno",
+          "mealsLogged_few": "{{count}} jídla zapsána",
+          "mealsLogged_many": "{{count}} jídla zapsáno",
+          "mealsLogged_other": "{{count}} jídel zapsáno",
+          "weight": "{{kg}} kg",
+          "bodyFat": "tělesný tuk {{value}} %",
+          "planWeek": "{{name}}, týden {{week}}",
+          "weekOnly": "Týden {{week}}"
         }
+      },
+      "profile": {
+        "heading": "Profil klienta",
+        "source": "Z onboardingu",
+        "empty": "Zatím žádná data z onboardingu",
+        "injuries": "Zranění",
+        "allergies": "Alergie",
+        "noneReported": "Žádné",
+        "diet": "Strava",
+        "training": "Tréninkové dny",
+        "wants": "chce {{value}}",
+        "sleepStress": "Spánek a stres",
+        "sleepHours": "{{hours}} h",
+        "stressLevel": "stres {{level}}/5",
+        "dailyTarget": "Denní cíl",
+        "kcal": "{{value}} kcal",
+        "tdee": "TDEE {{value}} kcal",
+        "pastBlockers": "Dřívější překážky"
       }
     }
   },

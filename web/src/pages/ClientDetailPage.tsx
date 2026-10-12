@@ -12,16 +12,16 @@ import ClientOverviewStats from '@/components/client-detail/ClientOverviewStats'
 import MealPlanCard from '@/components/client-detail/MealPlanCard';
 import LatestWorkoutCard from '@/components/client-detail/LatestWorkoutCard';
 import CheckInTrendCard from '@/components/client-detail/CheckInTrendCard';
-import MessagesTrendCard from '@/components/client-detail/MessagesTrendCard';
+import WeightCard from '@/components/client-detail/WeightCard';
+import RecentActivityCard from '@/components/client-detail/RecentActivityCard';
+import ClientProfileCard from '@/components/client-detail/ClientProfileCard';
 
 const MEASUREMENTS_PAGE_SIZE = 50;
 
 /**
- * Client-detail page — Overview tab (#1094). Header + seven-tab row (six
- * disabled) + four stat cards + two plan cards + two trend widgets. See
- * docs/design/1094/client-overview-inventory.md for the full layout
- * contract and docs/design/1094/client-overview-target.png for the
- * reference render.
+ * Client-detail page — Overview tab. Header + seven-tab row (six disabled) +
+ * three stat cards + two plan cards + check-in trend and weight + recent
+ * activity and client profile (boards PageClientDetailC / PageClientDetailD).
  */
 export default function ClientDetailPage() {
   const { t } = useTranslation();
@@ -77,7 +77,7 @@ export default function ClientDetailPage() {
       <ClientDetailHeader dashboard={dashboard} />
       <ClientDetailTabs />
 
-      <ClientOverviewStats dashboard={dashboard} measurements={measurementsQuery.data?.items ?? []} />
+      <ClientOverviewStats dashboard={dashboard} clientId={clientId} />
 
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-5">
         <div className="lg:col-span-3">
@@ -94,17 +94,29 @@ export default function ClientDetailPage() {
             canView={canViewTrainingPlans}
             isPending={plansQuery.isPending}
             isError={plansQuery.isError}
+            noTrainingAccess={dashboard.canViewTrainingPlans === false}
           />
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-3.5 lg:grid-cols-5">
         <div className="lg:col-span-3">
-          <CheckInTrendCard />
+          <CheckInTrendCard clientUserId={dashboard.clientUserId ?? ''} />
         </div>
         <div className="lg:col-span-2">
-          <MessagesTrendCard clientId={clientId} />
+          <WeightCard
+            dashboard={dashboard}
+            measurements={measurementsQuery.data?.items ?? []}
+            isPending={measurementsQuery.isPending}
+            isError={measurementsQuery.isError}
+            onRetry={() => void measurementsQuery.refetch()}
+          />
         </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-3.5 lg:grid-cols-2">
+        <RecentActivityCard clientId={clientId} />
+        <ClientProfileCard onboarding={dashboard.onboarding} />
       </div>
     </div>
   );

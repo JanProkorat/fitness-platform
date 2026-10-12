@@ -1,4 +1,6 @@
 import api from '@/lib/api';
+import { apiClient } from '@/api/client';
+import type { GetClientCheckInHistoryResponse } from '@/api/generated';
 
 /**
  * Profession values as serialized by the backend (JsonStringEnumConverter not applied
@@ -354,6 +356,35 @@ export async function getClientCurrentCheckIn(
     { params: profession ? { profession } : {} },
   );
   return data;
+}
+
+/* ─────────────────────── GET /trainer/clients/{clientUserId}/weekly-check-ins/history ─ */
+
+/** Slot status after narrowing the server's plain string. */
+export type CheckInHistoryStatus = 'answered' | 'missed' | 'waiting' | 'none';
+
+/** Narrows the history slot's status string; anything unrecognised counts as "none". */
+export function toCheckInHistoryStatus(value: string | null | undefined): CheckInHistoryStatus {
+  switch (value) {
+    case 'answered':
+    case 'missed':
+    case 'waiting':
+      return value;
+    default:
+      return 'none';
+  }
+}
+
+/**
+ * GET /trainer/clients/{clientUserId}/weekly-check-ins/history
+ * @param clientUserId - Client's ApplicationUser Id (Guid string), not the route PublicId.
+ * @param weeks        - Number of weekly slots, oldest first.
+ */
+export function getClientCheckInHistory(
+  clientUserId: string,
+  weeks: number,
+): Promise<GetClientCheckInHistoryResponse> {
+  return apiClient.getClientCheckInHistoryEndpoint(clientUserId, weeks);
 }
 
 /* ─────────────────────── UI helpers ────────────────────────────────────────────── */
