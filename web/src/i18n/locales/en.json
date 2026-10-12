@@ -3383,7 +3383,6 @@
         },
         "footer": {
           "title": "This week's check-in",
-          "titleLatest": "Latest check-in",
           "status": {
             "answered": "Answered",
             "missed": "Not answered",
