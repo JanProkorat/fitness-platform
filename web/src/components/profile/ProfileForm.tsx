@@ -9,11 +9,10 @@ import {
   getMyProfile,
   profileKeys,
   updateMyProfile,
-  updateMyTimeZone,
   updateTrainerProfile,
 } from '@/api/profile';
 import { useAuthStore } from '@/stores/auth';
-import { getErrorCode, showApiError, showSuccess } from '@/lib/api-errors';
+import { showApiError, showSuccess } from '@/lib/api-errors';
 import { Button } from '@/components/ui/button';
 import PhotoNameSection from '@/components/profile/PhotoNameSection';
 import AccountSection from '@/components/profile/AccountSection';
@@ -40,7 +39,6 @@ interface Props {
 /** Which part of the save a baseline key tracks; each is its own request. */
 interface Baseline {
   account: string;
-  timeZone: string;
   trainer: string;
 }
 
@@ -63,7 +61,6 @@ function accountKey(values: ProfileFormValues): string {
 function computeBaseline(values: ProfileFormValues, legacySpecialization: string | undefined): Baseline {
   return {
     account: accountKey(values),
-    timeZone: values.timeZone,
     trainer: JSON.stringify(buildTrainerPayload(values, legacySpecialization)),
   };
 }
@@ -100,12 +97,7 @@ export default function ProfileForm({ me, trainer }: Props) {
     return () => window.removeEventListener('beforeunload', warn);
   }, [formState.isDirty]);
 
-  function applyFailure(part: keyof Baseline, error: unknown) {
-    const code = getErrorCode(error);
-    if (part === 'timeZone' || code === 'INVALID_TIME_ZONE') {
-      setError('timeZone', { message: t('profile.page.validation.invalidTimeZone') });
-      return;
-    }
+  function applyFailure(error: unknown) {
     let mapped = false;
     for (const entry of readBackendErrors(error)) {
       const field = fieldForBackendName(entry.name);
@@ -139,14 +131,6 @@ export default function ProfileForm({ me, trainer }: Props) {
           accountSaved = true;
         } catch (error) {
           failures.push({ part: 'account', error });
-        }
-      }
-      if (next.timeZone !== baseline.current.timeZone && values.timeZone) {
-        try {
-          await updateMyTimeZone(values.timeZone);
-          baseline.current = { ...baseline.current, timeZone: next.timeZone };
-        } catch (error) {
-          failures.push({ part: 'timeZone', error });
         }
       }
       if (next.trainer !== baseline.current.trainer) {
@@ -185,7 +169,7 @@ export default function ProfileForm({ me, trainer }: Props) {
         showSuccess('profile.page.saved');
         return;
       }
-      for (const { part, error } of failures) applyFailure(part, error);
+      for (const { error } of failures) applyFailure(error);
     },
     onError: (error) => showApiError(error, 'profile.saveError'),
   });

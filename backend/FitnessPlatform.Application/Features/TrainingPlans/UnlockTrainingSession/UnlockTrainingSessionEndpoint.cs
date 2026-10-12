@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using FastEndpoints;
+using FitnessPlatform.Application.Domain.Authorization;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
@@ -18,6 +19,7 @@ namespace FitnessPlatform.Application.Features.TrainingPlans.UnlockTrainingSessi
 /// The ownership guard ensures only the plan's owning trainer may unlock.
 /// Emits <c>sessioneditlockchanged</c> (state=Editing) to both client and trainer on successful acquire.
 /// </summary>
+[RemovedCoachRole(AppRoles.Trainer, RemovedCoachRoleMode.WhilePlanInProgress)]
 public class UnlockTrainingSessionEndpoint(
     IMongoContext mongo,
     ISessionLockService lockService,

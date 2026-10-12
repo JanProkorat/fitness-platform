@@ -112,6 +112,9 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public virtual DbSet<DevicePushToken> DevicePushTokens { get; set; } = null!;
 
     /// <inheritdoc />
+    public virtual DbSet<NotificationPreference> NotificationPreferences { get; set; } = null!;
+
+    /// <inheritdoc />
     public virtual DbSet<Conversation> Conversations { get; set; } = null!;
 
     /// <inheritdoc />
@@ -330,6 +333,15 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                 .HasDatabaseName("ix_photo_diary_reminder_logs_request_date");
         });
 
+        builder.Entity<NotificationPreference>(e =>
+        {
+            e.HasIndex(p => new { p.UserId, p.Event }).IsUnique();
+            e.HasOne(p => p.User)
+                .WithMany()
+                .HasForeignKey(p => p.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
         builder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
     }
 
@@ -417,6 +429,40 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                   + " WHERE " + keyColumn + " = {0} FOR NO KEY UPDATE";
 
         return Database.ExecuteSqlRawAsync(sql, [clientProfileId], cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public Task UpsertNotificationPreferencesAsync(
+        Guid userId,
+        IReadOnlyCollection<(NotificationEvent Event, bool EmailEnabled, bool PushEnabled)> preferences,
+        CancellationToken cancellationToken = default)
+    {
+        if (preferences.Count == 0)
+        {
+            return Task.CompletedTask;
+        }
+
+        // Rows go in a fixed event order so two concurrent saves lock the conflicting keys in the
+        // same sequence. Only placeholder indexes are spliced into the SQL; every value is bound.
+        var now = DateTime.UtcNow;
+        var parameters = new List<object> { userId, now };
+        var rows = new List<string>();
+
+        foreach (var preference in preferences.OrderBy(p => (int)p.Event))
+        {
+            var next = parameters.Count;
+            rows.Add("({0}, {" + next + "}, {" + (next + 1) + "}, {" + (next + 2) + "}, {1})");
+            parameters.Add((int)preference.Event);
+            parameters.Add(preference.EmailEnabled);
+            parameters.Add(preference.PushEnabled);
+        }
+
+        var sql = "INSERT INTO notification_preferences (user_id, event, email_enabled, push_enabled, date_created) VALUES "
+                  + string.Join(", ", rows)
+                  + " ON CONFLICT (user_id, event) DO UPDATE SET email_enabled = EXCLUDED.email_enabled,"
+                  + " push_enabled = EXCLUDED.push_enabled, date_updated = {1}";
+
+        return Database.ExecuteSqlRawAsync(sql, parameters, cancellationToken);
     }
 
     /// <summary>

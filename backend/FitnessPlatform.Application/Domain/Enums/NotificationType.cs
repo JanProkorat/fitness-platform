@@ -51,5 +51,14 @@ public enum NotificationType
     /// A daily reminder sent to a client in an active photo diary workflow
     /// when no photo has been uploaded for the current day yet.
     /// </summary>
-    PhotoDiaryReminder
+    PhotoDiaryReminder,
+
+    /// <summary>A professional removed a coach role that covers the client's plans; delivered to the client.</summary>
+    CoachRoleRemoved,
+
+    /// <summary>A collaboration was ended because the professional removed the coach role it covered; delivered to the client.</summary>
+    CollaborationEndedByRoleRemoval,
+
+    /// <summary>A collaboration was ended because the professional removed the coach role it covered; delivered to the professional.</summary>
+    CollaborationEndedByRoleRemovalCoach
 }

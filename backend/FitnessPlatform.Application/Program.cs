@@ -218,6 +218,8 @@ builder.Services.AddSingleton(TimeProvider.System);
 // Client link authorization (cross-DB link verification) — the single entry point every
 // call site resolves professional/client link capabilities through; see #958, #964.
 builder.Services.AddScoped<IClientLinkAuthorizationService, ClientLinkAuthorizationService>();
+builder.Services.AddScoped<ICoachRoleStatus, CoachRoleStatus>();
+builder.Services.AddScoped<ICoachRoleRemover, CoachRoleRemover>();
 builder.Services.AddScoped<IPrDetectionService, PrDetectionService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IWorkoutCompletionService, WorkoutCompletionService>();
@@ -268,6 +270,8 @@ builder.Services.AddHostedService(sp => sp.GetRequiredService<WeeklyCheckInSched
 // Photo diary reminder scheduler — registered as both singleton (for test access) and hosted service.
 builder.Services.AddSingleton<PhotoDiaryReminderScheduler>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<PhotoDiaryReminderScheduler>());
+builder.Services.AddSingleton<CoachRoleLinkSweeper>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<CoachRoleLinkSweeper>());
 
 // Social login nonce reaper — periodically deletes expired/consumed nonce rows.
 // Registered as singleton (for test access via IServiceProvider) and hosted service.
@@ -448,6 +452,9 @@ app.UseAuthorization();
 app.UseMiddleware<LocaleCaptureMiddleware>();
 app.MapHub<NotificationHub>("/hubs/notifications");
 app.UseRateLimiter();
+// Read-only gate after a coach role is removed (see RemovedCoachRoleAttribute); needs the resolved
+// endpoint and the authenticated user, so it sits after authorization and before the endpoint runs.
+app.UseMiddleware<RemovedCoachRoleMiddleware>();
 // NOTE: ResetTestStateEndpoint is always registered in the route table.
 // The single gate (Testing:Enabled=true) is enforced at request time inside
 // the endpoint's HandleAsync. This avoids a process-wide static route table

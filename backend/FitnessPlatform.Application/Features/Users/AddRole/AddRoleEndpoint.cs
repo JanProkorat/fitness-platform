@@ -1,3 +1,5 @@
+using FitnessPlatform.Application.Domain.Authorization;
+using FitnessPlatform.Application.Domain.Enums;
 using System.Security.Cryptography;
 using FastEndpoints;
 using FastEndpoints.Security;
@@ -5,6 +7,8 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Domain.Services;
+using FitnessPlatform.Application.Features.Users.Shared;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -18,6 +22,7 @@ namespace FitnessPlatform.Application.Features.Users.AddRole;
 /// <param name="db">Database context.</param>
 /// <param name="config">Application configuration for JWT settings.</param>
 /// <param name="audit">Audit logging service.</param>
+[RemovedCoachRole(RemovedCoachRoleMode.Exempt, Reason = "Adds or restores a coach role, so it must work when no role is active.")]
 public class AddRoleEndpoint(
     UserManager<ApplicationUser> userManager,
     IApplicationDbContext db,
@@ -67,19 +72,47 @@ public class AddRoleEndpoint(
         var currentRoles = await userManager.GetRolesAsync(user);
         if (currentRoles.Contains(req.Role))
         {
-            this.ThrowErrorWithCode(ErrorCodes.RoleAlreadyAssigned, "You already have this role.");
-            return;
+            // A held-but-removed role is restored instead of rejected.
+            var existingProfile = await db.ProfessionalProfiles.FirstOrDefaultAsync(p => p.UserId == userId, ct);
+            if (!CoachRoleStatus.IsRemoved(existingProfile, req.Role))
+            {
+                this.ThrowErrorWithCode(ErrorCodes.RoleAlreadyAssigned, "You already have this role.");
+                return;
+            }
+
+        }
+        else
+        {
+            await userManager.AddToRoleAsync(user, req.Role);
         }
 
-        await userManager.AddToRoleAsync(user, req.Role);
-
-        // If user doesn't have a ProfessionalProfile yet, create one (Nutritionist → Trainer case)
-        var hasProfile = await db.ProfessionalProfiles.AnyAsync(p => p.UserId == userId, ct);
-        if (!hasProfile)
+        // Adding a role reactivates the coach account: clear the removal marker and any pending disable.
+        // Create the ProfessionalProfile when the user has none yet (Nutritionist → Trainer case).
+        var profile = await db.ProfessionalProfiles.FirstOrDefaultAsync(p => p.UserId == userId, ct);
+        if (profile is null)
         {
             db.ProfessionalProfiles.Add(new ProfessionalProfile { UserId = userId });
-            await db.SaveChangesAsync(ct);
         }
+        else
+        {
+            CoachRoleStatus.SetRemovedAt(profile, req.Role, null);
+
+            // The cancel flag is only ever set together with the disable date.
+            if (profile.CoachAccountActiveUntil is not null)
+            {
+                profile.CoachAccountActiveUntil = null;
+
+                var subscription = await db.CoachSubscriptions
+                    .FirstOrDefaultAsync(cs => cs.ProfessionalProfileId == profile.Id, ct);
+
+                if (subscription is not null)
+                {
+                    subscription.CancelAtPeriodEnd = false;
+                }
+            }
+        }
+
+        await db.SaveChangesAsync(ct);
 
         // Audit log
         await audit.LogAsync(

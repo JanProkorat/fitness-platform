@@ -94,6 +94,13 @@ public static class NotificationTemplates
                 new("Client responded to check-in", "A client has responded to their weekly check-in reminder."),
             [Key(NotificationType.PhotoDiaryReminder)] =
                 new("Don't forget your diary photo", "Today is day {dayIndex} of {durationDays}. Take a photo of what you eat — your nutritionist will see it live."),
+
+            [Key(NotificationType.CoachRoleRemoved)] =
+                new("Coach role removed", "{coachName} removed a coach role from their account. Your current plan stays available until it ends. A collaboration that only covered that role ends afterwards."),
+            [Key(NotificationType.CollaborationEndedByRoleRemoval)] =
+                new("Collaboration ended", "Your collaboration with {coachName} ended because they removed the coach role it covered."),
+            [Key(NotificationType.CollaborationEndedByRoleRemovalCoach)] =
+                new("Collaboration ended", "Your collaboration with {clientName} ended because you removed the coach role it covered."),
         },
         ["cs"] = new()
         {
@@ -147,6 +154,13 @@ public static class NotificationTemplates
                 new("Klient odpověděl na check-in", "Klient odpověděl na týdenní připomenutí check-inu."),
             [Key(NotificationType.PhotoDiaryReminder)] =
                 new("Nezapomeňte na fotku deníku", "Dnes je den {dayIndex} z {durationDays}. Vyfoťte si, co jíte — váš výživový poradce to uvidí živě."),
+
+            [Key(NotificationType.CoachRoleRemoved)] =
+                new("Role odebrána", "{coachName} odebral(a) ze svého účtu jednu ze svých rolí (trenér, nutriční poradce). Váš aktuální plán zůstane dostupný, dokud neskončí. Spolupráce, která tuto roli pokrývala, poté skončí."),
+            [Key(NotificationType.CollaborationEndedByRoleRemoval)] =
+                new("Spolupráce ukončena", "Vaše spolupráce s uživatelem {coachName} skončila, protože odebral(a) roli trenéra nebo nutričního poradce, kterou pokrývala."),
+            [Key(NotificationType.CollaborationEndedByRoleRemovalCoach)] =
+                new("Spolupráce ukončena", "Vaše spolupráce s klientem {clientName} skončila, protože jste odebral(a) roli trenéra nebo nutričního poradce, kterou pokrývala."),
         },
         ["de"] = new()
         {
@@ -200,6 +214,13 @@ public static class NotificationTemplates
                 new("Klient hat auf Check-in geantwortet", "Ein Klient hat auf die wöchentliche Check-in-Erinnerung geantwortet."),
             [Key(NotificationType.PhotoDiaryReminder)] =
                 new("Vergessen Sie Ihr Tagebuchfoto nicht", "Heute ist Tag {dayIndex} von {durationDays}. Machen Sie ein Foto von dem, was Sie essen — Ihr Ernährungsberater sieht es live."),
+
+            [Key(NotificationType.CoachRoleRemoved)] =
+                new("Rolle entfernt", "{coachName} hat eine Coach-Rolle aus dem eigenen Konto entfernt. Ihr aktueller Plan bleibt verfügbar, bis er endet. Eine Zusammenarbeit, die nur diese Rolle abdeckte, endet danach."),
+            [Key(NotificationType.CollaborationEndedByRoleRemoval)] =
+                new("Zusammenarbeit beendet", "Ihre Zusammenarbeit mit {coachName} wurde beendet, weil die abgedeckte Coach-Rolle entfernt wurde."),
+            [Key(NotificationType.CollaborationEndedByRoleRemovalCoach)] =
+                new("Zusammenarbeit beendet", "Ihre Zusammenarbeit mit {clientName} wurde beendet, weil Sie die abgedeckte Coach-Rolle entfernt haben."),
         },
     };
 

@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using FastEndpoints;
+using FitnessPlatform.Application.Domain.Authorization;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
@@ -13,6 +14,7 @@ namespace FitnessPlatform.Application.Features.Trainers.AssignQuestionnaire;
 /// <summary>
 /// Endpoint for a professional to assign a questionnaire to an existing linked client.
 /// </summary>
+[RemovedCoachRole(RemovedCoachRoleMode.Refuse)]
 public class AssignQuestionnaireEndpoint(
     IApplicationDbContext db,
     IRealtimeNotifier notifier,

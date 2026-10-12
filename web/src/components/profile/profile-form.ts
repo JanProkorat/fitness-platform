@@ -26,7 +26,6 @@ export interface ProfileFormValues {
   firstName: string;
   lastName: string;
   phoneNumber: string;
-  timeZone: string;
   bio: string;
   city: string;
   estimatedPrice: string;
@@ -131,7 +130,6 @@ export function buildDefaultValues(
     firstName: me.firstName ?? '',
     lastName: me.lastName ?? '',
     phoneNumber: me.phoneNumber ?? '',
-    timeZone: me.timeZone ?? '',
     bio: trainer.bio ?? '',
     city: trainer.city ?? '',
     estimatedPrice: trainer.estimatedPrice ?? '',
@@ -180,7 +178,6 @@ export function createProfileSchema(t: TFunction) {
     firstName: z.string().trim().min(1, required).max(NAME_MAX, t('profile.page.validation.tooLong', { max: NAME_MAX })),
     lastName: z.string().trim().min(1, required).max(NAME_MAX, t('profile.page.validation.tooLong', { max: NAME_MAX })),
     phoneNumber: z.string().max(PHONE_MAX, t('profile.page.validation.tooLong', { max: PHONE_MAX })),
-    timeZone: z.string(),
     bio: z.string().max(BIO_MAX, t('profile.page.validation.tooLong', { max: BIO_MAX })),
     city: z.string().max(SHORT_MAX, t('profile.page.validation.tooLong', { max: SHORT_MAX })),
     estimatedPrice: z.string().max(SHORT_MAX, t('profile.page.validation.tooLong', { max: SHORT_MAX })),
@@ -226,7 +223,6 @@ const FIELD_BY_BACKEND_NAME: Record<string, keyof ProfileFormValues> = {
   firstname: 'firstName',
   lastname: 'lastName',
   phonenumber: 'phoneNumber',
-  timezone: 'timeZone',
   bio: 'bio',
   city: 'city',
   estimatedprice: 'estimatedPrice',

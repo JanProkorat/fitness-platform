@@ -152,6 +152,10 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                         .HasColumnType("character varying(256)")
                         .HasColumnName("normalized_user_name");
 
+                    b.Property<DateTime?>("PasswordChangedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("password_changed_at");
+
                     b.Property<string>("PasswordHash")
                         .HasColumnType("text")
                         .HasColumnName("password_hash");
@@ -962,6 +966,12 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
+                    b.Property<bool>("CancelAtPeriodEnd")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("cancel_at_period_end");
+
                     b.Property<DateTimeOffset?>("CurrentPeriodEndsAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("current_period_ends_at");
@@ -1308,6 +1318,49 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                     b.ToTable("notifications", (string)null);
                 });
 
+            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.NotificationPreference", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("DateCreated")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_created");
+
+                    b.Property<DateTime?>("DateUpdated")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_updated");
+
+                    b.Property<bool>("EmailEnabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("email_enabled");
+
+                    b.Property<int>("Event")
+                        .HasColumnType("integer")
+                        .HasColumnName("event");
+
+                    b.Property<bool>("PushEnabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("push_enabled");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_notification_preferences");
+
+                    b.HasIndex("UserId", "Event")
+                        .IsUnique()
+                        .HasDatabaseName("ix_notification_preferences_user_id_event");
+
+                    b.ToTable("notification_preferences", (string)null);
+                });
+
             modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.PendingInvite", b =>
                 {
                     b.Property<long>("Id")
@@ -1614,6 +1667,10 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("city");
 
+                    b.Property<DateTime?>("CoachAccountActiveUntil")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("coach_account_active_until");
+
                     b.Property<string>("CollaborationType")
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)")
@@ -1646,6 +1703,10 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                         .HasColumnType("character varying(200)")
                         .HasColumnName("linked_in");
 
+                    b.Property<DateTime?>("NutritionistRoleRemovedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("nutritionist_role_removed_at");
+
                     b.Property<Guid>("PublicId")
                         .HasColumnType("uuid")
                         .HasColumnName("public_id");
@@ -1662,6 +1723,10 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                     b.Property<string>("Specializations")
                         .HasColumnType("text")
                         .HasColumnName("specializations");
+
+                    b.Property<DateTime?>("TrainerRoleRemovedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("trainer_role_removed_at");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid")
@@ -2752,6 +2817,18 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                         .HasConstraintName("fk_notifications_users_recipient_user_id");
 
                     b.Navigation("Recipient");
+                });
+
+            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.NotificationPreference", b =>
+                {
+                    b.HasOne("FitnessPlatform.Application.Domain.Entities.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_notification_preferences_users_user_id");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.PendingInvite", b =>

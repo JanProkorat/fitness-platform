@@ -71,7 +71,7 @@
     "lastName": "Příjmení",
     "role": "Role",
     "roleTrainer": "Trenér",
-    "roleNutritionist": "Výživový poradce",
+    "roleNutritionist": "Nutriční poradce",
     "roleClient": "Klient",
     "gdprConsent": "Souhlasím se zpracováním osobních údajů dle GDPR za účelem poskytování služeb fitness platformy.",
     "healthDataConsent": "Souhlasím se zpracováním zdravotních dat dle GDPR čl. 9 (tělesné míry, výkonnostní záznamy, fotky pokroku).",
@@ -197,7 +197,6 @@
     "foods": "Potraviny",
     "plans": "Plány",
     "settings": "Nastavení",
-    "profileLink": "Otevřít profil",
     "recipes": "Recepty",
     "planTemplates": "Šablony plánů",
     "exercises": "Cviky",
@@ -235,8 +234,230 @@
   "roles": {
     "admin": "Administrátor",
     "trainer": "Osobní trenér",
-    "nutritionist": "Výživový poradce",
+    "nutritionist": "Nutriční poradce",
     "client": "Klient"
+  },
+  "accountMenu": {
+    "trigger": "Nabídka účtu",
+    "title": "Účet",
+    "profile": "Váš profil",
+    "settings": "Nastavení",
+    "language": "Jazyk",
+    "theme": "Motiv",
+    "languages": {
+      "cs": "Čeština",
+      "en": "English",
+      "de": "Deutsch"
+    },
+    "themes": {
+      "light": "Světlý",
+      "dark": "Tmavý",
+      "system": "Systém"
+    }
+  },
+  "settings": {
+    "eyebrow": "Účet",
+    "title": "Nastavení",
+    "subtitle": "Přihlášení, oznámení a role na vašem účtu",
+    "loadError": "Nastavení se nepodařilo načíst. Obnovte prosím stránku.",
+    "status": {
+      "saved": "Všechny změny uloženy",
+      "saving": "Ukládání…",
+      "error": "Neuloženo"
+    },
+    "account": {
+      "title": "Účet",
+      "description": "Jak se přihlašujete a podle jakých hodin se řídí vaše připomínky.",
+      "email": "Přihlašovací e-mail",
+      "emailHint": "Touto adresou se přihlašujete. Klienti ji vidí také na vašem profilu.",
+      "timeZone": "Časové pásmo",
+      "timeZoneHint": "Řídí se jím připomínky check-inů a časy sezení.",
+      "timeZoneError": "Časové pásmo se nepodařilo uložit.",
+      "password": "Heslo",
+      "changePassword": "Změnit heslo",
+      "passwordChanged": "Naposledy změněno {{date}}.",
+      "passwordManaged": "Přihlašujete se přes Google. Heslo spravujete tam.",
+      "passwordDialog": {
+        "title": "Změnit heslo",
+        "lede": "Tady zůstanete přihlášeni. Ostatní zařízení se odhlásí.",
+        "current": "Současné heslo",
+        "new": "Nové heslo",
+        "repeat": "Nové heslo znovu",
+        "show": "Zobrazit",
+        "hide": "Skrýt",
+        "showCurrent": "Zobrazit současné heslo",
+        "hideCurrent": "Skrýt současné heslo",
+        "showNew": "Zobrazit nové heslo",
+        "hideNew": "Skrýt nové heslo",
+        "showRepeat": "Zobrazit zopakované heslo",
+        "hideRepeat": "Skrýt zopakované heslo",
+        "forgot": "Zapomněli jste současné heslo?",
+        "resetSent": "Odkaz pro obnovení hesla jsme poslali na {{email}}.",
+        "resetError": "Odkaz pro obnovení se nepodařilo odeslat.",
+        "currentRequired": "Zadejte současné heslo.",
+        "wrongCurrent": "Toto není vaše současné heslo.",
+        "submit": "Změnit heslo",
+        "submitting": "Měním…",
+        "success": "Heslo bylo změněno.",
+        "error": "Heslo se nepodařilo změnit."
+      }
+    },
+    "notifications": {
+      "title": "Oznámení",
+      "description": "Vyberte, jak vás budeme informovat o aktivitě klientů. Oznámení v aplikaci se zobrazují vždy.",
+      "event": "Událost",
+      "email": "E-mail",
+      "app": "Aplikace trenéra",
+      "emailLabel": "{{event}} e-mailem",
+      "appLabel": "{{event}} v aplikaci trenéra",
+      "saveError": "Nastavení upozornění se nepodařilo uložit.",
+      "events": {
+        "newMessage": {
+          "title": "Nová zpráva",
+          "description": "Klient vám napíše v chatu."
+        },
+        "checkIn": {
+          "title": "Odeslaný týdenní check-in",
+          "description": "Klient vám pošle check-in ke kontrole."
+        },
+        "joinRequest": {
+          "title": "Žádost o spolupráci",
+          "description": "Někdo se chce stát vaším klientem."
+        },
+        "photos": {
+          "title": "Odeslané fotky pokroku",
+          "description": "Klient odpoví na vaši žádost o fotky."
+        },
+        "workout": {
+          "title": "Dokončený trénink",
+          "description": "Klient dokončí tréninkové sezení."
+        }
+      }
+    },
+    "roles": {
+      "title": "Vaše role",
+      "description": "Každá role odemyká vlastní nástroje a zobrazuje se pod vaším jménem ve vyhledávání.",
+      "add": "Přidat roli",
+      "remove": "Odebrat roli",
+      "active": "Aktivní",
+      "added": "Role byla přidána.",
+      "addError": "Roli se nepodařilo přidat.",
+      "descriptions": {
+        "trainer": "Tréninky, cviky, tréninkové plány a šablony.",
+        "nutritionist": "Recepty, suroviny, jídelní plány a šablony."
+      },
+      "note": "Odebráním role ji skryjete z vyhledávání a zastavíte novou práci v ní: žádné nové plány ani šablony a žádní noví klienti. Rozpracované plány zůstanou aktivní do konce: klienti dál zapisují a vy je můžete upravovat. Poté zůstane vše, co jste sdíleli, viditelné vám oběma, jen pro čtení. Roli můžete kdykoli přidat zpět a znovu upravovat.",
+      "addDialog": {
+        "title": "Přidat roli: {{role}}?",
+        "body": "Získáte nástroje této role a budete díky ní vidět ve vyhledávání. Později ji můžete znovu odebrat.",
+        "chooseTitle": "Přidat roli",
+        "chooseBody": "Vyberte, kterou roli chcete přidat. Získáte její nástroje a budete díky ní vidět ve vyhledávání. Později ji můžete znovu odebrat."
+      },
+      "clients_one": "{{count}} klient",
+      "clients_few": "{{count}} klienti",
+      "clients_many": "{{count}} klienta",
+      "clients_other": "{{count}} klientů",
+      "removed": "Role byla odebrána.",
+      "removeError": "Roli se nepodařilo odebrat. Nic se nezměnilo.",
+      "loadError": "Vaše role se nepodařilo načíst. Obnovte prosím stránku.",
+      "onlyRoleNote": "Toto je vaše jediná role. Její odebrání zakáže váš trenérský účet, stejně jako tlačítko níže.",
+      "noRolesNote": "Váš trenérský účet je deaktivovaný. Přidejte roli a znovu ho aktivujte.",
+      "removeDialog": {
+        "keep": "Ponechat roli",
+        "footnote": "Role okamžitě zmizí z vyhledávání i z vaší profilové karty. Kdykoli ji můžete přidat zpět a znovu upravovat.",
+        "notified_zero": "Žádný klient nebude upozorněn",
+        "notified_one": "{{count}} klient bude upozorněn",
+        "notified_few": "{{count}} klienti budou upozorněni",
+        "notified_many": "{{count}} klienta bude upozorněno",
+        "notified_other": "{{count}} klientů bude upozorněno",
+        "trainer": {
+          "title": "Odebrat roli Osobní trenér?",
+          "description": "Zůstanete nutričním poradcem. Nic se nemaže.",
+          "shared_one": "{{count}} má s vámi také výživu a zůstává vaším klientem.",
+          "shared_few": "{{count}} mají s vámi také výživu a zůstávají vašimi klienty.",
+          "shared_many": "{{count}} klienta má s vámi také výživu a zůstává vašimi klienty.",
+          "shared_other": "{{count}} jich má s vámi také výživu a zůstává vašimi klienty.",
+          "rest_one": "Dalšího {{count}} klienta máte nadále propojeného, dokud neskončí jeho aktuální plán; poté spolupráce skončí a jeho historie se archivuje.",
+          "rest_few": "Další {{count}} klienti zůstanou s vámi propojení, dokud neskončí jejich aktuální plán; poté spolupráce skončí a jejich historie se archivuje.",
+          "rest_many": "Dalších {{count}} klienta zůstane s vámi propojeno, dokud neskončí jejich aktuální plán; poté spolupráce skončí a jejich historie se archivuje.",
+          "rest_other": "Dalších {{count}} klientů zůstane s vámi propojeno, dokud neskončí jejich aktuální plán; poté spolupráce skončí a jejich historie se archivuje.",
+          "restAll_one": "Tento klient zůstane s vámi propojen, dokud neskončí jeho aktuální plán; poté spolupráce skončí a jeho historie se archivuje.",
+          "restAll_few": "Všichni {{count}} klienti zůstanou s vámi propojeni, dokud neskončí jejich aktuální plán; poté spolupráce skončí a jejich historie se archivuje.",
+          "restAll_many": "Všech {{count}} klienta zůstane s vámi propojeno, dokud neskončí jejich aktuální plán; poté spolupráce skončí a jejich historie se archivuje.",
+          "restAll_other": "Všech {{count}} klientů zůstane s vámi propojeno, dokud neskončí jejich aktuální plán; poté spolupráce skončí a jejich historie se archivuje.",
+          "plansTitle": "Rozpracované plány doběhnou do konce",
+          "plansBody": "Již zahájené tréninkové plány zůstanou aktivní pro vás i vaše klienty, dokud neskončí.",
+          "libraryTitle": "Vaše tréninková knihovna bude jen pro čtení",
+          "libraryBody": "Cviky, tréninky a tréninkové šablony zůstanou viditelné, ale nepůjde je vytvářet, upravovat ani přiřazovat.",
+          "confirm": "Odebrat roli Osobní trenér"
+        },
+        "nutritionist": {
+          "title": "Odebrat roli Nutriční poradce?",
+          "description": "Zůstanete osobním trenérem. Nic se nemaže.",
+          "shared_one": "{{count}} s vámi také trénuje a zůstává vaším klientem.",
+          "shared_few": "{{count}} s vámi také trénují a zůstávají vašimi klienty.",
+          "shared_many": "{{count}} klienta s vámi také trénuje a zůstává vašimi klienty.",
+          "shared_other": "{{count}} jich s vámi také trénuje a zůstává vašimi klienty.",
+          "rest_one": "Dalšího {{count}} klienta máte nadále propojeného, dokud neskončí jeho aktuální plán; poté spolupráce skončí a jeho historie se archivuje.",
+          "rest_few": "Další {{count}} klienti zůstanou s vámi propojení, dokud neskončí jejich aktuální plán; poté spolupráce skončí a jejich historie se archivuje.",
+          "rest_many": "Dalších {{count}} klienta zůstane s vámi propojeno, dokud neskončí jejich aktuální plán; poté spolupráce skončí a jejich historie se archivuje.",
+          "rest_other": "Dalších {{count}} klientů zůstane s vámi propojeno, dokud neskončí jejich aktuální plán; poté spolupráce skončí a jejich historie se archivuje.",
+          "restAll_one": "Tento klient zůstane s vámi propojen, dokud neskončí jeho aktuální plán; poté spolupráce skončí a jeho historie se archivuje.",
+          "restAll_few": "Všichni {{count}} klienti zůstanou s vámi propojeni, dokud neskončí jejich aktuální plán; poté spolupráce skončí a jejich historie se archivuje.",
+          "restAll_many": "Všech {{count}} klienta zůstane s vámi propojeno, dokud neskončí jejich aktuální plán; poté spolupráce skončí a jejich historie se archivuje.",
+          "restAll_other": "Všech {{count}} klientů zůstane s vámi propojeno, dokud neskončí jejich aktuální plán; poté spolupráce skončí a jejich historie se archivuje.",
+          "plansTitle": "Rozpracované plány doběhnou do konce",
+          "plansBody": "Již zahájené jídelní plány zůstanou aktivní pro vás i vaše klienty, dokud neskončí.",
+          "libraryTitle": "Vaše nutriční knihovna bude jen pro čtení",
+          "libraryBody": "Recepty, suroviny a šablony jídelních plánů zůstanou viditelné, ale nepůjde je vytvářet, upravovat ani přiřazovat.",
+          "confirm": "Odebrat roli Nutriční poradce"
+        }
+      }
+    },
+    "disableDialog": {
+      "title": "Deaktivovat trenérský účet?",
+      "description": "Tím odeberete všechny své role: {{roles}}. Odebrání jediné role udělá totéž.",
+      "later": {
+        "untilTitle": "Aktivní do {{date}}",
+        "untilBody": "Vše funguje jako dosud až do posledního dne vašeho aktuálního předplatného.",
+        "chargesBody": "Po tomto datu vám nebude nic účtováno. Předplatné se neobnoví.",
+        "plansBody": "Již zahájené plány zůstanou aktivní, dokud neskončí, i po {{date}}, bez poplatku. Tito klienti s vámi zůstanou propojeni do té doby."
+      },
+      "now": {
+        "untilTitle": "Vaše role skončí hned",
+        "untilBody": "Nemáte žádné zaplacené období, proto se deaktivace projeví okamžitě.",
+        "chargesBody": "Už vám nebude nic účtováno.",
+        "plansBody": "Již zahájené plány zůstanou aktivní, dokud neskončí, bez poplatku. Tito klienti s vámi zůstanou propojeni do té doby."
+      },
+      "chargesTitle": "Žádné další platby",
+      "plansTitle": "Rozpracované plány doběhnou do konce",
+      "readOnlyTitle": "Vše ostatní bude jen pro čtení",
+      "readOnlyBody": "Zachováte přístup ke všem svým klientům, plánům, šablonám, receptům i chatům. Jen nic nevytvoříte ani nezměníte.",
+      "footnote": "Rozmysleli jste se? Kdykoli přidejte roli a účet se znovu aktivuje a půjde upravovat.",
+      "keep": "Ponechat účet",
+      "confirm": "Deaktivovat účet",
+      "error": "Trenérský účet se nepodařilo deaktivovat. Nic se nezměnilo.",
+      "endedToast": "Trenérský účet byl deaktivován.",
+      "scheduledToast": "Trenérský účet bude deaktivován na konci období."
+    },
+    "danger": {
+      "title": "Nebezpečná zóna",
+      "description": "Akce, které ukončí vaši práci ve Form Up.",
+      "disableTitle": "Deaktivovat trenérský účet",
+      "disableBody": "Odebere všechny vaše role a zastaví fakturaci po skončení aktuálního předplatného. Vaše data zůstanou, jen pro čtení.",
+      "disable": "Deaktivovat účet",
+      "deleteTitle": "Smazat účet",
+      "deleteBody": "Trvale smaže váš účet, plány, šablony a zprávy. Klienti ztratí přístup k tomu, co jste sdíleli. Tuto akci nelze vrátit.",
+      "delete": "Smazat účet",
+      "confirmTitle": "Smazat váš účet?",
+      "confirmBody": "Tím trvale smažete svůj účet a vše v něm. Tuto akci nelze vrátit.",
+      "confirmAction": "Smazat účet",
+      "deleteError": "Účet se nepodařilo smazat. Nic se nezměnilo.",
+      "disabledUntil": "Deaktivováno, aktivní do {{date}}.",
+      "keep": "Ponechat účet",
+      "kept": "Trenérský účet zůstává aktivní.",
+      "keepError": "Trenérský účet se nepodařilo ponechat. Nic se nezměnilo."
+    }
   },
   "dashboard": {
     "title": "Dashboard",
@@ -705,7 +926,7 @@
     "trainerRoleDesc": "Silový trénink, kardio, rehabilitace, kondice",
     "nutritionistRoleDesc": "Jídelníčky, makra, stravovací strategie",
     "roleRemovalNotSupported": "Odebrání role zatím není podporováno",
-    "addNutritionistRole": "Pracovat také jako Výživový poradce",
+    "addNutritionistRole": "Pracovat také jako nutriční poradce",
     "addTrainerRole": "Pracovat také jako Trenér",
     "addRoleConfirmTitle": "Přidat roli",
     "addRoleConfirm": "Opravdu chcete přidat tuto roli? Tuto akci nelze vrátit zpět.",
@@ -771,9 +992,7 @@
         "title": "Účet",
         "description": "Soukromé — vidíte to jen vy a klienti, se kterými pracujete.",
         "emailHint": "Přihlašujete se touto adresou.",
-        "phoneHint": "Nepovinné.",
-        "timeZone": "Časové pásmo",
-        "timeZoneHint": "Připomínky check-inů a časy lekcí se řídí jím."
+        "phoneHint": "Nepovinné."
       },
       "about": {
         "title": "O vás",
@@ -845,7 +1064,6 @@
         "listTooLong": "Příliš mnoho položek — některé odeberte.",
         "year": "Zadejte čtyřciferný rok.",
         "certificateTitleRequired": "Doplňte název certifikátu.",
-        "invalidTimeZone": "Toto časové pásmo není podporováno. Vyberte jiné.",
         "invalidCertificates": "Některé certifikáty se nepodařilo uložit. Zkontrolujte jejich názvy.",
         "serverInvalid": "Tato hodnota byla odmítnuta. Zkontrolujte ji."
       },
@@ -1214,7 +1432,7 @@
       "create": "Vytvořit recept"
     },
     "nutritionistsOnly": {
-      "title": "Recepty jsou dostupné pro výživové poradce",
+      "title": "Recepty jsou dostupné pro nutriční poradce",
       "body": "Váš účet je trenérský, proto pro vás knihovna receptů není dostupná."
     },
     "filters": {
@@ -1948,6 +2166,7 @@
     "NO_CLIENT_RELATIONSHIP": "S tímto klientem nemáte aktivní vztah.",
     "COLLABORATOR_NOT_FOUND": "Spolupracovník nebyl nalezen.",
     "PLAN_NOT_DRAFT": "Publikovat lze pouze plány ve stavu konceptu.",
+    "COACH_ROLE_REMOVED": "Tuto roli jste odebrali, proto jsou její plány, šablony a položky knihovny jen pro čtení. Rozběhnutý plán lze do konce upravovat, ale nelze ho prodloužit. Po opětovném přidání role v Nastavení půjde znovu upravovat.",
     "START_DATE_NOT_MONDAY": "Datum zahájení musí být pondělí.",
     "START_DATE_IN_PAST": "Datum zahájení nemůže být v minulosti.",
     "START_DATE_LOCKED": "Datum zahájení nelze změnit poté, co nastalo.",
@@ -2002,6 +2221,11 @@
     "RECIPE_NOT_OWNED": "Můžete upravovat jen své vlastní recepty.",
     "RECIPE_GALLERY_FULL": "Tento recept už má maximální počet obrázků.",
     "RECIPE_GALLERY_IMAGE_NOT_FOUND": "Tento obrázek už k receptu nepatří. Mohl být změněn jinde.",
+    "ONLY_COACH_ROLE": "Toto je vaše jediná trenérská role, proto ji tady nelze odebrat.",
+    "ROLE_NOT_ASSIGNED": "Tuto roli už nemáte. Vaše role byly obnoveny.",
+    "NO_ACTIVE_COACH_ROLE": "Nemáte žádnou aktivní trenérskou roli, takže není co deaktivovat. Vaše role byly obnoveny.",
+    "COACH_ACCOUNT_NOT_DISABLING": "Váš trenérský účet se nedeaktivuje. Vaše role byly obnoveny.",
+    "COACH_ACCOUNT_DISABLE_ENDED": "Deaktivace už skončila a nelze ji vrátit. Přidejte roli a účet znovu aktivujte.",
     "NUTRITION_PLAN_TEMPLATE_NOT_FOUND": "Tato šablona plánu už neexistuje.",
     "NUTRITION_PLAN_TEMPLATE_NOT_OWNED": "Měnit můžete jen vlastní šablony plánů.",
     "NUTRITION_PLAN_TEMPLATE_VERSION_CONFLICT": "Tato šablona plánu byla změněna jinde. Načtěte ji znovu, abyste viděli nejnovější verzi."
@@ -2782,7 +3006,7 @@
     },
     "defaultPrompt": {
       "training": "Váš trenér brzy plánuje příští týden. Máte něco speciálního v plánu?",
-      "nutrition": "Váš výživový poradce brzy plánuje příští týden. Máte něco speciálního v plánu?"
+      "nutrition": "Váš nutriční poradce brzy plánuje příští týden. Máte něco speciálního v plánu?"
     },
     "push": {
       "title": "Plánování příštího týdne"
@@ -2795,7 +3019,7 @@
       "skip": "Přeskočit tento týden",
       "notePlaceholder": {
         "training": "Chcete svému trenérovi sdělit ještě něco dalšího?",
-        "nutrition": "Chcete svému výživovému poradci sdělit ještě něco dalšího?"
+        "nutrition": "Chcete svému nutričnímu poradci sdělit ještě něco dalšího?"
       },
       "weekOf": "Týden {{range}}",
       "editLocked": "Váš kouč to již viděl."

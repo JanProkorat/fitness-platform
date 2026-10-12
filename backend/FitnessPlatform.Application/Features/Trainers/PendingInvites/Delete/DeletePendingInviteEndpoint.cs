@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using FastEndpoints;
+using FitnessPlatform.Application.Domain.Authorization;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
@@ -13,6 +14,7 @@ namespace FitnessPlatform.Application.Features.Trainers.PendingInvites.Delete;
 /// Endpoint for deleting a pending invitation.
 /// Only the professional who created the invitation can delete it.
 /// </summary>
+[RemovedCoachRole(RemovedCoachRoleMode.Refuse)]
 public class DeletePendingInviteEndpoint(
     IApplicationDbContext db,
     INotificationService notificationService,

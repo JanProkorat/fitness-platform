@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using FastEndpoints;
+using FitnessPlatform.Application.Domain.Authorization;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
@@ -18,6 +19,7 @@ namespace FitnessPlatform.Application.Features.Recipes.UploadImageUrl;
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="imageUpload">Image upload service — validates content type and size, then issues the signed URL.</param>
+[RemovedCoachRole(AppRoles.Nutritionist, RemovedCoachRoleMode.Refuse)]
 public class UploadRecipeImageUrlEndpoint(IMongoContext mongo, IImageUploadService imageUpload)
     : Endpoint<UploadRecipeImageUrlRequest, UploadRecipeImageUrlResponse>
 {

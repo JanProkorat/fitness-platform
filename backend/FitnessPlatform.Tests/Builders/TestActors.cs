@@ -77,6 +77,7 @@ public sealed class ActorBuilder(FitnessApiFactory factory, UserRole[] roles)
     private string _email = $"{Guid.NewGuid():N}@actor-fixture.com";
     private string _firstName = "Test";
     private string _lastName = "Actor";
+    private UserRole[] _removedRoles = [];
 
     /// <summary>
     /// Overrides the generated email (default is a random, always-unique fixture address).
@@ -90,6 +91,16 @@ public sealed class ActorBuilder(FitnessApiFactory factory, UserRole[] roles)
     {
         _firstName = firstName;
         _lastName = lastName;
+        return this;
+    }
+
+    /// <summary>
+    /// Marks the given coach roles as removed on the professional profile (the user keeps the Identity roles),
+    /// which the real removal endpoint refuses to do for the last active role.
+    /// </summary>
+    public ActorBuilder WithRemovedCoachRoles(params UserRole[] removedRoles)
+    {
+        _removedRoles = removedRoles;
         return this;
     }
 
@@ -123,7 +134,13 @@ public sealed class ActorBuilder(FitnessApiFactory factory, UserRole[] roles)
 
         if (roles.Contains(UserRole.Trainer) || roles.Contains(UserRole.Nutritionist))
         {
-            var profile = new ProfessionalProfile { UserId = user.Id };
+            var removedAt = DateTime.UtcNow.AddDays(-1);
+            var profile = new ProfessionalProfile
+            {
+                UserId = user.Id,
+                TrainerRoleRemovedAt = _removedRoles.Contains(UserRole.Trainer) ? removedAt : null,
+                NutritionistRoleRemovedAt = _removedRoles.Contains(UserRole.Nutritionist) ? removedAt : null,
+            };
             db.ProfessionalProfiles.Add(profile);
             await db.SaveChangesAsync(ct);
             profileId = profile.Id;

@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using FastEndpoints;
+using FitnessPlatform.Application.Domain.Authorization;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
@@ -13,6 +14,7 @@ namespace FitnessPlatform.Application.Features.Trainers.ClientRequests.RejectCli
 /// <summary>
 /// Endpoint for a professional to reject a pending client request.
 /// </summary>
+[RemovedCoachRole(RemovedCoachRoleMode.Refuse)]
 public class RejectClientRequestEndpoint(
     IApplicationDbContext db,
     IRealtimeNotifier notifier,

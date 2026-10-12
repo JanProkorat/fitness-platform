@@ -71,7 +71,10 @@ public class ResetPasswordEndpoint(
             return;
         }
 
-        await db.RevokeRefreshTokenFamilyAsync(user.Id, timeProvider.GetUtcNow().UtcDateTime, ct);
+        var now = timeProvider.GetUtcNow().UtcDateTime;
+        user.PasswordChangedAt = now;
+        await userManager.UpdateAsync(user);
+        await db.RevokeRefreshTokenFamilyAsync(user.Id, now, ct);
         await transaction.CommitAsync(ct);
 
         await Send.OkAsync(new { Message = "Password has been reset successfully." }, ct);

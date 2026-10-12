@@ -1,3 +1,5 @@
+using FitnessPlatform.Application.Domain.Authorization;
+using FitnessPlatform.Application.Domain.Enums;
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
@@ -21,6 +23,7 @@ namespace FitnessPlatform.Application.Features.NutritionPlanTemplates.CreateTemp
 /// source plan, the caller's live link to its client decides access.</param>
 /// <param name="macroCalculator">Computes meal kcal for the denormalized list stats; the plan's stored
 /// day totals can be stale and are never read.</param>
+[RemovedCoachRole(AppRoles.Nutritionist, RemovedCoachRoleMode.Refuse)]
 public class CreateTemplateFromPlanEndpoint(
     IMongoContext mongo,
     TimeProvider timeProvider,

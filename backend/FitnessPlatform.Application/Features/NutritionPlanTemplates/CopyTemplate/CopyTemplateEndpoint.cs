@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using FastEndpoints;
+using FitnessPlatform.Application.Domain.Authorization;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
@@ -19,6 +20,7 @@ namespace FitnessPlatform.Application.Features.NutritionPlanTemplates.CopyTempla
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="timeProvider">Injected time source for audit timestamps.</param>
 /// <param name="macroCalculator">Computes meal kcal for the denormalized list stats.</param>
+[RemovedCoachRole(AppRoles.Nutritionist, RemovedCoachRoleMode.Refuse)]
 public class CopyTemplateEndpoint(IMongoContext mongo, TimeProvider timeProvider, IMacroCalculatorService macroCalculator)
     : EndpointWithoutRequest
 {

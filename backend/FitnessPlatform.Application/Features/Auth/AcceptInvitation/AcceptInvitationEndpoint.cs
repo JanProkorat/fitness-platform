@@ -123,9 +123,10 @@ public class AcceptInvitationEndpoint(
                 ? await userManager.GetRolesAsync(professionalUser)
                 : [];
 
-            var professionalIsTrainer = professionalRoles.Contains(AppRoles.Trainer);
-            var professionalIsNutritionist = professionalRoles.Contains(AppRoles.Nutritionist);
-            var professionalRole = professionalIsNutritionist ? UserRole.Nutritionist : UserRole.Trainer;
+            var activeProfessionalRoles = CoachRoleStatus.ActiveRoles(professionalRoles, invitation.ProfessionalProfile);
+            var professionalRole = activeProfessionalRoles.Contains(AppRoles.Nutritionist)
+                ? UserRole.Nutritionist
+                : UserRole.Trainer;
 
             // Find matching pending invite to get questionnaire assignment
             pendingInvite = await db.PendingInvites
@@ -140,19 +141,18 @@ public class AcceptInvitationEndpoint(
             // existed, or where the professional didn't opt in.
             var requestedScope = invitation.RequestedScope ?? pendingInvite?.RequestedScope;
 
-            var canViewNutritionPlans = requestedScope switch
+            // A coach role the professional has since removed is read-only: it may not seed a link.
+            if (!CoachRoleStatus.TryResolveLinkGrant(
+                    requestedScope, professionalRoles, invitation.ProfessionalProfile,
+                    out var canViewNutritionPlans, out var canViewTrainingPlans))
             {
-                LinkCapabilityScope.NutritionOnly => true,
-                LinkCapabilityScope.TrainingOnly => false,
-                _ => professionalIsNutritionist
-            };
-
-            var canViewTrainingPlans = requestedScope switch
-            {
-                LinkCapabilityScope.TrainingOnly => true,
-                LinkCapabilityScope.NutritionOnly => false,
-                _ => professionalIsTrainer
-            };
+                await this.SendErrorWithCodeAsync(
+                    ErrorCodes.CoachRoleRemoved,
+                    "This coach role was removed; the account is read-only for it.",
+                    StatusCodes.Status403Forbidden,
+                    ct);
+                return;
+            }
 
             // A client may hold at most one active coach per profession (#980).
             if (await ProfessionSlotGuard.IsSlotTakenByAnotherProfessionalAsync(

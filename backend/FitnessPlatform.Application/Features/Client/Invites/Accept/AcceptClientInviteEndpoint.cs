@@ -112,27 +112,25 @@ public class AcceptClientInviteEndpoint(
             // single tie-broken role, so a professional holding BOTH Trainer and
             // Nutritionist roles gets both flags (#776). Previously neither flag was
             // set here at all, defaulting both to false regardless of role.
-            var profIsTrainer = profRoles.Contains(AppRoles.Trainer);
-            var profIsNutritionist = profRoles.Contains(AppRoles.Nutritionist);
-            var profRole = profIsNutritionist ? UserRole.Nutritionist : UserRole.Trainer;
+            var activeProfRoles = CoachRoleStatus.ActiveRoles(profRoles, invite.ProfessionalProfile);
+            var profRole = activeProfRoles.Contains(AppRoles.Nutritionist) ? UserRole.Nutritionist : UserRole.Trainer;
 
             // Honor the scope the professional selected at invite-creation time (already
             // validated as a subset of their held roles there) rather than re-deriving
             // from global roles here. Falls back to the full held-role set when the
             // invite carries no explicit scope.
-            var canViewNutritionPlans = invite.RequestedScope switch
+            // A coach role the professional has since removed is read-only: it may not seed a link.
+            if (!CoachRoleStatus.TryResolveLinkGrant(
+                    invite.RequestedScope, profRoles, invite.ProfessionalProfile,
+                    out var canViewNutritionPlans, out var canViewTrainingPlans))
             {
-                LinkCapabilityScope.NutritionOnly => true,
-                LinkCapabilityScope.TrainingOnly => false,
-                _ => profIsNutritionist
-            };
-
-            var canViewTrainingPlans = invite.RequestedScope switch
-            {
-                LinkCapabilityScope.TrainingOnly => true,
-                LinkCapabilityScope.NutritionOnly => false,
-                _ => profIsTrainer
-            };
+                await this.SendErrorWithCodeAsync(
+                    ErrorCodes.CoachRoleRemoved,
+                    "This coach role was removed; the account is read-only for it.",
+                    StatusCodes.Status403Forbidden,
+                    ct);
+                return;
+            }
 
             // A client may hold at most one active coach per profession (#980).
             if (await ProfessionSlotGuard.IsSlotTakenByAnotherProfessionalAsync(

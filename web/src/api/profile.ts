@@ -1,7 +1,10 @@
 import api from '@/lib/api';
+import { apiClient } from '@/api/client';
 import type {
+  ChangePasswordRequest,
   GetProfileResponse,
   GetProfessionalProfileResponse,
+  NotificationPreferenceDto,
 } from '@/api/generated';
 
 /** GET /users/me — current user's profile (name, phone, avatar, roles). */
@@ -32,6 +35,31 @@ export async function updateMyProfile(payload: UpdateMyProfilePayload): Promise<
 /** PUT /users/me/timezone — IANA zone id; 400 INVALID_TIME_ZONE when .NET cannot resolve it. */
 export async function updateMyTimeZone(timeZone: string): Promise<void> {
   await api.put('/users/me/timezone', { timeZone });
+}
+
+/** DELETE /users/me — permanently deletes the signed-in account (204); 400 when the delete fails. */
+export async function deleteMyAccount(): Promise<void> {
+  await api.delete('/users/me');
+}
+
+/** Token pair returned by a password change; the old refresh tokens are revoked server-side. */
+export interface ChangePasswordResult {
+  accessToken: string;
+  refreshToken: string;
+  passwordChangedAt: string | undefined;
+}
+
+/** POST /users/me/password — 400 INVALID_CURRENT_PASSWORD / PASSWORD_NOT_SET. */
+export async function changeMyPassword(payload: ChangePasswordRequest): Promise<ChangePasswordResult> {
+  const result = await apiClient.changePasswordEndpoint(payload);
+  if (!result.accessToken || !result.refreshToken) {
+    throw new Error('Password change response carried no tokens');
+  }
+  return {
+    accessToken: result.accessToken,
+    refreshToken: result.refreshToken,
+    passwordChangedAt: result.passwordChangedAt,
+  };
 }
 
 /** GET /trainer/profile — trainer/nutritionist professional profile fields. */
@@ -67,7 +95,19 @@ export async function updateTrainerProfile(payload: UpdateTrainerProfilePayload)
   await api.put('/trainer/profile', payload);
 }
 
+/** GET /users/me/notification-preferences — one entry per notification event. */
+export async function getNotificationPreferences(): Promise<NotificationPreferenceDto[]> {
+  const result = await apiClient.getNotificationPreferencesEndpoint();
+  return result.preferences ?? [];
+}
+
+/** PUT /users/me/notification-preferences — replaces the full per-event set (204). */
+export async function updateNotificationPreferences(preferences: NotificationPreferenceDto[]): Promise<void> {
+  await apiClient.updateNotificationPreferencesEndpoint({ preferences });
+}
+
 export const profileKeys = {
   me: ['profile', 'me'] as const,
+  notificationPreferences: ['profile', 'notificationPreferences'] as const,
   trainer: ['profile', 'trainer'] as const,
 };

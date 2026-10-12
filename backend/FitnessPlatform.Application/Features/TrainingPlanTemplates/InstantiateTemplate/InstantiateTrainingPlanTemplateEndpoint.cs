@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using FastEndpoints;
+using FitnessPlatform.Application.Domain.Authorization;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
@@ -35,6 +36,7 @@ namespace FitnessPlatform.Application.Features.TrainingPlanTemplates.Instantiate
 /// <param name="linkAuthorizationService">Resolves the trainer-client link's CanViewTrainingPlans permission.</param>
 /// <param name="db">PostgreSQL context for cross-DB validation.</param>
 /// <param name="timeProvider">Injected time source for audit timestamps.</param>
+[RemovedCoachRole(AppRoles.Trainer, RemovedCoachRoleMode.Refuse)]
 public class InstantiateTrainingPlanTemplateEndpoint(
     IMongoContext mongo,
     IClientLinkAuthorizationService linkAuthorizationService,

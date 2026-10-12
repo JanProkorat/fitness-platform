@@ -1,4 +1,6 @@
 using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Domain.Enums;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 
@@ -13,6 +15,16 @@ public interface IApplicationDbContext
     /// Application users (from IdentityDbContext).
     /// </summary>
     DbSet<ApplicationUser> Users { get; }
+
+    /// <summary>
+    /// User-to-role assignments (from IdentityDbContext).
+    /// </summary>
+    DbSet<IdentityUserRole<Guid>> UserRoles { get; }
+
+    /// <summary>
+    /// Application roles (from IdentityDbContext).
+    /// </summary>
+    DbSet<ApplicationRole> Roles { get; }
 
     /// <summary>
     /// Professional profiles (trainers and nutritionists).
@@ -109,6 +121,11 @@ public interface IApplicationDbContext
     /// Device push tokens for mobile notifications.
     /// </summary>
     DbSet<DevicePushToken> DevicePushTokens { get; set; }
+
+    /// <summary>
+    /// Saved per-user email and push choices for notification events.
+    /// </summary>
+    DbSet<NotificationPreference> NotificationPreferences { get; set; }
 
     /// <summary>
     /// Messaging conversations between professionals and clients.
@@ -231,4 +248,14 @@ public interface IApplicationDbContext
     /// no-op.
     /// </summary>
     Task LockClientProfileAsync(long clientProfileId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Saves one user's notification choices with a single <c>INSERT … ON CONFLICT (user_id, event)
+    /// DO UPDATE</c>, so two concurrent first saves cannot collide on the unique index. The events
+    /// must be distinct.
+    /// </summary>
+    Task UpsertNotificationPreferencesAsync(
+        Guid userId,
+        IReadOnlyCollection<(NotificationEvent Event, bool EmailEnabled, bool PushEnabled)> preferences,
+        CancellationToken cancellationToken = default);
 }

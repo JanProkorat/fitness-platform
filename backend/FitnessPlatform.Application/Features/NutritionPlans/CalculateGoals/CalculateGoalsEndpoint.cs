@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using FastEndpoints;
+using FitnessPlatform.Application.Domain.Authorization;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
@@ -11,6 +12,7 @@ namespace FitnessPlatform.Application.Features.NutritionPlans.CalculateGoals;
 /// </summary>
 /// <param name="calculator">Macro calculator service.</param>
 /// <param name="linkAuthorizationService">Resolves the nutritionist-client link's CanViewNutritionPlans permission.</param>
+[RemovedCoachRole(AppRoles.Nutritionist, RemovedCoachRoleMode.Exempt, Reason = "Stateless calculator; writes nothing.")]
 public class CalculateGoalsEndpoint(
     IMacroCalculatorService calculator, IClientLinkAuthorizationService linkAuthorizationService)
     : Endpoint<CalculateGoalsRequest, CalculateGoalsResponse>

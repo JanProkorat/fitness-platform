@@ -1,3 +1,5 @@
+using FitnessPlatform.Application.Domain.Authorization;
+using FitnessPlatform.Application.Domain.Enums;
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
@@ -18,6 +20,7 @@ namespace FitnessPlatform.Application.Features.NutritionPlanTemplates.UpdateTemp
 /// <param name="guard">Shared version-gated fetch-check-replace-409 skeleton.</param>
 /// <param name="timeProvider">Injected time source for audit timestamps.</param>
 /// <param name="macroCalculator">Computes meal kcal for the denormalized list stats.</param>
+[RemovedCoachRole(AppRoles.Nutritionist, RemovedCoachRoleMode.Refuse)]
 public class UpdateTemplateEndpoint(
     IMongoContext mongo,
     PlanConcurrencyGuard guard,

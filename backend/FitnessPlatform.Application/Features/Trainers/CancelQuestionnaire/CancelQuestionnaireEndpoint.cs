@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using FastEndpoints;
+using FitnessPlatform.Application.Domain.Authorization;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
@@ -14,6 +15,7 @@ public class CancelQuestionnaireRequest
     public Guid ClientPublicId { get; set; }
 }
 
+[RemovedCoachRole(RemovedCoachRoleMode.Refuse)]
 public class CancelQuestionnaireEndpoint(
     IApplicationDbContext db,
     IRealtimeNotifier notifier,

@@ -214,4 +214,43 @@ public class PlanWindowResolverTests
 
         PlanWindowResolver.WindowsOverlap(aStart, 2, bStart, 2).Should().BeFalse();
     }
+
+    [Theory]
+    [InlineData("2026-03-01", true)]  // before the start: a plan not yet started counts
+    [InlineData("2026-03-02", true)]  // first day
+    [InlineData("2026-03-15", true)]  // last day of the 2-week window
+    [InlineData("2026-03-16", false)] // first day after the window
+    public void HasNotEnded_TwoWeekPlanStartingMarch2_FollowsTheHalfOpenWindow(string today, bool expected)
+    {
+        var start = new DateTime(2026, 3, 2, 0, 0, 0, DateTimeKind.Utc);
+
+        PlanWindowResolver.HasNotEnded(start, 2, DateOnly.Parse(today)).Should().Be(expected);
+    }
+
+    [Fact]
+    public void HasNotEnded_NoStartDate_ReturnsFalse()
+    {
+        PlanWindowResolver.HasNotEnded(null, 2, new DateOnly(2026, 3, 10)).Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData("2026-03-02", 3, true)]  // one week added
+    [InlineData("2026-03-09", 2, true)]  // start moved later
+    [InlineData("2026-03-02", 2, false)] // unchanged
+    [InlineData("2026-03-02", 1, false)] // shortened
+    [InlineData("2026-02-23", 2, false)] // start moved earlier
+    public void EndsLater_ComparesTheWindowEnds(string newStart, int newWeekCount, bool expected)
+    {
+        var oldStart = new DateTime(2026, 3, 2, 0, 0, 0, DateTimeKind.Utc);
+
+        PlanWindowResolver.EndsLater(oldStart, 2, DateTime.Parse(newStart), newWeekCount).Should().Be(expected);
+    }
+
+    [Fact]
+    public void EndsLater_ClearedStartDate_CountsAsExtending()
+    {
+        var oldStart = new DateTime(2026, 3, 2, 0, 0, 0, DateTimeKind.Utc);
+
+        PlanWindowResolver.EndsLater(oldStart, 2, null, 2).Should().BeTrue();
+    }
 }

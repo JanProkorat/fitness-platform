@@ -1399,6 +1399,514 @@ export class ApiClient {
     }
 
     /**
+     * Update notification preferences
+     * @return Preferences saved
+     */
+    updateNotificationPreferencesEndpoint(updateNotificationPreferencesRequest: UpdateNotificationPreferencesRequest, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/users/me/notification-preferences";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(updateNotificationPreferencesRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUpdateNotificationPreferencesEndpoint(_response);
+        });
+    }
+
+    protected processUpdateNotificationPreferencesEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Missing, duplicate or unknown event", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Get notification preferences
+     * @return Preferences for all notification events
+     */
+    getNotificationPreferencesEndpoint(signal?: AbortSignal): Promise<GetNotificationPreferencesResponse> {
+        let url_ = this.baseUrl + "/users/me/notification-preferences";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetNotificationPreferencesEndpoint(_response);
+        });
+    }
+
+    protected processGetNotificationPreferencesEndpoint(response: AxiosResponse): Promise<GetNotificationPreferencesResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GetNotificationPreferencesResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GetNotificationPreferencesResponse>(null as any);
+    }
+
+    /**
+     * Remove a coach role
+     * @param role Route parameter. The coach role to remove (Trainer or Nutritionist).
+     * @return Role removed; counts as they stood before the removal
+     */
+    removeCoachRoleEndpoint(role: string, signal?: AbortSignal): Promise<RemoveCoachRoleResponse> {
+        let url_ = this.baseUrl + "/users/me/roles/{role}";
+        if (role === undefined || role === null)
+            throw new globalThis.Error("The parameter 'role' must be defined.");
+        url_ = url_.replace("{role}", encodeURIComponent("" + role));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "DELETE",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processRemoveCoachRoleEndpoint(_response);
+        });
+    }
+
+    protected processRemoveCoachRoleEndpoint(response: AxiosResponse): Promise<RemoveCoachRoleResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<RemoveCoachRoleResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid role, ROLE_NOT_ASSIGNED, or ONLY_COACH_ROLE", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<RemoveCoachRoleResponse>(null as any);
+    }
+
+    /**
+     * Keep my coach account
+     * @return Pending disable cleared
+     */
+    keepCoachAccountEndpoint(signal?: AbortSignal): Promise<KeepCoachAccountResponse> {
+        let url_ = this.baseUrl + "/users/me/coach-account/keep";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processKeepCoachAccountEndpoint(_response);
+        });
+    }
+
+    protected processKeepCoachAccountEndpoint(response: AxiosResponse): Promise<KeepCoachAccountResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<KeepCoachAccountResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<KeepCoachAccountResponse>(null as any);
+    }
+
+    /**
+     * List my coach roles
+     * @return Active coach roles with counts
+     */
+    getMyCoachRolesEndpoint(signal?: AbortSignal): Promise<GetMyCoachRolesResponse> {
+        let url_ = this.baseUrl + "/users/me/roles";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetMyCoachRolesEndpoint(_response);
+        });
+    }
+
+    protected processGetMyCoachRolesEndpoint(response: AxiosResponse): Promise<GetMyCoachRolesResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GetMyCoachRolesResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GetMyCoachRolesResponse>(null as any);
+    }
+
+    /**
+     * Add a professional role
+     * @return Success
+     */
+    addRoleEndpoint(addRoleRequest: AddRoleRequest, signal?: AbortSignal): Promise<AddRoleResponse> {
+        let url_ = this.baseUrl + "/users/me/roles";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(addRoleRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processAddRoleEndpoint(_response);
+        });
+    }
+
+    protected processAddRoleEndpoint(response: AxiosResponse): Promise<AddRoleResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<AddRoleResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<AddRoleResponse>(null as any);
+    }
+
+    /**
+     * Disable my coach account
+     * @return Date the account stops being active and the roles removed by this call
+     */
+    disableCoachAccountEndpoint(signal?: AbortSignal): Promise<DisableCoachAccountResponse> {
+        let url_ = this.baseUrl + "/users/me/coach-account/disable";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processDisableCoachAccountEndpoint(_response);
+        });
+    }
+
+    protected processDisableCoachAccountEndpoint(response: AxiosResponse): Promise<DisableCoachAccountResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<DisableCoachAccountResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<DisableCoachAccountResponse>(null as any);
+    }
+
+    /**
+     * Change password
+     * @return Password changed; fresh tokens returned
+     */
+    changePasswordEndpoint(changePasswordRequest: ChangePasswordRequest, signal?: AbortSignal): Promise<ChangePasswordResponse> {
+        let url_ = this.baseUrl + "/users/me/password";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(changePasswordRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processChangePasswordEndpoint(_response);
+        });
+    }
+
+    protected processChangePasswordEndpoint(response: AxiosResponse): Promise<ChangePasswordResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<ChangePasswordResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid input, wrong current password (INVALID_CURRENT_PASSWORD), or account has no password (PASSWORD_NOT_SET)", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ChangePasswordResponse>(null as any);
+    }
+
+    /**
      * Confirm avatar upload
      * @return No Content
      */
@@ -1578,77 +2086,6 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<GenerateAvatarUploadUrlResponse>(null as any);
-    }
-
-    /**
-     * Add a professional role
-     * @return Success
-     */
-    addRoleEndpoint(addRoleRequest: AddRoleRequest, signal?: AbortSignal): Promise<AddRoleResponse> {
-        let url_ = this.baseUrl + "/users/me/roles";
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(addRoleRequest);
-
-        let options_: AxiosRequestConfig = {
-            data: content_,
-            method: "POST",
-            url: url_,
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            },
-            signal
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processAddRoleEndpoint(_response);
-        });
-    }
-
-    protected processAddRoleEndpoint(response: AxiosResponse): Promise<AddRoleResponse> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<AddRoleResponse>(result200);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status === 401) {
-            const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
-
-        } else if (status === 403) {
-            const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<AddRoleResponse>(null as any);
     }
 
     /**
@@ -17642,20 +18079,27 @@ export interface CreateWorkoutTemplateSetRequest {
     restSeconds?: number | undefined;
 }
 
+/** RFC7807 compatible problem details/ error response class. this can be used by configuring startup like so: app.UseFastEndpoints(c => c.Errors.UseProblemDetails()) */
 export interface ProblemDetails {
     type?: string;
     title?: string;
     status?: number;
     instance?: string;
     traceId?: string;
+    /** the details of the error */
     detail?: string | undefined;
     errors?: ProblemDetails_Error[];
 }
 
+/** the error details object */
 export interface ProblemDetails_Error {
+    /** the name of the error or property of the dto that caused the error */
     name?: string;
+    /** the reason for the error */
     reason?: string;
+    /** the code of the error */
     code?: string | undefined;
+    /** the severity of the error */
     severity?: string | undefined;
 }
 
@@ -18026,6 +18470,59 @@ export interface UpdateProfileRequest {
     phoneNumber?: string | undefined;
 }
 
+/** Full set of notification preferences, one entry per event. */
+export interface UpdateNotificationPreferencesRequest {
+    /** Email and push choice for every notification event. */
+    preferences: NotificationPreferenceDto[];
+}
+
+/** Email and push choice for one notification event. */
+export interface NotificationPreferenceDto {
+    /** The notification event. */
+    event?: NotificationEvent;
+    /** Whether email delivery is enabled. */
+    email?: boolean;
+    /** Whether push delivery is enabled. */
+    push?: boolean;
+}
+
+/** User-facing notification events whose email and push delivery the user can toggle. Stored as an integer; append new members at the end. */
+export enum NotificationEvent {
+    NewMessage = "NewMessage",
+    WeeklyCheckInSubmitted = "WeeklyCheckInSubmitted",
+    JoinRequest = "JoinRequest",
+    ProgressPhotosSubmitted = "ProgressPhotosSubmitted",
+    WorkoutFinished = "WorkoutFinished",
+}
+
+/** Result of removing a coach role: the counts as they stood just before the removal. */
+export interface RemoveCoachRoleResponse {
+    /** The role that was removed. */
+    removedRole?: string;
+    /** Counts for every role that was active before the removal, including the removed one. */
+    roles?: CoachRoleSummaryDto[];
+}
+
+/** One active coach role with the client counts the Settings roles card shows. */
+export interface CoachRoleSummaryDto {
+    /** Role name (Trainer or Nutritionist). */
+    role?: string;
+    /** Active client links that grant this role's discipline. */
+    clientCount?: number;
+    /** Of those, links that also grant the other discipline while the other role is active. */
+    sharedWithOtherRoleCount?: number;
+}
+
+/** Request to remove one of the caller's coach roles. */
+export interface RemoveCoachRoleRequest {
+}
+
+/** Outcome of undoing a pending coach-account disable. */
+export interface KeepCoachAccountResponse {
+    /** The pending end date after the undo; always null because the disable is cleared. */
+    coachAccountActiveUntil?: string | undefined;
+}
+
 /** Response model for the authenticated user's profile. */
 export interface GetProfileResponse {
     /** User's public ID. */
@@ -18057,6 +18554,58 @@ Empty for non-client users. */
     timeZone?: string;
     /** Permanent blob URL of the user's avatar, or null if no avatar has been uploaded. */
     avatarBlobUrl?: string | undefined;
+    /** Whether the account has a password. False for social-only accounts. */
+    hasPassword?: boolean;
+    /** UTC time of the last password change or reset, or null if never changed. */
+    passwordChangedAt?: string | undefined;
+    /** When a pending coach-account disable takes effect (UTC), or null when none is pending. */
+    coachAccountActiveUntil?: string | undefined;
+}
+
+/** The caller's notification preferences for all events. */
+export interface GetNotificationPreferencesResponse {
+    /** One entry per notification event. */
+    preferences?: NotificationPreferenceDto[];
+}
+
+/** The caller's active coach roles with client counts. */
+export interface GetMyCoachRolesResponse {
+    /** One entry per active coach role. */
+    roles?: CoachRoleSummaryDto[];
+    /** When a pending disable takes effect (UTC); null when the account is not being disabled. */
+    coachAccountActiveUntil?: string | undefined;
+    /** When the account would stop being active if disabled now (UTC); at or before now means at once. */
+    activeUntilIfDisabled?: string | undefined;
+}
+
+/** Outcome of disabling the caller's coach account. */
+export interface DisableCoachAccountResponse {
+    /** When the coach account stops being active (UTC). At or before now means it already ended. */
+    activeUntil?: string;
+    /** Coach roles removed by this call; empty while the disable is only pending. */
+    rolesRemoved?: string[];
+}
+
+/** Fresh token pair returned after a password change; all previous refresh tokens are revoked. */
+export interface ChangePasswordResponse {
+    /** New JWT access token. */
+    accessToken?: string;
+    /** New refresh token. */
+    refreshToken?: string;
+    /** UTC expiry of the access token. */
+    expiresAt?: string;
+    /** UTC time the password was changed. */
+    passwordChangedAt?: string;
+}
+
+/** Request for changing the authenticated user's password. */
+export interface ChangePasswordRequest {
+    /** The user's current password. */
+    currentPassword: string;
+    /** The new password. Must satisfy the Identity password policy. */
+    newPassword: string;
+    /** Repeat of the new password; must match NewPassword. */
+    confirmPassword: string;
 }
 
 /** Request model for confirming the uploaded avatar blob URL. */

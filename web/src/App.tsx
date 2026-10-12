@@ -21,6 +21,7 @@ import RecipesPage from '@/pages/RecipesPage';
 import PlanTemplatesPage from '@/pages/PlanTemplatesPage';
 import PlanTemplateEditorPage from '@/pages/PlanTemplateEditorPage';
 import ProfilePage from '@/pages/ProfilePage';
+import SettingsPage from '@/pages/SettingsPage';
 import NotFoundPage from '@/pages/NotFoundPage';
 
 export default function App() {
@@ -73,6 +74,7 @@ export default function App() {
               <Route path="/recipes" element={<RecipesPage />} />
               <Route path="/plan-templates" element={<PlanTemplatesPage />} />
               <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/settings" element={<SettingsPage />} />
             </Route>
             {/* Full-bleed workspace: icon-rail sidebar, no main padding (PageTemplateEditor). */}
             <Route element={<AppShell variant="editor" />}>

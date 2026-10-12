@@ -53,6 +53,18 @@ public static class ErrorCodes
     /// <summary>User already has the requested role.</summary>
     public const string RoleAlreadyAssigned = "ROLE_ALREADY_ASSIGNED";
 
+    /// <summary>The caller does not hold the coach role, or it is already removed.</summary>
+    public const string RoleNotAssigned = "ROLE_NOT_ASSIGNED";
+
+    /// <summary>The role is the caller's only active coach role and cannot be removed.</summary>
+    public const string OnlyCoachRole = "ONLY_COACH_ROLE";
+
+    /// <summary>The current password supplied for a password change is wrong.</summary>
+    public const string InvalidCurrentPassword = "INVALID_CURRENT_PASSWORD";
+
+    /// <summary>The account has no password (social-only sign-in), so it cannot be changed.</summary>
+    public const string PasswordNotSet = "PASSWORD_NOT_SET";
+
     /// <summary>Account deletion failed.</summary>
     public const string AccountDeletionFailed = "ACCOUNT_DELETION_FAILED";
 
@@ -441,4 +453,18 @@ public static class ErrorCodes
     // ── Client Message Stats (#1098) ────────────────────────────────────
     /// <summary>The requested number of weeks for the message stats is outside 1-26.</summary>
     public const string MessageStatsWeeksOutOfRange = "MESSAGE_STATS_WEEKS_OUT_OF_RANGE";
+
+    // ── Remove coach role (#1265) ───────────────────────────────────────
+    /// <summary>The write belongs to a coach role the caller has removed (read-only).</summary>
+    public const string CoachRoleRemoved = "COACH_ROLE_REMOVED";
+
+    // ── Disable coach account (#1266) ───────────────────────────────────
+    /// <summary>Every coach role the caller holds is already removed, so there is nothing to disable.</summary>
+    public const string NoActiveCoachRole = "NO_ACTIVE_COACH_ROLE";
+
+    /// <summary>Keep was requested but the coach account has no pending disable.</summary>
+    public const string CoachAccountNotDisabling = "COACH_ACCOUNT_NOT_DISABLING";
+
+    /// <summary>Keep was requested after the disable already took effect; add the role back instead.</summary>
+    public const string CoachAccountDisableEnded = "COACH_ACCOUNT_DISABLE_ENDED";
 }

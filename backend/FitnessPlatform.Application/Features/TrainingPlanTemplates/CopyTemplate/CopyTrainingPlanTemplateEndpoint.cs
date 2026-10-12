@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using FastEndpoints;
+using FitnessPlatform.Application.Domain.Authorization;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
@@ -17,6 +18,7 @@ namespace FitnessPlatform.Application.Features.TrainingPlanTemplates.CopyTemplat
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="timeProvider">Injected time source for audit timestamps.</param>
+[RemovedCoachRole(AppRoles.Trainer, RemovedCoachRoleMode.Refuse)]
 public class CopyTrainingPlanTemplateEndpoint(IMongoContext mongo, TimeProvider timeProvider) : EndpointWithoutRequest
 {
     /// <inheritdoc />

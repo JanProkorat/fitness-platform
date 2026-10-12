@@ -1,6 +1,7 @@
 using FastEndpoints;
 using FluentValidation;
 using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Features.Users.Shared;
 
 namespace FitnessPlatform.Application.Features.Users.AddRole;
 

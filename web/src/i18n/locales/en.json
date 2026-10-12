@@ -197,7 +197,6 @@
     "foods": "Foods",
     "plans": "Plans",
     "settings": "Settings",
-    "profileLink": "Open your profile",
     "recipes": "Recipes",
     "planTemplates": "Plan templates",
     "exercises": "Exercises",
@@ -237,6 +236,212 @@
     "trainer": "Personal trainer",
     "nutritionist": "Nutritionist",
     "client": "Client"
+  },
+  "accountMenu": {
+    "trigger": "Account menu",
+    "title": "Account",
+    "profile": "Your profile",
+    "settings": "Settings",
+    "language": "Language",
+    "theme": "Theme",
+    "languages": {
+      "cs": "Čeština",
+      "en": "English",
+      "de": "Deutsch"
+    },
+    "themes": {
+      "light": "Light",
+      "dark": "Dark",
+      "system": "System"
+    }
+  },
+  "settings": {
+    "eyebrow": "Account",
+    "title": "Settings",
+    "subtitle": "Sign-in, notifications and the roles on your account",
+    "loadError": "Could not load your settings. Please refresh the page.",
+    "status": {
+      "saved": "All changes saved",
+      "saving": "Saving…",
+      "error": "Not saved"
+    },
+    "account": {
+      "title": "Account",
+      "description": "How you sign in, and the clock your reminders follow.",
+      "email": "Sign-in email",
+      "emailHint": "You sign in with this address. Clients also see it on your profile.",
+      "timeZone": "Time zone",
+      "timeZoneHint": "Check-in reminders and session times use it.",
+      "timeZoneError": "Could not save the time zone.",
+      "password": "Password",
+      "changePassword": "Change password",
+      "passwordChanged": "Last changed {{date}}.",
+      "passwordManaged": "You sign in with Google. Your password is managed there.",
+      "passwordDialog": {
+        "title": "Change password",
+        "lede": "You'll stay signed in here. Other devices sign out.",
+        "current": "Current password",
+        "new": "New password",
+        "repeat": "Repeat new password",
+        "show": "Show",
+        "hide": "Hide",
+        "showCurrent": "Show current password",
+        "hideCurrent": "Hide current password",
+        "showNew": "Show new password",
+        "hideNew": "Hide new password",
+        "showRepeat": "Show repeated password",
+        "hideRepeat": "Hide repeated password",
+        "forgot": "Forgot your current password?",
+        "resetSent": "Reset link sent to {{email}}.",
+        "resetError": "Could not send the reset link.",
+        "currentRequired": "Enter your current password.",
+        "wrongCurrent": "That isn't your current password.",
+        "submit": "Change password",
+        "submitting": "Changing…",
+        "success": "Password changed.",
+        "error": "Could not change the password."
+      }
+    },
+    "notifications": {
+      "title": "Notifications",
+      "description": "Choose how we tell you about client activity. In-app notifications always show.",
+      "event": "Event",
+      "email": "Email",
+      "app": "Coach app",
+      "emailLabel": "{{event}} by email",
+      "appLabel": "{{event}} in the coach app",
+      "saveError": "Could not save your notification settings.",
+      "events": {
+        "newMessage": {
+          "title": "New message",
+          "description": "A client writes to you in chat."
+        },
+        "checkIn": {
+          "title": "Weekly check-in submitted",
+          "description": "A client sends their check-in for review."
+        },
+        "joinRequest": {
+          "title": "Join request",
+          "description": "Someone asks to become your client."
+        },
+        "photos": {
+          "title": "Progress photos submitted",
+          "description": "A client answers your photo request."
+        },
+        "workout": {
+          "title": "Workout finished",
+          "description": "A client completes a training session."
+        }
+      }
+    },
+    "roles": {
+      "title": "Your roles",
+      "description": "Each role unlocks its own tools and shows under your name in search.",
+      "add": "Add role",
+      "remove": "Remove role",
+      "active": "Active",
+      "added": "Role added.",
+      "addError": "Could not add the role.",
+      "descriptions": {
+        "trainer": "Workouts, exercises, training plans and templates.",
+        "nutritionist": "Recipes, ingredients, meal plans and templates."
+      },
+      "note": "Removing a role hides it from search and stops new work in it: no new plans or templates, and no new clients for it. Plans already in progress stay active until they end: clients keep logging and you can still adjust them. After that, everything you shared stays visible to both of you, read-only. Add the role back any time to edit again.",
+      "addDialog": {
+        "title": "Add the {{role}} role?",
+        "body": "You get the tools for this role and show up in search under it. You can remove it again later.",
+        "chooseTitle": "Add a role",
+        "chooseBody": "Choose which role to add. You get its tools and show up in search under it. You can remove it again later."
+      },
+      "clients_one": "{{count}} client",
+      "clients_other": "{{count}} clients",
+      "removed": "Role removed.",
+      "removeError": "Could not remove the role. Nothing was changed.",
+      "loadError": "Could not load your roles. Please refresh the page.",
+      "onlyRoleNote": "This is your only role. Removing it disables your coach account, the same as the button below.",
+      "noRolesNote": "Your coach account is disabled. Add a role to reactivate it.",
+      "removeDialog": {
+        "keep": "Keep role",
+        "footnote": "The role disappears from search and your profile card right away. Add it back any time to edit again.",
+        "notified_zero": "No clients are notified",
+        "notified_one": "{{count}} client is notified",
+        "notified_other": "{{count}} clients are notified",
+        "trainer": {
+          "title": "Remove Personal trainer role?",
+          "description": "You’ll keep coaching as a Nutritionist. Nothing is deleted.",
+          "shared_one": "{{count}} also has nutrition with you and stays your client.",
+          "shared_other": "{{count}} also have nutrition with you and stay your clients.",
+          "rest_one": "The other {{count}} stays connected to you until their current plan ends; then coaching ends and their history is archived.",
+          "rest_other": "The other {{count}} stay connected to you until their current plan ends; then coaching ends and their history is archived.",
+          "restAll_one": "This client stays connected to you until their current plan ends; then coaching ends and their history is archived.",
+          "restAll_other": "All {{count}} stay connected to you until their current plan ends; then coaching ends and their history is archived.",
+          "plansTitle": "Plans in progress run to the end",
+          "plansBody": "Training plans already started stay active for you and your clients until they end.",
+          "libraryTitle": "Your training library becomes read-only",
+          "libraryBody": "Exercises, workouts and training templates stay visible but can’t be created, edited or assigned.",
+          "confirm": "Remove Personal trainer"
+        },
+        "nutritionist": {
+          "title": "Remove Nutritionist role?",
+          "description": "You’ll keep coaching as a Personal trainer. Nothing is deleted.",
+          "shared_one": "{{count}} also trains with you and stays your client.",
+          "shared_other": "{{count}} also train with you and stay your clients.",
+          "rest_one": "The other {{count}} stays connected to you until their current plan ends; then coaching ends and their history is archived.",
+          "rest_other": "The other {{count}} stay connected to you until their current plan ends; then coaching ends and their history is archived.",
+          "restAll_one": "This client stays connected to you until their current plan ends; then coaching ends and their history is archived.",
+          "restAll_other": "All {{count}} stay connected to you until their current plan ends; then coaching ends and their history is archived.",
+          "plansTitle": "Plans in progress run to the end",
+          "plansBody": "Meal plans already started stay active for you and your clients until they end.",
+          "libraryTitle": "Your nutrition library becomes read-only",
+          "libraryBody": "Recipes, ingredients and meal plan templates stay visible but can’t be created, edited or assigned.",
+          "confirm": "Remove Nutritionist"
+        }
+      }
+    },
+    "disableDialog": {
+      "title": "Disable your coach account?",
+      "description": "This removes all your roles: {{roles}}. Removing your only role does the same.",
+      "later": {
+        "untilTitle": "Active until {{date}}",
+        "untilBody": "Everything works as now until the last day of your current subscription.",
+        "chargesBody": "You won’t be charged anything after that date. Your subscription won’t renew.",
+        "plansBody": "Plans already started stay active until they end, even after {{date}}, at no charge. Those clients stay connected to you until then."
+      },
+      "now": {
+        "untilTitle": "Your roles end now",
+        "untilBody": "You have no paid period left, so disabling takes effect right away.",
+        "chargesBody": "You won’t be charged anything more.",
+        "plansBody": "Plans already started stay active until they end, at no charge. Those clients stay connected to you until then."
+      },
+      "chargesTitle": "No more charges",
+      "plansTitle": "Plans in progress run to the end",
+      "readOnlyTitle": "Everything else becomes read-only",
+      "readOnlyBody": "You keep access to all your clients, plans, templates, recipes and chats. You just can’t create or change anything.",
+      "footnote": "Changed your mind? Add a role any time to reactivate and edit again.",
+      "keep": "Keep my account",
+      "confirm": "Disable account",
+      "error": "Could not disable your coach account. Nothing was changed.",
+      "endedToast": "Coach account disabled.",
+      "scheduledToast": "Your coach account will be disabled at the end of the period."
+    },
+    "danger": {
+      "title": "Danger zone",
+      "description": "Actions that end your work on Form Up.",
+      "disableTitle": "Disable coach account",
+      "disableBody": "Removes all your roles and stops billing when your current subscription ends. Your data stays, read-only.",
+      "disable": "Disable account",
+      "deleteTitle": "Delete account",
+      "deleteBody": "Permanently erases your account, plans, templates and messages. Clients lose access to what you shared. This can't be undone.",
+      "delete": "Delete account",
+      "confirmTitle": "Delete your account?",
+      "confirmBody": "This permanently erases your account and everything in it. This can't be undone.",
+      "confirmAction": "Delete account",
+      "deleteError": "Could not delete your account. Nothing was changed.",
+      "disabledUntil": "Disabled, active until {{date}}.",
+      "keep": "Keep my account",
+      "kept": "Your coach account stays active.",
+      "keepError": "Could not keep your coach account. Nothing was changed."
+    }
   },
   "dashboard": {
     "title": "Dashboard",
@@ -748,9 +953,7 @@
         "title": "Account",
         "description": "Private — only you and the clients you work with see these.",
         "emailHint": "You sign in with this address.",
-        "phoneHint": "Optional.",
-        "timeZone": "Time zone",
-        "timeZoneHint": "Check-in reminders and session times use it."
+        "phoneHint": "Optional."
       },
       "about": {
         "title": "About you",
@@ -822,7 +1025,6 @@
         "listTooLong": "Too many entries — remove some.",
         "year": "Use a four-digit year.",
         "certificateTitleRequired": "Add a title for this certificate.",
-        "invalidTimeZone": "This time zone is not supported. Choose another one.",
         "invalidCertificates": "Some certificates could not be saved. Check their titles.",
         "serverInvalid": "This value was rejected. Please check it."
       },
@@ -1910,6 +2112,7 @@
     "NO_CLIENT_RELATIONSHIP": "You don't have an active relationship with this client.",
     "COLLABORATOR_NOT_FOUND": "Collaborator not found.",
     "PLAN_NOT_DRAFT": "Only draft plans can be published.",
+    "COACH_ROLE_REMOVED": "You removed this coach role, so its plans, templates and library items are read-only. A plan in progress can still be adjusted until it ends, but not extended. Add the role back in Settings to edit again.",
     "START_DATE_NOT_MONDAY": "Start date must be a Monday.",
     "START_DATE_IN_PAST": "Start date cannot be in the past.",
     "START_DATE_LOCKED": "Start date cannot be changed after it has arrived.",
@@ -1964,6 +2167,11 @@
     "RECIPE_NOT_OWNED": "You can only change your own recipes.",
     "RECIPE_GALLERY_FULL": "This recipe already has the maximum number of pictures.",
     "RECIPE_GALLERY_IMAGE_NOT_FOUND": "That picture is no longer part of this recipe. It may have been changed elsewhere.",
+    "ONLY_COACH_ROLE": "This is your only coach role, so it can’t be removed here.",
+    "ROLE_NOT_ASSIGNED": "You no longer have this role. Your roles have been refreshed.",
+    "NO_ACTIVE_COACH_ROLE": "You have no active coach role, so there is nothing to disable. Your roles have been refreshed.",
+    "COACH_ACCOUNT_NOT_DISABLING": "Your coach account is not being disabled. Your roles have been refreshed.",
+    "COACH_ACCOUNT_DISABLE_ENDED": "Disabling has already ended, so it can’t be undone. Add a role to reactivate your account.",
     "NUTRITION_PLAN_TEMPLATE_NOT_FOUND": "This plan template no longer exists.",
     "NUTRITION_PLAN_TEMPLATE_NOT_OWNED": "You can only change your own plan templates.",
     "NUTRITION_PLAN_TEMPLATE_VERSION_CONFLICT": "This plan template was changed elsewhere. Reload it to see the latest version."

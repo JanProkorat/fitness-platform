@@ -1,3 +1,5 @@
+using FitnessPlatform.Application.Domain.Authorization;
+using FitnessPlatform.Application.Domain.Enums;
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
@@ -11,6 +13,7 @@ public class DeleteQuestionnaireRequest
     public Guid PublicId { get; set; }
 }
 
+[RemovedCoachRole(RemovedCoachRoleMode.Refuse)]
 public class DeleteQuestionnaireEndpoint(IApplicationDbContext db)
     : Endpoint<DeleteQuestionnaireRequest>
 {

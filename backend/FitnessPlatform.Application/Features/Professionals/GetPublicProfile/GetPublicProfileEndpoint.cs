@@ -4,6 +4,7 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -77,9 +78,7 @@ public class GetPublicProfileEndpoint(IApplicationDbContext db, UserManager<Appl
 
         // Resolve roles
         var allRoles = await userManager.GetRolesAsync(profile.User);
-        var professionalRoles = allRoles
-            .Where(r => r is AppRoles.Trainer or AppRoles.Nutritionist)
-            .ToList();
+        var professionalRoles = CoachRoleStatus.ActiveRoles(allRoles, profile).ToList();
 
         await Send.OkAsync(new GetPublicProfileResponse
         {

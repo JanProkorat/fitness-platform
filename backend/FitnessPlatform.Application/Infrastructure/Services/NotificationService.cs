@@ -1,4 +1,5 @@
 using System.Text.Json;
+using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
@@ -46,8 +47,33 @@ public class NotificationService(IApplicationDbContext db, IPushNotificationServ
         // Send push notification to the user's mobile devices. Uses the SAME resolved
         // title/body as the in-app notification — the OS push banner renders before the
         // app opens, so it must already be in the recipient's language at send time.
-        await push.SendAsync(recipientUserId, title, body, new { type = type.ToString() }, ct);
+        if (await IsPushEnabledAsync(recipientUserId, type, ct))
+        {
+            await push.SendAsync(recipientUserId, title, body, new { type = type.ToString() }, ct);
+        }
 
         return notification;
+    }
+
+    private static NotificationEvent? MapToPreferenceEvent(NotificationType type) => type switch
+    {
+        NotificationType.ClientRequestReceived => NotificationEvent.JoinRequest,
+        _ => null,
+    };
+
+    private async Task<bool> IsPushEnabledAsync(Guid recipientUserId, NotificationType type, CancellationToken ct)
+    {
+        if (MapToPreferenceEvent(type) is not { } preferenceEvent)
+        {
+            return true;
+        }
+
+        var saved = await db.NotificationPreferences
+            .AsNoTracking()
+            .Where(p => p.UserId == recipientUserId && p.Event == preferenceEvent)
+            .Select(p => (bool?)p.PushEnabled)
+            .FirstOrDefaultAsync(ct);
+
+        return saved ?? NotificationPreferenceDefaults.For(preferenceEvent).Push;
     }
 }

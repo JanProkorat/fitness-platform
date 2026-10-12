@@ -16,6 +16,9 @@ public class CoachSubscriptionConfiguration : IEntityTypeConfiguration<CoachSubs
         builder.HasIndex(cs => cs.ProfessionalProfileId)
             .IsUnique();
 
+        builder.Property(cs => cs.CancelAtPeriodEnd)
+            .HasDefaultValue(false);
+
         builder.HasOne(cs => cs.ProfessionalProfile)
             .WithOne(pp => pp.CoachSubscription)
             .HasForeignKey<CoachSubscription>(cs => cs.ProfessionalProfileId);

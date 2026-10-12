@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using System.Security.Cryptography;
 using FastEndpoints;
+using FitnessPlatform.Application.Domain.Authorization;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
@@ -27,6 +28,7 @@ namespace FitnessPlatform.Application.Features.Trainers.PendingInvites.Create;
 /// notification, realtime event or conversation — so the response never reveals that the address
 /// is a coach account.
 /// </summary>
+[RemovedCoachRole(RemovedCoachRoleMode.Refuse)]
 public class CreatePendingInviteEndpoint(
     IApplicationDbContext db,
     IBackgroundEmailQueue emailQueue,
@@ -96,6 +98,22 @@ public class CreatePendingInviteEndpoint(
             this.ThrowErrorWithCode(
                 ErrorCodes.RequestedScopeExceedsHeldRoles,
                 "Requested scope exceeds the caller's held roles.");
+            return;
+        }
+
+        // A removed coach role is read-only: an invite may not grant it. A missing scope grants
+        // only the disciplines whose role is still active.
+        var heldCoachRoles = new[] { AppRoles.Trainer, AppRoles.Nutritionist }.Where(User.IsInRole).ToList();
+
+        if (!CoachRoleStatus.TryResolveLinkGrant(
+                req.RequestedScope, heldCoachRoles, professionalProfile,
+                out var wantsNutritionPlans, out var wantsTrainingPlans))
+        {
+            await this.SendErrorWithCodeAsync(
+                ErrorCodes.CoachRoleRemoved,
+                "This coach role was removed; the account is read-only for it.",
+                StatusCodes.Status403Forbidden,
+                ct);
             return;
         }
 
@@ -172,23 +190,8 @@ public class CreatePendingInviteEndpoint(
 
         if (inviteeClientProfileId != 0 && !isProfessionalInvitee)
         {
-            // Same derivation the accept paths use: the professional's held roles narrowed by
-            // the scope they requested. Kept in step with AcceptClientInviteEndpoint — if that
-            // derivation changes, this must change with it or the two verdicts diverge.
-            var wantsNutritionPlans = req.RequestedScope switch
-            {
-                LinkCapabilityScope.NutritionOnly => true,
-                LinkCapabilityScope.TrainingOnly => false,
-                _ => User.IsInRole(AppRoles.Nutritionist)
-            };
-
-            var wantsTrainingPlans = req.RequestedScope switch
-            {
-                LinkCapabilityScope.TrainingOnly => true,
-                LinkCapabilityScope.NutritionOnly => false,
-                _ => User.IsInRole(AppRoles.Trainer)
-            };
-
+            // Same derivation the accept paths use (CoachRoleStatus.TryResolveLinkGrant, above):
+            // the professional's active roles narrowed by the scope they requested.
             if (await ProfessionSlotGuard.IsSlotTakenByAnotherProfessionalAsync(
                     db.ClientProfessionalLinks, inviteeClientProfileId, professionalProfile.Id,
                     wantsNutritionPlans, wantsTrainingPlans, ct))
@@ -309,7 +312,10 @@ public class CreatePendingInviteEndpoint(
                 },
                 ct: ct);
 
-            var senderRole = User.IsInRole(AppRoles.Nutritionist) ? "Nutritionist" : "Trainer";
+            var senderRole = User.IsInRole(AppRoles.Nutritionist)
+                             && !CoachRoleStatus.IsRemoved(professionalProfile, AppRoles.Nutritionist)
+                ? "Nutritionist"
+                : "Trainer";
 
             await notifier.NotifyAsync(
                 existingUser.Id,

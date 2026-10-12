@@ -414,7 +414,6 @@
       "endpoints": [
         "GET /users/me",
         "PUT /users/me",
-        "PUT /users/me/timezone",
         "GET /trainer/profile",
         "PUT /trainer/profile",
         "POST /professionals/me/avatar/upload-url",
@@ -422,6 +421,39 @@
         "DELETE /professionals/me/avatar"
       ],
       "board": "PageProfile",
+      "shots": [
+        { "name": "default" }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "web.account.settings",
+      "app": "web",
+      "area": "Account",
+      "title": "Settings",
+      "route": "/settings",
+      "roles": ["Trainer", "Nutritionist"],
+      "files": [
+        "web/src/pages/SettingsPage.tsx",
+        "web/src/components/settings/**",
+        "web/src/components/layout/AccountMenu.tsx",
+        "web/src/api/profile.ts",
+        "web/src/api/roles.ts"
+      ],
+      "endpoints": [
+        "GET /users/me",
+        "PUT /users/me/timezone",
+        "POST /users/me/password",
+        "GET /users/me/notification-preferences",
+        "PUT /users/me/notification-preferences",
+        "GET /users/me/roles",
+        "POST /users/me/roles",
+        "DELETE /users/me/roles/{role}",
+        "POST /users/me/coach-account/disable",
+        "POST /users/me/coach-account/keep",
+        "DELETE /users/me"
+      ],
+      "board": "PageSettings",
       "shots": [
         { "name": "default" }
       ],

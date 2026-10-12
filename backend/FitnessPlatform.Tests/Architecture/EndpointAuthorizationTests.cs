@@ -39,6 +39,9 @@ public class EndpointAuthorizationTests(FitnessApiFactory factory)
         ("GET", "/users/me"), // GetProfileEndpoint
         ("PUT", "/users/me"), // UpdateProfileEndpoint
         ("PUT", "/users/me/timezone"), // UpdateTimeZoneEndpoint
+        ("POST", "/users/me/password"), // ChangePasswordEndpoint
+        ("GET", "/users/me/notification-preferences"), // GetNotificationPreferencesEndpoint
+        ("PUT", "/users/me/notification-preferences"), // UpdateNotificationPreferencesEndpoint
     ];
 
     /// <summary>

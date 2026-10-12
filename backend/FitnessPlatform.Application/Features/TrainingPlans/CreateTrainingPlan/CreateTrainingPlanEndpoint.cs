@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using FastEndpoints;
+using FitnessPlatform.Application.Domain.Authorization;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
@@ -26,6 +27,7 @@ namespace FitnessPlatform.Application.Features.TrainingPlans.CreateTrainingPlan;
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="linkAuthorizationService">Resolves the trainer-client link's CanViewTrainingPlans permission.</param>
 /// <param name="db">PostgreSQL context for cross-DB validation.</param>
+[RemovedCoachRole(AppRoles.Trainer, RemovedCoachRoleMode.Refuse)]
 public class CreateTrainingPlanEndpoint(
     IMongoContext mongo, IClientLinkAuthorizationService linkAuthorizationService, IApplicationDbContext db)
     : Endpoint<CreateTrainingPlanRequest, TrainingPlanSummaryDto>
