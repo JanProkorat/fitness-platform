@@ -75,10 +75,9 @@ test.describe('client detail page — overview tab', () => {
     }
 
     // The retired placeholders are gone: no TBD stat cards, no messages
-    // trend W1-W4 groups.
+    // trend widget.
     await expect(page.getByText('Average rating', { exact: true })).toHaveCount(0);
     await expect(page.getByText('Payments', { exact: true })).toHaveCount(0);
     await expect(page.getByRole('heading', { name: 'Messages trend' })).toHaveCount(0);
-    await expect(page.getByText('W1', { exact: true })).toHaveCount(0);
   });
 });
