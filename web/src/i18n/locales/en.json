@@ -954,9 +954,7 @@
         "title": "Account",
         "description": "Private — only you and the clients you work with see these.",
         "emailHint": "You sign in with this address.",
-        "phoneHint": "Optional.",
-        "timeZone": "Time zone",
-        "timeZoneHint": "Check-in reminders and session times use it."
+        "phoneHint": "Optional."
       },
       "about": {
         "title": "About you",
@@ -1028,7 +1026,6 @@
         "listTooLong": "Too many entries — remove some.",
         "year": "Use a four-digit year.",
         "certificateTitleRequired": "Add a title for this certificate.",
-        "invalidTimeZone": "This time zone is not supported. Choose another one.",
         "invalidCertificates": "Some certificates could not be saved. Check their titles.",
         "serverInvalid": "This value was rejected. Please check it."
       },

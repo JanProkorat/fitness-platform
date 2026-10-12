@@ -953,9 +953,7 @@
         "title": "Konto",
         "description": "Privat — nur du und die Kunden, mit denen du arbeitest, sehen das.",
         "emailHint": "Mit dieser Adresse meldest du dich an.",
-        "phoneHint": "Optional.",
-        "timeZone": "Zeitzone",
-        "timeZoneHint": "Check-in-Erinnerungen und Sitzungszeiten richten sich danach."
+        "phoneHint": "Optional."
       },
       "about": {
         "title": "Über dich",
@@ -1027,7 +1025,6 @@
         "listTooLong": "Zu viele Einträge — entferne einige.",
         "year": "Gib eine vierstellige Jahreszahl ein.",
         "certificateTitleRequired": "Gib einen Titel für dieses Zertifikat ein.",
-        "invalidTimeZone": "Diese Zeitzone wird nicht unterstützt. Wähle eine andere.",
         "invalidCertificates": "Einige Zertifikate konnten nicht gespeichert werden. Prüfe ihre Titel.",
         "serverInvalid": "Dieser Wert wurde abgelehnt. Bitte prüfe ihn."
       },
