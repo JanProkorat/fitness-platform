@@ -3310,7 +3310,6 @@
     },
     "overview": {
       "backAriaLabel": "Zurück zu Klienten",
-      "tbd": "TBD",
       "header": {
         "heightCm": "{{cm}} cm"
       },
@@ -3359,10 +3358,16 @@
         }
       },
       "mealPlan": {
+        "label": "Ernährungsplan",
         "heading": "Aktueller Ernährungsplan",
+        "openPlan": "Plan öffnen",
+        "macrosCaption": "Makros · Eiweiß / Kohlenhydrate / Fett",
         "detail": "{{kcal}} kcal • {{carb}} % Kohlenhydrate / {{protein}} % Eiweiß / {{fat}} % Fett"
       },
       "workout": {
+        "label": "Training",
+        "openPlan": "Plan öffnen",
+        "doneThisWeek": "Diese Woche erledigt · {{done}} von {{total}} Einheiten",
         "heading": "Letztes Workout",
         "exercises_one": "{{count}} Übung",
         "exercises_other": "{{count}} Übungen",

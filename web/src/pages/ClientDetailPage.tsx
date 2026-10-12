@@ -95,6 +95,8 @@ export default function ClientDetailPage() {
             isPending={plansQuery.isPending}
             isError={plansQuery.isError}
             noTrainingAccess={dashboard.canViewTrainingPlans === false}
+            sessionsCompleted={dashboard.sessionsCompletedThisWeek}
+            sessionsPlanned={dashboard.sessionsPlannedThisWeek}
           />
         </div>
       </div>

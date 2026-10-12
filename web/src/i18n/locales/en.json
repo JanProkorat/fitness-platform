@@ -3311,7 +3311,6 @@
     },
     "overview": {
       "backAriaLabel": "Back to clients",
-      "tbd": "TBD",
       "header": {
         "heightCm": "{{cm}} cm"
       },
@@ -3360,10 +3359,16 @@
         }
       },
       "mealPlan": {
+        "label": "Meal plan",
         "heading": "Current meal plan",
+        "openPlan": "Open plan",
+        "macrosCaption": "Macros · protein / carbs / fat",
         "detail": "{{kcal}} kcal • {{carb}} % Carb / {{protein}} % Protein / {{fat}} % Fat"
       },
       "workout": {
+        "label": "Training",
+        "openPlan": "Open plan",
+        "doneThisWeek": "Done this week · {{done}} of {{total}} sessions",
         "heading": "Latest workout",
         "exercises_one": "{{count}} Exercise",
         "exercises_other": "{{count}} Exercises",

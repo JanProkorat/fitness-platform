@@ -31,7 +31,8 @@ export default function ClientOverviewStats({ dashboard, clientId }: Props) {
 
   const noTrainingAccess = dashboard.canViewTrainingPlans === false;
   const noNutritionAccess = dashboard.canViewNutritionPlans === false;
-  const compliancePercent = dashboard.compliancePercent;
+  // For a training-only link the backend puts training compliance here, which is not meal compliance.
+  const compliancePercent = noNutritionAccess ? undefined : dashboard.compliancePercent;
   const streak = dashboard.currentStreak ?? 0;
 
   let complianceCaption: string;
