@@ -1,9 +1,13 @@
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
+import { cn } from '@/lib/utils';
 import type { OnboardingDataDto } from '@/api/generated';
+import type { ClientOverviewRole } from '@/lib/client-metrics';
 
 interface Props {
   onboarding?: OnboardingDataDto;
+  /** Which highlight tiles and answer rows apply to the coach's link. */
+  role: ClientOverviewRole;
 }
 
 /** Translates one onboarding code; an unknown code is shown as stored. */
@@ -29,18 +33,30 @@ function joinParts(parts: Array<string | undefined>): string | undefined {
   return present.length > 0 ? present.join(' • ') : undefined;
 }
 
+interface ProfileRow {
+  key: string;
+  label: string;
+  value: string | undefined;
+  /** Set when the row only matters to one coach role. */
+  domain?: 'training' | 'nutrition';
+}
+
 /** "Client profile" card: injuries and allergies highlighted, key onboarding answers below. */
-export default function ClientProfileCard({ onboarding }: Props) {
+export default function ClientProfileCard({ onboarding, role }: Props) {
   const { t, i18n } = useTranslation();
   const formatNumber = (value: number) => new Intl.NumberFormat(i18n.language, { maximumFractionDigits: 1 }).format(value);
 
   const injuries = listLabel(t, onboarding?.injuries);
   const allergies = listLabel(t, onboarding?.allergies);
 
-  const rows = onboarding
+  const showTraining = role !== 'nutritionist';
+  const showNutrition = role !== 'trainer';
+
+  const candidateRows: ProfileRow[] = onboarding
     ? [
         {
           key: 'diet',
+          domain: 'nutrition',
           label: t('clientDetail.overview.profile.diet'),
           value: joinParts([
             onboarding.dietaryStyle ? valueLabel(t, onboarding.dietaryStyle) : undefined,
@@ -49,6 +65,7 @@ export default function ClientProfileCard({ onboarding }: Props) {
         },
         {
           key: 'training',
+          domain: 'training',
           label: t('clientDetail.overview.profile.training'),
           value: joinParts([
             onboarding.currentTrainingFrequency ? valueLabel(t, onboarding.currentTrainingFrequency) : undefined,
@@ -71,6 +88,7 @@ export default function ClientProfileCard({ onboarding }: Props) {
         },
         {
           key: 'target',
+          domain: 'nutrition',
           label: t('clientDetail.overview.profile.dailyTarget'),
           value: joinParts([
             onboarding.adjustedKcal != null
@@ -86,8 +104,14 @@ export default function ClientProfileCard({ onboarding }: Props) {
           label: t('clientDetail.overview.profile.pastBlockers'),
           value: listLabel(t, onboarding.pastBlockers),
         },
-      ].filter((row): row is { key: string; label: string; value: string } => Boolean(row.value))
+      ]
     : [];
+  const rows = candidateRows.filter(
+    (row): row is ProfileRow & { value: string } =>
+      Boolean(row.value) &&
+      (row.domain !== 'training' || showTraining) &&
+      (row.domain !== 'nutrition' || showNutrition),
+  );
 
   return (
     <div className="flex h-full flex-col gap-3 rounded-2xl border border-border bg-card p-4.5 shadow-panel">
@@ -100,19 +124,23 @@ export default function ClientProfileCard({ onboarding }: Props) {
 
       {onboarding && (
         <>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            <div className="flex flex-col gap-0.5 rounded-field bg-training-soft px-3 py-2.5 text-training-ink">
-              <span className="text-label font-bold tracking-label uppercase">
-                {t('clientDetail.overview.profile.injuries')}
-              </span>
-              <span className="text-body font-semibold">{injuries ?? t('clientDetail.overview.profile.noneReported')}</span>
-            </div>
-            <div className="flex flex-col gap-0.5 rounded-field bg-training-soft px-3 py-2.5 text-training-ink">
-              <span className="text-label font-bold tracking-label uppercase">
-                {t('clientDetail.overview.profile.allergies')}
-              </span>
-              <span className="text-body font-semibold">{allergies ?? t('clientDetail.overview.profile.noneReported')}</span>
-            </div>
+          <div className={cn('grid grid-cols-1 gap-2', role === 'both' && 'sm:grid-cols-2')}>
+            {showTraining && (
+              <div className="flex flex-col gap-0.5 rounded-field bg-training-soft px-3 py-2.5 text-training-ink">
+                <span className="text-label font-bold tracking-label uppercase">
+                  {t('clientDetail.overview.profile.injuries')}
+                </span>
+                <span className="text-body font-semibold">{injuries ?? t('clientDetail.overview.profile.noneReported')}</span>
+              </div>
+            )}
+            {showNutrition && (
+              <div className="flex flex-col gap-0.5 rounded-field bg-training-soft px-3 py-2.5 text-training-ink">
+                <span className="text-label font-bold tracking-label uppercase">
+                  {t('clientDetail.overview.profile.allergies')}
+                </span>
+                <span className="text-body font-semibold">{allergies ?? t('clientDetail.overview.profile.noneReported')}</span>
+              </div>
+            )}
           </div>
 
           {rows.length > 0 && (

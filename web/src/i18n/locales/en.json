@@ -3336,14 +3336,27 @@
           "caption": "Last 7 days",
           "captionStreak_one": "Last 7 days • {{count}}-day logging streak",
           "captionStreak_other": "Last 7 days • {{count}}-day logging streak",
-          "empty": "No data yet",
-          "noAccess": "No nutrition access"
+          "empty": "No data yet"
+        },
+        "trainingCompliance": {
+          "label": "Training compliance",
+          "value": "{{percent}} %",
+          "caption": "Last 7 days",
+          "captionStreak_one": "Last 7 days • {{count}}-day training streak",
+          "captionStreak_other": "Last 7 days • {{count}}-day training streak",
+          "empty": "No data yet"
+        },
+        "weightChange": {
+          "label": "Weight change",
+          "value": "{{delta}} kg",
+          "since": "Since {{date}}",
+          "sinceGoal": "{{since}} · {{goal}} kg goal",
+          "empty": "No measurements yet"
         },
         "prs": {
           "label": "PRs this month",
           "lastActive": "Last active {{when}}",
-          "noActivity": "No activity yet",
-          "noAccess": "No training access"
+          "noActivity": "No activity yet"
         },
         "weight": {
           "value": "{{kg}} kg",
@@ -3373,8 +3386,7 @@
         "exercises_one": "{{count}} Exercise",
         "exercises_other": "{{count}} Exercises",
         "cardExercises_one": "{{count}} exercise",
-        "cardExercises_other": "{{count}} exercises",
-        "noAccess": "No training access"
+        "cardExercises_other": "{{count}} exercises"
       },
       "checkInTrend": {
         "heading": "Check-in trend",
