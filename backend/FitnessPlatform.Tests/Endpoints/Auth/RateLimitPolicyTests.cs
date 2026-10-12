@@ -210,20 +210,27 @@ public class RateLimitPolicyTests(RateLimitEnabledFactory factory)
 
     private static string UniqueEmail() => $"{Guid.NewGuid():N}@ratelimit-test.com";
 
+    private static int _trustedIpCounter;
+    private static int _untrustedIpCounter;
+
     /// <summary>
     /// A fresh IP inside the 10.0.0.0/8 private range trusted by UseForwardedHeaders
-    /// (KnownIPNetworks in Program.cs). Generated per call so no two facts sharing the
-    /// collection-scoped host ever land in the same rate-limit bucket.
+    /// (KnownIPNetworks in Program.cs). Counter-based, so no two calls in a run collide
+    /// in the collection-scoped host's rate-limit buckets (wraps after 16M calls).
     /// </summary>
-    private static string UniqueTrustedIp() =>
-        $"10.{Random.Shared.Next(1, 255)}.{Random.Shared.Next(1, 255)}.{Random.Shared.Next(1, 255)}";
+    private static string UniqueTrustedIp()
+    {
+        var next = (uint)Interlocked.Increment(ref _trustedIpCounter) % 16_777_215u + 1;
+        return $"10.{(next >> 16) & 255}.{(next >> 8) & 255}.{next & 255}";
+    }
 
     /// <summary>
     /// A fresh IP in the TEST-NET-3 documentation range (203.0.113.0/24) — public, not in
-    /// any KnownIPNetworks range. Generated per call for the same isolation reason as
-    /// <see cref="UniqueTrustedIp"/>.
+    /// any KnownIPNetworks range. Counter-based like <see cref="UniqueTrustedIp"/>; the
+    /// 254 host addresses only repeat after 254 calls (this file makes 2 per run).
     /// </summary>
-    private static string UniqueUntrustedIp() => $"203.0.113.{Random.Shared.Next(1, 255)}";
+    private static string UniqueUntrustedIp() =>
+        $"203.0.113.{(uint)Interlocked.Increment(ref _untrustedIpCounter) % 254u + 1}";
 
     // ---------------------------------------------------------------------------
     // AC-4: /auth/refresh on its own policy cannot exhaust the /auth/login budget
