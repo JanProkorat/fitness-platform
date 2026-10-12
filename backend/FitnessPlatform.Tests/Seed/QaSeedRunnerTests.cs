@@ -1027,7 +1027,7 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
         var profile = await db.ClientProfiles.FirstAsync(p => p.UserId == QaSeedRunner.ClientUserId, ct);
         (await db.BodyMeasurements.CountAsync(m => m.ClientProfileId == profile.Id, ct)).Should().Be(8);
         (await db.ClientOnboardingData.CountAsync(o => o.ClientProfileId == profile.Id, ct)).Should().Be(1);
-        (await db.ClientNutritionTargets.CountAsync(ct)).Should().Be(1);
+        (await db.ClientNutritionTargets.CountAsync(t => t.ClientOnboardingData.ClientProfileId == profile.Id, ct)).Should().Be(1);
         (await db.WeeklyCheckIns.CountAsync(w => w.ClientUserId == QaSeedRunner.ClientUserId, ct)).Should().Be(7);
         (await mongo.MealLogs.CountDocumentsAsync(l => l.ClientId == QaSeedRunner.ClientUserId, cancellationToken: ct)).Should().Be(14);
         (await mongo.PersonalRecords.CountDocumentsAsync(r => r.ClientId == QaSeedRunner.ClientUserId, cancellationToken: ct)).Should().Be(1);
@@ -1066,6 +1066,268 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
         (await mongo.MealLogs.CountDocumentsAsync(Builders<MealLog>.Filter.Empty, cancellationToken: ct)).Should().Be(0);
         (await mongo.PersonalRecords.CountDocumentsAsync(Builders<PersonalRecord>.Filter.Empty, cancellationToken: ct)).Should().Be(0);
         (await mongo.SessionExecutions.CountDocumentsAsync(Builders<SessionExecution>.Filter.Empty, cancellationToken: ct)).Should().Be(0);
+        (await db.Users.CountAsync(u => u.Email == QaSeedRunner.CoachEmail || u.Email == QaSeedRunner.ClientDuoEmail, ct))
+            .Should().Be(0, "the both-roles fixture is Rich-only");
+    }
+
+    /// <summary>
+    /// #1311 — qa.coach holds both professional roles and no Client role.
+    /// </summary>
+    [Fact]
+    public async Task SeedAsync_Duo_CoachHoldsTrainerAndNutritionistRoles()
+    {
+        await QaSeedRunner.SeedAsync(_factory.Services);
+
+        using var scope = _factory.Services.CreateScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<FitnessPlatform.Application.Domain.Entities.ApplicationUser>>();
+
+        var coach = await userManager.FindByEmailAsync(QaSeedRunner.CoachEmail);
+        coach.Should().NotBeNull();
+        coach!.Id.Should().Be(QaSeedRunner.CoachUserId);
+        (await userManager.GetRolesAsync(coach)).Should().BeEquivalentTo(
+            new[] { UserRole.Trainer.ToString(), UserRole.Nutritionist.ToString() });
+
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var profile = await db.ProfessionalProfiles.SingleAsync(
+            p => p.UserId == QaSeedRunner.CoachUserId, TestContext.Current.CancellationToken);
+        profile.PublicId.Should().Be(QaSeedRunner.CoachProfilePublicId);
+        profile.TrainerRoleRemovedAt.Should().BeNull();
+        profile.NutritionistRoleRemovedAt.Should().BeNull();
+
+        var duo = await userManager.FindByEmailAsync(QaSeedRunner.ClientDuoEmail);
+        duo.Should().NotBeNull();
+        duo!.Id.Should().Be(QaSeedRunner.ClientDuoUserId);
+        (await userManager.GetRolesAsync(duo)).Should().BeEquivalentTo(new[] { UserRole.Client.ToString() });
+    }
+
+    /// <summary>
+    /// #1311 — one link, shaped like AcceptClientInviteEndpoint writes it for a both-roles coach,
+    /// and no link between qa.coach and qa.client (one active coach per profession).
+    /// </summary>
+    [Fact]
+    public async Task SeedAsync_Duo_SingleBothFlagsLink_AndNoLinkToQaClient()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        await QaSeedRunner.SeedAsync(_factory.Services);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var coachLinks = await db.ClientProfessionalLinks
+            .Where(l => l.ProfessionalProfile.UserId == QaSeedRunner.CoachUserId)
+            .Select(l => new
+            {
+                ClientUserId = l.ClientProfile.UserId,
+                l.ProfessionalRole,
+                l.IsActive,
+                l.CanViewNutritionPlans,
+                l.CanViewTrainingPlans,
+            })
+            .ToListAsync(ct);
+
+        var link = coachLinks.Should().ContainSingle().Subject;
+        link.ClientUserId.Should().Be(QaSeedRunner.ClientDuoUserId);
+        link.ProfessionalRole.Should().Be(UserRole.Nutritionist);
+        link.IsActive.Should().BeTrue();
+        link.CanViewNutritionPlans.Should().BeTrue();
+        link.CanViewTrainingPlans.Should().BeTrue();
+
+        (await db.ClientProfessionalLinks.CountAsync(
+                l => l.ProfessionalProfile.UserId == QaSeedRunner.CoachUserId && l.ClientProfile.UserId == QaSeedRunner.ClientUserId, ct))
+            .Should().Be(0);
+        (await db.ClientProfessionalLinks.CountAsync(l => l.ClientProfile.UserId == QaSeedRunner.ClientDuoUserId, ct))
+            .Should().Be(1, "QA Duo has exactly one coach");
+
+        // qa.client keeps exactly its trainer and nutritionist links.
+        (await db.ClientProfessionalLinks.CountAsync(l => l.ClientProfile.UserId == QaSeedRunner.ClientUserId, ct))
+            .Should().Be(2);
+    }
+
+    /// <summary>
+    /// #1311 — both plans are authored by qa.coach for QA Duo, keyed on ApplicationUser ids and
+    /// windowed so they are current today.
+    /// </summary>
+    [Fact]
+    public async Task SeedAsync_Duo_PlansAuthoredByCoachForDuo()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        await QaSeedRunner.SeedAsync(_factory.Services);
+
+        using var scope = _factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+        var nutrition = await mongo.NutritionPlans
+            .Find(p => p.ExternalId == QaSeedRunner.QaDuoNutritionPlanExternalId)
+            .FirstAsync(ct);
+        nutrition.ClientId.Should().Be(QaSeedRunner.ClientDuoUserId);
+        nutrition.NutritionistId.Should().Be(QaSeedRunner.CoachUserId);
+        nutrition.Status.Should().Be(NutritionPlanStatus.Active);
+        nutrition.StartDate.Should().NotBeNull();
+        nutrition.StartDate!.Value.Date.Should().BeOnOrBefore(DateTime.UtcNow.Date);
+        nutrition.StartDate.Value.Date.AddDays(nutrition.Weeks.Count * 7).Should().BeAfter(DateTime.UtcNow.Date);
+
+        var training = await mongo.TrainingPlans
+            .Find(p => p.ExternalId == QaSeedRunner.QaDuoTrainingPlanExternalId)
+            .FirstAsync(ct);
+        training.ClientId.Should().Be(QaSeedRunner.ClientDuoUserId);
+        training.TrainerId.Should().Be(QaSeedRunner.CoachUserId);
+        training.Status.Should().Be(TrainingPlanStatus.Active);
+        training.StartDate!.Value.Date.Should().BeOnOrBefore(DateTime.UtcNow.Date);
+        training.StartDate.Value.Date.AddDays(training.Weeks.Count * 7).Should().BeAfter(DateTime.UtcNow.Date);
+        training.Weeks.Should().OnlyContain(w => w.Status == WeekStatus.Published);
+
+        // qa.client's plans are untouched by the new coach.
+        (await mongo.NutritionPlans.CountDocumentsAsync(
+                p => p.NutritionistId == QaSeedRunner.CoachUserId && p.ClientId == QaSeedRunner.ClientUserId, cancellationToken: ct))
+            .Should().Be(0);
+        (await mongo.TrainingPlans.CountDocumentsAsync(
+                p => p.TrainerId == QaSeedRunner.CoachUserId && p.ClientId == QaSeedRunner.ClientUserId, cancellationToken: ct))
+            .Should().Be(0);
+    }
+
+    /// <summary>
+    /// #1311 — the Duo training plan schedules three sessions this week; the completed one sits
+    /// on today's weekday and its execution and personal record are dated today, so "sessions
+    /// this week" and "PRs this month" are non-zero on any reset day, including the 1st.
+    /// </summary>
+    [Fact]
+    public async Task SeedAsync_Duo_CompletedSessionAndPersonalRecordAreDatedToday()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        await QaSeedRunner.SeedAsync(_factory.Services);
+
+        using var scope = _factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+        var plan = await mongo.TrainingPlans
+            .Find(p => p.ExternalId == QaSeedRunner.QaDuoTrainingPlanExternalId)
+            .FirstAsync(ct);
+        var sessionsByDay = plan.Weeks.Single().Days
+            .SelectMany(d => d.Sessions.Select(s => (d.DayOfWeek, s.SessionId)))
+            .ToList();
+        sessionsByDay.Should().HaveCount(3);
+
+        var today = DateTime.UtcNow.Date;
+        var todayDayOfWeek = (int)today.DayOfWeek == 0 ? 7 : (int)today.DayOfWeek;
+        sessionsByDay.Should().Contain((todayDayOfWeek, QaSeedRunner.QaDuoSessionAId));
+
+        var allExercises = plan.Weeks.SelectMany(w => w.Days).SelectMany(d => d.Sessions).SelectMany(s => s.AllExercises).ToList();
+        allExercises.Should().OnlyContain(e => e.ExerciseId != Guid.Empty);
+        allExercises.Select(e => e.ExerciseId).Should().OnlyHaveUniqueItems();
+
+        var execution = await mongo.SessionExecutions
+            .Find(e => e.ExternalId == QaSeedRunner.QaDuoSessionExecutionId)
+            .FirstAsync(ct);
+        execution.ClientId.Should().Be(QaSeedRunner.ClientDuoUserId);
+        execution.PlanId.Should().Be(QaSeedRunner.QaDuoTrainingPlanExternalId);
+        execution.SessionId.Should().Be(QaSeedRunner.QaDuoSessionAId);
+        execution.Status.Should().Be(SessionExecutionStatus.Completed);
+        execution.Date.Should().Be(today);
+        execution.DateUpdated.Should().BeOnOrBefore(DateTime.UtcNow);
+
+        var record = await mongo.PersonalRecords
+            .Find(r => r.ExternalId == QaSeedRunner.QaDuoPersonalRecordExternalId)
+            .FirstAsync(ct);
+        record.ClientId.Should().Be(QaSeedRunner.ClientDuoUserId);
+        record.WorkoutLogId.Should().Be(QaSeedRunner.QaDuoSessionExecutionId);
+        record.AchievedAt.Date.Should().Be(today);
+        record.AchievedAt.Should().BeOnOrBefore(DateTime.UtcNow);
+    }
+
+    /// <summary>
+    /// #1311 — eight weekly measurements, meal logs on the six days before today and the check-in
+    /// history for QA Duo, all attributed to qa.coach where an author applies.
+    /// </summary>
+    [Fact]
+    public async Task SeedAsync_Duo_HasMeasurementsMealLogsAndCheckIns()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        await QaSeedRunner.SeedAsync(_factory.Services);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+        var profile = await db.ClientProfiles
+            .Include(p => p.OnboardingData!).ThenInclude(o => o.NutritionTargets)
+            .FirstAsync(p => p.UserId == QaSeedRunner.ClientDuoUserId, ct);
+        profile.DateOfBirth.Should().NotBeNull();
+        profile.OnboardingData.Should().NotBeNull();
+        profile.OnboardingData!.NutritionTargets.Should().NotBeNull();
+
+        var measurements = await db.BodyMeasurements
+            .Where(m => m.ClientProfileId == profile.Id)
+            .OrderBy(m => m.MeasuredAt)
+            .ToListAsync(ct);
+        measurements.Should().HaveCount(8);
+        measurements.Select(m => m.PublicId).Should().BeEquivalentTo(QaSeedRunner.QaDuoBodyMeasurementIds);
+        measurements.Select(m => m.WeightKg!.Value).Should().BeInDescendingOrder();
+        measurements[^1].MeasuredAt.Should().BeBefore(DateTime.UtcNow);
+        measurements[^1].WeightKg.Should().Be(profile.WeightKg);
+
+        var plan = await mongo.NutritionPlans
+            .Find(p => p.ExternalId == QaSeedRunner.QaDuoNutritionPlanExternalId)
+            .FirstAsync(ct);
+        var logs = await mongo.MealLogs.Find(l => l.ClientId == QaSeedRunner.ClientDuoUserId).ToListAsync(ct);
+        logs.Should().NotBeEmpty();
+        logs.Should().AllSatisfy(l => l.PlanId.Should().Be(QaSeedRunner.QaDuoNutritionPlanExternalId));
+        logs.Select(l => l.LogDate.Date).Should().OnlyContain(day => day < DateTime.UtcNow.Date, "today stays empty");
+        logs.Select(l => l.MealId).Should().OnlyContain(id =>
+            plan.Weeks.SelectMany(w => w.Days).SelectMany(d => d.Meals).Any(m => m.MealId == id));
+
+        var checkIns = await db.WeeklyCheckIns
+            .Where(w => w.ClientUserId == QaSeedRunner.ClientDuoUserId)
+            .ToListAsync(ct);
+        checkIns.Should().HaveCount(5);
+        checkIns.Should().AllSatisfy(w =>
+        {
+            w.ProfessionalUserId.Should().Be(QaSeedRunner.CoachUserId);
+            w.Profession.Should().Be(Profession.Training);
+        });
+        checkIns.Select(w => w.Id).Should().BeEquivalentTo(QaSeedRunner.QaDuoCheckInIds);
+        checkIns.Where(w => w.RespondedAt != null).Should().HaveCount(3)
+            .And.AllSatisfy(w => w.ReviewedByTrainerAt.Should().NotBeNull());
+        checkIns.Count(w => w.Status == WeeklyCheckInStatus.Expired).Should().Be(1);
+        checkIns.Count(w => w.Status == WeeklyCheckInStatus.Pending).Should().Be(1);
+    }
+
+    /// <summary>
+    /// #1311 — re-running the seed leaves every Duo fixture at its first-run count.
+    /// </summary>
+    [Fact]
+    public async Task SeedAsync_Duo_RunTwice_IsIdempotent()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        await QaSeedRunner.SeedAsync(_factory.Services);
+        await QaSeedRunner.SeedAsync(_factory.Services);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+        (await db.Users.CountAsync(u => u.Email == QaSeedRunner.CoachEmail, ct)).Should().Be(1);
+        (await db.Users.CountAsync(u => u.Email == QaSeedRunner.ClientDuoEmail, ct)).Should().Be(1);
+        (await db.ClientProfessionalLinks.CountAsync(l => l.ProfessionalProfile.UserId == QaSeedRunner.CoachUserId, ct)).Should().Be(1);
+
+        var profile = await db.ClientProfiles.FirstAsync(p => p.UserId == QaSeedRunner.ClientDuoUserId, ct);
+        (await db.BodyMeasurements.CountAsync(m => m.ClientProfileId == profile.Id, ct)).Should().Be(8);
+        (await db.ClientOnboardingData.CountAsync(o => o.ClientProfileId == profile.Id, ct)).Should().Be(1);
+        (await db.WeeklyCheckIns.CountAsync(w => w.ClientUserId == QaSeedRunner.ClientDuoUserId, ct)).Should().Be(5);
+
+        (await mongo.NutritionPlans.CountDocumentsAsync(p => p.ClientId == QaSeedRunner.ClientDuoUserId, cancellationToken: ct)).Should().Be(1);
+        (await mongo.TrainingPlans.CountDocumentsAsync(p => p.ClientId == QaSeedRunner.ClientDuoUserId, cancellationToken: ct)).Should().Be(1);
+        (await mongo.SessionExecutions.CountDocumentsAsync(e => e.ClientId == QaSeedRunner.ClientDuoUserId, cancellationToken: ct)).Should().Be(1);
+        (await mongo.PersonalRecords.CountDocumentsAsync(r => r.ClientId == QaSeedRunner.ClientDuoUserId, cancellationToken: ct)).Should().Be(1);
+
+        var logsAfterFirst = await mongo.MealLogs.CountDocumentsAsync(l => l.ClientId == QaSeedRunner.ClientDuoUserId, cancellationToken: ct);
+        logsAfterFirst.Should().BeGreaterThan(0);
+        (await mongo.MealLogs.CountDocumentsAsync(l => l.ClientId == QaSeedRunner.ClientUserId, cancellationToken: ct))
+            .Should().Be(14, "qa.client's meal logs are unchanged");
     }
 
     /// <summary>
@@ -1183,6 +1445,7 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
             QaSeedRunner.QaTrainingPlanExternalId,
             QaSeedRunner.QaPastTrainingPlanExternalId,
             QaSeedRunner.QaMultiSectionPlanExternalId,
+            QaSeedRunner.QaDuoTrainingPlanExternalId,
         };
 
         foreach (var planId in planIds)
@@ -1888,11 +2151,12 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
 
         // Total link count: trainer↔client (#474 has 2 pairs = 2 links) + this
         // nutritionist↔client link + the #1095 qa.trainer↔client3 link + the #1101 ended
-        // qa.trainer↔former-client link = 5 total.
+        // qa.trainer↔former-client link + the #1311 qa.coach↔QA Duo link = 6 total.
         var linkCount = await db.ClientProfessionalLinks.CountAsync(ct);
-        linkCount.Should().Be(5,
+        linkCount.Should().Be(6,
             "2 trainer↔client links (#474) + 1 nutritionist↔client link (#720) + 1 qa.trainer↔client3 " +
-            "link (#1095) + 1 ended qa.trainer↔former-client link (#1101), no duplicates on re-seed");
+            "link (#1095) + 1 ended qa.trainer↔former-client link (#1101) + 1 qa.coach↔QA Duo link (#1311), " +
+            "no duplicates on re-seed");
 
         var nutritionPlan = await mongo.NutritionPlans
             .Find(p => p.ExternalId == QaSeedRunner.QaNutritionPlanExternalId)
