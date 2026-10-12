@@ -3452,6 +3452,10 @@
         "exercises_few": "{{count}} cviky",
         "exercises_many": "{{count}} cviků",
         "exercises_other": "{{count}} cviků",
+        "cardExercises_one": "{{count}} cvik",
+        "cardExercises_few": "{{count}} cviky",
+        "cardExercises_many": "{{count}} cviků",
+        "cardExercises_other": "{{count}} cviků",
         "noAccess": "Bez přístupu k tréninku"
       },
       "checkInTrend": {

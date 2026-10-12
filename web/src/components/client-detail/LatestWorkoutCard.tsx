@@ -91,7 +91,7 @@ export default function LatestWorkoutCard({
                   : detailQuery.isPending
                     ? t('common.loading')
                     : exerciseCount != null
-                      ? [t('clientDetail.overview.workout.exercises', { count: exerciseCount }), dayLabel]
+                      ? [t('clientDetail.overview.workout.cardExercises', { count: exerciseCount }), dayLabel]
                           .filter(Boolean)
                           .join(' • ')
                       : '—'}

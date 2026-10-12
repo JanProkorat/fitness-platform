@@ -3371,6 +3371,8 @@
         "heading": "Letztes Workout",
         "exercises_one": "{{count}} Übung",
         "exercises_other": "{{count}} Übungen",
+        "cardExercises_one": "{{count}} Übung",
+        "cardExercises_other": "{{count}} Übungen",
         "noAccess": "Kein Zugriff auf Training"
       },
       "checkInTrend": {
