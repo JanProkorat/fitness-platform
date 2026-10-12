@@ -1,8 +1,11 @@
 using System.Net.Http.Json;
+using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Features.Messaging.Shared;
+using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Infrastructure;
 using FluentAssertions;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace FitnessPlatform.Tests.Endpoints.Messaging;
 
@@ -29,6 +32,18 @@ public class ParticipantInitialsTests(FitnessApiFactory factory)
         var trainer = await TestActors.Trainer(factory).CreateAsync(ct);
         var client = await TestActors.Client(factory).WithName("", "").CreateAsync(ct);
         await TestActors.Link(factory, trainer, client).CreateAsync(ct);
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            db.Conversations.Add(new Conversation
+            {
+                PublicId = Guid.NewGuid(),
+                ProfessionalUserId = trainer.UserId,
+                ClientUserId = client.UserId
+            });
+            await db.SaveChangesAsync(ct);
+        }
 
         var response = await trainer.Http.GetAsync("/conversations", ct);
 

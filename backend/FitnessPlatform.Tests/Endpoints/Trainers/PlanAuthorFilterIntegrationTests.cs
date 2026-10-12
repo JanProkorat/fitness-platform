@@ -2,7 +2,9 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Features.Messaging.GetConversationFilterCounts;
 using FitnessPlatform.Application.Features.Trainers.GetClientDashboard;
 using FitnessPlatform.Application.Features.Trainers.GetClients;
@@ -47,6 +49,19 @@ public class PlanAuthorFilterIntegrationTests(FitnessApiFactory factory)
 
         await link.CreateAsync(Ct);
         return (trainer, client);
+    }
+
+    private async Task SeedConversationAsync(Guid professionalUserId, Guid clientUserId)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        db.Conversations.Add(new Conversation
+        {
+            PublicId = Guid.NewGuid(),
+            ProfessionalUserId = professionalUserId,
+            ClientUserId = clientUserId
+        });
+        await db.SaveChangesAsync(Ct);
     }
 
     private async Task<Guid> SeedNutritionPlanAsync(Guid clientUserId, Guid authorUserId, decimal? targetWeightKg = null)
@@ -169,6 +184,7 @@ public class PlanAuthorFilterIntegrationTests(FitnessApiFactory factory)
     public async Task ConversationFilterCounts_ForeignAuthoredEndingSoonPlan_DoesNotCount()
     {
         var (trainer, client) = await LinkedPairAsync();
+        await SeedConversationAsync(trainer.UserId, client.UserId);
         await SeedNutritionPlanAsync(client.UserId, Guid.NewGuid());
 
         var response = await trainer.Http.GetAsync("/conversations/filter-counts", Ct);
@@ -183,6 +199,7 @@ public class PlanAuthorFilterIntegrationTests(FitnessApiFactory factory)
     public async Task ConversationFilterCounts_OwnAuthoredEndingSoonPlan_Counts()
     {
         var (trainer, client) = await LinkedPairAsync();
+        await SeedConversationAsync(trainer.UserId, client.UserId);
         await SeedNutritionPlanAsync(client.UserId, trainer.UserId);
 
         var response = await trainer.Http.GetAsync("/conversations/filter-counts", Ct);

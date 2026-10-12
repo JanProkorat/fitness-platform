@@ -13,7 +13,7 @@ namespace FitnessPlatform.Application.Features.Messaging.GetConversationFilterCo
 /// Returns the inbox filter dropdown's six chip counts for the authenticated professional.
 /// </summary>
 /// <remarks>
-/// Computed over the same live-roster population and the same
+/// Computed over the same live-roster population (clients with a conversation) and the same
 /// <see cref="ClientRosterFilterClassifier"/> facts <c>GetConversationsEndpoint</c>'s
 /// <c>filter</c> param uses (<see cref="ConversationRosterLoader"/>). The All count also includes
 /// conversations outside that roster, matching the All list. Trainer/Nutritionist only; a Client
@@ -36,7 +36,8 @@ public class GetConversationFilterCountsEndpoint(
         {
             s.Summary = "Get conversation filter chip counts";
             s.Description = "Returns the six inbox filter chip counts over the caller's live " +
-                             "client roster (live links only, archived links excluded). " +
+                             "clients that already have a conversation (live links only, archived " +
+                             "links excluded; clients with no conversation yet are not counted). " +
                              "Independent of the archived display toggle.";
             s.Responses[StatusCodes.Status200OK] = "The six chip counts.";
             s.Responses[StatusCodes.Status401Unauthorized] = "No caller claim on the request.";

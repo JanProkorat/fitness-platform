@@ -1,9 +1,10 @@
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ClientIdentityBlock from '@/components/client-detail/ClientIdentityBlock';
 import TbdValue from '@/components/client-detail/TbdValue';
+import { getClientDetailBackPath } from '@/lib/clientDetailNavigation';
 import type { GetClientDashboardResponse } from '@/api/generated';
 
 interface Props {
@@ -21,12 +22,13 @@ interface Props {
  */
 export default function ClientDetailHeader({ dashboard }: Props) {
   const { t } = useTranslation();
+  const location = useLocation();
 
   return (
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div className="flex items-start gap-2">
         <Link
-          to="/clients"
+          to={getClientDetailBackPath(location.state)}
           aria-label={t('clientDetail.overview.backAriaLabel')}
           className="mt-1 text-muted-foreground transition-colors hover:text-foreground"
         >

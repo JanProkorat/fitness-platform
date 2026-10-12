@@ -25,6 +25,11 @@ function qaClientRow(page: Page): Locator {
   return page.getByRole('button').filter({ has: page.getByText('QA Client', { exact: true }) });
 }
 
+/** The inbox row for the seeded ended-link "QA Former" conversation — never the first row, so it is not auto-opened. */
+function qaFormerRow(page: Page): Locator {
+  return page.getByRole('button').filter({ has: page.getByText('QA Former', { exact: true }) });
+}
+
 /** Every visible clients-list row's name link on the CURRENT tab, for filter-parity comparisons. */
 async function getClientsListNamesOnCurrentTab(page: Page): Promise<string[]> {
   const links = page.locator("table tbody a[href^='/clients/']");
@@ -138,7 +143,56 @@ test.describe('inbox page', () => {
     await expect(page.getByRole('heading', { name: 'Inbox' })).toBeVisible();
   });
 
-  test('empty-state copy matches the wireframe when no chat is selected', async ({ page }) => {
+  test('the first conversation is selected and its thread is open on entry', async ({ page }) => {
+    // Which conversation sorts first depends on what earlier tests created in the shared DB, so
+    // nothing here assumes a specific participant. The mark-read deferral is proven over the wire.
+    const markReadRequests: string[] = [];
+    page.on('request', (request) => {
+      if (request.method() === 'POST' && /\/conversations\/[^/?]+\/read$/.test(new URL(request.url()).pathname)) {
+        markReadRequests.push(request.url());
+      }
+    });
+
+    // Fresh navigation (the beforeEach load predates the listener).
+    const listResponsePromise = page.waitForResponse((r) => r.url().includes('/conversations?') && r.status() === 200);
+    await page.goto('/inbox');
+    const listBody = (await (await listResponsePromise).json()) as Array<{ id?: string; participant?: { name?: string } }>;
+    await page.waitForLoadState('networkidle');
+
+    const firstRowName = (await page.locator('[data-testid="inbox-row-name"]').first().innerText()).trim();
+    const firstConversation = listBody.find((r) => r.participant?.name?.trim() === firstRowName);
+    if (!firstConversation?.id) {
+      throw new Error(`Conversation id not found for first inbox row "${firstRowName}"`);
+    }
+
+    await expect(page.getByText('Select a chat to begin messaging')).toHaveCount(0);
+    await expect(page.getByPlaceholder('Type your message here...')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Hide client' })).toBeVisible();
+    // The open thread's header shows the first row's participant (the row itself also carries this text).
+    const headerName = page
+      .getByText(firstRowName, { exact: true })
+      .and(page.locator(':not([data-testid="inbox-row-name"])'))
+      .first();
+    await expect(headerName).toBeVisible();
+
+    // Merely entering the inbox must not mark the auto-selected thread read.
+    await page.waitForLoadState('networkidle');
+    expect(markReadRequests).toHaveLength(0);
+
+    // The first interaction inside the thread pane marks exactly that conversation read.
+    await page.getByTestId('thread-message-list').click();
+    await expect.poll(() => markReadRequests.length).toBe(1);
+    expect(markReadRequests[0]).toContain(`/conversations/${firstConversation.id}/read`);
+  });
+
+  test('empty-state copy matches the wireframe when the selected chat is not in the current list', async ({ page }) => {
+    // The first row is auto-selected on entry; the Archived view (nothing seeded there) no longer
+    // contains it, so the thread pane falls back to the empty state.
+    await expect(page.getByPlaceholder('Type your message here...')).toBeVisible();
+    await page.getByRole('button', { name: /Active/ }).click();
+    await page.getByRole('menuitem', { name: 'Archived' }).click();
+    await page.waitForLoadState('networkidle');
+
     await expect(page.getByText('Select a chat to begin messaging')).toBeVisible();
     await expect(
       page.getByText('Your client inbox, workout questions, and onboarding metrics live here.'),
@@ -148,13 +202,15 @@ test.describe('inbox page', () => {
   test('list renders with unread dot, time, and last-message preview; opening the thread marks it read', async ({
     page,
   }) => {
-    const row = qaClientRow(page);
+    // QA Client is auto-opened on entry but stays unread until the trainer interacts; QA Former keeps
+    // its seeded unread message until the trainer opens that thread.
+    const row = qaFormerRow(page);
     await expect(row).toBeVisible();
     await expect(row.locator('[role="status"]')).toBeVisible(); // unread dot
 
     await row.click();
     await page.waitForLoadState('networkidle');
-    await expect(page.getByText(QA_CLIENT_NAME).first()).toBeVisible();
+    await expect(page.getByText('QA Former').first()).toBeVisible();
 
     // Read mark round-trips through the backend + a list invalidation —
     // re-fetch the row and confirm the unread dot is gone.
@@ -199,7 +255,7 @@ test.describe('inbox page', () => {
     }
   });
 
-  test('each live filter returns the same client set as the clients-list chip for that filter (#1095)', async ({
+  test('each live filter returns the clients-list chip set restricted to clients with a conversation (#1095)', async ({
     page,
   }) => {
     const FILTERS: Array<{ inboxLabel: RegExp; chipLabel: RegExp; filterParam: string }> = [
@@ -210,8 +266,14 @@ test.describe('inbox page', () => {
       { inboxLabel: /^Ending soon/, chipLabel: /Ending soon/, filterParam: 'EndingSoon' },
     ];
 
+    // The inbox lists only clients that have a conversation, so the unfiltered inbox is the
+    // "has a conversation" population every filtered set is restricted to.
+    const withConversation = await getInboxRowNames(page);
+
     for (const { inboxLabel, chipLabel, filterParam } of FILTERS) {
-      const clientsNames = await getClientsListNamesForChip(page, chipLabel);
+      const clientsNames = (await getClientsListNamesForChip(page, chipLabel)).filter((n) =>
+        withConversation.includes(n),
+      );
 
       await page.goto('/inbox');
       await page.waitForLoadState('networkidle');
@@ -260,14 +322,23 @@ test.describe('inbox page', () => {
   }) => {
     await page.goto('/clients');
     await page.waitForLoadState('networkidle');
-    const listRow = page.getByRole('row', { name: QA_CLIENT_NAME });
+    const listRow = page.getByRole('row', { name: QA_CLIENT_NAME }).filter({
+      has: page.getByRole('link', { name: 'QA Client', exact: true }),
+    });
     const listStatusText = (await listRow.locator('[data-slot="badge"]').first().innerText()).trim();
+    const qaClientHref = await listRow.getByRole('link', { name: 'QA Client', exact: true }).getAttribute('href');
+    const qaClientId = qaClientHref?.split('/').pop();
+    if (!qaClientId) {
+      throw new Error('QA Client id not found on the clients list');
+    }
 
-    await page.goto('/inbox');
-    await page.waitForLoadState('networkidle');
+    // Which row is auto-selected depends on earlier tests, so open QA Client explicitly. Its
+    // dashboard is fetched either on load (if it is first) or on the click — register the wait
+    // before navigating so both cases are covered.
     const dashboardResponse = page.waitForResponse(
-      (r) => /\/trainer\/clients\/[0-9a-f-]{36}(\?|$)/.test(r.url()) && r.status() === 200,
+      (r) => new RegExp(`/trainer/clients/${qaClientId}(\\?|$)`).test(r.url()) && r.status() === 200,
     );
+    await page.goto('/inbox');
     await qaClientRow(page).click();
     const dashboard = (await (await dashboardResponse).json()) as {
       sessionsCompletedThisWeek?: number | null;
@@ -280,7 +351,8 @@ test.describe('inbox page', () => {
     const panel = page.getByRole('complementary', { name: 'Client details' });
     await expect(panel).toBeVisible();
     await page.getByRole('button', { name: 'Hide client' }).click();
-    await expect(panel).toHaveCount(0);
+    // The aside stays mounted at width 0 with aria-hidden + inert, so role queries no longer see it.
+    await expect(panel).toBeHidden();
     await page.getByRole('button', { name: 'Show client' }).click();
     const panelStatusBadge = panel.locator('[data-slot="badge"]').first();
     await expect(panelStatusBadge).toHaveText(listStatusText);
@@ -300,6 +372,24 @@ test.describe('inbox page', () => {
     await page.waitForLoadState('networkidle');
     await expect(page).toHaveURL(/\/clients\/[0-9a-f-]{36}$/);
     await expect(page.getByRole('heading', { name: QA_CLIENT_NAME })).toBeVisible();
+  });
+
+  test('the client-detail back arrow returns to the inbox with the same thread open', async ({ page }) => {
+    // Whichever row is auto-selected on entry; its name is read rather than assumed.
+    const firstRowName = (await page.locator('[data-testid="inbox-row-name"]').first().innerText()).trim();
+    await page.getByRole('link', { name: 'Open client profile' }).click();
+    await expect(page).toHaveURL(/\/clients\/[0-9a-f-]{36}$/);
+    const clientPath = new URL(page.url()).pathname;
+    await expect(page.getByRole('heading', { name: firstRowName })).toBeVisible();
+
+    await page.getByRole('link', { name: 'Back to clients' }).click();
+    await page.waitForLoadState('networkidle');
+
+    // The `?client=` deep link is consumed, leaving a clean /inbox URL with that client's thread open.
+    await expect(page).toHaveURL('/inbox');
+    await expect(page.getByText('Select a chat to begin messaging')).toHaveCount(0);
+    await expect(page.getByPlaceholder('Type your message here...')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Open client profile' })).toHaveAttribute('href', clientPath);
   });
 
   test('the client-detail Chat button opens the existing thread', async ({ page }) => {

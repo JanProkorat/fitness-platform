@@ -46,44 +46,49 @@ public class GetConversationsFilterTests(FitnessApiFactory factory)
     }
 
     [Fact]
-    public async Task List_NoMessagesFilter_LinkedClientWithNoConversation_SurfacesAsNullIdRow()
+    public async Task List_NoMessagesFilter_ListsEmptyConversation_NotClientWithoutConversation()
     {
         var (http, trainerId) = await SetupTrainerAsync();
         var (noConvClientId, _) = await SetupLinkedClientAsync(trainerId);
+        var (emptyConvClientId, _) = await SetupLinkedClientAsync(trainerId);
         var (hasMsgClientId, _) = await SetupLinkedClientAsync(trainerId);
 
+        await SeedEmptyConversationAsync(trainerId, emptyConvClientId);
         await SeedConversationWithMessageAsync(trainerId, hasMsgClientId, senderIsClient: true, isRead: true);
 
         var response = await http.GetAsync("/conversations?filter=NoMessages", TestContext.Current.CancellationToken);
         var body = await Deserialize(response);
 
-        body!.Should().ContainSingle(c => c.Participant.Id == noConvClientId);
-        body!.Single(c => c.Participant.Id == noConvClientId).Id.Should().BeNull(
-            "a linked client with no conversation yet surfaces as a placeholder row");
+        body!.Select(c => c.Participant.Id).Should().BeEquivalentTo([emptyConvClientId],
+            "an existing zero-message conversation stays listed; a client with no conversation is not an inbox row");
+        body!.Should().NotContain(c => c.Participant.Id == noConvClientId);
+        body!.Should().OnlyContain(c => c.Id != null);
     }
 
     [Fact]
-    public async Task List_AllFilter_LinkedClientWithNoConversation_SurfacesAsNullIdRow()
+    public async Task List_AllFilter_LinkedClientWithNoConversation_IsAbsentAndCountsMatch()
     {
         var (http, trainerId) = await SetupTrainerAsync();
         var (noConvClientId, _) = await SetupLinkedClientAsync(trainerId);
         var (hasMsgClientId, _) = await SetupLinkedClientAsync(trainerId);
+        var (emptyConvClientId, _) = await SetupLinkedClientAsync(trainerId);
 
         await SeedConversationWithMessageAsync(trainerId, hasMsgClientId, senderIsClient: true, isRead: true);
+        await SeedEmptyConversationAsync(trainerId, emptyConvClientId);
 
         var response = await http.GetAsync("/conversations?filter=All", TestContext.Current.CancellationToken);
         var body = await Deserialize(response);
 
-        body!.Should().ContainSingle(c => c.Participant.Id == noConvClientId);
-        body!.Single(c => c.Participant.Id == noConvClientId).Id.Should().BeNull(
-            "a linked client with no conversation yet surfaces as a placeholder row under All too");
+        body!.Select(c => c.Participant.Id).Should().BeEquivalentTo([hasMsgClientId, emptyConvClientId]);
+        body!.Should().NotContain(c => c.Participant.Id == noConvClientId);
 
         var countsResponse = await http.GetAsync("/conversations/filter-counts", TestContext.Current.CancellationToken);
         var counts = await countsResponse.Content.ReadFromJsonAsync<FilterCountsResponse>(
             JsonOptions, TestContext.Current.CancellationToken);
 
-        body!.Count.Should().Be(counts!.All,
-            "with no off-roster conversations in play, All's row count must equal filter-counts.all");
+        counts!.All.Should().Be(body!.Count,
+            "the chip count must equal the rows the list shows — the chat-less client counts nowhere");
+        counts.NoMessages.Should().Be(1, "only the empty existing conversation; the chat-less client is excluded");
     }
 
     [Fact]
@@ -131,29 +136,26 @@ public class GetConversationsFilterTests(FitnessApiFactory factory)
     public async Task List_NoMessagesFilter_ArchivedTrue_NullConversationRowNeverAppears()
     {
         var (http, trainerId) = await SetupTrainerAsync();
-        await SetupLinkedClientAsync(trainerId); // no conversation — the null-id row candidate
+        await SetupLinkedClientAsync(trainerId); // no conversation — not an inbox row at all
 
         var response = await http.GetAsync(
             "/conversations?filter=NoMessages&archived=true", TestContext.Current.CancellationToken);
         var body = await Deserialize(response);
 
-        body!.Should().BeEmpty(
-            "a null-conversation row has no archive state, so it never appears in the archived view");
+        body!.Should().BeEmpty("a client without a conversation is never listed, archived view included");
     }
 
     [Fact]
     public async Task List_AllFilter_ArchivedTrue_NullConversationRowNeverAppears()
     {
         var (http, trainerId) = await SetupTrainerAsync();
-        await SetupLinkedClientAsync(trainerId); // no conversation — the null-id row candidate
+        await SetupLinkedClientAsync(trainerId); // no conversation — not an inbox row at all
 
         var response = await http.GetAsync(
             "/conversations?filter=All&archived=true", TestContext.Current.CancellationToken);
         var body = await Deserialize(response);
 
-        body!.Should().BeEmpty(
-            "a null-conversation row has no archive state, so it never appears in the archived view, " +
-            "even under All");
+        body!.Should().BeEmpty("a client without a conversation is never listed, even under All");
     }
 
     [Fact]
@@ -162,6 +164,7 @@ public class GetConversationsFilterTests(FitnessApiFactory factory)
         var (http, trainerId) = await SetupTrainerAsync();
         var (clientUserId, _) = await SetupLinkedClientAsync(
             trainerId, canViewNutritionPlans: true, canViewTrainingPlans: false);
+        await SeedEmptyConversationAsync(trainerId, clientUserId);
 
         await SeedWeeklyCheckInAsync(
             trainerId, clientUserId, Profession.Training, respondedAt: DateTime.UtcNow, reviewedAt: null);
@@ -183,6 +186,7 @@ public class GetConversationsFilterTests(FitnessApiFactory factory)
     {
         var (http, trainerId) = await SetupTrainerAsync();
         var (clientUserId, _) = await SetupLinkedClientAsync(trainerId);
+        await SeedEmptyConversationAsync(trainerId, clientUserId);
 
         await SeedWeeklyCheckInAsync(
             trainerId, clientUserId, Profession.Training,
@@ -198,6 +202,8 @@ public class GetConversationsFilterTests(FitnessApiFactory factory)
         var (http, trainerId) = await SetupTrainerAsync();
         var (endingSoonClientId, _) = await SetupLinkedClientAsync(trainerId);
         var (notEndingSoonClientId, _) = await SetupLinkedClientAsync(trainerId);
+        await SeedEmptyConversationAsync(trainerId, endingSoonClientId);
+        await SeedEmptyConversationAsync(trainerId, notEndingSoonClientId);
 
         // 1-week plan starting 6 days ago ends 1 day from now — within the 14-day window.
         await SeedActiveTrainingPlanAsync(trainerId, endingSoonClientId, DateTime.UtcNow.AddDays(-6), weekCount: 1);
@@ -349,6 +355,20 @@ public class GetConversationsFilterTests(FitnessApiFactory factory)
         return conversation.PublicId;
     }
 
+    private async Task SeedEmptyConversationAsync(Guid professionalUserId, Guid clientUserId)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        db.Conversations.Add(new Conversation
+        {
+            PublicId = Guid.NewGuid(),
+            ProfessionalUserId = professionalUserId,
+            ClientUserId = clientUserId
+        });
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+    }
+
     private async Task ArchiveByProfessionalAsync(Guid conversationPublicId)
     {
         using var scope = factory.Services.CreateScope();
@@ -424,5 +444,6 @@ public class GetConversationsFilterTests(FitnessApiFactory factory)
     private sealed class FilterCountsResponse
     {
         public int All { get; set; }
+        public int NoMessages { get; set; }
     }
 }

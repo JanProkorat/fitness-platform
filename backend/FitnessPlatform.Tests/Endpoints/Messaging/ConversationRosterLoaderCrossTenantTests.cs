@@ -61,7 +61,7 @@ public class ConversationRosterLoaderCrossTenantTests(FitnessApiFactory factory)
     }
 
     [Fact]
-    public async Task List_ClientLinkedToTwoProfessionals_OtherProfessionalsThreadDoesNotLeakIntoPlaceholderRow()
+    public async Task List_ClientLinkedToTwoProfessionals_OtherProfessionalsThreadDoesNotMakeClientAppearForProfessionalWithoutOne()
     {
         var professionalA = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
         var professionalB = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
@@ -71,10 +71,10 @@ public class ConversationRosterLoaderCrossTenantTests(FitnessApiFactory factory)
 
         await SeedConversationAsync(professionalB.UserId, client.UserId, "from B", isRead: false);
 
-        var rowA = await SingleRowAsync(professionalA, client, "NoMessages");
-        rowA.Id.Should().BeNull("A has no conversation with the client — B's thread must not appear");
-        rowA.LastMessage.Should().BeEmpty();
-        rowA.UnreadCount.Should().Be(0);
+        (await ListAsync(professionalA, "All")).Should().NotContain(r => r.Participant.Id == client.UserId,
+            "A has no conversation with the client — B's thread must not make the client appear for A");
+        (await ListAsync(professionalA, "NoMessages")).Should().NotContain(r => r.Participant.Id == client.UserId);
+        (await ListAsync(professionalB, "All")).Should().ContainSingle(r => r.Participant.Id == client.UserId);
     }
 
     private async Task<Guid> SeedConversationAsync(Guid professionalUserId, Guid clientUserId, string text, bool isRead)

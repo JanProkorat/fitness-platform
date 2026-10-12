@@ -3,11 +3,10 @@ using FitnessPlatform.Application.Domain.Enums;
 namespace FitnessPlatform.Application.Features.Messaging.Shared;
 
 /// <summary>
-/// One row of the professional caller's live client roster — the same population
-/// <c>GetClientsEndpoint</c> shows on its default tab (live links only, archived links
-/// excluded) — joined with the per-client facts
+/// One row of the professional caller's inbox roster — a live-linked client (archived links
+/// excluded) who already has a conversation with the caller — joined with the per-client facts
 /// <see cref="Domain.Services.ClientRosterFilterClassifier"/> classifies against, plus the
-/// client's existing conversation (if any) for display. Produced by
+/// client's conversation for display. Produced by
 /// <see cref="ConversationRosterLoader"/> and shared by <c>GetConversationsEndpoint</c> and
 /// <c>GetConversationFilterCountsEndpoint</c> so the two surfaces can never disagree about
 /// which client belongs to which filter chip.
@@ -33,9 +32,8 @@ public sealed class ConversationRosterRow
     public string? ClientAvatarBlobUrl { get; init; }
 
     /// <summary>
-    /// The existing conversation's <c>Conversation.PublicId</c>, or <c>null</c> when no
-    /// conversation has been started with this client yet — conversation rows are created
-    /// lazily, so a linked client may have none.
+    /// The conversation's <c>Conversation.PublicId</c>. <see cref="ConversationRosterLoader"/>
+    /// only returns clients that have one, so it is always set on loaded rows.
     /// </summary>
     public Guid? ConversationPublicId { get; init; }
 

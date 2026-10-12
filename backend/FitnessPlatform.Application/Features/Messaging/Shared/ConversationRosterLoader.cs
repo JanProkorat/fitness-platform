@@ -9,10 +9,11 @@ using MongoDB.Driver;
 namespace FitnessPlatform.Application.Features.Messaging.Shared;
 
 /// <summary>
-/// Loads the professional caller's live client roster (live links only, archived links
-/// excluded — the same population <c>GetClientsEndpoint</c> shows on its default tab) joined
-/// with the per-client facts <see cref="ClientRosterFilterClassifier"/> needs, plus each
-/// client's existing conversation for display. Shared by <c>GetConversationsEndpoint</c> and
+/// Loads the professional caller's inbox roster: live links only (archived links excluded —
+/// the same population <c>GetClientsEndpoint</c> shows on its default tab) AND only clients who
+/// already have a conversation with the caller. A linked client with no conversation yet is not
+/// an inbox row. Each row is joined with the per-client facts
+/// <see cref="ClientRosterFilterClassifier"/> needs, plus the client's conversation for display. Shared by <c>GetConversationsEndpoint</c> and
 /// <c>GetConversationFilterCountsEndpoint</c> — the two new actions in this slice — so a chip's
 /// membership and its count are always computed from the identical roster.
 /// </summary>
@@ -25,7 +26,8 @@ public static class ConversationRosterLoader
     private const int EndingSoonWindowDays = 14;
 
     /// <summary>
-    /// Loads every row of <paramref name="professionalUserId"/>'s live roster. Four independent
+    /// Loads every live-linked client of <paramref name="professionalUserId"/> that has a
+    /// conversation with them (an existing but empty conversation still counts). Four independent
     /// SQL passes (links, conversations, new-check-ins, missing-check-ins — each keyed by client
     /// so no per-row round trip, mirroring the correlated-subquery cost shape
     /// <c>GetClientsEndpoint.LoadRosterAsync</c> uses) plus two Mongo plan-window projections.
@@ -80,6 +82,17 @@ public static class ConversationRosterLoader
             })
             .ToDictionaryAsync(c => c.ClientUserId, ct);
 
+        // A client without a conversation is not an inbox row. Drop them here so the remaining
+        // per-client queries only run for the clients that will be returned.
+        links = links.Where(l => conversationByClient.ContainsKey(l.ClientUserId)).ToList();
+
+        if (links.Count == 0)
+        {
+            return [];
+        }
+
+        clientUserIds = links.Select(l => l.ClientUserId).ToList();
+
         var newCheckInProfessionsByClient = (await db.WeeklyCheckIns
             .AsNoTracking()
             .Where(w =>
@@ -109,7 +122,7 @@ public static class ConversationRosterLoader
 
         return links.Select(l =>
         {
-            conversationByClient.TryGetValue(l.ClientUserId, out var conversation);
+            var conversation = conversationByClient[l.ClientUserId];
 
             var visibleProfessions = ProfessionScope(l.CanViewNutritionPlans, l.CanViewTrainingPlans);
             var hasNewCheckIn = newCheckInProfessionsByClient[l.ClientUserId].Any(visibleProfessions.Contains);
@@ -123,15 +136,15 @@ public static class ConversationRosterLoader
                 ClientLastName = l.LastName,
                 ClientEmail = l.Email,
                 ClientAvatarBlobUrl = l.AvatarBlobUrl,
-                ConversationPublicId = conversation?.PublicId,
-                LastMessage = conversation?.LastMessageText ?? string.Empty,
-                LastMessageAt = conversation?.LastMessageAt ?? DateTime.MinValue,
-                LastMessageSenderId = conversation?.LastMessageSenderId,
-                LastMessageHasImage = conversation?.LastMessageHasImage ?? false,
-                LastMessageEventType = conversation?.LastMessageEventType,
-                IsArchivedByProfessional = conversation?.ArchivedByProfessionalAt is not null,
-                ConversationMessageCount = conversation?.MessageCount ?? 0,
-                UnreadMessageCount = conversation?.UnreadMessageCount ?? 0,
+                ConversationPublicId = conversation.PublicId,
+                LastMessage = conversation.LastMessageText ?? string.Empty,
+                LastMessageAt = conversation.LastMessageAt ?? DateTime.MinValue,
+                LastMessageSenderId = conversation.LastMessageSenderId,
+                LastMessageHasImage = conversation.LastMessageHasImage,
+                LastMessageEventType = conversation.LastMessageEventType,
+                IsArchivedByProfessional = conversation.ArchivedByProfessionalAt is not null,
+                ConversationMessageCount = conversation.MessageCount,
+                UnreadMessageCount = conversation.UnreadMessageCount,
                 HasNewCheckIn = hasNewCheckIn,
                 HasMissingCheckIn = hasMissingCheckIn,
                 IsEndingSoon =
