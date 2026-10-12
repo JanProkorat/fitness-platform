@@ -257,6 +257,27 @@ public class GetClientCheckInHistoryEndpointTests(FitnessApiFactory factory)
         body.Weeks.Should().ContainSingle().Which.SentAt.Should().Be(winningSent);
     }
 
+    [Fact]
+    public async Task GetHistory_SameWeekTwoProfessionsBothMissed_SentAtIsTheLaterOne()
+    {
+        var (trainer, client) = await LinkedPairAsync();
+        var anchor = Anchor();
+        var earlierSent = new DateTime(2030, 3, 1, 8, 0, 0, DateTimeKind.Utc);
+        var laterSent = new DateTime(2030, 3, 2, 8, 0, 0, DateTimeKind.Utc);
+
+        await InsertAsync(client.UserId, trainer.UserId, anchor, WeeklyCheckInStatus.Expired,
+            profession: Profession.Nutrition, sentAt: laterSent);
+        await InsertAsync(client.UserId, trainer.UserId, anchor, WeeklyCheckInStatus.Expired,
+            profession: Profession.Training, sentAt: earlierSent);
+
+        var body = await GetAsync(trainer, client.UserId, "?weeks=1");
+
+        var week = body.Weeks.Should().ContainSingle().Subject;
+        week.Status.Should().Be("missed");
+        week.SentAt.Should().Be(laterSent);
+        body.TotalCount.Should().Be(1);
+    }
+
     private sealed record HistoryBody(List<WeekBody> Weeks, int AnsweredCount, int TotalCount);
 
     private sealed record WeekBody(DateOnly WeekStartDate, string Status, DateTime? SentAt);

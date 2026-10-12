@@ -89,7 +89,9 @@ internal sealed class GetClientCheckInHistoryEndpoint(
                 group => group.Key,
                 group => group
                     .Select(c => (Status: RowStatus(c.RespondedAt, c.Status, c.DueAt, now), c.SentAt))
-                    .MinBy(c => Rank(c.Status)));
+                    .OrderBy(c => Rank(c.Status))
+                    .ThenByDescending(c => c.SentAt)
+                    .First());
 
         var weeks = Enumerable.Range(0, req.Weeks)
             .Select(offset => anchor.AddDays(-7 * (req.Weeks - 1 - offset)))
