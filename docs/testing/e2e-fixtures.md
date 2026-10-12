@@ -255,7 +255,7 @@ Plan shape:
 ```
 NutritionPlan (ExternalId = dddddddd-eeee-ffff-0000-111111111111)
   Status: Active
-  StartDate: <Monday of the current (seed-time) week>
+  StartDate: <Monday of the previous (seed-time) week>   (#1303; was this Monday)
   GlobalSettings:
     DailyKcal:    2500
     ProteinGrams: 160   (640 kcal)
@@ -265,13 +265,18 @@ NutritionPlan (ExternalId = dddddddd-eeee-ffff-0000-111111111111)
       (640 + 960 + 900 = 2500), which is what keeps the client-detail
       meal-plan card's three rounded percentages (26/38/36) summing to
       100 rather than drifting to 99 or 101 (#1094).
-  Weeks:
-    Week 1 (Status = Published, DatePublished set)
-      Day 1 (Monday)
+  Weeks (#1303 — rich seed):
+    Week 1 and Week 2 (both Status = Published, DatePublished set)
+      Days 1–7, each with
         Meal 1 — Breakfast  (08:00, no foods pre-loaded)
         Meal 2 — Lunch      (12:00, no foods pre-loaded)
         Meal 3 — Dinner     (18:00, no foods pre-loaded)
+      Every meal has its own deterministic id.
 ```
+
+The plan still ends on this Monday + 7, so plan status and the "Ending soon"
+chip are unchanged. See [the client detail Overview fixture](#seeded-client-detail-overview-1303)
+for the meal logs written against it.
 
 > **Note on StartDate (#1094).** Anchored to the Monday of the current
 > (seed-time) week — same anchoring idiom as the ForTime training plan's
@@ -283,9 +288,10 @@ NutritionPlan (ExternalId = dddddddd-eeee-ffff-0000-111111111111)
 > `LogMealEaten`, `GetShoppingList`, the client-detail dashboard, …)
 > resolving to this exact plan via the window branch instead of via the
 > resolver's legacy single-candidate fallback — the plan they resolve to
-> does not change, only how it's matched. A harness left running for more
-> than 7 days without a `/test/reset` will see the window go stale until
-> the next reset re-anchors it, same caveat as the training plan.
+> does not change, only how it's matched. Since #1303 the window is 14 days
+> (last Monday to this Monday + 7). A harness left running past the window
+> without a `/test/reset` will see it go stale until the next reset
+> re-anchors it, same caveat as the training plan.
 
 ### Blob assets
 
@@ -645,6 +651,36 @@ curl -sk -H "Authorization: Bearer $ACCESS" "$API_URL/conversations" | jq '.'
 # Filter-chip counts for the dropdown
 curl -sk -H "Authorization: Bearer $ACCESS" "$API_URL/conversations/filter-counts" | jq '.'
 ```
+
+## Seeded client detail Overview (#1303)
+
+Fills every card on the trainer portal's client detail Overview for the QA
+client, so the boards PageClientDetailC/D can be checked against real data.
+Rich seed only — the minimal kind is unchanged. Dates are relative to the
+reset time.
+
+| Fixture | Ids / shape | Expected values |
+|---|---|---|
+| Identity (QA client profile) | DateOfBirth = reset date − 32 years − 45 days, height 182 cm, weight 80.5 kg | Age 32 |
+| Onboarding + nutrition targets | Male, LoseFat, sleep 6 h, stress 4, training Occasional → 4× a week, injuries `knees,back`, allergies `lactose,nuts`, blockers `time,motivation`, 4–5 meals a day, Standard diet, target weight 76 kg | BMR 1788, TDEE 2771, 2217 kcal, P 161 / C 238 / F 69 g |
+| Body measurements | `00000000-0000-0000-aacc-000000000001` … `…08`, one a week, newest yesterday 07:00 UTC | Weight 84.0 → 80.5 kg, body fat 22.0 → 20.0 %, waist 94.0 → 89.5 cm |
+| Meal logs | 14 logs against the [nutrition plan](#nutrition-plan) on days −1 … −6 (3, 3, 2, 2, 2, 2 per day), none today | As the QA nutritionist: timeline rows "N of 3", 7-day compliance 58.3 %, streak 6 |
+| Personal record | `00000000-0000-0000-aadd-000000000001` | QA Squat 85 kg × 8, 3 days ago (QA trainer only) |
+| Weekly check-ins (QA trainer, Training) | Anchor = next ISO Monday. Waiting `00000000-0000-0000-aaee-000000000001` (current cycle). Answered and reviewed: `…02` (1 week back), `…03` (4 weeks back), `…05` (6 weeks back). Missed: `…04` (5 weeks back). Plus the existing [#1095 rows](#seeded-inbox-conversation--weekly-check-ins-1095) at 2 and 3 weeks back | 4 of 6 answered overall; the 8-week strip has one `none` slot at 7 weeks back |
+| Session this week | `00000000-0000-0000-aaff-000000000001`, standalone-only session, completed, dated this Monday | "Done this week" 1 of 3 on Mon–Wed, 2 of 3 on Thu–Sun (the existing #457 execution is dated reset − 3 days) |
+
+Who sees what:
+
+- **QA trainer** (Training only) — identity, profile, weight, PR, check-in
+  trend, sessions bar. No meal data; the Meal compliance tile shows an em
+  dash because the link grants no nutrition access.
+- **QA nutritionist** — identity, profile, weight and the meal-log rows and
+  compliance. Its own check-in trend is empty (history only returns the
+  caller's rows).
+
+New answered check-ins are marked reviewed, so the inbox "New check-ins" chip
+still counts only the #1095 row. The waiting check-in is a Pending row for the
+QA client, due two days after reset.
 
 ---
 
