@@ -16,6 +16,8 @@ interface Props {
   /** Whether the plans-list query (which resolves `plan`/`canView`) is still loading. */
   isPending: boolean;
   isError: boolean;
+  /** The link grants no nutrition access (dashboard.canViewNutritionPlans === false). */
+  noNutritionAccess?: boolean;
 }
 
 /**
@@ -23,7 +25,7 @@ interface Props {
  * response, so a second fetch loads the full plan for `globalSettings` once
  * we know which plan is active.
  */
-export default function MealPlanCard({ plan, canView, isPending, isError }: Props) {
+export default function MealPlanCard({ plan, canView, isPending, isError, noNutritionAccess = false }: Props) {
   const { t } = useTranslation();
   const headingId = useId();
 
@@ -59,15 +61,26 @@ export default function MealPlanCard({ plan, canView, isPending, isError }: Prop
         heading={t('clientDetail.overview.mealPlan.heading')}
       />
 
-      {isPending && <Skeleton className="h-10 w-full" />}
+      {noNutritionAccess && (
+        <div className="flex flex-col gap-0.5">
+          <span className="text-body font-bold text-ink">—</span>
+          <span className="text-caption text-muted-foreground">
+            {t('clientDetail.overview.stats.mealCompliance.noAccess')}
+          </span>
+        </div>
+      )}
 
-      {!isPending && isError && <p className="text-caption text-muted-foreground">{t('common.loadError')}</p>}
+      {!noNutritionAccess && isPending && <Skeleton className="h-10 w-full" />}
 
-      {!isPending && !isError && (!canView || !plan) && (
+      {!noNutritionAccess && !isPending && isError && (
+        <p className="text-caption text-muted-foreground">{t('common.loadError')}</p>
+      )}
+
+      {!noNutritionAccess && !isPending && !isError && (!canView || !plan) && (
         <p className="text-caption text-muted-foreground">{t('clientDetail.prehled.noActivePlan.nutrition')}</p>
       )}
 
-      {!isPending && !isError && canView && plan && (
+      {!noNutritionAccess && !isPending && !isError && canView && plan && (
         <>
           <div className="flex items-center gap-3">
             <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-nutrition-soft">
