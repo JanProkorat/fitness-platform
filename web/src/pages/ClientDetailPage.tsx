@@ -86,6 +86,7 @@ export default function ClientDetailPage() {
             canView={canViewNutritionPlans}
             isPending={plansQuery.isPending}
             isError={plansQuery.isError}
+            noNutritionAccess={dashboard.canViewNutritionPlans === false}
           />
         </div>
         <div className="lg:col-span-2">

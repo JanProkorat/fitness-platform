@@ -17,7 +17,7 @@ const TILE_CLASS: Record<CheckInHistoryStatus, string> = {
   answered: 'bg-nutrition',
   missed: 'bg-marker',
   waiting: 'bg-line',
-  none: 'bg-line',
+  none: 'border border-border bg-card',
 };
 
 /**
