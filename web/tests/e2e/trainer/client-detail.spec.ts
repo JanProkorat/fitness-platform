@@ -16,7 +16,8 @@
  */
 import { trainerTest as test, expect } from '../fixtures/auth';
 
-const DISABLED_TAB_NAMES = ['Development', 'Nutrition', 'Workouts', 'Storage', 'Payment', 'Automations'];
+// The QA trainer's link is training-only, so the Nutrition tab is not rendered.
+const DISABLED_TAB_NAMES = ['Development', 'Workouts', 'Storage', 'Payment', 'Automations'];
 const DISABLED_BUTTON_NAMES = ['Tasks', 'Notes', 'Info'];
 
 test.describe('client detail page — overview tab', () => {
@@ -64,10 +65,27 @@ test.describe('client detail page — overview tab', () => {
     const chatHref = await chatLink.getAttribute('href');
     expect(chatHref).toMatch(/^\/inbox\?client=[0-9a-f-]{36}$/);
 
-    // Stat row (#1295): meal compliance, PRs this month, client since.
-    for (const label of ['Meal compliance', 'PRs this month', 'Client since']) {
+    await expect(page.getByRole('tab', { name: 'Nutrition' })).toHaveCount(0);
+
+    // Training-only stat row: training compliance, PRs this month, client since.
+    for (const label of ['Training compliance', 'PRs this month', 'Client since']) {
       await expect(page.getByText(label, { exact: true })).toBeVisible();
     }
+    for (const label of ['Meal compliance', 'Weight change']) {
+      await expect(page.getByText(label, { exact: true })).toHaveCount(0);
+    }
+
+    // Only the training plan card, no nutrition card or no-access placeholder.
+    await expect(page.getByRole('region', { name: 'Latest workout' })).toBeVisible();
+    await expect(page.getByRole('region', { name: 'Current meal plan' })).toHaveCount(0);
+    await expect(page.getByText('No nutrition access')).toHaveCount(0);
+
+    // Client profile: injuries highlight and training row, no allergies or diet rows.
+    await expect(page.getByText('Injuries', { exact: true })).toBeVisible();
+    await expect(page.getByText('Training days', { exact: true })).toBeVisible();
+    await expect(page.getByText('Allergies', { exact: true })).toHaveCount(0);
+    await expect(page.getByText('Diet style', { exact: true })).toHaveCount(0);
+    await expect(page.getByText('Daily target', { exact: true })).toHaveCount(0);
 
     // Lower cards: check-in trend + weight, recent activity + client profile.
     for (const name of ['Check-in trend', 'Weight', 'Recent activity', 'Client profile']) {
