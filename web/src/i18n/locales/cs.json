@@ -3465,7 +3465,6 @@
         },
         "footer": {
           "title": "Check-in tohoto týdne",
-          "titleLatest": "Poslední check-in",
           "status": {
             "answered": "Zodpovězeno",
             "missed": "Nezodpovězeno",

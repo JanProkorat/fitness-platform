@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useClientCheckInHistory } from '@/hooks/useWeeklyCheckIns';
 import { toCheckInHistoryStatus, type CheckInHistoryStatus } from '@/api/weekly-checkins';
-import { currentWeekMondayIso, isoWeekNumber } from '@/lib/client-metrics';
+import { isoWeekNumber } from '@/lib/client-metrics';
 
 interface Props {
   /** The client's ApplicationUser.Id (dashboard.clientUserId) — the history endpoint rejects the route PublicId. */
@@ -34,8 +34,9 @@ export default function CheckInTrendCard({ clientUserId }: Props) {
     sentAt: week.sentAt ?? undefined,
   }));
   const isEmpty = weeks.every((week) => week.status === 'none') && (historyQuery.data?.totalCount ?? 0) === 0;
+  // The history endpoint dates its newest week at the upcoming ISO Monday (the current
+  // check-in cycle), so the last item is "this week" by contract, not by browser clock.
   const newest = weeks.length > 0 ? weeks[weeks.length - 1] : undefined;
-  const thisMonday = currentWeekMondayIso();
 
   let footerStatus = '';
   if (newest) {
@@ -75,7 +76,7 @@ export default function CheckInTrendCard({ clientUserId }: Props) {
         <>
           <ol className="grid grid-cols-8 gap-1.5">
             {weeks.map((week, index) => {
-              const isThisWeek = week.weekStartDate === thisMonday;
+              const isThisWeek = index === weeks.length - 1;
               const weekNumber = isoWeekNumber(week.weekStartDate);
               const label = isThisWeek
                 ? t('clientDetail.overview.checkInTrend.thisWeek')
@@ -123,11 +124,7 @@ export default function CheckInTrendCard({ clientUserId }: Props) {
               <CalendarDays className="size-4" aria-hidden="true" />
             </span>
             <span>
-              <b className="font-semibold">
-                {newest?.weekStartDate === thisMonday
-                  ? t('clientDetail.overview.checkInTrend.footer.title')
-                  : t('clientDetail.overview.checkInTrend.footer.titleLatest')}
-              </b>
+              <b className="font-semibold">{t('clientDetail.overview.checkInTrend.footer.title')}</b>
               {' · '}
               {footerStatus}
             </span>
