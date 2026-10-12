@@ -6,6 +6,8 @@ interface Props {
   tone: 'nutrition' | 'training';
   label: string;
   heading: string;
+  /** Id for the heading, so the card's `<section>` can reference it via aria-labelledby. */
+  headingId: string;
 }
 
 /**
@@ -13,7 +15,7 @@ interface Props {
  * the left, and a disabled "Open plan" link on the right. No client plan
  * route exists yet, so it carries the shell's coming-soon treatment.
  */
-export default function PlanCardHeader({ tone, label, heading }: Props) {
+export default function PlanCardHeader({ tone, label, heading, headingId }: Props) {
   const { t } = useTranslation();
   const isNutrition = tone === 'nutrition';
 
@@ -32,7 +34,7 @@ export default function PlanCardHeader({ tone, label, heading }: Props) {
         >
           {label}
         </span>
-        <h2 className="truncate text-caption text-muted-foreground">{heading}</h2>
+        <h2 id={headingId} className="truncate text-caption text-muted-foreground">{heading}</h2>
       </div>
       <button
         type="button"

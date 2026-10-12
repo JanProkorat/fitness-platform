@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { Dumbbell } from 'lucide-react';
@@ -38,6 +39,7 @@ export default function LatestWorkoutCard({
   sessionsPlanned,
 }: Props) {
   const { t, i18n } = useTranslation();
+  const headingId = useId();
 
   const detailQuery = useQuery({
     queryKey: ['training-plan-detail', plan?.planId],
@@ -53,8 +55,12 @@ export default function LatestWorkoutCard({
   const doneCount = Math.min(Math.max(sessionsCompleted ?? 0, 0), sessionsPlanned ?? 0);
 
   return (
-    <div className="flex h-full flex-col gap-3 rounded-2xl border border-border bg-card p-4">
+    <section
+      aria-labelledby={headingId}
+      className="flex h-full flex-col gap-3 rounded-2xl border border-border bg-card p-4"
+    >
       <PlanCardHeader
+        headingId={headingId}
         tone="training"
         label={t('clientDetail.overview.workout.label')}
         heading={t('clientDetail.overview.workout.heading')}
@@ -116,6 +122,6 @@ export default function LatestWorkoutCard({
           )}
         </>
       )}
-    </div>
+    </section>
   );
 }

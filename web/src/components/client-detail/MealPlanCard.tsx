@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { Utensils } from 'lucide-react';
@@ -24,6 +25,7 @@ interface Props {
  */
 export default function MealPlanCard({ plan, canView, isPending, isError }: Props) {
   const { t } = useTranslation();
+  const headingId = useId();
 
   const detailQuery = useQuery({
     queryKey: ['nutrition-plan-detail', plan?.planId],
@@ -46,8 +48,12 @@ export default function MealPlanCard({ plan, canView, isPending, isError }: Prop
   }
 
   return (
-    <div className="flex h-full flex-col gap-3 rounded-2xl border border-border bg-card p-4">
+    <section
+      aria-labelledby={headingId}
+      className="flex h-full flex-col gap-3 rounded-2xl border border-border bg-card p-4"
+    >
       <PlanCardHeader
+        headingId={headingId}
         tone="nutrition"
         label={t('clientDetail.overview.mealPlan.label')}
         heading={t('clientDetail.overview.mealPlan.heading')}
@@ -91,6 +97,6 @@ export default function MealPlanCard({ plan, canView, isPending, isError }: Prop
           )}
         </>
       )}
-    </div>
+    </section>
   );
 }
