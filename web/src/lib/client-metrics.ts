@@ -71,6 +71,73 @@ export function daysSince(iso: string): number {
   return Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / MS_PER_DAY));
 }
 
+/** ISO-8601 week number of a "YYYY-MM-DD" calendar date, or undefined when it does not parse. */
+export function isoWeekNumber(isoDate: string): number | undefined {
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(isoDate);
+  if (!match) {
+    return undefined;
+  }
+  const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
+  // Shift to the Thursday of this ISO week; its year owns the week number.
+  const dayOfWeek = date.getUTCDay() || 7;
+  date.setUTCDate(date.getUTCDate() + 4 - dayOfWeek);
+  const yearStart = Date.UTC(date.getUTCFullYear(), 0, 1);
+  return Math.ceil(((date.getTime() - yearStart) / MS_PER_DAY + 1) / 7);
+}
+
+/** The Monday of the current local week as "YYYY-MM-DD". */
+export function currentWeekMondayIso(now: Date = new Date()): string {
+  const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+  const month = String(monday.getMonth() + 1).padStart(2, '0');
+  const day = String(monday.getDate()).padStart(2, '0');
+  return `${monday.getFullYear()}-${month}-${day}`;
+}
+
+/**
+ * Locale-aware "2 hours ago" / "yesterday" / "10 Oct" label. Minutes and
+ * hours inside the last day, calendar days inside the last week, then a
+ * short date. Lowercase as produced by Intl; callers capitalise when needed.
+ */
+export function formatRelativeTime(iso: string, locale: string, now: Date = new Date()): string {
+  const then = new Date(iso);
+  if (Number.isNaN(then.getTime())) {
+    return '';
+  }
+  const relative = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
+  const elapsedMs = Math.max(0, now.getTime() - then.getTime());
+  const minutes = Math.floor(elapsedMs / 60_000);
+  if (minutes < 1) {
+    return relative.format(0, 'second');
+  }
+  if (minutes < 60) {
+    return relative.format(-minutes, 'minute');
+  }
+  if (minutes < 24 * 60) {
+    return relative.format(-Math.floor(minutes / 60), 'hour');
+  }
+  const startOfDay = (date: Date) => new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+  const daysAgo = Math.round((startOfDay(now) - startOfDay(then)) / MS_PER_DAY);
+  if (daysAgo < 7) {
+    return relative.format(-daysAgo, 'day');
+  }
+  return new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short' }).format(then);
+}
+
+export interface WeightPoint {
+  measuredAt: string;
+  weightKg: number;
+}
+
+/** The latest `count` measurements that carry a weight, oldest first. */
+export function selectRecentWeightPoints(items: MeasurementDto[], count: number): WeightPoint[] {
+  return items
+    .filter((m): m is MeasurementDto & { weightKg: number; measuredAt: string } => m.weightKg != null && m.measuredAt != null)
+    .map((m) => ({ measuredAt: m.measuredAt, weightKg: m.weightKg }))
+    .sort((a, b) => new Date(a.measuredAt).getTime() - new Date(b.measuredAt).getTime())
+    .slice(-count);
+}
+
 export interface ResolvedSession {
   session: RawTrainingSession;
   /** 1 = Monday ... 7 = Sunday, as stored on the plan's day. */

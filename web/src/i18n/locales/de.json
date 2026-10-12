@@ -3330,19 +3330,24 @@
         "automations": "Automatisierungen"
       },
       "stats": {
-        "rating": {
-          "label": "Durchschnittsbewertung",
-          "caption": "Basierend auf Check-in-Antworten"
+        "mealCompliance": {
+          "label": "Mahlzeiten-Quote",
+          "value": "{{percent}} %",
+          "caption": "Letzte 7 Tage",
+          "captionStreak_one": "Letzte 7 Tage • {{count}} Tag in Folge protokolliert",
+          "captionStreak_other": "Letzte 7 Tage • {{count}} Tage in Folge protokolliert",
+          "empty": "Noch keine Daten",
+          "noAccess": "Kein Zugriff auf Ernährung"
         },
-        "payments": {
-          "label": "Zahlungen",
-          "caption": "Keine Zahlungen für den Klienten gefunden"
+        "prs": {
+          "label": "PRs diesen Monat",
+          "lastActive": "Zuletzt aktiv {{when}}",
+          "noActivity": "Noch keine Aktivität",
+          "noAccess": "Kein Zugriff auf Training"
         },
         "weight": {
-          "label": "Aktuelles Gewicht",
           "value": "{{kg}} kg",
           "deltaThisWeek": "{{delta}} kg diese Woche",
-          "goalWeight": "Ziel {{goal}} kg",
           "empty": "—",
           "noMeasurements": "Noch keine Messungen"
         },
@@ -3360,28 +3365,97 @@
       "workout": {
         "heading": "Letztes Workout",
         "exercises_one": "{{count}} Übung",
-        "exercises_other": "{{count}} Übungen"
+        "exercises_other": "{{count}} Übungen",
+        "noAccess": "Kein Zugriff auf Training"
       },
       "checkInTrend": {
         "heading": "Check-in-Trend",
-        "last15Days": "Letzte 15 Tage",
+        "lastWeeks_one": "Letzte {{count}} Woche",
+        "lastWeeks_other": "Letzte {{count}} Wochen",
+        "empty": "Noch keine Check-ins gesendet",
+        "thisWeek": "Diese Woche",
+        "weekLabel": "KW{{week}}",
         "legend": {
-          "completed": "Abgeschlossen",
+          "answered": "Beantwortet",
           "missed": "Verpasst",
-          "upcoming": "Bevorstehend"
+          "waiting": "Wartet auf Antwort"
+        },
+        "footer": {
+          "title": "Check-in dieser Woche",
+          "titleLatest": "Letzter Check-in",
+          "status": {
+            "answered": "Beantwortet",
+            "missed": "Nicht beantwortet",
+            "waiting": "Noch nicht beantwortet",
+            "none": "Nicht gesendet"
+          },
+          "sent": {
+            "answered": "Gesendet am {{date}}, beantwortet",
+            "missed": "Gesendet am {{date}}, nicht beantwortet",
+            "waiting": "Gesendet am {{date}}, noch nicht beantwortet",
+            "none": "Gesendet am {{date}}"
+          },
+          "overall": "Insgesamt {{answered}} von {{total}} beantwortet"
         }
       },
-      "messagesTrend": {
-        "heading": "Nachrichtentrend",
-        "last4Weeks": "Letzte 4 Wochen",
-        "chartAriaLabel": "Nachrichten von Trainer und Klient pro Woche, letzte 4 Wochen. {{summary}}",
-        "chartAriaWeek": "Woche ab {{date}}: {{coach}} vom Trainer, {{client}} vom Klienten",
-        "weekLabel": "W{{index}}",
-        "weekTooltip": "Woche ab {{date}}",
-        "legend": {
-          "coach": "Trainer-Nachrichten",
-          "client": "Klienten-Nachrichten"
+      "weight": {
+        "heading": "Gewicht",
+        "lastMeasurements_one": "Letzte {{count}} Messung",
+        "lastMeasurements_other": "Letzte {{count}} Messungen",
+        "value": "{{kg}} kg",
+        "deltaThisWeek": "{{delta}} kg diese Woche",
+        "goal": "Ziel {{goal}} kg",
+        "empty": "Noch keine Messungen",
+        "bodyFat": "Körperfett {{value}} %",
+        "waist": "Taille {{value}} cm",
+        "pointLabel": "{{date}} · {{kg}} kg",
+        "legendWeight": "Gewicht",
+        "legendGoal": "Ziel {{goal}} kg",
+        "chartLabel": "Gewicht hat sich von {{from}} kg auf {{to}} kg verändert, über die letzten {{n}} Messungen"
+      },
+      "activity": {
+        "heading": "Letzte Aktivität",
+        "latest": "Neueste",
+        "empty": "Noch keine Aktivität",
+        "type": {
+          "personal_record": "Neuer PR",
+          "workout": "Workout abgeschlossen",
+          "meal_day": "Mahlzeiten protokolliert",
+          "measurement": "Messung",
+          "questionnaire": "Fragebogen eingereicht",
+          "nutrition_plan_published": "Ernährungsplan veröffentlicht",
+          "training_plan_published": "Trainingsplan veröffentlicht",
+          "linked": "Klient verknüpft",
+          "unknown": "Aktivität"
+        },
+        "detail": {
+          "personalRecord": "{{exercise}} {{kg}} kg × {{reps}}",
+          "mealsOfPlanned": "{{logged}} von {{planned}}",
+          "mealsLogged_one": "{{count}} Mahlzeit protokolliert",
+          "mealsLogged_other": "{{count}} Mahlzeiten protokolliert",
+          "weight": "{{kg}} kg",
+          "bodyFat": "Körperfett {{value}} %",
+          "planWeek": "{{name}}, Woche {{week}}",
+          "weekOnly": "Woche {{week}}"
         }
+      },
+      "profile": {
+        "heading": "Klientenprofil",
+        "source": "Aus dem Onboarding",
+        "empty": "Noch keine Onboarding-Daten",
+        "injuries": "Verletzungen",
+        "allergies": "Allergien",
+        "noneReported": "Keine angegeben",
+        "diet": "Ernährungsstil",
+        "training": "Trainingstage",
+        "wants": "möchte {{value}}",
+        "sleepStress": "Schlaf und Stress",
+        "sleepHours": "{{hours}} h",
+        "stressLevel": "Stress {{level}}/5",
+        "dailyTarget": "Tagesziel",
+        "kcal": "{{value}} kcal",
+        "tdee": "TDEE {{value}} kcal",
+        "pastBlockers": "Frühere Hürden"
       }
     }
   },

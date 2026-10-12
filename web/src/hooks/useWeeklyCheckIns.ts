@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   getTrainerCheckIns,
   getClientCurrentCheckIn,
+  getClientCheckInHistory,
   markCheckInReviewed,
   type Profession,
   type TrainerCheckInDto,
@@ -25,6 +26,9 @@ export const weeklyCheckInKeys = {
   /** Current check-in for a specific client (+ optional profession filter) */
   clientCurrent: (clientUserId: string, profession?: Profession) =>
     ['weekly-check-ins', 'client-current', clientUserId, profession ?? 'all'] as const,
+  /** Weekly history slots for a specific client (ApplicationUser Id) */
+  clientHistory: (clientUserId: string, weeks: number) =>
+    ['weekly-check-ins', 'client-history', clientUserId, weeks] as const,
 } as const;
 
 // ── Hooks ────────────────────────────────────────────────────────────────────
@@ -79,6 +83,22 @@ export function useClientCurrentCheckIn(
     data: data?.checkIns ?? [],
     isLoading,
   };
+}
+
+/**
+ * Weekly check-in history (oldest first) for the client-detail Overview trend.
+ *
+ * @param clientUserId - Client's ApplicationUser Id (Guid string), not the route PublicId.
+ * @param weeks        - Number of weekly slots to load.
+ */
+export function useClientCheckInHistory(clientUserId: string, weeks: number) {
+  return useQuery({
+    queryKey: weeklyCheckInKeys.clientHistory(clientUserId, weeks),
+    queryFn: () => getClientCheckInHistory(clientUserId, weeks),
+    staleTime: 60_000,
+    enabled: Boolean(clientUserId),
+    retry: false,
+  });
 }
 
 /**
