@@ -82,12 +82,19 @@ export default function ClientDetailPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <ClientDetailHeader dashboard={dashboard} />
-      <ClientDetailTabs
-        activeTab={activeTab}
-        onTabChange={handleTabChange}
-        canViewNutritionPlans={role !== 'trainer'}
-        canViewTrainingPlans={role !== 'nutritionist'}
+      <ClientDetailHeader
+        clientId={clientId}
+        dashboard={dashboard}
+        plansQuery={plansQuery}
+        measurementsQuery={measurementsQuery}
+        tabs={
+          <ClientDetailTabs
+            activeTab={activeTab}
+            onTabChange={handleTabChange}
+            canViewNutritionPlans={role !== 'trainer'}
+            canViewTrainingPlans={role !== 'nutritionist'}
+          />
+        }
       />
 
       {activeTab === 'nutrition' ? (

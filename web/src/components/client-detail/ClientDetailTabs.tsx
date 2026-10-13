@@ -3,7 +3,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export type ClientDetailTab = 'overview' | 'nutrition';
 
-const TAB_KEYS = ['overview', 'development', 'nutrition', 'workouts', 'storage', 'payment', 'automations'] as const;
+const TAB_KEYS = ['overview', 'nutrition', 'workouts', 'storage', 'payment', 'automations'] as const;
 const LIVE_TABS: readonly string[] = ['overview', 'nutrition'];
 
 interface Props {
@@ -17,8 +17,8 @@ interface Props {
 }
 
 /**
- * The tab row on the client-detail page — reuses ClientsPage's underline Tabs
- * treatment verbatim (ClientsPage.tsx:196-230). The active tab comes from the
+ * The tab row on the client-detail page — ClientsPage's underline Tabs
+ * treatment, minus the row hairline (the header draws it). The active tab comes from the
  * URL (`/clients/:clientId` or `/clients/:clientId/nutrition`); tabs that are
  * not built yet render disabled with the shell's coming-soon treatment.
  * Nutrition and Workouts show only for a link that grants the matching domain.
@@ -47,7 +47,8 @@ export default function ClientDetailTabs({
         }
       }}>
       <div className="overflow-x-auto">
-        <TabsList variant="underline">
+        {/* The hairline under the row belongs to the header, which shares it with the action buttons. */}
+        <TabsList variant="underline" className="gap-6.5 border-b-0">
           {tabKeys.map((key) => {
             const isLive = LIVE_TABS.includes(key);
             return (

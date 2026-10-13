@@ -3702,17 +3702,26 @@
     "overview": {
       "backAriaLabel": "Zurück zu Klienten",
       "header": {
-        "heightCm": "{{cm}} cm"
+        "heightCm": "{{cm}} cm",
+        "facts": {
+          "goal": "Ziel",
+          "weight": "Gewicht",
+          "mealPlan": "Ernährungsplan",
+          "trainingPlan": "Trainingsplan",
+          "weekOf": "Woche {{week}} von {{total}}",
+          "noPlan": "Noch kein Plan",
+          "kg": "{{value}} kg",
+          "weightDown": "Gewicht seit der ersten Messung gesunken",
+          "weightUp": "Gewicht seit der ersten Messung gestiegen"
+        }
       },
       "actions": {
         "chat": "Chat",
         "tasks": "Aufgaben",
-        "notes": "Notizen",
-        "info": "Info"
+        "notes": "Notizen"
       },
       "tabs": {
         "overview": "Übersicht",
-        "development": "Entwicklung",
         "nutrition": "Ernährung",
         "workouts": "Workouts",
         "storage": "Speicher",

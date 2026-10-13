@@ -240,9 +240,8 @@
       "files": [
         "web/src/pages/ClientDetailPage.tsx",
         "web/src/components/client-detail/**",
-        "web/src/components/clients/ClientStatusBadge.tsx",
-        "web/src/components/clients/ClientAvatar.tsx",
         "web/src/lib/client-metrics.ts",
+        "web/src/lib/client-header-facts.ts",
         "web/src/lib/clientDetailNavigation.ts",
         "web/src/lib/date-format.ts",
         "web/src/hooks/useClientTimeline.ts",

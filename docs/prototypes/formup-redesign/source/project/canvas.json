@@ -2297,6 +2297,22 @@
       "w": 1440,
       "x": 4560,
       "y": 15540
+    },
+    "ClientHeaderOptionsC.dc.html": {
+      "x": 21280,
+      "y": 14040,
+      "w": 1240,
+      "h": 1120,
+      "page": "web",
+      "title": "C · ClientDetail · Header options"
+    },
+    "ClientHeaderOptionsD.dc.html": {
+      "x": 21280,
+      "y": 15540,
+      "w": 1240,
+      "h": 1120,
+      "page": "web",
+      "title": "D · ClientDetail · Header options"
     }
   },
   "createdOnFiles": {
@@ -3010,7 +3026,9 @@
     "PageTemplateLibraryFiltersIngredientsC.dc.html",
     "PageTemplateLibraryFiltersIngredientsD.dc.html",
     "PageTemplateRowRemoveC.dc.html",
-    "PageTemplateRowRemoveD.dc.html"
+    "PageTemplateRowRemoveD.dc.html",
+    "ClientHeaderOptionsC.dc.html",
+    "ClientHeaderOptionsD.dc.html"
   ],
   "pages": [
     {
