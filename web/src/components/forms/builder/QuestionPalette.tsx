@@ -67,14 +67,11 @@ interface Props {
   onAdd: (kind: PaletteKind) => void;
 }
 
-/** Left panel: the standard question types, ordered as the board lists them for this form type. */
+/** Library tab of the side panel: the standard question types, ordered as the board lists them for this form type. */
 export default function QuestionPalette({ formType, onAdd }: Props) {
   const { t } = useTranslation();
   return (
-    <aside
-      aria-label={t('forms.builder.palette.title')}
-      className="flex h-full w-64 shrink-0 lg:w-72 xl:w-80 flex-col gap-3 overflow-y-auto border-r-2 border-line bg-sunken px-4 py-4"
-    >
+    <div data-testid="question-palette" className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 pt-3 pb-4.5">
       <div className="flex flex-col gap-1.5">
         <h2 className="flex items-center gap-2 text-label font-bold tracking-label text-ink uppercase">
           <Plus className="size-3.5" aria-hidden="true" />
@@ -87,6 +84,6 @@ export default function QuestionPalette({ formType, onAdd }: Props) {
           <PaletteTile key={kind} kind={kind} onAdd={onAdd} />
         ))}
       </ul>
-    </aside>
+    </div>
   );
 }

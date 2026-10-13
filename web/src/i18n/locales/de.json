@@ -2147,10 +2147,15 @@
         "hint": "So sieht Ihr Klient das Formular. Hier wird nichts gespeichert.",
         "unsupported": "Dieser Fragetyp wird dem Klienten so angezeigt, wie er eingerichtet wurde."
       },
+      "panel": {
+        "tabs": "Seitenleiste",
+        "info": "Info",
+        "library": "Bibliothek",
+        "collapse": "Seitenleiste ausblenden",
+        "expand": "Seitenleiste einblenden",
+        "open": "Öffnen: {{name}}"
+      },
       "settings": {
-        "open": "Einstellungen",
-        "title": "Formulareinstellungen",
-        "description": "Name und Beschreibung dieses Formulars.",
         "default": "Standard für neue Klienten",
         "defaultHint": "Wird neuen Klienten gesendet, wenn Sie kein anderes Formular wählen."
       },

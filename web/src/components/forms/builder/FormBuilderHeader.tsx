@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Check, ChevronLeft, Eye, Loader2, Settings } from 'lucide-react';
+import { Check, ChevronLeft, Eye, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import type { QuestionnaireType } from '@/api/questionnaires';
@@ -15,11 +15,10 @@ interface Props {
   saving: boolean;
   onBack: () => void;
   onPreview: () => void;
-  onSettings: () => void;
   onSave: () => void;
 }
 
-/** Back, breadcrumb with the editable title, type badge, save status, preview, Settings and Save. */
+/** Back, breadcrumb with the editable title, type badge, save status, preview and Save. */
 export default function FormBuilderHeader({
   title,
   onTitleChange,
@@ -29,7 +28,6 @@ export default function FormBuilderHeader({
   saving,
   onBack,
   onPreview,
-  onSettings,
   onSave,
 }: Props) {
   const { t } = useTranslation();
@@ -101,10 +99,6 @@ export default function FormBuilderHeader({
         onClick={onPreview}
       >
         <Eye className="size-4" aria-hidden="true" />
-      </Button>
-      <Button type="button" variant="outline" className="h-7.5 px-3" onClick={onSettings}>
-        <Settings aria-hidden="true" />
-        {t('forms.builder.settings.open')}
       </Button>
       <Button type="button" className="h-7.5 px-3" disabled={!dirty || saving} onClick={onSave}>
         <Check aria-hidden="true" />

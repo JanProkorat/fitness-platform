@@ -3,10 +3,10 @@ import { useTranslation } from 'react-i18next';
 import { AutoScroller, Feedback, KeyboardSensor, PointerSensor } from '@dnd-kit/dom';
 import { move } from '@dnd-kit/helpers';
 import { DragDropProvider, DragOverlay } from '@dnd-kit/react';
-import { AlertTriangle, PanelLeftOpen } from 'lucide-react';
+import { AlertTriangle, BookOpen, Info } from 'lucide-react';
 import { MealKind } from '@/api/generated';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import EditorSidePanel, { type EditorSideTabDef } from '@/components/editor/EditorSidePanel';
 import {
   Dialog,
   DialogContent,
@@ -26,9 +26,7 @@ import MealPicker from '@/components/plan-editor/MealPicker';
 import NutritionView from '@/components/plan-editor/NutritionView';
 import { PopoverBoundaryContext } from '@/components/plan-editor/PopoverBoundary';
 import PlanEditorHeader from '@/components/plan-editor/PlanEditorHeader';
-import PlanSidePanel from '@/components/plan-editor/PlanSidePanel';
 import RemoveMealRowDialog, { type PendingRowRemoval } from '@/components/plan-editor/RemoveMealRowDialog';
-import { SIDE_TAB_ICON, SIDE_TABS } from '@/components/plan-editor/plan-editor-side-tabs';
 import TemplateInfoPanel, { type PlanUsage } from '@/components/plan-editor/TemplateInfoPanel';
 import WeekdayPills from '@/components/plan-editor/WeekdayPills';
 import WeekGrid, { type SelectedCell } from '@/components/plan-editor/WeekGrid';
@@ -176,9 +174,6 @@ export default function PlanEditor({
   const [pendingDrop, setPendingDrop] = useState<PendingDrop | null>(null);
   const [addMealOpen, setAddMealOpen] = useState(false);
   const [scrollArea, setScrollArea] = useState<HTMLElement | null>(null);
-  const expandRef = useRef<HTMLButtonElement>(null);
-  const collapseRef = useRef<HTMLButtonElement>(null);
-  const libraryToggled = useRef(false);
   const dragActive = useRef(false);
   const slide = useSlideTransition();
 
@@ -225,19 +220,6 @@ export default function PlanEditor({
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [readOnly, undo, redo]);
-
-  // Keep keyboard focus on the visible toggle: the collapse button goes inert, the expand button unmounts.
-  useEffect(() => {
-    if (!libraryToggled.current) {
-      return;
-    }
-    (libraryOpen ? collapseRef : expandRef).current?.focus({ preventScroll: true });
-  }, [libraryOpen]);
-
-  function toggleLibrary(open: boolean) {
-    libraryToggled.current = true;
-    setLibraryOpen(open);
-  }
 
   /** Every week or day change goes through here: it closes open popovers, then slides the content. */
   function navigate(target: { week?: number; day?: number }) {
@@ -502,6 +484,36 @@ export default function PlanEditor({
         }
       : null;
 
+  const sideTabs: EditorSideTabDef<EditorSideTab>[] = [
+    {
+      id: 'info',
+      label: t('planEditor.info.tab'),
+      icon: Info,
+      content: (
+        <TemplateInfoPanel
+          doc={doc}
+          week={week}
+          weekNumber={currentIndex + 1}
+          usage={usage}
+          readOnly={readOnly}
+          onEdit={edit}
+        />
+      ),
+    },
+    {
+      id: 'library',
+      label: t('planEditor.library.title'),
+      icon: BookOpen,
+      content: (
+        <LibraryPanel
+          canAdd={selected !== null}
+          disabled={readOnly}
+          onAdd={(item) => selected && addToCell(item, selected)}
+        />
+      ),
+    },
+  ];
+
   return (
     <PopoverBoundaryContext.Provider value={scrollArea}>
     <DragDropProvider
@@ -548,80 +560,20 @@ export default function PlanEditor({
     >
       <div className="flex h-full min-h-0">
         {!readOnly && (
-          <div
-            data-plan-library
-            className={cn(
-              'relative shrink-0 overflow-hidden transition-[width] duration-300 ease-out motion-reduce:transition-none',
-              libraryOpen ? 'w-80' : 'w-13',
-            )}
-          >
-            <PlanSidePanel
-              tab={sideTab}
-              onTabChange={setSideTab}
-              open={libraryOpen}
-              collapseRef={collapseRef}
-              onCollapse={() => toggleLibrary(false)}
-              info={
-                <TemplateInfoPanel
-                  doc={doc}
-                  week={week}
-                  weekNumber={currentIndex + 1}
-                  usage={usage}
-                  readOnly={readOnly}
-                  onEdit={edit}
-                />
-              }
-              library={
-                <LibraryPanel
-                  canAdd={selected !== null}
-                  disabled={readOnly}
-                  onAdd={(item) => selected && addToCell(item, selected)}
-                />
-              }
-            />
-            <div
-              data-testid="side-panel-strip"
-              inert={libraryOpen}
-              className={cn(
-                'absolute inset-y-0 left-0 z-10 flex w-13 flex-col items-center gap-3.5 border-r-2 border-line bg-sunken py-4 shadow-panel transition-opacity duration-150 motion-reduce:transition-none',
-                libraryOpen ? 'opacity-0' : 'opacity-100 delay-150 motion-reduce:delay-0',
-              )}
-            >
-              <button
-                ref={expandRef}
-                type="button"
-                aria-label={t('planEditor.library.expand')}
-                title={t('planEditor.library.expand')}
-                onClick={() => toggleLibrary(true)}
-                className="flex size-9 cursor-pointer items-center justify-center rounded-field border border-line bg-card text-ink outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-              >
-                <PanelLeftOpen className="size-4" aria-hidden="true" />
-              </button>
-              {SIDE_TABS.map((value) => {
-                const Icon = SIDE_TAB_ICON[value];
-                const label = value === 'info' ? t('planEditor.info.tab') : t('planEditor.library.title');
-                return (
-                  <button
-                    key={value}
-                    type="button"
-                    data-testid={`side-strip-${value}`}
-                    aria-label={t('planEditor.panel.open', { name: label })}
-                    title={t('planEditor.panel.open', { name: label })}
-                    onClick={() => {
-                      setSideTab(value);
-                      toggleLibrary(true);
-                    }}
-                    className="flex w-9 cursor-pointer flex-col items-center gap-2 rounded-field py-2 text-ink outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
-                  >
-                    <Icon className="size-3.5 shrink-0" aria-hidden="true" />
-                    <span className="text-label font-bold tracking-label whitespace-nowrap uppercase [writing-mode:vertical-rl] rotate-180">
-                      {label}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+          <EditorSidePanel
+            tabs={sideTabs}
+            tab={sideTab}
+            onTabChange={setSideTab}
+            open={libraryOpen}
+            onOpenChange={setLibraryOpen}
+            containerAttributes={{ 'data-plan-library': true }}
+            labels={{
+              tabs: t('planEditor.panel.tabs'),
+              collapse: t('planEditor.library.collapse'),
+              expand: t('planEditor.library.expand'),
+              openTab: (name) => t('planEditor.panel.open', { name }),
+            }}
+          />
         )}
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
