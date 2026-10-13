@@ -1274,11 +1274,10 @@ public class ComplianceServiceTests
 
         var result = await sut.CalculateComplianceAsync(
             _clientId, today.AddDays(-1), today, TestContext.Current.CancellationToken);
-        var streak = await sut.CalculateStreakAsync(_clientId, TestContext.Current.CancellationToken);
 
+        // The streak is covered against real Mongo: this mock returns the same meal logs for every day.
         result.MealsPlanned.Should().Be(0);
         result.TrainingsPlanned.Should().Be(0);
         result.CompliancePercent.Should().Be(0m);
-        streak.Should().Be(0);
     }
 }
