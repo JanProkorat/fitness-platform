@@ -13,9 +13,9 @@ import { QuestionnaireType } from '@/api/questionnaires';
 import { useCreateForm } from '@/hooks/useQuestionnaireQueries';
 import { getErrorStatus } from '@/lib/api-errors';
 import { cn } from '@/lib/utils';
+import { DESCRIPTION_MAX_LENGTH } from '@/components/forms/builder/form-builder-model';
 
 const TITLE_MAX_LENGTH = 200;
-const DESCRIPTION_MAX_LENGTH = 2000;
 const TYPE_OPTIONS = [QuestionnaireType.Onboarding, QuestionnaireType.CheckIn] as const;
 
 const formSchema = z.object({
