@@ -5,6 +5,7 @@ import { queryClient } from '@/lib/queryClient';
 import { Toaster } from '@/components/ui/toast';
 import { useAuthStore } from '@/stores/auth';
 import ProtectedRoute from '@/routes/ProtectedRoute';
+import RoleGuard from '@/routes/RoleGuard';
 import AppShell from '@/components/layout/AppShell';
 import EntryPage from '@/pages/EntryPage';
 import LoginForm from '@/components/entry/LoginForm';
@@ -70,15 +71,19 @@ export default function App() {
               <Route path="/clients" element={<ClientsPage />} />
               <Route path="/clients/:clientId" element={<ClientDetailPage />} />
               <Route path="/inbox" element={<InboxPage />} />
-              <Route path="/ingredients" element={<IngredientsPage />} />
-              <Route path="/recipes" element={<RecipesPage />} />
-              <Route path="/plan-templates" element={<PlanTemplatesPage />} />
+              <Route element={<RoleGuard allowedRoles={['Nutritionist']} />}>
+                <Route path="/ingredients" element={<IngredientsPage />} />
+                <Route path="/recipes" element={<RecipesPage />} />
+                <Route path="/plan-templates" element={<PlanTemplatesPage />} />
+              </Route>
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/settings" element={<SettingsPage />} />
             </Route>
             {/* Full-bleed workspace: icon-rail sidebar, no main padding (PageTemplateEditor). */}
             <Route element={<AppShell variant="editor" />}>
-              <Route path="/plan-templates/:templateId" element={<PlanTemplateEditorPage />} />
+              <Route element={<RoleGuard allowedRoles={['Nutritionist']} />}>
+                <Route path="/plan-templates/:templateId" element={<PlanTemplateEditorPage />} />
+              </Route>
             </Route>
           </Route>
 

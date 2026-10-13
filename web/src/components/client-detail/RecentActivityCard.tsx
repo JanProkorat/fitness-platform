@@ -4,15 +4,19 @@ import { CalendarDays, ClipboardList, Dumbbell, Link2, TrendingUp, Trophy, Utens
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useClientTimeline } from '@/hooks/useClientTimeline';
-import { formatRelativeTime } from '@/lib/client-metrics';
+import { formatRelativeTime, type ClientOverviewRole } from '@/lib/client-metrics';
 import type { ClientTimelineItem } from '@/api/timeline';
 
 interface Props {
   /** Route client id (PublicId), as the timeline endpoint expects. */
   clientId: string;
+  /** Discipline(s) the viewer may see (effective flags); items of the other discipline are dropped. */
+  role: ClientOverviewRole;
 }
 
 const ACTIVITY_LIMIT = 5;
+const TRAINING_ONLY_TYPES = new Set(['personal_record', 'workout', 'training_plan_published']);
+const NUTRITION_ONLY_TYPES = new Set(['meal_day', 'nutrition_plan_published']);
 
 type Tone = 'training' | 'nutrition' | 'neutral';
 
@@ -109,12 +113,18 @@ function capitalize(value: string, locale: string): string {
 }
 
 /** "Recent activity" card: the latest five timeline items, labelled from `type` and detailed from the payload. */
-export default function RecentActivityCard({ clientId }: Props) {
+export default function RecentActivityCard({ clientId, role }: Props) {
   const { t, i18n } = useTranslation();
   const timelineQuery = useClientTimeline(clientId, { limit: ACTIVITY_LIMIT });
   const formatNumber = (value: number) => new Intl.NumberFormat(i18n.language, { maximumFractionDigits: 1 }).format(value);
 
-  const items = (timelineQuery.data?.items ?? []).slice(0, ACTIVITY_LIMIT);
+  const items = (timelineQuery.data?.items ?? [])
+    .filter((item) => {
+      if (role === 'trainer') return !NUTRITION_ONLY_TYPES.has(item.type);
+      if (role === 'nutritionist') return !TRAINING_ONLY_TYPES.has(item.type);
+      return true;
+    })
+    .slice(0, ACTIVITY_LIMIT);
 
   return (
     <div className="flex h-full flex-col gap-3 rounded-2xl border border-border bg-card p-4.5 shadow-panel">

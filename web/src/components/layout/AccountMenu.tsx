@@ -1,8 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useQuery } from '@tanstack/react-query';
-import { getMyCoachRoles, rolesKeys } from '@/api/roles';
+import { useActiveRoles } from '@/hooks/useActiveRoles';
 import { ChevronUp, LogOut, Monitor, Moon, Settings, Sun, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth';
@@ -90,24 +89,20 @@ export default function AccountMenu({ onNavigate, collapsed = false }: Props) {
   const setPreference = useThemeStore((s) => s.setPreference);
   const [open, setOpen] = useState(false);
 
+  const activeRoles = useActiveRoles();
   const tokenRoles = (user?.roles ?? []).map((role) => role.toLowerCase());
   const tokenCoachRoles = tokenRoles.filter((role) => COACH_ROLES.has(role));
-  // The endpoint is Trainer/Nutritionist-only — an admin/client-only token would get a 403.
-  const coachRolesQuery = useQuery({
-    queryKey: rolesKeys.mine,
-    queryFn: getMyCoachRoles,
-    enabled: tokenCoachRoles.length > 0,
-  });
 
   // restoreSession() populates `user` asynchronously — guard against the render pass before it resolves.
   if (!user) return null;
 
   const initials = initialsOf(user.firstName, user.lastName);
-  // While loading or on error, fall back to the token's coach roles so the line never flickers empty.
-  const activeCoachRoles = coachRolesQuery.data
-    ? coachRolesQuery.data.roles.map((r) => r.role.toLowerCase())
-    : tokenCoachRoles;
+  // Display only: while loading or on error, fall back to the token's coach roles so the line never flickers empty.
   const nonCoachRoles = tokenRoles.filter((role) => !COACH_ROLES.has(role));
+  const activeCoachRoles =
+    activeRoles.isLoading || activeRoles.isError
+      ? tokenCoachRoles
+      : activeRoles.roles.map((role) => role.toLowerCase()).filter((role) => COACH_ROLES.has(role));
   const roleLabel = formatRoleLabel([...nonCoachRoles, ...activeCoachRoles], t);
   const close = () => {
     setOpen(false);

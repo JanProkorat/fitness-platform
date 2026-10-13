@@ -140,7 +140,7 @@ export default function ClientDetailPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-3.5 lg:grid-cols-2">
-        <RecentActivityCard clientId={clientId} />
+        <RecentActivityCard clientId={clientId} role={role} />
         <ClientProfileCard onboarding={dashboard.onboarding} role={role} />
       </div>
     </div>
