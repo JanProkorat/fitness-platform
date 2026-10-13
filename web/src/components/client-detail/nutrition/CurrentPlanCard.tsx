@@ -59,6 +59,9 @@ export default function CurrentPlanCard({ plan, detail, onRetry }: Props) {
     if (dailyKcal) {
       summarySegments.push(t('clientDetail.nutrition.current.kcalPerDay', { kcal: dailyKcal.toLocaleString(locale) }));
     }
+    if (plan.sourceTemplateId) {
+      summarySegments.push(t('clientDetail.nutrition.current.madeFromTemplate'));
+    }
     if (strip.isScheduled && strip.currentWeek !== undefined && startDate) {
       summarySegments.push(t('clientDetail.nutrition.current.started', { date: formatShortDate(startDate, locale) }));
     }
