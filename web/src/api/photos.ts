@@ -1,4 +1,5 @@
 import { apiClient } from '@/api/client';
+import { PlanPhotoCategory as PlanPhotoCategoryValue } from '@/api/generated';
 import type { PlanPhotoCategory, PlanPhotoResponse, ClientPhotoResponse } from '@/api/generated';
 
 export type { PlanPhotoCategory, PlanPhotoResponse, ClientPhotoResponse };
@@ -28,6 +29,26 @@ export async function getPlanPhotos(
     undefined, // from
     undefined, // to
     planId,
+  );
+  return response.photos ?? [];
+}
+
+/** Food photos a client took between `from` and `to` (ISO UTC), newest first. */
+export async function getClientFoodPhotos(
+  clientId: string,
+  from: string,
+  to: string,
+  pageSize: number,
+): Promise<ClientPhotoResponse[]> {
+  const response = await apiClient.getTrainerClientPhotosEndpoint(
+    clientId,
+    1,
+    pageSize,
+    false, // groupByMonth: flat list
+    PlanPhotoCategoryValue.Food,
+    from,
+    to,
+    undefined, // planId
   );
   return response.photos ?? [];
 }

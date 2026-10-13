@@ -72,6 +72,8 @@ public class SubmitOnboardingEndpoint(IApplicationDbContext dbContext, IAuditSer
         data.MealsPerDay = Enum.Parse<MealsPerDay>(req.MealsPerDay, true);
         data.DietaryStyle = Enum.TryParse<DietaryStyle>(req.DietaryStyle, true, out var ds) ? ds : DietaryStyle.Standard;
         data.Allergies = string.Join(",", req.Allergies);
+        data.Dislikes = req.Dislikes.Select(item => item.Trim()).ToList();
+        data.Habits = req.Habits.Select(item => item.Trim()).ToList();
         data.DietRating = req.DietRating ?? 0;
         data.PlanExperience = Enum.Parse<PlanExperience>(req.PlanExperience, true);
         data.PastBlockers = string.Join(",", req.PastBlockers);

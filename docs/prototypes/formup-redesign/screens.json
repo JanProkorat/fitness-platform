@@ -210,6 +210,12 @@
   "h": 900
  },
  {
+  "html": "web/05-15-client-header-options-c.html",
+  "png": "web/05-15-client-header-options-c.png",
+  "w": 1240,
+  "h": 1120
+ },
+ {
   "html": "web/06-01-page-clients-d.html",
   "png": "web/06-01-page-clients-d.png",
   "w": 1440,
@@ -292,6 +298,12 @@
   "png": "web/06-14-page-client-invite-drawer-d.png",
   "w": 1440,
   "h": 900
+ },
+ {
+  "html": "web/06-15-client-header-options-d.html",
+  "png": "web/06-15-client-header-options-d.png",
+  "w": 1240,
+  "h": 1120
  },
  {
   "html": "web/07-01-page-inbox-c.html",

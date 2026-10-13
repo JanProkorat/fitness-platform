@@ -131,8 +131,8 @@ public class InstantiateTemplateEndpoint(
             Status = NutritionPlanStatus.Draft,
             GlobalSettings = template.GlobalSettings,
             Goal = template.Goal,
-            Supplements = TemplateContentCloner.CloneSupplements(template.Supplements, mintFreshExternalIds: true),
-            Weeks = TemplateContentCloner.CloneWeeksAsPlan(template.Weeks),
+            Supplements = NutritionPlanContentCloner.CloneSupplements(template.Supplements, mintFreshExternalIds: true),
+            Weeks = NutritionPlanContentCloner.CloneWeeksAsPlan(template.Weeks),
             Version = 1,
             DateCreated = now,
             StartDate = req.StartDate.HasValue ? DateTime.SpecifyKind(req.StartDate.Value.Date, DateTimeKind.Utc) : null

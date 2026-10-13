@@ -2315,6 +2315,7 @@
     "START_DATE_REQUIRED": "Legen Sie ein Startdatum fest, bevor Sie eine Woche veröffentlichen.",
     "WEEK_START_IN_PAST": "Das Startdatum dieser Woche liegt in der Vergangenheit und kann nicht veröffentlicht werden.",
     "PLAN_OVERLAP": "Der gewählte Zeitraum überschneidet sich mit einem bestehenden Plan dieses Klienten.",
+    "CLIENT_NUTRITION_PROFILE_MISSING": "Dieser Klient hat noch keine Ernährungsziele oder Fragebogenantworten, die sich bearbeiten ließen.",
     "INVALID_VERIFICATION_TOKEN": "Ungültiger oder abgelaufener Bestätigungslink.",
     "VERIFICATION_TOKEN_EXPIRED": "Der Bestätigungslink ist abgelaufen. Bitte fordern Sie einen neuen an.",
     "VERIFICATION_RESEND_LIMIT_REACHED": "Zu viele Bestätigungs-E-Mails gesendet. Bitte versuchen Sie es später erneut.",
@@ -3275,6 +3276,204 @@
     }
   },
   "clientDetail": {
+    "nutrition": {
+      "current": {
+        "label": "Aktueller Ernährungsplan",
+        "openEditor": "Editor öffnen",
+        "notScheduled": "Nicht terminiert",
+        "weekOf": "Woche {{week}} von {{total}}",
+        "starts": "Beginnt am {{date}}",
+        "started": "gestartet am {{date}}",
+        "kcalPerDay": "{{kcal}} kcal pro Tag",
+        "madeFromTemplate": "aus einer Vorlage erstellt",
+        "detailError": "Die Wochen dieses Plans konnten nicht geladen werden.",
+        "stripLabel": "Wochen des Plans ({{total}})",
+        "segment": {
+          "done": "Woche {{week}}: erledigt",
+          "current": "Woche {{week}}: diese Woche",
+          "upcoming": "Woche {{week}}: veröffentlicht, kommend",
+          "draft": "Woche {{week}}: Entwurf"
+        },
+        "legend": {
+          "done": "Erledigt",
+          "current": "Diese Woche",
+          "upcoming": "Veröffentlicht, kommend",
+          "draft": "Entwurf – für den Klienten noch nicht sichtbar"
+        },
+        "needsPublishing": "Woche {{week}} muss bis Sonntag veröffentlicht werden"
+      },
+      "timeline": {
+        "heading": "Plan-Zeitleiste",
+        "hint": "Pläne nach Monat",
+        "empty": "Noch keine Pläne mit Termin.",
+        "today": "Heute",
+        "noPlan": "Kein Plan",
+        "starts": "beginnt am {{date}}",
+        "range_one": "{{range}} · {{count}} Wo.",
+        "range_other": "{{range}} · {{count}} Wo.",
+        "activeRange": "{{range}} · Woche {{week}} von {{total}}"
+      },
+      "thisWeek": {
+        "heading": "Diese Woche",
+        "subtitleRange": "Woche {{week}} · {{from}} – {{to}} erfasst",
+        "subtitleDay": "Woche {{week}} · {{day}} erfasst",
+        "subtitleWeek": "Woche {{week}}",
+        "ofMeals_one": "von {{count}} Mahlzeit",
+        "ofMeals_other": "von {{count}} Mahlzeiten",
+        "ticked": "abgehakt · {{percent}} %",
+        "daysLabel": "Abgehakte Mahlzeiten pro Tag",
+        "tileTitle": "{{day}}: {{eaten}} von {{planned}} Mahlzeiten",
+        "today": "heute",
+        "byMeal": "Nach Mahlzeit",
+        "group": {
+          "breakfast": "Frühstück",
+          "snack": "Snack",
+          "lunch": "Mittagessen",
+          "dinner": "Abendessen"
+        },
+        "always": "immer",
+        "skipped_one": "{{count}}× diese Woche ausgelassen",
+        "skipped_other": "{{count}}× diese Woche ausgelassen",
+        "macrosLabel": "Durchschnittlich gegessen pro Tag, im Vergleich zum Plan",
+        "macro": {
+          "kcal": "kcal",
+          "protein": "E",
+          "carbs": "K",
+          "fat": "F"
+        },
+        "grams": "g",
+        "notActive": "Dieser Plan ist noch nicht aktiv.",
+        "notStarted": "Der Plan beginnt am {{date}}.",
+        "noWeek": "Für diese Woche ist nichts geplant.",
+        "ended": "Der Plan ist beendet.",
+        "nothingLogged": "Noch nichts erfasst. Abgeschlossene Tage erscheinen hier.",
+        "error": "Die Mahlzeiten dieser Woche konnten nicht geladen werden."
+      },
+      "past": {
+        "heading": "Frühere Pläne",
+        "none": "noch keine",
+        "count_one": "{{count}} Plan",
+        "count_other": "{{count}} Pläne",
+        "weeks_one": "{{count}} Woche",
+        "weeks_other": "{{count}} Wochen",
+        "percent": "{{value}} %",
+        "kg": "{{value}} kg",
+        "mealsTicked": "Mahlzeiten abgehakt",
+        "weight": "Gewicht",
+        "rowMenu": "Aktionen für {{name}}",
+        "open": "Plan öffnen",
+        "duplicate": "Für {{name}} duplizieren",
+        "saveAsTemplate": "Als Vorlage speichern",
+        "emptyHint": "Abgeschlossene Pläne erscheinen hier, samt der Quote, wie gut {{name}} sie befolgt hat.",
+        "hint": "Einen abgeschlossenen Plan können Sie über sein Menü wiederverwenden: als Vorlage speichern.",
+        "duplicateSuccess": "Plan als neuer Entwurf kopiert.",
+        "duplicateError": "Der Plan konnte nicht kopiert werden. Bitte versuchen Sie es erneut."
+      },
+      "photos": {
+        "heading": "Mahlzeitenfotos und Notizen",
+        "hint": "Diese Woche",
+        "caption": "{{meal}} · {{day}}",
+        "empty": "Diese Woche noch keine Mahlzeitenfotos.",
+        "error": "Die Mahlzeitenfotos konnten nicht geladen werden.",
+        "photoAlt": "Mahlzeitenfoto: {{caption}}",
+        "imageUnavailable": "Foto nicht verfügbar"
+      },
+      "notes": {
+        "quote": "„{{note}}“",
+        "meta": "Check-in · {{date}} · Hunger {{score}}/5",
+        "metaNoHunger": "Check-in · {{date}}",
+        "noNote": "Keine Notiz im letzten Check-in",
+        "noCheckIn": "Noch kein Check-in beantwortet",
+        "error": "Der letzte Check-in konnte nicht geladen werden."
+      },
+      "saveTemplate": {
+        "title": "Als Vorlage speichern",
+        "description": "Die Vorlage landet in Ihren Planvorlagen und ist nur für Sie sichtbar.",
+        "name": "Name der Vorlage",
+        "nameInvalid": "Geben Sie einen Namen mit höchstens {{max}} Zeichen ein.",
+        "submit": "Vorlage speichern",
+        "success": "Vorlage in Ihrer Bibliothek gespeichert.",
+        "error": "Die Vorlage konnte nicht gespeichert werden. Bitte versuchen Sie es erneut."
+      },
+      "isItWorking": {
+        "heading": "Wirkt es?",
+        "range": "Letzte {{count}} Wochen",
+        "delta": "{{delta}} kg",
+        "notEnough": "Noch zu wenige Wiegungen, um eine Veränderung zu zeigen.",
+        "empty": "Noch nichts anzuzeigen. Wiegungen und ein Plan mit kcal-Ziel erscheinen hier.",
+        "reached": "im Zielgewicht",
+        "onTrack": "auf Kurs zu {{kg}} kg bis {{month}}",
+        "farOff": "{{kg}} kg sind mehr als ein Jahr entfernt",
+        "offTrack": "bewegt sich nicht Richtung {{kg}} kg",
+        "newPlan": "neuer Plan",
+        "weekLabel": "W{{n}}",
+        "legendWeight": "Gewicht (Check-ins)",
+        "legendKcal": "Geplante kcal pro Tag",
+        "chartLabel": "Gewichts-Check-ins und geplante kcal pro Tag der letzten 8 Wochen, {{changes}} Planwechsel.",
+        "chartLabelDelta": "Gewichtsänderung {{delta}} kg in den letzten 8 Wochen, mit geplanten kcal pro Tag, {{changes}} Planwechsel."
+      },
+      "profile": {
+        "heading": "Ernährungsprofil von {{name}}",
+        "targets": "Ziele",
+        "allergies": "Allergien",
+        "dislikes": "Abneigungen",
+        "habits": "Gewohnheiten",
+        "kcal": "{{value}} kcal",
+        "protein": "P {{value}} g",
+        "carbs": "K {{value}} g",
+        "fat": "F {{value}} g",
+        "fibre": "Bal {{value}} g",
+        "noTargets": "Noch keine Ziele",
+        "none": "Keine",
+        "empty": "Noch keine Antworten aus dem Erstfragebogen",
+        "source": "Aus dem Erstfragebogen",
+        "sourceUpdated": "Aus dem Erstfragebogen · aktualisiert {{date}}",
+        "edit": {
+          "open": "Bearbeiten",
+          "title": "Ernährungsprofil bearbeiten",
+          "description": "Änderungen gelten für das Profil des Klienten und fließen in die Vorlagenauswahl ein.",
+          "addPlaceholder": "Eingeben und Enter drücken",
+          "remove": "{{name}} entfernen",
+          "fibre": "Ballaststoffziel (g pro Tag)",
+          "fibreHint": "0 bis {{max}} g. Leer lassen, um das aktuelle Ziel zu behalten.",
+          "fibreNoTargets": "Legen Sie zuerst Kalorien- und Makroziele fest, dann lässt sich ein Ballaststoffziel ergänzen.",
+          "fibreInvalid": "Geben Sie eine Zahl von 0 bis {{max}} ein.",
+          "allergiesInvalid": "Jede Allergie muss ausgefüllt sein und darf kein Komma enthalten.",
+          "allergiesTooLong": "Allergien dürfen zusammen höchstens {{max}} Zeichen lang sein.",
+          "listInvalid": "Höchstens {{count}} Einträge mit 1 bis {{length}} Zeichen.",
+          "submit": "Speichern",
+          "saved": "Ernährungsprofil gespeichert.",
+          "saveError": "Das Ernährungsprofil konnte nicht gespeichert werden. Bitte versuchen Sie es erneut."
+        }
+      },
+      "empty": {
+        "label": "Ernährung",
+        "heading": "{{name}} hat noch keinen Ernährungsplan",
+        "body": "Starten Sie mit einer Vorlage, die zum Ziel passt, kopieren Sie einen Plan von einem anderen Klienten oder bauen Sie einen von Grund auf. Der Klient sieht nichts, bis Sie eine Woche veröffentlichen.",
+        "matchedTo": "Passend für {{name}}",
+        "matchGoal": "Ziel {{goal}}",
+        "matchKcal": "{{kcal}} kcal",
+        "templatesLabel": "Passende Vorlagen",
+        "templatesError": "Ihre Vorlagen konnten nicht geladen werden.",
+        "noTemplates": "Sie haben noch keine Planvorlagen. Erstellen Sie eine unter Planvorlagen und kommen Sie zurück.",
+        "bestMatch": "Beste Übereinstimmung",
+        "weeks_one": "{{count}} Woche",
+        "weeks_other": "{{count}} Wochen",
+        "kcalMatch": "{{kcal}} kcal",
+        "use": "„{{name}}“ verwenden",
+        "copyFromClient": "Von anderem Klienten kopieren",
+        "startBlank": "Leer starten",
+        "browseAll": "Alle Vorlagen durchsuchen",
+        "useSuccess": "Entwurf erstellt. Er beginnt am nächsten Montag.",
+        "useError": "Der Plan konnte nicht aus der Vorlage erstellt werden."
+      },
+      "diet": {
+        "Standard": "Standard",
+        "Vegetarian": "Vegetarisch",
+        "Vegan": "Vegan",
+        "GlutenFree": "Glutenfrei"
+      }
+    },
     "writeMessage": "Schreiben",
     "lastName": "Nachname",
     "heightCm": "Körpergröße (cm)",
@@ -3508,17 +3707,26 @@
     "overview": {
       "backAriaLabel": "Zurück zu Klienten",
       "header": {
-        "heightCm": "{{cm}} cm"
+        "heightCm": "{{cm}} cm",
+        "facts": {
+          "goal": "Ziel",
+          "weight": "Gewicht",
+          "mealPlan": "Ernährungsplan",
+          "trainingPlan": "Trainingsplan",
+          "weekOf": "Woche {{week}} von {{total}}",
+          "noPlan": "Noch kein Plan",
+          "kg": "{{value}} kg",
+          "weightDown": "Gewicht seit der ersten Messung gesunken",
+          "weightUp": "Gewicht seit der ersten Messung gestiegen"
+        }
       },
       "actions": {
         "chat": "Chat",
         "tasks": "Aufgaben",
-        "notes": "Notizen",
-        "info": "Info"
+        "notes": "Notizen"
       },
       "tabs": {
         "overview": "Übersicht",
-        "development": "Entwicklung",
         "nutrition": "Ernährung",
         "workouts": "Workouts",
         "storage": "Speicher",

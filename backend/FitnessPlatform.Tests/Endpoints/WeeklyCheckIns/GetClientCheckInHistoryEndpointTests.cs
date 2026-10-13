@@ -278,7 +278,51 @@ public class GetClientCheckInHistoryEndpointTests(FitnessApiFactory factory)
         body.TotalCount.Should().Be(1);
     }
 
+    [Fact]
+    public async Task GetHistory_AnsweredWeekWithHungerScore_ExposesScoreOnThatWeek()
+    {
+        var (trainer, client) = await LinkedPairAsync();
+        var anchor = Anchor();
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            db.WeeklyCheckIns.Add(new WeeklyCheckIn
+            {
+                ClientUserId = client.UserId,
+                ProfessionalUserId = trainer.UserId,
+                Profession = Profession.Nutrition,
+                WeekStartDate = anchor,
+                SentAt = DateTime.UtcNow.AddDays(-1),
+                RespondedAt = DateTime.UtcNow,
+                Status = WeeklyCheckInStatus.Responded,
+                HungerScore = 4,
+                DateCreated = DateTime.UtcNow,
+                DateModified = DateTime.UtcNow
+            });
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        var body = await GetAsync(trainer, client.UserId, "?weeks=1");
+
+        var week = body.Weeks.Should().ContainSingle().Subject;
+        week.Status.Should().Be("answered");
+        week.HungerScore.Should().Be(4);
+    }
+
+    [Fact]
+    public async Task GetHistory_AnsweredWeekWithoutHungerScore_ReturnsNullScore()
+    {
+        var (trainer, client) = await LinkedPairAsync();
+        await InsertAsync(client.UserId, trainer.UserId, Anchor(), WeeklyCheckInStatus.Responded,
+            respondedAt: DateTime.UtcNow);
+
+        var body = await GetAsync(trainer, client.UserId, "?weeks=1");
+
+        body.Weeks.Should().ContainSingle().Which.HungerScore.Should().BeNull();
+    }
+
     private sealed record HistoryBody(List<WeekBody> Weeks, int AnsweredCount, int TotalCount);
 
-    private sealed record WeekBody(DateOnly WeekStartDate, string Status, DateTime? SentAt);
+    private sealed record WeekBody(DateOnly WeekStartDate, string Status, DateTime? SentAt, int? HungerScore);
 }

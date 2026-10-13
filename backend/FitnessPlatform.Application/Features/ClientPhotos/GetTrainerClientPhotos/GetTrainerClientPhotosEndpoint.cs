@@ -1,11 +1,15 @@
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.ClientPhotos.Shared;
 using FitnessPlatform.Application.Infrastructure.Data;
+using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using Microsoft.EntityFrameworkCore;
+using MongoDB.Bson;
+using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Features.ClientPhotos.GetTrainerClientPhotos;
 
@@ -31,10 +35,12 @@ namespace FitnessPlatform.Application.Features.ClientPhotos.GetTrainerClientPhot
 /// client identified by <c>{ClientId}</c>.</param>
 /// <param name="blobStorage">Blob storage service — converts each stored BlobUrl into a
 /// short-lived pre-signed read URL before the response leaves the process (F9).</param>
+/// <param name="mongo">MongoDB context — resolves each meal photo's meal id and kind.</param>
 public class GetTrainerClientPhotosEndpoint(
     IApplicationDbContext db,
     IClientLinkAuthorizationService linkAuthorizationService,
-    IBlobStorageService blobStorage)
+    IBlobStorageService blobStorage,
+    IMongoContext mongo)
     : Endpoint<GetTrainerClientPhotosRequest, GetTrainerClientPhotosResponse>
 {
     /// <inheritdoc />
@@ -132,14 +138,17 @@ public class GetTrainerClientPhotosEndpoint(
         }
 
         // Optional date range filter on TakenAt (inclusive)
+        // Query binding yields Local/Unspecified kinds; Npgsql only accepts UTC for timestamptz.
         if (req.From.HasValue)
         {
-            query = query.Where(p => p.TakenAt >= req.From.Value);
+            var fromUtc = ToUtc(req.From.Value);
+            query = query.Where(p => p.TakenAt >= fromUtc);
         }
 
         if (req.To.HasValue)
         {
-            query = query.Where(p => p.TakenAt <= req.To.Value);
+            var toUtc = ToUtc(req.To.Value);
+            query = query.Where(p => p.TakenAt <= toUtc);
         }
 
         if (req.GroupByMonth)
@@ -185,7 +194,9 @@ public class GetTrainerClientPhotosEndpoint(
 
             // Sign only the photos actually being returned (post-pagination), not the full
             // in-memory grouping set — a stored BlobUrl is no longer publicly fetchable (F9).
-            await SignPhotoUrlsAsync(pagedGroups.SelectMany(g => g.Photos), ct);
+            var pagedPhotos = pagedGroups.SelectMany(g => g.Photos).ToList();
+            await SignPhotoUrlsAsync(pagedPhotos, ct);
+            await ResolveMealsAsync(pagedPhotos, clientProfile.UserId, ct);
 
             HttpContext.Response.Headers["X-Total-Count"] = totalGroups.ToString();
 
@@ -221,6 +232,7 @@ public class GetTrainerClientPhotosEndpoint(
             // A stored BlobUrl is no longer publicly fetchable — mint a short-lived read URL
             // for each photo before it leaves the process (F9).
             await SignPhotoUrlsAsync(photos, ct);
+            await ResolveMealsAsync(photos, clientProfile.UserId, ct);
 
             HttpContext.Response.Headers["X-Total-Count"] = totalCount.ToString();
 
@@ -245,4 +257,95 @@ public class GetTrainerClientPhotosEndpoint(
             photo.DisplayUrl = await blobStorage.GenerateReadUrlAsync(photo.BlobUrl, ct) ?? string.Empty;
         }
     }
+
+    /// <summary>
+    /// Fills <see cref="ClientPhotoResponse.MealId"/> and <see cref="ClientPhotoResponse.MealKind"/>
+    /// for the returned meal photos with at most two Mongo queries. Both lookups are scoped to the
+    /// client, because a photo's MealLogId is client-supplied and must not resolve another
+    /// client's data. Anything unresolvable is left null.
+    /// </summary>
+    private async Task ResolveMealsAsync(
+        IReadOnlyList<ClientPhotoResponse> photos,
+        Guid clientUserId,
+        CancellationToken ct)
+    {
+        var logIdsByPhoto = new Dictionary<ClientPhotoResponse, ObjectId>();
+        foreach (var photo in photos)
+        {
+            if (photo.Category == PlanPhotoCategory.Food
+                && photo.MealLogId is not null
+                && ObjectId.TryParse(photo.MealLogId, out var logId))
+            {
+                logIdsByPhoto[photo] = logId;
+            }
+        }
+
+        if (logIdsByPhoto.Count == 0)
+        {
+            return;
+        }
+
+        var logFilter = Builders<MealLog>.Filter.And(
+            Builders<MealLog>.Filter.In(log => log.Id, logIdsByPhoto.Values.Distinct()),
+            Builders<MealLog>.Filter.Eq(log => log.ClientId, clientUserId));
+        var logOptions = new FindOptions<MealLog, MealLogRef>
+        {
+            Projection = Builders<MealLog>.Projection.Expression(log => new MealLogRef(log.Id, log.PlanId, log.MealId))
+        };
+
+        using var logCursor = await mongo.MealLogs.FindAsync(logFilter, logOptions, ct);
+        var logs = (await logCursor.ToListAsync(ct)).ToDictionary(log => log.Id);
+
+        if (logs.Count == 0)
+        {
+            return;
+        }
+
+        var planFilter = Builders<NutritionPlan>.Filter.And(
+            Builders<NutritionPlan>.Filter.In(plan => plan.ExternalId, logs.Values.Select(log => log.PlanId).Distinct()),
+            Builders<NutritionPlan>.Filter.Eq(plan => plan.ClientId, clientUserId));
+        var planOptions = new FindOptions<NutritionPlan, PlanMealsRef>
+        {
+            Projection = Builders<NutritionPlan>.Projection.Expression(plan => new PlanMealsRef(
+                plan.ExternalId,
+                plan.Weeks.SelectMany(week => week.Days).SelectMany(day => day.Meals)
+                    .Select(meal => new PlanMealRef(meal.MealId, meal.Kind)).ToList()))
+        };
+
+        using var planCursor = await mongo.NutritionPlans.FindAsync(planFilter, planOptions, ct);
+        var plans = await planCursor.ToListAsync(ct);
+
+        var kindByMeal = new Dictionary<(Guid PlanId, Guid MealId), MealKind>();
+        foreach (var plan in plans)
+        {
+            foreach (var meal in plan.Meals)
+            {
+                kindByMeal[(plan.PlanId, meal.MealId)] = meal.Kind;
+            }
+        }
+
+        foreach (var (photo, logId) in logIdsByPhoto)
+        {
+            if (!logs.TryGetValue(logId, out var log))
+            {
+                continue;
+            }
+
+            photo.MealId = log.MealId;
+            photo.MealKind = kindByMeal.TryGetValue((log.PlanId, log.MealId), out var kind) ? kind : null;
+        }
+    }
+
+    private static DateTime ToUtc(DateTime value) => value.Kind switch
+    {
+        DateTimeKind.Local => value.ToUniversalTime(),
+        DateTimeKind.Unspecified => DateTime.SpecifyKind(value, DateTimeKind.Utc),
+        _ => value,
+    };
+
+    private sealed record MealLogRef(ObjectId Id, Guid PlanId, Guid MealId);
+
+    private sealed record PlanMealRef(Guid MealId, MealKind Kind);
+
+    private sealed record PlanMealsRef(Guid PlanId, List<PlanMealRef> Meals);
 }

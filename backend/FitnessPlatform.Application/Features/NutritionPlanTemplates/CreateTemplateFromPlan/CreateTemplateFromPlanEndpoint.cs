@@ -6,6 +6,7 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.NutritionPlanTemplates.Shared;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using MongoDB.Driver;
@@ -93,8 +94,8 @@ public class CreateTemplateFromPlanEndpoint(
             Description = req.Description,
             Goal = plan.Goal,
             GlobalSettings = plan.GlobalSettings,
-            Supplements = TemplateContentCloner.CloneSupplements(plan.Supplements, mintFreshExternalIds: true),
-            Weeks = TemplateContentCloner.CloneWeeksFromPlan(plan.Weeks),
+            Supplements = NutritionPlanContentCloner.CloneSupplements(plan.Supplements, mintFreshExternalIds: true),
+            Weeks = NutritionPlanContentCloner.CloneWeeksFromPlan(plan.Weeks),
             WeekCount = plan.Weeks.Count,
             Visibility = req.Visibility,
             Version = 1,

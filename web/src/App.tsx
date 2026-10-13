@@ -71,7 +71,9 @@ export default function App() {
           <Route element={<ProtectedRoute />}>
             <Route element={<AppShell />}>
               <Route path="/clients" element={<ClientsPage />} />
-              <Route path="/clients/:clientId" element={<ClientDetailPage />} />
+              <Route path="/clients/:clientId" element={<ClientDetailPage />}>
+                <Route path="nutrition" element={null} />
+              </Route>
               <Route path="/inbox" element={<InboxPage />} />
               <Route path="/forms" element={<FormsPage />} />
               <Route element={<RoleGuard allowedRoles={['Nutritionist']} />}>

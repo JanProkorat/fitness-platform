@@ -335,10 +335,20 @@ public class GetClientDashboardEndpoint(
                 PlanExperience = od.PlanExperience.ToString(),
                 PastBlockers = od.PastBlockers,
                 PrimaryMotivation = od.PrimaryMotivation.ToString(),
+                DateUpdated = od.DateUpdated ?? od.DateCreated,
             };
 
             if (effective.CanViewNutritionPlans)
             {
+                if (od.NutritionTargets is { } targets)
+                {
+                    var targetsDate = targets.DateUpdated ?? targets.DateCreated;
+                    if (targetsDate > onboarding.DateUpdated)
+                    {
+                        onboarding.DateUpdated = targetsDate;
+                    }
+                }
+
                 onboarding.DerivedActivityLevel = od.NutritionTargets?.DerivedActivityLevel.ToString();
                 onboarding.DerivedNutritionGoal = od.NutritionTargets?.DerivedNutritionGoal.ToString();
                 onboarding.Bmr = od.NutritionTargets?.Bmr;
@@ -348,6 +358,9 @@ public class GetClientDashboardEndpoint(
                 onboarding.CarbsGrams = od.NutritionTargets?.CarbsGrams;
                 onboarding.FatGrams = od.NutritionTargets?.FatGrams;
                 onboarding.MealDistribution = od.NutritionTargets?.MealDistribution;
+                onboarding.FibreGrams = od.NutritionTargets?.FibreGrams;
+                onboarding.Dislikes = od.Dislikes;
+                onboarding.Habits = od.Habits;
             }
         }
 

@@ -1,4 +1,4 @@
-import { useParams } from 'react-router-dom';
+import { Navigate, useLocation, useMatch, useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { apiClient } from '@/api/client';
@@ -8,28 +8,23 @@ import { resolveOverviewRole } from '@/lib/client-metrics';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import ClientDetailHeader from '@/components/client-detail/ClientDetailHeader';
-import ClientDetailTabs from '@/components/client-detail/ClientDetailTabs';
-import ClientOverviewStats from '@/components/client-detail/ClientOverviewStats';
-import MealPlanCard from '@/components/client-detail/MealPlanCard';
-import LatestWorkoutCard from '@/components/client-detail/LatestWorkoutCard';
-import CheckInTrendCard from '@/components/client-detail/CheckInTrendCard';
-import WeightCard from '@/components/client-detail/WeightCard';
-import RecentActivityCard from '@/components/client-detail/RecentActivityCard';
-import ClientProfileCard from '@/components/client-detail/ClientProfileCard';
+import ClientDetailTabs, { type ClientDetailTab } from '@/components/client-detail/ClientDetailTabs';
+import ClientOverviewTab from '@/components/client-detail/ClientOverviewTab';
+import ClientNutritionTab from '@/components/client-detail/nutrition/ClientNutritionTab';
 
 const MEASUREMENTS_PAGE_SIZE = 50;
 
 /**
- * Client-detail page — Overview tab. Header + tab row (all but Overview
- * disabled) + three stat cards + plan card(s) + check-in trend and weight +
- * recent activity and client profile. A link with both capabilities gets the
- * two-card layout (PageClientDetailC / D); a trainer-only or nutritionist-only
- * link gets its own domain's card at full width (PageClientDetailTrainerC / D,
- * PageClientDetailNutritionistC / D).
+ * Client-detail page: header + URL-driven tab row. `/clients/:clientId` is the
+ * Overview tab, `/clients/:clientId/nutrition` the Nutrition tab (a link
+ * without the nutrition capability is redirected to Overview).
  */
 export default function ClientDetailPage() {
   const { t } = useTranslation();
   const { clientId = '' } = useParams<{ clientId: string }>();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const activeTab: ClientDetailTab = useMatch('/clients/:clientId/nutrition') ? 'nutrition' : 'overview';
 
   const dashboardQuery = useQuery({
     queryKey: ['client-dashboard', clientId],
@@ -71,78 +66,48 @@ export default function ClientDetailPage() {
   }
 
   const dashboard = dashboardQuery.data;
-  const canViewNutritionPlans = plansQuery.data?.canViewNutritionPlans ?? false;
-  const canViewTrainingPlans = plansQuery.data?.canViewTrainingPlans ?? false;
-  const activeNutritionPlan = plansQuery.data?.plans?.find((p) => p.planType === 'Nutrition' && p.status === 'Active');
-  const activeTrainingPlan = plansQuery.data?.plans?.find((p) => p.planType === 'Training' && p.status === 'Active');
 
   // The layout follows the dashboard's capability flags: that query has resolved before first paint.
   const role = resolveOverviewRole(dashboard.canViewNutritionPlans, dashboard.canViewTrainingPlans);
 
-  const mealPlanCard = (
-    <MealPlanCard
-      plan={activeNutritionPlan}
-      canView={canViewNutritionPlans}
-      isPending={plansQuery.isPending}
-      isError={plansQuery.isError}
-    />
-  );
-  const workoutCard = (
-    <LatestWorkoutCard
-      plan={activeTrainingPlan}
-      canView={canViewTrainingPlans}
-      isPending={plansQuery.isPending}
-      isError={plansQuery.isError}
-      sessionsCompleted={dashboard.sessionsCompletedThisWeek}
-      sessionsPlanned={dashboard.sessionsPlannedThisWeek}
-    />
-  );
+  if (activeTab === 'nutrition' && role === 'trainer') {
+    return <Navigate to={`/clients/${clientId}`} replace state={location.state} />;
+  }
+
+  function handleTabChange(tab: ClientDetailTab) {
+    navigate(tab === 'nutrition' ? `/clients/${clientId}/nutrition` : `/clients/${clientId}`, {
+      state: location.state,
+    });
+  }
 
   return (
     <div className="flex flex-col gap-4">
-      <ClientDetailHeader dashboard={dashboard} />
-      <ClientDetailTabs
-        canViewNutritionPlans={role !== 'trainer'}
-        canViewTrainingPlans={role !== 'nutritionist'}
-      />
-
-      <ClientOverviewStats
-        dashboard={dashboard}
+      <ClientDetailHeader
         clientId={clientId}
-        role={role}
-        measurements={measurementsQuery.data?.items ?? []}
-        measurementsPending={measurementsQuery.isPending}
-        measurementsError={measurementsQuery.isError}
+        dashboard={dashboard}
+        plansQuery={plansQuery}
+        measurementsQuery={measurementsQuery}
+        tabs={
+          <ClientDetailTabs
+            activeTab={activeTab}
+            onTabChange={handleTabChange}
+            canViewNutritionPlans={role !== 'trainer'}
+            canViewTrainingPlans={role !== 'nutritionist'}
+          />
+        }
       />
 
-      {role === 'both' ? (
-        <div className="grid grid-cols-1 gap-3 lg:grid-cols-5">
-          <div className="lg:col-span-3">{mealPlanCard}</div>
-          <div className="lg:col-span-2">{workoutCard}</div>
-        </div>
+      {activeTab === 'nutrition' ? (
+        <ClientNutritionTab clientId={clientId} dashboard={dashboard} />
       ) : (
-        <div>{role === 'nutritionist' ? mealPlanCard : workoutCard}</div>
+        <ClientOverviewTab
+          clientId={clientId}
+          dashboard={dashboard}
+          role={role}
+          plansQuery={plansQuery}
+          measurementsQuery={measurementsQuery}
+        />
       )}
-
-      <div className="grid grid-cols-1 gap-3.5 lg:grid-cols-5">
-        <div className="lg:col-span-3">
-          <CheckInTrendCard clientUserId={dashboard.clientUserId ?? ''} />
-        </div>
-        <div className="lg:col-span-2">
-          <WeightCard
-            dashboard={dashboard}
-            measurements={measurementsQuery.data?.items ?? []}
-            isPending={measurementsQuery.isPending}
-            isError={measurementsQuery.isError}
-            onRetry={() => void measurementsQuery.refetch()}
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 gap-3.5 lg:grid-cols-2">
-        <RecentActivityCard clientId={clientId} role={role} />
-        <ClientProfileCard onboarding={dashboard.onboarding} role={role} />
-      </div>
     </div>
   );
 }

@@ -45,6 +45,10 @@ public class SubmitOnboardingRequest
     public string DietaryStyle { get; set; } = string.Empty;
     /// <summary>Food allergies/intolerances.</summary>
     public List<string> Allergies { get; set; } = [];
+    /// <summary>Foods the client dislikes. At most 20 items of 1-60 characters.</summary>
+    public List<string> Dislikes { get; set; } = [];
+    /// <summary>Eating habits. At most 20 items of 1-60 characters.</summary>
+    public List<string> Habits { get; set; } = [];
     /// <summary>Self-rated diet quality (1-5, optional).</summary>
     public int? DietRating { get; set; }
     /// <summary>Prior plan experience.</summary>

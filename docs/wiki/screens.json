@@ -240,9 +240,8 @@
       "files": [
         "web/src/pages/ClientDetailPage.tsx",
         "web/src/components/client-detail/**",
-        "web/src/components/clients/ClientStatusBadge.tsx",
-        "web/src/components/clients/ClientAvatar.tsx",
         "web/src/lib/client-metrics.ts",
+        "web/src/lib/client-header-facts.ts",
         "web/src/lib/clientDetailNavigation.ts",
         "web/src/lib/date-format.ts",
         "web/src/hooks/useClientTimeline.ts",
@@ -272,6 +271,51 @@
         { "name": "both-roles", "steps": "sign in as qa.coach@fitnessplatform.test, open /clients, click 'QA Duo' and wait for the Overview tab to load (board PageClientDetail)" }
       ],
       "notionPageId": "3f81c0f6-641f-814f-9e2d-c5440c350d64"
+    },
+    {
+      "id": "web.clients.detail-nutrition",
+      "app": "web",
+      "area": "Clients",
+      "title": "Client detail — Nutrition",
+      "route": "/clients/:clientId/nutrition",
+      "roles": ["Nutritionist"],
+      "files": [
+        "web/src/pages/ClientDetailPage.tsx",
+        "web/src/components/client-detail/**",
+        "web/src/lib/client-header-facts.ts",
+        "web/src/lib/client-metrics.ts",
+        "web/src/lib/clientDetailNavigation.ts",
+        "web/src/lib/recipe-nutrition.ts",
+        "web/src/api/client-plans.ts",
+        "web/src/api/plans.ts",
+        "web/src/api/training-plans.ts",
+        "web/src/api/nutrition-plan-templates.ts",
+        "web/src/api/nutrition-profile.ts",
+        "web/src/api/measurements.ts",
+        "web/src/api/photos.ts",
+        "web/src/api/weekly-checkins.ts"
+      ],
+      "endpoints": [
+        "GET /trainer/clients/{clientId}",
+        "GET /trainer/clients/{clientId}/plans",
+        "GET /trainer/clients/{clientId}/measurements",
+        "GET /trainer/clients/{clientId}/photos",
+        "GET /trainer/clients/{clientUserId}/weekly-check-ins/history",
+        "GET /trainer/weekly-check-ins",
+        "GET /trainer/weekly-check-ins/{id}",
+        "PUT /trainer/clients/{clientId}/nutrition-profile",
+        "GET /nutrition/plans/{planId}",
+        "GET /training/plans/{planId}",
+        "POST /nutrition/plans/{planId}/copy",
+        "GET /nutrition/plan-templates",
+        "POST /nutrition/plan-templates/{templateId}/instantiate",
+        "POST /nutrition/plan-templates/from-plan"
+      ],
+      "board": "PageClientNutrition",
+      "shots": [
+        { "name": "with-plan", "steps": "sign in as the nutritionist, open /clients, click 'QA Client', click the tab 'Výživa' and wait for the Nutrition tab to load (board PageClientNutrition)" },
+        { "name": "both-roles", "steps": "sign in as qa.coach@fitnessplatform.test, open /clients, click 'QA Duo', click the tab 'Výživa' and wait for the Nutrition tab to load (board PageClientNutrition)" }
+      ]
     },
     {
       "id": "web.nutrition.ingredients",

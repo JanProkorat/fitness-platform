@@ -30,6 +30,20 @@ public class SubmitOnboardingValidator : Validator<SubmitOnboardingRequest>
         RuleFor(x => x.MealsPerDay).NotEmpty().Must(v => Enum.TryParse<MealsPerDay>(v, true, out _));
         RuleFor(x => x.DietaryStyle).NotEmpty().MaximumLength(100);
         RuleFor(x => x.DietRating).InclusiveBetween(1, 5).When(x => x.DietRating.HasValue);
+        RuleFor(x => x.Dislikes)
+            .NotNull()
+            .Must(items => items is null || items.Count <= 20)
+            .WithMessage("At most 20 dislikes are allowed.");
+        RuleForEach(x => x.Dislikes)
+            .Must(item => !string.IsNullOrWhiteSpace(item) && item.Trim().Length <= 60)
+            .WithMessage("Each dislike must be 1-60 characters and not blank.");
+        RuleFor(x => x.Habits)
+            .NotNull()
+            .Must(items => items is null || items.Count <= 20)
+            .WithMessage("At most 20 habits are allowed.");
+        RuleForEach(x => x.Habits)
+            .Must(item => !string.IsNullOrWhiteSpace(item) && item.Trim().Length <= 60)
+            .WithMessage("Each habit must be 1-60 characters and not blank.");
         RuleFor(x => x.PlanExperience).NotEmpty().Must(v => Enum.TryParse<PlanExperience>(v, true, out _));
         RuleFor(x => x.PrimaryMotivation).NotEmpty().Must(v => Enum.TryParse<PrimaryMotivation>(v, true, out _));
     }

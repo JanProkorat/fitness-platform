@@ -2316,6 +2316,7 @@
     "START_DATE_REQUIRED": "Set a start date before publishing a week.",
     "WEEK_START_IN_PAST": "This week's start date is in the past and cannot be published.",
     "PLAN_OVERLAP": "The selected date range overlaps an existing plan for this client.",
+    "CLIENT_NUTRITION_PROFILE_MISSING": "This client has no nutrition targets or onboarding answers to edit yet.",
     "INVALID_VERIFICATION_TOKEN": "Invalid or expired verification link.",
     "VERIFICATION_TOKEN_EXPIRED": "Verification link has expired. Please request a new one.",
     "VERIFICATION_RESEND_LIMIT_REACHED": "Too many verification emails sent. Please try again later.",
@@ -3276,6 +3277,204 @@
     }
   },
   "clientDetail": {
+    "nutrition": {
+      "current": {
+        "label": "Current meal plan",
+        "openEditor": "Open editor",
+        "notScheduled": "Not scheduled",
+        "weekOf": "Week {{week}} of {{total}}",
+        "starts": "Starts {{date}}",
+        "started": "started {{date}}",
+        "kcalPerDay": "{{kcal}} kcal a day",
+        "madeFromTemplate": "made from a template",
+        "detailError": "Couldn't load the weeks of this plan.",
+        "stripLabel": "Weeks of the plan ({{total}})",
+        "segment": {
+          "done": "Week {{week}}: done",
+          "current": "Week {{week}}: this week",
+          "upcoming": "Week {{week}}: published, upcoming",
+          "draft": "Week {{week}}: draft"
+        },
+        "legend": {
+          "done": "Done",
+          "current": "This week",
+          "upcoming": "Published, upcoming",
+          "draft": "Draft — client can't see it yet"
+        },
+        "needsPublishing": "Week {{week}} needs publishing by Sunday"
+      },
+      "timeline": {
+        "heading": "Plan timeline",
+        "hint": "Plans by month",
+        "empty": "No dated plans to show yet.",
+        "today": "Today",
+        "noPlan": "No plan",
+        "starts": "starts {{date}}",
+        "range_one": "{{range}} · {{count}} wk",
+        "range_other": "{{range}} · {{count}} wks",
+        "activeRange": "{{range}} · week {{week}} of {{total}}"
+      },
+      "thisWeek": {
+        "heading": "This week",
+        "subtitleRange": "Week {{week}} · {{from}} – {{to}} logged",
+        "subtitleDay": "Week {{week}} · {{day}} logged",
+        "subtitleWeek": "Week {{week}}",
+        "ofMeals_one": "of {{count}} meal",
+        "ofMeals_other": "of {{count}} meals",
+        "ticked": "ticked off · {{percent}} %",
+        "daysLabel": "Meals ticked off per day",
+        "tileTitle": "{{day}}: {{eaten}} of {{planned}} meals",
+        "today": "today",
+        "byMeal": "By meal",
+        "group": {
+          "breakfast": "Breakfast",
+          "snack": "Snack",
+          "lunch": "Lunch",
+          "dinner": "Dinner"
+        },
+        "always": "always",
+        "skipped_one": "skipped {{count}}× this week",
+        "skipped_other": "skipped {{count}}× this week",
+        "macrosLabel": "Eaten per day, on average, against the plan",
+        "macro": {
+          "kcal": "kcal",
+          "protein": "P",
+          "carbs": "C",
+          "fat": "F"
+        },
+        "grams": "g",
+        "notActive": "This plan isn't active yet.",
+        "notStarted": "The plan starts {{date}}.",
+        "noWeek": "Nothing is planned this week.",
+        "ended": "The plan has ended.",
+        "nothingLogged": "Nothing logged yet. Finished days show up here.",
+        "error": "Couldn't load this week's meals."
+      },
+      "past": {
+        "heading": "Past plans",
+        "none": "none yet",
+        "count_one": "{{count}} plan",
+        "count_other": "{{count}} plans",
+        "weeks_one": "{{count}} week",
+        "weeks_other": "{{count}} weeks",
+        "percent": "{{value}} %",
+        "kg": "{{value}} kg",
+        "mealsTicked": "meals ticked",
+        "weight": "weight",
+        "rowMenu": "Actions for {{name}}",
+        "open": "Open plan",
+        "duplicate": "Duplicate for {{name}}",
+        "saveAsTemplate": "Save as template",
+        "emptyHint": "Finished plans land here, with how well {{name}} followed them.",
+        "hint": "Reuse a finished plan from its menu: save it as a template.",
+        "duplicateSuccess": "Plan copied as a new draft.",
+        "duplicateError": "Couldn't copy the plan. Please try again."
+      },
+      "photos": {
+        "heading": "Meal photos and notes",
+        "hint": "This week",
+        "caption": "{{meal}} · {{day}}",
+        "empty": "No meal photos this week.",
+        "error": "Couldn't load the meal photos.",
+        "photoAlt": "Meal photo: {{caption}}",
+        "imageUnavailable": "Photo unavailable"
+      },
+      "notes": {
+        "quote": "“{{note}}”",
+        "meta": "Check-in · {{date}} · hunger {{score}}/5",
+        "metaNoHunger": "Check-in · {{date}}",
+        "noNote": "No note in the latest check-in",
+        "noCheckIn": "No check-in answered yet",
+        "error": "Couldn't load the latest check-in."
+      },
+      "saveTemplate": {
+        "title": "Save as template",
+        "description": "The template goes to your plan templates and stays private to you.",
+        "name": "Template name",
+        "nameInvalid": "Enter a name of up to {{max}} characters.",
+        "submit": "Save template",
+        "success": "Template saved to your library.",
+        "error": "Couldn't save the template. Please try again."
+      },
+      "isItWorking": {
+        "heading": "Is it working?",
+        "range": "Last {{count}} weeks",
+        "delta": "{{delta}} kg",
+        "notEnough": "Not enough weigh-ins yet to show a change.",
+        "empty": "Nothing to show yet. Weigh-ins and a plan with a kcal target will appear here.",
+        "reached": "at target weight",
+        "onTrack": "on track for {{kg}} kg by {{month}}",
+        "farOff": "{{kg}} kg is more than a year away",
+        "offTrack": "not moving towards {{kg}} kg",
+        "newPlan": "new plan",
+        "weekLabel": "W{{n}}",
+        "legendWeight": "Weight (check-ins)",
+        "legendKcal": "Planned kcal a day",
+        "chartLabel": "Weight check-ins and planned kcal a day over the last 8 weeks, {{changes}} plan changes.",
+        "chartLabelDelta": "Weight change {{delta}} kg over the last 8 weeks, with planned kcal a day, {{changes}} plan changes."
+      },
+      "profile": {
+        "heading": "{{name}}'s nutrition profile",
+        "targets": "Targets",
+        "allergies": "Allergies",
+        "dislikes": "Dislikes",
+        "habits": "Habits",
+        "kcal": "{{value}} kcal",
+        "protein": "P {{value}} g",
+        "carbs": "C {{value}} g",
+        "fat": "F {{value}} g",
+        "fibre": "Fib {{value}} g",
+        "noTargets": "No targets yet",
+        "none": "None",
+        "empty": "No onboarding answers yet",
+        "source": "From onboarding",
+        "sourceUpdated": "From onboarding · updated {{date}}",
+        "edit": {
+          "open": "Edit",
+          "title": "Edit nutrition profile",
+          "description": "Changes apply to the client's profile and are used for matching templates.",
+          "addPlaceholder": "Type and press Enter",
+          "remove": "Remove {{name}}",
+          "fibre": "Fibre target (g a day)",
+          "fibreHint": "0 to {{max}} g. Leave empty to keep the current target.",
+          "fibreNoTargets": "Set calorie and macro targets before adding a fibre target.",
+          "fibreInvalid": "Enter a number from 0 to {{max}}.",
+          "allergiesInvalid": "Each allergy must be filled in and must not contain a comma.",
+          "allergiesTooLong": "Allergies can be at most {{max}} characters in total.",
+          "listInvalid": "Up to {{count}} items of 1 to {{length}} characters.",
+          "submit": "Save",
+          "saved": "Nutrition profile saved.",
+          "saveError": "Couldn't save the nutrition profile. Please try again."
+        }
+      },
+      "empty": {
+        "label": "Nutrition",
+        "heading": "{{name}} has no meal plan yet",
+        "body": "Start from a template that fits their goal, copy a plan from another client, or build one from scratch. Nothing is visible to the client until you publish a week.",
+        "matchedTo": "Matched to {{name}}",
+        "matchGoal": "goal {{goal}}",
+        "matchKcal": "{{kcal}} kcal",
+        "templatesLabel": "Matching templates",
+        "templatesError": "Couldn't load your templates.",
+        "noTemplates": "You have no plan templates yet. Create one under Plan templates, then come back.",
+        "bestMatch": "Best match",
+        "weeks_one": "{{count}} week",
+        "weeks_other": "{{count}} weeks",
+        "kcalMatch": "{{kcal}} kcal",
+        "use": "Use “{{name}}”",
+        "copyFromClient": "Copy from another client",
+        "startBlank": "Start blank",
+        "browseAll": "Browse all templates",
+        "useSuccess": "Draft plan created. It starts next Monday.",
+        "useError": "Couldn't create the plan from this template."
+      },
+      "diet": {
+        "Standard": "Standard",
+        "Vegetarian": "Vegetarian",
+        "Vegan": "Vegan",
+        "GlutenFree": "Gluten-free"
+      }
+    },
     "writeMessage": "Message",
     "lastName": "Last name",
     "heightCm": "Height (cm)",
@@ -3509,17 +3708,26 @@
     "overview": {
       "backAriaLabel": "Back to clients",
       "header": {
-        "heightCm": "{{cm}} cm"
+        "heightCm": "{{cm}} cm",
+        "facts": {
+          "goal": "Goal",
+          "weight": "Weight",
+          "mealPlan": "Meal plan",
+          "trainingPlan": "Training plan",
+          "weekOf": "Week {{week}} of {{total}}",
+          "noPlan": "No plan yet",
+          "kg": "{{value}} kg",
+          "weightDown": "Weight down since the first weigh-in",
+          "weightUp": "Weight up since the first weigh-in"
+        }
       },
       "actions": {
         "chat": "Chat",
         "tasks": "Tasks",
-        "notes": "Notes",
-        "info": "Info"
+        "notes": "Notes"
       },
       "tabs": {
         "overview": "Overview",
-        "development": "Development",
         "nutrition": "Nutrition",
         "workouts": "Workouts",
         "storage": "Storage",

@@ -1,4 +1,6 @@
 import api from '@/lib/api';
+import { apiClient } from '@/api/client';
+import type { CopyNutritionPlanRequest, CopyNutritionPlanResponse } from '@/api/generated';
 import type {
   NutritionPlanDetail,
   GetPlansResponse,
@@ -79,4 +81,12 @@ export async function publishWeek(
     { version },
   );
   return data;
+}
+
+/** Copy a nutrition plan to a client as a new Draft plan (POST /nutrition/plans/{planId}/copy). */
+export function copyNutritionPlan(
+  planId: string,
+  request: CopyNutritionPlanRequest,
+): Promise<CopyNutritionPlanResponse> {
+  return apiClient.copyNutritionPlanEndpoint(planId, request);
 }

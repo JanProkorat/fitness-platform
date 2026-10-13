@@ -64,6 +64,7 @@ public class GetCheckInDetailEndpoint(IApplicationDbContext db)
             WeekStartDate = checkIn.WeekStartDate,
             Flags = checkIn.Flags,
             Note = checkIn.Note,
+            HungerScore = checkIn.HungerScore,
             SentAt = checkIn.SentAt,
             RespondedAt = checkIn.RespondedAt,
             DismissedByClientAt = checkIn.DismissedByClientAt,

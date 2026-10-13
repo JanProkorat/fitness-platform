@@ -241,6 +241,9 @@ public static class ErrorCodes
     /// <summary>The weekly check-in has expired; the client can no longer respond or dismiss it.</summary>
     public const string CheckInExpired = "CHECK_IN_EXPIRED";
 
+    /// <summary>The client has no onboarding data (or no nutrition targets row for a fibre target) to update.</summary>
+    public const string ClientNutritionProfileMissing = "CLIENT_NUTRITION_PROFILE_MISSING";
+
     // ── Plan Photos ───────────────────────────────────────────────────
     /// <summary>Only the uploader can delete their own plan photo.</summary>
     public const string PlanPhotoNotOwned = "PLAN_PHOTO_NOT_OWNED";

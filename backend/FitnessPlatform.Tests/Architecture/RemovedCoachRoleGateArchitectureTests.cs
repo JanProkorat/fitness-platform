@@ -146,10 +146,10 @@ public class RemovedCoachRoleGateArchitectureTests(FitnessApiFactory factory)
         counts.GetValueOrDefault((AppRoles.Trainer, RemovedCoachRoleMode.Refuse)).Should().Be(22);
         counts.GetValueOrDefault((AppRoles.Trainer, RemovedCoachRoleMode.WhilePlanInProgress)).Should().Be(8);
         counts.GetValueOrDefault((AppRoles.Trainer, RemovedCoachRoleMode.Exempt)).Should().Be(0);
-        counts.GetValueOrDefault((AppRoles.Nutritionist, RemovedCoachRoleMode.Refuse)).Should().Be(31);
+        counts.GetValueOrDefault((AppRoles.Nutritionist, RemovedCoachRoleMode.Refuse)).Should().Be(32);
         counts.GetValueOrDefault((AppRoles.Nutritionist, RemovedCoachRoleMode.WhilePlanInProgress)).Should().Be(5);
         counts.GetValueOrDefault((AppRoles.Nutritionist, RemovedCoachRoleMode.Exempt)).Should().Be(1);
-        counts.Values.Sum().Should().Be(67);
+        counts.Values.Sum().Should().Be(68);
     }
 
     [Fact]
@@ -160,8 +160,8 @@ public class RemovedCoachRoleGateArchitectureTests(FitnessApiFactory factory)
             .GroupBy(e => e.Type.GetCustomAttribute<RemovedCoachRoleAttribute>()!.Mode)
             .ToDictionary(g => g.Key, g => g.Count());
 
-        counts.GetValueOrDefault(RemovedCoachRoleMode.Refuse).Should().Be(23);
+        counts.GetValueOrDefault(RemovedCoachRoleMode.Refuse).Should().Be(24);
         counts.GetValueOrDefault(RemovedCoachRoleMode.Exempt).Should().Be(8);
-        counts.Values.Sum().Should().Be(31);
+        counts.Values.Sum().Should().Be(32);
     }
 }

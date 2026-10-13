@@ -501,6 +501,27 @@ public class ClientOnboardingDataBuilder
     public ClientOnboardingDataBuilder WithClientProfileId(long id) { _entity.ClientProfileId = id; return this; }
 
     /// <summary>
+    /// Prepares the entity for a real database: clears the fixed test Id so one is generated on
+    /// insert, and marks the date of birth as UTC as Npgsql requires.
+    /// </summary>
+    public ClientOnboardingDataBuilder WithGeneratedId()
+    {
+        _entity.Id = 0;
+        _entity.DateOfBirth = DateTime.SpecifyKind(_entity.DateOfBirth, DateTimeKind.Utc);
+        return this;
+    }
+
+    /// <summary>
+    /// Sets the disliked foods.
+    /// </summary>
+    public ClientOnboardingDataBuilder WithDislikes(params string[] dislikes) { _entity.Dislikes = [.. dislikes]; return this; }
+
+    /// <summary>
+    /// Sets the eating habits.
+    /// </summary>
+    public ClientOnboardingDataBuilder WithHabits(params string[] habits) { _entity.Habits = [.. habits]; return this; }
+
+    /// <summary>
     /// Builds the <see cref="ClientOnboardingData"/> instance.
     /// </summary>
     public ClientOnboardingData Build() => _entity;
@@ -529,6 +550,16 @@ public class ClientNutritionTargetsBuilder
     /// Sets the client onboarding data ID.
     /// </summary>
     public ClientNutritionTargetsBuilder WithClientOnboardingDataId(long id) { _entity.ClientOnboardingDataId = id; return this; }
+
+    /// <summary>
+    /// Clears the fixed test Id so a real database generates one on insert.
+    /// </summary>
+    public ClientNutritionTargetsBuilder WithGeneratedId() { _entity.Id = 0; return this; }
+
+    /// <summary>
+    /// Sets the fibre target in grams.
+    /// </summary>
+    public ClientNutritionTargetsBuilder WithFibreGrams(decimal? fibreGrams) { _entity.FibreGrams = fibreGrams; return this; }
 
     /// <summary>
     /// Builds the <see cref="ClientNutritionTargets"/> instance.
