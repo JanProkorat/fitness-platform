@@ -10,6 +10,7 @@ import CurrentPlanCard from '@/components/client-detail/nutrition/CurrentPlanCar
 import NutritionEmptyState from '@/components/client-detail/nutrition/NutritionEmptyState';
 import PastPlansCard from '@/components/client-detail/nutrition/PastPlansCard';
 import PlanTimelineCard from '@/components/client-detail/nutrition/PlanTimelineCard';
+import ThisWeekCard from '@/components/client-detail/nutrition/ThisWeekCard';
 import {
   selectCurrentPlan,
   selectOpenPlans,
@@ -106,7 +107,12 @@ export default function ClientNutritionTab({ clientId, dashboard }: Props) {
     <div className="flex flex-col gap-3.5">
       <CurrentPlanCard plan={currentPlan} detail={currentDetail} onRetry={retryCurrent} />
       <PlanTimelineCard plans={plans ?? []} details={details} />
-      {/* Slot: "This week" and "Is it working?" row. */}
+      <div className="grid grid-cols-1 gap-3.5 xl:grid-cols-5">
+        <div className="xl:col-span-3">
+          <ThisWeekCard detail={currentDetail} onRetry={retryCurrent} />
+        </div>
+        {/* Slot: "Is it working?" card, spans the other 2 columns. */}
+      </div>
       <div className="grid grid-cols-1 gap-3.5 xl:grid-cols-5">
         <div className="xl:col-span-2">
           <PastPlansCard clientId={clientId} clientFirstName={firstName} plans={pastPlans} />

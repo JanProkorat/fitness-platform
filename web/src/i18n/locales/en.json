@@ -3115,6 +3115,41 @@
         "range_other": "{{range}} · {{count}} wks",
         "activeRange": "{{range}} · week {{week}} of {{total}}"
       },
+      "thisWeek": {
+        "heading": "This week",
+        "subtitleRange": "Week {{week}} · {{from}} – {{to}} logged",
+        "subtitleDay": "Week {{week}} · {{day}} logged",
+        "subtitleWeek": "Week {{week}}",
+        "ofMeals_one": "of {{count}} meal",
+        "ofMeals_other": "of {{count}} meals",
+        "ticked": "ticked off · {{percent}} %",
+        "daysLabel": "Meals ticked off per day",
+        "tileTitle": "{{day}}: {{eaten}} of {{planned}} meals",
+        "today": "today",
+        "byMeal": "By meal",
+        "group": {
+          "breakfast": "Breakfast",
+          "snack": "Snack",
+          "lunch": "Lunch",
+          "dinner": "Dinner"
+        },
+        "always": "always",
+        "skipped_one": "skipped {{count}}× this week",
+        "skipped_other": "skipped {{count}}× this week",
+        "macrosLabel": "Eaten per day, on average, against the plan",
+        "macro": {
+          "kcal": "kcal",
+          "protein": "P",
+          "carbs": "C",
+          "fat": "F"
+        },
+        "grams": "g",
+        "notScheduled": "This plan has no start date yet, so there is nothing to track.",
+        "notStarted": "The plan starts {{date}}. Nothing to track yet.",
+        "noWeek": "This week has no planned meals.",
+        "noData": "Nothing to track yet. Finished days with planned meals show up here.",
+        "error": "Couldn't load this week's meals."
+      },
       "past": {
         "heading": "Past plans",
         "none": "none yet",
