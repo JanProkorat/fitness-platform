@@ -142,6 +142,11 @@ public class GetPlanResponse
     public Guid? QuestionnaireResponseId { get; set; }
 
     /// <summary>
+    /// Id of the template this plan was created from. Null when not made from a template.
+    /// </summary>
+    public Guid? SourceTemplateId { get; set; }
+
+    /// <summary>
     /// Per-meal eaten state for all <see cref="MealLog"/> documents associated with this plan.
     /// One entry per (MealId, LogDate) pair that has a log record; meals without a log entry
     /// are absent (equivalent to not-touched / no badge).
@@ -182,6 +187,7 @@ public class GetPlanResponse
         StartDate = plan.StartDate,
         DateCompleted = plan.DateCompleted,
         QuestionnaireResponseId = plan.QuestionnaireResponseId,
+        SourceTemplateId = plan.SourceTemplateId,
         Supplements = plan.Supplements.Select(s => new SupplementDto
         {
             ExternalId = s.ExternalId,

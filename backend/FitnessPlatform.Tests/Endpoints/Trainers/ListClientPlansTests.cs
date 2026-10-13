@@ -326,6 +326,71 @@ public class ListClientPlansTests
         planItem.ResultSummary.WeightDeltaKg.Should().BeNull();
     }
 
+    // ── Plan header fields (kcal target, template, week count) ───────────────
+
+    [Fact]
+    public async Task List_NutritionPlanWithTemplateKcalAndWeeks_ReturnsHeaderFields()
+    {
+        var (db, clientProfile) = BuildLinkedClientSetup();
+        var templateId = Guid.NewGuid();
+        var nutritionPlan = CreateNutritionPlan(clientProfile.PublicId, name: "Templated Plan");
+        nutritionPlan.GlobalSettings = new GlobalNutritionSettings { DailyKcal = 2100m };
+        nutritionPlan.SourceTemplateId = templateId;
+        nutritionPlan.Weeks = [new PlanWeek(), new PlanWeek(), new PlanWeek()];
+
+        var mongo = BuildMongo(nutritionPlans: [nutritionPlan], executions: [], personalRecords: []);
+        var ep = CreateEndpoint(db, mongo, _trainerId);
+
+        await ep.HandleAsync(new ListClientPlansRequest { ClientId = clientProfile.PublicId },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+        var planItem = ep.Response.Plans.Single();
+        planItem.PlannedDailyKcal.Should().Be(2100m);
+        planItem.SourceTemplateId.Should().Be(templateId);
+        planItem.WeekCount.Should().Be(3);
+    }
+
+    [Fact]
+    public async Task List_NutritionPlanWithoutTemplateOrSettings_KcalAndTemplateAreNull()
+    {
+        var (db, clientProfile) = BuildLinkedClientSetup();
+        var nutritionPlan = CreateNutritionPlan(clientProfile.PublicId, name: "Legacy Plan");
+        nutritionPlan.GlobalSettings = null;
+        nutritionPlan.SourceTemplateId = null;
+
+        var mongo = BuildMongo(nutritionPlans: [nutritionPlan], executions: [], personalRecords: []);
+        var ep = CreateEndpoint(db, mongo, _trainerId);
+
+        await ep.HandleAsync(new ListClientPlansRequest { ClientId = clientProfile.PublicId },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+        var planItem = ep.Response.Plans.Single();
+        planItem.PlannedDailyKcal.Should().BeNull();
+        planItem.SourceTemplateId.Should().BeNull();
+        planItem.WeekCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task List_TrainingPlan_HeaderFieldsAreNull()
+    {
+        var (db, clientProfile) = BuildLinkedClientSetup();
+        var trainingPlan = CreateTrainingPlan(clientProfile.PublicId, name: "Training Plan");
+
+        var mongo = BuildMongo(trainingPlans: [trainingPlan], executions: [], personalRecords: []);
+        var ep = CreateEndpoint(db, mongo, _trainerId);
+
+        await ep.HandleAsync(new ListClientPlansRequest { ClientId = clientProfile.PublicId },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+        var planItem = ep.Response.Plans.Single();
+        planItem.PlannedDailyKcal.Should().BeNull();
+        planItem.SourceTemplateId.Should().BeNull();
+        planItem.WeekCount.Should().BeNull();
+    }
+
     // ── Empty results ────────────────────────────────────────────────────────
 
     [Fact]

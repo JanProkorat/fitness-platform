@@ -62,6 +62,23 @@ public class ClientPlanItem
     public string Status { get; set; } = string.Empty;
 
     /// <summary>
+    /// Planned daily energy target (kcal) from the plan's global settings.
+    /// Null for training plans and for nutrition plans with no target set.
+    /// </summary>
+    public decimal? PlannedDailyKcal { get; set; }
+
+    /// <summary>
+    /// Id of the template the plan was created from. Null for training plans,
+    /// plans not made from a template, and legacy plans.
+    /// </summary>
+    public Guid? SourceTemplateId { get; set; }
+
+    /// <summary>
+    /// Number of weeks in the plan. Null for training plans.
+    /// </summary>
+    public int? WeekCount { get; set; }
+
+    /// <summary>
     /// Per-plan result summary. Null fields indicate the metric is not applicable
     /// (e.g. compliance is null for training plans; totalTrainings is null for nutrition plans).
     /// </summary>
