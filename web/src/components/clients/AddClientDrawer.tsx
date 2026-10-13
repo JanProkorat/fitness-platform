@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { LinkCapabilityScope } from '@/api/generated';
+import { LinkCapabilityScope, QuestionnaireType } from '@/api/generated';
 import { useCreatePendingInvite } from '@/hooks/useClientsQueries';
 import { useTrainerQuestionnaires } from '@/hooks/useQuestionnaireQueries';
 import { useAuthStore } from '@/stores/auth';
@@ -79,7 +79,7 @@ function InviteForm({ onClose }: { onClose: () => void }) {
   const [scope, setScope] = useState<LinkCapabilityScope>(LinkCapabilityScope.Both);
   const [questionnaireChoice, setQuestionnaireChoice] = useState<string | undefined>(undefined);
 
-  const questionnairesQuery = useTrainerQuestionnaires();
+  const questionnairesQuery = useTrainerQuestionnaires({ type: QuestionnaireType.Onboarding });
   const activeQuestionnaires = (questionnairesQuery.data ?? []).filter((questionnaire) => questionnaire.isActive);
   const defaultQuestionnaireId =
     activeQuestionnaires.find((questionnaire) => questionnaire.isDefault)?.publicId ?? NO_QUESTIONNAIRE;

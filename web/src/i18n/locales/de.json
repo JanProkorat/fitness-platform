@@ -208,6 +208,8 @@
     "databaseSection": "DATENBANK",
     "clientManagementSection": "Klientenverwaltung",
     "nutritionSection": "Ernährung",
+    "formsSection": "Formulare",
+    "forms": "Formulare",
     "help": "Hilfe & Support",
     "trainingPlan": "Trainingsplan",
     "mealPlan": "Ernährungsplan",
@@ -1989,6 +1991,78 @@
       "body": "Sie haben ungespeicherte Änderungen. Wenn Sie jetzt gehen, gehen sie verloren.",
       "stay": "Weiter bearbeiten",
       "discard": "Verlassen"
+    }
+  },
+  "forms": {
+    "eyebrow": "Formulare",
+    "title": "Formulare",
+    "subtitle": "Fragen, die Ihre Klienten beantworten — zu Beginn und jede Woche",
+    "newForm": "Neues Formular",
+    "searchPlaceholder": "Formulare suchen…",
+    "retry": "Erneut versuchen",
+    "loadError": "Die Formulare konnten nicht geladen werden. Bitte versuchen Sie es erneut.",
+    "noResultsForFilters": "Keine Formulare entsprechen Ihren Filtern.",
+    "clearFilters": "Filter zurücksetzen",
+    "deleteSuccess": "Formular gelöscht.",
+    "deleteError": "Das Formular konnte nicht gelöscht werden. Bitte versuchen Sie es erneut.",
+    "empty": {
+      "title": "Noch keine Formulare",
+      "hint": "Erstellen Sie Ihr erstes Formular, um Ihren Klienten Fragen zu stellen",
+      "create": "Neues Formular"
+    },
+    "filters": {
+      "type": "Typ"
+    },
+    "type": {
+      "Onboarding": "Onboarding",
+      "CheckIn": "Check-in"
+    },
+    "table": {
+      "columnForm": "Formular",
+      "columnType": "Typ",
+      "columnQuestions": "Fragen",
+      "columnUsedFor": "Verwendet für",
+      "columnEdited": "Bearbeitet",
+      "columnActions": "Aktionen",
+      "questions_one": "{{count}} Frage",
+      "questions_other": "{{count}} Fragen",
+      "clients_one": "{{count}} Klient",
+      "clients_other": "{{count}} Klienten"
+    },
+    "rowMenu": {
+      "open": "Aktionen für {{name}}",
+      "edit": "Bearbeiten",
+      "duplicate": "Duplizieren",
+      "delete": "Löschen"
+    },
+    "deleteDialog": {
+      "title": "Formular löschen",
+      "description": "„{{name}}“ löschen? Bereits abgegebene Antworten Ihrer Klienten bleiben erhalten. Das kann nicht rückgängig gemacht werden.",
+      "confirm": "Löschen"
+    },
+    "duplicate": {
+      "titleCopy": "{{title}} (Kopie)",
+      "success": "Formular dupliziert.",
+      "error": "Das Formular konnte nicht dupliziert werden. Bitte versuchen Sie es erneut."
+    },
+    "create": {
+      "heading": "Neues Formular",
+      "subtitle": "Geben Sie ihm einen Namen und wählen Sie den Zweck — die Fragen fügen Sie als Nächstes hinzu",
+      "title": "Name",
+      "titlePlaceholder": "z. B. Klienten-Onboarding",
+      "titleInvalid": "Geben Sie einen Namen mit höchstens {{max}} Zeichen ein.",
+      "description": "Beschreibung",
+      "descriptionPlaceholder": "Wofür ist dieses Formular?",
+      "descriptionInvalid": "Die Beschreibung darf höchstens {{max}} Zeichen lang sein.",
+      "type": "Typ",
+      "typeHint": {
+        "Onboarding": "Wird einmal an neue Klienten gesendet",
+        "CheckIn": "Wird jede Woche beantwortet"
+      },
+      "typeFixed": "Der Typ kann nach dem Erstellen nicht mehr geändert werden.",
+      "submit": "Formular erstellen",
+      "invalid": "Prüfen Sie Name und Typ und versuchen Sie es erneut.",
+      "error": "Das Formular konnte nicht erstellt werden. Bitte versuchen Sie es erneut."
     }
   },
   "planTemplates": {

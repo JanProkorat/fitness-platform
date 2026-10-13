@@ -208,6 +208,8 @@
     "databaseSection": "DATABASE",
     "clientManagementSection": "Client management",
     "nutritionSection": "Nutrition",
+    "formsSection": "Forms",
+    "forms": "Forms",
     "help": "Help & Support",
     "trainingPlan": "Training plan",
     "mealPlan": "Meal plan",
@@ -1990,6 +1992,78 @@
       "body": "You have unsaved changes. If you leave now they are lost.",
       "stay": "Keep editing",
       "discard": "Leave"
+    }
+  },
+  "forms": {
+    "eyebrow": "Forms",
+    "title": "Forms",
+    "subtitle": "Questions your clients answer — at the start and every week",
+    "newForm": "New form",
+    "searchPlaceholder": "Search forms…",
+    "retry": "Retry",
+    "loadError": "Couldn't load your forms. Please try again.",
+    "noResultsForFilters": "No forms match your filters.",
+    "clearFilters": "Clear filters",
+    "deleteSuccess": "Form deleted.",
+    "deleteError": "Couldn't delete the form. Please try again.",
+    "empty": {
+      "title": "No forms yet",
+      "hint": "Create your first form to ask your clients questions",
+      "create": "New form"
+    },
+    "filters": {
+      "type": "Type"
+    },
+    "type": {
+      "Onboarding": "Onboarding",
+      "CheckIn": "Check-in"
+    },
+    "table": {
+      "columnForm": "Form",
+      "columnType": "Type",
+      "columnQuestions": "Questions",
+      "columnUsedFor": "Used for",
+      "columnEdited": "Edited",
+      "columnActions": "Actions",
+      "questions_one": "{{count}} question",
+      "questions_other": "{{count}} questions",
+      "clients_one": "{{count}} client",
+      "clients_other": "{{count}} clients"
+    },
+    "rowMenu": {
+      "open": "Actions for {{name}}",
+      "edit": "Edit",
+      "duplicate": "Duplicate",
+      "delete": "Delete"
+    },
+    "deleteDialog": {
+      "title": "Delete form",
+      "description": "Delete \"{{name}}\"? Answers your clients already gave stay as they are. This can't be undone.",
+      "confirm": "Delete"
+    },
+    "duplicate": {
+      "titleCopy": "{{title}} (copy)",
+      "success": "Form duplicated.",
+      "error": "Couldn't duplicate the form. Please try again."
+    },
+    "create": {
+      "heading": "New form",
+      "subtitle": "Name it and pick what it is for — you'll add the questions next",
+      "title": "Name",
+      "titlePlaceholder": "e.g. Client onboarding",
+      "titleInvalid": "Enter a name of up to {{max}} characters.",
+      "description": "Description",
+      "descriptionPlaceholder": "What is this form for?",
+      "descriptionInvalid": "The description can be at most {{max}} characters.",
+      "type": "Type",
+      "typeHint": {
+        "Onboarding": "Sent once to a new client",
+        "CheckIn": "Answered every week"
+      },
+      "typeFixed": "The type can't be changed after the form is created.",
+      "submit": "Create form",
+      "invalid": "Check the name and type, then try again.",
+      "error": "Couldn't create the form. Please try again."
     }
   },
   "planTemplates": {

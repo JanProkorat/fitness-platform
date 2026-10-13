@@ -208,6 +208,8 @@
     "databaseSection": "DATABÁZE",
     "clientManagementSection": "Správa klientů",
     "nutritionSection": "Výživa",
+    "formsSection": "Formuláře",
+    "forms": "Formuláře",
     "help": "Nápověda a podpora",
     "trainingPlan": "Tréninkový plán",
     "mealPlan": "Jídelníček",
@@ -2040,6 +2042,82 @@
       "body": "Máte neuložené změny. Pokud odejdete, přijdete o ně.",
       "stay": "Pokračovat v úpravách",
       "discard": "Odejít"
+    }
+  },
+  "forms": {
+    "eyebrow": "Formuláře",
+    "title": "Formuláře",
+    "subtitle": "Otázky, na které klienti odpovídají — na začátku i každý týden",
+    "newForm": "Nový formulář",
+    "searchPlaceholder": "Hledat formuláře…",
+    "retry": "Zkusit znovu",
+    "loadError": "Formuláře se nepodařilo načíst. Zkuste to prosím znovu.",
+    "noResultsForFilters": "Žádné formuláře neodpovídají filtrům.",
+    "clearFilters": "Zrušit filtry",
+    "deleteSuccess": "Formulář byl smazán.",
+    "deleteError": "Formulář se nepodařilo smazat. Zkuste to prosím znovu.",
+    "empty": {
+      "title": "Zatím žádné formuláře",
+      "hint": "Vytvořte první formulář a pokládejte klientům otázky",
+      "create": "Nový formulář"
+    },
+    "filters": {
+      "type": "Typ"
+    },
+    "type": {
+      "Onboarding": "Úvodní",
+      "CheckIn": "Check-in"
+    },
+    "table": {
+      "columnForm": "Formulář",
+      "columnType": "Typ",
+      "columnQuestions": "Otázky",
+      "columnUsedFor": "Použito pro",
+      "columnEdited": "Upraveno",
+      "columnActions": "Akce",
+      "questions_one": "{{count}} otázka",
+      "questions_few": "{{count}} otázky",
+      "questions_many": "{{count}} otázky",
+      "questions_other": "{{count}} otázek",
+      "clients_one": "{{count}} klient",
+      "clients_few": "{{count}} klienti",
+      "clients_many": "{{count}} klienta",
+      "clients_other": "{{count}} klientů"
+    },
+    "rowMenu": {
+      "open": "Akce pro {{name}}",
+      "edit": "Upravit",
+      "duplicate": "Duplikovat",
+      "delete": "Smazat"
+    },
+    "deleteDialog": {
+      "title": "Smazat formulář",
+      "description": "Smazat „{{name}}“? Odpovědi, které už klienti poslali, zůstanou zachovány. Tuto akci nelze vrátit.",
+      "confirm": "Smazat"
+    },
+    "duplicate": {
+      "titleCopy": "{{title}} (kopie)",
+      "success": "Formulář byl zduplikován.",
+      "error": "Formulář se nepodařilo zduplikovat. Zkuste to prosím znovu."
+    },
+    "create": {
+      "heading": "Nový formulář",
+      "subtitle": "Pojmenujte ho a vyberte, k čemu slouží — otázky přidáte vzápětí",
+      "title": "Název",
+      "titlePlaceholder": "např. Úvodní dotazník klienta",
+      "titleInvalid": "Zadejte název o délce nejvýše {{max}} znaků.",
+      "description": "Popis",
+      "descriptionPlaceholder": "K čemu tento formulář slouží?",
+      "descriptionInvalid": "Popis může mít nejvýše {{max}} znaků.",
+      "type": "Typ",
+      "typeHint": {
+        "Onboarding": "Posílá se jednou novému klientovi",
+        "CheckIn": "Klient odpovídá každý týden"
+      },
+      "typeFixed": "Typ nelze po vytvoření formuláře změnit.",
+      "submit": "Vytvořit formulář",
+      "invalid": "Zkontrolujte název a typ a zkuste to znovu.",
+      "error": "Formulář se nepodařilo vytvořit. Zkuste to prosím znovu."
     }
   },
   "planTemplates": {

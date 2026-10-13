@@ -17,6 +17,7 @@ import DownloadAppPage from '@/pages/DownloadAppPage';
 import ClientsPage from '@/pages/ClientsPage';
 import ClientDetailPage from '@/pages/ClientDetailPage';
 import InboxPage from '@/pages/InboxPage';
+import FormsPage from '@/pages/FormsPage';
 import IngredientsPage from '@/pages/IngredientsPage';
 import RecipesPage from '@/pages/RecipesPage';
 import PlanTemplatesPage from '@/pages/PlanTemplatesPage';
@@ -71,6 +72,7 @@ export default function App() {
               <Route path="/clients" element={<ClientsPage />} />
               <Route path="/clients/:clientId" element={<ClientDetailPage />} />
               <Route path="/inbox" element={<InboxPage />} />
+              <Route path="/forms" element={<FormsPage />} />
               <Route element={<RoleGuard allowedRoles={['Nutritionist']} />}>
                 <Route path="/ingredients" element={<IngredientsPage />} />
                 <Route path="/recipes" element={<RecipesPage />} />
