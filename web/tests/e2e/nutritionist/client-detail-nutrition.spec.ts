@@ -147,7 +147,7 @@ test.describe('client detail — nutrition tab', () => {
 
     await nameInput.fill('Summer cut template');
     await dialog.getByRole('button', { name: 'Save template' }).click();
-    await expect(page.getByText('Template saved to your library.')).toBeVisible();
+    await expect(page.getByText('Template saved to your library.', { exact: true })).toBeVisible();
     await expect(dialog).toBeHidden();
     expect(savedBody).toMatchObject({
       planId: STUB_COMPLETED_PLAN_ID,
@@ -272,7 +272,7 @@ test.describe('client detail — nutrition tab', () => {
 
     // 409 PLAN_OVERLAP: an error toast, the empty state stays.
     await useButton.click();
-    await expect(page.getByText('The selected date range overlaps an existing plan for this client.')).toBeVisible();
+    await expect(page.getByText('The selected date range overlaps an existing plan for this client.', { exact: true })).toBeVisible();
     await expect(page.getByRole('heading', { name: /has no meal plan yet/ })).toBeVisible();
 
     // Second attempt succeeds: the tab refetches and shows the new, unscheduled Draft.
