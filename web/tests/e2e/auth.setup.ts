@@ -26,6 +26,7 @@
  *   qa.trainer@fitnessplatform.test
  *   qa.client@fitnessplatform.test
  *   qa.nutri@fitnessplatform.test
+ *   qa.coach@fitnessplatform.test (Trainer + Nutritionist)
  *
  * Error handling:
  *   - Missing QA_SEED_PASSWORD → fail fast with a clear message pointing at
@@ -55,6 +56,11 @@ const ROLES = [
     role: 'nutritionist',
     email: 'qa.nutri@fitnessplatform.test',
     storageStatePath: path.resolve('.auth/nutritionist.json'),
+  },
+  {
+    role: 'coach',
+    email: 'qa.coach@fitnessplatform.test',
+    storageStatePath: path.resolve('.auth/coach.json'),
   },
 ] as const;
 
