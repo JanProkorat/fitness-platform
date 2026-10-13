@@ -34,6 +34,12 @@ test.describe('client detail — both-roles overview', () => {
       await expect(page.getByText(label, { exact: true })).toHaveCount(0);
     }
 
+    // Meal compliance uses the nutrition-only figures (13 of 24 planned meals, streak 6),
+    // not the combined 56 % / 7. Holds when the spec runs the same UTC day as /test/reset.
+    const mealTile = page.getByText('Meal compliance', { exact: true }).locator('xpath=..');
+    await expect(mealTile).toContainText('54 %');
+    await expect(mealTile).toContainText('6-day logging streak');
+
     const prTile = page.getByText('PRs this month', { exact: true }).locator('xpath=..');
     await expect(prTile).toContainText('1');
 

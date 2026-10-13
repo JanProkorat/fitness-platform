@@ -57,8 +57,10 @@ export default function ClientOverviewStats({
     retry: false,
   });
 
-  const compliancePercent = dashboard.compliancePercent;
-  const streak = dashboard.currentStreak ?? 0;
+  // Per-discipline figures: undefined when the link lacks that capability.
+  const compliancePercent =
+    role === 'trainer' ? dashboard.trainingCompliancePercent : dashboard.nutritionCompliancePercent;
+  const streak = (role === 'trainer' ? dashboard.trainingStreak : dashboard.nutritionStreak) ?? 0;
 
   let complianceCaption: string;
   if (compliancePercent == null) {

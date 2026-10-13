@@ -138,6 +138,10 @@ public class GetClientDashboardEndpoint(
         // would leak the other domain's adherence by inference).
         decimal? compliancePercent = null;
         var currentStreak = 0;
+        decimal? nutritionCompliancePercent = null;
+        decimal? trainingCompliancePercent = null;
+        int? nutritionStreak = null;
+        int? trainingStreak = null;
 
         // Shared derivation — this endpoint was the only route deriving discipline from the link
         // rather than from global roles, and it is now one of several. Keeping the rule in
@@ -158,11 +162,36 @@ public class GetClientDashboardEndpoint(
             };
             currentStreak = await complianceService.CalculateStreakAsync(
                 clientProfile.UserId, discipline, ct, planAuthorUserId: professionalProfile.UserId);
+
+            // Per-discipline figures are gated on the link capability, never on the value, so a
+            // single-capability caller cannot infer the other discipline (#916). A single-capability
+            // link already walked its own discipline above, so that streak is reused, not recomputed.
+            if (link.CanViewNutritionPlans)
+            {
+                nutritionCompliancePercent = compliance.NutritionCompliancePercent;
+                nutritionStreak = discipline == ComplianceDiscipline.NutritionOnly
+                    ? currentStreak
+                    : await complianceService.CalculateStreakAsync(
+                        clientProfile.UserId, ComplianceDiscipline.NutritionOnly, ct, planAuthorUserId: professionalProfile.UserId);
+            }
+
+            if (link.CanViewTrainingPlans)
+            {
+                trainingCompliancePercent = compliance.TrainingCompliancePercent;
+                trainingStreak = discipline == ComplianceDiscipline.TrainingOnly
+                    ? currentStreak
+                    : await complianceService.CalculateStreakAsync(
+                        clientProfile.UserId, ComplianceDiscipline.TrainingOnly, ct, planAuthorUserId: professionalProfile.UserId);
+            }
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             // Compliance data is optional — may fail if no active nutrition plan exists
             Logger.LogWarning(ex, "Compliance computation failed for client {ClientPublicId}; returning null compliance", clientProfile.PublicId);
+            nutritionCompliancePercent = null;
+            trainingCompliancePercent = null;
+            nutritionStreak = null;
+            trainingStreak = null;
         }
 
         // Audit: trainer accessing client health data
@@ -342,6 +371,10 @@ public class GetClientDashboardEndpoint(
             LatestMeasurement = latestMeasurement,
             CompliancePercent = compliancePercent,
             CurrentStreak = currentStreak,
+            NutritionCompliancePercent = nutritionCompliancePercent,
+            TrainingCompliancePercent = trainingCompliancePercent,
+            NutritionStreak = nutritionStreak,
+            TrainingStreak = trainingStreak,
             SessionsCompletedThisWeek = sessionsCompletedThisWeek,
             SessionsPlannedThisWeek = sessionsPlannedThisWeek,
             Onboarding = onboarding

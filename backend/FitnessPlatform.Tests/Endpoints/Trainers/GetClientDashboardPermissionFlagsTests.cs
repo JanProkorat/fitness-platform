@@ -50,6 +50,13 @@ public class GetClientDashboardPermissionFlagsTests
         // overload, not the 2-arg one.
         svc.CalculateStreakAsync(Arg.Any<Guid>(), Arg.Any<ComplianceDiscipline>(), Arg.Any<CancellationToken>(), Arg.Any<Guid?>())
             .Returns(0);
+        // Streaks are distinct per discipline (7/5/3) so a swapped or leaked streak is visible.
+        svc.CalculateStreakAsync(Arg.Any<Guid>(), ComplianceDiscipline.Both, Arg.Any<CancellationToken>(), Arg.Any<Guid?>())
+            .Returns(7);
+        svc.CalculateStreakAsync(Arg.Any<Guid>(), ComplianceDiscipline.NutritionOnly, Arg.Any<CancellationToken>(), Arg.Any<Guid?>())
+            .Returns(5);
+        svc.CalculateStreakAsync(Arg.Any<Guid>(), ComplianceDiscipline.TrainingOnly, Arg.Any<CancellationToken>(), Arg.Any<Guid?>())
+            .Returns(3);
         return svc;
     }
 
@@ -253,6 +260,11 @@ public class GetClientDashboardPermissionFlagsTests
         ep.Response.CompliancePercent.Should().Be(80m,
             "a nutrition-only caller must see NutritionCompliancePercent substituted into the " +
             "existing CompliancePercent wire field, not the combined figure");
+        ep.Response.CurrentStreak.Should().Be(5);
+        ep.Response.NutritionCompliancePercent.Should().Be(80m);
+        ep.Response.NutritionStreak.Should().Be(5, "the single streak call is reused for the matching field");
+        ep.Response.TrainingCompliancePercent.Should().BeNull("a nutrition-only link must not leak training figures (#916)");
+        ep.Response.TrainingStreak.Should().BeNull();
 
         await _complianceService.Received(1).CalculateStreakAsync(
             clientUser.Id, ComplianceDiscipline.NutritionOnly, Arg.Any<CancellationToken>(), Arg.Any<Guid?>());
@@ -295,6 +307,11 @@ public class GetClientDashboardPermissionFlagsTests
         ep.Response.CompliancePercent.Should().Be(20m,
             "a training-only caller must see TrainingCompliancePercent substituted into the " +
             "existing CompliancePercent wire field, not the combined figure");
+        ep.Response.CurrentStreak.Should().Be(3);
+        ep.Response.TrainingCompliancePercent.Should().Be(20m);
+        ep.Response.TrainingStreak.Should().Be(3, "the single streak call is reused for the matching field");
+        ep.Response.NutritionCompliancePercent.Should().BeNull("a training-only link must not leak nutrition figures (#916)");
+        ep.Response.NutritionStreak.Should().BeNull();
 
         await _complianceService.Received(1).CalculateStreakAsync(
             clientUser.Id, ComplianceDiscipline.TrainingOnly, Arg.Any<CancellationToken>(), Arg.Any<Guid?>());
@@ -336,8 +353,17 @@ public class GetClientDashboardPermissionFlagsTests
         ep.HttpContext.Response.StatusCode.Should().Be(200);
         ep.Response.CompliancePercent.Should().Be(50m,
             "a fully-entitled caller must keep receiving the combined CompliancePercent — additive/unchanged");
+        ep.Response.CurrentStreak.Should().Be(7);
+        ep.Response.NutritionCompliancePercent.Should().Be(80m);
+        ep.Response.TrainingCompliancePercent.Should().Be(20m);
+        ep.Response.NutritionStreak.Should().Be(5);
+        ep.Response.TrainingStreak.Should().Be(3);
 
         await _complianceService.Received(1).CalculateStreakAsync(
             clientUser.Id, ComplianceDiscipline.Both, Arg.Any<CancellationToken>(), Arg.Any<Guid?>());
+        await _complianceService.Received(1).CalculateStreakAsync(
+            clientUser.Id, ComplianceDiscipline.NutritionOnly, Arg.Any<CancellationToken>(), Arg.Any<Guid?>());
+        await _complianceService.Received(1).CalculateStreakAsync(
+            clientUser.Id, ComplianceDiscipline.TrainingOnly, Arg.Any<CancellationToken>(), Arg.Any<Guid?>());
     }
 }
