@@ -1,6 +1,7 @@
 import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import { QuestionnaireType } from '@/api/questionnaires';
+import FormTypePicker from '@/components/forms/FormTypePicker';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -11,20 +12,22 @@ import {
   type DraftForm,
 } from '@/components/forms/builder/form-builder-model';
 
+const SECTION_LABEL_CLASS = 'text-label font-semibold tracking-label text-ink-2 uppercase';
+
 interface Props {
   doc: DraftForm;
-  type: QuestionnaireType;
   titleError?: string;
   descriptionError?: string;
-  onChange: (patch: Partial<Pick<DraftForm, 'title' | 'description' | 'isDefault'>>) => void;
+  onChange: (patch: Partial<Pick<DraftForm, 'title' | 'description' | 'type' | 'isDefault'>>) => void;
 }
 
 /** Side-panel tab with the form's own data. It edits the same draft as the header title, so Save covers both. */
-export default function FormInfoPanel({ doc, type, titleError, descriptionError, onChange }: Props) {
+export default function FormInfoPanel({ doc, titleError, descriptionError, onChange }: Props) {
   const { t } = useTranslation();
   const baseId = useId();
   const titleId = `${baseId}-title`;
   const descriptionId = `${baseId}-description`;
+  const typeId = `${baseId}-type`;
   const defaultId = `${baseId}-default`;
 
   return (
@@ -54,12 +57,12 @@ export default function FormInfoPanel({ doc, type, titleError, descriptionError,
           <Label htmlFor={descriptionId}>{t('forms.create.description')}</Label>
           <Textarea
             id={descriptionId}
-            rows={3}
             value={doc.description}
             aria-invalid={descriptionError !== undefined}
             aria-describedby={descriptionError ? `${descriptionId}-error` : undefined}
             placeholder={t('forms.create.descriptionPlaceholder')}
             onChange={(event) => onChange({ description: event.target.value })}
+            className="field-sizing-content min-h-24 max-h-60 overflow-y-auto"
           />
           {descriptionError && (
             <p id={`${descriptionId}-error`} role="alert" className="text-meta text-destructive">
@@ -68,7 +71,19 @@ export default function FormInfoPanel({ doc, type, titleError, descriptionError,
           )}
         </div>
 
-        {type === QuestionnaireType.Onboarding && (
+        <div className="flex flex-col gap-2">
+          <span id={typeId} className={SECTION_LABEL_CLASS}>
+            {t('forms.create.type')}
+          </span>
+          <FormTypePicker
+            value={doc.type}
+            onChange={(type) => onChange({ type })}
+            labelledBy={typeId}
+            className="grid-cols-1"
+          />
+        </div>
+
+        {doc.type === QuestionnaireType.Onboarding && (
           <div className="flex items-start justify-between gap-4 rounded-field border border-line p-3.5">
             <div className="flex flex-col gap-0.5">
               <Label htmlFor={defaultId}>{t('forms.builder.settings.default')}</Label>

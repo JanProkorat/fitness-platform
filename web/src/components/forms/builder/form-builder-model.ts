@@ -88,6 +88,7 @@ export interface DraftQuestion {
 export interface DraftForm {
   title: string;
   description: string;
+  type: QuestionnaireType;
   isDefault: boolean;
   questions: DraftQuestion[];
 }
@@ -95,7 +96,6 @@ export interface DraftForm {
 /** Server-owned values the builder never edits but must send back on every save. */
 export interface FormServerState {
   publicId: string;
-  type: QuestionnaireType;
   isActive: boolean;
   /** Questions with answers that were removed earlier; sent back unchanged after the visible ones. */
   hidden: QuestionDto[];
@@ -228,12 +228,12 @@ export function toDraftForm(dto: QuestionnaireDto): { draft: DraftForm; server: 
     draft: {
       title: dto.title,
       description: dto.description ?? '',
+      type: dto.type,
       isDefault: dto.isDefault,
       questions: ordered.filter((question) => !question.isHidden).map(toDraftQuestion),
     },
     server: {
       publicId: dto.publicId,
-      type: dto.type,
       isActive: dto.isActive,
       hidden: ordered.filter((question) => question.isHidden),
     },
@@ -317,9 +317,9 @@ export function toUpdatePayload(draft: DraftForm, server: FormServerState) {
   return {
     title: draft.title.trim(),
     description: description === '' ? null : description,
-    type: server.type,
+    type: draft.type,
     isActive: server.isActive,
-    isDefault: server.type === QuestionnaireType.Onboarding ? draft.isDefault : false,
+    isDefault: draft.type === QuestionnaireType.Onboarding ? draft.isDefault : false,
     questions: [...visible, ...hidden],
   };
 }

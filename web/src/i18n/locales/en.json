@@ -2184,7 +2184,6 @@
         "Onboarding": "Sent once to a new client",
         "CheckIn": "Answered every week"
       },
-      "typeFixed": "The type can't be changed after the form is created.",
       "submit": "Create form",
       "invalid": "Check the name and type, then try again.",
       "error": "Couldn't create the form. Please try again."

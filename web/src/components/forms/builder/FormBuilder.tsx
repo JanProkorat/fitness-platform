@@ -97,7 +97,7 @@ export default function FormBuilder({ initial, onBack }: Props) {
   const errors = useMemo(() => validateDraft(doc), [doc]);
   const visibleErrors = showErrors ? errors : null;
   const count = doc.questions.length;
-  const isOnboarding = server.type === QuestionnaireType.Onboarding;
+  const isOnboarding = doc.type === QuestionnaireType.Onboarding;
 
   useEffect(() => {
     if (!dirty) {
@@ -164,8 +164,13 @@ export default function FormBuilder({ initial, onBack }: Props) {
     setSelectedKey((current) => (current === key ? null : current));
   }
 
-  function patchForm(patch: Partial<Pick<DraftForm, 'title' | 'description' | 'isDefault'>>) {
-    edit((current) => ({ ...current, ...patch }));
+  function patchForm(patch: Partial<Pick<DraftForm, 'title' | 'description' | 'type' | 'isDefault'>>) {
+    // The default flag is Onboarding-only, so switching to Check-in clears it. Questions stay as they are.
+    edit((current) => ({
+      ...current,
+      ...patch,
+      ...(patch.type === QuestionnaireType.CheckIn ? { isDefault: false } : {}),
+    }));
   }
 
   async function save() {
@@ -213,7 +218,6 @@ export default function FormBuilder({ initial, onBack }: Props) {
       content: (
         <FormInfoPanel
           doc={doc}
-          type={server.type}
           titleError={visibleErrors?.title}
           descriptionError={visibleErrors?.description}
           onChange={patchForm}
@@ -224,7 +228,7 @@ export default function FormBuilder({ initial, onBack }: Props) {
       id: 'library',
       label: t('forms.builder.panel.library'),
       icon: BookOpen,
-      content: <QuestionPalette formType={server.type} onAdd={(kind) => addPalette(kind)} />,
+      content: <QuestionPalette formType={doc.type} onAdd={(kind) => addPalette(kind)} />,
     },
   ];
 
@@ -290,7 +294,7 @@ export default function FormBuilder({ initial, onBack }: Props) {
             title={doc.title}
             onTitleChange={(title) => patchForm({ title })}
             titleInvalid={visibleErrors?.title !== undefined}
-            type={server.type}
+            type={doc.type}
             dirty={dirty}
             saving={updateMutation.isPending}
             onBack={leave}

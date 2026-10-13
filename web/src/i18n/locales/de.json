@@ -2183,7 +2183,6 @@
         "Onboarding": "Wird einmal an neue Klienten gesendet",
         "CheckIn": "Wird jede Woche beantwortet"
       },
-      "typeFixed": "Der Typ kann nach dem Erstellen nicht mehr geändert werden.",
       "submit": "Formular erstellen",
       "invalid": "Prüfen Sie Name und Typ und versuchen Sie es erneut.",
       "error": "Das Formular konnte nicht erstellt werden. Bitte versuchen Sie es erneut."

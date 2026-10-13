@@ -12,11 +12,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { QuestionnaireType } from '@/api/questionnaires';
 import { useCreateForm } from '@/hooks/useQuestionnaireQueries';
 import { getErrorStatus } from '@/lib/api-errors';
-import { cn } from '@/lib/utils';
+import FormTypePicker from '@/components/forms/FormTypePicker';
 import { DESCRIPTION_MAX_LENGTH } from '@/components/forms/builder/form-builder-model';
 
 const TITLE_MAX_LENGTH = 200;
-const TYPE_OPTIONS = [QuestionnaireType.Onboarding, QuestionnaireType.CheckIn] as const;
 
 const formSchema = z.object({
   title: z.string().trim().min(1).max(TITLE_MAX_LENGTH),
@@ -44,7 +43,8 @@ function CreateFormBody({ onClose }: { onClose: () => void }) {
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    mode: 'onTouched',
+    // Validate on submit only: an error <p> appearing on blur would shift the centred dialog under the cursor and swallow the click on X.
+    mode: 'onSubmit',
     defaultValues: { title: '', description: '', type: QuestionnaireType.Onboarding },
   });
   const type = useWatch({ control, name: 'type' });
@@ -107,28 +107,11 @@ function CreateFormBody({ onClose }: { onClose: () => void }) {
         <span id="form-type-label" className="text-body font-medium text-ink">
           {t('forms.create.type')}
         </span>
-        <div role="radiogroup" aria-labelledby="form-type-label" className="grid grid-cols-2 gap-2">
-          {TYPE_OPTIONS.map((option) => {
-            const selected = type === option;
-            return (
-              <button
-                key={option}
-                type="button"
-                role="radio"
-                aria-checked={selected}
-                onClick={() => setValue('type', option, { shouldDirty: true })}
-                className={cn(
-                  'flex flex-col items-start gap-0.5 rounded-field border px-3.5 py-2.5 text-left outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50',
-                  selected ? 'border-ink bg-sunken' : 'border-line bg-card hover:bg-muted',
-                )}
-              >
-                <span className="text-body font-semibold text-ink">{t(`forms.type.${option}`)}</span>
-                <span className="text-meta text-muted-foreground">{t(`forms.create.typeHint.${option}`)}</span>
-              </button>
-            );
-          })}
-        </div>
-        <p className="text-meta text-muted-foreground">{t('forms.create.typeFixed')}</p>
+        <FormTypePicker
+          value={type}
+          onChange={(option) => setValue('type', option, { shouldDirty: true })}
+          labelledBy="form-type-label"
+        />
       </div>
 
       {serverError && (
