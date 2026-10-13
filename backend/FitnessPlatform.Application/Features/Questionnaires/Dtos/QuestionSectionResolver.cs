@@ -1,4 +1,5 @@
 using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Features.Questionnaires.Shared;
 
 namespace FitnessPlatform.Application.Features.Questionnaires.Dtos;
 
@@ -13,13 +14,6 @@ namespace FitnessPlatform.Application.Features.Questionnaires.Dtos;
 /// </summary>
 public static class QuestionSectionResolver
 {
-    /// <summary>
-    /// The question type used for a non-answerable section header. Matches the
-    /// literal already used by <c>GetClientResponseByIdEndpoint</c> /
-    /// <c>GetClientSubmittedResponse(s)Endpoint</c> (<c>a.Question.Type != "section"</c>).
-    /// </summary>
-    private const string SectionQuestionType = "section";
-
     /// <summary>
     /// Walks <paramref name="questions"/> in <see cref="QuestionnaireQuestion.OrderIndex"/>
     /// order, building a QuestionId → (SectionLabel, SectionOrder) lookup. A section
@@ -40,7 +34,7 @@ public static class QuestionSectionResolver
 
         foreach (var question in questions.OrderBy(q => q.OrderIndex))
         {
-            if (question.Type == SectionQuestionType)
+            if (question.Type == QuestionTypes.Section)
             {
                 currentLabel = question.Label;
                 currentOrder = nextSectionOrder++;

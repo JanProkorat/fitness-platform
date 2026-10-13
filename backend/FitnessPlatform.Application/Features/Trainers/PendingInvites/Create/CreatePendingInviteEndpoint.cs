@@ -210,6 +210,13 @@ public class CreatePendingInviteEndpoint(
             var questionnaire = await db.Questionnaires
                 .FirstOrDefaultAsync(q => q.PublicId == req.QuestionnairePublicId.Value
                     && q.ProfessionalId == Guid.Parse(userId), ct);
+
+            if (questionnaire?.Type == QuestionnaireType.CheckIn)
+            {
+                this.ThrowErrorWithCode(ErrorCodes.CheckInFormNotSendable, "Check-in forms cannot be sent as a questionnaire.");
+                return;
+            }
+
             questionnaireId = questionnaire?.Id;
         }
 
