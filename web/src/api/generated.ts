@@ -3630,6 +3630,81 @@ export class ApiClient {
     }
 
     /**
+     * Update a client's nutrition profile
+     * @param clientId Route parameter — the client's public id.
+     * @return Nutrition profile updated
+     */
+    updateClientNutritionProfileEndpoint(clientId: string, updateClientNutritionProfileRequest: UpdateClientNutritionProfileRequest, signal?: AbortSignal): Promise<UpdateClientNutritionProfileResponse> {
+        let url_ = this.baseUrl + "/trainer/clients/{clientId}/nutrition-profile";
+        if (clientId === undefined || clientId === null)
+            throw new globalThis.Error("The parameter 'clientId' must be defined.");
+        url_ = url_.replace("{clientId}", encodeURIComponent("" + clientId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(updateClientNutritionProfileRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUpdateClientNutritionProfileEndpoint(_response);
+        });
+    }
+
+    protected processUpdateClientNutritionProfileEndpoint(response: AxiosResponse): Promise<UpdateClientNutritionProfileResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<UpdateClientNutritionProfileResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Link does not grant nutrition-plan visibility", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<UpdateClientNutritionProfileResponse>(null as any);
+    }
+
+    /**
      * Update client data
      * @param clientId Client profile public ID (route parameter).
      * @return Success
@@ -10248,6 +10323,81 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<PlanSummaryDto>(null as any);
+    }
+
+    /**
+     * Copy a nutrition plan to a client
+     * @param planId The source plan's public identifier (route parameter).
+     * @return The new Draft plan
+     */
+    copyNutritionPlanEndpoint(planId: string, copyNutritionPlanRequest: CopyNutritionPlanRequest, signal?: AbortSignal): Promise<CopyNutritionPlanResponse> {
+        let url_ = this.baseUrl + "/nutrition/plans/{planId}/copy";
+        if (planId === undefined || planId === null)
+            throw new globalThis.Error("The parameter 'planId' must be defined.");
+        url_ = url_.replace("{planId}", encodeURIComponent("" + planId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(copyNutritionPlanRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCopyNutritionPlanEndpoint(_response);
+        });
+    }
+
+    protected processCopyNutritionPlanEndpoint(response: AxiosResponse): Promise<CopyNutritionPlanResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 201) {
+            const _responseText = response.data;
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = JSON.parse(resultData201);
+            return Promise.resolve<CopyNutritionPlanResponse>(result201);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<CopyNutritionPlanResponse>(null as any);
     }
 
     /**
@@ -18239,6 +18389,8 @@ export interface RespondToCheckInRequest {
     flags?: CheckInFlag[];
     /** Optional free-text note. ≤ 500 characters. */
     note?: string | undefined;
+    /** Optional hunger score, 1-5. */
+    hungerScore?: number | undefined;
 }
 
 /** Response for PUT /trainer/weekly-check-ins/settings. */
@@ -18496,6 +18648,8 @@ export interface CheckInHistoryWeekDto {
     status?: string;
     /** UTC time the check-in that decided this week's status was sent; null for a "none" week. */
     sentAt?: string | undefined;
+    /** Hunger score (1-5) the client gave in the deciding check-in; null when none was given. */
+    hungerScore?: number | undefined;
 }
 
 /** Request for GET /trainer/clients/{clientUserId}/weekly-check-ins/history. */
@@ -18520,6 +18674,8 @@ export interface GetCheckInDetailResponse {
     flags?: CheckInFlag[];
     /** Client's optional note. */
     note?: string | undefined;
+    /** Hunger score (1-5) the client gave; null when none was given. */
+    hungerScore?: number | undefined;
     /** When the scheduler sent this check-in. */
     sentAt?: string;
     /** When the client responded. Null if not yet responded. */
@@ -19603,6 +19759,30 @@ export interface UpdateProfessionalProfileRequest {
     acceptNewClients?: boolean;
 }
 
+/** The client's nutrition profile after the update. */
+export interface UpdateClientNutritionProfileResponse {
+    /** Stored dislikes. */
+    dislikes?: string[];
+    /** Stored habits. */
+    habits?: string[];
+    /** Stored allergies. */
+    allergies?: string[];
+    /** Stored fibre target in grams; null when none is set. */
+    fibreGrams?: number | undefined;
+}
+
+/** Request for editing a client's nutrition profile (dislikes, habits, allergies, fibre target). */
+export interface UpdateClientNutritionProfileRequest {
+    /** Foods the client dislikes. Replaces the stored list. At most 20 items of 1-60 characters. */
+    dislikes: string[];
+    /** Eating habits. Replaces the stored list. At most 20 items of 1-60 characters. */
+    habits: string[];
+    /** Food allergies and intolerances. Replaces the stored list; items must not contain commas. */
+    allergies: string[];
+    /** Daily fibre target in grams (0-150); null leaves the stored target untouched. */
+    fibreGrams?: number | undefined;
+}
+
 /** Response after updating client data. */
 export interface UpdateClientDataResponse {
     /** Confirmation message. */
@@ -19746,6 +19926,14 @@ export interface ClientPlanItem {
     periodEnd?: string | undefined;
     /** Current plan status as a string: "Draft", "Active", "Completed", "Archived". */
     status?: string;
+    /** Planned daily energy target (kcal) from the plan's global settings.
+Null for training plans and for nutrition plans with no target set. */
+    plannedDailyKcal?: number | undefined;
+    /** Id of the template the plan was created from. Null for training plans,
+plans not made from a template, and legacy plans. */
+    sourceTemplateId?: string | undefined;
+    /** Number of weeks in the plan. Null for training plans. */
+    weekCount?: number | undefined;
     /** Per-plan result summary. Null fields indicate the metric is not applicable
 (e.g. compliance is null for training plans; totalTrainings is null for nutrition plans). */
     resultSummary?: ClientPlanResultSummary;
@@ -20360,6 +20548,15 @@ export interface OnboardingDataDto {
     fatGrams?: number | undefined;
     /** Meal distribution percentages as JSON. */
     mealDistribution?: string | undefined;
+    /** Foods the client dislikes. Null when the caller cannot view nutrition plans. */
+    dislikes?: string[] | undefined;
+    /** Eating habits. Null when the caller cannot view nutrition plans. */
+    habits?: string[] | undefined;
+    /** Daily fibre target in grams. Null when unset or the caller cannot view nutrition plans. */
+    fibreGrams?: number | undefined;
+    /** Later of the onboarding and nutrition-target update dates (creation date if never updated).
+Target dates count only when the caller can view nutrition plans. */
+    dateUpdated?: string | undefined;
 }
 
 /** Request model for retrieving a client's dashboard summary. */
@@ -22269,6 +22466,8 @@ FromDocument. */
     /** Linked questionnaire response (cross-DB reference to PostgreSQL QuestionnaireResponse.PublicId).
 Null if no questionnaire is linked to this plan. */
     questionnaireResponseId?: string | undefined;
+    /** Id of the template this plan was created from. Null when not made from a template. */
+    sourceTemplateId?: string | undefined;
     /** Per-meal eaten state for all MealLog documents associated with this plan.
 One entry per (MealId, LogDate) pair that has a log record; meals without a log entry
 are absent (equivalent to not-touched / no badge).
@@ -22529,6 +22728,31 @@ When set, read sites prefer this value over the client's onboarding baseline. */
     /** Optional target body weight in kilograms for this plan period.
 Must be greater than zero when provided. */
     targetWeightKg?: number | undefined;
+}
+
+/** Response describing the new plan created by copying an existing one. */
+export interface CopyNutritionPlanResponse {
+    /** The newly created plan's public identifier. */
+    planId?: string;
+    /** The target client's ClientProfile.PublicId — echoes the caller-supplied value. */
+    clientId?: string;
+    /** Display name of the new plan. */
+    name?: string;
+    /** Status of the new plan — always Draft immediately after the copy. */
+    status?: string;
+    /** When the new plan was created. */
+    dateCreated?: string;
+}
+
+/** Request to copy an existing nutrition plan to a client as a new Draft plan. */
+export interface CopyNutritionPlanRequest {
+    /** The target client's ClientProfile.PublicId — the coach-facing identifier, not the
+internal ApplicationUser.Id storage key. May be the source plan's own client. */
+    clientId: string;
+    /** Optional display name for the copy. Defaults to the source plan's name. */
+    name?: string | undefined;
+    /** Optional start date. Must be a Monday and not in the past. */
+    startDate?: string | undefined;
 }
 
 /** Request to mark a nutrition plan as completed. */
@@ -24120,6 +24344,12 @@ Null when PlanId is null. */
     planType?: PlanPhotoType | undefined;
     /** MongoDB MealLog ObjectId string. Only set when Category is Food. */
     mealLogId?: string | undefined;
+    /** PlanMeal.MealId the meal log refers to. Filled by the trainer view only; null for
+non-meal photos and unresolvable logs. */
+    mealId?: string | undefined;
+    /** Kind of the plan meal the photo belongs to. Filled by the trainer view only; null for
+non-meal photos, unresolvable logs, and meals removed from the plan. */
+    mealKind?: MealKind | undefined;
     /** When the photo was taken or uploaded, in UTC. */
     takenAt?: string;
     /** The ApplicationUser.Id of the person who uploaded the photo. */
@@ -24693,6 +24923,10 @@ export interface SubmitOnboardingRequest {
     dietaryStyle: string;
     /** Food allergies/intolerances. */
     allergies?: string[];
+    /** Foods the client dislikes. At most 20 items of 1-60 characters. */
+    dislikes: string[];
+    /** Eating habits. At most 20 items of 1-60 characters. */
+    habits: string[];
     /** Self-rated diet quality (1-5, optional). */
     dietRating?: number | undefined;
     /** Prior plan experience. */
