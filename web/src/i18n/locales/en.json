@@ -3311,7 +3311,6 @@
     },
     "overview": {
       "backAriaLabel": "Back to clients",
-      "tbd": "TBD",
       "header": {
         "heightCm": "{{cm}} cm"
       },
@@ -3331,19 +3330,37 @@
         "automations": "Automations"
       },
       "stats": {
-        "rating": {
-          "label": "Average rating",
-          "caption": "Based on check-in answers"
+        "mealCompliance": {
+          "label": "Meal compliance",
+          "value": "{{percent}} %",
+          "caption": "Last 7 days",
+          "captionStreak_one": "Last 7 days • {{count}}-day logging streak",
+          "captionStreak_other": "Last 7 days • {{count}}-day logging streak",
+          "empty": "No data yet"
         },
-        "payments": {
-          "label": "Payments",
-          "caption": "No payments found for client"
+        "trainingCompliance": {
+          "label": "Training compliance",
+          "value": "{{percent}} %",
+          "caption": "Last 7 days",
+          "captionStreak_one": "Last 7 days • {{count}}-day training streak",
+          "captionStreak_other": "Last 7 days • {{count}}-day training streak",
+          "empty": "No data yet"
+        },
+        "weightChange": {
+          "label": "Weight change",
+          "value": "{{delta}} kg",
+          "since": "Since {{date}}",
+          "sinceGoal": "{{since}} · {{goal}} kg goal",
+          "empty": "No measurements yet"
+        },
+        "prs": {
+          "label": "PRs this month",
+          "lastActive": "Last active {{when}}",
+          "noActivity": "No activity yet"
         },
         "weight": {
-          "label": "Current weight",
           "value": "{{kg}} kg",
           "deltaThisWeek": "{{delta}} kg this week",
-          "goalWeight": "{{goal}} kg goal",
           "empty": "—",
           "noMeasurements": "No measurements yet"
         },
@@ -3355,34 +3372,109 @@
         }
       },
       "mealPlan": {
+        "label": "Meal plan",
         "heading": "Current meal plan",
+        "openPlan": "Open plan",
+        "macrosCaption": "Macros · protein / carbs / fat",
         "detail": "{{kcal}} kcal • {{carb}} % Carb / {{protein}} % Protein / {{fat}} % Fat"
       },
       "workout": {
+        "label": "Training",
+        "openPlan": "Open plan",
+        "doneThisWeek": "Done this week · {{done}} of {{total}} sessions",
         "heading": "Latest workout",
         "exercises_one": "{{count}} Exercise",
-        "exercises_other": "{{count}} Exercises"
+        "exercises_other": "{{count}} Exercises",
+        "cardExercises_one": "{{count}} exercise",
+        "cardExercises_other": "{{count}} exercises"
       },
       "checkInTrend": {
         "heading": "Check-in trend",
-        "last15Days": "Last 15 days",
+        "lastWeeks_one": "Last {{count}} week",
+        "lastWeeks_other": "Last {{count}} weeks",
+        "empty": "No check-ins sent yet",
+        "thisWeek": "This week",
+        "weekLabel": "W{{week}}",
         "legend": {
-          "completed": "Completed",
+          "answered": "Answered",
           "missed": "Missed",
-          "upcoming": "Upcoming"
+          "waiting": "Waiting for answer"
+        },
+        "footer": {
+          "title": "This week's check-in",
+          "status": {
+            "answered": "Answered",
+            "missed": "Not answered",
+            "waiting": "Not answered yet",
+            "none": "Not sent"
+          },
+          "sent": {
+            "answered": "Sent {{date}}, answered",
+            "missed": "Sent {{date}}, not answered",
+            "waiting": "Sent {{date}}, not answered yet",
+            "none": "Sent {{date}}"
+          },
+          "overall": "{{answered}} of {{total}} answered overall"
         }
       },
-      "messagesTrend": {
-        "heading": "Messages trend",
-        "last4Weeks": "Last 4 weeks",
-        "chartAriaLabel": "Coach and client messages per week, last 4 weeks. {{summary}}",
-        "chartAriaWeek": "week of {{date}}: {{coach}} from coach, {{client}} from client",
-        "weekLabel": "W{{index}}",
-        "weekTooltip": "Week of {{date}}",
-        "legend": {
-          "coach": "Coach Messages",
-          "client": "Client Messages"
+      "weight": {
+        "heading": "Weight",
+        "lastMeasurements_one": "Last {{count}} measurement",
+        "lastMeasurements_other": "Last {{count}} measurements",
+        "value": "{{kg}} kg",
+        "deltaThisWeek": "{{delta}} kg this week",
+        "goal": "{{goal}} kg goal",
+        "empty": "No measurements yet",
+        "bodyFat": "Body fat {{value}} %",
+        "waist": "Waist {{value}} cm",
+        "pointLabel": "{{date}} · {{kg}} kg",
+        "legendWeight": "Weight",
+        "legendGoal": "Goal {{goal}} kg",
+        "chartLabel": "Weight changed from {{from}} kg to {{to}} kg over the last {{n}} measurements"
+      },
+      "activity": {
+        "heading": "Recent activity",
+        "latest": "Latest",
+        "empty": "No activity yet",
+        "type": {
+          "personal_record": "New PR",
+          "workout": "Workout done",
+          "meal_day": "Meals logged",
+          "measurement": "Measurement",
+          "questionnaire": "Questionnaire submitted",
+          "nutrition_plan_published": "Meal plan published",
+          "training_plan_published": "Training plan published",
+          "linked": "Client linked",
+          "unknown": "Activity"
+        },
+        "detail": {
+          "personalRecord": "{{exercise}} {{kg}} kg × {{reps}}",
+          "mealsOfPlanned": "{{logged}} of {{planned}}",
+          "mealsLogged_one": "{{count}} meal logged",
+          "mealsLogged_other": "{{count}} meals logged",
+          "weight": "{{kg}} kg",
+          "bodyFat": "body fat {{value}} %",
+          "planWeek": "{{name}}, week {{week}}",
+          "weekOnly": "Week {{week}}"
         }
+      },
+      "profile": {
+        "heading": "Client profile",
+        "source": "From onboarding",
+        "empty": "No onboarding data yet",
+        "injuries": "Injuries",
+        "allergies": "Allergies",
+        "noneReported": "None reported",
+        "diet": "Diet style",
+        "training": "Training days",
+        "wants": "wants {{value}}",
+        "sleepStress": "Sleep and stress",
+        "sleepHours": "{{hours}} h",
+        "stressLevel": "stress {{level}}/5",
+        "dailyTarget": "Daily target",
+        "kcal": "{{value}} kcal",
+        "tdee": "TDEE {{value}} kcal",
+        "pastBlockers": "Past blockers"
       }
     }
   },

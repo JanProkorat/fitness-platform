@@ -4,6 +4,9 @@ interface Props {
   firstName?: string;
   lastName?: string;
   avatarBlobUrl?: string;
+  /** Overrides the avatar root (size) and fallback (colours, type) classes; omitted keeps the list-row look. */
+  className?: string;
+  fallbackClassName?: string;
 }
 
 function initials(firstName?: string, lastName?: string): string {
@@ -12,11 +15,11 @@ function initials(firstName?: string, lastName?: string): string {
 }
 
 /** Client-row avatar: photo when uploaded, initials fallback otherwise. */
-export default function ClientAvatar({ firstName, lastName, avatarBlobUrl }: Props) {
+export default function ClientAvatar({ firstName, lastName, avatarBlobUrl, className, fallbackClassName }: Props) {
   return (
-    <Avatar>
+    <Avatar className={className}>
       {avatarBlobUrl && <AvatarImage src={avatarBlobUrl} alt="" />}
-      <AvatarFallback>{initials(firstName, lastName)}</AvatarFallback>
+      <AvatarFallback className={fallbackClassName}>{initials(firstName, lastName)}</AvatarFallback>
     </Avatar>
   );
 }

@@ -1299,7 +1299,7 @@
       "y": 0
     },
     "PageClientDetailC.dc.html": {
-      "h": 900,
+      "h": 1100,
       "page": "web",
       "title": "C · ClientDetail",
       "w": 1440,
@@ -1307,7 +1307,7 @@
       "y": 14040
     },
     "PageClientDetailD.dc.html": {
-      "h": 900,
+      "h": 1100,
       "page": "web",
       "title": "D · ClientDetail",
       "w": 1440,
@@ -1319,7 +1319,7 @@
       "page": "web",
       "title": "C · Clients · Invite client drawer",
       "w": 1440,
-      "x": 16720,
+      "x": 19760,
       "y": 14040
     },
     "PageClientInviteDrawerD.dc.html": {
@@ -1327,7 +1327,7 @@
       "page": "web",
       "title": "D · Clients · Invite client drawer",
       "w": 1440,
-      "x": 16720,
+      "x": 19760,
       "y": 15540
     },
     "PageClientNutritionC.dc.html": {
@@ -1335,7 +1335,7 @@
       "page": "web",
       "title": "C · ClientDetail · Nutrition tab",
       "w": 1440,
-      "x": 3040,
+      "x": 6080,
       "y": 14040
     },
     "PageClientNutritionD.dc.html": {
@@ -1343,7 +1343,7 @@
       "page": "web",
       "title": "D · ClientDetail · Nutrition tab",
       "w": 1440,
-      "x": 3040,
+      "x": 6080,
       "y": 15540
     },
     "PageClientNutritionEmptyC.dc.html": {
@@ -1351,7 +1351,7 @@
       "page": "web",
       "title": "C · ClientDetail · Nutrition, no plan yet",
       "w": 1440,
-      "x": 4560,
+      "x": 7600,
       "y": 14040
     },
     "PageClientNutritionEmptyD.dc.html": {
@@ -1359,7 +1359,7 @@
       "page": "web",
       "title": "D · ClientDetail · Nutrition, no plan yet",
       "w": 1440,
-      "x": 4560,
+      "x": 7600,
       "y": 15540
     },
     "PageClientPlanBlankC.dc.html": {
@@ -1367,7 +1367,7 @@
       "page": "web",
       "title": "C · Client plan · blank",
       "w": 1440,
-      "x": 13680,
+      "x": 16720,
       "y": 14040
     },
     "PageClientPlanBlankD.dc.html": {
@@ -1375,7 +1375,7 @@
       "page": "web",
       "title": "D · Client plan · blank",
       "w": 1440,
-      "x": 13680,
+      "x": 16720,
       "y": 15540
     },
     "PageClientPlanClosedC.dc.html": {
@@ -1383,7 +1383,7 @@
       "page": "web",
       "title": "C · Client plan · panel closed",
       "w": 1440,
-      "x": 15200,
+      "x": 18240,
       "y": 14040
     },
     "PageClientPlanClosedD.dc.html": {
@@ -1391,7 +1391,7 @@
       "page": "web",
       "title": "D · Client plan · panel closed",
       "w": 1440,
-      "x": 15200,
+      "x": 18240,
       "y": 15540
     },
     "PageClientPlanDayAddMealC.dc.html": {
@@ -1399,7 +1399,7 @@
       "page": "web",
       "title": "C · Client plan · Day · Add meal drawer",
       "w": 1440,
-      "x": 9120,
+      "x": 12160,
       "y": 14040
     },
     "PageClientPlanDayAddMealD.dc.html": {
@@ -1407,7 +1407,7 @@
       "page": "web",
       "title": "D · Client plan · Day · Add meal drawer",
       "w": 1440,
-      "x": 9120,
+      "x": 12160,
       "y": 15540
     },
     "PageClientPlanDayC.dc.html": {
@@ -1415,7 +1415,7 @@
       "page": "web",
       "title": "C · Client plan · Day view",
       "w": 1440,
-      "x": 7600,
+      "x": 10640,
       "y": 14040
     },
     "PageClientPlanDayD.dc.html": {
@@ -1423,7 +1423,7 @@
       "page": "web",
       "title": "D · Client plan · Day view",
       "w": 1440,
-      "x": 7600,
+      "x": 10640,
       "y": 15540
     },
     "PageClientPlanEditorC.dc.html": {
@@ -1431,7 +1431,7 @@
       "page": "web",
       "title": "C · Client plan · Library › Templates",
       "w": 1440,
-      "x": 6080,
+      "x": 9120,
       "y": 14040
     },
     "PageClientPlanEditorD.dc.html": {
@@ -1439,7 +1439,7 @@
       "page": "web",
       "title": "D · Client plan · Library › Templates",
       "w": 1440,
-      "x": 6080,
+      "x": 9120,
       "y": 15540
     },
     "PageClientPlanInfoC.dc.html": {
@@ -1447,7 +1447,7 @@
       "page": "web",
       "title": "C · Client plan · Plan info tab",
       "w": 1440,
-      "x": 12160,
+      "x": 15200,
       "y": 14040
     },
     "PageClientPlanInfoD.dc.html": {
@@ -1455,7 +1455,7 @@
       "page": "web",
       "title": "D · Client plan · Plan info tab",
       "w": 1440,
-      "x": 12160,
+      "x": 15200,
       "y": 15540
     },
     "PageClientPlanStartOverC.dc.html": {
@@ -1463,7 +1463,7 @@
       "page": "web",
       "title": "C · Client plan · replace with template?",
       "w": 1440,
-      "x": 10640,
+      "x": 13680,
       "y": 14040
     },
     "PageClientPlanStartOverD.dc.html": {
@@ -1471,7 +1471,7 @@
       "page": "web",
       "title": "D · Client plan · replace with template?",
       "w": 1440,
-      "x": 10640,
+      "x": 13680,
       "y": 15540
     },
     "PageClientsC.dc.html": {
@@ -2265,6 +2265,38 @@
       "w": 1440,
       "x": 19760,
       "y": 25700
+    },
+    "PageClientDetailTrainerC.dc.html": {
+      "h": 1100,
+      "page": "web",
+      "title": "C · ClientDetail · Trainer only",
+      "w": 1440,
+      "x": 3040,
+      "y": 14040
+    },
+    "PageClientDetailNutritionistC.dc.html": {
+      "h": 1100,
+      "page": "web",
+      "title": "C · ClientDetail · Nutritionist only",
+      "w": 1440,
+      "x": 4560,
+      "y": 14040
+    },
+    "PageClientDetailTrainerD.dc.html": {
+      "h": 1100,
+      "page": "web",
+      "title": "D · ClientDetail · Trainer only",
+      "w": 1440,
+      "x": 3040,
+      "y": 15540
+    },
+    "PageClientDetailNutritionistD.dc.html": {
+      "h": 1100,
+      "page": "web",
+      "title": "D · ClientDetail · Nutritionist only",
+      "w": 1440,
+      "x": 4560,
+      "y": 15540
     }
   },
   "createdOnFiles": {
@@ -2613,7 +2645,7 @@
       "kind": "title1",
       "maxW": 8000,
       "page": "web",
-      "text": "Clients — list, invite drawer, detail, nutrition tab, client plan editor (week, day, add meal, replace, plan info, blank, panel closed)  ·  light above, dark below",
+      "text": "Clients — list, invite drawer, detail (both roles, trainer only, nutritionist only), nutrition tab, client plan editor (week, day, add meal, replace, plan info, blank, panel closed)  ·  light above, dark below",
       "w": 240,
       "x": 0,
       "y": 13740
@@ -2859,11 +2891,15 @@
     "Logo26.dc.html",
     "PageClientsC.dc.html",
     "PageClientDetailC.dc.html",
+    "PageClientDetailTrainerC.dc.html",
+    "PageClientDetailNutritionistC.dc.html",
     "PageInboxC.dc.html",
     "PageIngredientsC.dc.html",
     "PageIngredientDrawerC.dc.html",
     "PageClientsD.dc.html",
     "PageClientDetailD.dc.html",
+    "PageClientDetailTrainerD.dc.html",
+    "PageClientDetailNutritionistD.dc.html",
     "PageInboxD.dc.html",
     "PageIngredientsD.dc.html",
     "PageIngredientDrawerD.dc.html",

@@ -4,24 +4,24 @@
  * clients.spec.ts's own header comment — a spec at the e2e/ root runs on
  * no project at all).
  *
- * Verifies the wireframe's layout contract: the six not-yet-built tabs and
- * the three still-unbuilt header buttons render disabled with the shell's
- * coming-soon treatment, every card the backend cannot supply a value for
- * shows the literal TBD placeholder, the Messages trend widget renders its
- * four W1-W4 groups, and — the AC this issue's backend slice exists for —
- * the detail page's status pill text equals the same client's status badge
- * on the clients list, asserted by comparison rather than a hardcoded word.
+ * Verifies the layout contract: the six not-yet-built tabs and the three
+ * still-unbuilt header buttons render disabled with the shell's coming-soon
+ * treatment, the rebuilt Overview shows its three stat tiles and four lower
+ * cards (#1295), and — the AC this issue's backend slice exists for — the
+ * detail page's status pill text equals the same client's status badge on
+ * the clients list, asserted by comparison rather than a hardcoded word.
  *
  * Chat went live in #1095 — it is no longer in DISABLED_BUTTON_NAMES; its
  * own assertion below checks it navigates to `/inbox?client=<publicId>`.
  */
 import { trainerTest as test, expect } from '../fixtures/auth';
 
-const DISABLED_TAB_NAMES = ['Development', 'Nutrition', 'Workouts', 'Storage', 'Payment', 'Automations'];
+// The QA trainer's link is training-only, so the Nutrition tab is not rendered.
+const DISABLED_TAB_NAMES = ['Development', 'Workouts', 'Storage', 'Payment', 'Automations'];
 const DISABLED_BUTTON_NAMES = ['Tasks', 'Notes', 'Info'];
 
 test.describe('client detail page — overview tab', () => {
-  test('renders the layout contract: coming-soon tabs/buttons, TBD cards, W1-W4 trend labels, and a status pill matching the clients list', async ({
+  test('renders the layout contract: coming-soon tabs/buttons, the rebuilt overview cards, and a status pill matching the clients list', async ({
     page,
   }) => {
     await page.goto('/clients');
@@ -65,16 +65,37 @@ test.describe('client detail page — overview tab', () => {
     const chatHref = await chatLink.getAttribute('href');
     expect(chatHref).toMatch(/^\/inbox\?client=[0-9a-f-]{36}$/);
 
-    // TBD cards — average rating, payments, the check-in trend, and the
-    // Tasks button all render the literal TBD placeholder unconditionally,
-    // regardless of seed data (nothing hidden, nothing invented).
-    const tbdCount = await page.getByText('TBD', { exact: true }).count();
-    expect(tbdCount).toBeGreaterThanOrEqual(4);
+    await expect(page.getByRole('tab', { name: 'Nutrition' })).toHaveCount(0);
 
-    // Messages trend renders its four W1-W4 groups, fed by the new
-    // message-stats endpoint.
-    for (const label of ['W1', 'W2', 'W3', 'W4']) {
+    // Training-only stat row: training compliance, PRs this month, client since.
+    for (const label of ['Training compliance', 'PRs this month', 'Client since']) {
       await expect(page.getByText(label, { exact: true })).toBeVisible();
     }
+    for (const label of ['Meal compliance', 'Weight change']) {
+      await expect(page.getByText(label, { exact: true })).toHaveCount(0);
+    }
+
+    // Only the training plan card, no nutrition card or no-access placeholder.
+    await expect(page.getByRole('region', { name: 'Latest workout' })).toBeVisible();
+    await expect(page.getByRole('region', { name: 'Current meal plan' })).toHaveCount(0);
+    await expect(page.getByText('No nutrition access')).toHaveCount(0);
+
+    // Client profile: injuries highlight and training row, no allergies or diet rows.
+    await expect(page.getByText('Injuries', { exact: true })).toBeVisible();
+    await expect(page.getByText('Training days', { exact: true })).toBeVisible();
+    await expect(page.getByText('Allergies', { exact: true })).toHaveCount(0);
+    await expect(page.getByText('Diet style', { exact: true })).toHaveCount(0);
+    await expect(page.getByText('Daily target', { exact: true })).toHaveCount(0);
+
+    // Lower cards: check-in trend + weight, recent activity + client profile.
+    for (const name of ['Check-in trend', 'Weight', 'Recent activity', 'Client profile']) {
+      await expect(page.getByRole('heading', { name, exact: true })).toBeVisible();
+    }
+
+    // The retired placeholders are gone: no TBD stat cards, no messages
+    // trend widget.
+    await expect(page.getByText('Average rating', { exact: true })).toHaveCount(0);
+    await expect(page.getByText('Payments', { exact: true })).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: 'Messages trend' })).toHaveCount(0);
   });
 });

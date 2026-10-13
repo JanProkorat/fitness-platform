@@ -8,7 +8,7 @@
  *     cannot bleed into the next.
  *   - A `setup` project runs auth.setup.ts and produces .auth/<role>.json
  *     storage-state files for each QA role.
- *   - The `trainer`, `client`, and `nutritionist` projects depend on `setup`
+ *   - The `trainer`, `client`, `nutritionist`, and `coach` projects depend on `setup`
  *     and pick up the corresponding storage-state file so no spec ever visits
  *     the login page at runtime.
  *
@@ -240,6 +240,21 @@ export default defineConfig({
             /nutritionist\/recipe-tags\.spec\.ts/,
             /nutritionist\/(client-detail-meal-plan|inbox-cooperation-events)\.spec\.ts/,
           ],
+      use: {
+        ...devices['Desktop Chrome'],
+      },
+    },
+
+    // ─── Coach (both-roles) specs ─────────────────────────────────────────────
+    // Picks up only tests/e2e/coach/**: specs for qa.coach (Trainer +
+    // Nutritionist, #1311), whose only client is the seeded "QA Duo". Like
+    // `trainer` and `nutritionist`, specs import `coachTest` from
+    // tests/e2e/fixtures/auth.ts for a per-attempt refresh token, so there is
+    // no `storageState` here.
+    {
+      name: 'coach',
+      dependencies: ['setup'],
+      testMatch: /coach\/.+\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
       },

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { apiClient } from '@/api/client';
 import { getClientPlans } from '@/api/client-plans';
 import { getClientMeasurements } from '@/api/measurements';
+import { resolveOverviewRole } from '@/lib/client-metrics';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import ClientDetailHeader from '@/components/client-detail/ClientDetailHeader';
@@ -12,16 +13,19 @@ import ClientOverviewStats from '@/components/client-detail/ClientOverviewStats'
 import MealPlanCard from '@/components/client-detail/MealPlanCard';
 import LatestWorkoutCard from '@/components/client-detail/LatestWorkoutCard';
 import CheckInTrendCard from '@/components/client-detail/CheckInTrendCard';
-import MessagesTrendCard from '@/components/client-detail/MessagesTrendCard';
+import WeightCard from '@/components/client-detail/WeightCard';
+import RecentActivityCard from '@/components/client-detail/RecentActivityCard';
+import ClientProfileCard from '@/components/client-detail/ClientProfileCard';
 
 const MEASUREMENTS_PAGE_SIZE = 50;
 
 /**
- * Client-detail page — Overview tab (#1094). Header + seven-tab row (six
- * disabled) + four stat cards + two plan cards + two trend widgets. See
- * docs/design/1094/client-overview-inventory.md for the full layout
- * contract and docs/design/1094/client-overview-target.png for the
- * reference render.
+ * Client-detail page — Overview tab. Header + tab row (all but Overview
+ * disabled) + three stat cards + plan card(s) + check-in trend and weight +
+ * recent activity and client profile. A link with both capabilities gets the
+ * two-card layout (PageClientDetailC / D); a trainer-only or nutritionist-only
+ * link gets its own domain's card at full width (PageClientDetailTrainerC / D,
+ * PageClientDetailNutritionistC / D).
  */
 export default function ClientDetailPage() {
   const { t } = useTranslation();
@@ -72,39 +76,72 @@ export default function ClientDetailPage() {
   const activeNutritionPlan = plansQuery.data?.plans?.find((p) => p.planType === 'Nutrition' && p.status === 'Active');
   const activeTrainingPlan = plansQuery.data?.plans?.find((p) => p.planType === 'Training' && p.status === 'Active');
 
+  // The layout follows the dashboard's capability flags: that query has resolved before first paint.
+  const role = resolveOverviewRole(dashboard.canViewNutritionPlans, dashboard.canViewTrainingPlans);
+
+  const mealPlanCard = (
+    <MealPlanCard
+      plan={activeNutritionPlan}
+      canView={canViewNutritionPlans}
+      isPending={plansQuery.isPending}
+      isError={plansQuery.isError}
+    />
+  );
+  const workoutCard = (
+    <LatestWorkoutCard
+      plan={activeTrainingPlan}
+      canView={canViewTrainingPlans}
+      isPending={plansQuery.isPending}
+      isError={plansQuery.isError}
+      sessionsCompleted={dashboard.sessionsCompletedThisWeek}
+      sessionsPlanned={dashboard.sessionsPlannedThisWeek}
+    />
+  );
+
   return (
     <div className="flex flex-col gap-4">
       <ClientDetailHeader dashboard={dashboard} />
-      <ClientDetailTabs />
+      <ClientDetailTabs
+        canViewNutritionPlans={role !== 'trainer'}
+        canViewTrainingPlans={role !== 'nutritionist'}
+      />
 
-      <ClientOverviewStats dashboard={dashboard} measurements={measurementsQuery.data?.items ?? []} />
+      <ClientOverviewStats
+        dashboard={dashboard}
+        clientId={clientId}
+        role={role}
+        measurements={measurementsQuery.data?.items ?? []}
+        measurementsPending={measurementsQuery.isPending}
+        measurementsError={measurementsQuery.isError}
+      />
 
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-5">
+      {role === 'both' ? (
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-5">
+          <div className="lg:col-span-3">{mealPlanCard}</div>
+          <div className="lg:col-span-2">{workoutCard}</div>
+        </div>
+      ) : (
+        <div>{role === 'nutritionist' ? mealPlanCard : workoutCard}</div>
+      )}
+
+      <div className="grid grid-cols-1 gap-3.5 lg:grid-cols-5">
         <div className="lg:col-span-3">
-          <MealPlanCard
-            plan={activeNutritionPlan}
-            canView={canViewNutritionPlans}
-            isPending={plansQuery.isPending}
-            isError={plansQuery.isError}
-          />
+          <CheckInTrendCard clientUserId={dashboard.clientUserId ?? ''} />
         </div>
         <div className="lg:col-span-2">
-          <LatestWorkoutCard
-            plan={activeTrainingPlan}
-            canView={canViewTrainingPlans}
-            isPending={plansQuery.isPending}
-            isError={plansQuery.isError}
+          <WeightCard
+            dashboard={dashboard}
+            measurements={measurementsQuery.data?.items ?? []}
+            isPending={measurementsQuery.isPending}
+            isError={measurementsQuery.isError}
+            onRetry={() => void measurementsQuery.refetch()}
           />
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-5">
-        <div className="lg:col-span-3">
-          <CheckInTrendCard />
-        </div>
-        <div className="lg:col-span-2">
-          <MessagesTrendCard clientId={clientId} />
-        </div>
+      <div className="grid grid-cols-1 gap-3.5 lg:grid-cols-2">
+        <RecentActivityCard clientId={clientId} />
+        <ClientProfileCard onboarding={dashboard.onboarding} role={role} />
       </div>
     </div>
   );

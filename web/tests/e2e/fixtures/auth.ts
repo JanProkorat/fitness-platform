@@ -55,11 +55,12 @@ import { test as base, request as apiRequest, type Browser, type BrowserContext 
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
-type Role = 'trainer' | 'nutritionist';
+type Role = 'trainer' | 'nutritionist' | 'coach';
 
 const ROLE_EMAILS: Record<Role, string> = {
   trainer: 'qa.trainer@fitnessplatform.test',
   nutritionist: 'qa.nutri@fitnessplatform.test',
+  coach: 'qa.coach@fitnessplatform.test',
 };
 
 const CLIENT_EMAIL = 'qa.client@fitnessplatform.test';
@@ -211,6 +212,9 @@ export const trainerTest = buildRoleTest('trainer');
 
 /** Use in tests/e2e/nutritionist/*.spec.ts. */
 export const nutritionistTest = buildRoleTest('nutritionist');
+
+/** Use in tests/e2e/coach/*.spec.ts (the both-roles QA coach, #1311). */
+export const coachTest = buildRoleTest('coach');
 
 export interface ClientContextResult {
   context: BrowserContext;

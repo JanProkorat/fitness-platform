@@ -71,6 +71,99 @@ export function daysSince(iso: string): number {
   return Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / MS_PER_DAY));
 }
 
+/** ISO-8601 week number of a "YYYY-MM-DD" calendar date, or undefined when it does not parse. */
+export function isoWeekNumber(isoDate: string): number | undefined {
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(isoDate);
+  if (!match) {
+    return undefined;
+  }
+  const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
+  // Shift to the Thursday of this ISO week; its year owns the week number.
+  const dayOfWeek = date.getUTCDay() || 7;
+  date.setUTCDate(date.getUTCDate() + 4 - dayOfWeek);
+  const yearStart = Date.UTC(date.getUTCFullYear(), 0, 1);
+  return Math.ceil(((date.getTime() - yearStart) / MS_PER_DAY + 1) / 7);
+}
+
+/**
+ * Locale-aware "2 hours ago" / "yesterday" / "10 Oct" label. Minutes and
+ * hours inside the last day, calendar days inside the last week, then a
+ * short date. Lowercase as produced by Intl; callers capitalise when needed.
+ */
+export function formatRelativeTime(iso: string, locale: string, now: Date = new Date()): string {
+  const then = new Date(iso);
+  if (Number.isNaN(then.getTime())) {
+    return '';
+  }
+  const relative = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
+  const elapsedMs = Math.max(0, now.getTime() - then.getTime());
+  const minutes = Math.floor(elapsedMs / 60_000);
+  if (minutes < 1) {
+    return relative.format(0, 'second');
+  }
+  if (minutes < 60) {
+    return relative.format(-minutes, 'minute');
+  }
+  if (minutes < 24 * 60) {
+    return relative.format(-Math.floor(minutes / 60), 'hour');
+  }
+  const startOfDay = (date: Date) => new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+  const daysAgo = Math.round((startOfDay(now) - startOfDay(then)) / MS_PER_DAY);
+  if (daysAgo < 7) {
+    return relative.format(-daysAgo, 'day');
+  }
+  return new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short' }).format(then);
+}
+
+export interface WeightPoint {
+  measuredAt: string;
+  weightKg: number;
+}
+
+/** The latest `count` measurements that carry a weight, oldest first. */
+export function selectRecentWeightPoints(items: MeasurementDto[], count: number): WeightPoint[] {
+  return items
+    .filter((m): m is MeasurementDto & { weightKg: number; measuredAt: string } => m.weightKg != null && m.measuredAt != null)
+    .map((m) => ({ measuredAt: m.measuredAt, weightKg: m.weightKg }))
+    .sort((a, b) => new Date(a.measuredAt).getTime() - new Date(b.measuredAt).getTime())
+    .slice(-count);
+}
+
+export interface WeightChange {
+  /** Newest minus oldest weight of the window, rounded to one decimal. */
+  deltaKg: number;
+  /** Date of the oldest measurement in the window. */
+  sinceIso: string;
+}
+
+/** Weight change across the latest `count` weighed measurements; undefined with fewer than two. */
+export function computeWeightChange(items: MeasurementDto[], count: number): WeightChange | undefined {
+  const points = selectRecentWeightPoints(items, count);
+  if (points.length < 2) {
+    return undefined;
+  }
+  const oldest = points[0];
+  const newest = points[points.length - 1];
+  return { deltaKg: Number((newest.weightKg - oldest.weightKg).toFixed(1)), sinceIso: oldest.measuredAt };
+}
+
+/** Which overview layout a coach's link gets. */
+export type ClientOverviewRole = 'both' | 'trainer' | 'nutritionist';
+
+/** Both capabilities (or, defensively, neither) keep the full layout. */
+export function resolveOverviewRole(
+  canViewNutritionPlans: boolean | undefined,
+  canViewTrainingPlans: boolean | undefined,
+): ClientOverviewRole {
+  if (canViewTrainingPlans === true && canViewNutritionPlans !== true) {
+    return 'trainer';
+  }
+  if (canViewNutritionPlans === true && canViewTrainingPlans !== true) {
+    return 'nutritionist';
+  }
+  return 'both';
+}
+
 export interface ResolvedSession {
   session: RawTrainingSession;
   /** 1 = Monday ... 7 = Sunday, as stored on the plan's day. */
@@ -122,6 +215,15 @@ export function resolveMostRecentSessionWithDay(plan: RawTrainingPlanDetail): Re
 
 export function resolveMostRecentSession(plan: RawTrainingPlanDetail): RawTrainingSession | undefined {
   return resolveMostRecentSessionWithDay(plan)?.session;
+}
+
+/** Localised long weekday name for a 1 (Monday) to 7 (Sunday) day number, or undefined when out of range. */
+export function weekdayName(dayOfWeek: number, locale: string): string | undefined {
+  if (!Number.isInteger(dayOfWeek) || dayOfWeek < 1 || dayOfWeek > 7) {
+    return undefined;
+  }
+  // 1 Jan 2024 is a Monday, so day N of that January lands on weekday N.
+  return new Intl.DateTimeFormat(locale, { weekday: 'long' }).format(new Date(2024, 0, dayOfWeek));
 }
 
 export interface MacroShares {

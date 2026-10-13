@@ -4,6 +4,7 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using Microsoft.EntityFrameworkCore;
@@ -36,8 +37,31 @@ public class GetClientTimelineEndpoint(
         Builders<NutritionPlan>.Projection.Combine(
             Builders<NutritionPlan>.Projection.Include(p => p.ExternalId),
             Builders<NutritionPlan>.Projection.Include(p => p.Name),
+            Builders<NutritionPlan>.Projection.Include("weeks.weekNumber"),
             Builders<NutritionPlan>.Projection.Include("weeks.status"),
             Builders<NutritionPlan>.Projection.Include("weeks.datePublished"));
+
+    /// <summary>
+    /// Projection for counting planned meals per day: start date, week status and per-day
+    /// meal ids only.
+    /// </summary>
+    private static readonly ProjectionDefinition<NutritionPlan> NutritionPlannedMealsProjection =
+        Builders<NutritionPlan>.Projection.Combine(
+            Builders<NutritionPlan>.Projection.Include(p => p.ExternalId),
+            Builders<NutritionPlan>.Projection.Include(p => p.StartDate),
+            Builders<NutritionPlan>.Projection.Include("weeks.weekNumber"),
+            Builders<NutritionPlan>.Projection.Include("weeks.status"),
+            Builders<NutritionPlan>.Projection.Include("weeks.days.dayOfWeek"),
+            Builders<NutritionPlan>.Projection.Include("weeks.days.meals.mealId"));
+
+    /// <summary>
+    /// Projection for resolving session names: plan id plus each session's id and name.
+    /// </summary>
+    private static readonly ProjectionDefinition<TrainingPlan> TrainingSessionNamesProjection =
+        Builders<TrainingPlan>.Projection.Combine(
+            Builders<TrainingPlan>.Projection.Include(p => p.ExternalId),
+            Builders<TrainingPlan>.Projection.Include("weeks.days.sessions.sessionId"),
+            Builders<TrainingPlan>.Projection.Include("weeks.days.sessions.name"));
 
     /// <summary>
     /// Same idiom as <see cref="NutritionPlanPublishProjection"/>, for training plans.
@@ -46,6 +70,7 @@ public class GetClientTimelineEndpoint(
         Builders<TrainingPlan>.Projection.Combine(
             Builders<TrainingPlan>.Projection.Include(p => p.ExternalId),
             Builders<TrainingPlan>.Projection.Include(p => p.Name),
+            Builders<TrainingPlan>.Projection.Include("weeks.weekNumber"),
             Builders<TrainingPlan>.Projection.Include("weeks.status"),
             Builders<TrainingPlan>.Projection.Include("weeks.datePublished"));
 
@@ -142,10 +167,22 @@ public class GetClientTimelineEndpoint(
             // entries that slipped through the Gte filter (defensive).
             var perDay = logs
                 .GroupBy(l => (l.EatenAt ?? l.LogDate).Date)
-                .OrderByDescending(g => g.Key);
+                .OrderByDescending(g => g.Key)
+                .ToList();
+
+            // Planned-meal counts come only from plans the caller authored; any other plan
+            // referenced by a log yields a null count.
+            var authoredPlans = await LoadAuthoredNutritionPlansAsync(
+                logs.Select(l => l.PlanId).Distinct().ToList(), clientUserId, trainerUserId, ct);
 
             foreach (var day in perDay)
             {
+                var authoredPlanIds = day.Select(l => l.PlanId).Distinct()
+                    .Where(authoredPlans.ContainsKey)
+                    .ToList();
+                var mealsPlanned = authoredPlanIds
+                    .Sum(planId => PlannedMealCounter.GetPlannedMealCountForDate(authoredPlans[planId], day.Key));
+
                 items.Add(new ClientTimelineItem
                 {
                     Id = $"meals:{day.Key:yyyy-MM-dd}",
@@ -153,6 +190,11 @@ public class GetClientTimelineEndpoint(
                     OccurredAt = day.Max(l => l.EatenAt ?? l.LogDate),
                     Title = $"Zaznamenáno {day.Count()} jídel",
                     Icon = "🍽",
+                    MealDay = new TimelineMealDayPayload
+                    {
+                        MealsLogged = day.Select(l => l.MealId).Distinct().Count(),
+                        MealsPlanned = mealsPlanned > 0 ? mealsPlanned : null,
+                    },
                 });
             }
         }
@@ -170,8 +212,21 @@ public class GetClientTimelineEndpoint(
 
             using var cursor = await mongo.SessionExecutions.FindAsync(workoutFilter, cancellationToken: ct);
             var logs = await cursor.ToListAsync(ct);
+
+            // Session names come only from training plans the caller authored.
+            var sessionNames = await LoadAuthoredSessionNamesAsync(
+                logs.Where(l => l.PlanId.HasValue).Select(l => l.PlanId!.Value).Distinct().ToList(),
+                clientUserId, trainerUserId, ct);
+
             foreach (var log in logs)
             {
+                string? sessionName = null;
+
+                if (log.PlanId.HasValue && log.SessionId.HasValue)
+                {
+                    sessionNames.TryGetValue((log.PlanId.Value, log.SessionId.Value), out sessionName);
+                }
+
                 items.Add(new ClientTimelineItem
                 {
                     Id = $"workout:{log.ExternalId}",
@@ -182,6 +237,12 @@ public class GetClientTimelineEndpoint(
                         ? $"{log.Exercises.Count} cviků"
                         : null,
                     Icon = "🏋",
+                    Workout = new TimelineWorkoutPayload
+                    {
+                        SessionExecutionId = log.ExternalId,
+                        SessionName = sessionName,
+                        ExerciseCount = log.Exercises.Count,
+                    },
                 });
             }
         }
@@ -193,7 +254,7 @@ public class GetClientTimelineEndpoint(
             .AsNoTracking()
             .Where(bm => bm.ClientProfileId == clientProfile.Id && bm.MeasuredAt >= from)
             .OrderByDescending(bm => bm.MeasuredAt)
-            .Select(bm => new { bm.PublicId, bm.MeasuredAt, bm.WeightKg })
+            .Select(bm => new { bm.PublicId, bm.MeasuredAt, bm.WeightKg, bm.BodyFatPercentage })
             .ToListAsync(ct);
 
         foreach (var m in measurements)
@@ -206,15 +267,21 @@ public class GetClientTimelineEndpoint(
                 Title = "Zapsal tělesné míry",
                 Description = m.WeightKg.HasValue ? $"Váha: {m.WeightKg.Value} kg" : null,
                 Icon = "📏",
+                Measurement = new TimelineMeasurementPayload
+                {
+                    WeightKg = m.WeightKg,
+                    BodyFatPercentage = m.BodyFatPercentage,
+                },
             });
         }
 
-        // ── 4. Questionnaire responses (submitted only) — dual-readable standalone
-        //      entries, same rationale as body measurements above. ──
+        // ── 4. Questionnaire responses (submitted only) — author-scoped: a coach sees only
+        //      answers to questionnaires they wrote, independent of the capability flags. ──
         var questionnaires = await db.QuestionnaireResponses
             .AsNoTracking()
             .Include(r => r.Questionnaire)
             .Where(r => r.ClientId == clientUserId
+                     && r.Questionnaire.ProfessionalId == trainerUserId
                      && r.SubmittedAt != null
                      && r.SubmittedAt >= from)
             .OrderByDescending(r => r.SubmittedAt)
@@ -231,16 +298,15 @@ public class GetClientTimelineEndpoint(
                 Title = "Vyplnil dotazník",
                 Description = q.QuestionnaireTitle,
                 Icon = "📋",
+                Questionnaire = new TimelineQuestionnairePayload { QuestionnaireTitle = q.QuestionnaireTitle },
             });
         }
 
         // ── 5. Nutrition & training plan publish events ──
-        // Exactly one event per plan. There is no plan-level DatePublished field — publish only
+        // One event per published week. There is no plan-level DatePublished field — publish only
         // ever set weeks[].datePublished (#1014), and the unwritten plan-level one was deleted in
-        // #1015. OccurredAt is
-        // therefore derived as the EARLIEST datePublished among the plan's published weeks, not
-        // the lowest week number's date (a trainer/nutritionist may publish week 3 before week
-        // 1). A plan with zero published weeks emits no event.
+        // #1015. Each published week with a datePublished inside the lookback emits its own
+        // event dated at that week's datePublished; a plan with none emits nothing.
         // Nutrition-domain: gated on CanViewNutritionPlans.
         if (link.CanViewNutritionPlans)
         {
@@ -256,32 +322,27 @@ public class GetClientTimelineEndpoint(
 
             foreach (var plan in plans)
             {
-                var publishedDates = plan.Weeks
-                    .Where(w => w.Status == WeekStatus.Published && w.DatePublished.HasValue)
-                    .Select(w => w.DatePublished!.Value)
-                    .ToList();
+                var publishedWeeks = plan.Weeks
+                    .Where(w => w.Status == WeekStatus.Published && w.DatePublished.HasValue && w.DatePublished.Value >= from);
 
-                if (publishedDates.Count == 0)
+                foreach (var week in publishedWeeks)
                 {
-                    continue;
+                    items.Add(new ClientTimelineItem
+                    {
+                        Id = $"nutrition_plan:{plan.ExternalId}:week:{week.WeekNumber}",
+                        Type = "nutrition_plan_published",
+                        OccurredAt = week.DatePublished!.Value,
+                        Title = "Zveřejněn jídelníček",
+                        Description = string.IsNullOrWhiteSpace(plan.Name) ? null : plan.Name,
+                        Icon = "🥗",
+                        PlanPublished = new TimelinePlanPublishedPayload
+                        {
+                            PlanId = plan.ExternalId,
+                            PlanName = string.IsNullOrWhiteSpace(plan.Name) ? null : plan.Name,
+                            WeekNumber = week.WeekNumber,
+                        },
+                    });
                 }
-
-                var occurredAt = publishedDates.Min();
-
-                if (occurredAt < from)
-                {
-                    continue;
-                }
-
-                items.Add(new ClientTimelineItem
-                {
-                    Id = $"nutrition_plan:{plan.ExternalId}",
-                    Type = "nutrition_plan_published",
-                    OccurredAt = occurredAt,
-                    Title = "Zveřejněn jídelníček",
-                    Description = string.IsNullOrWhiteSpace(plan.Name) ? null : plan.Name,
-                    Icon = "🥗",
-                });
             }
         }
 
@@ -300,32 +361,27 @@ public class GetClientTimelineEndpoint(
 
             foreach (var plan in plans)
             {
-                var publishedDates = plan.Weeks
-                    .Where(w => w.Status == WeekStatus.Published && w.DatePublished.HasValue)
-                    .Select(w => w.DatePublished!.Value)
-                    .ToList();
+                var publishedWeeks = plan.Weeks
+                    .Where(w => w.Status == WeekStatus.Published && w.DatePublished.HasValue && w.DatePublished.Value >= from);
 
-                if (publishedDates.Count == 0)
+                foreach (var week in publishedWeeks)
                 {
-                    continue;
+                    items.Add(new ClientTimelineItem
+                    {
+                        Id = $"training_plan:{plan.ExternalId}:week:{week.WeekNumber}",
+                        Type = "training_plan_published",
+                        OccurredAt = week.DatePublished!.Value,
+                        Title = "Zveřejněn tréninkový plán",
+                        Description = string.IsNullOrWhiteSpace(plan.Name) ? null : plan.Name,
+                        Icon = "🏋",
+                        PlanPublished = new TimelinePlanPublishedPayload
+                        {
+                            PlanId = plan.ExternalId,
+                            PlanName = string.IsNullOrWhiteSpace(plan.Name) ? null : plan.Name,
+                            WeekNumber = week.WeekNumber,
+                        },
+                    });
                 }
-
-                var occurredAt = publishedDates.Min();
-
-                if (occurredAt < from)
-                {
-                    continue;
-                }
-
-                items.Add(new ClientTimelineItem
-                {
-                    Id = $"training_plan:{plan.ExternalId}",
-                    Type = "training_plan_published",
-                    OccurredAt = occurredAt,
-                    Title = "Zveřejněn tréninkový plán",
-                    Description = string.IsNullOrWhiteSpace(plan.Name) ? null : plan.Name,
-                    Icon = "🏋",
-                });
             }
         }
 
@@ -390,5 +446,66 @@ public class GetClientTimelineEndpoint(
             CanViewNutritionPlans = link.CanViewNutritionPlans,
             CanViewTrainingPlans = link.CanViewTrainingPlans
         }, ct);
+    }
+
+    /// <summary>
+    /// Loads, by plan id, only the nutrition plans the caller authored for this client.
+    /// </summary>
+    private async Task<Dictionary<Guid, NutritionPlan>> LoadAuthoredNutritionPlansAsync(
+        List<Guid> planIds, Guid clientUserId, Guid trainerUserId, CancellationToken ct)
+    {
+        if (planIds.Count == 0)
+        {
+            return [];
+        }
+
+        var filter = Builders<NutritionPlan>.Filter.In(p => p.ExternalId, planIds)
+            & Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, clientUserId)
+            & Builders<NutritionPlan>.Filter.Eq(p => p.NutritionistId, trainerUserId);
+
+        using var cursor = await mongo.NutritionPlans.FindAsync(
+            filter,
+            new FindOptions<NutritionPlan, NutritionPlan> { Projection = NutritionPlannedMealsProjection },
+            ct);
+        var plans = await cursor.ToListAsync(ct);
+
+        return plans.ToDictionary(p => p.ExternalId);
+    }
+
+    /// <summary>
+    /// Maps (plan id, session id) to the session name for training plans the caller authored
+    /// for this client.
+    /// </summary>
+    private async Task<Dictionary<(Guid PlanId, Guid SessionId), string>> LoadAuthoredSessionNamesAsync(
+        List<Guid> planIds, Guid clientUserId, Guid trainerUserId, CancellationToken ct)
+    {
+        if (planIds.Count == 0)
+        {
+            return [];
+        }
+
+        var filter = Builders<TrainingPlan>.Filter.In(p => p.ExternalId, planIds)
+            & Builders<TrainingPlan>.Filter.Eq(p => p.ClientId, clientUserId)
+            & Builders<TrainingPlan>.Filter.Eq(p => p.TrainerId, trainerUserId);
+
+        using var cursor = await mongo.TrainingPlans.FindAsync(
+            filter,
+            new FindOptions<TrainingPlan, TrainingPlan> { Projection = TrainingSessionNamesProjection },
+            ct);
+        var plans = await cursor.ToListAsync(ct);
+
+        var names = new Dictionary<(Guid PlanId, Guid SessionId), string>();
+
+        foreach (var plan in plans)
+        {
+            var sessions = plan.Weeks.SelectMany(w => w.Days).SelectMany(d => d.Sessions);
+
+            foreach (var session in sessions)
+            {
+                names.TryAdd((plan.ExternalId, session.SessionId), session.Name);
+            }
+        }
+
+        return names;
     }
 }
