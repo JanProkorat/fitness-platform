@@ -20266,6 +20266,18 @@ Mirrors ClientProfessionalLink.CanViewTrainingPlans. */
     compliancePercent?: number | undefined;
     /** Current streak of consecutive compliant days. */
     currentStreak?: number;
+    /** Meal-only compliance percentage for the last 7 days (0-100). Null when the link lacks nutrition
+access or the compliance computation failed; 0 (not null) when there is no nutrition plan. */
+    nutritionCompliancePercent?: number | undefined;
+    /** Training-only compliance percentage for the last 7 days (0-100). Null when the link lacks
+training access or the compliance computation failed. */
+    trainingCompliancePercent?: number | undefined;
+    /** Current streak of consecutive days with every planned meal logged. Null when the link lacks
+nutrition access or the compliance computation failed. */
+    nutritionStreak?: number | undefined;
+    /** Current streak of consecutive days with every planned session completed. Null when the link
+lacks training access or the compliance computation failed. */
+    trainingStreak?: number | undefined;
     /** Planned sessions the client has fully completed in the current plan week (a session counts
 once however many days it was executed). Null when the caller has no training-plan access,
 or there is no active plan, current week or published schedule to count against. Never
