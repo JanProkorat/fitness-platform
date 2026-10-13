@@ -3145,6 +3145,105 @@
     }
   },
   "clientDetail": {
+    "nutrition": {
+      "current": {
+        "label": "Aktuální jídelníček",
+        "openEditor": "Otevřít editor",
+        "notScheduled": "Bez termínu",
+        "weekOf": "{{week}}. týden z {{total}}",
+        "starts": "Začíná {{date}}",
+        "started": "začátek {{date}}",
+        "kcalPerDay": "{{kcal}} kcal denně",
+        "detailError": "Týdny tohoto plánu se nepodařilo načíst.",
+        "stripLabel": "Týdny plánu ({{total}})",
+        "segment": {
+          "done": "{{week}}. týden: hotovo",
+          "current": "{{week}}. týden: tento týden",
+          "upcoming": "{{week}}. týden: zveřejněno, nadcházející",
+          "draft": "{{week}}. týden: koncept"
+        },
+        "legend": {
+          "done": "Hotovo",
+          "current": "Tento týden",
+          "upcoming": "Zveřejněno, nadcházející",
+          "draft": "Koncept – klient ho zatím nevidí"
+        },
+        "needsPublishing": "{{week}}. týden je potřeba zveřejnit do neděle"
+      },
+      "timeline": {
+        "heading": "Časová osa plánů",
+        "hint": "Plány podle měsíců",
+        "empty": "Zatím tu nejsou žádné plány s termínem.",
+        "today": "Dnes",
+        "noPlan": "Bez plánu",
+        "starts": "začíná {{date}}",
+        "range_one": "{{range}} · {{count}} týd.",
+        "range_few": "{{range}} · {{count}} týd.",
+        "range_many": "{{range}} · {{count}} týd.",
+        "range_other": "{{range}} · {{count}} týd.",
+        "activeRange": "{{range}} · {{week}}. týden z {{total}}"
+      },
+      "past": {
+        "heading": "Dřívější plány",
+        "none": "zatím žádné",
+        "count_one": "{{count}} plán",
+        "count_few": "{{count}} plány",
+        "count_many": "{{count}} plánu",
+        "count_other": "{{count}} plánů",
+        "weeks_one": "{{count}} týden",
+        "weeks_few": "{{count}} týdny",
+        "weeks_many": "{{count}} týdne",
+        "weeks_other": "{{count}} týdnů",
+        "percent": "{{value}} %",
+        "kg": "{{value}} kg",
+        "mealsTicked": "jídel zaškrtnuto",
+        "weight": "váha",
+        "rowMenu": "Akce pro {{name}}",
+        "open": "Otevřít plán",
+        "duplicate": "Duplikovat pro {{name}}",
+        "saveAsTemplate": "Uložit jako šablonu",
+        "emptyHint": "Dokončené plány se objeví tady, včetně toho, jak se jimi {{name}} řídil(a).",
+        "hint": "Dokončený plán můžete znovu použít z jeho nabídky: uložte ho jako šablonu."
+      },
+      "saveTemplate": {
+        "title": "Uložit jako šablonu",
+        "description": "Šablona se uloží mezi vaše šablony plánů a uvidíte ji jen vy.",
+        "name": "Název šablony",
+        "nameInvalid": "Zadejte název dlouhý nejvýše {{max}} znaků.",
+        "submit": "Uložit šablonu",
+        "success": "Šablona byla uložena do vaší knihovny.",
+        "error": "Šablonu se nepodařilo uložit. Zkuste to prosím znovu."
+      },
+      "empty": {
+        "label": "Výživa",
+        "heading": "{{name}} zatím nemá jídelníček",
+        "body": "Začněte od šablony, která odpovídá cíli klienta, zkopírujte plán od jiného klienta nebo si ho postavte od nuly. Klient nic neuvidí, dokud nezveřejníte týden.",
+        "matchedTo": "Vybráno pro klienta {{name}}",
+        "matchGoal": "cíl {{goal}}",
+        "matchKcal": "{{kcal}} kcal",
+        "templatesLabel": "Odpovídající šablony",
+        "templatesError": "Vaše šablony se nepodařilo načíst.",
+        "noTemplates": "Zatím nemáte žádné šablony plánů. Vytvořte jednu v části Šablony plánů a vraťte se sem.",
+        "bestMatch": "Nejlepší shoda",
+        "weeks_one": "{{count}} týden",
+        "weeks_few": "{{count}} týdny",
+        "weeks_many": "{{count}} týdne",
+        "weeks_other": "{{count}} týdnů",
+        "kcalMatch": "{{kcal}} kcal",
+        "use": "Použít „{{name}}“",
+        "copyFromClient": "Zkopírovat od jiného klienta",
+        "startBlank": "Začít od nuly",
+        "browseAll": "Procházet všechny šablony",
+        "useSuccess": "Koncept plánu je vytvořený. Začíná příští pondělí.",
+        "useError": "Plán se ze šablony nepodařilo vytvořit."
+      },
+      "diet": {
+        "Standard": "Standardní",
+        "Vegetarian": "Vegetariánská",
+        "Vegan": "Veganská",
+        "GlutenFree": "Bezlepková"
+      }
+    },
     "writeMessage": "Napsat",
     "lastName": "Příjmení",
     "heightCm": "Výška (cm)",
