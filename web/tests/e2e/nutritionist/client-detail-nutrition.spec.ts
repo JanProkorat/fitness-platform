@@ -401,7 +401,13 @@ test.describe('client detail — nutrition tab', () => {
       };
     }
 
-    async function stubPlan(page: Page, startDate: string, monday: Date, failFirst = false): Promise<void> {
+    /** The app's query client retries a failed query once, so a failure has to last until the test lets it recover. */
+    async function stubPlan(
+      page: Page,
+      startDate: string,
+      monday: Date,
+      control: { failing: boolean } = { failing: false },
+    ): Promise<void> {
       await rewritePlansList(page, (body) => ({
         ...body,
         plans: [
@@ -414,10 +420,8 @@ test.describe('client detail — nutrition tab', () => {
           },
         ],
       }));
-      let failed = false;
       await page.route(new RegExp(`/nutrition/plans/${WEEK_PLAN_ID}$`), async (route) => {
-        if (failFirst && !failed) {
-          failed = true;
+        if (control.failing) {
           await route.fulfill({ status: 500, contentType: 'application/problem+json', body: '{"status":500}' });
           return;
         }
@@ -497,11 +501,13 @@ test.describe('client detail — nutrition tab', () => {
     test('shows a retry when the plan fails to load and recovers', async ({ page }) => {
       const monday = thisMonday();
       await pinThursday(page, monday);
-      await stubPlan(page, localIso(monday), monday, true);
+      const control = { failing: true };
+      await stubPlan(page, localIso(monday), monday, control);
       await openNutritionTab(page);
 
       const card = page.getByRole('region', { name: 'This week' });
       await expect(card.getByText("Couldn't load this week's meals.")).toBeVisible();
+      control.failing = false;
       await card.getByRole('button', { name: 'Retry' }).click();
       await expect(card.getByTestId('this-week-eaten')).toHaveText('8');
     });
