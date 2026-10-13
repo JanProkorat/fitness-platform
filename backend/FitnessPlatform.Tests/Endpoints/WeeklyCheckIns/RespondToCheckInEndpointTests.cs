@@ -257,6 +257,65 @@ public class RespondToCheckInEndpointTests(FitnessApiFactory factory)
         notification.Body.Should().Be("A client has responded to their weekly check-in reminder.");
     }
 
+    // ── Hunger score ──────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task Respond_WithHungerScore_PersistsIt()
+    {
+        var (http, clientUserId) = await SetupClientAsync();
+        var trainerId = await SetupTrainerUserIdAsync();
+        var checkInId = await InsertCheckInAsync(clientUserId, trainerId);
+
+        var response = await http.PostAsJsonAsync(
+            $"/client/weekly-check-ins/{checkInId}/respond",
+            new { flags = Array.Empty<string>(), hungerScore = 3 },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var persisted = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions
+            .FirstAsync(db.WeeklyCheckIns, c => c.Id == checkInId, TestContext.Current.CancellationToken);
+        persisted.HungerScore.Should().Be(3);
+    }
+
+    [Fact]
+    public async Task Respond_WithoutHungerScore_LeavesItNull()
+    {
+        var (http, clientUserId) = await SetupClientAsync();
+        var trainerId = await SetupTrainerUserIdAsync();
+        var checkInId = await InsertCheckInAsync(clientUserId, trainerId);
+
+        var response = await http.PostAsJsonAsync(
+            $"/client/weekly-check-ins/{checkInId}/respond",
+            new { flags = Array.Empty<string>() },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var persisted = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions
+            .FirstAsync(db.WeeklyCheckIns, c => c.Id == checkInId, TestContext.Current.CancellationToken);
+        persisted.HungerScore.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Respond_WithOutOfRangeHungerScore_Returns400()
+    {
+        var (http, clientUserId) = await SetupClientAsync();
+        var trainerId = await SetupTrainerUserIdAsync();
+        var checkInId = await InsertCheckInAsync(clientUserId, trainerId);
+
+        var response = await http.PostAsJsonAsync(
+            $"/client/weekly-check-ins/{checkInId}/respond",
+            new { flags = Array.Empty<string>(), hungerScore = 6 },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
     // ── SignalR broadcast ─────────────────────────────────────────────────────
 
     [Fact]

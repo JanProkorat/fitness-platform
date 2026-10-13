@@ -72,6 +72,11 @@ public class WeeklyCheckIn
     [MaxLength(500)]
     public string? Note { get; set; }
 
+    /// <summary>
+    /// Optional self-reported hunger score (1-5) submitted with the response. Null when not given.
+    /// </summary>
+    public int? HungerScore { get; set; }
+
     /// <summary>UTC timestamp when the scheduler sent this check-in.</summary>
     public DateTime SentAt { get; set; }
 

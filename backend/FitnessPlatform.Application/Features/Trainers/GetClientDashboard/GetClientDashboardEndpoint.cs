@@ -348,6 +348,9 @@ public class GetClientDashboardEndpoint(
                 onboarding.CarbsGrams = od.NutritionTargets?.CarbsGrams;
                 onboarding.FatGrams = od.NutritionTargets?.FatGrams;
                 onboarding.MealDistribution = od.NutritionTargets?.MealDistribution;
+                onboarding.FibreGrams = od.NutritionTargets?.FibreGrams;
+                onboarding.Dislikes = od.Dislikes;
+                onboarding.Habits = od.Habits;
             }
         }
 

@@ -32,6 +32,9 @@ public class GetCheckInDetailResponse
     /// <summary>Client's optional note.</summary>
     public string? Note { get; set; }
 
+    /// <summary>Hunger score (1-5) the client gave; null when none was given.</summary>
+    public int? HungerScore { get; set; }
+
     /// <summary>When the scheduler sent this check-in.</summary>
     public DateTime SentAt { get; set; }
 

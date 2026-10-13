@@ -79,6 +79,7 @@ public class RespondToCheckInEndpoint(
         var now = DateTime.UtcNow;
         checkIn.Flags = req.Flags;
         checkIn.Note = req.Note;
+        checkIn.HungerScore = req.HungerScore;
         checkIn.RespondedAt = now;
         checkIn.Status = WeeklyCheckInStatus.Responded;
         checkIn.DateModified = now;
