@@ -153,14 +153,16 @@ public class GetClientDashboardResponse
     public decimal? TrainingCompliancePercent { get; set; }
 
     /// <summary>
-    /// Current streak of consecutive days with every planned meal logged. Null when the link lacks
-    /// nutrition access or the compliance computation failed.
+    /// Current streak of consecutive days with planned meals on which at least one meal was logged;
+    /// days with nothing planned are skipped. Null when the link lacks nutrition access or the
+    /// compliance computation failed.
     /// </summary>
     public int? NutritionStreak { get; set; }
 
     /// <summary>
-    /// Current streak of consecutive days with every planned session completed. Null when the link
-    /// lacks training access or the compliance computation failed.
+    /// Current streak of consecutive days with planned sessions on which at least one session was
+    /// completed; days with nothing planned are skipped. Null when the link lacks training access or
+    /// the compliance computation failed.
     /// </summary>
     public int? TrainingStreak { get; set; }
 
