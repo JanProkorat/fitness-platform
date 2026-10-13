@@ -23,14 +23,15 @@ test('app shell renders the v1 nav and routes between pages', async ({ page }) =
   // Confirm ProtectedRoute did not bounce us back to the public entry route.
   await expect(page).toHaveURL(/\/clients$/);
 
-  // Sidebar renders all four v1 nav items — nothing more (design spec §9:
-  // "the v1 sidebar shows only what v1 delivers").
+  // A trainer-only coach sees the client-management items and no nutrition
+  // section — that one is gated on the active Nutritionist role (#1325; the
+  // nutritionist side is covered by nutritionist/shell.role-nav.spec.ts).
   const nav = page.getByRole('navigation');
   await expect(nav.getByText('Clients', { exact: true })).toBeVisible();
   await expect(nav.getByText('Inbox', { exact: true })).toBeVisible();
-  await expect(nav.getByText('Ingredients', { exact: true })).toBeVisible();
-  await expect(nav.getByText('Recipes', { exact: true })).toBeVisible();
-  await expect(nav.getByText('Plan templates', { exact: true })).toBeVisible();
+  await expect(nav.getByText('Ingredients', { exact: true })).toHaveCount(0);
+  await expect(nav.getByText('Recipes', { exact: true })).toHaveCount(0);
+  await expect(nav.getByText('Plan templates', { exact: true })).toHaveCount(0);
 
   // The sidebar user card opens the account menu, which holds the sign-out control.
   await page.getByRole('button', { name: 'Account menu' }).click();
