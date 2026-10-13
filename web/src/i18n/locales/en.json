@@ -3282,6 +3282,7 @@
         "starts": "Starts {{date}}",
         "started": "started {{date}}",
         "kcalPerDay": "{{kcal}} kcal a day",
+        "madeFromTemplate": "made from a template",
         "detailError": "Couldn't load the weeks of this plan.",
         "stripLabel": "Weeks of the plan ({{total}})",
         "segment": {

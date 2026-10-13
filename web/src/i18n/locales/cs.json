@@ -3356,6 +3356,7 @@
         "starts": "Začíná {{date}}",
         "started": "začátek {{date}}",
         "kcalPerDay": "{{kcal}} kcal denně",
+        "madeFromTemplate": "vytvořeno ze šablony",
         "detailError": "Týdny tohoto plánu se nepodařilo načíst.",
         "stripLabel": "Týdny plánu ({{total}})",
         "segment": {
