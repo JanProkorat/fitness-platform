@@ -4,6 +4,7 @@ using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Infrastructure;
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace FitnessPlatform.Tests.Endpoints.Trainers;
@@ -79,7 +80,84 @@ public class GetClientDashboardNutritionProfileTests(FitnessApiFactory factory)
         onboarding.FibreGrams.Should().BeNull();
     }
 
+    // ApplyTimestamps overwrites DateCreated on insert and DateUpdated on save, so dates are pinned
+    // with ExecuteUpdateAsync afterwards, which bypasses SaveChanges.
+    private async Task PinDatesAsync(
+        Actor client,
+        DateTime onboardingCreated,
+        DateTime? onboardingUpdated,
+        DateTime targetsCreated,
+        DateTime? targetsUpdated)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        await db.ClientOnboardingData
+            .Where(od => od.ClientProfileId == client.ProfileId)
+            .ExecuteUpdateAsync(
+                setters => setters
+                    .SetProperty(od => od.DateCreated, onboardingCreated)
+                    .SetProperty(od => od.DateUpdated, onboardingUpdated),
+                TestContext.Current.CancellationToken);
+        await db.ClientNutritionTargets
+            .Where(t => t.ClientOnboardingData.ClientProfileId == client.ProfileId)
+            .ExecuteUpdateAsync(
+                setters => setters
+                    .SetProperty(t => t.DateCreated, targetsCreated)
+                    .SetProperty(t => t.DateUpdated, targetsUpdated),
+                TestContext.Current.CancellationToken);
+    }
+
+    private static readonly DateTime Day1 = new(2026, 1, 10, 8, 0, 0, DateTimeKind.Utc);
+    private static readonly DateTime Day2 = new(2026, 2, 11, 9, 0, 0, DateTimeKind.Utc);
+    private static readonly DateTime Day3 = new(2026, 3, 12, 10, 0, 0, DateTimeKind.Utc);
+
+    [Fact]
+    public async Task GetDashboard_NutritionCaller_TargetsUpdatedLater_ReturnsTargetsDate()
+    {
+        var trainer = await TestActors.Nutritionist(factory).CreateAsync(TestContext.Current.CancellationToken);
+        var client = await TestActors.Client(factory).CreateAsync(TestContext.Current.CancellationToken);
+        await TestActors.Link(factory, trainer, client).CreateAsync(TestContext.Current.CancellationToken);
+        await SeedProfileAsync(client);
+        await PinDatesAsync(client, Day1, Day2, Day1, Day3);
+
+        var onboarding = await GetOnboardingAsync(trainer, client);
+
+        onboarding.DateUpdated.Should().BeCloseTo(Day3, TimeSpan.FromMilliseconds(1));
+    }
+
+    [Fact]
+    public async Task GetDashboard_NutritionCaller_NeverUpdated_ReturnsLaterCreationDate()
+    {
+        var trainer = await TestActors.Nutritionist(factory).CreateAsync(TestContext.Current.CancellationToken);
+        var client = await TestActors.Client(factory).CreateAsync(TestContext.Current.CancellationToken);
+        await TestActors.Link(factory, trainer, client).CreateAsync(TestContext.Current.CancellationToken);
+        await SeedProfileAsync(client);
+        await PinDatesAsync(client, Day1, null, Day2, null);
+
+        var onboarding = await GetOnboardingAsync(trainer, client);
+
+        onboarding.DateUpdated.Should().BeCloseTo(Day2, TimeSpan.FromMilliseconds(1));
+    }
+
+    [Fact]
+    public async Task GetDashboard_TrainingOnlyLink_IgnoresTargetsDate()
+    {
+        var trainer = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
+        var client = await TestActors.Client(factory).CreateAsync(TestContext.Current.CancellationToken);
+        await TestActors.Link(factory, trainer, client)
+            .CanViewNutritionPlans(false)
+            .CreateAsync(TestContext.Current.CancellationToken);
+        await SeedProfileAsync(client);
+        await PinDatesAsync(client, Day1, Day2, Day1, Day3);
+
+        var onboarding = await GetOnboardingAsync(trainer, client);
+
+        onboarding.DateUpdated.Should().BeCloseTo(Day2, TimeSpan.FromMilliseconds(1));
+    }
+
     private sealed record DashboardBody(OnboardingBody? Onboarding);
 
-    private sealed record OnboardingBody(List<string>? Dislikes, List<string>? Habits, decimal? FibreGrams);
+    private sealed record OnboardingBody(
+        List<string>? Dislikes, List<string>? Habits, decimal? FibreGrams, DateTime? DateUpdated);
 }

@@ -253,6 +253,11 @@ public class OnboardingDataDto
     public List<string>? Habits { get; set; }
     /// <summary>Daily fibre target in grams. Null when unset or the caller cannot view nutrition plans.</summary>
     public decimal? FibreGrams { get; set; }
+    /// <summary>
+    /// Later of the onboarding and nutrition-target update dates (creation date if never updated).
+    /// Target dates count only when the caller can view nutrition plans.
+    /// </summary>
+    public DateTime? DateUpdated { get; set; }
 }
 
 /// <summary>

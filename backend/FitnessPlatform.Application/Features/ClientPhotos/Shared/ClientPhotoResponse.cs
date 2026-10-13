@@ -60,6 +60,18 @@ public class ClientPhotoResponse
     public string? MealLogId { get; set; }
 
     /// <summary>
+    /// <c>PlanMeal.MealId</c> the meal log refers to. Filled by the trainer view only; null for
+    /// non-meal photos and unresolvable logs.
+    /// </summary>
+    public Guid? MealId { get; set; }
+
+    /// <summary>
+    /// Kind of the plan meal the photo belongs to. Filled by the trainer view only; null for
+    /// non-meal photos, unresolvable logs, and meals removed from the plan.
+    /// </summary>
+    public MealKind? MealKind { get; set; }
+
+    /// <summary>
     /// When the photo was taken or uploaded, in UTC.
     /// </summary>
     public DateTime TakenAt { get; set; }
