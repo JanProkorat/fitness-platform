@@ -138,62 +138,74 @@
   "h": 1100
  },
  {
-  "html": "web/05-03-page-client-nutrition-c.html",
-  "png": "web/05-03-page-client-nutrition-c.png",
+  "html": "web/05-03-page-client-detail-trainer-c.html",
+  "png": "web/05-03-page-client-detail-trainer-c.png",
+  "w": 1440,
+  "h": 1100
+ },
+ {
+  "html": "web/05-04-page-client-detail-nutritionist-c.html",
+  "png": "web/05-04-page-client-detail-nutritionist-c.png",
+  "w": 1440,
+  "h": 1100
+ },
+ {
+  "html": "web/05-05-page-client-nutrition-c.html",
+  "png": "web/05-05-page-client-nutrition-c.png",
   "w": 1440,
   "h": 1380
  },
  {
-  "html": "web/05-04-page-client-nutrition-empty-c.html",
-  "png": "web/05-04-page-client-nutrition-empty-c.png",
+  "html": "web/05-06-page-client-nutrition-empty-c.html",
+  "png": "web/05-06-page-client-nutrition-empty-c.png",
   "w": 1440,
   "h": 900
  },
  {
-  "html": "web/05-05-page-client-plan-editor-c.html",
-  "png": "web/05-05-page-client-plan-editor-c.png",
+  "html": "web/05-07-page-client-plan-editor-c.html",
+  "png": "web/05-07-page-client-plan-editor-c.png",
   "w": 1440,
   "h": 900
  },
  {
-  "html": "web/05-06-page-client-plan-day-c.html",
-  "png": "web/05-06-page-client-plan-day-c.png",
+  "html": "web/05-08-page-client-plan-day-c.html",
+  "png": "web/05-08-page-client-plan-day-c.png",
   "w": 1440,
   "h": 900
  },
  {
-  "html": "web/05-07-page-client-plan-day-add-meal-c.html",
-  "png": "web/05-07-page-client-plan-day-add-meal-c.png",
+  "html": "web/05-09-page-client-plan-day-add-meal-c.html",
+  "png": "web/05-09-page-client-plan-day-add-meal-c.png",
   "w": 1440,
   "h": 900
  },
  {
-  "html": "web/05-08-page-client-plan-start-over-c.html",
-  "png": "web/05-08-page-client-plan-start-over-c.png",
+  "html": "web/05-10-page-client-plan-start-over-c.html",
+  "png": "web/05-10-page-client-plan-start-over-c.png",
   "w": 1440,
   "h": 900
  },
  {
-  "html": "web/05-09-page-client-plan-info-c.html",
-  "png": "web/05-09-page-client-plan-info-c.png",
+  "html": "web/05-11-page-client-plan-info-c.html",
+  "png": "web/05-11-page-client-plan-info-c.png",
   "w": 1440,
   "h": 900
  },
  {
-  "html": "web/05-10-page-client-plan-blank-c.html",
-  "png": "web/05-10-page-client-plan-blank-c.png",
+  "html": "web/05-12-page-client-plan-blank-c.html",
+  "png": "web/05-12-page-client-plan-blank-c.png",
   "w": 1440,
   "h": 900
  },
  {
-  "html": "web/05-11-page-client-plan-closed-c.html",
-  "png": "web/05-11-page-client-plan-closed-c.png",
+  "html": "web/05-13-page-client-plan-closed-c.html",
+  "png": "web/05-13-page-client-plan-closed-c.png",
   "w": 1440,
   "h": 900
  },
  {
-  "html": "web/05-12-page-client-invite-drawer-c.html",
-  "png": "web/05-12-page-client-invite-drawer-c.png",
+  "html": "web/05-14-page-client-invite-drawer-c.html",
+  "png": "web/05-14-page-client-invite-drawer-c.png",
   "w": 1440,
   "h": 900
  },
@@ -210,62 +222,74 @@
   "h": 1100
  },
  {
-  "html": "web/06-03-page-client-nutrition-d.html",
-  "png": "web/06-03-page-client-nutrition-d.png",
+  "html": "web/06-03-page-client-detail-trainer-d.html",
+  "png": "web/06-03-page-client-detail-trainer-d.png",
+  "w": 1440,
+  "h": 1100
+ },
+ {
+  "html": "web/06-04-page-client-detail-nutritionist-d.html",
+  "png": "web/06-04-page-client-detail-nutritionist-d.png",
+  "w": 1440,
+  "h": 1100
+ },
+ {
+  "html": "web/06-05-page-client-nutrition-d.html",
+  "png": "web/06-05-page-client-nutrition-d.png",
   "w": 1440,
   "h": 1380
  },
  {
-  "html": "web/06-04-page-client-nutrition-empty-d.html",
-  "png": "web/06-04-page-client-nutrition-empty-d.png",
+  "html": "web/06-06-page-client-nutrition-empty-d.html",
+  "png": "web/06-06-page-client-nutrition-empty-d.png",
   "w": 1440,
   "h": 900
  },
  {
-  "html": "web/06-05-page-client-plan-editor-d.html",
-  "png": "web/06-05-page-client-plan-editor-d.png",
+  "html": "web/06-07-page-client-plan-editor-d.html",
+  "png": "web/06-07-page-client-plan-editor-d.png",
   "w": 1440,
   "h": 900
  },
  {
-  "html": "web/06-06-page-client-plan-day-d.html",
-  "png": "web/06-06-page-client-plan-day-d.png",
+  "html": "web/06-08-page-client-plan-day-d.html",
+  "png": "web/06-08-page-client-plan-day-d.png",
   "w": 1440,
   "h": 900
  },
  {
-  "html": "web/06-07-page-client-plan-day-add-meal-d.html",
-  "png": "web/06-07-page-client-plan-day-add-meal-d.png",
+  "html": "web/06-09-page-client-plan-day-add-meal-d.html",
+  "png": "web/06-09-page-client-plan-day-add-meal-d.png",
   "w": 1440,
   "h": 900
  },
  {
-  "html": "web/06-08-page-client-plan-start-over-d.html",
-  "png": "web/06-08-page-client-plan-start-over-d.png",
+  "html": "web/06-10-page-client-plan-start-over-d.html",
+  "png": "web/06-10-page-client-plan-start-over-d.png",
   "w": 1440,
   "h": 900
  },
  {
-  "html": "web/06-09-page-client-plan-info-d.html",
-  "png": "web/06-09-page-client-plan-info-d.png",
+  "html": "web/06-11-page-client-plan-info-d.html",
+  "png": "web/06-11-page-client-plan-info-d.png",
   "w": 1440,
   "h": 900
  },
  {
-  "html": "web/06-10-page-client-plan-blank-d.html",
-  "png": "web/06-10-page-client-plan-blank-d.png",
+  "html": "web/06-12-page-client-plan-blank-d.html",
+  "png": "web/06-12-page-client-plan-blank-d.png",
   "w": 1440,
   "h": 900
  },
  {
-  "html": "web/06-11-page-client-plan-closed-d.html",
-  "png": "web/06-11-page-client-plan-closed-d.png",
+  "html": "web/06-13-page-client-plan-closed-d.html",
+  "png": "web/06-13-page-client-plan-closed-d.png",
   "w": 1440,
   "h": 900
  },
  {
-  "html": "web/06-12-page-client-invite-drawer-d.html",
-  "png": "web/06-12-page-client-invite-drawer-d.png",
+  "html": "web/06-14-page-client-invite-drawer-d.html",
+  "png": "web/06-14-page-client-invite-drawer-d.png",
   "w": 1440,
   "h": 900
  },

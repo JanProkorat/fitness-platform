@@ -275,12 +275,13 @@ public class GetClientTimelineEndpoint(
             });
         }
 
-        // ── 4. Questionnaire responses (submitted only) — dual-readable standalone
-        //      entries, same rationale as body measurements above. ──
+        // ── 4. Questionnaire responses (submitted only) — author-scoped: a coach sees only
+        //      answers to questionnaires they wrote, independent of the capability flags. ──
         var questionnaires = await db.QuestionnaireResponses
             .AsNoTracking()
             .Include(r => r.Questionnaire)
             .Where(r => r.ClientId == clientUserId
+                     && r.Questionnaire.ProfessionalId == trainerUserId
                      && r.SubmittedAt != null
                      && r.SubmittedAt >= from)
             .OrderByDescending(r => r.SubmittedAt)

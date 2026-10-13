@@ -3335,14 +3335,27 @@
           "caption": "Letzte 7 Tage",
           "captionStreak_one": "Letzte 7 Tage • {{count}} Tag in Folge protokolliert",
           "captionStreak_other": "Letzte 7 Tage • {{count}} Tage in Folge protokolliert",
-          "empty": "Noch keine Daten",
-          "noAccess": "Kein Zugriff auf Ernährung"
+          "empty": "Noch keine Daten"
+        },
+        "trainingCompliance": {
+          "label": "Trainings-Quote",
+          "value": "{{percent}} %",
+          "caption": "Letzte 7 Tage",
+          "captionStreak_one": "Letzte 7 Tage • {{count}} Tag in Folge trainiert",
+          "captionStreak_other": "Letzte 7 Tage • {{count}} Tage in Folge trainiert",
+          "empty": "Noch keine Daten"
+        },
+        "weightChange": {
+          "label": "Gewichtsänderung",
+          "value": "{{delta}} kg",
+          "since": "Seit {{date}}",
+          "sinceGoal": "{{since}} · Ziel {{goal}} kg",
+          "empty": "Noch keine Messungen"
         },
         "prs": {
           "label": "PRs diesen Monat",
           "lastActive": "Zuletzt aktiv {{when}}",
-          "noActivity": "Noch keine Aktivität",
-          "noAccess": "Kein Zugriff auf Training"
+          "noActivity": "Noch keine Aktivität"
         },
         "weight": {
           "value": "{{kg}} kg",
@@ -3372,8 +3385,7 @@
         "exercises_one": "{{count}} Übung",
         "exercises_other": "{{count}} Übungen",
         "cardExercises_one": "{{count}} Übung",
-        "cardExercises_other": "{{count}} Übungen",
-        "noAccess": "Kein Zugriff auf Training"
+        "cardExercises_other": "{{count}} Übungen"
       },
       "checkInTrend": {
         "heading": "Check-in-Trend",

@@ -17,8 +17,6 @@ interface Props {
   /** Whether the plans-list query (which resolves `plan`/`canView`) is still loading. */
   isPending: boolean;
   isError: boolean;
-  /** True for a nutritionist-only link (dashboard.canViewTrainingPlans === false). */
-  noTrainingAccess?: boolean;
   /** Sessions held this week, from the client dashboard (null when no current week). */
   sessionsCompleted?: number | null;
   sessionsPlanned?: number | null;
@@ -34,7 +32,6 @@ export default function LatestWorkoutCard({
   canView,
   isPending,
   isError,
-  noTrainingAccess = false,
   sessionsCompleted,
   sessionsPlanned,
 }: Props) {
@@ -66,24 +63,15 @@ export default function LatestWorkoutCard({
         heading={t('clientDetail.overview.workout.heading')}
       />
 
-      {noTrainingAccess && (
-        <div className="flex flex-col gap-0.5">
-          <span className="text-body font-bold text-ink">—</span>
-          <span className="text-caption text-muted-foreground">{t('clientDetail.overview.workout.noAccess')}</span>
-        </div>
-      )}
+      {isPending && <Skeleton className="h-10 w-full" />}
 
-      {!noTrainingAccess && isPending && <Skeleton className="h-10 w-full" />}
+      {!isPending && isError && <p className="text-caption text-muted-foreground">{t('common.loadError')}</p>}
 
-      {!noTrainingAccess && !isPending && isError && (
-        <p className="text-caption text-muted-foreground">{t('common.loadError')}</p>
-      )}
-
-      {!noTrainingAccess && !isPending && !isError && (!canView || !plan) && (
+      {!isPending && !isError && (!canView || !plan) && (
         <p className="text-caption text-muted-foreground">{t('clientDetail.prehled.noActivePlan.training')}</p>
       )}
 
-      {!noTrainingAccess && !isPending && !isError && canView && plan && (
+      {!isPending && !isError && canView && plan && (
         <>
           <div className="flex items-center gap-3">
             <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-training-soft">
