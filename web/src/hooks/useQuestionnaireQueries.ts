@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import i18n from '@/i18n';
 import {
   createQuestionnaire,
@@ -28,6 +28,7 @@ export function useTrainerQuestionnaires({ type, search = '' }: TrainerQuestionn
     queryKey: ['questionnaires', 'trainer', type ?? 'all', search],
     queryFn: () => getTrainerQuestionnaires({ type, search }),
     enabled: isProfessional,
+    placeholderData: keepPreviousData,
   });
 }
 

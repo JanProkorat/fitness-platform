@@ -51,6 +51,7 @@ trainerTest.describe('trainer forms', () => {
 
     await page.goto('/forms');
     await page.getByRole('searchbox', { name: 'Search forms…' }).fill(`E2E `);
+    await expect(page).toHaveURL(/[?&]q=/);
     const onboardingRow = page.getByRole('row').filter({ hasText: onboardingName });
     const checkInRow = page.getByRole('row').filter({ hasText: checkInName });
     await expect(onboardingRow).toBeVisible();
@@ -59,12 +60,18 @@ trainerTest.describe('trainer forms', () => {
     await page.getByRole('button', { name: 'Type' }).click();
     await page.getByRole('option', { name: 'Check-in' }).click();
     await expect(page).toHaveURL(/type=CheckIn/);
+    await expect(onboardingRow).toHaveCount(0);
     await expect(checkInRow).toBeVisible();
     await expect(onboardingRow).toHaveCount(0);
 
     for (const name of [onboardingName, checkInName]) {
       await page.goto('/forms');
       await page.getByRole('searchbox', { name: 'Search forms…' }).fill(name);
+      // The debounced search lands in the URL, then the list refetches to the one matching row
+      // (header row + that row); opening the menu earlier would race the refetch.
+      await expect(page).toHaveURL(/[?&]q=/);
+      await expect(page.getByRole('row')).toHaveCount(2);
+      await expect(page.getByRole('row').filter({ hasText: name })).toHaveCount(1);
       await page.getByRole('button', { name: `Actions for ${name}` }).click();
       await page.getByRole('menuitem', { name: 'Delete' }).click();
       await page.getByRole('dialog').getByRole('button', { name: 'Delete' }).click();
