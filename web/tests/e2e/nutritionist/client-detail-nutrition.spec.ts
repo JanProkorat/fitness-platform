@@ -537,4 +537,324 @@ test.describe('client detail — nutrition tab', () => {
       await expect(card.getByTestId('this-week-eaten')).toHaveCount(0);
     });
   });
+
+  test.describe('is it working card and nutrition profile', () => {
+    const OLD_PLAN_ID = '00000000-0000-0000-1335-000000000001';
+    const NEW_PLAN_ID = '00000000-0000-0000-1335-000000000002';
+
+    interface DashboardBody {
+      onboarding?: Record<string, unknown> | null;
+      [key: string]: unknown;
+    }
+
+    interface Onboarding {
+      [key: string]: unknown;
+    }
+
+    const FULL_ONBOARDING: Onboarding = {
+      targetWeightKg: 75,
+      adjustedKcal: 2200,
+      proteinGrams: 150,
+      carbsGrams: 220,
+      fatGrams: 70,
+      fibreGrams: 30,
+      allergies: 'gluten,lactose,none',
+      dislikes: ['Mushrooms'],
+      habits: ['Skips breakfast'],
+      dateUpdated: '2026-05-14T12:00:00Z',
+    };
+
+    /** The page's "now": a Wednesday, so the eight weeks start on Monday 2026-04-20. */
+    async function pinNow(page: Page): Promise<void> {
+      await page.clock.setFixedTime(new Date(2026, 5, 10, 12, 0, 0));
+    }
+
+    /** Rewrites the real client dashboard so the onboarding block is the one under test. */
+    async function stubOnboarding(page: Page, onboarding: () => Onboarding | null): Promise<void> {
+      await page.route(/\/trainer\/clients\/[^/?]+$/, async (route: Route) => {
+        const response = await route.fetch();
+        const body = (await response.json()) as DashboardBody;
+        await route.fulfill({ response, json: { ...body, onboarding: onboarding() } });
+      });
+    }
+
+    /** An Active plan since 25 May, preceded by a Completed one; both carry a kcal target unless `withKcal` is false. */
+    async function stubPlans(page: Page, options: { onlyNewPlan?: boolean; withKcal?: boolean } = {}): Promise<void> {
+      const withKcal = options.withKcal ?? true;
+      const oldPlan = {
+        planId: OLD_PLAN_ID,
+        planType: 'Nutrition',
+        name: 'Stub old plan',
+        periodStart: '2026-04-13',
+        periodEnd: '2026-05-24',
+        status: 'Completed',
+        ...(withKcal ? { plannedDailyKcal: 2400 } : {}),
+      };
+      const newPlan = {
+        planId: NEW_PLAN_ID,
+        planType: 'Nutrition',
+        name: 'Stub new plan',
+        periodStart: options.onlyNewPlan ? '2026-04-13' : '2026-05-25',
+        status: 'Active',
+        ...(withKcal ? { plannedDailyKcal: 2200 } : {}),
+      };
+      await rewritePlansList(page, (body) => ({ ...body, plans: options.onlyNewPlan ? [newPlan] : [oldPlan, newPlan] }));
+      await page.route(new RegExp(`/nutrition/plans/${NEW_PLAN_ID}$`), async (route) => {
+        await route.fulfill({
+          json: {
+            planId: NEW_PLAN_ID,
+            clientId: '11111111-1111-1111-1111-111111111111',
+            nutritionistId: '33333333-3333-3333-3333-333333333333',
+            name: 'Stub new plan',
+            status: 'Active',
+            globalSettings: { dailyKcal: 2200 },
+            weeks: [{ weekNumber: 1, status: 'Published', days: [] }],
+            version: 1,
+            dateCreated: '2026-04-01T00:00:00Z',
+            startDate: options.onlyNewPlan ? '2026-04-13' : '2026-05-25',
+            mealLogs: [],
+            supplements: [],
+          },
+        });
+      });
+    }
+
+    /** `control.failing` keeps the request failing through the query client's single retry. */
+    async function stubMeasurements(
+      page: Page,
+      weighIns: [string, number][],
+      control: { failing: boolean } = { failing: false },
+    ): Promise<void> {
+      await page.route(/\/trainer\/clients\/[^/]+\/measurements(\?.*)?$/, async (route) => {
+        if (control.failing) {
+          await route.fulfill({ status: 500, contentType: 'application/problem+json', body: '{"status":500}' });
+          return;
+        }
+        const items = weighIns.map(([measuredAt, weightKg], index) => ({
+          measurementId: `00000000-0000-0000-1335-0000000001${String(index).padStart(2, '0')}`,
+          measuredAt,
+          weightKg,
+        }));
+        await route.fulfill({ json: { items, totalCount: items.length, page: 1, pageSize: 50 } });
+      });
+    }
+
+    const PROGRESS_WEIGH_INS: [string, number][] = [
+      ['2026-04-22T08:00:00Z', 82],
+      ['2026-05-13T08:00:00Z', 80.6],
+      ['2026-06-09T08:00:00Z', 79],
+    ];
+
+    test('charts weight against the planned kcal and marks the plan change', async ({ page }) => {
+      await pinNow(page);
+      await stubOnboarding(page, () => FULL_ONBOARDING);
+      await stubPlans(page);
+      await stubMeasurements(page, PROGRESS_WEIGH_INS);
+      await openNutritionTab(page);
+
+      const card = page.getByRole('region', { name: 'Is it working?' });
+      await expect(card).toBeVisible();
+      await expect(card.getByText('Last 8 weeks', { exact: true })).toBeVisible();
+
+      // 82 kg -> 79 kg over the window, heading for 75 kg at about 0.06 kg a day.
+      await expect(card.getByTestId('progress-delta')).toHaveText('-3 kg');
+      await expect(card.getByTestId('progress-status')).toHaveText('on track for 75 kg by Aug');
+
+      const chart = card.getByRole('img');
+      await expect(chart).toHaveAccessibleName(/Weight change -3 kg over the last 8 weeks.*1 plan changes/);
+      await expect(chart.getByTestId('progress-bar')).toHaveCount(8);
+      await expect(chart.getByTestId('progress-plan-change')).toHaveCount(1);
+      await expect(chart.getByText('new plan', { exact: true })).toBeVisible();
+      await expect(chart.getByText('W1', { exact: true })).toBeVisible();
+      await expect(chart.getByText('W8', { exact: true })).toBeVisible();
+      await expect(card.getByText('Weight (check-ins)', { exact: true })).toBeVisible();
+      await expect(card.getByText('Planned kcal a day', { exact: true })).toBeVisible();
+    });
+
+    test('says there are too few weigh-ins and still draws the planned kcal', async ({ page }) => {
+      await pinNow(page);
+      await stubOnboarding(page, () => FULL_ONBOARDING);
+      await stubPlans(page, { onlyNewPlan: true });
+      await stubMeasurements(page, [['2026-06-09T08:00:00Z', 79]]);
+      await openNutritionTab(page);
+
+      const card = page.getByRole('region', { name: 'Is it working?' });
+      await expect(card.getByTestId('progress-insufficient')).toHaveText('Not enough weigh-ins yet to show a change.');
+      await expect(card.getByTestId('progress-delta')).toHaveCount(0);
+      await expect(card.getByRole('img').getByTestId('progress-bar')).toHaveCount(8);
+      await expect(card.getByRole('img').getByTestId('progress-plan-change')).toHaveCount(0);
+    });
+
+    test('shows the empty copy when there is no weigh-in and no kcal target', async ({ page }) => {
+      await pinNow(page);
+      await stubOnboarding(page, () => FULL_ONBOARDING);
+      await stubPlans(page, { withKcal: false });
+      await stubMeasurements(page, []);
+      await openNutritionTab(page);
+
+      const card = page.getByRole('region', { name: 'Is it working?' });
+      await expect(card.getByRole('status')).toHaveText(
+        'Nothing to show yet. Weigh-ins and a plan with a kcal target will appear here.',
+      );
+      await expect(card.getByRole('img')).toHaveCount(0);
+    });
+
+    test('shows a retry when the weigh-ins fail to load and recovers', async ({ page }) => {
+      await pinNow(page);
+      await stubOnboarding(page, () => FULL_ONBOARDING);
+      await stubPlans(page);
+      const control = { failing: true };
+      await stubMeasurements(page, PROGRESS_WEIGH_INS, control);
+      await openNutritionTab(page);
+
+      const card = page.getByRole('region', { name: 'Is it working?' });
+      await expect(card.getByText('Failed to load the plan. Please refresh the page.')).toBeVisible();
+      // The rest of the tab is unaffected.
+      await expect(page.getByRole('region', { name: 'Past plans' })).toBeVisible();
+
+      control.failing = false;
+      await card.getByRole('button', { name: 'Retry' }).click();
+      await expect(card.getByTestId('progress-delta')).toHaveText('-3 kg');
+    });
+
+    test('shows the onboarding targets, allergies, dislikes and habits with the update date', async ({ page }) => {
+      await pinNow(page);
+      await stubOnboarding(page, () => FULL_ONBOARDING);
+      await stubPlans(page);
+      await stubMeasurements(page, PROGRESS_WEIGH_INS);
+      await openNutritionTab(page);
+
+      const card = page.getByRole('region', { name: /nutrition profile$/ });
+      await expect(card).toBeVisible();
+      for (const heading of ['Targets', 'Allergies', 'Dislikes', 'Habits']) {
+        await expect(card.getByRole('heading', { name: heading, exact: true })).toBeVisible();
+      }
+      for (const chip of ['2,200 kcal', 'P 150 g', 'C 220 g', 'F 70 g', 'Fib 30 g']) {
+        await expect(card.getByRole('listitem').filter({ hasText: chip })).toHaveCount(1);
+      }
+      // Allergies are red and the "none" marker is not listed.
+      for (const allergy of ['Gluten', 'Lactose']) {
+        await expect(card.getByRole('listitem').filter({ hasText: allergy })).toHaveClass(/text-error/);
+      }
+      await expect(card.getByRole('listitem').filter({ hasText: 'none' })).toHaveCount(0);
+      await expect(card.getByRole('listitem').filter({ hasText: 'Mushrooms' })).toBeVisible();
+      await expect(card.getByRole('listitem').filter({ hasText: 'Skips breakfast' })).toBeVisible();
+      await expect(card.getByTestId('nutrition-profile-source')).toHaveText('From onboarding · updated May 14');
+    });
+
+    test('drops the date from the footer, and the edit action when there is no onboarding', async ({ page }) => {
+      await pinNow(page);
+      let onboarding: Onboarding | null = { targetWeightKg: 75, adjustedKcal: 2200 };
+      await stubOnboarding(page, () => onboarding);
+      await stubPlans(page);
+      await stubMeasurements(page, PROGRESS_WEIGH_INS);
+      await openNutritionTab(page);
+
+      const card = page.getByRole('region', { name: /nutrition profile$/ });
+      await expect(card.getByTestId('nutrition-profile-source')).toHaveText('From onboarding');
+      await expect(card.getByText('None', { exact: true })).toHaveCount(3);
+
+      onboarding = null;
+      await page.reload();
+      await page.waitForLoadState('networkidle');
+      await expect(card.getByText('No onboarding answers yet', { exact: true })).toBeVisible();
+      await expect(card.getByRole('button', { name: 'Edit' })).toHaveCount(0);
+    });
+
+    test('edits the profile, refreshes the card and keeps the dialog open on errors', async ({ page }) => {
+      await pinNow(page);
+      let onboarding: Onboarding = { ...FULL_ONBOARDING };
+      await stubOnboarding(page, () => onboarding);
+      await stubPlans(page);
+      await stubMeasurements(page, PROGRESS_WEIGH_INS);
+
+      const requests: Record<string, unknown>[] = [];
+      let attempts = 0;
+      await page.route(/\/trainer\/clients\/[^/]+\/nutrition-profile$/, async (route) => {
+        requests.push(route.request().postDataJSON() as Record<string, unknown>);
+        attempts += 1;
+        if (attempts === 1) {
+          await route.fulfill({
+            status: 409,
+            contentType: 'application/problem+json',
+            body: JSON.stringify({ status: 409, errorCode: 'CLIENT_NUTRITION_PROFILE_MISSING' }),
+          });
+          return;
+        }
+        if (attempts === 2) {
+          await route.fulfill({ status: 400, contentType: 'application/problem+json', body: '{"status":400}' });
+          return;
+        }
+        const saved = route.request().postDataJSON() as { dislikes: string[]; habits: string[]; fibreGrams?: number };
+        onboarding = { ...onboarding, dislikes: saved.dislikes, habits: saved.habits, fibreGrams: saved.fibreGrams };
+        await route.fulfill({ json: { ...saved, allergies: ['gluten', 'lactose'] } });
+      });
+
+      await openNutritionTab(page);
+      const card = page.getByRole('region', { name: /nutrition profile$/ });
+      await card.getByRole('button', { name: 'Edit' }).click();
+
+      const dialog = page.getByRole('dialog', { name: 'Edit nutrition profile' });
+      await expect(dialog).toBeVisible();
+      await expect(dialog.getByLabel('Fibre target (g a day)')).toHaveValue('30');
+      await expect(dialog.getByLabel('Fibre target (g a day)')).toBeEnabled();
+
+      // A fibre target outside 0-150 is blocked client-side.
+      await dialog.getByLabel('Fibre target (g a day)').fill('151');
+      await dialog.getByRole('button', { name: 'Save' }).click();
+      await expect(dialog.getByRole('alert')).toHaveText('Enter a number from 0 to 150.');
+      expect(requests).toHaveLength(0);
+      await dialog.getByLabel('Fibre target (g a day)').fill('35');
+
+      const dislikes = dialog.getByLabel('Dislikes');
+      await dislikes.fill('Olives');
+      await dislikes.press('Enter');
+      await expect(dialog.getByRole('button', { name: 'Remove Olives' })).toBeVisible();
+
+      // 409: the translated message, the dialog stays open with the values.
+      await dialog.getByRole('button', { name: 'Save' }).click();
+      await expect(
+        page.getByText('This client has no nutrition targets or onboarding answers to edit yet.', { exact: true }),
+      ).toBeVisible();
+      await expect(dialog).toBeVisible();
+      await expect(dialog.getByRole('button', { name: 'Remove Olives' })).toBeVisible();
+
+      // 400 without a code: the fallback message.
+      await dialog.getByRole('button', { name: 'Save' }).click();
+      await expect(
+        page.getByText("Couldn't save the nutrition profile. Please try again.", { exact: true }),
+      ).toBeVisible();
+      await expect(dialog).toBeVisible();
+
+      // Third attempt succeeds: toast, dialog closes, the card refetches the dashboard.
+      await dialog.getByRole('button', { name: 'Save' }).click();
+      await expect(page.getByText('Nutrition profile saved.', { exact: true })).toBeVisible();
+      await expect(dialog).toBeHidden();
+      await expect(card.getByRole('listitem').filter({ hasText: 'Olives' })).toBeVisible();
+      await expect(card.getByRole('listitem').filter({ hasText: 'Fib 35 g' })).toBeVisible();
+
+      expect(requests).toHaveLength(3);
+      for (const body of requests) {
+        expect(body).toMatchObject({
+          allergies: ['gluten', 'lactose'],
+          dislikes: ['Mushrooms', 'Olives'],
+          habits: ['Skips breakfast'],
+          fibreGrams: 35,
+        });
+      }
+    });
+
+    test('disables the fibre target when the client has no targets', async ({ page }) => {
+      await pinNow(page);
+      await stubOnboarding(page, () => ({ targetWeightKg: 75, dislikes: ['Mushrooms'] }));
+      await stubPlans(page);
+      await stubMeasurements(page, PROGRESS_WEIGH_INS);
+      await openNutritionTab(page);
+
+      await page.getByRole('region', { name: /nutrition profile$/ }).getByRole('button', { name: 'Edit' }).click();
+      const dialog = page.getByRole('dialog', { name: 'Edit nutrition profile' });
+      await expect(dialog.getByLabel('Fibre target (g a day)')).toBeDisabled();
+      await expect(dialog.getByText('Set calorie and macro targets before adding a fibre target.')).toBeVisible();
+    });
+  });
 });
