@@ -65,7 +65,7 @@ public class UpdateQuestionnaireEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
-    public async Task Update_OnboardingToCheckIn_PersistsTypeAndKeepsDefaultFalse()
+    public async Task Update_OnboardingToCheckIn_PersistsTypeAndClearsDefault()
     {
         var trainer = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
         var form = await CreateAsync(trainer, "Intake", "Onboarding");

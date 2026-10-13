@@ -45,7 +45,7 @@ import { showApiError, showError } from '@/lib/api-errors';
 
 type SideTab = 'info' | 'library';
 
-const DRAG_SENSORS =[PointerSensor.configure({ activationConstraints: dragActivationConstraints }), KeyboardSensor];
+const DRAG_SENSORS = [PointerSensor.configure({ activationConstraints: dragActivationConstraints }), KeyboardSensor];
 
 interface CanvasProps {
   children: React.ReactNode;
