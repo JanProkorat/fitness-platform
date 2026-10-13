@@ -475,9 +475,6 @@ public static class ErrorCodes
     /// <summary>A question's config is not valid JSON for its type.</summary>
     public const string QuestionConfigInvalid = "QUESTION_CONFIG_INVALID";
 
-    /// <summary>An update tried to change the form type, which is fixed on create.</summary>
-    public const string QuestionnaireTypeImmutable = "QUESTIONNAIRE_TYPE_IMMUTABLE";
-
     /// <summary>Only Onboarding forms can be the default form.</summary>
     public const string CheckInFormCannotBeDefault = "CHECKIN_FORM_CANNOT_BE_DEFAULT";
 

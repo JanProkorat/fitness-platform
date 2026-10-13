@@ -11,7 +11,7 @@ using FluentAssertions;
 namespace FitnessPlatform.Tests.Endpoints.Questionnaires;
 
 /// <summary>
-/// Create and update of questionnaires: form type is fixed on create, only Onboarding forms can be default,
+/// Create and update of questionnaires: form type can be changed on update, only Onboarding forms can be default,
 /// legacy question configs keep working, and an update moves the list's edited-at.
 /// </summary>
 [Collection(TestCollection.Name)]
@@ -65,16 +65,48 @@ public class UpdateQuestionnaireEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
-    public async Task Update_DifferentType_Returns400TypeImmutable()
+    public async Task Update_OnboardingToCheckIn_PersistsTypeAndKeepsDefaultFalse()
+    {
+        var trainer = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
+        var form = await CreateAsync(trainer, "Intake", "Onboarding");
+        form.IsDefault.Should().BeTrue();
+
+        var response = await UpdateAsync(trainer, form.PublicId, "CheckIn", isDefault: false, questions: []);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var updated = (await response.Content.ReadFromJsonAsync<GetTrainerQuestionnaireResponse>(JsonOptions, TestContext.Current.CancellationToken))!;
+        updated.Type.Should().Be(QuestionnaireType.CheckIn);
+        updated.IsDefault.Should().BeFalse();
+
+        var reloaded = await trainer.Http.GetAsync($"/trainer/questionnaires/{form.PublicId}", TestContext.Current.CancellationToken);
+        (await reloaded.Content.ReadFromJsonAsync<GetTrainerQuestionnaireResponse>(JsonOptions, TestContext.Current.CancellationToken))!
+            .Type.Should().Be(QuestionnaireType.CheckIn);
+    }
+
+    [Fact]
+    public async Task Update_CheckInToOnboarding_PersistsType()
+    {
+        var trainer = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
+        var form = await CreateAsync(trainer, "Weekly", "CheckIn");
+
+        var response = await UpdateAsync(trainer, form.PublicId, "Onboarding", isDefault: false, questions: []);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await response.Content.ReadFromJsonAsync<GetTrainerQuestionnaireResponse>(JsonOptions, TestContext.Current.CancellationToken))!
+            .Type.Should().Be(QuestionnaireType.Onboarding);
+    }
+
+    [Fact]
+    public async Task Update_ChangeToCheckInWithIsDefault_Returns400()
     {
         var trainer = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
         var form = await CreateAsync(trainer, "Intake", "Onboarding");
 
-        var response = await UpdateAsync(trainer, form.PublicId, "CheckIn", isDefault: false, questions: []);
+        var response = await UpdateAsync(trainer, form.PublicId, "CheckIn", isDefault: true, questions: []);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         (await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken))
-            .Should().Contain("QUESTIONNAIRE_TYPE_IMMUTABLE");
+            .Should().Contain("CHECKIN_FORM_CANNOT_BE_DEFAULT");
     }
 
     [Fact]

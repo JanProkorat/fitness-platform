@@ -43,19 +43,16 @@ public class UpdateQuestionnaireEndpoint(IApplicationDbContext db)
             return;
         }
 
-        if (req.Type.HasValue && req.Type.Value != questionnaire.Type)
-        {
-            this.ThrowErrorWithCode(ErrorCodes.QuestionnaireTypeImmutable, "The form type cannot be changed after creation.");
-            return;
-        }
+        var resultingType = req.Type ?? questionnaire.Type;
 
-        if (req.IsDefault && questionnaire.Type != QuestionnaireType.Onboarding)
+        if (req.IsDefault && resultingType != QuestionnaireType.Onboarding)
         {
             this.ThrowErrorWithCode(ErrorCodes.CheckInFormCannotBeDefault, "Only Onboarding forms can be the default form.");
             return;
         }
 
         // Update questionnaire fields
+        questionnaire.Type = resultingType;
         questionnaire.Title = req.Title;
         questionnaire.Description = req.Description;
         questionnaire.IsActive = req.IsActive;
