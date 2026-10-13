@@ -12,9 +12,7 @@ const BAR_MAX_HEIGHT = 52;
 const BAR_MIN_HEIGHT = 4;
 const BAR_FLOOR_RATIO = 0.75;
 const WEIGHT_PADDING_KG = 0.5;
-const LABEL_Y = 166;
 const MARKER_TOP = 14;
-const MARKER_LABEL_Y = 10;
 
 const SLOT_WIDTH = (X_MAX - X_MIN) / PROGRESS_WEEK_COUNT;
 const BAR_WIDTH = SLOT_WIDTH * 0.46;
@@ -28,7 +26,13 @@ function slotCenter(index: number): number {
   return X_MIN + SLOT_WIDTH * (index + 0.5);
 }
 
-/** Combo chart: weekly weigh-in line over planned-kcal bars, with a dashed marker where the plan changes. */
+const xPct = (x: number) => `${(x / CHART_WIDTH) * 100}%`;
+const yPct = (y: number) => `${(y / CHART_HEIGHT) * 100}%`;
+
+/**
+ * Combo chart: weekly weigh-in line over planned-kcal bars, with a dashed marker where the plan changes.
+ * Shapes live in a stretched SVG; text and dots are HTML so they keep a constant size at any width.
+ */
 export default function IsItWorkingChart({ model, ariaLabel }: Props) {
   const { t } = useTranslation();
 
@@ -53,34 +57,33 @@ export default function IsItWorkingChart({ model, ariaLabel }: Props) {
       : BAR_MIN_HEIGHT + ((value - kcalFloor) / (kcalMax - kcalFloor)) * (BAR_MAX_HEIGHT - BAR_MIN_HEIGHT);
 
   return (
-    <svg
-      width="100%"
-      viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`}
-      role="img"
-      aria-label={ariaLabel}
-      className="overflow-visible"
-    >
-      {model.weeks.map((week, index) =>
-        week.plannedKcal !== undefined ? (
-          <rect
-            key={`bar-${week.number}`}
-            data-testid="progress-bar"
-            x={slotCenter(index) - BAR_WIDTH / 2}
-            y={BAR_BASE - barHeight(week.plannedKcal)}
-            width={BAR_WIDTH}
-            height={barHeight(week.plannedKcal)}
-            rx={2}
-            className="fill-nutrition-soft"
-          />
-        ) : null,
-      )}
+    <div role="img" aria-label={ariaLabel} className="relative h-44 w-full">
+      <svg
+        viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`}
+        preserveAspectRatio="none"
+        aria-hidden="true"
+        className="absolute inset-0 size-full overflow-visible"
+      >
+        {model.weeks.map((week, index) =>
+          week.plannedKcal !== undefined ? (
+            <rect
+              key={`bar-${week.number}`}
+              data-testid="progress-bar"
+              x={slotCenter(index) - BAR_WIDTH / 2}
+              y={BAR_BASE - barHeight(week.plannedKcal)}
+              width={BAR_WIDTH}
+              height={barHeight(week.plannedKcal)}
+              className="fill-nutrition-soft"
+            />
+          ) : null,
+        )}
 
-      {model.planChanges.map((index) => {
-        const x = X_MIN + SLOT_WIDTH * index;
-        const anchorEnd = index >= PROGRESS_WEEK_COUNT - 2;
-        return (
-          <g key={`change-${index}`} data-testid="progress-plan-change">
+        {model.planChanges.map((index) => {
+          const x = X_MIN + SLOT_WIDTH * index;
+          return (
             <line
+              key={`change-${index}`}
+              data-testid="progress-plan-change"
               x1={x}
               x2={x}
               y1={MARKER_TOP}
@@ -88,51 +91,57 @@ export default function IsItWorkingChart({ model, ariaLabel }: Props) {
               className="stroke-error"
               strokeWidth={1.2}
               strokeDasharray="3 3"
+              vectorEffect="non-scaling-stroke"
             />
-            <text
-              x={anchorEnd ? x - 4 : x + 4}
-              y={MARKER_LABEL_Y}
-              textAnchor={anchorEnd ? 'end' : 'start'}
-              className="fill-error text-caption font-semibold"
-            >
-              {t('clientDetail.nutrition.isItWorking.newPlan')}
-            </text>
-          </g>
+          );
+        })}
+
+        {weightPoints.length > 1 && (
+          <polyline
+            points={polyline}
+            fill="none"
+            className="stroke-ink"
+            strokeWidth={2.2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            vectorEffect="non-scaling-stroke"
+          />
+        )}
+      </svg>
+
+      {model.planChanges.map((index) => {
+        const x = X_MIN + SLOT_WIDTH * index;
+        const anchorEnd = index >= PROGRESS_WEEK_COUNT - 2;
+        return (
+          <span
+            key={`change-label-${index}`}
+            className={`absolute top-0 whitespace-nowrap text-caption font-semibold text-error ${
+              anchorEnd ? '-translate-x-full pr-1' : 'pl-1'
+            }`}
+            style={{ left: xPct(x) }}
+          >
+            {t('clientDetail.nutrition.isItWorking.newPlan')}
+          </span>
         );
       })}
 
-      {weightPoints.length > 1 && (
-        <polyline
-          points={polyline}
-          fill="none"
-          className="stroke-ink"
-          strokeWidth={2.2}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      )}
       {weightPoints.map((point) => (
-        <circle
+        <span
           key={`point-${point.index}`}
-          cx={slotCenter(point.index)}
-          cy={weightY(point.weightKg)}
-          r={3.4}
-          strokeWidth={1.8}
-          className="fill-card stroke-ink"
+          className="absolute size-2 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-ink bg-card"
+          style={{ left: xPct(slotCenter(point.index)), top: yPct(weightY(point.weightKg)) }}
         />
       ))}
 
       {model.weeks.map((week, index) => (
-        <text
+        <span
           key={`label-${week.number}`}
-          x={slotCenter(index)}
-          y={LABEL_Y}
-          textAnchor="middle"
-          className="fill-muted-foreground text-caption"
+          className="absolute bottom-0 -translate-x-1/2 whitespace-nowrap text-caption text-muted-foreground"
+          style={{ left: xPct(slotCenter(index)) }}
         >
           {t('clientDetail.nutrition.isItWorking.weekLabel', { n: week.number })}
-        </text>
+        </span>
       ))}
-    </svg>
+    </div>
   );
 }
