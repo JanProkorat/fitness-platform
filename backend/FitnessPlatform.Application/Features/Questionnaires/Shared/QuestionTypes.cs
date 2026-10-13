@@ -14,6 +14,9 @@ public static class QuestionTypes
     public const string Scale = "scale";
     public const string FileUpload = "file_upload";
 
+    /// <summary>Non-answerable group heading.</summary>
+    public const string Section = "section";
+
     /// <summary>Every accepted question type.</summary>
     public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.Ordinal)
     {
@@ -25,5 +28,6 @@ public static class QuestionTypes
         StarRating,
         Scale,
         FileUpload,
+        Section,
     };
 }

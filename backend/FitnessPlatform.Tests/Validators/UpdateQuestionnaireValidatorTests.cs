@@ -35,6 +35,7 @@ public class UpdateQuestionnaireValidatorTests
     [InlineData("star_rating", null)]
     [InlineData("scale", "{\"min\":1,\"max\":10,\"labelMin\":\"Low\",\"labelMax\":\"High\"}")]
     [InlineData("file_upload", null)]
+    [InlineData("section", null)]
     public void Question_ValidTypeAndConfig_Passes(string type, string? config)
     {
         var result = _validator.TestValidate(RequestWith(type, config));
