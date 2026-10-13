@@ -81,7 +81,7 @@ export default function ClientNutritionTab({ clientId, dashboard }: Props) {
 
   if (!currentPlan) {
     return (
-      <div className="grid grid-cols-1 gap-3.5 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,26rem)]">
+      <div className="grid grid-cols-1 gap-3.5 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,26rem)]">
         <NutritionEmptyState clientId={clientId} dashboard={dashboard} />
         <div className="flex flex-col gap-3.5">
           {/* Nutrition profile card slot. */}
@@ -107,8 +107,8 @@ export default function ClientNutritionTab({ clientId, dashboard }: Props) {
       <CurrentPlanCard plan={currentPlan} detail={currentDetail} onRetry={retryCurrent} />
       <PlanTimelineCard plans={plans ?? []} details={details} />
       {/* Slot: "This week" and "Is it working?" row. */}
-      <div className="grid grid-cols-1 gap-3.5 lg:grid-cols-5">
-        <div className="lg:col-span-2">
+      <div className="grid grid-cols-1 gap-3.5 xl:grid-cols-5">
+        <div className="xl:col-span-2">
           <PastPlansCard clientId={clientId} clientFirstName={firstName} plans={pastPlans} />
         </div>
         {/* Slots: "Meal photos and notes" and the nutrition profile. */}

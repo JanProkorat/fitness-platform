@@ -29,9 +29,9 @@ test.describe('client detail — nutritionist-only overview', () => {
 
     await expect(page.getByRole('heading', { name: /QA Client/ })).toBeVisible();
 
-    // Tabs: Nutrition stays (disabled, coming soon), Workouts is not rendered.
+    // Tabs: Nutrition is live, Workouts is not rendered.
     await expect(page.getByRole('tab', { name: 'Overview' })).toBeEnabled();
-    await expect(page.getByRole('tab', { name: 'Nutrition' })).toBeDisabled();
+    await expect(page.getByRole('tab', { name: 'Nutrition' })).toBeEnabled();
     await expect(page.getByRole('tab', { name: 'Workouts' })).toHaveCount(0);
 
     // Stat row.
