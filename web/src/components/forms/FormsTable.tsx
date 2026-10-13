@@ -121,7 +121,7 @@ export default function FormsTable({ forms, isPending, isError, onRetry, hasActi
                       >
                         <FileText className="size-4.5" aria-hidden="true" />
                       </span>
-                      <div className="flex min-w-0 flex-col">
+                      <div className="flex min-w-0 max-w-96 flex-col">
                         <Link
                           to={`/forms/${formId}`}
                           className="text-copy font-semibold text-ink outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"

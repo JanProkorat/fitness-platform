@@ -109,8 +109,8 @@ export default function FormsPage() {
           </Button>
         </div>
       ) : (
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-line bg-card shadow-panel">
-          <div className="flex-1 overflow-y-auto [&_[data-slot=table-container]]:overflow-visible">
+        <div className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-line bg-card shadow-panel">
+          <div className="min-h-0 overflow-y-auto [&_[data-slot=table-container]]:overflow-visible">
             <FormsTable
               forms={pageForms}
               isPending={formsQuery.isPending}
