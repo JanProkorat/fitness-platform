@@ -3,13 +3,13 @@ using FitnessPlatform.Application.Domain.Entities;
 namespace FitnessPlatform.Application.Domain.Interfaces;
 
 /// <summary>
-/// Narrows a link's capability flags to the disciplines the calling coach still holds an active role for.
+/// Narrows a link's capability flags to the disciplines the calling coach holds a role for.
 /// </summary>
 public interface ICoachDisciplineAccess
 {
     /// <summary>
-    /// Returns the link flags ANDed with the caller's active roles: nutrition needs an active Nutritionist
-    /// role, training needs an active Trainer role. A role removed on the profile does not count.
+    /// Returns the link flags ANDed with the caller's held roles: nutrition needs the Nutritionist role,
+    /// training needs the Trainer role. A role marked removed still counts until the sweeper ends the link.
     /// </summary>
     /// <param name="coachUserId">The calling coach's user id.</param>
     /// <param name="linkCapabilities">The flags stamped on the link.</param>

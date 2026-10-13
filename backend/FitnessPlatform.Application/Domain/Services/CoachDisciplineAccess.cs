@@ -1,14 +1,15 @@
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Interfaces;
+using Microsoft.AspNetCore.Identity;
 
 namespace FitnessPlatform.Application.Domain.Services;
 
 /// <summary>
-/// Default <see cref="ICoachDisciplineAccess"/>, resolving active roles through <see cref="ICoachRoleStatus"/>.
+/// Default <see cref="ICoachDisciplineAccess"/>, reading the caller's held Identity roles.
 /// </summary>
-/// <param name="coachRoleStatus">Resolves the caller's active coach roles.</param>
-public class CoachDisciplineAccess(ICoachRoleStatus coachRoleStatus) : ICoachDisciplineAccess
+/// <param name="userManager">ASP.NET Identity user manager.</param>
+public class CoachDisciplineAccess(UserManager<ApplicationUser> userManager) : ICoachDisciplineAccess
 {
     /// <inheritdoc />
     public async Task<LinkCapabilities> GetEffectiveAsync(
@@ -19,10 +20,17 @@ public class CoachDisciplineAccess(ICoachRoleStatus coachRoleStatus) : ICoachDis
             return linkCapabilities;
         }
 
-        var activeRoles = await coachRoleStatus.GetActiveRolesAsync(coachUserId, ct);
+        var user = await userManager.FindByIdAsync(coachUserId.ToString());
+
+        if (user is null)
+        {
+            return new LinkCapabilities(false, false);
+        }
+
+        var heldRoles = await userManager.GetRolesAsync(user);
 
         return new LinkCapabilities(
-            linkCapabilities.CanViewNutritionPlans && activeRoles.Contains(AppRoles.Nutritionist),
-            linkCapabilities.CanViewTrainingPlans && activeRoles.Contains(AppRoles.Trainer));
+            linkCapabilities.CanViewNutritionPlans && heldRoles.Contains(AppRoles.Nutritionist),
+            linkCapabilities.CanViewTrainingPlans && heldRoles.Contains(AppRoles.Trainer));
     }
 }

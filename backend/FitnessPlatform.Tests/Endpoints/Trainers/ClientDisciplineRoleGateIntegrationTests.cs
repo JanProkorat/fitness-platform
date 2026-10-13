@@ -18,8 +18,8 @@ namespace FitnessPlatform.Tests.Endpoints.Trainers;
 
 /// <summary>
 /// The three coach client routes (dashboard, timeline, plan list) return a discipline's data only when the
-/// link flag AND the caller's active coach role both allow it. A removed role still sits in the JWT, so the
-/// role claim alone is not enough.
+/// link flag AND a coach role the caller holds both allow it. A role marked removed is still held, so its
+/// discipline stays readable until the sweeper ends the link (#1265).
 /// </summary>
 [Collection(TestCollection.Name)]
 public class ClientDisciplineRoleGateIntegrationTests(FitnessApiFactory factory)
@@ -202,9 +202,9 @@ public class ClientDisciplineRoleGateIntegrationTests(FitnessApiFactory factory)
     [InlineData(CoachShape.TrainerOnly, false, true)]
     [InlineData(CoachShape.NutritionistOnly, true, false)]
     [InlineData(CoachShape.DualBothActive, true, true)]
-    [InlineData(CoachShape.DualNutritionistRemoved, false, true)]
-    [InlineData(CoachShape.DualTrainerRemoved, true, false)]
-    public async Task Dashboard_BothFlagsLink_ReturnsOnlyActiveRoleDisciplines(
+    [InlineData(CoachShape.DualNutritionistRemoved, true, true)]
+    [InlineData(CoachShape.DualTrainerRemoved, true, true)]
+    public async Task Dashboard_BothFlagsLink_ReturnsOnlyHeldRoleDisciplines(
         CoachShape shape, bool expectNutrition, bool expectTraining)
     {
         var coach = await CreateCoachAsync(shape, "dash");
@@ -259,9 +259,9 @@ public class ClientDisciplineRoleGateIntegrationTests(FitnessApiFactory factory)
     [InlineData(CoachShape.TrainerOnly, false, true)]
     [InlineData(CoachShape.NutritionistOnly, true, false)]
     [InlineData(CoachShape.DualBothActive, true, true)]
-    [InlineData(CoachShape.DualNutritionistRemoved, false, true)]
-    [InlineData(CoachShape.DualTrainerRemoved, true, false)]
-    public async Task Timeline_BothFlagsLink_ReturnsOnlyActiveRoleDisciplines(
+    [InlineData(CoachShape.DualNutritionistRemoved, true, true)]
+    [InlineData(CoachShape.DualTrainerRemoved, true, true)]
+    public async Task Timeline_BothFlagsLink_ReturnsOnlyHeldRoleDisciplines(
         CoachShape shape, bool expectNutrition, bool expectTraining)
     {
         var coach = await CreateCoachAsync(shape, "timeline");
@@ -292,9 +292,9 @@ public class ClientDisciplineRoleGateIntegrationTests(FitnessApiFactory factory)
     [InlineData(CoachShape.TrainerOnly, false, true)]
     [InlineData(CoachShape.NutritionistOnly, true, false)]
     [InlineData(CoachShape.DualBothActive, true, true)]
-    [InlineData(CoachShape.DualNutritionistRemoved, false, true)]
-    [InlineData(CoachShape.DualTrainerRemoved, true, false)]
-    public async Task ListPlans_BothFlagsLink_ReturnsOnlyActiveRoleDisciplines(
+    [InlineData(CoachShape.DualNutritionistRemoved, true, true)]
+    [InlineData(CoachShape.DualTrainerRemoved, true, true)]
+    public async Task ListPlans_BothFlagsLink_ReturnsOnlyHeldRoleDisciplines(
         CoachShape shape, bool expectNutrition, bool expectTraining)
     {
         var coach = await CreateCoachAsync(shape, "plans");
@@ -322,8 +322,6 @@ public class ClientDisciplineRoleGateIntegrationTests(FitnessApiFactory factory)
     [Theory]
     [InlineData(CoachShape.TrainerOnly, true, false)]
     [InlineData(CoachShape.NutritionistOnly, false, true)]
-    [InlineData(CoachShape.DualNutritionistRemoved, true, false)]
-    [InlineData(CoachShape.DualTrainerRemoved, false, true)]
     public async Task Dashboard_LinkGrantsOnlyDisciplineCallerLacks_Returns403(
         CoachShape shape, bool linkNutrition, bool linkTraining)
     {
@@ -339,8 +337,6 @@ public class ClientDisciplineRoleGateIntegrationTests(FitnessApiFactory factory)
     [Theory]
     [InlineData(CoachShape.TrainerOnly, true, false)]
     [InlineData(CoachShape.NutritionistOnly, false, true)]
-    [InlineData(CoachShape.DualNutritionistRemoved, true, false)]
-    [InlineData(CoachShape.DualTrainerRemoved, false, true)]
     public async Task Timeline_LinkGrantsOnlyDisciplineCallerLacks_Returns403(
         CoachShape shape, bool linkNutrition, bool linkTraining)
     {
@@ -356,8 +352,6 @@ public class ClientDisciplineRoleGateIntegrationTests(FitnessApiFactory factory)
     [Theory]
     [InlineData(CoachShape.TrainerOnly, true, false)]
     [InlineData(CoachShape.NutritionistOnly, false, true)]
-    [InlineData(CoachShape.DualNutritionistRemoved, true, false)]
-    [InlineData(CoachShape.DualTrainerRemoved, false, true)]
     public async Task ListPlans_LinkGrantsOnlyDisciplineCallerLacks_Returns403(
         CoachShape shape, bool linkNutrition, bool linkTraining)
     {
@@ -368,6 +362,27 @@ public class ClientDisciplineRoleGateIntegrationTests(FitnessApiFactory factory)
             $"/trainer/clients/{client.PublicId}/plans", TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    // ── removed role keeps read access to a link that still grants its discipline ──
+
+    [Theory]
+    [InlineData(CoachShape.DualNutritionistRemoved, true, false, "")]
+    [InlineData(CoachShape.DualNutritionistRemoved, true, false, "/timeline")]
+    [InlineData(CoachShape.DualNutritionistRemoved, true, false, "/plans")]
+    [InlineData(CoachShape.DualTrainerRemoved, false, true, "")]
+    [InlineData(CoachShape.DualTrainerRemoved, false, true, "/timeline")]
+    [InlineData(CoachShape.DualTrainerRemoved, false, true, "/plans")]
+    public async Task ClientRoutes_LinkGrantsOnlyRemovedRoleDiscipline_Returns200(
+        CoachShape shape, bool linkNutrition, bool linkTraining, string routeSuffix)
+    {
+        var coach = await CreateCoachAsync(shape, "removed-200");
+        var client = await CreateLinkedClientAsync(coach, linkNutrition, linkTraining);
+
+        var response = await coach.Http.GetAsync(
+            $"/trainer/clients/{client.PublicId}{routeSuffix}", TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
     private record TimelineResponse(List<TimelineItem> Items, bool CanViewNutritionPlans, bool CanViewTrainingPlans);
