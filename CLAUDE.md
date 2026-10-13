@@ -79,35 +79,46 @@ Hub at `/hubs/notifications`.
 ```
 FitnessPlatform.Application/
   Domain/
-    Entities/          — 22 EF Core entities (PostgreSQL)
-    Documents/         — 23 MongoDB document classes
-    Enums/             — 31 enums (roles, goals, plan status, etc.)
-    Interfaces/        — 11 service interfaces
+    Entities/          — 36 EF Core entities (PostgreSQL)
+    Documents/         — 47 MongoDB document classes
+    Enums/             — 66 enums (roles, goals, plan status, etc.)
+    Interfaces/        — 24 service interfaces
     Constants/         — AppRoles, AppClaims, ErrorCodes
-  Features/            — 18 feature folders, ~116 endpoints total
-    Auth/              — Register, Login, Refresh, Password reset, Invites
-    Trainers/          — Client management, dashboards, progress
-    NutritionPlans/    — CRUD, publish weeks, week-level versioning
-    TrainingPlans/     — CRUD, publish weeks, session/exercise management
-    Questionnaires/    — Templates, assignment, client responses
-    ClientNutrition/   — Today's plan, meal logging, weekly overview
-    ClientTraining/    — Today's session
-    ClientMeasurements/— Body measurements, stats
-    Messaging/         — Conversations, archive/unarchive
-    Exercises/         — Exercise DB with localization
-    Foods/             — Food DB, OpenFoodFacts integration
-    Recipes/           — Recipe management
-    WorkoutLogs/       — Training log CRUD
-    Client/            — Client profile, invites, notifications
-    Professionals/     — Public search, profiles
-    Users/             — Profile management
-    ClientRequests/    — Join request flow
+  Features/            — 28 feature folders, 264 endpoints total
+    Auth/                   — Register, Login, Refresh, Password reset, Invites, social
+    Client/                 — Client profile, invites, notifications, onboarding, records
+    ClientMeasurements/     — Body measurements, stats
+    ClientNutrition/        — Today's plan, meal logging, photos, shopping list
+    ClientPhotos/           — Progress photos against a plan
+    ClientRequests/         — Join request flow
+    ClientTags/             — Coach's own client tags and assignments
+    ClientTraining/         — Today's session, marking work complete
+    Exercises/              — Exercise DB with localization
+    Foods/                  — Food DB, OpenFoodFacts integration
+    MealTemplates/          — Reusable meals
+    Messaging/              — Conversations, archive/unarchive
+    NutritionPlans/         — CRUD, publish weeks, week-level versioning
+    NutritionPlanTemplates/ — Plan skeletons, instantiate
+    PhotoDiaryRequests/     — Trainer asks, client submits
+    Professionals/          — Public search, profiles, avatar
+    Questionnaires/         — Templates, assignment, client responses
+    Recipes/                — Recipe management
+    SessionExecutions/      — Live workout logging (was WorkoutLogs)
+    SessionTemplates/       — Reusable training sessions
+    SubscriptionPlans/      — /admin subscription plan catalog
+    Testing/                — /test/reset for the e2e fixture
+    Trainers/               — Client management, dashboards, notes, invites
+    TrainingPlans/          — CRUD, publish weeks, session locking
+    TrainingPlanTemplates/  — Plan skeletons, instantiate
+    Users/                  — Profile, roles, avatar, time zone
+    WeeklyCheckIns/         — Check-in settings, overrides, review
+    WorkoutTemplates/       — Reusable workouts
   Infrastructure/
     Data/              — ApplicationDbContext (EF), MongoContext
-    Services/          — 14 services (email, push, blob, macro calc, etc.)
+    Services/          — 32 services (email, push, blob, macro calc, etc.)
     SignalR/           — NotificationHub, PresenceTracker
   Middleware/          — Global exception handler
-FitnessPlatform.Tests/ — 88 test files, xUnit + Testcontainers
+FitnessPlatform.Tests/ — 411 test classes, 3200+ tests, xUnit + Testcontainers
 ```
 
 ### Key conventions
@@ -163,7 +174,11 @@ src/
 - Auth: access token in memory, refresh token in localStorage
 - API proxy: Vite dev server proxies `/auth`, `/users`, `/trainer`, `/nutrition`,
   `/training`, `/foods`, `/exercises`, `/conversations`, `/hubs` to `https://localhost:5001`
-- No test suite currently
+- Tests: Playwright end-to-end only, in `web/tests/e2e` (`npm run test:e2e`).
+  27 live specs in `trainer/`, `nutritionist/`, `coach/` and `public/`;
+  4 more quarantined under `_legacy/`. `qa-playwright/` is
+  the Docker runner for that same suite, not a second one. No unit or
+  component test runner.
 
 ---
 
