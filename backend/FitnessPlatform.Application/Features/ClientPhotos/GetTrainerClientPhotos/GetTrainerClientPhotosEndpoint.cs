@@ -138,14 +138,17 @@ public class GetTrainerClientPhotosEndpoint(
         }
 
         // Optional date range filter on TakenAt (inclusive)
+        // Query binding yields Local/Unspecified kinds; Npgsql only accepts UTC for timestamptz.
         if (req.From.HasValue)
         {
-            query = query.Where(p => p.TakenAt >= req.From.Value);
+            var fromUtc = ToUtc(req.From.Value);
+            query = query.Where(p => p.TakenAt >= fromUtc);
         }
 
         if (req.To.HasValue)
         {
-            query = query.Where(p => p.TakenAt <= req.To.Value);
+            var toUtc = ToUtc(req.To.Value);
+            query = query.Where(p => p.TakenAt <= toUtc);
         }
 
         if (req.GroupByMonth)
@@ -332,6 +335,13 @@ public class GetTrainerClientPhotosEndpoint(
             photo.MealKind = kindByMeal.TryGetValue((log.PlanId, log.MealId), out var kind) ? kind : null;
         }
     }
+
+    private static DateTime ToUtc(DateTime value) => value.Kind switch
+    {
+        DateTimeKind.Local => value.ToUniversalTime(),
+        DateTimeKind.Unspecified => DateTime.SpecifyKind(value, DateTimeKind.Utc),
+        _ => value,
+    };
 
     private sealed record MealLogRef(ObjectId Id, Guid PlanId, Guid MealId);
 
