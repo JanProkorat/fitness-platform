@@ -8,7 +8,7 @@ public class UpdateQuestionnaireRequest
     public string Title { get; set; } = null!;
     public string? Description { get; set; }
 
-    /// <summary>Form type; optional, but when sent it must equal the stored type.</summary>
+    /// <summary>Form type; optional, when sent it replaces the stored type. Existing assignments and responses are unaffected.</summary>
     public QuestionnaireType? Type { get; set; }
     public bool IsActive { get; set; }
     public bool IsDefault { get; set; }

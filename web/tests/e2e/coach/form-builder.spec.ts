@@ -68,10 +68,10 @@ trainerTest.describe('form builder', () => {
       await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
 
       // Onboarding forms can be made the default for new clients (not toggled here: it is a shared setting).
-      await page.getByRole('button', { name: 'Settings' }).click();
-      await expect(page.getByRole('dialog', { name: 'Form settings' }).getByLabel('Default for new clients')).toBeVisible();
-      await page.keyboard.press('Escape');
-      await expect(page.getByRole('dialog')).toHaveCount(0);
+      await page.getByRole('tab', { name: 'Info' }).click();
+      await expect(page.getByTestId('form-info').getByLabel('Default for new clients')).toBeVisible();
+      await page.getByRole('tab', { name: 'Library' }).click();
+      await expect(page.getByTestId('form-info')).toBeHidden();
 
       // Multiple choice via the palette: title, two default choices, a third, Allow "Other".
       await page.getByRole('button', { name: 'Add Multiple choice' }).click();
@@ -149,12 +149,12 @@ trainerTest.describe('form builder', () => {
       await expect(page.getByText(/Weekly check-in/)).toBeVisible();
       await expect(page.getByText(/Sunday|Sonntag|neděl/i)).toHaveCount(0);
 
-      await page.getByRole('button', { name: 'Settings' }).click();
-      const sheet = page.getByRole('dialog', { name: 'Form settings' });
-      await expect(sheet).toBeVisible();
-      await expect(sheet.getByLabel('Default for new clients')).toHaveCount(0);
-      await page.keyboard.press('Escape');
-      await expect(sheet).toHaveCount(0);
+      await page.getByRole('tab', { name: 'Info' }).click();
+      const info = page.getByTestId('form-info');
+      await expect(info).toBeVisible();
+      await expect(info.getByLabel('Default for new clients')).toHaveCount(0);
+      await page.getByRole('tab', { name: 'Library' }).click();
+      await expect(info).toBeHidden();
 
       await page.getByRole('button', { name: 'Add Smiley rating' }).click();
       await page.getByLabel('Question 1 title').fill('Energy this week');

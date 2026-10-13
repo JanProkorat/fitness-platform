@@ -415,6 +415,7 @@
       "files": [
         "web/src/pages/PlanTemplateEditorPage.tsx",
         "web/src/components/plan-editor/**",
+        "web/src/components/editor/**",
         "web/src/components/library/PageHeader.tsx",
         "web/src/components/plan-templates/**",
         "web/src/hooks/usePlanTemplateEditor.ts",
@@ -540,6 +541,8 @@
         "web/src/pages/FormBuilderPage.tsx",
         "web/src/components/forms/builder/**",
         "web/src/components/forms/FormTypeBadge.tsx",
+        "web/src/components/forms/FormTypePicker.tsx",
+        "web/src/components/editor/**",
         "web/src/hooks/useQuestionnaireQueries.ts",
         "web/src/api/questionnaires.ts"
       ],

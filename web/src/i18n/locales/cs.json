@@ -2206,10 +2206,15 @@
         "hint": "Takto uvidí formulář váš klient. Nic z toho se neukládá.",
         "unsupported": "Tento typ otázky uvidí klient tak, jak byl nastaven."
       },
+      "panel": {
+        "tabs": "Boční panel",
+        "info": "Info",
+        "library": "Knihovna",
+        "collapse": "Skrýt boční panel",
+        "expand": "Zobrazit boční panel",
+        "open": "Otevřít: {{name}}"
+      },
       "settings": {
-        "open": "Nastavení",
-        "title": "Nastavení formuláře",
-        "description": "Název a popis tohoto formuláře.",
         "default": "Výchozí pro nové klienty",
         "defaultHint": "Odešle se novým klientům, když nevyberete jiný formulář."
       },
@@ -2237,7 +2242,6 @@
         "Onboarding": "Posílá se jednou novému klientovi",
         "CheckIn": "Klient odpovídá každý týden"
       },
-      "typeFixed": "Typ nelze po vytvoření formuláře změnit.",
       "submit": "Vytvořit formulář",
       "invalid": "Zkontrolujte název a typ a zkuste to znovu.",
       "error": "Formulář se nepodařilo vytvořit. Zkuste to prosím znovu."

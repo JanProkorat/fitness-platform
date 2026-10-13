@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Feedback, KeyboardSensor, PointerSensor } from '@dnd-kit/dom';
 import { DragDropProvider, useDroppable } from '@dnd-kit/react';
-import { CalendarDays, Info } from 'lucide-react';
+import { BookOpen, CalendarDays, Info } from 'lucide-react';
 import { QuestionnaireType, type QuestionnaireDto } from '@/api/questionnaires';
 import { Button } from '@/components/ui/button';
 import {
@@ -13,9 +13,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import EditorSidePanel, { type EditorSideTabDef } from '@/components/editor/EditorSidePanel';
 import FormBuilderHeader from '@/components/forms/builder/FormBuilderHeader';
 import FormPreviewDialog from '@/components/forms/builder/FormPreviewDialog';
-import FormSettingsSheet from '@/components/forms/builder/FormSettingsSheet';
+import FormInfoPanel from '@/components/forms/builder/FormInfoPanel';
 import QuestionCard from '@/components/forms/builder/QuestionCard';
 import QuestionPalette from '@/components/forms/builder/QuestionPalette';
 import {
@@ -41,6 +42,8 @@ import {
 import { useFormBuilderState } from '@/components/forms/builder/useFormBuilderState';
 import { useUpdateQuestionnaire } from '@/hooks/useQuestionnaireQueries';
 import { showApiError, showError } from '@/lib/api-errors';
+
+type SideTab = 'info' | 'library';
 
 const DRAG_SENSORS = [PointerSensor.configure({ activationConstraints: dragActivationConstraints }), KeyboardSensor];
 
@@ -85,7 +88,8 @@ export default function FormBuilder({ initial, onBack }: Props) {
   const updateMutation = useUpdateQuestionnaire(initial.publicId);
   const [selectedKey, setSelectedKey] = useState<string | null>(() => doc.questions[0]?.key ?? null);
   const [showErrors, setShowErrors] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [panelOpen, setPanelOpen] = useState(true);
+  const [sideTab, setSideTab] = useState<SideTab>('library');
   const [previewOpen, setPreviewOpen] = useState(false);
   const [leaveOpen, setLeaveOpen] = useState(false);
   const [scrollToKey, setScrollToKey] = useState<string | null>(null);
@@ -93,7 +97,7 @@ export default function FormBuilder({ initial, onBack }: Props) {
   const errors = useMemo(() => validateDraft(doc), [doc]);
   const visibleErrors = showErrors ? errors : null;
   const count = doc.questions.length;
-  const isOnboarding = server.type === QuestionnaireType.Onboarding;
+  const isOnboarding = doc.type === QuestionnaireType.Onboarding;
 
   useEffect(() => {
     if (!dirty) {
@@ -160,8 +164,13 @@ export default function FormBuilder({ initial, onBack }: Props) {
     setSelectedKey((current) => (current === key ? null : current));
   }
 
-  function patchForm(patch: Partial<Pick<DraftForm, 'title' | 'description' | 'isDefault'>>) {
-    edit((current) => ({ ...current, ...patch }));
+  function patchForm(patch: Partial<Pick<DraftForm, 'title' | 'description' | 'type' | 'isDefault'>>) {
+    // The default flag is Onboarding-only, so switching to Check-in clears it. Questions stay as they are.
+    edit((current) => ({
+      ...current,
+      ...patch,
+      ...(patch.type === QuestionnaireType.CheckIn ? { isDefault: false } : {}),
+    }));
   }
 
   async function save() {
@@ -200,6 +209,28 @@ export default function FormBuilder({ initial, onBack }: Props) {
       ))}
     </FormCanvas>
   );
+
+  const sideTabs: EditorSideTabDef<SideTab>[] = [
+    {
+      id: 'info',
+      label: t('forms.builder.panel.info'),
+      icon: Info,
+      content: (
+        <FormInfoPanel
+          doc={doc}
+          titleError={visibleErrors?.title}
+          descriptionError={visibleErrors?.description}
+          onChange={patchForm}
+        />
+      ),
+    },
+    {
+      id: 'library',
+      label: t('forms.builder.panel.library'),
+      icon: BookOpen,
+      content: <QuestionPalette formType={doc.type} onAdd={(kind) => addPalette(kind)} />,
+    },
+  ];
 
   return (
     <DragDropProvider
@@ -244,19 +275,30 @@ export default function FormBuilder({ initial, onBack }: Props) {
       }}
     >
       <div className="flex h-full min-h-0">
-        <QuestionPalette formType={server.type} onAdd={(kind) => addPalette(kind)} />
+        <EditorSidePanel
+          tabs={sideTabs}
+          tab={sideTab}
+          onTabChange={setSideTab}
+          open={panelOpen}
+          onOpenChange={setPanelOpen}
+          labels={{
+            tabs: t('forms.builder.panel.tabs'),
+            collapse: t('forms.builder.panel.collapse'),
+            expand: t('forms.builder.panel.expand'),
+            openTab: (name) => t('forms.builder.panel.open', { name }),
+          }}
+        />
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           <FormBuilderHeader
             title={doc.title}
             onTitleChange={(title) => patchForm({ title })}
             titleInvalid={visibleErrors?.title !== undefined}
-            type={server.type}
+            type={doc.type}
             dirty={dirty}
             saving={updateMutation.isPending}
             onBack={leave}
             onPreview={() => setPreviewOpen(true)}
-            onSettings={() => setSettingsOpen(true)}
             onSave={() => void save()}
           />
 
@@ -284,15 +326,6 @@ export default function FormBuilder({ initial, onBack }: Props) {
         </div>
       </div>
 
-      <FormSettingsSheet
-        open={settingsOpen}
-        onOpenChange={setSettingsOpen}
-        doc={doc}
-        type={server.type}
-        titleError={visibleErrors?.title}
-        descriptionError={visibleErrors?.description}
-        onChange={patchForm}
-      />
       <FormPreviewDialog open={previewOpen} onOpenChange={setPreviewOpen} doc={doc} />
 
       <Dialog open={leaveOpen} onOpenChange={setLeaveOpen}>
