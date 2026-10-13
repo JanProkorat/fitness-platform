@@ -4,6 +4,7 @@ using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Features.Questionnaires.Dtos;
 using FitnessPlatform.Application.Features.Questionnaires.GetTrainerQuestionnaire;
 using FitnessPlatform.Application.Infrastructure.Data;
@@ -42,10 +43,25 @@ public class UpdateQuestionnaireEndpoint(IApplicationDbContext db)
             return;
         }
 
+        if (req.Type.HasValue && req.Type.Value != questionnaire.Type)
+        {
+            this.ThrowErrorWithCode(ErrorCodes.QuestionnaireTypeImmutable, "The form type cannot be changed after creation.");
+            return;
+        }
+
+        if (req.IsDefault && questionnaire.Type != QuestionnaireType.Onboarding)
+        {
+            this.ThrowErrorWithCode(ErrorCodes.CheckInFormCannotBeDefault, "Only Onboarding forms can be the default form.");
+            return;
+        }
+
         // Update questionnaire fields
         questionnaire.Title = req.Title;
         questionnaire.Description = req.Description;
         questionnaire.IsActive = req.IsActive;
+
+        // Touch the row so the list's edited-at moves even when only questions changed
+        questionnaire.DateUpdated = DateTime.UtcNow;
 
         // Handle IsDefault toggle
         if (req.IsDefault)
@@ -143,6 +159,7 @@ public class UpdateQuestionnaireEndpoint(IApplicationDbContext db)
             PublicId = questionnaire.PublicId,
             Title = questionnaire.Title,
             Description = questionnaire.Description,
+            Type = questionnaire.Type,
             IsActive = questionnaire.IsActive,
             IsDefault = questionnaire.IsDefault,
             Questions = orderedQuestions,

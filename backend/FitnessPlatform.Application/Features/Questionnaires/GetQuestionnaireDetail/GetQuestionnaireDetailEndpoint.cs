@@ -48,6 +48,7 @@ public class GetQuestionnaireDetailEndpoint(IApplicationDbContext db)
             PublicId = questionnaire.PublicId,
             Title = questionnaire.Title,
             Description = questionnaire.Description,
+            Type = questionnaire.Type,
             IsActive = questionnaire.IsActive,
             IsDefault = questionnaire.IsDefault,
             Questions = questionnaire.Questions.Select(qq => new QuestionDto

@@ -4,6 +4,7 @@ using FitnessPlatform.Application.Domain.Authorization;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -94,6 +95,12 @@ public class ReplaceQuestionnaireEndpoint(
         if (questionnaire is null)
         {
             ThrowError("Questionnaire not found.");
+            return;
+        }
+
+        if (questionnaire.Type == QuestionnaireType.CheckIn)
+        {
+            this.ThrowErrorWithCode(ErrorCodes.CheckInFormNotSendable, "Check-in forms cannot be sent as a questionnaire.");
             return;
         }
 

@@ -164,7 +164,7 @@ public class GetClientPendingQuestionnairesEndpoint(
 
             questionnaire ??= await db.Questionnaires
                 .AsNoTracking()
-                .FirstOrDefaultAsync(q => q.ProfessionalId == link.ProfessionalProfile.UserId && q.IsDefault && q.IsActive, ct);
+                .FirstOrDefaultAsync(q => q.ProfessionalId == link.ProfessionalProfile.UserId && q.IsDefault && q.IsActive && q.Type == QuestionnaireType.Onboarding, ct);
 
             if (questionnaire is null && existingResponse is null) continue;
 
