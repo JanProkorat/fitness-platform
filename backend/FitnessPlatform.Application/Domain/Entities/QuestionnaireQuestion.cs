@@ -19,7 +19,7 @@ public class QuestionnaireQuestion : PublicTimestampableEntity
     public int OrderIndex { get; set; }
 
     /// <summary>
-    /// Question type: short_text, single_choice, multi_select, number, scale, file_upload.
+    /// Question type: single_choice, multi_select, short_text, number, smiley_rating, star_rating, scale, file_upload.
     /// </summary>
     [MaxLength(20)]
     public string Type { get; set; } = null!;

@@ -85,6 +85,12 @@ public class AssignQuestionnaireEndpoint(
             return;
         }
 
+        if (questionnaire.Type == QuestionnaireType.CheckIn)
+        {
+            this.ThrowErrorWithCode(ErrorCodes.CheckInFormNotSendable, "Check-in forms cannot be sent as a questionnaire.");
+            return;
+        }
+
         // Update link with questionnaire
         link.QuestionnaireId = questionnaire.Id;
 

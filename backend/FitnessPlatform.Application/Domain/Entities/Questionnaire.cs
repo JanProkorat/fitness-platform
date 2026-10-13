@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using FitnessPlatform.Application.Domain.Common;
+using FitnessPlatform.Application.Domain.Enums;
 
 namespace FitnessPlatform.Application.Domain.Entities;
 
@@ -35,6 +36,11 @@ public class Questionnaire : PublicTimestampableEntity
     /// Whether this is the default questionnaire auto-sent to new clients.
     /// </summary>
     public bool IsDefault { get; set; }
+
+    /// <summary>
+    /// What the form is used for. Set on create and immutable afterwards.
+    /// </summary>
+    public QuestionnaireType Type { get; set; } = QuestionnaireType.Onboarding;
 
     /// <summary>
     /// Navigation property to the professional user.
