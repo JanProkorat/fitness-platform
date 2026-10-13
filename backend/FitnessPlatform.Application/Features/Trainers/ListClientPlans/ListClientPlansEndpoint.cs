@@ -28,7 +28,7 @@ namespace FitnessPlatform.Application.Features.Trainers.ListClientPlans;
 /// still 404 on their own), so a <see langword="null"/> result here can only mean "no active
 /// link" — preserving the endpoint's deliberate 403 (not 404) for that case.
 /// </param>
-/// <param name="coachDiscipline">Narrows the link flags to the disciplines the caller holds an active role for.</param>
+/// <param name="coachDiscipline">Narrows the link flags to the disciplines the caller holds a role for (active or removed but not yet swept).</param>
 public class ListClientPlansEndpoint(
     IApplicationDbContext db,
     IMongoContext mongo,

@@ -22,7 +22,7 @@ namespace FitnessPlatform.Application.Features.Trainers.GetClientTimeline;
 /// <param name="db">Relational data source.</param>
 /// <param name="mongo">Document data source.</param>
 /// <param name="audit">Audit logging service.</param>
-/// <param name="coachDiscipline">Narrows the link flags to the disciplines the caller holds an active role for.</param>
+/// <param name="coachDiscipline">Narrows the link flags to the disciplines the caller holds a role for (active or removed but not yet swept).</param>
 public class GetClientTimelineEndpoint(
     IApplicationDbContext db,
     IMongoContext mongo,

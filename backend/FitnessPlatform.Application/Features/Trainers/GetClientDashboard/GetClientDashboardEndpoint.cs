@@ -23,7 +23,7 @@ namespace FitnessPlatform.Application.Features.Trainers.GetClientDashboard;
 /// <param name="complianceService">Service for calculating compliance metrics.</param>
 /// <param name="mongo">MongoDB context for reading active plan goal/macros.</param>
 /// <param name="timeProvider">Clock abstraction — lets tests pin "now" deterministically.</param>
-/// <param name="coachDiscipline">Narrows the link flags to the disciplines the caller holds an active role for.</param>
+/// <param name="coachDiscipline">Narrows the link flags to the disciplines the caller holds a role for (active or removed but not yet swept).</param>
 public class GetClientDashboardEndpoint(
     IApplicationDbContext db,
     IAuditService audit,
