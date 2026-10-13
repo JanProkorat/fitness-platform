@@ -308,4 +308,29 @@ public class GetPlanEndpointTests
         });
         ep.Response.MealLogs.Select(l => l.MealId).Should().BeEquivalentTo(new[] { mealId1, mealId2, mealId3 });
     }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task HandleAsync_SourceTemplate_IsMappedOrNull(bool madeFromTemplate)
+    {
+        var planId = Guid.NewGuid();
+        var templateId = Guid.NewGuid();
+        var plan = PlanTestHelpers.CreatePlan(externalId: planId, nutritionistId: _nutritionistId);
+        plan.SourceTemplateId = madeFromTemplate ? templateId : null;
+        var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
+        var db = CreateDbWithClientProfile(plan.ClientId, out _);
+
+        var ep = Factory.Create<GetPlanEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
+            mongo, db,
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
+
+        await ep.HandleAsync(new GetPlanRequest { PlanId = planId }, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+        ep.Response.SourceTemplateId.Should().Be(madeFromTemplate ? templateId : null);
+    }
 }

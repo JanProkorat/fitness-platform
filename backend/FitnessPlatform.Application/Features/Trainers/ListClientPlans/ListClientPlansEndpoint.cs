@@ -299,6 +299,9 @@ public class ListClientPlansEndpoint(
                     PeriodStart = plan.StartDate,
                     PeriodEnd = plan.DateCompleted,
                     Status = plan.Status.ToString(),
+                    PlannedDailyKcal = plan.GlobalSettings?.DailyKcal,
+                    SourceTemplateId = plan.SourceTemplateId,
+                    WeekCount = plan.Weeks.Count,
                     ResultSummary = new ClientPlanResultSummary
                     {
                         TotalTrainings = null,
