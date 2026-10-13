@@ -67,8 +67,9 @@ test.describe('client detail — nutrition tab', () => {
     await expect(strip.getByRole('listitem')).toHaveCount(2);
     await expect(strip.locator('[data-state="done"]')).toHaveCount(1);
     await expect(strip.locator('[data-state="current"]')).toHaveCount(1);
+    const currentCard = page.locator('section', { has: page.getByText('Current meal plan', { exact: true }) });
     for (const legend of ['Done', 'This week', 'Published, upcoming']) {
-      await expect(page.getByText(legend, { exact: true })).toBeVisible();
+      await expect(currentCard.getByText(legend, { exact: true })).toBeVisible();
     }
     await expect(page.getByRole('button', { name: 'Open editor' })).toBeDisabled();
     await expect(page.getByText('Preview as client')).toHaveCount(0);
@@ -293,5 +294,247 @@ test.describe('client detail — nutrition tab', () => {
       expect(start.getDay()).toBe(1);
       expect(start.getTime()).toBeGreaterThan(Date.now());
     }
+  });
+
+  test.describe('this week card', () => {
+    const WEEK_PLAN_ID = '00000000-0000-0000-1333-000000000001';
+    const WEEK_PLAN_NAME = 'Stub week plan';
+
+    function localIso(date: Date): string {
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${date.getFullYear()}-${month}-${day}`;
+    }
+
+    /** This week's Monday, local midnight. */
+    function thisMonday(): Date {
+      const now = new Date();
+      const daysSinceMonday = (now.getDay() + 6) % 7;
+      return new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysSinceMonday);
+    }
+
+    function meal(
+      id: string,
+      kind: string,
+      order: number,
+      macros: { kcal: number; protein: number; carbs: number; fat: number } | null,
+    ) {
+      return {
+        mealId: id,
+        kind,
+        order,
+        foods: macros
+          ? []
+          : [
+              {
+                foodExternalId: 'stub-food',
+                foodName: 'Stub food',
+                nutrientValuePer100Grams: { kcal: 200, protein: 10, carbs: 20, fat: 5 },
+                amountGrams: 100,
+              },
+            ],
+        recipes: [],
+        mealTotals: macros ? { ...macros, fiber: 0 } : null,
+      };
+    }
+
+    /** Four meals a day; Monday's snack has no stored totals so the foods fallback is used. */
+    function dayMeals(prefix: string, snackTotals: boolean) {
+      return [
+        meal(`${prefix}-b`, 'Breakfast', 1, { kcal: 500, protein: 30, carbs: 50, fat: 15 }),
+        meal(`${prefix}-s`, 'MorningSnack', 2, snackTotals ? { kcal: 200, protein: 10, carbs: 20, fat: 5 } : null),
+        meal(`${prefix}-l`, 'Lunch', 3, { kcal: 700, protein: 50, carbs: 70, fat: 20 }),
+        meal(`${prefix}-d`, 'Dinner', 4, { kcal: 600, protein: 40, carbs: 60, fat: 25 }),
+      ];
+    }
+
+    /** Week 1 starting this Monday; the test pins "now" to Thursday noon so Mon-Wed are finished. */
+    function buildPlan(startDate: string, monday: Date) {
+      const dayIso = (offset: number) => localIso(new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + offset));
+      const eaten = (id: string, offset: number) => ({
+        mealId: id,
+        logDate: dayIso(offset),
+        isEaten: true,
+        eatenAt: `${dayIso(offset)}T12:00:00Z`,
+      });
+      return {
+        planId: WEEK_PLAN_ID,
+        clientId: '11111111-1111-1111-1111-111111111111',
+        nutritionistId: '33333333-3333-3333-3333-333333333333',
+        name: WEEK_PLAN_NAME,
+        status: 'Active',
+        globalSettings: { dailyKcal: 2000, proteinGrams: 150, carbsGrams: 200, fatGrams: 60 },
+        weeks: [
+          {
+            weekNumber: 1,
+            status: 'Published',
+            days: [
+              { dayOfWeek: 1, meals: dayMeals('mon', false) },
+              { dayOfWeek: 2, meals: dayMeals('tue', true) },
+              { dayOfWeek: 3, meals: dayMeals('wed', true) },
+              { dayOfWeek: 4, meals: dayMeals('thu', true) },
+            ],
+          },
+        ],
+        version: 1,
+        dateCreated: '2026-01-01T00:00:00Z',
+        startDate,
+        mealLogs: [
+          // Monday: everything eaten.
+          eaten('mon-b', 0),
+          eaten('mon-s', 0),
+          eaten('mon-l', 0),
+          eaten('mon-d', 0),
+          // Tuesday: dinner only has a photo stub, which does not count.
+          eaten('tue-b', 1),
+          eaten('tue-s', 1),
+          eaten('tue-l', 1),
+          { mealId: 'tue-d', logDate: dayIso(1), isEaten: false, eatenAt: null },
+          // Wednesday: breakfast only, a low day.
+          eaten('wed-b', 2),
+          // Today is excluded from the numbers.
+          eaten('thu-b', 3),
+          // A log on the right meal but another date does not count.
+          { mealId: 'wed-l', logDate: dayIso(-7), isEaten: true, eatenAt: null },
+        ],
+        supplements: [],
+      };
+    }
+
+    /** The app's query client retries a failed query once, so a failure has to last until the test lets it recover. */
+    async function stubPlan(
+      page: Page,
+      startDate: string,
+      monday: Date,
+      control: { failing: boolean } = { failing: false },
+    ): Promise<void> {
+      await rewritePlansList(page, (body) => ({
+        ...body,
+        plans: [
+          {
+            planId: WEEK_PLAN_ID,
+            planType: 'Nutrition',
+            name: WEEK_PLAN_NAME,
+            periodStart: startDate,
+            status: 'Active',
+          },
+        ],
+      }));
+      await page.route(new RegExp(`/nutrition/plans/${WEEK_PLAN_ID}$`), async (route) => {
+        if (control.failing) {
+          await route.fulfill({ status: 500, contentType: 'application/problem+json', body: '{"status":500}' });
+          return;
+        }
+        await route.fulfill({ json: buildPlan(startDate, monday) });
+      });
+    }
+
+    /** Pins "now" to this week's Thursday noon. */
+    async function pinThursday(page: Page, monday: Date): Promise<void> {
+      await page.clock.setFixedTime(new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + 3, 12, 0, 0));
+    }
+
+    test('computes the week from the plan, excluding today', async ({ page }) => {
+      const monday = thisMonday();
+      await pinThursday(page, monday);
+      await stubPlan(page, localIso(monday), monday);
+      await openNutritionTab(page);
+
+      const card = page.getByRole('region', { name: 'This week' });
+      await expect(card).toBeVisible();
+      await expect(card.getByText('Week 1 · Mon – Wed logged')).toBeVisible();
+
+      // 12 planned meals on Mon-Wed, 8 eaten (a stub log, another date and today do not count).
+      await expect(card.getByTestId('this-week-eaten')).toHaveText('8');
+      await expect(card).toContainText('of 12 meals');
+      await expect(card).toContainText('ticked off · 67 %');
+
+      const tiles = card.getByRole('list', { name: 'Meals ticked off per day' }).getByRole('listitem');
+      await expect(tiles).toHaveCount(7);
+      const expected: [string, string, string | null][] = [
+        ['past', 'false', '4/4'],
+        ['past', 'false', '3/4'],
+        ['past', 'true', '1/4'],
+        ['today', 'false', 'today'],
+        ['future', 'false', null],
+        ['future', 'false', null],
+        ['future', 'false', null],
+      ];
+      for (const [index, [state, low, label]] of expected.entries()) {
+        const tile = tiles.nth(index);
+        await expect(tile).toHaveAttribute('data-state', state);
+        await expect(tile).toHaveAttribute('data-low', low);
+        if (label) {
+          await expect(tile).toContainText(label);
+        } else {
+          // A future tile is empty and is not mistaken for today.
+          await expect(tile).not.toContainText('today');
+          await expect(tile).not.toContainText('/');
+        }
+      }
+
+      // By meal: Snack groups the snack. Skipped 0 says "always", skipped 1 has no note,
+      // skipped 2 or more is flagged red with the note.
+      const row = (group: string) => card.locator(`[data-group="${group}"]`);
+      await expect(row('breakfast')).toContainText('3/3');
+      await expect(row('breakfast')).toContainText('always');
+      await expect(row('breakfast')).toHaveAttribute('data-flagged', 'false');
+      for (const group of ['snack', 'lunch']) {
+        await expect(row(group)).toContainText('2/3');
+        await expect(row(group)).toHaveAttribute('data-flagged', 'false');
+        await expect(row(group)).not.toContainText('skipped');
+        await expect(row(group)).not.toContainText('always');
+      }
+      await expect(row('dinner')).toContainText('1/3');
+      await expect(row('dinner')).toHaveAttribute('data-flagged', 'true');
+      await expect(row('dinner')).toContainText('skipped 2× this week');
+
+      // Daily averages over the three finished days against the plan targets.
+      await expect(card.locator('[data-macro="kcal"]')).toContainText('1,300');
+      await expect(card.locator('[data-macro="kcal"]')).toContainText('/ 2,000');
+      await expect(card.locator('[data-macro="protein"]')).toContainText('83');
+      await expect(card.locator('[data-macro="protein"]')).toContainText('/ 150 g');
+      await expect(card.locator('[data-macro="carbs"]')).toContainText('130');
+      await expect(card.locator('[data-macro="fat"]')).toContainText('40');
+    });
+
+    test('shows a retry when the plan fails to load and recovers', async ({ page }) => {
+      const monday = thisMonday();
+      await pinThursday(page, monday);
+      const control = { failing: true };
+      await stubPlan(page, localIso(monday), monday, control);
+      await openNutritionTab(page);
+
+      const card = page.getByRole('region', { name: 'This week' });
+      await expect(card.getByText("Couldn't load this week's meals.")).toBeVisible();
+      control.failing = false;
+      await card.getByRole('button', { name: 'Retry' }).click();
+      await expect(card.getByTestId('this-week-eaten')).toHaveText('8');
+    });
+
+    test('says why there is nothing to track before the plan starts', async ({ page }) => {
+      const monday = thisMonday();
+      await pinThursday(page, monday);
+      const nextMonday = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + 7);
+      await stubPlan(page, localIso(nextMonday), monday);
+      await openNutritionTab(page);
+
+      const card = page.getByRole('region', { name: 'This week' });
+      await expect(card).toBeVisible();
+      await expect(card.getByRole('status')).toContainText('The plan starts');
+      await expect(card.getByTestId('this-week-eaten')).toHaveCount(0);
+    });
+
+    test('says the plan has ended once today is past its last week', async ({ page }) => {
+      const monday = thisMonday();
+      await pinThursday(page, monday);
+      const longAgo = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() - 21);
+      await stubPlan(page, localIso(longAgo), monday);
+      await openNutritionTab(page);
+
+      const card = page.getByRole('region', { name: 'This week' });
+      await expect(card.getByRole('status')).toHaveText('The plan has ended.');
+      await expect(card.getByTestId('this-week-eaten')).toHaveCount(0);
+    });
   });
 });
