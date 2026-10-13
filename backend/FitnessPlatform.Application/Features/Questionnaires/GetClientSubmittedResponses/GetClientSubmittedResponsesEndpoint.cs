@@ -2,6 +2,7 @@ using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Features.Questionnaires.Shared;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -61,7 +62,7 @@ public class GetClientSubmittedResponsesEndpoint(IApplicationDbContext db)
                         SubmittedAt = r.SubmittedAt,
                         Answers = r.Answers
                             .OrderBy(a => a.Question.OrderIndex)
-                            .Where(a => a.Question.Type != "section")
+                            .Where(a => a.Question.Type != QuestionTypes.Section)
                             .Select(a => new SubmittedAnswerItem
                             {
                                 Label = a.Question.Label,
