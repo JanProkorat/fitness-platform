@@ -23,12 +23,14 @@ namespace FitnessPlatform.Application.Features.Trainers.GetClientDashboard;
 /// <param name="complianceService">Service for calculating compliance metrics.</param>
 /// <param name="mongo">MongoDB context for reading active plan goal/macros.</param>
 /// <param name="timeProvider">Clock abstraction — lets tests pin "now" deterministically.</param>
+/// <param name="coachDiscipline">Narrows the link flags to the disciplines the caller holds a role for (active or removed but not yet swept).</param>
 public class GetClientDashboardEndpoint(
     IApplicationDbContext db,
     IAuditService audit,
     IComplianceService complianceService,
     IMongoContext mongo,
-    TimeProvider timeProvider)
+    TimeProvider timeProvider,
+    ICoachDisciplineAccess coachDiscipline)
     : Endpoint<GetClientDashboardRequest, GetClientDashboardResponse>
 {
     /// <inheritdoc />
@@ -100,10 +102,13 @@ public class GetClientDashboardEndpoint(
             return;
         }
 
-        // A link that carries neither capability flag grants no dashboard visibility at
-        // all — deny outright (matches the LinkCapabilities.GrantsNothing deny semantics
-        // from #903).
-        if (!link.CanViewNutritionPlans && !link.CanViewTrainingPlans)
+        // A discipline is visible only when the link grants it AND the caller still holds that coach
+        // role actively — a removed role stays in the JWT. Neither visible: deny outright (matches the
+        // LinkCapabilities.GrantsNothing deny semantics from #903).
+        var effective = await coachDiscipline.GetEffectiveAsync(
+            Guid.Parse(userId), LinkCapabilities.FromLink(link), ct);
+
+        if (effective.GrantsNothing)
         {
             await Send.ForbiddenAsync(ct);
             return;
@@ -146,7 +151,7 @@ public class GetClientDashboardEndpoint(
         // Shared derivation — this endpoint was the only route deriving discipline from the link
         // rather than from global roles, and it is now one of several. Keeping the rule in
         // LinkCapabilities stops the copies drifting apart.
-        var discipline = LinkCapabilities.FromLink(link).Discipline;
+        var discipline = effective.Discipline;
 
         try
         {
@@ -166,7 +171,7 @@ public class GetClientDashboardEndpoint(
             // Per-discipline figures are gated on the link capability, never on the value, so a
             // single-capability caller cannot infer the other discipline (#916). A single-capability
             // link already walked its own discipline above, so that streak is reused, not recomputed.
-            if (link.CanViewNutritionPlans)
+            if (effective.CanViewNutritionPlans)
             {
                 nutritionCompliancePercent = compliance.NutritionCompliancePercent;
                 nutritionStreak = discipline == ComplianceDiscipline.NutritionOnly
@@ -175,7 +180,7 @@ public class GetClientDashboardEndpoint(
                         clientProfile.UserId, ComplianceDiscipline.NutritionOnly, ct, planAuthorUserId: professionalProfile.UserId);
             }
 
-            if (link.CanViewTrainingPlans)
+            if (effective.CanViewTrainingPlans)
             {
                 trainingCompliancePercent = compliance.TrainingCompliancePercent;
                 trainingStreak = discipline == ComplianceDiscipline.TrainingOnly
@@ -248,7 +253,7 @@ public class GetClientDashboardEndpoint(
         // read as Active here but Paused on the clients list (#1094).
         NutritionPlan? activePlan = null;
         var hasActiveNutritionPlan = false;
-        if (link.CanViewNutritionPlans)
+        if (effective.CanViewNutritionPlans)
         {
             var planFilter = Builders<NutritionPlan>.Filter.And(
                 Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, clientProfile.UserId),
@@ -269,7 +274,7 @@ public class GetClientDashboardEndpoint(
         var hasActiveTrainingPlan = false;
         int? sessionsCompletedThisWeek = null;
         int? sessionsPlannedThisWeek = null;
-        if (link.CanViewTrainingPlans)
+        if (effective.CanViewTrainingPlans)
         {
             var trainingPlanFilter = Builders<TrainingPlan>.Filter.And(
                 Builders<TrainingPlan>.Filter.Eq(p => p.ClientId, clientProfile.UserId),
@@ -298,7 +303,7 @@ public class GetClientDashboardEndpoint(
 
         var status = ClientStatusClassifier.Classify(
             link.IsActive,
-            LinkCapabilities.FromLink(link),
+            effective,
             hasActiveNutritionPlan,
             hasActiveTrainingPlan);
 
@@ -319,27 +324,31 @@ public class GetClientDashboardEndpoint(
                 JobType = od.JobType.ToString(),
                 SleepHours = od.SleepHours,
                 StressLevel = od.StressLevel,
-                CurrentTrainingFrequency = od.CurrentTrainingFrequency.ToString(),
-                DesiredTrainingFrequency = od.DesiredTrainingFrequency.ToString(),
+                CurrentTrainingFrequency = effective.CanViewTrainingPlans ? od.CurrentTrainingFrequency.ToString() : null,
+                DesiredTrainingFrequency = effective.CanViewTrainingPlans ? od.DesiredTrainingFrequency.ToString() : null,
                 FitnessRating = od.FitnessRating,
                 PreferredActivities = od.PreferredActivities,
                 Injuries = od.Injuries,
-                MealsPerDay = od.MealsPerDay.ToString(),
-                DietaryStyle = od.DietaryStyle.ToString(),
+                MealsPerDay = effective.CanViewNutritionPlans ? od.MealsPerDay.ToString() : null,
+                DietaryStyle = effective.CanViewNutritionPlans ? od.DietaryStyle.ToString() : null,
                 Allergies = od.Allergies,
                 PlanExperience = od.PlanExperience.ToString(),
                 PastBlockers = od.PastBlockers,
                 PrimaryMotivation = od.PrimaryMotivation.ToString(),
-                DerivedActivityLevel = od.NutritionTargets?.DerivedActivityLevel.ToString(),
-                DerivedNutritionGoal = od.NutritionTargets?.DerivedNutritionGoal.ToString(),
-                Bmr = od.NutritionTargets?.Bmr,
-                Tdee = od.NutritionTargets?.Tdee,
-                AdjustedKcal = od.NutritionTargets?.AdjustedKcal,
-                ProteinGrams = od.NutritionTargets?.ProteinGrams,
-                CarbsGrams = od.NutritionTargets?.CarbsGrams,
-                FatGrams = od.NutritionTargets?.FatGrams,
-                MealDistribution = od.NutritionTargets?.MealDistribution,
             };
+
+            if (effective.CanViewNutritionPlans)
+            {
+                onboarding.DerivedActivityLevel = od.NutritionTargets?.DerivedActivityLevel.ToString();
+                onboarding.DerivedNutritionGoal = od.NutritionTargets?.DerivedNutritionGoal.ToString();
+                onboarding.Bmr = od.NutritionTargets?.Bmr;
+                onboarding.Tdee = od.NutritionTargets?.Tdee;
+                onboarding.AdjustedKcal = od.NutritionTargets?.AdjustedKcal;
+                onboarding.ProteinGrams = od.NutritionTargets?.ProteinGrams;
+                onboarding.CarbsGrams = od.NutritionTargets?.CarbsGrams;
+                onboarding.FatGrams = od.NutritionTargets?.FatGrams;
+                onboarding.MealDistribution = od.NutritionTargets?.MealDistribution;
+            }
         }
 
         await Send.OkAsync(new GetClientDashboardResponse
@@ -359,8 +368,8 @@ public class GetClientDashboardEndpoint(
             LinkedAt = link.DateCreated,
             IsActive = link.IsActive,
             Status = status,
-            CanViewNutritionPlans = link.CanViewNutritionPlans,
-            CanViewTrainingPlans = link.CanViewTrainingPlans,
+            CanViewNutritionPlans = effective.CanViewNutritionPlans,
+            CanViewTrainingPlans = effective.CanViewTrainingPlans,
             HasRegistered = clientProfile.User.EmailConfirmed,
             QuestionnaireStatus = questionnaireStatus,
             QuestionnaireTitle = questionnaireTitle,

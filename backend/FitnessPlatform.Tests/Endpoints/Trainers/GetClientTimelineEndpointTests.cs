@@ -46,6 +46,7 @@ public class GetClientTimelineEndpointTests(FitnessApiFactory factory)
         var email = UniqueEmail("trainer");
 
         await TestHelpers.RegisterAsync(http, email, "TestPass1!", "Test", "Trainer", "Trainer");
+        await factory.GrantRoleAsync(email, "Nutritionist");
         var (token, _) = await TestHelpers.LoginAsync(http, email, "TestPass1!");
         TestHelpers.SetBearerToken(http, token);
 
@@ -172,6 +173,7 @@ public class GetClientTimelineEndpointTests(FitnessApiFactory factory)
         var http = factory.CreateClient();
         var email = UniqueEmail("nutritionist");
         await TestHelpers.RegisterAsync(http, email, "TestPass1!", "Timeline", "Nutritionist", "Nutritionist");
+        await factory.GrantRoleAsync(email, "Trainer");
         var (token, _) = await TestHelpers.LoginAsync(http, email, "TestPass1!");
         TestHelpers.SetBearerToken(http, token);
 
@@ -207,6 +209,7 @@ public class GetClientTimelineEndpointTests(FitnessApiFactory factory)
         var http = factory.CreateClient();
         var email = UniqueEmail("timeline-trainer");
         await TestHelpers.RegisterAsync(http, email, "TestPass1!", "Timeline", "Trainer", "Trainer");
+        await factory.GrantRoleAsync(email, "Nutritionist");
         var (token, _) = await TestHelpers.LoginAsync(http, email, "TestPass1!");
         TestHelpers.SetBearerToken(http, token);
 

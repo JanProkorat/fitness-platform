@@ -407,7 +407,7 @@ test.describe('plan templates stubbed states', () => {
 });
 
 trainerTest.describe('plan templates for a trainer-only coach', () => {
-  trainerTest('shows a readable nutritionists-only state and sends no list request', async ({ page }) => {
+  trainerTest('redirects a trainer-only coach to clients and sends no list request', async ({ page }) => {
     const listRequests: string[] = [];
     page.on('request', (request) => {
       if (request.url().includes('/nutrition/plan-templates')) {
@@ -415,8 +415,7 @@ trainerTest.describe('plan templates for a trainer-only coach', () => {
       }
     });
     await page.goto('/plan-templates');
-    await expect(page.getByText('Plan templates are available to nutritionists')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'New template' })).toHaveCount(0);
+    await expect(page).toHaveURL(/\/clients$/);
     await expect(page.locator('[data-slot="toast-viewport"]').getByRole('status')).toHaveCount(0);
     expect(listRequests).toEqual([]);
   });

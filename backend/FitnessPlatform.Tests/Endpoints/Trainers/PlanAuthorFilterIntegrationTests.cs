@@ -38,7 +38,7 @@ public class PlanAuthorFilterIntegrationTests(FitnessApiFactory factory)
 
     private async Task<(Actor Trainer, Actor Client)> LinkedPairAsync(bool active = true)
     {
-        var trainer = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var trainer = await TestActors.Professional(factory, UserRole.Trainer, UserRole.Nutritionist).CreateAsync(Ct);
         var client = await TestActors.Client(factory).CreateAsync(Ct);
         var link = TestActors.Link(factory, trainer, client);
 

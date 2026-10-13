@@ -21,12 +21,16 @@ import { trainerTest as test, expect } from '../fixtures/auth';
 const ROUTES = [
   { path: '/clients', heading: 'Clients' },
   { path: '/inbox', heading: 'Inbox' },
-  { path: '/recipes', heading: 'Recipes' },
-  { path: '/ingredients', heading: 'Ingredients' },
-  { path: '/plan-templates', heading: 'Plan templates' },
 ];
 
 test.describe('app shell responsive behaviour', () => {
+  test('a trainer-only coach is redirected from /recipes to /clients (#1325)', async ({ page }) => {
+    await page.goto('/recipes');
+    await page.waitForLoadState('networkidle');
+    await expect(page).toHaveURL(/\/clients$/);
+    await expect(page.getByRole('heading', { name: 'Clients' })).toBeVisible();
+  });
+
   test.describe('desktop', () => {
     for (const { path, heading } of ROUTES) {
       test(`${path} renders the static sidebar and page heading`, async ({ page }) => {
@@ -38,9 +42,10 @@ test.describe('app shell responsive behaviour', () => {
         const nav = page.getByRole('navigation');
         await expect(nav.getByText('Clients', { exact: true })).toBeVisible();
         await expect(nav.getByText('Inbox', { exact: true })).toBeVisible();
-        await expect(nav.getByText('Recipes', { exact: true })).toBeVisible();
-        await expect(nav.getByText('Ingredients', { exact: true })).toBeVisible();
-        await expect(nav.getByText('Plan templates', { exact: true })).toBeVisible();
+        // The nutrition section belongs to the Nutritionist role (#1325).
+        await expect(nav.getByText('Recipes', { exact: true })).toHaveCount(0);
+        await expect(nav.getByText('Ingredients', { exact: true })).toHaveCount(0);
+        await expect(nav.getByText('Plan templates', { exact: true })).toHaveCount(0);
       });
     }
   });
@@ -111,9 +116,9 @@ test.describe('app shell responsive behaviour', () => {
       await expect(dialog).toBeVisible();
       await expect(dialog.getByText('Clients', { exact: true })).toBeVisible();
       await expect(dialog.getByText('Inbox', { exact: true })).toBeVisible();
-      await expect(dialog.getByText('Recipes', { exact: true })).toBeVisible();
-      await expect(dialog.getByText('Ingredients', { exact: true })).toBeVisible();
-      await expect(dialog.getByText('Plan templates', { exact: true })).toBeVisible();
+      await expect(dialog.getByText('Recipes', { exact: true })).toHaveCount(0);
+      await expect(dialog.getByText('Ingredients', { exact: true })).toHaveCount(0);
+      await expect(dialog.getByText('Plan templates', { exact: true })).toHaveCount(0);
       await expect(dialog.getByRole('button', { name: 'Notifications' })).toBeVisible();
       // The drawer is always full width: no collapse toggle.
       await expect(dialog.getByRole('button', { name: 'Collapse navigation' })).toHaveCount(0);

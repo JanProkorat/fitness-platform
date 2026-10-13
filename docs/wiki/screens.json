@@ -279,7 +279,7 @@
       "area": "Nutrition",
       "title": "Ingredients list",
       "route": "/ingredients",
-      "roles": ["Trainer", "Nutritionist"],
+      "roles": ["Nutritionist"],
       "files": [
         "web/src/pages/IngredientsPage.tsx",
         "web/src/components/ingredients/IngredientsTable.tsx",
@@ -321,7 +321,7 @@
       "area": "Nutrition",
       "title": "Ingredient drawer",
       "route": "/ingredients",
-      "roles": ["Trainer", "Nutritionist"],
+      "roles": ["Nutritionist"],
       "files": [
         "web/src/components/ingredients/IngredientDrawer.tsx",
         "web/src/components/ingredients/IngredientPictureField.tsx",

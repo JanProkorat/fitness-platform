@@ -34,7 +34,7 @@ public class GetClientDashboardComplianceSplitIntegrationTests(FitnessApiFactory
     private async Task<(Actor Trainer, Actor Client)> LinkedPairAsync(
         bool canViewNutritionPlans = true, bool canViewTrainingPlans = true)
     {
-        var trainer = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var trainer = await TestActors.Professional(factory, UserRole.Trainer, UserRole.Nutritionist).CreateAsync(Ct);
         var client = await TestActors.Client(factory).CreateAsync(Ct);
         await TestActors.Link(factory, trainer, client)
             .CanViewNutritionPlans(canViewNutritionPlans)

@@ -2,6 +2,7 @@ using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Domain.Services;
@@ -21,10 +22,12 @@ namespace FitnessPlatform.Application.Features.Trainers.GetClientTimeline;
 /// <param name="db">Relational data source.</param>
 /// <param name="mongo">Document data source.</param>
 /// <param name="audit">Audit logging service.</param>
+/// <param name="coachDiscipline">Narrows the link flags to the disciplines the caller holds a role for (active or removed but not yet swept).</param>
 public class GetClientTimelineEndpoint(
     IApplicationDbContext db,
     IMongoContext mongo,
-    IAuditService audit)
+    IAuditService audit,
+    ICoachDisciplineAccess coachDiscipline)
     : Endpoint<GetClientTimelineRequest, GetClientTimelineResponse>
 {
     /// <summary>
@@ -135,10 +138,13 @@ public class GetClientTimelineEndpoint(
             return;
         }
 
-        // A link that carries neither capability flag grants no timeline visibility at
-        // all — deny outright (matches the LinkCapabilities.GrantsNothing deny semantics
-        // from #903).
-        if (!link.CanViewNutritionPlans && !link.CanViewTrainingPlans)
+        // A discipline is visible only when the link grants it AND the caller still holds that coach
+        // role actively. Neither visible: deny outright (matches the LinkCapabilities.GrantsNothing
+        // deny semantics from #903).
+        var effective = await coachDiscipline.GetEffectiveAsync(
+            trainerUserId, LinkCapabilities.FromLink(link), ct);
+
+        if (effective.GrantsNothing)
         {
             await Send.ForbiddenAsync(ct);
             return;
@@ -156,7 +162,7 @@ public class GetClientTimelineEndpoint(
 
         // ── 1. Meal logs — aggregate per day to avoid dozens of rows ──
         // Nutrition-domain: gated on CanViewNutritionPlans.
-        if (link.CanViewNutritionPlans)
+        if (effective.CanViewNutritionPlans)
         {
             var mealFilter = Builders<MealLog>.Filter.Eq(l => l.ClientId, clientUserId)
                 & Builders<MealLog>.Filter.Gte(l => l.EatenAt, from);
@@ -203,7 +209,7 @@ public class GetClientTimelineEndpoint(
         // #841: scoped to executions that carry Performance data (a live-training-assistant
         // log) — checkbox-only completions never appeared in the old WorkoutLogs collection.
         // Training-domain: gated on CanViewTrainingPlans.
-        if (link.CanViewTrainingPlans)
+        if (effective.CanViewTrainingPlans)
         {
             var workoutFilter = Builders<SessionExecution>.Filter.Eq(l => l.ClientId, clientUserId)
                 & Builders<SessionExecution>.Filter.Exists(l => l.Performance)
@@ -308,7 +314,7 @@ public class GetClientTimelineEndpoint(
         // #1015. Each published week with a datePublished inside the lookback emits its own
         // event dated at that week's datePublished; a plan with none emits nothing.
         // Nutrition-domain: gated on CanViewNutritionPlans.
-        if (link.CanViewNutritionPlans)
+        if (effective.CanViewNutritionPlans)
         {
             var nutritionPlanFilter = Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, clientUserId)
                 & Builders<NutritionPlan>.Filter.Eq(p => p.NutritionistId, trainerUserId)
@@ -347,7 +353,7 @@ public class GetClientTimelineEndpoint(
         }
 
         // Training-domain: gated on CanViewTrainingPlans.
-        if (link.CanViewTrainingPlans)
+        if (effective.CanViewTrainingPlans)
         {
             var trainingPlanFilter = Builders<TrainingPlan>.Filter.Eq(p => p.ClientId, clientUserId)
                 & Builders<TrainingPlan>.Filter.Eq(p => p.TrainerId, trainerUserId)
@@ -386,7 +392,7 @@ public class GetClientTimelineEndpoint(
         }
 
         // ── 6. Personal records ── Training-domain: gated on CanViewTrainingPlans.
-        if (link.CanViewTrainingPlans)
+        if (effective.CanViewTrainingPlans)
         {
             var prFilter = Builders<PersonalRecord>.Filter.Eq(r => r.ClientId, clientUserId)
                 & Builders<PersonalRecord>.Filter.Gte(r => r.AchievedAt, from);
@@ -443,8 +449,8 @@ public class GetClientTimelineEndpoint(
         await Send.OkAsync(new GetClientTimelineResponse
         {
             Items = ordered,
-            CanViewNutritionPlans = link.CanViewNutritionPlans,
-            CanViewTrainingPlans = link.CanViewTrainingPlans
+            CanViewNutritionPlans = effective.CanViewNutritionPlans,
+            CanViewTrainingPlans = effective.CanViewTrainingPlans
         }, ct);
     }
 

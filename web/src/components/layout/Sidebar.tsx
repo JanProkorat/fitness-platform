@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils';
 import AccountMenu from '@/components/layout/AccountMenu';
 import Wordmark from '@/components/brand/Wordmark';
 import { useConversationFilterCounts } from '@/hooks/useInboxQueries';
+import { useActiveRoles } from '@/hooks/useActiveRoles';
 
 /**
  * v1 navigation — only the two sections/four items this rebuild actually
@@ -37,6 +38,7 @@ const NAV_SECTIONS = [
   {
     headerKey: 'sidebar.nutritionSection',
     dot: true,
+    requiredRole: 'Nutritionist',
     items: [
       { to: '/recipes', labelKey: 'sidebar.recipes', Icon: BookOpen },
       { to: '/ingredients', labelKey: 'sidebar.ingredients', Icon: Columns },
@@ -94,6 +96,11 @@ export default function Sidebar({ onNavigate, collapsed = false, onToggleCollaps
   const { t } = useTranslation();
   const filterCounts = useConversationFilterCounts();
   const hasUnread = (filterCounts.data?.unreadMessages ?? 0) > 0;
+  const { hasRole, isLoading, isError } = useActiveRoles();
+  // Role-gated sections stay hidden while the active roles load and when the lookup fails.
+  const visibleSections = NAV_SECTIONS.filter(
+    (section) => !('requiredRole' in section) || (!isLoading && !isError && hasRole(section.requiredRole)),
+  );
   const toggleLabel = t(collapsed ? 'shell.expandNavigation' : 'shell.collapseNavigation');
   const ToggleIcon = collapsed ? ChevronsRight : ChevronsLeft;
 
@@ -156,7 +163,7 @@ export default function Sidebar({ onNavigate, collapsed = false, onToggleCollaps
             collapsed ? 'gap-1' : 'gap-5',
           )}
         >
-          {NAV_SECTIONS.map((section) => (
+          {visibleSections.map((section) => (
             <div key={section.headerKey} className="flex flex-col">
               <Fold open={!collapsed}>
                 <div className="flex h-3 items-center justify-between px-2 box-content pb-1">
