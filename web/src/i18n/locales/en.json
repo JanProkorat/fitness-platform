@@ -3079,6 +3079,97 @@
     }
   },
   "clientDetail": {
+    "nutrition": {
+      "current": {
+        "label": "Current meal plan",
+        "openEditor": "Open editor",
+        "notScheduled": "Not scheduled",
+        "weekOf": "Week {{week}} of {{total}}",
+        "starts": "Starts {{date}}",
+        "started": "started {{date}}",
+        "kcalPerDay": "{{kcal}} kcal a day",
+        "detailError": "Couldn't load the weeks of this plan.",
+        "stripLabel": "Weeks of the plan ({{total}})",
+        "segment": {
+          "done": "Week {{week}}: done",
+          "current": "Week {{week}}: this week",
+          "upcoming": "Week {{week}}: published, upcoming",
+          "draft": "Week {{week}}: draft"
+        },
+        "legend": {
+          "done": "Done",
+          "current": "This week",
+          "upcoming": "Published, upcoming",
+          "draft": "Draft — client can't see it yet"
+        },
+        "needsPublishing": "Week {{week}} needs publishing by Sunday"
+      },
+      "timeline": {
+        "heading": "Plan timeline",
+        "hint": "Plans by month",
+        "empty": "No dated plans to show yet.",
+        "today": "Today",
+        "noPlan": "No plan",
+        "starts": "starts {{date}}",
+        "range_one": "{{range}} · {{count}} wk",
+        "range_other": "{{range}} · {{count}} wks",
+        "activeRange": "{{range}} · week {{week}} of {{total}}"
+      },
+      "past": {
+        "heading": "Past plans",
+        "none": "none yet",
+        "count_one": "{{count}} plan",
+        "count_other": "{{count}} plans",
+        "weeks_one": "{{count}} week",
+        "weeks_other": "{{count}} weeks",
+        "percent": "{{value}} %",
+        "kg": "{{value}} kg",
+        "mealsTicked": "meals ticked",
+        "weight": "weight",
+        "rowMenu": "Actions for {{name}}",
+        "open": "Open plan",
+        "duplicate": "Duplicate for {{name}}",
+        "saveAsTemplate": "Save as template",
+        "emptyHint": "Finished plans land here, with how well {{name}} followed them.",
+        "hint": "Reuse a finished plan from its menu: save it as a template."
+      },
+      "saveTemplate": {
+        "title": "Save as template",
+        "description": "The template goes to your plan templates and stays private to you.",
+        "name": "Template name",
+        "nameInvalid": "Enter a name of up to {{max}} characters.",
+        "submit": "Save template",
+        "success": "Template saved to your library.",
+        "error": "Couldn't save the template. Please try again."
+      },
+      "empty": {
+        "label": "Nutrition",
+        "heading": "{{name}} has no meal plan yet",
+        "body": "Start from a template that fits their goal, copy a plan from another client, or build one from scratch. Nothing is visible to the client until you publish a week.",
+        "matchedTo": "Matched to {{name}}",
+        "matchGoal": "goal {{goal}}",
+        "matchKcal": "{{kcal}} kcal",
+        "templatesLabel": "Matching templates",
+        "templatesError": "Couldn't load your templates.",
+        "noTemplates": "You have no plan templates yet. Create one under Plan templates, then come back.",
+        "bestMatch": "Best match",
+        "weeks_one": "{{count}} week",
+        "weeks_other": "{{count}} weeks",
+        "kcalMatch": "{{kcal}} kcal",
+        "use": "Use “{{name}}”",
+        "copyFromClient": "Copy from another client",
+        "startBlank": "Start blank",
+        "browseAll": "Browse all templates",
+        "useSuccess": "Draft plan created. It starts next Monday.",
+        "useError": "Couldn't create the plan from this template."
+      },
+      "diet": {
+        "Standard": "Standard",
+        "Vegetarian": "Vegetarian",
+        "Vegan": "Vegan",
+        "GlutenFree": "Gluten-free"
+      }
+    },
     "writeMessage": "Message",
     "lastName": "Last name",
     "heightCm": "Height (cm)",
