@@ -470,4 +470,20 @@ public static class ErrorCodes
 
     /// <summary>Keep was requested after the disable already took effect; add the role back instead.</summary>
     public const string CoachAccountDisableEnded = "COACH_ACCOUNT_DISABLE_ENDED";
+
+    // ── Form types and question types (#1340) ───────────────────────────
+    /// <summary>A question type outside the fixed set.</summary>
+    public const string QuestionTypeInvalid = "QUESTION_TYPE_INVALID";
+
+    /// <summary>A question's config is not valid JSON for its type.</summary>
+    public const string QuestionConfigInvalid = "QUESTION_CONFIG_INVALID";
+
+    /// <summary>An update tried to change the form type, which is fixed on create.</summary>
+    public const string QuestionnaireTypeImmutable = "QUESTIONNAIRE_TYPE_IMMUTABLE";
+
+    /// <summary>Only Onboarding forms can be the default form.</summary>
+    public const string CheckInFormCannotBeDefault = "CHECKIN_FORM_CANNOT_BE_DEFAULT";
+
+    /// <summary>A Check-in form cannot be assigned, replaced, or attached to an invite or accepted request.</summary>
+    public const string CheckInFormNotSendable = "CHECKIN_FORM_NOT_SENDABLE";
 }

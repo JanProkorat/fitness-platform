@@ -1,4 +1,7 @@
 import api from '@/lib/api';
+import { QuestionnaireType } from './generated';
+
+export { QuestionnaireType };
 
 export interface QuestionDto {
   publicId: string;
@@ -16,6 +19,7 @@ export interface QuestionnaireDto {
   publicId: string;
   title: string;
   description?: string | null;
+  type: QuestionnaireType;
   isActive: boolean;
   isDefault: boolean;
   questions: QuestionDto[];
@@ -25,10 +29,15 @@ export interface QuestionnaireSummaryDto {
   publicId: string;
   title: string;
   description?: string | null;
+  type: QuestionnaireType;
   isActive: boolean;
   isDefault: boolean;
   questionCount: number;
+  /** Distinct clients with a non-cancelled response to this form. */
+  usedForClientCount: number;
   dateCreated: string;
+  /** Last edit time: the update timestamp, or the creation time when never edited. */
+  editedAt: string;
 }
 
 export interface UpdateQuestionDto {
@@ -47,8 +56,17 @@ interface GetTrainerQuestionnairesResponse {
   questionnaires: QuestionnaireSummaryDto[];
 }
 
-export async function getTrainerQuestionnaires(): Promise<QuestionnaireSummaryDto[]> {
-  const { data } = await api.get<GetTrainerQuestionnairesResponse>('/trainer/questionnaires');
+export interface TrainerQuestionnaireFilters {
+  type?: QuestionnaireType;
+  search?: string;
+}
+
+export async function getTrainerQuestionnaires(
+  filters: TrainerQuestionnaireFilters = {},
+): Promise<QuestionnaireSummaryDto[]> {
+  const { data } = await api.get<GetTrainerQuestionnairesResponse>('/trainer/questionnaires', {
+    params: { type: filters.type, search: filters.search || undefined },
+  });
   return data.questionnaires;
 }
 
@@ -57,14 +75,19 @@ export async function getTrainerQuestionnaire(publicId: string): Promise<Questio
   return data;
 }
 
-export async function createQuestionnaire(title: string, description?: string): Promise<QuestionnaireDto> {
-  const { data } = await api.post<QuestionnaireDto>('/trainer/questionnaires', { title, description });
+export async function createQuestionnaire(
+  title: string,
+  description?: string,
+  type: QuestionnaireType = QuestionnaireType.Onboarding,
+): Promise<QuestionnaireDto> {
+  const { data } = await api.post<QuestionnaireDto>('/trainer/questionnaires', { title, description, type });
   return data;
 }
 
 export async function updateQuestionnaire(publicId: string, payload: {
   title: string;
   description?: string | null;
+  type?: QuestionnaireType;
   isActive: boolean;
   isDefault: boolean;
   questions: UpdateQuestionDto[];

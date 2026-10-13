@@ -1,3 +1,5 @@
+using FitnessPlatform.Application.Domain.Enums;
+
 namespace FitnessPlatform.Application.Features.Questionnaires.UpdateQuestionnaire;
 
 public class UpdateQuestionnaireRequest
@@ -5,6 +7,9 @@ public class UpdateQuestionnaireRequest
     public Guid PublicId { get; set; }
     public string Title { get; set; } = null!;
     public string? Description { get; set; }
+
+    /// <summary>Form type; optional, but when sent it must equal the stored type.</summary>
+    public QuestionnaireType? Type { get; set; }
     public bool IsActive { get; set; }
     public bool IsDefault { get; set; }
     public List<UpdateQuestionDto> Questions { get; set; } = [];

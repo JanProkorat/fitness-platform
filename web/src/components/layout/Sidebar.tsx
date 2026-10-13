@@ -8,6 +8,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
   Columns,
+  FileText,
   HelpCircle,
   MessageSquare,
   Users,
@@ -20,10 +21,10 @@ import { useConversationFilterCounts } from '@/hooks/useInboxQueries';
 import { useActiveRoles } from '@/hooks/useActiveRoles';
 
 /**
- * v1 navigation — only the two sections/four items this rebuild actually
- * delivers. See docs/superpowers/specs/2026-09-14-web-v1-rebuild-design.md
+ * v1 navigation — only the sections/items this rebuild actually delivers.
+ * See docs/superpowers/specs/2026-09-14-web-v1-rebuild-design.md
  * §9: the wireframe has more sidebar areas (Automations, Storage, Exercises,
- * Templates, Mealplans, Forms, Metrics) with no backend feature slice behind
+ * Templates, Mealplans, Metrics) with no backend feature slice behind
  * them yet — those groups are not rendered at all (#1073 AC 2).
  */
 const NAV_SECTIONS = [
@@ -44,6 +45,11 @@ const NAV_SECTIONS = [
       { to: '/ingredients', labelKey: 'sidebar.ingredients', Icon: Columns },
       { to: '/plan-templates', labelKey: 'sidebar.planTemplates', Icon: CalendarDays },
     ],
+  },
+  {
+    headerKey: 'sidebar.formsSection',
+    dot: false,
+    items: [{ to: '/forms', labelKey: 'sidebar.forms', Icon: FileText }],
   },
 ] as const;
 

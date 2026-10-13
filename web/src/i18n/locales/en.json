@@ -208,6 +208,8 @@
     "databaseSection": "DATABASE",
     "clientManagementSection": "Client management",
     "nutritionSection": "Nutrition",
+    "formsSection": "Forms",
+    "forms": "Forms",
     "help": "Help & Support",
     "trainingPlan": "Training plan",
     "mealPlan": "Meal plan",
@@ -1990,6 +1992,197 @@
       "body": "You have unsaved changes. If you leave now they are lost.",
       "stay": "Keep editing",
       "discard": "Leave"
+    }
+  },
+  "forms": {
+    "eyebrow": "Forms",
+    "title": "Forms",
+    "subtitle": "Questions your clients answer — at the start and every week",
+    "newForm": "New form",
+    "searchPlaceholder": "Search forms…",
+    "retry": "Retry",
+    "loadError": "Couldn't load your forms. Please try again.",
+    "noResultsForFilters": "No forms match your filters.",
+    "clearFilters": "Clear filters",
+    "deleteSuccess": "Form deleted.",
+    "deleteError": "Couldn't delete the form. Please try again.",
+    "empty": {
+      "title": "No forms yet",
+      "hint": "Create your first form to ask your clients questions",
+      "create": "New form"
+    },
+    "filters": {
+      "type": "Type"
+    },
+    "type": {
+      "Onboarding": "Onboarding",
+      "CheckIn": "Check-in"
+    },
+    "table": {
+      "columnForm": "Form",
+      "columnType": "Type",
+      "columnQuestions": "Questions",
+      "columnUsedFor": "Used for",
+      "columnEdited": "Edited",
+      "columnActions": "Actions",
+      "questions_one": "{{count}} question",
+      "questions_other": "{{count}} questions",
+      "clients_one": "{{count}} client",
+      "clients_other": "{{count}} clients"
+    },
+    "rowMenu": {
+      "open": "Actions for {{name}}",
+      "edit": "Edit",
+      "duplicate": "Duplicate",
+      "delete": "Delete"
+    },
+    "deleteDialog": {
+      "title": "Delete form",
+      "description": "Delete \"{{name}}\"? Answers your clients already gave stay as they are. This can't be undone.",
+      "confirm": "Delete"
+    },
+    "duplicate": {
+      "titleCopy": "{{title}} (copy)",
+      "success": "Form duplicated.",
+      "error": "Couldn't duplicate the form. Please try again."
+    },
+    "builder": {
+      "back": "Back to forms",
+      "titleLabel": "Form name",
+      "save": "Save",
+      "fixErrors": "Fix the highlighted fields before saving.",
+      "saveError": "Couldn't save the form. Please try again.",
+      "loadError": "Couldn't load the form. Please try again.",
+      "status": {
+        "saving": "Saving…",
+        "unsaved": "Unsaved changes",
+        "saved": "Saved"
+      },
+      "notFound": {
+        "title": "Form not found",
+        "body": "It may have been deleted, or it belongs to someone else."
+      },
+      "leave": {
+        "title": "Leave without saving?",
+        "body": "You have unsaved changes. If you leave now they are lost.",
+        "stay": "Keep editing",
+        "discard": "Leave"
+      },
+      "palette": {
+        "title": "Add a question",
+        "hint": "Drag a type into the form, or click it to add it at the end.",
+        "add": "Add {{name}}"
+      },
+      "kinds": {
+        "multi_select": { "name": "Multiple choice", "hint": "Pick any number of options" },
+        "single_choice": { "name": "Single choice", "hint": "Pick exactly one option" },
+        "number": { "name": "Number", "hint": "A number, with a range" },
+        "short_text": { "name": "Text", "hint": "Free-text answer" },
+        "smiley_rating": { "name": "Smiley rating", "hint": "Quick feeling, 5 faces" },
+        "star_rating": { "name": "Star rating", "hint": "Satisfaction on a 1–5 scale" },
+        "scale": { "name": "Scale" },
+        "file_upload": { "name": "File upload" },
+        "other": { "name": "Other question" }
+      },
+      "info": {
+        "onboarding": "Sent automatically to every new client after they accept your invitation",
+        "checkIn": "Weekly check-in · answers appear in each client's check-in history",
+        "questions_one": "{{count}} question",
+        "questions_other": "{{count}} questions",
+        "minutes_one": "about {{count}} minute",
+        "minutes_other": "about {{count}} minutes"
+      },
+      "empty": {
+        "title": "No questions yet",
+        "hint": "Click or drag a question type from the left to start."
+      },
+      "defaults": {
+        "question": "Untitled question",
+        "option": "Option {{number}}",
+        "low": "Very low",
+        "high": "Great"
+      },
+      "card": {
+        "label": "Question {{number}}: {{title}}",
+        "reorder": "Reorder question {{number}}",
+        "duplicate": "Duplicate question {{number}}",
+        "duplicateTitle": "Duplicate",
+        "delete": "Delete question {{number}}",
+        "deleteTitle": "Delete",
+        "titleLabel": "Question {{number}} title",
+        "titlePlaceholder": "Write the question",
+        "helperLabel": "Question {{number}} helper text",
+        "helperPlaceholder": "Helper text (optional)",
+        "required": "Required",
+        "requiredToggle": "Required"
+      },
+      "choice": {
+        "reorder": "Reorder choice {{number}}",
+        "label": "Choice {{number}}",
+        "remove": "Remove choice {{number}}",
+        "add": "Add choice",
+        "other": "Other",
+        "allowOther": "Allow “Other”"
+      },
+      "number": {
+        "min": "Min",
+        "max": "Max",
+        "unit": "Unit",
+        "summaryMin": "Min {{value}}",
+        "summaryMax": "Max {{value}}",
+        "summaryUnit": "Unit: {{value}}"
+      },
+      "smiley": {
+        "low": "Lowest face label",
+        "high": "Highest face label"
+      },
+      "text": {
+        "placeholder": "Client types their answer here"
+      },
+      "generic": {
+        "hint": "This question type can't be edited here. It stays as it is."
+      },
+      "preview": {
+        "open": "Preview as client",
+        "untitled": "Untitled form",
+        "hint": "This is how your client sees the form. Nothing here is saved.",
+        "unsupported": "This question type is shown to the client as it was set up."
+      },
+      "settings": {
+        "open": "Settings",
+        "title": "Form settings",
+        "description": "Name and description of this form.",
+        "default": "Default for new clients",
+        "defaultHint": "Sent to new clients when no other form is chosen."
+      },
+      "errors": {
+        "title": "Enter a name of up to {{max}} characters.",
+        "description": "The description can be at most {{max}} characters.",
+        "label": "Write the question.",
+        "options": "Add at least one choice and fill in every choice.",
+        "numberInvalid": "Min and max must be numbers.",
+        "numberRange": "Min can't be higher than max.",
+        "smileyLabels": "Fill in both face labels."
+      }
+    },
+    "create": {
+      "heading": "New form",
+      "subtitle": "Name it and pick what it is for — you'll add the questions next",
+      "title": "Name",
+      "titlePlaceholder": "e.g. Client onboarding",
+      "titleInvalid": "Enter a name of up to {{max}} characters.",
+      "description": "Description",
+      "descriptionPlaceholder": "What is this form for?",
+      "descriptionInvalid": "The description can be at most {{max}} characters.",
+      "type": "Type",
+      "typeHint": {
+        "Onboarding": "Sent once to a new client",
+        "CheckIn": "Answered every week"
+      },
+      "typeFixed": "The type can't be changed after the form is created.",
+      "submit": "Create form",
+      "invalid": "Check the name and type, then try again.",
+      "error": "Couldn't create the form. Please try again."
     }
   },
   "planTemplates": {

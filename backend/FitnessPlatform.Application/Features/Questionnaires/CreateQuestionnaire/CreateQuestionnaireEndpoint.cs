@@ -32,8 +32,9 @@ public class CreateQuestionnaireEndpoint(IApplicationDbContext db)
         if (userId is null) { await Send.UnauthorizedAsync(ct); return; }
         var userGuid = Guid.Parse(userId);
 
-        // If this is the first questionnaire for the professional, make it the default
-        var hasAny = await db.Questionnaires.AnyAsync(q => q.ProfessionalId == userGuid, ct);
+        // The first Onboarding form for the professional becomes the default; Check-in forms never do
+        var hasAnyOnboarding = await db.Questionnaires
+            .AnyAsync(q => q.ProfessionalId == userGuid && q.Type == QuestionnaireType.Onboarding, ct);
 
         var questionnaire = new Questionnaire
         {
@@ -41,8 +42,9 @@ public class CreateQuestionnaireEndpoint(IApplicationDbContext db)
             ProfessionalId = userGuid,
             Title = req.Title,
             Description = req.Description,
+            Type = req.Type,
             IsActive = true,
-            IsDefault = !hasAny,
+            IsDefault = req.Type == QuestionnaireType.Onboarding && !hasAnyOnboarding,
         };
 
         db.Questionnaires.Add(questionnaire);
@@ -53,6 +55,7 @@ public class CreateQuestionnaireEndpoint(IApplicationDbContext db)
             PublicId = questionnaire.PublicId,
             Title = questionnaire.Title,
             Description = questionnaire.Description,
+            Type = questionnaire.Type,
             IsActive = questionnaire.IsActive,
             IsDefault = questionnaire.IsDefault,
             Questions = [],
