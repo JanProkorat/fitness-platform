@@ -3167,7 +3167,26 @@
         "duplicate": "Für {{name}} duplizieren",
         "saveAsTemplate": "Als Vorlage speichern",
         "emptyHint": "Abgeschlossene Pläne erscheinen hier, samt der Quote, wie gut {{name}} sie befolgt hat.",
-        "hint": "Einen abgeschlossenen Plan können Sie über sein Menü wiederverwenden: als Vorlage speichern."
+        "hint": "Einen abgeschlossenen Plan können Sie über sein Menü wiederverwenden: als Vorlage speichern.",
+        "duplicateSuccess": "Plan als neuer Entwurf kopiert.",
+        "duplicateError": "Der Plan konnte nicht kopiert werden. Bitte versuchen Sie es erneut."
+      },
+      "photos": {
+        "heading": "Mahlzeitenfotos und Notizen",
+        "hint": "Diese Woche",
+        "caption": "{{meal}} · {{day}}",
+        "empty": "Diese Woche noch keine Mahlzeitenfotos.",
+        "error": "Die Mahlzeitenfotos konnten nicht geladen werden.",
+        "photoAlt": "Mahlzeitenfoto: {{caption}}",
+        "imageUnavailable": "Foto nicht verfügbar"
+      },
+      "notes": {
+        "quote": "„{{note}}“",
+        "meta": "Check-in · {{date}} · Hunger {{score}}/5",
+        "metaNoHunger": "Check-in · {{date}}",
+        "noNote": "Keine Notiz im letzten Check-in",
+        "noCheckIn": "Noch kein Check-in beantwortet",
+        "error": "Der letzte Check-in konnte nicht geladen werden."
       },
       "saveTemplate": {
         "title": "Als Vorlage speichern",

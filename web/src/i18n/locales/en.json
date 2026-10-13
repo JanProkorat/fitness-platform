@@ -3168,7 +3168,26 @@
         "duplicate": "Duplicate for {{name}}",
         "saveAsTemplate": "Save as template",
         "emptyHint": "Finished plans land here, with how well {{name}} followed them.",
-        "hint": "Reuse a finished plan from its menu: save it as a template."
+        "hint": "Reuse a finished plan from its menu: save it as a template.",
+        "duplicateSuccess": "Plan copied as a new draft.",
+        "duplicateError": "Couldn't copy the plan. Please try again."
+      },
+      "photos": {
+        "heading": "Meal photos and notes",
+        "hint": "This week",
+        "caption": "{{meal}} · {{day}}",
+        "empty": "No meal photos this week.",
+        "error": "Couldn't load the meal photos.",
+        "photoAlt": "Meal photo: {{caption}}",
+        "imageUnavailable": "Photo unavailable"
+      },
+      "notes": {
+        "quote": "“{{note}}”",
+        "meta": "Check-in · {{date}} · hunger {{score}}/5",
+        "metaNoHunger": "Check-in · {{date}}",
+        "noNote": "No note in the latest check-in",
+        "noCheckIn": "No check-in answered yet",
+        "error": "Couldn't load the latest check-in."
       },
       "saveTemplate": {
         "title": "Save as template",
