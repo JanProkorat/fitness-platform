@@ -702,7 +702,7 @@ Both accounts use `QA_SEED_PASSWORD`.
 | Session this week | Session A completed, dated today | "Done this week" 1 of 3 |
 | Personal record | `44444444-4444-4444-aadd-000000000001`, dated today | QA Squat 72.5 kg × 8; "PRs this month" 1 on any reset day |
 | Body measurements | 8 weekly, newest yesterday | Weight 73.6 → 70.0 kg |
-| Meal logs | 13 on days −1 … −6 (3, 2, 3, 2, 2, 1), none today | — |
+| Meal logs | 13 on days −1 … −6 (3, 2, 3, 2, 2, 1), none today | Meal compliance 13 of 24 = 54.2 % (tile "54 %"), "6-day logging streak" (#1319). The combined figure across both disciplines is 56 % / 7 days |
 | Weekly check-ins (Training) | Anchor = next ISO Monday: waiting (current cycle), answered 1, 4 and 6 weeks back (reviewed), missed 5 weeks back | 3 of 4 answered overall |
 
 The training plan covers one week from the reset Monday, so like the other
