@@ -188,6 +188,10 @@ public class GetClientDashboardEndpointTests
         ep.HttpContext.Response.StatusCode.Should().Be(200);
         ep.Response.CompliancePercent.Should().BeNull();
         ep.Response.CurrentStreak.Should().Be(0);
+        ep.Response.NutritionCompliancePercent.Should().BeNull();
+        ep.Response.TrainingCompliancePercent.Should().BeNull();
+        ep.Response.NutritionStreak.Should().BeNull();
+        ep.Response.TrainingStreak.Should().BeNull();
     }
 
     [Fact]
