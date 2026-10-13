@@ -13,11 +13,11 @@ public class UpdateQuestionnaireValidatorTests
 {
     private readonly UpdateQuestionnaireValidator _validator = new();
 
-    private static UpdateQuestionnaireRequest RequestWith(string type, string? config) => new()
+    private static UpdateQuestionnaireRequest RequestWith(string? type, string? config) => new()
     {
         PublicId = Guid.NewGuid(),
         Title = "Intake",
-        Questions = [new UpdateQuestionDto { Type = type, Label = "Question", Config = config }],
+        Questions = [new UpdateQuestionDto { Type = type!, Label = "Question", Config = config }],
     };
 
     private bool HasErrorCode(UpdateQuestionnaireRequest request, string errorCode) =>
@@ -46,7 +46,9 @@ public class UpdateQuestionnaireValidatorTests
     [InlineData("text")]
     [InlineData("SINGLE_CHOICE")]
     [InlineData("rating")]
-    public void Question_UnknownType_FailsWithQuestionTypeInvalid(string type)
+    [InlineData("")]
+    [InlineData(null)]
+    public void Question_UnknownType_FailsWithQuestionTypeInvalid(string? type)
     {
         HasErrorCode(RequestWith(type, null), ErrorCodes.QuestionTypeInvalid).Should().BeTrue();
     }

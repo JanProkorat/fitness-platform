@@ -15,11 +15,9 @@ public class UpdateQuestionnaireValidator : Validator<UpdateQuestionnaireRequest
         RuleForEach(x => x.Questions).ChildRules(q =>
         {
             q.RuleFor(x => x.Type)
-                .NotEmpty()
-                .Must(type => QuestionTypes.All.Contains(type))
+                .Must(type => !string.IsNullOrEmpty(type) && QuestionTypes.All.Contains(type))
                 .WithErrorCode(ErrorCodes.QuestionTypeInvalid)
-                .WithMessage("Question type is not supported.")
-                .When(x => !string.IsNullOrEmpty(x.Type));
+                .WithMessage("Question type is required and must be supported.");
             q.RuleFor(x => x.Label).NotEmpty();
             q.RuleFor(x => x.Config)
                 .Must((question, config) => QuestionConfigChecker.IsValid(question.Type, config))
