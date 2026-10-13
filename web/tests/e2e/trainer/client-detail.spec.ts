@@ -4,7 +4,7 @@
  * clients.spec.ts's own header comment — a spec at the e2e/ root runs on
  * no project at all).
  *
- * Verifies the layout contract: the six not-yet-built tabs and the three
+ * Verifies the layout contract: the not-yet-built tabs and the two
  * still-unbuilt header buttons render disabled with the shell's coming-soon
  * treatment, the rebuilt Overview shows its three stat tiles and four lower
  * cards (#1295), and — the AC this issue's backend slice exists for — the
@@ -17,8 +17,8 @@
 import { trainerTest as test, expect } from '../fixtures/auth';
 
 // The QA trainer's link is training-only, so the Nutrition tab is not rendered.
-const DISABLED_TAB_NAMES = ['Development', 'Workouts', 'Storage', 'Payment', 'Automations'];
-const DISABLED_BUTTON_NAMES = ['Tasks', 'Notes', 'Info'];
+const DISABLED_TAB_NAMES = ['Workouts', 'Storage', 'Payment', 'Automations'];
+const DISABLED_BUTTON_NAMES = ['Tasks', 'Notes'];
 
 test.describe('client detail page — overview tab', () => {
   test('renders the layout contract: coming-soon tabs/buttons, the rebuilt overview cards, and a status pill matching the clients list', async ({
@@ -40,12 +40,11 @@ test.describe('client detail page — overview tab', () => {
 
     await expect(page.getByRole('heading', { name: /QA Client/ })).toBeVisible();
 
-    // The status pill comparison — never a hardcoded status word (AC).
-    const detailStatusBadge = page.locator('[data-slot="badge"]').first();
-    await expect(detailStatusBadge).toHaveText(listStatusText);
+    // The status label comparison — never a hardcoded status word (AC).
+    await expect(page.getByTestId('client-status')).toHaveText(listStatusText);
 
-    // Overview is the only enabled tab; the other six are disabled with
-    // the coming-soon treatment.
+    // Overview is the only enabled tab; the others are disabled with
+    // the coming-soon treatment. Development was dropped from the row.
     await expect(page.getByRole('tab', { name: 'Overview' })).toBeEnabled();
     for (const tabName of DISABLED_TAB_NAMES) {
       const tab = page.getByRole('tab', { name: tabName });
@@ -53,10 +52,21 @@ test.describe('client detail page — overview tab', () => {
       await expect(tab).toBeDisabled();
     }
 
-    // The three still-unbuilt header action buttons render disabled.
+    await expect(page.getByRole('tab', { name: 'Development' })).toHaveCount(0);
+
+    // The two still-unbuilt header action buttons render disabled; Info is gone.
     for (const buttonName of DISABLED_BUTTON_NAMES) {
       await expect(page.getByRole('button', { name: new RegExp(buttonName) })).toBeDisabled();
     }
+    await expect(page.getByRole('button', { name: 'Info' })).toHaveCount(0);
+
+    // Facts strip for a training-only link: goal, weight and the training plan,
+    // no meal plan fact.
+    const facts = page.getByTestId('client-header-facts');
+    await expect(facts.getByText('Goal', { exact: true })).toBeVisible();
+    await expect(facts.getByText('Weight', { exact: true })).toBeVisible();
+    await expect(facts.getByText('Training plan', { exact: true })).toBeVisible();
+    await expect(facts.getByText('Meal plan', { exact: true })).toHaveCount(0);
 
     // Chat is live (#1095) — it's a link, not a disabled button, and it
     // carries this client's publicId as the inbox deep-link query param.

@@ -34,6 +34,14 @@ test.describe('client detail — nutritionist-only overview', () => {
     await expect(page.getByRole('tab', { name: 'Nutrition' })).toBeEnabled();
     await expect(page.getByRole('tab', { name: 'Workouts' })).toHaveCount(0);
 
+    // Header facts: the nutritionist link shows the meal plan fact and no training plan fact;
+    // the weight change since the first weigh-in matches the seeded 84.0 -> 80.5 kg.
+    const facts = page.getByTestId('client-header-facts');
+    await expect(facts.getByText('Meal plan', { exact: true })).toBeVisible();
+    await expect(facts.getByText('Training plan', { exact: true })).toHaveCount(0);
+    await expect(facts).toContainText('80.5 kg');
+    await expect(page.getByTestId('client-weight-change')).toHaveText('3.5 kg');
+
     // Stat row.
     for (const label of ['Meal compliance', 'Weight change', 'Client since']) {
       await expect(page.getByText(label, { exact: true })).toBeVisible();

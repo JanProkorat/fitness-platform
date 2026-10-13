@@ -3510,17 +3510,26 @@
     "overview": {
       "backAriaLabel": "Back to clients",
       "header": {
-        "heightCm": "{{cm}} cm"
+        "heightCm": "{{cm}} cm",
+        "facts": {
+          "goal": "Goal",
+          "weight": "Weight",
+          "mealPlan": "Meal plan",
+          "trainingPlan": "Training plan",
+          "weekOf": "Week {{week}} of {{total}}",
+          "noPlan": "No plan yet",
+          "kg": "{{value}} kg",
+          "weightDown": "Weight down since the first weigh-in",
+          "weightUp": "Weight up since the first weigh-in"
+        }
       },
       "actions": {
         "chat": "Chat",
         "tasks": "Tasks",
-        "notes": "Notes",
-        "info": "Info"
+        "notes": "Notes"
       },
       "tabs": {
         "overview": "Overview",
-        "development": "Development",
         "nutrition": "Nutrition",
         "workouts": "Workouts",
         "storage": "Storage",

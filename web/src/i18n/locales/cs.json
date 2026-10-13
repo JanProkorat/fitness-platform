@@ -3596,17 +3596,26 @@
     "overview": {
       "backAriaLabel": "Zpět na klienty",
       "header": {
-        "heightCm": "{{cm}} cm"
+        "heightCm": "{{cm}} cm",
+        "facts": {
+          "goal": "Cíl",
+          "weight": "Váha",
+          "mealPlan": "Jídelníček",
+          "trainingPlan": "Tréninkový plán",
+          "weekOf": "Týden {{week}} z {{total}}",
+          "noPlan": "Zatím bez plánu",
+          "kg": "{{value}} kg",
+          "weightDown": "Váha klesla od prvního vážení",
+          "weightUp": "Váha stoupla od prvního vážení"
+        }
       },
       "actions": {
         "chat": "Chat",
         "tasks": "Úkoly",
-        "notes": "Poznámky",
-        "info": "Info"
+        "notes": "Poznámky"
       },
       "tabs": {
         "overview": "Přehled",
-        "development": "Vývoj",
         "nutrition": "Výživa",
         "workouts": "Tréninky",
         "storage": "Úložiště",

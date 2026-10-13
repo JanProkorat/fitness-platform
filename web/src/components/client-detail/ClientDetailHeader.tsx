@@ -1,64 +1,114 @@
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation } from 'react-router-dom';
-import { ArrowLeft, MessageSquare } from 'lucide-react';
+import type { UseQueryResult } from '@tanstack/react-query';
+import { ChevronLeft, ListChecks, MessageSquare, NotebookText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import ClientIdentityBlock from '@/components/client-detail/ClientIdentityBlock';
-import ClientAvatar from '@/components/clients/ClientAvatar';
+import ClientHeaderFacts from '@/components/client-detail/ClientHeaderFacts';
+import { useClientHeaderFacts } from '@/components/client-detail/useClientHeaderFacts';
+import { calculateAge, resolveOverviewRole } from '@/lib/client-metrics';
 import { getClientDetailBackPath } from '@/lib/clientDetailNavigation';
-import type { GetClientDashboardResponse } from '@/api/generated';
+import { ClientListStatus, type GetClientDashboardResponse, type GetMeasurementsResponse, type ListClientPlansResponse } from '@/api/generated';
 
 interface Props {
+  clientId: string;
   dashboard: GetClientDashboardResponse;
+  plansQuery: UseQueryResult<ListClientPlansResponse>;
+  measurementsQuery: UseQueryResult<GetMeasurementsResponse>;
+  /** The tab row; rendered on the second line, left of the action buttons. */
+  tabs: ReactNode;
 }
 
+const META_SEPARATOR = ' · ';
+
 /**
- * Client-detail page header (#1094): back arrow, `ClientIdentityBlock`
- * (name, status pill, meta line, goal chip), and four action buttons.
- * Chat is live (#1095) — it navigates to `/inbox?client=<publicId>`, which
- * opens the existing thread with this client or starts one. Tasks/Notes/Info
- * still render disabled with the shell's coming-soon treatment: Tasks has
- * no backend concept at all (design review, 2026-09-21), and no Notes/Info
- * UI exists yet.
+ * Client-detail page header (board PageClientDetail, option B): back button,
+ * name with a status dot and a muted age / sex / height line, a facts strip
+ * (goal, weight, plan weeks), then the tab row with the actions. Chat opens
+ * `/inbox?client=<publicId>`; Tasks and Notes stay disabled with the shell's
+ * coming-soon treatment (no backend concept for tasks, no notes UI yet).
  */
-export default function ClientDetailHeader({ dashboard }: Props) {
+export default function ClientDetailHeader({ clientId, dashboard, plansQuery, measurementsQuery, tabs }: Props) {
   const { t } = useTranslation();
   const location = useLocation();
+  const role = resolveOverviewRole(dashboard.canViewNutritionPlans, dashboard.canViewTrainingPlans);
+  const facts = useClientHeaderFacts(clientId, dashboard, plansQuery, measurementsQuery);
+
+  const age = dashboard.dateOfBirth ? calculateAge(dashboard.dateOfBirth) : undefined;
+  const metaSegments = [
+    age != null ? t('clientDetail.ageYears', { count: age }) : undefined,
+    dashboard.onboarding?.sex ? t(`clients.values.${dashboard.onboarding.sex}`) : undefined,
+    dashboard.heightCm != null ? t('clientDetail.overview.header.heightCm', { cm: dashboard.heightCm }) : undefined,
+  ].filter((segment): segment is string => Boolean(segment));
+
+  const status = dashboard.status;
+  const statusLabel =
+    status === ClientListStatus.Active
+      ? t('clients.tabs.active')
+      : status === ClientListStatus.Paused
+        ? t('clients.tabs.paused')
+        : status === ClientListStatus.Archived
+          ? t('clients.tabs.archived')
+          : null;
 
   return (
-    <div className="flex flex-wrap items-start justify-between gap-3">
-      <div className="flex items-center gap-3">
-        <Link
-          to={getClientDetailBackPath(location.state)}
-          aria-label={t('clientDetail.overview.backAriaLabel')}
-          className="text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <ArrowLeft className="size-5" aria-hidden="true" />
-        </Link>
-        <ClientAvatar
-          firstName={dashboard.firstName}
-          lastName={dashboard.lastName}
-          className="size-14"
-          fallbackClassName="bg-primary text-body font-semibold text-primary-foreground"
-        />
-        <ClientIdentityBlock dashboard={dashboard} />
+    <div className="flex flex-col gap-4.5">
+      <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-3">
+        <div className="flex min-w-0 items-center gap-3.5">
+          <Link
+            to={getClientDetailBackPath(location.state)}
+            aria-label={t('clientDetail.overview.backAriaLabel')}
+            className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-ink transition-colors hover:bg-muted"
+          >
+            <ChevronLeft className="size-4.5" aria-hidden="true" />
+          </Link>
+          <div className="flex min-w-0 flex-col gap-1">
+            <div className="flex min-w-0 items-center gap-2.5">
+              <h1 className="min-w-0 truncate font-display text-title font-semibold text-ink">
+                {dashboard.firstName} {dashboard.lastName}
+              </h1>
+              {statusLabel && (
+                <span
+                  data-testid="client-status"
+                  className="inline-flex shrink-0 items-center gap-1.5 text-meta text-muted-foreground"
+                >
+                  <span
+                    className={`size-1.75 rounded-full ${status === ClientListStatus.Active ? 'bg-success' : 'bg-muted-foreground'}`}
+                    aria-hidden="true"
+                  />
+                  {statusLabel}
+                </span>
+              )}
+            </div>
+            {metaSegments.length > 0 && (
+              <span className="text-body text-muted-foreground">{metaSegments.join(META_SEPARATOR)}</span>
+            )}
+          </div>
+        </div>
+
+        <div className="w-full xl:ml-auto xl:w-auto">
+          <ClientHeaderFacts dashboard={dashboard} role={role} facts={facts} />
+        </div>
       </div>
 
-      <div className="flex items-center gap-2">
-        <Button asChild size="sm" className="gap-1.5">
-          <Link to={`/inbox?client=${dashboard.clientPublicId}`}>
-            <MessageSquare className="size-4" aria-hidden="true" />
-            {t('clientDetail.overview.actions.chat')}
-          </Link>
-        </Button>
-        <Button type="button" variant="outline" size="sm" disabled title={t('shell.comingSoon')}>
-          {t('clientDetail.overview.actions.tasks')}
-        </Button>
-        <Button type="button" variant="outline" size="sm" disabled title={t('shell.comingSoon')}>
-          {t('clientDetail.overview.actions.notes')}
-        </Button>
-        <Button type="button" variant="outline" size="sm" disabled title={t('shell.comingSoon')}>
-          {t('clientDetail.overview.actions.info')}
-        </Button>
+      <div className="flex flex-wrap items-end justify-between gap-3 border-b border-border">
+        <div className="-mb-px min-w-0 flex-1">{tabs}</div>
+        <div className="flex shrink-0 items-center gap-2 pb-2">
+          <Button asChild size="sm" className="gap-1.5">
+            <Link to={`/inbox?client=${dashboard.clientPublicId}`}>
+              <MessageSquare className="size-4" aria-hidden="true" />
+              {t('clientDetail.overview.actions.chat')}
+            </Link>
+          </Button>
+          <Button type="button" variant="outline" size="sm" disabled title={t('shell.comingSoon')} className="gap-1.5">
+            <ListChecks className="size-4" aria-hidden="true" />
+            {t('clientDetail.overview.actions.tasks')}
+          </Button>
+          <Button type="button" variant="outline" size="sm" disabled title={t('shell.comingSoon')} className="gap-1.5">
+            <NotebookText className="size-4" aria-hidden="true" />
+            {t('clientDetail.overview.actions.notes')}
+          </Button>
+        </div>
       </div>
     </div>
   );
