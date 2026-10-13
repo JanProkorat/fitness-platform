@@ -2045,6 +2045,125 @@
       "success": "Formular dupliziert.",
       "error": "Das Formular konnte nicht dupliziert werden. Bitte versuchen Sie es erneut."
     },
+    "builder": {
+      "back": "Zurück zu den Formularen",
+      "titleLabel": "Formularname",
+      "save": "Speichern",
+      "fixErrors": "Korrigieren Sie die markierten Felder, bevor Sie speichern.",
+      "saveError": "Das Formular konnte nicht gespeichert werden. Bitte versuchen Sie es erneut.",
+      "loadError": "Das Formular konnte nicht geladen werden. Bitte versuchen Sie es erneut.",
+      "status": {
+        "saving": "Wird gespeichert…",
+        "unsaved": "Nicht gespeicherte Änderungen",
+        "saved": "Gespeichert"
+      },
+      "notFound": {
+        "title": "Formular nicht gefunden",
+        "body": "Es wurde möglicherweise gelöscht oder gehört jemand anderem."
+      },
+      "leave": {
+        "title": "Ohne Speichern verlassen?",
+        "body": "Sie haben nicht gespeicherte Änderungen. Wenn Sie jetzt gehen, gehen sie verloren.",
+        "stay": "Weiter bearbeiten",
+        "discard": "Verlassen"
+      },
+      "palette": {
+        "title": "Frage hinzufügen",
+        "hint": "Ziehen Sie einen Fragetyp ins Formular oder klicken Sie darauf, um ihn am Ende anzufügen.",
+        "add": "Hinzufügen: {{name}}"
+      },
+      "kinds": {
+        "multi_select": { "name": "Mehrfachauswahl", "hint": "Beliebig viele Optionen wählen" },
+        "single_choice": { "name": "Einzelauswahl", "hint": "Genau eine Option wählen" },
+        "number": { "name": "Zahl", "hint": "Eine Zahl mit Bereich" },
+        "short_text": { "name": "Text", "hint": "Freie Textantwort" },
+        "smiley_rating": { "name": "Smiley-Bewertung", "hint": "Schnelles Gefühl, 5 Gesichter" },
+        "star_rating": { "name": "Sternebewertung", "hint": "Zufriedenheit auf einer Skala von 1–5" },
+        "scale": { "name": "Skala" },
+        "file_upload": { "name": "Datei-Upload" },
+        "other": { "name": "Andere Frage" }
+      },
+      "info": {
+        "onboarding": "Wird automatisch an jeden neuen Klienten gesendet, nachdem er Ihre Einladung angenommen hat",
+        "checkIn": "Wöchentlicher Check-in · Antworten erscheinen im Check-in-Verlauf jedes Klienten",
+        "questions_one": "{{count}} Frage",
+        "questions_other": "{{count}} Fragen",
+        "minutes_one": "etwa {{count}} Minute",
+        "minutes_other": "etwa {{count}} Minuten"
+      },
+      "empty": {
+        "title": "Noch keine Fragen",
+        "hint": "Klicken Sie links auf einen Fragetyp oder ziehen Sie ihn herüber, um zu beginnen."
+      },
+      "defaults": {
+        "question": "Frage ohne Titel",
+        "option": "Option {{number}}",
+        "low": "Sehr niedrig",
+        "high": "Großartig"
+      },
+      "card": {
+        "label": "Frage {{number}}: {{title}}",
+        "reorder": "Frage {{number}} verschieben",
+        "duplicate": "Frage {{number}} duplizieren",
+        "duplicateTitle": "Duplizieren",
+        "delete": "Frage {{number}} löschen",
+        "deleteTitle": "Löschen",
+        "titleLabel": "Titel von Frage {{number}}",
+        "titlePlaceholder": "Frage eingeben",
+        "helperLabel": "Hilfetext von Frage {{number}}",
+        "helperPlaceholder": "Hilfetext (optional)",
+        "required": "Pflicht",
+        "requiredToggle": "Pflichtfeld"
+      },
+      "choice": {
+        "reorder": "Option {{number}} verschieben",
+        "label": "Option {{number}}",
+        "remove": "Option {{number}} entfernen",
+        "add": "Option hinzufügen",
+        "other": "Sonstiges",
+        "allowOther": "„Sonstiges“ erlauben"
+      },
+      "number": {
+        "min": "Min",
+        "max": "Max",
+        "unit": "Einheit",
+        "summaryMin": "Min {{value}}",
+        "summaryMax": "Max {{value}}",
+        "summaryUnit": "Einheit: {{value}}"
+      },
+      "smiley": {
+        "low": "Beschriftung des niedrigsten Gesichts",
+        "high": "Beschriftung des höchsten Gesichts"
+      },
+      "text": {
+        "placeholder": "Der Klient tippt hier seine Antwort ein"
+      },
+      "generic": {
+        "hint": "Dieser Fragetyp kann hier nicht bearbeitet werden. Er bleibt unverändert."
+      },
+      "preview": {
+        "open": "Vorschau als Klient",
+        "untitled": "Formular ohne Namen",
+        "hint": "So sieht Ihr Klient das Formular. Hier wird nichts gespeichert.",
+        "unsupported": "Dieser Fragetyp wird dem Klienten so angezeigt, wie er eingerichtet wurde."
+      },
+      "settings": {
+        "open": "Einstellungen",
+        "title": "Formulareinstellungen",
+        "description": "Name und Beschreibung dieses Formulars.",
+        "default": "Standard für neue Klienten",
+        "defaultHint": "Wird neuen Klienten gesendet, wenn Sie kein anderes Formular wählen."
+      },
+      "errors": {
+        "title": "Geben Sie einen Namen mit höchstens {{max}} Zeichen ein.",
+        "description": "Die Beschreibung darf höchstens {{max}} Zeichen lang sein.",
+        "label": "Geben Sie die Frage ein.",
+        "options": "Fügen Sie mindestens eine Option hinzu und füllen Sie alle Optionen aus.",
+        "numberInvalid": "Min und Max müssen Zahlen sein.",
+        "numberRange": "Min darf nicht größer als Max sein.",
+        "smileyLabels": "Füllen Sie beide Gesichtsbeschriftungen aus."
+      }
+    },
     "create": {
       "heading": "Neues Formular",
       "subtitle": "Geben Sie ihm einen Namen und wählen Sie den Zweck — die Fragen fügen Sie als Nächstes hinzu",

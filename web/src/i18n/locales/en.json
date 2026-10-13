@@ -2046,6 +2046,125 @@
       "success": "Form duplicated.",
       "error": "Couldn't duplicate the form. Please try again."
     },
+    "builder": {
+      "back": "Back to forms",
+      "titleLabel": "Form name",
+      "save": "Save",
+      "fixErrors": "Fix the highlighted fields before saving.",
+      "saveError": "Couldn't save the form. Please try again.",
+      "loadError": "Couldn't load the form. Please try again.",
+      "status": {
+        "saving": "Saving…",
+        "unsaved": "Unsaved changes",
+        "saved": "Saved"
+      },
+      "notFound": {
+        "title": "Form not found",
+        "body": "It may have been deleted, or it belongs to someone else."
+      },
+      "leave": {
+        "title": "Leave without saving?",
+        "body": "You have unsaved changes. If you leave now they are lost.",
+        "stay": "Keep editing",
+        "discard": "Leave"
+      },
+      "palette": {
+        "title": "Add a question",
+        "hint": "Drag a type into the form, or click it to add it at the end.",
+        "add": "Add {{name}}"
+      },
+      "kinds": {
+        "multi_select": { "name": "Multiple choice", "hint": "Pick any number of options" },
+        "single_choice": { "name": "Single choice", "hint": "Pick exactly one option" },
+        "number": { "name": "Number", "hint": "A number, with a range" },
+        "short_text": { "name": "Text", "hint": "Free-text answer" },
+        "smiley_rating": { "name": "Smiley rating", "hint": "Quick feeling, 5 faces" },
+        "star_rating": { "name": "Star rating", "hint": "Satisfaction on a 1–5 scale" },
+        "scale": { "name": "Scale" },
+        "file_upload": { "name": "File upload" },
+        "other": { "name": "Other question" }
+      },
+      "info": {
+        "onboarding": "Sent automatically to every new client after they accept your invitation",
+        "checkIn": "Weekly check-in · answers appear in each client's check-in history",
+        "questions_one": "{{count}} question",
+        "questions_other": "{{count}} questions",
+        "minutes_one": "about {{count}} minute",
+        "minutes_other": "about {{count}} minutes"
+      },
+      "empty": {
+        "title": "No questions yet",
+        "hint": "Click or drag a question type from the left to start."
+      },
+      "defaults": {
+        "question": "Untitled question",
+        "option": "Option {{number}}",
+        "low": "Very low",
+        "high": "Great"
+      },
+      "card": {
+        "label": "Question {{number}}: {{title}}",
+        "reorder": "Reorder question {{number}}",
+        "duplicate": "Duplicate question {{number}}",
+        "duplicateTitle": "Duplicate",
+        "delete": "Delete question {{number}}",
+        "deleteTitle": "Delete",
+        "titleLabel": "Question {{number}} title",
+        "titlePlaceholder": "Write the question",
+        "helperLabel": "Question {{number}} helper text",
+        "helperPlaceholder": "Helper text (optional)",
+        "required": "Required",
+        "requiredToggle": "Required"
+      },
+      "choice": {
+        "reorder": "Reorder choice {{number}}",
+        "label": "Choice {{number}}",
+        "remove": "Remove choice {{number}}",
+        "add": "Add choice",
+        "other": "Other",
+        "allowOther": "Allow “Other”"
+      },
+      "number": {
+        "min": "Min",
+        "max": "Max",
+        "unit": "Unit",
+        "summaryMin": "Min {{value}}",
+        "summaryMax": "Max {{value}}",
+        "summaryUnit": "Unit: {{value}}"
+      },
+      "smiley": {
+        "low": "Lowest face label",
+        "high": "Highest face label"
+      },
+      "text": {
+        "placeholder": "Client types their answer here"
+      },
+      "generic": {
+        "hint": "This question type can't be edited here. It stays as it is."
+      },
+      "preview": {
+        "open": "Preview as client",
+        "untitled": "Untitled form",
+        "hint": "This is how your client sees the form. Nothing here is saved.",
+        "unsupported": "This question type is shown to the client as it was set up."
+      },
+      "settings": {
+        "open": "Settings",
+        "title": "Form settings",
+        "description": "Name and description of this form.",
+        "default": "Default for new clients",
+        "defaultHint": "Sent to new clients when no other form is chosen."
+      },
+      "errors": {
+        "title": "Enter a name of up to {{max}} characters.",
+        "description": "The description can be at most {{max}} characters.",
+        "label": "Write the question.",
+        "options": "Add at least one choice and fill in every choice.",
+        "numberInvalid": "Min and max must be numbers.",
+        "numberRange": "Min can't be higher than max.",
+        "smileyLabels": "Fill in both face labels."
+      }
+    },
     "create": {
       "heading": "New form",
       "subtitle": "Name it and pick what it is for — you'll add the questions next",
