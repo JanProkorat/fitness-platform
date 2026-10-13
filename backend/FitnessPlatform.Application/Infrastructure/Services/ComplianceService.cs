@@ -33,17 +33,21 @@ public class ComplianceService : IComplianceService
     public async Task<ComplianceResult> CalculateComplianceAsync(
         Guid clientId, DateTime from, DateTime to, CancellationToken ct, Guid? planAuthorUserId = null)
     {
-        var nutritionPlan = await FindActivePlanAsync(clientId, planAuthorUserId, ct);
-        var trainingPlan = await FindActiveTrainingPlanAsync(clientId, planAuthorUserId, ct);
+        var nutritionPlans = await FindActivePlansAsync(clientId, planAuthorUserId, ct);
+        var trainingPlans = await FindActiveTrainingPlansAsync(clientId, planAuthorUserId, ct);
 
         // ── Nutrition side ──────────────────────────────────────────────
         int mealsPlanned = 0;
         int mealsLogged = 0;
         decimal nutritionPercent = 0m;
 
-        if (nutritionPlan is not null && nutritionPlan.StartDate.HasValue)
+        if (nutritionPlans.Any(candidate => candidate.StartDate.HasValue))
         {
-            mealsPlanned = CountPlannedMeals(nutritionPlan, from, to);
+            for (var date = from.Date; date <= to.Date; date = date.AddDays(1))
+            {
+                var plan = ResolveNutritionPlan(nutritionPlans, date);
+                mealsPlanned += plan is null ? 0 : PlannedMealCounter.GetPlannedMealCountForDate(plan, date);
+            }
 
             var logFilter = Builders<MealLog>.Filter.Eq(l => l.ClientId, clientId)
                 & Builders<MealLog>.Filter.Gte(l => l.EatenAt, from)
@@ -63,11 +67,13 @@ public class ComplianceService : IComplianceService
         int trainingsCompleted = 0;
         decimal trainingPercent = 0m;
 
-        if (trainingPlan is not null && trainingPlan.StartDate.HasValue)
+        if (trainingPlans.Any(candidate => candidate.StartDate.HasValue))
         {
             for (var date = from.Date; date <= to.Date; date = date.AddDays(1))
             {
-                var sessions = GetPlannedSessionsForDate(trainingPlan, date);
+                var trainingPlan = ResolveTrainingPlan(trainingPlans, date);
+                IReadOnlyList<TrainingSession> sessions =
+                    trainingPlan is null ? [] : GetPlannedSessionsForDate(trainingPlan, date);
                 trainingsPlanned += sessions.Count;
 
                 foreach (var session in sessions)
@@ -133,43 +139,41 @@ public class ComplianceService : IComplianceService
     private async Task<int> CalculateStreakInternalAsync(
         Guid clientId, ComplianceDiscipline discipline, DateOnly today, Guid? planAuthorUserId, CancellationToken ct)
     {
-        var nutritionPlan = discipline == ComplianceDiscipline.TrainingOnly
-            ? null
-            : await FindActivePlanAsync(clientId, planAuthorUserId, ct);
+        IReadOnlyList<NutritionPlan> nutritionPlans = discipline == ComplianceDiscipline.TrainingOnly
+            ? []
+            : await FindActivePlansAsync(clientId, planAuthorUserId, ct);
 
-        var trainingPlan = discipline == ComplianceDiscipline.NutritionOnly
-            ? null
-            : await FindActiveTrainingPlanAsync(clientId, planAuthorUserId, ct);
+        IReadOnlyList<TrainingPlan> trainingPlans = discipline == ComplianceDiscipline.NutritionOnly
+            ? []
+            : await FindActiveTrainingPlansAsync(clientId, planAuthorUserId, ct);
 
-        // Determine the floor: the earliest date either plan started a published week
+        // Determine the floor: the earliest date any dated plan started a published week
         DateTime? floorDate = null;
 
-        if (nutritionPlan?.StartDate.HasValue == true)
+        foreach (var plan in nutritionPlans.Where(candidate => candidate.StartDate.HasValue))
         {
-            var earliest = nutritionPlan.Weeks
+            var earliest = plan.Weeks
                 .Where(w => w.Status == WeekStatus.Published)
                 .OrderBy(w => w.WeekNumber)
                 .FirstOrDefault();
 
             if (earliest is not null)
             {
-                var nutritionFloor = nutritionPlan.StartDate.Value.Date
-                    .AddDays((earliest.WeekNumber - 1) * 7);
+                var nutritionFloor = plan.StartDate!.Value.Date.AddDays((earliest.WeekNumber - 1) * 7);
                 floorDate = floorDate is null ? nutritionFloor : new DateTime(Math.Min(floorDate.Value.Ticks, nutritionFloor.Ticks));
             }
         }
 
-        if (trainingPlan?.StartDate.HasValue == true)
+        foreach (var plan in trainingPlans.Where(candidate => candidate.StartDate.HasValue))
         {
-            var earliest = trainingPlan.Weeks
+            var earliest = plan.Weeks
                 .Where(w => w.Status == WeekStatus.Published)
                 .OrderBy(w => w.WeekNumber)
                 .FirstOrDefault();
 
             if (earliest is not null)
             {
-                var trainingFloor = trainingPlan.StartDate.Value.Date
-                    .AddDays((earliest.WeekNumber - 1) * 7);
+                var trainingFloor = plan.StartDate!.Value.Date.AddDays((earliest.WeekNumber - 1) * 7);
                 floorDate = floorDate is null ? trainingFloor : new DateTime(Math.Min(floorDate.Value.Ticks, trainingFloor.Ticks));
             }
         }
@@ -183,11 +187,13 @@ public class ComplianceService : IComplianceService
 
         while (currentDate >= floorDate.Value)
         {
+            var nutritionPlan = ResolveNutritionPlan(nutritionPlans, currentDate);
             var nutritionPlanned = nutritionPlan is not null
                 ? PlannedMealCounter.GetPlannedMealCountForDate(nutritionPlan, currentDate)
                 : 0;
 
-            var trainingSessions = trainingPlan is not null
+            var trainingPlan = ResolveTrainingPlan(trainingPlans, currentDate);
+            IReadOnlyList<TrainingSession> trainingSessions = trainingPlan is not null
                 ? GetPlannedSessionsForDate(trainingPlan, currentDate)
                 : [];
 
@@ -315,9 +321,24 @@ public class ComplianceService : IComplianceService
     }
 
     /// <summary>
-    /// Finds the active nutrition plan for a client.
+    /// Picks the plan whose window covers <paramref name="date"/>, so each evaluated day is scored
+    /// against the plan that actually schedules it. Window-only, like the dashboard's plan flags.
     /// </summary>
-    private async Task<NutritionPlan?> FindActivePlanAsync(Guid clientId, Guid? planAuthorUserId, CancellationToken ct)
+    private static NutritionPlan? ResolveNutritionPlan(IReadOnlyList<NutritionPlan> plans, DateTime date)
+        => PlanWindowResolver.ResolveCurrentPlanStrict(
+            plans, plan => plan.StartDate, plan => plan.Weeks.Count, DateOnly.FromDateTime(date));
+
+    /// <summary>
+    /// Training counterpart of <see cref="ResolveNutritionPlan"/>.
+    /// </summary>
+    private static TrainingPlan? ResolveTrainingPlan(IReadOnlyList<TrainingPlan> plans, DateTime date)
+        => PlanWindowResolver.ResolveCurrentPlanStrict(
+            plans, plan => plan.StartDate, plan => plan.Weeks.Count, DateOnly.FromDateTime(date));
+
+    /// <summary>
+    /// Loads every active nutrition plan for a client (optionally only one author's).
+    /// </summary>
+    private async Task<List<NutritionPlan>> FindActivePlansAsync(Guid clientId, Guid? planAuthorUserId, CancellationToken ct)
     {
         var filter = Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, clientId)
             & Builders<NutritionPlan>.Filter.Eq(p => p.Status, NutritionPlanStatus.Active);
@@ -328,13 +349,13 @@ public class ComplianceService : IComplianceService
         }
 
         using var cursor = await _mongo.NutritionPlans.FindAsync(filter, cancellationToken: ct);
-        return await cursor.FirstOrDefaultAsync(ct);
+        return await cursor.ToListAsync(ct);
     }
 
     /// <summary>
-    /// Finds the active training plan for a client.
+    /// Loads every active training plan for a client (optionally only one author's).
     /// </summary>
-    private async Task<TrainingPlan?> FindActiveTrainingPlanAsync(Guid clientId, Guid? planAuthorUserId, CancellationToken ct)
+    private async Task<List<TrainingPlan>> FindActiveTrainingPlansAsync(Guid clientId, Guid? planAuthorUserId, CancellationToken ct)
     {
         var filter = Builders<TrainingPlan>.Filter.Eq(p => p.ClientId, clientId)
             & Builders<TrainingPlan>.Filter.Eq(p => p.Status, TrainingPlanStatus.Active);
@@ -345,7 +366,7 @@ public class ComplianceService : IComplianceService
         }
 
         using var cursor = await _mongo.TrainingPlans.FindAsync(filter, cancellationToken: ct);
-        return await cursor.FirstOrDefaultAsync(ct);
+        return await cursor.ToListAsync(ct);
     }
 
     /// <summary>
@@ -421,20 +442,5 @@ public class ComplianceService : IComplianceService
 
         var day = week.Days.FirstOrDefault(d => d.DayOfWeek == dow);
         return day?.Sessions ?? [];
-    }
-
-    /// <summary>
-    /// Counts total planned meals for published weeks within a date range.
-    /// </summary>
-    private static int CountPlannedMeals(NutritionPlan plan, DateTime from, DateTime to)
-    {
-        var mealsPlanned = 0;
-
-        for (var date = from.Date; date <= to.Date; date = date.AddDays(1))
-        {
-            mealsPlanned += PlannedMealCounter.GetPlannedMealCountForDate(plan, date);
-        }
-
-        return mealsPlanned;
     }
 }

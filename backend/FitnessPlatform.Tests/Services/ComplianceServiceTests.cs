@@ -26,7 +26,8 @@ public class ComplianceServiceTests
         NutritionPlan[]? nutritionPlans = null,
         List<MealLog>? mealLogs = null,
         TrainingPlan? trainingPlan = null,
-        List<SessionExecution>? completions = null)
+        List<SessionExecution>? completions = null,
+        TrainingPlan[]? trainingPlans = null)
     {
         var mongo = PlanTestHelpers.CreateMockMongo(nutritionPlans);
 
@@ -39,9 +40,11 @@ public class ComplianceServiceTests
         mongo.MealLogs.Returns(mealLogCollection);
 
         // Training plans
-        var trainingPlanList = trainingPlan is not null
-            ? new List<TrainingPlan> { trainingPlan }
-            : new List<TrainingPlan>();
+        var trainingPlanList = trainingPlans is not null
+            ? trainingPlans.ToList()
+            : trainingPlan is not null
+                ? new List<TrainingPlan> { trainingPlan }
+                : new List<TrainingPlan>();
         var trainingPlanColl = Substitute.For<IMongoCollection<TrainingPlan>>();
         trainingPlanColl.FindAsync(
                 Arg.Any<FilterDefinition<TrainingPlan>>(),
@@ -1117,5 +1120,164 @@ public class ComplianceServiceTests
         streakFromStaleUtcDay.Should().Be(0,
             "anchoring on the UTC day instead of the client's local day starts the walk before " +
             "the plan even began, from that stale day's point of view");
+    }
+
+    // ── Several Active plans: each date is scored against the plan that covers it ──
+
+    /// <summary>Builds an Active nutrition plan whose every day carries <paramref name="mealsPerDay"/> meals.</summary>
+    private NutritionPlan NutritionPlanEveryDay(DateTime start, int weekCount, int mealsPerDay)
+    {
+        var plan = PlanTestHelpers.CreatePlan(
+            clientId: _clientId, status: NutritionPlanStatus.Active, weekCount: weekCount);
+        plan.StartDate = start;
+
+        foreach (var week in plan.Weeks)
+        {
+            week.Status = WeekStatus.Published;
+            week.DatePublished = start;
+
+            foreach (var day in week.Days)
+            {
+                day.Meals = Enumerable.Range(1, mealsPerDay)
+                    .Select(order => PlanTestHelpers.CreateMeal(order: order))
+                    .ToList();
+            }
+        }
+
+        return plan;
+    }
+
+    /// <summary>Builds an Active training plan that schedules <paramref name="session"/> on every day.</summary>
+    private TrainingPlan TrainingPlanEveryDay(DateTime start, int weekCount, TrainingSession session)
+    {
+        return new TrainingPlan
+        {
+            ExternalId = Guid.NewGuid(),
+            ClientId = _clientId,
+            TrainerId = Guid.NewGuid(),
+            Name = "Every day plan",
+            Status = TrainingPlanStatus.Active,
+            StartDate = start,
+            Weeks = Enumerable.Range(1, weekCount).Select(weekNumber => new TrainingWeek
+            {
+                WeekNumber = weekNumber,
+                Status = WeekStatus.Published,
+                DatePublished = start,
+                Days = Enumerable.Range(1, 7).Select(dayOfWeek => new TrainingDay
+                {
+                    DayOfWeek = dayOfWeek,
+                    Sessions = [session]
+                }).ToList()
+            }).ToList(),
+            Version = 1,
+            DateCreated = start
+        };
+    }
+
+    private static TrainingSession OneExerciseSession()
+    {
+        var exerciseId = Guid.NewGuid();
+        return new TrainingSession
+        {
+            SessionId = Guid.NewGuid(),
+            Name = "Session",
+            Order = 1,
+            StandaloneExercises =
+            [
+                new SessionExercise
+                {
+                    ExerciseId = exerciseId,
+                    ExerciseExternalId = exerciseId,
+                    ExerciseName = "Exercise",
+                    Order = 1
+                }
+            ]
+        };
+    }
+
+    [Fact]
+    public async Task CalculateComplianceAsync_NutritionExpiredOlderPlanAndCurrentPlan_UsesCurrentPlan()
+    {
+        var today = DateTime.UtcNow.Date;
+        var expired = NutritionPlanEveryDay(today.AddDays(-28), weekCount: 1, mealsPerDay: 1);
+        var current = NutritionPlanEveryDay(today.AddDays(-3), weekCount: 2, mealsPerDay: 3);
+        var logs = Enumerable.Range(0, 3)
+            .Select(_ => new MealLog { ClientId = _clientId, EatenAt = today.AddHours(8), FoodsEaten = [] })
+            .ToList();
+
+        // Older plan first, so an arbitrary first-match lookup would pick the expired one.
+        var sut = new ComplianceService(CreateMongo([expired, current], logs));
+
+        var result = await sut.CalculateComplianceAsync(
+            _clientId, today.AddDays(-1), today, TestContext.Current.CancellationToken);
+
+        result.MealsPlanned.Should().Be(6);
+        result.NutritionCompliancePercent.Should().Be(50m);
+    }
+
+    [Fact]
+    public async Task CalculateComplianceAsync_NutritionSequentialPlansInsideRange_CountsBothPlansDays()
+    {
+        var today = DateTime.UtcNow.Date;
+        var earlier = NutritionPlanEveryDay(today.AddDays(-9), weekCount: 1, mealsPerDay: 2);
+        var later = NutritionPlanEveryDay(today.AddDays(-2), weekCount: 1, mealsPerDay: 3);
+
+        var sut = new ComplianceService(CreateMongo([earlier, later]));
+
+        var result = await sut.CalculateComplianceAsync(
+            _clientId, today.AddDays(-4), today, TestContext.Current.CancellationToken);
+
+        // Earlier plan covers today-4 and today-3 (2 days x 2 meals), later covers today-2..today (3 x 3).
+        result.MealsPlanned.Should().Be(13);
+    }
+
+    [Fact]
+    public async Task CalculateComplianceAsync_TrainingExpiredOlderPlanAndCurrentPlan_UsesCurrentPlan()
+    {
+        var today = DateTime.UtcNow.Date;
+        var expired = TrainingPlanEveryDay(today.AddDays(-28), weekCount: 1, OneExerciseSession());
+        var current = TrainingPlanEveryDay(today.AddDays(-3), weekCount: 2, OneExerciseSession());
+
+        var sut = new ComplianceService(CreateMongo(trainingPlans: [expired, current]));
+
+        var result = await sut.CalculateComplianceAsync(
+            _clientId, today.AddDays(-1), today, TestContext.Current.CancellationToken);
+
+        result.TrainingsPlanned.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task CalculateComplianceAsync_TrainingSequentialPlansInsideRange_CountsBothPlansDays()
+    {
+        var today = DateTime.UtcNow.Date;
+        var earlier = TrainingPlanEveryDay(today.AddDays(-9), weekCount: 1, OneExerciseSession());
+        var later = TrainingPlanEveryDay(today.AddDays(-2), weekCount: 1, OneExerciseSession());
+
+        var sut = new ComplianceService(CreateMongo(trainingPlans: [earlier, later]));
+
+        var result = await sut.CalculateComplianceAsync(
+            _clientId, today.AddDays(-4), today, TestContext.Current.CancellationToken);
+
+        // Earlier plan covers today-4 and today-3, later covers today-2..today.
+        result.TrainingsPlanned.Should().Be(5);
+    }
+
+    [Fact]
+    public async Task CalculateComplianceAsync_OnlyExpiredPlans_ReturnsZeroWithoutThrowing()
+    {
+        var today = DateTime.UtcNow.Date;
+        var nutrition = NutritionPlanEveryDay(today.AddDays(-28), weekCount: 1, mealsPerDay: 2);
+        var training = TrainingPlanEveryDay(today.AddDays(-28), weekCount: 1, OneExerciseSession());
+        var logs = new List<MealLog> { new() { ClientId = _clientId, EatenAt = today.AddHours(8), FoodsEaten = [] } };
+
+        var sut = new ComplianceService(CreateMongo([nutrition], logs, trainingPlans: [training]));
+
+        var result = await sut.CalculateComplianceAsync(
+            _clientId, today.AddDays(-1), today, TestContext.Current.CancellationToken);
+
+        // The streak is covered against real Mongo: this mock returns the same meal logs for every day.
+        result.MealsPlanned.Should().Be(0);
+        result.TrainingsPlanned.Should().Be(0);
+        result.CompliancePercent.Should().Be(0m);
     }
 }
