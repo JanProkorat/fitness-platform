@@ -299,6 +299,60 @@ public static class QaSeedRunner
     /// <summary>Completed execution of the standalone-only session dated this Monday.</summary>
     public static readonly Guid QaMondaySessionExecutionId = new("00000000-0000-0000-aaff-000000000001");
 
+    // -------------------------------------------------------------------------
+    // #1311 — Both-roles fixture (Rich seed only): qa.coach holds Trainer AND Nutritionist and
+    // coaches "QA Duo" through ONE link (role Nutritionist, both capability flags), the shape
+    // AcceptClientInviteEndpoint writes. qa.coach is deliberately NOT linked to qa.client:
+    // a client has at most one active coach per profession.
+    // -------------------------------------------------------------------------
+    public static readonly Guid CoachUserId             = new("99999999-9999-9999-9999-999999999999");
+    public static readonly Guid CoachProfilePublicId    = new("99999999-9999-9999-bbbb-000000000001");
+    public static readonly Guid ClientDuoUserId         = new("44444444-4444-4444-4444-444444444444");
+    public static readonly Guid ClientDuoProfilePublicId = new("44444444-4444-4444-aaaa-000000000001");
+
+    public const string CoachEmail      = "qa.coach@fitnessplatform.test";
+    public const string ClientDuoEmail  = "qa.client.both@fitnessplatform.test";
+
+    public static readonly Guid QaDuoNutritionPlanExternalId = new("44444444-4444-4444-eeee-000000000001");
+    public static readonly Guid QaDuoTrainingPlanExternalId  = new("44444444-4444-4444-dddd-000000000001");
+
+    // Sessions of the Duo training plan. Session A is the completed one and always sits on the
+    // seed-time weekday; B and C sit two and four weekdays later (wrapping inside the week).
+    public static readonly Guid QaDuoSessionAId = new("44444444-4444-4444-bbbb-000000000001");
+    public static readonly Guid QaDuoSessionBId = new("44444444-4444-4444-bbbb-000000000002");
+    public static readonly Guid QaDuoSessionCId = new("44444444-4444-4444-bbbb-000000000003");
+
+    // Exercise instance ids (distinct per plan; catalog ids are shared with the main fixture).
+    public static readonly Guid QaDuoSquatInstanceId    = new("44444444-4444-4444-cccc-000000000001");
+    public static readonly Guid QaDuoDeadliftInstanceId = new("44444444-4444-4444-cccc-000000000002");
+    public static readonly Guid QaDuoPlankInstanceId    = new("44444444-4444-4444-cccc-000000000003");
+    public static readonly Guid QaDuoPullUpInstanceId   = new("44444444-4444-4444-cccc-000000000004");
+
+    public static readonly Guid QaDuoSessionExecutionId = new("44444444-4444-4444-aaff-000000000001");
+    public static readonly Guid QaDuoPersonalRecordExternalId = new("44444444-4444-4444-aadd-000000000001");
+
+    public static readonly Guid[] QaDuoBodyMeasurementIds =
+    [
+        new("44444444-4444-4444-aacc-000000000001"),
+        new("44444444-4444-4444-aacc-000000000002"),
+        new("44444444-4444-4444-aacc-000000000003"),
+        new("44444444-4444-4444-aacc-000000000004"),
+        new("44444444-4444-4444-aacc-000000000005"),
+        new("44444444-4444-4444-aacc-000000000006"),
+        new("44444444-4444-4444-aacc-000000000007"),
+        new("44444444-4444-4444-aacc-000000000008"),
+    ];
+
+    /// <summary>Duo check-in rows: waiting, answered last week, answered week 4, missed week 5, answered week 6.</summary>
+    public static readonly Guid[] QaDuoCheckInIds =
+    [
+        new("44444444-4444-4444-aaee-000000000001"),
+        new("44444444-4444-4444-aaee-000000000002"),
+        new("44444444-4444-4444-aaee-000000000003"),
+        new("44444444-4444-4444-aaee-000000000004"),
+        new("44444444-4444-4444-aaee-000000000005"),
+    ];
+
     // Foods — owned by Nutri (NutritionistId = NutriUserId, the ApplicationUser.Id).
     // CreateFoodEndpoint sets NutritionistId = Guid.Parse(AppClaims.UserId) (the user id, NOT the
     // ProfessionalProfile.PublicId), and the ownership guard in UploadFoodImageUrlEndpoint compares
@@ -551,6 +605,32 @@ public static class QaSeedRunner
             await EnsureOverviewCheckInsAsync(db, logger);
             await EnsureMondaySessionExecutionAsync(mongo, logger);
 
+            // #1311 — both-roles coach with its own client. qa.coach (Trainer + Nutritionist) is
+            // linked to QA Duo only, by one link shaped like AcceptClientInviteEndpoint writes it
+            // (role Nutritionist, both capability flags). It is NOT linked to qa.client: a client
+            // has one active coach per profession. Plans are keyed on ApplicationUser ids.
+            await EnsureUserAsync(userManager, CoachUserId, CoachEmail, "QA", "Coach",
+                [UserRole.Trainer, UserRole.Nutritionist], logger);
+            await EnsureUserAsync(userManager, ClientDuoUserId, ClientDuoEmail, "QA", "Duo", UserRole.Client, logger);
+            var coachProfile = await EnsureProfessionalProfileAsync(db, CoachUserId, CoachProfilePublicId, logger);
+            var clientDuoProfile = await EnsureClientProfileAsync(db, ClientDuoUserId, ClientDuoProfilePublicId, logger);
+            await EnsureTrainerClientLinkAsync(db, coachProfile, clientDuoProfile, logger,
+                professionalRole: UserRole.Nutritionist, canViewNutritionPlans: true, canViewTrainingPlans: true);
+
+            await EnsureNutritionPlanAsync(mongo, ClientDuoUserId, CoachUserId, logger,
+                QaDuoNutritionPlanExternalId, "QA Duo Nutrition Plan", DuoMealIdPrefix);
+            await EnsureDuoTrainingPlanAsync(mongo, logger);
+
+            await EnsureClientOverviewProfileAsync(db, clientDuoProfile, logger,
+                heightCm: 175m, weightKg: 70.0m, targetWeightKg: 66m);
+            await EnsureBodyMeasurementsAsync(db, clientDuoProfile, logger,
+                QaDuoBodyMeasurementIds, [73.6m, 73.1m, 72.5m, 72.0m, 71.4m, 70.9m, 70.4m, 70.0m]);
+            await EnsureMealLogsAsync(mongo, logger, ClientDuoUserId, QaDuoNutritionPlanExternalId,
+                DuoMealIdPrefix, [3, 2, 3, 2, 2, 1]);
+            await EnsureDuoSessionExecutionAsync(mongo, logger);
+            await EnsureDuoPersonalRecordAsync(mongo, logger);
+            await EnsureOverviewCheckInsAsync(db, logger, ClientDuoUserId, CoachUserId, QaDuoCheckInIds);
+
             // Image blobs in MinIO — idempotent, bucket created if absent.
             await EnsureAvatarAsync(sp, logger);
             await EnsureFoodImageAsync(sp, logger);
@@ -565,13 +645,23 @@ public static class QaSeedRunner
             kind, ClientEmail, TrainerEmail, NutriEmail, Client2Email, Trainer2Email);
     }
 
-    private static async Task EnsureUserAsync(
+    private static Task EnsureUserAsync(
         UserManager<ApplicationUser> userManager,
         Guid id,
         string email,
         string firstName,
         string lastName,
         UserRole role,
+        ILogger logger) =>
+        EnsureUserAsync(userManager, id, email, firstName, lastName, [role], logger);
+
+    private static async Task EnsureUserAsync(
+        UserManager<ApplicationUser> userManager,
+        Guid id,
+        string email,
+        string firstName,
+        string lastName,
+        IReadOnlyCollection<UserRole> roles,
         ILogger logger)
     {
         var existing = await userManager.FindByEmailAsync(email);
@@ -599,14 +689,15 @@ public static class QaSeedRunner
             throw new InvalidOperationException($"Failed to create QA user {email}: {errors}");
         }
 
-        var roleResult = await userManager.AddToRoleAsync(user, role.ToString());
+        var roleNames = string.Join(", ", roles);
+        var roleResult = await userManager.AddToRolesAsync(user, roles.Select(role => role.ToString()));
         if (!roleResult.Succeeded)
         {
             var errors = string.Join("; ", roleResult.Errors.Select(e => $"{e.Code}: {e.Description}"));
-            throw new InvalidOperationException($"Failed to assign role {role} to {email}: {errors}");
+            throw new InvalidOperationException($"Failed to assign role {roleNames} to {email}: {errors}");
         }
 
-        logger.LogInformation("QA user created: {Email} ({Role})", email, role);
+        logger.LogInformation("QA user created: {Email} ({Role})", email, roleNames);
     }
 
     private static async Task<ClientProfile> EnsureClientProfileAsync(
@@ -675,7 +766,10 @@ public static class QaSeedRunner
         ProfessionalProfile trainerProfile,
         ClientProfile clientProfile,
         ILogger logger,
-        bool isActive = true)
+        bool isActive = true,
+        UserRole professionalRole = UserRole.Trainer,
+        bool canViewNutritionPlans = false,
+        bool canViewTrainingPlans = true)
     {
         var existing = await db.ClientProfessionalLinks
             .AnyAsync(l =>
@@ -694,10 +788,10 @@ public static class QaSeedRunner
         {
             ProfessionalProfileId = trainerProfile.Id,
             ClientProfileId = clientProfile.Id,
-            ProfessionalRole = UserRole.Trainer,
+            ProfessionalRole = professionalRole,
             IsActive = isActive,
-            CanViewTrainingPlans = true,
-            CanViewNutritionPlans = false,
+            CanViewTrainingPlans = canViewTrainingPlans,
+            CanViewNutritionPlans = canViewNutritionPlans,
             DateCreated = DateTime.UtcNow,
         };
 
@@ -2061,16 +2155,21 @@ public static class QaSeedRunner
         IMongoContext mongo,
         Guid clientUserId,
         Guid nutriUserId,
-        ILogger logger)
+        ILogger logger,
+        Guid? planExternalId = null,
+        string planName = "QA Test Nutrition Plan",
+        string mealIdPrefix = DefaultMealIdPrefix)
     {
+        var externalId = planExternalId ?? QaNutritionPlanExternalId;
+
         var existing = await mongo.NutritionPlans
-            .Find(p => p.ExternalId == QaNutritionPlanExternalId)
+            .Find(p => p.ExternalId == externalId)
             .FirstOrDefaultAsync();
 
         if (existing is not null)
         {
             logger.LogInformation(
-                "QA NutritionPlan already present: externalId={ExternalId}", QaNutritionPlanExternalId);
+                "QA NutritionPlan already present: externalId={ExternalId}", externalId);
             return;
         }
 
@@ -2085,10 +2184,10 @@ public static class QaSeedRunner
 
         var plan = new NutritionPlan
         {
-            ExternalId     = QaNutritionPlanExternalId,
+            ExternalId     = externalId,
             ClientId       = clientUserId,
             NutritionistId = nutriUserId,
-            Name           = "QA Test Nutrition Plan",
+            Name           = planName,
             Status         = NutritionPlanStatus.Active,
             StartDate      = startDate,
             DateCreated    = now,
@@ -2117,7 +2216,7 @@ public static class QaSeedRunner
                     [
                         new PlanMeal
                         {
-                            MealId = PlannedMealId(weekNumber, dayOfWeek, 1),
+                            MealId = PlannedMealId(weekNumber, dayOfWeek, 1, mealIdPrefix),
                             Kind   = MealKind.Breakfast,
                             Order  = 1,
                             Time   = "08:00",
@@ -2125,7 +2224,7 @@ public static class QaSeedRunner
                         },
                         new PlanMeal
                         {
-                            MealId = PlannedMealId(weekNumber, dayOfWeek, 2),
+                            MealId = PlannedMealId(weekNumber, dayOfWeek, 2, mealIdPrefix),
                             Kind   = MealKind.Lunch,
                             Order  = 2,
                             Time   = "12:00",
@@ -2133,7 +2232,7 @@ public static class QaSeedRunner
                         },
                         new PlanMeal
                         {
-                            MealId = PlannedMealId(weekNumber, dayOfWeek, 3),
+                            MealId = PlannedMealId(weekNumber, dayOfWeek, 3, mealIdPrefix),
                             Kind   = MealKind.Dinner,
                             Order  = 3,
                             Time   = "18:00",
@@ -2148,7 +2247,7 @@ public static class QaSeedRunner
 
         logger.LogInformation(
             "QA NutritionPlan created: externalId={ExternalId} clientId={ClientId}",
-            QaNutritionPlanExternalId, clientUserId);
+            externalId, clientUserId);
     }
 
     /// <summary>
@@ -2949,11 +3048,18 @@ public static class QaSeedRunner
         now.Date.AddDays(-(((int)now.DayOfWeek == 0 ? 7 : (int)now.DayOfWeek) - 1));
 
     /// <summary>
-    /// Stable id of a planned meal in the QA nutrition plan; <paramref name="mealIndex"/> is 1-3
-    /// (breakfast, lunch, dinner).
+    /// Stable id of a planned meal in a QA nutrition plan; <paramref name="mealIndex"/> is 1-3
+    /// (breakfast, lunch, dinner). <paramref name="prefix"/> is the first four GUID groups, so
+    /// each plan gets its own id space.
     /// </summary>
-    private static Guid PlannedMealId(int weekNumber, int dayOfWeek, int mealIndex) =>
-        new($"00000000-0000-0000-1111-{weekNumber:D2}{dayOfWeek:D2}0000000{mealIndex}");
+    private static Guid PlannedMealId(int weekNumber, int dayOfWeek, int mealIndex, string prefix = DefaultMealIdPrefix) =>
+        new($"{prefix}-{weekNumber:D2}{dayOfWeek:D2}0000000{mealIndex}");
+
+    /// <summary>Meal id prefix of the qa.nutri plan for qa.client.</summary>
+    private const string DefaultMealIdPrefix = "00000000-0000-0000-1111";
+
+    /// <summary>Meal id prefix of qa.coach's plan for QA Duo.</summary>
+    private const string DuoMealIdPrefix = "44444444-4444-4444-1111";
 
     /// <summary>
     /// #1303 — fills in qa.client's identity fields (date of birth, height, weight) and the
@@ -2963,15 +3069,18 @@ public static class QaSeedRunner
     private static async Task EnsureClientOverviewProfileAsync(
         ApplicationDbContext db,
         ClientProfile clientProfile,
-        ILogger logger)
+        ILogger logger,
+        decimal heightCm = 182m,
+        decimal weightKg = 80.5m,
+        decimal targetWeightKg = 76m)
     {
         var now = DateTime.UtcNow;
 
         if (clientProfile.DateOfBirth is null)
         {
             clientProfile.DateOfBirth = now.Date.AddYears(-32).AddDays(-45);
-            clientProfile.HeightCm    = 182m;
-            clientProfile.WeightKg    = 80.5m;
+            clientProfile.HeightCm    = heightCm;
+            clientProfile.WeightKg    = weightKg;
             clientProfile.Goals       = "Lose fat and get stronger.";
             await db.SaveChangesAsync();
         }
@@ -2987,9 +3096,9 @@ public static class QaSeedRunner
             ClientProfileId          = clientProfile.Id,
             DateOfBirth              = clientProfile.DateOfBirth!.Value,
             Sex                      = BiologicalSex.Male,
-            HeightCm                 = 182m,
-            WeightKg                 = 80.5m,
-            TargetWeightKg           = 76m,
+            HeightCm                 = heightCm,
+            WeightKg                 = weightKg,
+            TargetWeightKg           = targetWeightKg,
             BodyType                 = BodyType.Mesomorph,
             PrimaryGoal              = PrimaryGoal.LoseFat,
             TimeHorizon              = TimeHorizon.SixMonths,
@@ -3036,15 +3145,19 @@ public static class QaSeedRunner
     private static async Task EnsureBodyMeasurementsAsync(
         ApplicationDbContext db,
         ClientProfile clientProfile,
-        ILogger logger)
+        ILogger logger,
+        Guid[]? measurementIds = null,
+        decimal[]? weightSeries = null)
     {
+        var ids = measurementIds ?? QaBodyMeasurementIds;
+
         var existingIds = (await db.BodyMeasurements
-            .Where(m => QaBodyMeasurementIds.Contains(m.PublicId))
+            .Where(m => ids.Contains(m.PublicId))
             .Select(m => m.PublicId)
             .ToListAsync())
             .ToHashSet();
 
-        if (existingIds.Count == QaBodyMeasurementIds.Length)
+        if (existingIds.Count == ids.Length)
         {
             logger.LogInformation("QA body measurements already present ({Count}), skipping.", existingIds.Count);
             return;
@@ -3052,17 +3165,17 @@ public static class QaSeedRunner
 
         var now = DateTime.UtcNow;
         // Oldest first: index 0 is seven weeks before the newest row.
-        decimal[] weightKg = [84.0m, 83.4m, 82.9m, 82.1m, 81.8m, 81.2m, 80.9m, 80.5m];
+        decimal[] weightKg = weightSeries ?? [84.0m, 83.4m, 82.9m, 82.1m, 81.8m, 81.2m, 80.9m, 80.5m];
         decimal[] bodyFat  = [22.0m, 21.7m, 21.5m, 21.2m, 20.9m, 20.6m, 20.3m, 20.0m];
         decimal[] waistCm  = [94.0m, 93.2m, 92.6m, 91.8m, 91.1m, 90.4m, 89.9m, 89.5m];
 
-        var rows = Enumerable.Range(0, QaBodyMeasurementIds.Length)
-            .Where(index => !existingIds.Contains(QaBodyMeasurementIds[index]))
+        var rows = Enumerable.Range(0, ids.Length)
+            .Where(index => !existingIds.Contains(ids[index]))
             .Select(index => new BodyMeasurement
             {
-                PublicId          = QaBodyMeasurementIds[index],
+                PublicId          = ids[index],
                 ClientProfileId   = clientProfile.Id,
-                MeasuredAt        = now.Date.AddDays(-1 - 7 * (QaBodyMeasurementIds.Length - 1 - index)).AddHours(7),
+                MeasuredAt        = now.Date.AddDays(-1 - 7 * (ids.Length - 1 - index)).AddHours(7),
                 WeightKg          = weightKg[index],
                 BodyFatPercentage = bodyFat[index],
                 WaistCm           = waistCm[index],
@@ -3081,15 +3194,23 @@ public static class QaSeedRunner
     /// (3 planned meals per day, 18 planned), so the nutritionist's timeline shows "N of 3".
     /// Today stays empty so the streak does not depend on the time of day.
     /// </summary>
-    private static async Task EnsureMealLogsAsync(IMongoContext mongo, ILogger logger)
+    private static async Task EnsureMealLogsAsync(
+        IMongoContext mongo,
+        ILogger logger,
+        Guid? clientUserId = null,
+        Guid? planExternalId = null,
+        string mealIdPrefix = DefaultMealIdPrefix,
+        int[]? loggedPerDay = null)
     {
+        var logClientId = clientUserId ?? ClientUserId;
+        var logPlanId = planExternalId ?? QaNutritionPlanExternalId;
         var now = DateTime.UtcNow;
         var planStart = MondayOfWeek(now).AddDays(-7);
-        int[] mealsLoggedPerDay = [3, 3, 2, 2, 2, 2];
+        int[] mealsLoggedPerDay = loggedPerDay ?? [3, 3, 2, 2, 2, 2];
         int[] mealHours = [8, 12, 18];
 
         var existingLogs = await mongo.MealLogs
-            .Find(l => l.ClientId == ClientUserId && l.PlanId == QaNutritionPlanExternalId)
+            .Find(l => l.ClientId == logClientId && l.PlanId == logPlanId)
             .ToListAsync();
         var existingKeys = existingLogs.Select(l => (l.MealId, l.LogDate.Date)).ToHashSet();
 
@@ -3104,7 +3225,7 @@ public static class QaSeedRunner
 
             for (var meal = 1; meal <= mealsLoggedPerDay[daysAgo - 1]; meal++)
             {
-                var mealId = PlannedMealId(weekNumber, dayOfWeek, meal);
+                var mealId = PlannedMealId(weekNumber, dayOfWeek, meal, mealIdPrefix);
 
                 if (existingKeys.Contains((mealId, day)))
                 {
@@ -3113,8 +3234,8 @@ public static class QaSeedRunner
 
                 logs.Add(new MealLog
                 {
-                    ClientId = ClientUserId,
-                    PlanId   = QaNutritionPlanExternalId,
+                    ClientId = logClientId,
+                    PlanId   = logPlanId,
                     MealId   = mealId,
                     LogDate  = day,
                     EatenAt  = day.AddHours(mealHours[meal - 1]).AddMinutes(10),
@@ -3175,13 +3296,22 @@ public static class QaSeedRunner
     /// back) that is 4 answered of 6, and the inbox NewCheckIns chip still sees only the #1095
     /// unreviewed row.
     /// </summary>
-    private static async Task EnsureOverviewCheckInsAsync(ApplicationDbContext db, ILogger logger)
+    private static async Task EnsureOverviewCheckInsAsync(
+        ApplicationDbContext db,
+        ILogger logger,
+        Guid? clientUserId = null,
+        Guid? professionalUserId = null,
+        Guid[]? ids = null)
     {
-        var checkInIds = new[]
-        {
+        var checkInClientId = clientUserId ?? ClientUserId;
+        var checkInProfessionalId = professionalUserId ?? TrainerUserId;
+
+        // Order: waiting, answered last week, answered week 4, missed week 5, answered week 6.
+        var checkInIds = ids ??
+        [
             QaCheckInWaitingId, QaCheckInAnsweredLastWeekId, QaCheckInAnsweredWeek4Id,
             QaCheckInMissedWeek5Id, QaCheckInAnsweredWeek6Id,
-        };
+        ];
 
         var existingIds = (await db.WeeklyCheckIns
             .Where(w => checkInIds.Contains(w.Id))
@@ -3207,8 +3337,8 @@ public static class QaSeedRunner
             return new WeeklyCheckIn
             {
                 Id = id,
-                ClientUserId = ClientUserId,
-                ProfessionalUserId = TrainerUserId,
+                ClientUserId = checkInClientId,
+                ProfessionalUserId = checkInProfessionalId,
                 Profession = Profession.Training,
                 WeekStartDate = DateOnly.FromDateTime(weekStart),
                 Status = WeeklyCheckInStatus.Responded,
@@ -3230,9 +3360,9 @@ public static class QaSeedRunner
         {
             new()
             {
-                Id = QaCheckInWaitingId,
-                ClientUserId = ClientUserId,
-                ProfessionalUserId = TrainerUserId,
+                Id = checkInIds[0],
+                ClientUserId = checkInClientId,
+                ProfessionalUserId = checkInProfessionalId,
                 Profession = Profession.Training,
                 WeekStartDate = DateOnly.FromDateTime(anchor),
                 Status = WeeklyCheckInStatus.Pending,
@@ -3241,13 +3371,13 @@ public static class QaSeedRunner
                 DateCreated = now,
                 DateModified = now,
             },
-            Answered(QaCheckInAnsweredLastWeekId, 1, [CheckInFlag.Traveling], "Travelling for work, shorter sessions."),
-            Answered(QaCheckInAnsweredWeek4Id, 4, [], null),
+            Answered(checkInIds[1], 1, [CheckInFlag.Traveling], "Travelling for work, shorter sessions."),
+            Answered(checkInIds[2], 4, [], null),
             new()
             {
-                Id = QaCheckInMissedWeek5Id,
-                ClientUserId = ClientUserId,
-                ProfessionalUserId = TrainerUserId,
+                Id = checkInIds[3],
+                ClientUserId = checkInClientId,
+                ProfessionalUserId = checkInProfessionalId,
                 Profession = Profession.Training,
                 WeekStartDate = DateOnly.FromDateTime(missedWeekStart),
                 Status = WeeklyCheckInStatus.Expired,
@@ -3257,7 +3387,7 @@ public static class QaSeedRunner
                 DateCreated = now,
                 DateModified = now,
             },
-            Answered(QaCheckInAnsweredWeek6Id, 6, [CheckInFlag.SickOrLowEnergy], null),
+            Answered(checkInIds[4], 6, [CheckInFlag.SickOrLowEnergy], null),
         };
 
         var toInsert = checkIns.Where(c => !existingIds.Contains(c.Id)).ToList();
@@ -3309,5 +3439,183 @@ public static class QaSeedRunner
         });
 
         logger.LogInformation("QA Monday SessionExecution created: externalId={ExternalId}", QaMondaySessionExecutionId);
+    }
+
+    /// <summary>
+    /// #1311 — qa.coach's one-week training plan for QA Duo: three sessions this week. Session A
+    /// sits on the seed-time weekday (so its completed execution can be dated today); B and C sit
+    /// two and four weekdays later, wrapping inside the Monday-Sunday week.
+    /// </summary>
+    private static async Task EnsureDuoTrainingPlanAsync(IMongoContext mongo, ILogger logger)
+    {
+        var existing = await mongo.TrainingPlans
+            .Find(p => p.ExternalId == QaDuoTrainingPlanExternalId)
+            .FirstOrDefaultAsync();
+
+        if (existing is not null)
+        {
+            logger.LogInformation("QA Duo TrainingPlan already present: externalId={ExternalId}", QaDuoTrainingPlanExternalId);
+            return;
+        }
+
+        var now = DateTime.UtcNow;
+        var todayDayOfWeek = (int)now.DayOfWeek == 0 ? 7 : (int)now.DayOfWeek;
+        int WeekdayOffsetBy(int days) => (todayDayOfWeek - 1 + days) % 7 + 1;
+
+        SessionExercise Exercise(Guid instanceId, Guid catalogId, string name, int order, params ExerciseSet[] sets) => new()
+        {
+            ExerciseId         = instanceId,
+            ExerciseExternalId = catalogId,
+            ExerciseName       = name,
+            Order              = order,
+            MovementType       = MovementType.Reps,
+            Sets               = [.. sets],
+        };
+
+        var sessionsByDay = new Dictionary<int, List<TrainingSession>>
+        {
+            [WeekdayOffsetBy(0)] =
+            [
+                new TrainingSession
+                {
+                    SessionId = QaDuoSessionAId,
+                    Name      = "QA Duo Strength A",
+                    Order     = 1,
+                    Workouts  = [],
+                    StandaloneExercises =
+                    [
+                        Exercise(QaDuoSquatInstanceId, StandardExercise1Id, "QA Squat", 1,
+                            new ExerciseSet { SetNumber = 1, Type = SetType.Normal, Reps = 8, WeightKg = 70m },
+                            new ExerciseSet { SetNumber = 2, Type = SetType.Normal, Reps = 8, WeightKg = 70m }),
+                        Exercise(QaDuoDeadliftInstanceId, StandardExercise2Id, "QA Deadlift", 2,
+                            new ExerciseSet { SetNumber = 1, Type = SetType.Normal, Reps = 5, WeightKg = 90m }),
+                    ],
+                },
+            ],
+            [WeekdayOffsetBy(2)] =
+            [
+                new TrainingSession
+                {
+                    SessionId = QaDuoSessionBId,
+                    Name      = "QA Duo Core B",
+                    Order     = 1,
+                    Workouts  = [],
+                    StandaloneExercises = [Exercise(QaDuoPlankInstanceId, QaStandaloneOnlyExerciseId, "QA Plank", 1)],
+                },
+            ],
+            [WeekdayOffsetBy(4)] =
+            [
+                new TrainingSession
+                {
+                    SessionId = QaDuoSessionCId,
+                    Name      = "QA Duo Pull C",
+                    Order     = 1,
+                    Workouts  = [],
+                    StandaloneExercises = [Exercise(QaDuoPullUpInstanceId, AmrapExercise1Id, "QA Pull-up", 1)],
+                },
+            ],
+        };
+
+        await mongo.TrainingPlans.InsertOneAsync(new TrainingPlan
+        {
+            ExternalId  = QaDuoTrainingPlanExternalId,
+            ClientId    = ClientDuoUserId,
+            TrainerId   = CoachUserId,
+            Name        = "QA Duo Training Plan",
+            Status      = TrainingPlanStatus.Active,
+            StartDate   = MondayOfWeek(now),
+            DateCreated = now,
+            Version     = 1,
+            Weeks =
+            [
+                new TrainingWeek
+                {
+                    WeekNumber    = 1,
+                    Status        = WeekStatus.Published,
+                    DatePublished = now,
+                    Days          = BuildTrainingDays(sessionsByDay),
+                },
+            ],
+        });
+
+        logger.LogInformation("QA Duo TrainingPlan created: externalId={ExternalId}", QaDuoTrainingPlanExternalId);
+    }
+
+    /// <summary>
+    /// #1311 — instant at or before now on today's date: 06:00 UTC, or now when the seed runs
+    /// earlier. Keeps the Duo execution and PR dated today without ever being in the future.
+    /// </summary>
+    private static DateTime TodayCompletionInstant(DateTime now) =>
+        now.Date.AddHours(6) < now ? now.Date.AddHours(6) : now;
+
+    /// <summary>
+    /// #1311 — one completed execution of Duo session A dated today. The session sits on today's
+    /// weekday of the current plan week, so "sessions this week" reads 1 of 3 on any reset day.
+    /// </summary>
+    private static async Task EnsureDuoSessionExecutionAsync(IMongoContext mongo, ILogger logger)
+    {
+        var existing = await mongo.SessionExecutions
+            .Find(e => e.ExternalId == QaDuoSessionExecutionId)
+            .FirstOrDefaultAsync();
+
+        if (existing is not null)
+        {
+            logger.LogInformation("QA Duo SessionExecution already present: externalId={ExternalId}", QaDuoSessionExecutionId);
+            return;
+        }
+
+        var now = DateTime.UtcNow;
+        var completedAt = TodayCompletionInstant(now);
+
+        await mongo.SessionExecutions.InsertOneAsync(new SessionExecution
+        {
+            ExternalId  = QaDuoSessionExecutionId,
+            ClientId    = ClientDuoUserId,
+            PlanId      = QaDuoTrainingPlanExternalId,
+            SessionId   = QaDuoSessionAId,
+            Date        = SessionExecution.ToCompletionDateUtc(now.Date),
+            Status      = SessionExecutionStatus.Completed,
+            DateCreated = completedAt,
+            DateUpdated = completedAt,
+            CompletedExerciseInstanceIds = [QaDuoSquatInstanceId, QaDuoDeadliftInstanceId],
+        });
+
+        logger.LogInformation("QA Duo SessionExecution created: externalId={ExternalId}", QaDuoSessionExecutionId);
+    }
+
+    /// <summary>
+    /// #1311 — one personal record (QA Squat 72.5 kg x 8) on the Duo execution, dated today so
+    /// "PRs this month" never reads 0 on the first of the month. The unique (workoutLogId,
+    /// exercise, set) index makes a second insert fail, hence the ExternalId check first.
+    /// </summary>
+    private static async Task EnsureDuoPersonalRecordAsync(IMongoContext mongo, ILogger logger)
+    {
+        var existing = await mongo.PersonalRecords
+            .Find(r => r.ExternalId == QaDuoPersonalRecordExternalId)
+            .FirstOrDefaultAsync();
+
+        if (existing is not null)
+        {
+            logger.LogInformation("QA Duo personal record already present.");
+            return;
+        }
+
+        var now = DateTime.UtcNow;
+
+        await mongo.PersonalRecords.InsertOneAsync(new PersonalRecord
+        {
+            ExternalId         = QaDuoPersonalRecordExternalId,
+            ClientId           = ClientDuoUserId,
+            ExerciseExternalId = StandardExercise1Id,
+            ExerciseName       = "QA Squat",
+            WeightKg           = 72.5m,
+            Reps               = 8,
+            AchievedAt         = TodayCompletionInstant(now),
+            WorkoutLogId       = QaDuoSessionExecutionId,
+            SetNumber          = 1,
+            DateCreated        = now,
+        });
+
+        logger.LogInformation("QA Duo personal record created: externalId={ExternalId}", QaDuoPersonalRecordExternalId);
     }
 }
