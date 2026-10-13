@@ -80,7 +80,7 @@ internal sealed class GetClientCheckInHistoryEndpoint(
         var rows = await db.WeeklyCheckIns
             .AsNoTracking()
             .Where(c => c.ClientUserId == req.ClientUserId && c.ProfessionalUserId == professionalUserId)
-            .Select(c => new { c.WeekStartDate, c.RespondedAt, c.Status, c.DueAt, c.SentAt })
+            .Select(c => new { c.WeekStartDate, c.RespondedAt, c.Status, c.DueAt, c.SentAt, c.HungerScore })
             .ToListAsync(ct);
 
         var winnerByWeek = rows
@@ -88,7 +88,7 @@ internal sealed class GetClientCheckInHistoryEndpoint(
             .ToDictionary(
                 group => group.Key,
                 group => group
-                    .Select(c => (Status: RowStatus(c.RespondedAt, c.Status, c.DueAt, now), c.SentAt))
+                    .Select(c => (Status: RowStatus(c.RespondedAt, c.Status, c.DueAt, now), c.SentAt, c.HungerScore))
                     .OrderBy(c => Rank(c.Status))
                     .ThenByDescending(c => c.SentAt)
                     .First());
@@ -96,7 +96,13 @@ internal sealed class GetClientCheckInHistoryEndpoint(
         var weeks = Enumerable.Range(0, req.Weeks)
             .Select(offset => anchor.AddDays(-7 * (req.Weeks - 1 - offset)))
             .Select(monday => winnerByWeek.TryGetValue(monday, out var winner)
-                ? new CheckInHistoryWeekDto { WeekStartDate = monday, Status = winner.Status, SentAt = winner.SentAt }
+                ? new CheckInHistoryWeekDto
+                {
+                    WeekStartDate = monday,
+                    Status = winner.Status,
+                    SentAt = winner.SentAt,
+                    HungerScore = winner.HungerScore
+                }
                 : new CheckInHistoryWeekDto { WeekStartDate = monday, Status = None })
             .ToList();
 

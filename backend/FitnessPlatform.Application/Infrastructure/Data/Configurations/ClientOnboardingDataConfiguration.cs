@@ -22,5 +22,8 @@ public class ClientOnboardingDataConfiguration : IEntityTypeConfiguration<Client
         builder.Property(d => d.HeightCm).HasPrecision(5, 1);
         builder.Property(d => d.WeightKg).HasPrecision(5, 2);
         builder.Property(d => d.TargetWeightKg).HasPrecision(5, 2);
+
+        builder.Property(d => d.Dislikes).HasColumnType("text[]").HasDefaultValueSql("'{}'::text[]");
+        builder.Property(d => d.Habits).HasColumnType("text[]").HasDefaultValueSql("'{}'::text[]");
     }
 }

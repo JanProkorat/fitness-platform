@@ -68,6 +68,10 @@ public class ClientOnboardingData : TimestampableEntity
     public string Allergies { get; set; } = string.Empty;
     /// <summary>Self-rated diet quality (1–5).</summary>
     public int DietRating { get; set; }
+    /// <summary>Foods the client dislikes (free text items). Stored as a native text array.</summary>
+    public List<string> Dislikes { get; set; } = [];
+    /// <summary>Eating habits (free text items). Stored as a native text array.</summary>
+    public List<string> Habits { get; set; } = [];
 
     // --- Step 7: Motivation ---
     /// <summary>Prior experience with structured fitness/nutrition plans.</summary>

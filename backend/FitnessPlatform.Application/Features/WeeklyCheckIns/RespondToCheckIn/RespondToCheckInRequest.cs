@@ -19,4 +19,9 @@ public class RespondToCheckInRequest
     /// Optional free-text note. ≤ 500 characters.
     /// </summary>
     public string? Note { get; set; }
+
+    /// <summary>
+    /// Optional hunger score, 1-5.
+    /// </summary>
+    public int? HungerScore { get; set; }
 }

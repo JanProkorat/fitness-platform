@@ -247,6 +247,12 @@ public class OnboardingDataDto
     public decimal? FatGrams { get; set; }
     /// <summary>Meal distribution percentages as JSON.</summary>
     public string? MealDistribution { get; set; }
+    /// <summary>Foods the client dislikes. Null when the caller cannot view nutrition plans.</summary>
+    public List<string>? Dislikes { get; set; }
+    /// <summary>Eating habits. Null when the caller cannot view nutrition plans.</summary>
+    public List<string>? Habits { get; set; }
+    /// <summary>Daily fibre target in grams. Null when unset or the caller cannot view nutrition plans.</summary>
+    public decimal? FibreGrams { get; set; }
 }
 
 /// <summary>

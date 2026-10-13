@@ -18,5 +18,7 @@ public class ClientNutritionTargetsConfiguration : IEntityTypeConfiguration<Clie
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasIndex(t => t.ClientOnboardingDataId).IsUnique();
+
+        builder.Property(t => t.FibreGrams).HasPrecision(5, 1);
     }
 }

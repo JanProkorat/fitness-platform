@@ -28,4 +28,7 @@ public class CheckInHistoryWeekDto
 
     /// <summary>UTC time the check-in that decided this week's status was sent; null for a "none" week.</summary>
     public DateTime? SentAt { get; set; }
+
+    /// <summary>Hunger score (1-5) the client gave in the deciding check-in; null when none was given.</summary>
+    public int? HungerScore { get; set; }
 }
