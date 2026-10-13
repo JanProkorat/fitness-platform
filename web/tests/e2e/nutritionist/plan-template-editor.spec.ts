@@ -439,7 +439,7 @@ test.describe('plan template editor', () => {
 });
 
 trainerTest.describe('plan template editor for a trainer-only coach', () => {
-  trainerTest('shows the nutritionists-only state and sends no template request', async ({ page }) => {
+  trainerTest('redirects a trainer-only coach to clients and sends no template request', async ({ page }) => {
     const templateRequests: string[] = [];
     page.on('request', (request) => {
       if (request.url().includes('/nutrition/plan-templates')) {
@@ -447,7 +447,7 @@ trainerTest.describe('plan template editor for a trainer-only coach', () => {
       }
     });
     await page.goto('/plan-templates/00000000-0000-4000-8000-000000000000');
-    await expect(page.getByText('Plan templates are available to nutritionists')).toBeVisible();
+    await expect(page).toHaveURL(/\/clients$/);
     expect(templateRequests).toEqual([]);
   });
 });

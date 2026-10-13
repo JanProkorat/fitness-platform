@@ -1563,27 +1563,14 @@ test.describe('ingredient picture (#1140)', () => {
 });
 
 /**
- * A trainer-only coach has no food tags of their own (only a nutritionist
- * can create one) — the Ingredients page must show no tag UI at all for
- * them: no filter pill, and no tag section in the drawer. Uses `trainerTest`
- * directly (see this file's header comment on why that still runs under the
- * `nutritionist` Playwright project).
+ * A trainer-only coach has no food tags (only a nutritionist can create one)
+ * and, since #1325, no access to the Ingredients page at all: RoleGuard sends
+ * them to /clients. Uses `trainerTest` directly (see this file's header
+ * comment on why that still runs under the `nutritionist` Playwright project).
  */
 trainerTest.describe('food tags — trainer-only coach (#1120)', () => {
-  trainerTest('sees no food tag UI on the Ingredients page', async ({ page }) => {
+  trainerTest('redirects a trainer-only coach to clients', async ({ page }) => {
     await page.goto('/ingredients');
-    await page.waitForLoadState('networkidle');
-    await expect(page.getByRole('heading', { name: 'Ingredients' })).toBeVisible();
-
-    // No Tags filter pill at all.
-    await expect(page.getByRole('button', { name: 'Tags' })).toHaveCount(0);
-    // No Owner filter pill either — only nutritionists can own foods (#1139).
-    await expect(page.getByRole('button', { name: 'Owner' })).toHaveCount(0);
-
-    // Opening any row's (read-only) drawer shows no tag section either.
-    await page.locator('tbody tr').first().click();
-    await expect(page.getByRole('heading', { name: 'Ingredient' })).toBeVisible();
-    await expect(page.getByText('My Tags')).toHaveCount(0);
-    await expect(page.getByRole('button', { name: 'Assign tags' })).toHaveCount(0);
+    await expect(page).toHaveURL(/\/clients$/);
   });
 });

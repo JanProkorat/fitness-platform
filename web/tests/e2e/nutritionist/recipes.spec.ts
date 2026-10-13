@@ -561,10 +561,9 @@ test.describe('recipe picture', () => {
 });
 
 trainerTest.describe('recipes for a trainer-only coach', () => {
-  trainerTest('shows a readable nutritionists-only state, not an error', async ({ page }) => {
+  trainerTest('redirects a trainer-only coach to clients', async ({ page }) => {
     await page.goto('/recipes');
-    await expect(page.getByText('Recipes are available to nutritionists')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'New Recipe' })).toHaveCount(0);
+    await expect(page).toHaveURL(/\/clients$/);
     await expect(page.locator('[data-slot="toast-viewport"]').getByRole('status')).toHaveCount(0);
   });
 });
