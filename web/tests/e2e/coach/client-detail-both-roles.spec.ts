@@ -21,9 +21,9 @@ test.describe('client detail — both-roles overview', () => {
 
     await expect(page.getByRole('heading', { name: /QA Duo/ })).toBeVisible();
 
-    // Tabs: both role tabs are present and disabled (coming soon).
+    // Tabs: Nutrition is live, Workouts is still disabled (coming soon).
     await expect(page.getByRole('tab', { name: 'Overview' })).toBeEnabled();
-    await expect(page.getByRole('tab', { name: 'Nutrition' })).toBeDisabled();
+    await expect(page.getByRole('tab', { name: 'Nutrition' })).toBeEnabled();
     await expect(page.getByRole('tab', { name: 'Workouts' })).toBeDisabled();
 
     // Stat row: Meal compliance, PRs this month (1), Client since.

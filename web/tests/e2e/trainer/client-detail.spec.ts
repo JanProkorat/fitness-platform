@@ -67,6 +67,13 @@ test.describe('client detail page — overview tab', () => {
 
     await expect(page.getByRole('tab', { name: 'Nutrition' })).toHaveCount(0);
 
+    // A training-only link that deep-links to the Nutrition tab lands on Overview.
+    const detailUrl = page.url();
+    await page.goto(`${detailUrl}/nutrition`);
+    await page.waitForLoadState('networkidle');
+    await expect(page).toHaveURL(detailUrl);
+    await expect(page.getByRole('tab', { name: 'Overview' })).toHaveAttribute('aria-selected', 'true');
+
     // Training-only stat row: training compliance, PRs this month, client since.
     for (const label of ['Training compliance', 'PRs this month', 'Client since']) {
       await expect(page.getByText(label, { exact: true })).toBeVisible();

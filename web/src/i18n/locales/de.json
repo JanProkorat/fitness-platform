@@ -3078,6 +3078,97 @@
     }
   },
   "clientDetail": {
+    "nutrition": {
+      "current": {
+        "label": "Aktueller Ernährungsplan",
+        "openEditor": "Editor öffnen",
+        "notScheduled": "Nicht terminiert",
+        "weekOf": "Woche {{week}} von {{total}}",
+        "starts": "Beginnt am {{date}}",
+        "started": "gestartet am {{date}}",
+        "kcalPerDay": "{{kcal}} kcal pro Tag",
+        "detailError": "Die Wochen dieses Plans konnten nicht geladen werden.",
+        "stripLabel": "Wochen des Plans ({{total}})",
+        "segment": {
+          "done": "Woche {{week}}: erledigt",
+          "current": "Woche {{week}}: diese Woche",
+          "upcoming": "Woche {{week}}: veröffentlicht, kommend",
+          "draft": "Woche {{week}}: Entwurf"
+        },
+        "legend": {
+          "done": "Erledigt",
+          "current": "Diese Woche",
+          "upcoming": "Veröffentlicht, kommend",
+          "draft": "Entwurf – für den Klienten noch nicht sichtbar"
+        },
+        "needsPublishing": "Woche {{week}} muss bis Sonntag veröffentlicht werden"
+      },
+      "timeline": {
+        "heading": "Plan-Zeitleiste",
+        "hint": "Pläne nach Monat",
+        "empty": "Noch keine Pläne mit Termin.",
+        "today": "Heute",
+        "noPlan": "Kein Plan",
+        "starts": "beginnt am {{date}}",
+        "range_one": "{{range}} · {{count}} Wo.",
+        "range_other": "{{range}} · {{count}} Wo.",
+        "activeRange": "{{range}} · Woche {{week}} von {{total}}"
+      },
+      "past": {
+        "heading": "Frühere Pläne",
+        "none": "noch keine",
+        "count_one": "{{count}} Plan",
+        "count_other": "{{count}} Pläne",
+        "weeks_one": "{{count}} Woche",
+        "weeks_other": "{{count}} Wochen",
+        "percent": "{{value}} %",
+        "kg": "{{value}} kg",
+        "mealsTicked": "Mahlzeiten abgehakt",
+        "weight": "Gewicht",
+        "rowMenu": "Aktionen für {{name}}",
+        "open": "Plan öffnen",
+        "duplicate": "Für {{name}} duplizieren",
+        "saveAsTemplate": "Als Vorlage speichern",
+        "emptyHint": "Abgeschlossene Pläne erscheinen hier, samt der Quote, wie gut {{name}} sie befolgt hat.",
+        "hint": "Einen abgeschlossenen Plan können Sie über sein Menü wiederverwenden: als Vorlage speichern."
+      },
+      "saveTemplate": {
+        "title": "Als Vorlage speichern",
+        "description": "Die Vorlage landet in Ihren Planvorlagen und ist nur für Sie sichtbar.",
+        "name": "Name der Vorlage",
+        "nameInvalid": "Geben Sie einen Namen mit höchstens {{max}} Zeichen ein.",
+        "submit": "Vorlage speichern",
+        "success": "Vorlage in Ihrer Bibliothek gespeichert.",
+        "error": "Die Vorlage konnte nicht gespeichert werden. Bitte versuchen Sie es erneut."
+      },
+      "empty": {
+        "label": "Ernährung",
+        "heading": "{{name}} hat noch keinen Ernährungsplan",
+        "body": "Starten Sie mit einer Vorlage, die zum Ziel passt, kopieren Sie einen Plan von einem anderen Klienten oder bauen Sie einen von Grund auf. Der Klient sieht nichts, bis Sie eine Woche veröffentlichen.",
+        "matchedTo": "Passend für {{name}}",
+        "matchGoal": "Ziel {{goal}}",
+        "matchKcal": "{{kcal}} kcal",
+        "templatesLabel": "Passende Vorlagen",
+        "templatesError": "Ihre Vorlagen konnten nicht geladen werden.",
+        "noTemplates": "Sie haben noch keine Planvorlagen. Erstellen Sie eine unter Planvorlagen und kommen Sie zurück.",
+        "bestMatch": "Beste Übereinstimmung",
+        "weeks_one": "{{count}} Woche",
+        "weeks_other": "{{count}} Wochen",
+        "kcalMatch": "{{kcal}} kcal",
+        "use": "„{{name}}“ verwenden",
+        "copyFromClient": "Von anderem Klienten kopieren",
+        "startBlank": "Leer starten",
+        "browseAll": "Alle Vorlagen durchsuchen",
+        "useSuccess": "Entwurf erstellt. Er beginnt am nächsten Montag.",
+        "useError": "Der Plan konnte nicht aus der Vorlage erstellt werden."
+      },
+      "diet": {
+        "Standard": "Standard",
+        "Vegetarian": "Vegetarisch",
+        "Vegan": "Vegan",
+        "GlutenFree": "Glutenfrei"
+      }
+    },
     "writeMessage": "Schreiben",
     "lastName": "Nachname",
     "heightCm": "Körpergröße (cm)",
