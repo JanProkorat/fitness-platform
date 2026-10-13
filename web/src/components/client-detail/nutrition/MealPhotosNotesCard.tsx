@@ -54,7 +54,7 @@ function PhotoTile({ photo, caption }: { photo: ClientPhotoResponse; caption: st
           className="size-full object-cover"
         />
       )}
-      <span className="absolute bottom-1 left-1 max-w-[calc(100%-0.5rem)] truncate rounded-sm bg-scrim/60 px-1.5 py-0.5 text-meta text-on-dark">
+      <span className="absolute inset-x-1 bottom-1 w-fit truncate rounded-sm bg-scrim/60 px-1.5 py-0.5 text-meta text-on-dark">
         {caption}
       </span>
     </li>

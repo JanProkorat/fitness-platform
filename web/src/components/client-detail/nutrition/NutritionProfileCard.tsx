@@ -29,8 +29,8 @@ function ChipList({ items, className = CHIP_CLASS, emptyLabel }: { items: string
   }
   return (
     <ul className="flex flex-wrap gap-1.5">
-      {items.map((item) => (
-        <li key={item} className={className}>
+      {items.map((item, index) => (
+        <li key={`${index}-${item}`} className={className}>
           {item}
         </li>
       ))}
