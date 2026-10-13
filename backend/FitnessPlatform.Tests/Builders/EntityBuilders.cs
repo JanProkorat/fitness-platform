@@ -501,9 +501,15 @@ public class ClientOnboardingDataBuilder
     public ClientOnboardingDataBuilder WithClientProfileId(long id) { _entity.ClientProfileId = id; return this; }
 
     /// <summary>
-    /// Clears the fixed test Id so a real database generates one on insert.
+    /// Prepares the entity for a real database: clears the fixed test Id so one is generated on
+    /// insert, and marks the date of birth as UTC as Npgsql requires.
     /// </summary>
-    public ClientOnboardingDataBuilder WithGeneratedId() { _entity.Id = 0; return this; }
+    public ClientOnboardingDataBuilder WithGeneratedId()
+    {
+        _entity.Id = 0;
+        _entity.DateOfBirth = DateTime.SpecifyKind(_entity.DateOfBirth, DateTimeKind.Utc);
+        return this;
+    }
 
     /// <summary>
     /// Sets the disliked foods.
