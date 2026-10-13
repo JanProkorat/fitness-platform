@@ -3244,7 +3244,26 @@
         "duplicate": "Duplikovat pro {{name}}",
         "saveAsTemplate": "Uložit jako šablonu",
         "emptyHint": "Dokončené plány se objeví tady, včetně toho, jak se jimi {{name}} řídil(a).",
-        "hint": "Dokončený plán můžete znovu použít z jeho nabídky: uložte ho jako šablonu."
+        "hint": "Dokončený plán můžete znovu použít z jeho nabídky: uložte ho jako šablonu.",
+        "duplicateSuccess": "Plán byl zkopírován jako nový koncept.",
+        "duplicateError": "Plán se nepodařilo zkopírovat. Zkuste to prosím znovu."
+      },
+      "photos": {
+        "heading": "Fotky jídel a poznámky",
+        "hint": "Tento týden",
+        "caption": "{{meal}} · {{day}}",
+        "empty": "Tento týden zatím žádné fotky jídel.",
+        "error": "Fotky jídel se nepodařilo načíst.",
+        "photoAlt": "Fotka jídla: {{caption}}",
+        "imageUnavailable": "Fotka není k dispozici"
+      },
+      "notes": {
+        "quote": "„{{note}}“",
+        "meta": "Check-in · {{date}} · hlad {{score}}/5",
+        "metaNoHunger": "Check-in · {{date}}",
+        "noNote": "Poslední check-in neobsahuje poznámku",
+        "noCheckIn": "Zatím žádný zodpovězený check-in",
+        "error": "Poslední check-in se nepodařilo načíst."
       },
       "saveTemplate": {
         "title": "Uložit jako šablonu",

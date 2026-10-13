@@ -8,6 +8,7 @@ import { getPlan } from '@/api/plans';
 import type { GetClientDashboardResponse } from '@/api/generated';
 import CurrentPlanCard from '@/components/client-detail/nutrition/CurrentPlanCard';
 import IsItWorkingCard from '@/components/client-detail/nutrition/IsItWorkingCard';
+import MealPhotosNotesCard from '@/components/client-detail/nutrition/MealPhotosNotesCard';
 import NutritionEmptyState from '@/components/client-detail/nutrition/NutritionEmptyState';
 import NutritionProfileCard from '@/components/client-detail/nutrition/NutritionProfileCard';
 import PastPlansCard from '@/components/client-detail/nutrition/PastPlansCard';
@@ -121,7 +122,9 @@ export default function ClientNutritionTab({ clientId, dashboard }: Props) {
         <div className="xl:col-span-4">
           <PastPlansCard clientId={clientId} clientFirstName={firstName} plans={pastPlans} />
         </div>
-        {/* Slot: "Meal photos and notes" card, spans columns 5-7 (xl:col-span-3). */}
+        <div className="xl:col-span-3">
+          <MealPhotosNotesCard clientId={clientId} clientUserId={dashboard.clientUserId} />
+        </div>
         <div className="xl:col-span-3 xl:col-start-8">
           <NutritionProfileCard clientId={clientId} clientFirstName={firstName} onboarding={dashboard.onboarding} />
         </div>

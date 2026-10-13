@@ -857,4 +857,338 @@ test.describe('client detail — nutrition tab', () => {
       await expect(dialog.getByText('Set calorie and macro targets before adding a fibre target.')).toBeVisible();
     });
   });
+
+  test.describe('meal photos and notes card', () => {
+    const PHOTO_HOST = 'https://photos.stub.test';
+    const PIXEL_PNG = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+      'base64',
+    );
+    const OTHER_CLIENT_USER_ID = '99999999-9999-9999-9999-999999999999';
+    const NUTRITION_CHECK_IN_ID = '00000000-0000-0000-1336-0000000000a1';
+    const TRAINING_CHECK_IN_ID = '00000000-0000-0000-1336-0000000000a2';
+    const OTHER_CLIENT_CHECK_IN_ID = '00000000-0000-0000-1336-0000000000a3';
+    const COMPLETED_PLAN_ID = '00000000-0000-0000-1336-000000000001';
+
+    /** The page's "now": Thursday 11 June 2026, noon, so the week runs Mon 8 June to Sun 14 June. */
+    const NOW = new Date(2026, 5, 11, 12, 0, 0);
+    const MONDAY = new Date(2026, 5, 8);
+    const NEXT_MONDAY = new Date(2026, 5, 15);
+
+    function atLocalNoon(day: number): string {
+      return new Date(2026, 5, day, 12, 0, 0).toISOString();
+    }
+
+    function weekday(day: number): string {
+      return new Intl.DateTimeFormat('en', { weekday: 'short' }).format(new Date(2026, 5, day, 12, 0, 0));
+    }
+
+    function checkInDate(day: number): string {
+      return new Intl.DateTimeFormat('en', { weekday: 'short', day: 'numeric', month: 'short' }).format(
+        new Date(2026, 5, day, 12, 0, 0),
+      );
+    }
+
+    async function pinNow(page: Page): Promise<void> {
+      await page.clock.setFixedTime(NOW);
+    }
+
+    function photo(id: string, takenAtDay: number, mealKind: string | null, displayUrl = `${PHOTO_HOST}/ok-${id}.png`) {
+      return {
+        id: `00000000-0000-0000-1336-0000000001${id}`,
+        blobUrl: `client-photos/${id}`,
+        displayUrl,
+        category: 'Food',
+        planType: 'Nutrition',
+        mealKind,
+        takenAt: atLocalNoon(takenAtDay),
+      };
+    }
+
+    const MEAL_PHOTOS = [
+      photo('01', 8, 'Breakfast'),
+      photo('02', 9, 'MorningSnack'),
+      photo('03', 10, 'Dinner'),
+      photo('04', 11, null),
+      photo('05', 10, 'Lunch', `${PHOTO_HOST}/expired.png`),
+    ];
+
+    /** Answers the pre-signed image URLs: the expired one is a 403 like MinIO's. */
+    async function stubImages(page: Page): Promise<void> {
+      await page.route(`${PHOTO_HOST}/**`, async (route) => {
+        if (route.request().url().endsWith('/expired.png')) {
+          await route.fulfill({ status: 403, body: 'expired' });
+          return;
+        }
+        await route.fulfill({ status: 200, contentType: 'image/png', body: PIXEL_PNG });
+      });
+    }
+
+    /** `control.failing` keeps the request failing through the query client's single retry. */
+    async function stubPhotos(
+      page: Page,
+      photos: Record<string, unknown>[],
+      control: { failing: boolean } = { failing: false },
+      requests: URL[] = [],
+    ): Promise<void> {
+      await stubImages(page);
+      await page.route(/\/trainer\/clients\/[^/]+\/photos(\?.*)?$/, async (route) => {
+        requests.push(new URL(route.request().url()));
+        if (control.failing) {
+          await route.fulfill({ status: 500, contentType: 'application/problem+json', body: '{"status":500}' });
+          return;
+        }
+        await route.fulfill({ json: { photos } });
+      });
+    }
+
+    interface CheckInStub {
+      weeks: { weekStartDate: string; status: string; hungerScore?: number }[];
+      detail: Record<string, unknown>;
+      control: { failing: boolean };
+      calls: { list: string[]; detail: string[] };
+    }
+
+    function checkInStub(overrides: Partial<CheckInStub> = {}): CheckInStub {
+      return {
+        weeks: [
+          { weekStartDate: '2026-05-25', status: 'answered', hungerScore: 2 },
+          { weekStartDate: '2026-06-01', status: 'answered', hungerScore: 4 },
+          { weekStartDate: '2026-06-08', status: 'waiting' },
+        ],
+        detail: { note: 'Felt hungry in the evenings', hungerScore: 4 },
+        control: { failing: false },
+        calls: { list: [], detail: [] },
+        ...overrides,
+      };
+    }
+
+    /**
+     * Stubs the three check-in calls. The list rows carry the client's user id taken from the history
+     * URL, so the card has to pick the right rows out of a list that also holds another client's.
+     */
+    async function stubCheckIns(page: Page, stub: CheckInStub): Promise<void> {
+      let clientUserId = '';
+      const failure = async (route: Route) => {
+        await route.fulfill({ status: 500, contentType: 'application/problem+json', body: '{"status":500}' });
+      };
+
+      await page.route(/\/trainer\/clients\/[^/]+\/weekly-check-ins\/history(\?.*)?$/, async (route) => {
+        if (stub.control.failing) {
+          await failure(route);
+          return;
+        }
+        clientUserId = /\/trainer\/clients\/([^/]+)\//.exec(route.request().url())?.[1] ?? '';
+        await route.fulfill({ json: { weeks: stub.weeks, answeredCount: 2, totalCount: 2 } });
+      });
+
+      await page.route(/\/trainer\/weekly-check-ins(\?.*)?$/, async (route) => {
+        stub.calls.list.push(new URL(route.request().url()).searchParams.get('weekStartDate') ?? '');
+        const row = (id: string, userId: string, profession: string, respondedAt: string | null) => ({
+          id,
+          clientUserId: userId,
+          clientPublicId: userId,
+          clientName: 'Stub client',
+          profession,
+          weekStartDate: '2026-06-01',
+          flags: [],
+          note: null,
+          sentAt: atLocalNoon(5),
+          respondedAt,
+          dismissedByClientAt: null,
+          reviewedByTrainerAt: atLocalNoon(9),
+          status: respondedAt ? 'Reviewed' : 'Pending',
+          dueAt: null,
+        });
+        await route.fulfill({
+          json: {
+            checkIns: [
+              row(OTHER_CLIENT_CHECK_IN_ID, OTHER_CLIENT_USER_ID, 'Nutrition', atLocalNoon(8)),
+              // A newer Training answer must not win over the Nutrition one.
+              row(TRAINING_CHECK_IN_ID, clientUserId, 'Training', atLocalNoon(8)),
+              row(NUTRITION_CHECK_IN_ID, clientUserId, 'Nutrition', atLocalNoon(7)),
+            ],
+          },
+        });
+      });
+
+      await page.route(/\/trainer\/weekly-check-ins\/[^/?]+$/, async (route) => {
+        const id = route.request().url().split('/').pop() ?? '';
+        stub.calls.detail.push(id);
+        await route.fulfill({
+          json: {
+            id,
+            clientUserId,
+            clientName: 'Stub client',
+            professionalUserId: '33333333-3333-3333-3333-333333333333',
+            profession: 'Nutrition',
+            weekStartDate: '2026-06-01',
+            flags: [],
+            sentAt: atLocalNoon(5),
+            respondedAt: atLocalNoon(7),
+            dismissedByClientAt: null,
+            reviewedByTrainerAt: null,
+            status: 'Responded',
+            dueAt: null,
+            ...stub.detail,
+          },
+        });
+      });
+    }
+
+    test('captions one photo per meal group, asks for this week only and shows the note', async ({ page }) => {
+      await pinNow(page);
+      const photoRequests: URL[] = [];
+      await stubPhotos(page, MEAL_PHOTOS, { failing: false }, photoRequests);
+      const stub = checkInStub();
+      await stubCheckIns(page, stub);
+      await openNutritionTab(page);
+
+      const card = page.getByRole('region', { name: 'Meal photos and notes' });
+      await expect(card).toBeVisible();
+      await expect(card.getByText('This week', { exact: true })).toBeVisible();
+
+      const tiles = card.getByTestId('meal-photo');
+      await expect(tiles).toHaveCount(5);
+      // Breakfast, Snack (MorningSnack) and Dinner each use the "this week" row labels; a null meal kind is the weekday alone.
+      await expect(tiles.nth(0)).toHaveText(`Breakfast · ${weekday(8)}`);
+      await expect(tiles.nth(1)).toHaveText(`Snack · ${weekday(9)}`);
+      await expect(tiles.nth(2)).toHaveText(`Dinner · ${weekday(10)}`);
+      await expect(tiles.nth(3)).toHaveText(weekday(11));
+      await expect(tiles.nth(3)).not.toContainText('·');
+
+      // Pre-signed URLs render; the expired one falls back to a placeholder that keeps its caption.
+      await expect(tiles.nth(0).getByRole('img')).toHaveAttribute('src', `${PHOTO_HOST}/ok-01.png`);
+      await expect(tiles.nth(4)).toHaveText(`Lunch · ${weekday(10)}`);
+      await expect(tiles.nth(4).getByTestId('meal-photo-unavailable')).toBeVisible();
+      await expect(card.getByTestId('meal-photo-unavailable')).toHaveCount(1);
+
+      // Only Food photos from Monday 00:00 to the last millisecond of Sunday, local time.
+      expect(photoRequests.length).toBeGreaterThan(0);
+      const params = photoRequests[0].searchParams;
+      expect(params.get('category')).toBe('Food');
+      expect(params.get('pageSize')).toBe('6');
+      expect(params.get('from')).toBe(MONDAY.toISOString());
+      expect(params.get('to')).toBe(new Date(NEXT_MONDAY.getTime() - 1).toISOString());
+
+      // The note comes from the newest answered week, the client's own Nutrition row.
+      const note = card.getByTestId('check-in-note');
+      await expect(note).toContainText('“Felt hungry in the evenings”');
+      await expect(note.getByTestId('check-in-meta')).toHaveText(`Check-in · ${checkInDate(7)} · hunger 4/5`);
+      expect(stub.calls.list).toEqual(['2026-06-01']);
+      expect(stub.calls.detail).toEqual([NUTRITION_CHECK_IN_ID]);
+    });
+
+    test('says there is no note and drops the hunger part when the check-in has neither', async ({ page }) => {
+      await pinNow(page);
+      await stubPhotos(page, MEAL_PHOTOS);
+      await stubCheckIns(page, checkInStub({ detail: { note: null, hungerScore: null } }));
+      await openNutritionTab(page);
+
+      const note = page.getByRole('region', { name: 'Meal photos and notes' }).getByTestId('check-in-note');
+      await expect(note.getByText('No note in the latest check-in')).toBeVisible();
+      await expect(note.getByTestId('check-in-meta')).toHaveText(`Check-in · ${checkInDate(7)}`);
+      await expect(note.locator('blockquote')).toHaveCount(0);
+    });
+
+    test('says no check-in was answered yet without asking for a list or a detail', async ({ page }) => {
+      await pinNow(page);
+      await stubPhotos(page, MEAL_PHOTOS);
+      const stub = checkInStub({
+        weeks: [
+          { weekStartDate: '2026-06-01', status: 'missed' },
+          { weekStartDate: '2026-06-08', status: 'waiting' },
+        ],
+      });
+      await stubCheckIns(page, stub);
+      await openNutritionTab(page);
+
+      const card = page.getByRole('region', { name: 'Meal photos and notes' });
+      await expect(card.getByText('No check-in answered yet')).toBeVisible();
+      await expect(card.getByTestId('meal-photo')).toHaveCount(5);
+      expect(stub.calls.list).toHaveLength(0);
+      expect(stub.calls.detail).toHaveLength(0);
+    });
+
+    test('shows the empty copy when there are no photos this week and still shows the note', async ({ page }) => {
+      await pinNow(page);
+      await stubPhotos(page, []);
+      await stubCheckIns(page, checkInStub());
+      await openNutritionTab(page);
+
+      const card = page.getByRole('region', { name: 'Meal photos and notes' });
+      await expect(card.getByText('No meal photos this week.')).toBeVisible();
+      await expect(card.getByTestId('meal-photo')).toHaveCount(0);
+      await expect(card.getByTestId('check-in-note')).toContainText('Felt hungry in the evenings');
+    });
+
+    test('shows a retry when the photos fail to load, keeps the rest of the tab and recovers', async ({ page }) => {
+      await pinNow(page);
+      const control = { failing: true };
+      await stubPhotos(page, MEAL_PHOTOS, control);
+      await stubCheckIns(page, checkInStub());
+      await openNutritionTab(page);
+
+      const card = page.getByRole('region', { name: 'Meal photos and notes' });
+      await expect(card.getByText("Couldn't load the meal photos.")).toBeVisible();
+      // The note and the other cards still render.
+      await expect(card.getByTestId('check-in-note')).toContainText('Felt hungry in the evenings');
+      await expect(page.getByRole('region', { name: 'Past plans' })).toBeVisible();
+      await expect(page.getByRole('region', { name: 'Is it working?' })).toBeVisible();
+
+      control.failing = false;
+      await card.getByRole('button', { name: 'Retry' }).click();
+      await expect(card.getByTestId('meal-photo')).toHaveCount(5);
+    });
+
+    test('shows a retry inside the note block when a check-in call fails and keeps the photos', async ({ page }) => {
+      await pinNow(page);
+      await stubPhotos(page, MEAL_PHOTOS);
+      const stub = checkInStub({ control: { failing: true } });
+      await stubCheckIns(page, stub);
+      await openNutritionTab(page);
+
+      const card = page.getByRole('region', { name: 'Meal photos and notes' });
+      const note = card.getByTestId('check-in-note');
+      await expect(note.getByText("Couldn't load the latest check-in.")).toBeVisible();
+      await expect(card.getByTestId('meal-photo')).toHaveCount(5);
+      await expect(card.getByText("Couldn't load the meal photos.")).toHaveCount(0);
+
+      stub.control.failing = false;
+      await note.getByRole('button', { name: 'Retry' }).click();
+      await expect(note).toContainText('Felt hungry in the evenings');
+    });
+
+    test('keeps Duplicate disabled and sends no copy request', async ({ page }) => {
+      await pinNow(page);
+      await stubPhotos(page, []);
+      await stubCheckIns(page, checkInStub());
+      await rewritePlansList(page, (body) => ({
+        ...body,
+        plans: [
+          ...body.plans,
+          {
+            planId: COMPLETED_PLAN_ID,
+            planType: 'Nutrition',
+            name: 'Stub finished plan',
+            periodStart: '2026-01-05',
+            periodEnd: '2026-02-01',
+            status: 'Completed',
+          },
+        ],
+      }));
+      let copyRequests = 0;
+      await page.route(/\/nutrition\/plans\/[^/]+\/copy$/, async (route) => {
+        copyRequests += 1;
+        await route.fulfill({ status: 201, json: { planId: COMPLETED_PLAN_ID, status: 'Draft' } });
+      });
+      await openNutritionTab(page);
+
+      await page.getByRole('region', { name: 'Past plans' }).getByRole('button', { name: /Actions for Stub finished/ }).click();
+      const duplicate = page.getByRole('menuitem', { name: /Duplicate for/ });
+      await expect(duplicate).toHaveAttribute('aria-disabled', 'true');
+      await duplicate.click({ force: true });
+      expect(copyRequests).toBe(0);
+    });
+  });
 });

@@ -295,6 +295,8 @@ export interface CheckInDetailDto {
   status: WeeklyCheckInStatus;
   /** Added in #331 — deadline UTC datetime; null if no deadline. */
   dueAt: string | null;
+  /** Hunger score (1-5) the client gave; null when none was given. */
+  hungerScore: number | null;
 }
 
 /** GET /trainer/weekly-check-ins/{id} */

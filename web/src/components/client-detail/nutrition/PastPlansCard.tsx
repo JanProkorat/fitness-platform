@@ -1,5 +1,6 @@
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { MoreHorizontal, Utensils } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -9,6 +10,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import SaveAsTemplateDialog from '@/components/client-detail/nutrition/SaveAsTemplateDialog';
+import { copyNutritionPlan } from '@/api/plans';
+import { showApiError, showSuccess } from '@/lib/api-errors';
 import { formatSignedNumber } from '@/lib/client-metrics';
 import type { ClientPlanItem } from '@/api/generated';
 import {
@@ -30,10 +33,12 @@ function PastPlanRow({
   plan,
   clientFirstName,
   onSaveAsTemplate,
+  onDuplicate,
 }: {
   plan: ClientPlanItem;
   clientFirstName: string;
   onSaveAsTemplate: () => void;
+  onDuplicate: () => void;
 }) {
   const { t, i18n } = useTranslation();
   const locale = i18n.language;
@@ -85,7 +90,8 @@ function PastPlanRow({
           <DropdownMenuItem disabled title={t('shell.comingSoon')}>
             {t('clientDetail.nutrition.past.open')}
           </DropdownMenuItem>
-          <DropdownMenuItem disabled title={t('shell.comingSoon')}>
+          {/* Wired to the copy endpoint; stays disabled until the client plan editor can receive the new Draft. */}
+          <DropdownMenuItem disabled title={t('shell.comingSoon')} onSelect={onDuplicate}>
             {t('clientDetail.nutrition.past.duplicate', { name: clientFirstName })}
           </DropdownMenuItem>
           <DropdownMenuItem onSelect={onSaveAsTemplate}>{t('clientDetail.nutrition.past.saveAsTemplate')}</DropdownMenuItem>
@@ -100,6 +106,20 @@ export default function PastPlansCard({ clientId, clientFirstName, plans }: Prop
   const { t } = useTranslation();
   const headingId = useId();
   const [templateSource, setTemplateSource] = useState<{ planId: string; name: string } | undefined>();
+  const queryClient = useQueryClient();
+
+  const duplicateMutation = useMutation({
+    mutationFn: (planId: string) => copyNutritionPlan(planId, { clientId }),
+    onSuccess: () => {
+      showSuccess('clientDetail.nutrition.past.duplicateSuccess');
+    },
+    onError: (error) => {
+      showApiError(error, 'clientDetail.nutrition.past.duplicateError');
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: ['client-plans', clientId] });
+    },
+  });
 
   return (
     <section
@@ -130,6 +150,7 @@ export default function PastPlansCard({ clientId, clientFirstName, plans }: Prop
                 plan={plan}
                 clientFirstName={clientFirstName}
                 onSaveAsTemplate={() => plan.planId && setTemplateSource({ planId: plan.planId, name: plan.name ?? '' })}
+                onDuplicate={() => plan.planId && duplicateMutation.mutate(plan.planId)}
               />
             ))}
           </ul>
