@@ -32,6 +32,35 @@ export function useTrainerQuestionnaires({ type, search = '' }: TrainerQuestionn
   });
 }
 
+/** One form with its questions, for the builder. Not cached after unmount so a reopen always shows the stored copy. */
+export function useTrainerQuestionnaire(publicId: string | undefined) {
+  const isProfessional = useAuthStore(
+    (state) => state.user?.roles.some((role) => role === 'Trainer' || role === 'Nutritionist') ?? false,
+  );
+  return useQuery({
+    queryKey: ['questionnaires', 'detail', publicId ?? ''],
+    queryFn: () => getTrainerQuestionnaire(publicId ?? ''),
+    enabled: isProfessional && Boolean(publicId),
+    gcTime: 0,
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+}
+
+type UpdateQuestionnairePayload = Parameters<typeof updateQuestionnaire>[1];
+
+/** Saves a whole form (PUT replaces everything), then refreshes the list. The caller shows errors. */
+export function useUpdateQuestionnaire(publicId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: UpdateQuestionnairePayload) => updateQuestionnaire(publicId, payload),
+    onSuccess: (saved) => {
+      queryClient.setQueryData(['questionnaires', 'detail', publicId], saved);
+      void queryClient.invalidateQueries({ queryKey: ['questionnaires', 'trainer'] });
+    },
+  });
+}
+
 /** Creates an empty form of the chosen type; the caller navigates to it on success. */
 export function useCreateForm() {
   const queryClient = useQueryClient();

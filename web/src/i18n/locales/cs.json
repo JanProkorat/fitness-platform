@@ -2100,6 +2100,129 @@
       "success": "Formulář byl zduplikován.",
       "error": "Formulář se nepodařilo zduplikovat. Zkuste to prosím znovu."
     },
+    "builder": {
+      "back": "Zpět na formuláře",
+      "titleLabel": "Název formuláře",
+      "save": "Uložit",
+      "fixErrors": "Před uložením opravte zvýrazněná pole.",
+      "saveError": "Formulář se nepodařilo uložit. Zkuste to prosím znovu.",
+      "loadError": "Formulář se nepodařilo načíst. Zkuste to prosím znovu.",
+      "status": {
+        "saving": "Ukládám…",
+        "unsaved": "Neuložené změny",
+        "saved": "Uloženo"
+      },
+      "notFound": {
+        "title": "Formulář nenalezen",
+        "body": "Možná byl smazán, nebo patří někomu jinému."
+      },
+      "leave": {
+        "title": "Odejít bez uložení?",
+        "body": "Máte neuložené změny. Pokud teď odejdete, přijdete o ně.",
+        "stay": "Pokračovat v úpravách",
+        "discard": "Odejít"
+      },
+      "palette": {
+        "title": "Přidat otázku",
+        "hint": "Přetáhněte typ otázky do formuláře, nebo na něj klikněte a přidá se na konec.",
+        "add": "Přidat: {{name}}"
+      },
+      "kinds": {
+        "multi_select": { "name": "Výběr více možností", "hint": "Libovolný počet možností" },
+        "single_choice": { "name": "Výběr jedné možnosti", "hint": "Právě jedna možnost" },
+        "number": { "name": "Číslo", "hint": "Číslo s rozsahem" },
+        "short_text": { "name": "Text", "hint": "Volná textová odpověď" },
+        "smiley_rating": { "name": "Hodnocení smajlíky", "hint": "Rychlý pocit, 5 obličejů" },
+        "star_rating": { "name": "Hodnocení hvězdami", "hint": "Spokojenost na stupnici 1–5" },
+        "scale": { "name": "Stupnice" },
+        "file_upload": { "name": "Nahrání souboru" },
+        "other": { "name": "Jiná otázka" }
+      },
+      "info": {
+        "onboarding": "Odešle se automaticky každému novému klientovi po přijetí vaší pozvánky",
+        "checkIn": "Týdenní check-in · odpovědi se zobrazí v historii check-inů každého klienta",
+        "questions_one": "{{count}} otázka",
+        "questions_few": "{{count}} otázky",
+        "questions_many": "{{count}} otázky",
+        "questions_other": "{{count}} otázek",
+        "minutes_one": "asi {{count}} minuta",
+        "minutes_few": "asi {{count}} minuty",
+        "minutes_many": "asi {{count}} minuty",
+        "minutes_other": "asi {{count}} minut"
+      },
+      "empty": {
+        "title": "Zatím žádné otázky",
+        "hint": "Začněte kliknutím na typ otázky vlevo, nebo ho přetáhněte."
+      },
+      "defaults": {
+        "question": "Otázka bez názvu",
+        "option": "Možnost {{number}}",
+        "low": "Velmi nízká",
+        "high": "Skvělá"
+      },
+      "card": {
+        "label": "Otázka {{number}}: {{title}}",
+        "reorder": "Změnit pořadí otázky {{number}}",
+        "duplicate": "Duplikovat otázku {{number}}",
+        "duplicateTitle": "Duplikovat",
+        "delete": "Smazat otázku {{number}}",
+        "deleteTitle": "Smazat",
+        "titleLabel": "Název otázky {{number}}",
+        "titlePlaceholder": "Napište otázku",
+        "helperLabel": "Nápověda k otázce {{number}}",
+        "helperPlaceholder": "Nápověda (volitelná)",
+        "required": "Povinná",
+        "requiredToggle": "Povinná"
+      },
+      "choice": {
+        "reorder": "Změnit pořadí možnosti {{number}}",
+        "label": "Možnost {{number}}",
+        "remove": "Odebrat možnost {{number}}",
+        "add": "Přidat možnost",
+        "other": "Jiné",
+        "allowOther": "Povolit „Jiné“"
+      },
+      "number": {
+        "min": "Min",
+        "max": "Max",
+        "unit": "Jednotka",
+        "summaryMin": "Min {{value}}",
+        "summaryMax": "Max {{value}}",
+        "summaryUnit": "Jednotka: {{value}}"
+      },
+      "smiley": {
+        "low": "Popisek nejnižšího obličeje",
+        "high": "Popisek nejvyššího obličeje"
+      },
+      "text": {
+        "placeholder": "Klient sem napíše odpověď"
+      },
+      "generic": {
+        "hint": "Tento typ otázky tady nelze upravit. Zůstává beze změny."
+      },
+      "preview": {
+        "open": "Náhled očima klienta",
+        "untitled": "Formulář bez názvu",
+        "hint": "Takto uvidí formulář váš klient. Nic z toho se neukládá.",
+        "unsupported": "Tento typ otázky uvidí klient tak, jak byl nastaven."
+      },
+      "settings": {
+        "open": "Nastavení",
+        "title": "Nastavení formuláře",
+        "description": "Název a popis tohoto formuláře.",
+        "default": "Výchozí pro nové klienty",
+        "defaultHint": "Odešle se novým klientům, když nevyberete jiný formulář."
+      },
+      "errors": {
+        "title": "Zadejte název dlouhý nejvýše {{max}} znaků.",
+        "description": "Popis může mít nejvýše {{max}} znaků.",
+        "label": "Napište otázku.",
+        "options": "Přidejte alespoň jednu možnost a vyplňte všechny možnosti.",
+        "numberInvalid": "Min a max musí být čísla.",
+        "numberRange": "Min nemůže být vyšší než max.",
+        "smileyLabels": "Vyplňte oba popisky obličejů."
+      }
+    },
     "create": {
       "heading": "Nový formulář",
       "subtitle": "Pojmenujte ho a vyberte, k čemu slouží — otázky přidáte vzápětí",

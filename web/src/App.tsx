@@ -18,6 +18,7 @@ import ClientsPage from '@/pages/ClientsPage';
 import ClientDetailPage from '@/pages/ClientDetailPage';
 import InboxPage from '@/pages/InboxPage';
 import FormsPage from '@/pages/FormsPage';
+import FormBuilderPage from '@/pages/FormBuilderPage';
 import IngredientsPage from '@/pages/IngredientsPage';
 import RecipesPage from '@/pages/RecipesPage';
 import PlanTemplatesPage from '@/pages/PlanTemplatesPage';
@@ -83,6 +84,7 @@ export default function App() {
             </Route>
             {/* Full-bleed workspace: icon-rail sidebar, no main padding (PageTemplateEditor). */}
             <Route element={<AppShell variant="editor" />}>
+              <Route path="/forms/:id" element={<FormBuilderPage />} />
               <Route element={<RoleGuard allowedRoles={['Nutritionist']} />}>
                 <Route path="/plan-templates/:templateId" element={<PlanTemplateEditorPage />} />
               </Route>
