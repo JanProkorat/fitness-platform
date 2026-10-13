@@ -240,14 +240,20 @@
       "files": [
         "web/src/pages/ClientDetailPage.tsx",
         "web/src/components/client-detail/**",
+        "web/src/components/clients/ClientStatusBadge.tsx",
+        "web/src/components/clients/ClientAvatar.tsx",
         "web/src/lib/client-metrics.ts",
+        "web/src/lib/clientDetailNavigation.ts",
+        "web/src/lib/date-format.ts",
         "web/src/hooks/useClientTimeline.ts",
         "web/src/hooks/useWeeklyCheckIns.ts",
         "web/src/api/timeline.ts",
         "web/src/api/client-verdict.ts",
         "web/src/api/measurements.ts",
         "web/src/api/client-plans.ts",
-        "web/src/api/weekly-checkins.ts"
+        "web/src/api/weekly-checkins.ts",
+        "web/src/api/plans.ts",
+        "web/src/api/training-plans.ts"
       ],
       "endpoints": [
         "GET /trainer/clients/{clientId}",
