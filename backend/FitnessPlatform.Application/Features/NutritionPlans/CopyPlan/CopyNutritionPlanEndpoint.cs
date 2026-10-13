@@ -111,6 +111,7 @@ public class CopyNutritionPlanEndpoint(
             Status = NutritionPlanStatus.Draft,
             GlobalSettings = source.GlobalSettings,
             Goal = source.Goal,
+            TargetWeightKg = targetClientUserId.Value == source.ClientId ? source.TargetWeightKg : null,
             Supplements = NutritionPlanContentCloner.CloneSupplements(source.Supplements, mintFreshExternalIds: true),
             Weeks = NutritionPlanContentCloner.CloneWeeksPlanToPlan(source.Weeks),
             Version = 1,

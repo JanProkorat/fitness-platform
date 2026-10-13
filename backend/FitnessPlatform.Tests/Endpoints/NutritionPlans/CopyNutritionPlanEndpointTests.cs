@@ -47,6 +47,7 @@ public class CopyNutritionPlanEndpointTests(FitnessApiFactory factory)
             Name = "Source Plan",
             Status = NutritionPlanStatus.Active,
             Goal = PrimaryGoal.GainMuscle,
+            TargetWeightKg = 72.5m,
             StartDate = startDate,
             Version = 4,
             DateCreated = DateTime.UtcNow.AddDays(-10),
@@ -115,6 +116,7 @@ public class CopyNutritionPlanEndpointTests(FitnessApiFactory factory)
         copy.StartDate.Should().BeNull();
         copy.QuestionnaireResponseId.Should().BeNull();
         copy.Goal.Should().Be(PrimaryGoal.GainMuscle);
+        copy.TargetWeightKg.Should().Be(72.5m, "a same-client copy keeps the client's target weight");
         copy.Weeks.Should().HaveCount(2);
         copy.Weeks.Should().OnlyContain(w => w.Status == WeekStatus.Draft && w.DatePublished == null);
 
@@ -147,6 +149,7 @@ public class CopyNutritionPlanEndpointTests(FitnessApiFactory factory)
         copy.ClientId.Should().Be(targetClient.UserId);
         copy.Name.Should().Be("Copied For Target");
         copy.StartDate.Should().Be(startDate);
+        copy.TargetWeightKg.Should().BeNull("target weight is client-specific and is not carried to another client");
 
         var sourceAfter = await FetchPlanAsync(source.ExternalId);
         sourceAfter.ClientId.Should().Be(sourceClient.UserId);
