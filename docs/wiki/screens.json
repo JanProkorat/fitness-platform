@@ -204,7 +204,7 @@
         { "name": "default" },
         { "name": "pending", "steps": "click the tab 'Čekající' and wait for the table to load" }
       ],
-      "notionPageId": null
+      "notionPageId": "3f11c0f6-641f-8124-be9d-d4848c80d2fb"
     },
     {
       "id": "web.clients.invite",
@@ -229,6 +229,43 @@
         { "name": "default", "steps": "click the header button 'Pozvat klienta' (not the empty-state one) and wait for the drawer to open" }
       ],
       "notionPageId": null
+    },
+    {
+      "id": "web.clients.detail-overview",
+      "app": "web",
+      "area": "Clients",
+      "title": "Client detail — Overview",
+      "route": "/clients/:clientId",
+      "roles": ["Trainer", "Nutritionist"],
+      "files": [
+        "web/src/pages/ClientDetailPage.tsx",
+        "web/src/components/client-detail/**",
+        "web/src/lib/client-metrics.ts",
+        "web/src/hooks/useClientTimeline.ts",
+        "web/src/hooks/useWeeklyCheckIns.ts",
+        "web/src/api/timeline.ts",
+        "web/src/api/client-verdict.ts",
+        "web/src/api/measurements.ts",
+        "web/src/api/client-plans.ts",
+        "web/src/api/weekly-checkins.ts"
+      ],
+      "endpoints": [
+        "GET /trainer/clients/{clientId}",
+        "GET /trainer/clients/{clientId}/verdict",
+        "GET /trainer/clients/{clientId}/timeline",
+        "GET /trainer/clients/{clientId}/measurements",
+        "GET /trainer/clients/{clientId}/plans",
+        "GET /trainer/clients/{clientUserId}/weekly-check-ins/history",
+        "GET /nutrition/plans/{planId}",
+        "GET /training/plans/{planId}"
+      ],
+      "board": "PageClientDetail",
+      "shots": [
+        { "name": "trainer", "steps": "sign in as the trainer, open /clients, click 'QA Client' and wait for the Overview tab to load (board PageClientDetailTrainer)" },
+        { "name": "nutritionist", "steps": "sign in as the nutritionist, open /clients, click 'QA Client' and wait for the Overview tab to load (board PageClientDetailNutritionist)" },
+        { "name": "both-roles", "steps": "sign in as qa.coach@fitnessplatform.test, open /clients, click 'QA Duo' and wait for the Overview tab to load (board PageClientDetail)" }
+      ],
+      "notionPageId": "3f81c0f6-641f-814f-9e2d-c5440c350d64"
     },
     {
       "id": "web.nutrition.ingredients",
