@@ -7,7 +7,9 @@ import { getClientPlans } from '@/api/client-plans';
 import { getPlan } from '@/api/plans';
 import type { GetClientDashboardResponse } from '@/api/generated';
 import CurrentPlanCard from '@/components/client-detail/nutrition/CurrentPlanCard';
+import IsItWorkingCard from '@/components/client-detail/nutrition/IsItWorkingCard';
 import NutritionEmptyState from '@/components/client-detail/nutrition/NutritionEmptyState';
+import NutritionProfileCard from '@/components/client-detail/nutrition/NutritionProfileCard';
 import PastPlansCard from '@/components/client-detail/nutrition/PastPlansCard';
 import PlanTimelineCard from '@/components/client-detail/nutrition/PlanTimelineCard';
 import ThisWeekCard from '@/components/client-detail/nutrition/ThisWeekCard';
@@ -85,7 +87,7 @@ export default function ClientNutritionTab({ clientId, dashboard }: Props) {
       <div className="grid grid-cols-1 gap-3.5 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,26rem)]">
         <NutritionEmptyState clientId={clientId} dashboard={dashboard} />
         <div className="flex flex-col gap-3.5">
-          {/* Nutrition profile card slot. */}
+          <NutritionProfileCard clientId={clientId} clientFirstName={firstName} onboarding={dashboard.onboarding} />
           <PastPlansCard clientId={clientId} clientFirstName={firstName} plans={pastPlans} />
         </div>
       </div>
@@ -111,13 +113,18 @@ export default function ClientNutritionTab({ clientId, dashboard }: Props) {
         <div className="xl:col-span-3">
           <ThisWeekCard detail={currentDetail} onRetry={retryCurrent} />
         </div>
-        {/* Slot: "Is it working?" card, spans the other 2 columns. */}
-      </div>
-      <div className="grid grid-cols-1 gap-3.5 xl:grid-cols-5">
         <div className="xl:col-span-2">
+          <IsItWorkingCard clientId={clientId} plans={plans} targetWeightKg={dashboard.onboarding?.targetWeightKg} />
+        </div>
+      </div>
+      <div className="grid grid-cols-1 gap-3.5 xl:grid-cols-10">
+        <div className="xl:col-span-4">
           <PastPlansCard clientId={clientId} clientFirstName={firstName} plans={pastPlans} />
         </div>
-        {/* Slots: "Meal photos and notes" and the nutrition profile. */}
+        {/* Slot: "Meal photos and notes" card, spans columns 5-7 (xl:col-span-3). */}
+        <div className="xl:col-span-3 xl:col-start-8">
+          <NutritionProfileCard clientId={clientId} clientFirstName={firstName} onboarding={dashboard.onboarding} />
+        </div>
       </div>
     </div>
   );
