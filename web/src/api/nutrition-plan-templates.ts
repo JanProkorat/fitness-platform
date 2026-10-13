@@ -3,7 +3,10 @@
  */
 import { apiClient } from '@/api/client';
 import type {
+  CreateNutritionPlanTemplateFromPlanRequest,
   CreateNutritionPlanTemplateRequest,
+  InstantiateNutritionPlanTemplateRequest,
+  InstantiateNutritionPlanTemplateResponse,
   NutritionPlanTemplateDetailDto,
   NutritionPlanTemplateSummaryDto,
   PrimaryGoal,
@@ -13,6 +16,9 @@ import type {
 export { PrimaryGoal, MealKind, LibraryVisibility } from '@/api/generated';
 export type {
   CreateNutritionPlanTemplateRequest,
+  CreateNutritionPlanTemplateFromPlanRequest,
+  InstantiateNutritionPlanTemplateRequest,
+  InstantiateNutritionPlanTemplateResponse,
   UpdateNutritionPlanTemplateRequest,
   NutritionPlanTemplateDetailDto,
   NutritionPlanTemplateSummaryDto,
@@ -86,4 +92,19 @@ export async function copyPlanTemplate(templateId: string): Promise<void> {
 /** Delete a template (owner only). */
 export async function deletePlanTemplate(templateId: string): Promise<void> {
   await apiClient.deleteTemplateEndpoint(templateId);
+}
+
+/** Create a Draft client plan from a template. */
+export async function instantiatePlanTemplate(
+  templateId: string,
+  request: InstantiateNutritionPlanTemplateRequest,
+): Promise<InstantiateNutritionPlanTemplateResponse> {
+  return apiClient.instantiateTemplateEndpoint(templateId, request);
+}
+
+/** Save an existing client plan as a new template in the caller's library. */
+export async function createPlanTemplateFromPlan(
+  request: CreateNutritionPlanTemplateFromPlanRequest,
+): Promise<NutritionPlanTemplateSummaryDto> {
+  return apiClient.createTemplateFromPlanEndpoint(request);
 }
