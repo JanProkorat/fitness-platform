@@ -8,6 +8,7 @@ using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -1169,6 +1170,81 @@ public class GetClientTimelineEndpointTests(FitnessApiFactory factory)
         var item = body.Items.Single(i => i.Id == $"questionnaire:{responseId}");
         item.Questionnaire.Should().NotBeNull();
         item.Questionnaire!.QuestionnaireTitle.Should().Be("Intake questionnaire");
+    }
+
+    /// <summary>
+    /// Two coaches linked to the same client each see only the questionnaire they authored.
+    /// </summary>
+    [Fact]
+    public async Task Timeline_Questionnaire_ShowsOnlyCallingCoachsOwnResponses()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var trainer = await TestActors.Trainer(factory).CreateAsync(ct);
+        var nutritionist = await TestActors.Nutritionist(factory).CreateAsync(ct);
+        var client = await TestActors.Client(factory).CreateAsync(ct);
+        var trainerLinkId = await TestActors.Link(factory, trainer, client).CreateAsync(ct);
+        var nutritionistLinkId = await TestActors.Link(factory, nutritionist, client)
+            .AsRole(UserRole.Nutritionist)
+            .CreateAsync(ct);
+
+        var trainerResponseId = Guid.NewGuid();
+        var nutritionistResponseId = Guid.NewGuid();
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+            var trainerQuestionnaire = new Questionnaire
+            {
+                PublicId = Guid.NewGuid(),
+                ProfessionalId = trainer.UserId,
+                Title = "Trainer intake",
+                IsActive = true,
+                DateCreated = DateTime.UtcNow,
+            };
+            var nutritionistQuestionnaire = new Questionnaire
+            {
+                PublicId = Guid.NewGuid(),
+                ProfessionalId = nutritionist.UserId,
+                Title = "Nutrition intake",
+                IsActive = true,
+                DateCreated = DateTime.UtcNow,
+            };
+            db.Questionnaires.AddRange(trainerQuestionnaire, nutritionistQuestionnaire);
+            await db.SaveChangesAsync(ct);
+
+            db.QuestionnaireResponses.AddRange(
+                new QuestionnaireResponse
+                {
+                    PublicId = trainerResponseId,
+                    QuestionnaireId = trainerQuestionnaire.Id,
+                    ClientId = client.UserId,
+                    ProfessionalId = trainer.UserId,
+                    LinkId = trainerLinkId,
+                    Status = QuestionnaireResponseStatus.Submitted,
+                    SubmittedAt = DateTime.UtcNow.AddDays(-2),
+                    DateCreated = DateTime.UtcNow,
+                },
+                new QuestionnaireResponse
+                {
+                    PublicId = nutritionistResponseId,
+                    QuestionnaireId = nutritionistQuestionnaire.Id,
+                    ClientId = client.UserId,
+                    ProfessionalId = nutritionist.UserId,
+                    LinkId = nutritionistLinkId,
+                    Status = QuestionnaireResponseStatus.Submitted,
+                    SubmittedAt = DateTime.UtcNow.AddDays(-1),
+                    DateCreated = DateTime.UtcNow,
+                });
+            await db.SaveChangesAsync(ct);
+        }
+
+        var trainerTimeline = await GetTimelineAsync(trainer.Http, client.PublicId);
+        var nutritionistTimeline = await GetTimelineAsync(nutritionist.Http, client.PublicId);
+
+        trainerTimeline.Items.Where(i => i.Type == "questionnaire").Select(i => i.Id)
+            .Should().BeEquivalentTo([$"questionnaire:{trainerResponseId}"]);
+        nutritionistTimeline.Items.Where(i => i.Type == "questionnaire").Select(i => i.Id)
+            .Should().BeEquivalentTo([$"questionnaire:{nutritionistResponseId}"]);
     }
 
     private async Task<TimelineResponse> GetTimelineAsync(HttpClient http, Guid clientPublicId)
