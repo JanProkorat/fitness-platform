@@ -3398,10 +3398,10 @@ public static class QaSeedRunner
     }
 
     /// <summary>
-    /// #1303 — one completed execution of the standalone-only session dated this Monday, so the
-    /// dashboard's "sessions this week" has a completed entry from the first day of the week.
-    /// The session differs from the main execution's (3 days ago, which lands on Monday on a
-    /// Thursday) so the unique (clientId, sessionId, date) index never collides.
+    /// #1303 — one completed execution of the main plan's Monday session (<see cref="QaSessionId"/>)
+    /// dated this Monday, so "sessions this week" and training compliance both count it (compliance
+    /// only matches an execution dated on the day its session is scheduled). On a Thursday reset the
+    /// main execution (3 days ago) is already this exact row, so the skip filter keeps the insert a no-op.
     /// </summary>
     private static async Task EnsureMondaySessionExecutionAsync(IMongoContext mongo, ILogger logger)
     {
@@ -3409,7 +3409,7 @@ public static class QaSeedRunner
         var monday = MondayOfWeek(now);
 
         var sameSessionAndDay = Builders<SessionExecution>.Filter.Eq(e => e.ClientId, ClientUserId)
-            & Builders<SessionExecution>.Filter.Eq(e => e.SessionId, QaStandaloneOnlySessionId)
+            & Builders<SessionExecution>.Filter.Eq(e => e.SessionId, QaSessionId)
             & Builders<SessionExecution>.Filter.Eq(e => e.Date, monday);
         var sameId = Builders<SessionExecution>.Filter.Eq(e => e.ExternalId, QaMondaySessionExecutionId);
 
@@ -3430,12 +3430,11 @@ public static class QaSeedRunner
             ExternalId  = QaMondaySessionExecutionId,
             ClientId    = ClientUserId,
             PlanId      = QaTrainingPlanExternalId,
-            SessionId   = QaStandaloneOnlySessionId,
+            SessionId   = QaSessionId,
             Date        = SessionExecution.ToCompletionDateUtc(monday),
             Status      = SessionExecutionStatus.Completed,
             DateCreated = completedAt,
             DateUpdated = completedAt,
-            CompletedExerciseInstanceIds = [QaStandaloneOnlyInstanceId],
         });
 
         logger.LogInformation("QA Monday SessionExecution created: externalId={ExternalId}", QaMondaySessionExecutionId);

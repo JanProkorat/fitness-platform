@@ -983,6 +983,36 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
     }
 
     /// <summary>
+    /// The Monday execution's session must be scheduled on Monday (day 1) in the main plan; compliance
+    /// only counts an execution dated on the day its session is scheduled.
+    /// </summary>
+    [Fact]
+    public async Task SeedAsync_MondaySessionExecution_SessionIsScheduledOnMondayInMainPlan()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        await QaSeedRunner.SeedAsync(_factory.Services);
+
+        using var scope = _factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+        var execution = await mongo.SessionExecutions
+            .Find(e => e.ExternalId == QaSeedRunner.QaMondaySessionExecutionId)
+            .FirstAsync(ct);
+        var plan = await mongo.TrainingPlans
+            .Find(p => p.ExternalId == QaSeedRunner.QaTrainingPlanExternalId)
+            .FirstAsync(ct);
+
+        var mondaySessionIds = plan.Weeks
+            .SelectMany(w => w.Days)
+            .Where(d => d.DayOfWeek == 1)
+            .SelectMany(d => d.Sessions)
+            .Select(s => s.SessionId);
+
+        mondaySessionIds.Should().Contain(execution.SessionId!.Value);
+    }
+
+    /// <summary>
     /// #1303 — nutrition data stays on qa.nutri: qa.trainer gets no nutrition capability, no
     /// extra link and no plan authored for qa.client.
     /// </summary>
