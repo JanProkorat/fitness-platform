@@ -97,7 +97,12 @@ interface ToggleProps {
 function LabelledSwitch({ label, checked, onChange }: ToggleProps) {
   return (
     <label className="flex cursor-pointer items-center gap-2 text-body text-ink">
-      <Switch checked={checked} onCheckedChange={onChange} aria-label={label} />
+      <Switch
+        checked={checked}
+        onCheckedChange={onChange}
+        aria-label={label}
+        className="data-[state=checked]:bg-ink"
+      />
       {label}
     </label>
   );
@@ -317,7 +322,12 @@ export default function QuestionCard({ question, index, selected, errors, onSele
       data-kind={question.type}
       aria-label={t('forms.builder.card.label', { number: index + 1, title: question.label })}
       onClick={onSelect}
-      onFocusCapture={onSelect}
+      // Only a text field selects on focus: selecting on a button press would reflow the list under the cursor and lose the click.
+      onFocusCapture={(event) => {
+        if (event.target instanceof HTMLInputElement && event.target.type === 'text') {
+          onSelect();
+        }
+      }}
       className={cn(
         'flex flex-col gap-3 rounded-card border bg-card p-5 shadow-panel transition-colors',
         selected ? 'border-2 border-ink' : 'border-line hover:border-faint',
@@ -335,7 +345,7 @@ export default function QuestionCard({ question, index, selected, errors, onSele
           <GripVertical className="size-4" aria-hidden="true" />
         </button>
         <span
-          className="flex size-7 shrink-0 items-center justify-center rounded-full bg-ink text-meta font-bold text-on-dark"
+          className="flex size-7 shrink-0 items-center justify-center rounded-full bg-ink text-meta font-bold text-primary-foreground"
           aria-hidden="true"
         >
           {index + 1}

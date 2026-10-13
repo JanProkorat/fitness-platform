@@ -212,8 +212,7 @@ export default function FormBuilder({ initial, onBack }: Props) {
           return;
         }
         const { source, target } = event.operation;
-        const targetId = target?.id;
-        const palette = readPaletteDrag(source?.data);
+        const targetId = target?.id;        const palette = readPaletteDrag(source?.data);
         if (palette) {
           const at = targetId === CANVAS_ID ? count : doc.questions.findIndex((question) => question.key === targetId);
           if (targetId !== undefined && at !== -1) {

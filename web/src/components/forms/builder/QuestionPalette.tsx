@@ -73,7 +73,7 @@ export default function QuestionPalette({ formType, onAdd }: Props) {
   return (
     <aside
       aria-label={t('forms.builder.palette.title')}
-      className="flex h-full w-80 shrink-0 flex-col gap-3 overflow-y-auto border-r-2 border-line bg-sunken px-4 py-4"
+      className="flex h-full w-64 shrink-0 lg:w-72 xl:w-80 flex-col gap-3 overflow-y-auto border-r-2 border-line bg-sunken px-4 py-4"
     >
       <div className="flex flex-col gap-1.5">
         <h2 className="flex items-center gap-2 text-label font-bold tracking-label text-ink uppercase">

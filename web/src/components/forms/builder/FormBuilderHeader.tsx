@@ -36,7 +36,7 @@ export default function FormBuilderHeader({
 
   return (
     <header className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-line px-6 py-2.5">
-      <div className="flex min-w-80 flex-1 items-center gap-2">
+      <div className="flex min-w-60 flex-1 items-center gap-2">
         <Button
           type="button"
           variant="outline"
@@ -67,11 +67,14 @@ export default function FormBuilderHeader({
           title={title}
           className="h-8 min-w-32 flex-1 truncate border-transparent bg-transparent px-2 font-display text-auth-title font-semibold text-ink shadow-none hover:border-line"
         />
+      </div>
+
+      <div className="flex shrink-0 items-center gap-3">
         <FormTypeBadge type={type} />
         <span
           role="status"
           data-testid="save-status"
-          className="flex shrink-0 items-center gap-1.5 text-body text-muted-foreground"
+          className="flex shrink-0 items-center gap-1.5 text-body whitespace-nowrap text-muted-foreground"
         >
           {saving ? (
             <>

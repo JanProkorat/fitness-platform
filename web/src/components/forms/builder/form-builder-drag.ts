@@ -15,8 +15,13 @@ export function dragActivationConstraints(event: PointerEvent) {
     : [new PointerActivationConstraints.Distance({ value: 5 })];
 }
 
-/** Palette tiles are buttons: pointer only, so Enter and Space still click (add) the tile. */
-export const PALETTE_SENSORS = [PointerSensor.configure({ activationConstraints: dragActivationConstraints })];
+/**
+ * Palette tiles are buttons: pointer only, so Enter and Space still click (add) the tile. A press on the
+ * tile's own text or icon must start the drag, so the default "interactive child" check is switched off.
+ */
+export const PALETTE_SENSORS = [
+  PointerSensor.configure({ activationConstraints: dragActivationConstraints, preventActivation: () => false }),
+];
 
 export interface QuestionDragData {
   kind: 'question';
