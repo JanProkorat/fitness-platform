@@ -76,7 +76,7 @@ public class GetClientDashboardSessionsThisWeekIntegrationTests(FitnessApiFactor
         await WaitOutMidnightBoundaryAsync();
         _weekStart = MondayOfWeek(DateTime.UtcNow);
 
-        var trainer = await TestActors.Trainer(factory).WithEmail($"{tag}@sessions-week-t.com").CreateAsync(ct);
+        var trainer = await TestActors.Professional(factory, UserRole.Trainer, UserRole.Nutritionist).WithEmail($"{tag}@sessions-week-t.com").CreateAsync(ct);
         var client = await TestActors.Client(factory).WithEmail($"{tag}@sessions-week-c.com").CreateAsync(ct);
 
         await TestActors.Link(factory, trainer.ProfileId, client.ProfileId)

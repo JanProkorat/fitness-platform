@@ -49,6 +49,7 @@ public class ListClientPlansIntegrationTests(FitnessApiFactory factory)
         var email = UniqueEmail("trainer");
 
         await TestHelpers.RegisterAsync(http, email, "TestPass1!", "Test", "Trainer", "Trainer");
+        await factory.GrantRoleAsync(email, "Nutritionist");
         var (token, _) = await TestHelpers.LoginAsync(http, email, "TestPass1!");
         TestHelpers.SetBearerToken(http, token);
 

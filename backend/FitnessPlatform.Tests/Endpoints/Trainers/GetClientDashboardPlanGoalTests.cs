@@ -88,7 +88,7 @@ public class GetClientDashboardPlanGoalTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            db, _audit, _complianceService, mongo, TimeProvider.System);
+            db, _audit, _complianceService, mongo, TimeProvider.System, PassThroughCoachDisciplineAccess.Instance);
 
         await ep.HandleAsync(new GetClientDashboardRequest
         {
@@ -155,7 +155,7 @@ public class GetClientDashboardPlanGoalTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            db, _audit, _complianceService, mongo, TimeProvider.System);
+            db, _audit, _complianceService, mongo, TimeProvider.System, PassThroughCoachDisciplineAccess.Instance);
 
         await ep.HandleAsync(new GetClientDashboardRequest
         {
@@ -228,7 +228,7 @@ public class GetClientDashboardPlanGoalTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            db, _audit, _complianceService, mongo, TimeProvider.System);
+            db, _audit, _complianceService, mongo, TimeProvider.System, PassThroughCoachDisciplineAccess.Instance);
 
         await ep.HandleAsync(new GetClientDashboardRequest
         {
@@ -311,7 +311,7 @@ public class GetClientDashboardPlanGoalTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            db, _audit, _complianceService, mongo, TimeProvider.System);
+            db, _audit, _complianceService, mongo, TimeProvider.System, PassThroughCoachDisciplineAccess.Instance);
 
         await ep.HandleAsync(new GetClientDashboardRequest
         {

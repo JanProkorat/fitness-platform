@@ -28,12 +28,14 @@ namespace FitnessPlatform.Application.Features.Trainers.ListClientPlans;
 /// still 404 on their own), so a <see langword="null"/> result here can only mean "no active
 /// link" — preserving the endpoint's deliberate 403 (not 404) for that case.
 /// </param>
+/// <param name="coachDiscipline">Narrows the link flags to the disciplines the caller holds an active role for.</param>
 public class ListClientPlansEndpoint(
     IApplicationDbContext db,
     IMongoContext mongo,
     IComplianceService complianceService,
     IAuditService audit,
-    IClientLinkAuthorizationService linkAuthorizationService)
+    IClientLinkAuthorizationService linkAuthorizationService,
+    ICoachDisciplineAccess coachDiscipline)
     : Endpoint<ListClientPlansRequest, ListClientPlansResponse>
 {
     /// <inheritdoc />
@@ -94,10 +96,12 @@ public class ListClientPlansEndpoint(
             return;
         }
 
-        // A link that carries neither capability flag grants no plan visibility at all —
-        // deny outright rather than returning an empty-but-200 response (matches the
-        // LinkCapabilities.GrantsNothing deny semantics from #903).
-        if (capabilities.Value.GrantsNothing)
+        // A discipline is visible only when the link grants it AND the caller still holds that coach
+        // role actively. Neither visible: deny outright rather than returning an empty-but-200 response
+        // (matches the LinkCapabilities.GrantsNothing deny semantics from #903).
+        var effective = await coachDiscipline.GetEffectiveAsync(trainerUserId, capabilities.Value, ct);
+
+        if (effective.GrantsNothing)
         {
             await Send.ForbiddenAsync(ct);
             return;
@@ -114,11 +118,11 @@ public class ListClientPlansEndpoint(
         // computations are loaded only when the caller's link grants that domain's capability
         // flag — a nutrition-only link never queries SessionExecutions/PersonalRecords, and a
         // training-only link never queries body measurements or calls CalculateComplianceAsync.
-        var (trainingItems, trainingPlans) = capabilities.Value.CanViewTrainingPlans
+        var (trainingItems, trainingPlans) = effective.CanViewTrainingPlans
             ? await LoadTrainingItemsAsync(clientUserId, trainerUserId, ct)
             : ([], []);
 
-        var (nutritionItems, nutritionPlans) = capabilities.Value.CanViewNutritionPlans
+        var (nutritionItems, nutritionPlans) = effective.CanViewNutritionPlans
             ? await LoadNutritionItemsAsync(clientUserId, clientProfileId, trainerUserId, ct)
             : ([], []);
 
@@ -150,8 +154,8 @@ public class ListClientPlansEndpoint(
         await Send.OkAsync(new ListClientPlansResponse
         {
             Plans = allItems,
-            CanViewNutritionPlans = capabilities.Value.CanViewNutritionPlans,
-            CanViewTrainingPlans = capabilities.Value.CanViewTrainingPlans
+            CanViewNutritionPlans = effective.CanViewNutritionPlans,
+            CanViewTrainingPlans = effective.CanViewTrainingPlans
         }, ct);
     }
 

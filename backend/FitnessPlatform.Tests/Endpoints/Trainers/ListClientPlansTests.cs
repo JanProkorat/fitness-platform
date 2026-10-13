@@ -555,7 +555,8 @@ public class ListClientPlansTests
 
         return Factory.Create<ListClientPlansEndpoint>(
             ctx => ctx.Request.HttpContext.User = FakeTrainerPrincipal(callerId),
-            db, mongo, _complianceService, _audit, new ClientLinkAuthorizationService(db));
+            db, mongo, _complianceService, _audit, new ClientLinkAuthorizationService(db),
+            PassThroughCoachDisciplineAccess.Instance);
     }
 
     private (IApplicationDbContext db, Application.Domain.Entities.ClientProfile clientProfile)

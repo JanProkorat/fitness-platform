@@ -46,7 +46,7 @@ public class GetClientDashboardEndpointTests
             ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
                 new System.Security.Claims.ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            db, _audit, _complianceService, EmptyMongo(), TimeProvider.System);
+            db, _audit, _complianceService, EmptyMongo(), TimeProvider.System, PassThroughCoachDisciplineAccess.Instance);
 
         await ep.HandleAsync(new GetClientDashboardRequest
         {
@@ -89,7 +89,7 @@ public class GetClientDashboardEndpointTests
             ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
                 new System.Security.Claims.ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            db, _audit, _complianceService, EmptyMongo(), TimeProvider.System);
+            db, _audit, _complianceService, EmptyMongo(), TimeProvider.System, PassThroughCoachDisciplineAccess.Instance);
 
         await ep.HandleAsync(new GetClientDashboardRequest
         {
@@ -118,7 +118,7 @@ public class GetClientDashboardEndpointTests
             ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
                 new System.Security.Claims.ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            db, _audit, _complianceService, EmptyMongo(), TimeProvider.System);
+            db, _audit, _complianceService, EmptyMongo(), TimeProvider.System, PassThroughCoachDisciplineAccess.Instance);
 
         await ep.HandleAsync(new GetClientDashboardRequest
         {
@@ -138,7 +138,7 @@ public class GetClientDashboardEndpointTests
             ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
                 new System.Security.Claims.ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            db, _audit, _complianceService, EmptyMongo(), TimeProvider.System);
+            db, _audit, _complianceService, EmptyMongo(), TimeProvider.System, PassThroughCoachDisciplineAccess.Instance);
 
         await ep.HandleAsync(new GetClientDashboardRequest
         {
@@ -176,7 +176,7 @@ public class GetClientDashboardEndpointTests
             ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
                 new System.Security.Claims.ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            db, _audit, _complianceService, EmptyMongo(), TimeProvider.System);
+            db, _audit, _complianceService, EmptyMongo(), TimeProvider.System, PassThroughCoachDisciplineAccess.Instance);
 
         // Act — must not throw
         await ep.HandleAsync(new GetClientDashboardRequest
@@ -221,7 +221,7 @@ public class GetClientDashboardEndpointTests
             ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
                 new System.Security.Claims.ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            db, _audit, _complianceService, EmptyMongo(), TimeProvider.System);
+            db, _audit, _complianceService, EmptyMongo(), TimeProvider.System, PassThroughCoachDisciplineAccess.Instance);
 
         await ep.HandleAsync(new GetClientDashboardRequest
         {
@@ -263,7 +263,7 @@ public class GetClientDashboardEndpointTests
             ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
                 new System.Security.Claims.ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            db, _audit, _complianceService, mongo, TimeProvider.System);
+            db, _audit, _complianceService, mongo, TimeProvider.System, PassThroughCoachDisciplineAccess.Instance);
 
         await ep.HandleAsync(new GetClientDashboardRequest
         {
@@ -295,7 +295,7 @@ public class GetClientDashboardEndpointTests
             ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
                 new System.Security.Claims.ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            db, _audit, _complianceService, EmptyMongo(), TimeProvider.System);
+            db, _audit, _complianceService, EmptyMongo(), TimeProvider.System, PassThroughCoachDisciplineAccess.Instance);
 
         await ep.HandleAsync(new GetClientDashboardRequest
         {
@@ -339,7 +339,7 @@ public class GetClientDashboardEndpointTests
             ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
                 new System.Security.Claims.ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            db, _audit, _complianceService, mongo, TimeProvider.System);
+            db, _audit, _complianceService, mongo, TimeProvider.System, PassThroughCoachDisciplineAccess.Instance);
 
         var act = () => ep.HandleAsync(
             new GetClientDashboardRequest { ClientId = clientProfile.PublicId },
