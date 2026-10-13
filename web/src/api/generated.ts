@@ -7656,10 +7656,16 @@ export class ApiClient {
 
     /**
      * List trainer questionnaires
-     * @return Success
+     * @param type (optional) Only forms of this type.
+     * @param search (optional) Case-insensitive substring match on the title.
+     * @return Questionnaire summaries
      */
-    getTrainerQuestionnairesEndpoint(signal?: AbortSignal): Promise<GetTrainerQuestionnairesResponse> {
-        let url_ = this.baseUrl + "/trainer/questionnaires";
+    getTrainerQuestionnairesEndpoint(type?: QuestionnaireType | null | undefined, search?: string | null | undefined, signal?: AbortSignal): Promise<GetTrainerQuestionnairesResponse> {
+        let url_ = this.baseUrl + "/trainer/questionnaires?";
+        if (type !== undefined && type !== null)
+            url_ += "type=" + encodeURIComponent("" + type) + "&";
+        if (search !== undefined && search !== null)
+            url_ += "search=" + encodeURIComponent("" + search) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -7698,6 +7704,13 @@ export class ApiClient {
             let resultData200  = _responseText;
             result200 = JSON.parse(resultData200);
             return Promise.resolve<GetTrainerQuestionnairesResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid type filter", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -21408,9 +21421,16 @@ export interface GetTrainerQuestionnaireResponse {
     publicId?: string;
     title?: string;
     description?: string | undefined;
+    type?: QuestionnaireType;
     isActive?: boolean;
     isDefault?: boolean;
     questions?: QuestionDto[];
+}
+
+/** What a questionnaire is used for. Fixed when the form is created. */
+export enum QuestionnaireType {
+    Onboarding = "Onboarding",
+    CheckIn = "CheckIn",
 }
 
 export interface QuestionDto {
@@ -21428,6 +21448,8 @@ export interface QuestionDto {
 export interface UpdateQuestionnaireRequest {
     title: string;
     description?: string | undefined;
+    /** Form type; optional, but when sent it must equal the stored type. */
+    type?: QuestionnaireType | undefined;
     isActive?: boolean;
     isDefault?: boolean;
     questions?: UpdateQuestionDto[];
@@ -21456,10 +21478,19 @@ export interface QuestionnaireSummaryDto {
     publicId?: string;
     title?: string;
     description?: string | undefined;
+    type?: QuestionnaireType;
     isActive?: boolean;
     isDefault?: boolean;
     questionCount?: number;
+    /** Distinct clients with a non-cancelled response to this form. */
+    usedForClientCount?: number;
     dateCreated?: string;
+    /** Last edit time: the update timestamp, or the creation time when never edited. */
+    editedAt?: string;
+}
+
+/** Optional filters for listing the caller's questionnaires. */
+export interface GetTrainerQuestionnairesRequest {
 }
 
 export interface GetQuestionnaireDetailRequest {
@@ -21617,6 +21648,8 @@ export interface CreateResponseRequest {
 export interface CreateQuestionnaireRequest {
     title: string;
     description?: string | undefined;
+    /** Form type; fixed after creation. Defaults to Onboarding. */
+    type?: QuestionnaireType;
 }
 
 export interface SearchProfessionalsResponse {
