@@ -3114,6 +3114,42 @@
         "range_other": "{{range}} · {{count}} Wo.",
         "activeRange": "{{range}} · Woche {{week}} von {{total}}"
       },
+      "thisWeek": {
+        "heading": "Diese Woche",
+        "subtitleRange": "Woche {{week}} · {{from}} – {{to}} erfasst",
+        "subtitleDay": "Woche {{week}} · {{day}} erfasst",
+        "subtitleWeek": "Woche {{week}}",
+        "ofMeals_one": "von {{count}} Mahlzeit",
+        "ofMeals_other": "von {{count}} Mahlzeiten",
+        "ticked": "abgehakt · {{percent}} %",
+        "daysLabel": "Abgehakte Mahlzeiten pro Tag",
+        "tileTitle": "{{day}}: {{eaten}} von {{planned}} Mahlzeiten",
+        "today": "heute",
+        "byMeal": "Nach Mahlzeit",
+        "group": {
+          "breakfast": "Frühstück",
+          "snack": "Snack",
+          "lunch": "Mittagessen",
+          "dinner": "Abendessen"
+        },
+        "always": "immer",
+        "skipped_one": "{{count}}× diese Woche ausgelassen",
+        "skipped_other": "{{count}}× diese Woche ausgelassen",
+        "macrosLabel": "Durchschnittlich gegessen pro Tag, im Vergleich zum Plan",
+        "macro": {
+          "kcal": "kcal",
+          "protein": "E",
+          "carbs": "K",
+          "fat": "F"
+        },
+        "grams": "g",
+        "notActive": "Dieser Plan ist noch nicht aktiv.",
+        "notStarted": "Der Plan beginnt am {{date}}.",
+        "noWeek": "Für diese Woche ist nichts geplant.",
+        "ended": "Der Plan ist beendet.",
+        "nothingLogged": "Noch nichts erfasst. Abgeschlossene Tage erscheinen hier.",
+        "error": "Die Mahlzeiten dieser Woche konnten nicht geladen werden."
+      },
       "past": {
         "heading": "Frühere Pläne",
         "none": "noch keine",

@@ -3183,6 +3183,46 @@
         "range_other": "{{range}} · {{count}} týd.",
         "activeRange": "{{range}} · {{week}}. týden z {{total}}"
       },
+      "thisWeek": {
+        "heading": "Tento týden",
+        "subtitleRange": "Týden {{week}} · {{from}} – {{to}} zapsáno",
+        "subtitleDay": "Týden {{week}} · {{day}} zapsáno",
+        "subtitleWeek": "Týden {{week}}",
+        "ofMeals_one": "z {{count}} jídla",
+        "ofMeals_few": "z {{count}} jídel",
+        "ofMeals_many": "z {{count}} jídla",
+        "ofMeals_other": "z {{count}} jídel",
+        "ticked": "odškrtnuto · {{percent}} %",
+        "daysLabel": "Odškrtnutá jídla po dnech",
+        "tileTitle": "{{day}}: {{eaten}} z {{planned}} jídel",
+        "today": "dnes",
+        "byMeal": "Podle jídla",
+        "group": {
+          "breakfast": "Snídaně",
+          "snack": "Svačina",
+          "lunch": "Oběd",
+          "dinner": "Večeře"
+        },
+        "always": "vždy",
+        "skipped_one": "vynecháno {{count}}× tento týden",
+        "skipped_few": "vynecháno {{count}}× tento týden",
+        "skipped_many": "vynecháno {{count}}× tento týden",
+        "skipped_other": "vynecháno {{count}}× tento týden",
+        "macrosLabel": "Snězeno za den v průměru oproti plánu",
+        "macro": {
+          "kcal": "kcal",
+          "protein": "B",
+          "carbs": "S",
+          "fat": "T"
+        },
+        "grams": "g",
+        "notActive": "Plán zatím není aktivní.",
+        "notStarted": "Plán začíná {{date}}.",
+        "noWeek": "Tento týden není nic naplánováno.",
+        "ended": "Plán skončil.",
+        "nothingLogged": "Zatím nic nezapsáno. Uplynulé dny se zobrazí tady.",
+        "error": "Jídla tohoto týdne se nepodařilo načíst."
+      },
       "past": {
         "heading": "Dřívější plány",
         "none": "zatím žádné",
