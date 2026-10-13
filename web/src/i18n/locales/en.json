@@ -3144,10 +3144,11 @@
           "fat": "F"
         },
         "grams": "g",
-        "notScheduled": "This plan has no start date yet, so there is nothing to track.",
-        "notStarted": "The plan starts {{date}}. Nothing to track yet.",
-        "noWeek": "This week has no planned meals.",
-        "noData": "Nothing to track yet. Finished days with planned meals show up here.",
+        "notActive": "This plan isn't active yet.",
+        "notStarted": "The plan starts {{date}}.",
+        "noWeek": "Nothing is planned this week.",
+        "ended": "The plan has ended.",
+        "nothingLogged": "Nothing logged yet. Finished days show up here.",
         "error": "Couldn't load this week's meals."
       },
       "past": {

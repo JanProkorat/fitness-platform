@@ -3216,10 +3216,11 @@
           "fat": "T"
         },
         "grams": "g",
-        "notScheduled": "Plán zatím nemá datum zahájení, takže není co sledovat.",
-        "notStarted": "Plán začíná {{date}}. Zatím není co sledovat.",
-        "noWeek": "Tento týden nemá naplánovaná žádná jídla.",
-        "noData": "Zatím není co sledovat. Uplynulé dny s naplánovanými jídly se zobrazí tady.",
+        "notActive": "Plán zatím není aktivní.",
+        "notStarted": "Plán začíná {{date}}.",
+        "noWeek": "Tento týden není nic naplánováno.",
+        "ended": "Plán skončil.",
+        "nothingLogged": "Zatím nic nezapsáno. Uplynulé dny se zobrazí tady.",
         "error": "Jídla tohoto týdne se nepodařilo načíst."
       },
       "past": {

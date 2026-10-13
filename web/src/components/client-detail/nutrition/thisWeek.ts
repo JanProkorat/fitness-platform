@@ -9,8 +9,8 @@ import {
 const DAYS_PER_WEEK = 7;
 /** A finished day whose eaten share is below this is flagged as a low day. */
 export const LOW_DAY_RATIO = 0.6;
-/** A by-meal row whose eaten share is below this is flagged and carries the skipped note. */
-export const FLAGGED_ROW_RATIO = 0.75;
+/** A by-meal row with at least this many skipped meals is flagged and carries the skipped note. */
+export const FLAGGED_SKIPPED_COUNT = 2;
 
 export type MealGroup = 'breakfast' | 'snack' | 'lunch' | 'dinner';
 
@@ -33,7 +33,7 @@ export interface MealGroupRow {
   planned: number;
   eaten: number;
   skipped: number;
-  /** The row's eaten share is below `FLAGGED_ROW_RATIO`. */
+  /** The row skipped at least `FLAGGED_SKIPPED_COUNT` meals. */
   flagged: boolean;
   note: 'always' | 'skipped' | undefined;
 }
@@ -45,7 +45,8 @@ export interface MacroAverages {
   fat: number;
 }
 
-export type ThisWeekStatus = 'ready' | 'notScheduled' | 'notStarted' | 'noWeek' | 'noData';
+/** `ready` with `planned === 0` is the first day of the week: nothing finished yet. */
+export type ThisWeekStatus = 'ready' | 'notActive' | 'notStarted' | 'noWeek' | 'ended';
 
 export interface ThisWeekModel {
   status: ThisWeekStatus;
@@ -136,15 +137,19 @@ function targetsOf(plan: NutritionPlanDetail): ThisWeekModel['targets'] {
 /** Adherence for the plan week `today` falls in, computed from the plan's meals and meal logs. */
 export function buildThisWeek(plan: NutritionPlanDetail, today: Date): ThisWeekModel {
   const planStart = parseCalendarDate(plan.startDate);
-  if (!planStart) {
-    return emptyModel('notScheduled', plan);
+  if (!planStart || plan.status === 'Draft') {
+    return emptyModel('notActive', plan, { planStart });
   }
   const weekNumber = currentWeekNumber(planStart, today);
   if (weekNumber === undefined || weekNumber < 1) {
     return emptyModel('notStarted', plan, { planStart });
   }
+  const lastWeekNumber = plan.weeks.reduce((max, w) => Math.max(max, w.weekNumber), 0);
+  if (weekNumber > lastWeekNumber) {
+    return emptyModel('ended', plan, { planStart, weekNumber });
+  }
   const week = plan.weeks.find((w) => w.weekNumber === weekNumber);
-  if (!week) {
+  if (!week || week.status !== 'Published' || week.days.every((d) => d.meals.length === 0)) {
     return emptyModel('noWeek', plan, { planStart, weekNumber });
   }
 
@@ -195,14 +200,14 @@ export function buildThisWeek(plan: NutritionPlanDetail, today: Date): ThisWeekM
 
   const targets = targetsOf(plan);
   if (countedDays === 0) {
-    return { ...emptyModel('noData', plan, { planStart, weekNumber }), tiles };
+    return { ...emptyModel('ready', plan, { planStart, weekNumber }), tiles };
   }
 
   const totals = sumMacros(eatenMacros);
   const rows = MEAL_GROUPS.filter((group) => groupTotals[group].planned > 0).map((group): MealGroupRow => {
     const { planned: rowPlanned, eaten: rowEaten } = groupTotals[group];
     const skipped = rowPlanned - rowEaten;
-    const flagged = rowEaten / rowPlanned < FLAGGED_ROW_RATIO;
+    const flagged = skipped >= FLAGGED_SKIPPED_COUNT;
     return {
       group,
       planned: rowPlanned,

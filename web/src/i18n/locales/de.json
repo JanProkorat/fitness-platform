@@ -3143,10 +3143,11 @@
           "fat": "F"
         },
         "grams": "g",
-        "notScheduled": "Dieser Plan hat noch kein Startdatum, daher gibt es nichts zu verfolgen.",
-        "notStarted": "Der Plan beginnt am {{date}}. Noch nichts zu verfolgen.",
-        "noWeek": "Für diese Woche sind keine Mahlzeiten geplant.",
-        "noData": "Noch nichts zu verfolgen. Abgeschlossene Tage mit geplanten Mahlzeiten erscheinen hier.",
+        "notActive": "Dieser Plan ist noch nicht aktiv.",
+        "notStarted": "Der Plan beginnt am {{date}}.",
+        "noWeek": "Für diese Woche ist nichts geplant.",
+        "ended": "Der Plan ist beendet.",
+        "nothingLogged": "Noch nichts erfasst. Abgeschlossene Tage erscheinen hier.",
         "error": "Die Mahlzeiten dieser Woche konnten nicht geladen werden."
       },
       "past": {

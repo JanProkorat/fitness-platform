@@ -28,8 +28,11 @@ const MACROS: {
   { key: 'fat', labelKey: 'fat', fillClass: 'bg-macro-fat', dotClass: 'bg-macro-fat' },
 ];
 
-function tileBorder(tile: DayTile): string {
-  return tile.state === 'today' || tile.state === 'future' ? 'border-dashed border-line' : 'border-line';
+function tileClass(tile: DayTile): string {
+  if (tile.state === 'today') {
+    return 'border-dashed border-line bg-card';
+  }
+  return tile.state === 'future' ? 'border-line bg-sunken' : 'border-line bg-card';
 }
 
 /**
@@ -44,6 +47,7 @@ export default function ThisWeekCard({ detail, onRetry }: Props) {
   const locale = i18n.language;
   const model: ThisWeekModel | undefined = detail.plan ? buildThisWeek(detail.plan, todayCalendarDate()) : undefined;
 
+  const hasCounted = (model?.planned ?? 0) > 0;
   let subtitle = '';
   if (model?.status === 'ready' && model.weekNumber !== undefined && model.loggedFrom && model.loggedTo) {
     const from = formatWeekday(model.loggedFrom, locale);
@@ -58,16 +62,16 @@ export default function ThisWeekCard({ detail, onRetry }: Props) {
 
   const statusMessage = (): string => {
     switch (model?.status) {
-      case 'notScheduled':
-        return t('clientDetail.nutrition.thisWeek.notScheduled');
+      case 'notActive':
+        return t('clientDetail.nutrition.thisWeek.notActive');
       case 'notStarted':
-        return model.planStart
-          ? t('clientDetail.nutrition.thisWeek.notStarted', { date: formatShortDate(model.planStart, locale) })
-          : t('clientDetail.nutrition.thisWeek.noData');
-      case 'noWeek':
-        return t('clientDetail.nutrition.thisWeek.noWeek');
+        return t('clientDetail.nutrition.thisWeek.notStarted', {
+          date: model.planStart ? formatShortDate(model.planStart, locale) : '',
+        });
+      case 'ended':
+        return t('clientDetail.nutrition.thisWeek.ended');
       default:
-        return t('clientDetail.nutrition.thisWeek.noData');
+        return t('clientDetail.nutrition.thisWeek.noWeek');
     }
   };
 
@@ -108,17 +112,23 @@ export default function ThisWeekCard({ detail, onRetry }: Props) {
 
       {!detail.isError && !detail.isPending && model?.status === 'ready' && (
         <>
-          <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
-            <span className="font-display text-stat font-semibold text-ink">
-              <span data-testid="this-week-eaten">{model.eaten.toLocaleString(locale)}</span>{' '}
-              <span className="text-body font-normal text-muted-foreground">
-                {t('clientDetail.nutrition.thisWeek.ofMeals', { count: model.planned })}
+          {hasCounted ? (
+            <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+              <span className="font-display text-stat font-semibold text-ink">
+                <span data-testid="this-week-eaten">{model.eaten.toLocaleString(locale)}</span>{' '}
+                <span className="text-body font-normal text-muted-foreground">
+                  {t('clientDetail.nutrition.thisWeek.ofMeals', { count: model.planned })}
+                </span>
               </span>
-            </span>
-            <span className="text-body text-muted-foreground">
-              {t('clientDetail.nutrition.thisWeek.ticked', { percent: model.percent })}
-            </span>
-          </div>
+              <span className="text-body text-muted-foreground">
+                {t('clientDetail.nutrition.thisWeek.ticked', { percent: model.percent })}
+              </span>
+            </div>
+          ) : (
+            <p role="status" className="text-body text-muted-foreground">
+              {t('clientDetail.nutrition.thisWeek.nothingLogged')}
+            </p>
+          )}
 
           <ol className="flex gap-2" aria-label={t('clientDetail.nutrition.thisWeek.daysLabel')}>
             {model.tiles.map((tile) => {
@@ -133,7 +143,7 @@ export default function ThisWeekCard({ detail, onRetry }: Props) {
                   className="flex min-w-0 flex-1 basis-0 flex-col items-center gap-1.5"
                 >
                   <div
-                    className={`relative h-11 w-full overflow-hidden rounded-lg border bg-card ${tileBorder(tile)}`}
+                    className={`relative h-11 w-full overflow-hidden rounded-lg border ${tileClass(tile)}`}
                     title={t('clientDetail.nutrition.thisWeek.tileTitle', {
                       day: weekday,
                       eaten: tile.eaten,
@@ -152,15 +162,19 @@ export default function ThisWeekCard({ detail, onRetry }: Props) {
                   <span className="text-tick text-muted-foreground">
                     {tile.state === 'today'
                       ? t('clientDetail.nutrition.thisWeek.today')
-                      : tile.state === 'future' || tile.planned === 0
-                        ? '—'
-                        : `${tile.eaten}/${tile.planned}`}
+                      : tile.state === 'future'
+                        ? ''
+                        : tile.planned === 0
+                          ? '–'
+                          : `${tile.eaten}/${tile.planned}`}
                   </span>
                 </li>
               );
             })}
           </ol>
 
+          {hasCounted && (
+            <>
           <div className="flex flex-col gap-2 border-t border-line pt-3">
             <span className="text-tick font-bold uppercase tracking-wider text-muted-foreground">
               {t('clientDetail.nutrition.thisWeek.byMeal')}
@@ -170,6 +184,7 @@ export default function ThisWeekCard({ detail, onRetry }: Props) {
                 <li
                   key={row.group}
                   data-group={row.group}
+                  data-flagged={row.flagged ? 'true' : 'false'}
                   className="grid grid-cols-[4.5rem_minmax(0,1fr)_2.5rem] items-center gap-x-2.5 gap-y-0.5 text-caption sm:grid-cols-[4.5rem_minmax(0,1fr)_2.5rem_9rem]"
                 >
                   <span className="font-semibold text-ink">{t(`clientDetail.nutrition.thisWeek.group.${row.group}`)}</span>
@@ -227,6 +242,8 @@ export default function ThisWeekCard({ detail, onRetry }: Props) {
               );
             })}
           </ul>
+            </>
+          )}
         </>
       )}
     </section>

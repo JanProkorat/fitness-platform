@@ -447,30 +447,42 @@ test.describe('client detail — nutrition tab', () => {
 
       const tiles = card.getByRole('list', { name: 'Meals ticked off per day' }).getByRole('listitem');
       await expect(tiles).toHaveCount(7);
-      const expected: [string, string, string][] = [
+      const expected: [string, string, string | null][] = [
         ['past', 'false', '4/4'],
         ['past', 'false', '3/4'],
         ['past', 'true', '1/4'],
         ['today', 'false', 'today'],
-        ['future', 'false', '—'],
-        ['future', 'false', '—'],
-        ['future', 'false', '—'],
+        ['future', 'false', null],
+        ['future', 'false', null],
+        ['future', 'false', null],
       ];
       for (const [index, [state, low, label]] of expected.entries()) {
         const tile = tiles.nth(index);
         await expect(tile).toHaveAttribute('data-state', state);
         await expect(tile).toHaveAttribute('data-low', low);
-        await expect(tile).toContainText(label);
+        if (label) {
+          await expect(tile).toContainText(label);
+        } else {
+          // A future tile is empty and is not mistaken for today.
+          await expect(tile).not.toContainText('today');
+          await expect(tile).not.toContainText('/');
+        }
       }
 
-      // By meal: Snack groups the snack, a row carries the note only when it is flagged or perfect.
+      // By meal: Snack groups the snack. Skipped 0 says "always", skipped 1 has no note,
+      // skipped 2 or more is flagged red with the note.
       const row = (group: string) => card.locator(`[data-group="${group}"]`);
       await expect(row('breakfast')).toContainText('3/3');
       await expect(row('breakfast')).toContainText('always');
-      await expect(row('snack')).toContainText('2/3');
-      await expect(row('snack')).toContainText('skipped 1× this week');
-      await expect(row('lunch')).toContainText('skipped 1× this week');
+      await expect(row('breakfast')).toHaveAttribute('data-flagged', 'false');
+      for (const group of ['snack', 'lunch']) {
+        await expect(row(group)).toContainText('2/3');
+        await expect(row(group)).toHaveAttribute('data-flagged', 'false');
+        await expect(row(group)).not.toContainText('skipped');
+        await expect(row(group)).not.toContainText('always');
+      }
       await expect(row('dinner')).toContainText('1/3');
+      await expect(row('dinner')).toHaveAttribute('data-flagged', 'true');
       await expect(row('dinner')).toContainText('skipped 2× this week');
 
       // Daily averages over the three finished days against the plan targets.
@@ -503,7 +515,19 @@ test.describe('client detail — nutrition tab', () => {
 
       const card = page.getByRole('region', { name: 'This week' });
       await expect(card).toBeVisible();
-      await expect(card.getByRole('status')).toContainText('Nothing to track yet.');
+      await expect(card.getByRole('status')).toContainText('The plan starts');
+      await expect(card.getByTestId('this-week-eaten')).toHaveCount(0);
+    });
+
+    test('says the plan has ended once today is past its last week', async ({ page }) => {
+      const monday = thisMonday();
+      await pinThursday(page, monday);
+      const longAgo = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() - 21);
+      await stubPlan(page, localIso(longAgo), monday);
+      await openNutritionTab(page);
+
+      const card = page.getByRole('region', { name: 'This week' });
+      await expect(card.getByRole('status')).toHaveText('The plan has ended.');
       await expect(card.getByTestId('this-week-eaten')).toHaveCount(0);
     });
   });
