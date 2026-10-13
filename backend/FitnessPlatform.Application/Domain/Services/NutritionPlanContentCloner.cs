@@ -1,7 +1,7 @@
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 
-namespace FitnessPlatform.Application.Features.NutritionPlanTemplates.Shared;
+namespace FitnessPlatform.Application.Domain.Services;
 
 /// <summary>
 /// Deep-clones the nutrition plan/template content tree (weeks → days → meals → foods/recipes)
@@ -18,7 +18,7 @@ namespace FitnessPlatform.Application.Features.NutritionPlanTemplates.Shared;
 /// plan → template) never mint fresh <c>MealId</c>s — they are not writing into a live,
 /// meal-log-resolvable plan.
 /// </summary>
-internal static class TemplateContentCloner
+internal static class NutritionPlanContentCloner
 {
     /// <summary>
     /// Clones a template's own week tree into a fresh, independent week tree for a new template
@@ -56,6 +56,21 @@ internal static class TemplateContentCloner
         {
             WeekNumber = week.WeekNumber,
             Status = WeekStatus.Draft,
+            Days = CloneDays(week.Days, mintFreshMealIds: true)
+        }).ToList();
+
+    /// <summary>
+    /// Clones one plan's week tree into another plan's week tree (the plan <c>copy</c>
+    /// endpoint). Every week is materialized <see cref="WeekStatus.Draft"/> with no
+    /// <see cref="PlanWeek.DatePublished"/>, and every <see cref="PlanMeal.MealId"/> is freshly
+    /// minted — see this type's class remarks for why the source's ids must never be carried over.
+    /// </summary>
+    public static List<PlanWeek> CloneWeeksPlanToPlan(List<PlanWeek> source) =>
+        source.Select(week => new PlanWeek
+        {
+            WeekNumber = week.WeekNumber,
+            Status = WeekStatus.Draft,
+            DatePublished = null,
             Days = CloneDays(week.Days, mintFreshMealIds: true)
         }).ToList();
 

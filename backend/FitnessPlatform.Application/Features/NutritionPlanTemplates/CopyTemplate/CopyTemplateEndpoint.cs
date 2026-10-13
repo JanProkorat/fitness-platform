@@ -6,6 +6,7 @@ using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.NutritionPlanTemplates.Shared;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 
@@ -60,7 +61,7 @@ public class CopyTemplateEndpoint(IMongoContext mongo, TimeProvider timeProvider
             return;
         }
 
-        var clonedWeeks = TemplateContentCloner.CloneWeeksAsTemplate(source.Weeks);
+        var clonedWeeks = NutritionPlanContentCloner.CloneWeeksAsTemplate(source.Weeks);
 
         var copy = new NutritionPlanTemplate
         {
@@ -71,7 +72,7 @@ public class CopyTemplateEndpoint(IMongoContext mongo, TimeProvider timeProvider
             Goal = source.Goal,
             DietaryStyle = source.DietaryStyle,
             GlobalSettings = source.GlobalSettings,
-            Supplements = TemplateContentCloner.CloneSupplements(source.Supplements, mintFreshExternalIds: false),
+            Supplements = NutritionPlanContentCloner.CloneSupplements(source.Supplements, mintFreshExternalIds: false),
             Weeks = clonedWeeks,
             WeekCount = clonedWeeks.Count,
             Visibility = LibraryVisibility.Private,
