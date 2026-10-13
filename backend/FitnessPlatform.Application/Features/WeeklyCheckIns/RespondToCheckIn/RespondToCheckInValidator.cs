@@ -19,5 +19,10 @@ public class RespondToCheckInValidator : Validator<RespondToCheckInRequest>
             .MaximumLength(500)
             .When(x => x.Note is not null)
             .WithMessage("Note must not exceed 500 characters.");
+
+        RuleFor(x => x.HungerScore)
+            .InclusiveBetween(1, 5)
+            .When(x => x.HungerScore.HasValue)
+            .WithMessage("Hunger score must be between 1 and 5.");
     }
 }

@@ -37,6 +37,9 @@ public class ClientNutritionTargets : TimestampableEntity
     /// <summary>Daily fat target in grams.</summary>
     public decimal FatGrams { get; set; }
 
+    /// <summary>Daily fibre target in grams. Coach-set only; null until a coach sets it.</summary>
+    public decimal? FibreGrams { get; set; }
+
     /// <summary>Meal distribution percentages as JSON (e.g. {"breakfast":25,"snack1":10,"lunch":30,"snack2":10,"dinner":25}).</summary>
     [MaxLength(500)]
     public string? MealDistribution { get; set; }
