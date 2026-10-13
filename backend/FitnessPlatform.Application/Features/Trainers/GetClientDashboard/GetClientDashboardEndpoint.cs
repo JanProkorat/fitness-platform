@@ -335,10 +335,20 @@ public class GetClientDashboardEndpoint(
                 PlanExperience = od.PlanExperience.ToString(),
                 PastBlockers = od.PastBlockers,
                 PrimaryMotivation = od.PrimaryMotivation.ToString(),
+                DateUpdated = od.DateUpdated ?? od.DateCreated,
             };
 
             if (effective.CanViewNutritionPlans)
             {
+                if (od.NutritionTargets is { } targets)
+                {
+                    var targetsDate = targets.DateUpdated ?? targets.DateCreated;
+                    if (targetsDate > onboarding.DateUpdated)
+                    {
+                        onboarding.DateUpdated = targetsDate;
+                    }
+                }
+
                 onboarding.DerivedActivityLevel = od.NutritionTargets?.DerivedActivityLevel.ToString();
                 onboarding.DerivedNutritionGoal = od.NutritionTargets?.DerivedNutritionGoal.ToString();
                 onboarding.Bmr = od.NutritionTargets?.Bmr;

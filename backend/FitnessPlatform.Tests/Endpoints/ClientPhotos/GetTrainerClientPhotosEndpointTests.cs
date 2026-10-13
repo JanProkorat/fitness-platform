@@ -119,7 +119,8 @@ public class GetTrainerClientPhotosEndpointTests
                     EndpointTestHelpers.FakeUserClaims(otherTrainerId, AppRoles.Trainer))),
             db,
             CreateLinkAuthorizationService(db),
-            new FakeBlobStorageService());
+            new FakeBlobStorageService(),
+            new MockMongoBuilder().Build());
 
         await ep.HandleAsync(
             new GetTrainerClientPhotosRequest { ClientId = _clientPublicId },
@@ -159,7 +160,8 @@ public class GetTrainerClientPhotosEndpointTests
                     EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
             db,
             CreateLinkAuthorizationService(db),
-            new FakeBlobStorageService());
+            new FakeBlobStorageService(),
+            new MockMongoBuilder().Build());
 
         await ep.HandleAsync(
             new GetTrainerClientPhotosRequest { ClientId = _clientPublicId },
@@ -187,7 +189,8 @@ public class GetTrainerClientPhotosEndpointTests
                     EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
             db,
             CreateLinkAuthorizationService(db),
-            new FakeBlobStorageService());
+            new FakeBlobStorageService(),
+            new MockMongoBuilder().Build());
 
         await ep.HandleAsync(
             new GetTrainerClientPhotosRequest { ClientId = _clientPublicId },
@@ -212,7 +215,8 @@ public class GetTrainerClientPhotosEndpointTests
                     EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
             db,
             CreateLinkAuthorizationService(db),
-            new FakeBlobStorageService());
+            new FakeBlobStorageService(),
+            new MockMongoBuilder().Build());
 
         await ep.HandleAsync(
             new GetTrainerClientPhotosRequest { ClientId = _clientPublicId, Page = 1, PageSize = 20 },
@@ -241,7 +245,8 @@ public class GetTrainerClientPhotosEndpointTests
                     EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
             db,
             CreateLinkAuthorizationService(db),
-            blobStorage);
+            blobStorage,
+            new MockMongoBuilder().Build());
 
         await ep.HandleAsync(
             new GetTrainerClientPhotosRequest { ClientId = _clientPublicId, Page = 1, PageSize = 20 },
@@ -272,7 +277,8 @@ public class GetTrainerClientPhotosEndpointTests
                     EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
             db,
             CreateLinkAuthorizationService(db),
-            new FakeBlobStorageService());
+            new FakeBlobStorageService(),
+            new MockMongoBuilder().Build());
 
         await ep.HandleAsync(
             new GetTrainerClientPhotosRequest { ClientId = _clientPublicId, Page = 1, PageSize = 20 },
@@ -304,7 +310,8 @@ public class GetTrainerClientPhotosEndpointTests
                     EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
             db,
             CreateLinkAuthorizationService(db),
-            new FakeBlobStorageService());
+            new FakeBlobStorageService(),
+            new MockMongoBuilder().Build());
 
         await ep.HandleAsync(
             new GetTrainerClientPhotosRequest { ClientId = _clientPublicId, Page = 2, PageSize = 2 },
@@ -336,7 +343,8 @@ public class GetTrainerClientPhotosEndpointTests
                     EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
             db,
             CreateLinkAuthorizationService(db),
-            new FakeBlobStorageService());
+            new FakeBlobStorageService(),
+            new MockMongoBuilder().Build());
 
         await ep.HandleAsync(
             new GetTrainerClientPhotosRequest { ClientId = _clientPublicId, Page = 2, PageSize = 2 },
@@ -364,7 +372,8 @@ public class GetTrainerClientPhotosEndpointTests
                     EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
             db,
             CreateLinkAuthorizationService(db),
-            new FakeBlobStorageService());
+            new FakeBlobStorageService(),
+            new MockMongoBuilder().Build());
 
         await ep.HandleAsync(
             new GetTrainerClientPhotosRequest
@@ -407,7 +416,8 @@ public class GetTrainerClientPhotosEndpointTests
                     EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
             db,
             CreateLinkAuthorizationService(db),
-            new FakeBlobStorageService());
+            new FakeBlobStorageService(),
+            new MockMongoBuilder().Build());
 
         await ep.HandleAsync(
             new GetTrainerClientPhotosRequest { ClientId = _clientPublicId, Page = 1, PageSize = 20 },
@@ -443,7 +453,8 @@ public class GetTrainerClientPhotosEndpointTests
                     EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
             db,
             CreateLinkAuthorizationService(db),
-            new FakeBlobStorageService());
+            new FakeBlobStorageService(),
+            new MockMongoBuilder().Build());
 
         await ep.HandleAsync(
             new GetTrainerClientPhotosRequest { ClientId = _clientPublicId, Page = 1, PageSize = 20 },
@@ -476,7 +487,8 @@ public class GetTrainerClientPhotosEndpointTests
                     EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
             db,
             CreateLinkAuthorizationService(db),
-            new FakeBlobStorageService());
+            new FakeBlobStorageService(),
+            new MockMongoBuilder().Build());
 
         await ep.HandleAsync(
             new GetTrainerClientPhotosRequest
@@ -511,7 +523,8 @@ public class GetTrainerClientPhotosEndpointTests
                     EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
             db,
             CreateLinkAuthorizationService(db),
-            new FakeBlobStorageService());
+            new FakeBlobStorageService(),
+            new MockMongoBuilder().Build());
 
         await ep.HandleAsync(
             new GetTrainerClientPhotosRequest
@@ -546,7 +559,8 @@ public class GetTrainerClientPhotosEndpointTests
                     EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
             db,
             CreateLinkAuthorizationService(db),
-            new FakeBlobStorageService());
+            new FakeBlobStorageService(),
+            new MockMongoBuilder().Build());
 
         await ep.HandleAsync(
             new GetTrainerClientPhotosRequest
@@ -579,7 +593,8 @@ public class GetTrainerClientPhotosEndpointTests
                     EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
             db,
             CreateLinkAuthorizationService(db),
-            new FakeBlobStorageService());
+            new FakeBlobStorageService(),
+            new MockMongoBuilder().Build());
 
         await ep.HandleAsync(
             new GetTrainerClientPhotosRequest
@@ -617,7 +632,8 @@ public class GetTrainerClientPhotosEndpointTests
                     EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
             db,
             CreateLinkAuthorizationService(db),
-            new FakeBlobStorageService());
+            new FakeBlobStorageService(),
+            new MockMongoBuilder().Build());
 
         await ep.HandleAsync(
             new GetTrainerClientPhotosRequest { ClientId = _clientPublicId, Page = 1, PageSize = 20 },
@@ -662,7 +678,8 @@ public class GetTrainerClientPhotosEndpointTests
                     EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
             db,
             CreateLinkAuthorizationService(db),
-            new FakeBlobStorageService());
+            new FakeBlobStorageService(),
+            new MockMongoBuilder().Build());
 
         await ep.HandleAsync(
             new GetTrainerClientPhotosRequest
