@@ -296,6 +296,65 @@ test.describe('client detail — nutrition tab', () => {
     }
   });
 
+  test.describe('current plan summary line', () => {
+    const SUMMARY_PLAN_ID = '00000000-0000-0000-1329-000000000003';
+    const SOURCE_TEMPLATE_ID = '00000000-0000-0000-1329-0000000000c1';
+
+    /** Stubs an Active plan in week 1 of 1 (started Monday 8 June 2026), with or without a source template. */
+    async function stubSummaryPlan(page: Page, sourceTemplateId: string | null): Promise<void> {
+      await page.clock.setFixedTime(new Date(2026, 5, 10, 12, 0, 0));
+      await rewritePlansList(page, (body) => ({
+        ...body,
+        plans: [
+          {
+            planId: SUMMARY_PLAN_ID,
+            planType: 'Nutrition',
+            name: 'Stub summary plan',
+            periodStart: '2026-06-08',
+            status: 'Active',
+            sourceTemplateId,
+          },
+        ],
+      }));
+      await page.route(new RegExp(`/nutrition/plans/${SUMMARY_PLAN_ID}$`), async (route) => {
+        await route.fulfill({
+          json: {
+            planId: SUMMARY_PLAN_ID,
+            clientId: '11111111-1111-1111-1111-111111111111',
+            nutritionistId: '33333333-3333-3333-3333-333333333333',
+            name: 'Stub summary plan',
+            status: 'Active',
+            globalSettings: { dailyKcal: 2100 },
+            weeks: [{ weekNumber: 1, status: 'Published', days: [] }],
+            version: 1,
+            dateCreated: '2026-06-01T00:00:00Z',
+            startDate: '2026-06-08',
+            sourceTemplateId,
+            mealLogs: [],
+            supplements: [],
+          },
+        });
+      });
+    }
+
+    test('shows "made from a template" between the kcal and start segments', async ({ page }) => {
+      await stubSummaryPlan(page, SOURCE_TEMPLATE_ID);
+      await openNutritionTab(page);
+
+      const summary = page.locator('p', { hasText: '2,100 kcal a day' });
+      await expect(summary).toContainText('Week 1 of 1 · 2,100 kcal a day · made from a template · started');
+    });
+
+    test('omits the segment and its separator when the plan has no source template', async ({ page }) => {
+      await stubSummaryPlan(page, null);
+      await openNutritionTab(page);
+
+      const summary = page.locator('p', { hasText: '2,100 kcal a day' });
+      await expect(summary).toContainText('Week 1 of 1 · 2,100 kcal a day · started');
+      await expect(summary).not.toContainText('made from a template');
+    });
+  });
+
   test.describe('this week card', () => {
     const WEEK_PLAN_ID = '00000000-0000-0000-1333-000000000001';
     const WEEK_PLAN_NAME = 'Stub week plan';
