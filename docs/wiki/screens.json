@@ -500,6 +500,57 @@
         { "name": "default" }
       ],
       "notionPageId": null
+    },
+    {
+      "id": "web.forms.list",
+      "app": "web",
+      "area": "Forms",
+      "title": "Forms",
+      "route": "/forms",
+      "roles": ["Trainer", "Nutritionist"],
+      "files": [
+        "web/src/pages/FormsPage.tsx",
+        "web/src/components/forms/*.tsx",
+        "web/src/hooks/useFormListParams.ts",
+        "web/src/hooks/useQuestionnaireQueries.ts",
+        "web/src/api/questionnaires.ts"
+      ],
+      "endpoints": [
+        "GET /trainer/questionnaires",
+        "POST /trainer/questionnaires",
+        "GET /trainer/questionnaires/{publicId}",
+        "PUT /trainer/questionnaires/{publicId}",
+        "DELETE /trainer/questionnaires/{publicId}"
+      ],
+      "board": "PageForms",
+      "shots": [
+        { "name": "default" }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "web.forms.builder",
+      "app": "web",
+      "area": "Forms",
+      "title": "Form builder",
+      "route": "/forms/:id",
+      "roles": ["Trainer", "Nutritionist"],
+      "files": [
+        "web/src/pages/FormBuilderPage.tsx",
+        "web/src/components/forms/builder/**",
+        "web/src/components/forms/FormTypeBadge.tsx",
+        "web/src/hooks/useQuestionnaireQueries.ts",
+        "web/src/api/questionnaires.ts"
+      ],
+      "endpoints": [
+        "GET /trainer/questionnaires/{publicId}",
+        "PUT /trainer/questionnaires/{publicId}"
+      ],
+      "board": "PageFormOnboarding",
+      "shots": [
+        { "name": "default" }
+      ],
+      "notionPageId": null
     }
   ]
 }

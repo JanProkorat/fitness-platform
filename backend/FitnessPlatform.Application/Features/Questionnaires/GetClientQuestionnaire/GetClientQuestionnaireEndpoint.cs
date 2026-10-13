@@ -92,7 +92,7 @@ public class GetClientQuestionnaireEndpoint(IApplicationDbContext db)
             .Include(q => q.Questions
                 .Where(qq => !qq.IsHidden)
                 .OrderBy(qq => qq.OrderIndex))
-            .FirstOrDefaultAsync(q => q.ProfessionalId == professionalProfile.UserId && q.IsDefault && q.IsActive, ct);
+            .FirstOrDefaultAsync(q => q.ProfessionalId == professionalProfile.UserId && q.IsDefault && q.IsActive && q.Type == QuestionnaireType.Onboarding, ct);
 
         if (questionnaire is null)
         {

@@ -82,6 +82,23 @@ public class AcceptClientRequestEndpoint(
             return;
         }
 
+        // Resolve the optional questionnaire up front so a Check-in form is refused before any write.
+        // An unknown or foreign questionnaire id is ignored, as before.
+        Questionnaire? questionnaire = null;
+
+        if (req.QuestionnairePublicId.HasValue)
+        {
+            questionnaire = await db.Questionnaires
+                .FirstOrDefaultAsync(q => q.PublicId == req.QuestionnairePublicId.Value
+                    && q.ProfessionalId == userGuid, ct);
+
+            if (questionnaire?.Type == QuestionnaireType.CheckIn)
+            {
+                this.ThrowErrorWithCode(ErrorCodes.CheckInFormNotSendable, "Check-in forms cannot be sent as a questionnaire.");
+                return;
+            }
+        }
+
         // Determine plan-view capabilities from ALL of the caller's identity roles —
         // NOT a single tie-broken role. A professional can legitimately hold both
         // Trainer and Nutritionist roles simultaneously (#776); resolving to a single
@@ -191,18 +208,10 @@ public class AcceptClientRequestEndpoint(
         }
 
         // Handle optional questionnaire assignment
-        Questionnaire? questionnaire = null;
-        if (req.QuestionnairePublicId.HasValue)
+        if (questionnaire is not null)
         {
-            questionnaire = await db.Questionnaires
-                .FirstOrDefaultAsync(q => q.PublicId == req.QuestionnairePublicId.Value
-                    && q.ProfessionalId == userGuid, ct);
-
-            if (questionnaire is not null)
-            {
-                link.QuestionnaireId = questionnaire.Id;
-                clientRequest.QuestionnaireId = questionnaire.Id;
-            }
+            link.QuestionnaireId = questionnaire.Id;
+            clientRequest.QuestionnaireId = questionnaire.Id;
         }
 
         await db.SaveChangesAsync(ct);
