@@ -123,6 +123,23 @@ public class UpdateQuestionnaireEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
+    public async Task Update_FormWithSectionQuestion_Returns200AndKeepsSection()
+    {
+        var trainer = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
+        var form = await CreateAsync(trainer, "Intake", "Onboarding");
+
+        var response = await UpdateAsync(trainer, form.PublicId, null, isDefault: true,
+        [
+            new { OrderIndex = 0, Type = "section", Label = "Lifestyle", Config = (string?)null },
+            new { OrderIndex = 1, Type = "short_text", Label = "Job", Config = (string?)null },
+        ]);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var updated = (await response.Content.ReadFromJsonAsync<GetTrainerQuestionnaireResponse>(JsonOptions, TestContext.Current.CancellationToken))!;
+        updated.Questions.Select(question => question.Type).Should().Equal("section", "short_text");
+    }
+
+    [Fact]
     public async Task Update_InvalidConfig_Returns400()
     {
         var trainer = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
