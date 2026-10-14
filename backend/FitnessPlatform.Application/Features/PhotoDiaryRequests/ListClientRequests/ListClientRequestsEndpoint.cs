@@ -82,6 +82,7 @@ public class ListClientRequestsEndpoint(IApplicationDbContext db)
                 PlanId = r.PlanId,
                 DurationDays = r.DurationDays,
                 Mode = r.Mode,
+                Message = r.Message,
                 Status = r.Status,
                 DismissReason = r.DismissReason,
                 AcceptedAt = r.AcceptedAt,

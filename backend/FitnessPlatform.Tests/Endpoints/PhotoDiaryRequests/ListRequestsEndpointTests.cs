@@ -98,11 +98,14 @@ public class ListRequestsEndpointTests(FitnessApiFactory factory)
 
     private async Task<Guid> InsertDiaryRequestAsync(
         Guid profUserId, long? linkId = null, long? inviteId = null,
-        PhotoDiaryStatus status = PhotoDiaryStatus.Pending)
+        PhotoDiaryStatus status = PhotoDiaryStatus.Pending,
+        string? message = null,
+        DateTimeOffset? createdAt = null)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
+        var created = createdAt ?? DateTimeOffset.UtcNow;
         var request = new PhotoDiaryRequest
         {
             Id = Guid.NewGuid(),
@@ -111,12 +114,12 @@ public class ListRequestsEndpointTests(FitnessApiFactory factory)
             PendingInviteId = inviteId,
             DurationDays = 7,
             Status = status,
-            Mode = status is PhotoDiaryStatus.Accepted or PhotoDiaryStatus.InProgress or PhotoDiaryStatus.Completed
-                ? PhotoDiaryMode.Bulk : null,
+            Mode = PhotoDiaryMode.Workflow,
+            Message = message,
             AcceptedAt = status is PhotoDiaryStatus.Accepted or PhotoDiaryStatus.InProgress or PhotoDiaryStatus.Completed
                 ? DateTimeOffset.UtcNow : null,
             CompletedAt = status == PhotoDiaryStatus.Completed ? DateTimeOffset.UtcNow : null,
-            CreatedAt = DateTimeOffset.UtcNow,
+            CreatedAt = created,
             UpdatedAt = DateTimeOffset.UtcNow,
         };
         db.PhotoDiaryRequests.Add(request);
@@ -189,6 +192,95 @@ public class ListRequestsEndpointTests(FitnessApiFactory factory)
         response.Headers.Contains("X-Total-Count").Should().BeTrue();
         var total = int.Parse(response.Headers.GetValues("X-Total-Count").First());
         total.Should().BeGreaterThanOrEqualTo(2);
+    }
+
+    [Fact]
+    public async Task ListTrainer_ClientIdFilter_ReturnsOnlyThatClientsRequests()
+    {
+        var (http, profId) = await SetupProfessionalAsync();
+        var (_, clientUserId, _) = await SetupClientAsync();
+        var (_, otherClientUserId, _) = await SetupClientAsync();
+
+        var linkId = await InsertLinkAsync(clientUserId, profId);
+        var otherLinkId = await InsertLinkAsync(otherClientUserId, profId);
+        var clientPublicId = await GetClientPublicIdAsync(clientUserId);
+
+        var wantedId = await InsertDiaryRequestAsync(profId, linkId: linkId);
+        var otherClientsId = await InsertDiaryRequestAsync(profId, linkId: otherLinkId);
+
+        var response = await http.GetAsync(
+            $"/trainer/photo-diary-requests?clientId={clientPublicId}",
+            TestContext.Current.CancellationToken);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var body = await response.Content.ReadFromJsonAsync<ListResponseBody>(
+            JsonOptions, TestContext.Current.CancellationToken);
+        body!.Items.Should().ContainSingle().Which.Id.Should().Be(wantedId);
+        body.Items.Should().NotContain(i => i.Id == otherClientsId);
+    }
+
+    [Fact]
+    public async Task ListTrainer_ClientIdFilter_NeverReturnsAnotherCoachsRequests()
+    {
+        var (http, _) = await SetupProfessionalAsync();
+        var (_, otherProfId) = await SetupProfessionalAsync();
+        var (_, clientUserId, _) = await SetupClientAsync();
+
+        var otherLinkId = await InsertLinkAsync(clientUserId, otherProfId);
+        var clientPublicId = await GetClientPublicIdAsync(clientUserId);
+        await InsertDiaryRequestAsync(otherProfId, linkId: otherLinkId);
+
+        var response = await http.GetAsync(
+            $"/trainer/photo-diary-requests?clientId={clientPublicId}",
+            TestContext.Current.CancellationToken);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var body = await response.Content.ReadFromJsonAsync<ListResponseBody>(
+            JsonOptions, TestContext.Current.CancellationToken);
+        body!.Items.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task ListTrainer_SummaryCarriesMessageModeEndDateAndIsOpen()
+    {
+        var (http, profId) = await SetupProfessionalAsync();
+        var (_, clientUserId, _) = await SetupClientAsync();
+        var linkId = await InsertLinkAsync(clientUserId, profId);
+        var clientPublicId = await GetClientPublicIdAsync(clientUserId);
+
+        var createdAt = DateTimeOffset.UtcNow.AddDays(-1);
+        var openId = await InsertDiaryRequestAsync(profId, linkId: linkId, message: "Hello", createdAt: createdAt);
+        var expiredId = await InsertDiaryRequestAsync(
+            profId, linkId: linkId, createdAt: DateTimeOffset.UtcNow.AddDays(-9));
+        var cancelledId = await InsertDiaryRequestAsync(profId, linkId: linkId, status: PhotoDiaryStatus.Cancelled);
+
+        var response = await http.GetAsync(
+            $"/trainer/photo-diary-requests?clientId={clientPublicId}",
+            TestContext.Current.CancellationToken);
+        var body = await response.Content.ReadFromJsonAsync<ListResponseBody>(
+            JsonOptions, TestContext.Current.CancellationToken);
+
+        var open = body!.Items.Single(i => i.Id == openId);
+        open.Message.Should().Be("Hello");
+        open.Mode.Should().Be(PhotoDiaryMode.Workflow);
+        open.DurationDays.Should().Be(7);
+        open.IsOpen.Should().BeTrue();
+        open.EndsAt.Should().BeCloseTo(createdAt.AddDays(7), TimeSpan.FromSeconds(1));
+
+        body.Items.Single(i => i.Id == expiredId).IsOpen.Should().BeFalse("its window ended");
+        var cancelled = body.Items.Single(i => i.Id == cancelledId);
+        cancelled.IsOpen.Should().BeFalse("cancelled requests are closed");
+        cancelled.Status.Should().Be(PhotoDiaryStatus.Cancelled);
+    }
+
+    private async Task<Guid> GetClientPublicIdAsync(Guid clientUserId)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        return await db.ClientProfiles
+            .Where(p => p.UserId == clientUserId)
+            .Select(p => p.PublicId)
+            .FirstAsync(TestContext.Current.CancellationToken);
     }
 
     // ── Client list ────────────────────────────────────────────────────────────
@@ -288,6 +380,14 @@ public class ListRequestsEndpointTests(FitnessApiFactory factory)
 
     // ── Response shape helpers ─────────────────────────────────────────────────
 
-    private record ListItem(Guid Id, Guid ProfessionalId, PhotoDiaryStatus Status);
+    private record ListItem(
+        Guid Id,
+        Guid ProfessionalId,
+        PhotoDiaryStatus Status,
+        PhotoDiaryMode? Mode = null,
+        string? Message = null,
+        int DurationDays = 0,
+        DateTimeOffset EndsAt = default,
+        bool IsOpen = false);
     private record ListResponseBody(List<ListItem> Items);
 }

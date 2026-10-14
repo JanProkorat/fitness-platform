@@ -24,4 +24,7 @@ public class ListTrainerRequestsRequest
 
     /// <summary>Optional filter by plan ID.</summary>
     public Guid? PlanId { get; set; }
+
+    /// <summary>Optional filter by client (<c>ClientProfile.PublicId</c>); matches link-based requests only.</summary>
+    public Guid? ClientId { get; set; }
 }

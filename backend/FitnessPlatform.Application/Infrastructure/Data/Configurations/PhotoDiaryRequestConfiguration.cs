@@ -14,6 +14,8 @@ public class PhotoDiaryRequestConfiguration : IEntityTypeConfiguration<PhotoDiar
 {
     // Numeric values of the status enum used in the SQL CHECK expressions.
     // Keep in sync with PhotoDiaryStatus.
+    private const int StatusPending = (int)PhotoDiaryStatus.Pending;
+    private const int StatusCancelled = (int)PhotoDiaryStatus.Cancelled;
     private const int StatusAccepted = (int)PhotoDiaryStatus.Accepted;
     private const int StatusDismissed = (int)PhotoDiaryStatus.Dismissed;
     private const int StatusInProgress = (int)PhotoDiaryStatus.InProgress;
@@ -37,6 +39,9 @@ public class PhotoDiaryRequestConfiguration : IEntityTypeConfiguration<PhotoDiar
 
         // ── DismissReason max-length (also enforced via data annotation) ─────
         builder.Property(r => r.DismissReason)
+            .HasMaxLength(500);
+
+        builder.Property(r => r.Message)
             .HasMaxLength(500);
 
         // ── FK: ProfessionalId → users.id ────────────────────────────────────
@@ -88,22 +93,24 @@ public class PhotoDiaryRequestConfiguration : IEntityTypeConfiguration<PhotoDiar
             "(link_id IS NOT NULL AND pending_invite_id IS NULL) OR " +
             "(link_id IS NULL AND pending_invite_id IS NOT NULL)"));
 
-        // 2. Mode is non-null iff Status ∈ {Accepted, InProgress, Completed}.
+        // 2. Mode is non-null whenever Status ∈ {Accepted, InProgress, Completed}; other
+        //    statuses may carry it (the coach picks it at creation).
         builder.ToTable(t => t.HasCheckConstraint(
             "ck_photo_diary_requests_mode_with_accepted_status",
-            $"(status IN ({StatusAccepted},{StatusInProgress},{StatusCompleted}) AND mode IS NOT NULL) OR " +
-            $"(status NOT IN ({StatusAccepted},{StatusInProgress},{StatusCompleted}) AND mode IS NULL)"));
+            $"(status NOT IN ({StatusAccepted},{StatusInProgress},{StatusCompleted}) OR mode IS NOT NULL)"));
 
         // 3. DismissReason is non-null only when Status = Dismissed.
         builder.ToTable(t => t.HasCheckConstraint(
             "ck_photo_diary_requests_dismiss_reason_only_when_dismissed",
             $"(status = {StatusDismissed} OR dismiss_reason IS NULL)"));
 
-        // 4. AcceptedAt is non-null iff Status ∈ {Accepted, InProgress, Completed}.
+        // 4. AcceptedAt is non-null when Status ∈ {Accepted, InProgress, Completed} and null when
+        //    Status ∈ {Pending, Dismissed}. A Cancelled request keeps whatever it had.
         builder.ToTable(t => t.HasCheckConstraint(
             "ck_photo_diary_requests_accepted_at_with_accepted_status",
             $"(status IN ({StatusAccepted},{StatusInProgress},{StatusCompleted}) AND accepted_at IS NOT NULL) OR " +
-            $"(status NOT IN ({StatusAccepted},{StatusInProgress},{StatusCompleted}) AND accepted_at IS NULL)"));
+            $"(status IN ({StatusPending},{StatusDismissed}) AND accepted_at IS NULL) OR " +
+            $"(status = {StatusCancelled})"));
 
         // 5. CompletedAt is non-null iff Status = Completed.
         builder.ToTable(t => t.HasCheckConstraint(

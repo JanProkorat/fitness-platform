@@ -12,14 +12,16 @@ namespace FitnessPlatform.Application.Domain.Entities;
 /// Invariants enforced via PostgreSQL CHECK constraints (see <c>PhotoDiaryRequestConfiguration</c>):
 /// <list type="bullet">
 ///   <item>Exactly one of <see cref="LinkId"/> / <see cref="PendingInviteId"/> is non-null (XOR).</item>
-///   <item><see cref="Mode"/> is non-null if and only if <see cref="Status"/> is
+///   <item><see cref="Mode"/> is non-null whenever <see cref="Status"/> is
 ///     <see cref="PhotoDiaryStatus.Accepted"/>, <see cref="PhotoDiaryStatus.InProgress"/>,
-///     or <see cref="PhotoDiaryStatus.Completed"/>.</item>
+///     or <see cref="PhotoDiaryStatus.Completed"/>; other statuses may carry it too.</item>
 ///   <item><see cref="DismissReason"/> is non-null only when <see cref="Status"/> is
 ///     <see cref="PhotoDiaryStatus.Dismissed"/>.</item>
-///   <item><see cref="AcceptedAt"/> is non-null if and only if <see cref="Status"/> is
+///   <item><see cref="AcceptedAt"/> is non-null whenever <see cref="Status"/> is
 ///     <see cref="PhotoDiaryStatus.Accepted"/>, <see cref="PhotoDiaryStatus.InProgress"/>,
-///     or <see cref="PhotoDiaryStatus.Completed"/>.</item>
+///     or <see cref="PhotoDiaryStatus.Completed"/>, and null when it is
+///     <see cref="PhotoDiaryStatus.Pending"/> or <see cref="PhotoDiaryStatus.Dismissed"/>.
+///     A <see cref="PhotoDiaryStatus.Cancelled"/> request keeps whatever it had.</item>
 ///   <item><see cref="CompletedAt"/> is non-null if and only if <see cref="Status"/> is
 ///     <see cref="PhotoDiaryStatus.Completed"/>.</item>
 ///   <item><see cref="DurationDays"/> is between 1 and 30.</item>
@@ -57,17 +59,23 @@ public class PhotoDiaryRequest
     public Guid? PlanId { get; set; }
 
     /// <summary>
-    /// How many days the client has to upload photos in Workflow mode (default 7).
-    /// Must be between 1 and 30 (enforced by CHECK constraint).
+    /// How many days the request stays open (default 7; always 1 for <see cref="PhotoDiaryMode.Bulk"/>).
+    /// Must be between 1 and 30 (enforced by CHECK constraint). The open window ends at
+    /// <c>CreatedAt + DurationDays</c>.
     /// </summary>
     public int DurationDays { get; set; } = 7;
 
     /// <summary>
-    /// The upload mode chosen by the client on accept.
-    /// Null until the request is accepted (i.e. while <see cref="Status"/> is
-    /// <see cref="PhotoDiaryStatus.Pending"/> or <see cref="PhotoDiaryStatus.Dismissed"/>).
+    /// The upload mode the coach chose when creating the request. Null only on legacy rows
+    /// created before the coach picked the mode.
     /// </summary>
     public PhotoDiaryMode? Mode { get; set; }
+
+    /// <summary>
+    /// Optional note from the coach to the client (max 500 chars).
+    /// </summary>
+    [MaxLength(500)]
+    public string? Message { get; set; }
 
     /// <summary>
     /// Current lifecycle status of the request.
@@ -83,7 +91,7 @@ public class PhotoDiaryRequest
 
     /// <summary>
     /// Timestamp when the client accepted the request.
-    /// Non-null iff <see cref="Status"/> ∈ {Accepted, InProgress, Completed}.
+    /// Non-null when <see cref="Status"/> ∈ {Accepted, InProgress, Completed}.
     /// </summary>
     public DateTimeOffset? AcceptedAt { get; set; }
 
@@ -102,6 +110,22 @@ public class PhotoDiaryRequest
     /// Audit timestamp — when the request record was last updated.
     /// </summary>
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
+
+    /// <summary>
+    /// End of the open window: <c>CreatedAt + DurationDays</c>. Compute in memory — not part of any EF query.
+    /// </summary>
+    public DateTimeOffset EndsAt => CreatedAt.AddDays(DurationDays);
+
+    /// <summary>
+    /// True while the request is Pending, Accepted or InProgress and <paramref name="now"/> is before <see cref="EndsAt"/>.
+    /// </summary>
+    public bool IsOpenAt(DateTimeOffset now) => IsOpenStatus(Status) && now < EndsAt;
+
+    /// <summary>
+    /// True for the statuses in which a request can still be open (Pending, Accepted, InProgress).
+    /// </summary>
+    public static bool IsOpenStatus(PhotoDiaryStatus status) =>
+        status is PhotoDiaryStatus.Pending or PhotoDiaryStatus.Accepted or PhotoDiaryStatus.InProgress;
 
     // ── Navigation properties ─────────────────────────────────────────────────
 
