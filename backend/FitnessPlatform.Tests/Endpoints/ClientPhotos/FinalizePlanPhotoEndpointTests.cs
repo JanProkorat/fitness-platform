@@ -105,6 +105,60 @@ public class FinalizePlanPhotoEndpointTests
         return collection;
     }
 
+    // ── Viewer rows written at upload ─────────────────────────────────────────
+
+    [Fact]
+    public async Task HandleAsync_FoodPhoto_AddsViewerRowForPlanCreatorEvenWithoutLiveLink()
+    {
+        var planId = Guid.NewGuid();
+        var plan = PlanTestHelpers.CreatePlan(externalId: planId, clientId: _clientId);
+        var db = CreateDbBuilder().Build();
+
+        var ep = CreateEndpoint(CreateMongoWithNutritionPlan(plan), db);
+
+        await ep.HandleAsync(new FinalizePlanPhotoRequest
+        {
+            PlanId = planId,
+            BlobUrl = "plan-photos/abc/food.jpg",
+            Category = PlanPhotoCategory.Food
+        }, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(201);
+        db.PlanPhotoViewers.Received(1).Add(Arg.Any<PlanPhotoViewer>());
+        db.PlanPhotoViewers.Received(1).Add(Arg.Is<PlanPhotoViewer>(viewer =>
+            viewer.ProfessionalUserId == plan.NutritionistId));
+    }
+
+    [Fact]
+    public async Task HandleAsync_BodyPhotoOnPlan_AddsViewerRowsForLiveLinkedCoachesNotPlanCreator()
+    {
+        var planId = Guid.NewGuid();
+        var plan = PlanTestHelpers.CreatePlan(externalId: planId, clientId: _clientId);
+        var linkedCoach = Guid.NewGuid();
+
+        var db = CreateDbBuilder()
+            .With(EntityBuilder.ProfessionalProfile.WithUserId(linkedCoach).WithId(7).Build())
+            .With(EntityBuilder.ClientProfessionalLink
+                .WithProfessionalProfileId(7)
+                .WithClientProfileId(0)
+                .Build())
+            .Build();
+
+        var ep = CreateEndpoint(CreateMongoWithNutritionPlan(plan), db);
+
+        await ep.HandleAsync(new FinalizePlanPhotoRequest
+        {
+            PlanId = planId,
+            BlobUrl = "plan-photos/abc/body.jpg",
+            Category = PlanPhotoCategory.Body
+        }, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(201);
+        db.PlanPhotoViewers.Received(1).Add(Arg.Any<PlanPhotoViewer>());
+        db.PlanPhotoViewers.Received(1).Add(Arg.Is<PlanPhotoViewer>(viewer =>
+            viewer.ProfessionalUserId == linkedCoach));
+    }
+
     // ── Happy-path: nutrition plan ────────────────────────────────────────────
 
     [Fact]

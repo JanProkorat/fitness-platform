@@ -52,6 +52,41 @@ public static class EntityBuilder
     /// Creates a new <see cref="PendingInviteBuilder"/>.
     /// </summary>
     public static PendingInviteBuilder PendingInvite => new();
+
+    /// <summary>
+    /// Creates a new <see cref="PlanPhotoViewerBuilder"/>.
+    /// </summary>
+    public static PlanPhotoViewerBuilder PlanPhotoViewer => new();
+}
+
+/// <summary>
+/// Builder for <see cref="PlanPhotoViewer"/> test entities.
+/// </summary>
+public class PlanPhotoViewerBuilder
+{
+    private PlanPhoto? _photo;
+    private Guid _professionalUserId = Guid.NewGuid();
+
+    /// <summary>
+    /// Sets the photo this row grants access to.
+    /// </summary>
+    public PlanPhotoViewerBuilder ForPhoto(PlanPhoto photo) { _photo = photo; return this; }
+
+    /// <summary>
+    /// Sets the coach (<c>ApplicationUser.Id</c>) who may see the photo.
+    /// </summary>
+    public PlanPhotoViewerBuilder WithProfessionalUserId(Guid id) { _professionalUserId = id; return this; }
+
+    /// <summary>
+    /// Builds the <see cref="PlanPhotoViewer"/> instance.
+    /// </summary>
+    public PlanPhotoViewer Build() => new()
+    {
+        PlanPhotoId = _photo!.Id,
+        PlanPhoto = _photo,
+        ProfessionalUserId = _professionalUserId,
+        DateCreated = DateTime.UtcNow,
+    };
 }
 
 /// <summary>

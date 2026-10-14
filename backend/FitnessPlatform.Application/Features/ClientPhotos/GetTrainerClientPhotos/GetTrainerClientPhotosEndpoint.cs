@@ -98,7 +98,8 @@ public class GetTrainerClientPhotosEndpoint(
         // Build base query scoped to this client
         var query = db.PlanPhotos
             .AsNoTracking()
-            .Where(p => p.ClientProfileId == clientProfile.Id);
+            .Where(p => p.ClientProfileId == clientProfile.Id
+                && db.PlanPhotoViewers.Any(v => v.PlanPhotoId == p.Id && v.ProfessionalUserId == trainerUserId));
 
         // Domain scoping, keyed on Category alone — deliberately NOT on PlanType.
         //

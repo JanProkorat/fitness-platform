@@ -119,9 +119,12 @@ public class GetClientDashboardEndpoint(
             .AsNoTracking()
             .CountAsync(bm => bm.ClientProfileId == clientProfile.Id, ct);
 
+        var callerUserId = Guid.Parse(userId);
         var totalProgressPhotos = await db.PlanPhotos
             .AsNoTracking()
-            .CountAsync(pp => pp.ClientProfileId == clientProfile.Id && pp.Category == PlanPhotoCategory.Body, ct);
+            .CountAsync(pp => pp.ClientProfileId == clientProfile.Id
+                && pp.Category == PlanPhotoCategory.Body
+                && db.PlanPhotoViewers.Any(v => v.PlanPhotoId == pp.Id && v.ProfessionalUserId == callerUserId), ct);
 
         // Get the latest body measurement
         var latestMeasurement = await db.BodyMeasurements

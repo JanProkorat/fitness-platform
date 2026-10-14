@@ -198,6 +198,7 @@ public class SaveDayPhotosEndpoint(
             clientProfile,
             plan.ExternalId,
             replacementPhotos.Select(p => (p.BlobUrl, p.Note, p.Category)).ToList(),
+            plan.NutritionistId,
             now,
             ct);
 
@@ -316,6 +317,7 @@ public class SaveDayPhotosEndpoint(
         ClientProfile clientProfile,
         Guid planExternalId,
         IReadOnlyList<(string BlobUrl, string? Note, DayPhotoCategory Category)> photos,
+        Guid planCreatorUserId,
         DateTime now,
         CancellationToken ct)
     {
@@ -373,6 +375,7 @@ public class SaveDayPhotosEndpoint(
             inserted.Add(photo);
         }
 
+        await PlanPhotoVisibilityWriter.AddViewersAsync(db, logger, inserted, planCreatorUserId, ct);
         await db.SaveChangesAsync(ct);
         return inserted;
     }

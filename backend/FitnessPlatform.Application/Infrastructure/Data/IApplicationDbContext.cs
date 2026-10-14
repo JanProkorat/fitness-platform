@@ -51,6 +51,7 @@ public interface IApplicationDbContext
     /// Replaces the retired ProgressPhoto entity.
     /// </summary>
     DbSet<PlanPhoto> PlanPhotos { get; set; }
+    DbSet<PlanPhotoViewer> PlanPhotoViewers { get; set; }
 
     /// <summary>
     /// Refresh tokens for JWT authentication.

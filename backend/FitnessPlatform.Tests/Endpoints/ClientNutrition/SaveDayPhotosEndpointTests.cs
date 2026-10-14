@@ -399,6 +399,134 @@ public class SaveDayPhotosEndpointTests
             p.Category == PlanPhotoCategory.Body));
     }
 
+    private static MockDbBuilder WithLinkedCoach(MockDbBuilder builder, Guid coachUserId, long profileId, bool active)
+    {
+        var link = EntityBuilder.ClientProfessionalLink
+            .WithProfessionalProfileId(profileId)
+            .WithClientProfileId(0)
+            .WithCanViewNutritionPlans(true)
+            .WithCanViewTrainingPlans(false);
+
+        return builder
+            .With(EntityBuilder.ProfessionalProfile.WithUserId(coachUserId).WithId(profileId).Build())
+            .With((active ? link : link.Inactive()).Build());
+    }
+
+    [Fact]
+    public async Task SaveDayPhotos_NewFoodPhoto_AddsViewerRowForPlanNutritionistOnly()
+    {
+        var plan = PlanTestHelpers.CreatePlan(clientId: _clientId, status: NutritionPlanStatus.Active);
+        var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
+        var dayLogCollection = CreateDayLogCollection(existingLogs: []);
+        mongo.DayLogs.Returns(dayLogCollection);
+
+        var otherCoach = Guid.NewGuid();
+        var db = WithLinkedCoach(
+                new MockDbBuilder().With(new ClientProfile { UserId = _clientId, PublicId = _clientId }),
+                otherCoach, profileId: 7, active: true)
+            .Build();
+
+        var ep = CreateEndpoint(mongo, db);
+
+        await ep.HandleAsync(
+            new SaveDayPhotosRequest
+            {
+                Photos = [new DayPhotoInput { BlobUrl = "https://minio.local/plan-photos/food.jpg", Category = DayPhotoCategory.Food }],
+            },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(204);
+        db.PlanPhotoViewers.Received(1).Add(Arg.Any<PlanPhotoViewer>());
+        db.PlanPhotoViewers.Received(1).Add(Arg.Is<PlanPhotoViewer>(viewer =>
+            viewer.ProfessionalUserId == plan.NutritionistId));
+    }
+
+    [Fact]
+    public async Task SaveDayPhotos_NewBodyPhoto_AddsViewerRowForLiveLinkedCoachesOnly()
+    {
+        var plan = PlanTestHelpers.CreatePlan(clientId: _clientId, status: NutritionPlanStatus.Active);
+        var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
+        var dayLogCollection = CreateDayLogCollection(existingLogs: []);
+        mongo.DayLogs.Returns(dayLogCollection);
+
+        var liveCoach = Guid.NewGuid();
+        var deadCoach = Guid.NewGuid();
+        var builder = new MockDbBuilder().With(new ClientProfile { UserId = _clientId, PublicId = _clientId });
+        builder = WithLinkedCoach(builder, liveCoach, profileId: 7, active: true);
+        builder = WithLinkedCoach(builder, deadCoach, profileId: 8, active: false);
+        var db = builder.Build();
+
+        var ep = CreateEndpoint(mongo, db);
+
+        await ep.HandleAsync(
+            new SaveDayPhotosRequest
+            {
+                Photos = [new DayPhotoInput { BlobUrl = "https://minio.local/plan-photos/body.jpg", Category = DayPhotoCategory.Progress }],
+            },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(204);
+        db.PlanPhotoViewers.Received(1).Add(Arg.Any<PlanPhotoViewer>());
+        db.PlanPhotoViewers.Received(1).Add(Arg.Is<PlanPhotoViewer>(viewer =>
+            viewer.ProfessionalUserId == liveCoach));
+    }
+
+    [Fact]
+    public async Task SaveDayPhotos_ResaveExistingBodyPhotoAfterCoachLinked_AddsNoViewerRow()
+    {
+        var planExternalId = Guid.NewGuid();
+        var plan = PlanTestHelpers.CreatePlan(clientId: _clientId, status: NutritionPlanStatus.Active, externalId: planExternalId);
+        const string blobUrl = "https://minio.local/plan-photos/early-body.jpg";
+
+        var existingPlanPhoto = new PlanPhoto
+        {
+            PublicId = Guid.NewGuid(),
+            ClientProfileId = 0,
+            PlanId = planExternalId,
+            PlanType = PlanPhotoType.Nutrition,
+            LinkId = planExternalId,
+            Category = PlanPhotoCategory.Body,
+            BlobUrl = blobUrl,
+            TakenAt = DateTime.UtcNow.AddDays(-2),
+            UploadedByUserId = _clientId,
+            DateCreated = DateTime.UtcNow.AddDays(-2),
+        };
+
+        var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
+        var dayLogCollection = CreateDayLogCollection(existingLogs:
+        [
+            new DayLog
+            {
+                Id = MongoDB.Bson.ObjectId.GenerateNewId().ToString(),
+                ClientId = _clientId,
+                PlanId = planExternalId,
+                LogDate = DateTime.UtcNow.Date,
+                Photos = [new DayPhoto { BlobUrl = blobUrl, UploadedAt = DateTime.UtcNow.AddDays(-2), Category = DayPhotoCategory.Progress }],
+                Version = 1
+            }
+        ]);
+        mongo.DayLogs.Returns(dayLogCollection);
+
+        // A coach linked after the photo was first uploaded.
+        var builder = new MockDbBuilder()
+            .With(new ClientProfile { UserId = _clientId, PublicId = _clientId })
+            .With(existingPlanPhoto);
+        var db = WithLinkedCoach(builder, Guid.NewGuid(), profileId: 7, active: true).Build();
+
+        var ep = CreateEndpoint(mongo, db);
+
+        await ep.HandleAsync(
+            new SaveDayPhotosRequest
+            {
+                Photos = [new DayPhotoInput { BlobUrl = blobUrl, Category = DayPhotoCategory.Progress }],
+            },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(204);
+        db.PlanPhotos.DidNotReceive().Add(Arg.Any<PlanPhoto>());
+        db.PlanPhotoViewers.DidNotReceive().Add(Arg.Any<PlanPhotoViewer>());
+    }
+
     [Fact]
     public async Task SaveDayPhotos_UpdatedNoteOnExistingPhoto_UpdatesPlanPhotoDescription()
     {
