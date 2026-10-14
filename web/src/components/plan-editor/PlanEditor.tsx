@@ -20,7 +20,7 @@ import CardDropDialog from '@/components/plan-editor/CardDropDialog';
 import DaySummaryCard from '@/components/plan-editor/DaySummaryCard';
 import DayNavigator from '@/components/plan-editor/DayNavigator';
 import DayView from '@/components/plan-editor/DayView';
-import LibraryPanel, { type LibraryExtraTab } from '@/components/plan-editor/LibraryPanel';
+import LibraryPanel from '@/components/plan-editor/LibraryPanel';
 import MealDetail from '@/components/plan-editor/MealDetail';
 import MealPicker from '@/components/plan-editor/MealPicker';
 import NutritionView from '@/components/plan-editor/NutritionView';
@@ -99,6 +99,12 @@ export interface InfoPanelContext {
   onEdit: PlanEditorState['edit'];
 }
 
+/** A third library tab; `render` sees the document and the selected week, so it can read and edit the plan. */
+export interface PlanEditorLibraryTab {
+  label: string;
+  render: (context: InfoPanelContext) => ReactNode;
+}
+
 /** Replaces the header's Save button; sees the document and the selected week, e.g. for "Publish week N". */
 export interface PlanEditorPrimaryAction {
   label: (weekNumber: number) => string;
@@ -133,7 +139,7 @@ interface Props {
   /** Label of the info tab; defaults to the template wording. */
   infoTabLabel?: string;
   /** Adds a third tab to the library panel. */
-  libraryExtraTab?: LibraryExtraTab;
+  libraryExtraTab?: PlanEditorLibraryTab;
   /** Publication state per week: shows a dot on each pill (empty weeks get none) and a count legend. */
   weekStatus?: (weekIndex: number) => WeekStatus | undefined;
   saveState: PlanEditorSaveState;
@@ -574,7 +580,16 @@ export default function PlanEditor({
           canAdd={selected !== null}
           disabled={readOnly}
           onAdd={(item) => selected && addToCell(item, selected)}
-          extraTab={libraryExtraTab}
+          extraTab={
+            libraryExtraTab
+              ? {
+                  label: libraryExtraTab.label,
+                  render: () =>
+                    libraryExtraTab.render({ doc, week, weekNumber: currentIndex + 1, readOnly, onEdit: edit }),
+                }
+              : undefined
+          }
+          hideTabCounts={libraryExtraTab !== undefined}
         />
       ),
     },

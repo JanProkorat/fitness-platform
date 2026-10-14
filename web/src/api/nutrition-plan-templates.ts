@@ -5,6 +5,7 @@ import { apiClient } from '@/api/client';
 import type {
   CreateNutritionPlanTemplateFromPlanRequest,
   CreateNutritionPlanTemplateRequest,
+  DietaryStyle,
   InstantiateNutritionPlanTemplateRequest,
   InstantiateNutritionPlanTemplateResponse,
   NutritionPlanTemplateDetailDto,
@@ -30,6 +31,7 @@ export type {
 export interface SearchPlanTemplatesParams {
   search?: string;
   goal?: PrimaryGoal;
+  dietaryStyle?: DietaryStyle;
   weekCount?: number;
   mealsPerDay?: number;
   inUse?: boolean;
@@ -51,7 +53,7 @@ export async function searchPlanTemplates(params: SearchPlanTemplatesParams): Pr
     params.pageSize,
     params.search,
     params.goal,
-    undefined,
+    params.dietaryStyle,
     params.weekCount,
     params.mealsPerDay,
     params.inUse,

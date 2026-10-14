@@ -2230,6 +2230,49 @@
         "profileLink": "Open nutrition profile"
       }
     },
+    "templates": {
+      "tab": "Templates",
+      "introMatched": "Matched to {{name}} — {{criteria}}. Press Use to put a template in the plan.",
+      "introAll": "All your templates. Press Use to put one in the plan.",
+      "criteria": {
+        "goal": "goal {{goal}}",
+        "kcal": "{{kcal}} kcal",
+        "diet": "{{diet}} diet"
+      },
+      "bestMatch": "Best match",
+      "otherGoals": "Other goals",
+      "use": "Use",
+      "useNamed": "Use {{name}}",
+      "noMeals": "This template has no meals.",
+      "weeksShort": "{{count}} wks",
+      "match": {
+        "goal": "✓ goal",
+        "goalDiffers": "goal differs",
+        "diet": "✓ diet",
+        "meals": "✓ meals",
+        "kcalClose": "✓ kcal",
+        "kcalNear": "~ kcal {{percent}} %"
+      },
+      "empty": "No templates yet.",
+      "listError": "Couldn't load the templates.",
+      "loadError": "Couldn't load the template. Please try again.",
+      "gone": "This template is no longer available.",
+      "emptyTemplate": "This template has no meals.",
+      "replaceTitle": "Use “{{name}}” instead?",
+      "replaceBody": "This plan already has meals. The template will replace them.",
+      "weeksLabel_one": "Week {{range}}",
+      "weeksLabel_other": "Weeks {{range}}",
+      "draftsGet": "{{weeks}} (drafts) get the template’s meals.",
+      "publishedKept_one": "{{weeks}} is published — {{name}} keeps it unchanged.",
+      "publishedKept_other": "{{weeks}} are published — {{name}} keeps them unchanged.",
+      "weekCount_one": "{{count}} week",
+      "weekCount_other": "{{count}} weeks",
+      "ending": ", ending {{date}}",
+      "lengthShrinks": "The template has {{template}}; the plan shortens to {{result}}{{ending}}.",
+      "lengthGrows": "The template has {{template}}; the plan grows to {{result}}{{ending}}.",
+      "keepLength": "Keep {{weeks}} — repeat the template to fill them",
+      "replaceConfirm": "Replace draft weeks"
+    },
     "notFound": {
       "title": "Plan not found",
       "body": "This plan doesn't exist, or it isn't one of this client's plans."

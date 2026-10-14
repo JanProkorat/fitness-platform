@@ -8,6 +8,7 @@ import type { GetPlanResponse, OnboardingDataDto } from '@/api/generated';
 import { fetchPlanForEditor } from '@/api/plans';
 import ClientAvatar from '@/components/clients/ClientAvatar';
 import ClientPlanInfoPanel from '@/components/client-plan-editor/ClientPlanInfoPanel';
+import TemplatesLibraryTab from '@/components/client-plan-editor/TemplatesLibraryTab';
 import PlanEditor from '@/components/plan-editor/PlanEditor';
 import CopyMealsDialog from '@/components/plan-templates/CopyMealsDialog';
 import { Button } from '@/components/ui/button';
@@ -80,6 +81,17 @@ function LoadedClientPlanEditor({ plan, clientId, clientName, firstName, lastNam
         />
       )}
       infoTabLabel={t('clientPlanEditor.info.tab')}
+      libraryExtraTab={{
+        label: t('clientPlanEditor.templates.tab'),
+        render: (context) => (
+          <TemplatesLibraryTab
+            context={context}
+            weekStatus={weekStatus}
+            onboarding={onboarding}
+            clientFirstName={firstName || clientName}
+          />
+        ),
+      }}
       weekStatus={weekStatus}
       weekSubLabel={weekSubLabel}
       saveState={saveState}
