@@ -2268,7 +2268,31 @@
     },
     "info": {
       "tab": "Info o plánu",
-      "placeholder": "Tady se zobrazí podrobnosti plánu."
+      "name": "Název plánu",
+      "dates": "Termín",
+      "starts": "Začátek",
+      "ends": "Konec",
+      "startPick": "Vybrat datum začátku",
+      "startPlaceholder": "Vyberte pondělí",
+      "datesHint_one": "Plány začínají v pondělí. {{count}} týden — týdny přidáte nebo odeberete v pruhu týdnů.",
+      "datesHint_few": "Plány začínají v pondělí. {{count}} týdny — týdny přidáte nebo odeberete v pruhu týdnů.",
+      "datesHint_many": "Plány začínají v pondělí. {{count}} týdne — týdny přidáte nebo odeberete v pruhu týdnů.",
+      "datesHint_other": "Plány začínají v pondělí. {{count}} týdnů — týdny přidáte nebo odeberete v pruhu týdnů.",
+      "copiedFrom": "Převzato z profilu klienta {{name}}",
+      "resetToProfile": "obnovit z profilu",
+      "publishing": "Publikování",
+      "publishingBody": "Každý týden se publikuje zvlášť. Klient {{name}} uvidí týden až po jeho publikování.",
+      "startedFromTemplate": "Vytvořeno ze šablony {{name}}",
+      "about": {
+        "heading": "O klientovi {{name}}",
+        "goal": "Cíl",
+        "diet": "Dieta",
+        "allergies": "Alergie",
+        "dislikes": "Nechuti",
+        "habits": "Návyky",
+        "meals": "Jídel denně",
+        "profileLink": "Otevřít výživový profil"
+      }
     },
     "notFound": {
       "title": "Plán nenalezen",

@@ -4,7 +4,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft } from 'lucide-react';
 import { apiClient } from '@/api/client';
-import type { GetPlanResponse } from '@/api/generated';
+import type { GetPlanResponse, OnboardingDataDto } from '@/api/generated';
 import { fetchPlanForEditor } from '@/api/plans';
 import ClientAvatar from '@/components/clients/ClientAvatar';
 import ClientPlanInfoPanel from '@/components/client-plan-editor/ClientPlanInfoPanel';
@@ -22,14 +22,15 @@ interface LoadedProps {
   clientName: string;
   firstName?: string;
   lastName?: string;
+  onboarding?: OnboardingDataDto;
   onReload: () => void;
 }
 
 /** Hosts the shared plan editor for one loaded client plan. Mounted once per load, so edits stay local. */
-function LoadedClientPlanEditor({ plan, clientId, clientName, firstName, lastName, onReload }: LoadedProps) {
+function LoadedClientPlanEditor({ plan, clientId, clientName, firstName, lastName, onboarding, onReload }: LoadedProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { initial, saveState, save, primaryAction, weekStatus, weekSubLabel, publishedCount, totalWeeks } =
+  const { initial, saveState, save, primaryAction, weekStatus, weekSubLabel, publishedCount, totalWeeks, savedStartDate } =
     useClientPlanEditor(plan, clientId);
 
   const badge =
@@ -68,7 +69,16 @@ function LoadedClientPlanEditor({ plan, clientId, clientName, firstName, lastNam
       }
       primaryAction={primaryAction}
       secondarySave
-      renderInfoPanel={(context) => <ClientPlanInfoPanel {...context} />}
+      renderInfoPanel={(context) => (
+        <ClientPlanInfoPanel
+          {...context}
+          clientId={clientId}
+          clientFirstName={firstName || clientName}
+          onboarding={onboarding}
+          savedStartDate={savedStartDate}
+          sourceTemplateId={plan.sourceTemplateId}
+        />
+      )}
       infoTabLabel={t('clientPlanEditor.info.tab')}
       weekStatus={weekStatus}
       weekSubLabel={weekSubLabel}
@@ -162,6 +172,7 @@ export default function ClientPlanEditorPage() {
       clientName={clientName}
       firstName={dashboard?.firstName}
       lastName={dashboard?.lastName}
+      onboarding={dashboard?.onboarding}
       onReload={() => {
         void planQuery.refetch().then(() => setReloadCount((count) => count + 1));
       }}

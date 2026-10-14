@@ -54,6 +54,8 @@ export interface EditorDocument {
   dietaryStyle?: DietaryStyle;
   /** Daily targets the days and weeks are measured against. */
   targets: PlanTargets;
+  /** The Monday week 1 begins, as `YYYY-MM-DD`; only client plans have one. */
+  startDate?: string;
   weeks: EditorWeek[];
 }
 
