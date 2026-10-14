@@ -72,6 +72,13 @@ public class ClientPhotoResponse
     public MealKind? MealKind { get; set; }
 
     /// <summary>
+    /// Current name of the plan the photo links to, archived plans included. Filled by the trainer
+    /// view only; null without a plan, when the plan document is missing or belongs to another
+    /// client, and when the caller lacks the capability to view that plan type.
+    /// </summary>
+    public string? PlanName { get; set; }
+
+    /// <summary>
     /// When the photo was taken or uploaded, in UTC.
     /// </summary>
     public DateTime TakenAt { get; set; }

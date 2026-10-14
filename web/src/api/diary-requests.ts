@@ -10,6 +10,7 @@ import type {
   PhotoDiaryRequestSummary,
   PhotoDiaryStatus,
   PhotoDiaryMode,
+  CancelPhotoDiaryRequestResponse,
 } from '@/api/generated';
 
 export type {
@@ -17,6 +18,7 @@ export type {
   PhotoDiaryRequestSummary,
   PhotoDiaryStatus,
   PhotoDiaryMode,
+  CancelPhotoDiaryRequestResponse,
 };
 
 export interface CreateDiaryRequestParams {
@@ -26,8 +28,12 @@ export interface CreateDiaryRequestParams {
   pendingInviteId?: number;
   /** Optional plan scope (MongoDB external ID). */
   planId?: string;
-  /** Duration in days (1–30). Defaults to 7. */
+  /** Duration in days (1–30). Defaults to 7. Ignored by the server for `Bulk`. */
   durationDays?: number;
+  /** `Bulk` = once, `Workflow` = every day. */
+  mode?: PhotoDiaryMode;
+  /** Optional note shown to the client (max 500 characters). */
+  message?: string;
 }
 
 /**
@@ -40,7 +46,9 @@ export async function createDiaryRequest(
     clientId: params.clientId ?? undefined,
     pendingInviteId: params.pendingInviteId ?? undefined,
     planId: params.planId ?? undefined,
+    mode: params.mode,
     durationDays: params.durationDays ?? 7,
+    message: params.message || undefined,
   });
 }
 
@@ -50,6 +58,8 @@ export interface ListDiaryRequestsParams {
   status?: PhotoDiaryStatus | null;
   linkId?: number | null;
   planId?: string | null;
+  /** Public identifier of the client (ClientProfile.PublicId). */
+  clientId?: string | null;
 }
 
 /**
@@ -66,8 +76,16 @@ export async function listDiaryRequests(
     params.linkId ?? undefined,
     undefined, // pendingInviteId
     params.planId ?? undefined,
+    params.clientId ?? undefined,
   );
   return response.items ?? [];
+}
+
+/**
+ * Cancel an open request via POST /trainer/photo-diary-requests/{id}/cancel.
+ */
+export async function cancelDiaryRequest(id: string): Promise<CancelPhotoDiaryRequestResponse> {
+  return apiClient.cancelPhotoDiaryRequestEndpoint(id);
 }
 
 /**

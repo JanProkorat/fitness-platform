@@ -1,3 +1,5 @@
+using FitnessPlatform.Application.Domain.Enums;
+
 namespace FitnessPlatform.Application.Features.Questionnaires.GetClientPendingQuestionnaires;
 
 /// <summary>
@@ -35,8 +37,14 @@ public class PendingDiaryRequestItem
     /// <summary>Role of the professional ("Trainer" or "Nutritionist").</summary>
     public string? ProfessionalRole { get; set; }
 
-    /// <summary>How many days the client has to upload photos (default 7).</summary>
+    /// <summary>How many days the request stays open (default 7).</summary>
     public int DurationDays { get; set; }
+
+    /// <summary>The upload mode the coach chose; null on legacy rows.</summary>
+    public PhotoDiaryMode? Mode { get; set; }
+
+    /// <summary>The coach's optional note to the client.</summary>
+    public string? Message { get; set; }
 
     /// <summary>Always "Pending" for items returned by this endpoint.</summary>
     public string Status { get; set; } = "Pending";

@@ -218,6 +218,7 @@ public class SaveMealPhotosEndpoint(
             plan.ExternalId,
             mealLogId,
             replacementPhotos.Select(p => (p.BlobUrl, p.Note)).ToList(),
+            plan.NutritionistId,
             now,
             ct);
 
@@ -331,6 +332,7 @@ public class SaveMealPhotosEndpoint(
         Guid planExternalId,
         string mealLogId,
         IReadOnlyList<(string BlobUrl, string? Note)> photos,
+        Guid planCreatorUserId,
         DateTime now,
         CancellationToken ct)
     {
@@ -387,6 +389,7 @@ public class SaveMealPhotosEndpoint(
             inserted.Add(photo);
         }
 
+        await PlanPhotoVisibilityWriter.AddViewersAsync(db, logger, inserted, planCreatorUserId, ct);
         await db.SaveChangesAsync(ct);
         return inserted;
     }

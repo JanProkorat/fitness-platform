@@ -317,6 +317,9 @@ public static class ErrorCodes
     /// <summary>The caller is not the owning professional for this photo diary request (role-gate rejection).</summary>
     public const string PhotoDiaryRequestForbidden = "PHOTO_DIARY_REQUEST_FORBIDDEN";
 
+    /// <summary>The coach already has an open photo diary request for this client.</summary>
+    public const string PhotoDiaryRequestAlreadyOpen = "PHOTO_DIARY_REQUEST_ALREADY_OPEN";
+
     // ── Workout Templates ────────────────────────────────────────────
     /// <summary>Workout template not found, or not owned by the calling trainer (indistinguishable from missing).</summary>
     public const string WorkoutTemplateNotFound = "WORKOUT_TEMPLATE_NOT_FOUND";

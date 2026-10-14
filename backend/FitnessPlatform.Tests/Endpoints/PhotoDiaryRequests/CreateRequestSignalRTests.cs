@@ -124,7 +124,7 @@ public class CreateRequestSignalRTests(FitnessApiFactory factory)
 
         var response = await profHttp.PostAsJsonAsync(
             "/trainer/photo-diary-requests",
-            new { ClientId = clientPublicId, DurationDays = 7 },
+            new { ClientId = clientPublicId, Mode = "Workflow", DurationDays = 7 },
             TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -143,6 +143,31 @@ public class CreateRequestSignalRTests(FitnessApiFactory factory)
     }
 
     [Fact]
+    public async Task CreateRequest_WithModeAndMessage_ClientNotificationCarriesBoth()
+    {
+        var notifier = GetNotifier();
+        notifier.Reset();
+
+        var (profHttp, profId, _, _) = await SetupProfessionalAsync();
+        var (_, clientId) = await SetupClientAsync();
+        var clientPublicId = await InsertLinkAsync(clientId, profId);
+
+        var response = await profHttp.PostAsJsonAsync(
+            "/trainer/photo-diary-requests",
+            new { ClientId = clientPublicId, Mode = "Bulk", Message = "Please send a photo of your breakfast" },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var evt = notifier.Calls
+            .Single(c => c.EventType == "photodiaryrequested")
+            .Payload.Should().BeOfType<PhotoDiaryRequestedEvent>().Subject;
+        evt.Mode.Should().Be("Bulk");
+        evt.Message.Should().Be("Please send a photo of your breakfast");
+        evt.DurationDays.Should().Be(1);
+    }
+
+    [Fact]
     public async Task CreateRequest_LinkBased_EventContainsCorrectRequestId()
     {
         var notifier = GetNotifier();
@@ -154,7 +179,7 @@ public class CreateRequestSignalRTests(FitnessApiFactory factory)
 
         var response = await profHttp.PostAsJsonAsync(
             "/trainer/photo-diary-requests",
-            new { ClientId = clientPublicId, DurationDays = 14 },
+            new { ClientId = clientPublicId, Mode = "Workflow", DurationDays = 14 },
             TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -195,7 +220,7 @@ public class CreateRequestSignalRTests(FitnessApiFactory factory)
 
         var response = await profHttp.PostAsJsonAsync(
             "/trainer/photo-diary-requests",
-            new { PendingInviteId = inviteId, DurationDays = 7 },
+            new { PendingInviteId = inviteId, Mode = "Workflow", DurationDays = 7 },
             TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -222,7 +247,7 @@ public class CreateRequestSignalRTests(FitnessApiFactory factory)
 
         var response = await profHttp.PostAsJsonAsync(
             "/trainer/photo-diary-requests",
-            new { PendingInviteId = inviteId, DurationDays = 7 },
+            new { PendingInviteId = inviteId, Mode = "Workflow", DurationDays = 7 },
             TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -248,7 +273,7 @@ public class CreateRequestSignalRTests(FitnessApiFactory factory)
 
         var response = await profHttp.PostAsJsonAsync(
             "/trainer/photo-diary-requests",
-            new { ClientId = clientPublicId, DurationDays = 7 },
+            new { ClientId = clientPublicId, Mode = "Workflow", DurationDays = 7 },
             TestContext.Current.CancellationToken);
 
         // The HTTP response must still be 200 even though the notifier threw

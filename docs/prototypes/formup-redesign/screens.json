@@ -216,6 +216,30 @@
   "h": 1120
  },
  {
+  "html": "web/05-15-page-client-photos-c.html",
+  "png": "web/05-15-page-client-photos-c.png",
+  "w": 1440,
+  "h": 1100
+ },
+ {
+  "html": "web/05-17-page-client-photos-viewer-c.html",
+  "png": "web/05-17-page-client-photos-viewer-c.png",
+  "w": 1440,
+  "h": 1100
+ },
+ {
+  "html": "web/05-18-page-client-photos-compare-c.html",
+  "png": "web/05-18-page-client-photos-compare-c.png",
+  "w": 1440,
+  "h": 1100
+ },
+ {
+  "html": "web/05-19-page-client-photos-request-c.html",
+  "png": "web/05-19-page-client-photos-request-c.png",
+  "w": 1440,
+  "h": 1100
+ },
+ {
   "html": "web/06-01-page-clients-d.html",
   "png": "web/06-01-page-clients-d.png",
   "w": 1440,
@@ -304,6 +328,30 @@
   "png": "web/06-15-client-header-options-d.png",
   "w": 1240,
   "h": 1120
+ },
+ {
+  "html": "web/06-15-page-client-photos-d.html",
+  "png": "web/06-15-page-client-photos-d.png",
+  "w": 1440,
+  "h": 1100
+ },
+ {
+  "html": "web/06-17-page-client-photos-viewer-d.html",
+  "png": "web/06-17-page-client-photos-viewer-d.png",
+  "w": 1440,
+  "h": 1100
+ },
+ {
+  "html": "web/06-18-page-client-photos-compare-d.html",
+  "png": "web/06-18-page-client-photos-compare-d.png",
+  "w": 1440,
+  "h": 1100
+ },
+ {
+  "html": "web/06-19-page-client-photos-request-d.html",
+  "png": "web/06-19-page-client-photos-request-d.png",
+  "w": 1440,
+  "h": 1100
  },
  {
   "html": "web/07-01-page-inbox-c.html",

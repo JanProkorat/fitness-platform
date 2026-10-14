@@ -68,6 +68,7 @@ public class GetClientPhotoDiaryRequestEndpoint(IApplicationDbContext db)
             PlanId = request.PlanId,
             DurationDays = request.DurationDays,
             Mode = request.Mode,
+            Message = request.Message,
             Status = request.Status,
             DismissReason = request.DismissReason,
             AcceptedAt = request.AcceptedAt,

@@ -6,6 +6,7 @@ using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.ClientPhotos;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
@@ -191,6 +192,7 @@ public class SaveSessionPhotosEndpoint(
             plan.ExternalId,
             req.SessionId,
             replacementPhotos.Select(p => (p.BlobUrl, p.Note)).ToList(),
+            plan.TrainerId,
             now,
             ct);
 
@@ -301,6 +303,7 @@ public class SaveSessionPhotosEndpoint(
         Guid planExternalId,
         Guid sessionId,
         IReadOnlyList<(string BlobUrl, string? Note)> photos,
+        Guid planCreatorUserId,
         DateTime now,
         CancellationToken ct)
     {
@@ -365,6 +368,7 @@ public class SaveSessionPhotosEndpoint(
             inserted.Add(photo);
         }
 
+        await PlanPhotoVisibilityWriter.AddViewersAsync(db, logger, inserted, planCreatorUserId, ct);
         await db.SaveChangesAsync(ct);
         return inserted;
     }
