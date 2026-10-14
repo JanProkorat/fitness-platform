@@ -207,7 +207,7 @@ public class GetTrainerClientPhotosEndpointTests
         var (builder, _, _) = CreateLinkedSetup();
         var photo1 = MakePhoto(2, PlanPhotoCategory.Body);
         var photo2 = MakePhoto(2, PlanPhotoCategory.Food);
-        var db = builder.With(photo1).With(photo2).Build();
+        var db = builder.WithViewedPhoto(_trainerUserId, photo1).WithViewedPhoto(_trainerUserId, photo2).Build();
 
         var ep = Factory.Create<GetTrainerClientPhotosEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
@@ -235,7 +235,7 @@ public class GetTrainerClientPhotosEndpointTests
     {
         var (builder, _, _) = CreateLinkedSetup();
         var photo = MakePhoto(2, PlanPhotoCategory.Body);
-        var db = builder.With(photo).Build();
+        var db = builder.WithViewedPhoto(_trainerUserId, photo).Build();
 
         var blobStorage = new FakeBlobStorageService();
 
@@ -298,7 +298,7 @@ public class GetTrainerClientPhotosEndpointTests
         // Add 5 photos
         for (var i = 0; i < 5; i++)
         {
-            builder.With(MakePhoto(2, PlanPhotoCategory.Body,
+            builder.WithViewedPhoto(_trainerUserId, MakePhoto(2, PlanPhotoCategory.Body,
                 DateTime.UtcNow.AddDays(-i)));
         }
 
@@ -332,7 +332,7 @@ public class GetTrainerClientPhotosEndpointTests
         // 3 photos, page size 2 → page 2 should give 1 item
         for (var i = 0; i < 3; i++)
         {
-            builder.With(MakePhoto(2, PlanPhotoCategory.Body, DateTime.UtcNow.AddDays(-i)));
+            builder.WithViewedPhoto(_trainerUserId, MakePhoto(2, PlanPhotoCategory.Body, DateTime.UtcNow.AddDays(-i)));
         }
 
         var db = builder.Build();
@@ -361,9 +361,9 @@ public class GetTrainerClientPhotosEndpointTests
     public async Task HandleAsync_CategoryFilter_ReturnsOnlyMatchingPhotos()
     {
         var (builder, _, _) = CreateLinkedSetup();
-        builder.With(MakePhoto(2, PlanPhotoCategory.Body));
-        builder.With(MakePhoto(2, PlanPhotoCategory.Food));
-        builder.With(MakePhoto(2, PlanPhotoCategory.FreeForm));
+        builder.WithViewedPhoto(_trainerUserId, MakePhoto(2, PlanPhotoCategory.Body));
+        builder.WithViewedPhoto(_trainerUserId, MakePhoto(2, PlanPhotoCategory.Food));
+        builder.WithViewedPhoto(_trainerUserId, MakePhoto(2, PlanPhotoCategory.FreeForm));
         var db = builder.Build();
 
         var ep = Factory.Create<GetTrainerClientPhotosEndpoint>(
@@ -405,9 +405,9 @@ public class GetTrainerClientPhotosEndpointTests
     public async Task HandleAsync_NutritionOnlyLink_ExcludesTrainingCategoryPhotos()
     {
         var (builder, _, _) = CreateLinkedSetup(canViewNutritionPlans: true, canViewTrainingPlans: false);
-        builder.With(MakePhoto(2, PlanPhotoCategory.Food));
-        builder.With(MakePhoto(2, PlanPhotoCategory.Training));
-        builder.With(MakePhoto(2, PlanPhotoCategory.Body));
+        builder.WithViewedPhoto(_trainerUserId, MakePhoto(2, PlanPhotoCategory.Food));
+        builder.WithViewedPhoto(_trainerUserId, MakePhoto(2, PlanPhotoCategory.Training));
+        builder.WithViewedPhoto(_trainerUserId, MakePhoto(2, PlanPhotoCategory.Body));
         var db = builder.Build();
 
         var ep = Factory.Create<GetTrainerClientPhotosEndpoint>(
@@ -442,9 +442,9 @@ public class GetTrainerClientPhotosEndpointTests
     public async Task HandleAsync_TrainingOnlyLink_ExcludesFoodCategoryPhotos()
     {
         var (builder, _, _) = CreateLinkedSetup(canViewNutritionPlans: false, canViewTrainingPlans: true);
-        builder.With(MakePhoto(2, PlanPhotoCategory.Food));
-        builder.With(MakePhoto(2, PlanPhotoCategory.Training));
-        builder.With(MakePhoto(2, PlanPhotoCategory.Body));
+        builder.WithViewedPhoto(_trainerUserId, MakePhoto(2, PlanPhotoCategory.Food));
+        builder.WithViewedPhoto(_trainerUserId, MakePhoto(2, PlanPhotoCategory.Training));
+        builder.WithViewedPhoto(_trainerUserId, MakePhoto(2, PlanPhotoCategory.Body));
         var db = builder.Build();
 
         var ep = Factory.Create<GetTrainerClientPhotosEndpoint>(
@@ -475,10 +475,10 @@ public class GetTrainerClientPhotosEndpointTests
     {
         var (builder, _, _) = CreateLinkedSetup();
         var anchor = new DateTime(2026, 3, 15, 0, 0, 0, DateTimeKind.Utc);
-        builder.With(MakePhoto(2, takenAt: anchor.AddDays(-10))); // before range
-        builder.With(MakePhoto(2, takenAt: anchor));               // on From boundary
-        builder.With(MakePhoto(2, takenAt: anchor.AddDays(5)));    // inside range
-        builder.With(MakePhoto(2, takenAt: anchor.AddDays(20)));   // after range
+        builder.WithViewedPhoto(_trainerUserId, MakePhoto(2, takenAt: anchor.AddDays(-10))); // before range
+        builder.WithViewedPhoto(_trainerUserId, MakePhoto(2, takenAt: anchor));               // on From boundary
+        builder.WithViewedPhoto(_trainerUserId, MakePhoto(2, takenAt: anchor.AddDays(5)));    // inside range
+        builder.WithViewedPhoto(_trainerUserId, MakePhoto(2, takenAt: anchor.AddDays(20)));   // after range
         var db = builder.Build();
 
         var ep = Factory.Create<GetTrainerClientPhotosEndpoint>(
@@ -512,9 +512,9 @@ public class GetTrainerClientPhotosEndpointTests
     public async Task HandleAsync_GroupByMonth_ReturnsGroupedResponse()
     {
         var (builder, _, _) = CreateLinkedSetup();
-        builder.With(MakePhoto(2, takenAt: new DateTime(2026, 1, 10, 0, 0, 0, DateTimeKind.Utc)));
-        builder.With(MakePhoto(2, takenAt: new DateTime(2026, 1, 20, 0, 0, 0, DateTimeKind.Utc)));
-        builder.With(MakePhoto(2, takenAt: new DateTime(2026, 2, 5, 0, 0, 0, DateTimeKind.Utc)));
+        builder.WithViewedPhoto(_trainerUserId, MakePhoto(2, takenAt: new DateTime(2026, 1, 10, 0, 0, 0, DateTimeKind.Utc)));
+        builder.WithViewedPhoto(_trainerUserId, MakePhoto(2, takenAt: new DateTime(2026, 1, 20, 0, 0, 0, DateTimeKind.Utc)));
+        builder.WithViewedPhoto(_trainerUserId, MakePhoto(2, takenAt: new DateTime(2026, 2, 5, 0, 0, 0, DateTimeKind.Utc)));
         var db = builder.Build();
 
         var ep = Factory.Create<GetTrainerClientPhotosEndpoint>(
@@ -550,7 +550,7 @@ public class GetTrainerClientPhotosEndpointTests
     public async Task HandleAsync_GroupByMonth_Flat_ReturnsPhotosNotGroups()
     {
         var (builder, _, _) = CreateLinkedSetup();
-        builder.With(MakePhoto(2, takenAt: new DateTime(2026, 1, 10, 0, 0, 0, DateTimeKind.Utc)));
+        builder.WithViewedPhoto(_trainerUserId, MakePhoto(2, takenAt: new DateTime(2026, 1, 10, 0, 0, 0, DateTimeKind.Utc)));
         var db = builder.Build();
 
         var ep = Factory.Create<GetTrainerClientPhotosEndpoint>(
@@ -582,9 +582,9 @@ public class GetTrainerClientPhotosEndpointTests
     {
         var (builder, _, _) = CreateLinkedSetup();
         // 3 distinct months
-        builder.With(MakePhoto(2, takenAt: new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)));
-        builder.With(MakePhoto(2, takenAt: new DateTime(2026, 2, 1, 0, 0, 0, DateTimeKind.Utc)));
-        builder.With(MakePhoto(2, takenAt: new DateTime(2026, 3, 1, 0, 0, 0, DateTimeKind.Utc)));
+        builder.WithViewedPhoto(_trainerUserId, MakePhoto(2, takenAt: new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)));
+        builder.WithViewedPhoto(_trainerUserId, MakePhoto(2, takenAt: new DateTime(2026, 2, 1, 0, 0, 0, DateTimeKind.Utc)));
+        builder.WithViewedPhoto(_trainerUserId, MakePhoto(2, takenAt: new DateTime(2026, 3, 1, 0, 0, 0, DateTimeKind.Utc)));
         var db = builder.Build();
 
         var ep = Factory.Create<GetTrainerClientPhotosEndpoint>(
@@ -621,9 +621,9 @@ public class GetTrainerClientPhotosEndpointTests
         var diaryRequestId = Guid.NewGuid();
         var (builder, _, _) = CreateLinkedSetup();
         // Photo with a DiaryRequestId set
-        builder.With(MakePhoto(2, PlanPhotoCategory.Body, diaryRequestId: diaryRequestId));
+        builder.WithViewedPhoto(_trainerUserId, MakePhoto(2, PlanPhotoCategory.Body, diaryRequestId: diaryRequestId));
         // Photo without a DiaryRequestId (null)
-        builder.With(MakePhoto(2, PlanPhotoCategory.Food));
+        builder.WithViewedPhoto(_trainerUserId, MakePhoto(2, PlanPhotoCategory.Food));
         var db = builder.Build();
 
         var ep = Factory.Create<GetTrainerClientPhotosEndpoint>(
@@ -661,13 +661,13 @@ public class GetTrainerClientPhotosEndpointTests
         var (builder, _, _) = CreateLinkedSetup();
 
         // 2 photos in plan A (different categories to be deterministic)
-        builder.With(MakePhoto(2, PlanPhotoCategory.Body,
+        builder.WithViewedPhoto(_trainerUserId, MakePhoto(2, PlanPhotoCategory.Body,
             new DateTime(2026, 3, 1, 0, 0, 0, DateTimeKind.Utc), planId: planA));
-        builder.With(MakePhoto(2, PlanPhotoCategory.Food,
+        builder.WithViewedPhoto(_trainerUserId, MakePhoto(2, PlanPhotoCategory.Food,
             new DateTime(2026, 3, 2, 0, 0, 0, DateTimeKind.Utc), planId: planA));
 
         // 1 photo in plan B
-        builder.With(MakePhoto(2, PlanPhotoCategory.FreeForm,
+        builder.WithViewedPhoto(_trainerUserId, MakePhoto(2, PlanPhotoCategory.FreeForm,
             new DateTime(2026, 3, 3, 0, 0, 0, DateTimeKind.Utc), planId: planB));
 
         var db = builder.Build();

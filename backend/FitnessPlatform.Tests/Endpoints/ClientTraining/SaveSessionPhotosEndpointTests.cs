@@ -255,11 +255,37 @@ public class SaveSessionPhotosEndpointTests
 
         // No new PlanPhoto row should have been added (idempotent)
         db.PlanPhotos.DidNotReceive().Add(Arg.Any<PlanPhoto>());
+        db.PlanPhotoViewers.DidNotReceive().Add(Arg.Any<PlanPhotoViewer>());
     }
 
     // ──────────────────────────────────────────────────────────────────────────
     // Dual-write: new photo → creates PlanPhoto with Training category
     // ──────────────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task HandleAsync_NewPhoto_AddsViewerRowForPlanTrainer()
+    {
+        var sessionId = Guid.NewGuid();
+        var plan = CreateActivePlan(sessionId);
+        var logCollection = TrainingPhotoTestHelpers.CreateSessionLogCollection([]);
+        var mongo = TrainingPhotoTestHelpers.CreateMongoWithPlan(plan);
+        mongo.SessionLogs.Returns(logCollection);
+
+        var db = CreateMockDb();
+        var ep = CreateEndpoint(mongo, db);
+
+        await ep.HandleAsync(new SaveSessionPhotosRequest
+        {
+            SessionId = sessionId,
+            Photos = [new SessionPhotoInput { BlobUrl = "https://minio.local/diary/sessions/s1/viewer.jpg" }],
+            Note = null
+        }, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(204);
+        db.PlanPhotoViewers.Received(1).Add(Arg.Is<PlanPhotoViewer>(viewer =>
+            viewer.ProfessionalUserId == plan.TrainerId &&
+            viewer.PlanPhoto.Category == PlanPhotoCategory.Training));
+    }
 
     [Fact]
     public async Task HandleAsync_NewPhoto_CreatesPlanPhotoWithTrainingCategory()

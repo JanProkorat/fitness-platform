@@ -21,18 +21,28 @@ public class GetPhotosDateFilterTests(FitnessApiFactory factory)
 
     private sealed record PhotosBody(List<PhotoBody>? Photos);
 
-    private async Task SeedPhotoAsync(Actor client, DateTime takenAtUtc)
+    private async Task SeedPhotoAsync(Actor client, DateTime takenAtUtc, Actor? viewer = null)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        db.PlanPhotos.Add(new PlanPhoto
+        var photo = new PlanPhoto
         {
             ClientProfileId = client.ProfileId,
             Category = PlanPhotoCategory.Food,
             BlobUrl = "https://example.invalid/photo.jpg",
             TakenAt = takenAtUtc,
             UploadedByUserId = client.UserId,
-        });
+        };
+        db.PlanPhotos.Add(photo);
+
+        if (viewer is not null)
+        {
+            db.PlanPhotoViewers.Add(EntityBuilder.PlanPhotoViewer
+                .ForPhoto(photo)
+                .WithProfessionalUserId(viewer.UserId)
+                .Build());
+        }
+
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
@@ -56,8 +66,8 @@ public class GetPhotosDateFilterTests(FitnessApiFactory factory)
         var client = await TestActors.Client(factory).CreateAsync(TestContext.Current.CancellationToken);
         await TestActors.Link(factory, coach, client).CreateAsync(TestContext.Current.CancellationToken);
         var inside = new DateTime(2026, 10, 12, 23, 0, 0, DateTimeKind.Utc);
-        await SeedPhotoAsync(client, inside);
-        await SeedPhotoAsync(client, inside.AddDays(-10));
+        await SeedPhotoAsync(client, inside, coach);
+        await SeedPhotoAsync(client, inside.AddDays(-10), coach);
 
         var response = await coach.Http.GetAsync(
             $"/trainer/clients/{client.PublicId}/photos?{Query(inside.AddHours(-2), inside.AddHours(2))}",

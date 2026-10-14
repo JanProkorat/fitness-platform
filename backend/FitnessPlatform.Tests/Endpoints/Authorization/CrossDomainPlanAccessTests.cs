@@ -732,7 +732,8 @@ public class CrossDomainPlanAccessTests(FitnessApiFactory factory)
 
         var takenAt = DateTime.UtcNow.AddDays(-1);
 
-        db.PlanPhotos.AddRange(
+        PlanPhoto[] photos =
+        [
             new PlanPhoto
             {
                 ClientProfileId = clientProfileId,
@@ -784,7 +785,16 @@ public class CrossDomainPlanAccessTests(FitnessApiFactory factory)
                 BlobUrl = "https://example.invalid/free.jpg",
                 TakenAt = takenAt,
                 UploadedByUserId = uploadedByUserId,
-            });
+            },
+        ];
+
+        db.PlanPhotos.AddRange(photos);
+
+        // The viewer rows the upload-time writer would have produced for the linked professional.
+        db.PlanPhotoViewers.AddRange(photos.Select(photo => EntityBuilder.PlanPhotoViewer
+            .ForPhoto(photo)
+            .WithProfessionalUserId(uploadedByUserId)
+            .Build()));
 
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
     }

@@ -171,6 +171,7 @@ public class FinalizePlanPhotoEndpoint(
         };
 
         db.PlanPhotos.Add(photo);
+        await PlanPhotoVisibilityWriter.AddViewersAsync(db, logger, [photo], professionalUserId, ct);
 
         // Transition Accepted → InProgress on first photo upload
         if (diaryRequest is { Status: PhotoDiaryStatus.Accepted })
