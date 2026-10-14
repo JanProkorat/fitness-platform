@@ -40,9 +40,9 @@ interface Props {
 
 /**
  * The shared full-width 16:9 picture drop zone of the Ingredients and Recipes
- * drawers. Never rendered in create mode (the parent mounts it only once an
- * id exists) and rendered with a `key` so a freshly-opened entry always gets
- * a clean mount.
+ * drawers. Rendered only once the entry has an id (create mode stages its
+ * pictures in `StagedPicturesField` instead) and with a `key` so a
+ * freshly-opened entry always gets a clean mount.
  *
  * Upload/replace flow mirrors `Composer.tsx`'s chat-attachment pattern:
  * request a pre-signed URL, PUT the bytes directly to blob storage with a

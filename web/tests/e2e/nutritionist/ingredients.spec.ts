@@ -132,6 +132,76 @@ async function fetchFoodImageUrl(baseURL: string, foodId: string): Promise<strin
   }
 }
 
+/** Reads a food's stored main and extra picture URLs through the API, as qa.nutri. */
+async function fetchFoodPictures(
+  baseURL: string,
+  foodId: string,
+): Promise<{ imageUrl: string | null; galleryImageUrls: string[] }> {
+  const accessToken = await loginAsNutritionist(baseURL);
+  const api = await apiRequest.newContext({ baseURL });
+  try {
+    const response = await api.get(`/foods/${foodId}`, { headers: { Authorization: `Bearer ${accessToken}` } });
+    if (!response.ok()) {
+      throw new Error(`[ingredients] GET /foods/${foodId} returned ${response.status()} ${response.statusText()}.`);
+    }
+    const body = (await response.json()) as { imageUrl?: string | null; galleryImageUrls?: string[] | null };
+    return { imageUrl: body.imageUrl ?? null, galleryImageUrls: body.galleryImageUrls ?? [] };
+  } finally {
+    await api.dispose();
+  }
+}
+
+/** Finds the caller's own food by its exact name, or `undefined` when there is none. */
+async function findOwnFoodIdByName(baseURL: string, name: string): Promise<string | undefined> {
+  const accessToken = await loginAsNutritionist(baseURL);
+  const api = await apiRequest.newContext({ baseURL });
+  try {
+    const search = await api.get(`/foods/search?q=${encodeURIComponent(name)}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    const { foods } = (await search.json()) as SearchFoodsApiBody;
+    return (foods ?? []).find((candidate) => candidate.name === name || candidate.rawName === name)?.foodId;
+  } finally {
+    await api.dispose();
+  }
+}
+
+/** Creates a private food through the API and returns its id. */
+async function createFoodViaApi(baseURL: string, name: string): Promise<string> {
+  const accessToken = await loginAsNutritionist(baseURL);
+  const api = await apiRequest.newContext({ baseURL });
+  try {
+    const response = await api.post('/foods', {
+      data: {
+        name,
+        category: 'Fruit',
+        nutrientValue: { kcal: 50, protein: 1, carbs: 12, fat: 0 },
+        allergens: [],
+        dietaryPreferences: [],
+        commonServings: [{ label: 'piece', weightGrams: 120 }],
+      },
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    const created = (await response.json()) as FoodApiBody;
+    if (!response.ok() || !created.foodId) {
+      throw new Error(`[ingredients] POST /foods returned ${response.status()} ${response.statusText()}.`);
+    }
+    return created.foodId;
+  } finally {
+    await api.dispose();
+  }
+}
+
+async function deleteFoodViaApi(baseURL: string, foodId: string): Promise<void> {
+  const accessToken = await loginAsNutritionist(baseURL);
+  const api = await apiRequest.newContext({ baseURL });
+  try {
+    await api.delete(`/foods/${foodId}`, { headers: { Authorization: `Bearer ${accessToken}` } });
+  } finally {
+    await api.dispose();
+  }
+}
+
 /**
  * Deletes every food tag the caller owns via GET + DELETE
  * /trainer/food-tags, so each food-tags test starts and ends from zero
@@ -1372,9 +1442,11 @@ test.describe('ingredient picture (#1140)', () => {
 
       const drawer = page.locator('[data-slot="sheet-content"]');
       await expect(drawer.getByRole('heading', { name: 'Edit Ingredient' })).toBeVisible();
+      await drawer.getByRole('tab', { name: 'Pictures' }).click();
       await expect(drawer.getByRole('button', { name: 'Upload picture' })).toBeVisible();
 
-      const fileInput = drawer.locator('input[type="file"]');
+      // The main picture's input comes first in the DOM; the gallery has its own test id.
+      const fileInput = drawer.locator('input[type="file"]').first();
       const pictureImg = drawer.getByAltText('Ingredient picture');
 
       // A host browser can't resolve the harness's internal MinIO host, so answer stored-picture
@@ -1431,6 +1503,7 @@ test.describe('ingredient picture (#1140)', () => {
       await expect(lightbox).toHaveCount(0);
       await page.getByRole('cell', { name }).getByText(name, { exact: true }).click();
       await expect(drawer.getByRole('heading', { name: 'Edit Ingredient' })).toBeVisible();
+      await drawer.getByRole('tab', { name: 'Pictures' }).click();
 
       // Remove, with confirmation.
       const removeResponse = page.waitForResponse(
@@ -1501,6 +1574,7 @@ test.describe('ingredient picture (#1140)', () => {
 
       const drawer = page.locator('[data-slot="sheet-content"]');
       await expect(drawer.getByRole('heading', { name: 'Edit Ingredient' })).toBeVisible();
+      await drawer.getByRole('tab', { name: 'Pictures' }).click();
       const dropZone = drawer.getByRole('button', { name: 'Upload picture' });
       await expect(dropZone).toBeVisible();
 
@@ -1543,6 +1617,127 @@ test.describe('ingredient picture (#1140)', () => {
     }
   });
 
+  test('add an extra picture, set it as main, then remove an extra', async ({ page, baseURL }) => {
+    test.skip(IN_CONTAINER, 'presigned uploads target the host MinIO port');
+    const origin = baseURL ?? 'http://localhost:5173';
+    const name = `QA Picture Gallery ${Date.now()}`;
+    const foodId = await createFoodViaApi(origin, name);
+
+    try {
+      await page.route('http://minio-test:9000/**', (route) =>
+        route.fulfill({ path: IMAGE_A_PATH, contentType: 'image/png' }),
+      );
+
+      const searchResponse = page.waitForResponse((response) => response.url().includes('/foods/search'));
+      await page.getByPlaceholder('Search ingredients…').fill(name);
+      await searchResponse;
+      await page.waitForLoadState('networkidle');
+      await page.getByRole('cell', { name }).click();
+      const drawer = page.locator('[data-slot="sheet-content"]');
+      await expect(drawer.getByRole('heading', { name: 'Edit Ingredient' })).toBeVisible();
+      await drawer.getByRole('tab', { name: 'Pictures' }).click();
+
+      const isImagePut = (slot: string) => (response: { url(): string; request(): { method(): string } }) =>
+        response.url().includes(`/foods/${foodId}/image`) &&
+        response.url().includes(`slot=${slot}`) &&
+        response.request().method() === 'PUT';
+
+      // Main picture first, so the swap below has a main to hand over.
+      const mainConfirm = page.waitForResponse(isImagePut('main'));
+      await drawer.locator('input[type="file"]').first().setInputFiles(IMAGE_A_PATH);
+      expect((await mainConfirm).status()).toBe(204);
+      await expect(drawer.getByRole('button', { name: 'Replace picture' })).toBeVisible();
+
+      // Add an extra picture.
+      const galleryConfirm = page.waitForResponse(isImagePut('gallery'));
+      await drawer.getByTestId('ingredient-gallery-input').setInputFiles(IMAGE_A_PATH);
+      expect((await galleryConfirm).status()).toBe(204);
+      await expect(drawer.getByTestId('ingredient-gallery-tile')).toHaveCount(1);
+      const afterAdd = await fetchFoodPictures(origin, foodId);
+      expect(afterAdd.imageUrl).not.toBeNull();
+      expect(afterAdd.galleryImageUrls).toHaveLength(1);
+
+      // Set the extra as main: the old main takes its slot.
+      const promoteResponse = page.waitForResponse(
+        (response) =>
+          response.url().includes(`/foods/${foodId}/gallery/promote`) && response.request().method() === 'POST',
+      );
+      await drawer.getByRole('button', { name: 'Set picture 1 as main' }).click();
+      expect((await promoteResponse).status()).toBe(204);
+      await expect
+        .poll(async () => (await fetchFoodPictures(origin, foodId)).imageUrl)
+        .toBe(afterAdd.galleryImageUrls[0]);
+      const afterPromote = await fetchFoodPictures(origin, foodId);
+      expect(afterPromote.galleryImageUrls).toEqual([afterAdd.imageUrl]);
+      await expect(drawer.getByTestId('ingredient-gallery-tile')).toHaveCount(1);
+
+      // Remove the extra (now the previous main), with confirmation.
+      const removeResponse = page.waitForResponse(
+        (response) =>
+          response.url().includes(`/foods/${foodId}/gallery`) && response.request().method() === 'DELETE',
+      );
+      await drawer.getByRole('button', { name: 'Remove picture 1' }).click();
+      await page.getByRole('button', { name: 'Remove', exact: true }).click();
+      expect((await removeResponse).status()).toBe(204);
+      await expect(drawer.getByTestId('ingredient-gallery-tile')).toHaveCount(0);
+      expect((await fetchFoodPictures(origin, foodId)).galleryImageUrls).toEqual([]);
+    } finally {
+      await deleteFoodViaApi(origin, foodId);
+    }
+  });
+
+  test('create with staged pictures uploads them once the ingredient is saved', async ({ page, baseURL }) => {
+    test.skip(IN_CONTAINER, 'presigned uploads target the host MinIO port');
+    const origin = baseURL ?? 'http://localhost:5173';
+    const name = `QA Picture Staged ${Date.now()}`;
+    const drawer = page.locator('[data-slot="sheet-content"]');
+
+    try {
+      await page.getByRole('button', { name: 'New Ingredient' }).click();
+      await expect(drawer.getByRole('heading', { name: 'New Ingredient' })).toBeVisible();
+      await drawer.getByLabel(/^Name\b/).fill(name);
+      await drawer.getByLabel(/^Category\b/).selectOption('Fruit');
+      await drawer.getByLabel('Calories / 100g').fill('50');
+      await drawer.getByLabel('Protein / 100g').fill('1');
+      await drawer.getByLabel('Carbs / 100g').fill('12');
+      await drawer.getByLabel('Fat / 100g').fill('0');
+      await drawer.getByRole('combobox', { name: /^Unit\b/ }).selectOption('piece');
+      await drawer.getByLabel('Unit weight (g)').fill('120');
+
+      // Stage a main picture and two extras; the form values survive the tab switch.
+      await drawer.getByRole('tab', { name: 'Pictures' }).click();
+      await drawer.getByTestId('staged-main-input').setInputFiles(IMAGE_A_PATH);
+      await expect(drawer.getByRole('button', { name: 'Replace picture' })).toBeVisible();
+      await drawer.getByTestId('ingredient-gallery-input').setInputFiles([IMAGE_A_PATH, IMAGE_A_PATH]);
+      await expect(drawer.getByTestId('ingredient-gallery-tile')).toHaveCount(2);
+      // Nothing is sent to the server before the ingredient is saved.
+      expect(await findOwnFoodIdByName(origin, name)).toBeUndefined();
+
+      const imageRequests: string[] = [];
+      page.on('request', (request) => {
+        if (/\/foods\/[^/]+\/image\/upload-url/.test(request.url()) && request.method() === 'POST') {
+          imageRequests.push(new URL(request.url()).searchParams.get('slot') ?? '');
+        }
+      });
+      await drawer.getByRole('button', { name: 'Save Ingredient' }).click();
+      await expect(drawer).toHaveCount(0);
+
+      // Main first, then the two extras, sequentially.
+      await expect.poll(() => imageRequests).toEqual(['main', 'gallery', 'gallery']);
+      const foodId = await findOwnFoodIdByName(origin, name);
+      expect(foodId).toBeDefined();
+      await expect
+        .poll(async () => (await fetchFoodPictures(origin, foodId as string)).galleryImageUrls.length)
+        .toBe(2);
+      expect((await fetchFoodPictures(origin, foodId as string)).imageUrl).not.toBeNull();
+    } finally {
+      const foodId = await findOwnFoodIdByName(origin, name);
+      if (foodId) {
+        await deleteFoodViaApi(origin, foodId);
+      }
+    }
+  });
+
   test('a food the caller does not own shows its picture read-only, with no controls', async ({ page, baseURL }) => {
     const systemFoodName = await findSystemFoodName(baseURL);
     const searchResponse = page.waitForResponse((response) => response.url().includes('/foods/search'));
@@ -1553,6 +1748,7 @@ test.describe('ingredient picture (#1140)', () => {
 
     const drawer = page.locator('[data-slot="sheet-content"]');
     await expect(drawer.getByRole('heading', { name: 'Ingredient' })).toBeVisible();
+    await drawer.getByRole('tab', { name: 'Pictures' }).click();
     await expect(drawer.getByText('Picture', { exact: true })).toBeVisible();
     await expect(drawer.getByRole('button', { name: 'Upload picture' })).toHaveCount(0);
     await expect(drawer.getByRole('button', { name: 'Replace picture' })).toHaveCount(0);

@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Tag } from 'lucide-react';
+import { Loader2, Tag } from 'lucide-react';
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -27,6 +27,7 @@ import type { FoodTagDto } from '@/api/food-types';
 import {
   useCreateRecipe,
   useRecipe,
+  useRecipeStagedUploads,
   useReplaceRecipeTagAssignments,
   useUpdateRecipe,
 } from '@/hooks/useRecipesQueries';
@@ -37,6 +38,8 @@ import TagPill from '@/components/tags/TagPill';
 import RecipeIngredientsTab from '@/components/recipes/RecipeIngredientsTab';
 import RecipePreparationTab from '@/components/recipes/RecipePreparationTab';
 import RecipePicturesTab from '@/components/recipes/RecipePicturesTab';
+import StagedPicturesField from '@/components/library/StagedPicturesField';
+import { showPartialUploadError, uploadStagedPictures, useStagedPictures } from '@/components/library/pictureUpload';
 import DeleteRecipeDialog from '@/components/recipes/DeleteRecipeDialog';
 import {
   isValidAmount,
@@ -143,6 +146,8 @@ interface FormProps {
   mode: 'create' | 'edit' | 'view';
   onClose: () => void;
   onDeleteClick: () => void;
+  /** Reports whether staged pictures are uploading, so the drawer can refuse to close meanwhile. */
+  onBusyChange: (busy: boolean) => void;
 }
 
 /**
@@ -151,7 +156,7 @@ interface FormProps {
  * reset effects, and a background refetch of the recipe never overwrites
  * what the coach is typing.
  */
-function RecipeForm({ recipe, mode, onClose, onDeleteClick }: FormProps) {
+function RecipeForm({ recipe, mode, onClose, onDeleteClick, onBusyChange }: FormProps) {
   const { t } = useTranslation();
   const readOnly = mode === 'view';
   const [tab, setTab] = useState<TabValue>('details');
@@ -161,7 +166,15 @@ function RecipeForm({ recipe, mode, onClose, onDeleteClick }: FormProps) {
 
   const createMutation = useCreateRecipe();
   const updateMutation = useUpdateRecipe();
-  const isPending = createMutation.isPending || updateMutation.isPending;
+  const uploads = useRecipeStagedUploads();
+  const staged = useStagedPictures();
+  const [isUploadingPictures, setIsUploadingPictures] = useState(false);
+  const isPending = createMutation.isPending || updateMutation.isPending || isUploadingPictures;
+
+  function setUploading(uploading: boolean) {
+    setIsUploadingPictures(uploading);
+    onBusyChange(uploading);
+  }
 
   // Local copy of the recipe's tag chips, so assigning re-renders immediately
   // without refetching the detail (which would be a no-op for this snapshot form).
@@ -210,6 +223,30 @@ function RecipeForm({ recipe, mode, onClose, onDeleteClick }: FormProps) {
     setTab('details');
   }
 
+  // The recipe is saved first; its staged pictures upload afterwards. A failed
+  // picture never undoes the save — the drawer still closes with one toast.
+  async function createWithPictures(request: CreateRecipeRequest) {
+    try {
+      const created = await createMutation.mutateAsync(request);
+      if (created.recipeId && (staged.main || staged.extras.length > 0)) {
+        const recipeId = created.recipeId;
+        setUploading(true);
+        const failed = await uploadStagedPictures(
+          staged,
+          (file) => uploads.uploadMain(recipeId, file),
+          (file) => uploads.uploadGallery(recipeId, file),
+        );
+        setUploading(false);
+        if (failed > 0) {
+          showPartialUploadError(failed);
+        }
+      }
+      onClose();
+    } catch {
+      // The create hook already toasted the error; the drawer stays open for a retry.
+    }
+  }
+
   function onValid(values: FormValues) {
     const ingredientsValid = lines.length > 0 && lines.every((line) => isValidAmount(line.amountText));
     if (!ingredientsValid) {
@@ -238,7 +275,7 @@ function RecipeForm({ recipe, mode, onClose, onDeleteClick }: FormProps) {
 
     if (mode === 'create' || !recipe?.recipeId) {
       const request: CreateRecipeRequest = content;
-      createMutation.mutate(request, { onSuccess: onClose });
+      void createWithPictures(request);
       return;
     }
 
@@ -264,20 +301,10 @@ function RecipeForm({ recipe, mode, onClose, onDeleteClick }: FormProps) {
               {t('recipes.drawer.tabPreparation')}
               <Badge variant="library">{steps.length}</Badge>
             </TabsTrigger>
-            <TabsTrigger
-              variant="underline"
-              value="pictures"
-              disabled={!recipe?.recipeId}
-              title={recipe?.recipeId ? undefined : t('recipes.drawer.picturesCreateHint')}
-            >
+            <TabsTrigger variant="underline" value="pictures">
               {t('recipes.drawer.tabPictures')}
             </TabsTrigger>
           </TabsList>
-          {!recipe?.recipeId && (
-            <p className="text-meta text-muted-foreground" data-testid="recipe-pictures-hint">
-              {t('recipes.drawer.picturesCreateHint')}
-            </p>
-          )}
 
           <TabsContent value="details" className="flex flex-col gap-6 overflow-y-auto pb-4">
             <fieldset disabled={readOnly} className="flex flex-col gap-6">
@@ -461,16 +488,23 @@ function RecipeForm({ recipe, mode, onClose, onDeleteClick }: FormProps) {
             <RecipePreparationTab steps={steps} onStepsChange={setSteps} readOnly={readOnly} timesSummary={timesSummary} />
           </TabsContent>
 
-          {recipe?.recipeId && (
-            <TabsContent value="pictures" className="flex flex-col overflow-y-auto pb-4">
+          <TabsContent value="pictures" className="flex flex-col overflow-y-auto pb-4">
+            {recipe?.recipeId ? (
               <RecipePicturesTab
                 recipeId={recipe.recipeId}
                 imageUrl={recipe.imageUrl ?? undefined}
                 galleryImageUrls={recipe.galleryImageUrls ?? []}
                 readOnly={readOnly}
               />
-            </TabsContent>
-          )}
+            ) : (
+              <StagedPicturesField
+                staged={staged}
+                disabled={isUploadingPictures}
+                alt={t('recipes.picture.alt')}
+                testIdPrefix="recipe-gallery"
+              />
+            )}
+          </TabsContent>
         </Tabs>
       </form>
 
@@ -483,11 +517,12 @@ function RecipeForm({ recipe, mode, onClose, onDeleteClick }: FormProps) {
           <span />
         )}
         <div className="flex gap-2">
-          <Button type="button" variant="outline" onClick={onClose}>
+          <Button type="button" variant="outline" disabled={isUploadingPictures} onClick={onClose}>
             {mode === 'view' ? t('common.close') : t('common.cancel')}
           </Button>
           {mode !== 'view' && (
             <Button type="button" disabled={isPending} onClick={handleSubmit(onValid, onInvalid)}>
+              {isUploadingPictures && <Loader2 className="animate-spin" aria-hidden="true" />}
               {t('recipes.drawer.save')}
             </Button>
           )}
@@ -508,14 +543,16 @@ interface Props {
 
 /**
  * Create / edit / read-only drawer for a recipe, in four tabs (Details,
- * Ingredients, Preparation, Pictures — the last disabled until the recipe is
- * saved, since create mode closes the drawer on save). The list row only carries a summary, so an
- * existing recipe's full detail is fetched when the drawer opens.
+ * Ingredients, Preparation, Pictures). In create mode the Pictures tab stages
+ * files in the browser and uploads them once the recipe is saved. The list row
+ * only carries a summary, so an existing recipe's full detail is fetched when
+ * the drawer opens.
  */
 export default function RecipeDrawer({ open, onOpenChange, recipe, readOnly }: Props) {
   const { t } = useTranslation();
   const mode = recipe === null ? 'create' : readOnly ? 'view' : 'edit';
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
   const detailQuery = useRecipe(open ? recipe?.recipeId : undefined);
   const detail = detailQuery.data ?? null;
 
@@ -538,14 +575,17 @@ export default function RecipeDrawer({ open, onOpenChange, recipe, readOnly }: P
 
   return (
     <>
-      <Sheet open={open} onOpenChange={onOpenChange}>
+      {/* Esc, overlay and the close button all land here — refuse them while pictures upload. */}
+      <Sheet open={open} onOpenChange={(next) => !(busy && !next) && onOpenChange(next)}>
         <SheetContent className="sm:w-drawer-wide sm:max-w-none">
           <SheetHeader className="gap-1 border-b border-border p-6">
             <SheetTitle className="text-panel-title font-bold">{title}</SheetTitle>
             <SheetDescription className="text-body">{subtitle}</SheetDescription>
           </SheetHeader>
 
-          {mode === 'create' && <RecipeForm recipe={null} mode={mode} onClose={close} onDeleteClick={() => undefined} />}
+          {mode === 'create' && (
+            <RecipeForm recipe={null} mode={mode} onClose={close} onDeleteClick={() => undefined} onBusyChange={setBusy} />
+          )}
 
           {mode !== 'create' && detailQuery.isPending && (
             <div className="flex flex-1 flex-col gap-3 p-6">
@@ -571,6 +611,7 @@ export default function RecipeDrawer({ open, onOpenChange, recipe, readOnly }: P
               mode={mode}
               onClose={close}
               onDeleteClick={() => setDeleteOpen(true)}
+              onBusyChange={setBusy}
             />
           )}
         </SheetContent>
