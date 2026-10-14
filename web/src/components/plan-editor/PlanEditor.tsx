@@ -124,7 +124,7 @@ interface Props {
   renderCopyMeals?: (props: CopyMealsSlotProps) => ReactNode;
   readOnly: boolean;
   readOnlyNotice?: string;
-  /** `leading` renders before the back button, e.g. a client avatar. */
+  /** `leading` renders after the back button, before the label, e.g. a client avatar. */
   breadcrumb: { label: string; onNavigate: () => void; leading?: ReactNode };
   /** Replaces the Save button; omit for the default Save. */
   primaryAction?: PlanEditorPrimaryAction;

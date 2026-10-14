@@ -48,7 +48,7 @@ interface Props {
   onNameChange: (name: string) => void;
   breadcrumbLabel: string;
   onBreadcrumb: () => void;
-  /** Rendered before the back button, e.g. a client avatar. */
+  /** Rendered after the back button, before the breadcrumb label, e.g. a client avatar. */
   breadcrumbLeading?: ReactNode;
   /** Rendered after the plan name, e.g. a status chip. */
   readOnly: boolean;
@@ -116,7 +116,6 @@ export default function PlanEditorHeader({
           compact ? 'order-1 min-w-64 flex-1 @min-[52rem]:order-0 @min-[52rem]:min-w-0' : 'min-w-80 flex-1',
         )}
       >
-        {breadcrumbLeading}
         <Button
           type="button"
           variant="outline"
@@ -127,6 +126,7 @@ export default function PlanEditorHeader({
         >
           <ChevronLeft className="size-4" aria-hidden="true" />
         </Button>
+        {breadcrumbLeading}
         <button
           type="button"
           onClick={onBreadcrumb}
