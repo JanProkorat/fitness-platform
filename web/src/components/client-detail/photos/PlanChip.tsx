@@ -1,11 +1,14 @@
 import { useTranslation } from 'react-i18next';
-import { Dumbbell, Utensils } from 'lucide-react';
+import { Utensils } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import HorizontalDumbbellIcon from '@/components/clients/HorizontalDumbbellIcon';
 import type { PhotoPlanInfo } from '@/components/client-detail/photos/photosModel';
 
 export function PlanKindIcon({ kind, className }: { kind: PhotoPlanInfo['kind']; className?: string }) {
-  const Icon = kind === 'training' ? Dumbbell : Utensils;
-  return <Icon className={className} aria-hidden="true" />;
+  if (kind === 'training') {
+    return <HorizontalDumbbellIcon className={className} />;
+  }
+  return <Utensils className={className} aria-hidden="true" />;
 }
 
 /** Plan name chip under a photo card; "Plan removed" when the plan has no name. */

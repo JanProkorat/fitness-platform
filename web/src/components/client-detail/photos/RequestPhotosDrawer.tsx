@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Bell, Calendar, Camera, Check, Dumbbell, Eye, MessageSquare, Send } from 'lucide-react';
+import { Bell, Calendar, Camera, Check, ChevronDown, Eye, MessageSquare, Send } from 'lucide-react';
 import { cancelDiaryRequest, createDiaryRequest, type PhotoDiaryRequestSummary } from '@/api/diary-requests';
 import type { ClientPlanItem } from '@/api/client-plans';
 import { PhotoDiaryMode } from '@/api/generated';
@@ -32,9 +32,19 @@ import {
   type RequestFrequency,
 } from '@/components/client-detail/photos/photoRequestModel';
 import { photoRequestsKey } from '@/components/client-detail/photos/useOpenPhotoRequest';
+import HorizontalDumbbellIcon from '@/components/clients/HorizontalDumbbellIcon';
 
 const SELECT_CLASS =
-  'flex h-10 w-full min-w-0 rounded-field border border-input bg-background px-3 py-1 text-copy text-foreground outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 aria-invalid:border-destructive disabled:opacity-50';
+  'flex h-10 w-full min-w-0 appearance-none rounded-field border border-input bg-background py-1 pr-9 pl-3 text-copy text-foreground outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 aria-invalid:border-destructive disabled:opacity-50';
+
+function SelectChevron() {
+  return (
+    <ChevronDown
+      className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground"
+      aria-hidden="true"
+    />
+  );
+}
 
 const ERROR_ALREADY_OPEN = 'PHOTO_DIARY_REQUEST_ALREADY_OPEN';
 const ERROR_INVALID_STATUS = 'PHOTO_DIARY_REQUEST_INVALID_STATUS';
@@ -96,7 +106,7 @@ export default function RequestPhotosDrawer({ open, onOpenChange, clientId, name
 
   return (
     <Sheet open={open} onOpenChange={handleOpenChange}>
-      <SheetContent className="gap-0 sm:max-w-[35rem]">
+      <SheetContent className="gap-0 sm:w-drawer sm:max-w-none">
         <SheetHeader className="border-b border-border px-6 py-5 pr-14">
           <SheetTitle className="text-auth-title">{t('clientDetail.photos.requestDrawer.title')}</SheetTitle>
           <SheetDescription className="text-body">
@@ -278,17 +288,20 @@ function RequestForm({ clientId, name, coachName, plans, locale, onClose, onCrea
           {frequency === 'daily' && (
             <label className="flex flex-col gap-1.5 text-body font-medium text-ink-2">
               <span>{t('clientDetail.photos.requestDrawer.for')}</span>
-              <select
-                {...register('durationDays', { valueAsNumber: true })}
-                className={SELECT_CLASS}
-                disabled={createMutation.isPending}
-              >
-                {DAY_OPTIONS.map((days) => (
-                  <option key={days} value={days}>
-                    {t('clientDetail.photos.requestDrawer.days', { count: days })}
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <select
+                  {...register('durationDays', { valueAsNumber: true })}
+                  className={SELECT_CLASS}
+                  disabled={createMutation.isPending}
+                >
+                  {DAY_OPTIONS.map((days) => (
+                    <option key={days} value={days}>
+                      {t('clientDetail.photos.requestDrawer.days', { count: days })}
+                    </option>
+                  ))}
+                </select>
+                <SelectChevron />
+              </div>
               <span className="text-meta font-normal text-muted-foreground">
                 {t('clientDetail.photos.requestDrawer.untilHelp', {
                   date: endsLabel,
@@ -316,21 +329,24 @@ function RequestForm({ clientId, name, coachName, plans, locale, onClose, onCrea
 
         <section className="flex flex-col gap-3">
           <RequestSectionHeading
-            icon={<Dumbbell className="size-4" />}
+            icon={<HorizontalDumbbellIcon className="size-4" />}
             optional={t('clientDetail.photos.requestDrawer.optional')}
           >
             {t('clientDetail.photos.requestDrawer.plan.heading')}
           </RequestSectionHeading>
           <label className="flex flex-col gap-1.5 text-body font-medium text-ink-2">
             <span>{t('clientDetail.photos.requestDrawer.plan.label')}</span>
-            <select {...register('planId')} className={SELECT_CLASS} disabled={createMutation.isPending}>
-              <option value="">{t('clientDetail.photos.requestDrawer.plan.none')}</option>
-              {(plans ?? []).map((candidate) => (
-                <option key={candidate.planId} value={candidate.planId}>
-                  {planLabel(candidate)}
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <select {...register('planId')} className={SELECT_CLASS} disabled={createMutation.isPending}>
+                <option value="">{t('clientDetail.photos.requestDrawer.plan.none')}</option>
+                {(plans ?? []).map((candidate) => (
+                  <option key={candidate.planId} value={candidate.planId}>
+                    {planLabel(candidate)}
+                  </option>
+                ))}
+              </select>
+              <SelectChevron />
+            </div>
             <span className="text-meta font-normal text-muted-foreground">
               {t('clientDetail.photos.requestDrawer.plan.help')}
             </span>
