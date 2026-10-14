@@ -2,6 +2,7 @@ using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.ClientPhotos.Shared;
@@ -198,6 +199,7 @@ public class GetTrainerClientPhotosEndpoint(
             var pagedPhotos = pagedGroups.SelectMany(g => g.Photos).ToList();
             await SignPhotoUrlsAsync(pagedPhotos, ct);
             await ResolveMealsAsync(pagedPhotos, clientProfile.UserId, ct);
+            await ResolvePlanNamesAsync(pagedPhotos, clientProfile.UserId, capabilities.Value, ct);
 
             HttpContext.Response.Headers["X-Total-Count"] = totalGroups.ToString();
 
@@ -234,6 +236,7 @@ public class GetTrainerClientPhotosEndpoint(
             // for each photo before it leaves the process (F9).
             await SignPhotoUrlsAsync(photos, ct);
             await ResolveMealsAsync(photos, clientProfile.UserId, ct);
+            await ResolvePlanNamesAsync(photos, clientProfile.UserId, capabilities.Value, ct);
 
             HttpContext.Response.Headers["X-Total-Count"] = totalCount.ToString();
 
@@ -337,6 +340,76 @@ public class GetTrainerClientPhotosEndpoint(
         }
     }
 
+    /// <summary>
+    /// Fills <see cref="ClientPhotoResponse.PlanName"/> with at most one Mongo query per plan type.
+    /// A plan type is only looked up when the caller may view it, because Body and free-form photos
+    /// stay visible without the matching capability. Lookups are scoped to the client, so a
+    /// client-supplied plan id cannot resolve another client's plan. Unresolvable ids stay null.
+    /// </summary>
+    private async Task ResolvePlanNamesAsync(
+        IReadOnlyList<ClientPhotoResponse> photos,
+        Guid clientUserId,
+        LinkCapabilities capabilities,
+        CancellationToken ct)
+    {
+        var nutritionPlanIds = capabilities.CanViewNutritionPlans
+            ? PlanIdsOfType(photos, PlanPhotoType.Nutrition)
+            : [];
+        var trainingPlanIds = capabilities.CanViewTrainingPlans
+            ? PlanIdsOfType(photos, PlanPhotoType.Training)
+            : [];
+
+        var nutritionNames = new Dictionary<Guid, string>();
+        if (nutritionPlanIds.Count > 0)
+        {
+            var filter = Builders<NutritionPlan>.Filter.And(
+                Builders<NutritionPlan>.Filter.In(plan => plan.ExternalId, nutritionPlanIds),
+                Builders<NutritionPlan>.Filter.Eq(plan => plan.ClientId, clientUserId));
+            var options = new FindOptions<NutritionPlan, PlanNameRef>
+            {
+                Projection = Builders<NutritionPlan>.Projection.Expression(
+                    plan => new PlanNameRef(plan.ExternalId, plan.Name))
+            };
+
+            using var cursor = await mongo.NutritionPlans.FindAsync(filter, options, ct);
+            nutritionNames = (await cursor.ToListAsync(ct)).ToDictionary(plan => plan.PlanId, plan => plan.Name);
+        }
+
+        var trainingNames = new Dictionary<Guid, string>();
+        if (trainingPlanIds.Count > 0)
+        {
+            var filter = Builders<TrainingPlan>.Filter.And(
+                Builders<TrainingPlan>.Filter.In(plan => plan.ExternalId, trainingPlanIds),
+                Builders<TrainingPlan>.Filter.Eq(plan => plan.ClientId, clientUserId));
+            var options = new FindOptions<TrainingPlan, PlanNameRef>
+            {
+                Projection = Builders<TrainingPlan>.Projection.Expression(
+                    plan => new PlanNameRef(plan.ExternalId, plan.Name))
+            };
+
+            using var cursor = await mongo.TrainingPlans.FindAsync(filter, options, ct);
+            trainingNames = (await cursor.ToListAsync(ct)).ToDictionary(plan => plan.PlanId, plan => plan.Name);
+        }
+
+        foreach (var photo in photos)
+        {
+            if (photo.PlanId is not { } planId)
+            {
+                continue;
+            }
+
+            var names = photo.PlanType == PlanPhotoType.Training ? trainingNames : nutritionNames;
+            photo.PlanName = names.TryGetValue(planId, out var name) ? name : null;
+        }
+    }
+
+    private static List<Guid> PlanIdsOfType(IEnumerable<ClientPhotoResponse> photos, PlanPhotoType planType) =>
+        photos
+            .Where(photo => photo.PlanType == planType && photo.PlanId.HasValue)
+            .Select(photo => photo.PlanId!.Value)
+            .Distinct()
+            .ToList();
+
     private static DateTime ToUtc(DateTime value) => value.Kind switch
     {
         DateTimeKind.Local => value.ToUniversalTime(),
@@ -345,6 +418,8 @@ public class GetTrainerClientPhotosEndpoint(
     };
 
     private sealed record MealLogRef(ObjectId Id, Guid PlanId, Guid MealId);
+
+    private sealed record PlanNameRef(Guid PlanId, string Name);
 
     private sealed record PlanMealRef(Guid MealId, MealKind Kind);
 
