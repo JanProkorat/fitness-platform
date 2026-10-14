@@ -3314,6 +3314,7 @@
         "cancelConfirm": "Anfrage an {{name}} abbrechen?",
         "keepRequest": "Anfrage behalten",
         "confirmCancel": "Ja, abbrechen",
+        "cancelling": "Wird abgebrochen...",
         "planOption": "{{name}} · {{type}}",
         "planType": {
           "nutrition": "Ernährungsplan",
@@ -3326,7 +3327,7 @@
           "heading": "Mit einem Plan verknüpfen",
           "label": "Plan",
           "none": "Kein Plan",
-          "help": "Die Fotos erscheinen bei diesem Plan. Es werden nur deine eigenen Pläne angezeigt."
+          "help": "Die Fotos erscheinen bei diesem Plan. Es werden nur Ihre eigenen Pläne angezeigt."
         },
         "message": {
           "heading": "Nachricht",
@@ -3346,7 +3347,7 @@
           "sent": "Gesendet",
           "until": "Bis",
           "dueBy": "Fällig bis",
-          "note": "Die Anfrage endet am Ende des Zeitraums von selbst. Brich sie ab, damit {{name}} nicht mehr gefragt wird.",
+          "note": "Die Anfrage endet am Ende des Zeitraums von selbst. Wenn Sie sie abbrechen, wird {{name}} nicht mehr gefragt.",
           "values": {
             "Pending": "Wartet auf die Antwort von {{name}}",
             "Accepted": "{{name}} hat angenommen",
@@ -3407,7 +3408,8 @@
         "weight": "Gewicht",
         "bodyFat": "Körperfett",
         "noWeighIn": "Die Gewichtsänderung wird nicht angezeigt: Bei einem der Fotos fehlt eine Wägung in der Nähe.",
-        "strip": "Neueste zuerst · {{count}} Fotos",
+        "strip_one": "Neueste zuerst · {{count}} Foto",
+        "strip_other": "Neueste zuerst · {{count}} Fotos",
         "pick": "Foto vom {{date}} auswählen"
       }
     },

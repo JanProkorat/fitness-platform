@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -79,6 +79,20 @@ export default function RequestPhotosDrawer({ open, onOpenChange, clientId, name
   const queryClient = useQueryClient();
   const coachName = user?.firstName?.trim() || t('clientDetail.photos.requestDrawer.coachFallback');
   const [confirmingCancel, setConfirmingCancel] = useState(false);
+  const keepRequestRef = useRef<HTMLButtonElement>(null);
+  const cancelRequestRef = useRef<HTMLButtonElement>(null);
+  const confirmShownRef = useRef(false);
+
+  // The inline confirm swaps the buttons out, so hand focus over: to the safe choice when it
+  // appears, back to Cancel request when the coach keeps the request.
+  useEffect(() => {
+    if (confirmingCancel) {
+      keepRequestRef.current?.focus();
+    } else if (confirmShownRef.current) {
+      cancelRequestRef.current?.focus();
+    }
+    confirmShownRef.current = confirmingCancel;
+  }, [confirmingCancel]);
 
   const refreshRequests = () => queryClient.invalidateQueries({ queryKey: photoRequestsKey(clientId) });
 
@@ -138,6 +152,7 @@ export default function RequestPhotosDrawer({ open, onOpenChange, clientId, name
                     {t('clientDetail.photos.requestDrawer.cancelConfirm', { name })}
                   </span>
                   <Button
+                    ref={keepRequestRef}
                     type="button"
                     variant="outline"
                     size="lg"
@@ -154,7 +169,7 @@ export default function RequestPhotosDrawer({ open, onOpenChange, clientId, name
                     onClick={() => openRequest.id && cancelMutation.mutate(openRequest.id)}
                   >
                     {cancelMutation.isPending
-                      ? t('common.sending')
+                      ? t('clientDetail.photos.requestDrawer.cancelling')
                       : t('clientDetail.photos.requestDrawer.confirmCancel')}
                   </Button>
                 </>
@@ -163,7 +178,13 @@ export default function RequestPhotosDrawer({ open, onOpenChange, clientId, name
                   <Button type="button" variant="outline" size="lg" className="ml-auto" onClick={() => onOpenChange(false)}>
                     {t('common.close')}
                   </Button>
-                  <Button type="button" variant="destructive" size="lg" onClick={() => setConfirmingCancel(true)}>
+                  <Button
+                    ref={cancelRequestRef}
+                    type="button"
+                    variant="destructive"
+                    size="lg"
+                    onClick={() => setConfirmingCancel(true)}
+                  >
                     {t('clientDetail.photos.requestDrawer.cancelRequest')}
                   </Button>
                 </>
@@ -317,7 +338,7 @@ function RequestForm({ clientId, name, coachName, plans, locale, onClose, onCrea
             </p>
           )}
 
-          <div className="flex items-start gap-2.5 rounded-field bg-sunken px-3.5 py-3 text-body leading-[1.45] text-ink-2">
+          <div className="flex items-start gap-2.5 rounded-field bg-sunken px-3.5 py-3 text-body leading-normal text-ink-2">
             <Bell className="mt-px size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
             <span>
               {frequency === 'daily'
@@ -367,7 +388,7 @@ function RequestForm({ clientId, name, coachName, plans, locale, onClose, onCrea
               rows={3}
               maxLength={REQUEST_MESSAGE_MAX}
               disabled={createMutation.isPending}
-              className="min-h-21 resize-none leading-[1.45]"
+              className="min-h-21 resize-none leading-normal"
             />
             <span className="self-end text-meta font-normal text-muted-foreground">
               {t('clientDetail.photos.requestDrawer.message.counter', {

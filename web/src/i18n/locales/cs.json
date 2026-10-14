@@ -3393,6 +3393,7 @@
         "cancelConfirm": "Zrušit žádost pro klienta {{name}}?",
         "keepRequest": "Ponechat žádost",
         "confirmCancel": "Ano, zrušit",
+        "cancelling": "Ruším...",
         "planOption": "{{name}} · {{type}}",
         "planType": {
           "nutrition": "jídelníček",
@@ -3488,7 +3489,10 @@
         "weight": "hmotnost",
         "bodyFat": "tělesný tuk",
         "noWeighIn": "Změna hmotnosti se nezobrazuje: u jedné z fotek chybí vážení poblíž.",
-        "strip": "Od nejnovějších · {{count}} fotek",
+        "strip_one": "Od nejnovějších · {{count}} fotka",
+        "strip_few": "Od nejnovějších · {{count}} fotky",
+        "strip_many": "Od nejnovějších · {{count}} fotek",
+        "strip_other": "Od nejnovějších · {{count}} fotek",
         "pick": "Vybrat fotku z {{date}}"
       }
     },

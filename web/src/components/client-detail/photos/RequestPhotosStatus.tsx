@@ -111,7 +111,7 @@ export default function RequestPhotosStatus({ request, name, coachName, plans, l
           </dt>
           <dd className="font-medium text-ink">{formatWeekdayDate(request.endsAt, locale)}</dd>
         </dl>
-        <p className="rounded-field bg-sunken px-3.5 py-3 text-body leading-[1.45] text-ink-2">
+        <p className="rounded-field bg-sunken px-3.5 py-3 text-body leading-normal text-ink-2">
           {t('clientDetail.photos.requestDrawer.status.note', { name })}
         </p>
       </section>
