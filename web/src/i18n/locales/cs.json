@@ -3351,6 +3351,71 @@
     }
   },
   "clientDetail": {
+    "photos": {
+      "heading": "Fotky",
+      "count_one": "{{count}} fotka",
+      "count_few": "{{count}} fotky",
+      "count_many": "{{count}} fotky",
+      "count_other": "{{count}} fotek",
+      "clientFallback": "(bez jména)",
+      "hint": "Vidíte fotky z vlastních plánů a fotky nahrané během vaší spolupráce s klientem {{name}}.",
+      "request": "Vyžádat fotky",
+      "emptyTitle": "Zatím žádné fotky",
+      "emptyBody": "Fotky z vašich plánů a fotky nahrané klientem {{name}} se zobrazí tady.",
+      "openPhoto": "Otevřít fotku z {{date}}",
+      "photoAlt": "Fotka pokroku z {{date}}",
+      "imageUnavailable": "Fotka není dostupná",
+      "planRemoved": "Plán odstraněn",
+      "weightValue": "{{value}} kg",
+      "noWeighIn": "V blízkosti této fotky není žádné vážení",
+      "range": {
+        "1m": "Poslední měsíc",
+        "3m": "Poslední 3 měsíce",
+        "6m": "Posledních 6 měsíců",
+        "12m": "Posledních 12 měsíců",
+        "all": "Celé období"
+      },
+      "planType": {
+        "nutrition": "Jídelníček",
+        "training": "Tréninkový plán"
+      },
+      "unit": {
+        "kg": "kg",
+        "percent": "%"
+      },
+      "viewer": {
+        "previous": "Předchozí fotka",
+        "next": "Další fotka",
+        "position": "{{index}} z {{total}}",
+        "uploadedAt": "Nahráno v {{time}}",
+        "caption": "Popisek",
+        "takenDuring": "Pořízeno během",
+        "openPlan": "Otevřít plán",
+        "closestWeighIn": "Nejbližší vážení",
+        "compareWith": "Porovnat s jinou fotkou",
+        "planWeek": "{{type}} · týden {{week}}",
+        "planWeekOf": "{{type}} · týden {{week}} z {{total}}",
+        "bodyFat": "tělesný tuk {{value}} %",
+        "measured": "změřeno {{date}}"
+      },
+      "compare": {
+        "open": "Porovnat",
+        "title": "Porovnání fotek",
+        "subtitle": "Vyberte dole dvě fotky",
+        "emptySlot": "Vyberte fotku dole",
+        "noWeighInShort": "bez vážení",
+        "noPlan": "bez plánu",
+        "daysApart_one": "den mezi fotkami",
+        "daysApart_few": "dny mezi fotkami",
+        "daysApart_many": "dne mezi fotkami",
+        "daysApart_other": "dní mezi fotkami",
+        "weight": "hmotnost",
+        "bodyFat": "tělesný tuk",
+        "noWeighIn": "Změna hmotnosti se nezobrazuje: u jedné z fotek chybí vážení poblíž.",
+        "strip": "Od nejnovějších · {{count}} fotek",
+        "pick": "Vybrat fotku z {{date}}"
+      }
+    },
     "nutrition": {
       "current": {
         "label": "Aktuální jídelníček",
@@ -3824,7 +3889,7 @@
         "overview": "Přehled",
         "nutrition": "Výživa",
         "workouts": "Tréninky",
-        "storage": "Úložiště",
+        "storage": "Fotky",
         "payment": "Platby",
         "automations": "Automatizace"
       },

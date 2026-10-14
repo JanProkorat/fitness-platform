@@ -3276,6 +3276,67 @@
     }
   },
   "clientDetail": {
+    "photos": {
+      "heading": "Fotos",
+      "count_one": "{{count}} Foto",
+      "count_other": "{{count}} Fotos",
+      "clientFallback": "diesem Klienten",
+      "hint": "Sie sehen Fotos aus Ihren eigenen Plänen und Fotos, die während Ihrer Zusammenarbeit mit {{name}} hochgeladen wurden.",
+      "request": "Fotos anfordern",
+      "emptyTitle": "Noch keine Fotos",
+      "emptyBody": "Fotos aus Ihren Plänen und von {{name}} hochgeladene Fotos erscheinen hier.",
+      "openPhoto": "Foto vom {{date}} öffnen",
+      "photoAlt": "Fortschrittsfoto vom {{date}}",
+      "imageUnavailable": "Foto nicht verfügbar",
+      "planRemoved": "Plan entfernt",
+      "weightValue": "{{value}} kg",
+      "noWeighIn": "Keine Wägung in der Nähe dieses Fotos",
+      "range": {
+        "1m": "Letzter Monat",
+        "3m": "Letzte 3 Monate",
+        "6m": "Letzte 6 Monate",
+        "12m": "Letzte 12 Monate",
+        "all": "Gesamter Zeitraum"
+      },
+      "planType": {
+        "nutrition": "Ernährungsplan",
+        "training": "Trainingsplan"
+      },
+      "unit": {
+        "kg": "kg",
+        "percent": "%"
+      },
+      "viewer": {
+        "previous": "Vorheriges Foto",
+        "next": "Nächstes Foto",
+        "position": "{{index}} von {{total}}",
+        "uploadedAt": "Hochgeladen um {{time}}",
+        "caption": "Beschriftung",
+        "takenDuring": "Aufgenommen während",
+        "openPlan": "Plan öffnen",
+        "closestWeighIn": "Nächste Wägung",
+        "compareWith": "Mit anderem Foto vergleichen",
+        "planWeek": "{{type}} · Woche {{week}}",
+        "planWeekOf": "{{type}} · Woche {{week}} von {{total}}",
+        "bodyFat": "Körperfett {{value}} %",
+        "measured": "gemessen am {{date}}"
+      },
+      "compare": {
+        "open": "Vergleichen",
+        "title": "Fotos vergleichen",
+        "subtitle": "Wählen Sie unten zwei Fotos",
+        "emptySlot": "Wählen Sie unten ein Foto",
+        "noWeighInShort": "keine Wägung",
+        "noPlan": "kein Plan",
+        "daysApart_one": "Tag Abstand",
+        "daysApart_other": "Tage Abstand",
+        "weight": "Gewicht",
+        "bodyFat": "Körperfett",
+        "noWeighIn": "Die Gewichtsänderung wird nicht angezeigt: Bei einem der Fotos fehlt eine Wägung in der Nähe.",
+        "strip": "Neueste zuerst · {{count}} Fotos",
+        "pick": "Foto vom {{date}} auswählen"
+      }
+    },
     "nutrition": {
       "current": {
         "label": "Aktueller Ernährungsplan",
@@ -3729,7 +3790,7 @@
         "overview": "Übersicht",
         "nutrition": "Ernährung",
         "workouts": "Workouts",
-        "storage": "Speicher",
+        "storage": "Fotos",
         "payment": "Zahlung",
         "automations": "Automatisierungen"
       },

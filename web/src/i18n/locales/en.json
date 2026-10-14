@@ -3277,6 +3277,67 @@
     }
   },
   "clientDetail": {
+    "photos": {
+      "heading": "Photos",
+      "count_one": "{{count}} photo",
+      "count_other": "{{count}} photos",
+      "clientFallback": "this client",
+      "hint": "You see photos from your own plans and photos uploaded while you work with {{name}}.",
+      "request": "Request photos",
+      "emptyTitle": "No photos yet",
+      "emptyBody": "Photos from your plans and photos uploaded by {{name}} will show up here.",
+      "openPhoto": "Open photo from {{date}}",
+      "photoAlt": "Progress photo from {{date}}",
+      "imageUnavailable": "Photo unavailable",
+      "planRemoved": "Plan removed",
+      "weightValue": "{{value}} kg",
+      "noWeighIn": "No weigh-in near this photo",
+      "range": {
+        "1m": "Last month",
+        "3m": "Last 3 months",
+        "6m": "Last 6 months",
+        "12m": "Last 12 months",
+        "all": "All time"
+      },
+      "planType": {
+        "nutrition": "Meal plan",
+        "training": "Training plan"
+      },
+      "unit": {
+        "kg": "kg",
+        "percent": "%"
+      },
+      "viewer": {
+        "previous": "Previous photo",
+        "next": "Next photo",
+        "position": "{{index}} of {{total}}",
+        "uploadedAt": "Uploaded at {{time}}",
+        "caption": "Caption",
+        "takenDuring": "Taken during",
+        "openPlan": "Open plan",
+        "closestWeighIn": "Closest weigh-in",
+        "compareWith": "Compare with another photo",
+        "planWeek": "{{type}} · week {{week}}",
+        "planWeekOf": "{{type}} · week {{week}} of {{total}}",
+        "bodyFat": "body fat {{value}} %",
+        "measured": "measured {{date}}"
+      },
+      "compare": {
+        "open": "Compare",
+        "title": "Compare photos",
+        "subtitle": "Pick two photos below",
+        "emptySlot": "Pick a photo below",
+        "noWeighInShort": "no weigh-in",
+        "noPlan": "no plan",
+        "daysApart_one": "day apart",
+        "daysApart_other": "days apart",
+        "weight": "weight",
+        "bodyFat": "body fat",
+        "noWeighIn": "Weight change is not shown: one of the photos has no weigh-in nearby.",
+        "strip": "Newest first · {{count}} photos",
+        "pick": "Select photo from {{date}}"
+      }
+    },
     "nutrition": {
       "current": {
         "label": "Current meal plan",
@@ -3730,7 +3791,7 @@
         "overview": "Overview",
         "nutrition": "Nutrition",
         "workouts": "Workouts",
-        "storage": "Storage",
+        "storage": "Photos",
         "payment": "Payment",
         "automations": "Automations"
       },

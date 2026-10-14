@@ -1,10 +1,15 @@
 import { useTranslation } from 'react-i18next';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-export type ClientDetailTab = 'overview' | 'nutrition';
+export type ClientDetailTab = 'overview' | 'nutrition' | 'photos';
 
 const TAB_KEYS = ['overview', 'nutrition', 'workouts', 'storage', 'payment', 'automations'] as const;
-const LIVE_TABS: readonly string[] = ['overview', 'nutrition'];
+/** The `storage` label key now names the Photos tab; its route value is `photos`. */
+const LIVE_TABS: readonly string[] = ['overview', 'nutrition', 'storage'];
+
+function tabValue(key: (typeof TAB_KEYS)[number]): string {
+  return key === 'storage' ? 'photos' : key;
+}
 
 interface Props {
   /** The tab the current URL selects. */
@@ -19,7 +24,7 @@ interface Props {
 /**
  * The tab row on the client-detail page — ClientsPage's underline Tabs
  * treatment, minus the row hairline (the header draws it). The active tab comes from the
- * URL (`/clients/:clientId` or `/clients/:clientId/nutrition`); tabs that are
+ * URL (`/clients/:clientId`, `.../nutrition` or `.../photos`); tabs that are
  * not built yet render disabled with the shell's coming-soon treatment.
  * Nutrition and Workouts show only for a link that grants the matching domain.
  */
@@ -42,7 +47,7 @@ export default function ClientDetailTabs({
 
   return (
     <Tabs value={activeTab} onValueChange={(value) => {
-        if (value === 'overview' || value === 'nutrition') {
+        if (value === 'overview' || value === 'nutrition' || value === 'photos') {
           onTabChange(value);
         }
       }}>
@@ -54,7 +59,7 @@ export default function ClientDetailTabs({
             return (
               <TabsTrigger
                 key={key}
-                value={key}
+                value={tabValue(key)}
                 variant="underline"
                 className="text-body"
                 disabled={!isLive}
