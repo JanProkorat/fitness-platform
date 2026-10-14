@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Calendar, Camera, Dumbbell, Eye, MessageSquare } from 'lucide-react';
+import { Calendar, Camera, Eye, MessageSquare } from 'lucide-react';
+import HorizontalDumbbellIcon from '@/components/clients/HorizontalDumbbellIcon';
 import type { ClientPlanItem } from '@/api/client-plans';
 import type { PhotoDiaryRequestSummary } from '@/api/diary-requests';
 import {
@@ -117,7 +118,7 @@ export default function RequestPhotosStatus({ request, name, coachName, plans, l
 
       {request.planId && (
         <section className="flex flex-col gap-3">
-          <RequestSectionHeading icon={<Dumbbell className="size-4" />}>
+          <RequestSectionHeading icon={<HorizontalDumbbellIcon className="size-4" />}>
             {t('clientDetail.photos.requestDrawer.plan.heading')}
           </RequestSectionHeading>
           <p className="text-body text-ink">
