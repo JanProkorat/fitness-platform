@@ -151,6 +151,21 @@ async function fetchRecipeImageUrl(baseURL: string, recipeId: string): Promise<s
   return (await fetchRecipePictures(baseURL, recipeId)).imageUrl;
 }
 
+/** Finds one of the caller's recipes by its exact name, or `undefined` when there is none. */
+async function findRecipeIdByName(baseURL: string, name: string): Promise<string | undefined> {
+  const accessToken = await loginAsNutritionist(baseURL);
+  const api = await apiRequest.newContext({ baseURL });
+  try {
+    const response = await api.get(`/recipes?search=${encodeURIComponent(name)}&page=1&pageSize=10`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    const body = (await response.json()) as { recipes?: (RecipeApiBody & { name?: string })[] };
+    return body.recipes?.find((recipe) => recipe.name === name)?.recipeId;
+  } finally {
+    await api.dispose();
+  }
+}
+
 /** Recipes opens as a card grid; the table-based tests pin the list view before navigating. */
 async function useListView(page: Page): Promise<void> {
   await page.addInitScript(() => window.localStorage.setItem('recipes-view-mode', 'list'));
@@ -268,14 +283,23 @@ test.describe('recipes page', () => {
     }
   });
 
-  test('create mode keeps the Pictures tab disabled with a hint', async ({ page }) => {
+  test('create mode enables the Pictures tab and rejects a non-image file before staging it', async ({ page }) => {
     const drawer = page.locator('[data-slot="sheet-content"]');
     await page.getByRole('button', { name: 'New Recipe' }).click();
-    await expect(drawer.getByRole('tab', { name: 'Pictures' })).toBeDisabled();
-    await expect(drawer.getByText('Save the recipe to add pictures.')).toBeVisible();
     // The Details tab starts with the name, not a picture field.
     await expect(drawer.getByLabel(/^Name\b/)).toBeVisible();
     await expect(drawer.getByRole('button', { name: 'Upload picture' })).toHaveCount(0);
+
+    await drawer.getByRole('tab', { name: 'Pictures' }).click();
+    await expect(drawer.getByRole('button', { name: 'Upload picture' })).toBeVisible();
+    await drawer
+      .getByTestId('staged-main-input')
+      .setInputFiles({ name: 'notes.txt', mimeType: 'text/plain', buffer: Buffer.from('not an image') });
+    await expect(
+      page.locator('[data-slot="toast-viewport"]').getByText('Only JPEG, PNG or WebP images are supported.'),
+    ).toBeVisible();
+    await expect(drawer.getByRole('button', { name: 'Upload picture' })).toBeVisible();
+    await expect(drawer.getByRole('button', { name: 'Replace picture' })).toHaveCount(0);
     await drawer.getByRole('button', { name: 'Cancel' }).click();
   });
 
@@ -470,6 +494,69 @@ test.describe('recipes empty state', () => {
 });
 
 test.describe('recipe picture', () => {
+  test('create with staged pictures uploads them once the recipe is saved', async ({ page, baseURL }) => {
+    test.skip(IN_CONTAINER, 'presigned uploads target the host MinIO port');
+    const origin = baseURL ?? 'http://localhost:5173';
+    const name = `QA Recipe Staged ${Date.now()}`;
+    const drawer = page.locator('[data-slot="sheet-content"]');
+
+    try {
+      await useListView(page);
+      await page.goto('/recipes');
+      await page.getByRole('button', { name: 'New Recipe' }).click();
+      await expect(drawer.getByRole('heading', { name: 'New Recipe' })).toBeVisible();
+
+      await drawer.getByLabel(/^Name\b/).fill(name);
+      await drawer.getByLabel(/^Servings\b/).fill('2');
+      await drawer.locator('#recipe-meal-types').click();
+      await page.getByRole('checkbox', { name: 'Lunch' }).click();
+      await page.keyboard.press('Escape');
+      await drawer.getByRole('tab', { name: /Ingredients/ }).click();
+      await drawer.getByRole('searchbox', { name: 'Search ingredients to add' }).fill('Apple');
+      await drawer.getByRole('button', { name: /Apple/ }).first().click();
+      await drawer.getByLabel(/^Amount in grams for/).fill('200');
+
+      // Stage a main picture and three extras; the middle extra is removed again before saving.
+      await drawer.getByRole('tab', { name: 'Pictures' }).click();
+      await drawer.getByTestId('staged-main-input').setInputFiles(IMAGE_A_PATH);
+      await expect(drawer.getByRole('button', { name: 'Replace picture' })).toBeVisible();
+      await drawer.getByTestId('recipe-gallery-input').setInputFiles([IMAGE_A_PATH, IMAGE_A_PATH, IMAGE_A_PATH]);
+      await expect(drawer.getByTestId('recipe-gallery-tile')).toHaveCount(3);
+      await drawer.getByRole('button', { name: 'Remove picture 2' }).click();
+      await expect(drawer.getByTestId('recipe-gallery-tile')).toHaveCount(2);
+      // Nothing is sent to the server before the recipe is saved.
+      expect(await findRecipeIdByName(origin, name)).toBeUndefined();
+
+      const imageRequests: string[] = [];
+      page.on('request', (request) => {
+        if (/\/recipes\/[^/]+\/image/.test(request.url()) && request.method() === 'POST') {
+          imageRequests.push(new URL(request.url()).searchParams.get('slot') ?? '');
+        }
+      });
+      const createResponse = page.waitForResponse(
+        (response) => response.url().endsWith('/recipes') && response.request().method() === 'POST',
+      );
+      await drawer.getByRole('button', { name: 'Save Recipe' }).click();
+      expect((await createResponse).status()).toBe(201);
+      await expect(drawer).toHaveCount(0);
+
+      // Main first, then the two extras, sequentially.
+      await expect.poll(() => imageRequests).toEqual(['main', 'gallery', 'gallery']);
+      const recipeId = await findRecipeIdByName(origin, name);
+      expect(recipeId).toBeDefined();
+      await expect
+        .poll(async () => (await fetchRecipePictures(origin, recipeId as string)).galleryImageUrls.length)
+        .toBe(2);
+      const pictures = await fetchRecipePictures(origin, recipeId as string);
+      expect(pictures.imageUrl).toContain(`${recipeId}/main-`);
+    } finally {
+      const recipeId = await findRecipeIdByName(origin, name);
+      if (recipeId) {
+        await deleteRecipeViaApi(origin, recipeId);
+      }
+    }
+  });
+
   test('upload and remove the main picture', async ({ page, baseURL }) => {
     test.skip(IN_CONTAINER, 'presigned uploads target the host MinIO port');
     const origin = baseURL ?? 'http://localhost:5173';
