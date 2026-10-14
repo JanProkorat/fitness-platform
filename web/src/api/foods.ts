@@ -142,3 +142,13 @@ export async function confirmFoodImage(
 export async function removeFoodImage(foodId: string): Promise<void> {
   await apiClient.deleteFoodImageEndpoint(foodId);
 }
+
+/** Removes one extra picture from a food's gallery (owner only). Idempotent. */
+export async function removeFoodGalleryImage(foodId: string, imageUrl: string): Promise<void> {
+  await apiClient.removeFoodGalleryImageEndpoint(foodId, imageUrl);
+}
+
+/** Makes a gallery picture the main one; the previous main takes its slot (owner only). */
+export async function promoteFoodGalleryImage(foodId: string, imageUrl: string): Promise<void> {
+  await apiClient.promoteFoodGalleryImageEndpoint(foodId, { imageUrl });
+}

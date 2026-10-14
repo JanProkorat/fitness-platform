@@ -1268,7 +1268,10 @@
       "createSuccess": "Zutat erstellt.",
       "createError": "Zutat konnte nicht erstellt werden. Bitte versuchen Sie es erneut.",
       "updateSuccess": "Zutat aktualisiert.",
-      "updateError": "Zutat konnte nicht aktualisiert werden. Bitte versuchen Sie es erneut."
+      "updateError": "Zutat konnte nicht aktualisiert werden. Bitte versuchen Sie es erneut.",
+      "tabsLabel": "Zutatenabschnitte",
+      "tabDetails": "Details",
+      "tabPictures": "Bilder"
     },
     "deleteDialog": {
       "title": "Zutat löschen",
@@ -1278,10 +1281,20 @@
     "picture": {
       "removeConfirmDescription": "Möchten Sie das Bild dieser Zutat wirklich entfernen? Dies kann nicht rückgängig gemacht werden.",
       "alt": "Zutatenbild"
+    },
+    "pictures": {
+      "promoteError": "Das Hauptbild konnte nicht festgelegt werden. Bitte versuchen Sie es erneut.",
+      "removeConfirmDescription": "Möchten Sie dieses Bild wirklich entfernen? Dies kann nicht rückgängig gemacht werden."
     }
   },
   "library": {
     "eyebrow": "Ernährung",
+    "viewMode": {
+      "label": "Ansicht",
+      "grid": "Karten",
+      "list": "Tabelle",
+      "noTags": "Keine Tags"
+    },
     "nutrient": {
       "protein": "P {{count}} g",
       "carbs": "K {{count}} g",
@@ -1291,8 +1304,11 @@
     "badge": {
       "system": "System",
       "mine": "Meine",
-      "shared": "Geteilt"
+      "shared": "Geteilt",
+      "myLibrary": "Meine Bibliothek",
+      "publicLibrary": "Öffentlich"
     },
+    "cardMacros": "P {{protein}} · K {{carbs}} · F {{fat}}",
     "visibility": {
       "label": "Sichtbarkeit",
       "options": {
@@ -1372,11 +1388,22 @@
       "removeSuccess": "Bild entfernt.",
       "removeError": "Bild konnte nicht entfernt werden. Bitte versuchen Sie es erneut.",
       "uploadError": "Bild konnte nicht hochgeladen werden. Bitte versuchen Sie es erneut.",
+      "partialUploadError": "Gespeichert, aber einige Bilder konnten nicht hochgeladen werden ({{count}}). Öffnen Sie den Eintrag, um sie erneut hinzuzufügen.",
       "thumbnailAlt": "Bild von {{name}}",
       "viewPicture": "Bild anzeigen",
       "viewPictureOf": "Bild von {{name}} anzeigen",
       "previous": "Vorheriges Bild",
       "next": "Nächstes Bild"
+    },
+    "gallery": {
+      "label": "Weitere Bilder",
+      "count": "{{count}} von {{max}}",
+      "empty": "Keine weiteren Bilder.",
+      "alt": "Bild {{number}}",
+      "addPicture": "Bild hinzufügen",
+      "remove": "Bild {{number}} entfernen",
+      "setAsMain": "Als Hauptbild festlegen",
+      "setAsMainLabel": "Bild {{number}} als Hauptbild festlegen"
     }
   },
   "recipes": {
@@ -1422,6 +1449,7 @@
       "columnTags": "Tags",
       "columnLibrary": "Bibliothek",
       "caloriesUnit": "kcal",
+      "caloriesPerPortion": "kcal / Portion",
       "ingredientsCount": "{{count}} Zutaten",
       "minutesValue": "{{count}} Min."
     },
@@ -1436,7 +1464,6 @@
       "tabIngredients": "Zutaten",
       "tabPreparation": "Zubereitung",
       "tabPictures": "Bilder",
-      "picturesCreateHint": "Speichern Sie das Rezept, um Bilder hinzuzufügen.",
       "tabsLabel": "Rezeptabschnitte",
       "name": "Name",
       "namePlaceholder": "Rezeptnamen eingeben",
@@ -1508,14 +1535,6 @@
     },
     "pictures": {
       "mainLabel": "Hauptbild",
-      "galleryLabel": "Weitere Bilder",
-      "galleryCount": "{{count}} von {{max}}",
-      "galleryEmpty": "Keine weiteren Bilder.",
-      "galleryAlt": "Rezeptbild {{number}}",
-      "addPicture": "Bild hinzufügen",
-      "remove": "Bild {{number}} entfernen",
-      "setAsMain": "Als Hauptbild festlegen",
-      "setAsMainLabel": "Bild {{number}} als Hauptbild festlegen",
       "promoteError": "Das Hauptbild konnte nicht festgelegt werden. Bitte versuchen Sie es erneut.",
       "removeConfirmDescription": "Möchten Sie dieses Bild wirklich entfernen? Dies kann nicht rückgängig gemacht werden."
     }
@@ -2455,6 +2474,9 @@
     "RECIPE_NOT_OWNED": "Sie können nur Ihre eigenen Rezepte ändern.",
     "RECIPE_GALLERY_FULL": "Dieses Rezept hat bereits die maximale Anzahl an Bildern.",
     "RECIPE_GALLERY_IMAGE_NOT_FOUND": "Dieses Bild gehört nicht mehr zu diesem Rezept. Es wurde möglicherweise an anderer Stelle geändert.",
+    "FOOD_GALLERY_FULL": "Diese Zutat hat bereits die maximale Anzahl an Bildern.",
+    "FOOD_GALLERY_IMAGE_NOT_FOUND": "Dieses Bild gehört nicht mehr zu dieser Zutat. Es wurde möglicherweise an anderer Stelle geändert.",
+    "FOOD_IMAGES_CONFLICT": "Die Bilder dieser Zutat wurden an anderer Stelle geändert. Bitte versuchen Sie es erneut.",
     "ONLY_COACH_ROLE": "Das ist deine einzige Coach-Rolle, sie kann hier nicht entfernt werden.",
     "ROLE_NOT_ASSIGNED": "Du hast diese Rolle nicht mehr. Deine Rollen wurden aktualisiert.",
     "NO_ACTIVE_COACH_ROLE": "Du hast keine aktive Coach-Rolle, daher gibt es nichts zu deaktivieren. Deine Rollen wurden aktualisiert.",

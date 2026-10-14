@@ -12,14 +12,16 @@ interface Props {
   imageUrl?: string;
   /** True for a food the caller does not own (or a trainer-only coach). */
   readOnly: boolean;
+  /** Opens the tab's multi-picture viewer instead of the single-picture lightbox. */
+  onViewPicture?: () => void;
 }
 
 /**
- * The ingredient drawer's picture area — a thin wrapper binding the shared
- * `PictureField` to the food image mutations. The parent renders it with
- * `key={foodId}` so a freshly-opened food always gets a clean mount.
+ * The ingredient drawer's main-picture area — a thin wrapper binding the shared
+ * `PictureField` to the food image mutations. The parent renders it with a
+ * `key` so a swapped or removed picture gets a clean mount.
  */
-export default function IngredientPictureField({ foodId, imageUrl, readOnly }: Props) {
+export default function IngredientPictureField({ foodId, imageUrl, readOnly, onViewPicture }: Props) {
   const { t } = useTranslation();
   const requestUploadUrlMutation = useRequestFoodImageUploadUrl();
   const confirmMutation = useConfirmFoodImage();
@@ -37,6 +39,7 @@ export default function IngredientPictureField({ foodId, imageUrl, readOnly }: P
         await confirmMutation.mutateAsync({ foodId, blobUrl });
       }}
       removePicture={() => removeMutation.mutateAsync(foodId)}
+      onViewPicture={onViewPicture}
     />
   );
 }

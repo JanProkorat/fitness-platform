@@ -12497,6 +12497,149 @@ export class ApiClient {
     }
 
     /**
+     * Remove a food gallery image
+     * @param foodId The food's public identifier (from route).
+     * @param imageUrl The exact stored gallery URL to remove (query parameter).
+     * @return Image removed (or was not in the gallery)
+     */
+    removeFoodGalleryImageEndpoint(foodId: string, imageUrl: string, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/foods/{foodId}/gallery?";
+        if (foodId === undefined || foodId === null)
+            throw new globalThis.Error("The parameter 'foodId' must be defined.");
+        url_ = url_.replace("{foodId}", encodeURIComponent("" + foodId));
+        if (imageUrl === undefined || imageUrl === null)
+            throw new globalThis.Error("The parameter 'imageUrl' must be defined and cannot be null.");
+        else
+            url_ += "imageUrl=" + encodeURIComponent("" + imageUrl) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "DELETE",
+            url: url_,
+            headers: {
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processRemoveFoodGalleryImageEndpoint(_response);
+        });
+    }
+
+    protected processRemoveFoodGalleryImageEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("FOOD_NOT_OWNED, or invalid imageUrl", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Promote a food gallery image to main
+     * @param foodId The food's public identifier (from route).
+     * @return Image promoted (or already main)
+     */
+    promoteFoodGalleryImageEndpoint(foodId: string, promoteFoodGalleryImageRequest: PromoteFoodGalleryImageRequest, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/foods/{foodId}/gallery/promote";
+        if (foodId === undefined || foodId === null)
+            throw new globalThis.Error("The parameter 'foodId' must be defined.");
+        url_ = url_.replace("{foodId}", encodeURIComponent("" + foodId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(promoteFoodGalleryImageRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processPromoteFoodGalleryImageEndpoint(_response);
+        });
+    }
+
+    protected processPromoteFoodGalleryImageEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("FOOD_NOT_OWNED or FOOD_GALLERY_IMAGE_NOT_FOUND", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * List food tags
      * @return The caller's food tags
      */
@@ -23312,11 +23455,9 @@ export interface FoodSummary {
     note?: string | undefined;
     /** Visibility of the food (Public = visible to all nutritionists, Private = visible only to its creator). */
     visibility?: FoodVisibility;
-    /** URL of the food image in blob storage (e.g. foods/{foodId}.jpg).
-Null when no image has been uploaded. */
+    /** URL of the main food image in blob storage. Null when no image has been uploaded. */
     imageUrl?: string | undefined;
-    /** URLs of gallery images (up to 6 entries). Each entry points to a blob at
-foods/{foodId}/gallery-{n}.{ext}. */
+    /** URLs of gallery images (up to 6 entries); new uploads use unique keys, legacy ones may be positional. */
     galleryImageUrls?: string[];
     /** True when the authenticated caller is the nutritionist who created this food.
 Clients can use this flag to decide whether to show edit/delete affordances. */
@@ -23444,6 +23585,16 @@ export interface ReplaceFoodTagAssignmentsRequest {
     /** Public identifiers of the tags to assign. An empty list clears every assignment the
 caller holds for this food. */
     tagIds: string[];
+}
+
+/** Request model for removing one gallery image from a food. */
+export interface RemoveFoodGalleryImageRequest {
+}
+
+/** Request model for promoting a gallery image to the food's main image. */
+export interface PromoteFoodGalleryImageRequest {
+    /** The exact stored gallery URL to promote. */
+    imageUrl: string;
 }
 
 /** The food tags owned by the calling nutritionist. */

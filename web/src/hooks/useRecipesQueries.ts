@@ -16,6 +16,7 @@ import { searchFoods } from '@/api/foods';
 import type { CreateRecipeRequest, UpdateRecipeRequest, UploadRecipeImageUrlRequest } from '@/api/recipe-types';
 import { getErrorStatus, showApiError, showSuccess } from '@/lib/api-errors';
 import { bumpImageVersion } from '@/hooks/useImageVersion';
+import { uploadPictureFile } from '@/components/library/pictureUpload';
 import { FoodSortDirection, FoodSortField } from '@/api/food-types';
 import type { RecipeListFilters } from '@/hooks/useRecipeListParams';
 
@@ -255,6 +256,32 @@ export function usePromoteRecipeGalleryImage() {
       queryClient.invalidateQueries({ queryKey: ['recipes'] });
     },
   });
+}
+
+/** Uploaders for a freshly created recipe's staged pictures: main first, then gallery, each upload-url, PUT, confirm. */
+export function useRecipeStagedUploads() {
+  const requestMain = useRequestRecipeImageUploadUrl();
+  const confirmMain = useConfirmRecipeImage();
+  const requestGallery = useRequestRecipeGalleryUploadUrl();
+  const confirmGallery = useConfirmRecipeGalleryImage();
+  return {
+    uploadMain: (recipeId: string, file: File) =>
+      uploadPictureFile(
+        file,
+        (request) => requestMain.mutateAsync({ recipeId, request }),
+        async (blobUrl) => {
+          await confirmMain.mutateAsync({ recipeId, blobUrl });
+        },
+      ),
+    uploadGallery: (recipeId: string, file: File) =>
+      uploadPictureFile(
+        file,
+        (request) => requestGallery.mutateAsync({ recipeId, request }),
+        async (blobUrl) => {
+          await confirmGallery.mutateAsync({ recipeId, blobUrl });
+        },
+      ),
+  };
 }
 
 export interface ReplaceRecipeTagAssignmentsVariables {

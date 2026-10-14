@@ -89,6 +89,8 @@ test.describe('recipe tags', () => {
   test('tags a system recipe through its read-only drawer, then filters the list by the tag', async ({ page }) => {
     const popoverContent = page.locator("[data-slot='popover-content']");
 
+    // Recipes opens as a card grid; this test drives the table.
+    await page.addInitScript(() => window.localStorage.setItem('recipes-view-mode', 'list'));
     await page.goto('/recipes?owner=System');
     await page.waitForLoadState('networkidle');
     await expect(page.getByRole('heading', { name: 'Recipes', exact: true })).toBeVisible();

@@ -6,22 +6,18 @@ using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Features.Foods.Shared;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Features.Foods.ConfirmFoodImage;
 
 /// <summary>
-/// Persists the food image blob URL on the food document.
-/// Main slot overwrites <c>ImageUrl</c>. Gallery slot appends to <c>GalleryImageUrls</c> (cap = 6).
-/// Only the nutritionist who created the food can set its images.
-/// For the main slot, the blobUrl is additionally validated against the food's
-/// presigned key (see <see cref="IImageUploadService.IsValidBlobUrlForSubPath"/>) so an
-/// attacker cannot persist an arbitrary or foreign URL that would later be rendered
-/// to other coaches browsing the public food library.
+/// Persists the food image blob URL on the food document: main slot sets <c>ImageUrl</c>, gallery slot
+/// appends to <c>GalleryImageUrls</c> (cap = 6). The blobUrl must be a key issued for this food and slot.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
-/// <param name="imageUpload">Image upload service — validates the main-slot blobUrl matches this food's presigned key.</param>
+/// <param name="imageUpload">Image upload service — validates the blobUrl against this food's presigned key.</param>
 [RemovedCoachRole(AppRoles.Nutritionist, RemovedCoachRoleMode.Refuse)]
 public class ConfirmFoodImageEndpoint(IMongoContext mongo, IImageUploadService imageUpload) : Endpoint<ConfirmFoodImageRequest>
 {
@@ -37,7 +33,7 @@ public class ConfirmFoodImageEndpoint(IMongoContext mongo, IImageUploadService i
             s.Summary = "Confirm food image upload";
             s.Description = "Sets the image URL on the food document after a successful blob upload. "
                             + "Pass the blobUrl returned by POST /foods/{id}/image/upload-url. "
-                            + "Use slot=main to set the main image (overwrites); slot=gallery to append "
+                            + "Use slot=main to set the main image (replaces it); slot=gallery to append "
                             + "to the gallery (max 6 entries). "
                             + "Only the nutritionist who created the food can confirm its images.";
         });
@@ -76,50 +72,76 @@ public class ConfirmFoodImageEndpoint(IMongoContext mongo, IImageUploadService i
 
         var isGallery = req.Slot.Equals("gallery", StringComparison.OrdinalIgnoreCase);
 
-        // Reject any main-slot blobUrl that isn't exactly the presigned key issued by
-        // POST /foods/{id}/image/upload-url for this food. Without this check an attacker
-        // could persist an arbitrary external URL that gets rendered to other coaches
-        // browsing the public food library (stored-content injection). This cannot live
-        // in the validator — it has no access to the food's identity-scoped key.
-        if (!isGallery && !imageUpload.IsValidBlobUrlForSubPath(ImageUploadScope.Food, req.FoodId.ToString(), req.BlobUrl))
+        // Re-check gallery cap at confirm time (race: another confirm could have filled it
+        // between the upload-url call and this confirm call).
+        if (isGallery && food.GalleryImageUrls.Count >= GalleryCap)
+        {
+            this.ThrowErrorWithCode(ErrorCodes.FoodGalleryFull,
+                $"The food gallery is full. Maximum {GalleryCap} gallery images are allowed.");
+            return;
+        }
+
+        var slot = isGallery ? FoodImageKeys.GallerySlot : FoodImageKeys.MainSlot;
+
+        // Only a key issued by upload-url for this food and slot may be persisted, otherwise an arbitrary
+        // URL would be rendered to other coaches browsing the public food library.
+        if (!IsValidKey(req, food, slot))
         {
             this.ThrowErrorWithCode(ErrorCodes.InvalidBlobUrl, "BlobUrl does not match this food's image upload key.");
             return;
         }
 
-        UpdateDefinition<Food> update;
+        // The IsDeleted guard covers a concurrent soft-delete between the Find above and the write.
+        var ownedFood = Builders<Food>.Filter.Eq(f => f.ExternalId, req.FoodId)
+            & Builders<Food>.Filter.Eq(f => f.NutritionistId, nutritionistId)
+            & Builders<Food>.Filter.Eq(f => f.IsDeleted, false);
 
         if (isGallery)
         {
-            // Re-check gallery cap at confirm time (race: another confirm could have filled it
-            // between the upload-url call and this confirm call).
-            if (food.GalleryImageUrls.Count >= GalleryCap)
+            // Atomic append: room left (no 6th element) and URL not already present, so a
+            // concurrent confirm cannot overflow the cap or duplicate the entry.
+            var result = await mongo.Foods.UpdateOneAsync(
+                ownedFood
+                    & Builders<Food>.Filter.Exists($"galleryImageUrls.{GalleryCap - 1}", false)
+                    & Builders<Food>.Filter.Not(Builders<Food>.Filter.AnyEq(f => f.GalleryImageUrls, req.BlobUrl)),
+                Builders<Food>.Update
+                    .Push(f => f.GalleryImageUrls, req.BlobUrl)
+                    .Set(f => f.DateUpdated, DateTime.UtcNow),
+                cancellationToken: ct);
+
+            if (result.ModifiedCount == 0)
             {
                 this.ThrowErrorWithCode(ErrorCodes.FoodGalleryFull,
                     $"The food gallery is full. Maximum {GalleryCap} gallery images are allowed.");
                 return;
             }
 
-            update = Builders<Food>.Update
-                .Push(f => f.GalleryImageUrls, req.BlobUrl)
-                .Set(f => f.DateUpdated, DateTime.UtcNow);
-        }
-        else
-        {
-            update = Builders<Food>.Update
-                .Set(f => f.ImageUrl, req.BlobUrl)
-                .Set(f => f.DateUpdated, DateTime.UtcNow);
+            await Send.NoContentAsync(ct);
+            return;
         }
 
-        // Guard against a concurrent soft-delete between the FindAsync above and this
-        // write: include IsDeleted == false in the update filter so a logically-deleted
-        // food never has its image written, even if it slipped past the find gate.
         await mongo.Foods.UpdateOneAsync(
-            Builders<Food>.Filter.Eq(f => f.ExternalId, req.FoodId)
-                & Builders<Food>.Filter.Eq(f => f.IsDeleted, false),
-            update,
+            ownedFood,
+            Builders<Food>.Update
+                .Set(f => f.ImageUrl, req.BlobUrl)
+                .Set(f => f.DateUpdated, DateTime.UtcNow),
             cancellationToken: ct);
 
         await Send.NoContentAsync(ct);
+    }
+
+    private bool IsValidKey(ConfirmFoodImageRequest req, Food food, string slot)
+    {
+        if (!FoodImageKeys.TryParse(req.BlobUrl, slot, out var keyId))
+        {
+            return false;
+        }
+
+        if (!imageUpload.IsValidBlobUrlForSubPath(ImageUploadScope.Food, $"{req.FoodId}/{slot}-{keyId:N}", req.BlobUrl))
+        {
+            return false;
+        }
+
+        return req.BlobUrl != food.ImageUrl && !food.GalleryImageUrls.Contains(req.BlobUrl);
     }
 }

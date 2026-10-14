@@ -9,6 +9,8 @@ interface Props {
   pageSize: number;
   totalCount: number;
   onPageChange: (page: number) => void;
+  /** Drops the top rule and side padding, for use outside a bordered panel (card grids). */
+  bare?: boolean;
 }
 
 /**
@@ -17,7 +19,7 @@ interface Props {
  * rows to describe, even on a single page, since "Viewing X of Y" is the
  * card's footer regardless of page count.
  */
-export default function Pagination({ rowCount, page, pageSize, totalCount, onPageChange }: Props) {
+export default function Pagination({ rowCount, page, pageSize, totalCount, onPageChange, bare }: Props) {
   const { t } = useTranslation();
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
@@ -26,7 +28,7 @@ export default function Pagination({ rowCount, page, pageSize, totalCount, onPag
   }
 
   return (
-    <div className="flex items-center justify-between border-t border-line px-5 py-4">
+    <div className={`flex items-center justify-between py-4 ${bare ? '' : 'border-t border-line px-5'}`}>
       <span className="text-body text-muted-foreground">
         {t('library.pagination.viewing', { count: rowCount, total: totalCount })}
       </span>

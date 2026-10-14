@@ -12,6 +12,9 @@ import type { FoodSummary } from '@/api/food-types';
 import IngredientCategoryFilterPopover from '@/components/ingredients/IngredientCategoryFilterPopover';
 import LibraryTagFilterPopover from '@/components/library/LibraryTagFilterPopover';
 import OwnerFilterPopover from '@/components/library/OwnerFilterPopover';
+import ViewModeToggle from '@/components/library/ViewModeToggle';
+import { INGREDIENTS_VIEW_MODE_KEY, useViewMode } from '@/hooks/useViewMode';
+import IngredientsGrid from '@/components/ingredients/IngredientsGrid';
 import IngredientsTable from '@/components/ingredients/IngredientsTable';
 import Pagination from '@/components/library/Pagination';
 import IngredientDrawer from '@/components/ingredients/IngredientDrawer';
@@ -29,6 +32,8 @@ export default function IngredientsPage() {
     useIngredientListParams();
   const roles = useAuthStore((s) => s.user?.roles ?? []);
   const isNutritionist = roles.includes('Nutritionist');
+
+  const { viewMode, setViewMode } = useViewMode(INGREDIENTS_VIEW_MODE_KEY, 'list');
 
   const [searchInput, setSearchInput] = useState(filters.search);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -109,15 +114,24 @@ export default function IngredientsPage() {
         {/* Food tags are nutritionist-owned (#1120) — the Tags column shows for
             every coach, but only a nutritionist gets the tag filter chip. */}
         {isNutritionist && <LibraryTagFilterPopover selectedTagIds={filters.tags} onChange={setTags} />}
-        {isNutritionist && (
-          <Button type="button" size="lg" className="ml-auto gap-1.75 px-3.5 font-semibold" onClick={openCreateDrawer}>
-            <Plus aria-hidden="true" />
-            {t('ingredients.newIngredient')}
-          </Button>
-        )}
+        <div className="ml-auto flex items-center gap-3">
+          <ViewModeToggle value={viewMode} onChange={setViewMode} />
+          {isNutritionist && (
+            <Button type="button" size="lg" className="gap-1.75 px-3.5 font-semibold" onClick={openCreateDrawer}>
+              <Plus aria-hidden="true" />
+              {t('ingredients.newIngredient')}
+            </Button>
+          )}
+        </div>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-line bg-card shadow-panel">
+      <div
+        className={
+          viewMode === 'grid'
+            ? 'flex min-h-0 flex-1 flex-col'
+            : 'flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-line bg-card shadow-panel'
+        }
+      >
         {/* This div is the real vertical scroller. `ui/table.tsx`'s own
             `data-slot="table-container"` wraps the table in `overflow-x-auto`,
             which becomes the nearest ancestor with a non-visible overflow —
@@ -127,19 +141,37 @@ export default function IngredientsPage() {
             `overflow-visible` here promotes this div back to the sticky
             ancestor, while it still handles the horizontal scroll (its own
             overflow-x still computes to auto). */}
-        <div className="flex-1 overflow-y-auto [&_[data-slot=table-container]]:overflow-visible">
-          <IngredientsTable
-            foods={ingredientsQuery.data?.foods ?? []}
-            isPending={ingredientsQuery.isPending}
-            isError={ingredientsQuery.isError}
-            onRetry={() => void ingredientsQuery.refetch()}
-            hasActiveFilter={hasActiveFilter}
-            onClearFilters={clearFilters}
-            onRowClick={openRowDrawer}
-            sortBy={filters.sortBy}
-            sortDir={filters.sortDir}
-            onSortChange={cycleSort}
-          />
+        <div
+          className={
+            viewMode === 'grid'
+              ? '-m-1 flex-1 overflow-y-auto p-1'
+              : 'flex-1 overflow-y-auto [&_[data-slot=table-container]]:overflow-visible'
+          }
+        >
+          {viewMode === 'grid' ? (
+            <IngredientsGrid
+              foods={ingredientsQuery.data?.foods ?? []}
+              isPending={ingredientsQuery.isPending}
+              isError={ingredientsQuery.isError}
+              onRetry={() => void ingredientsQuery.refetch()}
+              hasActiveFilter={hasActiveFilter}
+              onClearFilters={clearFilters}
+              onCardClick={openRowDrawer}
+            />
+          ) : (
+            <IngredientsTable
+              foods={ingredientsQuery.data?.foods ?? []}
+              isPending={ingredientsQuery.isPending}
+              isError={ingredientsQuery.isError}
+              onRetry={() => void ingredientsQuery.refetch()}
+              hasActiveFilter={hasActiveFilter}
+              onClearFilters={clearFilters}
+              onRowClick={openRowDrawer}
+              sortBy={filters.sortBy}
+              sortDir={filters.sortDir}
+              onSortChange={cycleSort}
+            />
+          )}
         </div>
         <Pagination
           rowCount={(ingredientsQuery.data?.foods ?? []).length}
@@ -147,6 +179,7 @@ export default function IngredientsPage() {
           pageSize={filters.pageSize}
           totalCount={ingredientsQuery.data?.totalCount ?? 0}
           onPageChange={setPage}
+          bare={viewMode === 'grid'}
         />
       </div>
 

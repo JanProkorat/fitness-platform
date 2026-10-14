@@ -1269,7 +1269,10 @@
       "createSuccess": "Ingredient created.",
       "createError": "Couldn't create the ingredient. Please try again.",
       "updateSuccess": "Ingredient updated.",
-      "updateError": "Couldn't update the ingredient. Please try again."
+      "updateError": "Couldn't update the ingredient. Please try again.",
+      "tabsLabel": "Ingredient sections",
+      "tabDetails": "Details",
+      "tabPictures": "Pictures"
     },
     "deleteDialog": {
       "title": "Delete ingredient",
@@ -1279,10 +1282,20 @@
     "picture": {
       "removeConfirmDescription": "Are you sure you want to remove this ingredient's picture? This can't be undone.",
       "alt": "Ingredient picture"
+    },
+    "pictures": {
+      "promoteError": "Couldn't set the main picture. Please try again.",
+      "removeConfirmDescription": "Are you sure you want to remove this picture? This can't be undone."
     }
   },
   "library": {
     "eyebrow": "Nutrition",
+    "viewMode": {
+      "label": "Layout",
+      "grid": "Cards",
+      "list": "Table",
+      "noTags": "No tags"
+    },
     "nutrient": {
       "protein": "P {{count}} g",
       "carbs": "C {{count}} g",
@@ -1292,8 +1305,11 @@
     "badge": {
       "system": "System",
       "mine": "Mine",
-      "shared": "Shared"
+      "shared": "Shared",
+      "myLibrary": "My library",
+      "publicLibrary": "Public"
     },
+    "cardMacros": "P {{protein}} · C {{carbs}} · F {{fat}}",
     "visibility": {
       "label": "Visibility",
       "options": {
@@ -1373,11 +1389,22 @@
       "removeSuccess": "Picture removed.",
       "removeError": "Couldn't remove the picture. Please try again.",
       "uploadError": "Couldn't upload the picture. Please try again.",
+      "partialUploadError": "Saved, but some pictures failed to upload ({{count}}). Open it to add them again.",
       "thumbnailAlt": "{{name}} picture",
       "viewPicture": "View picture",
       "viewPictureOf": "View picture of {{name}}",
       "previous": "Previous picture",
       "next": "Next picture"
+    },
+    "gallery": {
+      "label": "More pictures",
+      "count": "{{count}} of {{max}}",
+      "empty": "No additional pictures.",
+      "alt": "Picture {{number}}",
+      "addPicture": "Add picture",
+      "remove": "Remove picture {{number}}",
+      "setAsMain": "Set as main",
+      "setAsMainLabel": "Set picture {{number}} as main"
     }
   },
   "recipes": {
@@ -1423,6 +1450,7 @@
       "columnTags": "Tags",
       "columnLibrary": "Library",
       "caloriesUnit": "kcal",
+      "caloriesPerPortion": "kcal / portion",
       "ingredientsCount": "{{count}} ingredients",
       "minutesValue": "{{count}} min"
     },
@@ -1437,7 +1465,6 @@
       "tabIngredients": "Ingredients",
       "tabPreparation": "Preparation",
       "tabPictures": "Pictures",
-      "picturesCreateHint": "Save the recipe to add pictures.",
       "tabsLabel": "Recipe sections",
       "name": "Name",
       "namePlaceholder": "Enter recipe name",
@@ -1509,14 +1536,6 @@
     },
     "pictures": {
       "mainLabel": "Main picture",
-      "galleryLabel": "More pictures",
-      "galleryCount": "{{count}} of {{max}}",
-      "galleryEmpty": "No additional pictures.",
-      "galleryAlt": "Recipe picture {{number}}",
-      "addPicture": "Add picture",
-      "remove": "Remove picture {{number}}",
-      "setAsMain": "Set as main",
-      "setAsMainLabel": "Set picture {{number}} as main",
       "promoteError": "Couldn't set the main picture. Please try again.",
       "removeConfirmDescription": "Are you sure you want to remove this picture? This can't be undone."
     }
@@ -2456,6 +2475,9 @@
     "RECIPE_NOT_OWNED": "You can only change your own recipes.",
     "RECIPE_GALLERY_FULL": "This recipe already has the maximum number of pictures.",
     "RECIPE_GALLERY_IMAGE_NOT_FOUND": "That picture is no longer part of this recipe. It may have been changed elsewhere.",
+    "FOOD_GALLERY_FULL": "This ingredient already has the maximum number of pictures.",
+    "FOOD_GALLERY_IMAGE_NOT_FOUND": "That picture is no longer part of this ingredient. It may have been changed elsewhere.",
+    "FOOD_IMAGES_CONFLICT": "This ingredient's pictures were changed elsewhere. Please try again.",
     "ONLY_COACH_ROLE": "This is your only coach role, so it can’t be removed here.",
     "ROLE_NOT_ASSIGNED": "You no longer have this role. Your roles have been refreshed.",
     "NO_ACTIVE_COACH_ROLE": "You have no active coach role, so there is nothing to disable. Your roles have been refreshed.",

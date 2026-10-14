@@ -14,6 +14,9 @@ import OwnerFilterPopover from '@/components/library/OwnerFilterPopover';
 import LibraryTagFilterPopover from '@/components/library/LibraryTagFilterPopover';
 import PageHeader from '@/components/library/PageHeader';
 import Pagination from '@/components/library/Pagination';
+import ViewModeToggle from '@/components/library/ViewModeToggle';
+import { RECIPES_VIEW_MODE_KEY, useViewMode } from '@/hooks/useViewMode';
+import RecipesGrid from '@/components/recipes/RecipesGrid';
 import RecipesTable from '@/components/recipes/RecipesTable';
 import RecipeDrawer from '@/components/recipes/RecipeDrawer';
 
@@ -42,6 +45,8 @@ export default function RecipesPage() {
   } = useRecipeListParams();
   const roles = useAuthStore((s) => s.user?.roles ?? []);
   const isNutritionist = roles.includes('Nutritionist');
+
+  const { viewMode, setViewMode } = useViewMode(RECIPES_VIEW_MODE_KEY, 'grid');
 
   const [searchInput, setSearchInput] = useState(filters.search);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -143,10 +148,13 @@ export default function RecipesPage() {
             <LibraryTagFilterPopover selectedTagIds={filters.tags} onChange={setTags} />
           </>
         )}
-        <Button type="button" size="lg" className="ml-auto gap-1.75 px-3.5 font-semibold" onClick={openCreateDrawer}>
-          <Plus aria-hidden="true" />
-          {t('recipes.newRecipe')}
-        </Button>
+        <div className="ml-auto flex items-center gap-3">
+          {!showEmptyState && <ViewModeToggle value={viewMode} onChange={setViewMode} />}
+          <Button type="button" size="lg" className="gap-1.75 px-3.5 font-semibold" onClick={openCreateDrawer}>
+            <Plus aria-hidden="true" />
+            {t('recipes.newRecipe')}
+          </Button>
+        </div>
       </div>
 
       {showEmptyState ? (
@@ -164,20 +172,45 @@ export default function RecipesPage() {
           </Button>
         </div>
       ) : (
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-line bg-card shadow-panel">
-          <div className="flex-1 overflow-y-auto [&_[data-slot=table-container]]:overflow-visible">
-            <RecipesTable
-              recipes={recipes}
-              isPending={recipesQuery.isPending}
-              isError={recipesQuery.isError}
-              onRetry={() => void recipesQuery.refetch()}
-              hasActiveFilter={hasActiveFilter}
-              onClearFilters={clearFilters}
-              onRowClick={openRowDrawer}
-              sortBy={filters.sortBy}
-              sortDir={filters.sortDir}
-              onSortChange={cycleSort}
-            />
+        <div
+          className={
+            viewMode === 'grid'
+              ? 'flex min-h-0 flex-1 flex-col'
+              : 'flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-line bg-card shadow-panel'
+          }
+        >
+          {/* The grid scroller has a 1-unit pad/negative margin so card focus rings are not clipped. */}
+          <div
+            className={
+              viewMode === 'grid'
+                ? '-m-1 flex-1 overflow-y-auto p-1'
+                : 'flex-1 overflow-y-auto [&_[data-slot=table-container]]:overflow-visible'
+            }
+          >
+            {viewMode === 'grid' ? (
+              <RecipesGrid
+                recipes={recipes}
+                isPending={recipesQuery.isPending}
+                isError={recipesQuery.isError}
+                onRetry={() => void recipesQuery.refetch()}
+                hasActiveFilter={hasActiveFilter}
+                onClearFilters={clearFilters}
+                onCardClick={openRowDrawer}
+              />
+            ) : (
+              <RecipesTable
+                recipes={recipes}
+                isPending={recipesQuery.isPending}
+                isError={recipesQuery.isError}
+                onRetry={() => void recipesQuery.refetch()}
+                hasActiveFilter={hasActiveFilter}
+                onClearFilters={clearFilters}
+                onRowClick={openRowDrawer}
+                sortBy={filters.sortBy}
+                sortDir={filters.sortDir}
+                onSortChange={cycleSort}
+              />
+            )}
           </div>
           <Pagination
             rowCount={recipes.length}
@@ -185,6 +218,7 @@ export default function RecipesPage() {
             pageSize={filters.pageSize}
             totalCount={totalCount}
             onPageChange={setPage}
+            bare={viewMode === 'grid'}
           />
         </div>
       )}

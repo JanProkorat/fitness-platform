@@ -7,6 +7,9 @@ import {
   requestFoodImageUploadUrl,
   confirmFoodImage,
   removeFoodImage,
+  removeFoodGalleryImage,
+  promoteFoodGalleryImage,
+  getFood,
 } from '@/api/foods';
 import {
   getFoodTags,
@@ -18,8 +21,9 @@ import {
   type UpdateFoodTagRequest,
 } from '@/api/food-tags';
 import { FoodSortDirection, FoodSortField } from '@/api/food-types';
-import type { CreateFoodRequest, UpdateFoodRequest } from '@/api/food-types';
+import type { CreateFoodRequest, FoodSummary, UpdateFoodRequest } from '@/api/food-types';
 import type { UploadFoodImageUrlRequest } from '@/api/generated';
+import { uploadPictureFile } from '@/components/library/pictureUpload';
 import { getErrorCode, showApiError, showSuccess } from '@/lib/api-errors';
 import type { IngredientListFilters } from '@/hooks/useIngredientListParams';
 import { bumpImageVersion } from '@/hooks/useImageVersion';
@@ -223,10 +227,9 @@ export function useDeleteFood() {
 }
 
 /**
- * Per-food cache-buster for the picture `<img src>` (#1140). The main
- * picture's blob key is deterministic (`foods/{id}.jpg`), so replacing it
- * keeps the SAME url — without this, the browser can keep showing the
- * stale cached bytes after a successful replace. This is not server data:
+ * Per-food cache-buster for the picture `<img src>` (#1140). Every upload now
+ * gets a unique blob key, so it only matters for legacy fixed-key images
+ * (`foods/{id}.jpg`) that a replace could leave stale. This is not server data:
  * a plain counter living in its own query-cache entry (deliberately NOT
  * namespaced under `['ingredients']`, so the broad
  * `invalidateQueries({ queryKey: ['ingredients'] })` calls below never
@@ -273,6 +276,103 @@ export function useConfirmFoodImage() {
       bumpFoodImageVersion(queryClient, variables.foodId);
       queryClient.invalidateQueries({ queryKey: ['ingredients'] });
     },
+  });
+}
+
+/** Requests a pre-signed upload URL for an extra (gallery) picture. */
+export function useRequestFoodGalleryUploadUrl() {
+  return useMutation({
+    mutationFn: (variables: { foodId: string; request: UploadFoodImageUrlRequest }) =>
+      requestFoodImageUploadUrl(variables.foodId, 'gallery', variables.request),
+  });
+}
+
+/** Confirms a gallery upload. A rejected confirm (full gallery, stale list) refetches so the grid shows the server's truth. */
+export function useConfirmFoodGalleryImage() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (variables: ConfirmFoodImageVariables) =>
+      confirmFoodImage(variables.foodId, 'gallery', variables.blobUrl),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['ingredients'] });
+    },
+  });
+}
+
+/** Removes one extra picture by its stored URL. */
+export function useRemoveFoodGalleryImage() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (variables: { foodId: string; imageUrl: string }) =>
+      removeFoodGalleryImage(variables.foodId, variables.imageUrl),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ingredients'] });
+      showSuccess('library.picture.removeSuccess');
+    },
+    onError: (error) => {
+      showApiError(error, 'library.picture.removeError');
+    },
+  });
+}
+
+/**
+ * Promotes an extra picture to main (swap). Any failure refetches the food, so a
+ * vanished picture or a concurrent change leaves the tab showing the server's
+ * current state next to the readable message.
+ */
+export function usePromoteFoodGalleryImage() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (variables: { foodId: string; imageUrl: string }) =>
+      promoteFoodGalleryImage(variables.foodId, variables.imageUrl),
+    onSuccess: (_data, variables) => {
+      bumpFoodImageVersion(queryClient, variables.foodId);
+      queryClient.invalidateQueries({ queryKey: ['ingredients'] });
+    },
+    onError: (error) => {
+      showApiError(error, 'ingredients.pictures.promoteError');
+      queryClient.invalidateQueries({ queryKey: ['ingredients'] });
+    },
+  });
+}
+
+/** Uploaders for a freshly created food's staged pictures: main first, then gallery, each upload-url, PUT, confirm. */
+export function useFoodStagedUploads() {
+  const requestMain = useRequestFoodImageUploadUrl();
+  const confirmMain = useConfirmFoodImage();
+  const requestGallery = useRequestFoodGalleryUploadUrl();
+  const confirmGallery = useConfirmFoodGalleryImage();
+  return {
+    uploadMain: (foodId: string, file: File) =>
+      uploadPictureFile(
+        file,
+        (request) => requestMain.mutateAsync({ foodId, request }),
+        async (blobUrl) => {
+          await confirmMain.mutateAsync({ foodId, blobUrl });
+        },
+      ),
+    uploadGallery: (foodId: string, file: File) =>
+      uploadPictureFile(
+        file,
+        (request) => requestGallery.mutateAsync({ foodId, request }),
+        async (blobUrl) => {
+          await confirmGallery.mutateAsync({ foodId, blobUrl });
+        },
+      ),
+  };
+}
+
+/**
+ * One food's full detail, for the drawer's Pictures tab. The list row the
+ * drawer opened from seeds it as placeholder data; the broad `['ingredients']`
+ * invalidations after each picture action refetch it.
+ */
+export function useFood(foodId: string | undefined, snapshot: FoodSummary | undefined) {
+  return useQuery({
+    queryKey: ['ingredients', 'detail', foodId],
+    queryFn: () => getFood(foodId as string),
+    enabled: Boolean(foodId),
+    placeholderData: snapshot,
   });
 }
 
