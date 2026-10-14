@@ -47,6 +47,8 @@ interface Props {
   onBreadcrumb: () => void;
   /** Rendered before the back button, e.g. a client avatar. */
   breadcrumbLeading?: ReactNode;
+  /** Rendered after the plan name, e.g. a status chip. */
+  titleBadge?: ReactNode;
   readOnly: boolean;
   dirty: boolean;
   saveStatus: SaveStatus;
@@ -56,7 +58,9 @@ interface Props {
   onRedo: () => void;
   onSave: () => void;
   /** Replaces the Save button; `onRun` fires on click. */
-  primaryAction?: { label: string; disabled: boolean; busy: boolean; onRun: () => void };
+  primaryAction?: { label: string; disabled: boolean; title?: string; busy: boolean; onRun: () => void };
+  /** With a primary action, also shows the default Save button to its left. */
+  secondarySave?: boolean;
   range: EditorRange;
   view: EditorView;
   onRangeChange: (range: EditorRange) => void;
@@ -70,6 +74,7 @@ export default function PlanEditorHeader({
   breadcrumbLabel,
   onBreadcrumb,
   breadcrumbLeading,
+  titleBadge,
   readOnly,
   dirty,
   saveStatus,
@@ -79,6 +84,7 @@ export default function PlanEditorHeader({
   onRedo,
   onSave,
   primaryAction,
+  secondarySave,
   range,
   view,
   onRangeChange,
@@ -132,6 +138,7 @@ export default function PlanEditorHeader({
             className="h-8 min-w-32 flex-1 truncate border-transparent bg-transparent px-2 font-display text-auth-title font-semibold text-ink shadow-none hover:border-line"
           />
         )}
+        {titleBadge}
         {!readOnly && (
           <span
             role="status"
@@ -198,15 +205,30 @@ export default function PlanEditorHeader({
             <Redo2 className="size-4" aria-hidden="true" />
           </Button>
           {primaryAction ? (
-            <Button
-              type="button"
-              className="h-7.5 px-3"
-              disabled={primaryAction.disabled || nameInvalid || saving || primaryAction.busy}
-              onClick={primaryAction.onRun}
-            >
-              {primaryAction.busy && <Loader2 className="animate-spin" aria-hidden="true" />}
-              {primaryAction.label}
-            </Button>
+            <>
+              {secondarySave && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-7.5 px-3"
+                  disabled={!dirty || nameInvalid || saving || primaryAction.busy}
+                  onClick={onSave}
+                >
+                  <Check aria-hidden="true" />
+                  {t('planEditor.save')}
+                </Button>
+              )}
+              <Button
+                type="button"
+                className="h-7.5 px-3"
+                disabled={primaryAction.disabled || nameInvalid || saving || primaryAction.busy}
+                title={primaryAction.title}
+                onClick={primaryAction.onRun}
+              >
+                {primaryAction.busy && <Loader2 className="animate-spin" aria-hidden="true" />}
+                {primaryAction.label}
+              </Button>
+            </>
           ) : (
             <Button type="button" className="h-7.5 px-3" disabled={!dirty || nameInvalid || saving} onClick={onSave}>
               <Check aria-hidden="true" />

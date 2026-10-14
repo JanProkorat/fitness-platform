@@ -28,12 +28,14 @@ interface Props {
   readOnly: boolean;
   /** Publication state per week; omit for no dots and no legend. Return undefined for a week with no status. */
   weekStatus?: (weekIndex: number) => WeekStatus | undefined;
+  /** Small line under the week number on each pill, e.g. the week's start date. */
+  weekSubLabel?: (weekIndex: number) => string | undefined;
   onSelect: (weekIndex: number) => void;
   onAddWeek: () => void;
 }
 
 /** Scrollable row of week pills with prev/next arrows and an add-week button. */
-export default function WeekTabs({ weekCount, current, readOnly, weekStatus, onSelect, onAddWeek }: Props) {
+export default function WeekTabs({ weekCount, current, readOnly, weekStatus, weekSubLabel, onSelect, onAddWeek }: Props) {
   const { t } = useTranslation();
   const statuses = weekStatus ? Array.from({ length: weekCount }, (_, index) => weekStatus(index)) : [];
   const published = statuses.filter((status) => status === 'published').length;
@@ -70,6 +72,7 @@ export default function WeekTabs({ weekCount, current, readOnly, weekStatus, onS
       >
         {Array.from({ length: weekCount }, (_, index) => {
           const status = statuses[index];
+          const subLabel = weekSubLabel?.(index);
           return (
             <button
               key={index}
@@ -78,13 +81,21 @@ export default function WeekTabs({ weekCount, current, readOnly, weekStatus, onS
               aria-selected={index === current}
               onClick={() => onSelect(index)}
               className={cn(
-                'inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full border px-2.5 text-xs font-semibold whitespace-nowrap outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50',
+                'inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 text-xs font-semibold whitespace-nowrap outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50',
+                subLabel ? 'h-9' : 'h-7',
                 index === current
                   ? 'border-ink bg-ink text-primary-foreground'
                   : 'border-line bg-card text-ink hover:bg-muted',
               )}
             >
-              {t('planEditor.weeks.week', { number: index + 1 })}
+              {subLabel ? (
+                <span className="flex flex-col items-start leading-tight">
+                  {t('planEditor.weeks.week', { number: index + 1 })}
+                  <span className="text-meta font-normal opacity-70">{subLabel}</span>
+                </span>
+              ) : (
+                t('planEditor.weeks.week', { number: index + 1 })
+              )}
               {status && (
                 <>
                   <StatusDot status={status} />

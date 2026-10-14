@@ -23,6 +23,7 @@ import IngredientsPage from '@/pages/IngredientsPage';
 import RecipesPage from '@/pages/RecipesPage';
 import PlanTemplatesPage from '@/pages/PlanTemplatesPage';
 import PlanTemplateEditorPage from '@/pages/PlanTemplateEditorPage';
+import ClientPlanEditorPage from '@/pages/ClientPlanEditorPage';
 import ProfilePage from '@/pages/ProfilePage';
 import SettingsPage from '@/pages/SettingsPage';
 import NotFoundPage from '@/pages/NotFoundPage';
@@ -89,6 +90,7 @@ export default function App() {
               <Route path="/forms/:id" element={<FormBuilderPage />} />
               <Route element={<RoleGuard allowedRoles={['Nutritionist']} />}>
                 <Route path="/plan-templates/:templateId" element={<PlanTemplateEditorPage />} />
+                <Route path="/clients/:clientId/nutrition/plans/:planId" element={<ClientPlanEditorPage />} />
               </Route>
             </Route>
           </Route>

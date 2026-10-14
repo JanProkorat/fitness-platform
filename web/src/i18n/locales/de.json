@@ -2194,6 +2194,24 @@
       "error": "Das Formular konnte nicht erstellt werden. Bitte versuchen Sie es erneut."
     }
   },
+  "clientPlanEditor": {
+    "publishWeek": "Woche {{week}} veröffentlichen",
+    "clientFallback": "Klient",
+    "backToNutrition": "Zurück zur Ernährung",
+    "readOnly": "Dieser Plan ist abgeschlossen und kann nicht bearbeitet werden.",
+    "status": {
+      "published": "{{published}}/{{total}} veröffentlicht",
+      "draft": "Entwurf"
+    },
+    "info": {
+      "tab": "Planinfo",
+      "placeholder": "Hier erscheinen die Plandetails."
+    },
+    "notFound": {
+      "title": "Plan nicht gefunden",
+      "body": "Dieser Plan existiert nicht oder gehört nicht zu diesem Klienten."
+    }
+  },
   "planTemplates": {
     "title":"Planvorlagen",
     "subtitle": "Wiederverwendbare Ernährungspläne — einmal erstellen, jedem Klienten zuweisen",
