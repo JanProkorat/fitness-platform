@@ -48,7 +48,6 @@ interface Props {
   /** Rendered before the back button, e.g. a client avatar. */
   breadcrumbLeading?: ReactNode;
   /** Rendered after the plan name, e.g. a status chip. */
-  titleBadge?: ReactNode;
   readOnly: boolean;
   dirty: boolean;
   saveStatus: SaveStatus;
@@ -74,7 +73,6 @@ export default function PlanEditorHeader({
   breadcrumbLabel,
   onBreadcrumb,
   breadcrumbLeading,
-  titleBadge,
   readOnly,
   dirty,
   saveStatus,
@@ -138,7 +136,6 @@ export default function PlanEditorHeader({
             className="h-8 min-w-32 flex-1 truncate border-transparent bg-transparent px-2 font-display text-auth-title font-semibold text-ink shadow-none hover:border-line"
           />
         )}
-        {titleBadge}
         {!readOnly && (
           <span
             role="status"
@@ -225,7 +222,11 @@ export default function PlanEditorHeader({
                 title={primaryAction.title}
                 onClick={primaryAction.onRun}
               >
-                {primaryAction.busy && <Loader2 className="animate-spin" aria-hidden="true" />}
+                {primaryAction.busy ? (
+                  <Loader2 className="animate-spin" aria-hidden="true" />
+                ) : (
+                  <Check aria-hidden="true" />
+                )}
                 {primaryAction.label}
               </Button>
             </>

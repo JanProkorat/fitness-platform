@@ -2200,10 +2200,6 @@
     "clientFallback": "Client",
     "backToNutrition": "Back to Nutrition",
     "readOnly": "This plan is closed and can't be edited.",
-    "status": {
-      "published": "{{published}}/{{total}} published",
-      "draft": "Draft"
-    },
     "info": {
       "tab": "Plan info",
       "name": "Plan name",
@@ -2216,18 +2212,16 @@
       "datesHint_other": "Plans start on a Monday. {{count}} weeks — add or remove weeks in the week strip.",
       "copiedFrom": "Copied from {{name}}'s profile",
       "resetToProfile": "reset to profile",
-      "publishing": "Publishing",
-      "publishingBody": "Each week is published on its own. {{name}} sees a week only after you publish it.",
       "startedFromTemplate": "Started from template {{name}}",
       "about": {
         "heading": "About {{name}}",
         "goal": "Goal",
         "diet": "Diet",
         "allergies": "Allergies",
-        "dislikes": "Avoided foods",
+        "dislikes": "Avoids",
         "habits": "Habits",
         "meals": "Meals a day",
-        "profileLink": "Open nutrition profile"
+        "profileLink": "From {{name}}'s onboarding form · open profile"
       }
     },
     "templates": {
@@ -2254,6 +2248,8 @@
         "kcalNear": "~ kcal {{percent}} %"
       },
       "empty": "No templates yet.",
+      "searchPlaceholder": "Search templates…",
+      "searchEmpty": "No templates match your search.",
       "listError": "Couldn't load the templates.",
       "loadError": "Couldn't load the template. Please try again.",
       "gone": "This template is no longer available.",

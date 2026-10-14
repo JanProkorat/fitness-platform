@@ -15,7 +15,6 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { isClosedPlan, useClientPlanEditor } from '@/hooks/useClientPlanEditor';
 import { getErrorStatus } from '@/lib/api-errors';
-import { cn } from '@/lib/utils';
 
 interface LoadedProps {
   plan: GetPlanResponse;
@@ -31,13 +30,7 @@ interface LoadedProps {
 function LoadedClientPlanEditor({ plan, clientId, clientName, firstName, lastName, onboarding, onReload }: LoadedProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { initial, saveState, save, primaryAction, weekStatus, weekSubLabel, publishedCount, totalWeeks, savedStartDate } =
-    useClientPlanEditor(plan, clientId);
-
-  const badge =
-    publishedCount > 0
-      ? t('clientPlanEditor.status.published', { published: publishedCount, total: totalWeeks })
-      : t('clientPlanEditor.status.draft');
+  const { initial, saveState, save, primaryAction, weekStatus, savedStartDate } = useClientPlanEditor(plan, clientId);
 
   return (
     <PlanEditor
@@ -57,17 +50,6 @@ function LoadedClientPlanEditor({ plan, clientId, clientName, firstName, lastNam
         onNavigate: () => navigate(`/clients/${clientId}/nutrition`),
         leading: <ClientAvatar firstName={firstName} lastName={lastName} className="size-7.5" />,
       }}
-      titleBadge={
-        <span
-          data-testid="plan-status-chip"
-          className={cn(
-            'shrink-0 rounded-full px-2 py-0.5 text-label font-semibold tracking-label uppercase',
-            publishedCount > 0 ? 'bg-nutrition-soft text-nutrition-ink' : 'bg-muted text-ink-2',
-          )}
-        >
-          {badge}
-        </span>
-      }
       primaryAction={primaryAction}
       secondarySave
       renderInfoPanel={(context) => (
@@ -93,7 +75,6 @@ function LoadedClientPlanEditor({ plan, clientId, clientName, firstName, lastNam
         ),
       }}
       weekStatus={weekStatus}
-      weekSubLabel={weekSubLabel}
       saveState={saveState}
       onSave={save}
       onReload={onReload}

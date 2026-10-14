@@ -95,7 +95,7 @@ interface Props extends InfoPanelContext {
   sourceTemplateId?: string;
 }
 
-/** The info tab of the client plan editor: name, dates, daily target, publishing note and the client's profile. */
+/** The info tab of the client plan editor: name, the client's profile, dates and daily target. */
 export default function ClientPlanInfoPanel({
   doc,
   readOnly,
@@ -165,6 +165,8 @@ export default function ClientPlanInfoPanel({
           )}
         </div>
 
+        <AboutClientCard clientId={clientId} clientFirstName={clientFirstName} onboarding={onboarding} />
+
         <div className="flex flex-col gap-2">
           <span className={SECTION_LABEL_CLASS}>{t('clientPlanEditor.info.dates')}</span>
           <div className="grid grid-cols-2 gap-x-3">
@@ -198,6 +200,8 @@ export default function ClientPlanInfoPanel({
 
         <div className="flex flex-col gap-2">
           <span className={SECTION_LABEL_CLASS}>{t('planEditor.info.targets.title')}</span>
+          <div className="grid grid-cols-2 gap-x-3 gap-y-3">{TARGET_FIELDS.slice(0, 2).map(renderTarget)}</div>
+          <div className="grid grid-cols-3 gap-x-3">{TARGET_FIELDS.slice(2).map(renderTarget)}</div>
           {hasProfileTargets && (
             <p data-testid="targets-copied" className="text-meta text-muted-foreground">
               {t('clientPlanEditor.info.copiedFrom', { name: clientFirstName })}
@@ -213,18 +217,7 @@ export default function ClientPlanInfoPanel({
               </button>
             </p>
           )}
-          <div className="grid grid-cols-2 gap-x-3 gap-y-3">{TARGET_FIELDS.slice(0, 2).map(renderTarget)}</div>
-          <div className="grid grid-cols-3 gap-x-3">{TARGET_FIELDS.slice(2).map(renderTarget)}</div>
         </div>
-
-        <div className="flex flex-col gap-1">
-          <span className={SECTION_LABEL_CLASS}>{t('clientPlanEditor.info.publishing')}</span>
-          <p className="text-body text-muted-foreground">
-            {t('clientPlanEditor.info.publishingBody', { name: clientFirstName })}
-          </p>
-        </div>
-
-        <AboutClientCard clientId={clientId} clientFirstName={clientFirstName} onboarding={onboarding} />
       </div>
 
       {templateName && (

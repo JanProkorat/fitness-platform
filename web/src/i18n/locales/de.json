@@ -2199,10 +2199,6 @@
     "clientFallback": "Klient",
     "backToNutrition": "Zurück zur Ernährung",
     "readOnly": "Dieser Plan ist abgeschlossen und kann nicht bearbeitet werden.",
-    "status": {
-      "published": "{{published}}/{{total}} veröffentlicht",
-      "draft": "Entwurf"
-    },
     "info": {
       "tab": "Planinfo",
       "name": "Planname",
@@ -2211,12 +2207,10 @@
       "ends": "Ende",
       "startPick": "Startdatum wählen",
       "startPlaceholder": "Montag wählen",
-      "datesHint_one": "Pläne beginnen an einem Montag. {{count}} Woche — Wochen fügst du in der Wochenleiste hinzu oder entfernst sie.",
-      "datesHint_other": "Pläne beginnen an einem Montag. {{count}} Wochen — Wochen fügst du in der Wochenleiste hinzu oder entfernst sie.",
+      "datesHint_one": "Pläne beginnen an einem Montag. {{count}} Woche — Wochen fügen Sie in der Wochenleiste hinzu oder entfernen sie.",
+      "datesHint_other": "Pläne beginnen an einem Montag. {{count}} Wochen — Wochen fügen Sie in der Wochenleiste hinzu oder entfernen sie.",
       "copiedFrom": "Aus dem Profil von {{name}} übernommen",
       "resetToProfile": "auf Profil zurücksetzen",
-      "publishing": "Veröffentlichung",
-      "publishingBody": "Jede Woche wird einzeln veröffentlicht. {{name}} sieht eine Woche erst, nachdem du sie veröffentlicht hast.",
       "startedFromTemplate": "Aus Vorlage {{name}} erstellt",
       "about": {
         "heading": "Über {{name}}",
@@ -2226,13 +2220,13 @@
         "dislikes": "Abneigungen",
         "habits": "Gewohnheiten",
         "meals": "Mahlzeiten pro Tag",
-        "profileLink": "Ernährungsprofil öffnen"
+        "profileLink": "Aus dem Onboarding-Formular von {{name}} · Profil öffnen"
       }
     },
     "templates": {
       "tab": "Vorlagen",
-      "introMatched": "Passend zu {{name}} — {{criteria}}. Mit „Verwenden“ übernimmst du eine Vorlage in den Plan.",
-      "introAll": "Alle deine Vorlagen. Mit „Verwenden“ übernimmst du eine Vorlage in den Plan.",
+      "introMatched": "Passend zu {{name}} — {{criteria}}. Mit „Verwenden“ übernehmen Sie eine Vorlage in den Plan.",
+      "introAll": "Alle Ihre Vorlagen. Mit „Verwenden“ übernehmen Sie eine Vorlage in den Plan.",
       "criteria": {
         "goal": "Ziel {{goal}}",
         "kcal": "{{kcal}} kcal",
@@ -2253,8 +2247,10 @@
         "kcalNear": "~ kcal {{percent}} %"
       },
       "empty": "Noch keine Vorlagen.",
+      "searchPlaceholder": "Vorlagen suchen…",
+      "searchEmpty": "Keine Vorlage entspricht Ihrer Suche.",
       "listError": "Die Vorlagen konnten nicht geladen werden.",
-      "loadError": "Die Vorlage konnte nicht geladen werden. Bitte versuche es erneut.",
+      "loadError": "Die Vorlage konnte nicht geladen werden. Bitte versuchen Sie es erneut.",
       "gone": "Diese Vorlage ist nicht mehr verfügbar.",
       "emptyTemplate": "Diese Vorlage enthält keine Mahlzeiten.",
       "replaceTitle": "Stattdessen „{{name}}“ verwenden?",
