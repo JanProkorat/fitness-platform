@@ -11,7 +11,7 @@ public enum PhotoDiaryStatus
     Pending = 1,
 
     /// <summary>
-    /// The client has accepted the request and chosen a mode (Bulk or Workflow).
+    /// The client has accepted the request.
     /// </summary>
     Accepted = 2,
 
@@ -29,4 +29,9 @@ public enum PhotoDiaryStatus
     /// The client has submitted / finalized the diary.
     /// </summary>
     Completed = 5,
+
+    /// <summary>
+    /// The coach closed the request before it finished.
+    /// </summary>
+    Cancelled = 6,
 }

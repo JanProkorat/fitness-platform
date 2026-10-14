@@ -44,6 +44,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     /// Replaces the retired ProgressPhoto entity.
     /// </summary>
     public virtual DbSet<PlanPhoto> PlanPhotos { get; set; } = null!;
+    public virtual DbSet<PlanPhotoViewer> PlanPhotoViewers { get; set; } = null!;
 
     /// <summary>
     /// Refresh tokens for JWT authentication.
@@ -315,6 +316,22 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             e.HasIndex(p => p.PlanId);
             e.HasIndex(p => p.DiaryRequestId)
                 .HasDatabaseName("ix_plan_photos_diary_request_id");
+        });
+
+        builder.Entity<PlanPhotoViewer>(e =>
+        {
+            e.HasOne(v => v.PlanPhoto)
+                .WithMany()
+                .HasForeignKey(v => v.PlanPhotoId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasOne(v => v.ProfessionalUser)
+                .WithMany()
+                .HasForeignKey(v => v.ProfessionalUserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasIndex(v => new { v.PlanPhotoId, v.ProfessionalUserId }).IsUnique();
+            e.HasIndex(v => v.ProfessionalUserId);
         });
 
         builder.Entity<PhotoDiaryReminderLog>(e =>

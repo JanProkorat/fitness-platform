@@ -14,6 +14,9 @@ public class ClientPhotoDiaryRequestSummary
     public Guid? PlanId { get; set; }
     public int DurationDays { get; set; }
     public PhotoDiaryMode? Mode { get; set; }
+
+    /// <summary>The coach's optional note to the client.</summary>
+    public string? Message { get; set; }
     public PhotoDiaryStatus Status { get; set; }
     public string? DismissReason { get; set; }
     public DateTimeOffset? AcceptedAt { get; set; }

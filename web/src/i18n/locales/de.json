@@ -2342,6 +2342,8 @@
     "PLAN_VERSION_CONFLICT": "Der Plan wurde inzwischen von einer anderen Anfrage geändert. Aktuelle Version wird geladen.",
     "QuestionnaireResponseId": "Diese Fragebogenantwort wurde nicht gefunden oder ist noch nicht ausgefüllt.",
     "PHOTO_DIARY_REQUEST_NOT_FOUND": "Foto-Tagebuch nicht gefunden.",
+    "PHOTO_DIARY_REQUEST_ALREADY_OPEN": "Für diesen Klienten ist bereits eine Fotoanfrage offen.",
+    "PHOTO_DIARY_REQUEST_INVALID_STATUS": "Diese Fotoanfrage ist nicht mehr offen.",
     "PHOTO_DIARY_REQUEST_FORBIDDEN": "Dieses Foto-Tagebuch gehört nicht Ihnen.",
     "PHOTO_DIARY_REQUEST_PLAN_NOT_OWNED": "Der ausgewählte Plan wurde nicht gefunden oder gehört nicht zu diesem Klienten.",
     "BROADCAST_RECIPIENT_LIMIT_EXCEEDED": "Sie können eine Nachricht gleichzeitig an höchstens 50 Klienten senden.",
@@ -3276,6 +3278,141 @@
     }
   },
   "clientDetail": {
+    "photos": {
+      "heading": "Fotos",
+      "count_one": "{{count}} Foto",
+      "count_other": "{{count}} Fotos",
+      "clientFallback": "diesem Klienten",
+      "hint": "Sie sehen Fotos aus Ihren eigenen Plänen und Fotos, die während Ihrer Zusammenarbeit mit {{name}} hochgeladen wurden.",
+      "request": "Fotos anfordern",
+      "requestBanner": {
+        "sent": "Fotoanfrage gesendet am {{date}}",
+        "waiting": "{{name}} hat noch keine neuen Fotos geschickt"
+      },
+      "requestDrawer": {
+        "title": "Fotos anfordern",
+        "description": "{{name}} erhält eine Benachrichtigung in der App",
+        "descriptionOpen": "Eine Fotoanfrage an {{name}} ist offen",
+        "coachFallback": "Dein Trainer",
+        "once": "Einmal",
+        "everyDay": "Jeden Tag",
+        "for": "Für",
+        "days_one": "{{count}} Tag",
+        "days_other": "{{count}} Tage",
+        "untilHelp": "Bis {{date}} · {{min}} bis {{max}} Tage",
+        "dueByHelp": "Fällig bis {{date}}",
+        "reminderDaily": "{{name}} erhält jeden Tag um 12 Uhr eine Erinnerung, solange noch kein Foto hochgeladen wurde. Die Anfrage endet nach dem letzten Tag von selbst.",
+        "reminderOnce": "{{name}} hat einen Tag Zeit, Fotos hochzuladen. Danach endet die Anfrage von selbst.",
+        "optional": "optional",
+        "footnote": "{{name}} kann annehmen oder ablehnen",
+        "submit": "Anfrage senden",
+        "sent": "Fotoanfrage gesendet.",
+        "sendError": "Die Fotoanfrage konnte nicht gesendet werden.",
+        "cancelled": "Fotoanfrage abgebrochen.",
+        "cancelError": "Die Fotoanfrage konnte nicht abgebrochen werden.",
+        "cancelRequest": "Anfrage abbrechen",
+        "cancelConfirm": "Anfrage an {{name}} abbrechen?",
+        "keepRequest": "Anfrage behalten",
+        "confirmCancel": "Ja, abbrechen",
+        "cancelling": "Wird abgebrochen...",
+        "planOption": "{{name}} · {{type}}",
+        "planType": {
+          "nutrition": "Ernährungsplan",
+          "training": "Trainingsplan"
+        },
+        "frequency": {
+          "heading": "Wie oft"
+        },
+        "plan": {
+          "heading": "Mit einem Plan verknüpfen",
+          "label": "Plan",
+          "none": "Kein Plan",
+          "help": "Die Fotos erscheinen bei diesem Plan. Es werden nur Ihre eigenen Pläne angezeigt."
+        },
+        "message": {
+          "heading": "Nachricht",
+          "label": "Was soll {{name}} fotografieren?",
+          "counter": "{{current}} / {{max}}"
+        },
+        "preview": {
+          "heading": "Das sieht {{name}}",
+          "title": "{{name}} bittet um Fortschrittsfotos",
+          "once": "Einmal, fällig bis {{date}}",
+          "daily": "Jeden Tag bis {{date}}"
+        },
+        "status": {
+          "heading": "Offene Anfrage",
+          "state": "Status",
+          "frequency": "Wie oft",
+          "sent": "Gesendet",
+          "until": "Bis",
+          "dueBy": "Fällig bis",
+          "note": "Die Anfrage endet am Ende des Zeitraums von selbst. Wenn Sie sie abbrechen, wird {{name}} nicht mehr gefragt.",
+          "values": {
+            "Pending": "Wartet auf die Antwort von {{name}}",
+            "Accepted": "{{name}} hat angenommen",
+            "InProgress": "{{name}} lädt gerade hoch",
+            "Completed": "Abgeschlossen",
+            "Dismissed": "{{name}} hat abgelehnt",
+            "Cancelled": "Abgebrochen"
+          }
+        }
+      },
+      "emptyTitle": "Noch keine Fotos",
+      "emptyBody": "Fotos aus Ihren Plänen und von {{name}} hochgeladene Fotos erscheinen hier.",
+      "openPhoto": "Foto vom {{date}} öffnen",
+      "photoAlt": "Fortschrittsfoto vom {{date}}",
+      "imageUnavailable": "Foto nicht verfügbar",
+      "planRemoved": "Plan entfernt",
+      "weightValue": "{{value}} kg",
+      "noWeighIn": "Keine Wägung in der Nähe dieses Fotos",
+      "range": {
+        "1m": "Letzter Monat",
+        "3m": "Letzte 3 Monate",
+        "6m": "Letzte 6 Monate",
+        "12m": "Letzte 12 Monate",
+        "all": "Gesamter Zeitraum"
+      },
+      "planType": {
+        "nutrition": "Ernährungsplan",
+        "training": "Trainingsplan"
+      },
+      "unit": {
+        "kg": "kg",
+        "percent": "%"
+      },
+      "viewer": {
+        "previous": "Vorheriges Foto",
+        "next": "Nächstes Foto",
+        "position": "{{index}} von {{total}}",
+        "uploadedAt": "Hochgeladen um {{time}}",
+        "caption": "Beschriftung",
+        "takenDuring": "Aufgenommen während",
+        "openPlan": "Plan öffnen",
+        "closestWeighIn": "Nächste Wägung",
+        "compareWith": "Mit anderem Foto vergleichen",
+        "planWeek": "{{type}} · Woche {{week}}",
+        "planWeekOf": "{{type}} · Woche {{week}} von {{total}}",
+        "bodyFat": "Körperfett {{value}} %",
+        "measured": "gemessen am {{date}}"
+      },
+      "compare": {
+        "open": "Vergleichen",
+        "title": "Fotos vergleichen",
+        "subtitle": "Wählen Sie unten zwei Fotos",
+        "emptySlot": "Wählen Sie unten ein Foto",
+        "noWeighInShort": "keine Wägung",
+        "noPlan": "kein Plan",
+        "daysApart_one": "Tag Abstand",
+        "daysApart_other": "Tage Abstand",
+        "weight": "Gewicht",
+        "bodyFat": "Körperfett",
+        "noWeighIn": "Die Gewichtsänderung wird nicht angezeigt: Bei einem der Fotos fehlt eine Wägung in der Nähe.",
+        "strip_one": "Neueste zuerst · {{count}} Foto",
+        "strip_other": "Neueste zuerst · {{count}} Fotos",
+        "pick": "Foto vom {{date}} auswählen"
+      }
+    },
     "nutrition": {
       "current": {
         "label": "Aktueller Ernährungsplan",
@@ -3729,7 +3866,7 @@
         "overview": "Übersicht",
         "nutrition": "Ernährung",
         "workouts": "Workouts",
-        "storage": "Speicher",
+        "storage": "Fotos",
         "payment": "Zahlung",
         "automations": "Automatisierungen"
       },

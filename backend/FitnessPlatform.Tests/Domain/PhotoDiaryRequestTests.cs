@@ -341,7 +341,7 @@ public class PhotoDiaryRequestTests(PhotoDiaryRequestContainerFixture containerF
     }
 
     [Fact]
-    public async Task CheckConstraint_PendingStatus_WithMode_Rejected()
+    public async Task CheckConstraint_PendingStatus_WithModeAndMessage_Accepted()
     {
         var ct = TestContext.Current.CancellationToken;
 
@@ -357,16 +357,90 @@ public class PhotoDiaryRequestTests(PhotoDiaryRequestContainerFixture containerF
             ProfessionalId = profUserId,
             LinkId = linkId,
             Status = PhotoDiaryStatus.Pending,
-            Mode = PhotoDiaryMode.Bulk, // Mode set on Pending — violates constraint
+            Mode = PhotoDiaryMode.Bulk, // The coach picks the mode at creation, so Pending carries one.
+            Message = "Please send a photo",
             CreatedAt = DateTimeOffset.UtcNow,
             UpdatedAt = DateTimeOffset.UtcNow,
         };
 
         _db.PhotoDiaryRequests.Add(request);
+        await _db.SaveChangesAsync(ct);
+
+        await RebuildContextAsync();
+        var loaded = await _db.PhotoDiaryRequests.AsNoTracking().SingleAsync(r => r.Id == request.Id, ct);
+        loaded.Mode.Should().Be(PhotoDiaryMode.Bulk);
+        loaded.Message.Should().Be("Please send a photo");
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task CheckConstraint_CancelledStatus_AcceptedAtIsFree(bool withAcceptedAt)
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        var profUserId = await CreateUserAsync();
+        var clientUserId = await CreateUserAsync();
+        var profProfileId = await CreateProfessionalProfileAsync(profUserId);
+        var clientProfileId = await CreateClientProfileAsync(clientUserId);
+        var linkId = await CreateLinkAsync(clientProfileId, profProfileId);
+
+        _db.PhotoDiaryRequests.Add(new PhotoDiaryRequest
+        {
+            Id = Guid.NewGuid(),
+            ProfessionalId = profUserId,
+            LinkId = linkId,
+            Status = PhotoDiaryStatus.Cancelled,
+            Mode = PhotoDiaryMode.Workflow,
+            AcceptedAt = withAcceptedAt ? DateTimeOffset.UtcNow : null,
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow,
+        });
+
+        var act = async () => await _db.SaveChangesAsync(ct);
+        await act.Should().NotThrowAsync("a Cancelled request may keep or lack accepted_at");
+    }
+
+    [Fact]
+    public async Task CheckConstraint_DismissedStatus_WithAcceptedAt_Rejected()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        var profUserId = await CreateUserAsync();
+        var clientUserId = await CreateUserAsync();
+        var profProfileId = await CreateProfessionalProfileAsync(profUserId);
+        var clientProfileId = await CreateClientProfileAsync(clientUserId);
+        var linkId = await CreateLinkAsync(clientProfileId, profProfileId);
+
+        _db.PhotoDiaryRequests.Add(new PhotoDiaryRequest
+        {
+            Id = Guid.NewGuid(),
+            ProfessionalId = profUserId,
+            LinkId = linkId,
+            Status = PhotoDiaryStatus.Dismissed,
+            Mode = PhotoDiaryMode.Workflow,
+            AcceptedAt = DateTimeOffset.UtcNow, // Dismissed requests were never accepted
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow,
+        });
 
         var act = async () => await _db.SaveChangesAsync(ct);
         await act.Should().ThrowAsync<Exception>(
-            "Mode set while Status=Pending violates ck_photo_diary_requests_mode_with_accepted_status");
+            "AcceptedAt on Dismissed violates ck_photo_diary_requests_accepted_at_with_accepted_status");
+    }
+
+    [Fact]
+    public void EndsAt_IsCreatedAtPlusDurationDays_AndIsOpenAtHonoursStatusAndEndDate()
+    {
+        var created = new DateTimeOffset(2026, 10, 1, 8, 0, 0, TimeSpan.Zero);
+        var request = new PhotoDiaryRequest { CreatedAt = created, DurationDays = 7, Status = PhotoDiaryStatus.Pending };
+
+        request.EndsAt.Should().Be(created.AddDays(7));
+        request.IsOpenAt(created.AddDays(7).AddTicks(-1)).Should().BeTrue();
+        request.IsOpenAt(created.AddDays(7)).Should().BeFalse("the window ends at CreatedAt + DurationDays");
+
+        request.Status = PhotoDiaryStatus.Cancelled;
+        request.IsOpenAt(created).Should().BeFalse();
     }
 
     [Fact]

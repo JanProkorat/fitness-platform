@@ -697,6 +697,39 @@ public class SaveMealPhotosEndpointTests
     // ──────────────────────────────────────────────────────────────────────────
 
     [Fact]
+    public async Task SaveMealPhotos_NewPhoto_AddsViewerRowForPlanNutritionist()
+    {
+        var mealId = Guid.NewGuid();
+        var meal = PlanTestHelpers.CreateMeal(
+            mealId: mealId, kind: MealKind.Breakfast, foods: PlanTestHelpers.CreateMealFood(foodName: "Oatmeal"));
+
+        var plan = PlanTestHelpers.CreatePlan(clientId: _clientId, status: NutritionPlanStatus.Active);
+        plan.StartDate = DateTime.UtcNow;
+        plan.Weeks[0].Days[0].Meals.Add(meal);
+
+        var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
+        var mealLogCollection = CreateMealLogCollection(existingLogs: []);
+        mongo.MealLogs.Returns(mealLogCollection);
+
+        var db = CreateMockDb();
+        var ep = CreateEndpoint(mongo, db);
+
+        await ep.HandleAsync(
+            new SaveMealPhotosRequest
+            {
+                MealId = mealId,
+                Photos = [new MealPhotoInput { BlobUrl = "https://minio.local/bucket/viewer.jpg" }],
+                Note = null
+            },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(204);
+        db.PlanPhotoViewers.Received(1).Add(Arg.Is<PlanPhotoViewer>(viewer =>
+            viewer.ProfessionalUserId == plan.NutritionistId &&
+            viewer.PlanPhoto.Category == PlanPhotoCategory.Food));
+    }
+
+    [Fact]
     public async Task SaveMealPhotos_NewPhotoWithNote_PersistsNoteToPlanPhotoDescription()
     {
         // Arrange: client + nutrition plan + meal, no existing meal log.

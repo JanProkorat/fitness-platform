@@ -27,8 +27,14 @@ public class PhotoDiaryRequestedEvent
     /// <summary>Role of the requesting professional (e.g. "Nutritionist", "Trainer").</summary>
     public string ProfessionalRole { get; init; } = string.Empty;
 
-    /// <summary>Number of days the client has to complete the diary.</summary>
+    /// <summary>Number of days the request stays open.</summary>
     public int DurationDays { get; init; }
+
+    /// <summary>The upload mode the coach chose (<c>Bulk</c> or <c>Workflow</c>).</summary>
+    public string? Mode { get; init; }
+
+    /// <summary>The coach's optional note to the client.</summary>
+    public string? Message { get; init; }
 
     /// <summary>Optional MongoDB plan the request is scoped to.</summary>
     public Guid? PlanId { get; init; }

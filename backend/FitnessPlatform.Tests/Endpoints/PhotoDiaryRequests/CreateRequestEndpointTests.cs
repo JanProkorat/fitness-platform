@@ -152,7 +152,7 @@ public class CreateRequestEndpointTests(FitnessApiFactory factory)
         var (http, _) = await SetupProfessionalAsync();
         var response = await http.PostAsJsonAsync(
             "/trainer/photo-diary-requests",
-            new { ClientId = Guid.NewGuid(), PendingInviteId = 2L, DurationDays = 7 },
+            new { ClientId = Guid.NewGuid(), PendingInviteId = 2L, Mode = "Workflow", DurationDays = 7 },
             TestContext.Current.CancellationToken);
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
@@ -163,7 +163,7 @@ public class CreateRequestEndpointTests(FitnessApiFactory factory)
         var (http, _) = await SetupProfessionalAsync();
         var response = await http.PostAsJsonAsync(
             "/trainer/photo-diary-requests",
-            new { DurationDays = 7 },
+            new { Mode = "Workflow", DurationDays = 7 },
             TestContext.Current.CancellationToken);
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
@@ -174,7 +174,7 @@ public class CreateRequestEndpointTests(FitnessApiFactory factory)
         var (http, _) = await SetupProfessionalAsync();
         var response = await http.PostAsJsonAsync(
             "/trainer/photo-diary-requests",
-            new { ClientId = Guid.NewGuid(), DurationDays = 0 },
+            new { ClientId = Guid.NewGuid(), Mode = "Workflow", DurationDays = 0 },
             TestContext.Current.CancellationToken);
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
@@ -185,7 +185,7 @@ public class CreateRequestEndpointTests(FitnessApiFactory factory)
         var (http, _) = await SetupProfessionalAsync();
         var response = await http.PostAsJsonAsync(
             "/trainer/photo-diary-requests",
-            new { ClientId = Guid.NewGuid(), DurationDays = 31 },
+            new { ClientId = Guid.NewGuid(), Mode = "Workflow", DurationDays = 31 },
             TestContext.Current.CancellationToken);
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
@@ -199,7 +199,7 @@ public class CreateRequestEndpointTests(FitnessApiFactory factory)
 
         var response = await http.PostAsJsonAsync(
             "/trainer/photo-diary-requests",
-            new { ClientId = Guid.NewGuid(), DurationDays = 7 },
+            new { ClientId = Guid.NewGuid(), Mode = "Workflow", DurationDays = 7 },
             TestContext.Current.CancellationToken);
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
@@ -216,7 +216,7 @@ public class CreateRequestEndpointTests(FitnessApiFactory factory)
 
         var response = await http.PostAsJsonAsync(
             "/trainer/photo-diary-requests",
-            new { ClientId = clientPublicId, DurationDays = 7 },
+            new { ClientId = clientPublicId, Mode = "Workflow", DurationDays = 7 },
             TestContext.Current.CancellationToken);
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
@@ -235,7 +235,7 @@ public class CreateRequestEndpointTests(FitnessApiFactory factory)
 
         var response = await http.PostAsJsonAsync(
             "/trainer/photo-diary-requests",
-            new { ClientId = clientPublicId, DurationDays = 7 },
+            new { ClientId = clientPublicId, Mode = "Workflow", DurationDays = 7 },
             TestContext.Current.CancellationToken);
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
@@ -250,7 +250,7 @@ public class CreateRequestEndpointTests(FitnessApiFactory factory)
 
         var response = await http.PostAsJsonAsync(
             "/trainer/photo-diary-requests",
-            new { PendingInviteId = inviteId, DurationDays = 7 },
+            new { PendingInviteId = inviteId, Mode = "Workflow", DurationDays = 7 },
             TestContext.Current.CancellationToken);
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
@@ -273,7 +273,7 @@ public class CreateRequestEndpointTests(FitnessApiFactory factory)
 
         var response = await http.PostAsJsonAsync(
             "/trainer/photo-diary-requests",
-            new { ClientId = clientPublicId, PlanId = planId, DurationDays = 7 },
+            new { ClientId = clientPublicId, PlanId = planId, Mode = "Workflow", DurationDays = 7 },
             TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
@@ -290,7 +290,7 @@ public class CreateRequestEndpointTests(FitnessApiFactory factory)
 
         var response = await http.PostAsJsonAsync(
             "/trainer/photo-diary-requests",
-            new { ClientId = clientPublicId, PlanId = planId, DurationDays = 7 },
+            new { ClientId = clientPublicId, PlanId = planId, Mode = "Workflow", DurationDays = 7 },
             TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
@@ -308,7 +308,7 @@ public class CreateRequestEndpointTests(FitnessApiFactory factory)
 
         var response = await http.PostAsJsonAsync(
             "/trainer/photo-diary-requests",
-            new { ClientId = clientPublicId, PlanId = planId, DurationDays = 7 },
+            new { ClientId = clientPublicId, PlanId = planId, Mode = "Workflow", DurationDays = 7 },
             TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -330,7 +330,7 @@ public class CreateRequestEndpointTests(FitnessApiFactory factory)
 
         var response = await http.PostAsJsonAsync(
             "/trainer/photo-diary-requests",
-            new { ClientId = clientPublicId, PlanId = planId, DurationDays = 7 },
+            new { ClientId = clientPublicId, PlanId = planId, Mode = "Workflow", DurationDays = 7 },
             TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -352,7 +352,7 @@ public class CreateRequestEndpointTests(FitnessApiFactory factory)
 
         var response = await http.PostAsJsonAsync(
             "/trainer/photo-diary-requests",
-            new { ClientId = clientPublicId, DurationDays = 14 },
+            new { ClientId = clientPublicId, Mode = "Workflow", DurationDays = 14 },
             TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -383,7 +383,7 @@ public class CreateRequestEndpointTests(FitnessApiFactory factory)
 
         var response = await http.PostAsJsonAsync(
             "/trainer/photo-diary-requests",
-            new { PendingInviteId = inviteId, DurationDays = 7 },
+            new { PendingInviteId = inviteId, Mode = "Workflow", DurationDays = 7 },
             TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -402,6 +402,241 @@ public class CreateRequestEndpointTests(FitnessApiFactory factory)
         persisted.PendingInviteId.Should().Be(inviteId);
     }
 
+    // ── Mode, duration and message ─────────────────────────────────────────────
+
+    [Fact]
+    public async Task Create_OnceMode_StoresOneDay_WhateverDurationIsSent()
+    {
+        var (http, profId) = await SetupProfessionalAsync();
+        var (_, clientUserId, _) = await SetupClientAsync();
+        var (_, clientPublicId) = await InsertLinkAsync(clientUserId, profId);
+
+        var response = await http.PostAsJsonAsync(
+            "/trainer/photo-diary-requests",
+            new { ClientId = clientPublicId, Mode = "Bulk", DurationDays = 20, Message = "Send one photo of today" },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<CreateResponseBody>(
+            JsonOptions, TestContext.Current.CancellationToken);
+        body!.Mode.Should().Be(PhotoDiaryMode.Bulk);
+        body.DurationDays.Should().Be(1);
+        body.Message.Should().Be("Send one photo of today");
+    }
+
+    [Fact]
+    public async Task Create_EveryDayMode_DefaultsToSevenDays()
+    {
+        var (http, profId) = await SetupProfessionalAsync();
+        var (_, clientUserId, _) = await SetupClientAsync();
+        var (_, clientPublicId) = await InsertLinkAsync(clientUserId, profId);
+
+        var response = await http.PostAsJsonAsync(
+            "/trainer/photo-diary-requests",
+            new { ClientId = clientPublicId, Mode = "Workflow" },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<CreateResponseBody>(
+            JsonOptions, TestContext.Current.CancellationToken);
+        body!.Mode.Should().Be(PhotoDiaryMode.Workflow);
+        body.DurationDays.Should().Be(7);
+        body.Message.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Create_MissingMode_Returns400()
+    {
+        var (http, _) = await SetupProfessionalAsync();
+
+        var response = await http.PostAsJsonAsync(
+            "/trainer/photo-diary-requests",
+            new { ClientId = Guid.NewGuid() },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    // ── Plan creator check ─────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task Create_LinkPath_PlanCreatedByAnotherCoach_Returns404_PlanNotOwned()
+    {
+        var (http, profId) = await SetupProfessionalAsync();
+        var (_, otherProfId) = await SetupProfessionalAsync();
+        var (_, clientUserId, _) = await SetupClientAsync();
+        var (_, clientPublicId) = await InsertLinkAsync(clientUserId, profId);
+        // The client's plan, but authored by a different coach.
+        var planId = await InsertNutritionPlanAsync(clientUserId, otherProfId);
+
+        var response = await http.PostAsJsonAsync(
+            "/trainer/photo-diary-requests",
+            new { ClientId = clientPublicId, PlanId = planId, Mode = "Workflow" },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        (await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken))
+            .Should().Contain("PHOTO_DIARY_REQUEST_PLAN_NOT_OWNED");
+    }
+
+    [Fact]
+    public async Task Create_InvitePath_PlanCreatedByAnotherCoach_Returns404_PlanNotOwned()
+    {
+        var (http, profId) = await SetupProfessionalAsync();
+        var (_, otherProfId) = await SetupProfessionalAsync();
+        var inviteId = await InsertPendingInviteAsync(profId, "plan-owner-test@example.com");
+        var planId = await InsertNutritionPlanAsync(Guid.NewGuid(), otherProfId);
+
+        var response = await http.PostAsJsonAsync(
+            "/trainer/photo-diary-requests",
+            new { PendingInviteId = inviteId, PlanId = planId, Mode = "Workflow" },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        (await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken))
+            .Should().Contain("PHOTO_DIARY_REQUEST_PLAN_NOT_OWNED");
+    }
+
+    [Fact]
+    public async Task Create_InvitePath_PlanCreatedByCaller_Returns200()
+    {
+        var (http, profId) = await SetupProfessionalAsync();
+        var inviteId = await InsertPendingInviteAsync(profId, "plan-owner-ok@example.com");
+        var planId = await InsertNutritionPlanAsync(Guid.NewGuid(), profId);
+
+        var response = await http.PostAsJsonAsync(
+            "/trainer/photo-diary-requests",
+            new { PendingInviteId = inviteId, PlanId = planId, Mode = "Workflow" },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    // ── One open request per coach and client ──────────────────────────────────
+
+    [Theory]
+    [InlineData(PhotoDiaryStatus.Pending)]
+    [InlineData(PhotoDiaryStatus.Accepted)]
+    [InlineData(PhotoDiaryStatus.InProgress)]
+    public async Task Create_WhileAnOpenRequestExistsOnTheLink_Returns409_AlreadyOpen(PhotoDiaryStatus openStatus)
+    {
+        var (http, profId) = await SetupProfessionalAsync();
+        var (_, clientUserId, _) = await SetupClientAsync();
+        var (linkId, clientPublicId) = await InsertLinkAsync(clientUserId, profId);
+        await InsertRequestAsync(profId, linkId: linkId, status: openStatus);
+
+        var response = await http.PostAsJsonAsync(
+            "/trainer/photo-diary-requests",
+            new { ClientId = clientPublicId, Mode = "Workflow" },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken))
+            .Should().Contain("PHOTO_DIARY_REQUEST_ALREADY_OPEN");
+    }
+
+    [Fact]
+    public async Task Create_WhileAnOpenRequestExistsOnTheInvite_Returns409_AlreadyOpen()
+    {
+        var (http, profId) = await SetupProfessionalAsync();
+        var inviteId = await InsertPendingInviteAsync(profId, "already-open@example.com");
+        await InsertRequestAsync(profId, inviteId: inviteId, status: PhotoDiaryStatus.Pending);
+
+        var response = await http.PostAsJsonAsync(
+            "/trainer/photo-diary-requests",
+            new { PendingInviteId = inviteId, Mode = "Bulk" },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken))
+            .Should().Contain("PHOTO_DIARY_REQUEST_ALREADY_OPEN");
+    }
+
+    [Theory]
+    [InlineData(PhotoDiaryStatus.Completed)]
+    [InlineData(PhotoDiaryStatus.Dismissed)]
+    [InlineData(PhotoDiaryStatus.Cancelled)]
+    public async Task Create_WhenThePreviousRequestIsClosed_Returns200(PhotoDiaryStatus closedStatus)
+    {
+        var (http, profId) = await SetupProfessionalAsync();
+        var (_, clientUserId, _) = await SetupClientAsync();
+        var (linkId, clientPublicId) = await InsertLinkAsync(clientUserId, profId);
+        await InsertRequestAsync(profId, linkId: linkId, status: closedStatus);
+
+        var response = await http.PostAsJsonAsync(
+            "/trainer/photo-diary-requests",
+            new { ClientId = clientPublicId, Mode = "Workflow" },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task Create_WhenThePreviousRequestExpired_Returns200()
+    {
+        var (http, profId) = await SetupProfessionalAsync();
+        var (_, clientUserId, _) = await SetupClientAsync();
+        var (linkId, clientPublicId) = await InsertLinkAsync(clientUserId, profId);
+        // Pending, but its 7-day window ended a day ago.
+        await InsertRequestAsync(
+            profId, linkId: linkId, status: PhotoDiaryStatus.Pending, createdAt: DateTimeOffset.UtcNow.AddDays(-8));
+
+        var response = await http.PostAsJsonAsync(
+            "/trainer/photo-diary-requests",
+            new { ClientId = clientPublicId, Mode = "Workflow" },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task Create_AnotherCoachsOpenRequestForTheSameClient_DoesNotBlock()
+    {
+        var (http, profId) = await SetupProfessionalAsync();
+        var (_, otherProfId) = await SetupProfessionalAsync();
+        var (_, clientUserId, _) = await SetupClientAsync();
+        var (_, clientPublicId) = await InsertLinkAsync(clientUserId, profId);
+        var (otherLinkId, _) = await InsertLinkAsync(clientUserId, otherProfId);
+        await InsertRequestAsync(otherProfId, linkId: otherLinkId, status: PhotoDiaryStatus.Pending);
+
+        var response = await http.PostAsJsonAsync(
+            "/trainer/photo-diary-requests",
+            new { ClientId = clientPublicId, Mode = "Workflow" },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    private async Task InsertRequestAsync(
+        Guid professionalId,
+        long? linkId = null,
+        long? inviteId = null,
+        PhotoDiaryStatus status = PhotoDiaryStatus.Pending,
+        DateTimeOffset? createdAt = null)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var created = createdAt ?? DateTimeOffset.UtcNow;
+        var accepted = status is PhotoDiaryStatus.Accepted or PhotoDiaryStatus.InProgress or PhotoDiaryStatus.Completed;
+        db.PhotoDiaryRequests.Add(new PhotoDiaryRequest
+        {
+            Id = Guid.NewGuid(),
+            ProfessionalId = professionalId,
+            LinkId = linkId,
+            PendingInviteId = inviteId,
+            Mode = PhotoDiaryMode.Workflow,
+            DurationDays = 7,
+            Status = status,
+            AcceptedAt = accepted ? created : null,
+            CompletedAt = status == PhotoDiaryStatus.Completed ? created : null,
+            DismissReason = status == PhotoDiaryStatus.Dismissed ? "No thanks" : null,
+            CreatedAt = created,
+            UpdatedAt = created,
+        });
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+    }
+
     // ── Response shape helper ──────────────────────────────────────────────────
 
     private record CreateResponseBody(
@@ -411,6 +646,8 @@ public class CreateRequestEndpointTests(FitnessApiFactory factory)
         long? PendingInviteId,
         Guid? PlanId,
         int DurationDays,
+        PhotoDiaryMode? Mode,
+        string? Message,
         PhotoDiaryStatus Status,
         DateTimeOffset CreatedAt);
 }

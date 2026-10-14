@@ -113,7 +113,8 @@ public class GetClientPendingQuestionnairesEndpointTests(FitnessApiFactory facto
         long? linkId = null,
         long? inviteId = null,
         PhotoDiaryStatus status = PhotoDiaryStatus.Pending,
-        DateTimeOffset? createdAt = null)
+        DateTimeOffset? createdAt = null,
+        string? message = null)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -126,8 +127,8 @@ public class GetClientPendingQuestionnairesEndpointTests(FitnessApiFactory facto
             PendingInviteId = inviteId,
             DurationDays = 7,
             Status = status,
-            Mode = status is PhotoDiaryStatus.Accepted or PhotoDiaryStatus.InProgress or PhotoDiaryStatus.Completed
-                ? PhotoDiaryMode.Bulk : null,
+            Mode = PhotoDiaryMode.Workflow,
+            Message = message,
             AcceptedAt = status is PhotoDiaryStatus.Accepted or PhotoDiaryStatus.InProgress or PhotoDiaryStatus.Completed
                 ? DateTimeOffset.UtcNow : null,
             CompletedAt = status == PhotoDiaryStatus.Completed ? DateTimeOffset.UtcNow : null,
@@ -166,6 +167,47 @@ public class GetClientPendingQuestionnairesEndpointTests(FitnessApiFactory facto
         diaryItem.Status.Should().Be("Pending");
         diaryItem.ProfessionalRole.Should().Be("Nutritionist");
         diaryItem.ProfessionalName.Should().NotBeNullOrEmpty();
+    }
+
+    [Fact]
+    public async Task DiaryRequest_CarriesModeAndMessage()
+    {
+        var (_, profId) = await SetupNutritionistAsync();
+        var (clientHttp, clientUserId, _) = await SetupClientAsync();
+
+        var linkId = await InsertLinkAsync(clientUserId, profId);
+        var requestId = await InsertDiaryRequestAsync(profId, linkId: linkId, message: "Breakfast, please");
+
+        var response = await clientHttp.GetAsync(
+            "/client/questionnaires/pending",
+            TestContext.Current.CancellationToken);
+        var body = await response.Content.ReadFromJsonAsync<BannerResponse>(
+            JsonOptions, TestContext.Current.CancellationToken);
+
+        var diaryItem = body!.PendingDiaryRequests.Should()
+            .ContainSingle(i => i.RequestPublicId == requestId).Which;
+        diaryItem.Message.Should().Be("Breakfast, please");
+        diaryItem.Mode.Should().Be(PhotoDiaryMode.Workflow);
+    }
+
+    [Fact]
+    public async Task DiaryRequest_PendingPastEndDate_NotReturned()
+    {
+        var (_, profId) = await SetupNutritionistAsync();
+        var (clientHttp, clientUserId, _) = await SetupClientAsync();
+
+        var linkId = await InsertLinkAsync(clientUserId, profId);
+        // 7-day window that ended a day ago: still Pending in the table, but no longer a banner.
+        var expiredId = await InsertDiaryRequestAsync(
+            profId, linkId: linkId, createdAt: DateTimeOffset.UtcNow.AddDays(-8));
+
+        var response = await clientHttp.GetAsync(
+            "/client/questionnaires/pending",
+            TestContext.Current.CancellationToken);
+        var body = await response.Content.ReadFromJsonAsync<BannerResponse>(
+            JsonOptions, TestContext.Current.CancellationToken);
+
+        body!.PendingDiaryRequests.Should().NotContain(i => i.RequestPublicId == expiredId);
     }
 
     // ── Diary request via deactivated link → NOT returned ──────────────────────
@@ -402,7 +444,9 @@ public class GetClientPendingQuestionnairesEndpointTests(FitnessApiFactory facto
         int DurationDays,
         string Status,
         Guid? PlanId,
-        DateTimeOffset CreatedAt);
+        DateTimeOffset CreatedAt,
+        PhotoDiaryMode? Mode = null,
+        string? Message = null);
 
     private record QuestionnaireItem(
         Guid LinkPublicId,

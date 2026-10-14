@@ -19,6 +19,7 @@ public class MockDbBuilder
     private readonly List<InvitationToken> _invitationTokens = [];
     private readonly List<BodyMeasurement> _bodyMeasurements = [];
     private readonly List<PlanPhoto> _planPhotos = [];
+    private readonly List<PlanPhotoViewer> _planPhotoViewers = [];
     private readonly List<ClientOnboardingData> _clientOnboardingData = [];
     private readonly List<ClientNutritionTargets> _clientNutritionTargets = [];
     private readonly List<PendingInvite> _pendingInvites = [];
@@ -74,6 +75,25 @@ public class MockDbBuilder
     /// Adds a <see cref="PlanPhoto"/> to the mock context.
     /// </summary>
     public MockDbBuilder With(PlanPhoto photo) { _planPhotos.Add(photo); return this; }
+
+    /// <summary>
+    /// Adds a <see cref="PlanPhotoViewer"/> to the mock context.
+    /// </summary>
+    public MockDbBuilder With(PlanPhotoViewer viewer) { _planPhotoViewers.Add(viewer); return this; }
+
+    /// <summary>
+    /// Adds a <see cref="PlanPhoto"/> together with a <see cref="PlanPhotoViewer"/> row for the
+    /// given coach, as the upload-time writer would have produced it.
+    /// </summary>
+    public MockDbBuilder WithViewedPhoto(Guid professionalUserId, PlanPhoto photo)
+    {
+        _planPhotos.Add(photo);
+        _planPhotoViewers.Add(EntityBuilder.PlanPhotoViewer
+            .ForPhoto(photo)
+            .WithProfessionalUserId(professionalUserId)
+            .Build());
+        return this;
+    }
 
     /// <summary>
     /// Adds a <see cref="ClientOnboardingData"/> to the mock context.
@@ -160,6 +180,7 @@ public class MockDbBuilder
         var invitationTokensSet = _invitationTokens.BuildMockDbSet();
         var bodyMeasurementsSet = _bodyMeasurements.BuildMockDbSet();
         var planPhotosSet = _planPhotos.BuildMockDbSet();
+        var planPhotoViewersSet = _planPhotoViewers.BuildMockDbSet();
         var clientOnboardingDataSet = _clientOnboardingData.BuildMockDbSet();
         var clientNutritionTargetsSet = _clientNutritionTargets.BuildMockDbSet();
         var pendingInvitesSet = _pendingInvites.BuildMockDbSet();
@@ -189,6 +210,7 @@ public class MockDbBuilder
         db.InvitationTokens.Returns(invitationTokensSet);
         db.BodyMeasurements.Returns(bodyMeasurementsSet);
         db.PlanPhotos.Returns(planPhotosSet);
+        db.PlanPhotoViewers.Returns(planPhotoViewersSet);
         db.ClientOnboardingData.Returns(clientOnboardingDataSet);
         db.ClientNutritionTargets.Returns(clientNutritionTargetsSet);
         db.PendingInvites.Returns(pendingInvitesSet);
