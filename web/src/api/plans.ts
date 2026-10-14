@@ -3,13 +3,14 @@ import { apiClient } from '@/api/client';
 import type {
   CopyNutritionPlanRequest,
   CopyNutritionPlanResponse,
+  CreatePlanRequest,
   GetPlanResponse,
+  PlanSummaryDto,
   UpdatePlanRequest as UpdatePlanDocumentRequest,
 } from '@/api/generated';
 import type {
   NutritionPlanDetail,
   GetPlansResponse,
-  CreatePlanRequest,
   UpdatePlanRequest,
 } from './plan-types';
 
@@ -30,10 +31,9 @@ export async function getPlan(planId: string): Promise<NutritionPlanDetail> {
   return data;
 }
 
-/** Create a new nutrition plan. */
-export async function createPlan(request: CreatePlanRequest): Promise<NutritionPlanDetail> {
-  const { data } = await api.post<NutritionPlanDetail>('/nutrition/plans', request);
-  return data;
+/** Create a new nutrition plan (POST /nutrition/plans); resolves with its summary. */
+export function createPlan(request: CreatePlanRequest): Promise<PlanSummaryDto> {
+  return apiClient.createPlanEndpoint(request);
 }
 
 /** Full-state update of a nutrition plan. */

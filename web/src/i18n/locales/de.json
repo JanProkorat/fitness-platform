@@ -3554,7 +3554,27 @@
         "startBlank": "Leer starten",
         "browseAll": "Alle Vorlagen durchsuchen",
         "useSuccess": "Entwurf erstellt. Er beginnt am nächsten Montag.",
-        "useError": "Der Plan konnte nicht aus der Vorlage erstellt werden."
+        "useError": "Der Plan konnte nicht aus der Vorlage erstellt werden.",
+        "blankPlanName": "Neuer Ernährungsplan",
+        "blankError": "Der Plan konnte nicht erstellt werden. Bitte versuchen Sie es erneut."
+      },
+      "copyDialog": {
+        "title": "Plan von anderem Klienten kopieren",
+        "description": "Wählen Sie einen Klienten und dann einen seiner Ernährungspläne. Er wird hier als neuer Entwurf kopiert.",
+        "plansDescription": "Ernährungspläne von {{name}}. Die Kopie landet hier als neuer Entwurf.",
+        "search": "Ihre Klienten durchsuchen",
+        "noClients": "Keine weiteren Klienten gefunden.",
+        "clientsError": "Die Klienten konnten nicht geladen werden.",
+        "changeClient": "Anderen Klienten wählen",
+        "noPlans": "Dieser Klient hat keine Ernährungspläne zum Kopieren.",
+        "plansError": "Die Pläne dieses Klienten konnten nicht geladen werden.",
+        "copy": "Kopieren",
+        "status": {
+          "Draft": "Entwurf",
+          "Active": "Aktiv",
+          "Completed": "Abgeschlossen",
+          "Archived": "Archiviert"
+        }
       },
       "diet": {
         "Standard": "Standard",
@@ -3804,6 +3824,9 @@
           "trainingPlan": "Trainingsplan",
           "weekOf": "Woche {{week}} von {{total}}",
           "noPlan": "Noch kein Plan",
+          "openMealPlan": "Ernährungsplan öffnen",
+          "openMealPlanWeek": "Ernährungsplan öffnen, Woche {{week}} von {{total}}",
+          "startMealPlan": "Ernährungsplan beginnen",
           "kg": "{{value}} kg",
           "weightDown": "Gewicht seit der ersten Messung gesunken",
           "weightUp": "Gewicht seit der ersten Messung gestiegen"

@@ -3653,7 +3653,27 @@
         "startBlank": "Začít od nuly",
         "browseAll": "Procházet všechny šablony",
         "useSuccess": "Koncept plánu je vytvořený. Začíná příští pondělí.",
-        "useError": "Plán se ze šablony nepodařilo vytvořit."
+        "useError": "Plán se ze šablony nepodařilo vytvořit.",
+        "blankPlanName": "Nový jídelníček",
+        "blankError": "Plán se nepodařilo vytvořit. Zkuste to prosím znovu."
+      },
+      "copyDialog": {
+        "title": "Zkopírovat plán od jiného klienta",
+        "description": "Vyberte klienta a pak některý z jeho jídelníčků. Zkopíruje se sem jako nový koncept.",
+        "plansDescription": "Jídelníčky klienta {{name}}. Kopie se uloží sem jako nový koncept.",
+        "search": "Hledat mezi vašimi klienty",
+        "noClients": "Žádní další klienti nenalezeni.",
+        "clientsError": "Klienty se nepodařilo načíst.",
+        "changeClient": "Vybrat jiného klienta",
+        "noPlans": "Tento klient nemá žádný jídelníček ke zkopírování.",
+        "plansError": "Plány klienta se nepodařilo načíst.",
+        "copy": "Zkopírovat",
+        "status": {
+          "Draft": "Koncept",
+          "Active": "Aktivní",
+          "Completed": "Dokončený",
+          "Archived": "Archivovaný"
+        }
       },
       "diet": {
         "Standard": "Standardní",
@@ -3911,6 +3931,9 @@
           "trainingPlan": "Tréninkový plán",
           "weekOf": "Týden {{week}} z {{total}}",
           "noPlan": "Zatím bez plánu",
+          "openMealPlan": "Otevřít jídelníček",
+          "openMealPlanWeek": "Otevřít jídelníček, týden {{week}} z {{total}}",
+          "startMealPlan": "Začít jídelníček",
           "kg": "{{value}} kg",
           "weightDown": "Váha klesla od prvního vážení",
           "weightUp": "Váha stoupla od prvního vážení"

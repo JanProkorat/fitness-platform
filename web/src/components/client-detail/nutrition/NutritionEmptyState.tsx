@@ -1,12 +1,14 @@
 import { useId, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Check, Copy, Plus, Utensils } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { instantiatePlanTemplate, searchPlanTemplates } from '@/api/nutrition-plan-templates';
-import { showApiError, showSuccess } from '@/lib/api-errors';
+import { createPlan } from '@/api/plans';
+import CopyPlanFromClientDialog from '@/components/client-detail/nutrition/CopyPlanFromClientDialog';
+import { getErrorStatus, showApiError, showSuccess } from '@/lib/api-errors';
 import { cn } from '@/lib/utils';
 import type { GetClientDashboardResponse } from '@/api/generated';
 import {
@@ -40,15 +42,16 @@ function MatchLine({ level, children }: { level: MatchLevel; children: string })
 /**
  * Nutrition tab for a client with neither an Active plan nor a Draft: a hero
  * card with up to three templates matched on goal, dietary style and kcal, and
- * the ways to start. "Use <template>" creates a Draft that starts next Monday.
- * Starting blank and copying from another client need a client plan editor
- * that does not exist yet, so they are disabled.
+ * the ways to start. "Use <template>" and "Start blank" create a Draft that
+ * starts next Monday; "Copy from another client" opens a picker.
  */
 export default function NutritionEmptyState({ clientId, dashboard }: Props) {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   const headingId = useId();
+  const navigate = useNavigate();
   const [pickedId, setPickedId] = useState<string | undefined>();
+  const [copyOpen, setCopyOpen] = useState(false);
   const locale = i18n.language;
   const firstName = dashboard.firstName ?? '';
   const onboarding = dashboard.onboarding;
@@ -88,6 +91,31 @@ export default function NutritionEmptyState({ clientId, dashboard }: Props) {
     onError: (error) => {
       showApiError(error, 'clientDetail.nutrition.empty.useError');
       void queryClient.invalidateQueries({ queryKey: ['client-plans', clientId] });
+    },
+  });
+
+  const blankMutation = useMutation({
+    mutationFn: () =>
+      createPlan({
+        clientId,
+        name: t('clientDetail.nutrition.empty.blankPlanName'),
+        weekCount: 1,
+        startDate: nextMondayIso(),
+      }),
+    onSuccess: async (plan) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['client-plans', clientId] }),
+        queryClient.invalidateQueries({ queryKey: ['client-dashboard', clientId] }),
+      ]);
+      if (plan.planId) {
+        navigate(`/clients/${clientId}/nutrition/plans/${plan.planId}`);
+      }
+    },
+    onError: (error) => {
+      showApiError(error, 'clientDetail.nutrition.empty.blankError');
+      if (getErrorStatus(error) === 409) {
+        void queryClient.invalidateQueries({ queryKey: ['client-plans', clientId] });
+      }
     },
   });
 
@@ -215,11 +243,25 @@ export default function NutritionEmptyState({ clientId, dashboard }: Props) {
             {t('clientDetail.nutrition.empty.use', { name: selected.template.name })}
           </Button>
         )}
-        <Button type="button" variant="outline" size="lg" className="gap-2" disabled title={t('shell.comingSoon')}>
+        <Button
+          type="button"
+          variant="outline"
+          size="lg"
+          className="gap-2"
+          disabled={blankMutation.isPending}
+          onClick={() => setCopyOpen(true)}
+        >
           <Copy className="size-4" aria-hidden="true" />
           {t('clientDetail.nutrition.empty.copyFromClient')}
         </Button>
-        <Button type="button" variant="ghost" size="lg" className="gap-2" disabled title={t('shell.comingSoon')}>
+        <Button
+          type="button"
+          variant="ghost"
+          size="lg"
+          className="gap-2"
+          disabled={blankMutation.isPending || instantiateMutation.isPending}
+          onClick={() => blankMutation.mutate()}
+        >
           <Plus className="size-4" aria-hidden="true" />
           {t('clientDetail.nutrition.empty.startBlank')}
         </Button>
@@ -230,6 +272,7 @@ export default function NutritionEmptyState({ clientId, dashboard }: Props) {
           {t('clientDetail.nutrition.empty.browseAll')}
         </Link>
       </div>
+      <CopyPlanFromClientDialog open={copyOpen} onOpenChange={setCopyOpen} clientId={clientId} />
     </section>
   );
 }
