@@ -8763,9 +8763,10 @@ export class ApiClient {
      * @param linkId (optional) Optional filter by client-professional link ID.
      * @param pendingInviteId (optional) Optional filter by pending invite ID.
      * @param planId (optional) Optional filter by plan ID.
+     * @param clientId (optional) Optional filter by client (ClientProfile.PublicId); matches link-based requests only.
      * @return Success
      */
-    listTrainerRequestsEndpoint(page: number, pageSize: number, status?: PhotoDiaryStatus | null | undefined, linkId?: number | null | undefined, pendingInviteId?: number | null | undefined, planId?: string | null | undefined, signal?: AbortSignal): Promise<ListTrainerRequestsResponse> {
+    listTrainerRequestsEndpoint(page: number, pageSize: number, status?: PhotoDiaryStatus | null | undefined, linkId?: number | null | undefined, pendingInviteId?: number | null | undefined, planId?: string | null | undefined, clientId?: string | null | undefined, signal?: AbortSignal): Promise<ListTrainerRequestsResponse> {
         let url_ = this.baseUrl + "/trainer/photo-diary-requests?";
         if (page === undefined || page === null)
             throw new globalThis.Error("The parameter 'page' must be defined and cannot be null.");
@@ -8783,6 +8784,8 @@ export class ApiClient {
             url_ += "pendingInviteId=" + encodeURIComponent("" + pendingInviteId) + "&";
         if (planId !== undefined && planId !== null)
             url_ += "planId=" + encodeURIComponent("" + planId) + "&";
+        if (clientId !== undefined && clientId !== null)
+            url_ += "clientId=" + encodeURIComponent("" + clientId) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -8839,7 +8842,7 @@ export class ApiClient {
 
     /**
      * Create a photo diary request
-     * @return Success
+     * @return Request created
      */
     createRequestEndpoint(createRequestRequest: CreateRequestRequest, signal?: AbortSignal): Promise<CreateRequestResponse> {
         let url_ = this.baseUrl + "/trainer/photo-diary-requests";
@@ -8891,7 +8894,7 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("Invalid request", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -9198,25 +9201,85 @@ export class ApiClient {
     }
 
     /**
+     * Cancel a photo diary request
+     * @param id The photo diary request ID (from route).
+     * @return Request cancelled
+     */
+    cancelPhotoDiaryRequestEndpoint(id: string, signal?: AbortSignal): Promise<CancelPhotoDiaryRequestResponse> {
+        let url_ = this.baseUrl + "/trainer/photo-diary-requests/{id}/cancel";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCancelPhotoDiaryRequestEndpoint(_response);
+        });
+    }
+
+    protected processCancelPhotoDiaryRequestEndpoint(response: AxiosResponse): Promise<CancelPhotoDiaryRequestResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<CancelPhotoDiaryRequestResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<CancelPhotoDiaryRequestResponse>(null as any);
+    }
+
+    /**
      * Accept a photo diary request
      * @param id The photo diary request ID (from route).
-     * @return Success
+     * @return Request accepted
      */
-    acceptRequestEndpoint(id: string, acceptRequestRequest: AcceptRequestRequest, signal?: AbortSignal): Promise<AcceptRequestResponse> {
+    acceptRequestEndpoint(id: string, signal?: AbortSignal): Promise<AcceptRequestResponse> {
         let url_ = this.baseUrl + "/client/photo-diary-requests/{id}/accept";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
         url_ = url_.replace("{id}", encodeURIComponent("" + id));
         url_ = url_.replace(/[?&]$/, "");
 
-        const content_ = JSON.stringify(acceptRequestRequest);
-
         let options_: AxiosRequestConfig = {
-            data: content_,
             method: "POST",
             url: url_,
             headers: {
-                "Content-Type": "application/json",
                 "Accept": "application/json"
             },
             signal
@@ -9249,13 +9312,6 @@ export class ApiClient {
             let resultData200  = _responseText;
             result200 = JSON.parse(resultData200);
             return Promise.resolve<AcceptRequestResponse>(result200);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -21813,8 +21869,12 @@ export interface PendingDiaryRequestItem {
     professionalName?: string;
     /** Role of the professional ("Trainer" or "Nutritionist"). */
     professionalRole?: string | undefined;
-    /** How many days the client has to upload photos (default 7). */
+    /** How many days the request stays open (default 7). */
     durationDays?: number;
+    /** The upload mode the coach chose; null on legacy rows. */
+    mode?: PhotoDiaryMode | undefined;
+    /** The coach's optional note to the client. */
+    message?: string | undefined;
     /** Always "Pending" for items returned by this endpoint. */
     status?: string;
     /** Optional MongoDB plan ID the diary request is scoped to.
@@ -21822,6 +21882,12 @@ Null when the request has no plan context. */
     planId?: string | undefined;
     /** When the request was created (UTC). */
     createdAt?: string;
+}
+
+/** The mode a coach chooses when creating a photo diary request. */
+export enum PhotoDiaryMode {
+    Bulk = "Bulk",
+    Workflow = "Workflow",
 }
 
 export interface PendingQuestionnaireItem {
@@ -21933,6 +21999,7 @@ export enum PhotoDiaryStatus {
     Dismissed = "Dismissed",
     InProgress = "InProgress",
     Completed = "Completed",
+    Cancelled = "Cancelled",
 }
 
 /** Route parameters for submitting / finalizing a photo diary. */
@@ -21953,18 +22020,18 @@ export interface PhotoDiaryRequestSummary {
     planId?: string | undefined;
     durationDays?: number;
     mode?: PhotoDiaryMode | undefined;
+    /** The coach's optional note to the client. */
+    message?: string | undefined;
     status?: PhotoDiaryStatus;
     dismissReason?: string | undefined;
     acceptedAt?: string | undefined;
     completedAt?: string | undefined;
     createdAt?: string;
     updatedAt?: string;
-}
-
-/** The mode a client chooses when accepting a photo diary request. */
-export enum PhotoDiaryMode {
-    Bulk = "Bulk",
-    Workflow = "Workflow",
+    /** End of the open window (CreatedAt + DurationDays). */
+    endsAt?: string;
+    /** True while the request is Pending/Accepted/InProgress and before EndsAt. */
+    isOpen?: boolean;
 }
 
 /** Query parameters for listing trainer photo diary requests. */
@@ -21985,6 +22052,8 @@ export interface ClientPhotoDiaryRequestSummary {
     planId?: string | undefined;
     durationDays?: number;
     mode?: PhotoDiaryMode | undefined;
+    /** The coach's optional note to the client. */
+    message?: string | undefined;
     status?: PhotoDiaryStatus;
     dismissReason?: string | undefined;
     acceptedAt?: string | undefined;
@@ -22055,8 +22124,12 @@ export interface CreateRequestResponse {
     pendingInviteId?: number | undefined;
     /** Optional plan scope for this request. */
     planId?: string | undefined;
-    /** How many days the client has to upload photos. */
+    /** How many days the request stays open. */
     durationDays?: number;
+    /** The upload mode the coach chose. */
+    mode?: PhotoDiaryMode | undefined;
+    /** The coach's optional note to the client. */
+    message?: string | undefined;
     /** Current lifecycle status (always Pending on creation). */
     status?: PhotoDiaryStatus;
     /** When the request was created. */
@@ -22076,11 +22149,27 @@ the invite is accepted — so there is no public Guid to address it by. Widening
 arm to a public identifier is a separate, undecided change and knowingly out of scope here. */
     pendingInviteId?: number | undefined;
     /** Optional MongoDB external identifier of the nutrition or training plan this request is scoped to.
-When set, must belong to the same client as the link/invite. */
+When set, must have been created by the caller (and, on the link path, belong to the same client). */
     planId?: string | undefined;
-    /** How many days the client has to upload photos (Workflow mode).
-Defaults to 7. Allowed range: 1–30. */
+    /** How the client uploads: Bulk is "Once", Workflow is "Every day". Required. */
+    mode?: PhotoDiaryMode;
+    /** How many days the request stays open in Workflow mode. Defaults to 7; allowed range 1–30.
+Ignored for Bulk, which always stores 1. */
     durationDays?: number;
+    /** Optional note shown to the client (max 500 characters). */
+    message?: string | undefined;
+}
+
+/** Response returned after a coach cancels a photo diary request. */
+export interface CancelPhotoDiaryRequestResponse {
+    /** The cancelled request's ID. */
+    id?: string;
+    /** The new status (always Cancelled). */
+    status?: PhotoDiaryStatus;
+}
+
+/** Route for cancelling a photo diary request. Clients post an empty JSON body. */
+export interface CancelPhotoDiaryRequestRequest {
 }
 
 /** Response returned after a client accepts a photo diary request. */
@@ -22091,11 +22180,8 @@ export interface AcceptRequestResponse {
     acceptedAt?: string | undefined;
 }
 
-/** Route + body for accepting a photo diary request. */
+/** Route for accepting a photo diary request. The mode was chosen by the coach at creation, so the client sends an empty body. */
 export interface AcceptRequestRequest {
-    /** The upload mode chosen by the client.
-Must be a valid PhotoDiaryMode value. */
-    mode?: PhotoDiaryMode;
 }
 
 /** Full nutrition-plan-template detail including all weeks, days, meals, foods, recipes, and supplements. Used by the detail GET and by PUT's response. */
@@ -24383,6 +24469,10 @@ non-meal photos and unresolvable logs. */
     /** Kind of the plan meal the photo belongs to. Filled by the trainer view only; null for
 non-meal photos, unresolvable logs, and meals removed from the plan. */
     mealKind?: MealKind | undefined;
+    /** Current name of the plan the photo links to, archived plans included. Filled by the trainer
+view only; null without a plan, when the plan document is missing or belongs to another
+client, and when the caller lacks the capability to view that plan type. */
+    planName?: string | undefined;
     /** When the photo was taken or uploaded, in UTC. */
     takenAt?: string;
     /** The ApplicationUser.Id of the person who uploaded the photo. */

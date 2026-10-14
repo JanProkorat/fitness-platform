@@ -9,10 +9,12 @@ export async function getClientMeasurements(
   clientId: string,
   page = 1,
   pageSize = 50,
+  from?: string,
+  to?: string,
 ): Promise<GetMeasurementsResponse> {
   const { data } = await api.get<GetMeasurementsResponse>(
     `/trainer/clients/${clientId}/measurements`,
-    { params: { page, pageSize } },
+    { params: { page, pageSize, from, to } },
   );
   return data;
 }

@@ -1511,6 +1511,11 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("link_id");
 
+                    b.Property<string>("Message")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("message");
+
                     b.Property<int?>("Mode")
                         .HasColumnType("integer")
                         .HasColumnName("mode");
@@ -1549,7 +1554,7 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
 
                     b.ToTable("photo_diary_requests", null, t =>
                         {
-                            t.HasCheckConstraint("ck_photo_diary_requests_accepted_at_with_accepted_status", "(status IN (2,4,5) AND accepted_at IS NOT NULL) OR (status NOT IN (2,4,5) AND accepted_at IS NULL)");
+                            t.HasCheckConstraint("ck_photo_diary_requests_accepted_at_with_accepted_status", "(status IN (2,4,5) AND accepted_at IS NOT NULL) OR (status IN (1,3) AND accepted_at IS NULL) OR (status = 6)");
 
                             t.HasCheckConstraint("ck_photo_diary_requests_completed_at_only_when_completed", "(status = 5 AND completed_at IS NOT NULL) OR (status != 5 AND completed_at IS NULL)");
 
@@ -1559,7 +1564,7 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
 
                             t.HasCheckConstraint("ck_photo_diary_requests_link_xor_invite", "(link_id IS NOT NULL AND pending_invite_id IS NULL) OR (link_id IS NULL AND pending_invite_id IS NOT NULL)");
 
-                            t.HasCheckConstraint("ck_photo_diary_requests_mode_with_accepted_status", "(status IN (2,4,5) AND mode IS NOT NULL) OR (status NOT IN (2,4,5) AND mode IS NULL)");
+                            t.HasCheckConstraint("ck_photo_diary_requests_mode_with_accepted_status", "(status NOT IN (2,4,5) OR mode IS NOT NULL)");
                         });
                 });
 
@@ -1653,6 +1658,44 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                         .HasDatabaseName("ix_plan_photos_client_profile_id_category");
 
                     b.ToTable("plan_photos", (string)null);
+                });
+
+            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.PlanPhotoViewer", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("DateCreated")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_created");
+
+                    b.Property<DateTime?>("DateUpdated")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_updated");
+
+                    b.Property<long>("PlanPhotoId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("plan_photo_id");
+
+                    b.Property<Guid>("ProfessionalUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("professional_user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_plan_photo_viewers");
+
+                    b.HasIndex("ProfessionalUserId")
+                        .HasDatabaseName("ix_plan_photo_viewers_professional_user_id");
+
+                    b.HasIndex("PlanPhotoId", "ProfessionalUserId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_plan_photo_viewers_plan_photo_id_professional_user_id");
+
+                    b.ToTable("plan_photo_viewers", (string)null);
                 });
 
             modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.ProfessionalProfile", b =>
@@ -2945,6 +2988,27 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                     b.Navigation("DiaryRequest");
 
                     b.Navigation("UploadedByUser");
+                });
+
+            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.PlanPhotoViewer", b =>
+                {
+                    b.HasOne("FitnessPlatform.Application.Domain.Entities.PlanPhoto", "PlanPhoto")
+                        .WithMany()
+                        .HasForeignKey("PlanPhotoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_plan_photo_viewers_plan_photos_plan_photo_id");
+
+                    b.HasOne("FitnessPlatform.Application.Domain.Entities.ApplicationUser", "ProfessionalUser")
+                        .WithMany()
+                        .HasForeignKey("ProfessionalUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_plan_photo_viewers_users_professional_user_id");
+
+                    b.Navigation("PlanPhoto");
+
+                    b.Navigation("ProfessionalUser");
                 });
 
             modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.ProfessionalProfile", b =>

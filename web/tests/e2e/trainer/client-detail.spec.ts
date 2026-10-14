@@ -17,7 +17,7 @@
 import { trainerTest as test, expect } from '../fixtures/auth';
 
 // The QA trainer's link is training-only, so the Nutrition tab is not rendered.
-const DISABLED_TAB_NAMES = ['Workouts', 'Storage', 'Payment', 'Automations'];
+const DISABLED_TAB_NAMES = ['Workouts', 'Payment', 'Automations'];
 const DISABLED_BUTTON_NAMES = ['Tasks', 'Notes'];
 
 test.describe('client detail page — overview tab', () => {
@@ -43,9 +43,12 @@ test.describe('client detail page — overview tab', () => {
     // The status label comparison — never a hardcoded status word (AC).
     await expect(page.getByTestId('client-status')).toHaveText(listStatusText);
 
-    // Overview is the only enabled tab; the others are disabled with
-    // the coming-soon treatment. Development was dropped from the row.
+    // Overview and Photos are enabled for every coach (Nutrition only with the
+    // nutrition capability); the others are disabled with the coming-soon
+    // treatment. Development was dropped from the row.
     await expect(page.getByRole('tab', { name: 'Overview' })).toBeEnabled();
+    await expect(page.getByRole('tab', { name: 'Photos' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Photos' })).toBeEnabled();
     for (const tabName of DISABLED_TAB_NAMES) {
       const tab = page.getByRole('tab', { name: tabName });
       await expect(tab).toBeVisible();

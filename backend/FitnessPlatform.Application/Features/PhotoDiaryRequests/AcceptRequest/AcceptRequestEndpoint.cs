@@ -12,7 +12,7 @@ namespace FitnessPlatform.Application.Features.PhotoDiaryRequests.AcceptRequest;
 
 /// <summary>
 /// POST /client/photo-diary-requests/{id}/accept
-/// Transitions a Pending request to Accepted, records the chosen Mode and AcceptedAt timestamp.
+/// Transitions a Pending request to Accepted and records the AcceptedAt timestamp.
 /// After a successful transition emits a <c>photoDiaryAccepted</c> SignalR event to the
 /// <b>professional</b> group (<see cref="Domain.Entities.PhotoDiaryRequest.ProfessionalId"/>)
 /// so the trainer/nutritionist's open diary card flips from Pending to Accepted in real time.
@@ -21,6 +21,7 @@ namespace FitnessPlatform.Application.Features.PhotoDiaryRequests.AcceptRequest;
 public class AcceptRequestEndpoint(
     IApplicationDbContext db,
     IRealtimeNotifier notifier,
+    TimeProvider timeProvider,
     ILogger<AcceptRequestEndpoint> logger)
     : Endpoint<AcceptRequestRequest, AcceptRequestResponse>
 {
@@ -31,7 +32,10 @@ public class AcceptRequestEndpoint(
         Summary(s =>
         {
             s.Summary = "Accept a photo diary request";
-            s.Description = "Transitions a Pending photo diary request to Accepted, recording the chosen mode.";
+            s.Description = "Transitions a Pending photo diary request to Accepted. The mode was set by the coach.";
+            s.Responses[StatusCodes.Status200OK] = "Request accepted";
+            s.Responses[StatusCodes.Status404NotFound] = "Request not found, or not addressed to the caller";
+            s.Responses[StatusCodes.Status409Conflict] = "Request is not Pending, is past its end date, or has no mode";
         });
     }
 
@@ -59,18 +63,20 @@ public class AcceptRequestEndpoint(
             return;
         }
 
-        // 409 if not in Pending status
-        if (request.Status != PhotoDiaryStatus.Pending)
+        var now = timeProvider.GetUtcNow();
+
+        // 409 if not Pending, past its end date, or a legacy row without a mode (the coach picks
+        // the mode at creation now; accepting a mode-less row would break the mode constraint).
+        if (request.Status != PhotoDiaryStatus.Pending || now >= request.EndsAt || request.Mode is null)
         {
             await this.SendProblemAsync(409, ErrorCodes.PhotoDiaryRequestInvalidStatus,
-                "This request is not in Pending status and cannot be accepted.", ct);
+                "This request cannot be accepted: it is not Pending, has expired, or has no mode.", ct);
             return;
         }
 
         request.Status = PhotoDiaryStatus.Accepted;
-        request.Mode = req.Mode;
-        request.AcceptedAt = DateTimeOffset.UtcNow;
-        request.UpdatedAt = DateTimeOffset.UtcNow;
+        request.AcceptedAt = now;
+        request.UpdatedAt = now;
 
         await db.SaveChangesAsync(ct);
 
@@ -88,7 +94,7 @@ public class AcceptRequestEndpoint(
                 {
                     RequestId = request.Id,
                     ClientName = clientName,
-                    Mode = request.Mode.ToString(),
+                    Mode = request.Mode.ToString() ?? string.Empty,
                     PlanId = request.PlanId,
                     AcceptedAt = request.UpdatedAt,
                 },

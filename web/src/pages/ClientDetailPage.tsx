@@ -11,20 +11,24 @@ import ClientDetailHeader from '@/components/client-detail/ClientDetailHeader';
 import ClientDetailTabs, { type ClientDetailTab } from '@/components/client-detail/ClientDetailTabs';
 import ClientOverviewTab from '@/components/client-detail/ClientOverviewTab';
 import ClientNutritionTab from '@/components/client-detail/nutrition/ClientNutritionTab';
+import ClientPhotosTab from '@/components/client-detail/photos/ClientPhotosTab';
 
 const MEASUREMENTS_PAGE_SIZE = 50;
 
 /**
  * Client-detail page: header + URL-driven tab row. `/clients/:clientId` is the
  * Overview tab, `/clients/:clientId/nutrition` the Nutrition tab (a link
- * without the nutrition capability is redirected to Overview).
+ * without the nutrition capability is redirected to Overview) and
+ * `/clients/:clientId/photos` the Photos tab.
  */
 export default function ClientDetailPage() {
   const { t } = useTranslation();
   const { clientId = '' } = useParams<{ clientId: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-  const activeTab: ClientDetailTab = useMatch('/clients/:clientId/nutrition') ? 'nutrition' : 'overview';
+  const isNutritionRoute = useMatch('/clients/:clientId/nutrition') !== null;
+  const isPhotosRoute = useMatch('/clients/:clientId/photos') !== null;
+  const activeTab: ClientDetailTab = isNutritionRoute ? 'nutrition' : isPhotosRoute ? 'photos' : 'overview';
 
   const dashboardQuery = useQuery({
     queryKey: ['client-dashboard', clientId],
@@ -75,9 +79,8 @@ export default function ClientDetailPage() {
   }
 
   function handleTabChange(tab: ClientDetailTab) {
-    navigate(tab === 'nutrition' ? `/clients/${clientId}/nutrition` : `/clients/${clientId}`, {
-      state: location.state,
-    });
+    const suffix = tab === 'overview' ? '' : `/${tab}`;
+    navigate(`/clients/${clientId}${suffix}`, { state: location.state });
   }
 
   return (
@@ -99,6 +102,12 @@ export default function ClientDetailPage() {
 
       {activeTab === 'nutrition' ? (
         <ClientNutritionTab clientId={clientId} dashboard={dashboard} />
+      ) : activeTab === 'photos' ? (
+        <ClientPhotosTab
+          clientId={clientId}
+          dashboard={dashboard}
+          plans={plansQuery.data?.plans}
+        />
       ) : (
         <ClientOverviewTab
           clientId={clientId}

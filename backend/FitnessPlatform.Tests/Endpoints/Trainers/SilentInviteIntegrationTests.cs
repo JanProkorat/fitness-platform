@@ -233,9 +233,9 @@ public class SilentInviteIntegrationTests(FitnessApiFactory factory)
         var notifier = factory.Services.GetRequiredService<FakeRealtimeNotifier>();
 
         var toCoach = await inviter.Http.PostAsJsonAsync(
-            "/trainer/photo-diary-requests", new { PendingInviteId = silentInvite.Id }, Ct);
+            "/trainer/photo-diary-requests", new { PendingInviteId = silentInvite.Id, Mode = "Workflow" }, Ct);
         var toClient = await inviter.Http.PostAsJsonAsync(
-            "/trainer/photo-diary-requests", new { PendingInviteId = realInvite.Id }, Ct);
+            "/trainer/photo-diary-requests", new { PendingInviteId = realInvite.Id, Mode = "Workflow" }, Ct);
 
         toCoach.StatusCode.Should().Be(HttpStatusCode.OK);
         toClient.StatusCode.Should().Be(HttpStatusCode.OK);

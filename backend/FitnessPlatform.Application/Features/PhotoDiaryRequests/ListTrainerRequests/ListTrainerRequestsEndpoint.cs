@@ -1,6 +1,8 @@
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,7 +12,7 @@ namespace FitnessPlatform.Application.Features.PhotoDiaryRequests.ListTrainerReq
 /// GET /trainer/photo-diary-requests
 /// Returns a paginated list of photo diary requests created by the authenticated professional.
 /// </summary>
-public class ListTrainerRequestsEndpoint(IApplicationDbContext db)
+public class ListTrainerRequestsEndpoint(IApplicationDbContext db, TimeProvider timeProvider)
     : Endpoint<ListTrainerRequestsRequest, ListTrainerRequestsResponse>
 {
     public override void Configure()
@@ -46,6 +48,10 @@ public class ListTrainerRequestsEndpoint(IApplicationDbContext db)
         if (req.PlanId.HasValue)
             query = query.Where(r => r.PlanId == req.PlanId.Value);
 
+        // Already scoped to the caller's own requests above, so this cannot reach another coach's rows.
+        if (req.ClientId.HasValue)
+            query = query.Where(r => r.Link != null && r.Link.ClientProfile.PublicId == req.ClientId.Value);
+
         var totalCount = await query.CountAsync(ct);
 
         HttpContext.Response.Headers["X-Total-Count"] = totalCount.ToString();
@@ -63,6 +69,7 @@ public class ListTrainerRequestsEndpoint(IApplicationDbContext db)
                 PlanId = r.PlanId,
                 DurationDays = r.DurationDays,
                 Mode = r.Mode,
+                Message = r.Message,
                 Status = r.Status,
                 DismissReason = r.DismissReason,
                 AcceptedAt = r.AcceptedAt,
@@ -71,6 +78,15 @@ public class ListTrainerRequestsEndpoint(IApplicationDbContext db)
                 UpdatedAt = r.UpdatedAt,
             })
             .ToListAsync(ct);
+
+        // EndsAt and IsOpen are computed in memory, not translated to SQL.
+        var now = timeProvider.GetUtcNow();
+
+        foreach (var item in items)
+        {
+            item.EndsAt = item.CreatedAt.AddDays(item.DurationDays);
+            item.IsOpen = PhotoDiaryRequest.IsOpenStatus(item.Status) && now < item.EndsAt;
+        }
 
         await Send.OkAsync(new ListTrainerRequestsResponse { Items = items }, ct);
     }

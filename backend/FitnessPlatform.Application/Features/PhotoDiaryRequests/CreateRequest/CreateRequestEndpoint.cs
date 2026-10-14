@@ -34,6 +34,7 @@ public class CreateRequestEndpoint(
     IMongoContext mongo,
     IRealtimeNotifier notifier,
     UserManager<ApplicationUser> userManager,
+    TimeProvider timeProvider,
     ILogger<CreateRequestEndpoint> logger)
     : Endpoint<CreateRequestRequest, CreateRequestResponse>
 {
@@ -44,7 +45,12 @@ public class CreateRequestEndpoint(
         Summary(s =>
         {
             s.Summary = "Create a photo diary request";
-            s.Description = "Sends a photo diary request to a client via an existing link or a pending invite.";
+            s.Description = "Sends a photo diary request to a client via an existing link or a pending invite. " +
+                "The coach picks the mode (Once or Every day) and may add a message.";
+            s.Responses[StatusCodes.Status200OK] = "Request created";
+            s.Responses[StatusCodes.Status400BadRequest] = "Invalid request";
+            s.Responses[StatusCodes.Status404NotFound] = "Link, invite or plan not found, or not the caller's";
+            s.Responses[StatusCodes.Status409Conflict] = "The caller already has an open request for this client";
         });
     }
 
@@ -113,46 +119,47 @@ public class CreateRequestEndpoint(
             // clientUserId resolved below after save (only if user is already registered)
         }
 
-        // Validate planId ownership if provided (check both nutrition and training plans).
-        // clientUserId is only set here on the link-based path (the invite path resolves it,
-        // if at all, only after the save below), so `link` is guaranteed non-null whenever this
-        // block runs. Beyond ownership, the caller's link must also carry the capability flag
-        // matching the plan's domain — scoping a diary request to a plan the caller's own link
-        // denies is the same cross-domain association the plan-addressed routes gate on.
-        if (req.PlanId.HasValue && clientUserId.HasValue)
+        // Validate planId if provided (check both nutrition and training plans). The plan must have
+        // been created by the caller on either path. On the link-based path (clientUserId is set,
+        // so `link` is non-null) it must also belong to that client, and the caller's link must carry
+        // the capability flag matching the plan's domain — scoping a diary request to a plan the
+        // caller's own link denies is the same cross-domain association the plan-addressed routes gate on.
+        if (req.PlanId.HasValue && !await IsPlanUsableAsync(req.PlanId.Value, professionalId, clientUserId, link, ct))
         {
-            var planId = req.PlanId.Value;
+            await SendProblemDetailsAsync(404, ErrorCodes.PhotoDiaryRequestPlanNotOwned,
+                "The specified plan was not found or does not belong to this client.", ct);
+            return;
+        }
 
-            var nutritionFilter = Builders<Domain.Documents.NutritionPlan>.Filter
-                .Eq(p => p.ExternalId, planId);
-            var nutritionPlan = await (await mongo.NutritionPlans
-                .FindAsync(nutritionFilter, cancellationToken: ct))
-                .FirstOrDefaultAsync(ct);
+        var now = timeProvider.GetUtcNow();
 
-            bool planBelongsToClient;
-            if (nutritionPlan is not null)
-            {
-                planBelongsToClient = nutritionPlan.ClientId == clientUserId.Value
-                    && link is not null && link.CanViewNutritionPlans;
-            }
-            else
-            {
-                var trainingFilter = Builders<Domain.Documents.TrainingPlan>.Filter
-                    .Eq(p => p.ExternalId, planId);
-                var trainingPlan = await (await mongo.TrainingPlans
-                    .FindAsync(trainingFilter, cancellationToken: ct))
-                    .FirstOrDefaultAsync(ct);
+        // One open request per coach and link (or pending invite). The end date is computed in
+        // memory over the coach's few candidate rows rather than inside the query.
+        var openCandidateQuery = db.PhotoDiaryRequests
+            .AsNoTracking()
+            .Where(r => r.ProfessionalId == professionalId
+                && (r.Status == PhotoDiaryStatus.Pending
+                    || r.Status == PhotoDiaryStatus.Accepted
+                    || r.Status == PhotoDiaryStatus.InProgress));
 
-                planBelongsToClient = trainingPlan is not null && trainingPlan.ClientId == clientUserId.Value
-                    && link is not null && link.CanViewTrainingPlans;
-            }
+        if (link is not null)
+        {
+            var linkId = link.Id;
+            openCandidateQuery = openCandidateQuery.Where(r => r.LinkId == linkId);
+        }
+        else
+        {
+            var inviteId = req.PendingInviteId;
+            openCandidateQuery = openCandidateQuery.Where(r => r.PendingInviteId == inviteId);
+        }
 
-            if (!planBelongsToClient)
-            {
-                await SendProblemDetailsAsync(404, ErrorCodes.PhotoDiaryRequestPlanNotOwned,
-                    "The specified plan was not found or does not belong to this client.", ct);
-                return;
-            }
+        var openCandidates = await openCandidateQuery.ToListAsync(ct);
+
+        if (openCandidates.Any(r => r.IsOpenAt(now)))
+        {
+            await SendProblemDetailsAsync(409, ErrorCodes.PhotoDiaryRequestAlreadyOpen,
+                "You already have an open photo request for this client.", ct);
+            return;
         }
 
         var request = new PhotoDiaryRequest
@@ -162,10 +169,12 @@ public class CreateRequestEndpoint(
             LinkId = link?.Id,
             PendingInviteId = req.PendingInviteId,
             PlanId = req.PlanId,
-            DurationDays = req.DurationDays,
+            Mode = req.Mode,
+            DurationDays = req.Mode == PhotoDiaryMode.Bulk ? 1 : req.DurationDays,
+            Message = string.IsNullOrWhiteSpace(req.Message) ? null : req.Message,
             Status = PhotoDiaryStatus.Pending,
-            CreatedAt = DateTimeOffset.UtcNow,
-            UpdatedAt = DateTimeOffset.UtcNow,
+            CreatedAt = now,
+            UpdatedAt = now,
         };
 
         db.PhotoDiaryRequests.Add(request);
@@ -207,6 +216,8 @@ public class CreateRequestEndpoint(
                         ProfessionalName = professionalName,
                         ProfessionalRole = professionalRole,
                         DurationDays = request.DurationDays,
+                        Mode = request.Mode?.ToString(),
+                        Message = request.Message,
                         PlanId = request.PlanId,
                         CreatedAt = request.CreatedAt,
                     },
@@ -239,9 +250,45 @@ public class CreateRequestEndpoint(
             PendingInviteId = request.PendingInviteId,
             PlanId = request.PlanId,
             DurationDays = request.DurationDays,
+            Mode = request.Mode,
+            Message = request.Message,
             Status = request.Status,
             CreatedAt = request.CreatedAt,
         }, cancellation: ct);
+    }
+
+    /// <summary>
+    /// True when the plan was created by the caller and, on the link path, belongs to the link's
+    /// client and the matching capability flag is granted.
+    /// </summary>
+    private async Task<bool> IsPlanUsableAsync(
+        Guid planId,
+        Guid professionalId,
+        Guid? clientUserId,
+        ClientProfessionalLink? link,
+        CancellationToken ct)
+    {
+        var nutritionPlan = await (await mongo.NutritionPlans
+            .FindAsync(Builders<Domain.Documents.NutritionPlan>.Filter.Eq(p => p.ExternalId, planId),
+                cancellationToken: ct))
+            .FirstOrDefaultAsync(ct);
+
+        if (nutritionPlan is not null)
+        {
+            return nutritionPlan.NutritionistId == professionalId
+                && (clientUserId is null
+                    || (nutritionPlan.ClientId == clientUserId.Value && link is { CanViewNutritionPlans: true }));
+        }
+
+        var trainingPlan = await (await mongo.TrainingPlans
+            .FindAsync(Builders<Domain.Documents.TrainingPlan>.Filter.Eq(p => p.ExternalId, planId),
+                cancellationToken: ct))
+            .FirstOrDefaultAsync(ct);
+
+        return trainingPlan is not null
+            && trainingPlan.TrainerId == professionalId
+            && (clientUserId is null
+                || (trainingPlan.ClientId == clientUserId.Value && link is { CanViewTrainingPlans: true }));
     }
 
     private async Task SendProblemDetailsAsync(int statusCode, string errorCode, string detail, CancellationToken ct)

@@ -75,11 +75,12 @@ public class GetTrainerClientPhotosMealKindTests(FitnessApiFactory factory)
         return log.Id.ToString();
     }
 
-    private async Task SeedPhotoAsync(Actor client, PlanPhotoCategory category, string? mealLogId, DateTime takenAt)
+    private async Task SeedPhotoAsync(
+        Actor client, Actor viewer, PlanPhotoCategory category, string? mealLogId, DateTime takenAt)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        db.PlanPhotos.Add(new PlanPhoto
+        var photo = new PlanPhoto
         {
             ClientProfileId = client.ProfileId,
             Category = category,
@@ -87,7 +88,12 @@ public class GetTrainerClientPhotosMealKindTests(FitnessApiFactory factory)
             BlobUrl = "https://example.invalid/photo.jpg",
             TakenAt = takenAt,
             UploadedByUserId = client.UserId,
-        });
+        };
+        db.PlanPhotos.Add(photo);
+        db.PlanPhotoViewers.Add(EntityBuilder.PlanPhotoViewer
+            .ForPhoto(photo)
+            .WithProfessionalUserId(viewer.UserId)
+            .Build());
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
@@ -118,8 +124,8 @@ public class GetTrainerClientPhotosMealKindTests(FitnessApiFactory factory)
         var (coach, client) = await LinkedPairAsync();
         var (planId, mealId) = await SeedPlanAsync(client.UserId, coach.UserId, MealKind.Dinner);
         var logId = await SeedMealLogAsync(client.UserId, planId, mealId);
-        await SeedPhotoAsync(client, PlanPhotoCategory.Food, logId, DateTime.UtcNow.AddMinutes(-1));
-        await SeedPhotoAsync(client, PlanPhotoCategory.Body, null, DateTime.UtcNow.AddMinutes(-2));
+        await SeedPhotoAsync(client, coach, PlanPhotoCategory.Food, logId, DateTime.UtcNow.AddMinutes(-1));
+        await SeedPhotoAsync(client, coach, PlanPhotoCategory.Body, null, DateTime.UtcNow.AddMinutes(-2));
 
         var photos = await GetPhotosAsync(coach, client, groupByMonth);
 
@@ -138,7 +144,7 @@ public class GetTrainerClientPhotosMealKindTests(FitnessApiFactory factory)
         var otherClient = await TestActors.Client(factory).CreateAsync(TestContext.Current.CancellationToken);
         var (otherPlanId, otherMealId) = await SeedPlanAsync(otherClient.UserId, coach.UserId, MealKind.Lunch);
         var otherLogId = await SeedMealLogAsync(otherClient.UserId, otherPlanId, otherMealId);
-        await SeedPhotoAsync(client, PlanPhotoCategory.Food, otherLogId, DateTime.UtcNow);
+        await SeedPhotoAsync(client, coach, PlanPhotoCategory.Food, otherLogId, DateTime.UtcNow);
 
         var photos = await GetPhotosAsync(coach, client, groupByMonth: false);
 
@@ -154,7 +160,7 @@ public class GetTrainerClientPhotosMealKindTests(FitnessApiFactory factory)
         var otherClient = await TestActors.Client(factory).CreateAsync(TestContext.Current.CancellationToken);
         var (otherPlanId, otherMealId) = await SeedPlanAsync(otherClient.UserId, coach.UserId, MealKind.Lunch);
         var logId = await SeedMealLogAsync(client.UserId, otherPlanId, otherMealId);
-        await SeedPhotoAsync(client, PlanPhotoCategory.Food, logId, DateTime.UtcNow);
+        await SeedPhotoAsync(client, coach, PlanPhotoCategory.Food, logId, DateTime.UtcNow);
 
         var photos = await GetPhotosAsync(coach, client, groupByMonth: false);
 
@@ -170,7 +176,7 @@ public class GetTrainerClientPhotosMealKindTests(FitnessApiFactory factory)
         var (planId, _) = await SeedPlanAsync(client.UserId, coach.UserId, MealKind.Lunch);
         var removedMealId = Guid.NewGuid();
         var logId = await SeedMealLogAsync(client.UserId, planId, removedMealId);
-        await SeedPhotoAsync(client, PlanPhotoCategory.Food, logId, DateTime.UtcNow);
+        await SeedPhotoAsync(client, coach, PlanPhotoCategory.Food, logId, DateTime.UtcNow);
 
         var photos = await GetPhotosAsync(coach, client, groupByMonth: false);
 
@@ -185,7 +191,7 @@ public class GetTrainerClientPhotosMealKindTests(FitnessApiFactory factory)
     public async Task GetPhotos_UnparseableOrDanglingMealLogId_Returns200WithNulls(string mealLogId)
     {
         var (coach, client) = await LinkedPairAsync();
-        await SeedPhotoAsync(client, PlanPhotoCategory.Food, mealLogId, DateTime.UtcNow);
+        await SeedPhotoAsync(client, coach, PlanPhotoCategory.Food, mealLogId, DateTime.UtcNow);
 
         var photos = await GetPhotosAsync(coach, client, groupByMonth: false);
 
