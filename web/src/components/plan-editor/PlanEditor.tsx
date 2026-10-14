@@ -104,7 +104,9 @@ export interface PlanEditorPrimaryAction {
   label: (weekNumber: number) => string;
   /** Resolves with the server's copy of the document (resetting the unsaved state), or null on failure. */
   run: (doc: EditorDocument, weekIndex: number) => Promise<EditorDocument | null>;
-  disabled?: (weekIndex: number) => boolean;
+  disabled?: (weekIndex: number, doc: EditorDocument) => boolean;
+  /** Tooltip for the button, e.g. why it is disabled. */
+  title?: (weekIndex: number, doc: EditorDocument) => string | undefined;
 }
 
 interface Props {
@@ -120,6 +122,12 @@ interface Props {
   breadcrumb: { label: string; onNavigate: () => void; leading?: ReactNode };
   /** Replaces the Save button; omit for the default Save. */
   primaryAction?: PlanEditorPrimaryAction;
+  /** With a primary action, keeps the default Save button beside it. */
+  secondarySave?: boolean;
+  /** Shown after the plan name in the header, e.g. a status chip. */
+  titleBadge?: ReactNode;
+  /** Small line under each week pill, e.g. its start date. */
+  weekSubLabel?: (weekIndex: number) => string | undefined;
   /** Replaces the template info panel on the info tab. */
   renderInfoPanel?: (context: InfoPanelContext) => ReactNode;
   /** Label of the info tab; defaults to the template wording. */
@@ -183,6 +191,9 @@ export default function PlanEditor({
   readOnlyNotice,
   breadcrumb,
   primaryAction,
+  secondarySave,
+  titleBadge,
+  weekSubLabel,
   renderInfoPanel,
   infoTabLabel,
   libraryExtraTab,
@@ -639,6 +650,7 @@ export default function PlanEditor({
                 breadcrumbLabel={breadcrumb.label}
                 onBreadcrumb={leave}
                 breadcrumbLeading={breadcrumb.leading}
+                titleBadge={titleBadge}
                 readOnly={readOnly}
                 dirty={dirty}
                 saveStatus={saveState.status}
@@ -651,12 +663,14 @@ export default function PlanEditor({
                   primaryAction
                     ? {
                         label: primaryAction.label(currentIndex + 1),
-                        disabled: primaryAction.disabled?.(currentIndex) ?? false,
+                        disabled: primaryAction.disabled?.(currentIndex, doc) ?? false,
+                        title: primaryAction.title?.(currentIndex, doc),
                         busy: actionBusy,
                         onRun: () => void runPrimaryAction(),
                       }
                     : undefined
                 }
+                secondarySave={secondarySave}
                 range={range}
                 view={view}
                 onRangeChange={changeRange}
@@ -677,6 +691,7 @@ export default function PlanEditor({
                         }
                       : undefined
                   }
+                  weekSubLabel={weekSubLabel}
                   onSelect={(index) => navigate({ week: index })}
                   onAddWeek={() => {
                     edit(addWeek);

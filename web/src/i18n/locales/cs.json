@@ -2257,6 +2257,24 @@
       "error": "Formulář se nepodařilo vytvořit. Zkuste to prosím znovu."
     }
   },
+  "clientPlanEditor": {
+    "publishWeek": "Publikovat týden {{week}}",
+    "clientFallback": "Klient",
+    "backToNutrition": "Zpět na Výživu",
+    "readOnly": "Tento plán je uzavřený a nelze ho upravovat.",
+    "status": {
+      "published": "{{published}}/{{total}} publikováno",
+      "draft": "Koncept"
+    },
+    "info": {
+      "tab": "Info o plánu",
+      "placeholder": "Tady se zobrazí podrobnosti plánu."
+    },
+    "notFound": {
+      "title": "Plán nenalezen",
+      "body": "Tento plán neexistuje nebo nepatří tomuto klientovi."
+    }
+  },
   "planTemplates": {
     "title":"Šablony plánů",
     "subtitle": "Znovupoužitelné jídelníčky — vytvořte jednou, přiřaďte kterémukoli klientovi",

@@ -2195,6 +2195,24 @@
       "error": "Couldn't create the form. Please try again."
     }
   },
+  "clientPlanEditor": {
+    "publishWeek": "Publish week {{week}}",
+    "clientFallback": "Client",
+    "backToNutrition": "Back to Nutrition",
+    "readOnly": "This plan is closed and can't be edited.",
+    "status": {
+      "published": "{{published}}/{{total}} published",
+      "draft": "Draft"
+    },
+    "info": {
+      "tab": "Plan info",
+      "placeholder": "Plan details will appear here."
+    },
+    "notFound": {
+      "title": "Plan not found",
+      "body": "This plan doesn't exist, or it isn't one of this client's plans."
+    }
+  },
   "planTemplates": {
     "title": "Plan templates",
     "subtitle": "Reusable nutrition plans — build once, assign to any client",

@@ -1,6 +1,11 @@
 import api from '@/lib/api';
 import { apiClient } from '@/api/client';
-import type { CopyNutritionPlanRequest, CopyNutritionPlanResponse } from '@/api/generated';
+import type {
+  CopyNutritionPlanRequest,
+  CopyNutritionPlanResponse,
+  GetPlanResponse,
+  UpdatePlanRequest as UpdatePlanDocumentRequest,
+} from '@/api/generated';
 import type {
   NutritionPlanDetail,
   GetPlansResponse,
@@ -89,4 +94,23 @@ export function copyNutritionPlan(
   request: CopyNutritionPlanRequest,
 ): Promise<CopyNutritionPlanResponse> {
   return apiClient.copyNutritionPlanEndpoint(planId, request);
+}
+
+/** The plan as the editor loads it (GET /nutrition/plans/{planId}), typed from the generated client. */
+export function fetchPlanForEditor(planId: string): Promise<GetPlanResponse> {
+  return apiClient.getPlanEndpoint(planId);
+}
+
+/** Full-state save of a plan from the editor (PUT /nutrition/plans/{planId}). */
+export function savePlanFromEditor(planId: string, request: UpdatePlanDocumentRequest): Promise<GetPlanResponse> {
+  return apiClient.updatePlanEndpoint(planId, request);
+}
+
+/** Publishes one stored week (POST /nutrition/plans/{planId}/weeks/{weekNumber}/publish); returns the plan. */
+export function publishPlanWeekFromEditor(
+  planId: string,
+  weekNumber: number,
+  version: number | undefined,
+): Promise<GetPlanResponse> {
+  return apiClient.publishWeekEndpoint(planId, weekNumber, { version });
 }
