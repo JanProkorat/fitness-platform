@@ -1771,7 +1771,13 @@
       "previous": "Previous weeks",
       "next": "Next weeks",
       "add": "Add week",
-      "week": "Week {{number}}"
+      "week": "Week {{number}}",
+      "status_published": ", published",
+      "status_draft": ", draft",
+      "legendPublished_one": "{{count}} published",
+      "legendPublished_other": "{{count}} published",
+      "legendDraft_one": "{{count}} draft",
+      "legendDraft_other": "{{count}} draft"
     },
     "panel": {
       "tabs": "Side panel",

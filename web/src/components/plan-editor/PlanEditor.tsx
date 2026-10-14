@@ -20,7 +20,7 @@ import CardDropDialog from '@/components/plan-editor/CardDropDialog';
 import DaySummaryCard from '@/components/plan-editor/DaySummaryCard';
 import DayNavigator from '@/components/plan-editor/DayNavigator';
 import DayView from '@/components/plan-editor/DayView';
-import LibraryPanel from '@/components/plan-editor/LibraryPanel';
+import LibraryPanel, { type LibraryExtraTab } from '@/components/plan-editor/LibraryPanel';
 import MealDetail from '@/components/plan-editor/MealDetail';
 import MealPicker from '@/components/plan-editor/MealPicker';
 import NutritionView from '@/components/plan-editor/NutritionView';
@@ -67,10 +67,12 @@ import {
   type EditorRange,
   type EditorSideTab,
   type EditorView,
+  type EditorWeek,
   type LibraryItem,
   type SaveStatus,
+  type WeekStatus,
 } from '@/components/plan-editor/plan-editor-types';
-import { usePlanEditorState } from '@/components/plan-editor/usePlanEditorState';
+import { usePlanEditorState, type PlanEditorState } from '@/components/plan-editor/usePlanEditorState';
 import { useSlideTransition } from '@/components/plan-editor/useSlideTransition';
 import { useSwipeNavigation } from '@/components/plan-editor/useSwipeNavigation';
 
@@ -88,6 +90,23 @@ export interface CopyMealsSlotProps {
   onApply: (source: EditorDocument) => void;
 }
 
+/** What a host's info panel needs; the defaults are the template info panel's inputs. */
+export interface InfoPanelContext {
+  doc: EditorDocument;
+  week: EditorWeek;
+  weekNumber: number;
+  readOnly: boolean;
+  onEdit: PlanEditorState['edit'];
+}
+
+/** Replaces the header's Save button; sees the document and the selected week, e.g. for "Publish week N". */
+export interface PlanEditorPrimaryAction {
+  label: (weekNumber: number) => string;
+  /** Resolves with the server's copy of the document (resetting the unsaved state), or null on failure. */
+  run: (doc: EditorDocument, weekIndex: number) => Promise<EditorDocument | null>;
+  disabled?: (weekIndex: number) => boolean;
+}
+
 interface Props {
   /** The document to edit. Remount (change `key`) to load a different one. */
   initial: EditorDocument;
@@ -97,7 +116,18 @@ interface Props {
   renderCopyMeals?: (props: CopyMealsSlotProps) => ReactNode;
   readOnly: boolean;
   readOnlyNotice?: string;
-  breadcrumb: { label: string; onNavigate: () => void };
+  /** `leading` renders before the back button, e.g. a client avatar. */
+  breadcrumb: { label: string; onNavigate: () => void; leading?: ReactNode };
+  /** Replaces the Save button; omit for the default Save. */
+  primaryAction?: PlanEditorPrimaryAction;
+  /** Replaces the template info panel on the info tab. */
+  renderInfoPanel?: (context: InfoPanelContext) => ReactNode;
+  /** Label of the info tab; defaults to the template wording. */
+  infoTabLabel?: string;
+  /** Adds a third tab to the library panel. */
+  libraryExtraTab?: LibraryExtraTab;
+  /** Publication state per week: shows a dot on each pill (empty weeks get none) and a count legend. */
+  weekStatus?: (weekIndex: number) => WeekStatus | undefined;
   saveState: PlanEditorSaveState;
   /** Persists the document; resolves with the server's copy, or null when the save failed. */
   onSave: (doc: EditorDocument) => Promise<EditorDocument | null>;
@@ -152,6 +182,11 @@ export default function PlanEditor({
   readOnly,
   readOnlyNotice,
   breadcrumb,
+  primaryAction,
+  renderInfoPanel,
+  infoTabLabel,
+  libraryExtraTab,
+  weekStatus,
   saveState,
   onSave,
   onReload,
@@ -174,6 +209,7 @@ export default function PlanEditor({
   const [pendingDrop, setPendingDrop] = useState<PendingDrop | null>(null);
   const [addMealOpen, setAddMealOpen] = useState(false);
   const [scrollArea, setScrollArea] = useState<HTMLElement | null>(null);
+  const [actionBusy, setActionBusy] = useState(false);
   const dragActive = useRef(false);
   const slide = useSlideTransition();
 
@@ -451,6 +487,22 @@ export default function PlanEditor({
     }
   }
 
+  async function runPrimaryAction() {
+    if (!primaryAction) {
+      return;
+    }
+    const sent = doc;
+    setActionBusy(true);
+    try {
+      const saved = await primaryAction.run(sent, currentIndex);
+      if (saved) {
+        markSaved(saved, sent);
+      }
+    } finally {
+      setActionBusy(false);
+    }
+  }
+
   function leave() {
     if (dirty) {
       setLeaveOpen(true);
@@ -487,9 +539,11 @@ export default function PlanEditor({
   const sideTabs: EditorSideTabDef<EditorSideTab>[] = [
     {
       id: 'info',
-      label: t('planEditor.info.tab'),
+      label: infoTabLabel ?? t('planEditor.info.tab'),
       icon: Info,
-      content: (
+      content: renderInfoPanel ? (
+        renderInfoPanel({ doc, week, weekNumber: currentIndex + 1, readOnly, onEdit: edit })
+      ) : (
         <TemplateInfoPanel
           doc={doc}
           week={week}
@@ -509,6 +563,7 @@ export default function PlanEditor({
           canAdd={selected !== null}
           disabled={readOnly}
           onAdd={(item) => selected && addToCell(item, selected)}
+          extraTab={libraryExtraTab}
         />
       ),
     },
@@ -583,6 +638,7 @@ export default function PlanEditor({
                 onNameChange={(name) => edit((current) => ({ ...current, name }), 'name')}
                 breadcrumbLabel={breadcrumb.label}
                 onBreadcrumb={leave}
+                breadcrumbLeading={breadcrumb.leading}
                 readOnly={readOnly}
                 dirty={dirty}
                 saveStatus={saveState.status}
@@ -591,6 +647,16 @@ export default function PlanEditor({
                 onUndo={undo}
                 onRedo={redo}
                 onSave={() => void save()}
+                primaryAction={
+                  primaryAction
+                    ? {
+                        label: primaryAction.label(currentIndex + 1),
+                        disabled: primaryAction.disabled?.(currentIndex) ?? false,
+                        busy: actionBusy,
+                        onRun: () => void runPrimaryAction(),
+                      }
+                    : undefined
+                }
                 range={range}
                 view={view}
                 onRangeChange={changeRange}
@@ -603,6 +669,14 @@ export default function PlanEditor({
                   weekCount={doc.weeks.length}
                   current={currentIndex}
                   readOnly={readOnly}
+                  weekStatus={
+                    weekStatus
+                      ? (index) => {
+                          const candidate = doc.weeks[index];
+                          return candidate && weekHasItems(candidate) ? weekStatus(index) : undefined;
+                        }
+                      : undefined
+                  }
                   onSelect={(index) => navigate({ week: index })}
                   onAddWeek={() => {
                     edit(addWeek);

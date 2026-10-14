@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Check, ChevronLeft, Loader2, Redo2, Undo2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -44,6 +45,8 @@ interface Props {
   onNameChange: (name: string) => void;
   breadcrumbLabel: string;
   onBreadcrumb: () => void;
+  /** Rendered before the back button, e.g. a client avatar. */
+  breadcrumbLeading?: ReactNode;
   readOnly: boolean;
   dirty: boolean;
   saveStatus: SaveStatus;
@@ -52,6 +55,8 @@ interface Props {
   onUndo: () => void;
   onRedo: () => void;
   onSave: () => void;
+  /** Replaces the Save button; `onRun` fires on click. */
+  primaryAction?: { label: string; disabled: boolean; busy: boolean; onRun: () => void };
   range: EditorRange;
   view: EditorView;
   onRangeChange: (range: EditorRange) => void;
@@ -64,6 +69,7 @@ export default function PlanEditorHeader({
   onNameChange,
   breadcrumbLabel,
   onBreadcrumb,
+  breadcrumbLeading,
   readOnly,
   dirty,
   saveStatus,
@@ -72,6 +78,7 @@ export default function PlanEditorHeader({
   onUndo,
   onRedo,
   onSave,
+  primaryAction,
   range,
   view,
   onRangeChange,
@@ -84,6 +91,7 @@ export default function PlanEditorHeader({
   return (
     <header className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-line px-6 py-2.5">
       <div className="flex min-w-80 flex-1 items-center gap-2">
+        {breadcrumbLeading}
         <Button
           type="button"
           variant="outline"
@@ -189,10 +197,22 @@ export default function PlanEditorHeader({
           >
             <Redo2 className="size-4" aria-hidden="true" />
           </Button>
-          <Button type="button" className="h-7.5 px-3" disabled={!dirty || nameInvalid || saving} onClick={onSave}>
-            <Check aria-hidden="true" />
-            {t('planEditor.save')}
-          </Button>
+          {primaryAction ? (
+            <Button
+              type="button"
+              className="h-7.5 px-3"
+              disabled={primaryAction.disabled || nameInvalid || saving || primaryAction.busy}
+              onClick={primaryAction.onRun}
+            >
+              {primaryAction.busy && <Loader2 className="animate-spin" aria-hidden="true" />}
+              {primaryAction.label}
+            </Button>
+          ) : (
+            <Button type="button" className="h-7.5 px-3" disabled={!dirty || nameInvalid || saving} onClick={onSave}>
+              <Check aria-hidden="true" />
+              {t('planEditor.save')}
+            </Button>
+          )}
         </>
       )}
     </header>

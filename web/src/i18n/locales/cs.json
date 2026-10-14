@@ -1812,7 +1812,17 @@
       "previous": "Předchozí týdny",
       "next": "Další týdny",
       "add": "Přidat týden",
-      "week": "Týden {{number}}"
+      "week": "Týden {{number}}",
+      "status_published": ", publikováno",
+      "status_draft": ", koncept",
+      "legendPublished_one": "{{count}} publikován",
+      "legendPublished_few": "{{count}} publikovány",
+      "legendPublished_many": "{{count}} publikovaného",
+      "legendPublished_other": "{{count}} publikováno",
+      "legendDraft_one": "{{count}} koncept",
+      "legendDraft_few": "{{count}} koncepty",
+      "legendDraft_many": "{{count}} konceptu",
+      "legendDraft_other": "{{count}} konceptů"
     },
     "panel": {
       "tabs": "Boční panel",

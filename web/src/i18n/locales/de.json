@@ -1770,7 +1770,13 @@
       "previous": "Vorherige Wochen",
       "next": "Weitere Wochen",
       "add": "Woche hinzufügen",
-      "week": "Woche {{number}}"
+      "week": "Woche {{number}}",
+      "status_published": ", veröffentlicht",
+      "status_draft": ", Entwurf",
+      "legendPublished_one": "{{count}} veröffentlicht",
+      "legendPublished_other": "{{count}} veröffentlicht",
+      "legendDraft_one": "{{count}} Entwurf",
+      "legendDraft_other": "{{count}} Entwürfe"
     },
     "panel": {
       "tabs": "Seitenleiste",
