@@ -23,7 +23,8 @@ namespace FitnessPlatform.Application.Features.Questionnaires.GetClientPendingQu
 /// </summary>
 public class GetClientPendingQuestionnairesEndpoint(
     IApplicationDbContext db,
-    UserManager<ApplicationUser> userManager)
+    UserManager<ApplicationUser> userManager,
+    TimeProvider timeProvider)
     : EndpointWithoutRequest<GetClientPendingQuestionnairesResponse>
 {
     public override void Configure()
@@ -90,9 +91,16 @@ public class GetClientPendingQuestionnairesEndpoint(
             .ToListAsync(ct);
 
         var pendingDiaryItems = new List<PendingDiaryRequestItem>(pendingDiaryEntities.Count);
+        var now = timeProvider.GetUtcNow();
 
         foreach (var req in pendingDiaryEntities)
         {
+            // A Pending request past its end date can no longer be accepted, so it is not a banner.
+            if (now >= req.EndsAt)
+            {
+                continue;
+            }
+
             // Resolve professional role:
             //   - Link-based: use the link's stored ProfessionalRole (no extra DB hit).
             //   - Invite-based: look up Identity roles (UserManager is already injected).
@@ -116,6 +124,8 @@ public class GetClientPendingQuestionnairesEndpoint(
                 ProfessionalName = $"{req.Professional.FirstName} {req.Professional.LastName}",
                 ProfessionalRole = professionalRole,
                 DurationDays = req.DurationDays,
+                Mode = req.Mode,
+                Message = req.Message,
                 Status = "Pending",
                 PlanId = req.PlanId,
                 CreatedAt = req.CreatedAt,

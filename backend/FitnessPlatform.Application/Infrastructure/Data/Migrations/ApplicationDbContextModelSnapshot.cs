@@ -1511,6 +1511,11 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("link_id");
 
+                    b.Property<string>("Message")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("message");
+
                     b.Property<int?>("Mode")
                         .HasColumnType("integer")
                         .HasColumnName("mode");
@@ -1549,7 +1554,7 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
 
                     b.ToTable("photo_diary_requests", null, t =>
                         {
-                            t.HasCheckConstraint("ck_photo_diary_requests_accepted_at_with_accepted_status", "(status IN (2,4,5) AND accepted_at IS NOT NULL) OR (status NOT IN (2,4,5) AND accepted_at IS NULL)");
+                            t.HasCheckConstraint("ck_photo_diary_requests_accepted_at_with_accepted_status", "(status IN (2,4,5) AND accepted_at IS NOT NULL) OR (status IN (1,3) AND accepted_at IS NULL) OR (status = 6)");
 
                             t.HasCheckConstraint("ck_photo_diary_requests_completed_at_only_when_completed", "(status = 5 AND completed_at IS NOT NULL) OR (status != 5 AND completed_at IS NULL)");
 
@@ -1559,7 +1564,7 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
 
                             t.HasCheckConstraint("ck_photo_diary_requests_link_xor_invite", "(link_id IS NOT NULL AND pending_invite_id IS NULL) OR (link_id IS NULL AND pending_invite_id IS NOT NULL)");
 
-                            t.HasCheckConstraint("ck_photo_diary_requests_mode_with_accepted_status", "(status IN (2,4,5) AND mode IS NOT NULL) OR (status NOT IN (2,4,5) AND mode IS NULL)");
+                            t.HasCheckConstraint("ck_photo_diary_requests_mode_with_accepted_status", "(status NOT IN (2,4,5) OR mode IS NOT NULL)");
                         });
                 });
 
