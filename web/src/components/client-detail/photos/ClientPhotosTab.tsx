@@ -14,7 +14,9 @@ import type { GetClientDashboardResponse } from '@/api/generated';
 import type { ClientPlanItem } from '@/api/client-plans';
 import PhotoCard from '@/components/client-detail/photos/PhotoCard';
 import PhotoCompareDialog from '@/components/client-detail/photos/PhotoCompareDialog';
+import PhotoRequestBanner from '@/components/client-detail/photos/PhotoRequestBanner';
 import PhotoViewerDialog from '@/components/client-detail/photos/PhotoViewerDialog';
+import RequestPhotosDrawer from '@/components/client-detail/photos/RequestPhotosDrawer';
 import {
   DEFAULT_RANGE,
   RANGE_OPTIONS,
@@ -23,15 +25,15 @@ import {
   type PhotoRange,
   type PlanCapabilities,
 } from '@/components/client-detail/photos/photosModel';
+import { hasPhotoForRequest } from '@/components/client-detail/photos/photoRequestModel';
 import { useClientPhotos } from '@/components/client-detail/photos/useClientPhotos';
+import { useOpenPhotoRequest } from '@/components/client-detail/photos/useOpenPhotoRequest';
 
 interface Props {
   clientId: string;
   dashboard: GetClientDashboardResponse;
   /** The client's plans (page-level query); gives the week a photo was taken in. */
   plans: ClientPlanItem[] | undefined;
-  /** Hook-up point for the Request photos drawer; the buttons stay disabled until it is wired. */
-  onRequestPhotos?: () => void;
 }
 
 type Overlay = { kind: 'viewer'; photoId: string } | { kind: 'compare'; photoIds: string[] } | null;
@@ -41,16 +43,17 @@ type Overlay = { kind: 'viewer'; photoId: string } | { kind: 'compare'; photoIds
  * client's progress photos with a photo viewer and a side-by-side compare.
  * The server decides which photos this coach may see; nothing is filtered here.
  */
-export default function ClientPhotosTab({ clientId, dashboard, plans, onRequestPhotos }: Props) {
+export default function ClientPhotosTab({ clientId, dashboard, plans }: Props) {
   const { t, i18n } = useTranslation();
   const locale = i18n.language;
   const [range, setRange] = useState<PhotoRange>(DEFAULT_RANGE);
   const [overlay, setOverlay] = useState<Overlay>(null);
+  const [requestOpen, setRequestOpen] = useState(false);
+  const openRequestQuery = useOpenPhotoRequest(clientId);
   const { query, groups, photos, refreshUrls } = useClientPhotos(clientId, range);
 
   const name = dashboard.firstName?.trim() || t('clientDetail.photos.clientFallback');
   const canViewNutritionPlans = dashboard.canViewNutritionPlans === true;
-  const requestEnabled = onRequestPhotos !== undefined;
 
   const canViewTrainingPlans = dashboard.canViewTrainingPlans === true;
   const capabilities = useMemo<PlanCapabilities>(
@@ -86,14 +89,10 @@ export default function ClientPhotosTab({ clientId, dashboard, plans, onRequestP
     );
   }
 
+  const openRequest = openRequestQuery.data ?? null;
+
   const requestButton = (
-    <Button
-      type="button"
-      size="lg"
-      disabled={!requestEnabled}
-      title={requestEnabled ? undefined : t('shell.comingSoon')}
-      onClick={onRequestPhotos}
-    >
+    <Button type="button" size="lg" onClick={() => setRequestOpen(true)}>
       <Camera aria-hidden="true" />
       {t('clientDetail.photos.request')}
     </Button>
@@ -144,6 +143,10 @@ export default function ClientPhotosTab({ clientId, dashboard, plans, onRequestP
         {t('clientDetail.photos.hint', { name })}
       </p>
 
+      {openRequest && (
+        <PhotoRequestBanner request={openRequest} name={name} waiting={!hasPhotoForRequest(photos, openRequest.id)} />
+      )}
+
       {photos.length === 0 ? (
         <div
           role="status"
@@ -180,6 +183,15 @@ export default function ClientPhotosTab({ clientId, dashboard, plans, onRequestP
           ))}
         </div>
       )}
+
+      <RequestPhotosDrawer
+        open={requestOpen}
+        onOpenChange={setRequestOpen}
+        clientId={clientId}
+        name={name}
+        plans={plans}
+        openRequest={openRequestQuery.isPending ? undefined : openRequest}
+      />
 
       {overlay?.kind === 'viewer' && (
         <PhotoViewerDialog

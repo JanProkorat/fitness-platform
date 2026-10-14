@@ -2343,6 +2343,8 @@
     "PLAN_VERSION_CONFLICT": "The plan was modified by another request in the meantime. Loading the current version.",
     "QuestionnaireResponseId": "This questionnaire response was not found or is not submitted yet.",
     "PHOTO_DIARY_REQUEST_NOT_FOUND": "Photo diary not found.",
+    "PHOTO_DIARY_REQUEST_ALREADY_OPEN": "A photo request is already open for this client.",
+    "PHOTO_DIARY_REQUEST_INVALID_STATUS": "This photo request is no longer open.",
     "PHOTO_DIARY_REQUEST_FORBIDDEN": "This photo diary does not belong to you.",
     "PHOTO_DIARY_REQUEST_PLAN_NOT_OWNED": "The selected plan was not found or does not belong to this client.",
     "BROADCAST_RECIPIENT_LIMIT_EXCEEDED": "You can broadcast to at most 50 clients at once.",
@@ -3284,6 +3286,78 @@
       "clientFallback": "this client",
       "hint": "You see photos from your own plans and photos uploaded while you work with {{name}}.",
       "request": "Request photos",
+      "requestBanner": {
+        "sent": "Photo request sent {{date}}",
+        "waiting": "{{name}} hasn't sent new photos yet"
+      },
+      "requestDrawer": {
+        "title": "Request photos",
+        "description": "{{name}} gets a notification in the app",
+        "descriptionOpen": "A photo request to {{name}} is open",
+        "coachFallback": "Your coach",
+        "once": "Once",
+        "everyDay": "Every day",
+        "for": "For",
+        "days_one": "{{count}} day",
+        "days_other": "{{count}} days",
+        "untilHelp": "Until {{date}} · {{min}} to {{max}} days",
+        "dueByHelp": "Due by {{date}}",
+        "reminderDaily": "{{name}} gets a reminder at noon on each day they haven't uploaded a photo yet. The request closes on its own after the last day.",
+        "reminderOnce": "{{name}} has one day to upload photos. The request closes on its own after that.",
+        "optional": "optional",
+        "footnote": "{{name}} can accept or decline",
+        "submit": "Send request",
+        "sent": "Photo request sent.",
+        "sendError": "Could not send the photo request.",
+        "cancelled": "Photo request cancelled.",
+        "cancelError": "Could not cancel the photo request.",
+        "cancelRequest": "Cancel request",
+        "cancelConfirm": "Cancel the request to {{name}}?",
+        "keepRequest": "Keep request",
+        "confirmCancel": "Yes, cancel",
+        "planOption": "{{name}} · {{type}}",
+        "planType": {
+          "nutrition": "nutrition plan",
+          "training": "training plan"
+        },
+        "frequency": {
+          "heading": "How often"
+        },
+        "plan": {
+          "heading": "Link to a plan",
+          "label": "Plan",
+          "none": "No plan",
+          "help": "Photos show up with this plan. Only your own plans are listed."
+        },
+        "message": {
+          "heading": "Message",
+          "label": "What should {{name}} photograph?",
+          "counter": "{{current}} / {{max}}"
+        },
+        "preview": {
+          "heading": "What {{name}} sees",
+          "title": "{{name}} asks for progress photos",
+          "once": "Once, due by {{date}}",
+          "daily": "Every day until {{date}}"
+        },
+        "status": {
+          "heading": "Open request",
+          "state": "Status",
+          "frequency": "How often",
+          "sent": "Sent",
+          "until": "Until",
+          "dueBy": "Due by",
+          "note": "The request closes on its own at the end of the window. Cancel it to let {{name}} stop being asked.",
+          "values": {
+            "Pending": "Waiting for {{name}} to respond",
+            "Accepted": "{{name}} accepted",
+            "InProgress": "{{name}} is uploading",
+            "Completed": "Completed",
+            "Dismissed": "{{name}} declined",
+            "Cancelled": "Cancelled"
+          }
+        }
+      },
       "emptyTitle": "No photos yet",
       "emptyBody": "Photos from your plans and photos uploaded by {{name}} will show up here.",
       "openPhoto": "Open photo from {{date}}",
