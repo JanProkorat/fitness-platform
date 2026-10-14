@@ -1282,6 +1282,12 @@
   },
   "library": {
     "eyebrow": "Ernährung",
+    "viewMode": {
+      "label": "Ansicht",
+      "grid": "Karten",
+      "list": "Tabelle",
+      "noTags": "Keine Tags"
+    },
     "nutrient": {
       "protein": "P {{count}} g",
       "carbs": "K {{count}} g",

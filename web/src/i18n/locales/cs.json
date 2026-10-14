@@ -1322,6 +1322,12 @@
   },
   "library": {
     "eyebrow": "Výživa",
+    "viewMode": {
+      "label": "Rozvržení",
+      "grid": "Karty",
+      "list": "Tabulka",
+      "noTags": "Bez štítků"
+    },
     "nutrient": {
       "protein": "B {{count}} g",
       "carbs": "S {{count}} g",

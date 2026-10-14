@@ -1283,6 +1283,12 @@
   },
   "library": {
     "eyebrow": "Nutrition",
+    "viewMode": {
+      "label": "Layout",
+      "grid": "Cards",
+      "list": "Table",
+      "noTags": "No tags"
+    },
     "nutrient": {
       "protein": "P {{count}} g",
       "carbs": "C {{count}} g",
