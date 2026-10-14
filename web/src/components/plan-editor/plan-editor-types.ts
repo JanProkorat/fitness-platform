@@ -71,6 +71,9 @@ export interface PlanTargets {
   fiber?: number;
 }
 
+/** Publication state of a week; empty weeks have none and show no dot. */
+export type WeekStatus = 'published' | 'draft';
+
 export type EditorSideTab = 'info' | 'library';
 export type EditorRange = 'week' | 'day';
 export type EditorView = 'meals' | 'nutrition';
