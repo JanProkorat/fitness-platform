@@ -120,7 +120,7 @@ export default function PlanEditorHeader({
         <Button
           type="button"
           variant="outline"
-          className={cn('size-7.5 shrink-0', controlOrder)}
+          className="size-7.5 shrink-0"
           aria-label={t('planEditor.back', { label: breadcrumbLabel })}
           title={t('planEditor.back', { label: breadcrumbLabel })}
           onClick={onBreadcrumb}
