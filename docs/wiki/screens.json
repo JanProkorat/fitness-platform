@@ -287,6 +287,7 @@
         "web/src/lib/clientDetailNavigation.ts",
         "web/src/lib/recipe-nutrition.ts",
         "web/src/api/client-plans.ts",
+        "web/src/api/clients.ts",
         "web/src/api/plans.ts",
         "web/src/api/training-plans.ts",
         "web/src/api/nutrition-plan-templates.ts",
@@ -296,6 +297,7 @@
         "web/src/api/weekly-checkins.ts"
       ],
       "endpoints": [
+        "GET /trainer/clients",
         "GET /trainer/clients/{clientId}",
         "GET /trainer/clients/{clientId}/plans",
         "GET /trainer/clients/{clientId}/measurements",
@@ -306,6 +308,7 @@
         "PUT /trainer/clients/{clientId}/nutrition-profile",
         "GET /nutrition/plans/{planId}",
         "GET /training/plans/{planId}",
+        "POST /nutrition/plans",
         "POST /nutrition/plans/{planId}/copy",
         "GET /nutrition/plan-templates",
         "POST /nutrition/plan-templates/{templateId}/instantiate",
@@ -316,6 +319,46 @@
         { "name": "with-plan", "steps": "sign in as the nutritionist, open /clients, click 'QA Client', click the tab 'Výživa' and wait for the Nutrition tab to load (board PageClientNutrition)" },
         { "name": "both-roles", "steps": "sign in as qa.coach@fitnessplatform.test, open /clients, click 'QA Duo', click the tab 'Výživa' and wait for the Nutrition tab to load (board PageClientNutrition)" }
       ]
+    },
+    {
+      "id": "web.clients.plan-editor",
+      "app": "web",
+      "area": "Clients",
+      "title": "Client plan editor",
+      "route": "/clients/:clientId/nutrition/plans/:planId",
+      "roles": ["Nutritionist"],
+      "files": [
+        "web/src/pages/ClientPlanEditorPage.tsx",
+        "web/src/components/client-plan-editor/**",
+        "web/src/components/plan-editor/**",
+        "web/src/components/editor/**",
+        "web/src/hooks/useClientPlanEditor.ts",
+        "web/src/hooks/usePlanTemplatesQueries.ts",
+        "web/src/hooks/useIngredientsQueries.ts",
+        "web/src/hooks/useRecipesQueries.ts",
+        "web/src/api/plans.ts",
+        "web/src/api/nutrition-plan-templates.ts",
+        "web/src/api/foods.ts",
+        "web/src/api/food-tags.ts",
+        "web/src/api/recipes.ts"
+      ],
+      "endpoints": [
+        "GET /trainer/clients/{clientId}",
+        "GET /nutrition/plans/{planId}",
+        "PUT /nutrition/plans/{planId}",
+        "POST /nutrition/plans/{planId}/weeks/{weekNumber}/publish",
+        "GET /nutrition/plan-templates",
+        "GET /nutrition/plan-templates/{templateId}",
+        "GET /foods/search",
+        "GET /trainer/food-tags",
+        "GET /recipes",
+        "GET /recipes/{recipeId}"
+      ],
+      "board": "PageClientPlanEditor",
+      "shots": [
+        { "name": "default", "steps": "sign in as the nutritionist, open /clients, click 'QA Client', click the tab 'Výživa', click 'Otevřít editor' and wait for the plan editor to load (board PageClientPlanEditor)" }
+      ],
+      "notionPageId": null
     },
     {
       "id": "web.nutrition.ingredients",

@@ -54,6 +54,8 @@ export interface EditorDocument {
   dietaryStyle?: DietaryStyle;
   /** Daily targets the days and weeks are measured against. */
   targets: PlanTargets;
+  /** The Monday week 1 begins, as `YYYY-MM-DD`; only client plans have one. */
+  startDate?: string;
   weeks: EditorWeek[];
 }
 
@@ -70,6 +72,12 @@ export interface PlanTargets {
   fat?: number;
   fiber?: number;
 }
+
+/** Publication state of a week. */
+export type WeekStatus = 'published' | 'draft';
+
+/** What a week pill shows: the publication state, or `empty` for a week with no meals yet. */
+export type WeekPillStatus = WeekStatus | 'empty';
 
 export type EditorSideTab = 'info' | 'library';
 export type EditorRange = 'week' | 'day';

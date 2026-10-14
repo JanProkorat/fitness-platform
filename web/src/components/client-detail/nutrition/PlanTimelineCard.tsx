@@ -1,5 +1,6 @@
 import { useId, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import type { ClientPlanItem } from '@/api/generated';
 import { cn } from '@/lib/utils';
 import {
@@ -16,6 +17,7 @@ import {
 } from '@/components/client-detail/nutrition/nutritionPlanView';
 
 interface Props {
+  clientId: string;
   plans: ClientPlanItem[];
   details: Record<string, PlanDetailState>;
 }
@@ -50,7 +52,7 @@ function barSubtitle(
   return t('clientDetail.nutrition.timeline.range', { range, count: bar.weeks });
 }
 
-function TimelineRow({ model, locale }: { model: TimelineModel; locale: string }) {
+function TimelineRow({ model, locale, clientId }: { model: TimelineModel; locale: string; clientId: string }) {
   const { t } = useTranslation();
 
   return (
@@ -81,19 +83,17 @@ function TimelineRow({ model, locale }: { model: TimelineModel; locale: string }
             style={style}
             className="absolute top-0 box-border h-full px-0.5"
           >
-            <button
-              type="button"
-              disabled
-              title={t('shell.comingSoon')}
+            <Link
+              to={`/clients/${clientId}/nutrition/plans/${item.planId}`}
               aria-label={`${item.name} · ${barSubtitle(item, locale, t)}`}
               className={cn(
-                'flex h-full w-full cursor-not-allowed flex-col justify-center overflow-hidden rounded-lg border px-2.5 text-left',
+                'flex h-full w-full flex-col justify-center overflow-hidden rounded-lg border px-2.5 text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
                 BAR_TONE[item.status] ?? BAR_TONE.Completed,
               )}
             >
               <span className="truncate text-body font-semibold">{item.name}</span>
               <span className="truncate text-caption text-muted-foreground">{barSubtitle(item, locale, t)}</span>
-            </button>
+            </Link>
           </div>
         );
       })}
@@ -105,9 +105,9 @@ function TimelineRow({ model, locale }: { model: TimelineModel; locale: string }
  * "Plan timeline" card: the client's nutrition plans laid on a month axis, with
  * "No plan" gaps and a today marker. Active and Draft plans take their length
  * from the plan detail; Completed and Archived ones from the list's period end.
- * There is no client plan editor yet, so a bar is a disabled control.
+ * A bar links to the client plan editor.
  */
-export default function PlanTimelineCard({ plans, details }: Props) {
+export default function PlanTimelineCard({ clientId, plans, details }: Props) {
   const { t, i18n } = useTranslation();
   const headingId = useId();
   const locale = i18n.language;
@@ -157,7 +157,7 @@ export default function PlanTimelineCard({ plans, details }: Props) {
                 <span className="h-2 w-0.5 bg-error" />
               </div>
             )}
-            <TimelineRow model={model} locale={locale} />
+            <TimelineRow model={model} locale={locale} clientId={clientId} />
             <div className="relative mt-2 h-5 border-t border-border">
               {model.todayPct !== undefined && (
                 <span

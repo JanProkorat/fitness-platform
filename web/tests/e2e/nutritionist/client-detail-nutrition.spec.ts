@@ -61,7 +61,7 @@ test.describe('client detail — nutrition tab', () => {
     await expect(page.getByRole('tab', { name: 'Nutrition' })).toHaveAttribute('aria-selected', 'true');
     await expect(page.getByRole('tab', { name: 'Overview' })).toHaveAttribute('aria-selected', 'false');
 
-    // Current plan: the seeded two-week plan, week 2 in progress, a disabled editor button.
+    // Current plan: the seeded two-week plan, week 2 in progress, an editor link.
     await expect(page.getByText('Current meal plan', { exact: true })).toBeVisible();
     const strip = page.getByRole('list', { name: /Weeks of the plan/ });
     await expect(strip.getByRole('listitem')).toHaveCount(2);
@@ -71,13 +71,22 @@ test.describe('client detail — nutrition tab', () => {
     for (const legend of ['Done', 'This week', 'Published, upcoming']) {
       await expect(currentCard.getByText(legend, { exact: true })).toBeVisible();
     }
-    await expect(page.getByRole('button', { name: 'Open editor' })).toBeDisabled();
+    await expect(page.getByRole('link', { name: 'Open editor' })).toHaveAttribute(
+      'href',
+      /\/clients\/[^/]+\/nutrition\/plans\/[^/]+$/,
+    );
+    await expect(
+      page.getByTestId('client-header-facts').getByRole('link', { name: 'Open meal plan, week 2 of 2' }),
+    ).toHaveAttribute('href', /\/clients\/[^/]+\/nutrition\/plans\/[^/]+$/);
     await expect(page.getByText('Preview as client')).toHaveCount(0);
     await expect(page.getByText(/2,500 kcal a day/)).toBeVisible();
 
-    // Timeline: the plan is a disabled bar and today is marked.
+    // Timeline: the plan is a bar that opens the editor and today is marked.
     await expect(page.getByRole('heading', { name: 'Plan timeline' })).toBeVisible();
-    await expect(page.getByTestId('plan-timeline-row').getByRole('button').first()).toBeDisabled();
+    await expect(page.getByTestId('plan-timeline-row').getByRole('link').first()).toHaveAttribute(
+      'href',
+      /\/clients\/[^/]+\/nutrition\/plans\/[^/]+$/,
+    );
     await expect(page.getByText('Today', { exact: true })).toBeVisible();
 
     // Past plans: none yet for this client.
@@ -130,10 +139,10 @@ test.describe('client detail — nutrition tab', () => {
     await expect(past.getByText(/-3\.4 kg/)).toBeVisible();
     await expect(page.getByText('No plan', { exact: true })).toBeVisible();
 
-    // Opening and duplicating are disabled; saving as a template is live.
+    // Opening, duplicating and saving as a template are all live.
     await past.getByRole('button', { name: /Actions for Stub cut/ }).click();
-    await expect(page.getByRole('menuitem', { name: 'Open plan' })).toHaveAttribute('aria-disabled', 'true');
-    await expect(page.getByRole('menuitem', { name: /Duplicate for/ })).toHaveAttribute('aria-disabled', 'true');
+    await expect(page.getByRole('menuitem', { name: 'Open plan' })).not.toHaveAttribute('aria-disabled', 'true');
+    await expect(page.getByRole('menuitem', { name: /Duplicate for/ })).not.toHaveAttribute('aria-disabled', 'true');
     await page.getByRole('menuitem', { name: 'Save as template' }).click();
 
     const dialog = page.getByRole('dialog', { name: 'Save as template' });
@@ -253,8 +262,8 @@ test.describe('client detail — nutrition tab', () => {
 
     await expect(page.getByRole('heading', { name: /has no meal plan yet/ })).toBeVisible();
     await expect(page.getByText('Preview as client')).toHaveCount(0);
-    await expect(page.getByRole('button', { name: 'Copy from another client' })).toBeDisabled();
-    await expect(page.getByRole('button', { name: 'Start blank' })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Copy from another client' })).toBeEnabled();
+    await expect(page.getByRole('button', { name: 'Start blank' })).toBeEnabled();
     await expect(page.getByRole('link', { name: 'Browse all templates' })).toHaveAttribute('href', '/plan-templates');
 
     // Three templates, the goal + kcal + diet match first and flagged as the best match.
@@ -928,6 +937,7 @@ test.describe('client detail — nutrition tab', () => {
     const TRAINING_CHECK_IN_ID = '00000000-0000-0000-1336-0000000000a2';
     const OTHER_CLIENT_CHECK_IN_ID = '00000000-0000-0000-1336-0000000000a3';
     const COMPLETED_PLAN_ID = '00000000-0000-0000-1336-000000000001';
+    const STUB_COPY_PLAN_ID = '00000000-0000-0000-1386-000000000001';
 
     /** The page's "now": Thursday 11 June 2026, noon, so the week runs Mon 8 June to Sun 14 June. */
     const NOW = new Date(2026, 5, 11, 12, 0, 0);
@@ -1218,7 +1228,7 @@ test.describe('client detail — nutrition tab', () => {
       await expect(note).toContainText('Felt hungry in the evenings');
     });
 
-    test('keeps Duplicate disabled and sends no copy request', async ({ page }) => {
+    test('Duplicate posts the copy and opens the editor', async ({ page }) => {
       await pinNow(page);
       await stubPhotos(page, []);
       await stubCheckIns(page, checkInStub());
@@ -1236,18 +1246,20 @@ test.describe('client detail — nutrition tab', () => {
           },
         ],
       }));
-      let copyRequests = 0;
+      const copyRequests: { url: string; body: Record<string, unknown> }[] = [];
       await page.route(/\/nutrition\/plans\/[^/]+\/copy$/, async (route) => {
-        copyRequests += 1;
-        await route.fulfill({ status: 201, json: { planId: COMPLETED_PLAN_ID, status: 'Draft' } });
+        copyRequests.push({ url: route.request().url(), body: route.request().postDataJSON() as Record<string, unknown> });
+        await route.fulfill({ status: 201, json: { planId: STUB_COPY_PLAN_ID, status: 'Draft' } });
       });
       await openNutritionTab(page);
 
       await page.getByRole('region', { name: 'Past plans' }).getByRole('button', { name: /Actions for Stub finished/ }).click();
-      const duplicate = page.getByRole('menuitem', { name: /Duplicate for/ });
-      await expect(duplicate).toHaveAttribute('aria-disabled', 'true');
-      await duplicate.click({ force: true });
-      expect(copyRequests).toBe(0);
+      await page.getByRole('menuitem', { name: /Duplicate for/ }).click();
+
+      await expect(page).toHaveURL(new RegExp(`/clients/[^/]+/nutrition/plans/${STUB_COPY_PLAN_ID}$`));
+      expect(copyRequests).toHaveLength(1);
+      expect(copyRequests[0].url).toContain(`/nutrition/plans/${COMPLETED_PLAN_ID}/copy`);
+      expect(Object.keys(copyRequests[0].body)).toEqual(['clientId']);
     });
   });
 });

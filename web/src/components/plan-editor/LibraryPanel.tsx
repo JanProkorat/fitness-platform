@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDraggable } from '@dnd-kit/react';
 import { GripVertical, Plus, Search } from 'lucide-react';
@@ -154,17 +154,38 @@ interface Macros {
   fat: number;
 }
 
+/** A host-supplied third tab; while active, `render` replaces the search, filters and list below the tab row. */
+export interface LibraryExtraTab {
+  label: string;
+  count?: number;
+  render: () => ReactNode;
+}
+
 interface Props {
   /** Whether a grid cell is selected, i.e. whether "+" has somewhere to add to. */
   canAdd: boolean;
   disabled: boolean;
   onAdd: (item: LibraryItem) => void;
+  extraTab?: LibraryExtraTab;
+  /** Leaves the totals off the Recipes and Ingredients chips. */
+  hideTabCounts?: boolean;
+  /** Opens on the extra tab instead of Recipes; read once, when the panel mounts. */
+  extraTabFirst?: boolean;
 }
 
 /** Side-panel tab with the nutritionist's recipes and ingredients, draggable onto the week grid. */
-export default function LibraryPanel({ canAdd, disabled, onAdd }: Props) {
+export default function LibraryPanel({
+  canAdd,
+  disabled,
+  onAdd,
+  extraTab,
+  hideTabCounts = false,
+  extraTabFirst = false,
+}: Props) {
   const { t, i18n } = useTranslation();
   const [tab, setTab] = useState<LibraryTab>('recipes');
+  const [extraActive, setExtraActive] = useState(extraTabFirst);
+  const showExtra = extraActive && extraTab !== undefined;
   const [searchInput, setSearchInput] = useState('');
   const search = useDebouncedValue(searchInput, 300);
   const isNutritionist = useAuthStore((state) => state.user?.roles.includes('Nutritionist') ?? false);
@@ -211,23 +232,47 @@ export default function LibraryPanel({ canAdd, disabled, onAdd }: Props) {
             key={value}
             type="button"
             role="tab"
-            aria-selected={tab === value}
-            onClick={() => setTab(value)}
+            aria-selected={!showExtra && tab === value}
+            onClick={() => {
+              setExtraActive(false);
+              setTab(value);
+            }}
             className={cn(
               TAB_CLASS,
-              tab === value
+              !showExtra && tab === value
                 ? 'border-ink bg-ink text-primary-foreground'
                 : 'border-line bg-card text-ink hover:bg-muted',
             )}
           >
             {t(`planEditor.library.${value}`)}
-            <span className="ml-1.5 font-medium opacity-60">
-              {(value === 'recipes' ? recipesQuery : ingredientsQuery).data?.totalCount ?? 0}
-            </span>
+            {!hideTabCounts && (
+              <span className="ml-1.5 font-medium opacity-60">
+                {(value === 'recipes' ? recipesQuery : ingredientsQuery).data?.totalCount ?? 0}
+              </span>
+            )}
           </button>
         ))}
+        {extraTab && (
+          <button
+            type="button"
+            role="tab"
+            aria-selected={showExtra}
+            onClick={() => setExtraActive(true)}
+            className={cn(
+              TAB_CLASS,
+              showExtra ? 'border-ink bg-ink text-primary-foreground' : 'border-line bg-card text-ink hover:bg-muted',
+            )}
+          >
+            {extraTab.label}
+            {extraTab.count !== undefined && <span className="ml-1.5 font-medium opacity-60">{extraTab.count}</span>}
+          </button>
+        )}
       </div>
 
+      {showExtra && extraTab.render()}
+
+      {!showExtra && (
+      <>
       <Popover>
         <PopoverAnchor asChild>
           <div className="flex items-center gap-2">
@@ -335,6 +380,8 @@ export default function LibraryPanel({ canAdd, disabled, onAdd }: Props) {
           </ul>
         )}
       </div>
+      </>
+      )}
     </div>
   );
 }

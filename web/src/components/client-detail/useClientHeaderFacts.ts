@@ -21,7 +21,10 @@ export interface WeightFact {
 }
 
 /** `none`: no Active plan of that type; `unknown`: Active but its week cannot be worked out. */
-export type PlanFact = { kind: 'none' } | { kind: 'unknown' } | { kind: 'week'; week: number; total: number };
+export type PlanFact =
+  | { kind: 'none' }
+  | { kind: 'unknown'; planId?: string }
+  | { kind: 'week'; planId?: string; week: number; total: number };
 
 export interface ClientHeaderFacts {
   /** `null` value: the client has no weighed measurement. */
@@ -99,7 +102,8 @@ export function useClientHeaderFacts(
       mealPlan = { status: 'ready', value: { kind: 'none' } };
     } else {
       const week = planWeekOf(activeNutrition.periodStart, activeNutrition.weekCount, today);
-      mealPlan = { status: 'ready', value: week ? { kind: 'week', ...week } : { kind: 'unknown' } };
+      const planId = activeNutrition.planId;
+      mealPlan = { status: 'ready', value: week ? { kind: 'week', planId, ...week } : { kind: 'unknown', planId } };
     }
 
     if (!activeTraining) {
