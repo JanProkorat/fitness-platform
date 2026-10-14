@@ -696,7 +696,8 @@ export default function PlanEditor({
                     weekStatus
                       ? (index) => {
                           const candidate = doc.weeks[index];
-                          return candidate && weekHasItems(candidate) ? weekStatus(index) : 'empty';
+                          const status = weekStatus(index);
+                          return status === 'published' || (candidate && weekHasItems(candidate)) ? status : 'empty';
                         }
                       : undefined
                   }
