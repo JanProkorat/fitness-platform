@@ -108,8 +108,8 @@ export default function ClientNutritionTab({ clientId, dashboard }: Props) {
 
   return (
     <div className="flex flex-col gap-3.5">
-      <CurrentPlanCard plan={currentPlan} detail={currentDetail} onRetry={retryCurrent} />
-      <PlanTimelineCard plans={plans ?? []} details={details} />
+      <CurrentPlanCard clientId={clientId} plan={currentPlan} detail={currentDetail} onRetry={retryCurrent} />
+      <PlanTimelineCard clientId={clientId} plans={plans ?? []} details={details} />
       <div className="grid grid-cols-1 gap-3.5 xl:grid-cols-5">
         <div className="xl:col-span-3">
           <ThisWeekCard detail={currentDetail} onRetry={retryCurrent} />

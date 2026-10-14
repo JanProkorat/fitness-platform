@@ -3555,7 +3555,27 @@
         "startBlank": "Start blank",
         "browseAll": "Browse all templates",
         "useSuccess": "Draft plan created. It starts next Monday.",
-        "useError": "Couldn't create the plan from this template."
+        "useError": "Couldn't create the plan from this template.",
+        "blankPlanName": "New meal plan",
+        "blankError": "Couldn't create the plan. Please try again."
+      },
+      "copyDialog": {
+        "title": "Copy a plan from another client",
+        "description": "Pick a client, then one of their meal plans. It is copied here as a new draft.",
+        "plansDescription": "Meal plans of {{name}}. The copy lands here as a new draft.",
+        "search": "Search your clients",
+        "noClients": "No other clients found.",
+        "clientsError": "Couldn't load your clients.",
+        "changeClient": "Pick another client",
+        "noPlans": "This client has no meal plans to copy.",
+        "plansError": "Couldn't load this client's plans.",
+        "copy": "Copy",
+        "status": {
+          "Draft": "Draft",
+          "Active": "Active",
+          "Completed": "Completed",
+          "Archived": "Archived"
+        }
       },
       "diet": {
         "Standard": "Standard",
@@ -3805,6 +3825,9 @@
           "trainingPlan": "Training plan",
           "weekOf": "Week {{week}} of {{total}}",
           "noPlan": "No plan yet",
+          "openMealPlan": "Open meal plan",
+          "openMealPlanWeek": "Open meal plan, week {{week}} of {{total}}",
+          "startMealPlan": "Start a meal plan",
           "kg": "{{value}} kg",
           "weightDown": "Weight down since the first weigh-in",
           "weightUp": "Weight up since the first weigh-in"

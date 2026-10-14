@@ -1,5 +1,6 @@
 import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import { Pencil, Utensils } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -15,6 +16,7 @@ import {
 } from '@/components/client-detail/nutrition/nutritionPlanView';
 
 interface Props {
+  clientId: string;
   plan: ClientPlanItem;
   detail: PlanDetailState;
   onRetry: () => void;
@@ -32,10 +34,9 @@ const LEGEND: WeekSegmentState[] = ['done', 'current', 'upcoming', 'draft'];
 /**
  * "Current meal plan" card: plan name, a one-line summary, a segment per week
  * (done / this week / published upcoming / draft) with its legend, and the
- * publishing warning. There is no client plan editor yet, so "Open editor"
- * carries the shell's coming-soon treatment.
+ * publishing warning. "Open editor" links to the client plan editor.
  */
-export default function CurrentPlanCard({ plan, detail, onRetry }: Props) {
+export default function CurrentPlanCard({ clientId, plan, detail, onRetry }: Props) {
   const { t, i18n } = useTranslation();
   const headingId = useId();
   const locale = i18n.language;
@@ -96,10 +97,14 @@ export default function CurrentPlanCard({ plan, detail, onRetry }: Props) {
             </p>
           </div>
         </div>
-        <Button type="button" size="lg" disabled title={t('shell.comingSoon')} className="gap-2">
-          <Pencil className="size-4" aria-hidden="true" />
-          {t('clientDetail.nutrition.current.openEditor')}
-        </Button>
+        {plan.planId && (
+          <Button asChild size="lg" className="gap-2">
+            <Link to={`/clients/${clientId}/nutrition/plans/${plan.planId}`}>
+              <Pencil className="size-4" aria-hidden="true" />
+              {t('clientDetail.nutrition.current.openEditor')}
+            </Link>
+          </Button>
+        )}
       </div>
 
       {detail.isPending && <Skeleton className="h-3 w-full" />}
