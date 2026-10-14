@@ -63,7 +63,7 @@ public class FoodImageIntegrationTests(FitnessApiFactory factory)
     /// <summary>
     /// A nutritionist requests an upload URL for their own food (main slot).
     /// Expects 200 with both <c>uploadUrl</c> and <c>blobUrl</c>;
-    /// <c>blobUrl</c> must equal <c>foods/{foodId}.jpg</c>.
+    /// <c>blobUrl</c> must be a unique <c>foods/{foodId}/main-{guid}.jpg</c> key.
     /// </summary>
     [Fact]
     public async Task UploadUrl_Nutritionist_MainSlot_HappyPath_Returns200WithBlobUrl()
@@ -85,17 +85,17 @@ public class FoodImageIntegrationTests(FitnessApiFactory factory)
 
         body.Should().NotBeNull();
         body!.UploadUrl.Should().NotBeNullOrEmpty();
-        body.BlobUrl.Should().Be($"foods/{foodId}.jpg");
+        body.BlobUrl.Should().MatchRegex($"^foods/{foodId}/main-[0-9a-f]{{32}}\\.jpg$");
     }
 
     // ── Happy path: upload-url (gallery slot) ─────────────────────────────────
 
     /// <summary>
     /// A nutritionist requests an upload URL for their own food (gallery slot, empty gallery).
-    /// Expects 200 with <c>blobUrl</c> equal to <c>foods/{foodId}/gallery-0.jpg</c>.
+    /// Expects 200 with a unique <c>foods/{foodId}/gallery-{guid}.jpg</c> <c>blobUrl</c>.
     /// </summary>
     [Fact]
-    public async Task UploadUrl_Nutritionist_GallerySlot_EmptyGallery_Returns200WithGalleryBlobUrl()
+    public async Task UploadUrl_Nutritionist_GallerySlot_EmptyGallery_Returns200WithUniqueGalleryBlobUrl()
     {
         var client = factory.CreateClient();
         var token = await SeedUserAsync(client, "Nutritionist", "gallery-upload");
@@ -113,7 +113,7 @@ public class FoodImageIntegrationTests(FitnessApiFactory factory)
             cancellationToken: TestContext.Current.CancellationToken);
 
         body.Should().NotBeNull();
-        body!.BlobUrl.Should().Be($"foods/{foodId}/gallery-0.jpg");
+        body!.BlobUrl.Should().MatchRegex($"^foods/{foodId}/gallery-[0-9a-f]{{32}}\\.jpg$");
     }
 
     // ── Ownership check: upload-url ────────────────────────────────────────────
@@ -200,7 +200,7 @@ public class FoodImageIntegrationTests(FitnessApiFactory factory)
         var token = await SeedUserAsync(client, "Nutritionist", "confirm-gallery");
         var foodId = await TestHelpers.CreateFoodAsync(client, token, TestContext.Current.CancellationToken);
 
-        var galleryUrl = $"foods/{foodId}/gallery-0.jpg";
+        var galleryUrl = $"foods/{foodId}/gallery-{Guid.NewGuid():N}.jpg";
 
         TestHelpers.SetBearerToken(client, token);
 
@@ -249,7 +249,7 @@ public class FoodImageIntegrationTests(FitnessApiFactory factory)
 
         var response = await client.PutAsJsonAsync(
             $"/foods/{foodId}/image?slot=main",
-            new { BlobUrl = $"foods/{foodId}.jpg" },
+            new { BlobUrl = $"foods/{foodId}/main-{Guid.NewGuid():N}.jpg" },
             TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
@@ -259,11 +259,11 @@ public class FoodImageIntegrationTests(FitnessApiFactory factory)
             "the Problem Details payload must carry the FOOD_NOT_OWNED error code");
     }
 
-    // ── Blob URL validation on confirm (main slot only) ───────────────────────
+    // ── Blob URL validation on confirm (both slots) ───────────────────────────
 
     /// <summary>
-    /// A nutritionist tries to confirm the main image using another food's presigned key
-    /// (a well-formed <c>foods/{id}.ext</c> URL, just for the wrong food). Expects 400 with
+    /// A nutritionist tries to confirm the main image using another food's key
+    /// (a well-formed <c>foods/{id}/main-{guid}.ext</c> URL, just for the wrong food). Expects 400 with
     /// error code INVALID_BLOB_URL — the blobUrl must match this food's own issued key.
     /// </summary>
     [Fact]
@@ -279,7 +279,7 @@ public class FoodImageIntegrationTests(FitnessApiFactory factory)
 
         var response = await client.PutAsJsonAsync(
             $"/foods/{foodId}/image?slot=main",
-            new { BlobUrl = $"foods/{otherFoodId}.jpg" },
+            new { BlobUrl = $"foods/{otherFoodId}/main-{Guid.NewGuid():N}.jpg" },
             TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);

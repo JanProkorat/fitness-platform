@@ -2,9 +2,11 @@ using System.Security.Claims;
 using FastEndpoints;
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.Foods.ConfirmFoodImage;
+using FitnessPlatform.Application.Features.Foods.Shared;
 using FitnessPlatform.Application.Features.Foods.UploadImageUrl;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Tests.Endpoints;
@@ -23,30 +25,38 @@ public class UploadFoodImageUrlEndpointTests
     private readonly Guid _nutritionistId = Guid.NewGuid();
     private readonly IImageUploadService _imageUpload = Substitute.For<IImageUploadService>();
 
+    private static bool IsIssuedKey(string subPath, Guid foodId, string slot, string extension) =>
+        subPath.StartsWith($"{foodId}/{slot}-")
+        && subPath.EndsWith($".{extension}")
+        && FoodImageKeys.TryParse(subPath, slot, out _);
+
+    private Endpoint<UploadFoodImageUrlRequest, UploadFoodImageUrlResponse> CreateEndpoint(IMongoContext mongo) =>
+        Factory.Create<UploadFoodImageUrlEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
+            mongo, _imageUpload);
+
     // ── Happy path: upload URL — main slot ─────────────────────────────────
 
     [Fact]
-    public async Task UploadUrl_MainSlot_Nutritionist_FoodExists_ReturnsUploadUrlAndBlobUrl()
+    public async Task UploadUrl_MainSlot_Nutritionist_FoodExists_ReturnsUploadUrlAndUniqueBlobUrl()
     {
         var foodId = Guid.NewGuid();
         var food = FoodTestHelpers.CreateFood(externalId: foodId, nutritionistId: _nutritionistId);
         var mongo = FoodTestHelpers.CreateMockMongo(food);
 
-        var expectedBlobUrl = $"foods/{foodId}.jpg";
+        var expectedBlobUrl = $"foods/{foodId}/main-{Guid.NewGuid():N}.jpg";
         _imageUpload
             .GenerateUploadUrlAsync(
                 ImageUploadScope.Food,
-                $"{foodId}.jpg",
+                Arg.Is<string>(subPath => IsIssuedKey(subPath, foodId, "main", "jpg")),
                 "image/jpeg",
                 1024,
                 Arg.Any<CancellationToken>())
             .Returns(new BlobUploadUrl("https://storage/upload?token=abc", expectedBlobUrl));
 
-        var ep = Factory.Create<UploadFoodImageUrlEndpoint>(
-            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
-                new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
-            mongo, _imageUpload);
+        var ep = CreateEndpoint(mongo);
 
         await ep.HandleAsync(new UploadFoodImageUrlRequest
         {
@@ -58,34 +68,28 @@ public class UploadFoodImageUrlEndpointTests
 
         ep.Response.UploadUrl.Should().Be("https://storage/upload?token=abc");
         ep.Response.BlobUrl.Should().Be(expectedBlobUrl);
-        ep.Response.BlobUrl.Should().Be($"foods/{foodId}.jpg");
     }
 
-    // ── Happy path: upload URL — gallery slot (0th entry) ──────────────────
+    // ── Happy path: upload URL — gallery slot ──────────────────────────────
 
     [Fact]
-    public async Task UploadUrl_GallerySlot_EmptyGallery_ReturnsGallery0BlobUrl()
+    public async Task UploadUrl_GallerySlot_EmptyGallery_IssuesUniqueGalleryKey()
     {
         var foodId = Guid.NewGuid();
         var food = FoodTestHelpers.CreateFood(externalId: foodId, nutritionistId: _nutritionistId);
-        // Empty gallery by default
         var mongo = FoodTestHelpers.CreateMockMongo(food);
 
-        var expectedBlobUrl = $"foods/{foodId}/gallery-0.jpg";
+        var expectedBlobUrl = $"foods/{foodId}/gallery-{Guid.NewGuid():N}.jpg";
         _imageUpload
             .GenerateUploadUrlAsync(
                 ImageUploadScope.Food,
-                $"{foodId}/gallery-0.jpg",
+                Arg.Is<string>(subPath => IsIssuedKey(subPath, foodId, "gallery", "jpg")),
                 "image/jpeg",
                 2048,
                 Arg.Any<CancellationToken>())
             .Returns(new BlobUploadUrl("https://storage/upload?token=xyz", expectedBlobUrl));
 
-        var ep = Factory.Create<UploadFoodImageUrlEndpoint>(
-            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
-                new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
-            mongo, _imageUpload);
+        var ep = CreateEndpoint(mongo);
 
         await ep.HandleAsync(new UploadFoodImageUrlRequest
         {
@@ -95,13 +99,13 @@ public class UploadFoodImageUrlEndpointTests
             SizeBytes = 2048
         }, CancellationToken.None);
 
-        ep.Response.BlobUrl.Should().Be($"foods/{foodId}/gallery-0.jpg");
+        ep.Response.BlobUrl.Should().Be(expectedBlobUrl);
     }
 
-    // ── Gallery slot: next index based on existing count ───────────────────
+    // ── Gallery slot: key never derives from the existing entries ──────────
 
     [Fact]
-    public async Task UploadUrl_GallerySlot_ExistingEntries_UsesCorrectIndex()
+    public async Task UploadUrl_GallerySlot_ExistingEntries_IssuesKeyThatIsNotPositional()
     {
         var foodId = Guid.NewGuid();
         var food = FoodTestHelpers.CreateFood(externalId: foodId, nutritionistId: _nutritionistId);
@@ -111,18 +115,10 @@ public class UploadFoodImageUrlEndpointTests
 
         _imageUpload
             .GenerateUploadUrlAsync(
-                ImageUploadScope.Food,
-                $"{foodId}/gallery-2.webp",
-                "image/webp",
-                512,
-                Arg.Any<CancellationToken>())
-            .Returns(new BlobUploadUrl("https://storage/upload", $"foods/{foodId}/gallery-2.webp"));
+                ImageUploadScope.Food, Arg.Any<string>(), "image/webp", 512, Arg.Any<CancellationToken>())
+            .Returns(new BlobUploadUrl("https://storage/upload", $"foods/{foodId}/gallery-x.webp"));
 
-        var ep = Factory.Create<UploadFoodImageUrlEndpoint>(
-            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
-                new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
-            mongo, _imageUpload);
+        var ep = CreateEndpoint(mongo);
 
         await ep.HandleAsync(new UploadFoodImageUrlRequest
         {
@@ -134,7 +130,7 @@ public class UploadFoodImageUrlEndpointTests
 
         await _imageUpload.Received(1).GenerateUploadUrlAsync(
             ImageUploadScope.Food,
-            $"{foodId}/gallery-2.webp",
+            Arg.Is<string>(subPath => IsIssuedKey(subPath, foodId, "gallery", "webp")),
             "image/webp",
             512,
             Arg.Any<CancellationToken>());
@@ -147,17 +143,12 @@ public class UploadFoodImageUrlEndpointTests
     {
         var foodId = Guid.NewGuid();
         var food = FoodTestHelpers.CreateFood(externalId: foodId, nutritionistId: _nutritionistId);
-        // Fill gallery to cap
         for (var i = 0; i < 6; i++)
-            food.GalleryImageUrls.Add($"foods/{foodId}/gallery-{i}.jpg");
+        {
+            food.GalleryImageUrls.Add($"foods/{foodId}/gallery-{Guid.NewGuid():N}.jpg");
+        }
 
-        var mongo = FoodTestHelpers.CreateMockMongo(food);
-
-        var ep = Factory.Create<UploadFoodImageUrlEndpoint>(
-            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
-                new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
-            mongo, _imageUpload);
+        var ep = CreateEndpoint(FoodTestHelpers.CreateMockMongo(food));
 
         var act = () => ep.HandleAsync(new UploadFoodImageUrlRequest
         {
@@ -183,13 +174,7 @@ public class UploadFoodImageUrlEndpointTests
     {
         var foodId = Guid.NewGuid();
         var food = FoodTestHelpers.CreateFood(externalId: foodId, nutritionistId: Guid.NewGuid()); // different owner
-        var mongo = FoodTestHelpers.CreateMockMongo(food);
-
-        var ep = Factory.Create<UploadFoodImageUrlEndpoint>(
-            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
-                new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
-            mongo, _imageUpload);
+        var ep = CreateEndpoint(FoodTestHelpers.CreateMockMongo(food));
 
         var act = () => ep.HandleAsync(new UploadFoodImageUrlRequest
         {
@@ -211,33 +196,23 @@ public class UploadFoodImageUrlEndpointTests
     // ── Blob-path format ────────────────────────────────────────────────────
 
     [Theory]
-    [InlineData("image/jpeg", "main",    "{0}.jpg")]
-    [InlineData("image/png",  "main",    "{0}.png")]
-    [InlineData("image/webp", "main",    "{0}.webp")]
-    [InlineData("image/jpeg", "gallery", "{0}/gallery-0.jpg")]
-    [InlineData("image/png",  "gallery", "{0}/gallery-0.png")]
-    public async Task UploadUrl_SubPathConstruction_MatchesBlobPathConvention(
-        string contentType, string slot, string expectedSubPathTemplate)
+    [InlineData("image/jpeg", "main",    "jpg")]
+    [InlineData("image/png",  "main",    "png")]
+    [InlineData("image/webp", "main",    "webp")]
+    [InlineData("image/jpeg", "gallery", "jpg")]
+    [InlineData("image/png",  "gallery", "png")]
+    public async Task UploadUrl_SubPathConstruction_MatchesUniqueKeyConvention(
+        string contentType, string slot, string extension)
     {
         var foodId = Guid.NewGuid();
         var food = FoodTestHelpers.CreateFood(externalId: foodId, nutritionistId: _nutritionistId);
-        var mongo = FoodTestHelpers.CreateMockMongo(food);
 
-        var expectedSubPath = string.Format(expectedSubPathTemplate, foodId);
         _imageUpload
             .GenerateUploadUrlAsync(
-                ImageUploadScope.Food,
-                expectedSubPath,
-                contentType,
-                512,
-                Arg.Any<CancellationToken>())
-            .Returns(new BlobUploadUrl("https://storage/upload", $"foods/{expectedSubPath}"));
+                ImageUploadScope.Food, Arg.Any<string>(), contentType, 512, Arg.Any<CancellationToken>())
+            .Returns(new BlobUploadUrl("https://storage/upload", $"foods/{foodId}/{slot}-x.{extension}"));
 
-        var ep = Factory.Create<UploadFoodImageUrlEndpoint>(
-            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
-                new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
-            mongo, _imageUpload);
+        var ep = CreateEndpoint(FoodTestHelpers.CreateMockMongo(food));
 
         await ep.HandleAsync(new UploadFoodImageUrlRequest
         {
@@ -249,7 +224,7 @@ public class UploadFoodImageUrlEndpointTests
 
         await _imageUpload.Received(1).GenerateUploadUrlAsync(
             ImageUploadScope.Food,
-            expectedSubPath,
+            Arg.Is<string>(subPath => IsIssuedKey(subPath, foodId, slot, extension)),
             contentType,
             512,
             Arg.Any<CancellationToken>());
@@ -260,13 +235,7 @@ public class UploadFoodImageUrlEndpointTests
     [Fact]
     public async Task UploadUrl_FoodNotFound_Returns404()
     {
-        var mongo = FoodTestHelpers.CreateMockMongo(); // no foods
-
-        var ep = Factory.Create<UploadFoodImageUrlEndpoint>(
-            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
-                new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
-            mongo, _imageUpload);
+        var ep = CreateEndpoint(FoodTestHelpers.CreateMockMongo()); // no foods
 
         await ep.HandleAsync(new UploadFoodImageUrlRequest
         {
@@ -292,7 +261,6 @@ public class UploadFoodImageUrlEndpointTests
     {
         var foodId = Guid.NewGuid();
         var food = FoodTestHelpers.CreateFood(externalId: foodId, nutritionistId: _nutritionistId);
-        var mongo = FoodTestHelpers.CreateMockMongo(food);
 
         _imageUpload
             .GenerateUploadUrlAsync(
@@ -306,11 +274,7 @@ public class UploadFoodImageUrlEndpointTests
                     { ErrorCode = ErrorCodes.InvalidImageContentType }],
                 "Invalid content type."));
 
-        var ep = Factory.Create<UploadFoodImageUrlEndpoint>(
-            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
-                new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
-            mongo, _imageUpload);
+        var ep = CreateEndpoint(FoodTestHelpers.CreateMockMongo(food));
 
         var act = () => ep.HandleAsync(new UploadFoodImageUrlRequest
         {
@@ -332,7 +296,6 @@ public class UploadFoodImageUrlEndpointTests
 
         var foodId = Guid.NewGuid();
         var food = FoodTestHelpers.CreateFood(externalId: foodId, nutritionistId: _nutritionistId);
-        var mongo = FoodTestHelpers.CreateMockMongo(food);
 
         _imageUpload
             .GenerateUploadUrlAsync(
@@ -346,11 +309,7 @@ public class UploadFoodImageUrlEndpointTests
                     { ErrorCode = ErrorCodes.ImageTooLarge }],
                 "Image too large."));
 
-        var ep = Factory.Create<UploadFoodImageUrlEndpoint>(
-            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
-                new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
-            mongo, _imageUpload);
+        var ep = CreateEndpoint(FoodTestHelpers.CreateMockMongo(food));
 
         var act = () => ep.HandleAsync(new UploadFoodImageUrlRequest
         {
@@ -374,6 +333,36 @@ public class ConfirmFoodImageEndpointTests
     private readonly Guid _nutritionistId = Guid.NewGuid();
     private readonly IImageUploadService _imageUpload = CreateAcceptingImageUpload();
 
+    private static string NewKey(Guid foodId, string slot) => $"foods/{foodId}/{slot}-{Guid.NewGuid():N}.jpg";
+
+    private Endpoint<ConfirmFoodImageRequest> CreateEndpoint(IMongoContext mongo) =>
+        Factory.Create<ConfirmFoodImageEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
+            mongo,
+            _imageUpload);
+
+    /// <summary>An unstubbed UpdateOneAsync reports ModifiedCount 0, which the gallery push reads as "full".</summary>
+    private static void StubUpdateResult(IMongoContext mongo, long modifiedCount)
+    {
+        var result = Substitute.For<UpdateResult>();
+        result.ModifiedCount.Returns(modifiedCount);
+        mongo.Foods.UpdateOneAsync(
+                Arg.Any<FilterDefinition<Food>>(),
+                Arg.Any<UpdateDefinition<Food>>(),
+                Arg.Any<UpdateOptions>(),
+                Arg.Any<CancellationToken>())
+            .Returns(result);
+    }
+
+    private static Task AssertNoWriteAsync(IMongoContext mongo) =>
+        mongo.Foods.DidNotReceive().UpdateOneAsync(
+            Arg.Any<FilterDefinition<Food>>(),
+            Arg.Any<UpdateDefinition<Food>>(),
+            Arg.Any<UpdateOptions>(),
+            Arg.Any<CancellationToken>());
+
     // ── Happy path: main slot ──────────────────────────────────────────────
 
     [Fact]
@@ -382,26 +371,20 @@ public class ConfirmFoodImageEndpointTests
         var foodId = Guid.NewGuid();
         var food = FoodTestHelpers.CreateFood(externalId: foodId, nutritionistId: _nutritionistId);
         var mongo = FoodTestHelpers.CreateMockMongo(food);
-
-        var ep = Factory.Create<ConfirmFoodImageEndpoint>(
-            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
-                new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
-            mongo,
-            _imageUpload);
+        var ep = CreateEndpoint(mongo);
 
         await ep.HandleAsync(new ConfirmFoodImageRequest
         {
             FoodId = foodId,
             Slot = "main",
-            BlobUrl = $"foods/{foodId}.jpg"
+            BlobUrl = NewKey(foodId, "main")
         }, CancellationToken.None);
 
         ep.HttpContext.Response.StatusCode.Should().Be(204);
 
         await mongo.Foods.Received(1).UpdateOneAsync(
-            Arg.Any<FilterDefinition<FitnessPlatform.Application.Domain.Documents.Food>>(),
-            Arg.Any<UpdateDefinition<FitnessPlatform.Application.Domain.Documents.Food>>(),
+            Arg.Any<FilterDefinition<Food>>(),
+            Arg.Any<UpdateDefinition<Food>>(),
             Arg.Any<UpdateOptions>(),
             Arg.Any<CancellationToken>());
     }
@@ -414,25 +397,20 @@ public class ConfirmFoodImageEndpointTests
         var foodId = Guid.NewGuid();
         var food = FoodTestHelpers.CreateFood(externalId: foodId, nutritionistId: _nutritionistId);
         var mongo = FoodTestHelpers.CreateMockMongo(food);
-
-        var ep = Factory.Create<ConfirmFoodImageEndpoint>(
-            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
-                new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
-            mongo,
-            _imageUpload);
+        StubUpdateResult(mongo, modifiedCount: 1);
+        var ep = CreateEndpoint(mongo);
 
         await ep.HandleAsync(new ConfirmFoodImageRequest
         {
             FoodId = foodId,
             Slot = "gallery",
-            BlobUrl = $"foods/{foodId}/gallery-0.jpg"
+            BlobUrl = NewKey(foodId, "gallery")
         }, CancellationToken.None);
 
         ep.HttpContext.Response.StatusCode.Should().Be(204);
         await mongo.Foods.Received(1).UpdateOneAsync(
-            Arg.Any<FilterDefinition<FitnessPlatform.Application.Domain.Documents.Food>>(),
-            Arg.Any<UpdateDefinition<FitnessPlatform.Application.Domain.Documents.Food>>(),
+            Arg.Any<FilterDefinition<Food>>(),
+            Arg.Any<UpdateDefinition<Food>>(),
             Arg.Any<UpdateOptions>(),
             Arg.Any<CancellationToken>());
     }
@@ -445,33 +423,144 @@ public class ConfirmFoodImageEndpointTests
         var foodId = Guid.NewGuid();
         var food = FoodTestHelpers.CreateFood(externalId: foodId, nutritionistId: _nutritionistId);
         for (var i = 0; i < 6; i++)
-            food.GalleryImageUrls.Add($"foods/{foodId}/gallery-{i}.jpg");
+        {
+            food.GalleryImageUrls.Add(NewKey(foodId, "gallery"));
+        }
 
         var mongo = FoodTestHelpers.CreateMockMongo(food);
-
-        var ep = Factory.Create<ConfirmFoodImageEndpoint>(
-            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
-                new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
-            mongo,
-            _imageUpload);
+        var ep = CreateEndpoint(mongo);
 
         var act = () => ep.HandleAsync(new ConfirmFoodImageRequest
         {
             FoodId = foodId,
             Slot = "gallery",
-            BlobUrl = $"foods/{foodId}/gallery-6.jpg"
+            BlobUrl = NewKey(foodId, "gallery")
         }, CancellationToken.None);
 
         var ex = await act.Should().ThrowAsync<ValidationFailureException>();
         ex.Which.Failures.Should()
             .ContainSingle(f => f.ErrorCode == ErrorCodes.FoodGalleryFull);
 
-        await mongo.Foods.DidNotReceive().UpdateOneAsync(
-            Arg.Any<FilterDefinition<FitnessPlatform.Application.Domain.Documents.Food>>(),
-            Arg.Any<UpdateDefinition<FitnessPlatform.Application.Domain.Documents.Food>>(),
-            Arg.Any<UpdateOptions>(),
-            Arg.Any<CancellationToken>());
+        await AssertNoWriteAsync(mongo);
+    }
+
+    [Fact]
+    public async Task ConfirmImage_GallerySlot_AtomicPushMatchesNothing_Throws_FoodGalleryFull()
+    {
+        var foodId = Guid.NewGuid();
+        var food = FoodTestHelpers.CreateFood(externalId: foodId, nutritionistId: _nutritionistId);
+        var mongo = FoodTestHelpers.CreateMockMongo(food);
+        StubUpdateResult(mongo, modifiedCount: 0); // a concurrent confirm filled the 6th slot after the read
+        var ep = CreateEndpoint(mongo);
+
+        var act = () => ep.HandleAsync(new ConfirmFoodImageRequest
+        {
+            FoodId = foodId,
+            Slot = "gallery",
+            BlobUrl = NewKey(foodId, "gallery")
+        }, CancellationToken.None);
+
+        var ex = await act.Should().ThrowAsync<ValidationFailureException>();
+        ex.Which.Failures.Should()
+            .ContainSingle(f => f.ErrorCode == ErrorCodes.FoodGalleryFull);
+    }
+
+    // ── Key validation ─────────────────────────────────────────────────────
+
+    [Theory]
+    [InlineData("main")]
+    [InlineData("gallery")]
+    public async Task ConfirmImage_LegacyPositionalUrl_Throws_InvalidBlobUrl(string slot)
+    {
+        var foodId = Guid.NewGuid();
+        var food = FoodTestHelpers.CreateFood(externalId: foodId, nutritionistId: _nutritionistId);
+        var mongo = FoodTestHelpers.CreateMockMongo(food);
+        var ep = CreateEndpoint(mongo);
+
+        var act = () => ep.HandleAsync(new ConfirmFoodImageRequest
+        {
+            FoodId = foodId,
+            Slot = slot,
+            BlobUrl = slot == "main" ? $"foods/{foodId}.jpg" : $"foods/{foodId}/gallery-0.jpg"
+        }, CancellationToken.None);
+
+        var ex = await act.Should().ThrowAsync<ValidationFailureException>();
+        ex.Which.Failures.Should()
+            .ContainSingle(f => f.ErrorCode == ErrorCodes.InvalidBlobUrl);
+
+        await AssertNoWriteAsync(mongo);
+    }
+
+    [Fact]
+    public async Task ConfirmImage_SlotMismatch_Throws_InvalidBlobUrl()
+    {
+        var foodId = Guid.NewGuid();
+        var food = FoodTestHelpers.CreateFood(externalId: foodId, nutritionistId: _nutritionistId);
+        var mongo = FoodTestHelpers.CreateMockMongo(food);
+        var ep = CreateEndpoint(mongo);
+
+        var act = () => ep.HandleAsync(new ConfirmFoodImageRequest
+        {
+            FoodId = foodId,
+            Slot = "main",
+            BlobUrl = NewKey(foodId, "gallery")
+        }, CancellationToken.None);
+
+        var ex = await act.Should().ThrowAsync<ValidationFailureException>();
+        ex.Which.Failures.Should()
+            .ContainSingle(f => f.ErrorCode == ErrorCodes.InvalidBlobUrl);
+    }
+
+    [Fact]
+    public async Task ConfirmImage_UrlRejectedByUploadService_Throws_InvalidBlobUrl()
+    {
+        var foodId = Guid.NewGuid();
+        var food = FoodTestHelpers.CreateFood(externalId: foodId, nutritionistId: _nutritionistId);
+        var mongo = FoodTestHelpers.CreateMockMongo(food);
+        var rejecting = Substitute.For<IImageUploadService>();
+        rejecting.IsValidBlobUrlForSubPath(Arg.Any<ImageUploadScope>(), Arg.Any<string>(), Arg.Any<string>())
+            .Returns(false);
+        var ep = Factory.Create<ConfirmFoodImageEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
+            mongo,
+            rejecting);
+
+        var act = () => ep.HandleAsync(new ConfirmFoodImageRequest
+        {
+            FoodId = foodId,
+            Slot = "gallery",
+            BlobUrl = NewKey(foodId, "gallery")
+        }, CancellationToken.None);
+
+        var ex = await act.Should().ThrowAsync<ValidationFailureException>();
+        ex.Which.Failures.Should()
+            .ContainSingle(f => f.ErrorCode == ErrorCodes.InvalidBlobUrl);
+    }
+
+    [Fact]
+    public async Task ConfirmImage_GalleryUrlAlreadyInGallery_Throws_InvalidBlobUrl()
+    {
+        var foodId = Guid.NewGuid();
+        var url = NewKey(foodId, "gallery");
+        var food = FoodTestHelpers.CreateFood(externalId: foodId, nutritionistId: _nutritionistId);
+        food.GalleryImageUrls.Add(url);
+        var mongo = FoodTestHelpers.CreateMockMongo(food);
+        var ep = CreateEndpoint(mongo);
+
+        var act = () => ep.HandleAsync(new ConfirmFoodImageRequest
+        {
+            FoodId = foodId,
+            Slot = "gallery",
+            BlobUrl = url
+        }, CancellationToken.None);
+
+        var ex = await act.Should().ThrowAsync<ValidationFailureException>();
+        ex.Which.Failures.Should()
+            .ContainSingle(f => f.ErrorCode == ErrorCodes.InvalidBlobUrl);
+
+        await AssertNoWriteAsync(mongo);
     }
 
     // ── Ownership gate ──────────────────────────────────────────────────────
@@ -482,30 +571,20 @@ public class ConfirmFoodImageEndpointTests
         var foodId = Guid.NewGuid();
         var food = FoodTestHelpers.CreateFood(externalId: foodId, nutritionistId: Guid.NewGuid()); // different owner
         var mongo = FoodTestHelpers.CreateMockMongo(food);
-
-        var ep = Factory.Create<ConfirmFoodImageEndpoint>(
-            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
-                new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
-            mongo,
-            _imageUpload);
+        var ep = CreateEndpoint(mongo);
 
         var act = () => ep.HandleAsync(new ConfirmFoodImageRequest
         {
             FoodId = foodId,
             Slot = "main",
-            BlobUrl = $"foods/{foodId}.jpg"
+            BlobUrl = NewKey(foodId, "main")
         }, CancellationToken.None);
 
         var ex = await act.Should().ThrowAsync<ValidationFailureException>();
         ex.Which.Failures.Should()
             .ContainSingle(f => f.ErrorCode == ErrorCodes.FoodNotOwned);
 
-        await mongo.Foods.DidNotReceive().UpdateOneAsync(
-            Arg.Any<FilterDefinition<FitnessPlatform.Application.Domain.Documents.Food>>(),
-            Arg.Any<UpdateDefinition<FitnessPlatform.Application.Domain.Documents.Food>>(),
-            Arg.Any<UpdateOptions>(),
-            Arg.Any<CancellationToken>());
+        await AssertNoWriteAsync(mongo);
     }
 
     // ── Food not found ──────────────────────────────────────────────────────
@@ -514,13 +593,7 @@ public class ConfirmFoodImageEndpointTests
     public async Task ConfirmImage_FoodNotFound_Returns404()
     {
         var mongo = FoodTestHelpers.CreateMockMongo(); // no foods
-
-        var ep = Factory.Create<ConfirmFoodImageEndpoint>(
-            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
-                new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
-            mongo,
-            _imageUpload);
+        var ep = CreateEndpoint(mongo);
 
         await ep.HandleAsync(new ConfirmFoodImageRequest
         {
@@ -530,11 +603,7 @@ public class ConfirmFoodImageEndpointTests
         }, CancellationToken.None);
 
         ep.HttpContext.Response.StatusCode.Should().Be(404);
-        await mongo.Foods.DidNotReceive().UpdateOneAsync(
-            Arg.Any<FilterDefinition<FitnessPlatform.Application.Domain.Documents.Food>>(),
-            Arg.Any<UpdateDefinition<FitnessPlatform.Application.Domain.Documents.Food>>(),
-            Arg.Any<UpdateOptions>(),
-            Arg.Any<CancellationToken>());
+        await AssertNoWriteAsync(mongo);
     }
 
     // ── Soft-deleted food ───────────────────────────────────────────────────
@@ -548,13 +617,7 @@ public class ConfirmFoodImageEndpointTests
     public async Task ConfirmImage_SoftDeletedFood_FindReturnsNull_Returns404AndUpdateNotCalled()
     {
         var mongo = FoodTestHelpers.CreateMockMongo(); // no foods → FindAsync returns empty cursor
-
-        var ep = Factory.Create<ConfirmFoodImageEndpoint>(
-            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
-                new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
-            mongo,
-            _imageUpload);
+        var ep = CreateEndpoint(mongo);
 
         await ep.HandleAsync(new ConfirmFoodImageRequest
         {
@@ -566,11 +629,7 @@ public class ConfirmFoodImageEndpointTests
         ep.HttpContext.Response.StatusCode.Should().Be(404,
             "a soft-deleted (or never-existing) food must result in 404, not a write");
 
-        await mongo.Foods.DidNotReceive().UpdateOneAsync(
-            Arg.Any<FilterDefinition<FitnessPlatform.Application.Domain.Documents.Food>>(),
-            Arg.Any<UpdateDefinition<FitnessPlatform.Application.Domain.Documents.Food>>(),
-            Arg.Any<UpdateOptions>(),
-            Arg.Any<CancellationToken>());
+        await AssertNoWriteAsync(mongo);
     }
 
     // ── Get reflects stored image ───────────────────────────────────────────
@@ -579,23 +638,22 @@ public class ConfirmFoodImageEndpointTests
     public void ConfirmImage_AfterConfirm_GetFoodSummary_ReflectsImageUrlAndGallery()
     {
         var foodId = Guid.NewGuid();
-        var blobUrl = $"foods/{foodId}.jpg";
-        var galleryUrl = $"foods/{foodId}/gallery-0.png";
+        var blobUrl = NewKey(foodId, "main");
+        var galleryUrl = NewKey(foodId, "gallery");
 
         // Simulate what happens after both confirms: the food document has both fields set.
         var food = FoodTestHelpers.CreateFood(externalId: foodId, nutritionistId: _nutritionistId);
         food.ImageUrl = blobUrl;
         food.GalleryImageUrls.Add(galleryUrl);
 
-        var summary = FitnessPlatform.Application.Features.Foods.Shared.FoodSummary
-            .FromDocument(food, currentUserId: _nutritionistId);
+        var summary = FoodSummary.FromDocument(food, currentUserId: _nutritionistId);
 
         summary.ImageUrl.Should().Be(blobUrl);
         summary.GalleryImageUrls.Should().ContainSingle(u => u == galleryUrl);
         summary.FoodId.Should().Be(foodId);
     }
 
-    // Blob-URL validation has its own integration test; these unit tests cover the other branches.
+    // The upload service's own blob-URL check is stubbed to accept here; key shape is what these tests exercise.
     private static IImageUploadService CreateAcceptingImageUpload()
     {
         var imageUpload = Substitute.For<IImageUploadService>();
