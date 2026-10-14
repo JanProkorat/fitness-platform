@@ -7,7 +7,7 @@ import type { FoodSummary } from '@/api/food-types';
 import IngredientCard from '@/components/ingredients/IngredientCard';
 
 const SKELETON_CARD_COUNT = 6;
-const GRID_CLASS = 'grid grid-cols-[repeat(auto-fill,minmax(var(--container-3xs),1fr))] gap-4 p-4';
+const GRID_CLASS = 'grid grid-cols-[repeat(auto-fill,minmax(var(--container-3xs),1fr))] gap-3.5';
 
 interface Props {
   foods: FoodSummary[];

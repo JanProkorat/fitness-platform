@@ -1305,8 +1305,11 @@
     "badge": {
       "system": "System",
       "mine": "Mine",
-      "shared": "Shared"
+      "shared": "Shared",
+      "myLibrary": "My library",
+      "publicLibrary": "Public"
     },
+    "cardMacros": "P {{protein}} · C {{carbs}} · F {{fat}}",
     "visibility": {
       "label": "Visibility",
       "options": {
@@ -1447,6 +1450,7 @@
       "columnTags": "Tags",
       "columnLibrary": "Library",
       "caloriesUnit": "kcal",
+      "caloriesPerPortion": "kcal / portion",
       "ingredientsCount": "{{count}} ingredients",
       "minutesValue": "{{count}} min"
     },

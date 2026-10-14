@@ -227,10 +227,9 @@ export function useDeleteFood() {
 }
 
 /**
- * Per-food cache-buster for the picture `<img src>` (#1140). The main
- * picture's blob key is deterministic (`foods/{id}.jpg`), so replacing it
- * keeps the SAME url — without this, the browser can keep showing the
- * stale cached bytes after a successful replace. This is not server data:
+ * Per-food cache-buster for the picture `<img src>` (#1140). Every upload now
+ * gets a unique blob key, so it only matters for legacy fixed-key images
+ * (`foods/{id}.jpg`) that a replace could leave stale. This is not server data:
  * a plain counter living in its own query-cache entry (deliberately NOT
  * namespaced under `['ingredients']`, so the broad
  * `invalidateQueries({ queryKey: ['ingredients'] })` calls below never
