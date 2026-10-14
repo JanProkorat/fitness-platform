@@ -13,9 +13,7 @@ namespace FitnessPlatform.Application.Features.Foods.DeleteFoodImage;
 /// <summary>
 /// Clears the main image URL on a food document. The gallery is untouched.
 /// Only the nutritionist who created the food can remove its image.
-/// The underlying blob is never deleted — the main-image key is deterministic
-/// (<c>foods/{foodId}.{ext}</c>), so a later upload with the same extension
-/// overwrites it anyway; orphan cleanup is a separate concern.
+/// The underlying blob is never deleted; orphan cleanup is a separate concern.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 [RemovedCoachRole(AppRoles.Nutritionist, RemovedCoachRoleMode.Refuse)]

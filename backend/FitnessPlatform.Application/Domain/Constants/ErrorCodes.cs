@@ -81,6 +81,12 @@ public static class ErrorCodes
     /// <summary>Food gallery is at its 6-entry cap; no further images can be added.</summary>
     public const string FoodGalleryFull = "FOOD_GALLERY_FULL";
 
+    /// <summary>The image URL is neither in the food's gallery nor its current main image.</summary>
+    public const string FoodGalleryImageNotFound = "FOOD_GALLERY_IMAGE_NOT_FOUND";
+
+    /// <summary>The food's main image or gallery changed concurrently (compare-and-swap miss).</summary>
+    public const string FoodImagesConflict = "FOOD_IMAGES_CONFLICT";
+
     /// <summary>Food tag not found, or belongs to a different owning nutritionist.</summary>
     public const string FoodTagNotFound = "FOOD_TAG_NOT_FOUND";
 

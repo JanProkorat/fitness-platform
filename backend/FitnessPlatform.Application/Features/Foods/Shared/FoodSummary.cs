@@ -80,14 +80,12 @@ public class FoodSummary
     public FoodVisibility Visibility { get; set; }
 
     /// <summary>
-    /// URL of the food image in blob storage (e.g. <c>foods/{foodId}.jpg</c>).
-    /// Null when no image has been uploaded.
+    /// URL of the main food image in blob storage. Null when no image has been uploaded.
     /// </summary>
     public string? ImageUrl { get; set; }
 
     /// <summary>
-    /// URLs of gallery images (up to 6 entries). Each entry points to a blob at
-    /// <c>foods/{foodId}/gallery-{n}.{ext}</c>.
+    /// URLs of gallery images (up to 6 entries); new uploads use unique keys, legacy ones may be positional.
     /// </summary>
     public List<string> GalleryImageUrls { get; set; } = [];
 
