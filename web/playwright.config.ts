@@ -233,12 +233,12 @@ export default defineConfig({
       testIgnore: IN_CONTAINER
         ? [
             /nutritionist\/recipe-tags\.spec\.ts/,
-            /nutritionist\/(client-detail-meal-plan|inbox-cooperation-events)\.spec\.ts/,
+            /nutritionist\/(client-detail-meal-plan|client-plan-editor|inbox-cooperation-events)\.spec\.ts/,
           ]
         : [
             /nutritionist\/food-admin-upload\.spec\.ts/,
             /nutritionist\/recipe-tags\.spec\.ts/,
-            /nutritionist\/(client-detail-meal-plan|inbox-cooperation-events)\.spec\.ts/,
+            /nutritionist\/(client-detail-meal-plan|client-plan-editor|inbox-cooperation-events)\.spec\.ts/,
           ],
       use: {
         ...devices['Desktop Chrome'],
@@ -264,12 +264,14 @@ export default defineConfig({
     // client-detail-meal-plan and inbox-cooperation-events both use the
     // qa.client2 roster: the meal-plan spec matches a loose /QA Client/ row,
     // which the cooperation-events spec's client request changes. `workers: 1`
-    // keeps them serial, in alphabetical file order.
+    // keeps them serial, in alphabetical file order. client-plan-editor is here
+    // too: publishing makes its plan the client's newest Active plan, which
+    // client-detail-meal-plan reads, so it must run after that spec.
     {
       name: 'nutritionist-chat',
       dependencies: ['setup'],
       workers: 1,
-      testMatch: /nutritionist\/(client-detail-meal-plan|inbox-cooperation-events)\.spec\.ts/,
+      testMatch: /nutritionist\/(client-detail-meal-plan|client-plan-editor|inbox-cooperation-events)\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
       },
