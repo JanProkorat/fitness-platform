@@ -337,12 +337,16 @@ export default function IngredientDrawer({ open, onOpenChange, food, readOnly, i
       if (created.foodId && (staged.main || staged.extras.length > 0)) {
         const foodId = created.foodId;
         setIsUploadingPictures(true);
-        const failed = await uploadStagedPictures(
-          staged,
-          (file) => uploads.uploadMain(foodId, file),
-          (file) => uploads.uploadGallery(foodId, file),
-        );
-        setIsUploadingPictures(false);
+        let failed: number;
+        try {
+          failed = await uploadStagedPictures(
+            staged,
+            (file) => uploads.uploadMain(foodId, file),
+            (file) => uploads.uploadGallery(foodId, file),
+          );
+        } finally {
+          setIsUploadingPictures(false);
+        }
         if (failed > 0) {
           showPartialUploadError(failed);
         }
