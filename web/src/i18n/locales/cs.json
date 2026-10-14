@@ -1344,8 +1344,11 @@
     "badge": {
       "system": "Systémová",
       "mine": "Moje",
-      "shared": "Sdílená"
+      "shared": "Sdílená",
+      "myLibrary": "Moje knihovna",
+      "publicLibrary": "Veřejné"
     },
+    "cardMacros": "B {{protein}} · S {{carbs}} · T {{fat}}",
     "visibility": {
       "label": "Viditelnost",
       "options": {
@@ -1486,6 +1489,7 @@
       "columnTags": "Štítky",
       "columnLibrary": "Knihovna",
       "caloriesUnit": "kcal",
+      "caloriesPerPortion": "kcal / porce",
       "ingredientsCount": "{{count}} surovin",
       "minutesValue": "{{count}} min"
     },

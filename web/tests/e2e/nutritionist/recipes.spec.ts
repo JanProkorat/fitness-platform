@@ -452,7 +452,7 @@ test.describe('recipes view mode', () => {
   test('opens as a card grid, switches to the table and remembers the choice after a reload', async ({ page }) => {
     await page.goto('/recipes');
     await expect(page.getByRole('heading', { name: 'Recipes', exact: true })).toBeVisible();
-    await expect(page.getByRole('button', { name: /kcal/ }).first()).toBeVisible();
+    await expect(page.getByText(/kcal \/ portion/).first()).toBeVisible();
     await expect(page.getByRole('columnheader', { name: 'Name' })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Cards' })).toHaveAttribute('aria-pressed', 'true');
 
