@@ -1,3 +1,5 @@
+using FitnessPlatform.Application.Domain.Enums;
+
 namespace FitnessPlatform.Application.Features.PhotoDiaryRequests.CreateRequest;
 
 /// <summary>
@@ -24,13 +26,21 @@ public class CreateRequestRequest
 
     /// <summary>
     /// Optional MongoDB external identifier of the nutrition or training plan this request is scoped to.
-    /// When set, must belong to the same client as the link/invite.
+    /// When set, must have been created by the caller (and, on the link path, belong to the same client).
     /// </summary>
     public Guid? PlanId { get; set; }
 
     /// <summary>
-    /// How many days the client has to upload photos (Workflow mode).
-    /// Defaults to 7. Allowed range: 1–30.
+    /// How the client uploads: <c>Bulk</c> is "Once", <c>Workflow</c> is "Every day". Required.
+    /// </summary>
+    public PhotoDiaryMode Mode { get; set; }
+
+    /// <summary>
+    /// How many days the request stays open in <c>Workflow</c> mode. Defaults to 7; allowed range 1–30.
+    /// Ignored for <c>Bulk</c>, which always stores 1.
     /// </summary>
     public int DurationDays { get; set; } = 7;
+
+    /// <summary>Optional note shown to the client (max 500 characters).</summary>
+    public string? Message { get; set; }
 }

@@ -1,8 +1,10 @@
+using System.Net.Http.Json;
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Services;
+using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -33,7 +35,8 @@ public class PhotoDiaryReminderSchedulerTests(FitnessApiFactory factory)
             PhotoDiaryStatus status = PhotoDiaryStatus.Accepted,
             DateTimeOffset? acceptedAt = null,
             int durationDays = 7,
-            string clientTimeZone = "Europe/Prague")
+            string clientTimeZone = "Europe/Prague",
+            DateTimeOffset? createdAt = null)
     {
         var profEmail = UniqueEmail("prof");
         var clientEmail = UniqueEmail("client");
@@ -76,6 +79,8 @@ public class PhotoDiaryReminderSchedulerTests(FitnessApiFactory factory)
         // Insert the diary request
         var now = DateTimeOffset.UtcNow;
         var resolvedAcceptedAt = acceptedAt ?? now.AddDays(-1);
+        // A request is created before it is accepted; the end date counts from creation.
+        var resolvedCreatedAt = createdAt ?? resolvedAcceptedAt;
 
         var request = new PhotoDiaryRequest
         {
@@ -85,10 +90,10 @@ public class PhotoDiaryReminderSchedulerTests(FitnessApiFactory factory)
             Mode = PhotoDiaryMode.Workflow,
             Status = status,
             DurationDays = durationDays,
-            AcceptedAt = resolvedAcceptedAt,
+            AcceptedAt = status == PhotoDiaryStatus.Cancelled ? null : resolvedAcceptedAt,
             CompletedAt = status == PhotoDiaryStatus.Completed ? now : null,
             DismissReason = status == PhotoDiaryStatus.Dismissed ? "test" : null,
-            CreatedAt = now,
+            CreatedAt = resolvedCreatedAt,
             UpdatedAt = now,
         };
 
@@ -506,10 +511,10 @@ public class PhotoDiaryReminderSchedulerTests(FitnessApiFactory factory)
     }
 
     [Fact]
-    public async Task Tick_AutoFinalizeAtDayNPlusOne()
+    public async Task Tick_AutoFinalizeFromTheEndDate()
     {
-        // A request accepted 9 days ago (DurationDays=7) should be auto-finalized.
-        // AcceptedAt + (7+1) days = 8 days after acceptance. Use 9 days so we're clearly past.
+        // A request created and accepted 9 days ago (DurationDays=7) is past its end date
+        // (CreatedAt + 7 days) and should be auto-finalized.
         var acceptedAt = new DateTimeOffset(DateTime.UtcNow.AddDays(-9));
 
         var (professionalId, clientUserId, requestId, _) = await SetupWorkflowRequestAsync(
@@ -530,7 +535,7 @@ public class PhotoDiaryReminderSchedulerTests(FitnessApiFactory factory)
         scheduler.OverrideNow = seedTime;
         await scheduler.TickAsync(scheduler.OverrideNow.Value, TestContext.Current.CancellationToken);
 
-        // Tick at noon+30min: the auto-finalize condition triggers (9 days > 8 days threshold).
+        // Tick at noon+30min: the auto-finalize condition triggers (past the end date).
         scheduler.OverrideNow = noonUtcToday.AddMinutes(30);
         await scheduler.TickAsync(scheduler.OverrideNow.Value, TestContext.Current.CancellationToken);
 
@@ -749,5 +754,149 @@ public class PhotoDiaryReminderSchedulerTests(FitnessApiFactory factory)
         newNotificationCalls.Should().HaveCount(1,
             "newnotification must be broadcast once (for candidate B) — candidate A was skipped");
         newNotificationCalls[0].UserId.Should().Be(clientBId);
+    }
+
+    // ── Mode, end date and cancel (request created through the API) ───────────
+
+    private async Task<(Actor Professional, Actor Client, Guid RequestId)> CreateRequestViaApiAsync(
+        string mode, bool accept)
+    {
+        var professional = await TestActors.Nutritionist(factory).CreateAsync(TestContext.Current.CancellationToken);
+        var client = await TestActors.Client(factory).CreateAsync(TestContext.Current.CancellationToken);
+        await TestActors.Link(factory, professional, client)
+            .AsRole(UserRole.Nutritionist)
+            .CreateAsync(TestContext.Current.CancellationToken);
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var user = await db.Users.FirstAsync(u => u.Id == client.UserId, TestContext.Current.CancellationToken);
+            user.TimeZone = "UTC";
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        var created = await professional.Http.PostAsJsonAsync(
+            "/trainer/photo-diary-requests",
+            new { ClientId = client.PublicId, Mode = mode, DurationDays = 7 },
+            TestContext.Current.CancellationToken);
+        created.StatusCode.Should().Be(System.Net.HttpStatusCode.OK);
+        var requestId = (await created.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>(
+            TestContext.Current.CancellationToken)).GetProperty("id").GetGuid();
+
+        if (accept)
+        {
+            var accepted = await client.Http.PostAsJsonAsync(
+                $"/client/photo-diary-requests/{requestId}/accept", new { }, TestContext.Current.CancellationToken);
+            accepted.StatusCode.Should().Be(System.Net.HttpStatusCode.OK);
+        }
+
+        return (professional, client, requestId);
+    }
+
+    /// <summary>Ticks once with client noon (UTC) inside the window.</summary>
+    private async Task TickAtClientNoonAsync()
+    {
+        var noonUtc = DateTime.UtcNow.Date.AddHours(12);
+
+        var scheduler = factory.Services.GetRequiredService<PhotoDiaryReminderScheduler>();
+        scheduler.ResetCursor();
+        scheduler.SetLastTickAt(noonUtc.AddHours(-1));
+        scheduler.OverrideNow = noonUtc.AddMinutes(30);
+        await scheduler.TickAsync(scheduler.OverrideNow.Value, TestContext.Current.CancellationToken);
+    }
+
+    private async Task<int> ReminderCountAsync(Guid requestId)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        return await db.PhotoDiaryReminderLogs.CountAsync(
+            l => l.DiaryRequestId == requestId, TestContext.Current.CancellationToken);
+    }
+
+    [Fact]
+    public async Task Tick_EveryDayRequestCreatedAndAcceptedViaApi_RemindsAtClientNoon()
+    {
+        var (_, client, requestId) = await CreateRequestViaApiAsync("Workflow", accept: true);
+
+        await TickAtClientNoonAsync();
+
+        (await ReminderCountAsync(requestId)).Should().Be(1);
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        (await db.Notifications.AnyAsync(
+            n => n.RecipientUserId == client.UserId && n.Type == NotificationType.PhotoDiaryReminder,
+            TestContext.Current.CancellationToken)).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Tick_OnceRequestCreatedAndAcceptedViaApi_DoesNotRemind()
+    {
+        var (_, _, requestId) = await CreateRequestViaApiAsync("Bulk", accept: true);
+
+        await TickAtClientNoonAsync();
+
+        (await ReminderCountAsync(requestId)).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Tick_CancelledViaApi_DoesNotRemind()
+    {
+        var (professional, _, requestId) = await CreateRequestViaApiAsync("Workflow", accept: true);
+
+        var cancelled = await professional.Http.PostAsJsonAsync(
+            $"/trainer/photo-diary-requests/{requestId}/cancel", new { }, TestContext.Current.CancellationToken);
+        cancelled.StatusCode.Should().Be(System.Net.HttpStatusCode.OK);
+
+        await TickAtClientNoonAsync();
+
+        (await ReminderCountAsync(requestId)).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Tick_AtTheEndDate_DoesNotRemind_AndFinalizes()
+    {
+        var virtualNow = DateTime.UtcNow.Date.AddHours(12).AddMinutes(30);
+
+        // Created exactly 7 days before the tick, so now == CreatedAt + DurationDays.
+        var (_, _, requestId, _) = await SetupWorkflowRequestAsync(
+            acceptedAt: new DateTimeOffset(virtualNow.AddDays(-2), TimeSpan.Zero),
+            createdAt: new DateTimeOffset(virtualNow.AddDays(-7), TimeSpan.Zero),
+            durationDays: 7,
+            clientTimeZone: "UTC");
+
+        await TickAtClientNoonAsync();
+
+        (await ReminderCountAsync(requestId)).Should().Be(0);
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var request = await db.PhotoDiaryRequests.FirstAsync(
+            r => r.Id == requestId, TestContext.Current.CancellationToken);
+        request.Status.Should().Be(PhotoDiaryStatus.Completed);
+    }
+
+    [Fact]
+    public async Task Tick_JustBeforeTheEndDate_StillReminds_WithDayNumberFromAcceptance()
+    {
+        var virtualNow = DateTime.UtcNow.Date.AddHours(12).AddMinutes(30);
+
+        // One minute short of the end date; accepted 2 days ago, so today is day 3.
+        var (_, clientUserId, requestId, _) = await SetupWorkflowRequestAsync(
+            acceptedAt: new DateTimeOffset(virtualNow.AddDays(-2), TimeSpan.Zero),
+            createdAt: new DateTimeOffset(virtualNow.AddDays(-7).AddMinutes(1), TimeSpan.Zero),
+            durationDays: 7,
+            clientTimeZone: "UTC");
+
+        await TickAtClientNoonAsync();
+
+        (await ReminderCountAsync(requestId)).Should().Be(1);
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var notification = await db.Notifications.FirstAsync(
+            n => n.RecipientUserId == clientUserId && n.Type == NotificationType.PhotoDiaryReminder,
+            TestContext.Current.CancellationToken);
+        notification.Data.Should().Contain("\"dayIndex\":\"3\"");
     }
 }

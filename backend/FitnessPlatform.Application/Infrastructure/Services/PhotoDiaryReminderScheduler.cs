@@ -25,8 +25,8 @@ namespace FitnessPlatform.Application.Infrastructure.Services;
 /// per (DiaryRequestId, ClientLocalDate) under a unique constraint.  A duplicate
 /// insert (Postgres error 23505) means the reminder already fired — skip silently.</para>
 ///
-/// <para><b>Auto-finalize:</b> requests that have exceeded their window
-/// (<c>now &gt; AcceptedAt + (DurationDays + 1) days</c>) are automatically
+/// <para><b>Auto-finalize:</b> requests that have reached their end date
+/// (<c>now &gt;= CreatedAt + DurationDays days</c>) are automatically
 /// transitioned to <see cref="PhotoDiaryStatus.Completed"/> and the
 /// <c>photoDiarySubmitted</c> event is emitted to the professional.</para>
 /// </summary>
@@ -195,9 +195,9 @@ public class PhotoDiaryReminderScheduler(
             }
 
             // ── Auto-finalize check: window expired ───────────────────────────
-            // If now > AcceptedAt + (DurationDays + 1) days, auto-complete.
-            if (request.AcceptedAt.HasValue
-                && now > request.AcceptedAt.Value.UtcDateTime.AddDays(request.DurationDays + 1))
+            // The window is CreatedAt + DurationDays — the same end date that lets the coach
+            // send the next request. From then on: no reminder, auto-complete instead.
+            if (new DateTimeOffset(now, TimeSpan.Zero) >= request.EndsAt)
             {
                 // Candidate B: auto-finalize in its own scope so failures don't affect siblings.
                 using var finalizeScope = scopeFactory.CreateScope();
@@ -206,8 +206,7 @@ public class PhotoDiaryReminderScheduler(
                 continue;  // request is now Completed — no reminder needed
             }
 
-            // ── Skip if past the valid window but not yet day N+1 ────────────
-            // If now >= AcceptedAt + DurationDays we're inside the finalize-grace day — still remind.
+            // Day numbering below still counts from acceptance.
             if (!request.AcceptedAt.HasValue) continue;
 
             // ── TZ & noon computation ─────────────────────────────────────────

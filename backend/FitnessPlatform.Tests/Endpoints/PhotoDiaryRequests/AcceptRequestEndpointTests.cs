@@ -109,6 +109,7 @@ public class AcceptRequestEndpointTests(FitnessApiFactory factory)
             ProfessionalId = profUserId,
             PendingInviteId = inviteId,
             DurationDays = 7,
+            Mode = PhotoDiaryMode.Workflow,
             Status = status,
             CreatedAt = DateTimeOffset.UtcNow,
             UpdatedAt = DateTimeOffset.UtcNow,
@@ -120,26 +121,29 @@ public class AcceptRequestEndpointTests(FitnessApiFactory factory)
 
     private async Task<Guid> InsertPendingDiaryRequestViaLinkAsync(
         Guid profUserId, long linkId,
-        PhotoDiaryStatus status = PhotoDiaryStatus.Pending)
+        PhotoDiaryStatus status = PhotoDiaryStatus.Pending,
+        PhotoDiaryMode? mode = PhotoDiaryMode.Workflow,
+        int durationDays = 7,
+        DateTimeOffset? createdAt = null)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
+        var created = createdAt ?? DateTimeOffset.UtcNow;
         var request = new PhotoDiaryRequest
         {
             Id = Guid.NewGuid(),
             ProfessionalId = profUserId,
             LinkId = linkId,
-            DurationDays = 7,
+            DurationDays = durationDays,
             Status = status,
-            Mode = status is PhotoDiaryStatus.Accepted or PhotoDiaryStatus.InProgress or PhotoDiaryStatus.Completed
-                ? PhotoDiaryMode.Workflow : null,
+            Mode = mode,
             AcceptedAt = status is PhotoDiaryStatus.Accepted or PhotoDiaryStatus.InProgress or PhotoDiaryStatus.Completed
                 ? DateTimeOffset.UtcNow : null,
             CompletedAt = status == PhotoDiaryStatus.Completed ? DateTimeOffset.UtcNow : null,
             DismissReason = status == PhotoDiaryStatus.Dismissed ? "Not interested" : null,
-            CreatedAt = DateTimeOffset.UtcNow,
-            UpdatedAt = DateTimeOffset.UtcNow,
+            CreatedAt = created,
+            UpdatedAt = created,
         };
         db.PhotoDiaryRequests.Add(request);
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -154,7 +158,7 @@ public class AcceptRequestEndpointTests(FitnessApiFactory factory)
         var (http, _, _) = await SetupClientAsync();
         var response = await http.PostAsJsonAsync(
             $"/client/photo-diary-requests/{Guid.NewGuid()}/accept",
-            new { Mode = PhotoDiaryMode.Bulk },
+            new { },
             TestContext.Current.CancellationToken);
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
@@ -171,7 +175,7 @@ public class AcceptRequestEndpointTests(FitnessApiFactory factory)
 
         var response = await http.PostAsJsonAsync(
             $"/client/photo-diary-requests/{requestId}/accept",
-            new { Mode = PhotoDiaryMode.Bulk },
+            new { },
             TestContext.Current.CancellationToken);
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
@@ -187,7 +191,7 @@ public class AcceptRequestEndpointTests(FitnessApiFactory factory)
 
         var response = await http.PostAsJsonAsync(
             $"/client/photo-diary-requests/{requestId}/accept",
-            new { Mode = PhotoDiaryMode.Bulk },
+            new { },
             TestContext.Current.CancellationToken);
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
@@ -206,7 +210,7 @@ public class AcceptRequestEndpointTests(FitnessApiFactory factory)
 
         var response = await http.PostAsJsonAsync(
             $"/client/photo-diary-requests/{requestId}/accept",
-            new { Mode = PhotoDiaryMode.Bulk },
+            new { },
             TestContext.Current.CancellationToken);
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
@@ -224,7 +228,7 @@ public class AcceptRequestEndpointTests(FitnessApiFactory factory)
 
         var response = await http.PostAsJsonAsync(
             $"/client/photo-diary-requests/{requestId}/accept",
-            new { Mode = PhotoDiaryMode.Workflow },
+            new { },
             TestContext.Current.CancellationToken);
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
@@ -244,17 +248,18 @@ public class AcceptRequestEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
-    public async Task Accept_WithBulkMode_Returns200_AndModeIsPersisted()
+    public async Task Accept_BulkRequest_Returns200_AndKeepsTheCoachsMode()
     {
         var (_, profId) = await SetupProfessionalAsync();
         var (http, clientId, _) = await SetupClientAsync();
 
         var linkId = await InsertLinkAsync(clientId, profId);
-        var requestId = await InsertPendingDiaryRequestViaLinkAsync(profId, linkId);
+        var requestId = await InsertPendingDiaryRequestViaLinkAsync(
+            profId, linkId, mode: PhotoDiaryMode.Bulk, durationDays: 1);
 
         var response = await http.PostAsJsonAsync(
             $"/client/photo-diary-requests/{requestId}/accept",
-            new { Mode = PhotoDiaryMode.Bulk },
+            new { },
             TestContext.Current.CancellationToken);
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
@@ -278,7 +283,7 @@ public class AcceptRequestEndpointTests(FitnessApiFactory factory)
 
         var response = await http.PostAsJsonAsync(
             $"/client/photo-diary-requests/{requestId}/accept",
-            new { Mode = PhotoDiaryMode.Workflow },
+            new { },
             TestContext.Current.CancellationToken);
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
@@ -302,7 +307,7 @@ public class AcceptRequestEndpointTests(FitnessApiFactory factory)
 
         var response = await http.PostAsJsonAsync(
             $"/client/photo-diary-requests/{requestId}/accept",
-            new { Mode = PhotoDiaryMode.Bulk },
+            new { },
             TestContext.Current.CancellationToken);
         response.StatusCode.Should().Be(HttpStatusCode.Conflict);
     }
@@ -318,8 +323,70 @@ public class AcceptRequestEndpointTests(FitnessApiFactory factory)
 
         var response = await http.PostAsJsonAsync(
             $"/client/photo-diary-requests/{requestId}/accept",
-            new { Mode = PhotoDiaryMode.Bulk },
+            new { },
             TestContext.Current.CancellationToken);
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+    }
+
+    [Fact]
+    public async Task Accept_PendingPastEndDate_Returns409_InvalidStatus()
+    {
+        var (_, profId) = await SetupProfessionalAsync();
+        var (http, clientId, _) = await SetupClientAsync();
+
+        var linkId = await InsertLinkAsync(clientId, profId);
+        var requestId = await InsertPendingDiaryRequestViaLinkAsync(
+            profId, linkId, durationDays: 7, createdAt: DateTimeOffset.UtcNow.AddDays(-8));
+
+        var response = await http.PostAsJsonAsync(
+            $"/client/photo-diary-requests/{requestId}/accept",
+            new { },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken))
+            .Should().Contain("PHOTO_DIARY_REQUEST_INVALID_STATUS");
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var persisted = await db.PhotoDiaryRequests
+            .FirstAsync(r => r.Id == requestId, TestContext.Current.CancellationToken);
+        persisted.Status.Should().Be(PhotoDiaryStatus.Pending);
+    }
+
+    [Fact]
+    public async Task Accept_LegacyRowWithoutMode_Returns409_InvalidStatus()
+    {
+        var (_, profId) = await SetupProfessionalAsync();
+        var (http, clientId, _) = await SetupClientAsync();
+
+        var linkId = await InsertLinkAsync(clientId, profId);
+        var requestId = await InsertPendingDiaryRequestViaLinkAsync(profId, linkId, mode: null);
+
+        var response = await http.PostAsJsonAsync(
+            $"/client/photo-diary-requests/{requestId}/accept",
+            new { },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken))
+            .Should().Contain("PHOTO_DIARY_REQUEST_INVALID_STATUS");
+    }
+
+    [Fact]
+    public async Task Accept_Cancelled_Returns409()
+    {
+        var (_, profId) = await SetupProfessionalAsync();
+        var (http, clientId, _) = await SetupClientAsync();
+
+        var linkId = await InsertLinkAsync(clientId, profId);
+        var requestId = await InsertPendingDiaryRequestViaLinkAsync(profId, linkId, PhotoDiaryStatus.Cancelled);
+
+        var response = await http.PostAsJsonAsync(
+            $"/client/photo-diary-requests/{requestId}/accept",
+            new { },
+            TestContext.Current.CancellationToken);
+
         response.StatusCode.Should().Be(HttpStatusCode.Conflict);
     }
 

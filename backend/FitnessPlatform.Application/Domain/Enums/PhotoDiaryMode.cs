@@ -1,7 +1,7 @@
 namespace FitnessPlatform.Application.Domain.Enums;
 
 /// <summary>
-/// The mode a client chooses when accepting a photo diary request.
+/// The mode a coach chooses when creating a photo diary request.
 /// </summary>
 public enum PhotoDiaryMode
 {
