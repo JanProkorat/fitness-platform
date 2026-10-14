@@ -2229,6 +2229,49 @@
         "profileLink": "Ernährungsprofil öffnen"
       }
     },
+    "templates": {
+      "tab": "Vorlagen",
+      "introMatched": "Passend zu {{name}} — {{criteria}}. Mit „Verwenden“ übernimmst du eine Vorlage in den Plan.",
+      "introAll": "Alle deine Vorlagen. Mit „Verwenden“ übernimmst du eine Vorlage in den Plan.",
+      "criteria": {
+        "goal": "Ziel {{goal}}",
+        "kcal": "{{kcal}} kcal",
+        "diet": "Ernährung: {{diet}}"
+      },
+      "bestMatch": "Beste Übereinstimmung",
+      "otherGoals": "Andere Ziele",
+      "use": "Verwenden",
+      "useNamed": "{{name}} verwenden",
+      "noMeals": "Diese Vorlage enthält keine Mahlzeiten.",
+      "weeksShort": "{{count}} Wo.",
+      "match": {
+        "goal": "✓ Ziel",
+        "goalDiffers": "anderes Ziel",
+        "diet": "✓ Ernährung",
+        "meals": "✓ Mahlzeiten",
+        "kcalClose": "✓ kcal",
+        "kcalNear": "~ kcal {{percent}} %"
+      },
+      "empty": "Noch keine Vorlagen.",
+      "listError": "Die Vorlagen konnten nicht geladen werden.",
+      "loadError": "Die Vorlage konnte nicht geladen werden. Bitte versuche es erneut.",
+      "gone": "Diese Vorlage ist nicht mehr verfügbar.",
+      "emptyTemplate": "Diese Vorlage enthält keine Mahlzeiten.",
+      "replaceTitle": "Stattdessen „{{name}}“ verwenden?",
+      "replaceBody": "Dieser Plan enthält bereits Mahlzeiten. Die Vorlage ersetzt sie.",
+      "weeksLabel_one": "Woche {{range}}",
+      "weeksLabel_other": "Wochen {{range}}",
+      "draftsGet": "{{weeks}} (Entwürfe) erhalten die Mahlzeiten der Vorlage.",
+      "publishedKept_one": "{{weeks}} ist veröffentlicht — {{name}} behält sie unverändert.",
+      "publishedKept_other": "{{weeks}} sind veröffentlicht — {{name}} behält sie unverändert.",
+      "weekCount_one": "{{count}} Woche",
+      "weekCount_other": "{{count}} Wochen",
+      "ending": ", Ende {{date}}",
+      "lengthShrinks": "Die Vorlage hat {{template}}; der Plan wird auf {{result}} gekürzt{{ending}}.",
+      "lengthGrows": "Die Vorlage hat {{template}}; der Plan wächst auf {{result}}{{ending}}.",
+      "keepLength": "{{weeks}} beibehalten — die Vorlage wiederholen, um sie zu füllen",
+      "replaceConfirm": "Entwurfswochen ersetzen"
+    },
     "notFound": {
       "title": "Plan nicht gefunden",
       "body": "Dieser Plan existiert nicht oder gehört nicht zu diesem Klienten."

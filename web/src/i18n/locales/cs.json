@@ -2294,6 +2294,55 @@
         "profileLink": "Otevřít výživový profil"
       }
     },
+    "templates": {
+      "tab": "Šablony",
+      "introMatched": "Vybráno pro klienta {{name}} — {{criteria}}. Šablonu vložíte do plánu tlačítkem Použít.",
+      "introAll": "Všechny vaše šablony. Šablonu vložíte do plánu tlačítkem Použít.",
+      "criteria": {
+        "goal": "cíl {{goal}}",
+        "kcal": "{{kcal}} kcal",
+        "diet": "strava: {{diet}}"
+      },
+      "bestMatch": "Nejlepší shoda",
+      "otherGoals": "Jiné cíle",
+      "use": "Použít",
+      "useNamed": "Použít {{name}}",
+      "noMeals": "Tato šablona nemá žádná jídla.",
+      "weeksShort": "{{count}} týd.",
+      "match": {
+        "goal": "✓ cíl",
+        "goalDiffers": "jiný cíl",
+        "diet": "✓ strava",
+        "meals": "✓ jídla",
+        "kcalClose": "✓ kcal",
+        "kcalNear": "~ kcal {{percent}} %"
+      },
+      "empty": "Zatím žádné šablony.",
+      "listError": "Šablony se nepodařilo načíst.",
+      "loadError": "Šablonu se nepodařilo načíst. Zkuste to znovu.",
+      "gone": "Tato šablona už není dostupná.",
+      "emptyTemplate": "Tato šablona nemá žádná jídla.",
+      "replaceTitle": "Použít místo toho „{{name}}“?",
+      "replaceBody": "Tento plán už jídla obsahuje. Šablona je nahradí.",
+      "weeksLabel_one": "Týden {{range}}",
+      "weeksLabel_few": "Týdny {{range}}",
+      "weeksLabel_many": "Týdny {{range}}",
+      "weeksLabel_other": "Týdny {{range}}",
+      "draftsGet": "{{weeks}} (koncepty) dostanou jídla ze šablony.",
+      "publishedKept_one": "{{weeks}} je publikovaný — {{name}} ho vidí beze změny.",
+      "publishedKept_few": "{{weeks}} jsou publikované — {{name}} je vidí beze změny.",
+      "publishedKept_many": "{{weeks}} jsou publikované — {{name}} je vidí beze změny.",
+      "publishedKept_other": "{{weeks}} jsou publikované — {{name}} je vidí beze změny.",
+      "weekCount_one": "{{count}} týden",
+      "weekCount_few": "{{count}} týdny",
+      "weekCount_many": "{{count}} týdne",
+      "weekCount_other": "{{count}} týdnů",
+      "ending": ", konec {{date}}",
+      "lengthShrinks": "Šablona má {{template}}; plán se zkrátí na {{result}}{{ending}}.",
+      "lengthGrows": "Šablona má {{template}}; plán se prodlouží na {{result}}{{ending}}.",
+      "keepLength": "Zachovat {{weeks}} — šablonu zopakovat, aby je vyplnila",
+      "replaceConfirm": "Nahradit koncepty týdnů"
+    },
     "notFound": {
       "title": "Plán nenalezen",
       "body": "Tento plán neexistuje nebo nepatří tomuto klientovi."

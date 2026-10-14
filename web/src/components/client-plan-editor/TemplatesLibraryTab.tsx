@@ -1,0 +1,279 @@
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useQueryClient } from '@tanstack/react-query';
+import type { OnboardingDataDto } from '@/api/generated';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { applyTemplate, needsConfirmation } from '@/components/client-plan-editor/applyTemplate';
+import ReplaceWithTemplateDialog from '@/components/client-plan-editor/ReplaceWithTemplateDialog';
+import {
+  criteriaFromOnboarding,
+  rankTemplates,
+  type RankedTemplate,
+} from '@/components/client-plan-editor/templateMatching';
+import type { InfoPanelContext } from '@/components/plan-editor/PlanEditor';
+import { toEditorWeeks } from '@/components/plan-editor/plan-editor-mapping';
+import { weekHasItems } from '@/components/plan-editor/plan-editor-ops';
+import type { EditorWeek, WeekStatus } from '@/components/plan-editor/plan-editor-types';
+import { useClientMatchedTemplates, useLoadPlanTemplate } from '@/hooks/usePlanTemplatesQueries';
+import { getErrorStatus, showApiError, showError } from '@/lib/api-errors';
+
+interface Props {
+  context: InfoPanelContext;
+  /** Publication state per week index, from the host. */
+  weekStatus: (weekIndex: number) => WeekStatus;
+  /** From the client dashboard; undefined until the client has onboarding answers. */
+  onboarding?: OnboardingDataDto;
+  clientFirstName: string;
+}
+
+interface PendingApply {
+  name: string;
+  weeks: EditorWeek[];
+}
+
+function publishedWeekNumbers(context: InfoPanelContext, weekStatus: Props['weekStatus']): number[] {
+  return context.doc.weeks.flatMap((_, index) => (weekStatus(index) === 'published' ? [index + 1] : []));
+}
+
+function formatPercent(percent: number): string {
+  if (percent === 0) {
+    return '0';
+  }
+  return `${percent > 0 ? '+' : '−'}${Math.abs(percent)}`;
+}
+
+interface CardProps {
+  item: RankedTemplate;
+  best: boolean;
+  hasGoalCriterion: boolean;
+  busy: boolean;
+  disabled: boolean;
+  language: string;
+  onUse: (item: RankedTemplate) => void;
+}
+
+function TemplateCard({ item, best, hasGoalCriterion, busy, disabled, language, onUse }: CardProps) {
+  const { t } = useTranslation();
+  const { template } = item;
+  const name = template.name ?? '';
+  const hasMeals = template.mealsPerDay !== undefined && template.mealsPerDay !== null;
+  const goalLabel = template.goal ? t(`clients.values.${template.goal}`, { defaultValue: template.goal }) : undefined;
+  const meta = [
+    t('clientPlanEditor.templates.weeksShort', { count: template.weekCount ?? 0 }),
+    template.avgKcalPerDay !== undefined && template.avgKcalPerDay !== null
+      ? t('planEditor.cell.kcal', { kcal: Math.round(template.avgKcalPerDay).toLocaleString(language) })
+      : null,
+  ].filter((part): part is string => part !== null);
+
+  const chips: string[] = [];
+  if (hasGoalCriterion) {
+    chips.push(item.goalMatch ? t('clientPlanEditor.templates.match.goal') : t('clientPlanEditor.templates.match.goalDiffers'));
+  }
+  if (item.dietMatch) {
+    chips.push(t('clientPlanEditor.templates.match.diet'));
+  }
+  if (item.mealsMatch) {
+    chips.push(t('clientPlanEditor.templates.match.meals'));
+  }
+  if (item.kcal) {
+    chips.push(
+      item.kcal.kind === 'close'
+        ? t('clientPlanEditor.templates.match.kcalClose')
+        : t('clientPlanEditor.templates.match.kcalNear', { percent: formatPercent(item.kcal.percent) }),
+    );
+  }
+
+  return (
+    <li
+      data-testid="template-card"
+      className="flex items-center gap-2 rounded-xl border border-line bg-card p-3 shadow-panel"
+    >
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="truncate text-copy font-semibold text-ink">{name}</span>
+          {best && (
+            <span
+              data-testid="template-best-match"
+              className="shrink-0 rounded-full bg-nutrition-soft px-2 py-0.5 text-label font-semibold tracking-label text-nutrition-ink uppercase"
+            >
+              {t('clientPlanEditor.templates.bestMatch')}
+            </span>
+          )}
+        </div>
+        {goalLabel && <span className="text-meta text-muted-foreground">{goalLabel}</span>}
+        <span className="text-meta text-muted-foreground">{meta.join(' · ')}</span>
+        {chips.length > 0 && <span className="text-meta text-muted-foreground">{chips.join(' · ')}</span>}
+      </div>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="shrink-0"
+        disabled={disabled || busy || !hasMeals}
+        title={hasMeals ? undefined : t('clientPlanEditor.templates.noMeals')}
+        aria-label={t('clientPlanEditor.templates.useNamed', { name })}
+        onClick={() => onUse(item)}
+      >
+        {t('clientPlanEditor.templates.use')}
+      </Button>
+    </li>
+  );
+}
+
+/** The client plan editor's "Templates" library tab: templates matched to the client, each with Use. */
+export default function TemplatesLibraryTab({ context, weekStatus, onboarding, clientFirstName }: Props) {
+  const { t, i18n } = useTranslation();
+  const queryClient = useQueryClient();
+  const [pending, setPending] = useState<PendingApply | null>(null);
+  const criteria = useMemo(
+    () => criteriaFromOnboarding(onboarding, context.doc.targets.kcal),
+    [onboarding, context.doc.targets.kcal],
+  );
+  const { goalQuery, allQuery } = useClientMatchedTemplates(criteria.goal, true);
+  const load = useLoadPlanTemplate();
+  const latest = useRef({ context, weekStatus });
+  useEffect(() => {
+    latest.current = { context, weekStatus };
+  });
+
+  const lists = useMemo(
+    () => rankTemplates(goalQuery.data?.templates ?? [], allQuery.data?.templates ?? [], criteria),
+    [goalQuery.data, allQuery.data, criteria],
+  );
+  const isPending = allQuery.isPending || (criteria.goal !== undefined && goalQuery.isPending);
+  const isError = allQuery.isError || (criteria.goal !== undefined && goalQuery.isError);
+  const hasGoal = criteria.goal !== undefined;
+  const loadingId = load.isPending ? load.variables : undefined;
+
+  function apply(weeks: EditorWeek[], keepLength: boolean) {
+    const { context: current, weekStatus: status } = latest.current;
+    const published = publishedWeekNumbers(current, status);
+    // One edit, computed from the document at that moment, so a single Undo takes it all back.
+    current.onEdit((doc) => applyTemplate(doc, weeks, published, keepLength));
+    setPending(null);
+  }
+
+  function use(item: RankedTemplate) {
+    const templateId = item.template.templateId;
+    if (!templateId) {
+      return;
+    }
+    load.mutate(templateId, {
+      onSuccess: (detail) => {
+        const weeks = toEditorWeeks(detail.weeks);
+        if (!weeks.some(weekHasItems)) {
+          showError('clientPlanEditor.templates.emptyTemplate');
+          return;
+        }
+        const { context: current, weekStatus: status } = latest.current;
+        if (current.readOnly) {
+          return;
+        }
+        if (needsConfirmation(current.doc, publishedWeekNumbers(current, status))) {
+          setPending({ name: detail.name ?? item.template.name ?? '', weeks });
+        } else {
+          apply(weeks, false);
+        }
+      },
+      onError: (error) => {
+        const status = getErrorStatus(error);
+        if (status === 404 || status === 403) {
+          showError('clientPlanEditor.templates.gone');
+          void queryClient.invalidateQueries({ queryKey: ['plan-templates'] });
+        } else {
+          showApiError(error, 'clientPlanEditor.templates.loadError');
+        }
+      },
+    });
+  }
+
+  function renderCard(item: RankedTemplate, best: boolean) {
+    return (
+      <TemplateCard
+        key={item.template.templateId}
+        item={item}
+        best={best}
+        hasGoalCriterion={hasGoal}
+        busy={loadingId !== undefined}
+        disabled={context.readOnly}
+        language={i18n.language}
+        onUse={use}
+      />
+    );
+  }
+
+  const criteriaParts = [
+    criteria.goal ? t('clientPlanEditor.templates.criteria.goal', { goal: t(`clients.values.${criteria.goal}`, { defaultValue: criteria.goal }) }) : null,
+    criteria.kcal ? t('clientPlanEditor.templates.criteria.kcal', { kcal: Math.round(criteria.kcal).toLocaleString(i18n.language) }) : null,
+    criteria.dietaryStyle
+      ? t('clientPlanEditor.templates.criteria.diet', { diet: t(`clients.values.${criteria.dietaryStyle}`, { defaultValue: criteria.dietaryStyle }) })
+      : null,
+  ].filter((part): part is string => part !== null);
+  const isEmpty = lists.matched.length === 0 && lists.others.length === 0;
+
+  return (
+    <div className="-mr-1 flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pr-1" data-testid="templates-tab">
+      <p className="text-meta text-muted-foreground">
+        {criteriaParts.length > 0
+          ? t('clientPlanEditor.templates.introMatched', { name: clientFirstName, criteria: criteriaParts.join(', ') })
+          : t('clientPlanEditor.templates.introAll')}
+      </p>
+
+      {isPending && (
+        <div className="flex flex-col gap-2">
+          {Array.from({ length: 4 }, (_, index) => (
+            <Skeleton key={index} className="h-20 w-full rounded-xl" />
+          ))}
+        </div>
+      )}
+
+      {isError && (
+        <div className="flex flex-col items-start gap-2">
+          <p className="text-body text-muted-foreground">{t('clientPlanEditor.templates.listError')}</p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              void allQuery.refetch();
+              if (hasGoal) {
+                void goalQuery.refetch();
+              }
+            }}
+          >
+            {t('planEditor.library.retry')}
+          </Button>
+        </div>
+      )}
+
+      {!isPending && !isError && isEmpty && (
+        <p className="text-body text-muted-foreground">{t('clientPlanEditor.templates.empty')}</p>
+      )}
+
+      {!isPending && !isError && lists.matched.length > 0 && (
+        <ul className="flex flex-col gap-2">{lists.matched.map((item, index) => renderCard(item, index === 0))}</ul>
+      )}
+
+      {!isPending && !isError && lists.others.length > 0 && (
+        <section className="flex flex-col gap-2">
+          {hasGoal && (
+            <h3 className="text-label font-bold tracking-label text-muted-foreground uppercase">
+              {t('clientPlanEditor.templates.otherGoals')}
+            </h3>
+          )}
+          <ul className="flex flex-col gap-2">{lists.others.map((item) => renderCard(item, false))}</ul>
+        </section>
+      )}
+
+      <ReplaceWithTemplateDialog
+        pending={pending ? { name: pending.name, weekCount: pending.weeks.length } : null}
+        doc={context.doc}
+        publishedWeeks={publishedWeekNumbers(context, weekStatus)}
+        clientFirstName={clientFirstName}
+        onConfirm={(keepLength) => pending && apply(pending.weeks, keepLength)}
+        onCancel={() => setPending(null)}
+      />
+    </div>
+  );
+}

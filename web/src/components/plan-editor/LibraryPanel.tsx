@@ -167,10 +167,12 @@ interface Props {
   disabled: boolean;
   onAdd: (item: LibraryItem) => void;
   extraTab?: LibraryExtraTab;
+  /** Leaves the totals off the Recipes and Ingredients chips. */
+  hideTabCounts?: boolean;
 }
 
 /** Side-panel tab with the nutritionist's recipes and ingredients, draggable onto the week grid. */
-export default function LibraryPanel({ canAdd, disabled, onAdd, extraTab }: Props) {
+export default function LibraryPanel({ canAdd, disabled, onAdd, extraTab, hideTabCounts = false }: Props) {
   const { t, i18n } = useTranslation();
   const [tab, setTab] = useState<LibraryTab>('recipes');
   const [extraActive, setExtraActive] = useState(false);
@@ -234,9 +236,11 @@ export default function LibraryPanel({ canAdd, disabled, onAdd, extraTab }: Prop
             )}
           >
             {t(`planEditor.library.${value}`)}
-            <span className="ml-1.5 font-medium opacity-60">
-              {(value === 'recipes' ? recipesQuery : ingredientsQuery).data?.totalCount ?? 0}
-            </span>
+            {!hideTabCounts && (
+              <span className="ml-1.5 font-medium opacity-60">
+                {(value === 'recipes' ? recipesQuery : ingredientsQuery).data?.totalCount ?? 0}
+              </span>
+            )}
           </button>
         ))}
         {extraTab && (
