@@ -12,7 +12,9 @@ import {
   formatKcal,
   GRID_CLASS,
   mealKindLabelKey,
+  STICKY_LABEL_CLASS,
   WEEK_GRID_CLASS,
+  WEEK_GRID_SCROLLER_CLASS,
   weekGridRows,
 } from '@/components/plan-editor/plan-editor-format';
 import { CELL_MEAL_DRAG, GRID_CELL_SENSORS, mealItemNames } from '@/components/plan-editor/plan-editor-library';
@@ -345,6 +347,7 @@ export default function WeekGrid({
   const dayByNumber = new Map(week.days.map((day) => [day.dayOfWeek, day]));
 
   return (
+    <div className={WEEK_GRID_SCROLLER_CLASS}>
     <div
       role="group"
       aria-label={t('planEditor.grid.label')}
@@ -352,7 +355,9 @@ export default function WeekGrid({
       style={weekGridRows(rows.length, 7.5)}
     >
       <div className={GRID_CLASS}>
-        <span />
+        <span className={STICKY_LABEL_CLASS} aria-hidden="true">
+          &nbsp;
+        </span>
         {DAY_ORDER.map((dayOfWeek) => (
           <DayHeader
             key={dayOfWeek}
@@ -363,7 +368,7 @@ export default function WeekGrid({
       </div>
 
       <div className={cn(GRID_CLASS, 'items-stretch')}>
-        <span className="self-center text-body font-semibold whitespace-nowrap text-muted-foreground">
+        <span className={cn(STICKY_LABEL_CLASS, 'self-center text-body font-semibold whitespace-nowrap text-muted-foreground')}>
           {t('planEditor.dayTotal')}
         </span>
         {DAY_ORDER.map((dayOfWeek) => (
@@ -373,7 +378,12 @@ export default function WeekGrid({
 
       {rows.map((row) => (
         <div key={row.index} className={cn(GRID_CLASS, 'items-stretch')}>
-          <span className="group/row flex items-center gap-1.5 self-center text-body font-semibold whitespace-nowrap text-muted-foreground">
+          <span
+            className={cn(
+              STICKY_LABEL_CLASS,
+              'group/row flex items-center gap-1.5 self-center text-body font-semibold whitespace-nowrap text-muted-foreground',
+            )}
+          >
             {t(`planEditor.rows.${mealKindLabelKey(row.kind)}`)}
             {!readOnly && onRemoveRow && (
               <button
@@ -415,6 +425,7 @@ export default function WeekGrid({
           })}
         </div>
       ))}
+    </div>
     </div>
   );
 }

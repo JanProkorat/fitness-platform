@@ -1776,7 +1776,11 @@
       "legendPublished_one": "{{count}} veröffentlicht",
       "legendPublished_other": "{{count}} veröffentlicht",
       "legendDraft_one": "{{count}} Entwurf",
-      "legendDraft_other": "{{count}} Entwürfe"
+      "legendDraft_other": "{{count}} Entwürfe",
+      "status_empty": ", leer",
+      "legendEmpty_one": "{{count}} leer",
+      "legendEmpty_other": "{{count}} leer",
+      "legendNothingPublished": "nichts veröffentlicht"
     },
     "panel": {
       "tabs": "Seitenleiste",
@@ -2257,14 +2261,14 @@
       "replaceBody": "Dieser Plan enthält bereits Mahlzeiten. Die Vorlage ersetzt sie.",
       "weeksLabel_one": "Woche {{range}}",
       "weeksLabel_other": "Wochen {{range}}",
-      "draftsGet": "{{weeks}} (Entwürfe) erhalten die Mahlzeiten der Vorlage.",
-      "publishedKept_one": "{{weeks}} ist veröffentlicht — {{name}} behält sie unverändert.",
-      "publishedKept_other": "{{weeks}} sind veröffentlicht — {{name}} behält sie unverändert.",
+      "draftsGet": "<b>{{weeks}}</b> (Entwürfe) erhalten die Mahlzeiten der Vorlage.",
+      "publishedKept_one": "<b>{{weeks}}</b> ist veröffentlicht — {{name}} behält sie unverändert.",
+      "publishedKept_other": "<b>{{weeks}}</b> sind veröffentlicht — {{name}} behält sie unverändert.",
       "weekCount_one": "{{count}} Woche",
       "weekCount_other": "{{count}} Wochen",
       "ending": ", Ende {{date}}",
-      "lengthShrinks": "Die Vorlage hat {{template}}; der Plan wird auf {{result}} gekürzt{{ending}}.",
-      "lengthGrows": "Die Vorlage hat {{template}}; der Plan wächst auf {{result}}{{ending}}.",
+      "lengthShrinks": "Die Vorlage hat {{template}}; der Plan wird auf <b>{{result}}</b> gekürzt{{ending}}.",
+      "lengthGrows": "Die Vorlage hat {{template}}; der Plan wächst auf <b>{{result}}</b>{{ending}}.",
       "keepLength": "{{weeks}} beibehalten — die Vorlage wiederholen, um sie zu füllen",
       "replaceConfirm": "Entwurfswochen ersetzen"
     },

@@ -1,5 +1,6 @@
-import { useId, useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useId, useState, type ReactNode } from 'react';
+import { Trans, useTranslation } from 'react-i18next';
+import { RotateCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -13,6 +14,7 @@ import {
 import { formatWeekNumbers, previewApply } from '@/components/client-plan-editor/applyTemplate';
 import { planEndDate } from '@/components/client-plan-editor/clientPlanDates';
 import type { EditorDocument } from '@/components/plan-editor/plan-editor-types';
+import { cn } from '@/lib/utils';
 
 export interface PendingTemplate {
   name: string;
@@ -28,6 +30,17 @@ interface Props {
   clientFirstName: string;
   onConfirm: (keepLength: boolean) => void;
   onCancel: () => void;
+}
+
+const BOLD = { b: <b className="font-semibold" /> };
+
+function Line({ dotClass, children }: { dotClass: string; children: ReactNode }) {
+  return (
+    <li className="flex items-start gap-2.5">
+      <span aria-hidden="true" className={cn('mt-2 size-1.5 shrink-0 rounded-full', dotClass)} />
+      <span className="min-w-0">{children}</span>
+    </li>
+  );
 }
 
 /** Asks before a template replaces the draft weeks of a plan that already has meals. */
@@ -72,45 +85,64 @@ export default function ReplaceWithTemplateDialog({
   }
 
   const planLength = doc.weeks.length;
-  const lengthLine =
-    pending && shown && shown.resultLength !== planLength
-      ? t(
-          shown.resultLength < planLength
-            ? 'clientPlanEditor.templates.lengthShrinks'
-            : 'clientPlanEditor.templates.lengthGrows',
-          {
-            template: t('clientPlanEditor.templates.weekCount', { count: pending.weekCount }),
-            result: t('clientPlanEditor.templates.weekCount', { count: shown.resultLength }),
-            ending: formatEnding(shown.resultLength),
-          },
-        )
-      : null;
+  const lengthChanges = pending && shown && shown.resultLength !== planLength;
 
   return (
     <Dialog open={pending !== null} onOpenChange={(open) => !open && close()}>
-      <DialogContent data-testid="replace-with-template-dialog">
-        <DialogHeader>
-          <DialogTitle>{t('clientPlanEditor.templates.replaceTitle', { name: pending?.name ?? '' })}</DialogTitle>
-          <DialogDescription>{t('clientPlanEditor.templates.replaceBody')}</DialogDescription>
-        </DialogHeader>
+      <DialogContent showCloseButton={false} className="max-w-xl" data-testid="replace-with-template-dialog">
+        <div className="flex items-start gap-4">
+          <span
+            aria-hidden="true"
+            className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-error-soft text-error"
+          >
+            <RotateCw className="size-5" />
+          </span>
+          <DialogHeader className="min-w-0 flex-1 gap-1.5">
+            <DialogTitle className="text-xl leading-tight">
+              {t('clientPlanEditor.templates.replaceTitle', { name: pending?.name ?? '' })}
+            </DialogTitle>
+            <DialogDescription>{t('clientPlanEditor.templates.replaceBody')}</DialogDescription>
+          </DialogHeader>
+        </div>
 
         {pending && shown && (
-          <ul className="flex flex-col gap-2 text-body text-ink">
+          <ul className="flex flex-col gap-2.5 rounded-xl border border-line p-4 text-body text-ink">
             {shown.draftWeeks.length > 0 && (
-              <li>
-                {t('clientPlanEditor.templates.draftsGet', { weeks: weeksLabel(shown.draftWeeks) })}
-              </li>
+              <Line dotClass="bg-error">
+                <Trans
+                  i18nKey="clientPlanEditor.templates.draftsGet"
+                  values={{ weeks: weeksLabel(shown.draftWeeks) }}
+                  components={BOLD}
+                />
+              </Line>
             )}
             {shown.publishedWeeks.length > 0 && (
-              <li>
-                {t('clientPlanEditor.templates.publishedKept', {
-                  count: shown.publishedWeeks.length,
-                  weeks: weeksLabel(shown.publishedWeeks),
-                  name: clientFirstName,
-                })}
-              </li>
+              <Line dotClass="bg-success">
+                <Trans
+                  i18nKey="clientPlanEditor.templates.publishedKept"
+                  count={shown.publishedWeeks.length}
+                  values={{ weeks: weeksLabel(shown.publishedWeeks), name: clientFirstName }}
+                  components={BOLD}
+                />
+              </Line>
             )}
-            {lengthLine && <li>{lengthLine}</li>}
+            {lengthChanges && (
+              <Line dotClass="bg-faint">
+                <Trans
+                  i18nKey={
+                    shown.resultLength < planLength
+                      ? 'clientPlanEditor.templates.lengthShrinks'
+                      : 'clientPlanEditor.templates.lengthGrows'
+                  }
+                  values={{
+                    template: t('clientPlanEditor.templates.weekCount', { count: pending.weekCount }),
+                    result: t('clientPlanEditor.templates.weekCount', { count: shown.resultLength }),
+                    ending: formatEnding(shown.resultLength),
+                  }}
+                  components={BOLD}
+                />
+              </Line>
+            )}
           </ul>
         )}
 
@@ -136,6 +168,7 @@ export default function ReplaceWithTemplateDialog({
           </Button>
           <Button
             type="button"
+            variant="destructive"
             onClick={() => {
               setKeepLength(false);
               onConfirm(keeping);

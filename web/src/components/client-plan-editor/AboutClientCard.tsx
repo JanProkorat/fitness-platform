@@ -14,7 +14,7 @@ interface Props {
 const CHIP_CLASS =
   'mr-1 mb-0.5 inline-flex h-5 items-center rounded-full border border-border bg-card px-1.5 text-meta font-semibold text-ink-2';
 const ALLERGY_CHIP_CLASS =
-  'mr-1 mb-0.5 inline-flex h-5 items-center rounded-full border border-error bg-card px-1.5 text-meta font-semibold text-error';
+  'mr-1 mb-0.5 inline-flex h-5 items-center rounded-full bg-error-soft px-1.5 text-meta font-semibold text-error';
 
 function Row({ label, testId, children }: { label: string; testId: string; children: ReactNode }) {
   return (
