@@ -20,7 +20,7 @@ export default function IngredientCard({ food, onClick, onViewPicture }: Props) 
 
   return (
     <div className="group relative flex flex-col overflow-hidden rounded-2xl border border-line bg-card shadow-panel transition-colors focus-within:ring-2 focus-within:ring-ring hover:border-ring">
-      <div className="relative aspect-video w-full bg-muted [&_button]:relative [&_button]:z-10">
+      <div className="relative h-29 w-full bg-muted [&_button]:relative [&_button]:z-10">
         <Thumbnail
           cacheKey={food.foodId ? foodImageCacheKey(food.foodId) : undefined}
           imageUrl={food.imageUrl}
