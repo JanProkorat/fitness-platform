@@ -125,7 +125,13 @@ export default function IngredientsPage() {
         </div>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-line bg-card shadow-panel">
+      <div
+        className={
+          viewMode === 'grid'
+            ? 'flex min-h-0 flex-1 flex-col'
+            : 'flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-line bg-card shadow-panel'
+        }
+      >
         {/* This div is the real vertical scroller. `ui/table.tsx`'s own
             `data-slot="table-container"` wraps the table in `overflow-x-auto`,
             which becomes the nearest ancestor with a non-visible overflow —
@@ -135,7 +141,13 @@ export default function IngredientsPage() {
             `overflow-visible` here promotes this div back to the sticky
             ancestor, while it still handles the horizontal scroll (its own
             overflow-x still computes to auto). */}
-        <div className="flex-1 overflow-y-auto [&_[data-slot=table-container]]:overflow-visible">
+        <div
+          className={
+            viewMode === 'grid'
+              ? '-m-1 flex-1 overflow-y-auto p-1'
+              : 'flex-1 overflow-y-auto [&_[data-slot=table-container]]:overflow-visible'
+          }
+        >
           {viewMode === 'grid' ? (
             <IngredientsGrid
               foods={ingredientsQuery.data?.foods ?? []}
@@ -167,6 +179,7 @@ export default function IngredientsPage() {
           pageSize={filters.pageSize}
           totalCount={ingredientsQuery.data?.totalCount ?? 0}
           onPageChange={setPage}
+          bare={viewMode === 'grid'}
         />
       </div>
 
