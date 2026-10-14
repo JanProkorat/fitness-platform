@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import type { FieldError } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Info, Activity, Tag, Trash2, ChevronDown } from 'lucide-react';
+import { Info, Activity, Loader2, Tag, Trash2, ChevronDown } from 'lucide-react';
 import {
   Sheet,
   SheetContent,
@@ -27,12 +27,21 @@ import {
   type CreateFoodRequest,
   type UpdateFoodRequest,
 } from '@/api/food-types';
-import { useCreateFood, useReplaceFoodTagAssignments, useUpdateFood } from '@/hooks/useIngredientsQueries';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  useCreateFood,
+  useFood,
+  useFoodStagedUploads,
+  useReplaceFoodTagAssignments,
+  useUpdateFood,
+} from '@/hooks/useIngredientsQueries';
 import MultiSelectPopover from '@/components/library/MultiSelectPopover';
 import DeleteIngredientDialog from '@/components/ingredients/DeleteIngredientDialog';
 import LibraryTagPickerPopover from '@/components/library/LibraryTagPickerPopover';
 import VisibilityToggle from '@/components/library/VisibilityToggle';
-import IngredientPictureField from '@/components/ingredients/IngredientPictureField';
+import IngredientPicturesTab from '@/components/ingredients/IngredientPicturesTab';
+import StagedPicturesField from '@/components/library/StagedPicturesField';
+import { showPartialUploadError, uploadStagedPictures, useStagedPictures } from '@/components/library/pictureUpload';
 import TagPill from '@/components/tags/TagPill';
 
 const SELECT_CLASS =
@@ -61,6 +70,8 @@ export const UNIT_KEYS = [
   'scoop',
 ] as const;
 export type UnitKey = (typeof UNIT_KEYS)[number];
+
+type TabValue = 'details' | 'pictures';
 
 const CATEGORY_VALUES = Object.values(FoodCategory);
 const ALLERGEN_VALUES = Object.values(Allergen);
@@ -180,10 +191,35 @@ export default function IngredientDrawer({ open, onOpenChange, food, readOnly, i
   // immediately instead of waiting on the parent to refetch `selectedFood`.
   const [assignedTags, setAssignedTags] = useState<FoodTagDto[]>([]);
 
+  const [tab, setTab] = useState<TabValue>('details');
+  const staged = useStagedPictures();
+  const [isUploadingPictures, setIsUploadingPictures] = useState(false);
+
   const createMutation = useCreateFood();
   const updateMutation = useUpdateFood();
   const replaceTagsMutation = useReplaceFoodTagAssignments();
-  const isPending = createMutation.isPending || updateMutation.isPending;
+  const uploads = useFoodStagedUploads();
+  const isPending = createMutation.isPending || updateMutation.isPending || isUploadingPictures;
+
+  // The Pictures tab reads the loaded food so a refetch after each picture
+  // action keeps it current; the form itself keeps seeding from the list snapshot.
+  const foodQuery = useFood(open ? food?.foodId : undefined, food ?? undefined);
+  const picturesFood = foodQuery.data ?? food;
+
+  // Closing — by any route — drops staged previews; nothing closes mid-upload.
+  function handleOpenChange(next: boolean) {
+    if (!next) {
+      if (isUploadingPictures) {
+        return;
+      }
+      staged.clear();
+    }
+    onOpenChange(next);
+  }
+
+  function onInvalid() {
+    setTab('details');
+  }
 
   // Only in edit mode: lets the schema accept the food's own current Unit
   // label unchanged even when it predates UNIT_KEYS — see buildFormSchema's
@@ -221,6 +257,13 @@ export default function IngredientDrawer({ open, onOpenChange, food, readOnly, i
       kcalManualRef.current = false;
     }
   }, [open, food, reset]);
+
+  // A fresh open always starts on Details.
+  useEffect(() => {
+    if (open) {
+      setTab('details');
+    }
+  }, [open]);
 
   const dietaryPreferences = watch('dietaryPreferences');
   const allergens = watch('allergens');
@@ -286,6 +329,34 @@ export default function IngredientDrawer({ open, onOpenChange, food, readOnly, i
     clearErrors('kcal');
   }
 
+  // The food is saved first; its staged pictures upload afterwards. A failed
+  // picture never undoes the save — the drawer still closes with one toast.
+  async function createWithPictures(request: CreateFoodRequest) {
+    try {
+      const created = await createMutation.mutateAsync(request);
+      if (created.foodId && (staged.main || staged.extras.length > 0)) {
+        const foodId = created.foodId;
+        setIsUploadingPictures(true);
+        const failed = await uploadStagedPictures(
+          staged,
+          (file) => uploads.uploadMain(foodId, file),
+          (file) => uploads.uploadGallery(foodId, file),
+        );
+        setIsUploadingPictures(false);
+        if (failed > 0) {
+          showPartialUploadError(failed);
+        }
+      }
+      staged.clear();
+      onOpenChange(false);
+    } catch (error) {
+      if (getErrorCode(error) === 'KCAL_INCONSISTENT') {
+        setError('kcal', { type: 'server', message: t('apiErrors.KCAL_INCONSISTENT') });
+        setTab('details');
+      }
+    }
+  }
+
   function onSubmit(values: FormValues) {
     const commonServings = [
       { label: values.unit, weightGrams: values.servingSize },
@@ -308,14 +379,7 @@ export default function IngredientDrawer({ open, onOpenChange, food, readOnly, i
         dietaryPreferences: values.dietaryPreferences as DietaryPreference[],
         commonServings,
       };
-      createMutation.mutate(request, {
-        onSuccess: () => onOpenChange(false),
-        onError: (error) => {
-          if (getErrorCode(error) === 'KCAL_INCONSISTENT') {
-            setError('kcal', { type: 'server', message: t('apiErrors.KCAL_INCONSISTENT') });
-          }
-        },
-      });
+      void createWithPictures(request);
       return;
     }
 
@@ -360,7 +424,7 @@ export default function IngredientDrawer({ open, onOpenChange, food, readOnly, i
 
   return (
     <>
-      <Sheet open={open} onOpenChange={onOpenChange}>
+      <Sheet open={open} onOpenChange={handleOpenChange}>
         <SheetContent className="sm:w-drawer sm:max-w-none">
           <SheetHeader className="gap-1 border-b border-border p-6">
             <SheetTitle className="text-auth-title font-semibold">
@@ -383,25 +447,18 @@ export default function IngredientDrawer({ open, onOpenChange, food, readOnly, i
             </SheetDescription>
           </SheetHeader>
 
-          <form
-            onSubmit={handleSubmit(onSubmit)}
-            className="flex flex-1 flex-col gap-6 overflow-y-auto px-6 pb-6"
-          >
-            {/* Picture area (#1140) — deliberately OUTSIDE the fieldset below,
-                same reasoning as the tags section further down: its own
-                `readOnly` prop gates the upload/replace/remove controls,
-                independent of the form fieldset's disabled state. Never
-                rendered in create mode — there's no FoodId yet to upload
-                against. */}
-            {food?.foodId && (
-              <IngredientPictureField
-                key={food.foodId}
-                foodId={food.foodId}
-                imageUrl={food.imageUrl}
-                readOnly={readOnly}
-              />
-            )}
+          <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="flex min-h-0 flex-1 flex-col px-6">
+            <Tabs value={tab} onValueChange={(value) => setTab(value as TabValue)} className="min-h-0 flex-1 gap-4">
+              <TabsList variant="underline" aria-label={t('ingredients.drawer.tabsLabel')}>
+                <TabsTrigger variant="underline" value="details">
+                  {t('ingredients.drawer.tabDetails')}
+                </TabsTrigger>
+                <TabsTrigger variant="underline" value="pictures">
+                  {t('ingredients.drawer.tabPictures')}
+                </TabsTrigger>
+              </TabsList>
 
+              <TabsContent value="details" className="flex flex-col gap-6 overflow-y-auto pb-4">
             <fieldset disabled={readOnly} className="flex flex-col gap-6">
               <div className="flex flex-col gap-3">
                 <h3 className="flex items-center gap-2 text-copy font-semibold text-foreground">
@@ -676,6 +733,29 @@ export default function IngredientDrawer({ open, onOpenChange, food, readOnly, i
                 </div>
               </div>
             )}
+              </TabsContent>
+
+              {/* Picture area — outside the Details fieldset, same reasoning as
+                  the tags section: its own `readOnly` prop gates the controls,
+                  independent of the form fieldset's disabled state. */}
+              <TabsContent value="pictures" className="flex flex-col overflow-y-auto pb-4">
+                {food?.foodId ? (
+                  <IngredientPicturesTab
+                    foodId={food.foodId}
+                    imageUrl={picturesFood?.imageUrl}
+                    galleryImageUrls={picturesFood?.galleryImageUrls ?? []}
+                    readOnly={readOnly}
+                  />
+                ) : (
+                  <StagedPicturesField
+                    staged={staged}
+                    disabled={isUploadingPictures}
+                    alt={t('ingredients.picture.alt')}
+                    testIdPrefix="ingredient-gallery"
+                  />
+                )}
+              </TabsContent>
+            </Tabs>
           </form>
 
           <SheetFooter className="flex-row justify-between border-t border-line p-6">
@@ -694,7 +774,14 @@ export default function IngredientDrawer({ open, onOpenChange, food, readOnly, i
               <span />
             )}
             <div className="flex gap-2">
-              <Button type="button" variant="outline" size="lg" className="font-semibold" onClick={() => onOpenChange(false)}>
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                className="font-semibold"
+                disabled={isUploadingPictures}
+                onClick={() => handleOpenChange(false)}
+              >
                 {mode === 'view' ? t('common.close') : t('common.cancel')}
               </Button>
               {mode !== 'view' && (
@@ -703,8 +790,9 @@ export default function IngredientDrawer({ open, onOpenChange, food, readOnly, i
                   size="lg"
                   className="px-4 font-semibold"
                   disabled={isPending}
-                  onClick={handleSubmit(onSubmit)}
+                  onClick={handleSubmit(onSubmit, onInvalid)}
                 >
+                  {isUploadingPictures && <Loader2 className="animate-spin" aria-hidden="true" />}
                   {t('ingredients.drawer.save')}
                 </Button>
               )}
