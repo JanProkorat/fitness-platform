@@ -21645,7 +21645,7 @@ export interface QuestionDto {
 export interface UpdateQuestionnaireRequest {
     title: string;
     description?: string | undefined;
-    /** Form type; optional, but when sent it must equal the stored type. */
+    /** Form type; optional, when sent it replaces the stored type. Existing assignments and responses are unaffected. */
     type?: QuestionnaireType | undefined;
     isActive?: boolean;
     isDefault?: boolean;
@@ -24383,6 +24383,10 @@ non-meal photos and unresolvable logs. */
     /** Kind of the plan meal the photo belongs to. Filled by the trainer view only; null for
 non-meal photos, unresolvable logs, and meals removed from the plan. */
     mealKind?: MealKind | undefined;
+    /** Current name of the plan the photo links to, archived plans included. Filled by the trainer
+view only; null without a plan, when the plan document is missing or belongs to another
+client, and when the caller lacks the capability to view that plan type. */
+    planName?: string | undefined;
     /** When the photo was taken or uploaded, in UTC. */
     takenAt?: string;
     /** The ApplicationUser.Id of the person who uploaded the photo. */
