@@ -22,13 +22,14 @@ export function toPlanEditorDocument(plan: GetPlanResponse): EditorDocument {
   return {
     name: plan.name ?? '',
     targets: toEditorTargets(plan.globalSettings),
+    startDate: plan.startDate ? plan.startDate.slice(0, 10) : undefined,
     weeks: toEditorWeeks(plan.weeks),
   };
 }
 
 /**
- * The PUT replaces the whole plan: name, targets and weeks come from the editor document; the start date
- * and supplements are echoed back from the loaded copy. Goal and target weight are left out, which the
+ * The PUT replaces the whole plan: name, start date, targets and weeks come from the editor document;
+ * supplements are echoed back from the loaded copy. Goal and target weight are left out, which the
  * server reads as "keep what is stored".
  */
 export function toPlanUpdateRequest(
@@ -40,7 +41,7 @@ export function toPlanUpdateRequest(
     name: doc.name.trim(),
     globalSettings: toGlobalSettings(doc.targets),
     weeks: toRequestWeeks(doc.weeks),
-    startDate: nullToUndefined(loaded.startDate),
+    startDate: doc.startDate,
     supplements: (loaded.supplements ?? []).map((supplement) => ({
       externalId: supplement.externalId,
       name: supplement.name,
@@ -219,5 +220,6 @@ export function useClientPlanEditor(loadedPlan: GetPlanResponse, clientId: strin
     weekSubLabel,
     publishedCount,
     totalWeeks,
+    savedStartDate: plan.startDate ? plan.startDate.slice(0, 10) : undefined,
   };
 }

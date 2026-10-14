@@ -2205,7 +2205,29 @@
     },
     "info": {
       "tab": "Planinfo",
-      "placeholder": "Hier erscheinen die Plandetails."
+      "name": "Planname",
+      "dates": "Zeitraum",
+      "starts": "Beginn",
+      "ends": "Ende",
+      "startPick": "Startdatum wählen",
+      "startPlaceholder": "Montag wählen",
+      "datesHint_one": "Pläne beginnen an einem Montag. {{count}} Woche — Wochen fügst du in der Wochenleiste hinzu oder entfernst sie.",
+      "datesHint_other": "Pläne beginnen an einem Montag. {{count}} Wochen — Wochen fügst du in der Wochenleiste hinzu oder entfernst sie.",
+      "copiedFrom": "Aus dem Profil von {{name}} übernommen",
+      "resetToProfile": "auf Profil zurücksetzen",
+      "publishing": "Veröffentlichung",
+      "publishingBody": "Jede Woche wird einzeln veröffentlicht. {{name}} sieht eine Woche erst, nachdem du sie veröffentlicht hast.",
+      "startedFromTemplate": "Aus Vorlage {{name}} erstellt",
+      "about": {
+        "heading": "Über {{name}}",
+        "goal": "Ziel",
+        "diet": "Ernährungsform",
+        "allergies": "Allergien",
+        "dislikes": "Abneigungen",
+        "habits": "Gewohnheiten",
+        "meals": "Mahlzeiten pro Tag",
+        "profileLink": "Ernährungsprofil öffnen"
+      }
     },
     "notFound": {
       "title": "Plan nicht gefunden",
