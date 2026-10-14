@@ -75,7 +75,7 @@ function weekStartUtc(startDate: string | undefined, weekIndex: number): number 
 
 function todayUtc(): number {
   const now = new Date();
-  return Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+  return Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
 }
 
 function sameDocument(left: EditorDocument, right: EditorDocument): boolean {
@@ -94,7 +94,7 @@ export function isClosedPlan(plan: GetPlanResponse): boolean {
  * version the next save is checked against; every save and publish response replaces it.
  */
 export function useClientPlanEditor(loadedPlan: GetPlanResponse, clientId: string) {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const planId = loadedPlan.planId ?? '';
   const [initial] = useState(() => toPlanEditorDocument(loadedPlan));
@@ -165,8 +165,6 @@ export function useClientPlanEditor(loadedPlan: GetPlanResponse, clientId: strin
   }
 
   const statuses = weekStatusMap(plan);
-  const publishedCount = Object.values(statuses).filter((status) => status === 'published').length;
-  const totalWeeks = plan.weeks?.length ?? 0;
 
   /** Why a week cannot be published right now, or null when it can. */
   function publishBlocker(weekIndex: number, doc: EditorDocument): 'published' | 'empty' | 'noStart' | 'past' | null {
@@ -202,24 +200,12 @@ export function useClientPlanEditor(loadedPlan: GetPlanResponse, clientId: strin
     return statuses[weekIndex + 1] ?? 'draft';
   }
 
-  /** The week's Monday, e.g. "6 Oct"; nothing when the plan has no start date. */
-  function weekSubLabel(weekIndex: number): string | undefined {
-    const start = weekStartUtc(plan.startDate, weekIndex);
-    if (start === null) {
-      return undefined;
-    }
-    return new Intl.DateTimeFormat(i18n.language, { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(start);
-  }
-
   return {
     initial,
     saveState,
     save,
     primaryAction,
     weekStatus,
-    weekSubLabel,
-    publishedCount,
-    totalWeeks,
     savedStartDate: plan.startDate ? plan.startDate.slice(0, 10) : undefined,
   };
 }

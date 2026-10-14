@@ -130,10 +130,6 @@ interface Props {
   primaryAction?: PlanEditorPrimaryAction;
   /** With a primary action, keeps the default Save button beside it. */
   secondarySave?: boolean;
-  /** Shown after the plan name in the header, e.g. a status chip. */
-  titleBadge?: ReactNode;
-  /** Small line under each week pill, e.g. its start date. */
-  weekSubLabel?: (weekIndex: number) => string | undefined;
   /** Replaces the template info panel on the info tab. */
   renderInfoPanel?: (context: InfoPanelContext) => ReactNode;
   /** Label of the info tab; defaults to the template wording. */
@@ -198,8 +194,6 @@ export default function PlanEditor({
   breadcrumb,
   primaryAction,
   secondarySave,
-  titleBadge,
-  weekSubLabel,
   renderInfoPanel,
   infoTabLabel,
   libraryExtraTab,
@@ -665,7 +659,6 @@ export default function PlanEditor({
                 breadcrumbLabel={breadcrumb.label}
                 onBreadcrumb={leave}
                 breadcrumbLeading={breadcrumb.leading}
-                titleBadge={titleBadge}
                 readOnly={readOnly}
                 dirty={dirty}
                 saveStatus={saveState.status}
@@ -706,7 +699,6 @@ export default function PlanEditor({
                         }
                       : undefined
                   }
-                  weekSubLabel={weekSubLabel}
                   onSelect={(index) => navigate({ week: index })}
                   onAddWeek={() => {
                     edit(addWeek);

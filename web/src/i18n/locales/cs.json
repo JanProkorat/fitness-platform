@@ -1815,10 +1815,10 @@
       "week": "Týden {{number}}",
       "status_published": ", publikováno",
       "status_draft": ", koncept",
-      "legendPublished_one": "{{count}} publikován",
-      "legendPublished_few": "{{count}} publikovány",
+      "legendPublished_one": "{{count}} publikovaný",
+      "legendPublished_few": "{{count}} publikované",
       "legendPublished_many": "{{count}} publikovaného",
-      "legendPublished_other": "{{count}} publikováno",
+      "legendPublished_other": "{{count}} publikovaných",
       "legendDraft_one": "{{count}} koncept",
       "legendDraft_few": "{{count}} koncepty",
       "legendDraft_many": "{{count}} konceptu",
@@ -2262,10 +2262,6 @@
     "clientFallback": "Klient",
     "backToNutrition": "Zpět na Výživu",
     "readOnly": "Tento plán je uzavřený a nelze ho upravovat.",
-    "status": {
-      "published": "{{published}}/{{total}} publikováno",
-      "draft": "Koncept"
-    },
     "info": {
       "tab": "Info o plánu",
       "name": "Název plánu",
@@ -2280,18 +2276,16 @@
       "datesHint_other": "Plány začínají v pondělí. {{count}} týdnů — týdny přidáte nebo odeberete v pruhu týdnů.",
       "copiedFrom": "Převzato z profilu klienta {{name}}",
       "resetToProfile": "obnovit z profilu",
-      "publishing": "Publikování",
-      "publishingBody": "Každý týden se publikuje zvlášť. Klient {{name}} uvidí týden až po jeho publikování.",
       "startedFromTemplate": "Vytvořeno ze šablony {{name}}",
       "about": {
         "heading": "O klientovi {{name}}",
         "goal": "Cíl",
         "diet": "Dieta",
         "allergies": "Alergie",
-        "dislikes": "Nechuti",
+        "dislikes": "Vyhýbá se",
         "habits": "Návyky",
         "meals": "Jídel denně",
-        "profileLink": "Otevřít výživový profil"
+        "profileLink": "Z úvodního dotazníku klienta {{name}} · otevřít profil"
       }
     },
     "templates": {
@@ -2318,6 +2312,8 @@
         "kcalNear": "~ kcal {{percent}} %"
       },
       "empty": "Zatím žádné šablony.",
+      "searchPlaceholder": "Hledat šablony…",
+      "searchEmpty": "Hledání neodpovídá žádná šablona.",
       "listError": "Šablony se nepodařilo načíst.",
       "loadError": "Šablonu se nepodařilo načíst. Zkuste to znovu.",
       "gone": "Tato šablona už není dostupná.",
@@ -2341,7 +2337,7 @@
       "lengthShrinks": "Šablona má {{template}}; plán se zkrátí na {{result}}{{ending}}.",
       "lengthGrows": "Šablona má {{template}}; plán se prodlouží na {{result}}{{ending}}.",
       "keepLength": "Zachovat {{weeks}} — šablonu zopakovat, aby je vyplnila",
-      "replaceConfirm": "Nahradit koncepty týdnů"
+      "replaceConfirm": "Nahradit rozpracované týdny"
     },
     "notFound": {
       "title": "Plán nenalezen",

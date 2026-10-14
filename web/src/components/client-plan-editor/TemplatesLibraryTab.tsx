@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
+import { Search } from 'lucide-react';
 import type { OnboardingDataDto } from '@/api/generated';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { applyTemplate, needsConfirmation } from '@/components/client-plan-editor/applyTemplate';
 import ReplaceWithTemplateDialog from '@/components/client-plan-editor/ReplaceWithTemplateDialog';
@@ -34,6 +36,11 @@ interface PendingApply {
 
 function publishedWeekNumbers(context: InfoPanelContext, weekStatus: Props['weekStatus']): number[] {
   return context.doc.weeks.flatMap((_, index) => (weekStatus(index) === 'published' ? [index + 1] : []));
+}
+
+/** Lower-cases and strips diacritics so "cukrovinky" finds "Cukrovinky" and "Müsli" finds "musli". */
+function foldText(text: string): string {
+  return text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
 }
 
 function formatPercent(percent: number): string {
@@ -126,6 +133,7 @@ export default function TemplatesLibraryTab({ context, weekStatus, onboarding, c
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   const [pending, setPending] = useState<PendingApply | null>(null);
+  const [searchInput, setSearchInput] = useState('');
   const criteria = useMemo(
     () => criteriaFromOnboarding(onboarding, context.doc.targets.kcal),
     [onboarding, context.doc.targets.kcal],
@@ -141,6 +149,14 @@ export default function TemplatesLibraryTab({ context, weekStatus, onboarding, c
     () => rankTemplates(goalQuery.data?.templates ?? [], allQuery.data?.templates ?? [], criteria),
     [goalQuery.data, allQuery.data, criteria],
   );
+  const query = foldText(searchInput.trim());
+  const visible = useMemo(() => {
+    if (query === '') {
+      return lists;
+    }
+    const matches = (item: RankedTemplate) => foldText(item.template.name ?? '').includes(query);
+    return { matched: lists.matched.filter(matches), others: lists.others.filter(matches) };
+  }, [lists, query]);
   const isPending = allQuery.isPending || (criteria.goal !== undefined && goalQuery.isPending);
   const isError = allQuery.isError || (criteria.goal !== undefined && goalQuery.isError);
   const hasGoal = criteria.goal !== undefined;
@@ -210,7 +226,7 @@ export default function TemplatesLibraryTab({ context, weekStatus, onboarding, c
       ? t('clientPlanEditor.templates.criteria.diet', { diet: t(`clients.values.${criteria.dietaryStyle}`, { defaultValue: criteria.dietaryStyle }) })
       : null,
   ].filter((part): part is string => part !== null);
-  const isEmpty = lists.matched.length === 0 && lists.others.length === 0;
+  const isEmpty = visible.matched.length === 0 && visible.others.length === 0;
 
   return (
     <div className="-mr-1 flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pr-1" data-testid="templates-tab">
@@ -219,6 +235,22 @@ export default function TemplatesLibraryTab({ context, weekStatus, onboarding, c
           ? t('clientPlanEditor.templates.introMatched', { name: clientFirstName, criteria: criteriaParts.join(', ') })
           : t('clientPlanEditor.templates.introAll')}
       </p>
+
+      <div className="relative">
+        <Search
+          className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+          aria-hidden="true"
+        />
+        <Input
+          type="search"
+          data-testid="templates-search"
+          value={searchInput}
+          onChange={(event) => setSearchInput(event.target.value)}
+          placeholder={t('clientPlanEditor.templates.searchPlaceholder')}
+          aria-label={t('clientPlanEditor.templates.searchPlaceholder')}
+          className="h-9 pl-9"
+        />
+      </div>
 
       {isPending && (
         <div className="flex flex-col gap-2">
@@ -248,21 +280,23 @@ export default function TemplatesLibraryTab({ context, weekStatus, onboarding, c
       )}
 
       {!isPending && !isError && isEmpty && (
-        <p className="text-body text-muted-foreground">{t('clientPlanEditor.templates.empty')}</p>
+        <p className="text-body text-muted-foreground">
+          {query === '' ? t('clientPlanEditor.templates.empty') : t('clientPlanEditor.templates.searchEmpty')}
+        </p>
       )}
 
-      {!isPending && !isError && lists.matched.length > 0 && (
-        <ul className="flex flex-col gap-2">{lists.matched.map((item, index) => renderCard(item, index === 0))}</ul>
+      {!isPending && !isError && visible.matched.length > 0 && (
+        <ul className="flex flex-col gap-2">{visible.matched.map((item, index) => renderCard(item, index === 0))}</ul>
       )}
 
-      {!isPending && !isError && lists.others.length > 0 && (
+      {!isPending && !isError && visible.others.length > 0 && (
         <section className="flex flex-col gap-2">
           {hasGoal && (
             <h3 className="text-label font-bold tracking-label text-muted-foreground uppercase">
               {t('clientPlanEditor.templates.otherGoals')}
             </h3>
           )}
-          <ul className="flex flex-col gap-2">{lists.others.map((item) => renderCard(item, false))}</ul>
+          <ul className="flex flex-col gap-2">{visible.others.map((item) => renderCard(item, false))}</ul>
         </section>
       )}
 

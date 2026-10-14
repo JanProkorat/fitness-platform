@@ -223,7 +223,6 @@ test.describe('client plan editor', () => {
     await openEditor.click();
 
     await expect(page).toHaveURL(new RegExp(`/clients/${CLIENT_PROFILE_ID}/nutrition/plans/${SEEDED_PLAN_ID}$`));
-    await expect(page.getByTestId('plan-status-chip')).toBeVisible();
     await expect(page.getByRole('tablist', { name: 'Weeks' })).toBeVisible();
     await expect(page.getByTestId('save-status')).toBeVisible();
   });
@@ -280,7 +279,6 @@ test.describe('client plan editor', () => {
       expect((await publish).ok()).toBe(true);
 
       await expect(page.getByRole('tab', { name: /Week 1.*published/ })).toBeVisible();
-      await expect(page.getByTestId('plan-status-chip')).toContainText(/published/i);
 
       await page.reload();
       await expectEditorLoaded(page, name);
