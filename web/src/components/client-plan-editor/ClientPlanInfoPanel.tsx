@@ -172,7 +172,7 @@ export default function ClientPlanInfoPanel({
 
         <div className="flex flex-col gap-2">
           <span className={SECTION_LABEL_CLASS}>{t('clientPlanEditor.info.dates')}</span>
-          <div className="grid grid-cols-2 gap-x-3">
+          <div className="grid grid-cols-[3fr_2fr] gap-x-3">
             <div className="flex min-w-0 flex-col gap-1">
               <Label htmlFor={`${baseId}-start`}>{t('clientPlanEditor.info.starts')}</Label>
               <StartDatePicker
@@ -187,7 +187,7 @@ export default function ClientPlanInfoPanel({
               <span className="text-body font-medium text-ink">{t('clientPlanEditor.info.ends')}</span>
               <div
                 data-testid="plan-end-date"
-                className="flex h-10 items-center rounded-field border border-input bg-background px-3 text-body font-semibold text-foreground"
+                className="flex h-10 items-center truncate rounded-field border border-input bg-background px-2.5 text-body font-semibold text-foreground"
               >
                 {doc.startDate && weekCount > 0 ? formatCalendarDate(planEndDate(doc.startDate, weekCount), locale) : '—'}
               </div>

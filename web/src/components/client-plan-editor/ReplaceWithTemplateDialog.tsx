@@ -169,6 +169,7 @@ export default function ReplaceWithTemplateDialog({
           <Button
             type="button"
             variant="destructive"
+            className="bg-error text-on-dark hover:bg-error/90"
             onClick={() => {
               setKeepLength(false);
               onConfirm(keeping);

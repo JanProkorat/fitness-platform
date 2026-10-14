@@ -4,11 +4,11 @@ export const DAY_ORDER = [1, 2, 3, 4, 5, 6, 7] as const;
 
 /**
  * One grid for the whole week: the label column is as wide as the longest label, the days share the rest
- * but never get narrower than 5.5rem. `min-w` is 7.5rem of label + 7 days + 7 gaps + the padding, so below
- * that the grid keeps its width and scrolls inside {@link WEEK_GRID_SCROLLER_CLASS}.
+ * but never get narrower than 5.25rem. `min-w` is 6rem of label + 7 days + 7 gaps + the padding (50rem), which
+ * fits the editor at 1440 with the app sidebar and the side panel open; below that the grid keeps its width and scrolls inside {@link WEEK_GRID_SCROLLER_CLASS}.
  */
 export const WEEK_GRID_CLASS =
-  'grid min-w-[52.75rem] grid-cols-[max-content_repeat(7,minmax(5.5rem,1fr))] gap-3 rounded-2xl bg-grid p-3';
+  'grid min-w-[50rem] grid-cols-[max-content_repeat(7,minmax(5.25rem,1fr))] gap-3 rounded-2xl bg-grid p-3';
 
 /** Wraps a week grid so a narrow editor scrolls it sideways instead of squeezing the days. */
 export const WEEK_GRID_SCROLLER_CLASS = 'flex min-w-0 flex-1 flex-col overflow-x-auto rounded-2xl';

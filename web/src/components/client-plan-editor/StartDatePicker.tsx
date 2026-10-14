@@ -33,7 +33,7 @@ export default function StartDatePicker({ id, value, disabled, disabledTitle, on
           disabled={disabled}
           title={disabled ? disabledTitle : undefined}
           aria-label={t('clientPlanEditor.info.startPick')}
-          className="inline-flex h-10 w-full cursor-pointer items-center gap-2 rounded-field border border-input bg-background px-3 text-body font-semibold text-foreground outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex h-10 w-full cursor-pointer items-center gap-1.5 rounded-field border border-input bg-background px-2.5 text-body font-semibold text-foreground outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-60"
         >
           <CalendarDays className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
           <span className={cn('min-w-0 flex-1 truncate text-left', !value && 'font-normal text-muted-foreground')}>
