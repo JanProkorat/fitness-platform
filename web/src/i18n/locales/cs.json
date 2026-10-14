@@ -2405,6 +2405,8 @@
     "PLAN_VERSION_CONFLICT": "Plán byl mezitím upraven jiným požadavkem. Načítám aktuální verzi.",
     "QuestionnaireResponseId": "Tato odpověď na dotazník nebyla nalezena nebo ještě není vyplněná.",
     "PHOTO_DIARY_REQUEST_NOT_FOUND": "Foto-deník nebyl nalezen.",
+    "PHOTO_DIARY_REQUEST_ALREADY_OPEN": "Pro tohoto klienta už je otevřená žádost o fotky.",
+    "PHOTO_DIARY_REQUEST_INVALID_STATUS": "Tato žádost o fotky už není otevřená.",
     "PHOTO_DIARY_REQUEST_FORBIDDEN": "Tento foto-deník vám nepatří.",
     "PHOTO_DIARY_REQUEST_PLAN_NOT_OWNED": "Zvolený plán nebyl nalezen nebo nepatří tomuto klientovi.",
     "BROADCAST_RECIPIENT_LIMIT_EXCEEDED": "Hromadnou zprávu můžete odeslat najednou nejvýše 50 klientům.",
@@ -3360,6 +3362,80 @@
       "clientFallback": "(bez jména)",
       "hint": "Vidíte fotky z vlastních plánů a fotky nahrané během vaší spolupráce s klientem {{name}}.",
       "request": "Vyžádat fotky",
+      "requestBanner": {
+        "sent": "Žádost o fotky odeslána {{date}}",
+        "waiting": "{{name}} zatím neposlal(a) nové fotky"
+      },
+      "requestDrawer": {
+        "title": "Vyžádat fotky",
+        "description": "{{name}} dostane oznámení v aplikaci",
+        "descriptionOpen": "Žádost o fotky pro klienta {{name}} je otevřená",
+        "coachFallback": "Váš trenér",
+        "once": "Jednou",
+        "everyDay": "Každý den",
+        "for": "Na",
+        "days_one": "{{count}} den",
+        "days_few": "{{count}} dny",
+        "days_many": "{{count}} dne",
+        "days_other": "{{count}} dní",
+        "untilHelp": "Do {{date}} · {{min}} až {{max}} dní",
+        "dueByHelp": "Termín do {{date}}",
+        "reminderDaily": "Pokud {{name}} ještě nenahraje fotku, dostane každý den v poledne připomenutí. Žádost se po posledním dni sama uzavře.",
+        "reminderOnce": "{{name}} má na nahrání fotek jeden den. Poté se žádost sama uzavře.",
+        "optional": "nepovinné",
+        "footnote": "{{name}} může žádost přijmout nebo odmítnout",
+        "submit": "Odeslat žádost",
+        "sent": "Žádost o fotky byla odeslána.",
+        "sendError": "Žádost o fotky se nepodařilo odeslat.",
+        "cancelled": "Žádost o fotky byla zrušena.",
+        "cancelError": "Žádost o fotky se nepodařilo zrušit.",
+        "cancelRequest": "Zrušit žádost",
+        "cancelConfirm": "Zrušit žádost pro klienta {{name}}?",
+        "keepRequest": "Ponechat žádost",
+        "confirmCancel": "Ano, zrušit",
+        "planOption": "{{name}} · {{type}}",
+        "planType": {
+          "nutrition": "jídelníček",
+          "training": "tréninkový plán"
+        },
+        "frequency": {
+          "heading": "Jak často"
+        },
+        "plan": {
+          "heading": "Propojit s plánem",
+          "label": "Plán",
+          "none": "Bez plánu",
+          "help": "Fotky se zobrazí u tohoto plánu. Nabízí se jen vaše vlastní plány."
+        },
+        "message": {
+          "heading": "Zpráva",
+          "label": "Co má {{name}} vyfotit?",
+          "counter": "{{current}} / {{max}}"
+        },
+        "preview": {
+          "heading": "Co uvidí {{name}}",
+          "title": "{{name}} žádá o fotky pokroku",
+          "once": "Jednou, do {{date}}",
+          "daily": "Každý den do {{date}}"
+        },
+        "status": {
+          "heading": "Otevřená žádost",
+          "state": "Stav",
+          "frequency": "Jak často",
+          "sent": "Odesláno",
+          "until": "Do",
+          "dueBy": "Termín do",
+          "note": "Žádost se na konci lhůty sama uzavře. Když ji zrušíte, {{name}} už nebude vyzýván(a).",
+          "values": {
+            "Pending": "Čeká na odpověď klienta {{name}}",
+            "Accepted": "{{name}} žádost přijal(a)",
+            "InProgress": "{{name}} nahrává fotky",
+            "Completed": "Dokončeno",
+            "Dismissed": "{{name}} žádost odmítl(a)",
+            "Cancelled": "Zrušeno"
+          }
+        }
+      },
       "emptyTitle": "Zatím žádné fotky",
       "emptyBody": "Fotky z vašich plánů a fotky nahrané klientem {{name}} se zobrazí tady.",
       "openPhoto": "Otevřít fotku z {{date}}",

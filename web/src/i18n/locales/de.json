@@ -2342,6 +2342,8 @@
     "PLAN_VERSION_CONFLICT": "Der Plan wurde inzwischen von einer anderen Anfrage geändert. Aktuelle Version wird geladen.",
     "QuestionnaireResponseId": "Diese Fragebogenantwort wurde nicht gefunden oder ist noch nicht ausgefüllt.",
     "PHOTO_DIARY_REQUEST_NOT_FOUND": "Foto-Tagebuch nicht gefunden.",
+    "PHOTO_DIARY_REQUEST_ALREADY_OPEN": "Für diesen Klienten ist bereits eine Fotoanfrage offen.",
+    "PHOTO_DIARY_REQUEST_INVALID_STATUS": "Diese Fotoanfrage ist nicht mehr offen.",
     "PHOTO_DIARY_REQUEST_FORBIDDEN": "Dieses Foto-Tagebuch gehört nicht Ihnen.",
     "PHOTO_DIARY_REQUEST_PLAN_NOT_OWNED": "Der ausgewählte Plan wurde nicht gefunden oder gehört nicht zu diesem Klienten.",
     "BROADCAST_RECIPIENT_LIMIT_EXCEEDED": "Sie können eine Nachricht gleichzeitig an höchstens 50 Klienten senden.",
@@ -3283,6 +3285,78 @@
       "clientFallback": "diesem Klienten",
       "hint": "Sie sehen Fotos aus Ihren eigenen Plänen und Fotos, die während Ihrer Zusammenarbeit mit {{name}} hochgeladen wurden.",
       "request": "Fotos anfordern",
+      "requestBanner": {
+        "sent": "Fotoanfrage gesendet am {{date}}",
+        "waiting": "{{name}} hat noch keine neuen Fotos geschickt"
+      },
+      "requestDrawer": {
+        "title": "Fotos anfordern",
+        "description": "{{name}} erhält eine Benachrichtigung in der App",
+        "descriptionOpen": "Eine Fotoanfrage an {{name}} ist offen",
+        "coachFallback": "Dein Trainer",
+        "once": "Einmal",
+        "everyDay": "Jeden Tag",
+        "for": "Für",
+        "days_one": "{{count}} Tag",
+        "days_other": "{{count}} Tage",
+        "untilHelp": "Bis {{date}} · {{min}} bis {{max}} Tage",
+        "dueByHelp": "Fällig bis {{date}}",
+        "reminderDaily": "{{name}} erhält jeden Tag um 12 Uhr eine Erinnerung, solange noch kein Foto hochgeladen wurde. Die Anfrage endet nach dem letzten Tag von selbst.",
+        "reminderOnce": "{{name}} hat einen Tag Zeit, Fotos hochzuladen. Danach endet die Anfrage von selbst.",
+        "optional": "optional",
+        "footnote": "{{name}} kann annehmen oder ablehnen",
+        "submit": "Anfrage senden",
+        "sent": "Fotoanfrage gesendet.",
+        "sendError": "Die Fotoanfrage konnte nicht gesendet werden.",
+        "cancelled": "Fotoanfrage abgebrochen.",
+        "cancelError": "Die Fotoanfrage konnte nicht abgebrochen werden.",
+        "cancelRequest": "Anfrage abbrechen",
+        "cancelConfirm": "Anfrage an {{name}} abbrechen?",
+        "keepRequest": "Anfrage behalten",
+        "confirmCancel": "Ja, abbrechen",
+        "planOption": "{{name}} · {{type}}",
+        "planType": {
+          "nutrition": "Ernährungsplan",
+          "training": "Trainingsplan"
+        },
+        "frequency": {
+          "heading": "Wie oft"
+        },
+        "plan": {
+          "heading": "Mit einem Plan verknüpfen",
+          "label": "Plan",
+          "none": "Kein Plan",
+          "help": "Die Fotos erscheinen bei diesem Plan. Es werden nur deine eigenen Pläne angezeigt."
+        },
+        "message": {
+          "heading": "Nachricht",
+          "label": "Was soll {{name}} fotografieren?",
+          "counter": "{{current}} / {{max}}"
+        },
+        "preview": {
+          "heading": "Das sieht {{name}}",
+          "title": "{{name}} bittet um Fortschrittsfotos",
+          "once": "Einmal, fällig bis {{date}}",
+          "daily": "Jeden Tag bis {{date}}"
+        },
+        "status": {
+          "heading": "Offene Anfrage",
+          "state": "Status",
+          "frequency": "Wie oft",
+          "sent": "Gesendet",
+          "until": "Bis",
+          "dueBy": "Fällig bis",
+          "note": "Die Anfrage endet am Ende des Zeitraums von selbst. Brich sie ab, damit {{name}} nicht mehr gefragt wird.",
+          "values": {
+            "Pending": "Wartet auf die Antwort von {{name}}",
+            "Accepted": "{{name}} hat angenommen",
+            "InProgress": "{{name}} lädt gerade hoch",
+            "Completed": "Abgeschlossen",
+            "Dismissed": "{{name}} hat abgelehnt",
+            "Cancelled": "Abgebrochen"
+          }
+        }
+      },
       "emptyTitle": "Noch keine Fotos",
       "emptyBody": "Fotos aus Ihren Plänen und von {{name}} hochgeladene Fotos erscheinen hier.",
       "openPhoto": "Foto vom {{date}} öffnen",
