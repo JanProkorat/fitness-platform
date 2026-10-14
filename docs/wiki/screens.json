@@ -338,10 +338,16 @@
         "web/src/components/library/SortableColumnHeader.tsx",
         "web/src/components/library/sortAria.ts",
         "web/src/components/library/NutrientDots.tsx",
+        "web/src/components/ingredients/IngredientsGrid.tsx",
+        "web/src/components/ingredients/IngredientCard.tsx",
+        "web/src/components/library/ViewModeToggle.tsx",
+        "web/src/components/library/CardParts.tsx",
+        "web/src/components/library/MacroBar.tsx",
         "web/src/components/tags/TagPill.tsx",
         "web/src/components/tags/TagFormDialog.tsx",
         "web/src/hooks/useIngredientsQueries.ts",
         "web/src/hooks/useIngredientListParams.ts",
+        "web/src/hooks/useViewMode.ts",
         "web/src/api/foods.ts",
         "web/src/api/food-tags.ts"
       ],
@@ -369,8 +375,12 @@
       "files": [
         "web/src/components/ingredients/IngredientDrawer.tsx",
         "web/src/components/ingredients/IngredientPictureField.tsx",
+        "web/src/components/ingredients/IngredientPicturesTab.tsx",
+        "web/src/components/ingredients/IngredientGalleryGrid.tsx",
         "web/src/components/ingredients/DeleteIngredientDialog.tsx",
         "web/src/components/library/PictureField.tsx",
+        "web/src/components/library/GalleryGrid.tsx",
+        "web/src/components/library/StagedPicturesField.tsx",
         "web/src/components/library/pictureUpload.ts",
         "web/src/components/library/MultiSelectPopover.tsx",
         "web/src/components/library/LibraryTagPickerPopover.tsx",
@@ -382,6 +392,7 @@
         "web/src/api/food-tags.ts"
       ],
       "endpoints": [
+        "GET /foods/{foodId}",
         "POST /foods",
         "PUT /foods/{foodId}",
         "DELETE /foods/{foodId}",
@@ -390,7 +401,9 @@
         "POST /trainer/food-tags",
         "POST /foods/{foodId}/image/upload-url",
         "PUT /foods/{foodId}/image",
-        "DELETE /foods/{foodId}/image"
+        "DELETE /foods/{foodId}/image",
+        "DELETE /foods/{foodId}/gallery",
+        "POST /foods/{foodId}/gallery/promote"
       ],
       "board": "PageIngredientDrawer",
       "shots": [
