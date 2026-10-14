@@ -10325,7 +10325,7 @@ export class ApiClient {
 
     /**
      * Create a nutrition plan
-     * @return Success
+     * @return The new Draft plan
      */
     createPlanEndpoint(createPlanRequest: CreatePlanRequest, signal?: AbortSignal): Promise<PlanSummaryDto> {
         let url_ = this.baseUrl + "/nutrition/plans";
@@ -10365,27 +10365,27 @@ export class ApiClient {
                 }
             }
         }
-        if (status === 200) {
+        if (status === 201) {
             const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<PlanSummaryDto>(result200);
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = JSON.parse(resultData201);
+            return Promise.resolve<PlanSummaryDto>(result201);
 
         } else if (status === 400) {
             const _responseText = response.data;
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("Invalid request, or the questionnaire response is not found or not submitted", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
+            return throwException("The caller\'s Nutritionist coach role was removed", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;

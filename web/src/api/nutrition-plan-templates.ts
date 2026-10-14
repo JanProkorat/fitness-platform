@@ -51,7 +51,7 @@ export async function searchPlanTemplates(params: SearchPlanTemplatesParams): Pr
     params.pageSize,
     params.search,
     params.goal,
-    undefined,
+    undefined, // dietaryStyle: not filtered on by any caller
     params.weekCount,
     params.mealsPerDay,
     params.inUse,

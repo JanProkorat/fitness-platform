@@ -1771,7 +1771,17 @@
       "previous": "Previous weeks",
       "next": "Next weeks",
       "add": "Add week",
-      "week": "Week {{number}}"
+      "week": "Week {{number}}",
+      "status_published": ", published",
+      "status_draft": ", draft",
+      "legendPublished_one": "{{count}} published",
+      "legendPublished_other": "{{count}} published",
+      "legendDraft_one": "{{count}} draft",
+      "legendDraft_other": "{{count}} draft",
+      "status_empty": ", empty",
+      "legendEmpty_one": "{{count}} empty",
+      "legendEmpty_other": "{{count}} empty",
+      "legendNothingPublished": "nothing published"
     },
     "panel": {
       "tabs": "Side panel",
@@ -2187,6 +2197,85 @@
       "submit": "Create form",
       "invalid": "Check the name and type, then try again.",
       "error": "Couldn't create the form. Please try again."
+    }
+  },
+  "clientPlanEditor": {
+    "publishWeek": "Publish week {{week}}",
+    "clientFallback": "Client",
+    "backToNutrition": "Back to Nutrition",
+    "readOnly": "This plan is closed and can't be edited.",
+    "info": {
+      "tab": "Plan info",
+      "name": "Plan name",
+      "dates": "Dates",
+      "starts": "Starts",
+      "ends": "Ends",
+      "startPick": "Choose the start date",
+      "startPlaceholder": "Pick a Monday",
+      "datesHint_one": "Plans start on a Monday. {{count}} week — add or remove weeks in the week strip.",
+      "datesHint_other": "Plans start on a Monday. {{count}} weeks — add or remove weeks in the week strip.",
+      "copiedFrom": "Copied from {{name}}'s profile",
+      "resetToProfile": "reset to profile",
+      "startedFromTemplate": "Started from template {{name}}",
+      "about": {
+        "heading": "About {{name}}",
+        "goal": "Goal",
+        "diet": "Diet",
+        "allergies": "Allergies",
+        "dislikes": "Avoids",
+        "habits": "Habits",
+        "meals": "Meals a day",
+        "profileLink": "From {{name}}'s onboarding form · open profile"
+      }
+    },
+    "templates": {
+      "tab": "Templates",
+      "introMatched": "Matched to {{name}} — {{criteria}}. Press Use to put a template in the plan.",
+      "introAll": "All your templates. Press Use to put one in the plan.",
+      "criteria": {
+        "goal": "goal {{goal}}",
+        "kcal": "{{kcal}} kcal",
+        "diet": "{{diet}} diet"
+      },
+      "bestMatch": "Best match",
+      "otherGoals": "Other goals",
+      "use": "Use",
+      "useNamed": "Use {{name}}",
+      "noMeals": "This template has no meals.",
+      "weeksShort": "{{count}} wks",
+      "match": {
+        "goal": "✓ goal",
+        "goalDiffers": "goal differs",
+        "diet": "✓ diet",
+        "meals": "✓ meals",
+        "kcalClose": "✓ kcal",
+        "kcalNear": "~ kcal {{percent}} %"
+      },
+      "empty": "No templates yet.",
+      "searchPlaceholder": "Search templates…",
+      "searchEmpty": "No templates match your search.",
+      "listError": "Couldn't load the templates.",
+      "loadError": "Couldn't load the template. Please try again.",
+      "gone": "This template is no longer available.",
+      "emptyTemplate": "This template has no meals.",
+      "replaceTitle": "Use “{{name}}” instead?",
+      "replaceBody": "This plan already has meals. The template will replace them.",
+      "weeksLabel_one": "Week {{range}}",
+      "weeksLabel_other": "Weeks {{range}}",
+      "draftsGet": "<b>{{weeks}}</b> (drafts) get the template’s meals.",
+      "publishedKept_one": "<b>{{weeks}}</b> is published — {{name}} keeps it unchanged.",
+      "publishedKept_other": "<b>{{weeks}}</b> are published — {{name}} keeps them unchanged.",
+      "weekCount_one": "{{count}} week",
+      "weekCount_other": "{{count}} weeks",
+      "ending": ", ending {{date}}",
+      "lengthShrinks": "The template has {{template}}; the plan shortens to <b>{{result}}</b>{{ending}}.",
+      "lengthGrows": "The template has {{template}}; the plan grows to <b>{{result}}</b>{{ending}}.",
+      "keepLength": "Keep {{weeks}} — repeat the template to fill them",
+      "replaceConfirm": "Replace draft weeks"
+    },
+    "notFound": {
+      "title": "Plan not found",
+      "body": "This plan doesn't exist, or it isn't one of this client's plans."
     }
   },
   "planTemplates": {
@@ -3603,7 +3692,27 @@
         "startBlank": "Start blank",
         "browseAll": "Browse all templates",
         "useSuccess": "Draft plan created. It starts next Monday.",
-        "useError": "Couldn't create the plan from this template."
+        "useError": "Couldn't create the plan from this template.",
+        "blankPlanName": "New meal plan",
+        "blankError": "Couldn't create the plan. Please try again."
+      },
+      "copyDialog": {
+        "title": "Copy a plan from another client",
+        "description": "Pick a client, then one of their meal plans. It is copied here as a new draft.",
+        "plansDescription": "Meal plans of {{name}}. The copy lands here as a new draft.",
+        "search": "Search your clients",
+        "noClients": "No other clients found.",
+        "clientsError": "Couldn't load your clients.",
+        "changeClient": "Pick another client",
+        "noPlans": "This client has no meal plans to copy.",
+        "plansError": "Couldn't load this client's plans.",
+        "copy": "Copy",
+        "status": {
+          "Draft": "Draft",
+          "Active": "Active",
+          "Completed": "Completed",
+          "Archived": "Archived"
+        }
       },
       "diet": {
         "Standard": "Standard",
@@ -3853,6 +3962,9 @@
           "trainingPlan": "Training plan",
           "weekOf": "Week {{week}} of {{total}}",
           "noPlan": "No plan yet",
+          "openMealPlan": "Open meal plan",
+          "openMealPlanWeek": "Open meal plan, week {{week}} of {{total}}",
+          "startMealPlan": "Start a meal plan",
           "kg": "{{value}} kg",
           "weightDown": "Weight down since the first weigh-in",
           "weightUp": "Weight up since the first weigh-in"

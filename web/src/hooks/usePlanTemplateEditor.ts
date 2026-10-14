@@ -1,116 +1,31 @@
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { MealKind, type GlobalNutritionSettings } from '@/api/generated';
 import type {
   NutritionPlanTemplateDetailDto,
-  NutritionPlanTemplateWeekRequest,
-  TemplateMealRequest,
   UpdateNutritionPlanTemplateRequest,
 } from '@/api/nutrition-plan-templates';
 import type { PlanEditorSaveState } from '@/components/plan-editor/PlanEditor';
-import type {
-  EditorDocument,
-  EditorMeal,
-  EditorWeek,
-  PlanTargets,
-} from '@/components/plan-editor/plan-editor-types';
+import {
+  nullToUndefined,
+  toEditorTargets,
+  toEditorWeeks,
+  toGlobalSettings,
+  toRequestWeeks,
+} from '@/components/plan-editor/plan-editor-mapping';
+import type { EditorDocument } from '@/components/plan-editor/plan-editor-types';
 import { useUpdatePlanTemplate } from '@/hooks/usePlanTemplatesQueries';
 import { getApiErrorMessage, getErrorStatus } from '@/lib/api-errors';
 
-function nullToUndefined<T>(value: T | null | undefined): T | undefined {
-  return value ?? undefined;
-}
-
 /** Maps the stored template to the editor's neutral document. Stored totals are ignored. */
 export function toEditorDocument(dto: NutritionPlanTemplateDetailDto): EditorDocument {
-  const weeks: EditorWeek[] = [...(dto.weeks ?? [])]
-    .sort((left, right) => (left.weekNumber ?? 0) - (right.weekNumber ?? 0))
-    .map((week, weekIndex) => ({
-      weekNumber: week.weekNumber ?? weekIndex + 1,
-      days: [...(week.days ?? [])]
-        .sort((left, right) => (left.dayOfWeek ?? 0) - (right.dayOfWeek ?? 0))
-        .map((day) => ({
-          dayOfWeek: day.dayOfWeek ?? 1,
-          note: nullToUndefined(day.note),
-          meals: [...(day.meals ?? [])]
-            .sort((left, right) => (left.order ?? 0) - (right.order ?? 0))
-            .map((meal, mealIndex): EditorMeal => ({
-              mealId: meal.mealId ?? crypto.randomUUID(),
-              kind: meal.kind ?? MealKind.Breakfast,
-              order: meal.order ?? mealIndex + 1,
-              time: nullToUndefined(meal.time),
-              note: nullToUndefined(meal.note),
-              foods: (meal.foods ?? []).map((food) => ({
-                foodExternalId: food.foodExternalId ?? '',
-                foodName: food.foodName ?? '',
-                foodNameCs: nullToUndefined(food.foodNameCs),
-                foodNameEn: nullToUndefined(food.foodNameEn),
-                foodNameDe: nullToUndefined(food.foodNameDe),
-                foodCategory: nullToUndefined(food.foodCategory),
-                nutrientValuePer100Grams: food.nutrientValuePer100Grams ?? {},
-                amountGrams: food.amountGrams ?? 0,
-                note: nullToUndefined(food.note),
-              })),
-              recipes: (meal.recipes ?? []).map((recipe) => ({
-                recipeId: recipe.recipeId ?? '',
-                recipeName: recipe.recipeName ?? '',
-                nutrientValuePerServing: recipe.nutrientValuePerServing ?? {},
-                servings: recipe.servings ?? 1,
-                note: nullToUndefined(recipe.note),
-                foodCategories: nullToUndefined(recipe.foodCategories),
-              })),
-            })),
-        })),
-    }));
-  const settings = dto.globalSettings;
   return {
     name: dto.name ?? '',
     description: nullToUndefined(dto.description),
     goal: nullToUndefined(dto.goal),
     dietaryStyle: nullToUndefined(dto.dietaryStyle),
-    targets: {
-      kcal: nullToUndefined(settings?.dailyKcal),
-      protein: nullToUndefined(settings?.proteinGrams),
-      carbs: nullToUndefined(settings?.carbsGrams),
-      fat: nullToUndefined(settings?.fatGrams),
-      fiber: nullToUndefined(settings?.fiberGrams),
-    },
-    weeks,
+    targets: toEditorTargets(dto.globalSettings),
+    weeks: toEditorWeeks(dto.weeks),
   };
-}
-
-function toGlobalSettings(targets: PlanTargets): GlobalNutritionSettings | undefined {
-  const settings: GlobalNutritionSettings = {
-    dailyKcal: targets.kcal,
-    proteinGrams: targets.protein,
-    carbsGrams: targets.carbs,
-    fatGrams: targets.fat,
-    fiberGrams: targets.fiber,
-  };
-  return Object.values(settings).some((value) => value !== undefined) ? settings : undefined;
-}
-
-function toRequestMeal(meal: EditorMeal): TemplateMealRequest {
-  return {
-    mealId: meal.mealId,
-    kind: meal.kind,
-    order: meal.order,
-    time: meal.time,
-    note: meal.note,
-    foods: meal.foods.map((food) => ({ ...food })),
-    recipes: meal.recipes.map((recipe) => ({ ...recipe })),
-  };
-}
-
-function toRequestWeeks(weeks: EditorWeek[]): NutritionPlanTemplateWeekRequest[] {
-  return weeks.map((week) => ({
-    weekNumber: week.weekNumber,
-    days: week.days.map((day) => ({
-      dayOfWeek: day.dayOfWeek,
-      note: day.note,
-      meals: day.meals.map(toRequestMeal),
-    })),
-  }));
 }
 
 /**

@@ -1770,7 +1770,17 @@
       "previous": "Vorherige Wochen",
       "next": "Weitere Wochen",
       "add": "Woche hinzufügen",
-      "week": "Woche {{number}}"
+      "week": "Woche {{number}}",
+      "status_published": ", veröffentlicht",
+      "status_draft": ", Entwurf",
+      "legendPublished_one": "{{count}} veröffentlicht",
+      "legendPublished_other": "{{count}} veröffentlicht",
+      "legendDraft_one": "{{count}} Entwurf",
+      "legendDraft_other": "{{count}} Entwürfe",
+      "status_empty": ", leer",
+      "legendEmpty_one": "{{count}} leer",
+      "legendEmpty_other": "{{count}} leer",
+      "legendNothingPublished": "nichts veröffentlicht"
     },
     "panel": {
       "tabs": "Seitenleiste",
@@ -2186,6 +2196,85 @@
       "submit": "Formular erstellen",
       "invalid": "Prüfen Sie Name und Typ und versuchen Sie es erneut.",
       "error": "Das Formular konnte nicht erstellt werden. Bitte versuchen Sie es erneut."
+    }
+  },
+  "clientPlanEditor": {
+    "publishWeek": "Woche {{week}} veröffentlichen",
+    "clientFallback": "Klient",
+    "backToNutrition": "Zurück zur Ernährung",
+    "readOnly": "Dieser Plan ist abgeschlossen und kann nicht bearbeitet werden.",
+    "info": {
+      "tab": "Planinfo",
+      "name": "Planname",
+      "dates": "Zeitraum",
+      "starts": "Beginn",
+      "ends": "Ende",
+      "startPick": "Startdatum wählen",
+      "startPlaceholder": "Montag wählen",
+      "datesHint_one": "Pläne beginnen an einem Montag. {{count}} Woche — Wochen fügen Sie in der Wochenleiste hinzu oder entfernen sie.",
+      "datesHint_other": "Pläne beginnen an einem Montag. {{count}} Wochen — Wochen fügen Sie in der Wochenleiste hinzu oder entfernen sie.",
+      "copiedFrom": "Aus dem Profil von {{name}} übernommen",
+      "resetToProfile": "auf Profil zurücksetzen",
+      "startedFromTemplate": "Aus Vorlage {{name}} erstellt",
+      "about": {
+        "heading": "Über {{name}}",
+        "goal": "Ziel",
+        "diet": "Ernährungsform",
+        "allergies": "Allergien",
+        "dislikes": "Abneigungen",
+        "habits": "Gewohnheiten",
+        "meals": "Mahlzeiten pro Tag",
+        "profileLink": "Aus dem Onboarding-Formular von {{name}} · Profil öffnen"
+      }
+    },
+    "templates": {
+      "tab": "Vorlagen",
+      "introMatched": "Passend zu {{name}} — {{criteria}}. Mit „Verwenden“ übernehmen Sie eine Vorlage in den Plan.",
+      "introAll": "Alle Ihre Vorlagen. Mit „Verwenden“ übernehmen Sie eine Vorlage in den Plan.",
+      "criteria": {
+        "goal": "Ziel {{goal}}",
+        "kcal": "{{kcal}} kcal",
+        "diet": "Ernährung: {{diet}}"
+      },
+      "bestMatch": "Beste Übereinstimmung",
+      "otherGoals": "Andere Ziele",
+      "use": "Verwenden",
+      "useNamed": "{{name}} verwenden",
+      "noMeals": "Diese Vorlage enthält keine Mahlzeiten.",
+      "weeksShort": "{{count}} Wo.",
+      "match": {
+        "goal": "✓ Ziel",
+        "goalDiffers": "anderes Ziel",
+        "diet": "✓ Ernährung",
+        "meals": "✓ Mahlzeiten",
+        "kcalClose": "✓ kcal",
+        "kcalNear": "~ kcal {{percent}} %"
+      },
+      "empty": "Noch keine Vorlagen.",
+      "searchPlaceholder": "Vorlagen suchen…",
+      "searchEmpty": "Keine Vorlage entspricht Ihrer Suche.",
+      "listError": "Die Vorlagen konnten nicht geladen werden.",
+      "loadError": "Die Vorlage konnte nicht geladen werden. Bitte versuchen Sie es erneut.",
+      "gone": "Diese Vorlage ist nicht mehr verfügbar.",
+      "emptyTemplate": "Diese Vorlage enthält keine Mahlzeiten.",
+      "replaceTitle": "Stattdessen „{{name}}“ verwenden?",
+      "replaceBody": "Dieser Plan enthält bereits Mahlzeiten. Die Vorlage ersetzt sie.",
+      "weeksLabel_one": "Woche {{range}}",
+      "weeksLabel_other": "Wochen {{range}}",
+      "draftsGet": "<b>{{weeks}}</b> (Entwürfe) erhalten die Mahlzeiten der Vorlage.",
+      "publishedKept_one": "<b>{{weeks}}</b> ist veröffentlicht — {{name}} behält sie unverändert.",
+      "publishedKept_other": "<b>{{weeks}}</b> sind veröffentlicht — {{name}} behält sie unverändert.",
+      "weekCount_one": "{{count}} Woche",
+      "weekCount_other": "{{count}} Wochen",
+      "ending": ", Ende {{date}}",
+      "lengthShrinks": "Die Vorlage hat {{template}}; der Plan wird auf <b>{{result}}</b> gekürzt{{ending}}.",
+      "lengthGrows": "Die Vorlage hat {{template}}; der Plan wächst auf <b>{{result}}</b>{{ending}}.",
+      "keepLength": "{{weeks}} beibehalten — die Vorlage wiederholen, um sie zu füllen",
+      "replaceConfirm": "Entwurfswochen ersetzen"
+    },
+    "notFound": {
+      "title": "Plan nicht gefunden",
+      "body": "Dieser Plan existiert nicht oder gehört nicht zu diesem Klienten."
     }
   },
   "planTemplates": {
@@ -3602,7 +3691,27 @@
         "startBlank": "Leer starten",
         "browseAll": "Alle Vorlagen durchsuchen",
         "useSuccess": "Entwurf erstellt. Er beginnt am nächsten Montag.",
-        "useError": "Der Plan konnte nicht aus der Vorlage erstellt werden."
+        "useError": "Der Plan konnte nicht aus der Vorlage erstellt werden.",
+        "blankPlanName": "Neuer Ernährungsplan",
+        "blankError": "Der Plan konnte nicht erstellt werden. Bitte versuchen Sie es erneut."
+      },
+      "copyDialog": {
+        "title": "Plan von anderem Klienten kopieren",
+        "description": "Wählen Sie einen Klienten und dann einen seiner Ernährungspläne. Er wird hier als neuer Entwurf kopiert.",
+        "plansDescription": "Ernährungspläne von {{name}}. Die Kopie landet hier als neuer Entwurf.",
+        "search": "Ihre Klienten durchsuchen",
+        "noClients": "Keine weiteren Klienten gefunden.",
+        "clientsError": "Die Klienten konnten nicht geladen werden.",
+        "changeClient": "Anderen Klienten wählen",
+        "noPlans": "Dieser Klient hat keine Ernährungspläne zum Kopieren.",
+        "plansError": "Die Pläne dieses Klienten konnten nicht geladen werden.",
+        "copy": "Kopieren",
+        "status": {
+          "Draft": "Entwurf",
+          "Active": "Aktiv",
+          "Completed": "Abgeschlossen",
+          "Archived": "Archiviert"
+        }
       },
       "diet": {
         "Standard": "Standard",
@@ -3852,6 +3961,9 @@
           "trainingPlan": "Trainingsplan",
           "weekOf": "Woche {{week}} von {{total}}",
           "noPlan": "Noch kein Plan",
+          "openMealPlan": "Ernährungsplan öffnen",
+          "openMealPlanWeek": "Ernährungsplan öffnen, Woche {{week}} von {{total}}",
+          "startMealPlan": "Ernährungsplan beginnen",
           "kg": "{{value}} kg",
           "weightDown": "Gewicht seit der ersten Messung gesunken",
           "weightUp": "Gewicht seit der ersten Messung gestiegen"

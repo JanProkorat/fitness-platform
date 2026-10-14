@@ -87,7 +87,7 @@ export default function ClientDetailHeader({ clientId, dashboard, plansQuery, me
         </div>
 
         <div className="w-full xl:ml-auto xl:w-auto">
-          <ClientHeaderFacts dashboard={dashboard} role={role} facts={facts} />
+          <ClientHeaderFacts clientId={clientId} dashboard={dashboard} role={role} facts={facts} />
         </div>
       </div>
 

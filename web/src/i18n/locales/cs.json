@@ -1812,7 +1812,23 @@
       "previous": "Předchozí týdny",
       "next": "Další týdny",
       "add": "Přidat týden",
-      "week": "Týden {{number}}"
+      "week": "Týden {{number}}",
+      "status_published": ", publikováno",
+      "status_draft": ", koncept",
+      "legendPublished_one": "{{count}} publikovaný",
+      "legendPublished_few": "{{count}} publikované",
+      "legendPublished_many": "{{count}} publikovaného",
+      "legendPublished_other": "{{count}} publikovaných",
+      "legendDraft_one": "{{count}} koncept",
+      "legendDraft_few": "{{count}} koncepty",
+      "legendDraft_many": "{{count}} konceptu",
+      "legendDraft_other": "{{count}} konceptů",
+      "status_empty": ", prázdný",
+      "legendEmpty_one": "{{count}} prázdný",
+      "legendEmpty_few": "{{count}} prázdné",
+      "legendEmpty_many": "{{count}} prázdného",
+      "legendEmpty_other": "{{count}} prázdných",
+      "legendNothingPublished": "nic nepublikováno"
     },
     "panel": {
       "tabs": "Boční panel",
@@ -2245,6 +2261,93 @@
       "submit": "Vytvořit formulář",
       "invalid": "Zkontrolujte název a typ a zkuste to znovu.",
       "error": "Formulář se nepodařilo vytvořit. Zkuste to prosím znovu."
+    }
+  },
+  "clientPlanEditor": {
+    "publishWeek": "Publikovat týden {{week}}",
+    "clientFallback": "Klient",
+    "backToNutrition": "Zpět na Výživu",
+    "readOnly": "Tento plán je uzavřený a nelze ho upravovat.",
+    "info": {
+      "tab": "Info o plánu",
+      "name": "Název plánu",
+      "dates": "Termín",
+      "starts": "Začátek",
+      "ends": "Konec",
+      "startPick": "Vybrat datum začátku",
+      "startPlaceholder": "Vyberte pondělí",
+      "datesHint_one": "Plány začínají v pondělí. {{count}} týden — týdny přidáte nebo odeberete v pruhu týdnů.",
+      "datesHint_few": "Plány začínají v pondělí. {{count}} týdny — týdny přidáte nebo odeberete v pruhu týdnů.",
+      "datesHint_many": "Plány začínají v pondělí. {{count}} týdne — týdny přidáte nebo odeberete v pruhu týdnů.",
+      "datesHint_other": "Plány začínají v pondělí. {{count}} týdnů — týdny přidáte nebo odeberete v pruhu týdnů.",
+      "copiedFrom": "Převzato z profilu klienta {{name}}",
+      "resetToProfile": "obnovit z profilu",
+      "startedFromTemplate": "Vytvořeno ze šablony {{name}}",
+      "about": {
+        "heading": "O klientovi {{name}}",
+        "goal": "Cíl",
+        "diet": "Dieta",
+        "allergies": "Alergie",
+        "dislikes": "Vyhýbá se",
+        "habits": "Návyky",
+        "meals": "Jídel denně",
+        "profileLink": "Z úvodního dotazníku klienta {{name}} · otevřít profil"
+      }
+    },
+    "templates": {
+      "tab": "Šablony",
+      "introMatched": "Vybráno pro klienta {{name}} — {{criteria}}. Šablonu vložíte do plánu tlačítkem Použít.",
+      "introAll": "Všechny vaše šablony. Šablonu vložíte do plánu tlačítkem Použít.",
+      "criteria": {
+        "goal": "cíl {{goal}}",
+        "kcal": "{{kcal}} kcal",
+        "diet": "strava: {{diet}}"
+      },
+      "bestMatch": "Nejlepší shoda",
+      "otherGoals": "Jiné cíle",
+      "use": "Použít",
+      "useNamed": "Použít {{name}}",
+      "noMeals": "Tato šablona nemá žádná jídla.",
+      "weeksShort": "{{count}} týd.",
+      "match": {
+        "goal": "✓ cíl",
+        "goalDiffers": "jiný cíl",
+        "diet": "✓ strava",
+        "meals": "✓ jídla",
+        "kcalClose": "✓ kcal",
+        "kcalNear": "~ kcal {{percent}} %"
+      },
+      "empty": "Zatím žádné šablony.",
+      "searchPlaceholder": "Hledat šablony…",
+      "searchEmpty": "Hledání neodpovídá žádná šablona.",
+      "listError": "Šablony se nepodařilo načíst.",
+      "loadError": "Šablonu se nepodařilo načíst. Zkuste to znovu.",
+      "gone": "Tato šablona už není dostupná.",
+      "emptyTemplate": "Tato šablona nemá žádná jídla.",
+      "replaceTitle": "Použít místo toho „{{name}}“?",
+      "replaceBody": "Tento plán už jídla obsahuje. Šablona je nahradí.",
+      "weeksLabel_one": "Týden {{range}}",
+      "weeksLabel_few": "Týdny {{range}}",
+      "weeksLabel_many": "Týdny {{range}}",
+      "weeksLabel_other": "Týdny {{range}}",
+      "draftsGet": "<b>{{weeks}}</b> (koncepty) dostanou jídla ze šablony.",
+      "publishedKept_one": "<b>{{weeks}}</b> je publikovaný — {{name}} ho vidí beze změny.",
+      "publishedKept_few": "<b>{{weeks}}</b> jsou publikované — {{name}} je vidí beze změny.",
+      "publishedKept_many": "<b>{{weeks}}</b> jsou publikované — {{name}} je vidí beze změny.",
+      "publishedKept_other": "<b>{{weeks}}</b> jsou publikované — {{name}} je vidí beze změny.",
+      "weekCount_one": "{{count}} týden",
+      "weekCount_few": "{{count}} týdny",
+      "weekCount_many": "{{count}} týdne",
+      "weekCount_other": "{{count}} týdnů",
+      "ending": ", konec {{date}}",
+      "lengthShrinks": "Šablona má {{template}}; plán se zkrátí na <b>{{result}}</b>{{ending}}.",
+      "lengthGrows": "Šablona má {{template}}; plán se prodlouží na <b>{{result}}</b>{{ending}}.",
+      "keepLength": "Zachovat {{weeks}} — šablonu zopakovat, aby je vyplnila",
+      "replaceConfirm": "Nahradit rozpracované týdny"
+    },
+    "notFound": {
+      "title": "Plán nenalezen",
+      "body": "Tento plán neexistuje nebo nepatří tomuto klientovi."
     }
   },
   "planTemplates": {
@@ -3697,7 +3800,27 @@
         "startBlank": "Začít od nuly",
         "browseAll": "Procházet všechny šablony",
         "useSuccess": "Koncept plánu je vytvořený. Začíná příští pondělí.",
-        "useError": "Plán se ze šablony nepodařilo vytvořit."
+        "useError": "Plán se ze šablony nepodařilo vytvořit.",
+        "blankPlanName": "Nový jídelníček",
+        "blankError": "Plán se nepodařilo vytvořit. Zkuste to prosím znovu."
+      },
+      "copyDialog": {
+        "title": "Zkopírovat plán od jiného klienta",
+        "description": "Vyberte klienta a pak některý z jeho jídelníčků. Zkopíruje se sem jako nový koncept.",
+        "plansDescription": "Jídelníčky klienta {{name}}. Kopie se uloží sem jako nový koncept.",
+        "search": "Hledat mezi vašimi klienty",
+        "noClients": "Žádní další klienti nenalezeni.",
+        "clientsError": "Klienty se nepodařilo načíst.",
+        "changeClient": "Vybrat jiného klienta",
+        "noPlans": "Tento klient nemá žádný jídelníček ke zkopírování.",
+        "plansError": "Plány klienta se nepodařilo načíst.",
+        "copy": "Zkopírovat",
+        "status": {
+          "Draft": "Koncept",
+          "Active": "Aktivní",
+          "Completed": "Dokončený",
+          "Archived": "Archivovaný"
+        }
       },
       "diet": {
         "Standard": "Standardní",
@@ -3955,6 +4078,9 @@
           "trainingPlan": "Tréninkový plán",
           "weekOf": "Týden {{week}} z {{total}}",
           "noPlan": "Zatím bez plánu",
+          "openMealPlan": "Otevřít jídelníček",
+          "openMealPlanWeek": "Otevřít jídelníček, týden {{week}} z {{total}}",
+          "startMealPlan": "Začít jídelníček",
           "kg": "{{value}} kg",
           "weightDown": "Váha klesla od prvního vážení",
           "weightUp": "Váha stoupla od prvního vážení"

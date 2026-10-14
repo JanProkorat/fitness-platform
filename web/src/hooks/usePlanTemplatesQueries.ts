@@ -7,6 +7,7 @@ import {
   searchPlanTemplates,
   updatePlanTemplate,
   type CreateNutritionPlanTemplateRequest,
+  type PrimaryGoal,
   type UpdateNutritionPlanTemplateRequest,
 } from '@/api/nutrition-plan-templates';
 import { getErrorStatus, showApiError, showSuccess } from '@/lib/api-errors';
@@ -71,6 +72,29 @@ export function usePlanTemplateSources(search: string, enabled: boolean) {
     enabled,
     retry: retryUnlessForbidden,
   });
+}
+
+/** Templates a client plan editor offers: one page of everything, and one page of the client's goal. */
+const MATCH_PAGE_SIZE = 100;
+
+/**
+ * Two lists for ranking templates against a client: those of the client's goal (only when it has one)
+ * and everything. Matching on dietary style and meals per day happens client-side, so near matches stay.
+ */
+export function useClientMatchedTemplates(goal: PrimaryGoal | undefined, enabled: boolean) {
+  const goalQuery = useQuery({
+    queryKey: ['plan-templates', 'client-match', 'goal', goal],
+    queryFn: () => searchPlanTemplates({ goal, page: 1, pageSize: MATCH_PAGE_SIZE }),
+    enabled: enabled && goal !== undefined,
+    retry: retryUnlessForbidden,
+  });
+  const allQuery = useQuery({
+    queryKey: ['plan-templates', 'client-match', 'all'],
+    queryFn: () => searchPlanTemplates({ page: 1, pageSize: MATCH_PAGE_SIZE }),
+    enabled,
+    retry: retryUnlessForbidden,
+  });
+  return { goalQuery, allQuery };
 }
 
 /** Loads one template's detail on demand, outside the cache, to read the meals to copy. */

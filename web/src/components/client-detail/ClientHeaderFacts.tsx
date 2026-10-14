@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import { ArrowDown, ArrowUp } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { ClientOverviewRole } from '@/lib/client-metrics';
@@ -7,12 +8,16 @@ import type { ClientHeaderFacts as ClientHeaderFactsModel, FactState, PlanFact }
 import type { GetClientDashboardResponse } from '@/api/generated';
 
 interface Props {
+  clientId: string;
   dashboard: GetClientDashboardResponse;
   role: ClientOverviewRole;
   facts: ClientHeaderFactsModel;
 }
 
 const EMPTY_VALUE = '—';
+
+const FACT_LINK_CLASS =
+  'rounded-sm outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50';
 
 function Fact({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -32,22 +37,60 @@ function FactSkeleton() {
  * PageClientDetail). Each fact has its own loading and error state: a failed
  * query shows a dash, never a retry (the tab bodies own retry).
  */
-export default function ClientHeaderFacts({ dashboard, role, facts }: Props) {
+export default function ClientHeaderFacts({ clientId, dashboard, role, facts }: Props) {
   const { t, i18n } = useTranslation();
 
   const goal = dashboard.onboarding?.primaryGoal;
 
-  function renderPlan(state: FactState<PlanFact>): ReactNode {
+  function renderPlan(state: FactState<PlanFact>, linkTo?: { clientId: string }): ReactNode {
     if (state.status === 'loading') {
       return <FactSkeleton />;
     }
-    if (state.status === 'error' || state.value.kind === 'unknown') {
+    if (state.status === 'error') {
       return EMPTY_VALUE;
     }
-    if (state.value.kind === 'none') {
-      return <span className="font-sans text-body font-medium text-muted-foreground">{t('clientDetail.overview.header.facts.noPlan')}</span>;
+    const { value } = state;
+    if (value.kind === 'unknown') {
+      if (linkTo && value.planId) {
+        return (
+          <Link
+            to={`/clients/${linkTo.clientId}/nutrition/plans/${value.planId}`}
+            aria-label={t('clientDetail.overview.header.facts.openMealPlan')}
+            className={FACT_LINK_CLASS}
+          >
+            {EMPTY_VALUE}
+          </Link>
+        );
+      }
+      return EMPTY_VALUE;
     }
-    return t('clientDetail.overview.header.facts.weekOf', { week: state.value.week, total: state.value.total });
+    if (value.kind === 'none') {
+      const text = <span className="font-sans text-body font-medium text-muted-foreground">{t('clientDetail.overview.header.facts.noPlan')}</span>;
+      return linkTo ? (
+        <Link
+          to={`/clients/${linkTo.clientId}/nutrition`}
+          aria-label={t('clientDetail.overview.header.facts.startMealPlan')}
+          className={FACT_LINK_CLASS}
+        >
+          {text}
+        </Link>
+      ) : (
+        text
+      );
+    }
+    const label = t('clientDetail.overview.header.facts.weekOf', { week: value.week, total: value.total });
+    if (linkTo && value.planId) {
+      return (
+        <Link
+          to={`/clients/${linkTo.clientId}/nutrition/plans/${value.planId}`}
+          aria-label={t('clientDetail.overview.header.facts.openMealPlanWeek', { week: value.week, total: value.total })}
+          className={FACT_LINK_CLASS}
+        >
+          {label}
+        </Link>
+      );
+    }
+    return label;
   }
 
   function renderWeight(): ReactNode {
@@ -98,7 +141,7 @@ export default function ClientHeaderFacts({ dashboard, role, facts }: Props) {
     entries.push({
       key: 'mealPlan',
       label: t('clientDetail.overview.header.facts.mealPlan'),
-      content: renderPlan(facts.mealPlan),
+      content: renderPlan(facts.mealPlan, { clientId }),
     });
   }
   if (role !== 'nutritionist') {

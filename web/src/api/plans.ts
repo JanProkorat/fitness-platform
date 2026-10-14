@@ -1,10 +1,16 @@
 import api from '@/lib/api';
 import { apiClient } from '@/api/client';
-import type { CopyNutritionPlanRequest, CopyNutritionPlanResponse } from '@/api/generated';
+import type {
+  CopyNutritionPlanRequest,
+  CopyNutritionPlanResponse,
+  CreatePlanRequest,
+  GetPlanResponse,
+  PlanSummaryDto,
+  UpdatePlanRequest as UpdatePlanDocumentRequest,
+} from '@/api/generated';
 import type {
   NutritionPlanDetail,
   GetPlansResponse,
-  CreatePlanRequest,
   UpdatePlanRequest,
 } from './plan-types';
 
@@ -25,10 +31,9 @@ export async function getPlan(planId: string): Promise<NutritionPlanDetail> {
   return data;
 }
 
-/** Create a new nutrition plan. */
-export async function createPlan(request: CreatePlanRequest): Promise<NutritionPlanDetail> {
-  const { data } = await api.post<NutritionPlanDetail>('/nutrition/plans', request);
-  return data;
+/** Create a new nutrition plan (POST /nutrition/plans); resolves with its summary. */
+export function createPlan(request: CreatePlanRequest): Promise<PlanSummaryDto> {
+  return apiClient.createPlanEndpoint(request);
 }
 
 /** Full-state update of a nutrition plan. */
@@ -89,4 +94,23 @@ export function copyNutritionPlan(
   request: CopyNutritionPlanRequest,
 ): Promise<CopyNutritionPlanResponse> {
   return apiClient.copyNutritionPlanEndpoint(planId, request);
+}
+
+/** The plan as the editor loads it (GET /nutrition/plans/{planId}), typed from the generated client. */
+export function fetchPlanForEditor(planId: string): Promise<GetPlanResponse> {
+  return apiClient.getPlanEndpoint(planId);
+}
+
+/** Full-state save of a plan from the editor (PUT /nutrition/plans/{planId}). */
+export function savePlanFromEditor(planId: string, request: UpdatePlanDocumentRequest): Promise<GetPlanResponse> {
+  return apiClient.updatePlanEndpoint(planId, request);
+}
+
+/** Publishes one stored week (POST /nutrition/plans/{planId}/weeks/{weekNumber}/publish); returns the plan. */
+export function publishPlanWeekFromEditor(
+  planId: string,
+  weekNumber: number,
+  version: number | undefined,
+): Promise<GetPlanResponse> {
+  return apiClient.publishWeekEndpoint(planId, weekNumber, { version });
 }
