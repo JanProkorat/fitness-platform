@@ -10,7 +10,7 @@
  * project routing is by file path, not by which fixture a test uses (same
  * pattern as ingredients.spec.ts).
  */
-import { request as apiRequest, type Locator } from '@playwright/test';
+import { request as apiRequest, type Locator, type Page } from '@playwright/test';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { nutritionistTest as test, trainerTest, expect } from '../fixtures/auth';
@@ -151,8 +151,14 @@ async function fetchRecipeImageUrl(baseURL: string, recipeId: string): Promise<s
   return (await fetchRecipePictures(baseURL, recipeId)).imageUrl;
 }
 
+/** Recipes opens as a card grid; the table-based tests pin the list view before navigating. */
+async function useListView(page: Page): Promise<void> {
+  await page.addInitScript(() => window.localStorage.setItem('recipes-view-mode', 'list'));
+}
+
 test.describe('recipes page', () => {
   test.beforeEach(async ({ page }) => {
+    await useListView(page);
     await page.goto('/recipes');
     await page.waitForLoadState('networkidle');
     await expect(page.getByRole('heading', { name: 'Recipes', exact: true })).toBeVisible();
@@ -418,6 +424,24 @@ test.describe('recipes page', () => {
   });
 });
 
+test.describe('recipes view mode', () => {
+  test('opens as a card grid, switches to the table and remembers the choice after a reload', async ({ page }) => {
+    await page.goto('/recipes');
+    await expect(page.getByRole('heading', { name: 'Recipes', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: /kcal/ }).first()).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Name' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Cards' })).toHaveAttribute('aria-pressed', 'true');
+
+    await page.getByRole('button', { name: 'Table' }).click();
+    await expect(page.getByRole('columnheader', { name: 'Name' })).toBeVisible();
+    await expect(page.locator('tbody tr').first()).toBeVisible();
+
+    await page.reload();
+    await expect(page.getByRole('columnheader', { name: 'Name' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Table' })).toHaveAttribute('aria-pressed', 'true');
+  });
+});
+
 test.describe('recipes empty state', () => {
   test('shows the empty state with a create button when the list is empty', async ({ page }) => {
     // The QA seed always has recipes, so stub the list to reach the empty state.
@@ -459,6 +483,7 @@ test.describe('recipe picture', () => {
       const naturalWidth = (locator: Locator) =>
         locator.evaluate((element) => (element as HTMLImageElement).naturalWidth);
 
+      await useListView(page);
       await page.goto('/recipes');
       await page.getByPlaceholder('Search recipes…').fill(name);
       await page.getByRole('cell', { name }).click();
@@ -502,6 +527,7 @@ test.describe('recipe picture', () => {
         route.fulfill({ path: IMAGE_A_PATH, contentType: 'image/png' }),
       );
 
+      await useListView(page);
       await page.goto('/recipes');
       await page.getByPlaceholder('Search recipes…').fill(name);
       await page.getByRole('cell', { name }).click();
