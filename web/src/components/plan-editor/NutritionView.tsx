@@ -6,7 +6,9 @@ import {
   formatKcal,
   GRID_CLASS,
   mealKindLabelKey,
+  STICKY_LABEL_CLASS,
   WEEK_GRID_CLASS,
+  WEEK_GRID_SCROLLER_CLASS,
   weekGridRows,
 } from '@/components/plan-editor/plan-editor-format';
 import {
@@ -125,6 +127,7 @@ export default function NutritionView({ week, dailyKcalTarget }: Props) {
 
   return (
     <div className="flex flex-1 flex-col gap-3">
+      <div className={WEEK_GRID_SCROLLER_CLASS}>
       <div
         role="group"
         aria-label={t('planEditor.nutrition.label')}
@@ -132,13 +135,15 @@ export default function NutritionView({ week, dailyKcalTarget }: Props) {
         style={weekGridRows(rows.length, 10)}
       >
         <div className={GRID_CLASS}>
-          <span />
+          <span className={STICKY_LABEL_CLASS} aria-hidden="true">
+            &nbsp;
+          </span>
           {DAY_ORDER.map((dayOfWeek) => (
             <DayHeader key={dayOfWeek} day={dayByNumber.get(dayOfWeek) ?? { dayOfWeek, meals: [] }} />
           ))}
         </div>
         <div className={cn(GRID_CLASS, 'items-stretch')}>
-          <span className="self-center text-body font-semibold whitespace-nowrap text-muted-foreground">
+          <span className={cn(STICKY_LABEL_CLASS, 'self-center text-body font-semibold whitespace-nowrap text-muted-foreground')}>
             {t('planEditor.dayTotal')}
           </span>
           {DAY_ORDER.map((dayOfWeek) => (
@@ -147,7 +152,7 @@ export default function NutritionView({ week, dailyKcalTarget }: Props) {
         </div>
         {rows.map((row) => (
           <div key={row.index} className={cn(GRID_CLASS, 'items-stretch')}>
-            <span className="self-center text-body font-semibold whitespace-nowrap text-muted-foreground">
+            <span className={cn(STICKY_LABEL_CLASS, 'self-center text-body font-semibold whitespace-nowrap text-muted-foreground')}>
               {t(`planEditor.rows.${mealKindLabelKey(row.kind)}`)}
             </span>
             {DAY_ORDER.map((dayOfWeek) => (
@@ -160,6 +165,7 @@ export default function NutritionView({ week, dailyKcalTarget }: Props) {
             ))}
           </div>
         ))}
+      </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-line pt-3">

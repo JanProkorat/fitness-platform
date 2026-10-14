@@ -18,13 +18,13 @@ export function upcomingMondays(now: Date = new Date(), count: number = MONDAY_C
   return Array.from({ length: count }, (_, index) => toIso(new Date(year, month - 1, day + index * DAYS_PER_WEEK)));
 }
 
-/** Formats a `YYYY-MM-DD` calendar date without shifting it through a time zone. */
+/** Formats a `YYYY-MM-DD` calendar date as "Mon 6 Oct" without shifting it through a time zone. */
 export function formatCalendarDate(iso: string, locale: string): string {
   const [year, month, day] = iso.split('-').map(Number);
   return new Intl.DateTimeFormat(locale, {
+    weekday: 'short',
     day: 'numeric',
     month: 'short',
-    year: 'numeric',
     timeZone: 'UTC',
   }).format(Date.UTC(year, month - 1, day));
 }

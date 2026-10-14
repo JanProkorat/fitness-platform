@@ -73,8 +73,11 @@ export interface PlanTargets {
   fiber?: number;
 }
 
-/** Publication state of a week; empty weeks have none and show no dot. */
+/** Publication state of a week. */
 export type WeekStatus = 'published' | 'draft';
+
+/** What a week pill shows: the publication state, or `empty` for a week with no meals yet. */
+export type WeekPillStatus = WeekStatus | 'empty';
 
 export type EditorSideTab = 'info' | 'library';
 export type EditorRange = 'week' | 'day';

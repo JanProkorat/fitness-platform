@@ -169,13 +169,22 @@ interface Props {
   extraTab?: LibraryExtraTab;
   /** Leaves the totals off the Recipes and Ingredients chips. */
   hideTabCounts?: boolean;
+  /** Opens on the extra tab instead of Recipes; read once, when the panel mounts. */
+  extraTabFirst?: boolean;
 }
 
 /** Side-panel tab with the nutritionist's recipes and ingredients, draggable onto the week grid. */
-export default function LibraryPanel({ canAdd, disabled, onAdd, extraTab, hideTabCounts = false }: Props) {
+export default function LibraryPanel({
+  canAdd,
+  disabled,
+  onAdd,
+  extraTab,
+  hideTabCounts = false,
+  extraTabFirst = false,
+}: Props) {
   const { t, i18n } = useTranslation();
   const [tab, setTab] = useState<LibraryTab>('recipes');
-  const [extraActive, setExtraActive] = useState(false);
+  const [extraActive, setExtraActive] = useState(extraTabFirst);
   const showExtra = extraActive && extraTab !== undefined;
   const [searchInput, setSearchInput] = useState('');
   const search = useDebouncedValue(searchInput, 300);

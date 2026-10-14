@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
-import { Search } from 'lucide-react';
+import { GripVertical, Search } from 'lucide-react';
 import type { OnboardingDataDto } from '@/api/generated';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
+import GoalDot from '@/components/plan-templates/GoalDot';
+import { cn } from '@/lib/utils';
 import { applyTemplate, needsConfirmation } from '@/components/client-plan-editor/applyTemplate';
 import ReplaceWithTemplateDialog from '@/components/client-plan-editor/ReplaceWithTemplateDialog';
 import {
@@ -94,36 +96,43 @@ function TemplateCard({ item, best, hasGoalCriterion, busy, disabled, language, 
   return (
     <li
       data-testid="template-card"
-      className="flex items-center gap-2 rounded-xl border border-line bg-card p-3 shadow-panel"
+      className={cn(
+        'flex flex-col gap-1.5 rounded-xl bg-card shadow-panel',
+        best ? 'border-2 border-nutrition p-2.75' : 'border border-line p-3',
+      )}
     >
-      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <div className="flex min-w-0 items-center gap-2">
-          <span className="truncate text-copy font-semibold text-ink">{name}</span>
-          {best && (
-            <span
-              data-testid="template-best-match"
-              className="shrink-0 rounded-full bg-nutrition-soft px-2 py-0.5 text-label font-semibold tracking-label text-nutrition-ink uppercase"
-            >
-              {t('clientPlanEditor.templates.bestMatch')}
-            </span>
-          )}
-        </div>
-        {goalLabel && <span className="text-meta text-muted-foreground">{goalLabel}</span>}
-        <span className="text-meta text-muted-foreground">{meta.join(' · ')}</span>
-        {chips.length > 0 && <span className="text-meta text-muted-foreground">{chips.join(' · ')}</span>}
+      <div className="flex min-w-0 items-center gap-2">
+        <GripVertical className="size-3.5 shrink-0 text-faint" aria-hidden="true" />
+        <span className="min-w-0 flex-1 truncate text-copy font-semibold text-ink">{name}</span>
+        {best && (
+          <span
+            data-testid="template-best-match"
+            className="shrink-0 rounded-full bg-nutrition-soft px-2 py-0.5 text-label font-semibold tracking-label text-nutrition-ink uppercase"
+          >
+            {t('clientPlanEditor.templates.bestMatch')}
+          </span>
+        )}
       </div>
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        className="shrink-0"
-        disabled={disabled || busy || !hasMeals}
-        title={hasMeals ? undefined : t('clientPlanEditor.templates.noMeals')}
-        aria-label={t('clientPlanEditor.templates.useNamed', { name })}
-        onClick={() => onUse(item)}
-      >
-        {t('clientPlanEditor.templates.use')}
-      </Button>
+      <div className="flex min-w-0 items-center gap-1.5 text-meta text-muted-foreground">
+        {template.goal && <GoalDot goal={template.goal} />}
+        {goalLabel && <span className="shrink-0 font-semibold text-ink">{goalLabel}</span>}
+        <span className="truncate">{meta.join(' · ')}</span>
+      </div>
+      <div className="flex min-w-0 items-center justify-between gap-2">
+        <span className="min-w-0 flex-1 text-meta text-muted-foreground">{chips.join(' · ')}</span>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="shrink-0"
+          disabled={disabled || busy || !hasMeals}
+          title={hasMeals ? undefined : t('clientPlanEditor.templates.noMeals')}
+          aria-label={t('clientPlanEditor.templates.useNamed', { name })}
+          onClick={() => onUse(item)}
+        >
+          {t('clientPlanEditor.templates.use')}
+        </Button>
+      </div>
     </li>
   );
 }

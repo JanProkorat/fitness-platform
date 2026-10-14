@@ -124,7 +124,7 @@ interface Props {
   renderCopyMeals?: (props: CopyMealsSlotProps) => ReactNode;
   readOnly: boolean;
   readOnlyNotice?: string;
-  /** `leading` renders before the back button, e.g. a client avatar. */
+  /** `leading` renders after the back button, before the label, e.g. a client avatar. */
   breadcrumb: { label: string; onNavigate: () => void; leading?: ReactNode };
   /** Replaces the Save button; omit for the default Save. */
   primaryAction?: PlanEditorPrimaryAction;
@@ -136,7 +136,7 @@ interface Props {
   infoTabLabel?: string;
   /** Adds a third tab to the library panel. */
   libraryExtraTab?: PlanEditorLibraryTab;
-  /** Publication state per week: shows a dot on each pill (empty weeks get none) and a count legend. */
+  /** Publication state per week: shows a dot on each pill (empty weeks get a dashed ring) and a count legend. */
   weekStatus?: (weekIndex: number) => WeekStatus | undefined;
   saveState: PlanEditorSaveState;
   /** Persists the document; resolves with the server's copy, or null when the save failed. */
@@ -584,6 +584,7 @@ export default function PlanEditor({
               : undefined
           }
           hideTabCounts={libraryExtraTab !== undefined}
+          extraTabFirst={libraryExtraTab !== undefined && !doc.weeks.some(weekHasItems)}
         />
       ),
     },
@@ -695,7 +696,7 @@ export default function PlanEditor({
                     weekStatus
                       ? (index) => {
                           const candidate = doc.weeks[index];
-                          return candidate && weekHasItems(candidate) ? weekStatus(index) : undefined;
+                          return candidate && weekHasItems(candidate) ? weekStatus(index) : 'empty';
                         }
                       : undefined
                   }

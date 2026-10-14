@@ -1777,7 +1777,11 @@
       "legendPublished_one": "{{count}} published",
       "legendPublished_other": "{{count}} published",
       "legendDraft_one": "{{count}} draft",
-      "legendDraft_other": "{{count}} draft"
+      "legendDraft_other": "{{count}} draft",
+      "status_empty": ", empty",
+      "legendEmpty_one": "{{count}} empty",
+      "legendEmpty_other": "{{count}} empty",
+      "legendNothingPublished": "nothing published"
     },
     "panel": {
       "tabs": "Side panel",
@@ -2258,14 +2262,14 @@
       "replaceBody": "This plan already has meals. The template will replace them.",
       "weeksLabel_one": "Week {{range}}",
       "weeksLabel_other": "Weeks {{range}}",
-      "draftsGet": "{{weeks}} (drafts) get the template’s meals.",
-      "publishedKept_one": "{{weeks}} is published — {{name}} keeps it unchanged.",
-      "publishedKept_other": "{{weeks}} are published — {{name}} keeps them unchanged.",
+      "draftsGet": "<b>{{weeks}}</b> (drafts) get the template’s meals.",
+      "publishedKept_one": "<b>{{weeks}}</b> is published — {{name}} keeps it unchanged.",
+      "publishedKept_other": "<b>{{weeks}}</b> are published — {{name}} keeps them unchanged.",
       "weekCount_one": "{{count}} week",
       "weekCount_other": "{{count}} weeks",
       "ending": ", ending {{date}}",
-      "lengthShrinks": "The template has {{template}}; the plan shortens to {{result}}{{ending}}.",
-      "lengthGrows": "The template has {{template}}; the plan grows to {{result}}{{ending}}.",
+      "lengthShrinks": "The template has {{template}}; the plan shortens to <b>{{result}}</b>{{ending}}.",
+      "lengthGrows": "The template has {{template}}; the plan grows to <b>{{result}}</b>{{ending}}.",
       "keepLength": "Keep {{weeks}} — repeat the template to fill them",
       "replaceConfirm": "Replace draft weeks"
     },

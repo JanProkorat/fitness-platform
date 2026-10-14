@@ -1,4 +1,4 @@
-import { useId } from 'react';
+import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { OnboardingDataDto } from '@/api/generated';
 import AboutClientCard from '@/components/client-plan-editor/AboutClientCard';
@@ -53,26 +53,29 @@ interface TargetFieldProps {
 }
 
 function TargetField({ id, label, unit, value, max, disabled, onChange }: TargetFieldProps) {
+  const { i18n } = useTranslation();
+  const [focused, setFocused] = useState(false);
+  // Grouped ("2,100") while idle; plain digits while typing so the caret stays put.
+  const shown = value === undefined ? '' : focused ? String(value) : value.toLocaleString(i18n.language);
   return (
     <div className="flex min-w-0 flex-col gap-1">
       <Label htmlFor={id}>{label}</Label>
       <div className="relative">
         <Input
           id={id}
-          type="number"
+          type="text"
           inputMode="numeric"
-          min={0}
-          max={max}
           disabled={disabled}
-          value={value ?? ''}
+          value={shown}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
           onChange={(event) => {
-            const text = event.target.value.trim();
-            if (text === '') {
+            const digits = event.target.value.replace(/\D/g, '');
+            if (digits === '') {
               onChange(undefined);
               return;
             }
-            const parsed = Math.round(Number(text));
-            onChange(Number.isFinite(parsed) ? Math.min(Math.max(parsed, 0), max) : undefined);
+            onChange(Math.min(Number(digits), max));
           }}
           className="h-10 pr-9"
         />
@@ -169,7 +172,7 @@ export default function ClientPlanInfoPanel({
 
         <div className="flex flex-col gap-2">
           <span className={SECTION_LABEL_CLASS}>{t('clientPlanEditor.info.dates')}</span>
-          <div className="grid grid-cols-2 gap-x-3">
+          <div className="grid grid-cols-[3fr_2fr] gap-x-3">
             <div className="flex min-w-0 flex-col gap-1">
               <Label htmlFor={`${baseId}-start`}>{t('clientPlanEditor.info.starts')}</Label>
               <StartDatePicker
@@ -184,7 +187,7 @@ export default function ClientPlanInfoPanel({
               <span className="text-body font-medium text-ink">{t('clientPlanEditor.info.ends')}</span>
               <div
                 data-testid="plan-end-date"
-                className="flex h-10 items-center rounded-field border border-input bg-muted px-3 text-body text-muted-foreground"
+                className="flex h-10 items-center truncate rounded-field border border-input bg-background px-2.5 text-body font-semibold text-foreground"
               >
                 {doc.startDate && weekCount > 0 ? formatCalendarDate(planEndDate(doc.startDate, weekCount), locale) : '—'}
               </div>
