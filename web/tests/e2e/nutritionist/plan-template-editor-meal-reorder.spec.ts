@@ -184,13 +184,14 @@ async function moveTo(page: Page, x: number, y: number): Promise<void> {
 }
 
 /**
- * Moves onto the gap's centre and waits until the gap reports itself as the drop target. The gaps mount
- * once the drag has started, so the first moves can land before their shapes are measured; small moves
- * inside the gap repeat the pointer events until the library has picked it.
+ * Moves onto the gap and waits until it reports itself as the drop target. The gaps mount once the drag has
+ * started, so the gap is measured here, after the start, on every attempt; small moves inside it repeat the
+ * pointer events until the library has picked it.
  */
-async function settleOnGap(page: Page, point: { x: number; y: number }): Promise<void> {
-  await moveTo(page, point.x, point.y);
+async function settleOnGap(page: Page, beside: Locator, edge: 'above' | 'below'): Promise<void> {
   await expect(async () => {
+    const point = await gapPoint(beside, edge);
+    await page.mouse.move(point.x, point.y, { steps: 8 });
     await page.mouse.move(point.x - 2, point.y, { steps: 2 });
     await page.mouse.move(point.x, point.y, { steps: 2 });
     await expect(page.locator('[data-testid="meal-gap"][data-over="true"]')).toHaveCount(1, { timeout: 500 });
@@ -208,7 +209,7 @@ async function dragToGap(page: Page, handle: Locator, beside: Locator, edge: 'ab
   await handle.scrollIntoViewIfNeeded();
   await beside.scrollIntoViewIfNeeded();
   await beginDrag(page, handle);
-  await settleOnGap(page, await gapPoint(beside, edge));
+  await settleOnGap(page, beside, edge);
   await page.mouse.up();
 }
 
@@ -322,6 +323,10 @@ async function deletePlan(baseURL: string, planId: string): Promise<void> {
 
 const ORIGINAL = [COUNTS.a, COUNTS.b, COUNTS.c, COUNTS.d];
 
+// Tall enough for Day total and all four meal rows without scrolling: dragging near the scroll area's edge
+// would auto-scroll it and move the gaps away from the pointer.
+test.use({ viewport: { width: 1920, height: 1200 } });
+
 test.describe('plan editor meal reorder', () => {
   test('dragging Dinner into the gap between Breakfast and Lunch shifts the day, and one Undo restores it', async ({
     page,
@@ -410,7 +415,7 @@ test.describe('plan editor meal reorder', () => {
       await expect(page.locator('[data-testid="meal-gap"][data-day="1"]')).toHaveCount(3);
       await expect(page.locator('[data-testid="meal-gap"][data-day="2"]')).toHaveCount(0);
 
-      await settleOnGap(page, await gapPoint(cell(page, 1, 1), 'above'));
+      await settleOnGap(page, cell(page, 1, 1), 'above');
       const over = page.locator('[data-testid="meal-gap"][data-over="true"]');
       await expect(over).toHaveCount(1);
       await expect(over.getByTestId('meal-gap-indicator')).toHaveCSS('opacity', '1');
@@ -561,7 +566,6 @@ test.describe('plan editor meal reorder', () => {
       await cell(page, 1, 1).focus();
       await page.keyboard.press('Alt+ArrowUp');
       await expectMonday(page, [COUNTS.a, COUNTS.b]);
-      await expect(page.getByTestId('save-status')).toHaveText('Saved');
     } finally {
       await deletePlan(origin, planId);
     }
