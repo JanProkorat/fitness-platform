@@ -179,7 +179,7 @@ test.describe('plan template editor views', () => {
     }
   });
 
-  test('Day view: dragging a meal card onto a filled meal asks Replace or Add, and one Undo restores it', async ({
+  test('Day view: Alt-dragging a meal card onto a filled meal asks Replace or Add, and one Undo restores it', async ({
     page,
     baseURL,
   }) => {
@@ -206,11 +206,15 @@ test.describe('plan template editor views', () => {
       if (!from || !to) {
         throw new Error('[plan-template-editor-views] meal cards are not visible.');
       }
+      // A plain drag within the day moves the meal; Alt (Option) held through the drag copies it instead.
+      await page.keyboard.down('Alt');
       await page.mouse.move(from.x + 10, from.y + 5);
       await page.mouse.down();
       await page.mouse.move(from.x + 14, from.y + 20, { steps: 4 });
       await page.mouse.move(to.x + 10, to.y + 5, { steps: 15 });
+      await expect(blocks.nth(1)).toHaveAttribute('data-drop-target', 'copy');
       await page.mouse.up();
+      await page.keyboard.up('Alt');
 
       const dialog = page.getByTestId('card-drop-dialog');
       await expect(dialog).toBeVisible();

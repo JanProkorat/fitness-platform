@@ -637,7 +637,7 @@ test.describe('plan editor label drag', () => {
     }
   });
 
-  test('while a label is dragged no cell or gap lights up, and only labels of the same kind take the drop', async ({
+  test('while a label is dragged its row is dimmed, the whole target row lights up, and a drop anywhere in it counts', async ({
     page,
     baseURL,
   }) => {
@@ -648,29 +648,36 @@ test.describe('plan editor label drag', () => {
     try {
       await page.goto(`/plan-templates/${templateId}`);
       await expectCell(page, 1, 0, 2);
-      const lit = page.locator('[data-testid="meal-cell"].border-nutrition');
 
       await beginDrag(page, rowLabel(page, 0));
-      // Over a cell: neither the cell nor any gap reacts, and no insert line is in the way.
+      // The dragged row's seven tiles are dimmed; nothing is a target yet, and no insert line is in the way.
+      await expect(page.locator('[data-band="source"]')).toHaveCount(7);
+      await expect(page.locator('[data-band="target"]')).toHaveCount(0);
+      await expect(page.locator('[data-over="true"]')).toHaveCount(0);
+      await expect(page.getByTestId('meal-insert-line')).toHaveCount(0);
+
+      // Over a tile of another row: the whole row, label included, is the target.
       const box = await settledBox(cell(page, 1, 1));
       await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 12 });
-      await expect(lit).toHaveCount(0);
-      await expect(page.getByTestId('meal-gap')).toHaveCount(0);
-      await expect(page.locator('[data-over="true"]')).toHaveCount(0);
-      // A day label is not a target for a row.
+      await expect(page.locator('[data-band="target"]')).toHaveCount(7);
+      await expect(cell(page, 7, 1)).toHaveAttribute('data-band', 'target');
+      await expect(rowFrame(page, 1)).toHaveAttribute('data-over', 'true');
+      await expect(page.locator('[data-over="true"]')).toHaveCount(1);
+
+      // A day label is not a target for a row: over the day names nothing is lit.
       const dayBox = await settledBox(dayFrame(page, 2));
       await page.mouse.move(dayBox.x + dayBox.width / 2, dayBox.y + dayBox.height / 2, { steps: 12 });
+      await expect(page.locator('[data-band="target"]')).toHaveCount(0);
       await expect(page.locator('[data-over="true"]')).toHaveCount(0);
-      // Another row's label is.
-      await settleOnFrame(page, rowFrame(page, 1));
-      await expect(rowFrame(page, 1)).toHaveAttribute('data-over', 'true');
-      await expect(lit).toHaveCount(0);
 
-      // Released over a cell the drop lands nowhere.
-      const cellBox = await settledBox(cell(page, 1, 1));
-      await page.mouse.move(cellBox.x + cellBox.width / 2, cellBox.y + cellBox.height / 2, { steps: 12 });
+      // Released over a tile of the target row the drop lands, and Lunch holds food, so it asks.
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 12 });
+      await expect(page.locator('[data-band="target"]')).toHaveCount(7);
       await page.mouse.up();
-      await expect(page.getByTestId('label-drop-dialog')).toHaveCount(0);
+      await expect(page.locator('[data-band]')).toHaveCount(0);
+      const dialog = page.getByTestId('label-drop-dialog');
+      await expect(dialog).toBeVisible();
+      await dialog.getByRole('button', { name: 'Cancel' }).click();
       await expectCell(page, 1, 0, 2);
       await expectCell(page, 1, 1, 3);
       await expect(page.getByTestId('save-status')).toHaveText('Saved');
