@@ -499,7 +499,9 @@ test.describe('plan editor drag animation', () => {
       await expect(page.locator('[data-landing="true"]')).toHaveCount(1);
       await page.mouse.up();
       await expect(page.getByTestId('card-drop-dialog')).toHaveCount(0);
-      await expect(cell(page, 1, 0)).toContainText(`${COUNTS.c} items`);
+      // A move along the row: Tuesday's (empty) and Wednesday's breakfasts shift one day earlier, Monday's lands on Wednesday.
+      await expect(cell(page, 1, 0)).toContainText('Empty');
+      await expect(cell(page, 2, 0)).toContainText(`${COUNTS.c} items`);
       await expect(cell(page, 3, 0)).toContainText(`${COUNTS.a} items`);
     } finally {
       await deleteTemplate(origin, templateId);
