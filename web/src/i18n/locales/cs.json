@@ -2071,9 +2071,24 @@
       "forDay": "{{day}}",
       "type": "Druh jídla",
       "alreadyInDay": "Už v tomto dni je",
+      "alreadyInWeek": "Už je v každém dni",
+      "forWeek": "Týden {{week}}",
+      "weekWillAdd_one": "Přidá se do {{count}} dne",
+      "weekWillAdd_few": "Přidá se do {{count}} dnů",
+      "weekWillAdd_many": "Přidá se do {{count}} dne",
+      "weekWillAdd_other": "Přidá se do {{count}} dnů",
+      "weekNothingToAdd": "Žádný den už nemá místo",
+      "weekAlreadyHave_one": "{{days}} už ho má",
+      "weekAlreadyHave_few": "{{days}} už ho mají",
+      "weekAlreadyHave_many": "{{days}} už ho mají",
+      "weekAlreadyHave_other": "{{days}} už ho mají",
+      "weekCapped": "Přeskočeno, den je plný ({{max}} jídel): {{days}}",
       "optional": "· volitelné",
       "emptyHint": "Jídlo se přidá prázdné. Naplňte ho z knihovny vlevo — přetáhněte na něj recept nebo surovinu.",
       "submit": "Přidat jídlo"
+    },
+    "insertMeal": {
+      "aria": "Přidat jídlo mezi {{above}} a {{below}}"
     },
     "nutrition": {
       "label": "Výživa podle jídel",

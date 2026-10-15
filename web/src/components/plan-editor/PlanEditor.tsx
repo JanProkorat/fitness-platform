@@ -15,7 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import AddMealSheet from '@/components/plan-editor/AddMealSheet';
+import AddMealSheet, { type AddMealMode } from '@/components/plan-editor/AddMealSheet';
 import CardDropDialog from '@/components/plan-editor/CardDropDialog';
 import DaySummaryCard from '@/components/plan-editor/DaySummaryCard';
 import DayNavigator from '@/components/plan-editor/DayNavigator';
@@ -45,6 +45,7 @@ import {
 import { dayTotals, mealItemCount, mealTotals } from '@/components/plan-editor/plan-editor-nutrition';
 import {
   addItemToCell,
+  addKindToWeek,
   addMealRow,
   addMealToDay,
   CHRONOLOGICAL_KINDS,
@@ -55,10 +56,13 @@ import {
   copyMealToCell,
   copyWeekMeals,
   daysWithFoodInRow,
+  everyDayHasKind,
+  fittingKind,
   nextSnackKind,
   removeLastWeek,
   removeMealRow,
   reorderMealItems,
+  rowMeal,
   setDayNote,
   weekHasItems,
   weekRows,
@@ -66,6 +70,7 @@ import {
 import {
   MAX_MEALS_PER_DAY,
   type EditorDocument,
+  type EditorMeal,
   type EditorRange,
   type EditorSideTab,
   type EditorView,
@@ -237,7 +242,12 @@ export default function PlanEditor({
   const [pendingRemoval, setPendingRemoval] = useState<(PendingRowRemoval & { rowIndex: number }) | null>(null);
   const [leaveOpen, setLeaveOpen] = useState(false);
   const [pendingDrop, setPendingDrop] = useState<PendingDrop | null>(null);
-  const [addMealOpen, setAddMealOpen] = useState(false);
+  const [addMeal, setAddMeal] = useState<{ open: boolean; mode: AddMealMode; preselect: MealKind | null; key: number }>({
+    open: false,
+    mode: 'day',
+    preselect: null,
+    key: 0,
+  });
   const [scrollArea, setScrollArea] = useState<HTMLElement | null>(null);
   const [actionBusy, setActionBusy] = useState(false);
   const [removeWeekNumber, setRemoveWeekNumber] = useState<number | null>(null);
@@ -248,6 +258,8 @@ export default function PlanEditor({
   const currentIndex = Math.min(weekIndex, doc.weeks.length - 1);
   const week = doc.weeks[currentIndex];
   const rows = week ? weekRows(week) : [];
+  // A selection that no longer points at a row (after a removal or an undo) selects nothing.
+  const activeSelected = selected && selected.rowIndex < rows.length ? selected : null;
   const activeDay = week?.days.find((candidate) => candidate.dayOfWeek === dayOfWeek);
   const showPicker = !readOnly && rows.length === 0;
 
@@ -342,15 +354,20 @@ export default function PlanEditor({
     }
   }
 
+  /** The meal a weekday has in a grid row, if any. */
+  function mealAt(dayOfWeekValue: number, rowIndex: number): EditorMeal | undefined {
+    return rowMeal(week?.days.find((day) => day.dayOfWeek === dayOfWeekValue), rows[rowIndex]);
+  }
+
   function selectCell(cell: SelectedCell) {
     setSelected(cell);
-    const meal = week?.days.find((day) => day.dayOfWeek === cell.dayOfWeek)?.meals[cell.rowIndex];
+    const meal = mealAt(cell.dayOfWeek, cell.rowIndex);
     const reopen = detailCell?.dayOfWeek === cell.dayOfWeek && detailCell.rowIndex === cell.rowIndex;
     setDetailCell(meal && mealItemCount(meal) > 0 && !reopen ? cell : null);
   }
 
   function renderDetail(cell: SelectedCell): ReactNode {
-    const meal = week?.days.find((day) => day.dayOfWeek === cell.dayOfWeek)?.meals[cell.rowIndex];
+    const meal = mealAt(cell.dayOfWeek, cell.rowIndex);
     if (!meal || !week) {
       return null;
     }
@@ -373,8 +390,7 @@ export default function PlanEditor({
     if (readOnly || source.weekIndex !== currentIndex) {
       return;
     }
-    const targetDay = week?.days.find((day) => day.dayOfWeek === target.dayOfWeek);
-    const targetMeal = targetDay?.meals[target.rowIndex];
+    const targetMeal = mealAt(target.dayOfWeek, target.rowIndex);
     if (targetMeal?.mealId === source.mealId) {
       return;
     }
@@ -434,10 +450,42 @@ export default function PlanEditor({
     }
   }
 
+  /** Opens the add-meal drawer; the grid rows shift once a meal lands, so nothing stays selected afterwards. */
+  function openAddMeal(mode: AddMealMode, preselect: MealKind | null) {
+    setAddMeal((previous) => ({ open: true, mode, preselect, key: previous.key + 1 }));
+  }
+
+  /** The "Add meal" button on a day: starts on the day's first kind it still lacks. */
+  function openAddMealToDay() {
+    openAddMeal(
+      'day',
+      CHRONOLOGICAL_KINDS.find((kind) => !activeDay?.meals.some((meal) => meal.kind === kind)) ?? null,
+    );
+  }
+
+  /** An insert line between two meals: the drawer opens on the kind that fits between them, if one is free. */
+  function insertBetween(above: MealKind, below: MealKind) {
+    if (range === 'day') {
+      openAddMeal('day', fittingKind(above, below, (kind) => !activeDay?.meals.some((meal) => meal.kind === kind)));
+    } else if (week) {
+      openAddMeal('week', fittingKind(above, below, (kind) => !everyDayHasKind(week, kind)));
+    }
+  }
+
   /** Adds an empty meal to the active day at its kind's place in the day's order. */
-  function addMeal(kind: MealKind, note: string) {
+  function addMealToActiveDay(kind: MealKind, note: string) {
+    setSelected(null);
+    setDetailCell(null);
     edit((current) => addMealToDay(current, currentIndex, dayOfWeek, kind, note));
-    setAddMealOpen(false);
+    setAddMeal((previous) => ({ ...previous, open: false }));
+  }
+
+  /** Adds an empty meal of the kind to every day of the week that lacks one, in one edit. */
+  function addMealToWeek(kind: MealKind) {
+    setSelected(null);
+    setDetailCell(null);
+    edit((current) => addKindToWeek(current, currentIndex, kind));
+    setAddMeal((previous) => ({ ...previous, open: false }));
   }
 
   function addToCell(item: LibraryItem, cell: SelectedCell) {
@@ -586,7 +634,7 @@ export default function PlanEditor({
   const allKindsPresent = CHRONOLOGICAL_KINDS.every((kind) => activeDay?.meals.some((meal) => meal.kind === kind));
   const pendingSource = pendingDrop ? findMeal(pendingDrop.source.dayOfWeek, pendingDrop.source.mealId) : undefined;
   const pendingTarget = pendingDrop
-    ? week.days.find((day) => day.dayOfWeek === pendingDrop.target.dayOfWeek)?.meals[pendingDrop.target.rowIndex]
+    ? mealAt(pendingDrop.target.dayOfWeek, pendingDrop.target.rowIndex)
     : undefined;
   const dropDialog =
     pendingDrop && pendingSource && pendingTarget
@@ -628,9 +676,9 @@ export default function PlanEditor({
       icon: BookOpen,
       content: (
         <LibraryPanel
-          canAdd={selected !== null}
+          canAdd={activeSelected !== null}
           disabled={readOnly}
-          onAdd={(item) => selected && addToCell(item, selected)}
+          onAdd={(item) => activeSelected && addToCell(item, activeSelected)}
           extraTab={
             libraryExtraTab
               ? {
@@ -799,7 +847,7 @@ export default function PlanEditor({
                         ? t('planEditor.day.limitReached', { max: MAX_MEALS_PER_DAY })
                         : undefined
                   }
-                  onAddMeal={() => setAddMealOpen(true)}
+                  onAddMeal={openAddMealToDay}
                   onNoteChange={(note) =>
                     edit((current) => setDayNote(current, currentIndex, dayOfWeek, note), `daynote:${currentIndex}:${dayOfWeek}`)
                   }
@@ -843,9 +891,10 @@ export default function PlanEditor({
               weekIndex={currentIndex}
               dayOfWeek={dayOfWeek}
               readOnly={readOnly}
-              selected={selected}
+              selected={activeSelected}
               onSelect={setSelected}
               onEdit={edit}
+              onInsertBetween={insertBetween}
             />
           )}
 
@@ -856,7 +905,7 @@ export default function PlanEditor({
                   week={week}
                   weekIndex={currentIndex}
                   targets={targets}
-                  selected={selected}
+                  selected={activeSelected}
                   readOnly={readOnly}
                   onSelect={selectCell}
                   detailCell={detailCell}
@@ -864,6 +913,8 @@ export default function PlanEditor({
                   onDetailClose={() => setDetailCell(null)}
                   onEdit={edit}
                   onRemoveRow={requestRemoveRow}
+                  onInsertBetween={insertBetween}
+                  onAddMeal={() => openAddMeal('week', null)}
                 />
               )}
               {view === 'nutrition' && <NutritionView week={week} targets={targets} />}
@@ -920,11 +971,17 @@ export default function PlanEditor({
       </DragOverlay>
 
       <AddMealSheet
-        open={addMealOpen && !readOnly}
-        onOpenChange={setAddMealOpen}
+        open={addMeal.open && !readOnly}
+        onOpenChange={(open) => setAddMeal((previous) => ({ ...previous, open }))}
+        mode={addMeal.mode}
+        requestKey={addMeal.key}
+        preselect={addMeal.preselect}
         dayLabel={t(`planEditor.daysLong.${dayOfWeek}`)}
+        weekNumber={currentIndex + 1}
         dayKinds={activeDay?.meals.map((meal) => meal.kind) ?? []}
-        onSubmit={addMeal}
+        week={week}
+        onSubmitDay={addMealToActiveDay}
+        onSubmitWeek={addMealToWeek}
       />
 
       <CardDropDialog

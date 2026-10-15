@@ -2015,9 +2015,20 @@
       "forDay": "{{day}}",
       "type": "Meal type",
       "alreadyInDay": "Already in this day",
+      "alreadyInWeek": "Already in every day",
+      "forWeek": "Week {{week}}",
+      "weekWillAdd_one": "Will be added to {{count}} day",
+      "weekWillAdd_other": "Will be added to {{count}} days",
+      "weekNothingToAdd": "No day has room for it",
+      "weekAlreadyHave_one": "{{days}} already has it",
+      "weekAlreadyHave_other": "{{days}} already have it",
+      "weekCapped": "Skipped, the day is full ({{max}} meals): {{days}}",
       "optional": "· optional",
       "emptyHint": "The meal is added empty. Fill it from the library on the left — drag a recipe or ingredient onto it.",
       "submit": "Add meal"
+    },
+    "insertMeal": {
+      "aria": "Add a meal between {{above}} and {{below}}"
     },
     "nutrition": {
       "label": "Nutrition by meal",
