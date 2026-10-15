@@ -2031,6 +2031,10 @@
     "insertMeal": {
       "aria": "Mahlzeit zwischen {{above}} und {{below}} hinzufügen"
     },
+    "reorder": {
+      "moved": "{{day}}: Inhalt in {{meal}} verschoben, Mahlzeit {{position}} von {{count}}",
+      "swapped": "Inhalt von {{meal}} zwischen {{from}} und {{to}} getauscht"
+    },
     "nutrition": {
       "label": "Nährwerte je Mahlzeit",
       "onTarget": "im Ziel",

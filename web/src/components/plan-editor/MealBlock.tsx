@@ -7,7 +7,12 @@ import { cn } from '@/lib/utils';
 import MacroDots from '@/components/plan-editor/MacroDots';
 import MealItemRow from '@/components/plan-editor/MealItemRow';
 import { mealKindLabelKey } from '@/components/plan-editor/plan-editor-format';
-import { CELL_MEAL_DRAG, MEAL_CARD_SENSORS } from '@/components/plan-editor/plan-editor-library';
+import {
+  CELL_MEAL_DRAG,
+  MEAL_CARD_SENSORS,
+  MOVE_KEY_SHORTCUTS,
+  moveDirection,
+} from '@/components/plan-editor/plan-editor-library';
 import {
   mealDayShareStatus,
   mealItemCount,
@@ -39,6 +44,11 @@ interface Props {
   rowIndex: number;
   /** The insert line above the card, rendered inside it so it can fill the gap. */
   insertLine?: ReactNode;
+  /** Drop targets for moving a meal's contents, rendered inside the card so they fill the gap above and below it. */
+  gapAbove?: ReactNode;
+  gapBelow?: ReactNode;
+  /** Alt+ArrowUp / Alt+ArrowDown on the focused card: moves its contents one meal up or down the day. */
+  onKeyMove?: (direction: -1 | 1) => void;
   weekIndex: number;
   dayOfWeek: number;
   dayKcal: number;
@@ -54,6 +64,9 @@ export default function MealBlock({
   meal,
   rowIndex,
   insertLine,
+  gapAbove,
+  gapBelow,
+  onKeyMove,
   weekIndex,
   dayOfWeek,
   dayKcal,
@@ -97,6 +110,14 @@ export default function MealBlock({
       tabIndex={readOnly ? undefined : 0}
       aria-label={kindLabel}
       onClick={onSelect}
+      aria-keyshortcuts={draggable && onKeyMove ? MOVE_KEY_SHORTCUTS : undefined}
+      onKeyDown={(event) => {
+        const direction = draggable && onKeyMove ? moveDirection(event) : null;
+        if (direction) {
+          event.preventDefault();
+          onKeyMove?.(direction);
+        }
+      }}
       className={cn(
         'relative flex flex-col gap-3 rounded-2xl border border-raised-line bg-raised p-5 shadow-raised outline-none transition-[background-color,border-color,box-shadow,transform] duration-150 focus-visible:ring-3 focus-visible:ring-ring/50',
         draggable && !isDragging && 'hover:-translate-y-px hover:shadow-raised-hover motion-reduce:hover:translate-y-0',
@@ -106,6 +127,8 @@ export default function MealBlock({
       )}
     >
       {insertLine}
+      {gapAbove}
+      {gapBelow}
       <div className={cn('flex flex-wrap items-center gap-x-3 gap-y-1.5', draggable && 'cursor-grab active:cursor-grabbing')}>
         {draggable && <GripVertical className="size-4 shrink-0 text-faint" aria-hidden="true" />}
         <h3 className="font-display text-card-title font-semibold text-ink">{kindLabel}</h3>

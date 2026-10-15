@@ -116,7 +116,12 @@ async function findFood(api: APIRequestContext): Promise<Food> {
  * Creates a one-week plan for the QA client holding one meal with one food on Monday, and returns its id.
  * Without a start date the plan is unranged (no overlap check); with one, it must be a future Monday.
  */
-async function createPlan(baseURL: string, purpose: string, startDate?: string): Promise<{ planId: string; name: string; food: Food }> {
+async function createPlan(
+  baseURL: string,
+  purpose: string,
+  startDate?: string,
+  lunchFoodCount = 0,
+): Promise<{ planId: string; name: string; food: Food }> {
   const name = `${PLAN_NAME_PREFIX} ${purpose} ${Date.now()}`;
   return withApi(baseURL, async (api) => {
     await archiveLeftovers(api);
@@ -171,6 +176,22 @@ async function createPlan(baseURL: string, purpose: string, startDate?: string):
                           ],
                           recipes: [],
                         },
+                        // A Lunch with several ingredients, only when a spec asks for one.
+                        ...(lunchFoodCount > 0
+                          ? [
+                              {
+                                kind: 'Lunch',
+                                order: 2,
+                                foods: Array.from({ length: lunchFoodCount }, () => ({
+                                  foodExternalId: food.foodId,
+                                  foodName: food.name,
+                                  nutrientValuePer100Grams: food.nutrientValue,
+                                  amountGrams: INITIAL_GRAMS,
+                                })),
+                                recipes: [],
+                              },
+                            ]
+                          : []),
                       ]
                     : [],
               })),
@@ -288,6 +309,51 @@ test.describe('client plan editor', () => {
       await expect(line.getByTestId('meal-insert-button')).toHaveCSS('opacity', '1');
       // Monday's breakfast kept its food and its row.
       await expect(page.locator('[data-testid="meal-cell"][data-day="1"][data-row="0"]')).not.toContainText('Empty');
+    } finally {
+      await archivePlan(origin, planId);
+    }
+  });
+
+  test('dragging Lunch into the gap above Breakfast moves its contents, and one Undo restores them', async ({ page, baseURL }) => {
+    const origin = baseURL ?? 'http://localhost:5173';
+    const { planId, name } = await createPlan(origin, 'Reorder', undefined, 2);
+    try {
+      await page.goto(editorUrl(planId));
+      await expectEditorLoaded(page, name);
+
+      const breakfast = page.locator('[data-testid="meal-cell"][data-day="1"][data-row="0"]');
+      const lunch = page.locator('[data-testid="meal-cell"][data-day="1"][data-row="1"]');
+      await expect(lunch).toContainText('2 items');
+      await expect(breakfast).not.toContainText('items');
+
+      // Drag Lunch into the gap above Breakfast (the first slot of Monday).
+      await lunch.scrollIntoViewIfNeeded();
+      const from = await lunch.boundingBox();
+      const to = await breakfast.boundingBox();
+      if (!from || !to) {
+        throw new Error('[client-plan-editor] the Breakfast or Lunch cell is not visible.');
+      }
+      await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(from.x + from.width / 2 + 12, from.y + from.height / 2 + 12, { steps: 4 });
+      const gapX = to.x + to.width / 2;
+      const gapY = to.y - 6;
+      await page.mouse.move(gapX, gapY, { steps: 12 });
+      // The gaps mount once the drag has started; small moves inside the gap wait for it to be picked.
+      await expect(async () => {
+        await page.mouse.move(gapX - 2, gapY, { steps: 2 });
+        await page.mouse.move(gapX, gapY, { steps: 2 });
+        await expect(page.locator('[data-testid="meal-gap"][data-over="true"]')).toHaveCount(1, { timeout: 500 });
+      }).toPass({ timeout: 5000 });
+      await page.mouse.up();
+
+      await expect(breakfast).toContainText('2 items');
+      await expect(lunch).not.toContainText('items');
+      await expect(page.getByTestId('card-drop-dialog')).toHaveCount(0);
+
+      await page.getByRole('button', { name: 'Undo' }).click();
+      await expect(lunch).toContainText('2 items');
+      await expect(breakfast).not.toContainText('items');
     } finally {
       await archivePlan(origin, planId);
     }

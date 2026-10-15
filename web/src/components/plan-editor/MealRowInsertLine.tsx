@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { useDragOperation } from '@dnd-kit/react';
 import { Plus } from 'lucide-react';
 
 interface Props {
@@ -16,7 +17,13 @@ interface Props {
  */
 export default function MealRowInsertLine({ above, below, onInsert }: Props) {
   const { t } = useTranslation();
+  const { source } = useDragOperation();
   const label = t('planEditor.insertMeal.aria', { above, below });
+
+  // While anything is dragged the gaps belong to the drop targets.
+  if (source) {
+    return null;
+  }
 
   return (
     <span
