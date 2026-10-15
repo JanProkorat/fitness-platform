@@ -348,7 +348,7 @@ test.describe('plan template editor meal rows', () => {
 
       // Every day has a Snack now, so it is disabled the next time.
       await page.getByTestId('add-meal-week').click();
-      await expect(drawer(page).getByRole('radio', { name: /^Snack/ })).toBeDisabled();
+      await expect(drawer(page).getByRole('radio', { name: /^Snack(?! 2)/ })).toBeDisabled();
     } finally {
       await deleteTemplate(origin, templateId);
     }
@@ -366,6 +366,9 @@ test.describe('plan template editor meal rows', () => {
       await addAppleTo(page, 2, 1);
 
       await page.getByRole('button', { name: 'Day', exact: true }).click();
+      // The Day view opens on the day of the selected cell (Tuesday); go to Monday explicitly.
+      await page.getByRole('tab', { name: /^Mon/ }).click();
+      await expect(page.getByRole('tab', { name: /^Mon/ })).toHaveAttribute('aria-selected', 'true');
       await pressInsertLine(page.getByTestId('day-view'), 0);
       await confirmDrawer(page);
       await expect(page.getByTestId('meal-block')).toHaveCount(3);
@@ -380,6 +383,7 @@ test.describe('plan template editor meal rows', () => {
 
       // In the Day view the library add goes to the meal the user selected, not to the one at its stored position.
       await page.getByRole('button', { name: 'Day', exact: true }).click();
+      await expect(page.getByRole('tab', { name: /^Mon/ })).toHaveAttribute('aria-selected', 'true');
       await addAppleToBlock(page, mealBlock(page, 'Snack'));
       await expect(mealBlock(page, 'Snack').getByTestId('meal-item')).toHaveCount(1);
       await expect(mealBlock(page, 'Lunch').getByTestId('meal-item')).toHaveCount(0);
