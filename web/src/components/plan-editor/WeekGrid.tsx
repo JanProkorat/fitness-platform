@@ -186,7 +186,8 @@ function MealCell({
           side="bottom"
           align="center"
           collisionBoundary={boundary}
-          collisionPadding={16}
+          // No top padding: the card may reach the top of the scroll area, over the day-name row, but never the fixed top bar.
+          collisionPadding={{ top: 0, right: 16, bottom: 16, left: 16 }}
           sideOffset={8}
           data-testid="meal-detail"
           className="max-h-(--radix-popover-content-available-height) w-140 max-w-[calc(100vw-2rem)] overflow-y-auto rounded-2xl border-line bg-card p-5"

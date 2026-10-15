@@ -27,7 +27,8 @@ test.describe('client detail page — overview tab', () => {
     await page.goto('/clients');
     await page.waitForLoadState('networkidle');
 
-    const row = page.getByRole('row', { name: /QA Client/ });
+    // The All tab also lists pending rows below the clients; only a client row links to the detail page.
+    const row = page.getByRole('row', { name: /QA Client/ }).filter({ has: page.getByRole('link', { name: /QA Client/ }) });
     await expect(row).toBeVisible();
 
     // Capture the list badge's text BEFORE navigating away — this is the

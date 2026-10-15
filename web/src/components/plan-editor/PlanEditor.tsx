@@ -219,10 +219,7 @@ export default function PlanEditor({
   const [leaveOpen, setLeaveOpen] = useState(false);
   const [pendingDrop, setPendingDrop] = useState<PendingDrop | null>(null);
   const [addMealOpen, setAddMealOpen] = useState(false);
-  const [scrollArea, setScrollArea] = useState<HTMLElement | null>(null);
-  // Popovers may use the fixed header's height too, so an open meal detail isn't cut short at its border.
-  const [popoverArea, setPopoverArea] = useState<HTMLElement | null>(null);
-  const [actionBusy, setActionBusy] = useState(false);
+  const [scrollArea, setScrollArea] = useState<HTMLElement | null>(null);  const [actionBusy, setActionBusy] = useState(false);
   const dragActive = useRef(false);
   const slide = useSlideTransition();
 
@@ -593,7 +590,7 @@ export default function PlanEditor({
   ];
 
   return (
-    <PopoverBoundaryContext.Provider value={popoverArea}>
+    <PopoverBoundaryContext.Provider value={scrollArea}>
     <DragDropProvider
       sensors={DRAG_SENSORS}
       plugins={(defaults) => defaults.map((plugin) => (plugin === Feedback ? Feedback.configure({ dropAnimation: null }) : plugin))}
@@ -654,7 +651,7 @@ export default function PlanEditor({
           />
         )}
 
-        <div ref={setPopoverArea} className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           <div data-testid="editor-fixed-header" className="flex shrink-0 flex-col">
             <PlanEditorHeader
                 name={doc.name}
