@@ -22,6 +22,7 @@ import { useToastStore } from '@/stores/toast';
 import DaySummaryCard from '@/components/plan-editor/DaySummaryCard';
 import DayNavigator from '@/components/plan-editor/DayNavigator';
 import DayView from '@/components/plan-editor/DayView';
+import GridDragOverlay from '@/components/plan-editor/GridDragOverlay';
 import LibraryPanel from '@/components/plan-editor/LibraryPanel';
 import MealDetail from '@/components/plan-editor/MealDetail';
 import MealPicker from '@/components/plan-editor/MealPicker';
@@ -36,20 +37,25 @@ import WeekGrid, { type SelectedCell } from '@/components/plan-editor/WeekGrid';
 import WeekTabs from '@/components/plan-editor/WeekTabs';
 import { mealKindLabelKey } from '@/components/plan-editor/plan-editor-format';
 import {
+  cellDragView,
   dragActivationConstraints,
   mealItemNames,
   foodDisplayName,
+  gridFaceKey,
+  hitBand,
+  hitCell,
   readCellMealDrag,
   readDayLabel,
-  readMealGapDrop,
   readMealItemDrag,
   readRowLabel,
+  viewOrigins,
   DAY_LABEL_DRAG,
-  DAY_LABEL_DROP,
   ROW_LABEL_DRAG,
-  ROW_LABEL_DROP,
   type CellMealDrag,
-  type MealGapDrop,
+  type FrozenBand,
+  type FrozenCell,
+  type GridDragView,
+  type LabelTile,
   type MealItemDrag,
 } from '@/components/plan-editor/plan-editor-library';
 import { dayTotals, mealItemCount, mealTotals } from '@/components/plan-editor/plan-editor-nutrition';
@@ -64,9 +70,12 @@ import {
   applyMealKinds,
   COMMON_MEAL_KINDS,
   type CellCopyMode,
+  type CellRef,
   type LabelAxis,
   type LabelMove,
   type LabelOpMode,
+  gapForSlot,
+  labelMoveFlips,
   previewLabelMove,
   copyMealToCell,
   copyWeekMeals,
@@ -83,6 +92,8 @@ import {
   reorderMealItems,
   rowMeal,
   setDayNote,
+  slotMoves,
+  slotOrigins,
   swapMealContents,
   weekHasItems,
   weekRows,
@@ -100,6 +111,7 @@ import {
   type WeekStatus,
 } from '@/components/plan-editor/plan-editor-types';
 import { usePlanEditorState, type PlanEditorState } from '@/components/plan-editor/usePlanEditorState';
+import { useGridFlip, type FlipMove } from '@/components/plan-editor/useGridFlip';
 import { useSlideTransition } from '@/components/plan-editor/useSlideTransition';
 import { useSwipeNavigation } from '@/components/plan-editor/useSwipeNavigation';
 
@@ -188,6 +200,124 @@ interface Props {
 
 const DRAG_SENSORS = [PointerSensor.configure({ activationConstraints: dragActivationConstraints }), KeyboardSensor];
 
+/** What the editor tracks while a meal tile or a row or day label is dragged over the grid. */
+interface GridDragRuntime {
+  cells: FrozenCell[];
+  bands: FrozenBand[];
+  /** The scrolling ancestors of the grid with their offsets at drag start, to place the pointer in the frozen layout. */
+  scrollers: { element: Element; left: number; top: number }[];
+  pointer: { x: number; y: number };
+  alt: boolean;
+  /** The view last shown; a refresh that would not change it does nothing. */
+  view: GridDragView;
+  stop: () => void;
+}
+
+function numberAttribute(element: Element, name: string): number | null {
+  const value = element.getAttribute(name);
+  return value === null || value === '' ? null : Number(value);
+}
+
+/** Every meal tile and Day-view card, with the place it has on screen right now. */
+function measureCells(root: HTMLElement): FrozenCell[] {
+  const cells: FrozenCell[] = [];
+  for (const element of root.querySelectorAll('[data-testid="meal-cell"], [data-testid="meal-block"]')) {
+    const dayOfWeek = numberAttribute(element, 'data-day');
+    const rowIndex = numberAttribute(element, 'data-row');
+    if (dayOfWeek === null || rowIndex === null) {
+      continue;
+    }
+    const { left, top, right, bottom } = element.getBoundingClientRect();
+    cells.push({ dayOfWeek, rowIndex, left, top, right, bottom });
+  }
+  return cells;
+}
+
+/** The rows or days of the grid: each one's tiles and its label cell, as one rectangle. */
+function measureBands(root: HTMLElement, cells: readonly FrozenCell[], axis: LabelAxis): FrozenBand[] {
+  const bands = new Map<number, FrozenBand>();
+  const grow = (index: number, rect: { left: number; top: number; right: number; bottom: number }) => {
+    const band = bands.get(index);
+    bands.set(
+      index,
+      band
+        ? {
+            index,
+            left: Math.min(band.left, rect.left),
+            top: Math.min(band.top, rect.top),
+            right: Math.max(band.right, rect.right),
+            bottom: Math.max(band.bottom, rect.bottom),
+          }
+        : { index, left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom },
+    );
+  };
+  for (const cell of cells) {
+    grow(axis === 'row' ? cell.rowIndex : cell.dayOfWeek, cell);
+  }
+  for (const frame of root.querySelectorAll(`[data-testid="${axis}-label-frame"]`)) {
+    const index = numberAttribute(frame, 'data-index');
+    if (index !== null) {
+      grow(index, frame.getBoundingClientRect());
+    }
+  }
+  return [...bands.values()];
+}
+
+function scrollersOf(element: Element): GridDragRuntime['scrollers'] {
+  const scrollers: GridDragRuntime['scrollers'] = [];
+  for (let current: Element | null = element.parentElement; current; current = current.parentElement) {
+    scrollers.push({ element: current, left: current.scrollLeft, top: current.scrollTop });
+  }
+  return scrollers;
+}
+
+/** The pointer in the layout as it was when the drag started: scrolling since then moves the pointer, not the tiles. */
+function frozenPointer(runtime: GridDragRuntime): { x: number; y: number } {
+  let { x, y } = runtime.pointer;
+  for (const scroller of runtime.scrollers) {
+    x += scroller.element.scrollLeft - scroller.left;
+    y += scroller.element.scrollTop - scroller.top;
+  }
+  return { x, y };
+}
+
+/** The face key of a day's meal: its card in the Day view, its tile in the week grid. */
+function slotFaceKey(week: EditorWeek, range: EditorRange, dayOfWeek: number, mealId: string): string {
+  if (range === 'day') {
+    return mealId;
+  }
+  const day = week.days.find((candidate) => candidate.dayOfWeek === dayOfWeek);
+  return gridFaceKey(dayOfWeek, dayRowIndexes(week, day).get(mealId) ?? -1);
+}
+
+/** The faces a change of what the day's slots show slides; `before` and `after` list, per slot, the slot its contents came from. */
+function slotFlips(
+  week: EditorWeek,
+  range: EditorRange,
+  dayOfWeek: number,
+  before: readonly number[],
+  after: readonly number[],
+): FlipMove[] {
+  const slots = daySlots(week.days.find((candidate) => candidate.dayOfWeek === dayOfWeek));
+  return slotMoves(before, after).flatMap(({ from, to }) =>
+    slots[from] && slots[to]
+      ? [
+          {
+            from: slotFaceKey(week, range, dayOfWeek, slots[from].mealId),
+            to: slotFaceKey(week, range, dayOfWeek, slots[to].mealId),
+          },
+        ]
+      : [],
+  );
+}
+
+function cellFlips(flips: readonly { from: CellRef; to: CellRef }[]): FlipMove[] {
+  return flips.map(({ from, to }) => ({
+    from: gridFaceKey(from.dayOfWeek, from.rowIndex),
+    to: gridFaceKey(to.dayOfWeek, to.rowIndex),
+  }));
+}
+
 interface PendingDrop {
   weekIndex: number;
   source: { dayOfWeek: number; mealId: string };
@@ -213,7 +343,7 @@ function readCell(data: unknown): SelectedCell | null {
     return null;
   }
   const candidate = data as { type?: unknown; dayOfWeek?: unknown; rowIndex?: unknown };
-  // Typed drop data (a meal gap) is not a cell, so a library item dropped on it lands nowhere.
+  // Typed drop data is not a cell, so a library item dropped on it lands nowhere.
   if (candidate.type !== undefined) {
     return null;
   }
@@ -283,6 +413,9 @@ export default function PlanEditor({
   const pendingFocus = useRef<{ dayOfWeek: number; mealId: string } | null>(null);
   const pendingLabelFocus = useRef<{ axis: LabelAxis; index: number } | null>(null);
   const slide = useSlideTransition();
+  const [gridDrag, setGridDrag] = useState<GridDragView | null>(null);
+  const gridRuntime = useRef<GridDragRuntime | null>(null);
+  const flip = useGridFlip(scrollArea);
 
   const currentIndex = Math.min(weekIndex, doc.weeks.length - 1);
   const week = doc.weeks[currentIndex];
@@ -291,6 +424,20 @@ export default function PlanEditor({
   const activeSelected = selected && selected.rowIndex < rows.length ? selected : null;
   const activeDay = week?.days.find((candidate) => candidate.dayOfWeek === dayOfWeek);
   const showPicker = !readOnly && rows.length === 0;
+
+  // The drag listeners outlive a render, so they read what changes between renders through this.
+  const latest = useRef({ doc, currentIndex, range });
+  useEffect(() => {
+    latest.current = { doc, currentIndex, range };
+  });
+
+  // A drag cut short by leaving the editor must not leave its listeners on the window.
+  useEffect(
+    () => () => {
+      gridRuntime.current?.stop();
+    },
+    [],
+  );
 
   // After a keyboard move the contents sit in another slot; focus follows them once that slot has rendered.
   useEffect(() => {
@@ -502,6 +649,12 @@ export default function PlanEditor({
   function swapCells(source: CellMealDrag, target: SelectedCell, targetMeal: EditorMeal) {
     setSelected(target);
     setDetailCell(null);
+    flip(
+      cellFlips([
+        { from: { dayOfWeek: source.dayOfWeek, rowIndex: source.rowIndex }, to: target },
+        { from: target, to: { dayOfWeek: source.dayOfWeek, rowIndex: source.rowIndex } },
+      ]),
+    );
     edit((current) =>
       swapMealContents(
         current,
@@ -521,9 +674,15 @@ export default function PlanEditor({
 
   /**
    * Moves a meal's contents to the gap before slot `gapIndex` of its day in one edit, selects the slot they
-   * land in and announces it; `focus` also moves keyboard focus there once it has rendered.
+   * land in and announces it; `focus` also moves keyboard focus there once it has rendered. `animate` slides the
+   * tiles to their new places; a drop turns it off, because the hover preview already showed the result.
    */
-  function moveContents(dayOfWeekValue: number, mealId: string, gapIndex: number, focus: boolean) {
+  function moveContents(
+    dayOfWeekValue: number,
+    mealId: string,
+    gapIndex: number,
+    options: { focus: boolean; animate: boolean },
+  ) {
     const day = week?.days.find((candidate) => candidate.dayOfWeek === dayOfWeekValue);
     const slots = daySlots(day);
     const from = slots.findIndex((meal) => meal.mealId === mealId);
@@ -536,12 +695,23 @@ export default function PlanEditor({
     }
     const landing = slots[to];
     const landingRow = dayRowIndexes(week, day).get(landing.mealId);
+    if (options.animate) {
+      flip(
+        slotFlips(
+          week,
+          range,
+          dayOfWeekValue,
+          slots.map((_, index) => index),
+          slotOrigins(slots.length, from, to),
+        ),
+      );
+    }
     edit((current) => moveMealContents(current, currentIndex, dayOfWeekValue, mealId, gapIndex));
     setDetailCell(null);
     if (landingRow !== undefined) {
       setSelected({ dayOfWeek: dayOfWeekValue, rowIndex: landingRow });
     }
-    if (focus) {
+    if (options.focus) {
       pendingFocus.current = { dayOfWeek: dayOfWeekValue, mealId: landing.mealId };
     }
     setAnnouncement(
@@ -554,12 +724,160 @@ export default function PlanEditor({
     );
   }
 
-  /** A meal dropped on a gap of its own day and week moves there; any other gap drop changes nothing. */
-  function onGapDrop(source: CellMealDrag, gap: MealGapDrop) {
-    if (source.weekIndex !== currentIndex || gap.weekIndex !== currentIndex || gap.dayOfWeek !== source.dayOfWeek) {
+  /**
+   * Drops a meal tile where the pointer was: within its day a plain drop slides the contents into the hovered
+   * slot, anything else is a copy or a swap with the tile's own rules.
+   */
+  function dropCellMeal(source: CellMealDrag, view: GridDragView | undefined) {
+    if (view?.kind !== 'cell' || !view.hover || view.mode === null) {
       return;
     }
-    moveContents(source.dayOfWeek, source.mealId, gap.gapIndex, false);
+    if (view.mode !== 'move') {
+      onCellMealDrop(source, view.hover);
+      return;
+    }
+    const slots = daySlots(week?.days.find((day) => day.dayOfWeek === source.dayOfWeek));
+    const hovered = mealAt(view.hover.dayOfWeek, view.hover.rowIndex);
+    const from = slots.findIndex((meal) => meal.mealId === source.mealId);
+    const to = slots.findIndex((meal) => meal.mealId === hovered?.mealId);
+    if (source.weekIndex !== currentIndex || from === -1 || to === -1) {
+      return;
+    }
+    moveContents(source.dayOfWeek, source.mealId, gapForSlot(from, to), { focus: false, animate: false });
+  }
+
+  /** Looks at where the pointer is in the frozen layout and updates what the grid shows; slides the tiles that change place. */
+  function refreshGridDrag(runtime: GridDragRuntime) {
+    const { doc: currentDoc, currentIndex: index, range: currentRange } = latest.current;
+    const { x, y } = frozenPointer(runtime);
+    const previous = runtime.view;
+    if (previous.kind === 'label') {
+      const hit = hitBand(runtime.bands, previous.axis, x, y);
+      const target = hit === previous.source ? null : hit;
+      if (target !== previous.target) {
+        runtime.view = { ...previous, target };
+        setGridDrag(runtime.view);
+      }
+      return;
+    }
+    const next = cellDragView(currentDoc, index, previous.source, hitCell(runtime.cells, x, y), runtime.alt);
+    if (
+      next.mode === previous.mode &&
+      next.alt === previous.alt &&
+      next.hover?.dayOfWeek === previous.hover?.dayOfWeek &&
+      next.hover?.rowIndex === previous.hover?.rowIndex
+    ) {
+      return;
+    }
+    const currentWeek = currentDoc.weeks[index];
+    if (currentWeek) {
+      flip(
+        slotFlips(
+          currentWeek,
+          currentRange,
+          previous.source.dayOfWeek,
+          viewOrigins(currentWeek, previous),
+          viewOrigins(currentWeek, next),
+        ),
+      );
+    }
+    runtime.view = next;
+    setGridDrag(next);
+  }
+
+  /**
+   * Starts tracking a meal tile or label drag: measures the tiles once, so hover and drop stay put however the
+   * preview reflows them, and follows the pointer and the Alt key (a held Alt copies within a day) until the drop.
+   */
+  function startGridDrag(data: unknown, handle: Element | undefined, activator: Event | null) {
+    const cellSource = readCellMealDrag(data);
+    const rowLabel = readRowLabel(data, ROW_LABEL_DRAG);
+    const dayLabel = readDayLabel(data, DAY_LABEL_DRAG);
+    if (!scrollArea || readOnly || !(cellSource || rowLabel || dayLabel)) {
+      return;
+    }
+    gridRuntime.current?.stop();
+    const cells = measureCells(scrollArea);
+    const alt = activator instanceof MouseEvent && activator.altKey;
+    const handleRect = handle?.getBoundingClientRect();
+    const pointer =
+      activator instanceof MouseEvent
+        ? { x: activator.clientX, y: activator.clientY }
+        : { x: handleRect?.left ?? 0, y: handleRect?.top ?? 0 };
+    let view: GridDragView;
+    let bands: FrozenBand[] = [];
+    if (cellSource) {
+      view = cellDragView(doc, currentIndex, cellSource, null, alt);
+    } else {
+      const axis: LabelAxis = rowLabel ? 'row' : 'day';
+      const source = rowLabel ? rowLabel.rowIndex : (dayLabel?.dayOfWeek ?? 1);
+      bands = measureBands(scrollArea, cells, axis);
+      const tiles: LabelTile[] = cells
+        .filter((cell) => (axis === 'row' ? cell.rowIndex : cell.dayOfWeek) === source)
+        .map((cell) => ({
+          dayOfWeek: cell.dayOfWeek,
+          rowIndex: cell.rowIndex,
+          left: cell.left - (handleRect?.left ?? cell.left),
+          top: cell.top - (handleRect?.top ?? cell.top),
+          width: cell.right - cell.left,
+          height: cell.bottom - cell.top,
+        }));
+      view = { kind: 'label', axis, source, target: null, tiles };
+    }
+    const firstCell = scrollArea.querySelector('[data-testid="meal-cell"], [data-testid="meal-block"]');
+    const onPointerMove = (event: PointerEvent) => {
+      runtime.pointer = { x: event.clientX, y: event.clientY };
+      runtime.alt = event.altKey;
+      refreshGridDrag(runtime);
+    };
+    // Pressing or releasing Alt while the pointer rests fires no pointer event, so the key itself is watched too.
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== 'Alt') {
+        return;
+      }
+      if (event.type === 'keydown') {
+        // A bare Alt would otherwise focus the menu bar of some browsers and drop the drag.
+        event.preventDefault();
+      }
+      runtime.alt = event.type === 'keydown';
+      refreshGridDrag(runtime);
+    };
+    const onBlur = () => {
+      runtime.alt = false;
+      refreshGridDrag(runtime);
+    };
+    const onScroll = () => refreshGridDrag(runtime);
+    const runtime: GridDragRuntime = {
+      cells,
+      bands,
+      scrollers: firstCell ? scrollersOf(firstCell) : [],
+      pointer,
+      alt,
+      view,
+      stop: () => {
+        window.removeEventListener('pointermove', onPointerMove, true);
+        window.removeEventListener('keydown', onKey, true);
+        window.removeEventListener('keyup', onKey, true);
+        window.removeEventListener('blur', onBlur);
+        window.removeEventListener('scroll', onScroll, true);
+      },
+    };
+    window.addEventListener('pointermove', onPointerMove, true);
+    window.addEventListener('keydown', onKey, true);
+    window.addEventListener('keyup', onKey, true);
+    window.addEventListener('blur', onBlur);
+    window.addEventListener('scroll', onScroll, true);
+    gridRuntime.current = runtime;
+    setGridDrag(view);
+  }
+
+  /** Stops following the drag and returns what the grid last showed, for the drop. */
+  function finishGridDrag(): GridDragView | undefined {
+    const runtime = gridRuntime.current;
+    runtime?.stop();
+    gridRuntime.current = null;
+    setGridDrag(null);
+    return runtime?.view;
   }
 
   /** Alt+Arrow: one slot up or down the day; at the first or last slot nothing happens. */
@@ -569,7 +887,7 @@ export default function PlanEditor({
     if (to < 0 || to >= slots.length) {
       return;
     }
-    moveContents(dayOfWeekValue, mealId, direction < 0 ? to : to + 1, true);
+    moveContents(dayOfWeekValue, mealId, direction < 0 ? to : to + 1, { focus: true, animate: true });
   }
 
   function rowLabelKey(rowIndex: number): string {
@@ -603,6 +921,7 @@ export default function PlanEditor({
     if (outcome.changed) {
       setSelected(null);
       setDetailCell(null);
+      flip(cellFlips(labelMoveFlips(week, move, mode)));
       edit((current) => applyLabelMove(current, currentIndex, move, mode));
       if (options.focus) {
         pendingLabelFocus.current = { axis: move.axis, index: move.to };
@@ -941,40 +1260,37 @@ export default function PlanEditor({
         if (readMealItemDrag(event.operation.source?.data)) {
           manager.registry.plugins.get(AutoScroller)?.disable();
         }
+        startGridDrag(
+          event.operation.source?.data,
+          event.operation.source?.element,
+          event.operation.activatorEvent,
+        );
       }}
       onDragEnd={(event, manager) => {
         dragActive.current = false;
         manager.registry.plugins.get(AutoScroller)?.enable();
+        const dropView = finishGridDrag();
         if (event.canceled) {
           return;
         }
+        // Meal tiles and labels are dropped where the pointer was in the frozen layout, not on a drop target.
         const rowLabel = readRowLabel(event.operation.source?.data, ROW_LABEL_DRAG);
         if (rowLabel) {
-          const drop = readRowLabel(event.operation.target?.data, ROW_LABEL_DROP);
-          if (drop && drop.weekIndex === rowLabel.weekIndex && rowLabel.weekIndex === currentIndex) {
-            onLabelDrop({ axis: 'row', from: rowLabel.rowIndex, to: drop.rowIndex });
+          if (dropView?.kind === 'label' && dropView.target !== null && rowLabel.weekIndex === currentIndex) {
+            onLabelDrop({ axis: 'row', from: rowLabel.rowIndex, to: dropView.target });
           }
           return;
         }
         const dayLabel = readDayLabel(event.operation.source?.data, DAY_LABEL_DRAG);
         if (dayLabel) {
-          const drop = readDayLabel(event.operation.target?.data, DAY_LABEL_DROP);
-          if (drop && drop.weekIndex === dayLabel.weekIndex && dayLabel.weekIndex === currentIndex) {
-            onLabelDrop({ axis: 'day', from: dayLabel.dayOfWeek, to: drop.dayOfWeek });
+          if (dropView?.kind === 'label' && dropView.target !== null && dayLabel.weekIndex === currentIndex) {
+            onLabelDrop({ axis: 'day', from: dayLabel.dayOfWeek, to: dropView.target });
           }
           return;
         }
         const cellMeal = readCellMealDrag(event.operation.source?.data);
         if (cellMeal) {
-          const gap = readMealGapDrop(event.operation.target?.data);
-          if (gap) {
-            onGapDrop(cellMeal, gap);
-            return;
-          }
-          const dropCell = readCell(event.operation.target?.data);
-          if (dropCell) {
-            onCellMealDrop(cellMeal, dropCell);
-          }
+          dropCellMeal(cellMeal, dropView);
           return;
         }
         const mealItem = readMealItemDrag(event.operation.source?.data);
@@ -1147,6 +1463,7 @@ export default function PlanEditor({
               onEdit={edit}
               onInsertBetween={insertBetween}
               onMoveMeal={readOnly ? undefined : moveByKey}
+              drag={gridDrag}
             />
           )}
 
@@ -1169,6 +1486,7 @@ export default function PlanEditor({
                   onAddMeal={() => openAddMeal('week', null)}
                   onMoveMeal={readOnly ? undefined : moveByKey}
                   onLabelKeyMove={readOnly ? undefined : moveLabelByKey}
+                  drag={gridDrag}
                 />
               )}
               {view === 'nutrition' && <NutritionView week={week} targets={targets} />}
@@ -1205,6 +1523,9 @@ export default function PlanEditor({
           const rowLabel = readRowLabel(source.data, ROW_LABEL_DRAG);
           const dayLabel = readDayLabel(source.data, DAY_LABEL_DRAG);
           if (rowLabel || dayLabel) {
+            if (gridDrag?.kind === 'label') {
+              return <GridDragOverlay view={gridDrag} week={week} />;
+            }
             return (
               <div className="rounded-xl border border-line bg-card px-4 py-2 text-copy font-semibold text-ink shadow-popover">
                 {rowLabel ? labelName('row', rowLabel.rowIndex) : labelName('day', dayLabel?.dayOfWeek ?? 1)}

@@ -1,34 +1,16 @@
 import type { ReactNode } from 'react';
-import { useDragOperation, useDraggable, useDroppable, type UseDroppableInput } from '@dnd-kit/react';
+import { useDraggable } from '@dnd-kit/react';
 import { cn } from '@/lib/utils';
 import {
   DAY_LABEL_DRAG,
-  DAY_LABEL_DROP,
   DAY_LABEL_KEY_SHORTCUTS,
   LABEL_SENSORS,
   moveDirection,
-  readDayLabel,
-  readRowLabel,
   ROW_LABEL_DRAG,
-  ROW_LABEL_DROP,
   ROW_LABEL_KEY_SHORTCUTS,
   sideDirection,
 } from '@/components/plan-editor/plan-editor-library';
 import type { LabelAxis } from '@/components/plan-editor/plan-editor-ops';
-
-/** Collision priority above every cell's, so a pointer inside a label picks it. */
-const LABEL_COLLISION_PRIORITY = 4;
-/** The library's code for a pointer-inside-shape collision. */
-const POINTER_COLLISION_TYPE = 2;
-
-/** A label only collides while the pointer is inside it; the dragged chip's overlap alone never picks it. */
-const pointerInsideLabel: NonNullable<UseDroppableInput['collisionDetector']> = ({ dragOperation, droppable }) => {
-  const pointer = dragOperation.position.current;
-  if (!pointer || !droppable.shape?.containsPoint(pointer)) {
-    return null;
-  }
-  return { id: droppable.id, value: 1, type: POINTER_COLLISION_TYPE, priority: LABEL_COLLISION_PRIORITY };
-};
 
 interface LabelProps {
   axis: LabelAxis;
@@ -43,51 +25,23 @@ function dragData({ axis, weekIndex, index }: LabelProps) {
     : { type: DAY_LABEL_DRAG, weekIndex, dayOfWeek: index };
 }
 
-function dropData({ axis, weekIndex, index }: LabelProps) {
-  return axis === 'row'
-    ? { type: ROW_LABEL_DROP, weekIndex, rowIndex: index }
-    : { type: DAY_LABEL_DROP, weekIndex, dayOfWeek: index };
-}
-
-/** The index of the label of this axis being dragged in this week, or null. */
-function draggedIndex(axis: LabelAxis, weekIndex: number, data: unknown): number | null {
-  if (axis === 'row') {
-    const row = readRowLabel(data, ROW_LABEL_DRAG);
-    return row && row.weekIndex === weekIndex ? row.rowIndex : null;
-  }
-  const day = readDayLabel(data, DAY_LABEL_DRAG);
-  return day && day.weekIndex === weekIndex ? day.dayOfWeek : null;
-}
-
 interface FrameProps extends LabelProps {
+  /** The pointer is over this label's band while another label of the same kind is dragged. */
+  over?: boolean;
   className?: string;
   children: ReactNode;
 }
 
-/**
- * The drop zone of a label: the whole cell around it, live only while a label of the same kind from the same
- * week is dragged, and only while the pointer is inside it.
- */
-export function LabelFrame({ axis, weekIndex, index, className, children }: FrameProps) {
-  const { source } = useDragOperation();
-  const dragged = draggedIndex(axis, weekIndex, source?.data);
-  const active = dragged !== null && dragged !== index;
-  const { ref, isDropTarget } = useDroppable({
-    id: `${axis}-label-drop:${weekIndex}:${index}`,
-    data: dropData({ axis, weekIndex, index }),
-    disabled: !active,
-    collisionDetector: pointerInsideLabel,
-    collisionPriority: LABEL_COLLISION_PRIORITY,
-  });
+/** The cell around a label: it lights up while it is the target of a label drag. */
+export function LabelFrame({ axis, index, over = false, className, children }: FrameProps) {
   return (
     <span
-      ref={ref}
       data-testid={`${axis}-label-frame`}
       data-index={index}
-      data-over={isDropTarget ? 'true' : undefined}
+      data-over={over ? 'true' : undefined}
       className={cn(
         className,
-        isDropTarget && 'rounded-xl bg-nutrition-soft outline-2 -outline-offset-2 outline-nutrition outline-dashed',
+        over && 'rounded-xl bg-nutrition-soft outline-2 -outline-offset-2 outline-nutrition outline-dashed',
       )}
     >
       {children}

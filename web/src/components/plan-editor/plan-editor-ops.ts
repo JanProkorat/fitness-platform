@@ -560,6 +560,34 @@ export function movedSlotIndex(fromIndex: number, gapIndex: number, slotCount: n
   return Math.min(Math.max(to, 0), slotCount - 1);
 }
 
+/** The gap a plain drop on slot `hoverIndex` stands for when the dragged contents start at slot `fromIndex`. */
+export function gapForSlot(fromIndex: number, hoverIndex: number): number {
+  return hoverIndex > fromIndex ? hoverIndex + 1 : hoverIndex;
+}
+
+/** After moving the contents of slot `fromIndex` to slot `toIndex`: for each slot, the slot its contents came from. */
+export function slotOrigins(slotCount: number, fromIndex: number, toIndex: number): number[] {
+  const origins = Array.from({ length: slotCount }, (_, index) => index);
+  if (fromIndex < 0 || fromIndex >= slotCount || toIndex < 0 || toIndex >= slotCount) {
+    return origins;
+  }
+  const [moved] = origins.splice(fromIndex, 1);
+  origins.splice(toIndex, 0, moved);
+  return origins;
+}
+
+/** The slot pairs a content change slides: contents shown at slot `from` in `before` show at slot `to` in `after`. */
+export function slotMoves(before: readonly number[], after: readonly number[]): { from: number; to: number }[] {
+  const moves: { from: number; to: number }[] = [];
+  for (const [position, origin] of before.entries()) {
+    const to = after.indexOf(origin);
+    if (to !== -1 && to !== position) {
+      moves.push({ from: position, to });
+    }
+  }
+  return moves;
+}
+
 /**
  * Moves one meal's contents (items, recipes and note) to the gap before slot `gapIndex` of its day, in
  * {@link daySlots} order, and shifts the contents in between by one slot. Every meal the day has takes part,
@@ -937,6 +965,52 @@ export function applyLabelMove(doc: EditorDocument, weekIndex: number, move: Lab
       return meals ? { ...day, meals } : day;
     }),
   }));
+}
+
+/** A cell of the week grid: a weekday and a row index in {@link weekRows}. */
+export interface CellRef {
+  dayOfWeek: number;
+  rowIndex: number;
+}
+
+/** The contents of the cell `from` end up in the cell `to`. */
+export interface CellFlip {
+  from: CellRef;
+  to: CellRef;
+}
+
+/**
+ * Where the contents go when {@link applyLabelMove} runs with the same arguments: one entry per filled source cell
+ * (both directions for a swap). Days the meal cap leaves out are skipped, as the move itself skips them.
+ */
+export function labelMoveFlips(week: EditorWeek, move: LabelMove, mode: LabelOpMode): CellFlip[] {
+  const rows = weekRows(week);
+  const cellOf = (slot: MealSlot): CellRef => ({
+    dayOfWeek: slot.dayOfWeek,
+    rowIndex: rows.findIndex((row) => row.kind === slot.kind && row.occurrence === slot.occurrence),
+  });
+  const filled = (slot: MealSlot) => {
+    const meal = slotMeal(week, slot);
+    return meal !== undefined && !isEmptyContents(contentsOf(meal));
+  };
+  const flips: CellFlip[] = [];
+  for (const pairs of labelGroups(week, move)) {
+    const result = applyGroup(week, pairs, mode);
+    if (result.overCap.length > 0 || !result.changed) {
+      continue;
+    }
+    for (const pair of pairs) {
+      const source = cellOf(pair.source);
+      const target = cellOf(pair.target);
+      if (filled(pair.source)) {
+        flips.push({ from: source, to: target });
+      }
+      if (mode === 'swap' && filled(pair.target)) {
+        flips.push({ from: target, to: source });
+      }
+    }
+  }
+  return flips.filter((flip) => flip.from.rowIndex !== -1 && flip.to.rowIndex !== -1);
 }
 
 /**
