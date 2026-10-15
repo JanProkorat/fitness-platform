@@ -393,9 +393,27 @@ export default function WeekGrid({
       style={weekGridRows(rows.length, WEEK_GRID_MIN_ROW_REM)}
     >
       <div className={GRID_CLASS}>
-        <span className={STICKY_LABEL_CLASS} aria-hidden="true">
-          &nbsp;
-        </span>
+        {!readOnly && onAddMeal && rows.length > 0 ? (
+          <span className={STICKY_LABEL_CLASS}>
+            <button
+              type="button"
+              data-testid="add-meal-week"
+              aria-label={t('planEditor.addMeal.open')}
+              title={t('planEditor.addMeal.open')}
+              onClick={onAddMeal}
+              // The 36px tap target is pulled back into the header row so the corner adds no height.
+              className="-my-2 flex size-9 cursor-pointer items-center justify-center rounded-full outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+            >
+              <span className="flex size-6 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                <Plus className="size-3.5" aria-hidden="true" />
+              </span>
+            </button>
+          </span>
+        ) : (
+          <span className={STICKY_LABEL_CLASS} aria-hidden="true">
+            &nbsp;
+          </span>
+        )}
         {DAY_ORDER.map((dayOfWeek) => (
           <DayHeader
             key={dayOfWeek}
@@ -452,17 +470,6 @@ export default function WeekGrid({
               </button>
             )}
             </span>
-            {position === rows.length - 1 && !readOnly && onAddMeal && (
-              <button
-                type="button"
-                data-testid="add-meal-week"
-                onClick={onAddMeal}
-                className="flex w-0 min-w-full cursor-pointer items-start gap-1 self-stretch rounded-md text-left text-body font-semibold whitespace-normal text-nutrition-ink outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:min-h-9"
-              >
-                <Plus className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
-                {t('planEditor.addMeal.open')}
-              </button>
-            )}
           </span>
           {DAY_ORDER.map((dayOfWeek) => {
             const detailOpen = detailCell?.dayOfWeek === dayOfWeek && detailCell.rowIndex === row.index;
