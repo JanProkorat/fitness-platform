@@ -201,18 +201,25 @@ async function hoverSlot(page: Page, target: Locator): Promise<void> {
   await hoverUntil(page, target, 'data-landing', 'true');
 }
 
-/** Starts watching every frame for tile faces that are sliding; the most at once is read back with {@link slidingFaces}. */
+/**
+ * Starts counting the slides the editor starts: every `animate()` call on a tile face. Counting the calls, not the
+ * animations alive at some frame, cannot miss a slide that is over before anything looks; read it with {@link slidingFaces}.
+ */
 async function watchFaces(page: Page): Promise<void> {
   await page.evaluate(() => {
-    const recorder = window as unknown as { __slidingFaces?: number };
+    const recorder = window as unknown as { __slidingFaces?: number; __animateWrapped?: boolean };
     recorder.__slidingFaces = 0;
-    const tick = () => {
-      document.querySelectorAll('[data-flip-key]').forEach((face) => {
-        recorder.__slidingFaces = Math.max(recorder.__slidingFaces ?? 0, face.getAnimations().length);
-      });
-      requestAnimationFrame(tick);
+    if (recorder.__animateWrapped) {
+      return;
+    }
+    recorder.__animateWrapped = true;
+    const original = Element.prototype.animate;
+    Element.prototype.animate = function animate(this: Element, ...args: Parameters<Element['animate']>) {
+      if (this.hasAttribute('data-flip-key')) {
+        recorder.__slidingFaces = (recorder.__slidingFaces ?? 0) + 1;
+      }
+      return original.apply(this, args);
     };
-    requestAnimationFrame(tick);
   });
 }
 
