@@ -77,6 +77,65 @@ export function moveDirection(event: {
   return event.key === 'ArrowUp' ? -1 : event.key === 'ArrowDown' ? 1 : null;
 }
 
+/** `data.type` of a meal row's label dragged in the week grid. */
+export const ROW_LABEL_DRAG = 'row-label';
+
+/** `data.type` of a weekday's label dragged in the week grid. */
+export const DAY_LABEL_DRAG = 'day-label';
+
+/** `data.type` of the drop data of a row label and of a day label. */
+export const ROW_LABEL_DROP = 'row-label-drop';
+export const DAY_LABEL_DROP = 'day-label-drop';
+
+export interface RowLabelRef {
+  weekIndex: number;
+  rowIndex: number;
+}
+
+export interface DayLabelRef {
+  weekIndex: number;
+  dayOfWeek: number;
+}
+
+/** The row label a drag or drop data points at, or null for any other data. */
+export function readRowLabel(data: unknown, type: typeof ROW_LABEL_DRAG | typeof ROW_LABEL_DROP): RowLabelRef | null {
+  if (typeof data !== 'object' || data === null) {
+    return null;
+  }
+  const candidate = data as Record<string, unknown>;
+  return candidate['type'] === type && typeof candidate['weekIndex'] === 'number' && typeof candidate['rowIndex'] === 'number'
+    ? { weekIndex: candidate['weekIndex'], rowIndex: candidate['rowIndex'] }
+    : null;
+}
+
+/** The day label a drag or drop data points at, or null for any other data. */
+export function readDayLabel(data: unknown, type: typeof DAY_LABEL_DRAG | typeof DAY_LABEL_DROP): DayLabelRef | null {
+  if (typeof data !== 'object' || data === null) {
+    return null;
+  }
+  const candidate = data as Record<string, unknown>;
+  return candidate['type'] === type && typeof candidate['weekIndex'] === 'number' && typeof candidate['dayOfWeek'] === 'number'
+    ? { weekIndex: candidate['weekIndex'], dayOfWeek: candidate['dayOfWeek'] }
+    : null;
+}
+
+/** True while the dragged thing is a row or a day label. */
+export function isLabelDrag(data: unknown): boolean {
+  return readRowLabel(data, ROW_LABEL_DRAG) !== null || readDayLabel(data, DAY_LABEL_DRAG) !== null;
+}
+
+/** The `aria-keyshortcuts` of a row label and of a day label. */
+export const ROW_LABEL_KEY_SHORTCUTS = 'Alt+ArrowUp Alt+ArrowDown';
+export const DAY_LABEL_KEY_SHORTCUTS = 'Alt+ArrowLeft Alt+ArrowRight';
+
+/** -1 for Alt+ArrowLeft, 1 for Alt+ArrowRight pressed on the element itself, else null. Other modifiers are left alone. */
+export function sideDirection(event: Parameters<typeof moveDirection>[0]): -1 | 1 | null {
+  if (!event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || event.target !== event.currentTarget) {
+    return null;
+  }
+  return event.key === 'ArrowLeft' ? -1 : event.key === 'ArrowRight' ? 1 : null;
+}
+
 /** `data.type` of a recipe or ingredient row dragged within its own list of a meal. */
 export const MEAL_ITEM_DRAG = 'meal-item';
 
@@ -136,6 +195,9 @@ export const LIBRARY_CARD_SENSORS = [
 export const GRID_CELL_SENSORS = [
   PointerSensor.configure({ activationConstraints: dragActivationConstraints, preventActivation: () => false }),
 ];
+
+/** Row and day labels: pointer only, so a focused label never starts a keyboard drag; Alt+Arrow swaps instead. */
+export const LABEL_SENSORS = GRID_CELL_SENSORS;
 
 /** A library recipe as a one-serving plan item (values divided by the recipe's servings). */
 export function recipeToItem(recipe: RecipeSummaryDto): LibraryItem {

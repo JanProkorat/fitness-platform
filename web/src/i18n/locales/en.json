@@ -2036,6 +2036,35 @@
       "moved": "{{day}}: contents moved to {{meal}}, meal {{position}} of {{count}}",
       "swapped": "{{meal}} contents swapped between {{from}} and {{to}}"
     },
+    "labelDrop": {
+      "rowAria": "{{label}} row. Drag onto another row to copy or swap it. Alt+Up and Alt+Down swap it with the neighbouring row.",
+      "dayAria": "{{label}}. Drag onto another day to copy or swap it. Alt+Left and Alt+Right swap it with the neighbouring day.",
+      "title": "{{to}} already has food",
+      "body": "You are moving <b>{{from}}</b> onto <b>{{to}}</b>. What should happen to what is there now?",
+      "swapLabel": "Swap",
+      "swapBody": "{{from}} and {{to}} trade contents.",
+      "replaceLabel": "Replace",
+      "replaceBody": "{{to}} becomes a copy of {{from}}; what it held is removed.",
+      "appendLabel": "Append",
+      "appendBody": "The items of {{from}} are added to what {{to}} already holds.",
+      "skipped": "Skipped, a day holds at most {{max}} meals: {{days}}.",
+      "skippedCopy": "Replace and Append skip {{days}}: a day holds at most {{max}} meals.",
+      "skippedSwap": "Swap skips {{days}}: a day holds at most {{max}} meals.",
+      "announce": {
+        "row": {
+          "swap": "{{from}} and {{to}} swapped across the week.",
+          "copy": "{{from}} copied to {{to}} across the week.",
+          "replace": "{{to}} replaced with {{from}} across the week.",
+          "append": "{{from}} added to {{to}} across the week."
+        },
+        "day": {
+          "swap": "{{from}} and {{to}} swapped.",
+          "copy": "{{from}} copied to {{to}}.",
+          "replace": "{{to}} replaced with {{from}}.",
+          "append": "{{from}} added to {{to}}."
+        }
+      }
+    },
     "nutrition": {
       "label": "Nutrition by meal",
       "onTarget": "on target",

@@ -1,6 +1,6 @@
 import { Fragment, useCallback, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useDraggable, useDroppable } from '@dnd-kit/react';
+import { useDragOperation, useDraggable, useDroppable } from '@dnd-kit/react';
 import { Plus, StickyNote, X } from 'lucide-react';
 import type { MealKind } from '@/api/generated';
 import { cn } from '@/lib/utils';
@@ -21,9 +21,12 @@ import {
   weekGridRows,
 } from '@/components/plan-editor/plan-editor-format';
 import MealGapDropTarget from '@/components/plan-editor/MealGapDropTarget';
+import { LabelFrame, LabelHandle } from '@/components/plan-editor/GridLabelDrag';
+import type { LabelAxis } from '@/components/plan-editor/plan-editor-ops';
 import {
   CELL_MEAL_DRAG,
   GRID_CELL_SENSORS,
+  isLabelDrag,
   mealItemNames,
   MOVE_KEY_SHORTCUTS,
   moveDirection,
@@ -99,6 +102,8 @@ interface CellProps {
   meal: EditorMeal | undefined;
   selected: boolean;
   readOnly: boolean;
+  /** True while a row or day label is dragged: no cell takes a drop then, so only labels can be targets. */
+  labelDragging: boolean;
   /** True while this cell's meal detail is open. */
   detailOpen: boolean;
   detail: ReactNode;
@@ -116,6 +121,7 @@ function MealCell({
   meal,
   selected,
   readOnly,
+  labelDragging,
   detailOpen,
   detail,
   onSelect,
@@ -127,7 +133,7 @@ function MealCell({
   const { ref: dropRef, isDropTarget } = useDroppable({
     id: `cell:${weekIndex}:${dayOfWeek}:${rowIndex}`,
     data: { weekIndex, dayOfWeek, rowIndex },
-    disabled: readOnly,
+    disabled: readOnly || labelDragging,
   });
   const itemCount = meal ? mealItemCount(meal) : 0;
   const draggable = !readOnly && itemCount > 0;
@@ -253,10 +259,12 @@ interface DayHeaderProps {
   day: EditorDay | undefined;
   /** Where the day's note can be edited; without it (or when `readOnly`) the note is shown as text. */
   note?: { weekIndex: number; readOnly: boolean; onEdit: PlanEditorState['edit'] };
+  /** Makes the day's name draggable onto another day, and Alt+Arrow swap it with the neighbour; off by default. */
+  labelDrag?: { weekIndex: number; onKeyMove: (direction: -1 | 1) => void };
 }
 
 /** A weekday's name with its note button; the note opens in a small popover. */
-export function DayHeader({ day, note: noteEditing }: DayHeaderProps) {
+export function DayHeader({ day, note: noteEditing, labelDrag }: DayHeaderProps) {
   const { t } = useTranslation();
   const boundary = usePopoverBoundary();
   const [open, setOpen] = useState(false);
@@ -265,9 +273,33 @@ export function DayHeader({ day, note: noteEditing }: DayHeaderProps) {
   const note = day?.note?.trim();
   const editable = noteEditing !== undefined && !noteEditing.readOnly;
 
-  return (
-    <span className="flex items-center justify-center gap-1.5 text-body font-semibold text-ink">
-      {t(`planEditor.days.${dayOfWeek}`)}
+  const shortName = t(`planEditor.days.${dayOfWeek}`);
+  const rootClass = 'flex items-center justify-center gap-1.5 text-body font-semibold text-ink';
+  // A plain function, not a component: a component type created here would remount the popover on every render.
+  const wrap = (children: ReactNode) =>
+    labelDrag ? (
+      <LabelFrame axis="day" weekIndex={labelDrag.weekIndex} index={dayOfWeek} className={cn(rootClass, 'self-stretch')}>
+        {children}
+      </LabelFrame>
+    ) : (
+      <span className={rootClass}>{children}</span>
+    );
+
+  return wrap(
+    <>
+      {labelDrag ? (
+        <LabelHandle
+          axis="day"
+          weekIndex={labelDrag.weekIndex}
+          index={dayOfWeek}
+          ariaLabel={t('planEditor.labelDrop.dayAria', { label: dayName })}
+          onKeyMove={labelDrag.onKeyMove}
+        >
+          {shortName}
+        </LabelHandle>
+      ) : (
+        shortName
+      )}
       <Popover open={open} onOpenChange={setOpen} modal={false}>
         <PopoverTrigger asChild>
           <button
@@ -319,7 +351,7 @@ export function DayHeader({ day, note: noteEditing }: DayHeaderProps) {
           </PopoverContent>
         )}
       </Popover>
-    </span>
+    </>,
   );
 }
 
@@ -382,6 +414,11 @@ interface Props {
   onAddMeal?: () => void;
   /** Alt+Arrow on a focused cell: moves that meal's contents one meal up or down its day. */
   onMoveMeal?: (dayOfWeek: number, mealId: string, direction: -1 | 1) => void;
+  /**
+   * Alt+Arrow on a focused row or day label: swaps it with its neighbour. Without it (or when `readOnly`) the
+   * labels cannot be dragged. `index` is the row index of a row label and the weekday of a day label.
+   */
+  onLabelKeyMove?: (axis: LabelAxis, index: number, direction: -1 | 1) => void;
 }
 
 /** The week as a grid: one column per weekday, a day-total row, then one row per meal. */
@@ -400,8 +437,12 @@ export default function WeekGrid({
   onInsertBetween,
   onAddMeal,
   onMoveMeal,
+  onLabelKeyMove,
 }: Props) {
   const { t } = useTranslation();
+  const { source } = useDragOperation();
+  const labelDragging = isLabelDrag(source?.data);
+  const labelsDraggable = !readOnly && onLabelKeyMove !== undefined;
   const rows = weekRows(week);
   const dayByNumber = new Map(week.days.map((day) => [day.dayOfWeek, day]));
   const slotIds = new Map(DAY_ORDER.map((dayOfWeek) => [dayOfWeek, daySlots(dayByNumber.get(dayOfWeek)).map((meal) => meal.mealId)]));
@@ -441,6 +482,11 @@ export default function WeekGrid({
             key={dayOfWeek}
             day={dayByNumber.get(dayOfWeek) ?? { dayOfWeek, meals: [] }}
             note={{ weekIndex, readOnly, onEdit }}
+            labelDrag={
+              labelsDraggable
+                ? { weekIndex, onKeyMove: (direction) => onLabelKeyMove?.('day', dayOfWeek, direction) }
+                : undefined
+            }
           />
         ))}
       </div>
@@ -456,6 +502,41 @@ export default function WeekGrid({
 
       {rows.map((row, position) => {
         const previous = position > 0 ? rows[position - 1] : undefined;
+        const rowName = t(`planEditor.rows.${mealKindLabelKey(row.kind)}`);
+        const rowLabelClass = cn(
+          STICKY_LABEL_CLASS,
+          'group/row flex flex-col items-start justify-center gap-1.5 text-body font-semibold whitespace-nowrap text-muted-foreground',
+          labelsDraggable ? 'self-stretch' : 'self-center',
+        );
+        const rowLabelContent = (
+          <span className="flex items-center gap-1.5">
+            {labelsDraggable ? (
+              <LabelHandle
+                axis="row"
+                weekIndex={weekIndex}
+                index={row.index}
+                ariaLabel={t('planEditor.labelDrop.rowAria', { label: rowName })}
+                onKeyMove={(direction) => onLabelKeyMove?.('row', row.index, direction)}
+              >
+                {rowName}
+              </LabelHandle>
+            ) : (
+              rowName
+            )}
+            {!readOnly && onRemoveRow && (
+              <button
+                type="button"
+                data-testid="remove-row"
+                aria-label={t('planEditor.removeRow.aria', { meal: rowName, week: weekIndex + 1 })}
+                title={t('planEditor.removeRow.aria', { meal: rowName, week: weekIndex + 1 })}
+                onClick={() => onRemoveRow(row.index)}
+                className="flex size-5 shrink-0 cursor-pointer items-center justify-center rounded-md border border-line bg-card text-error opacity-0 outline-none group-focus-within/row:opacity-100 group-hover/row:opacity-100 focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:size-9 pointer-coarse:opacity-100"
+              >
+                <X className="size-3 pointer-coarse:size-4" aria-hidden="true" />
+              </button>
+            )}
+          </span>
+        );
         return (
         <div key={row.index} className={cn(GRID_CLASS, 'relative items-stretch')}>
           {previous && !readOnly && onInsertBetween && (
@@ -465,34 +546,13 @@ export default function WeekGrid({
               onInsert={() => onInsertBetween(previous.kind, row.kind)}
             />
           )}
-          <span
-            className={cn(
-              STICKY_LABEL_CLASS,
-              'group/row flex flex-col items-start justify-center gap-1.5 self-center text-body font-semibold whitespace-nowrap text-muted-foreground',
-            )}
-          >
-            <span className="flex items-center gap-1.5">
-            {t(`planEditor.rows.${mealKindLabelKey(row.kind)}`)}
-            {!readOnly && onRemoveRow && (
-              <button
-                type="button"
-                data-testid="remove-row"
-                aria-label={t('planEditor.removeRow.aria', {
-                  meal: t(`planEditor.rows.${mealKindLabelKey(row.kind)}`),
-                  week: weekIndex + 1,
-                })}
-                title={t('planEditor.removeRow.aria', {
-                  meal: t(`planEditor.rows.${mealKindLabelKey(row.kind)}`),
-                  week: weekIndex + 1,
-                })}
-                onClick={() => onRemoveRow(row.index)}
-                className="flex size-5 shrink-0 cursor-pointer items-center justify-center rounded-md border border-line bg-card text-error opacity-0 outline-none group-focus-within/row:opacity-100 group-hover/row:opacity-100 focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:size-9 pointer-coarse:opacity-100"
-              >
-                <X className="size-3 pointer-coarse:size-4" aria-hidden="true" />
-              </button>
-            )}
-            </span>
-          </span>
+          {labelsDraggable ? (
+            <LabelFrame axis="row" weekIndex={weekIndex} index={row.index} className={rowLabelClass}>
+              {rowLabelContent}
+            </LabelFrame>
+          ) : (
+            <span className={rowLabelClass}>{rowLabelContent}</span>
+          )}
           {DAY_ORDER.map((dayOfWeek) => {
             const detailOpen = detailCell?.dayOfWeek === dayOfWeek && detailCell.rowIndex === row.index;
             const cellMeal = rowMeal(dayByNumber.get(dayOfWeek), row);
@@ -529,6 +589,7 @@ export default function WeekGrid({
                 meal={cellMeal}
                 selected={selected?.dayOfWeek === dayOfWeek && selected.rowIndex === row.index}
                 readOnly={readOnly}
+                labelDragging={labelDragging}
                 detailOpen={detailOpen}
                 detail={detailOpen ? renderDetail({ dayOfWeek, rowIndex: row.index }) : null}
                 onSelect={() => onSelect({ dayOfWeek, rowIndex: row.index })}

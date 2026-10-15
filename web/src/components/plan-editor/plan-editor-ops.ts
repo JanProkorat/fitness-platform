@@ -282,14 +282,18 @@ export function removeLastWeek(doc: EditorDocument): EditorDocument {
  * Makes sure the day has a meal in the row, creating empty ones of the row's kind when it does not.
  * Returns null when that would push the day over the meal cap.
  */
-function withRowMeal(meals: EditorMeal[], row: GridRow): { meals: EditorMeal[]; mealId: string } | null {
+function withRowMeal(
+  meals: EditorMeal[],
+  row: GridRow,
+  cap: number = MAX_MEALS_PER_DAY,
+): { meals: EditorMeal[]; mealId: string } | null {
   const sameKind = meals.filter((meal) => meal.kind === row.kind);
   const existing = sameKind[row.occurrence];
   if (existing) {
     return { meals, mealId: existing.mealId };
   }
   const missing = row.occurrence + 1 - sameKind.length;
-  if (meals.length + missing > MAX_MEALS_PER_DAY) {
+  if (meals.length + missing > cap) {
     return null;
   }
   const next = [...meals];
@@ -670,6 +674,269 @@ export function copyMealToCell(
       }),
     };
   });
+}
+
+export type LabelAxis = 'row' | 'day';
+
+/** A row label dropped on another row (indexes in {@link weekRows}), or a day label dropped on another day (1-7). */
+export interface LabelMove {
+  axis: LabelAxis;
+  from: number;
+  to: number;
+}
+
+/** `copy` is `replace` that leaves a target alone when its source cell is empty; it is what a drop on an empty target does. */
+export type LabelOpMode = 'swap' | 'replace' | 'append' | 'copy';
+
+interface MealSlot {
+  dayOfWeek: number;
+  kind: MealKind;
+  occurrence: number;
+}
+
+interface SlotPair {
+  source: MealSlot;
+  target: MealSlot;
+}
+
+const WEEKDAYS = Array.from({ length: DAYS_PER_WEEK }, (_, index) => index + 1);
+const BLANK_CONTENTS: MealContents = { foods: [], recipes: [], note: undefined };
+
+function slotMeal(week: EditorWeek, slot: MealSlot): EditorMeal | undefined {
+  return rowMeal(
+    week.days.find((day) => day.dayOfWeek === slot.dayOfWeek),
+    { index: -1, kind: slot.kind, occurrence: slot.occurrence },
+  );
+}
+
+function hasItems(contents: Pick<EditorMeal, 'foods' | 'recipes'>): boolean {
+  return contents.foods.length + contents.recipes.length > 0;
+}
+
+function isEmptyContents(contents: MealContents): boolean {
+  return !hasItems(contents) && !contents.note;
+}
+
+function cloneContents(contents: MealContents): MealContents {
+  return {
+    foods: contents.foods.map((food) => ({ ...food })),
+    recipes: contents.recipes.map((recipe) => ({ ...recipe })),
+    note: contents.note,
+  };
+}
+
+/** The cell pairs of a label move, grouped by what a daily meal cap judges together: a day for a row move, the two days for a day move. */
+function labelGroups(week: EditorWeek, move: LabelMove): SlotPair[][] {
+  if (move.from === move.to) {
+    return [];
+  }
+  if (move.axis === 'row') {
+    const rows = weekRows(week);
+    const from = rows[move.from];
+    const to = rows[move.to];
+    if (!from || !to) {
+      return [];
+    }
+    return WEEKDAYS.map((dayOfWeek) => [
+      {
+        source: { dayOfWeek, kind: from.kind, occurrence: from.occurrence },
+        target: { dayOfWeek, kind: to.kind, occurrence: to.occurrence },
+      },
+    ]);
+  }
+  if (!WEEKDAYS.includes(move.from) || !WEEKDAYS.includes(move.to)) {
+    return [];
+  }
+  return [
+    weekRows(week).map((row) => ({
+      source: { dayOfWeek: move.from, kind: row.kind, occurrence: row.occurrence },
+      target: { dayOfWeek: move.to, kind: row.kind, occurrence: row.occurrence },
+    })),
+  ];
+}
+
+interface GroupResult {
+  /** The new meal list of every day the group changed. */
+  days: Map<number, EditorMeal[]>;
+  /** Days the result would push past the daily meal cap. */
+  overCap: number[];
+  changed: boolean;
+}
+
+/**
+ * Applies one group of cell pairs. Every pair's meals are resolved from the week as it was before the move, so
+ * creating a meal never shifts what a later pair points at; meals a swap leaves behind are dropped last.
+ */
+function applyGroup(week: EditorWeek, pairs: readonly SlotPair[], mode: LabelOpMode): GroupResult {
+  const days = new Map<number, EditorMeal[]>();
+  const vacated: { dayOfWeek: number; mealId: string }[] = [];
+  let changed = false;
+  const mealsOf = (dayOfWeek: number) => days.get(dayOfWeek) ?? dayOf(week, dayOfWeek).meals;
+  const assign = (dayOfWeek: number, mealId: string, contents: MealContents) => {
+    const filled = cloneContents(contents);
+    days.set(
+      dayOfWeek,
+      mealsOf(dayOfWeek).map((meal) => (meal.mealId === mealId ? { ...meal, ...filled } : meal)),
+    );
+    changed = true;
+  };
+  const create = (slot: MealSlot, contents: MealContents) => {
+    const placed = withRowMeal(
+      mealsOf(slot.dayOfWeek),
+      { index: -1, kind: slot.kind, occurrence: slot.occurrence },
+      Number.POSITIVE_INFINITY,
+    );
+    if (placed) {
+      days.set(slot.dayOfWeek, placed.meals);
+      assign(slot.dayOfWeek, placed.mealId, contents);
+    }
+  };
+
+  for (const pair of pairs) {
+    const sourceMeal = slotMeal(week, pair.source);
+    const targetMeal = slotMeal(week, pair.target);
+    const sourceContents = sourceMeal ? contentsOf(sourceMeal) : undefined;
+    const targetContents = targetMeal ? contentsOf(targetMeal) : undefined;
+    const sourceFull = sourceContents !== undefined && !isEmptyContents(sourceContents);
+    if (mode === 'swap') {
+      if (sourceMeal && targetMeal && sourceContents && targetContents) {
+        if (sourceFull || !isEmptyContents(targetContents)) {
+          assign(pair.source.dayOfWeek, sourceMeal.mealId, targetContents);
+          assign(pair.target.dayOfWeek, targetMeal.mealId, sourceContents);
+        }
+        continue;
+      }
+      const present = sourceMeal ?? targetMeal;
+      if (!present || isEmptyContents(contentsOf(present))) {
+        continue;
+      }
+      const home = sourceMeal ? pair.source : pair.target;
+      const destination = sourceMeal ? pair.target : pair.source;
+      create(destination, contentsOf(present));
+      assign(home.dayOfWeek, present.mealId, BLANK_CONTENTS);
+      vacated.push({ dayOfWeek: home.dayOfWeek, mealId: present.mealId });
+    } else if (mode === 'append') {
+      if (!sourceContents || !sourceFull) {
+        continue;
+      }
+      if (!targetMeal || !targetContents) {
+        create(pair.target, sourceContents);
+      } else if (!hasItems(targetContents)) {
+        assign(pair.target.dayOfWeek, targetMeal.mealId, sourceContents);
+      } else {
+        assign(pair.target.dayOfWeek, targetMeal.mealId, {
+          foods: [...targetContents.foods, ...sourceContents.foods],
+          recipes: [...targetContents.recipes, ...sourceContents.recipes],
+          note: targetContents.note ?? sourceContents.note,
+        });
+      }
+    } else if (!sourceContents || !sourceFull) {
+      if (mode === 'replace' && targetMeal && targetContents && !isEmptyContents(targetContents)) {
+        assign(pair.target.dayOfWeek, targetMeal.mealId, BLANK_CONTENTS);
+      }
+    } else if (targetMeal) {
+      assign(pair.target.dayOfWeek, targetMeal.mealId, sourceContents);
+    } else {
+      create(pair.target, sourceContents);
+    }
+  }
+
+  // A meal a swap emptied goes away only when it is the last of its kind that day; otherwise a later one would shift up.
+  for (const dayOfWeek of new Set(vacated.map((entry) => entry.dayOfWeek))) {
+    let meals = mealsOf(dayOfWeek);
+    const position = new Map(meals.map((meal, index) => [meal.mealId, index]));
+    const ids = vacated
+      .filter((entry) => entry.dayOfWeek === dayOfWeek)
+      .map((entry) => entry.mealId)
+      .sort((left, right) => (position.get(right) ?? 0) - (position.get(left) ?? 0));
+    for (const id of ids) {
+      const meal = meals.find((candidate) => candidate.mealId === id);
+      const sameKind = meal ? meals.filter((candidate) => candidate.kind === meal.kind) : [];
+      if (meal && isEmptyContents(contentsOf(meal)) && sameKind[sameKind.length - 1]?.mealId === id) {
+        meals = meals.filter((candidate) => candidate.mealId !== id);
+      }
+    }
+    days.set(dayOfWeek, meals);
+  }
+
+  const overCap: number[] = [];
+  for (const [dayOfWeek, meals] of days) {
+    if (meals.length > MAX_MEALS_PER_DAY) {
+      overCap.push(dayOfWeek);
+    }
+    days.set(dayOfWeek, renumber(meals));
+  }
+  return { days, overCap: overCap.sort((left, right) => left - right), changed };
+}
+
+export interface LabelOutcome {
+  /** Whether the move changes anything. */
+  changed: boolean;
+  /** Weekdays left out because the result would hold more meals than a day may. */
+  skippedDays: number[];
+}
+
+export interface LabelPreview {
+  /** True when a target cell holds a recipe or ingredient, so the move needs a decision first. */
+  targetHasFood: boolean;
+  outcome: Record<LabelOpMode, LabelOutcome>;
+}
+
+const LABEL_OP_MODES: readonly LabelOpMode[] = ['swap', 'replace', 'append', 'copy'];
+
+/** What a label move would do in each mode, without doing it. */
+export function previewLabelMove(week: EditorWeek, move: LabelMove): LabelPreview {
+  const groups = labelGroups(week, move);
+  const targetHasFood = groups.some((pairs) =>
+    pairs.some((pair) => {
+      const meal = slotMeal(week, pair.target);
+      return meal !== undefined && hasItems(meal);
+    }),
+  );
+  const outcome = {} as Record<LabelOpMode, LabelOutcome>;
+  for (const mode of LABEL_OP_MODES) {
+    const skipped = new Set<number>();
+    let changed = false;
+    for (const pairs of groups) {
+      const result = applyGroup(week, pairs, mode);
+      if (result.overCap.length > 0) {
+        result.overCap.forEach((dayOfWeek) => skipped.add(dayOfWeek));
+      } else if (result.changed) {
+        changed = true;
+      }
+    }
+    outcome[mode] = { changed, skippedDays: [...skipped].sort((left, right) => left - right) };
+  }
+  return { targetHasFood, outcome };
+}
+
+/**
+ * Moves the contents (items, recipes and note) of one row onto another across every day of the week, or of one
+ * day onto another across every row. Times and a day's own note stay put. Days the result would push past the
+ * meal cap are left as they were; the document comes back unchanged when nothing applies.
+ */
+export function applyLabelMove(doc: EditorDocument, weekIndex: number, move: LabelMove, mode: LabelOpMode): EditorDocument {
+  const week = doc.weeks[weekIndex];
+  if (!week) {
+    return doc;
+  }
+  const changedDays = new Map<number, EditorMeal[]>();
+  for (const pairs of labelGroups(week, move)) {
+    const result = applyGroup(week, pairs, mode);
+    if (result.overCap.length === 0 && result.changed) {
+      result.days.forEach((meals, dayOfWeek) => changedDays.set(dayOfWeek, meals));
+    }
+  }
+  if (changedDays.size === 0) {
+    return doc;
+  }
+  return updateWeek(doc, weekIndex, (current) => ({
+    ...current,
+    days: current.days.map((day) => {
+      const meals = changedDays.get(day.dayOfWeek);
+      return meals ? { ...day, meals } : day;
+    }),
+  }));
 }
 
 /**
