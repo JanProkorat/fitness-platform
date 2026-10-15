@@ -6,6 +6,7 @@ import { formatCalendarDate, planEndDate, startHasArrived } from '@/components/c
 import StartDatePicker from '@/components/client-plan-editor/StartDatePicker';
 import type { InfoPanelContext } from '@/components/plan-editor/PlanEditor';
 import type { PlanTargets } from '@/components/plan-editor/plan-editor-types';
+import WeekAverageCard from '@/components/plan-editor/WeekAverageCard';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { usePlanTemplate } from '@/hooks/usePlanTemplatesQueries';
@@ -101,6 +102,8 @@ interface Props extends InfoPanelContext {
 /** The info tab of the client plan editor: name, the client's profile, dates and daily target. */
 export default function ClientPlanInfoPanel({
   doc,
+  week,
+  weekNumber,
   readOnly,
   onEdit,
   clientId,
@@ -221,6 +224,8 @@ export default function ClientPlanInfoPanel({
             </p>
           )}
         </div>
+
+        <WeekAverageCard week={week} weekNumber={weekNumber} targets={doc.targets} />
       </div>
 
       {templateName && (
