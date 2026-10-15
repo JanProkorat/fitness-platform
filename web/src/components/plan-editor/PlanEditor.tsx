@@ -17,6 +17,8 @@ import {
 } from '@/components/ui/dialog';
 import AddMealSheet, { type AddMealMode } from '@/components/plan-editor/AddMealSheet';
 import CardDropDialog from '@/components/plan-editor/CardDropDialog';
+import LabelDropDialog, { type LabelChoice } from '@/components/plan-editor/LabelDropDialog';
+import { useToastStore } from '@/stores/toast';
 import DaySummaryCard from '@/components/plan-editor/DaySummaryCard';
 import DayNavigator from '@/components/plan-editor/DayNavigator';
 import DayView from '@/components/plan-editor/DayView';
@@ -38,8 +40,14 @@ import {
   mealItemNames,
   foodDisplayName,
   readCellMealDrag,
+  readDayLabel,
   readMealGapDrop,
   readMealItemDrag,
+  readRowLabel,
+  DAY_LABEL_DRAG,
+  DAY_LABEL_DROP,
+  ROW_LABEL_DRAG,
+  ROW_LABEL_DROP,
   type CellMealDrag,
   type MealGapDrop,
   type MealItemDrag,
@@ -52,9 +60,14 @@ import {
   addMealToDay,
   CHRONOLOGICAL_KINDS,
   addWeek,
+  applyLabelMove,
   applyMealKinds,
   COMMON_MEAL_KINDS,
   type CellCopyMode,
+  type LabelAxis,
+  type LabelMove,
+  type LabelOpMode,
+  previewLabelMove,
   copyMealToCell,
   copyWeekMeals,
   dayRowIndexes,
@@ -253,6 +266,8 @@ export default function PlanEditor({
   const [pendingRemoval, setPendingRemoval] = useState<(PendingRowRemoval & { rowIndex: number }) | null>(null);
   const [leaveOpen, setLeaveOpen] = useState(false);
   const [pendingDrop, setPendingDrop] = useState<PendingDrop | null>(null);
+  const [pendingLabel, setPendingLabel] = useState<LabelMove | null>(null);
+  const addToast = useToastStore((state) => state.addToast);
   const [addMeal, setAddMeal] = useState<{ open: boolean; mode: AddMealMode; preselect: MealKind | null; key: number }>({
     open: false,
     mode: 'day',
@@ -266,6 +281,7 @@ export default function PlanEditor({
   const [announcement, setAnnouncement] = useState('');
   const dragActive = useRef(false);
   const pendingFocus = useRef<{ dayOfWeek: number; mealId: string } | null>(null);
+  const pendingLabelFocus = useRef<{ axis: LabelAxis; index: number } | null>(null);
   const slide = useSlideTransition();
 
   const currentIndex = Math.min(weekIndex, doc.weeks.length - 1);
@@ -290,6 +306,18 @@ export default function PlanEditor({
         ? `[data-testid="meal-block"][data-meal-id="${target.mealId}"]`
         : `[data-testid="meal-cell"][data-day="${target.dayOfWeek}"][data-row="${row}"]`;
     scrollArea.querySelector<HTMLElement>(selector)?.focus();
+  });
+
+  // After a keyboard swap the contents sit under the neighbouring label; focus follows them once it has rendered.
+  useEffect(() => {
+    const target = pendingLabelFocus.current;
+    if (!target || !scrollArea) {
+      return;
+    }
+    pendingLabelFocus.current = null;
+    scrollArea
+      .querySelector<HTMLElement>(`[data-testid="${target.axis}-label"][data-index="${target.index}"]`)
+      ?.focus();
   });
 
   useEffect(() => {
@@ -549,6 +577,80 @@ export default function PlanEditor({
     return mealKindLabelKey(row?.kind ?? MealKind.Breakfast);
   }
 
+  /** The name a row (by index) or a weekday goes by in dialogs and announcements. */
+  function labelName(axis: LabelAxis, index: number): string {
+    return axis === 'day' ? t(`planEditor.daysLong.${index}`) : t(`planEditor.rows.${rowLabelKey(index)}`);
+  }
+
+  /**
+   * Applies a row or day move in one edit (one Undo), clears what pointed at the old contents, and announces the
+   * result. The outcome is worked out here, outside the updater, which must stay free of side effects. Days the
+   * move leaves out for the meal cap are named in the announcement, and in a toast when no dialog explained them.
+   */
+  function runLabelMove(move: LabelMove, mode: LabelOpMode, options: { focus: boolean; viaDialog: boolean }) {
+    if (readOnly || !week) {
+      return;
+    }
+    const outcome = previewLabelMove(week, move).outcome[mode];
+    const skipped =
+      outcome.skippedDays.length > 0
+        ? t('planEditor.labelDrop.skipped', {
+            days: outcome.skippedDays.map((day) => t(`planEditor.daysLong.${day}`)).join(', '),
+            max: MAX_MEALS_PER_DAY,
+          })
+        : '';
+    let done = '';
+    if (outcome.changed) {
+      setSelected(null);
+      setDetailCell(null);
+      edit((current) => applyLabelMove(current, currentIndex, move, mode));
+      if (options.focus) {
+        pendingLabelFocus.current = { axis: move.axis, index: move.to };
+      }
+      done = t(`planEditor.labelDrop.announce.${move.axis}.${mode}`, {
+        from: labelName(move.axis, move.from),
+        to: labelName(move.axis, move.to),
+      });
+    }
+    const message = [done, skipped].filter((part) => part !== '').join(' ');
+    if (message !== '') {
+      setAnnouncement(message);
+    }
+    if (skipped !== '' && !options.viaDialog) {
+      addToast(skipped, 'error');
+    }
+  }
+
+  /** A label dropped on a target without food copies at once; one with food asks Swap, Replace or Append first. */
+  function onLabelDrop(move: LabelMove) {
+    if (readOnly || !week) {
+      return;
+    }
+    if (previewLabelMove(week, move).targetHasFood) {
+      setPendingLabel(move);
+      return;
+    }
+    runLabelMove(move, 'copy', { focus: false, viaDialog: false });
+  }
+
+  function resolveLabelDrop(choice: LabelChoice) {
+    if (pendingLabel) {
+      runLabelMove(pendingLabel, choice, { focus: false, viaDialog: true });
+    }
+    setPendingLabel(null);
+  }
+
+  /** Alt+Arrow on a label: swaps with the neighbouring row or day, no dialog; at either end nothing happens. */
+  function moveLabelByKey(axis: LabelAxis, index: number, direction: -1 | 1) {
+    const to = index + direction;
+    const first = axis === 'row' ? 0 : 1;
+    const last = axis === 'row' ? rows.length - 1 : 7;
+    if (to < first || to > last) {
+      return;
+    }
+    runLabelMove({ axis, from: index, to }, 'swap', { focus: true, viaDialog: false });
+  }
+
   /** Reorders a recipe or ingredient inside its own list; a drop outside that list changes nothing. */
   function onMealItemDragEnd(source: MealItemDrag, event: Parameters<typeof move>[1]) {
     const meal = findMeal(source.dayOfWeek, source.mealId);
@@ -769,6 +871,17 @@ export default function PlanEditor({
         }
       : null;
 
+  const labelPreview = pendingLabel ? previewLabelMove(week, pendingLabel) : null;
+  const labelDialog =
+    pendingLabel && labelPreview
+      ? {
+          from: labelName(pendingLabel.axis, pendingLabel.from),
+          to: labelName(pendingLabel.axis, pendingLabel.to),
+          skippedCopy: labelPreview.outcome.replace.skippedDays,
+          skippedSwap: labelPreview.outcome.swap.skippedDays,
+        }
+      : null;
+
   const sideTabs: EditorSideTabDef<EditorSideTab>[] = [
     {
       id: 'info',
@@ -833,6 +946,22 @@ export default function PlanEditor({
         dragActive.current = false;
         manager.registry.plugins.get(AutoScroller)?.enable();
         if (event.canceled) {
+          return;
+        }
+        const rowLabel = readRowLabel(event.operation.source?.data, ROW_LABEL_DRAG);
+        if (rowLabel) {
+          const drop = readRowLabel(event.operation.target?.data, ROW_LABEL_DROP);
+          if (drop && drop.weekIndex === rowLabel.weekIndex && rowLabel.weekIndex === currentIndex) {
+            onLabelDrop({ axis: 'row', from: rowLabel.rowIndex, to: drop.rowIndex });
+          }
+          return;
+        }
+        const dayLabel = readDayLabel(event.operation.source?.data, DAY_LABEL_DRAG);
+        if (dayLabel) {
+          const drop = readDayLabel(event.operation.target?.data, DAY_LABEL_DROP);
+          if (drop && drop.weekIndex === dayLabel.weekIndex && dayLabel.weekIndex === currentIndex) {
+            onLabelDrop({ axis: 'day', from: dayLabel.dayOfWeek, to: drop.dayOfWeek });
+          }
           return;
         }
         const cellMeal = readCellMealDrag(event.operation.source?.data);
@@ -1039,6 +1168,7 @@ export default function PlanEditor({
                   onInsertBetween={insertBetween}
                   onAddMeal={() => openAddMeal('week', null)}
                   onMoveMeal={readOnly ? undefined : moveByKey}
+                  onLabelKeyMove={readOnly ? undefined : moveLabelByKey}
                 />
               )}
               {view === 'nutrition' && <NutritionView week={week} targets={targets} />}
@@ -1069,6 +1199,15 @@ export default function PlanEditor({
             return (
               <div className="rounded-xl border border-line bg-card px-4 py-3 text-copy font-semibold text-ink shadow-popover">
                 {itemName(item)}
+              </div>
+            );
+          }
+          const rowLabel = readRowLabel(source.data, ROW_LABEL_DRAG);
+          const dayLabel = readDayLabel(source.data, DAY_LABEL_DRAG);
+          if (rowLabel || dayLabel) {
+            return (
+              <div className="rounded-xl border border-line bg-card px-4 py-2 text-copy font-semibold text-ink shadow-popover">
+                {rowLabel ? labelName('row', rowLabel.rowIndex) : labelName('day', dayLabel?.dayOfWeek ?? 1)}
               </div>
             );
           }
@@ -1119,6 +1258,8 @@ export default function PlanEditor({
         onAdd={() => resolveDrop('add')}
         onCancel={() => setPendingDrop(null)}
       />
+
+      <LabelDropDialog drop={labelDialog} onChoose={resolveLabelDrop} onCancel={() => setPendingLabel(null)} />
 
       <RemoveMealRowDialog removal={pendingRemoval} onConfirm={confirmRemoval} onCancel={() => setPendingRemoval(null)} />
 
