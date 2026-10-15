@@ -228,16 +228,35 @@ async function expectMonday(page: Page, counts: readonly number[]): Promise<void
   }
 }
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** A Monday ten weeks out, as YYYY-MM-DD: publishable (never in the past) and clear of the other specs' plans. */
+function farFutureMonday(): string {
+  const now = new Date();
+  const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  const daysToNextMonday = (8 - new Date(today).getUTCDay()) % 7 || 7;
+  return new Date(today + (daysToNextMonday + 70) * DAY_MS).toISOString().slice(0, 10);
+}
+
+async function readVersion(api: Api, headers: Auth, planId: string): Promise<number | undefined> {
+  const detail = await api.get(`/nutrition/plans/${planId}`, { headers });
+  return ((await detail.json()) as { version?: number }).version;
+}
+
 /**
- * A client plan with Monday Breakfast (A) and Lunch (B), archived through the API: the client editor treats
- * a completed or archived plan as read-only. Archived plans are left in place, like the client editor spec's.
+ * A client plan with Monday Breakfast (A) and Lunch (B), made Completed through the API: week 1 is published
+ * (POST /nutrition/plans/{PlanId}/weeks/{WeekNumber}/publish with `{ version }`, which needs a start date and
+ * makes the plan Active), then POST /nutrition/plans/{PlanId}/complete with `{ version }`. The client editor
+ * treats a Completed plan as read-only. DELETE permanently removes a plan that has not started, so the spec
+ * deletes it afterwards.
  */
-async function createArchivedPlan(baseURL: string, name: string): Promise<string> {
+async function createCompletedPlan(baseURL: string, name: string): Promise<string> {
   return withApi(baseURL, async (api, headers) => {
     const food = await findApple(api, headers);
+    const startDate = farFutureMonday();
     const created = await api.post('/nutrition/plans', {
       headers,
-      data: { clientId: CLIENT_PROFILE_ID, name, weekCount: 1, globalSettings: { dailyKcal: DAILY_KCAL } },
+      data: { clientId: CLIENT_PROFILE_ID, name, weekCount: 1, globalSettings: { dailyKcal: DAILY_KCAL }, startDate },
     });
     if (!created.ok()) {
       throw new Error(`[plan-template-editor-meal-reorder] POST /nutrition/plans returned ${created.status()}: ${await created.text()}`);
@@ -246,41 +265,59 @@ async function createArchivedPlan(baseURL: string, name: string): Promise<string
     if (!planId) {
       throw new Error('[plan-template-editor-meal-reorder] POST /nutrition/plans returned no planId.');
     }
-    const detail = await api.get(`/nutrition/plans/${planId}`, { headers });
-    const { version } = (await detail.json()) as { version?: number };
-    const update = await api.put(`/nutrition/plans/${planId}`, {
-      headers,
-      data: {
-        name,
-        globalSettings: { dailyKcal: DAILY_KCAL },
-        version,
-        supplements: [],
-        weeks: [
-          {
-            weekNumber: 1,
-            days: Array.from({ length: 7 }, (_, dayIndex) => ({
-              dayOfWeek: dayIndex + 1,
-              meals:
-                dayIndex === 0
-                  ? [
-                      { kind: 'Breakfast', order: 1, foods: foodsOf(food, COUNTS.a), recipes: [] },
-                      { kind: 'Lunch', order: 2, foods: foodsOf(food, COUNTS.b), recipes: [] },
-                    ]
-                  : [],
-            })),
-          },
-        ],
-      },
-    });
-    if (!update.ok()) {
-      throw new Error(`[plan-template-editor-meal-reorder] PUT /nutrition/plans/${planId} returned ${update.status()}: ${await update.text()}`);
-    }
-    const archived = await api.delete(`/nutrition/plans/${planId}`, { headers });
-    if (!archived.ok()) {
-      throw new Error(`[plan-template-editor-meal-reorder] DELETE /nutrition/plans/${planId} returned ${archived.status()}.`);
+    try {
+      const update = await api.put(`/nutrition/plans/${planId}`, {
+        headers,
+        data: {
+          name,
+          globalSettings: { dailyKcal: DAILY_KCAL },
+          version: await readVersion(api, headers, planId),
+          startDate,
+          supplements: [],
+          weeks: [
+            {
+              weekNumber: 1,
+              days: Array.from({ length: 7 }, (_, dayIndex) => ({
+                dayOfWeek: dayIndex + 1,
+                meals:
+                  dayIndex === 0
+                    ? [
+                        { kind: 'Breakfast', order: 1, foods: foodsOf(food, COUNTS.a), recipes: [] },
+                        { kind: 'Lunch', order: 2, foods: foodsOf(food, COUNTS.b), recipes: [] },
+                      ]
+                    : [],
+              })),
+            },
+          ],
+        },
+      });
+      if (!update.ok()) {
+        throw new Error(`[plan-template-editor-meal-reorder] PUT /nutrition/plans/${planId} returned ${update.status()}: ${await update.text()}`);
+      }
+      const published = await api.post(`/nutrition/plans/${planId}/weeks/1/publish`, {
+        headers,
+        data: { version: await readVersion(api, headers, planId) },
+      });
+      if (!published.ok()) {
+        throw new Error(`[plan-template-editor-meal-reorder] publish week 1 returned ${published.status()}: ${await published.text()}`);
+      }
+      const completed = await api.post(`/nutrition/plans/${planId}/complete`, {
+        headers,
+        data: { version: await readVersion(api, headers, planId) },
+      });
+      if (!completed.ok()) {
+        throw new Error(`[plan-template-editor-meal-reorder] complete returned ${completed.status()}: ${await completed.text()}`);
+      }
+    } catch (error) {
+      await api.delete(`/nutrition/plans/${planId}`, { headers });
+      throw error;
     }
     return planId;
   });
+}
+
+async function deletePlan(baseURL: string, planId: string): Promise<void> {
+  await withApi(baseURL, (api, headers) => api.delete(`/nutrition/plans/${planId}`, { headers }));
 }
 
 const ORIGINAL = [COUNTS.a, COUNTS.b, COUNTS.c, COUNTS.d];
@@ -505,24 +542,28 @@ test.describe('plan editor meal reorder', () => {
     }
   });
 
-  test('a closed (archived) client plan is read-only: no gaps, no insert lines, no move shortcuts', async ({ page, baseURL }) => {
+  test('a completed client plan is read-only: no gaps, no insert lines, no move shortcuts', async ({ page, baseURL }) => {
     const origin = baseURL ?? 'http://localhost:5173';
-    const planId = await createArchivedPlan(origin, `QA ReorderRO ${Date.now()}`);
-    await page.goto(`/clients/${CLIENT_PROFILE_ID}/nutrition/plans/${planId}`);
-    await expect(page.getByRole('note')).toBeVisible();
-    await expectMonday(page, [COUNTS.a, COUNTS.b]);
+    const planId = await createCompletedPlan(origin, `QA ReorderRO ${Date.now()}`);
+    try {
+      await page.goto(`/clients/${CLIENT_PROFILE_ID}/nutrition/plans/${planId}`);
+      await expect(page.getByRole('note')).toBeVisible();
+      await expectMonday(page, [COUNTS.a, COUNTS.b]);
 
-    await expect(page.getByTestId('add-meal-week')).toHaveCount(0);
-    await expect(page.getByTestId('meal-insert-line')).toHaveCount(0);
-    await expect(page.locator('[aria-keyshortcuts]')).toHaveCount(0);
+      await expect(page.getByTestId('add-meal-week')).toHaveCount(0);
+      await expect(page.getByTestId('meal-insert-line')).toHaveCount(0);
+      await expect(page.locator('[aria-keyshortcuts]')).toHaveCount(0);
 
-    // Dragging is off, so no gap ever appears, and Alt+Arrow moves nothing.
-    await beginDrag(page, cell(page, 1, 1));
-    await expect(page.getByTestId('meal-gap')).toHaveCount(0);
-    await page.mouse.up();
-    await cell(page, 1, 1).focus();
-    await page.keyboard.press('Alt+ArrowUp');
-    await expectMonday(page, [COUNTS.a, COUNTS.b]);
-    await expect(page.getByTestId('save-status')).toHaveText('Saved');
+      // Dragging is off, so no gap ever appears, and Alt+Arrow moves nothing.
+      await beginDrag(page, cell(page, 1, 1));
+      await expect(page.getByTestId('meal-gap')).toHaveCount(0);
+      await page.mouse.up();
+      await cell(page, 1, 1).focus();
+      await page.keyboard.press('Alt+ArrowUp');
+      await expectMonday(page, [COUNTS.a, COUNTS.b]);
+      await expect(page.getByTestId('save-status')).toHaveText('Saved');
+    } finally {
+      await deletePlan(origin, planId);
+    }
   });
 });
