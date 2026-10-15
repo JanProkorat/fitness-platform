@@ -1907,6 +1907,25 @@
       "fat": "F",
       "fiber": "Fib"
     },
+    "target": {
+      "aria": "Show the daily target for {{day}}",
+      "title": "Daily target",
+      "planned": "Planned",
+      "goal": "Target",
+      "noTarget": "No target",
+      "legendTitle": "Colours",
+      "legendOn": "Within {{percent}} % of the target",
+      "legendNear": "{{from}}–{{to}} % off the target",
+      "legendOff": "More than {{percent}} % off the target",
+      "legendNone": "No target set, or nothing planned",
+      "nutrient": {
+        "kcal": "Energy",
+        "protein": "Protein",
+        "carbs": "Carbs",
+        "fat": "Fat",
+        "fiber": "Fibre"
+      }
+    },
     "removeRow": {
       "aria": "Remove {{meal}} from week {{week}}",
       "title": "Remove {{meal}} from week {{week}}?",

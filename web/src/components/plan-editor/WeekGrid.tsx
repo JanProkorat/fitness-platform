@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useDraggable, useDroppable } from '@dnd-kit/react';
 import { StickyNote, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import DayTargetPopover from '@/components/plan-editor/DayTargetPopover';
 import MacroDots from '@/components/plan-editor/MacroDots';
 import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Textarea } from '@/components/ui/textarea';
@@ -33,20 +34,27 @@ import {
   type EditorDay,
   type EditorMeal,
   type EditorWeek,
+  type PlanTargets,
 } from '@/components/plan-editor/plan-editor-types';
 import type { PlanEditorState } from '@/components/plan-editor/usePlanEditorState';
 
 /** Minimum height of a meal row, shared by the Meals and Nutrition views so switching between them keeps the tiles the same size. */
 export const WEEK_GRID_MIN_ROW_REM = 10;
 
-export function MacroBar({ totals }: { totals: Totals }) {
+interface MacroBarProps {
+  totals: Totals;
+  /** Shows each segment's value above the bar while it is hovered; off by default so tiles keep their height. */
+  labels?: boolean;
+}
+
+export function MacroBar({ totals, labels = false }: MacroBarProps) {
   const parts = [
     { key: 'protein', weight: totals.protein * 4, className: 'bg-macro-protein' },
     { key: 'carbs', weight: totals.carbs * 4, className: 'bg-macro-carbs' },
     { key: 'fat', weight: totals.fat * 9, className: 'bg-macro-fat' },
   ];
   const sum = parts.reduce((total, part) => total + part.weight, 0);
-  return (
+  const bar = (
     <div className="flex h-1 w-full gap-0.5 overflow-hidden rounded-full" aria-hidden="true">
       {parts.map((part) => (
         <span
@@ -55,6 +63,20 @@ export function MacroBar({ totals }: { totals: Totals }) {
           style={{ flexGrow: sum > 0 ? part.weight : 1, flexBasis: 0 }}
         />
       ))}
+    </div>
+  );
+  if (!labels) {
+    return bar;
+  }
+  return (
+    <div data-testid="macro-bar" className="group/macro relative py-2">
+      {bar}
+      <span
+        data-testid="macro-bar-values"
+        className="pointer-events-none invisible absolute right-0 bottom-full left-0 z-10 flex justify-center rounded-md bg-card px-1.5 py-0.5 text-meta whitespace-nowrap text-ink group-hover/macro:visible"
+      >
+        <MacroDots protein={totals.protein} carbs={totals.carbs} fat={totals.fat} />
+      </span>
     </div>
   );
 }
@@ -281,24 +303,28 @@ export function DayHeader({ day, note: noteEditing }: DayHeaderProps) {
   );
 }
 
-export function DayTotalCell({ day, target }: { day: EditorDay | undefined; target: number | undefined }) {
+interface DayTotalCellProps {
+  day: EditorDay | undefined;
+  dayOfWeek: number;
+  targets: PlanTargets;
+}
+
+/** One weekday's totals against the daily targets; opens a popover with every nutrient's planned value and target. */
+export function DayTotalCell({ day, dayOfWeek, targets }: DayTotalCellProps) {
   const { t, i18n } = useTranslation();
   const totals = day ? dayTotals(day) : null;
+  const target = targets.kcal;
   const status = targetStatus(totals?.kcal ?? 0, target);
   const fill = target && totals ? Math.min(100, (totals.kcal / target) * 100) : 0;
 
   return (
-    <div
-      data-testid="day-total"
-      data-status={status}
-      className="flex h-full min-h-30 min-w-0 flex-col justify-between gap-1 rounded-xl border border-raised-line bg-raised p-3 shadow-raised"
-    >
+    <DayTargetPopover dayOfWeek={dayOfWeek} totals={totals} targets={targets} status={status}>
       <span className={cn('text-copy font-semibold', STATUS_TEXT_CLASS[status])}>
         {t('planEditor.cell.kcal', { kcal: formatKcal(totals?.kcal ?? 0, i18n.language) })}
       </span>
-      <div className="h-1 w-full shrink-0 overflow-hidden rounded-full bg-muted" aria-hidden="true">
-        <div className={cn('h-full rounded-full', STATUS_BAR_CLASS[status])} style={{ width: `${fill}%` }} />
-      </div>
+      <span className="block h-1 w-full shrink-0 overflow-hidden rounded-full bg-muted" aria-hidden="true">
+        <span className={cn('block h-full rounded-full', STATUS_BAR_CLASS[status])} style={{ width: `${fill}%` }} />
+      </span>
       <span className="text-caption text-ink">
         <MacroDots
           protein={totals?.protein ?? 0}
@@ -307,7 +333,7 @@ export function DayTotalCell({ day, target }: { day: EditorDay | undefined; targ
           fiber={totals?.fiber ?? 0}
         />
       </span>
-    </div>
+    </DayTargetPopover>
   );
 }
 
@@ -319,7 +345,7 @@ export interface SelectedCell {
 interface Props {
   week: EditorWeek;
   weekIndex: number;
-  dailyKcalTarget: number | undefined;
+  targets: PlanTargets;
   selected: SelectedCell | null;
   readOnly: boolean;
   onSelect: (cell: SelectedCell) => void;
@@ -336,7 +362,7 @@ interface Props {
 export default function WeekGrid({
   week,
   weekIndex,
-  dailyKcalTarget,
+  targets,
   selected,
   readOnly,
   onSelect,
@@ -376,7 +402,7 @@ export default function WeekGrid({
           {t('planEditor.dayTotal')}
         </span>
         {DAY_ORDER.map((dayOfWeek) => (
-          <DayTotalCell key={dayOfWeek} day={dayByNumber.get(dayOfWeek)} target={dailyKcalTarget} />
+          <DayTotalCell key={dayOfWeek} day={dayByNumber.get(dayOfWeek)} dayOfWeek={dayOfWeek} targets={targets} />
         ))}
       </div>
 
