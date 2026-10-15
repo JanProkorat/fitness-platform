@@ -1,4 +1,4 @@
-import type { ClientPlanItem, NutritionPlanTemplateSummaryDto } from '@/api/generated';
+import type { ClientPlanItem } from '@/api/generated';
 import type { NutritionPlanDetail } from '@/api/plan-types';
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -8,9 +8,6 @@ const MIN_GAP_DAYS = DAYS_PER_WEEK;
 const MAX_TIMELINE_MONTHS_BACK = 11;
 const MAX_TIMELINE_MONTHS_AHEAD = 12;
 const MIN_TIMELINE_MONTHS_AHEAD = 1;
-const MATCHED_TEMPLATE_COUNT = 3;
-const KCAL_EXACT_TOLERANCE = 0.05;
-const KCAL_NEAR_TOLERANCE = 0.15;
 
 /** A plan status as the plans list reports it. */
 export type NutritionPlanStatus = 'Draft' | 'Active' | 'Completed' | 'Archived';
@@ -268,59 +265,6 @@ export function spanPercent(model: TimelineModel, start: Date, end: Date): { lef
   const leftPct = (diffDays(new Date(clippedStart), model.rangeStart) / model.totalDays) * 100;
   const widthPct = (diffDays(new Date(clippedEnd), new Date(clippedStart)) / model.totalDays) * 100;
   return { leftPct, widthPct };
-}
-
-export interface ClientTemplateProfile {
-  goal?: string;
-  dietaryStyle?: string;
-  kcal?: number;
-}
-
-export type MatchLevel = 'match' | 'near' | 'none';
-
-export interface RankedTemplate {
-  template: NutritionPlanTemplateSummaryDto;
-  goal: MatchLevel;
-  diet: MatchLevel;
-  kcal: MatchLevel;
-  score: number;
-}
-
-function kcalMatch(templateKcal: number | undefined, clientKcal: number | undefined): MatchLevel {
-  if (!templateKcal || !clientKcal) {
-    return 'none';
-  }
-  const diff = Math.abs(templateKcal - clientKcal) / clientKcal;
-  if (diff <= KCAL_EXACT_TOLERANCE) {
-    return 'match';
-  }
-  return diff <= KCAL_NEAR_TOLERANCE ? 'near' : 'none';
-}
-
-/** Rank templates on goal, dietary style and kcal; keeps the best three. */
-export function rankTemplates(
-  templates: NutritionPlanTemplateSummaryDto[],
-  profile: ClientTemplateProfile,
-): RankedTemplate[] {
-  const ranked = templates
-    .filter((t) => Boolean(t.templateId))
-    .map((template): RankedTemplate => {
-      const goal: MatchLevel = profile.goal && template.goal === profile.goal ? 'match' : 'none';
-      const diet: MatchLevel =
-        profile.dietaryStyle && template.dietaryStyle && template.dietaryStyle === profile.dietaryStyle
-          ? 'match'
-          : 'none';
-      const kcal = kcalMatch(template.avgKcalPerDay, profile.kcal);
-      const weight = (level: MatchLevel, full: number) => (level === 'match' ? full : level === 'near' ? full / 2 : 0);
-      return { template, goal, diet, kcal, score: weight(goal, 4) + weight(kcal, 2) + weight(diet, 1) };
-    });
-  ranked.sort(
-    (a, b) =>
-      b.score - a.score ||
-      (b.template.usedBy ?? 0) - (a.template.usedBy ?? 0) ||
-      (a.template.name ?? '').localeCompare(b.template.name ?? ''),
-  );
-  return ranked.slice(0, MATCHED_TEMPLATE_COUNT);
 }
 
 /** "1 Sep" style label for a calendar date (UTC midnight). */

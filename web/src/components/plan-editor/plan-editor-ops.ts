@@ -152,6 +152,11 @@ export function addWeek(doc: EditorDocument): EditorDocument {
   };
 }
 
+/** Drops the last week. A plan keeps at least one week, so a single-week document is returned unchanged. */
+export function removeLastWeek(doc: EditorDocument): EditorDocument {
+  return doc.weeks.length <= 1 ? doc : { ...doc, weeks: doc.weeks.slice(0, -1) };
+}
+
 /** Puts a recipe or ingredient into the meal at the given cell, creating the meal when the day lacks it. */
 export function addItemToCell(
   doc: EditorDocument,

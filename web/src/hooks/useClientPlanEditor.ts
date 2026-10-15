@@ -2,7 +2,13 @@ import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { WeekStatus as ApiWeekStatus, type GetPlanResponse, type UpdatePlanRequest } from '@/api/generated';
-import { publishPlanWeekFromEditor, savePlanFromEditor } from '@/api/plans';
+import {
+  completePlanFromEditor,
+  deletePlanFromEditor,
+  publishPlanWeekFromEditor,
+  savePlanFromEditor,
+} from '@/api/plans';
+import { planHasEnded, publishedWeekHasStarted } from '@/components/client-plan-editor/clientPlanDates';
 import type { PlanEditorPrimaryAction, PlanEditorSaveState } from '@/components/plan-editor/PlanEditor';
 import {
   nullToUndefined,
@@ -13,7 +19,7 @@ import {
 } from '@/components/plan-editor/plan-editor-mapping';
 import { weekHasItems } from '@/components/plan-editor/plan-editor-ops';
 import { DAYS_PER_WEEK, type EditorDocument, type WeekStatus } from '@/components/plan-editor/plan-editor-types';
-import { getApiErrorMessage, getErrorStatus } from '@/lib/api-errors';
+import { getApiErrorMessage, getErrorStatus, showApiError } from '@/lib/api-errors';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -143,6 +149,49 @@ export function useClientPlanEditor(loadedPlan: GetPlanResponse, clientId: strin
     }
   }
 
+  const deleteMutation = useMutation({ mutationFn: () => deletePlanFromEditor(planId) });
+  const completeMutation = useMutation({
+    mutationFn: (version: number | undefined) => completePlanFromEditor(planId, version),
+  });
+
+  /** Hard-deletes the plan; resolves true on success, after dropping its cached copy. */
+  async function deletePlan(): Promise<boolean> {
+    try {
+      await deleteMutation.mutateAsync();
+    } catch (error) {
+      showApiError(error, 'clientPlanEditor.delete.error');
+      return false;
+    }
+    queryClient.removeQueries({ queryKey: ['nutrition-plan-detail', planId] });
+    void queryClient.invalidateQueries({ queryKey: ['client-plans', clientId] });
+    void queryClient.invalidateQueries({ queryKey: ['client-dashboard', clientId] });
+    return true;
+  }
+
+  /**
+   * Finishes the plan. `flush` saves pending edits first, so the version sent is the one that save returned;
+   * resolves true on success.
+   */
+  async function finishPlan(flush: () => Promise<boolean>): Promise<boolean> {
+    if (!(await flush())) {
+      return false;
+    }
+    try {
+      await completeMutation.mutateAsync(planRef.current.version);
+    } catch (error) {
+      if (getErrorStatus(error) === 409) {
+        setSaveState({ status: 'conflict', message: t('planEditor.conflict.message') });
+      } else {
+        showApiError(error, 'clientPlanEditor.finish.error');
+      }
+      return false;
+    }
+    void queryClient.invalidateQueries({ queryKey: ['client-plans', clientId] });
+    void queryClient.invalidateQueries({ queryKey: ['nutrition-plan-detail', planId] });
+    void queryClient.invalidateQueries({ queryKey: ['client-dashboard', clientId] });
+    return true;
+  }
+
   /** Saves the document when it has unsaved changes, then publishes the selected week. */
   async function publishWeek(doc: EditorDocument, weekIndex: number): Promise<EditorDocument | null> {
     const weekNumber = doc.weeks[weekIndex]?.weekNumber;
@@ -200,12 +249,32 @@ export function useClientPlanEditor(loadedPlan: GetPlanResponse, clientId: strin
     return statuses[weekIndex + 1] ?? 'draft';
   }
 
+  const savedStartDate = plan.startDate ? plan.startDate.slice(0, 10) : undefined;
+  const storedWeeks = plan.weeks ?? [];
+  const isActive = plan.status?.toLowerCase() === 'active';
+  const started = publishedWeekHasStarted(
+    savedStartDate,
+    storedWeeks.map((week, index) => ({
+      weekNumber: week.weekNumber ?? index + 1,
+      published: week.status === ApiWeekStatus.Published,
+    })),
+  );
+
   return {
     initial,
     saveState,
     save,
     primaryAction,
     weekStatus,
-    savedStartDate: plan.startDate ? plan.startDate.slice(0, 10) : undefined,
+    savedStartDate,
+    /** Deleting is offered until a published week has started. */
+    canDelete: !isClosedPlan(plan) && !started,
+    /** Finishing is offered while the plan is Active. */
+    canFinish: isActive,
+    /** An Active plan whose last week is over: the nutritionist is nudged to finish it. */
+    ended: isActive && planHasEnded(savedStartDate, storedWeeks.length),
+    deletePlan,
+    finishPlan,
+    lifecycleBusy: deleteMutation.isPending || completeMutation.isPending,
   };
 }

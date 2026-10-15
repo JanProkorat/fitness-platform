@@ -27,6 +27,7 @@ import NutritionView, { NutritionLegend } from '@/components/plan-editor/Nutriti
 import { PopoverBoundaryContext } from '@/components/plan-editor/PopoverBoundary';
 import PlanEditorHeader from '@/components/plan-editor/PlanEditorHeader';
 import RemoveMealRowDialog, { type PendingRowRemoval } from '@/components/plan-editor/RemoveMealRowDialog';
+import RemoveWeekDialog from '@/components/plan-editor/RemoveWeekDialog';
 import TemplateInfoPanel, { type PlanUsage } from '@/components/plan-editor/TemplateInfoPanel';
 import WeekdayPills from '@/components/plan-editor/WeekdayPills';
 import WeekGrid, { type SelectedCell } from '@/components/plan-editor/WeekGrid';
@@ -55,6 +56,7 @@ import {
   copyWeekMeals,
   daysWithFoodInRow,
   nextSnackKind,
+  removeLastWeek,
   removeMealRow,
   reorderMealItems,
   setDayNote,
@@ -115,6 +117,14 @@ export interface PlanEditorPrimaryAction {
   title?: (weekIndex: number, doc: EditorDocument) => string | undefined;
 }
 
+/** What a host's header actions and banner need to act on the plan as the editor currently holds it. */
+export interface PlanEditorHostContext {
+  /** Saves unsaved edits first; resolves true when nothing is left unsaved, false when the save failed. */
+  flush: () => Promise<boolean>;
+  /** A save or the primary action is running. */
+  busy: boolean;
+}
+
 interface Props {
   /** The document to edit. Remount (change `key`) to load a different one. */
   initial: EditorDocument;
@@ -138,6 +148,12 @@ interface Props {
   libraryExtraTab?: PlanEditorLibraryTab;
   /** Publication state per week: shows a dot on each pill (empty weeks get a dashed ring) and a count legend. */
   weekStatus?: (weekIndex: number) => WeekStatus | undefined;
+  /** Rendered last in the header row, e.g. a plan actions menu. */
+  renderHeaderActions?: (context: PlanEditorHostContext) => ReactNode;
+  /** Rendered at the top of the scrolling area, e.g. a notice that suggests an action. */
+  renderBanner?: (context: PlanEditorHostContext) => ReactNode;
+  /** Lets the last, unpublished week be removed (needs `weekStatus`); saves the plan once confirmed. */
+  allowWeekRemoval?: boolean;
   saveState: PlanEditorSaveState;
   /** Persists the document; resolves with the server's copy, or null when the save failed. */
   onSave: (doc: EditorDocument) => Promise<EditorDocument | null>;
@@ -198,6 +214,9 @@ export default function PlanEditor({
   infoTabLabel,
   libraryExtraTab,
   weekStatus,
+  renderHeaderActions,
+  renderBanner,
+  allowWeekRemoval,
   saveState,
   onSave,
   onReload,
@@ -219,7 +238,10 @@ export default function PlanEditor({
   const [leaveOpen, setLeaveOpen] = useState(false);
   const [pendingDrop, setPendingDrop] = useState<PendingDrop | null>(null);
   const [addMealOpen, setAddMealOpen] = useState(false);
-  const [scrollArea, setScrollArea] = useState<HTMLElement | null>(null);  const [actionBusy, setActionBusy] = useState(false);
+  const [scrollArea, setScrollArea] = useState<HTMLElement | null>(null);
+  const [actionBusy, setActionBusy] = useState(false);
+  const [removeWeekNumber, setRemoveWeekNumber] = useState<number | null>(null);
+  const [removingWeek, setRemovingWeek] = useState(false);
   const dragActive = useRef(false);
   const slide = useSlideTransition();
 
@@ -497,6 +519,41 @@ export default function PlanEditor({
     }
   }
 
+  async function flush(): Promise<boolean> {
+    if (!dirty) {
+      return true;
+    }
+    const sent = doc;
+    const saved = await onSave(sent);
+    if (saved) {
+      markSaved(saved, sent);
+    }
+    return saved !== null;
+  }
+
+  /** Drops the last week from the document and saves it; the server drops the stored draft week with it. */
+  async function confirmRemoveWeek() {
+    const next = removeLastWeek(doc);
+    if (next === doc) {
+      setRemoveWeekNumber(null);
+      return;
+    }
+    setRemovingWeek(true);
+    if (currentIndex >= next.weeks.length) {
+      navigate({ week: next.weeks.length - 1 });
+    }
+    edit(() => next);
+    try {
+      const saved = await onSave(next);
+      if (saved) {
+        markSaved(saved, next);
+      }
+    } finally {
+      setRemovingWeek(false);
+      setRemoveWeekNumber(null);
+    }
+  }
+
   async function runPrimaryAction() {
     if (!primaryAction) {
       return;
@@ -525,6 +582,7 @@ export default function PlanEditor({
     return null;
   }
 
+  const hostContext: PlanEditorHostContext = { flush, busy: actionBusy || saveState.status === 'saving' || removingWeek };
   const allKindsPresent = CHRONOLOGICAL_KINDS.every((kind) => activeDay?.meals.some((meal) => meal.kind === kind));
   const pendingSource = pendingDrop ? findMeal(pendingDrop.source.dayOfWeek, pendingDrop.source.mealId) : undefined;
   const pendingTarget = pendingDrop
@@ -679,6 +737,7 @@ export default function PlanEditor({
                     : undefined
                 }
                 secondarySave={secondarySave}
+                actions={renderHeaderActions?.(hostContext)}
                 range={range}
                 view={view}
                 onRangeChange={changeRange}
@@ -705,6 +764,7 @@ export default function PlanEditor({
                     edit(addWeek);
                     navigate({ week: doc.weeks.length });
                   }}
+                  onRemoveLast={allowWeekRemoval ? () => setRemoveWeekNumber(doc.weeks.length) : undefined}
                 />
               </div>
             )}
@@ -753,6 +813,8 @@ export default function PlanEditor({
             data-testid="editor-scroll"
             className="flex min-h-0 flex-1 touch-pan-y touch-pinch-zoom flex-col gap-4 overflow-y-auto overflow-x-clip overscroll-x-contain px-6 pt-1 pb-6"
           >
+          {renderBanner?.(hostContext)}
+
           {readOnly && readOnlyNotice && (
             <p role="note" className="rounded-xl border border-line bg-muted px-4 py-3 text-body text-ink">
               {readOnlyNotice}
@@ -874,6 +936,13 @@ export default function PlanEditor({
       />
 
       <RemoveMealRowDialog removal={pendingRemoval} onConfirm={confirmRemoval} onCancel={() => setPendingRemoval(null)} />
+
+      <RemoveWeekDialog
+        weekNumber={removeWeekNumber}
+        busy={removingWeek}
+        onConfirm={() => void confirmRemoveWeek()}
+        onCancel={() => setRemoveWeekNumber(null)}
+      />
 
       {renderCopyMeals?.({
         open: copyOpen,

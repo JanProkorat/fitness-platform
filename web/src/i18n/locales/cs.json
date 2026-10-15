@@ -1832,6 +1832,7 @@
       "previous": "Předchozí týdny",
       "next": "Další týdny",
       "add": "Přidat týden",
+      "remove": "Odebrat týden {{number}}",
       "week": "Týden {{number}}",
       "status_published": ", publikováno",
       "status_draft": ", koncept",
@@ -1980,6 +1981,11 @@
         "fat": "Tuky",
         "fiber": "Vláknina"
       }
+    },
+    "removeWeek": {
+      "title": "Odebrat týden {{week}}?",
+      "body": "Týden {{week}} nebyl nikdy publikován. Odebere se z plánu a plán se uloží.",
+      "confirm": "Odebrat týden {{week}}"
     },
     "removeRow": {
       "aria": "Odebrat {{meal}} z týdne {{week}}",
@@ -2316,6 +2322,27 @@
     "clientFallback": "Klient",
     "backToNutrition": "Zpět na Výživu",
     "readOnly": "Tento plán je uzavřený a nelze ho upravovat.",
+    "actions": {
+      "label": "Akce plánu",
+      "finish": "Ukončit plán",
+      "delete": "Smazat plán"
+    },
+    "delete": {
+      "title": "Smazat tento plán?",
+      "body": "Plán a všechny jeho týdny se nenávratně smažou. Žádný publikovaný týden ještě nezačal. Tuto akci nelze vrátit zpět.",
+      "confirm": "Smazat plán",
+      "error": "Plán se nepodařilo smazat. Zkuste to prosím znovu."
+    },
+    "finish": {
+      "title": "Ukončit tento plán?",
+      "body": "Neuložené změny se nejdřív uloží. Plán se poté uzavře: nelze ho dál upravovat a přesune se do Dřívějších plánů.",
+      "confirm": "Ukončit plán",
+      "error": "Plán se nepodařilo ukončit. Zkuste to prosím znovu."
+    },
+    "ended": {
+      "message": "Poslední týden tohoto plánu skončil. Ukončete plán, aby se přesunul do Dřívějších plánů a uvolnil místo dalšímu.",
+      "action": "Ukončit plán"
+    },
     "info": {
       "tab": "Info o plánu",
       "name": "Název plánu",
@@ -2536,6 +2563,7 @@
     "START_DATE_REQUIRED": "Před publikováním týdne nastavte datum zahájení.",
     "WEEK_START_IN_PAST": "Datum zahájení tohoto týdne je v minulosti a nelze jej publikovat.",
     "PLAN_OVERLAP": "Zvolené období se překrývá s existujícím plánem tohoto klienta.",
+    "PLAN_ALREADY_STARTED": "Plán nelze smazat, protože publikovaný týden už začal.",
     "CLIENT_NUTRITION_PROFILE_MISSING": "Tento klient zatím nemá výživové cíle ani odpovědi z dotazníku, které by šlo upravit.",
     "INVALID_VERIFICATION_TOKEN": "Neplatný nebo vypršelý ověřovací odkaz.",
     "VERIFICATION_TOKEN_EXPIRED": "Ověřovací odkaz vypršel. Vyžádejte si nový.",
@@ -3847,7 +3875,9 @@
         "templatesLabel": "Odpovídající šablony",
         "templatesError": "Vaše šablony se nepodařilo načíst.",
         "noTemplates": "Zatím nemáte žádné šablony plánů. Vytvořte jednu v části Šablony plánů a vraťte se sem.",
-        "bestMatch": "Nejlepší shoda",
+        "recommended": "Doporučeno",
+        "scrollPrevious": "Předchozí šablony",
+        "scrollNext": "Další šablony",
         "weeks_one": "{{count}} týden",
         "weeks_few": "{{count}} týdny",
         "weeks_many": "{{count}} týdne",

@@ -1791,6 +1791,7 @@
       "previous": "Previous weeks",
       "next": "Next weeks",
       "add": "Add week",
+      "remove": "Remove week {{number}}",
       "week": "Week {{number}}",
       "status_published": ", published",
       "status_draft": ", draft",
@@ -1925,6 +1926,11 @@
         "fat": "Fat",
         "fiber": "Fibre"
       }
+    },
+    "removeWeek": {
+      "title": "Remove week {{week}}?",
+      "body": "Week {{week}} was never published. It is removed from the plan and the plan is saved.",
+      "confirm": "Remove week {{week}}"
     },
     "removeRow": {
       "aria": "Remove {{meal}} from week {{week}}",
@@ -2252,6 +2258,27 @@
     "clientFallback": "Client",
     "backToNutrition": "Back to Nutrition",
     "readOnly": "This plan is closed and can't be edited.",
+    "actions": {
+      "label": "Plan actions",
+      "finish": "Finish plan",
+      "delete": "Delete plan"
+    },
+    "delete": {
+      "title": "Delete this plan?",
+      "body": "The plan and all its weeks are deleted for good. No published week has started yet. This can't be undone.",
+      "confirm": "Delete plan",
+      "error": "Couldn't delete the plan. Please try again."
+    },
+    "finish": {
+      "title": "Finish this plan?",
+      "body": "Unsaved changes are saved first. The plan then closes: it can't be edited any more and moves to Past plans.",
+      "confirm": "Finish plan",
+      "error": "Couldn't finish the plan. Please try again."
+    },
+    "ended": {
+      "message": "This plan's last week is over. Finish it to move it to Past plans and make room for the next one.",
+      "action": "Finish plan"
+    },
     "info": {
       "tab": "Plan info",
       "name": "Plan name",
@@ -2460,6 +2487,7 @@
     "START_DATE_REQUIRED": "Set a start date before publishing a week.",
     "WEEK_START_IN_PAST": "This week's start date is in the past and cannot be published.",
     "PLAN_OVERLAP": "The selected date range overlaps an existing plan for this client.",
+    "PLAN_ALREADY_STARTED": "This plan can't be deleted because a published week has already started.",
     "CLIENT_NUTRITION_PROFILE_MISSING": "This client has no nutrition targets or onboarding answers to edit yet.",
     "INVALID_VERIFICATION_TOKEN": "Invalid or expired verification link.",
     "VERIFICATION_TOKEN_EXPIRED": "Verification link has expired. Please request a new one.",
@@ -3741,7 +3769,9 @@
         "templatesLabel": "Matching templates",
         "templatesError": "Couldn't load your templates.",
         "noTemplates": "You have no plan templates yet. Create one under Plan templates, then come back.",
-        "bestMatch": "Best match",
+        "recommended": "Recommended",
+        "scrollPrevious": "Previous templates",
+        "scrollNext": "Next templates",
         "weeks_one": "{{count}} week",
         "weeks_other": "{{count}} weeks",
         "kcalMatch": "{{kcal}} kcal",

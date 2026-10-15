@@ -182,7 +182,7 @@ test.describe('client detail — nutrition tab', () => {
         : [],
     }));
 
-    const template = (id: string, name: string, extra: Record<string, unknown>) => ({
+    const template = (id: string, name: string, extra: Record<string, unknown>): Record<string, unknown> => ({
       templateId: id,
       name,
       weekCount: 4,
@@ -193,30 +193,29 @@ test.describe('client detail — nutrition tab', () => {
       dateCreated: '2026-01-01T00:00:00Z',
       ...extra,
     });
+    const allTemplates = [
+      template('00000000-0000-0000-1329-0000000000b1', 'Maintenance — 4 weeks', { goal: 'Maintain', avgKcalPerDay: 2600 }),
+      template('00000000-0000-0000-1329-0000000000b2', 'Lean cut — 12 weeks', {
+        goal: 'LoseFat',
+        dietaryStyle: 'Standard',
+        weekCount: 12,
+        avgKcalPerDay: 2200,
+        description: 'Moderate deficit, high protein',
+      }),
+      template('00000000-0000-0000-1329-0000000000b3', 'Vegetarian cut', {
+        goal: 'LoseFat',
+        dietaryStyle: 'Vegetarian',
+        weekCount: 6,
+        avgKcalPerDay: 1950,
+      }),
+      template('00000000-0000-0000-1329-0000000000b4', 'Bulk — 8 weeks', { goal: 'GainMuscle', avgKcalPerDay: 3100 }),
+      template('00000000-0000-0000-1329-0000000000b5', 'Endurance fuel', { goal: 'Performance', avgKcalPerDay: 2800 }),
+    ];
+    // The goal query filters by `goal`; the unfiltered one returns everything.
     await page.route(/\/nutrition\/plan-templates(\?.*)?$/, async (route) => {
-      await route.fulfill({
-        json: {
-          templates: [
-            template('00000000-0000-0000-1329-0000000000b1', 'Maintenance — 4 weeks', { goal: 'Maintain', avgKcalPerDay: 2600 }),
-            template('00000000-0000-0000-1329-0000000000b2', 'Lean cut — 12 weeks', {
-              goal: 'LoseFat',
-              dietaryStyle: 'Standard',
-              weekCount: 12,
-              avgKcalPerDay: 2200,
-              description: 'Moderate deficit, high protein',
-            }),
-            template('00000000-0000-0000-1329-0000000000b3', 'Vegetarian cut', {
-              goal: 'LoseFat',
-              dietaryStyle: 'Vegetarian',
-              weekCount: 6,
-              avgKcalPerDay: 1950,
-            }),
-          ],
-          totalCount: 3,
-          page: 1,
-          pageSize: 50,
-        },
-      });
+      const goal = new URL(route.request().url()).searchParams.get('goal');
+      const templates = goal ? allTemplates.filter((entry) => entry['goal'] === goal) : allTemplates;
+      await route.fulfill({ json: { templates, totalCount: templates.length, page: 1, pageSize: 100 } });
     });
     await page.route(new RegExp(`/nutrition/plans/${STUB_DRAFT_PLAN_ID}$`), async (route) => {
       await route.fulfill({
@@ -266,19 +265,30 @@ test.describe('client detail — nutrition tab', () => {
     await expect(page.getByRole('button', { name: 'Start blank' })).toBeEnabled();
     await expect(page.getByRole('link', { name: 'Browse all templates' })).toHaveAttribute('href', '/plan-templates');
 
-    // Three templates, the goal + kcal + diet match first and flagged as the best match.
+    // Every template sits in one scrollable row: the ones fitting the client's goal first, each marked
+    // Recommended, then the rest.
     const cards = page.getByRole('radio');
-    await expect(cards).toHaveCount(3);
+    await expect(cards).toHaveCount(5);
+    const row = page.getByTestId('template-row');
+    await expect(row).toHaveCSS('overflow-x', 'auto');
     await expect(cards.first()).toContainText('Lean cut — 12 weeks');
-    await expect(cards.first()).toContainText('Best match');
+    await expect(cards.first()).toContainText('Recommended');
     await expect(cards.first()).toHaveAttribute('aria-checked', 'true');
+    const recommended = page.getByTestId('template-recommended');
+    // The seeded client's goal is LoseFat: the two LoseFat templates are recommended, the other three are not.
+    const recommendedCount = await recommended.count();
+    expect(recommendedCount).toBe(2);
+    // The marker only sits on the leading cards, never after an unmarked one.
+    for (let index = 0; index < 5; index += 1) {
+      await expect(cards.nth(index).getByTestId('template-recommended')).toHaveCount(index < recommendedCount ? 1 : 0);
+    }
     await expect(page.getByRole('button', { name: 'Use “Lean cut — 12 weeks”' })).toBeVisible();
 
     // Choosing another card retargets the primary action.
     await cards.nth(1).click();
     await expect(cards.nth(1)).toHaveAttribute('aria-checked', 'true');
     const useButton = page.getByRole('button', { name: /^Use “/ });
-    await expect(useButton).toContainText(await cards.nth(1).locator('span.font-bold').first().innerText());
+    await expect(useButton).toContainText(await cards.nth(1).locator('span.text-subhead').innerText());
 
     // 409 PLAN_OVERLAP: an error toast, the empty state stays.
     await useButton.click();
