@@ -21,6 +21,7 @@ export default function MealRowInsertLine({ above, below, onInsert }: Props) {
   return (
     <span
       data-testid="meal-insert-line"
+      data-no-drag
       className="group/insert absolute inset-x-0 -top-3 z-20 flex h-3 items-center"
     >
       <span

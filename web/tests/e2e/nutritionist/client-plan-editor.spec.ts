@@ -262,6 +262,37 @@ test.describe('client plan editor', () => {
     }
   });
 
+  test('the client plan editor offers Add meal and an insert line between meal rows', async ({ page, baseURL }) => {
+    const origin = baseURL ?? 'http://localhost:5173';
+    const { planId, name } = await createPlan(origin, 'Insert line');
+    try {
+      await page.goto(editorUrl(planId));
+      await expectEditorLoaded(page, name);
+
+      // One row (Breakfast): no insert line yet, but the always-visible Add meal button is there.
+      await expect(page.getByTestId('meal-insert-line')).toHaveCount(0);
+      const addMeal = page.getByTestId('add-meal-week');
+      await expect(addMeal).toBeVisible();
+
+      await addMeal.click();
+      const drawer = page.getByRole('dialog');
+      await drawer.getByRole('radio', { name: 'Lunch', exact: true }).click();
+      await expect(drawer.getByTestId('add-meal-week-summary')).toHaveText('Will be added to 7 days');
+      await drawer.getByRole('button', { name: 'Add meal', exact: true }).click();
+      await expect(drawer).toHaveCount(0);
+
+      // Two rows now: a line between them that shows on hover.
+      const line = page.getByTestId('meal-insert-line');
+      await expect(line).toHaveCount(1);
+      await line.hover();
+      await expect(line.getByTestId('meal-insert-button')).toHaveCSS('opacity', '1');
+      // Monday's breakfast kept its food and its row.
+      await expect(page.locator('[data-testid="meal-cell"][data-day="1"][data-row="0"]')).not.toContainText('Empty');
+    } finally {
+      await archivePlan(origin, planId);
+    }
+  });
+
   test('"Publish week 1" turns a draft week into a published one', async ({ page, baseURL }) => {
     const origin = baseURL ?? 'http://localhost:5173';
     const { planId, name } = await createPlan(origin, 'Publish', futureMonday());
