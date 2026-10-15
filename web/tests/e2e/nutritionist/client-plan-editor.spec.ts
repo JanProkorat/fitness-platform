@@ -293,6 +293,26 @@ test.describe('client plan editor', () => {
     }
   });
 
+  test('the Plan info tab shows the selected week average per day', async ({ page, baseURL }) => {
+    const origin = baseURL ?? 'http://localhost:5173';
+    const { planId, name } = await createPlan(origin, 'Average');
+    try {
+      await page.goto(editorUrl(planId));
+      await expectEditorLoaded(page, name);
+      await page.getByRole('tab', { name: 'Plan info' }).click();
+
+      const card = page.getByTestId('info-week-average');
+      await expect(card).toBeVisible();
+      await expect(card).toContainText('Week 1 · avg per day');
+      await expect(card.getByTestId('info-average-kcal')).toHaveText(/[1-9]/);
+      for (const key of ['protein', 'carbs', 'fat', 'fiber']) {
+        await expect(card.getByTestId(`info-average-${key}`)).toBeVisible();
+      }
+    } finally {
+      await archivePlan(origin, planId);
+    }
+  });
+
   test('"Publish week 1" turns a draft week into a published one', async ({ page, baseURL }) => {
     const origin = baseURL ?? 'http://localhost:5173';
     const { planId, name } = await createPlan(origin, 'Publish', futureMonday());
