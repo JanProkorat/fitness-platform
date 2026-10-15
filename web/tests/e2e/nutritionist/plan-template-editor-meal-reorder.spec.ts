@@ -1,8 +1,10 @@
 /**
- * Plan editor meal reorder (epic #1424, tasks #1436 and #1439): dragging a meal card onto another meal
+ * Plan editor meal reorder (epic #1424, tasks #1436, #1439 and #1444): dragging a meal card onto another meal
  * of its day moves its contents there and shifts the rest (the hovered slot is marked with data-landing); a
- * card dropped on a filled tile of the same row on another day swaps with it; Alt+ArrowUp / Alt+ArrowDown
- * move a focused meal one slot. Each is one Undo step. Runs against the real harness, no mocked APIs.
+ * card dropped on a tile of the same row on another day rotates the row's meals the same way, skipping the days
+ * without that meal; onto a day without it, it copies; Alt+ArrowUp / Alt+ArrowDown move a focused meal one slot
+ * and Alt+ArrowLeft / Alt+ArrowRight one meal along its row. Each is one Undo step. Runs against the real
+ * harness, no mocked APIs.
  *
  * A meal's contents are told apart by how many ingredients it holds (its cell shows "N items"), so the
  * Mon A/B/C/D example below is A = 2, B = 3, C = 4, D = 5 apples.
@@ -425,29 +427,91 @@ test.describe('plan editor meal reorder', () => {
     }
   });
 
-  test('a card dropped on a filled tile of the same row on another day swaps with it, no dialog, one Undo', async ({
+  test('a card dropped on a tile of the same row on another day rotates the row, no dialog, one Undo', async ({
     page,
     baseURL,
   }) => {
     const origin = baseURL ?? 'http://localhost:5173';
-    const templateId = await createTemplate(origin, `QA Reorder Swap ${Date.now()}`, {
-      counts: (dayIndex, kind) => (kind === 'Breakfast' && dayIndex < 2 ? (dayIndex === 0 ? COUNTS.a : COUNTS.b) : 0),
+    // Breakfast holds A on Monday, B on Tuesday and C on Wednesday; the other days hold an empty Breakfast.
+    const breakfast = [COUNTS.a, COUNTS.b, COUNTS.c];
+    const templateId = await createTemplate(origin, `QA Reorder Row ${Date.now()}`, {
+      counts: (dayIndex, kind) => (kind === 'Breakfast' ? (breakfast[dayIndex] ?? 0) : 0),
     });
     try {
       await page.goto(`/plan-templates/${templateId}`);
       await expect(cell(page, 1, 0)).toContainText(`${COUNTS.a} items`);
-      await expect(cell(page, 2, 0)).toContainText(`${COUNTS.b} items`);
+      await expect(cell(page, 3, 0)).toContainText(`${COUNTS.c} items`);
 
-      await dragToCell(page, cell(page, 1, 0), cell(page, 2, 0));
+      await dragToSlot(page, cell(page, 1, 0), cell(page, 3, 0));
+      // Mon A, Tue B, Wed C -> Mon B, Tue C, Wed A: the contents between slide one day towards the source.
       await expect(page.getByTestId('card-drop-dialog')).toHaveCount(0);
       await expect(cell(page, 1, 0)).toContainText(`${COUNTS.b} items`);
-      await expect(cell(page, 2, 0)).toContainText(`${COUNTS.a} items`);
+      await expect(cell(page, 2, 0)).toContainText(`${COUNTS.c} items`);
+      await expect(cell(page, 3, 0)).toContainText(`${COUNTS.a} items`);
+      await expect(cell(page, 4, 0)).toContainText('Empty');
       await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes');
+      await expect(page.getByTestId('plan-editor-announcer')).toHaveText('Breakfast: contents moved from Monday to Wednesday');
 
       await page.getByRole('button', { name: 'Undo' }).click();
       await expect(cell(page, 1, 0)).toContainText(`${COUNTS.a} items`);
       await expect(cell(page, 2, 0)).toContainText(`${COUNTS.b} items`);
+      await expect(cell(page, 3, 0)).toContainText(`${COUNTS.c} items`);
       await expect(page.getByTestId('save-status')).toHaveText('Saved');
+    } finally {
+      await deleteTemplate(origin, templateId);
+    }
+  });
+
+  test('a card dropped on a day that lacks the meal copies it there, and the source keeps its contents', async ({
+    page,
+    baseURL,
+  }) => {
+    const origin = baseURL ?? 'http://localhost:5173';
+    // Tuesday has no Breakfast; the other days do, so the row exists in the grid.
+    const templateId = await createTemplate(origin, `QA Reorder Row Copy ${Date.now()}`, {
+      kindsOf: (dayIndex) => (dayIndex === 1 ? ['Lunch', 'AfternoonSnack', 'Dinner'] : FOUR_KINDS),
+      counts: (dayIndex, kind) => (dayIndex === 0 && kind === 'Breakfast' ? COUNTS.a : 0),
+    });
+    try {
+      await page.goto(`/plan-templates/${templateId}`);
+      await expect(cell(page, 1, 0)).toContainText(`${COUNTS.a} items`);
+      await expect(cell(page, 2, 0)).toContainText('Empty');
+
+      await dragToCell(page, cell(page, 1, 0), cell(page, 2, 0));
+      await expect(page.getByTestId('card-drop-dialog')).toHaveCount(0);
+      await expect(cell(page, 2, 0)).toContainText(`${COUNTS.a} items`);
+      await expect(cell(page, 1, 0)).toContainText(`${COUNTS.a} items`);
+      await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes');
+
+      await page.getByRole('button', { name: 'Undo' }).click();
+      await expect(cell(page, 2, 0)).toContainText('Empty');
+      await expect(cell(page, 1, 0)).toContainText(`${COUNTS.a} items`);
+      await expect(page.getByTestId('save-status')).toHaveText('Saved');
+    } finally {
+      await deleteTemplate(origin, templateId);
+    }
+  });
+
+  test('a day that lacks the meal is skipped by a row move and never gets one', async ({ page, baseURL }) => {
+    const origin = baseURL ?? 'http://localhost:5173';
+    // Tuesday has no Breakfast; Monday's A and Wednesday's C trade places across it.
+    const templateId = await createTemplate(origin, `QA Reorder Row Skip ${Date.now()}`, {
+      kindsOf: (dayIndex) => (dayIndex === 1 ? ['Lunch', 'AfternoonSnack', 'Dinner'] : FOUR_KINDS),
+      counts: (dayIndex, kind) => (kind === 'Breakfast' ? (dayIndex === 0 ? COUNTS.a : dayIndex === 2 ? COUNTS.c : 0) : 0),
+    });
+    try {
+      await page.goto(`/plan-templates/${templateId}`);
+      await expect(cell(page, 3, 0)).toContainText(`${COUNTS.c} items`);
+
+      await dragToSlot(page, cell(page, 1, 0), cell(page, 3, 0));
+      await expect(cell(page, 1, 0)).toContainText(`${COUNTS.c} items`);
+      await expect(cell(page, 3, 0)).toContainText(`${COUNTS.a} items`);
+      await expect(cell(page, 2, 0)).toContainText('Empty');
+
+      // Tuesday still holds three meals: no Breakfast was created for it.
+      await page.getByRole('button', { name: 'Day', exact: true }).click();
+      await page.getByRole('tab', { name: /^Tue/ }).click();
+      await expect(page.getByTestId('meal-block')).toHaveCount(3);
     } finally {
       await deleteTemplate(origin, templateId);
     }
@@ -493,7 +557,10 @@ test.describe('plan editor meal reorder', () => {
       await page.goto(`/plan-templates/${templateId}`);
       await expectMonday(page, ORIGINAL);
       const announcer = page.getByTestId('plan-editor-announcer');
-      await expect(cell(page, 1, 3)).toHaveAttribute('aria-keyshortcuts', 'Alt+ArrowUp Alt+ArrowDown');
+      await expect(cell(page, 1, 3)).toHaveAttribute(
+        'aria-keyshortcuts',
+        'Alt+ArrowUp Alt+ArrowDown Alt+ArrowLeft Alt+ArrowRight',
+      );
 
       await cell(page, 1, 3).focus();
       await page.keyboard.press('Alt+ArrowUp');
@@ -519,6 +586,44 @@ test.describe('plan editor meal reorder', () => {
       await expectMonday(page, [COUNTS.b, COUNTS.a, COUNTS.c, COUNTS.d]);
       await expect(cell(page, 1, 1)).toBeFocused();
       await expect(announcer).toHaveText('Monday: contents moved to Lunch, meal 2 of 4');
+    } finally {
+      await deleteTemplate(origin, templateId);
+    }
+  });
+
+  test('Alt+ArrowLeft and Alt+ArrowRight move a focused tile along its row, skip a day without the meal, and stop at the ends', async ({
+    page,
+    baseURL,
+  }) => {
+    const origin = baseURL ?? 'http://localhost:5173';
+    // Tuesday has no Breakfast. Monday's Breakfast holds A, Wednesday's C.
+    const templateId = await createTemplate(origin, `QA Reorder Row Keys ${Date.now()}`, {
+      kindsOf: (dayIndex) => (dayIndex === 1 ? ['Lunch', 'AfternoonSnack', 'Dinner'] : FOUR_KINDS),
+      counts: (dayIndex, kind) => (kind === 'Breakfast' ? (dayIndex === 0 ? COUNTS.a : dayIndex === 2 ? COUNTS.c : 0) : 0),
+    });
+    try {
+      await page.goto(`/plan-templates/${templateId}`);
+      const announcer = page.getByTestId('plan-editor-announcer');
+      await expect(cell(page, 1, 0)).toContainText(`${COUNTS.a} items`);
+
+      await cell(page, 1, 0).focus();
+      await page.keyboard.press('Alt+ArrowRight');
+      // Tuesday is skipped: the contents go to Wednesday and Wednesday's come to Monday.
+      await expect(cell(page, 1, 0)).toContainText(`${COUNTS.c} items`);
+      await expect(cell(page, 3, 0)).toContainText(`${COUNTS.a} items`);
+      await expect(cell(page, 3, 0)).toBeFocused();
+      await expect(announcer).toHaveText('Breakfast: contents moved from Monday to Wednesday');
+
+      await page.getByRole('button', { name: 'Undo' }).click();
+      await expect(cell(page, 1, 0)).toContainText(`${COUNTS.a} items`);
+      await expect(page.getByTestId('save-status')).toHaveText('Saved');
+
+      // Monday is the first day with the meal: Alt+ArrowLeft does nothing. No edit, no new announcement.
+      await cell(page, 1, 0).focus();
+      await page.keyboard.press('Alt+ArrowLeft');
+      await expect(cell(page, 1, 0)).toContainText(`${COUNTS.a} items`);
+      await expect(page.getByTestId('save-status')).toHaveText('Saved');
+      await expect(announcer).toHaveText('Breakfast: contents moved from Monday to Wednesday');
     } finally {
       await deleteTemplate(origin, templateId);
     }

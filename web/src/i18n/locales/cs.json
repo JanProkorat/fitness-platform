@@ -2096,31 +2096,28 @@
     },
     "reorder": {
       "moved": "{{day}}: obsah přesunut do jídla {{meal}}, jídlo {{position}} z {{count}}",
-      "swapped": "Obsah jídla {{meal}} vyměněn mezi dny {{from}} a {{to}}"
+      "movedAcross": "{{meal}}: obsah přesunut z {{from}} na {{to}}"
     },
     "labelDrop": {
-      "rowAria": "Řádek {{label}}. Přetažením na jiný řádek jej zkopírujete nebo prohodíte. Alt+Nahoru a Alt+Dolů jej prohodí se sousedním řádkem.",
-      "dayAria": "{{label}}. Přetažením na jiný den jej zkopírujete nebo prohodíte. Alt+Vlevo a Alt+Vpravo jej prohodí se sousedním dnem.",
+      "rowAria": "Řádek {{label}}. Přetažením na jiný řádek jej přesunete, s přidrženým Alt jej zkopírujete. Alt+Nahoru a Alt+Dolů jej posunou o jeden řádek.",
+      "dayAria": "{{label}}. Přetažením na jiný den jej přesunete, s přidrženým Alt jej zkopírujete. Alt+Vlevo a Alt+Vpravo jej posunou o jeden den.",
       "title": "{{to}} už obsahuje jídlo",
-      "body": "Přesouváte <b>{{from}}</b> na <b>{{to}}</b>. Co se má stát s tím, co tam je teď?",
-      "swapLabel": "Prohodit",
-      "swapBody": "{{from}} a {{to}} si vymění obsah.",
+      "body": "Kopírujete <b>{{from}}</b> na <b>{{to}}</b>. Co se má stát s tím, co tam je teď?",
       "replaceLabel": "Nahradit",
       "replaceBody": "{{to}} se stane kopií {{from}}; co obsahoval, se odebere.",
       "appendLabel": "Přidat",
       "appendBody": "Položky {{from}} se přidají k tomu, co už {{to}} obsahuje.",
       "skipped": "Přeskočeno, den má nejvýše {{max}} jídel: {{days}}.",
       "skippedCopy": "Nahradit a Přidat přeskočí {{days}}: den má nejvýše {{max}} jídel.",
-      "skippedSwap": "Prohodit přeskočí {{days}}: den má nejvýše {{max}} jídel.",
       "announce": {
         "row": {
-          "swap": "{{from}} a {{to}} prohozeny v celém týdnu.",
+          "move": "{{from}} přesunuto na {{to}} v celém týdnu.",
           "copy": "{{from}} zkopírováno do {{to}} v celém týdnu.",
           "replace": "{{to}} nahrazeno obsahem {{from}} v celém týdnu.",
           "append": "{{from}} přidáno k {{to}} v celém týdnu."
         },
         "day": {
-          "swap": "{{from}} a {{to}} prohozeny.",
+          "move": "{{from}} přesunuto na {{to}}.",
           "copy": "{{from}} zkopírováno do {{to}}.",
           "replace": "{{to}} nahrazeno obsahem dne {{from}}.",
           "append": "{{from}} přidáno k {{to}}."

@@ -2033,31 +2033,28 @@
     },
     "reorder": {
       "moved": "{{day}}: Inhalt in {{meal}} verschoben, Mahlzeit {{position}} von {{count}}",
-      "swapped": "Inhalt von {{meal}} zwischen {{from}} und {{to}} getauscht"
+      "movedAcross": "{{meal}}: Inhalt von {{from}} auf {{to}} verschoben"
     },
     "labelDrop": {
-      "rowAria": "Zeile {{label}}. Auf eine andere Zeile ziehen, um sie zu kopieren oder zu tauschen. Alt+Hoch und Alt+Runter tauschen sie mit der Nachbarzeile.",
-      "dayAria": "{{label}}. Auf einen anderen Tag ziehen, um ihn zu kopieren oder zu tauschen. Alt+Links und Alt+Rechts tauschen ihn mit dem Nachbartag.",
+      "rowAria": "Zeile {{label}}. Auf eine andere Zeile ziehen, um sie zu verschieben, oder mit gedrückter Alt-Taste kopieren. Alt+Hoch und Alt+Runter verschieben sie um eine Zeile.",
+      "dayAria": "{{label}}. Auf einen anderen Tag ziehen, um ihn zu verschieben, oder mit gedrückter Alt-Taste kopieren. Alt+Links und Alt+Rechts verschieben ihn um einen Tag.",
       "title": "{{to}} enthält schon Essen",
-      "body": "Sie verschieben <b>{{from}}</b> auf <b>{{to}}</b>. Was soll mit dem passieren, was dort jetzt ist?",
-      "swapLabel": "Tauschen",
-      "swapBody": "{{from}} und {{to}} tauschen ihren Inhalt.",
+      "body": "Sie kopieren <b>{{from}}</b> auf <b>{{to}}</b>. Was soll mit dem passieren, was dort jetzt ist?",
       "replaceLabel": "Ersetzen",
       "replaceBody": "{{to}} wird zu einer Kopie von {{from}}; was es enthielt, wird entfernt.",
       "appendLabel": "Anhängen",
       "appendBody": "Die Einträge von {{from}} werden an das angehängt, was {{to}} schon enthält.",
       "skipped": "Übersprungen, ein Tag hat höchstens {{max}} Mahlzeiten: {{days}}.",
       "skippedCopy": "Ersetzen und Anhängen überspringen {{days}}: ein Tag hat höchstens {{max}} Mahlzeiten.",
-      "skippedSwap": "Tauschen überspringt {{days}}: ein Tag hat höchstens {{max}} Mahlzeiten.",
       "announce": {
         "row": {
-          "swap": "{{from}} und {{to}} in der ganzen Woche getauscht.",
+          "move": "{{from}} in der ganzen Woche nach {{to}} verschoben.",
           "copy": "{{from}} in der ganzen Woche nach {{to}} kopiert.",
           "replace": "{{to}} in der ganzen Woche durch {{from}} ersetzt.",
           "append": "{{from}} in der ganzen Woche an {{to}} angehängt."
         },
         "day": {
-          "swap": "{{from}} und {{to}} getauscht.",
+          "move": "{{from}} nach {{to}} verschoben.",
           "copy": "{{from}} nach {{to}} kopiert.",
           "replace": "{{to}} durch {{from}} ersetzt.",
           "append": "{{from}} an {{to}} angehängt."

@@ -1,8 +1,9 @@
 /**
- * Plan editor label drag (epic #1424, task #1437): dragging a meal row's label onto another row, or a weekday's
- * name onto another day, copies that row or day across the whole week. A target without food takes the copy at
- * once; one with food asks Swap, Replace or Append. Alt+Arrow on a focused label swaps with the neighbour. Each
- * move is one Undo step. Runs against the real harness, no mocked APIs.
+ * Plan editor label drag (epic #1424, tasks #1437 and #1444): dragging a meal row's label onto another row, or a
+ * weekday's name onto another day, moves its contents there and shifts what lies between; nothing is created, so
+ * a day without the row stays as it is. Holding Alt copies instead: a target without food takes the copy at once,
+ * one with food asks Replace or Append. Alt+Arrow on a focused label moves it one step. Each move is one Undo
+ * step. Runs against the real harness, no mocked APIs.
  *
  * A meal's contents are told apart by how many ingredients it holds (its cell shows "N items"). Every meal is
  * seeded through the API; nothing is added by clicking the library.
@@ -122,6 +123,10 @@ async function createTemplate(baseURL: string, name: string, days: DaySeed): Pro
 
 async function deleteTemplate(baseURL: string, templateId: string): Promise<void> {
   await withApi(baseURL, (api, headers) => api.delete(`/nutrition/plan-templates/${templateId}`, { headers }));
+}
+
+interface SavedMealsBody {
+  weeks?: { days?: { meals?: { mealId?: string }[] }[] }[];
 }
 
 interface TemplateDetailBody {
@@ -296,13 +301,23 @@ async function settleOnFrame(page: Page, frame: Locator): Promise<void> {
   }).toPass({ timeout: 5000 });
 }
 
-async function dragLabel(page: Page, handle: Locator, frame: Locator): Promise<void> {
+/** Drags a label onto a frame and drops it there; `alt` holds Alt for the whole drag, which copies instead of moving. */
+async function dragLabel(page: Page, handle: Locator, frame: Locator, options: { alt?: boolean } = {}): Promise<void> {
   // Scroll both ends into view first, so reading one box cannot move the other.
   await handle.scrollIntoViewIfNeeded();
   await frame.scrollIntoViewIfNeeded();
-  await beginDrag(page, handle);
-  await settleOnFrame(page, frame);
-  await page.mouse.up();
+  if (options.alt) {
+    await page.keyboard.down('Alt');
+  }
+  try {
+    await beginDrag(page, handle);
+    await settleOnFrame(page, frame);
+    await page.mouse.up();
+  } finally {
+    if (options.alt) {
+      await page.keyboard.up('Alt');
+    }
+  }
 }
 
 async function undo(page: Page): Promise<void> {
@@ -323,7 +338,7 @@ const D = (count: number): SeedMeal => ({ kind: 'Dinner', count });
 test.use({ viewport: { width: 1920, height: 1200 } });
 
 test.describe('plan editor label drag', () => {
-  test('a row dropped on an empty row copies it across the week, and one Undo restores it', async ({ page, baseURL }) => {
+  test('a row Alt-dropped on an empty row copies it across the week, and one Undo restores it', async ({ page, baseURL }) => {
     const origin = baseURL ?? 'http://localhost:5173';
     // Lunch is empty on every day; Breakfast holds 2 on Monday and 3 on Tuesday.
     const days: DaySeed = (dayIndex) => [B(dayIndex === 0 ? 2 : dayIndex === 1 ? 3 : 0), L(0)];
@@ -333,7 +348,7 @@ test.describe('plan editor label drag', () => {
       await expectCell(page, 1, 0, 2);
       await expectCell(page, 1, 1, 'Empty');
 
-      await dragLabel(page, rowLabel(page, 0), rowFrame(page, 1));
+      await dragLabel(page, rowLabel(page, 0), rowFrame(page, 1), { alt: true });
       await expect(page.getByTestId('label-drop-dialog')).toHaveCount(0);
       await expectCell(page, 1, 1, 2);
       await expectCell(page, 2, 1, 3);
@@ -353,7 +368,65 @@ test.describe('plan editor label drag', () => {
     }
   });
 
-  test('a row dropped on a filled row asks, and Swap, Replace and Append each work out per day', async ({
+  test('a row dropped on another row moves its contents per day and shifts what lies between, and one Undo restores it', async ({
+    page,
+    baseURL,
+  }) => {
+    const origin = baseURL ?? 'http://localhost:5173';
+    // Mon: B2 L3 D4. Tue: B5, Lunch empty, D6. Wed: B7 D8 (no Lunch). Thu: only L9.
+    const days: DaySeed = (dayIndex) =>
+      dayIndex === 0
+        ? [B(2), L(3), D(4)]
+        : dayIndex === 1
+          ? [B(5), L(0), D(6)]
+          : dayIndex === 2
+            ? [B(7), D(8)]
+            : dayIndex === 3
+              ? [L(9)]
+              : [];
+    const templateId = await createTemplate(origin, `QA Label Row Move ${Date.now()}`, days);
+    try {
+      await page.goto(`/plan-templates/${templateId}`);
+      await expectCell(page, 1, 0, 2);
+      await expectCell(page, 4, 1, 9);
+
+      await dragLabel(page, rowLabel(page, 0), rowFrame(page, 2));
+      await expect(page.getByTestId('label-drop-dialog')).toHaveCount(0);
+      // Breakfast moves to Dinner and Lunch and Dinner shift up one row, on every day that has Breakfast and Dinner.
+      await expectCell(page, 1, 0, 3);
+      await expectCell(page, 1, 1, 4);
+      await expectCell(page, 1, 2, 2);
+      await expectCell(page, 2, 0, 'Empty');
+      await expectCell(page, 2, 1, 6);
+      await expectCell(page, 2, 2, 5);
+      // Wednesday has no Lunch, so only its Breakfast and Dinner trade places, and it still has none.
+      await expectCell(page, 3, 0, 8);
+      await expectCell(page, 3, 2, 7);
+      await expectCell(page, 3, 1, 'Empty');
+      // Thursday lacks Breakfast and Dinner and stays as it is.
+      await expectCell(page, 4, 1, 9);
+      await expectCell(page, 4, 0, 'Empty');
+      await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes');
+      await expect(page.getByTestId('plan-editor-announcer')).toHaveText('Breakfast moved to Dinner across the week.');
+
+      await page.getByRole('button', { name: 'Save' }).click();
+      await expect(page.getByTestId('save-status')).toHaveText('Saved');
+      const kinds = await savedKinds(origin, templateId);
+      expect(kinds[3]).toEqual(['Breakfast', 'Dinner']);
+      expect(kinds[4]).toEqual(['Lunch']);
+
+      await undo(page);
+      await expectCell(page, 1, 0, 2);
+      await expectCell(page, 1, 1, 3);
+      await expectCell(page, 1, 2, 4);
+      await expectCell(page, 3, 0, 7);
+      await expectCell(page, 3, 2, 8);
+    } finally {
+      await deleteTemplate(origin, templateId);
+    }
+  });
+
+  test('a row Alt-dropped on a filled row asks, and Replace and Append each work out per day', async ({
     page,
     baseURL,
   }) => {
@@ -375,23 +448,15 @@ test.describe('plan editor label drag', () => {
       };
       await expectOriginal();
 
-      // Swap: the two rows trade contents on every day; Tuesday's empty Lunch takes Breakfast's 4.
-      await dragLabel(page, rowLabel(page, 0), rowFrame(page, 1));
+      // The dialog offers no Swap: copying has Replace, Append and Cancel only.
+      await dragLabel(page, rowLabel(page, 0), rowFrame(page, 1), { alt: true });
       await expect(dialog).toBeVisible();
-      await dialog.getByRole('button', { name: 'Swap' }).click();
-      await expect(dialog).toHaveCount(0);
-      await expectCell(page, 1, 0, 3);
-      await expectCell(page, 1, 1, 2);
-      await expectCell(page, 2, 0, 'Empty');
-      await expectCell(page, 2, 1, 4);
-      await expectCell(page, 3, 0, 5);
-      await expectCell(page, 3, 1, 'Empty');
-      await undo(page);
+      await expect(dialog.getByRole('button', { name: 'Swap' })).toHaveCount(0);
+      await dialog.getByRole('button', { name: 'Cancel' }).click();
       await expectOriginal();
-      await expect(page.getByTestId('save-status')).toHaveText('Saved');
 
       // Replace: Lunch becomes an exact copy of Breakfast, so Wednesday's Lunch is cleared (its Breakfast is empty).
-      await dragLabel(page, rowLabel(page, 0), rowFrame(page, 1));
+      await dragLabel(page, rowLabel(page, 0), rowFrame(page, 1), { alt: true });
       await dialog.getByRole('button', { name: 'Replace' }).click();
       await expectCell(page, 1, 0, 2);
       await expectCell(page, 1, 1, 2);
@@ -404,7 +469,7 @@ test.describe('plan editor label drag', () => {
       await expect(page.getByTestId('save-status')).toHaveText('Saved');
 
       // Append: Breakfast's items join Lunch's; Tuesday's empty Lunch is filled; Wednesday's Lunch stays as it was.
-      await dragLabel(page, rowLabel(page, 0), rowFrame(page, 1));
+      await dragLabel(page, rowLabel(page, 0), rowFrame(page, 1), { alt: true });
       await dialog.getByRole('button', { name: 'Append' }).click();
       await expectCell(page, 1, 0, 2);
       await expectCell(page, 1, 1, 5);
@@ -425,7 +490,7 @@ test.describe('plan editor label drag', () => {
     const templateId = await createTemplate(origin, `QA Label Row Cancel ${Date.now()}`, same([B(2), L(3)]));
     try {
       await page.goto(`/plan-templates/${templateId}`);
-      await dragLabel(page, rowLabel(page, 0), rowFrame(page, 1));
+      await dragLabel(page, rowLabel(page, 0), rowFrame(page, 1), { alt: true });
       const dialog = page.getByTestId('label-drop-dialog');
       await expect(dialog).toBeVisible();
       await dialog.getByRole('button', { name: 'Cancel' }).click();
@@ -438,7 +503,7 @@ test.describe('plan editor label drag', () => {
     }
   });
 
-  test('a day that lacks the target kind gets that meal created by a copy, and one Undo takes it away', async ({
+  test('a day that lacks the target kind gets that meal created by an Alt copy, and one Undo takes it away', async ({
     page,
     baseURL,
   }) => {
@@ -452,7 +517,7 @@ test.describe('plan editor label drag', () => {
       await expectCell(page, 2, 1, 'Empty');
 
       // Copy onto the empty Lunch row creates Tuesday's Lunch.
-      await dragLabel(page, rowLabel(page, 0), rowFrame(page, 1));
+      await dragLabel(page, rowLabel(page, 0), rowFrame(page, 1), { alt: true });
       await expectCell(page, 1, 1, 2);
       await expectCell(page, 2, 1, 3);
       await expectCell(page, 2, 0, 3);
@@ -468,39 +533,32 @@ test.describe('plan editor label drag', () => {
     }
   });
 
-  test('a swap onto a day that lacks the target kind creates it and removes the meal left behind', async ({
-    page,
-    baseURL,
-  }) => {
+  test('a row move never creates a meal: a day that lacks the target row keeps its meals', async ({ page, baseURL }) => {
     const origin = baseURL ?? 'http://localhost:5173';
-    const days: DaySeed = (dayIndex) =>
-      dayIndex === 0 ? [B(2), L(5)] : dayIndex === 1 ? [B(3)] : dayIndex === 2 ? [B(0), L(4)] : [];
-    const templateId = await createTemplate(origin, `QA Label Swap Create ${Date.now()}`, days);
+    // Monday has Breakfast and Lunch; Tuesday only a Breakfast.
+    const days: DaySeed = (dayIndex) => (dayIndex === 0 ? [B(2), L(5)] : dayIndex === 1 ? [B(3)] : []);
+    const templateId = await createTemplate(origin, `QA Label Row No Create ${Date.now()}`, days);
     try {
       await page.goto(`/plan-templates/${templateId}`);
       await expectCell(page, 2, 0, 3);
       await expectCell(page, 2, 1, 'Empty');
 
-      // Tuesday's 3 move to a new Lunch, and its Breakfast, now empty and the day's only one, is dropped.
       await dragLabel(page, rowLabel(page, 0), rowFrame(page, 1));
-      await page.getByTestId('label-drop-dialog').getByRole('button', { name: 'Swap' }).click();
       await expectCell(page, 1, 0, 5);
       await expectCell(page, 1, 1, 2);
-      await expectCell(page, 2, 0, 'Empty');
-      await expectCell(page, 2, 1, 3);
-      await expectCell(page, 3, 0, 4);
-      await expectCell(page, 3, 1, 'Empty');
+      await expectCell(page, 2, 0, 3);
+      await expectCell(page, 2, 1, 'Empty');
       await page.getByRole('button', { name: 'Save' }).click();
       await expect(page.getByTestId('save-status')).toHaveText('Saved');
       const kinds = await savedKinds(origin, templateId);
-      expect(kinds[2]).toEqual(['Lunch']);
+      expect(kinds[2]).toEqual(['Breakfast']);
       expect(kinds[1]).toEqual(['Breakfast', 'Lunch']);
     } finally {
       await deleteTemplate(origin, templateId);
     }
   });
 
-  test('a day at 20 meals is skipped and named, while the other days take the copy', async ({ page, baseURL }) => {
+  test('an Alt copy skips a day at 20 meals and names it, while the other days take the copy', async ({ page, baseURL }) => {
     const origin = baseURL ?? 'http://localhost:5173';
     const triple = (kind: string): SeedMeal[] => [
       { kind, count: 0 },
@@ -531,7 +589,7 @@ test.describe('plan editor label drag', () => {
       await expectCell(page, 1, 3, 'Empty');
 
       // Rows 0 and 3 are Breakfast and the fourth Breakfast: nothing is in the target, so no dialog.
-      await dragLabel(page, rowLabel(page, 0), rowFrame(page, 3));
+      await dragLabel(page, rowLabel(page, 0), rowFrame(page, 3), { alt: true });
       await expect(page.getByTestId('label-drop-dialog')).toHaveCount(0);
       await expectCell(page, 1, 3, 2);
       // Tuesday would pass 20 meals, so it keeps its 20 and has no fourth Breakfast.
@@ -546,7 +604,7 @@ test.describe('plan editor label drag', () => {
     }
   });
 
-  test('a day dropped on an empty day copies it, and one Undo restores it', async ({ page, baseURL }) => {
+  test('a day Alt-dropped on an empty day copies it, and one Undo restores it', async ({ page, baseURL }) => {
     const origin = baseURL ?? 'http://localhost:5173';
     const templateId = await createTemplate(origin, `QA Label Day Copy ${Date.now()}`, (dayIndex) =>
       dayIndex === 0 ? [B(2), L(3)] : [],
@@ -556,7 +614,7 @@ test.describe('plan editor label drag', () => {
       await expectCell(page, 1, 0, 2);
       await expectCell(page, 2, 0, 'Empty');
 
-      await dragLabel(page, dayLabel(page, 1), dayFrame(page, 2));
+      await dragLabel(page, dayLabel(page, 1), dayFrame(page, 2), { alt: true });
       await expect(page.getByTestId('label-drop-dialog')).toHaveCount(0);
       await expectCell(page, 2, 0, 2);
       await expectCell(page, 2, 1, 3);
@@ -573,34 +631,54 @@ test.describe('plan editor label drag', () => {
     }
   });
 
-  test('a day dropped on a filled day asks, and a swap carries the meal kinds along', async ({ page, baseURL }) => {
+  test('a day dropped on another day rotates the days between, carries the meal kinds along, and saves with unique ids', async ({
+    page,
+    baseURL,
+  }) => {
     const origin = baseURL ?? 'http://localhost:5173';
-    // Monday has Breakfast and Lunch, Tuesday only a Dinner; neither has the other's kinds.
-    const templateId = await createTemplate(origin, `QA Label Day Swap ${Date.now()}`, (dayIndex) =>
-      dayIndex === 0 ? [B(2), L(3)] : dayIndex === 1 ? [D(4)] : [],
+    // Monday has Breakfast and Lunch, Tuesday only a Dinner, Wednesday a Breakfast; Monday moves onto Wednesday.
+    const templateId = await createTemplate(origin, `QA Label Day Move ${Date.now()}`, (dayIndex) =>
+      dayIndex === 0 ? [B(2), L(3)] : dayIndex === 1 ? [D(4)] : dayIndex === 2 ? [B(6)] : [],
     );
     try {
       await page.goto(`/plan-templates/${templateId}`);
       await expectCell(page, 1, 0, 2);
       await expectCell(page, 2, 2, 4);
 
-      await dragLabel(page, dayLabel(page, 1), dayFrame(page, 2));
-      const dialog = page.getByTestId('label-drop-dialog');
-      await expect(dialog).toBeVisible();
-      await dialog.getByRole('button', { name: 'Swap' }).click();
+      await dragLabel(page, dayLabel(page, 1), dayFrame(page, 3));
+      await expect(page.getByTestId('label-drop-dialog')).toHaveCount(0);
+      // Monday takes Tuesday's meals, Tuesday takes Wednesday's, Wednesday takes Monday's.
       await expectCell(page, 1, 0, 'Empty');
       await expectCell(page, 1, 1, 'Empty');
       await expectCell(page, 1, 2, 4);
-      await expectCell(page, 2, 0, 2);
-      await expectCell(page, 2, 1, 3);
+      await expectCell(page, 2, 0, 6);
+      await expectCell(page, 2, 1, 'Empty');
       await expectCell(page, 2, 2, 'Empty');
-      await expect(page.getByTestId('plan-editor-announcer')).toHaveText('Monday and Tuesday swapped.');
+      await expectCell(page, 3, 0, 2);
+      await expectCell(page, 3, 1, 3);
+      await expectCell(page, 3, 2, 'Empty');
+      await expect(page.getByTestId('plan-editor-announcer')).toHaveText('Monday moved to Wednesday.');
 
+      const put = page.waitForRequest(
+        (request) => request.url().includes('/nutrition/plan-templates/') && request.method() === 'PUT',
+      );
       await page.getByRole('button', { name: 'Save' }).click();
+      // The saved week never carries a meal id twice, which the server would answer with a 400.
+      const sent = (await put).postDataJSON() as SavedMealsBody;
+      const ids = (sent.weeks?.[0]?.days ?? []).flatMap((day) => (day.meals ?? []).map((meal) => meal.mealId ?? ''));
+      expect(ids.length).toBe(4);
+      expect(ids.every((id) => id !== '')).toBe(true);
+      expect(new Set(ids).size).toBe(ids.length);
       await expect(page.getByTestId('save-status')).toHaveText('Saved');
       const kinds = await savedKinds(origin, templateId);
       expect(kinds[1]).toEqual(['Dinner']);
-      expect(kinds[2]).toEqual(['Breakfast', 'Lunch']);
+      expect(kinds[2]).toEqual(['Breakfast']);
+      expect(kinds[3]).toEqual(['Breakfast', 'Lunch']);
+
+      await undo(page);
+      await expectCell(page, 1, 0, 2);
+      await expectCell(page, 2, 2, 4);
+      await expectCell(page, 3, 0, 6);
     } finally {
       await deleteTemplate(origin, templateId);
     }
@@ -637,7 +715,7 @@ test.describe('plan editor label drag', () => {
     }
   });
 
-  test('while a label is dragged its row is dimmed, the whole target row lights up, and a drop anywhere in it counts', async ({
+  test('while a label is dragged the whole target row lights up, and a drop anywhere in it moves the row', async ({
     page,
     baseURL,
   }) => {
@@ -650,7 +728,7 @@ test.describe('plan editor label drag', () => {
       await expectCell(page, 1, 0, 2);
 
       await beginDrag(page, rowLabel(page, 0));
-      // The dragged row's seven tiles are dimmed; nothing is a target yet, and no insert line is in the way.
+      // The dragged row's seven tiles are the source; nothing is a target yet, and no insert line is in the way.
       await expect(page.locator('[data-band="source"]')).toHaveCount(7);
       await expect(page.locator('[data-band="target"]')).toHaveCount(0);
       await expect(page.locator('[data-over="true"]')).toHaveCount(0);
@@ -663,30 +741,32 @@ test.describe('plan editor label drag', () => {
       await expect(cell(page, 7, 1)).toHaveAttribute('data-band', 'target');
       await expect(rowFrame(page, 1)).toHaveAttribute('data-over', 'true');
       await expect(page.locator('[data-over="true"]')).toHaveCount(1);
+      // The preview already shows the move: Breakfast's contents sit in the Lunch row.
+      await expectCell(page, 1, 1, 2);
+      await expectCell(page, 1, 0, 3);
 
-      // A day label is not a target for a row: over the day names nothing is lit.
+      // A day label is not a target for a row: over the day names nothing is lit, and the preview goes back.
       const dayBox = await settledBox(dayFrame(page, 2));
       await page.mouse.move(dayBox.x + dayBox.width / 2, dayBox.y + dayBox.height / 2, { steps: 12 });
       await expect(page.locator('[data-band="target"]')).toHaveCount(0);
       await expect(page.locator('[data-over="true"]')).toHaveCount(0);
+      await expectCell(page, 1, 0, 2);
 
-      // Released over a tile of the target row the drop lands, and Lunch holds food, so it asks.
+      // Released over a tile of the target row the drop lands and moves the row, without a dialog.
       await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 12 });
       await expect(page.locator('[data-band="target"]')).toHaveCount(7);
       await page.mouse.up();
       await expect(page.locator('[data-band]')).toHaveCount(0);
-      const dialog = page.getByTestId('label-drop-dialog');
-      await expect(dialog).toBeVisible();
-      await dialog.getByRole('button', { name: 'Cancel' }).click();
-      await expectCell(page, 1, 0, 2);
-      await expectCell(page, 1, 1, 3);
-      await expect(page.getByTestId('save-status')).toHaveText('Saved');
+      await expect(page.getByTestId('label-drop-dialog')).toHaveCount(0);
+      await expectCell(page, 1, 0, 3);
+      await expectCell(page, 1, 1, 2);
+      await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes');
     } finally {
       await deleteTemplate(origin, templateId);
     }
   });
 
-  test('Alt+ArrowUp and Alt+ArrowDown on a row label swap it with the neighbour, announce it, and stop at the ends', async ({
+  test('Alt+ArrowUp and Alt+ArrowDown on a row label move it one row, announce it, and stop at the ends', async ({
     page,
     baseURL,
   }) => {
@@ -707,9 +787,9 @@ test.describe('plan editor label drag', () => {
       await expectCell(page, 2, 0, 5);
       await expectCell(page, 2, 1, 4);
       await expect(rowLabel(page, 1)).toBeFocused();
-      await expect(announcer).toHaveText('Breakfast and Lunch swapped across the week.');
+      await expect(announcer).toHaveText('Breakfast moved to Lunch across the week.');
 
-      // One Undo takes back the one swap.
+      // One Undo takes back the one move.
       await undo(page);
       await expectCell(page, 1, 0, 2);
       await expectCell(page, 1, 1, 3);
@@ -720,7 +800,7 @@ test.describe('plan editor label drag', () => {
       await page.keyboard.press('Alt+ArrowUp');
       await expectCell(page, 1, 0, 2);
       await expect(page.getByTestId('save-status')).toHaveText('Saved');
-      await expect(announcer).toHaveText('Breakfast and Lunch swapped across the week.');
+      await expect(announcer).toHaveText('Breakfast moved to Lunch across the week.');
 
       // The same at the last row going down.
       await rowLabel(page, 1).focus();
@@ -732,7 +812,7 @@ test.describe('plan editor label drag', () => {
     }
   });
 
-  test('Alt+ArrowLeft and Alt+ArrowRight on a day label swap it with the neighbouring day and stop at the ends', async ({
+  test('Alt+ArrowLeft and Alt+ArrowRight on a day label move it one day and stop at the ends', async ({
     page,
     baseURL,
   }) => {
@@ -753,7 +833,7 @@ test.describe('plan editor label drag', () => {
       await expectCell(page, 2, 0, 2);
       await expectCell(page, 2, 1, 3);
       await expect(dayLabel(page, 2)).toBeFocused();
-      await expect(announcer).toHaveText('Monday and Tuesday swapped.');
+      await expect(announcer).toHaveText('Monday moved to Tuesday.');
 
       await undo(page);
       await expectCell(page, 1, 0, 2);
@@ -767,13 +847,13 @@ test.describe('plan editor label drag', () => {
       await page.keyboard.press('Alt+ArrowRight');
       await expectCell(page, 1, 0, 2);
       await expect(page.getByTestId('save-status')).toHaveText('Saved');
-      await expect(announcer).toHaveText('Monday and Tuesday swapped.');
+      await expect(announcer).toHaveText('Monday moved to Tuesday.');
     } finally {
       await deleteTemplate(origin, templateId);
     }
   });
 
-  test('the client plan editor drags a row label too', async ({ page, baseURL }) => {
+  test('the client plan editor Alt-drags a row label to copy it too', async ({ page, baseURL }) => {
     const origin = baseURL ?? 'http://localhost:5173';
     // Dinner is empty everywhere, so Monday has no Dinner meal yet and the copy creates it.
     const planId = await createClientPlan(
@@ -787,7 +867,7 @@ test.describe('plan editor label drag', () => {
       await expectCell(page, 1, 0, 2);
       await expectCell(page, 1, 2, 'Empty');
 
-      await dragLabel(page, rowLabel(page, 0), rowFrame(page, 2));
+      await dragLabel(page, rowLabel(page, 0), rowFrame(page, 2), { alt: true });
       await expect(page.getByTestId('label-drop-dialog')).toHaveCount(0);
       await expectCell(page, 1, 2, 2);
       await expectCell(page, 1, 0, 2);
