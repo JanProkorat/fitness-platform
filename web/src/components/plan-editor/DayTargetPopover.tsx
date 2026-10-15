@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -16,9 +16,6 @@ import {
   type Totals,
 } from '@/components/plan-editor/plan-editor-nutrition';
 import type { PlanTargets } from '@/components/plan-editor/plan-editor-types';
-
-/** How long the pointer may be away from both the tile and the popover before a hover-opened popover closes. */
-const HOVER_CLOSE_DELAY_MS = 120;
 
 const LEGEND_ORDER: readonly TargetStatus[] = ['on', 'near', 'off', 'none'];
 
@@ -65,64 +62,24 @@ interface Props {
 
 /**
  * The "Day total" tile as a button that opens a popover with planned versus target for every nutrient.
- * It opens on hover and on click or tap; a click keeps it open until it is dismissed.
+ * It opens only on click, tap, Enter or Space; Escape, an outside click or another click on the tile closes it.
  */
 export default function DayTargetPopover({ dayOfWeek, totals, targets, status, children }: Props) {
   const { t, i18n } = useTranslation();
   const boundary = usePopoverBoundary();
-  const [hovered, setHovered] = useState(false);
-  const [pinned, setPinned] = useState(false);
-  const closeTimer = useRef<number | undefined>(undefined);
-  const open = hovered || pinned;
-
-  useEffect(() => () => window.clearTimeout(closeTimer.current), []);
-
-  const enter = () => {
-    window.clearTimeout(closeTimer.current);
-    setHovered(true);
-  };
-  const leave = () => {
-    window.clearTimeout(closeTimer.current);
-    closeTimer.current = window.setTimeout(() => setHovered(false), HOVER_CLOSE_DELAY_MS);
-  };
+  const [open, setOpen] = useState(false);
   const dayName = t(`planEditor.daysLong.${dayOfWeek}`);
   const gramUnit = t('planEditor.units.g');
   const kcalUnit = t('planEditor.nutrition.kcalUnit');
 
   return (
-    <Popover
-      open={open}
-      modal={false}
-      onOpenChange={(next) => {
-        if (!next) {
-          setPinned(false);
-          setHovered(false);
-        }
-      }}
-    >
+    <Popover open={open} onOpenChange={setOpen} modal={false}>
       <PopoverTrigger asChild>
         <button
           type="button"
           data-testid="day-total"
           data-status={status}
           aria-label={t('planEditor.target.aria', { day: dayName })}
-          onPointerEnter={(event) => {
-            // Touch has no hover; a tap arrives as a click.
-            if (event.pointerType === 'mouse') {
-              enter();
-            }
-          }}
-          onPointerLeave={(event) => {
-            if (event.pointerType === 'mouse') {
-              leave();
-            }
-          }}
-          onClick={(event) => {
-            // The popover's own toggle would close a hover-opened popover on the first click.
-            event.preventDefault();
-            setPinned((current) => !current);
-            setHovered(false);
-          }}
           className="flex h-full min-h-30 min-w-0 cursor-pointer flex-col justify-between gap-1 rounded-xl border border-raised-line bg-raised p-3 text-left shadow-raised outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
         >
           {children}
@@ -141,8 +98,6 @@ export default function DayTargetPopover({ dayOfWeek, totals, targets, status, c
           className="flex max-h-(--radix-popover-content-available-height) w-80 max-w-[calc(100vw-2rem)] flex-col gap-3 overflow-y-auto rounded-2xl border-line bg-card p-4"
           onOpenAutoFocus={(event) => event.preventDefault()}
           onCloseAutoFocus={(event) => event.preventDefault()}
-          onPointerEnter={enter}
-          onPointerLeave={leave}
         >
           <span className="text-body font-semibold text-ink">
             {t('planEditor.target.title')} · {dayName}

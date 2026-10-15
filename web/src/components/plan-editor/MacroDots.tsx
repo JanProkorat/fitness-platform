@@ -16,11 +16,13 @@ interface Props {
   fiber?: number;
   /** Adds a trailing "g" to the fiber value (totals rows). */
   fiberUnit?: boolean;
+  /** Adds a trailing "g" to all four values (meal header). */
+  unit?: boolean;
   className?: string;
 }
 
 /** Protein, carbs, fat and fiber as coloured dots with a short label and a rounded value. */
-export default function MacroDots({ protein, carbs, fat, fiber, fiberUnit = false, className }: Props) {
+export default function MacroDots({ protein, carbs, fat, fiber, fiberUnit = false, unit = false, className }: Props) {
   const { t } = useTranslation();
   const values = { protein, carbs, fat, fiber };
 
@@ -35,7 +37,7 @@ export default function MacroDots({ protein, carbs, fat, fiber, fiberUnit = fals
           <span key={key} className="inline-flex items-center gap-1.25 whitespace-nowrap">
             <span className={cn('size-1.5 shrink-0 rounded-full', dotClass)} aria-hidden="true" />
             {t(`planEditor.macroShort.${key}`)} {Math.round(value)}
-            {key === 'fiber' && fiberUnit ? ` ${t('planEditor.units.g')}` : ''}
+            {unit || (key === 'fiber' && fiberUnit) ? ` ${t('planEditor.units.g')}` : ''}
           </span>
         );
       })}
