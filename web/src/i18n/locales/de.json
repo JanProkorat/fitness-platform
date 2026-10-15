@@ -2353,7 +2353,7 @@
         "kcal": "{{kcal}} kcal",
         "diet": "Ernährung: {{diet}}"
       },
-      "bestMatch": "Beste Übereinstimmung",
+      "bestMatch": "Empfohlen",
       "otherGoals": "Andere Ziele",
       "use": "Verwenden",
       "useNamed": "{{name}} verwenden",

@@ -2426,7 +2426,7 @@
         "kcal": "{{kcal}} kcal",
         "diet": "strava: {{diet}}"
       },
-      "bestMatch": "Nejlepší shoda",
+      "bestMatch": "Doporučeno",
       "otherGoals": "Jiné cíle",
       "use": "Použít",
       "useNamed": "Použít {{name}}",

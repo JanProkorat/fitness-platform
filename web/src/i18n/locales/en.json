@@ -2354,7 +2354,7 @@
         "kcal": "{{kcal}} kcal",
         "diet": "{{diet}} diet"
       },
-      "bestMatch": "Best match",
+      "bestMatch": "Recommended",
       "otherGoals": "Other goals",
       "use": "Use",
       "useNamed": "Use {{name}}",
