@@ -1921,7 +1921,11 @@
         "ingredientsMatch_one": "ingredience odpovídá · použije se hned",
         "ingredientsMatch_few": "ingredience odpovídají · použije se hned",
         "ingredientsMatch_many": "ingredience odpovídá · použije se hned",
-        "ingredientsMatch_other": "ingrediencí odpovídá · použije se hned"
+        "ingredientsMatch_other": "ingrediencí odpovídá · použije se hned",
+        "templatesMatch_one": "šablona odpovídá · použije se hned",
+        "templatesMatch_few": "šablony odpovídají · použije se hned",
+        "templatesMatch_many": "šablony odpovídá · použije se hned",
+        "templatesMatch_other": "šablon odpovídá · použije se hned"
       },
       "hint": "Přetáhněte na jídlo, nebo jídlo vyberte a stiskněte +. Jedno jídlo může obsahovat více receptů a surovin.",
       "drag": "Přetáhnout {{name}}",
@@ -2417,6 +2421,15 @@
       "empty": "Zatím žádné šablony.",
       "searchPlaceholder": "Hledat šablony…",
       "searchEmpty": "Hledání neodpovídá žádná šablona.",
+      "filters": {
+        "goal": "Cíl",
+        "diet": "Typ stravy",
+        "kcal": "Kalorie na den",
+        "kcalMin": "Min. kcal",
+        "kcalMax": "Max. kcal",
+        "empty": "Těmto filtrům neodpovídá žádná šablona.",
+        "clear": "Zrušit filtry"
+      },
       "listError": "Šablony se nepodařilo načíst.",
       "loadError": "Šablonu se nepodařilo načíst. Zkuste to znovu.",
       "gone": "Tato šablona už není dostupná.",

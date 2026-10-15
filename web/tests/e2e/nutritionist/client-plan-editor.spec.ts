@@ -318,4 +318,98 @@ test.describe('client plan editor', () => {
       await archivePlan(origin, planId);
     }
   });
+
+  test.describe('library Templates tab', () => {
+    const templateBase = { weekCount: 4, usedBy: 0, visibility: 'Private', isOwnedByCurrentUser: true, version: 1, dateCreated: '2026-01-01T00:00:00Z' };
+    const stubTemplates = [
+      { ...templateBase, templateId: '00000000-0000-0000-1425-0000000000c1', name: 'QA Maintenance', goal: 'Maintain', dietaryStyle: 'Standard', avgKcalPerDay: 2600 },
+      { ...templateBase, templateId: '00000000-0000-0000-1425-0000000000c2', name: 'QA Lean cut', goal: 'LoseFat', dietaryStyle: 'Standard', avgKcalPerDay: 2200 },
+      { ...templateBase, templateId: '00000000-0000-0000-1425-0000000000c3', name: 'QA Vegetarian cut', goal: 'LoseFat', dietaryStyle: 'Vegetarian', avgKcalPerDay: 1950 },
+      { ...templateBase, templateId: '00000000-0000-0000-1425-0000000000c4', name: 'QA Bulk', goal: 'GainMuscle', dietaryStyle: 'Standard', avgKcalPerDay: 3100 },
+      { ...templateBase, templateId: '00000000-0000-0000-1425-0000000000c5', name: 'QA Endurance', goal: 'Performance', dietaryStyle: 'Vegan', avgKcalPerDay: 2800 },
+    ];
+
+    async function openTemplatesTab(page: Page, planId: string, planName: string): Promise<void> {
+      await page.route(/\/nutrition\/plan-templates(\?.*)?$/, async (route) => {
+        const goal = new URL(route.request().url()).searchParams.get('goal');
+        const templates = goal ? stubTemplates.filter((entry) => entry.goal === goal) : stubTemplates;
+        await route.fulfill({ json: { templates, totalCount: templates.length, page: 1, pageSize: 100 } });
+      });
+      await page.goto(editorUrl(planId));
+      await expectEditorLoaded(page, planName);
+      await page.getByRole('complementary', { name: 'Library' }).getByRole('tab', { name: /^Templates/ }).click();
+      await expect(page.getByTestId('template-card')).toHaveCount(stubTemplates.length);
+    }
+
+    test('the search field sits in the same place on Recipes, Ingredients and Templates', async ({ page, baseURL }) => {
+      const origin = baseURL ?? 'http://localhost:5173';
+      const { planId, name } = await createPlan(origin, 'TemplatesLayout');
+      try {
+        await openTemplatesTab(page, planId, name);
+        const panel = page.getByRole('complementary', { name: 'Library' });
+        const templatesBox = await panel.getByTestId('templates-search').boundingBox();
+        await panel.getByRole('tab', { name: /^Recipes/ }).click();
+        const recipesBox = await panel.getByLabel('Search recipes…').boundingBox();
+        await panel.getByRole('tab', { name: /^Ingredients/ }).click();
+        const ingredientsBox = await panel.getByLabel('Search ingredients…').boundingBox();
+        expect(templatesBox).not.toBeNull();
+        expect(recipesBox).not.toBeNull();
+        expect(ingredientsBox).not.toBeNull();
+        expect(templatesBox).toEqual(recipesBox);
+        expect(ingredientsBox).toEqual(recipesBox);
+      } finally {
+        await archivePlan(origin, planId);
+      }
+    });
+
+    test('goal, diet and kcal filters narrow the templates, persist across tabs and clear restores them', async ({ page, baseURL }) => {
+      const origin = baseURL ?? 'http://localhost:5173';
+      const { planId, name } = await createPlan(origin, 'TemplatesFilter');
+      try {
+        await openTemplatesTab(page, planId, name);
+        const panel = page.getByRole('complementary', { name: 'Library' });
+        const cards = panel.getByTestId('template-card');
+        await panel.getByRole('button', { name: 'Filters' }).click();
+        const filters = page.getByTestId('library-filters');
+
+        await filters.getByRole('button', { name: 'Gain muscle', exact: true }).click();
+        await expect(cards).toHaveCount(1);
+        await expect(cards.first()).toContainText('QA Bulk');
+        await expect(panel.getByTestId('library-filter-count')).toHaveText('1');
+        await filters.getByRole('button', { name: 'Gain muscle', exact: true }).click();
+        await expect(cards).toHaveCount(stubTemplates.length);
+
+        await filters.getByRole('button', { name: 'Vegetarian', exact: true }).click();
+        await expect(cards).toHaveCount(1);
+        await expect(cards.first()).toContainText('QA Vegetarian cut');
+        await filters.getByTestId('library-filters-clear').click();
+
+        await filters.getByTestId('template-filter-kcal-min').fill('2000');
+        await filters.getByTestId('template-filter-kcal-max').fill('2700');
+        await expect(cards).toHaveCount(2);
+        await expect(cards.filter({ hasText: 'QA Lean cut' })).toHaveCount(1);
+        await expect(cards.filter({ hasText: 'QA Maintenance' })).toHaveCount(1);
+        await expect(panel.getByTestId('library-filter-count')).toHaveText('1');
+
+        // Filters survive switching to another tab and back.
+        await page.keyboard.press('Escape');
+        await panel.getByRole('tab', { name: /^Recipes/ }).click();
+        await panel.getByRole('tab', { name: /^Templates/ }).click();
+        await expect(cards).toHaveCount(2);
+        await expect(panel.getByTestId('library-filter-count')).toHaveText('1');
+
+        // Nothing matches: empty state with a clear action.
+        await panel.getByRole('button', { name: 'Filters' }).click();
+        await page.getByTestId('library-filters').getByRole('button', { name: 'Vegan', exact: true }).click();
+        await expect(cards).toHaveCount(0);
+        await expect(panel.getByTestId('templates-empty')).toBeVisible();
+        await page.keyboard.press('Escape');
+        await panel.getByTestId('templates-empty-clear').click();
+        await expect(cards).toHaveCount(stubTemplates.length);
+        await expect(panel.getByTestId('library-filter-count')).toHaveCount(0);
+      } finally {
+        await archivePlan(origin, planId);
+      }
+    });
+  });
 });

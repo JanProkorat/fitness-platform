@@ -2,20 +2,26 @@ import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Check, SlidersHorizontal } from 'lucide-react';
 import { useFoodTags } from '@/hooks/useIngredientsQueries';
+import { Input } from '@/components/ui/input';
 import { PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import {
   CATEGORY_ORDER,
   countIngredientFilters,
   countRecipeFilters,
+  countTemplateFilters,
   DIETARY_PREFERENCES,
+  DIETARY_STYLES,
   EMPTY_INGREDIENT_FILTERS,
   EMPTY_RECIPE_FILTERS,
+  EMPTY_TEMPLATE_FILTERS,
   MEAL_TYPES,
   OWNER_ORDER,
+  PRIMARY_GOALS,
   toggleValue,
   type IngredientFilterState,
   type RecipeFilterState,
+  type TemplateFilterState,
 } from '@/components/plan-editor/plan-editor-library-filters';
 
 interface TriggerProps {
@@ -127,7 +133,10 @@ function TagChipGroup({ selected, onChange }: { selected: string[]; onChange: (n
 interface ShellProps {
   count: number;
   matchCount: number | undefined;
-  matchKey: 'planEditor.library.filtersPanel.recipesMatch' | 'planEditor.library.filtersPanel.ingredientsMatch';
+  matchKey:
+    | 'planEditor.library.filtersPanel.recipesMatch'
+    | 'planEditor.library.filtersPanel.ingredientsMatch'
+    | 'planEditor.library.filtersPanel.templatesMatch';
   onClear: () => void;
   children: ReactNode;
 }
@@ -240,6 +249,70 @@ export function IngredientFiltersContent({ filters, onChange, matchCount, isNutr
           <TagChipGroup selected={filters.tags} onChange={(tags) => onChange({ ...filters, tags })} />
         </>
       )}
+    </FiltersShell>
+  );
+}
+
+interface TemplateProps {
+  filters: TemplateFilterState;
+  onChange: (next: TemplateFilterState) => void;
+  matchCount: number | undefined;
+}
+
+/** Template filters: Goal, Diet type, and a kcal-per-day range. Applied live. */
+export function TemplateFiltersContent({ filters, onChange, matchCount }: TemplateProps) {
+  const { t } = useTranslation();
+  return (
+    <FiltersShell
+      count={countTemplateFilters(filters)}
+      matchCount={matchCount}
+      matchKey="planEditor.library.filtersPanel.templatesMatch"
+      onClear={() => onChange(EMPTY_TEMPLATE_FILTERS)}
+    >
+      <ChipGroup
+        label={t('clientPlanEditor.templates.filters.goal')}
+        options={PRIMARY_GOALS.map((value) => ({ value, label: t(`clients.values.${value}`) }))}
+        selected={filters.goals}
+        onChange={(goals) => onChange({ ...filters, goals })}
+      />
+      <ChipGroup
+        label={t('clientPlanEditor.templates.filters.diet')}
+        options={DIETARY_STYLES.map((value) => ({ value, label: t(`clients.values.${value}`) }))}
+        selected={filters.dietaryStyles}
+        onChange={(dietaryStyles) => onChange({ ...filters, dietaryStyles })}
+      />
+      <div role="group" aria-label={t('clientPlanEditor.templates.filters.kcal')} className="flex flex-col gap-2">
+        <span className="text-label font-bold tracking-label text-muted-foreground uppercase">
+          {t('clientPlanEditor.templates.filters.kcal')}
+        </span>
+        <div className="flex items-center gap-2">
+          <Input
+            type="number"
+            min={0}
+            inputMode="numeric"
+            data-testid="template-filter-kcal-min"
+            value={filters.minKcal}
+            onChange={(event) => onChange({ ...filters, minKcal: event.target.value })}
+            placeholder={t('clientPlanEditor.templates.filters.kcalMin')}
+            aria-label={t('clientPlanEditor.templates.filters.kcalMin')}
+            className="h-9"
+          />
+          <span aria-hidden="true" className="text-muted-foreground">
+            –
+          </span>
+          <Input
+            type="number"
+            min={0}
+            inputMode="numeric"
+            data-testid="template-filter-kcal-max"
+            value={filters.maxKcal}
+            onChange={(event) => onChange({ ...filters, maxKcal: event.target.value })}
+            placeholder={t('clientPlanEditor.templates.filters.kcalMax')}
+            aria-label={t('clientPlanEditor.templates.filters.kcalMax')}
+            className="h-9"
+          />
+        </div>
+      </div>
     </FiltersShell>
   );
 }

@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode } from 'react';
+import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDraggable } from '@dnd-kit/react';
 import { GripVertical, Plus, Search } from 'lucide-react';
@@ -25,8 +25,12 @@ import {
   countRecipeFilters,
   EMPTY_INGREDIENT_FILTERS,
   EMPTY_RECIPE_FILTERS,
+  EMPTY_TEMPLATE_FILTERS,
+  TemplateTabStateContext,
   type IngredientFilterState,
   type RecipeFilterState,
+  type TemplateFilterState,
+  type TemplateTabState,
 } from '@/components/plan-editor/plan-editor-library-filters';
 import MacroDots from '@/components/plan-editor/MacroDots';
 import { foodToItem, LIBRARY_CARD_SENSORS, recipeToItem } from '@/components/plan-editor/plan-editor-library';
@@ -192,6 +196,18 @@ export default function LibraryPanel({
   // Filters are per tab and stay while switching tabs.
   const [recipeFilters, setRecipeFilters] = useState<RecipeFilterState>(EMPTY_RECIPE_FILTERS);
   const [ingredientFilters, setIngredientFilters] = useState<IngredientFilterState>(EMPTY_INGREDIENT_FILTERS);
+  // The host's extra tab (Templates) unmounts when another tab is picked, so its search and filters live here.
+  const [templateSearch, setTemplateSearch] = useState('');
+  const [templateFilters, setTemplateFilters] = useState<TemplateFilterState>(EMPTY_TEMPLATE_FILTERS);
+  const templateTabState = useMemo<TemplateTabState>(
+    () => ({
+      searchInput: templateSearch,
+      setSearchInput: setTemplateSearch,
+      filters: templateFilters,
+      setFilters: setTemplateFilters,
+    }),
+    [templateSearch, templateFilters],
+  );
 
   const recipesQuery = useRecipes(
     {
@@ -269,7 +285,9 @@ export default function LibraryPanel({
         )}
       </div>
 
-      {showExtra && extraTab.render()}
+      {showExtra && (
+        <TemplateTabStateContext.Provider value={templateTabState}>{extraTab.render()}</TemplateTabStateContext.Provider>
+      )}
 
       {!showExtra && (
       <>
