@@ -314,7 +314,7 @@ test.describe('client plan editor', () => {
     }
   });
 
-  test('dragging Lunch into the gap above Breakfast moves its contents, and one Undo restores them', async ({ page, baseURL }) => {
+  test('dragging Lunch onto Breakfast moves its contents, and one Undo restores them', async ({ page, baseURL }) => {
     const origin = baseURL ?? 'http://localhost:5173';
     const { planId, name } = await createPlan(origin, 'Reorder', undefined, 2);
     try {
@@ -326,24 +326,28 @@ test.describe('client plan editor', () => {
       await expect(lunch).toContainText('2 items');
       await expect(breakfast).not.toContainText('items');
 
-      // Drag Lunch into the gap above Breakfast (the first slot of Monday).
+      // Drag Lunch onto Breakfast (the first slot of Monday).
       await lunch.scrollIntoViewIfNeeded();
       const from = await lunch.boundingBox();
-      const to = await breakfast.boundingBox();
-      if (!from || !to) {
-        throw new Error('[client-plan-editor] the Breakfast or Lunch cell is not visible.');
+      if (!from) {
+        throw new Error('[client-plan-editor] the Lunch cell is not visible.');
       }
       await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
       await page.mouse.down();
       await page.mouse.move(from.x + from.width / 2 + 12, from.y + from.height / 2 + 12, { steps: 4 });
-      const gapX = to.x + to.width / 2;
-      const gapY = to.y - 6;
-      await page.mouse.move(gapX, gapY, { steps: 12 });
-      // The gaps mount once the drag has started; small moves inside the gap wait for it to be picked.
+      // Measured after the drag started: the grid does not reflow while it runs.
+      const to = await breakfast.boundingBox();
+      if (!to) {
+        throw new Error('[client-plan-editor] the Breakfast cell is not visible.');
+      }
+      const targetX = to.x + to.width / 2;
+      const targetY = to.y + to.height / 2;
+      await page.mouse.move(targetX, targetY, { steps: 12 });
+      // Small moves inside the tile wait for the editor to mark it as the landing slot.
       await expect(async () => {
-        await page.mouse.move(gapX - 2, gapY, { steps: 2 });
-        await page.mouse.move(gapX, gapY, { steps: 2 });
-        await expect(page.locator('[data-testid="meal-gap"][data-over="true"]')).toHaveCount(1, { timeout: 500 });
+        await page.mouse.move(targetX - 2, targetY, { steps: 2 });
+        await page.mouse.move(targetX, targetY, { steps: 2 });
+        await expect(breakfast).toHaveAttribute('data-landing', 'true', { timeout: 500 });
       }).toPass({ timeout: 5000 });
       await page.mouse.up();
 

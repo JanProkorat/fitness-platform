@@ -1,11 +1,12 @@
-import { Fragment, useCallback, useState, type ReactNode } from 'react';
+import { useCallback, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useDragOperation, useDraggable, useDroppable } from '@dnd-kit/react';
+import { useDraggable, useDroppable } from '@dnd-kit/react';
 import { Plus, StickyNote, X } from 'lucide-react';
 import type { MealKind } from '@/api/generated';
 import { cn } from '@/lib/utils';
 import DayTargetPopover from '@/components/plan-editor/DayTargetPopover';
 import MacroDots from '@/components/plan-editor/MacroDots';
+import MealTileFace from '@/components/plan-editor/MealTileFace';
 import MealRowInsertLine from '@/components/plan-editor/MealRowInsertLine';
 import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Textarea } from '@/components/ui/textarea';
@@ -20,27 +21,25 @@ import {
   WEEK_GRID_SCROLLER_CLASS,
   weekGridRows,
 } from '@/components/plan-editor/plan-editor-format';
-import MealGapDropTarget from '@/components/plan-editor/MealGapDropTarget';
 import { LabelFrame, LabelHandle } from '@/components/plan-editor/GridLabelDrag';
 import type { LabelAxis } from '@/components/plan-editor/plan-editor-ops';
 import {
   CELL_MEAL_DRAG,
   GRID_CELL_SENSORS,
-  isLabelDrag,
-  mealItemNames,
+  gridFaceKey,
   MOVE_KEY_SHORTCUTS,
   moveDirection,
+  tileSurfaceClass,
+  type GridDragView,
 } from '@/components/plan-editor/plan-editor-library';
 import {
   dayTotals,
   mealItemCount,
-  mealTotals,
   STATUS_BAR_CLASS,
   STATUS_TEXT_CLASS,
   targetStatus,
-  type Totals,
 } from '@/components/plan-editor/plan-editor-nutrition';
-import { daySlots, rowMeal, setDayNote, weekRows } from '@/components/plan-editor/plan-editor-ops';
+import { rowMeal, setDayNote, weekRows } from '@/components/plan-editor/plan-editor-ops';
 import {
   MAX_NOTE_LENGTH,
   type EditorDay,
@@ -53,45 +52,7 @@ import type { PlanEditorState } from '@/components/plan-editor/usePlanEditorStat
 /** Minimum height of a meal row, shared by the Meals and Nutrition views so switching between them keeps the tiles the same size. */
 export const WEEK_GRID_MIN_ROW_REM = 10;
 
-interface MacroBarProps {
-  totals: Totals;
-  /** Shows each segment's value above the bar while it is hovered; off by default so tiles keep their height. */
-  labels?: boolean;
-}
-
-export function MacroBar({ totals, labels = false }: MacroBarProps) {
-  const parts = [
-    { key: 'protein', weight: totals.protein * 4, className: 'bg-macro-protein' },
-    { key: 'carbs', weight: totals.carbs * 4, className: 'bg-macro-carbs' },
-    { key: 'fat', weight: totals.fat * 9, className: 'bg-macro-fat' },
-  ];
-  const sum = parts.reduce((total, part) => total + part.weight, 0);
-  const bar = (
-    <div className="flex h-1 w-full gap-0.5 overflow-hidden rounded-full" aria-hidden="true">
-      {parts.map((part) => (
-        <span
-          key={part.key}
-          className={cn('h-full rounded-full', part.className)}
-          style={{ flexGrow: sum > 0 ? part.weight : 1, flexBasis: 0 }}
-        />
-      ))}
-    </div>
-  );
-  if (!labels) {
-    return bar;
-  }
-  return (
-    <div data-testid="macro-bar" className="group/macro relative py-2">
-      {bar}
-      <span
-        data-testid="macro-bar-values"
-        className="pointer-events-none invisible absolute right-0 bottom-full left-0 z-10 flex justify-center rounded-md bg-card px-1.5 py-0.5 text-meta whitespace-nowrap text-ink group-hover/macro:visible"
-      >
-        <MacroDots protein={totals.protein} carbs={totals.carbs} fat={totals.fat} />
-      </span>
-    </div>
-  );
-}
+export { MacroBar } from '@/components/plan-editor/MealTileFace';
 
 interface CellProps {
   weekIndex: number;
@@ -99,11 +60,14 @@ interface CellProps {
   rowIndex: number;
   /** The label of the row this cell sits in; a meal of another kind says so itself. */
   rowLabelKey: string;
+  /** The day's meal in this row: what the cell drags, and what a drop on it addresses. */
   meal: EditorMeal | undefined;
+  /** What the cell shows: the meal's own contents, or the contents sliding in while a move is previewed. */
+  display: EditorMeal | undefined;
   selected: boolean;
   readOnly: boolean;
-  /** True while a row or day label is dragged: no cell takes a drop then, so only labels can be targets. */
-  labelDragging: boolean;
+  /** What is being dragged over the grid, if a meal tile or a row or day label is. */
+  drag: GridDragView | null;
   /** True while this cell's meal detail is open. */
   detailOpen: boolean;
   detail: ReactNode;
@@ -119,21 +83,23 @@ function MealCell({
   rowIndex,
   rowLabelKey,
   meal,
+  display,
   selected,
   readOnly,
-  labelDragging,
+  drag,
   detailOpen,
   detail,
   onSelect,
   onDetailClose,
   onKeyMove,
 }: CellProps) {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const boundary = usePopoverBoundary();
   const { ref: dropRef, isDropTarget } = useDroppable({
     id: `cell:${weekIndex}:${dayOfWeek}:${rowIndex}`,
     data: { weekIndex, dayOfWeek, rowIndex },
-    disabled: readOnly || labelDragging,
+    // Meal tiles and labels are dropped by position (see the editor), so no cell takes a drop while they are dragged.
+    disabled: readOnly || drag !== null,
   });
   const itemCount = meal ? mealItemCount(meal) : 0;
   const draggable = !readOnly && itemCount > 0;
@@ -151,10 +117,16 @@ function MealCell({
     },
     [dropRef, dragRef, draggable],
   );
-  const names = meal ? mealItemNames(meal, i18n.language) : [];
-  const totals = meal ? mealTotals(meal) : null;
-  const ownKeyDiffers = meal !== undefined && mealKindLabelKey(meal.kind) !== rowLabelKey;
-  const extraNames = names.slice(1);
+  const shownCount = display ? mealItemCount(display) : 0;
+  const cellDrag = drag?.kind === 'cell' ? drag : null;
+  const hovered = cellDrag?.hover?.dayOfWeek === dayOfWeek && cellDrag.hover.rowIndex === rowIndex;
+  const landing = hovered && cellDrag?.mode === 'move';
+  const dropMode = hovered && (cellDrag?.mode === 'copy' || cellDrag?.mode === 'swap') ? cellDrag.mode : undefined;
+  let band: 'source' | 'target' | undefined;
+  if (drag?.kind === 'label') {
+    const own = drag.axis === 'row' ? rowIndex : dayOfWeek;
+    band = own === drag.source ? 'source' : own === drag.target ? 'target' : undefined;
+  }
 
   return (
     <Popover
@@ -173,6 +145,9 @@ function MealCell({
           data-testid="meal-cell"
           data-day={dayOfWeek}
           data-row={rowIndex}
+          data-landing={landing ? 'true' : undefined}
+          data-drop-target={dropMode}
+          data-band={band}
           aria-pressed={selected}
           aria-expanded={meal && itemCount > 0 ? detailOpen : undefined}
           aria-label={t('planEditor.cell.label', { day: t(`planEditor.days.${dayOfWeek}`), row: rowIndex + 1 })}
@@ -187,46 +162,21 @@ function MealCell({
           }}
           className={cn(
             'flex min-h-0 min-w-0 flex-col items-stretch justify-between gap-1 rounded-xl border p-3 text-left outline-none transition-[color,background-color,border-color,box-shadow,transform] duration-150 focus-visible:ring-3 focus-visible:ring-ring/50',
-            itemCount === 0 && 'border-dashed border-line bg-transparent',
-            itemCount > 0 && 'border-raised-line bg-raised shadow-raised',
+            tileSurfaceClass(shownCount > 0),
             draggable &&
               'cursor-grab hover:-translate-y-px hover:shadow-raised-hover active:cursor-grabbing motion-reduce:hover:translate-y-0',
             selected && 'border-solid border-ink ring-2 ring-ink',
-            isDragging && 'opacity-50',
+            // While the contents slide, this slot shows another meal's, so only a source that stays put is dimmed.
+            isDragging && cellDrag?.mode !== 'move' && 'opacity-50',
+            band === 'source' && 'opacity-50',
+            band === 'target' && 'border-dashed border-nutrition bg-nutrition-soft shadow-none',
+            dropMode === 'copy' && 'border-dashed border-nutrition bg-nutrition-soft shadow-none ring-0',
+            dropMode === 'swap' && 'border-solid border-nutrition bg-nutrition-soft shadow-none ring-0',
+            landing && 'border-solid border-nutrition ring-2 ring-nutrition',
             isDropTarget && !isDragging && 'border-dashed border-nutrition bg-nutrition-soft shadow-none ring-0',
           )}
         >
-          {itemCount === 0 ? (
-            <span className="m-auto text-body text-muted-foreground">{t('planEditor.cell.empty')}</span>
-          ) : (
-            <>
-              <span className="flex min-h-0 min-w-0 flex-1 flex-col gap-0.5 overflow-hidden [mask-image:linear-gradient(to_bottom,black_calc(100%-1.25rem),transparent)]">
-                {ownKeyDiffers && meal && (
-                  <span className="truncate text-label font-bold tracking-label text-nutrition-ink uppercase">
-                    {t(`planEditor.rows.${mealKindLabelKey(meal.kind)}`)}
-                  </span>
-                )}
-                <span className="truncate text-copy font-semibold text-ink">{names[0]}</span>
-                {extraNames.map((name, index) => (
-                  <span key={`${name}-${index}`} className="truncate text-body text-muted-foreground">
-                    + {name}
-                  </span>
-                ))}
-              </span>
-              <span className="flex shrink-0 flex-col gap-1.5">
-                <span className="truncate text-body font-semibold text-ink">
-                  {t('planEditor.cell.kcal', { kcal: formatKcal(totals?.kcal ?? 0, i18n.language) })}
-                  {itemCount > 1 && (
-                    <span className="font-normal text-muted-foreground">
-                      {' · '}
-                      {t('planEditor.cell.items', { count: itemCount })}
-                    </span>
-                  )}
-                </span>
-                {totals && <MacroBar totals={totals} />}
-              </span>
-            </>
-          )}
+          <MealTileFace meal={display} rowLabelKey={rowLabelKey} flipKey={gridFaceKey(dayOfWeek, rowIndex)} />
         </button>
       </PopoverAnchor>
       {detailOpen && (
@@ -260,7 +210,7 @@ interface DayHeaderProps {
   /** Where the day's note can be edited; without it (or when `readOnly`) the note is shown as text. */
   note?: { weekIndex: number; readOnly: boolean; onEdit: PlanEditorState['edit'] };
   /** Makes the day's name draggable onto another day, and Alt+Arrow swap it with the neighbour; off by default. */
-  labelDrag?: { weekIndex: number; onKeyMove: (direction: -1 | 1) => void };
+  labelDrag?: { weekIndex: number; onKeyMove: (direction: -1 | 1) => void; over?: boolean };
 }
 
 /** A weekday's name with its note button; the note opens in a small popover. */
@@ -278,7 +228,13 @@ export function DayHeader({ day, note: noteEditing, labelDrag }: DayHeaderProps)
   // A plain function, not a component: a component type created here would remount the popover on every render.
   const wrap = (children: ReactNode) =>
     labelDrag ? (
-      <LabelFrame axis="day" weekIndex={labelDrag.weekIndex} index={dayOfWeek} className={cn(rootClass, 'self-stretch')}>
+      <LabelFrame
+        axis="day"
+        weekIndex={labelDrag.weekIndex}
+        index={dayOfWeek}
+        over={labelDrag.over}
+        className={cn(rootClass, 'self-stretch')}
+      >
         {children}
       </LabelFrame>
     ) : (
@@ -419,6 +375,8 @@ interface Props {
    * labels cannot be dragged. `index` is the row index of a row label and the weekday of a day label.
    */
   onLabelKeyMove?: (axis: LabelAxis, index: number, direction: -1 | 1) => void;
+  /** What is being dragged over the grid: a meal tile (with the contents already slid into place) or a label. */
+  drag?: GridDragView | null;
 }
 
 /** The week as a grid: one column per weekday, a day-total row, then one row per meal. */
@@ -438,14 +396,15 @@ export default function WeekGrid({
   onAddMeal,
   onMoveMeal,
   onLabelKeyMove,
+  drag = null,
 }: Props) {
   const { t } = useTranslation();
-  const { source } = useDragOperation();
-  const labelDragging = isLabelDrag(source?.data);
   const labelsDraggable = !readOnly && onLabelKeyMove !== undefined;
   const rows = weekRows(week);
   const dayByNumber = new Map(week.days.map((day) => [day.dayOfWeek, day]));
-  const slotIds = new Map(DAY_ORDER.map((dayOfWeek) => [dayOfWeek, daySlots(dayByNumber.get(dayOfWeek)).map((meal) => meal.mealId)]));
+  // The slots stay the real week's; only what they show comes from the preview while a move is hovered.
+  const shownDayByNumber = new Map((drag?.kind === 'cell' ? drag.week : week).days.map((day) => [day.dayOfWeek, day]));
+  const labelTarget = (axis: LabelAxis) => (drag?.kind === 'label' && drag.axis === axis ? drag.target : null);
 
   return (
     <div className={WEEK_GRID_SCROLLER_CLASS}>
@@ -484,7 +443,11 @@ export default function WeekGrid({
             note={{ weekIndex, readOnly, onEdit }}
             labelDrag={
               labelsDraggable
-                ? { weekIndex, onKeyMove: (direction) => onLabelKeyMove?.('day', dayOfWeek, direction) }
+                ? {
+                    weekIndex,
+                    onKeyMove: (direction) => onLabelKeyMove?.('day', dayOfWeek, direction),
+                    over: labelTarget('day') === dayOfWeek,
+                  }
                 : undefined
             }
           />
@@ -547,7 +510,13 @@ export default function WeekGrid({
             />
           )}
           {labelsDraggable ? (
-            <LabelFrame axis="row" weekIndex={weekIndex} index={row.index} className={rowLabelClass}>
+            <LabelFrame
+              axis="row"
+              weekIndex={weekIndex}
+              index={row.index}
+              over={labelTarget('row') === row.index}
+              className={rowLabelClass}
+            >
               {rowLabelContent}
             </LabelFrame>
           ) : (
@@ -556,40 +525,18 @@ export default function WeekGrid({
           {DAY_ORDER.map((dayOfWeek) => {
             const detailOpen = detailCell?.dayOfWeek === dayOfWeek && detailCell.rowIndex === row.index;
             const cellMeal = rowMeal(dayByNumber.get(dayOfWeek), row);
-            const daySlotIds = slotIds.get(dayOfWeek) ?? [];
-            const slotIndex = cellMeal ? daySlotIds.indexOf(cellMeal.mealId) : -1;
-            // Gaps sit in the day's own column: above each of its meals, and below its last one.
-            const gapStyle = { gridColumnStart: DAY_ORDER.indexOf(dayOfWeek) + 2 };
             return (
-              <Fragment key={dayOfWeek}>
-              {!readOnly && cellMeal && slotIndex !== -1 && (
-                <MealGapDropTarget
-                  weekIndex={weekIndex}
-                  dayOfWeek={dayOfWeek}
-                  gapIndex={slotIndex}
-                  slotMealIds={daySlotIds}
-                  style={gapStyle}
-                />
-              )}
-              {!readOnly && cellMeal && slotIndex === daySlotIds.length - 1 && (
-                <MealGapDropTarget
-                  weekIndex={weekIndex}
-                  dayOfWeek={dayOfWeek}
-                  gapIndex={daySlotIds.length}
-                  slotMealIds={daySlotIds}
-                  edge="below"
-                  style={gapStyle}
-                />
-              )}
               <MealCell
+                key={dayOfWeek}
                 weekIndex={weekIndex}
                 dayOfWeek={dayOfWeek}
                 rowIndex={row.index}
                 rowLabelKey={mealKindLabelKey(row.kind)}
                 meal={cellMeal}
+                display={rowMeal(shownDayByNumber.get(dayOfWeek), row)}
                 selected={selected?.dayOfWeek === dayOfWeek && selected.rowIndex === row.index}
                 readOnly={readOnly}
-                labelDragging={labelDragging}
+                drag={drag}
                 detailOpen={detailOpen}
                 detail={detailOpen ? renderDetail({ dayOfWeek, rowIndex: row.index }) : null}
                 onSelect={() => onSelect({ dayOfWeek, rowIndex: row.index })}
@@ -598,7 +545,6 @@ export default function WeekGrid({
                   onMoveMeal && cellMeal ? (direction) => onMoveMeal(dayOfWeek, cellMeal.mealId, direction) : undefined
                 }
               />
-              </Fragment>
             );
           })}
         </div>
