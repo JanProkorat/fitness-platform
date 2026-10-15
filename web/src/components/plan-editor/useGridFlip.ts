@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 
 /** Length of the slide of a tile face from its old cell to its new one. */
-export const FLIP_MS = 200;
+export const FLIP_MS = 400;
 const FLIP_EASING = 'cubic-bezier(0.2, 0, 0, 1)';
 /**
  * A request that no change picks up within this long is dropped, so it never animates an unrelated one. Generous on
