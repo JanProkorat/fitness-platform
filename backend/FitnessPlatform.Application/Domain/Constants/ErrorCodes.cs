@@ -164,6 +164,9 @@ public static class ErrorCodes
     /// <summary>The plan version is stale; another write occurred first (optimistic concurrency).</summary>
     public const string PlanVersionConflict = "PLAN_VERSION_CONFLICT";
 
+    /// <summary>The plan has a published week that has already started, so it can no longer be deleted.</summary>
+    public const string PlanAlreadyStarted = "PLAN_ALREADY_STARTED";
+
     // ── Plan Start Date ────────────────────────────────────────────
     /// <summary>Start date is not a Monday.</summary>
     public const string StartDateNotMonday = "START_DATE_NOT_MONDAY";
