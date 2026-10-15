@@ -1,10 +1,12 @@
 import { useCallback, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDraggable, useDroppable } from '@dnd-kit/react';
-import { StickyNote, X } from 'lucide-react';
+import { Plus, StickyNote, X } from 'lucide-react';
+import type { MealKind } from '@/api/generated';
 import { cn } from '@/lib/utils';
 import DayTargetPopover from '@/components/plan-editor/DayTargetPopover';
 import MacroDots from '@/components/plan-editor/MacroDots';
+import MealRowInsertLine from '@/components/plan-editor/MealRowInsertLine';
 import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Textarea } from '@/components/ui/textarea';
 import { usePopoverBoundary } from '@/components/plan-editor/PopoverBoundary';
@@ -28,7 +30,7 @@ import {
   targetStatus,
   type Totals,
 } from '@/components/plan-editor/plan-editor-nutrition';
-import { setDayNote, weekRows } from '@/components/plan-editor/plan-editor-ops';
+import { rowMeal, setDayNote, weekRows } from '@/components/plan-editor/plan-editor-ops';
 import {
   MAX_NOTE_LENGTH,
   type EditorDay,
@@ -356,6 +358,10 @@ interface Props {
   onEdit: PlanEditorState['edit'];
   /** Asks the host to remove a meal row from this week; without it the row labels have no remove button. */
   onRemoveRow?: (rowIndex: number) => void;
+  /** Asks the host to add a meal between two rows, given their kinds; without it the rows have no insert line. */
+  onInsertBetween?: (above: MealKind, below: MealKind) => void;
+  /** Asks the host to add a meal to the whole week; without it there is no "Add meal" button under the labels. */
+  onAddMeal?: () => void;
 }
 
 /** The week as a grid: one column per weekday, a day-total row, then one row per meal. */
@@ -371,6 +377,8 @@ export default function WeekGrid({
   onDetailClose,
   onEdit,
   onRemoveRow,
+  onInsertBetween,
+  onAddMeal,
 }: Props) {
   const { t } = useTranslation();
   const rows = weekRows(week);
@@ -406,14 +414,24 @@ export default function WeekGrid({
         ))}
       </div>
 
-      {rows.map((row) => (
-        <div key={row.index} className={cn(GRID_CLASS, 'items-stretch')}>
+      {rows.map((row, position) => {
+        const previous = position > 0 ? rows[position - 1] : undefined;
+        return (
+        <div key={row.index} className={cn(GRID_CLASS, 'relative items-stretch')}>
+          {previous && !readOnly && onInsertBetween && (
+            <MealRowInsertLine
+              above={t(`planEditor.rows.${mealKindLabelKey(previous.kind)}`)}
+              below={t(`planEditor.rows.${mealKindLabelKey(row.kind)}`)}
+              onInsert={() => onInsertBetween(previous.kind, row.kind)}
+            />
+          )}
           <span
             className={cn(
               STICKY_LABEL_CLASS,
-              'group/row flex items-center gap-1.5 self-center text-body font-semibold whitespace-nowrap text-muted-foreground',
+              'group/row flex flex-col items-start justify-center gap-1.5 self-center text-body font-semibold whitespace-nowrap text-muted-foreground',
             )}
           >
+            <span className="flex items-center gap-1.5">
             {t(`planEditor.rows.${mealKindLabelKey(row.kind)}`)}
             {!readOnly && onRemoveRow && (
               <button
@@ -428,9 +446,21 @@ export default function WeekGrid({
                   week: weekIndex + 1,
                 })}
                 onClick={() => onRemoveRow(row.index)}
-                className="flex size-5 shrink-0 cursor-pointer items-center justify-center rounded-md border border-line bg-card text-error opacity-0 outline-none group-focus-within/row:opacity-100 group-hover/row:opacity-100 focus-visible:ring-3 focus-visible:ring-ring/50"
+                className="flex size-5 shrink-0 cursor-pointer items-center justify-center rounded-md border border-line bg-card text-error opacity-0 outline-none group-focus-within/row:opacity-100 group-hover/row:opacity-100 focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:size-9 pointer-coarse:opacity-100"
               >
-                <X className="size-3" aria-hidden="true" />
+                <X className="size-3 pointer-coarse:size-4" aria-hidden="true" />
+              </button>
+            )}
+            </span>
+            {position === rows.length - 1 && !readOnly && onAddMeal && (
+              <button
+                type="button"
+                data-testid="add-meal-week"
+                onClick={onAddMeal}
+                className="flex w-0 min-w-full cursor-pointer items-start gap-1 self-stretch rounded-md text-left text-body font-semibold whitespace-normal text-nutrition-ink outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:min-h-9"
+              >
+                <Plus className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
+                {t('planEditor.addMeal.open')}
               </button>
             )}
           </span>
@@ -443,7 +473,7 @@ export default function WeekGrid({
                 dayOfWeek={dayOfWeek}
                 rowIndex={row.index}
                 rowLabelKey={mealKindLabelKey(row.kind)}
-                meal={dayByNumber.get(dayOfWeek)?.meals[row.index]}
+                meal={rowMeal(dayByNumber.get(dayOfWeek), row)}
                 selected={selected?.dayOfWeek === dayOfWeek && selected.rowIndex === row.index}
                 readOnly={readOnly}
                 detailOpen={detailOpen}
@@ -454,7 +484,8 @@ export default function WeekGrid({
             );
           })}
         </div>
-      ))}
+        );
+      })}
     </div>
     </div>
   );

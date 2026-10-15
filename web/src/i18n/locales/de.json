@@ -2016,9 +2016,20 @@
       "forDay": "{{day}}",
       "type": "Mahlzeitentyp",
       "alreadyInDay": "Bereits an diesem Tag",
+      "alreadyInWeek": "Bereits an jedem Tag",
+      "forWeek": "Woche {{week}}",
+      "weekWillAdd_one": "Wird zu {{count}} Tag hinzugefügt",
+      "weekWillAdd_other": "Wird zu {{count}} Tagen hinzugefügt",
+      "weekNothingToAdd": "Kein Tag hat noch Platz dafür",
+      "weekAlreadyHave_one": "{{days}} hat sie bereits",
+      "weekAlreadyHave_other": "{{days}} haben sie bereits",
+      "weekCapped": "Übersprungen, der Tag ist voll ({{max}} Mahlzeiten): {{days}}",
       "optional": "· optional",
       "emptyHint": "Die Mahlzeit wird leer hinzugefügt. Füllen Sie sie aus der Bibliothek links — ziehen Sie ein Rezept oder eine Zutat darauf.",
       "submit": "Mahlzeit hinzufügen"
+    },
+    "insertMeal": {
+      "aria": "Mahlzeit zwischen {{above}} und {{below}} hinzufügen"
     },
     "nutrition": {
       "label": "Nährwerte je Mahlzeit",

@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDraggable, useDroppable } from '@dnd-kit/react';
 import { GripVertical, StickyNote, Trash2 } from 'lucide-react';
@@ -35,7 +35,10 @@ const SHARE_CHIP_CLASS: Record<ShareStatus, string> = {
 
 interface Props {
   meal: EditorMeal;
-  index: number;
+  /** The meal's row in the week grid; drops and drags address it by this, not by its position in the day. */
+  rowIndex: number;
+  /** The insert line above the card, rendered inside it so it can fill the gap. */
+  insertLine?: ReactNode;
   weekIndex: number;
   dayOfWeek: number;
   dayKcal: number;
@@ -49,7 +52,8 @@ interface Props {
 /** One meal of the day: draggable by its whole card onto another meal to copy it, with its items, note and delete. */
 export default function MealBlock({
   meal,
-  index,
+  rowIndex,
+  insertLine,
   weekIndex,
   dayOfWeek,
   dayKcal,
@@ -62,13 +66,13 @@ export default function MealBlock({
   const { t } = useTranslation();
   const draggable = !readOnly && mealItemCount(meal) > 0;
   const { ref: dropRef, isDropTarget } = useDroppable({
-    id: `cell:${weekIndex}:${dayOfWeek}:${index}`,
-    data: { weekIndex, dayOfWeek, rowIndex: index },
+    id: `cell:${weekIndex}:${dayOfWeek}:${rowIndex}`,
+    data: { weekIndex, dayOfWeek, rowIndex },
     disabled: readOnly,
   });
   const { ref: dragRef, isDragging } = useDraggable({
-    id: `cell-meal:${weekIndex}:${dayOfWeek}:${index}`,
-    data: { type: CELL_MEAL_DRAG, weekIndex, dayOfWeek, rowIndex: index, mealId: meal.mealId },
+    id: `cell-meal:${weekIndex}:${dayOfWeek}:${rowIndex}`,
+    data: { type: CELL_MEAL_DRAG, weekIndex, dayOfWeek, rowIndex, mealId: meal.mealId },
     disabled: !draggable,
     sensors: MEAL_CARD_SENSORS,
   });
@@ -94,13 +98,14 @@ export default function MealBlock({
       aria-label={kindLabel}
       onClick={onSelect}
       className={cn(
-        'flex flex-col gap-3 rounded-2xl border border-raised-line bg-raised p-5 shadow-raised outline-none transition-[background-color,border-color,box-shadow,transform] duration-150 focus-visible:ring-3 focus-visible:ring-ring/50',
+        'relative flex flex-col gap-3 rounded-2xl border border-raised-line bg-raised p-5 shadow-raised outline-none transition-[background-color,border-color,box-shadow,transform] duration-150 focus-visible:ring-3 focus-visible:ring-ring/50',
         draggable && !isDragging && 'hover:-translate-y-px hover:shadow-raised-hover motion-reduce:hover:translate-y-0',
         selected && 'ring-2 ring-ink ring-inset',
         isDropTarget && !isDragging && 'border-nutrition bg-nutrition-soft',
         isDragging && 'opacity-60 shadow-selection-bar',
       )}
     >
+      {insertLine}
       <div className={cn('flex flex-wrap items-center gap-x-3 gap-y-1.5', draggable && 'cursor-grab active:cursor-grabbing')}>
         {draggable && <GripVertical className="size-4 shrink-0 text-faint" aria-hidden="true" />}
         <h3 className="font-display text-card-title font-semibold text-ink">{kindLabel}</h3>

@@ -11,6 +11,7 @@ export const CELL_MEAL_DRAG = 'cell-meal';
 export interface CellMealDrag {
   weekIndex: number;
   dayOfWeek: number;
+  /** The meal's row in the week grid (kind and occurrence), in both the Week and the Day view. */
   rowIndex: number;
   mealId: string;
 }

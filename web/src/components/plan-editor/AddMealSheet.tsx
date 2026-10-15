@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { Check, Info, Plus } from 'lucide-react';
 import { MealKind } from '@/api/generated';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
-import { CHRONOLOGICAL_KINDS } from '@/components/plan-editor/plan-editor-ops';
-import { MAX_NOTE_LENGTH } from '@/components/plan-editor/plan-editor-types';
+import { CHRONOLOGICAL_KINDS, everyDayHasKind, weekKindPresence } from '@/components/plan-editor/plan-editor-ops';
+import { MAX_MEALS_PER_DAY, MAX_NOTE_LENGTH, type EditorWeek } from '@/components/plan-editor/plan-editor-types';
 
 /** Label key under `planTemplates.slots` for each kind; the two snacks read "Snack" and "Snack 2". */
 const SLOT_LABEL: Record<MealKind, string> = {
@@ -20,17 +21,32 @@ const SLOT_LABEL: Record<MealKind, string> = {
   [MealKind.PostWorkout]: 'postWorkout',
 };
 
+export type AddMealMode = 'day' | 'week';
+
 interface FormProps {
+  mode: AddMealMode;
+  /** Kinds the active day already has (day mode). */
   dayKinds: readonly MealKind[];
-  onSubmit: (kind: MealKind, note: string) => void;
+  /** The week the meal goes into (week mode). */
+  week: EditorWeek;
+  /** The kind that starts selected; null starts with nothing selected. */
+  preselect: MealKind | null;
+  onSubmitDay: (kind: MealKind, note: string) => void;
+  onSubmitWeek: (kind: MealKind) => void;
   onCancel: () => void;
 }
 
-function AddMealForm({ dayKinds, onSubmit, onCancel }: FormProps) {
+function dayList(days: readonly number[], t: TFunction): string {
+  return days.map((day) => t(`planEditor.daysLong.${day}`)).join(', ');
+}
+
+function AddMealForm({ mode, dayKinds, week, preselect, onSubmitDay, onSubmitWeek, onCancel }: FormProps) {
   const { t } = useTranslation();
-  const available = CHRONOLOGICAL_KINDS.filter((candidate) => !dayKinds.includes(candidate));
-  const [kind, setKind] = useState<MealKind | null>(available[0] ?? null);
+  const weekMode = mode === 'week';
+  const [kind, setKind] = useState<MealKind | null>(preselect);
   const [note, setNote] = useState('');
+  const presence = kind !== null && weekMode ? weekKindPresence(week, kind) : null;
+  const canSubmit = kind !== null && (!presence || presence.addable.length > 0);
 
   return (
     <>
@@ -38,8 +54,13 @@ function AddMealForm({ dayKinds, onSubmit, onCancel }: FormProps) {
         id="add-meal-form"
         onSubmit={(event) => {
           event.preventDefault();
-          if (kind !== null) {
-            onSubmit(kind, note);
+          if (kind === null || !canSubmit) {
+            return;
+          }
+          if (weekMode) {
+            onSubmitWeek(kind);
+          } else {
+            onSubmitDay(kind, note);
           }
         }}
         className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-6 py-6"
@@ -50,7 +71,7 @@ function AddMealForm({ dayKinds, onSubmit, onCancel }: FormProps) {
           </span>
           <div role="radiogroup" aria-labelledby="add-meal-type-label" className="grid grid-cols-2 gap-3">
             {CHRONOLOGICAL_KINDS.map((option) => {
-              const present = dayKinds.includes(option);
+              const present = weekMode ? everyDayHasKind(week, option) : dayKinds.includes(option);
               const active = option === kind;
               return (
                 <button
@@ -72,7 +93,7 @@ function AddMealForm({ dayKinds, onSubmit, onCancel }: FormProps) {
                   </span>
                   {present && (
                     <span className="text-meta font-normal text-muted-foreground">
-                      {t('planEditor.addMeal.alreadyInDay')}
+                      {t(weekMode ? 'planEditor.addMeal.alreadyInWeek' : 'planEditor.addMeal.alreadyInDay')}
                     </span>
                   )}
                 </button>
@@ -81,19 +102,44 @@ function AddMealForm({ dayKinds, onSubmit, onCancel }: FormProps) {
           </div>
         </div>
 
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="add-meal-note" className="text-body font-medium text-foreground">
-            {t('planEditor.noteForClient')}{' '}
-            <span className="font-normal text-muted-foreground">{t('planEditor.addMeal.optional')}</span>
-          </label>
-          <Textarea
-            id="add-meal-note"
-            rows={4}
-            value={note}
-            maxLength={MAX_NOTE_LENGTH}
-            onChange={(event) => setNote(event.target.value)}
-          />
-        </div>
+        {presence && (
+          <div data-testid="add-meal-week-summary" className="flex flex-col gap-1 text-body text-muted-foreground">
+            <p>
+              {presence.addable.length > 0
+                ? t('planEditor.addMeal.weekWillAdd', { count: presence.addable.length })
+                : t('planEditor.addMeal.weekNothingToAdd')}
+              {presence.present.length > 0 &&
+                `; ${t('planEditor.addMeal.weekAlreadyHave', {
+                  count: presence.present.length,
+                  days: dayList(presence.present, t),
+                })}`}
+            </p>
+            {presence.capped.length > 0 && (
+              <p>
+                {t('planEditor.addMeal.weekCapped', {
+                  max: MAX_MEALS_PER_DAY,
+                  days: dayList(presence.capped, t),
+                })}
+              </p>
+            )}
+          </div>
+        )}
+
+        {!weekMode && (
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="add-meal-note" className="text-body font-medium text-foreground">
+              {t('planEditor.noteForClient')}{' '}
+              <span className="font-normal text-muted-foreground">{t('planEditor.addMeal.optional')}</span>
+            </label>
+            <Textarea
+              id="add-meal-note"
+              rows={4}
+              value={note}
+              maxLength={MAX_NOTE_LENGTH}
+              onChange={(event) => setNote(event.target.value)}
+            />
+          </div>
+        )}
 
         <p className="flex items-start gap-2 rounded-xl border border-line px-4 py-3 text-body text-muted-foreground">
           <Info className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
@@ -105,7 +151,7 @@ function AddMealForm({ dayKinds, onSubmit, onCancel }: FormProps) {
         <Button type="button" variant="outline" onClick={onCancel}>
           {t('common.cancel')}
         </Button>
-        <Button type="submit" form="add-meal-form" disabled={kind === null}>
+        <Button type="submit" form="add-meal-form" disabled={!canSubmit}>
           <Plus aria-hidden="true" />
           {t('planEditor.addMeal.submit')}
         </Button>
@@ -117,14 +163,34 @@ function AddMealForm({ dayKinds, onSubmit, onCancel }: FormProps) {
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  mode: AddMealMode;
+  /** Changes on every open, so the form starts over with that open's preselection. */
+  requestKey: number;
+  /** The kind that starts selected; null starts with nothing selected. */
+  preselect: MealKind | null;
   dayLabel: string;
-  /** Kinds the day already has; those options are disabled. */
+  weekNumber: number;
+  /** Kinds the active day already has; in day mode those options are disabled. */
   dayKinds: readonly MealKind[];
-  onSubmit: (kind: MealKind, note: string) => void;
+  week: EditorWeek;
+  onSubmitDay: (kind: MealKind, note: string) => void;
+  onSubmitWeek: (kind: MealKind) => void;
 }
 
-/** Right-hand drawer that adds an empty meal to one day; it lands at its kind's place in the day. */
-export default function AddMealSheet({ open, onOpenChange, dayLabel, dayKinds, onSubmit }: Props) {
+/** Right-hand drawer that adds an empty meal to one day, or to every day of the week that lacks one. */
+export default function AddMealSheet({
+  open,
+  onOpenChange,
+  mode,
+  requestKey,
+  preselect,
+  dayLabel,
+  weekNumber,
+  dayKinds,
+  week,
+  onSubmitDay,
+  onSubmitWeek,
+}: Props) {
   const { t } = useTranslation();
 
   return (
@@ -132,9 +198,22 @@ export default function AddMealSheet({ open, onOpenChange, dayLabel, dayKinds, o
       <SheetContent className="sm:w-drawer sm:max-w-none">
         <SheetHeader className="gap-1 border-b border-border p-6">
           <SheetTitle className="text-panel-title font-bold">{t('planEditor.addMeal.title')}</SheetTitle>
-          <SheetDescription className="text-body">{t('planEditor.addMeal.forDay', { day: dayLabel })}</SheetDescription>
+          <SheetDescription className="text-body">
+            {mode === 'week'
+              ? t('planEditor.addMeal.forWeek', { week: weekNumber })
+              : t('planEditor.addMeal.forDay', { day: dayLabel })}
+          </SheetDescription>
         </SheetHeader>
-        <AddMealForm dayKinds={dayKinds} onSubmit={onSubmit} onCancel={() => onOpenChange(false)} />
+        <AddMealForm
+          key={requestKey}
+          mode={mode}
+          dayKinds={dayKinds}
+          week={week}
+          preselect={preselect}
+          onSubmitDay={onSubmitDay}
+          onSubmitWeek={onSubmitWeek}
+          onCancel={() => onOpenChange(false)}
+        />
       </SheetContent>
     </Sheet>
   );

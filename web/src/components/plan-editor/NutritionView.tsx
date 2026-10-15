@@ -18,7 +18,7 @@ import {
   mealTotals,
   type ShareStatus,
 } from '@/components/plan-editor/plan-editor-nutrition';
-import { weekRows } from '@/components/plan-editor/plan-editor-ops';
+import { rowMeal, weekRows } from '@/components/plan-editor/plan-editor-ops';
 import type { EditorMeal, EditorWeek, PlanTargets } from '@/components/plan-editor/plan-editor-types';
 import { MealKind } from '@/api/generated';
 
@@ -159,7 +159,7 @@ export default function NutritionView({ week, targets }: Props) {
             {DAY_ORDER.map((dayOfWeek) => (
               <NutritionCell
                 key={dayOfWeek}
-                meal={dayByNumber.get(dayOfWeek)?.meals[row.index]}
+                meal={rowMeal(dayByNumber.get(dayOfWeek), row)}
                 rowLabelKey={mealKindLabelKey(row.kind)}
                 dailyKcalTarget={dailyKcalTarget}
               />
