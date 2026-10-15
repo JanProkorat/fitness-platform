@@ -179,7 +179,7 @@ test.describe('plan template editor views', () => {
     }
   });
 
-  test('Day view: dragging a meal card onto a filled meal asks Replace or Add, and one Undo restores it', async ({
+  test('Day view: Alt-dragging a meal card onto a filled meal asks Replace or Add, and one Undo restores it', async ({
     page,
     baseURL,
   }) => {
@@ -206,11 +206,15 @@ test.describe('plan template editor views', () => {
       if (!from || !to) {
         throw new Error('[plan-template-editor-views] meal cards are not visible.');
       }
+      // A plain drag within the day moves the meal; Alt (Option) held through the drag copies it instead.
+      await page.keyboard.down('Alt');
       await page.mouse.move(from.x + 10, from.y + 5);
       await page.mouse.down();
       await page.mouse.move(from.x + 14, from.y + 20, { steps: 4 });
       await page.mouse.move(to.x + 10, to.y + 5, { steps: 15 });
+      await expect(blocks.nth(1)).toHaveAttribute('data-drop-target', 'copy');
       await page.mouse.up();
+      await page.keyboard.up('Alt');
 
       const dialog = page.getByTestId('card-drop-dialog');
       await expect(dialog).toBeVisible();
@@ -305,6 +309,119 @@ test.describe('plan template editor views', () => {
     } finally {
       await deleteTemplate(origin, templateId);
       await deleteRecipe(origin, recipeId);
+    }
+  });
+
+  test('the day total opens a popover with planned versus target for every nutrient, in both views', async ({
+    page,
+    baseURL,
+  }) => {
+    const origin = baseURL ?? 'http://localhost:5173';
+    const templateId = await createTemplate(origin, `QA Views Target ${Date.now()}`, buildWeeks(1, BREAKFAST_AND_LUNCH));
+    try {
+      await page.goto(`/plan-templates/${templateId}`);
+      const dayTotal = page.getByTestId('day-total').first();
+      await expect(dayTotal).toBeVisible();
+      const before = await dayTotal.boundingBox();
+
+      // Hovering never opens it; only a click does.
+      const popover = page.getByTestId('day-target-popover');
+      await dayTotal.hover();
+      await page.waitForTimeout(400);
+      await expect(popover).toHaveCount(0);
+      await expect(dayTotal).toHaveAttribute('aria-expanded', 'false');
+
+      await dayTotal.click();
+      await expect(popover).toBeVisible();
+      await expect(dayTotal).toHaveAttribute('aria-expanded', 'true');
+      await expect(popover.getByTestId('day-target-row')).toHaveCount(5);
+      await expect(popover.locator('[data-nutrient="kcal"]')).toContainText(/2\D?000/);
+      // A nutrient the plan has no target for says so; it is never shown as 0 or NaN.
+      await expect(popover).not.toContainText(/NaN|Infinity/);
+      await expect(popover.getByTestId('day-target-legend')).toContainText('10 %');
+      await expect(popover.getByTestId('day-target-legend')).toContainText('20 %');
+
+      // Opening it leaves the tile the same size.
+      const after = await dayTotal.boundingBox();
+      expect(after?.height).toBeCloseTo(before?.height ?? 0, 0);
+
+      await page.keyboard.press('Escape');
+      await expect(popover).toHaveCount(0);
+
+      await page.getByRole('button', { name: 'Nutrition', exact: true }).click();
+      await page.getByTestId('day-total').first().click();
+      await expect(page.getByTestId('day-target-popover').getByTestId('day-target-row')).toHaveCount(5);
+    } finally {
+      await deleteTemplate(origin, templateId);
+    }
+  });
+
+  test('Day view: hovering the nutrition bar shows its segment values', async ({ page, baseURL }) => {
+    const origin = baseURL ?? 'http://localhost:5173';
+    const stamp = Date.now();
+    const recipeName = `QA Views Bar ${stamp}`;
+    const recipeId = await createRecipe(origin, recipeName);
+    const templateId = await createTemplate(origin, `QA Views Bar ${stamp}`, buildWeeks(1, BREAKFAST_AND_LUNCH));
+    try {
+      // The bar only shows from the xl breakpoint (1280) up.
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await page.goto(`/plan-templates/${templateId}`);
+      await addRecipeToMondayBreakfast(page, recipeName);
+      await page.getByRole('button', { name: 'Day', exact: true }).click();
+
+      const bar = page.getByTestId('macro-bar').first();
+      const values = page.getByTestId('macro-bar-values').first();
+      await expect(bar).toBeVisible();
+      await expect(values).toBeHidden();
+
+      await bar.hover();
+      await expect(values).toBeVisible();
+      await expect(values).toContainText(/P\s*\d+/);
+      await expect(values).toContainText(/C\s*\d+/);
+      await expect(values).toContainText(/F\s*\d+/);
+
+      // The meal header carries the meal's summed protein, carbs, fat and fiber.
+      const mealMacros = page.getByTestId('meal-block').first().getByTestId('meal-macros');
+      await expect(mealMacros).toBeVisible();
+      await expect(mealMacros).toContainText(/P\s*\d+\s*g/);
+      await expect(mealMacros).toContainText(/C\s*\d+\s*g/);
+      await expect(mealMacros).toContainText(/F\s*\d+\s*g/);
+      await expect(mealMacros).toContainText(/Fib\s*\d+\s*g/);
+    } finally {
+      await deleteTemplate(origin, templateId);
+      await deleteRecipe(origin, recipeId);
+    }
+  });
+
+  test('a week with one meal row fills the editor on a large screen, and both views keep the same tile height', async ({
+    page,
+    baseURL,
+  }) => {
+    const origin = baseURL ?? 'http://localhost:5173';
+    const templateId = await createTemplate(origin, `QA Views Fill ${Date.now()}`, buildWeeks(1, ['Breakfast']));
+    try {
+      await page.setViewportSize({ width: 1920, height: 1080 });
+      await page.goto(`/plan-templates/${templateId}`);
+      const scroll = page.getByTestId('editor-scroll');
+      const mealCell = page.getByTestId('meal-cell').first();
+      await expect(mealCell).toBeVisible();
+
+      // Below the last row sit only the (hidden) legend, the grid padding and the area's bottom padding.
+      const scrollBox = await scroll.boundingBox();
+      const cellBox = await mealCell.boundingBox();
+      if (!scrollBox || !cellBox) {
+        throw new Error('[plan-template-editor-views] the editor area or a meal tile is not visible.');
+      }
+      const gapBelowRow = scrollBox.y + scrollBox.height - (cellBox.y + cellBox.height);
+      expect(gapBelowRow).toBeLessThan(140);
+      // One row stretches well beyond its 10rem minimum.
+      expect(cellBox.height).toBeGreaterThan(200);
+
+      await page.getByRole('button', { name: 'Nutrition', exact: true }).click();
+      const nutritionBox = await page.getByTestId('nutrition-cell').first().boundingBox();
+      expect(nutritionBox?.height).toBeCloseTo(cellBox.height, 0);
+    } finally {
+      await deleteTemplate(origin, templateId);
     }
   });
 

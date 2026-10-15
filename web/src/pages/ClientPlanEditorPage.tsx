@@ -8,6 +8,8 @@ import type { GetPlanResponse, OnboardingDataDto } from '@/api/generated';
 import { fetchPlanForEditor } from '@/api/plans';
 import ClientAvatar from '@/components/clients/ClientAvatar';
 import ClientPlanInfoPanel from '@/components/client-plan-editor/ClientPlanInfoPanel';
+import PlanActionsMenu, { DeletePlanDialog, FinishPlanDialog } from '@/components/client-plan-editor/PlanActionsMenu';
+import PlanEndedBanner from '@/components/client-plan-editor/PlanEndedBanner';
 import TemplatesLibraryTab from '@/components/client-plan-editor/TemplatesLibraryTab';
 import PlanEditor from '@/components/plan-editor/PlanEditor';
 import CopyMealsDialog from '@/components/plan-templates/CopyMealsDialog';
@@ -30,7 +32,23 @@ interface LoadedProps {
 function LoadedClientPlanEditor({ plan, clientId, clientName, firstName, lastName, onboarding, onReload }: LoadedProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { initial, saveState, save, primaryAction, weekStatus, savedStartDate } = useClientPlanEditor(plan, clientId);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [finishOpen, setFinishOpen] = useState(false);
+  const {
+    initial,
+    saveState,
+    save,
+    primaryAction,
+    weekStatus,
+    savedStartDate,
+    canDelete,
+    canFinish,
+    ended,
+    deletePlan,
+    finishPlan,
+    lifecycleBusy,
+  } = useClientPlanEditor(plan, clientId);
+  const backToNutrition = () => navigate(`/clients/${clientId}/nutrition`);
 
   return (
     <PlanEditor
@@ -47,7 +65,7 @@ function LoadedClientPlanEditor({ plan, clientId, clientName, firstName, lastNam
       readOnlyNotice={t('clientPlanEditor.readOnly')}
       breadcrumb={{
         label: clientName,
-        onNavigate: () => navigate(`/clients/${clientId}/nutrition`),
+        onNavigate: backToNutrition,
         leading: <ClientAvatar firstName={firstName} lastName={lastName} className="size-7.5" />,
       }}
       primaryAction={primaryAction}
@@ -75,6 +93,49 @@ function LoadedClientPlanEditor({ plan, clientId, clientName, firstName, lastNam
         ),
       }}
       weekStatus={weekStatus}
+      allowWeekRemoval
+      renderHeaderActions={(host) =>
+        canDelete || canFinish ? (
+          <>
+            <PlanActionsMenu
+              canDelete={canDelete}
+              canFinish={canFinish}
+              disabled={host.busy || lifecycleBusy}
+              onDelete={() => setDeleteOpen(true)}
+              onFinish={() => setFinishOpen(true)}
+            />
+            <DeletePlanDialog
+              open={deleteOpen}
+              busy={lifecycleBusy}
+              onCancel={() => setDeleteOpen(false)}
+              onConfirm={() => {
+                void deletePlan().then((deleted) => {
+                  setDeleteOpen(false);
+                  if (deleted) {
+                    backToNutrition();
+                  }
+                });
+              }}
+            />
+            <FinishPlanDialog
+              open={finishOpen}
+              busy={host.busy || lifecycleBusy}
+              onCancel={() => setFinishOpen(false)}
+              onConfirm={() => {
+                void finishPlan(host.flush).then((finished) => {
+                  setFinishOpen(false);
+                  if (finished) {
+                    backToNutrition();
+                  }
+                });
+              }}
+            />
+          </>
+        ) : null
+      }
+      renderBanner={(host) =>
+        ended ? <PlanEndedBanner disabled={host.busy || lifecycleBusy} onFinish={() => setFinishOpen(true)} /> : null
+      }
       saveState={saveState}
       onSave={save}
       onReload={onReload}

@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { getErrorStatus } from '@/lib/api-errors';
 import { perServing } from '@/lib/recipe-nutrition';
 import { cn } from '@/lib/utils';
+import { useFood } from '@/hooks/useIngredientsQueries';
 import { useRecipeInfo } from '@/hooks/useRecipesQueries';
 
 export type LibraryInfoSubject =
@@ -121,6 +122,81 @@ interface Props {
   onInteractOutside: (event: Event) => void;
 }
 
+interface PlanItemProps extends Omit<Props, 'subject'> {
+  type: 'recipe' | 'food';
+  /** The library id kept on the plan item: recipeId or foodExternalId. */
+  sourceId: string;
+  /** The name the plan shows for the item, used for the food subject and the fallback states. */
+  name: string;
+}
+
+/** The library info popover for a plan item: loads the current library entry, or says it is gone. */
+export function PlanItemInfoPopover({ type, sourceId, name, ...rest }: PlanItemProps) {
+  const { t } = useTranslation();
+  const recipeQuery = useRecipeInfo(type === 'recipe' ? sourceId : undefined, true);
+  const foodQuery = useFood(type === 'food' ? sourceId : undefined, undefined);
+  const query = type === 'recipe' ? recipeQuery : foodQuery;
+
+  if (type === 'recipe' && recipeQuery.data) {
+    return <LibraryInfoPopover subject={{ kind: 'recipe', recipe: recipeQuery.data }} {...rest} />;
+  }
+  if (type === 'food' && foodQuery.data) {
+    return <LibraryInfoPopover subject={{ kind: 'food', food: foodQuery.data, name }} {...rest} />;
+  }
+
+  let body;
+  if (query.isError) {
+    body =
+      getErrorStatus(query.error) === 404 ? (
+        <p className="text-body text-muted-foreground">{t('planEditor.library.info.unavailable')}</p>
+      ) : (
+        <div className="flex flex-col items-start gap-2">
+          <p className="text-body text-muted-foreground">{t('planEditor.library.info.loadError')}</p>
+          <Button type="button" variant="outline" size="sm" onClick={() => void query.refetch()}>
+            {t('planEditor.library.retry')}
+          </Button>
+        </div>
+      );
+  } else {
+    body = (
+      <div className="flex flex-col gap-2" role="status" aria-label={t('planEditor.library.info.loading')}>
+        <Skeleton className="h-6 w-2/3 rounded-md" />
+        <Skeleton className="h-6 w-full rounded-md" />
+        <Skeleton className="h-6 w-full rounded-md" />
+      </div>
+    );
+  }
+
+  return (
+    <PopoverContent
+      side="right"
+      align="start"
+      sideOffset={12}
+      collisionPadding={16}
+      aria-label={name}
+      data-testid="library-info"
+      onCloseAutoFocus={rest.onCloseAutoFocus}
+      onInteractOutside={rest.onInteractOutside}
+      className="flex max-h-(--radix-popover-content-available-height) w-90 flex-col gap-3 overflow-y-auto rounded-2xl border-line bg-card p-4"
+    >
+      <div className="flex items-start gap-3">
+        <span className="min-w-0 flex-1 font-display text-panel-title font-semibold text-ink [overflow-wrap:anywhere]">
+          {name}
+        </span>
+        <button
+          type="button"
+          aria-label={t('common.close')}
+          onClick={rest.onClose}
+          className="flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted-foreground outline-none hover:text-ink focus-visible:ring-3 focus-visible:ring-ring/50"
+        >
+          <X className="size-4" aria-hidden="true" />
+        </button>
+      </div>
+      {body}
+    </PopoverContent>
+  );
+}
+
 /** Picture, kcal, macros and (for a recipe) the ingredient list of a library card; no preparation steps. */
 export default function LibraryInfoPopover({ subject, language, onClose, onCloseAutoFocus, onInteractOutside }: Props) {
   const { t } = useTranslation();
@@ -191,7 +267,7 @@ export default function LibraryInfoPopover({ subject, language, onClose, onClose
             <div key={key} className="flex min-w-0 flex-1 basis-0 flex-col gap-1">
               <span className="inline-flex items-center gap-1.25 text-meta text-muted-foreground">
                 <span className={cn('size-1.5 shrink-0 rounded-full', dotClass)} aria-hidden="true" />
-                {t(`planEditor.day.${key}`)}
+                {t(`planEditor.library.info.macroNames.${key}`)}
               </span>
               <span className="text-copy font-bold text-ink">
                 {Math.round(grams)} {t('planEditor.units.g')}

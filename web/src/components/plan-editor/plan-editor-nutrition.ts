@@ -224,19 +224,28 @@ export function energySharePercent(grams: number, kcalPerGram: number, dayKcal: 
   return Math.min(100, Math.max(0, ((grams * kcalPerGram) / dayKcal) * 100));
 }
 
-export type TargetStatus ='none' | 'on' | 'near' | 'off';
+export type TargetStatus = 'none' | 'on' | 'near' | 'off';
 
-/** Day total against the daily target: within 10% on, 10-20% near, beyond that off. */
-export function targetStatus(kcal: number, target: number | undefined): TargetStatus {
-  if (!target || kcal <= 0) {
+/** Deviation from a daily target, as a fraction, up to which a value is "on" target. */
+export const TARGET_ON_BAND = 0.1;
+/** Deviation up to which a value is "near" the target; beyond it the value is "off". */
+export const TARGET_NEAR_BAND = 0.2;
+
+/** A day's value against its daily target: within {@link TARGET_ON_BAND} on, up to {@link TARGET_NEAR_BAND} near, beyond that off. */
+export function targetStatus(value: number, target: number | undefined): TargetStatus {
+  if (!target || value <= 0) {
     return 'none';
   }
-  const deviation = Math.abs(kcal - target) / target;
-  if (deviation <= 0.1) {
+  const deviation = Math.abs(value - target) / target;
+  if (deviation <= TARGET_ON_BAND) {
     return 'on';
   }
-  return deviation <= 0.2 ? 'near' : 'off';
+  return deviation <= TARGET_NEAR_BAND ? 'near' : 'off';
 }
+
+/** The nutrients a day is measured against, in display order. */
+export const TARGET_NUTRIENTS = ['kcal', 'protein', 'carbs', 'fat', 'fiber'] as const;
+export type TargetNutrient = (typeof TARGET_NUTRIENTS)[number];
 
 /** Text colour of a kcal figure by how close it is to the daily target. */
 export const STATUS_TEXT_CLASS: Record<TargetStatus, string> = {

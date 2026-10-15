@@ -1,7 +1,8 @@
 /**
- * Plan template editor meal rows (epic #1237, task #1273): the staged meal picker on an empty week
- * and removing a meal row from the current week. Runs against the real harness, no mocked APIs; the
- * shell, grid and preset are covered by plan-template-editor.spec.ts.
+ * Plan template editor meal rows (epic #1237, task #1273; epic #1424, task #1432): the staged meal
+ * picker on an empty week, removing a meal row from the current week, and adding a meal to the whole
+ * week or to one day from the insert line. Runs against the real harness, no mocked APIs; the shell,
+ * grid and preset are covered by plan-template-editor.spec.ts.
  */
 import { request as apiRequest, type Locator, type Page } from '@playwright/test';
 import { nutritionistTest as test, expect } from '../fixtures/auth';
@@ -93,6 +94,42 @@ async function addAppleTo(page: Page, dayOfWeek: number, rowIndex: number): Prom
   await expect(addButton).toBeEnabled();
   await addButton.click();
   await expect(cell(page, dayOfWeek, rowIndex)).not.toContainText('Empty');
+}
+
+/** The add-meal drawer opened from an insert line or the "Add meal" button. */
+function drawer(page: Page): Locator {
+  return page.getByRole('dialog');
+}
+
+/** Hovers the insert line above the nth row boundary of the scope and presses its + button. */
+async function pressInsertLine(scope: Locator, boundary: number): Promise<void> {
+  const line = scope.getByTestId('meal-insert-line').nth(boundary);
+  await line.hover();
+  const button = line.getByTestId('meal-insert-button');
+  await expect(button).toHaveCSS('opacity', '1');
+  await button.click();
+}
+
+async function confirmDrawer(page: Page): Promise<void> {
+  await drawer(page).getByRole('button', { name: 'Add meal', exact: true }).click();
+  await expect(drawer(page)).toHaveCount(0);
+}
+
+/** Selects the meal block and adds the first Apple ingredient with the library's + button (Day view). */
+async function addAppleToBlock(page: Page, block: Locator): Promise<void> {
+  await block.click({ position: { x: 8, y: 8 } });
+  await page.getByRole('tab', { name: 'Ingredients' }).click();
+  await page.getByLabel('Search ingredients…').fill('Apple');
+  const addButton = page
+    .getByTestId('library-card')
+    .first()
+    .getByRole('button', { name: /^Add .* to the selected meal$/ });
+  await expect(addButton).toBeEnabled();
+  await addButton.click();
+}
+
+function mealBlock(page: Page, label: string): Locator {
+  return page.locator(`[data-testid="meal-block"][aria-label="${label}"]`);
 }
 
 /** A picker chip; the "most common" preset button also starts with Breakfast, so match on aria-pressed. */
@@ -216,5 +253,206 @@ test.describe('plan template editor meal rows', () => {
     } finally {
       await deleteTemplate(origin, templateId);
     }
+  });
+
+  test('the insert line adds the fitting kind to the whole week in one edit, and one Undo takes it back', async ({
+    page,
+    baseURL,
+  }) => {
+    const origin = baseURL ?? 'http://localhost:5173';
+    const templateId = await createTemplate(origin, `QA Rows Week Add ${Date.now()}`, ['Breakfast', 'Lunch', 'Dinner']);
+    try {
+      await page.goto(`/plan-templates/${templateId}`);
+      await expect(page.getByTestId('meal-cell')).toHaveCount(21);
+      // No line above the first row or below the last: three rows have two lines.
+      await expect(page.getByTestId('meal-insert-line')).toHaveCount(2);
+
+      await pressInsertLine(page.getByRole('group', { name: 'Week meals' }), 0);
+      await expect(drawer(page)).toContainText('Week 1');
+      await expect(drawer(page).getByRole('radio', { name: 'Snack', exact: true })).toHaveAttribute('aria-checked', 'true');
+      await expect(drawer(page).getByTestId('add-meal-week-summary')).toHaveText('Will be added to 7 days');
+      await expect(drawer(page).getByLabel(/Note for the client/)).toHaveCount(0);
+      await confirmDrawer(page);
+
+      await expect(page.getByTestId('meal-cell')).toHaveCount(28);
+      await expect(page.getByRole('button', { name: 'Remove Snack from week 1' })).toHaveCount(1);
+      await page.getByRole('tab', { name: 'Week 2' }).click();
+      await expect(page.getByTestId('meal-cell')).toHaveCount(21);
+      await page.getByRole('tab', { name: 'Week 1' }).click();
+
+      await page.getByRole('button', { name: 'Undo' }).click();
+      await expect(page.getByTestId('meal-cell')).toHaveCount(21);
+      await expect(page.getByRole('button', { name: 'Undo' })).toBeDisabled();
+    } finally {
+      await deleteTemplate(origin, templateId);
+    }
+  });
+
+  test('a gap with no free kind preselects nothing; the always-visible Add meal button opens the week drawer empty', async ({
+    page,
+    baseURL,
+  }) => {
+    const origin = baseURL ?? 'http://localhost:5173';
+    const templateId = await createTemplate(origin, `QA Rows No Fit ${Date.now()}`, ['Breakfast', 'Lunch', 'Dinner']);
+    try {
+      await page.goto(`/plan-templates/${templateId}`);
+      const addMeal = page.getByTestId('add-meal-week');
+      await expect(addMeal).toBeVisible();
+      await expect(addMeal).toHaveCSS('opacity', '1');
+      const cellHeight = (await cell(page, 1, 0).boundingBox())?.height;
+      await addMeal.click();
+      await expect(drawer(page).getByRole('radio', { checked: true })).toHaveCount(0);
+      await expect(drawer(page).getByRole('button', { name: 'Add meal', exact: true })).toBeDisabled();
+      await drawer(page).getByRole('button', { name: 'Cancel' }).click();
+      // The button sits inside the last label cell: it adds no grid row and the tiles keep their height.
+      await expect(page.getByTestId('meal-cell')).toHaveCount(21);
+      expect((await cell(page, 1, 0).boundingBox())?.height).toBe(cellHeight);
+
+      // Fill every gap: Snack between Breakfast and Lunch, Snack 2 between Lunch and Dinner.
+      await pressInsertLine(page.getByRole('group', { name: 'Week meals' }), 0);
+      await confirmDrawer(page);
+      await pressInsertLine(page.getByRole('group', { name: 'Week meals' }), 2);
+      await expect(drawer(page).getByRole('radio', { name: 'Snack 2', exact: true })).toHaveAttribute('aria-checked', 'true');
+      await confirmDrawer(page);
+      await expect(page.getByTestId('meal-cell')).toHaveCount(35);
+
+      // No kind fits between Breakfast and the new Snack, so that line preselects nothing.
+      await pressInsertLine(page.getByRole('group', { name: 'Week meals' }), 0);
+      await expect(drawer(page).getByRole('radio', { checked: true })).toHaveCount(0);
+    } finally {
+      await deleteTemplate(origin, templateId);
+    }
+  });
+
+  test('a kind only some days have shows who has it; a kind every day has is disabled', async ({ page, baseURL }) => {
+    const origin = baseURL ?? 'http://localhost:5173';
+    const templateId = await createTemplate(origin, `QA Rows Partial ${Date.now()}`, ['Breakfast', 'Lunch']);
+    try {
+      await page.goto(`/plan-templates/${templateId}`);
+      // Add a Snack to Monday only, from the Day view's insert line.
+      await page.getByRole('button', { name: 'Day', exact: true }).click();
+      await pressInsertLine(page.getByTestId('day-view'), 0);
+      await expect(drawer(page).getByRole('radio', { name: 'Snack', exact: true })).toHaveAttribute('aria-checked', 'true');
+      await expect(drawer(page).getByLabel(/Note for the client/)).toBeVisible();
+      await confirmDrawer(page);
+      await expect(page.getByTestId('meal-block')).toHaveCount(3);
+
+      await page.getByRole('button', { name: 'Week', exact: true }).click();
+      await page.getByTestId('add-meal-week').click();
+      await drawer(page).getByRole('radio', { name: 'Snack', exact: true }).click();
+      await expect(drawer(page).getByTestId('add-meal-week-summary')).toHaveText('Will be added to 6 days; Monday already has it');
+      await expect(drawer(page).getByRole('radio', { name: /^Breakfast/ })).toBeDisabled();
+      await expect(drawer(page).getByRole('radio', { name: /^Breakfast/ })).toContainText('Already in every day');
+      await confirmDrawer(page);
+      await expect(page.getByTestId('meal-cell')).toHaveCount(21);
+
+      // Every day has a Snack now, so it is disabled the next time.
+      await page.getByTestId('add-meal-week').click();
+      await expect(drawer(page).getByRole('radio', { name: /^Snack(?! 2)/ })).toBeDisabled();
+    } finally {
+      await deleteTemplate(origin, templateId);
+    }
+  });
+
+  test('a Day view insert keeps the other days\' meals in their rows, and a library add lands in the new meal', async ({
+    page,
+    baseURL,
+  }) => {
+    const origin = baseURL ?? 'http://localhost:5173';
+    const templateId = await createTemplate(origin, `QA Rows Day Insert ${Date.now()}`, ['Breakfast', 'Lunch']);
+    try {
+      await page.goto(`/plan-templates/${templateId}`);
+      // Tuesday's Lunch holds food; Lunch is row 1 until a Snack appears on any day.
+      await addAppleTo(page, 2, 1);
+
+      await page.getByRole('button', { name: 'Day', exact: true }).click();
+      // The Day view opens on the day of the selected cell (Tuesday); go to Monday explicitly.
+      await page.getByRole('tab', { name: /^Mon/ }).click();
+      await expect(page.getByRole('tab', { name: /^Mon/ })).toHaveAttribute('aria-selected', 'true');
+      await pressInsertLine(page.getByTestId('day-view'), 0);
+      await confirmDrawer(page);
+      await expect(page.getByTestId('meal-block')).toHaveCount(3);
+
+      // The new Snack belongs to Monday only; every other day keeps its Lunch in the Lunch row.
+      await page.getByRole('button', { name: 'Week', exact: true }).click();
+      await expect(page.getByTestId('meal-cell')).toHaveCount(21);
+      await expect(cell(page, 1, 1)).toContainText('Empty');
+      await expect(cell(page, 2, 1)).toContainText('Empty');
+      await expect(cell(page, 2, 2)).not.toContainText('Empty');
+      await expect(cell(page, 3, 2)).toContainText('Empty');
+
+      // In the Day view the library add goes to the meal the user selected, not to the one at its stored position.
+      await page.getByRole('button', { name: 'Day', exact: true }).click();
+      await expect(page.getByRole('tab', { name: /^Mon/ })).toHaveAttribute('aria-selected', 'true');
+      await addAppleToBlock(page, mealBlock(page, 'Snack'));
+      await expect(mealBlock(page, 'Snack').getByTestId('meal-item')).toHaveCount(1);
+      await expect(mealBlock(page, 'Lunch').getByTestId('meal-item')).toHaveCount(0);
+      await expect(mealBlock(page, 'Breakfast').getByTestId('meal-item')).toHaveCount(0);
+    } finally {
+      await deleteTemplate(origin, templateId);
+    }
+  });
+
+  test('the Day view insert line adds a meal of the fitting kind between two meals of that day', async ({ page, baseURL }) => {
+    const origin = baseURL ?? 'http://localhost:5173';
+    const templateId = await createTemplate(origin, `QA Rows Day Line ${Date.now()}`, ['Breakfast', 'Lunch']);
+    try {
+      await page.goto(`/plan-templates/${templateId}`);
+      await page.getByRole('button', { name: 'Day', exact: true }).click();
+      const dayView = page.getByTestId('day-view');
+      await expect(dayView.getByTestId('meal-insert-line')).toHaveCount(1);
+
+      await pressInsertLine(dayView, 0);
+      await expect(drawer(page)).toContainText('Monday');
+      await confirmDrawer(page);
+
+      await expect(page.getByTestId('meal-block')).toHaveCount(3);
+      await expect(page.getByTestId('meal-block').nth(1)).toHaveAttribute('aria-label', 'Snack');
+      await expect(dayView.getByTestId('meal-insert-line')).toHaveCount(2);
+
+      await page.getByRole('button', { name: 'Undo' }).click();
+      await expect(page.getByTestId('meal-block')).toHaveCount(2);
+    } finally {
+      await deleteTemplate(origin, templateId);
+    }
+  });
+
+  test('removing a row removes that kind from every day and keeps the others in place', async ({ page, baseURL }) => {
+    const origin = baseURL ?? 'http://localhost:5173';
+    const templateId = await createTemplate(origin, `QA Rows Remove Kind ${Date.now()}`, ['Breakfast', 'Lunch', 'Dinner']);
+    try {
+      await page.goto(`/plan-templates/${templateId}`);
+      await addAppleTo(page, 1, 2);
+
+      await page.getByRole('button', { name: 'Remove Lunch from week 1' }).click();
+      await expect(page.getByRole('alertdialog')).toHaveCount(0);
+      await expect(page.getByTestId('meal-cell')).toHaveCount(14);
+      await expect(page.getByRole('button', { name: 'Remove Lunch from week 1' })).toHaveCount(0);
+      // Dinner moved up to row 1 with its food.
+      await expect(cell(page, 1, 1)).not.toContainText('Empty');
+    } finally {
+      await deleteTemplate(origin, templateId);
+    }
+  });
+
+  test.describe('on a touch device', () => {
+    test.use({ hasTouch: true });
+
+    test('the remove-row button is visible without hover and has a larger tap target', async ({ page, baseURL }) => {
+      const origin = baseURL ?? 'http://localhost:5173';
+      const templateId = await createTemplate(origin, `QA Rows Touch ${Date.now()}`, ['Breakfast', 'Lunch']);
+      try {
+        await page.goto(`/plan-templates/${templateId}`);
+        const remove = page.getByRole('button', { name: 'Remove Lunch from week 1' });
+        await expect(remove).toHaveCSS('opacity', '1');
+        const box = await remove.boundingBox();
+        expect(box?.width).toBeGreaterThanOrEqual(36);
+        expect(box?.height).toBeGreaterThanOrEqual(36);
+        await remove.tap();
+        await expect(page.getByTestId('meal-cell')).toHaveCount(7);
+      } finally {
+        await deleteTemplate(origin, templateId);
+      }
+    });
   });
 });

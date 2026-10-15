@@ -529,8 +529,9 @@
     "title": "Klienten",
     "subtitle": "Verwaltung und Übersicht der Klienten",
     "tabs": {
+      "all": "Alle",
       "active": "Aktiv",
-      "paused": "Pausiert",
+      "paused": "Ohne Plan",
       "archived": "Archiviert",
       "pending": "Ausstehend"
     },
@@ -1789,6 +1790,7 @@
       "previous": "Vorherige Wochen",
       "next": "Weitere Wochen",
       "add": "Woche hinzufügen",
+      "remove": "Woche {{number}} entfernen",
       "week": "Woche {{number}}",
       "status_published": ", veröffentlicht",
       "status_draft": ", Entwurf",
@@ -1865,7 +1867,9 @@
         "recipesMatch_one": "Rezept passt · sofort angewendet",
         "recipesMatch_other": "Rezepte passen · sofort angewendet",
         "ingredientsMatch_one": "Zutat passt · sofort angewendet",
-        "ingredientsMatch_other": "Zutaten passen · sofort angewendet"
+        "ingredientsMatch_other": "Zutaten passen · sofort angewendet",
+        "templatesMatch_one": "Vorlage passt · sofort angewendet",
+        "templatesMatch_other": "Vorlagen passen · sofort angewendet"
       },
       "hint": "Auf eine Mahlzeit ziehen oder eine Mahlzeit wählen und + drücken. Eine Mahlzeit kann mehrere Rezepte und Zutaten enthalten.",
       "drag": "{{name}} ziehen",
@@ -1887,7 +1891,16 @@
         "kcalPer100": "kcal pro 100 g",
         "ingredientsHeading": "Zutaten · pro Portion",
         "ingredientsUnavailable": "Die Zutaten sind nicht verfügbar. Das Rezept wurde möglicherweise gelöscht oder privat gestellt.",
-        "ingredientsError": "Die Zutaten konnten nicht geladen werden."
+        "ingredientsError": "Die Zutaten konnten nicht geladen werden.",
+        "macroNames": {
+          "protein": "Eiweiß",
+          "carbs": "Kohlenhydrate",
+          "fat": "Fett",
+          "fiber": "Ballaststoffe"
+        },
+        "loading": "Details werden geladen…",
+        "unavailable": "Die Details sind nicht verfügbar. Der Eintrag wurde möglicherweise aus der Bibliothek entfernt.",
+        "loadError": "Die Details konnten nicht geladen werden."
       }
     },
     "macroShort": {
@@ -1895,6 +1908,30 @@
       "carbs": "K",
       "fat": "F",
       "fiber": "Bal"
+    },
+    "target": {
+      "aria": "Tagesziel für {{day}} anzeigen",
+      "title": "Tagesziel",
+      "planned": "Geplant",
+      "goal": "Ziel",
+      "noTarget": "Kein Ziel",
+      "legendTitle": "Farben",
+      "legendOn": "Innerhalb von {{percent}} % des Ziels",
+      "legendNear": "{{from}}–{{to}} % vom Ziel entfernt",
+      "legendOff": "Mehr als {{percent}} % vom Ziel entfernt",
+      "legendNone": "Kein Ziel gesetzt oder nichts geplant",
+      "nutrient": {
+        "kcal": "Energie",
+        "protein": "Eiweiß",
+        "carbs": "Kohlenhydrate",
+        "fat": "Fett",
+        "fiber": "Ballaststoffe"
+      }
+    },
+    "removeWeek": {
+      "title": "Woche {{week}} entfernen?",
+      "body": "Woche {{week}} wurde nie veröffentlicht. Sie wird aus dem Plan entfernt und der Plan wird gespeichert.",
+      "confirm": "Woche {{week}} entfernen"
     },
     "removeRow": {
       "aria": "{{meal}} aus Woche {{week}} entfernen",
@@ -1979,9 +2016,50 @@
       "forDay": "{{day}}",
       "type": "Mahlzeitentyp",
       "alreadyInDay": "Bereits an diesem Tag",
+      "alreadyInWeek": "Bereits an jedem Tag",
+      "forWeek": "Woche {{week}}",
+      "weekWillAdd_one": "Wird zu {{count}} Tag hinzugefügt",
+      "weekWillAdd_other": "Wird zu {{count}} Tagen hinzugefügt",
+      "weekNothingToAdd": "Kein Tag hat noch Platz dafür",
+      "weekAlreadyHave_one": "{{days}} hat sie bereits",
+      "weekAlreadyHave_other": "{{days}} haben sie bereits",
+      "weekCapped": "Übersprungen, der Tag ist voll ({{max}} Mahlzeiten): {{days}}",
       "optional": "· optional",
       "emptyHint": "Die Mahlzeit wird leer hinzugefügt. Füllen Sie sie aus der Bibliothek links — ziehen Sie ein Rezept oder eine Zutat darauf.",
       "submit": "Mahlzeit hinzufügen"
+    },
+    "insertMeal": {
+      "aria": "Mahlzeit zwischen {{above}} und {{below}} hinzufügen"
+    },
+    "reorder": {
+      "moved": "{{day}}: Inhalt in {{meal}} verschoben, Mahlzeit {{position}} von {{count}}",
+      "movedAcross": "{{meal}}: Inhalt von {{from}} auf {{to}} verschoben"
+    },
+    "labelDrop": {
+      "rowAria": "Zeile {{label}}. Auf eine andere Zeile ziehen, um sie zu verschieben, oder mit gedrückter Alt-Taste kopieren. Alt+Hoch und Alt+Runter verschieben sie um eine Zeile.",
+      "dayAria": "{{label}}. Auf einen anderen Tag ziehen, um ihn zu verschieben, oder mit gedrückter Alt-Taste kopieren. Alt+Links und Alt+Rechts verschieben ihn um einen Tag.",
+      "title": "{{to}} enthält schon Essen",
+      "body": "Sie kopieren <b>{{from}}</b> auf <b>{{to}}</b>. Was soll mit dem passieren, was dort jetzt ist?",
+      "replaceLabel": "Ersetzen",
+      "replaceBody": "{{to}} wird zu einer Kopie von {{from}}; was es enthielt, wird entfernt.",
+      "appendLabel": "Anhängen",
+      "appendBody": "Die Einträge von {{from}} werden an das angehängt, was {{to}} schon enthält.",
+      "skipped": "Übersprungen, ein Tag hat höchstens {{max}} Mahlzeiten: {{days}}.",
+      "skippedCopy": "Ersetzen und Anhängen überspringen {{days}}: ein Tag hat höchstens {{max}} Mahlzeiten.",
+      "announce": {
+        "row": {
+          "move": "{{from}} in der ganzen Woche nach {{to}} verschoben.",
+          "copy": "{{from}} in der ganzen Woche nach {{to}} kopiert.",
+          "replace": "{{to}} in der ganzen Woche durch {{from}} ersetzt.",
+          "append": "{{from}} in der ganzen Woche an {{to}} angehängt."
+        },
+        "day": {
+          "move": "{{from}} nach {{to}} verschoben.",
+          "copy": "{{from}} nach {{to}} kopiert.",
+          "replace": "{{to}} durch {{from}} ersetzt.",
+          "append": "{{from}} an {{to}} angehängt."
+        }
+      }
     },
     "nutrition": {
       "label": "Nährwerte je Mahlzeit",
@@ -2222,6 +2300,27 @@
     "clientFallback": "Klient",
     "backToNutrition": "Zurück zur Ernährung",
     "readOnly": "Dieser Plan ist abgeschlossen und kann nicht bearbeitet werden.",
+    "actions": {
+      "label": "Planaktionen",
+      "finish": "Plan beenden",
+      "delete": "Plan löschen"
+    },
+    "delete": {
+      "title": "Diesen Plan löschen?",
+      "body": "Der Plan und alle seine Wochen werden endgültig gelöscht. Noch keine veröffentlichte Woche hat begonnen. Das lässt sich nicht rückgängig machen.",
+      "confirm": "Plan löschen",
+      "error": "Der Plan konnte nicht gelöscht werden. Bitte versuchen Sie es erneut."
+    },
+    "finish": {
+      "title": "Diesen Plan beenden?",
+      "body": "Ungespeicherte Änderungen werden zuerst gespeichert. Danach wird der Plan abgeschlossen: Er lässt sich nicht mehr bearbeiten und wandert zu den früheren Plänen.",
+      "confirm": "Plan beenden",
+      "error": "Der Plan konnte nicht beendet werden. Bitte versuchen Sie es erneut."
+    },
+    "ended": {
+      "message": "Die letzte Woche dieses Plans ist vorbei. Beenden Sie den Plan, damit er zu den früheren Plänen wandert und Platz für den nächsten macht.",
+      "action": "Plan beenden"
+    },
     "info": {
       "tab": "Planinfo",
       "name": "Planname",
@@ -2242,8 +2341,7 @@
         "allergies": "Allergien",
         "dislikes": "Abneigungen",
         "habits": "Gewohnheiten",
-        "meals": "Mahlzeiten pro Tag",
-        "profileLink": "Aus dem Onboarding-Formular von {{name}} · Profil öffnen"
+        "meals": "Mahlzeiten pro Tag"
       }
     },
     "templates": {
@@ -2261,6 +2359,14 @@
       "useNamed": "{{name}} verwenden",
       "noMeals": "Diese Vorlage enthält keine Mahlzeiten.",
       "weeksShort": "{{count}} Wo.",
+      "info": {
+        "open": "Details zu {{name}} anzeigen",
+        "mealsPerDay": "{{value}} Mahlzeiten pro Tag",
+        "weeksHeading": "Wochen · Durchschnitt pro Tag",
+        "weekLabel": "Woche {{week}}",
+        "unavailable": "Die Vorlage ist nicht verfügbar. Sie wurde möglicherweise entfernt oder auf privat gesetzt.",
+        "loadError": "Die Vorlage konnte nicht geladen werden."
+      },
       "match": {
         "goal": "✓ Ziel",
         "goalDiffers": "anderes Ziel",
@@ -2272,6 +2378,15 @@
       "empty": "Noch keine Vorlagen.",
       "searchPlaceholder": "Vorlagen suchen…",
       "searchEmpty": "Keine Vorlage entspricht Ihrer Suche.",
+      "filters": {
+        "goal": "Ziel",
+        "diet": "Ernährungsform",
+        "kcal": "Kalorien pro Tag",
+        "kcalMin": "Min. kcal",
+        "kcalMax": "Max. kcal",
+        "empty": "Keine Vorlage entspricht diesen Filtern.",
+        "clear": "Filter zurücksetzen"
+      },
       "listError": "Die Vorlagen konnten nicht geladen werden.",
       "loadError": "Die Vorlage konnte nicht geladen werden. Bitte versuchen Sie es erneut.",
       "gone": "Diese Vorlage ist nicht mehr verfügbar.",
@@ -2423,6 +2538,7 @@
     "START_DATE_REQUIRED": "Legen Sie ein Startdatum fest, bevor Sie eine Woche veröffentlichen.",
     "WEEK_START_IN_PAST": "Das Startdatum dieser Woche liegt in der Vergangenheit und kann nicht veröffentlicht werden.",
     "PLAN_OVERLAP": "Der gewählte Zeitraum überschneidet sich mit einem bestehenden Plan dieses Klienten.",
+    "PLAN_ALREADY_STARTED": "Der Plan kann nicht gelöscht werden, weil eine veröffentlichte Woche bereits begonnen hat.",
     "CLIENT_NUTRITION_PROFILE_MISSING": "Dieser Klient hat noch keine Ernährungsziele oder Fragebogenantworten, die sich bearbeiten ließen.",
     "INVALID_VERIFICATION_TOKEN": "Ungültiger oder abgelaufener Bestätigungslink.",
     "VERIFICATION_TOKEN_EXPIRED": "Der Bestätigungslink ist abgelaufen. Bitte fordern Sie einen neuen an.",
@@ -3704,7 +3820,9 @@
         "templatesLabel": "Passende Vorlagen",
         "templatesError": "Ihre Vorlagen konnten nicht geladen werden.",
         "noTemplates": "Sie haben noch keine Planvorlagen. Erstellen Sie eine unter Planvorlagen und kommen Sie zurück.",
-        "bestMatch": "Beste Übereinstimmung",
+        "recommended": "Empfohlen",
+        "scrollPrevious": "Vorherige Vorlagen",
+        "scrollNext": "Weitere Vorlagen",
         "weeks_one": "{{count}} Woche",
         "weeks_other": "{{count}} Wochen",
         "kcalMatch": "{{kcal}} kcal",

@@ -27,7 +27,8 @@ test.describe('client detail page — overview tab', () => {
     await page.goto('/clients');
     await page.waitForLoadState('networkidle');
 
-    const row = page.getByRole('row', { name: /QA Client/ });
+    // Exact name: "QA Client3" also sits on the All tab and matches /QA Client/.
+    const row = page.getByRole('row').filter({ has: page.getByRole('link', { name: 'QA Client', exact: true }) });
     await expect(row).toBeVisible();
 
     // Capture the list badge's text BEFORE navigating away — this is the
@@ -35,7 +36,7 @@ test.describe('client detail page — overview tab', () => {
     const listStatusText = (await row.locator('[data-slot="badge"]').first().innerText()).trim();
     expect(listStatusText.length).toBeGreaterThan(0);
 
-    await row.getByRole('link', { name: /QA Client/ }).click();
+    await row.getByRole('link', { name: 'QA Client', exact: true }).click();
     await page.waitForLoadState('networkidle');
 
     await expect(page.getByRole('heading', { name: /QA Client/ })).toBeVisible();

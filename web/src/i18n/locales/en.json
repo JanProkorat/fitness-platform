@@ -529,8 +529,9 @@
     "title": "Clients",
     "subtitle": "Client management and overview",
     "tabs": {
+      "all": "All",
       "active": "Active",
-      "paused": "Paused",
+      "paused": "No plan",
       "archived": "Archived",
       "pending": "Pending"
     },
@@ -1790,6 +1791,7 @@
       "previous": "Previous weeks",
       "next": "Next weeks",
       "add": "Add week",
+      "remove": "Remove week {{number}}",
       "week": "Week {{number}}",
       "status_published": ", published",
       "status_draft": ", draft",
@@ -1866,7 +1868,9 @@
         "recipesMatch_one": "recipe matches · applied as you pick",
         "recipesMatch_other": "recipes match · applied as you pick",
         "ingredientsMatch_one": "ingredient matches · applied as you pick",
-        "ingredientsMatch_other": "ingredients match · applied as you pick"
+        "ingredientsMatch_other": "ingredients match · applied as you pick",
+        "templatesMatch_one": "template matches · applied as you pick",
+        "templatesMatch_other": "templates match · applied as you pick"
       },
       "hint": "Drag onto a meal, or select a meal and press +. A meal can hold several recipes and ingredients.",
       "drag": "Drag {{name}}",
@@ -1888,7 +1892,16 @@
         "kcalPer100": "kcal per 100 g",
         "ingredientsHeading": "Ingredients · per portion",
         "ingredientsUnavailable": "The ingredients are unavailable. The recipe may have been removed or made private.",
-        "ingredientsError": "Couldn't load the ingredients."
+        "ingredientsError": "Couldn't load the ingredients.",
+        "macroNames": {
+          "protein": "Protein",
+          "carbs": "Carbs",
+          "fat": "Fat",
+          "fiber": "Fiber"
+        },
+        "loading": "Loading details…",
+        "unavailable": "The details are unavailable. The item may have been removed from the library.",
+        "loadError": "Couldn't load the details."
       }
     },
     "macroShort": {
@@ -1896,6 +1909,30 @@
       "carbs": "C",
       "fat": "F",
       "fiber": "Fib"
+    },
+    "target": {
+      "aria": "Show the daily target for {{day}}",
+      "title": "Daily target",
+      "planned": "Planned",
+      "goal": "Target",
+      "noTarget": "No target",
+      "legendTitle": "Colours",
+      "legendOn": "Within {{percent}} % of the target",
+      "legendNear": "{{from}}–{{to}} % off the target",
+      "legendOff": "More than {{percent}} % off the target",
+      "legendNone": "No target set, or nothing planned",
+      "nutrient": {
+        "kcal": "Energy",
+        "protein": "Protein",
+        "carbs": "Carbs",
+        "fat": "Fat",
+        "fiber": "Fibre"
+      }
+    },
+    "removeWeek": {
+      "title": "Remove week {{week}}?",
+      "body": "Week {{week}} was never published. It is removed from the plan and the plan is saved.",
+      "confirm": "Remove week {{week}}"
     },
     "removeRow": {
       "aria": "Remove {{meal}} from week {{week}}",
@@ -1980,9 +2017,50 @@
       "forDay": "{{day}}",
       "type": "Meal type",
       "alreadyInDay": "Already in this day",
+      "alreadyInWeek": "Already in every day",
+      "forWeek": "Week {{week}}",
+      "weekWillAdd_one": "Will be added to {{count}} day",
+      "weekWillAdd_other": "Will be added to {{count}} days",
+      "weekNothingToAdd": "No day has room for it",
+      "weekAlreadyHave_one": "{{days}} already has it",
+      "weekAlreadyHave_other": "{{days}} already have it",
+      "weekCapped": "Skipped, the day is full ({{max}} meals): {{days}}",
       "optional": "· optional",
       "emptyHint": "The meal is added empty. Fill it from the library on the left — drag a recipe or ingredient onto it.",
       "submit": "Add meal"
+    },
+    "insertMeal": {
+      "aria": "Add a meal between {{above}} and {{below}}"
+    },
+    "reorder": {
+      "moved": "{{day}}: contents moved to {{meal}}, meal {{position}} of {{count}}",
+      "movedAcross": "{{meal}}: contents moved from {{from}} to {{to}}"
+    },
+    "labelDrop": {
+      "rowAria": "{{label}} row. Drag onto another row to move it, or hold Alt to copy it. Alt+Up and Alt+Down move it one row.",
+      "dayAria": "{{label}}. Drag onto another day to move it, or hold Alt to copy it. Alt+Left and Alt+Right move it one day.",
+      "title": "{{to}} already has food",
+      "body": "You are copying <b>{{from}}</b> onto <b>{{to}}</b>. What should happen to what is there now?",
+      "replaceLabel": "Replace",
+      "replaceBody": "{{to}} becomes a copy of {{from}}; what it held is removed.",
+      "appendLabel": "Append",
+      "appendBody": "The items of {{from}} are added to what {{to}} already holds.",
+      "skipped": "Skipped, a day holds at most {{max}} meals: {{days}}.",
+      "skippedCopy": "Replace and Append skip {{days}}: a day holds at most {{max}} meals.",
+      "announce": {
+        "row": {
+          "move": "{{from}} moved to {{to}} across the week.",
+          "copy": "{{from}} copied to {{to}} across the week.",
+          "replace": "{{to}} replaced with {{from}} across the week.",
+          "append": "{{from}} added to {{to}} across the week."
+        },
+        "day": {
+          "move": "{{from}} moved to {{to}}.",
+          "copy": "{{from}} copied to {{to}}.",
+          "replace": "{{to}} replaced with {{from}}.",
+          "append": "{{from}} added to {{to}}."
+        }
+      }
     },
     "nutrition": {
       "label": "Nutrition by meal",
@@ -2223,6 +2301,27 @@
     "clientFallback": "Client",
     "backToNutrition": "Back to Nutrition",
     "readOnly": "This plan is closed and can't be edited.",
+    "actions": {
+      "label": "Plan actions",
+      "finish": "Finish plan",
+      "delete": "Delete plan"
+    },
+    "delete": {
+      "title": "Delete this plan?",
+      "body": "The plan and all its weeks are deleted for good. No published week has started yet. This can't be undone.",
+      "confirm": "Delete plan",
+      "error": "Couldn't delete the plan. Please try again."
+    },
+    "finish": {
+      "title": "Finish this plan?",
+      "body": "Unsaved changes are saved first. The plan then closes: it can't be edited any more and moves to Past plans.",
+      "confirm": "Finish plan",
+      "error": "Couldn't finish the plan. Please try again."
+    },
+    "ended": {
+      "message": "This plan's last week is over. Finish it to move it to Past plans and make room for the next one.",
+      "action": "Finish plan"
+    },
     "info": {
       "tab": "Plan info",
       "name": "Plan name",
@@ -2243,8 +2342,7 @@
         "allergies": "Allergies",
         "dislikes": "Avoids",
         "habits": "Habits",
-        "meals": "Meals a day",
-        "profileLink": "From {{name}}'s onboarding form · open profile"
+        "meals": "Meals a day"
       }
     },
     "templates": {
@@ -2262,6 +2360,14 @@
       "useNamed": "Use {{name}}",
       "noMeals": "This template has no meals.",
       "weeksShort": "{{count}} wks",
+      "info": {
+        "open": "Show details of {{name}}",
+        "mealsPerDay": "{{value}} meals a day",
+        "weeksHeading": "Weeks · average per day",
+        "weekLabel": "Week {{week}}",
+        "unavailable": "The template is unavailable. It may have been removed or made private.",
+        "loadError": "Couldn't load the template."
+      },
       "match": {
         "goal": "✓ goal",
         "goalDiffers": "goal differs",
@@ -2273,6 +2379,15 @@
       "empty": "No templates yet.",
       "searchPlaceholder": "Search templates…",
       "searchEmpty": "No templates match your search.",
+      "filters": {
+        "goal": "Goal",
+        "diet": "Diet type",
+        "kcal": "Calories per day",
+        "kcalMin": "Min kcal",
+        "kcalMax": "Max kcal",
+        "empty": "No templates match these filters.",
+        "clear": "Clear filters"
+      },
       "listError": "Couldn't load the templates.",
       "loadError": "Couldn't load the template. Please try again.",
       "gone": "This template is no longer available.",
@@ -2424,6 +2539,7 @@
     "START_DATE_REQUIRED": "Set a start date before publishing a week.",
     "WEEK_START_IN_PAST": "This week's start date is in the past and cannot be published.",
     "PLAN_OVERLAP": "The selected date range overlaps an existing plan for this client.",
+    "PLAN_ALREADY_STARTED": "This plan can't be deleted because a published week has already started.",
     "CLIENT_NUTRITION_PROFILE_MISSING": "This client has no nutrition targets or onboarding answers to edit yet.",
     "INVALID_VERIFICATION_TOKEN": "Invalid or expired verification link.",
     "VERIFICATION_TOKEN_EXPIRED": "Verification link has expired. Please request a new one.",
@@ -3705,7 +3821,9 @@
         "templatesLabel": "Matching templates",
         "templatesError": "Couldn't load your templates.",
         "noTemplates": "You have no plan templates yet. Create one under Plan templates, then come back.",
-        "bestMatch": "Best match",
+        "recommended": "Recommended",
+        "scrollPrevious": "Previous templates",
+        "scrollNext": "Next templates",
         "weeks_one": "{{count}} week",
         "weeks_other": "{{count}} weeks",
         "kcalMatch": "{{kcal}} kcal",

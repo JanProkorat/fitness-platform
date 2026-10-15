@@ -1,12 +1,19 @@
-import { useCallback } from 'react';
+import { useCallback, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDraggable, useDroppable } from '@dnd-kit/react';
 import { GripVertical, StickyNote, Trash2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import MacroDots from '@/components/plan-editor/MacroDots';
 import MealItemRow from '@/components/plan-editor/MealItemRow';
 import { mealKindLabelKey } from '@/components/plan-editor/plan-editor-format';
-import { CELL_MEAL_DRAG, MEAL_CARD_SENSORS } from '@/components/plan-editor/plan-editor-library';
+import {
+  CELL_MEAL_DRAG,
+  MEAL_CARD_SENSORS,
+  MOVE_KEY_SHORTCUTS,
+  moveDirection,
+  type GridDragView,
+} from '@/components/plan-editor/plan-editor-library';
 import {
   mealDayShareStatus,
   mealItemCount,
@@ -33,8 +40,18 @@ const SHARE_CHIP_CLASS: Record<ShareStatus, string> = {
 };
 
 interface Props {
+  /** The day's meal in this slot: what the card drags, and what a drop on it addresses. */
   meal: EditorMeal;
-  index: number;
+  /** What the card shows: the meal's own contents, or the contents sliding in while a move is previewed. */
+  display?: EditorMeal;
+  /** What is being dragged over the day: a meal card, with the contents already slid into place. */
+  drag?: GridDragView | null;
+  /** The meal's row in the week grid; drops and drags address it by this, not by its position in the day. */
+  rowIndex: number;
+  /** The insert line above the card, rendered inside it so it can fill the gap. */
+  insertLine?: ReactNode;
+  /** Alt+ArrowUp / Alt+ArrowDown on the focused card: moves its contents one meal up or down the day. */
+  onKeyMove?: (direction: -1 | 1) => void;
   weekIndex: number;
   dayOfWeek: number;
   dayKcal: number;
@@ -48,7 +65,11 @@ interface Props {
 /** One meal of the day: draggable by its whole card onto another meal to copy it, with its items, note and delete. */
 export default function MealBlock({
   meal,
-  index,
+  display,
+  drag = null,
+  rowIndex,
+  insertLine,
+  onKeyMove,
   weekIndex,
   dayOfWeek,
   dayKcal,
@@ -61,13 +82,14 @@ export default function MealBlock({
   const { t } = useTranslation();
   const draggable = !readOnly && mealItemCount(meal) > 0;
   const { ref: dropRef, isDropTarget } = useDroppable({
-    id: `cell:${weekIndex}:${dayOfWeek}:${index}`,
-    data: { weekIndex, dayOfWeek, rowIndex: index },
-    disabled: readOnly,
+    id: `cell:${weekIndex}:${dayOfWeek}:${rowIndex}`,
+    data: { weekIndex, dayOfWeek, rowIndex },
+    // A meal card is dropped by position (see the editor), so no card takes a drop while one is dragged.
+    disabled: readOnly || drag !== null,
   });
   const { ref: dragRef, isDragging } = useDraggable({
-    id: `cell-meal:${weekIndex}:${dayOfWeek}:${index}`,
-    data: { type: CELL_MEAL_DRAG, weekIndex, dayOfWeek, rowIndex: index, mealId: meal.mealId },
+    id: `cell-meal:${weekIndex}:${dayOfWeek}:${rowIndex}`,
+    data: { type: CELL_MEAL_DRAG, weekIndex, dayOfWeek, rowIndex, mealId: meal.mealId },
     disabled: !draggable,
     sensors: MEAL_CARD_SENSORS,
   });
@@ -79,121 +101,152 @@ export default function MealBlock({
     },
     [dropRef, dragRef, draggable],
   );
-  const totals = mealTotals(meal);
-  const entries = mealItemEntries(meal, language);
-  const share = mealDayShareStatus(totals.kcal, dayKcal, meal.kind);
-  const kindLabel = t(`planEditor.rows.${mealKindLabelKey(meal.kind)}`);
+  const shown = display ?? meal;
+  const totals = mealTotals(shown);
+  const entries = mealItemEntries(shown, language);
+  const share = mealDayShareStatus(totals.kcal, dayKcal, shown.kind);
+  const kindLabel = t(`planEditor.rows.${mealKindLabelKey(shown.kind)}`);
+  const cellDrag = drag?.kind === 'cell' ? drag : null;
+  const hovered = cellDrag?.hover?.dayOfWeek === dayOfWeek && cellDrag.hover.rowIndex === rowIndex;
+  const landing = hovered && cellDrag?.mode === 'move';
+  const dropMode = hovered && cellDrag?.mode === 'copy' ? 'copy' : undefined;
 
   return (
     <li
       ref={ref}
       data-testid="meal-block"
       data-meal-id={meal.mealId}
+      data-day={dayOfWeek}
+      data-row={rowIndex}
+      data-landing={landing ? 'true' : undefined}
+      data-drop-target={dropMode}
       tabIndex={readOnly ? undefined : 0}
       aria-label={kindLabel}
       onClick={onSelect}
+      aria-keyshortcuts={draggable && onKeyMove ? MOVE_KEY_SHORTCUTS : undefined}
+      onKeyDown={(event) => {
+        const direction = draggable && onKeyMove ? moveDirection(event) : null;
+        if (direction) {
+          event.preventDefault();
+          onKeyMove?.(direction);
+        }
+      }}
       className={cn(
-        'flex flex-col gap-3 rounded-2xl border border-raised-line bg-raised p-5 shadow-raised outline-none transition-[background-color,border-color,box-shadow,transform] duration-150 focus-visible:ring-3 focus-visible:ring-ring/50',
+        'relative flex flex-col gap-3 rounded-2xl border border-raised-line bg-raised p-5 shadow-raised outline-none transition-[background-color,border-color,box-shadow,transform] duration-150 focus-visible:ring-3 focus-visible:ring-ring/50',
         draggable && !isDragging && 'hover:-translate-y-px hover:shadow-raised-hover motion-reduce:hover:translate-y-0',
         selected && 'ring-2 ring-ink ring-inset',
         isDropTarget && !isDragging && 'border-nutrition bg-nutrition-soft',
-        isDragging && 'opacity-60 shadow-selection-bar',
+        dropMode !== undefined && 'border-dashed border-nutrition bg-nutrition-soft',
+        landing && 'border-nutrition ring-2 ring-nutrition',
+        // While the contents slide, this slot shows another meal's, so only a source that stays put is dimmed.
+        isDragging && cellDrag?.mode !== 'move' && 'opacity-60 shadow-selection-bar',
       )}
     >
-      <div className={cn('flex items-center gap-3', draggable && 'cursor-grab active:cursor-grabbing')}>
-        {draggable && <GripVertical className="size-4 shrink-0 text-faint" aria-hidden="true" />}
-        <h3 className="font-display text-card-title font-semibold text-ink">{kindLabel}</h3>
-        <span className="text-copy font-semibold text-ink">
-          {t('planEditor.cell.kcal', { kcal: Math.round(totals.kcal) })}
-        </span>
-        {dayKcal > 0 && (
-          <span
-            data-testid="meal-share"
-            data-status={share.status}
-            className={cn('rounded-full px-2.5 py-1 text-meta font-semibold', SHARE_CHIP_CLASS[share.status])}
-          >
-            {t('planEditor.day.percentOfDay', { percent: Math.round((totals.kcal / dayKcal) * 100) })}
+      {insertLine}
+      <div data-flip-key={meal.mealId} className="relative flex flex-col gap-3">
+        <div className={cn('flex flex-wrap items-center gap-x-3 gap-y-1.5', draggable && 'cursor-grab active:cursor-grabbing')}>
+          {draggable && <GripVertical className="size-4 shrink-0 text-faint" aria-hidden="true" />}
+          <h3 className="font-display text-card-title font-semibold text-ink">{kindLabel}</h3>
+          <span className="text-copy font-semibold text-ink">
+            {t('planEditor.cell.kcal', { kcal: Math.round(totals.kcal) })}
           </span>
-        )}
-        {!readOnly && (
-          <span className="ml-auto flex items-center gap-1">
-            <button
-              type="button"
-              aria-label={t('planEditor.day.removeMeal', { meal: kindLabel })}
-              title={t('planEditor.day.removeMeal', { meal: kindLabel })}
-              onClick={(event) => {
-                event.stopPropagation();
-                onEdit((doc) => removeMeal(doc, weekIndex, dayOfWeek, meal.mealId));
-              }}
-              className="flex size-8 cursor-pointer items-center justify-center rounded-md text-muted-foreground outline-none hover:text-error focus-visible:ring-3 focus-visible:ring-ring/50"
+          <span data-testid="meal-macros" className="text-body text-muted-foreground">
+            <MacroDots protein={totals.protein} carbs={totals.carbs} fat={totals.fat} fiber={totals.fiber} unit />
+          </span>
+          {dayKcal > 0 && (
+            <span
+              data-testid="meal-share"
+              data-status={share.status}
+              className={cn('rounded-full px-2.5 py-1 text-meta font-semibold', SHARE_CHIP_CLASS[share.status])}
             >
-              <Trash2 className="size-4" aria-hidden="true" />
-            </button>
-          </span>
+              {t('planEditor.day.percentOfDay', { percent: Math.round((totals.kcal / dayKcal) * 100) })}
+            </span>
+          )}
+          {!readOnly && (
+            <span className="ml-auto flex items-center gap-1">
+              <button
+                type="button"
+                aria-label={t('planEditor.day.removeMeal', { meal: kindLabel })}
+                title={t('planEditor.day.removeMeal', { meal: kindLabel })}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onEdit((doc) => removeMeal(doc, weekIndex, dayOfWeek, meal.mealId));
+                }}
+                className="flex size-8 cursor-pointer items-center justify-center rounded-md text-muted-foreground outline-none hover:text-error focus-visible:ring-3 focus-visible:ring-ring/50"
+              >
+                <Trash2 className="size-4" aria-hidden="true" />
+              </button>
+            </span>
+          )}
+        </div>
+
+        {entries.length > 0 ? (
+          <ul className="flex flex-col gap-2.5">
+            {entries.map((entry) => (
+              <MealItemRow
+                key={`${entry.type}:${entry.index}`}
+                entry={entry}
+                readOnly={readOnly}
+                variant="day"
+                position={{ weekIndex, dayOfWeek, mealId: meal.mealId }}
+                sourceId={
+                  entry.type === 'recipe'
+                    ? shown.recipes[entry.index]?.recipeId
+                    : shown.foods[entry.index]?.foodExternalId
+                }
+                onAmount={(value) =>
+                  onEdit(
+                    (doc) =>
+                      entry.type === 'recipe'
+                        ? setRecipeServings(doc, weekIndex, dayOfWeek, meal.mealId, entry.index, value)
+                        : setFoodAmount(doc, weekIndex, dayOfWeek, meal.mealId, entry.index, value),
+                    `amount:${meal.mealId}:${entry.type}:${entry.index}`,
+                  )
+                }
+                onRemove={() =>
+                  onEdit((doc) =>
+                    entry.type === 'recipe'
+                      ? removeRecipeAt(doc, weekIndex, dayOfWeek, meal.mealId, entry.index)
+                      : removeFoodAt(doc, weekIndex, dayOfWeek, meal.mealId, entry.index),
+                  )
+                }
+              />
+            ))}
+          </ul>
+        ) : (
+          !readOnly && (
+            <p className="rounded-xl border border-dashed border-line px-4 py-3 text-body text-muted-foreground">
+              {t('planEditor.day.emptyMeal')}
+            </p>
+          )
+        )}
+
+        {readOnly ? (
+          shown.note && (
+            <p className="flex items-center gap-2 text-body text-ink">
+              <StickyNote className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+              {shown.note}
+            </p>
+          )
+        ) : (
+          <div className="relative">
+            <StickyNote
+              className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+              aria-hidden="true"
+            />
+            <Input
+              value={shown.note ?? ''}
+              maxLength={MAX_NOTE_LENGTH}
+              aria-label={t('planEditor.day.mealNoteLabel', { meal: kindLabel })}
+              placeholder={t('planEditor.day.notePlaceholder')}
+              onChange={(event) =>
+                onEdit((doc) => setMealNote(doc, weekIndex, dayOfWeek, meal.mealId, event.target.value), `note:${meal.mealId}`)
+              }
+              className="h-10 pl-10"
+            />
+          </div>
         )}
       </div>
-
-      {entries.length > 0 ? (
-        <ul className="flex flex-col gap-2.5">
-          {entries.map((entry) => (
-            <MealItemRow
-              key={`${entry.type}:${entry.index}`}
-              entry={entry}
-              readOnly={readOnly}
-              variant="day"
-              position={{ weekIndex, dayOfWeek, mealId: meal.mealId }}
-              onAmount={(value) =>
-                onEdit(
-                  (doc) =>
-                    entry.type === 'recipe'
-                      ? setRecipeServings(doc, weekIndex, dayOfWeek, meal.mealId, entry.index, value)
-                      : setFoodAmount(doc, weekIndex, dayOfWeek, meal.mealId, entry.index, value),
-                  `amount:${meal.mealId}:${entry.type}:${entry.index}`,
-                )
-              }
-              onRemove={() =>
-                onEdit((doc) =>
-                  entry.type === 'recipe'
-                    ? removeRecipeAt(doc, weekIndex, dayOfWeek, meal.mealId, entry.index)
-                    : removeFoodAt(doc, weekIndex, dayOfWeek, meal.mealId, entry.index),
-                )
-              }
-            />
-          ))}
-        </ul>
-      ) : (
-        !readOnly && (
-          <p className="rounded-xl border border-dashed border-line px-4 py-3 text-body text-muted-foreground">
-            {t('planEditor.day.emptyMeal')}
-          </p>
-        )
-      )}
-
-      {readOnly ? (
-        meal.note && (
-          <p className="flex items-center gap-2 text-body text-ink">
-            <StickyNote className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-            {meal.note}
-          </p>
-        )
-      ) : (
-        <div className="relative">
-          <StickyNote
-            className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
-            aria-hidden="true"
-          />
-          <Input
-            value={meal.note ?? ''}
-            maxLength={MAX_NOTE_LENGTH}
-            aria-label={t('planEditor.day.mealNoteLabel', { meal: kindLabel })}
-            placeholder={t('planEditor.day.notePlaceholder')}
-            onChange={(event) =>
-              onEdit((doc) => setMealNote(doc, weekIndex, dayOfWeek, meal.mealId, event.target.value), `note:${meal.mealId}`)
-            }
-            className="h-10 pl-10"
-          />
-        </div>
-      )}
     </li>
   );
 }

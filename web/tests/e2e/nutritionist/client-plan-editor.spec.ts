@@ -116,7 +116,12 @@ async function findFood(api: APIRequestContext): Promise<Food> {
  * Creates a one-week plan for the QA client holding one meal with one food on Monday, and returns its id.
  * Without a start date the plan is unranged (no overlap check); with one, it must be a future Monday.
  */
-async function createPlan(baseURL: string, purpose: string, startDate?: string): Promise<{ planId: string; name: string; food: Food }> {
+async function createPlan(
+  baseURL: string,
+  purpose: string,
+  startDate?: string,
+  lunchFoodCount = 0,
+): Promise<{ planId: string; name: string; food: Food }> {
   const name = `${PLAN_NAME_PREFIX} ${purpose} ${Date.now()}`;
   return withApi(baseURL, async (api) => {
     await archiveLeftovers(api);
@@ -171,6 +176,22 @@ async function createPlan(baseURL: string, purpose: string, startDate?: string):
                           ],
                           recipes: [],
                         },
+                        // A Lunch with several ingredients, only when a spec asks for one.
+                        ...(lunchFoodCount > 0
+                          ? [
+                              {
+                                kind: 'Lunch',
+                                order: 2,
+                                foods: Array.from({ length: lunchFoodCount }, () => ({
+                                  foodExternalId: food.foodId,
+                                  foodName: food.name,
+                                  nutrientValuePer100Grams: food.nutrientValue,
+                                  amountGrams: INITIAL_GRAMS,
+                                })),
+                                recipes: [],
+                              },
+                            ]
+                          : []),
                       ]
                     : [],
               })),
@@ -262,6 +283,106 @@ test.describe('client plan editor', () => {
     }
   });
 
+  test('the client plan editor offers Add meal and an insert line between meal rows', async ({ page, baseURL }) => {
+    const origin = baseURL ?? 'http://localhost:5173';
+    const { planId, name } = await createPlan(origin, 'Insert line');
+    try {
+      await page.goto(editorUrl(planId));
+      await expectEditorLoaded(page, name);
+
+      // One row (Breakfast): no insert line yet, but the always-visible Add meal button is there.
+      await expect(page.getByTestId('meal-insert-line')).toHaveCount(0);
+      const addMeal = page.getByTestId('add-meal-week');
+      await expect(addMeal).toBeVisible();
+
+      await addMeal.click();
+      const drawer = page.getByRole('dialog');
+      await drawer.getByRole('radio', { name: 'Lunch', exact: true }).click();
+      await expect(drawer.getByTestId('add-meal-week-summary')).toHaveText('Will be added to 7 days');
+      await drawer.getByRole('button', { name: 'Add meal', exact: true }).click();
+      await expect(drawer).toHaveCount(0);
+
+      // Two rows now: a line between them that shows on hover.
+      const line = page.getByTestId('meal-insert-line');
+      await expect(line).toHaveCount(1);
+      await line.hover();
+      await expect(line.getByTestId('meal-insert-button')).toHaveCSS('opacity', '1');
+      // Monday's breakfast kept its food and its row.
+      await expect(page.locator('[data-testid="meal-cell"][data-day="1"][data-row="0"]')).not.toContainText('Empty');
+    } finally {
+      await archivePlan(origin, planId);
+    }
+  });
+
+  test('dragging Lunch onto Breakfast moves its contents, and one Undo restores them', async ({ page, baseURL }) => {
+    const origin = baseURL ?? 'http://localhost:5173';
+    const { planId, name } = await createPlan(origin, 'Reorder', undefined, 2);
+    try {
+      await page.goto(editorUrl(planId));
+      await expectEditorLoaded(page, name);
+
+      const breakfast = page.locator('[data-testid="meal-cell"][data-day="1"][data-row="0"]');
+      const lunch = page.locator('[data-testid="meal-cell"][data-day="1"][data-row="1"]');
+      await expect(lunch).toContainText('2 items');
+      await expect(breakfast).not.toContainText('items');
+
+      // Drag Lunch onto Breakfast (the first slot of Monday).
+      await lunch.scrollIntoViewIfNeeded();
+      const from = await lunch.boundingBox();
+      if (!from) {
+        throw new Error('[client-plan-editor] the Lunch cell is not visible.');
+      }
+      await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(from.x + from.width / 2 + 12, from.y + from.height / 2 + 12, { steps: 4 });
+      // Measured after the drag started: the grid does not reflow while it runs.
+      const to = await breakfast.boundingBox();
+      if (!to) {
+        throw new Error('[client-plan-editor] the Breakfast cell is not visible.');
+      }
+      const targetX = to.x + to.width / 2;
+      const targetY = to.y + to.height / 2;
+      await page.mouse.move(targetX, targetY, { steps: 12 });
+      // Small moves inside the tile wait for the editor to mark it as the landing slot.
+      await expect(async () => {
+        await page.mouse.move(targetX - 2, targetY, { steps: 2 });
+        await page.mouse.move(targetX, targetY, { steps: 2 });
+        await expect(breakfast).toHaveAttribute('data-landing', 'true', { timeout: 500 });
+      }).toPass({ timeout: 5000 });
+      await page.mouse.up();
+
+      await expect(breakfast).toContainText('2 items');
+      await expect(lunch).not.toContainText('items');
+      await expect(page.getByTestId('card-drop-dialog')).toHaveCount(0);
+
+      await page.getByRole('button', { name: 'Undo' }).click();
+      await expect(lunch).toContainText('2 items');
+      await expect(breakfast).not.toContainText('items');
+    } finally {
+      await archivePlan(origin, planId);
+    }
+  });
+
+  test('the Plan info tab shows the selected week average per day', async ({ page, baseURL }) => {
+    const origin = baseURL ?? 'http://localhost:5173';
+    const { planId, name } = await createPlan(origin, 'Average');
+    try {
+      await page.goto(editorUrl(planId));
+      await expectEditorLoaded(page, name);
+      await page.getByRole('tab', { name: 'Plan info' }).click();
+
+      const card = page.getByTestId('info-week-average');
+      await expect(card).toBeVisible();
+      await expect(card).toContainText('Week 1 · avg per day');
+      await expect(card.getByTestId('info-average-kcal')).toHaveText(/[1-9]/);
+      for (const key of ['protein', 'carbs', 'fat', 'fiber']) {
+        await expect(card.getByTestId(`info-average-${key}`)).toBeVisible();
+      }
+    } finally {
+      await archivePlan(origin, planId);
+    }
+  });
+
   test('"Publish week 1" turns a draft week into a published one', async ({ page, baseURL }) => {
     const origin = baseURL ?? 'http://localhost:5173';
     const { planId, name } = await createPlan(origin, 'Publish', futureMonday());
@@ -286,5 +407,99 @@ test.describe('client plan editor', () => {
     } finally {
       await archivePlan(origin, planId);
     }
+  });
+
+  test.describe('library Templates tab', () => {
+    const templateBase = { weekCount: 4, usedBy: 0, visibility: 'Private', isOwnedByCurrentUser: true, version: 1, dateCreated: '2026-01-01T00:00:00Z' };
+    const stubTemplates = [
+      { ...templateBase, templateId: '00000000-0000-0000-1425-0000000000c1', name: 'QA Maintenance', goal: 'Maintain', dietaryStyle: 'Standard', avgKcalPerDay: 2600 },
+      { ...templateBase, templateId: '00000000-0000-0000-1425-0000000000c2', name: 'QA Lean cut', goal: 'LoseFat', dietaryStyle: 'Standard', avgKcalPerDay: 2200 },
+      { ...templateBase, templateId: '00000000-0000-0000-1425-0000000000c3', name: 'QA Vegetarian cut', goal: 'LoseFat', dietaryStyle: 'Vegetarian', avgKcalPerDay: 1950 },
+      { ...templateBase, templateId: '00000000-0000-0000-1425-0000000000c4', name: 'QA Bulk', goal: 'GainMuscle', dietaryStyle: 'Standard', avgKcalPerDay: 3100 },
+      { ...templateBase, templateId: '00000000-0000-0000-1425-0000000000c5', name: 'QA Endurance', goal: 'Performance', dietaryStyle: 'Vegan', avgKcalPerDay: 2800 },
+    ];
+
+    async function openTemplatesTab(page: Page, planId: string, planName: string): Promise<void> {
+      await page.route(/\/nutrition\/plan-templates(\?.*)?$/, async (route) => {
+        const goal = new URL(route.request().url()).searchParams.get('goal');
+        const templates = goal ? stubTemplates.filter((entry) => entry.goal === goal) : stubTemplates;
+        await route.fulfill({ json: { templates, totalCount: templates.length, page: 1, pageSize: 100 } });
+      });
+      await page.goto(editorUrl(planId));
+      await expectEditorLoaded(page, planName);
+      await page.getByRole('complementary', { name: 'Library' }).getByRole('tab', { name: /^Templates/ }).click();
+      await expect(page.getByTestId('template-card')).toHaveCount(stubTemplates.length);
+    }
+
+    test('the search field sits in the same place on Recipes, Ingredients and Templates', async ({ page, baseURL }) => {
+      const origin = baseURL ?? 'http://localhost:5173';
+      const { planId, name } = await createPlan(origin, 'TemplatesLayout');
+      try {
+        await openTemplatesTab(page, planId, name);
+        const panel = page.getByRole('complementary', { name: 'Library' });
+        const templatesBox = await panel.getByTestId('templates-search').boundingBox();
+        await panel.getByRole('tab', { name: /^Recipes/ }).click();
+        const recipesBox = await panel.getByLabel('Search recipes…').boundingBox();
+        await panel.getByRole('tab', { name: /^Ingredients/ }).click();
+        const ingredientsBox = await panel.getByLabel('Search ingredients…').boundingBox();
+        expect(templatesBox).not.toBeNull();
+        expect(recipesBox).not.toBeNull();
+        expect(ingredientsBox).not.toBeNull();
+        expect(templatesBox).toEqual(recipesBox);
+        expect(ingredientsBox).toEqual(recipesBox);
+      } finally {
+        await archivePlan(origin, planId);
+      }
+    });
+
+    test('goal, diet and kcal filters narrow the templates, persist across tabs and clear restores them', async ({ page, baseURL }) => {
+      const origin = baseURL ?? 'http://localhost:5173';
+      const { planId, name } = await createPlan(origin, 'TemplatesFilter');
+      try {
+        await openTemplatesTab(page, planId, name);
+        const panel = page.getByRole('complementary', { name: 'Library' });
+        const cards = panel.getByTestId('template-card');
+        await panel.getByRole('button', { name: 'Filters' }).click();
+        const filters = page.getByTestId('library-filters');
+
+        await filters.getByRole('button', { name: 'Gain muscle', exact: true }).click();
+        await expect(cards).toHaveCount(1);
+        await expect(cards.first()).toContainText('QA Bulk');
+        await expect(panel.getByTestId('library-filter-count')).toHaveText('1');
+        await filters.getByRole('button', { name: 'Gain muscle', exact: true }).click();
+        await expect(cards).toHaveCount(stubTemplates.length);
+
+        await filters.getByRole('button', { name: 'Vegetarian', exact: true }).click();
+        await expect(cards).toHaveCount(1);
+        await expect(cards.first()).toContainText('QA Vegetarian cut');
+        await filters.getByTestId('library-filters-clear').click();
+
+        await filters.getByTestId('template-filter-kcal-min').fill('2000');
+        await filters.getByTestId('template-filter-kcal-max').fill('2700');
+        await expect(cards).toHaveCount(2);
+        await expect(cards.filter({ hasText: 'QA Lean cut' })).toHaveCount(1);
+        await expect(cards.filter({ hasText: 'QA Maintenance' })).toHaveCount(1);
+        await expect(panel.getByTestId('library-filter-count')).toHaveText('1');
+
+        // Filters survive switching to another tab and back.
+        await page.keyboard.press('Escape');
+        await panel.getByRole('tab', { name: /^Recipes/ }).click();
+        await panel.getByRole('tab', { name: /^Templates/ }).click();
+        await expect(cards).toHaveCount(2);
+        await expect(panel.getByTestId('library-filter-count')).toHaveText('1');
+
+        // Nothing matches: empty state with a clear action.
+        await panel.getByRole('button', { name: 'Filters' }).click();
+        await page.getByTestId('library-filters').getByRole('button', { name: 'Vegan', exact: true }).click();
+        await expect(cards).toHaveCount(0);
+        await expect(panel.getByTestId('templates-empty')).toBeVisible();
+        await page.keyboard.press('Escape');
+        await panel.getByTestId('templates-empty-clear').click();
+        await expect(cards).toHaveCount(stubTemplates.length);
+        await expect(panel.getByTestId('library-filter-count')).toHaveCount(0);
+      } finally {
+        await archivePlan(origin, planId);
+      }
+    });
   });
 });

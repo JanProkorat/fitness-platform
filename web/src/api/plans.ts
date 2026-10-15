@@ -106,6 +106,16 @@ export function savePlanFromEditor(planId: string, request: UpdatePlanDocumentRe
   return apiClient.updatePlanEndpoint(planId, request);
 }
 
+/** Hard-deletes a plan no published week of which has started (DELETE /nutrition/plans/{planId}). */
+export function deletePlanFromEditor(planId: string): Promise<void> {
+  return apiClient.deletePlanEndpoint(planId);
+}
+
+/** Finishes an Active plan at the given version (POST /nutrition/plans/{planId}/complete); returns the plan. */
+export function completePlanFromEditor(planId: string, version: number | undefined): Promise<GetPlanResponse> {
+  return apiClient.completePlanEndpoint(planId, { version });
+}
+
 /** Publishes one stored week (POST /nutrition/plans/{planId}/weeks/{weekNumber}/publish); returns the plan. */
 export function publishPlanWeekFromEditor(
   planId: string,

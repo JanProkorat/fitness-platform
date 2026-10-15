@@ -294,7 +294,9 @@
         "web/src/api/nutrition-profile.ts",
         "web/src/api/measurements.ts",
         "web/src/api/photos.ts",
-        "web/src/api/weekly-checkins.ts"
+        "web/src/api/weekly-checkins.ts",
+        "web/src/hooks/usePlanTemplatesQueries.ts",
+        "web/src/components/client-plan-editor/templateMatching.ts"
       ],
       "endpoints": [
         "GET /trainer/clients",
@@ -346,6 +348,8 @@
         "GET /trainer/clients/{clientId}",
         "GET /nutrition/plans/{planId}",
         "PUT /nutrition/plans/{planId}",
+        "DELETE /nutrition/plans/{planId}",
+        "POST /nutrition/plans/{planId}/complete",
         "POST /nutrition/plans/{planId}/weeks/{weekNumber}/publish",
         "GET /nutrition/plan-templates",
         "GET /nutrition/plan-templates/{templateId}",

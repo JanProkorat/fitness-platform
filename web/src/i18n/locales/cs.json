@@ -549,8 +549,9 @@
     "title": "Klienti",
     "subtitle": "Správa a přehled klientů",
     "tabs": {
+      "all": "Vše",
       "active": "Aktivní",
-      "paused": "Pozastavení",
+      "paused": "Bez plánu",
       "archived": "Archivovaní",
       "pending": "Čekající"
     },
@@ -1831,6 +1832,7 @@
       "previous": "Předchozí týdny",
       "next": "Další týdny",
       "add": "Přidat týden",
+      "remove": "Odebrat týden {{number}}",
       "week": "Týden {{number}}",
       "status_published": ", publikováno",
       "status_draft": ", koncept",
@@ -1919,7 +1921,11 @@
         "ingredientsMatch_one": "ingredience odpovídá · použije se hned",
         "ingredientsMatch_few": "ingredience odpovídají · použije se hned",
         "ingredientsMatch_many": "ingredience odpovídá · použije se hned",
-        "ingredientsMatch_other": "ingrediencí odpovídá · použije se hned"
+        "ingredientsMatch_other": "ingrediencí odpovídá · použije se hned",
+        "templatesMatch_one": "šablona odpovídá · použije se hned",
+        "templatesMatch_few": "šablony odpovídají · použije se hned",
+        "templatesMatch_many": "šablony odpovídá · použije se hned",
+        "templatesMatch_other": "šablon odpovídá · použije se hned"
       },
       "hint": "Přetáhněte na jídlo, nebo jídlo vyberte a stiskněte +. Jedno jídlo může obsahovat více receptů a surovin.",
       "drag": "Přetáhnout {{name}}",
@@ -1943,7 +1949,16 @@
         "kcalPer100": "kcal na 100 g",
         "ingredientsHeading": "Suroviny · na porci",
         "ingredientsUnavailable": "Suroviny nejsou dostupné. Recept mohl být smazán nebo nastaven jako soukromý.",
-        "ingredientsError": "Suroviny se nepodařilo načíst."
+        "ingredientsError": "Suroviny se nepodařilo načíst.",
+        "macroNames": {
+          "protein": "Bílkoviny",
+          "carbs": "Sacharidy",
+          "fat": "Tuky",
+          "fiber": "Vláknina"
+        },
+        "loading": "Načítám detaily…",
+        "unavailable": "Detaily nejsou dostupné. Položka mohla být z knihovny odstraněna.",
+        "loadError": "Detaily se nepodařilo načíst."
       }
     },
     "macroShort": {
@@ -1951,6 +1966,30 @@
       "carbs": "S",
       "fat": "T",
       "fiber": "Vl"
+    },
+    "target": {
+      "aria": "Zobrazit denní cíl pro {{day}}",
+      "title": "Denní cíl",
+      "planned": "Plán",
+      "goal": "Cíl",
+      "noTarget": "Bez cíle",
+      "legendTitle": "Barvy",
+      "legendOn": "V rozmezí {{percent}} % od cíle",
+      "legendNear": "{{from}}–{{to}} % od cíle",
+      "legendOff": "Více než {{percent}} % od cíle",
+      "legendNone": "Cíl není nastaven, nebo nic není naplánováno",
+      "nutrient": {
+        "kcal": "Energie",
+        "protein": "Bílkoviny",
+        "carbs": "Sacharidy",
+        "fat": "Tuky",
+        "fiber": "Vláknina"
+      }
+    },
+    "removeWeek": {
+      "title": "Odebrat týden {{week}}?",
+      "body": "Týden {{week}} nebyl nikdy publikován. Odebere se z plánu a plán se uloží.",
+      "confirm": "Odebrat týden {{week}}"
     },
     "removeRow": {
       "aria": "Odebrat {{meal}} z týdne {{week}}",
@@ -2036,9 +2075,54 @@
       "forDay": "{{day}}",
       "type": "Druh jídla",
       "alreadyInDay": "Už v tomto dni je",
+      "alreadyInWeek": "Už je v každém dni",
+      "forWeek": "Týden {{week}}",
+      "weekWillAdd_one": "Přidá se do {{count}} dne",
+      "weekWillAdd_few": "Přidá se do {{count}} dnů",
+      "weekWillAdd_many": "Přidá se do {{count}} dne",
+      "weekWillAdd_other": "Přidá se do {{count}} dnů",
+      "weekNothingToAdd": "Žádný den už nemá místo",
+      "weekAlreadyHave_one": "{{days}} už ho má",
+      "weekAlreadyHave_few": "{{days}} už ho mají",
+      "weekAlreadyHave_many": "{{days}} už ho mají",
+      "weekAlreadyHave_other": "{{days}} už ho mají",
+      "weekCapped": "Přeskočeno, den je plný ({{max}} jídel): {{days}}",
       "optional": "· volitelné",
       "emptyHint": "Jídlo se přidá prázdné. Naplňte ho z knihovny vlevo — přetáhněte na něj recept nebo surovinu.",
       "submit": "Přidat jídlo"
+    },
+    "insertMeal": {
+      "aria": "Přidat jídlo mezi {{above}} a {{below}}"
+    },
+    "reorder": {
+      "moved": "{{day}}: obsah přesunut do jídla {{meal}}, jídlo {{position}} z {{count}}",
+      "movedAcross": "{{meal}}: obsah přesunut z {{from}} na {{to}}"
+    },
+    "labelDrop": {
+      "rowAria": "Řádek {{label}}. Přetažením na jiný řádek jej přesunete, s přidrženým Alt jej zkopírujete. Alt+Nahoru a Alt+Dolů jej posunou o jeden řádek.",
+      "dayAria": "{{label}}. Přetažením na jiný den jej přesunete, s přidrženým Alt jej zkopírujete. Alt+Vlevo a Alt+Vpravo jej posunou o jeden den.",
+      "title": "{{to}} už obsahuje jídlo",
+      "body": "Kopírujete <b>{{from}}</b> na <b>{{to}}</b>. Co se má stát s tím, co tam je teď?",
+      "replaceLabel": "Nahradit",
+      "replaceBody": "{{to}} se stane kopií {{from}}; co obsahoval, se odebere.",
+      "appendLabel": "Přidat",
+      "appendBody": "Položky {{from}} se přidají k tomu, co už {{to}} obsahuje.",
+      "skipped": "Přeskočeno, den má nejvýše {{max}} jídel: {{days}}.",
+      "skippedCopy": "Nahradit a Přidat přeskočí {{days}}: den má nejvýše {{max}} jídel.",
+      "announce": {
+        "row": {
+          "move": "{{from}} přesunuto na {{to}} v celém týdnu.",
+          "copy": "{{from}} zkopírováno do {{to}} v celém týdnu.",
+          "replace": "{{to}} nahrazeno obsahem {{from}} v celém týdnu.",
+          "append": "{{from}} přidáno k {{to}} v celém týdnu."
+        },
+        "day": {
+          "move": "{{from}} přesunuto na {{to}}.",
+          "copy": "{{from}} zkopírováno do {{to}}.",
+          "replace": "{{to}} nahrazeno obsahem dne {{from}}.",
+          "append": "{{from}} přidáno k {{to}}."
+        }
+      }
     },
     "nutrition": {
       "label": "Výživa podle jídel",
@@ -2287,6 +2371,27 @@
     "clientFallback": "Klient",
     "backToNutrition": "Zpět na Výživu",
     "readOnly": "Tento plán je uzavřený a nelze ho upravovat.",
+    "actions": {
+      "label": "Akce plánu",
+      "finish": "Ukončit plán",
+      "delete": "Smazat plán"
+    },
+    "delete": {
+      "title": "Smazat tento plán?",
+      "body": "Plán a všechny jeho týdny se nenávratně smažou. Žádný publikovaný týden ještě nezačal. Tuto akci nelze vrátit zpět.",
+      "confirm": "Smazat plán",
+      "error": "Plán se nepodařilo smazat. Zkuste to prosím znovu."
+    },
+    "finish": {
+      "title": "Ukončit tento plán?",
+      "body": "Neuložené změny se nejdřív uloží. Plán se poté uzavře: nelze ho dál upravovat a přesune se do Dřívějších plánů.",
+      "confirm": "Ukončit plán",
+      "error": "Plán se nepodařilo ukončit. Zkuste to prosím znovu."
+    },
+    "ended": {
+      "message": "Poslední týden tohoto plánu skončil. Ukončete plán, aby se přesunul do Dřívějších plánů a uvolnil místo dalšímu.",
+      "action": "Ukončit plán"
+    },
     "info": {
       "tab": "Info o plánu",
       "name": "Název plánu",
@@ -2309,8 +2414,7 @@
         "allergies": "Alergie",
         "dislikes": "Vyhýbá se",
         "habits": "Návyky",
-        "meals": "Jídel denně",
-        "profileLink": "Z úvodního dotazníku klienta {{name}} · otevřít profil"
+        "meals": "Jídel denně"
       }
     },
     "templates": {
@@ -2328,6 +2432,14 @@
       "useNamed": "Použít {{name}}",
       "noMeals": "Tato šablona nemá žádná jídla.",
       "weeksShort": "{{count}} týd.",
+      "info": {
+        "open": "Zobrazit detail šablony {{name}}",
+        "mealsPerDay": "{{value}} jídel denně",
+        "weeksHeading": "Týdny · průměr za den",
+        "weekLabel": "Týden {{week}}",
+        "unavailable": "Šablona není dostupná. Mohla být odstraněna nebo nastavena jako soukromá.",
+        "loadError": "Šablonu se nepodařilo načíst."
+      },
       "match": {
         "goal": "✓ cíl",
         "goalDiffers": "jiný cíl",
@@ -2339,6 +2451,15 @@
       "empty": "Zatím žádné šablony.",
       "searchPlaceholder": "Hledat šablony…",
       "searchEmpty": "Hledání neodpovídá žádná šablona.",
+      "filters": {
+        "goal": "Cíl",
+        "diet": "Typ stravy",
+        "kcal": "Kalorie na den",
+        "kcalMin": "Min. kcal",
+        "kcalMax": "Max. kcal",
+        "empty": "Těmto filtrům neodpovídá žádná šablona.",
+        "clear": "Zrušit filtry"
+      },
       "listError": "Šablony se nepodařilo načíst.",
       "loadError": "Šablonu se nepodařilo načíst. Zkuste to znovu.",
       "gone": "Tato šablona už není dostupná.",
@@ -2500,6 +2621,7 @@
     "START_DATE_REQUIRED": "Před publikováním týdne nastavte datum zahájení.",
     "WEEK_START_IN_PAST": "Datum zahájení tohoto týdne je v minulosti a nelze jej publikovat.",
     "PLAN_OVERLAP": "Zvolené období se překrývá s existujícím plánem tohoto klienta.",
+    "PLAN_ALREADY_STARTED": "Plán nelze smazat, protože publikovaný týden už začal.",
     "CLIENT_NUTRITION_PROFILE_MISSING": "Tento klient zatím nemá výživové cíle ani odpovědi z dotazníku, které by šlo upravit.",
     "INVALID_VERIFICATION_TOKEN": "Neplatný nebo vypršelý ověřovací odkaz.",
     "VERIFICATION_TOKEN_EXPIRED": "Ověřovací odkaz vypršel. Vyžádejte si nový.",
@@ -3811,7 +3933,9 @@
         "templatesLabel": "Odpovídající šablony",
         "templatesError": "Vaše šablony se nepodařilo načíst.",
         "noTemplates": "Zatím nemáte žádné šablony plánů. Vytvořte jednu v části Šablony plánů a vraťte se sem.",
-        "bestMatch": "Nejlepší shoda",
+        "recommended": "Doporučeno",
+        "scrollPrevious": "Předchozí šablony",
+        "scrollNext": "Další šablony",
         "weeks_one": "{{count}} týden",
         "weeks_few": "{{count}} týdny",
         "weeks_many": "{{count}} týdne",

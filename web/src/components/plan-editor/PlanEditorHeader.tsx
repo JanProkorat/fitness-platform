@@ -63,6 +63,8 @@ interface Props {
   primaryAction?: { label: string; disabled: boolean; title?: string; busy: boolean; onRun: () => void };
   /** With a primary action, also shows the default Save button to its left. */
   secondarySave?: boolean;
+  /** Rendered last in the row, e.g. a plan actions menu. */
+  actions?: ReactNode;
   range: EditorRange;
   view: EditorView;
   onRangeChange: (range: EditorRange) => void;
@@ -86,6 +88,7 @@ export default function PlanEditorHeader({
   onSave,
   primaryAction,
   secondarySave,
+  actions,
   range,
   view,
   onRangeChange,
@@ -270,6 +273,7 @@ export default function PlanEditorHeader({
           )}
         </>
       )}
+      {actions && <div className={cn('shrink-0', publishOrder)}>{actions}</div>}
     </div>
     </header>
   );

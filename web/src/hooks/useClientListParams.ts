@@ -4,13 +4,15 @@ import type { ClientListFilter } from '@/api/generated';
 
 /**
  * The clients-list page's tabs. `Active` | `Paused` | `Archived` mirror
- * `ClientListStatus`; `Pending` is a page-only virtual tab with no backend
- * enum member — it drives the Pending-tab query instead of the list query.
+ * `ClientListStatus`; `Pending` and `All` are page-only virtual tabs with no
+ * backend enum member. `Pending` drives the Pending-tab query instead of the
+ * list query; `All` lists Active + Paused clients (no status filter) with the
+ * pending rows below them.
  */
-export type ClientListTab = 'Active' | 'Paused' | 'Archived' | 'Pending';
+export type ClientListTab = 'All' | 'Active' | 'Paused' | 'Archived' | 'Pending';
 
-const VALID_TABS: readonly ClientListTab[] = ['Active', 'Paused', 'Archived', 'Pending'];
-const DEFAULT_TAB: ClientListTab = 'Active';
+const VALID_TABS: readonly ClientListTab[] = ['All', 'Active', 'Paused', 'Archived', 'Pending'];
+const DEFAULT_TAB: ClientListTab = 'All';
 
 const VALID_CHIPS: readonly string[] = [
   'All',

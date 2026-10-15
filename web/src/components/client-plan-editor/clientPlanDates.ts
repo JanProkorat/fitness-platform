@@ -39,3 +39,30 @@ export function planEndDate(startDate: string, weeks: number): string {
 export function startHasArrived(savedStartDate: string | undefined, now: Date = new Date()): boolean {
   return savedStartDate !== undefined && savedStartDate < toIso(now);
 }
+
+/** First day of a week: the plan's start plus whole weeks (`weekNumber` is 1-based). */
+function weekFirstDay(startDate: string, weekNumber: number): string {
+  const [year, month, day] = startDate.split('-').map(Number);
+  return new Date(Date.UTC(year, month - 1, day) + (weekNumber - 1) * DAYS_PER_WEEK * DAY_MS).toISOString().slice(0, 10);
+}
+
+/**
+ * True once a published week's first day is today or earlier, which is when the server stops deleting the
+ * plan. A plan without a start date has not started.
+ */
+export function publishedWeekHasStarted(
+  startDate: string | undefined,
+  weeks: readonly { weekNumber: number; published: boolean }[],
+  now: Date = new Date(),
+): boolean {
+  if (startDate === undefined) {
+    return false;
+  }
+  const today = toIso(now);
+  return weeks.some((week) => week.published && weekFirstDay(startDate, week.weekNumber) <= today);
+}
+
+/** True once the plan's last day is before today; a plan without a start date never ends. */
+export function planHasEnded(startDate: string | undefined, weekCount: number, now: Date = new Date()): boolean {
+  return startDate !== undefined && weekCount > 0 && planEndDate(startDate, weekCount) < toIso(now);
+}
