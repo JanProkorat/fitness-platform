@@ -1,29 +1,45 @@
-import { useId, useMemo, useState } from 'react';
+import { useId, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Check, Copy, Plus, Utensils } from 'lucide-react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { Check, ChevronLeft, ChevronRight, Copy, Plus, Utensils } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { instantiatePlanTemplate, searchPlanTemplates } from '@/api/nutrition-plan-templates';
+import { instantiatePlanTemplate } from '@/api/nutrition-plan-templates';
 import { createPlan } from '@/api/plans';
 import CopyPlanFromClientDialog from '@/components/client-detail/nutrition/CopyPlanFromClientDialog';
 import { getErrorStatus, showApiError, showSuccess } from '@/lib/api-errors';
 import { cn } from '@/lib/utils';
 import type { GetClientDashboardResponse } from '@/api/generated';
+import { nextMondayIso } from '@/components/client-detail/nutrition/nutritionPlanView';
 import {
-  nextMondayIso,
+  criteriaFromOnboarding,
   rankTemplates,
-  type MatchLevel,
+  type KcalMatch,
   type RankedTemplate,
-} from '@/components/client-detail/nutrition/nutritionPlanView';
+} from '@/components/client-plan-editor/templateMatching';
+import { useClientMatchedTemplates } from '@/hooks/usePlanTemplatesQueries';
 
 interface Props {
   clientId: string;
   dashboard: GetClientDashboardResponse;
 }
 
-const TEMPLATE_POOL_SIZE = 50;
+const SCROLL_STEP_PX = 320;
+
+type MatchLevel = 'match' | 'near' | 'none';
+
+/** A ranked template, flagged when it fits the client's goal (the first group in the row). */
+interface RowTemplate extends RankedTemplate {
+  recommended: boolean;
+}
+
+function kcalLevel(kcal: KcalMatch | null): MatchLevel {
+  if (kcal === null) {
+    return 'none';
+  }
+  return kcal.kind === 'close' ? 'match' : 'near';
+}
 
 function MatchLine({ level, children }: { level: MatchLevel; children: string }) {
   if (level === 'none') {
@@ -41,8 +57,8 @@ function MatchLine({ level, children }: { level: MatchLevel; children: string })
 
 /**
  * Nutrition tab for a client with neither an Active plan nor a Draft: a hero
- * card with up to three templates matched on goal, dietary style and kcal, and
- * the ways to start. "Use <template>" and "Start blank" create a Draft that
+ * card with a scrolling row of templates (those fitting the client's goal first,
+ * marked Recommended, then the rest), and the ways to start. "Use <template>" and "Start blank" create a Draft that
  * starts next Monday; "Copy from another client" opens a picker.
  */
 export default function NutritionEmptyState({ clientId, dashboard }: Props) {
@@ -52,29 +68,30 @@ export default function NutritionEmptyState({ clientId, dashboard }: Props) {
   const navigate = useNavigate();
   const [pickedId, setPickedId] = useState<string | undefined>();
   const [copyOpen, setCopyOpen] = useState(false);
+  const rowRef = useRef<HTMLDivElement>(null);
   const locale = i18n.language;
   const firstName = dashboard.firstName ?? '';
   const onboarding = dashboard.onboarding;
   const clientKcal = onboarding?.adjustedKcal;
 
-  const templatesQuery = useQuery({
-    queryKey: ['plan-templates', 'client-match', TEMPLATE_POOL_SIZE],
-    queryFn: () => searchPlanTemplates({ page: 1, pageSize: TEMPLATE_POOL_SIZE }),
-  });
-
-  const ranked = useMemo(
-    () =>
-      rankTemplates(templatesQuery.data?.templates ?? [], {
-        goal: onboarding?.primaryGoal,
-        dietaryStyle: onboarding?.dietaryStyle,
-        kcal: clientKcal,
-      }),
-    [templatesQuery.data, onboarding?.primaryGoal, onboarding?.dietaryStyle, clientKcal],
+  const criteria = useMemo(
+    () => criteriaFromOnboarding(onboarding, clientKcal),
+    [onboarding, clientKcal],
   );
+  const { goalQuery, allQuery } = useClientMatchedTemplates(criteria.goal, true);
+  const hasGoal = criteria.goal !== undefined;
+  const isPending = allQuery.isPending || (hasGoal && goalQuery.isPending);
+  const isError = allQuery.isError || (hasGoal && goalQuery.isError);
 
-  const selected: RankedTemplate | undefined =
-    ranked.find((r) => r.template.templateId === pickedId) ?? ranked[0];
-  const bestMatchId = ranked[0] && ranked[0].score > 0 ? ranked[0].template.templateId : undefined;
+  const items = useMemo<RowTemplate[]>(() => {
+    const { matched, others } = rankTemplates(goalQuery.data?.templates ?? [], allQuery.data?.templates ?? [], criteria);
+    return [
+      ...matched.map((item) => ({ ...item, recommended: true })),
+      ...others.map((item) => ({ ...item, recommended: false })),
+    ];
+  }, [goalQuery.data, allQuery.data, criteria]);
+
+  const selected: RowTemplate | undefined = items.find((r) => r.template.templateId === pickedId) ?? items[0];
 
   const instantiateMutation = useMutation({
     mutationFn: (template: RankedTemplate) =>
@@ -119,6 +136,10 @@ export default function NutritionEmptyState({ clientId, dashboard }: Props) {
     },
   });
 
+  function scrollBy(direction: -1 | 1) {
+    rowRef.current?.scrollBy({ left: direction * SCROLL_STEP_PX, behavior: 'smooth' });
+  }
+
   const matchedParts = [
     onboarding?.primaryGoal ? t('clientDetail.nutrition.empty.matchGoal', { goal: t(`nutritionGoals.goal_${onboarding.primaryGoal}`) }) : undefined,
     clientKcal ? t('clientDetail.nutrition.empty.matchKcal', { kcal: clientKcal.toLocaleString(locale) }) : undefined,
@@ -147,11 +168,37 @@ export default function NutritionEmptyState({ clientId, dashboard }: Props) {
         </div>
       </div>
 
-      <p className="text-caption font-semibold uppercase tracking-wider text-muted-foreground">
-        {[t('clientDetail.nutrition.empty.matchedTo', { name: firstName }), ...matchedParts].join(' · ')}
-      </p>
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-caption font-semibold uppercase tracking-wider text-muted-foreground">
+          {[t('clientDetail.nutrition.empty.matchedTo', { name: firstName }), ...matchedParts].join(' · ')}
+        </p>
+        {items.length > 0 && (
+          <div className="flex shrink-0 gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon-sm"
+              className="rounded-full"
+              aria-label={t('clientDetail.nutrition.empty.scrollPrevious')}
+              onClick={() => scrollBy(-1)}
+            >
+              <ChevronLeft aria-hidden="true" />
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon-sm"
+              className="rounded-full"
+              aria-label={t('clientDetail.nutrition.empty.scrollNext')}
+              onClick={() => scrollBy(1)}
+            >
+              <ChevronRight aria-hidden="true" />
+            </Button>
+          </div>
+        )}
+      </div>
 
-      {templatesQuery.isPending && (
+      {isPending && (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
           <Skeleton className="h-44 w-full" />
           <Skeleton className="h-44 w-full" />
@@ -159,28 +206,40 @@ export default function NutritionEmptyState({ clientId, dashboard }: Props) {
         </div>
       )}
 
-      {templatesQuery.isError && (
+      {isError && (
         <div className="flex items-center gap-3">
           <p className="text-caption text-muted-foreground">{t('clientDetail.nutrition.empty.templatesError')}</p>
-          <Button type="button" variant="outline" size="sm" onClick={() => void templatesQuery.refetch()}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              void allQuery.refetch();
+              if (hasGoal) {
+                void goalQuery.refetch();
+              }
+            }}
+          >
             {t('clients.retry')}
           </Button>
         </div>
       )}
 
-      {!templatesQuery.isPending && !templatesQuery.isError && ranked.length === 0 && (
+      {!isPending && !isError && items.length === 0 && (
         <p className="rounded-xl border border-dashed border-border p-4 text-copy text-muted-foreground">
           {t('clientDetail.nutrition.empty.noTemplates')}
         </p>
       )}
 
-      {ranked.length > 0 && (
+      {!isPending && !isError && items.length > 0 && (
         <div
+          ref={rowRef}
           role="radiogroup"
           aria-label={t('clientDetail.nutrition.empty.templatesLabel')}
-          className="grid grid-cols-1 gap-3 md:grid-cols-3"
+          data-testid="template-row"
+          className="-mx-1 -my-2 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 py-2 scroll-px-1"
         >
-          {ranked.map((item) => {
+          {items.map((item) => {
             const id = item.template.templateId;
             const isSelected = selected?.template.templateId === id;
             const kcal = item.template.avgKcalPerDay;
@@ -193,7 +252,7 @@ export default function NutritionEmptyState({ clientId, dashboard }: Props) {
                 aria-checked={isSelected}
                 onClick={() => setPickedId(id)}
                 className={cn(
-                  'flex flex-col gap-2 rounded-2xl border bg-card p-4 text-left shadow-panel outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50',
+                  'flex w-72 shrink-0 snap-start flex-col gap-2 rounded-2xl border bg-card p-4 text-left shadow-panel outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50 sm:w-80',
                   isSelected ? 'border-2 border-nutrition' : 'border-border hover:bg-muted',
                 )}
               >
@@ -201,9 +260,12 @@ export default function NutritionEmptyState({ clientId, dashboard }: Props) {
                   <span className="flex size-9 items-center justify-center rounded-lg bg-nutrition-soft">
                     <Utensils className="size-4 text-nutrition-ink" aria-hidden="true" />
                   </span>
-                  {id === bestMatchId && (
-                    <span className="rounded-md bg-nutrition-soft px-2 py-1 text-caption font-bold uppercase tracking-wider text-nutrition-ink">
-                      {t('clientDetail.nutrition.empty.bestMatch')}
+                  {item.recommended && (
+                    <span
+                      data-testid="template-recommended"
+                      className="rounded-md bg-nutrition-soft px-2 py-1 text-caption font-bold uppercase tracking-wider text-nutrition-ink"
+                    >
+                      {t('clientDetail.nutrition.empty.recommended')}
                     </span>
                   )}
                 </span>
@@ -218,11 +280,15 @@ export default function NutritionEmptyState({ clientId, dashboard }: Props) {
                     .join(' · ')}
                 </span>
                 <ul className="mt-1 flex flex-wrap gap-x-3 gap-y-1 border-t border-border pt-2">
-                  <MatchLine level={item.goal}>{onboarding?.primaryGoal ? t(`nutritionGoals.goal_${onboarding.primaryGoal}`) : ''}</MatchLine>
-                  <MatchLine level={item.kcal}>
+                  <MatchLine level={item.goalMatch ? 'match' : 'none'}>
+                    {onboarding?.primaryGoal ? t(`nutritionGoals.goal_${onboarding.primaryGoal}`) : ''}
+                  </MatchLine>
+                  <MatchLine level={kcalLevel(item.kcal)}>
                     {kcal ? t('clientDetail.nutrition.empty.kcalMatch', { kcal: kcal.toLocaleString(locale) }) : ''}
                   </MatchLine>
-                  <MatchLine level={item.diet}>{dietKey ? t(`clientDetail.nutrition.diet.${dietKey}`) : ''}</MatchLine>
+                  <MatchLine level={item.dietMatch ? 'match' : 'none'}>
+                    {dietKey ? t(`clientDetail.nutrition.diet.${dietKey}`) : ''}
+                  </MatchLine>
                 </ul>
               </button>
             );

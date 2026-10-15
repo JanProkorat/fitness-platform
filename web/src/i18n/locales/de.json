@@ -1790,6 +1790,7 @@
       "previous": "Vorherige Wochen",
       "next": "Weitere Wochen",
       "add": "Woche hinzufügen",
+      "remove": "Woche {{number}} entfernen",
       "week": "Woche {{number}}",
       "status_published": ", veröffentlicht",
       "status_draft": ", Entwurf",
@@ -1924,6 +1925,11 @@
         "fat": "Fett",
         "fiber": "Ballaststoffe"
       }
+    },
+    "removeWeek": {
+      "title": "Woche {{week}} entfernen?",
+      "body": "Woche {{week}} wurde nie veröffentlicht. Sie wird aus dem Plan entfernt und der Plan wird gespeichert.",
+      "confirm": "Woche {{week}} entfernen"
     },
     "removeRow": {
       "aria": "{{meal}} aus Woche {{week}} entfernen",
@@ -2251,6 +2257,27 @@
     "clientFallback": "Klient",
     "backToNutrition": "Zurück zur Ernährung",
     "readOnly": "Dieser Plan ist abgeschlossen und kann nicht bearbeitet werden.",
+    "actions": {
+      "label": "Planaktionen",
+      "finish": "Plan beenden",
+      "delete": "Plan löschen"
+    },
+    "delete": {
+      "title": "Diesen Plan löschen?",
+      "body": "Der Plan und alle seine Wochen werden endgültig gelöscht. Noch keine veröffentlichte Woche hat begonnen. Das lässt sich nicht rückgängig machen.",
+      "confirm": "Plan löschen",
+      "error": "Der Plan konnte nicht gelöscht werden. Bitte versuchen Sie es erneut."
+    },
+    "finish": {
+      "title": "Diesen Plan beenden?",
+      "body": "Ungespeicherte Änderungen werden zuerst gespeichert. Danach wird der Plan abgeschlossen: Er lässt sich nicht mehr bearbeiten und wandert zu den früheren Plänen.",
+      "confirm": "Plan beenden",
+      "error": "Der Plan konnte nicht beendet werden. Bitte versuchen Sie es erneut."
+    },
+    "ended": {
+      "message": "Die letzte Woche dieses Plans ist vorbei. Beenden Sie den Plan, damit er zu den früheren Plänen wandert und Platz für den nächsten macht.",
+      "action": "Plan beenden"
+    },
     "info": {
       "tab": "Planinfo",
       "name": "Planname",
@@ -2459,6 +2486,7 @@
     "START_DATE_REQUIRED": "Legen Sie ein Startdatum fest, bevor Sie eine Woche veröffentlichen.",
     "WEEK_START_IN_PAST": "Das Startdatum dieser Woche liegt in der Vergangenheit und kann nicht veröffentlicht werden.",
     "PLAN_OVERLAP": "Der gewählte Zeitraum überschneidet sich mit einem bestehenden Plan dieses Klienten.",
+    "PLAN_ALREADY_STARTED": "Der Plan kann nicht gelöscht werden, weil eine veröffentlichte Woche bereits begonnen hat.",
     "CLIENT_NUTRITION_PROFILE_MISSING": "Dieser Klient hat noch keine Ernährungsziele oder Fragebogenantworten, die sich bearbeiten ließen.",
     "INVALID_VERIFICATION_TOKEN": "Ungültiger oder abgelaufener Bestätigungslink.",
     "VERIFICATION_TOKEN_EXPIRED": "Der Bestätigungslink ist abgelaufen. Bitte fordern Sie einen neuen an.",
@@ -3740,7 +3768,9 @@
         "templatesLabel": "Passende Vorlagen",
         "templatesError": "Ihre Vorlagen konnten nicht geladen werden.",
         "noTemplates": "Sie haben noch keine Planvorlagen. Erstellen Sie eine unter Planvorlagen und kommen Sie zurück.",
-        "bestMatch": "Beste Übereinstimmung",
+        "recommended": "Empfohlen",
+        "scrollPrevious": "Vorherige Vorlagen",
+        "scrollNext": "Weitere Vorlagen",
         "weeks_one": "{{count}} Woche",
         "weeks_other": "{{count}} Wochen",
         "kcalMatch": "{{kcal}} kcal",

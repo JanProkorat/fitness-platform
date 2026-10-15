@@ -944,6 +944,25 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
         rows.Count(r => r.Status == WeeklyCheckInStatus.Expired).Should().Be(2);
     }
 
+    private static DateTime ThisMonday()
+    {
+        var today = DateTime.UtcNow.Date;
+        return today.AddDays(-(((int)today.DayOfWeek == 0 ? 7 : (int)today.DayOfWeek) - 1));
+    }
+
+    /// <summary>
+    /// The seeded execution of <see cref="QaSeedRunner.QaSessionId"/> dated this Monday. On a Thursday the
+    /// main plan's completed execution (3 days ago) is that row and the Monday insert is skipped, so it
+    /// is matched by client + session + date rather than by the Monday execution's own id.
+    /// </summary>
+    private static Task<List<SessionExecution>> FindMondayExecutionsAsync(IMongoContext mongo, CancellationToken ct)
+    {
+        var monday = ThisMonday();
+        return mongo.SessionExecutions
+            .Find(e => e.ClientId == QaSeedRunner.ClientUserId && e.SessionId == QaSeedRunner.QaSessionId && e.Date == monday)
+            .ToListAsync(ct);
+    }
+
     /// <summary>
     /// #1303 — one completed execution dated this Monday for a session of the active plan week.
     /// </summary>
@@ -957,12 +976,8 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
         using var scope = _factory.Services.CreateScope();
         var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
 
-        var execution = await mongo.SessionExecutions
-            .Find(e => e.ExternalId == QaSeedRunner.QaMondaySessionExecutionId)
-            .FirstAsync(ct);
-
-        var today = DateTime.UtcNow.Date;
-        var monday = today.AddDays(-(((int)today.DayOfWeek == 0 ? 7 : (int)today.DayOfWeek) - 1));
+        var execution = (await FindMondayExecutionsAsync(mongo, ct)).Single();
+        var monday = ThisMonday();
 
         execution.Status.Should().Be(SessionExecutionStatus.Completed);
         execution.ClientId.Should().Be(QaSeedRunner.ClientUserId);
@@ -996,9 +1011,7 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
         using var scope = _factory.Services.CreateScope();
         var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
 
-        var execution = await mongo.SessionExecutions
-            .Find(e => e.ExternalId == QaSeedRunner.QaMondaySessionExecutionId)
-            .FirstAsync(ct);
+        var execution = (await FindMondayExecutionsAsync(mongo, ct)).Single();
         var plan = await mongo.TrainingPlans
             .Find(p => p.ExternalId == QaSeedRunner.QaTrainingPlanExternalId)
             .FirstAsync(ct);
@@ -1061,9 +1074,7 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
         (await db.WeeklyCheckIns.CountAsync(w => w.ClientUserId == QaSeedRunner.ClientUserId, ct)).Should().Be(7);
         (await mongo.MealLogs.CountDocumentsAsync(l => l.ClientId == QaSeedRunner.ClientUserId, cancellationToken: ct)).Should().Be(14);
         (await mongo.PersonalRecords.CountDocumentsAsync(r => r.ClientId == QaSeedRunner.ClientUserId, cancellationToken: ct)).Should().Be(1);
-        (await mongo.SessionExecutions.CountDocumentsAsync(
-                e => e.ExternalId == QaSeedRunner.QaMondaySessionExecutionId, cancellationToken: ct))
-            .Should().Be(1);
+        (await FindMondayExecutionsAsync(mongo, ct)).Should().HaveCount(1);
     }
 
     /// <summary>

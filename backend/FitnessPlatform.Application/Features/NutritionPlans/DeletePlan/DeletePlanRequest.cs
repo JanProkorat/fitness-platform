@@ -1,7 +1,7 @@
 namespace FitnessPlatform.Application.Features.NutritionPlans.DeletePlan;
 
 /// <summary>
-/// Request to soft-delete (archive) a nutrition plan.
+/// Request to permanently delete a nutrition plan.
 /// </summary>
 public class DeletePlanRequest
 {
