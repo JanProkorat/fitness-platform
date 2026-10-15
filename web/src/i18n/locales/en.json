@@ -1868,7 +1868,9 @@
         "recipesMatch_one": "recipe matches · applied as you pick",
         "recipesMatch_other": "recipes match · applied as you pick",
         "ingredientsMatch_one": "ingredient matches · applied as you pick",
-        "ingredientsMatch_other": "ingredients match · applied as you pick"
+        "ingredientsMatch_other": "ingredients match · applied as you pick",
+        "templatesMatch_one": "template matches · applied as you pick",
+        "templatesMatch_other": "templates match · applied as you pick"
       },
       "hint": "Drag onto a meal, or select a meal and press +. A meal can hold several recipes and ingredients.",
       "drag": "Drag {{name}}",
@@ -2336,6 +2338,15 @@
       "empty": "No templates yet.",
       "searchPlaceholder": "Search templates…",
       "searchEmpty": "No templates match your search.",
+      "filters": {
+        "goal": "Goal",
+        "diet": "Diet type",
+        "kcal": "Calories per day",
+        "kcalMin": "Min kcal",
+        "kcalMax": "Max kcal",
+        "empty": "No templates match these filters.",
+        "clear": "Clear filters"
+      },
       "listError": "Couldn't load the templates.",
       "loadError": "Couldn't load the template. Please try again.",
       "gone": "This template is no longer available.",

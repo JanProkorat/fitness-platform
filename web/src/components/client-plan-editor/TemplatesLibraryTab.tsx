@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { GripVertical, Search } from 'lucide-react';
@@ -17,7 +17,15 @@ import {
   rankTemplates,
   type RankedTemplate,
 } from '@/components/client-plan-editor/templateMatching';
+import { LibraryFiltersTrigger, TemplateFiltersContent } from '@/components/plan-editor/LibraryFilters';
 import type { InfoPanelContext } from '@/components/plan-editor/PlanEditor';
+import {
+  countTemplateFilters,
+  EMPTY_TEMPLATE_FILTERS,
+  filterRankedLists,
+  TemplateTabStateContext,
+  type TemplateFilterState,
+} from '@/components/plan-editor/plan-editor-library-filters';
 import { toEditorWeeks } from '@/components/plan-editor/plan-editor-mapping';
 import { weekHasItems } from '@/components/plan-editor/plan-editor-ops';
 import type { EditorWeek, WeekStatus } from '@/components/plan-editor/plan-editor-types';
@@ -178,7 +186,15 @@ export default function TemplatesLibraryTab({ context, weekStatus, onboarding, c
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   const [pending, setPending] = useState<PendingApply | null>(null);
-  const [searchInput, setSearchInput] = useState('');
+  // The library panel keeps the search and filters while another tab is shown; standalone, they stay local.
+  const shared = useContext(TemplateTabStateContext);
+  const [localSearch, setLocalSearch] = useState('');
+  const [localFilters, setLocalFilters] = useState<TemplateFilterState>(EMPTY_TEMPLATE_FILTERS);
+  const searchInput = shared?.searchInput ?? localSearch;
+  const setSearchInput = shared?.setSearchInput ?? setLocalSearch;
+  const filters = shared?.filters ?? localFilters;
+  const setFilters = shared?.setFilters ?? setLocalFilters;
+  const filterCount = countTemplateFilters(filters);
   const criteria = useMemo(
     () => criteriaFromOnboarding(onboarding, context.doc.targets.kcal),
     [onboarding, context.doc.targets.kcal],
@@ -196,12 +212,13 @@ export default function TemplatesLibraryTab({ context, weekStatus, onboarding, c
   );
   const query = foldText(searchInput.trim());
   const visible = useMemo(() => {
+    const filtered = filterRankedLists(lists, filters);
     if (query === '') {
-      return lists;
+      return filtered;
     }
     const matches = (item: RankedTemplate) => foldText(item.template.name ?? '').includes(query);
-    return { matched: lists.matched.filter(matches), others: lists.others.filter(matches) };
-  }, [lists, query]);
+    return { matched: filtered.matched.filter(matches), others: filtered.others.filter(matches) };
+  }, [lists, filters, query]);
   const isPending = allQuery.isPending || (criteria.goal !== undefined && goalQuery.isPending);
   const isError = allQuery.isError || (criteria.goal !== undefined && goalQuery.isError);
   const hasGoal = criteria.goal !== undefined;
@@ -274,29 +291,42 @@ export default function TemplatesLibraryTab({ context, weekStatus, onboarding, c
   const isEmpty = visible.matched.length === 0 && visible.others.length === 0;
 
   return (
-    <div className="-mr-1 flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pr-1" data-testid="templates-tab">
+    <div className="flex min-h-0 flex-1 flex-col gap-3" data-testid="templates-tab">
+      <Popover>
+        <PopoverAnchor asChild>
+          <div className="flex items-center gap-2">
+            <div className="relative min-w-0 flex-1">
+              <Search
+                className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+                aria-hidden="true"
+              />
+              <Input
+                type="search"
+                data-testid="templates-search"
+                value={searchInput}
+                onChange={(event) => setSearchInput(event.target.value)}
+                placeholder={t('clientPlanEditor.templates.searchPlaceholder')}
+                aria-label={t('clientPlanEditor.templates.searchPlaceholder')}
+                className="h-9 pl-9"
+              />
+            </div>
+            <LibraryFiltersTrigger count={filterCount} />
+          </div>
+        </PopoverAnchor>
+        <TemplateFiltersContent
+          filters={filters}
+          onChange={setFilters}
+          matchCount={isPending || isError ? undefined : visible.matched.length + visible.others.length}
+        />
+      </Popover>
+
       <p className="text-meta text-muted-foreground">
         {criteriaParts.length > 0
           ? t('clientPlanEditor.templates.introMatched', { name: clientFirstName, criteria: criteriaParts.join(', ') })
           : t('clientPlanEditor.templates.introAll')}
       </p>
 
-      <div className="relative">
-        <Search
-          className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
-          aria-hidden="true"
-        />
-        <Input
-          type="search"
-          data-testid="templates-search"
-          value={searchInput}
-          onChange={(event) => setSearchInput(event.target.value)}
-          placeholder={t('clientPlanEditor.templates.searchPlaceholder')}
-          aria-label={t('clientPlanEditor.templates.searchPlaceholder')}
-          className="h-9 pl-9"
-        />
-      </div>
-
+      <div className="-mr-1 flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pr-1">
       {isPending && (
         <div className="flex flex-col gap-2">
           {Array.from({ length: 4 }, (_, index) => (
@@ -325,9 +355,26 @@ export default function TemplatesLibraryTab({ context, weekStatus, onboarding, c
       )}
 
       {!isPending && !isError && isEmpty && (
-        <p className="text-body text-muted-foreground">
-          {query === '' ? t('clientPlanEditor.templates.empty') : t('clientPlanEditor.templates.searchEmpty')}
-        </p>
+        <div className="flex flex-col items-start gap-2" data-testid="templates-empty">
+          <p className="text-body text-muted-foreground">
+            {filterCount > 0
+              ? t('clientPlanEditor.templates.filters.empty')
+              : query === ''
+                ? t('clientPlanEditor.templates.empty')
+                : t('clientPlanEditor.templates.searchEmpty')}
+          </p>
+          {filterCount > 0 && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              data-testid="templates-empty-clear"
+              onClick={() => setFilters(EMPTY_TEMPLATE_FILTERS)}
+            >
+              {t('clientPlanEditor.templates.filters.clear')}
+            </Button>
+          )}
+        </div>
       )}
 
       {!isPending && !isError && visible.matched.length > 0 && (
@@ -344,6 +391,8 @@ export default function TemplatesLibraryTab({ context, weekStatus, onboarding, c
           <ul className="flex flex-col gap-2">{visible.others.map((item) => renderCard(item, false))}</ul>
         </section>
       )}
+
+      </div>
 
       <ReplaceWithTemplateDialog
         pending={pending ? { name: pending.name, weekCount: pending.weeks.length } : null}
