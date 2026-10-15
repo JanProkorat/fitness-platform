@@ -82,7 +82,7 @@ export default function NutritionProfileCard({ clientId, clientFirstName, onboar
   return (
     <section
       aria-labelledby={headingId}
-      className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-5"
+      className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 shadow-panel"
     >
       <div className="flex items-center justify-between gap-3">
         <h2 id={headingId} className="text-body font-semibold text-ink">
