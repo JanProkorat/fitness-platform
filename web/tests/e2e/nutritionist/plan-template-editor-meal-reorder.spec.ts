@@ -13,7 +13,6 @@ import { nutritionistTest as test, expect } from '../fixtures/auth';
 const NUTRITIONIST_EMAIL = 'qa.nutri@fitnessplatform.test';
 const DAILY_KCAL = 2000;
 const CLIENT_PROFILE_ID = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
-const SEEDED_PLAN_ID = 'dddddddd-eeee-ffff-0000-111111111111';
 /** Mon rows: Breakfast, Lunch, Snack 2, Dinner. */
 const FOUR_KINDS = ['Breakfast', 'Lunch', 'AfternoonSnack', 'Dinner'];
 const COUNTS = { a: 2, b: 3, c: 4, d: 5 };
@@ -54,31 +53,87 @@ async function withApi<T>(
   }
 }
 
-/** One week; `kindsOf(dayIndex)` is the kinds that day holds (each an empty meal), in order. */
-function buildWeeks(kindsOf: (dayIndex: number) => string[]): WeeksBody {
+interface Food {
+  foodId: string;
+  name: string;
+  nutrientValue: Record<string, number | null>;
+}
+
+interface FoodsSearchBody {
+  foods?: { foodId?: string; name?: string; nutrientValue?: Record<string, number | null> }[];
+}
+
+type Auth = Record<string, string>;
+type Api = Awaited<ReturnType<typeof apiRequest.newContext>>;
+
+/** The ingredient every seeded meal holds: found by its exact name, never by list position. */
+async function findApple(api: Api, headers: Auth): Promise<Food> {
+  const search = await api.get('/foods/search?q=Apple', { headers });
+  const foods = ((await search.json()) as FoodsSearchBody).foods ?? [];
+  const found = foods.find((food) => food.name?.toLowerCase() === 'apple' && food.foodId && food.nutrientValue);
+  if (!found?.foodId || !found.name || !found.nutrientValue) {
+    throw new Error('[plan-template-editor-meal-reorder] GET /foods/search?q=Apple returned no food named exactly "Apple".');
+  }
+  return { foodId: found.foodId, name: found.name, nutrientValue: found.nutrientValue };
+}
+
+function foodsOf(food: Food, count: number): unknown[] {
+  return Array.from({ length: count }, () => ({
+    foodExternalId: food.foodId,
+    foodName: food.name,
+    nutrientValuePer100Grams: food.nutrientValue,
+    amountGrams: 100,
+  }));
+}
+
+/** Monday's meals by kind: A, B, C, D. Every other day is empty. */
+const MONDAY_COUNTS: Record<string, number> = {
+  Breakfast: COUNTS.a,
+  Lunch: COUNTS.b,
+  AfternoonSnack: COUNTS.c,
+  Dinner: COUNTS.d,
+};
+
+interface TemplateSeed {
+  /** The kinds a day holds, in order. */
+  kindsOf?: (dayIndex: number) => string[];
+  /** How many ingredients the day's meal of the kind holds. */
+  counts?: (dayIndex: number, kind: string) => number;
+}
+
+function mondayCounts(counts: Record<string, number>): (dayIndex: number, kind: string) => number {
+  return (dayIndex, kind) => (dayIndex === 0 ? (counts[kind] ?? 0) : 0);
+}
+
+/** One week built from the seed; the meals come pre-filled so the editor opens ready, with nothing unsaved. */
+function buildWeeks(food: Food, seed: TemplateSeed): WeeksBody {
+  const kindsOf = seed.kindsOf ?? (() => FOUR_KINDS);
+  const counts = seed.counts ?? mondayCounts(MONDAY_COUNTS);
   return [
     {
       weekNumber: 1,
       days: Array.from({ length: 7 }, (_, dayIndex) => ({
         dayOfWeek: dayIndex + 1,
-        meals: kindsOf(dayIndex).map((kind, mealIndex) => ({ kind, order: mealIndex + 1, foods: [], recipes: [] })),
+        meals: kindsOf(dayIndex).map((kind, mealIndex) => ({
+          kind,
+          order: mealIndex + 1,
+          foods: foodsOf(food, counts(dayIndex, kind)),
+          recipes: [],
+        })),
       })),
     },
   ];
 }
 
-async function createTemplate(
-  baseURL: string,
-  name: string,
-  kindsOf: (dayIndex: number) => string[] = () => FOUR_KINDS,
-): Promise<string> {
+async function createTemplate(baseURL: string, name: string, seed: TemplateSeed = {}): Promise<string> {
   return withApi(baseURL, async (api, headers) => {
+    const food = await findApple(api, headers);
     const response = await api.post('/nutrition/plan-templates', {
       headers,
-      data: { name, goal: 'Maintain', globalSettings: { dailyKcal: DAILY_KCAL }, weeks: buildWeeks(kindsOf) },
+      data: { name, goal: 'Maintain', globalSettings: { dailyKcal: DAILY_KCAL }, weeks: buildWeeks(food, seed) },
     });
     if (!response.ok()) {
-      throw new Error(`[plan-template-editor-meal-reorder] POST /nutrition/plan-templates returned ${response.status()}.`);
+      throw new Error(`[plan-template-editor-meal-reorder] POST /nutrition/plan-templates returned ${response.status()}: ${await response.text()}`);
     }
     const templateId = ((await response.json()) as CreatedBody).templateId;
     if (!templateId) {
@@ -94,40 +149,6 @@ async function deleteTemplate(baseURL: string, templateId: string): Promise<void
 
 function cell(page: Page, dayOfWeek: number, rowIndex: number): Locator {
   return page.locator(`[data-testid="meal-cell"][data-day="${dayOfWeek}"][data-row="${rowIndex}"]`);
-}
-
-/** Selects the cell and adds the first Apple ingredient to it `count` times with the library's + button. */
-async function fillCell(page: Page, dayOfWeek: number, rowIndex: number, count: number): Promise<void> {
-  await cell(page, dayOfWeek, rowIndex).click();
-  await page.getByRole('tab', { name: 'Ingredients' }).click();
-  await page.getByLabel('Search ingredients…').fill('Apple');
-  const addButton = page
-    .getByTestId('library-card')
-    .first()
-    .getByRole('button', { name: /^Add .* to the selected meal$/ });
-  await expect(addButton).toBeEnabled();
-  for (let added = 0; added < count; added += 1) {
-    await addButton.click();
-  }
-  await expect(cell(page, dayOfWeek, rowIndex)).toContainText(`${count} items`);
-}
-
-/** Monday's four meals hold A, B, C, D (2, 3, 4, 5 ingredients), saved, so one Undo ends on "Saved". */
-async function seedMonday(page: Page, rows: readonly number[] = [0, 1, 2, 3]): Promise<void> {
-  const counts = [COUNTS.a, COUNTS.b, COUNTS.c, COUNTS.d];
-  for (const [index, row] of rows.entries()) {
-    await fillCell(page, 1, row, counts[index]);
-  }
-  await waitForSave(page);
-}
-
-async function waitForSave(page: Page): Promise<void> {
-  const put = page.waitForResponse(
-    (response) => response.url().includes('/nutrition/plan-templates/') && response.request().method() === 'PUT',
-  );
-  await page.getByRole('button', { name: 'Save' }).click();
-  expect((await put).ok()).toBe(true);
-  await expect(page.getByTestId('save-status')).toHaveText('Saved');
 }
 
 /** Scrolls the element into view, then waits until two reads of its box match. */
@@ -162,6 +183,20 @@ async function moveTo(page: Page, x: number, y: number): Promise<void> {
   await page.mouse.move(x, y, { steps: 12 });
 }
 
+/**
+ * Moves onto the gap's centre and waits until the gap reports itself as the drop target. The gaps mount
+ * once the drag has started, so the first moves can land before their shapes are measured; small moves
+ * inside the gap repeat the pointer events until the library has picked it.
+ */
+async function settleOnGap(page: Page, point: { x: number; y: number }): Promise<void> {
+  await moveTo(page, point.x, point.y);
+  await expect(async () => {
+    await page.mouse.move(point.x - 2, point.y, { steps: 2 });
+    await page.mouse.move(point.x, point.y, { steps: 2 });
+    await expect(page.locator('[data-testid="meal-gap"][data-over="true"]')).toHaveCount(1, { timeout: 500 });
+  }).toPass({ timeout: 5000 });
+}
+
 /** The point in the gap above (or below) a card, in the card's column. */
 async function gapPoint(card: Locator, edge: 'above' | 'below'): Promise<{ x: number; y: number }> {
   const box = await settledBox(card);
@@ -173,8 +208,7 @@ async function dragToGap(page: Page, handle: Locator, beside: Locator, edge: 'ab
   await handle.scrollIntoViewIfNeeded();
   await beside.scrollIntoViewIfNeeded();
   await beginDrag(page, handle);
-  const point = await gapPoint(beside, edge);
-  await moveTo(page, point.x, point.y);
+  await settleOnGap(page, await gapPoint(beside, edge));
   await page.mouse.up();
 }
 
@@ -194,6 +228,61 @@ async function expectMonday(page: Page, counts: readonly number[]): Promise<void
   }
 }
 
+/**
+ * A client plan with Monday Breakfast (A) and Lunch (B), archived through the API: the client editor treats
+ * a completed or archived plan as read-only. Archived plans are left in place, like the client editor spec's.
+ */
+async function createArchivedPlan(baseURL: string, name: string): Promise<string> {
+  return withApi(baseURL, async (api, headers) => {
+    const food = await findApple(api, headers);
+    const created = await api.post('/nutrition/plans', {
+      headers,
+      data: { clientId: CLIENT_PROFILE_ID, name, weekCount: 1, globalSettings: { dailyKcal: DAILY_KCAL } },
+    });
+    if (!created.ok()) {
+      throw new Error(`[plan-template-editor-meal-reorder] POST /nutrition/plans returned ${created.status()}: ${await created.text()}`);
+    }
+    const planId = ((await created.json()) as { planId?: string }).planId;
+    if (!planId) {
+      throw new Error('[plan-template-editor-meal-reorder] POST /nutrition/plans returned no planId.');
+    }
+    const detail = await api.get(`/nutrition/plans/${planId}`, { headers });
+    const { version } = (await detail.json()) as { version?: number };
+    const update = await api.put(`/nutrition/plans/${planId}`, {
+      headers,
+      data: {
+        name,
+        globalSettings: { dailyKcal: DAILY_KCAL },
+        version,
+        supplements: [],
+        weeks: [
+          {
+            weekNumber: 1,
+            days: Array.from({ length: 7 }, (_, dayIndex) => ({
+              dayOfWeek: dayIndex + 1,
+              meals:
+                dayIndex === 0
+                  ? [
+                      { kind: 'Breakfast', order: 1, foods: foodsOf(food, COUNTS.a), recipes: [] },
+                      { kind: 'Lunch', order: 2, foods: foodsOf(food, COUNTS.b), recipes: [] },
+                    ]
+                  : [],
+            })),
+          },
+        ],
+      },
+    });
+    if (!update.ok()) {
+      throw new Error(`[plan-template-editor-meal-reorder] PUT /nutrition/plans/${planId} returned ${update.status()}: ${await update.text()}`);
+    }
+    const archived = await api.delete(`/nutrition/plans/${planId}`, { headers });
+    if (!archived.ok()) {
+      throw new Error(`[plan-template-editor-meal-reorder] DELETE /nutrition/plans/${planId} returned ${archived.status()}.`);
+    }
+    return planId;
+  });
+}
+
 const ORIGINAL = [COUNTS.a, COUNTS.b, COUNTS.c, COUNTS.d];
 
 test.describe('plan editor meal reorder', () => {
@@ -205,7 +294,7 @@ test.describe('plan editor meal reorder', () => {
     const templateId = await createTemplate(origin, `QA Reorder Week ${Date.now()}`);
     try {
       await page.goto(`/plan-templates/${templateId}`);
-      await seedMonday(page);
+      await expectMonday(page, ORIGINAL);
 
       await dragToGap(page, cell(page, 1, 3), cell(page, 1, 1), 'above');
       // Mon A B C D -> A D B C: Lunch D, Snack 2 B, Dinner C.
@@ -226,7 +315,7 @@ test.describe('plan editor meal reorder', () => {
     const templateId = await createTemplate(origin, `QA Reorder Edges ${Date.now()}`);
     try {
       await page.goto(`/plan-templates/${templateId}`);
-      await seedMonday(page);
+      await expectMonday(page, ORIGINAL);
 
       await dragToGap(page, cell(page, 1, 2), cell(page, 1, 0), 'above');
       await expectMonday(page, [COUNTS.c, COUNTS.a, COUNTS.b, COUNTS.d]);
@@ -246,12 +335,12 @@ test.describe('plan editor meal reorder', () => {
   test('a kind the day does not have is skipped and never created', async ({ page, baseURL }) => {
     const origin = baseURL ?? 'http://localhost:5173';
     // Monday has no Snack 2; the other days keep it, so the row exists in the grid.
-    const templateId = await createTemplate(origin, `QA Reorder Skip ${Date.now()}`, (dayIndex) =>
-      dayIndex === 0 ? ['Breakfast', 'Lunch', 'Dinner'] : FOUR_KINDS,
-    );
+    const templateId = await createTemplate(origin, `QA Reorder Skip ${Date.now()}`, {
+      kindsOf: (dayIndex) => (dayIndex === 0 ? ['Breakfast', 'Lunch', 'Dinner'] : FOUR_KINDS),
+      counts: mondayCounts({ Breakfast: COUNTS.a, Lunch: COUNTS.b, Dinner: COUNTS.c }),
+    });
     try {
       await page.goto(`/plan-templates/${templateId}`);
-      await seedMonday(page, [0, 1, 3]);
 
       await dragToGap(page, cell(page, 1, 3), cell(page, 1, 1), 'above');
       // Monday's Breakfast, Lunch and Dinner hold A, B, C: now A, C, B. The Snack 2 row stays empty.
@@ -275,7 +364,7 @@ test.describe('plan editor meal reorder', () => {
     const templateId = await createTemplate(origin, `QA Reorder Indicator ${Date.now()}`);
     try {
       await page.goto(`/plan-templates/${templateId}`);
-      await seedMonday(page);
+      await expectMonday(page, ORIGINAL);
       await expect(page.getByTestId('meal-gap')).toHaveCount(0);
 
       await beginDrag(page, cell(page, 1, 3));
@@ -284,8 +373,7 @@ test.describe('plan editor meal reorder', () => {
       await expect(page.locator('[data-testid="meal-gap"][data-day="1"]')).toHaveCount(3);
       await expect(page.locator('[data-testid="meal-gap"][data-day="2"]')).toHaveCount(0);
 
-      const point = await gapPoint(cell(page, 1, 1), 'above');
-      await moveTo(page, point.x, point.y);
+      await settleOnGap(page, await gapPoint(cell(page, 1, 1), 'above'));
       const over = page.locator('[data-testid="meal-gap"][data-over="true"]');
       await expect(over).toHaveCount(1);
       await expect(over.getByTestId('meal-gap-indicator')).toHaveCSS('opacity', '1');
@@ -303,12 +391,13 @@ test.describe('plan editor meal reorder', () => {
     baseURL,
   }) => {
     const origin = baseURL ?? 'http://localhost:5173';
-    const templateId = await createTemplate(origin, `QA Reorder Swap ${Date.now()}`);
+    const templateId = await createTemplate(origin, `QA Reorder Swap ${Date.now()}`, {
+      counts: (dayIndex, kind) => (kind === 'Breakfast' && dayIndex < 2 ? (dayIndex === 0 ? COUNTS.a : COUNTS.b) : 0),
+    });
     try {
       await page.goto(`/plan-templates/${templateId}`);
-      await fillCell(page, 1, 0, COUNTS.a);
-      await fillCell(page, 2, 0, COUNTS.b);
-      await waitForSave(page);
+      await expect(cell(page, 1, 0)).toContainText(`${COUNTS.a} items`);
+      await expect(cell(page, 2, 0)).toContainText(`${COUNTS.b} items`);
 
       await dragToCell(page, cell(page, 1, 0), cell(page, 2, 0));
       await expect(page.getByTestId('card-drop-dialog')).toHaveCount(0);
@@ -330,7 +419,7 @@ test.describe('plan editor meal reorder', () => {
     const templateId = await createTemplate(origin, `QA Reorder Day ${Date.now()}`);
     try {
       await page.goto(`/plan-templates/${templateId}`);
-      await seedMonday(page);
+      await expectMonday(page, ORIGINAL);
       await page.getByRole('button', { name: 'Day', exact: true }).click();
 
       const blocks = page.getByTestId('meal-block');
@@ -363,7 +452,7 @@ test.describe('plan editor meal reorder', () => {
     const templateId = await createTemplate(origin, `QA Reorder Keys ${Date.now()}`);
     try {
       await page.goto(`/plan-templates/${templateId}`);
-      await seedMonday(page);
+      await expectMonday(page, ORIGINAL);
       const announcer = page.getByTestId('plan-editor-announcer');
       await expect(cell(page, 1, 3)).toHaveAttribute('aria-keyshortcuts', 'Alt+ArrowUp Alt+ArrowDown');
 
@@ -401,7 +490,7 @@ test.describe('plan editor meal reorder', () => {
     const templateId = await createTemplate(origin, `QA Reorder Day Keys ${Date.now()}`);
     try {
       await page.goto(`/plan-templates/${templateId}`);
-      await seedMonday(page);
+      await expectMonday(page, ORIGINAL);
       await page.getByRole('button', { name: 'Day', exact: true }).click();
 
       const blocks = page.getByTestId('meal-block');
@@ -416,14 +505,24 @@ test.describe('plan editor meal reorder', () => {
     }
   });
 
-  test('a read-only plan has no gaps, no insert lines and no move shortcuts', async ({ page }) => {
-    await page.goto(`/clients/${CLIENT_PROFILE_ID}/nutrition/plans/${SEEDED_PLAN_ID}`);
-    await expect(page.getByTestId('save-status')).toBeVisible();
-    test.skip((await page.getByRole('note').count()) === 0, 'the seeded plan is not read-only in this fixture');
+  test('a closed (archived) client plan is read-only: no gaps, no insert lines, no move shortcuts', async ({ page, baseURL }) => {
+    const origin = baseURL ?? 'http://localhost:5173';
+    const planId = await createArchivedPlan(origin, `QA ReorderRO ${Date.now()}`);
+    await page.goto(`/clients/${CLIENT_PROFILE_ID}/nutrition/plans/${planId}`);
+    await expect(page.getByRole('note')).toBeVisible();
+    await expectMonday(page, [COUNTS.a, COUNTS.b]);
 
     await expect(page.getByTestId('add-meal-week')).toHaveCount(0);
     await expect(page.getByTestId('meal-insert-line')).toHaveCount(0);
-    await expect(page.getByTestId('meal-gap')).toHaveCount(0);
     await expect(page.locator('[aria-keyshortcuts]')).toHaveCount(0);
+
+    // Dragging is off, so no gap ever appears, and Alt+Arrow moves nothing.
+    await beginDrag(page, cell(page, 1, 1));
+    await expect(page.getByTestId('meal-gap')).toHaveCount(0);
+    await page.mouse.up();
+    await cell(page, 1, 1).focus();
+    await page.keyboard.press('Alt+ArrowUp');
+    await expectMonday(page, [COUNTS.a, COUNTS.b]);
+    await expect(page.getByTestId('save-status')).toHaveText('Saved');
   });
 });
