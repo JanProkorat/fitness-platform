@@ -395,12 +395,8 @@ test.describe('inbox page', () => {
   test('the client-detail Chat button opens the existing thread', async ({ page }) => {
     await page.goto('/clients');
     await page.waitForLoadState('networkidle');
-    // Scoped to client rows: the All tab also lists pending rows, which carry no link.
-    await page
-      .getByRole('row', { name: QA_CLIENT_NAME })
-      .filter({ has: page.getByRole('link', { name: QA_CLIENT_NAME }) })
-      .getByRole('link', { name: QA_CLIENT_NAME })
-      .click();
+    // Exact name: "QA Client3" also sits on the All tab and matches QA_CLIENT_NAME.
+    await page.getByRole('link', { name: 'QA Client', exact: true }).click();
     await page.waitForLoadState('networkidle');
 
     await page.getByRole('link', { name: 'Chat' }).click();
