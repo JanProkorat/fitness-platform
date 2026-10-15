@@ -1867,7 +1867,9 @@
         "recipesMatch_one": "Rezept passt · sofort angewendet",
         "recipesMatch_other": "Rezepte passen · sofort angewendet",
         "ingredientsMatch_one": "Zutat passt · sofort angewendet",
-        "ingredientsMatch_other": "Zutaten passen · sofort angewendet"
+        "ingredientsMatch_other": "Zutaten passen · sofort angewendet",
+        "templatesMatch_one": "Vorlage passt · sofort angewendet",
+        "templatesMatch_other": "Vorlagen passen · sofort angewendet"
       },
       "hint": "Auf eine Mahlzeit ziehen oder eine Mahlzeit wählen und + drücken. Eine Mahlzeit kann mehrere Rezepte und Zutaten enthalten.",
       "drag": "{{name}} ziehen",
@@ -2335,6 +2337,15 @@
       "empty": "Noch keine Vorlagen.",
       "searchPlaceholder": "Vorlagen suchen…",
       "searchEmpty": "Keine Vorlage entspricht Ihrer Suche.",
+      "filters": {
+        "goal": "Ziel",
+        "diet": "Ernährungsform",
+        "kcal": "Kalorien pro Tag",
+        "kcalMin": "Min. kcal",
+        "kcalMax": "Max. kcal",
+        "empty": "Keine Vorlage entspricht diesen Filtern.",
+        "clear": "Filter zurücksetzen"
+      },
       "listError": "Die Vorlagen konnten nicht geladen werden.",
       "loadError": "Die Vorlage konnte nicht geladen werden. Bitte versuchen Sie es erneut.",
       "gone": "Diese Vorlage ist nicht mehr verfügbar.",
