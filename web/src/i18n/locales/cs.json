@@ -1962,6 +1962,25 @@
       "fat": "T",
       "fiber": "Vl"
     },
+    "target": {
+      "aria": "Zobrazit denní cíl pro {{day}}",
+      "title": "Denní cíl",
+      "planned": "Plán",
+      "goal": "Cíl",
+      "noTarget": "Bez cíle",
+      "legendTitle": "Barvy",
+      "legendOn": "V rozmezí {{percent}} % od cíle",
+      "legendNear": "{{from}}–{{to}} % od cíle",
+      "legendOff": "Více než {{percent}} % od cíle",
+      "legendNone": "Cíl není nastaven, nebo nic není naplánováno",
+      "nutrient": {
+        "kcal": "Energie",
+        "protein": "Bílkoviny",
+        "carbs": "Sacharidy",
+        "fat": "Tuky",
+        "fiber": "Vláknina"
+      }
+    },
     "removeRow": {
       "aria": "Odebrat {{meal}} z týdne {{week}}",
       "title": "Odebrat {{meal}} z týdne {{week}}?",

@@ -774,7 +774,7 @@ export default function PlanEditor({
             </div>
           )}
 
-          <div key={slide.slide?.key ?? 0} data-slide={slide.slide?.direction} className="flex min-w-0 flex-col gap-4">
+          <div key={slide.slide?.key ?? 0} data-slide={slide.slide?.direction} className="flex min-w-0 flex-1 flex-col gap-4">
           {rows.length > 0 && range === 'day' && (
             <DayView
               week={week}
@@ -793,7 +793,7 @@ export default function PlanEditor({
                 <WeekGrid
                   week={week}
                   weekIndex={currentIndex}
-                  dailyKcalTarget={dailyKcalTarget}
+                  targets={targets}
                   selected={selected}
                   readOnly={readOnly}
                   onSelect={selectCell}
@@ -804,7 +804,7 @@ export default function PlanEditor({
                   onRemoveRow={requestRemoveRow}
                 />
               )}
-              {view === 'nutrition' && <NutritionView week={week} dailyKcalTarget={dailyKcalTarget} />}
+              {view === 'nutrition' && <NutritionView week={week} targets={targets} />}
               <NutritionLegend dailyKcalTarget={dailyKcalTarget} hidden={view !== 'nutrition'} />
             </div>
           )}

@@ -210,7 +210,7 @@ export default function MealItemRow({ entry, readOnly, variant, position, source
       </span>
       {variant === 'day' && (
         <span className="hidden w-40 shrink-0 xl:block">
-          <MacroBar totals={totals} />
+          <MacroBar totals={totals} labels />
         </span>
       )}
       {!readOnly ? (

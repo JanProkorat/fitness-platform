@@ -1906,6 +1906,25 @@
       "fat": "F",
       "fiber": "Bal"
     },
+    "target": {
+      "aria": "Tagesziel für {{day}} anzeigen",
+      "title": "Tagesziel",
+      "planned": "Geplant",
+      "goal": "Ziel",
+      "noTarget": "Kein Ziel",
+      "legendTitle": "Farben",
+      "legendOn": "Innerhalb von {{percent}} % des Ziels",
+      "legendNear": "{{from}}–{{to}} % vom Ziel entfernt",
+      "legendOff": "Mehr als {{percent}} % vom Ziel entfernt",
+      "legendNone": "Kein Ziel gesetzt oder nichts geplant",
+      "nutrient": {
+        "kcal": "Energie",
+        "protein": "Eiweiß",
+        "carbs": "Kohlenhydrate",
+        "fat": "Fett",
+        "fiber": "Ballaststoffe"
+      }
+    },
     "removeRow": {
       "aria": "{{meal}} aus Woche {{week}} entfernen",
       "title": "{{meal}} aus Woche {{week}} entfernen?",

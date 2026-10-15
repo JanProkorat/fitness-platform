@@ -19,7 +19,7 @@ import {
   type ShareStatus,
 } from '@/components/plan-editor/plan-editor-nutrition';
 import { weekRows } from '@/components/plan-editor/plan-editor-ops';
-import type { EditorMeal, EditorWeek } from '@/components/plan-editor/plan-editor-types';
+import type { EditorMeal, EditorWeek, PlanTargets } from '@/components/plan-editor/plan-editor-types';
 import { MealKind } from '@/api/generated';
 
 const CELL_CLASS: Record<ShareStatus, string> = {
@@ -116,12 +116,13 @@ function Legend({ swatch, label }: { swatch: string; label: string }) {
 
 interface Props {
   week: EditorWeek;
-  dailyKcalTarget: number | undefined;
+  targets: PlanTargets;
 }
 
 /** Read-only week grid that colours each meal by how its kcal compares with its share of the daily target. */
-export default function NutritionView({ week, dailyKcalTarget }: Props) {
+export default function NutritionView({ week, targets }: Props) {
   const { t } = useTranslation();
+  const dailyKcalTarget = targets.kcal;
   const rows = weekRows(week);
   const dayByNumber = new Map(week.days.map((day) => [day.dayOfWeek, day]));
 
@@ -147,7 +148,7 @@ export default function NutritionView({ week, dailyKcalTarget }: Props) {
             {t('planEditor.dayTotal')}
           </span>
           {DAY_ORDER.map((dayOfWeek) => (
-            <DayTotalCell key={dayOfWeek} day={dayByNumber.get(dayOfWeek)} target={dailyKcalTarget} />
+            <DayTotalCell key={dayOfWeek} day={dayByNumber.get(dayOfWeek)} dayOfWeek={dayOfWeek} targets={targets} />
           ))}
         </div>
         {rows.map((row) => (
