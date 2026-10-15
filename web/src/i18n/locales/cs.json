@@ -549,8 +549,9 @@
     "title": "Klienti",
     "subtitle": "Správa a přehled klientů",
     "tabs": {
+      "all": "Vše",
       "active": "Aktivní",
-      "paused": "Pozastavení",
+      "paused": "Bez plánu",
       "archived": "Archivovaní",
       "pending": "Čekající"
     },
@@ -1943,7 +1944,16 @@
         "kcalPer100": "kcal na 100 g",
         "ingredientsHeading": "Suroviny · na porci",
         "ingredientsUnavailable": "Suroviny nejsou dostupné. Recept mohl být smazán nebo nastaven jako soukromý.",
-        "ingredientsError": "Suroviny se nepodařilo načíst."
+        "ingredientsError": "Suroviny se nepodařilo načíst.",
+        "macroNames": {
+          "protein": "Bílkoviny",
+          "carbs": "Sacharidy",
+          "fat": "Tuky",
+          "fiber": "Vláknina"
+        },
+        "loading": "Načítám detaily…",
+        "unavailable": "Detaily nejsou dostupné. Položka mohla být z knihovny odstraněna.",
+        "loadError": "Detaily se nepodařilo načíst."
       }
     },
     "macroShort": {
@@ -2309,8 +2319,7 @@
         "allergies": "Alergie",
         "dislikes": "Vyhýbá se",
         "habits": "Návyky",
-        "meals": "Jídel denně",
-        "profileLink": "Z úvodního dotazníku klienta {{name}} · otevřít profil"
+        "meals": "Jídel denně"
       }
     },
     "templates": {
@@ -2328,6 +2337,14 @@
       "useNamed": "Použít {{name}}",
       "noMeals": "Tato šablona nemá žádná jídla.",
       "weeksShort": "{{count}} týd.",
+      "info": {
+        "open": "Zobrazit detail šablony {{name}}",
+        "mealsPerDay": "{{value}} jídel denně",
+        "weeksHeading": "Týdny · průměr za den",
+        "weekLabel": "Týden {{week}}",
+        "unavailable": "Šablona není dostupná. Mohla být odstraněna nebo nastavena jako soukromá.",
+        "loadError": "Šablonu se nepodařilo načíst."
+      },
       "match": {
         "goal": "✓ cíl",
         "goalDiffers": "jiný cíl",

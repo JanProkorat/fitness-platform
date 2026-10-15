@@ -142,6 +142,11 @@ export default function MealBlock({
               readOnly={readOnly}
               variant="day"
               position={{ weekIndex, dayOfWeek, mealId: meal.mealId }}
+              sourceId={
+                entry.type === 'recipe'
+                  ? meal.recipes[entry.index]?.recipeId
+                  : meal.foods[entry.index]?.foodExternalId
+              }
               onAmount={(value) =>
                 onEdit(
                   (doc) =>

@@ -127,7 +127,7 @@ export default function NutritionEmptyState({ clientId, dashboard }: Props) {
   return (
     <section
       aria-labelledby={headingId}
-      className="flex flex-col gap-5 rounded-2xl border border-border bg-card p-6"
+      className="flex flex-col gap-5 rounded-2xl border border-border bg-card p-6 shadow-panel"
     >
       <div className="flex items-start gap-4">
         <div className="flex size-14 shrink-0 items-center justify-center rounded-xl bg-nutrition-soft">
@@ -193,7 +193,7 @@ export default function NutritionEmptyState({ clientId, dashboard }: Props) {
                 aria-checked={isSelected}
                 onClick={() => setPickedId(id)}
                 className={cn(
-                  'flex flex-col gap-2 rounded-2xl border bg-card p-4 text-left outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50',
+                  'flex flex-col gap-2 rounded-2xl border bg-card p-4 text-left shadow-panel outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50',
                   isSelected ? 'border-2 border-nutrition' : 'border-border hover:bg-muted',
                 )}
               >

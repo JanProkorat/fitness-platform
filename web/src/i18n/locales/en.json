@@ -529,8 +529,9 @@
     "title": "Clients",
     "subtitle": "Client management and overview",
     "tabs": {
+      "all": "All",
       "active": "Active",
-      "paused": "Paused",
+      "paused": "No plan",
       "archived": "Archived",
       "pending": "Pending"
     },
@@ -1888,7 +1889,16 @@
         "kcalPer100": "kcal per 100 g",
         "ingredientsHeading": "Ingredients · per portion",
         "ingredientsUnavailable": "The ingredients are unavailable. The recipe may have been removed or made private.",
-        "ingredientsError": "Couldn't load the ingredients."
+        "ingredientsError": "Couldn't load the ingredients.",
+        "macroNames": {
+          "protein": "Protein",
+          "carbs": "Carbs",
+          "fat": "Fat",
+          "fiber": "Fiber"
+        },
+        "loading": "Loading details…",
+        "unavailable": "The details are unavailable. The item may have been removed from the library.",
+        "loadError": "Couldn't load the details."
       }
     },
     "macroShort": {
@@ -2243,8 +2253,7 @@
         "allergies": "Allergies",
         "dislikes": "Avoids",
         "habits": "Habits",
-        "meals": "Meals a day",
-        "profileLink": "From {{name}}'s onboarding form · open profile"
+        "meals": "Meals a day"
       }
     },
     "templates": {
@@ -2262,6 +2271,14 @@
       "useNamed": "Use {{name}}",
       "noMeals": "This template has no meals.",
       "weeksShort": "{{count}} wks",
+      "info": {
+        "open": "Show details of {{name}}",
+        "mealsPerDay": "{{value}} meals a day",
+        "weeksHeading": "Weeks · average per day",
+        "weekLabel": "Week {{week}}",
+        "unavailable": "The template is unavailable. It may have been removed or made private.",
+        "loadError": "Couldn't load the template."
+      },
       "match": {
         "goal": "✓ goal",
         "goalDiffers": "goal differs",

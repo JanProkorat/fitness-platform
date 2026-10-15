@@ -5,11 +5,13 @@ import { GripVertical, Search } from 'lucide-react';
 import type { OnboardingDataDto } from '@/api/generated';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Popover, PopoverAnchor } from '@/components/ui/popover';
 import { Skeleton } from '@/components/ui/skeleton';
 import GoalDot from '@/components/plan-templates/GoalDot';
 import { cn } from '@/lib/utils';
 import { applyTemplate, needsConfirmation } from '@/components/client-plan-editor/applyTemplate';
 import ReplaceWithTemplateDialog from '@/components/client-plan-editor/ReplaceWithTemplateDialog';
+import TemplateInfoPopover from '@/components/client-plan-editor/TemplateInfoPopover';
 import {
   criteriaFromOnboarding,
   rankTemplates,
@@ -65,6 +67,8 @@ interface CardProps {
 function TemplateCard({ item, best, hasGoalCriterion, busy, disabled, language, onUse }: CardProps) {
   const { t } = useTranslation();
   const { template } = item;
+  const [infoOpen, setInfoOpen] = useState(false);
+  const infoButtonRef = useRef<HTMLButtonElement>(null);
   const name = template.name ?? '';
   const hasMeals = template.mealsPerDay !== undefined && template.mealsPerDay !== null;
   const goalLabel = template.goal ? t(`clients.values.${template.goal}`, { defaultValue: template.goal }) : undefined;
@@ -94,46 +98,78 @@ function TemplateCard({ item, best, hasGoalCriterion, busy, disabled, language, 
   }
 
   return (
-    <li
-      data-testid="template-card"
-      className={cn(
-        'flex flex-col gap-1.5 rounded-xl bg-card shadow-panel',
-        best ? 'border-2 border-nutrition p-2.75' : 'border border-line p-3',
-      )}
-    >
-      <div className="flex min-w-0 items-center gap-2">
-        <GripVertical className="size-3.5 shrink-0 text-faint" aria-hidden="true" />
-        <span className="min-w-0 flex-1 truncate text-copy font-semibold text-ink">{name}</span>
-        {best && (
-          <span
-            data-testid="template-best-match"
-            className="shrink-0 rounded-full bg-nutrition-soft px-2 py-0.5 text-label font-semibold tracking-label text-nutrition-ink uppercase"
-          >
-            {t('clientPlanEditor.templates.bestMatch')}
-          </span>
-        )}
-      </div>
-      <div className="flex min-w-0 items-center gap-1.5 text-meta text-muted-foreground">
-        {template.goal && <GoalDot goal={template.goal} />}
-        {goalLabel && <span className="shrink-0 font-semibold text-ink">{goalLabel}</span>}
-        <span className="truncate">{meta.join(' · ')}</span>
-      </div>
-      <div className="flex min-w-0 items-center justify-between gap-2">
-        <span className="min-w-0 flex-1 text-meta text-muted-foreground">{chips.join(' · ')}</span>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="shrink-0"
-          disabled={disabled || busy || !hasMeals}
-          title={hasMeals ? undefined : t('clientPlanEditor.templates.noMeals')}
-          aria-label={t('clientPlanEditor.templates.useNamed', { name })}
-          onClick={() => onUse(item)}
+    <Popover open={infoOpen} onOpenChange={setInfoOpen} modal={false}>
+      <PopoverAnchor asChild>
+        <li
+          data-testid="template-card"
+          className={cn(
+            'flex flex-col gap-1.5 rounded-xl bg-card shadow-panel',
+            best ? 'border-2 border-nutrition p-2.75' : 'border border-line p-3',
+            infoOpen && !best && 'border-ink',
+          )}
         >
-          {t('clientPlanEditor.templates.use')}
-        </Button>
-      </div>
-    </li>
+          <button
+            ref={infoButtonRef}
+            type="button"
+            aria-label={t('clientPlanEditor.templates.info.open', { name })}
+            aria-expanded={infoOpen}
+            onClick={() => setInfoOpen((open) => !open)}
+            className="flex min-w-0 cursor-pointer flex-col gap-1.5 rounded-lg text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+          >
+            <span className="flex min-w-0 items-center gap-2">
+              <GripVertical className="size-3.5 shrink-0 text-faint" aria-hidden="true" />
+              <span className="min-w-0 flex-1 truncate text-copy font-semibold text-ink">{name}</span>
+              {best && (
+                <span
+                  data-testid="template-best-match"
+                  className="shrink-0 rounded-full bg-nutrition-soft px-2 py-0.5 text-label font-semibold tracking-label text-nutrition-ink uppercase"
+                >
+                  {t('clientPlanEditor.templates.bestMatch')}
+                </span>
+              )}
+            </span>
+            <span className="flex min-w-0 items-center gap-1.5 text-meta text-muted-foreground">
+              {template.goal && <GoalDot goal={template.goal} />}
+              {goalLabel && <span className="shrink-0 font-semibold text-ink">{goalLabel}</span>}
+              <span className="truncate">{meta.join(' · ')}</span>
+            </span>
+          </button>
+          <div className="flex min-w-0 items-center justify-between gap-2">
+            <span className="min-w-0 flex-1 text-meta text-muted-foreground">{chips.join(' · ')}</span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="shrink-0"
+              disabled={disabled || busy || !hasMeals}
+              title={hasMeals ? undefined : t('clientPlanEditor.templates.noMeals')}
+              aria-label={t('clientPlanEditor.templates.useNamed', { name })}
+              onClick={() => onUse(item)}
+            >
+              {t('clientPlanEditor.templates.use')}
+            </Button>
+          </div>
+        </li>
+      </PopoverAnchor>
+      {infoOpen && template.templateId && (
+        <TemplateInfoPopover
+          templateId={template.templateId}
+          name={name}
+          language={language}
+          onClose={() => setInfoOpen(false)}
+          onInteractOutside={(event) => {
+            // A press on this card's own button is handled by its click (it toggles); don't dismiss first and reopen.
+            if (event.target instanceof Node && infoButtonRef.current?.contains(event.target)) {
+              event.preventDefault();
+            }
+          }}
+          onCloseAutoFocus={(event) => {
+            event.preventDefault();
+            infoButtonRef.current?.focus({ preventScroll: true });
+          }}
+        />
+      )}
+    </Popover>
   );
 }
 

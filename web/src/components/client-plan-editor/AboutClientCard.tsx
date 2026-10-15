@@ -1,11 +1,11 @@
 import { useId, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
 import type { OnboardingDataDto } from '@/api/generated';
 import { splitAllergies } from '@/components/client-detail/nutrition/nutritionProfile';
 
 interface Props {
-  clientId: string;
+  /** No longer used: the card has no link to the client profile. Kept so the panel that renders it needs no change. */
+  clientId?: string;
   clientFirstName: string;
   /** Undefined until the client has onboarding answers. */
   onboarding?: OnboardingDataDto;
@@ -44,7 +44,7 @@ function Chips({ items, className = CHIP_CLASS, emptyLabel }: { items: string[];
  * Read-only summary of the client's onboarding for the plan editor. Fields the server leaves out (no
  * nutrition-plan capability) hide their row.
  */
-export default function AboutClientCard({ clientId, clientFirstName, onboarding }: Props) {
+export default function AboutClientCard({ clientFirstName, onboarding }: Props) {
   const { t } = useTranslation();
   const headingId = useId();
   const none = t('clientDetail.nutrition.profile.none');
@@ -97,14 +97,6 @@ export default function AboutClientCard({ clientId, clientFirstName, onboarding 
             )}
           </>
         )}
-
-        <Link
-          to={`/clients/${clientId}/nutrition`}
-          data-testid="about-profile-link"
-          className="w-fit rounded-xs text-meta font-semibold text-ink-2 underline underline-offset-2 outline-none hover:no-underline focus-visible:ring-3 focus-visible:ring-ring/50"
-        >
-          {t('clientPlanEditor.info.about.profileLink', { name: clientFirstName })}
-        </Link>
       </div>
     </section>
   );
