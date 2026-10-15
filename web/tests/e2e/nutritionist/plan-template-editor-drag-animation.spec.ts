@@ -1,9 +1,10 @@
 /**
- * Plan editor drag animation (epic #1424, task #1439): while a meal tile is dragged within its day the tiles
- * slide to preview the move, the hovered slot is marked (data-landing) and the contents shown while hovering are
- * the ones the drop leaves; holding Alt/Option turns the same drag into a copy (nothing slides); a dragged row
- * or day label lifts a copy of the whole row or column and lights up the whole target band; keyboard moves and
- * drops slide the tiles too. Nothing slides under reduced motion. Runs against the real harness, no mocked APIs.
+ * Plan editor drag animation (epic #1424, tasks #1439 and #1444): while a meal tile is dragged within its day or
+ * along its row the tiles slide to preview the move, the hovered slot is marked (data-landing) and the contents
+ * shown while hovering are the ones the drop leaves; a horizontal drag with a little vertical drift stays on its
+ * row; holding Alt/Option turns the same drag into a copy (nothing slides); a dragged row or day label lifts a copy
+ * of the whole row or column, lights up the whole target band and slides the rows or days it moves; keyboard moves
+ * slide the tiles too. Nothing slides under reduced motion. Runs against the real harness, no mocked APIs.
  *
  * A meal's contents are told apart by how many ingredients it holds (its cell shows "N items"), so Monday's
  * Breakfast, Lunch, Snack 2 and Dinner hold 2, 3, 4 and 5 apples.
@@ -22,8 +23,8 @@ const MONDAY_COUNTS: Record<string, number> = {
   AfternoonSnack: COUNTS.c,
   Dinner: COUNTS.d,
 };
-/** Longer than the 200 ms slide, so a slide that was going to start has started and, without one, nothing is left to wait for. */
-const SLIDE_SETTLE_MS = 450;
+/** Longer than the 400 ms slide, so a slide that was going to start has started and, without one, nothing is left to wait for. */
+const SLIDE_SETTLE_MS = 500;
 
 type Auth = Record<string, string>;
 type Api = Awaited<ReturnType<typeof apiRequest.newContext>>;
@@ -89,6 +90,8 @@ async function createTemplate(
   baseURL: string,
   name: string,
   mondayCounts: Record<string, number> = MONDAY_COUNTS,
+  /** Overrides how many ingredients a day's meal of the kind holds; defaults to `mondayCounts` on Monday, empty elsewhere. */
+  counts?: (dayIndex: number, kind: string) => number,
 ): Promise<string> {
   return withApi(baseURL, async (api, headers) => {
     const food = await findApple(api, headers);
@@ -100,7 +103,7 @@ async function createTemplate(
           meals: FOUR_KINDS.map((kind, mealIndex) => ({
             kind,
             order: mealIndex + 1,
-            foods: foodsOf(food, dayIndex === 0 ? (mondayCounts[kind] ?? 0) : 0),
+            foods: foodsOf(food, counts ? counts(dayIndex, kind) : dayIndex === 0 ? (mondayCounts[kind] ?? 0) : 0),
             recipes: [],
           })),
         })),
@@ -405,26 +408,105 @@ test.describe('plan editor drag animation', () => {
     }
   });
 
-  test('a label drop slides the faces from their old cells to the new ones', async ({ page, baseURL }) => {
+  test('a dragged row slides the rows it moves while it is hovered, and a dragged day slides the days', async ({
+    page,
+    baseURL,
+  }) => {
     const origin = baseURL ?? 'http://localhost:5173';
-    // Breakfast holds 2 on Monday and nothing elsewhere; Lunch and the snack stay empty, so a row copy asks nothing.
-    const templateId = await createTemplate(origin, `QA Anim Label Drop ${Date.now()}`, { Breakfast: COUNTS.a });
+    const templateId = await createTemplate(origin, `QA Anim Label Slide ${Date.now()}`);
     try {
       await page.goto(`/plan-templates/${templateId}`);
-      await expectMonday(page, [COUNTS.a, 0, 0, 0]);
+      await expectMonday(page, [COUNTS.a, COUNTS.b, COUNTS.c, COUNTS.d]);
       await watchFaces(page);
 
+      // Hovering another row already shows the move: Breakfast's contents sit in the Snack 2 row, the rows between shift up.
       await beginDrag(page, rowLabel(page, 0));
       await hoverUntil(page, rowFrame(page, 2), 'data-over', 'true');
-      await page.mouse.up();
-      await expectMonday(page, [COUNTS.a, 0, COUNTS.a, 0]);
       await expect.poll(() => slidingFaces(page)).toBeGreaterThan(0);
+      await expectMonday(page, [COUNTS.b, COUNTS.c, COUNTS.a, COUNTS.d]);
+      await page.mouse.up();
+      await expectMonday(page, [COUNTS.b, COUNTS.c, COUNTS.a, COUNTS.d]);
+      await page.getByRole('button', { name: 'Undo' }).click();
+      await expectMonday(page, [COUNTS.a, COUNTS.b, COUNTS.c, COUNTS.d]);
+      await expect(page.getByTestId('save-status')).toHaveText('Saved');
+
+      // The same for a day: hovering Tuesday slides Monday's contents there.
+      await resetSlidingFaces(page);
+      await beginDrag(page, dayLabel(page, 1));
+      await hoverUntil(page, dayFrame(page, 2), 'data-over', 'true');
+      await expect.poll(() => slidingFaces(page)).toBeGreaterThan(0);
+      await expect(cell(page, 2, 0)).toContainText(`${COUNTS.a} items`);
+      await expectMonday(page, [0, 0, 0, 0]);
+      await page.mouse.up();
+      await expect(cell(page, 2, 3)).toContainText(`${COUNTS.d} items`);
+      await expectMonday(page, [0, 0, 0, 0]);
     } finally {
       await deleteTemplate(origin, templateId);
     }
   });
 
-  test('a dragged row lifts a copy of the whole row, dims the source and lights up the whole target row', async ({
+  test('a tile dragged along its row slides the row while it is hovered', async ({ page, baseURL }) => {
+    const origin = baseURL ?? 'http://localhost:5173';
+    // Breakfast holds A on Monday and B on Tuesday; every other tile is empty.
+    const templateId = await createTemplate(origin, `QA Anim Sideways ${Date.now()}`, MONDAY_COUNTS, (dayIndex, kind) =>
+      kind === 'Breakfast' ? (dayIndex === 0 ? COUNTS.a : dayIndex === 1 ? COUNTS.b : 0) : 0,
+    );
+    try {
+      await page.goto(`/plan-templates/${templateId}`);
+      await expect(cell(page, 1, 0)).toContainText(`${COUNTS.a} items`);
+      await expect(cell(page, 2, 0)).toContainText(`${COUNTS.b} items`);
+      await watchFaces(page);
+
+      await beginDrag(page, cell(page, 1, 0));
+      await hoverSlot(page, cell(page, 2, 0));
+      await expect.poll(() => slidingFaces(page)).toBeGreaterThan(0);
+      // The contents of Tuesday's tile have slid to Monday's, and Monday's to Tuesday's.
+      await expect(cell(page, 1, 0)).toContainText(`${COUNTS.b} items`);
+      await expect(cell(page, 2, 0)).toContainText(`${COUNTS.a} items`);
+      await expect(page.getByTestId('save-status')).toHaveText('Saved');
+      await page.mouse.up();
+      await expect(page.locator('[data-landing]')).toHaveCount(0);
+      await expect(cell(page, 1, 0)).toContainText(`${COUNTS.b} items`);
+      await expect(cell(page, 2, 0)).toContainText(`${COUNTS.a} items`);
+      await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes');
+    } finally {
+      await deleteTemplate(origin, templateId);
+    }
+  });
+
+  test('a horizontal drag with a little vertical drift stays on its row', async ({ page, baseURL }) => {
+    const origin = baseURL ?? 'http://localhost:5173';
+    const templateId = await createTemplate(origin, `QA Anim Drift ${Date.now()}`, MONDAY_COUNTS, (dayIndex, kind) =>
+      kind === 'Breakfast' ? (dayIndex === 0 ? COUNTS.a : dayIndex === 2 ? COUNTS.c : 0) : 0,
+    );
+    try {
+      await page.goto(`/plan-templates/${templateId}`);
+      await expect(cell(page, 1, 0)).toContainText(`${COUNTS.a} items`);
+      await expect(cell(page, 3, 0)).toContainText(`${COUNTS.c} items`);
+
+      await beginDrag(page, cell(page, 1, 0));
+      // Measure once the drag has started, then end up on Wednesday's tile with the pointer low in the row's tile.
+      const target = await settledBox(cell(page, 3, 0));
+      const x = target.x + target.width / 2;
+      const y = target.y + target.height * 0.8;
+      await expect(async () => {
+        await page.mouse.move(x - 2, y, { steps: 6 });
+        await page.mouse.move(x, y, { steps: 2 });
+        await expect(cell(page, 3, 0)).toHaveAttribute('data-landing', 'true', { timeout: 500 });
+      }).toPass({ timeout: 5000 });
+      // Still a move along the row: no copy target anywhere, and only Wednesday is the landing slot.
+      await expect(page.locator('[data-drop-target]')).toHaveCount(0);
+      await expect(page.locator('[data-landing="true"]')).toHaveCount(1);
+      await page.mouse.up();
+      await expect(page.getByTestId('card-drop-dialog')).toHaveCount(0);
+      await expect(cell(page, 1, 0)).toContainText(`${COUNTS.c} items`);
+      await expect(cell(page, 3, 0)).toContainText(`${COUNTS.a} items`);
+    } finally {
+      await deleteTemplate(origin, templateId);
+    }
+  });
+
+  test('a dragged row lifts a copy of the whole row, dims the source, lights up the whole target row and moves on drop', async ({
     page,
     baseURL,
   }) => {
@@ -465,18 +547,20 @@ test.describe('plan editor drag animation', () => {
       await expect(cell(page, 1, 2)).toHaveAttribute('data-band', 'target');
       await expect(rowFrame(page, 2)).toHaveAttribute('data-over', 'true');
       await expect(page.locator('[data-band="source"]')).toHaveCount(7);
+      // The move is previewed, so nothing is left behind to dim.
+      await expect(cell(page, 1, 0)).not.toHaveCSS('opacity', '0.5');
 
       await page.mouse.up();
       await expect(page.getByTestId('grid-drag-overlay')).toHaveCount(0);
       await expect(page.locator('[data-band]')).toHaveCount(0);
-      await page.getByTestId('label-drop-dialog').getByRole('button', { name: 'Cancel' }).click();
-      await expectMonday(page, [COUNTS.a, COUNTS.b, COUNTS.c, COUNTS.d]);
+      await expect(page.getByTestId('label-drop-dialog')).toHaveCount(0);
+      await expectMonday(page, [COUNTS.b, COUNTS.c, COUNTS.a, COUNTS.d]);
     } finally {
       await deleteTemplate(origin, templateId);
     }
   });
 
-  test('a dragged day lifts a copy of the whole column and lights up the whole target column', async ({ page, baseURL }) => {
+  test('a dragged day lifts a copy of the whole column, lights up the whole target column and moves on drop', async ({ page, baseURL }) => {
     const origin = baseURL ?? 'http://localhost:5173';
     const templateId = await createTemplate(origin, `QA Anim Day Overlay ${Date.now()}`);
     try {
@@ -496,7 +580,7 @@ test.describe('plan editor drag animation', () => {
       await expect(cell(page, 3, 0)).toHaveAttribute('data-band', 'target');
       await expect(dayFrame(page, 3)).toHaveAttribute('data-over', 'true');
 
-      // Tuesday is empty, so the drop copies at once.
+      // Released over Tuesday the day moves there: Tuesday's empty meals come to Monday.
       const tuesday = await settledBox(cell(page, 2, 2));
       await page.mouse.move(tuesday.x + tuesday.width / 2, tuesday.y + tuesday.height / 2, { steps: 12 });
       await expect(cell(page, 2, 0)).toHaveAttribute('data-band', 'target');
@@ -504,7 +588,7 @@ test.describe('plan editor drag animation', () => {
       await expect(page.getByTestId('label-drop-dialog')).toHaveCount(0);
       await expect(cell(page, 2, 0)).toContainText(`${COUNTS.a} items`);
       await expect(cell(page, 2, 3)).toContainText(`${COUNTS.d} items`);
-      await expect(cell(page, 1, 3)).toContainText(`${COUNTS.d} items`);
+      await expect(cell(page, 1, 3)).toContainText('Empty');
     } finally {
       await deleteTemplate(origin, templateId);
     }

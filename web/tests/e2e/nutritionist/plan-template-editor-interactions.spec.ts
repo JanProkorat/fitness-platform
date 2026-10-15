@@ -182,7 +182,7 @@ async function waitForSave(page: Page): Promise<void> {
 
 /**
  * Monday breakfast holds `first`, Tuesday lunch holds `second`: a filled tile in another row on another
- * day, so a drop between them asks Replace or Add (a same-row drop swaps instead). Saved afterwards.
+ * day, so a drop between them is a diagonal copy that asks Replace or Add (a same-row drop moves instead). Saved afterwards.
  */
 async function seedTwoMeals(page: Page, first: string, second: string): Promise<void> {
   await addRecipeToBreakfast(page, 1, first);
