@@ -108,7 +108,7 @@ export default function MealBlock({
           {t('planEditor.cell.kcal', { kcal: Math.round(totals.kcal) })}
         </span>
         <span data-testid="meal-macros" className="text-body text-muted-foreground">
-          <MacroDots protein={totals.protein} carbs={totals.carbs} fat={totals.fat} fiber={totals.fiber} />
+          <MacroDots protein={totals.protein} carbs={totals.carbs} fat={totals.fat} fiber={totals.fiber} unit />
         </span>
         {dayKcal > 0 && (
           <span

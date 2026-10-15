@@ -379,10 +379,10 @@ test.describe('plan template editor views', () => {
       // The meal header carries the meal's summed protein, carbs, fat and fiber.
       const mealMacros = page.getByTestId('meal-block').first().getByTestId('meal-macros');
       await expect(mealMacros).toBeVisible();
-      await expect(mealMacros).toContainText(/P\s*\d+/);
-      await expect(mealMacros).toContainText(/C\s*\d+/);
-      await expect(mealMacros).toContainText(/F\s*\d+/);
-      await expect(mealMacros).toContainText(/Fib\s*\d+/);
+      await expect(mealMacros).toContainText(/P\s*\d+\s*g/);
+      await expect(mealMacros).toContainText(/C\s*\d+\s*g/);
+      await expect(mealMacros).toContainText(/F\s*\d+\s*g/);
+      await expect(mealMacros).toContainText(/Fib\s*\d+\s*g/);
     } finally {
       await deleteTemplate(origin, templateId);
       await deleteRecipe(origin, recipeId);
