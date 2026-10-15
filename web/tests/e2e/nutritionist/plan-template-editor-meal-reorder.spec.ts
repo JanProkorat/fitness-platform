@@ -1,0 +1,429 @@
+/**
+ * Plan editor meal reorder (epic #1424, task #1436): dragging a meal card into the gap between two meals
+ * of its day moves its contents there and shifts the rest; a card dropped on a filled tile of the same row
+ * on another day swaps with it; Alt+ArrowUp / Alt+ArrowDown move a focused meal one slot. Each is one Undo
+ * step. Runs against the real harness, no mocked APIs.
+ *
+ * A meal's contents are told apart by how many ingredients it holds (its cell shows "N items"), so the
+ * Mon A/B/C/D example below is A = 2, B = 3, C = 4, D = 5 apples.
+ */
+import { request as apiRequest, type Locator, type Page } from '@playwright/test';
+import { nutritionistTest as test, expect } from '../fixtures/auth';
+
+const NUTRITIONIST_EMAIL = 'qa.nutri@fitnessplatform.test';
+const DAILY_KCAL = 2000;
+const CLIENT_PROFILE_ID = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+const SEEDED_PLAN_ID = 'dddddddd-eeee-ffff-0000-111111111111';
+/** Mon rows: Breakfast, Lunch, Snack 2, Dinner. */
+const FOUR_KINDS = ['Breakfast', 'Lunch', 'AfternoonSnack', 'Dinner'];
+const COUNTS = { a: 2, b: 3, c: 4, d: 5 };
+/** Half the 12px gap between two meals. */
+const HALF_GAP = 6;
+
+interface LoginResponseBody {
+  accessToken: string;
+}
+
+interface CreatedBody {
+  templateId?: string;
+}
+
+type WeeksBody = {
+  weekNumber: number;
+  days: { dayOfWeek: number; meals: { kind: string; order: number; foods: unknown[]; recipes: unknown[] }[] }[];
+}[];
+
+async function withApi<T>(
+  baseURL: string,
+  run: (api: Awaited<ReturnType<typeof apiRequest.newContext>>, auth: Record<string, string>) => Promise<T>,
+): Promise<T> {
+  const password = process.env['QA_SEED_PASSWORD'];
+  if (!password) {
+    throw new Error('[plan-template-editor-meal-reorder] QA_SEED_PASSWORD is not set. Copy .env.test.example to .env.test and fill it in.');
+  }
+  const api = await apiRequest.newContext({ baseURL });
+  try {
+    const login = await api.post('/auth/login', { data: { email: NUTRITIONIST_EMAIL, password } });
+    if (!login.ok()) {
+      throw new Error(`[plan-template-editor-meal-reorder] login as qa.nutri returned ${login.status()}.`);
+    }
+    const { accessToken } = (await login.json()) as LoginResponseBody;
+    return await run(api, { Authorization: `Bearer ${accessToken}` });
+  } finally {
+    await api.dispose();
+  }
+}
+
+/** One week; `kindsOf(dayIndex)` is the kinds that day holds (each an empty meal), in order. */
+function buildWeeks(kindsOf: (dayIndex: number) => string[]): WeeksBody {
+  return [
+    {
+      weekNumber: 1,
+      days: Array.from({ length: 7 }, (_, dayIndex) => ({
+        dayOfWeek: dayIndex + 1,
+        meals: kindsOf(dayIndex).map((kind, mealIndex) => ({ kind, order: mealIndex + 1, foods: [], recipes: [] })),
+      })),
+    },
+  ];
+}
+
+async function createTemplate(
+  baseURL: string,
+  name: string,
+  kindsOf: (dayIndex: number) => string[] = () => FOUR_KINDS,
+): Promise<string> {
+  return withApi(baseURL, async (api, headers) => {
+    const response = await api.post('/nutrition/plan-templates', {
+      headers,
+      data: { name, goal: 'Maintain', globalSettings: { dailyKcal: DAILY_KCAL }, weeks: buildWeeks(kindsOf) },
+    });
+    if (!response.ok()) {
+      throw new Error(`[plan-template-editor-meal-reorder] POST /nutrition/plan-templates returned ${response.status()}.`);
+    }
+    const templateId = ((await response.json()) as CreatedBody).templateId;
+    if (!templateId) {
+      throw new Error('[plan-template-editor-meal-reorder] create response carried no templateId.');
+    }
+    return templateId;
+  });
+}
+
+async function deleteTemplate(baseURL: string, templateId: string): Promise<void> {
+  await withApi(baseURL, (api, headers) => api.delete(`/nutrition/plan-templates/${templateId}`, { headers }));
+}
+
+function cell(page: Page, dayOfWeek: number, rowIndex: number): Locator {
+  return page.locator(`[data-testid="meal-cell"][data-day="${dayOfWeek}"][data-row="${rowIndex}"]`);
+}
+
+/** Selects the cell and adds the first Apple ingredient to it `count` times with the library's + button. */
+async function fillCell(page: Page, dayOfWeek: number, rowIndex: number, count: number): Promise<void> {
+  await cell(page, dayOfWeek, rowIndex).click();
+  await page.getByRole('tab', { name: 'Ingredients' }).click();
+  await page.getByLabel('Search ingredients…').fill('Apple');
+  const addButton = page
+    .getByTestId('library-card')
+    .first()
+    .getByRole('button', { name: /^Add .* to the selected meal$/ });
+  await expect(addButton).toBeEnabled();
+  for (let added = 0; added < count; added += 1) {
+    await addButton.click();
+  }
+  await expect(cell(page, dayOfWeek, rowIndex)).toContainText(`${count} items`);
+}
+
+/** Monday's four meals hold A, B, C, D (2, 3, 4, 5 ingredients), saved, so one Undo ends on "Saved". */
+async function seedMonday(page: Page, rows: readonly number[] = [0, 1, 2, 3]): Promise<void> {
+  const counts = [COUNTS.a, COUNTS.b, COUNTS.c, COUNTS.d];
+  for (const [index, row] of rows.entries()) {
+    await fillCell(page, 1, row, counts[index]);
+  }
+  await waitForSave(page);
+}
+
+async function waitForSave(page: Page): Promise<void> {
+  const put = page.waitForResponse(
+    (response) => response.url().includes('/nutrition/plan-templates/') && response.request().method() === 'PUT',
+  );
+  await page.getByRole('button', { name: 'Save' }).click();
+  expect((await put).ok()).toBe(true);
+  await expect(page.getByTestId('save-status')).toHaveText('Saved');
+}
+
+/** Scrolls the element into view, then waits until two reads of its box match. */
+async function settledBox(locator: Locator): Promise<{ x: number; y: number; width: number; height: number }> {
+  await locator.scrollIntoViewIfNeeded();
+  let previous = '';
+  let box = await locator.boundingBox();
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    const current = JSON.stringify(box);
+    if (current === previous && box) {
+      return box;
+    }
+    previous = current;
+    await locator.page().waitForTimeout(50);
+    box = await locator.boundingBox();
+  }
+  if (!box) {
+    throw new Error('[plan-template-editor-meal-reorder] drag source or target is not visible.');
+  }
+  return box;
+}
+
+/** Presses on the handle and travels far enough that dnd-kit starts the drag. */
+async function beginDrag(page: Page, handle: Locator): Promise<void> {
+  const from = await settledBox(handle);
+  await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(from.x + from.width / 2 + 12, from.y + from.height / 2 + 12, { steps: 4 });
+}
+
+async function moveTo(page: Page, x: number, y: number): Promise<void> {
+  await page.mouse.move(x, y, { steps: 12 });
+}
+
+/** The point in the gap above (or below) a card, in the card's column. */
+async function gapPoint(card: Locator, edge: 'above' | 'below'): Promise<{ x: number; y: number }> {
+  const box = await settledBox(card);
+  return { x: box.x + box.width / 2, y: edge === 'above' ? box.y - HALF_GAP : box.y + box.height + HALF_GAP };
+}
+
+async function dragToGap(page: Page, handle: Locator, beside: Locator, edge: 'above' | 'below'): Promise<void> {
+  // Scroll both ends into view first, so reading one box cannot move the other.
+  await handle.scrollIntoViewIfNeeded();
+  await beside.scrollIntoViewIfNeeded();
+  await beginDrag(page, handle);
+  const point = await gapPoint(beside, edge);
+  await moveTo(page, point.x, point.y);
+  await page.mouse.up();
+}
+
+async function dragToCell(page: Page, handle: Locator, target: Locator): Promise<void> {
+  await handle.scrollIntoViewIfNeeded();
+  await target.scrollIntoViewIfNeeded();
+  await beginDrag(page, handle);
+  const box = await settledBox(target);
+  await moveTo(page, box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.up();
+}
+
+/** Expects Monday's four cells to hold, in row order, the given numbers of ingredients. */
+async function expectMonday(page: Page, counts: readonly number[]): Promise<void> {
+  for (const [row, count] of counts.entries()) {
+    await expect(cell(page, 1, row)).toContainText(`${count} items`);
+  }
+}
+
+const ORIGINAL = [COUNTS.a, COUNTS.b, COUNTS.c, COUNTS.d];
+
+test.describe('plan editor meal reorder', () => {
+  test('dragging Dinner into the gap between Breakfast and Lunch shifts the day, and one Undo restores it', async ({
+    page,
+    baseURL,
+  }) => {
+    const origin = baseURL ?? 'http://localhost:5173';
+    const templateId = await createTemplate(origin, `QA Reorder Week ${Date.now()}`);
+    try {
+      await page.goto(`/plan-templates/${templateId}`);
+      await seedMonday(page);
+
+      await dragToGap(page, cell(page, 1, 3), cell(page, 1, 1), 'above');
+      // Mon A B C D -> A D B C: Lunch D, Snack 2 B, Dinner C.
+      await expectMonday(page, [COUNTS.a, COUNTS.d, COUNTS.b, COUNTS.c]);
+      await expect(page.getByTestId('card-drop-dialog')).toHaveCount(0);
+      await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes');
+
+      await page.getByRole('button', { name: 'Undo' }).click();
+      await expectMonday(page, ORIGINAL);
+      await expect(page.getByTestId('save-status')).toHaveText('Saved');
+    } finally {
+      await deleteTemplate(origin, templateId);
+    }
+  });
+
+  test('the edge gaps move a meal to the first and to the last slot of its day', async ({ page, baseURL }) => {
+    const origin = baseURL ?? 'http://localhost:5173';
+    const templateId = await createTemplate(origin, `QA Reorder Edges ${Date.now()}`);
+    try {
+      await page.goto(`/plan-templates/${templateId}`);
+      await seedMonday(page);
+
+      await dragToGap(page, cell(page, 1, 2), cell(page, 1, 0), 'above');
+      await expectMonday(page, [COUNTS.c, COUNTS.a, COUNTS.b, COUNTS.d]);
+      await page.getByRole('button', { name: 'Undo' }).click();
+      await expectMonday(page, ORIGINAL);
+
+      await dragToGap(page, cell(page, 1, 0), cell(page, 1, 3), 'below');
+      await expectMonday(page, [COUNTS.b, COUNTS.c, COUNTS.d, COUNTS.a]);
+      await page.getByRole('button', { name: 'Undo' }).click();
+      await expectMonday(page, ORIGINAL);
+      await expect(page.getByTestId('save-status')).toHaveText('Saved');
+    } finally {
+      await deleteTemplate(origin, templateId);
+    }
+  });
+
+  test('a kind the day does not have is skipped and never created', async ({ page, baseURL }) => {
+    const origin = baseURL ?? 'http://localhost:5173';
+    // Monday has no Snack 2; the other days keep it, so the row exists in the grid.
+    const templateId = await createTemplate(origin, `QA Reorder Skip ${Date.now()}`, (dayIndex) =>
+      dayIndex === 0 ? ['Breakfast', 'Lunch', 'Dinner'] : FOUR_KINDS,
+    );
+    try {
+      await page.goto(`/plan-templates/${templateId}`);
+      await seedMonday(page, [0, 1, 3]);
+
+      await dragToGap(page, cell(page, 1, 3), cell(page, 1, 1), 'above');
+      // Monday's Breakfast, Lunch and Dinner hold A, B, C: now A, C, B. The Snack 2 row stays empty.
+      await expect(cell(page, 1, 0)).toContainText(`${COUNTS.a} items`);
+      await expect(cell(page, 1, 1)).toContainText(`${COUNTS.c} items`);
+      await expect(cell(page, 1, 3)).toContainText(`${COUNTS.b} items`);
+      await expect(cell(page, 1, 2)).toContainText('Empty');
+
+      await page.getByRole('button', { name: 'Day', exact: true }).click();
+      await expect(page.getByTestId('meal-block')).toHaveCount(3);
+    } finally {
+      await deleteTemplate(origin, templateId);
+    }
+  });
+
+  test('while a card is dragged the gaps show an indicator, the insert lines are hidden, and the gaps next to it are off', async ({
+    page,
+    baseURL,
+  }) => {
+    const origin = baseURL ?? 'http://localhost:5173';
+    const templateId = await createTemplate(origin, `QA Reorder Indicator ${Date.now()}`);
+    try {
+      await page.goto(`/plan-templates/${templateId}`);
+      await seedMonday(page);
+      await expect(page.getByTestId('meal-gap')).toHaveCount(0);
+
+      await beginDrag(page, cell(page, 1, 3));
+      await expect(page.getByTestId('meal-insert-line')).toHaveCount(0);
+      // Dinner is the last slot: gaps 0, 1 and 2 are live; the ones above and below Dinner would change nothing.
+      await expect(page.locator('[data-testid="meal-gap"][data-day="1"]')).toHaveCount(3);
+      await expect(page.locator('[data-testid="meal-gap"][data-day="2"]')).toHaveCount(0);
+
+      const point = await gapPoint(cell(page, 1, 1), 'above');
+      await moveTo(page, point.x, point.y);
+      const over = page.locator('[data-testid="meal-gap"][data-over="true"]');
+      await expect(over).toHaveCount(1);
+      await expect(over.getByTestId('meal-gap-indicator')).toHaveCSS('opacity', '1');
+
+      await page.mouse.up();
+      await expect(page.getByTestId('meal-gap')).toHaveCount(0);
+      await expect(page.getByTestId('meal-insert-line')).toHaveCount(3);
+    } finally {
+      await deleteTemplate(origin, templateId);
+    }
+  });
+
+  test('a card dropped on a filled tile of the same row on another day swaps with it, no dialog, one Undo', async ({
+    page,
+    baseURL,
+  }) => {
+    const origin = baseURL ?? 'http://localhost:5173';
+    const templateId = await createTemplate(origin, `QA Reorder Swap ${Date.now()}`);
+    try {
+      await page.goto(`/plan-templates/${templateId}`);
+      await fillCell(page, 1, 0, COUNTS.a);
+      await fillCell(page, 2, 0, COUNTS.b);
+      await waitForSave(page);
+
+      await dragToCell(page, cell(page, 1, 0), cell(page, 2, 0));
+      await expect(page.getByTestId('card-drop-dialog')).toHaveCount(0);
+      await expect(cell(page, 1, 0)).toContainText(`${COUNTS.b} items`);
+      await expect(cell(page, 2, 0)).toContainText(`${COUNTS.a} items`);
+      await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes');
+
+      await page.getByRole('button', { name: 'Undo' }).click();
+      await expect(cell(page, 1, 0)).toContainText(`${COUNTS.a} items`);
+      await expect(cell(page, 2, 0)).toContainText(`${COUNTS.b} items`);
+      await expect(page.getByTestId('save-status')).toHaveText('Saved');
+    } finally {
+      await deleteTemplate(origin, templateId);
+    }
+  });
+
+  test('the Day view moves a meal into the gap between two meals, and one Undo restores it', async ({ page, baseURL }) => {
+    const origin = baseURL ?? 'http://localhost:5173';
+    const templateId = await createTemplate(origin, `QA Reorder Day ${Date.now()}`);
+    try {
+      await page.goto(`/plan-templates/${templateId}`);
+      await seedMonday(page);
+      await page.getByRole('button', { name: 'Day', exact: true }).click();
+
+      const blocks = page.getByTestId('meal-block');
+      await expect(blocks).toHaveCount(4);
+      const itemCounts = async () => [
+        await blocks.nth(0).getByTestId('meal-item').count(),
+        await blocks.nth(1).getByTestId('meal-item').count(),
+        await blocks.nth(2).getByTestId('meal-item').count(),
+        await blocks.nth(3).getByTestId('meal-item').count(),
+      ];
+      await expect.poll(itemCounts).toEqual(ORIGINAL);
+
+      await dragToGap(page, blocks.nth(3).getByRole('heading'), blocks.nth(1), 'above');
+      await expect.poll(itemCounts).toEqual([COUNTS.a, COUNTS.d, COUNTS.b, COUNTS.c]);
+      await expect(page.getByTestId('card-drop-dialog')).toHaveCount(0);
+
+      await page.getByRole('button', { name: 'Undo' }).click();
+      await expect.poll(itemCounts).toEqual(ORIGINAL);
+      await expect(page.getByTestId('save-status')).toHaveText('Saved');
+    } finally {
+      await deleteTemplate(origin, templateId);
+    }
+  });
+
+  test('Alt+ArrowUp and Alt+ArrowDown move a focused meal one slot, announce it, keep focus, and stop at the ends', async ({
+    page,
+    baseURL,
+  }) => {
+    const origin = baseURL ?? 'http://localhost:5173';
+    const templateId = await createTemplate(origin, `QA Reorder Keys ${Date.now()}`);
+    try {
+      await page.goto(`/plan-templates/${templateId}`);
+      await seedMonday(page);
+      const announcer = page.getByTestId('plan-editor-announcer');
+      await expect(cell(page, 1, 3)).toHaveAttribute('aria-keyshortcuts', 'Alt+ArrowUp Alt+ArrowDown');
+
+      await cell(page, 1, 3).focus();
+      await page.keyboard.press('Alt+ArrowUp');
+      await expectMonday(page, [COUNTS.a, COUNTS.b, COUNTS.d, COUNTS.c]);
+      await expect(cell(page, 1, 2)).toBeFocused();
+      await expect(announcer).toHaveText('Monday: contents moved to Snack, meal 3 of 4');
+
+      // One Undo takes back the one move.
+      await page.getByRole('button', { name: 'Undo' }).click();
+      await expectMonday(page, ORIGINAL);
+      await expect(page.getByTestId('save-status')).toHaveText('Saved');
+
+      // At the last slot Alt+ArrowDown does nothing: no edit, no new announcement.
+      await cell(page, 1, 3).focus();
+      await page.keyboard.press('Alt+ArrowDown');
+      await expectMonday(page, ORIGINAL);
+      await expect(page.getByTestId('save-status')).toHaveText('Saved');
+      await expect(announcer).toHaveText('Monday: contents moved to Snack, meal 3 of 4');
+
+      // The first slot moves down, and focus follows.
+      await cell(page, 1, 0).focus();
+      await page.keyboard.press('Alt+ArrowDown');
+      await expectMonday(page, [COUNTS.b, COUNTS.a, COUNTS.c, COUNTS.d]);
+      await expect(cell(page, 1, 1)).toBeFocused();
+      await expect(announcer).toHaveText('Monday: contents moved to Lunch, meal 2 of 4');
+    } finally {
+      await deleteTemplate(origin, templateId);
+    }
+  });
+
+  test('the Day view meal cards move with Alt+Arrow too', async ({ page, baseURL }) => {
+    const origin = baseURL ?? 'http://localhost:5173';
+    const templateId = await createTemplate(origin, `QA Reorder Day Keys ${Date.now()}`);
+    try {
+      await page.goto(`/plan-templates/${templateId}`);
+      await seedMonday(page);
+      await page.getByRole('button', { name: 'Day', exact: true }).click();
+
+      const blocks = page.getByTestId('meal-block');
+      await expect(blocks).toHaveCount(4);
+      await blocks.nth(0).focus();
+      await page.keyboard.press('Alt+ArrowDown');
+      await expect(blocks.nth(0).getByTestId('meal-item')).toHaveCount(COUNTS.b);
+      await expect(blocks.nth(1).getByTestId('meal-item')).toHaveCount(COUNTS.a);
+      await expect(blocks.nth(1)).toBeFocused();
+    } finally {
+      await deleteTemplate(origin, templateId);
+    }
+  });
+
+  test('a read-only plan has no gaps, no insert lines and no move shortcuts', async ({ page }) => {
+    await page.goto(`/clients/${CLIENT_PROFILE_ID}/nutrition/plans/${SEEDED_PLAN_ID}`);
+    await expect(page.getByTestId('save-status')).toBeVisible();
+    test.skip((await page.getByRole('note').count()) === 0, 'the seeded plan is not read-only in this fixture');
+
+    await expect(page.getByTestId('add-meal-week')).toHaveCount(0);
+    await expect(page.getByTestId('meal-insert-line')).toHaveCount(0);
+    await expect(page.getByTestId('meal-gap')).toHaveCount(0);
+    await expect(page.locator('[aria-keyshortcuts]')).toHaveCount(0);
+  });
+});

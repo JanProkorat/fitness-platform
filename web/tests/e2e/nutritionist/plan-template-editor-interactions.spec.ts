@@ -164,11 +164,11 @@ async function dragTo(page: Page, handle: Locator, target: Locator): Promise<voi
 }
 
 /** Selects the day's breakfast and adds the recipe to it with the library's + button. */
-async function addRecipeToBreakfast(page: Page, dayOfWeek: number, recipeName: string): Promise<void> {
-  await cell(page, dayOfWeek, 0).click();
+async function addRecipeToBreakfast(page: Page, dayOfWeek: number, recipeName: string, rowIndex = 0): Promise<void> {
+  await cell(page, dayOfWeek, rowIndex).click();
   await page.getByLabel('Search recipes…').fill(recipeName);
   await page.getByRole('button', { name: new RegExp(`^Add ${recipeName} to the selected meal$`) }).click();
-  await expect(cell(page, dayOfWeek, 0)).toContainText(recipeName);
+  await expect(cell(page, dayOfWeek, rowIndex)).toContainText(recipeName);
 }
 
 async function waitForSave(page: Page): Promise<void> {
@@ -180,10 +180,13 @@ async function waitForSave(page: Page): Promise<void> {
   await expect(page.getByTestId('save-status')).toHaveText('Saved');
 }
 
-/** Monday breakfast holds `first`, Tuesday breakfast holds `second`; the document is saved afterwards. */
-async function seedTwoBreakfasts(page: Page, first: string, second: string): Promise<void> {
+/**
+ * Monday breakfast holds `first`, Tuesday lunch holds `second`: a filled tile in another row on another
+ * day, so a drop between them asks Replace or Add (a same-row drop swaps instead). Saved afterwards.
+ */
+async function seedTwoMeals(page: Page, first: string, second: string): Promise<void> {
   await addRecipeToBreakfast(page, 1, first);
-  await addRecipeToBreakfast(page, 2, second);
+  await addRecipeToBreakfast(page, 2, second, 1);
   await waitForSave(page);
 }
 
@@ -215,7 +218,7 @@ test.describe('plan template editor interactions', () => {
     }
   });
 
-  test('dropping onto a filled cell asks first: Cancel changes nothing, Replace and Add are one Undo step each', async ({
+  test('dropping onto a filled cell in another row asks first: Cancel changes nothing, Replace and Add are one Undo step each', async ({
     page,
     baseURL,
   }) => {
@@ -228,37 +231,37 @@ test.describe('plan template editor interactions', () => {
     const templateId = await createTemplate(origin, `QA Drag Filled ${stamp}`);
     try {
       await page.goto(`/plan-templates/${templateId}`);
-      await seedTwoBreakfasts(page, sourceName, targetName);
+      await seedTwoMeals(page, sourceName, targetName);
       const dialog = page.getByTestId('card-drop-dialog');
 
       // Cancel: the cell keeps its food and no edit is recorded.
-      await dragTo(page, cell(page, 1, 0), cell(page, 2, 0));
+      await dragTo(page, cell(page, 1, 0), cell(page, 2, 1));
       await expect(dialog).toBeVisible();
       await expect(dialog.getByRole('heading')).toContainText('Tuesday');
       await dialog.getByRole('button', { name: 'Cancel' }).click();
       await expect(dialog).toHaveCount(0);
-      await expect(cell(page, 2, 0)).toContainText(targetName);
-      await expect(cell(page, 2, 0)).not.toContainText(sourceName);
+      await expect(cell(page, 2, 1)).toContainText(targetName);
+      await expect(cell(page, 2, 1)).not.toContainText(sourceName);
       await expect(page.getByTestId('save-status')).toHaveText('Saved');
 
       // Replace: the target holds only the dropped meal; one Undo restores it exactly.
-      await dragTo(page, cell(page, 1, 0), cell(page, 2, 0));
+      await dragTo(page, cell(page, 1, 0), cell(page, 2, 1));
       await dialog.getByRole('button', { name: 'Replace', exact: true }).click();
       await expect(dialog).toHaveCount(0);
-      await expect(cell(page, 2, 0)).toContainText(sourceName);
-      await expect(cell(page, 2, 0)).not.toContainText(targetName);
+      await expect(cell(page, 2, 1)).toContainText(sourceName);
+      await expect(cell(page, 2, 1)).not.toContainText(targetName);
       await page.getByRole('button', { name: 'Undo' }).click();
-      await expect(cell(page, 2, 0)).toContainText(targetName);
-      await expect(cell(page, 2, 0)).not.toContainText(sourceName);
+      await expect(cell(page, 2, 1)).toContainText(targetName);
+      await expect(cell(page, 2, 1)).not.toContainText(sourceName);
       await expect(page.getByTestId('save-status')).toHaveText('Saved');
 
       // Add to existing: the target holds both; one Undo takes the added meal away again.
-      await dragTo(page, cell(page, 1, 0), cell(page, 2, 0));
+      await dragTo(page, cell(page, 1, 0), cell(page, 2, 1));
       await dialog.getByRole('button', { name: 'Add to existing', exact: true }).click();
-      await expect(cell(page, 2, 0)).toContainText(targetName);
-      await expect(cell(page, 2, 0)).toContainText(sourceName);
+      await expect(cell(page, 2, 1)).toContainText(targetName);
+      await expect(cell(page, 2, 1)).toContainText(sourceName);
       await page.getByRole('button', { name: 'Undo' }).click();
-      await expect(cell(page, 2, 0)).not.toContainText(sourceName);
+      await expect(cell(page, 2, 1)).not.toContainText(sourceName);
       await expect(page.getByTestId('save-status')).toHaveText('Saved');
     } finally {
       await deleteTemplate(origin, templateId);

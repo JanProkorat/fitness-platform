@@ -293,6 +293,57 @@ test.describe('client plan editor', () => {
     }
   });
 
+  test('dragging Lunch into the gap above Breakfast moves its contents, and one Undo restores them', async ({ page, baseURL }) => {
+    const origin = baseURL ?? 'http://localhost:5173';
+    const { planId, name } = await createPlan(origin, 'Reorder');
+    try {
+      await page.goto(editorUrl(planId));
+      await expectEditorLoaded(page, name);
+
+      // Add a Lunch row, then give Monday's Lunch two ingredients (Breakfast holds one).
+      await page.getByTestId('add-meal-week').click();
+      const drawer = page.getByRole('dialog');
+      await drawer.getByRole('radio', { name: 'Lunch', exact: true }).click();
+      await drawer.getByRole('button', { name: 'Add meal', exact: true }).click();
+      await expect(drawer).toHaveCount(0);
+
+      const breakfast = page.locator('[data-testid="meal-cell"][data-day="1"][data-row="0"]');
+      const lunch = page.locator('[data-testid="meal-cell"][data-day="1"][data-row="1"]');
+      await lunch.click();
+      await page.getByRole('tab', { name: 'Ingredients' }).click();
+      await page.getByLabel('Search ingredients…').fill('Apple');
+      const addButton = page.getByTestId('library-card').first().getByRole('button', { name: /^Add .* to the selected meal$/ });
+      await expect(addButton).toBeEnabled();
+      await addButton.click();
+      await addButton.click();
+      await expect(lunch).toContainText('2 items');
+      await expect(breakfast).not.toContainText('items');
+
+      // Drag Lunch into the gap above Breakfast (the first slot of Monday).
+      await lunch.scrollIntoViewIfNeeded();
+      const from = await lunch.boundingBox();
+      const to = await breakfast.boundingBox();
+      if (!from || !to) {
+        throw new Error('[client-plan-editor] the Breakfast or Lunch cell is not visible.');
+      }
+      await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(from.x + from.width / 2 + 12, from.y + from.height / 2 + 12, { steps: 4 });
+      await page.mouse.move(to.x + to.width / 2, to.y - 6, { steps: 12 });
+      await page.mouse.up();
+
+      await expect(breakfast).toContainText('2 items');
+      await expect(lunch).not.toContainText('items');
+      await expect(page.getByTestId('card-drop-dialog')).toHaveCount(0);
+
+      await page.getByRole('button', { name: 'Undo' }).click();
+      await expect(lunch).toContainText('2 items');
+      await expect(breakfast).not.toContainText('items');
+    } finally {
+      await archivePlan(origin, planId);
+    }
+  });
+
   test('the Plan info tab shows the selected week average per day', async ({ page, baseURL }) => {
     const origin = baseURL ?? 'http://localhost:5173';
     const { planId, name } = await createPlan(origin, 'Average');
