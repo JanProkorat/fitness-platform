@@ -576,16 +576,147 @@ export function slotOrigins(slotCount: number, fromIndex: number, toIndex: numbe
   return origins;
 }
 
-/** The slot pairs a content change slides: contents shown at slot `from` in `before` show at slot `to` in `after`. */
-export function slotMoves(before: readonly number[], after: readonly number[]): { from: number; to: number }[] {
-  const moves: { from: number; to: number }[] = [];
-  for (const [position, origin] of before.entries()) {
-    const to = after.indexOf(origin);
-    if (to !== -1 && to !== position) {
-      moves.push({ from: position, to });
+/** A cell of the week grid: a weekday and a row index in {@link weekRows}. */
+export interface CellRef {
+  dayOfWeek: number;
+  rowIndex: number;
+}
+
+/** The contents of the cell `from` end up in the cell `to`. */
+export interface CellFlip {
+  from: CellRef;
+  to: CellRef;
+}
+
+/** Where the contents of the slots of one day go when the slot contents become `origins` (see {@link slotOrigins}). */
+function slotPlacement(
+  week: EditorWeek,
+  dayOfWeek: number,
+  slots: readonly EditorMeal[],
+  origins: readonly number[],
+): CellFlip[] {
+  const rows = dayRowIndexes(
+    week,
+    week.days.find((day) => day.dayOfWeek === dayOfWeek),
+  );
+  const placement: CellFlip[] = [];
+  for (const [position, origin] of origins.entries()) {
+    const fromRow = rows.get(slots[origin]?.mealId ?? '');
+    const toRow = rows.get(slots[position]?.mealId ?? '');
+    if (origin !== position && fromRow !== undefined && toRow !== undefined) {
+      placement.push({ from: { dayOfWeek, rowIndex: fromRow }, to: { dayOfWeek, rowIndex: toRow } });
     }
   }
-  return moves;
+  return placement;
+}
+
+/**
+ * Where the contents go when one meal's contents move to the gap before slot `gapIndex` of its day, in
+ * {@link daySlots} order, and the contents in between shift by one slot. Every meal the day has takes part,
+ * empty ones included.
+ */
+export function columnMovePlacement(
+  week: EditorWeek,
+  dayOfWeek: number,
+  mealId: string,
+  gapIndex: number,
+): CellFlip[] {
+  const slots = daySlots(week.days.find((candidate) => candidate.dayOfWeek === dayOfWeek));
+  const from = slots.findIndex((meal) => meal.mealId === mealId);
+  if (from === -1) {
+    return [];
+  }
+  const to = movedSlotIndex(from, gapIndex, slots.length);
+  return to === from ? [] : slotPlacement(week, dayOfWeek, slots, slotOrigins(slots.length, from, to));
+}
+
+/**
+ * Where the contents go when a meal's contents move along its row from weekday `fromDay` to weekday `toDay`: only the
+ * days that have a meal in the row take part (empty meals included), the others are skipped.
+ */
+export function rowMovePlacement(week: EditorWeek, rowIndex: number, fromDay: number, toDay: number): CellFlip[] {
+  const row = weekRows(week)[rowIndex];
+  if (!row) {
+    return [];
+  }
+  const days = week.days
+    .filter((day) => rowMeal(day, row) !== undefined)
+    .map((day) => day.dayOfWeek)
+    .sort((left, right) => left - right);
+  const from = days.indexOf(fromDay);
+  const hover = days.indexOf(toDay);
+  if (from === -1 || hover === -1 || from === hover) {
+    return [];
+  }
+  const to = movedSlotIndex(from, gapForSlot(from, hover), days.length);
+  return slotOrigins(days.length, from, to).flatMap((origin, position) =>
+    origin === position
+      ? []
+      : [{ from: { dayOfWeek: days[origin], rowIndex }, to: { dayOfWeek: days[position], rowIndex } }],
+  );
+}
+
+/**
+ * Where the contents go when row `fromRow` moves onto row `toRow`: in each day that has a meal in both rows, the
+ * contents of the first move to the second as in {@link columnMovePlacement}. A day lacking either row stays as it is.
+ */
+export function rowLabelPlacement(week: EditorWeek, fromRow: number, toRow: number): CellFlip[] {
+  const rows = weekRows(week);
+  const from = rows[fromRow];
+  const to = rows[toRow];
+  if (!from || !to || fromRow === toRow) {
+    return [];
+  }
+  return week.days.flatMap((day) => {
+    const source = rowMeal(day, from);
+    const target = rowMeal(day, to);
+    if (!source || !target) {
+      return [];
+    }
+    const slots = daySlots(day);
+    const sourceSlot = slots.findIndex((meal) => meal.mealId === source.mealId);
+    const targetSlot = slots.findIndex((meal) => meal.mealId === target.mealId);
+    return columnMovePlacement(week, day.dayOfWeek, source.mealId, gapForSlot(sourceSlot, targetSlot));
+  });
+}
+
+/** Puts the contents of every `from` cell into its `to` cell, resolved against the week as it was; ids, kinds, order and times stay. */
+function applyPlacement(doc: EditorDocument, weekIndex: number, placement: readonly CellFlip[]): EditorDocument {
+  const week = doc.weeks[weekIndex];
+  if (!week || placement.length === 0) {
+    return doc;
+  }
+  const rows = weekRows(week);
+  const mealAt = (cell: CellRef) =>
+    rowMeal(
+      week.days.find((day) => day.dayOfWeek === cell.dayOfWeek),
+      rows[cell.rowIndex],
+    );
+  const incoming = new Map<string, MealContents>();
+  for (const { from, to } of placement) {
+    const source = mealAt(from);
+    const target = mealAt(to);
+    if (source && target) {
+      incoming.set(target.mealId, contentsOf(source));
+    }
+  }
+  if (incoming.size === 0) {
+    return doc;
+  }
+  return updateWeek(doc, weekIndex, (current) => ({
+    ...current,
+    days: current.days.map((day) =>
+      day.meals.some((meal) => incoming.has(meal.mealId))
+        ? {
+            ...day,
+            meals: day.meals.map((meal) => {
+              const next = incoming.get(meal.mealId);
+              return next ? { ...meal, ...next } : meal;
+            }),
+          }
+        : day,
+    ),
+  }));
 }
 
 /**
@@ -600,58 +731,103 @@ export function moveMealContents(
   mealId: string,
   gapIndex: number,
 ): EditorDocument {
-  const day = doc.weeks[weekIndex]?.days.find((candidate) => candidate.dayOfWeek === dayOfWeek);
-  const slots = daySlots(day);
-  const from = slots.findIndex((meal) => meal.mealId === mealId);
-  if (from === -1) {
-    return doc;
-  }
-  const to = movedSlotIndex(from, gapIndex, slots.length);
-  if (to === from) {
-    return doc;
-  }
-  const contents = slots.map(contentsOf);
-  const [moved] = contents.splice(from, 1);
-  contents.splice(to, 0, moved);
-  const byMealId = new Map(slots.map((meal, index) => [meal.mealId, contents[index]]));
-  return updateDay(doc, weekIndex, dayOfWeek, (current) => ({
-    ...current,
-    meals: current.meals.map((meal) => {
-      const next = byMealId.get(meal.mealId);
-      return next ? { ...meal, ...next } : meal;
-    }),
-  }));
+  const week = doc.weeks[weekIndex];
+  return week ? applyPlacement(doc, weekIndex, columnMovePlacement(week, dayOfWeek, mealId, gapIndex)) : doc;
 }
 
-/** Swaps the items, recipes and note of two meals of one week; ids, kinds, order and times stay put. */
-export function swapMealContents(
+/** Moves a meal's contents along its row to another weekday; see {@link rowMovePlacement}. */
+export function moveMealAlongRow(
   doc: EditorDocument,
   weekIndex: number,
-  first: { dayOfWeek: number; mealId: string },
-  second: { dayOfWeek: number; mealId: string },
+  rowIndex: number,
+  fromDay: number,
+  toDay: number,
 ): EditorDocument {
   const week = doc.weeks[weekIndex];
-  const findMeal = (ref: { dayOfWeek: number; mealId: string }) =>
-    week?.days.find((day) => day.dayOfWeek === ref.dayOfWeek)?.meals.find((meal) => meal.mealId === ref.mealId);
-  const firstMeal = findMeal(first);
-  const secondMeal = findMeal(second);
-  if (!firstMeal || !secondMeal || firstMeal.mealId === secondMeal.mealId) {
+  return week ? applyPlacement(doc, weekIndex, rowMovePlacement(week, rowIndex, fromDay, toDay)) : doc;
+}
+
+/** The weekdays a day move touches, in order, and for each the position (in that list) its contents come from. */
+function dayRange(move: { from: number; to: number }): { days: number[]; origins: number[] } | null {
+  const first = Math.min(move.from, move.to);
+  const last = Math.max(move.from, move.to);
+  if (move.from === move.to || first < 1 || last > DAYS_PER_WEEK) {
+    return null;
+  }
+  const days = Array.from({ length: last - first + 1 }, (_, index) => first + index);
+  return { days, origins: slotOrigins(days.length, move.from - first, move.to - first) };
+}
+
+/**
+ * Where the contents go when a day moves onto another day: every day between them takes the meals of the day it
+ * receives from, so each meal keeps its row.
+ */
+export function dayMovePlacement(week: EditorWeek, fromDay: number, toDay: number): CellFlip[] {
+  const range = dayRange({ from: fromDay, to: toDay });
+  if (!range) {
+    return [];
+  }
+  return range.origins.flatMap((origin, position) => {
+    if (origin === position) {
+      return [];
+    }
+    const originDay = range.days[origin];
+    const rows = dayRowIndexes(
+      week,
+      week.days.find((day) => day.dayOfWeek === originDay),
+    );
+    return [...rows.values()].map((rowIndex) => ({
+      from: { dayOfWeek: originDay, rowIndex },
+      to: { dayOfWeek: range.days[position], rowIndex },
+    }));
+  });
+}
+
+/**
+ * Moves a day onto another day as an exact rotation: each day from one to the other takes the kinds and contents
+ * of the day it receives from, and day notes stay. A meal keeps the id and time of the receiving day's meal of the
+ * same kind and position; meals with no such match get a new id. The meal count of every day is one the week
+ * already had, so no day passes the cap and no id is used twice.
+ */
+export function moveDayContents(doc: EditorDocument, weekIndex: number, fromDay: number, toDay: number): EditorDocument {
+  const week = doc.weeks[weekIndex];
+  const range = dayRange({ from: fromDay, to: toDay });
+  if (!week || !range) {
     return doc;
   }
-  const firstContents = contentsOf(firstMeal);
-  const secondContents = contentsOf(secondMeal);
+  const rotated = new Map<number, EditorMeal[]>();
+  for (const [position, origin] of range.origins.entries()) {
+    if (origin === position) {
+      continue;
+    }
+    const receiving = dayOf(week, range.days[position]);
+    const slotKey = (kind: MealKind, occurrence: number) => `${kind}:${occurrence}`;
+    const receivingBySlot = new Map<string, EditorMeal>();
+    const receivingSeen = new Map<MealKind, number>();
+    for (const meal of receiving.meals) {
+      const occurrence = receivingSeen.get(meal.kind) ?? 0;
+      receivingSeen.set(meal.kind, occurrence + 1);
+      receivingBySlot.set(slotKey(meal.kind, occurrence), meal);
+    }
+    const seen = new Map<MealKind, number>();
+    const meals = dayOf(week, range.days[origin]).meals.map((meal) => {
+      const occurrence = seen.get(meal.kind) ?? 0;
+      seen.set(meal.kind, occurrence + 1);
+      const match = receivingBySlot.get(slotKey(meal.kind, occurrence));
+      return {
+        ...copyContents(meal, meal),
+        mealId: match?.mealId ?? crypto.randomUUID(),
+        time: match ? match.time : meal.time,
+      };
+    });
+    rotated.set(range.days[position], renumber(meals));
+  }
   return updateWeek(doc, weekIndex, (current) => ({
     ...current,
-    days: current.days.map((day) => ({
-      ...day,
-      meals: day.meals.map((meal) =>
-        meal.mealId === firstMeal.mealId
-          ? { ...meal, ...secondContents }
-          : meal.mealId === secondMeal.mealId
-            ? { ...meal, ...firstContents }
-            : meal,
-      ),
-    })),
+    days: current.days.map((day) => {
+      const meals = rotated.get(day.dayOfWeek);
+      return meals ? { ...day, meals } : day;
+    }),
   }));
 }
 
@@ -713,8 +889,8 @@ export interface LabelMove {
   to: number;
 }
 
-/** `copy` is `replace` that leaves a target alone when its source cell is empty; it is what a drop on an empty target does. */
-export type LabelOpMode = 'swap' | 'replace' | 'append' | 'copy';
+/** `copy` is `replace` that leaves a target alone when its source cell is empty; it is what an Alt drop on an empty target does. */
+export type LabelOpMode = 'replace' | 'append' | 'copy';
 
 interface MealSlot {
   dayOfWeek: number;
@@ -793,11 +969,10 @@ interface GroupResult {
 
 /**
  * Applies one group of cell pairs. Every pair's meals are resolved from the week as it was before the move, so
- * creating a meal never shifts what a later pair points at; meals a swap leaves behind are dropped last.
+ * creating a meal never shifts what a later pair points at.
  */
 function applyGroup(week: EditorWeek, pairs: readonly SlotPair[], mode: LabelOpMode): GroupResult {
   const days = new Map<number, EditorMeal[]>();
-  const vacated: { dayOfWeek: number; mealId: string }[] = [];
   let changed = false;
   const mealsOf = (dayOfWeek: number) => days.get(dayOfWeek) ?? dayOf(week, dayOfWeek).meals;
   const assign = (dayOfWeek: number, mealId: string, contents: MealContents) => {
@@ -826,24 +1001,7 @@ function applyGroup(week: EditorWeek, pairs: readonly SlotPair[], mode: LabelOpM
     const sourceContents = sourceMeal ? contentsOf(sourceMeal) : undefined;
     const targetContents = targetMeal ? contentsOf(targetMeal) : undefined;
     const sourceFull = sourceContents !== undefined && !isEmptyContents(sourceContents);
-    if (mode === 'swap') {
-      if (sourceMeal && targetMeal && sourceContents && targetContents) {
-        if (sourceFull || !isEmptyContents(targetContents)) {
-          assign(pair.source.dayOfWeek, sourceMeal.mealId, targetContents);
-          assign(pair.target.dayOfWeek, targetMeal.mealId, sourceContents);
-        }
-        continue;
-      }
-      const present = sourceMeal ?? targetMeal;
-      if (!present || isEmptyContents(contentsOf(present))) {
-        continue;
-      }
-      const home = sourceMeal ? pair.source : pair.target;
-      const destination = sourceMeal ? pair.target : pair.source;
-      create(destination, contentsOf(present));
-      assign(home.dayOfWeek, present.mealId, BLANK_CONTENTS);
-      vacated.push({ dayOfWeek: home.dayOfWeek, mealId: present.mealId });
-    } else if (mode === 'append') {
+    if (mode === 'append') {
       if (!sourceContents || !sourceFull) {
         continue;
       }
@@ -869,24 +1027,6 @@ function applyGroup(week: EditorWeek, pairs: readonly SlotPair[], mode: LabelOpM
     }
   }
 
-  // A meal a swap emptied goes away only when it is the last of its kind that day; otherwise a later one would shift up.
-  for (const dayOfWeek of new Set(vacated.map((entry) => entry.dayOfWeek))) {
-    let meals = mealsOf(dayOfWeek);
-    const position = new Map(meals.map((meal, index) => [meal.mealId, index]));
-    const ids = vacated
-      .filter((entry) => entry.dayOfWeek === dayOfWeek)
-      .map((entry) => entry.mealId)
-      .sort((left, right) => (position.get(right) ?? 0) - (position.get(left) ?? 0));
-    for (const id of ids) {
-      const meal = meals.find((candidate) => candidate.mealId === id);
-      const sameKind = meal ? meals.filter((candidate) => candidate.kind === meal.kind) : [];
-      if (meal && isEmptyContents(contentsOf(meal)) && sameKind[sameKind.length - 1]?.mealId === id) {
-        meals = meals.filter((candidate) => candidate.mealId !== id);
-      }
-    }
-    days.set(dayOfWeek, meals);
-  }
-
   const overCap: number[] = [];
   for (const [dayOfWeek, meals] of days) {
     if (meals.length > MAX_MEALS_PER_DAY) {
@@ -910,7 +1050,7 @@ export interface LabelPreview {
   outcome: Record<LabelOpMode, LabelOutcome>;
 }
 
-const LABEL_OP_MODES: readonly LabelOpMode[] = ['swap', 'replace', 'append', 'copy'];
+const LABEL_OP_MODES: readonly LabelOpMode[] = ['replace', 'append', 'copy'];
 
 /** What a label move would do in each mode, without doing it. */
 export function previewLabelMove(week: EditorWeek, move: LabelMove): LabelPreview {
@@ -967,21 +1107,9 @@ export function applyLabelMove(doc: EditorDocument, weekIndex: number, move: Lab
   }));
 }
 
-/** A cell of the week grid: a weekday and a row index in {@link weekRows}. */
-export interface CellRef {
-  dayOfWeek: number;
-  rowIndex: number;
-}
-
-/** The contents of the cell `from` end up in the cell `to`. */
-export interface CellFlip {
-  from: CellRef;
-  to: CellRef;
-}
-
 /**
- * Where the contents go when {@link applyLabelMove} runs with the same arguments: one entry per filled source cell
- * (both directions for a swap). Days the meal cap leaves out are skipped, as the move itself skips them.
+ * Where the contents go when {@link applyLabelMove} runs with the same arguments: one entry per filled source cell.
+ * Days the meal cap leaves out are skipped, as the move itself skips them.
  */
 export function labelMoveFlips(week: EditorWeek, move: LabelMove, mode: LabelOpMode): CellFlip[] {
   const rows = weekRows(week);
@@ -1005,12 +1133,56 @@ export function labelMoveFlips(week: EditorWeek, move: LabelMove, mode: LabelOpM
       if (filled(pair.source)) {
         flips.push({ from: source, to: target });
       }
-      if (mode === 'swap' && filled(pair.target)) {
-        flips.push({ from: target, to: source });
-      }
     }
   }
   return flips.filter((flip) => flip.from.rowIndex !== -1 && flip.to.rowIndex !== -1);
+}
+
+/** Where the contents go when a row or day label is moved (not copied) onto another one. */
+export function labelMovePlacement(week: EditorWeek, move: LabelMove): CellFlip[] {
+  return move.axis === 'row'
+    ? rowLabelPlacement(week, move.from, move.to)
+    : dayMovePlacement(week, move.from, move.to);
+}
+
+/**
+ * Moves a row onto another row (contents only, per day, see {@link rowLabelPlacement}) or a day onto another day
+ * (an exact rotation, see {@link moveDayContents}). It never creates a meal, so the daily meal cap never applies.
+ */
+export function moveLabel(doc: EditorDocument, weekIndex: number, move: LabelMove): EditorDocument {
+  const week = doc.weeks[weekIndex];
+  if (!week) {
+    return doc;
+  }
+  return move.axis === 'row'
+    ? applyPlacement(doc, weekIndex, rowLabelPlacement(week, move.from, move.to))
+    : moveDayContents(doc, weekIndex, move.from, move.to);
+}
+
+function cellKey(cell: CellRef): string {
+  return `${cell.dayOfWeek}:${cell.rowIndex}`;
+}
+
+/**
+ * The slides that take a grid showing the contents placed by `before` to one showing `after`; both are placements
+ * of the same untouched week, so a cell's contents are tracked from where they started.
+ */
+export function placementDiff(before: readonly CellFlip[], after: readonly CellFlip[]): CellFlip[] {
+  const origins = new Map<string, CellRef>();
+  for (const { from } of [...before, ...after]) {
+    origins.set(cellKey(from), from);
+  }
+  const locate = (placement: readonly CellFlip[], origin: CellRef) =>
+    placement.find((flip) => cellKey(flip.from) === cellKey(origin))?.to ?? origin;
+  const slides: CellFlip[] = [];
+  for (const origin of origins.values()) {
+    const from = locate(before, origin);
+    const to = locate(after, origin);
+    if (cellKey(from) !== cellKey(to)) {
+      slides.push({ from, to });
+    }
+  }
+  return slides;
 }
 
 /**

@@ -26,9 +26,11 @@ import type { LabelAxis } from '@/components/plan-editor/plan-editor-ops';
 import {
   CELL_MEAL_DRAG,
   GRID_CELL_SENSORS,
+  GRID_MOVE_KEY_SHORTCUTS,
   gridFaceKey,
   MOVE_KEY_SHORTCUTS,
   moveDirection,
+  sideDirection,
   tileSurfaceClass,
   type GridDragView,
 } from '@/components/plan-editor/plan-editor-library';
@@ -75,6 +77,8 @@ interface CellProps {
   onDetailClose: () => void;
   /** Alt+ArrowUp / Alt+ArrowDown on the focused cell: moves its contents one meal up or down the day. */
   onKeyMove?: (direction: -1 | 1) => void;
+  /** Alt+ArrowLeft / Alt+ArrowRight on the focused cell: moves its contents one meal along the row. */
+  onKeyMoveAlong?: (direction: -1 | 1) => void;
 }
 
 function MealCell({
@@ -92,6 +96,7 @@ function MealCell({
   onSelect,
   onDetailClose,
   onKeyMove,
+  onKeyMoveAlong,
 }: CellProps) {
   const { t } = useTranslation();
   const boundary = usePopoverBoundary();
@@ -121,12 +126,14 @@ function MealCell({
   const cellDrag = drag?.kind === 'cell' ? drag : null;
   const hovered = cellDrag?.hover?.dayOfWeek === dayOfWeek && cellDrag.hover.rowIndex === rowIndex;
   const landing = hovered && cellDrag?.mode === 'move';
-  const dropMode = hovered && (cellDrag?.mode === 'copy' || cellDrag?.mode === 'swap') ? cellDrag.mode : undefined;
+  const dropMode = hovered && cellDrag?.mode === 'copy' ? 'copy' : undefined;
   let band: 'source' | 'target' | undefined;
   if (drag?.kind === 'label') {
     const own = drag.axis === 'row' ? rowIndex : dayOfWeek;
     band = own === drag.source ? 'source' : own === drag.target ? 'target' : undefined;
   }
+  // While a label slides its contents into place nothing stays behind to dim or outline; only a copy marks its bands.
+  const labelMoving = drag?.kind === 'label' && drag.mode === 'move';
 
   return (
     <Popover
@@ -152,12 +159,23 @@ function MealCell({
           aria-expanded={meal && itemCount > 0 ? detailOpen : undefined}
           aria-label={t('planEditor.cell.label', { day: t(`planEditor.days.${dayOfWeek}`), row: rowIndex + 1 })}
           onClick={onSelect}
-          aria-keyshortcuts={draggable && onKeyMove ? MOVE_KEY_SHORTCUTS : undefined}
+          aria-keyshortcuts={
+            draggable && onKeyMove ? (onKeyMoveAlong ? GRID_MOVE_KEY_SHORTCUTS : MOVE_KEY_SHORTCUTS) : undefined
+          }
           onKeyDown={(event) => {
             const direction = meal && draggable && onKeyMove ? moveDirection(event) : null;
             if (direction) {
               event.preventDefault();
               onKeyMove?.(direction);
+              return;
+            }
+            // Alt+Left/Right is browser Back on Windows and Linux, so it never reaches the browser from a tile.
+            const along = sideDirection(event);
+            if (along) {
+              event.preventDefault();
+              if (meal && draggable) {
+                onKeyMoveAlong?.(along);
+              }
             }
           }}
           className={cn(
@@ -168,10 +186,9 @@ function MealCell({
             selected && 'border-solid border-ink ring-2 ring-ink',
             // While the contents slide, this slot shows another meal's, so only a source that stays put is dimmed.
             isDragging && cellDrag?.mode !== 'move' && 'opacity-50',
-            band === 'source' && 'opacity-50',
-            band === 'target' && 'border-dashed border-nutrition bg-nutrition-soft shadow-none',
+            band === 'source' && !labelMoving && 'opacity-50',
+            band === 'target' && !labelMoving && 'border-dashed border-nutrition bg-nutrition-soft shadow-none',
             dropMode === 'copy' && 'border-dashed border-nutrition bg-nutrition-soft shadow-none ring-0',
-            dropMode === 'swap' && 'border-solid border-nutrition bg-nutrition-soft shadow-none ring-0',
             landing && 'border-solid border-nutrition ring-2 ring-nutrition',
             isDropTarget && !isDragging && 'border-dashed border-nutrition bg-nutrition-soft shadow-none ring-0',
           )}
@@ -209,7 +226,7 @@ interface DayHeaderProps {
   day: EditorDay | undefined;
   /** Where the day's note can be edited; without it (or when `readOnly`) the note is shown as text. */
   note?: { weekIndex: number; readOnly: boolean; onEdit: PlanEditorState['edit'] };
-  /** Makes the day's name draggable onto another day, and Alt+Arrow swap it with the neighbour; off by default. */
+  /** Makes the day's name draggable onto another day, and Alt+Arrow move it onto the neighbour; off by default. */
   labelDrag?: { weekIndex: number; onKeyMove: (direction: -1 | 1) => void; over?: boolean };
 }
 
@@ -370,8 +387,10 @@ interface Props {
   onAddMeal?: () => void;
   /** Alt+Arrow on a focused cell: moves that meal's contents one meal up or down its day. */
   onMoveMeal?: (dayOfWeek: number, mealId: string, direction: -1 | 1) => void;
+  /** Alt+ArrowLeft / Alt+ArrowRight on a focused cell: moves that meal's contents one meal along its row. */
+  onMoveMealAlong?: (dayOfWeek: number, mealId: string, direction: -1 | 1) => void;
   /**
-   * Alt+Arrow on a focused row or day label: swaps it with its neighbour. Without it (or when `readOnly`) the
+   * Alt+Arrow on a focused row or day label: moves it onto its neighbour. Without it (or when `readOnly`) the
    * labels cannot be dragged. `index` is the row index of a row label and the weekday of a day label.
    */
   onLabelKeyMove?: (axis: LabelAxis, index: number, direction: -1 | 1) => void;
@@ -395,6 +414,7 @@ export default function WeekGrid({
   onInsertBetween,
   onAddMeal,
   onMoveMeal,
+  onMoveMealAlong,
   onLabelKeyMove,
   drag = null,
 }: Props) {
@@ -403,7 +423,7 @@ export default function WeekGrid({
   const rows = weekRows(week);
   const dayByNumber = new Map(week.days.map((day) => [day.dayOfWeek, day]));
   // The slots stay the real week's; only what they show comes from the preview while a move is hovered.
-  const shownDayByNumber = new Map((drag?.kind === 'cell' ? drag.week : week).days.map((day) => [day.dayOfWeek, day]));
+  const shownDayByNumber = new Map((drag ? drag.week : week).days.map((day) => [day.dayOfWeek, day]));
   const labelTarget = (axis: LabelAxis) => (drag?.kind === 'label' && drag.axis === axis ? drag.target : null);
 
   return (
@@ -543,6 +563,11 @@ export default function WeekGrid({
                 onDetailClose={onDetailClose}
                 onKeyMove={
                   onMoveMeal && cellMeal ? (direction) => onMoveMeal(dayOfWeek, cellMeal.mealId, direction) : undefined
+                }
+                onKeyMoveAlong={
+                  onMoveMealAlong && cellMeal
+                    ? (direction) => onMoveMealAlong(dayOfWeek, cellMeal.mealId, direction)
+                    : undefined
                 }
               />
             );

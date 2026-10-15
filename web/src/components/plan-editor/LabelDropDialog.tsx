@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/dialog';
 import { MAX_MEALS_PER_DAY } from '@/components/plan-editor/plan-editor-types';
 
-export type LabelChoice = 'swap' | 'replace' | 'append';
+export type LabelChoice = 'replace' | 'append';
 
 export interface LabelDropRequest {
   /** Names of the dragged and the target row or day. */
@@ -18,8 +18,6 @@ export interface LabelDropRequest {
   to: string;
   /** Weekdays a Replace or Append would leave out because they would pass the daily meal cap. */
   skippedCopy: number[];
-  /** Weekdays a Swap would leave out for the same reason. */
-  skippedSwap: number[];
 }
 
 interface Props {
@@ -29,7 +27,7 @@ interface Props {
   onCancel: () => void;
 }
 
-/** Asks what a row or day dropped on a filled one should do. Escape and Cancel change nothing. */
+/** Asks what a row or day copied (Alt-dropped) onto a filled one should do. Escape and Cancel change nothing. */
 export default function LabelDropDialog({ drop, onChoose, onCancel }: Props) {
   const { t } = useTranslation();
   const dayList = (days: number[]) => days.map((day) => t(`planEditor.daysLong.${day}`)).join(', ');
@@ -52,11 +50,6 @@ export default function LabelDropDialog({ drop, onChoose, onCancel }: Props) {
 
         <div className="flex flex-col gap-2 rounded-xl bg-nutrition-soft px-3 py-2.5 text-meta text-nutrition-ink">
           <span>
-            <b>{t('planEditor.labelDrop.swapLabel')}</b>
-            {' — '}
-            {t('planEditor.labelDrop.swapBody', { from, to })}
-          </span>
-          <span>
             <b>{t('planEditor.labelDrop.replaceLabel')}</b>
             {' — '}
             {t('planEditor.labelDrop.replaceBody', { from, to })}
@@ -68,18 +61,11 @@ export default function LabelDropDialog({ drop, onChoose, onCancel }: Props) {
           </span>
         </div>
 
-        {drop && (drop.skippedCopy.length > 0 || drop.skippedSwap.length > 0) && (
+        {drop && drop.skippedCopy.length > 0 && (
           <ul data-testid="label-drop-skipped" className="flex flex-col gap-1 text-meta text-error">
-            {drop.skippedCopy.length > 0 && (
-              <li>
-                {t('planEditor.labelDrop.skippedCopy', { days: dayList(drop.skippedCopy), max: MAX_MEALS_PER_DAY })}
-              </li>
-            )}
-            {drop.skippedSwap.length > 0 && (
-              <li>
-                {t('planEditor.labelDrop.skippedSwap', { days: dayList(drop.skippedSwap), max: MAX_MEALS_PER_DAY })}
-              </li>
-            )}
+            <li>
+              {t('planEditor.labelDrop.skippedCopy', { days: dayList(drop.skippedCopy), max: MAX_MEALS_PER_DAY })}
+            </li>
           </ul>
         )}
 
@@ -91,11 +77,8 @@ export default function LabelDropDialog({ drop, onChoose, onCancel }: Props) {
             <Button type="button" variant="outline" onClick={() => onChoose('append')}>
               {t('planEditor.labelDrop.appendLabel')}
             </Button>
-            <Button type="button" variant="outline" onClick={() => onChoose('replace')}>
+            <Button type="button" onClick={() => onChoose('replace')}>
               {t('planEditor.labelDrop.replaceLabel')}
-            </Button>
-            <Button type="button" onClick={() => onChoose('swap')}>
-              {t('planEditor.labelDrop.swapLabel')}
             </Button>
           </div>
         </DialogFooter>

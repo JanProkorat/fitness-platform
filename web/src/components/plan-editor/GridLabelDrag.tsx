@@ -52,7 +52,7 @@ export function LabelFrame({ axis, index, over = false, className, children }: F
 interface HandleProps extends LabelProps {
   /** Accessible name of the handle; starts with the visible label. */
   ariaLabel: string;
-  /** Alt+Arrow on the focused handle: swaps with the neighbouring row (up/down) or day (left/right). */
+  /** Alt+Arrow on the focused handle: moves onto the neighbouring row (up/down) or day (left/right). */
   onKeyMove: (direction: -1 | 1) => void;
   children: ReactNode;
 }

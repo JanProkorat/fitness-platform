@@ -1,12 +1,17 @@
 import { PointerActivationConstraints, PointerSensor } from '@dnd-kit/dom';
 import type { FoodSummary, RecipeSummaryDto } from '@/api/generated';
 import {
+  columnMovePlacement,
   daySlots,
   gapForSlot,
+  labelMovePlacement,
+  moveLabel,
+  moveMealAlongRow,
   moveMealContents,
   rowMeal,
-  slotOrigins,
+  rowMovePlacement,
   weekRows,
+  type CellFlip,
   type CellRef,
   type LabelAxis,
 } from '@/components/plan-editor/plan-editor-ops';
@@ -49,6 +54,9 @@ export function readCellMealDrag(data: unknown): CellMealDrag | null {
 
 /** The `aria-keyshortcuts` of a meal card that can move up and down its day. */
 export const MOVE_KEY_SHORTCUTS = 'Alt+ArrowUp Alt+ArrowDown';
+
+/** The `aria-keyshortcuts` of a week-grid tile, which can also move along its row. */
+export const GRID_MOVE_KEY_SHORTCUTS = 'Alt+ArrowUp Alt+ArrowDown Alt+ArrowLeft Alt+ArrowRight';
 
 /**
  * -1 for Alt+ArrowUp, 1 for Alt+ArrowDown pressed on the element itself (not on a field inside it), else null.
@@ -184,7 +192,7 @@ export const GRID_CELL_SENSORS = [
   PointerSensor.configure({ activationConstraints: dragActivationConstraints, preventActivation: () => false }),
 ];
 
-/** Row and day labels: pointer only, so a focused label never starts a keyboard drag; Alt+Arrow swaps instead. */
+/** Row and day labels: pointer only, so a focused label never starts a keyboard drag; Alt+Arrow moves it instead. */
 export const LABEL_SENSORS = GRID_CELL_SENSORS;
 
 /** A library recipe as a one-serving plan item (values divided by the recipe's servings). */
@@ -246,8 +254,8 @@ export function gridFaceKey(dayOfWeek: number, rowIndex: number): string {
   return `${dayOfWeek}:${rowIndex}`;
 }
 
-/** What dropping the dragged meal on the hovered cell does: slide it into that slot, copy it there, or swap two tiles. */
-export type CellDropMode = 'move' | 'copy' | 'swap';
+/** What dropping the dragged meal on the hovered cell does: slide the contents into that slot, or copy it there. */
+export type CellDropMode = 'move' | 'copy';
 
 /** What the grid shows while a meal tile is dragged. */
 export interface CellDragView {
@@ -255,10 +263,12 @@ export interface CellDragView {
   source: CellMealDrag;
   hover: CellRef | null;
   mode: CellDropMode | null;
-  /** Alt/Option is held: a drop within the day copies instead of moving. */
+  /** Alt/Option is held: the drop copies instead of moving. */
   alt: boolean;
   /** The week with the dragged contents already slid into place while `mode` is `move`; otherwise the week itself. */
   week: EditorWeek;
+  /** Where the contents shown in `week` came from, for the cells that slid. */
+  moves: CellFlip[];
 }
 
 /** A tile of a dragged row or column, positioned relative to the label that is dragged. */
@@ -278,18 +288,21 @@ export interface LabelDragView {
   /** The hovered row or day, or null when none (or the dragged one) is hovered. */
   target: number | null;
   tiles: LabelTile[];
+  /** Alt/Option is held: the drop copies instead of moving. */
+  alt: boolean;
+  /** `move` while the hovered target takes the contents by sliding them, `copy` while Alt is held over one. */
+  mode: CellDropMode | null;
+  /** The week with the moved contents already in place while `mode` is `move`; otherwise the week itself. */
+  week: EditorWeek;
+  /** Where the contents shown in `week` came from, for the cells that slid. */
+  moves: CellFlip[];
 }
 
 export type GridDragView = CellDragView | LabelDragView;
 
-function hasItems(meal: EditorMeal | undefined): boolean {
-  return meal !== undefined && meal.foods.length + meal.recipes.length > 0;
-}
-
 /**
- * How dropping the meal on the hovered cell is handled. Within the source's day a plain drop on one of the
- * day's meals slides the contents there, while a held Alt (or a cell the day has no meal for) copies; on
- * another day the same row's filled tile swaps places and every other cell copies.
+ * How dropping the meal on the hovered cell is handled. A plain drop on a meal of the source's own day or row
+ * slides the contents there; a held Alt, a cell the day has no meal for, and every other cell copy.
  */
 export function cellDropMode(
   week: EditorWeek,
@@ -308,10 +321,44 @@ export function cellDropMode(
   if (!row || target?.mealId === source.mealId) {
     return null;
   }
-  if (hover.dayOfWeek === source.dayOfWeek) {
-    return target && !alt ? 'move' : 'copy';
+  if (alt || !target) {
+    return 'copy';
   }
-  return hasItems(target) && hover.rowIndex === source.rowIndex ? 'swap' : 'copy';
+  return hover.dayOfWeek === source.dayOfWeek || hover.rowIndex === source.rowIndex ? 'move' : 'copy';
+}
+
+/** The gap a plain drop on `hover` stands for within the source's own day, or null when the day has no such pair of slots. */
+function dayGap(week: EditorWeek, source: CellMealDrag, hover: CellRef): number | null {
+  const slots = daySlots(week.days.find((day) => day.dayOfWeek === source.dayOfWeek));
+  const target = rowMeal(
+    week.days.find((day) => day.dayOfWeek === hover.dayOfWeek),
+    weekRows(week)[hover.rowIndex],
+  );
+  const from = slots.findIndex((meal) => meal.mealId === source.mealId);
+  const to = slots.findIndex((meal) => meal.mealId === target?.mealId);
+  return from === -1 || to === -1 ? null : gapForSlot(from, to);
+}
+
+/** Where the contents of the dragged meal go when a plain drop lands on `hover`. */
+function cellMovePlacement(week: EditorWeek, source: CellMealDrag, hover: CellRef): CellFlip[] {
+  if (hover.dayOfWeek === source.dayOfWeek) {
+    const gap = dayGap(week, source, hover);
+    return gap === null ? [] : columnMovePlacement(week, source.dayOfWeek, source.mealId, gap);
+  }
+  return rowMovePlacement(week, hover.rowIndex, source.dayOfWeek, hover.dayOfWeek);
+}
+
+/** The document after a plain drop of the dragged meal on `hover`; the one function the preview and the drop share. */
+export function moveCellContents(doc: EditorDocument, weekIndex: number, source: CellMealDrag, hover: CellRef): EditorDocument {
+  const week = doc.weeks[weekIndex];
+  if (!week) {
+    return doc;
+  }
+  if (hover.dayOfWeek === source.dayOfWeek) {
+    const gap = dayGap(week, source, hover);
+    return gap === null ? doc : moveMealContents(doc, weekIndex, source.dayOfWeek, source.mealId, gap);
+  }
+  return moveMealAlongRow(doc, weekIndex, hover.rowIndex, source.dayOfWeek, hover.dayOfWeek);
 }
 
 /** The drag view for the pointer over `hover`, with the contents already moved when the drop would move them. */
@@ -322,39 +369,48 @@ export function cellDragView(
   hover: CellRef | null,
   alt: boolean,
 ): CellDragView {
-  const week = doc.weeks[weekIndex];
-  const mode = week ? cellDropMode(week, source, hover, alt) : null;
-  if (!week || !hover || mode !== 'move') {
-    return { kind: 'cell', source, hover, mode, alt, week: week ?? { weekNumber: 0, days: [] } };
+  const week = doc.weeks[weekIndex] ?? { weekNumber: 0, days: [] };
+  const mode = cellDropMode(week, source, hover, alt);
+  if (!hover || mode !== 'move') {
+    return { kind: 'cell', source, hover, mode, alt, week, moves: [] };
   }
-  const day = week.days.find((candidate) => candidate.dayOfWeek === source.dayOfWeek);
-  const slots = daySlots(day);
-  const from = slots.findIndex((meal) => meal.mealId === source.mealId);
-  const target = rowMeal(
-    week.days.find((candidate) => candidate.dayOfWeek === hover.dayOfWeek),
-    weekRows(week)[hover.rowIndex],
-  );
-  const to = slots.findIndex((meal) => meal.mealId === target?.mealId);
-  if (from === -1 || to === -1) {
-    return { kind: 'cell', source, hover, mode: null, alt, week };
+  const moves = cellMovePlacement(week, source, hover);
+  if (moves.length === 0) {
+    return { kind: 'cell', source, hover, mode: null, alt, week, moves: [] };
   }
-  const moved = moveMealContents(doc, weekIndex, source.dayOfWeek, source.mealId, gapForSlot(from, to));
-  return { kind: 'cell', source, hover, mode, alt, week: moved.weeks[weekIndex] ?? week };
+  const moved = moveCellContents(doc, weekIndex, source, hover);
+  return { kind: 'cell', source, hover, mode, alt, week: moved.weeks[weekIndex] ?? week, moves };
 }
 
-/** For each slot of the dragged meal's day, the slot whose contents the view shows there (the slot itself unless they slid). */
-export function viewOrigins(week: EditorWeek, view: CellDragView | null): number[] {
-  const slots = daySlots(week.days.find((day) => day.dayOfWeek === view?.source.dayOfWeek));
-  if (!view || view.mode !== 'move' || !view.hover) {
-    return slots.map((_, index) => index);
+/** What a label drag starts from: which label, and the tiles lifted with it. */
+export type LabelDragBase = Pick<LabelDragView, 'axis' | 'source' | 'tiles'>;
+
+/** The drag view for the pointer over `target`, with the contents already moved when the drop would move them. */
+export function labelDragView(
+  doc: EditorDocument,
+  weekIndex: number,
+  base: LabelDragBase,
+  target: number | null,
+  alt: boolean,
+): LabelDragView {
+  const week = doc.weeks[weekIndex] ?? { weekNumber: 0, days: [] };
+  if (target === null) {
+    return { kind: 'label', ...base, target, alt, mode: null, week, moves: [] };
   }
-  const from = slots.findIndex((meal) => meal.mealId === view.source.mealId);
-  const hovered = rowMeal(
-    week.days.find((day) => day.dayOfWeek === view.hover?.dayOfWeek),
-    weekRows(week)[view.hover.rowIndex],
-  );
-  const to = slots.findIndex((meal) => meal.mealId === hovered?.mealId);
-  return slotOrigins(slots.length, from, to);
+  if (alt) {
+    return { kind: 'label', ...base, target, alt, mode: 'copy', week, moves: [] };
+  }
+  const move = { axis: base.axis, from: base.source, to: target };
+  const moved = moveLabel(doc, weekIndex, move);
+  return {
+    kind: 'label',
+    ...base,
+    target,
+    alt,
+    mode: 'move',
+    week: moved.weeks[weekIndex] ?? week,
+    moves: labelMovePlacement(week, move),
+  };
 }
 
 /** A rectangle measured when a drag started, in client coordinates at that moment. */
@@ -403,6 +459,84 @@ export function hitCell(cells: readonly FrozenCell[], x: number, y: number): Cel
     }
   }
   return best ? { dayOfWeek: best.dayOfWeek, rowIndex: best.rowIndex } : null;
+}
+
+interface Span {
+  start: number;
+  end: number;
+}
+
+/** Each row's (axis `row`, by y) or day's (axis `day`, by x) extent across its cells. */
+function axisSpans(cells: readonly FrozenCell[], axis: LabelAxis): Map<number, Span> {
+  const spans = new Map<number, Span>();
+  for (const cell of cells) {
+    const index = axis === 'row' ? cell.rowIndex : cell.dayOfWeek;
+    const start = axis === 'row' ? cell.top : cell.left;
+    const end = axis === 'row' ? cell.bottom : cell.right;
+    const span = spans.get(index);
+    spans.set(index, span ? { start: Math.min(span.start, start), end: Math.max(span.end, end) } : { start, end });
+  }
+  return spans;
+}
+
+/** The span of `index` stretched halfway into the gaps to its neighbours, so the bands of all indexes meet without a gap. */
+function bandSpan(spans: ReadonlyMap<number, Span>, index: number): Span | null {
+  const own = spans.get(index);
+  if (!own) {
+    return null;
+  }
+  const others = [...spans.values()];
+  const before = others.filter((span) => span.end <= own.start).map((span) => span.end);
+  const after = others.filter((span) => span.start >= own.end).map((span) => span.start);
+  return {
+    start: before.length > 0 ? (Math.max(...before) + own.start) / 2 : own.start,
+    end: after.length > 0 ? (own.end + Math.min(...after)) / 2 : own.end,
+  };
+}
+
+/** The index whose span is nearest the value. */
+function nearestSpan(spans: ReadonlyMap<number, Span>, value: number): number | null {
+  let best: number | null = null;
+  let bestDistance = Number.POSITIVE_INFINITY;
+  for (const [index, span] of spans) {
+    const distance = Math.max(span.start - value, 0, value - span.end);
+    if (distance < bestDistance) {
+      best = index;
+      bestDistance = distance;
+    }
+  }
+  return best;
+}
+
+/**
+ * The hovered cell for a tile dragged from `source`, with the axes locked on the frozen layout: while the pointer
+ * is inside the source row's band the hovered row is the source row, and likewise the source day inside the
+ * source day's band, so a drag along one axis never drifts onto a neighbouring row or day. Only outside both
+ * bands does the cell under the pointer decide (a diagonal drop).
+ */
+export function hitCellLocked(cells: readonly FrozenCell[], source: CellRef, x: number, y: number): CellRef | null {
+  const hit = hitCell(cells, x, y);
+  if (!hit) {
+    return null;
+  }
+  const rowSpans = axisSpans(cells, 'row');
+  const daySpans = axisSpans(cells, 'day');
+  const rowBand = bandSpan(rowSpans, source.rowIndex);
+  const dayBand = bandSpan(daySpans, source.dayOfWeek);
+  const inRow = rowBand !== null && y >= rowBand.start && y <= rowBand.end;
+  const inDay = dayBand !== null && x >= dayBand.start && x <= dayBand.end;
+  if (inRow && inDay) {
+    return { dayOfWeek: source.dayOfWeek, rowIndex: source.rowIndex };
+  }
+  if (inRow) {
+    const dayOfWeek = nearestSpan(daySpans, x);
+    return dayOfWeek === null ? hit : { dayOfWeek, rowIndex: source.rowIndex };
+  }
+  if (inDay) {
+    const rowIndex = nearestSpan(rowSpans, y);
+    return rowIndex === null ? hit : { dayOfWeek: source.dayOfWeek, rowIndex };
+  }
+  return hit;
 }
 
 /** The row (by y) or day (by x) band the point is in; a point anywhere along a band picks it, the gaps between bands the nearer one. */

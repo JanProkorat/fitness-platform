@@ -109,7 +109,7 @@ export default function MealBlock({
   const cellDrag = drag?.kind === 'cell' ? drag : null;
   const hovered = cellDrag?.hover?.dayOfWeek === dayOfWeek && cellDrag.hover.rowIndex === rowIndex;
   const landing = hovered && cellDrag?.mode === 'move';
-  const dropMode = hovered && (cellDrag?.mode === 'copy' || cellDrag?.mode === 'swap') ? cellDrag.mode : undefined;
+  const dropMode = hovered && cellDrag?.mode === 'copy' ? 'copy' : undefined;
 
   return (
     <li
