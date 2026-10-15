@@ -132,7 +132,7 @@ export default function PastPlansCard({ clientId, clientFirstName, plans }: Prop
   return (
     <section
       aria-labelledby={headingId}
-      className="flex h-full flex-col gap-3 rounded-2xl border border-border bg-card p-5"
+      className="flex h-full flex-col gap-3 rounded-2xl border border-border bg-card p-5 shadow-panel"
     >
       <div className="flex items-baseline justify-between gap-3">
         <h2 id={headingId} className="text-card-title font-bold text-ink">

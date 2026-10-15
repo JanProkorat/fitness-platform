@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSortable } from '@dnd-kit/react/sortable';
 import { Apple, ChefHat, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { Popover, PopoverAnchor } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
+import { PlanItemInfoPopover } from '@/components/plan-editor/LibraryInfoPopover';
 import MacroDots from '@/components/plan-editor/MacroDots';
 import { MacroBar } from '@/components/plan-editor/WeekGrid';
 import { MEAL_ITEM_DRAG } from '@/components/plan-editor/plan-editor-library';
@@ -85,13 +87,18 @@ interface Props {
   variant: 'day' | 'popover';
   /** Where the row lives, so it can be dragged to another place in its own recipe or ingredient list. */
   position: { weekIndex: number; dayOfWeek: number; mealId: string };
+  /** Library id of the item (recipeId or foodExternalId); when set, a Day view row opens the library info popover. */
+  sourceId?: string;
   onAmount: (value: number) => void;
   onRemove: () => void;
 }
 
 /** One recipe or ingredient of a meal: name, amount, kcal and a remove button. Draggable within its list. */
-export default function MealItemRow({ entry, readOnly, variant, position, onAmount, onRemove }: Props) {
-  const { t } = useTranslation();
+export default function MealItemRow({ entry, readOnly, variant, position, sourceId, onAmount, onRemove }: Props) {
+  const { t, i18n } = useTranslation();
+  const [infoOpen, setInfoOpen] = useState(false);
+  const infoButtonRef = useRef<HTMLButtonElement>(null);
+  const hasInfo = variant === 'day' && Boolean(sourceId);
   const list = `${position.mealId}:${entry.type}`;
   // Only the meal popover reorders; the Day view's cards stay as they were (a row drag inside a sortable card misplaces the drag preview there).
   const draggable = !readOnly && variant === 'popover';
@@ -126,18 +133,8 @@ export default function MealItemRow({ entry, readOnly, variant, position, onAmou
     );
   const Icon = entry.type === 'recipe' ? ChefHat : Apple;
 
-  return (
-    <li
-      ref={draggable ? ref : undefined}
-      data-testid="meal-item"
-      data-kind={entry.type}
-      className={cn(
-        'flex items-center gap-3',
-        draggable && 'cursor-grab select-none active:cursor-grabbing',
-        isDragging && 'opacity-50',
-        isDropTarget && !isDragging && 'rounded-lg bg-nutrition-soft',
-      )}
-    >
+  const identity = (
+    <>
       <span
         className={cn(
           'flex shrink-0 items-center justify-center rounded-lg bg-nutrition-soft text-nutrition-ink',
@@ -158,6 +155,38 @@ export default function MealItemRow({ entry, readOnly, variant, position, onAmou
         </span>
         <span className="text-meta text-muted-foreground">{detail}</span>
       </span>
+    </>
+  );
+
+  const row = (
+    <li
+      ref={draggable ? ref : undefined}
+      data-testid="meal-item"
+      data-kind={entry.type}
+      className={cn(
+        'flex items-center gap-3',
+        draggable && 'cursor-grab select-none active:cursor-grabbing',
+        isDragging && 'opacity-50',
+        isDropTarget && !isDragging && 'rounded-lg bg-nutrition-soft',
+      )}
+    >
+      {hasInfo ? (
+        <button
+          ref={infoButtonRef}
+          type="button"
+          aria-label={t('planEditor.library.info.open', { name: entry.name })}
+          aria-expanded={infoOpen}
+          onClick={(event) => {
+            event.stopPropagation();
+            setInfoOpen((open) => !open);
+          }}
+          className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-lg text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+        >
+          {identity}
+        </button>
+      ) : (
+        identity
+      )}
       {readOnly ? (
         <span className="w-24 shrink-0 text-right text-copy text-ink">
           {entry.amount} {unit === 'g' ? t('planEditor.units.g') : t('planEditor.units.portion')}
@@ -197,5 +226,33 @@ export default function MealItemRow({ entry, readOnly, variant, position, onAmou
         <span className="size-8 shrink-0" aria-hidden="true" />
       )}
     </li>
+  );
+
+  if (!hasInfo || !sourceId) {
+    return row;
+  }
+  return (
+    <Popover open={infoOpen} onOpenChange={setInfoOpen} modal={false}>
+      <PopoverAnchor asChild>{row}</PopoverAnchor>
+      {infoOpen && (
+        <PlanItemInfoPopover
+          type={entry.type}
+          sourceId={sourceId}
+          name={entry.name}
+          language={i18n.language}
+          onClose={() => setInfoOpen(false)}
+          onInteractOutside={(event) => {
+            // A press on this row's own button is handled by its click (it toggles); don't dismiss first and reopen.
+            if (event.target instanceof Node && infoButtonRef.current?.contains(event.target)) {
+              event.preventDefault();
+            }
+          }}
+          onCloseAutoFocus={(event) => {
+            event.preventDefault();
+            infoButtonRef.current?.focus({ preventScroll: true });
+          }}
+        />
+      )}
+    </Popover>
   );
 }

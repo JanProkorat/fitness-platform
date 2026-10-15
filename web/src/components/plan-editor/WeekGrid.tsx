@@ -36,6 +36,9 @@ import {
 } from '@/components/plan-editor/plan-editor-types';
 import type { PlanEditorState } from '@/components/plan-editor/usePlanEditorState';
 
+/** Minimum height of a meal row, shared by the Meals and Nutrition views so switching between them keeps the tiles the same size. */
+export const WEEK_GRID_MIN_ROW_REM = 10;
+
 export function MacroBar({ totals }: { totals: Totals }) {
   const parts = [
     { key: 'protein', weight: totals.protein * 4, className: 'bg-macro-protein' },
@@ -183,7 +186,8 @@ function MealCell({
           side="bottom"
           align="center"
           collisionBoundary={boundary}
-          collisionPadding={16}
+          // No top padding: the card may reach the top of the scroll area, over the day-name row, but never the fixed top bar.
+          collisionPadding={{ top: 0, right: 16, bottom: 16, left: 16 }}
           sideOffset={8}
           data-testid="meal-detail"
           className="max-h-(--radix-popover-content-available-height) w-140 max-w-[calc(100vw-2rem)] overflow-y-auto rounded-2xl border-line bg-card p-5"
@@ -352,7 +356,7 @@ export default function WeekGrid({
       role="group"
       aria-label={t('planEditor.grid.label')}
       className={cn(WEEK_GRID_CLASS, 'flex-1')}
-      style={weekGridRows(rows.length, 7.5)}
+      style={weekGridRows(rows.length, WEEK_GRID_MIN_ROW_REM)}
     >
       <div className={GRID_CLASS}>
         <span className={STICKY_LABEL_CLASS} aria-hidden="true">

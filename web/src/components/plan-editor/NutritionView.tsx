@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
-import { DayHeader, DayTotalCell, MacroBar } from '@/components/plan-editor/WeekGrid';
+import { DayHeader, DayTotalCell, MacroBar, WEEK_GRID_MIN_ROW_REM } from '@/components/plan-editor/WeekGrid';
 import {
   DAY_ORDER,
   formatKcal,
@@ -126,13 +126,13 @@ export default function NutritionView({ week, dailyKcalTarget }: Props) {
   const dayByNumber = new Map(week.days.map((day) => [day.dayOfWeek, day]));
 
   return (
-    <div className="flex flex-1 flex-col gap-3">
+    <div className="flex flex-1 flex-col">
       <div className={WEEK_GRID_SCROLLER_CLASS}>
       <div
         role="group"
         aria-label={t('planEditor.nutrition.label')}
         className={cn(WEEK_GRID_CLASS, 'flex-1')}
-        style={weekGridRows(rows.length, 10)}
+        style={weekGridRows(rows.length, WEEK_GRID_MIN_ROW_REM)}
       >
         <div className={GRID_CLASS}>
           <span className={STICKY_LABEL_CLASS} aria-hidden="true">
@@ -167,26 +167,37 @@ export default function NutritionView({ week, dailyKcalTarget }: Props) {
         ))}
       </div>
       </div>
+    </div>
+  );
+}
 
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-line pt-3">
-        {dailyKcalTarget ? (
-          <>
-            <Legend swatch="border-transparent bg-success-soft" label={t('planEditor.nutrition.legendOn')} />
-            <Legend swatch="border-transparent bg-training-soft" label={t('planEditor.nutrition.legendOver')} />
-            <Legend swatch="border-line bg-card" label={t('planEditor.nutrition.legendUnder')} />
-            <span className="ml-auto text-body text-muted-foreground">
-              {t('planEditor.nutrition.shares', {
-                shares: SHARE_ORDER.map(
-                  (share) =>
-                    `${t(`planEditor.nutrition.share_${share.labelKey}`)} ${MEAL_SHARE_PERCENT[share.kind]} %`,
-                ).join(' · '),
-              })}
-            </span>
-          </>
-        ) : (
-          <span className="text-body text-muted-foreground">{t('planEditor.nutrition.noTarget')}</span>
-        )}
-      </div>
+/**
+ * The colour key under the Nutrition view. The Meals view renders it hidden, so both views leave the
+ * grid the same height and the tiles keep their size when the display type is switched.
+ */
+export function NutritionLegend({ dailyKcalTarget, hidden }: { dailyKcalTarget: number | undefined; hidden: boolean }) {
+  const { t } = useTranslation();
+  return (
+    <div
+      aria-hidden={hidden || undefined}
+      className={cn('flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-line pt-3', hidden && 'invisible')}
+    >
+      {dailyKcalTarget ? (
+        <>
+          <Legend swatch="border-transparent bg-success-soft" label={t('planEditor.nutrition.legendOn')} />
+          <Legend swatch="border-transparent bg-training-soft" label={t('planEditor.nutrition.legendOver')} />
+          <Legend swatch="border-line bg-card" label={t('planEditor.nutrition.legendUnder')} />
+          <span className="ml-auto text-body text-muted-foreground">
+            {t('planEditor.nutrition.shares', {
+              shares: SHARE_ORDER.map(
+                (share) => `${t(`planEditor.nutrition.share_${share.labelKey}`)} ${MEAL_SHARE_PERCENT[share.kind]} %`,
+              ).join(' · '),
+            })}
+          </span>
+        </>
+      ) : (
+        <span className="text-body text-muted-foreground">{t('planEditor.nutrition.noTarget')}</span>
+      )}
     </div>
   );
 }

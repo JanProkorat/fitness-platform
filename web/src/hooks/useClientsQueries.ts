@@ -32,9 +32,14 @@ import type { ClientListFilters, ClientListTab } from '@/hooks/useClientListPara
  * harmless only because the chips are hidden on the Pending tab, so the
  * Active-scoped counts are never rendered there. Show the chips on Pending
  * and this mapping starts lying.
+ *
+ * `All` sends no status: the endpoint then returns Active and Paused clients
+ * (never Archived), which is exactly what the All tab shows.
  */
-function tabToStatus(tab: ClientListTab): ClientListStatus {
+function tabToStatus(tab: ClientListTab): ClientListStatus | undefined {
   switch (tab) {
+    case 'All':
+      return undefined;
     case 'Paused':
       return ClientListStatus.Paused;
     case 'Archived':

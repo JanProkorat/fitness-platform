@@ -18,24 +18,33 @@ import ClientSelectionBar from '@/components/clients/ClientSelectionBar';
 import BroadcastDrawer from '@/components/clients/BroadcastDrawer';
 import AddClientDrawer from '@/components/clients/AddClientDrawer';
 
-// Order matches the Figma wireframe (frame client-list-02, #1066 phase 6):
-// Active, Pending, Paused, Ended — "Ended" was renamed "Archived" earlier
-// in this issue, which is settled; only the ORDER changes here.
-const TAB_ORDER: ClientListTab[] = ['Active', 'Pending', 'Paused', 'Archived'];
+// All first (the default), then the order of the Figma wireframe (frame
+// client-list-02, #1066 phase 6): Active, Pending, Paused, Ended — "Ended" was
+// renamed "Archived" earlier in this issue, which is settled.
+const TAB_ORDER: ClientListTab[] = ['All', 'Active', 'Pending', 'Paused', 'Archived'];
 
 const TAB_LABEL_KEY: Record<ClientListTab, string> = {
+  All: 'clients.tabs.all',
   Active: 'clients.tabs.active',
   Paused: 'clients.tabs.paused',
   Archived: 'clients.tabs.archived',
   Pending: 'clients.tabs.pending',
 };
 
-const TAB_COUNT_KEY: Record<ClientListTab, keyof ClientTabCounts> = {
+const TAB_COUNT_KEY: Record<Exclude<ClientListTab, 'All'>, keyof ClientTabCounts> = {
   Active: 'active',
   Paused: 'paused',
   Archived: 'archived',
   Pending: 'pending',
 };
+
+/** One tab's badge. "All" has no count of its own: it is the Active, No-plan and Pending ones added up. */
+function tabCount(tab: ClientListTab, counts: ClientTabCounts): number {
+  if (tab === 'All') {
+    return (counts.active ?? 0) + (counts.paused ?? 0) + (counts.pending ?? 0);
+  }
+  return counts[TAB_COUNT_KEY[tab]] ?? 0;
+}
 
 /**
  * The trainer-portal Clients page — tabs, search, filter chips, tag filter,
@@ -180,6 +189,9 @@ export default function ClientsPage() {
     });
   }
 
+  // The All tab lists the waiting invites and requests under the clients; with none waiting it shows no section.
+  const showPendingSection =
+    filters.tab === 'All' && (pendingQuery.isPending || pendingQuery.isError || (pendingQuery.data ?? []).length > 0);
   const tabCounts = clientsQuery.data?.tabCounts;
   const hasActiveFilter =
     filters.search !== '' || filters.chip !== ClientListFilter.All || filters.tagIds.length > 0;
@@ -221,7 +233,7 @@ export default function ClientsPage() {
                         isActiveTab ? 'bg-primary text-primary-foreground' : 'bg-line text-muted-foreground',
                       )}
                     >
-                      {tabCounts[TAB_COUNT_KEY[tab]] ?? 0}
+                      {tabCount(tab, tabCounts)}
                     </span>
                   )}
                 </TabsTrigger>
@@ -261,6 +273,7 @@ export default function ClientsPage() {
           onRetry={() => void pendingQuery.refetch()}
         />
       ) : (
+        <>
         <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-selection-bar">
           <ClientsTable
             clients={clientsQuery.data?.clients ?? []}
@@ -282,6 +295,22 @@ export default function ClientsPage() {
             onPageChange={setPage}
           />
         </div>
+        {showPendingSection && (
+          <section aria-labelledby="clients-waiting-heading" className="flex flex-col gap-2">
+            <h2 id="clients-waiting-heading" className="text-label font-bold tracking-label text-ink-2 uppercase">
+              {t('clients.tabs.pending')}
+            </h2>
+            <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-selection-bar">
+              <PendingTable
+                rows={pendingQuery.data ?? []}
+                isPending={pendingQuery.isPending}
+                isError={pendingQuery.isError}
+                onRetry={() => void pendingQuery.refetch()}
+              />
+            </div>
+          </section>
+        )}
+        </>
       )}
 
       <ClientSelectionBar

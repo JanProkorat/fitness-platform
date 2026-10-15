@@ -529,8 +529,9 @@
     "title": "Klienten",
     "subtitle": "Verwaltung und Übersicht der Klienten",
     "tabs": {
+      "all": "Alle",
       "active": "Aktiv",
-      "paused": "Pausiert",
+      "paused": "Ohne Plan",
       "archived": "Archiviert",
       "pending": "Ausstehend"
     },
@@ -1887,7 +1888,16 @@
         "kcalPer100": "kcal pro 100 g",
         "ingredientsHeading": "Zutaten · pro Portion",
         "ingredientsUnavailable": "Die Zutaten sind nicht verfügbar. Das Rezept wurde möglicherweise gelöscht oder privat gestellt.",
-        "ingredientsError": "Die Zutaten konnten nicht geladen werden."
+        "ingredientsError": "Die Zutaten konnten nicht geladen werden.",
+        "macroNames": {
+          "protein": "Eiweiß",
+          "carbs": "Kohlenhydrate",
+          "fat": "Fett",
+          "fiber": "Ballaststoffe"
+        },
+        "loading": "Details werden geladen…",
+        "unavailable": "Die Details sind nicht verfügbar. Der Eintrag wurde möglicherweise aus der Bibliothek entfernt.",
+        "loadError": "Die Details konnten nicht geladen werden."
       }
     },
     "macroShort": {
@@ -2242,8 +2252,7 @@
         "allergies": "Allergien",
         "dislikes": "Abneigungen",
         "habits": "Gewohnheiten",
-        "meals": "Mahlzeiten pro Tag",
-        "profileLink": "Aus dem Onboarding-Formular von {{name}} · Profil öffnen"
+        "meals": "Mahlzeiten pro Tag"
       }
     },
     "templates": {
@@ -2261,6 +2270,14 @@
       "useNamed": "{{name}} verwenden",
       "noMeals": "Diese Vorlage enthält keine Mahlzeiten.",
       "weeksShort": "{{count}} Wo.",
+      "info": {
+        "open": "Details zu {{name}} anzeigen",
+        "mealsPerDay": "{{value}} Mahlzeiten pro Tag",
+        "weeksHeading": "Wochen · Durchschnitt pro Tag",
+        "weekLabel": "Woche {{week}}",
+        "unavailable": "Die Vorlage ist nicht verfügbar. Sie wurde möglicherweise entfernt oder auf privat gesetzt.",
+        "loadError": "Die Vorlage konnte nicht geladen werden."
+      },
       "match": {
         "goal": "✓ Ziel",
         "goalDiffers": "anderes Ziel",

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { CalendarDays, ChevronDown } from 'lucide-react';
+import { CalendarDays, Check, ChevronDown } from 'lucide-react';
 import { formatCalendarDate, upcomingMondays } from '@/components/client-plan-editor/clientPlanDates';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
@@ -39,10 +39,17 @@ export default function StartDatePicker({ id, value, disabled, disabledTitle, on
           <span className={cn('min-w-0 flex-1 truncate text-left', !value && 'font-normal text-muted-foreground')}>
             {value ? formatCalendarDate(value, i18n.language) : t('clientPlanEditor.info.startPlaceholder')}
           </span>
-          <ChevronDown className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+          <ChevronDown
+            className={cn('size-4 shrink-0 text-muted-foreground transition-transform', open && 'rotate-180')}
+            aria-hidden="true"
+          />
         </button>
       </PopoverTrigger>
-      <PopoverContent align="start" className="flex max-h-72 w-(--radix-popover-trigger-width) flex-col gap-0.5 overflow-y-auto p-1.5">
+      <PopoverContent
+        align="start"
+        sideOffset={6}
+        className="flex max-h-72 w-(--radix-popover-trigger-width) min-w-52 flex-col gap-0.5 overflow-y-auto rounded-xl border-line bg-card p-1.5"
+      >
         {mondays.map((monday) => {
           const selected = monday === value;
           return (
@@ -55,11 +62,12 @@ export default function StartDatePicker({ id, value, disabled, disabledTitle, on
                 setOpen(false);
               }}
               className={cn(
-                'flex h-9 cursor-pointer items-center rounded-md px-2.5 text-left text-body outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50',
-                selected ? 'bg-ink font-semibold text-primary-foreground' : 'text-ink hover:bg-muted',
+                'flex h-9 shrink-0 cursor-pointer items-center gap-2 rounded-lg px-2.5 text-left text-body outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50',
+                selected ? 'bg-nutrition-soft font-semibold text-nutrition-ink' : 'text-ink hover:bg-muted',
               )}
             >
-              {formatCalendarDate(monday, i18n.language)}
+              <span className="min-w-0 flex-1 truncate">{formatCalendarDate(monday, i18n.language)}</span>
+              {selected && <Check className="size-4 shrink-0" aria-hidden="true" />}
             </button>
           );
         })}

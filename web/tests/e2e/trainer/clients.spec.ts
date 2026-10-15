@@ -21,7 +21,8 @@ test.describe('clients list page', () => {
   });
 
   test('switching tabs updates the URL and the active tab', async ({ page }) => {
-    const pausedTab = page.getByRole('tab', { name: /Paused/ });
+    await expect(page.getByRole('tab', { name: /^All/ })).toHaveAttribute('data-state', 'active');
+    const pausedTab = page.getByRole('tab', { name: /No plan/ });
     await pausedTab.click();
     await page.waitForLoadState('networkidle');
 
@@ -530,12 +531,15 @@ test.describe('clients selection bar at narrow viewports (#1085)', () => {
         await expect(selectAll).toBeEnabled();
         await selectAll.click();
 
-        const broadcast = page.getByRole('button', { name: locale.broadcast, exact: true });
-        const cancel = page.getByRole('button', { name: locale.cancel, exact: true });
+        // The All tab also lists pending rows with their own Cancel button, so scope to the selection bar.
+        const bar = page
+          .locator('div.fixed')
+          .filter({ has: page.getByRole('button', { name: locale.broadcast, exact: true }) });
+        const broadcast = bar.getByRole('button', { name: locale.broadcast, exact: true });
+        const cancel = bar.getByRole('button', { name: locale.cancel, exact: true });
         await expect(broadcast).toBeVisible();
         await expect(cancel).toBeVisible();
 
-        const bar = page.locator('div.fixed').filter({ has: broadcast });
         const barBox = await bar.boundingBox();
         const viewport = await page.evaluate(() => ({
           innerWidth: window.innerWidth,
@@ -568,8 +572,11 @@ test.describe('clients selection bar at narrow viewports (#1085)', () => {
       await expect(selectAll).toBeEnabled();
       await selectAll.click();
 
-      const broadcast = page.getByRole('button', { name: locale.broadcast, exact: true });
-      const cancel = page.getByRole('button', { name: locale.cancel, exact: true });
+      const bar = page
+        .locator('div.fixed')
+        .filter({ has: page.getByRole('button', { name: locale.broadcast, exact: true }) });
+      const broadcast = bar.getByRole('button', { name: locale.broadcast, exact: true });
+      const cancel = bar.getByRole('button', { name: locale.cancel, exact: true });
       await expect(broadcast.getByText(locale.broadcast, { exact: true })).toBeVisible();
       await expect(cancel.getByText(locale.cancel, { exact: true })).toBeVisible();
 
