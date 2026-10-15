@@ -415,7 +415,7 @@ export default function PlanEditor({
   const slide = useSlideTransition();
   const [gridDrag, setGridDrag] = useState<GridDragView | null>(null);
   const gridRuntime = useRef<GridDragRuntime | null>(null);
-  const flip = useGridFlip(scrollArea);
+  const flip = useGridFlip(scrollArea, doc, gridDrag);
 
   const currentIndex = Math.min(weekIndex, doc.weeks.length - 1);
   const week = doc.weeks[currentIndex];
