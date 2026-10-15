@@ -2094,6 +2094,10 @@
     "insertMeal": {
       "aria": "Přidat jídlo mezi {{above}} a {{below}}"
     },
+    "reorder": {
+      "moved": "{{day}}: obsah přesunut do jídla {{meal}}, jídlo {{position}} z {{count}}",
+      "swapped": "Obsah jídla {{meal}} vyměněn mezi dny {{from}} a {{to}}"
+    },
     "nutrition": {
       "label": "Výživa podle jídel",
       "onTarget": "v cíli",

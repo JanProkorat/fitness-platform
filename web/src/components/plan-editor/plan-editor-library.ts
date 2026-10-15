@@ -5,8 +5,32 @@ import { perServing } from '@/lib/recipe-nutrition';
 
 const DEFAULT_AMOUNT_GRAMS = 100;
 
-/** `data.type` of a week-grid cell's drag; the Day view's reorder drags use `'meal'` instead. */
+/** `data.type` of a meal card's drag, in both the week grid and the Day view. */
 export const CELL_MEAL_DRAG = 'cell-meal';
+
+/** `data.type` of the drop data of a gap between two meals of a day; it carries no `rowIndex`. */
+export const MEAL_GAP_DROP = 'meal-gap';
+
+export interface MealGapDrop {
+  weekIndex: number;
+  dayOfWeek: number;
+  /** The gap sits before the day's slot with this index (the day's meal count for the gap after the last). */
+  gapIndex: number;
+}
+
+/** The target of a drop onto a meal gap, or null for any other drop data. */
+export function readMealGapDrop(data: unknown): MealGapDrop | null {
+  if (typeof data !== 'object' || data === null) {
+    return null;
+  }
+  const { type, weekIndex, dayOfWeek, gapIndex } = data as Record<string, unknown>;
+  return type === MEAL_GAP_DROP &&
+    typeof weekIndex === 'number' &&
+    typeof dayOfWeek === 'number' &&
+    typeof gapIndex === 'number'
+    ? { weekIndex, dayOfWeek, gapIndex }
+    : null;
+}
 
 export interface CellMealDrag {
   weekIndex: number;
@@ -29,6 +53,28 @@ export function readCellMealDrag(data: unknown): CellMealDrag | null {
     typeof mealId === 'string'
     ? { weekIndex, dayOfWeek, rowIndex, mealId }
     : null;
+}
+
+/** The `aria-keyshortcuts` of a meal card that can move up and down its day. */
+export const MOVE_KEY_SHORTCUTS = 'Alt+ArrowUp Alt+ArrowDown';
+
+/**
+ * -1 for Alt+ArrowUp, 1 for Alt+ArrowDown pressed on the element itself (not on a field inside it), else null.
+ * Other modifiers are left alone.
+ */
+export function moveDirection(event: {
+  key: string;
+  altKey: boolean;
+  ctrlKey: boolean;
+  metaKey: boolean;
+  shiftKey: boolean;
+  target: EventTarget;
+  currentTarget: EventTarget;
+}): -1 | 1 | null {
+  if (!event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || event.target !== event.currentTarget) {
+    return null;
+  }
+  return event.key === 'ArrowUp' ? -1 : event.key === 'ArrowDown' ? 1 : null;
 }
 
 /** `data.type` of a recipe or ingredient row dragged within its own list of a meal. */

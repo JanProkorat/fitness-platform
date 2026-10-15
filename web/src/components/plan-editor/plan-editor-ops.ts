@@ -536,6 +536,93 @@ export function copyMealToDays(
   }));
 }
 
+/** A day's meals in the order the day runs: chronological kind, then stored order. */
+export function daySlots(day: EditorDay | undefined): EditorMeal[] {
+  return (day?.meals ?? [])
+    .map((meal, position) => ({ meal, position }))
+    .sort((left, right) => kindRank(left.meal.kind) - kindRank(right.meal.kind) || left.position - right.position)
+    .map((entry) => entry.meal);
+}
+
+type MealContents = Pick<EditorMeal, 'foods' | 'recipes' | 'note'>;
+
+function contentsOf(meal: EditorMeal): MealContents {
+  return { foods: meal.foods, recipes: meal.recipes, note: meal.note };
+}
+
+/** The slot a meal's contents end up in when moved from `fromIndex` to the gap before `gapIndex`. */
+export function movedSlotIndex(fromIndex: number, gapIndex: number, slotCount: number): number {
+  const to = gapIndex > fromIndex ? gapIndex - 1 : gapIndex;
+  return Math.min(Math.max(to, 0), slotCount - 1);
+}
+
+/**
+ * Moves one meal's contents (items, recipes and note) to the gap before slot `gapIndex` of its day, in
+ * {@link daySlots} order, and shifts the contents in between by one slot. Every meal the day has takes part,
+ * empty ones included; ids, kinds, order and times stay with their slots, and no meal is created.
+ */
+export function moveMealContents(
+  doc: EditorDocument,
+  weekIndex: number,
+  dayOfWeek: number,
+  mealId: string,
+  gapIndex: number,
+): EditorDocument {
+  const day = doc.weeks[weekIndex]?.days.find((candidate) => candidate.dayOfWeek === dayOfWeek);
+  const slots = daySlots(day);
+  const from = slots.findIndex((meal) => meal.mealId === mealId);
+  if (from === -1) {
+    return doc;
+  }
+  const to = movedSlotIndex(from, gapIndex, slots.length);
+  if (to === from) {
+    return doc;
+  }
+  const contents = slots.map(contentsOf);
+  const [moved] = contents.splice(from, 1);
+  contents.splice(to, 0, moved);
+  const byMealId = new Map(slots.map((meal, index) => [meal.mealId, contents[index]]));
+  return updateDay(doc, weekIndex, dayOfWeek, (current) => ({
+    ...current,
+    meals: current.meals.map((meal) => {
+      const next = byMealId.get(meal.mealId);
+      return next ? { ...meal, ...next } : meal;
+    }),
+  }));
+}
+
+/** Swaps the items, recipes and note of two meals of one week; ids, kinds, order and times stay put. */
+export function swapMealContents(
+  doc: EditorDocument,
+  weekIndex: number,
+  first: { dayOfWeek: number; mealId: string },
+  second: { dayOfWeek: number; mealId: string },
+): EditorDocument {
+  const week = doc.weeks[weekIndex];
+  const findMeal = (ref: { dayOfWeek: number; mealId: string }) =>
+    week?.days.find((day) => day.dayOfWeek === ref.dayOfWeek)?.meals.find((meal) => meal.mealId === ref.mealId);
+  const firstMeal = findMeal(first);
+  const secondMeal = findMeal(second);
+  if (!firstMeal || !secondMeal || firstMeal.mealId === secondMeal.mealId) {
+    return doc;
+  }
+  const firstContents = contentsOf(firstMeal);
+  const secondContents = contentsOf(secondMeal);
+  return updateWeek(doc, weekIndex, (current) => ({
+    ...current,
+    days: current.days.map((day) => ({
+      ...day,
+      meals: day.meals.map((meal) =>
+        meal.mealId === firstMeal.mealId
+          ? { ...meal, ...secondContents }
+          : meal.mealId === secondMeal.mealId
+            ? { ...meal, ...firstContents }
+            : meal,
+      ),
+    })),
+  }));
+}
+
 export type CellCopyMode = 'replace' | 'add';
 
 /**

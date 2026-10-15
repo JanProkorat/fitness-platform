@@ -2032,6 +2032,10 @@
     "insertMeal": {
       "aria": "Add a meal between {{above}} and {{below}}"
     },
+    "reorder": {
+      "moved": "{{day}}: contents moved to {{meal}}, meal {{position}} of {{count}}",
+      "swapped": "{{meal}} contents swapped between {{from}} and {{to}}"
+    },
     "nutrition": {
       "label": "Nutrition by meal",
       "onTarget": "on target",

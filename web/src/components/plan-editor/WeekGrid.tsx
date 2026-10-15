@@ -1,4 +1,4 @@
-import { useCallback, useState, type ReactNode } from 'react';
+import { Fragment, useCallback, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDraggable, useDroppable } from '@dnd-kit/react';
 import { Plus, StickyNote, X } from 'lucide-react';
@@ -20,7 +20,14 @@ import {
   WEEK_GRID_SCROLLER_CLASS,
   weekGridRows,
 } from '@/components/plan-editor/plan-editor-format';
-import { CELL_MEAL_DRAG, GRID_CELL_SENSORS, mealItemNames } from '@/components/plan-editor/plan-editor-library';
+import MealGapDropTarget from '@/components/plan-editor/MealGapDropTarget';
+import {
+  CELL_MEAL_DRAG,
+  GRID_CELL_SENSORS,
+  mealItemNames,
+  MOVE_KEY_SHORTCUTS,
+  moveDirection,
+} from '@/components/plan-editor/plan-editor-library';
 import {
   dayTotals,
   mealItemCount,
@@ -30,7 +37,7 @@ import {
   targetStatus,
   type Totals,
 } from '@/components/plan-editor/plan-editor-nutrition';
-import { rowMeal, setDayNote, weekRows } from '@/components/plan-editor/plan-editor-ops';
+import { daySlots, rowMeal, setDayNote, weekRows } from '@/components/plan-editor/plan-editor-ops';
 import {
   MAX_NOTE_LENGTH,
   type EditorDay,
@@ -97,6 +104,8 @@ interface CellProps {
   detail: ReactNode;
   onSelect: () => void;
   onDetailClose: () => void;
+  /** Alt+ArrowUp / Alt+ArrowDown on the focused cell: moves its contents one meal up or down the day. */
+  onKeyMove?: (direction: -1 | 1) => void;
 }
 
 function MealCell({
@@ -111,6 +120,7 @@ function MealCell({
   detail,
   onSelect,
   onDetailClose,
+  onKeyMove,
 }: CellProps) {
   const { t, i18n } = useTranslation();
   const boundary = usePopoverBoundary();
@@ -161,6 +171,14 @@ function MealCell({
           aria-expanded={meal && itemCount > 0 ? detailOpen : undefined}
           aria-label={t('planEditor.cell.label', { day: t(`planEditor.days.${dayOfWeek}`), row: rowIndex + 1 })}
           onClick={onSelect}
+          aria-keyshortcuts={draggable && onKeyMove ? MOVE_KEY_SHORTCUTS : undefined}
+          onKeyDown={(event) => {
+            const direction = meal && draggable && onKeyMove ? moveDirection(event) : null;
+            if (direction) {
+              event.preventDefault();
+              onKeyMove?.(direction);
+            }
+          }}
           className={cn(
             'flex min-h-0 min-w-0 flex-col items-stretch justify-between gap-1 rounded-xl border p-3 text-left outline-none transition-[color,background-color,border-color,box-shadow,transform] duration-150 focus-visible:ring-3 focus-visible:ring-ring/50',
             itemCount === 0 && 'border-dashed border-line bg-transparent',
@@ -362,6 +380,8 @@ interface Props {
   onInsertBetween?: (above: MealKind, below: MealKind) => void;
   /** Asks the host to add a meal to the whole week; without it there is no "Add meal" button under the labels. */
   onAddMeal?: () => void;
+  /** Alt+Arrow on a focused cell: moves that meal's contents one meal up or down its day. */
+  onMoveMeal?: (dayOfWeek: number, mealId: string, direction: -1 | 1) => void;
 }
 
 /** The week as a grid: one column per weekday, a day-total row, then one row per meal. */
@@ -379,10 +399,12 @@ export default function WeekGrid({
   onRemoveRow,
   onInsertBetween,
   onAddMeal,
+  onMoveMeal,
 }: Props) {
   const { t } = useTranslation();
   const rows = weekRows(week);
   const dayByNumber = new Map(week.days.map((day) => [day.dayOfWeek, day]));
+  const slotIds = new Map(DAY_ORDER.map((dayOfWeek) => [dayOfWeek, daySlots(dayByNumber.get(dayOfWeek)).map((meal) => meal.mealId)]));
 
   return (
     <div className={WEEK_GRID_SCROLLER_CLASS}>
@@ -473,21 +495,49 @@ export default function WeekGrid({
           </span>
           {DAY_ORDER.map((dayOfWeek) => {
             const detailOpen = detailCell?.dayOfWeek === dayOfWeek && detailCell.rowIndex === row.index;
+            const cellMeal = rowMeal(dayByNumber.get(dayOfWeek), row);
+            const daySlotIds = slotIds.get(dayOfWeek) ?? [];
+            const slotIndex = cellMeal ? daySlotIds.indexOf(cellMeal.mealId) : -1;
+            // Gaps sit in the day's own column: above each of its meals, and below its last one.
+            const gapStyle = { gridColumnStart: DAY_ORDER.indexOf(dayOfWeek) + 2 };
             return (
+              <Fragment key={dayOfWeek}>
+              {!readOnly && cellMeal && slotIndex !== -1 && (
+                <MealGapDropTarget
+                  weekIndex={weekIndex}
+                  dayOfWeek={dayOfWeek}
+                  gapIndex={slotIndex}
+                  slotMealIds={daySlotIds}
+                  style={gapStyle}
+                />
+              )}
+              {!readOnly && cellMeal && slotIndex === daySlotIds.length - 1 && (
+                <MealGapDropTarget
+                  weekIndex={weekIndex}
+                  dayOfWeek={dayOfWeek}
+                  gapIndex={daySlotIds.length}
+                  slotMealIds={daySlotIds}
+                  edge="below"
+                  style={gapStyle}
+                />
+              )}
               <MealCell
-                key={dayOfWeek}
                 weekIndex={weekIndex}
                 dayOfWeek={dayOfWeek}
                 rowIndex={row.index}
                 rowLabelKey={mealKindLabelKey(row.kind)}
-                meal={rowMeal(dayByNumber.get(dayOfWeek), row)}
+                meal={cellMeal}
                 selected={selected?.dayOfWeek === dayOfWeek && selected.rowIndex === row.index}
                 readOnly={readOnly}
                 detailOpen={detailOpen}
                 detail={detailOpen ? renderDetail({ dayOfWeek, rowIndex: row.index }) : null}
                 onSelect={() => onSelect({ dayOfWeek, rowIndex: row.index })}
                 onDetailClose={onDetailClose}
+                onKeyMove={
+                  onMoveMeal && cellMeal ? (direction) => onMoveMeal(dayOfWeek, cellMeal.mealId, direction) : undefined
+                }
               />
+              </Fragment>
             );
           })}
         </div>

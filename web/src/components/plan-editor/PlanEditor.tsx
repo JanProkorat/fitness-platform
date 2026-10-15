@@ -38,8 +38,10 @@ import {
   mealItemNames,
   foodDisplayName,
   readCellMealDrag,
+  readMealGapDrop,
   readMealItemDrag,
   type CellMealDrag,
+  type MealGapDrop,
   type MealItemDrag,
 } from '@/components/plan-editor/plan-editor-library';
 import { dayTotals, mealItemCount, mealTotals } from '@/components/plan-editor/plan-editor-nutrition';
@@ -55,15 +57,20 @@ import {
   type CellCopyMode,
   copyMealToCell,
   copyWeekMeals,
+  dayRowIndexes,
+  daySlots,
   daysWithFoodInRow,
   everyDayHasKind,
   fittingKind,
+  movedSlotIndex,
+  moveMealContents,
   nextSnackKind,
   removeLastWeek,
   removeMealRow,
   reorderMealItems,
   rowMeal,
   setDayNote,
+  swapMealContents,
   weekHasItems,
   weekRows,
 } from '@/components/plan-editor/plan-editor-ops';
@@ -192,7 +199,11 @@ function readCell(data: unknown): SelectedCell | null {
   if (typeof data !== 'object' || data === null) {
     return null;
   }
-  const candidate = data as { dayOfWeek?: unknown; rowIndex?: unknown };
+  const candidate = data as { type?: unknown; dayOfWeek?: unknown; rowIndex?: unknown };
+  // Typed drop data (a meal gap) is not a cell, so a library item dropped on it lands nowhere.
+  if (candidate.type !== undefined) {
+    return null;
+  }
   return typeof candidate.dayOfWeek === 'number' && typeof candidate.rowIndex === 'number'
     ? { dayOfWeek: candidate.dayOfWeek, rowIndex: candidate.rowIndex }
     : null;
@@ -252,7 +263,9 @@ export default function PlanEditor({
   const [actionBusy, setActionBusy] = useState(false);
   const [removeWeekNumber, setRemoveWeekNumber] = useState<number | null>(null);
   const [removingWeek, setRemovingWeek] = useState(false);
+  const [announcement, setAnnouncement] = useState('');
   const dragActive = useRef(false);
+  const pendingFocus = useRef<{ dayOfWeek: number; mealId: string } | null>(null);
   const slide = useSlideTransition();
 
   const currentIndex = Math.min(weekIndex, doc.weeks.length - 1);
@@ -262,6 +275,22 @@ export default function PlanEditor({
   const activeSelected = selected && selected.rowIndex < rows.length ? selected : null;
   const activeDay = week?.days.find((candidate) => candidate.dayOfWeek === dayOfWeek);
   const showPicker = !readOnly && rows.length === 0;
+
+  // After a keyboard move the contents sit in another slot; focus follows them once that slot has rendered.
+  useEffect(() => {
+    const target = pendingFocus.current;
+    if (!target || !scrollArea) {
+      return;
+    }
+    pendingFocus.current = null;
+    const day = week?.days.find((candidate) => candidate.dayOfWeek === target.dayOfWeek);
+    const row = week ? dayRowIndexes(week, day).get(target.mealId) : undefined;
+    const selector =
+      range === 'day'
+        ? `[data-testid="meal-block"][data-meal-id="${target.mealId}"]`
+        : `[data-testid="meal-cell"][data-day="${target.dayOfWeek}"][data-row="${row}"]`;
+    scrollArea.querySelector<HTMLElement>(selector)?.focus();
+  });
 
   useEffect(() => {
     if (!dirty) {
@@ -394,6 +423,16 @@ export default function PlanEditor({
     if (targetMeal?.mealId === source.mealId) {
       return;
     }
+    // A filled tile of the same row on another day swaps places with the dragged meal, no questions asked.
+    if (
+      targetMeal &&
+      mealItemCount(targetMeal) > 0 &&
+      target.rowIndex === source.rowIndex &&
+      target.dayOfWeek !== source.dayOfWeek
+    ) {
+      swapCells(source, target, targetMeal);
+      return;
+    }
     const drop = { weekIndex: source.weekIndex, source, target };
     if (!targetMeal || mealItemCount(targetMeal) === 0) {
       copyCell(drop, 'replace');
@@ -425,6 +464,84 @@ export default function PlanEditor({
 
   function findMeal(dayOfWeekValue: number, mealId: string) {
     return week?.days.find((day) => day.dayOfWeek === dayOfWeekValue)?.meals.find((meal) => meal.mealId === mealId);
+  }
+
+  function mealLabel(meal: EditorMeal): string {
+    return t(`planEditor.rows.${mealKindLabelKey(meal.kind)}`);
+  }
+
+  /** Swaps the contents of two same-row meals on different days in one edit, and selects the dragged meal's new place. */
+  function swapCells(source: CellMealDrag, target: SelectedCell, targetMeal: EditorMeal) {
+    setSelected(target);
+    setDetailCell(null);
+    edit((current) =>
+      swapMealContents(
+        current,
+        source.weekIndex,
+        { dayOfWeek: source.dayOfWeek, mealId: source.mealId },
+        { dayOfWeek: target.dayOfWeek, mealId: targetMeal.mealId },
+      ),
+    );
+    setAnnouncement(
+      t('planEditor.reorder.swapped', {
+        meal: mealLabel(targetMeal),
+        from: t(`planEditor.daysLong.${source.dayOfWeek}`),
+        to: t(`planEditor.daysLong.${target.dayOfWeek}`),
+      }),
+    );
+  }
+
+  /**
+   * Moves a meal's contents to the gap before slot `gapIndex` of its day in one edit, selects the slot they
+   * land in and announces it; `focus` also moves keyboard focus there once it has rendered.
+   */
+  function moveContents(dayOfWeekValue: number, mealId: string, gapIndex: number, focus: boolean) {
+    const day = week?.days.find((candidate) => candidate.dayOfWeek === dayOfWeekValue);
+    const slots = daySlots(day);
+    const from = slots.findIndex((meal) => meal.mealId === mealId);
+    if (readOnly || !week || from === -1) {
+      return;
+    }
+    const to = movedSlotIndex(from, gapIndex, slots.length);
+    if (to === from) {
+      return;
+    }
+    const landing = slots[to];
+    const landingRow = dayRowIndexes(week, day).get(landing.mealId);
+    edit((current) => moveMealContents(current, currentIndex, dayOfWeekValue, mealId, gapIndex));
+    setDetailCell(null);
+    if (landingRow !== undefined) {
+      setSelected({ dayOfWeek: dayOfWeekValue, rowIndex: landingRow });
+    }
+    if (focus) {
+      pendingFocus.current = { dayOfWeek: dayOfWeekValue, mealId: landing.mealId };
+    }
+    setAnnouncement(
+      t('planEditor.reorder.moved', {
+        day: t(`planEditor.daysLong.${dayOfWeekValue}`),
+        meal: mealLabel(landing),
+        position: to + 1,
+        count: slots.length,
+      }),
+    );
+  }
+
+  /** A meal dropped on a gap of its own day and week moves there; any other gap drop changes nothing. */
+  function onGapDrop(source: CellMealDrag, gap: MealGapDrop) {
+    if (source.weekIndex !== currentIndex || gap.weekIndex !== currentIndex || gap.dayOfWeek !== source.dayOfWeek) {
+      return;
+    }
+    moveContents(source.dayOfWeek, source.mealId, gap.gapIndex, false);
+  }
+
+  /** Alt+Arrow: one slot up or down the day; at the first or last slot nothing happens. */
+  function moveByKey(dayOfWeekValue: number, mealId: string, direction: -1 | 1) {
+    const slots = daySlots(week?.days.find((candidate) => candidate.dayOfWeek === dayOfWeekValue));
+    const to = slots.findIndex((meal) => meal.mealId === mealId) + direction;
+    if (to < 0 || to >= slots.length) {
+      return;
+    }
+    moveContents(dayOfWeekValue, mealId, direction < 0 ? to : to + 1, true);
   }
 
   function rowLabelKey(rowIndex: number): string {
@@ -720,6 +837,11 @@ export default function PlanEditor({
         }
         const cellMeal = readCellMealDrag(event.operation.source?.data);
         if (cellMeal) {
+          const gap = readMealGapDrop(event.operation.target?.data);
+          if (gap) {
+            onGapDrop(cellMeal, gap);
+            return;
+          }
           const dropCell = readCell(event.operation.target?.data);
           if (dropCell) {
             onCellMealDrop(cellMeal, dropCell);
@@ -895,6 +1017,7 @@ export default function PlanEditor({
               onSelect={setSelected}
               onEdit={edit}
               onInsertBetween={insertBetween}
+              onMoveMeal={readOnly ? undefined : moveByKey}
             />
           )}
 
@@ -915,6 +1038,7 @@ export default function PlanEditor({
                   onRemoveRow={requestRemoveRow}
                   onInsertBetween={insertBetween}
                   onAddMeal={() => openAddMeal('week', null)}
+                  onMoveMeal={readOnly ? undefined : moveByKey}
                 />
               )}
               {view === 'nutrition' && <NutritionView week={week} targets={targets} />}
@@ -933,6 +1057,10 @@ export default function PlanEditor({
           </div>
         </div>
       </div>
+
+      <p role="status" aria-live="polite" data-testid="plan-editor-announcer" className="sr-only">
+        {announcement}
+      </p>
 
       <DragOverlay dropAnimation={null}>
         {(source) => {
