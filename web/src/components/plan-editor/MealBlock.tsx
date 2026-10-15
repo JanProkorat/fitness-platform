@@ -4,6 +4,7 @@ import { useDraggable, useDroppable } from '@dnd-kit/react';
 import { GripVertical, StickyNote, Trash2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import MacroDots from '@/components/plan-editor/MacroDots';
 import MealItemRow from '@/components/plan-editor/MealItemRow';
 import { mealKindLabelKey } from '@/components/plan-editor/plan-editor-format';
 import { CELL_MEAL_DRAG, MEAL_CARD_SENSORS } from '@/components/plan-editor/plan-editor-library';
@@ -100,11 +101,14 @@ export default function MealBlock({
         isDragging && 'opacity-60 shadow-selection-bar',
       )}
     >
-      <div className={cn('flex items-center gap-3', draggable && 'cursor-grab active:cursor-grabbing')}>
+      <div className={cn('flex flex-wrap items-center gap-x-3 gap-y-1.5', draggable && 'cursor-grab active:cursor-grabbing')}>
         {draggable && <GripVertical className="size-4 shrink-0 text-faint" aria-hidden="true" />}
         <h3 className="font-display text-card-title font-semibold text-ink">{kindLabel}</h3>
         <span className="text-copy font-semibold text-ink">
           {t('planEditor.cell.kcal', { kcal: Math.round(totals.kcal) })}
+        </span>
+        <span data-testid="meal-macros" className="text-body text-muted-foreground">
+          <MacroDots protein={totals.protein} carbs={totals.carbs} fat={totals.fat} fiber={totals.fiber} />
         </span>
         {dayKcal > 0 && (
           <span

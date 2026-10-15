@@ -320,8 +320,14 @@ test.describe('plan template editor views', () => {
       await expect(dayTotal).toBeVisible();
       const before = await dayTotal.boundingBox();
 
-      await dayTotal.click();
+      // Hovering never opens it; only a click does.
       const popover = page.getByTestId('day-target-popover');
+      await dayTotal.hover();
+      await page.waitForTimeout(400);
+      await expect(popover).toHaveCount(0);
+      await expect(dayTotal).toHaveAttribute('aria-expanded', 'false');
+
+      await dayTotal.click();
       await expect(popover).toBeVisible();
       await expect(dayTotal).toHaveAttribute('aria-expanded', 'true');
       await expect(popover.getByTestId('day-target-row')).toHaveCount(5);
@@ -369,6 +375,14 @@ test.describe('plan template editor views', () => {
       await expect(values).toContainText(/P\s*\d+/);
       await expect(values).toContainText(/C\s*\d+/);
       await expect(values).toContainText(/F\s*\d+/);
+
+      // The meal header carries the meal's summed protein, carbs, fat and fiber.
+      const mealMacros = page.getByTestId('meal-block').first().getByTestId('meal-macros');
+      await expect(mealMacros).toBeVisible();
+      await expect(mealMacros).toContainText(/P\s*\d+/);
+      await expect(mealMacros).toContainText(/C\s*\d+/);
+      await expect(mealMacros).toContainText(/F\s*\d+/);
+      await expect(mealMacros).toContainText(/Fib\s*\d+/);
     } finally {
       await deleteTemplate(origin, templateId);
       await deleteRecipe(origin, recipeId);
