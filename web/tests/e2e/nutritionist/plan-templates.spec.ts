@@ -15,7 +15,7 @@ import { nutritionistTest as test, trainerTest, expect } from '../fixtures/auth'
 
 const NUTRITIONIST_EMAIL = 'qa.nutri@fitnessplatform.test';
 /** The meal chips that start selected in the New template drawer. */
-const DEFAULT_CHIPS = ['Breakfast', 'Snack', 'Lunch', 'Dinner'];
+const DEFAULT_CHIPS = ['Breakfast', 'Morning snack', 'Lunch', 'Dinner'];
 
 interface LoginResponseBody {
   accessToken: string;
@@ -128,8 +128,8 @@ test.describe('plan templates page', () => {
     await sheet.getByRole('button', { name: 'Fewer weeks' }).click();
     await expect(sheet.getByTestId('plan-template-weeks-value')).toHaveText('3');
     await expect(sheet.getByText('weeks · 21 days')).toBeVisible();
-    // Snack 2 (AfternoonSnack) is off by default; turn it on after Dinner is already on.
-    await sheet.getByRole('button', { name: 'Snack 2' }).click();
+    // Afternoon snack is off by default; turn it on after Dinner is already on.
+    await sheet.getByRole('button', { name: 'Afternoon snack' }).click();
     await sheet.getByLabel(/^Daily calorie target/).fill('2100');
 
     const createRequest = page.waitForRequest(

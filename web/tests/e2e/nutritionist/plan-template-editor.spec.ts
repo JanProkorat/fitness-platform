@@ -190,7 +190,7 @@ test.describe('plan template editor', () => {
       await expect(page.getByText('Which meals does a day have?')).toBeVisible();
       await expect(page.getByTestId('meal-cell')).toHaveCount(0);
 
-      await page.getByRole('button', { name: /Breakfast · Snack · Lunch · Dinner/ }).click();
+      await page.getByRole('button', { name: /Breakfast · Morning snack · Lunch · Dinner/ }).click();
       await expect(page.getByTestId('meal-cell')).toHaveCount(28);
       await expect(page.getByText('Which meals does a day have?')).toHaveCount(0);
       await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes');

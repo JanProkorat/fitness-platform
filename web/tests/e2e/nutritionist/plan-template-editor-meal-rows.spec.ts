@@ -151,12 +151,12 @@ test.describe('plan template editor meal rows', () => {
       await expect(done).toHaveText('Done (0)');
       await expect(done).toBeDisabled();
 
-      const snack = chip(page, 'Snack');
+      const snack = chip(page, 'Morning snack');
       await snack.click();
       await expect(snack).toHaveAttribute('aria-pressed', 'true');
       await expect(done).toHaveText('Done (1)');
       await snack.click();
-      await expect(snack).toHaveText(/Snack\s*×2/);
+      await expect(snack).toHaveText(/Morning snack\s*×2/);
       await expect(done).toHaveText('Done (2)');
       await snack.click();
       await expect(snack).toHaveAttribute('aria-pressed', 'false');
@@ -269,13 +269,13 @@ test.describe('plan template editor meal rows', () => {
 
       await pressInsertLine(page.getByRole('group', { name: 'Week meals' }), 0);
       await expect(drawer(page)).toContainText('Week 1');
-      await expect(drawer(page).getByRole('radio', { name: 'Snack', exact: true })).toHaveAttribute('aria-checked', 'true');
+      await expect(drawer(page).getByRole('radio', { name: 'Morning snack', exact: true })).toHaveAttribute('aria-checked', 'true');
       await expect(drawer(page).getByTestId('add-meal-week-summary')).toHaveText('Will be added to 7 days');
       await expect(drawer(page).getByLabel(/Note for the client/)).toHaveCount(0);
       await confirmDrawer(page);
 
       await expect(page.getByTestId('meal-cell')).toHaveCount(28);
-      await expect(page.getByRole('button', { name: 'Remove Snack from week 1' })).toHaveCount(1);
+      await expect(page.getByRole('button', { name: 'Remove Morning snack from week 1' })).toHaveCount(1);
       await page.getByRole('tab', { name: 'Week 2' }).click();
       await expect(page.getByTestId('meal-cell')).toHaveCount(21);
       await page.getByRole('tab', { name: 'Week 1' }).click();
@@ -308,11 +308,11 @@ test.describe('plan template editor meal rows', () => {
       await expect(page.getByTestId('meal-cell')).toHaveCount(21);
       expect((await cell(page, 1, 0).boundingBox())?.height).toBe(cellHeight);
 
-      // Fill every gap: Snack between Breakfast and Lunch, Snack 2 between Lunch and Dinner.
+      // Fill every gap: Morning snack between Breakfast and Lunch, Afternoon snack between Lunch and Dinner.
       await pressInsertLine(page.getByRole('group', { name: 'Week meals' }), 0);
       await confirmDrawer(page);
       await pressInsertLine(page.getByRole('group', { name: 'Week meals' }), 2);
-      await expect(drawer(page).getByRole('radio', { name: 'Snack 2', exact: true })).toHaveAttribute('aria-checked', 'true');
+      await expect(drawer(page).getByRole('radio', { name: 'Afternoon snack', exact: true })).toHaveAttribute('aria-checked', 'true');
       await confirmDrawer(page);
       await expect(page.getByTestId('meal-cell')).toHaveCount(35);
 
@@ -332,14 +332,14 @@ test.describe('plan template editor meal rows', () => {
       // Add a Snack to Monday only, from the Day view's insert line.
       await page.getByRole('button', { name: 'Day', exact: true }).click();
       await pressInsertLine(page.getByTestId('day-view'), 0);
-      await expect(drawer(page).getByRole('radio', { name: 'Snack', exact: true })).toHaveAttribute('aria-checked', 'true');
+      await expect(drawer(page).getByRole('radio', { name: 'Morning snack', exact: true })).toHaveAttribute('aria-checked', 'true');
       await expect(drawer(page).getByLabel(/Note for the client/)).toBeVisible();
       await confirmDrawer(page);
       await expect(page.getByTestId('meal-block')).toHaveCount(3);
 
       await page.getByRole('button', { name: 'Week', exact: true }).click();
       await page.getByTestId('add-meal-week').click();
-      await drawer(page).getByRole('radio', { name: 'Snack', exact: true }).click();
+      await drawer(page).getByRole('radio', { name: 'Morning snack', exact: true }).click();
       await expect(drawer(page).getByTestId('add-meal-week-summary')).toHaveText('Will be added to 6 days; Monday already has it');
       await expect(drawer(page).getByRole('radio', { name: /^Breakfast/ })).toBeDisabled();
       await expect(drawer(page).getByRole('radio', { name: /^Breakfast/ })).toContainText('Already in every day');
@@ -348,7 +348,7 @@ test.describe('plan template editor meal rows', () => {
 
       // Every day has a Snack now, so it is disabled the next time.
       await page.getByTestId('add-meal-week').click();
-      await expect(drawer(page).getByRole('radio', { name: /^Snack(?! 2)/ })).toBeDisabled();
+      await expect(drawer(page).getByRole('radio', { name: /^Morning snack/ })).toBeDisabled();
     } finally {
       await deleteTemplate(origin, templateId);
     }
@@ -384,8 +384,8 @@ test.describe('plan template editor meal rows', () => {
       // In the Day view the library add goes to the meal the user selected, not to the one at its stored position.
       await page.getByRole('button', { name: 'Day', exact: true }).click();
       await expect(page.getByRole('tab', { name: /^Mon/ })).toHaveAttribute('aria-selected', 'true');
-      await addAppleToBlock(page, mealBlock(page, 'Snack'));
-      await expect(mealBlock(page, 'Snack').getByTestId('meal-item')).toHaveCount(1);
+      await addAppleToBlock(page, mealBlock(page, 'Morning snack'));
+      await expect(mealBlock(page, 'Morning snack').getByTestId('meal-item')).toHaveCount(1);
       await expect(mealBlock(page, 'Lunch').getByTestId('meal-item')).toHaveCount(0);
       await expect(mealBlock(page, 'Breakfast').getByTestId('meal-item')).toHaveCount(0);
     } finally {
@@ -407,7 +407,7 @@ test.describe('plan template editor meal rows', () => {
       await confirmDrawer(page);
 
       await expect(page.getByTestId('meal-block')).toHaveCount(3);
-      await expect(page.getByTestId('meal-block').nth(1)).toHaveAttribute('aria-label', 'Snack');
+      await expect(page.getByTestId('meal-block').nth(1)).toHaveAttribute('aria-label', 'Morning snack');
       await expect(dayView.getByTestId('meal-insert-line')).toHaveCount(2);
 
       await page.getByRole('button', { name: 'Undo' }).click();

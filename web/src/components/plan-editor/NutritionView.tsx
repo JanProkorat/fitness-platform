@@ -153,7 +153,7 @@ export default function NutritionView({ week, targets }: Props) {
         </div>
         {rows.map((row) => (
           <div key={row.index} className={cn(GRID_CLASS, 'items-stretch')}>
-            <span className={cn(STICKY_LABEL_CLASS, 'self-center text-body font-semibold whitespace-nowrap text-muted-foreground')}>
+            <span className={cn(STICKY_LABEL_CLASS, 'self-center text-body font-semibold max-w-27 text-balance text-muted-foreground')}>
               {t(`planEditor.rows.${mealKindLabelKey(row.kind)}`)}
             </span>
             {DAY_ORDER.map((dayOfWeek) => (

@@ -28,12 +28,13 @@ export function formatKcal(value: number, language: string): string {
   return Math.round(value).toLocaleString(language);
 }
 
-/** Row label key for a meal kind: both snack kinds read "Snack". */
+/** Row label key for a meal kind. */
 export function mealKindLabelKey(kind: MealKind): string {
   switch (kind) {
     case MealKind.MorningSnack:
+      return 'morningSnack';
     case MealKind.AfternoonSnack:
-      return 'snack';
+      return 'afternoonSnack';
     case MealKind.PreWorkout:
       return 'preWorkout';
     case MealKind.PostWorkout:

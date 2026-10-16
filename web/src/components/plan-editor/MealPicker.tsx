@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 
 const ADD_CHIPS: readonly { kind: MealKind; labelKey: string }[] = [
   { kind: MealKind.Breakfast, labelKey: 'breakfast' },
-  { kind: MealKind.MorningSnack, labelKey: 'snack' },
+  { kind: MealKind.MorningSnack, labelKey: 'morningSnack' },
   { kind: MealKind.Lunch, labelKey: 'lunch' },
   { kind: MealKind.Dinner, labelKey: 'dinner' },
   { kind: MealKind.PreWorkout, labelKey: 'preWorkout' },
