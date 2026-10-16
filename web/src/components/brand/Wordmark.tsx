@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
+import LogoMark from '@/components/brand/LogoMark';
 
 type WordmarkSize = 'nav' | 'sidebar';
 
@@ -17,13 +18,17 @@ const SIZE_CLASSES: Record<WordmarkSize, string> = {
   sidebar: 'text-card-title leading-none tracking-wordmark text-sidebar-text',
 };
 
-/** The FORM UP brand wordmark. */
+/** The Form Up brand lockup: the checklist mark stands in for the "F" of FORM. */
 export default function Wordmark({ size = 'nav', to, className }: Props) {
   const { t } = useTranslation();
   const classes = cn('font-display font-light whitespace-nowrap', SIZE_CLASSES[size], className);
   const content = (
     <>
-      {t('home.brand.form')} <span className="text-marker">{t('home.brand.up')}</span>
+      <span className="sr-only">{t('home.brand.name')}</span>
+      <span aria-hidden="true">
+        <LogoMark cropped className="mr-[0.22em] inline-block h-[0.7em] w-[0.763em]" />
+        {t('home.brand.form').slice(1)} <span className="text-marker">{t('home.brand.up')}</span>
+      </span>
     </>
   );
 

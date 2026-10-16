@@ -10,6 +10,7 @@ import type { LucideIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { useChanged } from '@/hooks/useChanged';
+import LogoMark from '@/components/brand/LogoMark';
 import StoreButtons from '@/components/register/StoreButtons';
 import { SOME_STORE_MISSING } from '@/components/register/storeLinks';
 
@@ -89,10 +90,9 @@ export default function RegisterAside({ variant }: { variant: RegisterAsideVaria
         <div className="flex items-center gap-3.5 rounded-2xl border border-border bg-surface p-4">
           <span
             aria-hidden="true"
-            className="flex size-15 shrink-0 items-center justify-center rounded-xl bg-phone-bezel font-display text-subhead font-semibold text-on-dark"
+            className="flex size-15 shrink-0 items-center justify-center rounded-xl bg-phone-bezel"
           >
-            {t('home.brand.form').charAt(0)}
-            <span className="text-marker">{t('home.brand.up').charAt(0)}</span>
+            <LogoMark tone="dark" className="size-9" />
           </span>
           <span className="flex min-w-0 flex-1 flex-col gap-0.5">
             <span className="text-subhead font-bold text-ink">{t(`${base}.app.title`)}</span>

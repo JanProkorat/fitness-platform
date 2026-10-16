@@ -58,6 +58,18 @@
   --gf-marker-solid: #c8352b; /* marker fill behind light text (4.5:1), both themes */
   --gf-marker-bright: #ee5a4f; /* marker glyphs on the always-dark notification and scrim surfaces */
   --gf-marker-text: #d2342a; /* marker text on the page surface; lighter in dark */
+  --gf-mark-row1: #8e1f18; /* logo mark: top row, ring-less bar and dot */
+  --gf-mark-row2: #d2342a; /* logo mark: middle row */
+  --gf-mark-ring: #f4a08a; /* logo mark: open ring on the third row */
+  --gf-mark-tick: #ffffff; /* logo mark: tick inside the top dot */
+  --gf-mark-row1-dark: #7a1a14; /* the same ramps for surfaces that are dark in both themes */
+  --gf-mark-row2-dark: #d2342a;
+  --gf-mark-ring-dark: #f4a08a;
+  --gf-mark-tick-dark: #ffffff;
+  --gf-mark-row1-on-red: #ffffff; /* logo mark on a brand-red surface */
+  --gf-mark-row2-on-red: #ffc4ba;
+  --gf-mark-ring-on-red: #ff9a8b;
+  --gf-mark-tick-on-red: #d2342a;
   --gf-muted-tint: #6b6863; /* muted caption inside tinted mockup cells; lighter in dark */
 
   /* Home page (PageHome*) mockups and glow washes. */
@@ -601,6 +613,10 @@
   --gf-chip-count: var(--gf-chip-count-dark);
   --gf-marker: var(--gf-marker-dark);
   --gf-marker-text: var(--gf-marker-text-dark);
+  --gf-mark-row1: var(--gf-mark-row1-dark);
+  --gf-mark-row2: var(--gf-mark-row2-dark);
+  --gf-mark-ring: var(--gf-mark-ring-dark);
+  --gf-mark-tick: var(--gf-mark-tick-dark);
   --gf-muted-tint: var(--gf-muted-tint-dark);
   --gf-hero-warm: var(--gf-hero-warm-dark);
   --gf-hero-fresh: var(--gf-hero-fresh-dark);
@@ -648,6 +664,10 @@
     --gf-chip-count: var(--gf-chip-count-dark);
     --gf-marker: var(--gf-marker-dark);
     --gf-marker-text: var(--gf-marker-text-dark);
+    --gf-mark-row1: var(--gf-mark-row1-dark);
+    --gf-mark-row2: var(--gf-mark-row2-dark);
+    --gf-mark-ring: var(--gf-mark-ring-dark);
+    --gf-mark-tick: var(--gf-mark-tick-dark);
     --gf-muted-tint: var(--gf-muted-tint-dark);
     --gf-hero-warm: var(--gf-hero-warm-dark);
     --gf-hero-fresh: var(--gf-hero-fresh-dark);
@@ -729,6 +749,18 @@
   --color-marker-solid: var(--gf-marker-solid);
   --color-marker-bright: var(--gf-marker-bright);
   --color-marker-text: var(--gf-marker-text);
+  --color-mark-row1: var(--gf-mark-row1);
+  --color-mark-row2: var(--gf-mark-row2);
+  --color-mark-ring: var(--gf-mark-ring);
+  --color-mark-tick: var(--gf-mark-tick);
+  --color-mark-row1-dark: var(--gf-mark-row1-dark);
+  --color-mark-row2-dark: var(--gf-mark-row2-dark);
+  --color-mark-ring-dark: var(--gf-mark-ring-dark);
+  --color-mark-tick-dark: var(--gf-mark-tick-dark);
+  --color-mark-row1-on-red: var(--gf-mark-row1-on-red);
+  --color-mark-row2-on-red: var(--gf-mark-row2-on-red);
+  --color-mark-ring-on-red: var(--gf-mark-ring-on-red);
+  --color-mark-tick-on-red: var(--gf-mark-tick-on-red);
   --color-muted-tint: var(--gf-muted-tint);
 
   --color-hero-warm: var(--gf-hero-warm);
