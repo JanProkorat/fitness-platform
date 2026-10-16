@@ -8,8 +8,16 @@ import html, json, os, re, sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = sys.argv[1]
 canvas = json.load(open(os.path.join(HERE, "project", "canvas.json")))
-FOLDERS = {"concepts": "concepts", "web": "web", "glass": "mobile-light", "glassdark": "mobile-dark", "coach": "coach-light", "coachdark": "coach-dark", "logo": "logo"}
+# Output folder -> (canvas page, board-name theme suffix or None). Mobile pages hold light and dark
+# boards together ("light above, dark below"), so the theme comes from the file name.
+FOLDERS = {"concepts": ("concepts", None), "web": ("web", None), "mobile-light": ("glass", "Light"), "mobile-dark": ("glass", "Dark"),
+           "coach-light": ("coach", "Light"), "coach-dark": ("coach", "Dark"), "logo": ("logo", None)}
 PAGE_NAMES = {p["id"]: p["name"] for p in canvas["pages"]}
+
+
+def folder_title(folder):
+    page_id, theme = FOLDERS[folder]
+    return PAGE_NAMES[page_id] + (f" — {theme.lower()}" if theme else "")
 
 
 def to_static(src, title):
@@ -35,10 +43,15 @@ def slug(s):
 
 
 manifest, sections = [], {}
-for page_id, folder in FOLDERS.items():
-    boards = sorted(((k, b) for k, b in canvas["boards"].items() if b.get("page") == page_id), key=lambda kb: (kb[1]["y"], kb[1]["x"]))
+for folder, (page_id, theme) in FOLDERS.items():
+    boards = sorted(((k, b) for k, b in canvas["boards"].items()
+                     if b.get("page") == page_id and (theme is None or k.endswith(f"{theme}.dc.html"))),
+                    key=lambda kb: (kb[1]["y"], kb[1]["x"]))
     rows = sorted({b["y"] for _, b in boards})
     notes = {n["y"] + 300: n["text"] for n in canvas["notes"].values() if n.get("page") == page_id}
+    if theme == "Dark":
+        # Dark rows sit 964 px below their light row and its title.
+        notes = {y + 964: t for y, t in notes.items()}
     os.makedirs(os.path.join(OUT, folder), exist_ok=True)
     for key, b in boards:
         r = rows.index(b["y"]) + 1
@@ -47,7 +60,7 @@ for page_id, folder in FOLDERS.items():
         name = re.sub(r"(Light|Dark)$", "", name)
         base = f"{r:02d}-{c:02d}-{slug(re.sub(r'(?<!^)(?=[A-Z])', ' ', name))}"
         src = open(os.path.join(HERE, "project", key)).read()
-        title = f"{PAGE_NAMES[page_id]} · {b.get('title', name)}"
+        title = f"{folder_title(folder)} · {b.get('title', name)}"
         with open(os.path.join(OUT, folder, base + ".html"), "w") as f:
             f.write(to_static(src, title))
         manifest.append({"html": f"{folder}/{base}.html", "png": f"{folder}/{base}.png", "w": b["w"], "h": b["h"]})
@@ -57,8 +70,8 @@ with open(os.path.join(OUT, "screens.json"), "w") as f:
     json.dump(manifest, f, indent=1)
 
 parts = []
-for page_id, folder in FOLDERS.items():
-    parts.append(f'<h2>{html.escape(PAGE_NAMES[page_id])}</h2>')
+for folder in FOLDERS:
+    parts.append(f'<h2>{html.escape(folder_title(folder))}</h2>')
     last = None
     for row_title, base, title, w in sections.get(folder, []):
         if row_title != last:

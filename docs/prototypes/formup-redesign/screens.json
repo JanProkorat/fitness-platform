@@ -66,26 +66,32 @@
   "h": 900
  },
  {
-  "html": "web/03-03-page-register-verified-c.html",
-  "png": "web/03-03-page-register-verified-c.png",
+  "html": "web/03-03-page-register-change-email-c.html",
+  "png": "web/03-03-page-register-change-email-c.png",
   "w": 1440,
   "h": 900
  },
  {
-  "html": "web/03-04-page-register-client-c.html",
-  "png": "web/03-04-page-register-client-c.png",
+  "html": "web/03-04-page-register-verified-c.html",
+  "png": "web/03-04-page-register-verified-c.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/03-05-page-register-client-c.html",
+  "png": "web/03-05-page-register-client-c.png",
   "w": 1440,
   "h": 1060
  },
  {
-  "html": "web/03-05-page-register-client-check-email-c.html",
-  "png": "web/03-05-page-register-client-check-email-c.png",
+  "html": "web/03-06-page-register-client-check-email-c.html",
+  "png": "web/03-06-page-register-client-check-email-c.png",
   "w": 1440,
   "h": 900
  },
  {
-  "html": "web/03-06-page-register-get-app-c.html",
-  "png": "web/03-06-page-register-get-app-c.png",
+  "html": "web/03-07-page-register-get-app-c.html",
+  "png": "web/03-07-page-register-get-app-c.png",
   "w": 1440,
   "h": 900
  },
@@ -102,26 +108,32 @@
   "h": 900
  },
  {
-  "html": "web/04-03-page-register-verified-d.html",
-  "png": "web/04-03-page-register-verified-d.png",
+  "html": "web/04-03-page-register-change-email-d.html",
+  "png": "web/04-03-page-register-change-email-d.png",
   "w": 1440,
   "h": 900
  },
  {
-  "html": "web/04-04-page-register-client-d.html",
-  "png": "web/04-04-page-register-client-d.png",
+  "html": "web/04-04-page-register-verified-d.html",
+  "png": "web/04-04-page-register-verified-d.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/04-05-page-register-client-d.html",
+  "png": "web/04-05-page-register-client-d.png",
   "w": 1440,
   "h": 1060
  },
  {
-  "html": "web/04-05-page-register-client-check-email-d.html",
-  "png": "web/04-05-page-register-client-check-email-d.png",
+  "html": "web/04-06-page-register-client-check-email-d.html",
+  "png": "web/04-06-page-register-client-check-email-d.png",
   "w": 1440,
   "h": 900
  },
  {
-  "html": "web/04-06-page-register-get-app-d.html",
-  "png": "web/04-06-page-register-get-app-d.png",
+  "html": "web/04-07-page-register-get-app-d.html",
+  "png": "web/04-07-page-register-get-app-d.png",
   "w": 1440,
   "h": 900
  },
@@ -822,50 +834,104 @@
   "h": 900
  },
  {
-  "html": "mobile-light/01-01-login.html",
-  "png": "mobile-light/01-01-login.png",
+  "html": "mobile-light/01-01-launch-quiet.html",
+  "png": "mobile-light/01-01-launch-quiet.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "mobile-light/01-02-register.html",
-  "png": "mobile-light/01-02-register.png",
+  "html": "mobile-light/01-02-login.html",
+  "png": "mobile-light/01-02-login.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "mobile-light/01-03-onboarding-goal.html",
-  "png": "mobile-light/01-03-onboarding-goal.png",
+  "html": "mobile-light/01-03-register.html",
+  "png": "mobile-light/01-03-register.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "mobile-light/01-04-onboarding-basics.html",
-  "png": "mobile-light/01-04-onboarding-basics.png",
+  "html": "mobile-light/01-04-register-check-email.html",
+  "png": "mobile-light/01-04-register-check-email.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "mobile-light/01-05-today-no-coach.html",
-  "png": "mobile-light/01-05-today-no-coach.png",
+  "html": "mobile-light/01-05-register-change-email.html",
+  "png": "mobile-light/01-05-register-change-email.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "mobile-light/01-06-coach-search.html",
-  "png": "mobile-light/01-06-coach-search.png",
+  "html": "mobile-light/01-06-register-verified.html",
+  "png": "mobile-light/01-06-register-verified.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "mobile-light/01-07-coach-profile.html",
-  "png": "mobile-light/01-07-coach-profile.png",
+  "html": "mobile-light/01-07-onboarding-goal.html",
+  "png": "mobile-light/01-07-onboarding-goal.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "mobile-light/01-08-request-sheet.html",
-  "png": "mobile-light/01-08-request-sheet.png",
+  "html": "mobile-light/01-08-onboarding-basics.html",
+  "png": "mobile-light/01-08-onboarding-basics.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/01-09-onboarding-lifestyle.html",
+  "png": "mobile-light/01-09-onboarding-lifestyle.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/01-10-onboarding-training.html",
+  "png": "mobile-light/01-10-onboarding-training.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/01-11-onboarding-eating.html",
+  "png": "mobile-light/01-11-onboarding-eating.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/01-12-onboarding-eating-sheet.html",
+  "png": "mobile-light/01-12-onboarding-eating-sheet.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/01-13-onboarding-motivation.html",
+  "png": "mobile-light/01-13-onboarding-motivation.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/01-14-today-no-coach.html",
+  "png": "mobile-light/01-14-today-no-coach.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/01-15-coach-search.html",
+  "png": "mobile-light/01-15-coach-search.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/01-16-coach-profile.html",
+  "png": "mobile-light/01-16-coach-profile.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/01-17-request-sheet.html",
+  "png": "mobile-light/01-17-request-sheet.png",
   "w": 390,
   "h": 844
  },
@@ -1122,50 +1188,104 @@
   "h": 844
  },
  {
-  "html": "mobile-dark/01-01-login.html",
-  "png": "mobile-dark/01-01-login.png",
+  "html": "mobile-dark/01-01-launch-quiet.html",
+  "png": "mobile-dark/01-01-launch-quiet.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "mobile-dark/01-02-register.html",
-  "png": "mobile-dark/01-02-register.png",
+  "html": "mobile-dark/01-02-login.html",
+  "png": "mobile-dark/01-02-login.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "mobile-dark/01-03-onboarding-goal.html",
-  "png": "mobile-dark/01-03-onboarding-goal.png",
+  "html": "mobile-dark/01-03-register.html",
+  "png": "mobile-dark/01-03-register.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "mobile-dark/01-04-onboarding-basics.html",
-  "png": "mobile-dark/01-04-onboarding-basics.png",
+  "html": "mobile-dark/01-04-register-check-email.html",
+  "png": "mobile-dark/01-04-register-check-email.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "mobile-dark/01-05-today-no-coach.html",
-  "png": "mobile-dark/01-05-today-no-coach.png",
+  "html": "mobile-dark/01-05-register-change-email.html",
+  "png": "mobile-dark/01-05-register-change-email.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "mobile-dark/01-06-coach-search.html",
-  "png": "mobile-dark/01-06-coach-search.png",
+  "html": "mobile-dark/01-06-register-verified.html",
+  "png": "mobile-dark/01-06-register-verified.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "mobile-dark/01-07-coach-profile.html",
-  "png": "mobile-dark/01-07-coach-profile.png",
+  "html": "mobile-dark/01-07-onboarding-goal.html",
+  "png": "mobile-dark/01-07-onboarding-goal.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "mobile-dark/01-08-request-sheet.html",
-  "png": "mobile-dark/01-08-request-sheet.png",
+  "html": "mobile-dark/01-08-onboarding-basics.html",
+  "png": "mobile-dark/01-08-onboarding-basics.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/01-09-onboarding-lifestyle.html",
+  "png": "mobile-dark/01-09-onboarding-lifestyle.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/01-10-onboarding-training.html",
+  "png": "mobile-dark/01-10-onboarding-training.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/01-11-onboarding-eating.html",
+  "png": "mobile-dark/01-11-onboarding-eating.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/01-12-onboarding-eating-sheet.html",
+  "png": "mobile-dark/01-12-onboarding-eating-sheet.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/01-13-onboarding-motivation.html",
+  "png": "mobile-dark/01-13-onboarding-motivation.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/01-14-today-no-coach.html",
+  "png": "mobile-dark/01-14-today-no-coach.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/01-15-coach-search.html",
+  "png": "mobile-dark/01-15-coach-search.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/01-16-coach-profile.html",
+  "png": "mobile-dark/01-16-coach-profile.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/01-17-request-sheet.html",
+  "png": "mobile-dark/01-17-request-sheet.png",
   "w": 390,
   "h": 844
  },
@@ -1422,20 +1542,8 @@
   "h": 844
  },
  {
-  "html": "coach-light/01-01-coach-account-type.html",
-  "png": "coach-light/01-01-coach-account-type.png",
-  "w": 390,
-  "h": 844
- },
- {
-  "html": "coach-light/01-02-coach-register.html",
-  "png": "coach-light/01-02-coach-register.png",
-  "w": 390,
-  "h": 844
- },
- {
-  "html": "coach-light/01-03-coach-setup.html",
-  "png": "coach-light/01-03-coach-setup.png",
+  "html": "coach-light/01-01-coach-setup.html",
+  "png": "coach-light/01-01-coach-setup.png",
   "w": 390,
   "h": 844
  },
@@ -1524,20 +1632,8 @@
   "h": 844
  },
  {
-  "html": "coach-dark/01-01-coach-account-type.html",
-  "png": "coach-dark/01-01-coach-account-type.png",
-  "w": 390,
-  "h": 844
- },
- {
-  "html": "coach-dark/01-02-coach-register.html",
-  "png": "coach-dark/01-02-coach-register.png",
-  "w": 390,
-  "h": 844
- },
- {
-  "html": "coach-dark/01-03-coach-setup.html",
-  "png": "coach-dark/01-03-coach-setup.png",
+  "html": "coach-dark/01-01-coach-setup.html",
+  "png": "coach-dark/01-01-coach-setup.png",
   "w": 390,
   "h": 844
  },
@@ -1626,159 +1722,273 @@
   "h": 844
  },
  {
-  "html": "logo/01-01-logo1.html",
-  "png": "logo/01-01-logo1.png",
-  "w": 760,
-  "h": 470
+  "html": "logo/01-01-logo-pixel.html",
+  "png": "logo/01-01-logo-pixel.png",
+  "w": 600,
+  "h": 760
  },
  {
-  "html": "logo/01-02-logo2.html",
-  "png": "logo/01-02-logo2.png",
-  "w": 760,
-  "h": 470
+  "html": "logo/01-02-logo-plates.html",
+  "png": "logo/01-02-logo-plates.png",
+  "w": 600,
+  "h": 760
  },
  {
-  "html": "logo/01-03-logo3.html",
-  "png": "logo/01-03-logo3.png",
-  "w": 760,
-  "h": 470
+  "html": "logo/02-01-logo-fan-warm.html",
+  "png": "logo/02-01-logo-fan-warm.png",
+  "w": 600,
+  "h": 760
  },
  {
-  "html": "logo/02-01-logo4.html",
-  "png": "logo/02-01-logo4.png",
-  "w": 760,
-  "h": 470
+  "html": "logo/02-02-logo-fan-roles.html",
+  "png": "logo/02-02-logo-fan-roles.png",
+  "w": 600,
+  "h": 760
  },
  {
-  "html": "logo/02-02-logo5.html",
-  "png": "logo/02-02-logo5.png",
-  "w": 760,
-  "h": 470
+  "html": "logo/02-03-logo-fan-open.html",
+  "png": "logo/02-03-logo-fan-open.png",
+  "w": 600,
+  "h": 760
  },
  {
-  "html": "logo/02-03-logo6.html",
-  "png": "logo/02-03-logo6.png",
-  "w": 760,
-  "h": 470
+  "html": "logo/03-01-logo-min-dot-f.html",
+  "png": "logo/03-01-logo-min-dot-f.png",
+  "w": 600,
+  "h": 760
  },
  {
-  "html": "logo/03-01-logo7.html",
-  "png": "logo/03-01-logo7.png",
-  "w": 760,
-  "h": 470
+  "html": "logo/03-02-logo-min-shelter.html",
+  "png": "logo/03-02-logo-min-shelter.png",
+  "w": 600,
+  "h": 760
  },
  {
-  "html": "logo/03-02-logo8.html",
-  "png": "logo/03-02-logo8.png",
-  "w": 760,
-  "h": 470
+  "html": "logo/03-03-logo-min-upturn.html",
+  "png": "logo/03-03-logo-min-upturn.png",
+  "w": 600,
+  "h": 760
  },
  {
-  "html": "logo/03-03-logo9.html",
-  "png": "logo/03-03-logo9.png",
-  "w": 760,
-  "h": 470
+  "html": "logo/03-04-logo-min-ring.html",
+  "png": "logo/03-04-logo-min-ring.png",
+  "w": 600,
+  "h": 760
  },
  {
-  "html": "logo/04-01-logo10.html",
-  "png": "logo/04-01-logo10.png",
-  "w": 760,
-  "h": 470
+  "html": "logo/03-05-logo-min-f-u.html",
+  "png": "logo/03-05-logo-min-f-u.png",
+  "w": 600,
+  "h": 760
  },
  {
-  "html": "logo/04-02-logo11.html",
-  "png": "logo/04-02-logo11.png",
-  "w": 760,
-  "h": 470
+  "html": "logo/04-01-logo-cursive-script.html",
+  "png": "logo/04-01-logo-cursive-script.png",
+  "w": 600,
+  "h": 760
  },
  {
-  "html": "logo/04-03-logo12.html",
-  "png": "logo/04-03-logo12.png",
-  "w": 760,
-  "h": 470
+  "html": "logo/04-02-logo-cursive-swash.html",
+  "png": "logo/04-02-logo-cursive-swash.png",
+  "w": 600,
+  "h": 760
  },
  {
-  "html": "logo/05-01-logo13.html",
-  "png": "logo/05-01-logo13.png",
-  "w": 760,
-  "h": 470
+  "html": "logo/04-03-logo-cursive-f-u.html",
+  "png": "logo/04-03-logo-cursive-f-u.png",
+  "w": 600,
+  "h": 760
  },
  {
-  "html": "logo/05-02-logo14.html",
-  "png": "logo/05-02-logo14.png",
-  "w": 760,
-  "h": 470
+  "html": "logo/04-04-logo-cursive-looped.html",
+  "png": "logo/04-04-logo-cursive-looped.png",
+  "w": 600,
+  "h": 760
  },
  {
-  "html": "logo/06-01-logo15.html",
-  "png": "logo/06-01-logo15.png",
-  "w": 760,
-  "h": 470
+  "html": "logo/05-01-logo-capsule-italic.html",
+  "png": "logo/05-01-logo-capsule-italic.png",
+  "w": 600,
+  "h": 760
  },
  {
-  "html": "logo/06-02-logo16.html",
-  "png": "logo/06-02-logo16.png",
-  "w": 760,
-  "h": 470
+  "html": "logo/05-02-logo-capsule-dot-f.html",
+  "png": "logo/05-02-logo-capsule-dot-f.png",
+  "w": 600,
+  "h": 760
  },
  {
-  "html": "logo/07-01-logo17.html",
-  "png": "logo/07-01-logo17.png",
-  "w": 760,
-  "h": 620
+  "html": "logo/05-03-logo-capsule-rising.html",
+  "png": "logo/05-03-logo-capsule-rising.png",
+  "w": 600,
+  "h": 760
  },
  {
-  "html": "logo/07-02-logo18.html",
-  "png": "logo/07-02-logo18.png",
-  "w": 760,
-  "h": 620
+  "html": "logo/05-04-logo-capsule-cascade.html",
+  "png": "logo/05-04-logo-capsule-cascade.png",
+  "w": 600,
+  "h": 760
  },
  {
-  "html": "logo/08-01-logo19.html",
-  "png": "logo/08-01-logo19.png",
-  "w": 760,
-  "h": 620
+  "html": "logo/05-05-logo-capsule-cascade3.html",
+  "png": "logo/05-05-logo-capsule-cascade3.png",
+  "w": 600,
+  "h": 760
  },
  {
-  "html": "logo/08-02-logo20.html",
-  "png": "logo/08-02-logo20.png",
-  "w": 760,
-  "h": 620
+  "html": "logo/05-06-logo-capsule-stem-rise.html",
+  "png": "logo/05-06-logo-capsule-stem-rise.png",
+  "w": 600,
+  "h": 760
  },
  {
-  "html": "logo/09-01-logo21.html",
-  "png": "logo/09-01-logo21.png",
-  "w": 1100,
-  "h": 700
+  "html": "logo/06-01-logo-ring-wave.html",
+  "png": "logo/06-01-logo-ring-wave.png",
+  "w": 600,
+  "h": 760
  },
  {
-  "html": "logo/09-02-logo22.html",
-  "png": "logo/09-02-logo22.png",
-  "w": 1100,
-  "h": 700
+  "html": "logo/06-02-logo-ring-growth.html",
+  "png": "logo/06-02-logo-ring-growth.png",
+  "w": 600,
+  "h": 760
  },
  {
-  "html": "logo/09-03-logo23.html",
-  "png": "logo/09-03-logo23.png",
-  "w": 1100,
-  "h": 700
+  "html": "logo/06-03-logo-ring-script.html",
+  "png": "logo/06-03-logo-ring-script.png",
+  "w": 600,
+  "h": 760
  },
  {
-  "html": "logo/10-01-logo24.html",
-  "png": "logo/10-01-logo24.png",
-  "w": 1100,
-  "h": 700
+  "html": "logo/06-04-logo-ring-uturn.html",
+  "png": "logo/06-04-logo-ring-uturn.png",
+  "w": 600,
+  "h": 760
  },
  {
-  "html": "logo/10-02-logo25.html",
-  "png": "logo/10-02-logo25.png",
-  "w": 1100,
-  "h": 700
+  "html": "logo/06-05-logo-ring-steps.html",
+  "png": "logo/06-05-logo-ring-steps.png",
+  "w": 600,
+  "h": 760
  },
  {
-  "html": "logo/10-03-logo26.html",
-  "png": "logo/10-03-logo26.png",
-  "w": 1100,
-  "h": 700
+  "html": "logo/07-01-logo-plans-overlap.html",
+  "png": "logo/07-01-logo-plans-overlap.png",
+  "w": 600,
+  "h": 760
+ },
+ {
+  "html": "logo/07-02-logo-plans-zipper.html",
+  "png": "logo/07-02-logo-plans-zipper.png",
+  "w": 600,
+  "h": 760
+ },
+ {
+  "html": "logo/07-03-logo-plans-check-f.html",
+  "png": "logo/07-03-logo-plans-check-f.png",
+  "w": 600,
+  "h": 760
+ },
+ {
+  "html": "logo/07-04-logo-plans-booklet.html",
+  "png": "logo/07-04-logo-plans-booklet.png",
+  "w": 600,
+  "h": 760
+ },
+ {
+  "html": "logo/08-01-logo-combo-cascade-check.html",
+  "png": "logo/08-01-logo-combo-cascade-check.png",
+  "w": 600,
+  "h": 760
+ },
+ {
+  "html": "logo/08-02-logo-combo-free.html",
+  "png": "logo/08-02-logo-combo-free.png",
+  "w": 600,
+  "h": 760
+ },
+ {
+  "html": "logo/08-03-logo-combo-progress.html",
+  "png": "logo/08-03-logo-combo-progress.png",
+  "w": 600,
+  "h": 760
+ },
+ {
+  "html": "logo/08-04-logo-combo-stack.html",
+  "png": "logo/08-04-logo-combo-stack.png",
+  "w": 600,
+  "h": 760
+ },
+ {
+  "html": "logo/08-05-logo-combo-deep-card.html",
+  "png": "logo/08-05-logo-combo-deep-card.png",
+  "w": 600,
+  "h": 760
+ },
+ {
+  "html": "logo/09-01-logo-wordmark-test.html",
+  "png": "logo/09-01-logo-wordmark-test.png",
+  "w": 1440,
+  "h": 1260
+ },
+ {
+  "html": "logo/10-01-logo-launch-cascade-check.html",
+  "png": "logo/10-01-logo-launch-cascade-check.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "logo/10-02-logo-launch-free.html",
+  "png": "logo/10-02-logo-launch-free.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "logo/10-03-logo-launch-progress.html",
+  "png": "logo/10-03-logo-launch-progress.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "logo/10-04-logo-launch-stack.html",
+  "png": "logo/10-04-logo-launch-stack.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "logo/10-05-logo-launch-deep-card.html",
+  "png": "logo/10-05-logo-launch-deep-card.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "logo/11-01-logo-launch-cascade-check.html",
+  "png": "logo/11-01-logo-launch-cascade-check.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "logo/11-02-logo-launch-free.html",
+  "png": "logo/11-02-logo-launch-free.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "logo/11-03-logo-launch-progress.html",
+  "png": "logo/11-03-logo-launch-progress.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "logo/11-04-logo-launch-stack.html",
+  "png": "logo/11-04-logo-launch-stack.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "logo/11-05-logo-launch-deep-card.html",
+  "png": "logo/11-05-logo-launch-deep-card.png",
+  "w": 390,
+  "h": 844
  }
 ]

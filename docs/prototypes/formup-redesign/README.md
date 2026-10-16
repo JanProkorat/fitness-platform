@@ -5,7 +5,7 @@ the web portal and the mobile apps:
 <https://claude.ai/artifact/HFzM8WqykBxJvkLdiqU85h> (private claude.ai Design
 artifact — only the main Claude session can open it; agents read this snapshot).
 
-**Snapshot of canvas version 1791993453-a2d7, exported 2026-10-14.** If the canvas has moved
+**Snapshot of canvas version 1792174094-f710 (v252), exported 2026-10-16.** If the canvas has moved
 on, re-export before relying on this copy (see Rebuilding).
 
 | Path | Contents |
@@ -36,7 +36,7 @@ Sample names, numbers and copy are placeholders, not product decisions.
 `interactive/` holds one page per web board and theme. The sidebar, tabs,
 switches, drawers, dialogs and the library panel link to the matching board.
 `interactive-client/` (starts at Login) and `interactive-coach/` (starts at
-account type) do the same for the mobile apps: the tab bar, back buttons, list
+coach setup; sign-up is shared with clients) do the same for the mobile apps: the tab bar, back buttons, list
 rows and primary buttons link through, and the phone is centred and scaled to
 the window.
 The floating bar at the bottom right switches light/dark, jumps to any screen
@@ -53,5 +53,8 @@ node screenshot.mjs ..               # PNG per screen (uses web/node_modules/pla
 ```
 
 Before exporting, copy the current `canvas.json` and every board file from the
-canvas into `source/project/`. The `gen*.py` scripts regenerate the board files;
+canvas into `source/project/`. On the canvas, each mobile app is one page with
+light boards above dark ones; the exports split them into `*-light/` and
+`*-dark/` by the `Light`/`Dark` file suffix. Screenshots use reduced motion, so
+animated boards (launch screen, logo marks) show their finished frame. The `gen*.py` scripts regenerate the board files;
 `gen.py` and `gen2.py` also rewrite `project/canvas.json` — restore it afterwards.

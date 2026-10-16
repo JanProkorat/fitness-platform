@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ClientsSearch · Form Up prototype</title>
+<title>ClientsSearch · dark · Form Up prototype</title>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@200;300;400;500;600;700&amp;family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&amp;display=swap" rel="stylesheet">
 <style>
 body{margin:0}
@@ -23,7 +23,7 @@ body.fu-show .fu-hot{outline:2px solid rgba(37,99,235,.75);outline-offset:1px}
 </style>
 <script>
 (function(){
-  var FLOW = {"Today": "CoachToday", "Clients": "CoachClients", "*Messages": "CoachMessages", "Close search": "CoachClients", "^Eva Svobodová": "CoachClientDetail", "^Evžen Kos": "CoachClientDetail"}, PAGE = "CoachClientsSearch", THEME = "dark", PAGES = [["CoachAccountType", "AccountType"], ["CoachRegister", "Register"], ["CoachSetup", "Setup"], ["CoachToday", "Today"], ["CoachNotifications", "Notifications"], ["CoachClients", "Clients"], ["CoachClientsSearch", "ClientsSearch"], ["CoachClientDetail", "ClientDetail"], ["CoachClientPlans", "ClientPlans"], ["CoachCheckInReview", "CheckInReview"], ["CoachFindClients", "FindClients"], ["CoachProspect", "Prospect"], ["CoachJoinRequest", "JoinRequest"], ["CoachInvite", "Invite"], ["CoachMessages", "Messages"], ["CoachBroadcast", "Broadcast"], ["CoachProfile", "Profile"]], DEVICE = true;
+  var FLOW = {"Today": "CoachToday", "Clients": "CoachClients", "*Messages": "CoachMessages", "Close search": "CoachClients", "^Eva Svobodová": "CoachClientDetail", "^Evžen Kos": "CoachClientDetail"}, PAGE = "CoachClientsSearch", THEME = "dark", PAGES = [["CoachSetup", "Setup · light"], ["CoachToday", "Today · light"], ["CoachNotifications", "Notifications · light"], ["CoachClients", "Clients · light"], ["CoachClientsSearch", "ClientsSearch · light"], ["CoachClientDetail", "ClientDetail · light"], ["CoachClientPlans", "ClientPlans · light"], ["CoachCheckInReview", "CheckInReview · light"], ["CoachFindClients", "FindClients · light"], ["CoachProspect", "Prospect · light"], ["CoachJoinRequest", "JoinRequest · light"], ["CoachInvite", "Invite · light"], ["CoachMessages", "Messages · light"], ["CoachBroadcast", "Broadcast · light"], ["CoachProfile", "Profile · light"]], DEVICE = true;
   function key(el){ return (el.getAttribute('aria-label') || el.getAttribute('title') || el.textContent || '').replace(/\s+/g,' ').trim(); }
   function target(el){
     // Exact keys win over ^prefix and *contains keys; a null target marks a label as not clickable.
