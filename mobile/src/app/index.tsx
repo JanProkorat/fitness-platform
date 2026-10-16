@@ -1,58 +1,98 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { SymbolView } from 'expo-symbols';
+import type { SFSymbol } from 'expo-symbols';
 
 import { Button } from '@/components/Button';
-import { Chip } from '@/components/Chip';
+import { Card } from '@/components/Card';
+import { GlassTabBar } from '@/components/GlassTabBar';
+import { Input } from '@/components/Input';
+import { Screen } from '@/components/Screen';
+import { Text } from '@/components/Text';
+import { useAuthStore } from '@/stores/auth';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
 
-// Temporary token showcase: labels are placeholders until i18n lands with the first real screen.
+const TABS: { key: string; symbol: SFSymbol }[] = [
+  { key: 'today', symbol: 'house' },
+  { key: 'training', symbol: 'figure.strengthtraining.traditional' },
+  { key: 'nutrition', symbol: 'leaf' },
+  { key: 'messages', symbol: 'bubble.left' },
+];
+
 export default function Index() {
+  const { t } = useTranslation();
   const theme = useTheme();
   const styles = makeStyles(theme);
+  const [active, setActive] = useState('today');
+  const [email, setEmail] = useState('');
+  const barClearance = theme.sizes.tabBar + theme.sizes.tabBarBottom + theme.spacing.xxl;
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>Form Up</Text>
-      <Text style={styles.body}>Theme showcase</Text>
-
-      <View style={styles.row}>
-        <Chip variant="training" label="Training" />
-        <Chip variant="nutrition" label="Nutrition" />
-      </View>
-
-      <Button variant="ink" label="Continue" />
-      <Button variant="training" label="Start workout" />
-      <Button variant="nutrition" label="Log meal" />
-      <Button variant="destructive" label="Delete" />
-      <View style={styles.row}>
-        <Button size="small" variant="ink" label="Edit" />
-        <Button size="small" variant="destructive" label="Remove" />
-      </View>
-    </ScrollView>
+    <View style={styles.root}>
+      <Screen scroll bottomInset={barClearance} contentStyle={styles.content}>
+        <Text variant="title">{t('showcase.title')}</Text>
+        <Card style={styles.card}>
+          <Text variant="subtitle">{t('showcase.card.title')}</Text>
+          <Text variant="body" color="muted">
+            {t('showcase.card.body')}
+          </Text>
+        </Card>
+        <Input
+          label={t('showcase.input.label')}
+          placeholder={t('showcase.input.placeholder')}
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          keyboardType="email-address"
+        />
+        <Input
+          label={t('showcase.input.label')}
+          placeholder={t('showcase.input.placeholder')}
+          error={t('showcase.input.error')}
+        />
+        <Card style={styles.card}>
+          <Text variant="body" color="muted">
+            {t('showcase.scrollHint')}
+          </Text>
+        </Card>
+        <Card style={styles.card}>
+          <Text variant="body" color="muted">
+            {t('showcase.scrollHint')}
+          </Text>
+        </Card>
+        <Button
+          label={t('showcase.signOut')}
+          variant="destructive"
+          onPress={() => void useAuthStore.getState().logout()}
+        />
+      </Screen>
+      <GlassTabBar
+        tabs={TABS.map(({ key, symbol }) => ({
+          key,
+          label: t(`showcase.tabs.${key}`),
+          active: key === active,
+          onPress: () => setActive(key),
+          icon: (color: string) => (
+            <SymbolView name={symbol} tintColor={color} size={theme.sizes.tabIcon} />
+          ),
+        }))}
+      />
+    </View>
   );
 }
 
 const makeStyles = (theme: Theme) =>
   StyleSheet.create({
-    screen: {
+    root: {
       flex: 1,
       backgroundColor: theme.colors.ground,
     },
     content: {
-      padding: theme.spacing.xxl,
-      paddingTop: theme.spacing.huge * 2,
       gap: theme.spacing.xl,
     },
-    title: {
-      ...theme.typography.title,
-      color: theme.colors.ink,
-    },
-    body: {
-      ...theme.typography.body,
-      color: theme.colors.muted,
-    },
-    row: {
-      flexDirection: 'row',
+    card: {
       gap: theme.spacing.xs,
     },
   });

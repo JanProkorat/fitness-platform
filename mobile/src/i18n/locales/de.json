@@ -1,0 +1,51 @@
+{
+  "app": {
+    "placeholder": "Die App wird vorbereitet"
+  },
+  "auth": {
+    "login": {
+      "heading": "Training & Ernährung\nan einem Ort.",
+      "email": "E-Mail",
+      "emailPlaceholder": "jan@example.com",
+      "password": "Passwort",
+      "showPassword": "Anzeigen",
+      "hidePassword": "Verbergen",
+      "forgotPassword": "Passwort vergessen?",
+      "submit": "Anmelden",
+      "newHere": "Neu hier?",
+      "createAccount": "Konto erstellen",
+      "validation": {
+        "emailRequired": "Gib deine E-Mail-Adresse ein.",
+        "emailInvalid": "Gib eine gültige E-Mail-Adresse ein.",
+        "passwordRequired": "Gib dein Passwort ein."
+      },
+      "errors": {
+        "invalidCredentials": "E-Mail oder Passwort ist falsch.",
+        "accountDeactivated": "Dieses Konto wurde deaktiviert.",
+        "rateLimited": "Zu viele Versuche. Bitte versuche es gleich noch einmal.",
+        "network": "Der Server ist nicht erreichbar. Prüfe deine Verbindung und versuche es erneut.",
+        "generic": "Die Anmeldung ist fehlgeschlagen. Bitte versuche es erneut."
+      }
+    }
+  },
+  "showcase": {
+    "title": "Komponenten",
+    "card": {
+      "title": "Heutiges Training",
+      "body": "Eine Karte mit Text von deinem Trainer."
+    },
+    "input": {
+      "label": "E-Mail",
+      "placeholder": "jan@example.com",
+      "error": "Gib eine gültige E-Mail-Adresse ein."
+    },
+    "scrollHint": "Scrolle den Inhalt unter die schwebende Leiste, um die Unschärfe zu sehen.",
+    "signOut": "Abmelden",
+    "tabs": {
+      "today": "Heute",
+      "training": "Training",
+      "nutrition": "Ernährung",
+      "messages": "Nachrichten"
+    }
+  }
+}
