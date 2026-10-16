@@ -4,11 +4,13 @@ import { useTranslation } from 'react-i18next';
 import { SymbolView } from 'expo-symbols';
 import type { SFSymbol } from 'expo-symbols';
 
+import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { GlassTabBar } from '@/components/GlassTabBar';
 import { Input } from '@/components/Input';
 import { Screen } from '@/components/Screen';
 import { Text } from '@/components/Text';
+import { useAuthStore } from '@/stores/auth';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
 
@@ -60,6 +62,11 @@ export default function Index() {
             {t('showcase.scrollHint')}
           </Text>
         </Card>
+        <Button
+          label={t('showcase.signOut')}
+          variant="destructive"
+          onPress={() => void useAuthStore.getState().logout()}
+        />
       </Screen>
       <GlassTabBar
         tabs={TABS.map(({ key, symbol }) => ({
@@ -84,7 +91,6 @@ const makeStyles = (theme: Theme) =>
     },
     content: {
       gap: theme.spacing.xl,
-      padding: theme.spacing.xxl,
     },
     card: {
       gap: theme.spacing.xs,

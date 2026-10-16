@@ -2,6 +2,32 @@
   "app": {
     "placeholder": "Aplikace se připravuje"
   },
+  "auth": {
+    "login": {
+      "heading": "Trénujte a jezte\ns trenérem.",
+      "email": "E-mail",
+      "emailPlaceholder": "jan@example.com",
+      "password": "Heslo",
+      "showPassword": "Zobrazit",
+      "hidePassword": "Skrýt",
+      "forgotPassword": "Zapomněli jste heslo?",
+      "submit": "Přihlásit se",
+      "newHere": "Jste tu poprvé?",
+      "createAccount": "Vytvořit účet",
+      "validation": {
+        "emailRequired": "Zadejte e-mail.",
+        "emailInvalid": "Zadejte platný e-mail.",
+        "passwordRequired": "Zadejte heslo."
+      },
+      "errors": {
+        "invalidCredentials": "Nesprávný e-mail nebo heslo.",
+        "accountDeactivated": "Tento účet byl deaktivován.",
+        "rateLimited": "Příliš mnoho pokusů. Zkuste to prosím za chvíli.",
+        "network": "Nelze se připojit k serveru. Zkontrolujte připojení a zkuste to znovu.",
+        "generic": "Přihlášení se nezdařilo. Zkuste to prosím znovu."
+      }
+    }
+  },
   "showcase": {
     "title": "Komponenty",
     "card": {
@@ -14,10 +40,11 @@
       "error": "Zadejte platný e-mail."
     },
     "scrollHint": "Posuňte obsah pod plovoucí lištu, aby bylo vidět rozostření.",
+    "signOut": "Odhlásit se",
     "tabs": {
       "today": "Dnes",
       "training": "Trénink",
-      "nutrition": "Strava",
+      "nutrition": "Výživa",
       "messages": "Zprávy"
     }
   }

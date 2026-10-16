@@ -41,6 +41,9 @@ export type Colors = {
   glassFill: string;
   glassBorder: string;
 
+  wordmarkInk: string;
+  wordmarkAccent: string;
+
   macroProtein: string;
   macroCarbs: string;
   macroFat: string;
@@ -63,6 +66,7 @@ const shared = {
   onNutrition: '#141414',
   avatar: '#141414',
   onAvatar: '#F6F4F0',
+  wordmarkAccent: '#C8382F',
 };
 
 export const lightColors: Colors = {
@@ -92,6 +96,7 @@ export const lightColors: Colors = {
   tabSelected: 'rgba(20,20,20,0.05)',
   glassFill: 'rgba(255,255,255,0.58)',
   glassBorder: 'rgba(255,255,255,0.85)',
+  wordmarkInk: '#141414',
 };
 
 export const darkColors: Colors = {
@@ -121,4 +126,5 @@ export const darkColors: Colors = {
   tabSelected: 'rgba(255,255,255,0.06)',
   glassFill: 'rgba(44,44,48,0.52)',
   glassBorder: 'rgba(255,255,255,0.14)',
+  wordmarkInk: '#F4F2EE',
 };

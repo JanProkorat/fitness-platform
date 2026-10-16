@@ -22,7 +22,7 @@ export function executeRefresh(): Promise<string> {
   if (inFlight) return inFlight;
 
   inFlight = (async (): Promise<string> => {
-    const { refreshToken, setTokens, logout } = useAuthStore.getState();
+    const { refreshToken, sessionGeneration } = useAuthStore.getState();
     if (!refreshToken) {
       throw new Error('no_refresh_token');
     }
@@ -33,11 +33,17 @@ export function executeRefresh(): Promise<string> {
       if (!data.accessToken || !data.refreshToken) {
         throw new Error('invalid_refresh_response');
       }
-      await setTokens(data.accessToken, data.refreshToken);
+      const applied = await useAuthStore
+        .getState()
+        .applyRefreshedTokens(sessionGeneration, data.accessToken, data.refreshToken);
+      if (!applied) {
+        throw new Error('stale_session');
+      }
       return data.accessToken;
     } catch (error) {
-      if (isSessionRejection(error)) {
-        await logout();
+      // A rejection that arrives after the session changed must not end the new session.
+      if (isSessionRejection(error) && useAuthStore.getState().sessionGeneration === sessionGeneration) {
+        await useAuthStore.getState().logout();
       }
       throw error;
     }

@@ -35,6 +35,8 @@ const style = (
 
 export const typography = {
   logo: style('Outfit_300Light', 30, 34, -0.45),
+  wordmark: style('Outfit_300Light', 22, 22, 4.84),
+  display: style('Outfit_600SemiBold', 32, 36, -0.48),
   title: style('Outfit_600SemiBold', 30, 34, -0.45),
   heading: style('DMSans_700Bold', 20, 26),
   subtitle: style('DMSans_600SemiBold', 17, 24),
@@ -42,6 +44,7 @@ export const typography = {
   body: style('DMSans_400Regular', 15, 22),
   bodyStrong: style('DMSans_600SemiBold', 15, 22),
   bodySmall: style('DMSans_400Regular', 14, 20),
+  link: style('DMSans_600SemiBold', 14, 20),
   label: style('DMSans_500Medium', 13, 18),
   labelStrong: style('DMSans_600SemiBold', 13, 18),
   caption: style('DMSans_400Regular', 12, 16),
