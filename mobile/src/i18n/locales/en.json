@@ -1,5 +1,24 @@
 {
   "app": {
     "placeholder": "The app is getting ready"
+  },
+  "showcase": {
+    "title": "Components",
+    "card": {
+      "title": "Today's training",
+      "body": "A card with text from your trainer."
+    },
+    "input": {
+      "label": "Email",
+      "placeholder": "jan@example.com",
+      "error": "Enter a valid email."
+    },
+    "scrollHint": "Scroll the content under the floating bar to see the blur.",
+    "tabs": {
+      "today": "Today",
+      "training": "Training",
+      "nutrition": "Nutrition",
+      "messages": "Messages"
+    }
   }
 }

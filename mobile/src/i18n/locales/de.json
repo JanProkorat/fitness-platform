@@ -1,5 +1,24 @@
 {
   "app": {
     "placeholder": "Die App wird vorbereitet"
+  },
+  "showcase": {
+    "title": "Komponenten",
+    "card": {
+      "title": "Heutiges Training",
+      "body": "Eine Karte mit Text von deinem Trainer."
+    },
+    "input": {
+      "label": "E-Mail",
+      "placeholder": "jan@example.com",
+      "error": "Gib eine gültige E-Mail-Adresse ein."
+    },
+    "scrollHint": "Scrolle den Inhalt unter die schwebende Leiste, um die Unschärfe zu sehen.",
+    "tabs": {
+      "today": "Heute",
+      "training": "Training",
+      "nutrition": "Ernährung",
+      "messages": "Nachrichten"
+    }
   }
 }

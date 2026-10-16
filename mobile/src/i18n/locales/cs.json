@@ -1,5 +1,24 @@
 {
   "app": {
     "placeholder": "Aplikace se připravuje"
+  },
+  "showcase": {
+    "title": "Komponenty",
+    "card": {
+      "title": "Dnešní trénink",
+      "body": "Karta s textem od vašeho trenéra."
+    },
+    "input": {
+      "label": "E-mail",
+      "placeholder": "jan@example.com",
+      "error": "Zadejte platný e-mail."
+    },
+    "scrollHint": "Posuňte obsah pod plovoucí lištu, aby bylo vidět rozostření.",
+    "tabs": {
+      "today": "Dnes",
+      "training": "Trénink",
+      "nutrition": "Strava",
+      "messages": "Zprávy"
+    }
   }
 }
