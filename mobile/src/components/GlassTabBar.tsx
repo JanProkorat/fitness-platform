@@ -20,9 +20,6 @@ type GlassTabBarProps = {
   tabs: GlassTabBarTab[];
 };
 
-/** Maps the board's 22px backdrop blur to expo-blur: a thin system material at half strength. */
-const BLUR_INTENSITY = 50;
-
 export function GlassTabBar({ tabs }: GlassTabBarProps) {
   const theme = useTheme();
   const styles = makeStyles(theme);
@@ -34,7 +31,7 @@ export function GlassTabBar({ tabs }: GlassTabBarProps) {
       pointerEvents="box-none"
       style={styles.shadow}
     >
-      <BlurView intensity={BLUR_INTENSITY} tint={tint} style={styles.blur}>
+      <BlurView intensity={theme.glass.bar.intensity} tint={tint} style={styles.blur}>
         <View style={styles.fill}>
           {tabs.map((tab) => {
             const color = tab.active ? theme.colors.accent : theme.colors.muted;
