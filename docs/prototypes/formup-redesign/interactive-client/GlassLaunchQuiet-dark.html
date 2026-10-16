@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Launch · dark · Form Up prototype</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+
+.wm{animation:g-wm 3.4s cubic-bezier(.3,0,.2,1) infinite}
+@keyframes g-wm{0%,32%{opacity:0;letter-spacing:.42em}55%,88%{opacity:1;letter-spacing:.22em}100%{opacity:0}}
+
+.draw{stroke-dasharray:100;animation:g-draw 3.4s cubic-bezier(.6,0,.2,1) infinite}
+.d2{animation-delay:.12s}.d3{animation-delay:.24s}
+@keyframes g-draw{0%,30%{stroke-dashoffset:100}50%,88%{stroke-dashoffset:0}100%{stroke-dashoffset:100}}
+.inL{animation:g-inl 3.4s cubic-bezier(.3,1.3,.5,1) infinite}.inR{animation:g-inr 3.4s cubic-bezier(.3,1.3,.5,1) infinite}
+@keyframes g-inl{0%{transform:translateX(-16px);opacity:0}28%,88%{transform:translateX(0);opacity:1}100%{opacity:0}}
+@keyframes g-inr{0%{transform:translateX(16px);opacity:0}28%,88%{transform:translateX(0);opacity:1}100%{opacity:0}}
+.fade{animation:g-fade 3.4s ease-out infinite}
+@keyframes g-fade{0%,26%{opacity:0}40%,88%{opacity:1}100%{opacity:0}}
+.zl,.zr{animation:g-zl 3.4s cubic-bezier(.3,1.3,.5,1) infinite both}.zr{animation-name:g-zr}
+@keyframes g-zl{0%{transform:translateX(-30px);opacity:0}30%,88%{transform:translateX(0);opacity:1}100%{opacity:0}}
+@keyframes g-zr{0%{transform:translateX(30px);opacity:0}30%,88%{transform:translateX(0);opacity:1}100%{opacity:0}}
+.pop{transform-box:fill-box;transform-origin:center;animation:g-pop 3.4s cubic-bezier(.3,1.7,.5,1) infinite}
+.q1{animation-delay:.1s}.q2{animation-delay:.2s}
+@keyframes g-pop{0%{transform:scale(0)}18%,88%{transform:scale(1)}100%{transform:scale(0)}}
+.pageL,.pageR{transform-box:view-box;animation:g-page 3.4s cubic-bezier(.3,1.2,.5,1) infinite}
+.pageL{transform-origin:50px 50px}.pageR{transform-origin:50px 50px}
+@keyframes g-page{0%{transform:scaleX(0)}30%,88%{transform:scaleX(1)}100%{transform:scaleX(0)}}
+.tick{stroke-dasharray:100;animation:g-tick 3.4s ease-out infinite}
+@keyframes g-tick{0%,40%{stroke-dashoffset:100}55%,88%{stroke-dashoffset:0}100%{stroke-dashoffset:100}}
+.c1,.c2,.c3{animation:g-card 3.4s cubic-bezier(.3,1.3,.5,1) infinite}.c2{animation-delay:.1s}.c3{animation-delay:.2s}
+@keyframes g-card{0%{transform:translate(14px,-14px);opacity:0}25%,88%{transform:translate(0,0);opacity:1}100%{opacity:0}}
+@media (prefers-reduced-motion: reduce){*{animation:none!important}}
+
+
+.late{animation:g-late 3.4s cubic-bezier(.3,0,.2,1) infinite}
+@keyframes g-late{0%,52%{opacity:0;transform:translateY(8px)}66%,88%{opacity:1;transform:none}100%{opacity:0}}
+.fill{transform-origin:left center;animation:g-fill 3.4s ease-in-out infinite}
+@keyframes g-fill{0%,18%{transform:scaleX(0)}80%,90%{transform:scaleX(1)}100%{transform:scaleX(1);opacity:0}}
+</style>
+
+<style>
+html,body{margin:0}
+body{overflow-x:hidden}
+body.fu-device{min-height:100vh;display:flex;align-items:center;justify-content:center;background:#E4E1DC}
+body.fu-device.fu-dark{background:#1C1C1F}
+.fu-hot{cursor:pointer}
+body.fu-show .fu-hot{outline:2px solid rgba(37,99,235,.75);outline-offset:1px}
+#fu-bar{position:fixed;right:16px;bottom:16px;z-index:9999;display:flex;gap:6px;align-items:center;padding:6px;border-radius:14px;background:rgba(20,20,20,.88);color:#fff;font:600 12px system-ui,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.3)}
+#fu-bar a,#fu-bar button,#fu-bar select{height:30px;padding:0 10px;border-radius:9px;border:0;background:rgba(255,255,255,.12);color:#fff;font:inherit;text-decoration:none;display:flex;align-items:center;cursor:pointer}
+#fu-bar .on{background:#fff;color:#141414}
+</style>
+<script>
+(function(){
+  var FLOW = {"Today": "GlassToday", "Training": "GlassTrainingWeek", "Nutrition": "GlassNutrition", "*Messages": "GlassMessagesList"}, PAGE = "GlassLaunchQuiet", THEME = "dark", PAGES = [["GlassLaunchQuiet", "Launch · light"], ["GlassLogin", "Login · light"], ["GlassRegister", "Register · light"], ["GlassRegisterCheckEmail", "RegisterCheckEmail · light"], ["GlassRegisterChangeEmail", "RegisterChangeEmail · light"], ["GlassRegisterVerified", "RegisterVerified · light"], ["GlassOnboardingGoal", "OnboardingGoal · light"], ["GlassOnboardingBasics", "OnboardingBasics · light"], ["GlassOnboardingLifestyle", "OnboardingLifestyle · light"], ["GlassOnboardingTraining", "OnboardingTraining · light"], ["GlassOnboardingEating", "OnboardingEating · light"], ["GlassOnboardingEatingSheet", "OnboardingEating · add sheet · light"], ["GlassOnboardingMotivation", "OnboardingMotivation · light"], ["GlassTodayNoCoach", "TodayNoCoach · light"], ["GlassCoachSearch", "CoachSearch · light"], ["GlassCoachProfile", "CoachProfile · light"], ["GlassRequestSheet", "RequestSheet · light"], ["GlassToday", "Today · light"], ["GlassTodayV1", "Today · v1 (check-in only) · light"], ["GlassNotifications", "Notifications · light"], ["GlassTrainingWeek", "TrainingWeek · light"], ["GlassTrainingEmpty", "TrainingEmpty · light"], ["GlassSessionDetail", "SessionDetail · light"], ["GlassWorkout", "Workout · light"], ["GlassSessionMixed", "SessionMixed · light"], ["GlassAmrap", "Amrap · light"], ["GlassEmom", "Emom · light"], ["GlassTabata", "Tabata · light"], ["GlassForTime", "ForTime · light"], ["GlassDoneStrength", "DoneStrength · light"], ["GlassDoneAmrap", "DoneAmrap · light"], ["GlassDoneTabata", "DoneTabata · light"], ["GlassSessionSummary", "SessionSummary · light"], ["GlassNutrition", "Nutrition · light"], ["GlassNutritionEmpty", "NutritionEmpty · light"], ["GlassMealDetail", "MealDetail · light"], ["GlassShoppingList", "ShoppingList · light"], ["GlassMessagesList", "MessagesList · light"], ["GlassChat", "Chat · light"], ["GlassProfile", "Profile · light"], ["GlassMyJourney", "MyJourney · light"], ["GlassPlanSummary", "PlanSummary · light"], ["GlassMeasurements", "Measurements · light"], ["GlassPhotos", "Photos · light"], ["GlassCheckIn", "CheckIn · light"], ["GlassSettings", "Settings · light"], ["GlassTrainingPlan", "TrainingPlan · light"], ["GlassTrainingWeekDetail", "TrainingWeekDetail · light"], ["GlassNutritionPlan", "NutritionPlan · light"], ["GlassNutritionWeekDetail", "NutritionWeekDetail · light"], ["GlassRecipesPlan", "RecipesPlan · light"], ["GlassRecipesAll", "RecipesAll · light"], ["GlassRecipeDetail", "RecipeDetail · light"], ["GlassCookingSteps", "CookingSteps · light"], ["GlassIngredientDetail", "IngredientDetail · light"], ["GlassWorkoutsPlan", "WorkoutsPlan · light"], ["GlassWorkoutsAll", "WorkoutsAll · light"], ["GlassWorkoutDetail", "WorkoutDetail · light"], ["GlassExerciseDetail", "ExerciseDetail · light"]], DEVICE = true;
+  function key(el){ return (el.getAttribute('aria-label') || el.getAttribute('title') || el.textContent || '').replace(/\s+/g,' ').trim(); }
+  function target(el){
+    // Exact keys win over ^prefix and *contains keys; a null target marks a label as not clickable.
+    var k = key(el), m;
+    if (Object.prototype.hasOwnProperty.call(FLOW, k)) return FLOW[k];
+    for (m in FLOW){ var c = m[0], v = m.slice(1); if (c === '^' ? k.indexOf(v) === 0 : c === '*' ? k.indexOf(v) >= 0 : false) return FLOW[m]; }
+    return null;
+  }
+  function go(page, theme){ location.href = page + '-' + (theme || THEME) + '.html'; }
+  function fit(){
+    // Boards are fixed-size frames. Web: zoom to the window width, page in the board's colour.
+    // Phone: centre the frame, zoomed to fit the window, on a neutral backdrop.
+    var board = document.body.firstElementChild;
+    if (!board || board.id === 'fu-bar') return;
+    if (!board.dataset.w){
+      board.dataset.w = board.offsetWidth; board.dataset.h = board.offsetHeight;
+      if (DEVICE){
+        document.body.classList.add('fu-device'); if (THEME === 'dark') document.body.classList.add('fu-dark');
+        board.style.borderRadius = '48px'; board.style.boxShadow = '0 30px 80px rgba(0,0,0,.28), 0 0 0 10px #0B0B0C';
+      } else {
+        document.body.style.background = getComputedStyle(board).backgroundColor;
+      }
+    }
+    var root = document.documentElement;
+    board.style.zoom = DEVICE ? Math.min((root.clientHeight - 64) / board.dataset.h, (root.clientWidth - 64) / board.dataset.w)
+                              : root.clientWidth / board.dataset.w;
+  }
+  window.addEventListener('resize', fit);
+  document.addEventListener('DOMContentLoaded', function(){
+    fit();
+    document.querySelectorAll('a,button,tr,[role=tab],[role=radio]').forEach(function(el){ if (target(el)) el.classList.add('fu-hot'); });
+    var bar = document.createElement('div'); bar.id = 'fu-bar';
+    var opts = PAGES.map(function(p){ return '<option value="'+p[0]+'"'+(p[0]===PAGE?' selected':'')+'>'+p[1]+'</option>'; }).join('');
+    bar.innerHTML = '<select aria-label="Jump to screen">'+opts+'</select>'
+      + '<button data-t="light" class="'+(THEME==='light'?'on':'')+'">Light</button><button data-t="dark" class="'+(THEME==='dark'?'on':'')+'">Dark</button>'
+      + '<button data-h="1" title="Show clickable areas (H)">Hotspots</button><a href="../index.html">All screens</a>';
+    document.body.appendChild(bar);
+    bar.querySelector('select').addEventListener('change', function(e){ go(e.target.value); });
+    bar.querySelectorAll('[data-t]').forEach(function(b){ b.addEventListener('click', function(){ go(PAGE, b.getAttribute('data-t')); }); });
+    bar.querySelector('[data-h]').addEventListener('click', function(){ document.body.classList.toggle('fu-show'); });
+  });
+  document.addEventListener('keydown', function(e){ if (e.key === 'h' || e.key === 'H') document.body.classList.toggle('fu-show'); });
+  document.addEventListener('click', function(e){
+    if (e.target.closest && e.target.closest('#fu-bar')) return;
+    var el = e.target.closest ? e.target.closest('a,button,tr,[role=tab],[role=radio]') : null;
+    if (!el) return;
+    e.preventDefault();
+    var t = target(el);
+    if (t) go(t); else if (el.tagName !== 'TR' && !document.body.classList.contains('fu-show')) { document.body.classList.add('fu-show'); setTimeout(function(){ document.body.classList.remove('fu-show'); }, 600); }
+  }, true);
+})();
+</script>
+
+</head>
+<body>
+<div role="img" aria-label="Form Up" style="position: relative; width: 390px; height: 844px; background: radial-gradient(420px 360px at 88% 10%, rgba(242,140,56,0.16), transparent 70%), radial-gradient(400px 360px at 8% 94%, rgba(140,193,82,0.12), transparent 70%), radial-gradient(300px 260px at 0% 0%, rgba(229,72,61,0.10), transparent 70%), #0B0B0C; overflow: hidden; display: flex; align-items: center; justify-content: center">
+<div style="display: flex; flex-direction: column; align-items: center; gap: 22px"><span style="display: inline-block; font-family: 'Outfit', sans-serif; font-weight: 300; font-size: 36px; letter-spacing: 0.22em; line-height: 1; white-space: nowrap; color: #F5F5F7; padding-left: 0.22em"><svg width="29" height="27" viewBox="15 17 73 67" aria-hidden="true" style="display: inline-block; vertical-align: baseline; margin-right: 0.18em; overflow: visible"><circle class="pop" cx="24" cy="26" r="9" fill="#7A1A14"></circle><path class="tick" pathLength="100" d="M-4 0.5 L-1.2 3.4 L4.2 -2.6" transform="translate(24 26)" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#FFFFFF" stroke-width="2.6"></path><path class="draw" pathLength="100" d="M40 26 H80" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#7A1A14" stroke-width="16"></path><circle class="pop q1" cx="24" cy="50" r="9" fill="#D2342A"></circle><path class="draw d2" pathLength="100" d="M40 50 H66" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#D2342A" stroke-width="16"></path><circle class="pop q2" cx="24" cy="74" r="7.5" fill="none" stroke="#F4A08A" stroke-width="4"></circle></svg><span class="wm" style="display: inline-block">ORM&nbsp;<span style="color: #E5483D">UP</span></span></span><span class="late" style="font-family: 'Outfit', sans-serif; font-weight: 300; font-size: 15px; letter-spacing: 0.06em; color: #98989F">Your plan. Together.</span></div>
+</div>
+</body>
+</html>

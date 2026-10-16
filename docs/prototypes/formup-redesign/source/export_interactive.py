@@ -90,11 +90,20 @@ _no_coach = {"Today": "TodayNoCoach", "Training": "TrainingEmpty", "Nutrition": 
 _open_ing = {"^Open ": "IngredientDetail", "^How to make it": "CookingSteps"}
 CLIENT_FLOWS = prefixed("Glass", {
     "Login": {"Sign in": "Today", "Apple": "Today", "Google": "Today", "Create account": "Register"},
-    "Register": {"Back": "Login", "Sign in": "Login", "Create account": "OnboardingGoal"},
-    "OnboardingGoal": {"Back": "Register", "Skip": "TodayNoCoach", "Continue": "OnboardingBasics"},
-    "OnboardingBasics": {"Back": "OnboardingGoal", "Skip": "TodayNoCoach", "Continue": "TodayNoCoach"},
-    "TodayNoCoach": dict(_no_coach, **{"Notifications": "Notifications", "^Find a trainer": "CoachSearch", "^Find a nutritionist": "CoachSearch",
-                                       "^Finish your profile": "OnboardingGoal", "Accept": "Today"}),
+    "Register": {"Back": "Login", "Create account": "RegisterCheckEmail"},
+    "RegisterCheckEmail": {"Back": "Register", "Open email app": "RegisterVerified", "Change email": "RegisterChangeEmail"},
+    "RegisterChangeEmail": {"Back": "Register", "Cancel": "RegisterCheckEmail", "Send new link": "RegisterCheckEmail"},
+    "RegisterVerified": {"Set up your profile": "OnboardingGoal"},
+    "OnboardingGoal": {"Back": "RegisterVerified", "Continue": "OnboardingBasics"},
+    "OnboardingBasics": {"Back": "OnboardingGoal", "Continue": "OnboardingLifestyle"},
+    "OnboardingLifestyle": {"Back": "OnboardingBasics", "Continue": "OnboardingTraining"},
+    "OnboardingTraining": {"Back": "OnboardingLifestyle", "Continue": "OnboardingEating"},
+    "OnboardingEating": {"Back": "OnboardingTraining", "Continue": "OnboardingMotivation", "*Add allergy": "OnboardingEatingSheet",
+                         "*Add food": "OnboardingEatingSheet"},
+    "OnboardingEatingSheet": {"Done": "OnboardingEating", "Back": "OnboardingTraining", "Continue": "OnboardingMotivation"},
+    "OnboardingMotivation": {"Back": "OnboardingEating", "Finish": "TodayNoCoach"},
+    "TodayNoCoach": dict(_no_coach, **{"Notifications": "Notifications", "^Trainer": "CoachSearch", "^Nutritionist": "CoachSearch",
+                                       "Accept": "Today"}),
     "TrainingEmpty": dict(_no_coach, **{"Find a trainer": "CoachSearch"}),
     "NutritionEmpty": dict(_no_coach, **{"Find a nutritionist": "CoachSearch"}),
     "CoachSearch": {"Back": "TodayNoCoach", "^MK ": "CoachProfile", "^TD ": "CoachProfile", "^PV ": "CoachProfile", "^LH ": "CoachProfile"},
@@ -154,9 +163,7 @@ _coach_today = {"Notifications": "Notifications", "Profile": "Profile", "Invite 
                 "^Kateřina Veselá": "ClientPlans", "+ 2 more": "Clients"}
 _roster = {n: "ClientDetail" for n in ("^Eva Svobodová", "^Tomáš Dvořák", "^Kateřina Veselá", "^Petr Novotný", "^Jana Kučerová", "^Ondřej Marek")}
 COACH_FLOWS = prefixed("Coach", {
-    "AccountType": {"Continue": "Register", "^I'm a coach": "Register", "Sign in": "Today"},
-    "Register": {"Back": "AccountType", "Create account": "Setup"},
-    "Setup": {"Back": "Register", "Later": "Today", "Finish": "Today"},
+    "Setup": {"Back": None, "Later": "Today", "Finish": "Today"},
     "Today": _coach_today,
     "Notifications": dict(_coach_today, **{"Notifications": "Today", "Mark all read": "Today", "Review": "CheckInReview"}),
     "Clients": dict(_roster, **{"Find clients": "FindClients", "Invite client": "Invite", "Search": "ClientsSearch"}),
@@ -247,8 +254,8 @@ body.fu-show .fu-hot{outline:2px solid rgba(37,99,235,.75);outline-offset:1px}
 # Output folder -> canvas pages (light, dark), board-name suffix pattern, shared nav, per-page maps, start page, phone frame.
 ZONES = [
     ("interactive", ("web",), r"[CD]\.dc\.html$", NAV, FLOWS, "PageHome", False),
-    ("interactive-client", ("glass", "glassdark"), r"(Light|Dark)\.dc\.html$", CLIENT_NAV, CLIENT_FLOWS, "GlassLogin", True),
-    ("interactive-coach", ("coach", "coachdark"), r"(Light|Dark)\.dc\.html$", COACH_NAV, COACH_FLOWS, "CoachAccountType", True),
+    ("interactive-client", ("glass",), r"(Light|Dark)\.dc\.html$", CLIENT_NAV, CLIENT_FLOWS, "GlassLogin", True),
+    ("interactive-coach", ("coach",), r"(Light|Dark)\.dc\.html$", COACH_NAV, COACH_FLOWS, "CoachSetup", True),
 ]
 
 
