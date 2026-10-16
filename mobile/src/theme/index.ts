@@ -1,15 +1,20 @@
 import { useMemo } from 'react';
 import { useColorScheme } from 'react-native';
 
-import { darkColors, lightColors, shadowColors } from './colors';
+import { darkColors, lightColors } from './colors';
 import type { ColorScheme, Colors } from './colors';
+import { glass } from './glass';
+import type { Glass, GlassBlur } from './glass';
+import { buildShadows } from './shadows';
+import type { Shadows } from './shadows';
 import { radii, sizes, spacing } from './spacing';
 import { fontAssets, textStyle, typography } from './typography';
 
 export type { ColorScheme, Colors } from './colors';
 export type { FontFamily, TypeStyle, TypographyRole } from './typography';
 export { fontAssets, textStyle, typography };
-export { radii, sizes, spacing };
+export type { Glass, GlassBlur, Shadows };
+export { glass, radii, sizes, spacing };
 
 export type Theme = {
   scheme: ColorScheme;
@@ -18,23 +23,23 @@ export type Theme = {
   spacing: typeof spacing;
   radii: typeof radii;
   sizes: typeof sizes;
-  shadows: { training: string; nutrition: string };
+  shadows: Shadows;
+  glass: Glass;
 };
 
-const buildShadow = (color: string): string => `0px 6px 16px 0px ${color}`;
-
-const buildTheme = (scheme: ColorScheme): Theme => ({
-  scheme,
-  colors: scheme === 'dark' ? darkColors : lightColors,
-  typography,
-  spacing,
-  radii,
-  sizes,
-  shadows: {
-    training: buildShadow(shadowColors.training),
-    nutrition: buildShadow(shadowColors.nutrition),
-  },
-});
+const buildTheme = (scheme: ColorScheme): Theme => {
+  const colors = scheme === 'dark' ? darkColors : lightColors;
+  return {
+    scheme,
+    colors,
+    typography,
+    spacing,
+    radii,
+    sizes,
+    shadows: buildShadows(scheme, colors),
+    glass,
+  };
+};
 
 const themes: Record<ColorScheme, Theme> = {
   light: buildTheme('light'),
