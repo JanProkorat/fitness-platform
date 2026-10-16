@@ -2,6 +2,32 @@
   "app": {
     "placeholder": "The app is getting ready"
   },
+  "auth": {
+    "login": {
+      "heading": "Train and eat\nwith your coach.",
+      "email": "Email",
+      "emailPlaceholder": "jan@example.com",
+      "password": "Password",
+      "showPassword": "Show",
+      "hidePassword": "Hide",
+      "forgotPassword": "Forgot password?",
+      "submit": "Sign in",
+      "newHere": "New here?",
+      "createAccount": "Create account",
+      "validation": {
+        "emailRequired": "Enter your email.",
+        "emailInvalid": "Enter a valid email.",
+        "passwordRequired": "Enter your password."
+      },
+      "errors": {
+        "invalidCredentials": "Wrong email or password.",
+        "accountDeactivated": "This account has been deactivated.",
+        "rateLimited": "Too many attempts. Please try again in a moment.",
+        "network": "Can't reach the server. Check your connection and try again.",
+        "generic": "Sign-in failed. Please try again."
+      }
+    }
+  },
   "showcase": {
     "title": "Components",
     "card": {
@@ -14,6 +40,7 @@
       "error": "Enter a valid email."
     },
     "scrollHint": "Scroll the content under the floating bar to see the blur.",
+    "signOut": "Sign out",
     "tabs": {
       "today": "Today",
       "training": "Training",

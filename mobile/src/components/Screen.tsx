@@ -12,17 +12,26 @@ type ScreenProps = {
   /** Extra bottom space, e.g. to clear a floating tab bar. */
   bottomInset?: number;
   contentStyle?: StyleProp<ViewStyle>;
+  /** Horizontal gutter beside the safe area; defaults to `spacing.xxl`. */
+  gutter?: number;
 };
 
-export function Screen({ children, scroll = false, bottomInset = 0, contentStyle }: ScreenProps) {
+export function Screen({
+  children,
+  scroll = false,
+  bottomInset = 0,
+  contentStyle,
+  gutter,
+}: ScreenProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const styles = makeStyles(theme);
+  const sideGutter = gutter ?? theme.spacing.xxl;
   const padding = {
     paddingTop: insets.top,
     paddingBottom: insets.bottom + bottomInset,
-    paddingLeft: insets.left,
-    paddingRight: insets.right,
+    paddingLeft: insets.left + sideGutter,
+    paddingRight: insets.right + sideGutter,
   };
 
   if (scroll) {
@@ -31,6 +40,7 @@ export function Screen({ children, scroll = false, bottomInset = 0, contentStyle
         style={styles.root}
         contentContainerStyle={[padding, contentStyle]}
         contentInsetAdjustmentBehavior="never"
+        keyboardShouldPersistTaps="handled"
       >
         {children}
       </ScrollView>

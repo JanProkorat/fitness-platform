@@ -1,5 +1,6 @@
 export const spacing = {
   xxs: 4,
+  snug: 6,
   xs: 8,
   sm: 10,
   md: 12,
@@ -33,4 +34,8 @@ export const sizes = {
   tabBarPadding: 5,
   tabItemGap: 2,
   border: 1,
+  fieldIcon: 17,
+  authTop: 110,
+  authBottom: 44,
+  wordmarkGap: 22,
 } as const;
