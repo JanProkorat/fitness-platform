@@ -2,7 +2,7 @@ import axios from 'axios';
 import type { AxiosError, InternalAxiosRequestConfig } from 'axios';
 
 import { ApiClient } from '@/api/generated';
-import { API_BASE_URL } from '@/lib/config';
+import { API_BASE_URL, API_TIMEOUT_MS } from '@/lib/config';
 import { executeRefresh } from '@/lib/refresh';
 import { useAuthStore } from '@/stores/auth';
 
@@ -10,7 +10,7 @@ type RetriableConfig = InternalAxiosRequestConfig & { _retry?: boolean };
 
 export const http = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 15000,
+  timeout: API_TIMEOUT_MS,
   // The generated client parses response bodies itself, so keep them as raw text.
   transformResponse: (data: unknown) => data,
 });

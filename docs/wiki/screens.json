@@ -659,6 +659,29 @@
         { "name": "default" }
       ],
       "notionPageId": null
+    },
+    {
+      "id": "client.entry.sign-in",
+      "app": "client",
+      "area": "Entry",
+      "title": "Sign-in",
+      "route": "/login",
+      "roles": ["Public"],
+      "files": [
+        "mobile/src/app/login.tsx",
+        "mobile/src/api/auth.ts",
+        "mobile/src/api/errors.ts",
+        "mobile/src/components/Wordmark.tsx"
+      ],
+      "endpoints": [
+        "POST /auth/login"
+      ],
+      "board": "GlassLogin",
+      "shots": [
+        { "name": "default" },
+        { "name": "invalid-credentials", "steps": "enter a known e-mail with a wrong password and tap Sign in" }
+      ],
+      "notionPageId": null
     }
   ]
 }

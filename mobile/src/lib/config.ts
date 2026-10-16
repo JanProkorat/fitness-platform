@@ -13,3 +13,6 @@ function resolveApiBaseUrl(): string {
 }
 
 export const API_BASE_URL = resolveApiBaseUrl();
+
+/** Request timeout shared by the API client and the token refresh. */
+export const API_TIMEOUT_MS = 15000;
