@@ -34,6 +34,7 @@ export type Colors = {
   errorSoft: string;
 
   segmentSelected: string;
+  tabSelected: string;
   avatar: string;
   onAvatar: string;
 
@@ -70,7 +71,7 @@ export const lightColors: Colors = {
   ground: '#FFFFFF',
   surface: '#FFFFFF',
   field: '#F6F5F2',
-  fieldBorder: 'transparent',
+  fieldBorder: 'rgba(20,20,20,0.08)',
   ink: '#141414',
   ink2: '#3A3835',
   muted: '#6B6863',
@@ -88,6 +89,7 @@ export const lightColors: Colors = {
   error: '#9F1F17',
   errorSoft: '#FBE3DF',
   segmentSelected: '#FFFFFF',
+  tabSelected: 'rgba(20,20,20,0.05)',
   glassFill: 'rgba(255,255,255,0.58)',
   glassBorder: 'rgba(255,255,255,0.85)',
 };
@@ -116,6 +118,7 @@ export const darkColors: Colors = {
   error: '#F2705F',
   errorSoft: '#3A1A17',
   segmentSelected: '#3A3A3E',
+  tabSelected: 'rgba(255,255,255,0.06)',
   glassFill: 'rgba(44,44,48,0.52)',
   glassBorder: 'rgba(255,255,255,0.14)',
 };

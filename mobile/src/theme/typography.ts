@@ -48,6 +48,7 @@ export const typography = {
   captionStrong: style('DMSans_600SemiBold', 12, 16),
   overline: style('DMSans_600SemiBold', 11, 14, 0.4),
   micro: style('DMSans_600SemiBold', 10, 12),
+  microMedium: style('DMSans_500Medium', 10, 12),
   button: style('DMSans_600SemiBold', 16, 20),
   buttonSmall: style('DMSans_600SemiBold', 13, 16),
 } satisfies Record<string, TypeStyle>;
