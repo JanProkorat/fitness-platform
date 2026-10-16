@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 import type { RefreshTokenRequest, RefreshTokenResponse } from '@/api/generated';
-import { API_BASE_URL } from '@/lib/config';
+import { API_BASE_URL, API_TIMEOUT_MS } from '@/lib/config';
 import { useAuthStore } from '@/stores/auth';
 
 let inFlight: Promise<string> | null = null;
@@ -29,7 +29,9 @@ export function executeRefresh(): Promise<string> {
 
     const body: RefreshTokenRequest = { refreshToken };
     try {
-      const { data } = await axios.post<RefreshTokenResponse>(`${API_BASE_URL}/auth/refresh`, body);
+      const { data } = await axios.post<RefreshTokenResponse>(`${API_BASE_URL}/auth/refresh`, body, {
+        timeout: API_TIMEOUT_MS,
+      });
       if (!data.accessToken || !data.refreshToken) {
         throw new Error('invalid_refresh_response');
       }
