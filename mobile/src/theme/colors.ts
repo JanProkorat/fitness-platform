@@ -46,11 +46,6 @@ export type Colors = {
   macroFiber: string;
 };
 
-export type Shadows = {
-  training: string;
-  nutrition: string;
-};
-
 const macros = {
   macroProtein: '#3563C9',
   macroCarbs: '#7A4FD0',
@@ -123,9 +118,4 @@ export const darkColors: Colors = {
   segmentSelected: '#3A3A3E',
   glassFill: 'rgba(44,44,48,0.52)',
   glassBorder: 'rgba(255,255,255,0.14)',
-};
-
-export const shadowColors: Shadows = {
-  training: 'rgba(242,140,56,0.3)',
-  nutrition: 'rgba(140,193,82,0.3)',
 };
