@@ -15,7 +15,7 @@ import { nutritionistTest as test, expect } from '../fixtures/auth';
 const NUTRITIONIST_EMAIL = 'qa.nutri@fitnessplatform.test';
 const DAILY_KCAL = 2000;
 const CLIENT_PROFILE_ID = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
-/** Mon rows: Breakfast, Lunch, Snack 2, Dinner. */
+/** Mon rows: Breakfast, Lunch, Afternoon snack, Dinner. */
 const FOUR_KINDS = ['Breakfast', 'Lunch', 'AfternoonSnack', 'Dinner'];
 const COUNTS = { a: 2, b: 3, c: 4, d: 5 };
 
@@ -341,7 +341,7 @@ test.describe('plan editor meal reorder', () => {
       await expectMonday(page, ORIGINAL);
 
       await dragToSlot(page, cell(page, 1, 3), cell(page, 1, 1));
-      // Mon A B C D -> A D B C: Lunch D, Snack 2 B, Dinner C.
+      // Mon A B C D -> A D B C: Lunch D, Afternoon snack B, Dinner C.
       await expectMonday(page, [COUNTS.a, COUNTS.d, COUNTS.b, COUNTS.c]);
       await expect(page.getByTestId('card-drop-dialog')).toHaveCount(0);
       await expect(page.getByTestId('save-status')).toHaveText('Unsaved changes');
@@ -378,7 +378,7 @@ test.describe('plan editor meal reorder', () => {
 
   test('a kind the day does not have is skipped and never created', async ({ page, baseURL }) => {
     const origin = baseURL ?? 'http://localhost:5173';
-    // Monday has no Snack 2; the other days keep it, so the row exists in the grid.
+    // Monday has no Afternoon snack; the other days keep it, so the row exists in the grid.
     const templateId = await createTemplate(origin, `QA Reorder Skip ${Date.now()}`, {
       kindsOf: (dayIndex) => (dayIndex === 0 ? ['Breakfast', 'Lunch', 'Dinner'] : FOUR_KINDS),
       counts: mondayCounts({ Breakfast: COUNTS.a, Lunch: COUNTS.b, Dinner: COUNTS.c }),
@@ -387,7 +387,7 @@ test.describe('plan editor meal reorder', () => {
       await page.goto(`/plan-templates/${templateId}`);
 
       await dragToSlot(page, cell(page, 1, 3), cell(page, 1, 1));
-      // Monday's Breakfast, Lunch and Dinner hold A, B, C: now A, C, B. The Snack 2 row stays empty.
+      // Monday's Breakfast, Lunch and Dinner hold A, B, C: now A, C, B. The Afternoon snack row stays empty.
       await expect(cell(page, 1, 0)).toContainText(`${COUNTS.a} items`);
       await expect(cell(page, 1, 1)).toContainText(`${COUNTS.c} items`);
       await expect(cell(page, 1, 3)).toContainText(`${COUNTS.b} items`);
@@ -566,7 +566,7 @@ test.describe('plan editor meal reorder', () => {
       await page.keyboard.press('Alt+ArrowUp');
       await expectMonday(page, [COUNTS.a, COUNTS.b, COUNTS.d, COUNTS.c]);
       await expect(cell(page, 1, 2)).toBeFocused();
-      await expect(announcer).toHaveText('Monday: contents moved to Snack, meal 3 of 4');
+      await expect(announcer).toHaveText('Monday: contents moved to Afternoon snack, meal 3 of 4');
 
       // One Undo takes back the one move.
       await page.getByRole('button', { name: 'Undo' }).click();
@@ -578,7 +578,7 @@ test.describe('plan editor meal reorder', () => {
       await page.keyboard.press('Alt+ArrowDown');
       await expectMonday(page, ORIGINAL);
       await expect(page.getByTestId('save-status')).toHaveText('Saved');
-      await expect(announcer).toHaveText('Monday: contents moved to Snack, meal 3 of 4');
+      await expect(announcer).toHaveText('Monday: contents moved to Afternoon snack, meal 3 of 4');
 
       // The first slot moves down, and focus follows.
       await cell(page, 1, 0).focus();

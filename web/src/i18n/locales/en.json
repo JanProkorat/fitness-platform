@@ -1769,7 +1769,8 @@
     },
     "rows": {
       "breakfast": "Breakfast",
-      "snack": "Snack",
+      "morningSnack": "Morning snack",
+      "afternoonSnack": "Afternoon snack",
       "lunch": "Lunch",
       "dinner": "Dinner",
       "preWorkout": "Pre-workout",
@@ -2073,10 +2074,10 @@
       "legendUnder": "Under",
       "shares": "Meal shares: {{shares}} of the day",
       "share_breakfast": "breakfast",
-      "share_snack": "snack",
+      "share_snack": "morning snack",
       "share_lunch": "lunch",
       "share_dinner": "dinner",
-      "share_secondSnack": "2nd snack",
+      "share_secondSnack": "afternoon snack",
       "noTarget": "Set a daily kcal target to compare meals with their share of the day."
     },
     "copyMeals": {
@@ -2494,9 +2495,9 @@
     },
     "slots": {
       "breakfast": "Breakfast",
-      "snack": "Snack",
+      "snack": "Morning snack",
       "lunch": "Lunch",
-      "snack2": "Snack 2",
+      "snack2": "Afternoon snack",
       "dinner": "Dinner",
       "preWorkout": "Pre-workout",
       "postWorkout": "Post-workout"

@@ -1768,7 +1768,8 @@
     },
     "rows": {
       "breakfast": "Frühstück",
-      "snack": "Snack",
+      "morningSnack": "Vormittags\u00ADsnack",
+      "afternoonSnack": "Nachmittags\u00ADsnack",
       "lunch": "Mittagessen",
       "dinner": "Abendessen",
       "preWorkout": "Vor dem Training",
@@ -2072,10 +2073,10 @@
       "legendUnder": "Darunter",
       "shares": "Mahlzeitenanteile: {{shares}} des Tages",
       "share_breakfast": "Frühstück",
-      "share_snack": "Snack",
+      "share_snack": "Vormittagssnack",
       "share_lunch": "Mittagessen",
       "share_dinner": "Abendessen",
-      "share_secondSnack": "2. Snack",
+      "share_secondSnack": "Nachmittagssnack",
       "noTarget": "Legen Sie ein tägliches kcal-Ziel fest, um Mahlzeiten mit ihrem Tagesanteil zu vergleichen."
     },
     "copyMeals": {
@@ -2493,9 +2494,9 @@
     },
     "slots": {
       "breakfast": "Frühstück",
-      "snack": "Snack",
+      "snack": "Vormittags\u00ADsnack",
       "lunch": "Mittagessen",
-      "snack2": "Snack 2",
+      "snack2": "Nachmittags\u00ADsnack",
       "dinner": "Abendessen",
       "preWorkout": "Vor dem Training",
       "postWorkout": "Nach dem Training"

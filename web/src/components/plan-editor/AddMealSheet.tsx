@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 import { CHRONOLOGICAL_KINDS, everyDayHasKind, weekKindPresence } from '@/components/plan-editor/plan-editor-ops';
 import { MAX_MEALS_PER_DAY, MAX_NOTE_LENGTH, type EditorWeek } from '@/components/plan-editor/plan-editor-types';
 
-/** Label key under `planTemplates.slots` for each kind; the two snacks read "Snack" and "Snack 2". */
+/** Label key under `planTemplates.slots` for each kind; the two snacks read "Morning snack" and "Afternoon snack". */
 const SLOT_LABEL: Record<MealKind, string> = {
   [MealKind.Breakfast]: 'breakfast',
   [MealKind.MorningSnack]: 'snack',

@@ -488,11 +488,11 @@ export default function WeekGrid({
         const rowName = t(`planEditor.rows.${mealKindLabelKey(row.kind)}`);
         const rowLabelClass = cn(
           STICKY_LABEL_CLASS,
-          'group/row flex flex-col items-start justify-center gap-1.5 text-body font-semibold whitespace-nowrap text-muted-foreground',
+          'group/row flex flex-col items-start justify-center gap-1.5 text-body font-semibold max-w-27 text-balance text-muted-foreground',
           labelsDraggable ? 'self-stretch' : 'self-center',
         );
         const rowLabelContent = (
-          <span className="flex items-center gap-1.5">
+          <span className="flex min-w-0 items-center gap-1.5">
             {labelsDraggable ? (
               <LabelHandle
                 axis="row"

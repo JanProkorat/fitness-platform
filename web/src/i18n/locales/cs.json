@@ -1808,7 +1808,8 @@
     },
     "rows": {
       "breakfast": "Snídaně",
-      "snack": "Svačina",
+      "morningSnack": "Ranní svačina",
+      "afternoonSnack": "Odpolední svačina",
       "lunch": "Oběd",
       "dinner": "Večeře",
       "preWorkout": "Před tréninkem",
@@ -2135,10 +2136,10 @@
       "legendUnder": "Pod",
       "shares": "Podíly jídel: {{shares}} dne",
       "share_breakfast": "snídaně",
-      "share_snack": "svačina",
+      "share_snack": "ranní svačina",
       "share_lunch": "oběd",
       "share_dinner": "večeře",
-      "share_secondSnack": "2. svačina",
+      "share_secondSnack": "odpolední svačina",
       "noTarget": "Nastavte denní cíl kcal, abyste mohli jídla porovnat s jejich podílem dne."
     },
     "copyMeals": {
@@ -2576,9 +2577,9 @@
     },
     "slots": {
       "breakfast": "Snídaně",
-      "snack": "Svačina",
+      "snack": "Ranní svačina",
       "lunch": "Oběd",
-      "snack2": "Svačina 2",
+      "snack2": "Odpolední svačina",
       "dinner": "Večeře",
       "preWorkout": "Před tréninkem",
       "postWorkout": "Po tréninku"

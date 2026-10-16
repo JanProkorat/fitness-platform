@@ -7,7 +7,7 @@
  * slide the tiles too. Nothing slides under reduced motion. Runs against the real harness, no mocked APIs.
  *
  * A meal's contents are told apart by how many ingredients it holds (its cell shows "N items"), so Monday's
- * Breakfast, Lunch, Snack 2 and Dinner hold 2, 3, 4 and 5 apples.
+ * Breakfast, Lunch, Afternoon snack and Dinner hold 2, 3, 4 and 5 apples.
  */
 import { request as apiRequest, type Locator, type Page } from '@playwright/test';
 import { nutritionistTest as test, expect } from '../fixtures/auth';
@@ -419,7 +419,7 @@ test.describe('plan editor drag animation', () => {
       await expectMonday(page, [COUNTS.a, COUNTS.b, COUNTS.c, COUNTS.d]);
       await watchFaces(page);
 
-      // Hovering another row already shows the move: Breakfast's contents sit in the Snack 2 row, the rows between shift up.
+      // Hovering another row already shows the move: Breakfast's contents sit in the Afternoon snack row, the rows between shift up.
       await beginDrag(page, rowLabel(page, 0));
       await hoverUntil(page, rowFrame(page, 2), 'data-over', 'true');
       await expect.poll(() => slidingFaces(page)).toBeGreaterThan(0);
