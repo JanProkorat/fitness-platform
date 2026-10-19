@@ -30,7 +30,7 @@ public class CreateClientAutomationRuleEndpoint(IApplicationDbContext db, IClien
             s.Summary = "Add a client-only automation rule";
             s.Description = "Creates a rule that applies to this client only.";
             s.Responses[StatusCodes.Status200OK] = "The created rule";
-            s.Responses[StatusCodes.Status400BadRequest] = "Invalid rule";
+            s.Responses[StatusCodes.Status400BadRequest] = "Invalid rule, or the questionnaire is inactive or a check-in form";
             s.Responses[StatusCodes.Status401Unauthorized] = "Missing or invalid credentials";
             s.Responses[StatusCodes.Status403Forbidden] = "The live link grants no access";
             s.Responses[StatusCodes.Status404NotFound] = "No live link to the client, or the questionnaire was not found";

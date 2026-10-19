@@ -31,14 +31,16 @@ public sealed class AutomationAnswerSweeper(IApplicationDbContext db)
             .Include(r => r.AutomationRule)
             .ToListAsync(ct);
 
-        foreach (var run in open)
-        {
-            var answeredAt = await AutomationDeliveryTracker.GetAnsweredAtAsync(
-                db, run.AutomationRule.ActionType, run.DeliveredEntityId, run.SentAt, run.ClientProfileId, ct);
+        var answered = await AutomationDeliveryTracker.GetAnsweredAtAsync(
+            db,
+            open.Select(r => new DeliveredRequest(r.AutomationRule.ActionType, r.DeliveredEntityId, r.SentAt, r.ClientProfileId)).ToList(),
+            ct);
 
-            if (answeredAt is not null)
+        for (var i = 0; i < open.Count; i++)
+        {
+            if (answered[i] is not null)
             {
-                run.AnsweredAt = answeredAt;
+                open[i].AnsweredAt = answered[i];
             }
         }
 

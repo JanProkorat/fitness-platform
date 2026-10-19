@@ -29,34 +29,123 @@ public static class AutomationDeliveryTracker
         long clientProfileId,
         CancellationToken ct)
     {
-        switch (action)
+        var answered = await GetAnsweredAtAsync(
+            db, [new DeliveredRequest(action, deliveredEntityId, sentAt, clientProfileId)], ct);
+
+        return answered[0];
+    }
+
+    /// <summary>
+    /// Batch form of <see cref="GetAnsweredAtAsync(IApplicationDbContext, AutomationActionType, Guid?, DateTime?, long, CancellationToken)"/>:
+    /// one query per action type however many requests are given. The single-run overload delegates
+    /// here, so both paths share one definition of "answered".
+    /// </summary>
+    /// <param name="db">Application database context.</param>
+    /// <param name="requests">The delivered requests to look up.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>The answer time of each request, in the order given; null while unanswered.</returns>
+    public static async Task<DateTime?[]> GetAnsweredAtAsync(
+        IApplicationDbContext db,
+        IReadOnlyList<DeliveredRequest> requests,
+        CancellationToken ct)
+    {
+        var answered = new DateTime?[requests.Count];
+
+        var responseIds = requests
+            .Where(r => r.Action == AutomationActionType.SendForm && r.DeliveredEntityId is not null)
+            .Select(r => r.DeliveredEntityId!.Value)
+            .Distinct()
+            .ToList();
+
+        var submittedAt = new Dictionary<Guid, DateTime?>();
+
+        if (responseIds.Count > 0)
         {
-            case AutomationActionType.SendForm when deliveredEntityId is { } responseId:
-                return await db.QuestionnaireResponses
-                    .AsNoTracking()
-                    .Where(r => r.PublicId == responseId && r.Status == QuestionnaireResponseStatus.Submitted)
-                    .Select(r => r.SubmittedAt)
-                    .FirstOrDefaultAsync(ct);
-
-            case AutomationActionType.RequestProgressPhotos when deliveredEntityId is { } requestId:
-                var completedAt = await db.PhotoDiaryRequests
-                    .AsNoTracking()
-                    .Where(r => r.Id == requestId && r.Status == PhotoDiaryStatus.Completed)
-                    .Select(r => r.CompletedAt)
-                    .FirstOrDefaultAsync(ct);
-                return completedAt?.UtcDateTime;
-
-            case AutomationActionType.RequestMeasurements when sentAt is { } sent:
-                return await db.BodyMeasurements
-                    .AsNoTracking()
-                    .Where(m => m.ClientProfileId == clientProfileId && m.DateCreated >= sent)
-                    .OrderBy(m => m.DateCreated)
-                    .Select(m => (DateTime?)m.DateCreated)
-                    .FirstOrDefaultAsync(ct);
-
-            default:
-                return null;
+            var submitted = await db.QuestionnaireResponses
+                .AsNoTracking()
+                .Where(r => responseIds.Contains(r.PublicId) && r.Status == QuestionnaireResponseStatus.Submitted)
+                .Select(r => new { r.PublicId, r.SubmittedAt })
+                .ToListAsync(ct);
+            submittedAt = submitted.ToDictionary(r => r.PublicId, r => r.SubmittedAt);
         }
+
+        var photoRequestIds = requests
+            .Where(r => r.Action == AutomationActionType.RequestProgressPhotos && r.DeliveredEntityId is not null)
+            .Select(r => r.DeliveredEntityId!.Value)
+            .Distinct()
+            .ToList();
+
+        var completedAt = new Dictionary<Guid, DateTime?>();
+
+        if (photoRequestIds.Count > 0)
+        {
+            var completed = await db.PhotoDiaryRequests
+                .AsNoTracking()
+                .Where(r => photoRequestIds.Contains(r.Id) && r.Status == PhotoDiaryStatus.Completed)
+                .Select(r => new { r.Id, r.CompletedAt })
+                .ToListAsync(ct);
+            completedAt = completed.ToDictionary(r => r.Id, r => r.CompletedAt?.UtcDateTime);
+        }
+
+        var measurementRequests = requests
+            .Where(r => r.Action == AutomationActionType.RequestMeasurements && r.SentAt is not null)
+            .ToList();
+
+        var measurementsByClient = await LoadMeasurementTimesAsync(db, measurementRequests, ct);
+
+        for (var i = 0; i < requests.Count; i++)
+        {
+            var request = requests[i];
+
+            answered[i] = request switch
+            {
+                { Action: AutomationActionType.SendForm, DeliveredEntityId: { } id } =>
+                    submittedAt.GetValueOrDefault(id),
+                { Action: AutomationActionType.RequestProgressPhotos, DeliveredEntityId: { } id } =>
+                    completedAt.GetValueOrDefault(id),
+                { Action: AutomationActionType.RequestMeasurements, SentAt: { } sent } =>
+                    FirstAtOrAfter(measurementsByClient[request.ClientProfileId], sent),
+                _ => null,
+            };
+        }
+
+        return answered;
+    }
+
+    private static async Task<ILookup<long, DateTime>> LoadMeasurementTimesAsync(
+        IApplicationDbContext db, List<DeliveredRequest> measurementRequests, CancellationToken ct)
+    {
+        if (measurementRequests.Count == 0)
+        {
+            return Array.Empty<long>().ToLookup(id => id, _ => DateTime.MinValue);
+        }
+
+        var clientIds = measurementRequests.Select(r => r.ClientProfileId).Distinct().ToList();
+        var earliestSent = measurementRequests.Min(r => r.SentAt!.Value);
+
+        var rows = await db.BodyMeasurements
+            .AsNoTracking()
+            .Where(m => clientIds.Contains(m.ClientProfileId) && m.DateCreated >= earliestSent)
+            .Select(m => new { m.ClientProfileId, m.DateCreated })
+            .ToListAsync(ct);
+
+        return rows.ToLookup(m => m.ClientProfileId, m => m.DateCreated);
+    }
+
+    /// <summary>A measurement request is answered by the first measurement logged at or after it was sent.</summary>
+    private static DateTime? FirstAtOrAfter(IEnumerable<DateTime> measurementTimes, DateTime sentAt)
+    {
+        DateTime? first = null;
+
+        foreach (var logged in measurementTimes)
+        {
+            if (logged >= sentAt && (first is null || logged < first))
+            {
+                first = logged;
+            }
+        }
+
+        return first;
     }
 
     /// <summary>

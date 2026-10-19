@@ -236,8 +236,7 @@ public sealed class AutomationOccurrenceSender(
         var questionnaire = evaluation.Rule.Questionnaire;
 
         return questionnaire is not null
-               && questionnaire.IsActive
-               && questionnaire.Type != QuestionnaireType.CheckIn
+               && AutomationQuestionnaireUsability.IsUsable(questionnaire.IsActive, questionnaire.Type)
                && questionnaire.ProfessionalId == evaluation.Coach.UserId;
     }
 

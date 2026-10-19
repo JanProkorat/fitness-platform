@@ -28,7 +28,7 @@ public class CreateAutomationRuleEndpoint(IApplicationDbContext db)
             s.Summary = "Create an automation rule";
             s.Description = "Creates a global rule. A missing audience means all clients.";
             s.Responses[StatusCodes.Status200OK] = "The created rule";
-            s.Responses[StatusCodes.Status400BadRequest] = "Invalid rule";
+            s.Responses[StatusCodes.Status400BadRequest] = "Invalid rule, or the questionnaire is inactive or a check-in form";
             s.Responses[StatusCodes.Status401Unauthorized] = "Missing or invalid credentials";
             s.Responses[StatusCodes.Status404NotFound] =
                 "Caller has no professional profile, or the questionnaire, tag or a chosen client was not found";

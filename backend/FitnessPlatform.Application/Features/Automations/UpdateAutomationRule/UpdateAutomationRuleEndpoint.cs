@@ -30,10 +30,11 @@ public class UpdateAutomationRuleEndpoint(IApplicationDbContext db)
             s.Description =
                 "Replaces the rule. A missing audience leaves a global rule's audience unchanged; a client-only rule takes none.";
             s.Responses[StatusCodes.Status200OK] = "The updated rule";
-            s.Responses[StatusCodes.Status400BadRequest] = "Invalid rule, or an audience sent for a client-only rule";
+            s.Responses[StatusCodes.Status400BadRequest] = "Invalid rule, an audience sent for a client-only rule, or the questionnaire is inactive or a check-in form";
             s.Responses[StatusCodes.Status401Unauthorized] = "Missing or invalid credentials";
             s.Responses[StatusCodes.Status404NotFound] =
                 "Rule not found or owned by another coach, or the questionnaire, tag or a chosen client was not found";
+            s.Responses[StatusCodes.Status409Conflict] = "The request changes the rule's action type, which is locked after creation";
         });
     }
 
@@ -59,6 +60,16 @@ public class UpdateAutomationRuleEndpoint(IApplicationDbContext db)
 
         if (rule is null)
         {
+            return;
+        }
+
+        if (rule.ActionType != req.ActionType)
+        {
+            await this.SendProblemAsync(
+                StatusCodes.Status409Conflict,
+                ErrorCodes.AutomationActionTypeLocked,
+                "A rule's action cannot change after it is created.",
+                ct);
             return;
         }
 
@@ -90,7 +101,6 @@ public class UpdateAutomationRuleEndpoint(IApplicationDbContext db)
         }
 
         rule.Name = req.Name.Trim();
-        rule.ActionType = req.ActionType;
         rule.QuestionnaireId = questionnaireId;
         AutomationRuleWriter.Apply(rule, req);
 

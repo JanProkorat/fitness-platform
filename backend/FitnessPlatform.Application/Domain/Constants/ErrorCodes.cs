@@ -509,6 +509,12 @@ public static class ErrorCodes
     /// <summary>The questionnaire to send does not exist or is not owned by the caller.</summary>
     public const string AutomationQuestionnaireNotFound = "AUTOMATION_QUESTIONNAIRE_NOT_FOUND";
 
+    /// <summary>The questionnaire to send is the caller's but inactive or a check-in form, so no run could send it.</summary>
+    public const string AutomationQuestionnaireNotUsable = "AUTOMATION_QUESTIONNAIRE_NOT_USABLE";
+
+    /// <summary>An update tried to change the action type of an existing rule.</summary>
+    public const string AutomationActionTypeLocked = "AUTOMATION_ACTION_TYPE_LOCKED";
+
     /// <summary>The pause end date is before the client's current local date.</summary>
     public const string AutomationPausedUntilInPast = "AUTOMATION_PAUSED_UNTIL_IN_PAST";
 

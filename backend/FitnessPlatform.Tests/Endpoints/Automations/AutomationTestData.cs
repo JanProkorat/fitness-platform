@@ -64,7 +64,11 @@ internal static class AutomationTestData
     }
 
     /// <summary>Creates a questionnaire owned by the coach and returns its public id.</summary>
-    public static async Task<Guid> CreateQuestionnaireAsync(FitnessApiFactory factory, Actor coach)
+    public static async Task<Guid> CreateQuestionnaireAsync(
+        FitnessApiFactory factory,
+        Actor coach,
+        QuestionnaireType type = QuestionnaireType.Onboarding,
+        bool isActive = true)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -74,7 +78,8 @@ internal static class AutomationTestData
             PublicId = Guid.NewGuid(),
             ProfessionalId = coach.UserId,
             Title = "Plan review",
-            Type = QuestionnaireType.CheckIn,
+            Type = type,
+            IsActive = isActive,
         };
         db.Questionnaires.Add(questionnaire);
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
