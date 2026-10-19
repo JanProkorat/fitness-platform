@@ -7,10 +7,14 @@ import {
   AutomationScheduleUnit,
   AutomationTriggerKind,
   type AutomationRuleDto,
+  type ClientAutomationItem,
+  type OverrideClientAutomationRequest,
+  type PauseClientAutomationRequest,
   type UpdateAutomationRuleRequest,
 } from '@/api/automations';
 
 export const NAME_MAX = 100;
+export const PAUSE_NOTE_MAX = 200;
 export const MESSAGE_MAX = 1000;
 export const PHOTO_MESSAGE_MAX = 500;
 export const DEFAULT_EVENT_TIME = '09:00';
@@ -46,6 +50,14 @@ const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 const INT_PATTERN = /^\d+$/;
 
+/** Today in the browser's time zone as yyyy-MM-dd, the format the pause date is sent in. */
+export function todayIsoDate(): string {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${now.getFullYear()}-${month}-${day}`;
+}
+
 const numberInRange = (value: string, min: number, max: number): boolean => {
   if (!INT_PATTERN.test(value.trim())) {
     return false;
@@ -75,6 +87,11 @@ export const automationRuleSchema = z
     stopAfterSends: z.string(),
     oncePerPlan: z.boolean(),
     enabled: z.boolean(),
+    /** Client override only: pause the rule for this client. */
+    paused: z.boolean(),
+    /** yyyy-MM-dd, or empty to pause until resumed. */
+    pausedUntil: z.string(),
+    pauseNote: z.string(),
   })
   .superRefine((values, ctx) => {
     const fail = (path: keyof AutomationRuleFormValues, message: string) =>
@@ -122,6 +139,17 @@ export const automationRuleSchema = z
 
     if (values.stopAfterEnabled && !numberInRange(values.stopAfterSends, 1, 1000)) {
       fail('stopAfterSends', 'automations.errors.stopAfterRange');
+    }
+
+    if (!values.paused && values.pausedUntil !== '') {
+      fail('pausedUntil', 'apiErrors.AUTOMATION_PAUSE_DETAILS_WITHOUT_PAUSE');
+    } else if (values.paused && values.pausedUntil !== '' && values.pausedUntil < todayIsoDate()) {
+      fail('pausedUntil', 'apiErrors.AUTOMATION_PAUSED_UNTIL_IN_PAST');
+    }
+    if (!values.paused && values.pauseNote.trim() !== '') {
+      fail('pauseNote', 'apiErrors.AUTOMATION_PAUSE_DETAILS_WITHOUT_PAUSE');
+    } else if (values.pauseNote.trim().length > PAUSE_NOTE_MAX) {
+      fail('pauseNote', 'automations.errors.pauseNoteTooLong');
     }
 
     if (values.audience === AutomationAudience.Tag && values.audienceTagId === '') {
@@ -173,6 +201,9 @@ export function defaultRuleValues(): AutomationRuleFormValues {
     stopAfterSends: STOP_AFTER_DEFAULT,
     oncePerPlan: false,
     enabled: true,
+    paused: false,
+    pausedUntil: '',
+    pauseNote: '',
   };
 }
 
@@ -244,6 +275,88 @@ export function formValuesToRequest(
     request.audienceClientIds = values.audience === AutomationAudience.Chosen ? values.audienceClientIds : [];
   }
   return request;
+}
+
+/** The pause state of a client's row, used to prefill the override drawer. */
+export interface PauseState {
+  isPaused?: boolean;
+  pausedUntil?: string;
+  pauseNote?: string;
+}
+
+/** Pause form fields from a row's pause state; a date-only or date-time value is cut to yyyy-MM-dd. */
+export function pauseToFormValues(
+  pause: PauseState | undefined,
+): Pick<AutomationRuleFormValues, 'paused' | 'pausedUntil' | 'pauseNote'> {
+  return {
+    paused: pause?.isPaused === true,
+    pausedUntil: pause?.isPaused === true ? (pause.pausedUntil ?? '').slice(0, 10) : '',
+    pauseNote: pause?.isPaused === true ? (pause.pauseNote ?? '') : '',
+  };
+}
+
+/** A client's effective row as a rule, so the drawer and the row formatters can read it. */
+export function clientItemToRule(item: ClientAutomationItem): AutomationRuleDto {
+  return {
+    ruleId: item.ruleId,
+    name: item.name,
+    message: item.message,
+    actionType: item.actionType,
+    questionnaireId: item.questionnaireId,
+    triggerKind: item.triggerKind,
+    scheduleInterval: item.scheduleInterval,
+    scheduleUnit: item.scheduleUnit,
+    localTime: item.localTime,
+    eventType: item.eventType,
+    eventOffsetDays: item.eventOffsetDays,
+    eventOffsetDirection: item.eventOffsetDirection,
+    oncePerPlan: item.oncePerPlan,
+    skipWhilePreviousUnanswered: item.skipWhilePreviousUnanswered,
+    stopAfterSends: item.stopAfterSends,
+    enabled: item.enabled,
+  };
+}
+
+/** The customisable part only: message, trigger and options. Name, action and audience stay with the global rule. */
+export function formValuesToOverrideRequest(values: AutomationRuleFormValues): OverrideClientAutomationRequest {
+  const full = formValuesToRequest(values, 'clientOnly');
+  return {
+    message: full.message,
+    triggerKind: full.triggerKind,
+    scheduleInterval: full.scheduleInterval,
+    scheduleUnit: full.scheduleUnit,
+    localTime: full.localTime,
+    eventType: full.eventType,
+    eventOffsetDays: full.eventOffsetDays,
+    eventOffsetDirection: full.eventOffsetDirection,
+    oncePerPlan: full.oncePerPlan,
+    skipWhilePreviousUnanswered: full.skipWhilePreviousUnanswered,
+    stopAfterSends: full.stopAfterSends,
+    enabled: full.enabled,
+  };
+}
+
+/** Resume sends only the flag; the server clears the date and note. */
+export function formValuesToPauseRequest(values: AutomationRuleFormValues): PauseClientAutomationRequest {
+  if (!values.paused) {
+    return { isPaused: false };
+  }
+  const note = values.pauseNote.trim();
+  return {
+    isPaused: true,
+    pausedUntil: values.pausedUntil === '' ? undefined : values.pausedUntil,
+    pauseNote: note === '' ? undefined : note,
+  };
+}
+
+/** Whether message, trigger or options differ, i.e. whether an override PUT is needed. */
+export function overrideChanged(initial: AutomationRuleFormValues, current: AutomationRuleFormValues): boolean {
+  return JSON.stringify(formValuesToOverrideRequest(initial)) !== JSON.stringify(formValuesToOverrideRequest(current));
+}
+
+/** Whether the pause fields differ, i.e. whether a pause PUT is needed. */
+export function pauseChanged(initial: AutomationRuleFormValues, current: AutomationRuleFormValues): boolean {
+  return JSON.stringify(formValuesToPauseRequest(initial)) !== JSON.stringify(formValuesToPauseRequest(current));
 }
 
 /** A whole-rule PUT that flips only the enabled flag; the audience is omitted so the server keeps it. */

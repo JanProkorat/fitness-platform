@@ -17,7 +17,7 @@
 import { trainerTest as test, expect } from '../fixtures/auth';
 
 // The QA trainer's link is training-only, so the Nutrition tab is not rendered.
-const DISABLED_TAB_NAMES = ['Workouts', 'Payment', 'Automations'];
+const DISABLED_TAB_NAMES = ['Workouts', 'Payment'];
 const DISABLED_BUTTON_NAMES = ['Tasks', 'Notes'];
 
 test.describe('client detail page — overview tab', () => {
@@ -50,6 +50,7 @@ test.describe('client detail page — overview tab', () => {
     await expect(page.getByRole('tab', { name: 'Overview' })).toBeEnabled();
     await expect(page.getByRole('tab', { name: 'Photos' })).toBeVisible();
     await expect(page.getByRole('tab', { name: 'Photos' })).toBeEnabled();
+    await expect(page.getByRole('tab', { name: 'Automations' })).toBeEnabled();
     for (const tabName of DISABLED_TAB_NAMES) {
       const tab = page.getByRole('tab', { name: tabName });
       await expect(tab).toBeVisible();

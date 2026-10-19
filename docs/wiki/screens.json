@@ -324,6 +324,36 @@
       ]
     },
     {
+      "id": "web.clients.detail-automations",
+      "app": "web",
+      "area": "Clients",
+      "title": "Client detail — Automations",
+      "route": "/clients/:clientId/automations",
+      "roles": ["Trainer", "Nutritionist"],
+      "files": [
+        "web/src/pages/ClientDetailPage.tsx",
+        "web/src/components/client-detail/**",
+        "web/src/components/automations/*",
+        "web/src/hooks/useAutomationQueries.ts",
+        "web/src/api/automations.ts"
+      ],
+      "endpoints": [
+        "GET /trainer/clients/{clientId}/automations",
+        "POST /trainer/clients/{clientId}/automations",
+        "PUT /trainer/clients/{clientId}/automations/{ruleId}/override",
+        "DELETE /trainer/clients/{clientId}/automations/{ruleId}/override",
+        "PUT /trainer/clients/{clientId}/automations/{ruleId}/pause",
+        "GET /trainer/automations/rules",
+        "PUT /trainer/automations/rules/{ruleId}",
+        "DELETE /trainer/automations/rules/{ruleId}"
+      ],
+      "board": "PageClientAutomations",
+      "shots": [
+        { "name": "default", "steps": "sign in as the trainer, open /clients, click 'QA Client', open the Automations tab and wait for the rule list to load (board PageClientAutomations)" }
+      ],
+      "notionPageId": null
+    },
+    {
       "id": "web.clients.plan-editor",
       "app": "web",
       "area": "Clients",

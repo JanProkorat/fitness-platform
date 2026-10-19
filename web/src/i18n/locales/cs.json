@@ -2612,6 +2612,11 @@
     "AUTOMATION_AUDIENCE_TAG_REQUIRED": "Vyberte štítek.",
     "AUTOMATION_AUDIENCE_CLIENTS_REQUIRED": "Vyberte alespoň jednoho klienta.",
     "AUTOMATION_PHOTO_MESSAGE_TOO_LONG": "Zpráva k fotkám pokroku může mít nejvýše 500 znaků.",
+    "AUTOMATION_PAUSED_UNTIL_IN_PAST": "Konec pozastavení nemůže být v minulosti.",
+    "AUTOMATION_PAUSE_DETAILS_WITHOUT_PAUSE": "Datum konce nebo poznámka k pozastavení vyžadují zapnuté pozastavení.",
+    "AUTOMATION_NO_OVERRIDE_TO_RESET": "Toto pravidlo nemá pro tohoto klienta žádné úpravy, které by šlo vrátit.",
+    "AUTOMATION_CLIENT_ONLY_RULE_NOT_OVERRIDABLE": "Pravidlo jen pro jednoho klienta nejde upravit pro klienta, pozastavit ani vrátit. Upravte ho přímo.",
+    "AUTOMATION_AUDIENCE_NOT_ALLOWED_ON_CLIENT_ONLY_RULE": "Pravidlo jen pro jednoho klienta nemá okruh klientů k výběru.",
     "INVALID_CREDENTIALS": "Neplatný email nebo heslo.",
     "ACCOUNT_DEACTIVATED": "Váš účet byl deaktivován.",
     "INVALID_REFRESH_TOKEN": "Vaše relace vypršela. Přihlaste se znovu.",
@@ -3614,6 +3619,68 @@
     }
   },
   "clientDetail": {
+    "automations": {
+      "introBefore": "Pravidla ze stránky ",
+      "introLink": "Automatizace",
+      "introAfter": " platí i pro klienta {{name}}. Změna tady se týká jen klienta {{name}}.",
+      "addRule": "Přidat pravidlo pro klienta {{name}}",
+      "empty": "Pro klienta {{name}} zatím neplatí žádné pravidlo.",
+      "loadError": "Automatizace tohoto klienta se nepodařilo načíst.",
+      "noAccess": "Vaše propojení s klientem {{name}} automatizace nezahrnuje.",
+      "toggleError": "Pravidlo se nepodařilo změnit.",
+      "resetSuccess": "Pravidlo je vráceno na výchozí",
+      "resetError": "Pravidlo se nepodařilo vrátit na výchozí.",
+      "source": {
+        "Default": "Výchozí",
+        "Custom": "Upraveno pro klienta {{name}}",
+        "Paused": "Pozastaveno",
+        "OnlyThisClient": "Jen {{name}}"
+      },
+      "table": {
+        "columnSource": "Zdroj",
+        "columnLastTime": "Naposledy"
+      },
+      "row": {
+        "reset": "Vrátit",
+        "toggleActive": "Pravidlo „{{name}}“ aktivní pro tohoto klienta",
+        "disabledHint": "Toto pravidlo je vypnuté na stránce Automatizace.",
+        "changedFrom": "Změněno oproti: {{when}}",
+        "paused": "Pozastaveno",
+        "pausedUntil": "Pozastaveno do {{date}}",
+        "linkedSubtitle": "{{profession}} · Spravuje se v nastavení check-inu",
+        "linkedSubtitleOnly": "Spravuje se v nastavení check-inu"
+      },
+      "result": {
+        "notSent": "Zatím neodesláno",
+        "sentAnswered": "Odesláno {{date}} · zodpovězeno {{answered}}",
+        "sentWaiting": "Odesláno {{date}} · zatím bez odpovědi",
+        "skipped": "Přeskočeno",
+        "skippedOn": "Přeskočeno {{date}}",
+        "failed": "Selhalo",
+        "failedOn": "Selhalo {{date}}",
+        "skipReason": {
+          "PreviousUnanswered": "předchozí bez odpovědi",
+          "Paused": "pozastaveno",
+          "StopAfterReached": "dosažen limit odeslání",
+          "AlreadySentForPlan": "už odesláno pro tento plán"
+        }
+      },
+      "summary": {
+        "title": "Odesláno klientovi {{name}}",
+        "period": "Posledních 30 dní",
+        "sent": "Odeslaných žádostí",
+        "answered": "Zodpovězeno",
+        "waiting": "Čeká",
+        "skipped": "Přeskočeno"
+      },
+      "drawer": {
+        "overrideTitle": "Upravit pro klienta · {{name}}",
+        "overrideDescription": "Změna tady platí jen pro klienta {{client}}. Samotné pravidlo zůstane beze změny.",
+        "clientOnlyTitleNew": "Nové pravidlo pro klienta {{client}}",
+        "clientOnlyTitleEdit": "Upravit pravidlo · {{name}}",
+        "clientOnlyDescription": "Toto pravidlo platí jen pro klienta {{client}}"
+      }
+    },
     "photos": {
       "heading": "Fotky",
       "count_one": "{{count}} fotka",
@@ -5234,7 +5301,8 @@
       "offsetInactiveRange": "Zadejte číslo od 1 do 365.",
       "stopAfterRange": "Zadejte číslo od 1 do 1000.",
       "tagRequired": "Vyberte štítek.",
-      "clientsRequired": "Vyberte alespoň jednoho klienta."
+      "clientsRequired": "Vyberte alespoň jednoho klienta.",
+      "pauseNoteTooLong": "Poznámka může mít nejvýše 200 znaků."
     },
     "drawer": {
       "titleNew": "Nové pravidlo",
@@ -5309,6 +5377,15 @@
         "stopAfterCount": "Počet odeslání",
         "oncePerPlan": "Jednou za plán",
         "oncePerPlanHint": "Prodloužený plán ho nespustí podruhé."
+      },
+      "pause": {
+        "heading": "Pozastavit pro tohoto klienta",
+        "toggle": "Pozastaveno",
+        "hint": "Dokud je pravidlo pozastavené, se z něj neodesílají žádné žádosti.",
+        "until": "Pozastaveno do",
+        "untilHint": "Nepovinné. Nechte prázdné, pokud má pozastavení trvat, dokud ho nezrušíte.",
+        "note": "Poznámka",
+        "notePlaceholder": "Například zranění kolene"
       }
     }
   }

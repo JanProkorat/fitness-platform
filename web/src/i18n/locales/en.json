@@ -2530,6 +2530,11 @@
     "AUTOMATION_AUDIENCE_TAG_REQUIRED": "Choose a tag.",
     "AUTOMATION_AUDIENCE_CLIENTS_REQUIRED": "Choose at least one client.",
     "AUTOMATION_PHOTO_MESSAGE_TOO_LONG": "A progress photos message can have at most 500 characters.",
+    "AUTOMATION_PAUSED_UNTIL_IN_PAST": "The pause end date can’t be in the past.",
+    "AUTOMATION_PAUSE_DETAILS_WITHOUT_PAUSE": "A pause end date or note needs the pause switched on.",
+    "AUTOMATION_NO_OVERRIDE_TO_RESET": "This rule has no changes for this client to reset.",
+    "AUTOMATION_CLIENT_ONLY_RULE_NOT_OVERRIDABLE": "A rule that belongs to one client can’t be customised, paused or reset. Edit it directly.",
+    "AUTOMATION_AUDIENCE_NOT_ALLOWED_ON_CLIENT_ONLY_RULE": "A rule for one client has no audience to choose.",
     "INVALID_CREDENTIALS": "Invalid email or password.",
     "ACCOUNT_DEACTIVATED": "Your account has been deactivated.",
     "INVALID_REFRESH_TOKEN": "Your session has expired. Please log in again.",
@@ -3520,6 +3525,68 @@
     }
   },
   "clientDetail": {
+    "automations": {
+      "introBefore": "Rules from your ",
+      "introLink": "Automations",
+      "introAfter": " page apply to {{name}}. A change here affects {{name}} only.",
+      "addRule": "Add rule for {{name}}",
+      "empty": "No rules apply to {{name}} yet.",
+      "loadError": "Could not load the automations for this client.",
+      "noAccess": "Your link with {{name}} doesn’t include automations.",
+      "toggleError": "Could not change the rule.",
+      "resetSuccess": "Rule reset to the default",
+      "resetError": "Could not reset the rule.",
+      "source": {
+        "Default": "Default",
+        "Custom": "Custom for {{name}}",
+        "Paused": "Paused",
+        "OnlyThisClient": "Only {{name}}"
+      },
+      "table": {
+        "columnSource": "Source",
+        "columnLastTime": "Last time"
+      },
+      "row": {
+        "reset": "Reset",
+        "toggleActive": "Rule “{{name}}” active for this client",
+        "disabledHint": "This rule is switched off on the Automations page.",
+        "changedFrom": "Changed from: {{when}}",
+        "paused": "Paused",
+        "pausedUntil": "Paused until {{date}}",
+        "linkedSubtitle": "{{profession}} · Managed in check-in settings",
+        "linkedSubtitleOnly": "Managed in check-in settings"
+      },
+      "result": {
+        "notSent": "Not sent yet",
+        "sentAnswered": "Sent {{date}} · answered {{answered}}",
+        "sentWaiting": "Sent {{date}} · not answered yet",
+        "skipped": "Skipped",
+        "skippedOn": "Skipped {{date}}",
+        "failed": "Failed",
+        "failedOn": "Failed {{date}}",
+        "skipReason": {
+          "PreviousUnanswered": "previous unanswered",
+          "Paused": "paused",
+          "StopAfterReached": "send limit reached",
+          "AlreadySentForPlan": "already sent for this plan"
+        }
+      },
+      "summary": {
+        "title": "Sent to {{name}}",
+        "period": "Last 30 days",
+        "sent": "Requests sent",
+        "answered": "Answered",
+        "waiting": "Waiting",
+        "skipped": "Skipped"
+      },
+      "drawer": {
+        "overrideTitle": "Customise · {{name}}",
+        "overrideDescription": "A change here applies to {{client}} only. The rule itself stays as it is.",
+        "clientOnlyTitleNew": "New rule for {{client}}",
+        "clientOnlyTitleEdit": "Edit rule · {{name}}",
+        "clientOnlyDescription": "This rule applies to {{client}} only"
+      }
+    },
     "photos": {
       "heading": "Photos",
       "count_one": "{{count}} photo",
@@ -5078,7 +5145,8 @@
       "offsetInactiveRange": "Enter a number from 1 to 365.",
       "stopAfterRange": "Enter a number from 1 to 1000.",
       "tagRequired": "Choose a tag.",
-      "clientsRequired": "Choose at least one client."
+      "clientsRequired": "Choose at least one client.",
+      "pauseNoteTooLong": "The note can have at most 200 characters."
     },
     "drawer": {
       "titleNew": "New rule",
@@ -5147,6 +5215,15 @@
         "stopAfterCount": "Number of sends",
         "oncePerPlan": "Once per plan",
         "oncePerPlanHint": "A plan that is extended doesn’t trigger it twice."
+      },
+      "pause": {
+        "heading": "Pause for this client",
+        "toggle": "Paused",
+        "hint": "No requests are sent from this rule while it is paused.",
+        "until": "Paused until",
+        "untilHint": "Optional. Leave empty to pause until you resume it.",
+        "note": "Note",
+        "notePlaceholder": "For example, knee injury"
       }
     }
   }

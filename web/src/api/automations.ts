@@ -9,7 +9,10 @@ import {
   AutomationAudience,
   AutomationEventType,
   AutomationOffsetDirection,
+  AutomationRuleSource,
+  AutomationRunStatus,
   AutomationScheduleUnit,
+  AutomationSkipReason,
   AutomationTriggerKind,
   Profession,
 } from '@/api/generated';
@@ -17,7 +20,14 @@ import type {
   AutomationLinkedCheckInDto,
   AutomationRuleDto,
   AutomationRuleSummaryDto,
+  ClientAutomationItem,
+  ClientAutomationLastResult,
+  ClientAutomationSummary,
   CreateAutomationRuleRequest,
+  CreateClientAutomationRuleRequest,
+  GetClientAutomationsResponse,
+  OverrideClientAutomationRequest,
+  PauseClientAutomationRequest,
   UpdateAutomationRuleRequest,
 } from '@/api/generated';
 
@@ -26,7 +36,10 @@ export {
   AutomationAudience,
   AutomationEventType,
   AutomationOffsetDirection,
+  AutomationRuleSource,
+  AutomationRunStatus,
   AutomationScheduleUnit,
+  AutomationSkipReason,
   AutomationTriggerKind,
   Profession,
 };
@@ -34,7 +47,14 @@ export type {
   AutomationLinkedCheckInDto,
   AutomationRuleDto,
   AutomationRuleSummaryDto,
+  ClientAutomationItem,
+  ClientAutomationLastResult,
+  ClientAutomationSummary,
   CreateAutomationRuleRequest,
+  CreateClientAutomationRuleRequest,
+  GetClientAutomationsResponse,
+  OverrideClientAutomationRequest,
+  PauseClientAutomationRequest,
   UpdateAutomationRuleRequest,
 };
 
@@ -65,4 +85,40 @@ export async function updateAutomationRule(
 /** Deletes a rule via DELETE /trainer/automations/rules/{ruleId}. */
 export async function deleteAutomationRule(ruleId: string): Promise<void> {
   await apiClient.deleteAutomationRuleEndpoint(ruleId);
+}
+
+/** A client's effective rules with the 30-day summary via GET /trainer/clients/{clientId}/automations. */
+export async function getClientAutomations(clientId: string): Promise<GetClientAutomationsResponse> {
+  return apiClient.getClientAutomationsEndpoint(clientId);
+}
+
+/** Adds a rule that applies to one client only. */
+export async function createClientAutomationRule(
+  clientId: string,
+  request: CreateClientAutomationRuleRequest,
+): Promise<AutomationRuleDto> {
+  return apiClient.createClientAutomationRuleEndpoint(clientId, request);
+}
+
+/** Customises a global rule for one client. */
+export async function overrideClientAutomation(
+  clientId: string,
+  ruleId: string,
+  request: OverrideClientAutomationRequest,
+): Promise<void> {
+  await apiClient.overrideClientAutomationEndpoint(clientId, ruleId, request);
+}
+
+/** Pauses or resumes a global rule for one client. */
+export async function pauseClientAutomation(
+  clientId: string,
+  ruleId: string,
+  request: PauseClientAutomationRequest,
+): Promise<void> {
+  await apiClient.pauseClientAutomationEndpoint(clientId, ruleId, request);
+}
+
+/** Removes the client's customisation so the global rule applies again. */
+export async function resetClientAutomation(clientId: string, ruleId: string): Promise<void> {
+  await apiClient.resetClientAutomationEndpoint(clientId, ruleId);
 }
