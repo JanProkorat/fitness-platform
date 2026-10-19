@@ -18,7 +18,8 @@ import {
   type AutomationRuleDto,
   type ClientAutomationItem,
 } from '@/api/automations';
-import { formatNextSend, whenLabel } from '@/components/automations/automationFormat';
+import AutomationIconTile from '@/components/automations/AutomationIconTile';
+import { formatNextSend, toneForAction, whenLabel } from '@/components/automations/automationFormat';
 import { clientItemToRule } from '@/components/automations/automationRuleForm';
 import { lastResultLabel, rowSubtitle } from '@/components/client-detail/automations/clientAutomationModel';
 import { cn } from '@/lib/utils';
@@ -65,14 +66,6 @@ function SourceBadge({ source, name }: { source: AutomationRuleSource | undefine
         </span>
       );
   }
-}
-
-function IconTile({ children }: { children: ReactNode }) {
-  return (
-    <span className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-line bg-card text-marker-text">
-      {children}
-    </span>
-  );
 }
 
 interface Props {
@@ -128,9 +121,9 @@ export default function ClientAutomationsTable({
               <TableRow key={`linked-${item.profession ?? ''}`} className="border-line">
                 <TableCell className={CELL_CLASS}>
                   <div className="flex items-center gap-3">
-                    <IconTile>
+                    <AutomationIconTile tone="checkIn">
                       <CheckSquare className="size-4.5" aria-hidden="true" />
-                    </IconTile>
+                    </AutomationIconTile>
                     <div className="flex min-w-0 flex-col">
                       <span className="text-copy font-semibold text-ink">{t('automations.linked.title')}</span>
                       <span className="truncate text-meta text-muted-foreground">
@@ -176,7 +169,9 @@ export default function ClientAutomationsTable({
             <TableRow key={ruleId} className="border-line">
               <TableCell className={CELL_CLASS}>
                 <div className="flex items-center gap-3">
-                  <IconTile>{ACTION_ICON[item.actionType ?? AutomationActionType.SendForm]}</IconTile>
+                  <AutomationIconTile tone={toneForAction(item.actionType)}>
+                    {ACTION_ICON[item.actionType ?? AutomationActionType.SendForm]}
+                  </AutomationIconTile>
                   <div className="flex min-w-0 max-w-80 flex-col">
                     <button
                       type="button"

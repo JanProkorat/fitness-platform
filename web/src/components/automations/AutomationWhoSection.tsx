@@ -73,6 +73,9 @@ export default function AutomationWhoSection({ initialClients = [] }: Props) {
           </select>
           <SelectChevron />
         </div>
+        {audience === AutomationAudience.All && (
+          <span className="text-meta text-muted-foreground">{t('automations.drawer.who.allHint')}</span>
+        )}
       </label>
 
       {audience === AutomationAudience.Tag && (

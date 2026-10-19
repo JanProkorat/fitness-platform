@@ -19,7 +19,8 @@ import {
   type AutomationLinkedCheckInDto,
   type AutomationRuleDto,
 } from '@/api/automations';
-import { appliesToLabel, formatNextSend, subtitleFor, whenLabel } from '@/components/automations/automationFormat';
+import AutomationIconTile from '@/components/automations/AutomationIconTile';
+import { appliesToLabel, formatNextSend, subtitleFor, toneForAction, whenLabel } from '@/components/automations/automationFormat';
 
 const SKELETON_ROW_COUNT = 4;
 const COLUMN_COUNT = 7;
@@ -31,14 +32,6 @@ const ACTION_ICON: Record<AutomationActionType, ReactNode> = {
   [AutomationActionType.RequestProgressPhotos]: <Camera className="size-4.5" aria-hidden="true" />,
   [AutomationActionType.RequestMeasurements]: <Ruler className="size-4.5" aria-hidden="true" />,
 };
-
-function IconTile({ children }: { children: ReactNode }) {
-  return (
-    <span className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-line bg-card text-marker-text">
-      {children}
-    </span>
-  );
-}
 
 interface Props {
   rules: AutomationRuleDto[];
@@ -114,9 +107,9 @@ export default function AutomationsTable({
             <TableRow key={`checkin-${checkIn.profession}`} className="border-line">
               <TableCell className={CELL_CLASS}>
                 <div className="flex items-center gap-3">
-                  <IconTile>
+                  <AutomationIconTile tone="checkIn">
                     <CheckSquare className="size-4.5" aria-hidden="true" />
-                  </IconTile>
+                  </AutomationIconTile>
                   <div className="flex min-w-0 flex-col">
                     <span className="text-copy font-semibold text-ink">{t('automations.linked.title')}</span>
                     <span className="truncate text-meta text-muted-foreground">
@@ -173,7 +166,9 @@ export default function AutomationsTable({
               <TableRow key={ruleId} className="cursor-pointer border-line" onClick={() => onEdit(rule)}>
                 <TableCell className={CELL_CLASS}>
                   <div className="flex items-center gap-3">
-                    <IconTile>{ACTION_ICON[rule.actionType ?? AutomationActionType.SendForm]}</IconTile>
+                    <AutomationIconTile tone={toneForAction(rule.actionType)}>
+                      {ACTION_ICON[rule.actionType ?? AutomationActionType.SendForm]}
+                    </AutomationIconTile>
                     <div className="flex min-w-0 max-w-80 flex-col">
                       <button
                         type="button"

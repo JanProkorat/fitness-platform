@@ -73,8 +73,23 @@ export function whenLabel(rule: AutomationRuleDto, t: TFunction): string {
   if (rule.eventType === AutomationEventType.ClientInactive) {
     return t('automations.table.offsetInactive', { event, count: days });
   }
-  const key = rule.eventOffsetDirection === AutomationOffsetDirection.Before ? 'offsetBefore' : 'offsetAfter';
-  return t(`automations.table.${key}`, { event, count: days });
+  const isBefore = rule.eventOffsetDirection === AutomationOffsetDirection.Before;
+  const phrase = t(`automations.table.${isBefore ? 'eventsBefore' : 'eventsAfter'}.${rule.eventType}`);
+  return t(`automations.table.${isBefore ? 'offsetBefore' : 'offsetAfter'}`, { event: phrase, count: days });
+}
+
+export type AutomationTileTone = 'form' | 'photos' | 'measurements' | 'checkIn';
+
+/** The icon tile tone for a rule's action. */
+export function toneForAction(action: AutomationActionType | undefined): AutomationTileTone {
+  switch (action) {
+    case AutomationActionType.RequestProgressPhotos:
+      return 'photos';
+    case AutomationActionType.RequestMeasurements:
+      return 'measurements';
+    default:
+      return 'form';
+  }
 }
 
 /** The row's subtitle, derived from the action. */
