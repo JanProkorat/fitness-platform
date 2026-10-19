@@ -5,6 +5,8 @@ import { useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, View } from 'react-native';
 import type { TextInput } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import type { EdgeInsets } from 'react-native-safe-area-context';
 
 import { login } from '@/api/auth';
 import { ROLE_CLIENT, ROLE_NUTRITIONIST, ROLE_TRAINER } from '@/api/profile';
@@ -54,7 +56,8 @@ function toggleRole(current: string[], role: string): string[] {
 export default function RegisterScreen() {
   const { t } = useTranslation();
   const theme = useTheme();
-  const styles = makeStyles(theme);
+  const insets = useSafeAreaInsets();
+  const styles = makeStyles(theme, insets);
   const lastNameRef = useRef<TextInput>(null);
   const emailRef = useRef<TextInput>(null);
   const passwordRef = useRef<TextInput>(null);
@@ -328,7 +331,7 @@ export default function RegisterScreen() {
   );
 }
 
-const makeStyles = (theme: Theme) =>
+const makeStyles = (theme: Theme, insets: EdgeInsets) =>
   StyleSheet.create({
     root: {
       flex: 1,
@@ -337,7 +340,7 @@ const makeStyles = (theme: Theme) =>
     content: {
       flexGrow: 1,
       gap: theme.spacing.md,
-      paddingTop: theme.spacing.xs,
+      paddingTop: insets.top + theme.spacing.xs,
       paddingBottom: theme.sizes.authBottom,
     },
     topBar: {

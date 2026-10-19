@@ -145,17 +145,20 @@ export default function LoginScreen() {
             style={styles.submit}
           />
         </View>
-        <Text variant="bodySmall" color="muted" style={styles.footer}>
-          {t('auth.login.newHere')}{' '}
-          <Text
-            variant="link"
-            color="accent"
+        <View style={styles.footer}>
+          <Text variant="bodySmall" color="muted">
+            {t('auth.login.newHere')}
+          </Text>
+          <Pressable
             accessibilityRole="link"
+            hitSlop={theme.spacing.xs}
             onPress={() => router.push('/register')}
           >
-            {t('auth.login.createAccount')}
-          </Text>
-        </Text>
+            <Text variant="link" color="accent">
+              {t('auth.login.createAccount')}
+            </Text>
+          </Pressable>
+        </View>
       </Screen>
     </KeyboardAvoidingView>
   );
@@ -189,7 +192,11 @@ const makeStyles = (theme: Theme) =>
       marginTop: theme.spacing.snug,
     },
     footer: {
-      textAlign: 'center',
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'center',
+      alignItems: 'center',
+      columnGap: theme.spacing.xxs,
       paddingTop: theme.spacing.xxxl,
     },
   });
