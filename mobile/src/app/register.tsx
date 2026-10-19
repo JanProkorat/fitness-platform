@@ -153,15 +153,15 @@ export default function RegisterScreen() {
       <Screen scroll contentStyle={styles.content}>
         <View style={styles.topBar}>
           <BackButton label={t('auth.register.back')} onPress={goBack} />
+          <View style={styles.heading}>
+            <Text variant="title" accessibilityRole="header">
+              {t('auth.register.heading')}
+            </Text>
+          </View>
         </View>
-        <View style={styles.header}>
-          <Text variant="title" accessibilityRole="header">
-            {t('auth.register.heading')}
-          </Text>
-          <Text variant="body" color="muted">
-            {t('auth.register.subtitle')}
-          </Text>
-        </View>
+        <Text variant="body" color="muted">
+          {t('auth.register.subtitle')}
+        </Text>
 
         <View accessibilityRole="radiogroup" style={styles.group}>
           <Text variant="label" color="muted">
@@ -332,12 +332,13 @@ const makeStyles = (theme: Theme, insets: EdgeInsets) =>
       paddingBottom: theme.sizes.authBottom,
     },
     topBar: {
-      paddingTop: theme.spacing.xs,
-      paddingBottom: theme.spacing.xs,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.spacing.sm,
     },
-    header: {
-      gap: theme.spacing.snug,
-      paddingBottom: theme.spacing.xxs,
+    heading: {
+      flex: 1,
+      minWidth: 0,
     },
     group: {
       gap: theme.spacing.snug,
