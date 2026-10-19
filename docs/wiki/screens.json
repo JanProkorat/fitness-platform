@@ -662,6 +662,30 @@
       "notionPageId": null
     },
     {
+      "id": "client.entry.launch",
+      "app": "client",
+      "area": "Entry",
+      "title": "Launch screen",
+      "route": "/",
+      "roles": [
+        "Public"
+      ],
+      "files": [
+        "mobile/src/components/LaunchScreen.tsx",
+        "mobile/src/components/LaunchWordmark.tsx",
+        "mobile/src/components/LogoMark.tsx"
+      ],
+      "endpoints": [],
+      "board": "GlassLaunchQuiet",
+      "shots": [
+        {
+          "name": "final-frame",
+          "steps": "cold start the app; capture once the tagline has faded in (about 2.3 s), before the overlay fades out"
+        }
+      ],
+      "notionPageId": null
+    },
+    {
       "id": "client.entry.sign-in",
       "app": "client",
       "area": "Entry",

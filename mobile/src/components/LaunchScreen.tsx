@@ -11,8 +11,8 @@ import Animated, {
 import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { scheduleOnRN } from 'react-native-worklets';
 
-import { Wordmark } from '@/components/Wordmark';
-import { launchGlows as launchGlowGeometry, launchMotion, sizes, useTheme } from '@/theme';
+import { LaunchWordmark } from '@/components/LaunchWordmark';
+import { launchGlowShapes, launchMotion, sizes, useTheme } from '@/theme';
 import type { GlowColor } from '@/theme';
 
 const taglineEase = Easing.bezierFn(0.3, 0, 0.2, 1);
@@ -112,34 +112,34 @@ export function LaunchScreen({ ready, onExited }: Props) {
     <Animated.View
       accessible
       accessibilityRole="image"
-      accessibilityLabel={t('launch.label')}
+      accessibilityLabel={`${t('launch.label')}. ${t('launch.tagline')}`}
       style={[styles.overlay, { backgroundColor: theme.colors.ground }, containerStyle]}
     >
       <Svg width={width} height={height} style={StyleSheet.absoluteFill}>
         <Glow
           id="launchGlowTop"
           glow={theme.launchGlows.top}
-          geometry={launchGlowGeometry.top}
+          geometry={launchGlowShapes.top}
           width={width}
           height={height}
         />
         <Glow
           id="launchGlowBottom"
           glow={theme.launchGlows.bottom}
-          geometry={launchGlowGeometry.bottom}
+          geometry={launchGlowShapes.bottom}
           width={width}
           height={height}
         />
         <Glow
           id="launchGlowCorner"
           glow={theme.launchGlows.corner}
-          geometry={launchGlowGeometry.corner}
+          geometry={launchGlowShapes.corner}
           width={width}
           height={height}
         />
       </Svg>
       <View style={[styles.stack, { gap: sizes.launchStackGap }]}>
-        <Wordmark variant="launch" progress={progress} />
+        <LaunchWordmark progress={progress} />
         <Animated.Text
           style={[theme.typography.launchTagline, { color: theme.colors.muted }, taglineStyle]}
         >

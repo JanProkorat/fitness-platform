@@ -7,14 +7,15 @@ import { glass } from './glass';
 import type { Glass, GlassBlur } from './glass';
 import { buildShadows } from './shadows';
 import type { Shadows } from './shadows';
-import { launchGlows, launchMotion, radii, sizes, spacing } from './spacing';
+import { launchGlowShapes, launchMotion } from './motion';
+import { radii, sizes, spacing } from './spacing';
 import { fontAssets, launchTracking, textStyle, typography } from './typography';
 
 export type { ColorScheme, Colors, GlowColor, LaunchGlows } from './colors';
 export type { FontFamily, TypeStyle, TypographyRole } from './typography';
 export { fontAssets, launchTracking, textStyle, typography };
 export type { Glass, GlassBlur, Shadows };
-export { glass, launchGlows, launchMotion, radii, sizes, spacing };
+export { glass, launchGlowShapes, launchMotion, radii, sizes, spacing };
 
 export type Theme = {
   scheme: ColorScheme;
