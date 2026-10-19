@@ -1,3 +1,5 @@
+using FitnessPlatform.Application.Domain.Enums;
+
 namespace FitnessPlatform.Application.Domain.Services;
 
 /// <summary>
@@ -17,6 +19,12 @@ public sealed class AutomationCoveredClient
 
     /// <summary>When the coach's earliest live link to the client began (UTC).</summary>
     public DateTime LinkedSince { get; init; }
+
+    /// <summary>The earliest live link that grants access; what a delivered request is attached to.</summary>
+    public long PrimaryLinkId { get; init; }
+
+    /// <summary>The professional role recorded on <see cref="PrimaryLinkId"/>.</summary>
+    public UserRole PrimaryLinkRole { get; init; }
 
     /// <summary>Whether a live link grants the nutrition domain.</summary>
     public bool CanViewNutritionPlans { get; init; }

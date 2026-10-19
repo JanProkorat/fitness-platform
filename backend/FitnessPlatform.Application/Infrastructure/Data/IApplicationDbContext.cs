@@ -276,6 +276,15 @@ public interface IApplicationDbContext
     Task LockClientProfileAsync(long clientProfileId, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Claims the earliest automation schedule row that is due at <paramref name="nowUtc"/> with
+    /// <c>FOR UPDATE SKIP LOCKED</c>: a row another worker already holds is passed over instead of
+    /// waited for, so two workers never run the same row. Call it inside a transaction from
+    /// <see cref="BeginTransactionAsync"/>; the lock lasts until that transaction ends. Returns the
+    /// tracked row, or null when nothing is due.
+    /// </summary>
+    Task<AutomationSchedule?> ClaimDueAutomationScheduleAsync(DateTime nowUtc, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Saves one user's notification choices with a single <c>INSERT … ON CONFLICT (user_id, event)
     /// DO UPDATE</c>, so two concurrent first saves cannot collide on the unique index. The events
     /// must be distinct.

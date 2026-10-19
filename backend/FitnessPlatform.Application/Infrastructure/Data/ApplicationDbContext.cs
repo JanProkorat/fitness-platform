@@ -474,6 +474,31 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     }
 
     /// <inheritdoc />
+    public async Task<AutomationSchedule?> ClaimDueAutomationScheduleAsync(
+        DateTime nowUtc, CancellationToken cancellationToken = default)
+    {
+        // Table and column identifiers come from the EF model, never from input; the instant is a
+        // real parameter. See LockClientProfileAsync for why this is concatenated, not interpolated.
+        var entityType = Model.FindEntityType(typeof(AutomationSchedule))!;
+        var table = entityType.GetSchema() is { } schema
+            ? QuoteIdentifier(schema) + "." + QuoteIdentifier(entityType.GetTableName()!)
+            : QuoteIdentifier(entityType.GetTableName()!);
+        var nextRunColumn = QuoteIdentifier(entityType.FindProperty(nameof(AutomationSchedule.NextRunAt))!.GetColumnName()!);
+        var keyColumn = QuoteIdentifier(entityType.FindPrimaryKey()!.Properties[0].GetColumnName()!);
+
+        var sql = "SELECT * FROM " + table
+                  + " WHERE " + nextRunColumn + " <= {0}"
+                  + " ORDER BY " + nextRunColumn + ", " + keyColumn
+                  + " LIMIT 1 FOR UPDATE SKIP LOCKED";
+
+        var claimed = await AutomationSchedules
+            .FromSqlRaw(sql, DateTime.SpecifyKind(nowUtc, DateTimeKind.Utc))
+            .ToListAsync(cancellationToken);
+
+        return claimed.SingleOrDefault();
+    }
+
+    /// <inheritdoc />
     public Task UpsertNotificationPreferencesAsync(
         Guid userId,
         IReadOnlyCollection<(NotificationEvent Event, bool EmailEnabled, bool PushEnabled)> preferences,

@@ -60,5 +60,8 @@ public enum NotificationType
     CollaborationEndedByRoleRemoval,
 
     /// <summary>A collaboration was ended because the professional removed the coach role it covered; delivered to the professional.</summary>
-    CollaborationEndedByRoleRemovalCoach
+    CollaborationEndedByRoleRemovalCoach,
+
+    /// <summary>A coach's automation asked the client to log their body measurements; delivered to the client.</summary>
+    MeasurementRequested
 }

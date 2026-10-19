@@ -59,7 +59,8 @@ public class PhotoDiaryRequest
     public Guid? PlanId { get; set; }
 
     /// <summary>
-    /// How many days the request stays open (default 7; always 1 for <see cref="PhotoDiaryMode.Bulk"/>).
+    /// How many days the request stays open (default 7). A manual <see cref="PhotoDiaryMode.Bulk"/> request
+    /// is created with 1; an automation's one-off Bulk request is open for 7.
     /// Must be between 1 and 30 (enforced by CHECK constraint). The open window ends at
     /// <c>CreatedAt + DurationDays</c>.
     /// </summary>

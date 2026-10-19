@@ -42,6 +42,7 @@ public static class AutomationPlanWindowLoader
                 .Find(trainingFilter)
                 .Project(p => new AutomationPlanWindow
                 {
+                    PlanId = p.ExternalId,
                     ClientId = p.ClientId,
                     StartDate = p.StartDate,
                     WeekCount = p.Weeks.Count,
@@ -62,6 +63,7 @@ public static class AutomationPlanWindowLoader
                 .Find(nutritionFilter)
                 .Project(p => new AutomationPlanWindow
                 {
+                    PlanId = p.ExternalId,
                     ClientId = p.ClientId,
                     StartDate = p.StartDate,
                     WeekCount = p.Weeks.Count,

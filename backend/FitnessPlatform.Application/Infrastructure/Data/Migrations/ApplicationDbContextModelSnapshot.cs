@@ -556,6 +556,10 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("date_updated");
 
+                    b.Property<Guid?>("DeliveredEntityId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("delivered_entity_id");
+
                     b.Property<string>("Occurrence")
                         .IsRequired()
                         .HasMaxLength(100)
