@@ -9,12 +9,18 @@ import {
   type AutomationRuleSummaryDto,
 } from '@/api/automations';
 
-/** A calendar date in the coach's language, or an em dash when there is none. */
+const DATE_ONLY = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+/**
+ * A calendar date (day and month, no weekday) in the coach's language, or an em dash when there is none.
+ * A date-only value is read as a local day so no time zone moves it.
+ */
 export function formatNextSend(iso: string | undefined, language: string): string {
   if (!iso) {
     return '—';
   }
-  const date = new Date(iso);
+  const dateOnly = DATE_ONLY.exec(iso);
+  const date = dateOnly ? new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3])) : new Date(iso);
   if (Number.isNaN(date.getTime())) {
     return '—';
   }

@@ -54,7 +54,7 @@ export default function AutomationWhatSection({ actionLocked = false }: Props) {
         </div>
       )}
 
-      {actionType === AutomationActionType.SendForm && (
+      {actionType === AutomationActionType.SendForm && !actionLocked && (
         <label className={FIELD_CLASS}>
           <span>{t('automations.drawer.what.form')}</span>
           <div className="relative">

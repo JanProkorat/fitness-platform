@@ -9,6 +9,7 @@ import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetT
 import { AutomationTriggerKind, type AutomationRuleDto } from '@/api/automations';
 import { FIELD_CLASS, FieldError } from '@/components/automations/automationFormParts';
 import AutomationOptionsSection from '@/components/automations/AutomationOptionsSection';
+import AutomationPauseSection from '@/components/automations/AutomationPauseSection';
 import AutomationWhatSection from '@/components/automations/AutomationWhatSection';
 import AutomationWhenSection from '@/components/automations/AutomationWhenSection';
 import AutomationWhoSection from '@/components/automations/AutomationWhoSection';
@@ -16,10 +17,12 @@ import { summaryFooter } from '@/components/automations/automationFormat';
 import {
   automationRuleSchema,
   defaultRuleValues,
+  pauseToFormValues,
   ruleToFormValues,
   summarySensitiveSnapshot,
   type AutomationDrawerVariant,
   type AutomationRuleFormValues,
+  type PauseState,
 } from '@/components/automations/automationRuleForm';
 
 interface Props {
@@ -29,6 +32,10 @@ interface Props {
   variant?: AutomationDrawerVariant;
   /** The saved rule being edited; undefined for a new rule. */
   rule?: AutomationRuleDto;
+  /** Override variant: the row's current pause, prefilled into the pause section. */
+  pause?: PauseState;
+  /** Client variants: the client's first name, for the title and description. */
+  clientName?: string;
   /** Saves the form. Resolves when the save is done and never rejects; the caller reports errors. */
   onSubmit: (values: AutomationRuleFormValues) => Promise<void>;
   isSaving: boolean;
@@ -49,9 +56,11 @@ interface BodyProps extends Omit<Props, 'open' | 'onOpenChange'> {
   onClose: () => void;
 }
 
-function DrawerBody({ variant = 'global', rule, onSubmit, isSaving, onClose }: BodyProps) {
+function DrawerBody({ variant = 'global', rule, pause, clientName = '', onSubmit, isSaving, onClose }: BodyProps) {
   const { t, i18n } = useTranslation();
-  const [initial] = useState<AutomationRuleFormValues>(() => (rule ? ruleToFormValues(rule) : defaultRuleValues()));
+  const [initial] = useState<AutomationRuleFormValues>(() =>
+    rule ? { ...ruleToFormValues(rule), ...pauseToFormValues(pause) } : defaultRuleValues(),
+  );
   const [initialSnapshot] = useState(() => summarySensitiveSnapshot(initial));
 
   const methods = useForm<AutomationRuleFormValues>({
@@ -67,13 +76,24 @@ function DrawerBody({ variant = 'global', rule, onSubmit, isSaving, onClose }: B
     summarySensitiveSnapshot({ ...initial, ...values } as AutomationRuleFormValues) !== initialSnapshot;
   const footer = isNew || sensitiveChanged ? null : summaryFooter(rule?.summary, t, i18n.language);
 
-  const title = isNew
-    ? t('automations.drawer.titleNew')
-    : t('automations.drawer.titleEdit', { name: rule.name ?? '' });
+  const ruleName = rule?.name ?? '';
+  const clientCopy = (key: string) => t(`clientDetail.automations.drawer.${key}`, { name: ruleName, client: clientName });
+  const title =
+    variant === 'override'
+      ? clientCopy('overrideTitle')
+      : variant === 'clientOnly'
+        ? clientCopy(isNew ? 'clientOnlyTitleNew' : 'clientOnlyTitleEdit')
+        : isNew
+          ? t('automations.drawer.titleNew')
+          : t('automations.drawer.titleEdit', { name: ruleName });
   const description =
-    triggerKind === AutomationTriggerKind.Event
-      ? t('automations.drawer.descriptionEvent')
-      : t('automations.drawer.descriptionSchedule');
+    variant === 'override'
+      ? clientCopy('overrideDescription')
+      : variant === 'clientOnly'
+        ? clientCopy('clientOnlyDescription')
+        : triggerKind === AutomationTriggerKind.Event
+          ? t('automations.drawer.descriptionEvent')
+          : t('automations.drawer.descriptionSchedule');
 
   return (
     <form onSubmit={handleSubmit((submitted) => onSubmit(submitted))} noValidate className="flex min-h-0 flex-1 flex-col">
@@ -97,6 +117,7 @@ function DrawerBody({ variant = 'global', rule, onSubmit, isSaving, onClose }: B
           <AutomationWhatSection actionLocked={variant === 'override'} />
           {variant === 'global' && <AutomationWhoSection initialClients={rule?.clients} />}
           <AutomationOptionsSection />
+          {variant === 'override' && <AutomationPauseSection />}
         </div>
       </FormProvider>
 

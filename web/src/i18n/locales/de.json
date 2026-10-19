@@ -2529,6 +2529,11 @@
     "AUTOMATION_AUDIENCE_TAG_REQUIRED": "Wählen Sie ein Tag.",
     "AUTOMATION_AUDIENCE_CLIENTS_REQUIRED": "Wählen Sie mindestens einen Klienten.",
     "AUTOMATION_PHOTO_MESSAGE_TOO_LONG": "Eine Nachricht zu Fortschrittsfotos darf höchstens 500 Zeichen haben.",
+    "AUTOMATION_PAUSED_UNTIL_IN_PAST": "Das Ende der Pause darf nicht in der Vergangenheit liegen.",
+    "AUTOMATION_PAUSE_DETAILS_WITHOUT_PAUSE": "Ein Enddatum oder eine Notiz zur Pause setzt voraus, dass die Pause eingeschaltet ist.",
+    "AUTOMATION_NO_OVERRIDE_TO_RESET": "Diese Regel hat für diesen Klienten keine Änderungen, die sich zurücksetzen ließen.",
+    "AUTOMATION_CLIENT_ONLY_RULE_NOT_OVERRIDABLE": "Eine Regel nur für einen Klienten lässt sich nicht anpassen, pausieren oder zurücksetzen. Bearbeiten Sie sie direkt.",
+    "AUTOMATION_AUDIENCE_NOT_ALLOWED_ON_CLIENT_ONLY_RULE": "Eine Regel nur für einen Klienten hat keine Zielgruppe zur Auswahl.",
     "INVALID_CREDENTIALS": "Ungültige E-Mail oder Passwort.",
     "ACCOUNT_DEACTIVATED": "Ihr Konto wurde deaktiviert.",
     "INVALID_REFRESH_TOKEN": "Ihre Sitzung ist abgelaufen. Bitte melden Sie sich erneut an.",
@@ -3519,6 +3524,68 @@
     }
   },
   "clientDetail": {
+    "automations": {
+      "introBefore": "Regeln von Ihrer Seite ",
+      "introLink": "Automatisierungen",
+      "introAfter": " gelten auch für {{name}}. Eine Änderung hier betrifft nur {{name}}.",
+      "addRule": "Regel für {{name}} hinzufügen",
+      "empty": "Für {{name}} gilt noch keine Regel.",
+      "loadError": "Die Automatisierungen dieses Klienten konnten nicht geladen werden.",
+      "noAccess": "Ihre Verknüpfung mit {{name}} umfasst keine Automatisierungen.",
+      "toggleError": "Die Regel konnte nicht geändert werden.",
+      "resetSuccess": "Regel auf den Standard zurückgesetzt",
+      "resetError": "Die Regel konnte nicht zurückgesetzt werden.",
+      "source": {
+        "Default": "Standard",
+        "Custom": "Angepasst für {{name}}",
+        "Paused": "Pausiert",
+        "OnlyThisClient": "Nur {{name}}"
+      },
+      "table": {
+        "columnSource": "Quelle",
+        "columnLastTime": "Zuletzt"
+      },
+      "row": {
+        "reset": "Zurücksetzen",
+        "toggleActive": "Regel „{{name}}“ für diesen Klienten aktiv",
+        "disabledHint": "Diese Regel ist auf der Seite Automatisierungen ausgeschaltet.",
+        "changedFrom": "Geändert gegenüber: {{when}}",
+        "paused": "Pausiert",
+        "pausedUntil": "Pausiert bis {{date}}",
+        "linkedSubtitle": "{{profession}} · Wird in den Check-in-Einstellungen verwaltet",
+        "linkedSubtitleOnly": "Wird in den Check-in-Einstellungen verwaltet"
+      },
+      "result": {
+        "notSent": "Noch nicht gesendet",
+        "sentAnswered": "Gesendet {{date}} · beantwortet {{answered}}",
+        "sentWaiting": "Gesendet {{date}} · noch nicht beantwortet",
+        "skipped": "Übersprungen",
+        "skippedOn": "Übersprungen {{date}}",
+        "failed": "Fehlgeschlagen",
+        "failedOn": "Fehlgeschlagen {{date}}",
+        "skipReason": {
+          "PreviousUnanswered": "vorherige unbeantwortet",
+          "Paused": "pausiert",
+          "StopAfterReached": "Sendelimit erreicht",
+          "AlreadySentForPlan": "für diesen Plan bereits gesendet"
+        }
+      },
+      "summary": {
+        "title": "An {{name}} gesendet",
+        "period": "Letzte 30 Tage",
+        "sent": "Gesendete Anfragen",
+        "answered": "Beantwortet",
+        "waiting": "Wartend",
+        "skipped": "Übersprungen"
+      },
+      "drawer": {
+        "overrideTitle": "Anpassen · {{name}}",
+        "overrideDescription": "Eine Änderung hier gilt nur für {{client}}. Die Regel selbst bleibt unverändert.",
+        "clientOnlyTitleNew": "Neue Regel für {{client}}",
+        "clientOnlyTitleEdit": "Regel bearbeiten · {{name}}",
+        "clientOnlyDescription": "Diese Regel gilt nur für {{client}}"
+      }
+    },
     "photos": {
       "heading": "Fotos",
       "count_one": "{{count}} Foto",
@@ -5077,7 +5144,8 @@
       "offsetInactiveRange": "Geben Sie eine Zahl von 1 bis 365 ein.",
       "stopAfterRange": "Geben Sie eine Zahl von 1 bis 1000 ein.",
       "tagRequired": "Wählen Sie ein Tag.",
-      "clientsRequired": "Wählen Sie mindestens einen Klienten."
+      "clientsRequired": "Wählen Sie mindestens einen Klienten.",
+      "pauseNoteTooLong": "Die Notiz darf höchstens 200 Zeichen haben."
     },
     "drawer": {
       "titleNew": "Neue Regel",
@@ -5146,6 +5214,15 @@
         "stopAfterCount": "Anzahl Sendungen",
         "oncePerPlan": "Einmal pro Plan",
         "oncePerPlanHint": "Ein verlängerter Plan löst sie nicht zweimal aus."
+      },
+      "pause": {
+        "heading": "Für diesen Klienten pausieren",
+        "toggle": "Pausiert",
+        "hint": "Solange die Regel pausiert ist, werden keine Anfragen gesendet.",
+        "until": "Pausiert bis",
+        "untilHint": "Optional. Leer lassen, um bis zur Wiederaufnahme zu pausieren.",
+        "note": "Notiz",
+        "notePlaceholder": "Zum Beispiel Knieverletzung"
       }
     }
   }
