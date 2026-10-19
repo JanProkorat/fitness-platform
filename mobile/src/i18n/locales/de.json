@@ -112,11 +112,30 @@
     "resent": "E-Mail gesendet.",
     "openEmailApp": "E-Mail-App öffnen",
     "backSignOut": "Zurück, abmelden",
+    "wrongAddress": "Falsche Adresse?",
+    "changeEmail": "E-Mail ändern",
     "errors": {
       "limitReached": "Du hast das Limit für Bestätigungs-E-Mails erreicht. Schau in deinen Spam-Ordner.",
       "rateLimited": "Zu viele Versuche. Bitte versuche es gleich noch einmal.",
       "network": "Server nicht erreichbar. Prüfe deine Verbindung und versuche es erneut.",
       "generic": "Die E-Mail konnte nicht gesendet werden. Bitte versuche es erneut."
+    }
+  },
+  "changeEmail": {
+    "title": "E-Mail ändern",
+    "cancel": "Abbrechen",
+    "explainStart": "Wir verschieben dein Konto auf die neue Adresse und senden einen neuen Link. Der Link an",
+    "explainEnd": "funktioniert dann nicht mehr.",
+    "newEmail": "Neue E-Mail-Adresse",
+    "submit": "Neuen Link senden",
+    "errors": {
+      "alreadyInUse": "Diese E-Mail-Adresse wird bereits verwendet.",
+      "unchanged": "Diese Adresse haben wir bereits. Gib eine andere ein.",
+      "limitReached": "Du hast das Limit für Bestätigungs-E-Mails erreicht. Schau in deinen Spam-Ordner.",
+      "invalid": "Gib eine gültige E-Mail-Adresse ein.",
+      "rateLimited": "Zu viele Versuche. Bitte versuche es gleich noch einmal.",
+      "network": "Server nicht erreichbar. Prüfe deine Verbindung und versuche es erneut.",
+      "generic": "Die E-Mail konnte nicht geändert werden. Bitte versuche es erneut."
     }
   },
   "verifyLink": {

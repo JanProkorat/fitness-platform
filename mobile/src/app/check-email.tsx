@@ -8,9 +8,11 @@ import type { EdgeInsets } from 'react-native-safe-area-context';
 
 import { PROFILE_QUERY_KEY } from '@/api/profile';
 import { classifyResendError, resendVerification } from '@/api/register';
+import type { ChangedEmail } from '@/api/register';
 import { BackButton } from '@/components/BackButton';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
+import { ChangeEmailSheet } from '@/components/ChangeEmailSheet';
 import { HeroIcon } from '@/components/HeroIcon';
 import { Screen } from '@/components/Screen';
 import { Text } from '@/components/Text';
@@ -41,6 +43,7 @@ export default function CheckEmailScreen() {
   const [limitReached, setLimitReached] = useState(false);
   const [resent, setResent] = useState(false);
   const [emailAppUnavailable, setEmailAppUnavailable] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   useEffect(() => {
     useAuthStore.getState().markSawUnverified();
@@ -66,6 +69,20 @@ export default function CheckEmailScreen() {
       }
     },
   });
+
+  const handleEmailChanged = (result: ChangedEmail) => {
+    void queryClient.invalidateQueries({ queryKey: PROFILE_QUERY_KEY });
+    resend.reset();
+    setResent(false);
+    setLimitReached(result.remainingResends === 0);
+    setSecondsLeft(RESEND_COOLDOWN_SECONDS);
+    setSheetOpen(false);
+  };
+
+  const handleAlreadyVerified = () => {
+    void queryClient.invalidateQueries({ queryKey: PROFILE_QUERY_KEY });
+    setSheetOpen(false);
+  };
 
   const resendFailure = resend.isError ? classifyResendError(resend.error) : null;
   const resendBlocked = limitReached || resend.isPending || secondsLeft > 0;
@@ -137,9 +154,25 @@ export default function CheckEmailScreen() {
           ) : null}
         </Card>
       </View>
-      {emailAppUnavailable ? null : (
-        <Button label={t('checkEmail.openEmailApp')} onPress={() => void openEmailApp()} />
-      )}
+      <View style={styles.footer}>
+        <Text variant="bodySmall" color="muted" style={styles.centered}>
+          {t('checkEmail.wrongAddress')}{' '}
+          <Text variant="link" accessibilityRole="link" onPress={() => setSheetOpen(true)}>
+            {t('checkEmail.changeEmail')}
+          </Text>
+        </Text>
+        {emailAppUnavailable ? null : (
+          <Button label={t('checkEmail.openEmailApp')} onPress={() => void openEmailApp()} />
+        )}
+      </View>
+      <ChangeEmailSheet
+        visible={sheetOpen}
+        currentEmail={profile?.email ?? ''}
+        onClose={() => setSheetOpen(false)}
+        onChanged={handleEmailChanged}
+        onAlreadyVerified={handleAlreadyVerified}
+        onLimitReached={() => setLimitReached(true)}
+      />
     </Screen>
   );
 }
@@ -166,6 +199,9 @@ const makeStyles = (theme: Theme, insets: EdgeInsets) =>
     },
     centered: {
       textAlign: 'center',
+    },
+    footer: {
+      gap: theme.spacing.xl,
     },
     help: {
       gap: theme.spacing.xxs,

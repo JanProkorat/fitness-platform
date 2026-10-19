@@ -112,11 +112,30 @@
     "resent": "E-mail odeslán.",
     "openEmailApp": "Otevřít e-mail",
     "backSignOut": "Zpět, odhlásit se",
+    "wrongAddress": "Špatná adresa?",
+    "changeEmail": "Změnit e-mail",
     "errors": {
       "limitReached": "Dosáhl jsi limitu ověřovacích e-mailů. Podívej se do složky se spamem.",
       "rateLimited": "Příliš mnoho pokusů. Zkus to za chvíli znovu.",
       "network": "Server není dostupný. Zkontroluj připojení a zkus to znovu.",
       "generic": "E-mail se nepodařilo odeslat. Zkus to prosím znovu."
+    }
+  },
+  "changeEmail": {
+    "title": "Změnit e-mail",
+    "cancel": "Zrušit",
+    "explainStart": "Přesuneme tvůj účet na novou adresu a pošleme nový odkaz. Odkaz odeslaný na",
+    "explainEnd": "přestane fungovat.",
+    "newEmail": "Nová e-mailová adresa",
+    "submit": "Poslat nový odkaz",
+    "errors": {
+      "alreadyInUse": "Tato e-mailová adresa se už používá.",
+      "unchanged": "Tuto adresu už máme. Zadej jinou.",
+      "limitReached": "Dosáhl jsi limitu ověřovacích e-mailů. Podívej se do složky se spamem.",
+      "invalid": "Zadej platnou e-mailovou adresu.",
+      "rateLimited": "Příliš mnoho pokusů. Zkus to za chvíli znovu.",
+      "network": "Server není dostupný. Zkontroluj připojení a zkus to znovu.",
+      "generic": "E-mail se nepodařilo změnit. Zkus to prosím znovu."
     }
   },
   "verifyLink": {
