@@ -18,11 +18,6 @@
       "submit": "Anmelden",
       "newHere": "Neu hier?",
       "createAccount": "Konto erstellen",
-      "validation": {
-        "emailRequired": "Gib deine E-Mail-Adresse ein.",
-        "emailInvalid": "Gib eine gültige E-Mail-Adresse ein.",
-        "passwordRequired": "Gib dein Passwort ein."
-      },
       "errors": {
         "invalidCredentials": "E-Mail oder Passwort ist falsch.",
         "accountDeactivated": "Dieses Konto wurde deaktiviert.",
@@ -70,20 +65,11 @@
       "gdprConsent": "Ich stimme der Verarbeitung meiner personenbezogenen Daten und den Nutzungsbedingungen zu.",
       "healthConsent": "Ich stimme der Verarbeitung meiner Gesundheitsdaten, etwa Gewicht und Verletzungen, zu, damit mein Coach meine Pläne erstellen kann.",
       "submit": "Konto erstellen",
-      "validation": {
-        "firstNameRequired": "Gib deinen Vornamen ein.",
-        "lastNameRequired": "Gib deinen Nachnamen ein.",
-        "emailRequired": "Gib deine E-Mail ein.",
-        "emailInvalid": "Gib eine gültige E-Mail ein.",
-        "passwordRules": "Dein Passwort erfüllt noch nicht alle Regeln.",
-        "gdprRequired": "Zum Fortfahren ist deine Zustimmung nötig.",
-        "healthRequired": "Zum Fortfahren ist deine Zustimmung nötig."
-      },
       "errors": {
         "duplicateEmail": "Mit dieser E-Mail gibt es bereits ein Konto.",
         "rateLimited": "Zu viele Versuche. Bitte versuche es gleich noch einmal.",
         "network": "Server nicht erreichbar. Prüfe deine Verbindung und versuche es erneut.",
-        "validation": "Bitte prüfe dieses Feld.",
+        "validation": "Bitte prüfe die markierten Felder.",
         "generic": "Das Konto konnte nicht erstellt werden. Bitte versuche es erneut."
       }
     }
@@ -96,8 +82,7 @@
     },
     "input": {
       "label": "E-Mail",
-      "placeholder": "jan@example.com",
-      "error": "Gib eine gültige E-Mail-Adresse ein."
+      "placeholder": "jan@example.com"
     },
     "scrollHint": "Scrolle den Inhalt unter die schwebende Leiste, um die Unschärfe zu sehen.",
     "signOut": "Abmelden",

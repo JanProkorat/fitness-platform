@@ -10,7 +10,8 @@ import { Text } from './Text';
 
 type InputProps = Omit<TextInputProps, 'style'> & {
   label: string;
-  error?: string;
+  /** Red border only; the screen shows any message itself. */
+  invalid?: boolean;
   /** Rendered before the text, inside the field (e.g. an icon). */
   leading?: ReactNode;
   /** Rendered after the text, inside the field (e.g. a Show/Hide toggle). */
@@ -20,7 +21,7 @@ type InputProps = Omit<TextInputProps, 'style'> & {
 
 export function Input({
   label,
-  error,
+  invalid,
   leading,
   trailing,
   inputRef,
@@ -33,7 +34,7 @@ export function Input({
   const [focused, setFocused] = useState(false);
   const fallbackRef = useRef<TextInput>(null);
   const fieldRef = inputRef ?? fallbackRef;
-  const borderColor = error
+  const borderColor = invalid
     ? theme.colors.error
     : focused
       ? theme.colors.ink2
@@ -68,13 +69,6 @@ export function Input({
         />
         {trailing}
       </Pressable>
-      <View style={styles.errorSlot}>
-        {error ? (
-          <Text variant="caption" color="error" accessibilityRole="alert">
-            {error}
-          </Text>
-        ) : null}
-      </View>
     </View>
   );
 }
@@ -83,11 +77,6 @@ const makeStyles = (theme: Theme) =>
   StyleSheet.create({
     root: {
       gap: theme.spacing.snug,
-    },
-    // Reserves one caption line so an error appearing does not move the layout.
-    // A longer error wraps and grows the slot (min height, not fixed).
-    errorSlot: {
-      minHeight: theme.typography.caption.lineHeight,
     },
     field: {
       height: theme.sizes.field,

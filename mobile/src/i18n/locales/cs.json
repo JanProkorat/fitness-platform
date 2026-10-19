@@ -18,11 +18,6 @@
       "submit": "Přihlásit se",
       "newHere": "Jste tu poprvé?",
       "createAccount": "Vytvořit účet",
-      "validation": {
-        "emailRequired": "Zadejte e-mail.",
-        "emailInvalid": "Zadejte platný e-mail.",
-        "passwordRequired": "Zadejte heslo."
-      },
       "errors": {
         "invalidCredentials": "Nesprávný e-mail nebo heslo.",
         "accountDeactivated": "Tento účet byl deaktivován.",
@@ -70,20 +65,11 @@
       "gdprConsent": "Souhlasím se zpracováním osobních údajů a s podmínkami použití.",
       "healthConsent": "Souhlasím se zpracováním zdravotních údajů, například váhy a zranění, aby mi trenér mohl připravit plány.",
       "submit": "Vytvořit účet",
-      "validation": {
-        "firstNameRequired": "Zadej své jméno.",
-        "lastNameRequired": "Zadej své příjmení.",
-        "emailRequired": "Zadej svůj e-mail.",
-        "emailInvalid": "Zadej platný e-mail.",
-        "passwordRules": "Heslo zatím nesplňuje všechna pravidla.",
-        "gdprRequired": "Pro pokračování je potřeba souhlas.",
-        "healthRequired": "Pro pokračování je potřeba souhlas."
-      },
       "errors": {
         "duplicateEmail": "Účet s tímto e-mailem už existuje.",
         "rateLimited": "Příliš mnoho pokusů. Zkus to za chvíli znovu.",
         "network": "Server není dostupný. Zkontroluj připojení a zkus to znovu.",
-        "validation": "Zkontroluj prosím toto pole.",
+        "validation": "Zkontroluj prosím zvýrazněná pole.",
         "generic": "Účet se nepodařilo vytvořit. Zkus to prosím znovu."
       }
     }
@@ -96,8 +82,7 @@
     },
     "input": {
       "label": "E-mail",
-      "placeholder": "jan@example.com",
-      "error": "Zadejte platný e-mail."
+      "placeholder": "jan@example.com"
     },
     "scrollHint": "Posuňte obsah pod plovoucí lištu, aby bylo vidět rozostření.",
     "signOut": "Odhlásit se",

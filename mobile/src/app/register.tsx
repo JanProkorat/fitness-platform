@@ -25,8 +25,6 @@ import { useAuthStore } from '@/stores/auth';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
 
-type FieldErrors = Partial<Record<RegisterField | 'gdpr' | 'health', string>>;
-
 const EMAIL_PATTERN = /^\S+@\S+\.\S+$/;
 
 const ROLE_OPTIONS: {
@@ -69,7 +67,6 @@ export default function RegisterScreen() {
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [gdprConsent, setGdprConsent] = useState(false);
   const [healthConsent, setHealthConsent] = useState(false);
-  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
 
   const isClient = roles.includes(ROLE_CLIENT);
 
@@ -96,27 +93,21 @@ export default function RegisterScreen() {
       ? classifyRegisterError(mutation.error)
       : null;
 
-  const clear = (field: keyof FieldErrors) => {
-    setFieldErrors((current) => ({ ...current, [field]: undefined }));
+  const clear = () => {
     if (mutation.isError) mutation.reset();
   };
 
+  const address = email.trim();
+  const canSubmit =
+    firstName.trim().length > 0 &&
+    lastName.trim().length > 0 &&
+    EMAIL_PATTERN.test(address) &&
+    passwordMeetsRules(password) &&
+    gdprConsent &&
+    (!isClient || healthConsent);
+
   const submit = () => {
-    if (mutation.isPending || mutation.isSuccess) return;
-    const address = email.trim();
-    const errors: FieldErrors = {};
-    if (!firstName.trim()) errors.firstName = t('auth.register.validation.firstNameRequired');
-    if (!lastName.trim()) errors.lastName = t('auth.register.validation.lastNameRequired');
-    if (!address) {
-      errors.email = t('auth.register.validation.emailRequired');
-    } else if (!EMAIL_PATTERN.test(address)) {
-      errors.email = t('auth.register.validation.emailInvalid');
-    }
-    if (!passwordMeetsRules(password)) errors.password = t('auth.register.validation.passwordRules');
-    if (!gdprConsent) errors.gdpr = t('auth.register.validation.gdprRequired');
-    if (isClient && !healthConsent) errors.health = t('auth.register.validation.healthRequired');
-    setFieldErrors(errors);
-    if (Object.values(errors).some(Boolean)) return;
+    if (mutation.isPending || mutation.isSuccess || !canSubmit) return;
     mutation.mutate({
       firstName: firstName.trim(),
       lastName: lastName.trim(),
@@ -136,21 +127,20 @@ export default function RegisterScreen() {
     }
   };
 
-  const serverFieldError = (field: RegisterField): string | undefined => {
-    if (failure?.kind === 'duplicateEmail' && field === 'email') {
-      return t('auth.register.errors.duplicateEmail');
-    }
-    if (failure?.kind === 'validation' && failure.fields.includes(field)) {
-      return t('auth.register.errors.validation');
-    }
-    return undefined;
-  };
+  const fieldInvalid = (field: RegisterField): boolean =>
+    (failure?.kind === 'duplicateEmail' && field === 'email') ||
+    (failure?.kind === 'validation' && failure.fields.includes(field));
 
-  const bannerKey =
-    failure?.kind === 'rateLimited' || failure?.kind === 'network' || failure?.kind === 'generic'
+  const messageKey =
+    failure?.kind === 'duplicateEmail' ||
+    failure?.kind === 'rateLimited' ||
+    failure?.kind === 'network' ||
+    failure?.kind === 'generic'
       ? failure.kind
-      : failure?.kind === 'validation' && failure.fields.length === 0
-        ? 'generic'
+      : failure?.kind === 'validation'
+        ? failure.fields.length === 0
+          ? 'generic'
+          : 'validation'
         : null;
 
   const iconProps = { tintColor: theme.colors.muted, size: theme.sizes.fieldIcon };
@@ -188,7 +178,7 @@ export default function RegisterScreen() {
                 selected={roles.includes(role)}
                 onPress={() => {
                   setRoles((current) => toggleRole(current, role));
-                  clear('health');
+                  clear();
                 }}
               />
             ))}
@@ -205,9 +195,9 @@ export default function RegisterScreen() {
               value={firstName}
               onChangeText={(value) => {
                 setFirstName(value);
-                clear('firstName');
+                clear();
               }}
-              error={fieldErrors.firstName ?? serverFieldError('firstName')}
+              invalid={fieldInvalid('firstName')}
               maxLength={50}
               autoComplete="given-name"
               textContentType="givenName"
@@ -222,9 +212,9 @@ export default function RegisterScreen() {
               value={lastName}
               onChangeText={(value) => {
                 setLastName(value);
-                clear('lastName');
+                clear();
               }}
-              error={fieldErrors.lastName ?? serverFieldError('lastName')}
+              invalid={fieldInvalid('lastName')}
               inputRef={lastNameRef}
               maxLength={50}
               autoComplete="family-name"
@@ -241,9 +231,9 @@ export default function RegisterScreen() {
           value={email}
           onChangeText={(value) => {
             setEmail(value);
-            clear('email');
+            clear();
           }}
-          error={fieldErrors.email ?? serverFieldError('email')}
+          invalid={fieldInvalid('email')}
           inputRef={emailRef}
           leading={<SymbolView name="envelope" {...iconProps} />}
           keyboardType="email-address"
@@ -262,9 +252,9 @@ export default function RegisterScreen() {
           value={password}
           onChangeText={(value) => {
             setPassword(value);
-            clear('password');
+            clear();
           }}
-          error={fieldErrors.password ?? serverFieldError('password')}
+          invalid={fieldInvalid('password')}
           inputRef={passwordRef}
           leading={<SymbolView name="lock" {...iconProps} />}
           trailing={
@@ -298,9 +288,8 @@ export default function RegisterScreen() {
             checked={gdprConsent}
             onChange={(value) => {
               setGdprConsent(value);
-              clear('gdpr');
+              clear();
             }}
-            error={fieldErrors.gdpr}
           />
           {isClient ? (
             <Checkbox
@@ -308,24 +297,23 @@ export default function RegisterScreen() {
               checked={healthConsent}
               onChange={(value) => {
                 setHealthConsent(value);
-                clear('health');
+                clear();
               }}
-              error={fieldErrors.health}
             />
           ) : null}
         </View>
 
-        {bannerKey ? (
-          <Text variant="label" color="error" accessibilityRole="alert">
-            {t(`auth.register.errors.${bannerKey}`)}
-          </Text>
-        ) : null}
         <Button
           label={t('auth.register.submit')}
           onPress={submit}
-          disabled={mutation.isPending || mutation.isSuccess}
+          disabled={mutation.isPending || mutation.isSuccess || !canSubmit}
           style={styles.submit}
         />
+        {messageKey ? (
+          <Text variant="label" color="error" accessibilityRole="alert">
+            {t(`auth.register.errors.${messageKey}`)}
+          </Text>
+        ) : null}
       </Screen>
     </KeyboardAvoidingView>
   );
