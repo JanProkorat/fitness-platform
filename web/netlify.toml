@@ -126,6 +126,13 @@
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
+# The extensionless AASA file would otherwise be served as application/octet-stream.
+# Apple requires application/json and no redirect. See docs/app-links.md.
+[[headers]]
+  for = "/.well-known/apple-app-site-association"
+  [headers.values]
+    Content-Type = "application/json"
+
 [[headers]]
   for = "/index.html"
   [headers.values]
