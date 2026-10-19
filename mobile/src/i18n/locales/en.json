@@ -119,6 +119,38 @@
       "generic": "Couldn't send the email. Please try again."
     }
   },
+  "verifyLink": {
+    "verifying": "Verifying your email",
+    "signIn": "Sign in",
+    "backToSignIn": "Back to sign in",
+    "retry": "Try again",
+    "invalid": {
+      "title": "This link isn't valid",
+      "body": "It may have been used already. Request a new link below."
+    },
+    "expired": {
+      "title": "This link has expired",
+      "body": "Verification links work for 24 hours. Request a new one below."
+    },
+    "failed": {
+      "title": "Couldn't verify your email",
+      "network": "Can't reach the server. Check your connection and try again.",
+      "rateLimited": "Too many attempts. Please try again in a moment.",
+      "generic": "Something went wrong. Please try again."
+    },
+    "emailLabel": "Email",
+    "emailPlaceholder": "you@example.com",
+    "resend": "Send a new link",
+    "resendIn": "· available in {{time}}",
+    "resent": "Email sent.",
+    "resentAnonymous": "If an account exists for that address, we sent a new link.",
+    "errors": {
+      "limitReached": "You've reached the limit of verification emails. Check your spam folder.",
+      "rateLimited": "Too many attempts. Please try again in a moment.",
+      "network": "Can't reach the server. Check your connection and try again.",
+      "generic": "Couldn't send the email. Please try again."
+    }
+  },
   "verified": {
     "title": "Email verified",
     "welcome": "Welcome to Form Up, {{name}}. Your account is ready.",

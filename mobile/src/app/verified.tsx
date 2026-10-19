@@ -1,22 +1,15 @@
-import { SymbolView } from 'expo-symbols';
-import type { SFSymbol } from 'expo-symbols';
 import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { Button } from '@/components/Button';
-import { Card } from '@/components/Card';
 import { HeroIcon } from '@/components/HeroIcon';
 import { Screen } from '@/components/Screen';
 import { Text } from '@/components/Text';
+import { VerifiedNextSteps } from '@/components/VerifiedNextSteps';
 import { useProfile } from '@/hooks/useProfile';
 import { useAuthStore } from '@/stores/auth';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
-
-const NEXT_STEPS: { key: 'aboutYou' | 'findCoach'; symbol: SFSymbol }[] = [
-  { key: 'aboutYou', symbol: 'person' },
-  { key: 'findCoach', symbol: 'figure.strengthtraining.traditional' },
-];
 
 export default function VerifiedScreen() {
   const { t } = useTranslation();
@@ -37,26 +30,7 @@ export default function VerifiedScreen() {
             {name ? t('verified.welcome', { name }) : t('verified.welcomeAnonymous')}
           </Text>
         </View>
-        <View style={styles.next}>
-          <Text variant="overline" color="muted" style={styles.overline}>
-            {t('verified.next')}
-          </Text>
-          <Card style={styles.steps}>
-            {NEXT_STEPS.map(({ key, symbol }, index) => (
-              <View key={key} style={[styles.step, index > 0 && styles.stepDivider]}>
-                <View style={styles.stepIcon}>
-                  <SymbolView name={symbol} tintColor={theme.colors.ink2} size={theme.sizes.rowGlyph} />
-                </View>
-                <View style={styles.stepCopy}>
-                  <Text variant="bodyStrong">{t(`verified.${key}.title`)}</Text>
-                  <Text variant="caption" color="muted">
-                    {t(`verified.${key}.hint`)}
-                  </Text>
-                </View>
-              </View>
-            ))}
-          </Card>
-        </View>
+        <VerifiedNextSteps />
       </View>
       <Button
         label={t('verified.cta')}
@@ -83,37 +57,5 @@ const makeStyles = (theme: Theme) =>
     },
     centered: {
       textAlign: 'center',
-    },
-    next: {
-      gap: theme.spacing.xxs,
-    },
-    overline: {
-      letterSpacing: theme.typography.overline.letterSpacing,
-    },
-    steps: {
-      paddingVertical: theme.spacing.xxs,
-      paddingHorizontal: theme.spacing.xl,
-    },
-    step: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: theme.spacing.md,
-      paddingVertical: theme.spacing.md,
-    },
-    stepDivider: {
-      borderTopWidth: theme.sizes.border,
-      borderTopColor: theme.colors.lineStrong,
-    },
-    stepIcon: {
-      width: theme.sizes.rowIcon,
-      height: theme.sizes.rowIcon,
-      borderRadius: theme.radii.sm,
-      borderWidth: theme.sizes.border,
-      borderColor: theme.colors.fieldBorder,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    stepCopy: {
-      flex: 1,
     },
   });

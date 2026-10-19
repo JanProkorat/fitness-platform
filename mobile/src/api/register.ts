@@ -12,6 +12,8 @@ const DUPLICATE_EMAIL_PATTERN = /already taken|already registered/i;
 
 const VERIFICATION_RESEND_LIMIT_REACHED = 'VERIFICATION_RESEND_LIMIT_REACHED';
 const EMAIL_ALREADY_VERIFIED = 'EMAIL_ALREADY_VERIFIED';
+const INVALID_VERIFICATION_TOKEN = 'INVALID_VERIFICATION_TOKEN';
+const VERIFICATION_TOKEN_EXPIRED = 'VERIFICATION_TOKEN_EXPIRED';
 
 export type RegisterInput = {
   firstName: string;
@@ -119,6 +121,49 @@ function readResendCode(error: unknown): string | undefined {
   } catch {
     return undefined;
   }
+}
+
+export type VerifyFailure = 'invalid' | 'expired' | 'rateLimited' | 'network' | 'generic';
+
+export type AnonymousResendFailure = 'rateLimited' | 'network' | 'generic';
+
+/** The account a verification token confirmed. */
+export type VerifiedAccount = {
+  email: string | undefined;
+  firstName: string | undefined;
+  roles: string[];
+};
+
+/** Confirms the email address a verification link was issued for (POST /auth/verify-email). */
+export async function verifyEmail(token: string): Promise<VerifiedAccount> {
+  const response = await api.verifyEmailEndpoint({ token });
+  return { email: response.email, firstName: response.firstName, roles: response.roles ?? [] };
+}
+
+/** Asks for a new verification email by address, without a session; the answer is always generic. */
+export async function resendVerificationByEmail(email: string): Promise<void> {
+  await api.anonymousResendVerificationEndpoint({ email });
+}
+
+/** Maps anything `verifyEmail` can throw to the failure the screen shows. */
+export function classifyVerifyError(error: unknown): VerifyFailure {
+  if (isNetworkError(error)) return 'network';
+  if (getErrorStatus(error) === 429) return 'rateLimited';
+  switch (readResendCode(error)) {
+    case INVALID_VERIFICATION_TOKEN:
+      return 'invalid';
+    case VERIFICATION_TOKEN_EXPIRED:
+      return 'expired';
+    default:
+      return 'generic';
+  }
+}
+
+/** Maps anything `resendVerificationByEmail` can throw to the failure the screen shows. */
+export function classifyAnonymousResendError(error: unknown): AnonymousResendFailure {
+  if (isNetworkError(error)) return 'network';
+  if (getErrorStatus(error) === 429) return 'rateLimited';
+  return 'generic';
 }
 
 /** Maps anything `resendVerification` can throw to the failure the screen shows. */

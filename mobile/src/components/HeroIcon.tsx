@@ -7,17 +7,18 @@ import type { Theme } from '@/theme';
 
 type HeroIconProps = {
   symbol: SFSymbol;
-  tone: 'accent' | 'success';
+  tone: 'accent' | 'success' | 'error';
 };
 
 /** Large round icon that tops the status screens. */
 export function HeroIcon({ symbol, tone }: HeroIconProps) {
   const theme = useTheme();
   const styles = makeStyles(theme);
-  const look =
-    tone === 'success'
-      ? { background: theme.colors.successSoft, foreground: theme.colors.success }
-      : { background: theme.colors.accentSoft, foreground: theme.colors.accent };
+  const look = {
+    success: { background: theme.colors.successSoft, foreground: theme.colors.success },
+    error: { background: theme.colors.errorSoft, foreground: theme.colors.error },
+    accent: { background: theme.colors.accentSoft, foreground: theme.colors.accent },
+  }[tone];
 
   return (
     <View
