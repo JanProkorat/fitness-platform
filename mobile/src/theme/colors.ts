@@ -47,6 +47,8 @@ export type Colors = {
 
   wordmarkInk: string;
   wordmarkAccent: string;
+  wordmarkMarkTop: string;
+  wordmarkMarkBottom: string;
 
   launchMarkDeep: string;
   launchRing: string;
@@ -106,6 +108,8 @@ export const lightColors: Colors = {
   glassFill: 'rgba(255,255,255,0.58)',
   glassBorder: 'rgba(255,255,255,0.85)',
   wordmarkInk: '#141414',
+  wordmarkMarkTop: '#8E1F18',
+  wordmarkMarkBottom: '#D2342A',
   launchMarkDeep: '#8E1F18',
   launchUp: '#C8382F',
 };
@@ -138,6 +142,8 @@ export const darkColors: Colors = {
   glassFill: 'rgba(44,44,48,0.52)',
   glassBorder: 'rgba(255,255,255,0.14)',
   wordmarkInk: '#F4F2EE',
+  wordmarkMarkTop: '#E5483D',
+  wordmarkMarkBottom: '#B8322A',
   launchMarkDeep: '#7A1A14',
   launchUp: '#E5483D',
 };
