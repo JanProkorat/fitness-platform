@@ -293,7 +293,12 @@ export default function RegisterScreen() {
               clear();
             }}
           />
-          {isClient ? (
+          <View
+            style={isClient ? undefined : styles.consentHidden}
+            pointerEvents={isClient ? 'auto' : 'none'}
+            accessibilityElementsHidden={!isClient}
+            importantForAccessibility={isClient ? 'auto' : 'no-hide-descendants'}
+          >
             <Checkbox
               label={t('auth.register.healthConsent')}
               checked={healthConsent}
@@ -302,7 +307,7 @@ export default function RegisterScreen() {
                 clear();
               }}
             />
-          ) : null}
+          </View>
         </View>
 
         <Button
@@ -369,6 +374,9 @@ const makeStyles = (theme: Theme, insets: EdgeInsets) =>
     consents: {
       gap: theme.spacing.sm,
       paddingTop: theme.spacing.xxs,
+    },
+    consentHidden: {
+      opacity: 0,
     },
     submit: {
       marginTop: theme.spacing.snug,
