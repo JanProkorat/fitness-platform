@@ -18,17 +18,59 @@
       "submit": "Anmelden",
       "newHere": "Neu hier?",
       "createAccount": "Konto erstellen",
-      "validation": {
-        "emailRequired": "Gib deine E-Mail-Adresse ein.",
-        "emailInvalid": "Gib eine gültige E-Mail-Adresse ein.",
-        "passwordRequired": "Gib dein Passwort ein."
-      },
       "errors": {
         "invalidCredentials": "E-Mail oder Passwort ist falsch.",
         "accountDeactivated": "Dieses Konto wurde deaktiviert.",
         "rateLimited": "Zu viele Versuche. Bitte versuche es gleich noch einmal.",
         "network": "Der Server ist nicht erreichbar. Prüfe deine Verbindung und versuche es erneut.",
         "generic": "Die Anmeldung ist fehlgeschlagen. Bitte versuche es erneut."
+      },
+      "registeredNotice": "Dein Konto ist angelegt, aber die Anmeldung hat nicht geklappt. Bitte melde dich an."
+    },
+    "register": {
+      "heading": "Konto erstellen",
+      "subtitle": "Dauert eine Minute. Wähle, wie du Form Up nutzt.",
+      "back": "Zurück",
+      "roleGroup": "Kontotyp",
+      "roleLabel": "Ich melde mich an als",
+      "roles": {
+        "client": {
+          "title": "Klient",
+          "hint": "Ich suche einen Coach"
+        },
+        "trainer": {
+          "title": "Trainer",
+          "hint": "Ich betreue Training"
+        },
+        "nutritionist": {
+          "title": "Ernährungsberater",
+          "hint": "Ich betreue Ernährung"
+        }
+      },
+      "coachHint": "Coaches können Trainer und Ernährungsberater zusammen wählen.",
+      "firstName": "Vorname",
+      "lastName": "Nachname",
+      "email": "E-Mail",
+      "password": "Passwort",
+      "showPassword": "Anzeigen",
+      "hidePassword": "Verbergen",
+      "passwordRules": {
+        "length": "Mindestens 8 Zeichen",
+        "uppercase": "Großbuchstabe",
+        "lowercase": "Kleinbuchstabe",
+        "digit": "Ziffer"
+      },
+      "ruleMet": "erfüllt",
+      "ruleUnmet": "noch nicht erfüllt",
+      "gdprConsent": "Ich stimme der Verarbeitung meiner personenbezogenen Daten und den Nutzungsbedingungen zu.",
+      "healthConsent": "Ich stimme der Verarbeitung meiner Gesundheitsdaten, etwa Gewicht und Verletzungen, zu, damit mein Coach meine Pläne erstellen kann.",
+      "submit": "Konto erstellen",
+      "errors": {
+        "duplicateEmail": "Mit dieser E-Mail gibt es bereits ein Konto.",
+        "rateLimited": "Zu viele Versuche. Bitte versuche es gleich noch einmal.",
+        "network": "Server nicht erreichbar. Prüfe deine Verbindung und versuche es erneut.",
+        "validation": "Bitte prüfe die markierten Felder.",
+        "generic": "Das Konto konnte nicht erstellt werden. Bitte versuche es erneut."
       }
     }
   },
@@ -40,8 +82,7 @@
     },
     "input": {
       "label": "E-Mail",
-      "placeholder": "jan@example.com",
-      "error": "Gib eine gültige E-Mail-Adresse ein."
+      "placeholder": "jan@example.com"
     },
     "scrollHint": "Scrolle den Inhalt unter die schwebende Leiste, um die Unschärfe zu sehen.",
     "signOut": "Abmelden",
@@ -51,5 +92,247 @@
       "nutrition": "Ernährung",
       "messages": "Nachrichten"
     }
+  },
+  "common": {
+    "signOut": "Abmelden"
+  },
+  "profileError": {
+    "title": "Konto konnte nicht geladen werden",
+    "body": "Prüfe deine Verbindung und versuche es erneut.",
+    "retry": "Erneut versuchen"
+  },
+  "checkEmail": {
+    "title": "Prüfe dein Postfach",
+    "sentTo": "Wir haben einen Bestätigungslink gesendet an",
+    "tapIt": "Tippe auf diesem Telefon darauf, um fortzufahren.",
+    "noEmailTitle": "Noch keine E-Mail?",
+    "noEmailBody": "Schau in deinen Spam-Ordner oder warte kurz. Die Zustellung kann einen Moment dauern.",
+    "resend": "E-Mail erneut senden",
+    "resendIn": "· verfügbar in {{time}}",
+    "resent": "E-Mail gesendet.",
+    "openEmailApp": "E-Mail-App öffnen",
+    "backSignOut": "Zurück, abmelden",
+    "wrongAddress": "Falsche Adresse?",
+    "changeEmail": "E-Mail ändern",
+    "errors": {
+      "limitReached": "Du hast das Limit für Bestätigungs-E-Mails erreicht. Schau in deinen Spam-Ordner.",
+      "rateLimited": "Zu viele Versuche. Bitte versuche es gleich noch einmal.",
+      "network": "Server nicht erreichbar. Prüfe deine Verbindung und versuche es erneut.",
+      "generic": "Die E-Mail konnte nicht gesendet werden. Bitte versuche es erneut."
+    }
+  },
+  "changeEmail": {
+    "title": "E-Mail ändern",
+    "cancel": "Abbrechen",
+    "explainStart": "Wir verschieben dein Konto auf die neue Adresse und senden einen neuen Link. Der Link an",
+    "explainEnd": "funktioniert dann nicht mehr.",
+    "newEmail": "Neue E-Mail-Adresse",
+    "submit": "Neuen Link senden",
+    "errors": {
+      "alreadyInUse": "Diese E-Mail-Adresse wird bereits verwendet.",
+      "unchanged": "Diese Adresse haben wir bereits. Gib eine andere ein.",
+      "limitReached": "Du hast das Limit für Bestätigungs-E-Mails erreicht. Schau in deinen Spam-Ordner.",
+      "invalid": "Gib eine gültige E-Mail-Adresse ein.",
+      "rateLimited": "Zu viele Versuche. Bitte versuche es gleich noch einmal.",
+      "network": "Server nicht erreichbar. Prüfe deine Verbindung und versuche es erneut.",
+      "generic": "Die E-Mail konnte nicht geändert werden. Bitte versuche es erneut."
+    }
+  },
+  "verifyLink": {
+    "verifying": "Wir bestätigen deine E-Mail",
+    "signIn": "Anmelden",
+    "backToSignIn": "Zurück zur Anmeldung",
+    "retry": "Erneut versuchen",
+    "invalid": {
+      "title": "Dieser Link ist ungültig",
+      "body": "Vielleicht wurde er schon verwendet. Fordere unten einen neuen Link an."
+    },
+    "expired": {
+      "title": "Dieser Link ist abgelaufen",
+      "body": "Bestätigungslinks gelten 24 Stunden. Fordere unten einen neuen an."
+    },
+    "failed": {
+      "title": "E-Mail konnte nicht bestätigt werden",
+      "network": "Server nicht erreichbar. Prüfe deine Verbindung und versuche es erneut.",
+      "rateLimited": "Zu viele Versuche. Bitte versuche es gleich noch einmal.",
+      "generic": "Etwas ist schiefgelaufen. Bitte versuche es erneut."
+    },
+    "emailLabel": "E-Mail",
+    "emailPlaceholder": "du@example.com",
+    "resend": "Neuen Link senden",
+    "resendIn": "· verfügbar in {{time}}",
+    "resent": "E-Mail gesendet.",
+    "resentAnonymous": "Falls für diese Adresse ein Konto existiert, haben wir einen neuen Link gesendet.",
+    "errors": {
+      "limitReached": "Du hast das Limit für Bestätigungs-E-Mails erreicht. Schau in deinen Spam-Ordner.",
+      "rateLimited": "Zu viele Versuche. Bitte versuche es gleich noch einmal.",
+      "network": "Server nicht erreichbar. Prüfe deine Verbindung und versuche es erneut.",
+      "generic": "Die E-Mail konnte nicht gesendet werden. Bitte versuche es erneut."
+    }
+  },
+  "verified": {
+    "title": "E-Mail bestätigt",
+    "welcome": "Willkommen bei Form Up, {{name}}. Dein Konto ist bereit.",
+    "welcomeAnonymous": "Willkommen bei Form Up. Dein Konto ist bereit.",
+    "continue": "Weiter",
+    "next": "WIE ES WEITERGEHT",
+    "aboutYou": {
+      "title": "Erzähl uns von dir",
+      "hint": "6 kurze Schritte, etwa 3 Minuten"
+    },
+    "findCoach": {
+      "title": "Coach finden",
+      "hint": "Oder nimm eine Einladung an, die du schon hast"
+    },
+    "cta": "Profil einrichten"
+  },
+  "onboarding": {
+    "stepOf": "{{step}} von {{total}}",
+    "back": "Zurück",
+    "continue": "Weiter",
+    "finish": "Abschließen",
+    "optional": "Optional",
+    "notSet": "Nicht angegeben",
+    "decrease": "{{field}} verringern",
+    "increase": "{{field}} erhöhen",
+    "removeItem": "{{item}} entfernen",
+    "errors": {
+      "network": "Der Server ist nicht erreichbar. Prüfe deine Verbindung und versuche es erneut.",
+      "generic": "Deine Antworten konnten nicht gespeichert werden. Bitte versuche es erneut."
+    },
+    "goal": {
+      "title": "Was ist dein Hauptziel?",
+      "subtitle": "Dein Coach baut deinen ersten Plan darauf auf.",
+      "options": {
+        "LoseFat": { "title": "Fett verlieren", "hint": "Definierter werden und die Kraft halten" },
+        "GainMuscle": { "title": "Muskeln aufbauen", "hint": "Mit einem strukturierten Plan zulegen" },
+        "Recomposition": { "title": "Fett verlieren, Muskeln aufbauen", "hint": "Formen bei gleichbleibendem Gewicht" },
+        "Fitness": { "title": "Fitter werden", "hint": "Mehr Ausdauer für den Alltag" },
+        "Health": { "title": "Gesünder fühlen", "hint": "Mehr Energie, besserer Schlaf und Gewohnheiten" },
+        "Maintain": { "title": "Bleiben, wie ich bin", "hint": "Die aktuelle Form halten" },
+        "Performance": { "title": "Besser performen", "hint": "Training für einen Sport oder ein Event" }
+      },
+      "horizonLabel": "Bis wann?",
+      "horizon": {
+        "ThreeMonths": "3 Monate",
+        "SixMonths": "6 Monate",
+        "OneYear": "1 Jahr"
+      }
+    },
+    "basics": {
+      "title": "Über dich",
+      "subtitle": "Damit dein Coach realistische Ziele setzen kann.",
+      "sexLabel": "Geschlecht",
+      "sex": { "Female": "Weiblich", "Male": "Männlich" },
+      "age": "Alter",
+      "ageUnit": "Jahre",
+      "height": "Größe",
+      "heightUnit": "cm",
+      "weight": "Aktuelles Gewicht",
+      "targetWeight": "Zielgewicht",
+      "weightUnit": "kg",
+      "bodyTypeLabel": "Körpertyp",
+      "bodyType": {
+        "Slim": { "title": "Schlank", "hint": "Nimmt langsam zu" },
+        "Athletic": { "title": "Athletisch", "hint": "Baut leicht auf" },
+        "Solid": { "title": "Kräftig", "hint": "Nimmt leicht zu" }
+      }
+    },
+    "lifestyle": {
+      "title": "Dein Alltag",
+      "subtitle": "Arbeit, Schlaf und Stress verändern, was du brauchst.",
+      "workLabel": "Wie sieht deine Arbeit aus?",
+      "work": {
+        "Sedentary": { "title": "Meist sitzend", "hint": "Büro- oder Schreibtischjob" },
+        "Standing": { "title": "Auf den Beinen", "hint": "Laden, Unterricht, Pflege" },
+        "Physical": { "title": "Körperliche Arbeit", "hint": "Bau, Lager, Landwirtschaft" }
+      },
+      "sleep": "Schlaf in einer normalen Nacht",
+      "sleepUnit": "Stunden",
+      "stress": "Stresslevel in letzter Zeit",
+      "stressWords": {
+        "1": "Entspannt",
+        "2": "Niedrig",
+        "3": "Mittel",
+        "4": "Hoch",
+        "5": "Sehr gestresst"
+      }
+    },
+    "training": {
+      "title": "Training",
+      "subtitle": "Wo du gerade stehst.",
+      "currentLabel": "Wie oft trainierst du jetzt?",
+      "current": {
+        "None": "Noch nicht",
+        "Occasional": "Manchmal",
+        "Regular": "Regelmäßig",
+        "High": "Viel"
+      },
+      "daysLabel": "Tage pro Woche, an denen du trainieren kannst",
+      "fitnessLabel": "Bewerte deine Fitness",
+      "fitnessLow": "Ganz am Anfang",
+      "fitnessHigh": "Sehr fit",
+      "gymLabel": "Zugang zum Fitnessstudio",
+      "gym": { "Yes": "Ja", "Sometimes": "Manchmal", "No": "Nein" }
+    },
+    "eating": {
+      "title": "Ernährung",
+      "subtitle": "Dein Ernährungsberater plant die Mahlzeiten danach.",
+      "mealsLabel": "Mahlzeiten pro Tag",
+      "meals": { "TwoToThree": "2–3", "FourToFive": "4–5", "SixPlus": "6+" },
+      "styleLabel": "Wie ernährst du dich?",
+      "style": {
+        "Anything": "Alles",
+        "Vegetarian": "Vegetarisch",
+        "Vegan": "Vegan",
+        "GlutenFree": "Glutenfrei"
+      },
+      "ratingLabel": "Bewerte deine Ernährung heute",
+      "ratingLow": "Schlecht",
+      "ratingHigh": "Sehr gut"
+    },
+    "motivation": {
+      "title": "Was dich antreibt",
+      "subtitle": "Hilft deinem Coach, dich auf Kurs zu halten.",
+      "label": "Was motiviert dich am meisten?",
+      "options": {
+        "Appearance": "Besser aussehen",
+        "Health": "Gesundheit",
+        "Performance": "Leistung",
+        "Confidence": "Selbstvertrauen"
+      },
+      "experienceLabel": "Hast du schon einmal einen Plan befolgt?",
+      "experience": {
+        "Never": "Nie",
+        "TriedFailed": "Nicht durchgehalten",
+        "TriedSucceeded": "Hat funktioniert"
+      }
+    },
+    "chips": {
+      "activities": { "label": "Aktivitäten, die dir Spaß machen", "add": "Hinzufügen" },
+      "injuries": { "label": "Verletzungen oder Einschränkungen", "add": "Hinzufügen" },
+      "allergies": { "label": "Allergien", "add": "Allergie hinzufügen" },
+      "dislikes": { "label": "Lebensmittel, die du nicht magst", "add": "Lebensmittel hinzufügen" },
+      "blockers": { "label": "Was war im Weg?", "add": "Hinzufügen" },
+      "habits": { "label": "Gewohnheiten, die du aufbauen willst", "add": "Gewohnheit hinzufügen" }
+    },
+    "sheet": {
+      "added": "{{count}} hinzugefügt",
+      "done": "Fertig",
+      "hint": "Gib einen oder mehrere Einträge ein, durch Kommas getrennt",
+      "common": "Häufig",
+      "suggestions": {
+        "Lactose": "Laktose",
+        "Eggs": "Eier",
+        "Shellfish": "Schalentiere",
+        "TreeNuts": "Schalenfrüchte",
+        "Soy": "Soja",
+        "Sesame": "Sesam"
+      }
+    }
+  },
+  "coachPending": {
+    "title": "Dein Coach-Konto ist bereit",
+    "body": "Die Coach-Werkzeuge gibt es in der App noch nicht. Verwalte deine Klienten im Form Up Webportal."
   }
 }

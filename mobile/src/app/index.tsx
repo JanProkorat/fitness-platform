@@ -50,7 +50,7 @@ export default function Index() {
         <Input
           label={t('showcase.input.label')}
           placeholder={t('showcase.input.placeholder')}
-          error={t('showcase.input.error')}
+          invalid
         />
         <Card style={styles.card}>
           <Text variant="body" color="muted">

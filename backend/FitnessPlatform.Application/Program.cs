@@ -289,6 +289,10 @@ builder.Services.AddScoped<AutomationAnswerSweeper>();
 builder.Services.AddSingleton<SocialLoginNonceReaperService>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<SocialLoginNonceReaperService>());
 
+// Unverified-account cleanup — deletes accounts that never verified their email within the retention window.
+builder.Services.AddSingleton<UnverifiedAccountCleanupService>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<UnverifiedAccountCleanupService>());
+
 // Background email dispatch queue + worker (#702) — closes the timing-enumeration
 // oracle on the anonymous resend-verification endpoint by deferring the SMTP send off
 // the request path. Queue is a singleton so the request path (scoped) and the worker

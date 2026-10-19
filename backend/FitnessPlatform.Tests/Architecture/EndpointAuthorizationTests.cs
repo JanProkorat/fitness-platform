@@ -28,6 +28,7 @@ public class EndpointAuthorizationTests(FitnessApiFactory factory)
     [
         ("POST", "/auth/logout"), // LogoutEndpoint
         ("POST", "/auth/resend-verification"), // ResendVerificationEndpoint
+        ("PUT", "/auth/email"), // ChangeUnverifiedEmailEndpoint
         ("GET", "/exercises/{ExerciseId}"), // GetExerciseEndpoint
         ("GET", "/exercises/search"), // SearchExercisesEndpoint
         ("GET", "/foods/{FoodId}"), // GetFoodEndpoint

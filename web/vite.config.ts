@@ -2,6 +2,7 @@ import { defineConfig, type ProxyOptions } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
+import { appLinks } from './vite-plugins/appLinks'
 
 /** Proxy API requests to the backend but let browser navigations fall through to index.html. */
 function apiProxy(): ProxyOptions {
@@ -18,7 +19,7 @@ function apiProxy(): ProxyOptions {
 }
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [react(), tailwindcss(), appLinks()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

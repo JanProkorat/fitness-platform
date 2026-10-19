@@ -32,6 +32,9 @@ export type Colors = {
   nutritionSoft: string;
   onNutrition: string;
 
+  infoInk: string;
+  infoSoft: string;
+
   success: string;
   successSoft: string;
   error: string;
@@ -47,6 +50,8 @@ export type Colors = {
 
   wordmarkInk: string;
   wordmarkAccent: string;
+  wordmarkMarkTop: string;
+  wordmarkMarkBottom: string;
 
   launchMarkDeep: string;
   launchRing: string;
@@ -97,6 +102,8 @@ export const lightColors: Colors = {
   trainingSoft: '#FFF0E2',
   nutritionInk: '#3F7D2A',
   nutritionSoft: '#EEF6E3',
+  infoInk: '#3563C9',
+  infoSoft: '#E8EEFB',
   success: '#3F7D2A',
   successSoft: '#EEF6E3',
   error: '#9F1F17',
@@ -106,6 +113,8 @@ export const lightColors: Colors = {
   glassFill: 'rgba(255,255,255,0.58)',
   glassBorder: 'rgba(255,255,255,0.85)',
   wordmarkInk: '#141414',
+  wordmarkMarkTop: '#8E1F18',
+  wordmarkMarkBottom: '#D2342A',
   launchMarkDeep: '#8E1F18',
   launchUp: '#C8382F',
 };
@@ -129,6 +138,8 @@ export const darkColors: Colors = {
   trainingSoft: '#3A2414',
   nutritionInk: '#A9D673',
   nutritionSoft: '#243319',
+  infoInk: '#8EAAEB',
+  infoSoft: '#1B2640',
   success: '#A9D673',
   successSoft: '#243319',
   error: '#F2705F',
@@ -138,6 +149,8 @@ export const darkColors: Colors = {
   glassFill: 'rgba(44,44,48,0.52)',
   glassBorder: 'rgba(255,255,255,0.14)',
   wordmarkInk: '#F4F2EE',
+  wordmarkMarkTop: '#E5483D',
+  wordmarkMarkBottom: '#B8322A',
   launchMarkDeep: '#7A1A14',
   launchUp: '#E5483D',
 };

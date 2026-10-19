@@ -18,17 +18,59 @@
       "submit": "Sign in",
       "newHere": "New here?",
       "createAccount": "Create account",
-      "validation": {
-        "emailRequired": "Enter your email.",
-        "emailInvalid": "Enter a valid email.",
-        "passwordRequired": "Enter your password."
-      },
       "errors": {
         "invalidCredentials": "Wrong email or password.",
         "accountDeactivated": "This account has been deactivated.",
         "rateLimited": "Too many attempts. Please try again in a moment.",
         "network": "Can't reach the server. Check your connection and try again.",
         "generic": "Sign-in failed. Please try again."
+      },
+      "registeredNotice": "Your account is ready, but we couldn't sign you in. Please sign in."
+    },
+    "register": {
+      "heading": "Create account",
+      "subtitle": "Takes a minute. Pick how you'll use Form Up.",
+      "back": "Back",
+      "roleGroup": "Account type",
+      "roleLabel": "I'm joining as",
+      "roles": {
+        "client": {
+          "title": "Client",
+          "hint": "I want a coach"
+        },
+        "trainer": {
+          "title": "Trainer",
+          "hint": "I coach training"
+        },
+        "nutritionist": {
+          "title": "Nutritionist",
+          "hint": "I coach eating"
+        }
+      },
+      "coachHint": "Coaches can pick trainer and nutritionist together.",
+      "firstName": "First name",
+      "lastName": "Last name",
+      "email": "Email",
+      "password": "Password",
+      "showPassword": "Show",
+      "hidePassword": "Hide",
+      "passwordRules": {
+        "length": "At least 8 characters",
+        "uppercase": "Uppercase letter",
+        "lowercase": "Lowercase letter",
+        "digit": "Digit"
+      },
+      "ruleMet": "met",
+      "ruleUnmet": "not met yet",
+      "gdprConsent": "I agree to the processing of my personal data and to the terms of use.",
+      "healthConsent": "I agree to the processing of my health data, such as weight and injuries, so my coach can build my plans.",
+      "submit": "Create account",
+      "errors": {
+        "duplicateEmail": "An account with this email already exists.",
+        "rateLimited": "Too many attempts. Please try again in a moment.",
+        "network": "Can't reach the server. Check your connection and try again.",
+        "validation": "Please check the highlighted fields.",
+        "generic": "Couldn't create your account. Please try again."
       }
     }
   },
@@ -40,8 +82,7 @@
     },
     "input": {
       "label": "Email",
-      "placeholder": "jan@example.com",
-      "error": "Enter a valid email."
+      "placeholder": "jan@example.com"
     },
     "scrollHint": "Scroll the content under the floating bar to see the blur.",
     "signOut": "Sign out",
@@ -51,5 +92,247 @@
       "nutrition": "Nutrition",
       "messages": "Messages"
     }
+  },
+  "common": {
+    "signOut": "Sign out"
+  },
+  "profileError": {
+    "title": "Can't load your account",
+    "body": "Check your connection and try again.",
+    "retry": "Try again"
+  },
+  "checkEmail": {
+    "title": "Check your email",
+    "sentTo": "We sent a verification link to",
+    "tapIt": "Tap it on this phone to continue.",
+    "noEmailTitle": "No email yet?",
+    "noEmailBody": "Check your spam folder, or wait a minute. It can take a moment to arrive.",
+    "resend": "Resend email",
+    "resendIn": "· available in {{time}}",
+    "resent": "Email sent.",
+    "openEmailApp": "Open email app",
+    "backSignOut": "Back, sign out",
+    "wrongAddress": "Wrong address?",
+    "changeEmail": "Change email",
+    "errors": {
+      "limitReached": "You've reached the limit of verification emails. Check your spam folder.",
+      "rateLimited": "Too many attempts. Please try again in a moment.",
+      "network": "Can't reach the server. Check your connection and try again.",
+      "generic": "Couldn't send the email. Please try again."
+    }
+  },
+  "changeEmail": {
+    "title": "Change email",
+    "cancel": "Cancel",
+    "explainStart": "We'll move your account to the new address and send a fresh link. The link sent to",
+    "explainEnd": "stops working.",
+    "newEmail": "New email address",
+    "submit": "Send new link",
+    "errors": {
+      "alreadyInUse": "This email address is already in use.",
+      "unchanged": "That's the address we already have. Enter a different one.",
+      "limitReached": "You've reached the limit of verification emails. Check your spam folder.",
+      "invalid": "Enter a valid email address.",
+      "rateLimited": "Too many attempts. Please try again in a moment.",
+      "network": "Can't reach the server. Check your connection and try again.",
+      "generic": "Couldn't change the email. Please try again."
+    }
+  },
+  "verifyLink": {
+    "verifying": "Verifying your email",
+    "signIn": "Sign in",
+    "backToSignIn": "Back to sign in",
+    "retry": "Try again",
+    "invalid": {
+      "title": "This link isn't valid",
+      "body": "It may have been used already. Request a new link below."
+    },
+    "expired": {
+      "title": "This link has expired",
+      "body": "Verification links work for 24 hours. Request a new one below."
+    },
+    "failed": {
+      "title": "Couldn't verify your email",
+      "network": "Can't reach the server. Check your connection and try again.",
+      "rateLimited": "Too many attempts. Please try again in a moment.",
+      "generic": "Something went wrong. Please try again."
+    },
+    "emailLabel": "Email",
+    "emailPlaceholder": "you@example.com",
+    "resend": "Send a new link",
+    "resendIn": "· available in {{time}}",
+    "resent": "Email sent.",
+    "resentAnonymous": "If an account exists for that address, we sent a new link.",
+    "errors": {
+      "limitReached": "You've reached the limit of verification emails. Check your spam folder.",
+      "rateLimited": "Too many attempts. Please try again in a moment.",
+      "network": "Can't reach the server. Check your connection and try again.",
+      "generic": "Couldn't send the email. Please try again."
+    }
+  },
+  "verified": {
+    "title": "Email verified",
+    "welcome": "Welcome to Form Up, {{name}}. Your account is ready.",
+    "welcomeAnonymous": "Welcome to Form Up. Your account is ready.",
+    "continue": "Continue",
+    "next": "WHAT'S NEXT",
+    "aboutYou": {
+      "title": "Tell us about you",
+      "hint": "6 short steps, about 3 minutes"
+    },
+    "findCoach": {
+      "title": "Find a coach",
+      "hint": "Or accept an invite you already have"
+    },
+    "cta": "Set up your profile"
+  },
+  "onboarding": {
+    "stepOf": "{{step}} of {{total}}",
+    "back": "Back",
+    "continue": "Continue",
+    "finish": "Finish",
+    "optional": "Optional",
+    "notSet": "Not set",
+    "decrease": "Decrease {{field}}",
+    "increase": "Increase {{field}}",
+    "removeItem": "Remove {{item}}",
+    "errors": {
+      "network": "Can't reach the server. Check your connection and try again.",
+      "generic": "Couldn't save your answers. Please try again."
+    },
+    "goal": {
+      "title": "What's your main goal?",
+      "subtitle": "Your coach builds your first plan around it.",
+      "options": {
+        "LoseFat": { "title": "Lose fat", "hint": "Lean out while keeping strength" },
+        "GainMuscle": { "title": "Build muscle", "hint": "Add size with a structured plan" },
+        "Recomposition": { "title": "Lose fat and build muscle", "hint": "Reshape at a steady weight" },
+        "Fitness": { "title": "Get fitter", "hint": "More stamina for everyday life" },
+        "Health": { "title": "Feel healthier", "hint": "Better energy, sleep and habits" },
+        "Maintain": { "title": "Stay where I am", "hint": "Keep the shape you have" },
+        "Performance": { "title": "Perform better", "hint": "Train for a sport or an event" }
+      },
+      "horizonLabel": "By when?",
+      "horizon": {
+        "ThreeMonths": "3 months",
+        "SixMonths": "6 months",
+        "OneYear": "1 year"
+      }
+    },
+    "basics": {
+      "title": "About you",
+      "subtitle": "So your coach can set realistic targets.",
+      "sexLabel": "Sex",
+      "sex": { "Female": "Female", "Male": "Male" },
+      "age": "Age",
+      "ageUnit": "years",
+      "height": "Height",
+      "heightUnit": "cm",
+      "weight": "Current weight",
+      "targetWeight": "Target weight",
+      "weightUnit": "kg",
+      "bodyTypeLabel": "Body type",
+      "bodyType": {
+        "Slim": { "title": "Slim", "hint": "Gains slowly" },
+        "Athletic": { "title": "Athletic", "hint": "Builds easily" },
+        "Solid": { "title": "Solid", "hint": "Gains easily" }
+      }
+    },
+    "lifestyle": {
+      "title": "Your everyday life",
+      "subtitle": "Work, sleep and stress change what you need.",
+      "workLabel": "What's your work like?",
+      "work": {
+        "Sedentary": { "title": "Mostly sitting", "hint": "Office or desk job" },
+        "Standing": { "title": "On my feet", "hint": "Shop, teaching, nursing" },
+        "Physical": { "title": "Physical work", "hint": "Construction, warehouse, farm" }
+      },
+      "sleep": "Sleep on a usual night",
+      "sleepUnit": "hours",
+      "stress": "Stress level lately",
+      "stressWords": {
+        "1": "Calm",
+        "2": "Low",
+        "3": "Medium",
+        "4": "High",
+        "5": "Very stressed"
+      }
+    },
+    "training": {
+      "title": "Training",
+      "subtitle": "Where you're starting from.",
+      "currentLabel": "How often do you train now?",
+      "current": {
+        "None": "Not yet",
+        "Occasional": "Sometimes",
+        "Regular": "Regularly",
+        "High": "A lot"
+      },
+      "daysLabel": "Days a week you can train",
+      "fitnessLabel": "Rate your fitness",
+      "fitnessLow": "Just starting",
+      "fitnessHigh": "Very fit",
+      "gymLabel": "Gym access",
+      "gym": { "Yes": "Yes", "Sometimes": "Sometimes", "No": "No" }
+    },
+    "eating": {
+      "title": "Eating",
+      "subtitle": "Your nutritionist plans meals around this.",
+      "mealsLabel": "Meals a day",
+      "meals": { "TwoToThree": "2–3", "FourToFive": "4–5", "SixPlus": "6+" },
+      "styleLabel": "How do you eat?",
+      "style": {
+        "Anything": "Anything",
+        "Vegetarian": "Vegetarian",
+        "Vegan": "Vegan",
+        "GlutenFree": "Gluten-free"
+      },
+      "ratingLabel": "Rate your diet today",
+      "ratingLow": "Poor",
+      "ratingHigh": "Great"
+    },
+    "motivation": {
+      "title": "What drives you",
+      "subtitle": "Helps your coach keep you on track.",
+      "label": "What motivates you most?",
+      "options": {
+        "Appearance": "Look better",
+        "Health": "Health",
+        "Performance": "Performance",
+        "Confidence": "Confidence"
+      },
+      "experienceLabel": "Have you followed a plan before?",
+      "experience": {
+        "Never": "Never",
+        "TriedFailed": "Didn't stick",
+        "TriedSucceeded": "It worked"
+      }
+    },
+    "chips": {
+      "activities": { "label": "Activities you enjoy", "add": "Add" },
+      "injuries": { "label": "Injuries or limits", "add": "Add" },
+      "allergies": { "label": "Allergies", "add": "Add allergy" },
+      "dislikes": { "label": "Foods you don't like", "add": "Add food" },
+      "blockers": { "label": "What got in the way?", "add": "Add" },
+      "habits": { "label": "Habits you want to build", "add": "Add habit" }
+    },
+    "sheet": {
+      "added": "{{count}} added",
+      "done": "Done",
+      "hint": "Type one or more, separated by commas",
+      "common": "Common",
+      "suggestions": {
+        "Lactose": "Lactose",
+        "Eggs": "Eggs",
+        "Shellfish": "Shellfish",
+        "TreeNuts": "Tree nuts",
+        "Soy": "Soy",
+        "Sesame": "Sesame"
+      }
+    }
+  },
+  "coachPending": {
+    "title": "Your coach account is ready",
+    "body": "Coach tools aren't in the app yet. Use the Form Up web portal to manage your clients."
   }
 }
