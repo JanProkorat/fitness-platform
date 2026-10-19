@@ -4844,7 +4844,7 @@
     "brandMark": "GF"
   },
   "home": {
-    "brand": { "form": "FORM", "up": "UP" },
+    "brand": { "form": "FORM", "up": "UP", "name": "Form Up" },
     "nav": {
       "label": "Hlavní",
       "howItWorks": "Jak to funguje",

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <style>
+    .r1 { --c: #8e1f18; }
+    .r2 { --c: #d2342a; }
+    @media (prefers-color-scheme: dark) {
+      .r1 { --c: #e5483d; }
+      .r2 { --c: #b8322a; }
+    }
+  </style>
+  <circle cx="24" cy="26" r="9" fill="var(--c)" class="r1"/>
+  <path d="M-4 0.5 L-1.2 3.4 L4.2 -2.6" transform="translate(24 26)" fill="none" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M40 26 H80" class="r1" fill="none" stroke="var(--c)" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="24" cy="50" r="9" fill="var(--c)" class="r2"/>
+  <path d="M40 50 H66" class="r2" fill="none" stroke="var(--c)" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="24" cy="74" r="7.5" fill="none" stroke="#f4a08a" stroke-width="4"/>
+</svg>
