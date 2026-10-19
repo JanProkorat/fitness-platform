@@ -195,6 +195,31 @@ public interface IApplicationDbContext
     DbSet<ClientTagAssignment> ClientTagAssignments { get; set; }
 
     /// <summary>
+    /// Coach-owned automation rules (global and client-only).
+    /// </summary>
+    DbSet<AutomationRule> AutomationRules { get; set; }
+
+    /// <summary>
+    /// Chosen clients of automation rules with a Chosen audience.
+    /// </summary>
+    DbSet<AutomationRuleAudienceClient> AutomationRuleAudienceClients { get; set; }
+
+    /// <summary>
+    /// Per-client customisations and pauses of automation rules.
+    /// </summary>
+    DbSet<AutomationClientOverride> AutomationClientOverrides { get; set; }
+
+    /// <summary>
+    /// Per rule-and-client runtime schedule rows.
+    /// </summary>
+    DbSet<AutomationSchedule> AutomationSchedules { get; set; }
+
+    /// <summary>
+    /// Log of automation occurrences per rule and client.
+    /// </summary>
+    DbSet<AutomationRun> AutomationRuns { get; set; }
+
+    /// <summary>
     /// Saves all changes made in this context to the database.
     /// </summary>
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
