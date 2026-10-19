@@ -3,6 +3,7 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -42,13 +43,13 @@ public static class AutomationRuleGuards
             return (true, null);
         }
 
-        var questionnaireId = await db.Questionnaires
+        var questionnaire = await db.Questionnaires
             .AsNoTracking()
             .Where(q => q.PublicId == body.QuestionnaireId && q.ProfessionalId == userId)
-            .Select(q => (long?)q.Id)
+            .Select(q => new { q.Id, q.IsActive, q.Type })
             .FirstOrDefaultAsync(ct);
 
-        if (questionnaireId is null)
+        if (questionnaire is null)
         {
             await endpoint.SendProblemAsync(
                 StatusCodes.Status404NotFound,
@@ -58,7 +59,17 @@ public static class AutomationRuleGuards
             return (false, null);
         }
 
-        return (true, questionnaireId);
+        if (!AutomationQuestionnaireUsability.IsUsable(questionnaire.IsActive, questionnaire.Type))
+        {
+            await endpoint.SendProblemAsync(
+                StatusCodes.Status400BadRequest,
+                ErrorCodes.AutomationQuestionnaireNotUsable,
+                "The questionnaire is inactive or a check-in form and cannot be sent by a rule.",
+                ct);
+            return (false, null);
+        }
+
+        return (true, questionnaire.Id);
     }
 
     /// <summary>

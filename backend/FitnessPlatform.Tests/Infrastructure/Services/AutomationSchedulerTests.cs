@@ -923,6 +923,105 @@ public class AutomationSchedulerTests(FitnessApiFactory factory)
         (await RunsAsync(rule.Id)).Single().AnsweredAt.Should().BeCloseTo(submittedAt, TimeSpan.FromSeconds(1));
     }
 
+    [Fact]
+    public async Task Sweep_SeveralOpenRunsOfEveryAction_StampsExactlyTheAnsweredOnes()
+    {
+        var (coach, clientA, linkA) = await PairAsync();
+        var clientB = await TestActors.Client(factory).CreateAsync(Ct);
+        var linkB = await TestActors.Link(factory, coach, clientB).CreateAsync(Ct);
+        var sentAt = DateTime.UtcNow.AddHours(-2);
+        var answeredAt = DateTime.UtcNow.AddHours(-1);
+
+        var formRule = await AutomationTestData.InsertRuleAsync(factory, coach, r => r.ActionType = AutomationActionType.SendForm);
+        var photoRule = await AutomationTestData.InsertRuleAsync(factory, coach, r => r.ActionType = AutomationActionType.RequestProgressPhotos);
+        var measurementRule = await AutomationTestData.InsertRuleAsync(factory, coach);
+        var questionnaire = await AutomationTestData.InsertQuestionnaireAsync(factory, coach);
+
+        var submittedForm = await AutomationTestData.AddResponseAsync(
+            factory, questionnaire, coach, clientA, linkA, QuestionnaireResponseStatus.Submitted, answeredAt);
+        var pendingForm = await AutomationTestData.AddResponseAsync(
+            factory, questionnaire, coach, clientB, linkB, QuestionnaireResponseStatus.Pending, null);
+
+        var completedPhotos = Guid.NewGuid();
+        var openPhotos = Guid.NewGuid();
+        await WithDbAsync(async db =>
+        {
+            db.PhotoDiaryRequests.AddRange(
+                new PhotoDiaryRequest
+                {
+                    Id = completedPhotos,
+                    ProfessionalId = coach.UserId,
+                    LinkId = linkA,
+                    Mode = PhotoDiaryMode.Bulk,
+                    DurationDays = 7,
+                    Status = PhotoDiaryStatus.Completed,
+                    AcceptedAt = new DateTimeOffset(DateTime.SpecifyKind(sentAt, DateTimeKind.Utc)),
+                    CompletedAt = new DateTimeOffset(DateTime.SpecifyKind(answeredAt, DateTimeKind.Utc)),
+                    CreatedAt = sentAt,
+                    UpdatedAt = answeredAt,
+                },
+                new PhotoDiaryRequest
+                {
+                    Id = openPhotos,
+                    ProfessionalId = coach.UserId,
+                    LinkId = linkB,
+                    Mode = PhotoDiaryMode.Bulk,
+                    DurationDays = 7,
+                    Status = PhotoDiaryStatus.Pending,
+                    CreatedAt = sentAt,
+                    UpdatedAt = sentAt,
+                });
+            await db.SaveChangesAsync(Ct);
+            return 0;
+        });
+
+        await AutomationTestData.AddMeasurementAsync(factory, clientA.ProfileId, answeredAt);
+        await AutomationTestData.AddMeasurementAsync(factory, clientB.ProfileId, sentAt.AddHours(-1));
+
+        void AddRun(ApplicationDbContext db, AutomationRule rule, Actor client, Guid? delivered)
+        {
+            var run = new AutomationRun
+            {
+                AutomationRuleId = rule.Id,
+                ClientProfileId = client.ProfileId,
+                Occurrence = Guid.NewGuid().ToString("N"),
+                Status = AutomationRunStatus.Sent,
+                SentAt = sentAt,
+                DeliveredEntityId = delivered,
+            };
+            db.AutomationRuns.Add(run);
+        }
+
+        await WithDbAsync(async db =>
+        {
+            AddRun(db, formRule, clientA, submittedForm.PublicId);
+            AddRun(db, formRule, clientB, pendingForm.PublicId);
+            AddRun(db, photoRule, clientA, completedPhotos);
+            AddRun(db, photoRule, clientB, openPhotos);
+            AddRun(db, measurementRule, clientA, null);
+            AddRun(db, measurementRule, clientB, null);
+            await db.SaveChangesAsync(Ct);
+            return 0;
+        });
+
+        await Scheduler.RunDueNowAsync(DateTime.UtcNow, Ct);
+
+        async Task<Dictionary<long, DateTime?>> AnsweredByClientAsync(AutomationRule rule) =>
+            (await RunsAsync(rule.Id)).ToDictionary(r => r.ClientProfileId, r => r.AnsweredAt);
+
+        var forms = await AnsweredByClientAsync(formRule);
+        forms[clientA.ProfileId].Should().BeCloseTo(answeredAt, TimeSpan.FromSeconds(1));
+        forms[clientB.ProfileId].Should().BeNull();
+
+        var photos = await AnsweredByClientAsync(photoRule);
+        photos[clientA.ProfileId].Should().BeCloseTo(answeredAt, TimeSpan.FromSeconds(1));
+        photos[clientB.ProfileId].Should().BeNull();
+
+        var measurements = await AnsweredByClientAsync(measurementRule);
+        measurements[clientA.ProfileId].Should().BeCloseTo(answeredAt, TimeSpan.FromSeconds(1));
+        measurements[clientB.ProfileId].Should().BeNull("a measurement logged before the request was sent does not answer it");
+    }
+
     // ── helpers ─────────────────────────────────────────────────────────────
 
     private async Task PauseAsync(AutomationRule rule, Actor client, DateOnly? pausedUntil = null) =>

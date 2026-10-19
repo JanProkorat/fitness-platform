@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Features.Automations.GetAutomationRules;
 using FitnessPlatform.Application.Features.Automations.Shared;
@@ -110,6 +111,45 @@ public class AutomationRuleEndpointTests(FitnessApiFactory factory)
         var response = await coach.Http.PostAsJsonAsync("/trainer/automations/rules", body, Ct);
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Theory]
+    [InlineData(QuestionnaireType.Onboarding, false)]
+    [InlineData(QuestionnaireType.CheckIn, true)]
+    public async Task Create_SendFormWithUnusableOwnQuestionnaire_Returns400(QuestionnaireType type, bool isActive)
+    {
+        var coach = await CreateCoachAsync();
+        var questionnaireId = await AutomationTestData.CreateQuestionnaireAsync(factory, coach, type, isActive);
+        var body = AutomationTestData.ScheduleRule();
+        body["actionType"] = "SendForm";
+        body["questionnaireId"] = questionnaireId;
+
+        var response = await coach.Http.PostAsJsonAsync("/trainer/automations/rules", body, Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await response.Content.ReadAsStringAsync(Ct)).Should().Contain(ErrorCodes.AutomationQuestionnaireNotUsable);
+    }
+
+    [Theory]
+    [InlineData(QuestionnaireType.Onboarding, false)]
+    [InlineData(QuestionnaireType.CheckIn, true)]
+    public async Task Update_SendFormWithUnusableOwnQuestionnaire_Returns400(QuestionnaireType type, bool isActive)
+    {
+        var coach = await CreateCoachAsync();
+        var usableId = await AutomationTestData.CreateQuestionnaireAsync(factory, coach);
+        var createBody = AutomationTestData.ScheduleRule();
+        createBody["actionType"] = "SendForm";
+        createBody["questionnaireId"] = usableId;
+        var created = await ReadRuleAsync(await coach.Http.PostAsJsonAsync("/trainer/automations/rules", createBody, Ct));
+        var questionnaireId = await AutomationTestData.CreateQuestionnaireAsync(factory, coach, type, isActive);
+
+        var update = AutomationTestData.ScheduleRule();
+        update["actionType"] = "SendForm";
+        update["questionnaireId"] = questionnaireId;
+        var response = await coach.Http.PutAsJsonAsync($"/trainer/automations/rules/{created.RuleId}", update, Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await response.Content.ReadAsStringAsync(Ct)).Should().Contain(ErrorCodes.AutomationQuestionnaireNotUsable);
     }
 
     [Fact]
@@ -320,6 +360,23 @@ public class AutomationRuleEndpointTests(FitnessApiFactory factory)
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
         var reread = await ReadRuleAsync(await other.Http.GetAsync($"/trainer/automations/rules/{created.RuleId}", Ct));
         reread.Name.Should().Be("Theirs");
+    }
+
+    [Fact]
+    public async Task Update_ChangingTheActionType_Returns409AndKeepsTheAction()
+    {
+        var coach = await CreateCoachAsync();
+        var created = await ReadRuleAsync(
+            await coach.Http.PostAsJsonAsync("/trainer/automations/rules", AutomationTestData.ScheduleRule(), Ct));
+
+        var update = AutomationTestData.ScheduleRule();
+        update["actionType"] = "RequestMeasurements";
+        var response = await coach.Http.PutAsJsonAsync($"/trainer/automations/rules/{created.RuleId}", update, Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await response.Content.ReadAsStringAsync(Ct)).Should().Contain(ErrorCodes.AutomationActionTypeLocked);
+        var reread = await ReadRuleAsync(await coach.Http.GetAsync($"/trainer/automations/rules/{created.RuleId}", Ct));
+        reread.ActionType.Should().Be(AutomationActionType.RequestProgressPhotos);
     }
 
     [Fact]
