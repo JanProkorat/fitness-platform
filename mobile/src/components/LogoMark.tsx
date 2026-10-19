@@ -37,13 +37,25 @@ const windowProgress = (
   return ease(raw);
 };
 
+export type LogoMarkPalette = {
+  top: string;
+  bottom: string;
+  ring: string;
+  tick: string;
+};
+
 type Props = {
   /** Elapsed launch time in ms; omitted renders the finished mark. */
   progress?: SharedValue<number>;
+  /** Rendered size; defaults to the launch mark size. */
+  width?: number;
+  height?: number;
+  /** Mark colours; defaults to the launch palette. */
+  palette?: LogoMarkPalette;
 };
 
 /** Form Up checklist mark: two ticked rows and an open ring, drawn in on the launch screen. */
-export function LogoMark({ progress }: Props) {
+export function LogoMark({ progress, width, height, palette }: Props) {
   const theme = useTheme();
   const finished = useSharedValue(launchMotion.total);
   const elapsed = progress ?? finished;
@@ -74,20 +86,31 @@ export function LogoMark({ progress }: Props) {
   });
 
   const { colors } = theme;
+  const {
+    top,
+    bottom,
+    ring: ringColor,
+    tick: tickColor,
+  } = palette ?? {
+    top: colors.launchMarkDeep,
+    bottom: colors.accent,
+    ring: colors.launchRing,
+    tick: colors.onAccent,
+  };
 
   return (
     <Svg
-      width={sizes.launchMarkWidth}
-      height={sizes.launchMarkHeight}
+      width={width ?? sizes.launchMarkWidth}
+      height={height ?? sizes.launchMarkHeight}
       viewBox={VIEW_BOX}
       style={{ overflow: 'visible' }}
     >
-      <AnimatedCircle cx={24} cy={26} animatedProps={deepCircle} fill={colors.launchMarkDeep} />
+      <AnimatedCircle cx={24} cy={26} animatedProps={deepCircle} fill={top} />
       <AnimatedPath
         d={TICK_PATH}
         transform="translate(24 26)"
         fill="none"
-        stroke={colors.onAccent}
+        stroke={tickColor}
         strokeWidth={TICK_STROKE}
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -97,18 +120,18 @@ export function LogoMark({ progress }: Props) {
       <AnimatedPath
         d="M40 26 H80"
         fill="none"
-        stroke={colors.launchMarkDeep}
+        stroke={top}
         strokeWidth={BAR_STROKE}
         strokeLinecap="round"
         strokeLinejoin="round"
         strokeDasharray={[BAR_LONG, BAR_LONG]}
         animatedProps={deepBar}
       />
-      <AnimatedCircle cx={24} cy={50} animatedProps={accentCircle} fill={colors.accent} />
+      <AnimatedCircle cx={24} cy={50} animatedProps={accentCircle} fill={bottom} />
       <AnimatedPath
         d="M40 50 H66"
         fill="none"
-        stroke={colors.accent}
+        stroke={bottom}
         strokeWidth={BAR_STROKE}
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -120,7 +143,7 @@ export function LogoMark({ progress }: Props) {
         cy={74}
         animatedProps={ring}
         fill="none"
-        stroke={colors.launchRing}
+        stroke={ringColor}
       />
     </Svg>
   );
