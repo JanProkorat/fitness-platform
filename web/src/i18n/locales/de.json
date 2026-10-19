@@ -189,6 +189,7 @@
     "navigationTitle": "Navigation"
   },
   "sidebar": {
+    "automations": "Automatisierungen",
     "dashboard": "Dashboard",
     "profile": "Profil",
     "clients": "Klienten",
@@ -2516,6 +2517,18 @@
     "quote": "Zitat"
   },
   "apiErrors": {
+    "AUTOMATION_RULE_NOT_FOUND": "Diese Regel existiert nicht mehr.",
+    "AUTOMATION_TAG_NOT_FOUND": "Das gewählte Tag existiert nicht mehr.",
+    "AUTOMATION_AUDIENCE_CLIENT_NOT_FOUND": "Einer der gewählten Klienten ist nicht mehr mit Ihnen verknüpft.",
+    "AUTOMATION_QUESTIONNAIRE_NOT_FOUND": "Das gewählte Formular existiert nicht mehr.",
+    "AUTOMATION_SCHEDULE_INVALID": "Prüfen Sie den Zeitplan: alle 1 bis 365 Tage oder Wochen, zu einer gültigen Uhrzeit.",
+    "AUTOMATION_EVENT_INVALID": "Prüfen Sie das Ereignis und seinen Zeitpunkt.",
+    "AUTOMATION_ONCE_PER_PLAN_NEEDS_PLAN_EVENT": "„Einmal pro Plan“ funktioniert nur mit einem Plan-Ereignis.",
+    "AUTOMATION_QUESTIONNAIRE_REQUIRED": "Wählen Sie ein Formular zum Senden.",
+    "AUTOMATION_STOP_AFTER_INVALID": "Die Anzahl der Sendungen muss zwischen 1 und 1000 liegen.",
+    "AUTOMATION_AUDIENCE_TAG_REQUIRED": "Wählen Sie ein Tag.",
+    "AUTOMATION_AUDIENCE_CLIENTS_REQUIRED": "Wählen Sie mindestens einen Klienten.",
+    "AUTOMATION_PHOTO_MESSAGE_TOO_LONG": "Eine Nachricht zu Fortschrittsfotos darf höchstens 500 Zeichen haben.",
     "INVALID_CREDENTIALS": "Ungültige E-Mail oder Passwort.",
     "ACCOUNT_DEACTIVATED": "Ihr Konto wurde deaktiviert.",
     "INVALID_REFRESH_TOKEN": "Ihre Sitzung ist abgelaufen. Bitte melden Sie sich erneut an.",
@@ -4964,6 +4977,176 @@
       "trendDelta": "−2,1 in 6 Wochen",
       "reviewQuote": "„Am Freitag waren die Beine schwer.“ · Energie 4/5",
       "replyPlaceholder": "Petra antworten…"
+    }
+  },
+  "automations": {
+    "eyebrow": "Formulare",
+    "title": "Automatisierungen",
+    "subtitle": "Regeln, die Formulare und Anfragen von selbst senden. Eine Regel für einen Klienten ändern Sie auf seinem Tab Automatisierungen.",
+    "newRule": "Neue Regel",
+    "filters": {
+      "label": "Regeln filtern",
+      "all": "Alle",
+      "forms": "Formulare",
+      "photos": "Fotos",
+      "measurements": "Messungen"
+    },
+    "timeZoneNote": "Die Zeiten folgen der Zeitzone jedes Klienten",
+    "loadError": "Die Automatisierungen konnten nicht geladen werden.",
+    "retry": "Erneut versuchen",
+    "empty": "Noch keine Regeln. Erstellen Sie eine, damit Formulare und Anfragen automatisch gesendet werden.",
+    "footer_one": "{{count}} Regel angezeigt · Eine Regel überspringt einen Klienten, solange die vorherige Anfrage unbeantwortet ist, es sei denn, Sie schalten das in der Regel aus",
+    "footer_other": "{{count}} Regeln angezeigt · Eine Regel überspringt einen Klienten, solange die vorherige Anfrage unbeantwortet ist, es sei denn, Sie schalten das in der Regel aus",
+    "saveSuccess": "Regel gespeichert",
+    "saveError": "Die Regel konnte nicht gespeichert werden.",
+    "toggleError": "Die Regel konnte nicht geändert werden.",
+    "deleteSuccess": "Regel gelöscht",
+    "deleteError": "Die Regel konnte nicht gelöscht werden.",
+    "deleteDialog": {
+      "title": "Diese Regel löschen?",
+      "description": "„{{name}}“ sendet nicht mehr. Bereits gesendete Anfragen bleiben bestehen.",
+      "confirm": "Regel löschen"
+    },
+    "rowMenu": {
+      "open": "Aktionen für {{name}}",
+      "edit": "Bearbeiten",
+      "delete": "Löschen"
+    },
+    "table": {
+      "columnRule": "Regel",
+      "columnWhen": "Wann",
+      "columnAction": "Aktion",
+      "columnAppliesTo": "Gilt für",
+      "columnNextSend": "Nächster Versand",
+      "columnOn": "An",
+      "columnActions": "Aktionen",
+      "clients_one": "{{count}} Klient",
+      "clients_other": "{{count}} Klienten",
+      "custom": "{{count}} angepasst",
+      "paused": "{{count}} pausiert",
+      "everyDays_one": "Täglich, {{time}}",
+      "everyDays_other": "Alle {{count}} Tage, {{time}}",
+      "everyWeeks_one": "Wöchentlich, {{time}}",
+      "everyWeeks_other": "Alle {{count}} Wochen, {{time}}",
+      "offsetAfter_one": "{{event}}, {{count}} Tag danach",
+      "offsetAfter_other": "{{event}}, {{count}} Tage danach",
+      "offsetBefore_one": "{{event}}, {{count}} Tag davor",
+      "offsetBefore_other": "{{event}}, {{count}} Tage davor",
+      "offsetInactive_one": "{{event}} seit {{count}} Tag",
+      "offsetInactive_other": "{{event}} seit {{count}} Tagen",
+      "subtitleForm": "Formular · {{name}}",
+      "subtitleFormUnknown": "Formular",
+      "subtitlePhotos": "Fortschrittsfotos",
+      "subtitleMeasurements": "Körpermaße",
+      "toggle": "Regel „{{name}}“ aktivieren"
+    },
+    "linked": {
+      "title": "Wöchentlicher Check-in",
+      "subtitle": {
+        "Training": "Training",
+        "Nutrition": "Ernährung"
+      },
+      "when": "Einmal pro Woche",
+      "action": "Check-in",
+      "badge": "Verknüpft",
+      "off": "Aus",
+      "open": "Öffnen"
+    },
+    "actions": {
+      "SendForm": "Formular senden",
+      "RequestProgressPhotos": "Fotos anfordern",
+      "RequestMeasurements": "Messungen anfordern"
+    },
+    "events": {
+      "ClientJoined": "Klient nimmt Ihre Einladung an",
+      "PlanStarted": "Ein Plan beginnt",
+      "PlanEnded": "Ein Plan endet",
+      "CheckInMissed": "Ein Check-in wird verpasst",
+      "ClientInactive": "Klient ist inaktiv",
+      "FormAnswered": "Ein Formular wird ausgefüllt"
+    },
+    "errors": {
+      "nameRequired": "Geben Sie der Regel einen Namen.",
+      "nameTooLong": "Der Name darf höchstens 100 Zeichen haben.",
+      "messageTooLong": "Die Nachricht darf höchstens 1000 Zeichen haben.",
+      "formRequired": "Wählen Sie ein Formular zum Senden.",
+      "intervalRange": "Geben Sie eine Zahl von 1 bis 365 ein.",
+      "timeRequired": "Geben Sie eine Uhrzeit ein.",
+      "timeInvalid": "Geben Sie eine gültige Uhrzeit ein.",
+      "offsetRange": "Geben Sie eine Zahl von 0 bis 365 ein.",
+      "offsetInactiveRange": "Geben Sie eine Zahl von 1 bis 365 ein.",
+      "stopAfterRange": "Geben Sie eine Zahl von 1 bis 1000 ein.",
+      "tagRequired": "Wählen Sie ein Tag.",
+      "clientsRequired": "Wählen Sie mindestens einen Klienten."
+    },
+    "drawer": {
+      "titleNew": "Neue Regel",
+      "titleEdit": "Regel bearbeiten · {{name}}",
+      "descriptionSchedule": "Gilt für jeden Klienten, sofern nicht auf seinem Tab Automatisierungen geändert",
+      "descriptionEvent": "Läuft für jeden Klienten, wenn ihm das Ereignis passiert",
+      "name": "Name",
+      "namePlaceholder": "Zum Beispiel Fortschrittsfotos",
+      "save": "Regel speichern",
+      "saving": "Wird gespeichert…",
+      "footer": {
+        "next_one": "Nächster Versand: {{date}} für {{count}} Klient",
+        "next_other": "Nächster Versand: {{date}} für {{count}} Klienten",
+        "appliesTo_one": "Gilt für {{count}} Klient",
+        "appliesTo_other": "Gilt für {{count}} Klienten"
+      },
+      "when": {
+        "heading": "1 · Wann",
+        "schedule": "Nach Zeitplan",
+        "event": "Nach einem Ereignis",
+        "every": "Alle",
+        "unit": "Einheit",
+        "days": "Tage",
+        "weeks": "Wochen",
+        "at": "Um",
+        "clientTime": "Zeit des Klienten",
+        "starting": "Beginn",
+        "startingFixed": "Ab dem Startdatum jedes Klienten",
+        "eventLabel": "Ereignis",
+        "timing": "Zeitpunkt",
+        "daysAfter": "Tage danach",
+        "daysBefore": "Tage davor"
+      },
+      "what": {
+        "heading": "2 · Was",
+        "sendForm": "Formular senden",
+        "requestPhotos": "Fotos anfordern",
+        "requestMeasurements": "Messungen anfordern",
+        "form": "Formular",
+        "formPlaceholder": "Formular wählen",
+        "formOption_one": "{{title}} · {{count}} Frage",
+        "formOption_other": "{{title}} · {{count}} Fragen",
+        "formsError": "Die Formulare konnten nicht geladen werden.",
+        "message": "Nachricht",
+        "counter": "{{current}} / {{max}}"
+      },
+      "who": {
+        "heading": "3 · Wer",
+        "clients": "Klienten",
+        "all": "Alle aktiven Klienten",
+        "tag": "Klienten mit einem Tag",
+        "chosen": "Ausgewählte Klienten",
+        "tagLabel": "Tag",
+        "tagPlaceholder": "Tag wählen",
+        "chooseClients": "Klienten wählen",
+        "searchClients": "Klienten suchen…",
+        "clientsError": "Die Klienten konnten nicht geladen werden.",
+        "noClients": "Keine Klienten gefunden.",
+        "selected": "Ausgewählt: {{names}}"
+      },
+      "options": {
+        "heading": "Optionen",
+        "skip": "Klienten überspringen, solange die vorherige Anfrage unbeantwortet ist",
+        "skipHint": "Verhindert, dass sich Anfragen stauen.",
+        "stopAfter": "Nach einer bestimmten Anzahl Sendungen stoppen",
+        "stopAfterCount": "Anzahl Sendungen",
+        "oncePerPlan": "Einmal pro Plan",
+        "oncePerPlanHint": "Ein verlängerter Plan löst sie nicht zweimal aus."
+      }
     }
   }
 }

@@ -636,6 +636,32 @@
       "notionPageId": null
     },
     {
+      "id": "web.forms.automations",
+      "app": "web",
+      "area": "Forms",
+      "title": "Automations",
+      "route": "/automations",
+      "roles": ["Trainer", "Nutritionist"],
+      "files": [
+        "web/src/pages/AutomationsPage.tsx",
+        "web/src/components/automations/*",
+        "web/src/hooks/useAutomationQueries.ts",
+        "web/src/api/automations.ts"
+      ],
+      "endpoints": [
+        "GET /trainer/automations/rules",
+        "POST /trainer/automations/rules",
+        "GET /trainer/automations/rules/{ruleId}",
+        "PUT /trainer/automations/rules/{ruleId}",
+        "DELETE /trainer/automations/rules/{ruleId}"
+      ],
+      "board": "PageAutomations",
+      "shots": [
+        { "name": "default" }
+      ],
+      "notionPageId": null
+    },
+    {
       "id": "web.forms.builder",
       "app": "web",
       "area": "Forms",

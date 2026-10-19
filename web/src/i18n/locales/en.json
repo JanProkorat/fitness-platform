@@ -189,6 +189,7 @@
     "navigationTitle": "Navigation"
   },
   "sidebar": {
+    "automations": "Automations",
     "dashboard": "Dashboard",
     "profile": "Profile",
     "clients": "Clients",
@@ -2517,6 +2518,18 @@
     "quote": "Quote"
   },
   "apiErrors": {
+    "AUTOMATION_RULE_NOT_FOUND": "This rule no longer exists.",
+    "AUTOMATION_TAG_NOT_FOUND": "The chosen tag no longer exists.",
+    "AUTOMATION_AUDIENCE_CLIENT_NOT_FOUND": "One of the chosen clients is no longer linked to you.",
+    "AUTOMATION_QUESTIONNAIRE_NOT_FOUND": "The chosen form no longer exists.",
+    "AUTOMATION_SCHEDULE_INVALID": "Check the schedule: every 1 to 365 days or weeks, at a valid time.",
+    "AUTOMATION_EVENT_INVALID": "Check the event and its timing.",
+    "AUTOMATION_ONCE_PER_PLAN_NEEDS_PLAN_EVENT": "“Once per plan” only works with a plan event.",
+    "AUTOMATION_QUESTIONNAIRE_REQUIRED": "Choose a form to send.",
+    "AUTOMATION_STOP_AFTER_INVALID": "The number of sends must be between 1 and 1000.",
+    "AUTOMATION_AUDIENCE_TAG_REQUIRED": "Choose a tag.",
+    "AUTOMATION_AUDIENCE_CLIENTS_REQUIRED": "Choose at least one client.",
+    "AUTOMATION_PHOTO_MESSAGE_TOO_LONG": "A progress photos message can have at most 500 characters.",
     "INVALID_CREDENTIALS": "Invalid email or password.",
     "ACCOUNT_DEACTIVATED": "Your account has been deactivated.",
     "INVALID_REFRESH_TOKEN": "Your session has expired. Please log in again.",
@@ -4965,6 +4978,176 @@
       "trendDelta": "−2.1 in 6 weeks",
       "reviewQuote": "“Legs felt heavy on Friday.” · energy 4/5",
       "replyPlaceholder": "Reply to Petra…"
+    }
+  },
+  "automations": {
+    "eyebrow": "Forms",
+    "title": "Automations",
+    "subtitle": "Rules that send forms and requests on their own. Change a rule for one client on their Automations tab.",
+    "newRule": "New rule",
+    "filters": {
+      "label": "Filter rules",
+      "all": "All",
+      "forms": "Forms",
+      "photos": "Photos",
+      "measurements": "Measurements"
+    },
+    "timeZoneNote": "Times follow each client’s time zone",
+    "loadError": "Could not load your automations.",
+    "retry": "Try again",
+    "empty": "No rules yet. Create one to send forms and requests automatically.",
+    "footer_one": "Viewing {{count}} rule · A rule skips a client while the previous request is still unanswered, unless you turn that off in the rule",
+    "footer_other": "Viewing {{count}} rules · A rule skips a client while the previous request is still unanswered, unless you turn that off in the rule",
+    "saveSuccess": "Rule saved",
+    "saveError": "Could not save the rule.",
+    "toggleError": "Could not change the rule.",
+    "deleteSuccess": "Rule deleted",
+    "deleteError": "Could not delete the rule.",
+    "deleteDialog": {
+      "title": "Delete this rule?",
+      "description": "“{{name}}” will stop sending. Requests already sent stay as they are.",
+      "confirm": "Delete rule"
+    },
+    "rowMenu": {
+      "open": "Actions for {{name}}",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "table": {
+      "columnRule": "Rule",
+      "columnWhen": "When",
+      "columnAction": "Action",
+      "columnAppliesTo": "Applies to",
+      "columnNextSend": "Next send",
+      "columnOn": "On",
+      "columnActions": "Actions",
+      "clients_one": "{{count}} client",
+      "clients_other": "{{count}} clients",
+      "custom": "{{count}} custom",
+      "paused": "{{count}} paused",
+      "everyDays_one": "Every day, {{time}}",
+      "everyDays_other": "Every {{count}} days, {{time}}",
+      "everyWeeks_one": "Every week, {{time}}",
+      "everyWeeks_other": "Every {{count}} weeks, {{time}}",
+      "offsetAfter_one": "{{event}}, {{count}} day after",
+      "offsetAfter_other": "{{event}}, {{count}} days after",
+      "offsetBefore_one": "{{event}}, {{count}} day before",
+      "offsetBefore_other": "{{event}}, {{count}} days before",
+      "offsetInactive_one": "{{event}} for {{count}} day",
+      "offsetInactive_other": "{{event}} for {{count}} days",
+      "subtitleForm": "Form · {{name}}",
+      "subtitleFormUnknown": "Form",
+      "subtitlePhotos": "Progress photos",
+      "subtitleMeasurements": "Body measurements",
+      "toggle": "Enable rule “{{name}}”"
+    },
+    "linked": {
+      "title": "Weekly check-in",
+      "subtitle": {
+        "Training": "Training",
+        "Nutrition": "Nutrition"
+      },
+      "when": "Once a week",
+      "action": "Check-in",
+      "badge": "Linked",
+      "off": "Off",
+      "open": "Open"
+    },
+    "actions": {
+      "SendForm": "Send form",
+      "RequestProgressPhotos": "Request photos",
+      "RequestMeasurements": "Request measurements"
+    },
+    "events": {
+      "ClientJoined": "Client accepts your invite",
+      "PlanStarted": "A plan starts",
+      "PlanEnded": "A plan ends",
+      "CheckInMissed": "A check-in is missed",
+      "ClientInactive": "Client is inactive",
+      "FormAnswered": "A form is answered"
+    },
+    "errors": {
+      "nameRequired": "Enter a name for the rule.",
+      "nameTooLong": "The name can have at most 100 characters.",
+      "messageTooLong": "The message can have at most 1000 characters.",
+      "formRequired": "Choose a form to send.",
+      "intervalRange": "Enter a number from 1 to 365.",
+      "timeRequired": "Enter a time of day.",
+      "timeInvalid": "Enter a valid time of day.",
+      "offsetRange": "Enter a number from 0 to 365.",
+      "offsetInactiveRange": "Enter a number from 1 to 365.",
+      "stopAfterRange": "Enter a number from 1 to 1000.",
+      "tagRequired": "Choose a tag.",
+      "clientsRequired": "Choose at least one client."
+    },
+    "drawer": {
+      "titleNew": "New rule",
+      "titleEdit": "Edit rule · {{name}}",
+      "descriptionSchedule": "Applies to every client unless changed on their Automations tab",
+      "descriptionEvent": "Runs for each client when the event happens to them",
+      "name": "Name",
+      "namePlaceholder": "For example, Progress photos",
+      "save": "Save rule",
+      "saving": "Saving…",
+      "footer": {
+        "next_one": "Next send: {{date}} for {{count}} client",
+        "next_other": "Next send: {{date}} for {{count}} clients",
+        "appliesTo_one": "Applies to {{count}} client",
+        "appliesTo_other": "Applies to {{count}} clients"
+      },
+      "when": {
+        "heading": "1 · When",
+        "schedule": "On a schedule",
+        "event": "After an event",
+        "every": "Every",
+        "unit": "Unit",
+        "days": "Days",
+        "weeks": "Weeks",
+        "at": "At",
+        "clientTime": "Client’s time",
+        "starting": "Starting",
+        "startingFixed": "From each client’s start date",
+        "eventLabel": "Event",
+        "timing": "Timing",
+        "daysAfter": "Days after",
+        "daysBefore": "Days before"
+      },
+      "what": {
+        "heading": "2 · What",
+        "sendForm": "Send form",
+        "requestPhotos": "Request photos",
+        "requestMeasurements": "Request measurements",
+        "form": "Form",
+        "formPlaceholder": "Choose a form",
+        "formOption_one": "{{title}} · {{count}} question",
+        "formOption_other": "{{title}} · {{count}} questions",
+        "formsError": "Could not load your forms.",
+        "message": "Message",
+        "counter": "{{current}} / {{max}}"
+      },
+      "who": {
+        "heading": "3 · Who",
+        "clients": "Clients",
+        "all": "All active clients",
+        "tag": "Clients with a tag",
+        "chosen": "Chosen clients",
+        "tagLabel": "Tag",
+        "tagPlaceholder": "Choose a tag",
+        "chooseClients": "Choose clients",
+        "searchClients": "Search clients…",
+        "clientsError": "Could not load your clients.",
+        "noClients": "No clients found.",
+        "selected": "Selected: {{names}}"
+      },
+      "options": {
+        "heading": "Options",
+        "skip": "Skip a client while the previous one is unanswered",
+        "skipHint": "Stops requests piling up.",
+        "stopAfter": "Stop after a number of sends",
+        "stopAfterCount": "Number of sends",
+        "oncePerPlan": "Once per plan",
+        "oncePerPlanHint": "A plan that is extended doesn’t trigger it twice."
+      }
     }
   }
 }
