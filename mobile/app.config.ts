@@ -12,9 +12,16 @@ type PluginEntry = string | [string, Record<string, unknown>];
 
 const SPLASH_PLUGIN = 'expo-splash-screen';
 
-/** Fills the splash plugin's background colours from the theme `ground` tokens. */
+/** Fills the splash and adaptive-icon background colours from the theme tokens. */
 export default ({ config }: ConfigContext) => ({
   ...config,
+  android: {
+    ...config.android,
+    adaptiveIcon: {
+      ...config.android?.adaptiveIcon,
+      backgroundColor: lightColors.launchMarkDeep,
+    },
+  },
   plugins: (config.plugins as PluginEntry[] | undefined)?.map((plugin) => {
     if (!Array.isArray(plugin) || plugin[0] !== SPLASH_PLUGIN) {
       return plugin;
