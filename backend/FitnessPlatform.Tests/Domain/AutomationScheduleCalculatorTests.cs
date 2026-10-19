@@ -65,6 +65,40 @@ public class AutomationScheduleCalculatorTests
     }
 
     [Fact]
+    public void ComputeNextRunAt_AcrossFallBack_KeepsTheLocalTime()
+    {
+        var next = AutomationScheduleCalculator.ComputeNextRunAt(
+            1, AutomationScheduleUnit.Weeks, new TimeOnly(9, 0), Prague,
+            new DateOnly(2026, 10, 16), Utc(2026, 10, 24));
+
+        next.Should().Be(Utc(2026, 10, 30, 8), "09:00 in Prague is 08:00 UTC again once winter time has started");
+    }
+
+    [Fact]
+    public void ComputeNextRunAt_LocalTimeInFallBackOverlap_UsesTheStandardTimeInstant()
+    {
+        var next = AutomationScheduleCalculator.ComputeNextRunAt(
+            1, AutomationScheduleUnit.Days, new TimeOnly(2, 30), Prague,
+            new DateOnly(2026, 10, 24), Utc(2026, 10, 24, 12));
+
+        next.Should().Be(Utc(2026, 10, 25, 1, 30), "02:30 happens twice on 25 October in Prague; the later, winter-time one is used");
+    }
+
+    [Fact]
+    public void ComputeNextRunAt_DayAfterSpringForward_IsOneHourEarlierInUtcThanTheDayBefore()
+    {
+        var before = AutomationScheduleCalculator.ComputeNextRunAt(
+            1, AutomationScheduleUnit.Days, new TimeOnly(9, 0), Prague,
+            new DateOnly(2026, 3, 27), Utc(2026, 3, 27, 12));
+        var after = AutomationScheduleCalculator.ComputeNextRunAt(
+            1, AutomationScheduleUnit.Days, new TimeOnly(9, 0), Prague,
+            new DateOnly(2026, 3, 28), Utc(2026, 3, 28, 12));
+
+        before.Should().Be(Utc(2026, 3, 28, 8));
+        after.Should().Be(Utc(2026, 3, 29, 7));
+    }
+
+    [Fact]
     public void ComputeNextRunAt_IntervalBelowOne_ReturnsNull()
     {
         AutomationScheduleCalculator.ComputeNextRunAt(
