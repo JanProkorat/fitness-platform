@@ -2,6 +2,9 @@
   "name": "mobile",
   "main": "expo-router/entry",
   "version": "1.0.0",
+  "engines": {
+    "node": ">=22.18"
+  },
   "dependencies": {
     "@expo-google-fonts/dm-sans": "^0.4.2",
     "@expo-google-fonts/outfit": "^0.4.3",
