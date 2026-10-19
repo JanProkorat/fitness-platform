@@ -67,14 +67,16 @@ export function LaunchScreen({ ready, onExited }: Props) {
     if (reduceMotion) {
       return;
     }
-    progress.value = withTiming(
-      launchMotion.total,
-      { duration: launchMotion.total, easing: Easing.linear },
-      (finished) => {
-        if (finished) {
-          scheduleOnRN(setPlayed, true);
-        }
-      },
+    progress.set(
+      withTiming(
+        launchMotion.total,
+        { duration: launchMotion.total, easing: Easing.linear },
+        (finished) => {
+          if (finished) {
+            scheduleOnRN(setPlayed, true);
+          }
+        },
+      ),
     );
   }, [reduceMotion, progress]);
 
@@ -86,21 +88,23 @@ export function LaunchScreen({ ready, onExited }: Props) {
       onExited();
       return;
     }
-    opacity.value = withTiming(
-      0,
-      { duration: launchMotion.exitDuration, easing: Easing.out(Easing.quad) },
-      (finished) => {
-        if (finished) {
-          scheduleOnRN(onExited);
-        }
-      },
+    opacity.set(
+      withTiming(
+        0,
+        { duration: launchMotion.exitDuration, easing: Easing.out(Easing.quad) },
+        (finished) => {
+          if (finished) {
+            scheduleOnRN(onExited);
+          }
+        },
+      ),
     );
   }, [played, ready, reduceMotion, opacity, onExited]);
 
-  const containerStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
+  const containerStyle = useAnimatedStyle(() => ({ opacity: opacity.get() }));
 
   const taglineStyle = useAnimatedStyle(() => {
-    const raw = (progress.value - launchMotion.taglineStart) / launchMotion.taglineDuration;
+    const raw = (progress.get() - launchMotion.taglineStart) / launchMotion.taglineDuration;
     const eased = raw <= 0 ? 0 : raw >= 1 ? 1 : taglineEase(raw);
     return {
       opacity: eased,
@@ -112,7 +116,7 @@ export function LaunchScreen({ ready, onExited }: Props) {
     <Animated.View
       accessible
       accessibilityRole="image"
-      accessibilityLabel={`${t('launch.label')}. ${t('launch.tagline')}`}
+      accessibilityLabel={t('launch.a11yLabel')}
       style={[styles.overlay, { backgroundColor: theme.colors.ground }, containerStyle]}
     >
       <Svg width={width} height={height} style={StyleSheet.absoluteFill}>

@@ -673,7 +673,8 @@
       "files": [
         "mobile/src/components/LaunchScreen.tsx",
         "mobile/src/components/LaunchWordmark.tsx",
-        "mobile/src/components/LogoMark.tsx"
+        "mobile/src/components/LogoMark.tsx",
+        "mobile/src/theme/motion.ts"
       ],
       "endpoints": [],
       "board": "GlassLaunchQuiet",

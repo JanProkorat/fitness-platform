@@ -17,7 +17,7 @@ export function LaunchWordmark({ progress }: Props) {
   const theme = useTheme();
 
   const lettersStyle = useAnimatedStyle(() => {
-    const raw = (progress.value - launchMotion.wordmarkStart) / launchMotion.wordmarkDuration;
+    const raw = (progress.get() - launchMotion.wordmarkStart) / launchMotion.wordmarkDuration;
     const eased = raw <= 0 ? 0 : raw >= 1 ? 1 : settleEase(raw);
     return {
       opacity: eased,
