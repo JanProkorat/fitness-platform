@@ -27,7 +27,7 @@ export function useAuthPhase(): { phase: AuthPhase; retry: () => void } {
   if (!isAuthenticated) return { phase: 'loggedOut', retry };
   if (!profile) return { phase: isError ? 'error' : 'loading', retry };
   if (!profile.emailConfirmed) return { phase: 'unverified', retry };
-  if (!isClientProfile(profile)) return { phase: 'coach', retry };
   if (sawUnverified && !verifiedAcknowledged) return { phase: 'verified', retry };
+  if (!isClientProfile(profile)) return { phase: 'coach', retry };
   return { phase: profile.isOnboardingComplete ? 'home' : 'onboarding', retry };
 }
