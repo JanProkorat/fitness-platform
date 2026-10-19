@@ -211,6 +211,50 @@ public class AutomationSchedulerTests(FitnessApiFactory factory)
     }
 
     [Fact]
+    public async Task Run_AcrossThePragueSpringForward_RunsOncePerSideAtTheCorrectUtcInstant()
+    {
+        var (coach, client, _) = await PairAsync();
+        var rule = await AutomationTestData.InsertRuleAsync(factory, coach);
+        var changeDay = LastSundayOfMarch(DateTime.UtcNow.Year + 1);
+        var saturdayDue = changeDay.AddDays(-1).ToDateTime(new TimeOnly(8, 0), DateTimeKind.Utc);
+        var sundayDue = changeDay.ToDateTime(new TimeOnly(7, 0), DateTimeKind.Utc);
+        var mondayDue = sundayDue.AddDays(1);
+
+        // 09:00 Prague is 08:00Z before the change (CET, UTC+1) and 07:00Z after it (CEST, UTC+2).
+        await Scheduler.RunDueNowAsync(saturdayDue.AddHours(-20), Ct);
+        (await ScheduleAsync(rule.Id, client.ProfileId))!.NextRunAt.Should().Be(saturdayDue);
+
+        await Scheduler.RunDueNowAsync(saturdayDue.AddMinutes(-1), Ct);
+        (await RunsAsync(rule.Id)).Should().BeEmpty("the instant before the Saturday send is not due yet");
+
+        await Scheduler.RunDueNowAsync(saturdayDue.AddMinutes(1), Ct);
+        (await RunsAsync(rule.Id)).Should().ContainSingle(r => r.Status == AutomationRunStatus.Sent);
+        (await ScheduleAsync(rule.Id, client.ProfileId))!.NextRunAt.Should().Be(
+            sundayDue, "the next day is 23 hours later: 09:00 local moved from UTC+1 to UTC+2");
+
+        await Scheduler.RunDueNowAsync(sundayDue.AddMinutes(-1), Ct);
+        (await RunsAsync(rule.Id)).Should().ContainSingle("the Sunday send is due at 07:00Z, not at the old 08:00Z offset");
+
+        await Scheduler.RunDueNowAsync(sundayDue.AddMinutes(1), Ct);
+        await Scheduler.RunDueNowAsync(sundayDue.AddMinutes(2), Ct);
+
+        var runs = await RunsAsync(rule.Id);
+        runs.Should().HaveCount(2, "each side of the change sends exactly once");
+        runs.Should().OnlyContain(r => r.Status == AutomationRunStatus.Sent);
+        runs[0].Occurrence.Should().Be($"sched:{saturdayDue:yyyyMMddTHHmmss}");
+        runs[1].Occurrence.Should().Be($"sched:{sundayDue:yyyyMMddTHHmmss}");
+        (await ScheduleAsync(rule.Id, client.ProfileId))!.NextRunAt.Should().Be(mondayDue);
+        (await NotificationCountAsync(client.UserId, NotificationType.MeasurementRequested)).Should().Be(2);
+    }
+
+    private static DateOnly LastSundayOfMarch(int year)
+    {
+        var lastDay = new DateOnly(year, 3, 31);
+
+        return lastDay.AddDays(-(int)lastDay.DayOfWeek);
+    }
+
+    [Fact]
     public async Task Run_MeasurementRuleWithMessage_SendsItInTheNotification()
     {
         var (coach, client, _) = await PairAsync();
