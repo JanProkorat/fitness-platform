@@ -697,6 +697,9 @@
         "mobile/src/app/login.tsx",
         "mobile/src/app/_layout.tsx",
         "mobile/src/hooks/useAuthPhase.ts",
+        "mobile/src/components/ProfileErrorState.tsx",
+        "mobile/src/hooks/useProfile.ts",
+        "mobile/src/api/profile.ts",
         "mobile/src/api/auth.ts",
         "mobile/src/api/errors.ts",
         "mobile/src/components/Button.tsx",
@@ -848,7 +851,7 @@
       "notionPageId": null
     },
     {
-      "id": "client.onboarding",
+      "id": "client.onboarding.steps",
       "app": "client",
       "area": "Onboarding",
       "title": "Onboarding",
