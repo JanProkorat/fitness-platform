@@ -261,6 +261,32 @@ public class AutomationSummaryEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
+    public async Task Rules_LinkedCheckIns_ClientNeedsTheProfessionsCapability()
+    {
+        var coach = await TestActors.Professional(factory, UserRole.Trainer, UserRole.Nutritionist).CreateAsync(Ct);
+        var trainingOnly = await TestActors.Client(factory).CreateAsync(Ct);
+        await TestActors.Link(factory, coach, trainingOnly).CanViewNutritionPlans(false).CanViewTrainingPlans().CreateAsync(Ct);
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            db.WeeklyCheckInSettings.Add(new WeeklyCheckInSetting
+            {
+                UserId = coach.UserId, Profession = Profession.Nutrition, Enabled = true,
+            });
+            db.WeeklyCheckInSettings.Add(new WeeklyCheckInSetting
+            {
+                UserId = coach.UserId, Profession = Profession.Training, Enabled = true,
+            });
+            await db.SaveChangesAsync(Ct);
+        }
+
+        var rules = await GetRulesAsync(coach);
+
+        rules.LinkedCheckIns.Single(c => c.Profession == Profession.Nutrition).ClientCount.Should().Be(0);
+        rules.LinkedCheckIns.Single(c => c.Profession == Profession.Training).ClientCount.Should().Be(1);
+    }
+
+    [Fact]
     public async Task Rules_LinkedCheckIns_AreEmptyWithoutSettings()
     {
         var (coach, _) = await LinkedPairAsync();

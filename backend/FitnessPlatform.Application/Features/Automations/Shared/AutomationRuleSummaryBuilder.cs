@@ -1,4 +1,5 @@
 using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
@@ -148,9 +149,12 @@ public static class AutomationRuleSummaryBuilder
                 Profession = setting.Profession,
                 Enabled = setting.Enabled,
                 ClientCount = covered.Count(client =>
-                    overrides.FirstOrDefault(o =>
+                    (setting.Profession == Profession.Training
+                        ? client.CanViewTrainingPlans
+                        : client.CanViewNutritionPlans) &&
+                    (overrides.FirstOrDefault(o =>
                         o.ClientUserId == client.ClientUserId && o.Profession == setting.Profession)?.Enabled
-                    ?? setting.Enabled),
+                    ?? setting.Enabled)),
             })
             .ToList();
     }
