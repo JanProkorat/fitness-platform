@@ -30,6 +30,62 @@
         "rateLimited": "Příliš mnoho pokusů. Zkuste to prosím za chvíli.",
         "network": "Nelze se připojit k serveru. Zkontrolujte připojení a zkuste to znovu.",
         "generic": "Přihlášení se nezdařilo. Zkuste to prosím znovu."
+      },
+      "registeredNotice": "Účet je založený, ale nepodařilo se tě přihlásit. Přihlas se prosím."
+    },
+    "register": {
+      "heading": "Vytvořit účet",
+      "subtitle": "Zabere to minutu. Vyber, jak budeš Form Up používat.",
+      "back": "Zpět",
+      "roleGroup": "Typ účtu",
+      "roleLabel": "Přidávám se jako",
+      "roles": {
+        "client": {
+          "title": "Klient",
+          "hint": "Hledám trenéra"
+        },
+        "trainer": {
+          "title": "Trenér",
+          "hint": "Vedu tréninky"
+        },
+        "nutritionist": {
+          "title": "Nutriční poradce",
+          "hint": "Vedu stravování"
+        }
+      },
+      "coachHint": "Trenér a nutriční poradce se dají zvolit společně.",
+      "firstName": "Jméno",
+      "lastName": "Příjmení",
+      "email": "E-mail",
+      "password": "Heslo",
+      "showPassword": "Zobrazit",
+      "hidePassword": "Skrýt",
+      "passwordRules": {
+        "length": "Alespoň 8 znaků",
+        "uppercase": "Velké písmeno",
+        "lowercase": "Malé písmeno",
+        "digit": "Číslice"
+      },
+      "ruleMet": "splněno",
+      "ruleUnmet": "zatím nesplněno",
+      "gdprConsent": "Souhlasím se zpracováním osobních údajů a s podmínkami použití.",
+      "healthConsent": "Souhlasím se zpracováním zdravotních údajů, například váhy a zranění, aby mi trenér mohl připravit plány.",
+      "submit": "Vytvořit účet",
+      "validation": {
+        "firstNameRequired": "Zadej své jméno.",
+        "lastNameRequired": "Zadej své příjmení.",
+        "emailRequired": "Zadej svůj e-mail.",
+        "emailInvalid": "Zadej platný e-mail.",
+        "passwordRules": "Heslo zatím nesplňuje všechna pravidla.",
+        "gdprRequired": "Pro pokračování je potřeba souhlas.",
+        "healthRequired": "Pro pokračování je potřeba souhlas."
+      },
+      "errors": {
+        "duplicateEmail": "Účet s tímto e-mailem už existuje.",
+        "rateLimited": "Příliš mnoho pokusů. Zkus to za chvíli znovu.",
+        "network": "Server není dostupný. Zkontroluj připojení a zkus to znovu.",
+        "validation": "Zkontroluj prosím toto pole.",
+        "generic": "Účet se nepodařilo vytvořit. Zkus to prosím znovu."
       }
     }
   },
@@ -52,5 +108,54 @@
       "nutrition": "Výživa",
       "messages": "Zprávy"
     }
+  },
+  "common": {
+    "signOut": "Odhlásit se"
+  },
+  "profileError": {
+    "title": "Účet se nepodařilo načíst",
+    "body": "Zkontroluj připojení a zkus to znovu.",
+    "retry": "Zkusit znovu"
+  },
+  "checkEmail": {
+    "title": "Zkontroluj e-mail",
+    "sentTo": "Poslali jsme ověřovací odkaz na adresu",
+    "tapIt": "Klepni na něj v tomto telefonu a pokračuj.",
+    "noEmailTitle": "E-mail nedorazil?",
+    "noEmailBody": "Podívej se do složky se spamem, nebo chvíli počkej. Doručení může chvíli trvat.",
+    "resend": "Poslat znovu",
+    "resendIn": "· dostupné za {{time}}",
+    "resent": "E-mail odeslán.",
+    "openEmailApp": "Otevřít e-mail",
+    "backSignOut": "Zpět, odhlásit se",
+    "errors": {
+      "limitReached": "Dosáhl jsi limitu ověřovacích e-mailů. Podívej se do složky se spamem.",
+      "rateLimited": "Příliš mnoho pokusů. Zkus to za chvíli znovu.",
+      "network": "Server není dostupný. Zkontroluj připojení a zkus to znovu.",
+      "generic": "E-mail se nepodařilo odeslat. Zkus to prosím znovu."
+    }
+  },
+  "verified": {
+    "title": "E-mail ověřen",
+    "welcome": "Vítej ve Form Up, {{name}}. Tvůj účet je připravený.",
+    "welcomeAnonymous": "Vítej ve Form Up. Tvůj účet je připravený.",
+    "next": "CO DÁL",
+    "aboutYou": {
+      "title": "Řekni nám o sobě",
+      "hint": "6 krátkých kroků, asi 3 minuty"
+    },
+    "findCoach": {
+      "title": "Najdi trenéra",
+      "hint": "Nebo přijmi pozvánku, kterou už máš"
+    },
+    "cta": "Nastavit profil"
+  },
+  "onboarding": {
+    "title": "Nastavení profilu",
+    "body": "Nastavení profilu brzy přibude."
+  },
+  "coachPending": {
+    "title": "Tvůj trenérský účet je připravený",
+    "body": "Nástroje pro trenéry v aplikaci zatím nejsou. Klienty spravuj ve webovém portálu Form Up."
   }
 }
