@@ -26,7 +26,11 @@ export default function Wordmark({ size = 'nav', to, className }: Props) {
     <>
       <span className="sr-only">{t('home.brand.name')}</span>
       <span aria-hidden="true">
-        <LogoMark cropped className="mr-[0.22em] inline-block align-baseline h-[0.7em] w-[0.763em]" />
+        <LogoMark
+          cropped
+          tone={size === 'sidebar' ? 'dark' : 'theme'}
+          className="mr-[0.18em] inline-block align-baseline h-[0.7em] w-[0.763em]"
+        />
         {t('home.brand.form').slice(1)} <span className="text-marker">{t('home.brand.up')}</span>
       </span>
     </>
