@@ -68,11 +68,13 @@ export function Input({
         />
         {trailing}
       </Pressable>
-      {error ? (
-        <Text variant="caption" color="error" accessibilityRole="alert">
-          {error}
-        </Text>
-      ) : null}
+      <View style={styles.errorSlot}>
+        {error ? (
+          <Text variant="caption" color="error" accessibilityRole="alert">
+            {error}
+          </Text>
+        ) : null}
+      </View>
     </View>
   );
 }
@@ -81,6 +83,11 @@ const makeStyles = (theme: Theme) =>
   StyleSheet.create({
     root: {
       gap: theme.spacing.snug,
+    },
+    // Reserves one caption line so an error appearing does not move the layout.
+    // A longer error wraps and grows the slot (min height, not fixed).
+    errorSlot: {
+      minHeight: theme.typography.caption.lineHeight,
     },
     field: {
       height: theme.sizes.field,

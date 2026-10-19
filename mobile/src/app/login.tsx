@@ -180,7 +180,7 @@ const makeStyles = (theme: Theme) =>
       paddingBottom: theme.sizes.wordmarkGap,
     },
     heading: {
-      paddingBottom: theme.spacing.md,
+      paddingBottom: theme.sizes.authHeadingGap,
     },
     forgot: {
       alignSelf: 'flex-end',
