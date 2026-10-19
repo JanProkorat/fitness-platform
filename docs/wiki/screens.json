@@ -10,6 +10,7 @@
       "files": [
         "web/src/pages/EntryPage.tsx",
         "web/src/components/home/**",
+        "web/src/components/brand/**",
         "web/src/components/entry/LanguageSwitcher.tsx",
         "web/src/stores/theme.ts"
       ],
