@@ -1,8 +1,10 @@
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.Automations.Shared;
 using FitnessPlatform.Application.Infrastructure.Data;
+using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 
 namespace FitnessPlatform.Application.Features.Automations.GetAutomationRule;
 
@@ -10,7 +12,9 @@ namespace FitnessPlatform.Application.Features.Automations.GetAutomationRule;
 /// Returns one of the caller's automation rules (global or client-only).
 /// </summary>
 /// <param name="db">Application database context.</param>
-public class GetAutomationRuleEndpoint(IApplicationDbContext db)
+/// <param name="mongo">MongoDB context, read for plan-event send dates.</param>
+/// <param name="timeProvider">Clock.</param>
+public class GetAutomationRuleEndpoint(IApplicationDbContext db, IMongoContext mongo, TimeProvider timeProvider)
     : Endpoint<GetAutomationRuleRequest, AutomationRuleDto>
 {
     /// <inheritdoc />
@@ -21,7 +25,7 @@ public class GetAutomationRuleEndpoint(IApplicationDbContext db)
         Summary(s =>
         {
             s.Summary = "Get an automation rule";
-            s.Description = "Returns one rule owned by the caller.";
+            s.Description = "Returns one rule owned by the caller, with its coverage summary.";
             s.Responses[StatusCodes.Status200OK] = "The rule";
             s.Responses[StatusCodes.Status401Unauthorized] = "Missing or invalid credentials";
             s.Responses[StatusCodes.Status404NotFound] = "Rule not found, or owned by another coach";
@@ -53,6 +57,13 @@ public class GetAutomationRuleEndpoint(IApplicationDbContext db)
             return;
         }
 
-        await Send.OkAsync(AutomationRuleDto.FromEntity(rule), ct);
+        var covered = await AutomationCoverage.LoadCoveredClientsAsync(db, profile.Id, ct);
+        var summaries = await AutomationRuleSummaryBuilder.BuildSummariesAsync(
+            db, mongo, profile.UserId, [rule], covered, timeProvider.GetUtcNow().UtcDateTime, ct);
+
+        var dto = AutomationRuleDto.FromEntity(rule);
+        dto.Summary = summaries[rule.Id];
+
+        await Send.OkAsync(dto, ct);
     }
 }

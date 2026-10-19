@@ -3,6 +3,7 @@ using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Features.Automations.CreateAutomationRule;
 using FitnessPlatform.Application.Features.Automations.CreateClientAutomationRule;
 using FitnessPlatform.Application.Features.Automations.PauseClientAutomation;
+using FitnessPlatform.Application.Features.Automations.UpdateAutomationRule;
 using FluentAssertions;
 using FluentValidation.TestHelper;
 
@@ -268,6 +269,89 @@ public class AutomationValidatorTests
         });
 
         result.ShouldHaveValidationErrorFor(x => x.Name);
+    }
+
+    [Theory]
+    [InlineData(500, true)]
+    [InlineData(501, false)]
+    public void Validate_ProgressPhotosMessage_IsLimitedTo500(int length, bool valid)
+    {
+        var request = ValidSchedule();
+        request.ActionType = AutomationActionType.RequestProgressPhotos;
+        request.Message = new string('m', length);
+
+        var result = Validate(request);
+
+        if (valid)
+        {
+            result.ShouldNotHaveAnyValidationErrors();
+        }
+        else
+        {
+            result.Errors.Should().Contain(e => e.ErrorCode == ErrorCodes.AutomationPhotoMessageTooLong);
+        }
+    }
+
+    [Fact]
+    public void ValidateUpdateAndClientOnly_ProgressPhotosMessageOver500_Fails()
+    {
+        var update = new UpdateAutomationRuleValidator().TestValidate(new UpdateAutomationRuleRequest
+        {
+            RuleId = Guid.NewGuid(),
+            Name = "Photos",
+            ActionType = AutomationActionType.RequestProgressPhotos,
+            Message = new string('m', 501),
+            TriggerKind = AutomationTriggerKind.Schedule,
+            ScheduleInterval = 1,
+            ScheduleUnit = AutomationScheduleUnit.Weeks,
+            LocalTime = TimeSpan.FromHours(9),
+        });
+        var clientOnly = new CreateClientAutomationRuleValidator().TestValidate(new CreateClientAutomationRuleRequest
+        {
+            ClientId = Guid.NewGuid(),
+            Name = "Photos",
+            ActionType = AutomationActionType.RequestProgressPhotos,
+            Message = new string('m', 501),
+            TriggerKind = AutomationTriggerKind.Schedule,
+            ScheduleInterval = 1,
+            ScheduleUnit = AutomationScheduleUnit.Weeks,
+            LocalTime = TimeSpan.FromHours(9),
+        });
+
+        update.Errors.Should().Contain(e => e.ErrorCode == ErrorCodes.AutomationPhotoMessageTooLong);
+        clientOnly.Errors.Should().Contain(e => e.ErrorCode == ErrorCodes.AutomationPhotoMessageTooLong);
+    }
+
+    [Fact]
+    public void Validate_EventWithOptionalLocalTime_Passes()
+    {
+        var request = ValidEvent();
+        request.LocalTime = new TimeSpan(18, 30, 0);
+
+        Validate(request).ShouldNotHaveAnyValidationErrors();
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(1440)]
+    public void Validate_EventLocalTimeOutsideTheDay_Fails(int minutes)
+    {
+        var request = ValidEvent();
+        request.LocalTime = TimeSpan.FromMinutes(minutes);
+
+        Validate(request).Errors.Should().Contain(e => e.ErrorCode == ErrorCodes.AutomationEventInvalid);
+    }
+
+    [Fact]
+    public void Validate_EventCarryingIntervalOrUnit_Fails()
+    {
+        var withInterval = ValidEvent();
+        withInterval.ScheduleInterval = 2;
+        var withUnit = ValidEvent();
+        withUnit.ScheduleUnit = AutomationScheduleUnit.Weeks;
+
+        Validate(withInterval).Errors.Should().Contain(e => e.ErrorCode == ErrorCodes.AutomationEventInvalid);
+        Validate(withUnit).Errors.Should().Contain(e => e.ErrorCode == ErrorCodes.AutomationEventInvalid);
     }
 
     [Fact]

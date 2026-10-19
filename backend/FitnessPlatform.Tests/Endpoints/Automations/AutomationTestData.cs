@@ -1,12 +1,15 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Infrastructure.Data;
+using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using MongoDB.Bson;
 
 namespace FitnessPlatform.Tests.Endpoints.Automations;
 
@@ -77,6 +80,59 @@ internal static class AutomationTestData
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         return questionnaire.PublicId;
+    }
+
+    /// <summary>Inserts a training plan into the real Mongo container.</summary>
+    public static async Task SeedTrainingPlanAsync(
+        FitnessApiFactory factory,
+        Guid clientUserId,
+        Guid authorUserId,
+        DateTime? startDate,
+        int weeks,
+        TrainingPlanStatus status = TrainingPlanStatus.Active)
+    {
+        using var scope = factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+        await mongo.TrainingPlans.InsertOneAsync(new TrainingPlan
+        {
+            Id = ObjectId.GenerateNewId(),
+            ExternalId = Guid.NewGuid(),
+            ClientId = clientUserId,
+            TrainerId = authorUserId,
+            Name = "Automation training plan",
+            Status = status,
+            StartDate = startDate,
+            Weeks = Enumerable.Range(1, weeks).Select(n => new TrainingWeek { WeekNumber = n }).ToList(),
+            Version = 1,
+            DateCreated = DateTime.UtcNow,
+        }, cancellationToken: TestContext.Current.CancellationToken);
+    }
+
+    /// <summary>Inserts a nutrition plan into the real Mongo container.</summary>
+    public static async Task SeedNutritionPlanAsync(
+        FitnessApiFactory factory,
+        Guid clientUserId,
+        Guid authorUserId,
+        DateTime? startDate,
+        int weeks)
+    {
+        using var scope = factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+        await mongo.NutritionPlans.InsertOneAsync(new NutritionPlan
+        {
+            Id = ObjectId.GenerateNewId(),
+            ExternalId = Guid.NewGuid(),
+            ClientId = clientUserId,
+            NutritionistId = authorUserId,
+            Name = "Automation nutrition plan",
+            Status = NutritionPlanStatus.Active,
+            StartDate = startDate,
+            Weeks = Enumerable.Range(1, weeks).Select(n => new PlanWeek { WeekNumber = n }).ToList(),
+            Version = 1,
+            DateCreated = DateTime.UtcNow,
+        }, cancellationToken: TestContext.Current.CancellationToken);
     }
 
     /// <summary>Writes a run row for a rule and client.</summary>

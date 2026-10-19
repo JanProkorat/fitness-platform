@@ -544,4 +544,7 @@ public static class ErrorCodes
 
     /// <summary>The send limit is below 1.</summary>
     public const string AutomationStopAfterInvalid = "AUTOMATION_STOP_AFTER_INVALID";
+
+    /// <summary>A progress-photos rule's message is over the photo request's 500-character limit.</summary>
+    public const string AutomationPhotoMessageTooLong = "AUTOMATION_PHOTO_MESSAGE_TOO_LONG";
 }

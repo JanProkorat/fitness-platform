@@ -20,6 +20,12 @@ public abstract class AutomationRuleBodyValidator<T> : AutomationTriggerBodyVali
 
         RuleFor(x => x.ActionType).IsInEnum();
 
+        RuleFor(x => x.Message)
+            .MaximumLength(AutomationTriggerBody.PhotoMessageMaxLength)
+            .WithErrorCode(ErrorCodes.AutomationPhotoMessageTooLong)
+            .WithMessage("A progress photos message can be at most 500 characters.")
+            .When(x => x.ActionType == AutomationActionType.RequestProgressPhotos);
+
         RuleFor(x => x.QuestionnaireId)
             .NotNull()
             .WithErrorCode(ErrorCodes.AutomationQuestionnaireRequired)

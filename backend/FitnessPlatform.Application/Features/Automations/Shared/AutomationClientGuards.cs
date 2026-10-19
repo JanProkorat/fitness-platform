@@ -34,7 +34,7 @@ public static class AutomationClientGuards
             return null;
         }
 
-        if (capabilities.Value.GrantsNothing)
+        if (!AutomationCoverage.IsCovered(capabilities.Value))
         {
             await endpoint.HttpContext.Response.SendForbiddenAsync(ct);
             return null;
@@ -79,7 +79,7 @@ public static class AutomationClientGuards
             .Distinct()
             .ToListAsync(ct);
 
-        return new AutomationClientContext(profile, client, links.Min(l => l.DateCreated), tagIds);
+        return new AutomationClientContext(profile, client, links.Min(l => l.DateCreated), tagIds, capabilities.Value);
     }
 
     /// <summary>
