@@ -12,7 +12,8 @@ canvas = json.load(open(os.path.join(HERE, "project", "canvas.json")))
 
 # Navigation shared by every page with the sidebar or the collapsed rail.
 NAV = {"Clients": "PageClients", "Inbox": "PageInbox", "Recipes": "PageRecipes", "Ingredients": "PageIngredients",
-       "Plan templates": "PageTemplates", "Forms": "PageForms", "Log out": "PageHome", "Martin Král": "PageAccountMenu"}
+       "Plan templates": "PageTemplates", "Forms": "PageForms", "Automations": "PageAutomations", "Packages": "PagePackages",
+       "Log out": "PageHome", "Martin Král": "PageAccountMenu"}
 
 # Per page: visible text, aria-label or title of the clicked element -> target board.
 # A key starting with ^ matches the beginning of the text, * matches anywhere in it.
@@ -25,7 +26,7 @@ FLOWS = {
     "PageResetDone": {"Sign in": "PageHomeSignIn"},
     "PageResetExpired": {"Send a new link": "PageResetRequest", "Back to sign in": "PageHomeSignIn"},
     "PageAccountMenu": {"Account menu": "PageClients", "Your profile": "PageProfile", "Settings": "PageSettings"},
-    "PageProfile": {"Settings": "PageSettings"},
+    "PageProfile": {"Settings": "PageSettings", "Packages": "PagePackages"},
     "PageSettings": {"Change password": "PageSettingsPassword", "Disable account": "PageSettingsDisable", "Remove role": "PageSettingsRemoveTrainer"},
     "PageSettingsPassword": {"Close": "PageSettings", "Cancel": "PageSettings", "Change password": "PageSettings",
                              "Forgot your current password?": "PageResetRequest"},
@@ -38,7 +39,26 @@ FLOWS = {
     "PageRegisterVerified": {"^Set up your profile": "PageClients", "Skip for now and go to the portal": "PageClients"},
     "PageClients": {"Eva Svobodová": "PageClientDetail", "^Invite client": "PageClientInviteDrawer"},
     "PageClientInviteDrawer": {"Close": "PageClients", "^Cancel": "PageClients", "^Send invitation": "PageClients"},
-    "PageClientDetail": {"Nutrition": "PageClientNutrition", "Back to clients": "PageClients", "^Open plan": "PageClientPlanEditor", "^Chat": "PageInbox"},
+    "PageClientDetail": {"Nutrition": "PageClientNutrition", "Payment": "PageClientPayment", "Automations": "PageClientAutomations",
+                         "Back to clients": "PageClients", "^Open plan": "PageClientPlanEditor", "^Chat": "PageInbox"},
+    "PageClientPayment": {"Overview": "PageClientDetail", "Nutrition": "PageClientNutrition", "Automations": "PageClientAutomations",
+                          "Automations tab": "PageClientAutomations", "Back to clients": "PageClients", "^Request payment": "PageClientPaymentRequest",
+                          "^Chat": "PageInbox"},
+    "PageClientPaymentRequest": {"Close": "PageClientPayment", "^Cancel": "PageClientPayment", "^Send request": "PageClientPayment"},
+    "PageClientAutomations": {"Overview": "PageClientDetail", "Nutrition": "PageClientNutrition", "Payment": "PageClientPayment",
+                              "Back to clients": "PageClients", "Open": "PageFormCheckIn", "^Chat": "PageInbox"},
+    "PagePackages": {"Discounts": "PageDiscounts", "^New package": "PagePackageDrawer", "Online coaching": "PagePackageDrawer", "^Open profile": "PageProfile"},
+    "PagePackageDrawer": {"Close": "PagePackages", "^Cancel": "PagePackages", "^Save package": "PagePackages"},
+    "PageDiscounts": {"Packages": "PagePackages", "^New discount": "PageDiscountDrawer", "Loyal client": "PageDiscountDrawer"},
+    "PageDiscountDrawer": {"Close": "PageDiscounts", "^Cancel": "PageDiscounts", "^Save discount": "PageDiscounts"},
+    "PageAutomations": {"^New rule": "PageAutomationRuleDrawer", "Progress photos": "PageAutomationRuleDrawer",
+                        "End-of-plan review": "PageAutomationRuleEventDrawer", "Open": "PageFormCheckIn"},
+    "PageAutomationRuleDrawer": {"Close": "PageAutomations", "^Cancel": "PageAutomations", "^Save rule": "PageAutomations",
+                                 "^After an event": "PageAutomationRuleEventDrawer"},
+    "PageAutomationRuleEventDrawer": {"Close": "PageAutomations", "^Cancel": "PageAutomations", "^Save rule": "PageAutomations",
+                                      "^On a schedule": "PageAutomationRuleDrawer"},
+    "PageSettingsPayments": {"Change account": "PageSettingsBank", "^Open Automations": "PageAutomations", "^Open Packages": "PagePackages"},
+    "PageSettingsBank": {"Close": "PageSettingsPayments", "Cancel": "PageSettingsPayments", "Change account": "PageSettingsPayments"},
     "PageClientNutrition": {"Overview": "PageClientDetail", "Back to clients": "PageClients", "^Open editor": "PageClientPlanEditor", "^Chat": "PageInbox"},
     "PageClientNutritionEmpty": {"Overview": "PageClientDetail", "Back to clients": "PageClients", "^Use “": "PageClientPlanEditor", "^Start blank": "PageClientPlanBlank", "^Chat": "PageInbox"},
     "PageClientPlanEditor": {"Use": "PageClientPlanStartOver", "Plan Info": "PageClientPlanInfo", "Library": "PageClientPlanClosed", "Close panel": "PageClientPlanClosed",
@@ -138,6 +158,7 @@ CLIENT_FLOWS = prefixed("Glass", {
     "Measurements": {"Back": "Profile"},
     "CheckIn": {"Back": "Today", "Close": "Today", "Send to Martin": "Today"},
     "Settings": {"Back": "Profile", "Log out": "Login", "Messages": None},
+    "Payment": {"Back": "Profile"},
     "TrainingPlan": {"Back": "TrainingWeek", "^Weeks 1": "TrainingWeekDetail", "^Week 5": "TrainingWeekDetail",
                      "^Week 6": "TrainingWeekDetail", "^Week 7": "TrainingWeekDetail"},
     "TrainingWeekDetail": {"Back": "TrainingPlan", "^Upper body A": "SessionDetail", "^Lower body A": "SessionDetail",

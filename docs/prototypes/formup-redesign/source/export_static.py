@@ -11,7 +11,7 @@ canvas = json.load(open(os.path.join(HERE, "project", "canvas.json")))
 # Output folder -> (canvas page, board-name theme suffix or None). Mobile pages hold light and dark
 # boards together ("light above, dark below"), so the theme comes from the file name.
 FOLDERS = {"concepts": ("concepts", None), "web": ("web", None), "mobile-light": ("glass", "Light"), "mobile-dark": ("glass", "Dark"),
-           "coach-light": ("coach", "Light"), "coach-dark": ("coach", "Dark"), "logo": ("logo", None)}
+           "coach-light": ("coach", "Light"), "coach-dark": ("coach", "Dark"), "email": ("email", None), "logo": ("logo", None)}
 PAGE_NAMES = {p["id"]: p["name"] for p in canvas["pages"]}
 
 

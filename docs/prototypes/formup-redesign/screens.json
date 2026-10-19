@@ -834,6 +834,186 @@
   "h": 900
  },
  {
+  "html": "web/23-01-page-email-off-off-c.html",
+  "png": "web/23-01-page-email-off-off-c.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/23-02-page-email-off-on-c.html",
+  "png": "web/23-02-page-email-off-on-c.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/23-03-page-email-off-invalid-c.html",
+  "png": "web/23-03-page-email-off-invalid-c.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/24-01-page-email-off-off-d.html",
+  "png": "web/24-01-page-email-off-off-d.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/24-02-page-email-off-on-d.html",
+  "png": "web/24-02-page-email-off-on-d.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/24-03-page-email-off-invalid-d.html",
+  "png": "web/24-03-page-email-off-invalid-d.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/25-01-page-packages-c.html",
+  "png": "web/25-01-page-packages-c.png",
+  "w": 1440,
+  "h": 1000
+ },
+ {
+  "html": "web/25-02-page-package-drawer-c.html",
+  "png": "web/25-02-page-package-drawer-c.png",
+  "w": 1440,
+  "h": 1000
+ },
+ {
+  "html": "web/25-03-page-discounts-c.html",
+  "png": "web/25-03-page-discounts-c.png",
+  "w": 1440,
+  "h": 1000
+ },
+ {
+  "html": "web/25-04-page-discount-drawer-c.html",
+  "png": "web/25-04-page-discount-drawer-c.png",
+  "w": 1440,
+  "h": 1000
+ },
+ {
+  "html": "web/26-01-page-packages-d.html",
+  "png": "web/26-01-page-packages-d.png",
+  "w": 1440,
+  "h": 1000
+ },
+ {
+  "html": "web/26-02-page-package-drawer-d.html",
+  "png": "web/26-02-page-package-drawer-d.png",
+  "w": 1440,
+  "h": 1000
+ },
+ {
+  "html": "web/26-03-page-discounts-d.html",
+  "png": "web/26-03-page-discounts-d.png",
+  "w": 1440,
+  "h": 1000
+ },
+ {
+  "html": "web/26-04-page-discount-drawer-d.html",
+  "png": "web/26-04-page-discount-drawer-d.png",
+  "w": 1440,
+  "h": 1000
+ },
+ {
+  "html": "web/27-01-page-automations-c.html",
+  "png": "web/27-01-page-automations-c.png",
+  "w": 1440,
+  "h": 1000
+ },
+ {
+  "html": "web/27-02-page-automation-rule-drawer-c.html",
+  "png": "web/27-02-page-automation-rule-drawer-c.png",
+  "w": 1440,
+  "h": 1000
+ },
+ {
+  "html": "web/27-03-page-automation-rule-event-drawer-c.html",
+  "png": "web/27-03-page-automation-rule-event-drawer-c.png",
+  "w": 1440,
+  "h": 1000
+ },
+ {
+  "html": "web/28-01-page-automations-d.html",
+  "png": "web/28-01-page-automations-d.png",
+  "w": 1440,
+  "h": 1000
+ },
+ {
+  "html": "web/28-02-page-automation-rule-drawer-d.html",
+  "png": "web/28-02-page-automation-rule-drawer-d.png",
+  "w": 1440,
+  "h": 1000
+ },
+ {
+  "html": "web/28-03-page-automation-rule-event-drawer-d.html",
+  "png": "web/28-03-page-automation-rule-event-drawer-d.png",
+  "w": 1440,
+  "h": 1000
+ },
+ {
+  "html": "web/29-01-page-client-payment-c.html",
+  "png": "web/29-01-page-client-payment-c.png",
+  "w": 1440,
+  "h": 1100
+ },
+ {
+  "html": "web/29-02-page-client-payment-request-c.html",
+  "png": "web/29-02-page-client-payment-request-c.png",
+  "w": 1440,
+  "h": 1100
+ },
+ {
+  "html": "web/29-03-page-client-automations-c.html",
+  "png": "web/29-03-page-client-automations-c.png",
+  "w": 1440,
+  "h": 1100
+ },
+ {
+  "html": "web/30-01-page-client-payment-d.html",
+  "png": "web/30-01-page-client-payment-d.png",
+  "w": 1440,
+  "h": 1100
+ },
+ {
+  "html": "web/30-02-page-client-payment-request-d.html",
+  "png": "web/30-02-page-client-payment-request-d.png",
+  "w": 1440,
+  "h": 1100
+ },
+ {
+  "html": "web/30-03-page-client-automations-d.html",
+  "png": "web/30-03-page-client-automations-d.png",
+  "w": 1440,
+  "h": 1100
+ },
+ {
+  "html": "web/31-01-page-settings-payments-c.html",
+  "png": "web/31-01-page-settings-payments-c.png",
+  "w": 1440,
+  "h": 1000
+ },
+ {
+  "html": "web/31-02-page-settings-bank-c.html",
+  "png": "web/31-02-page-settings-bank-c.png",
+  "w": 860,
+  "h": 800
+ },
+ {
+  "html": "web/32-01-page-settings-payments-d.html",
+  "png": "web/32-01-page-settings-payments-d.png",
+  "w": 1440,
+  "h": 1000
+ },
+ {
+  "html": "web/32-02-page-settings-bank-d.html",
+  "png": "web/32-02-page-settings-bank-d.png",
+  "w": 860,
+  "h": 800
+ },
+ {
   "html": "mobile-light/01-01-launch-quiet.html",
   "png": "mobile-light/01-01-launch-quiet.png",
   "w": 390,
@@ -1184,6 +1364,12 @@
  {
   "html": "mobile-light/10-04-exercise-detail.html",
   "png": "mobile-light/10-04-exercise-detail.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/11-01-payment.html",
+  "png": "mobile-light/11-01-payment.png",
   "w": 390,
   "h": 844
  },
@@ -1542,6 +1728,12 @@
   "h": 844
  },
  {
+  "html": "mobile-dark/11-01-payment.html",
+  "png": "mobile-dark/11-01-payment.png",
+  "w": 390,
+  "h": 844
+ },
+ {
   "html": "coach-light/01-01-coach-setup.html",
   "png": "coach-light/01-01-coach-setup.png",
   "w": 390,
@@ -1720,6 +1912,114 @@
   "png": "coach-dark/04-03-coach-profile.png",
   "w": 390,
   "h": 844
+ },
+ {
+  "html": "email/01-01-email-verify-c.html",
+  "png": "email/01-01-email-verify-c.png",
+  "w": 720,
+  "h": 1000
+ },
+ {
+  "html": "email/01-02-email-password-reset-c.html",
+  "png": "email/01-02-email-password-reset-c.png",
+  "w": 720,
+  "h": 1000
+ },
+ {
+  "html": "email/01-03-email-invitation-c.html",
+  "png": "email/01-03-email-invitation-c.png",
+  "w": 720,
+  "h": 1140
+ },
+ {
+  "html": "email/02-01-email-verify-d.html",
+  "png": "email/02-01-email-verify-d.png",
+  "w": 720,
+  "h": 1000
+ },
+ {
+  "html": "email/02-02-email-password-reset-d.html",
+  "png": "email/02-02-email-password-reset-d.png",
+  "w": 720,
+  "h": 1000
+ },
+ {
+  "html": "email/02-03-email-invitation-d.html",
+  "png": "email/02-03-email-invitation-d.png",
+  "w": 720,
+  "h": 1140
+ },
+ {
+  "html": "email/03-01-email-new-message-c.html",
+  "png": "email/03-01-email-new-message-c.png",
+  "w": 720,
+  "h": 1180
+ },
+ {
+  "html": "email/03-02-email-check-in-c.html",
+  "png": "email/03-02-email-check-in-c.png",
+  "w": 720,
+  "h": 1100
+ },
+ {
+  "html": "email/03-03-email-join-request-c.html",
+  "png": "email/03-03-email-join-request-c.png",
+  "w": 720,
+  "h": 1080
+ },
+ {
+  "html": "email/03-04-email-photos-c.html",
+  "png": "email/03-04-email-photos-c.png",
+  "w": 720,
+  "h": 1060
+ },
+ {
+  "html": "email/03-05-email-workout-c.html",
+  "png": "email/03-05-email-workout-c.png",
+  "w": 720,
+  "h": 1080
+ },
+ {
+  "html": "email/04-01-email-new-message-d.html",
+  "png": "email/04-01-email-new-message-d.png",
+  "w": 720,
+  "h": 1180
+ },
+ {
+  "html": "email/04-02-email-check-in-d.html",
+  "png": "email/04-02-email-check-in-d.png",
+  "w": 720,
+  "h": 1100
+ },
+ {
+  "html": "email/04-03-email-join-request-d.html",
+  "png": "email/04-03-email-join-request-d.png",
+  "w": 720,
+  "h": 1080
+ },
+ {
+  "html": "email/04-04-email-photos-d.html",
+  "png": "email/04-04-email-photos-d.png",
+  "w": 720,
+  "h": 1060
+ },
+ {
+  "html": "email/04-05-email-workout-d.html",
+  "png": "email/04-05-email-workout-d.png",
+  "w": 720,
+  "h": 1080
+ },
+ {
+  "html": "email/05-01-email-payment-request-c.html",
+  "png": "email/05-01-email-payment-request-c.png",
+  "w": 720,
+  "h": 1240
+ },
+ {
+  "html": "email/06-01-email-payment-request-d.html",
+  "png": "email/06-01-email-payment-request-d.png",
+  "w": 720,
+  "h": 1240
  },
  {
   "html": "logo/01-01-logo-pixel.html",
