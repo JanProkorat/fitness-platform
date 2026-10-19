@@ -1,8 +1,10 @@
+import { useEffect } from 'react';
 import { useFormContext, useWatch } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { Camera, FileText, Ruler, Send } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { AutomationActionType } from '@/api/automations';
+import { QuestionnaireType } from '@/api/questionnaires';
 import { useTrainerQuestionnaires } from '@/hooks/useQuestionnaireQueries';
 import {
   FIELD_CLASS,
@@ -28,12 +30,24 @@ interface Props {
 /** Section 2: the action, its form and the message. The message limit follows the action. */
 export default function AutomationWhatSection({ actionLocked = false }: Props) {
   const { t } = useTranslation();
-  const { register, setValue, trigger, control } = useFormContext<AutomationRuleFormValues>();
+  const { register, setValue, trigger, control, getValues } = useFormContext<AutomationRuleFormValues>();
   const actionType = useWatch({ control, name: 'actionType' });
   const message = useWatch({ control, name: 'message' }) ?? '';
   const limit = messageLimitFor(actionType);
-  const formsQuery = useTrainerQuestionnaires();
+  // An automation can only send an active onboarding form; check-in forms have their own flow.
+  const formsQuery = useTrainerQuestionnaires({ type: QuestionnaireType.Onboarding });
   const forms = (formsQuery.data ?? []).filter((form) => form.isActive);
+  const loadedForms = formsQuery.isSuccess && !formsQuery.isPlaceholderData ? forms : undefined;
+
+  // A saved rule may point at a form that is no longer offered; clear it so the required-form check shows.
+  useEffect(() => {
+    if (!loadedForms || actionLocked || actionType !== AutomationActionType.SendForm) return;
+    const current = getValues('questionnaireId');
+    if (current !== '' && !loadedForms.some((form) => form.publicId === current)) {
+      setValue('questionnaireId', '', { shouldDirty: true });
+      void trigger('questionnaireId');
+    }
+  }, [loadedForms, actionLocked, actionType, getValues, setValue, trigger]);
 
   const chooseAction = (value: AutomationActionType) => {
     setValue('actionType', value, { shouldDirty: true });
