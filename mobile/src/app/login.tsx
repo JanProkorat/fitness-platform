@@ -1,4 +1,5 @@
 import { useMutation } from '@tanstack/react-query';
+import { router, useLocalSearchParams } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, View } from 'react-native';
@@ -25,7 +26,8 @@ export default function LoginScreen() {
   const theme = useTheme();
   const styles = makeStyles(theme);
   const passwordRef = useRef<TextInput>(null);
-  const [email, setEmail] = useState('');
+  const params = useLocalSearchParams<{ email?: string; registered?: string }>();
+  const [email, setEmail] = useState(params.email ?? '');
   const [password, setPassword] = useState('');
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
@@ -126,6 +128,11 @@ export default function LoginScreen() {
               {t('auth.login.forgotPassword')}
             </Text>
           </Pressable>
+          {params.registered === '1' && !failure ? (
+            <Text variant="label" color="muted" accessibilityRole="alert">
+              {t('auth.login.registeredNotice')}
+            </Text>
+          ) : null}
           {failure ? (
             <Text variant="label" color="error" accessibilityRole="alert">
               {t(`auth.login.errors.${failure}`)}
@@ -140,7 +147,12 @@ export default function LoginScreen() {
         </View>
         <Text variant="bodySmall" color="muted" style={styles.footer}>
           {t('auth.login.newHere')}{' '}
-          <Text variant="link" color="accent" accessibilityRole="link">
+          <Text
+            variant="link"
+            color="accent"
+            accessibilityRole="link"
+            onPress={() => router.push('/register')}
+          >
             {t('auth.login.createAccount')}
           </Text>
         </Text>

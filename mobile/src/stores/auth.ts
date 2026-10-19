@@ -14,7 +14,13 @@ interface AuthState {
   isInitialized: boolean;
   /** Bumped on every login and logout so an in-flight refresh can tell its session ended. */
   sessionGeneration: number;
+  /** Set by the check-email screen; lets a later confirmation show the Verified screen. */
+  sawUnverified: boolean;
+  /** Set once the user leaves the Verified screen. */
+  verifiedAcknowledged: boolean;
 
+  markSawUnverified: () => void;
+  acknowledgeVerified: () => void;
   login: (accessToken: string, refreshToken: string) => Promise<void>;
   /**
    * Stores rotated tokens for the session `generation` that requested them.
@@ -44,11 +50,22 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isAuthenticated: false,
   isInitialized: false,
   sessionGeneration: 0,
+  sawUnverified: false,
+  verifiedAcknowledged: false,
+
+  markSawUnverified: () => set({ sawUnverified: true }),
+  acknowledgeVerified: () => set({ verifiedAcknowledged: true }),
 
   login: async (accessToken, refreshToken) => {
     queryClient.clear();
     // Memory first, so a stale refresh that wrote SecureStore meanwhile restores this token.
-    set((state) => ({ accessToken, refreshToken, sessionGeneration: state.sessionGeneration + 1 }));
+    set((state) => ({
+      accessToken,
+      refreshToken,
+      sawUnverified: false,
+      verifiedAcknowledged: false,
+      sessionGeneration: state.sessionGeneration + 1,
+    }));
     try {
       await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, refreshToken);
     } catch (error) {
@@ -74,6 +91,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       accessToken: null,
       refreshToken: null,
       isAuthenticated: false,
+      sawUnverified: false,
+      verifiedAcknowledged: false,
       sessionGeneration: state.sessionGeneration + 1,
     }));
     queryClient.clear();

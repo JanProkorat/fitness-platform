@@ -30,6 +30,62 @@
         "rateLimited": "Too many attempts. Please try again in a moment.",
         "network": "Can't reach the server. Check your connection and try again.",
         "generic": "Sign-in failed. Please try again."
+      },
+      "registeredNotice": "Your account is ready, but we couldn't sign you in. Please sign in."
+    },
+    "register": {
+      "heading": "Create account",
+      "subtitle": "Takes a minute. Pick how you'll use Form Up.",
+      "back": "Back",
+      "roleGroup": "Account type",
+      "roleLabel": "I'm joining as",
+      "roles": {
+        "client": {
+          "title": "Client",
+          "hint": "I want a coach"
+        },
+        "trainer": {
+          "title": "Trainer",
+          "hint": "I coach training"
+        },
+        "nutritionist": {
+          "title": "Nutritionist",
+          "hint": "I coach eating"
+        }
+      },
+      "coachHint": "Coaches can pick trainer and nutritionist together.",
+      "firstName": "First name",
+      "lastName": "Last name",
+      "email": "Email",
+      "password": "Password",
+      "showPassword": "Show",
+      "hidePassword": "Hide",
+      "passwordRules": {
+        "length": "At least 8 characters",
+        "uppercase": "Uppercase letter",
+        "lowercase": "Lowercase letter",
+        "digit": "Digit"
+      },
+      "ruleMet": "met",
+      "ruleUnmet": "not met yet",
+      "gdprConsent": "I agree to the processing of my personal data and to the terms of use.",
+      "healthConsent": "I agree to the processing of my health data, such as weight and injuries, so my coach can build my plans.",
+      "submit": "Create account",
+      "validation": {
+        "firstNameRequired": "Enter your first name.",
+        "lastNameRequired": "Enter your last name.",
+        "emailRequired": "Enter your email.",
+        "emailInvalid": "Enter a valid email.",
+        "passwordRules": "Your password doesn't meet all the rules yet.",
+        "gdprRequired": "Please agree to continue.",
+        "healthRequired": "Please agree to continue."
+      },
+      "errors": {
+        "duplicateEmail": "An account with this email already exists.",
+        "rateLimited": "Too many attempts. Please try again in a moment.",
+        "network": "Can't reach the server. Check your connection and try again.",
+        "validation": "Please check this field.",
+        "generic": "Couldn't create your account. Please try again."
       }
     }
   },
@@ -52,5 +108,54 @@
       "nutrition": "Nutrition",
       "messages": "Messages"
     }
+  },
+  "common": {
+    "signOut": "Sign out"
+  },
+  "profileError": {
+    "title": "Can't load your account",
+    "body": "Check your connection and try again.",
+    "retry": "Try again"
+  },
+  "checkEmail": {
+    "title": "Check your email",
+    "sentTo": "We sent a verification link to",
+    "tapIt": "Tap it on this phone to continue.",
+    "noEmailTitle": "No email yet?",
+    "noEmailBody": "Check your spam folder, or wait a minute. It can take a moment to arrive.",
+    "resend": "Resend email",
+    "resendIn": "· available in {{time}}",
+    "resent": "Email sent.",
+    "openEmailApp": "Open email app",
+    "backSignOut": "Back, sign out",
+    "errors": {
+      "limitReached": "You've reached the limit of verification emails. Check your spam folder.",
+      "rateLimited": "Too many attempts. Please try again in a moment.",
+      "network": "Can't reach the server. Check your connection and try again.",
+      "generic": "Couldn't send the email. Please try again."
+    }
+  },
+  "verified": {
+    "title": "Email verified",
+    "welcome": "Welcome to Form Up, {{name}}. Your account is ready.",
+    "welcomeAnonymous": "Welcome to Form Up. Your account is ready.",
+    "next": "WHAT'S NEXT",
+    "aboutYou": {
+      "title": "Tell us about you",
+      "hint": "6 short steps, about 3 minutes"
+    },
+    "findCoach": {
+      "title": "Find a coach",
+      "hint": "Or accept an invite you already have"
+    },
+    "cta": "Set up your profile"
+  },
+  "onboarding": {
+    "title": "Set up your profile",
+    "body": "Profile setup is coming soon."
+  },
+  "coachPending": {
+    "title": "Your coach account is ready",
+    "body": "Coach tools aren't in the app yet. Use the Form Up web portal to manage your clients."
   }
 }

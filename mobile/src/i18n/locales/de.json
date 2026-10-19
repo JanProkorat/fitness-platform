@@ -30,6 +30,62 @@
         "rateLimited": "Zu viele Versuche. Bitte versuche es gleich noch einmal.",
         "network": "Der Server ist nicht erreichbar. Prüfe deine Verbindung und versuche es erneut.",
         "generic": "Die Anmeldung ist fehlgeschlagen. Bitte versuche es erneut."
+      },
+      "registeredNotice": "Dein Konto ist angelegt, aber die Anmeldung hat nicht geklappt. Bitte melde dich an."
+    },
+    "register": {
+      "heading": "Konto erstellen",
+      "subtitle": "Dauert eine Minute. Wähle, wie du Form Up nutzt.",
+      "back": "Zurück",
+      "roleGroup": "Kontotyp",
+      "roleLabel": "Ich melde mich an als",
+      "roles": {
+        "client": {
+          "title": "Klient",
+          "hint": "Ich suche einen Coach"
+        },
+        "trainer": {
+          "title": "Trainer",
+          "hint": "Ich betreue Training"
+        },
+        "nutritionist": {
+          "title": "Ernährungsberater",
+          "hint": "Ich betreue Ernährung"
+        }
+      },
+      "coachHint": "Coaches können Trainer und Ernährungsberater zusammen wählen.",
+      "firstName": "Vorname",
+      "lastName": "Nachname",
+      "email": "E-Mail",
+      "password": "Passwort",
+      "showPassword": "Anzeigen",
+      "hidePassword": "Verbergen",
+      "passwordRules": {
+        "length": "Mindestens 8 Zeichen",
+        "uppercase": "Großbuchstabe",
+        "lowercase": "Kleinbuchstabe",
+        "digit": "Ziffer"
+      },
+      "ruleMet": "erfüllt",
+      "ruleUnmet": "noch nicht erfüllt",
+      "gdprConsent": "Ich stimme der Verarbeitung meiner personenbezogenen Daten und den Nutzungsbedingungen zu.",
+      "healthConsent": "Ich stimme der Verarbeitung meiner Gesundheitsdaten, etwa Gewicht und Verletzungen, zu, damit mein Coach meine Pläne erstellen kann.",
+      "submit": "Konto erstellen",
+      "validation": {
+        "firstNameRequired": "Gib deinen Vornamen ein.",
+        "lastNameRequired": "Gib deinen Nachnamen ein.",
+        "emailRequired": "Gib deine E-Mail ein.",
+        "emailInvalid": "Gib eine gültige E-Mail ein.",
+        "passwordRules": "Dein Passwort erfüllt noch nicht alle Regeln.",
+        "gdprRequired": "Zum Fortfahren ist deine Zustimmung nötig.",
+        "healthRequired": "Zum Fortfahren ist deine Zustimmung nötig."
+      },
+      "errors": {
+        "duplicateEmail": "Mit dieser E-Mail gibt es bereits ein Konto.",
+        "rateLimited": "Zu viele Versuche. Bitte versuche es gleich noch einmal.",
+        "network": "Server nicht erreichbar. Prüfe deine Verbindung und versuche es erneut.",
+        "validation": "Bitte prüfe dieses Feld.",
+        "generic": "Das Konto konnte nicht erstellt werden. Bitte versuche es erneut."
       }
     }
   },
@@ -52,5 +108,54 @@
       "nutrition": "Ernährung",
       "messages": "Nachrichten"
     }
+  },
+  "common": {
+    "signOut": "Abmelden"
+  },
+  "profileError": {
+    "title": "Konto konnte nicht geladen werden",
+    "body": "Prüfe deine Verbindung und versuche es erneut.",
+    "retry": "Erneut versuchen"
+  },
+  "checkEmail": {
+    "title": "Prüfe dein Postfach",
+    "sentTo": "Wir haben einen Bestätigungslink gesendet an",
+    "tapIt": "Tippe auf diesem Telefon darauf, um fortzufahren.",
+    "noEmailTitle": "Noch keine E-Mail?",
+    "noEmailBody": "Schau in deinen Spam-Ordner oder warte kurz. Die Zustellung kann einen Moment dauern.",
+    "resend": "E-Mail erneut senden",
+    "resendIn": "· verfügbar in {{time}}",
+    "resent": "E-Mail gesendet.",
+    "openEmailApp": "E-Mail-App öffnen",
+    "backSignOut": "Zurück, abmelden",
+    "errors": {
+      "limitReached": "Du hast das Limit für Bestätigungs-E-Mails erreicht. Schau in deinen Spam-Ordner.",
+      "rateLimited": "Zu viele Versuche. Bitte versuche es gleich noch einmal.",
+      "network": "Server nicht erreichbar. Prüfe deine Verbindung und versuche es erneut.",
+      "generic": "Die E-Mail konnte nicht gesendet werden. Bitte versuche es erneut."
+    }
+  },
+  "verified": {
+    "title": "E-Mail bestätigt",
+    "welcome": "Willkommen bei Form Up, {{name}}. Dein Konto ist bereit.",
+    "welcomeAnonymous": "Willkommen bei Form Up. Dein Konto ist bereit.",
+    "next": "WIE ES WEITERGEHT",
+    "aboutYou": {
+      "title": "Erzähl uns von dir",
+      "hint": "6 kurze Schritte, etwa 3 Minuten"
+    },
+    "findCoach": {
+      "title": "Coach finden",
+      "hint": "Oder nimm eine Einladung an, die du schon hast"
+    },
+    "cta": "Profil einrichten"
+  },
+  "onboarding": {
+    "title": "Profil einrichten",
+    "body": "Die Profileinrichtung folgt in Kürze."
+  },
+  "coachPending": {
+    "title": "Dein Coach-Konto ist bereit",
+    "body": "Die Coach-Werkzeuge gibt es in der App noch nicht. Verwalte deine Klienten im Form Up Webportal."
   }
 }
