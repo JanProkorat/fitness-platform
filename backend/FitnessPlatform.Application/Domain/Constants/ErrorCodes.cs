@@ -495,4 +495,53 @@ public static class ErrorCodes
 
     /// <summary>A Check-in form cannot be assigned, replaced, or attached to an invite or accepted request.</summary>
     public const string CheckInFormNotSendable = "CHECKIN_FORM_NOT_SENDABLE";
+
+    // ── Automations (#1504) ─────────────────────────────────────────────
+    /// <summary>The automation rule does not exist or is not owned by the caller.</summary>
+    public const string AutomationRuleNotFound = "AUTOMATION_RULE_NOT_FOUND";
+
+    /// <summary>The audience tag does not exist or is owned by another coach.</summary>
+    public const string AutomationTagNotFound = "AUTOMATION_TAG_NOT_FOUND";
+
+    /// <summary>A chosen client has no live link to the caller.</summary>
+    public const string AutomationAudienceClientNotFound = "AUTOMATION_AUDIENCE_CLIENT_NOT_FOUND";
+
+    /// <summary>The questionnaire to send does not exist or is not owned by the caller.</summary>
+    public const string AutomationQuestionnaireNotFound = "AUTOMATION_QUESTIONNAIRE_NOT_FOUND";
+
+    /// <summary>The pause end date is before the client's current local date.</summary>
+    public const string AutomationPausedUntilInPast = "AUTOMATION_PAUSED_UNTIL_IN_PAST";
+
+    /// <summary>A pause end date or note was sent without pausing.</summary>
+    public const string AutomationPauseDetailsWithoutPause = "AUTOMATION_PAUSE_DETAILS_WITHOUT_PAUSE";
+
+    /// <summary>Reset was requested but the rule has no override for this client.</summary>
+    public const string AutomationNoOverrideToReset = "AUTOMATION_NO_OVERRIDE_TO_RESET";
+
+    /// <summary>Override or pause was requested on a client-only rule; update the rule itself.</summary>
+    public const string AutomationClientOnlyRuleNotOverridable = "AUTOMATION_CLIENT_ONLY_RULE_NOT_OVERRIDABLE";
+
+    /// <summary>An audience was sent for a client-only rule.</summary>
+    public const string AutomationAudienceNotAllowedOnClientOnlyRule = "AUTOMATION_AUDIENCE_NOT_ALLOWED_ON_CLIENT_ONLY_RULE";
+
+    /// <summary>The audience tag id is missing for a Tag audience.</summary>
+    public const string AutomationAudienceTagRequired = "AUTOMATION_AUDIENCE_TAG_REQUIRED";
+
+    /// <summary>The chosen client list is empty for a Chosen audience.</summary>
+    public const string AutomationAudienceClientsRequired = "AUTOMATION_AUDIENCE_CLIENTS_REQUIRED";
+
+    /// <summary>The schedule trigger is incomplete or out of range.</summary>
+    public const string AutomationScheduleInvalid = "AUTOMATION_SCHEDULE_INVALID";
+
+    /// <summary>The event trigger is incomplete or out of range.</summary>
+    public const string AutomationEventInvalid = "AUTOMATION_EVENT_INVALID";
+
+    /// <summary>Once-per-plan was set on an event that is not a plan event.</summary>
+    public const string AutomationOncePerPlanNeedsPlanEvent = "AUTOMATION_ONCE_PER_PLAN_NEEDS_PLAN_EVENT";
+
+    /// <summary>A send-form rule has no questionnaire.</summary>
+    public const string AutomationQuestionnaireRequired = "AUTOMATION_QUESTIONNAIRE_REQUIRED";
+
+    /// <summary>The send limit is below 1.</summary>
+    public const string AutomationStopAfterInvalid = "AUTOMATION_STOP_AFTER_INVALID";
 }

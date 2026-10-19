@@ -176,6 +176,31 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     /// </summary>
     public virtual DbSet<ClientTagAssignment> ClientTagAssignments { get; set; } = null!;
 
+    /// <summary>
+    /// Coach-owned automation rules (global and client-only).
+    /// </summary>
+    public virtual DbSet<AutomationRule> AutomationRules { get; set; } = null!;
+
+    /// <summary>
+    /// Chosen clients of automation rules with a Chosen audience.
+    /// </summary>
+    public virtual DbSet<AutomationRuleAudienceClient> AutomationRuleAudienceClients { get; set; } = null!;
+
+    /// <summary>
+    /// Per-client customisations and pauses of automation rules.
+    /// </summary>
+    public virtual DbSet<AutomationClientOverride> AutomationClientOverrides { get; set; } = null!;
+
+    /// <summary>
+    /// Per rule-and-client runtime schedule rows.
+    /// </summary>
+    public virtual DbSet<AutomationSchedule> AutomationSchedules { get; set; } = null!;
+
+    /// <summary>
+    /// Log of automation occurrences per rule and client.
+    /// </summary>
+    public virtual DbSet<AutomationRun> AutomationRuns { get; set; } = null!;
+
     /// <inheritdoc />
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
