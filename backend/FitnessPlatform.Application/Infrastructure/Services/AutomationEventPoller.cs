@@ -194,13 +194,16 @@ public sealed class AutomationEventPoller(
                 ? active
                 : pair.Client.LinkedSince;
 
+            // The event is the moment inactivity reaches N days; the send is the first send time after it.
+            var inactiveSince = baseline.AddDays(inactiveDays);
+
             AddIfDue(
                 found,
                 pair,
                 $"inactive:{baseline:yyyyMMddTHHmmss}",
-                eventAt: baseline.AddDays(inactiveDays),
-                fireFrom: baseline,
-                inactiveDays,
+                eventAt: inactiveSince,
+                fireFrom: inactiveSince,
+                0,
                 nowUtc);
         }
 

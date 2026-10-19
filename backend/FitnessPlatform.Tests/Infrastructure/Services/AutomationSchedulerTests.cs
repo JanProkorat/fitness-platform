@@ -770,6 +770,26 @@ public class AutomationSchedulerTests(FitnessApiFactory factory)
     }
 
     [Fact]
+    public async Task Poll_ClientInactiveForTheDays_NeverSendsBeforeTheDaysHaveElapsed()
+    {
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var client = await TestActors.Client(factory).CreateAsync(Ct);
+        var linkId = await TestActors.Link(factory, coach, client).CreateAsync(Ct);
+        var linkedAt = DateTime.UtcNow.Date.AddDays(-4).AddHours(20);
+        await AutomationTestData.SetLinkCreatedAsync(factory, linkId, linkedAt);
+        var rule = await EventRuleAsync(factory, coach, AutomationEventType.ClientInactive, 3);
+        await AutomationTestData.SetRuleCreatedAsync(factory, rule.Id, DateTime.UtcNow.AddDays(-10));
+        var inactiveSince = linkedAt.AddDays(3);
+
+        await Scheduler.RunDueNowAsync(inactiveSince.AddMinutes(30), Ct);
+        (await RunsAsync(rule.Id)).Should().BeEmpty("the 09:00 on the day the days elapse is already behind; the next send time is the following morning");
+
+        var fireAt = AutomationPolledEventCalculator.ComputeFireAt(inactiveSince, 0, new TimeOnly(9, 0), Prague);
+        await Scheduler.RunDueNowAsync(After(fireAt), Ct);
+        (await RunsAsync(rule.Id)).Should().ContainSingle();
+    }
+
+    [Fact]
     public async Task Poll_ClientActiveRecently_DoesNotFireInactive()
     {
         var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
