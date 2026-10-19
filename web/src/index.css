@@ -66,6 +66,8 @@
   --gf-mark-row2-dark: #b8322a;
   --gf-mark-ring-dark: #f4a08a;
   --gf-mark-tick-dark: #ffffff;
+  --gf-mark-up: #c8382f; /* logo "UP", same in both themes and on every surface */
+  --gf-mark-sidebar-text: #f4f2ee; /* lockup text on the always-dark sidebar */
   --gf-mark-row1-on-red: #ffffff; /* logo mark on a brand-red surface */
   --gf-mark-row2-on-red: #ffc4ba;
   --gf-mark-ring-on-red: #ff9a8b;
@@ -761,6 +763,8 @@
   --color-mark-row2-on-red: var(--gf-mark-row2-on-red);
   --color-mark-ring-on-red: var(--gf-mark-ring-on-red);
   --color-mark-tick-on-red: var(--gf-mark-tick-on-red);
+  --color-mark-up: var(--gf-mark-up);
+  --color-mark-sidebar-text: var(--gf-mark-sidebar-text);
   --color-muted-tint: var(--gf-muted-tint);
 
   --color-hero-warm: var(--gf-hero-warm);

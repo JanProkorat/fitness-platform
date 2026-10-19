@@ -15,7 +15,7 @@ interface Props {
 
 const SIZE_CLASSES: Record<WordmarkSize, string> = {
   nav: 'text-home-wordmark-sm tracking-wordmark-sm text-ink sm:text-home-wordmark sm:tracking-wordmark',
-  sidebar: 'text-card-title leading-none tracking-wordmark text-sidebar-text',
+  sidebar: 'text-card-title leading-none tracking-wordmark text-mark-sidebar-text',
 };
 
 /** The Form Up brand lockup: the checklist mark stands in for the "F" of FORM. */
@@ -29,9 +29,9 @@ export default function Wordmark({ size = 'nav', to, className }: Props) {
         <LogoMark
           cropped
           tone={size === 'sidebar' ? 'dark' : 'theme'}
-          className="mr-[0.18em] inline-block align-baseline h-[0.7em] w-[0.763em]"
+          className="mr-[0.18em] inline-block align-baseline h-[0.74em] w-[0.8em]"
         />
-        {t('home.brand.form').slice(1)} <span className="text-marker">{t('home.brand.up')}</span>
+        {t('home.brand.form').slice(1)} <span className="text-mark-up">{t('home.brand.up')}</span>
       </span>
     </>
   );
