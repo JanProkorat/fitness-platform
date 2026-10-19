@@ -4,7 +4,7 @@
  * is removed again; no assertion counts rows, because other specs share the fixture.
  */
 import { trainerTest as test, expect } from '../fixtures/auth';
-import type { Locator, Page } from '@playwright/test';
+import { request as apiRequest, type Locator, type Page } from '@playwright/test';
 
 const CLIENT_IDS = ['77777777-7777-7777-aaaa-000000000001', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'];
 const WEEKDAY = /\b(Mon|Tue|Wed|Thu|Fri|Sat|Sun)(day|sday|nesday|rsday|urday)?\b/;
@@ -21,6 +21,32 @@ async function openClientTab(page: Page): Promise<string> {
     }
   }
   throw new Error('No fixture client grants automation coverage to the QA trainer');
+}
+
+/**
+ * The seed creates no weekly check-in setting, and the linked row only exists once the coach has one.
+ * PUT upserts the QA trainer's Training setting, so running it again (or in parallel) changes nothing.
+ */
+async function ensureCheckInSetting(baseURL: string) {
+  const password = process.env['QA_SEED_PASSWORD'];
+  if (!password) {
+    throw new Error('QA_SEED_PASSWORD is not set. Copy .env.test.example to .env.test and fill it in.');
+  }
+  const api = await apiRequest.newContext({ baseURL });
+  try {
+    const login = await api.post('/auth/login', {
+      data: { email: 'qa.trainer@fitnessplatform.test', password },
+    });
+    expect(login.ok()).toBe(true);
+    const { accessToken } = (await login.json()) as { accessToken: string };
+    const put = await api.put('/trainer/weekly-check-ins/settings', {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      data: { profession: 'Training', dayOfWeek: 1, timeOfDay: '09:00:00', enabled: true, deadlineOffsetHours: 72 },
+    });
+    expect(put.ok()).toBe(true);
+  } finally {
+    await api.dispose();
+  }
 }
 
 function rowOf(page: Page, name: string): Locator {
@@ -57,7 +83,11 @@ async function deleteGlobalRule(page: Page, name: string) {
 }
 
 test.describe('client automations tab', () => {
-  test('the tab is live, shows the linked check-in without a weekday and the 30-day summary', async ({ page }) => {
+  test('the tab is live, shows the linked check-in without a weekday and the 30-day summary', async ({
+    page,
+    baseURL,
+  }) => {
+    await ensureCheckInSetting(baseURL ?? 'http://localhost:5173');
     await openClientTab(page);
     await expect(page.getByRole('tab', { name: 'Automations' })).toHaveAttribute('aria-selected', 'true');
     await expect(page.getByRole('heading', { name: /^Sent to / })).toBeVisible();
