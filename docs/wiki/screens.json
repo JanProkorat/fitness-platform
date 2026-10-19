@@ -699,12 +699,12 @@
         "mobile/src/hooks/useAuthPhase.ts",
         "mobile/src/api/auth.ts",
         "mobile/src/api/errors.ts",
-        "mobile/src/components/Wordmark.tsx",
-        "mobile/src/components/LogoMark.tsx",
-        "mobile/src/components/Input.tsx",
         "mobile/src/components/Button.tsx",
+        "mobile/src/components/Input.tsx",
+        "mobile/src/components/LogoMark.tsx",
         "mobile/src/components/Screen.tsx",
-        "mobile/src/components/Text.tsx"
+        "mobile/src/components/Text.tsx",
+        "mobile/src/components/Wordmark.tsx"
       ],
       "endpoints": [
         "POST /auth/login"
@@ -725,14 +725,18 @@
       "roles": ["Public"],
       "files": [
         "mobile/src/app/register.tsx",
-        "mobile/src/api/register.ts",
         "mobile/src/api/auth.ts",
-        "mobile/src/components/RoleCard.tsx",
-        "mobile/src/components/PasswordRules.tsx",
-        "mobile/src/components/Checkbox.tsx",
+        "mobile/src/api/errors.ts",
+        "mobile/src/api/profile.ts",
+        "mobile/src/api/register.ts",
         "mobile/src/components/BackButton.tsx",
+        "mobile/src/components/Button.tsx",
+        "mobile/src/components/Checkbox.tsx",
         "mobile/src/components/Input.tsx",
-        "mobile/src/components/Button.tsx"
+        "mobile/src/components/PasswordRules.tsx",
+        "mobile/src/components/RoleCard.tsx",
+        "mobile/src/components/Screen.tsx",
+        "mobile/src/components/Text.tsx"
       ],
       "endpoints": [
         "POST /auth/register",
@@ -755,12 +759,18 @@
       "roles": ["Client", "Trainer", "Nutritionist"],
       "files": [
         "mobile/src/app/check-email.tsx",
+        "mobile/src/api/errors.ts",
+        "mobile/src/api/profile.ts",
+        "mobile/src/api/register.ts",
+        "mobile/src/components/BackButton.tsx",
+        "mobile/src/components/Button.tsx",
+        "mobile/src/components/Card.tsx",
         "mobile/src/components/ChangeEmailSheet.tsx",
         "mobile/src/components/HeroIcon.tsx",
-        "mobile/src/components/BackButton.tsx",
-        "mobile/src/hooks/useProfile.ts",
-        "mobile/src/api/register.ts",
-        "mobile/src/api/profile.ts"
+        "mobile/src/components/Input.tsx",
+        "mobile/src/components/Screen.tsx",
+        "mobile/src/components/Text.tsx",
+        "mobile/src/hooks/useProfile.ts"
       ],
       "endpoints": [
         "GET /users/me",
@@ -783,10 +793,18 @@
       "roles": ["Public", "Client", "Trainer", "Nutritionist"],
       "files": [
         "mobile/src/app/verify-email.tsx",
-        "mobile/src/components/VerifiedNextSteps.tsx",
-        "mobile/src/components/HeroIcon.tsx",
+        "mobile/app.config.ts",
+        "mobile/src/api/errors.ts",
+        "mobile/src/api/profile.ts",
         "mobile/src/api/register.ts",
-        "mobile/app.config.ts"
+        "mobile/src/components/BackButton.tsx",
+        "mobile/src/components/Button.tsx",
+        "mobile/src/components/Card.tsx",
+        "mobile/src/components/HeroIcon.tsx",
+        "mobile/src/components/Input.tsx",
+        "mobile/src/components/Screen.tsx",
+        "mobile/src/components/Text.tsx",
+        "mobile/src/components/VerifiedNextSteps.tsx"
       ],
       "endpoints": [
         "POST /auth/verify-email",
@@ -810,8 +828,14 @@
       "roles": ["Client", "Trainer", "Nutritionist"],
       "files": [
         "mobile/src/app/verified.tsx",
+        "mobile/src/api/profile.ts",
+        "mobile/src/components/Button.tsx",
+        "mobile/src/components/Card.tsx",
+        "mobile/src/components/HeroIcon.tsx",
+        "mobile/src/components/Screen.tsx",
+        "mobile/src/components/Text.tsx",
         "mobile/src/components/VerifiedNextSteps.tsx",
-        "mobile/src/components/HeroIcon.tsx"
+        "mobile/src/hooks/useProfile.ts"
       ],
       "endpoints": [
         "GET /users/me"
@@ -832,16 +856,15 @@
       "roles": ["Client"],
       "files": [
         "mobile/src/app/onboarding.tsx",
-        "mobile/src/hooks/useOnboardingForm.ts",
+        "mobile/src/api/errors.ts",
         "mobile/src/api/onboarding.ts",
-        "mobile/src/components/onboarding/StepHeader.tsx",
-        "mobile/src/components/onboarding/GoalStep.tsx",
-        "mobile/src/components/onboarding/BasicsStep.tsx",
-        "mobile/src/components/onboarding/LifestyleStep.tsx",
-        "mobile/src/components/onboarding/TrainingStep.tsx",
-        "mobile/src/components/onboarding/EatingStep.tsx",
-        "mobile/src/components/onboarding/MotivationStep.tsx",
-        "mobile/src/components/onboarding/ChipSheet.tsx"
+        "mobile/src/api/profile.ts",
+        "mobile/src/components/BackButton.tsx",
+        "mobile/src/components/Button.tsx",
+        "mobile/src/components/Card.tsx",
+        "mobile/src/components/Text.tsx",
+        "mobile/src/components/onboarding/**",
+        "mobile/src/hooks/useOnboardingForm.ts"
       ],
       "endpoints": [
         "POST /client/onboarding",
@@ -867,7 +890,10 @@
       "route": "/coach-pending",
       "roles": ["Trainer", "Nutritionist"],
       "files": [
-        "mobile/src/app/coach-pending.tsx"
+        "mobile/src/app/coach-pending.tsx",
+        "mobile/src/components/Button.tsx",
+        "mobile/src/components/Screen.tsx",
+        "mobile/src/components/Text.tsx"
       ],
       "endpoints": [],
       "board": null,
