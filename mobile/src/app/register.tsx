@@ -152,11 +152,13 @@ export default function RegisterScreen() {
     >
       <Screen scroll contentStyle={styles.content}>
         <View style={styles.topBar}>
-          <BackButton label={t('auth.register.back')} onPress={goBack} />
           <View style={styles.heading}>
-            <Text variant="title" accessibilityRole="header">
+            <Text variant="title" accessibilityRole="header" style={styles.headingText}>
               {t('auth.register.heading')}
             </Text>
+          </View>
+          <View style={styles.back}>
+            <BackButton label={t('auth.register.back')} onPress={goBack} />
           </View>
         </View>
         <Text variant="body" color="muted">
@@ -332,13 +334,22 @@ const makeStyles = (theme: Theme, insets: EdgeInsets) =>
       paddingBottom: theme.sizes.authBottom,
     },
     topBar: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: theme.spacing.sm,
+      minHeight: theme.sizes.backButton,
+      justifyContent: 'center',
     },
+    back: {
+      position: 'absolute',
+      top: 0,
+      bottom: 0,
+      left: 0,
+      justifyContent: 'center',
+    },
+    // Equal padding on both sides keeps the title centred and clear of the back button.
     heading: {
-      flex: 1,
-      minWidth: 0,
+      paddingHorizontal: theme.sizes.backButton + theme.spacing.sm,
+    },
+    headingText: {
+      textAlign: 'center',
     },
     group: {
       gap: theme.spacing.snug,
