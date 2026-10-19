@@ -119,6 +119,38 @@
       "generic": "Die E-Mail konnte nicht gesendet werden. Bitte versuche es erneut."
     }
   },
+  "verifyLink": {
+    "verifying": "Wir bestätigen deine E-Mail",
+    "signIn": "Anmelden",
+    "backToSignIn": "Zurück zur Anmeldung",
+    "retry": "Erneut versuchen",
+    "invalid": {
+      "title": "Dieser Link ist ungültig",
+      "body": "Vielleicht wurde er schon verwendet. Fordere unten einen neuen Link an."
+    },
+    "expired": {
+      "title": "Dieser Link ist abgelaufen",
+      "body": "Bestätigungslinks gelten 24 Stunden. Fordere unten einen neuen an."
+    },
+    "failed": {
+      "title": "E-Mail konnte nicht bestätigt werden",
+      "network": "Server nicht erreichbar. Prüfe deine Verbindung und versuche es erneut.",
+      "rateLimited": "Zu viele Versuche. Bitte versuche es gleich noch einmal.",
+      "generic": "Etwas ist schiefgelaufen. Bitte versuche es erneut."
+    },
+    "emailLabel": "E-Mail",
+    "emailPlaceholder": "du@example.com",
+    "resend": "Neuen Link senden",
+    "resendIn": "· verfügbar in {{time}}",
+    "resent": "E-Mail gesendet.",
+    "resentAnonymous": "Falls für diese Adresse ein Konto existiert, haben wir einen neuen Link gesendet.",
+    "errors": {
+      "limitReached": "Du hast das Limit für Bestätigungs-E-Mails erreicht. Schau in deinen Spam-Ordner.",
+      "rateLimited": "Zu viele Versuche. Bitte versuche es gleich noch einmal.",
+      "network": "Server nicht erreichbar. Prüfe deine Verbindung und versuche es erneut.",
+      "generic": "Die E-Mail konnte nicht gesendet werden. Bitte versuche es erneut."
+    }
+  },
   "verified": {
     "title": "E-Mail bestätigt",
     "welcome": "Willkommen bei Form Up, {{name}}. Dein Konto ist bereit.",

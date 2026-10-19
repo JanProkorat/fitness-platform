@@ -119,6 +119,38 @@
       "generic": "E-mail se nepodařilo odeslat. Zkus to prosím znovu."
     }
   },
+  "verifyLink": {
+    "verifying": "Ověřujeme tvůj e-mail",
+    "signIn": "Přihlásit se",
+    "backToSignIn": "Zpět na přihlášení",
+    "retry": "Zkusit znovu",
+    "invalid": {
+      "title": "Tento odkaz není platný",
+      "body": "Možná už byl použit. Níže si vyžádej nový odkaz."
+    },
+    "expired": {
+      "title": "Platnost odkazu vypršela",
+      "body": "Ověřovací odkazy platí 24 hodin. Níže si vyžádej nový."
+    },
+    "failed": {
+      "title": "E-mail se nepodařilo ověřit",
+      "network": "Server není dostupný. Zkontroluj připojení a zkus to znovu.",
+      "rateLimited": "Příliš mnoho pokusů. Zkus to za chvíli znovu.",
+      "generic": "Něco se pokazilo. Zkus to prosím znovu."
+    },
+    "emailLabel": "E-mail",
+    "emailPlaceholder": "ty@example.com",
+    "resend": "Poslat nový odkaz",
+    "resendIn": "· dostupné za {{time}}",
+    "resent": "E-mail odeslán.",
+    "resentAnonymous": "Pokud pro tuto adresu existuje účet, poslali jsme nový odkaz.",
+    "errors": {
+      "limitReached": "Dosáhl jsi limitu ověřovacích e-mailů. Podívej se do složky se spamem.",
+      "rateLimited": "Příliš mnoho pokusů. Zkus to za chvíli znovu.",
+      "network": "Server není dostupný. Zkontroluj připojení a zkus to znovu.",
+      "generic": "E-mail se nepodařilo odeslat. Zkus to prosím znovu."
+    }
+  },
   "verified": {
     "title": "E-mail ověřen",
     "welcome": "Vítej ve Form Up, {{name}}. Tvůj účet je připravený.",
