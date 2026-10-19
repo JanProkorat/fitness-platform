@@ -695,8 +695,18 @@
       "roles": ["Public"],
       "files": [
         "mobile/src/app/login.tsx",
+        "mobile/src/app/_layout.tsx",
+        "mobile/src/hooks/useAuthPhase.ts",
+        "mobile/src/components/ProfileErrorState.tsx",
+        "mobile/src/hooks/useProfile.ts",
+        "mobile/src/api/profile.ts",
         "mobile/src/api/auth.ts",
         "mobile/src/api/errors.ts",
+        "mobile/src/components/Button.tsx",
+        "mobile/src/components/Input.tsx",
+        "mobile/src/components/LogoMark.tsx",
+        "mobile/src/components/Screen.tsx",
+        "mobile/src/components/Text.tsx",
         "mobile/src/components/Wordmark.tsx"
       ],
       "endpoints": [
@@ -706,6 +716,192 @@
       "shots": [
         { "name": "default" },
         { "name": "invalid-credentials", "steps": "enter a known e-mail with a wrong password and tap Sign in" }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "client.entry.register",
+      "app": "client",
+      "area": "Entry",
+      "title": "Create account",
+      "route": "/register",
+      "roles": ["Public"],
+      "files": [
+        "mobile/src/app/register.tsx",
+        "mobile/src/api/auth.ts",
+        "mobile/src/api/errors.ts",
+        "mobile/src/api/profile.ts",
+        "mobile/src/api/register.ts",
+        "mobile/src/components/BackButton.tsx",
+        "mobile/src/components/Button.tsx",
+        "mobile/src/components/Checkbox.tsx",
+        "mobile/src/components/Input.tsx",
+        "mobile/src/components/PasswordRules.tsx",
+        "mobile/src/components/RoleCard.tsx",
+        "mobile/src/components/Screen.tsx",
+        "mobile/src/components/Text.tsx"
+      ],
+      "endpoints": [
+        "POST /auth/register",
+        "POST /auth/login",
+        "GET /users/me"
+      ],
+      "board": "GlassRegister",
+      "shots": [
+        { "name": "default" },
+        { "name": "coach-roles", "steps": "select Trainer and Nutritionist; the health-data consent row stays in place but hidden" }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "client.entry.check-email",
+      "app": "client",
+      "area": "Entry",
+      "title": "Check your email",
+      "route": "/check-email",
+      "roles": ["Client", "Trainer", "Nutritionist"],
+      "files": [
+        "mobile/src/app/check-email.tsx",
+        "mobile/src/api/errors.ts",
+        "mobile/src/api/profile.ts",
+        "mobile/src/api/register.ts",
+        "mobile/src/components/BackButton.tsx",
+        "mobile/src/components/Button.tsx",
+        "mobile/src/components/Card.tsx",
+        "mobile/src/components/ChangeEmailSheet.tsx",
+        "mobile/src/components/HeroIcon.tsx",
+        "mobile/src/components/Input.tsx",
+        "mobile/src/components/Screen.tsx",
+        "mobile/src/components/Text.tsx",
+        "mobile/src/hooks/useProfile.ts"
+      ],
+      "endpoints": [
+        "GET /users/me",
+        "POST /auth/resend-verification",
+        "PUT /auth/email"
+      ],
+      "board": "GlassRegisterCheckEmail",
+      "shots": [
+        { "name": "default", "steps": "register a new account; the screen opens after sign-up" },
+        { "name": "change-email", "steps": "tap Change email to open the sheet" }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "client.entry.verify-email",
+      "app": "client",
+      "area": "Entry",
+      "title": "Verify email link",
+      "route": "/verify-email",
+      "roles": ["Public", "Client", "Trainer", "Nutritionist"],
+      "files": [
+        "mobile/src/app/verify-email.tsx",
+        "mobile/app.config.ts",
+        "mobile/src/api/errors.ts",
+        "mobile/src/api/profile.ts",
+        "mobile/src/api/register.ts",
+        "mobile/src/components/BackButton.tsx",
+        "mobile/src/components/Button.tsx",
+        "mobile/src/components/Card.tsx",
+        "mobile/src/components/HeroIcon.tsx",
+        "mobile/src/components/Input.tsx",
+        "mobile/src/components/Screen.tsx",
+        "mobile/src/components/Text.tsx",
+        "mobile/src/components/VerifiedNextSteps.tsx"
+      ],
+      "endpoints": [
+        "POST /auth/verify-email",
+        "POST /auth/resend-verification",
+        "POST /auth/resend-verification/anonymous",
+        "GET /users/me"
+      ],
+      "board": "GlassRegisterVerified",
+      "shots": [
+        { "name": "confirmed-logged-out", "steps": "signed out, open exp://<host>/--/verify-email?token=<real token from the email>" },
+        { "name": "invalid", "steps": "open the verify-email link with a malformed token" }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "client.entry.verified",
+      "app": "client",
+      "area": "Entry",
+      "title": "Email verified",
+      "route": "/verified",
+      "roles": ["Client", "Trainer", "Nutritionist"],
+      "files": [
+        "mobile/src/app/verified.tsx",
+        "mobile/src/api/profile.ts",
+        "mobile/src/components/Button.tsx",
+        "mobile/src/components/Card.tsx",
+        "mobile/src/components/HeroIcon.tsx",
+        "mobile/src/components/Screen.tsx",
+        "mobile/src/components/Text.tsx",
+        "mobile/src/components/VerifiedNextSteps.tsx",
+        "mobile/src/hooks/useProfile.ts"
+      ],
+      "endpoints": [
+        "GET /users/me"
+      ],
+      "board": "GlassRegisterVerified",
+      "shots": [
+        { "name": "client", "steps": "stay on Check your email, confirm the address from the email; the app moves here by itself" },
+        { "name": "coach", "steps": "same as client, with a Trainer account; the next-steps card is hidden and the button reads Continue" }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "client.onboarding.steps",
+      "app": "client",
+      "area": "Onboarding",
+      "title": "Onboarding",
+      "route": "/onboarding",
+      "roles": ["Client"],
+      "files": [
+        "mobile/src/app/onboarding.tsx",
+        "mobile/src/api/errors.ts",
+        "mobile/src/api/onboarding.ts",
+        "mobile/src/api/profile.ts",
+        "mobile/src/components/BackButton.tsx",
+        "mobile/src/components/Button.tsx",
+        "mobile/src/components/Card.tsx",
+        "mobile/src/components/Text.tsx",
+        "mobile/src/components/onboarding/**",
+        "mobile/src/hooks/useOnboardingForm.ts"
+      ],
+      "endpoints": [
+        "POST /client/onboarding",
+        "GET /users/me"
+      ],
+      "board": "GlassOnboardingGoal",
+      "shots": [
+        { "name": "goal", "steps": "confirmed client without onboarding; step 1 of 6" },
+        { "name": "basics", "steps": "pick a goal and time horizon, Continue" },
+        { "name": "lifestyle", "steps": "continue to step 3" },
+        { "name": "training", "steps": "continue to step 4" },
+        { "name": "eating", "steps": "continue to step 5" },
+        { "name": "allergies-sheet", "steps": "on step 5 tap Add allergy" },
+        { "name": "motivation", "steps": "continue to step 6" }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "client.entry.coach-pending",
+      "app": "client",
+      "area": "Entry",
+      "title": "Coach account placeholder",
+      "route": "/coach-pending",
+      "roles": ["Trainer", "Nutritionist"],
+      "files": [
+        "mobile/src/app/coach-pending.tsx",
+        "mobile/src/components/Button.tsx",
+        "mobile/src/components/Screen.tsx",
+        "mobile/src/components/Text.tsx"
+      ],
+      "endpoints": [],
+      "board": null,
+      "shots": [
+        { "name": "default", "steps": "confirmed coach account after Email verified" }
       ],
       "notionPageId": null
     }

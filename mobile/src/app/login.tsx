@@ -1,4 +1,5 @@
 import { useMutation } from '@tanstack/react-query';
+import { router, useLocalSearchParams } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, View } from 'react-native';
@@ -16,7 +17,6 @@ import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
 
 type Credentials = { email: string; password: string };
-type FieldErrors = { email?: string; password?: string };
 
 const EMAIL_PATTERN = /^\S+@\S+\.\S+$/;
 
@@ -25,10 +25,10 @@ export default function LoginScreen() {
   const theme = useTheme();
   const styles = makeStyles(theme);
   const passwordRef = useRef<TextInput>(null);
-  const [email, setEmail] = useState('');
+  const params = useLocalSearchParams<{ email?: string; registered?: string }>();
+  const [email, setEmail] = useState(params.email ?? '');
   const [password, setPassword] = useState('');
   const [passwordVisible, setPasswordVisible] = useState(false);
-  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
 
   const mutation = useMutation({
     mutationFn: async ({ email: address, password: secret }: Credentials) => {
@@ -37,24 +37,20 @@ export default function LoginScreen() {
     },
   });
 
+  const address = email.trim();
+  const canSubmit = EMAIL_PATTERN.test(address) && password.length > 0;
+
   const submit = () => {
-    if (mutation.isPending) return;
-    const address = email.trim();
-    const errors: FieldErrors = {};
-    if (!address) {
-      errors.email = t('auth.login.validation.emailRequired');
-    } else if (!EMAIL_PATTERN.test(address)) {
-      errors.email = t('auth.login.validation.emailInvalid');
-    }
-    if (!password) {
-      errors.password = t('auth.login.validation.passwordRequired');
-    }
-    setFieldErrors(errors);
-    if (errors.email || errors.password) return;
+    if (mutation.isPending || !canSubmit) return;
     mutation.mutate({ email: address, password });
   };
 
+  const edited = () => {
+    if (mutation.isError) mutation.reset();
+  };
+
   const failure = mutation.isError ? classifyLoginError(mutation.error) : null;
+  const credentialsInvalid = failure === 'invalidCredentials';
   const iconProps = { tintColor: theme.colors.muted, size: theme.sizes.fieldIcon };
 
   return (
@@ -76,9 +72,9 @@ export default function LoginScreen() {
             value={email}
             onChangeText={(value) => {
               setEmail(value);
-              setFieldErrors((current) => ({ ...current, email: undefined }));
+              edited();
             }}
-            error={fieldErrors.email}
+            invalid={credentialsInvalid}
             leading={<SymbolView name="envelope" {...iconProps} />}
             keyboardType="email-address"
             autoCapitalize="none"
@@ -94,9 +90,9 @@ export default function LoginScreen() {
             value={password}
             onChangeText={(value) => {
               setPassword(value);
-              setFieldErrors((current) => ({ ...current, password: undefined }));
+              edited();
             }}
-            error={fieldErrors.password}
+            invalid={credentialsInvalid}
             inputRef={passwordRef}
             leading={<SymbolView name="lock" {...iconProps} />}
             trailing={
@@ -126,24 +122,37 @@ export default function LoginScreen() {
               {t('auth.login.forgotPassword')}
             </Text>
           </Pressable>
+          <Button
+            label={t('auth.login.submit')}
+            onPress={submit}
+            disabled={mutation.isPending || !canSubmit}
+            style={styles.submit}
+          />
+          {params.registered === '1' && !failure ? (
+            <Text variant="label" color="muted" accessibilityRole="alert">
+              {t('auth.login.registeredNotice')}
+            </Text>
+          ) : null}
           {failure ? (
             <Text variant="label" color="error" accessibilityRole="alert">
               {t(`auth.login.errors.${failure}`)}
             </Text>
           ) : null}
-          <Button
-            label={t('auth.login.submit')}
-            onPress={submit}
-            disabled={mutation.isPending}
-            style={styles.submit}
-          />
         </View>
-        <Text variant="bodySmall" color="muted" style={styles.footer}>
-          {t('auth.login.newHere')}{' '}
-          <Text variant="link" color="accent" accessibilityRole="link">
-            {t('auth.login.createAccount')}
+        <View style={styles.footer}>
+          <Text variant="bodySmall" color="muted">
+            {t('auth.login.newHere')}
           </Text>
-        </Text>
+          <Pressable
+            accessibilityRole="link"
+            hitSlop={theme.spacing.xs}
+            onPress={() => router.push('/register')}
+          >
+            <Text variant="link" color="accent">
+              {t('auth.login.createAccount')}
+            </Text>
+          </Pressable>
+        </View>
       </Screen>
     </KeyboardAvoidingView>
   );
@@ -168,7 +177,7 @@ const makeStyles = (theme: Theme) =>
       paddingBottom: theme.sizes.wordmarkGap,
     },
     heading: {
-      paddingBottom: theme.spacing.md,
+      paddingBottom: theme.sizes.authHeadingGap,
     },
     forgot: {
       alignSelf: 'flex-end',
@@ -177,7 +186,11 @@ const makeStyles = (theme: Theme) =>
       marginTop: theme.spacing.snug,
     },
     footer: {
-      textAlign: 'center',
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'center',
+      alignItems: 'center',
+      columnGap: theme.spacing.xxs,
       paddingTop: theme.spacing.xxxl,
     },
   });

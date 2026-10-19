@@ -78,11 +78,23 @@ public sealed class ActorBuilder(FitnessApiFactory factory, UserRole[] roles)
     private string _firstName = "Test";
     private string _lastName = "Actor";
     private UserRole[] _removedRoles = [];
+    private bool _emailConfirmed;
+    private DateTime? _dateCreated;
 
     /// <summary>
     /// Overrides the generated email (default is a random, always-unique fixture address).
     /// </summary>
     public ActorBuilder WithEmail(string email) { _email = email; return this; }
+
+    /// <summary>
+    /// Marks the actor's email as verified (the default is unverified).
+    /// </summary>
+    public ActorBuilder Verified() { _emailConfirmed = true; return this; }
+
+    /// <summary>
+    /// Overrides the account creation timestamp (default is now).
+    /// </summary>
+    public ActorBuilder CreatedAt(DateTime dateCreated) { _dateCreated = dateCreated; return this; }
 
     /// <summary>
     /// Overrides the first/last name (defaults are fixture placeholders).
@@ -118,6 +130,8 @@ public sealed class ActorBuilder(FitnessApiFactory factory, UserRole[] roles)
             .WithEmail(_email)
             .WithFirstName(_firstName)
             .WithLastName(_lastName)
+            .WithEmailConfirmed(_emailConfirmed)
+            .WithDateCreated(_dateCreated ?? DateTime.UtcNow)
             .Build();
 
         var createResult = await userManager.CreateAsync(user);

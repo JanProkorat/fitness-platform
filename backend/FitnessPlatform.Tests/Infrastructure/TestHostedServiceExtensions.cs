@@ -80,6 +80,7 @@ public static class TestHostedServiceExtensions
         typeof(PhotoDiaryReminderScheduler),
         typeof(CoachRoleLinkSweeper),
         typeof(SocialLoginNonceReaperService),
+        typeof(UnverifiedAccountCleanupService),
     ];
 
     /// <summary>

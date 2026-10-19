@@ -2,6 +2,7 @@ import axios from 'axios';
 import type { AxiosError, InternalAxiosRequestConfig } from 'axios';
 
 import { ApiClient } from '@/api/generated';
+import i18n from '@/i18n';
 import { API_BASE_URL, API_TIMEOUT_MS } from '@/lib/config';
 import { executeRefresh } from '@/lib/refresh';
 import { useAuthStore } from '@/stores/auth';
@@ -16,6 +17,8 @@ export const http = axios.create({
 });
 
 http.interceptors.request.use((config) => {
+  // Lets the backend localise emails (such as the verification mail) to the app language.
+  config.headers['Accept-Language'] = i18n.language;
   const token = useAuthStore.getState().accessToken;
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;

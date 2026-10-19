@@ -49,6 +49,12 @@ public static class ErrorCodes
     /// <summary>Email is already verified.</summary>
     public const string EmailAlreadyVerified = "EMAIL_ALREADY_VERIFIED";
 
+    /// <summary>The new email address equals the account's current one.</summary>
+    public const string EmailUnchanged = "EMAIL_UNCHANGED";
+
+    /// <summary>The email address already belongs to another account.</summary>
+    public const string EmailAlreadyInUse = "EMAIL_ALREADY_IN_USE";
+
     // ── Users ────────────────────────────────────────────────────────
     /// <summary>User already has the requested role.</summary>
     public const string RoleAlreadyAssigned = "ROLE_ALREADY_ASSIGNED";

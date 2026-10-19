@@ -99,6 +99,18 @@ public class ApplicationUserBuilder
     private string _firstName = "Test";
     private string _lastName = "User";
     private bool _isActive = true;
+    private bool _emailConfirmed;
+    private DateTime? _dateCreated;
+
+    /// <summary>
+    /// Marks the user's email as verified (defaults to unverified).
+    /// </summary>
+    public ApplicationUserBuilder WithEmailConfirmed(bool confirmed = true) { _emailConfirmed = confirmed; return this; }
+
+    /// <summary>
+    /// Overrides the account creation timestamp (defaults to now).
+    /// </summary>
+    public ApplicationUserBuilder WithDateCreated(DateTime dateCreated) { _dateCreated = dateCreated; return this; }
 
     /// <summary>
     /// Sets the user ID.
@@ -132,7 +144,8 @@ public class ApplicationUserBuilder
     {
         Id = _id, Email = _email, UserName = _email,
         FirstName = _firstName, LastName = _lastName,
-        IsActive = _isActive
+        IsActive = _isActive, EmailConfirmed = _emailConfirmed,
+        DateCreated = _dateCreated ?? DateTime.UtcNow
     };
 }
 
