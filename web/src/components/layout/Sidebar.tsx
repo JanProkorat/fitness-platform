@@ -12,6 +12,7 @@ import {
   HelpCircle,
   MessageSquare,
   Users,
+  Zap,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
@@ -23,9 +24,10 @@ import { useActiveRoles } from '@/hooks/useActiveRoles';
 /**
  * v1 navigation — only the sections/items this rebuild actually delivers.
  * See docs/superpowers/specs/2026-09-14-web-v1-rebuild-design.md
- * §9: the wireframe has more sidebar areas (Automations, Storage, Exercises,
- * Templates, Mealplans, Metrics) with no backend feature slice behind
- * them yet — those groups are not rendered at all (#1073 AC 2).
+ * §9: the wireframe has more sidebar areas (Storage, Exercises, Templates,
+ * Mealplans, Metrics) with no backend feature slice behind them yet — those
+ * groups are not rendered at all (#1073 AC 2). Automations is delivered and
+ * sits in the Forms section.
  */
 const NAV_SECTIONS = [
   {
@@ -49,7 +51,10 @@ const NAV_SECTIONS = [
   {
     headerKey: 'sidebar.formsSection',
     dot: false,
-    items: [{ to: '/forms', labelKey: 'sidebar.forms', Icon: FileText }],
+    items: [
+      { to: '/forms', labelKey: 'sidebar.forms', Icon: FileText },
+      { to: '/automations', labelKey: 'sidebar.automations', Icon: Zap },
+    ],
   },
 ] as const;
 
