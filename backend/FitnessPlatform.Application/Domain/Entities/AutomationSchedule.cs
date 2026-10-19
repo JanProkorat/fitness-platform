@@ -4,9 +4,8 @@ using FitnessPlatform.Application.Domain.Common;
 namespace FitnessPlatform.Application.Domain.Entities;
 
 /// <summary>
-/// Runtime schedule of one rule for one client. Stores the next fire instant in UTC together with
-/// the local time and IANA zone it was derived from, so it can be recomputed across DST changes.
-/// One row per (rule, client).
+/// Runtime schedule of one rule for one client: the next fire instant in UTC. The worker recomputes it
+/// from the rule and the client's current zone, so it follows DST and zone changes. One row per (rule, client).
 /// </summary>
 public class AutomationSchedule : TimestampableEntity
 {
@@ -19,10 +18,10 @@ public class AutomationSchedule : TimestampableEntity
     /// <summary>Next fire instant (UTC); null when nothing is scheduled.</summary>
     public DateTime? NextRunAt { get; set; }
 
-    /// <summary>Client-local time of day the schedule fires at.</summary>
+    /// <summary>Local time of day the last computation used; for diagnosis only, the worker recomputes it from the rule.</summary>
     public TimeOnly LocalTime { get; set; }
 
-    /// <summary>IANA time zone the local time is interpreted in.</summary>
+    /// <summary>IANA zone the last computation used; for diagnosis only, the worker uses the client's current zone.</summary>
     [MaxLength(64)]
     public required string TimeZoneId { get; set; }
 
