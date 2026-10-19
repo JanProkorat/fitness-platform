@@ -25,10 +25,12 @@ const ACTIONS = [
 interface Props {
   /** Override variant: the action belongs to the parent rule and cannot be changed. */
   actionLocked?: boolean;
+  /** Editing a saved rule: the action tiles show the chosen action but cannot change it. */
+  actionReadOnly?: boolean;
 }
 
 /** Section 2: the action, its form and the message. The message limit follows the action. */
-export default function AutomationWhatSection({ actionLocked = false }: Props) {
+export default function AutomationWhatSection({ actionLocked = false, actionReadOnly = false }: Props) {
   const { t } = useTranslation();
   const { register, setValue, trigger, control, getValues } = useFormContext<AutomationRuleFormValues>();
   const actionType = useWatch({ control, name: 'actionType' });
@@ -61,11 +63,20 @@ export default function AutomationWhatSection({ actionLocked = false }: Props) {
       {!actionLocked && (
         <div role="group" aria-label={t('automations.drawer.what.heading')} className="grid grid-cols-2 gap-2">
           {ACTIONS.map(({ value, icon, labelKey }) => (
-            <ChoiceButton key={value} selected={actionType === value} onClick={() => chooseAction(value)} icon={icon}>
+            <ChoiceButton
+              key={value}
+              selected={actionType === value}
+              disabled={actionReadOnly}
+              onClick={() => chooseAction(value)}
+              icon={icon}
+            >
               {t(`automations.drawer.what.${labelKey}`)}
             </ChoiceButton>
           ))}
         </div>
+      )}
+      {!actionLocked && actionReadOnly && (
+        <p className="text-meta font-normal text-muted-foreground">{t('automations.drawer.what.actionLockedHint')}</p>
       )}
 
       {actionType === AutomationActionType.SendForm && !actionLocked && (
