@@ -123,4 +123,80 @@ public class AutomationPlanEventCalculatorTests
                 [Plan(Utc(2026, 3, 9), 4)], Utc(2026, 3, 1))
             .Should().BeNull();
     }
+    [Fact]
+    public void ComputeDueSends_SendInsideTheRange_ReturnsThePlanAnchorAndInstant()
+    {
+        var planId = Guid.NewGuid();
+        var plan = new AutomationPlanWindow { PlanId = planId, ClientId = Guid.NewGuid(), StartDate = Utc(2026, 3, 2), WeekCount = 4 };
+
+        var sends = AutomationPlanEventCalculator.ComputeDueSends(
+            AutomationEventType.PlanStarted, 2, AutomationOffsetDirection.After, null, TimeZoneInfo.Utc,
+            [plan], Utc(2026, 3, 4, 8), Utc(2026, 3, 4, 10));
+
+        sends.Should().ContainSingle().Which.Should().Be(
+            new AutomationPlanSend(planId, new DateOnly(2026, 3, 2), Utc(2026, 3, 4, 9)));
+    }
+
+    [Fact]
+    public void ComputeDueSends_PlanEnded_AnchorsOnTheLastDay()
+    {
+        var plan = new AutomationPlanWindow { PlanId = Guid.NewGuid(), ClientId = Guid.NewGuid(), StartDate = Utc(2026, 3, 2), WeekCount = 2 };
+
+        var sends = AutomationPlanEventCalculator.ComputeDueSends(
+            AutomationEventType.PlanEnded, 0, AutomationOffsetDirection.After, null, TimeZoneInfo.Utc,
+            [plan], Utc(2026, 3, 15), Utc(2026, 3, 15, 23));
+
+        sends.Should().ContainSingle().Which.Anchor.Should().Be(new DateOnly(2026, 3, 15));
+    }
+
+    [Fact]
+    public void ComputeDueSends_SendOutsideTheRange_ReturnsNothing()
+    {
+        var plan = new AutomationPlanWindow { PlanId = Guid.NewGuid(), ClientId = Guid.NewGuid(), StartDate = Utc(2026, 3, 2), WeekCount = 4 };
+
+        AutomationPlanEventCalculator.ComputeDueSends(
+                AutomationEventType.PlanStarted, 0, AutomationOffsetDirection.After, null, TimeZoneInfo.Utc,
+                [plan], Utc(2026, 3, 2, 9, 1), Utc(2026, 3, 3))
+            .Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ComputeDueSends_TwoPlansSameDay_ReturnsOneSendPerPlan()
+    {
+        var first = new AutomationPlanWindow { PlanId = Guid.NewGuid(), ClientId = Guid.NewGuid(), StartDate = Utc(2026, 3, 2), WeekCount = 4 };
+        var second = new AutomationPlanWindow { PlanId = Guid.NewGuid(), ClientId = first.ClientId, StartDate = Utc(2026, 3, 2), WeekCount = 8 };
+
+        var sends = AutomationPlanEventCalculator.ComputeDueSends(
+            AutomationEventType.PlanStarted, 0, AutomationOffsetDirection.After, null, TimeZoneInfo.Utc,
+            [first, second], Utc(2026, 3, 2, 9), Utc(2026, 3, 2, 9));
+
+        sends.Select(send => send.PlanId).Should().BeEquivalentTo([first.PlanId, second.PlanId]);
+    }
+
+    [Fact]
+    public void ComputeDueSends_AgreesWithComputeNextSendAt()
+    {
+        var plan = new AutomationPlanWindow { PlanId = Guid.NewGuid(), ClientId = Guid.NewGuid(), StartDate = Utc(2026, 3, 20), WeekCount = 3 };
+        var next = AutomationPlanEventCalculator.ComputeNextSendAt(
+            AutomationEventType.PlanStarted, 10, AutomationOffsetDirection.After, new TimeOnly(8, 15), Prague,
+            [plan], Utc(2026, 3, 1));
+
+        var sends = AutomationPlanEventCalculator.ComputeDueSends(
+            AutomationEventType.PlanStarted, 10, AutomationOffsetDirection.After, new TimeOnly(8, 15), Prague,
+            [plan], next!.Value, next.Value);
+
+        sends.Should().ContainSingle().Which.SendAt.Should().Be(next.Value);
+        next.Value.Should().Be(Utc(2026, 3, 30, 6, 15), "08:15 in Prague is 06:15 UTC once summer time has started");
+    }
+
+    [Theory]
+    [InlineData(AutomationEventType.ClientJoined)]
+    [InlineData(AutomationEventType.FormAnswered)]
+    public void ComputeDueSends_OtherEvents_ReturnNothing(AutomationEventType eventType)
+    {
+        AutomationPlanEventCalculator.ComputeDueSends(
+                eventType, 0, AutomationOffsetDirection.After, null, TimeZoneInfo.Utc,
+                [Plan(Utc(2026, 3, 2), 4)], Utc(2026, 1, 1), Utc(2026, 12, 31))
+            .Should().BeEmpty();
+    }
 }

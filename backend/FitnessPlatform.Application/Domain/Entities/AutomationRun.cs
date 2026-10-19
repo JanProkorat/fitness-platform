@@ -32,6 +32,12 @@ public class AutomationRun : TimestampableEntity
     /// <summary>When the client answered (UTC).</summary>
     public DateTime? AnsweredAt { get; set; }
 
+    /// <summary>
+    /// Public id of what the run delivered: the pending questionnaire response, the photo request or
+    /// the in-app notification of a measurement request. Null on skipped and failed runs.
+    /// </summary>
+    public Guid? DeliveredEntityId { get; set; }
+
     /// <summary>Navigation to the rule.</summary>
     public AutomationRule AutomationRule { get; set; } = null!;
 

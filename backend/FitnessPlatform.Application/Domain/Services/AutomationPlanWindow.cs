@@ -5,6 +5,9 @@ namespace FitnessPlatform.Application.Domain.Services;
 /// </summary>
 public sealed class AutomationPlanWindow
 {
+    /// <summary>The plan's external id; keys a plan-event occurrence and the once-per-plan option.</summary>
+    public Guid PlanId { get; init; }
+
     /// <summary>The client's user id (the key plan documents carry).</summary>
     public Guid ClientId { get; init; }
 

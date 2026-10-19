@@ -63,6 +63,18 @@ public class FitnessApiFactoryTests(FitnessApiFactory factory)
             "the scheduler's BackgroundService loop must not auto-start in a test host");
         hostedServiceTypes.Should().NotContain(typeof(SocialLoginNonceReaperService),
             "the reaper's BackgroundService loop must not auto-start in a test host");
+        hostedServiceTypes.Should().NotContain(typeof(AutomationScheduler),
+            "the automation worker's loop must not auto-start in a test host");
+    }
+
+    /// <summary>
+    /// The automation worker stays resolvable so tests can call its <c>RunDueNowAsync</c> seam.
+    /// </summary>
+    [Fact]
+    public void AutomationScheduler_IsStillResolvableAsSingleton()
+    {
+        factory.Services.GetRequiredService<AutomationScheduler>().Should().NotBeNull(
+            "tests run due jobs through RunDueNowAsync and never rely on ExecuteAsync");
     }
 
     /// <summary>

@@ -1,4 +1,5 @@
 using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -23,21 +24,51 @@ public static class AutomationCoverage
     /// <param name="db">Application database context.</param>
     /// <param name="professionalProfileId">The coach's professional profile id.</param>
     /// <param name="ct">Cancellation token.</param>
+    /// <param name="excludeRemovedRoles">
+    /// Whether links of a coach role that was removed are left out. A removed role keeps its links
+    /// active until the plans end, but nothing may be sent through it.
+    /// </param>
+    /// <param name="onlyClientProfileId">Restricts the result to one client.</param>
     public static async Task<List<AutomationCoveredClient>> LoadCoveredClientsAsync(
-        IApplicationDbContext db, long professionalProfileId, CancellationToken ct)
+        IApplicationDbContext db,
+        long professionalProfileId,
+        CancellationToken ct,
+        bool excludeRemovedRoles = false,
+        long? onlyClientProfileId = null)
     {
-        var links = await db.ClientProfessionalLinks
+        var linkQuery = db.ClientProfessionalLinks
             .AsNoTracking()
-            .Where(l => l.ProfessionalProfileId == professionalProfileId && l.IsActive)
+            .Where(l => l.ProfessionalProfileId == professionalProfileId && l.IsActive);
+
+        if (onlyClientProfileId is not null)
+        {
+            linkQuery = linkQuery.Where(l => l.ClientProfileId == onlyClientProfileId.Value);
+        }
+
+        var links = await linkQuery
             .Select(l => new LinkRow(
                 l.Id,
                 l.ClientProfileId,
                 l.ClientProfile.UserId,
                 l.ClientProfile.User.TimeZone,
                 l.DateCreated,
+                l.ProfessionalRole,
                 l.CanViewNutritionPlans,
                 l.CanViewTrainingPlans))
             .ToListAsync(ct);
+
+        if (excludeRemovedRoles && links.Count > 0)
+        {
+            var removal = await db.ProfessionalProfiles
+                .AsNoTracking()
+                .Where(p => p.Id == professionalProfileId)
+                .Select(p => new { p.TrainerRoleRemovedAt, p.NutritionistRoleRemovedAt })
+                .FirstOrDefaultAsync(ct);
+
+            links = links
+                .Where(l => removal is not null && !IsRoleRemoved(l.ProfessionalRole, removal.TrainerRoleRemovedAt, removal.NutritionistRoleRemovedAt))
+                .ToList();
+        }
 
         var clientLinks = links
             .GroupBy(l => l.ClientProfileId)
@@ -62,20 +93,38 @@ public static class AutomationCoverage
             .ToDictionary(g => g.Key, g => g.Select(a => a.ClientTagId).ToList());
 
         return clientLinks
-            .Select(group => new AutomationCoveredClient
+            .Select(group =>
             {
-                ClientProfileId = group.Key,
-                ClientUserId = group.First().ClientUserId,
-                TimeZoneId = group.First().TimeZoneId,
-                LinkedSince = group.Min(l => l.DateCreated),
-                CanViewNutritionPlans = group.Any(l => l.CanViewNutritionPlans),
-                CanViewTrainingPlans = group.Any(l => l.CanViewTrainingPlans),
-                TagIds = group
-                    .SelectMany(l => tagsByLink.TryGetValue(l.LinkId, out var tags) ? tags : [])
-                    .ToHashSet(),
+                var primary = group
+                    .Where(l => IsCovered(new LinkCapabilities(l.CanViewNutritionPlans, l.CanViewTrainingPlans)))
+                    .OrderBy(l => l.DateCreated)
+                    .ThenBy(l => l.LinkId)
+                    .First();
+
+                return new AutomationCoveredClient
+                {
+                    ClientProfileId = group.Key,
+                    ClientUserId = group.First().ClientUserId,
+                    TimeZoneId = group.First().TimeZoneId,
+                    LinkedSince = group.Min(l => l.DateCreated),
+                    PrimaryLinkId = primary.LinkId,
+                    PrimaryLinkRole = primary.ProfessionalRole,
+                    CanViewNutritionPlans = group.Any(l => l.CanViewNutritionPlans),
+                    CanViewTrainingPlans = group.Any(l => l.CanViewTrainingPlans),
+                    TagIds = group
+                        .SelectMany(l => tagsByLink.TryGetValue(l.LinkId, out var tags) ? tags : [])
+                        .ToHashSet(),
+                };
             })
             .ToList();
     }
+
+    private static bool IsRoleRemoved(UserRole role, DateTime? trainerRemovedAt, DateTime? nutritionistRemovedAt) => role switch
+    {
+        UserRole.Trainer => trainerRemovedAt is not null,
+        UserRole.Nutritionist => nutritionistRemovedAt is not null,
+        _ => false,
+    };
 
     private sealed record LinkRow(
         long LinkId,
@@ -83,6 +132,7 @@ public static class AutomationCoverage
         Guid ClientUserId,
         string? TimeZoneId,
         DateTime DateCreated,
+        UserRole ProfessionalRole,
         bool CanViewNutritionPlans,
         bool CanViewTrainingPlans);
 }

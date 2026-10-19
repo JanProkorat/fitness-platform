@@ -127,6 +127,22 @@ public class ClientVerdictService(
         };
     }
 
+    /// <inheritdoc />
+    public async Task<DateTime?> GetLastActiveAtAsync(Guid clientUserId, long clientProfileId, CancellationToken ct)
+    {
+        var latestMeasurementAt = await db.BodyMeasurements
+            .AsNoTracking()
+            .Where(bm => bm.ClientProfileId == clientProfileId)
+            .OrderByDescending(bm => bm.MeasuredAt)
+            .Select(bm => (DateTime?)bm.MeasuredAt)
+            .FirstOrDefaultAsync(ct);
+
+        var latestWorkoutAt = await FetchLatestWorkoutCompletedAtAsync(clientUserId, ct);
+        var latestMealAt = await FetchLatestMealLogTimestampAsync(clientUserId, ct);
+
+        return CoalesceLastActiveAt(latestWorkoutAt, latestMealAt, latestMeasurementAt);
+    }
+
     // ── Signal computation ──────────────────────────────────────────────────
 
     private async Task<(decimal? compliancePercent, bool hasActivePlan)> ComputeComplianceAsync(
