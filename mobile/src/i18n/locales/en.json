@@ -3,7 +3,6 @@
     "placeholder": "The app is getting ready"
   },
   "launch": {
-    "label": "Form Up",
     "tagline": "Your plan. Together.",
     "a11yLabel": "Form Up. Your plan. Together."
   },

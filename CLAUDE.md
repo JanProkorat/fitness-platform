@@ -209,6 +209,9 @@ set up yet — each lands with the first screen that needs it.
 - `StyleSheet.create` for layout styles; inline only for small tweaks
 - Add packages with `npx expo install`, and discuss new dependencies first
 - Verify: `npm run typecheck` and `npm run expo-doctor`
+- Node >= 22.18 (CI uses 24): `app.config.ts` imports `src/theme/colors.ts`, and only
+  Node's native type stripping can load it. Older Node fails with
+  `SyntaxError: Unexpected token 'export'`.
 
 ---
 
