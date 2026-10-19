@@ -130,17 +130,47 @@ public class ClientVerdictService(
     /// <inheritdoc />
     public async Task<DateTime?> GetLastActiveAtAsync(Guid clientUserId, long clientProfileId, CancellationToken ct)
     {
-        var latestMeasurementAt = await db.BodyMeasurements
+        var lastActive = await GetLastActiveAtAsync([(clientUserId, clientProfileId)], ct);
+
+        return lastActive[clientUserId];
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyDictionary<Guid, DateTime?>> GetLastActiveAtAsync(
+        IReadOnlyCollection<(Guid ClientUserId, long ClientProfileId)> clients,
+        CancellationToken ct)
+    {
+        var result = new Dictionary<Guid, DateTime?>();
+
+        if (clients.Count == 0)
+        {
+            return result;
+        }
+
+        var userIds = clients.Select(client => client.ClientUserId).Distinct().ToList();
+        var profileIds = clients.Select(client => client.ClientProfileId).Distinct().ToList();
+
+        var latestMeasurements = await db.BodyMeasurements
             .AsNoTracking()
-            .Where(bm => bm.ClientProfileId == clientProfileId)
-            .OrderByDescending(bm => bm.MeasuredAt)
-            .Select(bm => (DateTime?)bm.MeasuredAt)
-            .FirstOrDefaultAsync(ct);
+            .Where(bm => profileIds.Contains(bm.ClientProfileId))
+            .GroupBy(bm => bm.ClientProfileId)
+            .Select(group => new { ClientProfileId = group.Key, MeasuredAt = group.Max(bm => bm.MeasuredAt) })
+            .ToListAsync(ct);
+        var measurementByProfile = latestMeasurements.ToDictionary(m => m.ClientProfileId, m => m.MeasuredAt);
 
-        var latestWorkoutAt = await FetchLatestWorkoutCompletedAtAsync(clientUserId, ct);
-        var latestMealAt = await FetchLatestMealLogTimestampAsync(clientUserId, ct);
+        var workoutByUser = await FetchLatestWorkoutCompletedAtAsync(userIds, ct);
+        var mealByUser = await FetchLatestMealLogTimestampAsync(userIds, ct);
 
-        return CoalesceLastActiveAt(latestWorkoutAt, latestMealAt, latestMeasurementAt);
+        foreach (var (clientUserId, clientProfileId) in clients)
+        {
+            DateTime? measurementAt = measurementByProfile.TryGetValue(clientProfileId, out var measured) ? measured : null;
+            DateTime? workoutAt = workoutByUser.TryGetValue(clientUserId, out var completed) ? completed : null;
+            DateTime? mealAt = mealByUser.TryGetValue(clientUserId, out var eaten) ? eaten : null;
+
+            result[clientUserId] = CoalesceLastActiveAt(workoutAt, mealAt, measurementAt);
+        }
+
+        return result;
     }
 
     // ── Signal computation ──────────────────────────────────────────────────
@@ -305,6 +335,46 @@ public class ClientVerdictService(
             ct);
         var fallbackLog = await fallbackCursor.FirstOrDefaultAsync(ct);
         return fallbackLog?.LogDate;
+    }
+
+    /// <summary>Latest completed-workout time per client, in one aggregation. Clients without one are absent.</summary>
+    private async Task<Dictionary<Guid, DateTime>> FetchLatestWorkoutCompletedAtAsync(
+        List<Guid> clientUserIds, CancellationToken ct)
+    {
+        var workoutFilter = Builders<SessionExecution>.Filter.In(w => w.ClientId, clientUserIds)
+            & Builders<SessionExecution>.Filter.Eq(w => w.Status, SessionExecutionStatus.Completed)
+            & Builders<SessionExecution>.Filter.Exists(w => w.Performance);
+
+        var latest = await mongo.SessionExecutions
+            .Aggregate()
+            .Match(workoutFilter)
+            .Group(w => w.ClientId, group => new { ClientId = group.Key, CompletedAt = group.Max(w => w.Performance!.CompletedAt) })
+            .ToListAsync(ct);
+
+        return latest
+            .Where(entry => entry.CompletedAt.HasValue)
+            .ToDictionary(entry => entry.ClientId, entry => entry.CompletedAt!.Value);
+    }
+
+    /// <summary>
+    /// Latest meal-log time per client, in one aggregation: the latest <c>EatenAt</c>, or when the client has
+    /// none, the latest <c>LogDate</c> — the same rule as <see cref="FetchLatestMealLogTimestampAsync(Guid, CancellationToken)"/>.
+    /// </summary>
+    private async Task<Dictionary<Guid, DateTime>> FetchLatestMealLogTimestampAsync(
+        List<Guid> clientUserIds, CancellationToken ct)
+    {
+        var latest = await mongo.MealLogs
+            .Aggregate()
+            .Match(Builders<MealLog>.Filter.In(l => l.ClientId, clientUserIds))
+            .Group(l => l.ClientId, group => new
+            {
+                ClientId = group.Key,
+                EatenAt = group.Max(l => l.EatenAt),
+                LogDate = group.Max(l => l.LogDate),
+            })
+            .ToListAsync(ct);
+
+        return latest.ToDictionary(entry => entry.ClientId, entry => entry.EatenAt ?? entry.LogDate);
     }
 
     private async Task<int> ComputePrCountThisMonthAsync(Guid clientUserId, CancellationToken ct)

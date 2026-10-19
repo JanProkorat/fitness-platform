@@ -177,18 +177,26 @@ public sealed class AutomationEventPoller(
     {
         var found = new List<Candidate>();
 
-        foreach (var pair in pairs)
+        // Nobody is inactive for N days before having been linked that long.
+        var due = pairs
+            .Where(pair => (pair.Effective.EventOffsetDays ?? 0) >= 1
+                           && pair.Client.LinkedSince.AddDays(pair.Effective.EventOffsetDays ?? 0) <= nowUtc)
+            .ToList();
+
+        if (due.Count == 0)
+        {
+            return found;
+        }
+
+        var lastActive = await clientVerdicts.GetLastActiveAtAsync(
+            due.Select(pair => pair.Client).DistinctBy(client => client.ClientUserId)
+                .Select(client => (client.ClientUserId, client.ClientProfileId)).ToList(),
+            ct);
+
+        foreach (var pair in due)
         {
             var inactiveDays = pair.Effective.EventOffsetDays ?? 0;
-
-            // Nobody is inactive for N days before having been linked that long.
-            if (inactiveDays < 1 || pair.Client.LinkedSince.AddDays(inactiveDays) > nowUtc)
-            {
-                continue;
-            }
-
-            var lastActiveAt = await clientVerdicts.GetLastActiveAtAsync(
-                pair.Client.ClientUserId, pair.Client.ClientProfileId, ct);
+            var lastActiveAt = lastActive[pair.Client.ClientUserId];
 
             var baseline = lastActiveAt is { } active && active > pair.Client.LinkedSince
                 ? active
