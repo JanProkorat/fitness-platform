@@ -5,7 +5,8 @@ namespace FitnessPlatform.Application.Features.Automations.Shared;
 
 /// <summary>
 /// Copies a validated trigger body onto a rule or a per-client override, clearing the fields that
-/// do not belong to the chosen trigger kind.
+/// do not belong to the chosen trigger kind. The local time is kept for both kinds; an event rule may
+/// leave it empty.
 /// </summary>
 public static class AutomationRuleWriter
 {
@@ -18,7 +19,7 @@ public static class AutomationRuleWriter
         rule.TriggerKind = body.TriggerKind;
         rule.ScheduleInterval = isSchedule ? body.ScheduleInterval : null;
         rule.ScheduleUnit = isSchedule ? body.ScheduleUnit : null;
-        rule.LocalTime = isSchedule ? TimeOnly.FromTimeSpan(body.LocalTime!.Value) : null;
+        rule.LocalTime = body.LocalTime is { } localTime ? TimeOnly.FromTimeSpan(localTime) : null;
         rule.EventType = isSchedule ? null : body.EventType;
         rule.EventOffsetDays = isSchedule ? null : body.EventOffsetDays ?? 0;
         rule.EventOffsetDirection = isSchedule ? null : body.EventOffsetDirection ?? AutomationOffsetDirection.After;
@@ -38,7 +39,7 @@ public static class AutomationRuleWriter
         clientOverride.TriggerKind = body.TriggerKind;
         clientOverride.ScheduleInterval = isSchedule ? body.ScheduleInterval : null;
         clientOverride.ScheduleUnit = isSchedule ? body.ScheduleUnit : null;
-        clientOverride.LocalTime = isSchedule ? TimeOnly.FromTimeSpan(body.LocalTime!.Value) : null;
+        clientOverride.LocalTime = body.LocalTime is { } localTime ? TimeOnly.FromTimeSpan(localTime) : null;
         clientOverride.EventType = isSchedule ? null : body.EventType;
         clientOverride.EventOffsetDays = isSchedule ? null : body.EventOffsetDays ?? 0;
         clientOverride.EventOffsetDirection = isSchedule ? null : body.EventOffsetDirection ?? AutomationOffsetDirection.After;

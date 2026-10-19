@@ -7,7 +7,10 @@ namespace FitnessPlatform.Application.Features.Automations.Shared;
 /// </summary>
 public class AutomationTriggerBody
 {
-    /// <summary>Optional text sent with the request (at most 1000 characters).</summary>
+    /// <summary>Longest message a "request progress photos" rule may carry, matching the photo request itself.</summary>
+    public const int PhotoMessageMaxLength = 500;
+
+    /// <summary>Optional text sent with the request (at most 1000 characters; 500 for progress photos).</summary>
     public string? Message { get; set; }
 
     /// <summary>Schedule or event trigger.</summary>
@@ -19,7 +22,10 @@ public class AutomationTriggerBody
     /// <summary>Schedule trigger: unit of the interval.</summary>
     public AutomationScheduleUnit? ScheduleUnit { get; set; }
 
-    /// <summary>Schedule trigger: client-local time of day, from 00:00 up to 23:59.</summary>
+    /// <summary>
+    /// Client-local time of day, from 00:00 up to 23:59. Required for a schedule trigger; optional for an
+    /// event trigger, which sends at 09:00 when it is absent.
+    /// </summary>
     public TimeSpan? LocalTime { get; set; }
 
     /// <summary>Event trigger: the event.</summary>

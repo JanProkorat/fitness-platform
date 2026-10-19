@@ -79,9 +79,14 @@ public abstract class AutomationTriggerBodyValidator<T> : Validator<T>
                 .When(x => x.EventType == AutomationEventType.ClientInactive);
 
             RuleFor(x => x)
-                .Must(x => x.ScheduleInterval is null && x.ScheduleUnit is null && x.LocalTime is null)
+                .Must(x => x.ScheduleInterval is null && x.ScheduleUnit is null)
                 .WithErrorCode(ErrorCodes.AutomationEventInvalid)
-                .WithMessage("An event trigger cannot carry schedule fields.");
+                .WithMessage("An event trigger cannot carry a schedule interval or unit.");
+
+            RuleFor(x => x.LocalTime)
+                .Must(v => v is null || (v.Value >= TimeSpan.Zero && v.Value < TimeSpan.FromHours(24)))
+                .WithErrorCode(ErrorCodes.AutomationEventInvalid)
+                .WithMessage("Local time must be between 00:00 and 23:59.");
 
             RuleFor(x => x.OncePerPlan)
                 .Equal(false)

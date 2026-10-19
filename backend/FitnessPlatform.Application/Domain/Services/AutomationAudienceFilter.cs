@@ -36,4 +36,27 @@ public static class AutomationAudienceFilter
                 r.AudienceClients.Any(c => c.ClientProfileId == clientProfileId)))) ||
              r.ClientProfileId == clientProfileId));
     }
+
+    /// <summary>
+    /// In-memory twin of <see cref="CoveringClient"/> for a rule already loaded with its audience
+    /// clients: whether the rule applies to the client. Both must change together.
+    /// </summary>
+    /// <param name="rule">The rule, loaded with its audience clients.</param>
+    /// <param name="clientProfileId">The client's profile id.</param>
+    /// <param name="clientTagIds">Ids of the coach's tags assigned to the client.</param>
+    public static bool Covers(AutomationRule rule, long clientProfileId, IReadOnlySet<long> clientTagIds)
+    {
+        if (rule.ClientProfileId is not null)
+        {
+            return rule.ClientProfileId == clientProfileId;
+        }
+
+        return rule.Audience switch
+        {
+            AutomationAudience.All => true,
+            AutomationAudience.Tag => rule.AudienceTagId is not null && clientTagIds.Contains(rule.AudienceTagId.Value),
+            AutomationAudience.Chosen => rule.AudienceClients.Any(c => c.ClientProfileId == clientProfileId),
+            _ => false,
+        };
+    }
 }

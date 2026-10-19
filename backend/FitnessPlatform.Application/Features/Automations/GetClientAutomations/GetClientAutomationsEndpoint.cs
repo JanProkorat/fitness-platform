@@ -7,6 +7,7 @@ using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.Automations.Shared;
 using FitnessPlatform.Application.Infrastructure.Data;
+using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using Microsoft.EntityFrameworkCore;
 
 namespace FitnessPlatform.Application.Features.Automations.GetClientAutomations;
@@ -16,10 +17,12 @@ namespace FitnessPlatform.Application.Features.Automations.GetClientAutomations;
 /// includes them (with their override or pause), client-only rules, and the read-only weekly check-in.
 /// </summary>
 /// <param name="db">Application database context.</param>
+/// <param name="mongo">MongoDB context, read for plan-event send dates.</param>
 /// <param name="linkAuthorizationService">Resolves link capabilities.</param>
 /// <param name="timeProvider">Clock.</param>
 public class GetClientAutomationsEndpoint(
     IApplicationDbContext db,
+    IMongoContext mongo,
     IClientLinkAuthorizationService linkAuthorizationService,
     TimeProvider timeProvider)
     : Endpoint<GetClientAutomationsRequest, GetClientAutomationsResponse>
@@ -65,7 +68,7 @@ public class GetClientAutomationsEndpoint(
         var nowUtc = timeProvider.GetUtcNow().UtcDateTime;
         var zone = ClientLocalDateResolver.ResolveTimeZone(context.Client.User.TimeZone);
         var localToday = ClientLocalDateResolver.ResolveLocalDate(nowUtc, zone);
-        var startLocalDate = ClientLocalDateResolver.ResolveLocalDate(context.StartedAt, zone);
+        var startLocalDate = AutomationNextSendCalculator.ResolveStartLocalDate(context.StartedAt, zone);
         var windowStart = nowUtc - SummaryWindow;
 
         var rules = await db.AutomationRules
@@ -99,11 +102,18 @@ public class GetClientAutomationsEndpoint(
         var items = new List<ClientAutomationItem>();
         items.AddRange(await BuildLinkedCheckInItemsAsync(Guid.Parse(userId), context.Client.UserId, ct));
 
-        foreach (var rule in rules)
-        {
-            overrides.TryGetValue(rule.Id, out var clientOverride);
+        var effectiveRules = rules
+            .Select(rule => (Rule: rule, Effective: AutomationEffectiveRule.Resolve(
+                rule, overrides.GetValueOrDefault(rule.Id), localToday)))
+            .ToList();
 
-            var item = BuildRuleItem(rule, clientOverride, localToday);
+        var planWindows = effectiveRules.Any(e => e.Effective.IsPlanEvent)
+            ? await LoadPlanWindowsAsync(Guid.Parse(userId), context, ct)
+            : [];
+
+        foreach (var (rule, effective) in effectiveRules)
+        {
+            var item = BuildRuleItem(rule, effective);
             var ruleRuns = recentRuns.Where(r => r.RuleId == rule.Id).ToList();
 
             item.Sent30Days = ruleRuns.Count(r => r.Status == AutomationRunStatus.Sent);
@@ -118,7 +128,7 @@ public class GetClientAutomationsEndpoint(
                     AnsweredAt = last.AnsweredAt,
                 }
                 : null;
-            item.NextSendAt = ComputeNextSend(item, zone, startLocalDate, nowUtc);
+            item.NextSendAt = AutomationNextSendCalculator.Compute(effective, zone, startLocalDate, planWindows, nowUtc);
 
             items.Add(item);
         }
@@ -136,84 +146,43 @@ public class GetClientAutomationsEndpoint(
         }, ct);
     }
 
-    private static ClientAutomationItem BuildRuleItem(
-        AutomationRule rule, AutomationClientOverride? clientOverride, DateOnly localToday)
+    private static ClientAutomationItem BuildRuleItem(AutomationRule rule, AutomationEffectiveRule effective) => new()
     {
-        var isPaused = clientOverride is not null &&
-                       AutomationScheduleCalculator.IsPauseEffective(clientOverride.IsPaused, clientOverride.PausedUntil, localToday);
-        var custom = clientOverride is { IsCustomized: true } ? clientOverride : null;
+        RuleId = rule.PublicId,
+        Source = effective.Source,
+        Name = rule.Name,
+        ActionType = rule.ActionType,
+        QuestionnaireId = rule.Questionnaire?.PublicId,
+        Message = effective.Message,
+        TriggerKind = effective.TriggerKind,
+        ScheduleInterval = effective.ScheduleInterval,
+        ScheduleUnit = effective.ScheduleUnit,
+        LocalTime = effective.LocalTime?.ToTimeSpan(),
+        EventType = effective.EventType,
+        EventOffsetDays = effective.EventOffsetDays,
+        EventOffsetDirection = effective.EventOffsetDirection,
+        OncePerPlan = effective.OncePerPlan,
+        SkipWhilePreviousUnanswered = effective.SkipWhilePreviousUnanswered,
+        StopAfterSends = effective.StopAfterSends,
+        Enabled = effective.Enabled,
+        IsPaused = effective.IsPaused,
+        PausedUntil = effective.PausedUntil,
+        PauseNote = effective.PauseNote,
+    };
 
-        var source = rule.ClientProfileId is not null ? AutomationRuleSource.OnlyThisClient
-            : isPaused ? AutomationRuleSource.Paused
-            : custom is not null ? AutomationRuleSource.Custom
-            : AutomationRuleSource.Default;
-
-        var item = new ClientAutomationItem
-        {
-            RuleId = rule.PublicId,
-            Source = source,
-            Name = rule.Name,
-            ActionType = rule.ActionType,
-            QuestionnaireId = rule.Questionnaire?.PublicId,
-            IsPaused = isPaused,
-            PausedUntil = isPaused ? clientOverride!.PausedUntil : null,
-            PauseNote = isPaused ? clientOverride!.PauseNote : null,
-        };
-
-        if (custom is not null)
-        {
-            item.Message = custom.Message;
-            item.TriggerKind = custom.TriggerKind;
-            item.ScheduleInterval = custom.ScheduleInterval;
-            item.ScheduleUnit = custom.ScheduleUnit;
-            item.LocalTime = custom.LocalTime?.ToTimeSpan();
-            item.EventType = custom.EventType;
-            item.EventOffsetDays = custom.EventOffsetDays;
-            item.EventOffsetDirection = custom.EventOffsetDirection;
-            item.OncePerPlan = custom.OncePerPlan;
-            item.SkipWhilePreviousUnanswered = custom.SkipWhilePreviousUnanswered;
-            item.StopAfterSends = custom.StopAfterSends;
-            item.Enabled = custom.Enabled;
-        }
-        else
-        {
-            item.Message = rule.Message;
-            item.TriggerKind = rule.TriggerKind;
-            item.ScheduleInterval = rule.ScheduleInterval;
-            item.ScheduleUnit = rule.ScheduleUnit;
-            item.LocalTime = rule.LocalTime?.ToTimeSpan();
-            item.EventType = rule.EventType;
-            item.EventOffsetDays = rule.EventOffsetDays;
-            item.EventOffsetDirection = rule.EventOffsetDirection;
-            item.OncePerPlan = rule.OncePerPlan;
-            item.SkipWhilePreviousUnanswered = rule.SkipWhilePreviousUnanswered;
-            item.StopAfterSends = rule.StopAfterSends;
-            item.Enabled = rule.Enabled;
-        }
-
-        return item;
-    }
-
-    private static DateTime? ComputeNextSend(
-        ClientAutomationItem item, TimeZoneInfo zone, DateOnly startLocalDate, DateTime nowUtc)
+    private async Task<List<AutomationPlanWindow>> LoadPlanWindowsAsync(
+        Guid coachUserId, AutomationClientContext context, CancellationToken ct)
     {
-        if (!item.Enabled ||
-            item.IsPaused ||
-            item.TriggerKind != AutomationTriggerKind.Schedule ||
-            item.ScheduleInterval is null ||
-            item.ScheduleUnit is null ||
-            item.LocalTime is null)
-        {
-            return null;
-        }
+        var clientUserIds = new List<Guid> { context.Client.UserId };
 
-        return AutomationScheduleCalculator.ComputeNextRunAt(
-            item.ScheduleInterval.Value,
-            item.ScheduleUnit.Value,
-            TimeOnly.FromTimeSpan(item.LocalTime.Value),
-            zone,
-            startLocalDate,
-            nowUtc);
+        var windows = await AutomationPlanWindowLoader.LoadAsync(
+            mongo,
+            coachUserId,
+            context.Capabilities.CanViewTrainingPlans ? clientUserIds : [],
+            context.Capabilities.CanViewNutritionPlans ? clientUserIds : [],
+            ct);
+
+        return windows.TryGetValue(context.Client.UserId, out var forClient) ? forClient : [];
     }
 
     private async Task<List<ClientAutomationItem>> BuildLinkedCheckInItemsAsync(

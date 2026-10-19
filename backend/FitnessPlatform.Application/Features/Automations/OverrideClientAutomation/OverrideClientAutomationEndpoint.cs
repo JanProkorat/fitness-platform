@@ -4,6 +4,7 @@ using FitnessPlatform.Application.Domain.Authorization;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.Automations.Shared;
 using FitnessPlatform.Application.Infrastructure.Data;
@@ -30,7 +31,7 @@ public class OverrideClientAutomationEndpoint(IApplicationDbContext db, IClientL
             s.Summary = "Customise a rule for one client";
             s.Description = "Stores a per-client copy of the rule's message, trigger and options.";
             s.Responses[StatusCodes.Status204NoContent] = "Override saved";
-            s.Responses[StatusCodes.Status400BadRequest] = "Invalid trigger or options";
+            s.Responses[StatusCodes.Status400BadRequest] = "Invalid trigger or options, or a progress photos message over 500 characters";
             s.Responses[StatusCodes.Status401Unauthorized] = "Missing or invalid credentials";
             s.Responses[StatusCodes.Status403Forbidden] = "The live link grants no access";
             s.Responses[StatusCodes.Status404NotFound] = "No live link to the client, or the rule does not apply to them";
@@ -61,6 +62,15 @@ public class OverrideClientAutomationEndpoint(IApplicationDbContext db, IClientL
 
         if (rule is null || await this.RespondIfClientOnlyAsync(rule, ct))
         {
+            return;
+        }
+
+        if (rule.ActionType == AutomationActionType.RequestProgressPhotos &&
+            req.Message?.Length > AutomationTriggerBody.PhotoMessageMaxLength)
+        {
+            this.ThrowErrorWithCode(
+                ErrorCodes.AutomationPhotoMessageTooLong,
+                "A progress photos message can be at most 500 characters.");
             return;
         }
 

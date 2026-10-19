@@ -32,7 +32,7 @@ public class AutomationRuleDto
     /// <summary>Schedule trigger: unit of the interval.</summary>
     public AutomationScheduleUnit? ScheduleUnit { get; set; }
 
-    /// <summary>Schedule trigger: client-local time of day.</summary>
+    /// <summary>Client-local time of day; required for a schedule, optional for an event (09:00 when absent).</summary>
     public TimeSpan? LocalTime { get; set; }
 
     /// <summary>Event trigger: the event.</summary>
@@ -67,6 +67,9 @@ public class AutomationRuleDto
 
     /// <summary>Public id of the client a client-only rule belongs to; null for a global rule.</summary>
     public Guid? OnlyClientId { get; set; }
+
+    /// <summary>Coverage summary; filled by the list and get endpoints, null on create and update responses.</summary>
+    public AutomationRuleSummaryDto? Summary { get; set; }
 
     /// <summary>Maps a rule loaded with its detail navigations.</summary>
     public static AutomationRuleDto FromEntity(AutomationRule rule) => new()

@@ -49,7 +49,7 @@ public class ClientAutomationItem
     /// <summary>Effective schedule unit.</summary>
     public AutomationScheduleUnit? ScheduleUnit { get; set; }
 
-    /// <summary>Effective client-local time of day.</summary>
+    /// <summary>Effective client-local time of day; null on an event rule means 09:00.</summary>
     public TimeSpan? LocalTime { get; set; }
 
     /// <summary>Effective event.</summary>
@@ -82,7 +82,7 @@ public class ClientAutomationItem
     /// <summary>Note of the pause, while it is in effect.</summary>
     public string? PauseNote { get; set; }
 
-    /// <summary>Next send (UTC); null when paused, disabled, event-driven or not applicable.</summary>
+    /// <summary>Next send (UTC); null when paused, disabled, or an event other than plan started or ended.</summary>
     public DateTime? NextSendAt { get; set; }
 
     /// <summary>The most recent run; null until a run exists.</summary>
