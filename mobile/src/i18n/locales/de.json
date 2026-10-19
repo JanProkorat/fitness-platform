@@ -4,7 +4,8 @@
   },
   "launch": {
     "label": "Form Up",
-    "tagline": "Dein Plan. Gemeinsam."
+    "tagline": "Dein Plan. Gemeinsam.",
+    "a11yLabel": "Form Up. Dein Plan. Gemeinsam."
   },
   "auth": {
     "login": {

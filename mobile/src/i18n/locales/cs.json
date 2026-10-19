@@ -4,7 +4,8 @@
   },
   "launch": {
     "label": "Form Up",
-    "tagline": "Váš plán. Společně."
+    "tagline": "Váš plán. Společně.",
+    "a11yLabel": "Form Up. Váš plán. Společně."
   },
   "auth": {
     "login": {

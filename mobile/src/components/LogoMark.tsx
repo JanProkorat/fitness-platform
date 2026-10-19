@@ -11,6 +11,7 @@ const popEase = Easing.bezierFn(0.3, 1.7, 0.5, 1);
 const drawEase = Easing.bezierFn(0.6, 0, 0.2, 1);
 const tickEase = Easing.out(Easing.quad);
 
+// Geometry literals below mirror the GlassLaunchQuiet board SVG (viewBox 15 17 73 67).
 const VIEW_BOX = '15 17 73 67';
 const CIRCLE_R = 9;
 const RING_R = 7.5;
@@ -50,25 +51,25 @@ export function LogoMark({ progress }: Props) {
     launchMotion;
 
   const deepCircle = useAnimatedProps(() => ({
-    r: CIRCLE_R * windowProgress(elapsed.value, 0, popDuration, popEase),
+    r: CIRCLE_R * windowProgress(elapsed.get(), 0, popDuration, popEase),
   }));
   const accentCircle = useAnimatedProps(() => ({
-    r: CIRCLE_R * windowProgress(elapsed.value, popStagger, popDuration, popEase),
+    r: CIRCLE_R * windowProgress(elapsed.get(), popStagger, popDuration, popEase),
   }));
   const ring = useAnimatedProps(() => {
-    const scale = windowProgress(elapsed.value, popStagger * 2, popDuration, popEase);
+    const scale = windowProgress(elapsed.get(), popStagger * 2, popDuration, popEase);
     return { r: RING_R * scale, strokeWidth: RING_STROKE * scale };
   });
   const deepBar = useAnimatedProps(() => {
-    const drawn = windowProgress(elapsed.value, barStart, barDuration, drawEase);
+    const drawn = windowProgress(elapsed.get(), barStart, barDuration, drawEase);
     return { strokeDashoffset: BAR_LONG * (1 - drawn), opacity: drawn > 0 ? 1 : 0 };
   });
   const accentBar = useAnimatedProps(() => {
-    const drawn = windowProgress(elapsed.value, barStart + barStagger, barDuration, drawEase);
+    const drawn = windowProgress(elapsed.get(), barStart + barStagger, barDuration, drawEase);
     return { strokeDashoffset: BAR_SHORT * (1 - drawn), opacity: drawn > 0 ? 1 : 0 };
   });
   const tick = useAnimatedProps(() => {
-    const drawn = windowProgress(elapsed.value, tickStart, tickDuration, tickEase);
+    const drawn = windowProgress(elapsed.get(), tickStart, tickDuration, tickEase);
     return { strokeDashoffset: TICK_LENGTH * (1 - drawn), opacity: drawn > 0 ? 1 : 0 };
   });
 
