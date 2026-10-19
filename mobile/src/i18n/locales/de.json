@@ -186,8 +186,149 @@
     "cta": "Profil einrichten"
   },
   "onboarding": {
-    "title": "Profil einrichten",
-    "body": "Die Profileinrichtung folgt in Kürze."
+    "stepOf": "{{step}} von {{total}}",
+    "back": "Zurück",
+    "continue": "Weiter",
+    "finish": "Abschließen",
+    "optional": "Optional",
+    "notSet": "Nicht angegeben",
+    "decrease": "{{field}} verringern",
+    "increase": "{{field}} erhöhen",
+    "removeItem": "{{item}} entfernen",
+    "errors": {
+      "network": "Der Server ist nicht erreichbar. Prüfe deine Verbindung und versuche es erneut.",
+      "generic": "Deine Antworten konnten nicht gespeichert werden. Bitte versuche es erneut."
+    },
+    "goal": {
+      "title": "Was ist dein Hauptziel?",
+      "subtitle": "Dein Coach baut deinen ersten Plan darauf auf.",
+      "options": {
+        "LoseFat": { "title": "Fett verlieren", "hint": "Definierter werden und die Kraft halten" },
+        "GainMuscle": { "title": "Muskeln aufbauen", "hint": "Mit einem strukturierten Plan zulegen" },
+        "Recomposition": { "title": "Fett verlieren, Muskeln aufbauen", "hint": "Formen bei gleichbleibendem Gewicht" },
+        "Fitness": { "title": "Fitter werden", "hint": "Mehr Ausdauer für den Alltag" },
+        "Health": { "title": "Gesünder fühlen", "hint": "Mehr Energie, besserer Schlaf und Gewohnheiten" },
+        "Maintain": { "title": "Bleiben, wie ich bin", "hint": "Die aktuelle Form halten" },
+        "Performance": { "title": "Besser performen", "hint": "Training für einen Sport oder ein Event" }
+      },
+      "horizonLabel": "Bis wann?",
+      "horizon": {
+        "ThreeMonths": "3 Monate",
+        "SixMonths": "6 Monate",
+        "OneYear": "1 Jahr"
+      }
+    },
+    "basics": {
+      "title": "Über dich",
+      "subtitle": "Damit dein Coach realistische Ziele setzen kann.",
+      "sexLabel": "Geschlecht",
+      "sex": { "Female": "Weiblich", "Male": "Männlich" },
+      "age": "Alter",
+      "ageUnit": "Jahre",
+      "height": "Größe",
+      "heightUnit": "cm",
+      "weight": "Aktuelles Gewicht",
+      "targetWeight": "Zielgewicht",
+      "weightUnit": "kg",
+      "bodyTypeLabel": "Körpertyp",
+      "bodyType": {
+        "Slim": { "title": "Schlank", "hint": "Nimmt langsam zu" },
+        "Athletic": { "title": "Athletisch", "hint": "Baut leicht auf" },
+        "Solid": { "title": "Kräftig", "hint": "Nimmt leicht zu" }
+      }
+    },
+    "lifestyle": {
+      "title": "Dein Alltag",
+      "subtitle": "Arbeit, Schlaf und Stress verändern, was du brauchst.",
+      "workLabel": "Wie sieht deine Arbeit aus?",
+      "work": {
+        "Sedentary": { "title": "Meist sitzend", "hint": "Büro- oder Schreibtischjob" },
+        "Standing": { "title": "Auf den Beinen", "hint": "Laden, Unterricht, Pflege" },
+        "Physical": { "title": "Körperliche Arbeit", "hint": "Bau, Lager, Landwirtschaft" }
+      },
+      "sleep": "Schlaf in einer normalen Nacht",
+      "sleepUnit": "Stunden",
+      "stress": "Stresslevel in letzter Zeit",
+      "stressWords": {
+        "1": "Entspannt",
+        "2": "Niedrig",
+        "3": "Mittel",
+        "4": "Hoch",
+        "5": "Sehr gestresst"
+      }
+    },
+    "training": {
+      "title": "Training",
+      "subtitle": "Wo du gerade stehst.",
+      "currentLabel": "Wie oft trainierst du jetzt?",
+      "current": {
+        "None": "Noch nicht",
+        "Occasional": "Manchmal",
+        "Regular": "Regelmäßig",
+        "High": "Viel"
+      },
+      "daysLabel": "Tage pro Woche, an denen du trainieren kannst",
+      "fitnessLabel": "Bewerte deine Fitness",
+      "fitnessLow": "Ganz am Anfang",
+      "fitnessHigh": "Sehr fit",
+      "gymLabel": "Zugang zum Fitnessstudio",
+      "gym": { "Yes": "Ja", "Sometimes": "Manchmal", "No": "Nein" }
+    },
+    "eating": {
+      "title": "Ernährung",
+      "subtitle": "Dein Ernährungsberater plant die Mahlzeiten danach.",
+      "mealsLabel": "Mahlzeiten pro Tag",
+      "meals": { "TwoToThree": "2–3", "FourToFive": "4–5", "SixPlus": "6+" },
+      "styleLabel": "Wie ernährst du dich?",
+      "style": {
+        "Anything": "Alles",
+        "Vegetarian": "Vegetarisch",
+        "Vegan": "Vegan",
+        "GlutenFree": "Glutenfrei"
+      },
+      "ratingLabel": "Bewerte deine Ernährung heute",
+      "ratingLow": "Schlecht",
+      "ratingHigh": "Sehr gut"
+    },
+    "motivation": {
+      "title": "Was dich antreibt",
+      "subtitle": "Hilft deinem Coach, dich auf Kurs zu halten.",
+      "label": "Was motiviert dich am meisten?",
+      "options": {
+        "Appearance": "Besser aussehen",
+        "Health": "Gesundheit",
+        "Performance": "Leistung",
+        "Confidence": "Selbstvertrauen"
+      },
+      "experienceLabel": "Hast du schon einmal einen Plan befolgt?",
+      "experience": {
+        "Never": "Nie",
+        "TriedFailed": "Nicht durchgehalten",
+        "TriedSucceeded": "Hat funktioniert"
+      }
+    },
+    "chips": {
+      "activities": { "label": "Aktivitäten, die dir Spaß machen", "add": "Hinzufügen" },
+      "injuries": { "label": "Verletzungen oder Einschränkungen", "add": "Hinzufügen" },
+      "allergies": { "label": "Allergien", "add": "Allergie hinzufügen" },
+      "dislikes": { "label": "Lebensmittel, die du nicht magst", "add": "Lebensmittel hinzufügen" },
+      "blockers": { "label": "Was war im Weg?", "add": "Hinzufügen" },
+      "habits": { "label": "Gewohnheiten, die du aufbauen willst", "add": "Gewohnheit hinzufügen" }
+    },
+    "sheet": {
+      "added": "{{count}} hinzugefügt",
+      "done": "Fertig",
+      "hint": "Gib einen oder mehrere Einträge ein, durch Kommas getrennt",
+      "common": "Häufig",
+      "suggestions": {
+        "Lactose": "Laktose",
+        "Eggs": "Eier",
+        "Shellfish": "Schalentiere",
+        "TreeNuts": "Schalenfrüchte",
+        "Soy": "Soja",
+        "Sesame": "Sesam"
+      }
+    }
   },
   "coachPending": {
     "title": "Dein Coach-Konto ist bereit",

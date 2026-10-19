@@ -186,8 +186,149 @@
     "cta": "Nastavit profil"
   },
   "onboarding": {
-    "title": "Nastavení profilu",
-    "body": "Nastavení profilu brzy přibude."
+    "stepOf": "{{step}} z {{total}}",
+    "back": "Zpět",
+    "continue": "Pokračovat",
+    "finish": "Dokončit",
+    "optional": "Volitelné",
+    "notSet": "Nezadáno",
+    "decrease": "Snížit: {{field}}",
+    "increase": "Zvýšit: {{field}}",
+    "removeItem": "Odebrat: {{item}}",
+    "errors": {
+      "network": "Nepodařilo se spojit se serverem. Zkontroluj připojení a zkus to znovu.",
+      "generic": "Odpovědi se nepodařilo uložit. Zkus to prosím znovu."
+    },
+    "goal": {
+      "title": "Jaký je tvůj hlavní cíl?",
+      "subtitle": "Tvůj trenér kolem něj postaví první plán.",
+      "options": {
+        "LoseFat": { "title": "Zhubnout", "hint": "Zredukovat tuk a udržet sílu" },
+        "GainMuscle": { "title": "Nabrat svaly", "hint": "Přibrat díky strukturovanému plánu" },
+        "Recomposition": { "title": "Zhubnout a nabrat svaly", "hint": "Přetvořit postavu při stálé váze" },
+        "Fitness": { "title": "Být fit", "hint": "Víc výdrže pro každodenní život" },
+        "Health": { "title": "Cítit se zdravěji", "hint": "Víc energie, lepší spánek a návyky" },
+        "Maintain": { "title": "Zůstat, kde jsem", "hint": "Udržet stávající tvar" },
+        "Performance": { "title": "Podávat lepší výkon", "hint": "Trénink na sport nebo událost" }
+      },
+      "horizonLabel": "Dokdy?",
+      "horizon": {
+        "ThreeMonths": "3 měsíce",
+        "SixMonths": "6 měsíců",
+        "OneYear": "1 rok"
+      }
+    },
+    "basics": {
+      "title": "O tobě",
+      "subtitle": "Aby tvůj trenér nastavil reálné cíle.",
+      "sexLabel": "Pohlaví",
+      "sex": { "Female": "Žena", "Male": "Muž" },
+      "age": "Věk",
+      "ageUnit": "let",
+      "height": "Výška",
+      "heightUnit": "cm",
+      "weight": "Aktuální váha",
+      "targetWeight": "Cílová váha",
+      "weightUnit": "kg",
+      "bodyTypeLabel": "Typ postavy",
+      "bodyType": {
+        "Slim": { "title": "Štíhlý", "hint": "Přibírá pomalu" },
+        "Athletic": { "title": "Atletický", "hint": "Snadno buduje" },
+        "Solid": { "title": "Robustní", "hint": "Snadno přibírá" }
+      }
+    },
+    "lifestyle": {
+      "title": "Tvůj běžný den",
+      "subtitle": "Práce, spánek a stres mění, co potřebuješ.",
+      "workLabel": "Jaká je tvoje práce?",
+      "work": {
+        "Sedentary": { "title": "Většinou vsedě", "hint": "Kancelář nebo práce u stolu" },
+        "Standing": { "title": "Na nohou", "hint": "Obchod, výuka, zdravotní péče" },
+        "Physical": { "title": "Fyzická práce", "hint": "Stavba, sklad, farma" }
+      },
+      "sleep": "Spánek za běžnou noc",
+      "sleepUnit": "hodin",
+      "stress": "Stres v poslední době",
+      "stressWords": {
+        "1": "Klid",
+        "2": "Nízký",
+        "3": "Střední",
+        "4": "Vysoký",
+        "5": "Velmi stresovaný"
+      }
+    },
+    "training": {
+      "title": "Trénink",
+      "subtitle": "Odkud začínáš.",
+      "currentLabel": "Jak často teď trénuješ?",
+      "current": {
+        "None": "Zatím ne",
+        "Occasional": "Občas",
+        "Regular": "Pravidelně",
+        "High": "Hodně"
+      },
+      "daysLabel": "Dnů v týdnu, kdy můžeš trénovat",
+      "fitnessLabel": "Ohodnoť svou kondici",
+      "fitnessLow": "Teprve začínám",
+      "fitnessHigh": "Velmi fit",
+      "gymLabel": "Přístup do posilovny",
+      "gym": { "Yes": "Ano", "Sometimes": "Občas", "No": "Ne" }
+    },
+    "eating": {
+      "title": "Stravování",
+      "subtitle": "Tvůj nutriční poradce podle toho plánuje jídla.",
+      "mealsLabel": "Jídel denně",
+      "meals": { "TwoToThree": "2–3", "FourToFive": "4–5", "SixPlus": "6+" },
+      "styleLabel": "Jak se stravuješ?",
+      "style": {
+        "Anything": "Vše",
+        "Vegetarian": "Vegetarián",
+        "Vegan": "Vegan",
+        "GlutenFree": "Bez lepku"
+      },
+      "ratingLabel": "Ohodnoť dnešní stravu",
+      "ratingLow": "Špatná",
+      "ratingHigh": "Skvělá"
+    },
+    "motivation": {
+      "title": "Co tě pohání",
+      "subtitle": "Pomáhá trenérovi udržet tě na správné cestě.",
+      "label": "Co tě motivuje nejvíc?",
+      "options": {
+        "Appearance": "Vypadat lépe",
+        "Health": "Zdraví",
+        "Performance": "Výkon",
+        "Confidence": "Sebevědomí"
+      },
+      "experienceLabel": "Máš zkušenost s nějakým plánem?",
+      "experience": {
+        "Never": "Nikdy",
+        "TriedFailed": "Nevydrželo to",
+        "TriedSucceeded": "Fungovalo to"
+      }
+    },
+    "chips": {
+      "activities": { "label": "Aktivity, které tě baví", "add": "Přidat" },
+      "injuries": { "label": "Zranění nebo omezení", "add": "Přidat" },
+      "allergies": { "label": "Alergie", "add": "Přidat alergii" },
+      "dislikes": { "label": "Jídla, která ti nechutnají", "add": "Přidat jídlo" },
+      "blockers": { "label": "Co ti stálo v cestě?", "add": "Přidat" },
+      "habits": { "label": "Návyky, které chceš vybudovat", "add": "Přidat návyk" }
+    },
+    "sheet": {
+      "added": "Přidáno: {{count}}",
+      "done": "Hotovo",
+      "hint": "Napiš jednu nebo více položek oddělených čárkami",
+      "common": "Časté",
+      "suggestions": {
+        "Lactose": "Laktóza",
+        "Eggs": "Vejce",
+        "Shellfish": "Korýši",
+        "TreeNuts": "Skořápkové plody",
+        "Soy": "Sója",
+        "Sesame": "Sezam"
+      }
+    }
   },
   "coachPending": {
     "title": "Tvůj trenérský účet je připravený",
