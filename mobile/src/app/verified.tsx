@@ -1,6 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
+import { isClientProfile } from '@/api/profile';
 import { Button } from '@/components/Button';
 import { HeroIcon } from '@/components/HeroIcon';
 import { Screen } from '@/components/Screen';
@@ -17,6 +18,8 @@ export default function VerifiedScreen() {
   const styles = makeStyles(theme);
   const { data: profile } = useProfile();
   const name = profile?.firstName?.trim();
+  // Coaches get the same confirmation but not the client-only next steps.
+  const isClient = profile ? isClientProfile(profile) : true;
 
   return (
     <Screen contentStyle={styles.content}>
@@ -30,10 +33,10 @@ export default function VerifiedScreen() {
             {name ? t('verified.welcome', { name }) : t('verified.welcomeAnonymous')}
           </Text>
         </View>
-        <VerifiedNextSteps />
+        {isClient ? <VerifiedNextSteps /> : null}
       </View>
       <Button
-        label={t('verified.cta')}
+        label={isClient ? t('verified.cta') : t('verified.continue')}
         onPress={() => useAuthStore.getState().acknowledgeVerified()}
       />
     </Screen>
