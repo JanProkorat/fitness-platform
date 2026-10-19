@@ -1,5 +1,9 @@
 export type ColorScheme = 'light' | 'dark';
 
+/** SVG gradient stops take colour and opacity separately, so glows are not plain `Colors` entries. */
+export type GlowColor = { color: string; opacity: number };
+export type LaunchGlows = { top: GlowColor; bottom: GlowColor; corner: GlowColor };
+
 export type Colors = {
   ground: string;
   surface: string;
@@ -44,6 +48,10 @@ export type Colors = {
   wordmarkInk: string;
   wordmarkAccent: string;
 
+  launchMarkDeep: string;
+  launchRing: string;
+  launchUp: string;
+
   macroProtein: string;
   macroCarbs: string;
   macroFat: string;
@@ -67,6 +75,7 @@ const shared = {
   avatar: '#141414',
   onAvatar: '#F6F4F0',
   wordmarkAccent: '#C8382F',
+  launchRing: '#F4A08A',
 };
 
 export const lightColors: Colors = {
@@ -97,6 +106,8 @@ export const lightColors: Colors = {
   glassFill: 'rgba(255,255,255,0.58)',
   glassBorder: 'rgba(255,255,255,0.85)',
   wordmarkInk: '#141414',
+  launchMarkDeep: '#8E1F18',
+  launchUp: '#C8382F',
 };
 
 export const darkColors: Colors = {
@@ -127,4 +138,19 @@ export const darkColors: Colors = {
   glassFill: 'rgba(44,44,48,0.52)',
   glassBorder: 'rgba(255,255,255,0.14)',
   wordmarkInk: '#F4F2EE',
+  launchMarkDeep: '#7A1A14',
+  launchUp: '#E5483D',
+};
+
+export const launchGlowColors: Record<ColorScheme, LaunchGlows> = {
+  light: {
+    top: { color: '#FFE7D3', opacity: 1 },
+    bottom: { color: '#E4F2D3', opacity: 1 },
+    corner: { color: '#FDE4E1', opacity: 1 },
+  },
+  dark: {
+    top: { color: '#F28C38', opacity: 0.16 },
+    bottom: { color: '#8CC152', opacity: 0.12 },
+    corner: { color: '#E5483D', opacity: 0.1 },
+  },
 };

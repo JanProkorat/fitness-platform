@@ -2,6 +2,10 @@
   "app": {
     "placeholder": "The app is getting ready"
   },
+  "launch": {
+    "label": "Form Up",
+    "tagline": "Your plan. Together."
+  },
   "auth": {
     "login": {
       "heading": "Training & nutrition\nin one place.",

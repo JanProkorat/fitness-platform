@@ -1,24 +1,25 @@
 import { useMemo } from 'react';
 import { useColorScheme } from 'react-native';
 
-import { darkColors, lightColors } from './colors';
-import type { ColorScheme, Colors } from './colors';
+import { darkColors, launchGlowColors, lightColors } from './colors';
+import type { ColorScheme, Colors, LaunchGlows } from './colors';
 import { glass } from './glass';
 import type { Glass, GlassBlur } from './glass';
 import { buildShadows } from './shadows';
 import type { Shadows } from './shadows';
-import { radii, sizes, spacing } from './spacing';
-import { fontAssets, textStyle, typography } from './typography';
+import { launchGlows, launchMotion, radii, sizes, spacing } from './spacing';
+import { fontAssets, launchTracking, textStyle, typography } from './typography';
 
-export type { ColorScheme, Colors } from './colors';
+export type { ColorScheme, Colors, GlowColor, LaunchGlows } from './colors';
 export type { FontFamily, TypeStyle, TypographyRole } from './typography';
-export { fontAssets, textStyle, typography };
+export { fontAssets, launchTracking, textStyle, typography };
 export type { Glass, GlassBlur, Shadows };
-export { glass, radii, sizes, spacing };
+export { glass, launchGlows, launchMotion, radii, sizes, spacing };
 
 export type Theme = {
   scheme: ColorScheme;
   colors: Colors;
+  launchGlows: LaunchGlows;
   typography: typeof typography;
   spacing: typeof spacing;
   radii: typeof radii;
@@ -32,6 +33,7 @@ const buildTheme = (scheme: ColorScheme): Theme => {
   return {
     scheme,
     colors,
+    launchGlows: launchGlowColors[scheme],
     typography,
     spacing,
     radii,
