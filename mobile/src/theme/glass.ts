@@ -8,6 +8,16 @@ export type GlassBlur = {
   intensity: number;
 };
 
+/** Bottom sheet over a dimmed screen. */
+export type GlassSheet = {
+  /** Backdrop fill per colour scheme. */
+  backdrop: { light: string; dark: string };
+  /** Radius of the two top corners. */
+  radius: number;
+  handleWidth: number;
+  handleHeight: number;
+};
+
 export type Glass = {
   /** Tab bars, headers and sheets. */
   bar: GlassBlur;
@@ -15,10 +25,17 @@ export type Glass = {
   control: GlassBlur;
   /** Small badges over media, such as a play button. */
   badge: GlassBlur;
+  sheet: GlassSheet;
 };
 
 export const glass: Glass = {
   bar: { blur: 22, saturate: 1.8, intensity: 50 },
   control: { blur: 18, saturate: 1, intensity: 41 },
   badge: { blur: 16, saturate: 1, intensity: 36 },
+  sheet: {
+    backdrop: { light: 'rgba(0,0,0,0.32)', dark: 'rgba(0,0,0,0.55)' },
+    radius: 26,
+    handleWidth: 36,
+    handleHeight: 5,
+  },
 };

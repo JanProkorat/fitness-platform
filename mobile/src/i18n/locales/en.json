@@ -112,11 +112,30 @@
     "resent": "Email sent.",
     "openEmailApp": "Open email app",
     "backSignOut": "Back, sign out",
+    "wrongAddress": "Wrong address?",
+    "changeEmail": "Change email",
     "errors": {
       "limitReached": "You've reached the limit of verification emails. Check your spam folder.",
       "rateLimited": "Too many attempts. Please try again in a moment.",
       "network": "Can't reach the server. Check your connection and try again.",
       "generic": "Couldn't send the email. Please try again."
+    }
+  },
+  "changeEmail": {
+    "title": "Change email",
+    "cancel": "Cancel",
+    "explainStart": "We'll move your account to the new address and send a fresh link. The link sent to",
+    "explainEnd": "stops working.",
+    "newEmail": "New email address",
+    "submit": "Send new link",
+    "errors": {
+      "alreadyInUse": "This email address is already in use.",
+      "unchanged": "That's the address we already have. Enter a different one.",
+      "limitReached": "You've reached the limit of verification emails. Check your spam folder.",
+      "invalid": "Enter a valid email address.",
+      "rateLimited": "Too many attempts. Please try again in a moment.",
+      "network": "Can't reach the server. Check your connection and try again.",
+      "generic": "Couldn't change the email. Please try again."
     }
   },
   "verifyLink": {

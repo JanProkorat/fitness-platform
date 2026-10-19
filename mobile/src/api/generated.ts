@@ -18214,6 +18214,73 @@ export class ApiClient {
     }
 
     /**
+     * Change the email of an unverified account
+     * @return Email changed, verification email sent
+     */
+    changeUnverifiedEmailEndpoint(changeUnverifiedEmailRequest: ChangeUnverifiedEmailRequest, signal?: AbortSignal): Promise<ChangeUnverifiedEmailResponse> {
+        let url_ = this.baseUrl + "/auth/email";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(changeUnverifiedEmailRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processChangeUnverifiedEmailEndpoint(_response);
+        });
+    }
+
+    protected processChangeUnverifiedEmailEndpoint(response: AxiosResponse): Promise<ChangeUnverifiedEmailResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<ChangeUnverifiedEmailResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid address, already verified, unchanged, in use, or resend limit reached", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ChangeUnverifiedEmailResponse>(null as any);
+    }
+
+    /**
      * Resend verification email (anonymous)
      * @return Success
      */
@@ -25548,6 +25615,20 @@ export interface LoginRequest {
     email: string;
     /** User's password. */
     password: string;
+}
+
+/** Result of changing the email address of an unverified account. */
+export interface ChangeUnverifiedEmailResponse {
+    /** The address the verification email was sent to. */
+    email?: string;
+    /** How many more verification emails can be requested for this account. */
+    remainingResends?: number;
+}
+
+/** Request for changing the email address of an unverified account. */
+export interface ChangeUnverifiedEmailRequest {
+    /** The corrected email address. */
+    newEmail: string;
 }
 
 /** Response model for an anonymous resend-verification request. Deliberately generic — the same message is returned regardless of whether the email is registered, already verified, or has hit its resend cap, so the response body never becomes an account-existence oracle. */

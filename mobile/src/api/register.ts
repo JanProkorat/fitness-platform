@@ -179,3 +179,59 @@ export function classifyResendError(error: unknown): ResendFailure {
       return 'generic';
   }
 }
+
+const EMAIL_ALREADY_IN_USE = 'EMAIL_ALREADY_IN_USE';
+const EMAIL_UNCHANGED = 'EMAIL_UNCHANGED';
+
+export type ChangeEmailFailure =
+  | 'alreadyInUse'
+  | 'unchanged'
+  | 'alreadyVerified'
+  | 'limitReached'
+  | 'invalid'
+  | 'rateLimited'
+  | 'network'
+  | 'generic';
+
+/** The corrected address and how many verification emails the account may still request. */
+export type ChangedEmail = { email: string | undefined; remainingResends: number | undefined };
+
+/** Moves the unverified account to a new address and sends a fresh verification link (PUT /auth/email). */
+export async function changeUnverifiedEmail(newEmail: string): Promise<ChangedEmail> {
+  const response = await api.changeUnverifiedEmailEndpoint({ newEmail });
+  return { email: response.email, remainingResends: response.remainingResends };
+}
+
+/** The problem body of an error, whether it arrived parsed or as raw text on an ApiException. */
+function readProblemBody(error: unknown): unknown {
+  if (isRecord(error) && Array.isArray(error.errors)) return error;
+  if (!(error instanceof ApiException)) return undefined;
+  try {
+    return JSON.parse(error.response) as unknown;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Maps anything `changeUnverifiedEmail` can throw to the failure the sheet shows. */
+export function classifyChangeEmailError(error: unknown): ChangeEmailFailure {
+  if (isNetworkError(error)) return 'network';
+  if (getErrorStatus(error) === 429) return 'rateLimited';
+  switch (readResendCode(error)) {
+    case EMAIL_ALREADY_IN_USE:
+      return 'alreadyInUse';
+    case EMAIL_UNCHANGED:
+      return 'unchanged';
+    case EMAIL_ALREADY_VERIFIED:
+      return 'alreadyVerified';
+    case VERIFICATION_RESEND_LIMIT_REACHED:
+      return 'limitReached';
+  }
+  if (
+    getErrorStatus(error) === 400 &&
+    readProblemEntries(readProblemBody(error)).some((entry) => entry.name.toLowerCase() === 'newemail')
+  ) {
+    return 'invalid';
+  }
+  return 'generic';
+}
