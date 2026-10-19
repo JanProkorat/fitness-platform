@@ -9,6 +9,7 @@ using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Application.Infrastructure.Services;
 using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints.Automations;
+using FitnessPlatform.Tests.Endpoints.SessionExecutions;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -849,6 +850,48 @@ public class AutomationSchedulerTests(FitnessApiFactory factory)
         await Scheduler.RunDueNowAsync(After(fireAt), Ct);
 
         (await RunsAsync(rule.Id)).Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Poll_SeveralClientsAndTwoInactiveRules_FiresOnlyForTheClientWithNoActivityInEachRule()
+    {
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var linkedAt = DateTime.UtcNow.AddDays(-5);
+        var idle = await TestActors.Client(factory).CreateAsync(Ct);
+        var measured = await TestActors.Client(factory).CreateAsync(Ct);
+        var trained = await TestActors.Client(factory).CreateAsync(Ct);
+        var fed = await TestActors.Client(factory).CreateAsync(Ct);
+
+        foreach (var client in new[] { idle, measured, trained, fed })
+        {
+            var linkId = await TestActors.Link(factory, coach, client).CreateAsync(Ct);
+            await AutomationTestData.SetLinkCreatedAsync(factory, linkId, linkedAt);
+        }
+
+        var shortRule = await EventRuleAsync(factory, coach, AutomationEventType.ClientInactive, 3);
+        var longRule = await EventRuleAsync(factory, coach, AutomationEventType.ClientInactive, 4);
+        await AutomationTestData.SetRuleCreatedAsync(factory, shortRule.Id, DateTime.UtcNow.AddDays(-10));
+        await AutomationTestData.SetRuleCreatedAsync(factory, longRule.Id, DateTime.UtcNow.AddDays(-10));
+
+        await AutomationTestData.AddMeasurementAsync(factory, measured.ProfileId, DateTime.UtcNow.AddHours(-2));
+
+        var mongo = factory.Services.GetRequiredService<IMongoContext>();
+        var workout = WorkoutLogTestHelpers.CreateLog(clientId: trained.UserId, isCompleted: true, startedAt: DateTime.UtcNow.AddHours(-2));
+        await mongo.SessionExecutions.InsertOneAsync(workout, cancellationToken: Ct);
+        await mongo.MealLogs.InsertOneAsync(
+            new MealLog { ClientId = fed.UserId, LogDate = DateTime.UtcNow.Date, EatenAt = DateTime.UtcNow.AddHours(-2) },
+            cancellationToken: Ct);
+
+        var lastFireAt = AutomationPolledEventCalculator.ComputeFireAt(linkedAt.AddDays(4), 0, new TimeOnly(9, 0), Prague);
+        await Scheduler.RunDueNowAsync(After(lastFireAt), Ct);
+        await Scheduler.RunDueNowAsync(After(lastFireAt).AddMinutes(3), Ct);
+
+        foreach (var rule in new[] { shortRule, longRule })
+        {
+            var run = (await RunsAsync(rule.Id)).Should().ContainSingle("only the idle client has been inactive").Subject;
+            run.ClientProfileId.Should().Be(idle.ProfileId);
+            run.Status.Should().Be(AutomationRunStatus.Sent);
+        }
     }
 
     [Fact]
