@@ -36,6 +36,8 @@ const style = (
 export const typography = {
   logo: style('Outfit_300Light', 30, 34, -0.45),
   wordmark: style('Outfit_300Light', 22, 22, 4.84),
+  launchWordmark: style('Outfit_300Light', 36, 36, 7.92),
+  launchTagline: style('Outfit_300Light', 15, 20, 0.9),
   display: style('Outfit_600SemiBold', 32, 36, -0.48),
   title: style('Outfit_600SemiBold', 30, 34, -0.45),
   heading: style('DMSans_700Bold', 20, 26),
@@ -55,6 +57,9 @@ export const typography = {
   button: style('DMSans_600SemiBold', 16, 20),
   buttonSmall: style('DMSans_600SemiBold', 13, 16),
 } satisfies Record<string, TypeStyle>;
+
+/** Launch wordmark tracking: starts wide (0.42em) and settles to the resting 0.22em. */
+export const launchTracking = { from: 15.12, to: 7.92 } as const;
 
 export type TypographyRole = keyof typeof typography;
 

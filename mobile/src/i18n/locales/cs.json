@@ -2,6 +2,10 @@
   "app": {
     "placeholder": "Aplikace se připravuje"
   },
+  "launch": {
+    "label": "Form Up",
+    "tagline": "Váš plán. Společně."
+  },
   "auth": {
     "login": {
       "heading": "Trénink a výživa\nna jednom místě.",

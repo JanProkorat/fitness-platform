@@ -2,6 +2,10 @@
   "app": {
     "placeholder": "Die App wird vorbereitet"
   },
+  "launch": {
+    "label": "Form Up",
+    "tagline": "Dein Plan. Gemeinsam."
+  },
   "auth": {
     "login": {
       "heading": "Training & Ernährung\nan einem Ort.",
