@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useFormContext, useWatch } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { Camera, FileText, Ruler, Send } from 'lucide-react';
@@ -38,7 +38,7 @@ export default function AutomationWhatSection({ actionLocked = false, actionRead
   const limit = messageLimitFor(actionType);
   // An automation can only send an active onboarding form; check-in forms have their own flow.
   const formsQuery = useTrainerQuestionnaires({ type: QuestionnaireType.Onboarding });
-  const forms = (formsQuery.data ?? []).filter((form) => form.isActive);
+  const forms = useMemo(() => (formsQuery.data ?? []).filter((form) => form.isActive), [formsQuery.data]);
   const loadedForms = formsQuery.isSuccess && !formsQuery.isPlaceholderData ? forms : undefined;
 
   // A saved rule may point at a form that is no longer offered; clear it so the required-form check shows.
