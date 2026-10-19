@@ -68,9 +68,15 @@ public abstract class AutomationTriggerBodyValidator<T> : Validator<T>
 
             RuleFor(x => x)
                 .Must(x => x.EventOffsetDirection != AutomationOffsetDirection.Before
-                           || x.EventType != AutomationEventType.ClientJoined)
+                           || x.EventType is AutomationEventType.PlanStarted or AutomationEventType.PlanEnded)
                 .WithErrorCode(ErrorCodes.AutomationEventInvalid)
-                .WithMessage("A send cannot come before the client joins.");
+                .WithMessage("Only plan events can send before the event.");
+
+            RuleFor(x => x)
+                .Must(x => x.EventOffsetDays is >= 1)
+                .WithErrorCode(ErrorCodes.AutomationEventInvalid)
+                .WithMessage("Client inactive needs an offset of at least 1 day.")
+                .When(x => x.EventType == AutomationEventType.ClientInactive);
 
             RuleFor(x => x)
                 .Must(x => x.ScheduleInterval is null && x.ScheduleUnit is null && x.LocalTime is null)
@@ -81,7 +87,7 @@ public abstract class AutomationTriggerBodyValidator<T> : Validator<T>
                 .Equal(false)
                 .WithErrorCode(ErrorCodes.AutomationOncePerPlanNeedsPlanEvent)
                 .WithMessage("Once per plan applies to plan events only.")
-                .When(x => x.EventType == AutomationEventType.ClientJoined);
+                .When(x => x.EventType is not (AutomationEventType.PlanStarted or AutomationEventType.PlanEnded));
         });
 
         RuleFor(x => x.StopAfterSends)

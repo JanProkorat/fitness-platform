@@ -43,6 +43,33 @@ public class AutomationRuleEndpointTests(FitnessApiFactory factory)
         rule.OnlyClientId.Should().BeNull();
     }
 
+    [Theory]
+    [InlineData("CheckInMissed", 1)]
+    [InlineData("ClientInactive", 7)]
+    [InlineData("FormAnswered", 0)]
+    public async Task Create_RuleWithNewEventTrigger_RoundTrips(string eventType, int offset)
+    {
+        var coach = await CreateCoachAsync();
+        var body = AutomationTestData.ScheduleRule("Event rule");
+        body["triggerKind"] = "Event";
+        body["eventType"] = eventType;
+        body["eventOffsetDays"] = offset;
+        body["scheduleInterval"] = null;
+        body["scheduleUnit"] = null;
+        body["localTime"] = null;
+
+        var response = await coach.Http.PostAsJsonAsync("/trainer/automations/rules", body, Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var created = await ReadRuleAsync(response);
+        var reread = await ReadRuleAsync(await coach.Http.GetAsync($"/trainer/automations/rules/{created.RuleId}", Ct));
+        reread.TriggerKind.Should().Be(AutomationTriggerKind.Event);
+        reread.EventType.Should().Be(Enum.Parse<AutomationEventType>(eventType));
+        reread.EventOffsetDays.Should().Be(offset);
+        reread.EventOffsetDirection.Should().Be(AutomationOffsetDirection.After);
+        reread.ScheduleInterval.Should().BeNull();
+    }
+
     [Fact]
     public async Task Create_InvalidBody_Returns400()
     {

@@ -176,6 +176,54 @@ public class AutomationValidatorTests
         Validate(request).ShouldNotHaveAnyValidationErrors();
     }
 
+    private static CreateAutomationRuleRequest EventRule(
+        AutomationEventType eventType, int? offset, AutomationOffsetDirection? direction)
+    {
+        var request = ValidEvent();
+        request.EventType = eventType;
+        request.EventOffsetDays = offset;
+        request.EventOffsetDirection = direction;
+        return request;
+    }
+
+    [Theory]
+    [InlineData(AutomationEventType.CheckInMissed, 0, AutomationOffsetDirection.After)]
+    [InlineData(AutomationEventType.CheckInMissed, 2, AutomationOffsetDirection.After)]
+    [InlineData(AutomationEventType.FormAnswered, 0, AutomationOffsetDirection.After)]
+    [InlineData(AutomationEventType.FormAnswered, null, null)]
+    [InlineData(AutomationEventType.ClientInactive, 1, AutomationOffsetDirection.After)]
+    [InlineData(AutomationEventType.ClientInactive, 14, null)]
+    [InlineData(AutomationEventType.PlanStarted, 2, AutomationOffsetDirection.Before)]
+    public void Validate_NewEventShapes_Accepted(AutomationEventType eventType, int? offset, AutomationOffsetDirection? direction)
+    {
+        Validate(EventRule(eventType, offset, direction)).ShouldNotHaveAnyValidationErrors();
+    }
+
+    [Theory]
+    [InlineData(AutomationEventType.CheckInMissed, 1, AutomationOffsetDirection.Before)]
+    [InlineData(AutomationEventType.FormAnswered, 1, AutomationOffsetDirection.Before)]
+    [InlineData(AutomationEventType.ClientInactive, 3, AutomationOffsetDirection.Before)]
+    [InlineData(AutomationEventType.ClientInactive, 0, AutomationOffsetDirection.After)]
+    [InlineData(AutomationEventType.ClientInactive, null, null)]
+    [InlineData(AutomationEventType.ClientJoined, 1, AutomationOffsetDirection.Before)]
+    public void Validate_NewEventShapes_Rejected(AutomationEventType eventType, int? offset, AutomationOffsetDirection? direction)
+    {
+        Validate(EventRule(eventType, offset, direction)).Errors
+            .Should().Contain(e => e.ErrorCode == ErrorCodes.AutomationEventInvalid);
+    }
+
+    [Theory]
+    [InlineData(AutomationEventType.CheckInMissed)]
+    [InlineData(AutomationEventType.ClientInactive)]
+    [InlineData(AutomationEventType.FormAnswered)]
+    public void Validate_OncePerPlanOnNewEvents_Fails(AutomationEventType eventType)
+    {
+        var request = EventRule(eventType, 1, AutomationOffsetDirection.After);
+        request.OncePerPlan = true;
+
+        Validate(request).Errors.Should().Contain(e => e.ErrorCode == ErrorCodes.AutomationOncePerPlanNeedsPlanEvent);
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(-3)]

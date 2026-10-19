@@ -13,4 +13,13 @@ public enum AutomationEventType
 
     /// <summary>A training or meal plan ends for the client (a plan event).</summary>
     PlanEnded = 2,
+
+    /// <summary>The client missed a weekly check-in.</summary>
+    CheckInMissed = 3,
+
+    /// <summary>The client has been inactive for N days (the offset is N).</summary>
+    ClientInactive = 4,
+
+    /// <summary>The client answered a form.</summary>
+    FormAnswered = 5,
 }
