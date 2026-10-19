@@ -32,6 +32,9 @@ export type Colors = {
   nutritionSoft: string;
   onNutrition: string;
 
+  infoInk: string;
+  infoSoft: string;
+
   success: string;
   successSoft: string;
   error: string;
@@ -99,6 +102,8 @@ export const lightColors: Colors = {
   trainingSoft: '#FFF0E2',
   nutritionInk: '#3F7D2A',
   nutritionSoft: '#EEF6E3',
+  infoInk: '#3563C9',
+  infoSoft: '#E8EEFB',
   success: '#3F7D2A',
   successSoft: '#EEF6E3',
   error: '#9F1F17',
@@ -133,6 +138,8 @@ export const darkColors: Colors = {
   trainingSoft: '#3A2414',
   nutritionInk: '#A9D673',
   nutritionSoft: '#243319',
+  infoInk: '#8EAAEB',
+  infoSoft: '#1B2640',
   success: '#A9D673',
   successSoft: '#243319',
   error: '#F2705F',

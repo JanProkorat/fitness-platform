@@ -186,8 +186,149 @@
     "cta": "Set up your profile"
   },
   "onboarding": {
-    "title": "Set up your profile",
-    "body": "Profile setup is coming soon."
+    "stepOf": "{{step}} of {{total}}",
+    "back": "Back",
+    "continue": "Continue",
+    "finish": "Finish",
+    "optional": "Optional",
+    "notSet": "Not set",
+    "decrease": "Decrease {{field}}",
+    "increase": "Increase {{field}}",
+    "removeItem": "Remove {{item}}",
+    "errors": {
+      "network": "Can't reach the server. Check your connection and try again.",
+      "generic": "Couldn't save your answers. Please try again."
+    },
+    "goal": {
+      "title": "What's your main goal?",
+      "subtitle": "Your coach builds your first plan around it.",
+      "options": {
+        "LoseFat": { "title": "Lose fat", "hint": "Lean out while keeping strength" },
+        "GainMuscle": { "title": "Build muscle", "hint": "Add size with a structured plan" },
+        "Recomposition": { "title": "Lose fat and build muscle", "hint": "Reshape at a steady weight" },
+        "Fitness": { "title": "Get fitter", "hint": "More stamina for everyday life" },
+        "Health": { "title": "Feel healthier", "hint": "Better energy, sleep and habits" },
+        "Maintain": { "title": "Stay where I am", "hint": "Keep the shape you have" },
+        "Performance": { "title": "Perform better", "hint": "Train for a sport or an event" }
+      },
+      "horizonLabel": "By when?",
+      "horizon": {
+        "ThreeMonths": "3 months",
+        "SixMonths": "6 months",
+        "OneYear": "1 year"
+      }
+    },
+    "basics": {
+      "title": "About you",
+      "subtitle": "So your coach can set realistic targets.",
+      "sexLabel": "Sex",
+      "sex": { "Female": "Female", "Male": "Male" },
+      "age": "Age",
+      "ageUnit": "years",
+      "height": "Height",
+      "heightUnit": "cm",
+      "weight": "Current weight",
+      "targetWeight": "Target weight",
+      "weightUnit": "kg",
+      "bodyTypeLabel": "Body type",
+      "bodyType": {
+        "Slim": { "title": "Slim", "hint": "Gains slowly" },
+        "Athletic": { "title": "Athletic", "hint": "Builds easily" },
+        "Solid": { "title": "Solid", "hint": "Gains easily" }
+      }
+    },
+    "lifestyle": {
+      "title": "Your everyday life",
+      "subtitle": "Work, sleep and stress change what you need.",
+      "workLabel": "What's your work like?",
+      "work": {
+        "Sedentary": { "title": "Mostly sitting", "hint": "Office or desk job" },
+        "Standing": { "title": "On my feet", "hint": "Shop, teaching, nursing" },
+        "Physical": { "title": "Physical work", "hint": "Construction, warehouse, farm" }
+      },
+      "sleep": "Sleep on a usual night",
+      "sleepUnit": "hours",
+      "stress": "Stress level lately",
+      "stressWords": {
+        "1": "Calm",
+        "2": "Low",
+        "3": "Medium",
+        "4": "High",
+        "5": "Very stressed"
+      }
+    },
+    "training": {
+      "title": "Training",
+      "subtitle": "Where you're starting from.",
+      "currentLabel": "How often do you train now?",
+      "current": {
+        "None": "Not yet",
+        "Occasional": "Sometimes",
+        "Regular": "Regularly",
+        "High": "A lot"
+      },
+      "daysLabel": "Days a week you can train",
+      "fitnessLabel": "Rate your fitness",
+      "fitnessLow": "Just starting",
+      "fitnessHigh": "Very fit",
+      "gymLabel": "Gym access",
+      "gym": { "Yes": "Yes", "Sometimes": "Sometimes", "No": "No" }
+    },
+    "eating": {
+      "title": "Eating",
+      "subtitle": "Your nutritionist plans meals around this.",
+      "mealsLabel": "Meals a day",
+      "meals": { "TwoToThree": "2–3", "FourToFive": "4–5", "SixPlus": "6+" },
+      "styleLabel": "How do you eat?",
+      "style": {
+        "Anything": "Anything",
+        "Vegetarian": "Vegetarian",
+        "Vegan": "Vegan",
+        "GlutenFree": "Gluten-free"
+      },
+      "ratingLabel": "Rate your diet today",
+      "ratingLow": "Poor",
+      "ratingHigh": "Great"
+    },
+    "motivation": {
+      "title": "What drives you",
+      "subtitle": "Helps your coach keep you on track.",
+      "label": "What motivates you most?",
+      "options": {
+        "Appearance": "Look better",
+        "Health": "Health",
+        "Performance": "Performance",
+        "Confidence": "Confidence"
+      },
+      "experienceLabel": "Have you followed a plan before?",
+      "experience": {
+        "Never": "Never",
+        "TriedFailed": "Didn't stick",
+        "TriedSucceeded": "It worked"
+      }
+    },
+    "chips": {
+      "activities": { "label": "Activities you enjoy", "add": "Add" },
+      "injuries": { "label": "Injuries or limits", "add": "Add" },
+      "allergies": { "label": "Allergies", "add": "Add allergy" },
+      "dislikes": { "label": "Foods you don't like", "add": "Add food" },
+      "blockers": { "label": "What got in the way?", "add": "Add" },
+      "habits": { "label": "Habits you want to build", "add": "Add habit" }
+    },
+    "sheet": {
+      "added": "{{count}} added",
+      "done": "Done",
+      "hint": "Type one or more, separated by commas",
+      "common": "Common",
+      "suggestions": {
+        "Lactose": "Lactose",
+        "Eggs": "Eggs",
+        "Shellfish": "Shellfish",
+        "TreeNuts": "Tree nuts",
+        "Soy": "Soy",
+        "Sesame": "Sesame"
+      }
+    }
   },
   "coachPending": {
     "title": "Your coach account is ready",
