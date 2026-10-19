@@ -63,17 +63,28 @@ export default function AutomationWhoSection({ initialClients = [] }: Props) {
   return (
     <section className="flex flex-col gap-3">
       <SectionHeading icon={<Users className="size-4" />}>{t('automations.drawer.who.heading')}</SectionHeading>
-      <label className={FIELD_CLASS}>
-        <span>{t('automations.drawer.who.clients')}</span>
-        <div className="relative">
-          <select {...register('audience')} className={SELECT_CLASS}>
-            <option value={AutomationAudience.All}>{t('automations.drawer.who.all')}</option>
-            <option value={AutomationAudience.Tag}>{t('automations.drawer.who.tag')}</option>
-            <option value={AutomationAudience.Chosen}>{t('automations.drawer.who.chosen')}</option>
-          </select>
-          <SelectChevron />
-        </div>
-      </label>
+      <div className="flex flex-col gap-1.5">
+        <label className={FIELD_CLASS}>
+          <span>{t('automations.drawer.who.clients')}</span>
+          <div className="relative">
+            <select
+              {...register('audience')}
+              className={SELECT_CLASS}
+              aria-describedby={audience === AutomationAudience.All ? 'automation-audience-hint' : undefined}
+            >
+              <option value={AutomationAudience.All}>{t('automations.drawer.who.all')}</option>
+              <option value={AutomationAudience.Tag}>{t('automations.drawer.who.tag')}</option>
+              <option value={AutomationAudience.Chosen}>{t('automations.drawer.who.chosen')}</option>
+            </select>
+            <SelectChevron />
+          </div>
+        </label>
+        {audience === AutomationAudience.All && (
+          <span id="automation-audience-hint" className="text-meta text-muted-foreground">
+            {t('automations.drawer.who.allHint')}
+          </span>
+        )}
+      </div>
 
       {audience === AutomationAudience.Tag && (
         <label className={FIELD_CLASS}>

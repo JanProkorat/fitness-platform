@@ -5095,10 +5095,24 @@
       "everyDays_other": "Alle {{count}} Tage, {{time}}",
       "everyWeeks_one": "Wöchentlich, {{time}}",
       "everyWeeks_other": "Alle {{count}} Wochen, {{time}}",
-      "offsetAfter_one": "{{event}}, {{count}} Tag danach",
-      "offsetAfter_other": "{{event}}, {{count}} Tage danach",
-      "offsetBefore_one": "{{event}}, {{count}} Tag davor",
-      "offsetBefore_other": "{{event}}, {{count}} Tage davor",
+      "offsetAfter_one": "{{count}} Tag, nachdem {{event}}",
+      "offsetAfter_other": "{{count}} Tage, nachdem {{event}}",
+      "offsetBefore_one": "{{count}} Tag, bevor {{event}}",
+      "offsetBefore_other": "{{count}} Tage, bevor {{event}}",
+      "eventsBefore": {
+        "ClientJoined": "ein Klient Ihre Einladung annimmt",
+        "PlanStarted": "ein Plan beginnt",
+        "PlanEnded": "ein Plan endet",
+        "CheckInMissed": "ein Check-in verpasst wird",
+        "FormAnswered": "ein Formular ausgefüllt wird"
+      },
+      "eventsAfter": {
+        "ClientJoined": "ein Klient Ihre Einladung angenommen hat",
+        "PlanStarted": "ein Plan begonnen hat",
+        "PlanEnded": "ein Plan geendet hat",
+        "CheckInMissed": "ein Check-in verpasst wurde",
+        "FormAnswered": "ein Formular ausgefüllt wurde"
+      },
       "offsetInactive_one": "{{event}} seit {{count}} Tag",
       "offsetInactive_other": "{{event}} seit {{count}} Tagen",
       "subtitleForm": "Formular · {{name}}",
@@ -5126,8 +5140,8 @@
     },
     "events": {
       "ClientJoined": "Klient nimmt Ihre Einladung an",
-      "PlanStarted": "Ein Plan beginnt",
-      "PlanEnded": "Ein Plan endet",
+      "PlanStarted": "Ein Trainings- oder Ernährungsplan beginnt",
+      "PlanEnded": "Ein Trainings- oder Ernährungsplan endet",
       "CheckInMissed": "Ein Check-in wird verpasst",
       "ClientInactive": "Klient ist inaktiv",
       "FormAnswered": "Ein Formular wird ausgefüllt"
@@ -5196,6 +5210,7 @@
         "heading": "3 · Wer",
         "clients": "Klienten",
         "all": "Alle aktiven Klienten",
+        "allHint": "Oder Klienten mit einem Tag oder ausgewählte Klienten",
         "tag": "Klienten mit einem Tag",
         "chosen": "Ausgewählte Klienten",
         "tagLabel": "Tag",

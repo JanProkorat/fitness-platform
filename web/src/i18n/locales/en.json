@@ -5096,10 +5096,24 @@
       "everyDays_other": "Every {{count}} days, {{time}}",
       "everyWeeks_one": "Every week, {{time}}",
       "everyWeeks_other": "Every {{count}} weeks, {{time}}",
-      "offsetAfter_one": "{{event}}, {{count}} day after",
-      "offsetAfter_other": "{{event}}, {{count}} days after",
-      "offsetBefore_one": "{{event}}, {{count}} day before",
-      "offsetBefore_other": "{{event}}, {{count}} days before",
+      "offsetAfter_one": "{{count}} day after {{event}}",
+      "offsetAfter_other": "{{count}} days after {{event}}",
+      "offsetBefore_one": "{{count}} day before {{event}}",
+      "offsetBefore_other": "{{count}} days before {{event}}",
+      "eventsBefore": {
+        "ClientJoined": "a client accepts your invite",
+        "PlanStarted": "a plan starts",
+        "PlanEnded": "a plan ends",
+        "CheckInMissed": "a check-in is missed",
+        "FormAnswered": "a form is answered"
+      },
+      "eventsAfter": {
+        "ClientJoined": "a client accepts your invite",
+        "PlanStarted": "a plan starts",
+        "PlanEnded": "a plan ends",
+        "CheckInMissed": "a check-in is missed",
+        "FormAnswered": "a form is answered"
+      },
       "offsetInactive_one": "{{event}} for {{count}} day",
       "offsetInactive_other": "{{event}} for {{count}} days",
       "subtitleForm": "Form · {{name}}",
@@ -5127,8 +5141,8 @@
     },
     "events": {
       "ClientJoined": "Client accepts your invite",
-      "PlanStarted": "A plan starts",
-      "PlanEnded": "A plan ends",
+      "PlanStarted": "A training or meal plan starts",
+      "PlanEnded": "A training or meal plan ends",
       "CheckInMissed": "A check-in is missed",
       "ClientInactive": "Client is inactive",
       "FormAnswered": "A form is answered"
@@ -5197,6 +5211,7 @@
         "heading": "3 · Who",
         "clients": "Clients",
         "all": "All active clients",
+        "allHint": "Or clients with a tag, or chosen clients",
         "tag": "Clients with a tag",
         "chosen": "Chosen clients",
         "tagLabel": "Tag",
