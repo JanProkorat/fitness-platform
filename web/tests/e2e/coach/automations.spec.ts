@@ -6,6 +6,7 @@
  */
 import { trainerTest, nutritionistTest, expect } from '../fixtures/auth';
 import type { Page } from '@playwright/test';
+import { ensureCheckInSetting } from '../fixtures/check-in-setting';
 
 const WEEKDAY = /\b(Mon|Tue|Wed|Thu|Fri|Sat|Sun)(day|sday|nesday|rsday|urday)?\b/;
 
@@ -33,14 +34,17 @@ trainerTest.describe('trainer automations', () => {
     await expectAutomationsPage(page);
   });
 
-  trainerTest('linked check-in rows never name a weekday', async ({ page }) => {
+  trainerTest('linked check-in rows never name a weekday', async ({ page, baseURL }) => {
+    await ensureCheckInSetting(baseURL ?? 'http://localhost:5173');
     await page.goto('/automations');
     const table = page.getByRole('table');
     await expect(table.getByRole('row').nth(1)).toBeVisible();
     const checkInRows = page.getByRole('row').filter({ hasText: 'Weekly check-in' });
+    await expect(checkInRows.first()).toBeVisible();
     for (const row of await checkInRows.all()) {
       await expect(row.getByText('Linked')).toBeVisible();
       await expect(row.getByRole('switch')).toHaveCount(0);
+      await expect(row.getByRole('link', { name: 'Open' })).toHaveAttribute('href', '/forms?type=CheckIn');
     }
     expect(await table.innerText()).not.toMatch(WEEKDAY);
   });
