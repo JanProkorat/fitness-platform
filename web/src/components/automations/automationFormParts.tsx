@@ -52,20 +52,25 @@ interface ChoiceButtonProps {
   onClick: () => void;
   icon: ReactNode;
   children: ReactNode;
+  disabled?: boolean;
 }
 
 /** A pressed/unpressed choice tile used for trigger kind and action. */
-export function ChoiceButton({ selected, onClick, icon, children }: ChoiceButtonProps) {
+export function ChoiceButton({ selected, onClick, icon, children, disabled = false }: ChoiceButtonProps) {
   return (
     <button
       type="button"
       aria-pressed={selected}
+      disabled={disabled}
       onClick={onClick}
       className={cn(
         'flex h-11 items-center justify-center gap-2 rounded-field border px-3 text-body font-semibold outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50',
         selected
           ? 'border-success bg-success-soft text-success-ink'
-          : 'border-input bg-background text-foreground hover:bg-sunken',
+          : 'border-input bg-background text-foreground',
+        !selected && !disabled && 'hover:bg-sunken',
+        disabled && 'cursor-not-allowed',
+        disabled && !selected && 'opacity-50',
       )}
     >
       <span aria-hidden="true">{icon}</span>

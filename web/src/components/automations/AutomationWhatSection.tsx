@@ -1,8 +1,10 @@
+import { useEffect } from 'react';
 import { useFormContext, useWatch } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { Camera, FileText, Ruler, Send } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { AutomationActionType } from '@/api/automations';
+import { QuestionnaireType } from '@/api/questionnaires';
 import { useTrainerQuestionnaires } from '@/hooks/useQuestionnaireQueries';
 import {
   FIELD_CLASS,
@@ -23,17 +25,31 @@ const ACTIONS = [
 interface Props {
   /** Override variant: the action belongs to the parent rule and cannot be changed. */
   actionLocked?: boolean;
+  /** Editing a saved rule: the action tiles show the chosen action but cannot change it. */
+  actionReadOnly?: boolean;
 }
 
 /** Section 2: the action, its form and the message. The message limit follows the action. */
-export default function AutomationWhatSection({ actionLocked = false }: Props) {
+export default function AutomationWhatSection({ actionLocked = false, actionReadOnly = false }: Props) {
   const { t } = useTranslation();
-  const { register, setValue, trigger, control } = useFormContext<AutomationRuleFormValues>();
+  const { register, setValue, trigger, control, getValues } = useFormContext<AutomationRuleFormValues>();
   const actionType = useWatch({ control, name: 'actionType' });
   const message = useWatch({ control, name: 'message' }) ?? '';
   const limit = messageLimitFor(actionType);
-  const formsQuery = useTrainerQuestionnaires();
+  // An automation can only send an active onboarding form; check-in forms have their own flow.
+  const formsQuery = useTrainerQuestionnaires({ type: QuestionnaireType.Onboarding });
   const forms = (formsQuery.data ?? []).filter((form) => form.isActive);
+  const loadedForms = formsQuery.isSuccess && !formsQuery.isPlaceholderData ? forms : undefined;
+
+  // A saved rule may point at a form that is no longer offered; clear it so the required-form check shows.
+  useEffect(() => {
+    if (!loadedForms || actionLocked || actionType !== AutomationActionType.SendForm) return;
+    const current = getValues('questionnaireId');
+    if (current !== '' && !loadedForms.some((form) => form.publicId === current)) {
+      setValue('questionnaireId', '', { shouldDirty: true });
+      void trigger('questionnaireId');
+    }
+  }, [loadedForms, actionLocked, actionType, getValues, setValue, trigger]);
 
   const chooseAction = (value: AutomationActionType) => {
     setValue('actionType', value, { shouldDirty: true });
@@ -47,11 +63,20 @@ export default function AutomationWhatSection({ actionLocked = false }: Props) {
       {!actionLocked && (
         <div role="group" aria-label={t('automations.drawer.what.heading')} className="grid grid-cols-2 gap-2">
           {ACTIONS.map(({ value, icon, labelKey }) => (
-            <ChoiceButton key={value} selected={actionType === value} onClick={() => chooseAction(value)} icon={icon}>
+            <ChoiceButton
+              key={value}
+              selected={actionType === value}
+              disabled={actionReadOnly}
+              onClick={() => chooseAction(value)}
+              icon={icon}
+            >
               {t(`automations.drawer.what.${labelKey}`)}
             </ChoiceButton>
           ))}
         </div>
+      )}
+      {!actionLocked && actionReadOnly && (
+        <p className="text-meta font-normal text-muted-foreground">{t('automations.drawer.what.actionLockedHint')}</p>
       )}
 
       {actionType === AutomationActionType.SendForm && !actionLocked && (
