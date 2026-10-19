@@ -18,11 +18,6 @@
       "submit": "Sign in",
       "newHere": "New here?",
       "createAccount": "Create account",
-      "validation": {
-        "emailRequired": "Enter your email.",
-        "emailInvalid": "Enter a valid email.",
-        "passwordRequired": "Enter your password."
-      },
       "errors": {
         "invalidCredentials": "Wrong email or password.",
         "accountDeactivated": "This account has been deactivated.",
@@ -70,20 +65,11 @@
       "gdprConsent": "I agree to the processing of my personal data and to the terms of use.",
       "healthConsent": "I agree to the processing of my health data, such as weight and injuries, so my coach can build my plans.",
       "submit": "Create account",
-      "validation": {
-        "firstNameRequired": "Enter your first name.",
-        "lastNameRequired": "Enter your last name.",
-        "emailRequired": "Enter your email.",
-        "emailInvalid": "Enter a valid email.",
-        "passwordRules": "Your password doesn't meet all the rules yet.",
-        "gdprRequired": "Please agree to continue.",
-        "healthRequired": "Please agree to continue."
-      },
       "errors": {
         "duplicateEmail": "An account with this email already exists.",
         "rateLimited": "Too many attempts. Please try again in a moment.",
         "network": "Can't reach the server. Check your connection and try again.",
-        "validation": "Please check this field.",
+        "validation": "Please check the highlighted fields.",
         "generic": "Couldn't create your account. Please try again."
       }
     }
@@ -96,8 +82,7 @@
     },
     "input": {
       "label": "Email",
-      "placeholder": "jan@example.com",
-      "error": "Enter a valid email."
+      "placeholder": "jan@example.com"
     },
     "scrollHint": "Scroll the content under the floating bar to see the blur.",
     "signOut": "Sign out",

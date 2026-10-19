@@ -5,6 +5,8 @@ import { useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, View } from 'react-native';
 import type { TextInput } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import type { EdgeInsets } from 'react-native-safe-area-context';
 
 import { login } from '@/api/auth';
 import { ROLE_CLIENT, ROLE_NUTRITIONIST, ROLE_TRAINER } from '@/api/profile';
@@ -22,8 +24,6 @@ import { Text } from '@/components/Text';
 import { useAuthStore } from '@/stores/auth';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
-
-type FieldErrors = Partial<Record<RegisterField | 'gdpr' | 'health', string>>;
 
 const EMAIL_PATTERN = /^\S+@\S+\.\S+$/;
 
@@ -54,7 +54,8 @@ function toggleRole(current: string[], role: string): string[] {
 export default function RegisterScreen() {
   const { t } = useTranslation();
   const theme = useTheme();
-  const styles = makeStyles(theme);
+  const insets = useSafeAreaInsets();
+  const styles = makeStyles(theme, insets);
   const lastNameRef = useRef<TextInput>(null);
   const emailRef = useRef<TextInput>(null);
   const passwordRef = useRef<TextInput>(null);
@@ -66,7 +67,6 @@ export default function RegisterScreen() {
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [gdprConsent, setGdprConsent] = useState(false);
   const [healthConsent, setHealthConsent] = useState(false);
-  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
 
   const isClient = roles.includes(ROLE_CLIENT);
 
@@ -93,27 +93,21 @@ export default function RegisterScreen() {
       ? classifyRegisterError(mutation.error)
       : null;
 
-  const clear = (field: keyof FieldErrors) => {
-    setFieldErrors((current) => ({ ...current, [field]: undefined }));
+  const clear = () => {
     if (mutation.isError) mutation.reset();
   };
 
+  const address = email.trim();
+  const canSubmit =
+    firstName.trim().length > 0 &&
+    lastName.trim().length > 0 &&
+    EMAIL_PATTERN.test(address) &&
+    passwordMeetsRules(password) &&
+    gdprConsent &&
+    (!isClient || healthConsent);
+
   const submit = () => {
-    if (mutation.isPending || mutation.isSuccess) return;
-    const address = email.trim();
-    const errors: FieldErrors = {};
-    if (!firstName.trim()) errors.firstName = t('auth.register.validation.firstNameRequired');
-    if (!lastName.trim()) errors.lastName = t('auth.register.validation.lastNameRequired');
-    if (!address) {
-      errors.email = t('auth.register.validation.emailRequired');
-    } else if (!EMAIL_PATTERN.test(address)) {
-      errors.email = t('auth.register.validation.emailInvalid');
-    }
-    if (!passwordMeetsRules(password)) errors.password = t('auth.register.validation.passwordRules');
-    if (!gdprConsent) errors.gdpr = t('auth.register.validation.gdprRequired');
-    if (isClient && !healthConsent) errors.health = t('auth.register.validation.healthRequired');
-    setFieldErrors(errors);
-    if (Object.values(errors).some(Boolean)) return;
+    if (mutation.isPending || mutation.isSuccess || !canSubmit) return;
     mutation.mutate({
       firstName: firstName.trim(),
       lastName: lastName.trim(),
@@ -133,21 +127,20 @@ export default function RegisterScreen() {
     }
   };
 
-  const serverFieldError = (field: RegisterField): string | undefined => {
-    if (failure?.kind === 'duplicateEmail' && field === 'email') {
-      return t('auth.register.errors.duplicateEmail');
-    }
-    if (failure?.kind === 'validation' && failure.fields.includes(field)) {
-      return t('auth.register.errors.validation');
-    }
-    return undefined;
-  };
+  const fieldInvalid = (field: RegisterField): boolean =>
+    (failure?.kind === 'duplicateEmail' && field === 'email') ||
+    (failure?.kind === 'validation' && failure.fields.includes(field));
 
-  const bannerKey =
-    failure?.kind === 'rateLimited' || failure?.kind === 'network' || failure?.kind === 'generic'
+  const messageKey =
+    failure?.kind === 'duplicateEmail' ||
+    failure?.kind === 'rateLimited' ||
+    failure?.kind === 'network' ||
+    failure?.kind === 'generic'
       ? failure.kind
-      : failure?.kind === 'validation' && failure.fields.length === 0
-        ? 'generic'
+      : failure?.kind === 'validation'
+        ? failure.fields.length === 0
+          ? 'generic'
+          : 'validation'
         : null;
 
   const iconProps = { tintColor: theme.colors.muted, size: theme.sizes.fieldIcon };
@@ -159,16 +152,18 @@ export default function RegisterScreen() {
     >
       <Screen scroll contentStyle={styles.content}>
         <View style={styles.topBar}>
-          <BackButton label={t('auth.register.back')} onPress={goBack} />
+          <View style={styles.heading}>
+            <Text variant="title" accessibilityRole="header" style={styles.headingText}>
+              {t('auth.register.heading')}
+            </Text>
+          </View>
+          <View style={styles.back}>
+            <BackButton label={t('auth.register.back')} onPress={goBack} />
+          </View>
         </View>
-        <View style={styles.header}>
-          <Text variant="title" accessibilityRole="header">
-            {t('auth.register.heading')}
-          </Text>
-          <Text variant="body" color="muted">
-            {t('auth.register.subtitle')}
-          </Text>
-        </View>
+        <Text variant="body" color="muted">
+          {t('auth.register.subtitle')}
+        </Text>
 
         <View accessibilityRole="radiogroup" style={styles.group}>
           <Text variant="label" color="muted">
@@ -185,7 +180,7 @@ export default function RegisterScreen() {
                 selected={roles.includes(role)}
                 onPress={() => {
                   setRoles((current) => toggleRole(current, role));
-                  clear('health');
+                  clear();
                 }}
               />
             ))}
@@ -202,9 +197,9 @@ export default function RegisterScreen() {
               value={firstName}
               onChangeText={(value) => {
                 setFirstName(value);
-                clear('firstName');
+                clear();
               }}
-              error={fieldErrors.firstName ?? serverFieldError('firstName')}
+              invalid={fieldInvalid('firstName')}
               maxLength={50}
               autoComplete="given-name"
               textContentType="givenName"
@@ -219,9 +214,9 @@ export default function RegisterScreen() {
               value={lastName}
               onChangeText={(value) => {
                 setLastName(value);
-                clear('lastName');
+                clear();
               }}
-              error={fieldErrors.lastName ?? serverFieldError('lastName')}
+              invalid={fieldInvalid('lastName')}
               inputRef={lastNameRef}
               maxLength={50}
               autoComplete="family-name"
@@ -238,9 +233,9 @@ export default function RegisterScreen() {
           value={email}
           onChangeText={(value) => {
             setEmail(value);
-            clear('email');
+            clear();
           }}
-          error={fieldErrors.email ?? serverFieldError('email')}
+          invalid={fieldInvalid('email')}
           inputRef={emailRef}
           leading={<SymbolView name="envelope" {...iconProps} />}
           keyboardType="email-address"
@@ -259,9 +254,9 @@ export default function RegisterScreen() {
           value={password}
           onChangeText={(value) => {
             setPassword(value);
-            clear('password');
+            clear();
           }}
-          error={fieldErrors.password ?? serverFieldError('password')}
+          invalid={fieldInvalid('password')}
           inputRef={passwordRef}
           leading={<SymbolView name="lock" {...iconProps} />}
           trailing={
@@ -295,40 +290,43 @@ export default function RegisterScreen() {
             checked={gdprConsent}
             onChange={(value) => {
               setGdprConsent(value);
-              clear('gdpr');
+              clear();
             }}
-            error={fieldErrors.gdpr}
           />
-          {isClient ? (
+          <View
+            style={isClient ? undefined : styles.consentHidden}
+            pointerEvents={isClient ? 'auto' : 'none'}
+            accessibilityElementsHidden={!isClient}
+            importantForAccessibility={isClient ? 'auto' : 'no-hide-descendants'}
+          >
             <Checkbox
               label={t('auth.register.healthConsent')}
               checked={healthConsent}
               onChange={(value) => {
                 setHealthConsent(value);
-                clear('health');
+                clear();
               }}
-              error={fieldErrors.health}
             />
-          ) : null}
+          </View>
         </View>
 
-        {bannerKey ? (
-          <Text variant="label" color="error" accessibilityRole="alert">
-            {t(`auth.register.errors.${bannerKey}`)}
-          </Text>
-        ) : null}
         <Button
           label={t('auth.register.submit')}
           onPress={submit}
-          disabled={mutation.isPending || mutation.isSuccess}
+          disabled={mutation.isPending || mutation.isSuccess || !canSubmit}
           style={styles.submit}
         />
+        {messageKey ? (
+          <Text variant="label" color="error" accessibilityRole="alert">
+            {t(`auth.register.errors.${messageKey}`)}
+          </Text>
+        ) : null}
       </Screen>
     </KeyboardAvoidingView>
   );
 }
 
-const makeStyles = (theme: Theme) =>
+const makeStyles = (theme: Theme, insets: EdgeInsets) =>
   StyleSheet.create({
     root: {
       flex: 1,
@@ -337,16 +335,26 @@ const makeStyles = (theme: Theme) =>
     content: {
       flexGrow: 1,
       gap: theme.spacing.md,
-      paddingTop: theme.spacing.xs,
+      paddingTop: insets.top + theme.spacing.xs,
       paddingBottom: theme.sizes.authBottom,
     },
     topBar: {
-      paddingTop: theme.spacing.xs,
-      paddingBottom: theme.spacing.xs,
+      minHeight: theme.sizes.backButton,
+      justifyContent: 'center',
     },
-    header: {
-      gap: theme.spacing.snug,
-      paddingBottom: theme.spacing.xxs,
+    back: {
+      position: 'absolute',
+      top: 0,
+      bottom: 0,
+      left: 0,
+      justifyContent: 'center',
+    },
+    // Equal padding on both sides keeps the title centred and clear of the back button.
+    heading: {
+      paddingHorizontal: theme.sizes.backButton + theme.spacing.sm,
+    },
+    headingText: {
+      textAlign: 'center',
     },
     group: {
       gap: theme.spacing.snug,
@@ -366,6 +374,9 @@ const makeStyles = (theme: Theme) =>
     consents: {
       gap: theme.spacing.sm,
       paddingTop: theme.spacing.xxs,
+    },
+    consentHidden: {
+      opacity: 0,
     },
     submit: {
       marginTop: theme.spacing.snug,

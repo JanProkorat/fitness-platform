@@ -3,6 +3,8 @@ import { useIsFocused } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { Linking, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import type { EdgeInsets } from 'react-native-safe-area-context';
 
 import { PROFILE_QUERY_KEY } from '@/api/profile';
 import { classifyResendError, resendVerification } from '@/api/register';
@@ -30,7 +32,8 @@ const formatCountdown = (seconds: number): string => {
 export default function CheckEmailScreen() {
   const { t } = useTranslation();
   const theme = useTheme();
-  const styles = makeStyles(theme);
+  const insets = useSafeAreaInsets();
+  const styles = makeStyles(theme, insets);
   const queryClient = useQueryClient();
   const focused = useIsFocused();
   const { data: profile } = useProfile({ refetchInterval: focused ? POLL_INTERVAL_MS : false });
@@ -141,11 +144,11 @@ export default function CheckEmailScreen() {
   );
 }
 
-const makeStyles = (theme: Theme) =>
+const makeStyles = (theme: Theme, insets: EdgeInsets) =>
   StyleSheet.create({
     content: {
       flex: 1,
-      paddingTop: theme.spacing.xs,
+      paddingTop: insets.top + theme.spacing.xs,
       paddingBottom: theme.sizes.authBottom,
     },
     topBar: {
