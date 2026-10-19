@@ -14,7 +14,7 @@ export function Wordmark() {
     <View
       accessible
       accessibilityRole="image"
-      accessibilityLabel={t('launch.label')}
+      accessibilityLabel={t('launch.a11yLabel')}
       style={styles.row}
     >
       <View
