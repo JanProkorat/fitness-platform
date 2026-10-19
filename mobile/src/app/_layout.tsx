@@ -29,13 +29,14 @@ function AppStack({ phase, onRetry }: { phase: ReturnType<typeof useAuthPhase>['
         <Stack.Screen name="login" />
         <Stack.Screen name="register" />
       </Stack.Protected>
+      <Stack.Protected guard={phase === 'unverified'}>
+        <Stack.Screen name="check-email" />
+      </Stack.Protected>
+      {/* Declaration order decides where a phase change lands: verify-email must never be the first screen available in any phase. */}
       <Stack.Protected
         guard={phase === 'loggedOut' || phase === 'loading' || phase === 'unverified'}
       >
         <Stack.Screen name="verify-email" />
-      </Stack.Protected>
-      <Stack.Protected guard={phase === 'unverified'}>
-        <Stack.Screen name="check-email" />
       </Stack.Protected>
       <Stack.Protected guard={phase === 'verified'}>
         <Stack.Screen name="verified" />
