@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Linq.Expressions;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
@@ -16,12 +17,13 @@ using MongoDB.Driver;
 namespace FitnessPlatform.Application.Infrastructure.Services;
 
 /// <summary>
-/// Periodically deletes accounts whose email was never verified within the retention window, together
-/// with everything they own (links, chats, photos, and for coaches their plans, templates and notes).
-/// Admins are never touched. Each user is removed in its own scope so one failure leaves no dirty state.
+/// Deletes accounts whose email was never verified within the retention window, together with everything
+/// they own (links, chats, photos, and for coaches their plans, templates and notes). Admins are never
+/// touched. Each user is removed in its own scope so one failure leaves no dirty state.
 ///
-/// <para>Configuration keys: <c>Auth:UnverifiedAccountRetentionDays</c> (default 7) and
-/// <c>Auth:UnverifiedAccountCleanupIntervalMinutes</c> (default 360).</para>
+/// <para>Runs once a week, never at startup. Keys: <c>Auth:UnverifiedAccountRetentionDays</c> (7),
+/// <c>Auth:UnverifiedAccountCleanupDay</c> (Sunday), <c>Auth:UnverifiedAccountCleanupTime</c> (01:00) and
+/// <c>Auth:UnverifiedAccountCleanupTimeZone</c> (Europe/Prague).</para>
 /// </summary>
 /// <param name="scopeFactory">Creates one scope per candidate user.</param>
 /// <param name="timeProvider">Clock.</param>
@@ -35,18 +37,31 @@ public class UnverifiedAccountCleanupService(
 {
     internal const int DefaultRetentionDays = 7;
 
-    internal const int DefaultIntervalMinutes = 360;
+    internal const DayOfWeek DefaultCleanupDay = DayOfWeek.Sunday;
+
+    internal const string DefaultCleanupTime = "01:00";
+
+    internal const string DefaultCleanupTimeZone = "Europe/Prague";
 
     /// <inheritdoc />
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var interval = TimeSpan.FromMinutes(
-            configuration.GetValue("Auth:UnverifiedAccountCleanupIntervalMinutes", DefaultIntervalMinutes));
+        var (day, time, zone) = ReadSchedule();
 
-        using var timer = new PeriodicTimer(interval);
-
-        do
+        while (!stoppingToken.IsCancellationRequested)
         {
+            var now = timeProvider.GetUtcNow();
+            var nextRun = NextRunUtc(now, day, time, zone);
+
+            try
+            {
+                await Task.Delay(nextRun - now, timeProvider, stoppingToken);
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+
             try
             {
                 await SweepAsync(timeProvider.GetUtcNow().UtcDateTime, stoppingToken);
@@ -56,7 +71,27 @@ public class UnverifiedAccountCleanupService(
                 logger.LogError(ex, "UnverifiedAccountCleanupService: unhandled error during sweep.");
             }
         }
-        while (await WaitForNextTickAsync(timer, stoppingToken));
+    }
+
+    /// <summary>
+    /// Returns the first UTC instant strictly after <paramref name="nowUtc"/> at which the local clock in
+    /// <paramref name="zone"/> shows <paramref name="time"/> on <paramref name="day"/>. A time skipped by a
+    /// DST gap moves one hour forward; an ambiguous one takes the first occurrence.
+    /// </summary>
+    /// <param name="nowUtc">Current instant.</param>
+    /// <param name="day">Local day of the week.</param>
+    /// <param name="time">Local time of day.</param>
+    /// <param name="zone">Time zone the schedule is expressed in.</param>
+    /// <returns>Next run, in UTC.</returns>
+    internal static DateTimeOffset NextRunUtc(DateTimeOffset nowUtc, DayOfWeek day, TimeOnly time, TimeZoneInfo zone)
+    {
+        var localNow = TimeZoneInfo.ConvertTime(nowUtc, zone);
+        var daysAhead = ((int)day - (int)localNow.DayOfWeek + 7) % 7;
+        var date = DateOnly.FromDateTime(localNow.DateTime).AddDays(daysAhead);
+
+        var candidate = ToUtc(date, time, zone);
+
+        return candidate > nowUtc ? candidate : ToUtc(date.AddDays(7), time, zone);
     }
 
     /// <summary>Runs one sweep treating <paramref name="now"/> as the current UTC time.</summary>
@@ -113,13 +148,71 @@ public class UnverifiedAccountCleanupService(
         return deleted;
     }
 
-    private static async Task<bool> WaitForNextTickAsync(PeriodicTimer timer, CancellationToken ct)
+    private static DateTimeOffset ToUtc(DateOnly date, TimeOnly time, TimeZoneInfo zone)
     {
+        var local = date.ToDateTime(time, DateTimeKind.Unspecified);
+
+        if (zone.IsInvalidTime(local))
+        {
+            local = local.AddHours(1);
+        }
+
+        var offset = zone.IsAmbiguousTime(local)
+            ? zone.GetAmbiguousTimeOffsets(local).Max()
+            : zone.GetUtcOffset(local);
+
+        return new DateTimeOffset(local, offset).ToUniversalTime();
+    }
+
+    private (DayOfWeek Day, TimeOnly Time, TimeZoneInfo Zone) ReadSchedule()
+    {
+        var dayText = configuration.GetValue("Auth:UnverifiedAccountCleanupDay", DefaultCleanupDay.ToString());
+        var timeText = configuration.GetValue("Auth:UnverifiedAccountCleanupTime", DefaultCleanupTime);
+        var zoneText = configuration.GetValue("Auth:UnverifiedAccountCleanupTimeZone", DefaultCleanupTimeZone);
+
+        if (!Enum.TryParse<DayOfWeek>(dayText, ignoreCase: true, out var day) || !Enum.IsDefined(day))
+        {
+            logger.LogWarning(
+                "UnverifiedAccountCleanupService: invalid Auth:UnverifiedAccountCleanupDay '{Value}', using {Default}.",
+                dayText, DefaultCleanupDay);
+            day = DefaultCleanupDay;
+        }
+
+        if (!TimeOnly.TryParse(timeText, CultureInfo.InvariantCulture, out var time))
+        {
+            logger.LogWarning(
+                "UnverifiedAccountCleanupService: invalid Auth:UnverifiedAccountCleanupTime '{Value}', using {Default}.",
+                timeText, DefaultCleanupTime);
+            time = TimeOnly.Parse(DefaultCleanupTime, CultureInfo.InvariantCulture);
+        }
+
+        if (!TryFindZone(zoneText, out var zone))
+        {
+            logger.LogWarning(
+                "UnverifiedAccountCleanupService: invalid Auth:UnverifiedAccountCleanupTimeZone '{Value}', using {Default}.",
+                zoneText, DefaultCleanupTimeZone);
+            zone = TimeZoneInfo.FindSystemTimeZoneById(DefaultCleanupTimeZone);
+        }
+
+        return (day, time, zone);
+    }
+
+    private static bool TryFindZone(string? id, out TimeZoneInfo zone)
+    {
+        zone = TimeZoneInfo.Utc;
+
+        if (string.IsNullOrWhiteSpace(id))
+        {
+            return false;
+        }
+
         try
         {
-            return await timer.WaitForNextTickAsync(ct);
+            zone = TimeZoneInfo.FindSystemTimeZoneById(id);
+
+            return true;
         }
-        catch (OperationCanceledException)
+        catch (Exception ex) when (ex is TimeZoneNotFoundException or InvalidTimeZoneException)
         {
             return false;
         }
