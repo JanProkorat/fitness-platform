@@ -1,5 +1,5 @@
 /**
- * #1100 — Cooperation-event banners in the nutritionist's inbox (the accept
+ * #1100 / #1547 — The client-request card in the nutritionist's inbox (the accept
  * half of `trainer/inbox-cooperation-events.spec.ts`'s decline flow).
  *
  * QA fixture: qa.client2 (`QaSeedRunner.Client2Email`) starts UNLINKED from
@@ -26,11 +26,8 @@
  * relying on the page's own All-by-default initial state, so this spec keeps
  * catching a regression even if that default ever changes.
  *
- * The accept action itself is driven through the Clients page's existing
- * Pending tab (`PendingTable.tsx`) — the inbox thread has no accept/decline
- * affordance of its own on web (RULING (6): `GET /conversations/{id}/context`
- * is mobile-only and web never calls it). Both `AcceptClientRequestEndpoint`
- * and `PendingTable.tsx`'s route are role-agnostic between Trainer and
+ * The accept action is driven from the client-request card in the thread
+ * (#1547). `AcceptClientRequestEndpoint` is role-agnostic between Trainer and
  * Nutritionist, so this drives identically to the trainer-side flow.
  */
 import { request as apiRequest, type APIRequestContext, type Page } from '@playwright/test';
@@ -110,8 +107,8 @@ function client2Row(page: Page) {
   return page.getByRole('button').filter({ has: page.getByText(CLIENT2_DISPLAY_NAME, { exact: true }) });
 }
 
-test.describe('inbox cooperation-event banners (#1100)', () => {
-  test('a client request the nutritionist accepts shows the Requested banner, then the Accepted banner, in both the thread and the list preview', async ({
+test.describe('inbox client-request card (#1100, #1547)', () => {
+  test('a client request the nutritionist accepts from the card goes Pending, then Accepted, in the card, the panel and the list preview', async ({
     page,
     baseURL,
   }) => {
@@ -132,23 +129,40 @@ test.describe('inbox cooperation-event banners (#1100)', () => {
     // (ConversationSeedService.AppendCooperationEventAsync writes [event, message] in
     // one batch for a non-blank message), so the MESSAGE — not the event — is the
     // newest row: LastMessageEventType resets to null and the list preview reads the
-    // message text, not the "asked to collaborate" banner. The banner only becomes the
-    // list preview when the event itself is the newest row — see the Accepted
-    // assertion below, where the accept carries no statement.
+    // message text. The event only becomes the list preview when it is the newest
+    // row — see the Accepted assertion below, where the accept carries no statement.
     await expect(requestedRow.getByText('Hi, I would like to work with you.')).toBeVisible();
+    // A pending request carries the "Request" chip, and the message makes the row unread.
+    await expect(requestedRow.getByTestId('inbox-row-chip')).toHaveText('Request');
+    await expect(requestedRow.getByTestId('inbox-row-unread-count')).toBeVisible();
 
     await requestedRow.click();
     await page.waitForLoadState('networkidle');
-    // Inside the thread both rows render: the Requested banner, then the message bubble.
-    await expect(page.getByText('QA Client2 asked to collaborate with you').last()).toBeVisible();
 
-    await page.goto('/clients?tab=Pending');
-    await page.waitForLoadState('networkidle');
-    const pendingRow = page.getByRole('row', { name: /QA Client2/ });
-    await expect(pendingRow).toBeVisible();
-    await pendingRow.getByRole('button', { name: 'Accept' }).click();
-    await expect(pendingRow).toHaveCount(0);
+    // The Requested event renders as a card with Accept / Decline, not a grey pill.
+    const card = page.getByTestId('client-request-card');
+    await expect(card).toBeVisible();
+    await expect(card.getByText('Client request')).toBeVisible();
+    await expect(card.getByRole('button', { name: 'Decline' })).toBeVisible();
+    await expect(page.getByText('QA Client2 asked to collaborate with you')).toHaveCount(0);
 
+    const panel = page.getByTestId('pending-client-panel');
+    await expect(panel.getByTestId('panel-status-chip')).toHaveText('Pending');
+    await expect(panel.getByTestId('onboarding-answers-card')).toBeVisible();
+
+    await card.getByRole('button', { name: 'Accept' }).click();
+
+    // The same card stays in the thread; only its label changes, and the buttons go.
+    await expect(card.getByText('Request accepted')).toBeVisible();
+    await expect(card.getByRole('button')).toHaveCount(0);
+    await expect(card).toHaveAttribute('data-status', 'Accepted');
+    // The Accepted event folds into the card instead of adding its own pill.
+    await expect(page.getByTestId('thread-message-list').getByText("You accepted QA Client2's request")).toHaveCount(0);
+    await expect(requestedRow.getByTestId('inbox-row-chip')).toHaveCount(0);
+    // The client is now linked, so the right panel is the full client panel, not the pending one.
+    await expect(page.getByTestId('pending-client-panel')).toHaveCount(0);
+
+    // A fresh visit reads the same state back from the server.
     await page.goto('/inbox');
     await page.waitForLoadState('networkidle');
     await selectAllFilter(page);
@@ -157,6 +171,6 @@ test.describe('inbox cooperation-event banners (#1100)', () => {
     await expect(acceptedRow.getByText("You accepted QA Client2's request")).toBeVisible();
     await acceptedRow.click();
     await page.waitForLoadState('networkidle');
-    await expect(page.getByText("You accepted QA Client2's request").last()).toBeVisible();
+    await expect(page.getByTestId('client-request-card').getByText('Request accepted')).toBeVisible();
   });
 });
