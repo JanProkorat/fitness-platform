@@ -107,9 +107,87 @@
     "messages": "Deine Unterhaltungen erscheinen hier."
   },
   "coachSearch": {
-    "trainerTitle": "Trainer finden",
-    "nutritionistTitle": "Ernährungsberater finden",
-    "soon": "Die Coach-Suche kommt bald."
+    "title": "Coach finden",
+    "segmentsLabel": "Art des Coaches",
+    "segments": {
+      "All": "Alle",
+      "Trainer": "Trainer",
+      "Nutritionist": "Berater"
+    },
+    "roles": {
+      "Trainer": "Trainer",
+      "Nutritionist": "Ernährungsberater"
+    },
+    "filters": {
+      "online": "Online"
+    },
+    "online": "online",
+    "searchLabel": "Nach Name suchen",
+    "searchPlaceholder": "Name des Coaches",
+    "searchButton": "Nach Name suchen",
+    "count": {
+      "All_one": "{{count}} Coach",
+      "All_other": "{{count}} Coaches",
+      "Trainer_one": "{{count}} Trainer",
+      "Trainer_other": "{{count}} Trainer",
+      "Nutritionist_one": "{{count}} Ernährungsberater",
+      "Nutritionist_other": "{{count}} Ernährungsberater"
+    },
+    "takingClients": "Nimmt Klienten an",
+    "waitlist": "Warteliste",
+    "empty": "Keine Coaches passen zu diesen Filtern.",
+    "retry": "Erneut versuchen",
+    "errors": {
+      "network": "Server nicht erreichbar. Prüfe deine Verbindung und versuche es erneut.",
+      "generic": "Die Coaches konnten nicht geladen werden. Versuche es erneut."
+    }
+  },
+  "coachProfile": {
+    "alsoOnline": "auch online",
+    "workingWith": "Zusammenarbeit mit {{name}}",
+    "workingWithRows": {
+      "Trainer": {
+        "plan": "Persönlicher Trainingsplan",
+        "checkIns": "Wöchentliche Check-ins",
+        "chat": "Chat mit deinem Coach"
+      },
+      "Nutritionist": {
+        "plan": "Persönlicher Ernährungsplan",
+        "checkIns": "Wöchentliche Check-ins",
+        "chat": "Chat mit deinem Coach"
+      }
+    },
+    "sendRequest": "Anfrage senden",
+    "pending": "Anfrage ausstehend",
+    "linked": "Ihr arbeitet bereits zusammen",
+    "retry": "Erneut versuchen",
+    "error": {
+      "title": "Profil konnte nicht geladen werden",
+      "body": "Prüfe deine Verbindung und versuche es erneut."
+    },
+    "notFound": {
+      "title": "Coach nicht gefunden",
+      "body": "Dieses Profil ist nicht mehr verfügbar."
+    }
+  },
+  "requestSheet": {
+    "title": "Anfrage an {{name}}",
+    "subtitle": "Stell dich in ein, zwei Sätzen vor.",
+    "cancel": "Abbrechen",
+    "messageLabel": "Nachricht (optional)",
+    "messagePlaceholder": "Schreib, woran du arbeiten möchtest",
+    "historyLabel": "Meinen Verlauf teilen",
+    "historyHint": "Frühere Pläne, Messungen und Fotos aus der Zeit vor {{name}}.",
+    "onboardingCaption": "Deine Antworten aus dem Einstiegsfragebogen sieht {{name}}, um sich vorzubereiten.",
+    "submit": "Anfrage senden",
+    "errors": {
+      "notAccepting": "Dieser Coach nimmt derzeit keine neuen Klienten an.",
+      "alreadyPending": "Du hast diesem Coach bereits eine Anfrage geschickt.",
+      "alreadyLinked": "Du arbeitest bereits mit diesem Coach zusammen.",
+      "notFound": "Dieser Coach ist nicht mehr verfügbar.",
+      "network": "Server nicht erreichbar. Deine Nachricht bleibt erhalten, versuche es erneut.",
+      "generic": "Die Anfrage konnte nicht gesendet werden. Versuche es erneut."
+    }
   },
   "common": {
     "signOut": "Abmelden"

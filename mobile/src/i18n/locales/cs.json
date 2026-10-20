@@ -107,9 +107,93 @@
     "messages": "Tady se objeví tvoje konverzace."
   },
   "coachSearch": {
-    "trainerTitle": "Najít trenéra",
-    "nutritionistTitle": "Najít nutričního poradce",
-    "soon": "Vyhledávání poradců brzy přibude."
+    "title": "Najdi si poradce",
+    "segmentsLabel": "Typ poradce",
+    "segments": {
+      "All": "Všichni",
+      "Trainer": "Trenéři",
+      "Nutritionist": "Poradci"
+    },
+    "roles": {
+      "Trainer": "Trenér",
+      "Nutritionist": "Nutriční poradce"
+    },
+    "filters": {
+      "online": "Online"
+    },
+    "online": "online",
+    "searchLabel": "Hledat podle jména",
+    "searchPlaceholder": "Jméno poradce",
+    "searchButton": "Hledat podle jména",
+    "count": {
+      "All_one": "{{count}} poradce",
+      "All_few": "{{count}} poradci",
+      "All_many": "{{count}} poradce",
+      "All_other": "{{count}} poradců",
+      "Trainer_one": "{{count}} trenér",
+      "Trainer_few": "{{count}} trenéři",
+      "Trainer_many": "{{count}} trenéra",
+      "Trainer_other": "{{count}} trenérů",
+      "Nutritionist_one": "{{count}} nutriční poradce",
+      "Nutritionist_few": "{{count}} nutriční poradci",
+      "Nutritionist_many": "{{count}} nutričního poradce",
+      "Nutritionist_other": "{{count}} nutričních poradců"
+    },
+    "takingClients": "Přijímá klienty",
+    "waitlist": "Čekací listina",
+    "empty": "Těmto filtrům nic neodpovídá.",
+    "retry": "Zkusit znovu",
+    "errors": {
+      "network": "Server je nedostupný. Zkontroluj připojení a zkus to znovu.",
+      "generic": "Poradce se nepodařilo načíst. Zkus to znovu."
+    }
+  },
+  "coachProfile": {
+    "alsoOnline": "i online",
+    "workingWith": "Spolupráce s {{name}}",
+    "workingWithRows": {
+      "Trainer": {
+        "plan": "Osobní tréninkový plán",
+        "checkIns": "Týdenní check-iny",
+        "chat": "Chat s tvým trenérem"
+      },
+      "Nutritionist": {
+        "plan": "Osobní jídelníček",
+        "checkIns": "Týdenní check-iny",
+        "chat": "Chat s tvým poradcem"
+      }
+    },
+    "sendRequest": "Odeslat žádost",
+    "pending": "Žádost čeká na vyřízení",
+    "linked": "Už spolu spolupracujete",
+    "retry": "Zkusit znovu",
+    "error": {
+      "title": "Profil se nepodařilo načíst",
+      "body": "Zkontroluj připojení a zkus to znovu."
+    },
+    "notFound": {
+      "title": "Poradce nenalezen",
+      "body": "Tento profil už není dostupný."
+    }
+  },
+  "requestSheet": {
+    "title": "Žádost pro {{name}}",
+    "subtitle": "Představ se v pár slovech.",
+    "cancel": "Zrušit",
+    "messageLabel": "Zpráva (nepovinné)",
+    "messagePlaceholder": "Napiš, na čem chceš pracovat",
+    "historyLabel": "Sdílet mou historii",
+    "historyHint": "Dřívější plány, měření a fotky z doby před spoluprací s poradcem {{name}}.",
+    "onboardingCaption": "Odpovědi z tvého úvodního dotazníku uvidí {{name}} a podle nich se připraví.",
+    "submit": "Odeslat žádost",
+    "errors": {
+      "notAccepting": "Tento poradce teď nepřijímá nové klienty.",
+      "alreadyPending": "Žádost tomuto poradci už byla odeslána.",
+      "alreadyLinked": "S tímto poradcem už spolupracuješ.",
+      "notFound": "Tento poradce už není dostupný.",
+      "network": "Server je nedostupný. Zpráva zůstala zachována, zkus to znovu.",
+      "generic": "Žádost se nepodařilo odeslat. Zkus to znovu."
+    }
   },
   "common": {
     "signOut": "Odhlásit se"
