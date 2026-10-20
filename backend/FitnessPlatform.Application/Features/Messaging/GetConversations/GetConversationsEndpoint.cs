@@ -30,8 +30,9 @@ namespace FitnessPlatform.Application.Features.Messaging.GetConversations;
 /// conversation whose client is NOT on the live roster (a deactivated/former link, including any
 /// <c>IsFormer</c> row) — the population the plain query always returned — so a professional's
 /// All view never loses a conversation just because the underlying link ended. Every other chip
-/// stays roster-only: a former client's conversation, however unread, does not surface under
-/// UnreadMessages once its link is deactivated.
+/// stays roster-only, except UnreadMessages, which also lists pre-link conversations (no link yet,
+/// not former, <see cref="PreLinkConversations"/>). A former client's unread conversation never
+/// surfaces under UnreadMessages.
 /// </remarks>
 /// <param name="db">Database context.</param>
 /// <param name="mongo">MongoDB context — plan-window lookups for the EndingSoon chip.</param>
@@ -53,7 +54,8 @@ public class GetConversationsEndpoint(
             s.Summary = "Get conversations";
             s.Description = "Returns all existing conversations for the authenticated user, optionally " +
                              "narrowed by a clients-list-style filter chip (professional callers only). " +
-                             "Linked clients with no conversation yet are not listed.";
+                             "Linked clients with no conversation yet are not listed. The UnreadMessages chip also " +
+                             "lists conversations of clients with no link yet.";
             s.Responses[StatusCodes.Status200OK] = "Conversation list, newest activity first.";
             s.Responses[StatusCodes.Status400BadRequest] = "filter is not a member of ClientListFilter, " +
                                                              "or a non-All filter was requested by a Client caller.";
@@ -121,6 +123,21 @@ public class GetConversationsEndpoint(
             displayed.AddRange(offRosterConversations);
         }
 
+        if (req.Filter == ClientListFilter.UnreadMessages)
+        {
+            var preLinkClientIds = await PreLinkConversations
+                .WithUnreadMessages(db, userGuid)
+                .AsNoTracking()
+                .Select(c => c.ClientUserId)
+                .ToListAsync(ct);
+
+            if (preLinkClientIds.Count > 0)
+            {
+                displayed.AddRange(await LoadPlainConversationsAsync(
+                    isProfessional: true, userGuid, req.Archived, ct, includedClientUserIds: preLinkClientIds));
+            }
+        }
+
         displayed = displayed.OrderByDescending(c => c.LastMessageAt).ToList();
 
         await EnrichAsync(displayed, userGuid, now, ct);
@@ -137,12 +154,14 @@ public class GetConversationsEndpoint(
     /// </summary>
     private async Task<List<ConversationDto>> LoadPlainConversationsAsync(
         bool isProfessional, Guid userGuid, bool archived, CancellationToken ct,
-        IReadOnlySet<Guid>? excludedClientUserIds = null)
+        IReadOnlySet<Guid>? excludedClientUserIds = null,
+        IReadOnlyCollection<Guid>? includedClientUserIds = null)
     {
         var conversations = await db.Conversations
             .AsNoTracking()
             .Where(c => isProfessional ? c.ProfessionalUserId == userGuid : c.ClientUserId == userGuid)
             .Where(c => excludedClientUserIds == null || !excludedClientUserIds.Contains(c.ClientUserId))
+            .Where(c => includedClientUserIds == null || includedClientUserIds.Contains(c.ClientUserId))
             .Where(c => isProfessional
                 ? (archived ? c.ArchivedByProfessionalAt != null : c.ArchivedByProfessionalAt == null)
                 : (archived ? c.ArchivedByClientAt != null : c.ArchivedByClientAt == null))
