@@ -54,7 +54,7 @@ public class DeletePendingInviteEndpointTests
             PublicId = Guid.NewGuid(),
             ProfessionalProfileId = trainerProfile.Id,
             Email = "jane@test.com",
-            IsAccepted = false
+            Status = PendingInviteStatus.Pending
         };
 
         var db = new MockDbBuilder()
@@ -69,7 +69,8 @@ public class DeletePendingInviteEndpointTests
         await ep.HandleAsync(new DeletePendingInviteRequest { Id = invite.PublicId.ToString() }, TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(204);
-        db.PendingInvites.Received(1).Remove(invite);
+        invite.Status.Should().Be(PendingInviteStatus.Cancelled);
+        db.PendingInvites.DidNotReceive().Remove(Arg.Any<PendingInvite>());
         await _conversationSeedService.Received(1).AppendCooperationEventAsync(
             trainerId, invitedUser.Id, trainerId,
             ChatEventType.Withdrawn, invite.PublicId, null,
@@ -91,7 +92,7 @@ public class DeletePendingInviteEndpointTests
             PublicId = Guid.NewGuid(),
             ProfessionalProfileId = trainerProfile.Id,
             Email = "nobody@test.com",
-            IsAccepted = false
+            Status = PendingInviteStatus.Pending
         };
 
         var db = new MockDbBuilder()
@@ -110,11 +111,14 @@ public class DeletePendingInviteEndpointTests
     }
 
     /// <summary>
-    /// An already-accepted invite must never get a Withdrawn event — that thread already
-    /// reads "accepted"; withdrawing it afterward would be a stale/incorrect signal.
+    /// An already-answered invite cannot be cancelled: the call is refused with 409, the status
+    /// is left untouched, and no Withdrawn event is written.
     /// </summary>
-    [Fact]
-    public async Task Delete_AlreadyAcceptedInvite_DoesNotWriteWithdrawnEvent()
+    [Theory]
+    [InlineData(PendingInviteStatus.Accepted)]
+    [InlineData(PendingInviteStatus.Declined)]
+    [InlineData(PendingInviteStatus.Cancelled)]
+    public async Task Delete_NonPendingInvite_Returns409_AndKeepsStatus(PendingInviteStatus status)
     {
         var trainerId = Guid.NewGuid();
         var trainerUser = CreateUser(trainerId, "trainer@test.com", "Coach", "Carl");
@@ -125,7 +129,7 @@ public class DeletePendingInviteEndpointTests
             PublicId = Guid.NewGuid(),
             ProfessionalProfileId = trainerProfile.Id,
             Email = "jane@test.com",
-            IsAccepted = true
+            Status = status
         };
 
         var db = new MockDbBuilder()
@@ -139,7 +143,8 @@ public class DeletePendingInviteEndpointTests
 
         await ep.HandleAsync(new DeletePendingInviteRequest { Id = invite.PublicId.ToString() }, TestContext.Current.CancellationToken);
 
-        ep.HttpContext.Response.StatusCode.Should().Be(204);
+        ep.HttpContext.Response.StatusCode.Should().Be(409);
+        invite.Status.Should().Be(status);
         await _conversationSeedService.DidNotReceiveWithAnyArgs().AppendCooperationEventAsync(
             default, default, default, default, default, default, default, TestContext.Current.CancellationToken);
     }
@@ -160,7 +165,7 @@ public class DeletePendingInviteEndpointTests
             PublicId = Guid.NewGuid(),
             ProfessionalProfileId = trainerProfile.Id,
             Email = "jane@test.com",
-            IsAccepted = false
+            Status = PendingInviteStatus.Pending
         };
         var matchingToken = new InvitationToken
         {
@@ -198,7 +203,7 @@ public class DeletePendingInviteEndpointTests
             PublicId = Guid.NewGuid(),
             ProfessionalProfileId = otherProfessionalProfile.Id,
             Email = "jane@test.com",
-            IsAccepted = false
+            Status = PendingInviteStatus.Pending
         };
 
         var db = new MockDbBuilder()

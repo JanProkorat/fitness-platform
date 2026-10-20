@@ -132,7 +132,7 @@ public class AcceptInvitationEndpoint(
             pendingInvite = await db.PendingInvites
                 .FirstOrDefaultAsync(pi => pi.ProfessionalProfileId == invitation.ProfessionalProfileId
                     && pi.Email == invitation.Email
-                    && !pi.IsAccepted, ct);
+                    && pi.Status == PendingInviteStatus.Pending, ct);
 
             // Honor the scope the professional selected at invite-creation time (already
             // validated as a subset of their held roles there) rather than re-deriving
@@ -181,7 +181,7 @@ public class AcceptInvitationEndpoint(
             // Mark the pending invite as accepted
             if (pendingInvite is not null)
             {
-                pendingInvite.IsAccepted = true;
+                pendingInvite.Status = PendingInviteStatus.Accepted;
             }
         }
 

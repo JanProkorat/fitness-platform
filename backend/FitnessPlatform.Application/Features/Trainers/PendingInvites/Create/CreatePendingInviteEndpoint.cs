@@ -142,7 +142,7 @@ public class CreatePendingInviteEndpoint(
             .AsNoTracking()
             .AnyAsync(pi => pi.ProfessionalProfileId == professionalProfile.Id
                          && pi.Email.ToLower() == reqEmailLowerForDuplicateCheck
-                         && !pi.IsAccepted, ct);
+                         && pi.Status == PendingInviteStatus.Pending, ct);
 
         if (hasDuplicate)
         {
@@ -155,7 +155,8 @@ public class CreatePendingInviteEndpoint(
         // an abusive account can build up even when paced below the rate-limit window.
         var outstandingCount = await db.PendingInvites
             .AsNoTracking()
-            .CountAsync(pi => pi.ProfessionalProfileId == professionalProfile.Id && !pi.IsAccepted, ct);
+            .CountAsync(pi => pi.ProfessionalProfileId == professionalProfile.Id
+                                  && pi.Status == PendingInviteStatus.Pending, ct);
 
         if (outstandingCount >= MaxOutstandingInvitesPerProfessional)
         {

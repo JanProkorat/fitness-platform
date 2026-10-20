@@ -88,6 +88,11 @@ public class ProfessionalProfile : PublicTimestampableEntity
     public bool AcceptNewClients { get; set; } = true;
 
     /// <summary>
+    /// Whether the professional is currently online (available for live contact).
+    /// </summary>
+    public bool Online { get; set; }
+
+    /// <summary>
     /// Blob URL for the professional's avatar image (e.g. "avatars/prof-{id}.jpg").
     /// Null when no avatar has been uploaded.
     /// </summary>

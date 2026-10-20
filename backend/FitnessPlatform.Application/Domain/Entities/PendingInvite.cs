@@ -30,12 +30,12 @@ public class PendingInvite : PublicTimestampableEntity
     /// <summary>
     /// Date and time when the invitation was sent.
     /// </summary>
-    public DateTime SentAt { get; set; }
+    public DateTime SentAt { get; set; } = DateTime.UtcNow;
 
     /// <summary>
-    /// Indicates whether this invitation has been accepted by the recipient.
+    /// Stored lifecycle state. Expiry is derived on read, never stored here.
     /// </summary>
-    public bool IsAccepted { get; set; }
+    public PendingInviteStatus Status { get; set; } = PendingInviteStatus.Pending;
 
     /// <summary>
     /// Optional questionnaire to assign to the client when they accept.

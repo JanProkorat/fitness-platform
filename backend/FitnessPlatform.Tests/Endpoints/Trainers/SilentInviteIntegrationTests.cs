@@ -68,8 +68,8 @@ public class SilentInviteIntegrationTests(FitnessApiFactory factory)
 
         created.Email.Should().Be(coach.Email);
 
-        var list = await inviter.Http.GetFromJsonAsync<GetPendingInvitesResponse>("/trainer/pending-invites", Ct);
-        list!.Invites.Should().ContainSingle(i => i.PublicId == created.PublicId && !i.IsAccepted);
+        var list = await inviter.Http.GetFromJsonAsync<GetPendingInvitesResponse>("/trainer/pending-invites", EnumJson, Ct);
+        list!.Invites.Should().ContainSingle(i => i.PublicId == created.PublicId && i.Status == PendingInviteStatus.Pending);
 
         await AssertNoSideEffectsAsync(inviter, coach);
     }
@@ -129,7 +129,7 @@ public class SilentInviteIntegrationTests(FitnessApiFactory factory)
         delete.StatusCode.Should().Be(HttpStatusCode.NoContent);
         await AssertNoSideEffectsAsync(inviter, coach);
 
-        var list = await inviter.Http.GetFromJsonAsync<GetPendingInvitesResponse>("/trainer/pending-invites", Ct);
+        var list = await inviter.Http.GetFromJsonAsync<GetPendingInvitesResponse>("/trainer/pending-invites", EnumJson, Ct);
         list!.Invites.Should().NotContain(i => i.PublicId == created.PublicId);
     }
 
@@ -151,8 +151,8 @@ public class SilentInviteIntegrationTests(FitnessApiFactory factory)
 
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        (await db.PendingInvites.SingleAsync(i => i.PublicId == created.PublicId, Ct)).IsAccepted
-            .Should().BeFalse("a coach-role caller must not consume the silent row");
+        (await db.PendingInvites.SingleAsync(i => i.PublicId == created.PublicId, Ct)).Status
+            .Should().Be(PendingInviteStatus.Pending, "a coach-role caller must not consume the silent row");
         (await db.ClientProfessionalLinks.AnyAsync(l => l.ProfessionalProfileId == inviter.ProfileId, Ct))
             .Should().BeFalse("no link may be created from a silent invite");
         await AssertNoSideEffectsAsync(inviter, coach);

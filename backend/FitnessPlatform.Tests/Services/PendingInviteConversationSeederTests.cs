@@ -58,7 +58,7 @@ public class PendingInviteConversationSeederTests
             // DeclineClientInviteEndpoint).
             Email = "Client@Example.com",
             Message = "Welcome aboard!",
-            IsAccepted = false
+            Status = PendingInviteStatus.Pending
         };
 
         var db = new MockDbBuilder().With(invite).Build();
@@ -88,7 +88,7 @@ public class PendingInviteConversationSeederTests
             ProfessionalProfile = professional,
             Email = "nomessage@example.com",
             Message = null,
-            IsAccepted = false
+            Status = PendingInviteStatus.Pending
         };
 
         var db = new MockDbBuilder().With(invite).Build();
@@ -115,7 +115,7 @@ public class PendingInviteConversationSeederTests
             ProfessionalProfile = coach1,
             Email = "multi@example.com",
             Message = "Hi from coach one",
-            IsAccepted = false
+            Status = PendingInviteStatus.Pending
         };
         var invite2 = new PendingInvite
         {
@@ -123,7 +123,7 @@ public class PendingInviteConversationSeederTests
             ProfessionalProfile = coach2,
             Email = "multi@example.com",
             Message = "Hi from coach two",
-            IsAccepted = false
+            Status = PendingInviteStatus.Pending
         };
 
         var db = new MockDbBuilder().With(invite1).With(invite2).Build();
@@ -171,7 +171,7 @@ public class PendingInviteConversationSeederTests
             ProfessionalProfile = inviter,
             Email = "coach@example.com",
             Message = "Silent",
-            IsAccepted = false
+            Status = PendingInviteStatus.Pending
         };
 
         var db = new MockDbBuilder().With(invite).With(coachProfile).Build();
@@ -186,7 +186,7 @@ public class PendingInviteConversationSeederTests
     /// <summary>
     /// An already-accepted invite must never be re-seeded from this helper — it either was
     /// already seeded earlier (at invite-creation time, or by an earlier verification) or
-    /// belongs to a fully-consumed relationship. The lookup filters on <c>!IsAccepted</c>.
+    /// belongs to a fully-consumed relationship. The lookup filters on <c>Status == Pending</c>.
     /// </summary>
     [Fact]
     public async Task SeedForNewUserAsync_AlreadyAcceptedInvite_IsSkipped()
@@ -199,7 +199,7 @@ public class PendingInviteConversationSeederTests
             ProfessionalProfile = professional,
             Email = "accepted@example.com",
             Message = "Already accepted invite",
-            IsAccepted = true
+            Status = PendingInviteStatus.Accepted
         };
 
         var db = new MockDbBuilder().With(invite).Build();

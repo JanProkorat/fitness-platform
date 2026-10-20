@@ -1,3 +1,5 @@
+using FitnessPlatform.Application.Domain.Enums;
+
 namespace FitnessPlatform.Application.Features.Trainers.PendingInvites.GetAll;
 
 /// <summary>
@@ -43,7 +45,12 @@ public class PendingInviteDto
     public DateTime SentAt { get; set; }
 
     /// <summary>
-    /// Whether the invitation has been accepted.
+    /// Effective status (Pending or Expired for the rows this list returns).
+    /// </summary>
+    public PendingInviteStatus Status { get; set; }
+
+    /// <summary>
+    /// Whether the invitation has been accepted. Derived from <see cref="Status"/>; kept for older clients.
     /// </summary>
     public bool IsAccepted { get; set; }
 

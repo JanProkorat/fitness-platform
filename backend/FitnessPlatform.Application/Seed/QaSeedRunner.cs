@@ -509,12 +509,12 @@ public static class QaSeedRunner
         // client endpoints (which look up ClientProfile by UserId) work without
         // the users having gone through the normal registration flow.
         var clientProfile  = await EnsureClientProfileAsync(db, ClientUserId,  ClientProfilePublicId,  logger);
-        var trainerProfile = await EnsureProfessionalProfileAsync(db, TrainerUserId, TrainerProfilePublicId, logger);
+        var trainerProfile = await EnsureProfessionalProfileAsync(db, TrainerUserId, TrainerProfilePublicId, logger, online: true);
         var nutriProfile   = await EnsureProfessionalProfileAsync(db, NutriUserId,   NutriProfilePublicId,   logger);
 
         // #474 — profiles for the second pair.
         var client2Profile  = await EnsureClientProfileAsync(db, Client2UserId,  Client2ProfilePublicId,  logger);
-        var trainer2Profile = await EnsureProfessionalProfileAsync(db, Trainer2UserId, Trainer2ProfilePublicId, logger);
+        var trainer2Profile = await EnsureProfessionalProfileAsync(db, Trainer2UserId, Trainer2ProfilePublicId, logger, online: true);
 
         // Trainer↔client link — without this the trainer dashboard returns an
         // empty client list and Playwright's getByText('QA Client') never resolves.
@@ -734,7 +734,8 @@ public static class QaSeedRunner
         ApplicationDbContext db,
         Guid userId,
         Guid publicId,
-        ILogger logger)
+        ILogger logger,
+        bool online = false)
     {
         var existing = await db.ProfessionalProfiles
             .FirstOrDefaultAsync(p => p.UserId == userId);
@@ -751,6 +752,7 @@ public static class QaSeedRunner
             PublicId = publicId,
             ShowInSearch = false,
             AcceptNewClients = true,
+            Online = online,
             DateCreated = DateTime.UtcNow,
         };
 

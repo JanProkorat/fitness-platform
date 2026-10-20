@@ -98,6 +98,7 @@ public class SendClientRequestEndpoint(
             ClientProfileId = clientProfile.Id,
             ProfessionalProfileId = professionalProfile.Id,
             Message = req.Message,
+            ShareHistory = req.ShareHistory,
             Status = ClientRequestStatus.Pending,
             SentAt = DateTime.UtcNow
         };

@@ -477,7 +477,7 @@ public class CreatePendingInviteEndpointTests
             ProfessionalProfileId = trainerProfile.Id,
             Email = "jane@test.com",
             SentAt = DateTime.UtcNow.AddDays(-1),
-            IsAccepted = false
+            Status = PendingInviteStatus.Pending
         };
 
         var db = new MockDbBuilder()
@@ -517,7 +517,7 @@ public class CreatePendingInviteEndpointTests
             ProfessionalProfileId = trainerProfile.Id,
             Email = "someone-else@test.com",
             SentAt = DateTime.UtcNow.AddDays(-1),
-            IsAccepted = false
+            Status = PendingInviteStatus.Pending
         };
 
         var db = new MockDbBuilder()
@@ -537,11 +537,14 @@ public class CreatePendingInviteEndpointTests
     }
 
     /// <summary>
-    /// Positive control, part 2: an ALREADY-ACCEPTED prior invite for the same email does not
-    /// block a new invite — only outstanding (unaccepted) invites count as duplicates.
+    /// Positive control, part 2: an ALREADY-ANSWERED prior invite (accepted, declined or cancelled)
+    /// for the same email does not block a new invite — only pending invites count as duplicates.
     /// </summary>
-    [Fact]
-    public async Task HandleAsync_PriorInviteForSameEmailAlreadyAccepted_StillSucceeds()
+    [Theory]
+    [InlineData(PendingInviteStatus.Accepted)]
+    [InlineData(PendingInviteStatus.Declined)]
+    [InlineData(PendingInviteStatus.Cancelled)]
+    public async Task HandleAsync_PriorInviteForSameEmailAlreadyAnswered_StillSucceeds(PendingInviteStatus priorStatus)
     {
         var trainerUser = EntityBuilder.User.WithId(_trainerId).WithEmail("trainer@test.com")
             .WithFirstName("Train").WithLastName("Er").Build();
@@ -552,7 +555,7 @@ public class CreatePendingInviteEndpointTests
             ProfessionalProfileId = trainerProfile.Id,
             Email = "jane@test.com",
             SentAt = DateTime.UtcNow.AddDays(-30),
-            IsAccepted = true
+            Status = priorStatus
         };
 
         var db = new MockDbBuilder()
@@ -592,7 +595,7 @@ public class CreatePendingInviteEndpointTests
                 ProfessionalProfileId = trainerProfile.Id,
                 Email = $"existing{i}@test.com",
                 SentAt = DateTime.UtcNow.AddDays(-1),
-                IsAccepted = false
+                Status = PendingInviteStatus.Pending
             });
         }
 
@@ -634,7 +637,7 @@ public class CreatePendingInviteEndpointTests
                 ProfessionalProfileId = trainerProfile.Id,
                 Email = $"existing{i}@test.com",
                 SentAt = DateTime.UtcNow.AddDays(-1),
-                IsAccepted = false
+                Status = PendingInviteStatus.Pending
             });
         }
 

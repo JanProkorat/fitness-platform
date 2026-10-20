@@ -3,6 +3,7 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,7 +14,8 @@ namespace FitnessPlatform.Application.Features.Messaging.GetMessages;
 /// </summary>
 /// <param name="db">Relational database context.</param>
 /// <param name="blobStorage">Signs each message's stored image key into a short-lived read URL.</param>
-public class GetMessagesEndpoint(IApplicationDbContext db, IBlobStorageService blobStorage)
+/// <param name="timeProvider">Clock used to derive invite expiry.</param>
+public class GetMessagesEndpoint(IApplicationDbContext db, IBlobStorageService blobStorage, TimeProvider timeProvider)
     : Endpoint<GetMessagesRequest, GetMessagesResponse>
 {
     public override void Configure()
@@ -85,8 +87,11 @@ public class GetMessagesEndpoint(IApplicationDbContext db, IBlobStorageService b
                 ImageHeight = m.ImageHeight,
                 Kind = m.Kind,
                 EventType = m.EventType,
+                EventSourceId = m.EventSourceId,
             })
             .ToListAsync(ct);
+
+        var statuses = await ResolveEventStatusesAsync(rows, ct);
 
         // Sign each stored image key into a fresh, short-lived read URL — never surface
         // ImageBlobUrl (the permanent, unsigned identity value) to the client.
@@ -107,6 +112,10 @@ public class GetMessagesEndpoint(IApplicationDbContext db, IBlobStorageService b
                 ImageHeight = row.ImageHeight,
                 Kind = row.Kind,
                 EventType = row.EventType,
+                EventSourceId = row.EventSourceId,
+                EventStatus = row.EventSourceId is { } sourceId && statuses.TryGetValue(sourceId, out var status)
+                    ? status
+                    : null,
             });
         }
 
@@ -115,6 +124,66 @@ public class GetMessagesEndpoint(IApplicationDbContext db, IBlobStorageService b
             nextCursor = items[^1].Id;
 
         await Send.OkAsync(new GetMessagesResponse { Items = items, Cursor = nextCursor }, ct);
+    }
+
+    /// <summary>
+    /// Resolves the current status of every invite or request the page's event messages point at,
+    /// with one batched lookup per table.
+    /// </summary>
+    private async Task<Dictionary<Guid, CooperationCardStatus>> ResolveEventStatusesAsync(
+        List<MessageRow> rows, CancellationToken ct)
+    {
+        var sourceIds = rows
+            .Where(r => r.Kind == ChatMessageKind.Event && r.EventSourceId.HasValue)
+            .Select(r => r.EventSourceId!.Value)
+            .Distinct()
+            .ToList();
+
+        var result = new Dictionary<Guid, CooperationCardStatus>();
+
+        if (sourceIds.Count == 0)
+        {
+            return result;
+        }
+
+        var now = timeProvider.GetUtcNow().UtcDateTime;
+
+        var invites = await db.PendingInvites
+            .AsNoTracking()
+            .Where(pi => sourceIds.Contains(pi.PublicId))
+            .Select(pi => new { pi.PublicId, pi.Status, pi.SentAt })
+            .ToListAsync(ct);
+
+        foreach (var invite in invites)
+        {
+            result[invite.PublicId] = PendingInviteStatusResolver.Resolve(invite.Status, invite.SentAt, now) switch
+            {
+                PendingInviteStatus.Accepted => CooperationCardStatus.Accepted,
+                PendingInviteStatus.Declined => CooperationCardStatus.Declined,
+                PendingInviteStatus.Cancelled => CooperationCardStatus.Cancelled,
+                PendingInviteStatus.Expired => CooperationCardStatus.Expired,
+                _ => CooperationCardStatus.Pending,
+            };
+        }
+
+        var requests = await db.ClientRequests
+            .AsNoTracking()
+            .Where(cr => sourceIds.Contains(cr.PublicId))
+            .Select(cr => new { cr.PublicId, cr.Status })
+            .ToListAsync(ct);
+
+        foreach (var request in requests)
+        {
+            result[request.PublicId] = request.Status switch
+            {
+                ClientRequestStatus.Accepted => CooperationCardStatus.Accepted,
+                ClientRequestStatus.Rejected => CooperationCardStatus.Declined,
+                ClientRequestStatus.Cancelled => CooperationCardStatus.Cancelled,
+                _ => CooperationCardStatus.Pending,
+            };
+        }
+
+        return result;
     }
 
     /// <summary>Internal EF projection shape — carries the raw, unsigned <c>ImageBlobUrl</c> before signing.</summary>
@@ -130,6 +199,7 @@ public class GetMessagesEndpoint(IApplicationDbContext db, IBlobStorageService b
         public int? ImageHeight { get; set; }
         public ChatMessageKind Kind { get; set; }
         public ChatEventType? EventType { get; set; }
+        public Guid? EventSourceId { get; set; }
     }
 }
 
@@ -165,4 +235,13 @@ public class MessageDto
 
     /// <summary>The cooperation event type, when <see cref="Kind"/> is <see cref="ChatMessageKind.Event"/>.</summary>
     public ChatEventType? EventType { get; set; }
+
+    /// <summary>Public id of the invite or request the event refers to, or null for a plain message.</summary>
+    public Guid? EventSourceId { get; set; }
+
+    /// <summary>
+    /// Current status of the linked invite or request, for the chat card label. Null for a plain
+    /// message, or when the event has no resolvable source.
+    /// </summary>
+    public CooperationCardStatus? EventStatus { get; set; }
 }
