@@ -43,7 +43,7 @@ export default function MessagesScreen() {
   return (
     <Screen
       scroll
-      topGap={theme.spacing.huge}
+      topGap={theme.spacing.safeAreaGap}
       bottomInset={barClearance}
       contentStyle={styles.content}
     >

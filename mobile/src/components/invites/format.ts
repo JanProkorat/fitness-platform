@@ -4,7 +4,7 @@ const MINUTE_MS = 60_000;
 const HOUR_MS = 60 * MINUTE_MS;
 const DAY_MS = 24 * HOUR_MS;
 
-/** "2 hours ago" style label, localised through the invites.time keys. */
+/** Short "2 h ago" label via the invites.time keys (Hermes Intl short forms are not reliable per locale). */
 export function relativeTime(t: TFunction, iso: string | undefined, now: number = Date.now()): string {
   const then = iso ? Date.parse(iso) : Number.NaN;
   if (Number.isNaN(then)) return '';
@@ -12,7 +12,9 @@ export function relativeTime(t: TFunction, iso: string | undefined, now: number 
   if (elapsed < MINUTE_MS) return t('invites.time.justNow');
   if (elapsed < HOUR_MS) return t('invites.time.minutes', { count: Math.floor(elapsed / MINUTE_MS) });
   if (elapsed < DAY_MS) return t('invites.time.hours', { count: Math.floor(elapsed / HOUR_MS) });
-  return t('invites.time.days', { count: Math.floor(elapsed / DAY_MS) });
+  const days = Math.floor(elapsed / DAY_MS);
+  if (days === 1) return t('invites.time.yesterday');
+  return t('invites.time.days', { count: days });
 }
 
 /** "Expires in 7 days" label, or null when there is no usable expiry. */

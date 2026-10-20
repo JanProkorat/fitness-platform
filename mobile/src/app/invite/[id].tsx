@@ -167,7 +167,7 @@ const makeStyles = (theme: Theme, insets: EdgeInsets) =>
     heroImage: StyleSheet.absoluteFill,
     back: {
       position: 'absolute',
-      top: insets.top + theme.spacing.huge,
+      top: insets.top + theme.spacing.safeAreaGap,
       left: theme.spacing.xxl,
     },
     sheet: {
@@ -222,6 +222,7 @@ const makeStyles = (theme: Theme, insets: EdgeInsets) =>
       borderWidth: theme.sizes.border,
       borderColor: theme.colors.line,
       backgroundColor: theme.colors.surface,
+      boxShadow: theme.shadows.card,
     },
     offer: {
       flexDirection: 'row',

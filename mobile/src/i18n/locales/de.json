@@ -113,12 +113,10 @@
     "roleJoiner": " & ",
     "time": {
       "justNow": "Gerade eben",
-      "minutes_one": "vor {{count}} Minute",
-      "minutes_other": "vor {{count}} Minuten",
-      "hours_one": "vor {{count}} Stunde",
-      "hours_other": "vor {{count}} Stunden",
-      "days_one": "vor {{count}} Tag",
-      "days_other": "vor {{count}} Tagen"
+      "minutes": "vor {{count}} Min.",
+      "hours": "vor {{count}} Std.",
+      "yesterday": "gestern",
+      "days": "vor {{count}} T."
     },
     "expiresIn_one": "Läuft in {{count}} Tag ab",
     "expiresIn_other": "Läuft in {{count}} Tagen ab",

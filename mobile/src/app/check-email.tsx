@@ -181,7 +181,7 @@ const makeStyles = (theme: Theme, insets: EdgeInsets) =>
   StyleSheet.create({
     content: {
       flex: 1,
-      paddingTop: insets.top + theme.spacing.huge,
+      paddingTop: insets.top + theme.spacing.safeAreaGap,
       paddingBottom: theme.sizes.authBottom,
     },
     topBar: {

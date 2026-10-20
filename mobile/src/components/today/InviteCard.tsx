@@ -106,6 +106,8 @@ const makeStyles = (theme: Theme) =>
     meta: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: theme.spacing.xs,
+      flexWrap: 'wrap',
+      columnGap: theme.spacing.xs,
+      rowGap: theme.spacing.xxs,
     },
   });

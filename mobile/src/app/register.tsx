@@ -335,7 +335,7 @@ const makeStyles = (theme: Theme, insets: EdgeInsets) =>
     content: {
       flexGrow: 1,
       gap: theme.spacing.md,
-      paddingTop: insets.top + theme.spacing.huge,
+      paddingTop: insets.top + theme.spacing.safeAreaGap,
       paddingBottom: theme.sizes.authBottom,
     },
     topBar: {

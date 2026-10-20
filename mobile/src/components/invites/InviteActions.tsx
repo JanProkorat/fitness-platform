@@ -88,6 +88,7 @@ const makeStyles = (theme: Theme) =>
       borderWidth: theme.sizes.border,
       borderColor: theme.colors.lineStrong,
       backgroundColor: theme.colors.surface,
+      boxShadow: theme.shadows.card,
     },
     detailDecline: {
       flex: 1,

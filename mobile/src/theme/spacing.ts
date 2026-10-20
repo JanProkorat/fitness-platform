@@ -9,6 +9,7 @@ export const spacing = {
   xxl: 20,
   xxxl: 24,
   huge: 32,
+  safeAreaGap: 0,
 } as const;
 
 export const radii = {

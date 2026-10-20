@@ -103,7 +103,7 @@ export default function CoachProfileScreen() {
               {coachInitials(coach)}
             </Text>
           )}
-          <View style={[styles.back, { top: insets.top + theme.spacing.huge, left: insets.left + theme.spacing.xxl }]}>
+          <View style={[styles.back, { top: insets.top + theme.spacing.safeAreaGap, left: insets.left + theme.spacing.xxl }]}>
             <BackButton label={t('onboarding.back')} onPress={back} />
           </View>
         </View>
@@ -304,7 +304,7 @@ const makeStyles = (theme: Theme) =>
     },
     stateBack: {
       alignItems: 'flex-start',
-      paddingTop: theme.spacing.huge,
+      paddingTop: theme.spacing.safeAreaGap,
     },
     state: {
       flex: 1,

@@ -263,14 +263,15 @@ const makeStyles = (theme: Theme, insets: EdgeInsets) =>
       backgroundColor: theme.colors.ground,
     },
     header: {
-      paddingTop: insets.top + theme.spacing.huge,
+      paddingTop: insets.top + theme.spacing.safeAreaGap,
       paddingHorizontal: theme.spacing.xxl,
       paddingBottom: theme.spacing.md,
     },
     list: {
       gap: theme.spacing.md,
       paddingHorizontal: theme.spacing.xxl,
-      paddingVertical: theme.spacing.md,
+      // Room for the card shadow's blur, which the list would otherwise clip.
+      paddingVertical: theme.spacing.xxl,
     },
     item: {
       gap: theme.spacing.md,

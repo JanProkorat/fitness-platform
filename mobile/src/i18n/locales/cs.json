@@ -113,18 +113,10 @@
     "roleJoiner": " a ",
     "time": {
       "justNow": "Právě teď",
-      "minutes_one": "před {{count}} minutou",
-      "minutes_few": "před {{count}} minutami",
-      "minutes_many": "před {{count}} minuty",
-      "minutes_other": "před {{count}} minutami",
-      "hours_one": "před {{count}} hodinou",
-      "hours_few": "před {{count}} hodinami",
-      "hours_many": "před {{count}} hodiny",
-      "hours_other": "před {{count}} hodinami",
-      "days_one": "před {{count}} dnem",
-      "days_few": "před {{count}} dny",
-      "days_many": "před {{count}} dne",
-      "days_other": "před {{count}} dny"
+      "minutes": "před {{count}} min",
+      "hours": "před {{count}} h",
+      "yesterday": "včera",
+      "days": "před {{count}} d"
     },
     "expiresIn_one": "Vyprší za {{count}} den",
     "expiresIn_few": "Vyprší za {{count}} dny",
