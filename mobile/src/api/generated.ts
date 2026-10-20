@@ -4038,9 +4038,9 @@ export class ApiClient {
     }
 
     /**
-     * Delete a pending invitation
+     * Cancel a pending invitation
      * @param id Public identifier of the pending invite to delete (bound from route).
-     * @return No Content
+     * @return Invitation cancelled
      */
     deletePendingInviteEndpoint(id: string, signal?: AbortSignal): Promise<void> {
         let url_ = this.baseUrl + "/trainer/pending-invites/{id}";
@@ -8360,9 +8360,10 @@ export class ApiClient {
      * @param specialization (optional) 
      * @param role (optional) 
      * @param search (optional) 
+     * @param online (optional) When set, only professionals whose online flag matches are returned.
      * @return Success
      */
-    searchProfessionalsEndpoint(page: number, pageSize: number, city?: string | null | undefined, specialization?: string | null | undefined, role?: string | null | undefined, search?: string | null | undefined, signal?: AbortSignal): Promise<SearchProfessionalsResponse> {
+    searchProfessionalsEndpoint(page: number, pageSize: number, city?: string | null | undefined, specialization?: string | null | undefined, role?: string | null | undefined, search?: string | null | undefined, online?: boolean | null | undefined, signal?: AbortSignal): Promise<SearchProfessionalsResponse> {
         let url_ = this.baseUrl + "/professionals/search?";
         if (page === undefined || page === null)
             throw new globalThis.Error("The parameter 'page' must be defined and cannot be null.");
@@ -8380,6 +8381,8 @@ export class ApiClient {
             url_ += "role=" + encodeURIComponent("" + role) + "&";
         if (search !== undefined && search !== null)
             url_ += "search=" + encodeURIComponent("" + search) + "&";
+        if (online !== undefined && online !== null)
+            url_ += "online=" + encodeURIComponent("" + online) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -14704,7 +14707,7 @@ export class ApiClient {
 
     /**
      * Send a client request
-     * @return Success
+     * @return Request sent
      */
     sendClientRequestEndpoint(sendClientRequestRequest: SendClientRequestRequest, signal?: AbortSignal): Promise<SendClientRequestResponse> {
         let url_ = this.baseUrl + "/client/requests";
@@ -14744,12 +14747,19 @@ export class ApiClient {
                 }
             }
         }
-        if (status === 200) {
+        if (status === 201) {
             const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<SendClientRequestResponse>(result200);
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = JSON.parse(resultData201);
+            return Promise.resolve<SendClientRequestResponse>(result201);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -16809,6 +16819,67 @@ export class ApiClient {
     }
 
     /**
+     * Remove push token
+     * @param token The Expo push token to remove, sent as a query parameter.
+     * @return Token removed or not present
+     */
+    removePushTokenEndpoint(token: string, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/client/push-token?";
+        if (token === undefined || token === null)
+            throw new globalThis.Error("The parameter 'token' must be defined and cannot be null.");
+        else
+            url_ += "token=" + encodeURIComponent("" + token) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "DELETE",
+            url: url_,
+            headers: {
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processRemovePushTokenEndpoint(_response);
+        });
+    }
+
+    protected processRemovePushTokenEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * Get weekly overview
      * @return Success
      */
@@ -17328,6 +17399,66 @@ export class ApiClient {
     }
 
     /**
+     * List pending invites
+     * @return Pending invitations (empty for a coaching account)
+     */
+    getClientInvitesEndpoint(signal?: AbortSignal): Promise<GetClientInvitesResponse> {
+        let url_ = this.baseUrl + "/client/invites";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetClientInvitesEndpoint(_response);
+        });
+    }
+
+    protected processGetClientInvitesEndpoint(response: AxiosResponse): Promise<GetClientInvitesResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GetClientInvitesResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GetClientInvitesResponse>(null as any);
+    }
+
+    /**
      * Decline a pending invite
      * @return No Content
      */
@@ -17562,6 +17693,689 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Update an automation rule
+     * @param ruleId Route parameter: public id of the rule.
+     * @return The updated rule
+     */
+    updateAutomationRuleEndpoint(ruleId: string, updateAutomationRuleRequest: UpdateAutomationRuleRequest, signal?: AbortSignal): Promise<AutomationRuleDto> {
+        let url_ = this.baseUrl + "/trainer/automations/rules/{ruleId}";
+        if (ruleId === undefined || ruleId === null)
+            throw new globalThis.Error("The parameter 'ruleId' must be defined.");
+        url_ = url_.replace("{ruleId}", encodeURIComponent("" + ruleId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(updateAutomationRuleRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUpdateAutomationRuleEndpoint(_response);
+        });
+    }
+
+    protected processUpdateAutomationRuleEndpoint(response: AxiosResponse): Promise<AutomationRuleDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<AutomationRuleDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid rule, an audience sent for a client-only rule, or the questionnaire is inactive or a check-in form", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<AutomationRuleDto>(null as any);
+    }
+
+    /**
+     * Get an automation rule
+     * @param ruleId Route parameter: public id of the rule.
+     * @return The rule
+     */
+    getAutomationRuleEndpoint(ruleId: string, signal?: AbortSignal): Promise<AutomationRuleDto> {
+        let url_ = this.baseUrl + "/trainer/automations/rules/{ruleId}";
+        if (ruleId === undefined || ruleId === null)
+            throw new globalThis.Error("The parameter 'ruleId' must be defined.");
+        url_ = url_.replace("{ruleId}", encodeURIComponent("" + ruleId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetAutomationRuleEndpoint(_response);
+        });
+    }
+
+    protected processGetAutomationRuleEndpoint(response: AxiosResponse): Promise<AutomationRuleDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<AutomationRuleDto>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<AutomationRuleDto>(null as any);
+    }
+
+    /**
+     * Delete an automation rule
+     * @param ruleId Route parameter: public id of the rule.
+     * @return Rule deleted
+     */
+    deleteAutomationRuleEndpoint(ruleId: string, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/trainer/automations/rules/{ruleId}";
+        if (ruleId === undefined || ruleId === null)
+            throw new globalThis.Error("The parameter 'ruleId' must be defined.");
+        url_ = url_.replace("{ruleId}", encodeURIComponent("" + ruleId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "DELETE",
+            url: url_,
+            headers: {
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processDeleteAutomationRuleEndpoint(_response);
+        });
+    }
+
+    protected processDeleteAutomationRuleEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Reset a rule to its default for one client
+     * @param clientId Route parameter: public id of the client profile.
+     * @param ruleId Route parameter: public id of the rule.
+     * @return Rule reset
+     */
+    resetClientAutomationEndpoint(clientId: string, ruleId: string, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/trainer/clients/{clientId}/automations/{ruleId}/override";
+        if (clientId === undefined || clientId === null)
+            throw new globalThis.Error("The parameter 'clientId' must be defined.");
+        url_ = url_.replace("{clientId}", encodeURIComponent("" + clientId));
+        if (ruleId === undefined || ruleId === null)
+            throw new globalThis.Error("The parameter 'ruleId' must be defined.");
+        url_ = url_.replace("{ruleId}", encodeURIComponent("" + ruleId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "DELETE",
+            url: url_,
+            headers: {
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processResetClientAutomationEndpoint(_response);
+        });
+    }
+
+    protected processResetClientAutomationEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The live link grants no access", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Customise a rule for one client
+     * @param clientId Route parameter: public id of the client profile.
+     * @param ruleId Route parameter: public id of the rule.
+     * @return Override saved
+     */
+    overrideClientAutomationEndpoint(clientId: string, ruleId: string, overrideClientAutomationRequest: OverrideClientAutomationRequest, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/trainer/clients/{clientId}/automations/{ruleId}/override";
+        if (clientId === undefined || clientId === null)
+            throw new globalThis.Error("The parameter 'clientId' must be defined.");
+        url_ = url_.replace("{clientId}", encodeURIComponent("" + clientId));
+        if (ruleId === undefined || ruleId === null)
+            throw new globalThis.Error("The parameter 'ruleId' must be defined.");
+        url_ = url_.replace("{ruleId}", encodeURIComponent("" + ruleId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(overrideClientAutomationRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processOverrideClientAutomationEndpoint(_response);
+        });
+    }
+
+    protected processOverrideClientAutomationEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid trigger or options, or a progress photos message over 500 characters", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The live link grants no access", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Pause or resume a rule for one client
+     * @param clientId Route parameter: public id of the client profile.
+     * @param ruleId Route parameter: public id of the rule.
+     * @return Pause state saved
+     */
+    pauseClientAutomationEndpoint(clientId: string, ruleId: string, pauseClientAutomationRequest: PauseClientAutomationRequest, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/trainer/clients/{clientId}/automations/{ruleId}/pause";
+        if (clientId === undefined || clientId === null)
+            throw new globalThis.Error("The parameter 'clientId' must be defined.");
+        url_ = url_.replace("{clientId}", encodeURIComponent("" + clientId));
+        if (ruleId === undefined || ruleId === null)
+            throw new globalThis.Error("The parameter 'ruleId' must be defined.");
+        url_ = url_.replace("{ruleId}", encodeURIComponent("" + ruleId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(pauseClientAutomationRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processPauseClientAutomationEndpoint(_response);
+        });
+    }
+
+    protected processPauseClientAutomationEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid pause details, or an end date in the past", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The live link grants no access", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * List a client's effective automation rules
+     * @param clientId Route parameter: public id of the client profile.
+     * @return The client's effective rules
+     */
+    getClientAutomationsEndpoint(clientId: string, signal?: AbortSignal): Promise<GetClientAutomationsResponse> {
+        let url_ = this.baseUrl + "/trainer/clients/{clientId}/automations";
+        if (clientId === undefined || clientId === null)
+            throw new globalThis.Error("The parameter 'clientId' must be defined.");
+        url_ = url_.replace("{clientId}", encodeURIComponent("" + clientId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetClientAutomationsEndpoint(_response);
+        });
+    }
+
+    protected processGetClientAutomationsEndpoint(response: AxiosResponse): Promise<GetClientAutomationsResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GetClientAutomationsResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The live link grants no access", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GetClientAutomationsResponse>(null as any);
+    }
+
+    /**
+     * Add a client-only automation rule
+     * @param clientId Route parameter: public id of the client profile.
+     * @return The created rule
+     */
+    createClientAutomationRuleEndpoint(clientId: string, createClientAutomationRuleRequest: CreateClientAutomationRuleRequest, signal?: AbortSignal): Promise<AutomationRuleDto> {
+        let url_ = this.baseUrl + "/trainer/clients/{clientId}/automations";
+        if (clientId === undefined || clientId === null)
+            throw new globalThis.Error("The parameter 'clientId' must be defined.");
+        url_ = url_.replace("{clientId}", encodeURIComponent("" + clientId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(createClientAutomationRuleRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCreateClientAutomationRuleEndpoint(_response);
+        });
+    }
+
+    protected processCreateClientAutomationRuleEndpoint(response: AxiosResponse): Promise<AutomationRuleDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<AutomationRuleDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid rule, or the questionnaire is inactive or a check-in form", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The live link grants no access", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<AutomationRuleDto>(null as any);
+    }
+
+    /**
+     * List automation rules
+     * @return The caller's global rules and linked check-ins
+     */
+    getAutomationRulesEndpoint(signal?: AbortSignal): Promise<GetAutomationRulesResponse> {
+        let url_ = this.baseUrl + "/trainer/automations/rules";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetAutomationRulesEndpoint(_response);
+        });
+    }
+
+    protected processGetAutomationRulesEndpoint(response: AxiosResponse): Promise<GetAutomationRulesResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GetAutomationRulesResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GetAutomationRulesResponse>(null as any);
+    }
+
+    /**
+     * Create an automation rule
+     * @return The created rule
+     */
+    createAutomationRuleEndpoint(createAutomationRuleRequest: CreateAutomationRuleRequest, signal?: AbortSignal): Promise<AutomationRuleDto> {
+        let url_ = this.baseUrl + "/trainer/automations/rules";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(createAutomationRuleRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCreateAutomationRuleEndpoint(_response);
+        });
+    }
+
+    protected processCreateAutomationRuleEndpoint(response: AxiosResponse): Promise<AutomationRuleDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<AutomationRuleDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid rule, or the questionnaire is inactive or a check-in form", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<AutomationRuleDto>(null as any);
     }
 
     /**
@@ -20127,12 +20941,23 @@ Used to populate pendingInviteId on the photo-diary-request create form. */
     message?: string | undefined;
     /** Timestamp when the invitation was sent. */
     sentAt?: string;
-    /** Whether the invitation has been accepted. */
+    /** Effective status (Pending or Expired for the rows this list returns). */
+    status?: PendingInviteStatus;
+    /** Whether the invitation has been accepted. Derived from Status; kept for older clients. */
     isAccepted?: boolean;
     /** Public ID of the assigned questionnaire, if any. */
     questionnairePublicId?: string | undefined;
     /** Title of the assigned questionnaire, if any. */
     questionnaireTitle?: string | undefined;
+}
+
+/** Lifecycle state of a PendingInvite. Expired is derived on read (see PendingInviteStatusResolver) and is never stored. */
+export enum PendingInviteStatus {
+    Pending = "Pending",
+    Accepted = "Accepted",
+    Declined = "Declined",
+    Cancelled = "Cancelled",
+    Expired = "Expired",
 }
 
 /** Request model for deleting a pending invitation. */
@@ -20859,6 +21684,16 @@ export interface IncomingClientRequestDto {
     clientEmail?: string;
     message?: string | undefined;
     sentAt?: string;
+    /** Public id of the requesting client's profile. */
+    clientPublicId?: string;
+    /** Client height in cm, as on the coach client dashboard. */
+    heightCm?: number | undefined;
+    /** Client weight in kg, as on the coach client dashboard. */
+    weightKg?: number | undefined;
+    /** Onboarding primary goal (enum name), null when onboarding is not done. */
+    primaryGoal?: string | undefined;
+    /** Activity level derived at onboarding (enum name), null when not available. */
+    derivedActivityLevel?: string | undefined;
 }
 
 /** Request model for accepting a client request. */
@@ -22143,6 +22978,8 @@ export interface ProfessionalSummaryDto {
     collaborationType?: string | undefined;
     languages?: string[];
     roles?: string[];
+    online?: boolean;
+    acceptNewClients?: boolean;
     avatarBlobUrl?: string | undefined;
 }
 
@@ -22166,6 +23003,8 @@ export interface GetPublicProfileResponse {
     roles?: string[];
     hasPendingRequest?: boolean;
     isLinked?: boolean;
+    online?: boolean;
+    acceptNewClients?: boolean;
     avatarBlobUrl?: string | undefined;
 }
 
@@ -23236,12 +24075,26 @@ export interface MessageDto {
     kind?: ChatMessageKind;
     /** The cooperation event type, when Kind is Event. */
     eventType?: ChatEventType | undefined;
+    /** Public id of the invite or request the event refers to, or null for a plain message. */
+    eventSourceId?: string | undefined;
+    /** Current status of the linked invite or request, for the chat card label. Null for a plain
+message, or when the event has no resolvable source. */
+    eventStatus?: CooperationCardStatus | undefined;
 }
 
 /** Discriminates a ChatMessage row between free-form text authored by a participant and a system-generated cooperation event (invite sent, request accepted, etc.) rendered inline in the same thread. */
 export enum ChatMessageKind {
     Text = "Text",
     Event = "Event",
+}
+
+/** Current state of the invite or request a chat cooperation card refers to. */
+export enum CooperationCardStatus {
+    Pending = "Pending",
+    Accepted = "Accepted",
+    Declined = "Declined",
+    Cancelled = "Cancelled",
+    Expired = "Expired",
 }
 
 export interface GetMessagesRequest {
@@ -24629,6 +25482,8 @@ export interface SendClientRequestRequest {
     professionalPublicId?: string;
     /** Optional message to include with the request. */
     message?: string | undefined;
+    /** Optional: whether the client agrees to share their history with the professional. Stored only; not enforced yet. */
+    shareHistory?: boolean;
 }
 
 /** Response model containing the client's sent requests. */
@@ -25283,6 +26138,10 @@ export interface RegisterPushTokenRequest {
     platform?: string;
 }
 
+/** Request for removing a push token. */
+export interface RemovePushTokenRequest {
+}
+
 /** Response model containing a client's weekly progress overview. */
 export interface GetWeeklyOverviewResponse {
     /** Monday of the current week. */
@@ -25395,6 +26254,8 @@ export interface MarkNotificationReadRequest {
 export interface GetNotificationsResponse {
     items?: NotificationDto[];
     cursor?: string | undefined;
+    /** Total number of unread notifications for the caller, independent of paging. */
+    unreadCount?: number;
 }
 
 export interface NotificationDto {
@@ -25420,6 +26281,32 @@ export interface PendingInviteResponse {
     message?: string | undefined;
 }
 
+/** The caller's pending invitations, newest first. */
+export interface GetClientInvitesResponse {
+    /** Pending, unexpired invitations addressed to the caller. */
+    items?: ClientInviteDto[];
+}
+
+/** One pending invitation from a professional. */
+export interface ClientInviteDto {
+    /** Public id of the invite. */
+    id?: string;
+    /** Public id of the inviting professional's profile. */
+    coachPublicId?: string;
+    /** Full name of the inviting professional. */
+    coachName?: string;
+    /** Roles the professional holds, joined for display (e.g. "Trainer & Nutritionist"). */
+    coachRole?: string;
+    /** City of the professional, or empty when unset. */
+    coachCity?: string;
+    /** Optional introduction message. */
+    message?: string | undefined;
+    /** When the invitation was sent (UTC). */
+    sentAt?: string;
+    /** When the invitation stops being answerable (UTC). */
+    expiresAt?: string;
+}
+
 export interface DeclineClientInviteRequest {
 }
 
@@ -25441,6 +26328,346 @@ export interface CollaborationDto {
 personal avatar when the professional-profile-specific one isn't set.
 Null when neither is uploaded. */
     avatarBlobUrl?: string | undefined;
+}
+
+/** A coach's automation rule as returned by the management endpoints. */
+export interface AutomationRuleDto {
+    /** Public id of the rule. */
+    ruleId?: string;
+    /** Rule name. */
+    name?: string;
+    /** Optional text sent with the request. */
+    message?: string | undefined;
+    /** What the rule asks of the client. */
+    actionType?: AutomationActionType;
+    /** Public id of the questionnaire a SendForm rule sends. */
+    questionnaireId?: string | undefined;
+    /** Schedule or event trigger. */
+    triggerKind?: AutomationTriggerKind;
+    /** Schedule trigger: send every N units. */
+    scheduleInterval?: number | undefined;
+    /** Schedule trigger: unit of the interval. */
+    scheduleUnit?: AutomationScheduleUnit | undefined;
+    /** Client-local time of day; required for a schedule, optional for an event (09:00 when absent). */
+    localTime?: string | undefined;
+    /** Event trigger: the event. */
+    eventType?: AutomationEventType | undefined;
+    /** Event trigger: days between the event and the send. */
+    eventOffsetDays?: number | undefined;
+    /** Event trigger: whether the offset lands before or after the event. */
+    eventOffsetDirection?: AutomationOffsetDirection | undefined;
+    /** Plan events only: fire at most once per plan. */
+    oncePerPlan?: boolean;
+    /** Skip an occurrence while the previous request is still unanswered. */
+    skipWhilePreviousUnanswered?: boolean;
+    /** Stop after this many sends per client; null means no limit. */
+    stopAfterSends?: number | undefined;
+    /** Whether the rule is active. */
+    enabled?: boolean;
+    /** Which clients the rule applies to; All for a client-only rule. */
+    audience?: AutomationAudience;
+    /** The audience tag; null when the audience is not Tag, or the tag was deleted. */
+    tag?: AutomationRuleTagDto | undefined;
+    /** Chosen clients of a Chosen audience. */
+    clients?: AutomationRuleClientDto[];
+    /** Public id of the client a client-only rule belongs to; null for a global rule. */
+    onlyClientId?: string | undefined;
+    /** Coverage summary; filled by the list and get endpoints, null on create and update responses. */
+    summary?: AutomationRuleSummaryDto | undefined;
+}
+
+/** What an automation rule asks of the client. */
+export enum AutomationActionType {
+    SendForm = "SendForm",
+    RequestProgressPhotos = "RequestProgressPhotos",
+    RequestMeasurements = "RequestMeasurements",
+}
+
+/** How an automation rule is triggered. */
+export enum AutomationTriggerKind {
+    Schedule = "Schedule",
+    Event = "Event",
+}
+
+/** Unit of a schedule trigger's interval. */
+export enum AutomationScheduleUnit {
+    Days = "Days",
+    Weeks = "Weeks",
+}
+
+/** Events an automation rule can fire on. Payment events are not part of this set. */
+export enum AutomationEventType {
+    ClientJoined = "ClientJoined",
+    PlanStarted = "PlanStarted",
+    PlanEnded = "PlanEnded",
+    CheckInMissed = "CheckInMissed",
+    ClientInactive = "ClientInactive",
+    FormAnswered = "FormAnswered",
+}
+
+/** Whether an event trigger's day offset lands after or before the event. */
+export enum AutomationOffsetDirection {
+    After = "After",
+    Before = "Before",
+}
+
+/** Which of the coach's clients a global automation rule applies to. */
+export enum AutomationAudience {
+    All = "All",
+    Tag = "Tag",
+    Chosen = "Chosen",
+}
+
+/** The audience tag of a rule. */
+export interface AutomationRuleTagDto {
+    /** Public id of the tag. */
+    tagId?: string;
+    /** Tag label. */
+    name?: string;
+}
+
+/** A chosen client of a rule's audience. */
+export interface AutomationRuleClientDto {
+    /** Public id of the client profile. */
+    clientId?: string;
+    /** Client first name. */
+    firstName?: string;
+    /** Client last name. */
+    lastName?: string;
+}
+
+/** What a rule covers across the coach's clients right now. */
+export interface AutomationRuleSummaryDto {
+    /** Earliest next send (UTC) across the covered clients; null when none is due or computable. */
+    nextSendAt?: string | undefined;
+    /** Number of covered clients the rule applies to, including those whose override disables it (only NextSendAt skips them). */
+    clientCount?: number;
+    /** Covered clients that have a custom override of the rule. */
+    customCount?: number;
+    /** Covered clients with a pause in effect. */
+    pausedCount?: number;
+}
+
+/** The part of an automation rule a coach can customise per client: message, trigger and options. */
+export interface AutomationTriggerBody {
+    /** Optional text sent with the request (at most 1000 characters; 500 for progress photos). */
+    message?: string | undefined;
+    /** Schedule or event trigger. */
+    triggerKind?: AutomationTriggerKind;
+    /** Schedule trigger: send every N units (1-365). */
+    scheduleInterval?: number | undefined;
+    /** Schedule trigger: unit of the interval. */
+    scheduleUnit?: AutomationScheduleUnit | undefined;
+    /** Client-local time of day, from 00:00 up to 23:59. Required for a schedule trigger; optional for an
+event trigger, which sends at 09:00 when it is absent. */
+    localTime?: string | undefined;
+    /** Event trigger: the event. */
+    eventType?: AutomationEventType | undefined;
+    /** Event trigger: days between the event and the send; defaults to 0. */
+    eventOffsetDays?: number | undefined;
+    /** Event trigger: whether the offset lands before or after the event; defaults to After. */
+    eventOffsetDirection?: AutomationOffsetDirection | undefined;
+    /** Plan events only: fire at most once per plan. */
+    oncePerPlan?: boolean;
+    /** Skip an occurrence while the previous request is still unanswered. */
+    skipWhilePreviousUnanswered?: boolean;
+    /** Stop after this many sends per client; null means no limit. */
+    stopAfterSends?: number | undefined;
+    /** Whether the rule is active. */
+    enabled?: boolean;
+}
+
+/** The full body of an automation rule: identity, action and the customisable trigger part. */
+export interface AutomationRuleBody extends AutomationTriggerBody {
+    /** Rule name (required, at most 100 characters). */
+    name?: string;
+    /** What the rule asks of the client. */
+    actionType?: AutomationActionType;
+    /** Questionnaire to send; required for SendForm, ignored otherwise. */
+    questionnaireId?: string | undefined;
+}
+
+/** A global rule body together with its audience ("Who"). */
+export interface AutomationAudienceBody extends AutomationRuleBody {
+    /** Which clients the rule applies to. Null means All on create and "leave the audience unchanged"
+on update; it must be null for a client-only rule. */
+    audience?: AutomationAudience | undefined;
+    /** Public id of the coach's tag; required when the audience is Tag. */
+    audienceTagId?: string | undefined;
+    /** Public ids of the chosen clients; required (non-empty) when the audience is Chosen. */
+    audienceClientIds?: string[];
+}
+
+/** Request for replacing an automation rule; the body carries the rule and, for a global rule, its audience. */
+export interface UpdateAutomationRuleRequest extends AutomationAudienceBody {
+}
+
+/** Request for resetting a global rule to its default for one client. */
+export interface ResetClientAutomationRequest {
+}
+
+/** Request for pausing or resuming a global rule for one client. */
+export interface PauseClientAutomationRequest {
+    /** True to pause, false to resume. */
+    isPaused?: boolean;
+    /** Last client-local day of the pause; only with IsPaused. Null pauses until resumed. */
+    pausedUntil?: string | undefined;
+    /** Short note about the pause (at most 200 characters); only with IsPaused. */
+    pauseNote?: string | undefined;
+}
+
+/** Request for customising a global rule for one client; the body is the customised message, trigger and options. */
+export interface OverrideClientAutomationRequest extends AutomationTriggerBody {
+}
+
+/** A client's effective automation rules with a 30-day summary of what was sent. */
+export interface GetClientAutomationsResponse {
+    /** The linked check-in rows first, then the rules by creation order. */
+    items?: ClientAutomationItem[];
+    /** Totals over the last 30 days across all rules. */
+    last30Days?: ClientAutomationSummary;
+}
+
+/** One row of a client's effective rule list. */
+export interface ClientAutomationItem {
+    /** Public id of the rule; null for a linked check-in row. */
+    ruleId?: string | undefined;
+    /** Where the row comes from. */
+    source?: AutomationRuleSource;
+    /** Rule name; null for a linked check-in row. */
+    name?: string | undefined;
+    /** Training or Nutrition for a linked check-in row; null for rules. */
+    profession?: string | undefined;
+    /** What the rule asks of the client; null for a linked check-in row. */
+    actionType?: AutomationActionType | undefined;
+    /** Public id of the questionnaire a SendForm rule sends. */
+    questionnaireId?: string | undefined;
+    /** Effective message. */
+    message?: string | undefined;
+    /** Effective trigger kind; null for a linked check-in row. */
+    triggerKind?: AutomationTriggerKind | undefined;
+    /** Effective schedule interval. */
+    scheduleInterval?: number | undefined;
+    /** Effective schedule unit. */
+    scheduleUnit?: AutomationScheduleUnit | undefined;
+    /** Effective client-local time of day; null on an event rule means 09:00. */
+    localTime?: string | undefined;
+    /** Effective event. */
+    eventType?: AutomationEventType | undefined;
+    /** Effective event offset in days. */
+    eventOffsetDays?: number | undefined;
+    /** Effective event offset direction. */
+    eventOffsetDirection?: AutomationOffsetDirection | undefined;
+    /** Effective once-per-plan flag. */
+    oncePerPlan?: boolean;
+    /** Effective skip-while-unanswered flag. */
+    skipWhilePreviousUnanswered?: boolean;
+    /** Effective send limit. */
+    stopAfterSends?: number | undefined;
+    /** Effective enabled flag. */
+    enabled?: boolean;
+    /** Whether a pause is in effect right now. */
+    isPaused?: boolean;
+    /** Last local day of the pause, while it is in effect. */
+    pausedUntil?: string | undefined;
+    /** Note of the pause, while it is in effect. */
+    pauseNote?: string | undefined;
+    /** Next send (UTC); null when paused, disabled, or an event other than plan started or ended. */
+    nextSendAt?: string | undefined;
+    /** The most recent run; null until a run exists. */
+    lastResult?: ClientAutomationLastResult | undefined;
+    /** Requests sent in the last 30 days. */
+    sent30Days?: number;
+    /** Requests answered in the last 30 days. */
+    answered30Days?: number;
+    /** Occurrences skipped in the last 30 days. */
+    skipped30Days?: number;
+}
+
+/** Where a rule in a client's effective list comes from. */
+export enum AutomationRuleSource {
+    Default = "Default",
+    Custom = "Custom",
+    Paused = "Paused",
+    OnlyThisClient = "OnlyThisClient",
+    Linked = "Linked",
+}
+
+/** The most recent run of a rule for the client. */
+export interface ClientAutomationLastResult {
+    /** Outcome. */
+    status?: AutomationRunStatus;
+    /** Why it was skipped. */
+    skipReason?: AutomationSkipReason | undefined;
+    /** When it was sent (UTC). */
+    sentAt?: string | undefined;
+    /** When the client answered (UTC). */
+    answeredAt?: string | undefined;
+}
+
+/** Outcome of one automation occurrence for one client. */
+export enum AutomationRunStatus {
+    Sent = "Sent",
+    Skipped = "Skipped",
+    Failed = "Failed",
+}
+
+/** Why an automation occurrence was skipped. */
+export enum AutomationSkipReason {
+    PreviousUnanswered = "PreviousUnanswered",
+    Paused = "Paused",
+    StopAfterReached = "StopAfterReached",
+    AlreadySentForPlan = "AlreadySentForPlan",
+}
+
+/** Totals over the last 30 days. */
+export interface ClientAutomationSummary {
+    /** Requests sent. */
+    sent?: number;
+    /** Requests answered. */
+    answered?: number;
+    /** Requests sent and still waiting for an answer. */
+    waiting?: number;
+    /** Occurrences skipped. */
+    skipped?: number;
+}
+
+/** Request for a client's effective automation rules. */
+export interface GetClientAutomationsRequest {
+}
+
+/** The caller's global automation rules. */
+export interface GetAutomationRulesResponse {
+    /** Global rules, oldest first. */
+    rules?: AutomationRuleDto[];
+    /** The weekly check-in per profession, as a linked read-only entry. */
+    linkedCheckIns?: AutomationLinkedCheckInDto[];
+}
+
+/** The weekly check-in of one profession as a linked, read-only entry among the global rules. It names no weekday and no time. */
+export interface AutomationLinkedCheckInDto {
+    /** The profession the check-in belongs to. */
+    profession?: Profession;
+    /** Whether the coach's check-in is enabled. */
+    enabled?: boolean;
+    /** Covered clients with the check-in enabled, after per-client overrides. */
+    clientCount?: number;
+}
+
+/** Request for one automation rule. */
+export interface GetAutomationRuleRequest {
+}
+
+/** Request for deleting an automation rule. */
+export interface DeleteAutomationRuleRequest {
+}
+
+/** Request for adding a rule that applies to one client only. It carries no audience. */
+export interface CreateClientAutomationRuleRequest extends AutomationRuleBody {
+}
+
+/** Request for creating a global automation rule; the body carries the rule and its audience. */
+export interface CreateAutomationRuleRequest extends AutomationAudienceBody {
 }
 
 /** Response returned after an email address has been verified. */
