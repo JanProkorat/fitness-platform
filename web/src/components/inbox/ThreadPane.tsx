@@ -100,6 +100,44 @@ export default function ThreadPane({
   // Accepted/Declined/Withdrawn events are folded into their card, so they are not rendered on their own.
   const { visible: visibleMessages, followUps } = useMemo(() => foldThreadCards(messages), [messages]);
 
+  // Entrance animation: a message is "new" when it sits after the newest message that was
+  // known when the thread was opened (or last rendered). Older pages are prepended, so they
+  // never land after it; the first load of a conversation seeds the marker and animates nothing.
+  const knownRef = useRef<{ conversationId: string; initialized: boolean; newestId: string | undefined }>({
+    conversationId,
+    initialized: false,
+    newestId: undefined,
+  });
+  if (knownRef.current.conversationId !== conversationId) {
+    knownRef.current = { conversationId, initialized: false, newestId: undefined };
+  }
+  if (!knownRef.current.initialized && messagesQuery.isSuccess) {
+    knownRef.current.initialized = true;
+    knownRef.current.newestId = messages[messages.length - 1]?.id;
+  }
+  const newMessageIds = useMemo(() => {
+    const known = knownRef.current;
+    const ids = new Set<string>();
+    if (!known.initialized) {
+      return ids;
+    }
+    const knownIndex = known.newestId ? messages.findIndex((m) => m.id === known.newestId) : -1;
+    if (known.newestId && knownIndex === -1) {
+      return ids;
+    }
+    for (const m of messages.slice(knownIndex + 1)) {
+      if (m.id) {
+        ids.add(m.id);
+      }
+    }
+    return ids;
+  }, [messages]);
+  useEffect(() => {
+    if (knownRef.current.initialized && messages.length > 0) {
+      knownRef.current.newestId = messages[messages.length - 1]?.id;
+    }
+  }, [messages]);
+
   // Reset per-conversation scroll state on open. The actual "jump to newest" scroll
   // happens below, once the first page has data — doing it here raced the fetch and
   // left a cold-cache thread stranded at its oldest loaded message (#1099 review finding).
@@ -253,8 +291,20 @@ export default function ThreadPane({
           {visibleMessages.map((message, index) => {
             const isOwn = Boolean(user) && message.senderId === user?.publicId;
             const sourceId = message.eventSourceId ?? undefined;
+            const isNew = Boolean(message.id) && newMessageIds.has(message.id as string);
+            const enterClass = !isNew
+              ? ''
+              : message.kind === ChatMessageKind.Event
+                ? 'animate-message-in-up'
+                : isOwn
+                  ? 'animate-message-in-right'
+                  : 'animate-message-in-left';
             return (
-              <div key={message.id ?? index} className="flex flex-col gap-3">
+              <div
+                key={message.id ?? index}
+                className={`flex flex-col gap-3 ${enterClass}`}
+                data-message-enter={isNew ? '' : undefined}
+              >
                 {startsNewDay(message, visibleMessages[index - 1]) && message.timestamp && <DateSeparator iso={message.timestamp} />}
                 {message.kind === ChatMessageKind.Event ? (
                   <EventBanner

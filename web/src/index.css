@@ -988,6 +988,43 @@
 
   /* Content swap (role-dependent copy): fade + short rise on a keyed element. */
   --animate-content-in: content-in var(--register-motion) ease-out;
+
+  /* Inbox thread: a message (or in-thread card) that arrived after the thread was opened. */
+  --message-motion: 220ms;
+  --animate-message-in-left: message-in-left var(--message-motion) ease-out;
+  --animate-message-in-right: message-in-right var(--message-motion) ease-out;
+  --animate-message-in-up: content-in var(--message-motion) ease-out;
+}
+
+@keyframes message-in-left {
+  from {
+    opacity: 0;
+    transform: translate(-16px, 8px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(0, 0);
+  }
+}
+
+@keyframes message-in-right {
+  from {
+    opacity: 0;
+    transform: translate(16px, 8px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(0, 0);
+  }
+}
+
+@keyframes message-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes content-in {
@@ -1297,6 +1334,11 @@
 
   [data-slide] {
     animation: none;
+  }
+
+  /* Inbox thread entrance: opacity only, no movement. */
+  [data-message-enter] {
+    animation-name: message-fade-in;
   }
 }
 
