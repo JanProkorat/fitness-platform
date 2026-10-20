@@ -74,24 +74,42 @@
       }
     }
   },
-  "showcase": {
-    "title": "Komponenty",
-    "card": {
-      "title": "Dnešní trénink",
-      "body": "Karta s textem od vašeho trenéra."
-    },
-    "input": {
-      "label": "E-mail",
-      "placeholder": "jan@example.com"
-    },
-    "scrollHint": "Posuňte obsah pod plovoucí lištu, aby bylo vidět rozostření.",
-    "signOut": "Odhlásit se",
-    "tabs": {
-      "today": "Dnes",
-      "training": "Trénink",
-      "nutrition": "Výživa",
-      "messages": "Zprávy"
+  "tabs": {
+    "today": "Dnes",
+    "training": "Trénink",
+    "nutrition": "Výživa",
+    "messages": "Zprávy"
+  },
+  "today": {
+    "eyebrow": "Pojďme začít",
+    "greeting": "Vítej, {{name}}",
+    "greetingAnonymous": "Vítej",
+    "linkedGreeting": "Ahoj, {{name}}",
+    "linkedGreetingAnonymous": "Ahoj",
+    "linkedBody": "Tvoji poradci jsou připraveni. Tady uvidíš svůj den.",
+    "notifications": "Upozornění",
+    "findCoach": {
+      "title": "Najdi si poradce",
+      "subtitle": "Oni ti sestaví plán, ty ho tady plníš.",
+      "trainer": {
+        "title": "Trenér",
+        "hint": "Tréninky šité na míru tvému cíli"
+      },
+      "nutritionist": {
+        "title": "Nutriční poradce",
+        "hint": "Jídlo, které zapadne do tvého dne"
+      }
     }
+  },
+  "placeholder": {
+    "training": "Tady se objeví tvůj tréninkový plán.",
+    "nutrition": "Tady se objeví tvůj jídelníček.",
+    "messages": "Tady se objeví tvoje konverzace."
+  },
+  "coachSearch": {
+    "trainerTitle": "Najít trenéra",
+    "nutritionistTitle": "Najít nutričního poradce",
+    "soon": "Vyhledávání poradců brzy přibude."
   },
   "common": {
     "signOut": "Odhlásit se"
