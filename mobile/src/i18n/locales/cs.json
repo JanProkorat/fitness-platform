@@ -88,6 +88,8 @@
     "linkedGreetingAnonymous": "Ahoj",
     "linkedBody": "Tvoji poradci jsou připraveni. Tady uvidíš svůj den.",
     "notifications": "Upozornění",
+    "notificationsUnread": "Upozornění, nepřečtených: {{count}}",
+    "invitesTitle": "Pozvánky",
     "findCoach": {
       "title": "Najdi si poradce",
       "subtitle": "Oni ti sestaví plán, ty ho tady plníš.",
@@ -100,6 +102,82 @@
         "hint": "Jídlo, které zapadne do tvého dne"
       }
     }
+  },
+  "invites": {
+    "invitedYou": "{{name}} tě zve",
+    "accept": "Přijmout",
+    "decline": "Odmítnout",
+    "acceptInvite": "Přijmout pozvánku",
+    "openHint": "Otevře pozvánku",
+    "roles": { "Trainer": "Trenér", "Nutritionist": "Nutriční poradce" },
+    "roleJoiner": " a ",
+    "time": {
+      "justNow": "Právě teď",
+      "minutes_one": "před {{count}} minutou",
+      "minutes_few": "před {{count}} minutami",
+      "minutes_many": "před {{count}} minuty",
+      "minutes_other": "před {{count}} minutami",
+      "hours_one": "před {{count}} hodinou",
+      "hours_few": "před {{count}} hodinami",
+      "hours_many": "před {{count}} hodiny",
+      "hours_other": "před {{count}} hodinami",
+      "days_one": "před {{count}} dnem",
+      "days_few": "před {{count}} dny",
+      "days_many": "před {{count}} dne",
+      "days_other": "před {{count}} dny"
+    },
+    "expiresIn_one": "Vyprší za {{count}} den",
+    "expiresIn_few": "Vyprší za {{count}} dny",
+    "expiresIn_many": "Vyprší za {{count}} dne",
+    "expiresIn_other": "Vyprší za {{count}} dnů",
+    "expiresToday": "Vyprší dnes",
+    "detail": {
+      "back": "Zpět",
+      "alsoOnline": "i online",
+      "invitedYouAt": "{{name}} tě zve · {{time}}",
+      "workingWith": "Spolupráce s {{name}}",
+      "offers": {
+        "training": "Osobní tréninkový plán",
+        "nutrition": "Osobní jídelníček",
+        "checkins": "Týdenní check-iny",
+        "chat": "Chat se svým poradcem"
+      },
+      "shareNote": "Přijetím sdílíš své odpovědi z úvodního dotazníku s osobou {{name}}."
+    },
+    "errors": {
+      "ok": "OK",
+      "expired": {
+        "title": "Pozvánka vypršela",
+        "body": "Tato pozvánka už neplatí. Požádej svého poradce o novou."
+      },
+      "unavailable": {
+        "title": "Pozvánka už není k dispozici",
+        "body": "Poradce ji zrušil, nebo už byla vyřízena."
+      },
+      "network": {
+        "title": "Bez připojení",
+        "body": "Server není dostupný. Zkontroluj připojení a zkus to znovu."
+      },
+      "generic": {
+        "title": "Něco se nepovedlo",
+        "body": "Na pozvánku se nepodařilo odpovědět. Zkus to prosím znovu."
+      }
+    }
+  },
+  "notifications": {
+    "title": "Upozornění",
+    "close": "Zavřít upozornění",
+    "markAllRead": "Označit vše jako přečtené",
+    "groupToday": "Dnes",
+    "groupEarlier": "Dříve",
+    "viewInvite": "Zobrazit pozvánku",
+    "unread": "Nepřečtené",
+    "unreadCount": "Nepřečtených: {{count}}",
+    "empty": "Vše je přečtené.",
+    "error": "Upozornění se nepodařilo načíst. Klepnutím to zkus znovu."
+  },
+  "push": {
+    "channelName": "Obecné"
   },
   "placeholder": {
     "training": "Tady se objeví tvůj tréninkový plán.",

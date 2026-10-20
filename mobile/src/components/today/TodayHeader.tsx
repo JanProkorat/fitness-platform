@@ -1,8 +1,10 @@
 import { Pressable, StyleSheet, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useTranslation } from 'react-i18next';
 
 import { Text } from '@/components/Text';
+import { useUnreadCount } from '@/hooks/useNotifications';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
 
@@ -16,6 +18,8 @@ export function TodayHeader({ eyebrow, title }: TodayHeaderProps) {
   const { t } = useTranslation();
   const theme = useTheme();
   const styles = makeStyles(theme);
+  const router = useRouter();
+  const unread = useUnreadCount();
 
   return (
     <View style={styles.row}>
@@ -29,10 +33,16 @@ export function TodayHeader({ eyebrow, title }: TodayHeaderProps) {
       </View>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={t('today.notifications')}
+        accessibilityLabel={
+          unread > 0
+            ? t('today.notificationsUnread', { count: unread })
+            : t('today.notifications')
+        }
+        onPress={() => router.push('/notifications')}
         style={styles.bell}
       >
         <SymbolView name="bell" tintColor={theme.colors.ink} size={theme.sizes.bellGlyph} />
+        {unread > 0 ? <View style={styles.dot} /> : null}
       </Pressable>
     </View>
   );
@@ -60,5 +70,14 @@ const makeStyles = (theme: Theme) =>
       borderColor: theme.colors.line,
       backgroundColor: theme.colors.surface,
       boxShadow: theme.shadows.card,
+    },
+    dot: {
+      position: 'absolute',
+      top: theme.spacing.xs,
+      right: theme.spacing.xs,
+      width: theme.sizes.bellDot,
+      height: theme.sizes.bellDot,
+      borderRadius: theme.radii.pill,
+      backgroundColor: theme.colors.accent,
     },
   });
