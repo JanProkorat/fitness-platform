@@ -176,6 +176,93 @@
     "nutrition": "Your nutrition plan will appear here.",
     "messages": "Your conversations will appear here."
   },
+  "messages": {
+    "eyebrow": "Your coaches",
+    "compose": "Find a coach",
+    "labels": { "invite": "Invite", "requestSent": "Request sent" },
+    "roles": { "Trainer": "Trainer", "Nutritionist": "Nutritionist" },
+    "roleJoiner": " · ",
+    "pastCoaches": "Past coaches",
+    "readOnly": "Read only",
+    "readOnlyEnded": "Read only · ended {{date}}",
+    "you": "You: {{text}}",
+    "photo": "Photo",
+    "yesterday": "Yesterday",
+    "unreadCount": "{{count}} unread",
+    "openChat": "Open chat with {{name}}",
+    "empty": {
+      "title": "No conversations yet",
+      "body": "When you work with a coach, your chat shows up here."
+    },
+    "error": "Couldn't load your messages. Tap to try again.",
+    "eventPreview": {
+      "Invited": "Invitation",
+      "Requested": "Request sent",
+      "Accepted": "Accepted",
+      "Declined": "Declined",
+      "Withdrawn": "Withdrawn"
+    }
+  },
+  "chat": {
+    "back": "Back",
+    "composerPlaceholder": "Message",
+    "send": "Send message",
+    "sendFailed": "Couldn't send. Your message is still in the box.",
+    "readOnly": "This chat is read only.",
+    "locked": "You can write once the invite is accepted.",
+    "loadError": "Couldn't load this chat. Tap to try again.",
+    "empty": "No messages yet. Say hello.",
+    "notFound": {
+      "title": "Chat not available",
+      "body": "This conversation no longer exists.",
+      "back": "Back to messages"
+    },
+    "dayToday": "Today {{time}}",
+    "dayYesterday": "Yesterday {{time}}",
+    "card": {
+      "invite": {
+        "title": "Work with {{name}}",
+        "labels": {
+          "Pending": "Invitation",
+          "Accepted": "Invitation accepted",
+          "Declined": "Invitation declined",
+          "Cancelled": "Invitation cancelled",
+          "Expired": "Invitation expired"
+        },
+        "details": {
+          "Accepted": "You started working together",
+          "Declined": "You declined",
+          "Cancelled": "{{name}} withdrew the invite",
+          "Expired": "Nobody answered in time"
+        }
+      },
+      "request": {
+        "title": "Work with {{name}}",
+        "labels": {
+          "Pending": "Request sent",
+          "Accepted": "Request accepted",
+          "Declined": "Request declined",
+          "Cancelled": "Request withdrawn",
+          "Expired": "Request expired"
+        },
+        "details": {
+          "Pending": "Waiting for {{name}} to answer",
+          "Accepted": "{{name}} accepted",
+          "Declined": "{{name}} declined",
+          "Cancelled": "You withdrew the request",
+          "Expired": "Nobody answered in time"
+        }
+      },
+      "scope": {
+        "Both": "Training and nutrition coaching",
+        "TrainingOnly": "Training coaching",
+        "NutritionOnly": "Nutrition coaching"
+      },
+      "expiresIn_one": "expires in {{count}} day",
+      "expiresIn_other": "expires in {{count}} days",
+      "expiresToday": "expires today"
+    }
+  },
   "coachSearch": {
     "title": "Find a coach",
     "segmentsLabel": "Coach type",

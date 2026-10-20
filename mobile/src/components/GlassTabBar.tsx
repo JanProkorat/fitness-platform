@@ -14,6 +14,8 @@ export type GlassTabBarTab = {
   icon: (color: string) => ReactNode;
   active: boolean;
   onPress: () => void;
+  /** Count shown on the icon; hidden at zero or when omitted. */
+  badge?: number;
 };
 
 type GlassTabBarProps = {
@@ -39,12 +41,21 @@ export function GlassTabBar({ tabs }: GlassTabBarProps) {
               <Pressable
                 key={tab.key}
                 accessibilityRole="tab"
-                accessibilityLabel={tab.label}
+                accessibilityLabel={tab.badge ? `${tab.label}, ${tab.badge}` : tab.label}
                 accessibilityState={{ selected: tab.active }}
                 onPress={tab.onPress}
                 style={[styles.item, tab.active && styles.itemActive]}
               >
-                <View style={styles.icon}>{tab.icon(color)}</View>
+                <View style={styles.icon}>
+                  {tab.icon(color)}
+                  {tab.badge ? (
+                    <View style={styles.badge}>
+                      <Text variant="micro" style={{ color: theme.colors.onAccent }}>
+                        {tab.badge > 99 ? '99+' : String(tab.badge)}
+                      </Text>
+                    </View>
+                  ) : null}
+                </View>
                 <Text variant={tab.active ? 'micro' : 'microMedium'} style={{ color }}>
                   {tab.label}
                 </Text>
@@ -99,5 +110,17 @@ const makeStyles = (theme: Theme) =>
       height: theme.sizes.tabIcon,
       alignItems: 'center',
       justifyContent: 'center',
+    },
+    badge: {
+      position: 'absolute',
+      top: -theme.spacing.xxs,
+      left: theme.sizes.tabIcon / 2,
+      minWidth: theme.sizes.tabBadge,
+      height: theme.sizes.tabBadge,
+      paddingHorizontal: theme.spacing.xxs,
+      borderRadius: theme.radii.pill,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.colors.accent,
     },
   });

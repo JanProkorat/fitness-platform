@@ -1,14 +1,12 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 
+import { CONVERSATIONS_QUERY_KEY } from '@/api/conversations';
 import { INVITES_QUERY_KEY } from '@/api/invites';
 import { NOTIFICATIONS_QUERY_KEY } from '@/api/notifications';
 import { PROFILE_QUERY_KEY } from '@/api/profile';
 
 import { useRealtimeEvent, useRealtimeReconnected } from './useRealtimeEvent';
-
-/** Query-key prefix the messaging screens will key their conversation list under. */
-const CONVERSATIONS_QUERY_KEY = ['conversations'] as const;
 
 /** There is no "notification created" event, so every event that can create one refreshes the lists. */
 const REFRESH_EVENTS = [

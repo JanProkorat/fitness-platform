@@ -56,6 +56,7 @@ function AppStack({ phase, onRetry }: { phase: ReturnType<typeof useAuthPhase>['
       </Stack.Protected>
       <Stack.Protected guard={phase === 'home'}>
         <Stack.Screen name="invite/[id]" />
+        <Stack.Screen name="chat/[id]" />
         <Stack.Screen
           name="notifications"
           options={{ presentation: 'transparentModal', animation: 'fade' }}
