@@ -107,9 +107,87 @@
     "messages": "Your conversations will appear here."
   },
   "coachSearch": {
-    "trainerTitle": "Find a trainer",
-    "nutritionistTitle": "Find a nutritionist",
-    "soon": "Coach search is coming soon."
+    "title": "Find a coach",
+    "segmentsLabel": "Coach type",
+    "segments": {
+      "All": "All",
+      "Trainer": "Trainers",
+      "Nutritionist": "Nutritionists"
+    },
+    "roles": {
+      "Trainer": "Trainer",
+      "Nutritionist": "Nutritionist"
+    },
+    "filters": {
+      "online": "Online"
+    },
+    "online": "online",
+    "searchLabel": "Search by name",
+    "searchPlaceholder": "Name of a coach",
+    "searchButton": "Search by name",
+    "count": {
+      "All_one": "{{count}} coach",
+      "All_other": "{{count}} coaches",
+      "Trainer_one": "{{count}} trainer",
+      "Trainer_other": "{{count}} trainers",
+      "Nutritionist_one": "{{count}} nutritionist",
+      "Nutritionist_other": "{{count}} nutritionists"
+    },
+    "takingClients": "Taking clients",
+    "waitlist": "Waitlist",
+    "empty": "No coaches match these filters.",
+    "retry": "Try again",
+    "errors": {
+      "network": "Can't reach the server. Check your connection and try again.",
+      "generic": "Couldn't load coaches. Try again."
+    }
+  },
+  "coachProfile": {
+    "alsoOnline": "also online",
+    "workingWith": "Working with {{name}}",
+    "workingWithRows": {
+      "Trainer": {
+        "plan": "Personal training plan",
+        "checkIns": "Weekly check-ins",
+        "chat": "Chat with your coach"
+      },
+      "Nutritionist": {
+        "plan": "Personal meal plan",
+        "checkIns": "Weekly check-ins",
+        "chat": "Chat with your coach"
+      }
+    },
+    "sendRequest": "Send request",
+    "pending": "Request pending",
+    "linked": "You already work together",
+    "retry": "Try again",
+    "error": {
+      "title": "Can't load this profile",
+      "body": "Check your connection and try again."
+    },
+    "notFound": {
+      "title": "Coach not found",
+      "body": "This profile isn't available any more."
+    }
+  },
+  "requestSheet": {
+    "title": "Request {{name}}",
+    "subtitle": "Introduce yourself in a line or two.",
+    "cancel": "Cancel",
+    "messageLabel": "Message (optional)",
+    "messagePlaceholder": "Tell them what you want to work on",
+    "historyLabel": "Share my history",
+    "historyHint": "Past plans, measurements and photos from before {{name}}.",
+    "onboardingCaption": "Your onboarding answers are shared with {{name}} so they can prepare.",
+    "submit": "Send request",
+    "errors": {
+      "notAccepting": "This coach isn't taking new clients right now.",
+      "alreadyPending": "You've already sent a request to this coach.",
+      "alreadyLinked": "You already work with this coach.",
+      "notFound": "This coach isn't available any more.",
+      "network": "Can't reach the server. Your message is kept, try again.",
+      "generic": "Couldn't send the request. Try again."
+    }
   },
   "common": {
     "signOut": "Sign out"
