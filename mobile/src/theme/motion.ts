@@ -28,3 +28,8 @@ export const inviteMotion = {
   exitDuration: 180,
   spring: { damping: 18, stiffness: 180, mass: 0.9 },
 } as const;
+
+/** Chat rows that arrive after the screen opened: spring entrance and list reflow. */
+export const chatMotion = {
+  spring: { damping: 20, stiffness: 220, mass: 0.8 },
+} as const;
