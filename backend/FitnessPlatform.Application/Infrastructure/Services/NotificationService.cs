@@ -49,7 +49,14 @@ public class NotificationService(IApplicationDbContext db, IPushNotificationServ
         // app opens, so it must already be in the recipient's language at send time.
         if (await IsPushEnabledAsync(recipientUserId, type, ct))
         {
-            await push.SendAsync(recipientUserId, title, body, new { type = type.ToString() }, ct);
+            // The notification's own data (e.g. inviteId) rides along so a tapped push can deep-link;
+            // "type" is written last so a parameter can never override it.
+            var pushData = new Dictionary<string, string>(parameters ?? new Dictionary<string, string>())
+            {
+                ["type"] = type.ToString(),
+            };
+
+            await push.SendAsync(recipientUserId, title, body, pushData, ct);
         }
 
         return notification;

@@ -71,7 +71,7 @@ public class GetPendingClientsEndpoint(IApplicationDbContext db) : EndpointWitho
 
         var invites = await db.PendingInvites
             .AsNoTracking()
-            .Where(pi => pi.ProfessionalProfileId == professionalProfile.Id && !pi.IsAccepted)
+            .Where(pi => pi.ProfessionalProfileId == professionalProfile.Id && pi.Status == PendingInviteStatus.Pending)
             .Select(pi => new PendingClientRow
             {
                 Kind = PendingRowKind.Invite,

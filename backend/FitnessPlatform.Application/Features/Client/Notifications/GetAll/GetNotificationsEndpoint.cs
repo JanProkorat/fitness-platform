@@ -78,7 +78,12 @@ public class GetNotificationsEndpoint(IApplicationDbContext db) : Endpoint<GetNo
         if (items.Count == limit)
             nextCursor = items[^1].Id;
 
-        await Send.OkAsync(new GetNotificationsResponse { Items = items, Cursor = nextCursor }, ct);
+        var unreadCount = await db.Notifications
+            .AsNoTracking()
+            .CountAsync(n => n.RecipientUserId == userGuid && !n.IsRead, ct);
+
+        await Send.OkAsync(
+            new GetNotificationsResponse { Items = items, Cursor = nextCursor, UnreadCount = unreadCount }, ct);
     }
 
     private static readonly Dictionary<string, (string InvitationReceived, string QuestionnaireAssigned, string PlanPublished)> ActionLabels = new()
@@ -114,6 +119,9 @@ public class GetNotificationsResponse
 {
     public List<NotificationDto> Items { get; set; } = [];
     public string? Cursor { get; set; }
+
+    /// <summary>Total number of unread notifications for the caller, independent of paging.</summary>
+    public int UnreadCount { get; set; }
 }
 
 public class NotificationDto

@@ -40,7 +40,7 @@ public class AcceptClientInviteEndpointTests
         Factory.Create<AcceptClientInviteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(callerId, AppRoles.Client))),
-            db, _userManager, _notificationService, _notifier, _audit, _conversationSeedService);
+            db, _userManager, _notificationService, _notifier, _audit, _conversationSeedService, TimeProvider.System);
 
     [Fact]
     public async Task Accept_ByRecipient_Returns204_AndMarksAccepted()
@@ -57,7 +57,7 @@ public class AcceptClientInviteEndpointTests
             ProfessionalProfile = professionalProfile,
             // Different casing than the caller's NormalizedEmail — must still match.
             Email = "Client@Example.com",
-            IsAccepted = false
+            Status = PendingInviteStatus.Pending
         };
 
         var db = new MockDbBuilder()
@@ -73,7 +73,7 @@ public class AcceptClientInviteEndpointTests
 
         // Assert
         ep.HttpContext.Response.StatusCode.Should().Be(204);
-        invite.IsAccepted.Should().BeTrue();
+        invite.Status.Should().Be(PendingInviteStatus.Accepted);
         await _notifier.Received(1).NotifyAsync(
             professionalProfile.UserId, "inviteaccepted", Arg.Any<object>(), Arg.Any<CancellationToken>());
     }
@@ -92,7 +92,7 @@ public class AcceptClientInviteEndpointTests
             ProfessionalProfileId = professionalProfile.Id,
             ProfessionalProfile = professionalProfile,
             Email = "victim@example.com",
-            IsAccepted = false
+            Status = PendingInviteStatus.Pending
         };
 
         var db = new MockDbBuilder()
@@ -109,8 +109,35 @@ public class AcceptClientInviteEndpointTests
         // Assert — 404, not 403: must not confirm the GUID exists (no enumeration oracle),
         // and the real recipient's invite must survive untouched.
         ep.HttpContext.Response.StatusCode.Should().Be(404);
-        invite.IsAccepted.Should().BeFalse();
+        invite.Status.Should().Be(PendingInviteStatus.Pending);
         await _notifier.DidNotReceiveWithAnyArgs().NotifyAsync(default, default!, default!, TestContext.Current.CancellationToken);
+    }
+
+    [Theory]
+    [InlineData(PendingInviteStatus.Accepted)]
+    [InlineData(PendingInviteStatus.Declined)]
+    [InlineData(PendingInviteStatus.Cancelled)]
+    public async Task Accept_NonPendingInvite_Returns404_AndKeepsStatus(PendingInviteStatus status)
+    {
+        var clientId = Guid.NewGuid();
+        var clientUser = CreateUser(clientId, "client@example.com");
+        var professionalProfile = new ProfessionalProfile { Id = 1, PublicId = Guid.NewGuid(), UserId = Guid.NewGuid() };
+        var invite = new PendingInvite
+        {
+            PublicId = Guid.NewGuid(),
+            ProfessionalProfileId = professionalProfile.Id,
+            ProfessionalProfile = professionalProfile,
+            Email = "client@example.com",
+            Status = status
+        };
+
+        var db = new MockDbBuilder().With(clientUser).With(professionalProfile).With(invite).Build();
+        var ep = CreateEndpoint(clientId, db);
+
+        await ep.HandleAsync(new AcceptClientInviteRequest { Id = invite.PublicId }, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(404);
+        invite.Status.Should().Be(status);
     }
 
     [Fact]
@@ -128,7 +155,7 @@ public class AcceptClientInviteEndpointTests
             ProfessionalProfile = professionalProfile,
             Email = "client@example.com",
             Message = "Welcome aboard, looking forward to working with you!",
-            IsAccepted = false
+            Status = PendingInviteStatus.Pending
         };
 
         var db = new MockDbBuilder()
@@ -169,7 +196,7 @@ public class AcceptClientInviteEndpointTests
             ProfessionalProfileId = professionalProfile.Id,
             ProfessionalProfile = professionalProfile,
             Email = "client@example.com",
-            IsAccepted = false
+            Status = PendingInviteStatus.Pending
         };
 
         var db = new MockDbBuilder()
@@ -219,7 +246,7 @@ public class AcceptClientInviteEndpointTests
             ProfessionalProfileId = professionalProfile.Id,
             ProfessionalProfile = professionalProfile,
             Email = "client@example.com",
-            IsAccepted = false,
+            Status = PendingInviteStatus.Pending,
             RequestedScope = LinkCapabilityScope.NutritionOnly
         };
 
@@ -278,7 +305,7 @@ public class AcceptClientInviteEndpointTests
             ProfessionalProfileId = invitingProfessionalProfile.Id,
             ProfessionalProfile = invitingProfessionalProfile,
             Email = "client-occupied@example.com",
-            IsAccepted = false
+            Status = PendingInviteStatus.Pending
         };
 
         var db = new MockDbBuilder()
@@ -300,7 +327,7 @@ public class AcceptClientInviteEndpointTests
         var exception = await act.Should().ThrowAsync<ValidationFailureException>();
         exception.Which.Failures.Should().ContainSingle(
             f => f.ErrorCode == ErrorCodes.ProfessionAlreadyOccupied);
-        invite.IsAccepted.Should().BeFalse();
+        invite.Status.Should().Be(PendingInviteStatus.Pending);
         db.ClientProfessionalLinks.DidNotReceive().Add(Arg.Any<ClientProfessionalLink>());
     }
 

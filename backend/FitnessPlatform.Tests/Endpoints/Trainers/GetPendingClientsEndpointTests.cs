@@ -129,7 +129,7 @@ public class GetPendingClientsEndpointTests(FitnessApiFactory factory)
             ProfessionalProfileId = professionalProfile.Id,
             Email = email,
             SentAt = sentAt,
-            IsAccepted = isAccepted
+            Status = isAccepted ? PendingInviteStatus.Accepted : PendingInviteStatus.Pending
         };
         db.PendingInvites.Add(invite);
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);

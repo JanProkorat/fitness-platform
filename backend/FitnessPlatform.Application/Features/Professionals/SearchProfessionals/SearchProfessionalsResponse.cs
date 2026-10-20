@@ -20,5 +20,7 @@ public class ProfessionalSummaryDto
     public string? CollaborationType { get; set; }
     public List<string> Languages { get; set; } = [];
     public List<string> Roles { get; set; } = [];
+    public bool Online { get; set; }
+    public bool AcceptNewClients { get; set; }
     public string? AvatarBlobUrl { get; set; }
 }

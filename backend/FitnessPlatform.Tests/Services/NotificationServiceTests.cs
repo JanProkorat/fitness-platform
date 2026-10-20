@@ -314,6 +314,48 @@ public class NotificationServiceTests(NotificationServiceContainerFixture contai
     }
 
     /// <summary>
+    /// The push data carries the notification's own data (inviteId) next to the type, so a tapped
+    /// push can deep-link to the invite.
+    /// </summary>
+    [Fact]
+    public async Task CreateAsync_InvitationReceived_PushDataCarriesInviteIdAndType()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var recipientId = await SeedUserAsync("en");
+        var inviteId = Guid.NewGuid().ToString();
+
+        var sut = BuildSut();
+        await sut.CreateAsync(
+            recipientId,
+            NotificationType.InvitationReceived,
+            new Dictionary<string, string> { ["trainerName"] = "Coach Carl", ["inviteId"] = inviteId },
+            ct: ct);
+
+        var data = _push.Calls.Should().ContainSingle().Subject.Data;
+        var json = System.Text.Json.JsonSerializer.Serialize(data);
+        using var document = System.Text.Json.JsonDocument.Parse(json);
+        document.RootElement.GetProperty("inviteId").GetString().Should().Be(inviteId);
+        document.RootElement.GetProperty("type").GetString().Should().Be(nameof(NotificationType.InvitationReceived));
+    }
+
+    /// <summary>
+    /// A notification without parameters still pushes its type.
+    /// </summary>
+    [Fact]
+    public async Task CreateAsync_NoParameters_PushDataStillHasType()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var recipientId = await SeedUserAsync("en");
+
+        var sut = BuildSut();
+        await sut.CreateAsync(recipientId, NotificationType.ClientRequestAccepted, null, ct: ct);
+
+        var json = System.Text.Json.JsonSerializer.Serialize(_push.Calls.Should().ContainSingle().Subject.Data);
+        using var document = System.Text.Json.JsonDocument.Parse(json);
+        document.RootElement.GetProperty("type").GetString().Should().Be(nameof(NotificationType.ClientRequestAccepted));
+    }
+
+    /// <summary>
     /// A join request for a user with no saved row falls back to the default (push on).
     /// </summary>
     [Fact]

@@ -164,7 +164,7 @@ public class AcceptInvitationEndpointTests
             ProfessionalProfileId = trainerProfile.Id,
             Email = "client@test.com",
             Message = "Excited to start working with you!",
-            IsAccepted = false,
+            Status = PendingInviteStatus.Pending,
         };
 
         var db = new MockDbBuilder()
@@ -189,7 +189,7 @@ public class AcceptInvitationEndpointTests
         await ep.HandleAsync(new AcceptInvitationRequest { Token = "invite-token-with-message" }, TestContext.Current.CancellationToken);
 
         ep.ValidationFailed.Should().BeFalse();
-        pendingInvite.IsAccepted.Should().BeTrue();
+        pendingInvite.Status.Should().Be(PendingInviteStatus.Accepted);
 
         // Ensures the Invited event + message exist (idempotent no-op if already written by
         // CreatePendingInvite or VerifyEmail's seed), then records Accepted — both keyed on

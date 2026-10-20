@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 namespace FitnessPlatform.Application.Features.Client.Invites.Decline;
 
 /// <summary>
-/// Client declines a pending invite. Marks it as accepted (consumed) without creating a link.
+/// Client declines a pending invite. Marks it as declined without creating a link.
 /// </summary>
 public class DeclineClientInviteEndpoint(
     IApplicationDbContext db,
@@ -54,7 +54,7 @@ public class DeclineClientInviteEndpoint(
 
         var invite = await db.PendingInvites
             .Include(pi => pi.ProfessionalProfile)
-            .FirstOrDefaultAsync(pi => pi.PublicId == req.Id && !pi.IsAccepted
+            .FirstOrDefaultAsync(pi => pi.PublicId == req.Id && pi.Status == PendingInviteStatus.Pending
                 && pi.Email.ToUpper() == normalizedEmail, ct);
 
         if (invite is null)
@@ -63,8 +63,7 @@ public class DeclineClientInviteEndpoint(
             return;
         }
 
-        // Mark as consumed so it no longer appears as pending
-        invite.IsAccepted = true;
+        invite.Status = PendingInviteStatus.Declined;
         await db.SaveChangesAsync(ct);
 
         // Ensure the invite's Invited event + message exist (idempotent no-op if already

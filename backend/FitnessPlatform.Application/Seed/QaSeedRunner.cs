@@ -514,7 +514,7 @@ public static class QaSeedRunner
 
         // #474 — profiles for the second pair.
         var client2Profile  = await EnsureClientProfileAsync(db, Client2UserId,  Client2ProfilePublicId,  logger);
-        var trainer2Profile = await EnsureProfessionalProfileAsync(db, Trainer2UserId, Trainer2ProfilePublicId, logger);
+        var trainer2Profile = await EnsureProfessionalProfileAsync(db, Trainer2UserId, Trainer2ProfilePublicId, logger, online: true, showInSearch: true);
 
         // Trainer↔client link — without this the trainer dashboard returns an
         // empty client list and Playwright's getByText('QA Client') never resolves.
@@ -734,7 +734,9 @@ public static class QaSeedRunner
         ApplicationDbContext db,
         Guid userId,
         Guid publicId,
-        ILogger logger)
+        ILogger logger,
+        bool online = false,
+        bool showInSearch = false)
     {
         var existing = await db.ProfessionalProfiles
             .FirstOrDefaultAsync(p => p.UserId == userId);
@@ -749,8 +751,9 @@ public static class QaSeedRunner
         {
             UserId = userId,
             PublicId = publicId,
-            ShowInSearch = false,
+            ShowInSearch = showInSearch,
             AcceptNewClients = true,
+            Online = online,
             DateCreated = DateTime.UtcNow,
         };
 
