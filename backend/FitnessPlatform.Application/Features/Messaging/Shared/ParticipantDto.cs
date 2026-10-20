@@ -30,4 +30,10 @@ public class ParticipantDto
     /// surface). Lets the inbox deep-link to <c>/clients/:clientId</c> without a second lookup.
     /// </summary>
     public Guid? ClientPublicId { get; set; }
+
+    /// <summary>
+    /// The participant's active coach roles (<c>Trainer</c>, <c>Nutritionist</c>), excluding a
+    /// role marked removed. Empty for a client.
+    /// </summary>
+    public List<string> Roles { get; set; } = [];
 }

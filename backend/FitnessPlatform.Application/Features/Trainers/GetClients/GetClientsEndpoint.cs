@@ -218,6 +218,7 @@ public class GetClientsEndpoint(IMongoContext mongo, IApplicationDbContext db, T
                     m.Conversation.ProfessionalUserId == callerUserId &&
                     m.Conversation.ClientUserId == l.ClientProfile.User.Id &&
                     !m.IsRead &&
+                    m.Kind != ChatMessageKind.Event &&
                     m.SenderUserId == l.ClientProfile.User.Id),
                 HasNewCheckIn = db.WeeklyCheckIns.Any(w =>
                     w.ClientUserId == l.ClientProfile.User.Id &&

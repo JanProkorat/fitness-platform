@@ -78,7 +78,7 @@ public static class ConversationRosterLoader
                 LastMessageEventType = c.LastMessageEventType,
                 ArchivedByProfessionalAt = c.ArchivedByProfessionalAt,
                 MessageCount = c.Messages.Count,
-                UnreadMessageCount = c.Messages.Count(m => !m.IsRead && m.SenderUserId == c.ClientUserId)
+                UnreadMessageCount = c.Messages.Count(m => !m.IsRead && m.SenderUserId == c.ClientUserId && m.Kind != ChatMessageKind.Event)
             })
             .ToDictionaryAsync(c => c.ClientUserId, ct);
 
