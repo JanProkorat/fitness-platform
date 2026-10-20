@@ -70,14 +70,18 @@ export default function CoachSearchScreen() {
     setSearchOpen(!searchOpen);
   };
 
+  const topBar = (
+    <View style={styles.topBar}>
+      <BackButton label={t('onboarding.back')} onPress={() => router.back()} />
+      <Text variant="subtitle" accessibilityRole="header" numberOfLines={2} style={styles.title}>
+        {t(`coachSearch.title.${segment}`)}
+      </Text>
+      <View style={styles.topBarSlot} />
+    </View>
+  );
+
   const header = (
     <View style={styles.header}>
-      <View style={styles.back}>
-        <BackButton label={t('onboarding.back')} onPress={() => router.back()} />
-      </View>
-      <Text variant="title" accessibilityRole="header">
-        {t('coachSearch.title')}
-      </Text>
       <Segmented
         options={options}
         value={segment}
@@ -121,11 +125,6 @@ export default function CoachSearchScreen() {
           />
         ))}
       </ScrollView>
-      {!result.isPending && !result.isError ? (
-        <Text variant="bodySmall" color="muted">
-          {t(`coachSearch.count.${segment}`, { count: result.totalCount })}
-        </Text>
-      ) : null}
     </View>
   );
 
@@ -152,6 +151,7 @@ export default function CoachSearchScreen() {
 
   return (
     <Screen>
+      {topBar}
       <FlatList
         data={result.isPending || result.isError ? [] : result.items}
         keyExtractor={(item) => item.publicId ?? ''}
@@ -204,13 +204,25 @@ export default function CoachSearchScreen() {
 
 const makeStyles = (theme: Theme) =>
   StyleSheet.create({
-    header: {
-      gap: theme.spacing.xl,
-      paddingTop: theme.spacing.xxl,
+    topBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.spacing.md,
+      paddingTop: theme.spacing.xs,
       paddingBottom: theme.spacing.md,
     },
-    back: {
-      alignItems: 'flex-start',
+    title: {
+      flex: 1,
+      textAlign: 'center',
+    },
+    topBarSlot: {
+      width: theme.sizes.backButton,
+      height: theme.sizes.backButton,
+    },
+    header: {
+      gap: theme.spacing.xl,
+      paddingTop: theme.spacing.xs,
+      paddingBottom: theme.spacing.md,
     },
     chipScroll: {
       flexGrow: 0,

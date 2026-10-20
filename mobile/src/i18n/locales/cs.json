@@ -274,7 +274,11 @@
     }
   },
   "coachSearch": {
-    "title": "Najdi si poradce",
+    "title": {
+      "All": "Najdi si poradce",
+      "Trainer": "Najdi si trenéra",
+      "Nutritionist": "Najdi si nutričního poradce"
+    },
     "segmentsLabel": "Typ poradce",
     "segments": {
       "All": "Všichni",
@@ -292,20 +296,6 @@
     "searchLabel": "Hledat podle jména",
     "searchPlaceholder": "Jméno poradce",
     "searchButton": "Hledat podle jména",
-    "count": {
-      "All_one": "{{count}} poradce",
-      "All_few": "{{count}} poradci",
-      "All_many": "{{count}} poradce",
-      "All_other": "{{count}} poradců",
-      "Trainer_one": "{{count}} trenér",
-      "Trainer_few": "{{count}} trenéři",
-      "Trainer_many": "{{count}} trenéra",
-      "Trainer_other": "{{count}} trenérů",
-      "Nutritionist_one": "{{count}} nutriční poradce",
-      "Nutritionist_few": "{{count}} nutriční poradci",
-      "Nutritionist_many": "{{count}} nutričního poradce",
-      "Nutritionist_other": "{{count}} nutričních poradců"
-    },
     "takingClients": "Přijímá klienty",
     "waitlist": "Čekací listina",
     "empty": "Těmto filtrům nic neodpovídá.",
