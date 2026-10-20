@@ -23990,6 +23990,12 @@ row rather than plain text. Null when the last message is plain text. */
     lastMessageEventType?: ChatEventType | undefined;
     /** Whether the professional-client collaboration has ended. */
     isFormer?: boolean;
+    /** When the collaboration ended, for a former one. Null when it is not former or the end
+date is unknown. */
+    endedAt?: string | undefined;
+    /** The newest invite or client request between the two people. Null when there is none, or
+its source row no longer exists. */
+    cooperation?: ConversationCooperationDto | undefined;
     /** True exactly when sending in this thread would be refused for the caller with
 CONVERSATION_LOCKED (a professional in an invite-only thread). The web disables the
 composer on it. */
@@ -24014,6 +24020,9 @@ Null when neither has been uploaded. */
 professional (a professional-side conversation row has no client-profile identity to
 surface). Lets the inbox deep-link to /clients/:clientId without a second lookup. */
     clientPublicId?: string | undefined;
+    /** The participant's active coach roles (Trainer, Nutritionist), excluding a
+role marked removed. Empty for a client. */
+    roles?: string[];
 }
 
 /** The kind of professional-client cooperation event a ChatMessage with Event represents. The actor is the row's SenderUserId — no separate actor-name payload is stored. */
@@ -24023,6 +24032,41 @@ export enum ChatEventType {
     Accepted = "Accepted",
     Declined = "Declined",
     Withdrawn = "Withdrawn",
+}
+
+/** The newest invite or client request between the caller and the other participant. */
+export interface ConversationCooperationDto {
+    /** Invite (sent by a professional) or Request (sent by a client). */
+    type?: CooperationType;
+    /** Whether the caller sent it or received it. */
+    direction?: CooperationDirection;
+    /** Current status. A rejected request reads Declined; an invite past its validity reads Expired. */
+    status?: CooperationCardStatus;
+    /** Public id of the invite or request, the same value as a message's eventSourceId. */
+    sourceId?: string;
+    /** The scope an invite asked for, when set. Null for a request. */
+    requestedScope?: LinkCapabilityScope | undefined;
+}
+
+/** Which kind of cooperation proposal a conversation carries. */
+export enum CooperationType {
+    Invite = "Invite",
+    Request = "Request",
+}
+
+/** Whether the caller sent or received a cooperation proposal. */
+export enum CooperationDirection {
+    Sent = "Sent",
+    Received = "Received",
+}
+
+/** Current state of the invite or request a chat cooperation card refers to. */
+export enum CooperationCardStatus {
+    Pending = "Pending",
+    Accepted = "Accepted",
+    Declined = "Declined",
+    Cancelled = "Cancelled",
+    Expired = "Expired",
 }
 
 export interface StartConversationRequest {
@@ -24086,15 +24130,6 @@ message, or when the event has no resolvable source. */
 export enum ChatMessageKind {
     Text = "Text",
     Event = "Event",
-}
-
-/** Current state of the invite or request a chat cooperation card refers to. */
-export enum CooperationCardStatus {
-    Pending = "Pending",
-    Accepted = "Accepted",
-    Declined = "Declined",
-    Cancelled = "Cancelled",
-    Expired = "Expired",
 }
 
 export interface GetMessagesRequest {
