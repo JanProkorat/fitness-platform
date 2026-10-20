@@ -24,23 +24,18 @@ public class ConversationUnreadEventRowTests(FitnessApiFactory factory)
     private record StartResult(int UnreadCount);
 
     [Fact]
-    public async Task ClientCaller_InviteWithMessage_CountsOneUnread()
+    public async Task ClientCaller_InviteWithMessageCountsOne_InviteWithoutMessageCountsZero()
     {
-        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var withMessage = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var withoutMessage = await TestActors.Trainer(factory).CreateAsync(Ct);
         var client = await TestActors.Client(factory).CreateAsync(Ct);
-        await ConversationListSeed.SeedInviteAsync(factory, coach, client, message: "Welcome aboard");
+        await ConversationListSeed.SeedInviteAsync(factory, withMessage, client, message: "Welcome aboard");
+        await ConversationListSeed.SeedInviteAsync(factory, withoutMessage, client);
 
-        (await ConversationListSeed.GetAsync(client.Http)).Single().UnreadCount.Should().Be(1);
-    }
+        var rows = await ConversationListSeed.GetAsync(client.Http);
 
-    [Fact]
-    public async Task ClientCaller_InviteWithoutMessage_CountsNoUnread()
-    {
-        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
-        var client = await TestActors.Client(factory).CreateAsync(Ct);
-        await ConversationListSeed.SeedInviteAsync(factory, coach, client);
-
-        (await ConversationListSeed.GetAsync(client.Http)).Single().UnreadCount.Should().Be(0);
+        rows.Single(r => r.Participant.Id == withMessage.UserId).UnreadCount.Should().Be(1);
+        rows.Single(r => r.Participant.Id == withoutMessage.UserId).UnreadCount.Should().Be(0);
     }
 
     [Fact]
