@@ -19,7 +19,12 @@ export function TabPlaceholder({ title, body, children }: TabPlaceholderProps) {
   const barClearance = theme.sizes.tabBar + theme.sizes.tabBarBottom + theme.spacing.xxl;
 
   return (
-    <Screen scroll bottomInset={barClearance} contentStyle={styles.content}>
+    <Screen
+      scroll
+      topGap={theme.spacing.huge}
+      bottomInset={barClearance}
+      contentStyle={styles.content}
+    >
       <Text variant="title" accessibilityRole="header">
         {title}
       </Text>
@@ -35,6 +40,5 @@ const makeStyles = (theme: Theme) =>
   StyleSheet.create({
     content: {
       gap: theme.spacing.xl,
-      paddingTop: theme.spacing.xxl,
     },
   });

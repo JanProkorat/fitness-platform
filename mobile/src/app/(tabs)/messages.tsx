@@ -41,7 +41,12 @@ export default function MessagesScreen() {
   );
 
   return (
-    <Screen scroll bottomInset={barClearance} contentStyle={styles.content}>
+    <Screen
+      scroll
+      topGap={theme.spacing.huge}
+      bottomInset={barClearance}
+      contentStyle={styles.content}
+    >
       <View style={styles.header}>
         <View style={styles.copy}>
           <Text variant="bodyLarge" color="muted">
@@ -97,7 +102,6 @@ const makeStyles = (theme: Theme) =>
   StyleSheet.create({
     content: {
       gap: theme.spacing.xl,
-      paddingTop: theme.spacing.xxl,
     },
     header: {
       flexDirection: 'row',

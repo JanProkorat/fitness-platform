@@ -23,6 +23,11 @@ http.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  // FastEndpoints needs a JSON body to bind on POST/PUT/PATCH; send {} so bodiless calls don't 415.
+  const method = config.method?.toLowerCase();
+  if ((method === 'post' || method === 'put' || method === 'patch') && config.data == null) {
+    config.data = {};
+  }
   return config;
 });
 

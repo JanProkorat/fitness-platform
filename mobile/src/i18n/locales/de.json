@@ -264,7 +264,11 @@
     }
   },
   "coachSearch": {
-    "title": "Coach finden",
+    "title": {
+      "All": "Finde einen Coach",
+      "Trainer": "Finde einen Trainer",
+      "Nutritionist": "Finde einen Ernährungsberater"
+    },
     "segmentsLabel": "Art des Coaches",
     "segments": {
       "All": "Alle",
@@ -282,14 +286,6 @@
     "searchLabel": "Nach Name suchen",
     "searchPlaceholder": "Name des Coaches",
     "searchButton": "Nach Name suchen",
-    "count": {
-      "All_one": "{{count}} Coach",
-      "All_other": "{{count}} Coaches",
-      "Trainer_one": "{{count}} Trainer",
-      "Trainer_other": "{{count}} Trainer",
-      "Nutritionist_one": "{{count}} Ernährungsberater",
-      "Nutritionist_other": "{{count}} Ernährungsberater"
-    },
     "takingClients": "Nimmt Klienten an",
     "waitlist": "Warteliste",
     "empty": "Keine Coaches passen zu diesen Filtern.",

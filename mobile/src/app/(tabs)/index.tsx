@@ -39,7 +39,12 @@ export default function TodayScreen() {
       : t('today.linkedGreetingAnonymous');
 
   return (
-    <Screen scroll bottomInset={barClearance} contentStyle={styles.content}>
+    <Screen
+      scroll
+      topGap={theme.spacing.huge}
+      bottomInset={barClearance}
+      contentStyle={styles.content}
+    >
       <TodayHeader eyebrow={eyebrow} title={title} />
       {missingRoles.length > 0 ? (
         <FindCoachSection roles={missingRoles} />
@@ -57,6 +62,5 @@ const makeStyles = (theme: Theme) =>
   StyleSheet.create({
     content: {
       gap: theme.spacing.huge,
-      paddingTop: theme.spacing.xxl,
     },
   });

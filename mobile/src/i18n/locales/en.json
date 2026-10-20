@@ -264,7 +264,11 @@
     }
   },
   "coachSearch": {
-    "title": "Find a coach",
+    "title": {
+      "All": "Find a coach",
+      "Trainer": "Find a trainer",
+      "Nutritionist": "Find a nutritionist"
+    },
     "segmentsLabel": "Coach type",
     "segments": {
       "All": "All",
@@ -282,14 +286,6 @@
     "searchLabel": "Search by name",
     "searchPlaceholder": "Name of a coach",
     "searchButton": "Search by name",
-    "count": {
-      "All_one": "{{count}} coach",
-      "All_other": "{{count}} coaches",
-      "Trainer_one": "{{count}} trainer",
-      "Trainer_other": "{{count}} trainers",
-      "Nutritionist_one": "{{count}} nutritionist",
-      "Nutritionist_other": "{{count}} nutritionists"
-    },
     "takingClients": "Taking clients",
     "waitlist": "Waitlist",
     "empty": "No coaches match these filters.",

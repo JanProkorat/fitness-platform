@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, KeyboardAvoidingView, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import Animated, { FadeInUp, LinearTransition, ReduceMotion } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { EdgeInsets } from 'react-native-safe-area-context';
 
@@ -23,6 +24,7 @@ import { useMarkConversationRead } from '@/hooks/useMarkConversationRead';
 import { useSendMessage } from '@/hooks/useSendMessage';
 import { useRealtimeEvent, useRealtimeReconnected } from '@/realtime/useRealtimeEvent';
 import { useTheme } from '@/theme';
+import { chatMotion } from '@/theme/motion';
 import type { Theme } from '@/theme';
 
 type NewMessagePayload = { conversationId?: string };
@@ -83,6 +85,26 @@ export default function ChatScreen() {
 
   const items = useMemo(() => buildChatItems(messages ?? []), [messages]);
 
+  // Ids present when the first page arrived (null until then); later ids are "new" and animate.
+  // `known` lags one snapshot behind `messages`, so rows added by the latest update are not in it.
+  const [tracked, setTracked] = useState<{
+    messages: typeof messages;
+    known: ReadonlySet<string> | null;
+  }>({ messages: undefined, known: null });
+  if (messages !== tracked.messages) {
+    const idsOf = (list: NonNullable<typeof messages>) =>
+      list.flatMap((message) => (message.id ? [message.id] : []));
+    setTracked({
+      messages,
+      known: !messages
+        ? tracked.known
+        : tracked.messages
+          ? new Set([...(tracked.known ?? []), ...idsOf(tracked.messages)])
+          : new Set(idsOf(messages)),
+    });
+  }
+  const knownIds = tracked.known;
+
   const leave = () => (router.canGoBack() ? router.back() : router.replace('/'));
   const refreshAfterAnswer = useCallback(() => {
     void refreshMessages();
@@ -124,8 +146,22 @@ export default function ChatScreen() {
 
   const renderItem = ({ item }: { item: ChatItem }) => {
     const own = item.message.senderId !== participantId;
+    const messageId = item.message.id;
+    // Only rows that arrived after the first page was shown animate in.
+    const isNew = knownIds !== null && !!messageId && !knownIds.has(messageId);
     return (
-      <View style={styles.item}>
+      <Animated.View
+        entering={
+          isNew
+            ? FadeInUp.springify()
+                .damping(chatMotion.spring.damping)
+                .stiffness(chatMotion.spring.stiffness)
+                .mass(chatMotion.spring.mass)
+                .reduceMotion(ReduceMotion.System)
+            : undefined
+        }
+        style={styles.item}
+      >
         {item.dayStart ? (
           <Text variant="caption" color="muted" style={styles.separator}>
             {daySeparator(t, i18n.language, item.message.timestamp)}
@@ -144,7 +180,7 @@ export default function ChatScreen() {
         ) : (
           <MessageBubble text={item.message.text ?? ''} own={own} />
         )}
-      </View>
+      </Animated.View>
     );
   };
 
@@ -179,9 +215,14 @@ export default function ChatScreen() {
           <ActivityIndicator color={theme.colors.accent} />
         </View>
       ) : (
-        <FlatList
+        <Animated.FlatList
           // Items are newest first; inverting keeps the latest message at the bottom.
           inverted
+          itemLayoutAnimation={LinearTransition.springify()
+            .damping(chatMotion.spring.damping)
+            .stiffness(chatMotion.spring.stiffness)
+            .mass(chatMotion.spring.mass)
+            .reduceMotion(ReduceMotion.System)}
           data={items}
           keyExtractor={(item) => item.key}
           renderItem={renderItem}
@@ -222,7 +263,7 @@ const makeStyles = (theme: Theme, insets: EdgeInsets) =>
       backgroundColor: theme.colors.ground,
     },
     header: {
-      paddingTop: insets.top + theme.spacing.xs,
+      paddingTop: insets.top + theme.spacing.huge,
       paddingHorizontal: theme.spacing.xxl,
       paddingBottom: theme.spacing.md,
     },

@@ -167,7 +167,7 @@ const makeStyles = (theme: Theme, insets: EdgeInsets) =>
     heroImage: StyleSheet.absoluteFill,
     back: {
       position: 'absolute',
-      top: insets.top + theme.spacing.xs,
+      top: insets.top + theme.spacing.huge,
       left: theme.spacing.xxl,
     },
     sheet: {
