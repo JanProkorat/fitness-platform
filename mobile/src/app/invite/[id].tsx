@@ -222,6 +222,7 @@ const makeStyles = (theme: Theme, insets: EdgeInsets) =>
       borderWidth: theme.sizes.border,
       borderColor: theme.colors.line,
       backgroundColor: theme.colors.surface,
+      boxShadow: theme.shadows.card,
     },
     offer: {
       flexDirection: 'row',

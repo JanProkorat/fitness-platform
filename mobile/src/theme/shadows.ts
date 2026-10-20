@@ -33,7 +33,7 @@ const shared = {
 
 const lightShadows = {
   ...shared,
-  card: '0 1px 2px rgba(0,0,0,0.04)',
+  card: '0 1px 2px rgba(20,20,20,0.06), 0 6px 16px rgba(20,20,20,0.07)',
   glass:
     '0 10px 30px rgba(0,0,0,0.14), 0 1px 3px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.9)',
   thumb: '0 1px 3px rgba(0,0,0,0.12)',
@@ -41,7 +41,7 @@ const lightShadows = {
 
 const darkShadows = {
   ...shared,
-  card: 'none',
+  card: '0 1px 2px rgba(0,0,0,0.4), 0 6px 16px rgba(0,0,0,0.35)',
   glass: '0 10px 30px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.14)',
   thumb: '0 1px 3px rgba(0,0,0,0.4)',
 };

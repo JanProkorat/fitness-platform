@@ -184,6 +184,7 @@ export default function CoachSearchScreen() {
         onEndReachedThreshold={0.4}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
+        style={styles.listScroll}
         contentContainerStyle={styles.list}
       />
       <Pressable
@@ -232,7 +233,12 @@ const makeStyles = (theme: Theme) =>
       gap: theme.spacing.sm,
       paddingHorizontal: theme.spacing.xxl,
     },
+    listScroll: {
+      // Bleed into the screen gutter so the card shadow is not clipped at the list edge.
+      marginHorizontal: -theme.spacing.xxl,
+    },
     list: {
+      paddingHorizontal: theme.spacing.xxl,
       paddingBottom: theme.sizes.searchFab + theme.spacing.huge * 2,
     },
     state: {
