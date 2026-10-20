@@ -139,51 +139,10 @@ public class GetMessagesEndpoint(IApplicationDbContext db, IBlobStorageService b
             .Distinct()
             .ToList();
 
-        var result = new Dictionary<Guid, CooperationCardStatus>();
+        var resolved = await CooperationStatusResolver.ResolveAsync(
+            db, sourceIds, timeProvider.GetUtcNow().UtcDateTime, ct);
 
-        if (sourceIds.Count == 0)
-        {
-            return result;
-        }
-
-        var now = timeProvider.GetUtcNow().UtcDateTime;
-
-        var invites = await db.PendingInvites
-            .AsNoTracking()
-            .Where(pi => sourceIds.Contains(pi.PublicId))
-            .Select(pi => new { pi.PublicId, pi.Status, pi.SentAt })
-            .ToListAsync(ct);
-
-        foreach (var invite in invites)
-        {
-            result[invite.PublicId] = PendingInviteStatusResolver.Resolve(invite.Status, invite.SentAt, now) switch
-            {
-                PendingInviteStatus.Accepted => CooperationCardStatus.Accepted,
-                PendingInviteStatus.Declined => CooperationCardStatus.Declined,
-                PendingInviteStatus.Cancelled => CooperationCardStatus.Cancelled,
-                PendingInviteStatus.Expired => CooperationCardStatus.Expired,
-                _ => CooperationCardStatus.Pending,
-            };
-        }
-
-        var requests = await db.ClientRequests
-            .AsNoTracking()
-            .Where(cr => sourceIds.Contains(cr.PublicId))
-            .Select(cr => new { cr.PublicId, cr.Status })
-            .ToListAsync(ct);
-
-        foreach (var request in requests)
-        {
-            result[request.PublicId] = request.Status switch
-            {
-                ClientRequestStatus.Accepted => CooperationCardStatus.Accepted,
-                ClientRequestStatus.Rejected => CooperationCardStatus.Declined,
-                ClientRequestStatus.Cancelled => CooperationCardStatus.Cancelled,
-                _ => CooperationCardStatus.Pending,
-            };
-        }
-
-        return result;
+        return resolved.ToDictionary(kv => kv.Key, kv => kv.Value.Status);
     }
 
     /// <summary>Internal EF projection shape — carries the raw, unsigned <c>ImageBlobUrl</c> before signing.</summary>
