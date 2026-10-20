@@ -189,6 +189,7 @@
     "navigationTitle": "Navigace"
   },
   "sidebar": {
+    "automations": "Automatizace",
     "dashboard": "Dashboard",
     "profile": "Profil",
     "clients": "Klienti",
@@ -2599,6 +2600,25 @@
     "quote": "Citace"
   },
   "apiErrors": {
+    "AUTOMATION_RULE_NOT_FOUND": "Toto pravidlo už neexistuje.",
+    "AUTOMATION_TAG_NOT_FOUND": "Vybraný štítek už neexistuje.",
+    "AUTOMATION_AUDIENCE_CLIENT_NOT_FOUND": "Jeden z vybraných klientů už s vámi není propojený.",
+    "AUTOMATION_QUESTIONNAIRE_NOT_FOUND": "Vybraný formulář už neexistuje.",
+    "AUTOMATION_ACTION_TYPE_LOCKED": "Akci pravidla nelze změnit. Vytvořte místo toho nové pravidlo.",
+    "AUTOMATION_QUESTIONNAIRE_NOT_USABLE": "Tento formulář nelze odesílat automatizací. Vyberte aktivní formulář, který není check-in.",
+    "AUTOMATION_SCHEDULE_INVALID": "Zkontrolujte plán: každých 1 až 365 dní nebo týdnů, v platný čas.",
+    "AUTOMATION_EVENT_INVALID": "Zkontrolujte událost a její načasování.",
+    "AUTOMATION_ONCE_PER_PLAN_NEEDS_PLAN_EVENT": "„Jednou za plán“ funguje jen u události plánu.",
+    "AUTOMATION_QUESTIONNAIRE_REQUIRED": "Vyberte formulář k odeslání.",
+    "AUTOMATION_STOP_AFTER_INVALID": "Počet odeslání musí být mezi 1 a 1000.",
+    "AUTOMATION_AUDIENCE_TAG_REQUIRED": "Vyberte štítek.",
+    "AUTOMATION_AUDIENCE_CLIENTS_REQUIRED": "Vyberte alespoň jednoho klienta.",
+    "AUTOMATION_PHOTO_MESSAGE_TOO_LONG": "Zpráva k fotkám pokroku může mít nejvýše 500 znaků.",
+    "AUTOMATION_PAUSED_UNTIL_IN_PAST": "Konec pozastavení nemůže být v minulosti.",
+    "AUTOMATION_PAUSE_DETAILS_WITHOUT_PAUSE": "Datum konce nebo poznámka k pozastavení vyžadují zapnuté pozastavení.",
+    "AUTOMATION_NO_OVERRIDE_TO_RESET": "Toto pravidlo nemá pro tohoto klienta žádné úpravy, které by šlo vrátit.",
+    "AUTOMATION_CLIENT_ONLY_RULE_NOT_OVERRIDABLE": "Pravidlo jen pro jednoho klienta nejde upravit pro klienta, pozastavit ani vrátit. Upravte ho přímo.",
+    "AUTOMATION_AUDIENCE_NOT_ALLOWED_ON_CLIENT_ONLY_RULE": "Pravidlo jen pro jednoho klienta nemá okruh klientů k výběru.",
     "INVALID_CREDENTIALS": "Neplatný email nebo heslo.",
     "ACCOUNT_DEACTIVATED": "Váš účet byl deaktivován.",
     "INVALID_REFRESH_TOKEN": "Vaše relace vypršela. Přihlaste se znovu.",
@@ -3601,6 +3621,68 @@
     }
   },
   "clientDetail": {
+    "automations": {
+      "introBefore": "Pravidla ze stránky ",
+      "introLink": "Automatizace",
+      "introAfter": " platí i pro klienta {{name}}. Změna tady se týká jen klienta {{name}}.",
+      "addRule": "Přidat pravidlo pro klienta {{name}}",
+      "empty": "Pro klienta {{name}} zatím neplatí žádné pravidlo.",
+      "loadError": "Automatizace tohoto klienta se nepodařilo načíst.",
+      "noAccess": "Vaše propojení s klientem {{name}} automatizace nezahrnuje.",
+      "toggleError": "Pravidlo se nepodařilo změnit.",
+      "resetSuccess": "Pravidlo je vráceno na výchozí",
+      "resetError": "Pravidlo se nepodařilo vrátit na výchozí.",
+      "source": {
+        "Default": "Výchozí",
+        "Custom": "Upraveno pro klienta {{name}}",
+        "Paused": "Pozastaveno",
+        "OnlyThisClient": "Jen {{name}}"
+      },
+      "table": {
+        "columnSource": "Zdroj",
+        "columnLastTime": "Naposledy"
+      },
+      "row": {
+        "reset": "Vrátit",
+        "toggleActive": "Pravidlo „{{name}}“ aktivní pro tohoto klienta",
+        "disabledHint": "Toto pravidlo je vypnuté na stránce Automatizace.",
+        "changedFrom": "Změněno oproti: {{when}}",
+        "paused": "Pozastaveno",
+        "pausedUntil": "Pozastaveno do {{date}}",
+        "linkedSubtitle": "{{profession}} · Spravuje se v nastavení check-inu",
+        "linkedSubtitleOnly": "Spravuje se v nastavení check-inu"
+      },
+      "result": {
+        "notSent": "Zatím neodesláno",
+        "sentAnswered": "Odesláno {{date}} · zodpovězeno {{answered}}",
+        "sentWaiting": "Odesláno {{date}} · zatím bez odpovědi",
+        "skipped": "Přeskočeno",
+        "skippedOn": "Přeskočeno {{date}}",
+        "failed": "Selhalo",
+        "failedOn": "Selhalo {{date}}",
+        "skipReason": {
+          "PreviousUnanswered": "předchozí bez odpovědi",
+          "Paused": "pozastaveno",
+          "StopAfterReached": "dosažen limit odeslání",
+          "AlreadySentForPlan": "už odesláno pro tento plán"
+        }
+      },
+      "summary": {
+        "title": "Odesláno klientovi {{name}}",
+        "period": "Posledních 30 dní",
+        "sent": "Odeslaných žádostí",
+        "answered": "Zodpovězeno",
+        "waiting": "Čeká",
+        "skipped": "Přeskočeno"
+      },
+      "drawer": {
+        "overrideTitle": "Upravit pro klienta · {{name}}",
+        "overrideDescription": "Změna tady platí jen pro klienta {{client}}. Samotné pravidlo zůstane beze změny.",
+        "clientOnlyTitleNew": "Nové pravidlo pro klienta {{client}}",
+        "clientOnlyTitleEdit": "Upravit pravidlo · {{name}}",
+        "clientOnlyDescription": "Toto pravidlo platí jen pro klienta {{client}}"
+      }
+    },
     "photos": {
       "heading": "Fotky",
       "count_one": "{{count}} fotka",
@@ -5107,6 +5189,222 @@
       "trendDelta": "−2,1 za 6 týdnů",
       "reviewQuote": "„V pátek jsem měla těžké nohy.“ · energie 4/5",
       "replyPlaceholder": "Odpovědět Petře…"
+    }
+  },
+  "automations": {
+    "eyebrow": "Formuláře",
+    "title": "Automatizace",
+    "subtitle": "Pravidla, která posílají formuláře a požadavky sama. Pravidlo pro jednoho klienta změníte na jeho záložce Automatizace.",
+    "newRule": "Nové pravidlo",
+    "filters": {
+      "label": "Filtr pravidel",
+      "all": "Vše",
+      "forms": "Formuláře",
+      "photos": "Fotky",
+      "measurements": "Měření"
+    },
+    "timeZoneNote": "Časy se řídí časovým pásmem každého klienta",
+    "loadError": "Automatizace se nepodařilo načíst.",
+    "retry": "Zkusit znovu",
+    "empty": "Zatím žádná pravidla. Vytvořte první a formuláře i požadavky se budou posílat samy.",
+    "footer_one": "Zobrazeno {{count}} pravidlo · Pravidlo přeskočí klienta, dokud předchozí požadavek nemá odpověď, pokud to v pravidle nevypnete",
+    "footer_few": "Zobrazena {{count}} pravidla · Pravidlo přeskočí klienta, dokud předchozí požadavek nemá odpověď, pokud to v pravidle nevypnete",
+    "footer_many": "Zobrazeno {{count}} pravidla · Pravidlo přeskočí klienta, dokud předchozí požadavek nemá odpověď, pokud to v pravidle nevypnete",
+    "footer_other": "Zobrazeno {{count}} pravidel · Pravidlo přeskočí klienta, dokud předchozí požadavek nemá odpověď, pokud to v pravidle nevypnete",
+    "saveSuccess": "Pravidlo uloženo",
+    "saveError": "Pravidlo se nepodařilo uložit.",
+    "toggleError": "Pravidlo se nepodařilo změnit.",
+    "deleteSuccess": "Pravidlo smazáno",
+    "deleteError": "Pravidlo se nepodařilo smazat.",
+    "deleteDialog": {
+      "title": "Smazat toto pravidlo?",
+      "description": "„{{name}}“ přestane posílat. Už odeslané požadavky zůstanou, jak jsou.",
+      "confirm": "Smazat pravidlo"
+    },
+    "rowMenu": {
+      "open": "Akce pro {{name}}",
+      "edit": "Upravit",
+      "delete": "Smazat"
+    },
+    "table": {
+      "columnRule": "Pravidlo",
+      "columnWhen": "Kdy",
+      "columnAction": "Akce",
+      "columnAppliesTo": "Platí pro",
+      "columnNextSend": "Další odeslání",
+      "columnOn": "Zapnuto",
+      "columnActions": "Akce",
+      "clients_one": "{{count}} klient",
+      "clients_few": "{{count}} klienti",
+      "clients_many": "{{count}} klienta",
+      "clients_other": "{{count}} klientů",
+      "custom": "{{count}} upraveno",
+      "paused": "{{count}} pozastaveno",
+      "everyDays_one": "Každý den, {{time}}",
+      "everyDays_few": "Každé {{count}} dny, {{time}}",
+      "everyDays_many": "Každých {{count}} dne, {{time}}",
+      "everyDays_other": "Každých {{count}} dní, {{time}}",
+      "everyWeeks_one": "Každý týden, {{time}}",
+      "everyWeeks_few": "Každé {{count}} týdny, {{time}}",
+      "everyWeeks_many": "Každého {{count}} týdne, {{time}}",
+      "everyWeeks_other": "Každých {{count}} týdnů, {{time}}",
+      "offsetAfter_one": "{{count}} den po {{event}}",
+      "offsetAfter_few": "{{count}} dny po {{event}}",
+      "offsetAfter_many": "{{count}} dne po {{event}}",
+      "offsetAfter_other": "{{count}} dní po {{event}}",
+      "offsetBefore_one": "{{count}} den před {{event}}",
+      "offsetBefore_few": "{{count}} dny před {{event}}",
+      "offsetBefore_many": "{{count}} dne před {{event}}",
+      "offsetBefore_other": "{{count}} dní před {{event}}",
+      "eventsBefore": {
+        "ClientJoined": "přijetím pozvánky klientem",
+        "PlanStarted": "začátkem plánu",
+        "PlanEnded": "koncem plánu",
+        "CheckInMissed": "zmeškáním check-inu",
+        "FormAnswered": "vyplněním formuláře"
+      },
+      "eventsAfter": {
+        "ClientJoined": "přijetí pozvánky klientem",
+        "PlanStarted": "začátku plánu",
+        "PlanEnded": "konci plánu",
+        "CheckInMissed": "zmeškání check-inu",
+        "FormAnswered": "vyplnění formuláře"
+      },
+      "offsetInactive_one": "{{event}} {{count}} den",
+      "offsetInactive_few": "{{event}} {{count}} dny",
+      "offsetInactive_many": "{{event}} {{count}} dne",
+      "offsetInactive_other": "{{event}} {{count}} dní",
+      "subtitleForm": "Formulář · {{name}}",
+      "subtitleFormUnknown": "Formulář",
+      "subtitlePhotos": "Fotky pokroku",
+      "subtitleMeasurements": "Tělesná měření",
+      "toggle": "Zapnout pravidlo „{{name}}“"
+    },
+    "linked": {
+      "title": "Týdenní check-in",
+      "subtitle": {
+        "Training": "Trénink",
+        "Nutrition": "Výživa"
+      },
+      "when": "Jednou týdně",
+      "action": "Check-in",
+      "badge": "Propojeno",
+      "off": "Vypnuto",
+      "open": "Otevřít"
+    },
+    "actions": {
+      "SendForm": "Poslat formulář",
+      "RequestProgressPhotos": "Vyžádat fotky",
+      "RequestMeasurements": "Vyžádat měření"
+    },
+    "events": {
+      "ClientJoined": "Klient přijme vaši pozvánku",
+      "PlanStarted": "Tréninkový nebo jídelní plán začne",
+      "PlanEnded": "Tréninkový nebo jídelní plán skončí",
+      "CheckInMissed": "Check-in je zmeškaný",
+      "ClientInactive": "Klient je neaktivní",
+      "FormAnswered": "Formulář je vyplněný"
+    },
+    "errors": {
+      "nameRequired": "Zadejte název pravidla.",
+      "nameTooLong": "Název může mít nejvýše 100 znaků.",
+      "messageTooLong": "Zpráva může mít nejvýše 1000 znaků.",
+      "formRequired": "Vyberte formulář k odeslání.",
+      "intervalRange": "Zadejte číslo od 1 do 365.",
+      "timeRequired": "Zadejte čas.",
+      "timeInvalid": "Zadejte platný čas.",
+      "offsetRange": "Zadejte číslo od 0 do 365.",
+      "offsetInactiveRange": "Zadejte číslo od 1 do 365.",
+      "stopAfterRange": "Zadejte číslo od 1 do 1000.",
+      "tagRequired": "Vyberte štítek.",
+      "clientsRequired": "Vyberte alespoň jednoho klienta.",
+      "pauseNoteTooLong": "Poznámka může mít nejvýše 200 znaků."
+    },
+    "drawer": {
+      "titleNew": "Nové pravidlo",
+      "titleEdit": "Upravit pravidlo · {{name}}",
+      "descriptionSchedule": "Platí pro každého klienta, pokud ho nezměníte na jeho záložce Automatizace",
+      "descriptionEvent": "Spustí se u každého klienta, když se událost stane jemu",
+      "name": "Název",
+      "namePlaceholder": "Například Fotky pokroku",
+      "save": "Uložit pravidlo",
+      "saving": "Ukládám…",
+      "footer": {
+        "next_one": "Další odeslání: {{date}} pro {{count}} klienta",
+        "next_few": "Další odeslání: {{date}} pro {{count}} klienty",
+        "next_many": "Další odeslání: {{date}} pro {{count}} klienta",
+        "next_other": "Další odeslání: {{date}} pro {{count}} klientů",
+        "appliesTo_one": "Platí pro {{count}} klienta",
+        "appliesTo_few": "Platí pro {{count}} klienty",
+        "appliesTo_many": "Platí pro {{count}} klienta",
+        "appliesTo_other": "Platí pro {{count}} klientů"
+      },
+      "when": {
+        "heading": "1 · Kdy",
+        "schedule": "Podle plánu",
+        "event": "Po události",
+        "every": "Každých",
+        "unit": "Jednotka",
+        "days": "Dní",
+        "weeks": "Týdnů",
+        "at": "V",
+        "clientTime": "Čas klienta",
+        "starting": "Začátek",
+        "startingFixed": "Od data zahájení každého klienta",
+        "eventLabel": "Událost",
+        "timing": "Načasování",
+        "daysAfter": "Dní po",
+        "daysBefore": "Dní před"
+      },
+      "what": {
+        "heading": "2 · Co",
+        "sendForm": "Poslat formulář",
+        "requestPhotos": "Vyžádat fotky",
+        "requestMeasurements": "Vyžádat měření",
+        "actionLockedHint": "Chcete-li použít jinou akci, vytvořte nové pravidlo.",
+        "form": "Formulář",
+        "formPlaceholder": "Vyberte formulář",
+        "formOption_one": "{{title}} · {{count}} otázka",
+        "formOption_few": "{{title}} · {{count}} otázky",
+        "formOption_many": "{{title}} · {{count}} otázky",
+        "formOption_other": "{{title}} · {{count}} otázek",
+        "formsError": "Formuláře se nepodařilo načíst.",
+        "message": "Zpráva",
+        "counter": "{{current}} / {{max}}"
+      },
+      "who": {
+        "heading": "3 · Komu",
+        "clients": "Klienti",
+        "all": "Všichni aktivní klienti",
+        "allHint": "Nebo klienti se štítkem, nebo vybraní klienti",
+        "tag": "Klienti se štítkem",
+        "chosen": "Vybraní klienti",
+        "tagLabel": "Štítek",
+        "tagPlaceholder": "Vyberte štítek",
+        "chooseClients": "Vyberte klienty",
+        "searchClients": "Hledat klienty…",
+        "clientsError": "Klienty se nepodařilo načíst.",
+        "noClients": "Žádní klienti nenalezeni.",
+        "selected": "Vybráno: {{names}}"
+      },
+      "options": {
+        "heading": "Možnosti",
+        "skip": "Přeskočit klienta, dokud předchozí požadavek nemá odpověď",
+        "skipHint": "Požadavky se nehromadí.",
+        "stopAfter": "Skončit po určitém počtu odeslání",
+        "stopAfterCount": "Počet odeslání",
+        "oncePerPlan": "Jednou za plán",
+        "oncePerPlanHint": "Prodloužený plán ho nespustí podruhé."
+      },
+      "pause": {
+        "heading": "Pozastavit pro tohoto klienta",
+        "toggle": "Pozastaveno",
+        "hint": "Dokud je pravidlo pozastavené, se z něj neodesílají žádné žádosti.",
+        "until": "Pozastaveno do",
+        "untilHint": "Nepovinné. Nechte prázdné, pokud má pozastavení trvat, dokud ho nezrušíte.",
+        "note": "Poznámka",
+        "notePlaceholder": "Například zranění kolene"
+      }
     }
   }
 }

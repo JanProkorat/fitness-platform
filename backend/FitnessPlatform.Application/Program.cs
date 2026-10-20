@@ -274,6 +274,16 @@ builder.Services.AddHostedService(sp => sp.GetRequiredService<PhotoDiaryReminder
 builder.Services.AddSingleton<CoachRoleLinkSweeper>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<CoachRoleLinkSweeper>());
 
+// Automation worker — runs due schedule rows and polled events. Singleton (for test access, which
+// calls RunDueNowAsync) and hosted service; its units of work are scoped and resolved per claim.
+builder.Services.AddSingleton<AutomationScheduler>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<AutomationScheduler>());
+builder.Services.AddScoped<AutomationOccurrenceSender>();
+builder.Services.AddScoped<AutomationClaimProcessor>();
+builder.Services.AddScoped<AutomationReconciler>();
+builder.Services.AddScoped<AutomationEventPoller>();
+builder.Services.AddScoped<AutomationAnswerSweeper>();
+
 // Social login nonce reaper — periodically deletes expired/consumed nonce rows.
 // Registered as singleton (for test access via IServiceProvider) and hosted service.
 builder.Services.AddSingleton<SocialLoginNonceReaperService>();

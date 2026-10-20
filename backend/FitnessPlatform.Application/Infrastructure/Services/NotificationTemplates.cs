@@ -34,6 +34,7 @@ public static class NotificationTemplates
     public const string InvitationCancelledRevokedByClient = "revokedByClient";
     public const string InvitationCancelledAutoBySibling = "autoCancelledBySibling";
     public const string QuestionnaireAssignedRevoked = "revoked";
+    public const string MeasurementRequestedWithMessage = "withMessage";
 
     // language -> "Type" or "Type:variant" -> Template
     private static readonly Dictionary<string, Dictionary<string, Template>> Templates = new()
@@ -101,6 +102,11 @@ public static class NotificationTemplates
                 new("Collaboration ended", "Your collaboration with {coachName} ended because they removed the coach role it covered."),
             [Key(NotificationType.CollaborationEndedByRoleRemovalCoach)] =
                 new("Collaboration ended", "Your collaboration with {clientName} ended because you removed the coach role it covered."),
+
+            [Key(NotificationType.MeasurementRequested)] =
+                new("Please log your measurements", "{professionalName} asked you to log your body measurements."),
+            [Key(NotificationType.MeasurementRequested, MeasurementRequestedWithMessage)] =
+                new("Please log your measurements", "{professionalName} asked you to log your body measurements: {message}"),
         },
         ["cs"] = new()
         {
@@ -161,6 +167,11 @@ public static class NotificationTemplates
                 new("Spolupráce ukončena", "Vaše spolupráce s uživatelem {coachName} skončila, protože odebral(a) roli trenéra nebo nutričního poradce, kterou pokrývala."),
             [Key(NotificationType.CollaborationEndedByRoleRemovalCoach)] =
                 new("Spolupráce ukončena", "Vaše spolupráce s klientem {clientName} skončila, protože jste odebral(a) roli trenéra nebo nutričního poradce, kterou pokrývala."),
+
+            [Key(NotificationType.MeasurementRequested)] =
+                new("Zapište si prosím míry", "{professionalName} vás žádá o zapsání tělesných měr."),
+            [Key(NotificationType.MeasurementRequested, MeasurementRequestedWithMessage)] =
+                new("Zapište si prosím míry", "{professionalName} vás žádá o zapsání tělesných měr: {message}"),
         },
         ["de"] = new()
         {
@@ -221,6 +232,11 @@ public static class NotificationTemplates
                 new("Zusammenarbeit beendet", "Ihre Zusammenarbeit mit {coachName} wurde beendet, weil die abgedeckte Coach-Rolle entfernt wurde."),
             [Key(NotificationType.CollaborationEndedByRoleRemovalCoach)] =
                 new("Zusammenarbeit beendet", "Ihre Zusammenarbeit mit {clientName} wurde beendet, weil Sie die abgedeckte Coach-Rolle entfernt haben."),
+
+            [Key(NotificationType.MeasurementRequested)] =
+                new("Bitte Maße eintragen", "{professionalName} bittet Sie, Ihre Körpermaße einzutragen."),
+            [Key(NotificationType.MeasurementRequested, MeasurementRequestedWithMessage)] =
+                new("Bitte Maße eintragen", "{professionalName} bittet Sie, Ihre Körpermaße einzutragen: {message}"),
         },
     };
 

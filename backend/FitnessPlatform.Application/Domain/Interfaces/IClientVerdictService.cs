@@ -51,6 +51,27 @@ public interface IClientVerdictService
         LinkCapabilities capabilities,
         CancellationToken ct,
         Guid? planAuthorUserId = null);
+
+    /// <summary>
+    /// The most recent activity of a client across workouts, meals and body measurements, or null
+    /// when there is none. The same value as <see cref="ClientVerdictResult.LastActiveAt"/>, without
+    /// computing the rest of the verdict.
+    /// </summary>
+    /// <param name="clientUserId">The client's <c>ApplicationUser.Id</c>.</param>
+    /// <param name="clientProfileId">The client's <c>ClientProfile.Id</c>.</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task<DateTime?> GetLastActiveAtAsync(Guid clientUserId, long clientProfileId, CancellationToken ct);
+
+    /// <summary>
+    /// The last activity of several clients at once, in a fixed number of queries however many clients
+    /// there are. Each client gets the same value the single-client overload returns.
+    /// </summary>
+    /// <param name="clients">The clients' <c>ApplicationUser.Id</c> and <c>ClientProfile.Id</c> pairs.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>Last activity per <c>ApplicationUser.Id</c>; null when the client has none.</returns>
+    Task<IReadOnlyDictionary<Guid, DateTime?>> GetLastActiveAtAsync(
+        IReadOnlyCollection<(Guid ClientUserId, long ClientProfileId)> clients,
+        CancellationToken ct);
 }
 
 /// <summary>

@@ -176,6 +176,31 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     /// </summary>
     public virtual DbSet<ClientTagAssignment> ClientTagAssignments { get; set; } = null!;
 
+    /// <summary>
+    /// Coach-owned automation rules (global and client-only).
+    /// </summary>
+    public virtual DbSet<AutomationRule> AutomationRules { get; set; } = null!;
+
+    /// <summary>
+    /// Chosen clients of automation rules with a Chosen audience.
+    /// </summary>
+    public virtual DbSet<AutomationRuleAudienceClient> AutomationRuleAudienceClients { get; set; } = null!;
+
+    /// <summary>
+    /// Per-client customisations and pauses of automation rules.
+    /// </summary>
+    public virtual DbSet<AutomationClientOverride> AutomationClientOverrides { get; set; } = null!;
+
+    /// <summary>
+    /// Per rule-and-client runtime schedule rows.
+    /// </summary>
+    public virtual DbSet<AutomationSchedule> AutomationSchedules { get; set; } = null!;
+
+    /// <summary>
+    /// Log of automation occurrences per rule and client.
+    /// </summary>
+    public virtual DbSet<AutomationRun> AutomationRuns { get; set; } = null!;
+
     /// <inheritdoc />
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -446,6 +471,31 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                   + " WHERE " + keyColumn + " = {0} FOR NO KEY UPDATE";
 
         return Database.ExecuteSqlRawAsync(sql, [clientProfileId], cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async Task<AutomationSchedule?> ClaimDueAutomationScheduleAsync(
+        DateTime nowUtc, CancellationToken cancellationToken = default)
+    {
+        // Table and column identifiers come from the EF model, never from input; the instant is a
+        // real parameter. See LockClientProfileAsync for why this is concatenated, not interpolated.
+        var entityType = Model.FindEntityType(typeof(AutomationSchedule))!;
+        var table = entityType.GetSchema() is { } schema
+            ? QuoteIdentifier(schema) + "." + QuoteIdentifier(entityType.GetTableName()!)
+            : QuoteIdentifier(entityType.GetTableName()!);
+        var nextRunColumn = QuoteIdentifier(entityType.FindProperty(nameof(AutomationSchedule.NextRunAt))!.GetColumnName()!);
+        var keyColumn = QuoteIdentifier(entityType.FindPrimaryKey()!.Properties[0].GetColumnName()!);
+
+        var sql = "SELECT * FROM " + table
+                  + " WHERE " + nextRunColumn + " <= {0}"
+                  + " ORDER BY " + nextRunColumn + ", " + keyColumn
+                  + " LIMIT 1 FOR UPDATE SKIP LOCKED";
+
+        var claimed = await AutomationSchedules
+            .FromSqlRaw(sql, DateTime.SpecifyKind(nowUtc, DateTimeKind.Utc))
+            .ToListAsync(cancellationToken);
+
+        return claimed.SingleOrDefault();
     }
 
     /// <inheritdoc />

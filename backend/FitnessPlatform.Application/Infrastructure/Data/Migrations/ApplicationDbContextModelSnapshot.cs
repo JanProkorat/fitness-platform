@@ -263,6 +263,389 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                     b.ToTable("audit_logs", (string)null);
                 });
 
+            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.AutomationClientOverride", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long>("AutomationRuleId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("automation_rule_id");
+
+                    b.Property<long>("ClientProfileId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("client_profile_id");
+
+                    b.Property<DateTime>("DateCreated")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_created");
+
+                    b.Property<DateTime?>("DateUpdated")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_updated");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("enabled");
+
+                    b.Property<int?>("EventOffsetDays")
+                        .HasColumnType("integer")
+                        .HasColumnName("event_offset_days");
+
+                    b.Property<int?>("EventOffsetDirection")
+                        .HasColumnType("integer")
+                        .HasColumnName("event_offset_direction");
+
+                    b.Property<int?>("EventType")
+                        .HasColumnType("integer")
+                        .HasColumnName("event_type");
+
+                    b.Property<bool>("IsCustomized")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_customized");
+
+                    b.Property<bool>("IsPaused")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_paused");
+
+                    b.Property<TimeOnly?>("LocalTime")
+                        .HasColumnType("time without time zone")
+                        .HasColumnName("local_time");
+
+                    b.Property<string>("Message")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("message");
+
+                    b.Property<bool>("OncePerPlan")
+                        .HasColumnType("boolean")
+                        .HasColumnName("once_per_plan");
+
+                    b.Property<string>("PauseNote")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("pause_note");
+
+                    b.Property<DateOnly?>("PausedUntil")
+                        .HasColumnType("date")
+                        .HasColumnName("paused_until");
+
+                    b.Property<int?>("ScheduleInterval")
+                        .HasColumnType("integer")
+                        .HasColumnName("schedule_interval");
+
+                    b.Property<int?>("ScheduleUnit")
+                        .HasColumnType("integer")
+                        .HasColumnName("schedule_unit");
+
+                    b.Property<bool>("SkipWhilePreviousUnanswered")
+                        .HasColumnType("boolean")
+                        .HasColumnName("skip_while_previous_unanswered");
+
+                    b.Property<int?>("StopAfterSends")
+                        .HasColumnType("integer")
+                        .HasColumnName("stop_after_sends");
+
+                    b.Property<int>("TriggerKind")
+                        .HasColumnType("integer")
+                        .HasColumnName("trigger_kind");
+
+                    b.HasKey("Id")
+                        .HasName("pk_automation_client_overrides");
+
+                    b.HasIndex("ClientProfileId")
+                        .HasDatabaseName("ix_automation_client_overrides_client_profile_id");
+
+                    b.HasIndex("AutomationRuleId", "ClientProfileId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_automation_client_overrides_automation_rule_id_client_profi");
+
+                    b.ToTable("automation_client_overrides", (string)null);
+                });
+
+            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.AutomationRule", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<int>("ActionType")
+                        .HasColumnType("integer")
+                        .HasColumnName("action_type");
+
+                    b.Property<int>("Audience")
+                        .HasColumnType("integer")
+                        .HasColumnName("audience");
+
+                    b.Property<long?>("AudienceTagId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("audience_tag_id");
+
+                    b.Property<long?>("ClientProfileId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("client_profile_id");
+
+                    b.Property<DateTime>("DateCreated")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_created");
+
+                    b.Property<DateTime?>("DateUpdated")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_updated");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("enabled");
+
+                    b.Property<int?>("EventOffsetDays")
+                        .HasColumnType("integer")
+                        .HasColumnName("event_offset_days");
+
+                    b.Property<int?>("EventOffsetDirection")
+                        .HasColumnType("integer")
+                        .HasColumnName("event_offset_direction");
+
+                    b.Property<int?>("EventType")
+                        .HasColumnType("integer")
+                        .HasColumnName("event_type");
+
+                    b.Property<TimeOnly?>("LocalTime")
+                        .HasColumnType("time without time zone")
+                        .HasColumnName("local_time");
+
+                    b.Property<string>("Message")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("message");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.Property<bool>("OncePerPlan")
+                        .HasColumnType("boolean")
+                        .HasColumnName("once_per_plan");
+
+                    b.Property<long>("OwnerProfessionalProfileId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("owner_professional_profile_id");
+
+                    b.Property<Guid>("PublicId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("public_id");
+
+                    b.Property<long?>("QuestionnaireId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("questionnaire_id");
+
+                    b.Property<int?>("ScheduleInterval")
+                        .HasColumnType("integer")
+                        .HasColumnName("schedule_interval");
+
+                    b.Property<int?>("ScheduleUnit")
+                        .HasColumnType("integer")
+                        .HasColumnName("schedule_unit");
+
+                    b.Property<bool>("SkipWhilePreviousUnanswered")
+                        .HasColumnType("boolean")
+                        .HasColumnName("skip_while_previous_unanswered");
+
+                    b.Property<int?>("StopAfterSends")
+                        .HasColumnType("integer")
+                        .HasColumnName("stop_after_sends");
+
+                    b.Property<int>("TriggerKind")
+                        .HasColumnType("integer")
+                        .HasColumnName("trigger_kind");
+
+                    b.HasKey("Id")
+                        .HasName("pk_automation_rules");
+
+                    b.HasIndex("AudienceTagId")
+                        .HasDatabaseName("ix_automation_rules_audience_tag_id");
+
+                    b.HasIndex("ClientProfileId")
+                        .HasDatabaseName("ix_automation_rules_client_profile_id");
+
+                    b.HasIndex("PublicId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_automation_rules_public_id");
+
+                    b.HasIndex("QuestionnaireId")
+                        .HasDatabaseName("ix_automation_rules_questionnaire_id");
+
+                    b.HasIndex("OwnerProfessionalProfileId", "ClientProfileId")
+                        .HasDatabaseName("ix_automation_rules_owner_professional_profile_id_client_profi");
+
+                    b.ToTable("automation_rules", (string)null);
+                });
+
+            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.AutomationRuleAudienceClient", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long>("AutomationRuleId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("automation_rule_id");
+
+                    b.Property<long>("ClientProfileId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("client_profile_id");
+
+                    b.Property<DateTime>("DateCreated")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_created");
+
+                    b.Property<DateTime?>("DateUpdated")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_updated");
+
+                    b.HasKey("Id")
+                        .HasName("pk_automation_rule_audience_clients");
+
+                    b.HasIndex("ClientProfileId")
+                        .HasDatabaseName("ix_automation_rule_audience_clients_client_profile_id");
+
+                    b.HasIndex("AutomationRuleId", "ClientProfileId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_automation_rule_audience_clients_automation_rule_id_client_");
+
+                    b.ToTable("automation_rule_audience_clients", (string)null);
+                });
+
+            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.AutomationRun", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime?>("AnsweredAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("answered_at");
+
+                    b.Property<long>("AutomationRuleId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("automation_rule_id");
+
+                    b.Property<long>("ClientProfileId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("client_profile_id");
+
+                    b.Property<DateTime>("DateCreated")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_created");
+
+                    b.Property<DateTime?>("DateUpdated")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_updated");
+
+                    b.Property<Guid?>("DeliveredEntityId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("delivered_entity_id");
+
+                    b.Property<string>("Occurrence")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("occurrence");
+
+                    b.Property<DateTime?>("SentAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("sent_at");
+
+                    b.Property<int?>("SkipReason")
+                        .HasColumnType("integer")
+                        .HasColumnName("skip_reason");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer")
+                        .HasColumnName("status");
+
+                    b.HasKey("Id")
+                        .HasName("pk_automation_runs");
+
+                    b.HasIndex("ClientProfileId", "SentAt")
+                        .HasDatabaseName("ix_automation_runs_client_profile_id_sent_at");
+
+                    b.HasIndex("AutomationRuleId", "ClientProfileId", "Occurrence")
+                        .IsUnique()
+                        .HasDatabaseName("ix_automation_runs_automation_rule_id_client_profile_id_occurr");
+
+                    b.ToTable("automation_runs", (string)null);
+                });
+
+            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.AutomationSchedule", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long>("AutomationRuleId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("automation_rule_id");
+
+                    b.Property<long>("ClientProfileId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("client_profile_id");
+
+                    b.Property<DateTime>("DateCreated")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_created");
+
+                    b.Property<DateTime?>("DateUpdated")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_updated");
+
+                    b.Property<TimeOnly>("LocalTime")
+                        .HasColumnType("time without time zone")
+                        .HasColumnName("local_time");
+
+                    b.Property<DateTime?>("NextRunAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("next_run_at");
+
+                    b.Property<string>("TimeZoneId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("time_zone_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_automation_schedules");
+
+                    b.HasIndex("ClientProfileId")
+                        .HasDatabaseName("ix_automation_schedules_client_profile_id");
+
+                    b.HasIndex("NextRunAt")
+                        .HasDatabaseName("ix_automation_schedules_next_run_at");
+
+                    b.HasIndex("AutomationRuleId", "ClientProfileId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_automation_schedules_automation_rule_id_client_profile_id");
+
+                    b.ToTable("automation_schedules", (string)null);
+                });
+
             modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.BodyMeasurement", b =>
                 {
                     b.Property<long>("Id")
@@ -2642,6 +3025,126 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                     b.ToTable("user_tokens", (string)null);
                 });
 
+            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.AutomationClientOverride", b =>
+                {
+                    b.HasOne("FitnessPlatform.Application.Domain.Entities.AutomationRule", "AutomationRule")
+                        .WithMany("Overrides")
+                        .HasForeignKey("AutomationRuleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_automation_client_overrides_automation_rules_automation_rul");
+
+                    b.HasOne("FitnessPlatform.Application.Domain.Entities.ClientProfile", "ClientProfile")
+                        .WithMany()
+                        .HasForeignKey("ClientProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_automation_client_overrides_client_profiles_client_profile_");
+
+                    b.Navigation("AutomationRule");
+
+                    b.Navigation("ClientProfile");
+                });
+
+            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.AutomationRule", b =>
+                {
+                    b.HasOne("FitnessPlatform.Application.Domain.Entities.ClientTag", "AudienceTag")
+                        .WithMany()
+                        .HasForeignKey("AudienceTagId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_automation_rules_client_tags_audience_tag_id");
+
+                    b.HasOne("FitnessPlatform.Application.Domain.Entities.ClientProfile", "ClientProfile")
+                        .WithMany()
+                        .HasForeignKey("ClientProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasConstraintName("fk_automation_rules_client_profiles_client_profile_id");
+
+                    b.HasOne("FitnessPlatform.Application.Domain.Entities.ProfessionalProfile", "OwnerProfessionalProfile")
+                        .WithMany()
+                        .HasForeignKey("OwnerProfessionalProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_automation_rules_professional_profiles_owner_professional_p");
+
+                    b.HasOne("FitnessPlatform.Application.Domain.Entities.Questionnaire", "Questionnaire")
+                        .WithMany()
+                        .HasForeignKey("QuestionnaireId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_automation_rules_questionnaires_questionnaire_id");
+
+                    b.Navigation("AudienceTag");
+
+                    b.Navigation("ClientProfile");
+
+                    b.Navigation("OwnerProfessionalProfile");
+
+                    b.Navigation("Questionnaire");
+                });
+
+            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.AutomationRuleAudienceClient", b =>
+                {
+                    b.HasOne("FitnessPlatform.Application.Domain.Entities.AutomationRule", "AutomationRule")
+                        .WithMany("AudienceClients")
+                        .HasForeignKey("AutomationRuleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_automation_rule_audience_clients_automation_rules_automatio");
+
+                    b.HasOne("FitnessPlatform.Application.Domain.Entities.ClientProfile", "ClientProfile")
+                        .WithMany()
+                        .HasForeignKey("ClientProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_automation_rule_audience_clients_client_profiles_client_pro");
+
+                    b.Navigation("AutomationRule");
+
+                    b.Navigation("ClientProfile");
+                });
+
+            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.AutomationRun", b =>
+                {
+                    b.HasOne("FitnessPlatform.Application.Domain.Entities.AutomationRule", "AutomationRule")
+                        .WithMany()
+                        .HasForeignKey("AutomationRuleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_automation_runs_automation_rules_automation_rule_id");
+
+                    b.HasOne("FitnessPlatform.Application.Domain.Entities.ClientProfile", "ClientProfile")
+                        .WithMany()
+                        .HasForeignKey("ClientProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_automation_runs_client_profiles_client_profile_id");
+
+                    b.Navigation("AutomationRule");
+
+                    b.Navigation("ClientProfile");
+                });
+
+            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.AutomationSchedule", b =>
+                {
+                    b.HasOne("FitnessPlatform.Application.Domain.Entities.AutomationRule", "AutomationRule")
+                        .WithMany()
+                        .HasForeignKey("AutomationRuleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_automation_schedules_automation_rules_automation_rule_id");
+
+                    b.HasOne("FitnessPlatform.Application.Domain.Entities.ClientProfile", "ClientProfile")
+                        .WithMany()
+                        .HasForeignKey("ClientProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_automation_schedules_client_profiles_client_profile_id");
+
+                    b.Navigation("AutomationRule");
+
+                    b.Navigation("ClientProfile");
+                });
+
             modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.BodyMeasurement", b =>
                 {
                     b.HasOne("FitnessPlatform.Application.Domain.Entities.ClientProfile", "ClientProfile")
@@ -3231,6 +3734,13 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                     b.Navigation("ProfessionalProfile");
 
                     b.Navigation("RefreshTokens");
+                });
+
+            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.AutomationRule", b =>
+                {
+                    b.Navigation("AudienceClients");
+
+                    b.Navigation("Overrides");
                 });
 
             modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.ClientOnboardingData", b =>

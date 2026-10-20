@@ -18,6 +18,7 @@ import ClientsPage from '@/pages/ClientsPage';
 import ClientDetailPage from '@/pages/ClientDetailPage';
 import InboxPage from '@/pages/InboxPage';
 import FormsPage from '@/pages/FormsPage';
+import AutomationsPage from '@/pages/AutomationsPage';
 import FormBuilderPage from '@/pages/FormBuilderPage';
 import IngredientsPage from '@/pages/IngredientsPage';
 import RecipesPage from '@/pages/RecipesPage';
@@ -75,9 +76,11 @@ export default function App() {
               <Route path="/clients/:clientId" element={<ClientDetailPage />}>
                 <Route path="nutrition" element={null} />
                 <Route path="photos" element={null} />
+                <Route path="automations" element={null} />
               </Route>
               <Route path="/inbox" element={<InboxPage />} />
               <Route path="/forms" element={<FormsPage />} />
+              <Route path="/automations" element={<AutomationsPage />} />
               <Route element={<RoleGuard allowedRoles={['Nutritionist']} />}>
                 <Route path="/ingredients" element={<IngredientsPage />} />
                 <Route path="/recipes" element={<RecipesPage />} />
