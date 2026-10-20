@@ -1,5 +1,11 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import Animated, {
+  FadeInDown,
+  FadeOut,
+  LinearTransition,
+  ReduceMotion,
+} from 'react-native-reanimated';
 
 import type { ClientInvite } from '@/api/invites';
 import { InviteActions } from '@/components/invites/InviteActions';
@@ -8,25 +14,49 @@ import { RoleChip } from '@/components/invites/RoleChip';
 import { relativeTime } from '@/components/invites/format';
 import { Text } from '@/components/Text';
 import { useTheme } from '@/theme';
+import { inviteMotion } from '@/theme/motion';
 import type { Theme } from '@/theme';
 
 type InviteCardProps = {
   invite: ClientInvite;
   busy: boolean;
+  /** Position in the list; staggers the entrance. */
+  index?: number;
   onOpen: () => void;
   onAccept: () => void;
   onDecline: () => void;
 };
 
 /** One pending invitation on Today: who invited, their role, when, and Accept / Decline. */
-export function InviteCard({ invite, busy, onOpen, onAccept, onDecline }: InviteCardProps) {
+export function InviteCard({
+  invite,
+  busy,
+  index = 0,
+  onOpen,
+  onAccept,
+  onDecline,
+}: InviteCardProps) {
   const { t } = useTranslation();
   const theme = useTheme();
   const styles = makeStyles(theme);
   const title = t('invites.invitedYou', { name: invite.coachName ?? '' });
 
   return (
-    <View style={styles.card}>
+    <Animated.View
+      entering={FadeInDown.delay(index * inviteMotion.enterDelayStagger)
+        .springify()
+        .damping(inviteMotion.spring.damping)
+        .stiffness(inviteMotion.spring.stiffness)
+        .mass(inviteMotion.spring.mass)
+        .reduceMotion(ReduceMotion.System)}
+      exiting={FadeOut.duration(inviteMotion.exitDuration).reduceMotion(ReduceMotion.System)}
+      layout={LinearTransition.springify()
+        .damping(inviteMotion.spring.damping)
+        .stiffness(inviteMotion.spring.stiffness)
+        .mass(inviteMotion.spring.mass)
+        .reduceMotion(ReduceMotion.System)}
+      style={styles.card}
+    >
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={title}
@@ -48,7 +78,7 @@ export function InviteCard({ invite, busy, onOpen, onAccept, onDecline }: Invite
         </View>
       </Pressable>
       <InviteActions size="card" busy={busy} onAccept={onAccept} onDecline={onDecline} />
-    </View>
+    </Animated.View>
   );
 }
 
