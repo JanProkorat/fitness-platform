@@ -2961,6 +2961,38 @@
    "h": 844,
    "page": "glass",
    "title": "InviteDetail · dark"
+  },
+  "PageInboxInviteC.dc.html": {
+   "x": 3980,
+   "y": 17420,
+   "w": 1440,
+   "h": 900,
+   "page": "web",
+   "title": "C · Inbox — coach invite"
+  },
+  "PageInboxInviteD.dc.html": {
+   "x": 3980,
+   "y": 18440,
+   "w": 1440,
+   "h": 900,
+   "page": "web",
+   "title": "D · Inbox — coach invite"
+  },
+  "PageInboxInviteStatesC.dc.html": {
+   "x": 5500,
+   "y": 17420,
+   "w": 860,
+   "h": 600,
+   "page": "web",
+   "title": "C · Coach invite card states"
+  },
+  "PageInboxInviteStatesD.dc.html": {
+   "x": 5500,
+   "y": 18440,
+   "w": 860,
+   "h": 600,
+   "page": "web",
+   "title": "D · Coach invite card states"
   }
  },
  "createdOnFiles": {
@@ -3676,7 +3708,11 @@
   "GlassChatInviteStatesLight.dc.html",
   "GlassChatInviteStatesDark.dc.html",
   "GlassInviteDetailLight.dc.html",
-  "GlassInviteDetailDark.dc.html"
+  "GlassInviteDetailDark.dc.html",
+  "PageInboxInviteC.dc.html",
+  "PageInboxInviteD.dc.html",
+  "PageInboxInviteStatesC.dc.html",
+  "PageInboxInviteStatesD.dc.html"
  ],
  "pages": [
   {
