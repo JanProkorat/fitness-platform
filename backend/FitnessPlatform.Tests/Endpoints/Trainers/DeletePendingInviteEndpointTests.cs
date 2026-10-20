@@ -191,6 +191,34 @@ public class DeletePendingInviteEndpointTests
         matchingToken.IsUsed.Should().BeTrue();
     }
 
+    /// <summary>
+    /// An invite past its validity window is still stored as Pending, so the coach can still
+    /// cancel it to tidy up: 204 and Cancelled.
+    /// </summary>
+    [Fact]
+    public async Task Delete_ExpiredPendingInvite_IsStillCancelled()
+    {
+        var trainerId = Guid.NewGuid();
+        var trainerUser = CreateUser(trainerId, "trainer@test.com", "Coach", "Carl");
+        var trainerProfile = new ProfessionalProfile { Id = 1, PublicId = Guid.NewGuid(), UserId = trainerId };
+        var invite = new PendingInvite
+        {
+            PublicId = Guid.NewGuid(),
+            ProfessionalProfileId = trainerProfile.Id,
+            Email = "jane@test.com",
+            SentAt = DateTime.UtcNow.AddDays(-8),
+            Status = PendingInviteStatus.Pending
+        };
+
+        var db = new MockDbBuilder().With(trainerUser).With(trainerProfile).With(invite).Build();
+        var ep = CreateEndpoint(trainerId, db);
+
+        await ep.HandleAsync(new DeletePendingInviteRequest { Id = invite.PublicId.ToString() }, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(204);
+        invite.Status.Should().Be(PendingInviteStatus.Cancelled);
+    }
+
     [Fact]
     public async Task Delete_NotOwnedByCaller_ThrowsError()
     {

@@ -65,7 +65,7 @@ public class CreatePendingInviteEndpointTests
                 new ClaimsIdentity(roles.Length > 1
                     ? MultiRoleClaims(callerId, roles)
                     : EndpointTestHelpers.FakeUserClaims(callerId, roles.FirstOrDefault() ?? AppRoles.Trainer))),
-            db, emailQueue, notificationService, notifier, conversationSeedService, userManager, logger);
+            db, emailQueue, notificationService, notifier, conversationSeedService, userManager, logger, TimeProvider.System);
 
         return new InviteHarness(ep, conversationSeedService, userManager, emailQueue, notificationService, notifier);
     }
@@ -614,6 +614,62 @@ public class CreatePendingInviteEndpointTests
 
         ep.HttpContext.Response.StatusCode.Should().Be(429);
         captured.Should().BeNull("no invite must be created once the cap is reached");
+    }
+
+    /// <summary>
+    /// A pending invite past its 7-day window no longer blocks a new invite to the same email.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_PriorPendingInviteForSameEmailExpired_StillSucceeds()
+    {
+        var trainerUser = EntityBuilder.User.WithId(_trainerId).WithEmail("trainer@test.com")
+            .WithFirstName("Train").WithLastName("Er").Build();
+        var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUser(trainerUser).Build();
+
+        var expired = new PendingInvite
+        {
+            ProfessionalProfileId = trainerProfile.Id,
+            Email = "jane@test.com",
+            SentAt = DateTime.UtcNow.AddDays(-8),
+            Status = PendingInviteStatus.Pending
+        };
+
+        var db = new MockDbBuilder().With(trainerUser).With(trainerProfile).With(expired).Build();
+        var ep = CreateEndpoint(db, _trainerId, AppRoles.Trainer);
+
+        await ep.HandleAsync(new CreatePendingInviteRequest { Email = "jane@test.com" }, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+    }
+
+    /// <summary>
+    /// Expired pending invites do not count toward the outstanding cap.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_ExpiredInvitesDoNotCountTowardOutstandingCap()
+    {
+        var trainerUser = EntityBuilder.User.WithId(_trainerId).WithEmail("trainer@test.com")
+            .WithFirstName("Train").WithLastName("Er").Build();
+        var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUser(trainerUser).Build();
+
+        var builder = new MockDbBuilder().With(trainerUser).With(trainerProfile);
+        foreach (var i in Enumerable.Range(0, 200))
+        {
+            builder = builder.With(new PendingInvite
+            {
+                ProfessionalProfileId = trainerProfile.Id,
+                Email = $"stale{i}@test.com",
+                SentAt = DateTime.UtcNow.AddDays(-8),
+                Status = PendingInviteStatus.Pending
+            });
+        }
+
+        var db = builder.Build();
+        var ep = CreateEndpoint(db, _trainerId, AppRoles.Trainer);
+
+        await ep.HandleAsync(new CreatePendingInviteRequest { Email = "fresh@test.com" }, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
     }
 
     /// <summary>
