@@ -144,7 +144,7 @@ test.describe('inbox cooperation-event banners (#1100)', () => {
     await page.waitForLoadState('networkidle');
     const pendingRow = page.getByRole('row', { name: /QA Client2/ });
     await expect(pendingRow).toBeVisible();
-    await pendingRow.getByRole('button', { name: 'Reject' }).click();
+    await pendingRow.getByRole('button', { name: 'Decline' }).click();
     await expect(pendingRow).toHaveCount(0);
 
     await page.goto('/inbox');

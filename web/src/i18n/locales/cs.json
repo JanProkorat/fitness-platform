@@ -194,6 +194,7 @@
     "profile": "Profil",
     "clients": "Klienti",
     "inbox": "Zprávy",
+    "inboxUnread": "Nepřečtených zpráv: {{count}}",
     "ingredients": "Suroviny",
     "foods": "Potraviny",
     "plans": "Plány",
@@ -612,7 +613,10 @@
       "empty": "Žádné čekající pozvánky ani žádosti.",
       "accept": "Přijmout",
       "reject": "Odmítnout",
-      "cancel": "Zrušit"
+      "cancel": "Zrušit pozvánku",
+      "columnMessage": "Zpráva",
+      "newMarker": "Nové",
+      "waitingFor": "Čeká se, až {{name}} přijme"
     },
     "tags": {
       "createError": "Štítek se nepodařilo vytvořit. Zkuste to prosím znovu.",
@@ -3418,7 +3422,11 @@
     "empty": "Žádná oznámení",
     "showAll": "Zobrazit všechna oznámení",
     "showAllComingSoon": "Stránka se všemi oznámeními se připravuje",
-    "justNow": "Právě teď"
+    "justNow": "Právě teď",
+    "reviewInClients": "Zobrazit v Klientech",
+    "markRead": "Označit jako přečtené",
+    "markAllReadShort": "Označit vše",
+    "unreadCount": "nepřečtených: {{count}}"
   },
   "weeklyCheckIn": {
     "title": "Týdenní check-iny",

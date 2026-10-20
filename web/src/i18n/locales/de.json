@@ -194,6 +194,7 @@
     "profile": "Profil",
     "clients": "Klienten",
     "inbox": "Nachrichten",
+    "inboxUnread": "{{count}} ungelesene Nachrichten",
     "ingredients": "Zutaten",
     "foods": "Lebensmittel",
     "plans": "Pläne",
@@ -588,7 +589,10 @@
       "empty": "Keine ausstehenden Einladungen oder Anfragen.",
       "accept": "Annehmen",
       "reject": "Ablehnen",
-      "cancel": "Abbrechen"
+      "cancel": "Einladung abbrechen",
+      "columnMessage": "Nachricht",
+      "newMarker": "Neu",
+      "waitingFor": "Warten auf Annahme durch {{name}}"
     },
     "tags": {
       "createError": "Tag konnte nicht erstellt werden. Bitte versuchen Sie es erneut.",
@@ -3329,7 +3333,11 @@
     "empty": "Keine Benachrichtigungen",
     "showAll": "Alle Benachrichtigungen anzeigen",
     "showAllComingSoon": "Vollständige Benachrichtigungsseite kommt bald",
-    "justNow": "Gerade eben"
+    "justNow": "Gerade eben",
+    "reviewInClients": "In Kunden ansehen",
+    "markRead": "Als gelesen markieren",
+    "markAllReadShort": "Alle gelesen",
+    "unreadCount": "{{count}} ungelesen"
   },
   "weeklyCheckIn": {
     "title": "Wöchentliche Check-ins",

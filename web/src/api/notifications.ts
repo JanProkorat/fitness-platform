@@ -15,6 +15,9 @@ interface GetNotificationsResponse {
   items: NotificationDto[];
 }
 
+/** The endpoint caps a page at 50. */
+export const NOTIFICATIONS_PAGE_SIZE = 50;
+
 export async function getNotifications(limit = 10): Promise<NotificationDto[]> {
   const { data } = await api.get<GetNotificationsResponse>('/client/notifications', { params: { limit } });
   return data.items;
