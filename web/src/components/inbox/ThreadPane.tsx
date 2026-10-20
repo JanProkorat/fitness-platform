@@ -9,8 +9,9 @@ import TypingIndicator from '@/components/inbox/TypingIndicator';
 import { useConversationMessages, useMarkConversationRead, useSendMessage } from '@/hooks/useInboxQueries';
 import { invokeHub } from '@/hooks/useSignalR';
 import { useAuthStore } from '@/stores/auth';
+import { foldThreadCards } from '@/lib/cooperationCards';
 import { ChatMessageKind } from '@/api/generated';
-import type { MessageDto, ParticipantDto } from '@/api/generated';
+import type { ConversationCooperationDto, MessageDto, ParticipantDto } from '@/api/generated';
 
 const SCROLL_TOP_THRESHOLD_PX = 80;
 /** How close to the bottom counts as "already reading the latest" — below this, an
@@ -27,6 +28,8 @@ interface Props {
   /** `ConversationDto.isSendLocked` — the server would refuse a send here. */
   isSendLocked?: boolean;
   isFormer?: boolean;
+  /** The conversation's newest invite or request; supplies an invite card's requested scope. */
+  cooperation?: ConversationCooperationDto;
   /** True while the thread was auto-selected: it is shown but not marked read until the trainer engages. */
   deferMarkRead?: boolean;
   /** Called on the first user-initiated input inside the pane while `deferMarkRead` is set. */
@@ -57,6 +60,7 @@ export default function ThreadPane({
   isOtherPartyTyping,
   isSendLocked = false,
   isFormer = false,
+  cooperation,
   deferMarkRead = false,
   onEngage,
 }: Props) {
@@ -93,6 +97,8 @@ export default function ThreadPane({
     () => (messagesQuery.data?.pages.flatMap((page) => page.items ?? []) ?? []).reverse(),
     [messagesQuery.data],
   );
+  // Accepted/Declined/Withdrawn events are folded into their card, so they are not rendered on their own.
+  const { visible: visibleMessages, followUps } = useMemo(() => foldThreadCards(messages), [messages]);
 
   // Reset per-conversation scroll state on open. The actual "jump to newest" scroll
   // happens below, once the first page has data — doing it here raced the fetch and
@@ -244,13 +250,20 @@ export default function ThreadPane({
           {messagesQuery.isFetchingNextPage && (
             <p className="py-1 text-center text-caption text-muted-foreground">{t('inbox.thread.loadingOlder')}</p>
           )}
-          {messages.map((message, index) => {
+          {visibleMessages.map((message, index) => {
             const isOwn = Boolean(user) && message.senderId === user?.publicId;
+            const sourceId = message.eventSourceId ?? undefined;
             return (
               <div key={message.id ?? index} className="flex flex-col gap-3">
-                {startsNewDay(message, messages[index - 1]) && message.timestamp && <DateSeparator iso={message.timestamp} />}
+                {startsNewDay(message, visibleMessages[index - 1]) && message.timestamp && <DateSeparator iso={message.timestamp} />}
                 {message.kind === ChatMessageKind.Event ? (
-                  <EventBanner message={message} isOwn={isOwn} participantName={participant.name ?? ''} />
+                  <EventBanner
+                    message={message}
+                    isOwn={isOwn}
+                    participantName={participant.name ?? ''}
+                    followUp={sourceId ? followUps.get(sourceId) : undefined}
+                    requestedScope={sourceId && sourceId === cooperation?.sourceId ? cooperation.requestedScope : undefined}
+                  />
                 ) : (
                   <MessageBubble
                     message={message}

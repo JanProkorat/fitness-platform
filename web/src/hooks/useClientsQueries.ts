@@ -12,7 +12,7 @@ import {
 } from '@/api/client-tags';
 import { broadcastMessage, type BroadcastMessageRequest } from '@/api/broadcast';
 import { createPendingInvite, deletePendingInvite, type CreatePendingInviteRequest } from '@/api/pending-invites';
-import { acceptClientRequest, rejectClientRequest } from '@/api/client-requests';
+import { acceptClientRequest, getIncomingRequests, rejectClientRequest } from '@/api/client-requests';
 import { showApiError, showSuccess } from '@/lib/api-errors';
 import type { ClientListFilters, ClientListTab } from '@/hooks/useClientListParams';
 
@@ -100,6 +100,27 @@ export function usePendingClients() {
     queryKey: ['clients', 'pending'],
     queryFn: getPendingClients,
   });
+}
+
+/**
+ * The coach's incoming client requests with the requester's onboarding answers.
+ * Keyed under `['clients']` so every accept/decline/cancel refreshes it.
+ */
+export function useIncomingRequests(enabled = true) {
+  return useQuery({
+    queryKey: ['clients', 'incoming-requests'],
+    queryFn: getIncomingRequests,
+    enabled,
+  });
+}
+
+/**
+ * Refreshes everything a cooperation action changes in the inbox: the thread's
+ * cards, the conversation list (row chip, unread) and the filter counts.
+ * `['conversations']` is the prefix of all three.
+ */
+function invalidateInbox(queryClient: ReturnType<typeof useQueryClient>) {
+  queryClient.invalidateQueries({ queryKey: ['conversations'] });
 }
 
 /** The caller's client tags, for the tag picker and the filter's tag multi-select. */
@@ -257,10 +278,12 @@ export function useCancelPendingInvite() {
     mutationFn: (publicId: string) => deletePendingInvite(publicId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
+      invalidateInbox(queryClient);
     },
     onError: (error) => {
-      // The row may already be gone (cancelled or handled elsewhere) — refetch so it disappears.
+      // The invite may already be gone or answered (404/409) — refetch so the card and row show the real state.
       queryClient.invalidateQueries({ queryKey: ['clients', 'pending'] });
+      invalidateInbox(queryClient);
       showApiError(error, 'clients.pending.cancelError');
     },
   });
@@ -280,10 +303,12 @@ export function useAcceptClientRequest() {
       acceptClientRequest(variables.publicId, variables.questionnairePublicId, variables.statement),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
+      invalidateInbox(queryClient);
     },
     onError: (error) => {
       // The row may already be gone (cancelled or handled elsewhere) — refetch so it disappears.
       queryClient.invalidateQueries({ queryKey: ['clients', 'pending'] });
+      invalidateInbox(queryClient);
       showApiError(error, 'clients.pending.acceptError');
     },
   });
@@ -301,10 +326,12 @@ export function useRejectClientRequest() {
     mutationFn: (variables: RejectClientRequestVariables) => rejectClientRequest(variables.publicId, variables.statement),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
+      invalidateInbox(queryClient);
     },
     onError: (error) => {
       // The row may already be gone (cancelled or handled elsewhere) — refetch so it disappears.
       queryClient.invalidateQueries({ queryKey: ['clients', 'pending'] });
+      invalidateInbox(queryClient);
       showApiError(error, 'clients.pending.rejectError');
     },
   });

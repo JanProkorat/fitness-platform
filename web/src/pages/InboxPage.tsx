@@ -6,6 +6,9 @@ import ConversationList from '@/components/inbox/ConversationList';
 import ThreadPane from '@/components/inbox/ThreadPane';
 import ThreadEmptyState from '@/components/inbox/ThreadEmptyState';
 import ClientSidePanel from '@/components/inbox/ClientSidePanel';
+import InvitedClientPanel from '@/components/inbox/panel/InvitedClientPanel';
+import PendingClientPanel from '@/components/inbox/panel/PendingClientPanel';
+import { getPanelKind } from '@/lib/cooperationCards';
 import { getConversations } from '@/api/conversations';
 import {
   useConversationFilterCounts,
@@ -234,7 +237,10 @@ export default function InboxPage() {
   useSignalR(signalRHandlers);
 
   const selectedClientPublicId = selectedConversation?.participant?.clientPublicId;
-  const isClientPanelOpen = showClientPanel && Boolean(selectedClientPublicId);
+  const selectedCooperation = selectedConversation?.cooperation;
+  const panelKind = getPanelKind(selectedCooperation, selectedClientPublicId);
+  const isClientPanelOpen = showClientPanel && panelKind !== null;
+  const selectedName = selectedConversation?.participant?.name ?? '';
 
   // Below the wide layout there is no room for list, thread and panel together, so an open
   // panel takes the list's place.
@@ -269,6 +275,7 @@ export default function InboxPage() {
           isOtherPartyTyping={isOtherPartyTyping}
           isSendLocked={selectedConversation.isSendLocked ?? false}
           isFormer={selectedConversation.isFormer ?? false}
+          cooperation={selectedCooperation}
           deferMarkRead={isAutoSelected}
           onEngage={() => setIsAutoSelected(false)}
         />
@@ -276,7 +283,7 @@ export default function InboxPage() {
         <ThreadEmptyState />
       )}
 
-      {selectedClientPublicId && (
+      {panelKind && (
         <aside
           aria-label={t('inbox.thread.clientPanelTitle')}
           aria-hidden={!isClientPanelOpen}
@@ -287,7 +294,13 @@ export default function InboxPage() {
           )}
         >
           <div className="flex h-full w-panel flex-col">
-            <ClientSidePanel clientPublicId={selectedClientPublicId} />
+            {panelKind === 'pending' && selectedCooperation?.sourceId ? (
+              <PendingClientPanel name={selectedName} sourceId={selectedCooperation.sourceId} clientPublicId={selectedClientPublicId} />
+            ) : panelKind === 'invited' && selectedCooperation?.sourceId ? (
+              <InvitedClientPanel name={selectedName} sourceId={selectedCooperation.sourceId} />
+            ) : selectedClientPublicId ? (
+              <ClientSidePanel clientPublicId={selectedClientPublicId} participantName={selectedName} />
+            ) : null}
           </div>
         </aside>
       )}
