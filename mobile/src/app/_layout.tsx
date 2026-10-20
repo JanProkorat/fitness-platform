@@ -11,6 +11,8 @@ import { LaunchScreen } from '@/components/LaunchScreen';
 import { ProfileErrorState } from '@/components/ProfileErrorState';
 import { useAuthPhase } from '@/hooks/useAuthPhase';
 import { queryClient } from '@/lib/queryClient';
+import { HomeEffects } from '@/realtime/HomeEffects';
+import { RealtimeProvider } from '@/realtime/RealtimeProvider';
 import { useAuthStore } from '@/stores/auth';
 import { fontAssets, useTheme } from '@/theme';
 import { buildNavigationTheme } from '@/theme/navigationTheme';
@@ -52,6 +54,13 @@ function AppStack({ phase, onRetry }: { phase: ReturnType<typeof useAuthPhase>['
         <Stack.Screen name="coach-search" />
         <Stack.Screen name="coach/[publicId]" />
       </Stack.Protected>
+      <Stack.Protected guard={phase === 'home'}>
+        <Stack.Screen name="invite/[id]" />
+        <Stack.Screen
+          name="notifications"
+          options={{ presentation: 'transparentModal', animation: 'fade' }}
+        />
+      </Stack.Protected>
     </Stack>
   );
 }
@@ -71,7 +80,10 @@ function AppShell() {
           accessibilityElementsHidden={overlayVisible}
           importantForAccessibility={overlayVisible ? 'no-hide-descendants' : 'auto'}
         >
-          <AppStack phase={phase} onRetry={retry} />
+          <RealtimeProvider enabled={phase === 'home'}>
+            <AppStack phase={phase} onRetry={retry} />
+            {phase === 'home' ? <HomeEffects /> : null}
+          </RealtimeProvider>
         </View>
       ) : null}
       {overlayVisible ? (

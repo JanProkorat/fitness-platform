@@ -87,6 +87,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   logout: async () => {
+    // Captured before the state clears so the server-side push token can be removed as this user.
+    const endingAccessToken = get().accessToken;
     set((state) => ({
       accessToken: null,
       refreshToken: null,
@@ -96,6 +98,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       sessionGeneration: state.sessionGeneration + 1,
     }));
     queryClient.clear();
+    // Fire and forget, imported lazily because the API client imports this store.
+    void import('@/api/pushToken')
+      .then(({ unregisterPushToken }) => unregisterPushToken(endingAccessToken))
+      .catch(() => undefined);
     await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
   },
 
