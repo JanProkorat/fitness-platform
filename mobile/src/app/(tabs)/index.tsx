@@ -41,7 +41,7 @@ export default function TodayScreen() {
   return (
     <Screen
       scroll
-      topGap={theme.spacing.huge}
+      topGap={theme.spacing.safeAreaGap}
       bottomInset={barClearance}
       contentStyle={styles.content}
     >

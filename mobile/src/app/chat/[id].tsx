@@ -263,7 +263,7 @@ const makeStyles = (theme: Theme, insets: EdgeInsets) =>
       backgroundColor: theme.colors.ground,
     },
     header: {
-      paddingTop: insets.top + theme.spacing.huge,
+      paddingTop: insets.top + theme.spacing.safeAreaGap,
       paddingHorizontal: theme.spacing.xxl,
       paddingBottom: theme.spacing.md,
     },
