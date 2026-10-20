@@ -5,6 +5,7 @@ import { Screen } from '@/components/Screen';
 import { Text } from '@/components/Text';
 import { FindCoachSection } from '@/components/today/FindCoachSection';
 import type { CoachRole } from '@/components/today/FindCoachSection';
+import { InvitesSection } from '@/components/today/InvitesSection';
 import { TodayHeader } from '@/components/today/TodayHeader';
 import { useProfile } from '@/hooks/useProfile';
 import { useTheme } from '@/theme';
@@ -47,6 +48,7 @@ export default function TodayScreen() {
           {t('today.linkedBody')}
         </Text>
       )}
+      <InvitesSection />
     </Screen>
   );
 }

@@ -88,6 +88,8 @@
     "linkedGreetingAnonymous": "Hallo",
     "linkedBody": "Deine Coaches sind an Bord. Dein Tag erscheint hier.",
     "notifications": "Benachrichtigungen",
+    "notificationsUnread": "Benachrichtigungen, {{count}} ungelesen",
+    "invitesTitle": "Einladungen",
     "findCoach": {
       "title": "Coach finden",
       "subtitle": "Sie erstellen deinen Plan, du folgst ihm hier.",
@@ -100,6 +102,74 @@
         "hint": "Mahlzeiten, die zu deinem Tag passen"
       }
     }
+  },
+  "invites": {
+    "invitedYou": "{{name}} hat dich eingeladen",
+    "accept": "Annehmen",
+    "decline": "Ablehnen",
+    "acceptInvite": "Einladung annehmen",
+    "openHint": "Öffnet die Einladung",
+    "roles": { "Trainer": "Trainer", "Nutritionist": "Ernährungsberater" },
+    "roleJoiner": " & ",
+    "time": {
+      "justNow": "Gerade eben",
+      "minutes_one": "vor {{count}} Minute",
+      "minutes_other": "vor {{count}} Minuten",
+      "hours_one": "vor {{count}} Stunde",
+      "hours_other": "vor {{count}} Stunden",
+      "days_one": "vor {{count}} Tag",
+      "days_other": "vor {{count}} Tagen"
+    },
+    "expiresIn_one": "Läuft in {{count}} Tag ab",
+    "expiresIn_other": "Läuft in {{count}} Tagen ab",
+    "expiresToday": "Läuft heute ab",
+    "detail": {
+      "back": "Zurück",
+      "alsoOnline": "auch online",
+      "invitedYouAt": "{{name}} hat dich eingeladen · {{time}}",
+      "workingWith": "Zusammenarbeit mit {{name}}",
+      "offers": {
+        "training": "Persönlicher Trainingsplan",
+        "nutrition": "Persönlicher Ernährungsplan",
+        "checkins": "Wöchentliche Check-ins",
+        "chat": "Chat mit deinem Coach"
+      },
+      "shareNote": "Mit dem Annehmen teilst du deine Onboarding-Antworten mit {{name}}."
+    },
+    "errors": {
+      "ok": "OK",
+      "expired": {
+        "title": "Einladung abgelaufen",
+        "body": "Diese Einladung ist nicht mehr gültig. Bitte deinen Coach um eine neue."
+      },
+      "unavailable": {
+        "title": "Einladung nicht mehr verfügbar",
+        "body": "Dein Coach hat sie zurückgezogen oder sie wurde schon beantwortet."
+      },
+      "network": {
+        "title": "Keine Verbindung",
+        "body": "Der Server ist nicht erreichbar. Prüfe deine Verbindung und versuche es erneut."
+      },
+      "generic": {
+        "title": "Etwas ist schiefgelaufen",
+        "body": "Die Einladung konnte nicht beantwortet werden. Bitte versuche es erneut."
+      }
+    }
+  },
+  "notifications": {
+    "title": "Benachrichtigungen",
+    "close": "Benachrichtigungen schließen",
+    "markAllRead": "Alle als gelesen markieren",
+    "groupToday": "Heute",
+    "groupEarlier": "Früher",
+    "viewInvite": "Einladung ansehen",
+    "unread": "Ungelesen",
+    "unreadCount": "{{count}} ungelesen",
+    "empty": "Alles gelesen.",
+    "error": "Benachrichtigungen konnten nicht geladen werden. Tippe, um es erneut zu versuchen."
+  },
+  "push": {
+    "channelName": "Allgemein"
   },
   "placeholder": {
     "training": "Dein Trainingsplan erscheint hier.",
