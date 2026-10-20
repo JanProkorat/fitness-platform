@@ -208,7 +208,7 @@ const makeStyles = (theme: Theme) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: theme.spacing.md,
-      paddingTop: theme.spacing.xs,
+      paddingTop: theme.spacing.huge,
       paddingBottom: theme.spacing.md,
     },
     title: {
