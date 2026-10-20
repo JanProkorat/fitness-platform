@@ -2659,6 +2659,7 @@
     "ALREADY_LINKED": "S tímto profesionálem jste již propojeni.",
     "REQUEST_ALREADY_PENDING": "Žádost k tomuto profesionálovi již čeká na vyřízení.",
     "PROFESSIONAL_NOT_ACCEPTING": "Tento profesionál nepřijímá nové klienty.",
+    "PENDING_INVITE_NOT_CANCELLABLE": "Tuto pozvánku už nelze zrušit.",
     "CLIENT_REQUEST_NOT_FOUND": "Žádost klienta nebyla nalezena.",
     "REQUIRED": "Toto pole je povinné.",
     "OUT_OF_RANGE": "Hodnota je mimo povolený rozsah.",
@@ -4524,7 +4525,13 @@
     "row": {
       "yesterday": "Včera",
       "noConversationYet": "Zatím bez zpráv — napište první",
-      "unreadAriaLabel": "Nepřečteno"
+      "unreadAriaLabel": "Nepřečteno",
+      "chipRequest": "Žádost",
+      "chipInvite": "Pozvánka",
+      "unreadCount_one": "{{count}} nepřečtená zpráva",
+      "unreadCount_few": "{{count}} nepřečtené zprávy",
+      "unreadCount_many": "{{count}} nepřečtené zprávy",
+      "unreadCount_other": "{{count}} nepřečtených zpráv"
     },
     "noConversations": "Nebyly nalezeny žádné konverzace",
     "list": {
@@ -4554,6 +4561,26 @@
       "withdrawn": "Nabídka spolupráce byla zrušena"
     },
     "panel": {
+      "pendingChip": "Čeká na vyřízení",
+      "pendingLine": "Zatím není klient · přijměte žádost a začněte spolupráci",
+      "invitedChip": "Pozván(a)",
+      "invitedLine": "Zatím není klient · čeká se, až {{name}} přijme",
+      "notAClient": "Není klient",
+      "onboarding": {
+        "title": "Odpovědi z úvodního dotazníku",
+        "today": "Dnes",
+        "goal": "Cíl",
+        "height": "Výška",
+        "weightKg": "{{kg}} kg",
+        "activity": "Aktivita",
+        "empty": "Zatím žádné odpovědi z úvodního dotazníku."
+      },
+      "invite": {
+        "title": "Pozvánka",
+        "email": "E-mail",
+        "sent": "Odesláno",
+        "expires": "Vyprší"
+      },
       "weightLabel": "Váha",
       "open": "Otevřít",
       "mealPlan": {
@@ -4571,6 +4598,55 @@
         "doneThisWeek_few": "Tento týden splněno · {{done}} z {{count}} tréninků",
         "doneThisWeek_many": "Tento týden splněno · {{done}} z {{count}} tréninku",
         "doneThisWeek_other": "Tento týden splněno · {{done}} z {{count}} tréninků"
+      }
+    },
+    "card": {
+      "todayAt": "dnes {{time}}",
+      "service": {
+        "training": "Osobní trénink",
+        "nutrition": "Nutriční poradenství"
+      },
+      "request": {
+        "label": {
+          "pending": "Žádost klienta",
+          "accepted": "Žádost přijata",
+          "declined": "Žádost odmítnuta",
+          "cancelled": "Žádost zrušena"
+        },
+        "title": {
+          "training": "{{name}} s vámi chce trénovat",
+          "nutrition": "{{name}} od vás chce nutriční poradenství",
+          "both": "{{name}} s vámi chce spolupracovat"
+        },
+        "sent": "odesláno {{when}}",
+        "accept": "Přijmout",
+        "decline": "Odmítnout",
+        "youAccepted": "Přijali jste",
+        "youDeclined": "Odmítli jste",
+        "clientCancelled": "{{name}} zrušil(a)"
+      },
+      "invite": {
+        "label": {
+          "sent": "Pozvánka odeslána",
+          "accepted": "Pozvánka přijata",
+          "declined": "Pozvánka odmítnuta",
+          "cancelled": "Pozvánka zrušena",
+          "expired": "Pozvánka vypršela"
+        },
+        "sent": "Odesláno {{when}}",
+        "expiresIn_one": "vyprší za {{count}} den",
+        "expiresIn_few": "vyprší za {{count}} dny",
+        "expiresIn_many": "vyprší za {{count}} dne",
+        "expiresIn_other": "vyprší za {{count}} dní",
+        "expiresToday": "vyprší dnes",
+        "cancel": "Zrušit pozvánku",
+        "accepted": "{{name}} přijal(a)",
+        "declined": "{{name}} odmítl(a)",
+        "youCancelled": "Zrušili jste",
+        "noAnswer_one": "Bez odpovědi do {{count}} dne",
+        "noAnswer_few": "Bez odpovědi do {{count}} dnů",
+        "noAnswer_many": "Bez odpovědi do {{count}} dne",
+        "noAnswer_other": "Bez odpovědi do {{count}} dnů"
       }
     },
     "typingIndicator": "Píše…",

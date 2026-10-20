@@ -1,19 +1,9 @@
 import api from '@/lib/api';
+import type { GetIncomingRequestsResponse, IncomingClientRequestDto } from '@/api/generated';
 
-export interface IncomingRequest {
-  publicId: string;
-  clientFirstName: string;
-  clientLastName: string;
-  clientEmail: string;
-  message: string | null;
-  sentAt: string;
-}
+export type { IncomingClientRequestDto };
 
-interface GetIncomingRequestsResponse {
-  requests: IncomingRequest[];
-}
-
-export async function getIncomingRequests(): Promise<IncomingRequest[]> {
+export async function getIncomingRequests(): Promise<IncomingClientRequestDto[]> {
   const { data } = await api.get<GetIncomingRequestsResponse>('/trainer/client-requests');
   return data.requests ?? [];
 }

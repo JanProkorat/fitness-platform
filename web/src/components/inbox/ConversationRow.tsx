@@ -3,7 +3,11 @@ import { Image as ImageIcon } from 'lucide-react';
 import ParticipantAvatar from '@/components/inbox/ParticipantAvatar';
 import { getEventPreviewText } from '@/lib/chatEvents';
 import { cn } from '@/lib/utils';
+import { CooperationCardStatus, CooperationType } from '@/api/generated';
 import type { ConversationDto } from '@/api/generated';
+
+/** Counts above this read "99+" so the badge never outgrows the row. */
+const MAX_UNREAD_SHOWN = 99;
 
 interface Props {
   conversation: ConversationDto;
@@ -37,7 +41,15 @@ function formatRowTime(iso: string | undefined, locale: string, yesterdayLabel: 
 export default function ConversationRow({ conversation, isSelected, onSelect }: Props) {
   const { t, i18n } = useTranslation();
   const participant = conversation.participant;
-  const hasUnread = (conversation.unreadCount ?? 0) > 0;
+  const unreadCount = conversation.unreadCount ?? 0;
+  const hasUnread = unreadCount > 0;
+  const cooperation = conversation.cooperation;
+  const pendingChip =
+    cooperation?.status === CooperationCardStatus.Pending
+      ? cooperation.type === CooperationType.Request
+        ? 'request'
+        : 'invite'
+      : null;
 
   return (
     <button
@@ -58,10 +70,23 @@ export default function ConversationRow({ conversation, isSelected, onSelect }: 
       />
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex items-center justify-between gap-2">
-          <span data-testid="inbox-row-name" className={cn('truncate text-copy text-ink', hasUnread ? 'font-bold' : 'font-semibold')}>
-            {participant?.name}
+          <span className="flex min-w-0 items-center gap-2">
+            <span data-testid="inbox-row-name" className={cn('truncate text-copy text-ink', hasUnread ? 'font-bold' : 'font-semibold')}>
+              {participant?.name}
+            </span>
+            {pendingChip && (
+              <span
+                data-testid="inbox-row-chip"
+                className={cn(
+                  'shrink-0 rounded-full px-1.75 py-px text-label font-bold',
+                  pendingChip === 'request' ? 'bg-marker/10 text-marker-text' : 'text-ink-2',
+                )}
+              >
+                {t(pendingChip === 'request' ? 'inbox.row.chipRequest' : 'inbox.row.chipInvite')}
+              </span>
+            )}
           </span>
-          <span className="shrink-0 text-caption text-muted-foreground">
+          <span className={cn('shrink-0 text-caption', hasUnread ? 'font-bold text-ink' : 'text-muted-foreground')}>
             {formatRowTime(conversation.lastMessageAt, i18n.language, t('inbox.row.yesterday'))}
           </span>
         </div>
@@ -82,10 +107,13 @@ export default function ConversationRow({ conversation, isSelected, onSelect }: 
           </span>
           {hasUnread && (
             <span
-              className="size-2 shrink-0 rounded-full bg-marker"
-              aria-label={t('inbox.row.unreadAriaLabel')}
+              data-testid="inbox-row-unread-count"
+              className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-marker-solid px-1.5 text-label font-bold text-white"
+              aria-label={t('inbox.row.unreadCount', { count: unreadCount })}
               role="status"
-            />
+            >
+              {unreadCount > MAX_UNREAD_SHOWN ? `${MAX_UNREAD_SHOWN}+` : unreadCount}
+            </span>
           )}
         </div>
       </div>

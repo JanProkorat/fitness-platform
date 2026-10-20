@@ -3,7 +3,9 @@ import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/api/client';
 import { getClientPlans } from '@/api/client-plans';
 import { getClientMeasurements } from '@/api/measurements';
+import { getErrorStatus } from '@/lib/api-errors';
 import { Skeleton } from '@/components/ui/skeleton';
+import NotAClientPanel from '@/components/inbox/panel/NotAClientPanel';
 import PanelIdentity from '@/components/inbox/panel/PanelIdentity';
 import PanelStats from '@/components/inbox/panel/PanelStats';
 import MealPlanPanelCard from '@/components/inbox/panel/MealPlanPanelCard';
@@ -13,6 +15,8 @@ const MEASUREMENTS_PAGE_SIZE = 50;
 
 interface Props {
   clientPublicId: string;
+  /** The participant's display name, for the not-a-client fallback. */
+  participantName: string;
 }
 
 /**
@@ -21,7 +25,7 @@ interface Props {
  * `client-plans` / `client-measurements` query keys with `ClientDetailPage`
  * so both surfaces read one cache entry.
  */
-export default function ClientSidePanel({ clientPublicId }: Props) {
+export default function ClientSidePanel({ clientPublicId, participantName }: Props) {
   const { t } = useTranslation();
   const containerClass = 'flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto px-4.5 py-5.5';
 
@@ -29,6 +33,8 @@ export default function ClientSidePanel({ clientPublicId }: Props) {
     queryKey: ['client-dashboard', clientPublicId],
     queryFn: () => apiClient.getClientDashboardEndpoint(clientPublicId),
     enabled: Boolean(clientPublicId),
+    // A 404 is a definitive "not linked", not a transient failure worth retrying.
+    retry: (failureCount, error) => getErrorStatus(error) !== 404 && failureCount < 1,
   });
 
   const plansQuery = useQuery({
@@ -51,6 +57,11 @@ export default function ClientSidePanel({ clientPublicId }: Props) {
         <Skeleton className="h-40 w-full" />
       </div>
     );
+  }
+
+  // The dashboard 404s by design for anyone without a live link (declined, cancelled or expired proposals).
+  if (dashboardQuery.isError && getErrorStatus(dashboardQuery.error) === 404) {
+    return <NotAClientPanel name={participantName} />;
   }
 
   if (dashboardQuery.isError || !dashboardQuery.data) {

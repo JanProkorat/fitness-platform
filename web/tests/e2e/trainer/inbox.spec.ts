@@ -199,21 +199,23 @@ test.describe('inbox page', () => {
     ).toBeVisible();
   });
 
-  test('list renders with unread dot, time, and last-message preview; opening the thread marks it read', async ({
+  test('list renders with unread count badge, time, and last-message preview; opening the thread marks it read', async ({
     page,
   }) => {
     // QA Client is auto-opened on entry but stays unread until the trainer interacts; QA Former keeps
     // its seeded unread message until the trainer opens that thread.
     const row = qaFormerRow(page);
     await expect(row).toBeVisible();
-    await expect(row.locator('[role="status"]')).toBeVisible(); // unread dot
+    // Unread badge: a red count (a plain message counts, a cooperation event row does not).
+    await expect(row.locator('[role="status"]')).toBeVisible();
+    await expect(row.getByTestId('inbox-row-unread-count')).toHaveText(/^\d+\+?$/);
 
     await row.click();
     await page.waitForLoadState('networkidle');
     await expect(page.getByText('QA Former').first()).toBeVisible();
 
     // Read mark round-trips through the backend + a list invalidation —
-    // re-fetch the row and confirm the unread dot is gone.
+    // re-fetch the row and confirm the unread badge is gone.
     await expect(row.locator('[role="status"]')).toHaveCount(0);
   });
 
