@@ -15,40 +15,28 @@ public class GetConversationsParticipantRolesTests(FitnessApiFactory factory)
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     [Fact]
-    public async Task ClientCaller_SeesCoachRoles()
+    public async Task ClientCaller_SeesEachCoachsActiveRoles_AndRemovedRoleIsFilteredOut()
     {
-        var coach = await TestActors.Professional(factory, UserRole.Trainer, UserRole.Nutritionist).CreateAsync(Ct);
-        var client = await TestActors.Client(factory).CreateAsync(Ct);
-        await ConversationListSeed.SeedInviteAsync(factory, coach, client);
-
-        var row = (await ConversationListSeed.GetAsync(client.Http)).Should().ContainSingle().Subject;
-
-        row.Participant.Roles.Should().BeEquivalentTo([AppRoles.Trainer, AppRoles.Nutritionist]);
-    }
-
-    [Fact]
-    public async Task ClientCaller_SingleRoleCoach_ReturnsOnlyThatRole()
-    {
-        var coach = await TestActors.Nutritionist(factory).CreateAsync(Ct);
-        var client = await TestActors.Client(factory).CreateAsync(Ct);
-        await ConversationListSeed.SeedInviteAsync(factory, coach, client);
-
-        (await ConversationListSeed.GetAsync(client.Http)).Single().Participant.Roles
-            .Should().BeEquivalentTo([AppRoles.Nutritionist]);
-    }
-
-    [Fact]
-    public async Task RemovedRole_IsFilteredOut()
-    {
-        var coach = await TestActors.Professional(factory, UserRole.Trainer, UserRole.Nutritionist)
+        var both = await TestActors.Professional(factory, UserRole.Trainer, UserRole.Nutritionist).CreateAsync(Ct);
+        var nutritionOnly = await TestActors.Nutritionist(factory).CreateAsync(Ct);
+        var removed = await TestActors.Professional(factory, UserRole.Trainer, UserRole.Nutritionist)
             .WithRemovedCoachRoles(UserRole.Nutritionist)
             .CreateAsync(Ct);
         var client = await TestActors.Client(factory).CreateAsync(Ct);
-        await ConversationListSeed.SeedInviteAsync(factory, coach, client);
+        foreach (var coach in new[] { both, nutritionOnly, removed })
+        {
+            await ConversationListSeed.SeedInviteAsync(factory, coach, client);
+        }
 
-        (await ConversationListSeed.GetAsync(client.Http)).Single().Participant.Roles
-            .Should().BeEquivalentTo([AppRoles.Trainer]);
+        var rows = await ConversationListSeed.GetAsync(client.Http);
+
+        RolesOf(rows, both).Should().BeEquivalentTo([AppRoles.Trainer, AppRoles.Nutritionist]);
+        RolesOf(rows, nutritionOnly).Should().BeEquivalentTo([AppRoles.Nutritionist]);
+        RolesOf(rows, removed).Should().BeEquivalentTo([AppRoles.Trainer]);
     }
+
+    private static List<string> RolesOf(List<ConversationListSeed.ConversationResult> rows, Actor coach) =>
+        rows.Single(r => r.Participant.Id == coach.UserId).Participant.Roles;
 
     [Fact]
     public async Task CoachCaller_SeesClientWithNoRoles()

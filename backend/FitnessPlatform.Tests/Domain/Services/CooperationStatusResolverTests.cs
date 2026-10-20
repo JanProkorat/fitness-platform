@@ -38,6 +38,63 @@ public class CooperationStatusResolverTests(FitnessApiFactory factory)
     }
 
     [Fact]
+    public async Task EveryStoredStatus_MapsToCardStatus()
+    {
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var client = await TestActors.Client(factory).CreateAsync(Ct);
+        var seeded = new List<(Func<Guid> Id, CooperationCardStatus Expected)>();
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var inviteMap = new[]
+            {
+                (PendingInviteStatus.Pending, CooperationCardStatus.Pending),
+                (PendingInviteStatus.Accepted, CooperationCardStatus.Accepted),
+                (PendingInviteStatus.Declined, CooperationCardStatus.Declined),
+                (PendingInviteStatus.Cancelled, CooperationCardStatus.Cancelled),
+            };
+            foreach (var (stored, expected) in inviteMap)
+            {
+                var invite = new Application.Domain.Entities.PendingInvite
+                {
+                    ProfessionalProfileId = coach.ProfileId, Email = client.Email, Status = stored,
+                };
+                db.PendingInvites.Add(invite);
+                seeded.Add((() => invite.PublicId, expected));
+            }
+
+            var requestMap = new[]
+            {
+                (ClientRequestStatus.Pending, CooperationCardStatus.Pending),
+                (ClientRequestStatus.Accepted, CooperationCardStatus.Accepted),
+                (ClientRequestStatus.Rejected, CooperationCardStatus.Declined),
+                (ClientRequestStatus.Cancelled, CooperationCardStatus.Cancelled),
+            };
+            foreach (var (stored, expected) in requestMap)
+            {
+                var request = new Application.Domain.Entities.ClientRequest
+                {
+                    ClientProfileId = client.ProfileId, ProfessionalProfileId = coach.ProfileId, Status = stored,
+                };
+                db.ClientRequests.Add(request);
+                seeded.Add((() => request.PublicId, expected));
+            }
+
+            await db.SaveChangesAsync(Ct);
+        }
+
+        var all = seeded.ToDictionary(x => x.Id(), x => x.Expected);
+        var result = await ResolveAsync(DateTime.UtcNow, [.. all.Keys]);
+
+        result.Should().HaveCount(all.Count);
+        foreach (var (id, expected) in all)
+        {
+            result[id].Status.Should().Be(expected);
+        }
+    }
+
+    [Fact]
     public async Task PendingInvite_ExpiresAtPinnedClock_AndCarriesScope()
     {
         var coach = await TestActors.Trainer(factory).CreateAsync(Ct);

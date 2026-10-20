@@ -143,63 +143,51 @@ public class GetConversationsCooperationTests(FitnessApiFactory factory)
     }
 
     [Fact]
-    public async Task Invite_SeenByClient_IsReceivedInvite_WithScope()
+    public async Task Invite_IsReceivedByClient_AndSentByCoach_WithScope()
     {
         var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
         var client = await TestActors.Client(factory).CreateAsync(Ct);
         var inviteId = await ConversationListSeed.SeedInviteAsync(
             factory, coach, client, scope: LinkCapabilityScope.NutritionOnly);
 
-        var cooperation = (await ConversationListSeed.GetAsync(client.Http)).Should().ContainSingle().Subject.Cooperation;
+        var asClient = (await ConversationListSeed.GetAsync(client.Http)).Should().ContainSingle().Subject.Cooperation;
+        var asCoach = (await ConversationListSeed.GetAsync(coach.Http)).Should().ContainSingle().Subject.Cooperation;
 
-        cooperation.Should().NotBeNull();
-        cooperation!.Type.Should().Be(CooperationType.Invite);
-        cooperation.Direction.Should().Be(CooperationDirection.Received);
-        cooperation.Status.Should().Be(CooperationCardStatus.Pending);
-        cooperation.SourceId.Should().Be(inviteId);
-        cooperation.RequestedScope.Should().Be(LinkCapabilityScope.NutritionOnly);
+        asClient!.Type.Should().Be(CooperationType.Invite);
+        asClient.Direction.Should().Be(CooperationDirection.Received);
+        asClient.Status.Should().Be(CooperationCardStatus.Pending);
+        asClient.SourceId.Should().Be(inviteId);
+        asClient.RequestedScope.Should().Be(LinkCapabilityScope.NutritionOnly);
+        asCoach!.Direction.Should().Be(CooperationDirection.Sent);
     }
 
     [Fact]
-    public async Task Invite_SeenByCoach_IsSentInvite()
+    public async Task Request_IsSentByClient_AndReceivedByCoach_WithoutScope()
     {
         var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
         var client = await TestActors.Client(factory).CreateAsync(Ct);
-        await ConversationListSeed.SeedInviteAsync(factory, coach, client);
+        var requestId = await ConversationListSeed.SeedRequestAsync(factory, coach, client, ClientRequestStatus.Rejected);
 
-        var cooperation = (await ConversationListSeed.GetAsync(coach.Http)).Should().ContainSingle().Subject.Cooperation;
+        var asClient = (await ConversationListSeed.GetAsync(client.Http)).Should().ContainSingle().Subject.Cooperation;
+        var asCoach = (await ConversationListSeed.GetAsync(coach.Http)).Should().ContainSingle().Subject.Cooperation;
 
-        cooperation!.Type.Should().Be(CooperationType.Invite);
-        cooperation.Direction.Should().Be(CooperationDirection.Sent);
-        cooperation.RequestedScope.Should().BeNull();
+        asClient!.Type.Should().Be(CooperationType.Request);
+        asClient.Direction.Should().Be(CooperationDirection.Sent);
+        asClient.SourceId.Should().Be(requestId);
+        asClient.RequestedScope.Should().BeNull();
+        asClient.Status.Should().Be(CooperationCardStatus.Declined, "a rejected request reads Declined");
+        asCoach!.Direction.Should().Be(CooperationDirection.Received);
     }
 
     [Fact]
-    public async Task Request_SeenByClient_IsSentRequest_WithoutScope()
+    public async Task PendingInviteOlderThanSevenDays_IsExpired()
     {
         var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
         var client = await TestActors.Client(factory).CreateAsync(Ct);
-        var requestId = await ConversationListSeed.SeedRequestAsync(factory, coach, client);
+        await ConversationListSeed.SeedInviteAsync(factory, coach, client, sentAt: DateTime.UtcNow.AddDays(-8));
 
-        var cooperation = (await ConversationListSeed.GetAsync(client.Http)).Should().ContainSingle().Subject.Cooperation;
-
-        cooperation!.Type.Should().Be(CooperationType.Request);
-        cooperation.Direction.Should().Be(CooperationDirection.Sent);
-        cooperation.SourceId.Should().Be(requestId);
-        cooperation.RequestedScope.Should().BeNull();
-    }
-
-    [Fact]
-    public async Task Request_SeenByCoach_IsReceivedRequest()
-    {
-        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
-        var client = await TestActors.Client(factory).CreateAsync(Ct);
-        await ConversationListSeed.SeedRequestAsync(factory, coach, client);
-
-        var cooperation = (await ConversationListSeed.GetAsync(coach.Http)).Should().ContainSingle().Subject.Cooperation;
-
-        cooperation!.Type.Should().Be(CooperationType.Request);
-        cooperation.Direction.Should().Be(CooperationDirection.Received);
+        (await ConversationListSeed.GetAsync(client.Http)).Single().Cooperation!.Status
+            .Should().Be(CooperationCardStatus.Expired);
     }
 
     [Fact]
@@ -214,45 +202,6 @@ public class GetConversationsCooperationTests(FitnessApiFactory factory)
 
         cooperation!.Type.Should().Be(CooperationType.Request);
         cooperation.SourceId.Should().Be(requestId);
-    }
-
-    [Theory]
-    [InlineData(PendingInviteStatus.Pending, CooperationCardStatus.Pending)]
-    [InlineData(PendingInviteStatus.Accepted, CooperationCardStatus.Accepted)]
-    [InlineData(PendingInviteStatus.Declined, CooperationCardStatus.Declined)]
-    [InlineData(PendingInviteStatus.Cancelled, CooperationCardStatus.Cancelled)]
-    public async Task InviteStatus_IsMapped(PendingInviteStatus stored, CooperationCardStatus expected)
-    {
-        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
-        var client = await TestActors.Client(factory).CreateAsync(Ct);
-        await ConversationListSeed.SeedInviteAsync(factory, coach, client, stored);
-
-        (await ConversationListSeed.GetAsync(client.Http)).Single().Cooperation!.Status.Should().Be(expected);
-    }
-
-    [Fact]
-    public async Task PendingInviteOlderThanSevenDays_IsExpired()
-    {
-        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
-        var client = await TestActors.Client(factory).CreateAsync(Ct);
-        await ConversationListSeed.SeedInviteAsync(factory, coach, client, sentAt: DateTime.UtcNow.AddDays(-8));
-
-        (await ConversationListSeed.GetAsync(client.Http)).Single().Cooperation!.Status
-            .Should().Be(CooperationCardStatus.Expired);
-    }
-
-    [Theory]
-    [InlineData(ClientRequestStatus.Pending, CooperationCardStatus.Pending)]
-    [InlineData(ClientRequestStatus.Accepted, CooperationCardStatus.Accepted)]
-    [InlineData(ClientRequestStatus.Rejected, CooperationCardStatus.Declined)]
-    [InlineData(ClientRequestStatus.Cancelled, CooperationCardStatus.Cancelled)]
-    public async Task RequestStatus_IsMapped(ClientRequestStatus stored, CooperationCardStatus expected)
-    {
-        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
-        var client = await TestActors.Client(factory).CreateAsync(Ct);
-        await ConversationListSeed.SeedRequestAsync(factory, coach, client, stored);
-
-        (await ConversationListSeed.GetAsync(coach.Http)).Single().Cooperation!.Status.Should().Be(expected);
     }
 
     [Fact]
