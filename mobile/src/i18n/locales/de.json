@@ -74,24 +74,42 @@
       }
     }
   },
-  "showcase": {
-    "title": "Komponenten",
-    "card": {
-      "title": "Heutiges Training",
-      "body": "Eine Karte mit Text von deinem Trainer."
-    },
-    "input": {
-      "label": "E-Mail",
-      "placeholder": "jan@example.com"
-    },
-    "scrollHint": "Scrolle den Inhalt unter die schwebende Leiste, um die Unschärfe zu sehen.",
-    "signOut": "Abmelden",
-    "tabs": {
-      "today": "Heute",
-      "training": "Training",
-      "nutrition": "Ernährung",
-      "messages": "Nachrichten"
+  "tabs": {
+    "today": "Heute",
+    "training": "Training",
+    "nutrition": "Ernährung",
+    "messages": "Nachrichten"
+  },
+  "today": {
+    "eyebrow": "Fangen wir an",
+    "greeting": "Willkommen, {{name}}",
+    "greetingAnonymous": "Willkommen",
+    "linkedGreeting": "Hallo, {{name}}",
+    "linkedGreetingAnonymous": "Hallo",
+    "linkedBody": "Deine Coaches sind an Bord. Dein Tag erscheint hier.",
+    "notifications": "Benachrichtigungen",
+    "findCoach": {
+      "title": "Coach finden",
+      "subtitle": "Sie erstellen deinen Plan, du folgst ihm hier.",
+      "trainer": {
+        "title": "Trainer",
+        "hint": "Einheiten rund um dein Ziel"
+      },
+      "nutritionist": {
+        "title": "Ernährungsberater",
+        "hint": "Mahlzeiten, die zu deinem Tag passen"
+      }
     }
+  },
+  "placeholder": {
+    "training": "Dein Trainingsplan erscheint hier.",
+    "nutrition": "Dein Ernährungsplan erscheint hier.",
+    "messages": "Deine Unterhaltungen erscheinen hier."
+  },
+  "coachSearch": {
+    "trainerTitle": "Trainer finden",
+    "nutritionistTitle": "Ernährungsberater finden",
+    "soon": "Die Coach-Suche kommt bald."
   },
   "common": {
     "signOut": "Abmelden"

@@ -48,7 +48,8 @@ function AppStack({ phase, onRetry }: { phase: ReturnType<typeof useAuthPhase>['
         <Stack.Screen name="coach-pending" />
       </Stack.Protected>
       <Stack.Protected guard={phase === 'home'}>
-        <Stack.Screen name="index" />
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="coach-search" />
       </Stack.Protected>
     </Stack>
   );

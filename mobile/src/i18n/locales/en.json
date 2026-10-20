@@ -74,24 +74,42 @@
       }
     }
   },
-  "showcase": {
-    "title": "Components",
-    "card": {
-      "title": "Today's training",
-      "body": "A card with text from your trainer."
-    },
-    "input": {
-      "label": "Email",
-      "placeholder": "jan@example.com"
-    },
-    "scrollHint": "Scroll the content under the floating bar to see the blur.",
-    "signOut": "Sign out",
-    "tabs": {
-      "today": "Today",
-      "training": "Training",
-      "nutrition": "Nutrition",
-      "messages": "Messages"
+  "tabs": {
+    "today": "Today",
+    "training": "Training",
+    "nutrition": "Nutrition",
+    "messages": "Messages"
+  },
+  "today": {
+    "eyebrow": "Let's get you started",
+    "greeting": "Welcome, {{name}}",
+    "greetingAnonymous": "Welcome",
+    "linkedGreeting": "Hi, {{name}}",
+    "linkedGreetingAnonymous": "Hi",
+    "linkedBody": "Your coaches are on board. Your day will show up here.",
+    "notifications": "Notifications",
+    "findCoach": {
+      "title": "Find a coach",
+      "subtitle": "They build your plan, you follow it here.",
+      "trainer": {
+        "title": "Trainer",
+        "hint": "Sessions built around your goal"
+      },
+      "nutritionist": {
+        "title": "Nutritionist",
+        "hint": "Meals that fit your day"
+      }
     }
+  },
+  "placeholder": {
+    "training": "Your training plan will appear here.",
+    "nutrition": "Your nutrition plan will appear here.",
+    "messages": "Your conversations will appear here."
+  },
+  "coachSearch": {
+    "trainerTitle": "Find a trainer",
+    "nutritionistTitle": "Find a nutritionist",
+    "soon": "Coach search is coming soon."
   },
   "common": {
     "signOut": "Sign out"
