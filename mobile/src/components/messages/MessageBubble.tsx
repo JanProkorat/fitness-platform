@@ -34,6 +34,7 @@ const makeStyles = (theme: Theme) =>
     own: {
       alignSelf: 'flex-end',
       backgroundColor: theme.colors.accent,
+      boxShadow: theme.shadows.accentBubble,
     },
     other: {
       alignSelf: 'flex-start',

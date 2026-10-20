@@ -3,6 +3,8 @@ import type { ColorScheme, Colors } from './colors';
 /** CSS-style `boxShadow` strings, named by the role of the surface that wears them. */
 export type Shadows = {
   card: string;
+  /** Accent-filled (own) chat bubbles. */
+  accentBubble: string;
   /** Glass bars and sheets. */
   glass: string;
   floating: string;
@@ -46,7 +48,19 @@ const darkShadows = {
   thumb: '0 1px 3px rgba(0,0,0,0.4)',
 };
 
+/** `#RRGGBB` to `rgba(r,g,b,a)`. */
+const withAlpha = (hex: string, alpha: number): string => {
+  const value = Number.parseInt(hex.slice(1), 16);
+  return `rgba(${(value >> 16) & 255},${(value >> 8) & 255},${value & 255},${alpha})`;
+};
+
+const buildAccentBubbleShadow = (scheme: ColorScheme, accent: string): string =>
+  scheme === 'dark'
+    ? `0 1px 2px rgba(0,0,0,0.4), 0 6px 16px ${withAlpha(accent, 0.28)}`
+    : `0 1px 2px ${withAlpha(accent, 0.18)}, 0 6px 16px ${withAlpha(accent, 0.22)}`;
+
 export const buildShadows = (scheme: ColorScheme, colors: Colors): Shadows => ({
   ...(scheme === 'dark' ? darkShadows : lightShadows),
+  accentBubble: buildAccentBubbleShadow(scheme, colors.accent),
   avatarRing: `0 0 0 2px ${colors.ground}`,
 });
