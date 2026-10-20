@@ -21,6 +21,8 @@ public class SuccessStatusContractTests(FitnessApiFactory factory)
     [InlineData("post", "/client/notifications/{id}/read", "204")]
     [InlineData("post", "/client/notifications/read-all", "204")]
     [InlineData("post", "/client/push-token", "204")]
+    [InlineData("delete", "/client/push-token", "204")]
+    [InlineData("get", "/trainer/client-requests", "200")]
     [InlineData("post", "/trainer/client-requests/{publicId}/accept", "204")]
     [InlineData("post", "/trainer/client-requests/{publicId}/reject", "204")]
     [InlineData("get", "/client/invites", "200")]

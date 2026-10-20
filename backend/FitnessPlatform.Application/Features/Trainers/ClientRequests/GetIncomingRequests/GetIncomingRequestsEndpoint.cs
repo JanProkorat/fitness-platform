@@ -45,23 +45,48 @@ public class GetIncomingRequestsEndpoint(IApplicationDbContext db) : EndpointWit
             return;
         }
 
-        var requests = await db.ClientRequests
+        // Only requests still pending and addressed to this professional are listed, so the
+        // requester's onboarding answers below are never exposed to anyone else or after an answer.
+        var rows = await db.ClientRequests
             .AsNoTracking()
             .Where(r => r.ProfessionalProfileId == professionalProfile.Id
                      && r.Status == ClientRequestStatus.Pending)
-            .Include(r => r.ClientProfile)
-                .ThenInclude(cp => cp.User)
             .OrderByDescending(r => r.SentAt)
-            .Select(r => new IncomingClientRequestDto
+            .Select(r => new
             {
-                PublicId = r.PublicId,
-                ClientFirstName = r.ClientProfile.User.FirstName ?? string.Empty,
-                ClientLastName = r.ClientProfile.User.LastName ?? string.Empty,
-                ClientEmail = r.ClientProfile.User.Email ?? string.Empty,
-                Message = r.Message,
-                SentAt = r.SentAt
+                r.PublicId,
+                ClientPublicId = r.ClientProfile.PublicId,
+                FirstName = r.ClientProfile.User.FirstName,
+                LastName = r.ClientProfile.User.LastName,
+                Email = r.ClientProfile.User.Email,
+                r.Message,
+                r.SentAt,
+                r.ClientProfile.HeightCm,
+                r.ClientProfile.WeightKg,
+                PrimaryGoal = r.ClientProfile.OnboardingData != null
+                    ? (PrimaryGoal?)r.ClientProfile.OnboardingData.PrimaryGoal
+                    : null,
+                ActivityLevel = r.ClientProfile.OnboardingData != null
+                    && r.ClientProfile.OnboardingData.NutritionTargets != null
+                    ? (ActivityLevel?)r.ClientProfile.OnboardingData.NutritionTargets.DerivedActivityLevel
+                    : null,
             })
             .ToListAsync(ct);
+
+        var requests = rows.Select(r => new IncomingClientRequestDto
+        {
+            PublicId = r.PublicId,
+            ClientPublicId = r.ClientPublicId,
+            ClientFirstName = r.FirstName ?? string.Empty,
+            ClientLastName = r.LastName ?? string.Empty,
+            ClientEmail = r.Email ?? string.Empty,
+            Message = r.Message,
+            SentAt = r.SentAt,
+            HeightCm = r.HeightCm,
+            WeightKg = r.WeightKg,
+            PrimaryGoal = r.PrimaryGoal?.ToString(),
+            DerivedActivityLevel = r.ActivityLevel?.ToString(),
+        }).ToList();
 
         await Send.OkAsync(new GetIncomingRequestsResponse { Requests = requests }, ct);
     }
