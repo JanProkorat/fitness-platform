@@ -259,6 +259,8 @@ export function useCancelPendingInvite() {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
     },
     onError: (error) => {
+      // The row may already be gone (cancelled or handled elsewhere) — refetch so it disappears.
+      queryClient.invalidateQueries({ queryKey: ['clients', 'pending'] });
       showApiError(error, 'clients.pending.cancelError');
     },
   });
@@ -280,6 +282,8 @@ export function useAcceptClientRequest() {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
     },
     onError: (error) => {
+      // The row may already be gone (cancelled or handled elsewhere) — refetch so it disappears.
+      queryClient.invalidateQueries({ queryKey: ['clients', 'pending'] });
       showApiError(error, 'clients.pending.acceptError');
     },
   });
@@ -299,6 +303,8 @@ export function useRejectClientRequest() {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
     },
     onError: (error) => {
+      // The row may already be gone (cancelled or handled elsewhere) — refetch so it disappears.
+      queryClient.invalidateQueries({ queryKey: ['clients', 'pending'] });
       showApiError(error, 'clients.pending.rejectError');
     },
   });

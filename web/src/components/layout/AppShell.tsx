@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Menu } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Sidebar from '@/components/layout/Sidebar';
+import RealtimeProvider from '@/components/layout/RealtimeProvider';
 import { useSidebarCollapsed } from '@/hooks/useSidebarCollapsed';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 
@@ -37,6 +38,7 @@ export default function AppShell({ variant = 'default' }: Props) {
   const { collapsed, toggle } = useSidebarCollapsed();
 
   return (
+    <RealtimeProvider>
     <div className="flex h-screen overflow-hidden bg-background">
       <div className="hidden lg:flex">
         <Sidebar collapsed={collapsed} onToggleCollapsed={toggle} />
@@ -77,5 +79,6 @@ export default function AppShell({ variant = 'default' }: Props) {
         </main>
       </div>
     </div>
+    </RealtimeProvider>
   );
 }
