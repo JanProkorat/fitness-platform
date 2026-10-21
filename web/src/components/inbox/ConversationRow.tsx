@@ -108,7 +108,7 @@ export default function ConversationRow({ conversation, isSelected, onSelect }: 
           {hasUnread && (
             <span
               data-testid="inbox-row-unread-count"
-              className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-marker-solid px-1.5 text-label font-bold text-white"
+              className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-marker-solid px-1.5 text-label font-bold text-sidebar-text"
               aria-label={t('inbox.row.unreadCount', { count: unreadCount })}
               role="status"
             >
