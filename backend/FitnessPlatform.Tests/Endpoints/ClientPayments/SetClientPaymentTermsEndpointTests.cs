@@ -92,6 +92,66 @@ public class SetClientPaymentTermsEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
+    public async Task SetTerms_MonthlyToOneOff_ReplacesTheStaleFutureRowAndAuditsTheRemoval()
+    {
+        var world = await CreateWorldAsync(factory);
+        var monthly = await CreatePackageAsync(world.Coach, 2500m);
+        var oneOff = await CreatePackageAsync(world.Coach, 900m, "Workshop", "OneOff");
+        await SetTermsOkAsync(world, monthly);
+        var before = (await ListAsync(world)).OrderBy(p => p.PeriodStart).ToList();
+
+        await SetTermsOkAsync(world, oneOff);
+
+        var after = (await ListAsync(world)).OrderBy(p => p.PeriodStart).ToList();
+        after.Should().HaveCount(2);
+        after[0].PaymentId.Should().Be(before[0].PaymentId, "the current period had started");
+        after[1].PaymentId.Should().NotBe(before[1].PaymentId);
+        after[1].PeriodEnd.Should().Be(after[1].PeriodStart, "a one-off package bills a single day");
+        after[1].PackageName.Should().Be("Workshop");
+        after[1].Amount.Should().Be(900m);
+
+        var audit = (await ReadAuditAsync(world)).Last(a => a.Action == "SetClientPaymentTerms");
+        audit.NewValues.Should().Contain("\"removed\":1");
+    }
+
+    [Fact]
+    public async Task SetTerms_RequestedRowFromTheOldTerms_StaysUntouched()
+    {
+        var world = await CreateWorldAsync(factory);
+        var monthly = await CreatePackageAsync(world.Coach, 2500m);
+        var cheaper = await CreatePackageAsync(world.Coach, 100m, "Light");
+        await SetTermsOkAsync(world, monthly);
+        var future = (await ListAsync(world)).OrderBy(p => p.PeriodStart).Last();
+        (await PostActionAsync(world, future.PaymentId, "request", new { SendEmail = true })).StatusCode.Should().Be(HttpStatusCode.OK);
+        var locked = await ReadStoredAsync(factory, future.PaymentId);
+
+        await SetTermsOkAsync(world, cheaper);
+
+        var kept = await ReadStoredAsync(factory, future.PaymentId);
+        kept.Status.Should().Be(ClientPaymentStatus.Requested);
+        kept.Amount.Should().Be(2500m);
+        kept.VariableSymbol.Should().Be(locked.VariableSymbol);
+        kept.AccountIban.Should().Be(ValidIban);
+        kept.PackageName.Should().Be("Online coaching");
+    }
+
+    [Fact]
+    public async Task SetTerms_PriceOnlyChange_KeepsThePeriodRowsAndRepricesTheUnlockedOnes()
+    {
+        var world = await CreateWorldAsync(factory);
+        var packageId = await CreatePackageAsync(world.Coach, 2500m);
+        await SetTermsOkAsync(world, packageId);
+        var before = (await ListAsync(world)).OrderBy(p => p.PeriodStart).ToList();
+
+        await SetTermsOkAsync(world, packageId, customPrice: 1000m);
+
+        var after = (await ListAsync(world)).OrderBy(p => p.PeriodStart).ToList();
+        after.Select(p => p.PaymentId).Should().Equal(before.Select(p => p.PaymentId));
+        after[0].Amount.Should().Be(2500m, "the current period had started");
+        after[1].Amount.Should().Be(1000m);
+    }
+
+    [Fact]
     public async Task SetTerms_WithDiscount_PricesTheRowsWithIt()
     {
         var world = await CreateWorldAsync(factory);

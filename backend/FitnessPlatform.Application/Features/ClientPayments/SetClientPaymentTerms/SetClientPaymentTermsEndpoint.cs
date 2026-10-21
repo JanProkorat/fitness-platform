@@ -219,6 +219,27 @@ internal sealed class SetClientPaymentTermsEndpoint(
             });
             await db.SaveChangesAsync(ct);
 
+            // Upcoming periods that start under the new terms were made from the old ones; drop them (their
+            // variable symbols go with them) and let the schedule create them again. Requested, paid and
+            // waived rows are locked and stay.
+            // A change of discount or custom price keeps the periods: their amounts follow the terms anyway.
+            var staleIds = latest is not null && latest.CoachPackageId == package.Id
+                ? new List<long>()
+                : (await db.ClientPayments
+                    .Where(p => p.ClientPaymentAssignmentId == assignment.Id
+                        && p.Status == ClientPaymentStatus.Upcoming
+                        && p.PeriodStart != null)
+                    .Select(p => new { p.Id, PeriodStart = p.PeriodStart!.Value })
+                    .ToListAsync(ct))
+                .Where(p => ClientPaymentSchedule.StartOfDayUtc(p.PeriodStart) >= effectiveFrom)
+                .Select(p => p.Id)
+                .ToList();
+
+            if (staleIds.Count > 0)
+            {
+                await db.ClientPayments.Where(p => staleIds.Contains(p.Id)).ExecuteDeleteAsync(ct);
+            }
+
             await ClientPaymentAudit.LogAsync(
                 audit,
                 userId,
@@ -229,7 +250,8 @@ internal sealed class SetClientPaymentTermsEndpoint(
                 {
                     detail = package.Name,
                     discount = discount?.Name,
-                    amount = req.CustomPrice
+                    amount = req.CustomPrice,
+                    removed = staleIds.Count
                 },
                 ct);
         }
