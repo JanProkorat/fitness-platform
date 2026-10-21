@@ -8,7 +8,7 @@ export function PanelLoadError({ onRetry }: { onRetry: () => void }) {
   const { t } = useTranslation();
   return (
     <div data-testid="panel-load-error" className="flex flex-col items-center gap-2 py-4">
-      <p className="text-caption text-muted-foreground">{t('common.loadError')}</p>
+      <p className="text-caption text-muted-foreground">{t('inbox.panel.loadError')}</p>
       <Button type="button" variant="outline" size="sm" onClick={onRetry}>
         {t('clients.retry')}
       </Button>

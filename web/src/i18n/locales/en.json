@@ -4421,6 +4421,7 @@
       "withdrawn": "The collaboration offer was withdrawn"
     },
     "panel": {
+      "loadError": "Couldn't load the details.",
       "pendingChip": "Pending",
       "pendingLine": "Not a client yet · accept the request to start coaching",
       "invitedChip": "Invited",

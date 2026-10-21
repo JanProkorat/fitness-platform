@@ -4561,6 +4561,7 @@
       "withdrawn": "Nabídka spolupráce byla zrušena"
     },
     "panel": {
+      "loadError": "Podrobnosti se nepodařilo načíst.",
       "pendingChip": "Čeká na vyřízení",
       "pendingLine": "Zatím není klient · přijměte žádost a začněte spolupráci",
       "invitedChip": "Pozván(a)",
