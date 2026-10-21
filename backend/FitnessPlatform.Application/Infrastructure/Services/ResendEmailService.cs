@@ -53,6 +53,26 @@ public class ResendEmailService(IResend resend, IConfiguration configuration, IL
         ["de"] = "Bestätigen Sie Ihre E-Mail für GF Platform"
     };
 
+    /// <summary>
+    /// Localized email subjects for the bank account re-authentication code.
+    /// </summary>
+    private static readonly Dictionary<string, string> ReauthCodeSubjects = new()
+    {
+        ["en"] = "Your GF Platform confirmation code",
+        ["cs"] = "Potvrzovací kód pro GF Platform",
+        ["de"] = "Ihr Bestätigungscode für GF Platform"
+    };
+
+    /// <summary>
+    /// Localized email subjects for the bank account changed notice.
+    /// </summary>
+    private static readonly Dictionary<string, string> BankAccountChangedSubjects = new()
+    {
+        ["en"] = "Your GF Platform bank account was changed",
+        ["cs"] = "Bankovní účet na GF Platform byl změněn",
+        ["de"] = "Ihr Bankkonto bei GF Platform wurde geändert"
+    };
+
     /// <inheritdoc />
     public async Task SendInvitationEmailAsync(string toEmail, string trainerName, string invitationToken, string language, string? personalMessage, CancellationToken ct)
     {
@@ -119,6 +139,37 @@ public class ResendEmailService(IResend resend, IConfiguration configuration, IL
         await SendEmailAsync(toEmail, subject, html, ct);
 
         logger.LogInformation("Email verification sent via Resend to {Email} (lang={Language})", toEmail, lang);
+    }
+
+    /// <inheritdoc />
+    public async Task SendReauthCodeEmailAsync(string toEmail, string code, string language, CancellationToken ct)
+    {
+        var lang = NormalizeLanguage(language);
+        var html = LoadTemplate("ReauthCode", lang).Replace("{{Code}}", System.Net.WebUtility.HtmlEncode(code));
+        var subject = ReauthCodeSubjects.GetValueOrDefault(lang, ReauthCodeSubjects["en"]);
+
+        await SendEmailAsync(toEmail, subject, html, ct);
+
+        logger.LogInformation("Re-authentication code email sent via Resend to {Email} (lang={Language})", toEmail, lang);
+    }
+
+    /// <inheritdoc />
+    public async Task SendBankAccountChangedEmailAsync(
+        string toEmail, string maskedNewIban, string maskedPreviousIban, string undoToken, string language, CancellationToken ct)
+    {
+        var lang = NormalizeLanguage(language);
+        var baseUrl = configuration[ConfigKeys.AppBaseUrl] ?? "http://localhost:5173";
+        var undoUrl = $"{baseUrl}/bank-account/undo?token={System.Net.WebUtility.UrlEncode(undoToken)}";
+
+        var html = LoadTemplate("BankAccountChanged", lang)
+            .Replace("{{NewIban}}", System.Net.WebUtility.HtmlEncode(maskedNewIban))
+            .Replace("{{PreviousIban}}", System.Net.WebUtility.HtmlEncode(maskedPreviousIban))
+            .Replace("{{UndoUrl}}", undoUrl);
+        var subject = BankAccountChangedSubjects.GetValueOrDefault(lang, BankAccountChangedSubjects["en"]);
+
+        await SendEmailAsync(toEmail, subject, html, ct);
+
+        logger.LogInformation("Bank account changed email sent via Resend to {Email} (lang={Language})", toEmail, lang);
     }
 
     /// <summary>

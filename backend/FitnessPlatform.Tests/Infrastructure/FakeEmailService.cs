@@ -37,7 +37,37 @@ public class FakeEmailService : IEmailService
     private readonly List<(string Email, string TrainerName, string Token, string Language, string? PersonalMessage)> _invitationsSent = [];
     private readonly List<(string Email, string Token, string Language)> _passwordResetsSent = [];
     private readonly List<(string Email, string Token, string Language)> _verificationsSent = [];
+    private readonly List<(string Email, string Code, string Language)> _reauthCodesSent = [];
+    private readonly List<(string Email, string MaskedNewIban, string MaskedPreviousIban, string UndoToken, string Language)> _bankAccountChangesSent = [];
     private readonly HashSet<string> _invitationSendFailuresByEmail = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Snapshot of bank account re-authentication code emails sent during the test.
+    /// </summary>
+    public IReadOnlyList<(string Email, string Code, string Language)> SentReauthCodes
+    {
+        get
+        {
+            lock (_sync)
+            {
+                return _reauthCodesSent.ToArray();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Snapshot of bank account changed emails sent during the test.
+    /// </summary>
+    public IReadOnlyList<(string Email, string MaskedNewIban, string MaskedPreviousIban, string UndoToken, string Language)> SentBankAccountChanges
+    {
+        get
+        {
+            lock (_sync)
+            {
+                return _bankAccountChangesSent.ToArray();
+            }
+        }
+    }
 
     /// <summary>
     /// Snapshot of invitation emails sent during the test.
@@ -138,6 +168,29 @@ public class FakeEmailService : IEmailService
         return Task.CompletedTask;
     }
 
+    /// <inheritdoc />
+    public Task SendReauthCodeEmailAsync(string toEmail, string code, string language, CancellationToken ct)
+    {
+        lock (_sync)
+        {
+            _reauthCodesSent.Add((toEmail, code, language));
+        }
+
+        return Task.CompletedTask;
+    }
+
+    /// <inheritdoc />
+    public Task SendBankAccountChangedEmailAsync(
+        string toEmail, string maskedNewIban, string maskedPreviousIban, string undoToken, string language, CancellationToken ct)
+    {
+        lock (_sync)
+        {
+            _bankAccountChangesSent.Add((toEmail, maskedNewIban, maskedPreviousIban, undoToken, language));
+        }
+
+        return Task.CompletedTask;
+    }
+
     /// <summary>
     /// Clears all recorded emails.
     /// </summary>
@@ -145,6 +198,8 @@ public class FakeEmailService : IEmailService
     {
         lock (_sync)
         {
+            _reauthCodesSent.Clear();
+            _bankAccountChangesSent.Clear();
             _invitationsSent.Clear();
             _passwordResetsSent.Clear();
             _verificationsSent.Clear();

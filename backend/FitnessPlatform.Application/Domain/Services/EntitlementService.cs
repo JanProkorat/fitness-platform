@@ -37,6 +37,7 @@ public class EntitlementService(IApplicationDbContext db)
                 cs.SubscriptionPlan.CanSendQuestionnaires,
                 cs.SubscriptionPlan.CanUseWeeklyCheckIns,
                 cs.SubscriptionPlan.CanUsePerClientCheckInConfig,
+                cs.SubscriptionPlan.CanUsePayments,
                 cs.SubscriptionPlan.MaxActiveClients
             })
             .FirstOrDefaultAsync(ct);
@@ -56,6 +57,7 @@ public class EntitlementService(IApplicationDbContext db)
                 CanSendQuestionnaires: subscription.CanSendQuestionnaires,
                 CanUseWeeklyCheckIns: subscription.CanUseWeeklyCheckIns,
                 CanUsePerClientCheckInConfig: subscription.CanUsePerClientCheckInConfig,
+                CanUsePayments: subscription.CanUsePayments,
                 MaxActiveClients: subscription.MaxActiveClients)
         };
     }

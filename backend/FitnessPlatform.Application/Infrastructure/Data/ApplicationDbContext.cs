@@ -202,6 +202,15 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public virtual DbSet<AutomationRun> AutomationRuns { get; set; } = null!;
 
     /// <inheritdoc />
+    public virtual DbSet<CoachPaymentSettings> CoachPaymentSettings { get; set; } = null!;
+
+    /// <inheritdoc />
+    public virtual DbSet<CoachBankAccountChange> CoachBankAccountChanges { get; set; } = null!;
+
+    /// <inheritdoc />
+    public virtual DbSet<CoachReauthCode> CoachReauthCodes { get; set; } = null!;
+
+    /// <inheritdoc />
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         base.OnConfiguring(optionsBuilder);
@@ -381,6 +390,37 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             e.HasOne(p => p.User)
                 .WithMany()
                 .HasForeignKey(p => p.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<CoachPaymentSettings>(e =>
+        {
+            e.HasIndex(s => s.ProfessionalProfileId).IsUnique();
+            e.Property(s => s.PaymentDueDays).HasDefaultValue(7);
+            e.HasOne(s => s.ProfessionalProfile)
+                .WithOne()
+                .HasForeignKey<CoachPaymentSettings>(s => s.ProfessionalProfileId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<CoachBankAccountChange>(e =>
+        {
+            e.HasIndex(c => c.ProfessionalProfileId);
+            e.HasIndex(c => c.UndoTokenHash)
+                .IsUnique()
+                .HasFilter("undo_token_hash IS NOT NULL");
+            e.HasOne(c => c.ProfessionalProfile)
+                .WithMany()
+                .HasForeignKey(c => c.ProfessionalProfileId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<CoachReauthCode>(e =>
+        {
+            e.HasIndex(c => new { c.UserId, c.ExpiresAt });
+            e.HasOne(c => c.User)
+                .WithMany()
+                .HasForeignKey(c => c.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
