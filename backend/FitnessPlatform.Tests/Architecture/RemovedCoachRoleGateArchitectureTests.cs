@@ -161,7 +161,7 @@ public class RemovedCoachRoleGateArchitectureTests(FitnessApiFactory factory)
             .ToDictionary(g => g.Key, g => g.Count());
 
         counts.GetValueOrDefault(RemovedCoachRoleMode.Refuse).Should().Be(32);
-        counts.GetValueOrDefault(RemovedCoachRoleMode.Exempt).Should().Be(8);
-        counts.Values.Sum().Should().Be(40);
+        counts.GetValueOrDefault(RemovedCoachRoleMode.Exempt).Should().Be(11);
+        counts.Values.Sum().Should().Be(43);
     }
 }

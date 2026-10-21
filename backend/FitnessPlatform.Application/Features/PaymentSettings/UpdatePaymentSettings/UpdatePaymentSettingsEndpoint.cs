@@ -1,7 +1,9 @@
 using System.Security.Claims;
 using FastEndpoints;
+using FitnessPlatform.Application.Domain.Authorization;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.PaymentSettings.Shared;
 using FitnessPlatform.Application.Infrastructure.Data;
@@ -14,6 +16,7 @@ namespace FitnessPlatform.Application.Features.PaymentSettings.UpdatePaymentSett
 /// </summary>
 /// <param name="db">Application database context.</param>
 /// <param name="entitlementService">Resolves subscription entitlements.</param>
+[RemovedCoachRole(RemovedCoachRoleMode.Exempt, Reason = "The coach's own payment settings stay editable while no coach role is active.")]
 internal sealed class UpdatePaymentSettingsEndpoint(IApplicationDbContext db, EntitlementService entitlementService)
     : Endpoint<UpdatePaymentSettingsRequest, PaymentSettingsDto>
 {

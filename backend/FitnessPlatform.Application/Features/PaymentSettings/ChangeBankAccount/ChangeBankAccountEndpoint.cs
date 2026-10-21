@@ -2,8 +2,10 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text.Json;
 using FastEndpoints;
+using FitnessPlatform.Application.Domain.Authorization;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Domain.Services;
@@ -25,6 +27,7 @@ namespace FitnessPlatform.Application.Features.PaymentSettings.ChangeBankAccount
 /// <param name="emailService">Sends the bank account changed notice.</param>
 /// <param name="timeProvider">Clock.</param>
 /// <param name="logger">Logger for a failed notice email.</param>
+[RemovedCoachRole(RemovedCoachRoleMode.Exempt, Reason = "The coach's own bank account stays editable while no coach role is active.")]
 internal sealed class ChangeBankAccountEndpoint(
     IApplicationDbContext db,
     UserManager<ApplicationUser> userManager,

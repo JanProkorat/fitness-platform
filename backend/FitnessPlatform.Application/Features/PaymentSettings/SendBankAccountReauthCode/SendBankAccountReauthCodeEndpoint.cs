@@ -1,8 +1,10 @@
 using System.Security.Claims;
 using System.Security.Cryptography;
 using FastEndpoints;
+using FitnessPlatform.Application.Domain.Authorization;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Domain.Services;
@@ -21,6 +23,7 @@ namespace FitnessPlatform.Application.Features.PaymentSettings.SendBankAccountRe
 /// <param name="entitlementService">Resolves subscription entitlements.</param>
 /// <param name="emailService">Sends the code.</param>
 /// <param name="timeProvider">Clock.</param>
+[RemovedCoachRole(RemovedCoachRoleMode.Exempt, Reason = "The coach's own bank account stays editable while no coach role is active.")]
 internal sealed class SendBankAccountReauthCodeEndpoint(
     IApplicationDbContext db,
     UserManager<ApplicationUser> userManager,
