@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Domain.Services;
 using Resend;
 using System.Reflection;
 
@@ -172,6 +173,20 @@ public class ResendEmailService(IResend resend, IConfiguration configuration, IL
         logger.LogInformation("Bank account changed email sent via Resend to {Email} (lang={Language})", toEmail, lang);
     }
 
+    /// <inheritdoc />
+    public async Task SendPaymentRequestEmailAsync(PaymentRequestEmail email, CancellationToken ct)
+    {
+        var lang = NormalizeLanguage(email.Language);
+        var baseUrl = configuration[ConfigKeys.AppBaseUrl] ?? "http://localhost:5173";
+
+        var html = PaymentMessageComposer.RenderEmailHtml(LoadTemplate("PaymentRequest", lang), email, lang, baseUrl);
+        var subject = PaymentMessageComposer.EmailSubject(email, lang);
+
+        await SendEmailAsync(email.ToEmail, subject, html, ct, (email.QrContentId, email.QrPng));
+
+        logger.LogInformation("Payment request email sent via Resend (lang={Language})", lang);
+    }
+
     /// <summary>
     /// Sends an email message via the Resend API.
     /// </summary>
@@ -179,7 +194,9 @@ public class ResendEmailService(IResend resend, IConfiguration configuration, IL
     /// <param name="subject">The email subject line.</param>
     /// <param name="htmlBody">The HTML body of the email.</param>
     /// <param name="ct">Cancellation token.</param>
-    private async Task SendEmailAsync(string toEmail, string subject, string htmlBody, CancellationToken ct)
+    /// <param name="inlineImage">A PNG to embed in the HTML as <c>cid:</c>, or null for a plain HTML mail.</param>
+    private async Task SendEmailAsync(
+        string toEmail, string subject, string htmlBody, CancellationToken ct, (string ContentId, byte[] Png)? inlineImage = null)
     {
         var fromAddress = configuration[ConfigKeys.EmailFromAddress] ?? "noreply@fitnessplatform.local";
         var fromName = configuration[ConfigKeys.EmailFromName] ?? "GF Platform";
@@ -191,6 +208,20 @@ public class ResendEmailService(IResend resend, IConfiguration configuration, IL
             HtmlBody = htmlBody
         };
         message.To.Add(toEmail);
+
+        if (inlineImage is { } image)
+        {
+            message.Attachments =
+            [
+                new EmailAttachment
+                {
+                    Filename = "payment-qr.png",
+                    Content = image.Png,
+                    ContentType = "image/png",
+                    ContentId = image.ContentId
+                }
+            ];
+        }
 
         await resend.EmailSendAsync(message, ct);
     }

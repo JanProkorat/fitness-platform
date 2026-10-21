@@ -107,6 +107,9 @@ public static class NotificationTemplates
                 new("Please log your measurements", "{professionalName} asked you to log your body measurements."),
             [Key(NotificationType.MeasurementRequested, MeasurementRequestedWithMessage)] =
                 new("Please log your measurements", "{professionalName} asked you to log your body measurements: {message}"),
+
+            [Key(NotificationType.PaymentRequested)] =
+                new("Payment request", "{coachName} asks for {amount}, due {dueDate}."),
         },
         ["cs"] = new()
         {
@@ -172,6 +175,9 @@ public static class NotificationTemplates
                 new("Zapište si prosím míry", "{professionalName} vás žádá o zapsání tělesných měr."),
             [Key(NotificationType.MeasurementRequested, MeasurementRequestedWithMessage)] =
                 new("Zapište si prosím míry", "{professionalName} vás žádá o zapsání tělesných měr: {message}"),
+
+            [Key(NotificationType.PaymentRequested)] =
+                new("Žádost o platbu", "{coachName} vás žádá o platbu {amount} se splatností {dueDate}."),
         },
         ["de"] = new()
         {
@@ -237,6 +243,9 @@ public static class NotificationTemplates
                 new("Bitte Maße eintragen", "{professionalName} bittet Sie, Ihre Körpermaße einzutragen."),
             [Key(NotificationType.MeasurementRequested, MeasurementRequestedWithMessage)] =
                 new("Bitte Maße eintragen", "{professionalName} bittet Sie, Ihre Körpermaße einzutragen: {message}"),
+
+            [Key(NotificationType.PaymentRequested)] =
+                new("Zahlungsaufforderung", "{coachName} bittet um {amount}, fällig am {dueDate}."),
         },
     };
 

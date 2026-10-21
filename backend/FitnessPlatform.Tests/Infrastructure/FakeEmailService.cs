@@ -40,6 +40,50 @@ public class FakeEmailService : IEmailService
     private readonly List<(string Email, string Code, string Language)> _reauthCodesSent = [];
     private readonly List<(string Email, string MaskedNewIban, string MaskedPreviousIban, string UndoToken, string Language)> _bankAccountChangesSent = [];
     private readonly HashSet<string> _invitationSendFailuresByEmail = new(StringComparer.OrdinalIgnoreCase);
+    private readonly List<PaymentRequestEmail> _paymentRequestsSent = [];
+    private readonly HashSet<string> _paymentRequestFailuresByEmail = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Snapshot of payment request emails sent during the test, with the QR PNG bytes and content id.
+    /// </summary>
+    public IReadOnlyList<PaymentRequestEmail> SentPaymentRequests
+    {
+        get
+        {
+            lock (_sync)
+            {
+                return _paymentRequestsSent.ToArray();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Makes <see cref="SendPaymentRequestEmailAsync"/> throw for the given recipient only, simulating a
+    /// mail provider outage without poisoning other tests that share this per-host instance.
+    /// </summary>
+    public void FailPaymentRequestsFor(string email)
+    {
+        lock (_sync)
+        {
+            _paymentRequestFailuresByEmail.Add(email);
+        }
+    }
+
+    /// <inheritdoc />
+    public Task SendPaymentRequestEmailAsync(PaymentRequestEmail email, CancellationToken ct)
+    {
+        lock (_sync)
+        {
+            if (_paymentRequestFailuresByEmail.Contains(email.ToEmail))
+            {
+                throw new InvalidOperationException("Simulated mail provider failure for a payment request.");
+            }
+
+            _paymentRequestsSent.Add(email);
+        }
+
+        return Task.CompletedTask;
+    }
 
     /// <summary>
     /// Snapshot of bank account re-authentication code emails sent during the test.
@@ -203,6 +247,8 @@ public class FakeEmailService : IEmailService
             _invitationsSent.Clear();
             _passwordResetsSent.Clear();
             _verificationsSent.Clear();
+            _paymentRequestsSent.Clear();
+            _paymentRequestFailuresByEmail.Clear();
         }
     }
 

@@ -594,4 +594,38 @@ public static class ErrorCodes
 
     /// <summary>A package the discount applies to is unknown, foreign or archived.</summary>
     public const string DiscountPackageInvalid = "DISCOUNT_PACKAGE_INVALID";
+
+    // ── Client payments (#1579) ─────────────────────────────────────────
+    /// <summary>The coach has no IBAN or account holder set, so a payment cannot be requested.</summary>
+    public const string BankAccountNotSet = "BANK_ACCOUNT_NOT_SET";
+
+    /// <summary>The payment is already paid.</summary>
+    public const string PaymentAlreadyPaid = "PAYMENT_ALREADY_PAID";
+
+    /// <summary>The payment is already waived.</summary>
+    public const string PaymentAlreadyWaived = "PAYMENT_ALREADY_WAIVED";
+
+    /// <summary>Too many payment requests were sent for the client in a short time.</summary>
+    public const string PaymentRequestRateLimited = "PAYMENT_REQUEST_RATE_LIMITED";
+
+    /// <summary>A payment request must be sent by email, as a notification, or both.</summary>
+    public const string PaymentRequestChannelRequired = "PAYMENT_REQUEST_CHANNEL_REQUIRED";
+
+    /// <summary>The paid-on date is in the future.</summary>
+    public const string PaymentPaidOnInFuture = "PAYMENT_PAID_ON_IN_FUTURE";
+
+    /// <summary>Terms carry both a discount and a custom price.</summary>
+    public const string PaymentTermsDiscountAndCustomPrice = "PAYMENT_TERMS_DISCOUNT_AND_CUSTOM_PRICE";
+
+    /// <summary>A payment amount is not above zero or exceeds the payable maximum.</summary>
+    public const string PaymentAmountInvalid = "PAYMENT_AMOUNT_INVALID";
+
+    /// <summary>The coach has used all 9999 client numbers.</summary>
+    public const string PaymentClientNumberExhausted = "PAYMENT_CLIENT_NUMBER_EXHAUSTED";
+
+    /// <summary>No variable symbol is left for the month.</summary>
+    public const string PaymentVariableSymbolExhausted = "PAYMENT_VARIABLE_SYMBOL_EXHAUSTED";
+
+    /// <summary>The first billing period starts in the past or too far ahead.</summary>
+    public const string PaymentStartDateInvalid = "PAYMENT_START_DATE_INVALID";
 }
