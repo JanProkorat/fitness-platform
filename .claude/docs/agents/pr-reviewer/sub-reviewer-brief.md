@@ -97,6 +97,18 @@ You MUST:
    - QUESTION — something the reviewer would ask the author about
      but not demand changes on. Non-blocking.
 
+   Before reporting a finding, answer: (1) exact file:line? (2) the
+   input or state that triggers it, and the bad outcome? (3) did I read
+   the callers, tests and validator around it? (4) is the severity
+   defensible? Any "no" or "unsure" → downgrade to NIT/QUESTION or drop.
+
+   A BLOCKING that is not a hard-rule hit must carry the snippet, the
+   failing input or state, and why validators, types or framework
+   defaults don't already catch it. Missing any → NIT or QUESTION.
+
+   Zero findings is a valid result. No filler NITs, no "consider X"
+   without a trigger. Clean diff → READY FOR MERGE with empty lists.
+
 4. Tag every finding with a scope label so the orchestrator can route
    fixes: `[scope:backend]`, `[scope:web]`, `[scope:mobile]`, or
    `[scope:docs-infra]`.

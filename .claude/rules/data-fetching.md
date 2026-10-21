@@ -53,6 +53,10 @@ const { data, isPending } = useQuery({
   store's own persistence middleware uses (commonly backed by MMKV or
   AsyncStorage) — match the existing setup rather than adding a second
   persistence mechanism.
+- **Secrets on mobile** (access/refresh tokens, API keys) never go to AsyncStorage,
+  plain MMKV, or a persisted store slice — all are unencrypted on disk. Use
+  `expo-secure-store` (Keychain / Keystore) and keep them out of persisted
+  state.
 
 ## Query keys
 

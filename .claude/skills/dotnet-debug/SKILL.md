@@ -40,7 +40,7 @@ Do not skip steps. Each step's output is the next step's input.
 ## Step 1 — REPRODUCE
 
 - [ ] Make it deterministic before investigating.
-- [ ] Failing test? Run in isolation: `dotnet test --filter "FullyQualifiedName~{TestMethodName}" --verbosity detailed`.
+- [ ] Failing test? Run its class alone, using the scoped-run form `dotnet-verify` picks for this repo's runner (MTP and VSTest syntax differ; the wrong one silently runs everything).
 - [ ] No test? Write one capturing current wrong behaviour, then flip the assertion — that's the target red.
 - [ ] Intermittent? Name the nondeterminism source: `DateTime.UtcNow` vs `FakeTimeProvider`, test collection isolation, order-dependent seed.
 
@@ -94,7 +94,7 @@ Common shapes (idioms in `error-handling.md`):
 ## Step 6 — VERIFY
 
 ```bash
-dotnet test --filter "FullyQualifiedName~{TestMethodName}"   # targeted — now green
+dotnet test <test-project> <scoped form from dotnet-verify>  # targeted — now green
 dotnet test                                                   # full suite — no regression
 dotnet build                                                  # no warnings
 ```
@@ -143,7 +143,7 @@ Full table (data-shape, JSON, test-isolation) in `references/troubleshooting.md`
 ## Done when
 
 - [ ] Root cause stated in one sentence.
-- [ ] `dotnet test --filter "FullyQualifiedName~{TestMethodName}"` green.
+- [ ] Scoped run (form from `dotnet-verify`) green, and its count matches the class.
 - [ ] `dotnet test` green (no regressions).
 - [ ] `dotnet build` no warnings.
 - [ ] Regression test committed; named `{Method}_{Scenario}_{ExpectedResult}`.

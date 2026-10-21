@@ -98,6 +98,12 @@ Assert the outcome. A test whose only assertion is `NotBeNull()` on the
 response proves the call didn't throw — say that with `NotThrowAsync()`, or
 check what actually changed.
 
+## Waiting
+
+No `Thread.Sleep` or fixed `Task.Delay` to wait for async work (background
+services, SignalR, schedulers). Poll the observable outcome with a deadline
+and fail with the last value seen.
+
 ## Cancellation token
 
 Pass `TestContext.Current.CancellationToken` (xUnit v3) to every async call

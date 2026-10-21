@@ -94,6 +94,19 @@ failure is expected and recoverable (a non-critical push notification fails
 while the main operation succeeds) or (2) you want to log and degrade
 gracefully — and then log it.
 
+A catch logs with the exception object (#logging) or rethrows with
+`throw;` — never `throw ex;`, which drops the stack trace. Never
+`catch { }` or `catch { return null; }`: a fallback must not hide the
+failure from the log.
+
+## Logging
+
+Message templates, exception first:
+`logger.LogWarning(ex, "Push failed for {UserId}", userId)`. No `$""`
+interpolation in log calls — it defeats structured properties. Never log
+tokens, passwords, reset/invite links, email bodies or personal data; log
+ids.
+
 ## No exceptions for control flow
 
 Do not throw `KeyNotFoundException`, `InvalidOperationException`, or a

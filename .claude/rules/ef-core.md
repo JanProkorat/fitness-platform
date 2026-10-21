@@ -84,6 +84,12 @@ builder.HasIndex(x => x.CustomerId);
 builder.HasIndex(x => new { x.Status, x.CreatedAt });
 ```
 
+## Transactions
+
+Inside a transaction, database work only. Email, push, blob storage,
+SignalR and HTTP calls go after `CommitAsync` — a slow external call holds
+row locks, and a rollback cannot unsend an email.
+
 ## Migrations
 
 Descriptive name (rules/naming.md#migrations). Review generated SQL before committing — check for destructive ops (column drops, renames EF translates as drop+recreate).
