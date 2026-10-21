@@ -23,10 +23,10 @@ export function ProfileHeader({ firstName, lastName, avatarBlobUrl, name, subtit
       <CoachAvatar
         coach={{ firstName, lastName, avatarBlobUrl }}
         size={theme.sizes.profileAvatar}
-        initialsVariant="heading"
+        initialsVariant="profileInitials"
       />
       {name ? (
-        <Text variant="title" accessibilityRole="header" style={styles.centered}>
+        <Text variant="profileName" accessibilityRole="header" style={styles.centered}>
           {name}
         </Text>
       ) : null}

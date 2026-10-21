@@ -1,4 +1,5 @@
 export const spacing = {
+  hair: 3,
   xxs: 4,
   snug: 6,
   xs: 8,
@@ -86,6 +87,10 @@ export const sizes = {
   listIcon: 30,
   listGlyph: 15,
   listChevron: 15,
+  sparklineWidth: 70,
+  sparklineHeight: 22,
+  sparklineStroke: 2,
+  sparklinePadding: 3,
   searchFab: 56,
   searchFabGlyph: 20,
   statusDot: 6,

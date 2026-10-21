@@ -13,6 +13,7 @@ import { ListCard } from '@/components/profile/ListCard';
 import { ListRow, RowIcon } from '@/components/profile/ListRow';
 import { ProfileHeader } from '@/components/profile/ProfileHeader';
 import { SectionHeader } from '@/components/profile/SectionHeader';
+import { Sparkline } from '@/components/profile/Sparkline';
 import { StatsStrip } from '@/components/profile/StatsStrip';
 import {
   countLabel,
@@ -25,6 +26,7 @@ import { Text } from '@/components/Text';
 import { useCollaborations } from '@/hooks/useCollaborations';
 import { useProfile } from '@/hooks/useProfile';
 import { useProfileSummary } from '@/hooks/useProfileSummary';
+import { useWeightSeries } from '@/hooks/useWeightSeries';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
 
@@ -39,6 +41,7 @@ export default function ProfileScreen() {
   const summaryQuery = useProfileSummary();
   const coachesQuery = useCollaborations();
   const summary = summaryQuery.data;
+  const { data: weightSeries } = useWeightSeries();
 
   const name = [profile?.firstName, profile?.lastName].filter(Boolean).join(' ');
 
@@ -136,7 +139,7 @@ export default function ProfileScreen() {
                     />
                   }
                   label={coachFullName({ firstName, lastName: rest.join(' ') })}
-                  caption={role ? <CoachRoleChip role={role} /> : undefined}
+                  caption={role ? <CoachRoleChip role={role} size="sm" /> : undefined}
                   onPress={publicId ? () => router.push(`/coach/${publicId}`) : undefined}
                 />
               );
@@ -152,6 +155,7 @@ export default function ProfileScreen() {
             <ListRow
               leading={<RowIcon symbol="point.topleft.down.to.point.bottomright.curvepath" tone="accent" />}
               label={t('profile.progress.journey')}
+              trailing={<Sparkline values={weightSeries ?? []} />}
             />
             <ListRow
               leading={<RowIcon symbol="ruler" tone="nutrition" />}

@@ -17,12 +17,14 @@ type ListRowProps = {
   caption?: ReactNode;
   /** Muted value before the chevron. */
   value?: string;
+  /** Element before the chevron, such as a sparkline. */
+  trailing?: ReactNode;
   /** A row without a handler is shown but not pressable. */
   onPress?: () => void;
 };
 
 /** One row of a `ListCard`: leading element, label, optional value and a chevron. */
-export function ListRow({ leading, label, caption, value, onPress }: ListRowProps) {
+export function ListRow({ leading, label, caption, value, trailing, onPress }: ListRowProps) {
   const theme = useTheme();
   const styles = makeStyles(theme);
 
@@ -40,6 +42,7 @@ export function ListRow({ leading, label, caption, value, onPress }: ListRowProp
           {value}
         </Text>
       ) : null}
+      {trailing}
       <SymbolView
         name="chevron.right"
         weight="medium"
