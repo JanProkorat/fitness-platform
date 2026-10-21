@@ -69,6 +69,8 @@ public class GetMyCheckInHistoryEndpoint(IApplicationDbContext db)
                 RespondedAt = c.RespondedAt,
                 DismissedAt = c.DismissedByClientAt,
                 ExpiredAt = c.ExpiredAt,
+                DueAt = c.DueAt,
+                ReviewedAt = c.ReviewedByTrainerAt,
             })
             .ToListAsync(ct);
 

@@ -28,7 +28,9 @@ public class GetMyCheckInHistoryEndpointTests(FitnessApiFactory factory)
         WeeklyCheckInStatus status = WeeklyCheckInStatus.Pending,
         DateTime? respondedAt = null,
         DateTime? dismissedAt = null,
-        Guid? id = null)
+        Guid? id = null,
+        DateTime? dueAt = null,
+        DateTime? reviewedAt = null)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -44,6 +46,8 @@ public class GetMyCheckInHistoryEndpointTests(FitnessApiFactory factory)
             Status = status,
             RespondedAt = respondedAt,
             DismissedByClientAt = dismissedAt,
+            DueAt = dueAt,
+            ReviewedByTrainerAt = reviewedAt,
             Flags = [CheckInFlag.Traveling],
             Note = "private note",
             HungerScore = 4,
@@ -83,8 +87,11 @@ public class GetMyCheckInHistoryEndpointTests(FitnessApiFactory factory)
         var other = await TestActors.Client(factory).CreateAsync(TestContext.Current.CancellationToken);
         var trainer = await TestActors.Trainer(factory).WithName("Tom", "Coach").CreateAsync(TestContext.Current.CancellationToken);
 
+        var dueAt = DateTime.UtcNow.AddDays(-12);
+        var reviewedAt = DateTime.UtcNow.AddDays(-11);
         var answeredId = await InsertAsync(client.UserId, trainer.UserId, Profession.Training, Monday(2),
-            DateTime.UtcNow.AddDays(-14), WeeklyCheckInStatus.Responded, respondedAt: DateTime.UtcNow.AddDays(-13));
+            DateTime.UtcNow.AddDays(-14), WeeklyCheckInStatus.Reviewed, respondedAt: DateTime.UtcNow.AddDays(-13),
+            dueAt: dueAt, reviewedAt: reviewedAt);
         var expiredId = await InsertAsync(client.UserId, trainer.UserId, Profession.Training, Monday(1),
             DateTime.UtcNow.AddDays(-7), WeeklyCheckInStatus.Expired);
         var dismissedId = await InsertAsync(client.UserId, trainer.UserId, Profession.Training, Monday(0),
@@ -100,7 +107,11 @@ public class GetMyCheckInHistoryEndpointTests(FitnessApiFactory factory)
         body!.Items.Select(i => i.Id).Should().Equal(dismissedId, expiredId, answeredId);
         body.Items[0].Status.Should().Be("Dismissed");
         body.Items[1].Status.Should().Be("Expired");
-        body.Items[2].Status.Should().Be("Responded");
+        body.Items[2].Status.Should().Be("Reviewed");
+        body.Items[2].DueAt.Should().BeCloseTo(dueAt, TimeSpan.FromSeconds(1));
+        body.Items[2].ReviewedAt.Should().BeCloseTo(reviewedAt, TimeSpan.FromSeconds(1));
+        body.Items[1].DueAt.Should().BeNull();
+        body.Items[1].ReviewedAt.Should().BeNull();
         body.Items[2].ProfessionalName.Should().Be("Tom Coach");
         body.Items[2].Profession.Should().Be("Training");
         body.Items[2].RespondedAt.Should().NotBeNull();
@@ -178,5 +189,7 @@ public class GetMyCheckInHistoryEndpointTests(FitnessApiFactory factory)
         DateOnly WeekStartDate,
         DateTime SentAt,
         string Status,
-        DateTime? RespondedAt);
+        DateTime? RespondedAt,
+        DateTime? DueAt,
+        DateTime? ReviewedAt);
 }

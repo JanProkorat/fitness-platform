@@ -43,4 +43,10 @@ public class MyCheckInHistoryItem
 
     /// <summary>UTC time the check-in expired unanswered; null when not expired.</summary>
     public DateTime? ExpiredAt { get; set; }
+
+    /// <summary>UTC response deadline; null for legacy rows without one.</summary>
+    public DateTime? DueAt { get; set; }
+
+    /// <summary>UTC time the professional marked the check-in reviewed; null when not reviewed.</summary>
+    public DateTime? ReviewedAt { get; set; }
 }
