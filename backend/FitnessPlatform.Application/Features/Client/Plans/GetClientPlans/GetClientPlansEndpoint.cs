@@ -137,7 +137,7 @@ public class GetClientPlansEndpoint(IMongoContext mongo, IApplicationDbContext d
                     CurrentWeek = currentWeek,
                     DailyKcal = plan.GlobalSettings?.DailyKcal,
                     HasTodaySession = null, // nutrition plans don't have sessions
-                    EndDate = ResolveEndDate(plan.StartDate, plan.Weeks.Count),
+                    EndDate = PlanProgressCalculator.ResolveEndDate(plan.StartDate, plan.Weeks.Count),
                     ProfessionalRole = AppRoles.Nutritionist
                 });
             }
@@ -235,7 +235,7 @@ public class GetClientPlansEndpoint(IMongoContext mongo, IApplicationDbContext d
                     CurrentWeek = currentWeekNumber,
                     DailyKcal = null, // training plans don't have kcal targets
                     HasTodaySession = hasTodaySession,
-                    EndDate = ResolveEndDate(plan.StartDate, plan.Weeks.Count),
+                    EndDate = PlanProgressCalculator.ResolveEndDate(plan.StartDate, plan.Weeks.Count),
                     ProfessionalRole = AppRoles.Trainer
                 });
             }
@@ -254,28 +254,6 @@ public class GetClientPlansEndpoint(IMongoContext mongo, IApplicationDbContext d
         await Send.OkAsync(new GetClientPlansResponse { Items = items }, ct);
     }
 
-    private static DateTime? ResolveEndDate(DateTime? startDate, int totalWeeks) =>
-        startDate?.Date.AddDays(totalWeeks * 7 - 1);
-
-    /// <summary>
-    /// The days progress is counted over: from the plan's start to today, capped at the plan's last day.
-    /// Null when there is no start date or the plan has not started yet.
-    /// </summary>
-    private static (DateTime Start, DateTime End)? ResolveProgressWindow(
-        DateTime? startDate, int totalWeeks, DateTime today)
-    {
-        if (!startDate.HasValue)
-        {
-            return null;
-        }
-
-        var start = startDate.Value.Date;
-        var planEnd = ResolveEndDate(startDate, totalWeeks)!.Value;
-        var end = today.Date < planEnd ? today.Date : planEnd;
-
-        return end < start ? null : (start, end);
-    }
-
     private async Task ApplyTrainingProgressAsync(
         Guid clientId,
         DateTime today,
@@ -284,7 +262,7 @@ public class GetClientPlansEndpoint(IMongoContext mongo, IApplicationDbContext d
         CancellationToken ct)
     {
         var windowedPlans = plans
-            .Select(plan => (Plan: plan, Window: ResolveProgressWindow(plan.StartDate, plan.Weeks.Count, today)))
+            .Select(plan => (Plan: plan, Window: PlanProgressCalculator.ResolveProgressWindow(plan.StartDate, plan.Weeks.Count, today)))
             .Where(entry => entry.Window.HasValue)
             .ToList();
 
@@ -300,33 +278,9 @@ public class GetClientPlansEndpoint(IMongoContext mongo, IApplicationDbContext d
         using var cursor = await mongo.SessionExecutions.FindAsync(filter, cancellationToken: ct);
         var executions = await cursor.ToListAsync(ct);
 
-        var executionsByKey = new Dictionary<(Guid? PlanId, Guid? SessionId, DateTime Date), SessionExecution>();
-        foreach (var execution in executions)
-        {
-            executionsByKey.TryAdd((execution.PlanId, execution.SessionId, execution.Date.Date), execution);
-        }
-
         foreach (var (plan, window) in windowedPlans)
         {
-            var total = 0;
-            var done = 0;
-
-            for (var day = window!.Value.Start; day <= window.Value.End; day = day.AddDays(1))
-            {
-                foreach (var session in PlannedSessionCounter.GetPlannedSessionsForDate(plan, day))
-                {
-                    total++;
-
-                    // A session with nothing programmed is never complete (same guard as ComplianceService).
-                    var hasContent = session.Workouts.Count > 0 || session.StandaloneExercises.Count > 0;
-                    if (hasContent
-                        && executionsByKey.TryGetValue((plan.ExternalId, session.SessionId, day), out var execution)
-                        && execution.IsSessionComplete(session))
-                    {
-                        done++;
-                    }
-                }
-            }
+            var (total, done) = PlanProgressCalculator.CountSessions(plan, window!.Value, executions);
 
             if (total > 0)
             {
@@ -344,7 +298,7 @@ public class GetClientPlansEndpoint(IMongoContext mongo, IApplicationDbContext d
         CancellationToken ct)
     {
         var windowedPlans = plans
-            .Select(plan => (Plan: plan, Window: ResolveProgressWindow(plan.StartDate, plan.Weeks.Count, today)))
+            .Select(plan => (Plan: plan, Window: PlanProgressCalculator.ResolveProgressWindow(plan.StartDate, plan.Weeks.Count, today)))
             .Where(entry => entry.Window.HasValue)
             .ToList();
 
