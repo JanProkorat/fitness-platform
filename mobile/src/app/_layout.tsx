@@ -53,8 +53,6 @@ function AppStack({ phase, onRetry }: { phase: ReturnType<typeof useAuthPhase>['
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="coach-search" />
         <Stack.Screen name="coach/[publicId]" />
-      </Stack.Protected>
-      <Stack.Protected guard={phase === 'home'}>
         <Stack.Screen name="invite/[id]" />
         <Stack.Screen name="chat/[id]" />
         <Stack.Screen

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -31,7 +31,14 @@ export default function InviteDetailScreen() {
   const { data: invites, isPending } = useInvites();
   const invite = invites?.find((candidate) => candidate.id === id);
   const coach = useInviteCoach(invite?.coachPublicId);
-  const leave = () => (router.canGoBack() ? router.back() : router.replace('/'));
+  const left = useRef(false);
+  // Both the action callback and the "gone" effect can fire; leave exactly once.
+  const leave = () => {
+    if (left.current) return;
+    left.current = true;
+    if (router.canGoBack()) router.back();
+    else router.replace('/');
+  };
   const { accept, decline, pendingId } = useInviteActions({ onSettled: leave });
 
   // An invite that is no longer pending (answered, cancelled, expired) has nothing to show.
