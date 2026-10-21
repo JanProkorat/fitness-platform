@@ -160,7 +160,7 @@ internal sealed class UpdateClientOnboardingAnswersEndpoint(
     }
 
     /// <summary>
-    /// One notification per professional, even when they hold two active links to the client.
+    /// One notification per professional with an active link to the client.
     /// </summary>
     private async Task NotifyCoachesAsync(
         ClientProfile profile, Guid clientUserId, List<string> changedFields, CancellationToken ct)
@@ -183,7 +183,7 @@ internal sealed class UpdateClientOnboardingAnswersEndpoint(
             .Select(u => u.FirstName + " " + u.LastName)
             .FirstAsync(ct);
 
-        foreach (var recipient in recipients.DistinctBy(r => r.UserId))
+        foreach (var recipient in recipients)
         {
             await notifications.CreateAsync(
                 recipient.UserId,
