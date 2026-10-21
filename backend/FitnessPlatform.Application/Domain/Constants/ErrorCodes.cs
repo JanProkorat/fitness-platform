@@ -559,4 +559,29 @@ public static class ErrorCodes
 
     /// <summary>A progress-photos rule's message is over the photo request's 500-character limit.</summary>
     public const string AutomationPhotoMessageTooLong = "AUTOMATION_PHOTO_MESSAGE_TOO_LONG";
+
+    // ── Coach payment settings (#1577) ──────────────────────────────────
+    /// <summary>The coach's subscription does not include the payments feature, or is not in good standing.</summary>
+    public const string PaymentsNotEntitled = "PAYMENTS_NOT_ENTITLED";
+
+    /// <summary>The IBAN is malformed or fails the mod-97 check.</summary>
+    public const string InvalidIban = "INVALID_IBAN";
+
+    /// <summary>The caller has a password but sent none; a bank account change needs it.</summary>
+    public const string ReauthPasswordRequired = "REAUTH_PASSWORD_REQUIRED";
+
+    /// <summary>The caller has no password and sent no emailed code; a bank account change needs it.</summary>
+    public const string ReauthCodeRequired = "REAUTH_CODE_REQUIRED";
+
+    /// <summary>The emailed code is wrong, expired, used up or locked after too many wrong attempts.</summary>
+    public const string ReauthCodeInvalid = "REAUTH_CODE_INVALID";
+
+    /// <summary>A code was requested by a caller who has a password and so does not use codes.</summary>
+    public const string ReauthCodeNotAvailable = "REAUTH_CODE_NOT_AVAILABLE";
+
+    /// <summary>The bank account undo token is unknown, expired or already used.</summary>
+    public const string BankAccountUndoInvalid = "BANK_ACCOUNT_UNDO_INVALID";
+
+    /// <summary>The bank account was changed again after the change being undone.</summary>
+    public const string BankAccountUndoSuperseded = "BANK_ACCOUNT_UNDO_SUPERSEDED";
 }

@@ -39,6 +39,9 @@ public class CreateSubscriptionPlanRequest
     /// <summary>Whether the plan allows per-client check-in configuration.</summary>
     public bool CanUsePerClientCheckInConfig { get; set; }
 
+    /// <summary>Whether the plan allows the payments feature. Defaults to false.</summary>
+    public bool CanUsePayments { get; set; }
+
     /// <summary>Maximum number of active clients allowed under this plan. Null means unlimited.</summary>
     public int? MaxActiveClients { get; set; }
 

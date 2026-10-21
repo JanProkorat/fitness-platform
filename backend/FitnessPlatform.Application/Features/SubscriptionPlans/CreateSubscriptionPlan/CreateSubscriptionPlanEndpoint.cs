@@ -64,6 +64,7 @@ internal sealed class CreateSubscriptionPlanEndpoint(IApplicationDbContext db)
             CanSendQuestionnaires = req.CanSendQuestionnaires,
             CanUseWeeklyCheckIns = req.CanUseWeeklyCheckIns,
             CanUsePerClientCheckInConfig = req.CanUsePerClientCheckInConfig,
+            CanUsePayments = req.CanUsePayments,
             MaxActiveClients = req.MaxActiveClients,
             PriceMinorUnits = req.PriceMinorUnits,
             Currency = req.Currency,

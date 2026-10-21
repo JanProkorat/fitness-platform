@@ -39,6 +39,9 @@ public class SubscriptionPlanDto
     /// <summary>Whether the plan allows per-client check-in configuration.</summary>
     public bool CanUsePerClientCheckInConfig { get; set; }
 
+    /// <summary>Whether the plan allows the payments feature.</summary>
+    public bool CanUsePayments { get; set; }
+
     /// <summary>Maximum number of active clients allowed under this plan. Null means unlimited.</summary>
     public int? MaxActiveClients { get; set; }
 
@@ -72,6 +75,7 @@ public class SubscriptionPlanDto
         CanSendQuestionnaires = plan.CanSendQuestionnaires,
         CanUseWeeklyCheckIns = plan.CanUseWeeklyCheckIns,
         CanUsePerClientCheckInConfig = plan.CanUsePerClientCheckInConfig,
+        CanUsePayments = plan.CanUsePayments,
         MaxActiveClients = plan.MaxActiveClients,
         PriceMinorUnits = plan.PriceMinorUnits,
         Currency = plan.Currency,

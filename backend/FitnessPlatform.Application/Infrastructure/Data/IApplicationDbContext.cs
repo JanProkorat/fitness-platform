@@ -220,6 +220,21 @@ public interface IApplicationDbContext
     DbSet<AutomationRun> AutomationRuns { get; set; }
 
     /// <summary>
+    /// Coach payment settings (bank account and payment request defaults), one row per professional.
+    /// </summary>
+    DbSet<CoachPaymentSettings> CoachPaymentSettings { get; set; }
+
+    /// <summary>
+    /// History of bank account changes, carrying the data needed to undo one.
+    /// </summary>
+    DbSet<CoachBankAccountChange> CoachBankAccountChanges { get; set; }
+
+    /// <summary>
+    /// Emailed one-time codes that re-authenticate a coach without a password.
+    /// </summary>
+    DbSet<CoachReauthCode> CoachReauthCodes { get; set; }
+
+    /// <summary>
     /// Saves all changes made in this context to the database.
     /// </summary>
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);

@@ -75,6 +75,8 @@ public static class TestActors
 public sealed class ActorBuilder(FitnessApiFactory factory, UserRole[] roles)
 {
     private string _email = $"{Guid.NewGuid():N}@actor-fixture.com";
+    private string? _password;
+    private string? _language;
     private string _firstName = "Test";
     private string _lastName = "Actor";
     private UserRole[] _removedRoles = [];
@@ -85,6 +87,16 @@ public sealed class ActorBuilder(FitnessApiFactory factory, UserRole[] roles)
     /// Overrides the generated email (default is a random, always-unique fixture address).
     /// </summary>
     public ActorBuilder WithEmail(string email) { _email = email; return this; }
+
+    /// <summary>
+    /// Gives the actor a password (the default is none, like a social-sign-in account).
+    /// </summary>
+    public ActorBuilder WithPassword(string password) { _password = password; return this; }
+
+    /// <summary>
+    /// Sets the actor's UI language (the default is unset).
+    /// </summary>
+    public ActorBuilder WithLanguage(string language) { _language = language; return this; }
 
     /// <summary>
     /// Marks the actor's email as verified (the default is unverified).
@@ -134,7 +146,11 @@ public sealed class ActorBuilder(FitnessApiFactory factory, UserRole[] roles)
             .WithDateCreated(_dateCreated ?? DateTime.UtcNow)
             .Build();
 
-        var createResult = await userManager.CreateAsync(user);
+        user.Language = _language;
+
+        var createResult = _password is null
+            ? await userManager.CreateAsync(user)
+            : await userManager.CreateAsync(user, _password);
         createResult.Succeeded.Should().BeTrue(
             $"actor creation failed: {string.Join(", ", createResult.Errors.Select(e => e.Description))}");
 

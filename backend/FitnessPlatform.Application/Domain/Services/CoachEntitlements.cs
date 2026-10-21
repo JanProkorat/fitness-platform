@@ -11,6 +11,7 @@ namespace FitnessPlatform.Application.Domain.Services;
 /// <param name="CanSendQuestionnaires">Whether the subscription allows sending questionnaires.</param>
 /// <param name="CanUseWeeklyCheckIns">Whether the subscription allows using weekly check-ins.</param>
 /// <param name="CanUsePerClientCheckInConfig">Whether the subscription allows per-client check-in configuration.</param>
+/// <param name="CanUsePayments">Whether the subscription allows the payments feature.</param>
 /// <param name="MaxActiveClients">Maximum number of active clients the subscription allows. Null means unlimited.</param>
 public readonly record struct CoachEntitlements(
     bool CanCreatePlans,
@@ -18,6 +19,7 @@ public readonly record struct CoachEntitlements(
     bool CanSendQuestionnaires,
     bool CanUseWeeklyCheckIns,
     bool CanUsePerClientCheckInConfig,
+    bool CanUsePayments,
     int? MaxActiveClients)
 {
     /// <summary>
@@ -31,6 +33,7 @@ public readonly record struct CoachEntitlements(
         CanSendQuestionnaires: true,
         CanUseWeeklyCheckIns: true,
         CanUsePerClientCheckInConfig: true,
+        CanUsePayments: true,
         MaxActiveClients: null);
 
     /// <summary>
@@ -43,5 +46,6 @@ public readonly record struct CoachEntitlements(
         CanSendQuestionnaires: false,
         CanUseWeeklyCheckIns: false,
         CanUsePerClientCheckInConfig: false,
+        CanUsePayments: false,
         MaxActiveClients: 0);
 }
