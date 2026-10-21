@@ -189,7 +189,7 @@ public class StartConversationEndpoint(
             LastMessage = conversation.LastMessageText ?? "",
             LastMessageAt = conversation.LastMessageAt ?? conversation.DateCreated,
             LastMessageIsOwn = conversation.LastMessageSenderId == callerUserId,
-            UnreadCount = conversation.Messages.Count(m => !m.IsRead && m.SenderUserId != callerUserId),
+            UnreadCount = conversation.Messages.Count(m => !m.IsRead && m.SenderUserId != callerUserId && m.Kind != ChatMessageKind.Event),
             LastMessageHasImage = conversation.LastMessageHasImage,
             LastMessageEventType = conversation.LastMessageEventType,
             IsSendLocked = isSendLocked,

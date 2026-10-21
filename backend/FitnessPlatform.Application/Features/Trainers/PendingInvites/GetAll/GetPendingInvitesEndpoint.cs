@@ -1,6 +1,8 @@
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,7 +12,8 @@ namespace FitnessPlatform.Application.Features.Trainers.PendingInvites.GetAll;
 /// Endpoint for retrieving pending invitations for the authenticated professional.
 /// </summary>
 /// <param name="db">Database context.</param>
-public class GetPendingInvitesEndpoint(IApplicationDbContext db) : EndpointWithoutRequest<GetPendingInvitesResponse>
+/// <param name="timeProvider">Clock used to derive invite expiry.</param>
+public class GetPendingInvitesEndpoint(IApplicationDbContext db, TimeProvider timeProvider) : EndpointWithoutRequest<GetPendingInvitesResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -48,7 +51,8 @@ public class GetPendingInvitesEndpoint(IApplicationDbContext db) : EndpointWitho
         var invites = await db.PendingInvites
             .AsNoTracking()
             .Include(pi => pi.Questionnaire)
-            .Where(pi => pi.ProfessionalProfileId == professionalProfile.Id && !pi.IsAccepted)
+            .Where(pi => pi.ProfessionalProfileId == professionalProfile.Id
+                         && pi.Status == PendingInviteStatus.Pending)
             .OrderByDescending(pi => pi.SentAt)
             .Select(pi => new PendingInviteDto
             {
@@ -57,11 +61,18 @@ public class GetPendingInvitesEndpoint(IApplicationDbContext db) : EndpointWitho
                 Email = pi.Email,
                 Message = pi.Message,
                 SentAt = pi.SentAt,
-                IsAccepted = pi.IsAccepted,
                 QuestionnairePublicId = pi.Questionnaire != null ? pi.Questionnaire.PublicId : null,
                 QuestionnaireTitle = pi.Questionnaire != null ? pi.Questionnaire.Title : null
             })
             .ToListAsync(ct);
+
+        var now = timeProvider.GetUtcNow().UtcDateTime;
+
+        foreach (var invite in invites)
+        {
+            invite.Status = PendingInviteStatusResolver.Resolve(PendingInviteStatus.Pending, invite.SentAt, now);
+            invite.IsAccepted = invite.Status == PendingInviteStatus.Accepted;
+        }
 
         await Send.OkAsync(new GetPendingInvitesResponse
         {

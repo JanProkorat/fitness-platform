@@ -2298,245 +2298,13 @@
    "x": 0,
    "y": 964
   },
-  "LogoPixel.dc.html": {
-   "h": 760,
-   "page": "logo",
-   "title": "Tile F",
-   "w": 600,
-   "x": 0,
-   "y": 0
-  },
-  "LogoPlates.dc.html": {
-   "h": 760,
-   "page": "logo",
-   "title": "Loaded bar",
-   "w": 600,
-   "x": 680,
-   "y": 0
-  },
-  "LogoFanWarm.dc.html": {
-   "h": 760,
-   "page": "logo",
-   "title": "Fan F · warm",
-   "w": 600,
-   "x": 0,
-   "y": 1180
-  },
-  "LogoFanRoles.dc.html": {
-   "h": 760,
-   "page": "logo",
-   "title": "Fan F · three roles",
-   "w": 600,
-   "x": 680,
-   "y": 1180
-  },
-  "LogoFanOpen.dc.html": {
-   "h": 760,
-   "page": "logo",
-   "title": "Fan F · opening",
-   "w": 600,
-   "x": 1360,
-   "y": 1180
-  },
-  "LogoMinDotF.dc.html": {
-   "h": 760,
-   "page": "logo",
-   "title": "Dot F",
-   "w": 600,
-   "x": 0,
-   "y": 2360
-  },
-  "LogoMinShelter.dc.html": {
-   "h": 760,
-   "page": "logo",
-   "title": "Under one arm",
-   "w": 600,
-   "x": 680,
-   "y": 2360
-  },
-  "LogoMinUpturn.dc.html": {
-   "h": 760,
-   "page": "logo",
-   "title": "U-turn up",
-   "w": 600,
-   "x": 1360,
-   "y": 2360
-  },
-  "LogoMinRing.dc.html": {
-   "h": 760,
-   "page": "logo",
-   "title": "Progress o",
-   "w": 600,
-   "x": 2040,
-   "y": 2360
-  },
-  "LogoMinFU.dc.html": {
-   "h": 760,
-   "page": "logo",
-   "title": "fu link",
-   "w": 600,
-   "x": 2720,
-   "y": 2360
-  },
-  "LogoCursiveScript.dc.html": {
-   "h": 760,
-   "page": "logo",
-   "title": "Script f",
-   "w": 600,
-   "x": 0,
-   "y": 3540
-  },
-  "LogoCursiveSwash.dc.html": {
-   "h": 760,
-   "page": "logo",
-   "title": "Swash f",
-   "w": 600,
-   "x": 680,
-   "y": 3540
-  },
-  "LogoCursiveFU.dc.html": {
-   "h": 760,
-   "page": "logo",
-   "title": "Script fu",
-   "w": 600,
-   "x": 1360,
-   "y": 3540
-  },
-  "LogoCursiveLooped.dc.html": {
-   "h": 760,
-   "page": "logo",
-   "title": "Looped f",
-   "w": 600,
-   "x": 2040,
-   "y": 3540
-  },
-  "LogoCapsuleItalic.dc.html": {
-   "h": 760,
-   "page": "logo",
-   "title": "Capsule F · italic",
-   "w": 600,
-   "x": 0,
-   "y": 4720
-  },
-  "LogoCapsuleDotF.dc.html": {
-   "h": 760,
-   "page": "logo",
-   "title": "Capsule F · dot",
-   "w": 600,
-   "x": 680,
-   "y": 4720
-  },
-  "LogoCapsuleRising.dc.html": {
-   "h": 760,
-   "page": "logo",
-   "title": "Rising capsules",
-   "w": 600,
-   "x": 1360,
-   "y": 4720
-  },
-  "LogoRingWave.dc.html": {
-   "h": 760,
-   "page": "logo",
-   "title": "Ring · wave to arrow",
-   "w": 600,
-   "x": 0,
-   "y": 5900
-  },
-  "LogoRingGrowth.dc.html": {
-   "h": 760,
-   "page": "logo",
-   "title": "Ring · growth curve",
-   "w": 600,
-   "x": 680,
-   "y": 5900
-  },
-  "LogoRingScript.dc.html": {
-   "h": 760,
-   "page": "logo",
-   "title": "Ring · script f",
-   "w": 600,
-   "x": 1360,
-   "y": 5900
-  },
-  "LogoRingUturn.dc.html": {
-   "h": 760,
-   "page": "logo",
-   "title": "Ring · u-turn up",
-   "w": 600,
-   "x": 2040,
-   "y": 5900
-  },
-  "LogoRingSteps.dc.html": {
-   "h": 760,
-   "page": "logo",
-   "title": "Ring · steps up",
-   "w": 600,
-   "x": 2720,
-   "y": 5900
-  },
-  "LogoCapsuleCascade.dc.html": {
-   "h": 760,
-   "page": "logo",
-   "title": "Rising capsules · F cascade",
-   "w": 600,
-   "x": 2040,
-   "y": 4720
-  },
-  "LogoCapsuleCascade3.dc.html": {
-   "h": 760,
-   "page": "logo",
-   "title": "Rising capsules · F in three",
-   "w": 600,
-   "x": 2720,
-   "y": 4720
-  },
-  "LogoCapsuleStemRise.dc.html": {
-   "h": 760,
-   "page": "logo",
-   "title": "Rising capsules · stem rise",
-   "w": 600,
-   "x": 3400,
-   "y": 4720
-  },
-  "LogoPlansOverlap.dc.html": {
-   "h": 760,
-   "page": "logo",
-   "title": "Two plans · overlap",
-   "w": 600,
-   "x": 0,
-   "y": 7080
-  },
-  "LogoPlansZipper.dc.html": {
-   "h": 760,
-   "page": "logo",
-   "title": "Two plans · woven",
-   "w": 600,
-   "x": 680,
-   "y": 7080
-  },
-  "LogoPlansCheckF.dc.html": {
-   "h": 760,
-   "page": "logo",
-   "title": "Two plans · checklist F",
-   "w": 600,
-   "x": 1360,
-   "y": 7080
-  },
-  "LogoPlansBooklet.dc.html": {
-   "h": 760,
-   "page": "logo",
-   "title": "Two plans · one booklet",
-   "w": 600,
-   "x": 2040,
-   "y": 7080
-  },
   "LogoComboCascadeCheck.dc.html": {
    "h": 760,
    "page": "logo",
    "title": "Combo 1 · cascade with checkboxes",
    "w": 600,
    "x": 0,
-   "y": 8260
+   "y": 0
   },
   "LogoComboFree.dc.html": {
    "h": 760,
@@ -2544,7 +2312,7 @@
    "title": "Combo 2 · free checklist in tones",
    "w": 600,
    "x": 680,
-   "y": 8260
+   "y": 0
   },
   "LogoComboProgress.dc.html": {
    "h": 760,
@@ -2552,7 +2320,7 @@
    "title": "Combo 3 · checklist in progress",
    "w": 600,
    "x": 1360,
-   "y": 8260
+   "y": 0
   },
   "LogoComboStack.dc.html": {
    "h": 760,
@@ -2560,7 +2328,7 @@
    "title": "Combo 4 · stacked plan cards",
    "w": 600,
    "x": 2040,
-   "y": 8260
+   "y": 0
   },
   "LogoComboDeepCard.dc.html": {
    "h": 760,
@@ -2568,7 +2336,7 @@
    "title": "Combo 5 · deep card, tonal rows",
    "w": 600,
    "x": 2720,
-   "y": 8260
+   "y": 0
   },
   "LogoWordmarkTest.dc.html": {
    "h": 1260,
@@ -2576,7 +2344,7 @@
    "title": "Wordmark test",
    "w": 1440,
    "x": 0,
-   "y": 9440
+   "y": 1180
   },
   "LogoLaunchCascadeCheckLight.dc.html": {
    "h": 844,
@@ -2584,7 +2352,7 @@
    "title": "Combo 1 · cascade · light",
    "w": 390,
    "x": 0,
-   "y": 11120
+   "y": 2860
   },
   "LogoLaunchCascadeCheckDark.dc.html": {
    "h": 844,
@@ -2592,7 +2360,7 @@
    "title": "Combo 1 · cascade · dark",
    "w": 390,
    "x": 0,
-   "y": 12084
+   "y": 3824
   },
   "LogoLaunchFreeLight.dc.html": {
    "h": 844,
@@ -2600,7 +2368,7 @@
    "title": "Combo 2 · free checklist · light",
    "w": 390,
    "x": 470,
-   "y": 11120
+   "y": 2860
   },
   "LogoLaunchFreeDark.dc.html": {
    "h": 844,
@@ -2608,7 +2376,7 @@
    "title": "Combo 2 · free checklist · dark",
    "w": 390,
    "x": 470,
-   "y": 12084
+   "y": 3824
   },
   "LogoLaunchProgressLight.dc.html": {
    "h": 844,
@@ -2616,7 +2384,7 @@
    "title": "Combo 3 · progress · light",
    "w": 390,
    "x": 940,
-   "y": 11120
+   "y": 2860
   },
   "LogoLaunchProgressDark.dc.html": {
    "h": 844,
@@ -2624,7 +2392,7 @@
    "title": "Combo 3 · progress · dark",
    "w": 390,
    "x": 940,
-   "y": 12084
+   "y": 3824
   },
   "LogoLaunchStackLight.dc.html": {
    "h": 844,
@@ -2632,7 +2400,7 @@
    "title": "Combo 4 · stacked cards · light",
    "w": 390,
    "x": 1410,
-   "y": 11120
+   "y": 2860
   },
   "LogoLaunchStackDark.dc.html": {
    "h": 844,
@@ -2640,7 +2408,7 @@
    "title": "Combo 4 · stacked cards · dark",
    "w": 390,
    "x": 1410,
-   "y": 12084
+   "y": 3824
   },
   "LogoLaunchDeepCardLight.dc.html": {
    "h": 844,
@@ -2648,7 +2416,7 @@
    "title": "Combo 5 · deep card · light",
    "w": 390,
    "x": 1880,
-   "y": 11120
+   "y": 2860
   },
   "LogoLaunchDeepCardDark.dc.html": {
    "h": 844,
@@ -2656,7 +2424,7 @@
    "title": "Combo 5 · deep card · dark",
    "w": 390,
    "x": 1880,
-   "y": 12084
+   "y": 3824
   },
   "EmailVerifyC.dc.html": {
    "x": 0,
@@ -3057,6 +2825,174 @@
    "h": 1000,
    "page": "web",
    "title": "D · Automations · Edit rule · event"
+  },
+  "LogoAppIcon.dc.html": {
+   "x": 3400,
+   "y": 0,
+   "w": 600,
+   "h": 760,
+   "page": "logo",
+   "title": "App icon · Combo 5 card, app mark inside"
+  },
+  "GlassNotificationsInviteLight.dc.html": {
+   "x": 7990,
+   "y": 0,
+   "w": 390,
+   "h": 844,
+   "page": "glass",
+   "title": "NotificationsInvite · light"
+  },
+  "GlassNotificationsInviteDark.dc.html": {
+   "x": 7990,
+   "y": 964,
+   "w": 390,
+   "h": 844,
+   "page": "glass",
+   "title": "NotificationsInvite · dark"
+  },
+  "GlassMessagesListInviteLight.dc.html": {
+   "x": 940,
+   "y": 11140,
+   "w": 390,
+   "h": 844,
+   "page": "glass",
+   "title": "MessagesList · new invite · light"
+  },
+  "GlassMessagesListInviteDark.dc.html": {
+   "x": 940,
+   "y": 12104,
+   "w": 390,
+   "h": 844,
+   "page": "glass",
+   "title": "MessagesList · new invite · dark"
+  },
+  "GlassChatInviteLight.dc.html": {
+   "x": 1410,
+   "y": 11140,
+   "w": 390,
+   "h": 844,
+   "page": "glass",
+   "title": "ChatInvite · light"
+  },
+  "GlassChatInviteDark.dc.html": {
+   "x": 1410,
+   "y": 12104,
+   "w": 390,
+   "h": 844,
+   "page": "glass",
+   "title": "ChatInvite · dark"
+  },
+  "PageClientsPendingC.dc.html": {
+   "x": 27360,
+   "y": 14040,
+   "w": 1440,
+   "h": 900,
+   "page": "web",
+   "title": "C · Clients — Pending"
+  },
+  "PageClientsPendingD.dc.html": {
+   "x": 27360,
+   "y": 15540,
+   "w": 1440,
+   "h": 900,
+   "page": "web",
+   "title": "D · Clients — Pending"
+  },
+  "PageInboxRequestC.dc.html": {
+   "x": 1520,
+   "y": 17420,
+   "w": 1440,
+   "h": 900,
+   "page": "web",
+   "title": "C · Inbox — new request"
+  },
+  "PageInboxRequestD.dc.html": {
+   "x": 1520,
+   "y": 18440,
+   "w": 1440,
+   "h": 900,
+   "page": "web",
+   "title": "D · Inbox — new request"
+  },
+  "PageNotificationsPopoverC.dc.html": {
+   "x": 3040,
+   "y": 17420,
+   "w": 860,
+   "h": 600,
+   "page": "web",
+   "title": "C · Notifications (popover)"
+  },
+  "PageNotificationsPopoverD.dc.html": {
+   "x": 3040,
+   "y": 18440,
+   "w": 860,
+   "h": 600,
+   "page": "web",
+   "title": "D · Notifications (popover)"
+  },
+  "GlassChatInviteStatesLight.dc.html": {
+   "x": 1880,
+   "y": 11140,
+   "w": 390,
+   "h": 844,
+   "page": "glass",
+   "title": "ChatInvite states · light"
+  },
+  "GlassChatInviteStatesDark.dc.html": {
+   "x": 1880,
+   "y": 12104,
+   "w": 390,
+   "h": 844,
+   "page": "glass",
+   "title": "ChatInvite states · dark"
+  },
+  "GlassInviteDetailLight.dc.html": {
+   "x": 8460,
+   "y": 0,
+   "w": 390,
+   "h": 844,
+   "page": "glass",
+   "title": "InviteDetail · light"
+  },
+  "GlassInviteDetailDark.dc.html": {
+   "x": 8460,
+   "y": 964,
+   "w": 390,
+   "h": 844,
+   "page": "glass",
+   "title": "InviteDetail · dark"
+  },
+  "PageInboxInviteC.dc.html": {
+   "x": 3980,
+   "y": 17420,
+   "w": 1440,
+   "h": 900,
+   "page": "web",
+   "title": "C · Inbox — coach invite"
+  },
+  "PageInboxInviteD.dc.html": {
+   "x": 3980,
+   "y": 18440,
+   "w": 1440,
+   "h": 900,
+   "page": "web",
+   "title": "D · Inbox — coach invite"
+  },
+  "PageInboxInviteStatesC.dc.html": {
+   "x": 5500,
+   "y": 17420,
+   "w": 860,
+   "h": 600,
+   "page": "web",
+   "title": "C · Coach invite card states"
+  },
+  "PageInboxInviteStatesD.dc.html": {
+   "x": 5500,
+   "y": 18440,
+   "w": 860,
+   "h": 600,
+   "page": "web",
+   "title": "D · Coach invite card states"
   }
  },
  "createdOnFiles": {
@@ -3135,7 +3071,7 @@
    "kind": "title1",
    "maxW": 860,
    "page": "glass",
-   "text": "Messages  ·  light above, dark below",
+   "text": "Messages — list, chat, new invite  ·  light above, dark below",
    "w": 240,
    "x": 0,
    "y": 10840
@@ -3234,7 +3170,7 @@
    "kind": "title1",
    "maxW": 1440,
    "page": "web",
-   "text": "Inbox  ·  light above, dark below",
+   "text": "Inbox — conversations, new client request, notifications popover  ·  light above, dark below",
    "w": 240,
    "x": 0,
    "y": 17120
@@ -3302,77 +3238,14 @@
    "x": 0,
    "y": 39560
   },
-  "logoRound7": {
-   "kind": "title1",
-   "maxW": 1280,
-   "page": "logo",
-   "text": "Abstract F marks, animated: Tile F and Loaded bar  ·  icon on white, red and dark, plus 48 and 24 px",
-   "w": 240,
-   "x": 0,
-   "y": -300
-  },
-  "logoFan": {
-   "kind": "title1",
-   "maxW": 1960,
-   "page": "logo",
-   "text": "Fanned sheets forming an F — after your reference",
-   "w": 240,
-   "x": 0,
-   "y": 880
-  },
-  "logoMinimal": {
-   "kind": "title1",
-   "maxW": 3320,
-   "page": "logo",
-   "text": "Minimal — one colour, round strokes, one hidden idea (after your references)",
-   "w": 240,
-   "x": 0,
-   "y": 2060
-  },
-  "logoCursive": {
-   "kind": "title1",
-   "maxW": 2640,
-   "page": "logo",
-   "text": "Cursive f — one heavy round stroke, crossing lines, a flourish",
-   "w": 240,
-   "x": 0,
-   "y": 3240
-  },
-  "logoCapsule": {
-   "kind": "title1",
-   "maxW": 4000,
-   "page": "logo",
-   "text": "Layered capsules — tonal depth, red and grey (after your reference)",
-   "w": 240,
-   "x": 0,
-   "y": 4420
-  },
-  "logoRing": {
-   "kind": "title1",
-   "maxW": 3320,
-   "page": "logo",
-   "text": "Open ring — one line inside turns into something and rises out of the gap",
-   "w": 240,
-   "x": 0,
-   "y": 5600
-  },
-  "logoPlans": {
-   "kind": "title1",
-   "maxW": 2640,
-   "page": "logo",
-   "text": "Two plans, one — training and nutrition combined (content from your reference)",
-   "w": 240,
-   "x": 0,
-   "y": 6780
-  },
   "logoCombo": {
    "kind": "title1",
-   "maxW": 3320,
+   "maxW": 4000,
    "page": "logo",
    "text": "Checklist F × cascade colours — five combinations",
    "w": 240,
    "x": 0,
-   "y": 7960
+   "y": -300
   },
   "logoWordmark": {
    "kind": "title1",
@@ -3381,7 +3254,7 @@
    "text": "The five combinations with the FORM UP wordmark",
    "w": 240,
    "x": 0,
-   "y": 9140
+   "y": 880
   },
   "logoLaunchCombos": {
    "kind": "title1",
@@ -3390,7 +3263,7 @@
    "text": "Launch screens — the mark in place of the F  ·  light above, dark below",
    "w": 240,
    "x": 0,
-   "y": 10820
+   "y": 2560
   },
   "emailRow1": {
    "x": 0,
@@ -3753,40 +3626,12 @@
   "GlassRegisterChangeEmailDark.dc.html",
   "GlassLaunchQuietLight.dc.html",
   "GlassLaunchQuietDark.dc.html",
-  "LogoPixel.dc.html",
-  "LogoPlates.dc.html",
-  "LogoFanWarm.dc.html",
-  "LogoFanRoles.dc.html",
-  "LogoFanOpen.dc.html",
-  "LogoMinDotF.dc.html",
-  "LogoMinShelter.dc.html",
-  "LogoMinUpturn.dc.html",
-  "LogoMinRing.dc.html",
-  "LogoMinFU.dc.html",
-  "LogoCursiveScript.dc.html",
-  "LogoCursiveSwash.dc.html",
-  "LogoCursiveFU.dc.html",
-  "LogoCursiveLooped.dc.html",
-  "LogoCapsuleItalic.dc.html",
-  "LogoCapsuleDotF.dc.html",
-  "LogoCapsuleRising.dc.html",
-  "LogoRingWave.dc.html",
-  "LogoRingGrowth.dc.html",
-  "LogoRingScript.dc.html",
-  "LogoRingUturn.dc.html",
-  "LogoRingSteps.dc.html",
-  "LogoCapsuleCascade.dc.html",
-  "LogoCapsuleCascade3.dc.html",
-  "LogoCapsuleStemRise.dc.html",
-  "LogoPlansOverlap.dc.html",
-  "LogoPlansZipper.dc.html",
-  "LogoPlansCheckF.dc.html",
-  "LogoPlansBooklet.dc.html",
   "LogoComboCascadeCheck.dc.html",
   "LogoComboFree.dc.html",
   "LogoComboProgress.dc.html",
   "LogoComboStack.dc.html",
   "LogoComboDeepCard.dc.html",
+  "LogoAppIcon.dc.html",
   "LogoWordmarkTest.dc.html",
   "LogoLaunchCascadeCheckLight.dc.html",
   "LogoLaunchCascadeCheckDark.dc.html",
@@ -3847,7 +3692,27 @@
   "EmailPaymentRequestC.dc.html",
   "EmailPaymentRequestD.dc.html",
   "PageAutomationRuleEventDrawerC.dc.html",
-  "PageAutomationRuleEventDrawerD.dc.html"
+  "PageAutomationRuleEventDrawerD.dc.html",
+  "GlassNotificationsInviteLight.dc.html",
+  "GlassNotificationsInviteDark.dc.html",
+  "GlassMessagesListInviteLight.dc.html",
+  "GlassMessagesListInviteDark.dc.html",
+  "GlassChatInviteLight.dc.html",
+  "GlassChatInviteDark.dc.html",
+  "PageClientsPendingC.dc.html",
+  "PageClientsPendingD.dc.html",
+  "PageInboxRequestC.dc.html",
+  "PageInboxRequestD.dc.html",
+  "PageNotificationsPopoverC.dc.html",
+  "PageNotificationsPopoverD.dc.html",
+  "GlassChatInviteStatesLight.dc.html",
+  "GlassChatInviteStatesDark.dc.html",
+  "GlassInviteDetailLight.dc.html",
+  "GlassInviteDetailDark.dc.html",
+  "PageInboxInviteC.dc.html",
+  "PageInboxInviteD.dc.html",
+  "PageInboxInviteStatesC.dc.html",
+  "PageInboxInviteStatesD.dc.html"
  ],
  "pages": [
   {

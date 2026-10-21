@@ -16,7 +16,8 @@ namespace FitnessPlatform.Application.Features.Messaging.GetConversationFilterCo
 /// Computed over the same live-roster population (clients with a conversation) and the same
 /// <see cref="ClientRosterFilterClassifier"/> facts <c>GetConversationsEndpoint</c>'s
 /// <c>filter</c> param uses (<see cref="ConversationRosterLoader"/>). The All count also includes
-/// conversations outside that roster, matching the All list. Trainer/Nutritionist only; a Client
+/// conversations outside that roster, matching the All list. UnreadMessages also counts pre-link
+/// conversations (no link yet, not former). Trainer/Nutritionist only; a Client
 /// caller has no roster to classify.
 /// </remarks>
 /// <param name="db">Database context.</param>
@@ -38,6 +39,8 @@ public class GetConversationFilterCountsEndpoint(
             s.Description = "Returns the six inbox filter chip counts over the caller's live " +
                              "clients that already have a conversation (live links only, archived " +
                              "links excluded; clients with no conversation yet are not counted). " +
+                             "Unread messages also count conversations of clients with no link yet " +
+                             "(pending requests and invites). " +
                              "Independent of the archived display toggle.";
             s.Responses[StatusCodes.Status200OK] = "The six chip counts.";
             s.Responses[StatusCodes.Status401Unauthorized] = "No caller claim on the request.";
@@ -76,6 +79,11 @@ public class GetConversationFilterCountsEndpoint(
             .Where(c => c.ProfessionalUserId == userGuid && !liveClientIds.Contains(c.ClientUserId))
             .CountAsync(ct);
 
+        var preLinkUnreadCount = await PreLinkConversations
+            .WithUnreadMessages(db, userGuid)
+            .AsNoTracking()
+            .CountAsync(ct);
+
         var counts = ClientRosterFilterClassifier.ComputeCounts(
             roster,
             r => r.UnreadMessageCount > 0,
@@ -89,7 +97,7 @@ public class GetConversationFilterCountsEndpoint(
             // All also includes conversations for clients whose link has ended (and clients
             // otherwise absent from the live roster), matching GetConversationsEndpoint.
             All = counts.All + offRosterConversationCount,
-            UnreadMessages = counts.UnreadMessages,
+            UnreadMessages = counts.UnreadMessages + preLinkUnreadCount,
             NoMessages = counts.NoMessages,
             NewCheckIns = counts.NewCheckIns,
             MissingCheckIns = counts.MissingCheckIns,

@@ -74,23 +74,272 @@
       }
     }
   },
-  "showcase": {
-    "title": "Komponenty",
+  "tabs": {
+    "today": "Dnes",
+    "training": "Trénink",
+    "nutrition": "Výživa",
+    "messages": "Zprávy"
+  },
+  "today": {
+    "greeting": "Vítej, {{name}}",
+    "greetingAnonymous": "Vítej",
+    "linkedGreeting": "Ahoj, {{name}}",
+    "linkedGreetingAnonymous": "Ahoj",
+    "linkedBody": "Tvoji poradci jsou připraveni. Tady uvidíš svůj den.",
+    "notifications": "Upozornění",
+    "notificationsUnread": "Upozornění, nepřečtených: {{count}}",
+    "invitesTitle": "Pozvánky",
+    "findCoach": {
+      "title": "Najdi si poradce",
+      "subtitle": "Oni ti sestaví plán, ty ho tady plníš.",
+      "trainer": {
+        "title": "Trenér",
+        "hint": "Tréninky šité na míru tvému cíli"
+      },
+      "nutritionist": {
+        "title": "Nutriční poradce",
+        "hint": "Jídlo, které zapadne do tvého dne"
+      }
+    }
+  },
+  "invites": {
+    "invitedYou": "{{name}} tě zve",
+    "accept": "Přijmout",
+    "decline": "Odmítnout",
+    "acceptInvite": "Přijmout pozvánku",
+    "openHint": "Otevře pozvánku",
+    "roles": { "Trainer": "Trenér", "Nutritionist": "Nutriční poradce" },
+    "roleJoiner": " a ",
+    "time": {
+      "justNow": "Právě teď",
+      "minutes": "před {{count}} min",
+      "hours": "před {{count}} h",
+      "yesterday": "včera",
+      "days": "před {{count}} d"
+    },
+    "expiresIn_one": "Vyprší za {{count}} den",
+    "expiresIn_few": "Vyprší za {{count}} dny",
+    "expiresIn_many": "Vyprší za {{count}} dne",
+    "expiresIn_other": "Vyprší za {{count}} dnů",
+    "expiresToday": "Vyprší dnes",
+    "detail": {
+      "back": "Zpět",
+      "alsoOnline": "i online",
+      "invitedYouAt": "{{name}} tě zve · {{time}}",
+      "workingWith": "Spolupráce s {{name}}",
+      "offers": {
+        "training": "Osobní tréninkový plán",
+        "nutrition": "Osobní jídelníček",
+        "checkins": "Týdenní check-iny",
+        "chat": "Chat se svým poradcem"
+      },
+      "shareNote": "Přijetím sdílíš své odpovědi z úvodního dotazníku s osobou {{name}}."
+    },
+    "errors": {
+      "ok": "OK",
+      "expired": {
+        "title": "Pozvánka vypršela",
+        "body": "Tato pozvánka už neplatí. Požádej svého poradce o novou."
+      },
+      "unavailable": {
+        "title": "Pozvánka už není k dispozici",
+        "body": "Poradce ji zrušil, nebo už byla vyřízena."
+      },
+      "network": {
+        "title": "Bez připojení",
+        "body": "Server není dostupný. Zkontroluj připojení a zkus to znovu."
+      },
+      "generic": {
+        "title": "Něco se nepovedlo",
+        "body": "Na pozvánku se nepodařilo odpovědět. Zkus to prosím znovu."
+      }
+    }
+  },
+  "notifications": {
+    "title": "Upozornění",
+    "close": "Zavřít upozornění",
+    "markAllRead": "Označit vše jako přečtené",
+    "groupToday": "Dnes",
+    "groupEarlier": "Dříve",
+    "viewInvite": "Zobrazit pozvánku",
+    "unread": "Nepřečtené",
+    "unreadCount": "Nepřečtených: {{count}}",
+    "empty": "Vše je přečtené.",
+    "error": "Upozornění se nepodařilo načíst. Klepnutím to zkus znovu."
+  },
+  "push": {
+    "channelName": "Obecné"
+  },
+  "placeholder": {
+    "training": "Tady se objeví tvůj tréninkový plán.",
+    "nutrition": "Tady se objeví tvůj jídelníček.",
+    "messages": "Tady se objeví tvoje konverzace."
+  },
+  "messages": {
+    "compose": "Najít poradce",
+    "labels": { "invite": "Pozvánka", "requestSent": "Žádost odeslána" },
+    "roles": { "Trainer": "Trenér", "Nutritionist": "Nutriční poradce" },
+    "roleJoiner": " · ",
+    "pastCoaches": "Dřívější poradci",
+    "readOnly": "Jen pro čtení",
+    "readOnlyEnded": "Jen pro čtení · skončilo {{date}}",
+    "you": "Ty: {{text}}",
+    "photo": "Fotka",
+    "yesterday": "Včera",
+    "unreadCount": "Nepřečtených: {{count}}",
+    "openChat": "Otevřít chat s poradcem {{name}}",
+    "empty": {
+      "title": "Zatím žádné konverzace",
+      "body": "Až začneš s poradcem spolupracovat, objeví se tu váš chat."
+    },
+    "error": "Zprávy se nepodařilo načíst. Klepni a zkus to znovu.",
+    "eventPreview": {
+      "Invited": "Pozvánka",
+      "Requested": "Žádost odeslána",
+      "Accepted": "Přijato",
+      "Declined": "Odmítnuto",
+      "Withdrawn": "Staženo"
+    }
+  },
+  "chat": {
+    "back": "Zpět",
+    "composerPlaceholder": "Zpráva",
+    "send": "Odeslat zprávu",
+    "sendFailed": "Zprávu se nepodařilo odeslat. Zůstala v poli.",
+    "readOnly": "Tento chat je jen pro čtení.",
+    "locked": "Psát můžeš, jakmile se pozvánka přijme.",
+    "loadError": "Chat se nepodařilo načíst. Klepni a zkus to znovu.",
+    "empty": "Zatím žádné zprávy. Pozdrav.",
+    "notFound": {
+      "title": "Chat není dostupný",
+      "body": "Tato konverzace už neexistuje.",
+      "back": "Zpět na zprávy"
+    },
+    "dayToday": "Dnes {{time}}",
+    "dayYesterday": "Včera {{time}}",
     "card": {
-      "title": "Dnešní trénink",
-      "body": "Karta s textem od vašeho trenéra."
+      "invite": {
+        "title": "Spolupráce s poradcem {{name}}",
+        "labels": {
+          "Pending": "Pozvánka",
+          "Accepted": "Pozvánka přijata",
+          "Declined": "Pozvánka odmítnuta",
+          "Cancelled": "Pozvánka zrušena",
+          "Expired": "Pozvánka vypršela"
+        },
+        "details": {
+          "Accepted": "Začali jste spolupracovat",
+          "Declined": "Odmítl(a) jsi",
+          "Cancelled": "{{name}} pozvánku stáhl(a)",
+          "Expired": "Nikdo neodpověděl včas"
+        }
+      },
+      "request": {
+        "title": "Spolupráce s poradcem {{name}}",
+        "labels": {
+          "Pending": "Žádost odeslána",
+          "Accepted": "Žádost přijata",
+          "Declined": "Žádost odmítnuta",
+          "Cancelled": "Žádost stažena",
+          "Expired": "Žádost vypršela"
+        },
+        "details": {
+          "Pending": "Čeká se na odpověď poradce {{name}}",
+          "Accepted": "{{name}} žádost přijal(a)",
+          "Declined": "{{name}} žádost odmítl(a)",
+          "Cancelled": "Žádost jsi stáhl(a)",
+          "Expired": "Nikdo neodpověděl včas"
+        }
+      },
+      "scope": {
+        "Both": "Trénink a výživa",
+        "TrainingOnly": "Trénink",
+        "NutritionOnly": "Výživa"
+      },
+      "expiresIn_one": "vyprší za {{count}} den",
+      "expiresIn_few": "vyprší za {{count}} dny",
+      "expiresIn_many": "vyprší za {{count}} dne",
+      "expiresIn_other": "vyprší za {{count}} dnů",
+      "expiresToday": "vyprší dnes"
+    }
+  },
+  "coachSearch": {
+    "title": {
+      "All": "Najdi si poradce",
+      "Trainer": "Najdi si trenéra",
+      "Nutritionist": "Najdi si nutričního poradce"
     },
-    "input": {
-      "label": "E-mail",
-      "placeholder": "jan@example.com"
+    "segmentsLabel": "Typ poradce",
+    "segments": {
+      "All": "Všichni",
+      "Trainer": "Trenéři",
+      "Nutritionist": "Poradci"
     },
-    "scrollHint": "Posuňte obsah pod plovoucí lištu, aby bylo vidět rozostření.",
-    "signOut": "Odhlásit se",
-    "tabs": {
-      "today": "Dnes",
-      "training": "Trénink",
-      "nutrition": "Výživa",
-      "messages": "Zprávy"
+    "roles": {
+      "Trainer": "Trenér",
+      "Nutritionist": "Nutriční poradce"
+    },
+    "filters": {
+      "online": "Online"
+    },
+    "online": "online",
+    "searchLabel": "Hledat podle jména",
+    "searchPlaceholder": "Jméno poradce",
+    "searchButton": "Hledat podle jména",
+    "takingClients": "Přijímá klienty",
+    "waitlist": "Čekací listina",
+    "empty": "Těmto filtrům nic neodpovídá.",
+    "retry": "Zkusit znovu",
+    "errors": {
+      "network": "Server je nedostupný. Zkontroluj připojení a zkus to znovu.",
+      "generic": "Poradce se nepodařilo načíst. Zkus to znovu."
+    }
+  },
+  "coachProfile": {
+    "alsoOnline": "i online",
+    "workingWith": "Spolupráce s {{name}}",
+    "workingWithRows": {
+      "Trainer": {
+        "plan": "Osobní tréninkový plán",
+        "checkIns": "Týdenní check-iny",
+        "chat": "Chat s tvým trenérem"
+      },
+      "Nutritionist": {
+        "plan": "Osobní jídelníček",
+        "checkIns": "Týdenní check-iny",
+        "chat": "Chat s tvým poradcem"
+      }
+    },
+    "sendRequest": "Odeslat žádost",
+    "pending": "Žádost čeká na vyřízení",
+    "linked": "Už spolu spolupracujete",
+    "retry": "Zkusit znovu",
+    "error": {
+      "title": "Profil se nepodařilo načíst",
+      "body": "Zkontroluj připojení a zkus to znovu."
+    },
+    "notFound": {
+      "title": "Poradce nenalezen",
+      "body": "Tento profil už není dostupný."
+    }
+  },
+  "requestSheet": {
+    "title": "Žádost pro {{name}}",
+    "subtitle": "Představ se v pár slovech.",
+    "cancel": "Zrušit",
+    "messageLabel": "Zpráva (nepovinné)",
+    "messagePlaceholder": "Napiš, na čem chceš pracovat",
+    "historyLabel": "Sdílet mou historii",
+    "historyHint": "Dřívější plány, měření a fotky z doby před spoluprací s poradcem {{name}}.",
+    "onboardingCaption": "Odpovědi z tvého úvodního dotazníku uvidí {{name}} a podle nich se připraví.",
+    "submit": "Odeslat žádost",
+    "errors": {
+      "notAccepting": "Tento poradce teď nepřijímá nové klienty.",
+      "alreadyPending": "Žádost tomuto poradci už byla odeslána.",
+      "alreadyLinked": "S tímto poradcem už spolupracuješ.",
+      "notFound": "Tento poradce už není dostupný.",
+      "network": "Server je nedostupný. Zpráva zůstala zachována, zkus to znovu.",
+      "generic": "Žádost se nepodařilo odeslat. Zkus to znovu."
     }
   },
   "common": {

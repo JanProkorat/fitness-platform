@@ -4038,9 +4038,9 @@ export class ApiClient {
     }
 
     /**
-     * Delete a pending invitation
+     * Cancel a pending invitation
      * @param id Public identifier of the pending invite to delete (bound from route).
-     * @return No Content
+     * @return Invitation cancelled
      */
     deletePendingInviteEndpoint(id: string, signal?: AbortSignal): Promise<void> {
         let url_ = this.baseUrl + "/trainer/pending-invites/{id}";
@@ -8360,9 +8360,10 @@ export class ApiClient {
      * @param specialization (optional) 
      * @param role (optional) 
      * @param search (optional) 
+     * @param online (optional) When set, only professionals whose online flag matches are returned.
      * @return Success
      */
-    searchProfessionalsEndpoint(page: number, pageSize: number, city?: string | null | undefined, specialization?: string | null | undefined, role?: string | null | undefined, search?: string | null | undefined, signal?: AbortSignal): Promise<SearchProfessionalsResponse> {
+    searchProfessionalsEndpoint(page: number, pageSize: number, city?: string | null | undefined, specialization?: string | null | undefined, role?: string | null | undefined, search?: string | null | undefined, online?: boolean | null | undefined, signal?: AbortSignal): Promise<SearchProfessionalsResponse> {
         let url_ = this.baseUrl + "/professionals/search?";
         if (page === undefined || page === null)
             throw new globalThis.Error("The parameter 'page' must be defined and cannot be null.");
@@ -8380,6 +8381,8 @@ export class ApiClient {
             url_ += "role=" + encodeURIComponent("" + role) + "&";
         if (search !== undefined && search !== null)
             url_ += "search=" + encodeURIComponent("" + search) + "&";
+        if (online !== undefined && online !== null)
+            url_ += "online=" + encodeURIComponent("" + online) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -14704,7 +14707,7 @@ export class ApiClient {
 
     /**
      * Send a client request
-     * @return Success
+     * @return Request sent
      */
     sendClientRequestEndpoint(sendClientRequestRequest: SendClientRequestRequest, signal?: AbortSignal): Promise<SendClientRequestResponse> {
         let url_ = this.baseUrl + "/client/requests";
@@ -14744,12 +14747,19 @@ export class ApiClient {
                 }
             }
         }
-        if (status === 200) {
+        if (status === 201) {
             const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<SendClientRequestResponse>(result200);
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = JSON.parse(resultData201);
+            return Promise.resolve<SendClientRequestResponse>(result201);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -16809,6 +16819,67 @@ export class ApiClient {
     }
 
     /**
+     * Remove push token
+     * @param token The Expo push token to remove, sent as a query parameter.
+     * @return Token removed or not present
+     */
+    removePushTokenEndpoint(token: string, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/client/push-token?";
+        if (token === undefined || token === null)
+            throw new globalThis.Error("The parameter 'token' must be defined and cannot be null.");
+        else
+            url_ += "token=" + encodeURIComponent("" + token) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "DELETE",
+            url: url_,
+            headers: {
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processRemovePushTokenEndpoint(_response);
+        });
+    }
+
+    protected processRemovePushTokenEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * Get weekly overview
      * @return Success
      */
@@ -17328,6 +17399,66 @@ export class ApiClient {
     }
 
     /**
+     * List pending invites
+     * @return Pending invitations (empty for a coaching account)
+     */
+    getClientInvitesEndpoint(signal?: AbortSignal): Promise<GetClientInvitesResponse> {
+        let url_ = this.baseUrl + "/client/invites";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetClientInvitesEndpoint(_response);
+        });
+    }
+
+    protected processGetClientInvitesEndpoint(response: AxiosResponse): Promise<GetClientInvitesResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GetClientInvitesResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GetClientInvitesResponse>(null as any);
+    }
+
+    /**
      * Decline a pending invite
      * @return No Content
      */
@@ -17622,7 +17753,7 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Invalid rule, or an audience sent for a client-only rule", status, _responseText, _headers, result400);
+            return throwException("Invalid rule, an audience sent for a client-only rule, or the questionnaire is inactive or a check-in form", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -18099,7 +18230,7 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Invalid rule", status, _responseText, _headers, result400);
+            return throwException("Invalid rule, or the questionnaire is inactive or a check-in form", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -18230,7 +18361,7 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Invalid rule", status, _responseText, _headers, result400);
+            return throwException("Invalid rule, or the questionnaire is inactive or a check-in form", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -18894,6 +19025,73 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<LoginResponse>(null as any);
+    }
+
+    /**
+     * Change the email of an unverified account
+     * @return Email changed, verification email sent
+     */
+    changeUnverifiedEmailEndpoint(changeUnverifiedEmailRequest: ChangeUnverifiedEmailRequest, signal?: AbortSignal): Promise<ChangeUnverifiedEmailResponse> {
+        let url_ = this.baseUrl + "/auth/email";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(changeUnverifiedEmailRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processChangeUnverifiedEmailEndpoint(_response);
+        });
+    }
+
+    protected processChangeUnverifiedEmailEndpoint(response: AxiosResponse): Promise<ChangeUnverifiedEmailResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<ChangeUnverifiedEmailResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid address, already verified, unchanged, in use, or resend limit reached", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ChangeUnverifiedEmailResponse>(null as any);
     }
 
     /**
@@ -20743,12 +20941,23 @@ Used to populate pendingInviteId on the photo-diary-request create form. */
     message?: string | undefined;
     /** Timestamp when the invitation was sent. */
     sentAt?: string;
-    /** Whether the invitation has been accepted. */
+    /** Effective status (Pending or Expired for the rows this list returns). */
+    status?: PendingInviteStatus;
+    /** Whether the invitation has been accepted. Derived from Status; kept for older clients. */
     isAccepted?: boolean;
     /** Public ID of the assigned questionnaire, if any. */
     questionnairePublicId?: string | undefined;
     /** Title of the assigned questionnaire, if any. */
     questionnaireTitle?: string | undefined;
+}
+
+/** Lifecycle state of a PendingInvite. Expired is derived on read (see PendingInviteStatusResolver) and is never stored. */
+export enum PendingInviteStatus {
+    Pending = "Pending",
+    Accepted = "Accepted",
+    Declined = "Declined",
+    Cancelled = "Cancelled",
+    Expired = "Expired",
 }
 
 /** Request model for deleting a pending invitation. */
@@ -20912,6 +21121,9 @@ Request. This is the id the row's action endpoint expects. */
     message?: string | undefined;
     /** When the invite was sent, or the request was submitted. */
     sentAt?: string;
+    /** Pending, or Expired for an
+invite past its validity window that has not been re-sent. Always Pending for requests. */
+    status?: PendingInviteStatus;
 }
 
 /** Discriminates a row on the trainer's Pending tab, which merges two otherwise-unrelated source tables: unaccepted PendingInvite rows and incoming ClientRequest rows. The client uses this to decide which action to offer (cancel an invite; accept or reject a request) and which existing endpoint to call with the row's PublicId. */
@@ -21475,6 +21687,16 @@ export interface IncomingClientRequestDto {
     clientEmail?: string;
     message?: string | undefined;
     sentAt?: string;
+    /** Public id of the requesting client's profile. */
+    clientPublicId?: string;
+    /** Client height in cm, as on the coach client dashboard. */
+    heightCm?: number | undefined;
+    /** Client weight in kg, as on the coach client dashboard. */
+    weightKg?: number | undefined;
+    /** Onboarding primary goal (enum name), null when onboarding is not done. */
+    primaryGoal?: string | undefined;
+    /** Activity level derived at onboarding (enum name), null when not available. */
+    derivedActivityLevel?: string | undefined;
 }
 
 /** Request model for accepting a client request. */
@@ -22759,6 +22981,8 @@ export interface ProfessionalSummaryDto {
     collaborationType?: string | undefined;
     languages?: string[];
     roles?: string[];
+    online?: boolean;
+    acceptNewClients?: boolean;
     avatarBlobUrl?: string | undefined;
 }
 
@@ -22782,6 +23006,8 @@ export interface GetPublicProfileResponse {
     roles?: string[];
     hasPendingRequest?: boolean;
     isLinked?: boolean;
+    online?: boolean;
+    acceptNewClients?: boolean;
     avatarBlobUrl?: string | undefined;
 }
 
@@ -23767,6 +23993,12 @@ row rather than plain text. Null when the last message is plain text. */
     lastMessageEventType?: ChatEventType | undefined;
     /** Whether the professional-client collaboration has ended. */
     isFormer?: boolean;
+    /** When the collaboration ended, for a former one. Null when it is not former or the end
+date is unknown. */
+    endedAt?: string | undefined;
+    /** The newest invite or client request between the two people. Null when there is none, or
+its source row no longer exists. */
+    cooperation?: ConversationCooperationDto | undefined;
     /** True exactly when sending in this thread would be refused for the caller with
 CONVERSATION_LOCKED (a professional in an invite-only thread). The web disables the
 composer on it. */
@@ -23791,6 +24023,9 @@ Null when neither has been uploaded. */
 professional (a professional-side conversation row has no client-profile identity to
 surface). Lets the inbox deep-link to /clients/:clientId without a second lookup. */
     clientPublicId?: string | undefined;
+    /** The participant's active coach roles (Trainer, Nutritionist), excluding a
+role marked removed. Empty for a client. */
+    roles?: string[];
 }
 
 /** The kind of professional-client cooperation event a ChatMessage with Event represents. The actor is the row's SenderUserId — no separate actor-name payload is stored. */
@@ -23800,6 +24035,41 @@ export enum ChatEventType {
     Accepted = "Accepted",
     Declined = "Declined",
     Withdrawn = "Withdrawn",
+}
+
+/** The newest invite or client request between the caller and the other participant. */
+export interface ConversationCooperationDto {
+    /** Invite (sent by a professional) or Request (sent by a client). */
+    type?: CooperationType;
+    /** Whether the caller sent it or received it. */
+    direction?: CooperationDirection;
+    /** Current status. A rejected request reads Declined; an invite past its validity reads Expired. */
+    status?: CooperationCardStatus;
+    /** Public id of the invite or request, the same value as a message's eventSourceId. */
+    sourceId?: string;
+    /** The scope an invite asked for, when set. Null for a request. */
+    requestedScope?: LinkCapabilityScope | undefined;
+}
+
+/** Which kind of cooperation proposal a conversation carries. */
+export enum CooperationType {
+    Invite = "Invite",
+    Request = "Request",
+}
+
+/** Whether the caller sent or received a cooperation proposal. */
+export enum CooperationDirection {
+    Sent = "Sent",
+    Received = "Received",
+}
+
+/** Current state of the invite or request a chat cooperation card refers to. */
+export enum CooperationCardStatus {
+    Pending = "Pending",
+    Accepted = "Accepted",
+    Declined = "Declined",
+    Cancelled = "Cancelled",
+    Expired = "Expired",
 }
 
 export interface StartConversationRequest {
@@ -23852,6 +24122,11 @@ export interface MessageDto {
     kind?: ChatMessageKind;
     /** The cooperation event type, when Kind is Event. */
     eventType?: ChatEventType | undefined;
+    /** Public id of the invite or request the event refers to, or null for a plain message. */
+    eventSourceId?: string | undefined;
+    /** Current status of the linked invite or request, for the chat card label. Null for a plain
+message, or when the event has no resolvable source. */
+    eventStatus?: CooperationCardStatus | undefined;
 }
 
 /** Discriminates a ChatMessage row between free-form text authored by a participant and a system-generated cooperation event (invite sent, request accepted, etc.) rendered inline in the same thread. */
@@ -25245,6 +25520,8 @@ export interface SendClientRequestRequest {
     professionalPublicId?: string;
     /** Optional message to include with the request. */
     message?: string | undefined;
+    /** Optional: whether the client agrees to share their history with the professional. Stored only; not enforced yet. */
+    shareHistory?: boolean;
 }
 
 /** Response model containing the client's sent requests. */
@@ -25899,6 +26176,10 @@ export interface RegisterPushTokenRequest {
     platform?: string;
 }
 
+/** Request for removing a push token. */
+export interface RemovePushTokenRequest {
+}
+
 /** Response model containing a client's weekly progress overview. */
 export interface GetWeeklyOverviewResponse {
     /** Monday of the current week. */
@@ -26011,6 +26292,8 @@ export interface MarkNotificationReadRequest {
 export interface GetNotificationsResponse {
     items?: NotificationDto[];
     cursor?: string | undefined;
+    /** Total number of unread notifications for the caller, independent of paging. */
+    unreadCount?: number;
 }
 
 export interface NotificationDto {
@@ -26034,6 +26317,32 @@ export interface PendingInviteResponse {
     trainerRole?: string;
     trainerCity?: string;
     message?: string | undefined;
+}
+
+/** The caller's pending invitations, newest first. */
+export interface GetClientInvitesResponse {
+    /** Pending, unexpired invitations addressed to the caller. */
+    items?: ClientInviteDto[];
+}
+
+/** One pending invitation from a professional. */
+export interface ClientInviteDto {
+    /** Public id of the invite. */
+    id?: string;
+    /** Public id of the inviting professional's profile. */
+    coachPublicId?: string;
+    /** Full name of the inviting professional. */
+    coachName?: string;
+    /** Roles the professional holds, joined for display (e.g. "Trainer & Nutritionist"). */
+    coachRole?: string;
+    /** City of the professional, or empty when unset. */
+    coachCity?: string;
+    /** Optional introduction message. */
+    message?: string | undefined;
+    /** When the invitation was sent (UTC). */
+    sentAt?: string;
+    /** When the invitation stops being answerable (UTC). */
+    expiresAt?: string;
 }
 
 export interface DeclineClientInviteRequest {
@@ -26571,6 +26880,20 @@ export interface LoginRequest {
     email: string;
     /** User's password. */
     password: string;
+}
+
+/** Result of changing the email address of an unverified account. */
+export interface ChangeUnverifiedEmailResponse {
+    /** The address the verification email was sent to. */
+    email?: string;
+    /** How many more verification emails can be requested for this account. */
+    remainingResends?: number;
+}
+
+/** Request for changing the email address of an unverified account. */
+export interface ChangeUnverifiedEmailRequest {
+    /** The corrected email address. */
+    newEmail: string;
 }
 
 /** Response model for an anonymous resend-verification request. Deliberately generic — the same message is returned regardless of whether the email is registered, already verified, or has hit its resend cap, so the response body never becomes an account-existence oracle. */

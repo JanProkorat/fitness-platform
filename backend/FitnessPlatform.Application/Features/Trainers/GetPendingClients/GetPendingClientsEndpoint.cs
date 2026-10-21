@@ -2,6 +2,7 @@ using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -29,7 +30,8 @@ namespace FitnessPlatform.Application.Features.Trainers.GetPendingClients;
 /// </para>
 /// </remarks>
 /// <param name="db">Database context.</param>
-public class GetPendingClientsEndpoint(IApplicationDbContext db) : EndpointWithoutRequest<GetPendingClientsResponse>
+/// <param name="timeProvider">Clock.</param>
+public class GetPendingClientsEndpoint(IApplicationDbContext db, TimeProvider timeProvider) : EndpointWithoutRequest<GetPendingClientsResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -69,9 +71,11 @@ public class GetPendingClientsEndpoint(IApplicationDbContext db) : EndpointWitho
             return;
         }
 
-        var invites = await db.PendingInvites
+        var now = timeProvider.GetUtcNow().UtcDateTime;
+
+        var storedInvites = await db.PendingInvites
             .AsNoTracking()
-            .Where(pi => pi.ProfessionalProfileId == professionalProfile.Id && !pi.IsAccepted)
+            .Where(pi => pi.ProfessionalProfileId == professionalProfile.Id && pi.Status == PendingInviteStatus.Pending)
             .Select(pi => new PendingClientRow
             {
                 Kind = PendingRowKind.Invite,
@@ -81,6 +85,14 @@ public class GetPendingClientsEndpoint(IApplicationDbContext db) : EndpointWitho
                 SentAt = pi.SentAt
             })
             .ToListAsync(ct);
+
+        // One row per email: a re-invite supersedes its expired predecessor (#1541). A lone
+        // expired invite stays listed, flagged Expired, so the coach can still cancel it.
+        var invites = PendingInviteStatusResolver.OnePerEmail(storedInvites, i => i.Email, i => i.SentAt, now);
+        foreach (var invite in invites)
+        {
+            invite.Status = PendingInviteStatusResolver.Resolve(PendingInviteStatus.Pending, invite.SentAt, now);
+        }
 
         var requests = await db.ClientRequests
             .AsNoTracking()

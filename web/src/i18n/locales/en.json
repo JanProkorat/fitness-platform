@@ -194,6 +194,7 @@
     "profile": "Profile",
     "clients": "Clients",
     "inbox": "Inbox",
+    "inboxUnread": "{{count}} unread messages",
     "ingredients": "Ingredients",
     "foods": "Foods",
     "plans": "Plans",
@@ -587,8 +588,11 @@
       "kindRequest": "Request received",
       "empty": "No pending invites or requests.",
       "accept": "Accept",
-      "reject": "Reject",
-      "cancel": "Cancel"
+      "reject": "Decline",
+      "cancel": "Cancel invite",
+      "columnMessage": "Message",
+      "newMarker": "New",
+      "waitingFor": "Waiting for {{name}} to accept"
     },
     "tags": {
       "createError": "Couldn't create the tag. Please try again.",
@@ -2573,6 +2577,7 @@
     "ALREADY_LINKED": "You are already linked with this professional.",
     "REQUEST_ALREADY_PENDING": "A request to this professional is already pending.",
     "PROFESSIONAL_NOT_ACCEPTING": "This professional is not accepting new clients.",
+    "PENDING_INVITE_NOT_CANCELLABLE": "This invitation can no longer be cancelled.",
     "CLIENT_REQUEST_NOT_FOUND": "Client request not found.",
     "REQUIRED": "This field is required.",
     "OUT_OF_RANGE": "Value is out of the allowed range.",
@@ -3330,7 +3335,11 @@
     "empty": "No notifications",
     "showAll": "Show all notifications",
     "showAllComingSoon": "Full notifications page coming soon",
-    "justNow": "Just now"
+    "justNow": "Just now",
+    "reviewInClients": "Review in Clients",
+    "markRead": "Mark as read",
+    "markAllReadShort": "Mark all read",
+    "unreadCount": "{{count}} unread"
   },
   "weeklyCheckIn": {
     "title": "Weekly check-ins",
@@ -4378,7 +4387,11 @@
     "row": {
       "yesterday": "Yesterday",
       "noConversationYet": "No messages yet — start the chat",
-      "unreadAriaLabel": "Unread"
+      "unreadAriaLabel": "Unread",
+      "chipRequest": "Request",
+      "chipInvite": "Invite",
+      "unreadCount_one": "{{count}} unread message",
+      "unreadCount_other": "{{count}} unread messages"
     },
     "noConversations": "No conversations found",
     "list": {
@@ -4408,6 +4421,27 @@
       "withdrawn": "The collaboration offer was withdrawn"
     },
     "panel": {
+      "loadError": "Couldn't load the details.",
+      "pendingChip": "Pending",
+      "pendingLine": "Not a client yet · accept the request to start coaching",
+      "invitedChip": "Invited",
+      "invitedLine": "Not a client yet · waiting for {{name}} to accept",
+      "notAClient": "Not a client",
+      "onboarding": {
+        "title": "Onboarding answers",
+        "today": "Today",
+        "goal": "Goal",
+        "height": "Height",
+        "weightKg": "{{kg}} kg",
+        "activity": "Activity",
+        "empty": "No onboarding answers yet."
+      },
+      "invite": {
+        "title": "Invite",
+        "email": "Email",
+        "sent": "Sent",
+        "expires": "Expires"
+      },
       "weightLabel": "Weight",
       "open": "Open",
       "mealPlan": {
@@ -4421,6 +4455,51 @@
         "exercises_other": "{{count}} exercises",
         "doneThisWeek_one": "Done this week · {{done}} of {{count}} session",
         "doneThisWeek_other": "Done this week · {{done}} of {{count}} sessions"
+      }
+    },
+    "card": {
+      "todayAt": "today {{time}}",
+      "service": {
+        "training": "Personal training",
+        "nutrition": "Nutrition coaching"
+      },
+      "request": {
+        "label": {
+          "pending": "Client request",
+          "accepted": "Request accepted",
+          "declined": "Request declined",
+          "cancelled": "Request cancelled"
+        },
+        "title": {
+          "training": "{{name}} wants to train with you",
+          "nutrition": "{{name}} wants nutrition coaching from you",
+          "both": "{{name}} wants to work with you"
+        },
+        "sent": "sent {{when}}",
+        "accept": "Accept",
+        "decline": "Decline",
+        "youAccepted": "You accepted",
+        "youDeclined": "You declined",
+        "clientCancelled": "{{name}} cancelled"
+      },
+      "invite": {
+        "label": {
+          "sent": "Invitation sent",
+          "accepted": "Invitation accepted",
+          "declined": "Invitation declined",
+          "cancelled": "Invitation cancelled",
+          "expired": "Invitation expired"
+        },
+        "sent": "Sent {{when}}",
+        "expiresIn_one": "expires in {{count}} day",
+        "expiresIn_other": "expires in {{count}} days",
+        "expiresToday": "expires today",
+        "cancel": "Cancel invite",
+        "accepted": "{{name}} accepted",
+        "declined": "{{name}} declined",
+        "youCancelled": "You cancelled",
+        "noAnswer_one": "No answer within {{count}} day",
+        "noAnswer_other": "No answer within {{count}} days"
       }
     },
     "typingIndicator": "Typing…",

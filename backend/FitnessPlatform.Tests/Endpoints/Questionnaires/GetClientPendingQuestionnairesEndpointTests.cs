@@ -99,7 +99,7 @@ public class GetClientPendingQuestionnairesEndpointTests(FitnessApiFactory facto
             ProfessionalProfileId = profProfile.Id,
             Email = inviteeEmail,
             SentAt = DateTime.UtcNow,
-            IsAccepted = false,
+            Status = PendingInviteStatus.Pending,
             PublicId = Guid.NewGuid(),
             DateCreated = DateTime.UtcNow,
         };

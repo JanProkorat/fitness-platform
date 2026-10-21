@@ -460,7 +460,7 @@ public class PendingInviteBuilder
     private long _professionalProfileId = 1;
     private string _email = "invited@test.com";
     private DateTime _sentAt = DateTime.UtcNow;
-    private bool _isAccepted;
+    private PendingInviteStatus _status = PendingInviteStatus.Pending;
     private LinkCapabilityScope? _requestedScope;
     private ProfessionalProfile? _professionalProfile;
 
@@ -482,7 +482,17 @@ public class PendingInviteBuilder
     /// <summary>
     /// Marks the invite as accepted.
     /// </summary>
-    public PendingInviteBuilder Accepted() { _isAccepted = true; return this; }
+    public PendingInviteBuilder Accepted() { _status = PendingInviteStatus.Accepted; return this; }
+
+    /// <summary>
+    /// Sets the stored status.
+    /// </summary>
+    public PendingInviteBuilder WithStatus(PendingInviteStatus status) { _status = status; return this; }
+
+    /// <summary>
+    /// Sets when the invite was sent.
+    /// </summary>
+    public PendingInviteBuilder WithSentAt(DateTime sentAt) { _sentAt = sentAt; return this; }
 
     /// <summary>
     /// Sets the ProfessionalProfile navigation property.
@@ -503,7 +513,7 @@ public class PendingInviteBuilder
         ProfessionalProfileId = _professionalProfileId,
         Email = _email,
         SentAt = _sentAt,
-        IsAccepted = _isAccepted,
+        Status = _status,
         RequestedScope = _requestedScope,
         ProfessionalProfile = _professionalProfile!
     };

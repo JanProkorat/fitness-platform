@@ -1238,6 +1238,10 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("sent_at");
 
+                    b.Property<bool>("ShareHistory")
+                        .HasColumnType("boolean")
+                        .HasColumnName("share_history");
+
                     b.Property<string>("Statement")
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)")
@@ -1787,10 +1791,6 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                         .HasColumnType("character varying(256)")
                         .HasColumnName("email");
 
-                    b.Property<bool>("IsAccepted")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_accepted");
-
                     b.Property<string>("Message")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)")
@@ -1815,6 +1815,10 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                     b.Property<DateTime>("SentAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("sent_at");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer")
+                        .HasColumnName("status");
 
                     b.HasKey("Id")
                         .HasName("pk_pending_invites");
@@ -2152,6 +2156,10 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                     b.Property<DateTime?>("NutritionistRoleRemovedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("nutritionist_role_removed_at");
+
+                    b.Property<bool>("Online")
+                        .HasColumnType("boolean")
+                        .HasColumnName("online");
 
                     b.Property<Guid>("PublicId")
                         .HasColumnType("uuid")

@@ -21,7 +21,8 @@ public class AcceptClientInviteEndpoint(
     INotificationService notificationService,
     IRealtimeNotifier notifier,
     IAuditService audit,
-    IConversationSeedService conversationSeedService)
+    IConversationSeedService conversationSeedService,
+    TimeProvider timeProvider)
     : Endpoint<AcceptClientInviteRequest>
 {
     public override void Configure()
@@ -62,12 +63,20 @@ public class AcceptClientInviteEndpoint(
 
         var invite = await db.PendingInvites
             .Include(pi => pi.ProfessionalProfile)
-            .FirstOrDefaultAsync(pi => pi.PublicId == req.Id && !pi.IsAccepted
+            .FirstOrDefaultAsync(pi => pi.PublicId == req.Id && pi.Status == PendingInviteStatus.Pending
                 && pi.Email.ToUpper() == normalizedEmail, ct);
 
         if (invite is null)
         {
             await Send.NotFoundAsync(ct);
+            return;
+        }
+
+        if (PendingInviteStatusResolver.Resolve(invite.Status, invite.SentAt, timeProvider.GetUtcNow().UtcDateTime)
+            == PendingInviteStatus.Expired)
+        {
+            await this.SendProblemAsync(StatusCodes.Status409Conflict, ErrorCodes.InviteExpired,
+                "This invitation has expired.", ct);
             return;
         }
 
@@ -156,7 +165,7 @@ public class AcceptClientInviteEndpoint(
             db.ClientProfessionalLinks.Add(newLink);
         }
 
-        invite.IsAccepted = true;
+        invite.Status = PendingInviteStatus.Accepted;
 
         // Also mark matching invitation tokens as used
         var matchingTokens = await db.InvitationTokens

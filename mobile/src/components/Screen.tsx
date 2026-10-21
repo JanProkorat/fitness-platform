@@ -14,6 +14,8 @@ type ScreenProps = {
   contentStyle?: StyleProp<ViewStyle>;
   /** Horizontal gutter beside the safe area; defaults to `spacing.xxl`. */
   gutter?: number;
+  /** Space below the top safe-area inset. Use this, not `paddingTop` in `contentStyle`, which replaces the inset. */
+  topGap?: number;
 };
 
 export function Screen({
@@ -22,13 +24,14 @@ export function Screen({
   bottomInset = 0,
   contentStyle,
   gutter,
+  topGap = 0,
 }: ScreenProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const styles = makeStyles(theme);
   const sideGutter = gutter ?? theme.spacing.xxl;
   const padding = {
-    paddingTop: insets.top,
+    paddingTop: insets.top + topGap,
     paddingBottom: insets.bottom + bottomInset,
     paddingLeft: insets.left + sideGutter,
     paddingRight: insets.right + sideGutter,

@@ -3,6 +3,7 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Authorization;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Services;
@@ -11,8 +12,8 @@ using Microsoft.EntityFrameworkCore;
 namespace FitnessPlatform.Application.Features.Trainers.PendingInvites.Delete;
 
 /// <summary>
-/// Endpoint for deleting a pending invitation.
-/// Only the professional who created the invitation can delete it.
+/// Endpoint for cancelling a pending invitation. The row is kept with a Cancelled status so
+/// chat cards that reference it still resolve. Only the professional who created it can cancel.
 /// </summary>
 [RemovedCoachRole(RemovedCoachRoleMode.Refuse)]
 public class DeletePendingInviteEndpoint(
@@ -28,8 +29,10 @@ public class DeletePendingInviteEndpoint(
         Roles(AppRoles.Trainer, AppRoles.Nutritionist, AppRoles.Admin);
         Summary(s =>
         {
-            s.Summary = "Delete a pending invitation";
-            s.Description = "Deletes a pending invitation. Only the professional who created it can delete.";
+            s.Summary = "Cancel a pending invitation";
+            s.Description = "Cancels a pending invitation. Only the professional who created it can cancel, and only while it is pending.";
+            s.Responses[StatusCodes.Status204NoContent] = "Invitation cancelled";
+            s.Responses[StatusCodes.Status409Conflict] = "Invitation is not pending";
         });
     }
 
@@ -75,6 +78,14 @@ public class DeletePendingInviteEndpoint(
             return;
         }
 
+        // Only an unanswered invite can be cancelled; an answered one keeps its status.
+        if (pendingInvite.Status != PendingInviteStatus.Pending)
+        {
+            await this.SendProblemAsync(StatusCodes.Status409Conflict, ErrorCodes.PendingInviteNotCancellable,
+                "Only a pending invitation can be cancelled.", ct);
+            return;
+        }
+
         // Look up the invited client by email to send notification
         var invitedUser = await db.Users
             .AsNoTracking()
@@ -103,12 +114,10 @@ public class DeletePendingInviteEndpoint(
             token.IsUsed = true;
         }
 
-        // A neutral Withdrawn event only when the invite hadn't already been accepted (an
-        // accepted thread already reads "accepted"; withdrawing it afterward would be a
-        // stale/incorrect signal) and only into a conversation that already exists —
+        // A neutral Withdrawn event only into a conversation that already exists —
         // withdrawing an invite that never got a thread (unverified/no account) must never
         // create one just to announce there is nothing to see.
-        if (!pendingInvite.IsAccepted && invitedUser is not null)
+        if (invitedUser is not null)
         {
             await conversationSeedService.AppendCooperationEventAsync(
                 professionalProfile.UserId, invitedUser.Id, professionalProfile.UserId,
@@ -116,7 +125,7 @@ public class DeletePendingInviteEndpoint(
                 createConversationIfMissing: false, ct);
         }
 
-        db.PendingInvites.Remove(pendingInvite);
+        pendingInvite.Status = PendingInviteStatus.Cancelled;
         await db.SaveChangesAsync(ct);
 
         if (invitedUser is not null)

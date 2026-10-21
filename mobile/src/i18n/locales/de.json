@@ -74,23 +74,268 @@
       }
     }
   },
-  "showcase": {
-    "title": "Komponenten",
+  "tabs": {
+    "today": "Heute",
+    "training": "Training",
+    "nutrition": "Ernährung",
+    "messages": "Nachrichten"
+  },
+  "today": {
+    "greeting": "Willkommen, {{name}}",
+    "greetingAnonymous": "Willkommen",
+    "linkedGreeting": "Hallo, {{name}}",
+    "linkedGreetingAnonymous": "Hallo",
+    "linkedBody": "Deine Coaches sind an Bord. Dein Tag erscheint hier.",
+    "notifications": "Benachrichtigungen",
+    "notificationsUnread": "Benachrichtigungen, {{count}} ungelesen",
+    "invitesTitle": "Einladungen",
+    "findCoach": {
+      "title": "Coach finden",
+      "subtitle": "Sie erstellen deinen Plan, du folgst ihm hier.",
+      "trainer": {
+        "title": "Trainer",
+        "hint": "Einheiten rund um dein Ziel"
+      },
+      "nutritionist": {
+        "title": "Ernährungsberater",
+        "hint": "Mahlzeiten, die zu deinem Tag passen"
+      }
+    }
+  },
+  "invites": {
+    "invitedYou": "{{name}} hat dich eingeladen",
+    "accept": "Annehmen",
+    "decline": "Ablehnen",
+    "acceptInvite": "Einladung annehmen",
+    "openHint": "Öffnet die Einladung",
+    "roles": { "Trainer": "Trainer", "Nutritionist": "Ernährungsberater" },
+    "roleJoiner": " & ",
+    "time": {
+      "justNow": "Gerade eben",
+      "minutes": "vor {{count}} Min.",
+      "hours": "vor {{count}} Std.",
+      "yesterday": "gestern",
+      "days": "vor {{count}} T."
+    },
+    "expiresIn_one": "Läuft in {{count}} Tag ab",
+    "expiresIn_other": "Läuft in {{count}} Tagen ab",
+    "expiresToday": "Läuft heute ab",
+    "detail": {
+      "back": "Zurück",
+      "alsoOnline": "auch online",
+      "invitedYouAt": "{{name}} hat dich eingeladen · {{time}}",
+      "workingWith": "Zusammenarbeit mit {{name}}",
+      "offers": {
+        "training": "Persönlicher Trainingsplan",
+        "nutrition": "Persönlicher Ernährungsplan",
+        "checkins": "Wöchentliche Check-ins",
+        "chat": "Chat mit deinem Coach"
+      },
+      "shareNote": "Mit dem Annehmen teilst du deine Onboarding-Antworten mit {{name}}."
+    },
+    "errors": {
+      "ok": "OK",
+      "expired": {
+        "title": "Einladung abgelaufen",
+        "body": "Diese Einladung ist nicht mehr gültig. Bitte deinen Coach um eine neue."
+      },
+      "unavailable": {
+        "title": "Einladung nicht mehr verfügbar",
+        "body": "Dein Coach hat sie zurückgezogen oder sie wurde schon beantwortet."
+      },
+      "network": {
+        "title": "Keine Verbindung",
+        "body": "Der Server ist nicht erreichbar. Prüfe deine Verbindung und versuche es erneut."
+      },
+      "generic": {
+        "title": "Etwas ist schiefgelaufen",
+        "body": "Die Einladung konnte nicht beantwortet werden. Bitte versuche es erneut."
+      }
+    }
+  },
+  "notifications": {
+    "title": "Benachrichtigungen",
+    "close": "Benachrichtigungen schließen",
+    "markAllRead": "Alle als gelesen markieren",
+    "groupToday": "Heute",
+    "groupEarlier": "Früher",
+    "viewInvite": "Einladung ansehen",
+    "unread": "Ungelesen",
+    "unreadCount": "{{count}} ungelesen",
+    "empty": "Alles gelesen.",
+    "error": "Benachrichtigungen konnten nicht geladen werden. Tippe, um es erneut zu versuchen."
+  },
+  "push": {
+    "channelName": "Allgemein"
+  },
+  "placeholder": {
+    "training": "Dein Trainingsplan erscheint hier.",
+    "nutrition": "Dein Ernährungsplan erscheint hier.",
+    "messages": "Deine Unterhaltungen erscheinen hier."
+  },
+  "messages": {
+    "compose": "Coach finden",
+    "labels": { "invite": "Einladung", "requestSent": "Anfrage gesendet" },
+    "roles": { "Trainer": "Trainer", "Nutritionist": "Ernährungsberater" },
+    "roleJoiner": " · ",
+    "pastCoaches": "Frühere Coaches",
+    "readOnly": "Nur lesen",
+    "readOnlyEnded": "Nur lesen · beendet {{date}}",
+    "you": "Du: {{text}}",
+    "photo": "Foto",
+    "yesterday": "Gestern",
+    "unreadCount": "{{count}} ungelesen",
+    "openChat": "Chat mit {{name}} öffnen",
+    "empty": {
+      "title": "Noch keine Unterhaltungen",
+      "body": "Sobald du mit einem Coach arbeitest, erscheint hier euer Chat."
+    },
+    "error": "Nachrichten konnten nicht geladen werden. Tippe, um es erneut zu versuchen.",
+    "eventPreview": {
+      "Invited": "Einladung",
+      "Requested": "Anfrage gesendet",
+      "Accepted": "Angenommen",
+      "Declined": "Abgelehnt",
+      "Withdrawn": "Zurückgezogen"
+    }
+  },
+  "chat": {
+    "back": "Zurück",
+    "composerPlaceholder": "Nachricht",
+    "send": "Nachricht senden",
+    "sendFailed": "Senden fehlgeschlagen. Deine Nachricht steht noch im Feld.",
+    "readOnly": "Dieser Chat ist nur lesbar.",
+    "locked": "Du kannst schreiben, sobald die Einladung angenommen ist.",
+    "loadError": "Chat konnte nicht geladen werden. Tippe, um es erneut zu versuchen.",
+    "empty": "Noch keine Nachrichten. Sag Hallo.",
+    "notFound": {
+      "title": "Chat nicht verfügbar",
+      "body": "Diese Unterhaltung existiert nicht mehr.",
+      "back": "Zurück zu den Nachrichten"
+    },
+    "dayToday": "Heute {{time}}",
+    "dayYesterday": "Gestern {{time}}",
     "card": {
-      "title": "Heutiges Training",
-      "body": "Eine Karte mit Text von deinem Trainer."
+      "invite": {
+        "title": "Zusammenarbeit mit {{name}}",
+        "labels": {
+          "Pending": "Einladung",
+          "Accepted": "Einladung angenommen",
+          "Declined": "Einladung abgelehnt",
+          "Cancelled": "Einladung zurückgezogen",
+          "Expired": "Einladung abgelaufen"
+        },
+        "details": {
+          "Accepted": "Ihr arbeitet jetzt zusammen",
+          "Declined": "Du hast abgelehnt",
+          "Cancelled": "{{name}} hat die Einladung zurückgezogen",
+          "Expired": "Niemand hat rechtzeitig geantwortet"
+        }
+      },
+      "request": {
+        "title": "Zusammenarbeit mit {{name}}",
+        "labels": {
+          "Pending": "Anfrage gesendet",
+          "Accepted": "Anfrage angenommen",
+          "Declined": "Anfrage abgelehnt",
+          "Cancelled": "Anfrage zurückgezogen",
+          "Expired": "Anfrage abgelaufen"
+        },
+        "details": {
+          "Pending": "Warten auf die Antwort von {{name}}",
+          "Accepted": "{{name}} hat angenommen",
+          "Declined": "{{name}} hat abgelehnt",
+          "Cancelled": "Du hast die Anfrage zurückgezogen",
+          "Expired": "Niemand hat rechtzeitig geantwortet"
+        }
+      },
+      "scope": {
+        "Both": "Training und Ernährung",
+        "TrainingOnly": "Training",
+        "NutritionOnly": "Ernährung"
+      },
+      "expiresIn_one": "läuft in {{count}} Tag ab",
+      "expiresIn_other": "läuft in {{count}} Tagen ab",
+      "expiresToday": "läuft heute ab"
+    }
+  },
+  "coachSearch": {
+    "title": {
+      "All": "Finde einen Coach",
+      "Trainer": "Finde einen Trainer",
+      "Nutritionist": "Finde einen Ernährungsberater"
     },
-    "input": {
-      "label": "E-Mail",
-      "placeholder": "jan@example.com"
+    "segmentsLabel": "Art des Coaches",
+    "segments": {
+      "All": "Alle",
+      "Trainer": "Trainer",
+      "Nutritionist": "Berater"
     },
-    "scrollHint": "Scrolle den Inhalt unter die schwebende Leiste, um die Unschärfe zu sehen.",
-    "signOut": "Abmelden",
-    "tabs": {
-      "today": "Heute",
-      "training": "Training",
-      "nutrition": "Ernährung",
-      "messages": "Nachrichten"
+    "roles": {
+      "Trainer": "Trainer",
+      "Nutritionist": "Ernährungsberater"
+    },
+    "filters": {
+      "online": "Online"
+    },
+    "online": "online",
+    "searchLabel": "Nach Name suchen",
+    "searchPlaceholder": "Name des Coaches",
+    "searchButton": "Nach Name suchen",
+    "takingClients": "Nimmt Klienten an",
+    "waitlist": "Warteliste",
+    "empty": "Keine Coaches passen zu diesen Filtern.",
+    "retry": "Erneut versuchen",
+    "errors": {
+      "network": "Server nicht erreichbar. Prüfe deine Verbindung und versuche es erneut.",
+      "generic": "Die Coaches konnten nicht geladen werden. Versuche es erneut."
+    }
+  },
+  "coachProfile": {
+    "alsoOnline": "auch online",
+    "workingWith": "Zusammenarbeit mit {{name}}",
+    "workingWithRows": {
+      "Trainer": {
+        "plan": "Persönlicher Trainingsplan",
+        "checkIns": "Wöchentliche Check-ins",
+        "chat": "Chat mit deinem Coach"
+      },
+      "Nutritionist": {
+        "plan": "Persönlicher Ernährungsplan",
+        "checkIns": "Wöchentliche Check-ins",
+        "chat": "Chat mit deinem Coach"
+      }
+    },
+    "sendRequest": "Anfrage senden",
+    "pending": "Anfrage ausstehend",
+    "linked": "Ihr arbeitet bereits zusammen",
+    "retry": "Erneut versuchen",
+    "error": {
+      "title": "Profil konnte nicht geladen werden",
+      "body": "Prüfe deine Verbindung und versuche es erneut."
+    },
+    "notFound": {
+      "title": "Coach nicht gefunden",
+      "body": "Dieses Profil ist nicht mehr verfügbar."
+    }
+  },
+  "requestSheet": {
+    "title": "Anfrage an {{name}}",
+    "subtitle": "Stell dich in ein, zwei Sätzen vor.",
+    "cancel": "Abbrechen",
+    "messageLabel": "Nachricht (optional)",
+    "messagePlaceholder": "Schreib, woran du arbeiten möchtest",
+    "historyLabel": "Meinen Verlauf teilen",
+    "historyHint": "Frühere Pläne, Messungen und Fotos aus der Zeit vor {{name}}.",
+    "onboardingCaption": "Deine Antworten aus dem Einstiegsfragebogen sieht {{name}}, um sich vorzubereiten.",
+    "submit": "Anfrage senden",
+    "errors": {
+      "notAccepting": "Dieser Coach nimmt derzeit keine neuen Klienten an.",
+      "alreadyPending": "Du hast diesem Coach bereits eine Anfrage geschickt.",
+      "alreadyLinked": "Du arbeitest bereits mit diesem Coach zusammen.",
+      "notFound": "Dieser Coach ist nicht mehr verfügbar.",
+      "network": "Server nicht erreichbar. Deine Nachricht bleibt erhalten, versuche es erneut.",
+      "generic": "Die Anfrage konnte nicht gesendet werden. Versuche es erneut."
     }
   },
   "common": {

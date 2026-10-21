@@ -184,10 +184,10 @@ public class PhotoDiaryRequestTests(PhotoDiaryRequestContainerFixture containerF
         cmd.CommandText = @"
             INSERT INTO pending_invites
                 (professional_profile_id, email,
-                 sent_at, is_accepted, public_id, date_created)
+                 sent_at, status, public_id, date_created)
             VALUES
                 (@professionalProfileId, @email,
-                 now(), false, @publicId, now())
+                 now(), 0, @publicId, now())
             RETURNING id";
         cmd.Parameters.AddWithValue("professionalProfileId", professionalProfileId);
         cmd.Parameters.AddWithValue("email", $"{Guid.NewGuid():N}@invite-test.com");

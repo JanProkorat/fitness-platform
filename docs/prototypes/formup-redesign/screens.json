@@ -252,6 +252,12 @@
   "h": 1100
  },
  {
+  "html": "web/05-20-page-clients-pending-c.html",
+  "png": "web/05-20-page-clients-pending-c.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
   "html": "web/06-01-page-clients-d.html",
   "png": "web/06-01-page-clients-d.png",
   "w": 1440,
@@ -366,16 +372,70 @@
   "h": 1100
  },
  {
+  "html": "web/06-20-page-clients-pending-d.html",
+  "png": "web/06-20-page-clients-pending-d.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
   "html": "web/07-01-page-inbox-c.html",
   "png": "web/07-01-page-inbox-c.png",
   "w": 1440,
   "h": 900
  },
  {
+  "html": "web/07-02-page-inbox-request-c.html",
+  "png": "web/07-02-page-inbox-request-c.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/07-03-page-notifications-popover-c.html",
+  "png": "web/07-03-page-notifications-popover-c.png",
+  "w": 860,
+  "h": 600
+ },
+ {
+  "html": "web/07-04-page-inbox-invite-c.html",
+  "png": "web/07-04-page-inbox-invite-c.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/07-05-page-inbox-invite-states-c.html",
+  "png": "web/07-05-page-inbox-invite-states-c.png",
+  "w": 860,
+  "h": 600
+ },
+ {
   "html": "web/08-01-page-inbox-d.html",
   "png": "web/08-01-page-inbox-d.png",
   "w": 1440,
   "h": 900
+ },
+ {
+  "html": "web/08-02-page-inbox-request-d.html",
+  "png": "web/08-02-page-inbox-request-d.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/08-03-page-notifications-popover-d.html",
+  "png": "web/08-03-page-notifications-popover-d.png",
+  "w": 860,
+  "h": 600
+ },
+ {
+  "html": "web/08-04-page-inbox-invite-d.html",
+  "png": "web/08-04-page-inbox-invite-d.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/08-05-page-inbox-invite-states-d.html",
+  "png": "web/08-05-page-inbox-invite-states-d.png",
+  "w": 860,
+  "h": 600
  },
  {
   "html": "web/09-01-page-recipes-c.html",
@@ -1116,6 +1176,18 @@
   "h": 844
  },
  {
+  "html": "mobile-light/01-18-notifications-invite.html",
+  "png": "mobile-light/01-18-notifications-invite.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/01-19-invite-detail.html",
+  "png": "mobile-light/01-19-invite-detail.png",
+  "w": 390,
+  "h": 844
+ },
+ {
   "html": "mobile-light/02-01-today.html",
   "png": "mobile-light/02-01-today.png",
   "w": 390,
@@ -1244,6 +1316,24 @@
  {
   "html": "mobile-light/06-02-chat.html",
   "png": "mobile-light/06-02-chat.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/06-03-messages-list-invite.html",
+  "png": "mobile-light/06-03-messages-list-invite.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/06-04-chat-invite.html",
+  "png": "mobile-light/06-04-chat-invite.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/06-05-chat-invite-states.html",
+  "png": "mobile-light/06-05-chat-invite-states.png",
   "w": 390,
   "h": 844
  },
@@ -1476,6 +1566,18 @@
   "h": 844
  },
  {
+  "html": "mobile-dark/01-18-notifications-invite.html",
+  "png": "mobile-dark/01-18-notifications-invite.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/01-19-invite-detail.html",
+  "png": "mobile-dark/01-19-invite-detail.png",
+  "w": 390,
+  "h": 844
+ },
+ {
   "html": "mobile-dark/02-01-today.html",
   "png": "mobile-dark/02-01-today.png",
   "w": 390,
@@ -1604,6 +1706,24 @@
  {
   "html": "mobile-dark/06-02-chat.html",
   "png": "mobile-dark/06-02-chat.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/06-03-messages-list-invite.html",
+  "png": "mobile-dark/06-03-messages-list-invite.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/06-04-chat-invite.html",
+  "png": "mobile-dark/06-04-chat-invite.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/06-05-chat-invite-states.html",
+  "png": "mobile-dark/06-05-chat-invite-states.png",
   "w": 390,
   "h": 844
  },
@@ -2022,272 +2142,104 @@
   "h": 1240
  },
  {
-  "html": "logo/01-01-logo-pixel.html",
-  "png": "logo/01-01-logo-pixel.png",
+  "html": "logo/01-01-logo-combo-cascade-check.html",
+  "png": "logo/01-01-logo-combo-cascade-check.png",
   "w": 600,
   "h": 760
  },
  {
-  "html": "logo/01-02-logo-plates.html",
-  "png": "logo/01-02-logo-plates.png",
+  "html": "logo/01-02-logo-combo-free.html",
+  "png": "logo/01-02-logo-combo-free.png",
   "w": 600,
   "h": 760
  },
  {
-  "html": "logo/02-01-logo-fan-warm.html",
-  "png": "logo/02-01-logo-fan-warm.png",
+  "html": "logo/01-03-logo-combo-progress.html",
+  "png": "logo/01-03-logo-combo-progress.png",
   "w": 600,
   "h": 760
  },
  {
-  "html": "logo/02-02-logo-fan-roles.html",
-  "png": "logo/02-02-logo-fan-roles.png",
+  "html": "logo/01-04-logo-combo-stack.html",
+  "png": "logo/01-04-logo-combo-stack.png",
   "w": 600,
   "h": 760
  },
  {
-  "html": "logo/02-03-logo-fan-open.html",
-  "png": "logo/02-03-logo-fan-open.png",
+  "html": "logo/01-05-logo-combo-deep-card.html",
+  "png": "logo/01-05-logo-combo-deep-card.png",
   "w": 600,
   "h": 760
  },
  {
-  "html": "logo/03-01-logo-min-dot-f.html",
-  "png": "logo/03-01-logo-min-dot-f.png",
+  "html": "logo/01-06-logo-app-icon.html",
+  "png": "logo/01-06-logo-app-icon.png",
   "w": 600,
   "h": 760
  },
  {
-  "html": "logo/03-02-logo-min-shelter.html",
-  "png": "logo/03-02-logo-min-shelter.png",
-  "w": 600,
-  "h": 760
- },
- {
-  "html": "logo/03-03-logo-min-upturn.html",
-  "png": "logo/03-03-logo-min-upturn.png",
-  "w": 600,
-  "h": 760
- },
- {
-  "html": "logo/03-04-logo-min-ring.html",
-  "png": "logo/03-04-logo-min-ring.png",
-  "w": 600,
-  "h": 760
- },
- {
-  "html": "logo/03-05-logo-min-f-u.html",
-  "png": "logo/03-05-logo-min-f-u.png",
-  "w": 600,
-  "h": 760
- },
- {
-  "html": "logo/04-01-logo-cursive-script.html",
-  "png": "logo/04-01-logo-cursive-script.png",
-  "w": 600,
-  "h": 760
- },
- {
-  "html": "logo/04-02-logo-cursive-swash.html",
-  "png": "logo/04-02-logo-cursive-swash.png",
-  "w": 600,
-  "h": 760
- },
- {
-  "html": "logo/04-03-logo-cursive-f-u.html",
-  "png": "logo/04-03-logo-cursive-f-u.png",
-  "w": 600,
-  "h": 760
- },
- {
-  "html": "logo/04-04-logo-cursive-looped.html",
-  "png": "logo/04-04-logo-cursive-looped.png",
-  "w": 600,
-  "h": 760
- },
- {
-  "html": "logo/05-01-logo-capsule-italic.html",
-  "png": "logo/05-01-logo-capsule-italic.png",
-  "w": 600,
-  "h": 760
- },
- {
-  "html": "logo/05-02-logo-capsule-dot-f.html",
-  "png": "logo/05-02-logo-capsule-dot-f.png",
-  "w": 600,
-  "h": 760
- },
- {
-  "html": "logo/05-03-logo-capsule-rising.html",
-  "png": "logo/05-03-logo-capsule-rising.png",
-  "w": 600,
-  "h": 760
- },
- {
-  "html": "logo/05-04-logo-capsule-cascade.html",
-  "png": "logo/05-04-logo-capsule-cascade.png",
-  "w": 600,
-  "h": 760
- },
- {
-  "html": "logo/05-05-logo-capsule-cascade3.html",
-  "png": "logo/05-05-logo-capsule-cascade3.png",
-  "w": 600,
-  "h": 760
- },
- {
-  "html": "logo/05-06-logo-capsule-stem-rise.html",
-  "png": "logo/05-06-logo-capsule-stem-rise.png",
-  "w": 600,
-  "h": 760
- },
- {
-  "html": "logo/06-01-logo-ring-wave.html",
-  "png": "logo/06-01-logo-ring-wave.png",
-  "w": 600,
-  "h": 760
- },
- {
-  "html": "logo/06-02-logo-ring-growth.html",
-  "png": "logo/06-02-logo-ring-growth.png",
-  "w": 600,
-  "h": 760
- },
- {
-  "html": "logo/06-03-logo-ring-script.html",
-  "png": "logo/06-03-logo-ring-script.png",
-  "w": 600,
-  "h": 760
- },
- {
-  "html": "logo/06-04-logo-ring-uturn.html",
-  "png": "logo/06-04-logo-ring-uturn.png",
-  "w": 600,
-  "h": 760
- },
- {
-  "html": "logo/06-05-logo-ring-steps.html",
-  "png": "logo/06-05-logo-ring-steps.png",
-  "w": 600,
-  "h": 760
- },
- {
-  "html": "logo/07-01-logo-plans-overlap.html",
-  "png": "logo/07-01-logo-plans-overlap.png",
-  "w": 600,
-  "h": 760
- },
- {
-  "html": "logo/07-02-logo-plans-zipper.html",
-  "png": "logo/07-02-logo-plans-zipper.png",
-  "w": 600,
-  "h": 760
- },
- {
-  "html": "logo/07-03-logo-plans-check-f.html",
-  "png": "logo/07-03-logo-plans-check-f.png",
-  "w": 600,
-  "h": 760
- },
- {
-  "html": "logo/07-04-logo-plans-booklet.html",
-  "png": "logo/07-04-logo-plans-booklet.png",
-  "w": 600,
-  "h": 760
- },
- {
-  "html": "logo/08-01-logo-combo-cascade-check.html",
-  "png": "logo/08-01-logo-combo-cascade-check.png",
-  "w": 600,
-  "h": 760
- },
- {
-  "html": "logo/08-02-logo-combo-free.html",
-  "png": "logo/08-02-logo-combo-free.png",
-  "w": 600,
-  "h": 760
- },
- {
-  "html": "logo/08-03-logo-combo-progress.html",
-  "png": "logo/08-03-logo-combo-progress.png",
-  "w": 600,
-  "h": 760
- },
- {
-  "html": "logo/08-04-logo-combo-stack.html",
-  "png": "logo/08-04-logo-combo-stack.png",
-  "w": 600,
-  "h": 760
- },
- {
-  "html": "logo/08-05-logo-combo-deep-card.html",
-  "png": "logo/08-05-logo-combo-deep-card.png",
-  "w": 600,
-  "h": 760
- },
- {
-  "html": "logo/09-01-logo-wordmark-test.html",
-  "png": "logo/09-01-logo-wordmark-test.png",
+  "html": "logo/02-01-logo-wordmark-test.html",
+  "png": "logo/02-01-logo-wordmark-test.png",
   "w": 1440,
   "h": 1260
  },
  {
-  "html": "logo/10-01-logo-launch-cascade-check.html",
-  "png": "logo/10-01-logo-launch-cascade-check.png",
+  "html": "logo/03-01-logo-launch-cascade-check.html",
+  "png": "logo/03-01-logo-launch-cascade-check.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "logo/10-02-logo-launch-free.html",
-  "png": "logo/10-02-logo-launch-free.png",
+  "html": "logo/03-02-logo-launch-free.html",
+  "png": "logo/03-02-logo-launch-free.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "logo/10-03-logo-launch-progress.html",
-  "png": "logo/10-03-logo-launch-progress.png",
+  "html": "logo/03-03-logo-launch-progress.html",
+  "png": "logo/03-03-logo-launch-progress.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "logo/10-04-logo-launch-stack.html",
-  "png": "logo/10-04-logo-launch-stack.png",
+  "html": "logo/03-04-logo-launch-stack.html",
+  "png": "logo/03-04-logo-launch-stack.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "logo/10-05-logo-launch-deep-card.html",
-  "png": "logo/10-05-logo-launch-deep-card.png",
+  "html": "logo/03-05-logo-launch-deep-card.html",
+  "png": "logo/03-05-logo-launch-deep-card.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "logo/11-01-logo-launch-cascade-check.html",
-  "png": "logo/11-01-logo-launch-cascade-check.png",
+  "html": "logo/04-01-logo-launch-cascade-check.html",
+  "png": "logo/04-01-logo-launch-cascade-check.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "logo/11-02-logo-launch-free.html",
-  "png": "logo/11-02-logo-launch-free.png",
+  "html": "logo/04-02-logo-launch-free.html",
+  "png": "logo/04-02-logo-launch-free.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "logo/11-03-logo-launch-progress.html",
-  "png": "logo/11-03-logo-launch-progress.png",
+  "html": "logo/04-03-logo-launch-progress.html",
+  "png": "logo/04-03-logo-launch-progress.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "logo/11-04-logo-launch-stack.html",
-  "png": "logo/11-04-logo-launch-stack.png",
+  "html": "logo/04-04-logo-launch-stack.html",
+  "png": "logo/04-04-logo-launch-stack.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "logo/11-05-logo-launch-deep-card.html",
-  "png": "logo/11-05-logo-launch-deep-card.png",
+  "html": "logo/04-05-logo-launch-deep-card.html",
+  "png": "logo/04-05-logo-launch-deep-card.png",
   "w": 390,
   "h": 844
  }

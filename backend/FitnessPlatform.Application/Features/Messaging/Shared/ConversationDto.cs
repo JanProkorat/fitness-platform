@@ -46,6 +46,18 @@ public class ConversationDto
     public bool IsFormer { get; set; }
 
     /// <summary>
+    /// When the collaboration ended, for a former one. Null when it is not former or the end
+    /// date is unknown.
+    /// </summary>
+    public DateTime? EndedAt { get; set; }
+
+    /// <summary>
+    /// The newest invite or client request between the two people. Null when there is none, or
+    /// its source row no longer exists.
+    /// </summary>
+    public ConversationCooperationDto? Cooperation { get; set; }
+
+    /// <summary>
     /// True exactly when sending in this thread would be refused for the caller with
     /// <c>CONVERSATION_LOCKED</c> (a professional in an invite-only thread). The web disables the
     /// composer on it.

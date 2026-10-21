@@ -145,11 +145,11 @@ public class InviteCooperationEventFlowIntegrationTests(FitnessApiFactory factor
             new StringContent("{}", Encoding.UTF8, "application/json"),
             TestContext.Current.CancellationToken);
 
-        // The invite's own !IsAccepted lookup filter already 404s a re-processed accept, upstream
+        // The invite's own Status == Pending lookup filter already 404s a re-processed accept, upstream
         // of any cooperation-event write — pinning the actual observed status rather than a loose
         // "not 500" so a regression that changes this guard is caught explicitly.
         retryAccept.StatusCode.Should().Be(HttpStatusCode.NotFound,
-            "the invite's own !IsAccepted guard 404s a retried accept before it ever reaches the cooperation-event seam");
+            "the invite's own Status == Pending guard 404s a retried accept before it ever reaches the cooperation-event seam");
 
         var messages = await GetMessagesChronologicalAsync(client.Http, conversationId);
 

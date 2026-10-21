@@ -36,7 +36,8 @@ public class CreatePendingInviteEndpoint(
     IRealtimeNotifier notifier,
     IConversationSeedService conversationSeedService,
     UserManager<ApplicationUser> userManager,
-    ILogger<CreatePendingInviteEndpoint> logger) : Endpoint<CreatePendingInviteRequest, CreatePendingInviteResponse>
+    ILogger<CreatePendingInviteEndpoint> logger,
+    TimeProvider timeProvider) : Endpoint<CreatePendingInviteRequest, CreatePendingInviteResponse>
 {
     /// <summary>
     /// Maximum number of outstanding (unaccepted) pending invites a single professional may
@@ -136,13 +137,16 @@ public class CreatePendingInviteEndpoint(
 
         // Reject a duplicate pending invite for the same professional and email — repeatedly
         // re-inviting the same target is the abuse shape, not a legitimate workflow need (a
-        // professional who wants to resend can delete the existing invite first).
+        // professional who wants to resend can delete the existing invite first). An invite past
+        // its validity window no longer counts here or toward the cap below.
+        var validSince = PendingInviteStatusResolver.ValidSince(timeProvider.GetUtcNow().UtcDateTime);
         var reqEmailLowerForDuplicateCheck = req.Email.ToLower();
         var hasDuplicate = await db.PendingInvites
             .AsNoTracking()
             .AnyAsync(pi => pi.ProfessionalProfileId == professionalProfile.Id
                          && pi.Email.ToLower() == reqEmailLowerForDuplicateCheck
-                         && !pi.IsAccepted, ct);
+                         && pi.Status == PendingInviteStatus.Pending
+                         && pi.SentAt >= validSince, ct);
 
         if (hasDuplicate)
         {
@@ -155,7 +159,9 @@ public class CreatePendingInviteEndpoint(
         // an abusive account can build up even when paced below the rate-limit window.
         var outstandingCount = await db.PendingInvites
             .AsNoTracking()
-            .CountAsync(pi => pi.ProfessionalProfileId == professionalProfile.Id && !pi.IsAccepted, ct);
+            .CountAsync(pi => pi.ProfessionalProfileId == professionalProfile.Id
+                              && pi.Status == PendingInviteStatus.Pending
+                              && pi.SentAt >= validSince, ct);
 
         if (outstandingCount >= MaxOutstandingInvitesPerProfessional)
         {

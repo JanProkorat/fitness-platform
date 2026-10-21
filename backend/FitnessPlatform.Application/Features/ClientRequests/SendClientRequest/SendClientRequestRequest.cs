@@ -14,4 +14,9 @@ public class SendClientRequestRequest
     /// Optional message to include with the request.
     /// </summary>
     public string? Message { get; set; }
+
+    /// <summary>
+    /// Optional: whether the client agrees to share their history with the professional. Stored only; not enforced yet.
+    /// </summary>
+    public bool ShareHistory { get; set; }
 }

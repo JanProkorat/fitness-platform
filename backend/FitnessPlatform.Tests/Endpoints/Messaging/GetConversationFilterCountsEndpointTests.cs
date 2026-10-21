@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Tests.Infrastructure;
 using FluentAssertions;
@@ -85,7 +86,104 @@ public class GetConversationFilterCountsEndpointTests(FitnessApiFactory factory)
         body!.UnreadMessages.Should().Be(1);
     }
 
+    [Fact]
+    public async Task GetCounts_PreLinkRequestWithTextMessage_CountsTowardUnreadMessages()
+    {
+        var (http, trainerId) = await SetupTrainerAsync();
+        var clientId = await RegisterUnlinkedClientAsync();
+        await SeedPreLinkConversationAsync(trainerId, clientId, ChatMessageKind.Text, isFormer: false);
+
+        var response = await http.GetAsync("/conversations/filter-counts", TestContext.Current.CancellationToken);
+        var body = await Deserialize(response);
+
+        body!.UnreadMessages.Should().Be(1, "a pre-link conversation counts like a roster row");
+        body.All.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task GetCounts_PreLinkRequestWithoutMessage_CountsZero()
+    {
+        var (http, trainerId) = await SetupTrainerAsync();
+        var clientId = await RegisterUnlinkedClientAsync();
+        await SeedPreLinkConversationAsync(trainerId, clientId, ChatMessageKind.Event, isFormer: false);
+
+        var response = await http.GetAsync("/conversations/filter-counts", TestContext.Current.CancellationToken);
+        var body = await Deserialize(response);
+
+        body!.UnreadMessages.Should().Be(0, "event rows never count");
+    }
+
+    [Fact]
+    public async Task GetCounts_FormerClientUnread_IsStillNotCounted()
+    {
+        var (http, trainerId) = await SetupTrainerAsync();
+        var (formerClientId, formerPublicId) = await SetupLinkedClientAsync(trainerId);
+        await SeedConversationWithMessageAsync(trainerId, formerClientId, senderIsClient: true, isRead: false);
+        await DeactivateLinkAsync(formerPublicId);
+
+        var flaggedClientId = await RegisterUnlinkedClientAsync();
+        await SeedPreLinkConversationAsync(trainerId, flaggedClientId, ChatMessageKind.Text, isFormer: true);
+
+        var response = await http.GetAsync("/conversations/filter-counts", TestContext.Current.CancellationToken);
+        var body = await Deserialize(response);
+
+        body!.UnreadMessages.Should().Be(0);
+    }
+
     // ── helpers ──────────────────────────────────────────────────────────────
+
+    private async Task<Guid> RegisterUnlinkedClientAsync()
+    {
+        var http = factory.CreateClient();
+        var email = UniqueEmail("client");
+        await TestHelpers.RegisterAsync(http, email, Password, "Pre", "Link", "Client");
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var user = await db.Users.AsNoTracking()
+            .FirstAsync(u => u.Email == email, TestContext.Current.CancellationToken);
+        return user.Id;
+    }
+
+    private async Task SeedPreLinkConversationAsync(
+        Guid professionalUserId, Guid clientUserId, ChatMessageKind kind, bool isFormer)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var conversation = new Conversation
+        {
+            PublicId = Guid.NewGuid(),
+            ProfessionalUserId = professionalUserId,
+            ClientUserId = clientUserId,
+            IsFormer = isFormer
+        };
+        db.Conversations.Add(conversation);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        db.ChatMessages.Add(new ChatMessage
+        {
+            PublicId = Guid.NewGuid(),
+            ConversationId = conversation.Id,
+            SenderUserId = clientUserId,
+            Text = "hello",
+            Kind = kind,
+            IsRead = false
+        });
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+    }
+
+    private async Task DeactivateLinkAsync(Guid clientPublicId)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var clientProfile = await db.ClientProfiles
+            .FirstAsync(cp => cp.PublicId == clientPublicId, TestContext.Current.CancellationToken);
+        var link = await db.ClientProfessionalLinks
+            .FirstAsync(l => l.ClientProfileId == clientProfile.Id, TestContext.Current.CancellationToken);
+        link.IsActive = false;
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+    }
 
     private async Task<(HttpClient Http, Guid UserId)> SetupTrainerAsync()
     {
