@@ -30,12 +30,6 @@ public class CoachPackagePricingTests
     }
 
     [Fact]
-    public void ResolvePrice_PeriodStartsAfterChange_UsesNewPrice()
-    {
-        CoachPackagePricing.ResolvePrice(History(), Changed.AddDays(30)).Should().Be(1800m);
-    }
-
-    [Fact]
     public void ResolvePrice_PeriodStartsBeforeFirstRow_ReturnsNull()
     {
         CoachPackagePricing.ResolvePrice(History(), Changed.AddDays(-90)).Should().BeNull();

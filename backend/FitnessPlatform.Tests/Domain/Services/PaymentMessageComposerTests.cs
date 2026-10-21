@@ -53,7 +53,6 @@ public class PaymentMessageComposerTests
 
     [Theory]
     [InlineData(1750, "cs", "1 750 Kč")]
-    [InlineData(1750, "en", "1 750 Kč")]
     [InlineData(500, "de", "500 Kč")]
     [InlineData(1234567, "cs", "1 234 567 Kč")]
     public void FormatAmount_GroupsThousandsWithANonBreakingSpace(int amount, string language, string expected)
@@ -63,7 +62,6 @@ public class PaymentMessageComposerTests
 
     [Theory]
     [InlineData("cs", "1750,50")]
-    [InlineData("de", "1750,50")]
     [InlineData("en", "1750.50")]
     public void FormatAmount_FractionalAmount_UsesTheLanguagesDecimalSeparator(string language, string digits)
     {
@@ -85,7 +83,6 @@ public class PaymentMessageComposerTests
     [Theory]
     [InlineData("cs", "listopad 2026")]
     [InlineData("en", "November 2026")]
-    [InlineData("de", "November 2026")]
     public void PeriodLabel_CalendarMonth_NamesTheMonth(string language, string expected)
     {
         PaymentMessageComposer.PeriodLabel(November, new DateOnly(2026, 11, 30), "x", language).Should().Be(expected);

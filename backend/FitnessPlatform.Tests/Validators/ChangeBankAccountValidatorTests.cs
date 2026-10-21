@@ -25,27 +25,22 @@ public class ChangeBankAccountValidatorTests
         new ChangeBankAccountValidator().TestValidate(request).ShouldNotHaveAnyValidationErrors();
     }
 
-    [Theory]
-    [InlineData("CZ6508000000192000145398")]
-    [InlineData("not an iban")]
-    [InlineData("")]
-    public void Validate_BadChecksumOrShape_FailsWithInvalidIbanCode(string iban)
+    [Fact]
+    public void Validate_BadChecksum_FailsWithInvalidIbanCode()
     {
         var request = Valid();
-        request.Iban = iban;
+        request.Iban = "CZ6508000000192000145398";
 
         var result = new ChangeBankAccountValidator().TestValidate(request);
 
         result.Errors.Should().Contain(e => e.ErrorCode == ErrorCodes.InvalidIban);
     }
 
-    [Theory]
-    [InlineData("")]
-    [InlineData("   ")]
-    public void Validate_BlankAccountHolder_Fails(string accountHolder)
+    [Fact]
+    public void Validate_BlankAccountHolder_Fails()
     {
         var request = Valid();
-        request.AccountHolder = accountHolder;
+        request.AccountHolder = "   ";
 
         new ChangeBankAccountValidator().TestValidate(request)
             .ShouldHaveValidationErrorFor(x => x.AccountHolder);

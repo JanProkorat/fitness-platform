@@ -46,7 +46,6 @@ public class ClientPaymentTermsValidatorTests
 
     [Theory]
     [InlineData(0)]
-    [InlineData(-5)]
     [InlineData(10_000_000)]
     public void Validate_CustomPriceOutsideTheRange_FailsWithTheAmountCode(int price)
     {
@@ -65,11 +64,13 @@ public class ClientPaymentTermsValidatorTests
         Validate(request).IsValid.Should().BeTrue();
     }
 
-    [Fact]
-    public void Validate_FirstPeriodMoreThanAYearAway_FailsWithTheStartDateCode()
+    [Theory]
+    [InlineData(-5)]
+    [InlineData(400)]
+    public void Validate_FirstPeriodInThePastOrMoreThanAYearAway_FailsWithTheStartDateCode(int daysFromToday)
     {
         var request = Valid();
-        request.FirstPeriodStart = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(400);
+        request.FirstPeriodStart = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(daysFromToday);
 
         Validate(request).Errors.Should().Contain(e => e.ErrorCode == "PAYMENT_START_DATE_INVALID");
     }

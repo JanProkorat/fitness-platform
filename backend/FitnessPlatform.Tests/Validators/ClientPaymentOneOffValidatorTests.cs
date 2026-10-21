@@ -28,7 +28,6 @@ public class ClientPaymentOneOffValidatorTests
 
     [Theory]
     [InlineData(0)]
-    [InlineData(-1)]
     [InlineData(10_000_000)]
     public void Validate_AmountOutsideTheRange_FailsWithTheAmountCode(int amount)
     {

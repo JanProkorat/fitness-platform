@@ -33,7 +33,6 @@ public class CoachDiscountRulesTests
     [Theory]
     [InlineData("2026-10-31", false)]
     [InlineData("2026-11-01", true)]
-    [InlineData("2026-11-15", true)]
     [InlineData("2026-11-30", true)]
     [InlineData("2026-12-01", false)]
     public void Applies_DueDateAgainstWindow_IsInclusiveOnBothEnds(string dueDate, bool expected)

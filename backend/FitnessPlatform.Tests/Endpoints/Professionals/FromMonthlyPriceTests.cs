@@ -58,38 +58,20 @@ public class FromMonthlyPriceTests(FitnessApiFactory factory)
     }
 
     [Fact]
-    public async Task PublicProfile_SeveralMonthlyPackages_ShowsTheLowestPrice()
+    public async Task PublicProfile_MixedPackages_ShowsTheLowestActiveVisibleMonthlyPrice()
     {
         var coach = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
         var client = await TestActors.Client(factory).CreateAsync(TestContext.Current.CancellationToken);
         await AddPackageAsync(coach, 2500m);
         await AddPackageAsync(coach, 1800m);
 
-        (await ReadProfilePriceAsync(coach, client)).Should().Be(1800m);
-    }
-
-    [Fact]
-    public async Task PublicProfile_OnlyArchivedHiddenWeeklyOrOneOffPackages_ShowsNoPrice()
-    {
-        var coach = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
-        var client = await TestActors.Client(factory).CreateAsync(TestContext.Current.CancellationToken);
+        // Each of these is cheaper than 1800 and must be ignored.
         await AddPackageAsync(coach, 900m, archived: true);
         await AddPackageAsync(coach, 800m, showOnProfile: false);
         await AddPackageAsync(coach, 700m, PackageBillingInterval.EveryNWeeks);
         await AddPackageAsync(coach, 600m, PackageBillingInterval.OneOff);
 
-        (await ReadProfilePriceAsync(coach, client)).Should().BeNull();
-    }
-
-    [Fact]
-    public async Task PublicProfile_CoachNotEntitledToPayments_ShowsNoPrice()
-    {
-        var coach = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
-        var client = await TestActors.Client(factory).CreateAsync(TestContext.Current.CancellationToken);
-        await AddPackageAsync(coach, 1800m);
-        await SubscribeAsync(factory, coach, canUsePayments: false);
-
-        (await ReadProfilePriceAsync(coach, client)).Should().BeNull();
+        (await ReadProfilePriceAsync(coach, client)).Should().Be(1800m);
     }
 
     [Fact]

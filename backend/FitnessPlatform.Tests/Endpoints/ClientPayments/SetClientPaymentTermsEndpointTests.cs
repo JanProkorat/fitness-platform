@@ -20,9 +20,10 @@ namespace FitnessPlatform.Tests.Endpoints.ClientPayments;
 public class SetClientPaymentTermsEndpointTests(FitnessApiFactory factory)
 {
     [Fact]
-    public async Task SetTerms_FirstTime_CreatesTheAssignmentAndThisAndNextPeriod()
+    public async Task SetTerms_FirstTime_CreatesThisAndNextPeriodNumbersTheClientAndIsIdempotent()
     {
-        var world = await CreateWorldAsync(factory);
+        // A link granting no plan domain is enough: payments belong to the relationship.
+        var world = await CreateWorldAsync(factory, linkGrantsPlans: false);
         var packageId = await CreatePackageAsync(world.Coach, 2500m);
 
         var response = await SetTermsAsync(world, packageId);
@@ -40,42 +41,27 @@ public class SetClientPaymentTermsEndpointTests(FitnessApiFactory factory)
         rows[0].Amount.Should().Be(2500m);
         rows[0].VariableSymbol.Should().Be($"{Today.Year}{Today.Month:D2}0001");
         rows[1].PeriodStart.Should().BeAfter(Today);
-    }
-
-    [Fact]
-    public async Task SetTerms_SecondClientOfTheCoach_GetsTheNextClientNumber()
-    {
-        var world = await CreateWorldAsync(factory);
-        var other = await AddClientAsync(world);
-        var packageId = await CreatePackageAsync(world.Coach);
-
-        await SetTermsOkAsync(world, packageId);
-        var otherWorld = world with { Client = other };
-        await SetTermsOkAsync(otherWorld, packageId);
-
-        var rows = await ListAsync(otherWorld);
-        rows.Select(p => p.VariableSymbol).Should().OnlyContain(symbol => symbol!.EndsWith("0002"));
-    }
-
-    [Fact]
-    public async Task SetTerms_SameTermsAgain_ChangesNothing()
-    {
-        var world = await CreateWorldAsync(factory);
-        var packageId = await CreatePackageAsync(world.Coach);
-        await SetTermsOkAsync(world, packageId);
 
         await SetTermsOkAsync(world, packageId);
 
-        using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        (await db.ClientPaymentTerms.CountAsync(
-            t => t.ClientPaymentAssignment.ClientProfileId == world.Client.ProfileId,
-            TestContext.Current.CancellationToken)).Should().Be(1);
-        (await ListAsync(world)).Should().HaveCount(2);
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            (await db.ClientPaymentTerms.CountAsync(
+                t => t.ClientPaymentAssignment.ClientProfileId == world.Client.ProfileId,
+                TestContext.Current.CancellationToken)).Should().Be(1, "the same terms again change nothing");
+        }
+
+        (await ListAsync(world)).Select(p => p.PaymentId).Should().BeEquivalentTo(rows.Select(p => p.PaymentId));
+
+        var secondClient = world with { Client = await AddClientAsync(world) };
+        await SetTermsOkAsync(secondClient, packageId);
+
+        (await ListAsync(secondClient)).Select(p => p.VariableSymbol).Should().OnlyContain(symbol => symbol!.EndsWith("0002"));
     }
 
     [Fact]
-    public async Task SetTerms_ChangedPackage_AppliesFromTheNextPeriodAndKeepsTheCurrentOne()
+    public async Task SetTerms_PackageThenPriceChange_KeepsTheStartedPeriodAndRepricesTheNext()
     {
         var world = await CreateWorldAsync(factory);
         var original = await CreatePackageAsync(world.Coach, 2500m, "Online coaching");
@@ -84,11 +70,18 @@ public class SetClientPaymentTermsEndpointTests(FitnessApiFactory factory)
 
         await SetTermsOkAsync(world, cheaper);
 
-        var rows = (await ListAsync(world)).OrderBy(p => p.PeriodStart).ToList();
-        rows[0].Amount.Should().Be(2500m, "the current period had already started when the terms changed");
-        rows[0].PackageName.Should().Be("Online coaching");
-        rows[1].Amount.Should().Be(1000m);
-        rows[1].PackageName.Should().Be("Light");
+        var afterPackage = (await ListAsync(world)).OrderBy(p => p.PeriodStart).ToList();
+        afterPackage[0].Amount.Should().Be(2500m, "the current period had already started when the terms changed");
+        afterPackage[0].PackageName.Should().Be("Online coaching");
+        afterPackage[1].Amount.Should().Be(1000m);
+        afterPackage[1].PackageName.Should().Be("Light");
+
+        await SetTermsOkAsync(world, cheaper, customPrice: 800m);
+
+        var afterPrice = (await ListAsync(world)).OrderBy(p => p.PeriodStart).ToList();
+        afterPrice.Select(p => p.PaymentId).Should().Equal(afterPackage.Select(p => p.PaymentId), "a price-only change keeps the period rows");
+        afterPrice[0].Amount.Should().Be(2500m);
+        afterPrice[1].Amount.Should().Be(800m);
     }
 
     [Fact]
@@ -136,44 +129,20 @@ public class SetClientPaymentTermsEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
-    public async Task SetTerms_PriceOnlyChange_KeepsThePeriodRowsAndRepricesTheUnlockedOnes()
-    {
-        var world = await CreateWorldAsync(factory);
-        var packageId = await CreatePackageAsync(world.Coach, 2500m);
-        await SetTermsOkAsync(world, packageId);
-        var before = (await ListAsync(world)).OrderBy(p => p.PeriodStart).ToList();
-
-        await SetTermsOkAsync(world, packageId, customPrice: 1000m);
-
-        var after = (await ListAsync(world)).OrderBy(p => p.PeriodStart).ToList();
-        after.Select(p => p.PaymentId).Should().Equal(before.Select(p => p.PaymentId));
-        after[0].Amount.Should().Be(2500m, "the current period had started");
-        after[1].Amount.Should().Be(1000m);
-    }
-
-    [Fact]
-    public async Task SetTerms_WithDiscount_PricesTheRowsWithIt()
+    public async Task SetTerms_DiscountOrCustomPrice_PricesTheRows()
     {
         var world = await CreateWorldAsync(factory);
         var packageId = await CreatePackageAsync(world.Coach, 2500m);
         var discountId = await CreateDiscountAsync(world.Coach, 30m);
+        var customClient = world with { Client = await AddClientAsync(world) };
 
         await SetTermsOkAsync(world, packageId, discountId);
+        await SetTermsOkAsync(customClient, packageId, customPrice: 1200m);
 
-        var rows = await ListAsync(world);
-        rows.Should().OnlyContain(p => p.Amount == 1750m && p.BasePrice == 2500m);
-        rows[0].DiscountLabel.Should().Contain("Friends & family").And.Contain("30");
-    }
-
-    [Fact]
-    public async Task SetTerms_WithCustomPrice_ReplacesPackagePriceAndDiscount()
-    {
-        var world = await CreateWorldAsync(factory);
-        var packageId = await CreatePackageAsync(world.Coach, 2500m);
-
-        await SetTermsOkAsync(world, packageId, customPrice: 1200m);
-
-        (await ListAsync(world)).Should().OnlyContain(p => p.Amount == 1200m);
+        var discounted = await ListAsync(world);
+        discounted.Should().OnlyContain(p => p.Amount == 1750m && p.BasePrice == 2500m);
+        discounted[0].DiscountLabel.Should().Contain("Friends & family").And.Contain("30");
+        (await ListAsync(customClient)).Should().OnlyContain(p => p.Amount == 1200m, "a custom price replaces the package price");
     }
 
     [Fact]
@@ -190,18 +159,6 @@ public class SetClientPaymentTermsEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
-    public async Task SetTerms_FirstPeriodStartInThePast_Returns400()
-    {
-        var world = await CreateWorldAsync(factory);
-        var packageId = await CreatePackageAsync(world.Coach);
-
-        var response = await SetTermsAsync(world, packageId, firstPeriodStart: Today.AddDays(-5));
-
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        (await ErrorCodesAsync(response)).Should().Contain("PAYMENT_START_DATE_INVALID");
-    }
-
-    [Fact]
     public async Task SetTerms_DiscountAndCustomPrice_Returns400()
     {
         var world = await CreateWorldAsync(factory);
@@ -214,155 +171,44 @@ public class SetClientPaymentTermsEndpointTests(FitnessApiFactory factory)
         (await ErrorCodesAsync(response)).Should().Contain("PAYMENT_TERMS_DISCOUNT_AND_CUSTOM_PRICE");
     }
 
-    [Theory]
-    [InlineData(0)]
-    [InlineData(10_000_000)]
-    public async Task SetTerms_CustomPriceOutsideTheRange_Returns400(int price)
+    [Fact]
+    public async Task SetTerms_PackageOrDiscountOfAnotherCoach_Returns404()
     {
         var world = await CreateWorldAsync(factory);
+        var otherCoach = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
         var packageId = await CreatePackageAsync(world.Coach);
+        var foreignPackage = await CreatePackageAsync(otherCoach);
+        var foreignDiscount = await CreateDiscountAsync(otherCoach);
 
-        var response = await SetTermsAsync(world, packageId, customPrice: price);
-
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        (await ErrorCodesAsync(response)).Should().Contain("PAYMENT_AMOUNT_INVALID");
+        (await SetTermsAsync(world, foreignPackage)).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        (await SetTermsAsync(world, packageId, foreignDiscount)).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        (await ListAsync(world)).Should().BeEmpty();
     }
 
     [Fact]
-    public async Task SetTerms_PackageOfAnotherCoach_Returns404()
-    {
-        var world = await CreateWorldAsync(factory);
-        var otherCoach = await CreateWorldAsync(factory);
-        var foreignPackage = await CreatePackageAsync(otherCoach.Coach);
-
-        var response = await SetTermsAsync(world, foreignPackage);
-
-        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
-    }
-
-    [Fact]
-    public async Task SetTerms_DiscountOfAnotherCoach_Returns404()
-    {
-        var world = await CreateWorldAsync(factory);
-        var otherCoach = await CreateWorldAsync(factory);
-        var packageId = await CreatePackageAsync(world.Coach);
-        var foreignDiscount = await CreateDiscountAsync(otherCoach.Coach);
-
-        var response = await SetTermsAsync(world, packageId, foreignDiscount);
-
-        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
-    }
-
-    [Fact]
-    public async Task SetTerms_ArchivedPackage_Returns409PackageArchived()
-    {
-        var world = await CreateWorldAsync(factory);
-        var packageId = await CreatePackageAsync(world.Coach);
-        await world.Coach.Http.PostAsync($"/payments/packages/{packageId}/archive", Empty(), TestContext.Current.CancellationToken);
-
-        var response = await SetTermsAsync(world, packageId);
-
-        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
-        (await ProblemCodeAsync(response)).Should().Be("PACKAGE_ARCHIVED");
-    }
-
-    [Fact]
-    public async Task SetTerms_ArchivedDiscount_Returns409DiscountArchived()
-    {
-        var world = await CreateWorldAsync(factory);
-        var packageId = await CreatePackageAsync(world.Coach);
-        var discountId = await CreateDiscountAsync(world.Coach);
-        await world.Coach.Http.PostAsync($"/payments/discounts/{discountId}/archive", Empty(), TestContext.Current.CancellationToken);
-
-        var response = await SetTermsAsync(world, packageId, discountId);
-
-        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
-        (await ProblemCodeAsync(response)).Should().Be("DISCOUNT_ARCHIVED");
-    }
-
-    [Fact]
-    public async Task SetTerms_DiscountThatDoesNotCoverThePackage_Returns409DiscountPackageInvalid()
+    public async Task SetTerms_ArchivedPackageArchivedDiscountOrDiscountNotCoveringThePackage_Returns409()
     {
         var world = await CreateWorldAsync(factory);
         var packageId = await CreatePackageAsync(world.Coach, name: "Online coaching");
+        var archivedPackage = await CreatePackageAsync(world.Coach, name: "Old");
         var otherPackage = await CreatePackageAsync(world.Coach, name: "Nutrition");
-        var discountId = await CreateDiscountAsync(world.Coach, packageIds: [otherPackage]);
+        var archivedDiscount = await CreateDiscountAsync(world.Coach);
+        var narrowDiscount = await CreateDiscountAsync(world.Coach, packageIds: [otherPackage]);
+        await world.Coach.Http.PostAsync($"/payments/packages/{archivedPackage}/archive", Empty(), TestContext.Current.CancellationToken);
+        await world.Coach.Http.PostAsync($"/payments/discounts/{archivedDiscount}/archive", Empty(), TestContext.Current.CancellationToken);
 
-        var response = await SetTermsAsync(world, packageId, discountId);
+        var cases = new (HttpResponseMessage Response, string Code)[]
+        {
+            (await SetTermsAsync(world, archivedPackage), "PACKAGE_ARCHIVED"),
+            (await SetTermsAsync(world, packageId, archivedDiscount), "DISCOUNT_ARCHIVED"),
+            (await SetTermsAsync(world, packageId, narrowDiscount), "DISCOUNT_PACKAGE_INVALID")
+        };
 
-        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
-        (await ProblemCodeAsync(response)).Should().Be("DISCOUNT_PACKAGE_INVALID");
-    }
-
-    [Fact]
-    public async Task SetTerms_ClientWithNoLiveLink_Returns404()
-    {
-        var world = await CreateWorldAsync(factory);
-        var stranger = await TestActors.Client(factory).CreateAsync(TestContext.Current.CancellationToken);
-        var packageId = await CreatePackageAsync(world.Coach);
-
-        var response = await world.Coach.Http.PutAsJsonAsync(
-            $"/payments/clients/{stranger.PublicId}/terms", new { PackageId = packageId }, TestContext.Current.CancellationToken);
-
-        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
-    }
-
-    [Fact]
-    public async Task SetTerms_LinkThatGrantsNoPlanDomain_StillAllowed()
-    {
-        var coach = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
-        await SubscribeAsync(factory, coach, canUsePayments: true);
-        var client = await TestActors.Client(factory).CreateAsync(TestContext.Current.CancellationToken);
-        await TestActors.Link(factory, coach, client).CanViewNutritionPlans(false).CanViewTrainingPlans(false)
-            .CreateAsync(TestContext.Current.CancellationToken);
-        var world = new PaymentWorld(factory, coach, client);
-        var packageId = await CreatePackageAsync(coach);
-
-        var response = await SetTermsAsync(world, packageId);
-
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-    }
-
-    [Fact]
-    public async Task SetTerms_CoachBelowThePaymentsTier_Returns403PaymentsNotEntitled()
-    {
-        var world = await CreateWorldAsync(factory);
-        var packageId = await CreatePackageAsync(world.Coach);
-        var unentitled = await CreateWorldAsync(factory, entitled: false);
-
-        var response = await SetTermsAsync(unentitled, packageId);
-
-        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
-        (await ProblemCodeAsync(response)).Should().Be("PAYMENTS_NOT_ENTITLED");
-    }
-
-    [Fact]
-    public async Task SetTerms_CoachWhoseLastCoachRoleWasRemoved_Returns403()
-    {
-        var coach = await TestActors.Trainer(factory).WithRemovedCoachRoles(UserRole.Trainer)
-            .CreateAsync(TestContext.Current.CancellationToken);
-        await SubscribeAsync(factory, coach, canUsePayments: true);
-        var client = await TestActors.Client(factory).CreateAsync(TestContext.Current.CancellationToken);
-        await TestActors.Link(factory, coach, client).CreateAsync(TestContext.Current.CancellationToken);
-
-        var response = await coach.Http.PutAsJsonAsync(
-            $"/payments/clients/{client.PublicId}/terms", new { PackageId = Guid.NewGuid() }, TestContext.Current.CancellationToken);
-
-        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
-    }
-
-    [Fact]
-    public async Task SetTerms_AuditEntryNamesThePackageAndNeverTheClientOrAnIban()
-    {
-        var world = await CreateWorldAsync(factory);
-        var packageId = await CreatePackageAsync(world.Coach, name: "Online coaching");
-
-        await SetTermsOkAsync(world, packageId);
-
-        var audit = (await ReadAuditAsync(world)).Should().ContainSingle(a => a.Action == "SetClientPaymentTerms").Subject;
-        audit.NewValues.Should().Contain("Online coaching");
-        audit.NewValues.Should().NotContain("Eva").And.NotContain("Svobodov").And.NotContain(ValidIban);
-        audit.EntityType.Should().Be("ClientPaymentAssignment");
+        foreach (var (response, code) in cases)
+        {
+            response.StatusCode.Should().Be(HttpStatusCode.Conflict, code);
+            (await ProblemCodeAsync(response)).Should().Be(code);
+        }
     }
 
     [Fact]

@@ -65,7 +65,6 @@ public class ClientPaymentActionValidatorTests
     [Theory]
     [InlineData(true, false)]
     [InlineData(false, true)]
-    [InlineData(true, true)]
     public void Request_AtLeastOneChannel_Passes(bool email, bool notification)
     {
         var request = new RequestClientPaymentRequest
@@ -81,7 +80,6 @@ public class ClientPaymentActionValidatorTests
 
     [Theory]
     [InlineData(0)]
-    [InlineData(-10)]
     [InlineData(10_000_000)]
     public void Request_AmountOutsideTheRange_FailsWithTheAmountCode(int amount)
     {

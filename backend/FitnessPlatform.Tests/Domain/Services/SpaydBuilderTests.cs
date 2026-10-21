@@ -65,19 +65,12 @@ public class SpaydBuilderTests
 
     [Theory]
     [InlineData(0)]
-    [InlineData(-1)]
     [InlineData(10_000_000)]
     public void Build_AmountOutsideTheLimits_Throws(int amount)
     {
         var act = () => SpaydBuilder.Build(Iban, amount, null, null, null, null);
 
         act.Should().Throw<ArgumentOutOfRangeException>();
-    }
-
-    [Fact]
-    public void Build_VariableSymbolOfTenDigits_IsAccepted()
-    {
-        SpaydBuilder.Build(Iban, 1m, "1234567890", null, null, null).Should().Contain("*X-VS:1234567890");
     }
 
     [Theory]

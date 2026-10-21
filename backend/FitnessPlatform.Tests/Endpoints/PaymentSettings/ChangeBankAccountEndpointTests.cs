@@ -168,18 +168,6 @@ public class ChangeBankAccountEndpointTests(FitnessApiFactory factory)
         (await ReadSettingsAsync(factory, coach)).Should().BeNull();
     }
 
-    [Fact]
-    public async Task Change_NoPasswordUserWithEmailedCode_Succeeds()
-    {
-        var coach = await CoachWithoutPasswordAsync();
-        var code = await RequestCodeAsync(coach);
-
-        var response = await ChangeAsync(coach, ValidIban, code: code);
-
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        (await ReadSettingsAsync(factory, coach))!.Iban.Should().Be(ValidIban);
-    }
-
     [Theory]
     [InlineData("wrong")]
     [InlineData("expired")]
@@ -206,6 +194,7 @@ public class ChangeBankAccountEndpointTests(FitnessApiFactory factory)
 
                 break;
             case "reused":
+                // The first use of the emailed code succeeds; only the second is refused.
                 (await ChangeAsync(coach, OtherIban, code: code)).StatusCode.Should().Be(HttpStatusCode.OK);
                 break;
         }

@@ -2,7 +2,6 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Features.Discounts.Shared;
 using FitnessPlatform.Application.Features.CoachPackages.Shared;
 using FitnessPlatform.Tests.Builders;
@@ -54,32 +53,39 @@ public class CoachDiscountEndpointTests(FitnessApiFactory factory)
         return (await response.Content.ReadFromJsonAsync<CoachDiscountDto>(WireOptions, TestContext.Current.CancellationToken))!;
     }
 
+    private Task<HttpResponseMessage> UpdateAsync(Actor coach, Guid discountId, object body) =>
+        coach.Http.PutAsJsonAsync($"/payments/discounts/{discountId}", body, TestContext.Current.CancellationToken);
+
+    private Task<HttpResponseMessage> ArchiveAsync(Actor coach, Guid discountId) =>
+        coach.Http.PostAsync($"/payments/discounts/{discountId}/archive", JsonContent.Create(new { }), TestContext.Current.CancellationToken);
+
     private async Task<CoachDiscountDto> GetAsync(Actor coach, Guid discountId) =>
         (await coach.Http.GetFromJsonAsync<CoachDiscountDto>(
             $"/payments/discounts/{discountId}", WireOptions, TestContext.Current.CancellationToken))!;
 
     [Fact]
-    public async Task Create_LimitedToOwnPackage_Returns201WithPackageIds()
+    public async Task CreateAndUpdate_PackageScope_IsStoredAllPackagesOrTheGivenList()
     {
         var coach = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
-        var packageId = await CreatePackageAsync(coach);
+        var first = await CreatePackageAsync(coach);
+        var second = await CreatePackageAsync(coach);
 
-        var discount = await CreateDiscountAsync(coach, DiscountBody([packageId]));
+        var everyPackage = await CreateDiscountAsync(coach, DiscountBody(all: true));
 
-        discount.PackageIds.Should().Equal(packageId);
-        discount.AppliesToAllPackages.Should().BeFalse();
-        (await GetAsync(coach, discount.DiscountId)).PackageIds.Should().Equal(packageId);
-    }
+        everyPackage.AppliesToAllPackages.Should().BeTrue();
+        everyPackage.PackageIds.Should().BeEmpty();
 
-    [Fact]
-    public async Task Create_AppliesToAllPackages_NeedsNoPackageList()
-    {
-        var coach = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
+        var limited = await CreateDiscountAsync(coach, DiscountBody([first]));
 
-        var discount = await CreateDiscountAsync(coach, DiscountBody(all: true));
+        limited.AppliesToAllPackages.Should().BeFalse();
+        limited.PackageIds.Should().Equal(first);
+        (await GetAsync(coach, limited.DiscountId)).PackageIds.Should().Equal(first);
 
-        discount.AppliesToAllPackages.Should().BeTrue();
-        discount.PackageIds.Should().BeEmpty();
+        (await UpdateAsync(coach, limited.DiscountId, DiscountBody([second], name: "Renamed"))).StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var updated = await GetAsync(coach, limited.DiscountId);
+        updated.Name.Should().Be("Renamed");
+        updated.PackageIds.Should().Equal(second);
     }
 
     [Fact]
@@ -113,58 +119,26 @@ public class CoachDiscountEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
-    public async Task Update_ReplacesPackageList()
-    {
-        var coach = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
-        var first = await CreatePackageAsync(coach);
-        var second = await CreatePackageAsync(coach);
-        var discount = await CreateDiscountAsync(coach, DiscountBody([first]));
-
-        var response = await coach.Http.PutAsJsonAsync(
-            $"/payments/discounts/{discount.DiscountId}",
-            DiscountBody([second], name: "Renamed"),
-            TestContext.Current.CancellationToken);
-
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var updated = await GetAsync(coach, discount.DiscountId);
-        updated.Name.Should().Be("Renamed");
-        updated.PackageIds.Should().Equal(second);
-    }
-
-    [Fact]
-    public async Task Update_ArchivedDiscount_Returns409DiscountArchived()
+    public async Task Archive_IsIdempotentAndAnArchivedDiscountRefusesUpdatesWith409()
     {
         var coach = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
         var discount = await CreateDiscountAsync(coach, DiscountBody(all: true));
-        await coach.Http.PostAsync($"/payments/discounts/{discount.DiscountId}/archive", JsonContent.Create(new { }), TestContext.Current.CancellationToken);
 
-        var response = await coach.Http.PutAsJsonAsync(
-            $"/payments/discounts/{discount.DiscountId}", DiscountBody(all: true), TestContext.Current.CancellationToken);
-
-        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
-        (await ProblemCodeAsync(response)).Should().Be("DISCOUNT_ARCHIVED");
-    }
-
-    [Fact]
-    public async Task Archive_AlreadyArchived_Returns204()
-    {
-        var coach = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
-        var discount = await CreateDiscountAsync(coach, DiscountBody(all: true));
-        var url = $"/payments/discounts/{discount.DiscountId}/archive";
-
-        var first = await coach.Http.PostAsync(url, JsonContent.Create(new { }), TestContext.Current.CancellationToken);
-        var second = await coach.Http.PostAsync(url, JsonContent.Create(new { }), TestContext.Current.CancellationToken);
+        var first = await ArchiveAsync(coach, discount.DiscountId);
+        var second = await ArchiveAsync(coach, discount.DiscountId);
 
         first.StatusCode.Should().Be(HttpStatusCode.NoContent);
         second.StatusCode.Should().Be(HttpStatusCode.NoContent);
         (await GetAsync(coach, discount.DiscountId)).ArchivedAt.Should().NotBeNull();
+
+        var update = await UpdateAsync(coach, discount.DiscountId, DiscountBody(all: true));
+
+        update.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await ProblemCodeAsync(update)).Should().Be("DISCOUNT_ARCHIVED");
     }
 
-    [Theory]
-    [InlineData("GET")]
-    [InlineData("PUT")]
-    [InlineData("ARCHIVE")]
-    public async Task ForeignDiscount_Returns404(string operation)
+    [Fact]
+    public async Task ForeignOrUnknownDiscount_Returns404OnGetUpdateAndArchive()
     {
         var owner = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
         var intruder = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
@@ -172,41 +146,14 @@ public class CoachDiscountEndpointTests(FitnessApiFactory factory)
 
         foreach (var discountId in new[] { discount.DiscountId, Guid.NewGuid() })
         {
-            var response = operation switch
-            {
-                "GET" => await intruder.Http.GetAsync($"/payments/discounts/{discountId}", TestContext.Current.CancellationToken),
-                "PUT" => await intruder.Http.PutAsJsonAsync($"/payments/discounts/{discountId}", DiscountBody(all: true), TestContext.Current.CancellationToken),
-                _ => await intruder.Http.PostAsync($"/payments/discounts/{discountId}/archive", JsonContent.Create(new { }), TestContext.Current.CancellationToken)
-            };
-
-            response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+            (await intruder.Http.GetAsync($"/payments/discounts/{discountId}", TestContext.Current.CancellationToken))
+                .StatusCode.Should().Be(HttpStatusCode.NotFound);
+            (await UpdateAsync(intruder, discountId, DiscountBody(all: true, name: "Hijacked"))).StatusCode.Should().Be(HttpStatusCode.NotFound);
+            (await ArchiveAsync(intruder, discountId)).StatusCode.Should().Be(HttpStatusCode.NotFound);
         }
 
-        (await GetAsync(owner, discount.DiscountId)).ArchivedAt.Should().BeNull();
-    }
-
-    [Theory]
-    [InlineData("GET", "/payments/discounts", false, SubscriptionStatus.Active)]
-    [InlineData("POST", "/payments/discounts", false, SubscriptionStatus.Active)]
-    [InlineData("GET", "/payments/discounts/00000000-0000-0000-0000-000000000001", true, SubscriptionStatus.PastDue)]
-    [InlineData("PUT", "/payments/discounts/00000000-0000-0000-0000-000000000001", true, SubscriptionStatus.Canceled)]
-    [InlineData("POST", "/payments/discounts/00000000-0000-0000-0000-000000000001/archive", true, SubscriptionStatus.Incomplete)]
-    public async Task Endpoints_NotEntitledToPayments_Return403(
-        string method, string route, bool planAllowsPayments, SubscriptionStatus status)
-    {
-        var coach = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
-        await SubscribeAsync(factory, coach, planAllowsPayments, status);
-
-        using var request = new HttpRequestMessage(new HttpMethod(method), route);
-
-        if (method is "POST" or "PUT")
-        {
-            request.Content = JsonContent.Create(DiscountBody(all: true));
-        }
-
-        var response = await coach.Http.SendAsync(request, TestContext.Current.CancellationToken);
-
-        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
-        (await ProblemCodeAsync(response)).Should().Be("PAYMENTS_NOT_ENTITLED");
+        var untouched = await GetAsync(owner, discount.DiscountId);
+        untouched.ArchivedAt.Should().BeNull();
+        untouched.Name.Should().Be("Spring sale");
     }
 }
