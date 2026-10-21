@@ -81,7 +81,6 @@
     "messages": "Nachrichten"
   },
   "today": {
-    "eyebrow": "Fangen wir an",
     "greeting": "Willkommen, {{name}}",
     "greetingAnonymous": "Willkommen",
     "linkedGreeting": "Hallo, {{name}}",
@@ -175,7 +174,6 @@
     "messages": "Deine Unterhaltungen erscheinen hier."
   },
   "messages": {
-    "eyebrow": "Deine Coaches",
     "compose": "Coach finden",
     "labels": { "invite": "Einladung", "requestSent": "Anfrage gesendet" },
     "roles": { "Trainer": "Trainer", "Nutritionist": "Ernährungsberater" },
