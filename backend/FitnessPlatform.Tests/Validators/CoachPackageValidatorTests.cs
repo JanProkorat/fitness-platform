@@ -1,6 +1,6 @@
 using FitnessPlatform.Application.Domain.Enums;
-using FitnessPlatform.Application.Features.Packages.CreateCoachPackage;
-using FitnessPlatform.Application.Features.Packages.UpdateCoachPackage;
+using FitnessPlatform.Application.Features.CoachPackages.CreateCoachPackage;
+using FitnessPlatform.Application.Features.CoachPackages.UpdateCoachPackage;
 using FluentAssertions;
 using FluentValidation.TestHelper;
 

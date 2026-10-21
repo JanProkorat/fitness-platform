@@ -4,7 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Features.Discounts.Shared;
-using FitnessPlatform.Application.Features.Packages.Shared;
+using FitnessPlatform.Application.Features.CoachPackages.Shared;
 using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Infrastructure;
 using FluentAssertions;
