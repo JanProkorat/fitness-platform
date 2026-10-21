@@ -107,6 +107,9 @@ public static class NotificationTemplates
                 new("Please log your measurements", "{professionalName} asked you to log your body measurements."),
             [Key(NotificationType.MeasurementRequested, MeasurementRequestedWithMessage)] =
                 new("Please log your measurements", "{professionalName} asked you to log your body measurements: {message}"),
+
+            [Key(NotificationType.OnboardingAnswersUpdated)] =
+                new("Onboarding answers updated", "{clientName} updated their onboarding answers: {fields}. You may want to review their targets."),
         },
         ["cs"] = new()
         {
@@ -172,6 +175,9 @@ public static class NotificationTemplates
                 new("Zapište si prosím míry", "{professionalName} vás žádá o zapsání tělesných měr."),
             [Key(NotificationType.MeasurementRequested, MeasurementRequestedWithMessage)] =
                 new("Zapište si prosím míry", "{professionalName} vás žádá o zapsání tělesných měr: {message}"),
+
+            [Key(NotificationType.OnboardingAnswersUpdated)] =
+                new("Odpovědi z dotazníku upraveny", "{clientName} upravil(a) své odpovědi ve vstupním dotazníku: {fields}. Zvažte kontrolu cílů klienta."),
         },
         ["de"] = new()
         {
@@ -237,8 +243,71 @@ public static class NotificationTemplates
                 new("Bitte Maße eintragen", "{professionalName} bittet Sie, Ihre Körpermaße einzutragen."),
             [Key(NotificationType.MeasurementRequested, MeasurementRequestedWithMessage)] =
                 new("Bitte Maße eintragen", "{professionalName} bittet Sie, Ihre Körpermaße einzutragen: {message}"),
+
+            [Key(NotificationType.OnboardingAnswersUpdated)] =
+                new("Fragebogenantworten aktualisiert", "{clientName} hat die Antworten im Aufnahmefragebogen geändert: {fields}. Prüfen Sie ggf. die Ziele des Klienten."),
         },
     };
+
+    // Machine keys of the editable onboarding answers (also the changedFields values).
+    public const string OnboardingFieldPrimaryGoal = "primaryGoal";
+    public const string OnboardingFieldTargetWeightKg = "targetWeightKg";
+    public const string OnboardingFieldDesiredTrainingFrequency = "desiredTrainingFrequency";
+    public const string OnboardingFieldGymAccess = "gymAccess";
+    public const string OnboardingFieldInjuries = "injuries";
+    public const string OnboardingFieldDietaryStyle = "dietaryStyle";
+    public const string OnboardingFieldAllergies = "allergies";
+    public const string OnboardingFieldDislikes = "dislikes";
+
+    // language -> onboarding field key -> label
+    private static readonly Dictionary<string, Dictionary<string, string>> OnboardingFieldLabels = new()
+    {
+        ["en"] = new()
+        {
+            [OnboardingFieldPrimaryGoal] = "goal",
+            [OnboardingFieldTargetWeightKg] = "target weight",
+            [OnboardingFieldDesiredTrainingFrequency] = "desired training frequency",
+            [OnboardingFieldGymAccess] = "gym access",
+            [OnboardingFieldInjuries] = "injuries",
+            [OnboardingFieldDietaryStyle] = "dietary style",
+            [OnboardingFieldAllergies] = "allergies",
+            [OnboardingFieldDislikes] = "disliked foods",
+        },
+        ["cs"] = new()
+        {
+            [OnboardingFieldPrimaryGoal] = "cíl",
+            [OnboardingFieldTargetWeightKg] = "cílová váha",
+            [OnboardingFieldDesiredTrainingFrequency] = "požadovaná frekvence tréninku",
+            [OnboardingFieldGymAccess] = "přístup do posilovny",
+            [OnboardingFieldInjuries] = "zranění",
+            [OnboardingFieldDietaryStyle] = "styl stravování",
+            [OnboardingFieldAllergies] = "alergie",
+            [OnboardingFieldDislikes] = "nechuti k jídlu",
+        },
+        ["de"] = new()
+        {
+            [OnboardingFieldPrimaryGoal] = "Ziel",
+            [OnboardingFieldTargetWeightKg] = "Zielgewicht",
+            [OnboardingFieldDesiredTrainingFrequency] = "gewünschte Trainingshäufigkeit",
+            [OnboardingFieldGymAccess] = "Zugang zum Fitnessstudio",
+            [OnboardingFieldInjuries] = "Verletzungen",
+            [OnboardingFieldDietaryStyle] = "Ernährungsstil",
+            [OnboardingFieldAllergies] = "Allergien",
+            [OnboardingFieldDislikes] = "Lebensmittelabneigungen",
+        },
+    };
+
+    /// <summary>
+    /// Joins the localized labels of the given onboarding field keys for one recipient language.
+    /// </summary>
+    /// <param name="fieldKeys">Keys from the <c>OnboardingField*</c> constants.</param>
+    /// <param name="language">Recipient language; null or unknown falls back to English.</param>
+    public static string LocalizeOnboardingFields(IEnumerable<string> fieldKeys, string? language)
+    {
+        var labels = OnboardingFieldLabels[Normalize(language)];
+
+        return string.Join(", ", fieldKeys.Select(key => labels.TryGetValue(key, out var label) ? label : key));
+    }
 
     /// <summary>
     /// Safe last-resort pair returned when a (type, variant) combination is missing from
