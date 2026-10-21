@@ -1,0 +1,117 @@
+using System.Net;
+using System.Net.Http.Json;
+using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Infrastructure.Data;
+using FitnessPlatform.Tests.Builders;
+using FitnessPlatform.Tests.Infrastructure;
+using FluentAssertions;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace FitnessPlatform.Tests.Endpoints.Client.Invites;
+
+/// <summary>
+/// Integration tests for <c>GET /client/invites</c>.
+/// </summary>
+[Collection(TestCollection.Name)]
+public class GetClientInvitesEndpointTests(FitnessApiFactory factory)
+{
+    private record InvitesResult(List<InviteItem> Items);
+
+    private record InviteItem(
+        Guid Id, Guid CoachPublicId, string CoachName, string CoachRole, string CoachCity,
+        string? Message, DateTime SentAt, DateTime ExpiresAt);
+
+    private static CancellationToken Ct => TestContext.Current.CancellationToken;
+
+    private async Task<Guid> SeedInviteAsync(
+        Actor coach, string email, PendingInviteStatus status, DateTime sentAt, string? message = null)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var invite = new PendingInvite
+        {
+            ProfessionalProfileId = coach.ProfileId,
+            Email = email,
+            Message = message,
+            SentAt = sentAt,
+            Status = status,
+        };
+        db.PendingInvites.Add(invite);
+        await db.SaveChangesAsync(Ct);
+        return invite.PublicId;
+    }
+
+    private static async Task<List<InviteItem>> GetAsync(Actor caller)
+    {
+        var response = await caller.Http.GetAsync("/client/invites", Ct);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        return (await response.Content.ReadFromJsonAsync<InvitesResult>(cancellationToken: Ct))!.Items;
+    }
+
+    [Fact]
+    public async Task GetAll_ReturnsOnlyPendingUnexpiredInvites_NewestFirst_WithCoachDetails()
+    {
+        var coach = await TestActors.Trainer(factory).WithName("Coach", "Carl").CreateAsync(Ct);
+        var otherCoach = await TestActors.Trainer(factory).WithName("Other", "Olga").CreateAsync(Ct);
+        var client = await TestActors.Client(factory).CreateAsync(Ct);
+        var now = DateTime.UtcNow;
+
+        var older = await SeedInviteAsync(coach, client.Email.ToUpperInvariant(), PendingInviteStatus.Pending, now.AddDays(-2), "Hi");
+        var newer = await SeedInviteAsync(otherCoach, client.Email, PendingInviteStatus.Pending, now.AddHours(-1));
+        await SeedInviteAsync(coach, client.Email, PendingInviteStatus.Declined, now.AddDays(-1));
+        await SeedInviteAsync(coach, client.Email, PendingInviteStatus.Accepted, now.AddDays(-1));
+        await SeedInviteAsync(coach, client.Email, PendingInviteStatus.Cancelled, now.AddDays(-1));
+        await SeedInviteAsync(coach, client.Email, PendingInviteStatus.Pending, now.AddDays(-8));
+        await SeedInviteAsync(coach, "someone-else@actor-fixture.com", PendingInviteStatus.Pending, now);
+
+        var items = await GetAsync(client);
+
+        items.Select(i => i.Id).Should().Equal(newer, older);
+        var first = items[1];
+        first.CoachPublicId.Should().Be(coach.PublicId);
+        first.CoachName.Should().Be("Coach Carl");
+        first.CoachRole.Should().Be("Trainer");
+        first.Message.Should().Be("Hi");
+        first.ExpiresAt.Should().BeCloseTo(first.SentAt.AddDays(7), TimeSpan.FromSeconds(1));
+    }
+
+    [Fact]
+    public async Task GetAll_CoachRoleLabel_ListsActiveRolesOnly_AndBatchesAcrossCoaches()
+    {
+        var both = await TestActors.Professional(factory, UserRole.Trainer, UserRole.Nutritionist).CreateAsync(Ct);
+        var trainerOnly = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var client = await TestActors.Client(factory).CreateAsync(Ct);
+        var now = DateTime.UtcNow;
+
+        var bothInvite = await SeedInviteAsync(both, client.Email, PendingInviteStatus.Pending, now.AddHours(-3));
+        var trainerInvite = await SeedInviteAsync(trainerOnly, client.Email, PendingInviteStatus.Pending, now.AddHours(-2));
+
+        (await GetAsync(client)).Single(i => i.Id == bothInvite).CoachRole.Should().Be("Trainer & Nutritionist");
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var profile = await db.ProfessionalProfiles.FindAsync([both.ProfileId], Ct);
+            profile!.NutritionistRoleRemovedAt = now;
+            await db.SaveChangesAsync(Ct);
+        }
+
+        var items = await GetAsync(client);
+
+        items.Single(i => i.Id == bothInvite).CoachRole.Should().Be("Trainer", "a removed role is not an active one");
+        items.Single(i => i.Id == trainerInvite).CoachRole.Should().Be("Trainer");
+    }
+
+    [Fact]
+    public async Task GetAll_ForCoachRoleCaller_ReturnsEmptyList()
+    {
+        var inviter = await TestActors.Trainer(factory).CreateAsync(Ct);
+
+        // Roles(Client) gates the route, so a coach that also holds the Client role is the realistic caller.
+        var dual = await TestActors.Professional(factory, UserRole.Trainer, UserRole.Client).CreateAsync(Ct);
+        await SeedInviteAsync(inviter, dual.Email, PendingInviteStatus.Pending, DateTime.UtcNow);
+
+        (await GetAsync(dual)).Should().BeEmpty();
+    }
+}

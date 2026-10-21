@@ -236,6 +236,23 @@ public class GetConversationsFilterTests(FitnessApiFactory factory)
     }
 
     [Fact]
+    public async Task List_UnreadMessagesFilter_IncludesPreLinkConversation_ExcludesFormerFlagged()
+    {
+        var (http, trainerId) = await SetupTrainerAsync();
+        var preLinkClientId = await RegisterUnlinkedClientAsync();
+        await SeedPreLinkConversationAsync(trainerId, preLinkClientId, isFormer: false);
+        var formerClientId = await RegisterUnlinkedClientAsync();
+        await SeedPreLinkConversationAsync(trainerId, formerClientId, isFormer: true);
+
+        var response = await http.GetAsync(
+            "/conversations?filter=UnreadMessages", TestContext.Current.CancellationToken);
+        var body = await Deserialize(response);
+
+        body!.Should().ContainSingle(c => c.Participant.Id == preLinkClientId);
+        body.Should().NotContain(c => c.Participant.Id == formerClientId);
+    }
+
+    [Fact]
     public async Task List_ArchivedIsAppliedAfterTheFilterChip()
     {
         var (http, trainerId) = await SetupTrainerAsync();
@@ -324,6 +341,45 @@ public class GetConversationsFilterTests(FitnessApiFactory factory)
         var link = await db.ClientProfessionalLinks
             .FirstAsync(l => l.ClientProfileId == clientProfile.Id, TestContext.Current.CancellationToken);
         link.IsActive = isActive;
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+    }
+
+    private async Task<Guid> RegisterUnlinkedClientAsync()
+    {
+        var http = factory.CreateClient();
+        var email = UniqueEmail("client");
+        await TestHelpers.RegisterAsync(http, email, Password, "Pre", "Link", "Client");
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var user = await db.Users.AsNoTracking()
+            .FirstAsync(u => u.Email == email, TestContext.Current.CancellationToken);
+        return user.Id;
+    }
+
+    private async Task SeedPreLinkConversationAsync(Guid professionalUserId, Guid clientUserId, bool isFormer)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var conversation = new Conversation
+        {
+            PublicId = Guid.NewGuid(),
+            ProfessionalUserId = professionalUserId,
+            ClientUserId = clientUserId,
+            IsFormer = isFormer
+        };
+        db.Conversations.Add(conversation);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        db.ChatMessages.Add(new ChatMessage
+        {
+            PublicId = Guid.NewGuid(),
+            ConversationId = conversation.Id,
+            SenderUserId = clientUserId,
+            Text = "hello",
+            IsRead = false
+        });
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 

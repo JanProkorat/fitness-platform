@@ -37,7 +37,7 @@ public class PendingInviteConversationSeeder(
         var invites = await db.PendingInvites
             .Include(pi => pi.ProfessionalProfile)
                 .ThenInclude(pp => pp.User)
-            .Where(pi => !pi.IsAccepted && pi.Email.ToUpper() == normalizedEmail)
+            .Where(pi => pi.Status == PendingInviteStatus.Pending && pi.Email.ToUpper() == normalizedEmail)
             .ToListAsync(ct);
 
         foreach (var invite in invites)

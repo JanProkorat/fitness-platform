@@ -21,3 +21,15 @@ export const launchMotion = {
   taglineDuration: 476,
   exitDuration: 250,
 } as const;
+
+/** Invite card layout animations on Today: ms for the fades, spring for the entrance and reflow. */
+export const inviteMotion = {
+  enterDelayStagger: 70,
+  exitDuration: 180,
+  spring: { damping: 18, stiffness: 180, mass: 0.9 },
+} as const;
+
+/** Chat rows that arrive after the screen opened: spring entrance and list reflow. */
+export const chatMotion = {
+  spring: { damping: 20, stiffness: 220, mass: 0.8 },
+} as const;

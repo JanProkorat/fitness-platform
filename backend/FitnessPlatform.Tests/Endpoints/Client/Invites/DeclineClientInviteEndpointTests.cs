@@ -39,7 +39,7 @@ public class DeclineClientInviteEndpointTests
             db, _notifier, _conversationSeedService);
 
     [Fact]
-    public async Task Decline_ByRecipient_Returns204_AndMarksAccepted()
+    public async Task Decline_ByRecipient_Returns204_AndMarksDeclined()
     {
         // Arrange
         var clientId = Guid.NewGuid();
@@ -53,7 +53,7 @@ public class DeclineClientInviteEndpointTests
             ProfessionalProfile = professionalProfile,
             // Different casing than the caller's NormalizedEmail — must still match.
             Email = "Client@Example.com",
-            IsAccepted = false
+            Status = PendingInviteStatus.Pending
         };
 
         var db = new MockDbBuilder()
@@ -69,7 +69,7 @@ public class DeclineClientInviteEndpointTests
 
         // Assert
         ep.HttpContext.Response.StatusCode.Should().Be(204);
-        invite.IsAccepted.Should().BeTrue();
+        invite.Status.Should().Be(PendingInviteStatus.Declined);
         await _notifier.Received(1).NotifyAsync(
             professionalProfile.UserId, "invitedeclined", Arg.Any<object>(), Arg.Any<CancellationToken>());
 
@@ -83,6 +83,33 @@ public class DeclineClientInviteEndpointTests
             professionalProfile.UserId, clientId, clientId,
             ChatEventType.Declined, inviteId, null,
             createConversationIfMissing: true, Arg.Any<CancellationToken>());
+    }
+
+    [Theory]
+    [InlineData(PendingInviteStatus.Accepted)]
+    [InlineData(PendingInviteStatus.Declined)]
+    [InlineData(PendingInviteStatus.Cancelled)]
+    public async Task Decline_NonPendingInvite_Returns404_AndKeepsStatus(PendingInviteStatus status)
+    {
+        var clientId = Guid.NewGuid();
+        var clientUser = CreateUser(clientId, "client@example.com");
+        var professionalProfile = new ProfessionalProfile { Id = 1, PublicId = Guid.NewGuid(), UserId = Guid.NewGuid() };
+        var invite = new PendingInvite
+        {
+            PublicId = Guid.NewGuid(),
+            ProfessionalProfileId = professionalProfile.Id,
+            ProfessionalProfile = professionalProfile,
+            Email = "client@example.com",
+            Status = status
+        };
+
+        var db = new MockDbBuilder().With(clientUser).With(professionalProfile).With(invite).Build();
+        var ep = CreateEndpoint(clientId, db);
+
+        await ep.HandleAsync(new DeclineClientInviteRequest { Id = invite.PublicId }, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(404);
+        invite.Status.Should().Be(status);
     }
 
     [Fact]
@@ -99,7 +126,7 @@ public class DeclineClientInviteEndpointTests
             ProfessionalProfileId = professionalProfile.Id,
             ProfessionalProfile = professionalProfile,
             Email = "victim@example.com",
-            IsAccepted = false
+            Status = PendingInviteStatus.Pending
         };
 
         var db = new MockDbBuilder()
@@ -116,7 +143,7 @@ public class DeclineClientInviteEndpointTests
         // Assert — 404, not 403: must not confirm the GUID exists (no enumeration oracle),
         // and the real recipient's invite must survive so they can still act on it.
         ep.HttpContext.Response.StatusCode.Should().Be(404);
-        invite.IsAccepted.Should().BeFalse();
+        invite.Status.Should().Be(PendingInviteStatus.Pending);
         await _notifier.DidNotReceiveWithAnyArgs().NotifyAsync(default, default!, default!, TestContext.Current.CancellationToken);
         await _conversationSeedService.DidNotReceiveWithAnyArgs().AppendCooperationEventAsync(
             default, default, default, default, default, default, default, TestContext.Current.CancellationToken);

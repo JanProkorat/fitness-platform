@@ -78,20 +78,26 @@
   "h": 900
  },
  {
-  "html": "web/03-05-page-register-client-c.html",
-  "png": "web/03-05-page-register-client-c.png",
+  "html": "web/03-05-page-register-plan-c.html",
+  "png": "web/03-05-page-register-plan-c.png",
+  "w": 1440,
+  "h": 1000
+ },
+ {
+  "html": "web/03-06-page-register-client-c.html",
+  "png": "web/03-06-page-register-client-c.png",
   "w": 1440,
   "h": 1060
  },
  {
-  "html": "web/03-06-page-register-client-check-email-c.html",
-  "png": "web/03-06-page-register-client-check-email-c.png",
+  "html": "web/03-07-page-register-client-check-email-c.html",
+  "png": "web/03-07-page-register-client-check-email-c.png",
   "w": 1440,
   "h": 900
  },
  {
-  "html": "web/03-07-page-register-get-app-c.html",
-  "png": "web/03-07-page-register-get-app-c.png",
+  "html": "web/03-08-page-register-get-app-c.html",
+  "png": "web/03-08-page-register-get-app-c.png",
   "w": 1440,
   "h": 900
  },
@@ -120,20 +126,26 @@
   "h": 900
  },
  {
-  "html": "web/04-05-page-register-client-d.html",
-  "png": "web/04-05-page-register-client-d.png",
+  "html": "web/04-05-page-register-plan-d.html",
+  "png": "web/04-05-page-register-plan-d.png",
+  "w": 1440,
+  "h": 1000
+ },
+ {
+  "html": "web/04-06-page-register-client-d.html",
+  "png": "web/04-06-page-register-client-d.png",
   "w": 1440,
   "h": 1060
  },
  {
-  "html": "web/04-06-page-register-client-check-email-d.html",
-  "png": "web/04-06-page-register-client-check-email-d.png",
+  "html": "web/04-07-page-register-client-check-email-d.html",
+  "png": "web/04-07-page-register-client-check-email-d.png",
   "w": 1440,
   "h": 900
  },
  {
-  "html": "web/04-07-page-register-get-app-d.html",
-  "png": "web/04-07-page-register-get-app-d.png",
+  "html": "web/04-08-page-register-get-app-d.html",
+  "png": "web/04-08-page-register-get-app-d.png",
   "w": 1440,
   "h": 900
  },
@@ -252,6 +264,12 @@
   "h": 1100
  },
  {
+  "html": "web/05-20-page-clients-pending-c.html",
+  "png": "web/05-20-page-clients-pending-c.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
   "html": "web/06-01-page-clients-d.html",
   "png": "web/06-01-page-clients-d.png",
   "w": 1440,
@@ -366,16 +384,70 @@
   "h": 1100
  },
  {
+  "html": "web/06-20-page-clients-pending-d.html",
+  "png": "web/06-20-page-clients-pending-d.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
   "html": "web/07-01-page-inbox-c.html",
   "png": "web/07-01-page-inbox-c.png",
   "w": 1440,
   "h": 900
  },
  {
+  "html": "web/07-02-page-inbox-request-c.html",
+  "png": "web/07-02-page-inbox-request-c.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/07-03-page-notifications-popover-c.html",
+  "png": "web/07-03-page-notifications-popover-c.png",
+  "w": 860,
+  "h": 600
+ },
+ {
+  "html": "web/07-04-page-inbox-invite-c.html",
+  "png": "web/07-04-page-inbox-invite-c.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/07-05-page-inbox-invite-states-c.html",
+  "png": "web/07-05-page-inbox-invite-states-c.png",
+  "w": 860,
+  "h": 600
+ },
+ {
   "html": "web/08-01-page-inbox-d.html",
   "png": "web/08-01-page-inbox-d.png",
   "w": 1440,
   "h": 900
+ },
+ {
+  "html": "web/08-02-page-inbox-request-d.html",
+  "png": "web/08-02-page-inbox-request-d.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/08-03-page-notifications-popover-d.html",
+  "png": "web/08-03-page-notifications-popover-d.png",
+  "w": 860,
+  "h": 600
+ },
+ {
+  "html": "web/08-04-page-inbox-invite-d.html",
+  "png": "web/08-04-page-inbox-invite-d.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/08-05-page-inbox-invite-states-d.html",
+  "png": "web/08-05-page-inbox-invite-states-d.png",
+  "w": 860,
+  "h": 600
  },
  {
   "html": "web/09-01-page-recipes-c.html",
@@ -693,7 +765,7 @@
   "html": "web/19-01-page-settings-c.html",
   "png": "web/19-01-page-settings-c.png",
   "w": 1440,
-  "h": 1700
+  "h": 2400
  },
  {
   "html": "web/19-02-page-account-menu-c.html",
@@ -735,7 +807,7 @@
   "html": "web/20-01-page-settings-d.html",
   "png": "web/20-01-page-settings-d.png",
   "w": 1440,
-  "h": 1700
+  "h": 2400
  },
  {
   "html": "web/20-02-page-account-menu-d.html",
@@ -1014,6 +1086,162 @@
   "h": 800
  },
  {
+  "html": "web/33-01-page-plan-picker-c.html",
+  "png": "web/33-01-page-plan-picker-c.png",
+  "w": 1440,
+  "h": 1100
+ },
+ {
+  "html": "web/33-02-page-settings-plan-c.html",
+  "png": "web/33-02-page-settings-plan-c.png",
+  "w": 1440,
+  "h": 1240
+ },
+ {
+  "html": "web/33-03-page-settings-plan-past-due-c.html",
+  "png": "web/33-03-page-settings-plan-past-due-c.png",
+  "w": 1440,
+  "h": 1240
+ },
+ {
+  "html": "web/33-04-page-settings-add-role-c.html",
+  "png": "web/33-04-page-settings-add-role-c.png",
+  "w": 860,
+  "h": 800
+ },
+ {
+  "html": "web/34-01-page-plan-picker-d.html",
+  "png": "web/34-01-page-plan-picker-d.png",
+  "w": 1440,
+  "h": 1100
+ },
+ {
+  "html": "web/34-02-page-settings-plan-d.html",
+  "png": "web/34-02-page-settings-plan-d.png",
+  "w": 1440,
+  "h": 1240
+ },
+ {
+  "html": "web/34-03-page-settings-plan-past-due-d.html",
+  "png": "web/34-03-page-settings-plan-past-due-d.png",
+  "w": 1440,
+  "h": 1240
+ },
+ {
+  "html": "web/34-04-page-settings-add-role-d.html",
+  "png": "web/34-04-page-settings-add-role-d.png",
+  "w": 860,
+  "h": 800
+ },
+ {
+  "html": "web/35-01-page-paywall-feature-c.html",
+  "png": "web/35-01-page-paywall-feature-c.png",
+  "w": 1440,
+  "h": 1000
+ },
+ {
+  "html": "web/35-02-page-paywall-client-cap-c.html",
+  "png": "web/35-02-page-paywall-client-cap-c.png",
+  "w": 860,
+  "h": 800
+ },
+ {
+  "html": "web/35-03-page-lapse-keep-clients-c.html",
+  "png": "web/35-03-page-lapse-keep-clients-c.png",
+  "w": 1440,
+  "h": 1000
+ },
+ {
+  "html": "web/36-01-page-paywall-feature-d.html",
+  "png": "web/36-01-page-paywall-feature-d.png",
+  "w": 1440,
+  "h": 1000
+ },
+ {
+  "html": "web/36-02-page-paywall-client-cap-d.html",
+  "png": "web/36-02-page-paywall-client-cap-d.png",
+  "w": 860,
+  "h": 800
+ },
+ {
+  "html": "web/36-03-page-lapse-keep-clients-d.html",
+  "png": "web/36-03-page-lapse-keep-clients-d.png",
+  "w": 1440,
+  "h": 1000
+ },
+ {
+  "html": "web/37-01-page-admin-plans-c.html",
+  "png": "web/37-01-page-admin-plans-c.png",
+  "w": 1440,
+  "h": 1000
+ },
+ {
+  "html": "web/37-02-page-admin-promotions-c.html",
+  "png": "web/37-02-page-admin-promotions-c.png",
+  "w": 1440,
+  "h": 1000
+ },
+ {
+  "html": "web/37-03-page-admin-promotion-drawer-c.html",
+  "png": "web/37-03-page-admin-promotion-drawer-c.png",
+  "w": 1440,
+  "h": 1100
+ },
+ {
+  "html": "web/37-04-page-admin-plan-drawer-c.html",
+  "png": "web/37-04-page-admin-plan-drawer-c.png",
+  "w": 1440,
+  "h": 1240
+ },
+ {
+  "html": "web/37-05-page-admin-coaches-c.html",
+  "png": "web/37-05-page-admin-coaches-c.png",
+  "w": 1440,
+  "h": 1240
+ },
+ {
+  "html": "web/37-06-page-admin-coach-drawer-c.html",
+  "png": "web/37-06-page-admin-coach-drawer-c.png",
+  "w": 1440,
+  "h": 1240
+ },
+ {
+  "html": "web/38-01-page-admin-plans-d.html",
+  "png": "web/38-01-page-admin-plans-d.png",
+  "w": 1440,
+  "h": 1000
+ },
+ {
+  "html": "web/38-02-page-admin-promotions-d.html",
+  "png": "web/38-02-page-admin-promotions-d.png",
+  "w": 1440,
+  "h": 1000
+ },
+ {
+  "html": "web/38-03-page-admin-promotion-drawer-d.html",
+  "png": "web/38-03-page-admin-promotion-drawer-d.png",
+  "w": 1440,
+  "h": 1100
+ },
+ {
+  "html": "web/38-04-page-admin-plan-drawer-d.html",
+  "png": "web/38-04-page-admin-plan-drawer-d.png",
+  "w": 1440,
+  "h": 1240
+ },
+ {
+  "html": "web/38-05-page-admin-coaches-d.html",
+  "png": "web/38-05-page-admin-coaches-d.png",
+  "w": 1440,
+  "h": 1240
+ },
+ {
+  "html": "web/38-06-page-admin-coach-drawer-d.html",
+  "png": "web/38-06-page-admin-coach-drawer-d.png",
+  "w": 1440,
+  "h": 1240
+ },
+ {
   "html": "mobile-light/01-01-launch-quiet.html",
   "png": "mobile-light/01-01-launch-quiet.png",
   "w": 390,
@@ -1112,6 +1340,18 @@
  {
   "html": "mobile-light/01-17-request-sheet.html",
   "png": "mobile-light/01-17-request-sheet.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/01-18-notifications-invite.html",
+  "png": "mobile-light/01-18-notifications-invite.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/01-19-invite-detail.html",
+  "png": "mobile-light/01-19-invite-detail.png",
   "w": 390,
   "h": 844
  },
@@ -1248,6 +1488,24 @@
   "h": 844
  },
  {
+  "html": "mobile-light/06-03-messages-list-invite.html",
+  "png": "mobile-light/06-03-messages-list-invite.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/06-04-chat-invite.html",
+  "png": "mobile-light/06-04-chat-invite.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/06-05-chat-invite-states.html",
+  "png": "mobile-light/06-05-chat-invite-states.png",
+  "w": 390,
+  "h": 844
+ },
+ {
   "html": "mobile-light/07-01-profile.html",
   "png": "mobile-light/07-01-profile.png",
   "w": 390,
@@ -1286,6 +1544,18 @@
  {
   "html": "mobile-light/07-07-settings.html",
   "png": "mobile-light/07-07-settings.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/07-08-measurements-add-sheet.html",
+  "png": "mobile-light/07-08-measurements-add-sheet.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/07-09-check-in-history.html",
+  "png": "mobile-light/07-09-check-in-history.png",
   "w": 390,
   "h": 844
  },
@@ -1370,6 +1640,12 @@
  {
   "html": "mobile-light/11-01-payment.html",
   "png": "mobile-light/11-01-payment.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/12-01-coach-plan-ended.html",
+  "png": "mobile-light/12-01-coach-plan-ended.png",
   "w": 390,
   "h": 844
  },
@@ -1472,6 +1748,18 @@
  {
   "html": "mobile-dark/01-17-request-sheet.html",
   "png": "mobile-dark/01-17-request-sheet.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/01-18-notifications-invite.html",
+  "png": "mobile-dark/01-18-notifications-invite.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/01-19-invite-detail.html",
+  "png": "mobile-dark/01-19-invite-detail.png",
   "w": 390,
   "h": 844
  },
@@ -1608,6 +1896,24 @@
   "h": 844
  },
  {
+  "html": "mobile-dark/06-03-messages-list-invite.html",
+  "png": "mobile-dark/06-03-messages-list-invite.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/06-04-chat-invite.html",
+  "png": "mobile-dark/06-04-chat-invite.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/06-05-chat-invite-states.html",
+  "png": "mobile-dark/06-05-chat-invite-states.png",
+  "w": 390,
+  "h": 844
+ },
+ {
   "html": "mobile-dark/07-01-profile.html",
   "png": "mobile-dark/07-01-profile.png",
   "w": 390,
@@ -1646,6 +1952,18 @@
  {
   "html": "mobile-dark/07-07-settings.html",
   "png": "mobile-dark/07-07-settings.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/07-08-measurements-add-sheet.html",
+  "png": "mobile-dark/07-08-measurements-add-sheet.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/07-09-check-in-history.html",
+  "png": "mobile-dark/07-09-check-in-history.png",
   "w": 390,
   "h": 844
  },
@@ -1730,6 +2048,12 @@
  {
   "html": "mobile-dark/11-01-payment.html",
   "png": "mobile-dark/11-01-payment.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/12-01-coach-plan-ended.html",
+  "png": "mobile-dark/12-01-coach-plan-ended.png",
   "w": 390,
   "h": 844
  },
@@ -1824,6 +2148,12 @@
   "h": 844
  },
  {
+  "html": "coach-light/05-01-coach-profile-plan.html",
+  "png": "coach-light/05-01-coach-profile-plan.png",
+  "w": 390,
+  "h": 844
+ },
+ {
   "html": "coach-dark/01-01-coach-setup.html",
   "png": "coach-dark/01-01-coach-setup.png",
   "w": 390,
@@ -1910,6 +2240,12 @@
  {
   "html": "coach-dark/04-03-coach-profile.html",
   "png": "coach-dark/04-03-coach-profile.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "coach-dark/05-01-coach-profile-plan.html",
+  "png": "coach-dark/05-01-coach-profile-plan.png",
   "w": 390,
   "h": 844
  },
@@ -2022,272 +2358,104 @@
   "h": 1240
  },
  {
-  "html": "logo/01-01-logo-pixel.html",
-  "png": "logo/01-01-logo-pixel.png",
+  "html": "logo/01-01-logo-combo-cascade-check.html",
+  "png": "logo/01-01-logo-combo-cascade-check.png",
   "w": 600,
   "h": 760
  },
  {
-  "html": "logo/01-02-logo-plates.html",
-  "png": "logo/01-02-logo-plates.png",
+  "html": "logo/01-02-logo-combo-free.html",
+  "png": "logo/01-02-logo-combo-free.png",
   "w": 600,
   "h": 760
  },
  {
-  "html": "logo/02-01-logo-fan-warm.html",
-  "png": "logo/02-01-logo-fan-warm.png",
+  "html": "logo/01-03-logo-combo-progress.html",
+  "png": "logo/01-03-logo-combo-progress.png",
   "w": 600,
   "h": 760
  },
  {
-  "html": "logo/02-02-logo-fan-roles.html",
-  "png": "logo/02-02-logo-fan-roles.png",
+  "html": "logo/01-04-logo-combo-stack.html",
+  "png": "logo/01-04-logo-combo-stack.png",
   "w": 600,
   "h": 760
  },
  {
-  "html": "logo/02-03-logo-fan-open.html",
-  "png": "logo/02-03-logo-fan-open.png",
+  "html": "logo/01-05-logo-combo-deep-card.html",
+  "png": "logo/01-05-logo-combo-deep-card.png",
   "w": 600,
   "h": 760
  },
  {
-  "html": "logo/03-01-logo-min-dot-f.html",
-  "png": "logo/03-01-logo-min-dot-f.png",
+  "html": "logo/01-06-logo-app-icon.html",
+  "png": "logo/01-06-logo-app-icon.png",
   "w": 600,
   "h": 760
  },
  {
-  "html": "logo/03-02-logo-min-shelter.html",
-  "png": "logo/03-02-logo-min-shelter.png",
-  "w": 600,
-  "h": 760
- },
- {
-  "html": "logo/03-03-logo-min-upturn.html",
-  "png": "logo/03-03-logo-min-upturn.png",
-  "w": 600,
-  "h": 760
- },
- {
-  "html": "logo/03-04-logo-min-ring.html",
-  "png": "logo/03-04-logo-min-ring.png",
-  "w": 600,
-  "h": 760
- },
- {
-  "html": "logo/03-05-logo-min-f-u.html",
-  "png": "logo/03-05-logo-min-f-u.png",
-  "w": 600,
-  "h": 760
- },
- {
-  "html": "logo/04-01-logo-cursive-script.html",
-  "png": "logo/04-01-logo-cursive-script.png",
-  "w": 600,
-  "h": 760
- },
- {
-  "html": "logo/04-02-logo-cursive-swash.html",
-  "png": "logo/04-02-logo-cursive-swash.png",
-  "w": 600,
-  "h": 760
- },
- {
-  "html": "logo/04-03-logo-cursive-f-u.html",
-  "png": "logo/04-03-logo-cursive-f-u.png",
-  "w": 600,
-  "h": 760
- },
- {
-  "html": "logo/04-04-logo-cursive-looped.html",
-  "png": "logo/04-04-logo-cursive-looped.png",
-  "w": 600,
-  "h": 760
- },
- {
-  "html": "logo/05-01-logo-capsule-italic.html",
-  "png": "logo/05-01-logo-capsule-italic.png",
-  "w": 600,
-  "h": 760
- },
- {
-  "html": "logo/05-02-logo-capsule-dot-f.html",
-  "png": "logo/05-02-logo-capsule-dot-f.png",
-  "w": 600,
-  "h": 760
- },
- {
-  "html": "logo/05-03-logo-capsule-rising.html",
-  "png": "logo/05-03-logo-capsule-rising.png",
-  "w": 600,
-  "h": 760
- },
- {
-  "html": "logo/05-04-logo-capsule-cascade.html",
-  "png": "logo/05-04-logo-capsule-cascade.png",
-  "w": 600,
-  "h": 760
- },
- {
-  "html": "logo/05-05-logo-capsule-cascade3.html",
-  "png": "logo/05-05-logo-capsule-cascade3.png",
-  "w": 600,
-  "h": 760
- },
- {
-  "html": "logo/05-06-logo-capsule-stem-rise.html",
-  "png": "logo/05-06-logo-capsule-stem-rise.png",
-  "w": 600,
-  "h": 760
- },
- {
-  "html": "logo/06-01-logo-ring-wave.html",
-  "png": "logo/06-01-logo-ring-wave.png",
-  "w": 600,
-  "h": 760
- },
- {
-  "html": "logo/06-02-logo-ring-growth.html",
-  "png": "logo/06-02-logo-ring-growth.png",
-  "w": 600,
-  "h": 760
- },
- {
-  "html": "logo/06-03-logo-ring-script.html",
-  "png": "logo/06-03-logo-ring-script.png",
-  "w": 600,
-  "h": 760
- },
- {
-  "html": "logo/06-04-logo-ring-uturn.html",
-  "png": "logo/06-04-logo-ring-uturn.png",
-  "w": 600,
-  "h": 760
- },
- {
-  "html": "logo/06-05-logo-ring-steps.html",
-  "png": "logo/06-05-logo-ring-steps.png",
-  "w": 600,
-  "h": 760
- },
- {
-  "html": "logo/07-01-logo-plans-overlap.html",
-  "png": "logo/07-01-logo-plans-overlap.png",
-  "w": 600,
-  "h": 760
- },
- {
-  "html": "logo/07-02-logo-plans-zipper.html",
-  "png": "logo/07-02-logo-plans-zipper.png",
-  "w": 600,
-  "h": 760
- },
- {
-  "html": "logo/07-03-logo-plans-check-f.html",
-  "png": "logo/07-03-logo-plans-check-f.png",
-  "w": 600,
-  "h": 760
- },
- {
-  "html": "logo/07-04-logo-plans-booklet.html",
-  "png": "logo/07-04-logo-plans-booklet.png",
-  "w": 600,
-  "h": 760
- },
- {
-  "html": "logo/08-01-logo-combo-cascade-check.html",
-  "png": "logo/08-01-logo-combo-cascade-check.png",
-  "w": 600,
-  "h": 760
- },
- {
-  "html": "logo/08-02-logo-combo-free.html",
-  "png": "logo/08-02-logo-combo-free.png",
-  "w": 600,
-  "h": 760
- },
- {
-  "html": "logo/08-03-logo-combo-progress.html",
-  "png": "logo/08-03-logo-combo-progress.png",
-  "w": 600,
-  "h": 760
- },
- {
-  "html": "logo/08-04-logo-combo-stack.html",
-  "png": "logo/08-04-logo-combo-stack.png",
-  "w": 600,
-  "h": 760
- },
- {
-  "html": "logo/08-05-logo-combo-deep-card.html",
-  "png": "logo/08-05-logo-combo-deep-card.png",
-  "w": 600,
-  "h": 760
- },
- {
-  "html": "logo/09-01-logo-wordmark-test.html",
-  "png": "logo/09-01-logo-wordmark-test.png",
+  "html": "logo/02-01-logo-wordmark-test.html",
+  "png": "logo/02-01-logo-wordmark-test.png",
   "w": 1440,
   "h": 1260
  },
  {
-  "html": "logo/10-01-logo-launch-cascade-check.html",
-  "png": "logo/10-01-logo-launch-cascade-check.png",
+  "html": "logo/03-01-logo-launch-cascade-check.html",
+  "png": "logo/03-01-logo-launch-cascade-check.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "logo/10-02-logo-launch-free.html",
-  "png": "logo/10-02-logo-launch-free.png",
+  "html": "logo/03-02-logo-launch-free.html",
+  "png": "logo/03-02-logo-launch-free.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "logo/10-03-logo-launch-progress.html",
-  "png": "logo/10-03-logo-launch-progress.png",
+  "html": "logo/03-03-logo-launch-progress.html",
+  "png": "logo/03-03-logo-launch-progress.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "logo/10-04-logo-launch-stack.html",
-  "png": "logo/10-04-logo-launch-stack.png",
+  "html": "logo/03-04-logo-launch-stack.html",
+  "png": "logo/03-04-logo-launch-stack.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "logo/10-05-logo-launch-deep-card.html",
-  "png": "logo/10-05-logo-launch-deep-card.png",
+  "html": "logo/03-05-logo-launch-deep-card.html",
+  "png": "logo/03-05-logo-launch-deep-card.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "logo/11-01-logo-launch-cascade-check.html",
-  "png": "logo/11-01-logo-launch-cascade-check.png",
+  "html": "logo/04-01-logo-launch-cascade-check.html",
+  "png": "logo/04-01-logo-launch-cascade-check.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "logo/11-02-logo-launch-free.html",
-  "png": "logo/11-02-logo-launch-free.png",
+  "html": "logo/04-02-logo-launch-free.html",
+  "png": "logo/04-02-logo-launch-free.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "logo/11-03-logo-launch-progress.html",
-  "png": "logo/11-03-logo-launch-progress.png",
+  "html": "logo/04-03-logo-launch-progress.html",
+  "png": "logo/04-03-logo-launch-progress.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "logo/11-04-logo-launch-stack.html",
-  "png": "logo/11-04-logo-launch-stack.png",
+  "html": "logo/04-04-logo-launch-stack.html",
+  "png": "logo/04-04-logo-launch-stack.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "logo/11-05-logo-launch-deep-card.html",
-  "png": "logo/11-05-logo-launch-deep-card.png",
+  "html": "logo/04-05-logo-launch-deep-card.html",
+  "png": "logo/04-05-logo-launch-deep-card.png",
   "w": 390,
   "h": 844
  }

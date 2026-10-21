@@ -103,7 +103,7 @@ public class GetClientsEndpoint(IMongoContext mongo, IApplicationDbContext db, T
             .Select(row => Classify(row, nutritionByClient, trainingByClient, today))
             .ToList();
 
-        var pendingCount = await CountPendingAsync(professionalProfile.Id, ct);
+        var pendingCount = await CountPendingAsync(professionalProfile.Id, now, ct);
 
         var tabCounts = new ClientTabCounts
         {
@@ -218,6 +218,7 @@ public class GetClientsEndpoint(IMongoContext mongo, IApplicationDbContext db, T
                     m.Conversation.ProfessionalUserId == callerUserId &&
                     m.Conversation.ClientUserId == l.ClientProfile.User.Id &&
                     !m.IsRead &&
+                    m.Kind != ChatMessageKind.Event &&
                     m.SenderUserId == l.ClientProfile.User.Id),
                 HasNewCheckIn = db.WeeklyCheckIns.Any(w =>
                     w.ClientUserId == l.ClientProfile.User.Id &&
@@ -353,11 +354,15 @@ public class GetClientsEndpoint(IMongoContext mongo, IApplicationDbContext db, T
                     .ToList());
     }
 
-    private async Task<int> CountPendingAsync(long professionalProfileId, CancellationToken ct)
+    private async Task<int> CountPendingAsync(long professionalProfileId, DateTime now, CancellationToken ct)
     {
-        var inviteCount = await db.PendingInvites
+        // Same one-row-per-email rule as the Pending tab, so the badge matches the rows (#1541).
+        var invites = await db.PendingInvites
             .AsNoTracking()
-            .CountAsync(pi => pi.ProfessionalProfileId == professionalProfileId && !pi.IsAccepted, ct);
+            .Where(pi => pi.ProfessionalProfileId == professionalProfileId && pi.Status == PendingInviteStatus.Pending)
+            .Select(pi => new { pi.Email, pi.SentAt })
+            .ToListAsync(ct);
+        var inviteCount = PendingInviteStatusResolver.OnePerEmail(invites, i => i.Email, i => i.SentAt, now).Count;
 
         var requestCount = await db.ClientRequests
             .AsNoTracking()

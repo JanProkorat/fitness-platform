@@ -54,10 +54,10 @@ test('sidebar shows the Notifications row above Help and collapses to a rail tha
   const aside = page.locator('aside');
   const nav = page.getByRole('navigation');
 
-  // Bell moved from the header to a (still inert) row directly above Help & Support.
-  const notifications = nav.getByRole('button', { name: 'Notifications' });
+  // Bell lives in a row directly above Help & Support and is a live control that opens the popover.
+  const notifications = nav.getByRole('button', { name: /^Notifications/ });
   await expect(notifications).toBeVisible();
-  await expect(notifications).toBeDisabled();
+  await expect(notifications).toBeEnabled();
   await expect(aside).toHaveCSS('width', '248px');
 
   // Collapse: 64px rail, labels out of reach, focus stays on the (now Expand) toggle.
@@ -67,7 +67,7 @@ test('sidebar shows the Notifications row above Help and collapses to a rail tha
   await expect(expand).toBeFocused();
   await expect(nav.getByRole('link', { name: 'Clients' })).toBeVisible();
   await expect(nav.getByRole('button', { name: 'Help & Support' })).toHaveCount(0);
-  await expect(nav.getByRole('button', { name: 'Notifications' })).toBeVisible();
+  await expect(nav.getByRole('button', { name: /^Notifications/ })).toBeVisible();
 
   // The choice is remembered per browser.
   await page.reload();

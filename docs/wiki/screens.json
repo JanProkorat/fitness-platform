@@ -718,6 +718,107 @@
       "notionPageId": null
     },
     {
+      "id": "web.shell.notifications",
+      "app": "web",
+      "area": "Shell",
+      "title": "Notifications popover",
+      "route": "/clients",
+      "roles": ["Trainer", "Nutritionist"],
+      "files": [
+        "web/src/components/notifications/**",
+        "web/src/hooks/useNotificationsQueries.ts",
+        "web/src/api/notifications.ts",
+        "web/src/components/layout/AppShell.tsx",
+        "web/src/components/layout/Sidebar.tsx",
+        "web/src/components/layout/AccountMenu.tsx",
+        "web/src/components/layout/RealtimeProvider.tsx",
+        "web/src/components/brand/**",
+        "web/src/hooks/useSidebarCollapsed.ts",
+        "web/src/hooks/useSignalR.ts",
+        "web/src/hooks/useInboxQueries.ts",
+        "web/src/hooks/useActiveRoles.ts",
+        "web/src/api/conversations.ts",
+        "web/src/api/roles.ts"
+      ],
+      "endpoints": [
+        "GET /client/notifications",
+        "POST /client/notifications/{id}/read",
+        "POST /client/notifications/read-all",
+        "GET /conversations/filter-counts",
+        "GET /users/me/roles"
+      ],
+      "board": "PageNotificationsPopover",
+      "shots": [
+        { "name": "open", "steps": "click the bell in the sidebar and wait for the list to load" }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "web.inbox.thread",
+      "app": "web",
+      "area": "Inbox",
+      "title": "Inbox",
+      "route": "/inbox",
+      "roles": ["Trainer", "Nutritionist"],
+      "files": [
+        "web/src/pages/InboxPage.tsx",
+        "web/src/components/inbox/**",
+        "web/src/components/clients/ClientStatusBadge.tsx",
+        "web/src/hooks/useInboxQueries.ts",
+        "web/src/hooks/useClientsQueries.ts",
+        "web/src/hooks/useClientListParams.ts",
+        "web/src/hooks/useActiveRoles.ts",
+        "web/src/hooks/useMediaQuery.ts",
+        "web/src/hooks/useSignalR.ts",
+        "web/src/lib/cooperationCards.ts",
+        "web/src/lib/chatEvents.ts",
+        "web/src/lib/client-metrics.ts",
+        "web/src/lib/clientDetailNavigation.ts",
+        "web/src/lib/date-format.ts",
+        "web/src/lib/youtube.ts",
+        "web/src/api/conversations.ts",
+        "web/src/api/client-requests.ts",
+        "web/src/api/clients.ts",
+        "web/src/api/pending-invites.ts",
+        "web/src/api/client-plans.ts",
+        "web/src/api/measurements.ts",
+        "web/src/api/plans.ts",
+        "web/src/api/plan-types.ts",
+        "web/src/api/training-plans.ts",
+        "web/src/api/training-plan-types.ts",
+        "web/src/api/roles.ts",
+        "web/src/api/client-tags.ts",
+        "web/src/api/broadcast.ts"
+      ],
+      "endpoints": [
+        "GET /conversations",
+        "GET /conversations/filter-counts",
+        "POST /conversations",
+        "GET /conversations/{conversationId}/messages",
+        "POST /conversations/{conversationId}/messages",
+        "POST /conversations/{conversationId}/messages/image-upload-url",
+        "POST /conversations/{conversationId}/read",
+        "GET /trainer/client-requests",
+        "POST /trainer/client-requests/{publicId}/accept",
+        "POST /trainer/client-requests/{publicId}/reject",
+        "GET /trainer/clients/pending",
+        "DELETE /trainer/pending-invites/{id}",
+        "GET /trainer/clients/{clientId}",
+        "GET /trainer/clients/{clientId}/plans",
+        "GET /trainer/clients/{clientId}/measurements",
+        "GET /nutrition/plans/{planId}",
+        "GET /training/plans/{planId}",
+        "GET /users/me/roles"
+      ],
+      "board": "PageInbox",
+      "shots": [
+        { "name": "default" },
+        { "name": "request", "steps": "select a conversation with a pending client request" },
+        { "name": "invite", "steps": "select a conversation with a pending invite" }
+      ],
+      "notionPageId": null
+    },
+    {
       "id": "client.entry.launch",
       "app": "client",
       "area": "Entry",
@@ -958,6 +1059,322 @@
       "board": null,
       "shots": [
         { "name": "default", "steps": "confirmed coach account after Email verified" }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "client.today.home",
+      "app": "client",
+      "area": "Today",
+      "title": "Today",
+      "route": "/",
+      "roles": ["Client"],
+      "files": [
+        "mobile/src/app/(tabs)/index.tsx",
+        "mobile/src/app/(tabs)/_layout.tsx",
+        "mobile/src/components/GlassTabBar.tsx",
+        "mobile/src/components/today/CoachCard.tsx",
+        "mobile/src/components/today/FindCoachSection.tsx",
+        "mobile/src/components/today/InviteCard.tsx",
+        "mobile/src/components/today/InvitesSection.tsx",
+        "mobile/src/components/today/TodayHeader.tsx",
+        "mobile/src/components/invites/**",
+        "mobile/src/components/Button.tsx",
+        "mobile/src/components/Chip.tsx",
+        "mobile/src/components/Screen.tsx",
+        "mobile/src/components/Text.tsx",
+        "mobile/src/hooks/useConversations.ts",
+        "mobile/src/hooks/useInviteActions.ts",
+        "mobile/src/hooks/useInvites.ts",
+        "mobile/src/hooks/useNotifications.ts",
+        "mobile/src/hooks/useProfile.ts",
+        "mobile/src/hooks/usePushRegistration.ts",
+        "mobile/src/realtime/**",
+        "mobile/src/api/conversations.ts",
+        "mobile/src/api/errors.ts",
+        "mobile/src/api/invites.ts",
+        "mobile/src/api/notifications.ts",
+        "mobile/src/api/profile.ts",
+        "mobile/src/api/pushToken.ts"
+      ],
+      "endpoints": [
+        "GET /users/me",
+        "GET /client/invites",
+        "POST /client/invites/{id}/accept",
+        "POST /client/invites/{id}/decline",
+        "GET /client/notifications",
+        "GET /conversations",
+        "POST /client/push-token",
+        "DELETE /client/push-token"
+      ],
+      "board": "GlassTodayNoCoach",
+      "shots": [
+        { "name": "default", "steps": "onboarded client without a coach or invites" },
+        { "name": "invites", "steps": "client with a pending coach invite" }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "client.today.notifications",
+      "app": "client",
+      "area": "Today",
+      "title": "Notifications",
+      "route": "/notifications",
+      "roles": ["Client"],
+      "files": [
+        "mobile/src/app/notifications.tsx",
+        "mobile/src/components/notifications/**",
+        "mobile/src/components/invites/InviteAvatar.tsx",
+        "mobile/src/components/invites/RoleChip.tsx",
+        "mobile/src/components/invites/format.ts",
+        "mobile/src/components/Chip.tsx",
+        "mobile/src/components/Text.tsx",
+        "mobile/src/hooks/useInvites.ts",
+        "mobile/src/hooks/useNotifications.ts",
+        "mobile/src/api/errors.ts",
+        "mobile/src/api/invites.ts",
+        "mobile/src/api/notifications.ts"
+      ],
+      "endpoints": [
+        "GET /client/notifications",
+        "POST /client/notifications/{id}/read",
+        "POST /client/notifications/read-all",
+        "GET /client/invites"
+      ],
+      "board": "GlassNotifications",
+      "shots": [
+        { "name": "default", "steps": "tap the bell on Today" },
+        { "name": "invite", "steps": "client with a pending coach invite; tap the bell on Today" }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "client.messages.list",
+      "app": "client",
+      "area": "Messages",
+      "title": "Messages",
+      "route": "/messages",
+      "roles": ["Client"],
+      "files": [
+        "mobile/src/app/(tabs)/messages.tsx",
+        "mobile/src/components/messages/ConversationRow.tsx",
+        "mobile/src/components/messages/MessageAvatar.tsx",
+        "mobile/src/components/messages/RolePill.tsx",
+        "mobile/src/components/messages/format.ts",
+        "mobile/src/components/invites/format.ts",
+        "mobile/src/components/Screen.tsx",
+        "mobile/src/components/Text.tsx",
+        "mobile/src/hooks/useConversations.ts",
+        "mobile/src/api/conversations.ts"
+      ],
+      "endpoints": [
+        "GET /conversations"
+      ],
+      "board": "GlassMessagesList",
+      "shots": [
+        { "name": "default", "steps": "tap the Messages tab" },
+        { "name": "invite", "steps": "client with a pending coach invite; tap the Messages tab" }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "client.messages.chat",
+      "app": "client",
+      "area": "Messages",
+      "title": "Chat",
+      "route": "/chat/:id",
+      "roles": ["Client"],
+      "files": [
+        "mobile/src/app/chat/*.tsx",
+        "mobile/src/components/messages/ChatEventCard.tsx",
+        "mobile/src/components/messages/ChatHeader.tsx",
+        "mobile/src/components/messages/Composer.tsx",
+        "mobile/src/components/messages/EventCard.tsx",
+        "mobile/src/components/messages/MessageAvatar.tsx",
+        "mobile/src/components/messages/MessageBubble.tsx",
+        "mobile/src/components/messages/chatItems.ts",
+        "mobile/src/components/messages/format.ts",
+        "mobile/src/components/invites/InviteActions.tsx",
+        "mobile/src/components/invites/format.ts",
+        "mobile/src/components/BackButton.tsx",
+        "mobile/src/components/Button.tsx",
+        "mobile/src/components/Text.tsx",
+        "mobile/src/hooks/useConversationMessages.ts",
+        "mobile/src/hooks/useConversations.ts",
+        "mobile/src/hooks/useInviteActions.ts",
+        "mobile/src/hooks/useInvites.ts",
+        "mobile/src/hooks/useMarkConversationRead.ts",
+        "mobile/src/hooks/useSendMessage.ts",
+        "mobile/src/realtime/context.ts",
+        "mobile/src/realtime/useRealtimeEvent.ts",
+        "mobile/src/api/conversations.ts",
+        "mobile/src/api/errors.ts",
+        "mobile/src/api/invites.ts",
+        "mobile/src/api/notifications.ts",
+        "mobile/src/api/profile.ts"
+      ],
+      "endpoints": [
+        "GET /conversations",
+        "GET /conversations/{conversationId}/messages",
+        "POST /conversations/{conversationId}/messages",
+        "POST /conversations/{conversationId}/read",
+        "GET /client/invites",
+        "POST /client/invites/{id}/accept",
+        "POST /client/invites/{id}/decline"
+      ],
+      "board": "GlassChat",
+      "shots": [
+        { "name": "default", "steps": "open a conversation from Messages" },
+        { "name": "invite", "steps": "open the conversation of a coach with a pending invite" }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "client.coaches.search",
+      "app": "client",
+      "area": "Coaches",
+      "title": "Find a coach",
+      "route": "/coach-search",
+      "roles": ["Client"],
+      "files": [
+        "mobile/src/app/coach-search.tsx",
+        "mobile/src/components/coach/CoachAvailability.tsx",
+        "mobile/src/components/coach/CoachAvatar.tsx",
+        "mobile/src/components/coach/CoachRoleChip.tsx",
+        "mobile/src/components/coach/CoachRow.tsx",
+        "mobile/src/components/coach/FilterChip.tsx",
+        "mobile/src/components/onboarding/Segmented.tsx",
+        "mobile/src/components/BackButton.tsx",
+        "mobile/src/components/Button.tsx",
+        "mobile/src/components/Chip.tsx",
+        "mobile/src/components/Input.tsx",
+        "mobile/src/components/Screen.tsx",
+        "mobile/src/components/Text.tsx",
+        "mobile/src/hooks/useCoachSearch.ts",
+        "mobile/src/api/errors.ts",
+        "mobile/src/api/professionals.ts",
+        "mobile/src/api/profile.ts"
+      ],
+      "endpoints": [
+        "GET /professionals/search"
+      ],
+      "board": "GlassCoachSearch",
+      "shots": [
+        { "name": "default", "steps": "tap Find a coach on Today" }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "client.coaches.profile",
+      "app": "client",
+      "area": "Coaches",
+      "title": "Coach profile",
+      "route": "/coach/:publicId",
+      "roles": ["Client"],
+      "files": [
+        "mobile/src/app/coach/*.tsx",
+        "mobile/src/components/coach/CoachAvailability.tsx",
+        "mobile/src/components/coach/CoachAvatar.tsx",
+        "mobile/src/components/coach/CoachRoleChip.tsx",
+        "mobile/src/components/coach/RequestSheet.tsx",
+        "mobile/src/components/BackButton.tsx",
+        "mobile/src/components/Button.tsx",
+        "mobile/src/components/Chip.tsx",
+        "mobile/src/components/Screen.tsx",
+        "mobile/src/components/Text.tsx",
+        "mobile/src/hooks/useCoachProfile.ts",
+        "mobile/src/hooks/useSendClientRequest.ts",
+        "mobile/src/api/clientRequests.ts",
+        "mobile/src/api/errors.ts",
+        "mobile/src/api/professionals.ts",
+        "mobile/src/api/profile.ts"
+      ],
+      "endpoints": [
+        "GET /professionals/{publicId}",
+        "POST /client/requests"
+      ],
+      "board": "GlassCoachProfile",
+      "shots": [
+        { "name": "default", "steps": "tap a coach in Find a coach" },
+        { "name": "request-sheet", "steps": "tap Send request" }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "client.invites.detail",
+      "app": "client",
+      "area": "Invites",
+      "title": "Invite detail",
+      "route": "/invite/:id",
+      "roles": ["Client"],
+      "files": [
+        "mobile/src/app/invite/*.tsx",
+        "mobile/src/components/invites/InviteActions.tsx",
+        "mobile/src/components/invites/RoleChip.tsx",
+        "mobile/src/components/invites/format.ts",
+        "mobile/src/components/BackButton.tsx",
+        "mobile/src/components/Button.tsx",
+        "mobile/src/components/Chip.tsx",
+        "mobile/src/components/Text.tsx",
+        "mobile/src/hooks/useInviteActions.ts",
+        "mobile/src/hooks/useInviteCoach.ts",
+        "mobile/src/hooks/useInvites.ts",
+        "mobile/src/api/errors.ts",
+        "mobile/src/api/invites.ts",
+        "mobile/src/api/notifications.ts",
+        "mobile/src/api/profile.ts"
+      ],
+      "endpoints": [
+        "GET /client/invites",
+        "GET /professionals/{publicId}",
+        "POST /client/invites/{id}/accept",
+        "POST /client/invites/{id}/decline"
+      ],
+      "board": "GlassInviteDetail",
+      "shots": [
+        { "name": "default", "steps": "client with a pending coach invite; tap the invite on Today" }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "client.training.placeholder",
+      "app": "client",
+      "area": "Training",
+      "title": "Training tab placeholder",
+      "route": "/training",
+      "roles": ["Client"],
+      "files": [
+        "mobile/src/app/(tabs)/training.tsx",
+        "mobile/src/components/today/TabPlaceholder.tsx",
+        "mobile/src/components/Button.tsx",
+        "mobile/src/components/Screen.tsx",
+        "mobile/src/components/Text.tsx"
+      ],
+      "endpoints": [],
+      "board": null,
+      "shots": [
+        { "name": "default", "steps": "tap the Training tab" }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "client.nutrition.placeholder",
+      "app": "client",
+      "area": "Nutrition",
+      "title": "Nutrition tab placeholder",
+      "route": "/nutrition",
+      "roles": ["Client"],
+      "files": [
+        "mobile/src/app/(tabs)/nutrition.tsx",
+        "mobile/src/components/today/TabPlaceholder.tsx",
+        "mobile/src/components/Button.tsx",
+        "mobile/src/components/Screen.tsx",
+        "mobile/src/components/Text.tsx"
+      ],
+      "endpoints": [],
+      "board": null,
+      "shots": [
+        { "name": "default", "steps": "tap the Nutrition tab" }
       ],
       "notionPageId": null
     }

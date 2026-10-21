@@ -18,10 +18,12 @@ namespace FitnessPlatform.Application.Features.Professionals.GetPublicProfile;
 /// <param name="db">Database context.</param>
 /// <param name="userManager">ASP.NET Identity user manager.</param>
 /// <param name="entitlementService">Resolves subscription entitlements.</param>
+/// <param name="timeProvider">Clock used to judge invite expiry.</param>
 public class GetPublicProfileEndpoint(
     IApplicationDbContext db,
     UserManager<ApplicationUser> userManager,
-    EntitlementService entitlementService)
+    EntitlementService entitlementService,
+    TimeProvider timeProvider)
     : Endpoint<GetPublicProfileRequest, GetPublicProfileResponse>
 {
     /// <inheritdoc />
@@ -32,7 +34,8 @@ public class GetPublicProfileEndpoint(
         Summary(s =>
         {
             s.Summary = "Get professional public profile";
-            s.Description = "Returns the public profile of a professional, including relationship status with the calling client.";
+            s.Description = "Returns the public profile of a professional, including relationship status with the calling client. A profile hidden from search is returned only to a client holding a pending, unexpired invite from that professional.";
+            s.Responses[StatusCodes.Status404NotFound] = "Profile not found, or hidden and the caller has no live invite from it";
         });
     }
 
@@ -47,18 +50,21 @@ public class GetPublicProfileEndpoint(
             return;
         }
 
+        var callerUserId = Guid.Parse(userId);
+
         var profile = await db.ProfessionalProfiles
             .Include(p => p.User)
-            .FirstOrDefaultAsync(p => p.PublicId == req.PublicId && p.ShowInSearch, ct);
+            .FirstOrDefaultAsync(p => p.PublicId == req.PublicId, ct);
 
-        if (profile is null)
+        // A hidden profile is reachable only through a live invite from that coach addressed to
+        // the caller. Every other case reads as "not found" so a hidden profile does not leak.
+        if (profile is null || (!profile.ShowInSearch && !await HasLiveInviteAsync(profile.Id, callerUserId, ct)))
         {
             await Send.NotFoundAsync(ct);
             return;
         }
 
         // Get calling client's profile
-        var callerUserId = Guid.Parse(userId);
         var clientProfile = await db.ClientProfiles
             .FirstOrDefaultAsync(cp => cp.UserId == callerUserId, ct);
 
@@ -105,12 +111,37 @@ public class GetPublicProfileEndpoint(
             Roles = professionalRoles,
             HasPendingRequest = hasPendingRequest,
             IsLinked = isLinked,
+            Online = profile.Online,
+            AcceptNewClients = profile.AcceptNewClients,
             // Mirror the discover-list fallback (SearchProfessionalsEndpoint):
             // use the professional-profile avatar when set, otherwise the
             // underlying user's personal avatar so most trainers' single
             // uploaded photo shows up across all public surfaces.
             AvatarBlobUrl = profile.AvatarBlobUrl ?? profile.User.AvatarBlobUrl
         }, ct);
+    }
+
+    private async Task<bool> HasLiveInviteAsync(long professionalProfileId, Guid callerUserId, CancellationToken ct)
+    {
+        var normalizedEmail = await db.Users
+            .AsNoTracking()
+            .Where(u => u.Id == callerUserId)
+            .Select(u => u.NormalizedEmail ?? (u.Email != null ? u.Email.ToUpper() : null))
+            .FirstOrDefaultAsync(ct);
+
+        if (string.IsNullOrEmpty(normalizedEmail))
+        {
+            return false;
+        }
+
+        var validSince = PendingInviteStatusResolver.ValidSince(timeProvider.GetUtcNow().UtcDateTime);
+
+        return await db.PendingInvites
+            .AsNoTracking()
+            .AnyAsync(pi => pi.ProfessionalProfileId == professionalProfileId
+                            && pi.Email.ToUpper() == normalizedEmail
+                            && pi.Status == PendingInviteStatus.Pending
+                            && pi.SentAt >= validSince, ct);
     }
 
     private static List<string> ParseJsonArray(string? json)

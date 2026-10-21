@@ -2,6 +2,8 @@ using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -14,7 +16,8 @@ namespace FitnessPlatform.Application.Features.Client.Invites.GetPending;
 /// </summary>
 public class GetPendingInviteEndpoint(
     IApplicationDbContext db,
-    UserManager<ApplicationUser> userManager) : EndpointWithoutRequest<PendingInviteResponse>
+    UserManager<ApplicationUser> userManager,
+    TimeProvider timeProvider) : EndpointWithoutRequest<PendingInviteResponse>
 {
     public override void Configure()
     {
@@ -50,11 +53,14 @@ public class GetPendingInviteEndpoint(
             return;
         }
 
+        var validSince = PendingInviteStatusResolver.ValidSince(timeProvider.GetUtcNow().UtcDateTime);
+
         var invite = await db.PendingInvites
             .AsNoTracking()
             .Include(pi => pi.ProfessionalProfile)
                 .ThenInclude(pp => pp.User)
-            .Where(pi => pi.Email.ToUpper() == normalizedEmail && !pi.IsAccepted)
+            .Where(pi => pi.Email.ToUpper() == normalizedEmail
+                         && pi.Status == PendingInviteStatus.Pending && pi.SentAt >= validSince)
             .OrderByDescending(pi => pi.SentAt)
             .FirstOrDefaultAsync(ct);
 

@@ -335,12 +335,12 @@ const makeStyles = (theme: Theme, insets: EdgeInsets | null) =>
   StyleSheet.create({
     content: {
       flex: 1,
-      paddingTop: (insets?.top ?? 0) + theme.spacing.xs,
+      paddingTop: (insets?.top ?? 0) + theme.spacing.safeAreaGap,
       paddingBottom: theme.sizes.authBottom,
     },
     scrollContent: {
       flexGrow: 1,
-      paddingTop: (insets?.top ?? 0) + theme.spacing.xs,
+      paddingTop: (insets?.top ?? 0) + theme.spacing.safeAreaGap,
       paddingBottom: theme.sizes.authBottom,
     },
     topBar: {

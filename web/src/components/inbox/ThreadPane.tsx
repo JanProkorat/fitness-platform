@@ -9,8 +9,9 @@ import TypingIndicator from '@/components/inbox/TypingIndicator';
 import { useConversationMessages, useMarkConversationRead, useSendMessage } from '@/hooks/useInboxQueries';
 import { invokeHub } from '@/hooks/useSignalR';
 import { useAuthStore } from '@/stores/auth';
+import { foldThreadCards } from '@/lib/cooperationCards';
 import { ChatMessageKind } from '@/api/generated';
-import type { MessageDto, ParticipantDto } from '@/api/generated';
+import type { ConversationCooperationDto, MessageDto, ParticipantDto } from '@/api/generated';
 
 const SCROLL_TOP_THRESHOLD_PX = 80;
 /** How close to the bottom counts as "already reading the latest" — below this, an
@@ -27,6 +28,8 @@ interface Props {
   /** `ConversationDto.isSendLocked` — the server would refuse a send here. */
   isSendLocked?: boolean;
   isFormer?: boolean;
+  /** The conversation's newest invite or request; supplies an invite card's requested scope. */
+  cooperation?: ConversationCooperationDto;
   /** True while the thread was auto-selected: it is shown but not marked read until the trainer engages. */
   deferMarkRead?: boolean;
   /** Called on the first user-initiated input inside the pane while `deferMarkRead` is set. */
@@ -57,6 +60,7 @@ export default function ThreadPane({
   isOtherPartyTyping,
   isSendLocked = false,
   isFormer = false,
+  cooperation,
   deferMarkRead = false,
   onEngage,
 }: Props) {
@@ -93,6 +97,46 @@ export default function ThreadPane({
     () => (messagesQuery.data?.pages.flatMap((page) => page.items ?? []) ?? []).reverse(),
     [messagesQuery.data],
   );
+  // Accepted/Declined/Withdrawn events are folded into their card, so they are not rendered on their own.
+  const { visible: visibleMessages, followUps } = useMemo(() => foldThreadCards(messages), [messages]);
+
+  // Entrance animation: a message is "new" when it sits after the newest message that was
+  // known when the thread was opened (or last rendered). Older pages are prepended, so they
+  // never land after it; the first load of a conversation seeds the marker and animates nothing.
+  const knownRef = useRef<{ conversationId: string; initialized: boolean; newestId: string | undefined }>({
+    conversationId,
+    initialized: false,
+    newestId: undefined,
+  });
+  if (knownRef.current.conversationId !== conversationId) {
+    knownRef.current = { conversationId, initialized: false, newestId: undefined };
+  }
+  if (!knownRef.current.initialized && messagesQuery.isSuccess) {
+    knownRef.current.initialized = true;
+    knownRef.current.newestId = messages[messages.length - 1]?.id;
+  }
+  const newMessageIds = useMemo(() => {
+    const known = knownRef.current;
+    const ids = new Set<string>();
+    if (!known.initialized) {
+      return ids;
+    }
+    const knownIndex = known.newestId ? messages.findIndex((m) => m.id === known.newestId) : -1;
+    if (known.newestId && knownIndex === -1) {
+      return ids;
+    }
+    for (const m of messages.slice(knownIndex + 1)) {
+      if (m.id) {
+        ids.add(m.id);
+      }
+    }
+    return ids;
+  }, [messages]);
+  useEffect(() => {
+    if (knownRef.current.initialized && messages.length > 0) {
+      knownRef.current.newestId = messages[messages.length - 1]?.id;
+    }
+  }, [messages]);
 
   // Reset per-conversation scroll state on open. The actual "jump to newest" scroll
   // happens below, once the first page has data — doing it here raced the fetch and
@@ -244,13 +288,32 @@ export default function ThreadPane({
           {messagesQuery.isFetchingNextPage && (
             <p className="py-1 text-center text-caption text-muted-foreground">{t('inbox.thread.loadingOlder')}</p>
           )}
-          {messages.map((message, index) => {
+          {visibleMessages.map((message, index) => {
             const isOwn = Boolean(user) && message.senderId === user?.publicId;
+            const sourceId = message.eventSourceId ?? undefined;
+            const isNew = Boolean(message.id) && newMessageIds.has(message.id as string);
+            const enterClass = !isNew
+              ? ''
+              : message.kind === ChatMessageKind.Event
+                ? 'animate-message-in-up'
+                : isOwn
+                  ? 'animate-message-in-right'
+                  : 'animate-message-in-left';
             return (
-              <div key={message.id ?? index} className="flex flex-col gap-3">
-                {startsNewDay(message, messages[index - 1]) && message.timestamp && <DateSeparator iso={message.timestamp} />}
+              <div
+                key={message.id ?? index}
+                className={`flex flex-col gap-3 ${enterClass}`}
+                data-message-enter={isNew ? '' : undefined}
+              >
+                {startsNewDay(message, visibleMessages[index - 1]) && message.timestamp && <DateSeparator iso={message.timestamp} />}
                 {message.kind === ChatMessageKind.Event ? (
-                  <EventBanner message={message} isOwn={isOwn} participantName={participant.name ?? ''} />
+                  <EventBanner
+                    message={message}
+                    isOwn={isOwn}
+                    participantName={participant.name ?? ''}
+                    followUp={sourceId ? followUps.get(sourceId) : undefined}
+                    requestedScope={sourceId && sourceId === cooperation?.sourceId ? cooperation.requestedScope : undefined}
+                  />
                 ) : (
                   <MessageBubble
                     message={message}

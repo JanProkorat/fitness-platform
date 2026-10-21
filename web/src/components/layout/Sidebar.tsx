@@ -1,7 +1,6 @@
 import { NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
-  Bell,
   BookOpen,
   CalendarDays,
   ChevronDown,
@@ -17,6 +16,7 @@ import {
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import AccountMenu from '@/components/layout/AccountMenu';
+import NotificationsPopover from '@/components/notifications/NotificationsPopover';
 import Wordmark from '@/components/brand/Wordmark';
 import { useConversationFilterCounts } from '@/hooks/useInboxQueries';
 import { useActiveRoles } from '@/hooks/useActiveRoles';
@@ -106,7 +106,7 @@ function RowLabel({ collapsed, children }: { collapsed: boolean; children: React
 export default function Sidebar({ onNavigate, collapsed = false, onToggleCollapsed }: Props) {
   const { t } = useTranslation();
   const filterCounts = useConversationFilterCounts();
-  const hasUnread = (filterCounts.data?.unreadMessages ?? 0) > 0;
+  const unreadCount = filterCounts.data?.unreadMessages ?? 0;
   const { hasRole, isLoading, isError } = useActiveRoles();
   // Role-gated sections stay hidden while the active roles load and when the lookup fails.
   const visibleSections = NAV_SECTIONS.filter(
@@ -211,17 +211,19 @@ export default function Sidebar({ onNavigate, collapsed = false, onToggleCollaps
                   >
                     <Icon className="size-4 shrink-0" aria-hidden="true" />
                     <RowLabel collapsed={collapsed}>{t(labelKey)}</RowLabel>
-                    {to === '/clients' && hasUnread && (
+                    {to === '/inbox' && unreadCount > 0 && (
                       <span
                         role="img"
-                        aria-label={t('clients.chips.unreadMessages')}
-                        data-testid="sidebar-unread-dot"
+                        aria-label={t('sidebar.inboxUnread', { count: unreadCount })}
+                        data-testid="sidebar-inbox-unread"
                         className={cn(
-                          'absolute size-2 rounded-full bg-marker-bright transition-[top,right]',
+                          'flex h-5 min-w-5 items-center justify-center rounded-full bg-marker-solid px-1.5 text-label font-bold text-sidebar-text transition-[top,right,margin]',
                           MOTION,
-                          collapsed ? 'top-2 right-2' : 'top-3.75 right-4',
+                          collapsed ? 'absolute top-0.5 right-0.5' : 'ml-auto',
                         )}
-                      />
+                      >
+                        {unreadCount}
+                      </span>
                     )}
                   </NavLink>
                 ))}
@@ -231,20 +233,13 @@ export default function Sidebar({ onNavigate, collapsed = false, onToggleCollaps
         </div>
 
         <div className="flex flex-col">
-          {/* Inert — no notification surface is built in v1. Same treatment as
-              Help & Support: a disabled control with a "coming
-              soon" title, not a live control that does nothing on activation.
-              In the rail it is the bell above the avatar. */}
-          <button
-            type="button"
-            disabled
-            title={collapsed ? `${t('notifications.title')} — ${t('shell.comingSoon')}` : t('shell.comingSoon')}
-            aria-label={collapsed ? t('notifications.title') : undefined}
-            className={cn(ROW, 'text-sidebar-muted disabled:cursor-not-allowed')}
-          >
-            <Bell className="size-4 shrink-0" aria-hidden="true" />
-            <RowLabel collapsed={collapsed}>{t('notifications.title')}</RowLabel>
-          </button>
+          {/* In the rail it is the bell above the avatar. */}
+          <NotificationsPopover
+            collapsed={collapsed}
+            rowClassName={cn(ROW, 'font-medium')}
+            label={<RowLabel collapsed={collapsed}>{t('notifications.title')}</RowLabel>}
+            onNavigate={onNavigate}
+          />
 
           <Fold open={!collapsed}>
             <div className="flex flex-col gap-1 pt-1">

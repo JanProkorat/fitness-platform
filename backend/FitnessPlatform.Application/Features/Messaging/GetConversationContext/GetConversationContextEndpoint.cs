@@ -2,6 +2,7 @@ using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -85,7 +86,7 @@ public class GetConversationContextEndpoint(IApplicationDbContext db, UserManage
             .FirstOrDefaultAsync(i =>
                 i.ProfessionalProfileId == professionalProfile.Id &&
                 i.Email == clientEmail &&
-                !i.IsAccepted, ct);
+                i.Status == PendingInviteStatus.Pending, ct);
 
         if (pendingInvite is null)
         {

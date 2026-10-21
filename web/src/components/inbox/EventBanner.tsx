@@ -1,22 +1,46 @@
 import { useTranslation } from 'react-i18next';
+import ClientRequestCard from '@/components/inbox/cards/ClientRequestCard';
+import InviteCard from '@/components/inbox/cards/InviteCard';
 import { getEventPreviewText } from '@/lib/chatEvents';
-import type { MessageDto } from '@/api/generated';
+import { isOriginEvent } from '@/lib/cooperationCards';
+import { ChatEventType } from '@/api/generated';
+import type { LinkCapabilityScope, MessageDto } from '@/api/generated';
 
 interface Props {
   message: MessageDto;
   isOwn: boolean;
   participantName: string;
+  /** Newest Accepted/Declined/Withdrawn event folded into this card, when loaded. */
+  followUp?: MessageDto;
+  /** Scope of the invite when this card is the conversation's newest cooperation. */
+  requestedScope?: LinkCapabilityScope;
 }
 
 /**
- * One cooperation-event row in the thread (#1100): a centered, muted, full-width
- * line — never a chat bubble — announcing an invite/request/accept/decline/withdrawal.
- * Rendered entirely client-side from `Kind`/`EventType` + `isOwn` + the participant's
- * name (docs/design/1095/, RULING (2)). The server's `Text` is a client-perspective
- * fallback for mobile only and is never read here.
+ * One cooperation-event row in the thread. An Invited or Requested event whose
+ * source still resolves renders as a card (coach invite on the right, client
+ * request on the left) that reads its own `eventStatus`. Every other event,
+ * including old rows with no `eventSourceId`, keeps the centered grey pill
+ * built client-side from `eventType` + `isOwn` + the participant's name; the
+ * server's `Text` is never read here.
  */
-export default function EventBanner({ message, isOwn, participantName }: Props) {
+export default function EventBanner({ message, isOwn, participantName, followUp, requestedScope }: Props) {
   const { t } = useTranslation();
+
+  if (isOriginEvent(message) && message.eventStatus) {
+    return message.eventType === ChatEventType.Invited ? (
+      <InviteCard
+        message={message}
+        status={message.eventStatus}
+        participantName={participantName}
+        requestedScope={requestedScope}
+        followUp={followUp}
+      />
+    ) : (
+      <ClientRequestCard message={message} status={message.eventStatus} participantName={participantName} followUp={followUp} />
+    );
+  }
+
   const label = getEventPreviewText(t, message.eventType, isOwn, participantName);
 
   return (

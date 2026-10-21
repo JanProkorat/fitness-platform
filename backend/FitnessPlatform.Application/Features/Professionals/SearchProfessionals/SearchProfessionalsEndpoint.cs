@@ -30,7 +30,7 @@ public class SearchProfessionalsEndpoint(
         Summary(s =>
         {
             s.Summary = "Search professionals";
-            s.Description = "Returns a paginated list of professionals visible in the marketplace.";
+            s.Description = "Returns a paginated list of professionals visible in the marketplace, including those not accepting new clients. Optionally filtered by online status.";
         });
     }
 
@@ -43,8 +43,14 @@ public class SearchProfessionalsEndpoint(
 
         var query = db.ProfessionalProfiles
             .Include(p => p.User)
-            .Where(p => p.ShowInSearch && p.AcceptNewClients)
+            .Where(p => p.ShowInSearch)
             .AsQueryable();
+
+        if (req.Online.HasValue)
+        {
+            var online = req.Online.Value;
+            query = query.Where(p => p.Online == online);
+        }
 
         // Filter by city (case-insensitive contains)
         if (!string.IsNullOrWhiteSpace(req.City))
@@ -112,6 +118,8 @@ public class SearchProfessionalsEndpoint(
                 CollaborationType = profile.CollaborationType,
                 Languages = ParseJsonArray(profile.Languages),
                 Roles = professionalRoles,
+                Online = profile.Online,
+                AcceptNewClients = profile.AcceptNewClients,
                 // Fall back to the underlying user's avatar when the
                 // professional-profile-specific one hasn't been set. Most
                 // trainers only upload one photo (their personal profile

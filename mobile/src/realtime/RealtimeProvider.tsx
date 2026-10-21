@@ -1,0 +1,115 @@
+import { HubConnectionBuilder, HubConnectionState, LogLevel } from '@microsoft/signalr';
+import type { HubConnection } from '@microsoft/signalr';
+import { useEffect, useMemo, useRef } from 'react';
+import type { ReactNode } from 'react';
+import { AppState } from 'react-native';
+
+import { API_BASE_URL } from '@/lib/config';
+import { useAuthStore } from '@/stores/auth';
+
+import { RealtimeContext } from './context';
+import type { RealtimeApi, RealtimeHandler } from './context';
+import { getHubAccessToken } from './token';
+
+const HUB_PATH = '/hubs/notifications';
+/** Back-off before each automatic reconnect attempt; after the last one the connection stays closed. */
+const RECONNECT_DELAYS_MS = [0, 2000, 5000, 10000, 30000];
+
+type RealtimeProviderProps = {
+  /** True while the signed-in client is on the home screens; the connection exists only then. */
+  enabled: boolean;
+  children: ReactNode;
+};
+
+/**
+ * Owns the one app-wide SignalR connection. It opens while `enabled`, closes when the user
+ * signs out, and fans hub events out to `useRealtimeEvent` subscribers.
+ */
+export function RealtimeProvider({ enabled, children }: RealtimeProviderProps) {
+  const sessionGeneration = useAuthStore((state) => state.sessionGeneration);
+  const handlers = useRef(new Map<string, Set<RealtimeHandler>>());
+  const reconnectCallbacks = useRef(new Set<() => void>());
+  const connectionRef = useRef<HubConnection | null>(null);
+  const attached = useRef(new WeakMap<HubConnection, Set<string>>());
+
+  const api = useMemo<RealtimeApi>(() => {
+    const attach = (connection: HubConnection, event: string) => {
+      const done = attached.current.get(connection) ?? new Set<string>();
+      attached.current.set(connection, done);
+      if (done.has(event)) return;
+      done.add(event);
+      connection.on(event, (payload: unknown) => {
+        handlers.current.get(event)?.forEach((handler) => handler(payload));
+      });
+    };
+
+    return {
+      subscribe: (name, handler) => {
+        const event = name.toLowerCase();
+        const set = handlers.current.get(event) ?? new Set<RealtimeHandler>();
+        set.add(handler);
+        handlers.current.set(event, set);
+        if (connectionRef.current) attach(connectionRef.current, event);
+        return () => {
+          set.delete(handler);
+        };
+      },
+      subscribeReconnected: (callback) => {
+        reconnectCallbacks.current.add(callback);
+        return () => {
+          reconnectCallbacks.current.delete(callback);
+        };
+      },
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!enabled) return;
+
+    const connection = new HubConnectionBuilder()
+      .withUrl(`${API_BASE_URL}${HUB_PATH}`, { accessTokenFactory: getHubAccessToken })
+      .withAutomaticReconnect(RECONNECT_DELAYS_MS)
+      .configureLogging(LogLevel.Warning)
+      .build();
+    connectionRef.current = connection;
+
+    const done = new Set<string>();
+    attached.current.set(connection, done);
+    handlers.current.forEach((_set, event) => {
+      done.add(event);
+      connection.on(event, (payload: unknown) => {
+        handlers.current.get(event)?.forEach((handler) => handler(payload));
+      });
+    });
+
+    const notifyReconnected = () => reconnectCallbacks.current.forEach((callback) => callback());
+    connection.onreconnected(notifyReconnected);
+
+    let closed = false;
+    const start = (isRestart: boolean) => {
+      connection
+        .start()
+        .then(() => {
+          if (isRestart && !closed) notifyReconnected();
+        })
+        .catch((error: unknown) => {
+          if (!closed) console.warn('Realtime connection failed to start', error);
+        });
+    };
+    start(false);
+
+    // A connection that gave up (or never started) is opened again when the app returns to the foreground.
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active' && connection.state === HubConnectionState.Disconnected) start(true);
+    });
+
+    return () => {
+      closed = true;
+      subscription.remove();
+      connectionRef.current = null;
+      void connection.stop().catch(() => undefined);
+    };
+  }, [enabled, sessionGeneration]);
+
+  return <RealtimeContext.Provider value={api}>{children}</RealtimeContext.Provider>;
+}

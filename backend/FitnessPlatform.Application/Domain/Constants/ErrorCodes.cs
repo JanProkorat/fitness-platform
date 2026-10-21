@@ -160,6 +160,12 @@ public static class ErrorCodes
     /// </summary>
     public const string TooManyPendingInvites = "TOO_MANY_PENDING_INVITES";
 
+    /// <summary>The pending invite is past its validity window and can no longer be accepted.</summary>
+    public const string InviteExpired = "INVITE_EXPIRED";
+
+    /// <summary>Only a pending invite can be cancelled.</summary>
+    public const string PendingInviteNotCancellable = "PENDING_INVITE_NOT_CANCELLABLE";
+
     // ── Nutrition Plans ──────────────────────────────────────────────
     /// <summary>Only draft plans can be published.</summary>
     public const string PlanNotDraft = "PLAN_NOT_DRAFT";
