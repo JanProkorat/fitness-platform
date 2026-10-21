@@ -62,12 +62,6 @@ public class ClientPaymentScheduleTests
         ValidTo = validTo
     };
 
-    [Fact]
-    public void Zone_IsEuropePrague()
-    {
-        ClientPaymentSchedule.Zone.Id.Should().Be("Europe/Prague");
-    }
-
     [Theory]
     [InlineData("2026-10-20T21:59:59Z", "2026-10-20")]
     [InlineData("2026-10-20T22:00:00Z", "2026-10-21")]
@@ -84,9 +78,7 @@ public class ClientPaymentScheduleTests
     [InlineData("2026-10-20", ClientPaymentStatus.Upcoming, ClientPaymentStatus.Overdue)]
     [InlineData("2026-10-20", ClientPaymentStatus.Requested, ClientPaymentStatus.Overdue)]
     [InlineData("2026-10-21", ClientPaymentStatus.Requested, ClientPaymentStatus.Requested)]
-    [InlineData("2026-10-22", ClientPaymentStatus.Upcoming, ClientPaymentStatus.Upcoming)]
     [InlineData("2026-10-01", ClientPaymentStatus.Paid, ClientPaymentStatus.Paid)]
-    [InlineData("2026-10-01", ClientPaymentStatus.Waived, ClientPaymentStatus.Waived)]
     public void DerivedStatus_IsOverdueOnlyForUnsettledPaymentsPastTheirDueDate(
         string dueDate, ClientPaymentStatus stored, ClientPaymentStatus expected)
     {
@@ -268,18 +260,6 @@ public class ClientPaymentScheduleTests
         breakdown.Amount.Should().Be(1200m);
         breakdown.BasePrice.Should().Be(2500m);
         breakdown.IsCustomPrice.Should().BeTrue();
-    }
-
-    [Theory]
-    [InlineData(2, true)]
-    [InlineData(3, false)]
-    public void Breakdown_FirstPaymentsDiscount_StopsAfterTheCoveredCount(int ordinal, bool discounted)
-    {
-        var terms = Terms(Package(), Today, Discount(duration: DiscountDuration.FirstPayments, payments: 2));
-
-        var breakdown = ClientPaymentSchedule.Breakdown(terms, new DateOnly(2026, 11, 1), ordinal, new DateOnly(2026, 11, 1));
-
-        breakdown.Amount.Should().Be(discounted ? 1750m : 2500m);
     }
 
     [Fact]

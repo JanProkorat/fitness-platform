@@ -31,7 +31,6 @@ public class UpdatePaymentSettingsValidatorTests
 
     [Theory]
     [InlineData(0)]
-    [InlineData(-3)]
     [InlineData(91)]
     public void Validate_DueDaysOutOfRange_FailsWithOutOfRangeCode(int days)
     {

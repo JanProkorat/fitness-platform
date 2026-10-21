@@ -23,32 +23,27 @@ public class PaymentSettingsEndpointTests(FitnessApiFactory factory)
     };
 
     [Fact]
-    public async Task Get_CoachWithNoSettingsYet_ReturnsDefaultsAndNoIban()
+    public async Task GetThenPut_NewCoach_StartsFromDefaultsAndStoresTheSettingsWithoutTouchingTheBankAccount()
     {
         var coach = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
 
-        var response = await coach.Http.GetAsync("/payments/settings", TestContext.Current.CancellationToken);
+        var get = await coach.Http.GetAsync("/payments/settings", TestContext.Current.CancellationToken);
 
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var settings = await response.Content.ReadFromJsonAsync<PaymentSettingsDto>(WireOptions, TestContext.Current.CancellationToken);
-        settings!.Iban.Should().BeNull();
-        settings.PaymentDueDays.Should().Be(7);
-        settings.MessageFormat.Should().Be(PaymentMessageFormat.PackageNameAndMonth);
-        settings.VariableSymbolFormat.Should().Be(VariableSymbolFormat.YearMonthClientNumber);
-    }
+        get.StatusCode.Should().Be(HttpStatusCode.OK);
+        var defaults = await get.Content.ReadFromJsonAsync<PaymentSettingsDto>(WireOptions, TestContext.Current.CancellationToken);
+        defaults!.Iban.Should().BeNull();
+        defaults.PaymentDueDays.Should().Be(7);
+        defaults.MessageFormat.Should().Be(PaymentMessageFormat.PackageNameAndMonth);
+        defaults.VariableSymbolFormat.Should().Be(VariableSymbolFormat.YearMonthClientNumber);
 
-    [Fact]
-    public async Task Put_ValidSettings_PersistsThemAndLeavesTheBankAccountAlone()
-    {
-        var coach = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
         await SetBankAccountAsync(factory, coach, ValidIban);
 
-        var response = await coach.Http.PutAsJsonAsync(
+        var put = await coach.Http.PutAsJsonAsync(
             "/payments/settings",
             new { PaymentDueDays = 14, MessageFormat = "ClientNameAndMonth", VariableSymbolFormat = "YearMonthSequence" },
             TestContext.Current.CancellationToken);
 
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        put.StatusCode.Should().Be(HttpStatusCode.OK);
         var stored = await ReadSettingsAsync(factory, coach);
         stored!.PaymentDueDays.Should().Be(14);
         stored.MessageFormat.Should().Be(PaymentMessageFormat.ClientNameAndMonth);

@@ -5,46 +5,43 @@ using FluentAssertions;
 namespace FitnessPlatform.Tests.Endpoints.ClientPayments;
 
 /// <summary>
-/// Swagger contract of the client payment endpoints: every route is in the spec under the expected verb, and
-/// the one that creates a payment declares 201 and not 200, which the generated clients need.
+/// Swagger contract of the client payment endpoints, which the generated clients are built from and the
+/// integration tests (calling routes directly) cannot see.
 /// </summary>
 [Collection(TestCollection.Name)]
 public class ClientPaymentContractTests(FitnessApiFactory factory)
 {
-    private async Task<JsonElement> PathsAsync()
+    [Fact]
+    public async Task Swagger_ClientPaymentRoutes_UseCamelCasePlaceholdersAndTheOneOffPostDeclares201Only()
     {
         using var client = factory.CreateClient();
         var json = await client.GetStringAsync("/swagger/v1/swagger.json", TestContext.Current.CancellationToken);
+        using var document = JsonDocument.Parse(json);
+        var paths = document.RootElement.GetProperty("paths");
 
-        return JsonDocument.Parse(json).RootElement.GetProperty("paths").Clone();
-    }
+        // NSwag sends a PascalCase placeholder literally, so every route must be listed under its camelCase form.
+        (string Route, string Verb)[] expected =
+        [
+            ("/payments/clients/{clientId}/summary", "get"),
+            ("/payments/clients/{clientId}/payments", "get"),
+            ("/payments/clients/{clientId}/history", "get"),
+            ("/payments/clients/{clientId}/terms", "put"),
+            ("/payments/clients/{clientId}/one-off", "post"),
+            ("/payments/clients/{clientId}/payments/{paymentId}/mark-paid", "post"),
+            ("/payments/clients/{clientId}/payments/{paymentId}/waive", "post"),
+            ("/payments/clients/{clientId}/payments/{paymentId}/request", "post"),
+            ("/client/payments", "get"),
+            ("/client/payments/{paymentId}", "get")
+        ];
 
-    [Theory]
-    [InlineData("/payments/clients/{clientId}/summary", "get")]
-    [InlineData("/payments/clients/{clientId}/payments", "get")]
-    [InlineData("/payments/clients/{clientId}/history", "get")]
-    [InlineData("/payments/clients/{clientId}/terms", "put")]
-    [InlineData("/payments/clients/{clientId}/one-off", "post")]
-    [InlineData("/payments/clients/{clientId}/payments/{paymentId}/mark-paid", "post")]
-    [InlineData("/payments/clients/{clientId}/payments/{paymentId}/waive", "post")]
-    [InlineData("/payments/clients/{clientId}/payments/{paymentId}/request", "post")]
-    [InlineData("/client/payments", "get")]
-    [InlineData("/client/payments/{paymentId}", "get")]
-    public async Task Swagger_ContainsTheRouteUnderTheExpectedVerb(string route, string verb)
-    {
-        var paths = await PathsAsync();
+        foreach (var (route, verb) in expected)
+        {
+            paths.TryGetProperty(route, out var pathItem).Should().BeTrue("the spec must contain {0}", route);
+            pathItem.TryGetProperty(verb, out _).Should().BeTrue("{0} must be a {1}", route, verb);
+        }
 
-        paths.TryGetProperty(route, out var pathItem).Should().BeTrue("the spec must contain {0}", route);
-        pathItem.TryGetProperty(verb, out _).Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task Swagger_OneOffPayment_DeclaresCreatedAndNotOk()
-    {
-        var paths = await PathsAsync();
-
+        // The generated client only accepts the statuses the spec declares.
         var responses = paths.GetProperty("/payments/clients/{clientId}/one-off").GetProperty("post").GetProperty("responses");
-
         responses.TryGetProperty("201", out _).Should().BeTrue();
         responses.TryGetProperty("200", out _).Should().BeFalse();
     }

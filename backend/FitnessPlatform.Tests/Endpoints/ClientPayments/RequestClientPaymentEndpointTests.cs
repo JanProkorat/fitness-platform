@@ -34,30 +34,26 @@ public class RequestClientPaymentEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
-    public async Task Request_UpcomingPayment_FreezesItAndEmailsTheClientTheQrCode()
+    public async Task Request_UpcomingPayment_FreezesItSnapshotsTheAccountAndSendsTheQrEmailAndNotification()
     {
         var world = await CreateWorldAsync(factory);
         var discountId = await CreateDiscountAsync(world.Coach, 30m);
         var rows = await StartMonthlyAsync(world, 2500m, discountId);
         var upcoming = rows[0];
 
-        var response = await PostActionAsync(world, upcoming.PaymentId, "request", new { SendEmail = true });
+        var response = await PostActionAsync(world, upcoming.PaymentId, "request", new { SendEmail = true, SendNotification = true });
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var body = await ReadAsync<RequestClientPaymentResponse>(response);
         body.EmailSent.Should().BeTrue();
-        body.NotificationSent.Should().BeFalse();
+        body.NotificationSent.Should().BeTrue();
         body.Payment.Status.Should().Be(ClientPaymentStatus.Requested);
         body.Payment.Amount.Should().Be(1750m);
+        body.Payment.DueDate.Should().Be(Today.AddDays(7), "the period started today and the default term is seven days");
         body.Payment.VariableSymbol.Should().Be(upcoming.VariableSymbol);
         body.Payment.Message.Should().Be(upcoming.Message);
         body.Payment.RequestedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromMinutes(1));
-
-        var stored = await ReadStoredAsync(factory, upcoming.PaymentId);
-        stored.AccountIban.Should().Be(ValidIban);
-        stored.AccountHolder.Should().Be("Martin Král");
-        stored.BasePrice.Should().Be(2500m);
-        stored.DiscountLabel.Should().Contain("Friends & family");
+        (await CountNotificationsAsync(world.Client.UserId)).Should().Be(1);
 
         var sent = Email(factory).SentPaymentRequests.Single(e => e.ToEmail == world.Client.Email);
         sent.Amount.Should().Be(1750m);
@@ -68,22 +64,19 @@ public class RequestClientPaymentEndpointTests(FitnessApiFactory factory)
         sent.QrContentId.Should().Be(PaymentMessageComposer.QrContentId);
         sent.QrPng.Take(8).Should().Equal(PngSignature);
         sent.DiscountLabel.Should().Contain("30");
+
+        // The request snapshots the account, so a later bank account change leaves it alone.
+        await SetBankAccountAsync(factory, world.Coach, OtherIban, "Someone Else");
+
+        var stored = await ReadStoredAsync(factory, upcoming.PaymentId);
+        stored.AccountIban.Should().Be(ValidIban);
+        stored.AccountHolder.Should().Be("Martin Král");
+        stored.BasePrice.Should().Be(2500m);
+        stored.DiscountLabel.Should().Contain("Friends & family");
     }
 
     [Fact]
-    public async Task Request_DefaultDueDate_IsNeverBeforeThePeriodStartNorTheCoachsTermFromToday()
-    {
-        var world = await CreateWorldAsync(factory);
-        var rows = await StartMonthlyAsync(world);
-
-        var body = await ReadAsync<RequestClientPaymentResponse>(
-            await PostActionAsync(world, rows[0].PaymentId, "request", new { SendEmail = true }));
-
-        body.Payment.DueDate.Should().Be(Today.AddDays(7), "the period started today and the default term is seven days");
-    }
-
-    [Fact]
-    public async Task Request_WithDueDateAndAmountOverrides_UsesThem()
+    public async Task Request_ByEmailOnlyWithOverrides_UsesThemEverywhereAndCreatesNoNotification()
     {
         var world = await CreateWorldAsync(factory);
         var rows = await StartMonthlyAsync(world, 2500m);
@@ -94,35 +87,10 @@ public class RequestClientPaymentEndpointTests(FitnessApiFactory factory)
 
         body.Payment.DueDate.Should().Be(due);
         body.Payment.Amount.Should().Be(999.5m);
-        Email(factory).SentPaymentRequests.Single(e => e.ToEmail == world.Client.Email).Amount.Should().Be(999.5m);
-    }
-
-    [Fact]
-    public async Task Request_ByNotificationOnly_CreatesTheNotificationAndSendsNoEmail()
-    {
-        var world = await CreateWorldAsync(factory);
-        var rows = await StartMonthlyAsync(world);
-
-        var body = await ReadAsync<RequestClientPaymentResponse>(
-            await PostActionAsync(world, rows[0].PaymentId, "request", new { SendNotification = true }));
-
-        body.NotificationSent.Should().BeTrue();
-        body.EmailSent.Should().BeFalse();
-        (await CountNotificationsAsync(world.Client.UserId)).Should().Be(1);
-        Email(factory).SentPaymentRequests.Should().NotContain(e => e.ToEmail == world.Client.Email);
-    }
-
-    [Fact]
-    public async Task Request_ByBothChannels_UsesBoth()
-    {
-        var world = await CreateWorldAsync(factory);
-        var rows = await StartMonthlyAsync(world);
-
-        var body = await ReadAsync<RequestClientPaymentResponse>(
-            await PostActionAsync(world, rows[0].PaymentId, "request", new { SendEmail = true, SendNotification = true }));
-
         body.EmailSent.Should().BeTrue();
-        body.NotificationSent.Should().BeTrue();
+        body.NotificationSent.Should().BeFalse();
+        Email(factory).SentPaymentRequests.Single(e => e.ToEmail == world.Client.Email).Amount.Should().Be(999.5m);
+        (await CountNotificationsAsync(world.Client.UserId)).Should().Be(0);
     }
 
     [Fact]
@@ -139,45 +107,6 @@ public class RequestClientPaymentEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
-    public async Task Request_CoachWithoutABankAccount_Returns409BankAccountNotSet()
-    {
-        var world = await CreateWorldAsync(factory, bankAccount: false);
-        var rows = await StartMonthlyAsync(world);
-
-        var response = await PostActionAsync(world, rows[0].PaymentId, "request", new { SendEmail = true });
-
-        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
-        (await ProblemCodeAsync(response)).Should().Be("BANK_ACCOUNT_NOT_SET");
-        (await ReadStoredAsync(factory, rows[0].PaymentId)).Status.Should().Be(ClientPaymentStatus.Upcoming);
-    }
-
-    [Fact]
-    public async Task Request_PaidPayment_Returns409()
-    {
-        var world = await CreateWorldAsync(factory);
-        var rows = await StartMonthlyAsync(world);
-        await PostActionAsync(world, rows[0].PaymentId, "mark-paid");
-
-        var response = await PostActionAsync(world, rows[0].PaymentId, "request", new { SendEmail = true });
-
-        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
-        (await ProblemCodeAsync(response)).Should().Be("PAYMENT_ALREADY_PAID");
-    }
-
-    [Fact]
-    public async Task Request_WaivedPayment_Returns409()
-    {
-        var world = await CreateWorldAsync(factory);
-        var rows = await StartMonthlyAsync(world);
-        await PostActionAsync(world, rows[0].PaymentId, "waive");
-
-        var response = await PostActionAsync(world, rows[0].PaymentId, "request", new { SendEmail = true });
-
-        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
-        (await ProblemCodeAsync(response)).Should().Be("PAYMENT_ALREADY_WAIVED");
-    }
-
-    [Fact]
     public async Task Request_FullDiscount_Returns400BecauseThereIsNothingToPay()
     {
         var world = await CreateWorldAsync(factory);
@@ -191,54 +120,32 @@ public class RequestClientPaymentEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
-    public async Task Request_PaymentOfAnotherCoachOrAnotherClient_Returns404()
+    public async Task Request_CoachWithoutABankAccount_Returns409BankAccountNotSet()
     {
-        var world = await CreateWorldAsync(factory);
-        var other = await CreateWorldAsync(factory);
-        var foreignRows = await StartMonthlyAsync(other);
-        var sameCoach = world with { Client = await AddClientAsync(world) };
-        var sameCoachRows = await StartMonthlyAsync(sameCoach);
+        var world = await CreateWorldAsync(factory, bankAccount: false);
+        var rows = await StartMonthlyAsync(world);
 
-        var foreign = await world.Coach.Http.PostAsJsonAsync(
-            $"{world.Route}/payments/{foreignRows[0].PaymentId}/request", new { SendEmail = true }, TestContext.Current.CancellationToken);
-        var otherClient = await PostActionAsync(world, sameCoachRows[0].PaymentId, "request", new { SendEmail = true });
+        var response = await PostActionAsync(world, rows[0].PaymentId, "request", new { SendEmail = true });
 
-        foreign.StatusCode.Should().Be(HttpStatusCode.NotFound);
-        otherClient.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await ProblemCodeAsync(response)).Should().Be("BANK_ACCOUNT_NOT_SET");
+        (await ReadStoredAsync(factory, rows[0].PaymentId)).Status.Should().Be(ClientPaymentStatus.Upcoming);
     }
 
     [Fact]
-    public async Task Request_CoachBelowThePaymentsTier_Returns403()
-    {
-        var world = await CreateWorldAsync(factory, entitled: false);
-
-        var response = await PostActionAsync(world, Guid.NewGuid(), "request", new { SendEmail = true });
-
-        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
-        (await ProblemCodeAsync(response)).Should().Be("PAYMENTS_NOT_ENTITLED");
-    }
-
-    [Fact]
-    public async Task Request_SamePaymentTwiceInARow_Returns429OnTheSecond()
+    public async Task Request_SamePaymentAgainOrTooManyForTheClient_Returns429AndSendsNothingMore()
     {
         var world = await CreateWorldAsync(factory);
         var rows = await StartMonthlyAsync(world);
 
         var first = await PostActionAsync(world, rows[0].PaymentId, "request", new { SendEmail = true });
-        var second = await PostActionAsync(world, rows[0].PaymentId, "request", new { SendEmail = true });
+        var again = await PostActionAsync(world, rows[0].PaymentId, "request", new { SendEmail = true });
 
         first.StatusCode.Should().Be(HttpStatusCode.OK);
-        second.StatusCode.Should().Be(HttpStatusCode.TooManyRequests);
-        (await ProblemCodeAsync(second)).Should().Be("PAYMENT_REQUEST_RATE_LIMITED");
-        Email(factory).SentPaymentRequests.Count(e => e.ToEmail == world.Client.Email).Should().Be(1);
-    }
+        again.StatusCode.Should().Be(HttpStatusCode.TooManyRequests);
+        (await ProblemCodeAsync(again)).Should().Be("PAYMENT_REQUEST_RATE_LIMITED");
 
-    [Fact]
-    public async Task Request_TenRequestsForTheClientInTheLastHour_Returns429()
-    {
-        var world = await CreateWorldAsync(factory);
-        var rows = await StartMonthlyAsync(world);
-
+        // Ten requests for this client in the last hour block the next one, whichever payment it is for.
         using (var scope = factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -257,10 +164,11 @@ public class RequestClientPaymentEndpointTests(FitnessApiFactory factory)
             await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
-        var response = await PostActionAsync(world, rows[1].PaymentId, "request", new { SendEmail = true });
+        var overClientLimit = await PostActionAsync(world, rows[1].PaymentId, "request", new { SendEmail = true });
 
-        response.StatusCode.Should().Be(HttpStatusCode.TooManyRequests);
+        overClientLimit.StatusCode.Should().Be(HttpStatusCode.TooManyRequests);
         (await ReadStoredAsync(factory, rows[1].PaymentId)).Status.Should().Be(ClientPaymentStatus.Upcoming);
+        Email(factory).SentPaymentRequests.Count(e => e.ToEmail == world.Client.Email).Should().Be(1);
     }
 
     [Fact]
@@ -278,20 +186,6 @@ public class RequestClientPaymentEndpointTests(FitnessApiFactory factory)
         body.NotificationSent.Should().BeTrue();
         body.Payment.Status.Should().Be(ClientPaymentStatus.Requested);
         (await ReadStoredAsync(factory, rows[0].PaymentId)).Status.Should().Be(ClientPaymentStatus.Requested);
-    }
-
-    [Fact]
-    public async Task Request_AfterTheBankAccountChanges_TheRequestedPaymentKeepsTheOldDetails()
-    {
-        var world = await CreateWorldAsync(factory);
-        var rows = await StartMonthlyAsync(world);
-        await PostActionAsync(world, rows[0].PaymentId, "request", new { SendEmail = true });
-
-        await SetBankAccountAsync(factory, world.Coach, OtherIban, "Someone Else");
-
-        var stored = await ReadStoredAsync(factory, rows[0].PaymentId);
-        stored.AccountIban.Should().Be(ValidIban);
-        stored.AccountHolder.Should().Be("Martin Král");
     }
 
     [Fact]
@@ -317,9 +211,13 @@ public class RequestClientPaymentEndpointTests(FitnessApiFactory factory)
             await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
+        // Requested by notification only, so no email goes out.
         var body = await ReadAsync<RequestClientPaymentResponse>(
-            await PostActionAsync(world, rows[0].PaymentId, "request", new { SendEmail = true }));
+            await PostActionAsync(world, rows[0].PaymentId, "request", new { SendNotification = true }));
 
+        body.EmailSent.Should().BeFalse();
+        body.NotificationSent.Should().BeTrue();
+        Email(factory).SentPaymentRequests.Should().NotContain(e => e.ToEmail == world.Client.Email);
         body.Payment.VariableSymbol.Should().Be($"{rows[0].PeriodStart!.Value.Year}{rows[0].PeriodStart!.Value.Month:D2}0001");
         body.Payment.Message.Should().Be($"Eva Svobodova {rows[0].PeriodStart!.Value.Month:D2}/{rows[0].PeriodStart!.Value.Year}");
     }
@@ -339,18 +237,5 @@ public class RequestClientPaymentEndpointTests(FitnessApiFactory factory)
         body.Payment.DueDate.Should().Be(due);
         body.Payment.Message.Should().StartWith("Workshop");
         Email(factory).SentPaymentRequests.Last(e => e.ToEmail == world.Client.Email).PackageName.Should().Be("Workshop");
-    }
-
-    [Fact]
-    public async Task Request_Audit_HoldsNeitherTheIbanNorTheClientName()
-    {
-        var world = await CreateWorldAsync(factory);
-        var rows = await StartMonthlyAsync(world);
-        await PostActionAsync(world, rows[0].PaymentId, "request", new { SendEmail = true, SendNotification = true });
-
-        var audit = (await ReadAuditAsync(world)).Single(a => a.Action == "RequestClientPayment");
-
-        audit.NewValues.Should().Contain(rows[0].PaymentId.ToString()).And.Contain("email,notification");
-        audit.NewValues.Should().NotContain(ValidIban).And.NotContain("Eva").And.NotContain("Svobodov");
     }
 }

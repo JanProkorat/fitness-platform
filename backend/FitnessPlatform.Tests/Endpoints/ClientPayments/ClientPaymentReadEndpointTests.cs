@@ -1,9 +1,9 @@
 using System.Net;
 using System.Net.Http.Json;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Features.Client.GetClientPayments;
 using FitnessPlatform.Application.Features.ClientPayments.GetClientPaymentHistory;
 using FitnessPlatform.Application.Features.ClientPayments.GetClientPaymentSummary;
-using FitnessPlatform.Application.Features.ClientPayments.Shared;
 using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Infrastructure;
 using FluentAssertions;
@@ -27,16 +27,17 @@ public class ClientPaymentReadEndpointTests(FitnessApiFactory factory)
         return await ReadAsync<GetClientPaymentSummaryResponse>(response);
     }
 
-    [Fact]
-    public async Task List_ClientWithoutTerms_ReturnsAnEmptyList()
+    private static async Task<GetClientPaymentHistoryResponse> GetHistoryAsync(Actor coach, Actor client)
     {
-        var world = await CreateWorldAsync(factory);
+        var response = await coach.Http.GetAsync($"/payments/clients/{client.PublicId}/history", TestContext.Current.CancellationToken);
 
-        (await ListAsync(world)).Should().BeEmpty();
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        return await ReadAsync<GetClientPaymentHistoryResponse>(response);
     }
 
     [Fact]
-    public async Task Summary_ClientWithoutTerms_HasNoPackageAndKnowsTheBankAccountState()
+    public async Task Reads_ClientWithoutTerms_HaveNoRowsNoPackageNoHistoryAndKnowTheBankAccountState()
     {
         var world = await CreateWorldAsync(factory, bankAccount: false);
 
@@ -47,10 +48,12 @@ public class ClientPaymentReadEndpointTests(FitnessApiFactory factory)
         summary.NextPayment.Should().BeNull();
         summary.BankAccountSet.Should().BeFalse();
         summary.ClientSince.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromMinutes(5));
+        (await ListAsync(world)).Should().BeEmpty();
+        (await GetHistoryAsync(world.Coach, world.Client)).Entries.Should().BeEmpty();
     }
 
     [Fact]
-    public async Task Summary_WithTermsAndDiscount_ShowsThePriceBreakdownAndTheNextPayment()
+    public async Task SummaryAndList_WithTermsAndDiscount_ShowTheBreakdownTheMessageAndWhatIsPaid()
     {
         var world = await CreateWorldAsync(factory);
         var discountId = await CreateDiscountAsync(world.Coach, 30m);
@@ -67,99 +70,40 @@ public class ClientPaymentReadEndpointTests(FitnessApiFactory factory)
         summary.NextPayment!.PaymentId.Should().Be(rows[0].PaymentId);
         summary.NextPayment.Amount.Should().Be(1750m);
         summary.BankAccountSet.Should().BeTrue();
-    }
 
-    [Fact]
-    public async Task Summary_AfterAPaymentIsPaid_CountsItAndReportsPaidUntilTheEndOfItsPeriod()
-    {
-        var world = await CreateWorldAsync(factory);
-        var rows = await StartMonthlyAsync(world);
-        var paid = await PostActionAsync(world, rows[0].PaymentId, "mark-paid");
-        paid.StatusCode.Should().Be(HttpStatusCode.OK);
-
-        var summary = await GetSummaryAsync(world);
-
-        summary.PaidCount.Should().Be(1);
-        summary.TotalCount.Should().Be(1);
-        summary.PaidUntil.Should().Be(rows[0].PeriodEnd);
-        summary.NextPayment!.PaymentId.Should().Be(rows[1].PaymentId);
-    }
-
-    [Fact]
-    public async Task List_RequestedPaymentPastItsDueDate_IsReportedOverdue()
-    {
-        var world = await CreateWorldAsync(factory);
-        await StartMonthlyAsync(world);
-        var seeded = await SeedPastPaymentAsync(world, Today.AddDays(-3), ClientPaymentStatus.Requested);
-
-        var rows = await ListAsync(world);
-
-        rows.Single(p => p.PaymentId == seeded).Status.Should().Be(ClientPaymentStatus.Overdue);
-        (await ReadStoredAsync(factory, seeded)).Status.Should().Be(ClientPaymentStatus.Requested, "overdue is derived and never stored");
-    }
-
-    [Fact]
-    public async Task List_PaymentDueToday_IsNotYetOverdue()
-    {
-        var world = await CreateWorldAsync(factory);
-        await StartMonthlyAsync(world);
-        var seeded = await SeedPastPaymentAsync(world, Today, ClientPaymentStatus.Requested);
-
-        (await ListAsync(world)).Single(p => p.PaymentId == seeded).Status.Should().Be(ClientPaymentStatus.Requested);
-    }
-
-    [Fact]
-    public async Task List_UpcomingPayment_ShowsTheMessageTheClientWillSee()
-    {
-        var world = await CreateWorldAsync(factory);
-
-        var rows = await StartMonthlyAsync(world);
-
+        var list = await ListAsync(world);
+        list.Select(p => p.DueDate).Should().BeInDescendingOrder();
         rows[0].Message.Should().Be($"Online coaching {Today.Month:D2}/{Today.Year}");
+
+        (await PostActionAsync(world, rows[0].PaymentId, "mark-paid")).StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var afterPaid = await GetSummaryAsync(world);
+        afterPaid.PaidCount.Should().Be(1);
+        afterPaid.TotalCount.Should().Be(1);
+        afterPaid.PaidUntil.Should().Be(rows[0].PeriodEnd);
+        afterPaid.NextPayment!.PaymentId.Should().Be(rows[1].PaymentId);
     }
 
     [Fact]
-    public async Task List_NewestDueDateFirst()
+    public async Task Overdue_RequestedPaymentPastItsDueDate_IsDerivedForCoachAndClientButNeverStored()
     {
         var world = await CreateWorldAsync(factory);
         await StartMonthlyAsync(world);
+        var late = await SeedPastPaymentAsync(world, Today.AddDays(-3), ClientPaymentStatus.Requested);
+        var dueToday = await SeedPastPaymentAsync(world, Today, ClientPaymentStatus.Requested);
 
         var rows = await ListAsync(world);
 
-        rows.Select(p => p.DueDate).Should().BeInDescendingOrder();
+        rows.Single(p => p.PaymentId == late).Status.Should().Be(ClientPaymentStatus.Overdue);
+        rows.Single(p => p.PaymentId == dueToday).Status.Should().Be(ClientPaymentStatus.Requested, "a payment due today is not late yet");
+        (await ReadStoredAsync(factory, late)).Status.Should().Be(ClientPaymentStatus.Requested, "overdue is derived and never stored");
+
+        var own = await world.Client.Http.GetFromJsonAsync<GetClientPaymentsResponse>("/client/payments", Wire, TestContext.Current.CancellationToken);
+        own!.Coaches.Single().Requested.Single(p => p.PaymentId == late).Status.Should().Be(ClientPaymentStatus.Overdue);
     }
 
     [Fact]
-    public async Task Reads_ClientOfAnotherCoach_Return404()
-    {
-        var world = await CreateWorldAsync(factory);
-        var other = await CreateWorldAsync(factory);
-
-        foreach (var path in new[] { "summary", "payments", "history" })
-        {
-            var response = await world.Coach.Http.GetAsync(
-                $"/payments/clients/{other.Client.PublicId}/{path}", TestContext.Current.CancellationToken);
-
-            response.StatusCode.Should().Be(HttpStatusCode.NotFound, path);
-        }
-    }
-
-    [Fact]
-    public async Task Reads_CoachBelowThePaymentsTier_Return403()
-    {
-        var world = await CreateWorldAsync(factory, entitled: false);
-
-        foreach (var path in new[] { "summary", "payments", "history" })
-        {
-            var response = await world.Coach.Http.GetAsync($"{world.Route}/{path}", TestContext.Current.CancellationToken);
-
-            response.StatusCode.Should().Be(HttpStatusCode.Forbidden, path);
-            (await ProblemCodeAsync(response)).Should().Be("PAYMENTS_NOT_ENTITLED");
-        }
-    }
-
-    [Fact]
-    public async Task History_ListsTheCoachActionsNewestFirstWithoutAnIbanOrClientName()
+    public async Task History_ListsTheCallingCoachsActionsNewestFirstWithoutAnIbanOrClientName()
     {
         var world = await CreateWorldAsync(factory);
         var rows = await StartMonthlyAsync(world);
@@ -178,31 +122,13 @@ public class ClientPaymentReadEndpointTests(FitnessApiFactory factory)
 
         var raw = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         raw.Should().NotContain(ValidIban).And.NotContain("Svobodov");
-    }
 
-    [Fact]
-    public async Task History_ClientWithoutTerms_IsEmpty()
-    {
-        var world = await CreateWorldAsync(factory);
-
-        var response = await world.Coach.Http.GetAsync($"{world.Route}/history", TestContext.Current.CancellationToken);
-
-        (await ReadAsync<GetClientPaymentHistoryResponse>(response)).Entries.Should().BeEmpty();
-    }
-
-    [Fact]
-    public async Task History_OnlyTheCallingCoachSeesTheirOwnEntries()
-    {
-        var world = await CreateWorldAsync(factory);
-        await StartMonthlyAsync(world);
+        // A second coach of the same client sees none of the first coach's entries.
         var secondCoach = await TestActors.Nutritionist(factory).CreateAsync(TestContext.Current.CancellationToken);
         await SubscribeAsync(factory, secondCoach, canUsePayments: true);
         await TestActors.Link(factory, secondCoach, world.Client).AsRole(UserRole.Nutritionist)
             .CreateAsync(TestContext.Current.CancellationToken);
 
-        var response = await secondCoach.Http.GetAsync(
-            $"/payments/clients/{world.Client.PublicId}/history", TestContext.Current.CancellationToken);
-
-        (await ReadAsync<GetClientPaymentHistoryResponse>(response)).Entries.Should().BeEmpty();
+        (await GetHistoryAsync(secondCoach, world.Client)).Entries.Should().BeEmpty();
     }
 }

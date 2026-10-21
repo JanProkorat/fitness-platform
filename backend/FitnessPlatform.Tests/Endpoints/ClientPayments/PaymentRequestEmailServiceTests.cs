@@ -15,17 +15,18 @@ namespace FitnessPlatform.Tests.Endpoints.ClientPayments;
 
 /// <summary>
 /// The payment request email as each provider builds it: the QR code goes out as an inline image the HTML
-/// refers to by content id, in the recipient's language, with user text encoded.
+/// refers to by content id, in the recipient's language. Encoding of user text is
+/// <c>PaymentMessageComposerTests</c>' job, since both providers render through the composer.
 /// </summary>
 public class PaymentRequestEmailServiceTests
 {
     private static readonly byte[] FakePng = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 1, 2, 3, 4];
 
-    private static PaymentRequestEmail Email(string language = "cs", string package = "Online coaching") => new(
+    private static PaymentRequestEmail Email(string language) => new(
         "eva@example.com",
         language,
         "Martin Král",
-        package,
+        "Online coaching",
         new DateOnly(2026, 11, 1),
         new DateOnly(2026, 11, 30),
         1750m,
@@ -48,72 +49,63 @@ public class PaymentRequestEmailServiceTests
             ["App:BaseUrl"] = "https://app.example.com"
         }).Build();
 
-    [Fact]
-    public async Task Resend_PaymentRequest_AttachesTheQrInlineUnderTheContentIdTheHtmlUses()
-    {
-        var resend = Substitute.For<IResend>();
-        var service = new ResendEmailService(resend, Configuration(), NullLogger<ResendEmailService>.Instance);
-
-        await service.SendPaymentRequestEmailAsync(Email(), TestContext.Current.CancellationToken);
-
-        var message = (EmailMessage)resend.ReceivedCalls().Single().GetArguments()[0]!;
-        message.To.Select(t => t.Email).Should().Equal("eva@example.com");
-        message.Subject.Should().StartWith("Martin Král: 1");
-        message.HtmlBody.Should().Contain($"cid:{PaymentMessageComposer.QrContentId}");
-        var attachment = message.Attachments!.Should().ContainSingle().Subject;
-        attachment.ContentId.Should().Be(PaymentMessageComposer.QrContentId);
-        attachment.ContentType.Should().Be("image/png");
-        attachment.Content!.Value.AsByteArray().Should().Equal(FakePng);
-    }
-
     [Theory]
-    [InlineData("cs", "Částka", "ŽÁDOST O PLATBU")]
-    [InlineData("en", "Amount", "PAYMENT REQUEST")]
-    [InlineData("de", "Betrag", "ZAHLUNGSAUFFORDERUNG")]
-    public async Task Resend_PaymentRequest_IsWrittenInTheRecipientsLanguage(string language, string amountLabel, string title)
+    [InlineData("Smtp", "cs", "Částka", "ŽÁDOST O PLATBU")]
+    [InlineData("Resend", "en", "Amount", "PAYMENT REQUEST")]
+    [InlineData("Resend", "de", "Betrag", "ZAHLUNGSAUFFORDERUNG")]
+    public async Task PaymentRequest_EachProvider_SendsTheQrInlineUnderTheContentIdTheHtmlUsesInTheRecipientsLanguage(
+        string provider, string language, string amountLabel, string title)
+    {
+        var sent = provider == "Smtp" ? await SendViaSmtpAsync(Email(language)) : await SendViaResendAsync(Email(language));
+
+        sent.To.Should().Equal("eva@example.com");
+        sent.Subject.Should().StartWith("Martin Král: 1");
+        sent.Html.Should().Contain($"cid:{PaymentMessageComposer.QrContentId}").And.Contain(amountLabel).And.Contain(title);
+        sent.ImageContentId.Should().Be(PaymentMessageComposer.QrContentId);
+        sent.ImageBytes.Should().Equal(FakePng);
+    }
+
+    private sealed record SentEmail(IReadOnlyList<string> To, string Subject, string Html, string? ImageContentId, byte[] ImageBytes);
+
+    private static async Task<SentEmail> SendViaResendAsync(PaymentRequestEmail email)
     {
         var resend = Substitute.For<IResend>();
         var service = new ResendEmailService(resend, Configuration(), NullLogger<ResendEmailService>.Instance);
 
-        await service.SendPaymentRequestEmailAsync(Email(language), TestContext.Current.CancellationToken);
+        await service.SendPaymentRequestEmailAsync(email, TestContext.Current.CancellationToken);
 
         var message = (EmailMessage)resend.ReceivedCalls().Single().GetArguments()[0]!;
-        message.HtmlBody.Should().Contain(amountLabel).And.Contain(title);
+        var attachment = message.Attachments!.Should().ContainSingle().Subject;
+        attachment.ContentType.Should().Be("image/png");
+
+        return new SentEmail(
+            message.To.Select(t => t.Email).ToList(),
+            message.Subject,
+            message.HtmlBody!,
+            attachment.ContentId,
+            attachment.Content!.Value.AsByteArray());
     }
 
-    [Fact]
-    public async Task Resend_PaymentRequest_EncodesUserTextInTheHtml()
-    {
-        var resend = Substitute.For<IResend>();
-        var service = new ResendEmailService(resend, Configuration(), NullLogger<ResendEmailService>.Instance);
-
-        await service.SendPaymentRequestEmailAsync(Email("en", "<img src=x onerror=alert(1)>"), TestContext.Current.CancellationToken);
-
-        var message = (EmailMessage)resend.ReceivedCalls().Single().GetArguments()[0]!;
-        message.HtmlBody.Should().NotContain("<img src=x").And.Contain("&lt;img src=x onerror=alert(1)&gt;");
-    }
-
-    [Fact]
-    public async Task Smtp_PaymentRequest_SendsMultipartRelatedWithTheQrAsALinkedResource()
+    private static async Task<SentEmail> SendViaSmtpAsync(PaymentRequestEmail email)
     {
         await using var server = FakeSmtpServer.Start();
         var service = new SmtpEmailService(Configuration(server.Port), NullLogger<SmtpEmailService>.Instance);
 
-        await service.SendPaymentRequestEmailAsync(Email(), TestContext.Current.CancellationToken);
+        await service.SendPaymentRequestEmailAsync(email, TestContext.Current.CancellationToken);
 
         var message = await server.ReceivedAsync();
-        message.Subject.Should().Contain("Martin Král").And.Contain("za listopad 2026");
-        message.To.Mailboxes.Single().Address.Should().Be("eva@example.com");
-
         var related = message.Body.Should().BeAssignableTo<Multipart>().Subject;
         related.ContentType.MimeType.Should().Be("multipart/related");
         var image = related.OfType<MimePart>().Single(part => part.ContentType.MimeType == "image/png");
-        image.ContentId.Should().Be(PaymentMessageComposer.QrContentId);
         using var imageBytes = new MemoryStream();
-        await image.Content.DecodeToAsync(imageBytes, TestContext.Current.CancellationToken);
-        imageBytes.ToArray().Should().Equal(FakePng);
+        await image.Content!.DecodeToAsync(imageBytes, TestContext.Current.CancellationToken);
 
-        message.HtmlBody.Should().Contain($"cid:{PaymentMessageComposer.QrContentId}").And.Contain("Částka");
+        return new SentEmail(
+            message.To.Mailboxes.Select(m => m.Address).ToList(),
+            message.Subject ?? string.Empty,
+            message.HtmlBody ?? string.Empty,
+            image.ContentId,
+            imageBytes.ToArray());
     }
 
     /// <summary>

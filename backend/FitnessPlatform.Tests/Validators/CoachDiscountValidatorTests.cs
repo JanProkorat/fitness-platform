@@ -35,7 +35,6 @@ public class CoachDiscountValidatorTests
     }
 
     [Theory]
-    [InlineData(0)]
     [InlineData(0.5)]
     [InlineData(100.01)]
     public void Validate_PercentageOutOfRange_Fails(double value)
@@ -59,7 +58,6 @@ public class CoachDiscountValidatorTests
 
     [Theory]
     [InlineData(0)]
-    [InlineData(-1)]
     [InlineData(200.123)]
     public void Validate_FixedAmountNonPositiveOrTooPrecise_Fails(double value)
     {

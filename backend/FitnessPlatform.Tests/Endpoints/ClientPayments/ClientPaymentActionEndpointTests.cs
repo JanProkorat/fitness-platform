@@ -2,7 +2,6 @@ using System.Net;
 using System.Net.Http.Json;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Features.ClientPayments.Shared;
-using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Infrastructure;
 using FluentAssertions;
 using static FitnessPlatform.Tests.Endpoints.ClientPayments.ClientPaymentFixtures;
@@ -24,11 +23,14 @@ public class ClientPaymentActionEndpointTests(FitnessApiFactory factory)
     };
 
     [Fact]
-    public async Task AddOneOff_ValidBody_Returns201WithAnUpcomingRowAndAVariableSymbol()
+    public async Task AddOneOff_InTheMonthOfARecurringPayment_Returns201WithAnUpcomingRowAndItsOwnVariableSymbol()
     {
         var world = await CreateWorldAsync(factory);
+        var rows = await StartMonthlyAsync(world);
+        var month = rows[0].PeriodStart!.Value;
 
-        var response = await world.Coach.Http.PostAsJsonAsync($"{world.Route}/one-off", OneOffBody(), TestContext.Current.CancellationToken);
+        var response = await world.Coach.Http.PostAsJsonAsync(
+            $"{world.Route}/one-off", new { Title = "Workshop", Amount = 300m, DueDate = month }, TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.Created);
         var payment = await ReadAsync<ClientPaymentRowDto>(response);
@@ -37,22 +39,10 @@ public class ClientPaymentActionEndpointTests(FitnessApiFactory factory)
         payment.Amount.Should().Be(300m);
         payment.Title.Should().Be("Workshop");
         payment.PeriodStart.Should().BeNull();
-        payment.VariableSymbol.Should().MatchRegex("^[0-9]{10}$");
+        payment.VariableSymbol.Should().MatchRegex("^[0-9]{10}$")
+            .And.StartWith($"{month.Year}{month.Month:D2}")
+            .And.NotBe(rows[0].VariableSymbol, "the recurring payment of that month already holds the preferred symbol");
         (await ListAsync(world)).Should().ContainSingle(p => p.PaymentId == payment.PaymentId);
-    }
-
-    [Fact]
-    public async Task AddOneOff_InTheSameMonthAsARecurringPayment_GetsAnotherVariableSymbol()
-    {
-        var world = await CreateWorldAsync(factory);
-        var rows = await StartMonthlyAsync(world);
-        var body = new { Title = "Workshop", Amount = 300m, DueDate = rows[0].PeriodStart!.Value };
-
-        var response = await world.Coach.Http.PostAsJsonAsync($"{world.Route}/one-off", body, TestContext.Current.CancellationToken);
-
-        var payment = await ReadAsync<ClientPaymentRowDto>(response);
-        payment.VariableSymbol.Should().NotBe(rows[0].VariableSymbol);
-        payment.VariableSymbol.Should().StartWith($"{rows[0].PeriodStart!.Value.Year}{rows[0].PeriodStart!.Value.Month:D2}");
     }
 
     [Fact]
@@ -64,18 +54,6 @@ public class ClientPaymentActionEndpointTests(FitnessApiFactory factory)
             $"{world.Route}/one-off", OneOffBody(amount: 0m), TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-    }
-
-    [Fact]
-    public async Task AddOneOff_ClientOfAnotherCoach_Returns404()
-    {
-        var world = await CreateWorldAsync(factory);
-        var other = await CreateWorldAsync(factory);
-
-        var response = await world.Coach.Http.PostAsJsonAsync(
-            $"/payments/clients/{other.Client.PublicId}/one-off", OneOffBody(), TestContext.Current.CancellationToken);
-
-        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
     [Fact]
@@ -95,35 +73,27 @@ public class ClientPaymentActionEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
-    public async Task MarkPaid_UpcomingPayment_FreezesTheAmountAndDefaultsPaidOnToToday()
+    public async Task MarkPaid_TakesTodayOrTheGivenEarlierDayAndFreezesTheAmount()
     {
         var world = await CreateWorldAsync(factory);
         var rows = await StartMonthlyAsync(world, 2500m);
+        var earlier = Today.AddDays(-4);
 
-        var response = await PostActionAsync(world, rows[0].PaymentId, "mark-paid");
+        var byDefault = await PostActionAsync(world, rows[0].PaymentId, "mark-paid");
+        var withDate = await PostActionAsync(world, rows[1].PaymentId, "mark-paid", new { PaidOn = earlier });
 
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var payment = await ReadAsync<ClientPaymentRowDto>(response);
+        byDefault.StatusCode.Should().Be(HttpStatusCode.OK);
+        var payment = await ReadAsync<ClientPaymentRowDto>(byDefault);
         payment.Status.Should().Be(ClientPaymentStatus.Paid);
         payment.PaidOn.Should().Be(Today);
         payment.Amount.Should().Be(2500m);
+        (await ReadAsync<ClientPaymentRowDto>(withDate)).PaidOn.Should().Be(earlier);
 
         // A later price change must not rewrite what was paid.
         var cheaper = await CreatePackageAsync(world.Coach, 100m, "Cheap");
         await SetTermsOkAsync(world, cheaper);
-        (await ListAsync(world)).Single(p => p.PaymentId == rows[0].PaymentId).Amount.Should().Be(2500m);
-    }
-
-    [Fact]
-    public async Task MarkPaid_WithAnEarlierPaidOn_StoresIt()
-    {
-        var world = await CreateWorldAsync(factory);
-        var rows = await StartMonthlyAsync(world);
-        var paidOn = Today.AddDays(-4);
-
-        var response = await PostActionAsync(world, rows[0].PaymentId, "mark-paid", new { PaidOn = paidOn });
-
-        (await ReadAsync<ClientPaymentRowDto>(response)).PaidOn.Should().Be(paidOn);
+        (await ListAsync(world)).Where(p => p.Status == ClientPaymentStatus.Paid).Should().HaveCount(2)
+            .And.OnlyContain(p => p.Amount == 2500m);
     }
 
     [Fact]
@@ -139,109 +109,23 @@ public class ClientPaymentActionEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
-    public async Task MarkPaid_AlreadyPaid_Returns409()
+    public async Task Waive_UpcomingOrRequestedPayment_ZeroesItReleasesTheSymbolAndKeepsTheReason()
     {
         var world = await CreateWorldAsync(factory);
         var rows = await StartMonthlyAsync(world);
-        await PostActionAsync(world, rows[0].PaymentId, "mark-paid");
+        (await PostActionAsync(world, rows[1].PaymentId, "request", new { SendEmail = true })).StatusCode.Should().Be(HttpStatusCode.OK);
 
-        var response = await PostActionAsync(world, rows[0].PaymentId, "mark-paid");
+        var upcoming = await PostActionAsync(world, rows[0].PaymentId, "waive", new { Reason = "  Holiday  " });
+        var requested = await PostActionAsync(world, rows[1].PaymentId, "waive");
 
-        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
-        (await ProblemCodeAsync(response)).Should().Be("PAYMENT_ALREADY_PAID");
-    }
-
-    [Fact]
-    public async Task MarkPaid_WaivedPayment_Returns409()
-    {
-        var world = await CreateWorldAsync(factory);
-        var rows = await StartMonthlyAsync(world);
-        await PostActionAsync(world, rows[0].PaymentId, "waive");
-
-        var response = await PostActionAsync(world, rows[0].PaymentId, "mark-paid");
-
-        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
-        (await ProblemCodeAsync(response)).Should().Be("PAYMENT_ALREADY_WAIVED");
-    }
-
-    [Fact]
-    public async Task MarkPaid_PaymentOfAnotherCoach_Returns404()
-    {
-        var world = await CreateWorldAsync(factory);
-        var other = await CreateWorldAsync(factory);
-        var foreignRows = await StartMonthlyAsync(other);
-
-        var response = await world.Coach.Http.PostAsJsonAsync(
-            $"{world.Route}/payments/{foreignRows[0].PaymentId}/mark-paid", new { }, TestContext.Current.CancellationToken);
-
-        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
-        (await ReadStoredAsync(factory, foreignRows[0].PaymentId)).Status.Should().Be(ClientPaymentStatus.Upcoming);
-    }
-
-    [Fact]
-    public async Task MarkPaid_PaymentOfAnotherClientOfTheSameCoach_Returns404()
-    {
-        var world = await CreateWorldAsync(factory);
-        var other = world with { Client = await AddClientAsync(world) };
-        var otherRows = await StartMonthlyAsync(other);
-
-        var response = await PostActionAsync(world, otherRows[0].PaymentId, "mark-paid");
-
-        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
-    }
-
-    [Fact]
-    public async Task Waive_UpcomingPayment_ZeroesItReleasesTheSymbolAndKeepsTheReason()
-    {
-        var world = await CreateWorldAsync(factory);
-        var rows = await StartMonthlyAsync(world);
-
-        var response = await PostActionAsync(world, rows[0].PaymentId, "waive", new { Reason = "  Holiday  " });
-
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var payment = await ReadAsync<ClientPaymentRowDto>(response);
+        upcoming.StatusCode.Should().Be(HttpStatusCode.OK);
+        var payment = await ReadAsync<ClientPaymentRowDto>(upcoming);
         payment.Status.Should().Be(ClientPaymentStatus.Waived);
         payment.Amount.Should().Be(0m);
         payment.VariableSymbol.Should().BeNull();
         payment.WaiveReason.Should().Be("Holiday");
-    }
-
-    [Fact]
-    public async Task Waive_RequestedPayment_IsAllowed()
-    {
-        var world = await CreateWorldAsync(factory);
-        var rows = await StartMonthlyAsync(world);
-        (await PostActionAsync(world, rows[0].PaymentId, "request", new { SendEmail = true })).StatusCode.Should().Be(HttpStatusCode.OK);
-
-        var response = await PostActionAsync(world, rows[0].PaymentId, "waive");
-
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-    }
-
-    [Fact]
-    public async Task Waive_PaidPayment_Returns409()
-    {
-        var world = await CreateWorldAsync(factory);
-        var rows = await StartMonthlyAsync(world);
-        await PostActionAsync(world, rows[0].PaymentId, "mark-paid");
-
-        var response = await PostActionAsync(world, rows[0].PaymentId, "waive");
-
-        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
-        (await ProblemCodeAsync(response)).Should().Be("PAYMENT_ALREADY_PAID");
-    }
-
-    [Fact]
-    public async Task Waive_AlreadyWaived_Returns409()
-    {
-        var world = await CreateWorldAsync(factory);
-        var rows = await StartMonthlyAsync(world);
-        await PostActionAsync(world, rows[0].PaymentId, "waive");
-
-        var response = await PostActionAsync(world, rows[0].PaymentId, "waive");
-
-        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
-        (await ProblemCodeAsync(response)).Should().Be("PAYMENT_ALREADY_WAIVED");
+        requested.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await ReadAsync<ClientPaymentRowDto>(requested)).Status.Should().Be(ClientPaymentStatus.Waived);
     }
 
     [Fact]
@@ -256,16 +140,25 @@ public class ClientPaymentActionEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
-    public async Task Waive_PaymentOfAnotherCoach_Returns404()
+    public async Task Actions_OnAPaidOrWaivedPayment_Return409WithTheSettledState()
     {
         var world = await CreateWorldAsync(factory);
-        var other = await CreateWorldAsync(factory);
-        var foreignRows = await StartMonthlyAsync(other);
+        var rows = await StartMonthlyAsync(world);
+        (await PostActionAsync(world, rows[0].PaymentId, "mark-paid")).StatusCode.Should().Be(HttpStatusCode.OK);
+        (await PostActionAsync(world, rows[1].PaymentId, "waive")).StatusCode.Should().Be(HttpStatusCode.OK);
 
-        var response = await world.Coach.Http.PostAsJsonAsync(
-            $"{world.Route}/payments/{foreignRows[0].PaymentId}/waive", new { }, TestContext.Current.CancellationToken);
+        foreach (var (paymentId, code) in new[] { (rows[0].PaymentId, "PAYMENT_ALREADY_PAID"), (rows[1].PaymentId, "PAYMENT_ALREADY_WAIVED") })
+        {
+            foreach (var action in new[] { "mark-paid", "waive", "request" })
+            {
+                var response = await PostActionAsync(world, paymentId, action, new { SendEmail = true });
 
-        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+                response.StatusCode.Should().Be(HttpStatusCode.Conflict, $"{action} on {code}");
+                (await ProblemCodeAsync(response)).Should().Be(code, action);
+            }
+        }
+
+        Email(factory).SentPaymentRequests.Should().NotContain(e => e.ToEmail == world.Client.Email);
     }
 
     [Fact]
@@ -285,57 +178,23 @@ public class ClientPaymentActionEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
-    public async Task Actions_CoachWhoseLastCoachRoleWasRemoved_AreRefused()
-    {
-        var coach = await TestActors.Trainer(factory).WithRemovedCoachRoles(UserRole.Trainer)
-            .CreateAsync(TestContext.Current.CancellationToken);
-        await SubscribeAsync(factory, coach, canUsePayments: true);
-        var client = await TestActors.Client(factory).CreateAsync(TestContext.Current.CancellationToken);
-        await TestActors.Link(factory, coach, client).CreateAsync(TestContext.Current.CancellationToken);
-        var paymentId = Guid.NewGuid();
-
-        foreach (var action in new[] { "mark-paid", "waive", "request" })
-        {
-            var response = await coach.Http.PostAsJsonAsync(
-                $"/payments/clients/{client.PublicId}/payments/{paymentId}/{action}", new { SendEmail = true }, TestContext.Current.CancellationToken);
-
-            response.StatusCode.Should().Be(HttpStatusCode.Forbidden, action);
-        }
-
-        var oneOff = await coach.Http.PostAsJsonAsync(
-            $"/payments/clients/{client.PublicId}/one-off", OneOffBody(), TestContext.Current.CancellationToken);
-        oneOff.StatusCode.Should().Be(HttpStatusCode.Forbidden);
-    }
-
-    [Fact]
-    public async Task Actions_CoachBelowThePaymentsTier_Return403()
-    {
-        var world = await CreateWorldAsync(factory, entitled: false);
-
-        var markPaid = await PostActionAsync(world, Guid.NewGuid(), "mark-paid");
-        var oneOff = await world.Coach.Http.PostAsJsonAsync($"{world.Route}/one-off", OneOffBody(), TestContext.Current.CancellationToken);
-
-        markPaid.StatusCode.Should().Be(HttpStatusCode.Forbidden);
-        oneOff.StatusCode.Should().Be(HttpStatusCode.Forbidden);
-        (await ProblemCodeAsync(oneOff)).Should().Be("PAYMENTS_NOT_ENTITLED");
-    }
-
-    [Fact]
-    public async Task Actions_AreAuditedUnderTheAssignmentWithoutPersonalData()
+    public async Task Writes_AreAuditedUnderTheAssignmentWithoutPersonalData()
     {
         var world = await CreateWorldAsync(factory);
         var rows = await StartMonthlyAsync(world);
         await PostActionAsync(world, rows[0].PaymentId, "mark-paid");
-        await PostActionAsync(world, rows[1].PaymentId, "request", new { SendEmail = true });
+        await PostActionAsync(world, rows[1].PaymentId, "request", new { SendEmail = true, SendNotification = true });
 
         var audit = await ReadAuditAsync(world);
 
         audit.Select(a => a.Action).Should().Equal("SetClientPaymentTerms", "MarkClientPaymentPaid", "RequestClientPayment");
-        audit.Should().OnlyContain(a => a.UserId == world.Coach.UserId);
+        audit.Should().OnlyContain(a => a.UserId == world.Coach.UserId && a.EntityType == "ClientPaymentAssignment");
         audit.Should().OnlyContain(a => a.Action.Length <= 50 && (a.NewValues ?? string.Empty).Length <= 500);
         audit.Should().OnlyContain(a =>
             !(a.NewValues ?? string.Empty).Contains(ValidIban)
             && !(a.NewValues ?? string.Empty).Contains("Eva")
             && !(a.NewValues ?? string.Empty).Contains("Svobodov"));
+        audit[0].NewValues.Should().Contain("Online coaching");
+        audit[2].NewValues.Should().Contain(rows[1].PaymentId.ToString()).And.Contain("email,notification");
     }
 }

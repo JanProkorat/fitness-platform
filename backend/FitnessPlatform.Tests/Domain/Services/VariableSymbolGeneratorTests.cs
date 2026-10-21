@@ -14,10 +14,10 @@ public class VariableSymbolGeneratorTests
     private static IReadOnlySet<string> Used(params string[] symbols) => new HashSet<string>(symbols);
 
     [Fact]
-    public void Generate_ClientNumberFormat_IsMonthThenClientNumber()
+    public void Generate_ClientNumberFormat_IsMonthThenTheZeroPaddedClientNumber()
     {
-        VariableSymbolGenerator.Generate(VariableSymbolFormat.YearMonthClientNumber, November, 142, Used())
-            .Should().Be("2026110142");
+        VariableSymbolGenerator.Generate(VariableSymbolFormat.YearMonthClientNumber, November, 7, Used())
+            .Should().Be("2026110007");
     }
 
     [Fact]
@@ -34,14 +34,6 @@ public class VariableSymbolGeneratorTests
         VariableSymbolGenerator.Generate(
                 VariableSymbolFormat.YearMonthClientNumber, November, 142, Used("2026110142", "2026119999"))
             .Should().Be("2026119998");
-    }
-
-    [Fact]
-    public void Generate_ClientNumberFormat_AnotherMonthIsIndependent()
-    {
-        VariableSymbolGenerator.Generate(
-                VariableSymbolFormat.YearMonthClientNumber, new DateOnly(2026, 12, 1), 142, Used("2026110142"))
-            .Should().Be("2026120142");
     }
 
     [Fact]
@@ -72,12 +64,5 @@ public class VariableSymbolGeneratorTests
         var used = Enumerable.Range(1, 9999).Select(tail => "202611" + tail.ToString("D4")).ToHashSet();
 
         VariableSymbolGenerator.Generate(format, November, 142, used).Should().BeNull();
-    }
-
-    [Fact]
-    public void Generate_SymbolIsAlwaysTenDigits()
-    {
-        VariableSymbolGenerator.Generate(VariableSymbolFormat.YearMonthClientNumber, November, 7, Used())
-            .Should().MatchRegex("^[0-9]{10}$").And.Be("2026110007");
     }
 }

@@ -24,6 +24,8 @@ namespace FitnessPlatform.Tests.Endpoints.ClientPayments;
 /// </summary>
 internal static class ClientPaymentFixtures
 {
+    private static int _seededSymbols;
+
     /// <summary>The wire format: web defaults, enums as strings.</summary>
     public static readonly JsonSerializerOptions Wire = new(JsonSerializerDefaults.Web)
     {
@@ -45,10 +47,11 @@ internal static class ClientPaymentFixtures
 
     /// <summary>
     /// Builds a trainer named Martin Král with payments entitlement and (by default) a bank account, and
-    /// one linked client named Eva Svobodová.
+    /// one linked client named Eva Svobodová. <paramref name="linkGrantsPlans"/> false links them without
+    /// any plan capability, which payments must not need.
     /// </summary>
     public static async Task<PaymentWorld> CreateWorldAsync(
-        FitnessApiFactory factory, bool bankAccount = true, bool entitled = true, string clientLanguage = "cs")
+        FitnessApiFactory factory, bool bankAccount = true, bool entitled = true, string clientLanguage = "cs", bool linkGrantsPlans = true)
     {
         var ct = TestContext.Current.CancellationToken;
         var coach = await TestActors.Trainer(factory).WithName("Martin", "Král").CreateAsync(ct);
@@ -60,7 +63,10 @@ internal static class ClientPaymentFixtures
         }
 
         var client = await TestActors.Client(factory).WithName("Eva", "Svobodová").WithLanguage(clientLanguage).CreateAsync(ct);
-        await TestActors.Link(factory, coach, client).CreateAsync(ct);
+        await TestActors.Link(factory, coach, client)
+            .CanViewNutritionPlans(linkGrantsPlans)
+            .CanViewTrainingPlans(linkGrantsPlans)
+            .CreateAsync(ct);
 
         return new PaymentWorld(factory, coach, client);
     }
@@ -215,7 +221,7 @@ internal static class ClientPaymentFixtures
             DueDate = dueDate,
             Amount = amount,
             Title = "Seeded",
-            VariableSymbol = $"{dueDate.Year}{dueDate.Month:D2}9{Random.Shared.Next(100, 999)}",
+            VariableSymbol = $"{dueDate.Year}{dueDate.Month:D2}9{100 + (Interlocked.Increment(ref _seededSymbols) % 900)}",
             AccountIban = ValidIban,
             AccountHolder = "Martin Král",
             Message = "Seeded",
