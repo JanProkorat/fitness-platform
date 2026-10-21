@@ -212,3 +212,6 @@ If you know you are stopping mid-task, write `status: "incomplete"` with
 - Use `any`, `as any`, or `@ts-ignore` without a comment explaining why.
 - Hardcode colors, font sizes, or spacing — use tokens.
 - Add dependencies without asking the orchestrator first.
+- Add `page.waitForTimeout` to a Playwright spec. Wait on a locator state,
+  `expect.poll` or `waitForResponse`; a fixed sleep needs a one-line comment
+  saying what it waits for.

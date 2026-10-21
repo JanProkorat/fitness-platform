@@ -207,6 +207,11 @@ carrying both takes `ct` before them. Shipped precedent:
 `IEmailVerificationTokenService.IssueAsync(..., CancellationToken ct, bool countTowardLifetimeCap = true)`.
 This is accepted, not a finding.
 
+Never block on a task (`.Result`, `.Wait()`, `.GetAwaiter().GetResult()`) —
+await it. No `async void` outside event handlers. No fire-and-forget
+`Task.Run` from an endpoint: the request scope (and its `DbContext`) is
+disposed when the response ends.
+
 ## Pattern matching
 
 ```csharp

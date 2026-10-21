@@ -193,6 +193,9 @@ See `rules/navigation.md`.
    render.
 7. **Components have named + default export** (match the repo's existing
    casing convention, commonly PascalCase).
+8. **Lists.** A collection that can exceed ~20 rows is a `FlatList` /
+   `FlashList` with a stable `keyExtractor`. Never `.map()` a list inside a
+   `ScrollView`.
 
 ## Verify
 

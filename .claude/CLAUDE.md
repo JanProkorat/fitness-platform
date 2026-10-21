@@ -208,6 +208,9 @@ says otherwise for that task.
       - Hand over evidence (exact commands, counts, CI run ids) so they
         spot-check instead of re-running.
       Iterate dev → (qa ∥ review) until READY FOR MERGE.
+      Stop and surface to the user when the same finding (file:line +
+      rule) survives two rework rounds, or a round fixes nothing from the
+      last fix list.
    e. READY FOR MERGE → hand off to the merge gate (rule 8). Skip only for
       tasks that don't produce a PR (doc-only commits, infra-only tweaks
       the user explicitly merges out-of-band).

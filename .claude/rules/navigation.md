@@ -45,6 +45,11 @@ Use `[param]` for a single dynamic segment (`[id].tsx`), `[...rest]` for a
 catch-all. Read params via `useLocalSearchParams<{ id: string }>()` (Expo
 Router) rather than manually parsing the URL.
 
+The type argument is a cast, not validation. Params that can arrive from a
+deep link or email link (ids, tokens) go through a schema's `safeParse`; on
+failure `router.replace` to a not-found or sign-in route. Never `parse` — it
+throws during render.
+
 ## Screen-level options via `<Stack.Screen options={...} />`
 
 Set a per-screen title/header dynamically (e.g. once query data has loaded)
