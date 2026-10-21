@@ -47,33 +47,31 @@ Run from the repo root.
 ```bash
 dotnet build <solution>                                     # floor — see dotnet-build
 dotnet test <test-project>                                  # tool: dotnet-test, no filter
-dotnet test <test-project> --filter "FullyQualifiedName~<filter>"   # tool: dotnet-test, with filter
+dotnet test <test-project> <filter form — see below>        # tool: dotnet-test, with filter
 ```
 
-Omit `--filter` entirely when the WI's `verification` has no `filter` key.
+Omit the filter entirely when the WI's `verification` has no `filter` key.
 `filter` arrives already schema-constrained to `^[A-Za-z0-9._~-]+$`, max 200
 chars — no whitespace, quotes, or shell metacharacters. Never weaken that
 pattern and never build the filter string yourself from unvalidated input.
 
-### The filter form is load-bearing — read this before scoping a run
+### The filter form depends on the runner — check before scoping a run
 
-This is VSTest syntax (`xunit.v3` + `xunit.runner.visualstudio` without
-Microsoft.Testing.Platform runs under VSTest on most repos — confirm which
-your repo's test project uses if unsure):
+The two runners take different syntax, and each **silently ignores** the
+other's: the run executes the entire suite and still prints a clean
+"Passed!". Pick by the test project's `.csproj`:
 
-```bash
-dotnet test <test-project> --filter "FullyQualifiedName~<filter>"
-```
+| Test project has | Runner | Scoped run |
+|---|---|---|
+| `TestingPlatformDotnetTestSupport` or `UseMicrosoftTestingPlatformRunner` = `true`, or `global.json` `"test": {"runner": "Microsoft.Testing.Platform"}` | MTP | `dotnet test <test-project> -- --filter-class "<Fully.Qualified.ClassName>"` |
+| none of these | VSTest | `dotnet test <test-project> --filter "FullyQualifiedName~<filter>"` |
 
-**Never use the MTP form `-- --filter-class <name>`.** The `--` separator
-forwards arguments to Microsoft.Testing.Platform; under VSTest that argument
-is silently discarded, and the run executes the **entire suite** while still
-reporting a clean "Passed!" summary. The filter has no effect while the
-result looks like a successful scoped run — a work item claiming "verified
-class X" then carries evidence of an unrelated full-suite pass. A wrong
-`FullyQualifiedName~` fragment instead fails loudly (`No test matches the
-given testcase filter`), which is exactly why it is the required form: a
-mistake in the filter is visible, never silent.
+The repo's `CLAUDE.md` overrides this table if it names a form.
+
+**Prove the filter applies** before trusting a scoped pass: the same command
+with a bogus name must report `Total: 0` (MTP) or `No test matches the given
+testcase filter` (VSTest). A total far above the scoped class's test count
+means the filter was ignored.
 
 ## No `-warnaserror`, ever
 
@@ -95,7 +93,7 @@ code you touched go unfixed just because nothing blocks on them yet.
 - **Never claim a pass on partial evidence.** An unrun check is a failure to
   report, never an omitted-and-assumed pass.
 - **Name the exact command you ran**, including the test project and any
-  `--filter` value, in the handoff's `verification_output`.
+  filter value, in the handoff's `verification_output`.
 - Populate the handoff's `verification.tool` with the exact value you were
   given (`dotnet-build` or `dotnet-test`), not a paraphrase.
 - A reviewer re-runs this same command fresh and reads full output — it does
