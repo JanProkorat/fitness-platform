@@ -81,7 +81,6 @@
     "messages": "Messages"
   },
   "today": {
-    "eyebrow": "Let's get you started",
     "greeting": "Welcome, {{name}}",
     "greetingAnonymous": "Welcome",
     "linkedGreeting": "Hi, {{name}}",
@@ -175,7 +174,6 @@
     "messages": "Your conversations will appear here."
   },
   "messages": {
-    "eyebrow": "Your coaches",
     "compose": "Find a coach",
     "labels": { "invite": "Invite", "requestSent": "Request sent" },
     "roles": { "Trainer": "Trainer", "Nutritionist": "Nutritionist" },

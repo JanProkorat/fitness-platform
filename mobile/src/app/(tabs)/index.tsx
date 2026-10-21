@@ -29,7 +29,6 @@ export default function TodayScreen() {
   const noCoach = !profile.hasActiveLink && linked.length === 0;
   const name = profile.firstName?.trim();
 
-  const eyebrow = noCoach ? t('today.eyebrow') : '';
   const title = noCoach
     ? name
       ? t('today.greeting', { name })
@@ -45,7 +44,7 @@ export default function TodayScreen() {
       bottomInset={barClearance}
       contentStyle={styles.content}
     >
-      <TodayHeader eyebrow={eyebrow} title={title} />
+      <TodayHeader title={title} />
       {missingRoles.length > 0 ? (
         <FindCoachSection roles={missingRoles} />
       ) : (

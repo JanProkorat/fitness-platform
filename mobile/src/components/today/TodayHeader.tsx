@@ -9,12 +9,11 @@ import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
 
 type TodayHeaderProps = {
-  eyebrow: string;
   title: string;
 };
 
-/** Eyebrow, greeting and the notifications bell at the top of the Today tab. */
-export function TodayHeader({ eyebrow, title }: TodayHeaderProps) {
+/** Greeting and the notifications bell at the top of the Today tab. */
+export function TodayHeader({ title }: TodayHeaderProps) {
   const { t } = useTranslation();
   const theme = useTheme();
   const styles = makeStyles(theme);
@@ -24,9 +23,6 @@ export function TodayHeader({ eyebrow, title }: TodayHeaderProps) {
   return (
     <View style={styles.row}>
       <View style={styles.copy}>
-        <Text variant="bodyLarge" color="muted">
-          {eyebrow}
-        </Text>
         <Text variant="title" accessibilityRole="header">
           {title}
         </Text>
@@ -52,7 +48,7 @@ const makeStyles = (theme: Theme) =>
   StyleSheet.create({
     row: {
       flexDirection: 'row',
-      alignItems: 'flex-start',
+      alignItems: 'center',
       justifyContent: 'space-between',
       gap: theme.spacing.xl,
     },

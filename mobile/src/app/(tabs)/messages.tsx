@@ -49,9 +49,6 @@ export default function MessagesScreen() {
     >
       <View style={styles.header}>
         <View style={styles.copy}>
-          <Text variant="bodyLarge" color="muted">
-            {t('messages.eyebrow')}
-          </Text>
           <Text variant="title" accessibilityRole="header">
             {t('tabs.messages')}
           </Text>
@@ -105,7 +102,7 @@ const makeStyles = (theme: Theme) =>
     },
     header: {
       flexDirection: 'row',
-      alignItems: 'flex-start',
+      alignItems: 'center',
       justifyContent: 'space-between',
       gap: theme.spacing.xl,
     },

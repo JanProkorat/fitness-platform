@@ -81,7 +81,6 @@
     "messages": "Zprávy"
   },
   "today": {
-    "eyebrow": "Pojďme začít",
     "greeting": "Vítej, {{name}}",
     "greetingAnonymous": "Vítej",
     "linkedGreeting": "Ahoj, {{name}}",
@@ -177,7 +176,6 @@
     "messages": "Tady se objeví tvoje konverzace."
   },
   "messages": {
-    "eyebrow": "Tvoji poradci",
     "compose": "Najít poradce",
     "labels": { "invite": "Pozvánka", "requestSent": "Žádost odeslána" },
     "roles": { "Trainer": "Trenér", "Nutritionist": "Nutriční poradce" },
