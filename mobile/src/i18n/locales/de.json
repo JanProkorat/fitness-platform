@@ -88,6 +88,7 @@
     "linkedBody": "Deine Coaches sind an Bord. Dein Tag erscheint hier.",
     "notifications": "Benachrichtigungen",
     "notificationsUnread": "Benachrichtigungen, {{count}} ungelesen",
+    "profile": "Profil",
     "invitesTitle": "Einladungen",
     "findCoach": {
       "title": "Coach finden",
@@ -100,6 +101,44 @@
         "title": "Ernährungsberater",
         "hint": "Mahlzeiten, die zu deinem Tag passen"
       }
+    }
+  },
+  "profile": {
+    "edit": "Profil bearbeiten",
+    "since": "seit {{date}}",
+    "units": {
+      "kg": "{{value}} kg"
+    },
+    "goals": {
+      "LoseFat": "Fett verlieren",
+      "GainMuscle": "Muskeln aufbauen",
+      "Recomposition": "Körperrekomposition",
+      "Fitness": "Fitness",
+      "Health": "Gesundheit",
+      "Maintain": "Gewicht halten",
+      "Performance": "Leistung"
+    },
+    "stats": {
+      "plans": "Pläne",
+      "workouts": "Workouts",
+      "sinceStart": "Seit Beginn"
+    },
+    "coaches": {
+      "title": "Meine Coaches",
+      "empty": "Du arbeitest noch mit keinem Coach zusammen."
+    },
+    "progress": {
+      "title": "Fortschritt",
+      "journey": "Mein Weg",
+      "measurements": "Körpermaße",
+      "photos": "Fortschrittsfotos",
+      "checkIns": "Check-in-Verlauf"
+    },
+    "settings": "Einstellungen",
+    "error": {
+      "summary": "Deine Zahlen konnten nicht geladen werden.",
+      "coaches": "Deine Coaches konnten nicht geladen werden.",
+      "retry": "Erneut versuchen"
     }
   },
   "invites": {
