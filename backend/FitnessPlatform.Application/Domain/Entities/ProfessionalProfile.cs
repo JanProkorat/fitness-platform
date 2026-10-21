@@ -33,12 +33,6 @@ public class ProfessionalProfile : PublicTimestampableEntity
     public string? City { get; set; }
 
     /// <summary>
-    /// Estimated price per month (free-text, e.g. "3 500 Kč").
-    /// </summary>
-    [MaxLength(100)]
-    public string? EstimatedPrice { get; set; }
-
-    /// <summary>
     /// Specializations stored as JSON array (e.g. ["Silový trénink","Výživa"]).
     /// </summary>
     public string? Specializations { get; set; }

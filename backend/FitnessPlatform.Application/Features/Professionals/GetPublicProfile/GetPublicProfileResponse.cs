@@ -10,7 +10,7 @@ public class GetPublicProfileResponse
     public List<string> Certificates { get; set; } = [];
     public List<string> Languages { get; set; } = [];
     public string? City { get; set; }
-    public string? EstimatedPrice { get; set; }
+    public decimal? FromMonthlyPrice { get; set; }
     public string? CollaborationType { get; set; }
     public string? LinkedIn { get; set; }
     public string? Instagram { get; set; }

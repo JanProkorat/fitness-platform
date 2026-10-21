@@ -235,6 +235,26 @@ public interface IApplicationDbContext
     DbSet<CoachReauthCode> CoachReauthCodes { get; set; }
 
     /// <summary>
+    /// Paid offers a coach sells to clients.
+    /// </summary>
+    DbSet<CoachPackage> CoachPackages { get; set; }
+
+    /// <summary>
+    /// Price history of coach packages.
+    /// </summary>
+    DbSet<CoachPackagePrice> CoachPackagePrices { get; set; }
+
+    /// <summary>
+    /// Discounts a coach can apply to payments.
+    /// </summary>
+    DbSet<CoachDiscount> CoachDiscounts { get; set; }
+
+    /// <summary>
+    /// Links between a discount and the packages it is limited to.
+    /// </summary>
+    DbSet<CoachDiscountPackage> CoachDiscountPackages { get; set; }
+
+    /// <summary>
     /// Saves all changes made in this context to the database.
     /// </summary>
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
