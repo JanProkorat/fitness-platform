@@ -1554,6 +1554,12 @@
   "h": 844
  },
  {
+  "html": "mobile-light/07-09-check-in-history.html",
+  "png": "mobile-light/07-09-check-in-history.png",
+  "w": 390,
+  "h": 844
+ },
+ {
   "html": "mobile-light/08-01-training-plan.html",
   "png": "mobile-light/08-01-training-plan.png",
   "w": 390,
@@ -1952,6 +1958,12 @@
  {
   "html": "mobile-dark/07-08-measurements-add-sheet.html",
   "png": "mobile-dark/07-08-measurements-add-sheet.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/07-09-check-in-history.html",
+  "png": "mobile-dark/07-09-check-in-history.png",
   "w": 390,
   "h": 844
  },
