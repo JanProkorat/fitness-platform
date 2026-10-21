@@ -56,6 +56,38 @@ public class GetPendingClientsEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
+    public async Task Get_ReinvitedAfterExpiry_ListsOnlyTheLiveInviteOnce()
+    {
+        var (http, trainerId) = await SetupTrainerAsync();
+        var email = UniqueEmail("reinvited");
+
+        await SeedInviteAsync(trainerId, email, sentAt: DateTime.UtcNow.AddDays(-10));
+        var livePublicId = await SeedInviteAsync(trainerId, email, sentAt: DateTime.UtcNow.AddDays(-1));
+
+        var response = await http.GetAsync("/trainer/clients/pending", TestContext.Current.CancellationToken);
+        var body = await Deserialize(response);
+
+        var row = body!.Rows.Should().ContainSingle().Subject;
+        row.PublicId.Should().Be(livePublicId);
+        row.Status.Should().Be("Pending");
+    }
+
+    [Fact]
+    public async Task Get_LoneExpiredInvite_ListedOnceAsExpired_SoItStaysCancellable()
+    {
+        var (http, trainerId) = await SetupTrainerAsync();
+
+        var expiredPublicId = await SeedInviteAsync(trainerId, UniqueEmail("lone"), sentAt: DateTime.UtcNow.AddDays(-10));
+
+        var response = await http.GetAsync("/trainer/clients/pending", TestContext.Current.CancellationToken);
+        var body = await Deserialize(response);
+
+        var row = body!.Rows.Should().ContainSingle().Subject;
+        row.PublicId.Should().Be(expiredPublicId);
+        row.Status.Should().Be("Expired");
+    }
+
+    [Fact]
     public async Task Get_NoProfessionalProfile_Returns404NotEmptyList()
     {
         // Deliberately NOT the 200-empty shape GetIncomingRequestsEndpoint uses for this case —
@@ -186,5 +218,6 @@ public class GetPendingClientsEndpointTests(FitnessApiFactory factory)
         public string Email { get; set; } = string.Empty;
         public string? Message { get; set; }
         public DateTime SentAt { get; set; }
+        public string Status { get; set; } = string.Empty;
     }
 }

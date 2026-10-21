@@ -44,4 +44,10 @@ public class PendingClientRow
 
     /// <summary>When the invite was sent, or the request was submitted.</summary>
     public DateTime SentAt { get; set; }
+
+    /// <summary>
+    /// <see cref="PendingInviteStatus.Pending"/>, or <see cref="PendingInviteStatus.Expired"/> for an
+    /// invite past its validity window that has not been re-sent. Always Pending for requests.
+    /// </summary>
+    public PendingInviteStatus Status { get; set; } = PendingInviteStatus.Pending;
 }
