@@ -9329,6 +9329,387 @@ export class ApiClient {
     }
 
     /**
+     * Update payment settings
+     * @return Updated payment settings
+     */
+    updatePaymentSettingsEndpoint(updatePaymentSettingsRequest: UpdatePaymentSettingsRequest, signal?: AbortSignal): Promise<PaymentSettingsDto> {
+        let url_ = this.baseUrl + "/payments/settings";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(updatePaymentSettingsRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUpdatePaymentSettingsEndpoint(_response);
+        });
+    }
+
+    protected processUpdatePaymentSettingsEndpoint(response: AxiosResponse): Promise<PaymentSettingsDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<PaymentSettingsDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid request body", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The subscription does not include payments (PAYMENTS_NOT_ENTITLED)", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<PaymentSettingsDto>(null as any);
+    }
+
+    /**
+     * Get payment settings
+     * @return Payment settings
+     */
+    getPaymentSettingsEndpoint(signal?: AbortSignal): Promise<PaymentSettingsDto> {
+        let url_ = this.baseUrl + "/payments/settings";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetPaymentSettingsEndpoint(_response);
+        });
+    }
+
+    protected processGetPaymentSettingsEndpoint(response: AxiosResponse): Promise<PaymentSettingsDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<PaymentSettingsDto>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The subscription does not include payments (PAYMENTS_NOT_ENTITLED)", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<PaymentSettingsDto>(null as any);
+    }
+
+    /**
+     * Undo a bank account change
+     * @return Previous bank account restored
+     */
+    undoBankAccountChangeEndpoint(undoBankAccountChangeRequest: UndoBankAccountChangeRequest, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/payments/bank-account/undo";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(undoBankAccountChangeRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUndoBankAccountChangeEndpoint(_response);
+        });
+    }
+
+    protected processUndoBankAccountChangeEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Unknown, expired or already used token (BANK_ACCOUNT_UNDO_INVALID)", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Email a bank account confirmation code
+     * @return Code emailed
+     */
+    sendBankAccountReauthCodeEndpoint(signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/payments/bank-account/code";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processSendBankAccountReauthCodeEndpoint(_response);
+        });
+    }
+
+    protected processSendBankAccountReauthCodeEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The subscription does not include payments (PAYMENTS_NOT_ENTITLED)", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Get a linked coach's bank account
+     * @param coachId Route parameter — the coach's professional profile public id.
+     * @return The coach's bank details
+     */
+    getCoachBankDetailsEndpoint(coachId: string, signal?: AbortSignal): Promise<GetCoachBankDetailsResponse> {
+        let url_ = this.baseUrl + "/client/coaches/{coachId}/bank-account";
+        if (coachId === undefined || coachId === null)
+            throw new globalThis.Error("The parameter 'coachId' must be defined.");
+        url_ = url_.replace("{coachId}", encodeURIComponent("" + coachId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetCoachBankDetailsEndpoint(_response);
+        });
+    }
+
+    protected processGetCoachBankDetailsEndpoint(response: AxiosResponse): Promise<GetCoachBankDetailsResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GetCoachBankDetailsResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GetCoachBankDetailsResponse>(null as any);
+    }
+
+    /**
+     * Set or change the bank account
+     * @return Updated payment settings
+     */
+    changeBankAccountEndpoint(changeBankAccountRequest: ChangeBankAccountRequest, signal?: AbortSignal): Promise<PaymentSettingsDto> {
+        let url_ = this.baseUrl + "/payments/bank-account";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(changeBankAccountRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processChangeBankAccountEndpoint(_response);
+        });
+    }
+
+    protected processChangeBankAccountEndpoint(response: AxiosResponse): Promise<PaymentSettingsDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<PaymentSettingsDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid IBAN or holder (INVALID_IBAN), or failed re-authentication (REAUTH_PASSWORD_REQUIRED, REAUTH_CODE_REQUIRED, INVALID_CURRENT_PASSWORD, REAUTH_CODE_INVALID)", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The subscription does not include payments (PAYMENTS_NOT_ENTITLED)", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<PaymentSettingsDto>(null as any);
+    }
+
+    /**
      * Full-state update of a nutrition plan template
      * @param templateId The template's public identifier (route parameter).
      * @return Success
@@ -13552,6 +13933,676 @@ export class ApiClient {
     }
 
     /**
+     * Update a discount
+     * @param discountId Route parameter — public id of the discount.
+     * @return Updated discount
+     */
+    updateCoachDiscountEndpoint(discountId: string, updateCoachDiscountRequest: UpdateCoachDiscountRequest, signal?: AbortSignal): Promise<CoachDiscountDto> {
+        let url_ = this.baseUrl + "/payments/discounts/{discountId}";
+        if (discountId === undefined || discountId === null)
+            throw new globalThis.Error("The parameter 'discountId' must be defined.");
+        url_ = url_.replace("{discountId}", encodeURIComponent("" + discountId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(updateCoachDiscountRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUpdateCoachDiscountEndpoint(_response);
+        });
+    }
+
+    protected processUpdateCoachDiscountEndpoint(response: AxiosResponse): Promise<CoachDiscountDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<CoachDiscountDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid request body, or a package is not available (DISCOUNT_PACKAGE_INVALID)", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The subscription does not include payments (PAYMENTS_NOT_ENTITLED), or the coach role was removed", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<CoachDiscountDto>(null as any);
+    }
+
+    /**
+     * Get a discount
+     * @param discountId Route parameter — public id of the discount.
+     * @return The discount
+     */
+    getCoachDiscountEndpoint(discountId: string, signal?: AbortSignal): Promise<CoachDiscountDto> {
+        let url_ = this.baseUrl + "/payments/discounts/{discountId}";
+        if (discountId === undefined || discountId === null)
+            throw new globalThis.Error("The parameter 'discountId' must be defined.");
+        url_ = url_.replace("{discountId}", encodeURIComponent("" + discountId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetCoachDiscountEndpoint(_response);
+        });
+    }
+
+    protected processGetCoachDiscountEndpoint(response: AxiosResponse): Promise<CoachDiscountDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<CoachDiscountDto>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The subscription does not include payments (PAYMENTS_NOT_ENTITLED)", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<CoachDiscountDto>(null as any);
+    }
+
+    /**
+     * List discounts
+     * @param includeArchived Whether archived discounts are included; defaults to false.
+     * @return The coach's discounts
+     */
+    listCoachDiscountsEndpoint(includeArchived: boolean, signal?: AbortSignal): Promise<ListCoachDiscountsResponse> {
+        let url_ = this.baseUrl + "/payments/discounts?";
+        if (includeArchived === undefined || includeArchived === null)
+            throw new globalThis.Error("The parameter 'includeArchived' must be defined and cannot be null.");
+        else
+            url_ += "includeArchived=" + encodeURIComponent("" + includeArchived) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processListCoachDiscountsEndpoint(_response);
+        });
+    }
+
+    protected processListCoachDiscountsEndpoint(response: AxiosResponse): Promise<ListCoachDiscountsResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<ListCoachDiscountsResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The subscription does not include payments (PAYMENTS_NOT_ENTITLED)", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ListCoachDiscountsResponse>(null as any);
+    }
+
+    /**
+     * Create a discount
+     * @return Created discount
+     */
+    createCoachDiscountEndpoint(createCoachDiscountRequest: CreateCoachDiscountRequest, signal?: AbortSignal): Promise<CoachDiscountDto> {
+        let url_ = this.baseUrl + "/payments/discounts";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(createCoachDiscountRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCreateCoachDiscountEndpoint(_response);
+        });
+    }
+
+    protected processCreateCoachDiscountEndpoint(response: AxiosResponse): Promise<CoachDiscountDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 201) {
+            const _responseText = response.data;
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = JSON.parse(resultData201);
+            return Promise.resolve<CoachDiscountDto>(result201);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid request body, or a package is not available (DISCOUNT_PACKAGE_INVALID)", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The subscription does not include payments (PAYMENTS_NOT_ENTITLED), or the coach role was removed", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<CoachDiscountDto>(null as any);
+    }
+
+    /**
+     * Archive a discount
+     * @param discountId Route parameter — public id of the discount.
+     * @return Discount archived
+     */
+    archiveCoachDiscountEndpoint(discountId: string, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/payments/discounts/{discountId}/archive";
+        if (discountId === undefined || discountId === null)
+            throw new globalThis.Error("The parameter 'discountId' must be defined.");
+        url_ = url_.replace("{discountId}", encodeURIComponent("" + discountId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processArchiveCoachDiscountEndpoint(_response);
+        });
+    }
+
+    protected processArchiveCoachDiscountEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The subscription does not include payments (PAYMENTS_NOT_ENTITLED), or the coach role was removed", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Update a package
+     * @param packageId Route parameter — public id of the package.
+     * @return Updated package
+     */
+    updateCoachPackageEndpoint(packageId: string, updateCoachPackageRequest: UpdateCoachPackageRequest, signal?: AbortSignal): Promise<CoachPackageDto> {
+        let url_ = this.baseUrl + "/payments/packages/{packageId}";
+        if (packageId === undefined || packageId === null)
+            throw new globalThis.Error("The parameter 'packageId' must be defined.");
+        url_ = url_.replace("{packageId}", encodeURIComponent("" + packageId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(updateCoachPackageRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUpdateCoachPackageEndpoint(_response);
+        });
+    }
+
+    protected processUpdateCoachPackageEndpoint(response: AxiosResponse): Promise<CoachPackageDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<CoachPackageDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid request body", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The subscription does not include payments (PAYMENTS_NOT_ENTITLED), or the coach role was removed", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<CoachPackageDto>(null as any);
+    }
+
+    /**
+     * Get a package
+     * @param packageId Route parameter — public id of the package.
+     * @return The package
+     */
+    getCoachPackageEndpoint(packageId: string, signal?: AbortSignal): Promise<CoachPackageDto> {
+        let url_ = this.baseUrl + "/payments/packages/{packageId}";
+        if (packageId === undefined || packageId === null)
+            throw new globalThis.Error("The parameter 'packageId' must be defined.");
+        url_ = url_.replace("{packageId}", encodeURIComponent("" + packageId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetCoachPackageEndpoint(_response);
+        });
+    }
+
+    protected processGetCoachPackageEndpoint(response: AxiosResponse): Promise<CoachPackageDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<CoachPackageDto>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The subscription does not include payments (PAYMENTS_NOT_ENTITLED)", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<CoachPackageDto>(null as any);
+    }
+
+    /**
+     * List packages
+     * @param includeArchived Whether archived packages are included; defaults to false.
+     * @return The coach's packages
+     */
+    listCoachPackagesEndpoint(includeArchived: boolean, signal?: AbortSignal): Promise<ListCoachPackagesResponse> {
+        let url_ = this.baseUrl + "/payments/packages?";
+        if (includeArchived === undefined || includeArchived === null)
+            throw new globalThis.Error("The parameter 'includeArchived' must be defined and cannot be null.");
+        else
+            url_ += "includeArchived=" + encodeURIComponent("" + includeArchived) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processListCoachPackagesEndpoint(_response);
+        });
+    }
+
+    protected processListCoachPackagesEndpoint(response: AxiosResponse): Promise<ListCoachPackagesResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<ListCoachPackagesResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The subscription does not include payments (PAYMENTS_NOT_ENTITLED)", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ListCoachPackagesResponse>(null as any);
+    }
+
+    /**
+     * Create a package
+     * @return Created package
+     */
+    createCoachPackageEndpoint(createCoachPackageRequest: CreateCoachPackageRequest, signal?: AbortSignal): Promise<CoachPackageDto> {
+        let url_ = this.baseUrl + "/payments/packages";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(createCoachPackageRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCreateCoachPackageEndpoint(_response);
+        });
+    }
+
+    protected processCreateCoachPackageEndpoint(response: AxiosResponse): Promise<CoachPackageDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 201) {
+            const _responseText = response.data;
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = JSON.parse(resultData201);
+            return Promise.resolve<CoachPackageDto>(result201);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid request body", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The subscription does not include payments (PAYMENTS_NOT_ENTITLED), or the coach role was removed", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<CoachPackageDto>(null as any);
+    }
+
+    /**
+     * Archive a package
+     * @param packageId Route parameter — public id of the package.
+     * @return Package archived
+     */
+    archiveCoachPackageEndpoint(packageId: string, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/payments/packages/{packageId}/archive";
+        if (packageId === undefined || packageId === null)
+            throw new globalThis.Error("The parameter 'packageId' must be defined.");
+        url_ = url_.replace("{packageId}", encodeURIComponent("" + packageId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processArchiveCoachPackageEndpoint(_response);
+        });
+    }
+
+    protected processArchiveCoachPackageEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The subscription does not include payments (PAYMENTS_NOT_ENTITLED), or the coach role was removed", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * Save photos / note for a training session diary entry
      * @param sessionId The unique identifier of the training session whose photos/note are being saved.
     Sourced from the route segment {SessionId}.
@@ -15376,6 +16427,649 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Waive a payment
+     * @param clientId Route parameter — the client's profile public id; matches {ClientId} in the route.
+     * @param paymentId Route parameter — the payment's public id; matches {PaymentId} in the route.
+     * @return The waived payment
+     */
+    waiveClientPaymentEndpoint(clientId: string, paymentId: string, waiveClientPaymentRequest: WaiveClientPaymentRequest, signal?: AbortSignal): Promise<ClientPaymentRowDto> {
+        let url_ = this.baseUrl + "/payments/clients/{clientId}/payments/{paymentId}/waive";
+        if (clientId === undefined || clientId === null)
+            throw new globalThis.Error("The parameter 'clientId' must be defined.");
+        url_ = url_.replace("{clientId}", encodeURIComponent("" + clientId));
+        if (paymentId === undefined || paymentId === null)
+            throw new globalThis.Error("The parameter 'paymentId' must be defined.");
+        url_ = url_.replace("{paymentId}", encodeURIComponent("" + paymentId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(waiveClientPaymentRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processWaiveClientPaymentEndpoint(_response);
+        });
+    }
+
+    protected processWaiveClientPaymentEndpoint(response: AxiosResponse): Promise<ClientPaymentRowDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<ClientPaymentRowDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("The reason is longer than 100 characters", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The subscription does not include payments (PAYMENTS_NOT_ENTITLED), or the coach role was removed", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ClientPaymentRowDto>(null as any);
+    }
+
+    /**
+     * Set a client's package and price
+     * @param clientId Route parameter — the client's profile public id; matches {ClientId} in the route.
+     * @return The terms in force
+     */
+    setClientPaymentTermsEndpoint(clientId: string, setClientPaymentTermsRequest: SetClientPaymentTermsRequest, signal?: AbortSignal): Promise<SetClientPaymentTermsResponse> {
+        let url_ = this.baseUrl + "/payments/clients/{clientId}/terms";
+        if (clientId === undefined || clientId === null)
+            throw new globalThis.Error("The parameter 'clientId' must be defined.");
+        url_ = url_.replace("{clientId}", encodeURIComponent("" + clientId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(setClientPaymentTermsRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processSetClientPaymentTermsEndpoint(_response);
+        });
+    }
+
+    protected processSetClientPaymentTermsEndpoint(response: AxiosResponse): Promise<SetClientPaymentTermsResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<SetClientPaymentTermsResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid body: both a discount and a custom price, an amount out of range (PAYMENT_AMOUNT_INVALID) or a first period in the past (PAYMENT_START_DATE_INVALID)", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The subscription does not include payments (PAYMENTS_NOT_ENTITLED), or the coach role was removed", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<SetClientPaymentTermsResponse>(null as any);
+    }
+
+    /**
+     * Request a payment
+     * @param clientId Route parameter — the client's profile public id; matches {ClientId} in the route.
+     * @param paymentId Route parameter — the payment's public id; matches {PaymentId} in the route.
+     * @return The requested payment and how the request was delivered
+     */
+    requestClientPaymentEndpoint(clientId: string, paymentId: string, requestClientPaymentRequest: RequestClientPaymentRequest, signal?: AbortSignal): Promise<RequestClientPaymentResponse> {
+        let url_ = this.baseUrl + "/payments/clients/{clientId}/payments/{paymentId}/request";
+        if (clientId === undefined || clientId === null)
+            throw new globalThis.Error("The parameter 'clientId' must be defined.");
+        url_ = url_.replace("{clientId}", encodeURIComponent("" + clientId));
+        if (paymentId === undefined || paymentId === null)
+            throw new globalThis.Error("The parameter 'paymentId' must be defined.");
+        url_ = url_.replace("{paymentId}", encodeURIComponent("" + paymentId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(requestClientPaymentRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processRequestClientPaymentEndpoint(_response);
+        });
+    }
+
+    protected processRequestClientPaymentEndpoint(response: AxiosResponse): Promise<RequestClientPaymentResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<RequestClientPaymentResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Neither channel chosen (PAYMENT_REQUEST_CHANNEL_REQUIRED), an amount outside 0 to 9999999.99, or a due date in the past", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The subscription does not include payments (PAYMENTS_NOT_ENTITLED), or the coach role was removed", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<RequestClientPaymentResponse>(null as any);
+    }
+
+    /**
+     * Mark a payment paid
+     * @param clientId Route parameter — the client's profile public id; matches {ClientId} in the route.
+     * @param paymentId Route parameter — the payment's public id; matches {PaymentId} in the route.
+     * @return The paid payment
+     */
+    markClientPaymentPaidEndpoint(clientId: string, paymentId: string, markClientPaymentPaidRequest: MarkClientPaymentPaidRequest, signal?: AbortSignal): Promise<ClientPaymentRowDto> {
+        let url_ = this.baseUrl + "/payments/clients/{clientId}/payments/{paymentId}/mark-paid";
+        if (clientId === undefined || clientId === null)
+            throw new globalThis.Error("The parameter 'clientId' must be defined.");
+        url_ = url_.replace("{clientId}", encodeURIComponent("" + clientId));
+        if (paymentId === undefined || paymentId === null)
+            throw new globalThis.Error("The parameter 'paymentId' must be defined.");
+        url_ = url_.replace("{paymentId}", encodeURIComponent("" + paymentId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(markClientPaymentPaidRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processMarkClientPaymentPaidEndpoint(_response);
+        });
+    }
+
+    protected processMarkClientPaymentPaidEndpoint(response: AxiosResponse): Promise<ClientPaymentRowDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<ClientPaymentRowDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("The paid-on date is in the future (PAYMENT_PAID_ON_IN_FUTURE)", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The subscription does not include payments (PAYMENTS_NOT_ENTITLED), or the coach role was removed", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ClientPaymentRowDto>(null as any);
+    }
+
+    /**
+     * List a client's payments
+     * @param clientId Route parameter — the client's profile public id; matches {ClientId} in the route.
+     * @return The client's payments
+     */
+    listClientPaymentRowsEndpoint(clientId: string, signal?: AbortSignal): Promise<ListClientPaymentRowsResponse> {
+        let url_ = this.baseUrl + "/payments/clients/{clientId}/payments";
+        if (clientId === undefined || clientId === null)
+            throw new globalThis.Error("The parameter 'clientId' must be defined.");
+        url_ = url_.replace("{clientId}", encodeURIComponent("" + clientId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processListClientPaymentRowsEndpoint(_response);
+        });
+    }
+
+    protected processListClientPaymentRowsEndpoint(response: AxiosResponse): Promise<ListClientPaymentRowsResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<ListClientPaymentRowsResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The subscription does not include payments (PAYMENTS_NOT_ENTITLED)", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ListClientPaymentRowsResponse>(null as any);
+    }
+
+    /**
+     * Get one of my payments
+     * @param paymentId Route parameter — the payment's public id; matches {PaymentId} in the route.
+     * @return The payment
+     */
+    getMyPaymentEndpoint(paymentId: string, signal?: AbortSignal): Promise<GetMyPaymentResponse> {
+        let url_ = this.baseUrl + "/client/payments/{paymentId}";
+        if (paymentId === undefined || paymentId === null)
+            throw new globalThis.Error("The parameter 'paymentId' must be defined.");
+        url_ = url_.replace("{paymentId}", encodeURIComponent("" + paymentId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetMyPaymentEndpoint(_response);
+        });
+    }
+
+    protected processGetMyPaymentEndpoint(response: AxiosResponse): Promise<GetMyPaymentResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GetMyPaymentResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GetMyPaymentResponse>(null as any);
+    }
+
+    /**
+     * Get a client's payment summary
+     * @param clientId Route parameter — the client's profile public id; matches {ClientId} in the route.
+     * @return Payment summary
+     */
+    getClientPaymentSummaryEndpoint(clientId: string, signal?: AbortSignal): Promise<GetClientPaymentSummaryResponse> {
+        let url_ = this.baseUrl + "/payments/clients/{clientId}/summary";
+        if (clientId === undefined || clientId === null)
+            throw new globalThis.Error("The parameter 'clientId' must be defined.");
+        url_ = url_.replace("{clientId}", encodeURIComponent("" + clientId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetClientPaymentSummaryEndpoint(_response);
+        });
+    }
+
+    protected processGetClientPaymentSummaryEndpoint(response: AxiosResponse): Promise<GetClientPaymentSummaryResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GetClientPaymentSummaryResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The subscription does not include payments (PAYMENTS_NOT_ENTITLED)", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GetClientPaymentSummaryResponse>(null as any);
+    }
+
+    /**
+     * Get a client's payment change history
+     * @param clientId Route parameter — the client's profile public id; matches {ClientId} in the route.
+     * @return The change history
+     */
+    getClientPaymentHistoryEndpoint(clientId: string, signal?: AbortSignal): Promise<GetClientPaymentHistoryResponse> {
+        let url_ = this.baseUrl + "/payments/clients/{clientId}/history";
+        if (clientId === undefined || clientId === null)
+            throw new globalThis.Error("The parameter 'clientId' must be defined.");
+        url_ = url_.replace("{clientId}", encodeURIComponent("" + clientId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetClientPaymentHistoryEndpoint(_response);
+        });
+    }
+
+    protected processGetClientPaymentHistoryEndpoint(response: AxiosResponse): Promise<GetClientPaymentHistoryResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GetClientPaymentHistoryResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The subscription does not include payments (PAYMENTS_NOT_ENTITLED)", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GetClientPaymentHistoryResponse>(null as any);
+    }
+
+    /**
+     * Add a one-off payment
+     * @param clientId Route parameter — the client's profile public id; matches {ClientId} in the route.
+     * @return The new payment
+     */
+    addClientOneOffPaymentEndpoint(clientId: string, addClientOneOffPaymentRequest: AddClientOneOffPaymentRequest, signal?: AbortSignal): Promise<ClientPaymentRowDto> {
+        let url_ = this.baseUrl + "/payments/clients/{clientId}/one-off";
+        if (clientId === undefined || clientId === null)
+            throw new globalThis.Error("The parameter 'clientId' must be defined.");
+        url_ = url_.replace("{clientId}", encodeURIComponent("" + clientId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(addClientOneOffPaymentRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processAddClientOneOffPaymentEndpoint(_response);
+        });
+    }
+
+    protected processAddClientOneOffPaymentEndpoint(response: AxiosResponse): Promise<ClientPaymentRowDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 201) {
+            const _responseText = response.data;
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = JSON.parse(resultData201);
+            return Promise.resolve<ClientPaymentRowDto>(result201);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid body (PAYMENT_AMOUNT_INVALID for an amount outside 0 to 9999999.99)", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The subscription does not include payments (PAYMENTS_NOT_ENTITLED), or the coach role was removed", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ClientPaymentRowDto>(null as any);
     }
 
     /**
@@ -17446,6 +19140,66 @@ export class ApiClient {
     }
 
     /**
+     * List my payments
+     * @return The client's payments
+     */
+    getClientPaymentsEndpoint(signal?: AbortSignal): Promise<GetClientPaymentsResponse> {
+        let url_ = this.baseUrl + "/client/payments";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetClientPaymentsEndpoint(_response);
+        });
+    }
+
+    protected processGetClientPaymentsEndpoint(response: AxiosResponse): Promise<GetClientPaymentsResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GetClientPaymentsResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GetClientPaymentsResponse>(null as any);
+    }
+
+    /**
      * Get active collaborations
      * @return Success
      */
@@ -17622,7 +19376,7 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Invalid rule, or an audience sent for a client-only rule", status, _responseText, _headers, result400);
+            return throwException("Invalid rule, an audience sent for a client-only rule, or the questionnaire is inactive or a check-in form", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -18099,7 +19853,7 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Invalid rule", status, _responseText, _headers, result400);
+            return throwException("Invalid rule, or the questionnaire is inactive or a check-in form", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -18230,7 +19984,7 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Invalid rule", status, _responseText, _headers, result400);
+            return throwException("Invalid rule, or the questionnaire is inactive or a check-in form", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -18894,6 +20648,73 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<LoginResponse>(null as any);
+    }
+
+    /**
+     * Change the email of an unverified account
+     * @return Email changed, verification email sent
+     */
+    changeUnverifiedEmailEndpoint(changeUnverifiedEmailRequest: ChangeUnverifiedEmailRequest, signal?: AbortSignal): Promise<ChangeUnverifiedEmailResponse> {
+        let url_ = this.baseUrl + "/auth/email";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(changeUnverifiedEmailRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processChangeUnverifiedEmailEndpoint(_response);
+        });
+    }
+
+    protected processChangeUnverifiedEmailEndpoint(response: AxiosResponse): Promise<ChangeUnverifiedEmailResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<ChangeUnverifiedEmailResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid address, already verified, unchanged, in use, or resend limit reached", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ChangeUnverifiedEmailResponse>(null as any);
     }
 
     /**
@@ -20632,8 +22453,6 @@ export interface UpdateProfessionalProfileRequest {
     specialization?: string | undefined;
     /** City where the professional is based. */
     city?: string | undefined;
-    /** Estimated price per month (free-text). */
-    estimatedPrice?: string | undefined;
     /** Specializations as a JSON array string. */
     specializations?: string | undefined;
     /** Certificates and education as a JSON array string. */
@@ -20863,8 +22682,8 @@ export interface GetProfessionalProfileResponse {
     specialization?: string | undefined;
     /** City where the professional is based. */
     city?: string | undefined;
-    /** Estimated price per month. */
-    estimatedPrice?: string | undefined;
+    /** The lowest monthly package price shown on the profile, or null when there is none or payments are not included in the subscription. */
+    fromMonthlyPrice?: number | undefined;
     /** Specializations as a JSON array string. */
     specializations?: string | undefined;
     /** Certificates and education as a JSON array string. */
@@ -21558,6 +23377,8 @@ export interface SubscriptionPlanDto {
     canUseWeeklyCheckIns?: boolean;
     /** Whether the plan allows per-client check-in configuration. */
     canUsePerClientCheckInConfig?: boolean;
+    /** Whether the plan allows the payments feature. */
+    canUsePayments?: boolean;
     /** Maximum number of active clients allowed under this plan. Null means unlimited. */
     maxActiveClients?: number | undefined;
     /** Plan price, expressed in the smallest unit of Currency. */
@@ -21605,6 +23426,8 @@ export interface UpdateSubscriptionPlanRequest {
     canUseWeeklyCheckIns: boolean;
     /** Whether the plan allows per-client check-in configuration. Required. */
     canUsePerClientCheckInConfig: boolean;
+    /** Whether the plan allows the payments feature. Required. */
+    canUsePayments: boolean;
     /** Maximum number of active clients allowed under this plan. Required — must be present
 in the body. An explicit null means unlimited; omitting the field entirely 400s. */
     maxActiveClients?: OptionalFieldOfNullableOfInt32;
@@ -21662,6 +23485,8 @@ export interface CreateSubscriptionPlanRequest {
     canUseWeeklyCheckIns?: boolean;
     /** Whether the plan allows per-client check-in configuration. */
     canUsePerClientCheckInConfig?: boolean;
+    /** Whether the plan allows the payments feature. Defaults to false. */
+    canUsePayments?: boolean;
     /** Maximum number of active clients allowed under this plan. Null means unlimited. */
     maxActiveClients?: number | undefined;
     /** Plan price, expressed in the smallest unit of Currency. */
@@ -22755,7 +24580,7 @@ export interface ProfessionalSummaryDto {
     bio?: string | undefined;
     specializations?: string[];
     city?: string | undefined;
-    estimatedPrice?: string | undefined;
+    fromMonthlyPrice?: number | undefined;
     collaborationType?: string | undefined;
     languages?: string[];
     roles?: string[];
@@ -22774,7 +24599,7 @@ export interface GetPublicProfileResponse {
     certificates?: string[];
     languages?: string[];
     city?: string | undefined;
-    estimatedPrice?: string | undefined;
+    fromMonthlyPrice?: number | undefined;
     collaborationType?: string | undefined;
     linkedIn?: string | undefined;
     instagram?: string | undefined;
@@ -23008,6 +24833,77 @@ export interface AcceptRequestResponse {
 
 /** Route for accepting a photo diary request. The mode was chosen by the coach at creation, so the client sends an empty body. */
 export interface AcceptRequestRequest {
+}
+
+/** A coach's payment settings as shown to the coach — reused by the get, update and change actions. */
+export interface PaymentSettingsDto {
+    /** Normalized IBAN, or null until an account is set. */
+    iban?: string | undefined;
+    /** Account holder name, or null until an account is set. */
+    accountHolder?: string | undefined;
+    /** Days after a payment request is issued that it falls due. */
+    paymentDueDays?: number;
+    /** How the payment message is composed. */
+    messageFormat?: PaymentMessageFormat;
+    /** How the variable symbol is derived. */
+    variableSymbolFormat?: VariableSymbolFormat;
+    /** When the bank account was last set or changed (UTC), or null until one is set. */
+    bankAccountChangedAt?: string | undefined;
+}
+
+/** How the payment message (the free-text note on a bank transfer) is composed. */
+export enum PaymentMessageFormat {
+    PackageNameAndMonth = "PackageNameAndMonth",
+    PackageName = "PackageName",
+    ClientNameAndMonth = "ClientNameAndMonth",
+}
+
+/** How the variable symbol of a payment request is derived. */
+export enum VariableSymbolFormat {
+    YearMonthClientNumber = "YearMonthClientNumber",
+    YearMonthSequence = "YearMonthSequence",
+}
+
+/** Request for updating the payment request defaults. The bank account has its own action. */
+export interface UpdatePaymentSettingsRequest {
+    /** Days after a payment request is issued that it falls due (1-90). */
+    paymentDueDays?: number;
+    /** How the payment message is composed. */
+    messageFormat?: PaymentMessageFormat;
+    /** How the variable symbol is derived. */
+    variableSymbolFormat?: VariableSymbolFormat;
+}
+
+/** Request for undoing a bank account change from the emailed link. */
+export interface UndoBankAccountChangeRequest {
+    /** The single-use token from the undo link. */
+    token: string;
+}
+
+/** The bank account a client pays a linked coach into. */
+export interface GetCoachBankDetailsResponse {
+    /** Normalized IBAN. */
+    iban?: string;
+    /** Name of the account holder. */
+    accountHolder?: string;
+    /** Days after a payment request is issued that it falls due. */
+    paymentDueDays?: number;
+}
+
+/** Request for a linked coach's bank details. */
+export interface GetCoachBankDetailsRequest {
+}
+
+/** Request for setting or changing the coach's bank account. Needs a password, or — for an account with no password — a code emailed through the send-code action. */
+export interface ChangeBankAccountRequest {
+    /** The IBAN. Spaces and lower case are accepted and normalized. */
+    iban?: string;
+    /** Name of the account holder. */
+    accountHolder: string;
+    /** The caller's current password. Required when the account has a password. */
+    password?: string | undefined;
+    /** The emailed one-time code. Required when the account has no password. */
+    code?: string | undefined;
 }
 
 /** Full nutrition-plan-template detail including all weeks, days, meals, foods, recipes, and supplements. Used by the detail GET and by PUT's response. */
@@ -24574,6 +26470,189 @@ export interface CreateExerciseRequest {
     techniqueNotes?: string | undefined;
 }
 
+/** A coach discount as shown to its owner — reused by the list, get, create and update actions. */
+export interface CoachDiscountDto {
+    /** Public id of the discount. */
+    discountId?: string;
+    /** Display name. */
+    name?: string;
+    /** Whether the value is a percentage or a fixed amount. */
+    type?: DiscountType;
+    /** The percentage or the fixed amount. */
+    value?: number;
+    /** How many payments the discount applies to. */
+    duration?: DiscountDuration;
+    /** Number of payments covered when the duration is first-N-payments, otherwise null. */
+    durationPayments?: number | undefined;
+    /** First due date the discount applies to (inclusive), or null for no start limit. */
+    validFrom?: string | undefined;
+    /** Last due date the discount applies to (inclusive), or null for open-ended. */
+    validTo?: string | undefined;
+    /** Whether the discount applies to every package. */
+    appliesToAllPackages?: boolean;
+    /** Public ids of the packages the discount is limited to; empty when it applies to all. */
+    packageIds?: string[];
+    /** When the discount was archived (UTC), or null while active. */
+    archivedAt?: string | undefined;
+}
+
+/** What a coach discount's value means. */
+export enum DiscountType {
+    Percentage = "Percentage",
+    FixedAmount = "FixedAmount",
+}
+
+/** How many payments of a client a coach discount applies to. */
+export enum DiscountDuration {
+    EveryPayment = "EveryPayment",
+    FirstPayments = "FirstPayments",
+}
+
+/** Request for updating a coach discount. */
+export interface UpdateCoachDiscountRequest {
+    /** Display name (up to 100 characters). */
+    name: string;
+    /** Whether the value is a percentage or a fixed amount. */
+    type?: DiscountType;
+    /** The percentage (1-100) or the fixed amount (above 0, up to 2 decimals). */
+    value?: number;
+    /** How many payments the discount applies to. */
+    duration?: DiscountDuration;
+    /** Number of payments covered (1-120); required for first-N-payments, otherwise omitted. */
+    durationPayments?: number | undefined;
+    /** First payment due date the discount applies to (inclusive); omit for no start limit. */
+    validFrom?: string | undefined;
+    /** Last payment due date the discount applies to (inclusive); omit for open-ended. */
+    validTo?: string | undefined;
+    /** Whether the discount applies to every package. */
+    appliesToAllPackages?: boolean;
+    /** Public ids of the packages the discount is limited to; ignored when it applies to all. */
+    packageIds?: string[];
+}
+
+/** The calling coach's discounts. */
+export interface ListCoachDiscountsResponse {
+    /** Discounts, active first, then by name. */
+    items?: CoachDiscountDto[];
+}
+
+/** Query for listing the calling coach's discounts. */
+export interface ListCoachDiscountsRequest {
+}
+
+/** Request for reading one coach discount. */
+export interface GetCoachDiscountRequest {
+}
+
+/** Request for creating a coach discount. */
+export interface CreateCoachDiscountRequest {
+    /** Display name (up to 100 characters). */
+    name: string;
+    /** Whether the value is a percentage or a fixed amount. */
+    type?: DiscountType;
+    /** The percentage (1-100) or the fixed amount (above 0, up to 2 decimals). */
+    value?: number;
+    /** How many payments the discount applies to. */
+    duration?: DiscountDuration;
+    /** Number of payments covered (1-120); required for first-N-payments, otherwise omitted. */
+    durationPayments?: number | undefined;
+    /** First payment due date the discount applies to (inclusive); omit for no start limit. */
+    validFrom?: string | undefined;
+    /** Last payment due date the discount applies to (inclusive); omit for open-ended. */
+    validTo?: string | undefined;
+    /** Whether the discount applies to every package. */
+    appliesToAllPackages?: boolean;
+    /** Public ids of the packages the discount is limited to; ignored when it applies to all. */
+    packageIds?: string[];
+}
+
+/** Request for archiving a coach discount. */
+export interface ArchiveCoachDiscountRequest {
+}
+
+/** A coach package as shown to its owner — reused by the list, get, create and update actions. */
+export interface CoachPackageDto {
+    /** Public id of the package. */
+    packageId?: string;
+    /** Display name. */
+    name?: string;
+    /** Current price per billing period. */
+    price?: number;
+    /** How often the package is billed. */
+    billing?: PackageBillingInterval;
+    /** Weeks between payments when billed every N weeks, otherwise null. */
+    intervalWeeks?: number | undefined;
+    /** Number of payments the package runs for, or null until cancelled. */
+    runsForPayments?: number | undefined;
+    /** Payment due days overriding the coach's default, or null to use it. */
+    paymentDueDaysOverride?: number | undefined;
+    /** Whether the price is shown on the coach's public profile. */
+    showOnProfile?: boolean;
+    /** When the package was archived (UTC), or null while active. */
+    archivedAt?: string | undefined;
+}
+
+/** How often a coach package is billed. */
+export enum PackageBillingInterval {
+    Monthly = "Monthly",
+    EveryNWeeks = "EveryNWeeks",
+    OneOff = "OneOff",
+}
+
+/** Request for updating a coach package. A changed price takes effect for billing periods starting from now on. */
+export interface UpdateCoachPackageRequest {
+    /** Display name (up to 100 characters). */
+    name: string;
+    /** Price per billing period, above 0 and at most 1 000 000, with up to 2 decimals. */
+    price?: number;
+    /** How often the package is billed. */
+    billing?: PackageBillingInterval;
+    /** Weeks between payments (1-52); required for every-N-weeks billing, otherwise omitted. */
+    intervalWeeks?: number | undefined;
+    /** Number of payments the package runs for (1-120); omitted for until-cancelled and one-off. */
+    runsForPayments?: number | undefined;
+    /** Payment due days (1-90) overriding the coach's default. */
+    paymentDueDaysOverride?: number | undefined;
+    /** Whether the price is shown on the coach's public profile. */
+    showOnProfile?: boolean;
+}
+
+/** The calling coach's packages. */
+export interface ListCoachPackagesResponse {
+    /** Packages, active first, then by name. */
+    items?: CoachPackageDto[];
+}
+
+/** Query for listing the calling coach's packages. */
+export interface ListCoachPackagesRequest {
+}
+
+/** Request for reading one coach package. */
+export interface GetCoachPackageRequest {
+}
+
+/** Request for creating a coach package. */
+export interface CreateCoachPackageRequest {
+    /** Display name (up to 100 characters). */
+    name: string;
+    /** Price per billing period, above 0 and at most 1 000 000, with up to 2 decimals. */
+    price?: number;
+    /** How often the package is billed. */
+    billing?: PackageBillingInterval;
+    /** Weeks between payments (1-52); required for every-N-weeks billing, otherwise omitted. */
+    intervalWeeks?: number | undefined;
+    /** Number of payments the package runs for (1-120); omitted for until-cancelled and one-off. */
+    runsForPayments?: number | undefined;
+    /** Payment due days (1-90) overriding the coach's default. */
+    paymentDueDaysOverride?: number | undefined;
+    /** Whether the price is shown on the coach's public profile. */
+    showOnProfile?: boolean;
+}
+
+/** Request for archiving a coach package. */
+export interface ArchiveCoachPackageRequest {
+}
+
 /** Request model for saving the complete photo and note state of a training session diary entry. The Photos list and Note are replaced with exactly what the client sends. */
 export interface SaveSessionPhotosRequest {
     /** The complete list of photos to persist on the session log.
@@ -25438,6 +27517,291 @@ On the first upload for an Accepted request the request is transitioned to InPro
 export interface DeletePlanPhotoRequest {
 }
 
+/** One payment of a client as the coach sees it. */
+export interface ClientPaymentRowDto {
+    /** Public id of the payment. */
+    paymentId?: string;
+    /** Whether the row was generated from the package or added by hand. */
+    kind?: ClientPaymentKind;
+    /** Status; Overdue is derived from the due date and never stored. */
+    status?: ClientPaymentStatus;
+    /** First day of the billing period; null for a one-off payment. */
+    periodStart?: string | undefined;
+    /** Last day of the billing period; null for a one-off payment. */
+    periodEnd?: string | undefined;
+    /** Title of a one-off payment. */
+    title?: string | undefined;
+    /** Package name; for an upcoming payment the package the client's terms give now. */
+    packageName?: string | undefined;
+    /** Amount in CZK; for an upcoming payment what the client's terms give now. */
+    amount?: number | undefined;
+    /** Package price before any discount. */
+    basePrice?: number | undefined;
+    /** Label of the discount or custom price behind the amount. */
+    discountLabel?: string | undefined;
+    /** Day the payment falls due. */
+    dueDate?: string;
+    /** Variable symbol of the transfer; null once the payment is waived. */
+    variableSymbol?: string | undefined;
+    /** Transfer message the client sees. */
+    message?: string | undefined;
+    /** When the client was last asked to pay (UTC). */
+    requestedAt?: string | undefined;
+    /** Day the money arrived. */
+    paidOn?: string | undefined;
+    /** Why the payment was waived. */
+    waiveReason?: string | undefined;
+}
+
+/** How a client payment row came to exist. */
+export enum ClientPaymentKind {
+    Recurring = "Recurring",
+    OneOff = "OneOff",
+}
+
+/** Where a client payment stands. Overdue is derived when a payment is read and is never stored. */
+export enum ClientPaymentStatus {
+    Upcoming = "Upcoming",
+    Requested = "Requested",
+    Paid = "Paid",
+    Waived = "Waived",
+    Overdue = "Overdue",
+}
+
+/** Request for waiving a client's payment. */
+export interface WaiveClientPaymentRequest {
+    /** Why the payment is waived, up to 100 characters; optional. */
+    reason?: string | undefined;
+}
+
+/** The terms now in force for a client. */
+export interface SetClientPaymentTermsResponse {
+    /** Public id of the package. */
+    packageId?: string;
+    /** Public id of the discount; null for none. */
+    discountId?: string | undefined;
+    /** The custom price; null for none. */
+    customPrice?: number | undefined;
+    /** When the terms take effect (UTC). */
+    effectiveFromUtc?: string;
+    /** First billing period the terms apply to. */
+    appliesFromPeriodStart?: string | undefined;
+    /** What the client pays for that period. */
+    amount?: number | undefined;
+}
+
+/** Request for setting the package, and the discount or custom price, a client pays under. */
+export interface SetClientPaymentTermsRequest {
+    /** Public id of one of the coach's packages. */
+    packageId: string;
+    /** Public id of one of the coach's discounts; cannot be combined with CustomPrice. */
+    discountId?: string | undefined;
+    /** A price replacing the package price and discount for this client; cannot be combined with DiscountId. */
+    customPrice?: number | undefined;
+    /** First day of the first billing period; today when omitted. Used only the first time terms are set,
+and not before today. */
+    firstPeriodStart?: string | undefined;
+}
+
+/** The requested payment and how the request reached the client. */
+export interface RequestClientPaymentResponse {
+    /** The payment, now requested, with its amount and bank details frozen. */
+    payment?: ClientPaymentRowDto;
+    /** Whether the email went out; false when it was not asked for or the mail provider failed. */
+    emailSent?: boolean;
+    /** Whether the app notification was created; false when it was not asked for or failed. */
+    notificationSent?: boolean;
+}
+
+/** Request for asking a client to pay. */
+export interface RequestClientPaymentRequest {
+    /** Due date override; when omitted, never earlier than the period start and the coach's payment term from today. */
+    dueDate?: string | undefined;
+    /** Amount override in CZK; when omitted, the amount the client's terms give. */
+    amount?: number | undefined;
+    /** Send the request by email with the QR code. */
+    sendEmail?: boolean;
+    /** Send the request as an app notification. */
+    sendNotification?: boolean;
+}
+
+/** Request for confirming that a client's payment arrived. */
+export interface MarkClientPaymentPaidRequest {
+    /** The day the money arrived; today when omitted. Not in the future. */
+    paidOn?: string | undefined;
+}
+
+/** The payments of one client, newest due date first. */
+export interface ListClientPaymentRowsResponse {
+    /** The payments, with overdue ones marked. */
+    payments?: ClientPaymentRowDto[];
+}
+
+/** Request for the payments of one of the coach's clients. */
+export interface ListClientPaymentRowsRequest {
+}
+
+/** One of the client's payments with everything needed to pay it. */
+export interface GetMyPaymentResponse {
+    /** Public id of the payment. */
+    paymentId?: string;
+    /** The coach's name. */
+    coachName?: string;
+    /** Requested, Overdue (requested and past its due date) or Paid. */
+    status?: ClientPaymentStatus;
+    /** Package name, or the title of a one-off payment. */
+    name?: string | undefined;
+    /** First day of the billing period; null for a one-off payment. */
+    periodStart?: string | undefined;
+    /** Last day of the billing period; null for a one-off payment. */
+    periodEnd?: string | undefined;
+    /** Amount in CZK. */
+    amount?: number | undefined;
+    /** Package price before any discount. */
+    basePrice?: number | undefined;
+    /** Label of the discount or custom price behind the amount. */
+    discountLabel?: string | undefined;
+    /** Day the payment falls due. */
+    dueDate?: string;
+    /** Day the coach confirmed the money; paid payments only. */
+    paidOn?: string | undefined;
+    /** The coach's IBAN; unpaid payments only. */
+    iban?: string | undefined;
+    /** Name of the account holder; unpaid payments only. */
+    accountHolder?: string | undefined;
+    /** Variable symbol to put on the transfer; unpaid payments only. */
+    variableSymbol?: string | undefined;
+    /** Transfer message; unpaid payments only. */
+    message?: string | undefined;
+    /** The QR Platba (SPAYD) payload to render as a QR code; unpaid payments only. */
+    qrPayload?: string | undefined;
+}
+
+/** Request for one of the calling client's own payments. */
+export interface GetMyPaymentRequest {
+}
+
+/** The payment summary of a client: their package and price, the next payment, how far they have paid. */
+export interface GetClientPaymentSummaryResponse {
+    /** Public id of the client's profile. */
+    clientId?: string;
+    /** When the coach and the client first linked (UTC). */
+    clientSince?: string;
+    /** Whether the coach has a bank account set, which a payment request needs. */
+    bankAccountSet?: boolean;
+    /** The client's current terms; null until the coach sets a package. */
+    terms?: ClientPaymentSummaryTermsDto | undefined;
+    /** What the client pays per period under the current terms; null without terms. */
+    price?: ClientPaymentSummaryPriceDto | undefined;
+    /** First day of the next billing period, which changes to the terms apply from. */
+    nextPeriodStart?: string | undefined;
+    /** The earliest payment still waiting for the money; null when everything is settled. */
+    nextPayment?: ClientPaymentSummaryNextDto | undefined;
+    /** Last day covered by the latest paid period. */
+    paidUntil?: string | undefined;
+    /** Payments paid. */
+    paidCount?: number;
+    /** Payments that are paid or overdue; waived and not-yet-due payments are not counted. */
+    totalCount?: number;
+}
+
+/** The package, discount and custom price a client pays under. */
+export interface ClientPaymentSummaryTermsDto {
+    /** Public id of the package. */
+    packageId?: string;
+    /** Name of the package. */
+    packageName?: string;
+    /** The package's current price per billing period. */
+    packagePrice?: number;
+    /** How often the package is billed. */
+    billing?: PackageBillingInterval;
+    /** Weeks between payments for an every-N-weeks package. */
+    intervalWeeks?: number | undefined;
+    /** Public id of the discount; null for none. */
+    discountId?: string | undefined;
+    /** Name of the discount. */
+    discountName?: string | undefined;
+    /** Whether the discount is a percentage or a fixed amount. */
+    discountType?: DiscountType | undefined;
+    /** The percentage or the fixed amount taken off. */
+    discountValue?: number | undefined;
+    /** A price replacing the package price and discount for this client; null for none. */
+    customPrice?: number | undefined;
+    /** When the terms take effect (UTC). */
+    effectiveFromUtc?: string;
+}
+
+/** The price breakdown of the client's next period. */
+export interface ClientPaymentSummaryPriceDto {
+    /** The package price before any discount. */
+    basePrice?: number;
+    /** What the discount takes off; zero for none. */
+    discountAmount?: number;
+    /** Label of the discount or custom price. */
+    discountLabel?: string | undefined;
+    /** Whether a custom price replaces the package price. */
+    isCustomPrice?: boolean;
+    /** What the client pays. */
+    amount?: number;
+}
+
+/** The next payment waiting for the money. */
+export interface ClientPaymentSummaryNextDto {
+    /** Public id of the payment. */
+    paymentId?: string;
+    /** Amount in CZK. */
+    amount?: number | undefined;
+    /** Day the payment falls due. */
+    dueDate?: string;
+    /** Status; Overdue is derived from the due date. */
+    status?: ClientPaymentStatus;
+    /** When the client was last asked to pay (UTC); null if never. */
+    requestedAt?: string | undefined;
+}
+
+/** Request for the payment summary of one of the coach's clients. */
+export interface GetClientPaymentSummaryRequest {
+}
+
+/** The coach's change history for one client, newest first. */
+export interface GetClientPaymentHistoryResponse {
+    /** The recorded changes, at most the latest 100. */
+    entries?: ClientPaymentHistoryEntryDto[];
+}
+
+/** One change the coach made. */
+export interface ClientPaymentHistoryEntryDto {
+    /** What was done: SetClientPaymentTerms, AddClientOneOffPayment, MarkClientPaymentPaid,
+WaiveClientPayment or RequestClientPayment. */
+    action?: string;
+    /** When it happened (UTC). */
+    occurredAt?: string;
+    /** Public id of the payment concerned, when the action concerns one. */
+    paymentId?: string | undefined;
+    /** The period the payment covers as "yyyy-MM", or the title of a one-off payment. */
+    period?: string | undefined;
+    /** The package name for a terms change, or the reason for a waived payment. */
+    detail?: string | undefined;
+    /** The discount name for a terms change. */
+    discount?: string | undefined;
+    /** The amount involved, when the action has one. */
+    amount?: number | undefined;
+}
+
+/** Request for the payment change history of one of the coach's clients. */
+export interface GetClientPaymentHistoryRequest {
+}
+
+/** Request for adding a one-off payment to a client. */
+export interface AddClientOneOffPaymentRequest {
+    /** What the payment is for, up to 100 characters. */
+    title: string;
+    /** The amount in CZK, above zero and at most 9999999.99. */
+    amount?: number;
+    /** The day the payment falls due. */
+    dueDate?: string;
+}
+
 /** Request model for un-logging (removing) a previously logged meal for the current day. */
 export interface UnlogMealEatenRequest {
 }
@@ -26042,6 +28406,58 @@ export interface DeclineClientInviteRequest {
 export interface AcceptClientInviteRequest {
 }
 
+/** What the client owes and has paid, grouped by coach. */
+export interface GetClientPaymentsResponse {
+    /** One entry per coach the client has linked payments with; empty when there are none. */
+    coaches?: ClientPaymentCoachDto[];
+}
+
+/** One coach's payments as the client sees them. */
+export interface ClientPaymentCoachDto {
+    /** Public id of the coach's professional profile. */
+    coachId?: string;
+    /** The coach's name. */
+    coachName?: string;
+    /** Payments the coach asked for, still unpaid (overdue ones marked), oldest due date first. */
+    requested?: ClientPaymentItemDto[];
+    /** Payments already paid, most recent first. */
+    paid?: ClientPaymentItemDto[];
+}
+
+/** One requested or paid payment with everything the client needs to pay it. */
+export interface ClientPaymentItemDto {
+    /** Public id of the payment. */
+    paymentId?: string;
+    /** Requested, Overdue (requested and past its due date) or Paid. */
+    status?: ClientPaymentStatus;
+    /** Package name, or the title of a one-off payment. */
+    name?: string | undefined;
+    /** First day of the billing period; null for a one-off payment. */
+    periodStart?: string | undefined;
+    /** Last day of the billing period; null for a one-off payment. */
+    periodEnd?: string | undefined;
+    /** Amount in CZK. */
+    amount?: number | undefined;
+    /** Package price before any discount. */
+    basePrice?: number | undefined;
+    /** Label of the discount or custom price behind the amount. */
+    discountLabel?: string | undefined;
+    /** Day the payment falls due. */
+    dueDate?: string;
+    /** Day the coach confirmed the money; paid payments only. */
+    paidOn?: string | undefined;
+    /** The coach's IBAN; requested payments only. */
+    iban?: string | undefined;
+    /** Name of the account holder; requested payments only. */
+    accountHolder?: string | undefined;
+    /** Variable symbol to put on the transfer; requested payments only. */
+    variableSymbol?: string | undefined;
+    /** Transfer message; requested payments only. */
+    message?: string | undefined;
+    /** The QR Platba (SPAYD) payload to render as a QR code; requested payments only. */
+    qrPayload?: string | undefined;
+}
+
 export interface GetCollaborationsResponse {
     collaborations?: CollaborationDto[];
 }
@@ -26571,6 +28987,20 @@ export interface LoginRequest {
     email: string;
     /** User's password. */
     password: string;
+}
+
+/** Result of changing the email address of an unverified account. */
+export interface ChangeUnverifiedEmailResponse {
+    /** The address the verification email was sent to. */
+    email?: string;
+    /** How many more verification emails can be requested for this account. */
+    remainingResends?: number;
+}
+
+/** Request for changing the email address of an unverified account. */
+export interface ChangeUnverifiedEmailRequest {
+    /** The corrected email address. */
+    newEmail: string;
 }
 
 /** Response model for an anonymous resend-verification request. Deliberately generic — the same message is returned regardless of whether the email is registered, already verified, or has hit its resend cap, so the response body never becomes an account-existence oracle. */
