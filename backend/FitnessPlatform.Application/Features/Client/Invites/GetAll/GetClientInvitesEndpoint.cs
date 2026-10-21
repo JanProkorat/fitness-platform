@@ -5,7 +5,6 @@ using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace FitnessPlatform.Application.Features.Client.Invites.GetAll;
@@ -14,11 +13,9 @@ namespace FitnessPlatform.Application.Features.Client.Invites.GetAll;
 /// Returns every pending, unexpired invitation addressed to the authenticated client.
 /// </summary>
 /// <param name="db">Database context.</param>
-/// <param name="userManager">Resolves the inviting professionals' roles.</param>
 /// <param name="timeProvider">Clock.</param>
 internal sealed class GetClientInvitesEndpoint(
     IApplicationDbContext db,
-    UserManager<ApplicationUser> userManager,
     TimeProvider timeProvider) : EndpointWithoutRequest<GetClientInvitesResponse>
 {
     /// <inheritdoc />
@@ -74,12 +71,25 @@ internal sealed class GetClientInvitesEndpoint(
             .OrderByDescending(pi => pi.SentAt)
             .ToListAsync(ct);
 
+        // One role lookup for every inviting coach instead of one per invite.
+        var coachUserIds = invites.Select(pi => pi.ProfessionalProfile.UserId).Distinct().ToList();
+        var heldRows = await (
+            from ur in db.UserRoles.AsNoTracking()
+            join r in db.Roles.AsNoTracking() on ur.RoleId equals r.Id
+            where coachUserIds.Contains(ur.UserId)
+            select new { ur.UserId, RoleName = r.Name! })
+            .ToListAsync(ct);
+        var heldByUser = heldRows
+            .GroupBy(h => h.UserId)
+            .ToDictionary(g => g.Key, g => g.Select(h => h.RoleName).ToList());
+
         var items = new List<ClientInviteDto>(invites.Count);
 
         foreach (var invite in invites)
         {
             var prof = invite.ProfessionalProfile;
-            var roles = await userManager.GetRolesAsync(prof.User);
+            var held = heldByUser.GetValueOrDefault(prof.UserId) ?? [];
+            var roles = CoachRoleStatus.ActiveRoles(held, prof);
             var labels = new List<string>();
 
             if (roles.Contains(AppRoles.Trainer)) labels.Add("Trainer");

@@ -77,6 +77,33 @@ public class GetClientInvitesEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
+    public async Task GetAll_CoachRoleLabel_ListsActiveRolesOnly_AndBatchesAcrossCoaches()
+    {
+        var both = await TestActors.Professional(factory, UserRole.Trainer, UserRole.Nutritionist).CreateAsync(Ct);
+        var trainerOnly = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var client = await TestActors.Client(factory).CreateAsync(Ct);
+        var now = DateTime.UtcNow;
+
+        var bothInvite = await SeedInviteAsync(both, client.Email, PendingInviteStatus.Pending, now.AddHours(-3));
+        var trainerInvite = await SeedInviteAsync(trainerOnly, client.Email, PendingInviteStatus.Pending, now.AddHours(-2));
+
+        (await GetAsync(client)).Single(i => i.Id == bothInvite).CoachRole.Should().Be("Trainer & Nutritionist");
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var profile = await db.ProfessionalProfiles.FindAsync([both.ProfileId], Ct);
+            profile!.NutritionistRoleRemovedAt = now;
+            await db.SaveChangesAsync(Ct);
+        }
+
+        var items = await GetAsync(client);
+
+        items.Single(i => i.Id == bothInvite).CoachRole.Should().Be("Trainer", "a removed role is not an active one");
+        items.Single(i => i.Id == trainerInvite).CoachRole.Should().Be("Trainer");
+    }
+
+    [Fact]
     public async Task GetAll_ForCoachRoleCaller_ReturnsEmptyList()
     {
         var inviter = await TestActors.Trainer(factory).CreateAsync(Ct);

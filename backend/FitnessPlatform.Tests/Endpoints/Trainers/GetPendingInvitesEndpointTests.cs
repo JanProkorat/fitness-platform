@@ -68,7 +68,7 @@ public class GetPendingInvitesEndpointTests
         ep.Response.Invites.Should().HaveCount(2);
         ep.Response.Invites.Single(i => i.Id == 1).Status.Should().Be(PendingInviteStatus.Pending);
         ep.Response.Invites.Single(i => i.Id == 2).Status.Should().Be(PendingInviteStatus.Expired);
-        ep.Response.Invites.Should().OnlyContain(i => !i.IsAccepted);
+        ep.Response.Invites.Select(i => i.Id).Should().BeEquivalentTo([1L, 2L], "cancelled and declined invites are not listed");
     }
 
     [Fact]

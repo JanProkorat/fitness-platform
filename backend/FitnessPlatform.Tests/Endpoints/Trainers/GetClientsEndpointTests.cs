@@ -54,6 +54,43 @@ public class GetClientsEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
+    public async Task List_TabCountsPending_CountsOneInvitePerEmail_ExpiredSupersededByReinviteNotCounted()
+    {
+        var (http, trainerId) = await SetupTrainerAsync();
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var profile = await db.ProfessionalProfiles
+                .FirstAsync(pp => pp.UserId == trainerId, TestContext.Current.CancellationToken);
+            var reinvited = UniqueEmail("reinvited");
+            var lone = UniqueEmail("lone-expired");
+
+            foreach (var (email, ageDays) in new[] { (reinvited, 10), (reinvited, 1), (lone, 9) })
+            {
+                db.PendingInvites.Add(new PendingInvite
+                {
+                    PublicId = Guid.NewGuid(),
+                    ProfessionalProfileId = profile.Id,
+                    Email = email,
+                    SentAt = DateTime.UtcNow.AddDays(-ageDays),
+                    Status = PendingInviteStatus.Pending,
+                });
+            }
+
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        var response = await http.GetAsync("/trainer/clients", TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await Deserialize(response);
+
+        // reinvited: live row only (1) + lone expired kept so it can be cancelled (1).
+        body!.TabCounts.Pending.Should().Be(2);
+    }
+
+    [Fact]
     public async Task List_StatusArchived_ReturnsOnlyArchivedLinks()
     {
         var (http, trainerId) = await SetupTrainerAsync();

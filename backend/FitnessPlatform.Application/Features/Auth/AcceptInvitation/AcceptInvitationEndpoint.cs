@@ -25,13 +25,15 @@ namespace FitnessPlatform.Application.Features.Auth.AcceptInvitation;
 /// Seeds the invite's personal message as the conversation's first message so it
 /// surfaces on the client's Messages screen (#768).
 /// </param>
+/// <param name="timeProvider">Clock.</param>
 public class AcceptInvitationEndpoint(
     IApplicationDbContext db,
     UserManager<ApplicationUser> userManager,
     IAuditService audit,
     INotificationService notificationService,
     IRealtimeNotifier notifier,
-    IConversationSeedService conversationSeedService)
+    IConversationSeedService conversationSeedService,
+    TimeProvider timeProvider)
     : Endpoint<AcceptInvitationRequest, AcceptInvitationResponse>
 {
     /// <inheritdoc />
@@ -128,11 +130,16 @@ public class AcceptInvitationEndpoint(
                 ? UserRole.Nutritionist
                 : UserRole.Trainer;
 
-            // Find matching pending invite to get questionnaire assignment
+            // Find the matching live pending invite to get questionnaire assignment. An expired
+            // row may coexist with a re-invite (#1541), so ignore it and prefer the newest.
+            var validSince = PendingInviteStatusResolver.ValidSince(timeProvider.GetUtcNow().UtcDateTime);
             pendingInvite = await db.PendingInvites
-                .FirstOrDefaultAsync(pi => pi.ProfessionalProfileId == invitation.ProfessionalProfileId
+                .Where(pi => pi.ProfessionalProfileId == invitation.ProfessionalProfileId
                     && pi.Email == invitation.Email
-                    && pi.Status == PendingInviteStatus.Pending, ct);
+                    && pi.Status == PendingInviteStatus.Pending
+                    && pi.SentAt >= validSince)
+                .OrderByDescending(pi => pi.SentAt)
+                .FirstOrDefaultAsync(ct);
 
             // Honor the scope the professional selected at invite-creation time (already
             // validated as a subset of their held roles there) rather than re-deriving
