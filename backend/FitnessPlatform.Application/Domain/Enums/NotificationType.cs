@@ -63,5 +63,8 @@ public enum NotificationType
     CollaborationEndedByRoleRemovalCoach,
 
     /// <summary>A coach's automation asked the client to log their body measurements; delivered to the client.</summary>
-    MeasurementRequested
+    MeasurementRequested,
+
+    /// <summary>A coach asked the client to pay; delivered to the client.</summary>
+    PaymentRequested
 }

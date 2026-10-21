@@ -54,4 +54,11 @@ public interface IEmailService
     /// <param name="ct">Cancellation token.</param>
     Task SendBankAccountChangedEmailAsync(
         string toEmail, string maskedNewIban, string maskedPreviousIban, string undoToken, string language, CancellationToken ct);
+
+    /// <summary>
+    /// Asks a client to pay: the amount, the bank details and a QR Platba code attached inline.
+    /// </summary>
+    /// <param name="email">The resolved email content.</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task SendPaymentRequestEmailAsync(PaymentRequestEmail email, CancellationToken ct);
 }

@@ -223,6 +223,15 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public virtual DbSet<CoachDiscountPackage> CoachDiscountPackages { get; set; } = null!;
 
     /// <inheritdoc />
+    public virtual DbSet<ClientPaymentAssignment> ClientPaymentAssignments { get; set; } = null!;
+
+    /// <inheritdoc />
+    public virtual DbSet<ClientPaymentTerms> ClientPaymentTerms { get; set; } = null!;
+
+    /// <inheritdoc />
+    public virtual DbSet<ClientPayment> ClientPayments { get; set; } = null!;
+
+    /// <inheritdoc />
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         base.OnConfiguring(optionsBuilder);
@@ -459,6 +468,61 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
+        builder.Entity<ClientPaymentAssignment>(e =>
+        {
+            e.HasIndex(a => new { a.ProfessionalProfileId, a.ClientProfileId }).IsUnique();
+            e.HasIndex(a => new { a.ProfessionalProfileId, a.ClientNumber }).IsUnique();
+            e.HasIndex(a => a.ClientProfileId);
+            e.HasOne(a => a.ProfessionalProfile)
+                .WithMany()
+                .HasForeignKey(a => a.ProfessionalProfileId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(a => a.ClientProfile)
+                .WithMany()
+                .HasForeignKey(a => a.ClientProfileId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<ClientPaymentTerms>(e =>
+        {
+            e.HasIndex(t => new { t.ClientPaymentAssignmentId, t.EffectiveFromUtc });
+            e.HasIndex(t => t.CoachPackageId);
+            e.HasIndex(t => t.CoachDiscountId);
+            e.Property(t => t.CustomPrice).HasPrecision(18, 2);
+            e.HasOne(t => t.ClientPaymentAssignment)
+                .WithMany(a => a.Terms)
+                .HasForeignKey(t => t.ClientPaymentAssignmentId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(t => t.CoachPackage)
+                .WithMany()
+                .HasForeignKey(t => t.CoachPackageId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(t => t.CoachDiscount)
+                .WithMany()
+                .HasForeignKey(t => t.CoachDiscountId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<ClientPayment>(e =>
+        {
+            e.HasIndex(p => new { p.ClientPaymentAssignmentId, p.DueDate });
+            e.HasIndex(p => new { p.ClientPaymentAssignmentId, p.PeriodStart })
+                .IsUnique()
+                .HasFilter("period_start IS NOT NULL");
+            e.HasIndex(p => new { p.ProfessionalProfileId, p.VariableSymbol })
+                .IsUnique()
+                .HasFilter("variable_symbol IS NOT NULL");
+            e.Property(p => p.Amount).HasPrecision(18, 2);
+            e.Property(p => p.BasePrice).HasPrecision(18, 2);
+            e.HasOne(p => p.ClientPaymentAssignment)
+                .WithMany(a => a.Payments)
+                .HasForeignKey(p => p.ClientPaymentAssignmentId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Payment history reads the audit rows of one assignment by entity id.
+        builder.Entity<AuditLog>(e => e.HasIndex(a => a.EntityId));
+
         builder.Entity<CoachBankAccountChange>(e =>
         {
             e.HasIndex(c => c.ProfessionalProfileId);
@@ -567,6 +631,23 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                   + " WHERE " + keyColumn + " = {0} FOR NO KEY UPDATE";
 
         return Database.ExecuteSqlRawAsync(sql, [clientProfileId], cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public Task LockProfessionalProfileAsync(long professionalProfileId, CancellationToken cancellationToken = default)
+    {
+        // Identifiers come from the EF model, never from input; the id is a real parameter.
+        // See LockClientProfileAsync for why the statement is concatenated, not interpolated.
+        var entityType = Model.FindEntityType(typeof(ProfessionalProfile))!;
+        var table = entityType.GetSchema() is { } schema
+            ? QuoteIdentifier(schema) + "." + QuoteIdentifier(entityType.GetTableName()!)
+            : QuoteIdentifier(entityType.GetTableName()!);
+        var keyColumn = QuoteIdentifier(entityType.FindPrimaryKey()!.Properties[0].GetColumnName()!);
+
+        var sql = "SELECT " + keyColumn + " FROM " + table
+                  + " WHERE " + keyColumn + " = {0} FOR NO KEY UPDATE";
+
+        return Database.ExecuteSqlRawAsync(sql, [professionalProfileId], cancellationToken);
     }
 
     /// <inheritdoc />
