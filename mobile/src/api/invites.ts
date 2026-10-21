@@ -5,7 +5,7 @@ export type ClientInvite = ClientInviteDto;
 export type InviteCoachProfile = GetPublicProfileResponse;
 
 export const INVITES_QUERY_KEY = ['invites'] as const;
-export const inviteCoachQueryKey = (coachPublicId: string) => ['invites', 'coach', coachPublicId] as const;
+export const inviteCoachQueryKey = (coachPublicId: string) => ['invite-coach', coachPublicId] as const;
 
 /** Pending invitations addressed to the signed-in client, newest first. */
 export async function fetchInvites(signal?: AbortSignal): Promise<ClientInvite[]> {
