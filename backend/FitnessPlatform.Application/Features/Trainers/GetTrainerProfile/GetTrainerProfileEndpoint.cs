@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,7 +11,9 @@ namespace FitnessPlatform.Application.Features.Trainers.GetTrainerProfile;
 /// Returns the professional profile for the currently authenticated trainer or nutritionist.
 /// </summary>
 /// <param name="db">Database context.</param>
-public class GetProfessionalProfileEndpoint(IApplicationDbContext db) : EndpointWithoutRequest<GetProfessionalProfileResponse>
+/// <param name="entitlementService">Resolves subscription entitlements.</param>
+public class GetProfessionalProfileEndpoint(IApplicationDbContext db, EntitlementService entitlementService)
+    : EndpointWithoutRequest<GetProfessionalProfileResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -44,12 +47,15 @@ public class GetProfessionalProfileEndpoint(IApplicationDbContext db) : Endpoint
             return;
         }
 
+        var fromMonthlyPrices = await CoachPackagePricing.LoadFromMonthlyPricesAsync(
+            db, entitlementService, [profile.Id], ct);
+
         await Send.OkAsync(new GetProfessionalProfileResponse
         {
             Bio = profile.Bio,
             Specialization = profile.Specialization,
             City = profile.City,
-            EstimatedPrice = profile.EstimatedPrice,
+            FromMonthlyPrice = fromMonthlyPrices.TryGetValue(profile.Id, out var fromMonthlyPrice) ? fromMonthlyPrice : null,
             Specializations = profile.Specializations,
             Certificates = profile.Certificates,
             Languages = profile.Languages,

@@ -21,9 +21,9 @@ public class GetProfessionalProfileResponse
     public string? City { get; set; }
 
     /// <summary>
-    /// Estimated price per month.
+    /// The lowest monthly package price shown on the profile, or null when there is none or payments are not included in the subscription.
     /// </summary>
-    public string? EstimatedPrice { get; set; }
+    public decimal? FromMonthlyPrice { get; set; }
 
     /// <summary>
     /// Specializations as a JSON array string.

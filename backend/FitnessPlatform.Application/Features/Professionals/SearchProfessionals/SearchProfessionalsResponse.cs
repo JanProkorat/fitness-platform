@@ -16,7 +16,7 @@ public class ProfessionalSummaryDto
     public string? Bio { get; set; }
     public List<string> Specializations { get; set; } = [];
     public string? City { get; set; }
-    public string? EstimatedPrice { get; set; }
+    public decimal? FromMonthlyPrice { get; set; }
     public string? CollaborationType { get; set; }
     public List<string> Languages { get; set; } = [];
     public List<string> Roles { get; set; } = [];

@@ -15,7 +15,11 @@ namespace FitnessPlatform.Application.Features.Professionals.SearchProfessionals
 /// </summary>
 /// <param name="db">Database context.</param>
 /// <param name="userManager">ASP.NET Identity user manager.</param>
-public class SearchProfessionalsEndpoint(IApplicationDbContext db, UserManager<ApplicationUser> userManager)
+/// <param name="entitlementService">Resolves subscription entitlements.</param>
+public class SearchProfessionalsEndpoint(
+    IApplicationDbContext db,
+    UserManager<ApplicationUser> userManager,
+    EntitlementService entitlementService)
     : Endpoint<SearchProfessionalsRequest, SearchProfessionalsResponse>
 {
     /// <inheritdoc />
@@ -71,6 +75,10 @@ public class SearchProfessionalsEndpoint(IApplicationDbContext db, UserManager<A
             .ThenBy(p => p.User.FirstName)
             .ToListAsync(ct);
 
+        // One batched lookup for every profile's derived price, never one query per profile
+        var fromMonthlyPrices = await CoachPackagePricing.LoadFromMonthlyPricesAsync(
+            db, entitlementService, profiles.Select(p => p.Id).ToList(), ct);
+
         // Resolve roles in memory (Identity tables are not easily joinable in LINQ)
         var items = new List<ProfessionalSummaryDto>();
 
@@ -100,7 +108,7 @@ public class SearchProfessionalsEndpoint(IApplicationDbContext db, UserManager<A
                 Bio = profile.Bio,
                 Specializations = ParseJsonArray(profile.Specializations),
                 City = profile.City,
-                EstimatedPrice = profile.EstimatedPrice,
+                FromMonthlyPrice = fromMonthlyPrices.TryGetValue(profile.Id, out var fromMonthlyPrice) ? fromMonthlyPrice : null,
                 CollaborationType = profile.CollaborationType,
                 Languages = ParseJsonArray(profile.Languages),
                 Roles = professionalRoles,

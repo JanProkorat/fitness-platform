@@ -1,16 +1,15 @@
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
-using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
-namespace FitnessPlatform.Application.Features.PaymentSettings.Shared;
+namespace FitnessPlatform.Application.Domain.Extensions;
 
 /// <summary>
 /// The caller-is-a-coach-with-the-payments-feature guard shared by every coach-facing payments action.
 /// </summary>
-internal static class PaymentSettingsAccess
+internal static class PaymentsAccessExtensions
 {
     /// <summary>
     /// Resolves the caller's professional profile id and checks the subscription includes payments.

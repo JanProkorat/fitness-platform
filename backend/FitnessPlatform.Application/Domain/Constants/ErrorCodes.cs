@@ -584,4 +584,14 @@ public static class ErrorCodes
 
     /// <summary>The bank account was changed again after the change being undone.</summary>
     public const string BankAccountUndoSuperseded = "BANK_ACCOUNT_UNDO_SUPERSEDED";
+
+    // ── Coach packages and discounts (#1578) ────────────────────────────
+    /// <summary>The package is archived and can no longer be edited.</summary>
+    public const string PackageArchived = "PACKAGE_ARCHIVED";
+
+    /// <summary>The discount is archived and can no longer be edited.</summary>
+    public const string DiscountArchived = "DISCOUNT_ARCHIVED";
+
+    /// <summary>A package the discount applies to is unknown, foreign or archived.</summary>
+    public const string DiscountPackageInvalid = "DISCOUNT_PACKAGE_INVALID";
 }

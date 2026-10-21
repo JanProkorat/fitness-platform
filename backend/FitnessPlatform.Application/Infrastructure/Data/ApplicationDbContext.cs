@@ -211,6 +211,18 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public virtual DbSet<CoachReauthCode> CoachReauthCodes { get; set; } = null!;
 
     /// <inheritdoc />
+    public virtual DbSet<CoachPackage> CoachPackages { get; set; } = null!;
+
+    /// <inheritdoc />
+    public virtual DbSet<CoachPackagePrice> CoachPackagePrices { get; set; } = null!;
+
+    /// <inheritdoc />
+    public virtual DbSet<CoachDiscount> CoachDiscounts { get; set; } = null!;
+
+    /// <inheritdoc />
+    public virtual DbSet<CoachDiscountPackage> CoachDiscountPackages { get; set; } = null!;
+
+    /// <inheritdoc />
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         base.OnConfiguring(optionsBuilder);
@@ -400,6 +412,50 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             e.HasOne(s => s.ProfessionalProfile)
                 .WithOne()
                 .HasForeignKey<CoachPaymentSettings>(s => s.ProfessionalProfileId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<CoachPackage>(e =>
+        {
+            e.HasIndex(p => p.ProfessionalProfileId);
+            e.Property(p => p.Price).HasPrecision(18, 2);
+            e.HasOne(p => p.ProfessionalProfile)
+                .WithMany()
+                .HasForeignKey(p => p.ProfessionalProfileId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<CoachPackagePrice>(e =>
+        {
+            e.HasIndex(p => new { p.CoachPackageId, p.EffectiveFromUtc });
+            e.Property(p => p.Price).HasPrecision(18, 2);
+            e.HasOne(p => p.CoachPackage)
+                .WithMany(p => p.Prices)
+                .HasForeignKey(p => p.CoachPackageId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<CoachDiscount>(e =>
+        {
+            e.HasIndex(d => d.ProfessionalProfileId);
+            e.Property(d => d.Value).HasPrecision(18, 2);
+            e.HasOne(d => d.ProfessionalProfile)
+                .WithMany()
+                .HasForeignKey(d => d.ProfessionalProfileId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<CoachDiscountPackage>(e =>
+        {
+            e.HasIndex(l => new { l.CoachDiscountId, l.CoachPackageId }).IsUnique();
+            e.HasIndex(l => l.CoachPackageId);
+            e.HasOne(l => l.CoachDiscount)
+                .WithMany(d => d.Packages)
+                .HasForeignKey(l => l.CoachDiscountId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(l => l.CoachPackage)
+                .WithMany()
+                .HasForeignKey(l => l.CoachPackageId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 

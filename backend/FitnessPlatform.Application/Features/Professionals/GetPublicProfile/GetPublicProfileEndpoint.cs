@@ -17,7 +17,11 @@ namespace FitnessPlatform.Application.Features.Professionals.GetPublicProfile;
 /// </summary>
 /// <param name="db">Database context.</param>
 /// <param name="userManager">ASP.NET Identity user manager.</param>
-public class GetPublicProfileEndpoint(IApplicationDbContext db, UserManager<ApplicationUser> userManager)
+/// <param name="entitlementService">Resolves subscription entitlements.</param>
+public class GetPublicProfileEndpoint(
+    IApplicationDbContext db,
+    UserManager<ApplicationUser> userManager,
+    EntitlementService entitlementService)
     : Endpoint<GetPublicProfileRequest, GetPublicProfileResponse>
 {
     /// <inheritdoc />
@@ -80,6 +84,9 @@ public class GetPublicProfileEndpoint(IApplicationDbContext db, UserManager<Appl
         var allRoles = await userManager.GetRolesAsync(profile.User);
         var professionalRoles = CoachRoleStatus.ActiveRoles(allRoles, profile).ToList();
 
+        var fromMonthlyPrices = await CoachPackagePricing.LoadFromMonthlyPricesAsync(
+            db, entitlementService, [profile.Id], ct);
+
         await Send.OkAsync(new GetPublicProfileResponse
         {
             PublicId = profile.PublicId,
@@ -90,7 +97,7 @@ public class GetPublicProfileEndpoint(IApplicationDbContext db, UserManager<Appl
             Certificates = ParseCertificateTitles(profile.Certificates),
             Languages = ParseJsonArray(profile.Languages),
             City = profile.City,
-            EstimatedPrice = profile.EstimatedPrice,
+            FromMonthlyPrice = fromMonthlyPrices.TryGetValue(profile.Id, out var fromMonthlyPrice) ? fromMonthlyPrice : null,
             CollaborationType = profile.CollaborationType,
             LinkedIn = profile.LinkedIn,
             Instagram = profile.Instagram,
