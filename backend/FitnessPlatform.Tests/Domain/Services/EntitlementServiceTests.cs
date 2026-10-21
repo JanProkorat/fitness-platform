@@ -75,7 +75,8 @@ public class EntitlementServiceTests(FitnessApiFactory factory)
         bool canMessage = true,
         bool canSendQuestionnaires = true,
         bool canUseWeeklyCheckIns = true,
-        bool canUsePerClientCheckInConfig = true)
+        bool canUsePerClientCheckInConfig = true,
+        bool canUsePayments = true)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -92,6 +93,7 @@ public class EntitlementServiceTests(FitnessApiFactory factory)
             CanSendQuestionnaires = canSendQuestionnaires,
             CanUseWeeklyCheckIns = canUseWeeklyCheckIns,
             CanUsePerClientCheckInConfig = canUsePerClientCheckInConfig,
+            CanUsePayments = canUsePayments,
             MaxActiveClients = maxActiveClients,
             PriceMinorUnits = 99900,
             Currency = "CZK",
@@ -149,6 +151,24 @@ public class EntitlementServiceTests(FitnessApiFactory factory)
         entitlements.CanSendQuestionnaires.Should().Be(expectPlanFlags);
         entitlements.CanUseWeeklyCheckIns.Should().Be(expectPlanFlags);
         entitlements.CanUsePerClientCheckInConfig.Should().Be(expectPlanFlags);
+        entitlements.CanUsePayments.Should().Be(expectPlanFlags);
+        scope.Dispose();
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task GetEntitlementsAsync_ActiveStatus_CopiesCanUsePaymentsFromPlan(bool canUsePayments)
+    {
+        var professionalUserId = await RegisterProfessionalAsync($"payments-{canUsePayments}");
+        var professionalProfileId = await GetProfessionalProfileIdAsync(professionalUserId);
+        var planId = await CreateSubscriptionPlanAsync($"payments-{canUsePayments}", canUsePayments: canUsePayments);
+        await CreateCoachSubscriptionAsync(professionalProfileId, planId, SubscriptionStatus.Active);
+        var service = CreateService(out var scope);
+
+        var entitlements = await service.GetEntitlementsAsync(professionalProfileId, TestContext.Current.CancellationToken);
+
+        entitlements.CanUsePayments.Should().Be(canUsePayments);
         scope.Dispose();
     }
 

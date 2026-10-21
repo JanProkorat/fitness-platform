@@ -26,6 +26,7 @@ public class UpdateSubscriptionPlanValidatorTests
         CanSendQuestionnaires = true,
         CanUseWeeklyCheckIns = true,
         CanUsePerClientCheckInConfig = true,
+        CanUsePayments = true,
         Currency = "CZK",
         PriceMinorUnits = 29900,
         BillingInterval = BillingInterval.Monthly,
@@ -138,6 +139,16 @@ public class UpdateSubscriptionPlanValidatorTests
 
         var result = _validator.TestValidate(req);
         result.ShouldHaveValidationErrorFor(x => x.CanCreatePlans).WithErrorCode(ErrorCodes.Required);
+    }
+
+    [Fact]
+    public void CanUsePayments_NotSet_FailsWithRequiredCode()
+    {
+        var req = ValidRequest();
+        req.CanUsePayments = null;
+
+        var result = _validator.TestValidate(req);
+        result.ShouldHaveValidationErrorFor(x => x.CanUsePayments).WithErrorCode(ErrorCodes.Required);
     }
 
     [Fact]
