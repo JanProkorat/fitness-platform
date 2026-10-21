@@ -213,7 +213,7 @@ internal sealed class RequestClientPaymentEndpoint(
                 period = payment.PeriodStart is { } start ? start.ToString("yyyy-MM") : payment.Title,
                 amount = payment.Amount,
                 detail = payment.DueDate.ToString("yyyy-MM-dd"),
-                channels = string.Join('+', new[] { req.SendEmail ? "email" : null, req.SendNotification ? "notification" : null }.OfType<string>())
+                channels = string.Join(',', new[] { req.SendEmail ? "email" : null, req.SendNotification ? "notification" : null }.OfType<string>())
             },
             ct);
 

@@ -93,15 +93,15 @@ internal sealed class GetClientPaymentHistoryEndpoint(
             using var document = JsonDocument.Parse(row.NewValues);
             var root = document.RootElement;
 
-            entry.PaymentId = root.TryGetProperty("paymentId", out var paymentId) && paymentId.TryGetGuid(out var parsed)
-                ? parsed
-                : null;
+            entry.PaymentId = Guid.TryParse(ReadString(root, "paymentId"), out var parsed) ? parsed : null;
             entry.Period = ReadString(root, "period");
             entry.Detail = ReadString(root, "detail");
             entry.Discount = ReadString(root, "discount");
-            entry.Amount = root.TryGetProperty("amount", out var amount) && amount.TryGetDecimal(out var value)
-                ? value
-                : null;
+            entry.Amount = root.TryGetProperty("amount", out var amount)
+                && amount.ValueKind == JsonValueKind.Number
+                && amount.TryGetDecimal(out var value)
+                    ? value
+                    : null;
         }
         catch (JsonException)
         {
