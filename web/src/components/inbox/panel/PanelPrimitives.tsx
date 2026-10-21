@@ -1,5 +1,20 @@
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+
+/** Error text with a retry button for a panel card whose query failed. */
+export function PanelLoadError({ onRetry }: { onRetry: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <div data-testid="panel-load-error" className="flex flex-col items-center gap-2 py-4">
+      <p className="text-caption text-muted-foreground">{t('common.loadError')}</p>
+      <Button type="button" variant="outline" size="sm" onClick={onRetry}>
+        {t('clients.retry')}
+      </Button>
+    </div>
+  );
+}
 
 interface HeaderProps {
   name: string;

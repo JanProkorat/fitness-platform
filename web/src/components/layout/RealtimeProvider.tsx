@@ -6,13 +6,12 @@ import { RealtimeContext, setHubConnection, useSignalR, type RealtimeApi } from 
 
 type Handler = (payload: unknown) => void;
 
-/** Events that change what a coach sees in Pending, the notification popover or the Inbox badge. */
-const COACH_EVENTS = [
+/** Cooperation events that change what a coach sees in Pending, the notification popover or the Inbox badge. */
+const COOPERATION_EVENTS = [
   'clientrequestreceived',
   'clientrequestcancelled',
   'inviteaccepted',
   'invitedeclined',
-  'newmessage',
 ] as const;
 
 /**
@@ -121,24 +120,35 @@ export default function RealtimeProvider({ children }: { children: ReactNode }) 
   );
 }
 
-/** Refetches the coach-facing lists whenever a request, invite or message event arrives (and after a reconnect). */
+/**
+ * Refetches the coach-facing lists on realtime events (and after a reconnect).
+ * A new message only touches the inbox lists and notifications (the open thread
+ * is refreshed by `InboxPage`); cooperation events also refresh clients and Pending.
+ */
 function CoachRealtimeSync() {
   const queryClient = useQueryClient();
 
-  const invalidate = useCallback(() => {
+  const invalidateInbox = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: ['notifications'] });
-    void queryClient.invalidateQueries({ queryKey: ['clients', 'pending'] });
-    // Carries the Pending tab's badge count.
-    void queryClient.invalidateQueries({ queryKey: ['clients', 'list'] });
     void queryClient.invalidateQueries({ queryKey: ['conversations', 'filter-counts'] });
     void queryClient.invalidateQueries({ queryKey: ['conversations', 'list'] });
   }, [queryClient]);
 
+  const invalidateAll = useCallback(() => {
+    invalidateInbox();
+    void queryClient.invalidateQueries({ queryKey: ['clients', 'pending'] });
+    // Carries the Pending tab's badge count.
+    void queryClient.invalidateQueries({ queryKey: ['clients', 'list'] });
+  }, [queryClient, invalidateInbox]);
+
   const handlers = useMemo(
-    () => Object.fromEntries(COACH_EVENTS.map((event) => [event, invalidate])),
-    [invalidate],
+    () => ({
+      ...Object.fromEntries(COOPERATION_EVENTS.map((event) => [event, invalidateAll])),
+      newmessage: invalidateInbox,
+    }),
+    [invalidateAll, invalidateInbox],
   );
-  useSignalR(handlers, invalidate);
+  useSignalR(handlers, invalidateAll);
 
   return null;
 }

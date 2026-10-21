@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { Skeleton } from '@/components/ui/skeleton';
 import OnboardingAnswersCard from '@/components/inbox/panel/OnboardingAnswersCard';
-import { PanelStatusHeader } from '@/components/inbox/panel/PanelPrimitives';
+import { PanelLoadError, PanelStatusHeader } from '@/components/inbox/panel/PanelPrimitives';
 import { useIncomingRequests } from '@/hooks/useClientsQueries';
 
 interface Props {
@@ -33,6 +33,8 @@ export default function PendingClientPanel({ name, sourceId, clientPublicId }: P
       />
       {requestsQuery.isPending ? (
         <Skeleton className="h-48 w-full" />
+      ) : requestsQuery.isError ? (
+        <PanelLoadError onRetry={() => void requestsQuery.refetch()} />
       ) : request ? (
         <OnboardingAnswersCard request={request} />
       ) : null}

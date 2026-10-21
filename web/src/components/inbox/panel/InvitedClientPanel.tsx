@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { Skeleton } from '@/components/ui/skeleton';
 import InviteSummaryCard from '@/components/inbox/panel/InviteSummaryCard';
-import { PanelStatusHeader } from '@/components/inbox/panel/PanelPrimitives';
+import { PanelLoadError, PanelStatusHeader } from '@/components/inbox/panel/PanelPrimitives';
 import { PendingRowKind } from '@/api/clients';
 import { usePendingClients } from '@/hooks/useClientsQueries';
 import { firstName } from '@/lib/cooperationCards';
@@ -30,7 +30,13 @@ export default function InvitedClientPanel({ name, sourceId }: Props) {
         chipDotClassName="bg-muted-foreground"
         description={t('inbox.panel.invitedLine', { name: firstName(name) })}
       />
-      {pendingQuery.isPending ? <Skeleton className="h-36 w-full" /> : <InviteSummaryCard email={invite?.email} sentAt={invite?.sentAt} />}
+      {pendingQuery.isPending ? (
+        <Skeleton className="h-36 w-full" />
+      ) : pendingQuery.isError ? (
+        <PanelLoadError onRetry={() => void pendingQuery.refetch()} />
+      ) : (
+        <InviteSummaryCard email={invite?.email} sentAt={invite?.sentAt} />
+      )}
     </div>
   );
 }
