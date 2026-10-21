@@ -4420,6 +4420,7 @@
       "withdrawn": "Das Kooperationsangebot wurde zurückgezogen"
     },
     "panel": {
+      "loadError": "Die Details konnten nicht geladen werden.",
       "pendingChip": "Ausstehend",
       "pendingLine": "Noch kein Klient · nehmen Sie die Anfrage an, um zu starten",
       "invitedChip": "Eingeladen",
