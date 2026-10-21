@@ -9,7 +9,8 @@ WHEN DOES THIS RUN?
   in-conversation state about which pipeline phase is active.
 
 WHAT DOES IT DO?
-  It reads the pipeline.json state file and prints its key fields to stdout.
+  It reads the pipeline.json state file (or, when absent, ship-epic.json for
+  an epic that is not done) and prints its key fields to stdout.
   Claude Code injects that stdout text back into the conversation as context,
   so Claude "remembers" where the pipeline was even after a reset.
   Project conventions live in CLAUDE.md (auto-loaded) and .claude/rules/*.md

@@ -68,6 +68,9 @@ other's: the run executes the entire suite and still prints a clean
 
 The repo's `CLAUDE.md` overrides this table if it names a form.
 
+Under MTP, `--filter-class` takes a full class name; a `filter` that is a
+name fragment matches nothing (`Total: 0`) — resolve it to the class first.
+
 **Prove the filter applies** before trusting a scoped pass: the same command
 with a bogus name must report `Total: 0` (MTP) or `No test matches the given
 testcase filter` (VSTest). A total far above the scoped class's test count
