@@ -60,4 +60,36 @@ public class ClientOwnPlanItem
     /// Null when CurrentWeek is null or for nutrition plans.
     /// </summary>
     public bool? HasTodaySession { get; set; }
+
+    /// <summary>
+    /// Last day of the plan (StartDate + TotalWeeks weeks - 1 day). Null when the plan has no StartDate.
+    /// </summary>
+    public DateTime? EndDate { get; set; }
+
+    /// <summary>
+    /// Sessions scheduled from StartDate up to today (or EndDate, whichever is earlier).
+    /// Training plans only; null without a StartDate or before anything is planned.
+    /// </summary>
+    public int? SessionsTotal { get; set; }
+
+    /// <summary>
+    /// How many of <see cref="SessionsTotal"/> the client completed. Training plans only; never exceeds the total.
+    /// </summary>
+    public int? SessionsDone { get; set; }
+
+    /// <summary>
+    /// Share (0-100) of the meals planned in the window that the client logged as eaten.
+    /// Nutrition plans only; null without a StartDate or when no meals are planned yet.
+    /// </summary>
+    public int? MealsLoggedPercent { get; set; }
+
+    /// <summary>
+    /// Full name of the professional who authored the plan. Null when that user no longer exists.
+    /// </summary>
+    public string? ProfessionalName { get; set; }
+
+    /// <summary>
+    /// "Trainer" for training plans, "Nutritionist" for nutrition plans.
+    /// </summary>
+    public string ProfessionalRole { get; set; } = string.Empty;
 }
