@@ -3,12 +3,10 @@ import type { SFSymbol } from 'expo-symbols';
 import { Tabs } from 'expo-router/js-tabs';
 import type { BottomTabBarProps } from 'expo-router/js-tabs';
 import { useTranslation } from 'react-i18next';
-import { useReducedMotion } from 'react-native-reanimated';
 
 import { GlassTabBar } from '@/components/GlassTabBar';
 import { useUnreadMessageCount } from '@/hooks/useConversations';
 import { useTheme } from '@/theme';
-import { tabSwitchMotion } from '@/theme/motion';
 
 type TabKey = 'index' | 'training' | 'nutrition' | 'messages';
 
@@ -66,13 +64,11 @@ function AppTabBar({ state, navigation }: BottomTabBarProps) {
 }
 
 export default function TabsLayout() {
-  const reduceMotion = useReducedMotion();
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        animation: reduceMotion ? 'none' : 'fade',
-        transitionSpec: { animation: 'timing', config: { duration: tabSwitchMotion.duration } },
+        animation: 'none',
       }}
       tabBar={(props) => <AppTabBar {...props} />}
     >

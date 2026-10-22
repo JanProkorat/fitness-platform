@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import type { Conversation } from '@/api/conversations';
 import { ConversationRow } from '@/components/messages/ConversationRow';
 import { Screen } from '@/components/Screen';
+import { TabFade } from '@/components/TabFade';
 import { Text } from '@/components/Text';
 import { useConversations } from '@/hooks/useConversations';
 import { useTheme } from '@/theme';
@@ -15,6 +16,14 @@ const byRecency = (a: Conversation, b: Conversation) =>
   Date.parse(b.lastMessageAt ?? '') - Date.parse(a.lastMessageAt ?? '') || 0;
 
 export default function MessagesScreen() {
+  return (
+    <TabFade>
+      <MessagesContent />
+    </TabFade>
+  );
+}
+
+function MessagesContent() {
   const { t } = useTranslation();
   const theme = useTheme();
   const styles = makeStyles(theme);

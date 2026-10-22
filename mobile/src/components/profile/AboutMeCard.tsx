@@ -26,19 +26,7 @@ export function AboutMeCard() {
 
   return (
     <View style={styles.section}>
-      <SectionHeader
-        title={t('profile.aboutMe.title')}
-        trailing={
-          <Pressable
-            accessibilityRole="link"
-            accessibilityLabel={t('profile.aboutMe.edit')}
-            hitSlop={theme.spacing.md}
-            onPress={edit}
-          >
-            <Text variant="labelStrong">{t('profile.aboutMe.edit')}</Text>
-          </Pressable>
-        }
-      />
+      <SectionHeader title={t('profile.aboutMe.title')} />
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={t('profile.aboutMe.a11yLabel')}
