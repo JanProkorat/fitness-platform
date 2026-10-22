@@ -26933,6 +26933,26 @@ export interface ClientOnboardingAnswersResponse {
     allergies?: string[];
     /** Foods the client dislikes. */
     dislikes?: string[];
+    /** Date of birth. */
+    dateOfBirth?: string;
+    /** Biological sex (enum name). */
+    sex?: string;
+    /** Height in centimeters. */
+    heightCm?: number;
+    /** Type of daily job activity (enum name). */
+    jobType?: string;
+    /** Average hours of sleep per night. */
+    sleepHours?: number;
+    /** Self-reported stress level (1-5). */
+    stressLevel?: number;
+    /** Current training frequency (enum name). */
+    currentTrainingFrequency?: string;
+    /** Preferred activity types. */
+    preferredActivities?: string[];
+    /** Meals per day (enum name). */
+    mealsPerDay?: string;
+    /** Eating habits. */
+    habits?: string[];
 }
 
 /** Partial update of the client's onboarding answers. A null property is left unchanged. */
@@ -26953,6 +26973,26 @@ export interface UpdateClientOnboardingAnswersRequest {
     allergies?: string[] | undefined;
     /** Foods the client dislikes; replaces the stored list. */
     dislikes?: string[] | undefined;
+    /** Date of birth; the client must be 13-100 years old. */
+    dateOfBirth?: string | undefined;
+    /** Biological sex (enum name). */
+    sex?: string | undefined;
+    /** Height in centimeters (140-220, one decimal place). */
+    heightCm?: number | undefined;
+    /** Type of daily job activity (enum name). */
+    jobType?: string | undefined;
+    /** Average hours of sleep per night (1-10). */
+    sleepHours?: number | undefined;
+    /** Self-reported stress level (1-5). */
+    stressLevel?: number | undefined;
+    /** Current training frequency over the last four weeks (enum name). */
+    currentTrainingFrequency?: string | undefined;
+    /** Preferred activity types; replaces the stored list. */
+    preferredActivities?: string[] | undefined;
+    /** Meals per day (enum name). */
+    mealsPerDay?: string | undefined;
+    /** Eating habits; replaces the stored list. */
+    habits?: string[] | undefined;
 }
 
 export interface MarkNotificationReadRequest {
