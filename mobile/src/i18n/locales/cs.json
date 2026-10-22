@@ -74,6 +74,65 @@
       }
     }
   },
+  "settings": {
+    "title": "Nastavení",
+    "back": "Zpět",
+    "logout": "Odhlásit se",
+    "sheet": {
+      "close": "Zavřít"
+    },
+    "account": {
+      "title": "Účet",
+      "email": "E-mail",
+      "password": "Heslo"
+    },
+    "preferences": {
+      "title": "Předvolby",
+      "language": "Jazyk",
+      "appearance": "Vzhled"
+    },
+    "language": {
+      "cs": "Čeština",
+      "en": "English",
+      "de": "Deutsch"
+    },
+    "appearance": {
+      "system": "Automaticky",
+      "light": "Světlý",
+      "dark": "Tmavý"
+    },
+    "notifications": {
+      "title": "Oznámení",
+      "messages": "Zprávy",
+      "loadError": "Nastavení oznámení se nepodařilo načíst. Klepnutím to zkusíte znovu.",
+      "saveError": "Změnu se nepodařilo uložit. Zkuste to prosím znovu."
+    },
+    "delete": {
+      "row": "Smazat účet",
+      "title": "Smazat účet?",
+      "message": "Tím trvale smažete svůj účet a svá data. Tento krok nelze vrátit zpět.",
+      "cancel": "Zrušit",
+      "confirm": "Smazat",
+      "error": "Účet se nepodařilo smazat. Zůstáváte přihlášeni. Zkuste to prosím znovu."
+    },
+    "password": {
+      "title": "Změna hesla",
+      "current": "Současné heslo",
+      "new": "Nové heslo",
+      "confirm": "Nové heslo znovu",
+      "show": "Zobrazit",
+      "hide": "Skrýt",
+      "submit": "Změnit heslo",
+      "mismatch": "Hesla se neshodují.",
+      "errors": {
+        "invalidCurrent": "Současné heslo není správné.",
+        "notSet": "Tento účet nemá heslo, které by šlo změnit.",
+        "rateLimited": "Příliš mnoho pokusů. Zkuste to prosím za chvíli.",
+        "network": "Nelze se spojit se serverem. Zkontrolujte připojení a zkuste to znovu.",
+        "generic": "Heslo se nepodařilo změnit. Zkuste to prosím znovu."
+      }
+    }
+  },
   "tabs": {
     "today": "Dnes",
     "training": "Trénink",
@@ -446,6 +505,30 @@
       "network": "Server není dostupný. Zkontroluj připojení a zkus to znovu.",
       "generic": "E-mail se nepodařilo odeslat. Zkus to prosím znovu."
     }
+  },
+  "checkInHistory": {
+    "title": "Historie check-inů",
+    "count_one": "{{count}} check-in",
+    "count_few": "{{count}} check-iny",
+    "count_many": "{{count}} check-inu",
+    "count_other": "{{count}} check-inů",
+    "countSince_one": "{{count}} check-in od {{since}}",
+    "countSince_few": "{{count}} check-iny od {{since}}",
+    "countSince_many": "{{count}} check-inu od {{since}}",
+    "countSince_other": "{{count}} check-inů od {{since}}",
+    "filterAll": "Vše",
+    "filterLabel": "Filtrovat podle trenéra",
+    "openNow": "Čeká na tebe",
+    "weekOf": "Týden od {{date}}",
+    "answerBy": "{{coach}} · termín: {{weekday}}",
+    "status": {
+      "sent": "Odesláno",
+      "reviewed": "Zhodnoceno",
+      "missed": "Zmeškáno"
+    },
+    "empty": "Zatím žádné check-iny. Týdenní check-iny od tvých trenérů se objeví tady.",
+    "error": "Check-iny se nepodařilo načíst.",
+    "retry": "Zkusit znovu"
   },
   "changeEmail": {
     "title": "Změnit e-mail",

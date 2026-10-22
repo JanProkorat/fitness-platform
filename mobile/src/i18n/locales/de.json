@@ -74,6 +74,65 @@
       }
     }
   },
+  "settings": {
+    "title": "Einstellungen",
+    "back": "Zurück",
+    "logout": "Abmelden",
+    "sheet": {
+      "close": "Schließen"
+    },
+    "account": {
+      "title": "Konto",
+      "email": "E-Mail",
+      "password": "Passwort"
+    },
+    "preferences": {
+      "title": "Präferenzen",
+      "language": "Sprache",
+      "appearance": "Darstellung"
+    },
+    "language": {
+      "cs": "Čeština",
+      "en": "English",
+      "de": "Deutsch"
+    },
+    "appearance": {
+      "system": "Automatisch",
+      "light": "Hell",
+      "dark": "Dunkel"
+    },
+    "notifications": {
+      "title": "Benachrichtigungen",
+      "messages": "Nachrichten",
+      "loadError": "Die Benachrichtigungseinstellungen konnten nicht geladen werden. Tippen, um es erneut zu versuchen.",
+      "saveError": "Die Änderung konnte nicht gespeichert werden. Bitte versuche es erneut."
+    },
+    "delete": {
+      "row": "Konto löschen",
+      "title": "Konto löschen?",
+      "message": "Dadurch werden dein Konto und deine Daten dauerhaft gelöscht. Das kann nicht rückgängig gemacht werden.",
+      "cancel": "Abbrechen",
+      "confirm": "Löschen",
+      "error": "Das Konto konnte nicht gelöscht werden. Du bist weiterhin angemeldet. Bitte versuche es erneut."
+    },
+    "password": {
+      "title": "Passwort ändern",
+      "current": "Aktuelles Passwort",
+      "new": "Neues Passwort",
+      "confirm": "Neues Passwort wiederholen",
+      "show": "Anzeigen",
+      "hide": "Verbergen",
+      "submit": "Passwort ändern",
+      "mismatch": "Die Passwörter stimmen nicht überein.",
+      "errors": {
+        "invalidCurrent": "Das aktuelle Passwort ist falsch.",
+        "notSet": "Dieses Konto hat kein Passwort, das geändert werden könnte.",
+        "rateLimited": "Zu viele Versuche. Bitte versuche es gleich noch einmal.",
+        "network": "Der Server ist nicht erreichbar. Prüfe deine Verbindung und versuche es erneut.",
+        "generic": "Das Passwort konnte nicht geändert werden. Bitte versuche es erneut."
+      }
+    }
+  },
   "tabs": {
     "today": "Heute",
     "training": "Training",
@@ -440,6 +499,26 @@
       "network": "Server nicht erreichbar. Prüfe deine Verbindung und versuche es erneut.",
       "generic": "Die E-Mail konnte nicht gesendet werden. Bitte versuche es erneut."
     }
+  },
+  "checkInHistory": {
+    "title": "Check-in-Verlauf",
+    "count_one": "{{count}} Check-in",
+    "count_other": "{{count}} Check-ins",
+    "countSince_one": "{{count}} Check-in seit {{since}}",
+    "countSince_other": "{{count}} Check-ins seit {{since}}",
+    "filterAll": "Alle",
+    "filterLabel": "Nach Coach filtern",
+    "openNow": "Jetzt offen",
+    "weekOf": "Woche vom {{date}}",
+    "answerBy": "{{coach}} · antworten bis {{weekday}}",
+    "status": {
+      "sent": "Gesendet",
+      "reviewed": "Geprüft",
+      "missed": "Verpasst"
+    },
+    "empty": "Noch keine Check-ins. Die wöchentlichen Check-ins deiner Coaches erscheinen hier.",
+    "error": "Check-ins konnten nicht geladen werden.",
+    "retry": "Erneut versuchen"
   },
   "changeEmail": {
     "title": "E-Mail ändern",

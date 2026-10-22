@@ -74,6 +74,65 @@
       }
     }
   },
+  "settings": {
+    "title": "Settings",
+    "back": "Back",
+    "logout": "Log out",
+    "sheet": {
+      "close": "Close"
+    },
+    "account": {
+      "title": "Account",
+      "email": "Email",
+      "password": "Password"
+    },
+    "preferences": {
+      "title": "Preferences",
+      "language": "Language",
+      "appearance": "Appearance"
+    },
+    "language": {
+      "cs": "Čeština",
+      "en": "English",
+      "de": "Deutsch"
+    },
+    "appearance": {
+      "system": "Automatic",
+      "light": "Light",
+      "dark": "Dark"
+    },
+    "notifications": {
+      "title": "Notifications",
+      "messages": "Messages",
+      "loadError": "Couldn't load your notification settings. Tap to try again.",
+      "saveError": "Couldn't save the change. Please try again."
+    },
+    "delete": {
+      "row": "Delete account",
+      "title": "Delete your account?",
+      "message": "This permanently deletes your account and your data. This can't be undone.",
+      "cancel": "Cancel",
+      "confirm": "Delete",
+      "error": "Couldn't delete your account. You are still signed in. Please try again."
+    },
+    "password": {
+      "title": "Change password",
+      "current": "Current password",
+      "new": "New password",
+      "confirm": "Repeat new password",
+      "show": "Show",
+      "hide": "Hide",
+      "submit": "Change password",
+      "mismatch": "The passwords don't match.",
+      "errors": {
+        "invalidCurrent": "Your current password is wrong.",
+        "notSet": "This account has no password to change.",
+        "rateLimited": "Too many attempts. Please try again in a moment.",
+        "network": "Can't reach the server. Check your connection and try again.",
+        "generic": "Couldn't change your password. Please try again."
+      }
+    }
+  },
   "tabs": {
     "today": "Today",
     "training": "Training",
@@ -440,6 +499,26 @@
       "network": "Can't reach the server. Check your connection and try again.",
       "generic": "Couldn't send the email. Please try again."
     }
+  },
+  "checkInHistory": {
+    "title": "Check-in history",
+    "count_one": "{{count}} check-in",
+    "count_other": "{{count}} check-ins",
+    "countSince_one": "{{count}} check-in since {{since}}",
+    "countSince_other": "{{count}} check-ins since {{since}}",
+    "filterAll": "All",
+    "filterLabel": "Filter by coach",
+    "openNow": "Open now",
+    "weekOf": "Week of {{date}}",
+    "answerBy": "{{coach}} · answer by {{weekday}}",
+    "status": {
+      "sent": "Sent",
+      "reviewed": "Reviewed",
+      "missed": "Missed"
+    },
+    "empty": "No check-ins yet. Your coaches' weekly check-ins will show up here.",
+    "error": "Couldn't load your check-ins.",
+    "retry": "Try again"
   },
   "changeEmail": {
     "title": "Change email",

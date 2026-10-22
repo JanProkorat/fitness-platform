@@ -5,12 +5,17 @@ import { initReactI18next } from 'react-i18next';
 import cs from './locales/cs.json';
 import de from './locales/de.json';
 import en from './locales/en.json';
+import { SUPPORTED_LANGUAGES, isLanguage, usePreferencesStore } from '@/stores/preferences';
 
-const SUPPORTED_LOCALES = ['cs', 'en', 'de'];
+const SUPPORTED_LOCALES: string[] = [...SUPPORTED_LANGUAGES];
 const FALLBACK_LOCALE = 'cs';
 
-const deviceLanguage = getLocales()[0]?.languageCode ?? FALLBACK_LOCALE;
-const lng = SUPPORTED_LOCALES.includes(deviceLanguage) ? deviceLanguage : FALLBACK_LOCALE;
+// Stored choice first, then the device language, then Czech. Loading the store here also
+// applies the stored appearance before the first render.
+const deviceLanguage = getLocales()[0]?.languageCode;
+const lng =
+  usePreferencesStore.getState().language ??
+  (isLanguage(deviceLanguage) ? deviceLanguage : FALLBACK_LOCALE);
 
 void i18n.use(initReactI18next).init({
   resources: {
