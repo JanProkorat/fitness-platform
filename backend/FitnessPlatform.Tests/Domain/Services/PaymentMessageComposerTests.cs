@@ -61,6 +61,15 @@ public class PaymentMessageComposerTests
     }
 
     [Theory]
+    [InlineData("cs", "1 750,50 €")]
+    [InlineData("en", "€1 750.50")]
+    public void FormatAmount_Euro_PutsTheSymbolWhereTheLanguageWantsIt(string language, string expected)
+    {
+        PaymentMessageComposer.FormatAmount(1750.5m, language, PaymentCurrency.EUR)
+            .Replace(Nbsp, ' ').Should().Be(expected);
+    }
+
+    [Theory]
     [InlineData("cs", "1750,50")]
     [InlineData("en", "1750.50")]
     public void FormatAmount_FractionalAmount_UsesTheLanguagesDecimalSeparator(string language, string digits)

@@ -17,7 +17,7 @@ namespace FitnessPlatform.Tests.Endpoints.Professionals;
 [Collection(TestCollection.Name)]
 public class FromMonthlyPriceTests(FitnessApiFactory factory)
 {
-    private sealed record ProfileBody(decimal? FromMonthlyPrice);
+    private sealed record ProfileBody(decimal? FromMonthlyPrice, PaymentCurrency? FromMonthlyPriceCurrency);
 
     private sealed record SearchItem(Guid PublicId, decimal? FromMonthlyPrice);
 
@@ -28,7 +28,8 @@ public class FromMonthlyPriceTests(FitnessApiFactory factory)
         decimal price,
         PackageBillingInterval billing = PackageBillingInterval.Monthly,
         bool showOnProfile = true,
-        bool archived = false)
+        bool archived = false,
+        PaymentCurrency currency = PaymentCurrency.CZK)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -39,6 +40,7 @@ public class FromMonthlyPriceTests(FitnessApiFactory factory)
             ProfessionalProfileId = coach.ProfileId,
             Name = "Package",
             Price = price,
+            Currency = currency,
             Billing = billing,
             IntervalWeeks = billing == PackageBillingInterval.EveryNWeeks ? 2 : null,
             ShowOnProfile = showOnProfile,
@@ -48,13 +50,33 @@ public class FromMonthlyPriceTests(FitnessApiFactory factory)
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
-    private async Task<decimal?> ReadProfilePriceAsync(Actor coach, Actor client)
+    private async Task<ProfileBody> ReadProfileAsync(Actor coach, Actor client)
     {
         var response = await client.Http.GetAsync($"/professionals/{coach.PublicId}", TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        return (await response.Content.ReadFromJsonAsync<ProfileBody>(TestContext.Current.CancellationToken))!.FromMonthlyPrice;
+        return (await response.Content.ReadFromJsonAsync<ProfileBody>(
+            new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web)
+            {
+                Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
+            },
+            TestContext.Current.CancellationToken))!;
+    }
+
+    private async Task SetProfileCurrencyAsync(Actor coach, PaymentCurrency currency)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        db.CoachPaymentSettings.Add(new CoachPaymentSettings
+        {
+            PublicId = Guid.NewGuid(),
+            ProfessionalProfileId = coach.ProfileId,
+            ProfileCurrency = currency
+        });
+
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -71,7 +93,29 @@ public class FromMonthlyPriceTests(FitnessApiFactory factory)
         await AddPackageAsync(coach, 700m, PackageBillingInterval.EveryNWeeks);
         await AddPackageAsync(coach, 600m, PackageBillingInterval.OneOff);
 
-        (await ReadProfilePriceAsync(coach, client)).Should().Be(1800m);
+        // A coach without a settings row has CZK as main currency, so a cheaper euro package is ignored.
+        await AddPackageAsync(coach, 50m, currency: PaymentCurrency.EUR);
+
+        var profile = await ReadProfileAsync(coach, client);
+
+        profile.FromMonthlyPrice.Should().Be(1800m);
+        profile.FromMonthlyPriceCurrency.Should().Be(PaymentCurrency.CZK);
+    }
+
+    [Fact]
+    public async Task PublicProfile_EuroMainCurrency_ShowsTheLowestEuroPackage()
+    {
+        var coach = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
+        var client = await TestActors.Client(factory).CreateAsync(TestContext.Current.CancellationToken);
+        await SetProfileCurrencyAsync(coach, PaymentCurrency.EUR);
+        await AddPackageAsync(coach, 80m, currency: PaymentCurrency.EUR);
+        await AddPackageAsync(coach, 60m, currency: PaymentCurrency.EUR);
+        await AddPackageAsync(coach, 500m);
+
+        var profile = await ReadProfileAsync(coach, client);
+
+        profile.FromMonthlyPrice.Should().Be(60m);
+        profile.FromMonthlyPriceCurrency.Should().Be(PaymentCurrency.EUR);
     }
 
     [Fact]

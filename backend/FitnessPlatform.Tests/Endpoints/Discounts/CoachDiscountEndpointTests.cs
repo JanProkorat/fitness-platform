@@ -126,6 +126,19 @@ public class CoachDiscountEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
+    public async Task Get_ClientWithTermsUsingTheDiscount_CountsItInUsedBy()
+    {
+        var world = await ClientPayments.ClientPaymentFixtures.CreateWorldAsync(factory);
+        var package = await ClientPayments.ClientPaymentFixtures.CreatePackageAsync(world.Coach);
+        var used = await ClientPayments.ClientPaymentFixtures.CreateDiscountAsync(world.Coach, name: "Used");
+        var unused = await ClientPayments.ClientPaymentFixtures.CreateDiscountAsync(world.Coach, name: "Unused");
+        await ClientPayments.ClientPaymentFixtures.SetTermsOkAsync(world, package, used);
+
+        (await GetAsync(world.Coach, used)).UsedByCount.Should().Be(1);
+        (await GetAsync(world.Coach, unused)).UsedByCount.Should().Be(0);
+    }
+
+    [Fact]
     public async Task Create_FixedDiscountLimitedToAPackageInAnotherCurrency_Returns400CurrencyMismatch()
     {
         var coach = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);

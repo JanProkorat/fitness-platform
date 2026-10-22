@@ -212,6 +212,48 @@ public class SetClientPaymentTermsEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
+    public async Task SetTerms_FixedDiscountInAnotherCurrencyThanThePackage_Returns400CurrencyMismatch()
+    {
+        var world = await CreateWorldAsync(factory);
+        var euroPackage = await CreatePackageAsync(world.Coach, 100m, currency: "EUR");
+        var crownDiscount = await CreateDiscountAsync(world.Coach, 20m, type: "FixedAmount", currency: "CZK");
+
+        var response = await SetTermsAsync(world, euroPackage, crownDiscount);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await ProblemCodeAsync(response)).Should().Be("CURRENCY_MISMATCH");
+    }
+
+    [Fact]
+    public async Task SetTerms_EuroPackage_GivesEuroPaymentRows()
+    {
+        var world = await CreateWorldAsync(factory);
+        var euroPackage = await CreatePackageAsync(world.Coach, 100m, currency: "EUR");
+
+        await SetTermsOkAsync(world, euroPackage);
+
+        (await ListAsync(world)).Should().OnlyContain(p => p.Currency == PaymentCurrency.EUR);
+    }
+
+    [Fact]
+    public async Task SetTerms_MonthlyPackagesDiscount_CoversMonthlyPackagesOnly()
+    {
+        var world = await CreateWorldAsync(factory);
+        var monthly = await CreatePackageAsync(world.Coach, 2000m);
+        var oneOff = await CreatePackageAsync(world.Coach, 2000m, name: "Camp", billing: "OneOff");
+        var discount = await world.Coach.Http.PostAsJsonAsync(
+            "/payments/discounts",
+            new { Name = "Monthly only", Type = "Percentage", Value = 50m, Duration = "EveryPayment", Scope = "MonthlyPackages", PackageIds = new List<Guid>() },
+            TestContext.Current.CancellationToken);
+        var discountId = (await ReadAsync<FitnessPlatform.Application.Features.Discounts.Shared.CoachDiscountDto>(discount)).DiscountId;
+
+        await SetTermsOkAsync(world, monthly, discountId);
+
+        (await ListAsync(world)).Should().OnlyContain(p => p.Amount == 1000m);
+        (await SetTermsAsync(world, oneOff, discountId)).StatusCode.Should().Be(HttpStatusCode.Conflict);
+    }
+
+    [Fact]
     public async Task SetTerms_ConcurrentReadsOfTheNextPeriod_CreateExactlyOneRow()
     {
         var world = await CreateWorldAsync(factory);

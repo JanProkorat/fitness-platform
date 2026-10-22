@@ -75,6 +75,36 @@ public class CoachPackageValidatorTests
         _validator.TestValidate(request).ShouldNotHaveValidationErrorFor(x => x.Price);
     }
 
+    [Theory]
+    [InlineData(50_000, true)]
+    [InlineData(50_000.01, false)]
+    public void Validate_EuroPriceAtItsCap(double price, bool passes)
+    {
+        var request = Valid();
+        request.Currency = PaymentCurrency.EUR;
+        request.Price = (decimal)price;
+
+        var result = _validator.TestValidate(request);
+
+        if (passes)
+        {
+            result.ShouldNotHaveValidationErrorFor(x => x.Price);
+        }
+        else
+        {
+            result.ShouldHaveValidationErrorFor(x => x.Price);
+        }
+    }
+
+    [Fact]
+    public void Validate_DescriptionOver500Chars_Fails()
+    {
+        var request = Valid();
+        request.Description = new string('a', 501);
+
+        _validator.TestValidate(request).ShouldHaveValidationErrorFor(x => x.Description);
+    }
+
     [Fact]
     public void Validate_BillingNotInEnum_Fails()
     {

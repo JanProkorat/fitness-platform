@@ -52,6 +52,21 @@ public class PaymentSettingsEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
+    public async Task Put_ProfileCurrency_IsStoredAndKeptWhenOmitted()
+    {
+        var coach = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
+        var body = new { PaymentDueDays = 7, MessageFormat = "PackageName", VariableSymbolFormat = "YearMonthClientNumber" };
+
+        (await coach.Http.PutAsJsonAsync(
+            "/payments/settings", new { body.PaymentDueDays, body.MessageFormat, body.VariableSymbolFormat, ProfileCurrency = "EUR" },
+            TestContext.Current.CancellationToken)).StatusCode.Should().Be(HttpStatusCode.OK);
+        (await coach.Http.PutAsJsonAsync("/payments/settings", body, TestContext.Current.CancellationToken))
+            .StatusCode.Should().Be(HttpStatusCode.OK);
+
+        (await ReadSettingsAsync(factory, coach))!.ProfileCurrency.Should().Be(PaymentCurrency.EUR);
+    }
+
+    [Fact]
     public async Task Put_DueDaysOutOfRange_Returns400AndStoresNothing()
     {
         var coach = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
