@@ -5,7 +5,7 @@ import { ChevronRight, Eye, Plus, Tag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { PackageBillingInterval, PaymentCurrency, type CoachPackageDto } from '@/api/coach-packages';
+import { PaymentCurrency, type CoachPackageDto } from '@/api/coach-packages';
 import type { CoachDiscountDto } from '@/api/coach-discounts';
 import {
   getErrorCode,
@@ -30,6 +30,7 @@ import {
   useCoachPackages,
   useCreateDiscount,
   useCreatePackage,
+  useProfileFromPrice,
   useUpdateDiscount,
   useUpdatePackage,
 } from '@/components/package-catalog/usePackagesQueries';
@@ -50,18 +51,6 @@ function isNotEntitled(error: unknown): boolean {
 
 type ArchiveTarget = { kind: 'package' | 'discount'; id: string; name: string };
 
-/** The cheapest active monthly package the coach shows on the public profile, if any. */
-function profilePackage(packages: CoachPackageDto[]): CoachPackageDto | undefined {
-  return packages
-    .filter(
-      (item) =>
-        item.archivedAt === undefined &&
-        item.showOnProfile === true &&
-        item.billing === PackageBillingInterval.Monthly,
-    )
-    .sort((a, b) => (a.price ?? 0) - (b.price ?? 0))[0];
-}
-
 /** Business → Packages: the coach's packages and discounts, with create, edit and archive. */
 export default function PackagesPage() {
   const { t, i18n } = useTranslation();
@@ -70,6 +59,7 @@ export default function PackagesPage() {
 
   const packagesQuery = useCoachPackages();
   const discountsQuery = useCoachDiscounts();
+  const fromPriceQuery = useProfileFromPrice();
   const createPackage = useCreatePackage();
   const updatePackage = useUpdatePackage();
   const archivePackage = useArchivePackage();
@@ -146,7 +136,8 @@ export default function PackagesPage() {
     });
   };
 
-  const onProfile = profilePackage(packages);
+  // Hidden while loading and when the profile cannot be read; the server derives the value.
+  const fromPrice = fromPriceQuery.data;
   const isDiscountTab = tab === 'discounts';
 
   return (
@@ -211,18 +202,26 @@ export default function PackagesPage() {
                   </p>
                 )}
               </div>
-              {onProfile && (
+              {fromPrice && (
                 <div className="flex items-center gap-4 rounded-2xl border border-line bg-card px-5 py-4">
                   <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-sunken text-ink-2">
                     <Eye className="size-4.5" aria-hidden="true" />
                   </span>
                   <div className="flex min-w-0 flex-1 flex-col">
                     <span className="text-copy font-semibold text-ink">
-                      {t('packages.profileCard.title', {
-                        price: formatMoney(onProfile.price ?? 0, onProfile.currency ?? PaymentCurrency.CZK, i18n.language),
-                      })}
+                      {fromPrice.price === undefined
+                        ? t('packages.profileCard.emptyTitle')
+                        : t('packages.profileCard.title', {
+                            price: formatMoney(
+                              fromPrice.price,
+                              fromPrice.currency ?? PaymentCurrency.CZK,
+                              i18n.language,
+                            ),
+                          })}
                     </span>
-                    <span className="text-body text-muted-foreground">{t('packages.profileCard.body')}</span>
+                    <span className="text-body text-muted-foreground">
+                      {fromPrice.price === undefined ? t('packages.profileCard.emptyBody') : t('packages.profileCard.body')}
+                    </span>
                   </div>
                   <Link to="/profile" className="flex items-center gap-1 text-copy font-semibold text-ink">
                     {t('packages.profileCard.open')}

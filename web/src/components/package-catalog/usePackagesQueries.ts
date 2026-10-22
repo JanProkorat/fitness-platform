@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { getTrainerProfile, profileKeys } from '@/api/profile';
 import {
   archiveCoachPackage,
   coachPackagesKey,
@@ -28,13 +29,30 @@ export function useCoachDiscounts() {
   return useQuery({ queryKey: coachDiscountsKey, queryFn: getCoachDiscounts, retry: false });
 }
 
-/** A package change can alter which discounts apply, so both lists refetch after every settled write. */
+/** The public profile's "from X / month" price, derived by the server in the coach's profile currency. */
+export function useProfileFromPrice() {
+  return useQuery({
+    queryKey: profileKeys.trainer,
+    queryFn: getTrainerProfile,
+    retry: false,
+    select: (profile) => ({
+      price: profile.fromMonthlyPrice,
+      currency: profile.fromMonthlyPriceCurrency,
+    }),
+  });
+}
+
+/**
+ * A package change can alter which discounts apply and the public "from" price,
+ * so both lists and the trainer profile refetch after every settled write.
+ */
 function useRefetchCatalog() {
   const queryClient = useQueryClient();
   return () =>
     Promise.all([
       queryClient.invalidateQueries({ queryKey: coachPackagesKey }),
       queryClient.invalidateQueries({ queryKey: coachDiscountsKey }),
+      queryClient.invalidateQueries({ queryKey: profileKeys.trainer }),
     ]);
 }
 

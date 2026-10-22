@@ -5190,6 +5190,8 @@
     "profileCard": {
       "title": "Your public profile shows “from {{price}} / month”",
       "body": "The cheapest active monthly package marked “On profile”. It replaces the old free-text price.",
+      "emptyTitle": "Your public profile shows no price yet",
+      "emptyBody": "Mark an active monthly package “On profile” to show a “from … / month” price.",
       "open": "Open profile"
     },
     "paywall": {
@@ -5227,10 +5229,14 @@
       "intervalWeeks": "Weeks between payments",
       "runsFor": "Runs for",
       "runsForPlaceholder": "Until you stop it",
-      "runsForHint": "Leave empty, or set a number of payments",
+      "runsForHint": "Or a set number of payments",
+      "runsForOption_one": "{{count}} payment",
+      "runsForOption_other": "{{count}} payments",
       "paymentDue": "Payment due",
-      "paymentDuePlaceholder": "Default",
-      "paymentDueHint": "Days after the request. Empty uses Settings › Payments",
+      "paymentDuePlaceholder": "Use my default",
+      "paymentDueOption_one": "{{count}} day after the request",
+      "paymentDueOption_other": "{{count}} days after the request",
+      "paymentDueHint": "Default from Settings › Payments",
       "sectionVisibility": "Visibility",
       "showOnProfile": "Show on my public profile",
       "showOnProfileHint": "Used for the “from … / month” price clients see in search.",

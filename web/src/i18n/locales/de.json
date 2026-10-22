@@ -5189,6 +5189,8 @@
     "profileCard": {
       "title": "Dein öffentliches Profil zeigt „ab {{price}} / Monat“",
       "body": "Das günstigste aktive Monatspaket mit der Markierung „Im Profil“. Es ersetzt den alten Freitext-Preis.",
+      "emptyTitle": "Dein öffentliches Profil zeigt noch keinen Preis",
+      "emptyBody": "Markiere ein aktives Monatspaket mit „Im Profil“, damit ein Preis „ab … / Monat“ erscheint.",
       "open": "Profil öffnen"
     },
     "paywall": {
@@ -5226,10 +5228,14 @@
       "intervalWeeks": "Wochen zwischen den Zahlungen",
       "runsFor": "Läuft",
       "runsForPlaceholder": "Bis du es beendest",
-      "runsForHint": "Leer lassen oder eine Anzahl Zahlungen angeben",
+      "runsForHint": "Oder eine feste Anzahl Zahlungen",
+      "runsForOption_one": "{{count}} Zahlung",
+      "runsForOption_other": "{{count}} Zahlungen",
       "paymentDue": "Fälligkeit",
-      "paymentDuePlaceholder": "Standard",
-      "paymentDueHint": "Tage nach der Anfrage. Leer nutzt Einstellungen › Zahlungen",
+      "paymentDuePlaceholder": "Meinen Standard nutzen",
+      "paymentDueOption_one": "{{count}} Tag nach der Anfrage",
+      "paymentDueOption_other": "{{count}} Tage nach der Anfrage",
+      "paymentDueHint": "Standard aus Einstellungen › Zahlungen",
       "sectionVisibility": "Sichtbarkeit",
       "showOnProfile": "In meinem öffentlichen Profil anzeigen",
       "showOnProfileHint": "Wird für den Preis „ab … / Monat“ in der Suche verwendet.",

@@ -42,6 +42,17 @@ const BILLING_OPTIONS: { value: PackageBillingInterval; labelKey: string }[] = [
   { value: PackageBillingInterval.OneOff, labelKey: 'packages.billing.OneOff' },
 ];
 
+/** Number of payments a package can run for, besides "until you stop it" (API range 1-120). */
+const RUNS_FOR_OPTIONS = [3, 6, 12, 24] as const;
+/** Days after the request a payment is due, besides the coach's default (API range 1-90). */
+const PAYMENT_DUE_OPTIONS = [7, 14, 30] as const;
+
+/** The preset options plus the saved value when it is not one of them, sorted ascending. */
+function withCurrent(presets: readonly number[], saved: string): number[] {
+  const current = saved.trim() === '' ? null : Number(saved);
+  return current === null || presets.includes(current) ? [...presets] : [...presets, current].sort((a, b) => a - b);
+}
+
 /** Side drawer to create or edit a package: what is included, price and billing, visibility. */
 export default function PackageDrawer({ open, onOpenChange, ...rest }: Props) {
   return (
@@ -175,24 +186,34 @@ function DrawerBody({ item, onSubmit, isSaving, onClose }: BodyProps) {
             {billing !== PackageBillingInterval.OneOff && (
               <label className={FIELD_CLASS}>
                 <span>{t('packages.drawer.runsFor')}</span>
-                <Input
-                  {...register('runsForPayments')}
-                  inputMode="numeric"
-                  placeholder={t('packages.drawer.runsForPlaceholder')}
-                  aria-invalid={errors.runsForPayments ? true : undefined}
-                />
+                <span className="relative">
+                  <select {...register('runsForPayments')} className={SELECT_CLASS}>
+                    <option value="">{t('packages.drawer.runsForPlaceholder')}</option>
+                    {withCurrent(RUNS_FOR_OPTIONS, initial.runsForPayments).map((count) => (
+                      <option key={count} value={String(count)}>
+                        {t('packages.drawer.runsForOption', { count })}
+                      </option>
+                    ))}
+                  </select>
+                  <SelectChevron />
+                </span>
                 <FormError message={errors.runsForPayments?.message} />
                 <FieldHint>{t('packages.drawer.runsForHint')}</FieldHint>
               </label>
             )}
             <label className={FIELD_CLASS}>
               <span>{t('packages.drawer.paymentDue')}</span>
-              <Input
-                {...register('paymentDueDaysOverride')}
-                inputMode="numeric"
-                placeholder={t('packages.drawer.paymentDuePlaceholder')}
-                aria-invalid={errors.paymentDueDaysOverride ? true : undefined}
-              />
+              <span className="relative">
+                <select {...register('paymentDueDaysOverride')} className={SELECT_CLASS}>
+                  <option value="">{t('packages.drawer.paymentDuePlaceholder')}</option>
+                  {withCurrent(PAYMENT_DUE_OPTIONS, initial.paymentDueDaysOverride).map((count) => (
+                    <option key={count} value={String(count)}>
+                      {t('packages.drawer.paymentDueOption', { count })}
+                    </option>
+                  ))}
+                </select>
+                <SelectChevron />
+              </span>
               <FormError message={errors.paymentDueDaysOverride?.message} />
               <FieldHint>{t('packages.drawer.paymentDueHint')}</FieldHint>
             </label>
