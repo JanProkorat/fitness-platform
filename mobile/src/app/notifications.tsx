@@ -8,10 +8,12 @@ import type { EdgeInsets } from 'react-native-safe-area-context';
 
 import { getNotificationInviteId, NOTIFICATIONS_QUERY_KEY } from '@/api/notifications';
 import type { AppNotification } from '@/api/notifications';
+import { isPaymentRequestedType } from '@/api/payments';
 import { NotificationRow } from '@/components/notifications/NotificationRow';
 import { Text } from '@/components/Text';
 import { useInvites } from '@/hooks/useInvites';
 import { useMarkNotificationsRead, useNotifications } from '@/hooks/useNotifications';
+import { usePaymentsEnabled } from '@/hooks/usePaymentsEnabled';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
 
@@ -33,6 +35,7 @@ export default function NotificationsSheet() {
   const { data: page, isPending, isError, refetch } = useNotifications();
   const { data: invites } = useInvites();
   const { markOne, markAll } = useMarkNotificationsRead();
+  const payments = usePaymentsEnabled();
 
   // Opening the sheet always shows fresh data.
   useEffect(() => {
@@ -49,10 +52,11 @@ export default function NotificationsSheet() {
 
   const open = (notification: AppNotification) => {
     if (notification.id && notification.read !== true) markOne(notification.id);
+    if (isPaymentRequestedType(notification.type) && payments.enabled) router.replace('/payments');
   };
 
   const viewInvite = (notification: AppNotification, inviteId: string) => {
-    open(notification);
+    if (notification.id && notification.read !== true) markOne(notification.id);
     router.replace({ pathname: '/invite/[id]', params: { id: inviteId } });
   };
 

@@ -165,6 +165,33 @@
     "empty": "You're all caught up.",
     "error": "Couldn't load notifications. Tap to try again."
   },
+  "payments": {
+    "title": "Payments",
+    "back": "Back",
+    "toPay": "To pay",
+    "overdue": "Overdue",
+    "due": "Due {{date}}",
+    "scan": "Scan it in your bank app. {{name}} confirms when the money arrives.",
+    "transfer": "Pay by bank transfer with the details below. {{name}} confirms when the money arrives.",
+    "qrLabel": "QR Platba code",
+    "account": "Account",
+    "variableSymbol": "Variable symbol",
+    "message": "Message",
+    "copy": "Copy {{label}}",
+    "copied": "Copied",
+    "paid": "Paid",
+    "paidOn": "Paid {{date}}",
+    "empty": "No payments yet. When your coach asks you to pay, it shows up here.",
+    "error": "Couldn't load payments. Tap to try again.",
+    "card": {
+      "title": "Payment due",
+      "titleOverdue": "Payment overdue",
+      "single": "{{amount}} · {{coach}}",
+      "several_one": "{{count}} payment waiting",
+      "several_other": "{{count}} payments waiting",
+      "hint": "Opens your payments"
+    }
+  },
   "push": {
     "channelName": "General"
   },
