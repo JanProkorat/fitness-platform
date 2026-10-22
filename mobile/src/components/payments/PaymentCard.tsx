@@ -23,14 +23,19 @@ export function PaymentCard({ payment, coachFirstName }: PaymentCardProps) {
   const theme = useTheme();
   const styles = makeStyles(theme);
   const overdue = isOverdue(payment);
+  // The API sends null for absent fields, so null and '' both mean "not there".
+  const { iban, variableSymbol, message, qrPayload } = payment;
+  const hasQr = qrPayload != null && qrPayload !== '';
   const rows = [
-    payment.iban
-      ? { key: 'iban', label: t('payments.account'), value: groupIban(payment.iban), copyValue: compactIban(payment.iban) }
+    iban != null && iban !== ''
+      ? { key: 'iban', label: t('payments.account'), value: groupIban(iban), copyValue: compactIban(iban) }
       : null,
-    payment.variableSymbol
-      ? { key: 'vs', label: t('payments.variableSymbol'), value: payment.variableSymbol, copyValue: undefined }
+    variableSymbol != null && variableSymbol !== ''
+      ? { key: 'vs', label: t('payments.variableSymbol'), value: variableSymbol, copyValue: undefined }
       : null,
-    payment.message ? { key: 'message', label: t('payments.message'), value: payment.message, copyValue: undefined } : null,
+    message != null && message !== ''
+      ? { key: 'message', label: t('payments.message'), value: message, copyValue: undefined }
+      : null,
   ].filter((row) => row !== null);
 
   return (
@@ -54,10 +59,10 @@ export function PaymentCard({ payment, coachFirstName }: PaymentCardProps) {
         </View>
       </View>
 
-      {payment.qrPayload ? <QrTile payload={payment.qrPayload} accessibilityLabel={t('payments.qrLabel')} /> : null}
+      {hasQr ? <QrTile payload={qrPayload} accessibilityLabel={t('payments.qrLabel')} /> : null}
 
       <Text variant="label" color="muted" style={styles.caption}>
-        {t(payment.qrPayload ? 'payments.scan' : 'payments.transfer', { name: coachFirstName })}
+        {t(hasQr ? 'payments.scan' : 'payments.transfer', { name: coachFirstName })}
       </Text>
 
       {rows.length > 0 ? (

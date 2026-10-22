@@ -12,7 +12,7 @@ export type PaymentsAvailability = {
   settled: boolean;
 };
 
-function flagFor(config: ClientAppConfig | undefined): boolean {
+function flagFor(config: ClientAppConfig | null | undefined): boolean {
   if (Platform.OS === 'ios') return config?.showPaymentsOnIos === true;
   if (Platform.OS === 'android') return config?.showPaymentsOnAndroid === true;
   // Other platforms (Expo web) have no store rules to follow; only development builds may show payments.
@@ -32,5 +32,5 @@ export function usePaymentsEnabled(): PaymentsAvailability {
     retry: 1,
   });
 
-  return { enabled: flagFor(data) && data !== undefined, settled: !isPending };
+  return { enabled: data != null && flagFor(data), settled: !isPending };
 }
