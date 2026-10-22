@@ -12,6 +12,10 @@ internal sealed class UpdateClientOnboardingAnswersValidator : Validator<UpdateC
     private const int MaxListLength = 200;
     private const int MaxDislikes = 20;
     private const int MaxDislikeLength = 60;
+    private const int MaxHabits = 20;
+    private const int MaxHabitLength = 60;
+    private const int MinAge = 13;
+    private const int MaxAge = 100;
 
     /// <summary>
     /// Initializes validation rules for editing onboarding answers.
@@ -41,6 +45,61 @@ internal sealed class UpdateClientOnboardingAnswersValidator : Validator<UpdateC
         RuleForEach(x => x.Dislikes)
             .Must(item => !string.IsNullOrWhiteSpace(item) && item.Trim().Length <= MaxDislikeLength)
             .WithMessage($"Each dislike must be 1-{MaxDislikeLength} characters and not blank.");
+
+        RuleFor(x => x.Sex).Must(IsDefinedName<BiologicalSex>)
+            .When(x => x.Sex is not null).WithMessage("Unknown sex.");
+        RuleFor(x => x.JobType).Must(IsDefinedName<JobType>)
+            .When(x => x.JobType is not null).WithMessage("Unknown job type.");
+        RuleFor(x => x.CurrentTrainingFrequency).Must(IsDefinedName<CurrentTrainingFrequency>)
+            .When(x => x.CurrentTrainingFrequency is not null).WithMessage("Unknown current training frequency.");
+        RuleFor(x => x.MealsPerDay).Must(IsDefinedName<MealsPerDay>)
+            .When(x => x.MealsPerDay is not null).WithMessage("Unknown meals per day.");
+
+        RuleFor(x => x.HeightCm)
+            .InclusiveBetween(140m, 220m)
+            .PrecisionScale(5, 1, true)
+            .When(x => x.HeightCm.HasValue);
+        RuleFor(x => x.SleepHours)
+            .InclusiveBetween(1, 10)
+            .When(x => x.SleepHours.HasValue);
+        RuleFor(x => x.StressLevel)
+            .InclusiveBetween(1, 5)
+            .When(x => x.StressLevel.HasValue);
+
+        RuleFor(x => x.DateOfBirth)
+            .Must(IsPlausibleDateOfBirth)
+            .When(x => x.DateOfBirth.HasValue)
+            .WithMessage($"Date of birth must be in the past and give an age of {MinAge}-{MaxAge}.");
+
+        AddCommaListRules(x => x.PreferredActivities!, "activity");
+
+        RuleFor(x => x.Habits)
+            .Must(items => items!.Count <= MaxHabits)
+            .When(x => x.Habits is not null)
+            .WithMessage($"At most {MaxHabits} habits are allowed.");
+        RuleForEach(x => x.Habits)
+            .Must(item => !string.IsNullOrWhiteSpace(item) && item.Trim().Length <= MaxHabitLength)
+            .WithMessage($"Each habit must be 1-{MaxHabitLength} characters and not blank.");
+    }
+
+    // Strictly before today (UTC) and whole-year age (birthday-adjusted) within the allowed range.
+    private static bool IsPlausibleDateOfBirth(DateOnly? dateOfBirth)
+    {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+        if (dateOfBirth!.Value >= today)
+        {
+            return false;
+        }
+
+        var age = today.Year - dateOfBirth.Value.Year;
+
+        if (dateOfBirth.Value > today.AddYears(-age))
+        {
+            age--;
+        }
+
+        return age is >= MinAge and <= MaxAge;
     }
 
     private void AddCommaListRules(

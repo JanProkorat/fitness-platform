@@ -74,7 +74,7 @@ internal sealed class UpdateClientOnboardingAnswersEndpoint(
             return;
         }
 
-        var changedFields = ApplyChanges(profile.OnboardingData, req);
+        var changedFields = ApplyChanges(profile, req);
 
         if (changedFields.Count == 0)
         {
@@ -95,8 +95,9 @@ internal sealed class UpdateClientOnboardingAnswersEndpoint(
         await Send.OkAsync(ClientOnboardingAnswersResponse.FromEntity(profile.OnboardingData), ct);
     }
 
-    private static List<string> ApplyChanges(ClientOnboardingData data, UpdateClientOnboardingAnswersRequest req)
+    private static List<string> ApplyChanges(ClientProfile profile, UpdateClientOnboardingAnswersRequest req)
     {
+        var data = profile.OnboardingData!;
         var changed = new List<string>();
 
         if (req.PrimaryGoal is not null
@@ -156,7 +157,95 @@ internal sealed class UpdateClientOnboardingAnswersEndpoint(
             changed.Add(NotificationTemplates.OnboardingFieldDislikes);
         }
 
+        ApplyBasicsChanges(profile, req, changed);
+        ApplyLifestyleChanges(data, req, changed);
+
         return changed;
+    }
+
+    // Date of birth and height live on both the onboarding row and the profile; either copy differing counts as a change.
+    private static void ApplyBasicsChanges(
+        ClientProfile profile, UpdateClientOnboardingAnswersRequest req, List<string> changed)
+    {
+        var data = profile.OnboardingData!;
+
+        if (req.DateOfBirth is { } dateOfBirth)
+        {
+            var stored = dateOfBirth.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+
+            if (DateOnly.FromDateTime(data.DateOfBirth) != dateOfBirth
+                || profile.DateOfBirth is not { } profileDateOfBirth
+                || DateOnly.FromDateTime(profileDateOfBirth) != dateOfBirth)
+            {
+                data.DateOfBirth = stored;
+                profile.DateOfBirth = stored;
+                changed.Add(NotificationTemplates.OnboardingFieldDateOfBirth);
+            }
+        }
+
+        if (req.Sex is not null && Enum.Parse<BiologicalSex>(req.Sex, true) is var sex && sex != data.Sex)
+        {
+            data.Sex = sex;
+            changed.Add(NotificationTemplates.OnboardingFieldSex);
+        }
+
+        if (req.HeightCm is { } heightCm && (heightCm != data.HeightCm || heightCm != profile.HeightCm))
+        {
+            data.HeightCm = heightCm;
+            profile.HeightCm = heightCm;
+            changed.Add(NotificationTemplates.OnboardingFieldHeightCm);
+        }
+    }
+
+    private static void ApplyLifestyleChanges(
+        ClientOnboardingData data, UpdateClientOnboardingAnswersRequest req, List<string> changed)
+    {
+        if (req.JobType is not null && Enum.Parse<JobType>(req.JobType, true) is var jobType
+            && jobType != data.JobType)
+        {
+            data.JobType = jobType;
+            changed.Add(NotificationTemplates.OnboardingFieldJobType);
+        }
+
+        if (req.SleepHours is { } sleepHours && sleepHours != data.SleepHours)
+        {
+            data.SleepHours = sleepHours;
+            changed.Add(NotificationTemplates.OnboardingFieldSleepHours);
+        }
+
+        if (req.StressLevel is { } stressLevel && stressLevel != data.StressLevel)
+        {
+            data.StressLevel = stressLevel;
+            changed.Add(NotificationTemplates.OnboardingFieldStressLevel);
+        }
+
+        if (req.CurrentTrainingFrequency is not null
+            && Enum.Parse<CurrentTrainingFrequency>(req.CurrentTrainingFrequency, true) is var currentFrequency
+            && currentFrequency != data.CurrentTrainingFrequency)
+        {
+            data.CurrentTrainingFrequency = currentFrequency;
+            changed.Add(NotificationTemplates.OnboardingFieldCurrentTrainingFrequency);
+        }
+
+        if (req.PreferredActivities is not null && string.Join(",", Normalize(req.PreferredActivities)) is var activities
+            && activities != data.PreferredActivities)
+        {
+            data.PreferredActivities = activities;
+            changed.Add(NotificationTemplates.OnboardingFieldPreferredActivities);
+        }
+
+        if (req.MealsPerDay is not null
+            && Enum.Parse<MealsPerDay>(req.MealsPerDay, true) is var mealsPerDay && mealsPerDay != data.MealsPerDay)
+        {
+            data.MealsPerDay = mealsPerDay;
+            changed.Add(NotificationTemplates.OnboardingFieldMealsPerDay);
+        }
+
+        if (req.Habits is not null && Normalize(req.Habits) is var habits && !habits.SequenceEqual(data.Habits))
+        {
+            data.Habits = habits;
+            changed.Add(NotificationTemplates.OnboardingFieldHabits);
+        }
     }
 
     /// <summary>

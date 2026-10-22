@@ -121,6 +121,45 @@ public class ClientOnboardingAnswersIntegrationTests(FitnessApiFactory factory)
     }
 
     [Fact]
+    public async Task Patch_DateOfBirthHeightAndHabits_UpdatesBothCopiesAndNothingElse()
+    {
+        var client = await TestActors.Client(factory).CreateAsync(Ct);
+        await SeedOnboardingAsync(client);
+
+        var response = await client.Http.PatchAsJsonAsync(
+            Route, new { dateOfBirth = "1992-05-14", heightCm = 181.5, habits = new[] { " late snacking " } }, Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<ClientOnboardingAnswersResponse>(cancellationToken: Ct);
+        body!.DateOfBirth.Should().Be(new DateOnly(1992, 5, 14));
+
+        var get = await client.Http.GetFromJsonAsync<ClientOnboardingAnswersResponse>(Route, Ct);
+        get!.DateOfBirth.Should().Be(new DateOnly(1992, 5, 14));
+        get.HeightCm.Should().Be(181.5m);
+        get.Habits.Should().Equal("late snacking");
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var profile = await db.ClientProfiles.AsNoTracking()
+            .Include(cp => cp.OnboardingData!).ThenInclude(od => od.NutritionTargets)
+            .SingleAsync(cp => cp.Id == client.ProfileId, Ct);
+        var expected = DateTime.SpecifyKind(new DateTime(1992, 5, 14), DateTimeKind.Utc);
+
+        profile.DateOfBirth.Should().Be(expected);
+        profile.HeightCm.Should().Be(181.5m);
+        profile.OnboardingData!.DateOfBirth.Should().Be(expected);
+        profile.OnboardingData.HeightCm.Should().Be(181.5m);
+        profile.OnboardingData.GymAccess.Should().Be(GymAccess.Yes);
+        profile.OnboardingData.TargetWeightKg.Should().Be(75m);
+        profile.OnboardingData.NutritionTargets!.AdjustedKcal.Should().Be(2750);
+
+        var audit = await db.AuditLogs.AsNoTracking()
+            .SingleAsync(a => a.UserId == client.UserId && a.Action == "UpdateClientOnboardingAnswers", Ct);
+        audit.NewValues.Should().Contain("dateOfBirth").And.Contain("heightCm").And.Contain("habits")
+            .And.NotContain("1992").And.NotContain("late snacking");
+    }
+
+    [Fact]
     public async Task Patch_Change_NotifiesEachLinkedCoachOnceInOwnLanguage_AndNoChangeNotifiesNobody()
     {
         var client = await TestActors.Client(factory).CreateAsync(Ct);

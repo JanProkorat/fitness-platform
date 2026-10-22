@@ -258,6 +258,16 @@ public static class NotificationTemplates
     public const string OnboardingFieldDietaryStyle = "dietaryStyle";
     public const string OnboardingFieldAllergies = "allergies";
     public const string OnboardingFieldDislikes = "dislikes";
+    public const string OnboardingFieldDateOfBirth = "dateOfBirth";
+    public const string OnboardingFieldSex = "sex";
+    public const string OnboardingFieldHeightCm = "heightCm";
+    public const string OnboardingFieldJobType = "jobType";
+    public const string OnboardingFieldSleepHours = "sleepHours";
+    public const string OnboardingFieldStressLevel = "stressLevel";
+    public const string OnboardingFieldCurrentTrainingFrequency = "currentTrainingFrequency";
+    public const string OnboardingFieldPreferredActivities = "preferredActivities";
+    public const string OnboardingFieldMealsPerDay = "mealsPerDay";
+    public const string OnboardingFieldHabits = "habits";
 
     // language -> onboarding field key -> label
     private static readonly Dictionary<string, Dictionary<string, string>> OnboardingFieldLabels = new()
@@ -272,6 +282,16 @@ public static class NotificationTemplates
             [OnboardingFieldDietaryStyle] = "dietary style",
             [OnboardingFieldAllergies] = "allergies",
             [OnboardingFieldDislikes] = "disliked foods",
+            [OnboardingFieldDateOfBirth] = "date of birth",
+            [OnboardingFieldSex] = "sex",
+            [OnboardingFieldHeightCm] = "height",
+            [OnboardingFieldJobType] = "job type",
+            [OnboardingFieldSleepHours] = "sleep hours",
+            [OnboardingFieldStressLevel] = "stress level",
+            [OnboardingFieldCurrentTrainingFrequency] = "current training frequency",
+            [OnboardingFieldPreferredActivities] = "preferred activities",
+            [OnboardingFieldMealsPerDay] = "meals per day",
+            [OnboardingFieldHabits] = "eating habits",
         },
         ["cs"] = new()
         {
@@ -283,6 +303,16 @@ public static class NotificationTemplates
             [OnboardingFieldDietaryStyle] = "styl stravování",
             [OnboardingFieldAllergies] = "alergie",
             [OnboardingFieldDislikes] = "nechuti k jídlu",
+            [OnboardingFieldDateOfBirth] = "datum narození",
+            [OnboardingFieldSex] = "pohlaví",
+            [OnboardingFieldHeightCm] = "výška",
+            [OnboardingFieldJobType] = "typ zaměstnání",
+            [OnboardingFieldSleepHours] = "hodiny spánku",
+            [OnboardingFieldStressLevel] = "úroveň stresu",
+            [OnboardingFieldCurrentTrainingFrequency] = "současná frekvence tréninku",
+            [OnboardingFieldPreferredActivities] = "oblíbené aktivity",
+            [OnboardingFieldMealsPerDay] = "počet jídel denně",
+            [OnboardingFieldHabits] = "stravovací návyky",
         },
         ["de"] = new()
         {
@@ -294,6 +324,16 @@ public static class NotificationTemplates
             [OnboardingFieldDietaryStyle] = "Ernährungsstil",
             [OnboardingFieldAllergies] = "Allergien",
             [OnboardingFieldDislikes] = "Lebensmittelabneigungen",
+            [OnboardingFieldDateOfBirth] = "Geburtsdatum",
+            [OnboardingFieldSex] = "Geschlecht",
+            [OnboardingFieldHeightCm] = "Körpergröße",
+            [OnboardingFieldJobType] = "Berufsart",
+            [OnboardingFieldSleepHours] = "Schlafstunden",
+            [OnboardingFieldStressLevel] = "Stresslevel",
+            [OnboardingFieldCurrentTrainingFrequency] = "aktuelle Trainingshäufigkeit",
+            [OnboardingFieldPreferredActivities] = "bevorzugte Aktivitäten",
+            [OnboardingFieldMealsPerDay] = "Mahlzeiten pro Tag",
+            [OnboardingFieldHabits] = "Essgewohnheiten",
         },
     };
 
