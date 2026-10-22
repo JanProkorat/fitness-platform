@@ -3,8 +3,11 @@ import { useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useTranslation } from 'react-i18next';
 
+import { coachInitials } from '@/api/professionals';
+import { GlassButton } from '@/components/profile/GlassButton';
 import { Text } from '@/components/Text';
 import { useUnreadCount } from '@/hooks/useNotifications';
+import { useProfile } from '@/hooks/useProfile';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
 
@@ -19,6 +22,8 @@ export function TodayHeader({ title }: TodayHeaderProps) {
   const styles = makeStyles(theme);
   const router = useRouter();
   const unread = useUnreadCount();
+  const { data: profile } = useProfile();
+  const initials = coachInitials({ firstName: profile?.firstName, lastName: profile?.lastName });
 
   return (
     <View style={styles.row}>
@@ -27,19 +32,28 @@ export function TodayHeader({ title }: TodayHeaderProps) {
           {title}
         </Text>
       </View>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={
-          unread > 0
-            ? t('today.notificationsUnread', { count: unread })
-            : t('today.notifications')
-        }
-        onPress={() => router.push('/notifications')}
-        style={styles.bell}
-      >
-        <SymbolView name="bell" tintColor={theme.colors.ink} size={theme.sizes.bellGlyph} />
-        {unread > 0 ? <View style={styles.dot} /> : null}
-      </Pressable>
+      <View style={styles.actions}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={
+            unread > 0
+              ? t('today.notificationsUnread', { count: unread })
+              : t('today.notifications')
+          }
+          onPress={() => router.push('/notifications')}
+          style={styles.bell}
+        >
+          <SymbolView name="bell" tintColor={theme.colors.ink} size={theme.sizes.bellGlyph} />
+          {unread > 0 ? <View style={styles.dot} /> : null}
+        </Pressable>
+        <GlassButton label={t('today.profile')} onPress={() => router.push('/profile')}>
+          {initials ? (
+            <Text variant="labelStrong">{initials}</Text>
+          ) : (
+            <SymbolView name="person" tintColor={theme.colors.ink} size={theme.sizes.bellGlyph} />
+          )}
+        </GlassButton>
+      </View>
     </View>
   );
 }
@@ -55,6 +69,11 @@ const makeStyles = (theme: Theme) =>
     copy: {
       flex: 1,
       minWidth: 0,
+    },
+    actions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.spacing.xs,
     },
     bell: {
       width: theme.sizes.bellButton,

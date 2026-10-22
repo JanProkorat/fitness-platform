@@ -88,6 +88,7 @@
     "linkedBody": "Tvoji poradci jsou připraveni. Tady uvidíš svůj den.",
     "notifications": "Upozornění",
     "notificationsUnread": "Upozornění, nepřečtených: {{count}}",
+    "profile": "Profil",
     "invitesTitle": "Pozvánky",
     "findCoach": {
       "title": "Najdi si poradce",
@@ -100,6 +101,44 @@
         "title": "Nutriční poradce",
         "hint": "Jídlo, které zapadne do tvého dne"
       }
+    }
+  },
+  "profile": {
+    "edit": "Upravit profil",
+    "since": "registrace {{date}}",
+    "units": {
+      "kg": "{{value}} kg"
+    },
+    "goals": {
+      "LoseFat": "Zhubnout",
+      "GainMuscle": "Nabrat svaly",
+      "Recomposition": "Rekompozice těla",
+      "Fitness": "Kondice",
+      "Health": "Zdraví",
+      "Maintain": "Udržet váhu",
+      "Performance": "Výkon"
+    },
+    "stats": {
+      "plans": "Plány",
+      "workouts": "Tréninky",
+      "sinceStart": "Od začátku"
+    },
+    "coaches": {
+      "title": "Moji poradci",
+      "empty": "Zatím nespolupracuješ s žádným poradcem."
+    },
+    "progress": {
+      "title": "Pokrok",
+      "journey": "Moje cesta",
+      "measurements": "Tělesné míry",
+      "photos": "Fotky pokroku",
+      "checkIns": "Historie check-inů"
+    },
+    "settings": "Nastavení",
+    "error": {
+      "summary": "Čísla se nepodařilo načíst.",
+      "coaches": "Poradce se nepodařilo načíst.",
+      "retry": "Zkusit znovu"
     }
   },
   "invites": {
