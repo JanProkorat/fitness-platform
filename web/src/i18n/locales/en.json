@@ -211,6 +211,8 @@
     "clientManagementSection": "Client management",
     "nutritionSection": "Nutrition",
     "formsSection": "Forms",
+    "businessSection": "Business",
+    "packages": "Packages",
     "forms": "Forms",
     "help": "Help & Support",
     "trainingPlan": "Training plan",
@@ -2523,6 +2525,11 @@
   },
   "apiErrors": {
     "AUTOMATION_RULE_NOT_FOUND": "This rule no longer exists.",
+    "PACKAGE_ARCHIVED": "This package is archived and can no longer be changed.",
+    "DISCOUNT_ARCHIVED": "This discount is archived and can no longer be changed.",
+    "DISCOUNT_PACKAGE_INVALID": "One of the selected packages is archived or no longer exists. The list was refreshed.",
+    "CURRENCY_MISMATCH": "A fixed-amount discount must use the same currency as every package it applies to.",
+    "CURRENCY_LOCKED": "The currency cannot change while clients use it. The saved currency was restored.",
     "AUTOMATION_TAG_NOT_FOUND": "The chosen tag no longer exists.",
     "AUTOMATION_AUDIENCE_CLIENT_NOT_FOUND": "One of the chosen clients is no longer linked to you.",
     "AUTOMATION_QUESTIONNAIRE_NOT_FOUND": "The chosen form no longer exists.",
@@ -5126,6 +5133,192 @@
       "trendDelta": "−2.1 in 6 weeks",
       "reviewQuote": "“Legs felt heavy on Friday.” · energy 4/5",
       "replyPlaceholder": "Reply to Petra…"
+    }
+  },
+  "packages": {
+    "eyebrow": "Business",
+    "title": "Packages",
+    "subtitle": "What clients pay you for. Assign a package on the client’s Payment tab.",
+    "newPackage": "New package",
+    "tabs": {
+      "packages": "Packages",
+      "discounts": "Discounts"
+    },
+    "table": {
+      "package": "Package",
+      "price": "Price",
+      "billing": "Billing",
+      "clients": "Clients",
+      "status": "Status",
+      "publicProfile": "Public profile",
+      "actions": "Actions",
+      "clientCount_one": "{{count}} client",
+      "clientCount_other": "{{count}} clients",
+      "onProfile": "On profile",
+      "hidden": "Hidden"
+    },
+    "billing": {
+      "Monthly": "Monthly",
+      "EveryNWeeks": "Every N weeks",
+      "OneOff": "One-off"
+    },
+    "billingEveryN_one": "Every week",
+    "billingEveryN_other": "Every {{count}} weeks",
+    "status": {
+      "active": "Active",
+      "ended": "Ended",
+      "archived": "Archived"
+    },
+    "empty": "No packages yet. Create the first one to assign it to a client.",
+    "footer": "Packages: {{count}} · Archived packages keep billing their clients until you move them",
+    "loadError": "The list could not be loaded.",
+    "retry": "Try again",
+    "saveSuccess": "Package saved.",
+    "saveError": "The package could not be saved.",
+    "archiveSuccess": "Package archived.",
+    "archiveError": "The package could not be archived.",
+    "rowMenu": {
+      "open": "Actions for {{name}}",
+      "edit": "Edit",
+      "archive": "Archive"
+    },
+    "archiveDialog": {
+      "title": "Archive package",
+      "description": "Archive “{{name}}”? Clients already billed on it keep their terms until you move them. You cannot assign it to new clients.",
+      "confirm": "Archive"
+    },
+    "profileCard": {
+      "title": "Your public profile shows “from {{price}} / month”",
+      "body": "The cheapest active monthly package marked “On profile”. It replaces the old free-text price.",
+      "open": "Open profile"
+    },
+    "paywall": {
+      "badge": "Not on your plan",
+      "title": "Payments are not included in your plan",
+      "description": "Set up packages and discounts, and keep track of what each client pays you.",
+      "bullet1": "Packages with a price and billing cycle",
+      "bullet2": "Discounts for single clients or campaigns",
+      "bullet3": "Payment requests and an overview on every client"
+    },
+    "validation": {
+      "nameRequired": "Enter a name.",
+      "nameTooLong": "The name can have at most 100 characters.",
+      "descriptionTooLong": "The description can have at most 500 characters.",
+      "priceInvalid": "Enter a price above 0 with up to 2 decimals.",
+      "priceTooHigh": "The price is above the limit for this currency.",
+      "intervalWeeks": "Enter a whole number of weeks from 1 to 52.",
+      "runsFor": "Enter a whole number of payments from 1 to 120.",
+      "paymentDue": "Enter a whole number of days from 1 to 90."
+    },
+    "drawer": {
+      "titleNew": "New package",
+      "titleEdit": "Edit {{name}}",
+      "description": "Clients pay you by bank transfer",
+      "sectionPackage": "Package",
+      "name": "Name",
+      "included": "What’s included",
+      "includedHint": "Only you see this description.",
+      "sectionPrice": "Price and billing",
+      "price": "Price",
+      "currency": "Currency",
+      "currencyLocked": "The currency cannot change while clients are billed on this package.",
+      "priceCap": "Up to {{max}}",
+      "billing": "Billing",
+      "intervalWeeks": "Weeks between payments",
+      "runsFor": "Runs for",
+      "runsForPlaceholder": "Until you stop it",
+      "runsForHint": "Leave empty, or set a number of payments",
+      "paymentDue": "Payment due",
+      "paymentDuePlaceholder": "Default",
+      "paymentDueHint": "Days after the request. Empty uses Settings › Payments",
+      "sectionVisibility": "Visibility",
+      "showOnProfile": "Show on my public profile",
+      "showOnProfileHint": "Used for the “from … / month” price clients see in search.",
+      "priceChangeNote": "Changing the price later applies from each client’s next billing period. Requests already sent keep their amount.",
+      "footer": "You can archive a package, not delete it",
+      "save": "Save package",
+      "saving": "Saving..."
+    },
+    "discounts": {
+      "newDiscount": "New discount",
+      "empty": "No discounts yet.",
+      "footer": "One discount per client. A custom price on the client’s Payment tab replaces both the package price and the discount.",
+      "saveSuccess": "Discount saved.",
+      "saveError": "The discount could not be saved.",
+      "archiveSuccess": "Discount archived.",
+      "archiveError": "The discount could not be archived.",
+      "archiveDialog": {
+        "title": "Archive discount",
+        "description": "Archive “{{name}}”? Clients already using it keep it until you change their terms."
+      },
+      "table": {
+        "discount": "Discount",
+        "value": "Value",
+        "appliesTo": "Applies to",
+        "valid": "Valid",
+        "howLong": "How long",
+        "usedBy": "Used by"
+      },
+      "type": {
+        "Percentage": "Percentage",
+        "FixedAmount": "Fixed amount"
+      },
+      "scope": {
+        "AllPackages": "All packages",
+        "MonthlyPackages": "Monthly packages",
+        "SelectedPackages": "Selected packages"
+      },
+      "valid": {
+        "always": "Always",
+        "from": "From {{date}}",
+        "until": "Until {{date}}",
+        "range": "{{from}} – {{to}}"
+      },
+      "duration": {
+        "EveryPayment": "Every payment",
+        "FirstPaymentsChoice": "First payments only",
+        "FirstPayments_one": "First payment only",
+        "FirstPayments_other": "First {{count}} payments"
+      },
+      "codes": {
+        "title": "Discount codes",
+        "comingLater": "Coming later",
+        "body": "Give a discount a code, such as SUMMER26, and clients enter it when they join you.",
+        "create": "Create code"
+      },
+      "validation": {
+        "nameRequired": "Enter a name.",
+        "nameTooLong": "The name can have at most 100 characters.",
+        "percentage": "Enter a percentage from 1 to 100.",
+        "amountInvalid": "Enter an amount above 0 with up to 2 decimals.",
+        "amountTooHigh": "The amount is above the limit for this currency.",
+        "packagesRequired": "Select at least one package.",
+        "dateInvalid": "Enter a valid date.",
+        "dateOrder": "The end date cannot be before the start date.",
+        "durationPayments": "Enter a whole number of payments from 1 to 120."
+      },
+      "drawer": {
+        "titleNew": "New discount",
+        "titleEdit": "Edit {{name}}",
+        "description": "Apply it on a client’s Payment tab",
+        "sectionDiscount": "Discount",
+        "name": "Name",
+        "nameHint": "Only you see the name. Clients see the amount saved.",
+        "type": "Type",
+        "value": "Value",
+        "currencyLocked": "The currency cannot change while clients use this discount.",
+        "sectionAppliesTo": "Applies to",
+        "noPackages": "You have no active packages yet.",
+        "sectionWhen": "When it applies",
+        "validFrom": "Valid from",
+        "validTo": "Valid to",
+        "windowNote": "Payments due in this window get the discount. Before and after it, the client pays the package price.",
+        "duration": "Within the window",
+        "firstPayments": "Number of payments",
+        "footer": "Discount codes come later",
+        "save": "Save discount",
+        "saving": "Saving..."
+      }
     }
   },
   "automations": {

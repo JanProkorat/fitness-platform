@@ -211,6 +211,8 @@
     "clientManagementSection": "Klientenverwaltung",
     "nutritionSection": "Ernährung",
     "formsSection": "Formulare",
+    "businessSection": "Business",
+    "packages": "Pakete",
     "forms": "Formulare",
     "help": "Hilfe & Support",
     "trainingPlan": "Trainingsplan",
@@ -2522,6 +2524,11 @@
   },
   "apiErrors": {
     "AUTOMATION_RULE_NOT_FOUND": "Diese Regel existiert nicht mehr.",
+    "PACKAGE_ARCHIVED": "Dieses Paket ist archiviert und kann nicht mehr geändert werden.",
+    "DISCOUNT_ARCHIVED": "Dieser Rabatt ist archiviert und kann nicht mehr geändert werden.",
+    "DISCOUNT_PACKAGE_INVALID": "Eines der gewählten Pakete ist archiviert oder existiert nicht mehr. Die Liste wurde aktualisiert.",
+    "CURRENCY_MISMATCH": "Ein Rabatt mit festem Betrag muss dieselbe Währung wie jedes Paket haben, für das er gilt.",
+    "CURRENCY_LOCKED": "Die Währung lässt sich nicht ändern, solange Klienten sie nutzen. Die gespeicherte Währung wurde wiederhergestellt.",
     "AUTOMATION_TAG_NOT_FOUND": "Das gewählte Tag existiert nicht mehr.",
     "AUTOMATION_AUDIENCE_CLIENT_NOT_FOUND": "Einer der gewählten Klienten ist nicht mehr mit Ihnen verknüpft.",
     "AUTOMATION_QUESTIONNAIRE_NOT_FOUND": "Das gewählte Formular existiert nicht mehr.",
@@ -5125,6 +5132,192 @@
       "trendDelta": "−2,1 in 6 Wochen",
       "reviewQuote": "„Am Freitag waren die Beine schwer.“ · Energie 4/5",
       "replyPlaceholder": "Petra antworten…"
+    }
+  },
+  "packages": {
+    "eyebrow": "Business",
+    "title": "Pakete",
+    "subtitle": "Wofür Klienten dich bezahlen. Weise ein Paket im Tab Zahlung des Klienten zu.",
+    "newPackage": "Neues Paket",
+    "tabs": {
+      "packages": "Pakete",
+      "discounts": "Rabatte"
+    },
+    "table": {
+      "package": "Paket",
+      "price": "Preis",
+      "billing": "Abrechnung",
+      "clients": "Klienten",
+      "status": "Status",
+      "publicProfile": "Öffentliches Profil",
+      "actions": "Aktionen",
+      "clientCount_one": "{{count}} Klient",
+      "clientCount_other": "{{count}} Klienten",
+      "onProfile": "Im Profil",
+      "hidden": "Versteckt"
+    },
+    "billing": {
+      "Monthly": "Monatlich",
+      "EveryNWeeks": "Alle N Wochen",
+      "OneOff": "Einmalig"
+    },
+    "billingEveryN_one": "Jede Woche",
+    "billingEveryN_other": "Alle {{count}} Wochen",
+    "status": {
+      "active": "Aktiv",
+      "ended": "Beendet",
+      "archived": "Archiviert"
+    },
+    "empty": "Noch keine Pakete. Lege das erste an, um es einem Klienten zuzuweisen.",
+    "footer": "Pakete: {{count}} · Archivierte Pakete rechnen ihre Klienten weiter ab, bis du sie umstellst",
+    "loadError": "Die Liste konnte nicht geladen werden.",
+    "retry": "Erneut versuchen",
+    "saveSuccess": "Paket gespeichert.",
+    "saveError": "Das Paket konnte nicht gespeichert werden.",
+    "archiveSuccess": "Paket archiviert.",
+    "archiveError": "Das Paket konnte nicht archiviert werden.",
+    "rowMenu": {
+      "open": "Aktionen für {{name}}",
+      "edit": "Bearbeiten",
+      "archive": "Archivieren"
+    },
+    "archiveDialog": {
+      "title": "Paket archivieren",
+      "description": "„{{name}}“ archivieren? Klienten, die bereits darüber abgerechnet werden, behalten ihre Konditionen, bis du sie umstellst. Neuen Klienten kannst du es nicht mehr zuweisen.",
+      "confirm": "Archivieren"
+    },
+    "profileCard": {
+      "title": "Dein öffentliches Profil zeigt „ab {{price}} / Monat“",
+      "body": "Das günstigste aktive Monatspaket mit der Markierung „Im Profil“. Es ersetzt den alten Freitext-Preis.",
+      "open": "Profil öffnen"
+    },
+    "paywall": {
+      "badge": "Nicht in deinem Tarif",
+      "title": "Zahlungen sind in deinem Tarif nicht enthalten",
+      "description": "Lege Pakete und Rabatte an und behalte im Blick, was jeder Klient dir zahlt.",
+      "bullet1": "Pakete mit Preis und Abrechnungszyklus",
+      "bullet2": "Rabatte für einzelne Klienten oder Aktionen",
+      "bullet3": "Zahlungsanfragen und eine Übersicht bei jedem Klienten"
+    },
+    "validation": {
+      "nameRequired": "Gib einen Namen ein.",
+      "nameTooLong": "Der Name darf höchstens 100 Zeichen haben.",
+      "descriptionTooLong": "Die Beschreibung darf höchstens 500 Zeichen haben.",
+      "priceInvalid": "Gib einen Preis über 0 mit höchstens 2 Nachkommastellen ein.",
+      "priceTooHigh": "Der Preis liegt über dem Limit für diese Währung.",
+      "intervalWeeks": "Gib eine ganze Zahl von Wochen von 1 bis 52 ein.",
+      "runsFor": "Gib eine ganze Zahl von Zahlungen von 1 bis 120 ein.",
+      "paymentDue": "Gib eine ganze Zahl von Tagen von 1 bis 90 ein."
+    },
+    "drawer": {
+      "titleNew": "Neues Paket",
+      "titleEdit": "{{name}} bearbeiten",
+      "description": "Klienten zahlen dir per Banküberweisung",
+      "sectionPackage": "Paket",
+      "name": "Name",
+      "included": "Was enthalten ist",
+      "includedHint": "Diese Beschreibung siehst nur du.",
+      "sectionPrice": "Preis und Abrechnung",
+      "price": "Preis",
+      "currency": "Währung",
+      "currencyLocked": "Die Währung lässt sich nicht ändern, solange Klienten über dieses Paket abgerechnet werden.",
+      "priceCap": "Höchstens {{max}}",
+      "billing": "Abrechnung",
+      "intervalWeeks": "Wochen zwischen den Zahlungen",
+      "runsFor": "Läuft",
+      "runsForPlaceholder": "Bis du es beendest",
+      "runsForHint": "Leer lassen oder eine Anzahl Zahlungen angeben",
+      "paymentDue": "Fälligkeit",
+      "paymentDuePlaceholder": "Standard",
+      "paymentDueHint": "Tage nach der Anfrage. Leer nutzt Einstellungen › Zahlungen",
+      "sectionVisibility": "Sichtbarkeit",
+      "showOnProfile": "In meinem öffentlichen Profil anzeigen",
+      "showOnProfileHint": "Wird für den Preis „ab … / Monat“ in der Suche verwendet.",
+      "priceChangeNote": "Eine spätere Preisänderung gilt ab dem nächsten Abrechnungszeitraum jedes Klienten. Bereits gesendete Anfragen behalten ihren Betrag.",
+      "footer": "Ein Paket kannst du archivieren, nicht löschen",
+      "save": "Paket speichern",
+      "saving": "Speichern..."
+    },
+    "discounts": {
+      "newDiscount": "Neuer Rabatt",
+      "empty": "Noch keine Rabatte.",
+      "footer": "Ein Rabatt pro Klient. Ein eigener Preis im Tab Zahlung des Klienten ersetzt Paketpreis und Rabatt.",
+      "saveSuccess": "Rabatt gespeichert.",
+      "saveError": "Der Rabatt konnte nicht gespeichert werden.",
+      "archiveSuccess": "Rabatt archiviert.",
+      "archiveError": "Der Rabatt konnte nicht archiviert werden.",
+      "archiveDialog": {
+        "title": "Rabatt archivieren",
+        "description": "„{{name}}“ archivieren? Klienten, die ihn bereits nutzen, behalten ihn, bis du ihre Konditionen änderst."
+      },
+      "table": {
+        "discount": "Rabatt",
+        "value": "Wert",
+        "appliesTo": "Gilt für",
+        "valid": "Gültig",
+        "howLong": "Wie lange",
+        "usedBy": "Genutzt von"
+      },
+      "type": {
+        "Percentage": "Prozent",
+        "FixedAmount": "Fester Betrag"
+      },
+      "scope": {
+        "AllPackages": "Alle Pakete",
+        "MonthlyPackages": "Monatspakete",
+        "SelectedPackages": "Ausgewählte Pakete"
+      },
+      "valid": {
+        "always": "Immer",
+        "from": "Ab {{date}}",
+        "until": "Bis {{date}}",
+        "range": "{{from}} – {{to}}"
+      },
+      "duration": {
+        "EveryPayment": "Jede Zahlung",
+        "FirstPaymentsChoice": "Nur erste Zahlungen",
+        "FirstPayments_one": "Nur die erste Zahlung",
+        "FirstPayments_other": "Die ersten {{count}} Zahlungen"
+      },
+      "codes": {
+        "title": "Rabattcodes",
+        "comingLater": "Kommt später",
+        "body": "Gib einem Rabatt einen Code, etwa SOMMER26, und Klienten geben ihn beim Beitritt ein.",
+        "create": "Code erstellen"
+      },
+      "validation": {
+        "nameRequired": "Gib einen Namen ein.",
+        "nameTooLong": "Der Name darf höchstens 100 Zeichen haben.",
+        "percentage": "Gib einen Prozentwert von 1 bis 100 ein.",
+        "amountInvalid": "Gib einen Betrag über 0 mit höchstens 2 Nachkommastellen ein.",
+        "amountTooHigh": "Der Betrag liegt über dem Limit für diese Währung.",
+        "packagesRequired": "Wähle mindestens ein Paket.",
+        "dateInvalid": "Gib ein gültiges Datum ein.",
+        "dateOrder": "Das Ende darf nicht vor dem Beginn liegen.",
+        "durationPayments": "Gib eine ganze Zahl von Zahlungen von 1 bis 120 ein."
+      },
+      "drawer": {
+        "titleNew": "Neuer Rabatt",
+        "titleEdit": "{{name}} bearbeiten",
+        "description": "Wende ihn im Tab Zahlung eines Klienten an",
+        "sectionDiscount": "Rabatt",
+        "name": "Name",
+        "nameHint": "Den Namen siehst nur du. Klienten sehen den gesparten Betrag.",
+        "type": "Typ",
+        "value": "Wert",
+        "currencyLocked": "Die Währung lässt sich nicht ändern, solange Klienten diesen Rabatt nutzen.",
+        "sectionAppliesTo": "Gilt für",
+        "noPackages": "Du hast noch keine aktiven Pakete.",
+        "sectionWhen": "Wann er gilt",
+        "validFrom": "Gültig ab",
+        "validTo": "Gültig bis",
+        "windowNote": "Zahlungen, die in diesem Zeitraum fällig sind, erhalten den Rabatt. Davor und danach zahlt der Klient den Paketpreis.",
+        "duration": "Innerhalb des Zeitraums",
+        "firstPayments": "Anzahl der Zahlungen",
+        "footer": "Rabattcodes kommen später",
+        "save": "Rabatt speichern",
+        "saving": "Speichern..."
+      }
     }
   },
   "automations": {
