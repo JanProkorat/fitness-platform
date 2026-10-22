@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using System.Text.Json;
 using FastEndpoints;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Services;
@@ -106,6 +107,8 @@ public class SearchProfessionalsEndpoint(
                 continue;
             }
 
+            (decimal Price, PaymentCurrency Currency)? fromMonthly = fromMonthlyPrices.TryGetValue(profile.Id, out var found) ? found : null;
+
             items.Add(new ProfessionalSummaryDto
             {
                 PublicId = profile.PublicId,
@@ -114,7 +117,8 @@ public class SearchProfessionalsEndpoint(
                 Bio = profile.Bio,
                 Specializations = ParseJsonArray(profile.Specializations),
                 City = profile.City,
-                FromMonthlyPrice = fromMonthlyPrices.TryGetValue(profile.Id, out var fromMonthlyPrice) ? fromMonthlyPrice : null,
+                FromMonthlyPrice = fromMonthly?.Price,
+                FromMonthlyPriceCurrency = fromMonthly?.Currency,
                 CollaborationType = profile.CollaborationType,
                 Languages = ParseJsonArray(profile.Languages),
                 Roles = professionalRoles,

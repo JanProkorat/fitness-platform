@@ -21,9 +21,20 @@ public class CoachPackage : PublicTimestampableEntity
     public required string Name { get; set; }
 
     /// <summary>
+    /// What the package includes, shown to the coach only; null for none.
+    /// </summary>
+    [MaxLength(500)]
+    public string? Description { get; set; }
+
+    /// <summary>
     /// The current price per billing period. Earlier prices live in <see cref="Prices"/>.
     /// </summary>
     public decimal Price { get; set; }
+
+    /// <summary>
+    /// The currency of <see cref="Price"/> and of every earlier price.
+    /// </summary>
+    public PaymentCurrency Currency { get; set; } = PaymentCurrency.CZK;
 
     /// <summary>
     /// How often the package is billed.

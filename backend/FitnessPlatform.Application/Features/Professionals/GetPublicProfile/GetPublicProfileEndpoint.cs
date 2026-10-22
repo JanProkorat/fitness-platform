@@ -92,6 +92,7 @@ public class GetPublicProfileEndpoint(
 
         var fromMonthlyPrices = await CoachPackagePricing.LoadFromMonthlyPricesAsync(
             db, entitlementService, [profile.Id], ct);
+        (decimal Price, PaymentCurrency Currency)? fromMonthly = fromMonthlyPrices.TryGetValue(profile.Id, out var found) ? found : null;
 
         await Send.OkAsync(new GetPublicProfileResponse
         {
@@ -103,7 +104,8 @@ public class GetPublicProfileEndpoint(
             Certificates = ParseCertificateTitles(profile.Certificates),
             Languages = ParseJsonArray(profile.Languages),
             City = profile.City,
-            FromMonthlyPrice = fromMonthlyPrices.TryGetValue(profile.Id, out var fromMonthlyPrice) ? fromMonthlyPrice : null,
+            FromMonthlyPrice = fromMonthly?.Price,
+            FromMonthlyPriceCurrency = fromMonthly?.Currency,
             CollaborationType = profile.CollaborationType,
             LinkedIn = profile.LinkedIn,
             Instagram = profile.Instagram,

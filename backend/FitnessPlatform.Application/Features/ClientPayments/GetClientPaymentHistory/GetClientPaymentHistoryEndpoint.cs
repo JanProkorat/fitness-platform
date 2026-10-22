@@ -3,6 +3,7 @@ using System.Text.Json;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.ClientPayments.Shared;
@@ -101,6 +102,10 @@ internal sealed class GetClientPaymentHistoryEndpoint(
                 && amount.ValueKind == JsonValueKind.Number
                 && amount.TryGetDecimal(out var value)
                     ? value
+                    : null;
+            entry.Currency = Enum.TryParse<PaymentCurrency>(ReadString(root, "currency"), out var currency)
+                && Enum.IsDefined(currency)
+                    ? currency
                     : null;
         }
         catch (JsonException)

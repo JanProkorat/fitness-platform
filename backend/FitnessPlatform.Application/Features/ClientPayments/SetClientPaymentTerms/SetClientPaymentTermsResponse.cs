@@ -1,3 +1,5 @@
+using FitnessPlatform.Application.Domain.Enums;
+
 namespace FitnessPlatform.Application.Features.ClientPayments.SetClientPaymentTerms;
 
 /// <summary>
@@ -13,6 +15,9 @@ public class SetClientPaymentTermsResponse
 
     /// <summary>The custom price; null for none.</summary>
     public decimal? CustomPrice { get; set; }
+
+    /// <summary>The currency of the package, the custom price and the amounts.</summary>
+    public PaymentCurrency Currency { get; set; }
 
     /// <summary>When the terms take effect (UTC).</summary>
     public DateTime EffectiveFromUtc { get; set; }

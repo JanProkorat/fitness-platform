@@ -98,6 +98,7 @@ internal sealed class MarkClientPaymentPaidEndpoint(
                 paymentId = payment.PublicId,
                 period = payment.PeriodStart is { } start ? start.ToString("yyyy-MM") : payment.Title,
                 amount = payment.Amount,
+                currency = payment.Currency.ToString(),
                 detail = payment.PaidOn?.ToString("yyyy-MM-dd")
             },
             ct);

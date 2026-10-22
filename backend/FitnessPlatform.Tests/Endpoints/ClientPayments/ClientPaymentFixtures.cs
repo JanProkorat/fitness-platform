@@ -88,11 +88,12 @@ internal static class ClientPaymentFixtures
         string name = "Online coaching",
         string billing = "Monthly",
         int? intervalWeeks = null,
-        int? runsFor = null)
+        int? runsFor = null,
+        string currency = "CZK")
     {
         var response = await coach.Http.PostAsJsonAsync(
             "/payments/packages",
-            new { Name = name, Price = price, Billing = billing, IntervalWeeks = intervalWeeks, RunsForPayments = runsFor, ShowOnProfile = true },
+            new { Name = name, Price = price, Currency = currency, Billing = billing, IntervalWeeks = intervalWeeks, RunsForPayments = runsFor, ShowOnProfile = true },
             TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.Created);
@@ -107,18 +108,21 @@ internal static class ClientPaymentFixtures
         string duration = "EveryPayment",
         int? durationPayments = null,
         IEnumerable<Guid>? packageIds = null,
-        string name = "Friends & family")
+        string name = "Friends & family",
+        string type = "Percentage",
+        string? currency = null)
     {
         var response = await coach.Http.PostAsJsonAsync(
             "/payments/discounts",
             new
             {
                 Name = name,
-                Type = "Percentage",
+                Type = type,
                 Value = percent,
+                Currency = currency,
                 Duration = duration,
                 DurationPayments = durationPayments,
-                AppliesToAllPackages = packageIds is null,
+                Scope = packageIds is null ? "AllPackages" : "SelectedPackages",
                 PackageIds = packageIds ?? []
             },
             TestContext.Current.CancellationToken);

@@ -26,6 +26,10 @@ internal sealed class AddClientOneOffPaymentValidator : Validator<AddClientOneOf
             .WithErrorCode(ErrorCodes.PaymentAmountInvalid)
             .WithMessage("The amount must be above zero and at most 9999999.99.");
 
+        RuleFor(x => x.Currency)
+            .IsInEnum().WithErrorCode(ErrorCodes.OutOfRange)
+            .When(x => x.Currency.HasValue);
+
         RuleFor(x => x.DueDate)
             .NotEqual(default(DateOnly));
     }

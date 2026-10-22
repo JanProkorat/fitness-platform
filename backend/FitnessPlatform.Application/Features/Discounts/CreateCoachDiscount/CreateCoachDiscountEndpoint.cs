@@ -36,7 +36,7 @@ internal sealed class CreateCoachDiscountEndpoint(
             s.Summary = "Create a discount";
             s.Description = "Creates a percentage or fixed-amount discount for all or some of the coach's packages.";
             s.Response<CoachDiscountDto>(StatusCodes.Status201Created, "Created discount");
-            s.Responses[StatusCodes.Status400BadRequest] = "Invalid request body, or a package is not available (DISCOUNT_PACKAGE_INVALID)";
+            s.Responses[StatusCodes.Status400BadRequest] = "Invalid request body, a package is not available (DISCOUNT_PACKAGE_INVALID), or a fixed discount is limited to a package in another currency (CURRENCY_MISMATCH)";
             s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
             s.Responses[StatusCodes.Status403Forbidden] = "The subscription does not include payments (PAYMENTS_NOT_ENTITLED), or the coach role was removed";
             s.Responses[StatusCodes.Status404NotFound] = "The caller has no professional profile";
@@ -60,9 +60,9 @@ internal sealed class CreateCoachDiscountEndpoint(
         }
 
         var packages = await this.LoadActivePackagesOrRespondAsync(
-            db, profileId.Value, req.AppliesToAllPackages, req.PackageIds, ct);
+            db, profileId.Value, req.Scope, req.PackageIds, ct);
 
-        if (packages is null)
+        if (packages is null || await this.RespondIfCurrencyMismatchAsync(req.Type, req.Currency, packages, ct))
         {
             return;
         }
@@ -74,11 +74,12 @@ internal sealed class CreateCoachDiscountEndpoint(
             Name = req.Name.Trim(),
             Type = req.Type,
             Value = req.Value,
+            Currency = req.Type == DiscountType.FixedAmount ? req.Currency : null,
             Duration = req.Duration,
             DurationPayments = req.DurationPayments,
             ValidFrom = req.ValidFrom,
             ValidTo = req.ValidTo,
-            AppliesToAllPackages = req.AppliesToAllPackages
+            Scope = req.Scope
         };
 
         foreach (var package in packages)

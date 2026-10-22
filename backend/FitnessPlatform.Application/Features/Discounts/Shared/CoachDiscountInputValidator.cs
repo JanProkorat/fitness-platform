@@ -1,6 +1,7 @@
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Services;
 using FluentValidation;
 
 namespace FitnessPlatform.Application.Features.Discounts.Shared;
@@ -29,10 +30,24 @@ public abstract class CoachDiscountInputValidator<TRequest> : Validator<TRequest
             .WithMessage("A percentage discount must be between 1 and 100.")
             .When(x => x.Type == DiscountType.Percentage);
 
+        RuleFor(x => x.Currency)
+            .NotNull().WithErrorCode(ErrorCodes.Required)
+            .WithMessage("A fixed-amount discount needs a currency.")
+            .When(x => x.Type == DiscountType.FixedAmount);
+
+        RuleFor(x => x.Currency)
+            .IsInEnum().WithErrorCode(ErrorCodes.OutOfRange)
+            .When(x => x.Currency.HasValue);
+
         RuleFor(x => x.Value)
             .GreaterThan(0).WithErrorCode(ErrorCodes.OutOfRange)
-            .LessThanOrEqualTo(1_000_000m).WithErrorCode(ErrorCodes.OutOfRange)
             .When(x => x.Type == DiscountType.FixedAmount);
+
+        RuleFor(x => x.Value)
+            .Must((request, value) => value <= CoachPackagePricing.MaxPrice(request.Currency!.Value))
+            .WithErrorCode(ErrorCodes.OutOfRange)
+            .WithMessage("The amount is above the limit of its currency.")
+            .When(x => x.Type == DiscountType.FixedAmount && x.Currency.HasValue && Enum.IsDefined(x.Currency.Value));
 
         RuleFor(x => x.Value)
             .Must(value => decimal.Round(value, 2) == value).WithErrorCode(ErrorCodes.OutOfRange)
@@ -56,9 +71,12 @@ public abstract class CoachDiscountInputValidator<TRequest> : Validator<TRequest
             .WithMessage("The end date cannot be before the start date.")
             .When(x => x.ValidFrom.HasValue && x.ValidTo.HasValue);
 
+        RuleFor(x => x.Scope)
+            .IsInEnum().WithErrorCode(ErrorCodes.OutOfRange);
+
         RuleFor(x => x.PackageIds)
             .NotEmpty().WithErrorCode(ErrorCodes.Required)
             .WithMessage("Choose at least one package, or apply the discount to all packages.")
-            .When(x => !x.AppliesToAllPackages);
+            .When(x => x.Scope == DiscountScope.SelectedPackages);
     }
 }

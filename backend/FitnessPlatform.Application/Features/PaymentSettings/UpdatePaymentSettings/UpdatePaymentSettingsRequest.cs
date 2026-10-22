@@ -15,4 +15,7 @@ public class UpdatePaymentSettingsRequest
 
     /// <summary>How the variable symbol is derived.</summary>
     public VariableSymbolFormat VariableSymbolFormat { get; set; }
+
+    /// <summary>The coach's main currency; omit to keep the stored one.</summary>
+    public PaymentCurrency? ProfileCurrency { get; set; }
 }

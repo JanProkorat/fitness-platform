@@ -41,7 +41,7 @@ internal sealed class SetClientPaymentTermsEndpoint(
             s.Summary = "Set a client's package and price";
             s.Description = "Sets the package and the discount or custom price the client pays under. Applies from the next billing period; setting identical terms changes nothing.";
             s.Responses[StatusCodes.Status200OK] = "The terms in force";
-            s.Responses[StatusCodes.Status400BadRequest] = "Invalid body: both a discount and a custom price, an amount out of range (PAYMENT_AMOUNT_INVALID) or a first period in the past (PAYMENT_START_DATE_INVALID)";
+            s.Responses[StatusCodes.Status400BadRequest] = "Invalid body: both a discount and a custom price, an amount out of range (PAYMENT_AMOUNT_INVALID), a first period in the past (PAYMENT_START_DATE_INVALID) or a fixed discount in another currency than the package (CURRENCY_MISMATCH)";
             s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
             s.Responses[StatusCodes.Status403Forbidden] = "The subscription does not include payments (PAYMENTS_NOT_ENTITLED), or the coach role was removed";
             s.Responses[StatusCodes.Status404NotFound] = "No live link to the client, or the package or discount is unknown or belongs to another coach";
@@ -79,6 +79,12 @@ internal sealed class SetClientPaymentTermsEndpoint(
         if (package.ArchivedAt is not null)
         {
             await this.SendProblemAsync(StatusCodes.Status409Conflict, ErrorCodes.PackageArchived, "The package is archived.", ct);
+            return;
+        }
+
+        if (req.CustomPrice > CoachPackagePricing.MaxPrice(package.Currency))
+        {
+            this.ThrowErrorWithCode(ErrorCodes.PaymentAmountInvalid, "The custom price is above the limit of the package's currency.");
             return;
         }
 
@@ -145,12 +151,22 @@ internal sealed class SetClientPaymentTermsEndpoint(
             return null;
         }
 
-        if (!discount.AppliesToAllPackages && discount.Packages.All(link => link.CoachPackageId != package.Id))
+        if (!CoachDiscountRules.CoversPackage(discount, package))
         {
             await this.SendProblemAsync(
                 StatusCodes.Status409Conflict,
                 ErrorCodes.DiscountPackageInvalid,
                 "The discount does not apply to the package.",
+                ct);
+            return null;
+        }
+
+        if (discount.Type == DiscountType.FixedAmount && discount.Currency != package.Currency)
+        {
+            await this.SendProblemAsync(
+                StatusCodes.Status400BadRequest,
+                ErrorCodes.CurrencyMismatch,
+                "A fixed discount can only be used with a package in its own currency.",
                 ct);
             return null;
         }
@@ -251,6 +267,7 @@ internal sealed class SetClientPaymentTermsEndpoint(
                     detail = package.Name,
                     discount = discount?.Name,
                     amount = req.CustomPrice,
+                    currency = package.Currency.ToString(),
                     removed = staleIds.Count
                 },
                 ct);
@@ -278,6 +295,7 @@ internal sealed class SetClientPaymentTermsEndpoint(
             PackageId = latest.CoachPackage.PublicId,
             DiscountId = latest.CoachDiscount?.PublicId,
             CustomPrice = latest.CustomPrice,
+            Currency = latest.CoachPackage.Currency,
             EffectiveFromUtc = latest.EffectiveFromUtc,
             AppliesFromPeriodStart = first?.PeriodStart,
             Amount = first is null ? null : ClientPaymentSchedule.FiguresOf(first, terms, starts).Amount

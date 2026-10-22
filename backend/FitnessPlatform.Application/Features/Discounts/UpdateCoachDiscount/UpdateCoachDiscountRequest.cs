@@ -32,9 +32,12 @@ public class UpdateCoachDiscountRequest : ICoachDiscountInput
     /// <summary>Last payment due date the discount applies to (inclusive); omit for open-ended.</summary>
     public DateOnly? ValidTo { get; set; }
 
-    /// <summary>Whether the discount applies to every package.</summary>
-    public bool AppliesToAllPackages { get; set; }
+    /// <summary>The currency of a fixed amount (required for a fixed amount, ignored for a percentage); cannot change while client terms use the discount.</summary>
+    public PaymentCurrency? Currency { get; set; }
 
-    /// <summary>Public ids of the packages the discount is limited to; ignored when it applies to all.</summary>
+    /// <summary>Which packages the discount can be used with.</summary>
+    public DiscountScope Scope { get; set; } = DiscountScope.AllPackages;
+
+    /// <summary>Public ids of the packages the discount is limited to; used only for selected packages.</summary>
     public List<Guid> PackageIds { get; set; } = [];
 }

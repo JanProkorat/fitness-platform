@@ -28,8 +28,11 @@ public interface ICoachDiscountInput
     /// <summary>Last due date the discount applies to.</summary>
     DateOnly? ValidTo { get; }
 
-    /// <summary>Whether the discount applies to every package.</summary>
-    bool AppliesToAllPackages { get; }
+    /// <summary>The currency of a fixed amount; required for a fixed amount, ignored for a percentage.</summary>
+    PaymentCurrency? Currency { get; }
+
+    /// <summary>Which packages the discount can be used with.</summary>
+    DiscountScope Scope { get; }
 
     /// <summary>Public ids of the packages the discount is limited to.</summary>
     List<Guid> PackageIds { get; }

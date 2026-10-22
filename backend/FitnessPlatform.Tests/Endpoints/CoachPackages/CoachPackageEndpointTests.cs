@@ -6,6 +6,7 @@ using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Features.CoachPackages.Shared;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Tests.Builders;
+using FitnessPlatform.Tests.Endpoints.ClientPayments;
 using FitnessPlatform.Tests.Infrastructure;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
@@ -25,9 +26,12 @@ public class CoachPackageEndpointTests(FitnessApiFactory factory)
         Converters = { new JsonStringEnumConverter() }
     };
 
-    private static object ValidBody(decimal price = 1500m, string name = "Online coaching") => new
+    private static object ValidBody(
+        decimal price = 1500m, string name = "Online coaching", string currency = "CZK", string? description = null) => new
     {
         Name = name,
+        Description = description,
+        Currency = currency,
         Price = price,
         Billing = "Monthly",
         ShowOnProfile = true
@@ -82,20 +86,22 @@ public class CoachPackageEndpointTests(FitnessApiFactory factory)
     {
         var coach = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
 
-        var package = await CreateAsync(coach);
+        var package = await CreateAsync(coach, ValidBody(currency: "EUR", description: "  Weekly plan + chat  "));
 
         package.Price.Should().Be(1500m);
+        package.Currency.Should().Be(PaymentCurrency.EUR);
+        package.Description.Should().Be("Weekly plan + chat");
         package.Billing.Should().Be(PackageBillingInterval.Monthly);
         (await ReadPriceHistoryAsync(package.PackageId)).Should().Equal(1500m);
         (await ReadAuditAsync(package.PackageId, "CreateCoachPackage")).Should().ContainSingle()
             .Which.New.Should().Contain("1500");
 
-        (await UpdateAsync(coach, package.PackageId, ValidBody(name: "Renamed"))).StatusCode.Should().Be(HttpStatusCode.OK);
+        (await UpdateAsync(coach, package.PackageId, ValidBody(name: "Renamed", currency: "EUR"))).StatusCode.Should().Be(HttpStatusCode.OK);
 
         (await ReadPriceHistoryAsync(package.PackageId)).Should().Equal(1500m);
         (await ReadAuditAsync(package.PackageId, "ChangeCoachPackagePrice")).Should().BeEmpty();
 
-        (await UpdateAsync(coach, package.PackageId, ValidBody(price: 1800m))).StatusCode.Should().Be(HttpStatusCode.OK);
+        (await UpdateAsync(coach, package.PackageId, ValidBody(price: 1800m, currency: "EUR"))).StatusCode.Should().Be(HttpStatusCode.OK);
 
         (await ReadPriceHistoryAsync(package.PackageId)).Should().Equal(1500m, 1800m);
         var audit = (await ReadAuditAsync(package.PackageId, "ChangeCoachPackagePrice")).Should().ContainSingle().Subject;
@@ -170,6 +176,41 @@ public class CoachPackageEndpointTests(FitnessApiFactory factory)
 
         activeOnly!.Items.Select(p => p.PackageId).Should().Equal(active.PackageId);
         everything!.Items.Select(p => p.PackageId).Should().Equal(active.PackageId, archived.PackageId);
+    }
+
+    [Fact]
+    public async Task ListAndGet_ClientWithTerms_CountsTheClientOnThePackage()
+    {
+        var world = await ClientPaymentFixtures.CreateWorldAsync(factory);
+        var used = await ClientPaymentFixtures.CreatePackageAsync(world.Coach, name: "Used");
+        var unused = await ClientPaymentFixtures.CreatePackageAsync(world.Coach, name: "Unused");
+        await ClientPaymentFixtures.SetTermsOkAsync(world, used);
+
+        var list = await world.Coach.Http.GetFromJsonAsync<ListBody>("/payments/packages", WireOptions, TestContext.Current.CancellationToken);
+
+        list!.Items.Single(p => p.PackageId == used).ClientCount.Should().Be(1);
+        list.Items.Single(p => p.PackageId == unused).ClientCount.Should().Be(0);
+        (await GetAsync(world.Coach, used)).ClientCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Update_CurrencyWhileClientTermsUseThePackage_Returns409CurrencyLocked()
+    {
+        var world = await ClientPaymentFixtures.CreateWorldAsync(factory);
+        var packageId = await ClientPaymentFixtures.CreatePackageAsync(world.Coach);
+        await ClientPaymentFixtures.SetTermsOkAsync(world, packageId);
+
+        var response = await UpdateAsync(world.Coach, packageId, ValidBody(price: 60m, currency: "EUR"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await ProblemCodeAsync(response)).Should().Be("CURRENCY_LOCKED");
+        (await GetAsync(world.Coach, packageId)).Currency.Should().Be(PaymentCurrency.CZK);
+
+        // Once the client moves to another package, the old one is no longer in use and may change currency.
+        var other = await ClientPaymentFixtures.CreatePackageAsync(world.Coach, name: "Other");
+        await ClientPaymentFixtures.SetTermsOkAsync(world, other);
+
+        (await UpdateAsync(world.Coach, packageId, ValidBody(price: 60m, currency: "EUR"))).StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
     private sealed record ListBody(List<CoachPackageDto> Items);

@@ -43,6 +43,11 @@ public class CoachPaymentSettings : PublicTimestampableEntity
     public VariableSymbolFormat VariableSymbolFormat { get; set; } = VariableSymbolFormat.YearMonthClientNumber;
 
     /// <summary>
+    /// The coach's main currency; decides which package price the public profile shows as "from".
+    /// </summary>
+    public PaymentCurrency ProfileCurrency { get; set; } = PaymentCurrency.CZK;
+
+    /// <summary>
     /// When the bank account was last set or changed (UTC). Null until an account is set.
     /// </summary>
     public DateTime? BankAccountChangedAt { get; set; }

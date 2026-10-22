@@ -60,6 +60,8 @@ internal sealed class GetCoachDiscountEndpoint(IApplicationDbContext db, Entitle
             return;
         }
 
-        await Send.OkAsync(CoachDiscountDto.FromEntity(discount), ct);
+        var usage = await ClientPaymentSchedule.CountCurrentUsageAsync(db, profileId.Value, ct);
+
+        await Send.OkAsync(CoachDiscountDto.FromEntity(discount, usage.ByDiscount.GetValueOrDefault(discount.Id)), ct);
     }
 }

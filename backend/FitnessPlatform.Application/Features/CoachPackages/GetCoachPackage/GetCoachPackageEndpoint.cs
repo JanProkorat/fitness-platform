@@ -59,6 +59,8 @@ internal sealed class GetCoachPackageEndpoint(IApplicationDbContext db, Entitlem
             return;
         }
 
-        await Send.OkAsync(CoachPackageDto.FromEntity(package), ct);
+        var usage = await ClientPaymentSchedule.CountCurrentUsageAsync(db, profileId.Value, ct);
+
+        await Send.OkAsync(CoachPackageDto.FromEntity(package, usage.ByPackage.GetValueOrDefault(package.Id)), ct);
     }
 }

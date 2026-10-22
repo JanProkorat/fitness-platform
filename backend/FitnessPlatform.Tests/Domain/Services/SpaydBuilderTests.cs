@@ -1,4 +1,5 @@
 using System.Globalization;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Services;
 using FluentAssertions;
 
@@ -19,6 +20,14 @@ public class SpaydBuilderTests
 
         spayd.Should().Be(
             "SPD*1.0*ACC:CZ6508000000192000145399*AM:1750.00*CC:CZK*DT:20261101*MSG:Online coaching 11/2026*RN:Martin Kral*X-VS:2026110142");
+    }
+
+    [Fact]
+    public void Build_EuroPayment_WritesTheEuroCurrencyCode()
+    {
+        var spayd = SpaydBuilder.Build(Iban, 10m, null, null, null, null, PaymentCurrency.EUR);
+
+        spayd.Should().Be("SPD*1.0*ACC:CZ6508000000192000145399*AM:10.00*CC:EUR");
     }
 
     [Fact]

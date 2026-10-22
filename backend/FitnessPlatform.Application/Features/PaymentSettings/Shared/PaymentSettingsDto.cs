@@ -23,6 +23,9 @@ public class PaymentSettingsDto
     /// <summary>How the variable symbol is derived.</summary>
     public VariableSymbolFormat VariableSymbolFormat { get; set; }
 
+    /// <summary>The coach's main currency; the public profile's "from" price is in it.</summary>
+    public PaymentCurrency ProfileCurrency { get; set; }
+
     /// <summary>When the bank account was last set or changed (UTC), or null until one is set.</summary>
     public DateTime? BankAccountChangedAt { get; set; }
 
@@ -41,6 +44,7 @@ public class PaymentSettingsDto
             PaymentDueDays = settings.PaymentDueDays,
             MessageFormat = settings.MessageFormat,
             VariableSymbolFormat = settings.VariableSymbolFormat,
+            ProfileCurrency = settings.ProfileCurrency,
             BankAccountChangedAt = settings.BankAccountChangedAt
         };
     }

@@ -1,6 +1,7 @@
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Services;
 using FluentValidation;
 
 namespace FitnessPlatform.Application.Features.CoachPackages.Shared;
@@ -21,9 +22,16 @@ public abstract class CoachPackageInputValidator<TRequest> : Validator<TRequest>
             .NotEmpty().WithErrorCode(ErrorCodes.Required)
             .MaximumLength(100).WithErrorCode(ErrorCodes.OutOfRange);
 
+        RuleFor(x => x.Description)
+            .MaximumLength(500).WithErrorCode(ErrorCodes.OutOfRange);
+
+        RuleFor(x => x.Currency)
+            .IsInEnum().WithErrorCode(ErrorCodes.OutOfRange);
+
         RuleFor(x => x.Price)
             .GreaterThan(0).WithErrorCode(ErrorCodes.OutOfRange)
-            .LessThanOrEqualTo(1_000_000m).WithErrorCode(ErrorCodes.OutOfRange)
+            .Must((request, price) => price <= CoachPackagePricing.MaxPrice(request.Currency)).WithErrorCode(ErrorCodes.OutOfRange)
+            .WithMessage("Price is above the limit of its currency.")
             .Must(price => decimal.Round(price, 2) == price).WithErrorCode(ErrorCodes.OutOfRange)
             .WithMessage("Price can have at most 2 decimals.");
 

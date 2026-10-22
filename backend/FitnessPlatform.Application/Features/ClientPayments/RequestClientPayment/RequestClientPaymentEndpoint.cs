@@ -156,7 +156,8 @@ internal sealed class RequestClientPaymentEndpoint(
         var figures = ClientPaymentSchedule.FiguresOf(payment, terms, recurringStarts);
         var amount = req.Amount ?? figures.Amount;
 
-        if (amount is not > 0m or > ClientPaymentSchedule.MaxAmount)
+        if (amount is not > 0m or > ClientPaymentSchedule.MaxAmount
+            || (req.Amount is not null && req.Amount > CoachPackagePricing.MaxPrice(payment.Currency)))
         {
             this.ThrowErrorWithCode(
                 ErrorCodes.PaymentAmountInvalid,
@@ -212,6 +213,7 @@ internal sealed class RequestClientPaymentEndpoint(
                 paymentId = payment.PublicId,
                 period = payment.PeriodStart is { } start ? start.ToString("yyyy-MM") : payment.Title,
                 amount = payment.Amount,
+                currency = payment.Currency.ToString(),
                 detail = payment.DueDate.ToString("yyyy-MM-dd"),
                 channels = string.Join(',', new[] { req.SendEmail ? "email" : null, req.SendNotification ? "notification" : null }.OfType<string>())
             },
@@ -307,7 +309,8 @@ internal sealed class RequestClientPaymentEndpoint(
                 payment.VariableSymbol,
                 payment.Message,
                 payment.DueDate,
-                payment.AccountHolder);
+                payment.AccountHolder,
+                payment.Currency);
 
             await emailService.SendPaymentRequestEmailAsync(
                 new PaymentRequestEmail(
@@ -325,7 +328,8 @@ internal sealed class RequestClientPaymentEndpoint(
                     payment.VariableSymbol ?? string.Empty,
                     payment.Message ?? string.Empty,
                     QrCodePngRenderer.Render(qrPayload),
-                    PaymentMessageComposer.QrContentId),
+                    PaymentMessageComposer.QrContentId,
+                    payment.Currency),
                 ct);
 
             return true;
@@ -349,7 +353,7 @@ internal sealed class RequestClientPaymentEndpoint(
                 new Dictionary<string, string>
                 {
                     ["coachName"] = context.CoachName,
-                    ["amount"] = PaymentMessageComposer.FormatAmount(payment.Amount!.Value, language),
+                    ["amount"] = PaymentMessageComposer.FormatAmount(payment.Amount!.Value, language, payment.Currency),
                     ["dueDate"] = PaymentMessageComposer.FormatDate(payment.DueDate, language),
                     ["paymentId"] = payment.PublicId.ToString()
                 },

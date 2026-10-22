@@ -1,3 +1,5 @@
+using FitnessPlatform.Application.Domain.Enums;
+
 namespace FitnessPlatform.Application.Features.ClientPayments.GetClientPaymentHistory;
 
 /// <summary>
@@ -37,4 +39,7 @@ public class ClientPaymentHistoryEntryDto
 
     /// <summary>The amount involved, when the action has one.</summary>
     public decimal? Amount { get; set; }
+
+    /// <summary>The currency of <see cref="Amount"/>; null for entries written before currencies existed.</summary>
+    public PaymentCurrency? Currency { get; set; }
 }

@@ -37,6 +37,20 @@ public static class CoachDiscountRules
     }
 
     /// <summary>
+    /// Whether the discount's scope covers a package. Selected packages are matched through the discount's
+    /// loaded <see cref="CoachDiscount.Packages"/> links.
+    /// </summary>
+    /// <param name="discount">The discount, its package links loaded.</param>
+    /// <param name="package">The package.</param>
+    public static bool CoversPackage(CoachDiscount discount, CoachPackage package) =>
+        discount.Scope switch
+        {
+            DiscountScope.AllPackages => true,
+            DiscountScope.MonthlyPackages => package.Billing == PackageBillingInterval.Monthly,
+            _ => discount.Packages.Any(link => link.CoachPackageId == package.Id)
+        };
+
+    /// <summary>
     /// The price after the discount, rounded to two decimals and never below zero.
     /// </summary>
     /// <param name="discount">The discount.</param>

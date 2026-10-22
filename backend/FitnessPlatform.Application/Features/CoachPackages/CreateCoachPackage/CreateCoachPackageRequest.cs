@@ -11,8 +11,14 @@ public class CreateCoachPackageRequest : ICoachPackageInput
     /// <summary>Display name (up to 100 characters).</summary>
     public string Name { get; set; } = string.Empty;
 
-    /// <summary>Price per billing period, above 0 and at most 1 000 000, with up to 2 decimals.</summary>
+    /// <summary>What the package includes (up to 500 characters), shown to the coach only.</summary>
+    public string? Description { get; set; }
+
+    /// <summary>Price per billing period, above 0 and at most 1 000 000 CZK or 50 000 EUR, with up to 2 decimals.</summary>
     public decimal Price { get; set; }
+
+    /// <summary>The currency of the price.</summary>
+    public PaymentCurrency Currency { get; set; } = PaymentCurrency.CZK;
 
     /// <summary>How often the package is billed.</summary>
     public PackageBillingInterval Billing { get; set; } = PackageBillingInterval.Monthly;

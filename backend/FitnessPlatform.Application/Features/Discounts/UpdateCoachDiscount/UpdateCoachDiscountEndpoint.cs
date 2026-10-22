@@ -37,11 +37,11 @@ internal sealed class UpdateCoachDiscountEndpoint(
             s.Summary = "Update a discount";
             s.Description = "Updates a discount and replaces the packages it is limited to.";
             s.Responses[StatusCodes.Status200OK] = "Updated discount";
-            s.Responses[StatusCodes.Status400BadRequest] = "Invalid request body, or a package is not available (DISCOUNT_PACKAGE_INVALID)";
+            s.Responses[StatusCodes.Status400BadRequest] = "Invalid request body, a package is not available (DISCOUNT_PACKAGE_INVALID), or a fixed discount is limited to a package in another currency (CURRENCY_MISMATCH)";
             s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
             s.Responses[StatusCodes.Status403Forbidden] = "The subscription does not include payments (PAYMENTS_NOT_ENTITLED), or the coach role was removed";
             s.Responses[StatusCodes.Status404NotFound] = "The discount does not exist or belongs to another coach, or the caller has no professional profile";
-            s.Responses[StatusCodes.Status409Conflict] = "The discount is archived (DISCOUNT_ARCHIVED)";
+            s.Responses[StatusCodes.Status409Conflict] = "The discount is archived (DISCOUNT_ARCHIVED), or its currency changes while client terms use it (CURRENCY_LOCKED)";
         });
     }
 
@@ -79,10 +79,24 @@ internal sealed class UpdateCoachDiscountEndpoint(
         }
 
         var packages = await this.LoadActivePackagesOrRespondAsync(
-            db, profileId.Value, req.AppliesToAllPackages, req.PackageIds, ct);
+            db, profileId.Value, req.Scope, req.PackageIds, ct);
 
-        if (packages is null)
+        if (packages is null || await this.RespondIfCurrencyMismatchAsync(req.Type, req.Currency, packages, ct))
         {
+            return;
+        }
+
+        var newCurrency = req.Type == DiscountType.FixedAmount ? req.Currency : null;
+
+        var usage = await ClientPaymentSchedule.CountCurrentUsageAsync(db, profileId.Value, ct);
+
+        if (newCurrency is not null && discount.Currency != newCurrency && usage.ByDiscount.ContainsKey(discount.Id))
+        {
+            await this.SendProblemAsync(
+                StatusCodes.Status409Conflict,
+                ErrorCodes.CurrencyLocked,
+                "The currency cannot change while client terms use the discount.",
+                ct);
             return;
         }
 
@@ -91,11 +105,12 @@ internal sealed class UpdateCoachDiscountEndpoint(
         discount.Name = req.Name.Trim();
         discount.Type = req.Type;
         discount.Value = req.Value;
+        discount.Currency = newCurrency;
         discount.Duration = req.Duration;
         discount.DurationPayments = req.DurationPayments;
         discount.ValidFrom = req.ValidFrom;
         discount.ValidTo = req.ValidTo;
-        discount.AppliesToAllPackages = req.AppliesToAllPackages;
+        discount.Scope = req.Scope;
 
         ReplacePackageLinks(discount, packages);
 
@@ -111,7 +126,7 @@ internal sealed class UpdateCoachDiscountEndpoint(
             newValues: JsonSerializer.Serialize(new { discount.Name, discount.Type, discount.Value }),
             ct: ct);
 
-        await Send.OkAsync(CoachDiscountDto.FromEntity(discount), ct);
+        await Send.OkAsync(CoachDiscountDto.FromEntity(discount, usage.ByDiscount.GetValueOrDefault(discount.Id)), ct);
     }
 
     private void ReplacePackageLinks(CoachDiscount discount, List<CoachPackage> packages)

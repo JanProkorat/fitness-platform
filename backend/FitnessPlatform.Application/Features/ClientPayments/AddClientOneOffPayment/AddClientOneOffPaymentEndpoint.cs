@@ -69,6 +69,14 @@ internal sealed class AddClientOneOffPaymentEndpoint(
             .AsNoTracking()
             .FirstOrDefaultAsync(s => s.ProfessionalProfileId == context.ProfessionalProfileId, ct);
 
+        var currency = req.Currency ?? settings?.ProfileCurrency ?? PaymentCurrency.CZK;
+
+        if (req.Amount > CoachPackagePricing.MaxPrice(currency))
+        {
+            this.ThrowErrorWithCode(ErrorCodes.PaymentAmountInvalid, "The amount is above the limit of its currency.");
+            return;
+        }
+
         await using var transaction = await db.BeginTransactionAsync(ct);
         await db.LockProfessionalProfileAsync(context.ProfessionalProfileId, ct);
 
@@ -109,6 +117,7 @@ internal sealed class AddClientOneOffPaymentEndpoint(
             Status = ClientPaymentStatus.Upcoming,
             DueDate = req.DueDate,
             Amount = req.Amount,
+            Currency = currency,
             Title = req.Title.Trim(),
             VariableSymbol = variableSymbol
         };
@@ -126,6 +135,7 @@ internal sealed class AddClientOneOffPaymentEndpoint(
                 paymentId = payment.PublicId,
                 period = payment.Title,
                 amount = payment.Amount,
+                currency = payment.Currency.ToString(),
                 detail = payment.DueDate.ToString("yyyy-MM-dd")
             },
             ct);

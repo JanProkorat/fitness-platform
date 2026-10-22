@@ -14,8 +14,14 @@ public class CoachPackageDto
     /// <summary>Display name.</summary>
     public string Name { get; set; } = string.Empty;
 
+    /// <summary>What the package includes, or null for none.</summary>
+    public string? Description { get; set; }
+
     /// <summary>Current price per billing period.</summary>
     public decimal Price { get; set; }
+
+    /// <summary>The currency of the price.</summary>
+    public PaymentCurrency Currency { get; set; }
 
     /// <summary>How often the package is billed.</summary>
     public PackageBillingInterval Billing { get; set; }
@@ -32,6 +38,9 @@ public class CoachPackageDto
     /// <summary>Whether the price is shown on the coach's public profile.</summary>
     public bool ShowOnProfile { get; set; }
 
+    /// <summary>How many clients currently have this package assigned.</summary>
+    public int ClientCount { get; set; }
+
     /// <summary>When the package was archived (UTC), or null while active.</summary>
     public DateTime? ArchivedAt { get; set; }
 
@@ -39,11 +48,15 @@ public class CoachPackageDto
     /// Maps a package row to its wire form.
     /// </summary>
     /// <param name="package">The stored package.</param>
-    public static CoachPackageDto FromEntity(CoachPackage package) => new()
+    /// <param name="clientCount">How many clients currently have the package assigned.</param>
+    public static CoachPackageDto FromEntity(CoachPackage package, int clientCount = 0) => new()
     {
         PackageId = package.PublicId,
         Name = package.Name,
+        Description = package.Description,
         Price = package.Price,
+        Currency = package.Currency,
+        ClientCount = clientCount,
         Billing = package.Billing,
         IntervalWeeks = package.IntervalWeeks,
         RunsForPayments = package.RunsForPayments,

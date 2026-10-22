@@ -51,8 +51,11 @@ public class ClientPaymentItemDto
     /// <summary>Last day of the billing period; null for a one-off payment.</summary>
     public DateOnly? PeriodEnd { get; set; }
 
-    /// <summary>Amount in CZK.</summary>
+    /// <summary>Amount in <see cref="Currency"/>.</summary>
     public decimal? Amount { get; set; }
+
+    /// <summary>The currency of the amounts.</summary>
+    public PaymentCurrency Currency { get; set; }
 
     /// <summary>Package price before any discount.</summary>
     public decimal? BasePrice { get; set; }
@@ -96,6 +99,7 @@ public class ClientPaymentItemDto
             PeriodStart = payment.PeriodStart,
             PeriodEnd = payment.PeriodEnd,
             Amount = payment.Amount,
+            Currency = payment.Currency,
             BasePrice = payment.BasePrice,
             DiscountLabel = payment.DiscountLabel,
             DueDate = payment.DueDate,
@@ -120,7 +124,8 @@ public class ClientPaymentItemDto
                 payment.VariableSymbol,
                 payment.Message,
                 payment.DueDate,
-                payment.AccountHolder);
+                payment.AccountHolder,
+                payment.Currency);
         }
 
         return item;

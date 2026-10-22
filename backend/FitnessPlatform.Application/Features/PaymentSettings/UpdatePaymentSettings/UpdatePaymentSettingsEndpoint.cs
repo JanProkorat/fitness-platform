@@ -29,7 +29,7 @@ internal sealed class UpdatePaymentSettingsEndpoint(IApplicationDbContext db, En
         Summary(s =>
         {
             s.Summary = "Update payment settings";
-            s.Description = "Sets the payment due days and the message and variable symbol formats. The bank account is changed through its own endpoint.";
+            s.Description = "Sets the payment due days, the message and variable symbol formats and the main currency (kept when omitted). The bank account is changed through its own endpoint.";
             s.Responses[StatusCodes.Status200OK] = "Updated payment settings";
             s.Responses[StatusCodes.Status400BadRequest] = "Invalid request body";
             s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
@@ -66,6 +66,7 @@ internal sealed class UpdatePaymentSettingsEndpoint(IApplicationDbContext db, En
         settings.PaymentDueDays = req.PaymentDueDays;
         settings.MessageFormat = req.MessageFormat;
         settings.VariableSymbolFormat = req.VariableSymbolFormat;
+        settings.ProfileCurrency = req.ProfileCurrency ?? settings.ProfileCurrency;
 
         await db.SaveChangesAsync(ct);
 
