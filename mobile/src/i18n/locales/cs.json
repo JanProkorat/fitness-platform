@@ -74,6 +74,65 @@
       }
     }
   },
+  "settings": {
+    "title": "Nastavení",
+    "back": "Zpět",
+    "logout": "Odhlásit se",
+    "sheet": {
+      "close": "Zavřít"
+    },
+    "account": {
+      "title": "Účet",
+      "email": "E-mail",
+      "password": "Heslo"
+    },
+    "preferences": {
+      "title": "Předvolby",
+      "language": "Jazyk",
+      "appearance": "Vzhled"
+    },
+    "language": {
+      "cs": "Čeština",
+      "en": "English",
+      "de": "Deutsch"
+    },
+    "appearance": {
+      "system": "Automaticky",
+      "light": "Světlý",
+      "dark": "Tmavý"
+    },
+    "notifications": {
+      "title": "Oznámení",
+      "messages": "Zprávy",
+      "loadError": "Nastavení oznámení se nepodařilo načíst. Klepnutím to zkusíte znovu.",
+      "saveError": "Změnu se nepodařilo uložit. Zkuste to prosím znovu."
+    },
+    "delete": {
+      "row": "Smazat účet",
+      "title": "Smazat účet?",
+      "message": "Tím trvale smažete svůj účet a svá data. Tento krok nelze vrátit zpět.",
+      "cancel": "Zrušit",
+      "confirm": "Smazat",
+      "error": "Účet se nepodařilo smazat. Zůstáváte přihlášeni. Zkuste to prosím znovu."
+    },
+    "password": {
+      "title": "Změna hesla",
+      "current": "Současné heslo",
+      "new": "Nové heslo",
+      "confirm": "Nové heslo znovu",
+      "show": "Zobrazit",
+      "hide": "Skrýt",
+      "submit": "Změnit heslo",
+      "mismatch": "Hesla se neshodují.",
+      "errors": {
+        "invalidCurrent": "Současné heslo není správné.",
+        "notSet": "Tento účet nemá heslo, které by šlo změnit.",
+        "rateLimited": "Příliš mnoho pokusů. Zkuste to prosím za chvíli.",
+        "network": "Nelze se spojit se serverem. Zkontrolujte připojení a zkuste to znovu.",
+        "generic": "Heslo se nepodařilo změnit. Zkuste to prosím znovu."
+      }
+    }
+  },
   "tabs": {
     "today": "Dnes",
     "training": "Trénink",

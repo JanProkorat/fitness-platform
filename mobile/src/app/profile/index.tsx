@@ -181,6 +181,7 @@ export default function ProfileScreen() {
         <ListRow
           leading={<RowIcon symbol="gearshape" tone="neutral" />}
           label={t('profile.settings')}
+          onPress={() => router.push('/profile/settings')}
         />
       </ListCard>
     </Screen>
