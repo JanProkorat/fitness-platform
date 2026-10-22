@@ -18,8 +18,6 @@ type MetricInputProps = {
   /** `hero` is the large stacked field, `row` the compact one inside a card. */
   variant: 'hero' | 'row';
   autoFocus?: boolean;
-  /** iOS only: the InputAccessoryView shown above this field's keyboard. */
-  inputAccessoryViewID?: string;
 };
 
 /** Keeps digits and the two decimal separators only. */
@@ -35,7 +33,6 @@ export function MetricInput({
   invalid,
   variant,
   autoFocus,
-  inputAccessoryViewID,
 }: MetricInputProps) {
   const theme = useTheme();
   const styles = makeStyles(theme);
@@ -61,7 +58,6 @@ export function MetricInput({
         placeholderTextColor={theme.colors.muted}
         selectionColor={theme.colors.accent}
         autoFocus={autoFocus}
-        inputAccessoryViewID={inputAccessoryViewID}
         maxLength={7}
         style={[hero ? styles.heroInput : styles.rowInput, { borderColor }]}
       />

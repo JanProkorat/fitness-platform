@@ -500,7 +500,6 @@
       "close": "Close",
       "subtitle": "Fill in only what you measured",
       "save": "Save measurement",
-      "done": "Done",
       "error": "Couldn't save the measurement. Try again.",
       "measured": "Measured",
       "measuredA11y": "Measured: {{value}}. Change",
