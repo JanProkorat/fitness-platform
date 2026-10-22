@@ -405,6 +405,26 @@
       "generic": "Die E-Mail konnte nicht gesendet werden. Bitte versuche es erneut."
     }
   },
+  "checkInHistory": {
+    "title": "Check-in-Verlauf",
+    "count_one": "{{count}} Check-in",
+    "count_other": "{{count}} Check-ins",
+    "countSince_one": "{{count}} Check-in seit {{since}}",
+    "countSince_other": "{{count}} Check-ins seit {{since}}",
+    "filterAll": "Alle",
+    "filterLabel": "Nach Coach filtern",
+    "openNow": "Jetzt offen",
+    "weekOf": "Woche vom {{date}}",
+    "answerBy": "{{coach}} · antworten bis {{weekday}}",
+    "status": {
+      "sent": "Gesendet",
+      "reviewed": "Geprüft",
+      "missed": "Verpasst"
+    },
+    "empty": "Noch keine Check-ins. Die wöchentlichen Check-ins deiner Coaches erscheinen hier.",
+    "error": "Check-ins konnten nicht geladen werden.",
+    "retry": "Erneut versuchen"
+  },
   "changeEmail": {
     "title": "E-Mail ändern",
     "cancel": "Abbrechen",
