@@ -28,6 +28,7 @@ import {
   buildTrainerPayload,
   createProfileSchema,
   fieldForBackendName,
+  fromPriceOf,
   type ProfileFormValues,
 } from '@/components/profile/profile-form';
 
@@ -83,6 +84,8 @@ export default function ProfileForm({ me, trainer }: Props) {
   const [initialValues] = useState(() => buildDefaultValues(me, trainer));
   const baseline = useRef<Baseline>(computeBaseline(initialValues, trainer.specialization));
   const schema = createProfileSchema(t);
+  // Read-only and server-derived: it follows the live query, not the form's one-time seed.
+  const fromPrice = fromPriceOf(trainer);
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(schema),
@@ -219,7 +222,7 @@ export default function ProfileForm({ me, trainer }: Props) {
           <div className="grid min-w-0 gap-4 2xl:grid-cols-2">
             <PhotoNameSection professionalAvatarUrl={trainer.avatarBlobUrl} userAvatarUrl={me.avatarBlobUrl} />
             <AccountSection email={me.email ?? ''} />
-            <AboutSection />
+            <AboutSection fromPrice={fromPrice} />
             <ExpertiseSection />
             <CollaborationSection />
             <LinksSection />
@@ -227,7 +230,11 @@ export default function ProfileForm({ me, trainer }: Props) {
               <VisibilitySection />
             </div>
           </div>
-          <ProfilePreviewCard avatarUrl={trainer.avatarBlobUrl ?? me.avatarBlobUrl} roles={me.roles ?? []} />
+          <ProfilePreviewCard
+            avatarUrl={trainer.avatarBlobUrl ?? me.avatarBlobUrl}
+            roles={me.roles ?? []}
+            fromPrice={fromPrice}
+          />
         </div>
       </form>
     </FormProvider>

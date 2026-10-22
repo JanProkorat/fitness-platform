@@ -79,7 +79,6 @@ export interface UpdateTrainerProfilePayload {
   bio: string | null;
   specialization: string | null;
   city: string | null;
-  estimatedPrice: string | null;
   specializations: string;
   certificates: string;
   languages: string;

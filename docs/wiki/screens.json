@@ -354,6 +354,109 @@
       "notionPageId": null
     },
     {
+      "id": "web.clients.detail-payment",
+      "app": "web",
+      "area": "Clients",
+      "title": "Client detail — Payment",
+      "route": "/clients/:clientId/payment",
+      "roles": [
+        "Trainer",
+        "Nutritionist"
+      ],
+      "files": [
+        "web/src/pages/ClientDetailPage.tsx",
+        "web/src/components/client-detail/payment/*",
+        "web/src/hooks/useClientPaymentQueries.ts",
+        "web/src/hooks/usePaymentSettingsQueries.ts",
+        "web/src/api/client-payments.ts",
+        "web/src/api/payment-settings.ts",
+        "web/src/components/paywall/FeaturePaywall.tsx",
+        "web/src/lib/payment-format.ts",
+        "web/src/lib/money.ts"
+      ],
+      "endpoints": [
+        "GET /payments/clients/{clientId}/summary",
+        "GET /payments/clients/{clientId}/payments",
+        "GET /payments/clients/{clientId}/history",
+        "PUT /payments/clients/{clientId}/terms",
+        "POST /payments/clients/{clientId}/one-off",
+        "POST /payments/clients/{clientId}/payments/{paymentId}/request",
+        "POST /payments/clients/{clientId}/payments/{paymentId}/mark-paid",
+        "POST /payments/clients/{clientId}/payments/{paymentId}/waive",
+        "GET /payments/packages",
+        "GET /payments/discounts",
+        "GET /payments/settings"
+      ],
+      "board": "PageClientPayment",
+      "shots": [
+        {
+          "name": "default",
+          "steps": "sign in as the trainer, open /clients, click 'QA Client', open the Payment tab and wait for the payment list to load (board PageClientPayment)"
+        }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "web.account.settings-payments",
+      "app": "web",
+      "area": "Account",
+      "title": "Settings — Payments",
+      "route": "/settings",
+      "roles": [
+        "Trainer",
+        "Nutritionist"
+      ],
+      "files": [
+        "web/src/pages/SettingsPage.tsx",
+        "web/src/components/settings/payments/*",
+        "web/src/components/settings/SettingsCard.tsx",
+        "web/src/components/paywall/FeaturePaywall.tsx",
+        "web/src/hooks/usePaymentSettingsQueries.ts",
+        "web/src/api/payment-settings.ts",
+        "web/src/api/profile.ts"
+      ],
+      "endpoints": [
+        "GET /payments/settings",
+        "PUT /payments/settings",
+        "PUT /payments/bank-account",
+        "POST /payments/bank-account/code",
+        "GET /users/me"
+      ],
+      "board": "PageSettingsPayments",
+      "shots": [
+        {
+          "name": "default",
+          "steps": "sign in as the trainer, open /settings and scroll to the Payments card (board PageSettingsPayments)"
+        }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "web.account.bank-account-undo",
+      "app": "web",
+      "area": "Account",
+      "title": "Undo a bank account change (email link)",
+      "route": "/bank-account/undo",
+      "roles": [
+        "Public"
+      ],
+      "files": [
+        "web/src/pages/BankAccountUndoPage.tsx",
+        "web/src/api/payment-settings.ts"
+      ],
+      "endpoints": [
+        "POST /payments/bank-account/undo"
+      ],
+      "board": "PageSettingsBank",
+      "shots": [
+        {
+          "name": "default",
+          "steps": "open /bank-account/undo?token=sample on the dev server; the page only asks for confirmation and sends nothing until Undo change is clicked"
+        }
+      ],
+      "notionPageId": null
+    },
+    {
       "id": "web.clients.plan-editor",
       "app": "web",
       "area": "Clients",

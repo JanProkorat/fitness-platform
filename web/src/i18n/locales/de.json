@@ -264,7 +264,7 @@
   "settings": {
     "eyebrow": "Konto",
     "title": "Einstellungen",
-    "subtitle": "Anmeldung, Benachrichtigungen und die Rollen deines Kontos",
+    "subtitle": "Anmeldung, Benachrichtigungen, Zahlungen und die Rollen Ihres Kontos",
     "loadError": "Die Einstellungen konnten nicht geladen werden. Bitte lade die Seite neu.",
     "status": {
       "saved": "Alle Änderungen gespeichert",
@@ -908,8 +908,6 @@
     "visibleToClients": "Sichtbar für Klienten",
     "city": "Stadt",
     "cityPlaceholder": "Ihre Stadt",
-    "estimatedPrice": "Geschätzter Preis / Monat",
-    "estimatedPricePlaceholder": "z.B. 200–400 €",
     "specializations": "Spezialisierungen",
     "addSpecialization": "Spezialisierung hinzufügen...",
     "certificates": "Zertifikate & Ausbildung",
@@ -969,8 +967,12 @@
         "description": "Das Erste, was ein Kunde liest, bevor er dir eine Anfrage schickt.",
         "bioHint": "Wem du hilfst, wie du arbeitest und was ein Kunde im ersten Monat erwarten kann.",
         "cityHint": "In der Suche sichtbar; Kunden filtern danach.",
-        "price": "Preis pro Monat",
-        "priceHint": "Freier Text, z. B. „ab 100 €“."
+        "price": "Preis",
+        "priceHint": "Vom günstigsten aktiven Monatspaket, das in Ihrem Profil angezeigt wird.",
+        "priceFrom": "ab {{price}} / Monat",
+        "priceNone": "Noch kein Paket angezeigt",
+        "priceManage": "Pakete",
+        "priceSetUp": "Paket einrichten"
       },
       "expertise": {
         "title": "Expertise",
@@ -2522,7 +2524,335 @@
     "list": "Liste",
     "quote": "Zitat"
   },
+  "payments": {
+    "client": {
+      "retry": "Erneut versuchen",
+      "loadError": "Die Zahlungen dieses Klienten konnten nicht geladen werden.",
+      "notFound": "Sie sind nicht mehr mit {{name}} verbunden, daher sind die Zahlungen nicht verfügbar.",
+      "billing": {
+        "monthly": "/ Monat",
+        "everyWeeks_one": "/ Woche",
+        "everyWeeks_other": "/ {{count}} Wochen",
+        "oneOff": "einmalig"
+      },
+      "summary": {
+        "label": "Zahlungsübersicht",
+        "package": "Paket",
+        "nextPayment": "Nächste Zahlung",
+        "paidUntil": "Bezahlt bis",
+        "noPackage": "Noch kein Paket",
+        "noPackageHint": "Wählen Sie unter Preis ein Paket, um die Abrechnung zu starten.",
+        "customPrice": "individueller Preis {{price}}",
+        "due": "Fällig {{date}}",
+        "overdueSince": "Überfällig seit {{date}}",
+        "requestedOn": "angefordert {{date}}",
+        "notRequested": "noch nicht angefordert",
+        "nothingDue": "Nichts wartet auf Zahlung",
+        "paidCount": "{{paid}} von {{total}} Zahlungen bezahlt",
+        "clientSince": "Klient seit {{date}}"
+      },
+      "list": {
+        "title": "Zahlungen",
+        "addOneOff": "Einmalzahlung hinzufügen",
+        "request": "Zahlung anfordern",
+        "noBankAccount": "Hinterlegen Sie Ihr Bankkonto, bevor Sie eine Zahlung anfordern.",
+        "openSettings": "Einstellungen öffnen",
+        "loadError": "Die Zahlungen konnten nicht geladen werden.",
+        "empty": "Noch keine Zahlungen. Wählen Sie für {{name}} ein Paket, dann entsteht die erste Zahlung.",
+        "footnote": "{{name}} zahlt per Banküberweisung auf Ihr Konto. Ordnen Sie die Zahlung anhand des Variablen Symbols auf Ihrem Kontoauszug zu und markieren Sie sie dann als bezahlt."
+      },
+      "table": {
+        "period": "Zeitraum",
+        "amount": "Betrag",
+        "due": "Fällig",
+        "variableSymbol": "Variables Symbol",
+        "status": "Status",
+        "actions": "Aktionen"
+      },
+      "status": {
+        "upcoming": "Bevorstehend",
+        "requested": "Angefordert",
+        "overdue": "Überfällig",
+        "overdueDays_one": "Überfällig · {{count}} Tag",
+        "overdueDays_other": "Überfällig · {{count}} Tage",
+        "paid": "Bezahlt {{date}}",
+        "daysLate_one": "{{count}} Tag zu spät",
+        "daysLate_other": "{{count}} Tage zu spät",
+        "waived": "Erlassen",
+        "waivedReason": "Erlassen · {{reason}}"
+      },
+      "row": {
+        "oneOff": "Einmalzahlung",
+        "markPaid": "Als bezahlt markieren",
+        "menu": "Zahlungsmenü",
+        "request": "Zahlung anfordern",
+        "requestAgain": "Erneut anfordern",
+        "copySymbol": "Variables Symbol kopieren",
+        "waive": "Zahlung erlassen",
+        "copied": "Variables Symbol kopiert.",
+        "copyError": "Das Variable Symbol konnte nicht kopiert werden."
+      },
+      "markPaid": {
+        "title": "{{period}} als bezahlt markieren",
+        "description": "Bestätigen Sie, dass das Geld von {{name}} auf Ihrem Konto eingegangen ist.",
+        "paidOn": "Eingangstag",
+        "dateRequired": "Wählen Sie den Tag, an dem das Geld eingegangen ist.",
+        "dateInFuture": "Der Tag darf nicht in der Zukunft liegen.",
+        "submit": "Als bezahlt markieren",
+        "success": "Zahlung als bezahlt markiert.",
+        "error": "Die Zahlung konnte nicht als bezahlt markiert werden."
+      },
+      "waive": {
+        "title": "{{period}} erlassen?",
+        "description": "{{name}} wird nicht zur Zahlung aufgefordert. Das lässt sich nicht rückgängig machen.",
+        "reason": "Grund",
+        "reasonHint": "Optional. Nur Sie sehen ihn.",
+        "reasonTooLong": "Höchstens {{max}} Zeichen.",
+        "submit": "Zahlung erlassen",
+        "success": "Zahlung erlassen.",
+        "error": "Die Zahlung konnte nicht erlassen werden."
+      },
+      "oneOff": {
+        "title": "Einmalzahlung hinzufügen",
+        "description": "Eine einzelne Zahlung für {{name}}, außerhalb des Pakets.",
+        "forLabel": "Wofür",
+        "forHint": "Zum Beispiel „Ernährungsberatung“.",
+        "titleRequired": "Geben Sie an, wofür die Zahlung ist.",
+        "titleTooLong": "Höchstens {{max}} Zeichen.",
+        "amount": "Betrag",
+        "amountInvalid": "Geben Sie einen Betrag über null ein.",
+        "currency": "Währung",
+        "due": "Fälligkeitsdatum",
+        "dueRequired": "Wählen Sie ein Fälligkeitsdatum.",
+        "submit": "Zahlung hinzufügen",
+        "success": "Einmalzahlung hinzugefügt.",
+        "error": "Die Zahlung konnte nicht hinzugefügt werden."
+      },
+      "request": {
+        "title": "Zahlung anfordern",
+        "description": "{{name}} zahlt per Banküberweisung von der eigenen Bank.",
+        "coachFallback": "Ihr Coach",
+        "payment": {
+          "heading": "Zahlung"
+        },
+        "for": "Für",
+        "forHint": "Der nächste unbezahlte Zeitraum ist vorgewählt. Wählen Sie einen anderen oder fügen Sie eine Einmalzahlung hinzu.",
+        "dueDate": "Fälligkeitsdatum",
+        "dueRequired": "Wählen Sie ein Fälligkeitsdatum.",
+        "duePast": "Das Fälligkeitsdatum darf nicht in der Vergangenheit liegen.",
+        "amount": "Betrag",
+        "amountHint": "Paketpreis mit Rabatt.",
+        "amountEditing": "Gilt nur für diese Anforderung.",
+        "amountInvalid": "Geben Sie einen Betrag über null und unter 10 Millionen ein.",
+        "changeAmount": "Ändern",
+        "sendBy": {
+          "heading": "Senden per",
+          "notification": "App-Benachrichtigung",
+          "email": "E-Mail"
+        },
+        "channelRequired": "Wählen Sie mindestens einen Versandweg.",
+        "preview": {
+          "heading": "Das sieht {{name}}",
+          "asks": "{{coach}} fordert {{amount}} an",
+          "due": "fällig {{date}}",
+          "account": "Konto",
+          "variableSymbol": "Variables Symbol",
+          "symbolOnSend": "Wird beim Senden vergeben",
+          "message": "Verwendungszweck",
+          "messageOnSend": "Wird beim Senden festgelegt"
+        },
+        "footnote": "Sie markieren sie als bezahlt, sobald das Geld eingeht.",
+        "submit": "Anforderung senden",
+        "sent": "Zahlungsanforderung gesendet.",
+        "sentEmailFailed": "Benachrichtigung gesendet, aber die E-Mail konnte nicht zugestellt werden.",
+        "error": "Die Zahlungsanforderung konnte nicht gesendet werden.",
+        "openSettings": "Einstellungen öffnen",
+        "nothingToRequest": "Alle Zahlungen sind erledigt."
+      },
+      "terms": {
+        "title": "Preis für {{name}}",
+        "changePackage": "Paket ändern",
+        "package": "Paket",
+        "packagePlaceholder": "Paket wählen",
+        "packageRequired": "Wählen Sie ein Paket.",
+        "discount": "Rabatt",
+        "noDiscount": "Kein Rabatt",
+        "noDiscounts": "Keine Rabatte verfügbar",
+        "discountOffCustom": "Bei individuellem Preis entfällt der Rabatt",
+        "removeDiscount": "Rabatt entfernen",
+        "customPrice": "Individueller Preis",
+        "customPriceHint": "Ersetzt Paketpreis und Rabatt nur für {{name}}.",
+        "customPriceLabel": "Individueller Preis pro Zeitraum",
+        "customPriceInvalid": "Geben Sie einen Preis über null ein.",
+        "firstPeriod": "Erster Abrechnungszeitraum beginnt",
+        "startPast": "Der Beginn darf nicht in der Vergangenheit liegen.",
+        "packagePrice": "Paketpreis",
+        "pays": "{{name}} zahlt",
+        "appliesFrom": "Änderungen gelten ab dem nächsten Abrechnungszeitraum ({{month}}).",
+        "appliesFromNext": "Änderungen gelten ab dem nächsten Abrechnungszeitraum.",
+        "startsFirst": "Die Abrechnung beginnt an dem oben gewählten Tag.",
+        "noPackages": "Sie haben noch keine Pakete.",
+        "createPackage": "Paket erstellen",
+        "save": "Preis speichern",
+        "saved": "Preis gespeichert.",
+        "saveError": "Der Preis konnte nicht gespeichert werden.",
+        "currencyMismatch": "Ein fester Rabatt muss in derselben Währung wie das Paket sein.",
+        "loadError": "Pakete und Rabatte konnten nicht geladen werden."
+      },
+      "reminders": {
+        "title": "Anforderungen und Erinnerungen",
+        "link": "Tab Automatisierungen",
+        "body": "Wann Zahlungsanforderungen und Erinnerungen versendet werden, legen Regeln im Tab Automatisierungen fest."
+      },
+      "history": {
+        "title": "Änderungsverlauf",
+        "onlyYou": "Nur für Sie sichtbar",
+        "empty": "Noch nichts.",
+        "terms": "Sie haben das Paket {{package}} festgelegt{{discount}}",
+        "oneOff": "Sie haben die Einmalzahlung „{{title}}“ hinzugefügt{{amount}}",
+        "paid": "Sie haben {{period}} als bezahlt markiert",
+        "waived": "Sie haben {{period}} erlassen",
+        "waivedReason": "Sie haben {{period}} erlassen · „{{reason}}“",
+        "requested": "Sie haben {{period}} angefordert{{amount}}",
+        "unknown": "Sie haben etwas geändert."
+      }
+    },
+    "settings": {
+      "title": "Zahlungen",
+      "description": "Wohin Klienten ihr Geld überweisen. Form Up hält oder bewegt es nie.",
+      "badge": "Banküberweisung · QR Platba",
+      "iban": "Bankkonto (IBAN)",
+      "ibanHint": "Wird Ihren verbundenen Klienten nur bei Zahlungsanforderungen angezeigt.",
+      "noAccount": "Noch kein Konto hinterlegt",
+      "holder": "Kontoinhaber",
+      "holderHint": "Muss zum Konto passen.",
+      "protected": "Geschützt",
+      "protectedHint": "Für eine Kontoänderung benötigen Sie Ihr Passwort, außerdem erhalten Sie eine E-Mail. Zuletzt geändert am {{date}}.",
+      "addAccountTitle": "Bankkonto hinzufügen",
+      "addAccountHint": "Klienten brauchen es, um Sie zu bezahlen. Dafür benötigen Sie Ihr Passwort, außerdem erhalten Sie eine E-Mail.",
+      "changeAccount": "Konto ändern",
+      "addAccount": "Konto hinzufügen",
+      "due": "Zahlungsziel",
+      "dueHint": "Pakete können es überschreiben.",
+      "dueOption_one": "{{count}} Tag nach der Anforderung",
+      "dueOption_other": "{{count}} Tage nach der Anforderung",
+      "message": "Verwendungszweck",
+      "messageFormat": {
+        "PackageNameAndMonth": "Paketname + Monat",
+        "PackageName": "Paketname",
+        "ClientNameAndMonth": "Klientenname + Monat"
+      },
+      "messageExample": {
+        "PackageNameAndMonth": "z. B. „Online-Coaching 11/2026“",
+        "PackageName": "z. B. „Online-Coaching“",
+        "ClientNameAndMonth": "z. B. „Eva Svobodová 11/2026“"
+      },
+      "symbol": "Variables Symbol",
+      "symbolHint": "Pro Zahlung eindeutig, damit Sie sie zuordnen können.",
+      "symbolFormat": {
+        "YearMonthClientNumber": "Jahr, Monat, Klientennummer",
+        "YearMonthSequence": "Jahr, Monat, laufende Nummer"
+      },
+      "currency": "Hauptwährung",
+      "currencyHint": "Der „ab“-Preis in Ihrem öffentlichen Profil wird in dieser Währung angezeigt.",
+      "currencyOption": {
+        "CZK": "CZK · Tschechische Krone",
+        "EUR": "EUR · Euro"
+      },
+      "reminders": "Anforderungen und Erinnerungen",
+      "remindersHint": "Wann Anforderungen versendet werden, legen Regeln auf der Seite Automatisierungen fest.",
+      "openAutomations": "Automatisierungen öffnen",
+      "saveError": "Die Zahlungseinstellungen konnten nicht gespeichert werden.",
+      "loadError": "Die Zahlungseinstellungen konnten nicht geladen werden.",
+      "packages": {
+        "title": "Pakete und Rabatte",
+        "description": "Was Sie berechnen und wer einen Rabatt erhält.",
+        "counts": "Pakete: {{packages}} · aktive Rabatte: {{discounts}}",
+        "open": "Pakete öffnen"
+      },
+      "bank": {
+        "title": "Bankkonto ändern",
+        "lede": "Neue Zahlungsanforderungen nutzen das neue Konto. Bereits gesendete behalten das alte.",
+        "newIban": "Neue IBAN",
+        "ibanRequired": "Geben Sie die IBAN ein.",
+        "ibanInvalid": "Diese IBAN ist nicht gültig. Prüfen Sie sie auf Tippfehler.",
+        "ibanChecked": "Geprüft · {{iban}}",
+        "ibanCurrent": "Aktuelles Konto: {{iban}}",
+        "holder": "Kontoinhaber",
+        "holderRequired": "Geben Sie den Kontoinhaber ein.",
+        "holderTooLong": "Höchstens {{max}} Zeichen.",
+        "password": "Ihr Passwort",
+        "passwordHint": "Mit Google angemeldet? Dann senden wir Ihnen stattdessen einen Code per E-Mail.",
+        "passwordRequired": "Geben Sie Ihr Passwort ein.",
+        "code": "Code aus der E-Mail",
+        "codeHint": "Sie melden sich ohne Passwort an, deshalb senden wir Ihnen einen Einmalcode per E-Mail.",
+        "codeSent": "Code an {{email}} gesendet.",
+        "codeRequired": "Geben Sie den Code aus der E-Mail ein.",
+        "sendCode": "Code senden",
+        "sendingCode": "Wird gesendet…",
+        "resendCode": "Neuen Code senden",
+        "codeError": "Der Code konnte nicht gesendet werden.",
+        "notice": "Wir informieren {{email}} per E-Mail über diese Änderung, mit einem Link zum Rückgängigmachen, falls sie nicht von Ihnen stammt.",
+        "submit": "Konto ändern",
+        "success": "Bankkonto geändert.",
+        "error": "Das Bankkonto konnte nicht geändert werden.",
+        "rateLimited": "Zu viele Versuche. Versuchen Sie es in ein paar Minuten erneut."
+      }
+    },
+    "undo": {
+      "signIn": "Zur Anmeldung",
+      "confirm": {
+        "title": "Änderung des Bankkontos rückgängig machen?",
+        "body": "Damit wird das Bankkonto wiederhergestellt, das Sie vor der Änderung hatten. Tun Sie das nur, wenn die Änderung nicht von Ihnen stammt.",
+        "button": "Änderung rückgängig machen",
+        "working": "Wird wiederhergestellt…",
+        "notNow": "Jetzt nicht"
+      },
+      "success": {
+        "title": "Früheres Konto wiederhergestellt",
+        "body": "Ihr früheres Bankkonto ist wieder aktiv. Stammt die Änderung nicht von Ihnen, ändern Sie auch Ihr Passwort."
+      },
+      "invalid": {
+        "title": "Dieser Link funktioniert nicht mehr",
+        "body": "Er ist abgelaufen, wurde schon verwendet oder ist ungültig. Die Änderung bleibt bestehen."
+      },
+      "superseded": {
+        "title": "Das Konto wurde erneut geändert",
+        "body": "Nach dieser Änderung wurde das Bankkonto noch einmal geändert, daher lässt sie sich mit diesem Link nicht rückgängig machen. Melden Sie sich an und prüfen Sie es in den Einstellungen."
+      },
+      "rateLimited": {
+        "title": "Zu viele Versuche",
+        "body": "Warten Sie ein paar Minuten und öffnen Sie den Link erneut."
+      },
+      "generic": {
+        "title": "Etwas ist schiefgelaufen",
+        "body": "Die Änderung wurde nicht rückgängig gemacht. Versuchen Sie es gleich noch einmal."
+      },
+      "missing": {
+        "title": "Der Link ist unvollständig",
+        "body": "Öffnen Sie den Link aus der E-Mail erneut oder melden Sie sich an und ändern Sie das Bankkonto in den Einstellungen."
+      }
+    }
+  },
   "apiErrors": {
+    "PAYMENTS_NOT_ENTITLED": "Zahlungen sind im Tarif nicht enthalten.",
+    "BANK_ACCOUNT_NOT_SET": "Vor einer Zahlungsanforderung muss in den Einstellungen ein Bankkonto hinterlegt sein.",
+    "PAYMENT_ALREADY_PAID": "Diese Zahlung wurde bereits als bezahlt markiert.",
+    "PAYMENT_ALREADY_WAIVED": "Diese Zahlung wurde bereits erlassen.",
+    "PAYMENT_REQUEST_RATE_LIMITED": "Diese Zahlung wurde gerade erst angefordert. Bitte eine Minute warten.",
+    "PAYMENT_REQUEST_CHANNEL_REQUIRED": "Mindestens ein Versandweg muss gewählt sein.",
+    "PAYMENT_PAID_ON_IN_FUTURE": "Der Eingangstag darf nicht in der Zukunft liegen.",
+    "PAYMENT_TERMS_DISCOUNT_AND_CUSTOM_PRICE": "Es kann nur ein Rabatt oder ein individueller Preis verwendet werden, nicht beides.",
+    "PAYMENT_AMOUNT_INVALID": "Der Betrag muss über null und unter 10 Millionen liegen.",
+    "PAYMENT_CLIENT_NUMBER_EXHAUSTED": "Es sind keine Klientennummern für Variable Symbole mehr frei.",
+    "PAYMENT_VARIABLE_SYMBOL_EXHAUSTED": "Für diesen Monat ist kein Variables Symbol mehr frei.",
+    "PAYMENT_START_DATE_INVALID": "Der erste Abrechnungszeitraum darf weder in der Vergangenheit noch zu weit in der Zukunft beginnen.",
+    "INVALID_IBAN": "Diese IBAN ist nicht gültig.",
+    "REAUTH_PASSWORD_REQUIRED": "Das Passwort ist erforderlich, um das Bankkonto zu ändern.",
+    "INVALID_CURRENT_PASSWORD": "Das ist nicht das aktuelle Passwort.",
+    "REAUTH_CODE_REQUIRED": "Der Code aus der E-Mail ist erforderlich.",
+    "REAUTH_CODE_INVALID": "Der Code ist falsch, abgelaufen oder gesperrt. Es muss ein neuer angefordert werden.",
+    "REAUTH_CODE_NOT_AVAILABLE": "Das Konto nutzt ein Passwort, keinen E-Mail-Code.",
     "AUTOMATION_RULE_NOT_FOUND": "Diese Regel existiert nicht mehr.",
     "PACKAGE_ARCHIVED": "Dieses Paket ist archiviert und kann nicht mehr geändert werden.",
     "DISCOUNT_ARCHIVED": "Dieser Rabatt ist archiviert und kann nicht mehr geändert werden.",
