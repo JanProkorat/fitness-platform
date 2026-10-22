@@ -5,7 +5,7 @@ the web portal and the mobile apps:
 <https://claude.ai/artifact/HFzM8WqykBxJvkLdiqU85h> (private claude.ai Design
 artifact — only the main Claude session can open it; agents read this snapshot).
 
-**Snapshot of canvas version 1792589727-130e (v289), exported 2026-10-21.** If the canvas has moved
+**Snapshot of canvas version 1792589727-130e (v289), exported 2026-10-21, plus the inline-header boards from v292 (2026-10-22); other boards edited on the canvas after v289 are not included yet.** If the canvas has moved
 on, re-export before relying on this copy (see Rebuilding).
 
 | Path | Contents |
