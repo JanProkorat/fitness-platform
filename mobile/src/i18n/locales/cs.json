@@ -167,6 +167,35 @@
     "empty": "Vše je přečtené.",
     "error": "Upozornění se nepodařilo načíst. Klepnutím to zkus znovu."
   },
+  "payments": {
+    "title": "Platby",
+    "back": "Zpět",
+    "toPay": "K úhradě",
+    "overdue": "Po splatnosti",
+    "due": "Splatnost {{date}}",
+    "scan": "Naskenujte kód v bankovní aplikaci. {{name}} potvrdí, až peníze dorazí.",
+    "transfer": "Zaplaťte převodem podle údajů níže. {{name}} potvrdí, až peníze dorazí.",
+    "qrLabel": "QR kód QR Platby",
+    "account": "Účet",
+    "variableSymbol": "Variabilní symbol",
+    "message": "Zpráva",
+    "copy": "Zkopírovat: {{label}}",
+    "copied": "Zkopírováno",
+    "paid": "Zaplaceno",
+    "paidOn": "Zaplaceno {{date}}",
+    "empty": "Zatím tu nejsou žádné platby. Až vás trenér nebo nutriční poradce požádá o platbu, objeví se tady.",
+    "error": "Platby se nepodařilo načíst. Klepnutím to zkusíte znovu.",
+    "card": {
+      "title": "K úhradě",
+      "titleOverdue": "Platba po splatnosti",
+      "single": "{{amount}} · {{coach}}",
+      "several_one": "{{count}} platba čeká na úhradu",
+      "several_few": "{{count}} platby čekají na úhradu",
+      "several_many": "{{count}} platby čeká na úhradu",
+      "several_other": "{{count}} plateb čeká na úhradu",
+      "hint": "Otevře vaše platby"
+    }
+  },
   "push": {
     "channelName": "Obecné"
   },

@@ -165,6 +165,33 @@
     "empty": "Alles gelesen.",
     "error": "Benachrichtigungen konnten nicht geladen werden. Tippe, um es erneut zu versuchen."
   },
+  "payments": {
+    "title": "Zahlungen",
+    "back": "Zurück",
+    "toPay": "Offen",
+    "overdue": "Überfällig",
+    "due": "Fällig am {{date}}",
+    "scan": "Scanne den Code in deiner Banking-App. {{name}} bestätigt, sobald das Geld eingegangen ist.",
+    "transfer": "Überweise den Betrag mit den Angaben unten. {{name}} bestätigt, sobald das Geld eingegangen ist.",
+    "qrLabel": "QR-Platba-Code",
+    "account": "Konto",
+    "variableSymbol": "Variables Symbol",
+    "message": "Nachricht",
+    "copy": "{{label}} kopieren",
+    "copied": "Kopiert",
+    "paid": "Bezahlt",
+    "paidOn": "Bezahlt am {{date}}",
+    "empty": "Noch keine Zahlungen. Wenn dich dein Trainer oder Ernährungsberater um eine Zahlung bittet, erscheint sie hier.",
+    "error": "Zahlungen konnten nicht geladen werden. Tippe, um es erneut zu versuchen.",
+    "card": {
+      "title": "Zahlung offen",
+      "titleOverdue": "Zahlung überfällig",
+      "single": "{{amount}} · {{coach}}",
+      "several_one": "{{count}} Zahlung offen",
+      "several_other": "{{count}} Zahlungen offen",
+      "hint": "Öffnet deine Zahlungen"
+    }
+  },
   "push": {
     "channelName": "Allgemein"
   },

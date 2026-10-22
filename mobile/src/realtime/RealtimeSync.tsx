@@ -4,6 +4,7 @@ import { useCallback } from 'react';
 import { CONVERSATIONS_QUERY_KEY } from '@/api/conversations';
 import { INVITES_QUERY_KEY } from '@/api/invites';
 import { NOTIFICATIONS_QUERY_KEY } from '@/api/notifications';
+import { PAYMENTS_QUERY_KEY } from '@/api/payments';
 import { PROFILE_QUERY_KEY } from '@/api/profile';
 
 import { useRealtimeEvent, useRealtimeReconnected } from './useRealtimeEvent';
@@ -17,10 +18,14 @@ const REFRESH_EVENTS = [
   'clientrequestaccepted',
   'clientrequestrejected',
   'clientrequestcancelled',
+  'newnotification',
 ] as const;
 
 /** A coach accepting the client's request links a coach, which changes Today. */
 const PROFILE_EVENTS: readonly string[] = ['clientrequestaccepted'];
+
+/** A coach asking for a payment arrives as a new notification, and changes what is owed. */
+const PAYMENT_EVENTS: readonly string[] = ['newnotification'];
 
 function EventRefresh({ event }: { event: string }) {
   const queryClient = useQueryClient();
@@ -30,6 +35,9 @@ function EventRefresh({ event }: { event: string }) {
     void queryClient.invalidateQueries({ queryKey: CONVERSATIONS_QUERY_KEY });
     if (PROFILE_EVENTS.includes(event)) {
       void queryClient.invalidateQueries({ queryKey: PROFILE_QUERY_KEY });
+    }
+    if (PAYMENT_EVENTS.includes(event)) {
+      void queryClient.invalidateQueries({ queryKey: PAYMENTS_QUERY_KEY });
     }
   });
   return null;
@@ -44,6 +52,7 @@ export function RealtimeSync() {
     void queryClient.invalidateQueries({ queryKey: NOTIFICATIONS_QUERY_KEY });
     void queryClient.invalidateQueries({ queryKey: CONVERSATIONS_QUERY_KEY });
     void queryClient.invalidateQueries({ queryKey: PROFILE_QUERY_KEY });
+    void queryClient.invalidateQueries({ queryKey: PAYMENTS_QUERY_KEY });
   }, [queryClient]);
   useRealtimeReconnected(refreshAll);
 
