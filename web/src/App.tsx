@@ -20,6 +20,7 @@ import ClientDetailPage from '@/pages/ClientDetailPage';
 import InboxPage from '@/pages/InboxPage';
 import FormsPage from '@/pages/FormsPage';
 import AutomationsPage from '@/pages/AutomationsPage';
+import PackagesPage from '@/pages/PackagesPage';
 import FormBuilderPage from '@/pages/FormBuilderPage';
 import IngredientsPage from '@/pages/IngredientsPage';
 import RecipesPage from '@/pages/RecipesPage';
@@ -84,6 +85,7 @@ export default function App() {
               <Route path="/inbox" element={<InboxPage />} />
               <Route path="/forms" element={<FormsPage />} />
               <Route path="/automations" element={<AutomationsPage />} />
+              <Route path="/packages" element={<PackagesPage />} />
               <Route element={<RoleGuard allowedRoles={['Nutritionist']} />}>
                 <Route path="/ingredients" element={<IngredientsPage />} />
                 <Route path="/recipes" element={<RecipesPage />} />

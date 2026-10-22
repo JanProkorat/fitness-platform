@@ -95,4 +95,10 @@ export const sizes = {
   launchMarkGap: 6.48,
   launchStackGap: 22,
   launchTaglineRise: 8,
+  qrCode: 176,
+  statusTag: 24,
+  copyButton: 32,
+  copyGlyph: 16,
+  paidGlyph: 16,
+  paymentGlyph: 20,
 } as const;
