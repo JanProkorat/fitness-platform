@@ -253,6 +253,8 @@
   },
   "profile": {
     "edit": "Upravit profil",
+    "viewPhoto": "Zobrazit profilovou fotku",
+    "photoLabel": "Profilová fotka",
     "since": "registrace {{date}}",
     "units": {
       "kg": "{{value}} kg"
