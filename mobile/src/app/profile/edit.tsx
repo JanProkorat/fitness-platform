@@ -16,7 +16,6 @@ import type { EdgeInsets } from 'react-native-safe-area-context';
 import { isAnswersUnavailable } from '@/api/onboardingAnswers';
 import type { EditableAnswers } from '@/api/onboardingAnswers';
 import type { Profile } from '@/api/profile';
-import { BackButton } from '@/components/BackButton';
 import { Button } from '@/components/Button';
 import { AvatarEditor } from '@/components/profile/edit/AvatarEditor';
 import { InfoSection } from '@/components/profile/edit/InfoSection';
@@ -24,6 +23,7 @@ import { PersonalCard } from '@/components/profile/edit/PersonalCard';
 import { ListCard } from '@/components/profile/ListCard';
 import { SectionHeader } from '@/components/profile/SectionHeader';
 import { Screen } from '@/components/Screen';
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { Text } from '@/components/Text';
 import { useAvatarActions } from '@/hooks/useAvatarActions';
 import { useCollaborations } from '@/hooks/useCollaborations';
@@ -53,9 +53,11 @@ export default function EditProfileScreen() {
   const failed = profileQuery.isError || answersQuery.isError;
   return (
     <Screen gutter={theme.spacing.xl} topGap={theme.spacing.safeAreaGap} contentStyle={styles.fill}>
-      <View style={styles.topBar}>
-        <BackButton label={t('onboarding.back')} onPress={() => router.back()} />
-      </View>
+      <ScreenHeader
+        title={t('editProfile.title')}
+        backLabel={t('onboarding.back')}
+        onBack={() => router.back()}
+      />
       <View style={styles.state}>
         {failed ? (
           <>
@@ -132,13 +134,11 @@ function EditForm({ profile, answers }: { profile: Profile; answers: EditableAns
         bottomInset={theme.spacing.xxl}
         contentStyle={styles.content}
       >
-        <View style={styles.topBar}>
-          <BackButton label={t('onboarding.back')} onPress={() => router.back()} />
-        </View>
-
-        <Text variant="title" accessibilityRole="header" style={styles.title}>
-          {t('editProfile.title')}
-        </Text>
+        <ScreenHeader
+          title={t('editProfile.title')}
+          backLabel={t('onboarding.back')}
+          onBack={() => router.back()}
+        />
 
         <AvatarEditor
           firstName={profile.firstName}
@@ -210,13 +210,6 @@ const makeStyles = (theme: Theme, insets?: EdgeInsets) =>
     },
     content: {
       gap: theme.spacing.xxl,
-    },
-    topBar: {
-      flexDirection: 'row',
-      alignItems: 'center',
-    },
-    title: {
-      paddingHorizontal: theme.spacing.xxs,
     },
     group: {
       gap: theme.spacing.snug,

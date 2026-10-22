@@ -15,12 +15,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { isNetworkError } from '@/api/errors';
 import { ROLE_NUTRITIONIST, ROLE_TRAINER } from '@/api/profile';
 import type { CoachRole } from '@/api/professionals';
-import { BackButton } from '@/components/BackButton';
 import { Button } from '@/components/Button';
 import { CoachRow } from '@/components/coach/CoachRow';
 import { FilterChip } from '@/components/coach/FilterChip';
 import { Input } from '@/components/Input';
 import { Screen } from '@/components/Screen';
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { Segmented } from '@/components/onboarding/Segmented';
 import type { SegmentOption } from '@/components/onboarding/Segmented';
 import { Text } from '@/components/Text';
@@ -72,11 +72,11 @@ export default function CoachSearchScreen() {
 
   const topBar = (
     <View style={styles.topBar}>
-      <BackButton label={t('onboarding.back')} onPress={() => router.back()} />
-      <Text variant="subtitle" accessibilityRole="header" numberOfLines={2} style={styles.title}>
-        {t(`coachSearch.title.${segment}`)}
-      </Text>
-      <View style={styles.topBarSlot} />
+      <ScreenHeader
+        title={t(`coachSearch.title.${segment}`)}
+        backLabel={t('onboarding.back')}
+        onBack={() => router.back()}
+      />
     </View>
   );
 
@@ -206,19 +206,7 @@ export default function CoachSearchScreen() {
 const makeStyles = (theme: Theme) =>
   StyleSheet.create({
     topBar: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: theme.spacing.md,
-      paddingTop: theme.spacing.safeAreaGap,
-      paddingBottom: theme.spacing.md,
-    },
-    title: {
-      flex: 1,
-      textAlign: 'center',
-    },
-    topBarSlot: {
-      width: theme.sizes.backButton,
-      height: theme.sizes.backButton,
+      paddingBottom: theme.spacing.lg,
     },
     header: {
       gap: theme.spacing.xl,

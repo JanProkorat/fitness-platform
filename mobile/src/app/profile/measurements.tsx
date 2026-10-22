@@ -6,7 +6,6 @@ import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
-import { BackButton } from '@/components/BackButton';
 import { Button } from '@/components/Button';
 import { AddMeasurementSheet } from '@/components/measurements/AddMeasurementSheet';
 import {
@@ -30,6 +29,7 @@ import type { SegmentOption } from '@/components/onboarding/Segmented';
 import { EMPTY_VALUE } from '@/components/profile/format';
 import { ListCard } from '@/components/profile/ListCard';
 import { Screen } from '@/components/Screen';
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { Text } from '@/components/Text';
 import { useCollaborations } from '@/hooks/useCollaborations';
 import { useMeasurementHistory, usePlanStart } from '@/hooks/useMeasurementHistory';
@@ -106,20 +106,12 @@ export default function MeasurementsScreen() {
         bottomInset={theme.sizes.measureAddFade}
         contentStyle={styles.content}
       >
-        <View style={styles.topBar}>
-          <BackButton label={t('onboarding.back')} onPress={() => router.back()} />
-        </View>
-
-        <View style={styles.heading}>
-          {entries.length > 0 ? (
-            <Text variant="label" color="muted">
-              {updatedLabel(t, entries[0].at, now)}
-            </Text>
-          ) : null}
-          <Text variant="title" accessibilityRole="header">
-            {t('measurements.title')}
-          </Text>
-        </View>
+        <ScreenHeader
+          title={t('measurements.title')}
+          subtitle={entries.length > 0 ? updatedLabel(t, entries[0].at, now) : undefined}
+          backLabel={t('onboarding.back')}
+          onBack={() => router.back()}
+        />
 
         {historyQuery.isPending ? (
           <View style={styles.state}>
@@ -206,14 +198,6 @@ const makeStyles = (theme: Theme, bottomInset: number) =>
     },
     content: {
       gap: theme.spacing.lg,
-    },
-    topBar: {
-      flexDirection: 'row',
-      alignItems: 'center',
-    },
-    heading: {
-      gap: theme.spacing.xxs,
-      paddingHorizontal: theme.spacing.xs / 2,
     },
     state: {
       alignItems: 'center',

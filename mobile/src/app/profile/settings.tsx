@@ -5,10 +5,10 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import { PROFILE_QUERY_KEY } from '@/api/profile';
-import { BackButton } from '@/components/BackButton';
 import { ListCard } from '@/components/profile/ListCard';
 import { SectionHeader } from '@/components/profile/SectionHeader';
 import { Screen } from '@/components/Screen';
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { OptionSheet } from '@/components/settings/OptionSheet';
 import type { SheetOption } from '@/components/settings/OptionSheet';
 import { SettingsRow } from '@/components/settings/SettingsRow';
@@ -79,12 +79,11 @@ export default function SettingsScreen() {
       bottomInset={theme.spacing.huge}
       contentStyle={styles.content}
     >
-      <View style={styles.topBar}>
-        <BackButton label={t('settings.back')} onPress={() => router.back()} />
-      </View>
-      <Text variant="title" accessibilityRole="header">
-        {t('settings.title')}
-      </Text>
+      <ScreenHeader
+        title={t('settings.title')}
+        backLabel={t('settings.back')}
+        onBack={() => router.back()}
+      />
 
       <View style={styles.section}>
         <SectionHeader title={t('settings.account.title')} />
@@ -196,10 +195,6 @@ const makeStyles = (theme: Theme) =>
   StyleSheet.create({
     content: {
       gap: theme.spacing.lg,
-    },
-    topBar: {
-      flexDirection: 'row',
-      alignItems: 'center',
     },
     section: {
       gap: theme.spacing.snug,

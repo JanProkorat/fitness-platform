@@ -47,6 +47,7 @@ export const sizes = {
   wordmarkMarkHeight: 17,
   wordmarkMarkGap: 3.96,
   backButton: 40,
+  headerSlot: 64,
   backIcon: 18,
   bellButton: 40,
   bellGlyph: 18,
