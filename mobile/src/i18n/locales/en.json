@@ -464,6 +464,26 @@
       "generic": "Couldn't send the email. Please try again."
     }
   },
+  "checkInHistory": {
+    "title": "Check-in history",
+    "count_one": "{{count}} check-in",
+    "count_other": "{{count}} check-ins",
+    "countSince_one": "{{count}} check-in since {{since}}",
+    "countSince_other": "{{count}} check-ins since {{since}}",
+    "filterAll": "All",
+    "filterLabel": "Filter by coach",
+    "openNow": "Open now",
+    "weekOf": "Week of {{date}}",
+    "answerBy": "{{coach}} · answer by {{weekday}}",
+    "status": {
+      "sent": "Sent",
+      "reviewed": "Reviewed",
+      "missed": "Missed"
+    },
+    "empty": "No check-ins yet. Your coaches' weekly check-ins will show up here.",
+    "error": "Couldn't load your check-ins.",
+    "retry": "Try again"
+  },
   "changeEmail": {
     "title": "Change email",
     "cancel": "Cancel",
