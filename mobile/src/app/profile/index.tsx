@@ -162,6 +162,7 @@ export default function ProfileScreen() {
               leading={<RowIcon symbol="ruler" tone="nutrition" />}
               label={t('profile.progress.measurements')}
               value={weightLabel(t, language, summary.latestWeightKg)}
+              onPress={() => router.push('/profile/measurements')}
             />
             <ListRow
               leading={<RowIcon symbol="photo" tone="training" />}

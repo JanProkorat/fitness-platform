@@ -386,6 +386,76 @@
     "nutrition": "Tady se objeví tvůj jídelníček.",
     "messages": "Tady se objeví tvoje konverzace."
   },
+  "measurements": {
+    "title": "Tělesné míry",
+    "updatedToday": "Naposledy aktualizováno dnes",
+    "updatedYesterday": "Naposledy aktualizováno včera",
+    "updatedDaysAgo_one": "Naposledy aktualizováno před {{count}} dnem",
+    "updatedDaysAgo_few": "Naposledy aktualizováno před {{count}} dny",
+    "updatedDaysAgo_many": "Naposledy aktualizováno před {{count}} dne",
+    "updatedDaysAgo_other": "Naposledy aktualizováno před {{count}} dny",
+    "ranges": {
+      "label": "Období",
+      "month": "1 měsíc",
+      "plan": "Plán",
+      "all": "Celé období"
+    },
+    "metrics": {
+      "weight": "Váha",
+      "waist": "Pas",
+      "hips": "Boky",
+      "chest": "Hrudník",
+      "biceps": "Biceps",
+      "thigh": "Stehno",
+      "bodyFat": "Tělesný tuk"
+    },
+    "units": {
+      "kg": "{{value}} kg",
+      "cm": "{{value}} cm",
+      "percent": "{{value}} %"
+    },
+    "symbols": {
+      "kg": "kg",
+      "cm": "cm",
+      "percent": "%"
+    },
+    "trend": {
+      "month": "{{delta}} za měsíc",
+      "plan": "{{delta}} od začátku plánu",
+      "all": "{{delta}} celkem",
+      "noChange": "beze změny",
+      "estimate": "odhad"
+    },
+    "shared": {
+      "line": "Sdíleno s {{names}}.",
+      "and": "a"
+    },
+    "empty": {
+      "title": "Zatím žádná měření",
+      "body": "Přidej první měření a začni sledovat svůj pokrok."
+    },
+    "add": "Přidat měření",
+    "error": {
+      "history": "Měření se nepodařilo načíst.",
+      "retry": "Zkusit znovu"
+    },
+    "sheet": {
+      "close": "Zavřít",
+      "subtitle": "Vyplň jen to, co jsi měřil(a)",
+      "save": "Uložit",
+      "error": "Měření se nepodařilo uložit. Zkus to znovu.",
+      "measured": "Změřeno",
+      "measuredA11y": "Změřeno: {{value}}. Změnit",
+      "today": "Dnes",
+      "yesterday": "Včera",
+      "circumference": "Obvody",
+      "note": "Poznámka",
+      "optional": "Nepovinné",
+      "notePlaceholder": "Denní doba, po jídle…",
+      "last": "Naposledy {{value}}",
+      "neverMeasured": "Zatím neměřeno"
+    }
+  },
   "messages": {
     "compose": "Najít poradce",
     "labels": { "invite": "Pozvánka", "requestSent": "Žádost odeslána" },

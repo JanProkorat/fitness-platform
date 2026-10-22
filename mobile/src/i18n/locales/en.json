@@ -380,6 +380,74 @@
     "nutrition": "Your nutrition plan will appear here.",
     "messages": "Your conversations will appear here."
   },
+  "measurements": {
+    "title": "Body measurements",
+    "updatedToday": "Last updated today",
+    "updatedYesterday": "Last updated yesterday",
+    "updatedDaysAgo_one": "Last updated {{count}} day ago",
+    "updatedDaysAgo_other": "Last updated {{count}} days ago",
+    "ranges": {
+      "label": "Period",
+      "month": "1 month",
+      "plan": "Plan",
+      "all": "All time"
+    },
+    "metrics": {
+      "weight": "Weight",
+      "waist": "Waist",
+      "hips": "Hips",
+      "chest": "Chest",
+      "biceps": "Biceps",
+      "thigh": "Thigh",
+      "bodyFat": "Body fat"
+    },
+    "units": {
+      "kg": "{{value}} kg",
+      "cm": "{{value}} cm",
+      "percent": "{{value}} %"
+    },
+    "symbols": {
+      "kg": "kg",
+      "cm": "cm",
+      "percent": "%"
+    },
+    "trend": {
+      "month": "{{delta}} this month",
+      "plan": "{{delta}} since plan start",
+      "all": "{{delta}} overall",
+      "noChange": "no change",
+      "estimate": "estimate"
+    },
+    "shared": {
+      "line": "Shared with {{names}}.",
+      "and": "and"
+    },
+    "empty": {
+      "title": "No measurements yet",
+      "body": "Add your first measurement to start tracking your progress."
+    },
+    "add": "Add measurement",
+    "error": {
+      "history": "Can't load your measurements.",
+      "retry": "Try again"
+    },
+    "sheet": {
+      "close": "Close",
+      "subtitle": "Fill in only what you measured",
+      "save": "Save",
+      "error": "Couldn't save the measurement. Try again.",
+      "measured": "Measured",
+      "measuredA11y": "Measured: {{value}}. Change",
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "circumference": "Circumference",
+      "note": "Note",
+      "optional": "Optional",
+      "notePlaceholder": "Time of day, after a meal…",
+      "last": "Last {{value}}",
+      "neverMeasured": "Not measured yet"
+    }
+  },
   "messages": {
     "compose": "Find a coach",
     "labels": { "invite": "Invite", "requestSent": "Request sent" },
