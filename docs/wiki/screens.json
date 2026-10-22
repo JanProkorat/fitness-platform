@@ -692,6 +692,37 @@
       "notionPageId": null
     },
     {
+      "id": "web.business.packages",
+      "app": "web",
+      "area": "Business",
+      "title": "Packages and discounts",
+      "route": "/packages",
+      "roles": ["Trainer", "Nutritionist"],
+      "files": [
+        "web/src/pages/PackagesPage.tsx",
+        "web/src/components/package-catalog/*",
+        "web/src/components/paywall/FeaturePaywall.tsx",
+        "web/src/api/coach-packages.ts",
+        "web/src/api/coach-discounts.ts",
+        "web/src/lib/money.ts"
+      ],
+      "endpoints": [
+        "GET /payments/packages",
+        "POST /payments/packages",
+        "PUT /payments/packages/{packageId}",
+        "POST /payments/packages/{packageId}/archive",
+        "GET /payments/discounts",
+        "POST /payments/discounts",
+        "PUT /payments/discounts/{discountId}",
+        "POST /payments/discounts/{discountId}/archive"
+      ],
+      "board": "PagePackages",
+      "shots": [
+        { "name": "default" }
+      ],
+      "notionPageId": null
+    },
+    {
       "id": "web.forms.builder",
       "app": "web",
       "area": "Forms",
