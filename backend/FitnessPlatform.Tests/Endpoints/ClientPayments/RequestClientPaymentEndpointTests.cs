@@ -76,6 +76,35 @@ public class RequestClientPaymentEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
+    public async Task Request_AmountOverrideAboveTheCurrencyCap_Returns400AmountInvalid()
+    {
+        var world = await CreateWorldAsync(factory);
+        var packageId = await CreatePackageAsync(world.Coach, 100m, currency: "EUR");
+        await SetTermsOkAsync(world, packageId);
+        var rows = await ListAsync(world);
+
+        var response = await PostActionAsync(
+            world, rows[0].PaymentId, "request", new { SendEmail = true, Amount = 50_000.01m });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await ErrorCodesAsync(response)).Should().Contain("PAYMENT_AMOUNT_INVALID");
+    }
+
+    [Fact]
+    public async Task AddOneOff_AmountAboveTheCurrencyCap_Returns400AmountInvalid()
+    {
+        var world = await CreateWorldAsync(factory);
+
+        var response = await world.Coach.Http.PostAsJsonAsync(
+            $"{world.Route}/one-off",
+            new { Title = "Workshop", Amount = 50_000.01m, Currency = "EUR", DueDate = Today.AddDays(5) },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await ErrorCodesAsync(response)).Should().Contain("PAYMENT_AMOUNT_INVALID");
+    }
+
+    [Fact]
     public async Task Request_ByEmailOnlyWithOverrides_UsesThemEverywhereAndCreatesNoNotification()
     {
         var world = await CreateWorldAsync(factory);

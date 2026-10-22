@@ -88,9 +88,9 @@ internal sealed class UpdateCoachDiscountEndpoint(
 
         var newCurrency = req.Type == DiscountType.FixedAmount ? req.Currency : null;
 
-        if (newCurrency is not null
-            && discount.Currency != newCurrency
-            && await db.ClientPaymentTerms.AnyAsync(t => t.CoachDiscountId == discount.Id, ct))
+        var usage = await ClientPaymentSchedule.CountCurrentUsageAsync(db, profileId.Value, ct);
+
+        if (newCurrency is not null && discount.Currency != newCurrency && usage.ByDiscount.ContainsKey(discount.Id))
         {
             await this.SendProblemAsync(
                 StatusCodes.Status409Conflict,
@@ -125,8 +125,6 @@ internal sealed class UpdateCoachDiscountEndpoint(
             oldValues: oldValues,
             newValues: JsonSerializer.Serialize(new { discount.Name, discount.Type, discount.Value }),
             ct: ct);
-
-        var usage = await ClientPaymentSchedule.CountCurrentUsageAsync(db, profileId.Value, ct);
 
         await Send.OkAsync(CoachDiscountDto.FromEntity(discount, usage.ByDiscount.GetValueOrDefault(discount.Id)), ct);
     }

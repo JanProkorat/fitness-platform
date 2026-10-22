@@ -205,6 +205,12 @@ public class CoachPackageEndpointTests(FitnessApiFactory factory)
         response.StatusCode.Should().Be(HttpStatusCode.Conflict);
         (await ProblemCodeAsync(response)).Should().Be("CURRENCY_LOCKED");
         (await GetAsync(world.Coach, packageId)).Currency.Should().Be(PaymentCurrency.CZK);
+
+        // Once the client moves to another package, the old one is no longer in use and may change currency.
+        var other = await ClientPaymentFixtures.CreatePackageAsync(world.Coach, name: "Other");
+        await ClientPaymentFixtures.SetTermsOkAsync(world, other);
+
+        (await UpdateAsync(world.Coach, packageId, ValidBody(price: 60m, currency: "EUR"))).StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
     private sealed record ListBody(List<CoachPackageDto> Items);

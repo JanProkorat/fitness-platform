@@ -79,8 +79,9 @@ internal sealed class UpdateCoachPackageEndpoint(
             return;
         }
 
-        if (package.Currency != req.Currency
-            && await db.ClientPaymentTerms.AnyAsync(t => t.CoachPackageId == package.Id, ct))
+        var usage = await ClientPaymentSchedule.CountCurrentUsageAsync(db, profileId.Value, ct);
+
+        if (package.Currency != req.Currency && usage.ByPackage.ContainsKey(package.Id))
         {
             await this.SendProblemAsync(
                 StatusCodes.Status409Conflict,
@@ -128,8 +129,6 @@ internal sealed class UpdateCoachPackageEndpoint(
                 newValues: JsonSerializer.Serialize(new { package.Price }),
                 ct: ct);
         }
-
-        var usage = await ClientPaymentSchedule.CountCurrentUsageAsync(db, profileId.Value, ct);
 
         await Send.OkAsync(CoachPackageDto.FromEntity(package, usage.ByPackage.GetValueOrDefault(package.Id)), ct);
     }

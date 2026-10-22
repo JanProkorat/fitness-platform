@@ -119,6 +119,9 @@ public class ClientPaymentReadEndpointTests(FitnessApiFactory factory)
         history.Entries[0].PaymentId.Should().Be(rows[1].PaymentId);
         history.Entries[1].PaymentId.Should().Be(rows[0].PaymentId);
         history.Entries[2].Detail.Should().Be("Online coaching");
+        history.Entries[1].Currency.Should().Be(FitnessPlatform.Application.Domain.Enums.PaymentCurrency.CZK);
+        history.Entries[2].Currency.Should().Be(FitnessPlatform.Application.Domain.Enums.PaymentCurrency.CZK);
+        history.Entries[0].Currency.Should().BeNull("a waive entry carries no amount");
 
         var raw = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         raw.Should().NotContain(ValidIban).And.NotContain("Svobodov");

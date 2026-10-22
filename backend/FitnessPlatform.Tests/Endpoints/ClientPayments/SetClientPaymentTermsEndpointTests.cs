@@ -225,6 +225,18 @@ public class SetClientPaymentTermsEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
+    public async Task SetTerms_CustomPriceAboveTheEuroCap_Returns400AmountInvalid()
+    {
+        var world = await CreateWorldAsync(factory);
+        var euroPackage = await CreatePackageAsync(world.Coach, 100m, currency: "EUR");
+
+        var response = await SetTermsAsync(world, euroPackage, customPrice: 50_000.01m);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await ErrorCodesAsync(response)).Should().Contain("PAYMENT_AMOUNT_INVALID");
+    }
+
+    [Fact]
     public async Task SetTerms_EuroPackage_GivesEuroPaymentRows()
     {
         var world = await CreateWorldAsync(factory);

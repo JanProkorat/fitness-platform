@@ -82,6 +82,12 @@ internal sealed class SetClientPaymentTermsEndpoint(
             return;
         }
 
+        if (req.CustomPrice > CoachPackagePricing.MaxPrice(package.Currency))
+        {
+            this.ThrowErrorWithCode(ErrorCodes.PaymentAmountInvalid, "The custom price is above the limit of the package's currency.");
+            return;
+        }
+
         var discount = await LoadDiscountOrRespondAsync(req, package, context.ProfessionalProfileId, ct);
 
         if (req.DiscountId is not null && discount is null)
@@ -261,6 +267,7 @@ internal sealed class SetClientPaymentTermsEndpoint(
                     detail = package.Name,
                     discount = discount?.Name,
                     amount = req.CustomPrice,
+                    currency = package.Currency.ToString(),
                     removed = staleIds.Count
                 },
                 ct);
