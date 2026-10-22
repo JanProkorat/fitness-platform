@@ -132,7 +132,7 @@ export function buildDefaultValues(
     phoneNumber: me.phoneNumber ?? '',
     bio: trainer.bio ?? '',
     city: trainer.city ?? '',
-    estimatedPrice: trainer.estimatedPrice ?? '',
+    estimatedPrice: '', // The server no longer returns it; #1581 replaces the field with the package-derived price.
     specializations: parseStringList(trainer.specializations),
     languages: parseStringList(trainer.languages),
     certificates: parseCertificates(trainer.certificates),
