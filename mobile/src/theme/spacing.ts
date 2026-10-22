@@ -112,6 +112,7 @@ export const sizes = {
   measureSparklineWidth: 90,
   measureSparklineHeight: 26,
   measureLabel: 120,
+  aboutMeLabel: 84,
   measureAddFade: 130,
   measureAddBottom: 34,
   measureSheetTop: 56,

@@ -11,9 +11,6 @@ import { useOnboardingAnswers } from '@/hooks/useOnboardingAnswers';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
 
-// Fixed so the values line up in one column; the theme has no token for this width.
-const LABEL_WIDTH = 84;
-
 /** The client's sign-up answers at a glance; hidden while loading and when they can't be read. */
 export function AboutMeCard() {
   const { t, i18n } = useTranslation();
@@ -76,7 +73,7 @@ const makeStyles = (theme: Theme) =>
       paddingVertical: theme.spacing.md,
     },
     label: {
-      width: LABEL_WIDTH,
+      width: theme.sizes.aboutMeLabel,
       flexShrink: 0,
     },
     value: {
