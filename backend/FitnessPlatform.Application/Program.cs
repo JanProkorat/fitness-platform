@@ -307,6 +307,10 @@ builder.Services.Configure<TrainingLockOptions>(
     builder.Configuration.GetSection(TrainingLockOptions.SectionName));
 builder.Services.AddScoped<ISessionLockService, SessionLockService>();
 
+// Client app switches (optional "ClientApp" section; defaults show everything)
+builder.Services.Configure<FitnessPlatform.Application.Features.Client.GetClientAppConfig.ClientAppOptions>(
+    builder.Configuration.GetSection(FitnessPlatform.Application.Features.Client.GetClientAppConfig.ClientAppOptions.SectionName));
+
 // Compliance
 builder.Services.AddScoped<IComplianceService, ComplianceService>();
 
