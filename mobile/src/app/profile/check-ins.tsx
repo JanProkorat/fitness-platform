@@ -3,7 +3,6 @@ import { ActivityIndicator, FlatList, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
-import { BackButton } from '@/components/BackButton';
 import { Button } from '@/components/Button';
 import { CheckInRow } from '@/components/checkIns/CheckInRow';
 import { OpenNowCard } from '@/components/checkIns/OpenNowCard';
@@ -19,6 +18,7 @@ import type { SegmentOption } from '@/components/onboarding/Segmented';
 import { ListCard } from '@/components/profile/ListCard';
 import { SectionHeader } from '@/components/profile/SectionHeader';
 import { Screen } from '@/components/Screen';
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { Text } from '@/components/Text';
 import { useCheckInHistory } from '@/hooks/useCheckInHistory';
 import { useCollaborations } from '@/hooks/useCollaborations';
@@ -90,16 +90,6 @@ export default function CheckInHistoryScreen() {
 
   const header = (
     <View style={styles.header}>
-      <View style={styles.titleBlock}>
-        {subtitle ? (
-          <Text variant="label" color="muted">
-            {subtitle}
-          </Text>
-        ) : null}
-        <Text variant="title" accessibilityRole="header">
-          {t('checkInHistory.title')}
-        </Text>
-      </View>
       {showFilter && !history.isPending && !history.isError ? (
         <Segmented
           options={options}
@@ -164,7 +154,12 @@ export default function CheckInHistoryScreen() {
   return (
     <Screen gutter={theme.spacing.xl} topGap={theme.spacing.safeAreaGap}>
       <View style={styles.topBar}>
-        <BackButton label={t('onboarding.back')} onPress={() => router.back()} />
+        <ScreenHeader
+          title={t('checkInHistory.title')}
+          subtitle={subtitle ?? undefined}
+          backLabel={t('onboarding.back')}
+          onBack={() => router.back()}
+        />
       </View>
       <FlatList<MonthGroup>
         data={history.isPending || history.isError ? [] : months}
@@ -201,9 +196,7 @@ export default function CheckInHistoryScreen() {
 const makeStyles = (theme: Theme) =>
   StyleSheet.create({
     topBar: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingBottom: theme.spacing.md,
+      paddingBottom: theme.spacing.lg,
     },
     list: {
       // Bleed into the screen gutter so the card shadow is not clipped at the list edge.
@@ -216,9 +209,6 @@ const makeStyles = (theme: Theme) =>
     },
     header: {
       gap: theme.spacing.lg,
-    },
-    titleBlock: {
-      gap: theme.spacing.xxs,
     },
     openCards: {
       gap: theme.spacing.md,

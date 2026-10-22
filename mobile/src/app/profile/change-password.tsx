@@ -3,11 +3,11 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
-import { BackButton } from '@/components/BackButton';
 import { Button } from '@/components/Button';
 import { Input } from '@/components/Input';
 import { PasswordRules, passwordMeetsRules } from '@/components/PasswordRules';
 import { Screen } from '@/components/Screen';
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { Text } from '@/components/Text';
 import { useChangePassword } from '@/hooks/useChangePassword';
 import { useTheme } from '@/theme';
@@ -58,12 +58,11 @@ export default function ChangePasswordScreen() {
       bottomInset={theme.spacing.huge}
       contentStyle={styles.content}
     >
-      <View style={styles.topBar}>
-        <BackButton label={t('settings.back')} onPress={() => router.back()} />
-      </View>
-      <Text variant="title" accessibilityRole="header">
-        {t('settings.password.title')}
-      </Text>
+      <ScreenHeader
+        title={t('settings.password.title')}
+        backLabel={t('settings.back')}
+        onBack={() => router.back()}
+      />
 
       <View style={styles.form}>
         <Input
@@ -126,10 +125,6 @@ const makeStyles = (theme: Theme) =>
   StyleSheet.create({
     content: {
       gap: theme.spacing.lg,
-    },
-    topBar: {
-      flexDirection: 'row',
-      alignItems: 'center',
     },
     form: {
       gap: theme.spacing.lg,
