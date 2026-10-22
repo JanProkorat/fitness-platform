@@ -59,6 +59,8 @@ export default function ProgressPhotosScreen() {
   const remove = useDeletePhoto();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+  const [picking, setPicking] = useState(false);
+  const busy = picking || progress !== null;
 
   const months = photosQuery.data ?? [];
   const shownCount = months.reduce((total, month) => total + month.photos.length, 0);
@@ -94,6 +96,16 @@ export default function ProgressPhotosScreen() {
     );
   };
 
+  // The picker resolves only after re-encoding the assets, so show the busy state from launch.
+  const pickAndSubmit = async (launch: () => Promise<ImagePicker.ImagePickerResult>) => {
+    setPicking(true);
+    try {
+      handleResult(await launch());
+    } finally {
+      setPicking(false);
+    }
+  };
+
   const takePhoto = async () => {
     const permission = await ImagePicker.requestCameraPermissionsAsync();
     if (!permission.granted) {
@@ -103,12 +115,10 @@ export default function ProgressPhotosScreen() {
       ]);
       return;
     }
-    handleResult(await ImagePicker.launchCameraAsync(CAMERA_OPTIONS));
+    await pickAndSubmit(() => ImagePicker.launchCameraAsync(CAMERA_OPTIONS));
   };
 
-  const chooseFromLibrary = async () => {
-    handleResult(await ImagePicker.launchImageLibraryAsync(LIBRARY_OPTIONS));
-  };
+  const chooseFromLibrary = () => pickAndSubmit(() => ImagePicker.launchImageLibraryAsync(LIBRARY_OPTIONS));
 
   const askSource = () => {
     Alert.alert(t('photos.add.title'), undefined, [
@@ -174,9 +184,9 @@ export default function ProgressPhotosScreen() {
         <Button
           label={progress ? t('photos.uploadProgress', progress) : t('photos.addPhotos')}
           onPress={askSource}
-          disabled={progress !== null}
+          disabled={busy}
           icon={
-            progress ? (
+            busy ? (
               <ActivityIndicator color={theme.colors.onPrimary} />
             ) : (
               <SymbolView name="photo.badge.plus" tintColor={theme.colors.onPrimary} size={theme.sizes.fieldIcon} />
