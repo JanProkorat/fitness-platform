@@ -158,6 +158,7 @@ export default function CoachSearchScreen() {
         renderItem={({ item }) => (
           <CoachRow
             coach={item}
+            showRoles={segment === 'All'}
             onPress={() =>
               router.push({ pathname: '/coach/[publicId]', params: { publicId: item.publicId ?? '' } })
             }
