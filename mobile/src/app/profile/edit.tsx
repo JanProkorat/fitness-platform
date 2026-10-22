@@ -173,7 +173,12 @@ function EditForm({ profile, answers }: { profile: Profile; answers: EditableAns
         </View>
 
         {form.answers ? (
-          <InfoSection answers={form.answers} errors={form.answerErrors} onChange={form.setAnswer} />
+          <InfoSection
+            answers={form.answers}
+            errors={form.answerErrors}
+            serverFlagged={form.serverFlagged}
+            onChange={form.setAnswer}
+          />
         ) : null}
 
         {form.answers && coachNames.length > 0 ? (

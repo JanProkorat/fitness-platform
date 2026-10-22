@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { EdgeInsets } from 'react-native-safe-area-context';
 
@@ -28,6 +29,25 @@ export function SheetFrame({ visible, onClose, ...rest }: SheetFrameProps) {
     >
       <FrameContent {...rest} />
     </Modal>
+  );
+}
+
+/** The Cancel control for a sheet header. */
+export function SheetCancel({ onPress }: { onPress: () => void }) {
+  const { t } = useTranslation();
+  const theme = useTheme();
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      hitSlop={theme.spacing.xs}
+      onPress={onPress}
+      style={{ paddingHorizontal: theme.spacing.xxs }}
+    >
+      <Text variant="body" color="muted">
+        {t('editProfile.cancel')}
+      </Text>
+    </Pressable>
   );
 }
 
