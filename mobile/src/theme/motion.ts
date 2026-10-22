@@ -44,9 +44,9 @@ export const measuredAtPickerMotion = {
   layoutDuration: 240,
 } as const;
 
-/** Cross-fade between the bottom tabs, in ms. */
+/** Fade-in of a bottom tab's content when it gains focus, in ms. */
 export const tabSwitchMotion = {
-  duration: 160,
+  duration: 300,
 } as const;
 
 /** Chat rows that arrive after the screen opened: spring entrance and list reflow. */
