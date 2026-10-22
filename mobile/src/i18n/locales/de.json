@@ -74,6 +74,65 @@
       }
     }
   },
+  "settings": {
+    "title": "Einstellungen",
+    "back": "Zurück",
+    "logout": "Abmelden",
+    "sheet": {
+      "close": "Schließen"
+    },
+    "account": {
+      "title": "Konto",
+      "email": "E-Mail",
+      "password": "Passwort"
+    },
+    "preferences": {
+      "title": "Präferenzen",
+      "language": "Sprache",
+      "appearance": "Darstellung"
+    },
+    "language": {
+      "cs": "Čeština",
+      "en": "English",
+      "de": "Deutsch"
+    },
+    "appearance": {
+      "system": "Automatisch",
+      "light": "Hell",
+      "dark": "Dunkel"
+    },
+    "notifications": {
+      "title": "Benachrichtigungen",
+      "messages": "Nachrichten",
+      "loadError": "Die Benachrichtigungseinstellungen konnten nicht geladen werden. Tippen, um es erneut zu versuchen.",
+      "saveError": "Die Änderung konnte nicht gespeichert werden. Bitte versuche es erneut."
+    },
+    "delete": {
+      "row": "Konto löschen",
+      "title": "Konto löschen?",
+      "message": "Dadurch werden dein Konto und deine Daten dauerhaft gelöscht. Das kann nicht rückgängig gemacht werden.",
+      "cancel": "Abbrechen",
+      "confirm": "Löschen",
+      "error": "Das Konto konnte nicht gelöscht werden. Du bist weiterhin angemeldet. Bitte versuche es erneut."
+    },
+    "password": {
+      "title": "Passwort ändern",
+      "current": "Aktuelles Passwort",
+      "new": "Neues Passwort",
+      "confirm": "Neues Passwort wiederholen",
+      "show": "Anzeigen",
+      "hide": "Verbergen",
+      "submit": "Passwort ändern",
+      "mismatch": "Die Passwörter stimmen nicht überein.",
+      "errors": {
+        "invalidCurrent": "Das aktuelle Passwort ist falsch.",
+        "notSet": "Dieses Konto hat kein Passwort, das geändert werden könnte.",
+        "rateLimited": "Zu viele Versuche. Bitte versuche es gleich noch einmal.",
+        "network": "Der Server ist nicht erreichbar. Prüfe deine Verbindung und versuche es erneut.",
+        "generic": "Das Passwort konnte nicht geändert werden. Bitte versuche es erneut."
+      }
+    }
+  },
   "tabs": {
     "today": "Heute",
     "training": "Training",
@@ -206,6 +265,42 @@
       "retry": "Erneut versuchen"
     }
   },
+  "photos": {
+    "title": "Fortschrittsfotos",
+    "count_one": "{{count}} Foto",
+    "count_other": "{{count}} Fotos",
+    "takePhoto": "Foto aufnehmen",
+    "cancel": "Abbrechen",
+    "add": {
+      "title": "Fortschrittsfoto hinzufügen",
+      "camera": "Foto aufnehmen",
+      "library": "Aus der Mediathek wählen"
+    },
+    "empty": "Noch keine Fortschrittsfotos.",
+    "emptyHint": "Füge dein erstes hinzu, um deine Veränderung zu verfolgen.",
+    "photoLabel": "Foto vom {{date}}",
+    "viewer": {
+      "close": "Schließen",
+      "delete": "Foto löschen",
+      "deleteTitle": "Dieses Foto löschen?",
+      "deleteBody": "Das kann nicht rückgängig gemacht werden.",
+      "deleteConfirm": "Löschen"
+    },
+    "permission": {
+      "title": "Kamerazugriff ist ausgeschaltet",
+      "body": "Erlaube den Kamerazugriff in den Einstellungen, um Fortschrittsfotos aufzunehmen.",
+      "openSettings": "Einstellungen öffnen"
+    },
+    "errors": {
+      "load": "Deine Fotos konnten nicht geladen werden.",
+      "retry": "Erneut versuchen",
+      "title": "Das Foto konnte nicht hinzugefügt werden",
+      "tooLarge": "Dieses Foto ist größer als 5 MB. Wähle ein kleineres.",
+      "unsupportedType": "Dieser Dateityp wird nicht unterstützt. Verwende ein JPEG-, PNG-, WebP- oder HEIC-Foto.",
+      "upload": "Der Upload ist fehlgeschlagen. Prüfe deine Verbindung und versuche es erneut.",
+      "delete": "Das Foto konnte nicht gelöscht werden. Versuche es erneut."
+    }
+  },
   "invites": {
     "invitedYou": "{{name}} hat dich eingeladen",
     "accept": "Annehmen",
@@ -255,6 +350,79 @@
         "title": "Etwas ist schiefgelaufen",
         "body": "Die Einladung konnte nicht beantwortet werden. Bitte versuche es erneut."
       }
+    }
+  },
+  "journey": {
+    "title": "Meine Reise",
+    "now": "heute",
+    "fromTo": "{{from}} → {{to}}",
+    "units": {
+      "kg": "{{value}} kg",
+      "cm": "{{value}} cm",
+      "percent": "{{value}} %"
+    },
+    "tabs": {
+      "label": "Ansicht der Reise",
+      "weight": "Gewicht",
+      "waist": "Taille",
+      "photos": "Fotos"
+    },
+    "legend": {
+      "training": "Trainingsplan",
+      "nutrition": "Ernährungsplan",
+      "photos": "Fotos"
+    },
+    "chart": {
+      "empty": {
+        "weight": "Trage mindestens zwei Gewichte ein, um deinen Verlauf zu sehen.",
+        "waist": "Trage mindestens zwei Taillenmaße ein, um deinen Verlauf zu sehen."
+      }
+    },
+    "plans": {
+      "title": "Pläne",
+      "empty": "Du hast noch keine Pläne."
+    },
+    "status": {
+      "active": "Aktiv",
+      "completed": "Abgeschlossen"
+    },
+    "plan": {
+      "week": "Woche {{current}} von {{total}}",
+      "sessions": "{{done}} von {{total}} Einheiten",
+      "mealsLogged": "{{value}} der Mahlzeiten erfasst"
+    },
+    "summary": {
+      "completedPlan": "Abgeschlossener Plan",
+      "activePlan": "Aktiver Plan",
+      "weeks_one": "{{count}} Woche",
+      "weeks_other": "{{count}} Wochen",
+      "sessions": "Einheiten",
+      "sessionsValue": "{{done}} / {{total}}",
+      "completedShare": "{{value}} geschafft",
+      "mealsLogged": "Erfasste Mahlzeiten",
+      "ofPlanned": "der geplanten Mahlzeiten",
+      "weight": "Gewicht",
+      "waist": "Taille",
+      "beforeAfter": "Vorher und nachher",
+      "start": "Start",
+      "end": "Ende",
+      "onlyPhoto": "Dein Foto",
+      "allSessions": "Alle Einheiten in diesem Plan",
+      "notFound": {
+        "title": "Plan nicht gefunden",
+        "body": "Dieser Plan ist nicht mehr verfügbar.",
+        "back": "Zurück"
+      },
+      "error": {
+        "title": "Plan konnte nicht geladen werden",
+        "body": "Prüfe deine Verbindung und versuche es erneut."
+      }
+    },
+    "error": {
+      "series": "Deine Messwerte konnten nicht geladen werden.",
+      "photos": "Die Foto-Markierungen konnten nicht geladen werden.",
+      "plans": "Deine Pläne konnten nicht geladen werden.",
+      "retry": "Erneut versuchen"
     }
   },
   "notifications": {
@@ -469,6 +637,26 @@
       "network": "Server nicht erreichbar. Prüfe deine Verbindung und versuche es erneut.",
       "generic": "Die E-Mail konnte nicht gesendet werden. Bitte versuche es erneut."
     }
+  },
+  "checkInHistory": {
+    "title": "Check-in-Verlauf",
+    "count_one": "{{count}} Check-in",
+    "count_other": "{{count}} Check-ins",
+    "countSince_one": "{{count}} Check-in seit {{since}}",
+    "countSince_other": "{{count}} Check-ins seit {{since}}",
+    "filterAll": "Alle",
+    "filterLabel": "Nach Coach filtern",
+    "openNow": "Jetzt offen",
+    "weekOf": "Woche vom {{date}}",
+    "answerBy": "{{coach}} · antworten bis {{weekday}}",
+    "status": {
+      "sent": "Gesendet",
+      "reviewed": "Geprüft",
+      "missed": "Verpasst"
+    },
+    "empty": "Noch keine Check-ins. Die wöchentlichen Check-ins deiner Coaches erscheinen hier.",
+    "error": "Check-ins konnten nicht geladen werden.",
+    "retry": "Erneut versuchen"
   },
   "changeEmail": {
     "title": "E-Mail ändern",
