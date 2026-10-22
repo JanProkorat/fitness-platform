@@ -66,7 +66,10 @@ function AppTabBar({ state, navigation }: BottomTabBarProps) {
 export default function TabsLayout() {
   return (
     <Tabs
-      screenOptions={{ headerShown: false }}
+      screenOptions={{
+        headerShown: false,
+        animation: 'none',
+      }}
       tabBar={(props) => <AppTabBar {...props} />}
     >
       <Tabs.Screen name="index" />

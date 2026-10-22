@@ -4,10 +4,11 @@ import { Alert } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { getErrorStatus, isNetworkError } from '@/api/errors';
+import { COLLABORATIONS_QUERY_KEY } from '@/api/collaborations';
 import { CONVERSATIONS_QUERY_KEY } from '@/api/conversations';
 import { INVITES_QUERY_KEY, acceptInvite, declineInvite } from '@/api/invites';
 import { NOTIFICATIONS_QUERY_KEY } from '@/api/notifications';
-import { PROFILE_QUERY_KEY } from '@/api/profile';
+import { PROFILE_QUERY_KEY, PROFILE_SUMMARY_QUERY_KEY } from '@/api/profile';
 
 type Answer = 'accept' | 'decline';
 
@@ -43,8 +44,12 @@ export function useInviteActions({ onSettled }: Options = {}) {
     mutationFn: ({ id, answer }: Variables) => (answer === 'accept' ? acceptInvite(id) : declineInvite(id)),
     onSuccess: (_data, { answer }) => {
       refreshInvites();
-      // Accepting links a coach, which changes what Today shows.
-      if (answer === 'accept') void queryClient.invalidateQueries({ queryKey: PROFILE_QUERY_KEY });
+      // Accepting links a coach, which changes what Today and Profile show.
+      if (answer === 'accept') {
+        void queryClient.invalidateQueries({ queryKey: PROFILE_QUERY_KEY });
+        void queryClient.invalidateQueries({ queryKey: PROFILE_SUMMARY_QUERY_KEY });
+        void queryClient.invalidateQueries({ queryKey: COLLABORATIONS_QUERY_KEY });
+      }
       onSettled?.();
     },
     onError: (error, { answer }) => {

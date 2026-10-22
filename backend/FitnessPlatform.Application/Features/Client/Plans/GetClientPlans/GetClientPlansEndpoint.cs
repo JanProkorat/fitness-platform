@@ -77,6 +77,8 @@ public class GetClientPlansEndpoint(IMongoContext mongo, IApplicationDbContext d
         }
 
         var items = new List<ClientOwnPlanItem>();
+        List<NutritionPlan> nutritionPlans = [];
+        List<TrainingPlan> trainingPlans = [];
 
         // ── Nutrition plans ──
         {
@@ -97,7 +99,7 @@ public class GetClientPlansEndpoint(IMongoContext mongo, IApplicationDbContext d
                 p => p.Weeks, w => w.Status == WeekStatus.Published);
 
             using var nCursor = await mongo.NutritionPlans.FindAsync(filter, cancellationToken: ct);
-            var nutritionPlans = await nCursor.ToListAsync(ct);
+            nutritionPlans = await nCursor.ToListAsync(ct);
 
             foreach (var plan in nutritionPlans)
             {
@@ -134,7 +136,9 @@ public class GetClientPlansEndpoint(IMongoContext mongo, IApplicationDbContext d
                     QuestionnaireResponseId = plan.QuestionnaireResponseId,
                     CurrentWeek = currentWeek,
                     DailyKcal = plan.GlobalSettings?.DailyKcal,
-                    HasTodaySession = null // nutrition plans don't have sessions
+                    HasTodaySession = null, // nutrition plans don't have sessions
+                    EndDate = PlanProgressCalculator.ResolveEndDate(plan.StartDate, plan.Weeks.Count),
+                    ProfessionalRole = AppRoles.Nutritionist
                 });
             }
         }
@@ -157,7 +161,7 @@ public class GetClientPlansEndpoint(IMongoContext mongo, IApplicationDbContext d
                 p => p.Weeks, w => w.Status == WeekStatus.Published);
 
             using var tCursor = await mongo.TrainingPlans.FindAsync(filter, cancellationToken: ct);
-            var trainingPlans = await tCursor.ToListAsync(ct);
+            trainingPlans = await tCursor.ToListAsync(ct);
 
             // Today's day-of-week (1 = Monday, 7 = Sunday)
             var todayDow = (int)now.DayOfWeek;
@@ -230,10 +234,17 @@ public class GetClientPlansEndpoint(IMongoContext mongo, IApplicationDbContext d
                     QuestionnaireResponseId = plan.QuestionnaireResponseId,
                     CurrentWeek = currentWeekNumber,
                     DailyKcal = null, // training plans don't have kcal targets
-                    HasTodaySession = hasTodaySession
+                    HasTodaySession = hasTodaySession,
+                    EndDate = PlanProgressCalculator.ResolveEndDate(plan.StartDate, plan.Weeks.Count),
+                    ProfessionalRole = AppRoles.Trainer
                 });
             }
         }
+
+        var itemsByPlanId = items.ToDictionary(i => i.PlanId);
+        await ApplyTrainingProgressAsync(clientId, now, trainingPlans, itemsByPlanId, ct);
+        await ApplyNutritionProgressAsync(clientId, now, nutritionPlans, itemsByPlanId, ct);
+        await ApplyProfessionalNamesAsync(nutritionPlans, trainingPlans, itemsByPlanId, ct);
 
         // Sort by completion date descending, then creation
         items = items
@@ -241,5 +252,128 @@ public class GetClientPlansEndpoint(IMongoContext mongo, IApplicationDbContext d
             .ToList();
 
         await Send.OkAsync(new GetClientPlansResponse { Items = items }, ct);
+    }
+
+    private async Task ApplyTrainingProgressAsync(
+        Guid clientId,
+        DateTime today,
+        List<TrainingPlan> plans,
+        Dictionary<Guid, ClientOwnPlanItem> itemsByPlanId,
+        CancellationToken ct)
+    {
+        var windowedPlans = plans
+            .Select(plan => (Plan: plan, Window: PlanProgressCalculator.ResolveProgressWindow(plan.StartDate, plan.Weeks.Count, today)))
+            .Where(entry => entry.Window.HasValue)
+            .ToList();
+
+        if (windowedPlans.Count == 0)
+        {
+            return;
+        }
+
+        var planIds = windowedPlans.Select(entry => (Guid?)entry.Plan.ExternalId).ToList();
+        var filter = Builders<SessionExecution>.Filter.Eq(e => e.ClientId, clientId)
+            & Builders<SessionExecution>.Filter.In(e => e.PlanId, planIds);
+
+        using var cursor = await mongo.SessionExecutions.FindAsync(filter, cancellationToken: ct);
+        var executions = await cursor.ToListAsync(ct);
+
+        foreach (var (plan, window) in windowedPlans)
+        {
+            var (total, done) = PlanProgressCalculator.CountSessions(plan, window!.Value, executions);
+
+            if (total > 0)
+            {
+                itemsByPlanId[plan.ExternalId].SessionsTotal = total;
+                itemsByPlanId[plan.ExternalId].SessionsDone = done;
+            }
+        }
+    }
+
+    private async Task ApplyNutritionProgressAsync(
+        Guid clientId,
+        DateTime today,
+        List<NutritionPlan> plans,
+        Dictionary<Guid, ClientOwnPlanItem> itemsByPlanId,
+        CancellationToken ct)
+    {
+        var windowedPlans = plans
+            .Select(plan => (Plan: plan, Window: PlanProgressCalculator.ResolveProgressWindow(plan.StartDate, plan.Weeks.Count, today)))
+            .Where(entry => entry.Window.HasValue)
+            .ToList();
+
+        if (windowedPlans.Count == 0)
+        {
+            return;
+        }
+
+        var earliestStart = windowedPlans.Min(entry => entry.Window!.Value.Start);
+        var latestEnd = windowedPlans.Max(entry => entry.Window!.Value.End);
+        var planIds = windowedPlans.Select(entry => entry.Plan.ExternalId).ToList();
+
+        var filter = Builders<MealLog>.Filter.Eq(l => l.ClientId, clientId)
+            & Builders<MealLog>.Filter.In(l => l.PlanId, planIds)
+            & Builders<MealLog>.Filter.Gte(l => l.EatenAt, earliestStart)
+            & Builders<MealLog>.Filter.Lt(l => l.EatenAt, latestEnd.AddDays(1));
+
+        using var cursor = await mongo.MealLogs.FindAsync(filter, cancellationToken: ct);
+        var logs = await cursor.ToListAsync(ct);
+
+        foreach (var (plan, window) in windowedPlans)
+        {
+            var planned = 0;
+            for (var day = window!.Value.Start; day <= window.Value.End; day = day.AddDays(1))
+            {
+                planned += PlannedMealCounter.GetPlannedMealCountForDate(plan, day);
+            }
+
+            if (planned == 0)
+            {
+                continue;
+            }
+
+            var logged = logs.Count(l =>
+                l.PlanId == plan.ExternalId
+                && l.EatenAt >= window.Value.Start
+                && l.EatenAt < window.Value.End.AddDays(1));
+
+            itemsByPlanId[plan.ExternalId].MealsLoggedPercent =
+                Math.Min(100, (int)Math.Round(logged * 100.0 / planned, MidpointRounding.AwayFromZero));
+        }
+    }
+
+    private async Task ApplyProfessionalNamesAsync(
+        List<NutritionPlan> nutritionPlans,
+        List<TrainingPlan> trainingPlans,
+        Dictionary<Guid, ClientOwnPlanItem> itemsByPlanId,
+        CancellationToken ct)
+    {
+        var authorIds = nutritionPlans.Select(plan => plan.NutritionistId)
+            .Concat(trainingPlans.Select(plan => plan.TrainerId))
+            .Distinct()
+            .ToList();
+
+        if (authorIds.Count == 0)
+        {
+            return;
+        }
+
+        var authors = await db.Users
+            .AsNoTracking()
+            .Where(user => authorIds.Contains(user.Id))
+            .Select(user => new { user.Id, user.FirstName, user.LastName })
+            .ToListAsync(ct);
+
+        var namesById = authors.ToDictionary(author => author.Id, author => $"{author.FirstName} {author.LastName}");
+
+        foreach (var plan in nutritionPlans)
+        {
+            itemsByPlanId[plan.ExternalId].ProfessionalName = namesById.GetValueOrDefault(plan.NutritionistId);
+        }
+
+        foreach (var plan in trainingPlans)
+        {
+            itemsByPlanId[plan.ExternalId].ProfessionalName = namesById.GetValueOrDefault(plan.TrainerId);
+        }
     }
 }

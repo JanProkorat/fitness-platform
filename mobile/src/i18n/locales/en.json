@@ -74,6 +74,65 @@
       }
     }
   },
+  "settings": {
+    "title": "Settings",
+    "back": "Back",
+    "logout": "Log out",
+    "sheet": {
+      "close": "Close"
+    },
+    "account": {
+      "title": "Account",
+      "email": "Email",
+      "password": "Password"
+    },
+    "preferences": {
+      "title": "Preferences",
+      "language": "Language",
+      "appearance": "Appearance"
+    },
+    "language": {
+      "cs": "Čeština",
+      "en": "English",
+      "de": "Deutsch"
+    },
+    "appearance": {
+      "system": "Automatic",
+      "light": "Light",
+      "dark": "Dark"
+    },
+    "notifications": {
+      "title": "Notifications",
+      "messages": "Messages",
+      "loadError": "Couldn't load your notification settings. Tap to try again.",
+      "saveError": "Couldn't save the change. Please try again."
+    },
+    "delete": {
+      "row": "Delete account",
+      "title": "Delete your account?",
+      "message": "This permanently deletes your account and your data. This can't be undone.",
+      "cancel": "Cancel",
+      "confirm": "Delete",
+      "error": "Couldn't delete your account. You are still signed in. Please try again."
+    },
+    "password": {
+      "title": "Change password",
+      "current": "Current password",
+      "new": "New password",
+      "confirm": "Repeat new password",
+      "show": "Show",
+      "hide": "Hide",
+      "submit": "Change password",
+      "mismatch": "The passwords don't match.",
+      "errors": {
+        "invalidCurrent": "Your current password is wrong.",
+        "notSet": "This account has no password to change.",
+        "rateLimited": "Too many attempts. Please try again in a moment.",
+        "network": "Can't reach the server. Check your connection and try again.",
+        "generic": "Couldn't change your password. Please try again."
+      }
+    }
+  },
   "tabs": {
     "today": "Today",
     "training": "Training",
@@ -88,6 +147,7 @@
     "linkedBody": "Your coaches are on board. Your day will show up here.",
     "notifications": "Notifications",
     "notificationsUnread": "Notifications, {{count}} unread",
+    "profile": "Profile",
     "invitesTitle": "Invites",
     "findCoach": {
       "title": "Find a coach",
@@ -100,6 +160,187 @@
         "title": "Nutritionist",
         "hint": "Meals that fit your day"
       }
+    }
+  },
+  "editProfile": {
+    "title": "Edit profile",
+    "cancel": "Cancel",
+    "save": "Save changes",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "phone": "Phone",
+    "phonePlaceholder": "+420 …",
+    "email": "Email",
+    "signIn": "Sign-in",
+    "signInHint": "Email and password are changed in Settings.",
+    "and": "and",
+    "weightLabel": "Weight",
+    "coachesNote_one": "{{names}} sees these changes and gets a notification.",
+    "coachesNote_other": "{{names}} see these changes and get a notification.",
+    "photo": {
+      "change": "Change photo",
+      "remove": "Remove",
+      "errors": {
+        "tooLarge": "That photo is too large. Pick a smaller one (max 5 MB).",
+        "unsupported": "That photo format isn't supported.",
+        "network": "Can't reach the server. Check your connection and try again.",
+        "generic": "Couldn't change your photo. Please try again."
+      }
+    },
+    "info": {
+      "title": "My info",
+      "subtitle": "From your sign-up. Keep it current so your plans fit.",
+      "aboutSection": "About you",
+      "goalSection": "Goal",
+      "trainingSection": "Training",
+      "lifestyleSection": "Lifestyle",
+      "eatingSection": "Eating",
+      "dateOfBirth": "Date of birth",
+      "sex": "Sex",
+      "height": "Height",
+      "heightValue": "{{value}} cm",
+      "goal": "Main goal",
+      "targetWeight": "Target weight",
+      "currentFrequency": "Training now",
+      "perWeek": "Training goal",
+      "activities": "Activities",
+      "job": "Job",
+      "sleep": "Sleep",
+      "sleepValue": "{{value}} h",
+      "stress": "Stress",
+      "stressValue": "{{value}} of {{max}}",
+      "meals": "Meals a day",
+      "habits": "Habits",
+      "perWeekValue": "{{count}}× a week",
+      "gym": "Gym access",
+      "injuries": "Injuries",
+      "diet": "Diet",
+      "allergies": "Allergies",
+      "dislikes": "Foods you don't like",
+      "rowLabel": "{{label}}: {{value}}. Change"
+    },
+    "errors": {
+      "required": "This field is required.",
+      "weightRange": "Enter a weight between {{min}} and {{max}} kg.",
+      "heightRange": "Enter a height between {{min}} and {{max}} cm.",
+      "sleepRange": "Enter between {{min}} and {{max}} hours of sleep.",
+      "stressRange": "Pick a stress level from {{min}} to {{max}}.",
+      "dateOfBirthRange": "Pick a date of birth that gives an age of {{min}} to {{max}} years.",
+      "itemBlank": "An entry can't be empty.",
+      "itemComma": "An entry can't contain a comma.",
+      "rejected": "This answer wasn't accepted. Check it and try again.",
+      "listTooLong": "The list is too long. Remove a few entries.",
+      "tooManyItems": "At most 20 entries.",
+      "itemTooLong": "An entry is too long.",
+      "partial": "Some changes were saved, the rest weren't. Try saving again.",
+      "save": {
+        "network": "Can't reach the server. Check your connection and try again.",
+        "invalid": "Check the highlighted fields and try again.",
+        "generic": "Couldn't save your changes. Please try again."
+      }
+    },
+    "discard": {
+      "title": "Discard changes?",
+      "body": "Changes you haven't saved will be lost.",
+      "keep": "Keep editing",
+      "discard": "Discard"
+    },
+    "error": {
+      "load": "Couldn't load your profile."
+    }
+  },
+  "profile": {
+    "edit": "Edit profile",
+    "viewPhoto": "View profile photo",
+    "photoLabel": "Profile photo",
+    "since": "since {{date}}",
+    "units": {
+      "kg": "{{value}} kg"
+    },
+    "goals": {
+      "LoseFat": "Lose fat",
+      "GainMuscle": "Gain muscle",
+      "Recomposition": "Body recomposition",
+      "Fitness": "General fitness",
+      "Health": "Better health",
+      "Maintain": "Maintain",
+      "Performance": "Performance"
+    },
+    "stats": {
+      "plans": "Plans",
+      "workouts": "Workouts",
+      "sinceStart": "Since start"
+    },
+    "aboutMe": {
+      "title": "About me",
+      "a11yLabel": "About me. Edit",
+      "goal": "Goal",
+      "training": "Training",
+      "eating": "Eating",
+      "injuries": "Injuries",
+      "targetWeight": "target {{value}} kg",
+      "noAllergies": "no {{list}}",
+      "gym": {
+        "Yes": "gym",
+        "Sometimes": "gym sometimes",
+        "No": "no gym"
+      }
+    },
+    "coaches": {
+      "title": "My coaches",
+      "empty": "You don't work with a coach yet."
+    },
+    "progress": {
+      "title": "Progress",
+      "journey": "My journey",
+      "measurements": "Body measurements",
+      "photos": "Progress photos",
+      "checkIns": "Check-in history"
+    },
+    "settings": "Settings",
+    "error": {
+      "summary": "Can't load your numbers.",
+      "coaches": "Can't load your coaches.",
+      "retry": "Try again"
+    }
+  },
+  "photos": {
+    "title": "Progress photos",
+    "count_one": "{{count}} photo",
+    "count_other": "{{count}} photos",
+    "addPhotos": "Add photos",
+    "uploadProgress": "{{done}} / {{total}}",
+    "cancel": "Cancel",
+    "add": {
+      "title": "Add a progress photo",
+      "camera": "Take photo",
+      "library": "Choose from library"
+    },
+    "empty": "No progress photos yet.",
+    "emptyHint": "Add your first one to start tracking your change.",
+    "photoLabel": "Photo from {{date}}",
+    "viewer": {
+      "close": "Close",
+      "delete": "Delete photo",
+      "deleteTitle": "Delete this photo?",
+      "deleteBody": "This can't be undone.",
+      "deleteConfirm": "Delete"
+    },
+    "permission": {
+      "title": "Camera access is off",
+      "body": "Allow camera access in Settings to take progress photos.",
+      "openSettings": "Open Settings"
+    },
+    "errors": {
+      "load": "Can't load your photos.",
+      "retry": "Try again",
+      "title": "Couldn't add the photo",
+      "batchFailed_one": "{{count}} photo couldn't be added",
+      "batchFailed_other": "{{count}} photos couldn't be added",
+      "tooLarge": "This photo is larger than 5 MB. Choose a smaller one.",
+      "unsupportedType": "This file type isn't supported. Use a JPEG, PNG, WebP or HEIC photo.",
+      "upload": "The upload failed. Check your connection and try again.",
+      "delete": "Couldn't delete the photo. Try again."
     }
   },
   "invites": {
@@ -153,6 +394,79 @@
       }
     }
   },
+  "journey": {
+    "title": "My journey",
+    "now": "now",
+    "fromTo": "{{from}} → {{to}}",
+    "units": {
+      "kg": "{{value}} kg",
+      "cm": "{{value}} cm",
+      "percent": "{{value}} %"
+    },
+    "tabs": {
+      "label": "Journey view",
+      "weight": "Weight",
+      "waist": "Waist",
+      "photos": "Photos"
+    },
+    "legend": {
+      "training": "Training plan",
+      "nutrition": "Nutrition plan",
+      "photos": "Photos"
+    },
+    "chart": {
+      "empty": {
+        "weight": "Add at least two weights to see your trend.",
+        "waist": "Add at least two waist measurements to see your trend."
+      }
+    },
+    "plans": {
+      "title": "Plans",
+      "empty": "You don't have any plans yet."
+    },
+    "status": {
+      "active": "Active",
+      "completed": "Completed"
+    },
+    "plan": {
+      "week": "Week {{current}} of {{total}}",
+      "sessions": "{{done}} of {{total}} sessions",
+      "mealsLogged": "{{value}} of meals logged"
+    },
+    "summary": {
+      "completedPlan": "Completed plan",
+      "activePlan": "Active plan",
+      "weeks_one": "{{count}} week",
+      "weeks_other": "{{count}} weeks",
+      "sessions": "Sessions",
+      "sessionsValue": "{{done}} / {{total}}",
+      "completedShare": "{{value}} completed",
+      "mealsLogged": "Meals logged",
+      "ofPlanned": "of planned meals",
+      "weight": "Weight",
+      "waist": "Waist",
+      "beforeAfter": "Before and after",
+      "start": "Start",
+      "end": "End",
+      "onlyPhoto": "Your photo",
+      "allSessions": "All sessions in this plan",
+      "notFound": {
+        "title": "Plan not found",
+        "body": "This plan is no longer available.",
+        "back": "Go back"
+      },
+      "error": {
+        "title": "Can't load this plan",
+        "body": "Check your connection and try again."
+      }
+    },
+    "error": {
+      "series": "Can't load your measurements.",
+      "photos": "Can't load your photo markers.",
+      "plans": "Can't load your plans.",
+      "retry": "Try again"
+    }
+  },
   "notifications": {
     "title": "Notifications",
     "close": "Close notifications",
@@ -172,6 +486,74 @@
     "training": "Your training plan will appear here.",
     "nutrition": "Your nutrition plan will appear here.",
     "messages": "Your conversations will appear here."
+  },
+  "measurements": {
+    "title": "Body measurements",
+    "updatedToday": "Last updated today",
+    "updatedYesterday": "Last updated yesterday",
+    "updatedDaysAgo_one": "Last updated {{count}} day ago",
+    "updatedDaysAgo_other": "Last updated {{count}} days ago",
+    "ranges": {
+      "label": "Period",
+      "month": "1 month",
+      "plan": "Plan",
+      "all": "All time"
+    },
+    "metrics": {
+      "weight": "Weight",
+      "waist": "Waist",
+      "hips": "Hips",
+      "chest": "Chest",
+      "biceps": "Biceps",
+      "thigh": "Thigh",
+      "bodyFat": "Body fat"
+    },
+    "units": {
+      "kg": "{{value}} kg",
+      "cm": "{{value}} cm",
+      "percent": "{{value}} %"
+    },
+    "symbols": {
+      "kg": "kg",
+      "cm": "cm",
+      "percent": "%"
+    },
+    "trend": {
+      "month": "{{delta}} this month",
+      "plan": "{{delta}} since plan start",
+      "all": "{{delta}} overall",
+      "noChange": "no change",
+      "estimate": "estimate"
+    },
+    "shared": {
+      "line": "Shared with {{names}}.",
+      "and": "and"
+    },
+    "empty": {
+      "title": "No measurements yet",
+      "body": "Add your first measurement to start tracking your progress."
+    },
+    "add": "Add measurement",
+    "error": {
+      "history": "Can't load your measurements.",
+      "retry": "Try again"
+    },
+    "sheet": {
+      "close": "Close",
+      "subtitle": "Fill in only what you measured",
+      "save": "Save measurement",
+      "error": "Couldn't save the measurement. Try again.",
+      "measured": "Measured",
+      "measuredA11y": "Measured: {{value}}. Change",
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "circumference": "Circumference",
+      "note": "Note",
+      "optional": "Optional",
+      "notePlaceholder": "Time of day, after a meal…",
+      "last": "Last {{value}}",
+      "neverMeasured": "Not measured yet"
+    }
   },
   "messages": {
     "compose": "Find a coach",
@@ -365,6 +747,26 @@
       "network": "Can't reach the server. Check your connection and try again.",
       "generic": "Couldn't send the email. Please try again."
     }
+  },
+  "checkInHistory": {
+    "title": "Check-in history",
+    "count_one": "{{count}} check-in",
+    "count_other": "{{count}} check-ins",
+    "countSince_one": "{{count}} check-in since {{since}}",
+    "countSince_other": "{{count}} check-ins since {{since}}",
+    "filterAll": "All",
+    "filterLabel": "Filter by coach",
+    "openNow": "Open now",
+    "weekOf": "Week of {{date}}",
+    "answerBy": "{{coach}} · answer by {{weekday}}",
+    "status": {
+      "sent": "Sent",
+      "reviewed": "Reviewed",
+      "missed": "Missed"
+    },
+    "empty": "No check-ins yet. Your coaches' weekly check-ins will show up here.",
+    "error": "Couldn't load your check-ins.",
+    "retry": "Try again"
   },
   "changeEmail": {
     "title": "Change email",

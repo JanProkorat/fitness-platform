@@ -6,15 +6,18 @@ import { Chip } from '@/components/Chip';
 
 type CoachRoleChipProps = {
   role: CoachRole;
+  /** `sm` is the compact pill for list rows. */
+  size?: 'md' | 'sm';
 };
 
 /** "Trainer" (orange) or "Nutritionist" (green) tag. */
-export function CoachRoleChip({ role }: CoachRoleChipProps) {
+export function CoachRoleChip({ role, size = 'md' }: CoachRoleChipProps) {
   const { t } = useTranslation();
   return (
     <Chip
       label={t(`coachSearch.roles.${role}`)}
       variant={role === ROLE_NUTRITIONIST ? 'nutrition' : 'training'}
+      size={size}
     />
   );
 }
