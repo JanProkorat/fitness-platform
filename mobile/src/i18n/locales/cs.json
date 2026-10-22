@@ -249,6 +249,22 @@
       "workouts": "Tréninky",
       "sinceStart": "Od začátku"
     },
+    "aboutMe": {
+      "title": "O mně",
+      "edit": "Upravit",
+      "a11yLabel": "O mně. Upravit",
+      "goal": "Cíl",
+      "training": "Trénink",
+      "eating": "Strava",
+      "injuries": "Zranění",
+      "targetWeight": "cíl {{value}} kg",
+      "noAllergies": "bez {{list}}",
+      "gym": {
+        "Yes": "posilovna",
+        "Sometimes": "občas posilovna",
+        "No": "bez posilovny"
+      }
+    },
     "coaches": {
       "title": "Moji poradci",
       "empty": "Zatím nespolupracuješ s žádným poradcem."

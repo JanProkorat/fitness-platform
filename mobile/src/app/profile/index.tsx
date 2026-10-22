@@ -8,6 +8,7 @@ import { BackButton } from '@/components/BackButton';
 import { Button } from '@/components/Button';
 import { CoachAvatar } from '@/components/coach/CoachAvatar';
 import { CoachRoleChip } from '@/components/coach/CoachRoleChip';
+import { AboutMeCard } from '@/components/profile/AboutMeCard';
 import { GlassButton } from '@/components/profile/GlassButton';
 import { ListCard } from '@/components/profile/ListCard';
 import { ListRow, RowIcon } from '@/components/profile/ListRow';
@@ -95,6 +96,8 @@ export default function ProfileScreen() {
           onRetry={() => void summaryQuery.refetch()}
         />
       )}
+
+      <AboutMeCard />
 
       <View style={styles.section}>
         <SectionHeader title={t('profile.coaches.title')} />
