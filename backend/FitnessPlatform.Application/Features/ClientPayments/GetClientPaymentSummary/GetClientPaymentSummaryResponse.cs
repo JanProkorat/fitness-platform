@@ -52,6 +52,9 @@ public class ClientPaymentSummaryTermsDto
     /// <summary>The package's current price per billing period.</summary>
     public decimal PackagePrice { get; set; }
 
+    /// <summary>The currency of the package price, the fixed discount and the custom price.</summary>
+    public PaymentCurrency Currency { get; set; }
+
     /// <summary>How often the package is billed.</summary>
     public PackageBillingInterval Billing { get; set; }
 
@@ -106,8 +109,11 @@ public class ClientPaymentSummaryNextDto
     /// <summary>Public id of the payment.</summary>
     public Guid PaymentId { get; set; }
 
-    /// <summary>Amount in CZK.</summary>
+    /// <summary>Amount in <see cref="Currency"/>.</summary>
     public decimal? Amount { get; set; }
+
+    /// <summary>The currency of the amount.</summary>
+    public PaymentCurrency Currency { get; set; }
 
     /// <summary>Day the payment falls due.</summary>
     public DateOnly DueDate { get; set; }

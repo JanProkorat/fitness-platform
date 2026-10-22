@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using FastEndpoints;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
@@ -49,13 +50,15 @@ public class GetProfessionalProfileEndpoint(IApplicationDbContext db, Entitlemen
 
         var fromMonthlyPrices = await CoachPackagePricing.LoadFromMonthlyPricesAsync(
             db, entitlementService, [profile.Id], ct);
+        (decimal Price, PaymentCurrency Currency)? fromMonthly = fromMonthlyPrices.TryGetValue(profile.Id, out var found) ? found : null;
 
         await Send.OkAsync(new GetProfessionalProfileResponse
         {
             Bio = profile.Bio,
             Specialization = profile.Specialization,
             City = profile.City,
-            FromMonthlyPrice = fromMonthlyPrices.TryGetValue(profile.Id, out var fromMonthlyPrice) ? fromMonthlyPrice : null,
+            FromMonthlyPrice = fromMonthly?.Price,
+            FromMonthlyPriceCurrency = fromMonthly?.Currency,
             Specializations = profile.Specializations,
             Certificates = profile.Certificates,
             Languages = profile.Languages,

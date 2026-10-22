@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Features.Discounts.Shared;
 using FitnessPlatform.Application.Features.CoachPackages.Shared;
 using FitnessPlatform.Tests.Builders;
@@ -22,21 +23,27 @@ public class CoachDiscountEndpointTests(FitnessApiFactory factory)
         Converters = { new JsonStringEnumConverter() }
     };
 
-    private static object DiscountBody(IEnumerable<Guid>? packageIds = null, bool all = false, string name = "Spring sale") => new
+    private static object DiscountBody(
+        IEnumerable<Guid>? packageIds = null,
+        bool all = false,
+        string name = "Spring sale",
+        string type = "Percentage",
+        string? currency = null) => new
     {
         Name = name,
-        Type = "Percentage",
+        Type = type,
         Value = 10m,
+        Currency = currency,
         Duration = "EveryPayment",
-        AppliesToAllPackages = all,
+        Scope = all ? "AllPackages" : "SelectedPackages",
         PackageIds = packageIds ?? []
     };
 
-    private async Task<Guid> CreatePackageAsync(Actor coach)
+    private async Task<Guid> CreatePackageAsync(Actor coach, string currency = "CZK")
     {
         var response = await coach.Http.PostAsJsonAsync(
             "/payments/packages",
-            new { Name = "Online coaching", Price = 1500m, Billing = "Monthly" },
+            new { Name = "Online coaching", Price = 1500m, Currency = currency, Billing = "Monthly" },
             TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.Created);
@@ -72,12 +79,12 @@ public class CoachDiscountEndpointTests(FitnessApiFactory factory)
 
         var everyPackage = await CreateDiscountAsync(coach, DiscountBody(all: true));
 
-        everyPackage.AppliesToAllPackages.Should().BeTrue();
+        everyPackage.Scope.Should().Be(DiscountScope.AllPackages);
         everyPackage.PackageIds.Should().BeEmpty();
 
         var limited = await CreateDiscountAsync(coach, DiscountBody([first]));
 
-        limited.AppliesToAllPackages.Should().BeFalse();
+        limited.Scope.Should().Be(DiscountScope.SelectedPackages);
         limited.PackageIds.Should().Equal(first);
         (await GetAsync(coach, limited.DiscountId)).PackageIds.Should().Equal(first);
 
@@ -116,6 +123,21 @@ public class CoachDiscountEndpointTests(FitnessApiFactory factory)
             response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
             (await ProblemCodeAsync(response)).Should().Be("DISCOUNT_PACKAGE_INVALID");
         }
+    }
+
+    [Fact]
+    public async Task Create_FixedDiscountLimitedToAPackageInAnotherCurrency_Returns400CurrencyMismatch()
+    {
+        var coach = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
+        var euroPackage = await CreatePackageAsync(coach, "EUR");
+
+        var response = await coach.Http.PostAsJsonAsync(
+            "/payments/discounts",
+            DiscountBody([euroPackage], type: "FixedAmount", currency: "CZK"),
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await ProblemCodeAsync(response)).Should().Be("CURRENCY_MISMATCH");
     }
 
     [Fact]

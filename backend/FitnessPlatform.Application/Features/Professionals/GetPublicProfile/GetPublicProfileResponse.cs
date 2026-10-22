@@ -1,3 +1,5 @@
+using FitnessPlatform.Application.Domain.Enums;
+
 namespace FitnessPlatform.Application.Features.Professionals.GetPublicProfile;
 
 public class GetPublicProfileResponse
@@ -11,6 +13,7 @@ public class GetPublicProfileResponse
     public List<string> Languages { get; set; } = [];
     public string? City { get; set; }
     public decimal? FromMonthlyPrice { get; set; }
+    public PaymentCurrency? FromMonthlyPriceCurrency { get; set; }
     public string? CollaborationType { get; set; }
     public string? LinkedIn { get; set; }
     public string? Instagram { get; set; }

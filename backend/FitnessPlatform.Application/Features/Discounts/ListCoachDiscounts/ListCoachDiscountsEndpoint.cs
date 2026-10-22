@@ -57,9 +57,13 @@ internal sealed class ListCoachDiscountsEndpoint(IApplicationDbContext db, Entit
             .ThenBy(d => d.Name)
             .ToListAsync(ct);
 
+        var usage = await ClientPaymentSchedule.CountCurrentUsageAsync(db, profileId.Value, ct);
+
         await Send.OkAsync(new ListCoachDiscountsResponse
         {
-            Items = discounts.Select(CoachDiscountDto.FromEntity).ToList()
+            Items = discounts
+                .Select(discount => CoachDiscountDto.FromEntity(discount, usage.ByDiscount.GetValueOrDefault(discount.Id)))
+                .ToList()
         }, ct);
     }
 }

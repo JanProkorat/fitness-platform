@@ -223,7 +223,9 @@ public static class ClientPaymentSchedule
     public static string DiscountLabel(CoachDiscount discount)
     {
         var value = discount.Value.ToString("0.##", CultureInfo.InvariantCulture);
-        var unit = discount.Type == DiscountType.Percentage ? " %" : " Kč";
+        var unit = discount.Type == DiscountType.Percentage
+            ? " %"
+            : $" {PaymentMessageComposer.CurrencySymbol(discount.Currency ?? PaymentCurrency.CZK)}";
 
         return $"{discount.Name} −{value}{unit}";
     }
@@ -287,6 +289,13 @@ public static class ClientPaymentSchedule
         if (payment.Kind == ClientPaymentKind.Recurring)
         {
             payment.PackageName ??= figures.PackageName;
+
+            if (payment.Status == ClientPaymentStatus.Upcoming
+                && payment.PeriodStart is { } start
+                && TermsAt(terms, StartOfDayUtc(start)) is { } termsOfPeriod)
+            {
+                payment.Currency = termsOfPeriod.CoachPackage.Currency;
+            }
         }
     }
 
@@ -305,6 +314,34 @@ public static class ClientPaymentSchedule
             .Include(t => t.CoachDiscount)
             .OrderBy(t => t.EffectiveFromUtc).ThenBy(t => t.Id)
             .ToListAsync(ct);
+
+    /// <summary>
+    /// Counts the coach's clients whose current terms use each package and each discount. A client's current
+    /// terms are the latest entry of their terms history.
+    /// </summary>
+    /// <param name="db">Application database context.</param>
+    /// <param name="professionalProfileId">The coach's internal id.</param>
+    /// <param name="ct">Cancellation token.</param>
+    public static async Task<(Dictionary<long, int> ByPackage, Dictionary<long, int> ByDiscount)> CountCurrentUsageAsync(
+        IApplicationDbContext db, long professionalProfileId, CancellationToken ct)
+    {
+        var rows = await db.ClientPaymentTerms
+            .AsNoTracking()
+            .Where(t => t.ClientPaymentAssignment.ProfessionalProfileId == professionalProfileId)
+            .Select(t => new { t.ClientPaymentAssignmentId, t.Id, t.EffectiveFromUtc, t.CoachPackageId, t.CoachDiscountId })
+            .ToListAsync(ct);
+
+        var current = rows
+            .GroupBy(t => t.ClientPaymentAssignmentId)
+            .Select(group => group.OrderByDescending(t => t.EffectiveFromUtc).ThenByDescending(t => t.Id).First())
+            .ToList();
+
+        return (
+            current.GroupBy(t => t.CoachPackageId).ToDictionary(group => group.Key, group => group.Count()),
+            current.Where(t => t.CoachDiscountId is not null)
+                .GroupBy(t => t.CoachDiscountId!.Value)
+                .ToDictionary(group => group.Key, group => group.Count()));
+    }
 
     /// <summary>
     /// Creates the missing period rows of an assignment: every period up to today and the first one after.
@@ -346,6 +383,7 @@ public static class ClientPaymentSchedule
                 ProfessionalProfileId = assignment.ProfessionalProfileId,
                 Kind = ClientPaymentKind.Recurring,
                 Status = ClientPaymentStatus.Upcoming,
+                Currency = TermsAt(terms, StartOfDayUtc(start))?.CoachPackage.Currency ?? PaymentCurrency.CZK,
                 PeriodStart = start,
                 PeriodEnd = end,
                 DueDate = start,

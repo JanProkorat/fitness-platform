@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using FitnessPlatform.Application.Domain.Enums;
 
 namespace FitnessPlatform.Application.Domain.Services;
 
@@ -33,18 +34,20 @@ public static class SpaydBuilder
     /// asterisk percent-encoded; optional fields that are null are left out.
     /// </summary>
     /// <param name="iban">The recipient's IBAN, with or without spaces.</param>
-    /// <param name="amount">The amount in CZK, above zero and at most <see cref="MaxAmount"/>.</param>
+    /// <param name="amount">The amount in <paramref name="currency"/>, above zero and at most <see cref="MaxAmount"/>.</param>
     /// <param name="variableSymbol">Up to ten digits, or null.</param>
     /// <param name="message">The transfer message, or null.</param>
     /// <param name="dueDate">The due date, or null.</param>
     /// <param name="recipientName">The account holder's name, or null.</param>
+    /// <param name="currency">The currency of the amount, written as the CC field.</param>
     public static string Build(
         string iban,
         decimal amount,
         string? variableSymbol,
         string? message,
         DateOnly? dueDate,
-        string? recipientName)
+        string? recipientName,
+        PaymentCurrency currency = PaymentCurrency.CZK)
     {
         var account = IbanValidator.Normalize(iban);
 
@@ -61,7 +64,7 @@ public static class SpaydBuilder
         var builder = new StringBuilder("SPD*1.0");
         builder.Append("*ACC:").Append(account);
         builder.Append("*AM:").Append(amount.ToString("0.00", CultureInfo.InvariantCulture));
-        builder.Append("*CC:CZK");
+        builder.Append("*CC:").Append(currency);
 
         if (dueDate is { } due)
         {

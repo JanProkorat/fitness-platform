@@ -48,9 +48,14 @@ public class ClientPayment : PublicTimestampableEntity
     public DateOnly DueDate { get; set; }
 
     /// <summary>
-    /// The amount in CZK; null while a recurring payment is still upcoming.
+    /// The amount in <see cref="Currency"/>; null while a recurring payment is still upcoming.
     /// </summary>
     public decimal? Amount { get; set; }
+
+    /// <summary>
+    /// The currency of the payment, taken from the package when the row is created or chosen for a one-off payment.
+    /// </summary>
+    public PaymentCurrency Currency { get; set; } = PaymentCurrency.CZK;
 
     /// <summary>
     /// Variable symbol the client puts on the transfer; unique per coach, null once the payment is waived.

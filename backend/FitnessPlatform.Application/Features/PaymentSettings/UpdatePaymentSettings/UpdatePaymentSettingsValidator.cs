@@ -23,5 +23,9 @@ internal sealed class UpdatePaymentSettingsValidator : Validator<UpdatePaymentSe
 
         RuleFor(x => x.VariableSymbolFormat)
             .IsInEnum().WithErrorCode(ErrorCodes.OutOfRange);
+
+        RuleFor(x => x.ProfileCurrency)
+            .IsInEnum().WithErrorCode(ErrorCodes.OutOfRange)
+            .When(x => x.ProfileCurrency.HasValue);
     }
 }

@@ -31,6 +31,11 @@ public class CoachDiscount : PublicTimestampableEntity
     public decimal Value { get; set; }
 
     /// <summary>
+    /// The currency of a fixed amount; null for a percentage discount.
+    /// </summary>
+    public PaymentCurrency? Currency { get; set; }
+
+    /// <summary>
     /// How many payments the discount applies to.
     /// </summary>
     public DiscountDuration Duration { get; set; } = DiscountDuration.EveryPayment;
@@ -51,9 +56,10 @@ public class CoachDiscount : PublicTimestampableEntity
     public DateOnly? ValidTo { get; set; }
 
     /// <summary>
-    /// Whether the discount applies to every package; when false <see cref="Packages"/> lists them.
+    /// Which packages the discount can be used with; <see cref="Packages"/> lists them for
+    /// <see cref="DiscountScope.SelectedPackages"/>.
     /// </summary>
-    public bool AppliesToAllPackages { get; set; }
+    public DiscountScope Scope { get; set; } = DiscountScope.AllPackages;
 
     /// <summary>
     /// When the discount was archived (UTC); null while it is active.
@@ -66,7 +72,7 @@ public class CoachDiscount : PublicTimestampableEntity
     public ProfessionalProfile ProfessionalProfile { get; set; } = null!;
 
     /// <summary>
-    /// The packages the discount is limited to; empty when <see cref="AppliesToAllPackages"/> is true.
+    /// The packages the discount is limited to; empty unless <see cref="Scope"/> is <see cref="DiscountScope.SelectedPackages"/>.
     /// </summary>
     public ICollection<CoachDiscountPackage> Packages { get; set; } = [];
 }

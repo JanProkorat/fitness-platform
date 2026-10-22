@@ -1,3 +1,5 @@
+using FitnessPlatform.Application.Domain.Enums;
+
 namespace FitnessPlatform.Application.Features.Trainers.GetTrainerProfile;
 
 /// <summary>
@@ -24,6 +26,11 @@ public class GetProfessionalProfileResponse
     /// The lowest monthly package price shown on the profile, or null when there is none or payments are not included in the subscription.
     /// </summary>
     public decimal? FromMonthlyPrice { get; set; }
+
+    /// <summary>
+    /// The currency of <see cref="FromMonthlyPrice"/>: the coach's main currency; null when there is no price.
+    /// </summary>
+    public PaymentCurrency? FromMonthlyPriceCurrency { get; set; }
 
     /// <summary>
     /// Specializations as a JSON array string.

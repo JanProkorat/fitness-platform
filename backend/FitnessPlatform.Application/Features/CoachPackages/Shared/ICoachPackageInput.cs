@@ -10,8 +10,14 @@ public interface ICoachPackageInput
     /// <summary>Display name.</summary>
     string Name { get; }
 
+    /// <summary>What the package includes, shown to the coach only.</summary>
+    string? Description { get; }
+
     /// <summary>Price per billing period.</summary>
     decimal Price { get; }
+
+    /// <summary>The currency of the price.</summary>
+    PaymentCurrency Currency { get; }
 
     /// <summary>How often the package is billed.</summary>
     PackageBillingInterval Billing { get; }

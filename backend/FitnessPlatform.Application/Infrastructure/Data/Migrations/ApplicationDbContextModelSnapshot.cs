@@ -1083,6 +1083,10 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("client_payment_assignment_id");
 
+                    b.Property<int>("Currency")
+                        .HasColumnType("integer")
+                        .HasColumnName("currency");
+
                     b.Property<DateTime>("DateCreated")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("date_created");
@@ -1675,13 +1679,13 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
-                    b.Property<bool>("AppliesToAllPackages")
-                        .HasColumnType("boolean")
-                        .HasColumnName("applies_to_all_packages");
-
                     b.Property<DateTime?>("ArchivedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("archived_at");
+
+                    b.Property<int?>("Currency")
+                        .HasColumnType("integer")
+                        .HasColumnName("currency");
 
                     b.Property<DateTime>("DateCreated")
                         .HasColumnType("timestamp with time zone")
@@ -1712,6 +1716,10 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                     b.Property<Guid>("PublicId")
                         .HasColumnType("uuid")
                         .HasColumnName("public_id");
+
+                    b.Property<int>("Scope")
+                        .HasColumnType("integer")
+                        .HasColumnName("scope");
 
                     b.Property<int>("Type")
                         .HasColumnType("integer")
@@ -1790,6 +1798,10 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("billing");
 
+                    b.Property<int>("Currency")
+                        .HasColumnType("integer")
+                        .HasColumnName("currency");
+
                     b.Property<DateTime>("DateCreated")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("date_created");
@@ -1797,6 +1809,11 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                     b.Property<DateTime?>("DateUpdated")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("date_updated");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("description");
 
                     b.Property<int?>("IntervalWeeks")
                         .HasColumnType("integer")
@@ -1921,6 +1938,10 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                     b.Property<long>("ProfessionalProfileId")
                         .HasColumnType("bigint")
                         .HasColumnName("professional_profile_id");
+
+                    b.Property<int>("ProfileCurrency")
+                        .HasColumnType("integer")
+                        .HasColumnName("profile_currency");
 
                     b.Property<Guid>("PublicId")
                         .HasColumnType("uuid")

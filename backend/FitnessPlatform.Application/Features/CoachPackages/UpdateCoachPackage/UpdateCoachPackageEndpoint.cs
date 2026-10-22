@@ -43,7 +43,7 @@ internal sealed class UpdateCoachPackageEndpoint(
             s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
             s.Responses[StatusCodes.Status403Forbidden] = "The subscription does not include payments (PAYMENTS_NOT_ENTITLED), or the coach role was removed";
             s.Responses[StatusCodes.Status404NotFound] = "The package does not exist or belongs to another coach, or the caller has no professional profile";
-            s.Responses[StatusCodes.Status409Conflict] = "The package is archived (PACKAGE_ARCHIVED)";
+            s.Responses[StatusCodes.Status409Conflict] = "The package is archived (PACKAGE_ARCHIVED), or its currency changes while client terms use it (CURRENCY_LOCKED)";
         });
     }
 
@@ -79,9 +79,22 @@ internal sealed class UpdateCoachPackageEndpoint(
             return;
         }
 
+        if (package.Currency != req.Currency
+            && await db.ClientPaymentTerms.AnyAsync(t => t.CoachPackageId == package.Id, ct))
+        {
+            await this.SendProblemAsync(
+                StatusCodes.Status409Conflict,
+                ErrorCodes.CurrencyLocked,
+                "The currency cannot change while client terms use the package.",
+                ct);
+            return;
+        }
+
         var oldPrice = package.Price;
 
         package.Name = req.Name.Trim();
+        package.Description = string.IsNullOrWhiteSpace(req.Description) ? null : req.Description.Trim();
+        package.Currency = req.Currency;
         package.Price = req.Price;
         package.Billing = req.Billing;
         package.IntervalWeeks = req.IntervalWeeks;
@@ -116,6 +129,8 @@ internal sealed class UpdateCoachPackageEndpoint(
                 ct: ct);
         }
 
-        await Send.OkAsync(CoachPackageDto.FromEntity(package), ct);
+        var usage = await ClientPaymentSchedule.CountCurrentUsageAsync(db, profileId.Value, ct);
+
+        await Send.OkAsync(CoachPackageDto.FromEntity(package, usage.ByPackage.GetValueOrDefault(package.Id)), ct);
     }
 }

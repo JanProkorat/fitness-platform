@@ -79,11 +79,12 @@ public static class PaymentMessageComposer
 
     /// <summary>
     /// Formats an amount for people: thousands grouped with a non-breaking space, no decimals for a whole
-    /// amount, two decimals otherwise, followed by "Kč".
+    /// amount, two decimals otherwise, followed by the currency symbol ("Kč", "€"); English puts "€" in front.
     /// </summary>
-    /// <param name="amount">The amount in CZK.</param>
+    /// <param name="amount">The amount.</param>
     /// <param name="language">Two-letter language code; picks the decimal separator.</param>
-    public static string FormatAmount(decimal amount, string language)
+    /// <param name="currency">The currency of the amount.</param>
+    public static string FormatAmount(decimal amount, string language, PaymentCurrency currency = PaymentCurrency.CZK)
     {
         var rounded = Math.Round(amount, 2, MidpointRounding.AwayFromZero);
         var whole = (long)Math.Truncate(rounded);
@@ -106,8 +107,19 @@ public static class PaymentMessageComposer
             grouped.Append(Normalize(language) == "en" ? '.' : ',').Append(cents.ToString("D2", System.Globalization.CultureInfo.InvariantCulture));
         }
 
-        return grouped.Append(NonBreakingSpace).Append("Kč").ToString();
+        var symbol = CurrencySymbol(currency);
+
+        return currency == PaymentCurrency.EUR && Normalize(language) == "en"
+            ? grouped.Insert(0, symbol).ToString()
+            : grouped.Append(NonBreakingSpace).Append(symbol).ToString();
     }
+
+    /// <summary>
+    /// The symbol a currency is written with: "Kč" or "€".
+    /// </summary>
+    /// <param name="currency">The currency.</param>
+    public static string CurrencySymbol(PaymentCurrency currency) =>
+        currency == PaymentCurrency.EUR ? "€" : "Kč";
 
     /// <summary>
     /// Formats a date in the reader's convention: "1. 11. 2026", "01.11.2026" or "1 November 2026".
@@ -172,7 +184,7 @@ public static class PaymentMessageComposer
             System.Globalization.CultureInfo.InvariantCulture,
             SubjectFormats[lang],
             model.CoachName,
-            FormatAmount(model.Amount, lang),
+            FormatAmount(model.Amount, lang, model.Currency),
             PeriodLabel(model.PeriodStart, model.PeriodEnd, model.PackageName, lang),
             FormatDate(model.DueDate, lang));
     }
@@ -187,14 +199,14 @@ public static class PaymentMessageComposer
     public static string RenderEmailHtml(string template, PaymentRequestEmail model, string language, string appUrl)
     {
         var lang = Normalize(language);
-        var amount = FormatAmount(model.Amount, lang);
+        var amount = FormatAmount(model.Amount, lang, model.Currency);
         var period = PeriodLabel(model.PeriodStart, model.PeriodEnd, model.PackageName, lang);
         var due = FormatDate(model.DueDate, lang);
 
         var heading = string.Format(System.Globalization.CultureInfo.InvariantCulture, HeadingFormats[lang], amount, model.PackageName);
         var intro = string.Format(System.Globalization.CultureInfo.InvariantCulture, IntroFormats[lang], Capitalize(period), due);
         var breakdown = model.BasePrice is { } basePrice && !string.IsNullOrWhiteSpace(model.DiscountLabel)
-            ? string.Format(System.Globalization.CultureInfo.InvariantCulture, BreakdownFormats[lang], FormatAmount(basePrice, lang), model.DiscountLabel)
+            ? string.Format(System.Globalization.CultureInfo.InvariantCulture, BreakdownFormats[lang], FormatAmount(basePrice, lang, model.Currency), model.DiscountLabel)
             : string.Empty;
 
         return template

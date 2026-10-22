@@ -601,6 +601,12 @@ public static class ErrorCodes
     /// <summary>A package the discount applies to is unknown, foreign or archived.</summary>
     public const string DiscountPackageInvalid = "DISCOUNT_PACKAGE_INVALID";
 
+    /// <summary>A fixed discount and a package it is combined with are in different currencies.</summary>
+    public const string CurrencyMismatch = "CURRENCY_MISMATCH";
+
+    /// <summary>The currency cannot change while client terms use the package or fixed discount.</summary>
+    public const string CurrencyLocked = "CURRENCY_LOCKED";
+
     // ── Client payments (#1579) ─────────────────────────────────────────
     /// <summary>The coach has no IBAN or account holder set, so a payment cannot be requested.</summary>
     public const string BankAccountNotSet = "BANK_ACCOUNT_NOT_SET";

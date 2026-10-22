@@ -126,6 +126,7 @@ internal sealed class GetClientPaymentSummaryEndpoint(
             {
                 PaymentId = next.PublicId,
                 Amount = ClientPaymentSchedule.FiguresOf(next, terms, recurringStarts).Amount,
+                Currency = next.Currency,
                 DueDate = next.DueDate,
                 Status = ClientPaymentSchedule.DerivedStatus(next.Status, next.DueDate, today),
                 RequestedAt = next.RequestedAt
@@ -144,6 +145,7 @@ internal sealed class GetClientPaymentSummaryEndpoint(
             PackageId = latest.CoachPackage.PublicId,
             PackageName = latest.CoachPackage.Name,
             PackagePrice = latest.CoachPackage.Price,
+            Currency = latest.CoachPackage.Currency,
             Billing = latest.CoachPackage.Billing,
             IntervalWeeks = latest.CoachPackage.IntervalWeeks,
             DiscountId = latest.CoachDiscount?.PublicId,

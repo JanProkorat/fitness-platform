@@ -56,9 +56,13 @@ internal sealed class ListCoachPackagesEndpoint(IApplicationDbContext db, Entitl
             .ThenBy(p => p.Name)
             .ToListAsync(ct);
 
+        var usage = await ClientPaymentSchedule.CountCurrentUsageAsync(db, profileId.Value, ct);
+
         await Send.OkAsync(new ListCoachPackagesResponse
         {
-            Items = packages.Select(CoachPackageDto.FromEntity).ToList()
+            Items = packages
+                .Select(package => CoachPackageDto.FromEntity(package, usage.ByPackage.GetValueOrDefault(package.Id)))
+                .ToList()
         }, ct);
     }
 }

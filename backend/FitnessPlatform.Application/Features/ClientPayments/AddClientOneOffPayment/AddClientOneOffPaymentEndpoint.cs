@@ -109,6 +109,7 @@ internal sealed class AddClientOneOffPaymentEndpoint(
             Status = ClientPaymentStatus.Upcoming,
             DueDate = req.DueDate,
             Amount = req.Amount,
+            Currency = req.Currency ?? settings?.ProfileCurrency ?? PaymentCurrency.CZK,
             Title = req.Title.Trim(),
             VariableSymbol = variableSymbol
         };

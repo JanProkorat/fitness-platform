@@ -1,3 +1,5 @@
+using FitnessPlatform.Application.Domain.Enums;
+
 namespace FitnessPlatform.Application.Features.Professionals.SearchProfessionals;
 
 public class SearchProfessionalsResponse
@@ -17,6 +19,7 @@ public class ProfessionalSummaryDto
     public List<string> Specializations { get; set; } = [];
     public string? City { get; set; }
     public decimal? FromMonthlyPrice { get; set; }
+    public PaymentCurrency? FromMonthlyPriceCurrency { get; set; }
     public string? CollaborationType { get; set; }
     public List<string> Languages { get; set; } = [];
     public List<string> Roles { get; set; } = [];

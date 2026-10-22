@@ -32,11 +32,17 @@ public class CoachDiscountDto
     /// <summary>Last due date the discount applies to (inclusive), or null for open-ended.</summary>
     public DateOnly? ValidTo { get; set; }
 
-    /// <summary>Whether the discount applies to every package.</summary>
-    public bool AppliesToAllPackages { get; set; }
+    /// <summary>The currency of a fixed amount; null for a percentage discount.</summary>
+    public PaymentCurrency? Currency { get; set; }
 
-    /// <summary>Public ids of the packages the discount is limited to; empty when it applies to all.</summary>
+    /// <summary>Which packages the discount can be used with.</summary>
+    public DiscountScope Scope { get; set; }
+
+    /// <summary>Public ids of the packages the discount is limited to; empty unless the scope is selected packages.</summary>
     public List<Guid> PackageIds { get; set; } = [];
+
+    /// <summary>How many clients' current terms use the discount.</summary>
+    public int UsedByCount { get; set; }
 
     /// <summary>When the discount was archived (UTC), or null while active.</summary>
     public DateTime? ArchivedAt { get; set; }
@@ -45,7 +51,8 @@ public class CoachDiscountDto
     /// Maps a discount row, with its package links and their packages loaded, to its wire form.
     /// </summary>
     /// <param name="discount">The stored discount.</param>
-    public static CoachDiscountDto FromEntity(CoachDiscount discount) => new()
+    /// <param name="usedByCount">How many clients' current terms use the discount.</param>
+    public static CoachDiscountDto FromEntity(CoachDiscount discount, int usedByCount = 0) => new()
     {
         DiscountId = discount.PublicId,
         Name = discount.Name,
@@ -55,8 +62,10 @@ public class CoachDiscountDto
         DurationPayments = discount.DurationPayments,
         ValidFrom = discount.ValidFrom,
         ValidTo = discount.ValidTo,
-        AppliesToAllPackages = discount.AppliesToAllPackages,
+        Currency = discount.Currency,
+        Scope = discount.Scope,
         PackageIds = discount.Packages.Select(l => l.CoachPackage.PublicId).ToList(),
+        UsedByCount = usedByCount,
         ArchivedAt = discount.ArchivedAt
     };
 }

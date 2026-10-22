@@ -17,7 +17,7 @@ public class CoachDiscountValidatorTests
         Name = "Spring sale",
         Type = DiscountType.Percentage,
         Value = 10m,
-        AppliesToAllPackages = true
+        Scope = DiscountScope.AllPackages
     };
 
     [Fact]
@@ -29,7 +29,7 @@ public class CoachDiscountValidatorTests
     [Fact]
     public void Validate_UpdateRequest_UsesTheSameRules()
     {
-        var request = new UpdateCoachDiscountRequest { Name = "", Value = 10m, AppliesToAllPackages = true };
+        var request = new UpdateCoachDiscountRequest { Name = "", Value = 10m, Scope = DiscountScope.AllPackages };
 
         new UpdateCoachDiscountValidator().TestValidate(request).ShouldHaveValidationErrorFor(x => x.Name);
     }
@@ -63,6 +63,7 @@ public class CoachDiscountValidatorTests
     {
         var request = Valid();
         request.Type = DiscountType.FixedAmount;
+        request.Currency = PaymentCurrency.CZK;
         request.Value = (decimal)value;
 
         _validator.TestValidate(request).ShouldHaveValidationErrorFor(x => x.Value);
@@ -73,9 +74,43 @@ public class CoachDiscountValidatorTests
     {
         var request = Valid();
         request.Type = DiscountType.FixedAmount;
+        request.Currency = PaymentCurrency.CZK;
         request.Value = 250m;
 
         _validator.TestValidate(request).ShouldNotHaveValidationErrorFor(x => x.Value);
+    }
+
+    [Fact]
+    public void Validate_FixedAmountWithoutCurrency_Fails()
+    {
+        var request = Valid();
+        request.Type = DiscountType.FixedAmount;
+
+        _validator.TestValidate(request).ShouldHaveValidationErrorFor(x => x.Currency);
+    }
+
+    [Theory]
+    [InlineData(PaymentCurrency.CZK, 1_000_000, true)]
+    [InlineData(PaymentCurrency.CZK, 1_000_000.01, false)]
+    [InlineData(PaymentCurrency.EUR, 50_000, true)]
+    [InlineData(PaymentCurrency.EUR, 50_000.01, false)]
+    public void Validate_FixedAmountAtCurrencyCap(PaymentCurrency currency, double value, bool passes)
+    {
+        var request = Valid();
+        request.Type = DiscountType.FixedAmount;
+        request.Currency = currency;
+        request.Value = (decimal)value;
+
+        var result = _validator.TestValidate(request);
+
+        if (passes)
+        {
+            result.ShouldNotHaveValidationErrorFor(x => x.Value);
+        }
+        else
+        {
+            result.ShouldHaveValidationErrorFor(x => x.Value);
+        }
     }
 
     [Fact]
@@ -121,19 +156,19 @@ public class CoachDiscountValidatorTests
     }
 
     [Fact]
-    public void Validate_NeitherAllPackagesNorList_Fails()
+    public void Validate_SelectedPackagesWithoutList_Fails()
     {
         var request = Valid();
-        request.AppliesToAllPackages = false;
+        request.Scope = DiscountScope.SelectedPackages;
 
         _validator.TestValidate(request).ShouldHaveValidationErrorFor(x => x.PackageIds);
     }
 
     [Fact]
-    public void Validate_ListWithoutAllPackages_Passes()
+    public void Validate_SelectedPackagesWithList_Passes()
     {
         var request = Valid();
-        request.AppliesToAllPackages = false;
+        request.Scope = DiscountScope.SelectedPackages;
         request.PackageIds = [Guid.NewGuid()];
 
         _validator.TestValidate(request).ShouldNotHaveValidationErrorFor(x => x.PackageIds);

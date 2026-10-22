@@ -30,8 +30,11 @@ public class ClientPaymentRowDto
     /// <summary>Package name; for an upcoming payment the package the client's terms give now.</summary>
     public string? PackageName { get; set; }
 
-    /// <summary>Amount in CZK; for an upcoming payment what the client's terms give now.</summary>
+    /// <summary>Amount in <see cref="Currency"/>; for an upcoming payment what the client's terms give now.</summary>
     public decimal? Amount { get; set; }
+
+    /// <summary>The currency of the amounts.</summary>
+    public PaymentCurrency Currency { get; set; }
 
     /// <summary>Package price before any discount.</summary>
     public decimal? BasePrice { get; set; }
@@ -78,6 +81,7 @@ public class ClientPaymentRowDto
         Title = payment.Title,
         PackageName = figures.PackageName,
         Amount = figures.Amount,
+        Currency = payment.Currency,
         BasePrice = figures.BasePrice,
         DiscountLabel = figures.DiscountLabel,
         DueDate = payment.DueDate,

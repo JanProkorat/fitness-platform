@@ -307,7 +307,8 @@ internal sealed class RequestClientPaymentEndpoint(
                 payment.VariableSymbol,
                 payment.Message,
                 payment.DueDate,
-                payment.AccountHolder);
+                payment.AccountHolder,
+                payment.Currency);
 
             await emailService.SendPaymentRequestEmailAsync(
                 new PaymentRequestEmail(
@@ -325,7 +326,8 @@ internal sealed class RequestClientPaymentEndpoint(
                     payment.VariableSymbol ?? string.Empty,
                     payment.Message ?? string.Empty,
                     QrCodePngRenderer.Render(qrPayload),
-                    PaymentMessageComposer.QrContentId),
+                    PaymentMessageComposer.QrContentId,
+                    payment.Currency),
                 ct);
 
             return true;
@@ -349,7 +351,7 @@ internal sealed class RequestClientPaymentEndpoint(
                 new Dictionary<string, string>
                 {
                     ["coachName"] = context.CoachName,
-                    ["amount"] = PaymentMessageComposer.FormatAmount(payment.Amount!.Value, language),
+                    ["amount"] = PaymentMessageComposer.FormatAmount(payment.Amount!.Value, language, payment.Currency),
                     ["dueDate"] = PaymentMessageComposer.FormatDate(payment.DueDate, language),
                     ["paymentId"] = payment.PublicId.ToString()
                 },

@@ -1,3 +1,5 @@
+using FitnessPlatform.Application.Domain.Enums;
+
 namespace FitnessPlatform.Application.Domain.Interfaces;
 
 /// <summary>
@@ -10,7 +12,7 @@ namespace FitnessPlatform.Application.Domain.Interfaces;
 /// <param name="PackageName">Package name, or the title of a one-off payment.</param>
 /// <param name="PeriodStart">First day of the billing period; null for a one-off payment.</param>
 /// <param name="PeriodEnd">Last day of the billing period; null for a one-off payment.</param>
-/// <param name="Amount">The amount in CZK.</param>
+/// <param name="Amount">The amount in <paramref name="Currency"/>.</param>
 /// <param name="BasePrice">The package price before any discount, or null.</param>
 /// <param name="DiscountLabel">Label of the discount or custom price, or null.</param>
 /// <param name="DueDate">The day the payment falls due.</param>
@@ -19,6 +21,7 @@ namespace FitnessPlatform.Application.Domain.Interfaces;
 /// <param name="Message">The transfer message.</param>
 /// <param name="QrPng">The QR Platba code as a PNG image.</param>
 /// <param name="QrContentId">Content id the HTML refers to as <c>cid:</c>.</param>
+/// <param name="Currency">The currency of the amounts.</param>
 public sealed record PaymentRequestEmail(
     string ToEmail,
     string Language,
@@ -34,4 +37,5 @@ public sealed record PaymentRequestEmail(
     string VariableSymbol,
     string Message,
     byte[] QrPng,
-    string QrContentId);
+    string QrContentId,
+    PaymentCurrency Currency = PaymentCurrency.CZK);
