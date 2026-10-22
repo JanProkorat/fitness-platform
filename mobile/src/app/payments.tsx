@@ -63,7 +63,7 @@ export default function PaymentsScreen() {
             {t('payments.empty')}
           </Text>
         ) : null}
-        {coaches?.map((coach) => (
+        {withPayments.map((coach) => (
           <CoachSection key={coach.coachId} coach={coach} showHeading={coach !== soleCoach} />
         ))}
       </Screen>
