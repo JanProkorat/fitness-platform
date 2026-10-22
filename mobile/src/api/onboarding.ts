@@ -36,7 +36,7 @@ export type CurrentFrequency = (typeof CURRENT_FREQUENCIES)[number];
 
 export const DESIRED_DAYS = [2, 3, 4, 5] as const;
 export type DesiredDays = (typeof DESIRED_DAYS)[number];
-const DESIRED_FREQUENCY_VALUES: Record<DesiredDays, string> = {
+export const DESIRED_FREQUENCY_VALUES: Record<DesiredDays, string> = {
   2: 'TwoPerWeek',
   3: 'ThreePerWeek',
   4: 'FourPerWeek',
@@ -52,12 +52,22 @@ export type MealsPerDay = (typeof MEALS_PER_DAY)[number];
 /** What the client picks; the backend calls "Anything" Standard. */
 export const DIET_STYLES = ['Anything', 'Vegetarian', 'Vegan', 'GlutenFree'] as const;
 export type DietStyleChoice = (typeof DIET_STYLES)[number];
-const DIET_STYLE_VALUES: Record<DietStyleChoice, string> = {
+export const DIET_STYLE_VALUES: Record<DietStyleChoice, string> = {
   Anything: 'Standard',
   Vegetarian: 'Vegetarian',
   Vegan: 'Vegan',
   GlutenFree: 'GlutenFree',
 };
+
+/** The days-a-week choice for a backend frequency name, or `null` when it is not one of the four. */
+export function desiredDaysFromBackend(value: string | undefined): DesiredDays | null {
+  return DESIRED_DAYS.find((days) => DESIRED_FREQUENCY_VALUES[days] === value) ?? null;
+}
+
+/** The diet choice for a backend dietary-style name, or `null` when it is not one of the four. */
+export function dietStyleFromBackend(value: string | undefined): DietStyleChoice | null {
+  return DIET_STYLES.find((style) => DIET_STYLE_VALUES[style] === value) ?? null;
+}
 
 export const PLAN_EXPERIENCES = ['Never', 'TriedFailed', 'TriedSucceeded'] as const;
 export type PlanExperience = (typeof PLAN_EXPERIENCES)[number];

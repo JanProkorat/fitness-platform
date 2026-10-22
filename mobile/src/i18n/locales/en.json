@@ -162,6 +162,71 @@
       }
     }
   },
+  "editProfile": {
+    "title": "Edit profile",
+    "cancel": "Cancel",
+    "save": "Save changes",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "phone": "Phone",
+    "phonePlaceholder": "+420 …",
+    "email": "Email",
+    "signIn": "Sign-in",
+    "signInHint": "Email and password are changed in Settings.",
+    "and": "and",
+    "weightLabel": "Weight",
+    "coachesNote_one": "{{names}} sees these changes and gets a notification.",
+    "coachesNote_other": "{{names}} see these changes and get a notification.",
+    "photo": {
+      "change": "Change photo",
+      "remove": "Remove",
+      "errors": {
+        "tooLarge": "That photo is too large. Pick a smaller one (max 5 MB).",
+        "unsupported": "That photo format isn't supported.",
+        "network": "Can't reach the server. Check your connection and try again.",
+        "generic": "Couldn't change your photo. Please try again."
+      }
+    },
+    "info": {
+      "title": "My info",
+      "subtitle": "From your sign-up. Keep it current so your plans fit.",
+      "goalSection": "Goal",
+      "trainingSection": "Training",
+      "eatingSection": "Eating",
+      "goal": "Main goal",
+      "targetWeight": "Target weight",
+      "perWeek": "Training per week",
+      "perWeekValue": "{{count}}× a week",
+      "gym": "Gym access",
+      "injuries": "Injuries",
+      "diet": "Diet",
+      "allergies": "Allergies",
+      "dislikes": "Foods you don't like",
+      "rowLabel": "{{label}}: {{value}}. Change"
+    },
+    "errors": {
+      "required": "This field is required.",
+      "weightRange": "Enter a weight between {{min}} and {{max}} kg.",
+      "listTooLong": "The list is too long. Remove a few entries.",
+      "tooManyItems": "At most 20 entries.",
+      "itemTooLong": "An entry is too long.",
+      "partial": "Some changes were saved, the rest weren't. Try saving again.",
+      "save": {
+        "network": "Can't reach the server. Check your connection and try again.",
+        "invalid": "Check the highlighted fields and try again.",
+        "generic": "Couldn't save your changes. Please try again."
+      }
+    },
+    "discard": {
+      "title": "Discard changes?",
+      "body": "Changes you haven't saved will be lost.",
+      "keep": "Keep editing",
+      "discard": "Discard"
+    },
+    "error": {
+      "load": "Couldn't load your profile."
+    }
+  },
   "profile": {
     "edit": "Edit profile",
     "since": "since {{date}}",
