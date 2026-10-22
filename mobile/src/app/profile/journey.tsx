@@ -4,7 +4,6 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import { isActivePlan, planKind } from '@/api/plans';
-import { BackButton } from '@/components/BackButton';
 import { JourneyChart } from '@/components/journey/JourneyChart';
 import { JourneyError } from '@/components/journey/JourneyError';
 import { PlanRow } from '@/components/journey/PlanRow';
@@ -20,6 +19,7 @@ import type { PlanBand, SeriesPoint, Unit } from '@/components/journey/format';
 import { Segmented } from '@/components/onboarding/Segmented';
 import type { SegmentOption } from '@/components/onboarding/Segmented';
 import { Screen } from '@/components/Screen';
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { Text } from '@/components/Text';
 import { useClientPlans } from '@/hooks/useClientPlans';
 import { useJourneyPhotos } from '@/hooks/useJourneyPhotos';
@@ -129,20 +129,12 @@ export default function JourneyScreen() {
       bottomInset={theme.spacing.huge}
       contentStyle={styles.content}
     >
-      <View style={styles.topBar}>
-        <BackButton label={t('onboarding.back')} onPress={() => router.back()} />
-      </View>
-
-      <View style={styles.titles}>
-        {domain ? (
-          <Text variant="bodyLarge" color="muted">
-            {journeyRangeLabel(language, domain.start, domain.end)}
-          </Text>
-        ) : null}
-        <Text variant="title" accessibilityRole="header">
-          {t('journey.title')}
-        </Text>
-      </View>
+      <ScreenHeader
+        title={t('journey.title')}
+        subtitle={domain ? journeyRangeLabel(language, domain.start, domain.end) : undefined}
+        backLabel={t('onboarding.back')}
+        onBack={() => router.back()}
+      />
 
       <Segmented
         options={options}
@@ -253,14 +245,6 @@ const makeStyles = (theme: Theme) =>
   StyleSheet.create({
     content: {
       gap: theme.spacing.lg,
-    },
-    topBar: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-    },
-    titles: {
-      gap: theme.spacing.xxs,
     },
     card: {
       paddingHorizontal: theme.spacing.xl,

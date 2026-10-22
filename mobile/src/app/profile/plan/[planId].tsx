@@ -1,12 +1,10 @@
 import { useEffect } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { SymbolView } from 'expo-symbols';
 import { useTranslation } from 'react-i18next';
 
 import { getErrorStatus } from '@/api/errors';
 import { isPlanId, planKind } from '@/api/plans';
-import { BackButton } from '@/components/BackButton';
 import { Button } from '@/components/Button';
 import { CoachAvatar } from '@/components/coach/CoachAvatar';
 import { BeforeAfter } from '@/components/journey/BeforeAfter';
@@ -23,6 +21,7 @@ import {
 import { ListCard } from '@/components/profile/ListCard';
 import { ListRow, RowIcon } from '@/components/profile/ListRow';
 import { Screen } from '@/components/Screen';
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { Text } from '@/components/Text';
 import { useClientPlans } from '@/hooks/useClientPlans';
 import { usePlanSummary } from '@/hooks/usePlanSummary';
@@ -47,13 +46,14 @@ export default function PlanSummaryScreen() {
     if (!valid) router.replace('/profile/journey');
   }, [valid, router]);
 
-  const back = <BackButton label={t('onboarding.back')} onPress={() => router.back()} />;
+  const backLabel = t('onboarding.back');
+  const goBack = () => router.back();
 
   if (!valid || query.isPending || query.isError) {
     const notFound = valid && query.isError && getErrorStatus(query.error) === 404;
     return (
       <Screen gutter={theme.spacing.xl} topGap={theme.spacing.safeAreaGap}>
-        <View style={styles.stateBack}>{back}</View>
+        <ScreenHeader title="" backLabel={backLabel} onBack={goBack} />
         <View style={styles.state}>
           {!valid || query.isPending ? (
             <ActivityIndicator color={theme.colors.accent} />
@@ -121,25 +121,18 @@ export default function PlanSummaryScreen() {
       bottomInset={theme.spacing.huge}
       contentStyle={styles.content}
     >
-      <View style={styles.topBar}>{back}</View>
+      <ScreenHeader
+        title={summary.planName ?? ''}
+        subtitle={(summary.status === 'Active'
+          ? t('journey.summary.activePlan')
+          : t('journey.summary.completedPlan')
+        ).toUpperCase()}
+        subtitleColor={inkColor}
+        backLabel={backLabel}
+        onBack={goBack}
+      />
 
-      <View style={styles.titles}>
-        <View style={styles.kind}>
-          <SymbolView
-            name={training ? 'dumbbell' : 'fork.knife'}
-            tintColor={theme.colors[inkColor]}
-            size={theme.sizes.rowGlyph}
-          />
-          <Text variant="overline" color={inkColor} style={styles.overline}>
-            {(summary.status === 'Active'
-              ? t('journey.summary.activePlan')
-              : t('journey.summary.completedPlan')
-            ).toUpperCase()}
-          </Text>
-        </View>
-        <Text variant="title" accessibilityRole="header">
-          {summary.planName}
-        </Text>
+      {summary.coachName || meta ? (
         <View style={styles.meta}>
           {summary.coachName ? (
             <CoachAvatar
@@ -154,7 +147,7 @@ export default function PlanSummaryScreen() {
             </Text>
           ) : null}
         </View>
-      </View>
+      ) : null}
 
       <View style={styles.tiles}>
         <SummaryTile {...firstTile} />
@@ -193,13 +186,6 @@ const makeStyles = (theme: Theme) =>
     content: {
       gap: theme.spacing.lg,
     },
-    topBar: {
-      flexDirection: 'row',
-      alignItems: 'center',
-    },
-    stateBack: {
-      alignItems: 'flex-start',
-    },
     state: {
       flex: 1,
       justifyContent: 'center',
@@ -207,17 +193,6 @@ const makeStyles = (theme: Theme) =>
     },
     centered: {
       textAlign: 'center',
-    },
-    titles: {
-      gap: theme.spacing.xs,
-    },
-    kind: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: theme.spacing.xs,
-    },
-    overline: {
-      letterSpacing: theme.typography.overline.letterSpacing,
     },
     meta: {
       flexDirection: 'row',

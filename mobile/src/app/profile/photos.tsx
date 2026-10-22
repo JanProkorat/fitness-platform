@@ -8,11 +8,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PICK_QUALITY, PhotoUploadError } from '@/api/photos';
 import type { PickedPhoto, ProgressPhoto } from '@/api/photos';
-import { BackButton } from '@/components/BackButton';
 import { Button } from '@/components/Button';
 import { MonthSection } from '@/components/photos/MonthSection';
 import { PhotoViewer } from '@/components/photos/PhotoViewer';
 import { Screen } from '@/components/Screen';
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { Text } from '@/components/Text';
 import { useDeletePhoto } from '@/hooks/useDeletePhoto';
 import { usePhotos } from '@/hooks/usePhotos';
@@ -108,20 +108,12 @@ export default function ProgressPhotosScreen() {
         bottomInset={theme.sizes.buttonLarge + theme.spacing.huge * 2}
         contentStyle={styles.content}
       >
-        <View style={styles.topBar}>
-          <BackButton label={t('onboarding.back')} onPress={() => router.back()} />
-        </View>
-
-        <View style={styles.titleBlock}>
-          {photosQuery.isSuccess ? (
-            <Text variant="label" color="muted">
-              {t('photos.count', { count })}
-            </Text>
-          ) : null}
-          <Text variant="title" accessibilityRole="header">
-            {t('photos.title')}
-          </Text>
-        </View>
+        <ScreenHeader
+          title={t('photos.title')}
+          subtitle={photosQuery.isSuccess ? t('photos.count', { count }) : undefined}
+          backLabel={t('onboarding.back')}
+          onBack={() => router.back()}
+        />
 
         {photosQuery.isPending ? (
           <View style={styles.state}>
@@ -186,14 +178,6 @@ const makeStyles = (theme: Theme) =>
     },
     content: {
       gap: theme.spacing.lg,
-    },
-    topBar: {
-      flexDirection: 'row',
-      alignItems: 'center',
-    },
-    titleBlock: {
-      gap: theme.spacing.xxs,
-      paddingHorizontal: theme.spacing.xxs,
     },
     months: {
       gap: theme.spacing.xl,
