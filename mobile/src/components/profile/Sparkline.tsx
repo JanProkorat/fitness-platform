@@ -21,10 +21,24 @@ export function sparklinePoints(
     .join(' ');
 }
 
-/** Small line chart of a weight series; renders nothing below two points. */
-export function Sparkline({ values }: { values: readonly number[] }) {
+export type SparklineTone = 'nutrition' | 'neutral';
+export type SparklineSize = 'compact' | 'wide';
+
+type SparklineProps = {
+  values: readonly number[];
+  /** Line colour; `nutrition` (green) is the default. */
+  tone?: SparklineTone;
+  /** `compact` fits a profile row, `wide` a measurements row. */
+  size?: SparklineSize;
+};
+
+/** Small line chart of a series; renders nothing below two points. */
+export function Sparkline({ values, tone = 'nutrition', size = 'compact' }: SparklineProps) {
   const theme = useTheme();
-  const { sparklineWidth: width, sparklineHeight: height } = theme.sizes;
+  const { sizes, colors } = theme;
+  const width = size === 'wide' ? sizes.measureSparklineWidth : sizes.sparklineWidth;
+  const height = size === 'wide' ? sizes.measureSparklineHeight : sizes.sparklineHeight;
+  const stroke = tone === 'neutral' ? colors.ink2 : colors.nutrition;
 
   if (values.length < 2) return null;
 
@@ -37,10 +51,10 @@ export function Sparkline({ values }: { values: readonly number[] }) {
       importantForAccessibility="no-hide-descendants"
     >
       <Polyline
-        points={sparklinePoints(values, width, height, theme.sizes.sparklinePadding)}
+        points={sparklinePoints(values, width, height, sizes.sparklinePadding)}
         fill="none"
-        stroke={theme.colors.nutrition}
-        strokeWidth={theme.sizes.sparklineStroke}
+        stroke={stroke}
+        strokeWidth={sizes.sparklineStroke}
         strokeLinecap="round"
         strokeLinejoin="round"
       />

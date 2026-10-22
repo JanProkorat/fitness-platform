@@ -445,6 +445,74 @@
     "nutrition": "Dein Ernährungsplan erscheint hier.",
     "messages": "Deine Unterhaltungen erscheinen hier."
   },
+  "measurements": {
+    "title": "Körpermaße",
+    "updatedToday": "Zuletzt heute aktualisiert",
+    "updatedYesterday": "Zuletzt gestern aktualisiert",
+    "updatedDaysAgo_one": "Zuletzt vor {{count}} Tag aktualisiert",
+    "updatedDaysAgo_other": "Zuletzt vor {{count}} Tagen aktualisiert",
+    "ranges": {
+      "label": "Zeitraum",
+      "month": "1 Monat",
+      "plan": "Plan",
+      "all": "Gesamt"
+    },
+    "metrics": {
+      "weight": "Gewicht",
+      "waist": "Taille",
+      "hips": "Hüfte",
+      "chest": "Brust",
+      "biceps": "Bizeps",
+      "thigh": "Oberschenkel",
+      "bodyFat": "Körperfett"
+    },
+    "units": {
+      "kg": "{{value}} kg",
+      "cm": "{{value}} cm",
+      "percent": "{{value}} %"
+    },
+    "symbols": {
+      "kg": "kg",
+      "cm": "cm",
+      "percent": "%"
+    },
+    "trend": {
+      "month": "{{delta}} diesen Monat",
+      "plan": "{{delta}} seit Planstart",
+      "all": "{{delta}} insgesamt",
+      "noChange": "keine Änderung",
+      "estimate": "Schätzung"
+    },
+    "shared": {
+      "line": "Geteilt mit {{names}}.",
+      "and": "und"
+    },
+    "empty": {
+      "title": "Noch keine Messungen",
+      "body": "Füge deine erste Messung hinzu, um deinen Fortschritt zu verfolgen."
+    },
+    "add": "Messung hinzufügen",
+    "error": {
+      "history": "Deine Messungen konnten nicht geladen werden.",
+      "retry": "Erneut versuchen"
+    },
+    "sheet": {
+      "close": "Schließen",
+      "subtitle": "Trage nur ein, was du gemessen hast",
+      "save": "Speichern",
+      "error": "Die Messung konnte nicht gespeichert werden. Versuche es erneut.",
+      "measured": "Gemessen",
+      "measuredA11y": "Gemessen: {{value}}. Ändern",
+      "today": "Heute",
+      "yesterday": "Gestern",
+      "circumference": "Umfang",
+      "note": "Notiz",
+      "optional": "Optional",
+      "notePlaceholder": "Tageszeit, nach dem Essen …",
+      "last": "Zuletzt {{value}}",
+      "neverMeasured": "Noch nicht gemessen"
+    }
+  },
   "messages": {
     "compose": "Coach finden",
     "labels": { "invite": "Einladung", "requestSent": "Anfrage gesendet" },
