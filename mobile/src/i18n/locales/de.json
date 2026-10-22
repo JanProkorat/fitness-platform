@@ -247,6 +247,22 @@
       "workouts": "Workouts",
       "sinceStart": "Seit Beginn"
     },
+    "aboutMe": {
+      "title": "Über mich",
+      "edit": "Bearbeiten",
+      "a11yLabel": "Über mich. Bearbeiten",
+      "goal": "Ziel",
+      "training": "Training",
+      "eating": "Ernährung",
+      "injuries": "Verletzungen",
+      "targetWeight": "Ziel {{value}} kg",
+      "noAllergies": "ohne {{list}}",
+      "gym": {
+        "Yes": "Fitnessstudio",
+        "Sometimes": "manchmal Fitnessstudio",
+        "No": "kein Fitnessstudio"
+      }
+    },
     "coaches": {
       "title": "Meine Coaches",
       "empty": "Du arbeitest noch mit keinem Coach zusammen."
