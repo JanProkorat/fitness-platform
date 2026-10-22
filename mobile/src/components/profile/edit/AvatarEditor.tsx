@@ -38,7 +38,7 @@ export function AvatarEditor({
       <View style={styles.avatar}>
         <CoachAvatar
           coach={{ firstName, lastName, avatarBlobUrl }}
-          size={theme.sizes.profileAvatar}
+          size={theme.sizes.editAvatar}
           initialsVariant="profileInitials"
         />
         {busy ? (
@@ -89,8 +89,8 @@ const makeStyles = (theme: Theme) =>
       gap: theme.spacing.sm,
     },
     avatar: {
-      width: theme.sizes.profileAvatar,
-      height: theme.sizes.profileAvatar,
+      width: theme.sizes.editAvatar,
+      height: theme.sizes.editAvatar,
     },
     busy: {
       position: 'absolute',
@@ -108,10 +108,10 @@ const makeStyles = (theme: Theme) =>
       position: 'absolute',
       right: -theme.spacing.hair,
       bottom: -theme.spacing.hair,
-      width: theme.sizes.stepButton,
-      height: theme.sizes.stepButton,
+      width: theme.sizes.editAvatarBadge,
+      height: theme.sizes.editAvatarBadge,
       borderRadius: theme.radii.pill,
-      borderWidth: theme.sizes.borderStrong * 2,
+      borderWidth: theme.sizes.editAvatarBadgeBorder,
       borderColor: theme.colors.ground,
       alignItems: 'center',
       justifyContent: 'center',
