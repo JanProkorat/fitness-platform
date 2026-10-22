@@ -271,7 +271,6 @@
     },
     "aboutMe": {
       "title": "About me",
-      "edit": "Edit",
       "a11yLabel": "About me. Edit",
       "goal": "Goal",
       "training": "Training",
