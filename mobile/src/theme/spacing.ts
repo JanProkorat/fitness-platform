@@ -47,6 +47,7 @@ export const sizes = {
   wordmarkMarkGap: 3.96,
   backButton: 40,
   backIcon: 18,
+  barSlot: 64,
   bellButton: 40,
   bellGlyph: 18,
   coachIcon: 38,

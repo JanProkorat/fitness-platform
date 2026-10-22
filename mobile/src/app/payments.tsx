@@ -8,7 +8,7 @@ import type { EdgeInsets } from 'react-native-safe-area-context';
 import { BackButton } from '@/components/BackButton';
 import { Screen } from '@/components/Screen';
 import { Text } from '@/components/Text';
-import { CoachSection } from '@/components/payments/CoachSection';
+import { CoachSection, coachHeading, hasPayments } from '@/components/payments/CoachSection';
 import { usePayments } from '@/hooks/usePayments';
 import { usePaymentsEnabled } from '@/hooks/usePaymentsEnabled';
 import { useTheme } from '@/theme';
@@ -38,21 +38,18 @@ export default function PaymentsScreen() {
     return <View style={styles.blank} />;
   }
 
-  const hasPayments = (coaches ?? []).some(
-    (coach) => (coach.requested?.length ?? 0) > 0 || (coach.paid?.length ?? 0) > 0,
-  );
+  const withPayments = (coaches ?? []).filter(hasPayments);
+  // One coach: the bar carries "COACH · package" and the list drops that coach's heading.
+  const soleCoach = withPayments.length === 1 ? withPayments[0] : undefined;
 
   return (
     <View style={styles.root}>
       <Screen
         scroll
-        topGap={theme.sizes.backButton + theme.spacing.xl}
+        topGap={theme.sizes.backButton + theme.spacing.lg}
         bottomInset={theme.spacing.huge}
         contentStyle={styles.content}
       >
-        <Text variant="title" accessibilityRole="header">
-          {t('payments.title')}
-        </Text>
         {isPending ? <ActivityIndicator color={theme.colors.muted} style={styles.loading} /> : null}
         {isError && !coaches ? (
           <Pressable accessibilityRole="button" onPress={() => void refetch()}>
@@ -61,15 +58,30 @@ export default function PaymentsScreen() {
             </Text>
           </Pressable>
         ) : null}
-        {coaches && !hasPayments ? (
+        {coaches && withPayments.length === 0 ? (
           <Text variant="body" color="muted">
             {t('payments.empty')}
           </Text>
         ) : null}
-        {coaches?.map((coach) => <CoachSection key={coach.coachId} coach={coach} />)}
+        {withPayments.map((coach) => (
+          <CoachSection key={coach.coachId} coach={coach} showHeading={coach !== soleCoach} />
+        ))}
       </Screen>
-      <View style={styles.back}>
-        <BackButton label={t('payments.back')} onPress={leave} />
+      <View style={styles.bar} pointerEvents="box-none">
+        <View style={styles.slot}>
+          <BackButton label={t('payments.back')} onPress={leave} />
+        </View>
+        <View style={styles.titleBlock}>
+          <Text variant="barTitle" numberOfLines={1} accessibilityRole="header" style={styles.centered}>
+            {t('payments.title')}
+          </Text>
+          {soleCoach ? (
+            <Text variant="barSubtitle" color="muted" numberOfLines={1} style={styles.centered}>
+              {coachHeading(soleCoach)}
+            </Text>
+          ) : null}
+        </View>
+        <View style={styles.slot} />
       </View>
     </View>
   );
@@ -91,9 +103,28 @@ const makeStyles = (theme: Theme, insets: EdgeInsets) =>
     loading: {
       alignSelf: 'flex-start',
     },
-    back: {
+    bar: {
       position: 'absolute',
       top: insets.top + theme.spacing.safeAreaGap,
       left: theme.spacing.xxl,
+      right: theme.spacing.xxl,
+      height: theme.sizes.backButton,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.spacing.sm,
+    },
+    slot: {
+      width: theme.sizes.barSlot,
+      flexDirection: 'row',
+    },
+    titleBlock: {
+      flex: 1,
+      minWidth: 0,
+      alignItems: 'center',
+      gap: theme.spacing.xxs / 4,
+    },
+    centered: {
+      maxWidth: '100%',
+      textAlign: 'center',
     },
   });
