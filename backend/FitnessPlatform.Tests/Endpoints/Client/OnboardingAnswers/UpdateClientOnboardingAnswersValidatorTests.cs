@@ -65,6 +65,55 @@ public class UpdateClientOnboardingAnswersValidatorTests
         Passes(new() { Injuries = [item] }).Should().BeFalse();
     }
 
+    [Theory]
+    [InlineData(0, 0, false)]
+    [InlineData(-13, 1, false)]
+    [InlineData(-13, 0, true)]
+    [InlineData(-101, 1, true)]
+    [InlineData(-101, 0, false)]
+    public void Validate_DateOfBirthAgeBoundary(int yearsOffset, int daysOffset, bool valid)
+    {
+        var dateOfBirth = DateOnly.FromDateTime(DateTime.UtcNow).AddYears(yearsOffset).AddDays(daysOffset);
+
+        Passes(new() { DateOfBirth = dateOfBirth }).Should().Be(valid);
+    }
+
+    [Theory]
+    [InlineData("99")]
+    [InlineData("Flying")]
+    public void Validate_NumericOrUnknownLifestyleEnum_Fails(string value)
+    {
+        Passes(new() { Sex = value }).Should().BeFalse();
+        Passes(new() { JobType = value }).Should().BeFalse();
+        Passes(new() { CurrentTrainingFrequency = value }).Should().BeFalse();
+        Passes(new() { MealsPerDay = value }).Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData(139.9, 5, 3, false)]
+    [InlineData(140, 1, 1, true)]
+    [InlineData(220, 10, 5, true)]
+    [InlineData(220.1, 5, 3, false)]
+    [InlineData(170.04, 5, 3, false)]
+    [InlineData(170, 0, 3, false)]
+    [InlineData(170, 11, 3, false)]
+    [InlineData(170, 5, 0, false)]
+    [InlineData(170, 5, 6, false)]
+    public void Validate_HeightSleepStressRanges(double height, int sleep, int stress, bool valid) =>
+        Passes(new() { HeightCm = (decimal)height, SleepHours = sleep, StressLevel = stress }).Should().Be(valid);
+
+    [Fact]
+    public void Validate_PreferredActivityWithComma_Fails() =>
+        Passes(new() { PreferredActivities = ["strength,cardio"] }).Should().BeFalse();
+
+    [Fact]
+    public void Validate_TooManyOrTooLongHabits_Fails()
+    {
+        Passes(new() { Habits = [.. Enumerable.Repeat("x", 21)] }).Should().BeFalse();
+        Passes(new() { Habits = [new string('x', 61)] }).Should().BeFalse();
+        Passes(new() { Habits = [.. Enumerable.Repeat("x", 20)] }).Should().BeTrue();
+    }
+
     [Fact]
     public void Validate_TooManyOrTooLongDislikes_Fails()
     {
