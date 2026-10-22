@@ -1626,7 +1626,8 @@
       "endpoints": [
         "GET /client/measurements",
         "GET /client/me/photos",
-        "GET /client/plans"
+        "GET /client/plans",
+        "GET /client/plans/{planId}/summary"
       ],
       "board": "GlassMyJourney",
       "shots": [
