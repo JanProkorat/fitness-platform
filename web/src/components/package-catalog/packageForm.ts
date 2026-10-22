@@ -100,12 +100,12 @@ export function packageToFormValues(item: CoachPackageDto): PackageFormValues {
   return {
     name: item.name ?? '',
     description: item.description ?? '',
-    price: item.price === undefined ? '' : String(item.price),
+    price: item.price == null ? '' : String(item.price),
     currency: item.currency ?? PaymentCurrency.CZK,
     billing: item.billing ?? PackageBillingInterval.Monthly,
-    intervalWeeks: item.intervalWeeks === undefined ? '' : String(item.intervalWeeks),
-    runsForPayments: item.runsForPayments === undefined ? '' : String(item.runsForPayments),
-    paymentDueDaysOverride: item.paymentDueDaysOverride === undefined ? '' : String(item.paymentDueDaysOverride),
+    intervalWeeks: item.intervalWeeks == null ? '' : String(item.intervalWeeks),
+    runsForPayments: item.runsForPayments == null ? '' : String(item.runsForPayments),
+    paymentDueDaysOverride: item.paymentDueDaysOverride == null ? '' : String(item.paymentDueDaysOverride),
     showOnProfile: item.showOnProfile ?? false,
   };
 }

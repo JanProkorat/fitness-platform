@@ -72,7 +72,7 @@ export default function PackagesPage() {
   const [archiveTarget, setArchiveTarget] = useState<ArchiveTarget | null>(null);
 
   const packages = packagesQuery.data ?? [];
-  const activePackages = packages.filter((item) => item.archivedAt === undefined);
+  const activePackages = packages.filter((item) => item.archivedAt == null);
   const discounts = discountsQuery.data ?? [];
 
   const activeQuery = tab === 'packages' ? packagesQuery : discountsQuery;
@@ -209,7 +209,7 @@ export default function PackagesPage() {
                   </span>
                   <div className="flex min-w-0 flex-1 flex-col">
                     <span className="text-copy font-semibold text-ink">
-                      {fromPrice.price === undefined
+                      {fromPrice.price == null
                         ? t('packages.profileCard.emptyTitle')
                         : t('packages.profileCard.title', {
                             price: formatMoney(
@@ -220,7 +220,7 @@ export default function PackagesPage() {
                           })}
                     </span>
                     <span className="text-body text-muted-foreground">
-                      {fromPrice.price === undefined ? t('packages.profileCard.emptyBody') : t('packages.profileCard.body')}
+                      {fromPrice.price == null ? t('packages.profileCard.emptyBody') : t('packages.profileCard.body')}
                     </span>
                   </div>
                   <Link to="/profile" className="flex items-center gap-1 text-copy font-semibold text-ink">

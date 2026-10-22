@@ -12,8 +12,8 @@ export function formatDay(isoDate: string, language: string): string {
 
 /** A discount is Ended once its last day is before today, Archived once the coach archived it. */
 export function discountStatus(item: CoachDiscountDto, today: string): CatalogStatus {
-  if (item.archivedAt !== undefined) {
+  if (item.archivedAt != null) {
     return 'archived';
   }
-  return item.validTo !== undefined && item.validTo.slice(0, 10) < today ? 'ended' : 'active';
+  return item.validTo != null && item.validTo.slice(0, 10) < today ? 'ended' : 'active';
 }

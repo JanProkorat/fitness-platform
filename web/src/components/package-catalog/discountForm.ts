@@ -86,14 +86,14 @@ export function discountToFormValues(item: CoachDiscountDto, activePackageIds: R
   return {
     name: item.name ?? '',
     type: item.type ?? DiscountType.Percentage,
-    value: item.value === undefined ? '' : String(item.value),
+    value: item.value == null ? '' : String(item.value),
     currency: item.currency ?? PaymentCurrency.CZK,
     scope: item.scope ?? DiscountScope.AllPackages,
     packageIds: (item.packageIds ?? []).filter((id) => activePackageIds.has(id)),
     validFrom: item.validFrom?.slice(0, 10) ?? '',
     validTo: item.validTo?.slice(0, 10) ?? '',
     duration: item.duration ?? DiscountDuration.EveryPayment,
-    durationPayments: item.durationPayments === undefined ? '' : String(item.durationPayments),
+    durationPayments: item.durationPayments == null ? '' : String(item.durationPayments),
   };
 }
 

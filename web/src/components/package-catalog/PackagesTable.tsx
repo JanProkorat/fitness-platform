@@ -62,7 +62,7 @@ export default function PackagesTable({ packages, isPending, isError, onRetry, o
           packages.map((item) => {
             const id = item.packageId ?? '';
             const name = item.name ?? '';
-            const archived = item.archivedAt !== undefined;
+            const archived = item.archivedAt != null;
             return (
               <TableRow
                 key={id}

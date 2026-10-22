@@ -5137,7 +5137,7 @@
   "packages": {
     "eyebrow": "Business",
     "title": "Pakete",
-    "subtitle": "Wofür Klienten dich bezahlen. Weise ein Paket im Tab Zahlung des Klienten zu.",
+    "subtitle": "Wofür Klienten Sie bezahlen. Weisen Sie ein Paket im Tab Zahlung des Klienten zu.",
     "newPackage": "Neues Paket",
     "tabs": {
       "packages": "Pakete",
@@ -5168,8 +5168,8 @@
       "ended": "Beendet",
       "archived": "Archiviert"
     },
-    "empty": "Noch keine Pakete. Lege das erste an, um es einem Klienten zuzuweisen.",
-    "footer": "Pakete: {{count}} · Archivierte Pakete rechnen ihre Klienten weiter ab, bis du sie umstellst",
+    "empty": "Noch keine Pakete. Legen Sie das erste an, um es einem Klienten zuzuweisen.",
+    "footer": "Pakete: {{count}} · Archivierte Pakete rechnen ihre Klienten weiter ab, bis Sie sie umstellen",
     "loadError": "Die Liste konnte nicht geladen werden.",
     "retry": "Erneut versuchen",
     "saveSuccess": "Paket gespeichert.",
@@ -5183,42 +5183,42 @@
     },
     "archiveDialog": {
       "title": "Paket archivieren",
-      "description": "„{{name}}“ archivieren? Klienten, die bereits darüber abgerechnet werden, behalten ihre Konditionen, bis du sie umstellst. Neuen Klienten kannst du es nicht mehr zuweisen.",
+      "description": "„{{name}}“ archivieren? Klienten, die bereits darüber abgerechnet werden, behalten ihre Konditionen, bis Sie sie umstellen. Neuen Klienten können Sie es nicht mehr zuweisen.",
       "confirm": "Archivieren"
     },
     "profileCard": {
-      "title": "Dein öffentliches Profil zeigt „ab {{price}} / Monat“",
+      "title": "Ihr öffentliches Profil zeigt „ab {{price}} / Monat“",
       "body": "Das günstigste aktive Monatspaket mit der Markierung „Im Profil“. Es ersetzt den alten Freitext-Preis.",
-      "emptyTitle": "Dein öffentliches Profil zeigt noch keinen Preis",
-      "emptyBody": "Markiere ein aktives Monatspaket mit „Im Profil“, damit ein Preis „ab … / Monat“ erscheint.",
+      "emptyTitle": "Ihr öffentliches Profil zeigt noch keinen Preis",
+      "emptyBody": "Markieren Sie ein aktives Monatspaket mit „Im Profil“, damit ein Preis „ab … / Monat“ erscheint.",
       "open": "Profil öffnen"
     },
     "paywall": {
-      "badge": "Nicht in deinem Tarif",
-      "title": "Zahlungen sind in deinem Tarif nicht enthalten",
-      "description": "Lege Pakete und Rabatte an und behalte im Blick, was jeder Klient dir zahlt.",
+      "badge": "Nicht in Ihrem Tarif",
+      "title": "Zahlungen sind in Ihrem Tarif nicht enthalten",
+      "description": "Legen Sie Pakete und Rabatte an und behalten Sie im Blick, was jeder Klient Ihnen zahlt.",
       "bullet1": "Pakete mit Preis und Abrechnungszyklus",
       "bullet2": "Rabatte für einzelne Klienten oder Aktionen",
       "bullet3": "Zahlungsanfragen und eine Übersicht bei jedem Klienten"
     },
     "validation": {
-      "nameRequired": "Gib einen Namen ein.",
+      "nameRequired": "Geben Sie einen Namen ein.",
       "nameTooLong": "Der Name darf höchstens 100 Zeichen haben.",
       "descriptionTooLong": "Die Beschreibung darf höchstens 500 Zeichen haben.",
-      "priceInvalid": "Gib einen Preis über 0 mit höchstens 2 Nachkommastellen ein.",
+      "priceInvalid": "Geben Sie einen Preis über 0 mit höchstens 2 Nachkommastellen ein.",
       "priceTooHigh": "Der Preis liegt über dem Limit für diese Währung.",
-      "intervalWeeks": "Gib eine ganze Zahl von Wochen von 1 bis 52 ein.",
-      "runsFor": "Gib eine ganze Zahl von Zahlungen von 1 bis 120 ein.",
-      "paymentDue": "Gib eine ganze Zahl von Tagen von 1 bis 90 ein."
+      "intervalWeeks": "Geben Sie eine ganze Zahl von Wochen von 1 bis 52 ein.",
+      "runsFor": "Geben Sie eine ganze Zahl von Zahlungen von 1 bis 120 ein.",
+      "paymentDue": "Geben Sie eine ganze Zahl von Tagen von 1 bis 90 ein."
     },
     "drawer": {
       "titleNew": "Neues Paket",
       "titleEdit": "{{name}} bearbeiten",
-      "description": "Klienten zahlen dir per Banküberweisung",
+      "description": "Klienten zahlen Ihnen per Banküberweisung",
       "sectionPackage": "Paket",
       "name": "Name",
       "included": "Was enthalten ist",
-      "includedHint": "Diese Beschreibung siehst nur du.",
+      "includedHint": "Diese Beschreibung sehen nur Sie.",
       "sectionPrice": "Preis und Abrechnung",
       "price": "Preis",
       "currency": "Währung",
@@ -5227,7 +5227,7 @@
       "billing": "Abrechnung",
       "intervalWeeks": "Wochen zwischen den Zahlungen",
       "runsFor": "Läuft",
-      "runsForPlaceholder": "Bis du es beendest",
+      "runsForPlaceholder": "Bis Sie es beenden",
       "runsForHint": "Oder eine feste Anzahl Zahlungen",
       "runsForOption_one": "{{count}} Zahlung",
       "runsForOption_other": "{{count}} Zahlungen",
@@ -5240,7 +5240,7 @@
       "showOnProfile": "In meinem öffentlichen Profil anzeigen",
       "showOnProfileHint": "Wird für den Preis „ab … / Monat“ in der Suche verwendet.",
       "priceChangeNote": "Eine spätere Preisänderung gilt ab dem nächsten Abrechnungszeitraum jedes Klienten. Bereits gesendete Anfragen behalten ihren Betrag.",
-      "footer": "Ein Paket kannst du archivieren, nicht löschen",
+      "footer": "Ein Paket können Sie archivieren, nicht löschen",
       "save": "Paket speichern",
       "saving": "Speichern..."
     },
@@ -5254,7 +5254,7 @@
       "archiveError": "Der Rabatt konnte nicht archiviert werden.",
       "archiveDialog": {
         "title": "Rabatt archivieren",
-        "description": "„{{name}}“ archivieren? Klienten, die ihn bereits nutzen, behalten ihn, bis du ihre Konditionen änderst."
+        "description": "„{{name}}“ archivieren? Klienten, die ihn bereits nutzen, behalten ihn, bis Sie ihre Konditionen ändern."
       },
       "table": {
         "discount": "Rabatt",
@@ -5288,32 +5288,32 @@
       "codes": {
         "title": "Rabattcodes",
         "comingLater": "Kommt später",
-        "body": "Gib einem Rabatt einen Code, etwa SOMMER26, und Klienten geben ihn beim Beitritt ein.",
+        "body": "Geben Sie einem Rabatt einen Code, etwa SOMMER26, und Klienten geben ihn beim Beitritt ein.",
         "create": "Code erstellen"
       },
       "validation": {
-        "nameRequired": "Gib einen Namen ein.",
+        "nameRequired": "Geben Sie einen Namen ein.",
         "nameTooLong": "Der Name darf höchstens 100 Zeichen haben.",
-        "percentage": "Gib einen Prozentwert von 1 bis 100 ein.",
-        "amountInvalid": "Gib einen Betrag über 0 mit höchstens 2 Nachkommastellen ein.",
+        "percentage": "Geben Sie einen Prozentwert von 1 bis 100 ein.",
+        "amountInvalid": "Geben Sie einen Betrag über 0 mit höchstens 2 Nachkommastellen ein.",
         "amountTooHigh": "Der Betrag liegt über dem Limit für diese Währung.",
-        "packagesRequired": "Wähle mindestens ein Paket.",
-        "dateInvalid": "Gib ein gültiges Datum ein.",
+        "packagesRequired": "Wählen Sie mindestens ein Paket.",
+        "dateInvalid": "Geben Sie ein gültiges Datum ein.",
         "dateOrder": "Das Ende darf nicht vor dem Beginn liegen.",
-        "durationPayments": "Gib eine ganze Zahl von Zahlungen von 1 bis 120 ein."
+        "durationPayments": "Geben Sie eine ganze Zahl von Zahlungen von 1 bis 120 ein."
       },
       "drawer": {
         "titleNew": "Neuer Rabatt",
         "titleEdit": "{{name}} bearbeiten",
-        "description": "Wende ihn im Tab Zahlung eines Klienten an",
+        "description": "Wenden Sie ihn im Tab Zahlung eines Klienten an",
         "sectionDiscount": "Rabatt",
         "name": "Name",
-        "nameHint": "Den Namen siehst nur du. Klienten sehen den gesparten Betrag.",
+        "nameHint": "Den Namen sehen nur Sie. Klienten sehen den gesparten Betrag.",
         "type": "Typ",
         "value": "Wert",
         "currencyLocked": "Die Währung lässt sich nicht ändern, solange Klienten diesen Rabatt nutzen.",
         "sectionAppliesTo": "Gilt für",
-        "noPackages": "Du hast noch keine aktiven Pakete.",
+        "noPackages": "Sie haben noch keine aktiven Pakete.",
         "sectionWhen": "Wann er gilt",
         "validFrom": "Gültig ab",
         "validTo": "Gültig bis",
