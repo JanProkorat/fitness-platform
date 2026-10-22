@@ -1572,6 +1572,12 @@
   "h": 844
  },
  {
+  "html": "mobile-light/07-12-edit-profile-info2.html",
+  "png": "mobile-light/07-12-edit-profile-info2.png",
+  "w": 390,
+  "h": 844
+ },
+ {
   "html": "mobile-light/08-01-training-plan.html",
   "png": "mobile-light/08-01-training-plan.png",
   "w": 390,
@@ -1988,6 +1994,12 @@
  {
   "html": "mobile-dark/07-11-edit-profile-info.html",
   "png": "mobile-dark/07-11-edit-profile-info.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/07-12-edit-profile-info2.html",
+  "png": "mobile-dark/07-12-edit-profile-info2.png",
   "w": 390,
   "h": 844
  },
