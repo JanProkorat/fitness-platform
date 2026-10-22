@@ -18,8 +18,12 @@ function numberLocale(currency: PaymentCurrency, language: string): string {
  * "1 750 Kč" for CZK in every language; "75,50 €" for EUR in cs/de and "€75.50" in en.
  * Decimals appear only when the amount has cents.
  */
-export function formatMoney(amount: number | undefined, currency: PaymentCurrency | undefined, language: string): string {
-  if (amount === undefined) return '';
+export function formatMoney(
+  amount: number | null | undefined,
+  currency: PaymentCurrency | null | undefined,
+  language: string,
+): string {
+  if (amount == null) return '';
   const resolved = currency ?? PaymentCurrency.CZK;
   const hasCents = Math.round(amount * 100) % 100 !== 0;
   const digits = hasCents ? 2 : 0;
@@ -45,7 +49,7 @@ export function groupIban(iban: string): string {
 }
 
 /** A calendar date from an ISO `yyyy-MM-dd` (or full ISO) string, read as local time so no timezone shifts the day. */
-export function parseDay(iso: string | undefined): Date | null {
+export function parseDay(iso: string | null | undefined): Date | null {
   const match = iso ? /^(\d{4})-(\d{2})-(\d{2})/.exec(iso) : null;
   if (!match) return null;
   return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
@@ -56,14 +60,14 @@ function capitalize(text: string): string {
 }
 
 /** Month name of a billing period ("November"); falls back to the payment name for a one-off payment. */
-export function periodLabel(periodStart: string | undefined, name: string | undefined, language: string): string {
+export function periodLabel(periodStart: string | null | undefined, name: string | null | undefined, language: string): string {
   const start = parseDay(periodStart);
   if (!start) return name ?? '';
   return capitalize(new Intl.DateTimeFormat(language, { month: 'long' }).format(start));
 }
 
 /** Short day and month ("1 Nov", "1. 11."), per the app language. */
-export function shortDay(iso: string | undefined, language: string): string {
+export function shortDay(iso: string | null | undefined, language: string): string {
   const day = parseDay(iso);
   if (!day) return '';
   return new Intl.DateTimeFormat(language, { day: 'numeric', month: 'short' }).format(day);
@@ -72,8 +76,8 @@ export function shortDay(iso: string | undefined, language: string): string {
 /** "Due 1 Nov · Friends & family" line under the amount; the discount label is omitted when there is none. */
 export function dueLine(
   t: TFunction,
-  dueDate: string | undefined,
-  discountLabel: string | undefined,
+  dueDate: string | null | undefined,
+  discountLabel: string | null | undefined,
   language: string,
 ): string {
   const due = t('payments.due', { date: shortDay(dueDate, language) });
