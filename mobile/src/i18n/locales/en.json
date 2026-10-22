@@ -306,7 +306,8 @@
     "title": "Progress photos",
     "count_one": "{{count}} photo",
     "count_other": "{{count}} photos",
-    "takePhoto": "Take photo",
+    "addPhotos": "Add photos",
+    "uploadProgress": "{{done}} / {{total}}",
     "cancel": "Cancel",
     "add": {
       "title": "Add a progress photo",
@@ -332,6 +333,8 @@
       "load": "Can't load your photos.",
       "retry": "Try again",
       "title": "Couldn't add the photo",
+      "batchFailed_one": "{{count}} photo couldn't be added",
+      "batchFailed_other": "{{count}} photos couldn't be added",
       "tooLarge": "This photo is larger than 5 MB. Choose a smaller one.",
       "unsupportedType": "This file type isn't supported. Use a JPEG, PNG, WebP or HEIC photo.",
       "upload": "The upload failed. Check your connection and try again.",
