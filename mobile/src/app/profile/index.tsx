@@ -156,6 +156,7 @@ export default function ProfileScreen() {
               leading={<RowIcon symbol="point.topleft.down.to.point.bottomright.curvepath" tone="accent" />}
               label={t('profile.progress.journey')}
               trailing={<Sparkline values={weightSeries ?? []} />}
+              onPress={() => router.push('/profile/journey')}
             />
             <ListRow
               leading={<RowIcon symbol="ruler" tone="nutrition" />}
@@ -167,11 +168,13 @@ export default function ProfileScreen() {
               leading={<RowIcon symbol="photo" tone="training" />}
               label={t('profile.progress.photos')}
               value={countLabel(language, summary.progressPhotoCount)}
+              onPress={() => router.push('/profile/photos')}
             />
             <ListRow
               leading={<RowIcon symbol="list.clipboard" tone="neutral" />}
               label={t('profile.progress.checkIns')}
               value={countLabel(language, summary.checkInCount)}
+              onPress={() => router.push('/profile/check-ins')}
             />
           </ListCard>
         </View>
@@ -181,6 +184,7 @@ export default function ProfileScreen() {
         <ListRow
           leading={<RowIcon symbol="gearshape" tone="neutral" />}
           label={t('profile.settings')}
+          onPress={() => router.push('/profile/settings')}
         />
       </ListCard>
     </Screen>
