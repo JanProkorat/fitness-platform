@@ -105,7 +105,8 @@ export default function ClientPaymentTab({ clientId, dashboard }: Props) {
     <div className="flex flex-col gap-4">
       <PaymentSummaryCards summary={summary} />
 
-      <div className="grid grid-cols-1 items-start gap-3.5 xl:grid-cols-[minmax(0,1fr)_23.75rem]">
+      {/* The price column sits beside the table only where the table still fits unscrolled. */}
+      <div className="grid grid-cols-1 items-start gap-3.5 min-[1440px]:grid-cols-[minmax(0,1fr)_23.75rem]">
         <div className="flex min-w-0 flex-col gap-2.5">
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-copy font-semibold text-ink">{t('payments.client.list.title')}</h2>

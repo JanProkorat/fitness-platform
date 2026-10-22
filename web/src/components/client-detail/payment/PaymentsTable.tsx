@@ -19,8 +19,8 @@ import { isOpenPayment } from '@/components/client-detail/payment/paymentModel';
 import { showError, showSuccess } from '@/lib/api-errors';
 import { formatPaymentAmount, formatPeriodLabel, formatShortDay } from '@/lib/payment-format';
 
-const HEAD_CLASS = 'px-4 py-3.5 text-meta font-semibold';
-const CELL_CLASS = 'px-4 py-2.75 text-body text-ink-2';
+const HEAD_CLASS = 'px-3 py-3.5 text-meta font-semibold';
+const CELL_CLASS = 'px-3 py-2.75 text-body text-ink-2';
 
 interface Props {
   rows: readonly ClientPaymentRowDto[];
@@ -54,7 +54,7 @@ export default function PaymentsTable({ rows, canRequest, onMarkPaid, onRequest,
           <TableHead className={HEAD_CLASS}>{t('payments.client.table.due')}</TableHead>
           <TableHead className={HEAD_CLASS}>{t('payments.client.table.variableSymbol')}</TableHead>
           <TableHead className={HEAD_CLASS}>{t('payments.client.table.status')}</TableHead>
-          <TableHead className="px-4 py-3.5">
+          <TableHead className="px-3 py-3.5">
             <span className="sr-only">{t('payments.client.table.actions')}</span>
           </TableHead>
         </TableRow>
@@ -68,8 +68,8 @@ export default function PaymentsTable({ rows, canRequest, onMarkPaid, onRequest,
           return (
             <TableRow key={row.paymentId} className="border-line" data-testid="payment-row">
               <TableCell className={CELL_CLASS}>
-                <span className="flex flex-col">
-                  <span className="font-semibold text-ink">
+                <span className="flex max-w-44 flex-col">
+                  <span className="truncate font-semibold text-ink" title={isOneOff ? row.title : undefined}>
                     {isOneOff ? row.title : formatPeriodLabel(row.periodStart, row.periodEnd, language)}
                   </span>
                   {isOneOff && <span className="text-meta text-muted-foreground">{t('payments.client.row.oneOff')}</span>}

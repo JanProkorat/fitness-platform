@@ -3,6 +3,11 @@ import { PaymentCurrency } from '@/api/generated';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+/** English dates read day-first, as on the boards ("1 Nov"), so "en" formats as en-GB. */
+function dateLocale(language: string): string {
+  return language === 'en' ? 'en-GB' : language;
+}
+
 /** The money amount of a payment, or an em dash when the server sent none. */
 export function formatPaymentAmount(
   amount: number | undefined,
@@ -51,7 +56,7 @@ export function formatShortDay(iso: string | undefined, language: string): strin
   }
   const date = parseIsoDate(iso);
   const sameYear = date.getFullYear() === new Date().getFullYear();
-  return date.toLocaleDateString(language, {
+  return date.toLocaleDateString(dateLocale(language), {
     day: 'numeric',
     month: 'short',
     ...(sameYear ? {} : { year: 'numeric' }),
@@ -63,7 +68,7 @@ export function formatInstantDay(instant: string | undefined, language: string):
   if (!instant) {
     return '—';
   }
-  return new Date(instant).toLocaleDateString(language, { day: 'numeric', month: 'short' });
+  return new Date(instant).toLocaleDateString(dateLocale(language), { day: 'numeric', month: 'short' });
 }
 
 /** "31 Oct 2026". */
@@ -71,17 +76,17 @@ export function formatFullDay(iso: string | undefined, language: string): string
   if (!iso) {
     return '—';
   }
-  return parseIsoDate(iso).toLocaleDateString(language, { day: 'numeric', month: 'short', year: 'numeric' });
+  return parseIsoDate(iso).toLocaleDateString(dateLocale(language), { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 /** "November 2026". */
 export function formatMonthYear(iso: string, language: string): string {
-  return parseIsoDate(iso).toLocaleDateString(language, { month: 'long', year: 'numeric' });
+  return parseIsoDate(iso).toLocaleDateString(dateLocale(language), { month: 'long', year: 'numeric' });
 }
 
 /** "November". */
 export function formatMonthName(iso: string, language: string): string {
-  return parseIsoDate(iso).toLocaleDateString(language, { month: 'long' });
+  return parseIsoDate(iso).toLocaleDateString(dateLocale(language), { month: 'long' });
 }
 
 /** "2026-11" history period to "November 2026"; anything else (a one-off title) is returned as is. */
