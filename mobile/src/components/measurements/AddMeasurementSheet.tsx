@@ -3,7 +3,6 @@ import type { MutableRefObject } from 'react';
 import {
   Alert,
   Animated,
-  InputAccessoryView,
   Keyboard,
   KeyboardAvoidingView,
   Modal,
@@ -18,6 +17,7 @@ import {
 import { SymbolView } from 'expo-symbols';
 import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
+import Reanimated, { LinearTransition, ReduceMotion } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { EdgeInsets } from 'react-native-safe-area-context';
 
@@ -29,7 +29,7 @@ import { Text } from '@/components/Text';
 import { useAddMeasurement } from '@/hooks/useAddMeasurement';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
-import { sheetDragMotion } from '@/theme/motion';
+import { measuredAtPickerMotion, sheetDragMotion } from '@/theme/motion';
 
 import { lastHintLabel } from './format';
 import { MeasuredAtRow } from './MeasuredAtRow';
@@ -51,7 +51,10 @@ const EMPTY_FORM: FormValues = {
   bodyFat: '',
 };
 
-const ACCESSORY_ID = 'measurementKeyboardAccessory';
+/** Moves the blocks below the date picker smoothly when it opens or closes. */
+const reflow = LinearTransition.duration(measuredAtPickerMotion.layoutDuration).reduceMotion(
+  ReduceMotion.System,
+);
 
 const unitSymbol = (t: TFunction, metric: Metric): string => t(`measurements.symbols.${metric.unit}`);
 
@@ -198,7 +201,6 @@ function SheetContent({ entries, onClose, closeRef }: SheetContentProps) {
         invalid={parseMetricInput(text).state === 'invalid'}
         variant={variant}
         autoFocus={autoFocus}
-        inputAccessoryViewID={ACCESSORY_ID}
       />
     );
   };
@@ -257,11 +259,11 @@ function SheetContent({ entries, onClose, closeRef }: SheetContentProps) {
           showsVerticalScrollIndicator={false}
         >
           <MeasuredAtRow value={measuredAt} onChange={setMeasuredAt} />
-          <View style={styles.heroes}>
+          <Reanimated.View layout={reflow} style={styles.heroes}>
             {WEIGHT ? renderInput(WEIGHT, 'hero', true) : null}
             {BODY_FAT ? renderInput(BODY_FAT, 'hero') : null}
-          </View>
-          <View style={styles.group}>
+          </Reanimated.View>
+          <Reanimated.View layout={reflow} style={styles.group}>
             <View style={styles.groupHeader}>
               <Text variant="label" color="muted">
                 {t('measurements.sheet.circumference')}
@@ -273,8 +275,8 @@ function SheetContent({ entries, onClose, closeRef }: SheetContentProps) {
             <ListCard>
               {CIRCUMFERENCES.map((metric) => renderInput(metric, 'row'))}
             </ListCard>
-          </View>
-          <View style={styles.group}>
+          </Reanimated.View>
+          <Reanimated.View layout={reflow} style={styles.group}>
             <View style={styles.groupHeader}>
               <Text variant="label" color="muted">
                 {t('measurements.sheet.note')}
@@ -293,7 +295,6 @@ function SheetContent({ entries, onClose, closeRef }: SheetContentProps) {
               }}
               onFocus={() => setNoteFocused(true)}
               onBlur={() => setNoteFocused(false)}
-              inputAccessoryViewID={ACCESSORY_ID}
               accessibilityLabel={t('measurements.sheet.note')}
               placeholder={t('measurements.sheet.notePlaceholder')}
               placeholderTextColor={theme.colors.muted}
@@ -306,26 +307,12 @@ function SheetContent({ entries, onClose, closeRef }: SheetContentProps) {
                 { borderColor: noteFocused ? theme.colors.ink : 'transparent' },
               ]}
             />
-          </View>
+          </Reanimated.View>
         </ScrollView>
         <View style={styles.footer}>
           <Button label={t('measurements.sheet.save')} onPress={save} disabled={!canSave} />
         </View>
       </Animated.View>
-      {Platform.OS === 'ios' ? (
-        <InputAccessoryView nativeID={ACCESSORY_ID}>
-          <View style={styles.accessory}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t('measurements.sheet.done')}
-              onPress={() => Keyboard.dismiss()}
-              hitSlop={theme.spacing.xs}
-            >
-              <Text variant="label">{t('measurements.sheet.done')}</Text>
-            </Pressable>
-          </View>
-        </InputAccessoryView>
-      ) : null}
     </KeyboardAvoidingView>
   );
 }
@@ -377,14 +364,6 @@ const makeStyles = (theme: Theme, insets: EdgeInsets, keyboardVisible: boolean) 
     footer: {
       paddingTop: theme.spacing.xs,
       paddingBottom: keyboardVisible ? theme.spacing.xs : Math.max(insets.bottom, theme.spacing.xl),
-    },
-    accessory: {
-      alignItems: 'flex-end',
-      paddingHorizontal: theme.spacing.xl,
-      paddingVertical: theme.spacing.md,
-      borderTopWidth: theme.sizes.border,
-      borderTopColor: theme.colors.lineStrong,
-      backgroundColor: theme.colors.surface,
     },
     body: {
       gap: theme.spacing.lg,

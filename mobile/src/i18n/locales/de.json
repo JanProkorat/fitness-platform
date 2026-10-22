@@ -500,7 +500,6 @@
       "close": "Schließen",
       "subtitle": "Trage nur ein, was du gemessen hast",
       "save": "Messung speichern",
-      "done": "Fertig",
       "error": "Die Messung konnte nicht gespeichert werden. Versuche es erneut.",
       "measured": "Gemessen",
       "measuredA11y": "Gemessen: {{value}}. Ändern",

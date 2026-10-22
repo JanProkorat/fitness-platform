@@ -3,10 +3,12 @@ import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { SymbolView } from 'expo-symbols';
 import { useTranslation } from 'react-i18next';
+import Animated, { FadeInUp, FadeOutUp, ReduceMotion } from 'react-native-reanimated';
 
 import { Text } from '@/components/Text';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
+import { measuredAtPickerMotion } from '@/theme/motion';
 
 import { measuredAtLabel } from './format';
 
@@ -78,16 +80,25 @@ export function MeasuredAtRow({ value, onChange }: MeasuredAtRowProps) {
         />
       </Pressable>
       {expanded && Platform.OS === 'ios' ? (
-        <DateTimePicker
-          value={value}
-          mode="datetime"
-          display="inline"
-          maximumDate={new Date()}
-          locale={i18n.language}
-          themeVariant={theme.scheme}
-          accentColor={theme.colors.accent}
-          onValueChange={(_event, picked) => onChange(notAfterNow(picked))}
-        />
+        <Animated.View
+          entering={FadeInUp.duration(measuredAtPickerMotion.enterDuration).reduceMotion(
+            ReduceMotion.System,
+          )}
+          exiting={FadeOutUp.duration(measuredAtPickerMotion.exitDuration).reduceMotion(
+            ReduceMotion.System,
+          )}
+        >
+          <DateTimePicker
+            value={value}
+            mode="datetime"
+            display="inline"
+            maximumDate={new Date()}
+            locale={i18n.language}
+            themeVariant={theme.scheme}
+            accentColor={theme.colors.accent}
+            onValueChange={(_event, picked) => onChange(notAfterNow(picked))}
+          />
+        </Animated.View>
       ) : null}
     </View>
   );

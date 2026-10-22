@@ -37,6 +37,18 @@ export const sheetDragMotion = {
   spring: { damping: 22, stiffness: 240, mass: 0.9 },
 } as const;
 
+/** Inline date picker in the add-measurement sheet: ms for its fade and for the content below it moving. */
+export const measuredAtPickerMotion = {
+  enterDuration: 240,
+  exitDuration: 160,
+  layoutDuration: 240,
+} as const;
+
+/** Cross-fade between the bottom tabs, in ms. */
+export const tabSwitchMotion = {
+  duration: 160,
+} as const;
+
 /** Chat rows that arrive after the screen opened: spring entrance and list reflow. */
 export const chatMotion = {
   spring: { damping: 20, stiffness: 220, mass: 0.8 },
