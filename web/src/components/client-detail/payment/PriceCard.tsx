@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { Field } from '@/components/profile/ProfileSection';
 import {
+  DiscountDuration,
   PaymentCurrency,
   type ClientPaymentSummaryTermsDto,
   type CoachDiscountDto,
@@ -179,6 +180,23 @@ function PriceForm({ clientId, clientName, summary, packages, discounts }: FormP
   const discountAmount = hasCustomPrice ? 0 : previewDiscountAmount(selectedDiscount, basePrice);
   const payable = hasCustomPrice ? customPrice : Math.max(0, basePrice - discountAmount);
   const suffix = billingSuffix(t, selectedPackage?.billing, selectedPackage?.intervalWeeks);
+
+  // Saved terms show what the server bills (a "first N payments" discount may be used up);
+  // only unsaved edits are previewed in the browser.
+  const serverPrice = terms && !isDirty ? summary.price : undefined;
+  const serverCurrency = terms?.currency;
+  const showServer = serverPrice?.amount != null && serverCurrency != null;
+  const shownCurrency = showServer ? serverCurrency : currency;
+  const shownIsCustom = showServer ? !!serverPrice?.isCustomPrice : hasCustomPrice;
+  const shownBase = showServer ? (serverPrice?.basePrice ?? basePrice) : basePrice;
+  const shownDiscountAmount = showServer ? (serverPrice?.discountAmount ?? 0) : discountAmount;
+  const shownDiscountLabel = showServer ? serverPrice?.discountLabel : selectedDiscount?.name;
+  const shownCustomPrice = showServer ? (serverPrice?.amount ?? 0) : customPrice;
+  const shownPayable = showServer ? (serverPrice?.amount ?? 0) : payable;
+  const firstPayments =
+    !showServer && !hasCustomPrice && selectedDiscount?.duration === DiscountDuration.FirstPayments
+      ? selectedDiscount?.durationPayments
+      : undefined;
 
   const submit = (values: FormValues) => {
     setTermsMutation.mutate(
@@ -412,31 +430,38 @@ function PriceForm({ clientId, clientName, summary, packages, discounts }: FormP
             </Field>
           )}
 
-          {selectedPackage && currency && (
+          {selectedPackage && shownCurrency && (
             <dl className="grid grid-cols-[1fr_auto] gap-y-1.5 rounded-xl bg-sunken px-3.5 py-3 text-body">
-              {!hasCustomPrice && (
+              {!shownIsCustom && (
                 <>
                   <dt className="text-muted-foreground">{t('payments.client.terms.packagePrice')}</dt>
-                  <dd className="text-right text-ink">{formatMoney(basePrice, currency, language)}</dd>
+                  <dd className="text-right text-ink">{formatMoney(shownBase, shownCurrency, language)}</dd>
                 </>
               )}
-              {selectedDiscount && !hasCustomPrice && (
+              {shownDiscountLabel && !shownIsCustom && shownDiscountAmount > 0 && (
                 <>
-                  <dt className="text-muted-foreground">{selectedDiscount.name}</dt>
-                  <dd className="text-right text-ink">−{formatMoney(discountAmount, currency, language)}</dd>
+                  <dt className="text-muted-foreground">{shownDiscountLabel}</dt>
+                  <dd className="text-right text-ink">−{formatMoney(shownDiscountAmount, shownCurrency, language)}</dd>
                 </>
               )}
-              {hasCustomPrice && (
+              {shownIsCustom && (
                 <>
                   <dt className="text-muted-foreground">{t('payments.client.terms.customPrice')}</dt>
-                  <dd className="text-right text-ink">{formatMoney(customPrice, currency, language)}</dd>
+                  <dd className="text-right text-ink">{formatMoney(shownCustomPrice, shownCurrency, language)}</dd>
                 </>
               )}
               <dt className="mt-1.5 border-t border-line pt-1.5 font-semibold text-ink">
                 {t('payments.client.terms.pays', { name: clientName })}
               </dt>
               <dd className="mt-1.5 border-t border-line pt-1.5 text-right font-bold text-ink" data-testid="terms-payable">
-                {formatMoney(payable, currency, language)} {suffix}
+                {firstPayments != null
+                  ? t('payments.client.terms.paysFirstPayments', {
+                      count: firstPayments,
+                      amount: formatMoney(shownPayable, shownCurrency, language),
+                      full: formatMoney(shownBase, shownCurrency, language),
+                      suffix,
+                    })
+                  : `${formatMoney(shownPayable, shownCurrency, language)} ${suffix}`}
               </dd>
             </dl>
           )}

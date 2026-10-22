@@ -8,6 +8,7 @@ import { apiClient } from '@/api/client';
 import {
   ClientPaymentKind,
   ClientPaymentStatus,
+  DiscountDuration,
   DiscountScope,
   DiscountType,
   PackageBillingInterval,
@@ -32,6 +33,7 @@ import type {
 export {
   ClientPaymentKind,
   ClientPaymentStatus,
+  DiscountDuration,
   DiscountScope,
   DiscountType,
   PackageBillingInterval,

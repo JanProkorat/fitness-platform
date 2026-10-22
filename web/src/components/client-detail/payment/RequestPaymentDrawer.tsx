@@ -12,7 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Field } from '@/components/profile/ProfileSection';
 import { RequestSectionHeading } from '@/components/client-detail/photos/RequestPhotosStatus';
-import type { ClientPaymentRowDto } from '@/api/client-payments';
+import { ClientPaymentKind, type ClientPaymentRowDto } from '@/api/client-payments';
 import { useRequestClientPayment } from '@/hooks/useClientPaymentQueries';
 import { usePaymentSettings } from '@/hooks/usePaymentSettingsQueries';
 import {
@@ -125,6 +125,8 @@ function RequestForm({ clientId, clientName, rows, initialPaymentId, onClose }: 
 
   const periodLabelOf = (candidate: ClientPaymentRowDto) =>
     candidate.title ?? formatPeriodLabel(candidate.periodStart, candidate.periodEnd, language);
+
+  const isOneOff = row?.kind === ClientPaymentKind.OneOff;
 
   const amountValue = editingAmount ? parseAmount(amountText) : row?.amount;
   const amountInvalid =
@@ -256,7 +258,13 @@ function RequestForm({ clientId, clientName, rows, initialPaymentId, onClose }: 
             <Field
               label={t('payments.client.request.amount')}
               htmlFor="request-payment-amount"
-              hint={editingAmount ? t('payments.client.request.amountEditing') : t('payments.client.request.amountHint')}
+              hint={
+                editingAmount
+                  ? t('payments.client.request.amountEditing')
+                  : isOneOff
+                    ? t('payments.client.request.amountHintOneOff')
+                    : t('payments.client.request.amountHint')
+              }
               error={amountInvalid ? t('payments.client.request.amountInvalid') : undefined}
               aside={row.currency}
             >
@@ -332,7 +340,7 @@ function RequestForm({ clientId, clientName, rows, initialPaymentId, onClose }: 
               {t('payments.client.request.preview.asks', { coach: coachName, amount: previewAmount })}
             </span>
             <span className="text-meta text-muted-foreground">
-              {[row.packageName ?? row.title, periodLabelOf(row), t('payments.client.request.preview.due', { date: previewDue })]
+              {[isOneOff ? undefined : row.packageName, periodLabelOf(row), t('payments.client.request.preview.due', { date: previewDue })]
                 .filter(Boolean)
                 .join(' · ')}
             </span>
