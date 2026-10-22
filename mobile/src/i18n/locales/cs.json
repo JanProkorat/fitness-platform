@@ -194,6 +194,81 @@
       }
     }
   },
+  "journey": {
+    "title": "Moje cesta",
+    "now": "dosud",
+    "fromTo": "{{from}} → {{to}}",
+    "units": {
+      "kg": "{{value}} kg",
+      "cm": "{{value}} cm",
+      "percent": "{{value}} %"
+    },
+    "tabs": {
+      "label": "Zobrazení cesty",
+      "weight": "Váha",
+      "waist": "Pas",
+      "photos": "Fotky"
+    },
+    "legend": {
+      "training": "Tréninkový plán",
+      "nutrition": "Jídelníček",
+      "photos": "Fotky"
+    },
+    "chart": {
+      "empty": {
+        "weight": "Přidej alespoň dvě váhy a uvidíš svůj vývoj.",
+        "waist": "Přidej alespoň dvě míry pasu a uvidíš svůj vývoj."
+      }
+    },
+    "plans": {
+      "title": "Plány",
+      "empty": "Zatím nemáš žádné plány."
+    },
+    "status": {
+      "active": "Aktivní",
+      "completed": "Dokončený"
+    },
+    "plan": {
+      "week": "{{current}}. týden z {{total}}",
+      "sessions": "{{done}} z {{total}} tréninků",
+      "mealsLogged": "{{value}} jídel zapsáno"
+    },
+    "summary": {
+      "completedPlan": "Dokončený plán",
+      "activePlan": "Aktivní plán",
+      "weeks_one": "{{count}} týden",
+      "weeks_few": "{{count}} týdny",
+      "weeks_many": "{{count}} týdne",
+      "weeks_other": "{{count}} týdnů",
+      "sessions": "Tréninky",
+      "sessionsValue": "{{done}} / {{total}}",
+      "completedShare": "{{value}} splněno",
+      "mealsLogged": "Zapsaná jídla",
+      "ofPlanned": "z plánovaných jídel",
+      "weight": "Váha",
+      "waist": "Pas",
+      "beforeAfter": "Před a po",
+      "start": "Začátek",
+      "end": "Konec",
+      "onlyPhoto": "Tvoje fotka",
+      "allSessions": "Všechny tréninky v plánu",
+      "notFound": {
+        "title": "Plán nenalezen",
+        "body": "Tento plán už není k dispozici.",
+        "back": "Zpět"
+      },
+      "error": {
+        "title": "Plán se nepodařilo načíst",
+        "body": "Zkontroluj připojení a zkus to znovu."
+      }
+    },
+    "error": {
+      "series": "Míry se nepodařilo načíst.",
+      "photos": "Značky fotek se nepodařilo načíst.",
+      "plans": "Plány se nepodařilo načíst.",
+      "retry": "Zkusit znovu"
+    }
+  },
   "notifications": {
     "title": "Upozornění",
     "close": "Zavřít upozornění",

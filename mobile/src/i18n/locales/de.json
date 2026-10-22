@@ -192,6 +192,79 @@
       }
     }
   },
+  "journey": {
+    "title": "Meine Reise",
+    "now": "heute",
+    "fromTo": "{{from}} → {{to}}",
+    "units": {
+      "kg": "{{value}} kg",
+      "cm": "{{value}} cm",
+      "percent": "{{value}} %"
+    },
+    "tabs": {
+      "label": "Ansicht der Reise",
+      "weight": "Gewicht",
+      "waist": "Taille",
+      "photos": "Fotos"
+    },
+    "legend": {
+      "training": "Trainingsplan",
+      "nutrition": "Ernährungsplan",
+      "photos": "Fotos"
+    },
+    "chart": {
+      "empty": {
+        "weight": "Trage mindestens zwei Gewichte ein, um deinen Verlauf zu sehen.",
+        "waist": "Trage mindestens zwei Taillenmaße ein, um deinen Verlauf zu sehen."
+      }
+    },
+    "plans": {
+      "title": "Pläne",
+      "empty": "Du hast noch keine Pläne."
+    },
+    "status": {
+      "active": "Aktiv",
+      "completed": "Abgeschlossen"
+    },
+    "plan": {
+      "week": "Woche {{current}} von {{total}}",
+      "sessions": "{{done}} von {{total}} Einheiten",
+      "mealsLogged": "{{value}} der Mahlzeiten erfasst"
+    },
+    "summary": {
+      "completedPlan": "Abgeschlossener Plan",
+      "activePlan": "Aktiver Plan",
+      "weeks_one": "{{count}} Woche",
+      "weeks_other": "{{count}} Wochen",
+      "sessions": "Einheiten",
+      "sessionsValue": "{{done}} / {{total}}",
+      "completedShare": "{{value}} geschafft",
+      "mealsLogged": "Erfasste Mahlzeiten",
+      "ofPlanned": "der geplanten Mahlzeiten",
+      "weight": "Gewicht",
+      "waist": "Taille",
+      "beforeAfter": "Vorher und nachher",
+      "start": "Start",
+      "end": "Ende",
+      "onlyPhoto": "Dein Foto",
+      "allSessions": "Alle Einheiten in diesem Plan",
+      "notFound": {
+        "title": "Plan nicht gefunden",
+        "body": "Dieser Plan ist nicht mehr verfügbar.",
+        "back": "Zurück"
+      },
+      "error": {
+        "title": "Plan konnte nicht geladen werden",
+        "body": "Prüfe deine Verbindung und versuche es erneut."
+      }
+    },
+    "error": {
+      "series": "Deine Messwerte konnten nicht geladen werden.",
+      "photos": "Die Foto-Markierungen konnten nicht geladen werden.",
+      "plans": "Deine Pläne konnten nicht geladen werden.",
+      "retry": "Erneut versuchen"
+    }
+  },
   "notifications": {
     "title": "Benachrichtigungen",
     "close": "Benachrichtigungen schließen",

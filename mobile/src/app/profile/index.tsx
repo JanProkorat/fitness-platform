@@ -156,6 +156,7 @@ export default function ProfileScreen() {
               leading={<RowIcon symbol="point.topleft.down.to.point.bottomright.curvepath" tone="accent" />}
               label={t('profile.progress.journey')}
               trailing={<Sparkline values={weightSeries ?? []} />}
+              onPress={() => router.push('/profile/journey')}
             />
             <ListRow
               leading={<RowIcon symbol="ruler" tone="nutrition" />}

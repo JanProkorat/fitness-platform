@@ -192,6 +192,79 @@
       }
     }
   },
+  "journey": {
+    "title": "My journey",
+    "now": "now",
+    "fromTo": "{{from}} → {{to}}",
+    "units": {
+      "kg": "{{value}} kg",
+      "cm": "{{value}} cm",
+      "percent": "{{value}} %"
+    },
+    "tabs": {
+      "label": "Journey view",
+      "weight": "Weight",
+      "waist": "Waist",
+      "photos": "Photos"
+    },
+    "legend": {
+      "training": "Training plan",
+      "nutrition": "Nutrition plan",
+      "photos": "Photos"
+    },
+    "chart": {
+      "empty": {
+        "weight": "Add at least two weights to see your trend.",
+        "waist": "Add at least two waist measurements to see your trend."
+      }
+    },
+    "plans": {
+      "title": "Plans",
+      "empty": "You don't have any plans yet."
+    },
+    "status": {
+      "active": "Active",
+      "completed": "Completed"
+    },
+    "plan": {
+      "week": "Week {{current}} of {{total}}",
+      "sessions": "{{done}} of {{total}} sessions",
+      "mealsLogged": "{{value}} of meals logged"
+    },
+    "summary": {
+      "completedPlan": "Completed plan",
+      "activePlan": "Active plan",
+      "weeks_one": "{{count}} week",
+      "weeks_other": "{{count}} weeks",
+      "sessions": "Sessions",
+      "sessionsValue": "{{done}} / {{total}}",
+      "completedShare": "{{value}} completed",
+      "mealsLogged": "Meals logged",
+      "ofPlanned": "of planned meals",
+      "weight": "Weight",
+      "waist": "Waist",
+      "beforeAfter": "Before and after",
+      "start": "Start",
+      "end": "End",
+      "onlyPhoto": "Your photo",
+      "allSessions": "All sessions in this plan",
+      "notFound": {
+        "title": "Plan not found",
+        "body": "This plan is no longer available.",
+        "back": "Go back"
+      },
+      "error": {
+        "title": "Can't load this plan",
+        "body": "Check your connection and try again."
+      }
+    },
+    "error": {
+      "series": "Can't load your measurements.",
+      "photos": "Can't load your photo markers.",
+      "plans": "Can't load your plans.",
+      "retry": "Try again"
+    }
+  },
   "notifications": {
     "title": "Notifications",
     "close": "Close notifications",
