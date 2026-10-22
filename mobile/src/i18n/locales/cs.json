@@ -200,6 +200,44 @@
       "retry": "Zkusit znovu"
     }
   },
+  "photos": {
+    "title": "Fotky pokroku",
+    "count_one": "{{count}} fotka",
+    "count_few": "{{count}} fotky",
+    "count_many": "{{count}} fotky",
+    "count_other": "{{count}} fotek",
+    "takePhoto": "Vyfotit",
+    "cancel": "Zrušit",
+    "add": {
+      "title": "Přidat fotku pokroku",
+      "camera": "Vyfotit",
+      "library": "Vybrat z knihovny"
+    },
+    "empty": "Zatím tu nejsou žádné fotky pokroku.",
+    "emptyHint": "Přidej první a začni sledovat svou změnu.",
+    "photoLabel": "Fotka z {{date}}",
+    "viewer": {
+      "close": "Zavřít",
+      "delete": "Smazat fotku",
+      "deleteTitle": "Smazat tuto fotku?",
+      "deleteBody": "Tuto akci nejde vrátit zpět.",
+      "deleteConfirm": "Smazat"
+    },
+    "permission": {
+      "title": "Přístup k fotoaparátu je vypnutý",
+      "body": "Povol přístup k fotoaparátu v Nastavení, aby šlo pořizovat fotky pokroku.",
+      "openSettings": "Otevřít Nastavení"
+    },
+    "errors": {
+      "load": "Fotky se nepodařilo načíst.",
+      "retry": "Zkusit znovu",
+      "title": "Fotku se nepodařilo přidat",
+      "tooLarge": "Tato fotka je větší než 5 MB. Vyber menší.",
+      "unsupportedType": "Tento typ souboru není podporovaný. Použij fotku JPEG, PNG, WebP nebo HEIC.",
+      "upload": "Nahrání se nezdařilo. Zkontroluj připojení a zkus to znovu.",
+      "delete": "Fotku se nepodařilo smazat. Zkus to znovu."
+    }
+  },
   "invites": {
     "invitedYou": "{{name}} tě zve",
     "accept": "Přijmout",

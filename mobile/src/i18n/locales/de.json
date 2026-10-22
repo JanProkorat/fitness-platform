@@ -200,6 +200,42 @@
       "retry": "Erneut versuchen"
     }
   },
+  "photos": {
+    "title": "Fortschrittsfotos",
+    "count_one": "{{count}} Foto",
+    "count_other": "{{count}} Fotos",
+    "takePhoto": "Foto aufnehmen",
+    "cancel": "Abbrechen",
+    "add": {
+      "title": "Fortschrittsfoto hinzufügen",
+      "camera": "Foto aufnehmen",
+      "library": "Aus der Mediathek wählen"
+    },
+    "empty": "Noch keine Fortschrittsfotos.",
+    "emptyHint": "Füge dein erstes hinzu, um deine Veränderung zu verfolgen.",
+    "photoLabel": "Foto vom {{date}}",
+    "viewer": {
+      "close": "Schließen",
+      "delete": "Foto löschen",
+      "deleteTitle": "Dieses Foto löschen?",
+      "deleteBody": "Das kann nicht rückgängig gemacht werden.",
+      "deleteConfirm": "Löschen"
+    },
+    "permission": {
+      "title": "Kamerazugriff ist ausgeschaltet",
+      "body": "Erlaube den Kamerazugriff in den Einstellungen, um Fortschrittsfotos aufzunehmen.",
+      "openSettings": "Einstellungen öffnen"
+    },
+    "errors": {
+      "load": "Deine Fotos konnten nicht geladen werden.",
+      "retry": "Erneut versuchen",
+      "title": "Das Foto konnte nicht hinzugefügt werden",
+      "tooLarge": "Dieses Foto ist größer als 5 MB. Wähle ein kleineres.",
+      "unsupportedType": "Dieser Dateityp wird nicht unterstützt. Verwende ein JPEG-, PNG-, WebP- oder HEIC-Foto.",
+      "upload": "Der Upload ist fehlgeschlagen. Prüfe deine Verbindung und versuche es erneut.",
+      "delete": "Das Foto konnte nicht gelöscht werden. Versuche es erneut."
+    }
+  },
   "invites": {
     "invitedYou": "{{name}} hat dich eingeladen",
     "accept": "Annehmen",

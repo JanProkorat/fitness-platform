@@ -166,6 +166,7 @@ export default function ProfileScreen() {
               leading={<RowIcon symbol="photo" tone="training" />}
               label={t('profile.progress.photos')}
               value={countLabel(language, summary.progressPhotoCount)}
+              onPress={() => router.push('/profile/photos')}
             />
             <ListRow
               leading={<RowIcon symbol="list.clipboard" tone="neutral" />}

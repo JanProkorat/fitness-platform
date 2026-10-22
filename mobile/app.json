@@ -13,8 +13,14 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.gfplatform.mobile",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "CFBundleAllowMixedLocalizations": true
       }
+    },
+    "locales": {
+      "cs": "./native-locales/cs.json",
+      "en": "./native-locales/en.json",
+      "de": "./native-locales/de.json"
     },
     "android": {
       "package": "com.gfplatform.mobile",
@@ -35,6 +41,14 @@
       "expo-localization",
       "expo-secure-store",
       ["expo-notifications", {}],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "GoodFellas uses your photos to upload your progress pictures.",
+          "cameraPermission": "GoodFellas uses the camera to take your progress pictures.",
+          "microphonePermission": false
+        }
+      ],
       [
         "expo-build-properties",
         {
