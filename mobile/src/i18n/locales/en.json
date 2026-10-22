@@ -141,6 +141,42 @@
       "retry": "Try again"
     }
   },
+  "photos": {
+    "title": "Progress photos",
+    "count_one": "{{count}} photo",
+    "count_other": "{{count}} photos",
+    "takePhoto": "Take photo",
+    "cancel": "Cancel",
+    "add": {
+      "title": "Add a progress photo",
+      "camera": "Take photo",
+      "library": "Choose from library"
+    },
+    "empty": "No progress photos yet.",
+    "emptyHint": "Add your first one to start tracking your change.",
+    "photoLabel": "Photo from {{date}}",
+    "viewer": {
+      "close": "Close",
+      "delete": "Delete photo",
+      "deleteTitle": "Delete this photo?",
+      "deleteBody": "This can't be undone.",
+      "deleteConfirm": "Delete"
+    },
+    "permission": {
+      "title": "Camera access is off",
+      "body": "Allow camera access in Settings to take progress photos.",
+      "openSettings": "Open Settings"
+    },
+    "errors": {
+      "load": "Can't load your photos.",
+      "retry": "Try again",
+      "title": "Couldn't add the photo",
+      "tooLarge": "This photo is larger than 5 MB. Choose a smaller one.",
+      "unsupportedType": "This file type isn't supported. Use a JPEG, PNG, WebP or HEIC photo.",
+      "upload": "The upload failed. Check your connection and try again.",
+      "delete": "Couldn't delete the photo. Try again."
+    }
+  },
   "invites": {
     "invitedYou": "{{name}} invited you",
     "accept": "Accept",
