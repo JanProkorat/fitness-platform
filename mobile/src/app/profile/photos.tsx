@@ -22,10 +22,27 @@ import { useUploadPhoto } from '@/hooks/useUploadPhoto';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
 
-const PICK_OPTIONS: ImagePicker.ImagePickerOptions = {
+const MAX_LIBRARY_SELECTION = 10;
+
+const CAMERA_OPTIONS: ImagePicker.ImagePickerOptions = {
   mediaTypes: ['images'],
   quality: PICK_QUALITY,
   allowsMultipleSelection: false,
+};
+
+const LIBRARY_OPTIONS: ImagePicker.ImagePickerOptions = {
+  mediaTypes: ['images'],
+  quality: PICK_QUALITY,
+  allowsMultipleSelection: true,
+  selectionLimit: MAX_LIBRARY_SELECTION,
+  orderedSelection: true,
+};
+
+type FailureKey = 'tooLarge' | 'unsupportedType' | 'upload';
+
+const failureKey = (error: unknown): FailureKey => {
+  const failure = error instanceof PhotoUploadError ? error.failure : 'upload';
+  return failure === 'tooLarge' || failure === 'unsupportedType' ? failure : 'upload';
 };
 
 /** The client's progress photos by month, with upload from the camera or library and delete. */
@@ -41,6 +58,7 @@ export default function ProgressPhotosScreen() {
   const upload = useUploadPhoto();
   const remove = useDeletePhoto();
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
 
   const months = photosQuery.data ?? [];
   const shownCount = months.reduce((total, month) => total + month.photos.length, 0);
@@ -51,21 +69,29 @@ export default function ProgressPhotosScreen() {
     profile?.userId !== undefined &&
     selected.uploadedByUserId.toLowerCase() === profile.userId.toLowerCase();
 
-  const submit = (asset: PickedPhoto) => {
-    upload.mutate(asset, {
-      onError: (error) => {
-        const failure = error instanceof PhotoUploadError ? error.failure : 'upload';
-        const key = failure === 'tooLarge' || failure === 'unsupportedType' ? failure : 'upload';
-        Alert.alert(t('photos.errors.title'), t(`photos.errors.${key}`));
-      },
-    });
+  const submitBatch = async (photos: PickedPhoto[]) => {
+    const failures: FailureKey[] = [];
+    setProgress({ done: 0, total: photos.length });
+    for (const [index, photo] of photos.entries()) {
+      try {
+        await upload.mutateAsync(photo);
+      } catch (error) {
+        failures.push(failureKey(error));
+      }
+      setProgress({ done: index + 1, total: photos.length });
+    }
+    setProgress(null);
+    if (failures.length > 0) {
+      const reason = failures.every((key) => key === failures[0]) ? failures[0] : 'upload';
+      Alert.alert(t('photos.errors.batchFailed', { count: failures.length }), t(`photos.errors.${reason}`));
+    }
   };
 
   const handleResult = (result: ImagePicker.ImagePickerResult) => {
-    const asset = result.canceled ? undefined : result.assets[0];
-    if (asset) {
-      submit({ uri: asset.uri, mimeType: asset.mimeType, fileSize: asset.fileSize });
-    }
+    if (result.canceled || result.assets.length === 0) return;
+    void submitBatch(
+      result.assets.map((asset) => ({ uri: asset.uri, mimeType: asset.mimeType, fileSize: asset.fileSize })),
+    );
   };
 
   const takePhoto = async () => {
@@ -77,11 +103,11 @@ export default function ProgressPhotosScreen() {
       ]);
       return;
     }
-    handleResult(await ImagePicker.launchCameraAsync(PICK_OPTIONS));
+    handleResult(await ImagePicker.launchCameraAsync(CAMERA_OPTIONS));
   };
 
   const chooseFromLibrary = async () => {
-    handleResult(await ImagePicker.launchImageLibraryAsync(PICK_OPTIONS));
+    handleResult(await ImagePicker.launchImageLibraryAsync(LIBRARY_OPTIONS));
   };
 
   const askSource = () => {
@@ -146,14 +172,14 @@ export default function ProgressPhotosScreen() {
 
       <View style={[styles.action, { bottom: insets.bottom + theme.spacing.xxxl }]}>
         <Button
-          label={t('photos.takePhoto')}
+          label={progress ? t('photos.uploadProgress', progress) : t('photos.addPhotos')}
           onPress={askSource}
-          disabled={upload.isPending}
+          disabled={progress !== null}
           icon={
-            upload.isPending ? (
+            progress ? (
               <ActivityIndicator color={theme.colors.onPrimary} />
             ) : (
-              <SymbolView name="camera" tintColor={theme.colors.onPrimary} size={theme.sizes.fieldIcon} />
+              <SymbolView name="photo.badge.plus" tintColor={theme.colors.onPrimary} size={theme.sizes.fieldIcon} />
             )
           }
         />

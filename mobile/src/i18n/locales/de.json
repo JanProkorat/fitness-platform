@@ -306,7 +306,8 @@
     "title": "Fortschrittsfotos",
     "count_one": "{{count}} Foto",
     "count_other": "{{count}} Fotos",
-    "takePhoto": "Foto aufnehmen",
+    "addPhotos": "Fotos hinzufügen",
+    "uploadProgress": "{{done}} / {{total}}",
     "cancel": "Abbrechen",
     "add": {
       "title": "Fortschrittsfoto hinzufügen",
@@ -332,6 +333,8 @@
       "load": "Deine Fotos konnten nicht geladen werden.",
       "retry": "Erneut versuchen",
       "title": "Das Foto konnte nicht hinzugefügt werden",
+      "batchFailed_one": "{{count}} Foto konnte nicht hinzugefügt werden",
+      "batchFailed_other": "{{count}} Fotos konnten nicht hinzugefügt werden",
       "tooLarge": "Dieses Foto ist größer als 5 MB. Wähle ein kleineres.",
       "unsupportedType": "Dieser Dateityp wird nicht unterstützt. Verwende ein JPEG-, PNG-, WebP- oder HEIC-Foto.",
       "upload": "Der Upload ist fehlgeschlagen. Prüfe deine Verbindung und versuche es erneut.",
