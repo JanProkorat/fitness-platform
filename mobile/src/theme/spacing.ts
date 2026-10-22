@@ -121,4 +121,6 @@ export const sizes = {
   metricNoteField: 64,
   metricSave: 36,
   measureInfoGlyph: 15,
+  sheetClose: 36,
+  sheetCloseGlyph: 16,
 } as const;

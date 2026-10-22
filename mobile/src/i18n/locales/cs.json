@@ -509,7 +509,8 @@
     "sheet": {
       "close": "Zavřít",
       "subtitle": "Vyplň jen to, co jsi měřil(a)",
-      "save": "Uložit",
+      "save": "Uložit měření",
+      "done": "Hotovo",
       "error": "Měření se nepodařilo uložit. Zkus to znovu.",
       "measured": "Změřeno",
       "measuredA11y": "Změřeno: {{value}}. Změnit",
