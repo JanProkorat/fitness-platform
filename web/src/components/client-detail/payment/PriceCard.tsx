@@ -53,8 +53,8 @@ function initialValues(terms: ClientPaymentSummaryTermsDto | undefined): FormVal
   return {
     packageId: terms?.packageId ?? '',
     discountId: terms?.discountId ?? '',
-    customPriceOn: terms?.customPrice !== undefined,
-    customPrice: terms?.customPrice === undefined ? '' : String(terms.customPrice),
+    customPriceOn: terms?.customPrice != null,
+    customPrice: terms?.customPrice == null ? '' : String(terms.customPrice),
     firstPeriodStart: todayIso(),
   };
 }

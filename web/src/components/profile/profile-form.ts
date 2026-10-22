@@ -47,7 +47,7 @@ export interface FromPrice {
 
 /** The "from" price of a profile, or null when nothing qualifies (both fields are then absent). */
 export function fromPriceOf(trainer: GetProfessionalProfileResponse): FromPrice | null {
-  if (trainer.fromMonthlyPrice === undefined || trainer.fromMonthlyPriceCurrency === undefined) {
+  if (trainer.fromMonthlyPrice == null || trainer.fromMonthlyPriceCurrency == null) {
     return null;
   }
   return { amount: trainer.fromMonthlyPrice, currency: trainer.fromMonthlyPriceCurrency };

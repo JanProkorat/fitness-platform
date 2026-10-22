@@ -23,7 +23,7 @@ function describeEntry(t: TFunction, entry: ClientPaymentHistoryEntryDto, langua
   const period = formatHistoryPeriod(entry.period, language);
   // Older entries and waive entries carry no currency; an amount without one is left out, not guessed.
   const amount =
-    entry.amount !== undefined && entry.currency !== undefined
+    entry.amount != null && entry.currency != null
       ? formatMoney(entry.amount, entry.currency, language)
       : '';
   if (!isKnownAction(entry.action)) {

@@ -110,7 +110,7 @@ function RequestForm({ clientId, clientName, rows, initialPaymentId, onClose }: 
     defaultValues: {
       paymentId: initialRow?.paymentId ?? '',
       dueDate: defaultDueDate(initialRow, dueDays),
-      amount: initialRow?.amount === undefined ? '' : String(initialRow.amount),
+      amount: initialRow?.amount == null ? '' : String(initialRow.amount),
       sendNotification: true,
       sendEmail: true,
     },
@@ -181,7 +181,7 @@ function RequestForm({ clientId, clientName, rows, initialPaymentId, onClose }: 
 
   const previewDue = formatShortDay(dueDate || row.dueDate, language);
   const previewAmount = formatPaymentAmount(
-    amountValue !== undefined && Number.isFinite(amountValue) ? amountValue : undefined,
+    amountValue != null && Number.isFinite(amountValue) ? amountValue : undefined,
     row.currency,
     language,
   );
@@ -212,7 +212,7 @@ function RequestForm({ clientId, clientName, rows, initialPaymentId, onClose }: 
                       const next = rows.find((candidate) => candidate.paymentId === event.target.value);
                       field.onChange(event.target.value);
                       setValue('dueDate', defaultDueDate(next, dueDays));
-                      setValue('amount', next?.amount === undefined ? '' : String(next.amount));
+                      setValue('amount', next?.amount == null ? '' : String(next.amount));
                       setEditingAmount(false);
                     }}
                   >

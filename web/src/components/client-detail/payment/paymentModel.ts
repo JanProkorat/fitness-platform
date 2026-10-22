@@ -35,10 +35,10 @@ export function discountValueLabel(
   currency: PaymentCurrency | undefined,
   language: string,
 ): string {
-  if (value === undefined) {
+  if (value == null) {
     return '';
   }
-  if (type === DiscountType.FixedAmount && currency !== undefined) {
+  if (type === DiscountType.FixedAmount && currency != null) {
     return `−${formatMoney(value, currency, language)}`;
   }
   return `−${value} %`;
@@ -63,7 +63,7 @@ export function previewDiscountAmount(
   discount: CoachDiscountDto | undefined,
   basePrice: number,
 ): number {
-  if (!discount || discount.value === undefined) {
+  if (!discount || discount.value == null) {
     return 0;
   }
   if (discount.type === DiscountType.FixedAmount) {
@@ -98,11 +98,11 @@ export function termsSummary(
 ): string {
   const currency = terms.currency;
   const basePrice =
-    terms.packagePrice !== undefined && currency !== undefined
+    terms.packagePrice != null && currency != null
       ? `${formatMoney(terms.packagePrice, currency, language)} ${billingSuffix(t, terms.billing, terms.intervalWeeks)}`
       : '';
   const extra =
-    terms.customPrice !== undefined && currency !== undefined
+    terms.customPrice != null && currency != null
       ? t('payments.client.summary.customPrice', { price: formatMoney(terms.customPrice, currency, language) })
       : terms.discountName
         ? `${terms.discountName} ${discountValueLabel(terms.discountType, terms.discountValue, currency, language)}`

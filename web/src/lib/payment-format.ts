@@ -14,7 +14,7 @@ export function formatPaymentAmount(
   currency: PaymentCurrency | undefined,
   language: string,
 ): string {
-  if (amount === undefined || currency === undefined) {
+  if (amount == null || currency == null) {
     return '—';
   }
   return formatMoney(amount, currency, language);
