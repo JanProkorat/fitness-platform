@@ -55,8 +55,7 @@ export default function ProfileScreen() {
     >
       <View style={styles.topBar}>
         <BackButton label={t('onboarding.back')} onPress={() => router.back()} />
-        {/* Edit profile is wired by its own screen; until then the button is shown, inert. */}
-        <GlassButton label={t('profile.edit')}>
+        <GlassButton label={t('profile.edit')} onPress={() => router.push('/profile/edit')}>
           <SymbolView name="pencil" tintColor={theme.colors.ink} size={theme.sizes.backIcon} />
         </GlassButton>
       </View>

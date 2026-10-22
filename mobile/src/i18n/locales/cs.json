@@ -103,6 +103,73 @@
       }
     }
   },
+  "editProfile": {
+    "title": "Upravit profil",
+    "cancel": "Zrušit",
+    "save": "Uložit změny",
+    "firstName": "Jméno",
+    "lastName": "Příjmení",
+    "phone": "Telefon",
+    "phonePlaceholder": "+420 …",
+    "email": "E-mail",
+    "signIn": "Přihlášení",
+    "signInHint": "E-mail a heslo se mění v Nastavení.",
+    "and": "a",
+    "weightLabel": "Váha",
+    "coachesNote_one": "{{names}} uvidí tyto změny a dostane upozornění.",
+    "coachesNote_few": "{{names}} uvidí tyto změny a dostanou upozornění.",
+    "coachesNote_many": "{{names}} uvidí tyto změny a dostanou upozornění.",
+    "coachesNote_other": "{{names}} uvidí tyto změny a dostanou upozornění.",
+    "photo": {
+      "change": "Změnit fotku",
+      "remove": "Odstranit",
+      "errors": {
+        "tooLarge": "Fotka je příliš velká. Vyber menší (max. 5 MB).",
+        "unsupported": "Tento formát fotky se nepodporuje.",
+        "network": "Server není dostupný. Zkontroluj připojení a zkus to znovu.",
+        "generic": "Fotku se nepodařilo změnit. Zkus to znovu."
+      }
+    },
+    "info": {
+      "title": "Moje údaje",
+      "subtitle": "Z tvé registrace. Udržuj je aktuální, ať ti plány sednou.",
+      "goalSection": "Cíl",
+      "trainingSection": "Trénink",
+      "eatingSection": "Jídlo",
+      "goal": "Hlavní cíl",
+      "targetWeight": "Cílová váha",
+      "perWeek": "Tréninků týdně",
+      "perWeekValue": "{{count}}× týdně",
+      "gym": "Přístup do posilovny",
+      "injuries": "Zranění",
+      "diet": "Strava",
+      "allergies": "Alergie",
+      "dislikes": "Jídla, která nechceš",
+      "rowLabel": "{{label}}: {{value}}. Změnit"
+    },
+    "errors": {
+      "required": "Vyplň toto pole.",
+      "weightRange": "Zadej váhu mezi {{min}} a {{max}} kg.",
+      "listTooLong": "Seznam je příliš dlouhý. Odeber pár položek.",
+      "tooManyItems": "Maximálně 20 položek.",
+      "itemTooLong": "Jedna položka je příliš dlouhá.",
+      "partial": "Část změn se uložila, zbytek ne. Zkus uložit znovu.",
+      "save": {
+        "network": "Server není dostupný. Zkontroluj připojení a zkus to znovu.",
+        "invalid": "Zkontroluj zvýrazněná pole a zkus to znovu.",
+        "generic": "Změny se nepodařilo uložit. Zkus to znovu."
+      }
+    },
+    "discard": {
+      "title": "Zahodit změny?",
+      "body": "Neuložené změny se ztratí.",
+      "keep": "Pokračovat v úpravách",
+      "discard": "Zahodit"
+    },
+    "error": {
+      "load": "Profil se nepodařilo načíst."
+    }
+  },
   "profile": {
     "edit": "Upravit profil",
     "since": "registrace {{date}}",

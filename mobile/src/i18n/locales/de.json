@@ -103,6 +103,71 @@
       }
     }
   },
+  "editProfile": {
+    "title": "Profil bearbeiten",
+    "cancel": "Abbrechen",
+    "save": "Änderungen speichern",
+    "firstName": "Vorname",
+    "lastName": "Nachname",
+    "phone": "Telefon",
+    "phonePlaceholder": "+420 …",
+    "email": "E-Mail",
+    "signIn": "Anmeldung",
+    "signInHint": "E-Mail und Passwort änderst du in den Einstellungen.",
+    "and": "und",
+    "weightLabel": "Gewicht",
+    "coachesNote_one": "{{names}} sieht diese Änderungen und bekommt eine Benachrichtigung.",
+    "coachesNote_other": "{{names}} sehen diese Änderungen und bekommen eine Benachrichtigung.",
+    "photo": {
+      "change": "Foto ändern",
+      "remove": "Entfernen",
+      "errors": {
+        "tooLarge": "Das Foto ist zu groß. Wähle ein kleineres (max. 5 MB).",
+        "unsupported": "Dieses Fotoformat wird nicht unterstützt.",
+        "network": "Server nicht erreichbar. Prüfe deine Verbindung und versuche es erneut.",
+        "generic": "Das Foto konnte nicht geändert werden. Versuche es erneut."
+      }
+    },
+    "info": {
+      "title": "Meine Angaben",
+      "subtitle": "Aus deiner Anmeldung. Halte sie aktuell, damit deine Pläne passen.",
+      "goalSection": "Ziel",
+      "trainingSection": "Training",
+      "eatingSection": "Ernährung",
+      "goal": "Hauptziel",
+      "targetWeight": "Zielgewicht",
+      "perWeek": "Training pro Woche",
+      "perWeekValue": "{{count}}× pro Woche",
+      "gym": "Zugang zum Fitnessstudio",
+      "injuries": "Verletzungen",
+      "diet": "Ernährungsweise",
+      "allergies": "Allergien",
+      "dislikes": "Lebensmittel, die du nicht magst",
+      "rowLabel": "{{label}}: {{value}}. Ändern"
+    },
+    "errors": {
+      "required": "Bitte ausfüllen.",
+      "weightRange": "Gib ein Gewicht zwischen {{min}} und {{max}} kg ein.",
+      "listTooLong": "Die Liste ist zu lang. Entferne ein paar Einträge.",
+      "tooManyItems": "Höchstens 20 Einträge.",
+      "itemTooLong": "Ein Eintrag ist zu lang.",
+      "partial": "Ein Teil der Änderungen wurde gespeichert, der Rest nicht. Versuche es erneut.",
+      "save": {
+        "network": "Server nicht erreichbar. Prüfe deine Verbindung und versuche es erneut.",
+        "invalid": "Prüfe die markierten Felder und versuche es erneut.",
+        "generic": "Die Änderungen konnten nicht gespeichert werden. Versuche es erneut."
+      }
+    },
+    "discard": {
+      "title": "Änderungen verwerfen?",
+      "body": "Nicht gespeicherte Änderungen gehen verloren.",
+      "keep": "Weiter bearbeiten",
+      "discard": "Verwerfen"
+    },
+    "error": {
+      "load": "Das Profil konnte nicht geladen werden."
+    }
+  },
   "profile": {
     "edit": "Profil bearbeiten",
     "since": "seit {{date}}",
