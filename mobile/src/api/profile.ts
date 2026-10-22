@@ -1,9 +1,16 @@
 import { api } from '@/api/client';
-import type { GetProfileResponse } from '@/api/generated';
+import type { GetClientProfileSummaryResponse, GetProfileResponse } from '@/api/generated';
 
 export type Profile = GetProfileResponse;
+export type ProfileSummary = GetClientProfileSummaryResponse;
 
 export const PROFILE_QUERY_KEY = ['me'] as const;
+export const PROFILE_SUMMARY_QUERY_KEY = ['profile', 'summary'] as const;
+
+/** Loads the client's Profile headline numbers (GET /client/profile/summary). */
+export function fetchProfileSummary(signal?: AbortSignal): Promise<ProfileSummary> {
+  return api.getClientProfileSummaryEndpoint(signal);
+}
 
 export const ROLE_CLIENT = 'Client';
 export const ROLE_TRAINER = 'Trainer';

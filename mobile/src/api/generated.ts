@@ -909,6 +909,83 @@ export class ApiClient {
     }
 
     /**
+     * List my check-in history (client)
+     * @param page Page number (1-based). Defaults to 1.
+     * @param pageSize Number of items per page (1-100). Defaults to 20.
+     * @return Page of check-in history
+     */
+    getMyCheckInHistoryEndpoint(page: number, pageSize: number, signal?: AbortSignal): Promise<GetMyCheckInHistoryResponse> {
+        let url_ = this.baseUrl + "/client/weekly-check-ins/history?";
+        if (page === undefined || page === null)
+            throw new globalThis.Error("The parameter 'page' must be defined and cannot be null.");
+        else
+            url_ += "page=" + encodeURIComponent("" + page) + "&";
+        if (pageSize === undefined || pageSize === null)
+            throw new globalThis.Error("The parameter 'pageSize' must be defined and cannot be null.");
+        else
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetMyCheckInHistoryEndpoint(_response);
+        });
+    }
+
+    protected processGetMyCheckInHistoryEndpoint(response: AxiosResponse): Promise<GetMyCheckInHistoryResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GetMyCheckInHistoryResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid page or pageSize", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GetMyCheckInHistoryResponse>(null as any);
+    }
+
+    /**
      * Get active check-ins (client)
      * @return Success
      */
@@ -16305,6 +16382,77 @@ export class ApiClient {
     }
 
     /**
+     * Generate progress photo upload URL (no plan)
+     * @return Upload URL and blob URL
+     */
+    generateUnlinkedPhotoUploadUrlEndpoint(generateUnlinkedPhotoUploadUrlRequest: GenerateUnlinkedPhotoUploadUrlRequest, signal?: AbortSignal): Promise<GenerateUnlinkedPhotoUploadUrlResponse> {
+        let url_ = this.baseUrl + "/client/photos/upload-url";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(generateUnlinkedPhotoUploadUrlRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGenerateUnlinkedPhotoUploadUrlEndpoint(_response);
+        });
+    }
+
+    protected processGenerateUnlinkedPhotoUploadUrlEndpoint(response: AxiosResponse): Promise<GenerateUnlinkedPhotoUploadUrlResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GenerateUnlinkedPhotoUploadUrlResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Unsupported content type or invalid size", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GenerateUnlinkedPhotoUploadUrlResponse>(null as any);
+    }
+
+    /**
      * Generate plan photo upload URL
      * @param planId Route: the plan's public identifier (NutritionPlan.ExternalId or TrainingPlan.ExternalId).
      * @return Success
@@ -16377,6 +16525,77 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<GeneratePlanPhotoUploadUrlResponse>(null as any);
+    }
+
+    /**
+     * Finalize progress photo upload (no plan)
+     * @return Progress photo finalized
+     */
+    finalizeUnlinkedPhotoEndpoint(finalizeUnlinkedPhotoRequest: FinalizeUnlinkedPhotoRequest, signal?: AbortSignal): Promise<PlanPhotoResponse> {
+        let url_ = this.baseUrl + "/client/photos";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(finalizeUnlinkedPhotoRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processFinalizeUnlinkedPhotoEndpoint(_response);
+        });
+    }
+
+    protected processFinalizeUnlinkedPhotoEndpoint(response: AxiosResponse): Promise<PlanPhotoResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 201) {
+            const _responseText = response.data;
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = JSON.parse(resultData201);
+            return Promise.resolve<PlanPhotoResponse>(result201);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid request, or blob URL not under the caller\'s unlinked prefix", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<PlanPhotoResponse>(null as any);
     }
 
     /**
@@ -18707,6 +18926,137 @@ export class ApiClient {
     }
 
     /**
+     * Get the client's profile summary
+     * @return Profile summary; counts are 0 and nullable fields null when the client has no data
+     */
+    getClientProfileSummaryEndpoint(signal?: AbortSignal): Promise<GetClientProfileSummaryResponse> {
+        let url_ = this.baseUrl + "/client/profile/summary";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetClientProfileSummaryEndpoint(_response);
+        });
+    }
+
+    protected processGetClientProfileSummaryEndpoint(response: AxiosResponse): Promise<GetClientProfileSummaryResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GetClientProfileSummaryResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GetClientProfileSummaryResponse>(null as any);
+    }
+
+    /**
+     * Get a plan summary
+     * @param planId Route parameter — public id of the nutrition or training plan.
+     * @return Plan summary
+     */
+    getClientPlanSummaryEndpoint(planId: string, signal?: AbortSignal): Promise<GetClientPlanSummaryResponse> {
+        let url_ = this.baseUrl + "/client/plans/{planId}/summary";
+        if (planId === undefined || planId === null)
+            throw new globalThis.Error("The parameter 'planId' must be defined.");
+        url_ = url_.replace("{planId}", encodeURIComponent("" + planId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetClientPlanSummaryEndpoint(_response);
+        });
+    }
+
+    protected processGetClientPlanSummaryEndpoint(response: AxiosResponse): Promise<GetClientPlanSummaryResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GetClientPlanSummaryResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid plan id", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GetClientPlanSummaryResponse>(null as any);
+    }
+
+    /**
      * List client plans
      * @param status (optional) Filter by plan status (e.g. "Completed", "Active").
     When null, returns all non-draft plans.
@@ -18849,6 +19199,137 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<GetClientRecordsResponse>(null as any);
+    }
+
+    /**
+     * Edit my onboarding answers
+     * @return Current answers (unchanged when nothing differed)
+     */
+    updateClientOnboardingAnswersEndpoint(updateClientOnboardingAnswersRequest: UpdateClientOnboardingAnswersRequest, signal?: AbortSignal): Promise<ClientOnboardingAnswersResponse> {
+        let url_ = this.baseUrl + "/client/onboarding/answers";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(updateClientOnboardingAnswersRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PATCH",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUpdateClientOnboardingAnswersEndpoint(_response);
+        });
+    }
+
+    protected processUpdateClientOnboardingAnswersEndpoint(response: AxiosResponse): Promise<ClientOnboardingAnswersResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<ClientOnboardingAnswersResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ClientOnboardingAnswersResponse>(null as any);
+    }
+
+    /**
+     * Get my onboarding answers
+     * @return Current answers
+     */
+    getClientOnboardingAnswersEndpoint(signal?: AbortSignal): Promise<ClientOnboardingAnswersResponse> {
+        let url_ = this.baseUrl + "/client/onboarding/answers";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetClientOnboardingAnswersEndpoint(_response);
+        });
+    }
+
+    protected processGetClientOnboardingAnswersEndpoint(response: AxiosResponse): Promise<ClientOnboardingAnswersResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<ClientOnboardingAnswersResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ClientOnboardingAnswersResponse>(null as any);
     }
 
     /**
@@ -21480,6 +21961,44 @@ export interface CheckInOverrideDto {
     addendum?: string | undefined;
     /** Override deadline offset in hours. Null = inherit. */
     deadlineOffsetHours?: number | undefined;
+}
+
+/** One page of the caller's own weekly check-in history, newest first. */
+export interface GetMyCheckInHistoryResponse {
+    /** Check-ins on the requested page. */
+    items?: MyCheckInHistoryItem[];
+}
+
+/** One check-in in the caller's history. Carries no client answers (flags, note, hunger score). */
+export interface MyCheckInHistoryItem {
+    /** Check-in id. */
+    id?: string;
+    /** User id of the professional who sent the check-in. */
+    professionalUserId?: string;
+    /** Display name of the professional. */
+    professionalName?: string;
+    /** Profession the check-in applies to (Training or Nutrition). */
+    profession?: string;
+    /** ISO-week Monday of the week being planned. */
+    weekStartDate?: string;
+    /** UTC time the check-in was sent. */
+    sentAt?: string;
+    /** Lifecycle status (Pending, Responded, Dismissed, Reviewed, Expired). */
+    status?: string;
+    /** UTC time the client responded; null when not responded. */
+    respondedAt?: string | undefined;
+    /** UTC time the client dismissed the check-in; null when not dismissed. */
+    dismissedAt?: string | undefined;
+    /** UTC time the check-in expired unanswered; null when not expired. */
+    expiredAt?: string | undefined;
+    /** UTC response deadline; null for legacy rows without one. */
+    dueAt?: string | undefined;
+    /** UTC time the professional marked the check-in reviewed; null when not reviewed. */
+    reviewedAt?: string | undefined;
+}
+
+/** Query parameters for GET /client/weekly-check-ins/history. */
+export interface GetMyCheckInHistoryRequest {
 }
 
 /** Response for GET /client/weekly-check-ins/current. Returns 0–2 active check-ins (not responded, not dismissed, not expired, still within the response deadline) — at most one per profession. If more than one active check-in exists for the same profession, only the one with the newest SentAt is returned. */
@@ -27788,6 +28307,22 @@ export interface GetMyPhotosResponse {
 export interface GetMyPhotosRequest {
 }
 
+/** Response for the plan-less progress photo upload URL endpoint. */
+export interface GenerateUnlinkedPhotoUploadUrlResponse {
+    /** Time-limited pre-signed PUT URL for direct upload to blob storage. */
+    uploadUrl?: string;
+    /** The permanent blob URL to pass to POST /client/photos to finalize the record. */
+    blobUrl?: string;
+}
+
+/** Request model for generating a pre-signed upload URL for a progress photo that has no plan. */
+export interface GenerateUnlinkedPhotoUploadUrlRequest {
+    /** MIME type of the image file (image/jpeg, image/png, image/webp, image/heic, image/heif). */
+    contentType: string;
+    /** Declared file size in bytes. Must not exceed 5 MiB. */
+    sizeBytes?: number;
+}
+
 /** Response for the plan photo upload URL generation endpoint. Consistent with the shape used by GenerateMealPhotoUploadUrlEndpoint and GenerateDayPhotoUploadUrlEndpoint. */
 export interface GeneratePlanPhotoUploadUrlResponse {
     /** Time-limited pre-signed PUT URL for direct upload to blob storage. */
@@ -27803,6 +28338,18 @@ export interface GeneratePlanPhotoUploadUrlRequest {
     contentType: string;
     /** Declared file size in bytes. Must not exceed 5 MiB. */
     sizeBytes?: number;
+}
+
+/** Request model for finalizing a progress photo upload that belongs to no plan. The caller must have uploaded the image using the URL from POST /client/photos/upload-url. */
+export interface FinalizeUnlinkedPhotoRequest {
+    /** Blob URL returned by the upload-url endpoint. */
+    blobUrl: string;
+    /** Category of the photo. Only Body and FreeForm are accepted. */
+    category?: PlanPhotoCategory;
+    /** Optional caption / description (max 500 chars). */
+    description?: string | undefined;
+    /** When the photo was taken. Defaults to UtcNow when not provided. */
+    takenAt?: string | undefined;
 }
 
 /** Request model for finalizing a plan photo upload by inserting a PlanPhoto row. The caller must have already uploaded the photo to blob storage using the URL from POST /client/plans/{planId}/photos/upload-url. */
@@ -28632,6 +29179,74 @@ export interface GetComplianceScoreResponse {
 export interface GetComplianceScoreRequest {
 }
 
+/** Headline numbers for the client's own Profile screen. */
+export interface GetClientProfileSummaryResponse {
+    /** Primary goal from onboarding; null when the client has not onboarded. */
+    goal?: PrimaryGoal | undefined;
+    /** When the account was created (UTC). */
+    memberSince?: string;
+    /** Most recent recorded weight in kg; null when no weight was ever recorded. */
+    latestWeightKg?: number | undefined;
+    /** Latest minus earliest recorded weight in kg; 0 with one weight, null with none. */
+    weightChangeSinceStartKg?: number | undefined;
+    /** Plans (nutrition + training) the client can open: not draft, with a published week. */
+    planCount?: number;
+    /** Training session executions that count as complete. */
+    completedWorkoutCount?: number;
+    /** Body and free-form photos, linked to a plan or not. */
+    progressPhotoCount?: number;
+    /** Weekly check-ins addressed to the client. */
+    checkInCount?: number;
+}
+
+/** Progress summary of one client plan: sessions, body measurements and progress photos over the plan window. */
+export interface GetClientPlanSummaryResponse {
+    /** Public id of the plan. */
+    planId?: string;
+    /** Plan name. */
+    planName?: string;
+    /** Plan kind: nutrition or training. */
+    type?: string;
+    /** Plan status name. */
+    status?: string;
+    /** Full name of the coach who wrote the plan; null when that user no longer exists. */
+    coachName?: string | undefined;
+    /** First day of the plan; null for a plan without a start date. */
+    startDate?: string | undefined;
+    /** Last day of the plan (the completion date when the plan ended early); null without a start date. */
+    endDate?: string | undefined;
+    /** Training sessions scheduled so far; null for nutrition plans and plans not yet started. */
+    sessionsTotal?: number | undefined;
+    /** Scheduled sessions the client completed; null whenever SessionsTotal is. */
+    sessionsDone?: number | undefined;
+    /** Weight near the start of the plan, in kg. */
+    weightStartKg?: number | undefined;
+    /** Weight near the end of the plan, in kg. */
+    weightEndKg?: number | undefined;
+    /** Waist near the start of the plan, in cm. */
+    waistStartCm?: number | undefined;
+    /** Waist near the end of the plan, in cm. */
+    waistEndCm?: number | undefined;
+    /** Earliest progress photo taken inside the plan window. */
+    firstPhoto?: ClientPlanSummaryPhoto | undefined;
+    /** Latest progress photo taken inside the plan window (the same photo when there is only one). */
+    lastPhoto?: ClientPlanSummaryPhoto | undefined;
+}
+
+/** A progress photo shown in the plan summary. */
+export interface ClientPlanSummaryPhoto {
+    /** Public id of the photo. */
+    id?: string;
+    /** Short-lived signed URL to display the photo. */
+    displayUrl?: string;
+    /** When the photo was taken (UTC). */
+    takenAt?: string;
+}
+
+/** Request for the client's summary of one of their plans. */
+export interface GetClientPlanSummaryRequest {
+}
+
 /** Response containing the client's plans. */
 export interface GetClientPlansResponse {
     /** Plan summaries. */
@@ -28666,6 +29281,20 @@ Computed from StartDate (preferred) or the first published week's DatePublished.
     /** Whether today's day-of-week has a session in the current week. Populated for training plans only.
 Null when CurrentWeek is null or for nutrition plans. */
     hasTodaySession?: boolean | undefined;
+    /** Last day of the plan (StartDate + TotalWeeks weeks - 1 day). Null when the plan has no StartDate. */
+    endDate?: string | undefined;
+    /** Sessions scheduled from StartDate up to today (or EndDate, whichever is earlier).
+Training plans only; null without a StartDate or before anything is planned. */
+    sessionsTotal?: number | undefined;
+    /** How many of SessionsTotal the client completed. Training plans only; never exceeds the total. */
+    sessionsDone?: number | undefined;
+    /** Share (0-100) of the meals planned in the window that the client logged as eaten.
+Nutrition plans only; null without a StartDate or when no meals are planned yet. */
+    mealsLoggedPercent?: number | undefined;
+    /** Full name of the professional who authored the plan. Null when that user no longer exists. */
+    professionalName?: string | undefined;
+    /** "Trainer" for training plans, "Nutritionist" for nutrition plans. */
+    professionalRole?: string;
 }
 
 /** Optional query parameters for filtering client plans. */
@@ -28698,6 +29327,86 @@ export interface PersonalRecordSummary {
 
 /** Query parameters for listing the authenticated client's personal records. */
 export interface GetClientRecordsRequest {
+}
+
+/** The onboarding answers a client may edit later. */
+export interface ClientOnboardingAnswersResponse {
+    /** Primary goal (enum name). */
+    primaryGoal?: string;
+    /** Target weight in kilograms, if set. */
+    targetWeightKg?: number | undefined;
+    /** Desired training frequency (enum name). */
+    desiredTrainingFrequency?: string;
+    /** Gym access (enum name). */
+    gymAccess?: string;
+    /** Injuries or limitations. */
+    injuries?: string[];
+    /** Dietary style (enum name). */
+    dietaryStyle?: string;
+    /** Food allergies and intolerances. */
+    allergies?: string[];
+    /** Foods the client dislikes. */
+    dislikes?: string[];
+    /** Date of birth. */
+    dateOfBirth?: string;
+    /** Biological sex (enum name). */
+    sex?: string;
+    /** Height in centimeters. */
+    heightCm?: number;
+    /** Type of daily job activity (enum name). */
+    jobType?: string;
+    /** Average hours of sleep per night. */
+    sleepHours?: number;
+    /** Self-reported stress level (1-5). */
+    stressLevel?: number;
+    /** Current training frequency (enum name). */
+    currentTrainingFrequency?: string;
+    /** Preferred activity types. */
+    preferredActivities?: string[];
+    /** Meals per day (enum name). */
+    mealsPerDay?: string;
+    /** Eating habits. */
+    habits?: string[];
+}
+
+/** Partial update of the client's onboarding answers. A null property is left unchanged. */
+export interface UpdateClientOnboardingAnswersRequest {
+    /** Primary goal (enum name). */
+    primaryGoal?: string | undefined;
+    /** Target weight in kilograms (40-250). */
+    targetWeightKg?: number | undefined;
+    /** Desired training frequency (enum name). */
+    desiredTrainingFrequency?: string | undefined;
+    /** Gym access (enum name). */
+    gymAccess?: string | undefined;
+    /** Injuries or limitations; replaces the stored list. */
+    injuries?: string[] | undefined;
+    /** Dietary style (enum name). */
+    dietaryStyle?: string | undefined;
+    /** Food allergies and intolerances; replaces the stored list. */
+    allergies?: string[] | undefined;
+    /** Foods the client dislikes; replaces the stored list. */
+    dislikes?: string[] | undefined;
+    /** Date of birth; the client must be 13-100 years old. */
+    dateOfBirth?: string | undefined;
+    /** Biological sex (enum name). */
+    sex?: string | undefined;
+    /** Height in centimeters (140-220, one decimal place). */
+    heightCm?: number | undefined;
+    /** Type of daily job activity (enum name). */
+    jobType?: string | undefined;
+    /** Average hours of sleep per night (1-10). */
+    sleepHours?: number | undefined;
+    /** Self-reported stress level (1-5). */
+    stressLevel?: number | undefined;
+    /** Current training frequency over the last four weeks (enum name). */
+    currentTrainingFrequency?: string | undefined;
+    /** Preferred activity types; replaces the stored list. */
+    preferredActivities?: string[] | undefined;
+    /** Meals per day (enum name). */
+    mealsPerDay?: string | undefined;
+    /** Eating habits; replaces the stored list. */
+    habits?: string[] | undefined;
 }
 
 export interface MarkNotificationReadRequest {

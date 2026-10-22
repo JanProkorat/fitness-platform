@@ -2,7 +2,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { SymbolView } from 'expo-symbols';
 import { useTranslation } from 'react-i18next';
 
-import { coachFullName, primaryRole } from '@/api/professionals';
+import { coachFullName, coachRoles } from '@/api/professionals';
 import type { CoachSummary } from '@/api/professionals';
 import { Text } from '@/components/Text';
 import { useTheme } from '@/theme';
@@ -15,14 +15,16 @@ import { CoachRoleChip } from './CoachRoleChip';
 type CoachRowProps = {
   coach: CoachSummary;
   onPress: () => void;
+  /** Show one role chip per role the coach holds. */
+  showRoles: boolean;
 };
 
 /** One search result: photo, name and role, where they work, specialties and availability. */
-export function CoachRow({ coach, onPress }: CoachRowProps) {
+export function CoachRow({ coach, onPress, showRoles }: CoachRowProps) {
   const { t } = useTranslation();
   const theme = useTheme();
   const styles = makeStyles(theme);
-  const role = primaryRole(coach.roles);
+  const roles = showRoles ? coachRoles(coach.roles) : [];
   const where = [coach.city, coach.online ? t('coachSearch.online') : undefined]
     .filter(Boolean)
     .join(' · ');
@@ -41,7 +43,13 @@ export function CoachRow({ coach, onPress }: CoachRowProps) {
           <Text variant="subtitle" numberOfLines={1} style={styles.name}>
             {coachFullName(coach)}
           </Text>
-          {role ? <CoachRoleChip role={role} /> : null}
+          {roles.length > 0 ? (
+            <View style={styles.roles}>
+              {roles.map((role) => (
+                <CoachRoleChip key={role} role={role} />
+              ))}
+            </View>
+          ) : null}
         </View>
         {where ? (
           <View style={styles.where}>
@@ -88,6 +96,11 @@ const makeStyles = (theme: Theme) =>
     },
     name: {
       flexShrink: 1,
+    },
+    roles: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: theme.spacing.xs,
     },
     where: {
       flexDirection: 'row',

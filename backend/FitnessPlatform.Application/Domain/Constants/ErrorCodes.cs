@@ -566,6 +566,9 @@ public static class ErrorCodes
     /// <summary>A progress-photos rule's message is over the photo request's 500-character limit.</summary>
     public const string AutomationPhotoMessageTooLong = "AUTOMATION_PHOTO_MESSAGE_TOO_LONG";
 
+    /// <summary>The client has not completed onboarding, so there are no answers to read or edit.</summary>
+    public const string OnboardingNotCompleted = "ONBOARDING_NOT_COMPLETED";
+
     // ── Coach payment settings (#1577) ──────────────────────────────────
     /// <summary>The coach's subscription does not include the payments feature, or is not in good standing.</summary>
     public const string PaymentsNotEntitled = "PAYMENTS_NOT_ENTITLED";

@@ -2,6 +2,7 @@ import { StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { Screen } from '@/components/Screen';
+import { TabFade } from '@/components/TabFade';
 import { Text } from '@/components/Text';
 import { FindCoachSection } from '@/components/today/FindCoachSection';
 import type { CoachRole } from '@/components/today/FindCoachSection';
@@ -15,6 +16,14 @@ import type { Theme } from '@/theme';
 const COACH_ROLES: CoachRole[] = ['Trainer', 'Nutritionist'];
 
 export default function TodayScreen() {
+  return (
+    <TabFade>
+      <TodayContent />
+    </TabFade>
+  );
+}
+
+function TodayContent() {
   const { t } = useTranslation();
   const theme = useTheme();
   const styles = makeStyles(theme);

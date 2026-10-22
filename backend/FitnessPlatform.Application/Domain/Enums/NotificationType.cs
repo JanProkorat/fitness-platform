@@ -65,6 +65,9 @@ public enum NotificationType
     /// <summary>A coach's automation asked the client to log their body measurements; delivered to the client.</summary>
     MeasurementRequested,
 
+    /// <summary>A client edited their onboarding answers; delivered to each linked professional.</summary>
+    OnboardingAnswersUpdated,
+
     /// <summary>A coach asked the client to pay; delivered to the client.</summary>
     PaymentRequested
 }
