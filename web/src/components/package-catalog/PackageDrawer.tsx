@@ -11,12 +11,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { PackageBillingInterval, PaymentCurrency, type CoachPackageDto } from '@/api/coach-packages';
 import {
   ChoiceButton,
-  FIELD_CLASS,
   SectionHeading,
   SELECT_CLASS,
   SelectChevron,
 } from '@/components/automations/automationFormParts';
-import { FieldHint, FormError, type SaveOutcome } from '@/components/package-catalog/packageFormParts';
+import { Field, FieldHint, type SaveOutcome } from '@/components/package-catalog/packageFormParts';
 import { formatMoney } from '@/lib/money';
 import {
   MAX_AMOUNT,
@@ -107,46 +106,38 @@ function DrawerBody({ item, onSubmit, isSaving, onClose }: BodyProps) {
       <div className="flex flex-1 flex-col gap-6 overflow-y-auto px-6 py-5">
         <section className="flex flex-col gap-4">
           <SectionHeading icon={<Package className="size-4" />}>{t('packages.drawer.sectionPackage')}</SectionHeading>
-          <label className={FIELD_CLASS}>
-            <span>{t('packages.drawer.name')}</span>
-            <Input {...register('name')} aria-invalid={errors.name ? true : undefined} />
-            <FormError message={errors.name?.message} />
-          </label>
-          <label className={FIELD_CLASS}>
-            <span>{t('packages.drawer.included')}</span>
-            <Textarea
-              {...register('description')}
-              rows={3}
-              aria-invalid={errors.description ? true : undefined}
-            />
-            <FormError message={errors.description?.message} />
-            <FieldHint>{t('packages.drawer.includedHint')}</FieldHint>
-          </label>
+          <Field label={t('packages.drawer.name')} error={errors.name?.message}>
+            {(control) => <Input {...register('name')} {...control} />}
+          </Field>
+          <Field
+            label={t('packages.drawer.included')}
+            error={errors.description?.message}
+            hint={t('packages.drawer.includedHint')}
+          >
+            {(control) => <Textarea {...register('description')} rows={3} {...control} />}
+          </Field>
         </section>
 
         <section className="flex flex-col gap-4">
           <SectionHeading icon={<Wallet className="size-4" />}>{t('packages.drawer.sectionPrice')}</SectionHeading>
           <div className="grid grid-cols-2 gap-3">
-            <label className={FIELD_CLASS}>
-              <span>{t('packages.drawer.price')}</span>
-              <Input
-                {...register('price')}
-                inputMode="decimal"
-                aria-invalid={errors.price ? true : undefined}
-              />
-              <FormError message={errors.price?.message} />
-            </label>
-            <label className={FIELD_CLASS}>
-              <span>{t('packages.drawer.currency')}</span>
-              <span className="relative">
-                <select {...register('currency')} disabled={currencyLocked} className={SELECT_CLASS}>
-                  <option value={PaymentCurrency.CZK}>{PaymentCurrency.CZK}</option>
-                  <option value={PaymentCurrency.EUR}>{PaymentCurrency.EUR}</option>
-                </select>
-                <SelectChevron />
-              </span>
-              {currencyLocked && <FieldHint>{t('packages.drawer.currencyLocked')}</FieldHint>}
-            </label>
+            <Field label={t('packages.drawer.price')} error={errors.price?.message}>
+              {(control) => <Input {...register('price')} inputMode="decimal" {...control} />}
+            </Field>
+            <Field
+              label={t('packages.drawer.currency')}
+              hint={currencyLocked ? t('packages.drawer.currencyLocked') : undefined}
+            >
+              {(control) => (
+                <span className="relative">
+                  <select {...register('currency')} disabled={currencyLocked} className={SELECT_CLASS} {...control}>
+                    <option value={PaymentCurrency.CZK}>{PaymentCurrency.CZK}</option>
+                    <option value={PaymentCurrency.EUR}>{PaymentCurrency.EUR}</option>
+                  </select>
+                  <SelectChevron />
+                </span>
+              )}
+            </Field>
           </div>
           <FieldHint>
             {t('packages.drawer.priceCap', {
@@ -171,52 +162,52 @@ function DrawerBody({ item, onSubmit, isSaving, onClose }: BodyProps) {
           </div>
 
           {billing === PackageBillingInterval.EveryNWeeks && (
-            <label className={FIELD_CLASS}>
-              <span>{t('packages.drawer.intervalWeeks')}</span>
-              <Input
-                {...register('intervalWeeks')}
-                inputMode="numeric"
-                aria-invalid={errors.intervalWeeks ? true : undefined}
-              />
-              <FormError message={errors.intervalWeeks?.message} />
-            </label>
+            <Field label={t('packages.drawer.intervalWeeks')} error={errors.intervalWeeks?.message}>
+              {(control) => <Input {...register('intervalWeeks')} inputMode="numeric" {...control} />}
+            </Field>
           )}
 
           <div className="grid grid-cols-2 gap-3">
             {billing !== PackageBillingInterval.OneOff && (
-              <label className={FIELD_CLASS}>
-                <span>{t('packages.drawer.runsFor')}</span>
+              <Field
+                label={t('packages.drawer.runsFor')}
+                error={errors.runsForPayments?.message}
+                hint={t('packages.drawer.runsForHint')}
+              >
+                {(control) => (
+                  <span className="relative">
+                    <select {...register('runsForPayments')} className={SELECT_CLASS} {...control}>
+                      <option value="">{t('packages.drawer.runsForPlaceholder')}</option>
+                      {withCurrent(RUNS_FOR_OPTIONS, initial.runsForPayments).map((count) => (
+                        <option key={count} value={String(count)}>
+                          {t('packages.drawer.runsForOption', { count })}
+                        </option>
+                      ))}
+                    </select>
+                    <SelectChevron />
+                  </span>
+                )}
+              </Field>
+            )}
+            <Field
+              label={t('packages.drawer.paymentDue')}
+              error={errors.paymentDueDaysOverride?.message}
+              hint={t('packages.drawer.paymentDueHint')}
+            >
+              {(control) => (
                 <span className="relative">
-                  <select {...register('runsForPayments')} className={SELECT_CLASS}>
-                    <option value="">{t('packages.drawer.runsForPlaceholder')}</option>
-                    {withCurrent(RUNS_FOR_OPTIONS, initial.runsForPayments).map((count) => (
+                  <select {...register('paymentDueDaysOverride')} className={SELECT_CLASS} {...control}>
+                    <option value="">{t('packages.drawer.paymentDuePlaceholder')}</option>
+                    {withCurrent(PAYMENT_DUE_OPTIONS, initial.paymentDueDaysOverride).map((count) => (
                       <option key={count} value={String(count)}>
-                        {t('packages.drawer.runsForOption', { count })}
+                        {t('packages.drawer.paymentDueOption', { count })}
                       </option>
                     ))}
                   </select>
                   <SelectChevron />
                 </span>
-                <FormError message={errors.runsForPayments?.message} />
-                <FieldHint>{t('packages.drawer.runsForHint')}</FieldHint>
-              </label>
-            )}
-            <label className={FIELD_CLASS}>
-              <span>{t('packages.drawer.paymentDue')}</span>
-              <span className="relative">
-                <select {...register('paymentDueDaysOverride')} className={SELECT_CLASS}>
-                  <option value="">{t('packages.drawer.paymentDuePlaceholder')}</option>
-                  {withCurrent(PAYMENT_DUE_OPTIONS, initial.paymentDueDaysOverride).map((count) => (
-                    <option key={count} value={String(count)}>
-                      {t('packages.drawer.paymentDueOption', { count })}
-                    </option>
-                  ))}
-                </select>
-                <SelectChevron />
-              </span>
-              <FormError message={errors.paymentDueDaysOverride?.message} />
-              <FieldHint>{t('packages.drawer.paymentDueHint')}</FieldHint>
-            </label>
+              )}
+            </Field>
           </div>
         </section>
 

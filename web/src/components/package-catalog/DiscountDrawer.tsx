@@ -11,12 +11,11 @@ import { DiscountDuration, DiscountScope, DiscountType, type CoachDiscountDto } 
 import { PaymentCurrency, type CoachPackageDto } from '@/api/coach-packages';
 import {
   ChoiceButton,
-  FIELD_CLASS,
   SectionHeading,
   SELECT_CLASS,
   SelectChevron,
 } from '@/components/automations/automationFormParts';
-import { FieldHint, FormError, type SaveOutcome } from '@/components/package-catalog/packageFormParts';
+import { Field, FieldHint, FormError, type SaveOutcome } from '@/components/package-catalog/packageFormParts';
 import {
   defaultDiscountValues,
   discountSchema,
@@ -101,12 +100,13 @@ function DrawerBody({ item, packages, onSubmit, isSaving, onClose }: BodyProps) 
       <div className="flex flex-1 flex-col gap-6 overflow-y-auto px-6 py-5">
         <section className="flex flex-col gap-4">
           <SectionHeading icon={<Tag className="size-4" />}>{t('packages.discounts.drawer.sectionDiscount')}</SectionHeading>
-          <label className={FIELD_CLASS}>
-            <span>{t('packages.discounts.drawer.name')}</span>
-            <Input {...register('name')} aria-invalid={errors.name ? true : undefined} />
-            <FormError message={errors.name?.message} />
-            <FieldHint>{t('packages.discounts.drawer.nameHint')}</FieldHint>
-          </label>
+          <Field
+            label={t('packages.discounts.drawer.name')}
+            error={errors.name?.message}
+            hint={t('packages.discounts.drawer.nameHint')}
+          >
+            {(control) => <Input {...register('name')} {...control} />}
+          </Field>
 
           <div className="flex flex-col gap-1.5">
             <span className="text-body font-medium text-ink-2">{t('packages.discounts.drawer.type')}</span>
@@ -129,23 +129,24 @@ function DrawerBody({ item, packages, onSubmit, isSaving, onClose }: BodyProps) 
           </div>
 
           <div className={type === DiscountType.FixedAmount ? 'grid grid-cols-2 gap-3' : 'grid grid-cols-1'}>
-            <label className={FIELD_CLASS}>
-              <span>{t('packages.discounts.drawer.value')}</span>
-              <Input {...register('value')} inputMode="decimal" aria-invalid={errors.value ? true : undefined} />
-              <FormError message={errors.value?.message} />
-            </label>
+            <Field label={t('packages.discounts.drawer.value')} error={errors.value?.message}>
+              {(control) => <Input {...register('value')} inputMode="decimal" {...control} />}
+            </Field>
             {type === DiscountType.FixedAmount && (
-              <label className={FIELD_CLASS}>
-                <span>{t('packages.drawer.currency')}</span>
-                <span className="relative">
-                  <select {...register('currency')} disabled={currencyLocked} className={SELECT_CLASS}>
-                    <option value={PaymentCurrency.CZK}>{PaymentCurrency.CZK}</option>
-                    <option value={PaymentCurrency.EUR}>{PaymentCurrency.EUR}</option>
-                  </select>
-                  <SelectChevron />
-                </span>
-                {currencyLocked && <FieldHint>{t('packages.discounts.drawer.currencyLocked')}</FieldHint>}
-              </label>
+              <Field
+                label={t('packages.drawer.currency')}
+                hint={currencyLocked ? t('packages.discounts.drawer.currencyLocked') : undefined}
+              >
+                {(control) => (
+                  <span className="relative">
+                    <select {...register('currency')} disabled={currencyLocked} className={SELECT_CLASS} {...control}>
+                      <option value={PaymentCurrency.CZK}>{PaymentCurrency.CZK}</option>
+                      <option value={PaymentCurrency.EUR}>{PaymentCurrency.EUR}</option>
+                    </select>
+                    <SelectChevron />
+                  </span>
+                )}
+              </Field>
             )}
           </div>
         </section>
@@ -198,17 +199,16 @@ function DrawerBody({ item, packages, onSubmit, isSaving, onClose }: BodyProps) 
         <section className="flex flex-col gap-4">
           <SectionHeading icon={<Calendar className="size-4" />}>{t('packages.discounts.drawer.sectionWhen')}</SectionHeading>
           <div className="grid grid-cols-2 gap-3">
-            <label className={FIELD_CLASS}>
-              <span>{t('packages.discounts.drawer.validFrom')}</span>
-              <Input type="date" {...register('validFrom')} aria-invalid={errors.validFrom ? true : undefined} />
-              <FormError message={errors.validFrom?.message} />
-            </label>
-            <label className={FIELD_CLASS}>
-              <span>{t('packages.discounts.drawer.validTo')}</span>
-              <Input type="date" {...register('validTo')} aria-invalid={errors.validTo ? true : undefined} />
-              <FormError message={errors.validTo?.message} />
-              <FieldHint>{t('common.optional')}</FieldHint>
-            </label>
+            <Field label={t('packages.discounts.drawer.validFrom')} error={errors.validFrom?.message}>
+              {(control) => <Input type="date" {...register('validFrom')} {...control} />}
+            </Field>
+            <Field
+              label={t('packages.discounts.drawer.validTo')}
+              error={errors.validTo?.message}
+              hint={t('common.optional')}
+            >
+              {(control) => <Input type="date" {...register('validTo')} {...control} />}
+            </Field>
           </div>
           <p className="text-body text-muted-foreground">{t('packages.discounts.drawer.windowNote')}</p>
 
@@ -232,15 +232,9 @@ function DrawerBody({ item, packages, onSubmit, isSaving, onClose }: BodyProps) 
             </div>
           </div>
           {duration === DiscountDuration.FirstPayments && (
-            <label className={FIELD_CLASS}>
-              <span>{t('packages.discounts.drawer.firstPayments')}</span>
-              <Input
-                {...register('durationPayments')}
-                inputMode="numeric"
-                aria-invalid={errors.durationPayments ? true : undefined}
-              />
-              <FormError message={errors.durationPayments?.message} />
-            </label>
+            <Field label={t('packages.discounts.drawer.firstPayments')} error={errors.durationPayments?.message}>
+              {(control) => <Input {...register('durationPayments')} inputMode="numeric" {...control} />}
+            </Field>
           )}
         </section>
       </div>
