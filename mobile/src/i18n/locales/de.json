@@ -251,6 +251,8 @@
   },
   "profile": {
     "edit": "Profil bearbeiten",
+    "viewPhoto": "Profilfoto anzeigen",
+    "photoLabel": "Profilfoto",
     "since": "seit {{date}}",
     "units": {
       "kg": "{{value}} kg"
