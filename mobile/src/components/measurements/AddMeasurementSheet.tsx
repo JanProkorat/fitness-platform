@@ -1,7 +1,13 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { MutableRefObject } from 'react';
 import {
+  Alert,
+  Animated,
+  InputAccessoryView,
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
+  PanResponder,
   Platform,
   Pressable,
   ScrollView,
@@ -9,6 +15,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { SymbolView } from 'expo-symbols';
 import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -22,6 +29,7 @@ import { Text } from '@/components/Text';
 import { useAddMeasurement } from '@/hooks/useAddMeasurement';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
+import { sheetDragMotion } from '@/theme/motion';
 
 import { lastHintLabel } from './format';
 import { MeasuredAtRow } from './MeasuredAtRow';
@@ -43,6 +51,8 @@ const EMPTY_FORM: FormValues = {
   bodyFat: '',
 };
 
+const ACCESSORY_ID = 'measurementKeyboardAccessory';
+
 const unitSymbol = (t: TFunction, metric: Metric): string => t(`measurements.symbols.${metric.unit}`);
 
 type AddMeasurementSheetProps = {
@@ -52,16 +62,22 @@ type AddMeasurementSheetProps = {
   onClose: () => void;
 };
 
-export function AddMeasurementSheet({ visible, ...rest }: AddMeasurementSheetProps) {
+type SheetContentProps = Omit<AddMeasurementSheetProps, 'visible'> & {
+  /** Filled by the content with its close handler so the Modal's back request shares it. */
+  closeRef: MutableRefObject<() => void>;
+};
+
+export function AddMeasurementSheet({ visible, entries, onClose }: AddMeasurementSheetProps) {
+  const closeRef = useRef<() => void>(onClose);
   return (
     <Modal
       visible={visible}
       transparent
       animationType="slide"
       statusBarTranslucent
-      onRequestClose={rest.onClose}
+      onRequestClose={() => closeRef.current()}
     >
-      <SheetContent {...rest} />
+      <SheetContent entries={entries} onClose={onClose} closeRef={closeRef} />
     </Modal>
   );
 }
@@ -70,11 +86,13 @@ const CIRCUMFERENCES = METRICS.filter((metric) => metric.unit === 'cm');
 const WEIGHT = METRICS.find((metric) => metric.key === 'weight');
 const BODY_FAT = METRICS.find((metric) => metric.key === 'bodyFat');
 
-function SheetContent({ entries, onClose }: Omit<AddMeasurementSheetProps, 'visible'>) {
+function SheetContent({ entries, onClose, closeRef }: SheetContentProps) {
   const { t, i18n } = useTranslation();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const styles = makeStyles(theme, insets);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const styles = makeStyles(theme, insets, keyboardVisible);
+  const [translateY] = useState(() => new Animated.Value(0));
   const [values, setValues] = useState<FormValues>(EMPTY_FORM);
   const [note, setNote] = useState('');
   const [noteFocused, setNoteFocused] = useState(false);
@@ -85,6 +103,70 @@ function SheetContent({ entries, onClose }: Omit<AddMeasurementSheetProps, 'visi
   const filled = parsed.filter((entry) => entry.input.state !== 'empty');
   const hasInvalid = filled.some((entry) => entry.input.state === 'invalid');
   const canSave = filled.length > 0 && !hasInvalid && !mutation.isPending;
+
+  const dirty = Object.values(values).some((text) => text !== '') || note !== '';
+  const pending = mutation.isPending;
+
+  const springBack = useCallback(() => {
+    Animated.spring(translateY, {
+      toValue: 0,
+      ...sheetDragMotion.spring,
+      useNativeDriver: true,
+    }).start();
+  }, [translateY]);
+
+  const requestClose = useCallback(() => {
+    if (pending) {
+      springBack();
+      return;
+    }
+    if (!dirty) {
+      onClose();
+      return;
+    }
+    Alert.alert(
+      t('editProfile.discard.title'),
+      t('editProfile.discard.body'),
+      [
+        { text: t('editProfile.discard.keep'), style: 'cancel', onPress: springBack },
+        { text: t('editProfile.discard.discard'), style: 'destructive', onPress: onClose },
+      ],
+      { onDismiss: springBack },
+    );
+  }, [pending, dirty, onClose, springBack, t]);
+
+  useEffect(() => {
+    closeRef.current = requestClose;
+  }, [closeRef, requestClose]);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const show = Keyboard.addListener(showEvent, () => setKeyboardVisible(true));
+    const hide = Keyboard.addListener(hideEvent, () => setKeyboardVisible(false));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
+
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onMoveShouldSetPanResponder: (_event, gesture) =>
+          gesture.dy > sheetDragMotion.claimDistance && gesture.dy > Math.abs(gesture.dx),
+        onPanResponderMove: (_event, gesture) => translateY.setValue(Math.max(0, gesture.dy)),
+        onPanResponderRelease: (_event, gesture) => {
+          if (gesture.dy > sheetDragMotion.closeDistance || gesture.vy > sheetDragMotion.closeVelocity) {
+            requestClose();
+          } else {
+            springBack();
+          }
+        },
+        onPanResponderTerminate: springBack,
+      }),
+    [translateY, requestClose, springBack],
+  );
 
   const setValue = (key: MetricKey) => (text: string) => {
     setValues((current) => ({ ...current, [key]: text }));
@@ -116,6 +198,7 @@ function SheetContent({ entries, onClose }: Omit<AddMeasurementSheetProps, 'visi
         invalid={parseMetricInput(text).state === 'invalid'}
         variant={variant}
         autoFocus={autoFocus}
+        inputAccessoryViewID={ACCESSORY_ID}
       />
     );
   };
@@ -128,31 +211,39 @@ function SheetContent({ entries, onClose }: Omit<AddMeasurementSheetProps, 'visi
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={t('measurements.sheet.close')}
-        onPress={onClose}
+        onPress={requestClose}
         style={StyleSheet.absoluteFill}
       />
-      <View
+      <Animated.View
         accessibilityViewIsModal
         accessibilityLabel={t('measurements.add')}
-        style={styles.sheet}
+        style={[styles.sheet, { transform: [{ translateY }] }]}
       >
-        <View style={styles.handle} />
-        <View style={styles.header}>
-          <View style={styles.headerCopy}>
-            <Text variant="heading" accessibilityRole="header">
-              {t('measurements.add')}
-            </Text>
-            <Text variant="caption" color="muted">
-              {t('measurements.sheet.subtitle')}
-            </Text>
+        <View {...panResponder.panHandlers} style={styles.dragStrip}>
+          <View style={styles.handle} />
+          <View style={styles.header}>
+            <View style={styles.headerCopy}>
+              <Text variant="heading" accessibilityRole="header">
+                {t('measurements.add')}
+              </Text>
+              <Text variant="caption" color="muted">
+                {t('measurements.sheet.subtitle')}
+              </Text>
+            </View>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t('measurements.sheet.close')}
+              onPress={requestClose}
+              hitSlop={theme.spacing.xs}
+              style={styles.close}
+            >
+              <SymbolView
+                name="xmark"
+                tintColor={theme.colors.ink}
+                size={theme.sizes.sheetCloseGlyph}
+              />
+            </Pressable>
           </View>
-          <Button
-            label={t('measurements.sheet.save')}
-            size="small"
-            onPress={save}
-            disabled={!canSave}
-            style={styles.save}
-          />
         </View>
         {mutation.isError ? (
           <Text variant="label" color="error" accessibilityRole="alert">
@@ -162,6 +253,7 @@ function SheetContent({ entries, onClose }: Omit<AddMeasurementSheetProps, 'visi
         <ScrollView
           contentContainerStyle={styles.body}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
           showsVerticalScrollIndicator={false}
         >
           <MeasuredAtRow value={measuredAt} onChange={setMeasuredAt} />
@@ -201,6 +293,7 @@ function SheetContent({ entries, onClose }: Omit<AddMeasurementSheetProps, 'visi
               }}
               onFocus={() => setNoteFocused(true)}
               onBlur={() => setNoteFocused(false)}
+              inputAccessoryViewID={ACCESSORY_ID}
               accessibilityLabel={t('measurements.sheet.note')}
               placeholder={t('measurements.sheet.notePlaceholder')}
               placeholderTextColor={theme.colors.muted}
@@ -215,12 +308,29 @@ function SheetContent({ entries, onClose }: Omit<AddMeasurementSheetProps, 'visi
             />
           </View>
         </ScrollView>
-      </View>
+        <View style={styles.footer}>
+          <Button label={t('measurements.sheet.save')} onPress={save} disabled={!canSave} />
+        </View>
+      </Animated.View>
+      {Platform.OS === 'ios' ? (
+        <InputAccessoryView nativeID={ACCESSORY_ID}>
+          <View style={styles.accessory}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t('measurements.sheet.done')}
+              onPress={() => Keyboard.dismiss()}
+              hitSlop={theme.spacing.xs}
+            >
+              <Text variant="label">{t('measurements.sheet.done')}</Text>
+            </Pressable>
+          </View>
+        </InputAccessoryView>
+      ) : null}
     </KeyboardAvoidingView>
   );
 }
 
-const makeStyles = (theme: Theme, insets: EdgeInsets) =>
+const makeStyles = (theme: Theme, insets: EdgeInsets, keyboardVisible: boolean) =>
   StyleSheet.create({
     root: {
       flex: 1,
@@ -233,10 +343,12 @@ const makeStyles = (theme: Theme, insets: EdgeInsets) =>
       gap: theme.spacing.lg,
       paddingTop: theme.spacing.xs,
       paddingHorizontal: theme.spacing.xxl,
-      paddingBottom: Math.max(insets.bottom, theme.spacing.xl),
       borderTopLeftRadius: theme.glass.sheet.radius,
       borderTopRightRadius: theme.glass.sheet.radius,
       backgroundColor: theme.colors.surface,
+    },
+    dragStrip: {
+      gap: theme.spacing.lg,
     },
     handle: {
       alignSelf: 'center',
@@ -254,12 +366,29 @@ const makeStyles = (theme: Theme, insets: EdgeInsets) =>
       flex: 1,
       gap: theme.spacing.xxs / 2,
     },
-    save: {
-      height: theme.sizes.metricSave,
+    close: {
+      width: theme.sizes.sheetClose,
+      height: theme.sizes.sheetClose,
+      borderRadius: theme.radii.pill,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.colors.lineStrong,
+    },
+    footer: {
+      paddingTop: theme.spacing.xs,
+      paddingBottom: keyboardVisible ? theme.spacing.xs : Math.max(insets.bottom, theme.spacing.xl),
+    },
+    accessory: {
+      alignItems: 'flex-end',
+      paddingHorizontal: theme.spacing.xl,
+      paddingVertical: theme.spacing.md,
+      borderTopWidth: theme.sizes.border,
+      borderTopColor: theme.colors.lineStrong,
+      backgroundColor: theme.colors.surface,
     },
     body: {
       gap: theme.spacing.lg,
-      paddingBottom: theme.spacing.xxl,
+      paddingBottom: theme.spacing.lg,
     },
     heroes: {
       flexDirection: 'row',

@@ -29,6 +29,14 @@ export const inviteMotion = {
   spring: { damping: 18, stiffness: 180, mass: 0.9 },
 } as const;
 
+/** Drag-to-close on bottom sheets: px before the drag claims the touch, px or velocity (px/ms) that closes it. */
+export const sheetDragMotion = {
+  claimDistance: 8,
+  closeDistance: 110,
+  closeVelocity: 0.9,
+  spring: { damping: 22, stiffness: 240, mass: 0.9 },
+} as const;
+
 /** Chat rows that arrive after the screen opened: spring entrance and list reflow. */
 export const chatMotion = {
   spring: { damping: 20, stiffness: 220, mass: 0.8 },
