@@ -262,7 +262,7 @@
   "settings": {
     "eyebrow": "Account",
     "title": "Settings",
-    "subtitle": "Sign-in, notifications and the roles on your account",
+    "subtitle": "Sign-in, notifications, payments and the roles on your account",
     "loadError": "Could not load your settings. Please refresh the page.",
     "status": {
       "saved": "All changes saved",
@@ -907,8 +907,6 @@
     "visibleToClients": "Visible to clients",
     "city": "City",
     "cityPlaceholder": "Your city",
-    "estimatedPrice": "Estimated price / month",
-    "estimatedPricePlaceholder": "e.g. $200–400",
     "specializations": "Specializations",
     "addSpecialization": "Add specialization...",
     "certificates": "Certificates & education",
@@ -968,8 +966,12 @@
         "description": "The first thing a client reads before they send you a request.",
         "bioHint": "Who you help, how you work, and what a client can expect in the first month.",
         "cityHint": "Shown in search; clients filter by it.",
-        "price": "Price per month",
-        "priceHint": "Free text, e.g. \"from 2,500 CZK\"."
+        "price": "Price",
+        "priceHint": "From your cheapest active monthly package shown on your profile.",
+        "priceFrom": "from {{price}} / month",
+        "priceNone": "No package shown yet",
+        "priceManage": "Packages",
+        "priceSetUp": "Set up a package"
       },
       "expertise": {
         "title": "Expertise",
@@ -2521,7 +2523,339 @@
     "list": "List",
     "quote": "Quote"
   },
+  "payments": {
+    "notIncluded": {
+      "title": "Payments aren't part of your plan",
+      "body": "Collecting payments from clients isn't included in your current plan. Everything else keeps working as before."
+    },
+    "client": {
+      "retry": "Try again",
+      "loadError": "Could not load this client's payments.",
+      "notFound": "You are no longer linked to {{name}}, so their payments are not available.",
+      "billing": {
+        "monthly": "/ month",
+        "everyWeeks_one": "/ week",
+        "everyWeeks_other": "/ {{count}} weeks",
+        "oneOff": "one-off"
+      },
+      "summary": {
+        "label": "Payment summary",
+        "package": "Package",
+        "nextPayment": "Next payment",
+        "paidUntil": "Paid until",
+        "noPackage": "No package yet",
+        "noPackageHint": "Choose a package under Price to start billing.",
+        "customPrice": "custom price {{price}}",
+        "due": "Due {{date}}",
+        "overdueSince": "Overdue since {{date}}",
+        "requestedOn": "requested {{date}}",
+        "notRequested": "not requested yet",
+        "nothingDue": "Nothing waiting for payment",
+        "paidCount": "{{paid}} of {{total}} payments paid",
+        "clientSince": "client since {{date}}"
+      },
+      "list": {
+        "title": "Payments",
+        "addOneOff": "Add one-off payment",
+        "request": "Request payment",
+        "noBankAccount": "Add your bank account before you request a payment.",
+        "openSettings": "Open Settings",
+        "loadError": "Could not load the payments.",
+        "empty": "No payments yet. Choose a package for {{name}} and the first one is created.",
+        "footnote": "{{name}} pays by bank transfer to your account. Match the variable symbol on your bank statement, then mark the payment paid."
+      },
+      "table": {
+        "period": "Period",
+        "amount": "Amount",
+        "due": "Due",
+        "variableSymbol": "Variable symbol",
+        "status": "Status",
+        "actions": "Actions"
+      },
+      "status": {
+        "upcoming": "Upcoming",
+        "requested": "Requested",
+        "overdue": "Overdue",
+        "overdueDays_one": "Overdue · {{count}} day",
+        "overdueDays_other": "Overdue · {{count}} days",
+        "paid": "Paid {{date}}",
+        "daysLate_one": "{{count}} day late",
+        "daysLate_other": "{{count}} days late",
+        "waived": "Waived",
+        "waivedReason": "Waived · {{reason}}"
+      },
+      "row": {
+        "oneOff": "One-off payment",
+        "markPaid": "Mark paid",
+        "menu": "Payment menu",
+        "request": "Request payment",
+        "requestAgain": "Request again",
+        "copySymbol": "Copy variable symbol",
+        "waive": "Waive payment",
+        "copied": "Variable symbol copied.",
+        "copyError": "Could not copy the variable symbol."
+      },
+      "markPaid": {
+        "title": "Mark {{period}} as paid",
+        "description": "Confirm that {{name}}'s money arrived in your account.",
+        "paidOn": "Day it arrived",
+        "dateRequired": "Pick the day the money arrived.",
+        "dateInFuture": "The day can't be in the future.",
+        "submit": "Mark paid",
+        "success": "Payment marked as paid.",
+        "error": "Could not mark the payment as paid."
+      },
+      "waive": {
+        "title": "Waive {{period}}?",
+        "description": "{{name}} won't be asked to pay it. This can't be undone.",
+        "reason": "Reason",
+        "reasonHint": "Optional. Only you see it.",
+        "reasonTooLong": "Use at most {{max}} characters.",
+        "submit": "Waive payment",
+        "success": "Payment waived.",
+        "error": "Could not waive the payment."
+      },
+      "oneOff": {
+        "title": "Add a one-off payment",
+        "description": "A single payment for {{name}}, outside the package.",
+        "forLabel": "What it is for",
+        "forHint": "For example, “Nutrition consultation”.",
+        "titleRequired": "Say what the payment is for.",
+        "titleTooLong": "Use at most {{max}} characters.",
+        "amount": "Amount",
+        "amountInvalid": "Enter an amount above zero.",
+        "currency": "Currency",
+        "due": "Due date",
+        "dueRequired": "Pick a due date.",
+        "submit": "Add payment",
+        "success": "One-off payment added.",
+        "error": "Could not add the payment."
+      },
+      "request": {
+        "title": "Request payment",
+        "description": "{{name}} pays by bank transfer from their own bank.",
+        "coachFallback": "Your coach",
+        "payment": {
+          "heading": "Payment"
+        },
+        "for": "For",
+        "forHint": "The next unpaid period is preselected. Pick another, or add a one-off payment.",
+        "dueDate": "Due date",
+        "dueRequired": "Pick a due date.",
+        "duePast": "The due date can't be in the past.",
+        "amount": "Amount",
+        "amountHint": "Package price with discount.",
+        "amountEditing": "Changes this request only.",
+        "amountInvalid": "Enter an amount above zero and below 10 million.",
+        "changeAmount": "Change",
+        "sendBy": {
+          "heading": "Send by",
+          "notification": "App notification",
+          "email": "Email"
+        },
+        "channelRequired": "Choose at least one way to send it.",
+        "preview": {
+          "heading": "What {{name}} sees",
+          "asks": "{{coach}} asks for {{amount}}",
+          "due": "due {{date}}",
+          "account": "Account",
+          "variableSymbol": "Variable symbol",
+          "symbolOnSend": "Assigned when you send",
+          "message": "Message",
+          "messageOnSend": "Set when you send"
+        },
+        "footnote": "You mark it paid when the money arrives.",
+        "submit": "Send request",
+        "sent": "Payment request sent.",
+        "sentEmailFailed": "Notification sent, but the email could not be delivered.",
+        "error": "Could not send the payment request.",
+        "openSettings": "Open Settings",
+        "nothingToRequest": "Every payment is already settled."
+      },
+      "terms": {
+        "title": "Price for {{name}}",
+        "changePackage": "Change package",
+        "package": "Package",
+        "packagePlaceholder": "Choose a package",
+        "packageRequired": "Choose a package.",
+        "discount": "Discount",
+        "noDiscount": "No discount",
+        "noDiscounts": "No discounts available",
+        "discountOffCustom": "Off while a custom price is set",
+        "removeDiscount": "Remove discount",
+        "customPrice": "Custom price",
+        "customPriceHint": "Replaces the package price and discount for {{name}} only.",
+        "customPriceLabel": "Custom price per period",
+        "customPriceInvalid": "Enter a price above zero.",
+        "firstPeriod": "First billing period starts",
+        "startPast": "The start can't be in the past.",
+        "packagePrice": "Package price",
+        "pays": "{{name}} pays",
+        "appliesFrom": "Changes apply from the next billing period ({{month}}).",
+        "appliesFromNext": "Changes apply from the next billing period.",
+        "startsFirst": "Billing starts on the day you pick above.",
+        "noPackages": "You have no packages yet.",
+        "createPackage": "Create a package",
+        "save": "Save price",
+        "saved": "Price saved.",
+        "saveError": "Could not save the price.",
+        "currencyMismatch": "A fixed discount must be in the same currency as the package.",
+        "loadError": "Could not load your packages and discounts."
+      },
+      "reminders": {
+        "title": "Requests and reminders",
+        "link": "Automations tab",
+        "body": "When payment requests and reminders go out is set by rules on the Automations tab."
+      },
+      "history": {
+        "title": "Change history",
+        "onlyYou": "Only you see this",
+        "empty": "Nothing yet.",
+        "terms": "You set the package to {{package}}{{discount}}",
+        "oneOff": "You added the one-off payment “{{title}}”{{amount}}",
+        "paid": "You marked {{period}} paid",
+        "waived": "You waived {{period}}",
+        "waivedReason": "You waived {{period}} · “{{reason}}”",
+        "requested": "You requested {{period}}{{amount}}",
+        "unknown": "You changed something."
+      }
+    },
+    "settings": {
+      "title": "Payments",
+      "description": "Where clients send money. Form Up never holds or moves it.",
+      "badge": "Bank transfer · QR Platba",
+      "iban": "Bank account (IBAN)",
+      "ibanHint": "Shown to your linked clients on payment requests only.",
+      "noAccount": "No account set yet",
+      "holder": "Account holder",
+      "holderHint": "Must match the account.",
+      "protected": "Protected",
+      "protectedHint": "Changing the account asks for your password and emails you. Last changed {{date}}.",
+      "addAccountTitle": "Add your bank account",
+      "addAccountHint": "Clients need it to pay you. Adding it asks for your password and emails you.",
+      "changeAccount": "Change account",
+      "addAccount": "Add account",
+      "due": "Payment due",
+      "dueHint": "Packages can override it.",
+      "dueOption_one": "{{count}} day after the request",
+      "dueOption_other": "{{count}} days after the request",
+      "message": "Message for the payment",
+      "messageFormat": {
+        "PackageNameAndMonth": "Package name + month",
+        "PackageName": "Package name",
+        "ClientNameAndMonth": "Client name + month"
+      },
+      "messageExample": {
+        "PackageNameAndMonth": "e.g. “Online coaching 11/2026”",
+        "PackageName": "e.g. “Online coaching”",
+        "ClientNameAndMonth": "e.g. “Eva Svobodová 11/2026”"
+      },
+      "symbol": "Variable symbol",
+      "symbolHint": "Unique per payment, so you can match it.",
+      "symbolFormat": {
+        "YearMonthClientNumber": "Year, month, client number",
+        "YearMonthSequence": "Year, month, running number"
+      },
+      "currency": "Main currency",
+      "currencyHint": "The “from” price on your public profile is shown in this currency.",
+      "currencyOption": {
+        "CZK": "CZK · Czech koruna",
+        "EUR": "EUR · Euro"
+      },
+      "reminders": "Requests and reminders",
+      "remindersHint": "When requests go out is set by rules on the Automations page.",
+      "openAutomations": "Open Automations",
+      "saveError": "Could not save the payment settings.",
+      "loadError": "Could not load your payment settings.",
+      "packages": {
+        "title": "Packages and discounts",
+        "description": "What you charge, and who gets a discount.",
+        "counts": "Packages: {{packages}} · active discounts: {{discounts}}",
+        "open": "Open Packages"
+      },
+      "bank": {
+        "title": "Change bank account",
+        "lede": "New payment requests use the new account. Requests already sent keep the old one.",
+        "newIban": "New IBAN",
+        "ibanRequired": "Enter the IBAN.",
+        "ibanInvalid": "This IBAN isn't valid. Check it for typos.",
+        "ibanChecked": "Checked · {{iban}}",
+        "ibanCurrent": "Current account: {{iban}}",
+        "holder": "Account holder",
+        "holderRequired": "Enter the account holder.",
+        "holderTooLong": "Use at most {{max}} characters.",
+        "password": "Your password",
+        "passwordHint": "Signed in with Google? We send a code to your email instead.",
+        "passwordRequired": "Enter your password.",
+        "code": "Code from your email",
+        "codeHint": "You sign in without a password, so we send a one-time code to your email.",
+        "codeSent": "Code sent to {{email}}.",
+        "codeRequired": "Enter the code from your email.",
+        "sendCode": "Send code",
+        "sendingCode": "Sending…",
+        "resendCode": "Send a new code",
+        "codeError": "Could not send the code.",
+        "notice": "We’ll email {{email}} about this change, with a link to undo it if it wasn’t you.",
+        "submit": "Change account",
+        "success": "Bank account changed.",
+        "error": "Could not change the bank account.",
+        "rateLimited": "Too many attempts. Try again in a few minutes."
+      }
+    },
+    "undo": {
+      "signIn": "Go to sign in",
+      "confirm": {
+        "title": "Undo the bank account change?",
+        "body": "This restores the bank account you had before the change. Only do it if the change wasn't yours.",
+        "button": "Undo change",
+        "working": "Restoring…",
+        "notNow": "Not now"
+      },
+      "success": {
+        "title": "Previous account restored",
+        "body": "Your earlier bank account is back. If the change wasn't yours, change your password too."
+      },
+      "invalid": {
+        "title": "This link no longer works",
+        "body": "It has expired, was already used, or isn't valid. The change stays as it is."
+      },
+      "superseded": {
+        "title": "The account changed again",
+        "body": "The bank account was changed again after this change, so it can't be undone from this link. Sign in to review it in Settings."
+      },
+      "rateLimited": {
+        "title": "Too many attempts",
+        "body": "Wait a few minutes, then open the link again."
+      },
+      "generic": {
+        "title": "Something went wrong",
+        "body": "The change was not undone. Try again in a moment."
+      },
+      "missing": {
+        "title": "This link is incomplete",
+        "body": "Open the link from the email again, or sign in and change your bank account in Settings."
+      }
+    }
+  },
   "apiErrors": {
+    "PAYMENTS_NOT_ENTITLED": "Payments aren't part of your plan.",
+    "BANK_ACCOUNT_NOT_SET": "Add your bank account in Settings before you request a payment.",
+    "PAYMENT_ALREADY_PAID": "This payment was already marked as paid.",
+    "PAYMENT_ALREADY_WAIVED": "This payment was already waived.",
+    "PAYMENT_REQUEST_RATE_LIMITED": "You just asked for this payment. Wait a minute before asking again.",
+    "PAYMENT_REQUEST_CHANNEL_REQUIRED": "Choose at least one way to send the request.",
+    "PAYMENT_PAID_ON_IN_FUTURE": "The day the money arrived can't be in the future.",
+    "PAYMENT_TERMS_DISCOUNT_AND_CUSTOM_PRICE": "Use a discount or a custom price, not both.",
+    "PAYMENT_AMOUNT_INVALID": "The amount must be above zero and below 10 million.",
+    "PAYMENT_CLIENT_NUMBER_EXHAUSTED": "No client numbers are left for variable symbols.",
+    "PAYMENT_VARIABLE_SYMBOL_EXHAUSTED": "No variable symbol is left for this month.",
+    "PAYMENT_START_DATE_INVALID": "The first billing period can't start in the past or too far ahead.",
+    "INVALID_IBAN": "This IBAN isn't valid.",
+    "REAUTH_PASSWORD_REQUIRED": "Enter your password to change the bank account.",
+    "INVALID_CURRENT_PASSWORD": "That isn't your current password.",
+    "REAUTH_CODE_REQUIRED": "Enter the code we emailed you.",
+    "REAUTH_CODE_INVALID": "That code is wrong, expired or locked. Ask for a new one.",
+    "REAUTH_CODE_NOT_AVAILABLE": "Your account uses a password, not an emailed code.",
     "AUTOMATION_RULE_NOT_FOUND": "This rule no longer exists.",
     "AUTOMATION_TAG_NOT_FOUND": "The chosen tag no longer exists.",
     "AUTOMATION_AUDIENCE_CLIENT_NOT_FOUND": "One of the chosen clients is no longer linked to you.",

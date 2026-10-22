@@ -7,6 +7,7 @@ import { useAuthStore } from '@/stores/auth';
 import AccountCard from '@/components/settings/AccountCard';
 import DangerZoneCard from '@/components/settings/DangerZoneCard';
 import NotificationsCard from '@/components/settings/NotificationsCard';
+import PaymentsCard from '@/components/settings/payments/PaymentsCard';
 import RolesCard from '@/components/settings/RolesCard';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -82,6 +83,7 @@ export default function SettingsPage() {
           />
         )}
         <NotificationsCard />
+        <PaymentsCard />
         <RolesCard />
         <DangerZoneCard />
       </div>

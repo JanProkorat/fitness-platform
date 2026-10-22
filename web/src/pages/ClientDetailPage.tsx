@@ -12,6 +12,7 @@ import ClientAutomationsTab from '@/components/client-detail/automations/ClientA
 import ClientDetailTabs,{ type ClientDetailTab } from '@/components/client-detail/ClientDetailTabs';
 import ClientOverviewTab from '@/components/client-detail/ClientOverviewTab';
 import ClientNutritionTab from '@/components/client-detail/nutrition/ClientNutritionTab';
+import ClientPaymentTab from '@/components/client-detail/payment/ClientPaymentTab';
 import ClientPhotosTab from '@/components/client-detail/photos/ClientPhotosTab';
 
 const MEASUREMENTS_PAGE_SIZE = 50;
@@ -20,8 +21,8 @@ const MEASUREMENTS_PAGE_SIZE = 50;
  * Client-detail page: header + URL-driven tab row. `/clients/:clientId` is the
  * Overview tab, `/clients/:clientId/nutrition` the Nutrition tab (a link
  * without the nutrition capability is redirected to Overview) and
- * `/clients/:clientId/photos` the Photos tab and `/clients/:clientId/automations`
- * the Automations tab.
+ * `/clients/:clientId/photos` the Photos tab, `/clients/:clientId/payment` the Payment tab
+ * and `/clients/:clientId/automations` the Automations tab.
  */
 export default function ClientDetailPage() {
   const { t } = useTranslation();
@@ -30,14 +31,17 @@ export default function ClientDetailPage() {
   const location = useLocation();
   const isNutritionRoute = useMatch('/clients/:clientId/nutrition') !== null;
   const isPhotosRoute = useMatch('/clients/:clientId/photos') !== null;
+  const isPaymentRoute = useMatch('/clients/:clientId/payment') !== null;
   const isAutomationsRoute = useMatch('/clients/:clientId/automations') !== null;
   const activeTab: ClientDetailTab = isNutritionRoute
     ? 'nutrition'
     : isPhotosRoute
       ? 'photos'
-      : isAutomationsRoute
-        ? 'automations'
-        : 'overview';
+      : isPaymentRoute
+        ? 'payment'
+        : isAutomationsRoute
+          ? 'automations'
+          : 'overview';
 
   const dashboardQuery = useQuery({
     queryKey: ['client-dashboard', clientId],
@@ -117,6 +121,8 @@ export default function ClientDetailPage() {
           dashboard={dashboard}
           plans={plansQuery.data?.plans}
         />
+      ) : activeTab === 'payment' ? (
+        <ClientPaymentTab clientId={clientId} dashboard={dashboard} />
       ) : activeTab === 'automations' ? (
         <ClientAutomationsTab clientId={clientId} dashboard={dashboard} />
       ) : (

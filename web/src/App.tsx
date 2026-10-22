@@ -13,6 +13,7 @@ import ForgotPasswordForm from '@/components/entry/ForgotPasswordForm';
 import ResetPasswordForm from '@/components/entry/ResetPasswordForm';
 import RegisterPage from '@/pages/RegisterPage';
 import VerifyEmailPage from '@/pages/VerifyEmailPage';
+import BankAccountUndoPage from '@/pages/BankAccountUndoPage';
 import DownloadAppPage from '@/pages/DownloadAppPage';
 import ClientsPage from '@/pages/ClientsPage';
 import ClientDetailPage from '@/pages/ClientDetailPage';
@@ -68,6 +69,7 @@ export default function App() {
           </Route>
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/verify-email" element={<VerifyEmailPage />} />
+          <Route path="/bank-account/undo" element={<BankAccountUndoPage />} />
           <Route path="/download-app" element={<DownloadAppPage />} />
 
           <Route element={<ProtectedRoute />}>
@@ -76,6 +78,7 @@ export default function App() {
               <Route path="/clients/:clientId" element={<ClientDetailPage />}>
                 <Route path="nutrition" element={null} />
                 <Route path="photos" element={null} />
+                <Route path="payment" element={null} />
                 <Route path="automations" element={null} />
               </Route>
               <Route path="/inbox" element={<InboxPage />} />
