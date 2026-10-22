@@ -17,7 +17,7 @@ import { formatPeriodLabel } from '@/lib/payment-format';
 import ChangeHistoryCard from '@/components/client-detail/payment/ChangeHistoryCard';
 import MarkPaidDialog from '@/components/client-detail/payment/MarkPaidDialog';
 import OneOffDialog from '@/components/client-detail/payment/OneOffDialog';
-import PaymentsNotIncluded from '@/components/client-detail/payment/PaymentsNotIncluded';
+import PaymentsPaywall from '@/components/client-detail/payment/PaymentsPaywall';
 import PaymentSummaryCards from '@/components/client-detail/payment/PaymentSummaryCards';
 import PaymentsTable from '@/components/client-detail/payment/PaymentsTable';
 import PriceCard from '@/components/client-detail/payment/PriceCard';
@@ -72,7 +72,7 @@ export default function ClientPaymentTab({ clientId, dashboard }: Props) {
 
   if (summaryQuery.isError) {
     if (isNotEntitled(summaryQuery.error)) {
-      return <PaymentsNotIncluded />;
+      return <PaymentsPaywall />;
     }
     const notFound = getErrorStatus(summaryQuery.error) === 404;
     return (

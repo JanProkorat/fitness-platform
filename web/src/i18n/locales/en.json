@@ -2526,10 +2526,6 @@
     "quote": "Quote"
   },
   "payments": {
-    "notIncluded": {
-      "title": "Payments aren't part of your plan",
-      "body": "Collecting payments from clients isn't included in your current plan. Everything else keeps working as before."
-    },
     "client": {
       "retry": "Try again",
       "loadError": "Could not load this client's payments.",

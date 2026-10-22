@@ -2525,10 +2525,6 @@
     "quote": "Zitat"
   },
   "payments": {
-    "notIncluded": {
-      "title": "Zahlungen sind nicht Teil Ihres Tarifs",
-      "body": "Das Einziehen von Zahlungen bei Klienten ist in Ihrem aktuellen Tarif nicht enthalten. Alles andere funktioniert wie bisher."
-    },
     "client": {
       "retry": "Erneut versuchen",
       "loadError": "Die Zahlungen dieses Klienten konnten nicht geladen werden.",

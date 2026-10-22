@@ -2608,10 +2608,6 @@
     "quote": "Citace"
   },
   "payments": {
-    "notIncluded": {
-      "title": "Platby nejsou součástí vašeho tarifu",
-      "body": "Vybírání plateb od klientů váš aktuální tarif nezahrnuje. Vše ostatní funguje jako dřív."
-    },
     "client": {
       "retry": "Zkusit znovu",
       "loadError": "Platby tohoto klienta se nepodařilo načíst.",

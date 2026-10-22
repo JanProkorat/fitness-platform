@@ -205,6 +205,7 @@ function RequestForm({ clientId, clientName, rows, initialPaymentId, onClose }: 
                 render={({ field }) => (
                   <select
                     id="request-payment-for"
+                    aria-describedby="request-payment-for-message"
                     className={SELECT_CLASS}
                     disabled={requestMutation.isPending}
                     value={field.value}

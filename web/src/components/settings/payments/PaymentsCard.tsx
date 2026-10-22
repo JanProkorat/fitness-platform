@@ -9,7 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Field } from '@/components/profile/ProfileSection';
 import SettingsCard from '@/components/settings/SettingsCard';
 import ChangeBankAccountDialog from '@/components/settings/payments/ChangeBankAccountDialog';
-import PaymentsNotIncluded from '@/components/client-detail/payment/PaymentsNotIncluded';
+import PaymentsPaywall from '@/components/client-detail/payment/PaymentsPaywall';
 import { isNotEntitled } from '@/components/client-detail/payment/paymentErrors';
 import {
   PaymentCurrency,
@@ -259,7 +259,7 @@ export default function PaymentsCard() {
   const settingsQuery = usePaymentSettings();
 
   if (settingsQuery.isError && isNotEntitled(settingsQuery.error)) {
-    return <PaymentsNotIncluded />;
+    return <PaymentsPaywall />;
   }
   // No professional profile (for example an admin-only account): there is nothing to configure.
   if (settingsQuery.isError && getErrorStatus(settingsQuery.error) === 404) {
