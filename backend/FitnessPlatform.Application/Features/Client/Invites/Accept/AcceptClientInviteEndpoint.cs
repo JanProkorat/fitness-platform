@@ -13,7 +13,7 @@ using Microsoft.EntityFrameworkCore;
 namespace FitnessPlatform.Application.Features.Client.Invites.Accept;
 
 /// <summary>
-/// Client accepts a pending invite by its PublicId. Creates the client-professional link.
+/// Client accepts a pending invite by its PublicId. Creates the client-professional link, or reactivates an ended one.
 /// </summary>
 public class AcceptClientInviteEndpoint(
     IApplicationDbContext db,
@@ -102,69 +102,30 @@ public class AcceptClientInviteEndpoint(
         await using var transaction = await db.BeginTransactionAsync(ct);
         await db.LockClientProfileAsync(clientProfile.Id, ct);
 
-        // Check for existing link
-        var existingLink = await db.ClientProfessionalLinks
-            .AnyAsync(l => l.ClientProfileId == clientProfile.Id
-                           && l.ProfessionalProfileId == invite.ProfessionalProfileId, ct);
+        // Create the link, or switch an ended one back on (a re-invited former client).
+        var activation = await ClientLinkActivator.ActivateAsync(
+            db, userManager, clientProfile.Id, invite.ProfessionalProfile,
+            invite.RequestedScope, invite.QuestionnaireId, ct);
 
-        ClientProfessionalLink? newLink = null;
-        ApplicationUser? professionalUser = null;
-
-        if (!existingLink)
+        if (activation.Outcome == ClientLinkActivationOutcome.CoachRoleRemoved)
         {
-            professionalUser = await userManager.FindByIdAsync(
-                invite.ProfessionalProfile.UserId.ToString());
-            var profRoles = professionalUser is not null
-                ? await userManager.GetRolesAsync(professionalUser)
-                : [];
-
-            // Grant view access per role actually held — independent booleans, not a
-            // single tie-broken role, so a professional holding BOTH Trainer and
-            // Nutritionist roles gets both flags (#776). Previously neither flag was
-            // set here at all, defaulting both to false regardless of role.
-            var activeProfRoles = CoachRoleStatus.ActiveRoles(profRoles, invite.ProfessionalProfile);
-            var profRole = activeProfRoles.Contains(AppRoles.Nutritionist) ? UserRole.Nutritionist : UserRole.Trainer;
-
-            // Honor the scope the professional selected at invite-creation time (already
-            // validated as a subset of their held roles there) rather than re-deriving
-            // from global roles here. Falls back to the full held-role set when the
-            // invite carries no explicit scope.
-            // A coach role the professional has since removed is read-only: it may not seed a link.
-            if (!CoachRoleStatus.TryResolveLinkGrant(
-                    invite.RequestedScope, profRoles, invite.ProfessionalProfile,
-                    out var canViewNutritionPlans, out var canViewTrainingPlans))
-            {
-                await this.SendErrorWithCodeAsync(
-                    ErrorCodes.CoachRoleRemoved,
-                    "This coach role was removed; the account is read-only for it.",
-                    StatusCodes.Status403Forbidden,
-                    ct);
-                return;
-            }
-
-            // A client may hold at most one active coach per profession (#980).
-            if (await ProfessionSlotGuard.IsSlotTakenByAnotherProfessionalAsync(
-                    db.ClientProfessionalLinks, clientProfile.Id, invite.ProfessionalProfileId,
-                    canViewNutritionPlans, canViewTrainingPlans, ct))
-            {
-                this.ThrowErrorWithCode(
-                    ErrorCodes.ProfessionAlreadyOccupied,
-                    "The client already has an active professional occupying this profession slot.");
-                return;
-            }
-
-            newLink = new ClientProfessionalLink
-            {
-                ClientProfileId = clientProfile.Id,
-                ProfessionalProfileId = invite.ProfessionalProfileId,
-                ProfessionalRole = profRole,
-                IsActive = true,
-                CanViewNutritionPlans = canViewNutritionPlans,
-                CanViewTrainingPlans = canViewTrainingPlans,
-                QuestionnaireId = invite.QuestionnaireId
-            };
-            db.ClientProfessionalLinks.Add(newLink);
+            await this.SendErrorWithCodeAsync(
+                ErrorCodes.CoachRoleRemoved,
+                "This coach role was removed; the account is read-only for it.",
+                StatusCodes.Status403Forbidden,
+                ct);
+            return;
         }
+
+        if (activation.Outcome == ClientLinkActivationOutcome.SlotTaken)
+        {
+            this.ThrowErrorWithCode(
+                ErrorCodes.ProfessionAlreadyOccupied,
+                "The client already has an active professional occupying this profession slot.");
+            return;
+        }
+
+        var newLink = activation.Link;
 
         invite.Status = PendingInviteStatus.Accepted;
 
@@ -198,7 +159,7 @@ public class AcceptClientInviteEndpoint(
             await db.SaveChangesAsync(ct);
         }
 
-        // Only a newly created link takes the invite's terms: a client who was already linked keeps whatever
+        // Only a newly started (created or reactivated) link takes the invite's terms: a client who was already linked keeps whatever
         // the coach set on the Payments tab. A package that no longer qualifies is skipped, never an error.
         if (newLink is not null && invite.CoachPackageId is { } packageId)
         {
