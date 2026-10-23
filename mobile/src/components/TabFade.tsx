@@ -1,7 +1,8 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useIsFocused } from 'expo-router';
+import { useNavigationState } from 'expo-router/react-navigation';
 import Animated, {
   cancelAnimation,
   useAnimatedStyle,
@@ -13,15 +14,22 @@ import Animated, {
 import { useTheme } from '@/theme';
 import { tabSwitchMotion } from '@/theme/motion';
 
-/** Fades a tab's content in each time the tab gains focus; rests at full opacity otherwise. */
+/**
+ * Fades a tab's content in when the tab navigator switches to this tab, and once on first mount
+ * while focused. Regaining focus after a stack pop leaves the navigator index unchanged: no fade.
+ */
 export function TabFade({ children }: { children: ReactNode }) {
   const theme = useTheme();
   const focused = useIsFocused();
   const reduceMotion = useReducedMotion();
   const opacity = useSharedValue(1);
+  const tabIndex = useNavigationState((state) => state.index);
+  const previousIndex = useRef<number | null>(null);
 
   useEffect(() => {
-    if (!focused || reduceMotion) {
+    const indexChanged = previousIndex.current !== tabIndex;
+    previousIndex.current = tabIndex;
+    if (!focused || reduceMotion || !indexChanged) {
       return;
     }
     opacity.set(0);
@@ -30,7 +38,7 @@ export function TabFade({ children }: { children: ReactNode }) {
       cancelAnimation(opacity);
       opacity.set(1);
     };
-  }, [focused, reduceMotion, opacity]);
+  }, [focused, tabIndex, reduceMotion, opacity]);
 
   const fadeStyle = useAnimatedStyle(() => ({ opacity: opacity.get() }));
 
