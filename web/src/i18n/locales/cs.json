@@ -883,6 +883,7 @@
         "client": "Klient",
         "scope": "Co budete vést",
         "onboarding": "Úvodní formulář",
+        "payment": "Platba",
         "message": "Osobní zpráva"
       },
       "emailLabel": "E-mail",
@@ -903,6 +904,27 @@
       "questionnaireHelper": "Vyplní ho hned po přijetí pozvánky. Vyberte „Žádný“, pokud ho nechcete posílat.",
       "questionnaireLoadError": "Formuláře se nepodařilo načíst. Pozvánku můžete odeslat i bez nich.",
       "optional": "(nepovinné)",
+      "payment": {
+        "package": "Balíček",
+        "packagePlaceholder": "Bez balíčku",
+        "discount": "Sleva",
+        "discountPlaceholder": "Bez slevy",
+        "noDiscounts": "Žádné slevy k dispozici",
+        "discountNeedsPackage": "Nejdřív vyberte balíček",
+        "noPackages": "Zatím nemáte žádné balíčky.",
+        "createPackage": "Vytvořit balíček",
+        "loadError": "Balíčky se nepodařilo načíst. Pozvánku můžete odeslat i bez nich.",
+        "pays": "Klient platí",
+        "helper": "Zobrazí se v pozvánce. Přiřadí se, až ji klient přijme, a fakturace začne ten den.",
+        "errors": {
+          "notEntitled": "Platby nejsou součástí vašeho tarifu. Odeberte balíček a pozvánku odešlete znovu.",
+          "packageArchived": "Tento balíček je archivovaný. Vyberte jiný a odešlete pozvánku znovu.",
+          "discountArchived": "Tato sleva je archivovaná. Vyberte jinou nebo žádnou a odešlete pozvánku znovu.",
+          "discountInvalid": "Tato sleva se na vybraný balíček nevztahuje. Vyberte jinou.",
+          "currencyMismatch": "Sleva s pevnou částkou musí být ve stejné měně jako balíček.",
+          "unavailable": "Balíček nebo sleva už není k dispozici. Seznamy jsme obnovili."
+        }
+      },
       "messageLabel": "Zpráva v e-mailu s pozvánkou",
       "footerNote": "Pozvánka zůstane v části Čekající, dokud ji klient nepřijme",
       "submit": "Odeslat pozvánku",
@@ -5263,6 +5285,12 @@
         "resend": "Poslat znovu"
       }
     },
+    "inviteAccept": {
+      "title": "Máte pozvánku do Form Up",
+      "lede": "Otevřete aplikaci a přihlaste se e-mailem, na který pozvánka dorazila — najdete ji na obrazovce Dnes.",
+      "openApp": "Otevřít aplikaci",
+      "getApp": "Aplikaci ještě nemáte?"
+    },
     "verifyEmail": {
       "verifying": "Ověřujeme váš e-mail...",
       "success": {
@@ -5713,7 +5741,6 @@
       "sectionPackage": "Balíček",
       "name": "Název",
       "included": "Co je v ceně",
-      "includedHint": "Tento popis vidíte jen vy.",
       "sectionPrice": "Cena a fakturace",
       "price": "Cena",
       "currency": "Měna",

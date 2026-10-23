@@ -3,16 +3,21 @@ import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useTranslation } from 'react-i18next';
-import { Check, ChevronDown, ClipboardList, Mail, MessageSquare, Send, Target } from 'lucide-react';
+import { Check, ChevronDown, ClipboardList, CreditCard, Mail, MessageSquare, Send, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { LinkCapabilityScope, QuestionnaireType } from '@/api/generated';
 import { useCreatePendingInvite } from '@/hooks/useClientsQueries';
 import { useTrainerQuestionnaires } from '@/hooks/useQuestionnaireQueries';
+import InvitePaymentSection from '@/components/clients/InvitePaymentSection';
+import { isNotEntitled } from '@/components/client-detail/payment/paymentErrors';
+import { usePaymentDiscounts, usePaymentPackages } from '@/hooks/useClientPaymentQueries';
 import { useAuthStore } from '@/stores/auth';
+import { discountFitsPackage } from '@/components/client-detail/payment/paymentModel';
 import { cn } from '@/lib/utils';
 
 const EMAIL_MAX_LENGTH = 100;
@@ -22,6 +27,8 @@ const NO_QUESTIONNAIRE = '';
 interface FormValues {
   email: string;
   message: string;
+  packageId: string;
+  discountId: string;
 }
 
 interface Props {
@@ -94,18 +101,45 @@ function InviteForm({ onClose }: { onClose: () => void }) {
       .email(t('clients.addClientDrawer.validation.emailInvalid'))
       .max(EMAIL_MAX_LENGTH, t('clients.addClientDrawer.validation.emailTooLong')),
     message: z.string().max(MESSAGE_MAX_LENGTH, t('clients.addClientDrawer.validation.messageTooLong')),
+    packageId: z.string(),
+    discountId: z.string(),
+  }).refine((values) => values.discountId === '' || values.packageId !== '', {
+    path: ['discountId'],
+    message: t('clients.addClientDrawer.payment.discountNeedsPackage'),
   });
 
   const {
     register,
     handleSubmit,
     control,
+    setValue,
     formState: { errors, isValid },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     mode: 'onTouched',
-    defaultValues: { email: '', message: '' },
+    defaultValues: { email: '', message: '', packageId: '', discountId: '' },
   });
+
+  const packagesQuery = usePaymentPackages(true);
+  // Not entitled (or a plan that lost payments while the drawer was open): the section disappears.
+  const showPayment = !(packagesQuery.isError && isNotEntitled(packagesQuery.error));
+  const discountsQuery = usePaymentDiscounts(packagesQuery.isSuccess);
+  const packages = packagesQuery.data ?? [];
+  const discounts = discountsQuery.data ?? [];
+  const chosenPackageId = useWatch({ control, name: 'packageId' });
+  const chosenDiscountId = useWatch({ control, name: 'discountId' });
+  // A package or discount archived since the lists loaded drops out of the lists and so out of the request.
+  const sentPackage = packages.find((option) => option.packageId === chosenPackageId);
+  const sentDiscount = discounts.find((discount) => discount.discountId === chosenDiscountId);
+
+  function onPackageChange(nextPackageId: string) {
+    setValue('packageId', nextPackageId, { shouldDirty: true });
+    // A discount that does not cover the new package would be rejected by the server.
+    const nextPackage = packages.find((option) => option.packageId === nextPackageId);
+    if (!sentDiscount || !discountFitsPackage(sentDiscount, nextPackage)) {
+      setValue('discountId', '', { shouldDirty: true });
+    }
+  }
 
   const inviteMutation = useCreatePendingInvite();
   const messageLength = useWatch({ control, name: 'message' }).length;
@@ -118,6 +152,9 @@ function InviteForm({ onClose }: { onClose: () => void }) {
         message: values.message || null,
         questionnairePublicId: questionnaireId === NO_QUESTIONNAIRE ? null : questionnaireId,
         ...(isDualRole ? { requestedScope: scope } : {}),
+        ...(showPayment && sentPackage
+          ? { packageId: sentPackage.packageId, ...(sentDiscount ? { discountId: sentDiscount.discountId } : {}) }
+          : {}),
       },
       { onSuccess: onClose },
     );
@@ -219,6 +256,25 @@ function InviteForm({ onClose }: { onClose: () => void }) {
             )}
           </div>
         </Section>
+
+        {showPayment && (
+          <Section icon={<CreditCard />} title={t('clients.addClientDrawer.sections.payment')} hint={t('clients.addClientDrawer.optional')}>
+            {packagesQuery.isPending ? (
+              <Skeleton className="h-10 w-full" />
+            ) : packagesQuery.isError ? (
+              <p className="text-meta text-destructive">{t('clients.addClientDrawer.payment.loadError')}</p>
+            ) : (
+              <InvitePaymentSection
+                packages={packages}
+                discounts={discounts}
+                packageId={sentPackage?.packageId ?? ''}
+                discountId={sentDiscount?.discountId ?? ''}
+                onPackageChange={onPackageChange}
+                onDiscountChange={(nextDiscountId) => setValue('discountId', nextDiscountId, { shouldDirty: true })}
+              />
+            )}
+          </Section>
+        )}
 
         <Section
           icon={<MessageSquare />}

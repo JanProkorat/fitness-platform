@@ -109,11 +109,7 @@ function DrawerBody({ item, onSubmit, isSaving, onClose }: BodyProps) {
           <Field label={t('packages.drawer.name')} error={errors.name?.message}>
             {(control) => <Input {...register('name')} {...control} />}
           </Field>
-          <Field
-            label={t('packages.drawer.included')}
-            error={errors.description?.message}
-            hint={t('packages.drawer.includedHint')}
-          >
+          <Field label={t('packages.drawer.included')} error={errors.description?.message}>
             {(control) => <Textarea {...register('description')} rows={3} {...control} />}
           </Field>
         </section>

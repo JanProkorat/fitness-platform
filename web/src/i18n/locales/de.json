@@ -845,6 +845,7 @@
         "client": "Klient",
         "scope": "Was Sie betreuen",
         "onboarding": "Onboarding-Formular",
+        "payment": "Zahlung",
         "message": "Persönliche Nachricht"
       },
       "emailLabel": "E-Mail",
@@ -863,6 +864,27 @@
       "questionnaireHelper": "Er füllt es gleich nach der Annahme aus. Wählen Sie „Keines“, um es zu überspringen.",
       "questionnaireLoadError": "Die Formulare konnten nicht geladen werden. Sie können die Einladung trotzdem ohne Formular senden.",
       "optional": "(optional)",
+      "payment": {
+        "package": "Paket",
+        "packagePlaceholder": "Kein Paket",
+        "discount": "Rabatt",
+        "discountPlaceholder": "Kein Rabatt",
+        "noDiscounts": "Keine Rabatte verfügbar",
+        "discountNeedsPackage": "Wählen Sie zuerst ein Paket",
+        "noPackages": "Sie haben noch keine Pakete.",
+        "createPackage": "Paket erstellen",
+        "loadError": "Die Pakete konnten nicht geladen werden. Sie können die Einladung auch ohne Paket senden.",
+        "pays": "Der Klient zahlt",
+        "helper": "Wird in der Einladung angezeigt. Wird zugewiesen, sobald der Klient annimmt, und die Abrechnung beginnt an diesem Tag.",
+        "errors": {
+          "notEntitled": "Zahlungen sind nicht Teil Ihres Tarifs. Entfernen Sie das Paket und senden Sie die Einladung erneut.",
+          "packageArchived": "Dieses Paket wurde archiviert. Wählen Sie ein anderes und senden Sie die Einladung erneut.",
+          "discountArchived": "Dieser Rabatt wurde archiviert. Wählen Sie einen anderen oder keinen und senden Sie die Einladung erneut.",
+          "discountInvalid": "Dieser Rabatt gilt nicht für das gewählte Paket. Wählen Sie einen anderen.",
+          "currencyMismatch": "Ein Rabatt mit festem Betrag muss dieselbe Währung wie das Paket haben.",
+          "unavailable": "Dieses Paket oder dieser Rabatt ist nicht mehr verfügbar. Die Listen wurden aktualisiert."
+        }
+      },
       "messageLabel": "Nachricht in der Einladungs-E-Mail",
       "footerNote": "Die Einladung bleibt unter Ausstehend, bis er sie annimmt",
       "submit": "Einladung senden",
@@ -5104,6 +5126,12 @@
         "resend": "Erneut senden"
       }
     },
+    "inviteAccept": {
+      "title": "Sie haben eine Einladung bei Form Up",
+      "lede": "Öffnen Sie die App und melden Sie sich mit der E-Mail-Adresse an, an die die Einladung gegangen ist – Sie finden sie auf Ihrem Heute-Bildschirm.",
+      "openApp": "App öffnen",
+      "getApp": "Sie haben die App noch nicht?"
+    },
     "verifyEmail": {
       "verifying": "E-Mail wird bestätigt...",
       "success": {
@@ -5550,7 +5578,6 @@
       "sectionPackage": "Paket",
       "name": "Name",
       "included": "Was enthalten ist",
-      "includedHint": "Diese Beschreibung sehen nur Sie.",
       "sectionPrice": "Preis und Abrechnung",
       "price": "Preis",
       "currency": "Währung",

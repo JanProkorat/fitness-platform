@@ -846,6 +846,7 @@
         "client": "Client",
         "scope": "What you'll coach",
         "onboarding": "Onboarding form",
+        "payment": "Payment",
         "message": "Personal message"
       },
       "emailLabel": "Email",
@@ -864,6 +865,27 @@
       "questionnaireHelper": "They fill it in right after accepting. Pick “None” to skip it.",
       "questionnaireLoadError": "Couldn't load your forms. You can still send the invite without one.",
       "optional": "(optional)",
+      "payment": {
+        "package": "Package",
+        "packagePlaceholder": "No package",
+        "discount": "Discount",
+        "discountPlaceholder": "No discount",
+        "noDiscounts": "No discounts available",
+        "discountNeedsPackage": "Choose a package first",
+        "noPackages": "You have no packages yet.",
+        "createPackage": "Create a package",
+        "loadError": "Packages couldn't be loaded. You can still send the invite without one.",
+        "pays": "The client pays",
+        "helper": "Shown in the invite. Assigned when they accept, and billing starts that day.",
+        "errors": {
+          "notEntitled": "Payments aren't part of your plan. Remove the package and send the invite again.",
+          "packageArchived": "That package was archived. Pick another one and send the invite again.",
+          "discountArchived": "That discount was archived. Pick another one, or none, and send the invite again.",
+          "discountInvalid": "That discount doesn't apply to the chosen package. Pick another one.",
+          "currencyMismatch": "A fixed-amount discount must be in the same currency as the package.",
+          "unavailable": "That package or discount is no longer available. The lists were refreshed."
+        }
+      },
       "messageLabel": "Message in the invite email",
       "footerNote": "The invite stays under Pending until they accept",
       "submit": "Send invitation",
@@ -5105,6 +5127,12 @@
         "resend": "Send again"
       }
     },
+    "inviteAccept": {
+      "title": "You have an invite on Form Up",
+      "lede": "Open the app and sign in with the email the invite came to — you'll find it on your Today screen.",
+      "openApp": "Open the app",
+      "getApp": "Don't have the app yet?"
+    },
     "verifyEmail": {
       "verifying": "Verifying your email...",
       "success": {
@@ -5551,7 +5579,6 @@
       "sectionPackage": "Package",
       "name": "Name",
       "included": "What’s included",
-      "includedHint": "Only you see this description.",
       "sectionPrice": "Price and billing",
       "price": "Price",
       "currency": "Currency",
