@@ -15,7 +15,7 @@ namespace FitnessPlatform.Application.Infrastructure.Services;
 ///
 /// <para><b>Blob-path conventions by scope:</b></para>
 /// <list type="bullet">
-///   <item><description><see cref="ImageUploadScope.Avatar"/>    — <c>avatars/{userId}.{ext}</c></description></item>
+///   <item><description><see cref="ImageUploadScope.Avatar"/>    — <c>avatars/{userId}-{guid:N}.{ext}</c> or <c>avatars/prof-{profileId}-{guid:N}.{ext}</c></description></item>
 ///   <item><description><see cref="ImageUploadScope.Food"/>      — <c>foods/{foodId}.{ext}</c></description></item>
 ///   <item><description><see cref="ImageUploadScope.Recipe"/>    — <c>recipes/{recipeId}/{slot}.{ext}</c></description></item>
 ///   <item><description><see cref="ImageUploadScope.PlanPhoto"/> — <c>plan-photos/{planId}/{photoId}.{ext}</c></description></item>
@@ -44,7 +44,7 @@ public class ImageUploadService(IBlobStorageService blobStorage) : IImageUploadS
     /// <remarks>
     /// Blob-path conventions by scope:
     /// <list type="bullet">
-    ///   <item><description>Avatar    — <c>avatars/{userId}.{ext}</c></description></item>
+    ///   <item><description>Avatar    — <c>avatars/{userId}-{guid:N}.{ext}</c> or <c>avatars/prof-{profileId}-{guid:N}.{ext}</c></description></item>
     ///   <item><description>Food      — <c>foods/{foodId}.{ext}</c></description></item>
     ///   <item><description>Recipe    — <c>recipes/{recipeId}/{slot}.{ext}</c></description></item>
     ///   <item><description>PlanPhoto — <c>plan-photos/{planId}/{photoId}.{ext}</c></description></item>

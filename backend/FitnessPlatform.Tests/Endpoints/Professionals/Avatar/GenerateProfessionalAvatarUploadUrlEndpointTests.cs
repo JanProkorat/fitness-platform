@@ -4,6 +4,7 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.Professionals.Avatar;
 using FitnessPlatform.Tests.Builders;
 using NSubstitute;
@@ -36,20 +37,22 @@ public class GenerateProfessionalAvatarUploadUrlEndpointTests
             db);
     }
 
+    private bool IsOwnUniqueSubPath(string subPath, string extension) =>
+        AvatarBlobKeys.TryParseProfessionalKey(subPath, _profileId, out _) && subPath.EndsWith("." + extension);
+
     // ── Happy path ──────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task HandleAsync_AuthenticatedProfessional_WithJpeg_ReturnsUploadUrlAndBlobUrl()
+    public async Task HandleAsync_AuthenticatedProfessional_WithJpeg_ReturnsUploadUrlAndUniqueBlobUrl()
     {
-        var blobUrl = $"avatars/prof-{_profileId}.jpg";
         _imageUpload
             .GenerateUploadUrlAsync(
                 ImageUploadScope.Avatar,
-                $"prof-{_profileId}.jpg",
+                Arg.Any<string>(),
                 "image/jpeg",
                 1024,
                 Arg.Any<CancellationToken>())
-            .Returns(new BlobUploadUrl("https://storage/upload?token=abc", blobUrl));
+            .Returns(ci => new BlobUploadUrl("https://storage/upload?token=abc", $"avatars/{ci.ArgAt<string>(1)}"));
 
         var ep = CreateEndpoint(_userId, _profileId);
 
@@ -60,28 +63,20 @@ public class GenerateProfessionalAvatarUploadUrlEndpointTests
         }, CancellationToken.None);
 
         ep.Response.UploadUrl.Should().Be("https://storage/upload?token=abc");
-        ep.Response.BlobUrl.Should().StartWith("avatars/");
-        ep.Response.BlobUrl.Should().Be(blobUrl);
+        AvatarBlobKeys.TryParseProfessionalKey(ep.Response.BlobUrl, _profileId, out _).Should().BeTrue();
     }
 
     [Theory]
     [InlineData("image/jpeg", "jpg")]
     [InlineData("image/png", "png")]
     [InlineData("image/webp", "webp")]
-    public async Task HandleAsync_AllowedContentTypes_CallsServiceWithCorrectSubPath(
+    public async Task HandleAsync_AllowedContentTypes_CallsServiceWithUniqueSubPathAndExtension(
         string contentType, string expectedExt)
     {
-        var expectedSubPath = $"prof-{_profileId}.{expectedExt}";
         _imageUpload
             .GenerateUploadUrlAsync(
-                ImageUploadScope.Avatar,
-                expectedSubPath,
-                contentType,
-                512,
-                Arg.Any<CancellationToken>())
-            .Returns(new BlobUploadUrl(
-                "https://storage/upload",
-                $"avatars/{expectedSubPath}"));
+                Arg.Any<ImageUploadScope>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>())
+            .Returns(ci => new BlobUploadUrl("https://storage/upload", $"avatars/{ci.ArgAt<string>(1)}"));
 
         var ep = CreateEndpoint(_userId, _profileId);
 
@@ -93,10 +88,28 @@ public class GenerateProfessionalAvatarUploadUrlEndpointTests
 
         await _imageUpload.Received(1).GenerateUploadUrlAsync(
             ImageUploadScope.Avatar,
-            expectedSubPath,
+            Arg.Is<string>(subPath => IsOwnUniqueSubPath(subPath, expectedExt)),
             contentType,
             512,
             Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task HandleAsync_CalledTwice_IssuesDistinctBlobUrls()
+    {
+        _imageUpload
+            .GenerateUploadUrlAsync(
+                Arg.Any<ImageUploadScope>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>())
+            .Returns(ci => new BlobUploadUrl("https://storage/upload", $"avatars/{ci.ArgAt<string>(1)}"));
+
+        var first = CreateEndpoint(_userId, _profileId);
+        var second = CreateEndpoint(_userId, _profileId);
+        var request = new GenerateProfessionalAvatarUploadUrlRequest { ContentType = "image/jpeg", SizeBytes = 100 };
+
+        await first.HandleAsync(request, CancellationToken.None);
+        await second.HandleAsync(request, CancellationToken.None);
+
+        first.Response.BlobUrl.Should().NotBe(second.Response.BlobUrl);
     }
 
     // ── Ownership isolation ─────────────────────────────────────────────────
@@ -136,10 +149,10 @@ public class GenerateProfessionalAvatarUploadUrlEndpointTests
             SizeBytes = 100
         }, CancellationToken.None);
 
-        epA.Response.BlobUrl.Should().Contain(profAId.ToString());
-        epB.Response.BlobUrl.Should().Contain(profBId.ToString());
-        epA.Response.BlobUrl.Should().NotContain(profBId.ToString());
-        epB.Response.BlobUrl.Should().NotContain(profAId.ToString());
+        AvatarBlobKeys.TryParseProfessionalKey(epA.Response.BlobUrl, profAId, out _).Should().BeTrue();
+        AvatarBlobKeys.TryParseProfessionalKey(epB.Response.BlobUrl, profBId, out _).Should().BeTrue();
+        AvatarBlobKeys.TryParseProfessionalKey(epA.Response.BlobUrl, profBId, out _).Should().BeFalse();
+        AvatarBlobKeys.TryParseProfessionalKey(epB.Response.BlobUrl, profAId, out _).Should().BeFalse();
     }
 
     // ── Profile not found (client without a professional profile) ──────────

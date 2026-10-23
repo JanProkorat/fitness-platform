@@ -13,7 +13,7 @@ namespace FitnessPlatform.Application.Domain.Interfaces;
 ///
 /// <para><b>Blob-path conventions by scope:</b></para>
 /// <list type="bullet">
-///   <item><description><see cref="ImageUploadScope.Avatar"/>    — <c>avatars/{userId}.{ext}</c></description></item>
+///   <item><description><see cref="ImageUploadScope.Avatar"/>    — <c>avatars/{userId}-{guid:N}.{ext}</c> or <c>avatars/prof-{profileId}-{guid:N}.{ext}</c></description></item>
 ///   <item><description><see cref="ImageUploadScope.Food"/>      — <c>foods/{foodId}.{ext}</c></description></item>
 ///   <item><description><see cref="ImageUploadScope.Recipe"/>    — <c>recipes/{recipeId}/{slot}.{ext}</c></description></item>
 ///   <item><description><see cref="ImageUploadScope.PlanPhoto"/> — <c>plan-photos/{planId}/{photoId}.{ext}</c></description></item>
@@ -38,7 +38,7 @@ public interface IImageUploadService
     ///
     /// <para><b>Blob-path conventions by scope:</b></para>
     /// <list type="bullet">
-    ///   <item><description><see cref="ImageUploadScope.Avatar"/>    — <c>avatars/{userId}.{ext}</c></description></item>
+    ///   <item><description><see cref="ImageUploadScope.Avatar"/>    — <c>avatars/{userId}-{guid:N}.{ext}</c> or <c>avatars/prof-{profileId}-{guid:N}.{ext}</c></description></item>
     ///   <item><description><see cref="ImageUploadScope.Food"/>      — <c>foods/{foodId}.{ext}</c></description></item>
     ///   <item><description><see cref="ImageUploadScope.Recipe"/>    — <c>recipes/{recipeId}/{slot}.{ext}</c></description></item>
     ///   <item><description><see cref="ImageUploadScope.PlanPhoto"/> — <c>plan-photos/{planId}/{photoId}.{ext}</c></description></item>
@@ -53,7 +53,7 @@ public interface IImageUploadService
     /// The scope-specific portion of the path after the prefix, without a
     /// leading slash. Callers are responsible for constructing this from their
     /// domain identifiers according to the conventions listed above.
-    /// Examples: <c>"{userId}.jpg"</c> for avatars,
+    /// Examples: <c>"{userId}-{guid:N}.jpg"</c> for avatars,
     /// <c>"{recipeId}/cover.jpg"</c> for recipes.
     /// </param>
     /// <param name="contentType">
@@ -100,9 +100,10 @@ public interface IImageUploadService
     /// </summary>
     /// <param name="scope">Logical bucket scope (e.g. <see cref="ImageUploadScope.Avatar"/>).</param>
     /// <param name="subPathPrefix">
-    /// The scope-specific, extension-less portion of the expected key — e.g. <c>"{userId}"</c>
-    /// for a user avatar or <c>"prof-{profileId}"</c> for a professional avatar. Must match
-    /// exactly what the paired <c>GenerateUploadUrlEndpoint</c> used to build its <c>subPath</c>.
+    /// The scope-specific, extension-less portion of the expected key — e.g.
+    /// <c>"{userId}-{guid:N}"</c> for a user avatar or <c>"prof-{profileId}-{guid:N}"</c> for a
+    /// professional avatar. Must match exactly what the paired <c>GenerateUploadUrlEndpoint</c>
+    /// used to build its <c>subPath</c>.
     /// </param>
     /// <param name="blobUrl">The blobUrl the caller is attempting to persist.</param>
     /// <returns>
