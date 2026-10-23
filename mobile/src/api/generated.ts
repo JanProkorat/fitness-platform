@@ -4097,7 +4097,7 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Requested scope exceeds the caller\'s held roles.", status, _responseText, _headers, result400);
+            return throwException("Requested scope exceeds the caller\'s held roles, a discount was sent without a package, or a fixed discount is in another currency than the package (CURRENCY_MISMATCH).", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -4105,7 +4105,7 @@ export class ApiClient {
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
+            return throwException("The coach role was removed, or the subscription does not include payments (PAYMENTS_NOT_ENTITLED).", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -23324,6 +23324,10 @@ professional's held identity roles (existing behavior — unchanged). When
 supplied, it must be a subset of the professional's actually-held roles; e.g. a
 Trainer-only professional cannot request NutritionOnly. */
     requestedScope?: LinkCapabilityScope | undefined;
+    /** Optional public id of the coach package the client is assigned when they accept. */
+    packageId?: string | undefined;
+    /** Optional public id of a discount on PackageId; needs a package. */
+    discountId?: string | undefined;
 }
 
 /** Which link-capability domain(s) an operation cares about. Used in two places: (1) on the write side, the explicit per-relationship domain scope a professional can request when forming or reactivating a ClientProfessionalLink — narrowing the CanViewNutritionPlans / CanViewTrainingPlans flags stamped on that link relative to the full set implied by the relevant professional's held identity roles (it can only narrow, never widen, beyond what those roles already allow); (2) on the read side, the domain predicate a batch query such as GetAccessibleClientsAsync pushes down into its WHERE clause to scope which active links qualify. */
@@ -25357,6 +25361,14 @@ export interface GetPublicProfileResponse {
     bio?: string | undefined;
     specializations?: string[];
     certificates?: string[];
+    /** The certificates with the issuer and year; the titles repeat Certificates. */
+    certificateDetails?: PublicCertificateDto[];
+    /** The packages the coach shows on the profile, cheapest first; empty without payments. */
+    packages?: PublicProfilePackageDto[];
+    /** The coach's email; set only when the caller has a live link to the coach. */
+    contactEmail?: string | undefined;
+    /** The coach's phone number; set only when the caller has a live link to the coach. */
+    contactPhone?: string | undefined;
     languages?: string[];
     city?: string | undefined;
     fromMonthlyPrice?: number | undefined;
@@ -25375,6 +25387,34 @@ export interface GetPublicProfileResponse {
     online?: boolean;
     acceptNewClients?: boolean;
     avatarBlobUrl?: string | undefined;
+}
+
+/** One certificate on a coach's public profile. */
+export interface PublicCertificateDto {
+    /** Title of the certificate. */
+    title?: string;
+    /** Who issued it; null when not given. */
+    issuer?: string | undefined;
+    /** Year it was issued; null when not given. */
+    year?: string | undefined;
+}
+
+/** One package on a coach's public profile. */
+export interface PublicProfilePackageDto {
+    /** Display name of the package. */
+    name?: string;
+    /** How often the package is billed. */
+    billing?: PackageBillingInterval;
+    /** Weeks between payments; set only for a package billed every N weeks. */
+    intervalWeeks?: number | undefined;
+    /** Number of payments the package runs for; null means until cancelled. */
+    runsForPayments?: number | undefined;
+    /** What the package includes; null for none. */
+    description?: string | undefined;
+    /** The price per payment. */
+    price?: number;
+    /** Currency of the price. */
+    currency?: PaymentCurrency;
 }
 
 export interface GetPublicProfileRequest {
@@ -29452,6 +29492,30 @@ export interface PendingInviteResponse {
     trainerRole?: string;
     trainerCity?: string;
     message?: string | undefined;
+    /** The package accepting the invite assigns; null when none, or it can no longer be given. */
+    package?: InvitePackageDto | undefined;
+}
+
+/** The package an invitation offers, with the price the client would pay for the first payment. */
+export interface InvitePackageDto {
+    /** Display name of the package. */
+    name?: string;
+    /** How often the package is billed. */
+    billing?: PackageBillingInterval;
+    /** Weeks between payments; set only for a package billed every N weeks. */
+    intervalWeeks?: number | undefined;
+    /** Number of payments the package runs for; null means until cancelled. */
+    runsForPayments?: number | undefined;
+    /** What the package includes; null for none. */
+    description?: string | undefined;
+    /** The package price per payment before any discount. */
+    basePrice?: number;
+    /** The discount as shown next to a price, or null when no discount applies. */
+    discountLabel?: string | undefined;
+    /** The price per payment after the discount. */
+    finalPrice?: number;
+    /** Currency of the prices. */
+    currency?: PaymentCurrency;
 }
 
 /** The caller's pending invitations, newest first. */
@@ -29478,6 +29542,8 @@ export interface ClientInviteDto {
     sentAt?: string;
     /** When the invitation stops being answerable (UTC). */
     expiresAt?: string;
+    /** The package accepting the invite assigns; null when the invite has none or it can no longer be given. */
+    package?: InvitePackageDto | undefined;
 }
 
 export interface DeclineClientInviteRequest {
