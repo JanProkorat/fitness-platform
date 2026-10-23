@@ -9,7 +9,6 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { Text } from '@/components/Text';
-import { useInviteActions } from '@/hooks/useInviteActions';
 import { useInvites } from '@/hooks/useInvites';
 import { useTheme } from '@/theme';
 import { inviteMotion } from '@/theme/motion';
@@ -24,7 +23,6 @@ export function InvitesSection() {
   const theme = useTheme();
   const styles = makeStyles(theme);
   const { data: invites } = useInvites();
-  const { accept, decline, pendingId } = useInviteActions();
 
   if (!invites || invites.length === 0) return null;
 
@@ -46,10 +44,7 @@ export function InvitesSection() {
               key={id}
               index={index}
               invite={invite}
-              busy={pendingId !== null}
               onOpen={() => router.push({ pathname: '/invite/[id]', params: { id } })}
-              onAccept={() => accept(id)}
-              onDecline={() => decline(id)}
             />
           );
         })}

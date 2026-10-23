@@ -1,6 +1,6 @@
 import type { TFunction } from 'i18next';
 
-import { PaymentCurrency } from '@/api/generated';
+import { PackageBillingInterval, PaymentCurrency } from '@/api/generated';
 
 const NBSP = ' ';
 /** Intl may group with a narrow no-break space or a plain space; one visible separator keeps amounts uniform. */
@@ -83,4 +83,30 @@ export function dueLine(
   const due = t('payments.due', { date: shortDay(dueDate, language) });
   const discount = discountLabel?.trim();
   return discount ? `${due} · ${discount}` : due;
+}
+
+/** "Every month", "Every 5 weeks" or "One payment": the billing chip on a package. */
+export function billingChip(
+  t: TFunction,
+  billing: PackageBillingInterval | null | undefined,
+  intervalWeeks: number | null | undefined,
+): string {
+  if (billing === PackageBillingInterval.OneOff) return t('packages.chip.oneOff');
+  if (billing === PackageBillingInterval.EveryNWeeks) {
+    return t('packages.chip.everyNWeeks', { count: intervalWeeks ?? 1 });
+  }
+  return t('packages.chip.monthly');
+}
+
+/** "/ month", "/ 5 weeks" or "one-off": the unit that follows a package price. */
+export function billingUnit(
+  t: TFunction,
+  billing: PackageBillingInterval | null | undefined,
+  intervalWeeks: number | null | undefined,
+): string {
+  if (billing === PackageBillingInterval.OneOff) return t('packages.unit.oneOff');
+  if (billing === PackageBillingInterval.EveryNWeeks) {
+    return t('packages.unit.everyNWeeks', { count: intervalWeeks ?? 1 });
+  }
+  return t('packages.unit.monthly');
 }

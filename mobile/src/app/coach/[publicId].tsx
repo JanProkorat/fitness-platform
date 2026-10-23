@@ -1,34 +1,47 @@
 import { useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Linking, ScrollView, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
-import { SymbolView } from 'expo-symbols';
-import type { SFSymbol } from 'expo-symbols';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { getErrorStatus } from '@/api/errors';
 import { coachFullName, coachInitials, primaryRole } from '@/api/professionals';
 import type { CoachRole } from '@/api/professionals';
-import { ROLE_NUTRITIONIST } from '@/api/profile';
 import { BackButton } from '@/components/BackButton';
 import { Button } from '@/components/Button';
 import { CoachAvailability } from '@/components/coach/CoachAvailability';
 import { CoachRoleChip } from '@/components/coach/CoachRoleChip';
+import { PackageCarousel } from '@/components/coach/PackageCarousel';
+import { ProfileCard, ProfileRow, ProfileSection } from '@/components/coach/ProfileSection';
 import { RequestSheet } from '@/components/coach/RequestSheet';
+import { instagramUrl, linkLabel, linkedinUrl, websiteUrl } from '@/components/coach/links';
 import { Screen } from '@/components/Screen';
 import { Text } from '@/components/Text';
 import { useCoachProfile } from '@/hooks/useCoachProfile';
+import { useInvites } from '@/hooks/useInvites';
+import { usePaymentsEnabled } from '@/hooks/usePaymentsEnabled';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
 
-type WorkingWithRow = { key: 'plan' | 'checkIns' | 'chat'; symbol: SFSymbol };
+const COLLABORATION_TYPES = ['online', 'inperson', 'both'] as const;
+type CollaborationType = (typeof COLLABORATION_TYPES)[number];
 
-const WORKING_WITH_ROWS: WorkingWithRow[] = [
-  { key: 'plan', symbol: 'dumbbell' },
-  { key: 'checkIns', symbol: 'list.clipboard' },
-  { key: 'chat', symbol: 'bubble.left' },
-];
+function collaborationTypeOf(raw: string | undefined): CollaborationType | undefined {
+  const value = raw?.trim().toLowerCase();
+  return COLLABORATION_TYPES.find((type) => type === value);
+}
+
+const COLLABORATION_SYMBOLS = {
+  online: 'laptopcomputer',
+  inperson: 'figure.walk',
+  both: 'person.2',
+} as const satisfies Record<CollaborationType, string>;
+
+/** Opens an outbound link; a device with no app for it simply does nothing. */
+function open(url: string) {
+  Linking.openURL(url).catch(() => undefined);
+}
 
 /** A coach's public profile, with the entry point to send them a request. */
 export default function CoachProfileScreen() {
@@ -37,8 +50,10 @@ export default function CoachProfileScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const styles = makeStyles(theme);
-  const { publicId = '' } = useLocalSearchParams<{ publicId: string }>();
+  const { publicId = '', from } = useLocalSearchParams<{ publicId: string; from?: string }>();
   const query = useCoachProfile(publicId);
+  const invites = useInvites();
+  const { enabled: paymentsEnabled } = usePaymentsEnabled();
   const [sheetOpen, setSheetOpen] = useState(false);
   const back = () => router.back();
 
@@ -80,13 +95,35 @@ export default function CoachProfileScreen() {
     .filter(Boolean)
     .join(' · ');
   const accepting = coach.acceptNewClients ?? false;
-  const requestLabel = coach.isLinked
-    ? t('coachProfile.linked')
-    : coach.hasPendingRequest
-      ? t('coachProfile.pending')
-      : t('coachProfile.sendRequest');
-  const requestDisabled = coach.isLinked || coach.hasPendingRequest || !accepting;
-  const rolePrefix = role === ROLE_NUTRITIONIST ? 'Nutritionist' : 'Trainer';
+  // The invite this coach sent, while it is still open: the profile then leads back to it.
+  const openInvite = invites.data?.find(
+    (invite) => invite.coachPublicId?.toLowerCase() === publicId.toLowerCase(),
+  );
+  const backToInvite = () => {
+    if (from === 'invite' && router.canGoBack()) router.back();
+    else if (openInvite?.id) router.push({ pathname: '/invite/[id]', params: { id: openInvite.id } });
+  };
+  const requestLabel = coach.hasPendingRequest ? t('coachProfile.pending') : t('coachProfile.sendRequest');
+  const requestDisabled = coach.hasPendingRequest || !accepting;
+  const packages = coach.packages ?? [];
+  const collaboration = collaborationTypeOf(coach.collaborationType);
+  const certificates =
+    (coach.certificateDetails ?? []).length > 0
+      ? (coach.certificateDetails ?? []).map((certificate) => ({
+          title: certificate.title ?? '',
+          detail: [certificate.issuer, certificate.year].filter(Boolean).join(' · '),
+        }))
+      : (coach.certificates ?? []).map((title) => ({ title, detail: '' }));
+  const languages = coach.languages ?? [];
+  const links = [
+    { kind: 'website', symbol: 'globe', url: websiteUrl(coach.website) },
+    { kind: 'instagram', symbol: 'camera', url: instagramUrl(coach.instagram) },
+    { kind: 'linkedin', symbol: 'link', url: linkedinUrl(coach.linkedIn) },
+  ] as const;
+  const visibleLinks = links.filter((link) => link.url !== null);
+  const email = coach.contactEmail?.trim();
+  const phone = coach.contactPhone?.trim();
+  const showFooter = !coach.isLinked;
 
   return (
     <View style={styles.root}>
@@ -132,41 +169,97 @@ export default function CoachProfileScreen() {
               ))}
             </View>
           ) : null}
-          <View style={styles.workingWith}>
-            <Text variant="overline" color="muted" style={styles.overline}>
-              {t('coachProfile.workingWith', { name: firstName }).toUpperCase()}
-            </Text>
-            <View style={styles.card}>
-              {WORKING_WITH_ROWS.map((row, index) => (
-                <View key={row.key} style={[styles.row, index > 0 && styles.rowDivider]}>
-                  <View
-                    style={[
-                      styles.rowIcon,
-                      { backgroundColor: rowTone(theme, row.key, rolePrefix).background },
-                    ]}
-                  >
-                    <SymbolView
-                      name={row.symbol}
-                      tintColor={rowTone(theme, row.key, rolePrefix).foreground}
-                      size={theme.sizes.rowGlyph}
-                    />
+          <PackageCarousel packages={packages} showPrices={paymentsEnabled} />
+          {collaboration ? (
+            <ProfileSection label={t('coachProfile.how.title', { name: firstName })}>
+              <ProfileCard>
+                <ProfileRow
+                  first
+                  symbol={COLLABORATION_SYMBOLS[collaboration]}
+                  title={t(`coachProfile.how.${collaboration}.label`)}
+                  subtitle={t(`coachProfile.how.${collaboration}.hint`)}
+                />
+              </ProfileCard>
+            </ProfileSection>
+          ) : null}
+          {certificates.length > 0 ? (
+            <ProfileSection label={t('coachProfile.certificates')}>
+              <ProfileCard>
+                {certificates.map((certificate, index) => (
+                  <ProfileRow
+                    key={`${certificate.title}-${index}`}
+                    first={index === 0}
+                    symbol="rosette"
+                    title={certificate.title}
+                    subtitle={certificate.detail || undefined}
+                  />
+                ))}
+              </ProfileCard>
+            </ProfileSection>
+          ) : null}
+          {languages.length > 0 ? (
+            <ProfileSection label={t('coachProfile.languages')}>
+              <View style={styles.pills}>
+                {languages.map((language) => (
+                  <View key={language} style={styles.pill}>
+                    <Text variant="body">{language}</Text>
                   </View>
-                  <Text variant="bodyLarge" style={styles.rowLabel}>
-                    {t(`coachProfile.workingWithRows.${rolePrefix}.${row.key}`)}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          </View>
+                ))}
+              </View>
+            </ProfileSection>
+          ) : null}
+          {visibleLinks.length > 0 ? (
+            <ProfileSection label={t('coachProfile.links')}>
+              <ProfileCard>
+                {visibleLinks.map((link, index) => (
+                  <ProfileRow
+                    key={link.kind}
+                    first={index === 0}
+                    symbol={link.symbol}
+                    title={t(`coachProfile.link.${link.kind}`)}
+                    subtitle={link.url ? linkLabel(link.url, link.kind) : undefined}
+                    chevron
+                    onPress={() => (link.url ? open(link.url) : undefined)}
+                  />
+                ))}
+              </ProfileCard>
+            </ProfileSection>
+          ) : null}
+          {email || phone ? (
+            <ProfileSection label={t('coachProfile.contact')} note={t('coachProfile.contactNote', { name: firstName })}>
+              <ProfileCard>
+                {email ? (
+                  <ProfileRow
+                    first
+                    symbol="envelope"
+                    title={t('coachProfile.email')}
+                    subtitle={email}
+                    onPress={() => open(`mailto:${email}`)}
+                  />
+                ) : null}
+                {phone ? (
+                  <ProfileRow
+                    first={!email}
+                    symbol="phone"
+                    title={t('coachProfile.phone')}
+                    subtitle={phone}
+                    onPress={() => open(`tel:${phone.replace(/\s+/g, '')}`)}
+                  />
+                ) : null}
+              </ProfileCard>
+            </ProfileSection>
+          ) : null}
         </View>
       </ScrollView>
-      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, theme.spacing.xl) }]}>
-        <Button
-          label={requestLabel}
-          disabled={requestDisabled}
-          onPress={() => setSheetOpen(true)}
-        />
-      </View>
+      {showFooter ? (
+        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, theme.spacing.xl) }]}>
+          {openInvite ? (
+            <Button label={t('coachProfile.backToInvite')} onPress={backToInvite} />
+          ) : (
+            <Button label={requestLabel} disabled={requestDisabled} onPress={() => setSheetOpen(true)} />
+          )}
+        </View>
+      ) : null}
       <RequestSheet
         visible={sheetOpen}
         coach={{
@@ -180,21 +273,6 @@ export default function CoachProfileScreen() {
       />
     </View>
   );
-}
-
-/** Soft tint behind a row icon: orange for the plan of a trainer, green for a nutritionist's, neutral for chat. */
-function rowTone(theme: Theme, key: WorkingWithRow['key'], role: 'Trainer' | 'Nutritionist') {
-  const { colors } = theme;
-  switch (key) {
-    case 'plan':
-      return role === 'Trainer'
-        ? { background: colors.trainingSoft, foreground: colors.trainingInk }
-        : { background: colors.nutritionSoft, foreground: colors.nutritionInk };
-    case 'checkIns':
-      return { background: colors.accentSoft, foreground: colors.accent };
-    case 'chat':
-      return { background: colors.field, foreground: colors.ink2 };
-  }
 }
 
 const makeStyles = (theme: Theme) =>
@@ -229,6 +307,7 @@ const makeStyles = (theme: Theme) =>
       gap: theme.spacing.xl,
       marginTop: -theme.radii.xxl,
       padding: theme.spacing.xxl,
+      paddingBottom: theme.spacing.huge,
       borderTopLeftRadius: theme.radii.xxl,
       borderTopRightRadius: theme.radii.xxl,
       backgroundColor: theme.colors.ground,
@@ -261,41 +340,6 @@ const makeStyles = (theme: Theme) =>
       borderRadius: theme.radii.pill,
       borderWidth: theme.sizes.border,
       borderColor: theme.colors.lineStrong,
-    },
-    workingWith: {
-      gap: theme.spacing.md,
-    },
-    overline: {
-      paddingHorizontal: theme.spacing.xs,
-      letterSpacing: theme.typography.overline.letterSpacing,
-    },
-    card: {
-      paddingHorizontal: theme.spacing.lg,
-      borderRadius: theme.radii.xxl,
-      borderWidth: theme.sizes.border,
-      borderColor: theme.colors.line,
-      backgroundColor: theme.colors.surface,
-      boxShadow: theme.shadows.card,
-    },
-    row: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: theme.spacing.lg,
-      paddingVertical: theme.spacing.md,
-    },
-    rowDivider: {
-      borderTopWidth: theme.sizes.border,
-      borderTopColor: theme.colors.line,
-    },
-    rowIcon: {
-      width: theme.sizes.rowIcon,
-      height: theme.sizes.rowIcon,
-      borderRadius: theme.radii.pill,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    rowLabel: {
-      flex: 1,
     },
     footer: {
       paddingHorizontal: theme.spacing.xxl,

@@ -352,10 +352,12 @@
   },
   "invites": {
     "invitedYou": "{{name}} tě zve",
-    "accept": "Přijmout",
     "decline": "Odmítnout",
     "acceptInvite": "Přijmout pozvánku",
     "openHint": "Otevře pozvánku",
+    "viewInvite": "Zobrazit pozvánku",
+    "includesPackage": "Zahrnuje balíček",
+    "includesPackagePrice": "Zahrnuje balíček · {{price}}",
     "roles": { "Trainer": "Trenér", "Nutritionist": "Nutriční poradce" },
     "roleJoiner": " a ",
     "time": {
@@ -374,14 +376,15 @@
       "back": "Zpět",
       "alsoOnline": "i online",
       "invitedYouAt": "{{name}} tě zve · {{time}}",
-      "workingWith": "Spolupráce s {{name}}",
-      "offers": {
-        "training": "Osobní tréninkový plán",
-        "nutrition": "Osobní jídelníček",
-        "checkins": "Týdenní check-iny",
-        "chat": "Chat se svým poradcem"
-      },
-      "shareNote": "Přijetím sdílíš své odpovědi z úvodního dotazníku s osobou {{name}}."
+      "shareNote": "Přijetím sdílíš své odpovědi z úvodního dotazníku s osobou {{name}}.",
+      "shareNoteWithPackage": "Přijetím sdílíš své odpovědi z úvodního dotazníku s osobou {{name}} a spustíš balíček.",
+      "viewProfile": "Zobrazit profil: {{name}}",
+      "viewProfileHint": "Medailonek, certifikáty a všechny balíčky",
+      "package": {
+        "title": "Tvůj balíček",
+        "youPay": "Platíš",
+        "note": "Začíná dnem přijetí. {{name}} ti posílá každou žádost o platbu, platíš bankovním převodem."
+      }
     },
     "errors": {
       "ok": "OK",
@@ -717,24 +720,48 @@
       "generic": "Poradce se nepodařilo načíst. Zkus to znovu."
     }
   },
+  "packages": {
+    "chip": {
+      "monthly": "Každý měsíc",
+      "everyNWeeks_one": "Každý týden",
+      "everyNWeeks_few": "Každé {{count}} týdny",
+      "everyNWeeks_many": "Každých {{count}} týdnů",
+      "everyNWeeks_other": "Každých {{count}} týdnů",
+      "oneOff": "Jedna platba"
+    },
+    "unit": {
+      "monthly": "/ měsíc",
+      "everyNWeeks_one": "/ týden",
+      "everyNWeeks_few": "/ {{count}} týdny",
+      "everyNWeeks_many": "/ {{count}} týdnů",
+      "everyNWeeks_other": "/ {{count}} týdnů",
+      "oneOff": "jednorázově"
+    }
+  },
   "coachProfile": {
     "alsoOnline": "i online",
-    "workingWith": "Spolupráce s {{name}}",
-    "workingWithRows": {
-      "Trainer": {
-        "plan": "Osobní tréninkový plán",
-        "checkIns": "Týdenní check-iny",
-        "chat": "Chat s tvým trenérem"
-      },
-      "Nutritionist": {
-        "plan": "Osobní jídelníček",
-        "checkIns": "Týdenní check-iny",
-        "chat": "Chat s tvým poradcem"
-      }
+    "packages": "Balíčky",
+    "how": {
+      "title": "Jak pracuje {{name}}",
+      "online": { "label": "Online", "hint": "Plány a check-iny online, kdekoli jsi." },
+      "inperson": { "label": "Osobně", "hint": "Setkání osobně, tváří v tvář." },
+      "both": { "label": "Online i osobně", "hint": "Osobní setkání plus online plány a check-iny." }
     },
+    "certificates": "Certifikáty",
+    "languages": "Jazyky",
+    "links": "Odkazy",
+    "link": {
+      "website": "Web",
+      "instagram": "Instagram",
+      "linkedin": "LinkedIn"
+    },
+    "contact": "Kontakt",
+    "contactNote": "Jen pro klienty",
+    "email": "E-mail",
+    "phone": "Telefon",
+    "backToInvite": "Zpět na pozvánku",
     "sendRequest": "Odeslat žádost",
     "pending": "Žádost čeká na vyřízení",
-    "linked": "Už spolu spolupracujete",
     "retry": "Zkusit znovu",
     "error": {
       "title": "Profil se nepodařilo načíst",

@@ -346,10 +346,12 @@
   },
   "invites": {
     "invitedYou": "{{name}} invited you",
-    "accept": "Accept",
     "decline": "Decline",
     "acceptInvite": "Accept invite",
     "openHint": "Opens the invite",
+    "viewInvite": "View invite",
+    "includesPackage": "Includes a package",
+    "includesPackagePrice": "Includes a package · {{price}}",
     "roles": { "Trainer": "Trainer", "Nutritionist": "Nutritionist" },
     "roleJoiner": " & ",
     "time": {
@@ -366,14 +368,15 @@
       "back": "Back",
       "alsoOnline": "also online",
       "invitedYouAt": "{{name}} invited you · {{time}}",
-      "workingWith": "Working with {{name}}",
-      "offers": {
-        "training": "Personal training plan",
-        "nutrition": "Personal meal plan",
-        "checkins": "Weekly check-ins",
-        "chat": "Chat with your coach"
-      },
-      "shareNote": "Accepting shares your onboarding answers with {{name}}."
+      "shareNote": "Accepting shares your onboarding answers with {{name}}.",
+      "shareNoteWithPackage": "Accepting shares your onboarding answers with {{name}} and starts the package.",
+      "viewProfile": "View {{name}}'s profile",
+      "viewProfileHint": "Bio, certificates and all packages",
+      "package": {
+        "title": "Your package",
+        "youPay": "You pay",
+        "note": "Starts the day you accept. {{name}} sends each payment request, you pay by bank transfer."
+      }
     },
     "errors": {
       "ok": "OK",
@@ -701,24 +704,44 @@
       "generic": "Couldn't load coaches. Try again."
     }
   },
+  "packages": {
+    "chip": {
+      "monthly": "Every month",
+      "everyNWeeks_one": "Every week",
+      "everyNWeeks_other": "Every {{count}} weeks",
+      "oneOff": "One payment"
+    },
+    "unit": {
+      "monthly": "/ month",
+      "everyNWeeks_one": "/ week",
+      "everyNWeeks_other": "/ {{count}} weeks",
+      "oneOff": "one-off"
+    }
+  },
   "coachProfile": {
     "alsoOnline": "also online",
-    "workingWith": "Working with {{name}}",
-    "workingWithRows": {
-      "Trainer": {
-        "plan": "Personal training plan",
-        "checkIns": "Weekly check-ins",
-        "chat": "Chat with your coach"
-      },
-      "Nutritionist": {
-        "plan": "Personal meal plan",
-        "checkIns": "Weekly check-ins",
-        "chat": "Chat with your coach"
-      }
+    "packages": "Packages",
+    "how": {
+      "title": "How {{name}} works",
+      "online": { "label": "Online", "hint": "Online plans and check-ins, wherever you are." },
+      "inperson": { "label": "In person", "hint": "Sessions in person, face to face." },
+      "both": { "label": "Online & in person", "hint": "In-person sessions plus online plans and check-ins." }
     },
+    "certificates": "Certificates",
+    "languages": "Languages",
+    "links": "Links",
+    "link": {
+      "website": "Website",
+      "instagram": "Instagram",
+      "linkedin": "LinkedIn"
+    },
+    "contact": "Contact",
+    "contactNote": "{{name}}'s clients only",
+    "email": "Email",
+    "phone": "Phone",
+    "backToInvite": "Back to invite",
     "sendRequest": "Send request",
     "pending": "Request pending",
-    "linked": "You already work together",
     "retry": "Try again",
     "error": {
       "title": "Can't load this profile",
