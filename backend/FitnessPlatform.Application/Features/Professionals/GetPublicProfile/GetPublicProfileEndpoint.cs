@@ -90,9 +90,9 @@ public class GetPublicProfileEndpoint(
         var allRoles = await userManager.GetRolesAsync(profile.User);
         var professionalRoles = CoachRoleStatus.ActiveRoles(allRoles, profile).ToList();
 
-        var fromMonthlyPrices = await CoachPackagePricing.LoadFromMonthlyPricesAsync(
+        var fromPrices = await CoachPackagePricing.LoadFromPricesAsync(
             db, entitlementService, [profile.Id], ct);
-        (decimal Price, PaymentCurrency Currency)? fromMonthly = fromMonthlyPrices.TryGetValue(profile.Id, out var found) ? found : null;
+        FromPrice? fromPrice = fromPrices.TryGetValue(profile.Id, out var found) ? found : null;
 
         await Send.OkAsync(new GetPublicProfileResponse
         {
@@ -104,8 +104,10 @@ public class GetPublicProfileEndpoint(
             Certificates = ParseCertificateTitles(profile.Certificates),
             Languages = ParseJsonArray(profile.Languages),
             City = profile.City,
-            FromMonthlyPrice = fromMonthly?.Price,
-            FromMonthlyPriceCurrency = fromMonthly?.Currency,
+            FromMonthlyPrice = fromPrice?.Amount,
+            FromMonthlyPriceCurrency = fromPrice?.Currency,
+            FromPriceBilling = fromPrice?.Billing,
+            FromPriceIntervalWeeks = fromPrice?.IntervalWeeks,
             CollaborationType = profile.CollaborationType,
             LinkedIn = profile.LinkedIn,
             Instagram = profile.Instagram,

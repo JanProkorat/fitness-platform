@@ -14,6 +14,12 @@ public class GetPublicProfileResponse
     public string? City { get; set; }
     public decimal? FromMonthlyPrice { get; set; }
     public PaymentCurrency? FromMonthlyPriceCurrency { get; set; }
+
+    /// <summary>How the cheapest package behind the "from" price is billed; null when there is no price.</summary>
+    public PackageBillingInterval? FromPriceBilling { get; set; }
+
+    /// <summary>Weeks between payments of the cheapest package; set only when it is billed every N weeks.</summary>
+    public int? FromPriceIntervalWeeks { get; set; }
     public string? CollaborationType { get; set; }
     public string? LinkedIn { get; set; }
     public string? Instagram { get; set; }
