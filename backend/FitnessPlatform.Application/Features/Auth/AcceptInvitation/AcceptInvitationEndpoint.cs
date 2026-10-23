@@ -26,7 +26,7 @@ namespace FitnessPlatform.Application.Features.Auth.AcceptInvitation;
 /// surfaces on the client's Messages screen (#768).
 /// </param>
 /// <param name="timeProvider">Clock.</param>
-/// <param name="termsApplier">Gives the client the package the invite carried, for a newly created link.</param>
+/// <param name="termsApplier">Gives the client the package the invite carried, for a created or reactivated link.</param>
 public class AcceptInvitationEndpoint(
     IApplicationDbContext db,
     UserManager<ApplicationUser> userManager,
@@ -108,90 +108,51 @@ public class AcceptInvitationEndpoint(
         await using var transaction = await db.BeginTransactionAsync(ct);
         await db.LockClientProfileAsync(clientProfile.Id, ct);
 
-        // Check if a link already exists between this client and professional
-        var existingLink = await db.ClientProfessionalLinks
-            .AnyAsync(l => l.ClientProfileId == clientProfile.Id
-                           && l.ProfessionalProfileId == invitation.ProfessionalProfileId, ct);
+        // Find the matching live pending invite to get questionnaire assignment. An expired
+        // row may coexist with a re-invite (#1541), so ignore it and prefer the newest.
+        var validSince = PendingInviteStatusResolver.ValidSince(timeProvider.GetUtcNow().UtcDateTime);
+        var pendingInvite = await db.PendingInvites
+            .Where(pi => pi.ProfessionalProfileId == invitation.ProfessionalProfileId
+                && pi.Email == invitation.Email
+                && pi.Status == PendingInviteStatus.Pending
+                && pi.SentAt >= validSince)
+            .OrderByDescending(pi => pi.SentAt)
+            .FirstOrDefaultAsync(ct);
 
-        PendingInvite? pendingInvite = null;
-        ApplicationUser? professionalUser = null;
+        // Honor the scope the professional selected at invite-creation time (already
+        // validated as a subset of their held roles there) rather than re-deriving
+        // from global roles here. Falls back to the full held-role set when the
+        // invite carries no explicit scope — invites created before this field
+        // existed, or where the professional didn't opt in.
+        var activation = await ClientLinkActivator.ActivateAsync(
+            db, userManager, clientProfile.Id, invitation.ProfessionalProfile,
+            invitation.RequestedScope ?? pendingInvite?.RequestedScope,
+            pendingInvite?.QuestionnaireId, ct);
 
-        if (!existingLink)
+        if (activation.Outcome == ClientLinkActivationOutcome.CoachRoleRemoved)
         {
-            // Determine the professional's role from their Identity roles. Grant view
-            // access per role actually held (independent booleans), not a single
-            // tie-broken role — a professional can hold BOTH Trainer and Nutritionist
-            // roles simultaneously and must keep access to both plan types (#776).
-            professionalUser = await userManager.FindByIdAsync(invitation.ProfessionalProfile.UserId.ToString());
-            var professionalRoles = professionalUser is not null
-                ? await userManager.GetRolesAsync(professionalUser)
-                : [];
+            await this.SendErrorWithCodeAsync(
+                ErrorCodes.CoachRoleRemoved,
+                "This coach role was removed; the account is read-only for it.",
+                StatusCodes.Status403Forbidden,
+                ct);
+            return;
+        }
 
-            var activeProfessionalRoles = CoachRoleStatus.ActiveRoles(professionalRoles, invitation.ProfessionalProfile);
-            var professionalRole = activeProfessionalRoles.Contains(AppRoles.Nutritionist)
-                ? UserRole.Nutritionist
-                : UserRole.Trainer;
+        if (activation.Outcome == ClientLinkActivationOutcome.SlotTaken)
+        {
+            this.ThrowErrorWithCode(
+                ErrorCodes.ProfessionAlreadyOccupied,
+                "The client already has an active professional occupying this profession slot.");
+            return;
+        }
 
-            // Find the matching live pending invite to get questionnaire assignment. An expired
-            // row may coexist with a re-invite (#1541), so ignore it and prefer the newest.
-            var validSince = PendingInviteStatusResolver.ValidSince(timeProvider.GetUtcNow().UtcDateTime);
-            pendingInvite = await db.PendingInvites
-                .Where(pi => pi.ProfessionalProfileId == invitation.ProfessionalProfileId
-                    && pi.Email == invitation.Email
-                    && pi.Status == PendingInviteStatus.Pending
-                    && pi.SentAt >= validSince)
-                .OrderByDescending(pi => pi.SentAt)
-                .FirstOrDefaultAsync(ct);
+        // True for a newly created or a reactivated link; false when the client was already linked.
+        var linkStarted = activation.Started;
 
-            // Honor the scope the professional selected at invite-creation time (already
-            // validated as a subset of their held roles there) rather than re-deriving
-            // from global roles here. Falls back to the full held-role set when the
-            // invite carries no explicit scope — invites created before this field
-            // existed, or where the professional didn't opt in.
-            var requestedScope = invitation.RequestedScope ?? pendingInvite?.RequestedScope;
-
-            // A coach role the professional has since removed is read-only: it may not seed a link.
-            if (!CoachRoleStatus.TryResolveLinkGrant(
-                    requestedScope, professionalRoles, invitation.ProfessionalProfile,
-                    out var canViewNutritionPlans, out var canViewTrainingPlans))
-            {
-                await this.SendErrorWithCodeAsync(
-                    ErrorCodes.CoachRoleRemoved,
-                    "This coach role was removed; the account is read-only for it.",
-                    StatusCodes.Status403Forbidden,
-                    ct);
-                return;
-            }
-
-            // A client may hold at most one active coach per profession (#980).
-            if (await ProfessionSlotGuard.IsSlotTakenByAnotherProfessionalAsync(
-                    db.ClientProfessionalLinks, clientProfile.Id, invitation.ProfessionalProfileId,
-                    canViewNutritionPlans, canViewTrainingPlans, ct))
-            {
-                this.ThrowErrorWithCode(
-                    ErrorCodes.ProfessionAlreadyOccupied,
-                    "The client already has an active professional occupying this profession slot.");
-                return;
-            }
-
-            var link = new ClientProfessionalLink
-            {
-                ClientProfileId = clientProfile.Id,
-                ProfessionalProfileId = invitation.ProfessionalProfileId,
-                ProfessionalRole = professionalRole,
-                IsActive = true,
-                CanViewNutritionPlans = canViewNutritionPlans,
-                CanViewTrainingPlans = canViewTrainingPlans,
-                QuestionnaireId = pendingInvite?.QuestionnaireId
-            };
-
-            db.ClientProfessionalLinks.Add(link);
-
-            // Mark the pending invite as accepted
-            if (pendingInvite is not null)
-            {
-                pendingInvite.Status = PendingInviteStatus.Accepted;
-            }
+        if (linkStarted && pendingInvite is not null)
+        {
+            pendingInvite.Status = PendingInviteStatus.Accepted;
         }
 
         // Mark invitation as used
@@ -207,11 +168,25 @@ public class AcceptInvitationEndpoint(
         await db.SaveChangesAsync(ct);
         await transaction.CommitAsync(ct);
 
-        // Only for a NEWLY created link (#1108 review) — an already-linked client
-        // re-using this token would otherwise get a fresh, undeduplicated Accepted
+        // Only for a link that was just created or reactivated (#1108 review) — an already-linked
+        // client re-using this token would otherwise get a fresh, undeduplicated Accepted
         // banner on every re-use, since a null-source event has no index to dedupe on.
-        if (!existingLink)
+        if (linkStarted)
         {
+            // Show the "waiting" state in the portal when the invite carried a questionnaire.
+            if (pendingInvite?.QuestionnaireId is { } questionnaireId)
+            {
+                db.QuestionnaireResponses.Add(new QuestionnaireResponse
+                {
+                    QuestionnaireId = questionnaireId,
+                    ClientId = userGuid,
+                    ProfessionalId = invitation.ProfessionalProfile.UserId,
+                    LinkId = activation.Link!.Id,
+                    Status = QuestionnaireResponseStatus.Pending,
+                });
+                await db.SaveChangesAsync(ct);
+            }
+
             // A client who was already linked keeps whatever the coach set on the Payments tab.
             if (pendingInvite?.CoachPackageId is { } packageId)
             {
