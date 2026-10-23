@@ -14,6 +14,9 @@ internal static class ClientPaymentAudit
     /// <summary>Action name of setting a client's terms.</summary>
     public const string SetTerms = "SetClientPaymentTerms";
 
+    /// <summary>Action name of ending a client's terms when the collaboration ends.</summary>
+    public const string EndTerms = "EndClientPaymentTerms";
+
     /// <summary>Action name of adding a one-off payment.</summary>
     public const string AddOneOff = "AddClientOneOffPayment";
 

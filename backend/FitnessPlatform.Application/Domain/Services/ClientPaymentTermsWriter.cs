@@ -94,10 +94,13 @@ public sealed class ClientPaymentTermsWriter(IApplicationDbContext db, IAuditSer
             .ThenByDescending(t => t.Id)
             .FirstOrDefaultAsync(ct);
 
-        var unchanged = latest is not null
-            && latest.CoachPackageId == package.Id
-            && latest.CoachDiscountId == discount?.Id
-            && latest.CustomPrice == customPrice;
+        // Terms that ended with a collaboration are history: they never count as the terms in force.
+        var current = latest is { EndsAtUtc: null } ? latest : null;
+
+        var unchanged = current is not null
+            && current.CoachPackageId == package.Id
+            && current.CoachDiscountId == discount?.Id
+            && current.CustomPrice == customPrice;
 
         if (!unchanged)
         {
@@ -105,10 +108,16 @@ public sealed class ClientPaymentTermsWriter(IApplicationDbContext db, IAuditSer
                 .AnyAsync(p => p.ClientPaymentAssignmentId == assignment.Id && p.PeriodStart != null, ct);
 
             // The first terms start the schedule on the chosen day. Later terms apply from now, so a period that
-            // has started keeps its price; terms still waiting for a future start are replaced in place.
-            var effectiveFrom = hasPeriods && latest is not null
-                ? (latest.EffectiveFromUtc > now ? latest.EffectiveFromUtc : now)
+            // has started keeps its price; terms still waiting for a future start are replaced in place. Terms
+            // after an ended collaboration start on the chosen day, never before the end.
+            var effectiveFrom = hasPeriods && current is not null
+                ? (current.EffectiveFromUtc > now ? current.EffectiveFromUtc : now)
                 : ClientPaymentSchedule.StartOfDayUtc(firstPeriodStart ?? ClientPaymentSchedule.Today(now));
+
+            if (latest?.EndsAtUtc is { } endedAt && effectiveFrom < endedAt)
+            {
+                effectiveFrom = endedAt;
+            }
 
             db.ClientPaymentTerms.Add(new ClientPaymentTerms
             {
@@ -124,7 +133,7 @@ public sealed class ClientPaymentTermsWriter(IApplicationDbContext db, IAuditSer
             // variable symbols go with them) and let the schedule create them again. Requested, paid and
             // waived rows are locked and stay.
             // A change of discount or custom price keeps the periods: their amounts follow the terms anyway.
-            var staleIds = latest is not null && latest.CoachPackageId == package.Id
+            var staleIds = current is not null && current.CoachPackageId == package.Id
                 ? new List<long>()
                 : (await db.ClientPayments
                     .Where(p => p.ClientPaymentAssignmentId == assignment.Id

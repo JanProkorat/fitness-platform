@@ -5,6 +5,7 @@ using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Application.Infrastructure.Services;
 using FitnessPlatform.Tests.Builders;
+using FitnessPlatform.Tests.Endpoints.ClientPayments;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -158,6 +159,31 @@ public class CoachRoleLinkSweeperTests(FitnessApiFactory factory)
         var plan = await ReadTrainingPlanAsync(planId);
         plan.Status.Should().Be(TrainingPlanStatus.Archived);
         plan.Version.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task Tick_EndedLink_EndsTheClientsPackageAndDropsTheUpcomingPeriod()
+    {
+        var world = await ClientPaymentFixtures.CreateWorldAsync(factory);
+        await ClientPaymentFixtures.SetTermsOkAsync(world, await ClientPaymentFixtures.CreatePackageAsync(world.Coach));
+        await MarkRemovedAsync(world.Coach, UserRole.Trainer);
+
+        await TickAsync();
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var terms = await db.ClientPaymentTerms.AsNoTracking()
+            .Where(t => t.ClientPaymentAssignment.ProfessionalProfileId == world.Coach.ProfileId
+                && t.ClientPaymentAssignment.ClientProfileId == world.Client.ProfileId)
+            .SingleAsync(Ct);
+        var starts = await db.ClientPayments.AsNoTracking()
+            .Where(p => p.ClientPaymentAssignment.ProfessionalProfileId == world.Coach.ProfileId
+                && p.ClientPaymentAssignment.ClientProfileId == world.Client.ProfileId)
+            .Select(p => p.PeriodStart)
+            .ToListAsync(Ct);
+
+        terms.EndsAtUtc.Should().NotBeNull();
+        starts.Should().Equal(ClientPaymentFixtures.Today);
     }
 
     [Fact]

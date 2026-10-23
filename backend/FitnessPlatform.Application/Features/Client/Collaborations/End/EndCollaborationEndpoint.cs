@@ -19,11 +19,13 @@ namespace FitnessPlatform.Application.Features.Client.Collaborations.End;
 /// <param name="notifier">Realtime notifier used to tell the professional the link ended.</param>
 /// <param name="notificationService">Persisted-notification service.</param>
 /// <param name="mongo">MongoDB context — the departing professional's plans live here.</param>
+/// <param name="audit">Audit logging service.</param>
 public class EndCollaborationEndpoint(
     IApplicationDbContext db,
     IRealtimeNotifier notifier,
     INotificationService notificationService,
-    IMongoContext mongo) : EndpointWithoutRequest
+    IMongoContext mongo,
+    IAuditService audit) : EndpointWithoutRequest
 {
     public override void Configure()
     {
@@ -87,6 +89,11 @@ public class EndCollaborationEndpoint(
             archiveTraining: true,
             DateTime.UtcNow,
             ct);
+
+        // Ending the package and payments is idempotent, so it also sits before the flip: a retry after a
+        // failure finds the link still active and the terms already closed.
+        await ClientPaymentTermsCloser.CloseAsync(
+            db, audit, link.ProfessionalProfileId, clientProfile.Id, userGuid, DateTime.UtcNow, ct);
 
         link.IsActive = false;
         await db.SaveChangesAsync(ct);

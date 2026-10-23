@@ -138,26 +138,27 @@ public class ReinviteReactivatesLinkIntegrationTests(FitnessApiFactory factory)
     }
 
     [Fact]
-    public async Task AcceptInApp_WhenTermsExistFromAnEarlierCollaboration_KeepsTheOldTermsAndBillsTheMonthsInBetween()
+    public async Task AcceptInApp_WhenTermsExistFromAnEarlierCollaboration_BillsFromTheAcceptDayWithoutTheGap()
     {
         var world = await CreateWorldAsync(factory);
         var package = await CreatePackageAsync(world.Coach, 2500m);
         await SetTermsOkAsync(world, package);
+        var linkPublicId = (await LinkOfAsync(world.Coach, world.Client)).PublicId;
+        (await world.Client.Http.DeleteAsync($"/client/collaborations/{linkPublicId}", Ct))
+            .StatusCode.Should().Be(HttpStatusCode.NoContent);
         var earlierStart = Today.AddMonths(-3);
         using (var scope = factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            var link = await db.ClientProfessionalLinks
-                .SingleAsync(l => l.ClientProfileId == world.Client.ProfileId && l.ProfessionalProfileId == world.Coach.ProfileId, Ct);
-            link.IsActive = false;
 
-            // Make the terms and their periods look like they date from three months ago.
+            // Make the ended terms and their periods look like they date from three months ago.
             var assignmentId = await db.ClientPaymentAssignments
                 .Where(a => a.ClientProfileId == world.Client.ProfileId && a.ProfessionalProfileId == world.Coach.ProfileId)
                 .Select(a => a.Id).SingleAsync(Ct);
             foreach (var terms in await db.ClientPaymentTerms.Where(t => t.ClientPaymentAssignmentId == assignmentId).ToListAsync(Ct))
             {
                 terms.EffectiveFromUtc = terms.EffectiveFromUtc.AddMonths(-3);
+                terms.EndsAtUtc = terms.EndsAtUtc?.AddMonths(-3);
             }
 
             foreach (var period in await db.ClientPayments.Where(p => p.ClientPaymentAssignmentId == assignmentId).ToListAsync(Ct))
@@ -190,8 +191,8 @@ public class ReinviteReactivatesLinkIntegrationTests(FitnessApiFactory factory)
             .OrderBy(p => p.PeriodStart)
             .Select(p => p.PeriodStart!.Value)
             .ToListAsync(Ct);
-        // Billing is not paused while the link was ended: the old terms are kept, so every month since the
-        // earlier collaboration gets a period, not only the ones from the re-accept on.
-        starts.Should().Equal(Enumerable.Range(0, 5).Select(months => earlierStart.AddMonths(months)));
+        // The ended package never resumes: the earlier period stays, nothing bills the months in between, and
+        // the invite's package starts on the accept day.
+        starts.Should().Equal(earlierStart, Today, Today.AddMonths(1));
     }
 }
