@@ -131,7 +131,7 @@ public class EmailDispatchWorker(
                         case InvitationEmailWorkItem invitation:
                             await emailService.SendInvitationEmailAsync(
                                 invitation.Email, invitation.TrainerName, invitation.Token, invitation.Language,
-                                invitation.PersonalMessage, CancellationToken.None);
+                                invitation.PersonalMessage, invitation.Package, CancellationToken.None);
                             break;
                         default:
                             throw new NotSupportedException(

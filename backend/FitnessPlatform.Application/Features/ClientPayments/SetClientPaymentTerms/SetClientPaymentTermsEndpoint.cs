@@ -20,14 +20,14 @@ namespace FitnessPlatform.Application.Features.ClientPayments.SetClientPaymentTe
 /// <param name="db">Application database context.</param>
 /// <param name="entitlementService">Resolves subscription entitlements.</param>
 /// <param name="linkAuthorizationService">Resolves the caller's live link to the client.</param>
-/// <param name="audit">Audit logging service.</param>
+/// <param name="termsWriter">Stores the terms and creates the billing periods.</param>
 /// <param name="timeProvider">Clock.</param>
 [RemovedCoachRole(RemovedCoachRoleMode.Refuse)]
 internal sealed class SetClientPaymentTermsEndpoint(
     IApplicationDbContext db,
     EntitlementService entitlementService,
     IClientLinkAuthorizationService linkAuthorizationService,
-    IAuditService audit,
+    ClientPaymentTermsWriter termsWriter,
     TimeProvider timeProvider)
     : Endpoint<SetClientPaymentTermsRequest, SetClientPaymentTermsResponse>
 {
@@ -104,19 +104,27 @@ internal sealed class SetClientPaymentTermsEndpoint(
             return;
         }
 
-        var assignment = await StoreTermsAsync(req, context, package, discount, userId, now, today, ct);
+        var assignment = await termsWriter.StoreAsync(
+            context.ProfessionalProfileId,
+            context.ClientProfileId,
+            package.Id,
+            discount?.Id,
+            req.CustomPrice,
+            req.FirstPeriodStart,
+            userId,
+            HttpContext.Connection.RemoteIpAddress?.ToString(),
+            now,
+            ct);
 
         if (assignment is null)
         {
+            await this.SendProblemAsync(
+                StatusCodes.Status409Conflict,
+                ErrorCodes.PaymentClientNumberExhausted,
+                "The coach has used every client number.",
+                ct);
             return;
         }
-
-        var settings = await db.CoachPaymentSettings
-            .AsNoTracking()
-            .FirstOrDefaultAsync(s => s.ProfessionalProfileId == context.ProfessionalProfileId, ct);
-
-        await ClientPaymentSchedule.MaterializeAsync(
-            db, assignment, settings?.VariableSymbolFormat ?? VariableSymbolFormat.YearMonthClientNumber, now, ct);
 
         await Send.OkAsync(await BuildResponseAsync(assignment, ct), ct);
     }
@@ -172,110 +180,6 @@ internal sealed class SetClientPaymentTermsEndpoint(
         }
 
         return discount;
-    }
-
-    /// <summary>
-    /// Stores the terms (and the assignment, on first use) in one transaction under the coach lock. Returns the
-    /// assignment, or null after answering 409 when the coach has no client number left.
-    /// </summary>
-    private async Task<ClientPaymentAssignment?> StoreTermsAsync(
-        SetClientPaymentTermsRequest req,
-        CoachClientContext context,
-        CoachPackage package,
-        CoachDiscount? discount,
-        Guid userId,
-        DateTime now,
-        DateOnly today,
-        CancellationToken ct)
-    {
-        await using var transaction = await db.BeginTransactionAsync(ct);
-        await db.LockProfessionalProfileAsync(context.ProfessionalProfileId, ct);
-
-        var assignment = await ClientPaymentGuards.GetOrCreateAssignmentAsync(db, context, ct);
-
-        if (assignment is null)
-        {
-            await this.SendProblemAsync(
-                StatusCodes.Status409Conflict,
-                ErrorCodes.PaymentClientNumberExhausted,
-                "The coach has used every client number.",
-                ct);
-            return null;
-        }
-
-        var latest = await db.ClientPaymentTerms
-            .Where(t => t.ClientPaymentAssignmentId == assignment.Id)
-            .OrderByDescending(t => t.EffectiveFromUtc)
-            .ThenByDescending(t => t.Id)
-            .FirstOrDefaultAsync(ct);
-
-        var unchanged = latest is not null
-            && latest.CoachPackageId == package.Id
-            && latest.CoachDiscountId == discount?.Id
-            && latest.CustomPrice == req.CustomPrice;
-
-        if (!unchanged)
-        {
-            var hasPeriods = await db.ClientPayments
-                .AnyAsync(p => p.ClientPaymentAssignmentId == assignment.Id && p.PeriodStart != null, ct);
-
-            // The first terms start the schedule on the chosen day. Later terms apply from now, so a period that
-            // has started keeps its price; terms still waiting for a future start are replaced in place.
-            var effectiveFrom = hasPeriods && latest is not null
-                ? (latest.EffectiveFromUtc > now ? latest.EffectiveFromUtc : now)
-                : ClientPaymentSchedule.StartOfDayUtc(req.FirstPeriodStart ?? today);
-
-            db.ClientPaymentTerms.Add(new ClientPaymentTerms
-            {
-                ClientPaymentAssignmentId = assignment.Id,
-                CoachPackageId = package.Id,
-                CoachDiscountId = discount?.Id,
-                CustomPrice = req.CustomPrice,
-                EffectiveFromUtc = effectiveFrom
-            });
-            await db.SaveChangesAsync(ct);
-
-            // Upcoming periods that start under the new terms were made from the old ones; drop them (their
-            // variable symbols go with them) and let the schedule create them again. Requested, paid and
-            // waived rows are locked and stay.
-            // A change of discount or custom price keeps the periods: their amounts follow the terms anyway.
-            var staleIds = latest is not null && latest.CoachPackageId == package.Id
-                ? new List<long>()
-                : (await db.ClientPayments
-                    .Where(p => p.ClientPaymentAssignmentId == assignment.Id
-                        && p.Status == ClientPaymentStatus.Upcoming
-                        && p.PeriodStart != null)
-                    .Select(p => new { p.Id, PeriodStart = p.PeriodStart!.Value })
-                    .ToListAsync(ct))
-                .Where(p => ClientPaymentSchedule.StartOfDayUtc(p.PeriodStart) >= effectiveFrom)
-                .Select(p => p.Id)
-                .ToList();
-
-            if (staleIds.Count > 0)
-            {
-                await db.ClientPayments.Where(p => staleIds.Contains(p.Id)).ExecuteDeleteAsync(ct);
-            }
-
-            await ClientPaymentAudit.LogAsync(
-                audit,
-                userId,
-                ClientPaymentAudit.SetTerms,
-                assignment.PublicId,
-                HttpContext.Connection.RemoteIpAddress?.ToString(),
-                new
-                {
-                    detail = package.Name,
-                    discount = discount?.Name,
-                    amount = req.CustomPrice,
-                    currency = package.Currency.ToString(),
-                    removed = staleIds.Count
-                },
-                ct);
-        }
-
-        await transaction.CommitAsync(ct);
-
-        return assignment;
     }
 
     private async Task<SetClientPaymentTermsResponse> BuildResponseAsync(ClientPaymentAssignment assignment, CancellationToken ct)

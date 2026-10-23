@@ -324,6 +324,8 @@ builder.Services.AddScoped<PlanConcurrencyGuard>();
 // Resolves a coach's effective feature entitlements + client-count limit from their
 // subscription (#593). No endpoint gates on this yet — see #594.
 builder.Services.AddScoped<EntitlementService>();
+builder.Services.AddScoped<ClientPaymentTermsWriter>();
+builder.Services.AddScoped<InvitePackageTermsApplier>();
 
 // One-shot CLI backfill, resolved by CliCommandDispatcher — never `new`-ed
 // directly. Scoped: takes IApplicationDbContext, which is scoped (see :56).

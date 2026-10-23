@@ -594,6 +594,10 @@ public static class ErrorCodes
     /// <summary>The bank account was changed again after the change being undone.</summary>
     public const string BankAccountUndoSuperseded = "BANK_ACCOUNT_UNDO_SUPERSEDED";
 
+    // ── Invite package terms (#1676) ────────────────────────────────────
+    /// <summary>An invite names a discount but no package.</summary>
+    public const string InviteDiscountNeedsPackage = "INVITE_DISCOUNT_NEEDS_PACKAGE";
+
     // ── Coach packages and discounts (#1578) ────────────────────────────
     /// <summary>The package is archived and can no longer be edited.</summary>
     public const string PackageArchived = "PACKAGE_ARCHIVED";

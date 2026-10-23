@@ -92,7 +92,7 @@ public class SmtpEmailService(IConfiguration configuration, ILogger<SmtpEmailSer
         .Build();
 
     /// <inheritdoc />
-    public async Task SendInvitationEmailAsync(string toEmail, string trainerName, string invitationToken, string language, string? personalMessage, CancellationToken ct)
+    public async Task SendInvitationEmailAsync(string toEmail, string trainerName, string invitationToken, string language, string? personalMessage, InvitationPackageInfo? package, CancellationToken ct)
     {
         var lang = NormalizeLanguage(language);
         var baseUrl = configuration[ConfigKeys.AppBaseUrl] ?? "http://localhost:5173";
@@ -101,6 +101,7 @@ public class SmtpEmailService(IConfiguration configuration, ILogger<SmtpEmailSer
 
         var template = LoadTemplate("Invitation", lang);
         var html = template
+            .Replace("{{PackageBlock}}", InvitationPackageBlock.Render(package, lang))
             .Replace("{{TrainerName}}", WebUtility.HtmlEncode(trainerName))
             .Replace("{{AcceptUrl}}", acceptUrl)
             .Replace("{{PersonalMessage}}", string.IsNullOrWhiteSpace(personalMessage)
