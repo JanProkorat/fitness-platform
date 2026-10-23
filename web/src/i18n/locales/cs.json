@@ -5285,6 +5285,12 @@
         "resend": "Poslat znovu"
       }
     },
+    "inviteAccept": {
+      "title": "Máte pozvánku do Form Up",
+      "lede": "Otevřete aplikaci a přihlaste se e-mailem, na který pozvánka dorazila — najdete ji na obrazovce Dnes.",
+      "openApp": "Otevřít aplikaci",
+      "getApp": "Aplikaci ještě nemáte?"
+    },
     "verifyEmail": {
       "verifying": "Ověřujeme váš e-mail...",
       "success": {

@@ -5126,6 +5126,12 @@
         "resend": "Erneut senden"
       }
     },
+    "inviteAccept": {
+      "title": "Sie haben eine Einladung bei Form Up",
+      "lede": "Öffnen Sie die App und melden Sie sich mit der E-Mail-Adresse an, an die die Einladung gegangen ist – Sie finden sie auf Ihrem Heute-Bildschirm.",
+      "openApp": "App öffnen",
+      "getApp": "Sie haben die App noch nicht?"
+    },
     "verifyEmail": {
       "verifying": "E-Mail wird bestätigt...",
       "success": {

@@ -13,6 +13,7 @@ import ForgotPasswordForm from '@/components/entry/ForgotPasswordForm';
 import ResetPasswordForm from '@/components/entry/ResetPasswordForm';
 import RegisterPage from '@/pages/RegisterPage';
 import VerifyEmailPage from '@/pages/VerifyEmailPage';
+import InviteAcceptPage from '@/pages/InviteAcceptPage';
 import BankAccountUndoPage from '@/pages/BankAccountUndoPage';
 import DownloadAppPage from '@/pages/DownloadAppPage';
 import ClientsPage from '@/pages/ClientsPage';
@@ -70,6 +71,7 @@ export default function App() {
           </Route>
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/verify-email" element={<VerifyEmailPage />} />
+          <Route path="/invite/accept" element={<InviteAcceptPage />} />
           <Route path="/bank-account/undo" element={<BankAccountUndoPage />} />
           <Route path="/download-app" element={<DownloadAppPage />} />
 

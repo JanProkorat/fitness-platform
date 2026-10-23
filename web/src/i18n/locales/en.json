@@ -5127,6 +5127,12 @@
         "resend": "Send again"
       }
     },
+    "inviteAccept": {
+      "title": "You have an invite on Form Up",
+      "lede": "Open the app and sign in with the email the invite came to — you'll find it on your Today screen.",
+      "openApp": "Open the app",
+      "getApp": "Don't have the app yet?"
+    },
     "verifyEmail": {
       "verifying": "Verifying your email...",
       "success": {
