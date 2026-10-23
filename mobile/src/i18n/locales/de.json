@@ -297,6 +297,7 @@
       "photos": "Fortschrittsfotos",
       "checkIns": "Check-in-Verlauf"
     },
+    "payments": "Zahlungen",
     "settings": "Einstellungen",
     "error": {
       "summary": "Deine Zahlen konnten nicht geladen werden.",
