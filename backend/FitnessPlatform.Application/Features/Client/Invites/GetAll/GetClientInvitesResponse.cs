@@ -1,3 +1,5 @@
+using FitnessPlatform.Application.Features.Client.Invites.Shared;
+
 namespace FitnessPlatform.Application.Features.Client.Invites.GetAll;
 
 /// <summary>
@@ -37,4 +39,9 @@ public class ClientInviteDto
 
     /// <summary>When the invitation stops being answerable (UTC).</summary>
     public DateTime ExpiresAt { get; set; }
+
+    /// <summary>
+    /// The package accepting the invite assigns; null when the invite has none or it can no longer be given.
+    /// </summary>
+    public InvitePackageDto? Package { get; set; }
 }

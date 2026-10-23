@@ -94,6 +94,8 @@ public class GetPublicProfileEndpoint(
             db, entitlementService, [profile.Id], ct);
         FromPrice? fromPrice = fromPrices.TryGetValue(profile.Id, out var found) ? found : null;
 
+        var packages = await CoachPackagePricing.LoadProfilePackagesAsync(db, entitlementService, profile.Id, ct);
+
         await Send.OkAsync(new GetPublicProfileResponse
         {
             PublicId = profile.PublicId,
@@ -102,6 +104,22 @@ public class GetPublicProfileEndpoint(
             Bio = profile.Bio,
             Specializations = ParseJsonArray(profile.Specializations),
             Certificates = ParseCertificateTitles(profile.Certificates),
+            CertificateDetails = ParseCertificateDetails(profile.Certificates),
+            Packages = packages
+                .Select(package => new PublicProfilePackageDto
+                {
+                    Name = package.Name,
+                    Billing = package.Billing,
+                    IntervalWeeks = package.IntervalWeeks,
+                    RunsForPayments = package.RunsForPayments,
+                    Description = package.Description,
+                    Price = package.Price,
+                    Currency = package.Currency
+                })
+                .ToList(),
+            // Contact details go only to a client with a live link to this coach.
+            ContactEmail = isLinked ? profile.User.Email : null,
+            ContactPhone = isLinked ? profile.User.PhoneNumber : null,
             Languages = ParseJsonArray(profile.Languages),
             City = profile.City,
             FromMonthlyPrice = fromPrice?.Amount,
@@ -162,7 +180,13 @@ public class GetPublicProfileEndpoint(
         }
     }
 
-    private static List<string> ParseCertificateTitles(string? json)
+    private static List<string> ParseCertificateTitles(string? json) =>
+        ParseCertificateDetails(json).Select(certificate => certificate.Title).ToList();
+
+    /// <summary>
+    /// Reads the stored certificates: a legacy string entry is a title only, an object keeps its issuer and year.
+    /// </summary>
+    private static List<PublicCertificateDto> ParseCertificateDetails(string? json)
     {
         if (string.IsNullOrWhiteSpace(json))
         {
@@ -178,29 +202,52 @@ public class GetPublicProfileEndpoint(
                 return [];
             }
 
-            var titles = new List<string>();
+            var certificates = new List<PublicCertificateDto>();
 
             foreach (var element in document.RootElement.EnumerateArray())
             {
                 var title = element.ValueKind switch
                 {
                     JsonValueKind.String => element.GetString(),
-                    JsonValueKind.Object when element.TryGetProperty("title", out var value)
-                        && value.ValueKind == JsonValueKind.String => value.GetString(),
+                    JsonValueKind.Object => ReadText(element, "title"),
                     _ => null,
                 };
 
-                if (!string.IsNullOrWhiteSpace(title))
+                if (string.IsNullOrWhiteSpace(title))
                 {
-                    titles.Add(title);
+                    continue;
                 }
+
+                certificates.Add(new PublicCertificateDto
+                {
+                    Title = title,
+                    Issuer = element.ValueKind == JsonValueKind.Object ? ReadText(element, "issuer") : null,
+                    Year = element.ValueKind == JsonValueKind.Object ? ReadText(element, "year") : null
+                });
             }
 
-            return titles;
+            return certificates;
         }
         catch (JsonException)
         {
             return [];
         }
+    }
+
+    private static string? ReadText(JsonElement element, string property)
+    {
+        if (!element.TryGetProperty(property, out var value))
+        {
+            return null;
+        }
+
+        var text = value.ValueKind switch
+        {
+            JsonValueKind.String => value.GetString(),
+            JsonValueKind.Number => value.GetRawText(),
+            _ => null
+        };
+
+        return string.IsNullOrWhiteSpace(text) ? null : text.Trim();
     }
 }
