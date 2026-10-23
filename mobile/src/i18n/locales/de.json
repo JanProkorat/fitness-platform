@@ -368,14 +368,15 @@
       "back": "Zurück",
       "alsoOnline": "auch online",
       "invitedYouAt": "{{name}} hat dich eingeladen · {{time}}",
-      "workingWith": "Zusammenarbeit mit {{name}}",
-      "offers": {
-        "training": "Persönlicher Trainingsplan",
-        "nutrition": "Persönlicher Ernährungsplan",
-        "checkins": "Wöchentliche Check-ins",
-        "chat": "Chat mit deinem Coach"
-      },
-      "shareNote": "Mit dem Annehmen teilst du deine Onboarding-Antworten mit {{name}}."
+      "shareNote": "Mit dem Annehmen teilen Sie Ihre Onboarding-Antworten mit {{name}}.",
+      "shareNoteWithPackage": "Mit dem Annehmen teilen Sie Ihre Onboarding-Antworten mit {{name}} und starten das Paket.",
+      "viewProfile": "Profil von {{name}} ansehen",
+      "viewProfileHint": "Bio, Zertifikate und alle Pakete",
+      "package": {
+        "title": "Ihr Paket",
+        "youPay": "Sie zahlen",
+        "note": "Startet am Tag der Annahme. {{name}} sendet jede Zahlungsaufforderung, Sie zahlen per Banküberweisung."
+      }
     },
     "errors": {
       "ok": "OK",

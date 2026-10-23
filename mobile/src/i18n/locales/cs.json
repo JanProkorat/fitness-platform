@@ -376,14 +376,15 @@
       "back": "Zpět",
       "alsoOnline": "i online",
       "invitedYouAt": "{{name}} tě zve · {{time}}",
-      "workingWith": "Spolupráce s {{name}}",
-      "offers": {
-        "training": "Osobní tréninkový plán",
-        "nutrition": "Osobní jídelníček",
-        "checkins": "Týdenní check-iny",
-        "chat": "Chat se svým poradcem"
-      },
-      "shareNote": "Přijetím sdílíš své odpovědi z úvodního dotazníku s osobou {{name}}."
+      "shareNote": "Přijetím sdílíš své odpovědi z úvodního dotazníku s osobou {{name}}.",
+      "shareNoteWithPackage": "Přijetím sdílíš své odpovědi z úvodního dotazníku s osobou {{name}} a spustíš balíček.",
+      "viewProfile": "Zobrazit profil: {{name}}",
+      "viewProfileHint": "Medailonek, certifikáty a všechny balíčky",
+      "package": {
+        "title": "Tvůj balíček",
+        "youPay": "Platíš",
+        "note": "Začíná dnem přijetí. {{name}} ti posílá každou žádost o platbu, platíš bankovním převodem."
+      }
     },
     "errors": {
       "ok": "OK",

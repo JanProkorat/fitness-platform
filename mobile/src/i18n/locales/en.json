@@ -368,14 +368,15 @@
       "back": "Back",
       "alsoOnline": "also online",
       "invitedYouAt": "{{name}} invited you · {{time}}",
-      "workingWith": "Working with {{name}}",
-      "offers": {
-        "training": "Personal training plan",
-        "nutrition": "Personal meal plan",
-        "checkins": "Weekly check-ins",
-        "chat": "Chat with your coach"
-      },
-      "shareNote": "Accepting shares your onboarding answers with {{name}}."
+      "shareNote": "Accepting shares your onboarding answers with {{name}}.",
+      "shareNoteWithPackage": "Accepting shares your onboarding answers with {{name}} and starts the package.",
+      "viewProfile": "View {{name}}'s profile",
+      "viewProfileHint": "Bio, certificates and all packages",
+      "package": {
+        "title": "Your package",
+        "youPay": "You pay",
+        "note": "Starts the day you accept. {{name}} sends each payment request, you pay by bank transfer."
+      }
     },
     "errors": {
       "ok": "OK",

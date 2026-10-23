@@ -1,25 +1,25 @@
 import { useEffect, useRef } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import type { SFSymbol } from 'expo-symbols';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { EdgeInsets } from 'react-native-safe-area-context';
 
 import { BackButton } from '@/components/BackButton';
 import { InviteActions } from '@/components/invites/InviteActions';
+import { InviteAvatar } from '@/components/invites/InviteAvatar';
+import { InvitePackageCard } from '@/components/invites/InvitePackageCard';
 import { RoleChip } from '@/components/invites/RoleChip';
-import { expiryLabel, firstName, parseCoachRoles, relativeTime } from '@/components/invites/format';
+import { expiryLabel, firstName, relativeTime } from '@/components/invites/format';
 import { Text } from '@/components/Text';
 import { useInviteActions } from '@/hooks/useInviteActions';
 import { useInviteCoach } from '@/hooks/useInviteCoach';
 import { useInvites } from '@/hooks/useInvites';
+import { usePaymentsEnabled } from '@/hooks/usePaymentsEnabled';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
-
-type Offer = { key: string; symbol: SFSymbol; tone: 'training' | 'nutrition' | 'error' | 'muted' };
 
 export default function InviteDetailScreen() {
   const { t } = useTranslation();
@@ -31,6 +31,7 @@ export default function InviteDetailScreen() {
   const { data: invites, isPending } = useInvites();
   const invite = invites?.find((candidate) => candidate.id === id);
   const coach = useInviteCoach(invite?.coachPublicId);
+  const { enabled: paymentsEnabled } = usePaymentsEnabled();
   const left = useRef(false);
   // Both the action callback and the "gone" effect can fire; leave exactly once.
   const leave = () => {
@@ -55,25 +56,9 @@ export default function InviteDetailScreen() {
   const name = invite.coachName ?? '';
   const first = firstName(name);
   const profile = coach.data;
-  const roles = parseCoachRoles(invite.coachRole);
   const city = profile?.city || invite.coachCity;
   const expiry = expiryLabel(t, invite.expiresAt);
   const avatarUrl = profile?.avatarBlobUrl?.startsWith('http') ? profile.avatarBlobUrl : undefined;
-  const offers: Offer[] = [
-    ...(roles.includes('Trainer') ? [{ key: 'training', symbol: 'dumbbell', tone: 'training' } as Offer] : []),
-    ...(roles.includes('Nutritionist') ? [{ key: 'nutrition', symbol: 'leaf', tone: 'nutrition' } as Offer] : []),
-    { key: 'checkins', symbol: 'list.clipboard', tone: 'error' },
-    { key: 'chat', symbol: 'bubble.left', tone: 'muted' },
-  ];
-  const tone = (value: Offer['tone']) =>
-    value === 'training'
-      ? { background: theme.colors.trainingSoft, foreground: theme.colors.trainingInk }
-      : value === 'nutrition'
-        ? { background: theme.colors.nutritionSoft, foreground: theme.colors.nutritionInk }
-        : value === 'error'
-          ? { background: theme.colors.errorSoft, foreground: theme.colors.error }
-          : { background: theme.colors.field, foreground: theme.colors.muted };
-
   return (
     <View style={styles.root}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -110,36 +95,28 @@ export default function InviteDetailScreen() {
             ) : null}
           </View>
 
-          {profile?.bio ? <Text variant="bodyLarge">{profile.bio}</Text> : null}
-          {profile?.specializations && profile.specializations.length > 0 ? (
-            <View style={styles.specialties}>
-              {profile.specializations.map((specialty) => (
-                <View key={specialty} style={styles.specialty}>
-                  <Text variant="bodySmall">{specialty}</Text>
-                </View>
-              ))}
-            </View>
+          {invite.package ? (
+            <InvitePackageCard pack={invite.package} coachFirstName={first} showPrices={paymentsEnabled} />
           ) : null}
 
-          <Text variant="overline" color="muted" style={styles.overline}>
-            {t('invites.detail.workingWith', { name: first }).toUpperCase()}
-          </Text>
-          <View style={styles.offers}>
-            {offers.map((offer, index) => {
-              const look = tone(offer.tone);
-              return (
-                <View key={offer.key} style={[styles.offer, index > 0 && styles.offerDivider]}>
-                  <View style={[styles.offerIcon, { backgroundColor: look.background }]}>
-                    <SymbolView name={offer.symbol} tintColor={look.foreground} size={theme.sizes.rowGlyph} />
-                  </View>
-                  <Text variant="bodyLarge">{t(`invites.detail.offers.${offer.key}`)}</Text>
-                </View>
-              );
-            })}
-          </View>
-          <Text variant="caption" color="muted" style={styles.note}>
-            {t('invites.detail.shareNote', { name: first })}
-          </Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('invites.detail.viewProfile', { name: first })}
+            disabled={!invite.coachPublicId}
+            onPress={() =>
+              router.push({ pathname: '/coach/[publicId]', params: { publicId: invite.coachPublicId ?? '' } })
+            }
+            style={({ pressed }) => [styles.profileRow, pressed && styles.pressed]}
+          >
+            <InviteAvatar name={name} />
+            <View style={styles.profileCopy}>
+              <Text variant="bodyStrong">{t('invites.detail.viewProfile', { name: first })}</Text>
+              <Text variant="caption" color="muted">
+                {t('invites.detail.viewProfileHint')}
+              </Text>
+            </View>
+            <SymbolView name="chevron.right" tintColor={theme.colors.muted} size={theme.sizes.coachChevron} />
+          </Pressable>
         </View>
       </ScrollView>
 
@@ -147,6 +124,9 @@ export default function InviteDetailScreen() {
         <BackButton label={t('invites.detail.back')} onPress={leave} />
       </View>
       <View style={styles.bar}>
+        <Text variant="caption" color="muted" style={styles.note}>
+          {t(invite.package ? 'invites.detail.shareNoteWithPackage' : 'invites.detail.shareNote', { name: first })}
+        </Text>
         <InviteActions
           busy={pendingId !== null}
           onAccept={() => accept(invite.id ?? id)}
@@ -164,7 +144,11 @@ const makeStyles = (theme: Theme, insets: EdgeInsets) =>
       backgroundColor: theme.colors.ground,
     },
     scroll: {
-      paddingBottom: theme.sizes.buttonLarge + Math.max(insets.bottom, theme.spacing.xl) + theme.spacing.huge,
+      paddingBottom:
+        theme.sizes.buttonLarge +
+        theme.typography.caption.lineHeight * 2 +
+        Math.max(insets.bottom, theme.spacing.xl) +
+        theme.spacing.huge,
     },
     hero: {
       height: theme.sizes.inviteHero,
@@ -207,45 +191,25 @@ const makeStyles = (theme: Theme, insets: EdgeInsets) =>
       backgroundColor: theme.colors.surface,
       boxShadow: theme.shadows.card,
     },
-    specialties: {
+    profileRow: {
       flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: theme.spacing.xs,
-    },
-    specialty: {
+      alignItems: 'center',
+      gap: theme.spacing.md,
+      paddingVertical: theme.spacing.md,
       paddingHorizontal: theme.spacing.xl,
-      paddingVertical: theme.spacing.sm,
-      borderRadius: theme.radii.pill,
-      borderWidth: theme.sizes.border,
-      borderColor: theme.colors.lineStrong,
-    },
-    overline: {
-      letterSpacing: theme.typography.overline.letterSpacing,
-    },
-    offers: {
-      paddingHorizontal: theme.spacing.xl,
-      borderRadius: theme.radii.xxl,
+      borderRadius: theme.radii.xl,
       borderWidth: theme.sizes.border,
       borderColor: theme.colors.line,
       backgroundColor: theme.colors.surface,
       boxShadow: theme.shadows.card,
     },
-    offer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: theme.spacing.md,
-      paddingVertical: theme.spacing.md,
+    pressed: {
+      opacity: 0.7,
     },
-    offerDivider: {
-      borderTopWidth: theme.sizes.border,
-      borderTopColor: theme.colors.line,
-    },
-    offerIcon: {
-      width: theme.sizes.rowIcon,
-      height: theme.sizes.rowIcon,
-      borderRadius: theme.radii.pill,
-      alignItems: 'center',
-      justifyContent: 'center',
+    profileCopy: {
+      flex: 1,
+      minWidth: 0,
+      gap: theme.spacing.hair,
     },
     note: {
       textAlign: 'center',
@@ -255,6 +219,7 @@ const makeStyles = (theme: Theme, insets: EdgeInsets) =>
       left: 0,
       right: 0,
       bottom: 0,
+      gap: theme.spacing.md,
       paddingTop: theme.spacing.md,
       paddingHorizontal: theme.spacing.xxl,
       paddingBottom: Math.max(insets.bottom, theme.spacing.xl),
