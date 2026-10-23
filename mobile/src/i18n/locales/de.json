@@ -720,22 +720,28 @@
   },
   "coachProfile": {
     "alsoOnline": "auch online",
-    "workingWith": "Zusammenarbeit mit {{name}}",
-    "workingWithRows": {
-      "Trainer": {
-        "plan": "Persönlicher Trainingsplan",
-        "checkIns": "Wöchentliche Check-ins",
-        "chat": "Chat mit deinem Coach"
-      },
-      "Nutritionist": {
-        "plan": "Persönlicher Ernährungsplan",
-        "checkIns": "Wöchentliche Check-ins",
-        "chat": "Chat mit deinem Coach"
-      }
+    "packages": "Pakete",
+    "how": {
+      "title": "So arbeitet {{name}}",
+      "online": { "label": "Online", "hint": "Pläne und Check-ins online, wo immer Sie sind." },
+      "inperson": { "label": "Vor Ort", "hint": "Termine vor Ort, persönlich." },
+      "both": { "label": "Online & vor Ort", "hint": "Termine vor Ort sowie Pläne und Check-ins online." }
     },
+    "certificates": "Zertifikate",
+    "languages": "Sprachen",
+    "links": "Links",
+    "link": {
+      "website": "Website",
+      "instagram": "Instagram",
+      "linkedin": "LinkedIn"
+    },
+    "contact": "Kontakt",
+    "contactNote": "Nur für Klienten",
+    "email": "E-Mail",
+    "phone": "Telefon",
+    "backToInvite": "Zurück zur Einladung",
     "sendRequest": "Anfrage senden",
     "pending": "Anfrage ausstehend",
-    "linked": "Ihr arbeitet bereits zusammen",
     "retry": "Erneut versuchen",
     "error": {
       "title": "Profil konnte nicht geladen werden",

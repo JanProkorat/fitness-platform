@@ -104,7 +104,7 @@ export default function InviteDetailScreen() {
             accessibilityLabel={t('invites.detail.viewProfile', { name: first })}
             disabled={!invite.coachPublicId}
             onPress={() =>
-              router.push({ pathname: '/coach/[publicId]', params: { publicId: invite.coachPublicId ?? '' } })
+              router.push({ pathname: '/coach/[publicId]', params: { publicId: invite.coachPublicId ?? '', from: 'invite' } })
             }
             style={({ pressed }) => [styles.profileRow, pressed && styles.pressed]}
           >

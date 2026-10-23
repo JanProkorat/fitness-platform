@@ -720,22 +720,28 @@
   },
   "coachProfile": {
     "alsoOnline": "also online",
-    "workingWith": "Working with {{name}}",
-    "workingWithRows": {
-      "Trainer": {
-        "plan": "Personal training plan",
-        "checkIns": "Weekly check-ins",
-        "chat": "Chat with your coach"
-      },
-      "Nutritionist": {
-        "plan": "Personal meal plan",
-        "checkIns": "Weekly check-ins",
-        "chat": "Chat with your coach"
-      }
+    "packages": "Packages",
+    "how": {
+      "title": "How {{name}} works",
+      "online": { "label": "Online", "hint": "Online plans and check-ins, wherever you are." },
+      "inperson": { "label": "In person", "hint": "Sessions in person, face to face." },
+      "both": { "label": "Online & in person", "hint": "In-person sessions plus online plans and check-ins." }
     },
+    "certificates": "Certificates",
+    "languages": "Languages",
+    "links": "Links",
+    "link": {
+      "website": "Website",
+      "instagram": "Instagram",
+      "linkedin": "LinkedIn"
+    },
+    "contact": "Contact",
+    "contactNote": "{{name}}'s clients only",
+    "email": "Email",
+    "phone": "Phone",
+    "backToInvite": "Back to invite",
     "sendRequest": "Send request",
     "pending": "Request pending",
-    "linked": "You already work together",
     "retry": "Try again",
     "error": {
       "title": "Can't load this profile",

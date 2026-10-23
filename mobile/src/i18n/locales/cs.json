@@ -740,22 +740,28 @@
   },
   "coachProfile": {
     "alsoOnline": "i online",
-    "workingWith": "Spolupráce s {{name}}",
-    "workingWithRows": {
-      "Trainer": {
-        "plan": "Osobní tréninkový plán",
-        "checkIns": "Týdenní check-iny",
-        "chat": "Chat s tvým trenérem"
-      },
-      "Nutritionist": {
-        "plan": "Osobní jídelníček",
-        "checkIns": "Týdenní check-iny",
-        "chat": "Chat s tvým poradcem"
-      }
+    "packages": "Balíčky",
+    "how": {
+      "title": "Jak pracuje {{name}}",
+      "online": { "label": "Online", "hint": "Plány a check-iny online, kdekoli jsi." },
+      "inperson": { "label": "Osobně", "hint": "Setkání osobně, tváří v tvář." },
+      "both": { "label": "Online i osobně", "hint": "Osobní setkání plus online plány a check-iny." }
     },
+    "certificates": "Certifikáty",
+    "languages": "Jazyky",
+    "links": "Odkazy",
+    "link": {
+      "website": "Web",
+      "instagram": "Instagram",
+      "linkedin": "LinkedIn"
+    },
+    "contact": "Kontakt",
+    "contactNote": "Jen pro klienty",
+    "email": "E-mail",
+    "phone": "Telefon",
+    "backToInvite": "Zpět na pozvánku",
     "sendRequest": "Odeslat žádost",
     "pending": "Žádost čeká na vyřízení",
-    "linked": "Už spolu spolupracujete",
     "retry": "Zkusit znovu",
     "error": {
       "title": "Profil se nepodařilo načíst",
