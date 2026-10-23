@@ -112,6 +112,25 @@
       "notionPageId": null
     },
     {
+      "id": "web.entry.invite-accept",
+      "app": "web",
+      "area": "Entry",
+      "title": "Invite email link",
+      "route": "/invite/accept",
+      "roles": ["Public"],
+      "files": [
+        "web/src/pages/InviteAcceptPage.tsx",
+        "web/src/components/register/StoreButtons.tsx",
+        "web/src/components/register/storeLinks.ts"
+      ],
+      "endpoints": [],
+      "board": null,
+      "shots": [
+        { "name": "phone", "steps": "open /invite/accept with a phone user agent (iPhone or Android)" }
+      ],
+      "notionPageId": null
+    },
+    {
       "id": "web.entry.check-email",
       "app": "web",
       "area": "Entry",
@@ -219,11 +238,17 @@
         "web/src/hooks/useClientsQueries.ts",
         "web/src/hooks/useQuestionnaireQueries.ts",
         "web/src/api/pending-invites.ts",
-        "web/src/api/questionnaires.ts"
+        "web/src/api/questionnaires.ts",
+        "web/src/components/clients/InvitePaymentSection.tsx",
+        "web/src/hooks/useClientPaymentQueries.ts",
+        "web/src/components/client-detail/payment/paymentErrors.ts",
+        "web/src/api/client-payments.ts"
       ],
       "endpoints": [
         "POST /trainer/pending-invites",
-        "GET /trainer/questionnaires"
+        "GET /trainer/questionnaires",
+        "GET /payments/packages",
+        "GET /payments/discounts"
       ],
       "board": "PageClientInviteDrawer",
       "shots": [
