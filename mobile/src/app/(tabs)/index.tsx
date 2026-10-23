@@ -1,5 +1,6 @@
-import { StyleSheet } from 'react-native';
+import { RefreshControl, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Screen } from '@/components/Screen';
 import { TabFade } from '@/components/TabFade';
@@ -10,6 +11,7 @@ import { InvitesSection } from '@/components/today/InvitesSection';
 import { PaymentDueCard } from '@/components/today/PaymentDueCard';
 import { TodayHeader } from '@/components/today/TodayHeader';
 import { useProfile } from '@/hooks/useProfile';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
 
@@ -28,6 +30,8 @@ function TodayContent() {
   const theme = useTheme();
   const styles = makeStyles(theme);
   const { data: profile } = useProfile();
+  const insets = useSafeAreaInsets();
+  const { refreshing, onRefresh } = usePullToRefresh();
   const barClearance = theme.sizes.tabBar + theme.sizes.tabBarBottom + theme.spacing.xxl;
 
   if (!profile) {
@@ -53,6 +57,15 @@ function TodayContent() {
       topGap={theme.spacing.safeAreaGap}
       bottomInset={barClearance}
       contentStyle={styles.content}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor={theme.colors.muted}
+          colors={[theme.colors.muted]}
+          progressViewOffset={insets.top}
+        />
+      }
     >
       <TodayHeader title={title} />
       {missingRoles.length > 0 ? (
