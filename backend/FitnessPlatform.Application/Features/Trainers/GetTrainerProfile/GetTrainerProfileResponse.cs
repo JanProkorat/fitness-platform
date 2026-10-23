@@ -23,7 +23,7 @@ public class GetProfessionalProfileResponse
     public string? City { get; set; }
 
     /// <summary>
-    /// The lowest monthly package price shown on the profile, or null when there is none or payments are not included in the subscription.
+    /// The lowest package price shown on the profile across all billing intervals (not monthly-only despite the name), or null when there is none or payments are not included in the subscription.
     /// </summary>
     public decimal? FromMonthlyPrice { get; set; }
 
@@ -31,6 +31,16 @@ public class GetProfessionalProfileResponse
     /// The currency of <see cref="FromMonthlyPrice"/>: the coach's main currency; null when there is no price.
     /// </summary>
     public PaymentCurrency? FromMonthlyPriceCurrency { get; set; }
+
+    /// <summary>
+    /// How the cheapest package behind the "from" price is billed; null when there is no price.
+    /// </summary>
+    public PackageBillingInterval? FromPriceBilling { get; set; }
+
+    /// <summary>
+    /// Weeks between payments of the cheapest package; set only when it is billed every N weeks.
+    /// </summary>
+    public int? FromPriceIntervalWeeks { get; set; }
 
     /// <summary>
     /// Specializations as a JSON array string.

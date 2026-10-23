@@ -29,7 +29,7 @@ export function useCoachDiscounts() {
   return useQuery({ queryKey: coachDiscountsKey, queryFn: getCoachDiscounts, retry: false });
 }
 
-/** The public profile's "from X / month" price, derived by the server in the coach's profile currency. */
+/** The public profile's "from X" price with its billing unit, derived by the server in the coach's profile currency. */
 export function useProfileFromPrice() {
   return useQuery({
     queryKey: profileKeys.trainer,
@@ -38,6 +38,8 @@ export function useProfileFromPrice() {
     select: (profile) => ({
       price: profile.fromMonthlyPrice,
       currency: profile.fromMonthlyPriceCurrency,
+      billing: profile.fromPriceBilling ?? undefined,
+      intervalWeeks: profile.fromPriceIntervalWeeks ?? undefined,
     }),
   });
 }

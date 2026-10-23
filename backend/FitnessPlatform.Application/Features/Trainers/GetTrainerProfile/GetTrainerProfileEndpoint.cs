@@ -48,17 +48,19 @@ public class GetProfessionalProfileEndpoint(IApplicationDbContext db, Entitlemen
             return;
         }
 
-        var fromMonthlyPrices = await CoachPackagePricing.LoadFromMonthlyPricesAsync(
+        var fromPrices = await CoachPackagePricing.LoadFromPricesAsync(
             db, entitlementService, [profile.Id], ct);
-        (decimal Price, PaymentCurrency Currency)? fromMonthly = fromMonthlyPrices.TryGetValue(profile.Id, out var found) ? found : null;
+        FromPrice? fromPrice = fromPrices.TryGetValue(profile.Id, out var found) ? found : null;
 
         await Send.OkAsync(new GetProfessionalProfileResponse
         {
             Bio = profile.Bio,
             Specialization = profile.Specialization,
             City = profile.City,
-            FromMonthlyPrice = fromMonthly?.Price,
-            FromMonthlyPriceCurrency = fromMonthly?.Currency,
+            FromMonthlyPrice = fromPrice?.Amount,
+            FromMonthlyPriceCurrency = fromPrice?.Currency,
+            FromPriceBilling = fromPrice?.Billing,
+            FromPriceIntervalWeeks = fromPrice?.IntervalWeeks,
             Specializations = profile.Specializations,
             Certificates = profile.Certificates,
             Languages = profile.Languages,

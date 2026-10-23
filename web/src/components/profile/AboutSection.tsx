@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Field, ProfileSection } from '@/components/profile/ProfileSection';
 import { BIO_MAX, type FromPrice, type ProfileFormValues } from '@/components/profile/profile-form';
+import { billingSuffix } from '@/components/client-detail/payment/paymentModel';
 import { formatMoney } from '@/lib/money';
 
 interface Props {
@@ -74,6 +75,7 @@ export default function AboutSection({ fromPrice }: Props) {
               {fromPrice
                 ? t('profile.page.about.priceFrom', {
                     price: formatMoney(fromPrice.amount, fromPrice.currency, i18n.language),
+                    unit: billingSuffix(t, fromPrice.billing, fromPrice.intervalWeeks),
                   })
                 : t('profile.page.about.priceNone')}
             </span>

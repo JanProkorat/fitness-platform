@@ -17,9 +17,13 @@ namespace FitnessPlatform.Tests.Endpoints.Professionals;
 [Collection(TestCollection.Name)]
 public class FromMonthlyPriceTests(FitnessApiFactory factory)
 {
-    private sealed record ProfileBody(decimal? FromMonthlyPrice, PaymentCurrency? FromMonthlyPriceCurrency);
+    private sealed record ProfileBody(
+        decimal? FromMonthlyPrice,
+        PaymentCurrency? FromMonthlyPriceCurrency,
+        PackageBillingInterval? FromPriceBilling,
+        int? FromPriceIntervalWeeks);
 
-    private sealed record SearchItem(Guid PublicId, decimal? FromMonthlyPrice);
+    private sealed record SearchItem(Guid PublicId, decimal? FromMonthlyPrice, string? FromPriceBilling, int? FromPriceIntervalWeeks);
 
     private sealed record SearchBody(List<SearchItem> Items);
 
@@ -80,7 +84,7 @@ public class FromMonthlyPriceTests(FitnessApiFactory factory)
     }
 
     [Fact]
-    public async Task PublicProfile_MixedPackages_ShowsTheLowestActiveVisibleMonthlyPrice()
+    public async Task PublicProfile_MixedPackages_ShowsTheLowestActiveVisibleInMainCurrency()
     {
         var coach = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
         var client = await TestActors.Client(factory).CreateAsync(TestContext.Current.CancellationToken);
@@ -90,8 +94,6 @@ public class FromMonthlyPriceTests(FitnessApiFactory factory)
         // Each of these is cheaper than 1800 and must be ignored.
         await AddPackageAsync(coach, 900m, archived: true);
         await AddPackageAsync(coach, 800m, showOnProfile: false);
-        await AddPackageAsync(coach, 700m, PackageBillingInterval.EveryNWeeks);
-        await AddPackageAsync(coach, 600m, PackageBillingInterval.OneOff);
 
         // A coach without a settings row has CZK as main currency, so a cheaper euro package is ignored.
         await AddPackageAsync(coach, 50m, currency: PaymentCurrency.EUR);
@@ -100,6 +102,42 @@ public class FromMonthlyPriceTests(FitnessApiFactory factory)
 
         profile.FromMonthlyPrice.Should().Be(1800m);
         profile.FromMonthlyPriceCurrency.Should().Be(PaymentCurrency.CZK);
+        profile.FromPriceBilling.Should().Be(PackageBillingInterval.Monthly);
+        profile.FromPriceIntervalWeeks.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task PublicProfile_OneOffPackageIsCheapest_ShowsItWithOneOffBilling()
+    {
+        var coach = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
+        var client = await TestActors.Client(factory).CreateAsync(TestContext.Current.CancellationToken);
+        await AddPackageAsync(coach, 1800m);
+        await AddPackageAsync(coach, 700m, PackageBillingInterval.EveryNWeeks);
+        await AddPackageAsync(coach, 600m, PackageBillingInterval.OneOff);
+
+        var profile = await ReadProfileAsync(coach, client);
+
+        profile.FromMonthlyPrice.Should().Be(600m);
+        profile.FromMonthlyPriceCurrency.Should().Be(PaymentCurrency.CZK);
+        profile.FromPriceBilling.Should().Be(PackageBillingInterval.OneOff);
+        profile.FromPriceIntervalWeeks.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task PublicProfile_EveryNWeeksPackageIsCheapest_ShowsItWithItsIntervalWeeks()
+    {
+        var coach = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
+        var client = await TestActors.Client(factory).CreateAsync(TestContext.Current.CancellationToken);
+        await AddPackageAsync(coach, 1800m);
+        await AddPackageAsync(coach, 900m, PackageBillingInterval.OneOff);
+        await AddPackageAsync(coach, 700m, PackageBillingInterval.EveryNWeeks);
+
+        var profile = await ReadProfileAsync(coach, client);
+
+        profile.FromMonthlyPrice.Should().Be(700m);
+        profile.FromMonthlyPriceCurrency.Should().Be(PaymentCurrency.CZK);
+        profile.FromPriceBilling.Should().Be(PackageBillingInterval.EveryNWeeks);
+        profile.FromPriceIntervalWeeks.Should().Be(2);
     }
 
     [Fact]
@@ -135,6 +173,7 @@ public class FromMonthlyPriceTests(FitnessApiFactory factory)
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         body!.Items.Single(i => i.PublicId == priced.PublicId).FromMonthlyPrice.Should().Be(1500m);
+        body.Items.Single(i => i.PublicId == priced.PublicId).FromPriceBilling.Should().Be("Monthly");
         body.Items.Single(i => i.PublicId == locked.PublicId).FromMonthlyPrice.Should().BeNull();
         body.Items.Single(i => i.PublicId == bare.PublicId).FromMonthlyPrice.Should().BeNull();
     }

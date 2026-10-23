@@ -83,7 +83,7 @@ public class SearchProfessionalsEndpoint(
             .ToListAsync(ct);
 
         // One batched lookup for every profile's derived price, never one query per profile
-        var fromMonthlyPrices = await CoachPackagePricing.LoadFromMonthlyPricesAsync(
+        var fromPrices = await CoachPackagePricing.LoadFromPricesAsync(
             db, entitlementService, profiles.Select(p => p.Id).ToList(), ct);
 
         // Resolve roles in memory (Identity tables are not easily joinable in LINQ)
@@ -107,7 +107,7 @@ public class SearchProfessionalsEndpoint(
                 continue;
             }
 
-            (decimal Price, PaymentCurrency Currency)? fromMonthly = fromMonthlyPrices.TryGetValue(profile.Id, out var found) ? found : null;
+            FromPrice? fromPrice = fromPrices.TryGetValue(profile.Id, out var found) ? found : null;
 
             items.Add(new ProfessionalSummaryDto
             {
@@ -117,8 +117,10 @@ public class SearchProfessionalsEndpoint(
                 Bio = profile.Bio,
                 Specializations = ParseJsonArray(profile.Specializations),
                 City = profile.City,
-                FromMonthlyPrice = fromMonthly?.Price,
-                FromMonthlyPriceCurrency = fromMonthly?.Currency,
+                FromMonthlyPrice = fromPrice?.Amount,
+                FromMonthlyPriceCurrency = fromPrice?.Currency,
+                FromPriceBilling = fromPrice?.Billing,
+                FromPriceIntervalWeeks = fromPrice?.IntervalWeeks,
                 CollaborationType = profile.CollaborationType,
                 Languages = ParseJsonArray(profile.Languages),
                 Roles = professionalRoles,

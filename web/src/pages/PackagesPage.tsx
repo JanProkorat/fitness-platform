@@ -14,6 +14,7 @@ import {
   showApiError,
   showSuccess,
 } from '@/lib/api-errors';
+import { billingSuffix } from '@/components/client-detail/payment/paymentModel';
 import { formatMoney } from '@/lib/money';
 import FeaturePaywall from '@/components/paywall/FeaturePaywall';
 import DiscountDrawer from '@/components/package-catalog/DiscountDrawer';
@@ -217,6 +218,7 @@ export default function PackagesPage() {
                               fromPrice.currency ?? PaymentCurrency.CZK,
                               i18n.language,
                             ),
+                            unit: billingSuffix(t, fromPrice.billing, fromPrice.intervalWeeks),
                           })}
                     </span>
                     <span className="text-body text-muted-foreground">

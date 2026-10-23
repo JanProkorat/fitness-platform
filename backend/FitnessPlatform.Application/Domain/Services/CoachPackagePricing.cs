@@ -34,16 +34,17 @@ public static class CoachPackagePricing
             .FirstOrDefault();
 
     /// <summary>
-    /// Loads the lowest current monthly price shown on each coach's profile, for coaches whose subscription
-    /// includes payments. Only packages in the coach's main currency count, so prices in two currencies are
-    /// never compared; a coach without a settings row has CZK. Coaches with no qualifying package or without
-    /// the payments feature are absent.
+    /// Loads the lowest package price shown on each coach's profile across every billing interval, for
+    /// coaches whose subscription includes payments. Only packages in the coach's main currency count, so
+    /// prices in two currencies are never compared; a coach without a settings row has CZK. On equal prices
+    /// the billing order is Monthly, EveryNWeeks, OneOff, then the lowest package id. Coaches with no
+    /// qualifying package or without the payments feature are absent.
     /// </summary>
     /// <param name="db">Application database context.</param>
     /// <param name="entitlementService">Resolves subscription entitlements.</param>
     /// <param name="professionalProfileIds">The coaches to look up.</param>
     /// <param name="ct">Cancellation token.</param>
-    public static async Task<Dictionary<long, (decimal Price, PaymentCurrency Currency)>> LoadFromMonthlyPricesAsync(
+    public static async Task<Dictionary<long, FromPrice>> LoadFromPricesAsync(
         IApplicationDbContext db,
         EntitlementService entitlementService,
         IReadOnlyCollection<long> professionalProfileIds,
@@ -66,18 +67,31 @@ public static class CoachPackagePricing
             where entitledIds.Contains(package.ProfessionalProfileId)
                 && package.ArchivedAt == null
                 && package.ShowOnProfile
-                && package.Billing == PackageBillingInterval.Monthly
             join settings in db.CoachPaymentSettings.AsNoTracking()
                 on package.ProfessionalProfileId equals settings.ProfessionalProfileId into settingsRows
             from settings in settingsRows.DefaultIfEmpty()
             where package.Currency == (settings == null ? PaymentCurrency.CZK : settings.ProfileCurrency)
-            select new { package.ProfessionalProfileId, package.Price, package.Currency })
+            select new { package.Id, package.ProfessionalProfileId, package.Price, package.Currency, package.Billing, package.IntervalWeeks })
             .ToListAsync(ct);
 
         return rows
             .GroupBy(row => row.ProfessionalProfileId)
             .ToDictionary(
                 group => group.Key,
-                group => (group.Min(row => row.Price), group.First().Currency));
+                group =>
+                {
+                    // PackageBillingInterval values already run Monthly, EveryNWeeks, OneOff.
+                    var cheapest = group
+                        .OrderBy(row => row.Price)
+                        .ThenBy(row => row.Billing)
+                        .ThenBy(row => row.Id)
+                        .First();
+
+                    return new FromPrice(
+                        cheapest.Price,
+                        cheapest.Currency,
+                        cheapest.Billing,
+                        cheapest.Billing == PackageBillingInterval.EveryNWeeks ? cheapest.IntervalWeeks : null);
+                });
     }
 }
