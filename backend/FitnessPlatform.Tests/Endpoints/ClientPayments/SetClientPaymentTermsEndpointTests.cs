@@ -1,6 +1,8 @@
 using System.Net;
 using System.Net.Http.Json;
+using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.ClientPayments.SetClientPaymentTerms;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Tests.Builders;
@@ -234,6 +236,39 @@ public class SetClientPaymentTermsEndpointTests(FitnessApiFactory factory)
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         (await ErrorCodesAsync(response)).Should().Contain("PAYMENT_AMOUNT_INVALID");
+    }
+
+    [Fact]
+    public async Task SetTerms_CoachHasNoClientNumberLeft_Returns409AndStoresNothing()
+    {
+        var world = await CreateWorldAsync(factory);
+        var packageId = await CreatePackageAsync(world.Coach);
+        var other = await AddClientAsync(world);
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            db.ClientPaymentAssignments.Add(new ClientPaymentAssignment
+            {
+                ProfessionalProfileId = world.Coach.ProfileId,
+                ClientProfileId = other.ProfileId,
+                ClientNumber = ClientPaymentSchedule.MaxClientNumber
+            });
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        var response = await SetTermsAsync(world, packageId);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await ProblemCodeAsync(response)).Should().Be("PAYMENT_CLIENT_NUMBER_EXHAUSTED");
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            (await db.ClientPaymentTerms.AnyAsync(
+                t => t.ClientPaymentAssignment.ClientProfileId == world.Client.ProfileId,
+                TestContext.Current.CancellationToken)).Should().BeFalse();
+        }
     }
 
     [Fact]

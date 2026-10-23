@@ -4,6 +4,7 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Services;
+using FitnessPlatform.Application.Features.Client.Invites.Shared;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,9 +15,11 @@ namespace FitnessPlatform.Application.Features.Client.Invites.GetAll;
 /// </summary>
 /// <param name="db">Database context.</param>
 /// <param name="timeProvider">Clock.</param>
+/// <param name="entitlementService">Resolves subscription entitlements for the offered packages.</param>
 internal sealed class GetClientInvitesEndpoint(
     IApplicationDbContext db,
-    TimeProvider timeProvider) : EndpointWithoutRequest<GetClientInvitesResponse>
+    TimeProvider timeProvider,
+    EntitlementService entitlementService) : EndpointWithoutRequest<GetClientInvitesResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -83,6 +86,9 @@ internal sealed class GetClientInvitesEndpoint(
             .GroupBy(h => h.UserId)
             .ToDictionary(g => g.Key, g => g.Select(h => h.RoleName).ToList());
 
+        var packages = await InvitePackageLoader.LoadAsync(
+            db, entitlementService, invites, timeProvider.GetUtcNow().UtcDateTime, ct);
+
         var items = new List<ClientInviteDto>(invites.Count);
 
         foreach (var invite in invites)
@@ -105,6 +111,7 @@ internal sealed class GetClientInvitesEndpoint(
                 Message = invite.Message,
                 SentAt = invite.SentAt,
                 ExpiresAt = PendingInviteStatusResolver.ExpiresAt(invite.SentAt),
+                Package = packages.GetValueOrDefault(invite.Id)
             });
         }
 

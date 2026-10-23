@@ -22,7 +22,8 @@ public class AcceptClientInviteEndpoint(
     IRealtimeNotifier notifier,
     IAuditService audit,
     IConversationSeedService conversationSeedService,
-    TimeProvider timeProvider)
+    TimeProvider timeProvider,
+    InvitePackageTermsApplier termsApplier)
     : Endpoint<AcceptClientInviteRequest>
 {
     public override void Configure()
@@ -195,6 +196,22 @@ public class AcceptClientInviteEndpoint(
             };
             db.QuestionnaireResponses.Add(questionnaireResponse);
             await db.SaveChangesAsync(ct);
+        }
+
+        // Only a newly created link takes the invite's terms: a client who was already linked keeps whatever
+        // the coach set on the Payments tab. A package that no longer qualifies is skipped, never an error.
+        if (newLink is not null && invite.CoachPackageId is { } packageId)
+        {
+            await termsApplier.ApplyAsync(
+                invite.PublicId,
+                invite.ProfessionalProfileId,
+                packageId,
+                invite.CoachDiscountId,
+                clientProfile.Id,
+                userGuid,
+                HttpContext.Connection.RemoteIpAddress?.ToString(),
+                timeProvider.GetUtcNow().UtcDateTime,
+                ct);
         }
 
         // Ensure the invite's Invited event + message exist (idempotent no-op if the

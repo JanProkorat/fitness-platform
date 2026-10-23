@@ -34,6 +34,46 @@ public static class CoachPackagePricing
             .FirstOrDefault();
 
     /// <summary>
+    /// Loads the packages shown on one coach's public profile, cheapest first, under the same rules as
+    /// <see cref="LoadFromPricesAsync"/>: the coach's subscription includes payments, the package is not archived,
+    /// is shown on the profile and is in the coach's main currency.
+    /// </summary>
+    /// <param name="db">Application database context.</param>
+    /// <param name="entitlementService">Resolves subscription entitlements.</param>
+    /// <param name="professionalProfileId">The coach's internal id.</param>
+    /// <param name="ct">Cancellation token.</param>
+    public static async Task<List<CoachPackage>> LoadProfilePackagesAsync(
+        IApplicationDbContext db,
+        EntitlementService entitlementService,
+        long professionalProfileId,
+        CancellationToken ct)
+    {
+        var entitledIds = await entitlementService.GetPaymentsEntitledProfileIdsAsync([professionalProfileId], ct);
+
+        if (entitledIds.Count == 0)
+        {
+            return [];
+        }
+
+        return await ProfileVisiblePackages(db, entitledIds)
+            .OrderBy(package => package.Price)
+            .ThenBy(package => package.Billing)
+            .ThenBy(package => package.Id)
+            .ToListAsync(ct);
+    }
+
+    private static IQueryable<CoachPackage> ProfileVisiblePackages(IApplicationDbContext db, IReadOnlyCollection<long> entitledIds) =>
+        from package in db.CoachPackages.AsNoTracking()
+        where entitledIds.Contains(package.ProfessionalProfileId)
+            && package.ArchivedAt == null
+            && package.ShowOnProfile
+        join settings in db.CoachPaymentSettings.AsNoTracking()
+            on package.ProfessionalProfileId equals settings.ProfessionalProfileId into settingsRows
+        from settings in settingsRows.DefaultIfEmpty()
+        where package.Currency == (settings == null ? PaymentCurrency.CZK : settings.ProfileCurrency)
+        select package;
+
+    /// <summary>
     /// Loads the lowest package price shown on each coach's profile across every billing interval, for
     /// coaches whose subscription includes payments. Only packages in the coach's main currency count, so
     /// prices in two currencies are never compared; a coach without a settings row has CZK. On equal prices
@@ -62,16 +102,8 @@ public static class CoachPackagePricing
             return [];
         }
 
-        var rows = await (
-            from package in db.CoachPackages.AsNoTracking()
-            where entitledIds.Contains(package.ProfessionalProfileId)
-                && package.ArchivedAt == null
-                && package.ShowOnProfile
-            join settings in db.CoachPaymentSettings.AsNoTracking()
-                on package.ProfessionalProfileId equals settings.ProfessionalProfileId into settingsRows
-            from settings in settingsRows.DefaultIfEmpty()
-            where package.Currency == (settings == null ? PaymentCurrency.CZK : settings.ProfileCurrency)
-            select new { package.Id, package.ProfessionalProfileId, package.Price, package.Currency, package.Billing, package.IntervalWeeks })
+        var rows = await ProfileVisiblePackages(db, entitledIds)
+            .Select(package => new { package.Id, package.ProfessionalProfileId, package.Price, package.Currency, package.Billing, package.IntervalWeeks })
             .ToListAsync(ct);
 
         return rows

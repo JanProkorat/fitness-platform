@@ -36,6 +36,7 @@ public class CreatePendingInviteEndpoint(
     IRealtimeNotifier notifier,
     IConversationSeedService conversationSeedService,
     UserManager<ApplicationUser> userManager,
+    EntitlementService entitlementService,
     ILogger<CreatePendingInviteEndpoint> logger,
     TimeProvider timeProvider) : Endpoint<CreatePendingInviteRequest, CreatePendingInviteResponse>
 {
@@ -58,7 +59,12 @@ public class CreatePendingInviteEndpoint(
             s.Summary = "Create a pending invitation";
             s.Description = "Creates a pending invitation for a client, sends an invitation email with a one-time token valid for 7 days.";
             s.Responses[StatusCodes.Status400BadRequest] =
-                "Requested scope exceeds the caller's held roles.";
+                "Requested scope exceeds the caller's held roles, a discount was sent without a package, or a fixed discount is in another currency than the package (CURRENCY_MISMATCH).";
+            s.Responses[StatusCodes.Status403Forbidden] =
+                "The coach role was removed, or the subscription does not include payments (PAYMENTS_NOT_ENTITLED).";
+            s.Responses[StatusCodes.Status404NotFound] = "The package or discount is unknown or belongs to another coach.";
+            s.Responses[StatusCodes.Status409Conflict] =
+                "A duplicate invite exists, or the package is archived (PACKAGE_ARCHIVED), the discount is archived (DISCOUNT_ARCHIVED) or does not apply to the package (DISCOUNT_PACKAGE_INVALID).";
         });
     }
 
@@ -209,6 +215,15 @@ public class CreatePendingInviteEndpoint(
             }
         }
 
+        // The package and discount are checked with the rules the coach's own client terms follow, before
+        // anything is saved or sent.
+        var (package, discount) = await LoadPackageTermsOrRespondAsync(req, professionalProfile.Id, ct);
+
+        if (req.PackageId is not null && package is null)
+        {
+            return;
+        }
+
         // Resolve optional questionnaire
         long? questionnaireId = null;
         if (req.QuestionnairePublicId.HasValue)
@@ -234,7 +249,9 @@ public class CreatePendingInviteEndpoint(
             Message = req.Message,
             SentAt = DateTime.UtcNow,
             QuestionnaireId = questionnaireId,
-            RequestedScope = req.RequestedScope
+            RequestedScope = req.RequestedScope,
+            CoachPackageId = package?.Id,
+            CoachDiscountId = discount?.Id
         };
 
         db.PendingInvites.Add(pendingInvite);
@@ -280,7 +297,9 @@ public class CreatePendingInviteEndpoint(
         // realtime event, and #1100 chat seed below. TryEnqueue is non-blocking; a full or
         // completed queue drops the send and logs rather than falling back to a synchronous
         // send that would reintroduce exactly the failure mode this closes.
-        if (!emailQueue.TryEnqueue(new InvitationEmailWorkItem(req.Email, trainerName, tokenValue, language, req.Message)))
+        if (!emailQueue.TryEnqueue(new InvitationEmailWorkItem(
+                req.Email, trainerName, tokenValue, language, req.Message,
+                package is null ? null : new InvitationPackageInfo(package.Name, package.Billing, package.IntervalWeeks))))
         {
             logger.LogWarning(
                 "Background email queue full; dropped invitation email enqueue for {Email}.",
@@ -370,6 +389,72 @@ public class CreatePendingInviteEndpoint(
             professionalProfile.PublicId, req.Email);
 
         await Send.ResponseAsync(BuildResponse(pendingInvite, req.QuestionnairePublicId), cancellation: ct);
+    }
+
+    /// <summary>
+    /// Loads the requested package and discount and checks them against <see cref="PackageTermsRules"/>. Answers
+    /// the failure and returns a null package when they cannot be used; returns nulls when no package was asked for.
+    /// </summary>
+    private async Task<(CoachPackage? Package, CoachDiscount? Discount)> LoadPackageTermsOrRespondAsync(
+        CreatePendingInviteRequest req, long professionalProfileId, CancellationToken ct)
+    {
+        if (req.PackageId is not { } packageId)
+        {
+            return (null, null);
+        }
+
+        var entitlements = await entitlementService.GetEntitlementsAsync(professionalProfileId, ct);
+
+        var package = await db.CoachPackages
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.PublicId == packageId && p.ProfessionalProfileId == professionalProfileId, ct);
+
+        var discount = req.DiscountId is not { } discountId
+            ? null
+            : await db.CoachDiscounts
+                .AsNoTracking()
+                .Include(d => d.Packages)
+                .FirstOrDefaultAsync(d => d.PublicId == discountId && d.ProfessionalProfileId == professionalProfileId, ct);
+
+        var failure = PackageTermsRules.Check(entitlements.CanUsePayments, package, req.DiscountId is not null, discount);
+
+        switch (failure)
+        {
+            case PackageTermsFailure.None:
+                return (package, discount);
+            case PackageTermsFailure.NotEntitled:
+                await this.SendProblemAsync(
+                    StatusCodes.Status403Forbidden,
+                    ErrorCodes.PaymentsNotEntitled,
+                    "The current subscription does not include payments.",
+                    ct);
+                break;
+            case PackageTermsFailure.PackageNotFound or PackageTermsFailure.DiscountNotFound:
+                await Send.NotFoundAsync(ct);
+                break;
+            case PackageTermsFailure.PackageArchived:
+                await this.SendProblemAsync(StatusCodes.Status409Conflict, ErrorCodes.PackageArchived, "The package is archived.", ct);
+                break;
+            case PackageTermsFailure.DiscountArchived:
+                await this.SendProblemAsync(StatusCodes.Status409Conflict, ErrorCodes.DiscountArchived, "The discount is archived.", ct);
+                break;
+            case PackageTermsFailure.DiscountPackageInvalid:
+                await this.SendProblemAsync(
+                    StatusCodes.Status409Conflict,
+                    ErrorCodes.DiscountPackageInvalid,
+                    "The discount does not apply to the package.",
+                    ct);
+                break;
+            default:
+                await this.SendProblemAsync(
+                    StatusCodes.Status400BadRequest,
+                    ErrorCodes.CurrencyMismatch,
+                    "A fixed discount can only be used with a package in its own currency.",
+                    ct);
+                break;
+        }
+
+        return (null, null);
     }
 
     private static CreatePendingInviteResponse BuildResponse(PendingInvite pendingInvite, Guid? questionnairePublicId) =>

@@ -198,37 +198,7 @@ internal static class ClientPaymentGuards
     /// <param name="context">The proven coach and client.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>The assignment, or null when the coach has used all 9999 client numbers.</returns>
-    public static async Task<ClientPaymentAssignment?> GetOrCreateAssignmentAsync(
-        IApplicationDbContext db, CoachClientContext context, CancellationToken ct)
-    {
-        var existing = await db.ClientPaymentAssignments
-            .FirstOrDefaultAsync(
-                a => a.ProfessionalProfileId == context.ProfessionalProfileId && a.ClientProfileId == context.ClientProfileId,
-                ct);
-
-        if (existing is not null)
-        {
-            return existing;
-        }
-
-        var highest = await db.ClientPaymentAssignments
-            .Where(a => a.ProfessionalProfileId == context.ProfessionalProfileId)
-            .MaxAsync(a => (int?)a.ClientNumber, ct) ?? 0;
-
-        if (highest >= ClientPaymentSchedule.MaxClientNumber)
-        {
-            return null;
-        }
-
-        var created = new ClientPaymentAssignment
-        {
-            ProfessionalProfileId = context.ProfessionalProfileId,
-            ClientProfileId = context.ClientProfileId,
-            ClientNumber = highest + 1
-        };
-        db.ClientPaymentAssignments.Add(created);
-        await db.SaveChangesAsync(ct);
-
-        return created;
-    }
+    public static Task<ClientPaymentAssignment?> GetOrCreateAssignmentAsync(
+        IApplicationDbContext db, CoachClientContext context, CancellationToken ct) =>
+        ClientPaymentAssignments.GetOrCreateAsync(db, context.ProfessionalProfileId, context.ClientProfileId, ct);
 }

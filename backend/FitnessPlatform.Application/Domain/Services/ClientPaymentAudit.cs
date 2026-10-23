@@ -2,7 +2,7 @@ using System.Text.Json;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Interfaces;
 
-namespace FitnessPlatform.Application.Features.ClientPayments.Shared;
+namespace FitnessPlatform.Application.Domain.Services;
 
 /// <summary>
 /// Writes the audit entries of the client payment actions. Every entry is filed under the client's payment

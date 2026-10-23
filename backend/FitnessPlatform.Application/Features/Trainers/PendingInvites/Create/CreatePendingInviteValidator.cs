@@ -24,5 +24,11 @@ public class CreatePendingInviteValidator : Validator<CreatePendingInviteRequest
 
         RuleFor(x => x.RequestedScope)
             .IsInEnum().WithErrorCode(ErrorCodes.OutOfRange);
+
+        RuleFor(x => x.PackageId)
+            .NotNull()
+            .WithErrorCode(ErrorCodes.InviteDiscountNeedsPackage)
+            .WithMessage("A discount needs a package.")
+            .When(x => x.DiscountId is not null);
     }
 }

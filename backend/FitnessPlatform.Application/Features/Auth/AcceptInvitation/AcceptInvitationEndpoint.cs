@@ -26,6 +26,7 @@ namespace FitnessPlatform.Application.Features.Auth.AcceptInvitation;
 /// surfaces on the client's Messages screen (#768).
 /// </param>
 /// <param name="timeProvider">Clock.</param>
+/// <param name="termsApplier">Gives the client the package the invite carried, for a newly created link.</param>
 public class AcceptInvitationEndpoint(
     IApplicationDbContext db,
     UserManager<ApplicationUser> userManager,
@@ -33,7 +34,8 @@ public class AcceptInvitationEndpoint(
     INotificationService notificationService,
     IRealtimeNotifier notifier,
     IConversationSeedService conversationSeedService,
-    TimeProvider timeProvider)
+    TimeProvider timeProvider,
+    InvitePackageTermsApplier termsApplier)
     : Endpoint<AcceptInvitationRequest, AcceptInvitationResponse>
 {
     /// <inheritdoc />
@@ -210,6 +212,21 @@ public class AcceptInvitationEndpoint(
         // banner on every re-use, since a null-source event has no index to dedupe on.
         if (!existingLink)
         {
+            // A client who was already linked keeps whatever the coach set on the Payments tab.
+            if (pendingInvite?.CoachPackageId is { } packageId)
+            {
+                await termsApplier.ApplyAsync(
+                    pendingInvite.PublicId,
+                    pendingInvite.ProfessionalProfileId,
+                    packageId,
+                    pendingInvite.CoachDiscountId,
+                    clientProfile.Id,
+                    userGuid,
+                    HttpContext.Connection.RemoteIpAddress?.ToString(),
+                    timeProvider.GetUtcNow().UtcDateTime,
+                    ct);
+            }
+
             if (pendingInvite is not null)
             {
                 await conversationSeedService.AppendCooperationEventAsync(
