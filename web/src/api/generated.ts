@@ -23403,10 +23403,14 @@ export interface GetProfessionalProfileResponse {
     specialization?: string | undefined;
     /** City where the professional is based. */
     city?: string | undefined;
-    /** The lowest monthly package price shown on the profile, or null when there is none or payments are not included in the subscription. */
+    /** The lowest package price shown on the profile across all billing intervals (not monthly-only despite the name), or null when there is none or payments are not included in the subscription. */
     fromMonthlyPrice?: number | undefined;
     /** The currency of FromMonthlyPrice: the coach's main currency; null when there is no price. */
     fromMonthlyPriceCurrency?: PaymentCurrency | undefined;
+    /** How the cheapest package behind the "from" price is billed; null when there is no price. */
+    fromPriceBilling?: PackageBillingInterval | undefined;
+    /** Weeks between payments of the cheapest package; set only when it is billed every N weeks. */
+    fromPriceIntervalWeeks?: number | undefined;
     /** Specializations as a JSON array string. */
     specializations?: string | undefined;
     /** Certificates and education as a JSON array string. */
@@ -23433,6 +23437,13 @@ export interface GetProfessionalProfileResponse {
 export enum PaymentCurrency {
     CZK = "CZK",
     EUR = "EUR",
+}
+
+/** How often a coach package is billed. */
+export enum PackageBillingInterval {
+    Monthly = "Monthly",
+    EveryNWeeks = "EveryNWeeks",
+    OneOff = "OneOff",
 }
 
 /** Response model for the trainer's Pending tab. */
@@ -25324,6 +25335,10 @@ export interface ProfessionalSummaryDto {
     city?: string | undefined;
     fromMonthlyPrice?: number | undefined;
     fromMonthlyPriceCurrency?: PaymentCurrency | undefined;
+    /** How the cheapest package behind the "from" price is billed; null when there is no price. */
+    fromPriceBilling?: PackageBillingInterval | undefined;
+    /** Weeks between payments of the cheapest package; set only when it is billed every N weeks. */
+    fromPriceIntervalWeeks?: number | undefined;
     collaborationType?: string | undefined;
     languages?: string[];
     roles?: string[];
@@ -25346,6 +25361,10 @@ export interface GetPublicProfileResponse {
     city?: string | undefined;
     fromMonthlyPrice?: number | undefined;
     fromMonthlyPriceCurrency?: PaymentCurrency | undefined;
+    /** How the cheapest package behind the "from" price is billed; null when there is no price. */
+    fromPriceBilling?: PackageBillingInterval | undefined;
+    /** Weeks between payments of the cheapest package; set only when it is billed every N weeks. */
+    fromPriceIntervalWeeks?: number | undefined;
     collaborationType?: string | undefined;
     linkedIn?: string | undefined;
     instagram?: string | undefined;
@@ -27412,13 +27431,6 @@ export interface CoachPackageDto {
     clientCount?: number;
     /** When the package was archived (UTC), or null while active. */
     archivedAt?: string | undefined;
-}
-
-/** How often a coach package is billed. */
-export enum PackageBillingInterval {
-    Monthly = "Monthly",
-    EveryNWeeks = "EveryNWeeks",
-    OneOff = "OneOff",
 }
 
 /** Request for updating a coach package. A changed price takes effect for billing periods starting from now on. */
