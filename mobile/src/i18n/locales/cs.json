@@ -299,6 +299,7 @@
       "photos": "Fotky pokroku",
       "checkIns": "Historie check-inů"
     },
+    "payments": "Platby",
     "settings": "Nastavení",
     "error": {
       "summary": "Čísla se nepodařilo načíst.",

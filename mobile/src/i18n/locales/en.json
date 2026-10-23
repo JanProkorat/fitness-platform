@@ -297,6 +297,7 @@
       "photos": "Progress photos",
       "checkIns": "Check-in history"
     },
+    "payments": "Payments",
     "settings": "Settings",
     "error": {
       "summary": "Can't load your numbers.",
