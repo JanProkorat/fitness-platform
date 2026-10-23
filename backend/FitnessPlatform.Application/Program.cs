@@ -263,6 +263,7 @@ builder.Services.AddScoped<IConversationSeedService, ConversationSeedService>();
 // RegisterEndpoint, GoogleSocialLoginEndpoint, and AppleSocialLoginEndpoint so the
 // coach's opening message is visible before the client accepts (#803/#817).
 builder.Services.AddScoped<IPendingInviteConversationSeeder, PendingInviteConversationSeeder>();
+builder.Services.AddScoped<IPendingInviteNotificationSeeder, PendingInviteNotificationSeeder>();
 
 // Weekly check-in scheduler — registered as both singleton (for test access) and hosted service.
 builder.Services.AddSingleton<WeeklyCheckInScheduler>();

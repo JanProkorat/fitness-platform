@@ -32,6 +32,7 @@ public class AppleSocialLoginEndpoint(
     // Seeds a professional-client conversation against any message-bearing PendingInvite
     // already addressed to a newly-provisioned account's email (#803/#817).
     IPendingInviteConversationSeeder inviteConversationSeeder,
+    IPendingInviteNotificationSeeder inviteNotificationSeeder,
     ILogger<AppleSocialLoginEndpoint> logger) : Endpoint<AppleSocialLoginRequest, AppleSocialLoginResponse>
 {
     private const string AppleProvider = "apple";
@@ -229,6 +230,18 @@ public class AppleSocialLoginEndpoint(
                 logger.LogError(ex,
                     "Failed to seed pending-invite conversation(s) for {Email} during Apple sign-up. User {UserId} created; conversation will still be seeded at invite-accept time.",
                     newUser.Email, newUser.Id);
+            }
+
+            // In-app InvitationReceived notification for invites sent before the account existed (#1676).
+            try
+            {
+                await inviteNotificationSeeder.SeedForNewUserAsync(newUser, ct);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                logger.LogError(ex,
+                    "Failed to create pending-invite notification(s) during Apple sign-up for user {UserId}.",
+                    newUser.Id);
             }
         }
 
