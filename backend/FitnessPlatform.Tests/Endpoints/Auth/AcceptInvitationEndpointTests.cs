@@ -44,7 +44,8 @@ public class AcceptInvitationEndpointTests
             ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
                 new System.Security.Claims.ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_userId))),
-            db, userManager, _audit, _notificationService, _notifier, _conversationSeedService, TimeProvider.System);
+            db, userManager, _audit, _notificationService, _notifier, _conversationSeedService, TimeProvider.System,
+            EndpointTestHelpers.CreateInviteTermsApplier(db));
 
         await ep.HandleAsync(new AcceptInvitationRequest { Token = "invite-token" }, TestContext.Current.CancellationToken);
 
@@ -95,7 +96,8 @@ public class AcceptInvitationEndpointTests
             ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
                 new System.Security.Claims.ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_userId))),
-            db, userManager, _audit, _notificationService, _notifier, _conversationSeedService, TimeProvider.System);
+            db, userManager, _audit, _notificationService, _notifier, _conversationSeedService, TimeProvider.System,
+            EndpointTestHelpers.CreateInviteTermsApplier(db));
 
         await ep.HandleAsync(new AcceptInvitationRequest { Token = "dual-role-token" }, TestContext.Current.CancellationToken);
 
@@ -136,7 +138,8 @@ public class AcceptInvitationEndpointTests
             ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
                 new System.Security.Claims.ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_userId))),
-            db, userManager, _audit, _notificationService, _notifier, _conversationSeedService, TimeProvider.System);
+            db, userManager, _audit, _notificationService, _notifier, _conversationSeedService, TimeProvider.System,
+            EndpointTestHelpers.CreateInviteTermsApplier(db));
 
         await ep.HandleAsync(new AcceptInvitationRequest { Token = "scoped-token" }, TestContext.Current.CancellationToken);
 
@@ -184,7 +187,8 @@ public class AcceptInvitationEndpointTests
             ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
                 new System.Security.Claims.ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_userId))),
-            db, userManager, _audit, _notificationService, _notifier, _conversationSeedService, TimeProvider.System);
+            db, userManager, _audit, _notificationService, _notifier, _conversationSeedService, TimeProvider.System,
+            EndpointTestHelpers.CreateInviteTermsApplier(db));
 
         await ep.HandleAsync(new AcceptInvitationRequest { Token = "invite-token-with-message" }, TestContext.Current.CancellationToken);
 
@@ -253,7 +257,8 @@ public class AcceptInvitationEndpointTests
             ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
                 new System.Security.Claims.ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_userId))),
-            db, userManager, _audit, _notificationService, _notifier, _conversationSeedService, TimeProvider.System);
+            db, userManager, _audit, _notificationService, _notifier, _conversationSeedService, TimeProvider.System,
+            EndpointTestHelpers.CreateInviteTermsApplier(db));
 
         await ep.HandleAsync(new AcceptInvitationRequest { Token = "reinvite-token" }, TestContext.Current.CancellationToken);
 
@@ -295,7 +300,8 @@ public class AcceptInvitationEndpointTests
             ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
                 new System.Security.Claims.ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_userId))),
-            db, userManager, _audit, _notificationService, _notifier, _conversationSeedService, TimeProvider.System);
+            db, userManager, _audit, _notificationService, _notifier, _conversationSeedService, TimeProvider.System,
+            EndpointTestHelpers.CreateInviteTermsApplier(db));
 
         await ep.HandleAsync(new AcceptInvitationRequest { Token = "token-only-invite" }, TestContext.Current.CancellationToken);
 
@@ -356,7 +362,8 @@ public class AcceptInvitationEndpointTests
             ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
                 new System.Security.Claims.ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_userId))),
-            db, userManager, _audit, _notificationService, _notifier, _conversationSeedService, TimeProvider.System);
+            db, userManager, _audit, _notificationService, _notifier, _conversationSeedService, TimeProvider.System,
+            EndpointTestHelpers.CreateInviteTermsApplier(db));
 
         var act = () => ep.HandleAsync(
             new AcceptInvitationRequest { Token = "nutrition-conflict-token" }, TestContext.Current.CancellationToken);
@@ -406,7 +413,8 @@ public class AcceptInvitationEndpointTests
             ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
                 new System.Security.Claims.ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_userId))),
-            db, userManager, _audit, _notificationService, _notifier, _conversationSeedService, TimeProvider.System);
+            db, userManager, _audit, _notificationService, _notifier, _conversationSeedService, TimeProvider.System,
+            EndpointTestHelpers.CreateInviteTermsApplier(db));
 
         await ep.HandleAsync(new AcceptInvitationRequest { Token = "already-linked-token" }, TestContext.Current.CancellationToken);
 
@@ -434,7 +442,8 @@ public class AcceptInvitationEndpointTests
             ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
                 new System.Security.Claims.ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_userId))),
-            db, userManager, _audit, _notificationService, _notifier, _conversationSeedService, TimeProvider.System);
+            db, userManager, _audit, _notificationService, _notifier, _conversationSeedService, TimeProvider.System,
+            EndpointTestHelpers.CreateInviteTermsApplier(db));
 
         var act = () => ep.HandleAsync(new AcceptInvitationRequest { Token = "expired-token" }, default);
 
@@ -458,7 +467,8 @@ public class AcceptInvitationEndpointTests
             ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
                 new System.Security.Claims.ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_userId))),
-            db, userManager, _audit, _notificationService, _notifier, _conversationSeedService, TimeProvider.System);
+            db, userManager, _audit, _notificationService, _notifier, _conversationSeedService, TimeProvider.System,
+            EndpointTestHelpers.CreateInviteTermsApplier(db));
 
         var act = () => ep.HandleAsync(new AcceptInvitationRequest { Token = "used-token" }, default);
 
@@ -475,7 +485,8 @@ public class AcceptInvitationEndpointTests
             ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
                 new System.Security.Claims.ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_userId))),
-            db, userManager, _audit, _notificationService, _notifier, _conversationSeedService, TimeProvider.System);
+            db, userManager, _audit, _notificationService, _notifier, _conversationSeedService, TimeProvider.System,
+            EndpointTestHelpers.CreateInviteTermsApplier(db));
 
         var act = () => ep.HandleAsync(new AcceptInvitationRequest { Token = "nonexistent" }, default);
 
@@ -507,7 +518,8 @@ public class AcceptInvitationEndpointTests
             ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
                 new System.Security.Claims.ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_userId))),
-            db, userManager, _audit, _notificationService, _notifier, _conversationSeedService, TimeProvider.System);
+            db, userManager, _audit, _notificationService, _notifier, _conversationSeedService, TimeProvider.System,
+            EndpointTestHelpers.CreateInviteTermsApplier(db));
 
         await ep.HandleAsync(new AcceptInvitationRequest { Token = "one-time-token" }, TestContext.Current.CancellationToken);
 

@@ -1,3 +1,4 @@
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Services;
 using FitnessPlatform.Tests.Infrastructure;
@@ -166,7 +167,9 @@ public class EmailDispatchWorkerDrainTests
         var invitationEmail = $"{runId}-invite@drain-test.com";
 
         queue.TryEnqueue(new VerificationEmailWorkItem(verificationEmail, "verify-token", "en")).Should().BeTrue();
-        queue.TryEnqueue(new InvitationEmailWorkItem(invitationEmail, "Coach Carl", "invite-token", "en", "Welcome!")).Should().BeTrue();
+        queue.TryEnqueue(new InvitationEmailWorkItem(
+            invitationEmail, "Coach Carl", "invite-token", "en", "Welcome!",
+            new InvitationPackageInfo("Coaching 12", PackageBillingInterval.Monthly, null))).Should().BeTrue();
 
         await worker.StartAsync(TestContext.Current.CancellationToken);
         await worker.StopAsync(TestContext.Current.CancellationToken);
@@ -175,6 +178,8 @@ public class EmailDispatchWorkerDrainTests
             "a VerificationEmailWorkItem must dispatch to SendEmailVerificationAsync");
         emailService.SentInvitations.Should().ContainSingle(i => i.Email == invitationEmail && i.TrainerName == "Coach Carl",
             "an InvitationEmailWorkItem must dispatch to SendInvitationEmailAsync, not SendEmailVerificationAsync");
+        emailService.SentInvitations.Single(i => i.Email == invitationEmail).Package!.Name.Should().Be("Coaching 12",
+            "the worker must carry the package through to the send");
         emailService.SentVerifications.Should().NotContain(v => v.Email == invitationEmail,
             "the invitation item must never be routed through the verification send method");
         emailService.SentInvitations.Should().NotContain(i => i.Email == verificationEmail,

@@ -3,7 +3,10 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Domain.Services;
+using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 
 namespace FitnessPlatform.Tests.Endpoints;
@@ -21,6 +24,21 @@ public static class EndpointTestHelpers
         var store = Substitute.For<IUserStore<ApplicationUser>>();
         return Substitute.For<UserManager<ApplicationUser>>(
             store, null, null, null, null, null, null, null, null);
+    }
+
+    /// <summary>
+    /// Builds the invite-terms applier the accept endpoints take, over the given database.
+    /// </summary>
+    public static InvitePackageTermsApplier CreateInviteTermsApplier(IApplicationDbContext db, IAuditService? audit = null)
+    {
+        audit ??= Substitute.For<IAuditService>();
+
+        return new InvitePackageTermsApplier(
+            db,
+            new EntitlementService(db),
+            new ClientPaymentTermsWriter(db, audit),
+            audit,
+            NullLogger<InvitePackageTermsApplier>.Instance);
     }
 
     /// <summary>

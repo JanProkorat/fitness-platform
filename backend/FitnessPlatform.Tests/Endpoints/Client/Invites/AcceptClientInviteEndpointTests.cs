@@ -40,7 +40,8 @@ public class AcceptClientInviteEndpointTests
         Factory.Create<AcceptClientInviteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(callerId, AppRoles.Client))),
-            db, _userManager, _notificationService, _notifier, _audit, _conversationSeedService, TimeProvider.System);
+            db, _userManager, _notificationService, _notifier, _audit, _conversationSeedService, TimeProvider.System,
+            EndpointTestHelpers.CreateInviteTermsApplier(db));
 
     [Fact]
     public async Task Accept_ByRecipient_Returns204_AndMarksAccepted()
