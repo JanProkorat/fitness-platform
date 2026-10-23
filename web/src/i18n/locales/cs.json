@@ -1008,8 +1008,8 @@
         "bioHint": "Komu pomáháte, jak pracujete a co může klient čekat v prvním měsíci.",
         "cityHint": "Zobrazuje se ve vyhledávání, klienti podle něj filtrují.",
         "price": "Cena",
-        "priceHint": "Podle nejlevnějšího aktivního měsíčního balíčku zobrazeného na vašem profilu.",
-        "priceFrom": "od {{price}} / měsíc",
+        "priceHint": "Podle nejlevnějšího aktivního balíčku zobrazeného na vašem profilu.",
+        "priceFrom": "od {{price}} {{unit}}",
         "priceNone": "Zatím není zobrazen žádný balíček",
         "priceManage": "Balíčky",
         "priceSetUp": "Vytvořit balíček"
@@ -1064,8 +1064,7 @@
         "both": "Online i osobně",
         "taking": "Přijímám nové klienty",
         "notTaking": "Nepřijímám klienty",
-        "price": "Cena",
-        "perMonth": "/ měsíc",
+        "price": "Cena od",
         "languages": "Jazyky",
         "certificates": "Certifikáty",
         "note": "Mění se, jak píšete. Klienti vidí tuto kartu ve vyhledávání a na odkazu s pozvánkou."
@@ -5683,10 +5682,10 @@
       "confirm": "Archivovat"
     },
     "profileCard": {
-      "title": "Váš veřejný profil ukazuje „od {{price}} / měsíc“",
-      "body": "Nejlevnější aktivní měsíční balíček označený „Na profilu“. Nahrazuje původní cenu zadanou volným textem.",
+      "title": "Váš veřejný profil ukazuje „od {{price}} {{unit}}“",
+      "body": "Nejlevnější aktivní balíček označený „Na profilu“. Nahrazuje původní cenu zadanou volným textem.",
       "emptyTitle": "Váš veřejný profil zatím neukazuje žádnou cenu",
-      "emptyBody": "Označte aktivní měsíční balíček „Na profilu“ a ukáže se cena „od … / měsíc“.",
+      "emptyBody": "Označte aktivní balíček „Na profilu“ a ukáže se cena „od …“.",
       "open": "Otevřít profil"
     },
     "paywall": {

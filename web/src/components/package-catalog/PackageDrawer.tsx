@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ChangeEvent } from 'react';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslation } from 'react-i18next';
@@ -163,7 +163,17 @@ function DrawerBody({ item, onSubmit, isSaving, onClose }: BodyProps) {
 
           {billing === PackageBillingInterval.EveryNWeeks && (
             <Field label={t('packages.drawer.intervalWeeks')} error={errors.intervalWeeks?.message}>
-              {(control) => <Input {...register('intervalWeeks')} inputMode="numeric" {...control} />}
+              {(control) => (
+                <Input
+                  {...register('intervalWeeks', {
+                    onChange: (event: ChangeEvent<HTMLInputElement>) => {
+                      event.target.value = event.target.value.replace(/\D/g, '');
+                    },
+                  })}
+                  inputMode="numeric"
+                  {...control}
+                />
+              )}
             </Field>
           )}
 

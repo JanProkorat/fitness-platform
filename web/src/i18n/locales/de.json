@@ -968,8 +968,8 @@
         "bioHint": "Wem du hilfst, wie du arbeitest und was ein Kunde im ersten Monat erwarten kann.",
         "cityHint": "In der Suche sichtbar; Kunden filtern danach.",
         "price": "Preis",
-        "priceHint": "Vom günstigsten aktiven Monatspaket, das in Ihrem Profil angezeigt wird.",
-        "priceFrom": "ab {{price}} / Monat",
+        "priceHint": "Vom günstigsten aktiven Paket, das in Ihrem Profil angezeigt wird.",
+        "priceFrom": "ab {{price}} {{unit}}",
         "priceNone": "Noch kein Paket angezeigt",
         "priceManage": "Pakete",
         "priceSetUp": "Paket einrichten"
@@ -1024,8 +1024,7 @@
         "both": "Online & persönlich",
         "taking": "Nimmt neue Kunden an",
         "notTaking": "Keine neuen Kunden",
-        "price": "Preis",
-        "perMonth": "/ Monat",
+        "price": "Preis ab",
         "languages": "Sprachen",
         "certificates": "Zertifikate",
         "note": "Aktualisiert sich beim Tippen. Kunden sehen diese Karte in der Suche und über deinen Einladungslink."
@@ -5520,10 +5519,10 @@
       "confirm": "Archivieren"
     },
     "profileCard": {
-      "title": "Ihr öffentliches Profil zeigt „ab {{price}} / Monat“",
-      "body": "Das günstigste aktive Monatspaket mit der Markierung „Im Profil“. Es ersetzt den alten Freitext-Preis.",
+      "title": "Ihr öffentliches Profil zeigt „ab {{price}} {{unit}}“",
+      "body": "Das günstigste aktive Paket mit der Markierung „Im Profil“. Es ersetzt den alten Freitext-Preis.",
       "emptyTitle": "Ihr öffentliches Profil zeigt noch keinen Preis",
-      "emptyBody": "Markieren Sie ein aktives Monatspaket mit „Im Profil“, damit ein Preis „ab … / Monat“ erscheint.",
+      "emptyBody": "Markieren Sie ein aktives Paket mit „Im Profil“, damit ein Preis „ab …“ erscheint.",
       "open": "Profil öffnen"
     },
     "paywall": {

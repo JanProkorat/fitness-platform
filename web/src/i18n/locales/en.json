@@ -969,8 +969,8 @@
         "bioHint": "Who you help, how you work, and what a client can expect in the first month.",
         "cityHint": "Shown in search; clients filter by it.",
         "price": "Price",
-        "priceHint": "From your cheapest active monthly package shown on your profile.",
-        "priceFrom": "from {{price}} / month",
+        "priceHint": "From your cheapest active package shown on your profile.",
+        "priceFrom": "from {{price}} {{unit}}",
         "priceNone": "No package shown yet",
         "priceManage": "Packages",
         "priceSetUp": "Set up a package"
@@ -1025,8 +1025,7 @@
         "both": "Online & in person",
         "taking": "Taking new clients",
         "notTaking": "Not taking clients",
-        "price": "Price",
-        "perMonth": "/ month",
+        "price": "Price from",
         "languages": "Languages",
         "certificates": "Certificates",
         "note": "Updates as you type. Clients see this card in search and on your invite link."
@@ -5521,10 +5520,10 @@
       "confirm": "Archive"
     },
     "profileCard": {
-      "title": "Your public profile shows “from {{price}} / month”",
-      "body": "The cheapest active monthly package marked “On profile”. It replaces the old free-text price.",
+      "title": "Your public profile shows “from {{price}} {{unit}}”",
+      "body": "The cheapest active package marked “On profile”. It replaces the old free-text price.",
       "emptyTitle": "Your public profile shows no price yet",
-      "emptyBody": "Mark an active monthly package “On profile” to show a “from … / month” price.",
+      "emptyBody": "Mark an active package “On profile” to show a “from …” price.",
       "open": "Open profile"
     },
     "paywall": {

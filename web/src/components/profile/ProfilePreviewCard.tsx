@@ -5,6 +5,7 @@ import { InstagramIcon, LinkedinIcon } from '@/components/profile/SocialIcons';
 import { instagramUrl, linkedinUrl, websiteUrl } from '@/components/profile/profileLinks';
 import ProfileAvatar from '@/components/profile/ProfileAvatar';
 import { initialsOf, type FromPrice, type ProfileFormValues } from '@/components/profile/profile-form';
+import { billingSuffix } from '@/components/client-detail/payment/paymentModel';
 import { formatMoney } from '@/lib/money';
 
 const ROLE_ORDER = ['trainer', 'nutritionist'] as const;
@@ -106,7 +107,7 @@ export default function ProfilePreviewCard({ avatarUrl, roles, fromPrice }: Prop
                 {t('profile.page.preview.price')}
               </dt>
               <dd className="truncate text-body font-semibold text-ink">
-                {`${formatMoney(fromPrice.amount, fromPrice.currency, i18n.language)} ${t('profile.page.preview.perMonth')}`}
+                {`${formatMoney(fromPrice.amount, fromPrice.currency, i18n.language)} ${billingSuffix(t, fromPrice.billing, fromPrice.intervalWeeks)}`}
               </dd>
             </div>
           )}

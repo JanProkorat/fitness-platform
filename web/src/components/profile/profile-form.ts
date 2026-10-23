@@ -1,6 +1,11 @@
 import { z } from 'zod';
 import type { TFunction } from 'i18next';
-import type { GetProfessionalProfileResponse, GetProfileResponse, PaymentCurrency } from '@/api/generated';
+import type {
+  GetProfessionalProfileResponse,
+  GetProfileResponse,
+  PackageBillingInterval,
+  PaymentCurrency,
+} from '@/api/generated';
 import type { UpdateTrainerProfilePayload } from '@/api/profile';
 
 export const BIO_MAX = 1000;
@@ -39,10 +44,12 @@ export interface ProfileFormValues {
   acceptNewClients: boolean;
 }
 
-/** The lowest monthly package price shown on the profile, with its currency. */
+/** The cheapest package price shown on the profile, with its currency and billing unit. */
 export interface FromPrice {
   amount: number;
   currency: PaymentCurrency;
+  billing: PackageBillingInterval | undefined;
+  intervalWeeks: number | undefined;
 }
 
 /** The "from" price of a profile, or null when nothing qualifies (both fields are then absent). */
@@ -50,7 +57,12 @@ export function fromPriceOf(trainer: GetProfessionalProfileResponse): FromPrice 
   if (trainer.fromMonthlyPrice == null || trainer.fromMonthlyPriceCurrency == null) {
     return null;
   }
-  return { amount: trainer.fromMonthlyPrice, currency: trainer.fromMonthlyPriceCurrency };
+  return {
+    amount: trainer.fromMonthlyPrice,
+    currency: trainer.fromMonthlyPriceCurrency,
+    billing: trainer.fromPriceBilling ?? undefined,
+    intervalWeeks: trainer.fromPriceIntervalWeeks ?? undefined,
+  };
 }
 
 export function initialsOf(firstName: string, lastName: string): string {
