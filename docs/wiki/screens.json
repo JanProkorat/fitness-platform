@@ -1415,6 +1415,14 @@
         "mobile/src/components/coach/CoachAvatar.tsx",
         "mobile/src/components/coach/CoachRoleChip.tsx",
         "mobile/src/components/coach/RequestSheet.tsx",
+        "mobile/src/components/coach/PackageCard.tsx",
+        "mobile/src/components/coach/PackageCarousel.tsx",
+        "mobile/src/components/coach/ProfileSection.tsx",
+        "mobile/src/components/coach/links.ts",
+        "mobile/src/components/payments/format.ts",
+        "mobile/src/hooks/usePaymentsEnabled.ts",
+        "mobile/src/hooks/useInvites.ts",
+        "mobile/src/api/invites.ts",
         "mobile/src/components/BackButton.tsx",
         "mobile/src/components/Button.tsx",
         "mobile/src/components/Chip.tsx",
@@ -1429,7 +1437,8 @@
       ],
       "endpoints": [
         "GET /professionals/{publicId}",
-        "POST /client/requests"
+        "POST /client/requests",
+        "GET /client/invites"
       ],
       "board": "GlassCoachProfile",
       "shots": [
@@ -1448,6 +1457,9 @@
       "files": [
         "mobile/src/app/invite/*.tsx",
         "mobile/src/components/invites/InviteActions.tsx",
+        "mobile/src/components/invites/InvitePackageCard.tsx",
+        "mobile/src/components/payments/format.ts",
+        "mobile/src/hooks/usePaymentsEnabled.ts",
         "mobile/src/components/invites/RoleChip.tsx",
         "mobile/src/components/invites/format.ts",
         "mobile/src/components/BackButton.tsx",
