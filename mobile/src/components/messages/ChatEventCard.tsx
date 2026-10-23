@@ -1,8 +1,8 @@
+import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import type { ChatMessage, Conversation } from '@/api/conversations';
 import { ChatEventType, CooperationCardStatus, LinkCapabilityScope } from '@/api/generated';
-import { useInviteActions } from '@/hooks/useInviteActions';
 import { useInvites } from '@/hooks/useInvites';
 
 import { EventCard } from './EventCard';
@@ -15,8 +15,6 @@ type ChatEventCardProps = {
   message: ChatMessage;
   settledAt: string | undefined;
   own: boolean;
-  /** Called once an answered invite should be re-read: messages and conversations. */
-  onAnswered: () => void;
 };
 
 function domainOf(conversation: Conversation, sourceId: string): EventCardDomain {
@@ -30,11 +28,11 @@ function domainOf(conversation: Conversation, sourceId: string): EventCardDomain
   return roles[0] === 'Trainer' ? 'training' : 'nutrition';
 }
 
-/** Binds an Invited or Requested row to its live status, scope, expiry and the Accept / Decline actions. */
-export function ChatEventCard({ conversation, message, settledAt, own, onAnswered }: ChatEventCardProps) {
+/** Binds an Invited or Requested row to its live status, scope, expiry and, while open, View invite. */
+export function ChatEventCard({ conversation, message, settledAt, own }: ChatEventCardProps) {
   const { t, i18n } = useTranslation();
+  const router = useRouter();
   const invites = useInvites();
-  const { accept, decline, pendingId } = useInviteActions({ onSettled: onAnswered });
 
   const sourceId = message.eventSourceId;
   const status = message.eventStatus;
@@ -46,10 +44,10 @@ export function ChatEventCard({ conversation, message, settledAt, own, onAnswere
   const scope = cooperation?.sourceId === sourceId ? cooperation.requestedScope : undefined;
   const scopeText = scope ? t(`chat.card.scope.${scope}`) : undefined;
 
-  const expiresAt = invites.data?.find((invite) => invite.id === sourceId)?.expiresAt;
-  const expiryText = cardExpiry(t, expiresAt) ?? undefined;
+  const openInvite = invites.data?.find((invite) => invite.id === sourceId);
+  const expiryText = cardExpiry(t, openInvite?.expiresAt) ?? undefined;
 
-  const canAnswer = kind === 'invite' && pending && !own;
+  const canView = kind === 'invite' && pending && !own && openInvite !== undefined;
 
   return (
     <EventCard
@@ -61,14 +59,8 @@ export function ChatEventCard({ conversation, message, settledAt, own, onAnswere
       scopeText={scopeText}
       expiryText={pending ? expiryText : undefined}
       dateText={settledAt ? shortDate(i18n.language, settledAt) : undefined}
-      actions={
-        canAnswer
-          ? {
-              busy: pendingId !== null,
-              onAccept: () => accept(sourceId),
-              onDecline: () => decline(sourceId),
-            }
-          : undefined
+      onViewInvite={
+        canView ? () => router.push({ pathname: '/invite/[id]', params: { id: sourceId } }) : undefined
       }
     />
   );

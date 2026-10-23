@@ -8,38 +8,39 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import type { ClientInvite } from '@/api/invites';
-import { InviteActions } from '@/components/invites/InviteActions';
+import { Button } from '@/components/Button';
 import { InviteAvatar } from '@/components/invites/InviteAvatar';
 import { RoleChip } from '@/components/invites/RoleChip';
 import { relativeTime } from '@/components/invites/format';
+import { billingUnit, formatMoney } from '@/components/payments/format';
 import { Text } from '@/components/Text';
+import { usePaymentsEnabled } from '@/hooks/usePaymentsEnabled';
 import { useTheme } from '@/theme';
 import { inviteMotion } from '@/theme/motion';
 import type { Theme } from '@/theme';
 
 type InviteCardProps = {
   invite: ClientInvite;
-  busy: boolean;
   /** Position in the list; staggers the entrance. */
   index?: number;
   onOpen: () => void;
-  onAccept: () => void;
-  onDecline: () => void;
 };
 
-/** One pending invitation on Today: who invited, their role, when, and Accept / Decline. */
-export function InviteCard({
-  invite,
-  busy,
-  index = 0,
-  onOpen,
-  onAccept,
-  onDecline,
-}: InviteCardProps) {
-  const { t } = useTranslation();
+/** One pending invitation on Today: who invited, their role, when, and a single View invite button. */
+export function InviteCard({ invite, index = 0, onOpen }: InviteCardProps) {
+  const { t, i18n } = useTranslation();
   const theme = useTheme();
   const styles = makeStyles(theme);
+  const { enabled: paymentsEnabled } = usePaymentsEnabled();
   const title = t('invites.invitedYou', { name: invite.coachName ?? '' });
+  const pack = invite.package;
+  const hint = pack
+    ? paymentsEnabled
+      ? t('invites.includesPackagePrice', {
+          price: `${formatMoney(pack.finalPrice, pack.currency, i18n.language)} ${billingUnit(t, pack.billing, pack.intervalWeeks)}`,
+        })
+      : t('invites.includesPackage')
+    : null;
 
   return (
     <Animated.View
@@ -77,7 +78,17 @@ export function InviteCard({
           </View>
         </View>
       </Pressable>
-      <InviteActions size="card" busy={busy} onAccept={onAccept} onDecline={onDecline} />
+      {hint ? (
+        <Text variant="caption" color="muted">
+          {hint}
+        </Text>
+      ) : null}
+      <Button
+        label={t('invites.viewInvite')}
+        size="small"
+        onPress={onOpen}
+        style={styles.view}
+      />
     </Animated.View>
   );
 }
@@ -97,6 +108,9 @@ const makeStyles = (theme: Theme) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: theme.spacing.md,
+    },
+    view: {
+      height: theme.sizes.inviteButton,
     },
     copy: {
       flex: 1,

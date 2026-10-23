@@ -352,10 +352,12 @@
   },
   "invites": {
     "invitedYou": "{{name}} tě zve",
-    "accept": "Přijmout",
     "decline": "Odmítnout",
     "acceptInvite": "Přijmout pozvánku",
     "openHint": "Otevře pozvánku",
+    "viewInvite": "Zobrazit pozvánku",
+    "includesPackage": "Zahrnuje balíček",
+    "includesPackagePrice": "Zahrnuje balíček · {{price}}",
     "roles": { "Trainer": "Trenér", "Nutritionist": "Nutriční poradce" },
     "roleJoiner": " a ",
     "time": {
@@ -715,6 +717,24 @@
     "errors": {
       "network": "Server je nedostupný. Zkontroluj připojení a zkus to znovu.",
       "generic": "Poradce se nepodařilo načíst. Zkus to znovu."
+    }
+  },
+  "packages": {
+    "chip": {
+      "monthly": "Každý měsíc",
+      "everyNWeeks_one": "Každý týden",
+      "everyNWeeks_few": "Každé {{count}} týdny",
+      "everyNWeeks_many": "Každých {{count}} týdnů",
+      "everyNWeeks_other": "Každých {{count}} týdnů",
+      "oneOff": "Jedna platba"
+    },
+    "unit": {
+      "monthly": "/ měsíc",
+      "everyNWeeks_one": "/ týden",
+      "everyNWeeks_few": "/ {{count}} týdny",
+      "everyNWeeks_many": "/ {{count}} týdnů",
+      "everyNWeeks_other": "/ {{count}} týdnů",
+      "oneOff": "jednorázově"
     }
   },
   "coachProfile": {

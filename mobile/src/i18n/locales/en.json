@@ -346,10 +346,12 @@
   },
   "invites": {
     "invitedYou": "{{name}} invited you",
-    "accept": "Accept",
     "decline": "Decline",
     "acceptInvite": "Accept invite",
     "openHint": "Opens the invite",
+    "viewInvite": "View invite",
+    "includesPackage": "Includes a package",
+    "includesPackagePrice": "Includes a package · {{price}}",
     "roles": { "Trainer": "Trainer", "Nutritionist": "Nutritionist" },
     "roleJoiner": " & ",
     "time": {
@@ -699,6 +701,20 @@
     "errors": {
       "network": "Can't reach the server. Check your connection and try again.",
       "generic": "Couldn't load coaches. Try again."
+    }
+  },
+  "packages": {
+    "chip": {
+      "monthly": "Every month",
+      "everyNWeeks_one": "Every week",
+      "everyNWeeks_other": "Every {{count}} weeks",
+      "oneOff": "One payment"
+    },
+    "unit": {
+      "monthly": "/ month",
+      "everyNWeeks_one": "/ week",
+      "everyNWeeks_other": "/ {{count}} weeks",
+      "oneOff": "one-off"
     }
   },
   "coachProfile": {

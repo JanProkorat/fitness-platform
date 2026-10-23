@@ -148,7 +148,6 @@ export default function InviteDetailScreen() {
       </View>
       <View style={styles.bar}>
         <InviteActions
-          size="detail"
           busy={pendingId !== null}
           onAccept={() => accept(invite.id ?? id)}
           onDecline={() => decline(invite.id ?? id)}

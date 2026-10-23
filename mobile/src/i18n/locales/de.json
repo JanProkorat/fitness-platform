@@ -346,10 +346,12 @@
   },
   "invites": {
     "invitedYou": "{{name}} hat dich eingeladen",
-    "accept": "Annehmen",
     "decline": "Ablehnen",
     "acceptInvite": "Einladung annehmen",
     "openHint": "Öffnet die Einladung",
+    "viewInvite": "Einladung ansehen",
+    "includesPackage": "Enthält ein Paket",
+    "includesPackagePrice": "Enthält ein Paket · {{price}}",
     "roles": { "Trainer": "Trainer", "Nutritionist": "Ernährungsberater" },
     "roleJoiner": " & ",
     "time": {
@@ -699,6 +701,20 @@
     "errors": {
       "network": "Server nicht erreichbar. Prüfe deine Verbindung und versuche es erneut.",
       "generic": "Die Coaches konnten nicht geladen werden. Versuche es erneut."
+    }
+  },
+  "packages": {
+    "chip": {
+      "monthly": "Jeden Monat",
+      "everyNWeeks_one": "Jede Woche",
+      "everyNWeeks_other": "Alle {{count}} Wochen",
+      "oneOff": "Einmalige Zahlung"
+    },
+    "unit": {
+      "monthly": "/ Monat",
+      "everyNWeeks_one": "/ Woche",
+      "everyNWeeks_other": "/ {{count}} Wochen",
+      "oneOff": "einmalig"
     }
   },
   "coachProfile": {

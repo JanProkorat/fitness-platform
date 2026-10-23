@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 
 import { getErrorStatus, isNetworkError } from '@/api/errors';
 import { COLLABORATIONS_QUERY_KEY } from '@/api/collaborations';
-import { CONVERSATIONS_QUERY_KEY } from '@/api/conversations';
+import { CONVERSATIONS_QUERY_KEY, CONVERSATION_MESSAGES_QUERY_KEY } from '@/api/conversations';
 import { INVITES_QUERY_KEY, acceptInvite, declineInvite } from '@/api/invites';
 import { NOTIFICATIONS_QUERY_KEY } from '@/api/notifications';
 import { PROFILE_QUERY_KEY, PROFILE_SUMMARY_QUERY_KEY } from '@/api/profile';
@@ -29,6 +29,8 @@ export function useInviteActions({ onSettled }: Options = {}) {
     void queryClient.invalidateQueries({ queryKey: NOTIFICATIONS_QUERY_KEY });
     // The request conversation carries the accepted/declined state, and no push reaches the client.
     void queryClient.invalidateQueries({ queryKey: CONVERSATIONS_QUERY_KEY });
+    // The invite card in the chat thread shows the answered state.
+    void queryClient.invalidateQueries({ queryKey: CONVERSATION_MESSAGES_QUERY_KEY });
   }, [queryClient]);
 
   const tell = useCallback(
