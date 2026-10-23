@@ -163,17 +163,21 @@ function DrawerBody({ item, onSubmit, isSaving, onClose }: BodyProps) {
 
           {billing === PackageBillingInterval.EveryNWeeks && (
             <Field label={t('packages.drawer.intervalWeeks')} error={errors.intervalWeeks?.message}>
-              {(control) => (
-                <Input
-                  {...register('intervalWeeks', {
-                    onChange: (event: ChangeEvent<HTMLInputElement>) => {
+              {(control) => {
+                const field = register('intervalWeeks');
+                return (
+                  <Input
+                    {...field}
+                    inputMode="numeric"
+                    {...control}
+                    onChange={(event: ChangeEvent<HTMLInputElement>) => {
+                      // Strip before react-hook-form reads the value, so the stored value matches the box.
                       event.target.value = event.target.value.replace(/\D/g, '');
-                    },
-                  })}
-                  inputMode="numeric"
-                  {...control}
-                />
-              )}
+                      return field.onChange(event);
+                    }}
+                  />
+                );
+              }}
             </Field>
           )}
 
