@@ -13,7 +13,9 @@ import {
 import { broadcastMessage, type BroadcastMessageRequest } from '@/api/broadcast';
 import { createPendingInvite, deletePendingInvite, type CreatePendingInviteRequest } from '@/api/pending-invites';
 import { acceptClientRequest, getIncomingRequests, rejectClientRequest } from '@/api/client-requests';
-import { showApiError, showSuccess } from '@/lib/api-errors';
+import { paymentDiscountsKey, paymentPackagesKey } from '@/hooks/useClientPaymentQueries';
+import { invitePaymentFailure } from '@/components/client-detail/payment/paymentErrors';
+import { showApiError, showError, showSuccess } from '@/lib/api-errors';
 import type { ClientListFilters, ClientListTab } from '@/hooks/useClientListParams';
 
 /**
@@ -266,6 +268,18 @@ export function useCreatePendingInvite() {
       showSuccess('clients.addClient.success');
     },
     onError: (error) => {
+      const failure = invitePaymentFailure(error);
+      if (failure) {
+        // The picked package or discount is stale (or payments were lost): refetch so the drawer shows the real lists.
+        if (failure.refetch === 'packages' || failure.refetch === 'both') {
+          queryClient.invalidateQueries({ queryKey: paymentPackagesKey });
+        }
+        if (failure.refetch === 'discounts' || failure.refetch === 'both') {
+          queryClient.invalidateQueries({ queryKey: paymentDiscountsKey });
+        }
+        showError(failure.messageKey);
+        return;
+      }
       showApiError(error, 'clients.addClient.error');
     },
   });

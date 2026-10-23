@@ -28,3 +28,41 @@ export function isAlreadySettled(error: unknown): boolean {
   const code = paymentErrorCode(error);
   return code === PAYMENT_ALREADY_PAID || code === PAYMENT_ALREADY_WAIVED;
 }
+
+export const PACKAGE_ARCHIVED_CODE = 'PACKAGE_ARCHIVED';
+export const DISCOUNT_ARCHIVED_CODE = 'DISCOUNT_ARCHIVED';
+export const DISCOUNT_PACKAGE_INVALID_CODE = 'DISCOUNT_PACKAGE_INVALID';
+export const INVITE_DISCOUNT_NEEDS_PACKAGE_CODE = 'INVITE_DISCOUNT_NEEDS_PACKAGE';
+
+/** What the invite drawer does about a failed create that carried a package or discount. */
+export interface InvitePaymentFailure {
+  /** i18n key of the message to show. */
+  messageKey: string;
+  /** Which picker lists are stale and should be refetched. */
+  refetch: 'packages' | 'discounts' | 'both' | 'none';
+  /** The coach lost payments: hide the section. */
+  notEntitled?: boolean;
+}
+
+/** Maps a failed invite create to its payment-specific handling, or null when the failure is not about payments. */
+export function invitePaymentFailure(error: unknown): InvitePaymentFailure | null {
+  const code = paymentErrorCode(error);
+  switch (code) {
+    case PAYMENTS_NOT_ENTITLED:
+      return { messageKey: 'clients.addClientDrawer.payment.errors.notEntitled', refetch: 'both', notEntitled: true };
+    case PACKAGE_ARCHIVED_CODE:
+      return { messageKey: 'clients.addClientDrawer.payment.errors.packageArchived', refetch: 'both' };
+    case DISCOUNT_ARCHIVED_CODE:
+      return { messageKey: 'clients.addClientDrawer.payment.errors.discountArchived', refetch: 'discounts' };
+    case DISCOUNT_PACKAGE_INVALID_CODE:
+    case INVITE_DISCOUNT_NEEDS_PACKAGE_CODE:
+      return { messageKey: 'clients.addClientDrawer.payment.errors.discountInvalid', refetch: 'discounts' };
+    case CURRENCY_MISMATCH_CODE:
+      return { messageKey: 'clients.addClientDrawer.payment.errors.currencyMismatch', refetch: 'none' };
+    default:
+      // A bare 404 (no code) means the package or discount was deleted or is not the coach's.
+      return code === null && getErrorStatus(error) === 404
+        ? { messageKey: 'clients.addClientDrawer.payment.errors.unavailable', refetch: 'both' }
+        : null;
+  }
+}
