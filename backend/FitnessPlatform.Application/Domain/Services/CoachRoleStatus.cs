@@ -110,14 +110,22 @@ public class CoachRoleStatus(UserManager<ApplicationUser> userManager, IApplicat
             return null;
         }
 
-        return (nutrition, training) switch
+        return ScopeFromGrant(nutrition, training);
+    }
+
+    /// <summary>
+    /// Maps plan-view flags to the collaboration type they represent, or null when neither is set.
+    /// </summary>
+    /// <param name="canViewNutritionPlans">Nutrition flag.</param>
+    /// <param name="canViewTrainingPlans">Training flag.</param>
+    public static LinkCapabilityScope? ScopeFromGrant(bool canViewNutritionPlans, bool canViewTrainingPlans) =>
+        (canViewNutritionPlans, canViewTrainingPlans) switch
         {
             (true, true) => LinkCapabilityScope.Both,
             (true, false) => LinkCapabilityScope.NutritionOnly,
             (false, true) => LinkCapabilityScope.TrainingOnly,
             _ => null,
         };
-    }
 
     /// <summary>
     /// True when <paramref name="role"/> carries a removal marker on the profile.

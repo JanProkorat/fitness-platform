@@ -1,6 +1,8 @@
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -51,6 +53,7 @@ public class GetCollaborationsEndpoint(IApplicationDbContext db) : EndpointWitho
                 ProfessionalName = l.ProfessionalProfile.User.FirstName + " " + l.ProfessionalProfile.User.LastName,
                 ProfessionalCity = l.ProfessionalProfile.City,
                 Role = l.ProfessionalRole.ToString(),
+                CoveredType = CoachRoleStatus.ScopeFromGrant(l.CanViewNutritionPlans, l.CanViewTrainingPlans),
                 Since = l.DateCreated,
                 // Same fallback as SearchProfessionals / GetPublicProfile:
                 // surface the personal user avatar when the pro-profile one
@@ -76,6 +79,10 @@ public class CollaborationDto
     public string ProfessionalName { get; set; } = string.Empty;
     public string? ProfessionalCity { get; set; }
     public string Role { get; set; } = string.Empty;
+
+    /// <summary>Collaboration type the link covers, or null when it grants no plan view.</summary>
+    public LinkCapabilityScope? CoveredType { get; set; }
+
     public DateTime Since { get; set; }
     /// <summary>
     /// Professional's avatar URL. Falls back to the underlying user's

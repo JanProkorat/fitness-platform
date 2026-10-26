@@ -85,6 +85,14 @@ public class CoachRoleStatusTests
         CoachRoleStatus.ResolveOfferedScope(scope, heldRoles, profile).Should().Be(expected);
     }
 
+    [Theory]
+    [InlineData(true, true, LinkCapabilityScope.Both)]
+    [InlineData(true, false, LinkCapabilityScope.NutritionOnly)]
+    [InlineData(false, true, LinkCapabilityScope.TrainingOnly)]
+    [InlineData(false, false, null)]
+    public void ScopeFromGrant_MapsFlagsToScope(bool nutrition, bool training, LinkCapabilityScope? expected) =>
+        CoachRoleStatus.ScopeFromGrant(nutrition, training).Should().Be(expected);
+
     [Fact]
     public void SetRemovedAt_ThenNull_MarksAndRestoresRole()
     {
