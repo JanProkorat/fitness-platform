@@ -183,4 +183,16 @@ public class PaymentMessageComposerTests
         PaymentMessageComposer.RenderEmailHtml("[{{Breakdown}}]", withoutDiscount, "en", "https://app.example.com")
             .Should().Be("[]");
     }
+
+    [Theory]
+    [InlineData("en", "Custom price")]
+    [InlineData("cs", "Individuální cena")]
+    [InlineData("de", "Individueller Preis")]
+    public void RenderEmailHtml_CustomPrice_UsesTheRecipientsLanguage(string language, string expected)
+    {
+        var custom = Email() with { DiscountLabel = null, IsCustomPrice = true };
+
+        PaymentMessageComposer.RenderEmailHtml("[{{Breakdown}}]", custom, language, "https://app.example.com")
+            .Should().Contain(expected);
+    }
 }

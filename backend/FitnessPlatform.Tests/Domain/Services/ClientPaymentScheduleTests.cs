@@ -303,7 +303,22 @@ public class ClientPaymentScheduleTests
 
         var figures = ClientPaymentSchedule.FiguresOf(frozen, [terms], [new DateOnly(2026, 10, 1)]);
 
-        figures.Should().Be((1750m, 2500m, "Friends & family −30 %", "Old name"));
+        figures.Should().Be((1750m, 2500m, "Friends & family −30 %", "Old name", false));
+    }
+
+    [Fact]
+    public void Freeze_CustomPrice_StoresAMarkerThatClientsNeverSeeAsText()
+    {
+        var terms = Terms(Package(), new DateOnly(2026, 9, 1), customPrice: 1200m);
+        var payment = new ClientPayment { Status = ClientPaymentStatus.Upcoming, PeriodStart = new DateOnly(2026, 10, 1), DueDate = new DateOnly(2026, 10, 1) };
+
+        ClientPaymentSchedule.Freeze(payment, [terms], [new DateOnly(2026, 10, 1)]);
+        var figures = ClientPaymentSchedule.FiguresOf(payment, [terms], [new DateOnly(2026, 10, 1)]);
+
+        payment.DiscountLabel.Should().Be(ClientPaymentSchedule.CustomPriceMarker);
+        figures.DiscountLabel.Should().BeNull();
+        figures.IsCustomPrice.Should().BeTrue();
+        ClientPaymentSchedule.Breakdown(terms, new DateOnly(2026, 10, 1), 1, new DateOnly(2026, 10, 1)).Label.Should().BeNull();
     }
 
     [Fact]

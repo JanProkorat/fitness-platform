@@ -322,14 +322,15 @@ internal sealed class RequestClientPaymentEndpoint(
                     payment.PeriodEnd,
                     payment.Amount.Value,
                     payment.BasePrice,
-                    payment.DiscountLabel,
+                    ClientPaymentSchedule.PublicDiscountLabel(payment.DiscountLabel),
                     payment.DueDate,
                     payment.AccountIban!,
                     payment.VariableSymbol ?? string.Empty,
                     payment.Message ?? string.Empty,
                     QrCodePngRenderer.Render(qrPayload),
                     PaymentMessageComposer.QrContentId,
-                    payment.Currency),
+                    payment.Currency,
+                    ClientPaymentSchedule.IsCustomPriceLabel(payment.DiscountLabel)),
                 ct);
 
             return true;

@@ -14,7 +14,7 @@ namespace FitnessPlatform.Application.Domain.Interfaces;
 /// <param name="PeriodEnd">Last day of the billing period; null for a one-off payment.</param>
 /// <param name="Amount">The amount in <paramref name="Currency"/>.</param>
 /// <param name="BasePrice">The package price before any discount, or null.</param>
-/// <param name="DiscountLabel">Label of the discount or custom price, or null.</param>
+/// <param name="DiscountLabel">Label of the discount, or null (also for a custom price).</param>
 /// <param name="DueDate">The day the payment falls due.</param>
 /// <param name="Iban">The coach's IBAN.</param>
 /// <param name="VariableSymbol">The variable symbol to put on the transfer.</param>
@@ -22,6 +22,7 @@ namespace FitnessPlatform.Application.Domain.Interfaces;
 /// <param name="QrPng">The QR Platba code as a PNG image.</param>
 /// <param name="QrContentId">Content id the HTML refers to as <c>cid:</c>.</param>
 /// <param name="Currency">The currency of the amounts.</param>
+/// <param name="IsCustomPrice">Whether the amount is a custom price; the email words it in the recipient's language.</param>
 public sealed record PaymentRequestEmail(
     string ToEmail,
     string Language,
@@ -38,4 +39,5 @@ public sealed record PaymentRequestEmail(
     string Message,
     byte[] QrPng,
     string QrContentId,
-    PaymentCurrency Currency = PaymentCurrency.CZK);
+    PaymentCurrency Currency = PaymentCurrency.CZK,
+    bool IsCustomPrice = false);

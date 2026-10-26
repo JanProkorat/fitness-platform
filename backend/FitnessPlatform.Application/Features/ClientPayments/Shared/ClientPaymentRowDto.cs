@@ -39,8 +39,11 @@ public class ClientPaymentRowDto
     /// <summary>Package price before any discount.</summary>
     public decimal? BasePrice { get; set; }
 
-    /// <summary>Label of the discount or custom price behind the amount.</summary>
+    /// <summary>Label of the discount behind the amount; null for a custom price (see <see cref="IsCustomPrice"/>).</summary>
     public string? DiscountLabel { get; set; }
+
+    /// <summary>Whether the amount is a custom price the coach set; clients localize the wording.</summary>
+    public bool IsCustomPrice { get; set; }
 
     /// <summary>Day the payment falls due.</summary>
     public DateOnly DueDate { get; set; }
@@ -70,7 +73,7 @@ public class ClientPaymentRowDto
     public static ClientPaymentRowDto FromEntity(
         ClientPayment payment,
         ClientPaymentStatus status,
-        (decimal? Amount, decimal? BasePrice, string? DiscountLabel, string? PackageName) figures,
+        (decimal? Amount, decimal? BasePrice, string? DiscountLabel, string? PackageName, bool IsCustomPrice) figures,
         string? message) => new()
     {
         PaymentId = payment.PublicId,
@@ -84,6 +87,7 @@ public class ClientPaymentRowDto
         Currency = payment.Currency,
         BasePrice = figures.BasePrice,
         DiscountLabel = figures.DiscountLabel,
+        IsCustomPrice = figures.IsCustomPrice,
         DueDate = payment.DueDate,
         VariableSymbol = payment.VariableSymbol,
         Message = message,
@@ -101,6 +105,11 @@ public class ClientPaymentRowDto
         FromEntity(
             payment,
             ClientPaymentSchedule.DerivedStatus(payment.Status, payment.DueDate, today),
-            (payment.Amount, payment.BasePrice, payment.DiscountLabel, payment.PackageName ?? payment.Title),
+            (
+                payment.Amount,
+                payment.BasePrice,
+                ClientPaymentSchedule.PublicDiscountLabel(payment.DiscountLabel),
+                payment.PackageName ?? payment.Title,
+                ClientPaymentSchedule.IsCustomPriceLabel(payment.DiscountLabel)),
             payment.Message);
 }
