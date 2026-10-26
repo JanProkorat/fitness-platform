@@ -428,6 +428,8 @@ public static class ClientPaymentSchedule
         await using var transaction = await db.BeginTransactionAsync(ct);
         await db.LockProfessionalProfileAsync(assignment.ProfessionalProfileId, ct);
 
+        terms = await LoadTermsAsync(db, assignment.Id, ct);
+
         var planned = PlanMissingPeriods(terms, await ExistingPeriodStartsAsync(db, assignment.Id, ct), today);
 
         foreach (var (start, end) in planned)
