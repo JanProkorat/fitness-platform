@@ -25,10 +25,7 @@ internal static class ClientPaymentRows
         CoachClientContext context,
         DateOnly today)
     {
-        var recurringStarts = payments
-            .Where(p => p.PeriodStart is not null)
-            .Select(p => p.PeriodStart!.Value)
-            .ToList();
+        var recurringStarts = ClientPaymentSchedule.RecurringStartsOf(payments);
 
         return payments
             .OrderByDescending(p => p.DueDate)

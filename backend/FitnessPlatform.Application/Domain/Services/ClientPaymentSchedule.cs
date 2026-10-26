@@ -110,11 +110,16 @@ public static class ClientPaymentSchedule
     /// <param name="terms">The assignment's terms history, packages loaded.</param>
     /// <param name="existingPeriodStarts">First days of the periods that already have a row.</param>
     /// <param name="today">Today in <see cref="Zone"/>.</param>
+    /// <param name="keptPeriodStarts">
+    /// First days of rows that were kept from terms that ended (see <see cref="KeptPeriodStarts"/>). They are
+    /// part of <paramref name="existingPeriodStarts"/> but take no part in the schedule of later terms.
+    /// </param>
     /// <returns>The missing periods, oldest first.</returns>
     public static List<(DateOnly Start, DateOnly End)> PlanMissingPeriods(
         IReadOnlyCollection<ClientPaymentTerms> terms,
         IReadOnlyCollection<DateOnly> existingPeriodStarts,
-        DateOnly today)
+        DateOnly today,
+        IReadOnlyCollection<DateOnly>? keptPeriodStarts = null)
     {
         var planned = new List<(DateOnly Start, DateOnly End)>();
 
@@ -123,7 +128,8 @@ public static class ClientPaymentSchedule
             return planned;
         }
 
-        var existing = existingPeriodStarts.Order().ToList();
+        var everyStart = existingPeriodStarts.ToHashSet();
+        var existing = existingPeriodStarts.Where(start => keptPeriodStarts?.Contains(start) != true).Order().ToList();
         var runsByTerms = new Dictionary<long, int>();
 
         foreach (var start in existing)
@@ -154,7 +160,7 @@ public static class ClientPaymentSchedule
             }
 
             var lastTerms = TermsAt(terms, StartOfDayUtc(last));
-            var endedByCollaboration = lastTerms?.EndsAtUtc is not null;
+            var endedByCollaboration = lastTerms is null || lastTerms.EndsAtUtc is not null;
 
             cursor = lastTerms is null ? null : NextPeriodStart(last, lastTerms, billingDay);
 
@@ -177,7 +183,7 @@ public static class ClientPaymentSchedule
 
                 // Terms starting on the day the last period began (an end and a new start on the same day)
                 // take over from the next period on.
-                while (restart is not null && cursor is { } restartDay && existing.Contains(restartDay))
+                while (restart is not null && cursor is { } restartDay && everyStart.Contains(restartDay))
                 {
                     cursor = NextPeriodStart(restartDay, restart, billingDay);
                 }
@@ -204,8 +210,12 @@ public static class ClientPaymentSchedule
 
             var next = NextPeriodStart(start, termsOfPeriod, billingDay);
 
-            planned.Add((start, next is { } following ? following.AddDays(-1) : start));
-            runsByTerms[termsOfPeriod.Id] = usedRuns + 1;
+            // A kept row already covers its day; it is not planned twice.
+            if (!everyStart.Contains(start))
+            {
+                planned.Add((start, next is { } following ? following.AddDays(-1) : start));
+                runsByTerms[termsOfPeriod.Id] = usedRuns + 1;
+            }
 
             if (start > today)
             {
@@ -217,6 +227,36 @@ public static class ClientPaymentSchedule
 
         return planned;
     }
+
+    /// <summary>
+    /// The first days of rows kept for the coach when a collaboration ended (<see cref="ClientPayment.IsKeptAfterEnd"/>).
+    /// They belong to no later terms, so the "first N payments" ordinal and the schedule of a returning client ignore them.
+    /// </summary>
+    /// <param name="payments">The assignment's payments.</param>
+    public static List<DateOnly> KeptPeriodStarts(IEnumerable<ClientPayment> payments) =>
+        payments.Where(p => p.IsKeptAfterEnd && p.PeriodStart is not null).Select(p => p.PeriodStart!.Value).ToList();
+
+    /// <summary>
+    /// First days of the assignment's recurring payments that count toward the ordinal of later periods: every
+    /// recurring payment except the kept ones.
+    /// </summary>
+    /// <param name="payments">The assignment's payments.</param>
+    public static List<DateOnly> RecurringStartsOf(IReadOnlyCollection<ClientPayment> payments) =>
+        payments.Where(p => !p.IsKeptAfterEnd && p.PeriodStart is not null).Select(p => p.PeriodStart!.Value).ToList();
+
+    /// <summary>
+    /// Loads <see cref="RecurringStartsOf"/> for an assignment.
+    /// </summary>
+    /// <param name="db">Application database context.</param>
+    /// <param name="assignmentId">The assignment's internal id.</param>
+    /// <param name="ct">Cancellation token.</param>
+    public static async Task<List<DateOnly>> LoadRecurringStartsAsync(
+        IApplicationDbContext db, long assignmentId, CancellationToken ct) =>
+        RecurringStartsOf(
+            await db.ClientPayments
+                .AsNoTracking()
+                .Where(p => p.ClientPaymentAssignmentId == assignmentId && p.PeriodStart != null)
+                .ToListAsync(ct));
 
     /// <summary>
     /// The billing day of existing periods: the day of the first period starting on or after the latest end of
@@ -309,7 +349,8 @@ public static class ClientPaymentSchedule
         IReadOnlyCollection<ClientPaymentTerms> terms,
         IReadOnlyCollection<DateOnly> recurringPeriodStarts)
     {
-        if (payment.Status != ClientPaymentStatus.Upcoming || payment.PeriodStart is not { } start)
+        // An upcoming row that already has an amount was frozen when its collaboration ended.
+        if (payment.Status != ClientPaymentStatus.Upcoming || payment.PeriodStart is not { } start || payment.Amount is not null)
         {
             return (
                 payment.Amount,
@@ -426,7 +467,7 @@ public static class ClientPaymentSchedule
         var today = Today(utcNow);
         var terms = await LoadTermsAsync(db, assignment.Id, ct);
 
-        if (PlanMissingPeriods(terms, await ExistingPeriodStartsAsync(db, assignment.Id, ct), today).Count == 0)
+        if ((await PlanAsync(db, assignment.Id, terms, today, ct)).Count == 0)
         {
             return;
         }
@@ -436,8 +477,29 @@ public static class ClientPaymentSchedule
 
         terms = await LoadTermsAsync(db, assignment.Id, ct);
 
-        var planned = PlanMissingPeriods(terms, await ExistingPeriodStartsAsync(db, assignment.Id, ct), today);
+        await InsertPeriodsAsync(db, assignment, variableSymbolFormat, terms, await PlanAsync(db, assignment.Id, terms, today, ct), ct);
 
+        await transaction.CommitAsync(ct);
+    }
+
+    /// <summary>
+    /// Creates the rows of the planned periods one by one, each with its own variable symbol. The caller holds
+    /// the coach lock inside a transaction.
+    /// </summary>
+    /// <param name="db">Application database context.</param>
+    /// <param name="assignment">The assignment (id, coach and client number are read).</param>
+    /// <param name="variableSymbolFormat">How the coach's variable symbols are derived.</param>
+    /// <param name="terms">The assignment's terms history, packages loaded.</param>
+    /// <param name="planned">The periods to create.</param>
+    /// <param name="ct">Cancellation token.</param>
+    internal static async Task InsertPeriodsAsync(
+        IApplicationDbContext db,
+        ClientPaymentAssignment assignment,
+        VariableSymbolFormat variableSymbolFormat,
+        IReadOnlyCollection<ClientPaymentTerms> terms,
+        IEnumerable<(DateOnly Start, DateOnly End)> planned,
+        CancellationToken ct)
+    {
         foreach (var (start, end) in planned)
         {
             var used = await UsedVariableSymbolsAsync(db, assignment.ProfessionalProfileId, start, ct);
@@ -458,8 +520,29 @@ public static class ClientPaymentSchedule
             // Each new symbol must be visible to the next period's lookup, so save row by row.
             await db.SaveChangesAsync(ct);
         }
+    }
 
-        await transaction.CommitAsync(ct);
+    /// <summary>
+    /// Plans the missing periods of an assignment against its stored rows.
+    /// </summary>
+    /// <param name="db">Application database context.</param>
+    /// <param name="assignmentId">The assignment's internal id.</param>
+    /// <param name="terms">The assignment's terms history, packages loaded.</param>
+    /// <param name="today">Today in <see cref="Zone"/>.</param>
+    /// <param name="ct">Cancellation token.</param>
+    internal static async Task<List<(DateOnly Start, DateOnly End)>> PlanAsync(
+        IApplicationDbContext db, long assignmentId, IReadOnlyCollection<ClientPaymentTerms> terms, DateOnly today, CancellationToken ct)
+    {
+        var payments = await db.ClientPayments
+            .AsNoTracking()
+            .Where(p => p.ClientPaymentAssignmentId == assignmentId && p.PeriodStart != null)
+            .ToListAsync(ct);
+
+        return PlanMissingPeriods(
+            terms,
+            payments.Select(p => p.PeriodStart!.Value).ToList(),
+            today,
+            KeptPeriodStarts(payments));
     }
 
     /// <summary>
@@ -483,12 +566,4 @@ public static class ClientPaymentSchedule
 
         return symbols.ToHashSet();
     }
-
-    private static async Task<List<DateOnly>> ExistingPeriodStartsAsync(
-        IApplicationDbContext db, long assignmentId, CancellationToken ct) =>
-        await db.ClientPayments
-            .AsNoTracking()
-            .Where(p => p.ClientPaymentAssignmentId == assignmentId && p.PeriodStart != null)
-            .Select(p => p.PeriodStart!.Value)
-            .ToListAsync(ct);
 }

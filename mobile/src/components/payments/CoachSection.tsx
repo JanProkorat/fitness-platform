@@ -42,6 +42,11 @@ export function CoachSection({ coach, showHeading = true }: CoachSectionProps) {
           {coachHeading(coach)}
         </Text>
       ) : null}
+      {coach.collaborationEnded ? (
+        <Text variant="caption" color="muted">
+          {t('payments.collaborationEnded')}
+        </Text>
+      ) : null}
       {requested.map((payment) => (
         <PaymentCard key={payment.paymentId} payment={payment} coachFirstName={firstName(coach.coachName)} />
       ))}

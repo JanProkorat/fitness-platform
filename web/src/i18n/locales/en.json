@@ -573,7 +573,8 @@
     },
     "rowMenu": {
       "open": "Open row menu",
-      "viewDetail": "Open client detail"
+      "viewDetail": "Open client detail",
+      "payments": "Payments"
     },
     "noResultsForFilters": "No clients match your filters.",
     "clearFilters": "Clear filters",
@@ -2550,6 +2551,7 @@
     "client": {
       "retry": "Try again",
       "loadError": "Could not load this client's payments.",
+      "ended": "The collaboration has ended. You can still settle the payments, but you can no longer change the price or add payments.",
       "notFound": "You are no longer linked to {{name}}, so their payments are not available.",
       "billing": {
         "monthly": "/ month",

@@ -38,7 +38,7 @@ internal sealed class GetClientPaymentHistoryEndpoint(
             s.Responses[StatusCodes.Status200OK] = "The change history";
             s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
             s.Responses[StatusCodes.Status403Forbidden] = "The subscription does not include payments (PAYMENTS_NOT_ENTITLED)";
-            s.Responses[StatusCodes.Status404NotFound] = "The caller has no professional profile or no live link to the client";
+            s.Responses[StatusCodes.Status404NotFound] = "The caller has no professional profile, or no live link to the client and no ended one with a payment assignment";
         });
     }
 
@@ -52,7 +52,7 @@ internal sealed class GetClientPaymentHistoryEndpoint(
         }
 
         var context = await this.LoadCoachClientContextOrRespondAsync(
-            db, entitlementService, linkAuthorizationService, userId, req.ClientId, ct);
+            db, entitlementService, linkAuthorizationService, userId, req.ClientId, ct, allowEnded: true);
 
         if (context is null)
         {

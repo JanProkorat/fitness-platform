@@ -14,6 +14,7 @@ namespace FitnessPlatform.Application.Features.ClientPayments.Shared;
 /// <param name="ClientEmail">The client's email address, when the account has one.</param>
 /// <param name="ClientLanguage">The client's UI language, when known.</param>
 /// <param name="ClientSince">When the coach and the client first linked (UTC).</param>
+/// <param name="CollaborationEnded">Whether the link has ended; only the ended-allowed endpoints ever see true.</param>
 internal sealed record CoachClientContext(
     long ProfessionalProfileId,
     Guid CoachUserId,
@@ -24,4 +25,5 @@ internal sealed record CoachClientContext(
     string ClientLastName,
     string? ClientEmail,
     string? ClientLanguage,
-    DateTime ClientSince);
+    DateTime ClientSince,
+    bool CollaborationEnded = false);

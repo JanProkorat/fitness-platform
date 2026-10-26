@@ -1108,6 +1108,10 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("is_custom_price");
 
+                    b.Property<bool>("IsKeptAfterEnd")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_kept_after_end");
+
                     b.Property<int>("Kind")
                         .HasColumnType("integer")
                         .HasColumnName("kind");

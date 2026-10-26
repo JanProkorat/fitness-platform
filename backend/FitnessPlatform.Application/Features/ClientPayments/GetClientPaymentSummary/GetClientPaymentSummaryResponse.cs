@@ -10,6 +10,12 @@ public class GetClientPaymentSummaryResponse
     /// <summary>Public id of the client's profile.</summary>
     public Guid ClientId { get; set; }
 
+    /// <summary>The client's full name.</summary>
+    public string ClientName { get; set; } = string.Empty;
+
+    /// <summary>Whether the collaboration has ended; the kept payments can still be managed, the terms cannot be changed.</summary>
+    public bool CollaborationEnded { get; set; }
+
     /// <summary>When the coach and the client first linked (UTC).</summary>
     public DateTime ClientSince { get; set; }
 

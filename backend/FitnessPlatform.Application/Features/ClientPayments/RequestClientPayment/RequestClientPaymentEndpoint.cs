@@ -57,7 +57,7 @@ internal sealed class RequestClientPaymentEndpoint(
             s.Responses[StatusCodes.Status400BadRequest] = "Neither channel chosen (PAYMENT_REQUEST_CHANNEL_REQUIRED), an amount outside 0 to 9999999.99, or a due date in the past";
             s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
             s.Responses[StatusCodes.Status403Forbidden] = "The subscription does not include payments (PAYMENTS_NOT_ENTITLED), or the coach role was removed";
-            s.Responses[StatusCodes.Status404NotFound] = "No live link to the client, or the payment is not this client's payment with this coach";
+            s.Responses[StatusCodes.Status404NotFound] = "No live link to the client (and no ended one with a payment assignment), or the payment is not this client's payment with this coach";
             s.Responses[StatusCodes.Status409Conflict] = "The payment is already paid (PAYMENT_ALREADY_PAID) or waived (PAYMENT_ALREADY_WAIVED), the coach has no bank account (BANK_ACCOUNT_NOT_SET), or no variable symbol is left (PAYMENT_VARIABLE_SYMBOL_EXHAUSTED)";
             s.Responses[StatusCodes.Status429TooManyRequests] = "The payment was requested a minute ago, or the client got ten requests in the last hour (PAYMENT_REQUEST_RATE_LIMITED)";
         });
@@ -73,7 +73,7 @@ internal sealed class RequestClientPaymentEndpoint(
         }
 
         var context = await this.LoadCoachClientContextOrRespondAsync(
-            db, entitlementService, linkAuthorizationService, userId, req.ClientId, ct);
+            db, entitlementService, linkAuthorizationService, userId, req.ClientId, ct, allowEnded: true);
 
         if (context is null)
         {
@@ -148,11 +148,8 @@ internal sealed class RequestClientPaymentEndpoint(
         var terms = payment.PeriodStart is null
             ? []
             : await ClientPaymentSchedule.LoadTermsAsync(db, payment.ClientPaymentAssignmentId, ct);
-        var recurringStarts = await db.ClientPayments
-            .AsNoTracking()
-            .Where(p => p.ClientPaymentAssignmentId == payment.ClientPaymentAssignmentId && p.PeriodStart != null)
-            .Select(p => p.PeriodStart!.Value)
-            .ToListAsync(ct);
+        var recurringStarts = await ClientPaymentSchedule.LoadRecurringStartsAsync(
+            db, payment.ClientPaymentAssignmentId, ct);
         var figures = ClientPaymentSchedule.FiguresOf(payment, terms, recurringStarts);
         var amount = req.Amount ?? figures.Amount;
 

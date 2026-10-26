@@ -10,8 +10,8 @@ namespace FitnessPlatform.Application.Features.Client.GetClientPayments;
 
 /// <summary>
 /// Lists what the calling client owes their coaches and has paid. Only payments a coach has asked for are
-/// shown, and only for coaches the client still has an active link with; the coach's subscription tier does
-/// not matter, so a payment already requested stays visible.
+/// shown, including those of coaches the client has since ended the collaboration with (flagged per coach);
+/// the coach's subscription tier does not matter, so a payment already requested stays visible.
 /// </summary>
 /// <param name="db">Application database context.</param>
 /// <param name="timeProvider">Clock.</param>
@@ -28,7 +28,7 @@ internal sealed class GetClientPaymentsEndpoint(IApplicationDbContext db, TimePr
         Summary(s =>
         {
             s.Summary = "List my payments";
-            s.Description = "Lists the payments the client's coaches asked for (overdue ones marked) and the latest paid ones, grouped by coach. Empty when the client has no active coach link with payments.";
+            s.Description = "Lists the payments the client's coaches asked for (overdue ones marked) and the latest paid ones, grouped by coach. Coaches whose collaboration ended stay listed, flagged collaborationEnded. Empty when the client has no payments.";
             s.Responses[StatusCodes.Status200OK] = "The client's payments";
             s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
         });
@@ -59,7 +59,7 @@ internal sealed class GetClientPaymentsEndpoint(IApplicationDbContext db, TimePr
             .AsNoTracking()
             .Where(p => p.ClientPaymentAssignment.ClientProfileId == clientProfileId
                 && db.ClientProfessionalLinks.Any(l =>
-                    l.ClientProfileId == clientProfileId && l.ProfessionalProfileId == p.ProfessionalProfileId && l.IsActive));
+                    l.ClientProfileId == clientProfileId && l.ProfessionalProfileId == p.ProfessionalProfileId));
 
         var requested = await visible
             .Where(p => p.Status == ClientPaymentStatus.Requested)
@@ -79,6 +79,12 @@ internal sealed class GetClientPaymentsEndpoint(IApplicationDbContext db, TimePr
             .Where(c => coachIds.Contains(c.Id))
             .Select(c => new { c.Id, c.PublicId, c.User.FirstName, c.User.LastName })
             .ToListAsync(ct);
+        var activeCoachIds = (await db.ClientProfessionalLinks
+                .AsNoTracking()
+                .Where(l => l.ClientProfileId == clientProfileId && l.IsActive && coachIds.Contains(l.ProfessionalProfileId))
+                .Select(l => l.ProfessionalProfileId)
+                .ToListAsync(ct))
+            .ToHashSet();
         var today = ClientPaymentSchedule.Today(timeProvider.GetUtcNow().UtcDateTime);
 
         await Send.OkAsync(
@@ -90,6 +96,7 @@ internal sealed class GetClientPaymentsEndpoint(IApplicationDbContext db, TimePr
                     {
                         CoachId = coach.PublicId,
                         CoachName = $"{coach.FirstName} {coach.LastName}".Trim(),
+                        CollaborationEnded = !activeCoachIds.Contains(coach.Id),
                         Requested = requested
                             .Where(p => p.ProfessionalProfileId == coach.Id)
                             .Select(p => ClientPaymentItemDto.FromEntity(p, today))

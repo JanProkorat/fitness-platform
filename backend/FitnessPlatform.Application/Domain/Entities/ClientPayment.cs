@@ -114,6 +114,12 @@ public class ClientPayment : PublicTimestampableEntity
     public bool IsCustomPrice { get; set; }
 
     /// <summary>
+    /// Whether the row was kept for the coach when the collaboration ended: a period starting after the end.
+    /// Kept rows belong to the ended terms and take no part in the schedule or ordinals of later terms.
+    /// </summary>
+    public bool IsKeptAfterEnd { get; set; }
+
+    /// <summary>
     /// The coach's IBAN at the time of the request.
     /// </summary>
     [MaxLength(34)]

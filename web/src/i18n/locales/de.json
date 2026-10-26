@@ -573,7 +573,8 @@
     },
     "rowMenu": {
       "open": "Zeilenmenü öffnen",
-      "viewDetail": "Klientendetail öffnen"
+      "viewDetail": "Klientendetail öffnen",
+      "payments": "Zahlungen"
     },
     "noResultsForFilters": "Keine Klienten entsprechen Ihren Filtern.",
     "clearFilters": "Filter zurücksetzen",
@@ -2549,6 +2550,7 @@
     "client": {
       "retry": "Erneut versuchen",
       "loadError": "Die Zahlungen dieses Klienten konnten nicht geladen werden.",
+      "ended": "Die Zusammenarbeit ist beendet. Sie können die Zahlungen weiterhin abwickeln, aber den Preis nicht mehr ändern und keine Zahlungen hinzufügen.",
       "notFound": "Sie sind nicht mehr mit {{name}} verbunden, daher sind die Zahlungen nicht verfügbar.",
       "billing": {
         "monthly": "/ Monat",

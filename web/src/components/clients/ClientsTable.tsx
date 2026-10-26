@@ -115,7 +115,8 @@ export default function ClientsTable({
           clients.map((client) => {
             const rowId = client.publicId ?? '';
             // An ended link has no detail page (the API answers 404), so the row must not link to it.
-            const canOpenDetail = Boolean(rowId) && client.isActive !== false;
+            const ended = client.isActive === false;
+            const canOpenDetail = Boolean(rowId) && !ended;
             return (
               <TableRow key={client.publicId}>
                 <TableCell className={CELL_CLASS}>
@@ -181,7 +182,7 @@ export default function ClientsTable({
                   />
                 </TableCell>
                 <TableCell className={CELL_CLASS}>
-                  <ClientRowMenu publicId={canOpenDetail ? rowId : ''} />
+                  <ClientRowMenu publicId={canOpenDetail || ended ? rowId : ''} ended={ended} />
                 </TableCell>
               </TableRow>
             );
