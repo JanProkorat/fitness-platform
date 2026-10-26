@@ -73,6 +73,7 @@ public class GetPublicProfileEndpoint(
 
         var hasPendingRequest = false;
         var isLinked = false;
+        var canSeeContacts = false;
 
         if (clientProfile is not null)
         {
@@ -82,9 +83,16 @@ public class GetPublicProfileEndpoint(
                      && r.Status == ClientRequestStatus.Pending,
                 ct);
 
-            // The same live-link check as GetCoachBankDetailsEndpoint; it also gates the contact details below.
-            isLinked = await linkAuthorizationService.GetCapabilitiesByClientUserIdAsync(
-                profile.UserId, callerUserId, ct) is not null;
+            // The same live-link check as GetCoachBankDetailsEndpoint.
+            var capabilities = await linkAuthorizationService.GetCapabilitiesByClientUserIdAsync(
+                profile.UserId, callerUserId, ct);
+
+            isLinked = capabilities is not null;
+
+            // Contact details need a link that still covers a coach role that has not been removed.
+            canSeeContacts = capabilities is { } linked
+                && ((linked.CanViewTrainingPlans && !CoachRoleStatus.IsRemoved(profile, AppRoles.Trainer))
+                    || (linked.CanViewNutritionPlans && !CoachRoleStatus.IsRemoved(profile, AppRoles.Nutritionist)));
         }
 
         // Resolve roles
@@ -118,9 +126,9 @@ public class GetPublicProfileEndpoint(
                     Currency = package.Currency
                 })
                 .ToList(),
-            // Contact details go only to a client with a live link to this coach.
-            ContactEmail = isLinked ? profile.User.Email : null,
-            ContactPhone = isLinked ? profile.User.PhoneNumber : null,
+            // Contact details go only to a client whose live link covers a coach role still held.
+            ContactEmail = canSeeContacts ? profile.User.Email : null,
+            ContactPhone = canSeeContacts ? profile.User.PhoneNumber : null,
             Languages = ParseJsonArray(profile.Languages),
             City = profile.City,
             FromMonthlyPrice = fromPrice?.Amount,
