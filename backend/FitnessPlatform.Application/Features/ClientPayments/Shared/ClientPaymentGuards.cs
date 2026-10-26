@@ -183,7 +183,7 @@ internal static class ClientPaymentGuards
         }
 
         var terms = await ClientPaymentSchedule.LoadTermsAsync(db, payment.ClientPaymentAssignmentId, ct);
-        var recurringStarts = await ClientPaymentSchedule.LoadRecurringStartsAsync(db, payment.ClientPaymentAssignmentId, terms, ct);
+        var recurringStarts = await ClientPaymentSchedule.LoadRecurringStartsAsync(db, payment.ClientPaymentAssignmentId, ct);
 
         ClientPaymentSchedule.Freeze(payment, terms, recurringStarts);
     }

@@ -458,22 +458,32 @@ public class ClientPaymentScheduleTests
     }
 
     [Fact]
-    public void RecurringStartsOf_RowsKeptFromEndedTerms_AreLeftOutOfTheOrdinal()
+    public void RecurringStartsOf_RowsKeptAfterTheEnd_AreLeftOutOfTheOrdinal()
     {
         var old = Ended(Terms(Package(), new DateOnly(2026, 8, 5)), new DateOnly(2026, 10, 26));
         var fresh = Terms(Package(), new DateOnly(2026, 10, 28));
-        var endsAt = old.EndsAtUtc!.Value;
         var payments = new[]
         {
-            new ClientPayment { PeriodStart = new DateOnly(2026, 10, 5), DateCreated = endsAt.AddDays(-20) },
-            new ClientPayment { PeriodStart = new DateOnly(2026, 11, 5), DateCreated = endsAt.AddMinutes(-1) },
-            new ClientPayment { PeriodStart = new DateOnly(2026, 11, 28), DateCreated = endsAt.AddDays(2) }
+            new ClientPayment { PeriodStart = new DateOnly(2026, 10, 5) },
+            new ClientPayment { PeriodStart = new DateOnly(2026, 11, 5), IsKeptAfterEnd = true },
+            new ClientPayment { PeriodStart = new DateOnly(2026, 11, 28) }
         };
 
-        var starts = ClientPaymentSchedule.RecurringStartsOf([old, fresh], payments);
+        var starts = ClientPaymentSchedule.RecurringStartsOf(payments);
 
         starts.Should().Equal(new DateOnly(2026, 10, 5), new DateOnly(2026, 11, 28));
-        ClientPaymentSchedule.KeptPeriodStarts([old, fresh], payments).Should().Equal(new DateOnly(2026, 11, 5));
+        ClientPaymentSchedule.KeptPeriodStarts(payments).Should().Equal(new DateOnly(2026, 11, 5));
         ClientPaymentSchedule.OrdinalOf([old, fresh], starts, new DateOnly(2026, 11, 28)).Should().Be(1);
+    }
+
+    [Fact]
+    public void PlanMissingPeriods_KeptPaidRowOnTheNewTermsDay_NeitherStallsNorIsPlannedTwice()
+    {
+        var old = Ended(Terms(Package(), new DateOnly(2026, 8, 5)), new DateOnly(2026, 10, 26));
+        var fresh = Terms(Package(), new DateOnly(2026, 10, 28));
+        var existing = new[] { new DateOnly(2026, 10, 5), new DateOnly(2026, 11, 28) };
+
+        ClientPaymentSchedule.PlanMissingPeriods([old, fresh], existing, new DateOnly(2026, 10, 28), [new DateOnly(2026, 11, 28)])
+            .Select(p => p.Start).Should().Equal(new DateOnly(2026, 10, 28));
     }
 }

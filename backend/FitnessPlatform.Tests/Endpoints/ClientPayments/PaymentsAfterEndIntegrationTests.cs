@@ -75,6 +75,8 @@ public class PaymentsAfterEndIntegrationTests(FitnessApiFactory factory)
             kept.Currency.Should().Be(PaymentCurrency.CZK);
         }
 
+        stored.Where(p => p.PeriodStart > Today).Should().OnlyContain(p => p.IsKeptAfterEnd);
+        stored.Where(p => p.PeriodStart <= Today).Should().OnlyContain(p => !p.IsKeptAfterEnd);
         rows.Where(p => p.PeriodStart > Today).Should().OnlyContain(p => p.Amount == 2500m && p.PackageName == "Online coaching");
     }
 
@@ -181,7 +183,9 @@ public class PaymentsAfterEndIntegrationTests(FitnessApiFactory factory)
         var rows = await ListAsync(world);
         rows.Select(p => p.PeriodStart).Should().BeEquivalentTo([Today, Today.AddMonths(1)]);
         rows.Single(p => p.PeriodStart == Today.AddMonths(1)).PackageName.Should().Be("Fresh start");
-        (await StoredRowsAsync(world)).Single(p => p.PeriodStart > Today).Amount.Should().BeNull("the kept frozen row was replaced by one that follows the new terms");
+        var replacement = (await StoredRowsAsync(world)).Single(p => p.PeriodStart > Today);
+        replacement.Amount.Should().BeNull("the kept frozen row was replaced by one that follows the new terms");
+        replacement.IsKeptAfterEnd.Should().BeFalse();
     }
 
     [Fact]
@@ -200,5 +204,23 @@ public class PaymentsAfterEndIntegrationTests(FitnessApiFactory factory)
         var newRow = after.Single(p => p.PeriodStart == Today.AddMonths(2));
         newRow.Status.Should().Be(ClientPaymentStatus.Upcoming);
         newRow.PackageName.Should().Be("Fresh start");
+        (await StoredRowsAsync(world)).Single(p => p.PeriodStart == Today.AddMonths(2)).IsKeptAfterEnd.Should().BeFalse();
+        (await StoredRowsAsync(world)).Single(p => p.PeriodStart == Today.AddMonths(1)).IsKeptAfterEnd.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Reaccept_WhileAKeptPeriodIsPaid_KeepsItAndDoesNotPlanItsDayTwice()
+    {
+        var (world, _, rows) = await EndedFixedLengthAsync();
+        var paidRow = rows.First(p => p.PeriodStart > Today);
+        (await PostActionAsync(world, paidRow.PaymentId, "mark-paid")).StatusCode.Should().Be(HttpStatusCode.OK);
+        var fresh = await CreatePackageAsync(world.Coach, name: "Fresh start");
+
+        await AcceptInviteAsync(world, fresh);
+
+        var after = await ListAsync(world);
+        after.Select(p => p.PeriodStart).Should().BeEquivalentTo([Today, Today.AddMonths(1), Today.AddMonths(2)]);
+        after.Single(p => p.PaymentId == paidRow.PaymentId).Status.Should().Be(ClientPaymentStatus.Paid);
+        after.Single(p => p.PeriodStart == Today.AddMonths(2)).PackageName.Should().Be("Fresh start");
     }
 }

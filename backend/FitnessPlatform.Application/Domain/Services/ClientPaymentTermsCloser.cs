@@ -65,16 +65,9 @@ public static class ClientPaymentTermsCloser
         var kept = await KeepFixedLengthPeriodsAsync(
             db, assignment, settings?.VariableSymbolFormat ?? VariableSymbolFormat.YearMonthClientNumber, endDay, ct);
 
-        // The end falls after every row created above, so those rows are told apart from a later restart's.
-        var lastCreated = await db.ClientPayments
-            .Where(p => p.ClientPaymentAssignmentId == assignment.Id)
-            .Select(p => (DateTime?)p.DateCreated)
-            .MaxAsync(ct);
-        var endsAt = lastCreated is { } created && created > now ? created : now;
-
         var closed = await db.ClientPaymentTerms
             .Where(t => t.ClientPaymentAssignmentId == assignment.Id && t.EndsAtUtc == null)
-            .ExecuteUpdateAsync(setters => setters.SetProperty(t => t.EndsAtUtc, (DateTime?)endsAt), ct);
+            .ExecuteUpdateAsync(setters => setters.SetProperty(t => t.EndsAtUtc, (DateTime?)now), ct);
 
         var upcoming = kept
             ? []
@@ -91,6 +84,22 @@ public static class ClientPaymentTermsCloser
         if (upcoming.Count > 0)
         {
             await db.ClientPayments.Where(p => upcoming.Contains(p.Id)).ExecuteDeleteAsync(ct);
+        }
+
+        // Whatever still starts after the end day is kept for the coach and belongs to the ended terms.
+        var keptIds = (await db.ClientPayments
+                .Where(p => p.ClientPaymentAssignmentId == assignment.Id && p.PeriodStart != null)
+                .Select(p => new { p.Id, PeriodStart = p.PeriodStart!.Value })
+                .ToListAsync(ct))
+            .Where(p => p.PeriodStart > endDay)
+            .Select(p => p.Id)
+            .ToList();
+
+        if (keptIds.Count > 0)
+        {
+            await db.ClientPayments
+                .Where(p => keptIds.Contains(p.Id))
+                .ExecuteUpdateAsync(setters => setters.SetProperty(p => p.IsKeptAfterEnd, true), ct);
         }
 
         if (closed > 0)
@@ -136,7 +145,7 @@ public static class ClientPaymentTermsCloser
         var payments = await db.ClientPayments
             .Where(p => p.ClientPaymentAssignmentId == assignment.Id && p.PeriodStart != null)
             .ToListAsync(ct);
-        var recurringStarts = ClientPaymentSchedule.RecurringStartsOf(terms, payments);
+        var recurringStarts = ClientPaymentSchedule.RecurringStartsOf(payments);
 
         foreach (var payment in payments.Where(p => p.Status == ClientPaymentStatus.Upcoming && p.PeriodStart > endDay))
         {

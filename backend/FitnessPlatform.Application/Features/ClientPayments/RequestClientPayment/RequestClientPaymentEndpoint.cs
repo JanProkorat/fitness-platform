@@ -149,7 +149,7 @@ internal sealed class RequestClientPaymentEndpoint(
             ? []
             : await ClientPaymentSchedule.LoadTermsAsync(db, payment.ClientPaymentAssignmentId, ct);
         var recurringStarts = await ClientPaymentSchedule.LoadRecurringStartsAsync(
-            db, payment.ClientPaymentAssignmentId, terms, ct);
+            db, payment.ClientPaymentAssignmentId, ct);
         var figures = ClientPaymentSchedule.FiguresOf(payment, terms, recurringStarts);
         var amount = req.Amount ?? figures.Amount;
 

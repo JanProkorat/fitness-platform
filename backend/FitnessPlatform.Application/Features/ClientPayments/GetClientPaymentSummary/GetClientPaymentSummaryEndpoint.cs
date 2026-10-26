@@ -99,7 +99,7 @@ internal sealed class GetClientPaymentSummaryEndpoint(
         List<ClientPayment> payments,
         DateOnly today)
     {
-        var recurringStarts = ClientPaymentSchedule.RecurringStartsOf(terms, payments);
+        var recurringStarts = ClientPaymentSchedule.RecurringStartsOf(payments);
         var recurring = payments.Where(p => p.PeriodStart is not null).OrderBy(p => p.PeriodStart).ToList();
         var nextPeriod = recurring.FirstOrDefault(p => p.PeriodStart > today);
 

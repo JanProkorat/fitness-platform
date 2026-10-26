@@ -229,54 +229,30 @@ public static class ClientPaymentSchedule
     }
 
     /// <summary>
-    /// The first days of rows kept from terms that ended: rows created before the end that start on or after
-    /// it. They stay as the coach's to manage but belong to no later terms, so the "first N payments" ordinal
-    /// and the schedule of a returning client ignore them.
+    /// The first days of rows kept for the coach when a collaboration ended (<see cref="ClientPayment.IsKeptAfterEnd"/>).
+    /// They belong to no later terms, so the "first N payments" ordinal and the schedule of a returning client ignore them.
     /// </summary>
-    /// <param name="terms">The assignment's terms history.</param>
     /// <param name="payments">The assignment's payments.</param>
-    public static List<DateOnly> KeptPeriodStarts(
-        IReadOnlyCollection<ClientPaymentTerms> terms, IEnumerable<ClientPayment> payments)
-    {
-        var ends = terms.Where(t => t.EndsAtUtc is not null).Select(t => t.EndsAtUtc!.Value).ToList();
-
-        return ends.Count == 0
-            ? []
-            : payments
-                .Where(p => p.PeriodStart is { } start
-                    && ends.Any(end => p.DateCreated <= end && StartOfDayUtc(start) >= end))
-                .Select(p => p.PeriodStart!.Value)
-                .ToList();
-    }
+    public static List<DateOnly> KeptPeriodStarts(IEnumerable<ClientPayment> payments) =>
+        payments.Where(p => p.IsKeptAfterEnd && p.PeriodStart is not null).Select(p => p.PeriodStart!.Value).ToList();
 
     /// <summary>
     /// First days of the assignment's recurring payments that count toward the ordinal of later periods: every
-    /// recurring payment except the ones kept from ended terms.
+    /// recurring payment except the kept ones.
     /// </summary>
-    /// <param name="terms">The assignment's terms history.</param>
     /// <param name="payments">The assignment's payments.</param>
-    public static List<DateOnly> RecurringStartsOf(
-        IReadOnlyCollection<ClientPaymentTerms> terms, IReadOnlyCollection<ClientPayment> payments)
-    {
-        var kept = KeptPeriodStarts(terms, payments).ToHashSet();
-
-        return payments
-            .Where(p => p.PeriodStart is { } start && !kept.Contains(start))
-            .Select(p => p.PeriodStart!.Value)
-            .ToList();
-    }
+    public static List<DateOnly> RecurringStartsOf(IReadOnlyCollection<ClientPayment> payments) =>
+        payments.Where(p => !p.IsKeptAfterEnd && p.PeriodStart is not null).Select(p => p.PeriodStart!.Value).ToList();
 
     /// <summary>
     /// Loads <see cref="RecurringStartsOf"/> for an assignment.
     /// </summary>
     /// <param name="db">Application database context.</param>
     /// <param name="assignmentId">The assignment's internal id.</param>
-    /// <param name="terms">The assignment's terms history.</param>
     /// <param name="ct">Cancellation token.</param>
     public static async Task<List<DateOnly>> LoadRecurringStartsAsync(
-        IApplicationDbContext db, long assignmentId, IReadOnlyCollection<ClientPaymentTerms> terms, CancellationToken ct) =>
+        IApplicationDbContext db, long assignmentId, CancellationToken ct) =>
         RecurringStartsOf(
-            terms,
             await db.ClientPayments
                 .AsNoTracking()
                 .Where(p => p.ClientPaymentAssignmentId == assignmentId && p.PeriodStart != null)
@@ -566,7 +542,7 @@ public static class ClientPaymentSchedule
             terms,
             payments.Select(p => p.PeriodStart!.Value).ToList(),
             today,
-            KeptPeriodStarts(terms, payments));
+            KeptPeriodStarts(payments));
     }
 
     /// <summary>
