@@ -90,6 +90,7 @@ public class GetPendingInviteEndpoint(
             TrainerName = $"{profUser.FirstName} {profUser.LastName}",
             TrainerRole = role,
             TrainerCity = prof.City ?? string.Empty,
+            OfferedType = CoachRoleStatus.ResolveOfferedScope(invite.RequestedScope, profRoles, prof),
             Message = invite.Message
         }, ct);
     }
@@ -102,5 +103,8 @@ public class PendingInviteResponse
     public string TrainerName { get; set; } = string.Empty;
     public string TrainerRole { get; set; } = string.Empty;
     public string TrainerCity { get; set; } = string.Empty;
+    /// <summary>Collaboration type accepting would grant now, or null when it would grant nothing.</summary>
+    public LinkCapabilityScope? OfferedType { get; set; }
+
     public string? Message { get; set; }
 }

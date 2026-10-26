@@ -20,7 +20,7 @@ public class GetClientInvitesEndpointTests(FitnessApiFactory factory)
 
     private record InviteItem(
         Guid Id, Guid CoachPublicId, string CoachName, string CoachRole, string CoachCity,
-        string? Message, DateTime SentAt, DateTime ExpiresAt);
+        string? OfferedType, string? Message, DateTime SentAt, DateTime ExpiresAt);
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
@@ -87,7 +87,9 @@ public class GetClientInvitesEndpointTests(FitnessApiFactory factory)
         var bothInvite = await SeedInviteAsync(both, client.Email, PendingInviteStatus.Pending, now.AddHours(-3));
         var trainerInvite = await SeedInviteAsync(trainerOnly, client.Email, PendingInviteStatus.Pending, now.AddHours(-2));
 
-        (await GetAsync(client)).Single(i => i.Id == bothInvite).CoachRole.Should().Be("Trainer & Nutritionist");
+        var beforeRemoval = (await GetAsync(client)).Single(i => i.Id == bothInvite);
+        beforeRemoval.CoachRole.Should().Be("Trainer & Nutritionist");
+        beforeRemoval.OfferedType.Should().Be("Both");
 
         using (var scope = factory.Services.CreateScope())
         {
@@ -100,7 +102,9 @@ public class GetClientInvitesEndpointTests(FitnessApiFactory factory)
         var items = await GetAsync(client);
 
         items.Single(i => i.Id == bothInvite).CoachRole.Should().Be("Trainer", "a removed role is not an active one");
+        items.Single(i => i.Id == bothInvite).OfferedType.Should().Be("TrainingOnly");
         items.Single(i => i.Id == trainerInvite).CoachRole.Should().Be("Trainer");
+        items.Single(i => i.Id == trainerInvite).OfferedType.Should().Be("TrainingOnly");
     }
 
     [Fact]

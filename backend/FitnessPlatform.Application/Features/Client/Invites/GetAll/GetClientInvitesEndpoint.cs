@@ -102,6 +102,7 @@ internal sealed class GetClientInvitesEndpoint(
                 CoachName = $"{prof.User.FirstName} {prof.User.LastName}",
                 CoachRole = labels.Count > 0 ? string.Join(" & ", labels) : "Trainer",
                 CoachCity = prof.City ?? string.Empty,
+                OfferedType = CoachRoleStatus.ResolveOfferedScope(invite.RequestedScope, held, prof),
                 Message = invite.Message,
                 SentAt = invite.SentAt,
                 ExpiresAt = PendingInviteStatusResolver.ExpiresAt(invite.SentAt),
