@@ -11,10 +11,12 @@ type ChipProps = {
   label: string;
   variant: ChipVariant;
   icon?: ReactNode;
+  /** `sm` is the compact pill used beside names; `md` is the default. */
+  size?: 'md' | 'sm';
   style?: StyleProp<ViewStyle>;
 };
 
-export function Chip({ label, variant, icon, style }: ChipProps) {
+export function Chip({ label, variant, icon, size = 'md', style }: ChipProps) {
   const theme = useTheme();
   const styles = makeStyles(theme);
   const { colors } = theme;
@@ -24,9 +26,18 @@ export function Chip({ label, variant, icon, style }: ChipProps) {
       : { background: colors.nutritionSoft, foreground: colors.nutritionInk };
 
   return (
-    <View style={[styles.base, { backgroundColor: look.background }, style]}>
+    <View
+      style={[styles.base, size === 'sm' && styles.small, { backgroundColor: look.background }, style]}
+    >
       {icon ? <View style={styles.icon}>{icon}</View> : null}
-      <Text style={[theme.typography.labelStrong, { color: look.foreground }]}>{label}</Text>
+      <Text
+        style={[
+          size === 'sm' ? theme.typography.chipSmall : theme.typography.labelStrong,
+          { color: look.foreground },
+        ]}
+      >
+        {label}
+      </Text>
     </View>
   );
 }
@@ -41,6 +52,11 @@ const makeStyles = (theme: Theme) =>
       height: theme.sizes.chip,
       paddingHorizontal: theme.spacing.md,
       borderRadius: theme.radii.pill,
+    },
+    small: {
+      height: undefined,
+      paddingVertical: theme.spacing.hair,
+      paddingHorizontal: theme.spacing.xs,
     },
     icon: {
       alignItems: 'center',

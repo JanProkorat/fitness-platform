@@ -29,6 +29,26 @@ export const inviteMotion = {
   spring: { damping: 18, stiffness: 180, mass: 0.9 },
 } as const;
 
+/** Drag-to-close on bottom sheets: px before the drag claims the touch, px or velocity (px/ms) that closes it. */
+export const sheetDragMotion = {
+  claimDistance: 8,
+  closeDistance: 110,
+  closeVelocity: 0.9,
+  spring: { damping: 22, stiffness: 240, mass: 0.9 },
+} as const;
+
+/** Inline date picker in the add-measurement sheet: ms for its fade and for the content below it moving. */
+export const measuredAtPickerMotion = {
+  enterDuration: 240,
+  exitDuration: 160,
+  layoutDuration: 240,
+} as const;
+
+/** Fade-in of a bottom tab's content when it gains focus, in ms. */
+export const tabSwitchMotion = {
+  duration: 300,
+} as const;
+
 /** Chat rows that arrive after the screen opened: spring entrance and list reflow. */
 export const chatMotion = {
   spring: { damping: 20, stiffness: 220, mass: 0.8 },

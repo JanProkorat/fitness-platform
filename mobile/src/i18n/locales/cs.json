@@ -74,6 +74,65 @@
       }
     }
   },
+  "settings": {
+    "title": "Nastavení",
+    "back": "Zpět",
+    "logout": "Odhlásit se",
+    "sheet": {
+      "close": "Zavřít"
+    },
+    "account": {
+      "title": "Účet",
+      "email": "E-mail",
+      "password": "Heslo"
+    },
+    "preferences": {
+      "title": "Předvolby",
+      "language": "Jazyk",
+      "appearance": "Vzhled"
+    },
+    "language": {
+      "cs": "Čeština",
+      "en": "English",
+      "de": "Deutsch"
+    },
+    "appearance": {
+      "system": "Automaticky",
+      "light": "Světlý",
+      "dark": "Tmavý"
+    },
+    "notifications": {
+      "title": "Oznámení",
+      "messages": "Zprávy",
+      "loadError": "Nastavení oznámení se nepodařilo načíst. Klepnutím to zkusíte znovu.",
+      "saveError": "Změnu se nepodařilo uložit. Zkuste to prosím znovu."
+    },
+    "delete": {
+      "row": "Smazat účet",
+      "title": "Smazat účet?",
+      "message": "Tím trvale smažete svůj účet a svá data. Tento krok nelze vrátit zpět.",
+      "cancel": "Zrušit",
+      "confirm": "Smazat",
+      "error": "Účet se nepodařilo smazat. Zůstáváte přihlášeni. Zkuste to prosím znovu."
+    },
+    "password": {
+      "title": "Změna hesla",
+      "current": "Současné heslo",
+      "new": "Nové heslo",
+      "confirm": "Nové heslo znovu",
+      "show": "Zobrazit",
+      "hide": "Skrýt",
+      "submit": "Změnit heslo",
+      "mismatch": "Hesla se neshodují.",
+      "errors": {
+        "invalidCurrent": "Současné heslo není správné.",
+        "notSet": "Tento účet nemá heslo, které by šlo změnit.",
+        "rateLimited": "Příliš mnoho pokusů. Zkuste to prosím za chvíli.",
+        "network": "Nelze se spojit se serverem. Zkontrolujte připojení a zkuste to znovu.",
+        "generic": "Heslo se nepodařilo změnit. Zkuste to prosím znovu."
+      }
+    }
+  },
   "tabs": {
     "today": "Dnes",
     "training": "Trénink",
@@ -88,6 +147,7 @@
     "linkedBody": "Tvoji poradci jsou připraveni. Tady uvidíš svůj den.",
     "notifications": "Upozornění",
     "notificationsUnread": "Upozornění, nepřečtených: {{count}}",
+    "profile": "Profil",
     "invitesTitle": "Pozvánky",
     "findCoach": {
       "title": "Najdi si poradce",
@@ -100,6 +160,193 @@
         "title": "Nutriční poradce",
         "hint": "Jídlo, které zapadne do tvého dne"
       }
+    }
+  },
+  "editProfile": {
+    "title": "Upravit profil",
+    "cancel": "Zrušit",
+    "save": "Uložit změny",
+    "firstName": "Jméno",
+    "lastName": "Příjmení",
+    "phone": "Telefon",
+    "phonePlaceholder": "+420 …",
+    "email": "E-mail",
+    "signIn": "Přihlášení",
+    "signInHint": "E-mail a heslo se mění v Nastavení.",
+    "and": "a",
+    "weightLabel": "Váha",
+    "coachesNote_one": "{{names}} uvidí tyto změny a dostane upozornění.",
+    "coachesNote_few": "{{names}} uvidí tyto změny a dostanou upozornění.",
+    "coachesNote_many": "{{names}} uvidí tyto změny a dostanou upozornění.",
+    "coachesNote_other": "{{names}} uvidí tyto změny a dostanou upozornění.",
+    "photo": {
+      "change": "Změnit fotku",
+      "remove": "Odstranit",
+      "errors": {
+        "tooLarge": "Fotka je příliš velká. Vyber menší (max. 5 MB).",
+        "unsupported": "Tento formát fotky se nepodporuje.",
+        "network": "Server není dostupný. Zkontroluj připojení a zkus to znovu.",
+        "generic": "Fotku se nepodařilo změnit. Zkus to znovu."
+      }
+    },
+    "info": {
+      "title": "Moje údaje",
+      "subtitle": "Z tvé registrace. Udržuj je aktuální, ať ti plány sednou.",
+      "aboutSection": "O tobě",
+      "goalSection": "Cíl",
+      "trainingSection": "Trénink",
+      "lifestyleSection": "Životní styl",
+      "eatingSection": "Jídlo",
+      "dateOfBirth": "Datum narození",
+      "sex": "Pohlaví",
+      "height": "Výška",
+      "heightValue": "{{value}} cm",
+      "goal": "Hlavní cíl",
+      "targetWeight": "Cílová váha",
+      "currentFrequency": "Trénink teď",
+      "perWeek": "Tréninkový cíl",
+      "activities": "Aktivity",
+      "job": "Práce",
+      "sleep": "Spánek",
+      "sleepValue": "{{value}} h",
+      "stress": "Stres",
+      "stressValue": "{{value}} z {{max}}",
+      "meals": "Jídel denně",
+      "habits": "Návyky",
+      "perWeekValue": "{{count}}× týdně",
+      "gym": "Přístup do posilovny",
+      "injuries": "Zranění",
+      "diet": "Strava",
+      "allergies": "Alergie",
+      "dislikes": "Jídla, která nechceš",
+      "rowLabel": "{{label}}: {{value}}. Změnit"
+    },
+    "errors": {
+      "required": "Vyplň toto pole.",
+      "weightRange": "Zadej váhu mezi {{min}} a {{max}} kg.",
+      "heightRange": "Zadej výšku mezi {{min}} a {{max}} cm.",
+      "sleepRange": "Zadej spánek mezi {{min}} a {{max}} hodinami.",
+      "stressRange": "Vyber úroveň stresu od {{min}} do {{max}}.",
+      "dateOfBirthRange": "Vyber datum narození, které odpovídá věku {{min}} až {{max}} let.",
+      "itemBlank": "Položka nesmí být prázdná.",
+      "itemComma": "Položka nesmí obsahovat čárku.",
+      "rejected": "Tuto odpověď server nepřijal. Zkontroluj ji a zkus to znovu.",
+      "listTooLong": "Seznam je příliš dlouhý. Odeber pár položek.",
+      "tooManyItems": "Maximálně 20 položek.",
+      "itemTooLong": "Jedna položka je příliš dlouhá.",
+      "partial": "Část změn se uložila, zbytek ne. Zkus uložit znovu.",
+      "save": {
+        "network": "Server není dostupný. Zkontroluj připojení a zkus to znovu.",
+        "invalid": "Zkontroluj zvýrazněná pole a zkus to znovu.",
+        "generic": "Změny se nepodařilo uložit. Zkus to znovu."
+      }
+    },
+    "discard": {
+      "title": "Zahodit změny?",
+      "body": "Neuložené změny se ztratí.",
+      "keep": "Pokračovat v úpravách",
+      "discard": "Zahodit"
+    },
+    "error": {
+      "load": "Profil se nepodařilo načíst."
+    }
+  },
+  "profile": {
+    "edit": "Upravit profil",
+    "viewPhoto": "Zobrazit profilovou fotku",
+    "photoLabel": "Profilová fotka",
+    "since": "registrace {{date}}",
+    "units": {
+      "kg": "{{value}} kg"
+    },
+    "goals": {
+      "LoseFat": "Zhubnout",
+      "GainMuscle": "Nabrat svaly",
+      "Recomposition": "Rekompozice těla",
+      "Fitness": "Kondice",
+      "Health": "Zdraví",
+      "Maintain": "Udržet váhu",
+      "Performance": "Výkon"
+    },
+    "stats": {
+      "plans": "Plány",
+      "workouts": "Tréninky",
+      "sinceStart": "Od začátku"
+    },
+    "aboutMe": {
+      "title": "O mně",
+      "a11yLabel": "O mně. Upravit",
+      "goal": "Cíl",
+      "training": "Trénink",
+      "eating": "Strava",
+      "injuries": "Zranění",
+      "targetWeight": "cíl {{value}} kg",
+      "noAllergies": "bez {{list}}",
+      "gym": {
+        "Yes": "posilovna",
+        "Sometimes": "občas posilovna",
+        "No": "bez posilovny"
+      }
+    },
+    "coaches": {
+      "title": "Moji poradci",
+      "empty": "Zatím nespolupracuješ s žádným poradcem."
+    },
+    "progress": {
+      "title": "Pokrok",
+      "journey": "Moje cesta",
+      "measurements": "Tělesné míry",
+      "photos": "Fotky pokroku",
+      "checkIns": "Historie check-inů"
+    },
+    "settings": "Nastavení",
+    "error": {
+      "summary": "Čísla se nepodařilo načíst.",
+      "coaches": "Poradce se nepodařilo načíst.",
+      "retry": "Zkusit znovu"
+    }
+  },
+  "photos": {
+    "title": "Fotky pokroku",
+    "count_one": "{{count}} fotka",
+    "count_few": "{{count}} fotky",
+    "count_many": "{{count}} fotky",
+    "count_other": "{{count}} fotek",
+    "addPhotos": "Přidat fotky",
+    "uploadProgress": "{{done}} / {{total}}",
+    "cancel": "Zrušit",
+    "add": {
+      "title": "Přidat fotku pokroku",
+      "camera": "Vyfotit",
+      "library": "Vybrat z knihovny"
+    },
+    "empty": "Zatím tu nejsou žádné fotky pokroku.",
+    "emptyHint": "Přidej první a začni sledovat svou změnu.",
+    "photoLabel": "Fotka z {{date}}",
+    "viewer": {
+      "close": "Zavřít",
+      "delete": "Smazat fotku",
+      "deleteTitle": "Smazat tuto fotku?",
+      "deleteBody": "Tuto akci nejde vrátit zpět.",
+      "deleteConfirm": "Smazat"
+    },
+    "permission": {
+      "title": "Přístup k fotoaparátu je vypnutý",
+      "body": "Povol přístup k fotoaparátu v Nastavení, aby šlo pořizovat fotky pokroku.",
+      "openSettings": "Otevřít Nastavení"
+    },
+    "errors": {
+      "load": "Fotky se nepodařilo načíst.",
+      "retry": "Zkusit znovu",
+      "title": "Fotku se nepodařilo přidat",
+      "batchFailed_one": "Nenahrála se {{count}} fotka",
+      "batchFailed_few": "Nenahrály se {{count}} fotky",
+      "batchFailed_many": "Nenahrálo se {{count}} fotky",
+      "batchFailed_other": "Nenahrálo se {{count}} fotek",
+      "tooLarge": "Tato fotka je větší než 5 MB. Vyber menší.",
+      "unsupportedType": "Tento typ souboru není podporovaný. Použij fotku JPEG, PNG, WebP nebo HEIC.",
+      "upload": "Nahrání se nezdařilo. Zkontroluj připojení a zkus to znovu.",
+      "delete": "Fotku se nepodařilo smazat. Zkus to znovu."
     }
   },
   "invites": {
@@ -155,6 +402,81 @@
       }
     }
   },
+  "journey": {
+    "title": "Moje cesta",
+    "now": "dosud",
+    "fromTo": "{{from}} → {{to}}",
+    "units": {
+      "kg": "{{value}} kg",
+      "cm": "{{value}} cm",
+      "percent": "{{value}} %"
+    },
+    "tabs": {
+      "label": "Zobrazení cesty",
+      "weight": "Váha",
+      "waist": "Pas",
+      "photos": "Fotky"
+    },
+    "legend": {
+      "training": "Tréninkový plán",
+      "nutrition": "Jídelníček",
+      "photos": "Fotky"
+    },
+    "chart": {
+      "empty": {
+        "weight": "Přidej alespoň dvě váhy a uvidíš svůj vývoj.",
+        "waist": "Přidej alespoň dvě míry pasu a uvidíš svůj vývoj."
+      }
+    },
+    "plans": {
+      "title": "Plány",
+      "empty": "Zatím nemáš žádné plány."
+    },
+    "status": {
+      "active": "Aktivní",
+      "completed": "Dokončený"
+    },
+    "plan": {
+      "week": "{{current}}. týden z {{total}}",
+      "sessions": "{{done}} z {{total}} tréninků",
+      "mealsLogged": "{{value}} jídel zapsáno"
+    },
+    "summary": {
+      "completedPlan": "Dokončený plán",
+      "activePlan": "Aktivní plán",
+      "weeks_one": "{{count}} týden",
+      "weeks_few": "{{count}} týdny",
+      "weeks_many": "{{count}} týdne",
+      "weeks_other": "{{count}} týdnů",
+      "sessions": "Tréninky",
+      "sessionsValue": "{{done}} / {{total}}",
+      "completedShare": "{{value}} splněno",
+      "mealsLogged": "Zapsaná jídla",
+      "ofPlanned": "z plánovaných jídel",
+      "weight": "Váha",
+      "waist": "Pas",
+      "beforeAfter": "Před a po",
+      "start": "Začátek",
+      "end": "Konec",
+      "onlyPhoto": "Tvoje fotka",
+      "allSessions": "Všechny tréninky v plánu",
+      "notFound": {
+        "title": "Plán nenalezen",
+        "body": "Tento plán už není k dispozici.",
+        "back": "Zpět"
+      },
+      "error": {
+        "title": "Plán se nepodařilo načíst",
+        "body": "Zkontroluj připojení a zkus to znovu."
+      }
+    },
+    "error": {
+      "series": "Míry se nepodařilo načíst.",
+      "photos": "Značky fotek se nepodařilo načíst.",
+      "plans": "Plány se nepodařilo načíst.",
+      "retry": "Zkusit znovu"
+    }
+  },
   "notifications": {
     "title": "Upozornění",
     "close": "Zavřít upozornění",
@@ -174,6 +496,76 @@
     "training": "Tady se objeví tvůj tréninkový plán.",
     "nutrition": "Tady se objeví tvůj jídelníček.",
     "messages": "Tady se objeví tvoje konverzace."
+  },
+  "measurements": {
+    "title": "Tělesné míry",
+    "updatedToday": "Naposledy aktualizováno dnes",
+    "updatedYesterday": "Naposledy aktualizováno včera",
+    "updatedDaysAgo_one": "Naposledy aktualizováno před {{count}} dnem",
+    "updatedDaysAgo_few": "Naposledy aktualizováno před {{count}} dny",
+    "updatedDaysAgo_many": "Naposledy aktualizováno před {{count}} dne",
+    "updatedDaysAgo_other": "Naposledy aktualizováno před {{count}} dny",
+    "ranges": {
+      "label": "Období",
+      "month": "1 měsíc",
+      "plan": "Plán",
+      "all": "Celé období"
+    },
+    "metrics": {
+      "weight": "Váha",
+      "waist": "Pas",
+      "hips": "Boky",
+      "chest": "Hrudník",
+      "biceps": "Biceps",
+      "thigh": "Stehno",
+      "bodyFat": "Tělesný tuk"
+    },
+    "units": {
+      "kg": "{{value}} kg",
+      "cm": "{{value}} cm",
+      "percent": "{{value}} %"
+    },
+    "symbols": {
+      "kg": "kg",
+      "cm": "cm",
+      "percent": "%"
+    },
+    "trend": {
+      "month": "{{delta}} za měsíc",
+      "plan": "{{delta}} od začátku plánu",
+      "all": "{{delta}} celkem",
+      "noChange": "beze změny",
+      "estimate": "odhad"
+    },
+    "shared": {
+      "line": "Sdíleno s {{names}}.",
+      "and": "a"
+    },
+    "empty": {
+      "title": "Zatím žádná měření",
+      "body": "Přidej první měření a začni sledovat svůj pokrok."
+    },
+    "add": "Přidat měření",
+    "error": {
+      "history": "Měření se nepodařilo načíst.",
+      "retry": "Zkusit znovu"
+    },
+    "sheet": {
+      "close": "Zavřít",
+      "subtitle": "Vyplň jen to, co jsi měřil(a)",
+      "save": "Uložit měření",
+      "error": "Měření se nepodařilo uložit. Zkus to znovu.",
+      "measured": "Změřeno",
+      "measuredA11y": "Změřeno: {{value}}. Změnit",
+      "today": "Dnes",
+      "yesterday": "Včera",
+      "circumference": "Obvody",
+      "note": "Poznámka",
+      "optional": "Nepovinné",
+      "notePlaceholder": "Denní doba, po jídle…",
+      "last": "Naposledy {{value}}",
+      "neverMeasured": "Zatím neměřeno"
+    }
   },
   "messages": {
     "compose": "Najít poradce",
@@ -369,6 +761,30 @@
       "network": "Server není dostupný. Zkontroluj připojení a zkus to znovu.",
       "generic": "E-mail se nepodařilo odeslat. Zkus to prosím znovu."
     }
+  },
+  "checkInHistory": {
+    "title": "Historie check-inů",
+    "count_one": "{{count}} check-in",
+    "count_few": "{{count}} check-iny",
+    "count_many": "{{count}} check-inu",
+    "count_other": "{{count}} check-inů",
+    "countSince_one": "{{count}} check-in od {{since}}",
+    "countSince_few": "{{count}} check-iny od {{since}}",
+    "countSince_many": "{{count}} check-inu od {{since}}",
+    "countSince_other": "{{count}} check-inů od {{since}}",
+    "filterAll": "Vše",
+    "filterLabel": "Filtrovat podle trenéra",
+    "openNow": "Čeká na tebe",
+    "weekOf": "Týden od {{date}}",
+    "answerBy": "{{coach}} · termín: {{weekday}}",
+    "status": {
+      "sent": "Odesláno",
+      "reviewed": "Zhodnoceno",
+      "missed": "Zmeškáno"
+    },
+    "empty": "Zatím žádné check-iny. Týdenní check-iny od tvých trenérů se objeví tady.",
+    "error": "Check-iny se nepodařilo načíst.",
+    "retry": "Zkusit znovu"
   },
   "changeEmail": {
     "title": "Změnit e-mail",

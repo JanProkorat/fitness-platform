@@ -65,6 +65,14 @@ export function primaryRole(roles: readonly string[] | undefined): CoachRole | u
   );
 }
 
+const COACH_ROLES: readonly CoachRole[] = [ROLE_TRAINER, ROLE_NUTRITIONIST];
+
+/** Every coach role the coach holds, trainer first, without duplicates. */
+export function coachRoles(roles: readonly string[] | undefined): CoachRole[] {
+  const held = roles ?? [];
+  return COACH_ROLES.filter((role) => held.includes(role));
+}
+
 export function coachFullName(coach: { firstName?: string; lastName?: string }): string {
   return [coach.firstName, coach.lastName].filter(Boolean).join(' ');
 }

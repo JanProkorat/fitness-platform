@@ -65,6 +65,24 @@ public class NotificationServiceTests(NotificationServiceContainerFixture contai
 
     public async ValueTask DisposeAsync() => await _db.DisposeAsync();
 
+    [Theory]
+    // English is excluded: several English labels legitimately equal their machine key ("sex", "injuries").
+    [InlineData("cs")]
+    [InlineData("de")]
+    public void LocalizeOnboardingFields_EveryFieldKey_HasATranslatedLabel(string language)
+    {
+        var keys = typeof(NotificationTemplates).GetFields()
+            .Where(field => field.IsLiteral && field.Name.StartsWith("OnboardingField", StringComparison.Ordinal))
+            .Select(field => (string)field.GetRawConstantValue()!)
+            .ToList();
+
+        keys.Should().HaveCountGreaterThan(8);
+        foreach (var key in keys)
+        {
+            NotificationTemplates.LocalizeOnboardingFields([key], language).Should().NotBe(key);
+        }
+    }
+
     // ── helpers ───────────────────────────────────────────────────────────────
 
     /// <summary>
