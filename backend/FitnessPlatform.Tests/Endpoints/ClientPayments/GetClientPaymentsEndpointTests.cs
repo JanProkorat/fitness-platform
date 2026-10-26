@@ -52,6 +52,7 @@ public class GetClientPaymentsEndpointTests(FitnessApiFactory factory)
         var coach = (await GetOwnAsync(world.Client)).Coaches.Should().ContainSingle().Subject;
 
         coach.CoachName.Should().Be("Martin Král");
+        coach.CollaborationEnded.Should().BeFalse();
         var requested = coach.Requested.Should().ContainSingle().Subject;
         requested.PaymentId.Should().Be(rows[1].PaymentId);
         requested.Status.Should().Be(ClientPaymentStatus.Requested);
@@ -97,7 +98,7 @@ public class GetClientPaymentsEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
-    public async Task Get_LinkEnded_HidesThatCoachsPaymentsFromTheListAndTheDetail()
+    public async Task Get_LinkEnded_KeepsThatCoachsPaymentsVisibleAndFlagsTheCoach()
     {
         var world = await CreateWorldAsync(factory);
         var rows = await StartMonthlyAsync(world);
@@ -111,8 +112,11 @@ public class GetClientPaymentsEndpointTests(FitnessApiFactory factory)
                 .ExecuteUpdateAsync(s => s.SetProperty(l => l.IsActive, false), TestContext.Current.CancellationToken);
         }
 
-        (await GetOwnAsync(world.Client)).Coaches.Should().BeEmpty();
-        (await GetOneAsync(world.Client, rows[0].PaymentId)).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        var coach = (await GetOwnAsync(world.Client)).Coaches.Should().ContainSingle().Subject;
+
+        coach.CollaborationEnded.Should().BeTrue();
+        coach.Requested.Should().ContainSingle().Which.PaymentId.Should().Be(rows[0].PaymentId);
+        (await GetOneAsync(world.Client, rows[0].PaymentId)).StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
     [Fact]

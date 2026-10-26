@@ -1,6 +1,5 @@
 using System.Net;
 using System.Net.Http.Json;
-using System.Text;
 using System.Text.Json;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
@@ -23,21 +22,6 @@ namespace FitnessPlatform.Tests.Endpoints.ClientPayments;
 public class CollaborationEndBillingIntegrationTests(FitnessApiFactory factory)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
-
-    private async Task<Guid> LinkPublicIdAsync(PaymentWorld world)
-    {
-        using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-
-        return await db.ClientProfessionalLinks.AsNoTracking()
-            .Where(l => l.ClientProfileId == world.Client.ProfileId && l.ProfessionalProfileId == world.Coach.ProfileId)
-            .Select(l => l.PublicId)
-            .SingleAsync(Ct);
-    }
-
-    private async Task EndCollaborationAsync(PaymentWorld world) =>
-        (await world.Client.Http.DeleteAsync($"/client/collaborations/{await LinkPublicIdAsync(world)}", Ct))
-            .StatusCode.Should().Be(HttpStatusCode.NoContent);
 
     /// <summary>Moves the ended terms and their periods back in time, as if the collaboration ended months ago.</summary>
     private async Task AgeAsync(PaymentWorld world, int months)
@@ -89,19 +73,6 @@ public class CollaborationEndBillingIntegrationTests(FitnessApiFactory factory)
                 && t.ClientPaymentAssignment.ClientProfileId == world.Client.ProfileId)
             .OrderBy(t => t.EffectiveFromUtc)
             .ToListAsync(Ct);
-    }
-
-    private async Task AcceptInviteAsync(PaymentWorld world, Guid? packageId)
-    {
-        var invite = await world.Coach.Http.PostAsJsonAsync(
-            "/trainer/pending-invites", new { Email = world.Client.Email, PackageId = packageId }, Ct);
-        invite.StatusCode.Should().Be(HttpStatusCode.OK, await invite.Content.ReadAsStringAsync(Ct));
-        var inviteId = (await invite.Content.ReadFromJsonAsync<JsonElement>(Ct)).GetProperty("publicId").GetGuid();
-
-        var response = await world.Client.Http.PostAsync(
-            $"/client/invites/{inviteId}/accept", new StringContent("{}", Encoding.UTF8, "application/json"), Ct);
-
-        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
     }
 
     private async Task<GetClientPaymentSummaryResponse> SummaryAsync(PaymentWorld world)

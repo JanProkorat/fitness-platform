@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using FitnessPlatform.Application.Domain.Entities;
@@ -235,6 +236,38 @@ internal static class ClientPaymentFixtures
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         return payment.PublicId;
+    }
+
+    /// <summary>Public id of the link between the world's coach and client.</summary>
+    public static async Task<Guid> LinkPublicIdAsync(PaymentWorld world)
+    {
+        using var scope = world.Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        return await db.ClientProfessionalLinks.AsNoTracking()
+            .Where(l => l.ClientProfileId == world.Client.ProfileId && l.ProfessionalProfileId == world.Coach.ProfileId)
+            .Select(l => l.PublicId)
+            .SingleAsync(TestContext.Current.CancellationToken);
+    }
+
+    /// <summary>The client ends the collaboration, which ends the package and payments.</summary>
+    public static async Task EndCollaborationAsync(PaymentWorld world) =>
+        (await world.Client.Http.DeleteAsync($"/client/collaborations/{await LinkPublicIdAsync(world)}", TestContext.Current.CancellationToken))
+            .StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+    /// <summary>The coach invites the client again (optionally with a package) and the client accepts.</summary>
+    public static async Task AcceptInviteAsync(PaymentWorld world, Guid? packageId)
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var invite = await world.Coach.Http.PostAsJsonAsync(
+            "/trainer/pending-invites", new { Email = world.Client.Email, PackageId = packageId }, ct);
+        invite.StatusCode.Should().Be(HttpStatusCode.OK, await invite.Content.ReadAsStringAsync(ct));
+        var inviteId = (await invite.Content.ReadFromJsonAsync<JsonElement>(ct)).GetProperty("publicId").GetGuid();
+
+        var response = await world.Client.Http.PostAsync(
+            $"/client/invites/{inviteId}/accept", new StringContent("{}", Encoding.UTF8, "application/json"), ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
     }
 
     /// <summary>Resolves the fake email service shared by the test host.</summary>
