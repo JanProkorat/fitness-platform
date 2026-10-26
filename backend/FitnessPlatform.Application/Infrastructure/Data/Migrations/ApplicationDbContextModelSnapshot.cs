@@ -1104,6 +1104,10 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                         .HasColumnType("date")
                         .HasColumnName("due_date");
 
+                    b.Property<bool>("IsCustomPrice")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_custom_price");
+
                     b.Property<int>("Kind")
                         .HasColumnType("integer")
                         .HasColumnName("kind");

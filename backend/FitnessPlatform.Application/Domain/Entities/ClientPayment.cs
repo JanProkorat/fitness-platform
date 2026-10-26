@@ -103,10 +103,15 @@ public class ClientPayment : PublicTimestampableEntity
     public decimal? BasePrice { get; set; }
 
     /// <summary>
-    /// Label of the discount (or custom price) behind the amount, frozen with it.
+    /// Label of the discount behind the amount, frozen with it. Null for a custom price.
     /// </summary>
     [MaxLength(150)]
     public string? DiscountLabel { get; set; }
+
+    /// <summary>
+    /// Whether the frozen amount is a custom price the coach set, frozen with the amount.
+    /// </summary>
+    public bool IsCustomPrice { get; set; }
 
     /// <summary>
     /// The coach's IBAN at the time of the request.

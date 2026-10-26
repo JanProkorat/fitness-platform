@@ -329,7 +329,8 @@ internal sealed class RequestClientPaymentEndpoint(
                     payment.Message ?? string.Empty,
                     QrCodePngRenderer.Render(qrPayload),
                     PaymentMessageComposer.QrContentId,
-                    payment.Currency),
+                    payment.Currency,
+                    payment.IsCustomPrice),
                 ct);
 
             return true;

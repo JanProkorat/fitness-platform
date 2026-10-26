@@ -13,15 +13,6 @@ namespace FitnessPlatform.Application.Domain.Services;
 /// </summary>
 public static class ClientLinkActivator
 {
-    /// <summary>Result of <see cref="ActivateAsync"/>; the link is set for Created and Reactivated.</summary>
-    /// <param name="Outcome">What happened.</param>
-    /// <param name="Link">The created or reactivated link, otherwise null.</param>
-    public readonly record struct Result(ClientLinkActivationOutcome Outcome, ClientProfessionalLink? Link)
-    {
-        /// <summary>True when the link was created or reactivated, so the invite's terms and events apply.</summary>
-        public bool Started => Outcome is ClientLinkActivationOutcome.Created or ClientLinkActivationOutcome.Reactivated;
-    }
-
     /// <summary>
     /// Loads the pair's link and creates it, reactivates it, or leaves it alone when already active.
     /// The invite's scope and questionnaire replace whatever an ended link carried.
@@ -33,7 +24,7 @@ public static class ClientLinkActivator
     /// <param name="requestedScope">Scope stored on the invite, or null for every active role.</param>
     /// <param name="questionnaireId">Questionnaire from the invite; overwrites the old value even when null.</param>
     /// <param name="ct">Cancellation token.</param>
-    public static async Task<Result> ActivateAsync(
+    public static async Task<ClientLinkActivationResult> ActivateAsync(
         IApplicationDbContext db,
         UserManager<ApplicationUser> userManager,
         long clientProfileId,
@@ -48,7 +39,7 @@ public static class ClientLinkActivator
 
         if (link is { IsActive: true })
         {
-            return new Result(ClientLinkActivationOutcome.AlreadyActive, null);
+            return new ClientLinkActivationResult(ClientLinkActivationOutcome.AlreadyActive, null);
         }
 
         var professionalUser = await userManager.FindByIdAsync(professional.UserId.ToString());
@@ -66,7 +57,7 @@ public static class ClientLinkActivator
                 requestedScope, professionalRoles, professional,
                 out var canViewNutritionPlans, out var canViewTrainingPlans))
         {
-            return new Result(ClientLinkActivationOutcome.CoachRoleRemoved, null);
+            return new ClientLinkActivationResult(ClientLinkActivationOutcome.CoachRoleRemoved, null);
         }
 
         // A client may hold at most one active coach per profession (#980); this covers reactivation too.
@@ -74,7 +65,7 @@ public static class ClientLinkActivator
                 db.ClientProfessionalLinks, clientProfileId, professional.Id,
                 canViewNutritionPlans, canViewTrainingPlans, ct))
         {
-            return new Result(ClientLinkActivationOutcome.SlotTaken, null);
+            return new ClientLinkActivationResult(ClientLinkActivationOutcome.SlotTaken, null);
         }
 
         if (link is not null)
@@ -86,7 +77,7 @@ public static class ClientLinkActivator
             link.CanViewTrainingPlans = canViewTrainingPlans;
             link.QuestionnaireId = questionnaireId;
 
-            return new Result(ClientLinkActivationOutcome.Reactivated, link);
+            return new ClientLinkActivationResult(ClientLinkActivationOutcome.Reactivated, link);
         }
 
         link = new ClientProfessionalLink
@@ -102,6 +93,6 @@ public static class ClientLinkActivator
         };
         db.ClientProfessionalLinks.Add(link);
 
-        return new Result(ClientLinkActivationOutcome.Created, link);
+        return new ClientLinkActivationResult(ClientLinkActivationOutcome.Created, link);
     }
 }

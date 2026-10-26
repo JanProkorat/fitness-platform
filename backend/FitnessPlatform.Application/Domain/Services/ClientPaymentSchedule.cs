@@ -259,7 +259,7 @@ public static class ClientPaymentSchedule
 
         if (terms.CustomPrice is { } custom)
         {
-            return (basePrice, custom, 0m, "Custom price", true);
+            return (basePrice, custom, 0m, null, true);
         }
 
         if (terms.CoachDiscount is { } discount && CoachDiscountRules.Applies(discount, ordinal, dueDate))
@@ -304,25 +304,30 @@ public static class ClientPaymentSchedule
     /// <param name="payment">The payment.</param>
     /// <param name="terms">The assignment's terms history, packages and discounts loaded.</param>
     /// <param name="recurringPeriodStarts">First days of every recurring payment of the assignment.</param>
-    public static (decimal? Amount, decimal? BasePrice, string? DiscountLabel, string? PackageName) FiguresOf(
+    public static (decimal? Amount, decimal? BasePrice, string? DiscountLabel, string? PackageName, bool IsCustomPrice) FiguresOf(
         ClientPayment payment,
         IReadOnlyCollection<ClientPaymentTerms> terms,
         IReadOnlyCollection<DateOnly> recurringPeriodStarts)
     {
         if (payment.Status != ClientPaymentStatus.Upcoming || payment.PeriodStart is not { } start)
         {
-            return (payment.Amount, payment.BasePrice, payment.DiscountLabel, payment.PackageName ?? payment.Title);
+            return (
+                payment.Amount,
+                payment.BasePrice,
+                payment.DiscountLabel,
+                payment.PackageName ?? payment.Title,
+                payment.IsCustomPrice);
         }
 
         if (TermsAt(terms, StartOfDayUtc(start)) is not { } termsOfPeriod)
         {
-            return (null, null, null, null);
+            return (null, null, null, null, false);
         }
 
         var ordinal = OrdinalOf(terms, recurringPeriodStarts, start);
         var breakdown = Breakdown(termsOfPeriod, start, ordinal, payment.DueDate);
 
-        return (breakdown.Amount, breakdown.BasePrice, breakdown.Label, termsOfPeriod.CoachPackage.Name);
+        return (breakdown.Amount, breakdown.BasePrice, breakdown.Label, termsOfPeriod.CoachPackage.Name, breakdown.IsCustomPrice);
     }
 
     /// <summary>
@@ -341,6 +346,7 @@ public static class ClientPaymentSchedule
         payment.Amount ??= figures.Amount;
         payment.BasePrice ??= figures.BasePrice;
         payment.DiscountLabel ??= figures.DiscountLabel;
+        payment.IsCustomPrice = figures.IsCustomPrice;
 
         if (payment.Kind == ClientPaymentKind.Recurring)
         {
@@ -427,6 +433,8 @@ public static class ClientPaymentSchedule
 
         await using var transaction = await db.BeginTransactionAsync(ct);
         await db.LockProfessionalProfileAsync(assignment.ProfessionalProfileId, ct);
+
+        terms = await LoadTermsAsync(db, assignment.Id, ct);
 
         var planned = PlanMissingPeriods(terms, await ExistingPeriodStartsAsync(db, assignment.Id, ct), today);
 

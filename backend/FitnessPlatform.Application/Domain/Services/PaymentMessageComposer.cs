@@ -44,6 +44,13 @@ public static class PaymentMessageComposer
         ["de"] = "{0}, fällig am {1}. Zahlen Sie per Überweisung — scannen Sie den Code in Ihrer Banking-App oder übernehmen Sie die Angaben."
     };
 
+    private static readonly Dictionary<string, string> CustomPriceLabels = new()
+    {
+        ["en"] = "Custom price",
+        ["cs"] = "Individuální cena",
+        ["de"] = "Individueller Preis"
+    };
+
     private static readonly Dictionary<string, string> BreakdownFormats = new()
     {
         ["en"] = "Package price {0}, {1}.",
@@ -205,8 +212,9 @@ public static class PaymentMessageComposer
 
         var heading = string.Format(System.Globalization.CultureInfo.InvariantCulture, HeadingFormats[lang], amount, model.PackageName);
         var intro = string.Format(System.Globalization.CultureInfo.InvariantCulture, IntroFormats[lang], Capitalize(period), due);
-        var breakdown = model.BasePrice is { } basePrice && !string.IsNullOrWhiteSpace(model.DiscountLabel)
-            ? string.Format(System.Globalization.CultureInfo.InvariantCulture, BreakdownFormats[lang], FormatAmount(basePrice, lang, model.Currency), model.DiscountLabel)
+        var discountLabel = model.IsCustomPrice ? CustomPriceLabels[lang] : model.DiscountLabel;
+        var breakdown = model.BasePrice is { } basePrice && !string.IsNullOrWhiteSpace(discountLabel)
+            ? string.Format(System.Globalization.CultureInfo.InvariantCulture, BreakdownFormats[lang], FormatAmount(basePrice, lang, model.Currency), discountLabel)
             : string.Empty;
 
         return template

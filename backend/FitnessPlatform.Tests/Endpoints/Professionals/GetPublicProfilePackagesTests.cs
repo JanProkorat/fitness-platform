@@ -79,6 +79,36 @@ public class GetPublicProfilePackagesTests(FitnessApiFactory factory)
     }
 
     [Fact]
+    public async Task GetPublicProfile_EndedLink_DoesNotRevealContactDetails()
+    {
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var client = await TestActors.Client(factory).CreateAsync(Ct);
+        await TestActors.Link(factory, coach, client).CreateAsync(Ct);
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            (await db.Users.SingleAsync(u => u.Id == coach.UserId, Ct)).PhoneNumber = "+420123456789";
+            await db.SaveChangesAsync(Ct);
+        }
+
+        (await ReadProfileAsync(client, coach)).ContactEmail.Should().Be(coach.Email);
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            await db.ClientProfessionalLinks
+                .Where(l => l.ProfessionalProfileId == coach.ProfileId)
+                .ExecuteUpdateAsync(s => s.SetProperty(l => l.IsActive, false), Ct);
+        }
+
+        var ended = await ReadProfileAsync(client, coach);
+
+        ended.ContactEmail.Should().BeNull();
+        ended.ContactPhone.Should().BeNull();
+    }
+
+    [Fact]
     public async Task GetPublicProfile_CoachWithoutPayments_ListsNoPackages()
     {
         var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
