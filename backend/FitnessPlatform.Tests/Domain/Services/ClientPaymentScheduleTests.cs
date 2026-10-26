@@ -357,6 +357,20 @@ public class ClientPaymentScheduleTests
     }
 
     [Fact]
+    public void PlanMissingPeriods_AfterARestartWasMaterialised_KeepsTheRestartBillingDay()
+    {
+        var old = Ended(Terms(Package(), new DateOnly(2026, 8, 1)), new DateOnly(2026, 9, 15));
+        var fresh = Terms(Package(), new DateOnly(2026, 10, 21));
+        var existing = new[]
+        {
+            new DateOnly(2026, 8, 1), new DateOnly(2026, 9, 1), new DateOnly(2026, 10, 21), new DateOnly(2026, 11, 21)
+        };
+
+        ClientPaymentSchedule.PlanMissingPeriods([old, fresh], existing, new DateOnly(2026, 11, 25))
+            .Should().Equal((new DateOnly(2026, 12, 21), new DateOnly(2027, 1, 20)));
+    }
+
+    [Fact]
     public void PlanMissingPeriods_NewTermsOnTheDayThePeriodStarted_ContinueWithTheNextPeriod()
     {
         var old = Ended(Terms(Package(), new DateOnly(2026, 9, 21)), Today);

@@ -146,7 +146,7 @@ public static class ClientPaymentSchedule
         else
         {
             var last = existing[^1];
-            billingDay = existing[0].Day;
+            billingDay = BillingDayOf(terms, existing);
 
             if (last > today)
             {
@@ -216,6 +216,23 @@ public static class ClientPaymentSchedule
         }
 
         return planned;
+    }
+
+    /// <summary>
+    /// The billing day of existing periods: the day of the first period starting on or after the latest end of
+    /// the collaboration (a restart picks its own day), or of the first period ever when nothing ended.
+    /// </summary>
+    private static int BillingDayOf(IReadOnlyCollection<ClientPaymentTerms> terms, List<DateOnly> orderedStarts)
+    {
+        var boundary = terms
+            .Where(t => t.EndsAtUtc is not null)
+            .Select(t => t.EndsAtUtc!.Value)
+            .DefaultIfEmpty(DateTime.MinValue)
+            .Max();
+
+        var sinceEnd = orderedStarts.Where(start => StartOfDayUtc(start) >= boundary).ToList();
+
+        return (sinceEnd.Count > 0 ? sinceEnd[0] : orderedStarts[0]).Day;
     }
 
     /// <summary>
