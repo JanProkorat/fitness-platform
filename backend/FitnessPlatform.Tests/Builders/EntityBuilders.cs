@@ -57,6 +57,106 @@ public static class EntityBuilder
     /// Creates a new <see cref="PlanPhotoViewerBuilder"/>.
     /// </summary>
     public static PlanPhotoViewerBuilder PlanPhotoViewer => new();
+
+    /// <summary>
+    /// Creates a new <see cref="QuestionnaireBuilder"/>.
+    /// </summary>
+    public static QuestionnaireBuilder Questionnaire => new();
+
+    /// <summary>
+    /// Creates a new <see cref="QuestionnaireResponseBuilder"/>.
+    /// </summary>
+    public static QuestionnaireResponseBuilder QuestionnaireResponse => new();
+}
+
+/// <summary>
+/// Builder for onboarding <see cref="Questionnaire"/> test entities.
+/// </summary>
+public class QuestionnaireBuilder
+{
+    private Guid _professionalUserId = Guid.NewGuid();
+    private string _title = "Onboarding";
+
+    /// <summary>
+    /// Sets the coach (<c>ApplicationUser.Id</c>) who owns the questionnaire.
+    /// </summary>
+    public QuestionnaireBuilder WithProfessionalUserId(Guid id) { _professionalUserId = id; return this; }
+
+    /// <summary>
+    /// Sets the questionnaire title.
+    /// </summary>
+    public QuestionnaireBuilder WithTitle(string title) { _title = title; return this; }
+
+    /// <summary>
+    /// Builds an active, default onboarding questionnaire.
+    /// </summary>
+    public Questionnaire Build() => new()
+    {
+        PublicId = Guid.NewGuid(),
+        ProfessionalId = _professionalUserId,
+        Title = _title,
+        IsDefault = true,
+        IsActive = true,
+        Type = QuestionnaireType.Onboarding,
+        DateCreated = DateTime.UtcNow,
+    };
+}
+
+/// <summary>
+/// Builder for <see cref="QuestionnaireResponse"/> test entities.
+/// </summary>
+public class QuestionnaireResponseBuilder
+{
+    private long _questionnaireId;
+    private long _linkId;
+    private Guid _clientUserId = Guid.NewGuid();
+    private Guid _professionalUserId = Guid.NewGuid();
+    private QuestionnaireResponseStatus _status = QuestionnaireResponseStatus.Pending;
+    private DateTime? _submittedAt;
+
+    /// <summary>
+    /// Sets the questionnaire (internal id) being answered.
+    /// </summary>
+    public QuestionnaireResponseBuilder ForQuestionnaire(long questionnaireId) { _questionnaireId = questionnaireId; return this; }
+
+    /// <summary>
+    /// Sets the client-professional link (internal id) the response belongs to.
+    /// </summary>
+    public QuestionnaireResponseBuilder OnLink(long linkId) { _linkId = linkId; return this; }
+
+    /// <summary>
+    /// Sets the client (<c>ApplicationUser.Id</c>) who answers.
+    /// </summary>
+    public QuestionnaireResponseBuilder FromClient(Guid clientUserId) { _clientUserId = clientUserId; return this; }
+
+    /// <summary>
+    /// Sets the coach (<c>ApplicationUser.Id</c>) who sent the questionnaire.
+    /// </summary>
+    public QuestionnaireResponseBuilder FromProfessional(Guid professionalUserId) { _professionalUserId = professionalUserId; return this; }
+
+    /// <summary>
+    /// Sets the response status and, for a submitted response, when it was submitted.
+    /// </summary>
+    public QuestionnaireResponseBuilder WithStatus(QuestionnaireResponseStatus status, DateTime? submittedAt = null)
+    {
+        _status = status;
+        _submittedAt = submittedAt;
+        return this;
+    }
+
+    /// <summary>
+    /// Builds the <see cref="QuestionnaireResponse"/> instance. DateCreated is stamped on insert.
+    /// </summary>
+    public QuestionnaireResponse Build() => new()
+    {
+        PublicId = Guid.NewGuid(),
+        QuestionnaireId = _questionnaireId,
+        ClientId = _clientUserId,
+        ProfessionalId = _professionalUserId,
+        LinkId = _linkId,
+        Status = _status,
+        SubmittedAt = _submittedAt,
+    };
 }
 
 /// <summary>
