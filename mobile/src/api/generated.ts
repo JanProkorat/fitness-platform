@@ -28607,6 +28607,10 @@ export interface GetMyPaymentRequest {
 export interface GetClientPaymentSummaryResponse {
     /** Public id of the client's profile. */
     clientId?: string;
+    /** The client's full name. */
+    clientName?: string;
+    /** Whether the collaboration has ended; the kept payments can still be managed, the terms cannot be changed. */
+    collaborationEnded?: boolean;
     /** When the coach and the client first linked (UTC). */
     clientSince?: string;
     /** Whether the coach has a bank account set, which a payment request needs. */
@@ -29568,6 +29572,8 @@ export interface ClientPaymentCoachDto {
     coachId?: string;
     /** The coach's name. */
     coachName?: string;
+    /** Whether the client's collaboration with this coach has ended; the payments stay visible and payable. */
+    collaborationEnded?: boolean;
     /** Payments the coach asked for, still unpaid (overdue ones marked), oldest due date first. */
     requested?: ClientPaymentItemDto[];
     /** Payments already paid, most recent first. */
