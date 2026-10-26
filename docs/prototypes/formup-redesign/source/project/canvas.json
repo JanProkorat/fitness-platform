@@ -3393,6 +3393,38 @@
    "h": 960,
    "page": "glass",
    "title": "TodayNoPlan · everything set up · dark (full scroll)"
+  },
+  "GlassTodayNoCoachInviteBothLight.dc.html": {
+   "x": 1410,
+   "y": 27096,
+   "w": 390,
+   "h": 1040,
+   "page": "glass",
+   "title": "TodayNoCoach · one coach invites for training + nutrition · light (full scroll)"
+  },
+  "GlassTodayNoCoachInviteBothDark.dc.html": {
+   "x": 1410,
+   "y": 28256,
+   "w": 390,
+   "h": 1040,
+   "page": "glass",
+   "title": "TodayNoCoach · one coach invites for training + nutrition · dark (full scroll)"
+  },
+  "GlassTodayNoPlanBothLight.dc.html": {
+   "x": 1880,
+   "y": 27096,
+   "w": 390,
+   "h": 844,
+   "page": "glass",
+   "title": "TodayNoPlan · one coach building both plans · light"
+  },
+  "GlassTodayNoPlanBothDark.dc.html": {
+   "x": 1880,
+   "y": 28256,
+   "w": 390,
+   "h": 844,
+   "page": "glass",
+   "title": "TodayNoPlan · one coach building both plans · dark"
   }
  },
  "createdOnFiles": {
@@ -3767,7 +3799,7 @@
    "text": "Today before a plan — invite pending, coach linked but no plan yet  ·  light above, dark below",
    "kind": "title1",
    "page": "glass",
-   "maxW": 1330
+   "maxW": 2270
   },
   "glassCoachPlanEnded": {
    "x": 0,
@@ -4210,7 +4242,11 @@
   "GlassTodayNoPlanLight.dc.html",
   "GlassTodayNoPlanDark.dc.html",
   "GlassTodayNoPlanFullLight.dc.html",
-  "GlassTodayNoPlanFullDark.dc.html"
+  "GlassTodayNoPlanFullDark.dc.html",
+  "GlassTodayNoCoachInviteBothLight.dc.html",
+  "GlassTodayNoCoachInviteBothDark.dc.html",
+  "GlassTodayNoPlanBothLight.dc.html",
+  "GlassTodayNoPlanBothDark.dc.html"
  ],
  "pages": [
   {
