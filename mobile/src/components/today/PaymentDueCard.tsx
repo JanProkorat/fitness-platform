@@ -77,7 +77,7 @@ const makeStyles = (theme: Theme) =>
       boxShadow: theme.shadows.card,
     },
     pressed: {
-      opacity: 0.85,
+      opacity: theme.opacity.pressed,
     },
     icon: {
       width: theme.sizes.coachIcon,

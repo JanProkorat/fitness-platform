@@ -14,6 +14,10 @@ export const spacing = {
   safeAreaGap: 0,
 } as const;
 
+export const opacity = {
+  pressed: 0.85,
+} as const;
+
 export const radii = {
   xs: 4,
   sm: 10,
