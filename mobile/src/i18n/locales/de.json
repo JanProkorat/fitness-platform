@@ -489,6 +489,7 @@
     "toPay": "Offen",
     "overdue": "Überfällig",
     "due": "Fällig am {{date}}",
+    "customPrice": "Individueller Preis",
     "scan": "Scannen Sie den Code in Ihrer Banking-App. {{name}} bestätigt, sobald das Geld eingegangen ist.",
     "transfer": "Überweisen Sie den Betrag mit den Angaben unten. {{name}} bestätigt, sobald das Geld eingegangen ist.",
     "qrLabel": "QR-Platba-Code",

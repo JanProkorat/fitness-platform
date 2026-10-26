@@ -489,6 +489,7 @@
     "toPay": "To pay",
     "overdue": "Overdue",
     "due": "Due {{date}}",
+    "customPrice": "Custom price",
     "scan": "Scan it in your bank app. {{name}} confirms when the money arrives.",
     "transfer": "Pay by bank transfer with the details below. {{name}} confirms when the money arrives.",
     "qrLabel": "QR Platba code",

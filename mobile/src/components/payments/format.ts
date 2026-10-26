@@ -73,15 +73,16 @@ export function shortDay(iso: string | null | undefined, language: string): stri
   return new Intl.DateTimeFormat(language, { day: 'numeric', month: 'short' }).format(day);
 }
 
-/** "Due 1 Nov · Friends & family" line under the amount; the discount label is omitted when there is none. */
+/** "Due 1 Nov · Friends & family" line under the amount; a custom price shows localized copy, no label is omitted. */
 export function dueLine(
   t: TFunction,
   dueDate: string | null | undefined,
   discountLabel: string | null | undefined,
+  isCustomPrice: boolean | undefined,
   language: string,
 ): string {
   const due = t('payments.due', { date: shortDay(dueDate, language) });
-  const discount = discountLabel?.trim();
+  const discount = isCustomPrice ? t('payments.customPrice') : discountLabel?.trim();
   return discount ? `${due} · ${discount}` : due;
 }
 
