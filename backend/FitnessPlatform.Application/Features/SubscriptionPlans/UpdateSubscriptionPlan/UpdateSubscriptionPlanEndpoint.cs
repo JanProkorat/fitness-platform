@@ -57,6 +57,7 @@ internal sealed class UpdateSubscriptionPlanEndpoint(IApplicationDbContext db)
         plan.CanSendQuestionnaires = req.CanSendQuestionnaires!.Value;
         plan.CanUseWeeklyCheckIns = req.CanUseWeeklyCheckIns!.Value;
         plan.CanUsePerClientCheckInConfig = req.CanUsePerClientCheckInConfig!.Value;
+        plan.CanUsePayments = req.CanUsePayments!.Value;
         plan.MaxActiveClients = req.MaxActiveClients.Value;
         plan.PriceMinorUnits = req.PriceMinorUnits;
         plan.Currency = req.Currency;

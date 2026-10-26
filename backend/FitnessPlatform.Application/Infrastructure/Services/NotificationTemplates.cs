@@ -110,6 +110,9 @@ public static class NotificationTemplates
 
             [Key(NotificationType.OnboardingAnswersUpdated)] =
                 new("Onboarding answers updated", "{clientName} updated their onboarding answers: {fields}. You may want to review their targets."),
+
+            [Key(NotificationType.PaymentRequested)] =
+                new("Payment request", "{coachName} asks for {amount}, due {dueDate}."),
         },
         ["cs"] = new()
         {
@@ -178,6 +181,9 @@ public static class NotificationTemplates
 
             [Key(NotificationType.OnboardingAnswersUpdated)] =
                 new("Odpovědi z dotazníku upraveny", "{clientName} upravil(a) své odpovědi ve vstupním dotazníku: {fields}. Zvažte kontrolu cílů klienta."),
+
+            [Key(NotificationType.PaymentRequested)] =
+                new("Žádost o platbu", "{coachName} vás žádá o platbu {amount} se splatností {dueDate}."),
         },
         ["de"] = new()
         {
@@ -246,6 +252,9 @@ public static class NotificationTemplates
 
             [Key(NotificationType.OnboardingAnswersUpdated)] =
                 new("Fragebogenantworten aktualisiert", "{clientName} hat die Antworten im Aufnahmefragebogen geändert: {fields}. Prüfen Sie ggf. die Ziele des Klienten."),
+
+            [Key(NotificationType.PaymentRequested)] =
+                new("Zahlungsaufforderung", "{coachName} bittet um {amount}, fällig am {dueDate}."),
         },
     };
 

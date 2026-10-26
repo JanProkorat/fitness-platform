@@ -568,4 +568,83 @@ public static class ErrorCodes
 
     /// <summary>The client has not completed onboarding, so there are no answers to read or edit.</summary>
     public const string OnboardingNotCompleted = "ONBOARDING_NOT_COMPLETED";
+
+    // ── Coach payment settings (#1577) ──────────────────────────────────
+    /// <summary>The coach's subscription does not include the payments feature, or is not in good standing.</summary>
+    public const string PaymentsNotEntitled = "PAYMENTS_NOT_ENTITLED";
+
+    /// <summary>The IBAN is malformed or fails the mod-97 check.</summary>
+    public const string InvalidIban = "INVALID_IBAN";
+
+    /// <summary>The caller has a password but sent none; a bank account change needs it.</summary>
+    public const string ReauthPasswordRequired = "REAUTH_PASSWORD_REQUIRED";
+
+    /// <summary>The caller has no password and sent no emailed code; a bank account change needs it.</summary>
+    public const string ReauthCodeRequired = "REAUTH_CODE_REQUIRED";
+
+    /// <summary>The emailed code is wrong, expired, used up or locked after too many wrong attempts.</summary>
+    public const string ReauthCodeInvalid = "REAUTH_CODE_INVALID";
+
+    /// <summary>A code was requested by a caller who has a password and so does not use codes.</summary>
+    public const string ReauthCodeNotAvailable = "REAUTH_CODE_NOT_AVAILABLE";
+
+    /// <summary>The bank account undo token is unknown, expired or already used.</summary>
+    public const string BankAccountUndoInvalid = "BANK_ACCOUNT_UNDO_INVALID";
+
+    /// <summary>The bank account was changed again after the change being undone.</summary>
+    public const string BankAccountUndoSuperseded = "BANK_ACCOUNT_UNDO_SUPERSEDED";
+
+    // ── Invite package terms (#1676) ────────────────────────────────────
+    /// <summary>An invite names a discount but no package.</summary>
+    public const string InviteDiscountNeedsPackage = "INVITE_DISCOUNT_NEEDS_PACKAGE";
+
+    // ── Coach packages and discounts (#1578) ────────────────────────────
+    /// <summary>The package is archived and can no longer be edited.</summary>
+    public const string PackageArchived = "PACKAGE_ARCHIVED";
+
+    /// <summary>The discount is archived and can no longer be edited.</summary>
+    public const string DiscountArchived = "DISCOUNT_ARCHIVED";
+
+    /// <summary>A package the discount applies to is unknown, foreign or archived.</summary>
+    public const string DiscountPackageInvalid = "DISCOUNT_PACKAGE_INVALID";
+
+    /// <summary>A fixed discount and a package it is combined with are in different currencies.</summary>
+    public const string CurrencyMismatch = "CURRENCY_MISMATCH";
+
+    /// <summary>The currency cannot change while client terms use the package or fixed discount.</summary>
+    public const string CurrencyLocked = "CURRENCY_LOCKED";
+
+    // ── Client payments (#1579) ─────────────────────────────────────────
+    /// <summary>The coach has no IBAN or account holder set, so a payment cannot be requested.</summary>
+    public const string BankAccountNotSet = "BANK_ACCOUNT_NOT_SET";
+
+    /// <summary>The payment is already paid.</summary>
+    public const string PaymentAlreadyPaid = "PAYMENT_ALREADY_PAID";
+
+    /// <summary>The payment is already waived.</summary>
+    public const string PaymentAlreadyWaived = "PAYMENT_ALREADY_WAIVED";
+
+    /// <summary>Too many payment requests were sent for the client in a short time.</summary>
+    public const string PaymentRequestRateLimited = "PAYMENT_REQUEST_RATE_LIMITED";
+
+    /// <summary>A payment request must be sent by email, as a notification, or both.</summary>
+    public const string PaymentRequestChannelRequired = "PAYMENT_REQUEST_CHANNEL_REQUIRED";
+
+    /// <summary>The paid-on date is in the future.</summary>
+    public const string PaymentPaidOnInFuture = "PAYMENT_PAID_ON_IN_FUTURE";
+
+    /// <summary>Terms carry both a discount and a custom price.</summary>
+    public const string PaymentTermsDiscountAndCustomPrice = "PAYMENT_TERMS_DISCOUNT_AND_CUSTOM_PRICE";
+
+    /// <summary>A payment amount is not above zero or exceeds the payable maximum.</summary>
+    public const string PaymentAmountInvalid = "PAYMENT_AMOUNT_INVALID";
+
+    /// <summary>The coach has used all 9999 client numbers.</summary>
+    public const string PaymentClientNumberExhausted = "PAYMENT_CLIENT_NUMBER_EXHAUSTED";
+
+    /// <summary>No variable symbol is left for the month.</summary>
+    public const string PaymentVariableSymbolExhausted = "PAYMENT_VARIABLE_SYMBOL_EXHAUSTED";
+
+    /// <summary>The first billing period starts in the past or too far ahead.</summary>
+    public const string PaymentStartDateInvalid = "PAYMENT_START_DATE_INVALID";
 }

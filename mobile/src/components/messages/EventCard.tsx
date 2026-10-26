@@ -4,7 +4,7 @@ import type { SFSymbol } from 'expo-symbols';
 import { useTranslation } from 'react-i18next';
 
 import { CooperationCardStatus } from '@/api/generated';
-import { InviteActions } from '@/components/invites/InviteActions';
+import { Button } from '@/components/Button';
 import { Text } from '@/components/Text';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
@@ -26,8 +26,8 @@ type EventCardProps = {
   expiryText?: string;
   /** Date of the row that settled the card. */
   dateText?: string;
-  /** Accept and Decline for a pending invite the client received. */
-  actions?: { busy: boolean; onAccept: () => void; onDecline: () => void };
+  /** Opens the invite detail; set only for a pending invite the client received. */
+  onViewInvite?: () => void;
 };
 
 const DOMAIN_SYMBOLS: Record<EventCardDomain, SFSymbol> = {
@@ -46,7 +46,7 @@ export function EventCard({
   scopeText,
   expiryText,
   dateText,
-  actions,
+  onViewInvite,
 }: EventCardProps) {
   const { t } = useTranslation();
   const theme = useTheme();
@@ -87,8 +87,8 @@ export function EventCard({
           ) : null}
         </View>
       </View>
-      {actions ? (
-        <InviteActions size="card" busy={actions.busy} onAccept={actions.onAccept} onDecline={actions.onDecline} />
+      {onViewInvite ? (
+        <Button label={t('invites.viewInvite')} size="small" onPress={onViewInvite} style={styles.view} />
       ) : null}
     </View>
   );
@@ -123,6 +123,9 @@ const makeStyles = (theme: Theme) =>
       borderRadius: theme.radii.pill,
       alignItems: 'center',
       justifyContent: 'center',
+    },
+    view: {
+      height: theme.sizes.inviteButton,
     },
     copy: {
       flexShrink: 1,

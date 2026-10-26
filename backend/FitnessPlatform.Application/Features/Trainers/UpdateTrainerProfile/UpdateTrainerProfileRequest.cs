@@ -21,11 +21,6 @@ public class UpdateProfessionalProfileRequest
     public string? City { get; set; }
 
     /// <summary>
-    /// Estimated price per month (free-text).
-    /// </summary>
-    public string? EstimatedPrice { get; set; }
-
-    /// <summary>
     /// Specializations as a JSON array string.
     /// </summary>
     public string? Specializations { get; set; }

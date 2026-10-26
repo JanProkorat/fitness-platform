@@ -62,6 +62,11 @@ public class SubscriptionPlan : TimestampableEntity
     public bool CanUsePerClientCheckInConfig { get; set; }
 
     /// <summary>
+    /// Whether the plan allows the payments feature (bank account and payment settings).
+    /// </summary>
+    public bool CanUsePayments { get; set; }
+
+    /// <summary>
     /// Maximum number of active clients allowed under this plan. Null means unlimited.
     /// </summary>
     public int? MaxActiveClients { get; set; }

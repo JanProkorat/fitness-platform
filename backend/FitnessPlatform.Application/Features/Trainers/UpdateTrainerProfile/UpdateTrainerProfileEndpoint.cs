@@ -56,7 +56,6 @@ public class UpdateProfessionalProfileEndpoint(IApplicationDbContext db, IAuditS
         profile.Bio = req.Bio;
         profile.Specialization = req.Specialization;
         profile.City = req.City;
-        profile.EstimatedPrice = req.EstimatedPrice;
         profile.Specializations = req.Specializations;
         profile.Certificates = req.Certificates;
         profile.Languages = req.Languages;

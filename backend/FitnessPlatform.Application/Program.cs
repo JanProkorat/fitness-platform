@@ -263,6 +263,7 @@ builder.Services.AddScoped<IConversationSeedService, ConversationSeedService>();
 // RegisterEndpoint, GoogleSocialLoginEndpoint, and AppleSocialLoginEndpoint so the
 // coach's opening message is visible before the client accepts (#803/#817).
 builder.Services.AddScoped<IPendingInviteConversationSeeder, PendingInviteConversationSeeder>();
+builder.Services.AddScoped<IPendingInviteNotificationSeeder, PendingInviteNotificationSeeder>();
 
 // Weekly check-in scheduler — registered as both singleton (for test access) and hosted service.
 builder.Services.AddSingleton<WeeklyCheckInScheduler>();
@@ -307,6 +308,10 @@ builder.Services.Configure<TrainingLockOptions>(
     builder.Configuration.GetSection(TrainingLockOptions.SectionName));
 builder.Services.AddScoped<ISessionLockService, SessionLockService>();
 
+// Client app switches (optional "ClientApp" section; defaults show everything)
+builder.Services.Configure<FitnessPlatform.Application.Features.Client.GetClientAppConfig.ClientAppOptions>(
+    builder.Configuration.GetSection(FitnessPlatform.Application.Features.Client.GetClientAppConfig.ClientAppOptions.SectionName));
+
 // Compliance
 builder.Services.AddScoped<IComplianceService, ComplianceService>();
 
@@ -320,6 +325,8 @@ builder.Services.AddScoped<PlanConcurrencyGuard>();
 // Resolves a coach's effective feature entitlements + client-count limit from their
 // subscription (#593). No endpoint gates on this yet — see #594.
 builder.Services.AddScoped<EntitlementService>();
+builder.Services.AddScoped<ClientPaymentTermsWriter>();
+builder.Services.AddScoped<InvitePackageTermsApplier>();
 
 // One-shot CLI backfill, resolved by CliCommandDispatcher — never `new`-ed
 // directly. Scoped: takes IApplicationDbContext, which is scoped (see :56).

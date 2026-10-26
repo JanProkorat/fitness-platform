@@ -8,14 +8,14 @@ import type { Glass, GlassBlur } from './glass';
 import { buildShadows } from './shadows';
 import type { Shadows } from './shadows';
 import { launchGlowShapes, launchMotion } from './motion';
-import { radii, sizes, spacing } from './spacing';
+import { opacity, radii, sizes, spacing } from './spacing';
 import { fontAssets, launchTracking, textStyle, typography } from './typography';
 
 export type { ColorScheme, Colors, GlowColor, LaunchGlows } from './colors';
 export type { FontFamily, TypeStyle, TypographyRole } from './typography';
 export { fontAssets, launchTracking, textStyle, typography };
 export type { Glass, GlassBlur, Shadows };
-export { glass, launchGlowShapes, launchMotion, radii, sizes, spacing };
+export { glass, launchGlowShapes, launchMotion, opacity, radii, sizes, spacing };
 
 export type Theme = {
   scheme: ColorScheme;
@@ -23,6 +23,7 @@ export type Theme = {
   launchGlows: LaunchGlows;
   typography: typeof typography;
   spacing: typeof spacing;
+  opacity: typeof opacity;
   radii: typeof radii;
   sizes: typeof sizes;
   shadows: Shadows;
@@ -37,6 +38,7 @@ const buildTheme = (scheme: ColorScheme): Theme => {
     launchGlows: launchGlowColors[scheme],
     typography,
     spacing,
+    opacity,
     radii,
     sizes,
     shadows: buildShadows(scheme, colors),

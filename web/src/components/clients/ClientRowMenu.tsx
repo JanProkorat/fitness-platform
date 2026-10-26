@@ -5,8 +5,10 @@ import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 interface Props {
-  /** The row's client public id. Empty when the row has no detail page (no publicId, or an ended link). */
+  /** The row's client public id. Empty when the row has no page to open (no publicId). */
   publicId: string;
+  /** The collaboration ended: the detail page is gone, only the kept payments can still be opened. */
+  ended?: boolean;
 }
 
 /**
@@ -15,7 +17,7 @@ interface Props {
  * to a disabled item for the (should-not-happen) case of a row with no
  * `publicId`, rather than linking to a broken route.
  */
-export default function ClientRowMenu({ publicId }: Props) {
+export default function ClientRowMenu({ publicId, ended = false }: Props) {
   const { t } = useTranslation();
 
   return (
@@ -26,7 +28,11 @@ export default function ClientRowMenu({ publicId }: Props) {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        {publicId ? (
+        {ended && publicId ? (
+          <DropdownMenuItem asChild>
+            <Link to={`/clients/${publicId}/payment`}>{t('clients.rowMenu.payments')}</Link>
+          </DropdownMenuItem>
+        ) : publicId ? (
           <DropdownMenuItem asChild>
             <Link to={`/clients/${publicId}`}>{t('clients.rowMenu.viewDetail')}</Link>
           </DropdownMenuItem>

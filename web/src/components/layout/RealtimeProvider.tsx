@@ -1,8 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react';
-import { HubConnectionBuilder, HubConnection, LogLevel, HubConnectionState } from '@microsoft/signalr';
+import { HubConnectionBuilder, HubConnection, LogLevel, HubConnectionState, HttpError } from '@microsoft/signalr';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/auth';
+import { executeRefresh } from '@/lib/refresh';
 import { RealtimeContext, setHubConnection, useSignalR, type RealtimeApi } from '@/hooks/useSignalR';
+
+const RESTART_INITIAL_DELAY_MS = 2000;
+const RESTART_MAX_DELAY_MS = 30000;
 
 type Handler = (payload: unknown) => void;
 
@@ -85,29 +89,79 @@ export default function RealtimeProvider({ children }: { children: ReactNode }) 
       reconnectedRef.current.forEach((callback) => callback());
     });
 
-    // If cleanup runs mid-negotiation, let start() finish and then stop —
-    // calling stop() during negotiation logs an internal SignalR error.
-    connection
-      .start()
-      .then(() => {
-        if (cancelled) {
-          connection.stop();
-          return;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let starting = false;
+    // Set once a start failed or the connection closed, so the next success refreshes the lists.
+    let recovering = false;
+    let delay = RESTART_INITIAL_DELAY_MS;
+
+    const scheduleRestart = () => {
+      if (cancelled || timer !== null || starting) return;
+      recovering = true;
+      const wait = delay;
+      delay = Math.min(delay * 2, RESTART_MAX_DELAY_MS);
+      timer = setTimeout(() => {
+        timer = null;
+        void startConnection();
+      }, wait);
+    };
+
+    // Restarts the same connection object, so handlers and attachedRef stay valid.
+    const startConnection = async () => {
+      if (cancelled || starting || connection.state !== HubConnectionState.Disconnected) return;
+      starting = true;
+      try {
+        await connection.start();
+      } catch (err) {
+        starting = false;
+        if (cancelled) return;
+        console.warn('[SignalR] Connection failed:', err);
+        if (err instanceof HttpError && err.statusCode === 401) {
+          // Token expired while the hub was down; the factory reads the refreshed one.
+          try {
+            await executeRefresh();
+          } catch {
+            // Refresh failed: stop retrying and let the normal logout flow take over.
+            return;
+          }
+          if (cancelled) return;
         }
-        setHubConnection(connection);
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          console.warn('[SignalR] Connection failed:', err);
-        }
-      });
+        scheduleRestart();
+        return;
+      }
+      starting = false;
+      // If cleanup ran mid-negotiation, stop now: stop() during negotiation logs an internal error.
+      if (cancelled) {
+        void connection.stop();
+        return;
+      }
+      delay = RESTART_INITIAL_DELAY_MS;
+      setHubConnection(connection);
+      if (recovering) {
+        recovering = false;
+        console.log('[SignalR] Restarted');
+        reconnectedRef.current.forEach((callback) => callback());
+      }
+    };
+
+    connection.onclose(() => {
+      if (cancelled) return;
+      console.warn('[SignalR] Connection closed, restarting');
+      scheduleRestart();
+    });
+
+    void startConnection();
 
     return () => {
       cancelled = true;
+      if (timer !== null) {
+        clearTimeout(timer);
+        timer = null;
+      }
       if (connectionRef.current === connection) connectionRef.current = null;
       setHubConnection(null);
       if (connection.state === HubConnectionState.Connected) {
-        connection.stop();
+        void connection.stop();
       }
     };
   }, [isAuthenticated, attach]);

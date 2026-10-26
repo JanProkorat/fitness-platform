@@ -211,6 +211,8 @@
     "clientManagementSection": "Správa klientů",
     "nutritionSection": "Výživa",
     "formsSection": "Formuláře",
+    "businessSection": "Podnikání",
+    "packages": "Balíčky",
     "forms": "Formuláře",
     "help": "Nápověda a podpora",
     "trainingPlan": "Tréninkový plán",
@@ -262,7 +264,7 @@
   "settings": {
     "eyebrow": "Účet",
     "title": "Nastavení",
-    "subtitle": "Přihlášení, oznámení a role na vašem účtu",
+    "subtitle": "Přihlášení, oznámení, platby a role na vašem účtu",
     "loadError": "Nastavení se nepodařilo načíst. Obnovte prosím stránku.",
     "status": {
       "saved": "Všechny změny uloženy",
@@ -595,7 +597,8 @@
     },
     "rowMenu": {
       "open": "Otevřít nabídku řádku",
-      "viewDetail": "Otevřít detail klienta"
+      "viewDetail": "Otevřít detail klienta",
+      "payments": "Platby"
     },
     "noResultsForFilters": "Žádní klienti neodpovídají zvoleným filtrům.",
     "clearFilters": "Zrušit filtry",
@@ -881,6 +884,7 @@
         "client": "Klient",
         "scope": "Co budete vést",
         "onboarding": "Úvodní formulář",
+        "payment": "Platba",
         "message": "Osobní zpráva"
       },
       "emailLabel": "E-mail",
@@ -901,6 +905,27 @@
       "questionnaireHelper": "Vyplní ho hned po přijetí pozvánky. Vyberte „Žádný“, pokud ho nechcete posílat.",
       "questionnaireLoadError": "Formuláře se nepodařilo načíst. Pozvánku můžete odeslat i bez nich.",
       "optional": "(nepovinné)",
+      "payment": {
+        "package": "Balíček",
+        "packagePlaceholder": "Bez balíčku",
+        "discount": "Sleva",
+        "discountPlaceholder": "Bez slevy",
+        "noDiscounts": "Žádné slevy k dispozici",
+        "discountNeedsPackage": "Nejdřív vyberte balíček",
+        "noPackages": "Zatím nemáte žádné balíčky.",
+        "createPackage": "Vytvořit balíček",
+        "loadError": "Balíčky se nepodařilo načíst. Pozvánku můžete odeslat i bez nich.",
+        "pays": "Klient platí",
+        "helper": "Zobrazí se v pozvánce. Přiřadí se, až ji klient přijme, a fakturace začne ten den.",
+        "errors": {
+          "notEntitled": "Platby nejsou součástí vašeho tarifu. Odeberte balíček a pozvánku odešlete znovu.",
+          "packageArchived": "Tento balíček je archivovaný. Vyberte jiný a odešlete pozvánku znovu.",
+          "discountArchived": "Tato sleva je archivovaná. Vyberte jinou nebo žádnou a odešlete pozvánku znovu.",
+          "discountInvalid": "Tato sleva se na vybraný balíček nevztahuje. Vyberte jinou.",
+          "currencyMismatch": "Sleva s pevnou částkou musí být ve stejné měně jako balíček.",
+          "unavailable": "Balíček nebo sleva už není k dispozici. Seznamy jsme obnovili."
+        }
+      },
       "messageLabel": "Zpráva v e-mailu s pozvánkou",
       "footerNote": "Pozvánka zůstane v části Čekající, dokud ji klient nepřijme",
       "submit": "Odeslat pozvánku",
@@ -946,8 +971,6 @@
     "visibleToClients": "Zobrazuje se klientům",
     "city": "Město",
     "cityPlaceholder": "Vaše město",
-    "estimatedPrice": "Orientační cena / měsíc",
-    "estimatedPricePlaceholder": "Např. 2 000–4 000 Kč",
     "specializations": "Specializace",
     "addSpecialization": "Přidat specializaci...",
     "certificates": "Certifikáty & vzdělání",
@@ -1007,8 +1030,12 @@
         "description": "První, co klient přečte, než vám pošle žádost.",
         "bioHint": "Komu pomáháte, jak pracujete a co může klient čekat v prvním měsíci.",
         "cityHint": "Zobrazuje se ve vyhledávání, klienti podle něj filtrují.",
-        "price": "Cena za měsíc",
-        "priceHint": "Volný text, např. „od 2 500 Kč“."
+        "price": "Cena",
+        "priceHint": "Podle nejlevnějšího aktivního balíčku zobrazeného na vašem profilu.",
+        "priceFrom": "od {{price}} {{unit}}",
+        "priceNone": "Zatím není zobrazen žádný balíček",
+        "priceManage": "Balíčky",
+        "priceSetUp": "Vytvořit balíček"
       },
       "expertise": {
         "title": "Odbornost",
@@ -1060,8 +1087,7 @@
         "both": "Online i osobně",
         "taking": "Přijímám nové klienty",
         "notTaking": "Nepřijímám klienty",
-        "price": "Cena",
-        "perMonth": "/ měsíc",
+        "price": "Cena od",
         "languages": "Jazyky",
         "certificates": "Certifikáty",
         "note": "Mění se, jak píšete. Klienti vidí tuto kartu ve vyhledávání a na odkazu s pozvánkou."
@@ -2603,8 +2629,358 @@
     "list": "Seznam",
     "quote": "Citace"
   },
+  "payments": {
+    "client": {
+      "retry": "Zkusit znovu",
+      "loadError": "Platby tohoto klienta se nepodařilo načíst.",
+      "ended": "Spolupráce skončila. Platby můžete dál vyřizovat, cenu ani další platby už ale přidávat nelze.",
+      "notFound": "S klientem {{name}} už nejste propojeni, jeho platby nejsou dostupné.",
+      "billing": {
+        "monthly": "/ měsíc",
+        "everyWeeks_one": "/ týden",
+        "everyWeeks_few": "/ {{count}} týdny",
+        "everyWeeks_many": "/ {{count}} týdne",
+        "everyWeeks_other": "/ {{count}} týdnů",
+        "oneOff": "jednorázově"
+      },
+      "summary": {
+        "label": "Přehled plateb",
+        "package": "Balíček",
+        "nextPayment": "Další platba",
+        "paidUntil": "Zaplaceno do",
+        "noPackage": "Zatím žádný balíček",
+        "noPackageHint": "Pro zahájení fakturace vyberte balíček v části Cena.",
+        "endedHint": "Spolupráce skončila.",
+        "endedNoPackage": "Žádný balíček",
+        "customPrice": "individuální cena {{price}}",
+        "due": "Splatnost {{date}}",
+        "overdueSince": "Po splatnosti od {{date}}",
+        "requestedOn": "vyžádáno {{date}}",
+        "notRequested": "zatím nevyžádáno",
+        "nothingDue": "Nic nečeká na zaplacení",
+        "paidCount": "zaplaceno {{paid}} z {{total}} splatných plateb",
+        "clientSince": "klient od {{date}}"
+      },
+      "list": {
+        "title": "Platby",
+        "addOneOff": "Přidat jednorázovou platbu",
+        "request": "Vyžádat platbu",
+        "noBankAccount": "Než vyžádáte platbu, doplňte svůj bankovní účet.",
+        "openSettings": "Otevřít Nastavení",
+        "loadError": "Platby se nepodařilo načíst.",
+        "empty": "Zatím žádné platby. Vyberte klientovi {{name}} balíček a první platba se vytvoří.",
+        "footnote": "Klient {{name}} platí bankovním převodem na váš účet. Platbu najdete ve výpisu z banky podle variabilního symbolu a pak ji označíte jako zaplacenou."
+      },
+      "table": {
+        "period": "Období",
+        "amount": "Částka",
+        "due": "Splatnost",
+        "variableSymbol": "Variabilní symbol",
+        "status": "Stav",
+        "actions": "Akce"
+      },
+      "status": {
+        "upcoming": "Připravuje se",
+        "requested": "Vyžádáno",
+        "overdue": "Po splatnosti",
+        "overdueDays_one": "Po splatnosti · {{count}} den",
+        "overdueDays_few": "Po splatnosti · {{count}} dny",
+        "overdueDays_many": "Po splatnosti · {{count}} dne",
+        "overdueDays_other": "Po splatnosti · {{count}} dní",
+        "paid": "Zaplaceno {{date}}",
+        "daysLate_one": "{{count}} den po splatnosti",
+        "daysLate_few": "{{count}} dny po splatnosti",
+        "daysLate_many": "{{count}} dne po splatnosti",
+        "daysLate_other": "{{count}} dní po splatnosti",
+        "waived": "Prominuto",
+        "waivedReason": "Prominuto · {{reason}}"
+      },
+      "row": {
+        "oneOff": "Jednorázová platba",
+        "markPaid": "Označit jako zaplacené",
+        "menu": "Menu platby",
+        "request": "Vyžádat platbu",
+        "requestAgain": "Vyžádat znovu",
+        "copySymbol": "Zkopírovat variabilní symbol",
+        "waive": "Prominout platbu",
+        "copied": "Variabilní symbol zkopírován.",
+        "copyError": "Variabilní symbol se nepodařilo zkopírovat."
+      },
+      "markPaid": {
+        "title": "Označit {{period}} jako zaplacené",
+        "description": "Potvrďte, že peníze od klienta {{name}} dorazily na váš účet.",
+        "paidOn": "Den připsání",
+        "dateRequired": "Vyberte den, kdy peníze dorazily.",
+        "dateInFuture": "Den nesmí být v budoucnosti.",
+        "submit": "Označit jako zaplacené",
+        "success": "Platba označena jako zaplacená.",
+        "error": "Platbu se nepodařilo označit jako zaplacenou."
+      },
+      "waive": {
+        "title": "Prominout {{period}}?",
+        "description": "Klient {{name}} už nebude vyzván k zaplacení. Nelze vrátit zpět.",
+        "reason": "Důvod",
+        "reasonHint": "Nepovinné. Vidíte ho jen vy.",
+        "reasonTooLong": "Použijte nejvýše {{max}} znaků.",
+        "submit": "Prominout platbu",
+        "success": "Platba prominuta.",
+        "error": "Platbu se nepodařilo prominout."
+      },
+      "oneOff": {
+        "title": "Přidat jednorázovou platbu",
+        "description": "Jednorázová platba pro klienta {{name}} mimo balíček.",
+        "forLabel": "Za co platí",
+        "forHint": "Například „Nutriční konzultace“.",
+        "titleRequired": "Uveďte, za co platba je.",
+        "titleTooLong": "Použijte nejvýše {{max}} znaků.",
+        "amount": "Částka",
+        "amountInvalid": "Zadejte částku větší než nula.",
+        "currency": "Měna",
+        "due": "Splatnost",
+        "dueRequired": "Vyberte datum splatnosti.",
+        "submit": "Přidat platbu",
+        "success": "Jednorázová platba přidána.",
+        "error": "Platbu se nepodařilo přidat."
+      },
+      "request": {
+        "title": "Vyžádat platbu",
+        "description": "Klient {{name}} platí bankovním převodem ze své banky.",
+        "coachFallback": "Váš trenér",
+        "payment": {
+          "heading": "Platba"
+        },
+        "for": "Za",
+        "forHint": "Předvybráno je nejbližší nezaplacené období. Vyberte jiné, nebo přidejte jednorázovou platbu.",
+        "dueDate": "Splatnost",
+        "dueRequired": "Vyberte datum splatnosti.",
+        "duePast": "Splatnost nesmí být v minulosti.",
+        "amount": "Částka",
+        "amountHint": "Cena balíčku po slevě.",
+        "amountHintOneOff": "Jednorázová platba.",
+        "amountEditing": "Změní jen tuto žádost.",
+        "amountInvalid": "Zadejte částku větší než nula a menší než 10 milionů.",
+        "changeAmount": "Změnit",
+        "sendBy": {
+          "heading": "Odeslat přes",
+          "notification": "Oznámení v aplikaci",
+          "email": "E-mail"
+        },
+        "channelRequired": "Vyberte alespoň jeden způsob odeslání.",
+        "preview": {
+          "heading": "Co uvidí klient {{name}}",
+          "asks": "{{coach}} žádá {{amount}}",
+          "due": "splatnost {{date}}",
+          "account": "Účet",
+          "variableSymbol": "Variabilní symbol",
+          "symbolOnSend": "Přidělí se při odeslání",
+          "message": "Zpráva pro příjemce",
+          "messageOnSend": "Nastaví se při odeslání"
+        },
+        "footnote": "Jako zaplacenou ji označíte, až peníze dorazí.",
+        "submit": "Odeslat žádost",
+        "sent": "Žádost o platbu odeslána.",
+        "sentEmailFailed": "Oznámení odesláno, ale e-mail se nepodařilo doručit.",
+        "error": "Žádost o platbu se nepodařilo odeslat.",
+        "openSettings": "Otevřít Nastavení",
+        "nothingToRequest": "Všechny platby jsou vyřízené."
+      },
+      "terms": {
+        "title": "Cena pro klienta {{name}}",
+        "changePackage": "Změnit balíček",
+        "package": "Balíček",
+        "packagePlaceholder": "Vyberte balíček",
+        "packageRequired": "Vyberte balíček.",
+        "discount": "Sleva",
+        "noDiscount": "Bez slevy",
+        "noDiscounts": "Žádné slevy k dispozici",
+        "discountOffCustom": "Při individuální ceně se sleva nepoužije",
+        "removeDiscount": "Odebrat slevu",
+        "customPrice": "Individuální cena",
+        "customPriceHint": "Nahradí cenu balíčku i slevu jen pro klienta {{name}}.",
+        "customPriceLabel": "Individuální cena za období",
+        "customPriceInvalid": "Zadejte cenu větší než nula.",
+        "firstPeriod": "První fakturační období začíná",
+        "startPast": "Začátek nesmí být v minulosti.",
+        "packagePrice": "Cena balíčku",
+        "pays": "Klient {{name}} platí",
+        "paysFirstPayments_one": "{{amount}} za první platbu, poté {{full}} {{suffix}}",
+        "paysFirstPayments_few": "{{amount}} za první {{count}} platby, poté {{full}} {{suffix}}",
+        "paysFirstPayments_many": "{{amount}} za prvních {{count}} plateb, poté {{full}} {{suffix}}",
+        "paysFirstPayments_other": "{{amount}} za prvních {{count}} plateb, poté {{full}} {{suffix}}",
+        "appliesFrom": "Změny se projeví od dalšího fakturačního období ({{month}}).",
+        "appliesFromNext": "Změny se projeví od dalšího fakturačního období.",
+        "startsFirst": "Fakturace začne v den, který vyberete výše.",
+        "noPackages": "Zatím nemáte žádné balíčky.",
+        "createPackage": "Vytvořit balíček",
+        "save": "Uložit cenu",
+        "saved": "Cena uložena.",
+        "saveError": "Cenu se nepodařilo uložit.",
+        "currencyMismatch": "Pevná sleva musí být ve stejné měně jako balíček.",
+        "loadError": "Balíčky a slevy se nepodařilo načíst."
+      },
+      "reminders": {
+        "title": "Žádosti a upomínky",
+        "link": "Záložka Automatizace",
+        "body": "Kdy se žádosti o platbu a upomínky odesílají, určují pravidla na záložce Automatizace."
+      },
+      "history": {
+        "title": "Historie změn",
+        "onlyYou": "Vidíte jen vy",
+        "empty": "Zatím nic.",
+        "terms": "Nastavili jste balíček {{package}}{{discount}}",
+        "oneOff": "Přidali jste jednorázovou platbu „{{title}}“{{amount}}",
+        "paid": "Označili jste {{period}} jako zaplacené",
+        "waived": "Prominuli jste {{period}}",
+        "waivedReason": "Prominuli jste {{period}} · „{{reason}}“",
+        "requested": "Vyžádali jste {{period}}{{amount}}",
+        "ended": "Spolupráce skončila.",
+        "unknown": "Něco jste změnili."
+      }
+    },
+    "settings": {
+      "title": "Platby",
+      "description": "Kam klienti posílají peníze. Form Up je nikdy nedrží ani nepřesouvá.",
+      "badge": "Bankovní převod · QR Platba",
+      "iban": "Bankovní účet (IBAN)",
+      "ibanHint": "Vaši propojení klienti ho vidí jen u žádostí o platbu.",
+      "noAccount": "Účet zatím není nastaven",
+      "holder": "Majitel účtu",
+      "holderHint": "Musí odpovídat účtu.",
+      "protected": "Chráněno",
+      "protectedHint": "Změna účtu vyžaduje vaše heslo a pošle vám e-mail. Naposledy změněno {{date}}.",
+      "addAccountTitle": "Přidejte bankovní účet",
+      "addAccountHint": "Klienti ho potřebují, aby vám mohli platit. Přidání vyžaduje vaše heslo a pošle vám e-mail.",
+      "changeAccount": "Změnit účet",
+      "addAccount": "Přidat účet",
+      "due": "Splatnost",
+      "dueHint": "Balíčky ji mohou přepsat.",
+      "dueOption_one": "{{count}} den po žádosti",
+      "dueOption_few": "{{count}} dny po žádosti",
+      "dueOption_many": "{{count}} dne po žádosti",
+      "dueOption_other": "{{count}} dní po žádosti",
+      "message": "Zpráva pro platbu",
+      "messageFormat": {
+        "PackageNameAndMonth": "Název balíčku + měsíc",
+        "PackageName": "Název balíčku",
+        "ClientNameAndMonth": "Jméno klienta + měsíc"
+      },
+      "messageExample": {
+        "PackageNameAndMonth": "např. „Online trénink 11/2026“",
+        "PackageName": "např. „Online trénink“",
+        "ClientNameAndMonth": "např. „Eva Svobodová 11/2026“"
+      },
+      "symbol": "Variabilní symbol",
+      "symbolHint": "Pro každou platbu jedinečný, abyste ji snadno spárovali.",
+      "symbolFormat": {
+        "YearMonthClientNumber": "Rok, měsíc, číslo klienta",
+        "YearMonthSequence": "Rok, měsíc, pořadové číslo"
+      },
+      "currency": "Hlavní měna",
+      "currencyHint": "Cena „od“ na vašem veřejném profilu se zobrazuje v této měně.",
+      "currencyOption": {
+        "CZK": "CZK · česká koruna",
+        "EUR": "EUR · euro"
+      },
+      "reminders": "Žádosti a upomínky",
+      "remindersHint": "Kdy žádosti odcházejí, určují pravidla na stránce Automatizace.",
+      "openAutomations": "Otevřít Automatizace",
+      "saveError": "Nastavení plateb se nepodařilo uložit.",
+      "loadError": "Nastavení plateb se nepodařilo načíst.",
+      "packages": {
+        "title": "Balíčky a slevy",
+        "description": "Co účtujete a kdo má slevu.",
+        "counts": "Balíčky: {{packages}} · aktivní slevy: {{discounts}}",
+        "open": "Otevřít Balíčky"
+      },
+      "bank": {
+        "title": "Změnit bankovní účet",
+        "lede": "Nové žádosti o platbu použijí nový účet. Již odeslané žádosti zůstanou u starého.",
+        "newIban": "Nový IBAN",
+        "ibanRequired": "Zadejte IBAN.",
+        "ibanInvalid": "Tento IBAN není platný. Zkontrolujte překlepy.",
+        "ibanChecked": "Zkontrolováno · {{iban}}",
+        "ibanCurrent": "Aktuální účet: {{iban}}",
+        "holder": "Majitel účtu",
+        "holderRequired": "Zadejte majitele účtu.",
+        "holderTooLong": "Použijte nejvýše {{max}} znaků.",
+        "password": "Vaše heslo",
+        "passwordHint": "Přihlašujete se přes Google? Místo toho vám pošleme kód e-mailem.",
+        "passwordRequired": "Zadejte své heslo.",
+        "code": "Kód z e-mailu",
+        "codeHint": "Přihlašujete se bez hesla, proto vám e-mailem pošleme jednorázový kód.",
+        "codeSent": "Kód odeslán na {{email}}.",
+        "codeRequired": "Zadejte kód z e-mailu.",
+        "sendCode": "Poslat kód",
+        "sendingCode": "Odesílám…",
+        "resendCode": "Poslat nový kód",
+        "codeError": "Kód se nepodařilo odeslat.",
+        "notice": "O této změně pošleme e-mail na {{email}} s odkazem pro vrácení zpět, pokud jste ji neprovedli vy.",
+        "submit": "Změnit účet",
+        "success": "Bankovní účet změněn.",
+        "error": "Bankovní účet se nepodařilo změnit.",
+        "rateLimited": "Příliš mnoho pokusů. Zkuste to za pár minut."
+      }
+    },
+    "undo": {
+      "signIn": "Přejít k přihlášení",
+      "confirm": {
+        "title": "Vrátit změnu bankovního účtu?",
+        "body": "Obnoví se bankovní účet, který jste měli před změnou. Udělejte to jen tehdy, pokud změnu neprovedli vy.",
+        "button": "Vrátit změnu",
+        "working": "Obnovuji…",
+        "notNow": "Teď ne"
+      },
+      "success": {
+        "title": "Původní účet obnoven",
+        "body": "Váš dřívější bankovní účet je zpět. Pokud změnu neprovedli vy, změňte také heslo."
+      },
+      "invalid": {
+        "title": "Tento odkaz už nefunguje",
+        "body": "Vypršel, už byl použit, nebo není platný. Změna zůstává, jak je."
+      },
+      "superseded": {
+        "title": "Účet byl změněn znovu",
+        "body": "Po této změně byl bankovní účet změněn ještě jednou, proto ji tímto odkazem nelze vrátit. Přihlaste se a zkontrolujte ho v Nastavení."
+      },
+      "rateLimited": {
+        "title": "Příliš mnoho pokusů",
+        "body": "Počkejte pár minut a otevřete odkaz znovu."
+      },
+      "generic": {
+        "title": "Něco se pokazilo",
+        "body": "Změna nebyla vrácena. Zkuste to za chvíli znovu."
+      },
+      "missing": {
+        "title": "Odkaz je neúplný",
+        "body": "Otevřete odkaz z e-mailu znovu, nebo se přihlaste a změňte bankovní účet v Nastavení."
+      }
+    }
+  },
   "apiErrors": {
+    "PAYMENTS_NOT_ENTITLED": "Platby nejsou součástí vašeho tarifu.",
+    "BANK_ACCOUNT_NOT_SET": "Než vyžádáte platbu, doplňte v Nastavení bankovní účet.",
+    "PAYMENT_ALREADY_PAID": "Tato platba už byla označena jako zaplacená.",
+    "PAYMENT_ALREADY_WAIVED": "Tato platba už byla prominuta.",
+    "PAYMENT_REQUEST_RATE_LIMITED": "O tuto platbu jste právě požádali. Před dalším pokusem počkejte minutu.",
+    "PAYMENT_REQUEST_CHANNEL_REQUIRED": "Vyberte alespoň jeden způsob odeslání žádosti.",
+    "PAYMENT_PAID_ON_IN_FUTURE": "Den připsání peněz nesmí být v budoucnosti.",
+    "PAYMENT_TERMS_DISCOUNT_AND_CUSTOM_PRICE": "Použijte slevu, nebo individuální cenu, ne obojí.",
+    "PAYMENT_AMOUNT_INVALID": "Částka musí být větší než nula a menší než 10 milionů.",
+    "PAYMENT_CLIENT_NUMBER_EXHAUSTED": "Došla čísla klientů pro variabilní symboly.",
+    "PAYMENT_VARIABLE_SYMBOL_EXHAUSTED": "Pro tento měsíc už nezbývá žádný variabilní symbol.",
+    "PAYMENT_START_DATE_INVALID": "První fakturační období nemůže začínat v minulosti ani příliš daleko v budoucnu.",
+    "INVALID_IBAN": "Tento IBAN není platný.",
+    "REAUTH_PASSWORD_REQUIRED": "Pro změnu bankovního účtu zadejte své heslo.",
+    "INVALID_CURRENT_PASSWORD": "To není vaše současné heslo.",
+    "REAUTH_CODE_REQUIRED": "Zadejte kód, který jsme vám poslali e-mailem.",
+    "REAUTH_CODE_INVALID": "Kód je chybný, vypršel nebo je zablokovaný. Požádejte o nový.",
+    "REAUTH_CODE_NOT_AVAILABLE": "Váš účet používá heslo, ne kód z e-mailu.",
     "AUTOMATION_RULE_NOT_FOUND": "Toto pravidlo už neexistuje.",
+    "PACKAGE_ARCHIVED": "Tento balíček je archivovaný a už ho nelze měnit.",
+    "DISCOUNT_ARCHIVED": "Tato sleva je archivovaná a už ji nelze měnit.",
+    "DISCOUNT_PACKAGE_INVALID": "Jeden z vybraných balíčků je archivovaný nebo už neexistuje. Seznam byl obnoven.",
+    "CURRENCY_MISMATCH": "Sleva s pevnou částkou musí mít stejnou měnu jako každý balíček, pro který platí.",
+    "CURRENCY_LOCKED": "Měnu nelze změnit, dokud ji klienti používají. Uložená měna byla obnovena.",
     "AUTOMATION_TAG_NOT_FOUND": "Vybraný štítek už neexistuje.",
     "AUTOMATION_AUDIENCE_CLIENT_NOT_FOUND": "Jeden z vybraných klientů už s vámi není propojený.",
     "AUTOMATION_QUESTIONNAIRE_NOT_FOUND": "Vybraný formulář už neexistuje.",
@@ -4914,6 +5290,12 @@
         "resend": "Poslat znovu"
       }
     },
+    "inviteAccept": {
+      "title": "Máte pozvánku do Form Up",
+      "lede": "Otevřete aplikaci a přihlaste se e-mailem, na který pozvánka dorazila — najdete ji na obrazovce Dnes.",
+      "openApp": "Otevřít aplikaci",
+      "getApp": "Aplikaci ještě nemáte?"
+    },
     "verifyEmail": {
       "verifying": "Ověřujeme váš e-mail...",
       "success": {
@@ -5274,6 +5656,207 @@
       "trendDelta": "−2,1 za 6 týdnů",
       "reviewQuote": "„V pátek jsem měla těžké nohy.“ · energie 4/5",
       "replyPlaceholder": "Odpovědět Petře…"
+    }
+  },
+  "packages": {
+    "eyebrow": "Podnikání",
+    "title": "Balíčky",
+    "subtitle": "Za co vám klienti platí. Balíček přiřadíte na záložce Platby u klienta.",
+    "newPackage": "Nový balíček",
+    "tabs": {
+      "packages": "Balíčky",
+      "discounts": "Slevy"
+    },
+    "table": {
+      "package": "Balíček",
+      "price": "Cena",
+      "billing": "Fakturace",
+      "clients": "Klienti",
+      "status": "Stav",
+      "publicProfile": "Veřejný profil",
+      "actions": "Akce",
+      "clientCount_one": "{{count}} klient",
+      "clientCount_few": "{{count}} klienti",
+      "clientCount_many": "{{count}} klienta",
+      "clientCount_other": "{{count}} klientů",
+      "onProfile": "Na profilu",
+      "hidden": "Skrytý"
+    },
+    "billing": {
+      "Monthly": "Měsíčně",
+      "EveryNWeeks": "Každých N týdnů",
+      "OneOff": "Jednorázově"
+    },
+    "billingEveryN_one": "Každý týden",
+    "billingEveryN_few": "Každé {{count}} týdny",
+    "billingEveryN_many": "Každého {{count}} týdne",
+    "billingEveryN_other": "Každých {{count}} týdnů",
+    "status": {
+      "active": "Aktivní",
+      "ended": "Skončila",
+      "archived": "Archivovaný"
+    },
+    "empty": "Zatím žádné balíčky. Vytvořte první a přiřaďte ho klientovi.",
+    "footer": "Balíčků: {{count}} · Archivované balíčky dál fakturují klienty, dokud je nepřesunete",
+    "loadError": "Seznam se nepodařilo načíst.",
+    "retry": "Zkusit znovu",
+    "saveSuccess": "Balíček byl uložen.",
+    "saveError": "Balíček se nepodařilo uložit.",
+    "archiveSuccess": "Balíček byl archivován.",
+    "archiveError": "Balíček se nepodařilo archivovat.",
+    "rowMenu": {
+      "open": "Akce pro {{name}}",
+      "edit": "Upravit",
+      "archive": "Archivovat"
+    },
+    "archiveDialog": {
+      "title": "Archivovat balíček",
+      "description": "Archivovat „{{name}}“? Klienti, kteří na něm už platí, si podmínky ponechají, dokud je nepřesunete. Novým klientům ho přiřadit nepůjde.",
+      "confirm": "Archivovat"
+    },
+    "profileCard": {
+      "title": "Váš veřejný profil ukazuje „od {{price}} {{unit}}“",
+      "body": "Nejlevnější aktivní balíček označený „Na profilu“. Nahrazuje původní cenu zadanou volným textem.",
+      "emptyTitle": "Váš veřejný profil zatím neukazuje žádnou cenu",
+      "emptyBody": "Označte aktivní balíček „Na profilu“ a ukáže se cena „od …“.",
+      "open": "Otevřít profil"
+    },
+    "paywall": {
+      "badge": "Není ve vašem tarifu",
+      "title": "Platby nejsou součástí vašeho tarifu",
+      "description": "Nastavte si balíčky a slevy a sledujte, co vám který klient platí.",
+      "bullet1": "Balíčky s cenou a cyklem fakturace",
+      "bullet2": "Slevy pro jednotlivé klienty nebo kampaně",
+      "bullet3": "Žádosti o platbu a přehled u každého klienta"
+    },
+    "validation": {
+      "nameRequired": "Zadejte název.",
+      "nameTooLong": "Název může mít nejvýše 100 znaků.",
+      "descriptionTooLong": "Popis může mít nejvýše 500 znaků.",
+      "priceInvalid": "Zadejte cenu vyšší než 0 s nejvýše 2 desetinnými místy.",
+      "priceTooHigh": "Cena je nad limitem pro tuto měnu.",
+      "intervalWeeks": "Zadejte celý počet týdnů od 1 do 52.",
+      "runsFor": "Zadejte celý počet plateb od 1 do 120.",
+      "paymentDue": "Zadejte celý počet dní od 1 do 90."
+    },
+    "drawer": {
+      "titleNew": "Nový balíček",
+      "titleEdit": "Upravit {{name}}",
+      "description": "Klienti vám platí bankovním převodem",
+      "sectionPackage": "Balíček",
+      "name": "Název",
+      "included": "Co je v ceně",
+      "sectionPrice": "Cena a fakturace",
+      "price": "Cena",
+      "currency": "Měna",
+      "currencyLocked": "Měnu nelze změnit, dokud na balíčku platí klienti.",
+      "priceCap": "Nejvýše {{max}}",
+      "billing": "Fakturace",
+      "intervalWeeks": "Týdnů mezi platbami",
+      "runsFor": "Trvá",
+      "runsForPlaceholder": "Dokud ho neukončíte",
+      "runsForHint": "Nebo pevný počet plateb",
+      "runsForOption_one": "{{count}} platba",
+      "runsForOption_few": "{{count}} platby",
+      "runsForOption_many": "{{count}} platby",
+      "runsForOption_other": "{{count}} plateb",
+      "paymentDue": "Splatnost",
+      "paymentDuePlaceholder": "Použít mou výchozí",
+      "paymentDueOption_one": "{{count}} den od žádosti",
+      "paymentDueOption_few": "{{count}} dny od žádosti",
+      "paymentDueOption_many": "{{count}} dne od žádosti",
+      "paymentDueOption_other": "{{count}} dní od žádosti",
+      "paymentDueHint": "Výchozí z Nastavení › Platby",
+      "sectionVisibility": "Viditelnost",
+      "showOnProfile": "Zobrazit na mém veřejném profilu",
+      "showOnProfileHint": "Použije se pro cenu „od … / měsíc“, kterou klienti vidí ve vyhledávání.",
+      "priceChangeNote": "Pozdější změna ceny se uplatní od dalšího fakturačního období každého klienta. Už odeslané žádosti si ponechají svou částku.",
+      "footer": "Balíček lze archivovat, ne smazat",
+      "save": "Uložit balíček",
+      "saving": "Ukládání..."
+    },
+    "discounts": {
+      "newDiscount": "Nová sleva",
+      "empty": "Zatím žádné slevy.",
+      "footer": "Jedna sleva na klienta. Individuální cena na záložce Platby u klienta nahrazuje cenu balíčku i slevu.",
+      "saveSuccess": "Sleva byla uložena.",
+      "saveError": "Slevu se nepodařilo uložit.",
+      "archiveSuccess": "Sleva byla archivována.",
+      "archiveError": "Slevu se nepodařilo archivovat.",
+      "archiveDialog": {
+        "title": "Archivovat slevu",
+        "description": "Archivovat „{{name}}“? Klienti, kteří ji už používají, si ji ponechají, dokud jim nezměníte podmínky."
+      },
+      "table": {
+        "discount": "Sleva",
+        "value": "Hodnota",
+        "appliesTo": "Platí pro",
+        "valid": "Platnost",
+        "howLong": "Jak dlouho",
+        "usedBy": "Využívá"
+      },
+      "type": {
+        "Percentage": "Procenta",
+        "FixedAmount": "Pevná částka"
+      },
+      "scope": {
+        "AllPackages": "Všechny balíčky",
+        "MonthlyPackages": "Měsíční balíčky",
+        "SelectedPackages": "Vybrané balíčky"
+      },
+      "valid": {
+        "always": "Vždy",
+        "from": "Od {{date}}",
+        "until": "Do {{date}}",
+        "range": "{{from}} – {{to}}"
+      },
+      "duration": {
+        "EveryPayment": "Každá platba",
+        "FirstPaymentsChoice": "Jen první platby",
+        "FirstPayments_one": "Jen první platba",
+        "FirstPayments_few": "První {{count}} platby",
+        "FirstPayments_many": "Prvních {{count}} platby",
+        "FirstPayments_other": "Prvních {{count}} plateb"
+      },
+      "codes": {
+        "title": "Slevové kódy",
+        "comingLater": "Připravujeme",
+        "body": "Dejte slevě kód, například LETO26, a klienti ho zadají při registraci u vás.",
+        "create": "Vytvořit kód"
+      },
+      "validation": {
+        "nameRequired": "Zadejte název.",
+        "nameTooLong": "Název může mít nejvýše 100 znaků.",
+        "percentage": "Zadejte procento od 1 do 100.",
+        "amountInvalid": "Zadejte částku vyšší než 0 s nejvýše 2 desetinnými místy.",
+        "amountTooHigh": "Částka je nad limitem pro tuto měnu.",
+        "packagesRequired": "Vyberte alespoň jeden balíček.",
+        "dateInvalid": "Zadejte platné datum.",
+        "dateOrder": "Konec nesmí být před začátkem.",
+        "durationPayments": "Zadejte celý počet plateb od 1 do 120."
+      },
+      "drawer": {
+        "titleNew": "Nová sleva",
+        "titleEdit": "Upravit {{name}}",
+        "description": "Uplatníte ji na záložce Platby u klienta",
+        "sectionDiscount": "Sleva",
+        "name": "Název",
+        "nameHint": "Název vidíte jen vy. Klienti vidí ušetřenou částku.",
+        "type": "Typ",
+        "value": "Hodnota",
+        "currencyLocked": "Měnu nelze změnit, dokud slevu používají klienti.",
+        "sectionAppliesTo": "Platí pro",
+        "noPackages": "Zatím nemáte žádné aktivní balíčky.",
+        "sectionWhen": "Kdy platí",
+        "validFrom": "Platí od",
+        "validTo": "Platí do",
+        "windowNote": "Platby splatné v tomto období dostanou slevu. Před ním i po něm klient platí cenu balíčku.",
+        "duration": "V rámci období",
+        "firstPayments": "Počet plateb",
+        "footer": "Slevové kódy přibudou později",
+        "save": "Uložit slevu",
+        "saving": "Ukládání..."
+      }
     }
   },
   "automations": {

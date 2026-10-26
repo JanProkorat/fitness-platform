@@ -37,6 +37,7 @@ public class EntitlementService(IApplicationDbContext db)
                 cs.SubscriptionPlan.CanSendQuestionnaires,
                 cs.SubscriptionPlan.CanUseWeeklyCheckIns,
                 cs.SubscriptionPlan.CanUsePerClientCheckInConfig,
+                cs.SubscriptionPlan.CanUsePayments,
                 cs.SubscriptionPlan.MaxActiveClients
             })
             .FirstOrDefaultAsync(ct);
@@ -56,8 +57,47 @@ public class EntitlementService(IApplicationDbContext db)
                 CanSendQuestionnaires: subscription.CanSendQuestionnaires,
                 CanUseWeeklyCheckIns: subscription.CanUseWeeklyCheckIns,
                 CanUsePerClientCheckInConfig: subscription.CanUsePerClientCheckInConfig,
+                CanUsePayments: subscription.CanUsePayments,
                 MaxActiveClients: subscription.MaxActiveClients)
         };
+    }
+
+    /// <summary>
+    /// Resolves, in one query, which of the given professionals may use the payments feature. Applies the
+    /// same rules as <see cref="GetEntitlementsAsync"/>: no subscription row means entitled, a locked status
+    /// means not entitled, otherwise the plan's flag decides.
+    /// </summary>
+    /// <param name="professionalProfileIds">The professionals' <c>ProfessionalProfile.Id</c> values.</param>
+    /// <param name="ct">Cancellation token.</param>
+    public async Task<HashSet<long>> GetPaymentsEntitledProfileIdsAsync(
+        IReadOnlyCollection<long> professionalProfileIds, CancellationToken ct)
+    {
+        var subscriptions = await db.CoachSubscriptions
+            .AsNoTracking()
+            .Where(cs => professionalProfileIds.Contains(cs.ProfessionalProfileId))
+            .Select(cs => new
+            {
+                cs.ProfessionalProfileId,
+                cs.Status,
+                cs.SubscriptionPlan.CanUsePayments
+            })
+            .ToListAsync(ct);
+
+        var entitled = professionalProfileIds.ToHashSet();
+
+        foreach (var subscription in subscriptions)
+        {
+            var locked = subscription.Status is SubscriptionStatus.PastDue
+                or SubscriptionStatus.Canceled
+                or SubscriptionStatus.Incomplete;
+
+            if (locked || !subscription.CanUsePayments)
+            {
+                entitled.Remove(subscription.ProfessionalProfileId);
+            }
+        }
+
+        return entitled;
     }
 
     /// <summary>

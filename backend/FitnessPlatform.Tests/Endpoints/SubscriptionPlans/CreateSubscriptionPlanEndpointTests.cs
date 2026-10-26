@@ -40,6 +40,7 @@ public class CreateSubscriptionPlanEndpointTests(FitnessApiFactory factory)
         CanSendQuestionnaires: false,
         CanUseWeeklyCheckIns: false,
         CanUsePerClientCheckInConfig: false,
+        CanUsePayments: true,
         MaxActiveClients: 10,
         PriceMinorUnits: 29900,
         Currency: "CZK",
@@ -73,6 +74,38 @@ public class CreateSubscriptionPlanEndpointTests(FitnessApiFactory factory)
         persisted!.NameEn.Should().Be("Small");
         persisted.ApplicableRoles.Should().Be(ApplicableRoles.Both);
         persisted.IsActive.Should().BeTrue();
+        persisted.CanUsePayments.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Create_WithoutCanUsePayments_DefaultsToFalse()
+    {
+        var client = await TestHelpers.RegisterAdminAsync(factory, TestContext.Current.CancellationToken);
+        var code = UniqueCode();
+
+        var response = await client.PostAsJsonAsync(
+            "/admin/subscription-plans",
+            new
+            {
+                Code = code,
+                NameCs = "Malý",
+                NameEn = "Small",
+                NameDe = "Klein",
+                ApplicableRoles = "Both",
+                Currency = "CZK",
+                BillingInterval = "Monthly",
+            },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var persisted = await db.SubscriptionPlans
+            .AsNoTracking()
+            .FirstAsync(p => p.Code == code, TestContext.Current.CancellationToken);
+
+        persisted.CanUsePayments.Should().BeFalse();
     }
 
     [Fact]
@@ -123,6 +156,7 @@ public class CreateSubscriptionPlanEndpointTests(FitnessApiFactory factory)
         bool CanSendQuestionnaires,
         bool CanUseWeeklyCheckIns,
         bool CanUsePerClientCheckInConfig,
+        bool CanUsePayments,
         int? MaxActiveClients,
         long PriceMinorUnits,
         string Currency,

@@ -309,6 +309,21 @@ public class CoachRoleLinkSweeper(
             now,
             ct);
 
+        var clientProfileId = await db.ClientProfessionalLinks
+            .AsNoTracking()
+            .Where(l => l.Id == candidate.LinkId)
+            .Select(l => l.ClientProfileId)
+            .FirstAsync(ct);
+
+        await ClientPaymentTermsCloser.CloseAsync(
+            db,
+            scope.ServiceProvider.GetRequiredService<IAuditService>(),
+            profileId,
+            clientProfileId,
+            professionalUserId,
+            now,
+            ct);
+
         var changed = await db.ClientProfessionalLinks
             .Where(l => l.Id == candidate.LinkId && l.IsActive)
             .ExecuteUpdateAsync(

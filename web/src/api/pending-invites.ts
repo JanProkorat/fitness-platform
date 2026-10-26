@@ -19,6 +19,10 @@ export interface CreatePendingInviteRequest {
   questionnairePublicId?: string | null;
   /** Only sent by a professional holding both roles; omitted so the server defaults to the held roles. */
   requestedScope?: LinkCapabilityScope;
+  /** Public id of the package the client is assigned when they accept. */
+  packageId?: string;
+  /** Public id of a discount on `packageId`; needs a package. */
+  discountId?: string;
 }
 
 export interface CreatePendingInviteResponse {

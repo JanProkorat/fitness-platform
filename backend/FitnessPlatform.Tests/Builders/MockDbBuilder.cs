@@ -196,6 +196,7 @@ public class MockDbBuilder
         var conversationsSet = _conversations.BuildMockDbSet();
         var chatMessagesSet = _chatMessages.BuildMockDbSet();
         var clientTagsSet = _clientTags.BuildMockDbSet();
+        var clientPaymentAssignmentsSet = new List<ClientPaymentAssignment>().BuildMockDbSet();
 
         // Built before the Returns() below, per the same NSubstitute pitfall noted above.
         var transaction = Substitute.For<IDbContextTransaction>();
@@ -226,6 +227,7 @@ public class MockDbBuilder
         db.Conversations.Returns(conversationsSet);
         db.ChatMessages.Returns(chatMessagesSet);
         db.ClientTags.Returns(clientTagsSet);
+        db.ClientPaymentAssignments.Returns(clientPaymentAssignmentsSet);
 
         db.SaveChangesAsync(Arg.Any<CancellationToken>()).Returns(1);
 

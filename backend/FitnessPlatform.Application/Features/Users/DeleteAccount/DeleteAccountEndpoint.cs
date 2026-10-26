@@ -94,6 +94,13 @@ public class DeleteAccountEndpoint(
                 .ToListAsync(ct);
             db.ClientProfessionalLinks.RemoveRange(professionalLinks);
 
+            // Terms reference the coach's packages and discounts with RESTRICT, so the payment assignments
+            // (which cascade to terms and periods) go first, in the same batch as the profile.
+            var paymentAssignments = await db.ClientPaymentAssignments
+                .Where(assignment => assignment.ProfessionalProfileId == professionalProfile.Id)
+                .ToListAsync(ct);
+            db.ClientPaymentAssignments.RemoveRange(paymentAssignments);
+
             db.ProfessionalProfiles.Remove(professionalProfile);
         }
 

@@ -63,6 +63,7 @@ export default defineConfig({
       '/nutrition': e2eProxy(),
       '/recipes': e2eProxy(),
       '/client': e2eProxy(),
+      '/payments': e2eProxy(),
       '/exercises': e2eProxy(),
       '/training': e2eProxy(),
       '/conversations': e2eProxy(),

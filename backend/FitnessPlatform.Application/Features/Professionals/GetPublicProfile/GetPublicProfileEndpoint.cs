@@ -4,6 +4,7 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.AspNetCore.Identity;
@@ -17,11 +18,15 @@ namespace FitnessPlatform.Application.Features.Professionals.GetPublicProfile;
 /// </summary>
 /// <param name="db">Database context.</param>
 /// <param name="userManager">ASP.NET Identity user manager.</param>
+/// <param name="entitlementService">Resolves subscription entitlements.</param>
 /// <param name="timeProvider">Clock used to judge invite expiry.</param>
+/// <param name="linkAuthorizationService">Resolves whether the caller has a live link to the professional.</param>
 public class GetPublicProfileEndpoint(
     IApplicationDbContext db,
     UserManager<ApplicationUser> userManager,
-    TimeProvider timeProvider)
+    EntitlementService entitlementService,
+    TimeProvider timeProvider,
+    IClientLinkAuthorizationService linkAuthorizationService)
     : Endpoint<GetPublicProfileRequest, GetPublicProfileResponse>
 {
     /// <inheritdoc />
@@ -68,6 +73,7 @@ public class GetPublicProfileEndpoint(
 
         var hasPendingRequest = false;
         var isLinked = false;
+        var canSeeContacts = false;
 
         if (clientProfile is not null)
         {
@@ -77,16 +83,27 @@ public class GetPublicProfileEndpoint(
                      && r.Status == ClientRequestStatus.Pending,
                 ct);
 
-            isLinked = await db.ClientProfessionalLinks.AnyAsync(
-                l => l.ClientProfileId == clientProfile.Id
-                     && l.ProfessionalProfileId == profile.Id
-                     && l.IsActive,
-                ct);
+            // The same live-link check as GetCoachBankDetailsEndpoint.
+            var capabilities = await linkAuthorizationService.GetCapabilitiesByClientUserIdAsync(
+                profile.UserId, callerUserId, ct);
+
+            isLinked = capabilities is not null;
+
+            // Contact details need a link that still covers a coach role that has not been removed.
+            canSeeContacts = capabilities is { } linked
+                && ((linked.CanViewTrainingPlans && !CoachRoleStatus.IsRemoved(profile, AppRoles.Trainer))
+                    || (linked.CanViewNutritionPlans && !CoachRoleStatus.IsRemoved(profile, AppRoles.Nutritionist)));
         }
 
         // Resolve roles
         var allRoles = await userManager.GetRolesAsync(profile.User);
         var professionalRoles = CoachRoleStatus.ActiveRoles(allRoles, profile).ToList();
+
+        var fromPrices = await CoachPackagePricing.LoadFromPricesAsync(
+            db, entitlementService, [profile.Id], ct);
+        FromPrice? fromPrice = fromPrices.TryGetValue(profile.Id, out var found) ? found : null;
+
+        var packages = await CoachPackagePricing.LoadProfilePackagesAsync(db, entitlementService, profile.Id, ct);
 
         await Send.OkAsync(new GetPublicProfileResponse
         {
@@ -96,9 +113,28 @@ public class GetPublicProfileEndpoint(
             Bio = profile.Bio,
             Specializations = ParseJsonArray(profile.Specializations),
             Certificates = ParseCertificateTitles(profile.Certificates),
+            CertificateDetails = ParseCertificateDetails(profile.Certificates),
+            Packages = packages
+                .Select(package => new PublicProfilePackageDto
+                {
+                    Name = package.Name,
+                    Billing = package.Billing,
+                    IntervalWeeks = package.IntervalWeeks,
+                    RunsForPayments = package.RunsForPayments,
+                    Description = package.Description,
+                    Price = package.Price,
+                    Currency = package.Currency
+                })
+                .ToList(),
+            // Contact details go only to a client whose live link covers a coach role still held.
+            ContactEmail = canSeeContacts ? profile.User.Email : null,
+            ContactPhone = canSeeContacts ? profile.User.PhoneNumber : null,
             Languages = ParseJsonArray(profile.Languages),
             City = profile.City,
-            EstimatedPrice = profile.EstimatedPrice,
+            FromMonthlyPrice = fromPrice?.Amount,
+            FromMonthlyPriceCurrency = fromPrice?.Currency,
+            FromPriceBilling = fromPrice?.Billing,
+            FromPriceIntervalWeeks = fromPrice?.IntervalWeeks,
             CollaborationType = profile.CollaborationType,
             LinkedIn = profile.LinkedIn,
             Instagram = profile.Instagram,
@@ -153,7 +189,13 @@ public class GetPublicProfileEndpoint(
         }
     }
 
-    private static List<string> ParseCertificateTitles(string? json)
+    private static List<string> ParseCertificateTitles(string? json) =>
+        ParseCertificateDetails(json).Select(certificate => certificate.Title).ToList();
+
+    /// <summary>
+    /// Reads the stored certificates: a legacy string entry is a title only, an object keeps its issuer and year.
+    /// </summary>
+    private static List<PublicCertificateDto> ParseCertificateDetails(string? json)
     {
         if (string.IsNullOrWhiteSpace(json))
         {
@@ -169,29 +211,52 @@ public class GetPublicProfileEndpoint(
                 return [];
             }
 
-            var titles = new List<string>();
+            var certificates = new List<PublicCertificateDto>();
 
             foreach (var element in document.RootElement.EnumerateArray())
             {
                 var title = element.ValueKind switch
                 {
                     JsonValueKind.String => element.GetString(),
-                    JsonValueKind.Object when element.TryGetProperty("title", out var value)
-                        && value.ValueKind == JsonValueKind.String => value.GetString(),
+                    JsonValueKind.Object => ReadText(element, "title"),
                     _ => null,
                 };
 
-                if (!string.IsNullOrWhiteSpace(title))
+                if (string.IsNullOrWhiteSpace(title))
                 {
-                    titles.Add(title);
+                    continue;
                 }
+
+                certificates.Add(new PublicCertificateDto
+                {
+                    Title = title,
+                    Issuer = element.ValueKind == JsonValueKind.Object ? ReadText(element, "issuer") : null,
+                    Year = element.ValueKind == JsonValueKind.Object ? ReadText(element, "year") : null
+                });
             }
 
-            return titles;
+            return certificates;
         }
         catch (JsonException)
         {
             return [];
         }
+    }
+
+    private static string? ReadText(JsonElement element, string property)
+    {
+        if (!element.TryGetProperty(property, out var value))
+        {
+            return null;
+        }
+
+        var text = value.ValueKind switch
+        {
+            JsonValueKind.String => value.GetString(),
+            JsonValueKind.Number => value.GetRawText(),
+            _ => null
+        };
+
+        return string.IsNullOrWhiteSpace(text) ? null : text.Trim();
     }
 }

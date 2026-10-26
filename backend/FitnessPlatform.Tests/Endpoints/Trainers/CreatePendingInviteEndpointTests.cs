@@ -5,6 +5,7 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.Trainers.PendingInvites.Create;
 using FitnessPlatform.Tests.Builders;
 using Microsoft.AspNetCore.Identity;
@@ -65,7 +66,7 @@ public class CreatePendingInviteEndpointTests
                 new ClaimsIdentity(roles.Length > 1
                     ? MultiRoleClaims(callerId, roles)
                     : EndpointTestHelpers.FakeUserClaims(callerId, roles.FirstOrDefault() ?? AppRoles.Trainer))),
-            db, emailQueue, notificationService, notifier, conversationSeedService, userManager, logger, TimeProvider.System);
+            db, emailQueue, notificationService, notifier, conversationSeedService, userManager, new EntitlementService(db), logger, TimeProvider.System);
 
         return new InviteHarness(ep, conversationSeedService, userManager, emailQueue, notificationService, notifier);
     }

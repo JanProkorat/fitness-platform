@@ -216,12 +216,22 @@ public class GetClientDashboardEndpoint(
         string? questionnaireTitle = null;
         Guid? questionnaireResponsePublicId = null;
 
+        // A link with an activation time only counts answers from the current collaboration, so a
+        // returning client who has not re-onboarded shows no response. A legacy link (no activation
+        // time) keeps the coach-wide lookup.
+        var activatedAtUtc = link.ActivatedAtUtc;
+
         var qResponse = await db.QuestionnaireResponses
             .AsNoTracking()
             .Include(r => r.Questionnaire)
             .Where(r => r.ClientId == clientProfile.UserId
                      && r.ProfessionalId == Guid.Parse(userId)
-                     && r.Status != Domain.Enums.QuestionnaireResponseStatus.Cancelled)
+                     && r.Status != Domain.Enums.QuestionnaireResponseStatus.Cancelled
+                     && (activatedAtUtc == null
+                         || (r.LinkId == link.Id
+                             && (r.Status == Domain.Enums.QuestionnaireResponseStatus.Submitted
+                                 ? r.SubmittedAt >= activatedAtUtc
+                                 : r.DateCreated >= activatedAtUtc))))
             .OrderByDescending(r => r.DateCreated)
             .FirstOrDefaultAsync(ct);
 

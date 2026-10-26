@@ -3,6 +3,7 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Domain.Services;
 
 namespace FitnessPlatform.Application.Features.Users.Avatar;
 
@@ -37,7 +38,7 @@ public class GenerateAvatarUploadUrlEndpoint(IImageUploadService imageUpload)
         }
 
         var extension = GetExtension(req.ContentType);
-        var subPath = $"{userId}.{extension}";
+        var subPath = AvatarBlobKeys.NewUserSubPath(Guid.Parse(userId), extension);
 
         var result = await imageUpload.GenerateUploadUrlAsync(
             ImageUploadScope.Avatar,

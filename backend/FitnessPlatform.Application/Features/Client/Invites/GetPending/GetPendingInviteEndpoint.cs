@@ -4,6 +4,7 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Services;
+using FitnessPlatform.Application.Features.Client.Invites.Shared;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -17,7 +18,8 @@ namespace FitnessPlatform.Application.Features.Client.Invites.GetPending;
 public class GetPendingInviteEndpoint(
     IApplicationDbContext db,
     UserManager<ApplicationUser> userManager,
-    TimeProvider timeProvider) : EndpointWithoutRequest<PendingInviteResponse>
+    TimeProvider timeProvider,
+    EntitlementService entitlementService) : EndpointWithoutRequest<PendingInviteResponse>
 {
     public override void Configure()
     {
@@ -83,6 +85,9 @@ public class GetPendingInviteEndpoint(
         if (profRoles.Contains(AppRoles.Nutritionist)) roleLabels.Add("Nutritionist");
         var role = roleLabels.Count > 0 ? string.Join(" & ", roleLabels) : "Trainer";
 
+        var packages = await InvitePackageLoader.LoadAsync(
+            db, entitlementService, [invite], timeProvider.GetUtcNow().UtcDateTime, ct);
+
         await Send.OkAsync(new PendingInviteResponse
         {
             Id = invite.PublicId.ToString(),
@@ -90,7 +95,8 @@ public class GetPendingInviteEndpoint(
             TrainerName = $"{profUser.FirstName} {profUser.LastName}",
             TrainerRole = role,
             TrainerCity = prof.City ?? string.Empty,
-            Message = invite.Message
+            Message = invite.Message,
+            Package = packages.GetValueOrDefault(invite.Id)
         }, ct);
     }
 }
@@ -103,4 +109,7 @@ public class PendingInviteResponse
     public string TrainerRole { get; set; } = string.Empty;
     public string TrainerCity { get; set; } = string.Empty;
     public string? Message { get; set; }
+
+    /// <summary>The package accepting the invite assigns; null when none, or it can no longer be given.</summary>
+    public InvitePackageDto? Package { get; set; }
 }

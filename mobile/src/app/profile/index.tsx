@@ -25,6 +25,7 @@ import {
 import { Screen } from '@/components/Screen';
 import { Text } from '@/components/Text';
 import { useCollaborations } from '@/hooks/useCollaborations';
+import { usePaymentsEnabled } from '@/hooks/usePaymentsEnabled';
 import { useProfile } from '@/hooks/useProfile';
 import { useProfileSummary } from '@/hooks/useProfileSummary';
 import { useWeightSeries } from '@/hooks/useWeightSeries';
@@ -43,6 +44,7 @@ export default function ProfileScreen() {
   const coachesQuery = useCollaborations();
   const summary = summaryQuery.data;
   const { data: weightSeries } = useWeightSeries();
+  const { enabled: paymentsEnabled } = usePaymentsEnabled();
 
   const name = [profile?.firstName, profile?.lastName].filter(Boolean).join(' ');
 
@@ -180,6 +182,16 @@ export default function ProfileScreen() {
             />
           </ListCard>
         </View>
+      ) : null}
+
+      {paymentsEnabled ? (
+        <ListCard>
+          <ListRow
+            leading={<RowIcon symbol="creditcard" tone="neutral" />}
+            label={t('profile.payments')}
+            onPress={() => router.push('/payments')}
+          />
+        </ListCard>
       ) : null}
 
       <ListCard>

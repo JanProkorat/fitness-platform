@@ -34,15 +34,89 @@ public class FakeEmailService : IEmailService
 {
     private readonly object _sync = new();
 
-    private readonly List<(string Email, string TrainerName, string Token, string Language, string? PersonalMessage)> _invitationsSent = [];
+    private readonly List<(string Email, string TrainerName, string Token, string Language, string? PersonalMessage, InvitationPackageInfo? Package)> _invitationsSent = [];
     private readonly List<(string Email, string Token, string Language)> _passwordResetsSent = [];
     private readonly List<(string Email, string Token, string Language)> _verificationsSent = [];
+    private readonly List<(string Email, string Code, string Language)> _reauthCodesSent = [];
+    private readonly List<(string Email, string MaskedNewIban, string MaskedPreviousIban, string UndoToken, string Language)> _bankAccountChangesSent = [];
     private readonly HashSet<string> _invitationSendFailuresByEmail = new(StringComparer.OrdinalIgnoreCase);
+    private readonly List<PaymentRequestEmail> _paymentRequestsSent = [];
+    private readonly HashSet<string> _paymentRequestFailuresByEmail = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Snapshot of payment request emails sent during the test, with the QR PNG bytes and content id.
+    /// </summary>
+    public IReadOnlyList<PaymentRequestEmail> SentPaymentRequests
+    {
+        get
+        {
+            lock (_sync)
+            {
+                return _paymentRequestsSent.ToArray();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Makes <see cref="SendPaymentRequestEmailAsync"/> throw for the given recipient only, simulating a
+    /// mail provider outage without poisoning other tests that share this per-host instance.
+    /// </summary>
+    public void FailPaymentRequestsFor(string email)
+    {
+        lock (_sync)
+        {
+            _paymentRequestFailuresByEmail.Add(email);
+        }
+    }
+
+    /// <inheritdoc />
+    public Task SendPaymentRequestEmailAsync(PaymentRequestEmail email, CancellationToken ct)
+    {
+        lock (_sync)
+        {
+            if (_paymentRequestFailuresByEmail.Contains(email.ToEmail))
+            {
+                throw new InvalidOperationException("Simulated mail provider failure for a payment request.");
+            }
+
+            _paymentRequestsSent.Add(email);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Snapshot of bank account re-authentication code emails sent during the test.
+    /// </summary>
+    public IReadOnlyList<(string Email, string Code, string Language)> SentReauthCodes
+    {
+        get
+        {
+            lock (_sync)
+            {
+                return _reauthCodesSent.ToArray();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Snapshot of bank account changed emails sent during the test.
+    /// </summary>
+    public IReadOnlyList<(string Email, string MaskedNewIban, string MaskedPreviousIban, string UndoToken, string Language)> SentBankAccountChanges
+    {
+        get
+        {
+            lock (_sync)
+            {
+                return _bankAccountChangesSent.ToArray();
+            }
+        }
+    }
 
     /// <summary>
     /// Snapshot of invitation emails sent during the test.
     /// </summary>
-    public IReadOnlyList<(string Email, string TrainerName, string Token, string Language, string? PersonalMessage)> SentInvitations
+    public IReadOnlyList<(string Email, string TrainerName, string Token, string Language, string? PersonalMessage, InvitationPackageInfo? Package)> SentInvitations
     {
         get
         {
@@ -86,7 +160,7 @@ public class FakeEmailService : IEmailService
     }
 
     /// <inheritdoc />
-    public Task SendInvitationEmailAsync(string toEmail, string trainerName, string invitationToken, string language, string? personalMessage, CancellationToken ct)
+    public Task SendInvitationEmailAsync(string toEmail, string trainerName, string invitationToken, string language, string? personalMessage, InvitationPackageInfo? package, CancellationToken ct)
     {
         lock (_sync)
         {
@@ -96,7 +170,7 @@ public class FakeEmailService : IEmailService
                     $"Simulated SMTP failure for {toEmail} (test-configured via FailInvitationSendFor).");
             }
 
-            _invitationsSent.Add((toEmail, trainerName, invitationToken, language, personalMessage));
+            _invitationsSent.Add((toEmail, trainerName, invitationToken, language, personalMessage, package));
         }
 
         return Task.CompletedTask;
@@ -138,6 +212,29 @@ public class FakeEmailService : IEmailService
         return Task.CompletedTask;
     }
 
+    /// <inheritdoc />
+    public Task SendReauthCodeEmailAsync(string toEmail, string code, string language, CancellationToken ct)
+    {
+        lock (_sync)
+        {
+            _reauthCodesSent.Add((toEmail, code, language));
+        }
+
+        return Task.CompletedTask;
+    }
+
+    /// <inheritdoc />
+    public Task SendBankAccountChangedEmailAsync(
+        string toEmail, string maskedNewIban, string maskedPreviousIban, string undoToken, string language, CancellationToken ct)
+    {
+        lock (_sync)
+        {
+            _bankAccountChangesSent.Add((toEmail, maskedNewIban, maskedPreviousIban, undoToken, language));
+        }
+
+        return Task.CompletedTask;
+    }
+
     /// <summary>
     /// Clears all recorded emails.
     /// </summary>
@@ -145,9 +242,13 @@ public class FakeEmailService : IEmailService
     {
         lock (_sync)
         {
+            _reauthCodesSent.Clear();
+            _bankAccountChangesSent.Clear();
             _invitationsSent.Clear();
             _passwordResetsSent.Clear();
             _verificationsSent.Clear();
+            _paymentRequestsSent.Clear();
+            _paymentRequestFailuresByEmail.Clear();
         }
     }
 

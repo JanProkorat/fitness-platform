@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { Trans, useTranslation } from 'react-i18next';
 import { useMutation } from '@tanstack/react-query';
 import axios from 'axios';
+import { useSearchParams } from 'react-router-dom';
 import { EyeIcon, EyeOffIcon } from 'lucide-react';
 import { register as registerAccount } from '@/api/auth';
 import { getApiErrorMessage, getErrorCode } from '@/lib/api-errors';
@@ -74,6 +75,7 @@ function Collapse({ open, children }: { open: boolean; children: ReactNode }) {
 export default function RegisterForm() {
   const { t } = useTranslation();
   const [showPassword, setShowPassword] = useState(false);
+  const [searchParams] = useSearchParams();
 
   const registerSchema = useMemo(
     () =>
@@ -132,7 +134,8 @@ export default function RegisterForm() {
     // full-schema validation never populates every error at once.
     mode: 'onTouched',
     defaultValues: {
-      roles: [],
+      // "?role=client" (from the invite email link) preselects Client.
+      roles: searchParams.get('role') === 'client' ? ['Client'] : [],
       firstName: '',
       lastName: '',
       email: '',

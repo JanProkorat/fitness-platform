@@ -3,6 +3,7 @@ using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.Users.Avatar;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
@@ -17,20 +18,22 @@ public class GenerateAvatarUploadUrlEndpointTests
     private readonly Guid _userId = Guid.NewGuid();
     private readonly IImageUploadService _imageUpload = Substitute.For<IImageUploadService>();
 
+    private bool IsOwnUniqueSubPath(string subPath, string extension) =>
+        AvatarBlobKeys.TryParseUserKey(subPath, _userId, out _) && subPath.EndsWith("." + extension);
+
     // ── Happy path ──────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task HandleAsync_AuthenticatedUser_WithJpeg_ReturnsUploadUrlAndBlobUrl()
+    public async Task HandleAsync_AuthenticatedUser_WithJpeg_ReturnsUploadUrlAndUniqueBlobUrl()
     {
-        var blobUrl = $"avatars/{_userId}.jpg";
         _imageUpload
             .GenerateUploadUrlAsync(
                 ImageUploadScope.Avatar,
-                $"{_userId}.jpg",
+                Arg.Any<string>(),
                 "image/jpeg",
                 1024,
                 Arg.Any<CancellationToken>())
-            .Returns(new BlobUploadUrl("https://storage/upload?token=abc", blobUrl));
+            .Returns(ci => new BlobUploadUrl("https://storage/upload?token=abc", $"avatars/{ci.ArgAt<string>(1)}"));
 
         var ep = Factory.Create<GenerateAvatarUploadUrlEndpoint>(
             ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
@@ -45,28 +48,20 @@ public class GenerateAvatarUploadUrlEndpointTests
         }, CancellationToken.None);
 
         ep.Response.UploadUrl.Should().Be("https://storage/upload?token=abc");
-        ep.Response.BlobUrl.Should().StartWith("avatars/");
-        ep.Response.BlobUrl.Should().Be(blobUrl);
+        AvatarBlobKeys.TryParseUserKey(ep.Response.BlobUrl, _userId, out _).Should().BeTrue();
     }
 
     [Theory]
     [InlineData("image/jpeg", "jpg")]
     [InlineData("image/png", "png")]
     [InlineData("image/webp", "webp")]
-    public async Task HandleAsync_AllowedContentTypes_CallServiceWithCorrectSubPath(
+    public async Task HandleAsync_AllowedContentTypes_CallServiceWithUniqueSubPathAndExtension(
         string contentType, string expectedExt)
     {
-        var expectedSubPath = $"{_userId}.{expectedExt}";
         _imageUpload
             .GenerateUploadUrlAsync(
-                ImageUploadScope.Avatar,
-                expectedSubPath,
-                contentType,
-                512,
-                Arg.Any<CancellationToken>())
-            .Returns(new BlobUploadUrl(
-                "https://storage/upload",
-                $"avatars/{expectedSubPath}"));
+                Arg.Any<ImageUploadScope>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>())
+            .Returns(ci => new BlobUploadUrl("https://storage/upload", $"avatars/{ci.ArgAt<string>(1)}"));
 
         var ep = Factory.Create<GenerateAvatarUploadUrlEndpoint>(
             ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
@@ -82,7 +77,7 @@ public class GenerateAvatarUploadUrlEndpointTests
 
         await _imageUpload.Received(1).GenerateUploadUrlAsync(
             ImageUploadScope.Avatar,
-            expectedSubPath,
+            Arg.Is<string>(subPath => IsOwnUniqueSubPath(subPath, expectedExt)),
             contentType,
             512,
             Arg.Any<CancellationToken>());
@@ -134,10 +129,11 @@ public class GenerateAvatarUploadUrlEndpointTests
         }, CancellationToken.None);
 
         // Each endpoint used the caller's own userId as subPath
-        epA.Response.BlobUrl.Should().Contain(userAId.ToString());
-        epB.Response.BlobUrl.Should().Contain(userBId.ToString());
-        epA.Response.BlobUrl.Should().NotContain(userBId.ToString());
-        epB.Response.BlobUrl.Should().NotContain(userAId.ToString());
+        AvatarBlobKeys.TryParseUserKey(epA.Response.BlobUrl, userAId, out _).Should().BeTrue();
+        AvatarBlobKeys.TryParseUserKey(epB.Response.BlobUrl, userBId, out _).Should().BeTrue();
+        AvatarBlobKeys.TryParseUserKey(epA.Response.BlobUrl, userBId, out _).Should().BeFalse();
+        AvatarBlobKeys.TryParseUserKey(epB.Response.BlobUrl, userAId, out _).Should().BeFalse();
+        epA.Response.BlobUrl.Should().NotBe(epB.Response.BlobUrl);
     }
 
     // ── Unauthenticated ─────────────────────────────────────────────────────

@@ -40,6 +40,8 @@ export const typography = {
   launchTagline: style('Outfit_300Light', 15, 20, 0.9),
   display: style('Outfit_600SemiBold', 32, 36, -0.48),
   title: style('Outfit_600SemiBold', 30, 34, -0.45),
+  barTitle: style('Outfit_600SemiBold', 17, 20, -0.17),
+  barSubtitle: style('DMSans_500Medium', 12, 16),
   heading: style('DMSans_700Bold', 20, 26),
   subtitle: style('DMSans_600SemiBold', 17, 24),
   bodyLarge: style('DMSans_400Regular', 16, 24),

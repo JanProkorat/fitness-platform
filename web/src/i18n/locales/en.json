@@ -211,6 +211,8 @@
     "clientManagementSection": "Client management",
     "nutritionSection": "Nutrition",
     "formsSection": "Forms",
+    "businessSection": "Business",
+    "packages": "Packages",
     "forms": "Forms",
     "help": "Help & Support",
     "trainingPlan": "Training plan",
@@ -262,7 +264,7 @@
   "settings": {
     "eyebrow": "Account",
     "title": "Settings",
-    "subtitle": "Sign-in, notifications and the roles on your account",
+    "subtitle": "Sign-in, notifications, payments and the roles on your account",
     "loadError": "Could not load your settings. Please refresh the page.",
     "status": {
       "saved": "All changes saved",
@@ -571,7 +573,8 @@
     },
     "rowMenu": {
       "open": "Open row menu",
-      "viewDetail": "Open client detail"
+      "viewDetail": "Open client detail",
+      "payments": "Payments"
     },
     "noResultsForFilters": "No clients match your filters.",
     "clearFilters": "Clear filters",
@@ -844,6 +847,7 @@
         "client": "Client",
         "scope": "What you'll coach",
         "onboarding": "Onboarding form",
+        "payment": "Payment",
         "message": "Personal message"
       },
       "emailLabel": "Email",
@@ -862,6 +866,27 @@
       "questionnaireHelper": "They fill it in right after accepting. Pick “None” to skip it.",
       "questionnaireLoadError": "Couldn't load your forms. You can still send the invite without one.",
       "optional": "(optional)",
+      "payment": {
+        "package": "Package",
+        "packagePlaceholder": "No package",
+        "discount": "Discount",
+        "discountPlaceholder": "No discount",
+        "noDiscounts": "No discounts available",
+        "discountNeedsPackage": "Choose a package first",
+        "noPackages": "You have no packages yet.",
+        "createPackage": "Create a package",
+        "loadError": "Packages couldn't be loaded. You can still send the invite without one.",
+        "pays": "The client pays",
+        "helper": "Shown in the invite. Assigned when they accept, and billing starts that day.",
+        "errors": {
+          "notEntitled": "Payments aren't part of your plan. Remove the package and send the invite again.",
+          "packageArchived": "That package was archived. Pick another one and send the invite again.",
+          "discountArchived": "That discount was archived. Pick another one, or none, and send the invite again.",
+          "discountInvalid": "That discount doesn't apply to the chosen package. Pick another one.",
+          "currencyMismatch": "A fixed-amount discount must be in the same currency as the package.",
+          "unavailable": "That package or discount is no longer available. The lists were refreshed."
+        }
+      },
       "messageLabel": "Message in the invite email",
       "footerNote": "The invite stays under Pending until they accept",
       "submit": "Send invitation",
@@ -907,8 +932,6 @@
     "visibleToClients": "Visible to clients",
     "city": "City",
     "cityPlaceholder": "Your city",
-    "estimatedPrice": "Estimated price / month",
-    "estimatedPricePlaceholder": "e.g. $200–400",
     "specializations": "Specializations",
     "addSpecialization": "Add specialization...",
     "certificates": "Certificates & education",
@@ -968,8 +991,12 @@
         "description": "The first thing a client reads before they send you a request.",
         "bioHint": "Who you help, how you work, and what a client can expect in the first month.",
         "cityHint": "Shown in search; clients filter by it.",
-        "price": "Price per month",
-        "priceHint": "Free text, e.g. \"from 2,500 CZK\"."
+        "price": "Price",
+        "priceHint": "From your cheapest active package shown on your profile.",
+        "priceFrom": "from {{price}} {{unit}}",
+        "priceNone": "No package shown yet",
+        "priceManage": "Packages",
+        "priceSetUp": "Set up a package"
       },
       "expertise": {
         "title": "Expertise",
@@ -1021,8 +1048,7 @@
         "both": "Online & in person",
         "taking": "Taking new clients",
         "notTaking": "Not taking clients",
-        "price": "Price",
-        "perMonth": "/ month",
+        "price": "Price from",
         "languages": "Languages",
         "certificates": "Certificates",
         "note": "Updates as you type. Clients see this card in search and on your invite link."
@@ -2521,8 +2547,348 @@
     "list": "List",
     "quote": "Quote"
   },
+  "payments": {
+    "client": {
+      "retry": "Try again",
+      "loadError": "Could not load this client's payments.",
+      "ended": "The collaboration has ended. You can still settle the payments, but you can no longer change the price or add payments.",
+      "notFound": "You are no longer linked to {{name}}, so their payments are not available.",
+      "billing": {
+        "monthly": "/ month",
+        "everyWeeks_one": "/ week",
+        "everyWeeks_other": "/ {{count}} weeks",
+        "oneOff": "one-off"
+      },
+      "summary": {
+        "label": "Payment summary",
+        "package": "Package",
+        "nextPayment": "Next payment",
+        "paidUntil": "Paid until",
+        "noPackage": "No package yet",
+        "noPackageHint": "Choose a package under Price to start billing.",
+        "endedHint": "The collaboration has ended.",
+        "endedNoPackage": "No package",
+        "customPrice": "custom price {{price}}",
+        "due": "Due {{date}}",
+        "overdueSince": "Overdue since {{date}}",
+        "requestedOn": "requested {{date}}",
+        "notRequested": "not requested yet",
+        "nothingDue": "Nothing waiting for payment",
+        "paidCount": "{{paid}} of {{total}} due payments paid",
+        "clientSince": "client since {{date}}"
+      },
+      "list": {
+        "title": "Payments",
+        "addOneOff": "Add one-off payment",
+        "request": "Request payment",
+        "noBankAccount": "Add your bank account before you request a payment.",
+        "openSettings": "Open Settings",
+        "loadError": "Could not load the payments.",
+        "empty": "No payments yet. Choose a package for {{name}} and the first one is created.",
+        "footnote": "{{name}} pays by bank transfer to your account. Match the variable symbol on your bank statement, then mark the payment paid."
+      },
+      "table": {
+        "period": "Period",
+        "amount": "Amount",
+        "due": "Due",
+        "variableSymbol": "Variable symbol",
+        "status": "Status",
+        "actions": "Actions"
+      },
+      "status": {
+        "upcoming": "Upcoming",
+        "requested": "Requested",
+        "overdue": "Overdue",
+        "overdueDays_one": "Overdue · {{count}} day",
+        "overdueDays_other": "Overdue · {{count}} days",
+        "paid": "Paid {{date}}",
+        "daysLate_one": "{{count}} day late",
+        "daysLate_other": "{{count}} days late",
+        "waived": "Waived",
+        "waivedReason": "Waived · {{reason}}"
+      },
+      "row": {
+        "oneOff": "One-off payment",
+        "markPaid": "Mark paid",
+        "menu": "Payment menu",
+        "request": "Request payment",
+        "requestAgain": "Request again",
+        "copySymbol": "Copy variable symbol",
+        "waive": "Waive payment",
+        "copied": "Variable symbol copied.",
+        "copyError": "Could not copy the variable symbol."
+      },
+      "markPaid": {
+        "title": "Mark {{period}} as paid",
+        "description": "Confirm that {{name}}'s money arrived in your account.",
+        "paidOn": "Day it arrived",
+        "dateRequired": "Pick the day the money arrived.",
+        "dateInFuture": "The day can't be in the future.",
+        "submit": "Mark paid",
+        "success": "Payment marked as paid.",
+        "error": "Could not mark the payment as paid."
+      },
+      "waive": {
+        "title": "Waive {{period}}?",
+        "description": "{{name}} won't be asked to pay it. This can't be undone.",
+        "reason": "Reason",
+        "reasonHint": "Optional. Only you see it.",
+        "reasonTooLong": "Use at most {{max}} characters.",
+        "submit": "Waive payment",
+        "success": "Payment waived.",
+        "error": "Could not waive the payment."
+      },
+      "oneOff": {
+        "title": "Add a one-off payment",
+        "description": "A single payment for {{name}}, outside the package.",
+        "forLabel": "What it is for",
+        "forHint": "For example, “Nutrition consultation”.",
+        "titleRequired": "Say what the payment is for.",
+        "titleTooLong": "Use at most {{max}} characters.",
+        "amount": "Amount",
+        "amountInvalid": "Enter an amount above zero.",
+        "currency": "Currency",
+        "due": "Due date",
+        "dueRequired": "Pick a due date.",
+        "submit": "Add payment",
+        "success": "One-off payment added.",
+        "error": "Could not add the payment."
+      },
+      "request": {
+        "title": "Request payment",
+        "description": "{{name}} pays by bank transfer from their own bank.",
+        "coachFallback": "Your coach",
+        "payment": {
+          "heading": "Payment"
+        },
+        "for": "For",
+        "forHint": "The next unpaid period is preselected. Pick another, or add a one-off payment.",
+        "dueDate": "Due date",
+        "dueRequired": "Pick a due date.",
+        "duePast": "The due date can't be in the past.",
+        "amount": "Amount",
+        "amountHint": "Package price with discount.",
+        "amountHintOneOff": "One-off payment.",
+        "amountEditing": "Changes this request only.",
+        "amountInvalid": "Enter an amount above zero and below 10 million.",
+        "changeAmount": "Change",
+        "sendBy": {
+          "heading": "Send by",
+          "notification": "App notification",
+          "email": "Email"
+        },
+        "channelRequired": "Choose at least one way to send it.",
+        "preview": {
+          "heading": "What {{name}} sees",
+          "asks": "{{coach}} asks for {{amount}}",
+          "due": "due {{date}}",
+          "account": "Account",
+          "variableSymbol": "Variable symbol",
+          "symbolOnSend": "Assigned when you send",
+          "message": "Message",
+          "messageOnSend": "Set when you send"
+        },
+        "footnote": "You mark it paid when the money arrives.",
+        "submit": "Send request",
+        "sent": "Payment request sent.",
+        "sentEmailFailed": "Notification sent, but the email could not be delivered.",
+        "error": "Could not send the payment request.",
+        "openSettings": "Open Settings",
+        "nothingToRequest": "Every payment is already settled."
+      },
+      "terms": {
+        "title": "Price for {{name}}",
+        "changePackage": "Change package",
+        "package": "Package",
+        "packagePlaceholder": "Choose a package",
+        "packageRequired": "Choose a package.",
+        "discount": "Discount",
+        "noDiscount": "No discount",
+        "noDiscounts": "No discounts available",
+        "discountOffCustom": "Off while a custom price is set",
+        "removeDiscount": "Remove discount",
+        "customPrice": "Custom price",
+        "customPriceHint": "Replaces the package price and discount for {{name}} only.",
+        "customPriceLabel": "Custom price per period",
+        "customPriceInvalid": "Enter a price above zero.",
+        "firstPeriod": "First billing period starts",
+        "startPast": "The start can't be in the past.",
+        "packagePrice": "Package price",
+        "pays": "{{name}} pays",
+        "paysFirstPayments_one": "{{amount}} for the first payment, then {{full}} {{suffix}}",
+        "paysFirstPayments_other": "{{amount}} for the first {{count}} payments, then {{full}} {{suffix}}",
+        "appliesFrom": "Changes apply from the next billing period ({{month}}).",
+        "appliesFromNext": "Changes apply from the next billing period.",
+        "startsFirst": "Billing starts on the day you pick above.",
+        "noPackages": "You have no packages yet.",
+        "createPackage": "Create a package",
+        "save": "Save price",
+        "saved": "Price saved.",
+        "saveError": "Could not save the price.",
+        "currencyMismatch": "A fixed discount must be in the same currency as the package.",
+        "loadError": "Could not load your packages and discounts."
+      },
+      "reminders": {
+        "title": "Requests and reminders",
+        "link": "Automations tab",
+        "body": "When payment requests and reminders go out is set by rules on the Automations tab."
+      },
+      "history": {
+        "title": "Change history",
+        "onlyYou": "Only you see this",
+        "empty": "Nothing yet.",
+        "terms": "You set the package to {{package}}{{discount}}",
+        "oneOff": "You added the one-off payment “{{title}}”{{amount}}",
+        "paid": "You marked {{period}} paid",
+        "waived": "You waived {{period}}",
+        "waivedReason": "You waived {{period}} · “{{reason}}”",
+        "requested": "You requested {{period}}{{amount}}",
+        "ended": "The collaboration ended.",
+        "unknown": "You changed something."
+      }
+    },
+    "settings": {
+      "title": "Payments",
+      "description": "Where clients send money. Form Up never holds or moves it.",
+      "badge": "Bank transfer · QR Platba",
+      "iban": "Bank account (IBAN)",
+      "ibanHint": "Shown to your linked clients on payment requests only.",
+      "noAccount": "No account set yet",
+      "holder": "Account holder",
+      "holderHint": "Must match the account.",
+      "protected": "Protected",
+      "protectedHint": "Changing the account asks for your password and emails you. Last changed {{date}}.",
+      "addAccountTitle": "Add your bank account",
+      "addAccountHint": "Clients need it to pay you. Adding it asks for your password and emails you.",
+      "changeAccount": "Change account",
+      "addAccount": "Add account",
+      "due": "Payment due",
+      "dueHint": "Packages can override it.",
+      "dueOption_one": "{{count}} day after the request",
+      "dueOption_other": "{{count}} days after the request",
+      "message": "Message for the payment",
+      "messageFormat": {
+        "PackageNameAndMonth": "Package name + month",
+        "PackageName": "Package name",
+        "ClientNameAndMonth": "Client name + month"
+      },
+      "messageExample": {
+        "PackageNameAndMonth": "e.g. “Online coaching 11/2026”",
+        "PackageName": "e.g. “Online coaching”",
+        "ClientNameAndMonth": "e.g. “Eva Svobodová 11/2026”"
+      },
+      "symbol": "Variable symbol",
+      "symbolHint": "Unique per payment, so you can match it.",
+      "symbolFormat": {
+        "YearMonthClientNumber": "Year, month, client number",
+        "YearMonthSequence": "Year, month, running number"
+      },
+      "currency": "Main currency",
+      "currencyHint": "The “from” price on your public profile is shown in this currency.",
+      "currencyOption": {
+        "CZK": "CZK · Czech koruna",
+        "EUR": "EUR · Euro"
+      },
+      "reminders": "Requests and reminders",
+      "remindersHint": "When requests go out is set by rules on the Automations page.",
+      "openAutomations": "Open Automations",
+      "saveError": "Could not save the payment settings.",
+      "loadError": "Could not load your payment settings.",
+      "packages": {
+        "title": "Packages and discounts",
+        "description": "What you charge, and who gets a discount.",
+        "counts": "Packages: {{packages}} · active discounts: {{discounts}}",
+        "open": "Open Packages"
+      },
+      "bank": {
+        "title": "Change bank account",
+        "lede": "New payment requests use the new account. Requests already sent keep the old one.",
+        "newIban": "New IBAN",
+        "ibanRequired": "Enter the IBAN.",
+        "ibanInvalid": "This IBAN isn't valid. Check it for typos.",
+        "ibanChecked": "Checked · {{iban}}",
+        "ibanCurrent": "Current account: {{iban}}",
+        "holder": "Account holder",
+        "holderRequired": "Enter the account holder.",
+        "holderTooLong": "Use at most {{max}} characters.",
+        "password": "Your password",
+        "passwordHint": "Signed in with Google? We send a code to your email instead.",
+        "passwordRequired": "Enter your password.",
+        "code": "Code from your email",
+        "codeHint": "You sign in without a password, so we send a one-time code to your email.",
+        "codeSent": "Code sent to {{email}}.",
+        "codeRequired": "Enter the code from your email.",
+        "sendCode": "Send code",
+        "sendingCode": "Sending…",
+        "resendCode": "Send a new code",
+        "codeError": "Could not send the code.",
+        "notice": "We’ll email {{email}} about this change, with a link to undo it if it wasn’t you.",
+        "submit": "Change account",
+        "success": "Bank account changed.",
+        "error": "Could not change the bank account.",
+        "rateLimited": "Too many attempts. Try again in a few minutes."
+      }
+    },
+    "undo": {
+      "signIn": "Go to sign in",
+      "confirm": {
+        "title": "Undo the bank account change?",
+        "body": "This restores the bank account you had before the change. Only do it if the change wasn't yours.",
+        "button": "Undo change",
+        "working": "Restoring…",
+        "notNow": "Not now"
+      },
+      "success": {
+        "title": "Previous account restored",
+        "body": "Your earlier bank account is back. If the change wasn't yours, change your password too."
+      },
+      "invalid": {
+        "title": "This link no longer works",
+        "body": "It has expired, was already used, or isn't valid. The change stays as it is."
+      },
+      "superseded": {
+        "title": "The account changed again",
+        "body": "The bank account was changed again after this change, so it can't be undone from this link. Sign in to review it in Settings."
+      },
+      "rateLimited": {
+        "title": "Too many attempts",
+        "body": "Wait a few minutes, then open the link again."
+      },
+      "generic": {
+        "title": "Something went wrong",
+        "body": "The change was not undone. Try again in a moment."
+      },
+      "missing": {
+        "title": "This link is incomplete",
+        "body": "Open the link from the email again, or sign in and change your bank account in Settings."
+      }
+    }
+  },
   "apiErrors": {
+    "PAYMENTS_NOT_ENTITLED": "Payments aren't part of your plan.",
+    "BANK_ACCOUNT_NOT_SET": "Add your bank account in Settings before you request a payment.",
+    "PAYMENT_ALREADY_PAID": "This payment was already marked as paid.",
+    "PAYMENT_ALREADY_WAIVED": "This payment was already waived.",
+    "PAYMENT_REQUEST_RATE_LIMITED": "You just asked for this payment. Wait a minute before asking again.",
+    "PAYMENT_REQUEST_CHANNEL_REQUIRED": "Choose at least one way to send the request.",
+    "PAYMENT_PAID_ON_IN_FUTURE": "The day the money arrived can't be in the future.",
+    "PAYMENT_TERMS_DISCOUNT_AND_CUSTOM_PRICE": "Use a discount or a custom price, not both.",
+    "PAYMENT_AMOUNT_INVALID": "The amount must be above zero and below 10 million.",
+    "PAYMENT_CLIENT_NUMBER_EXHAUSTED": "No client numbers are left for variable symbols.",
+    "PAYMENT_VARIABLE_SYMBOL_EXHAUSTED": "No variable symbol is left for this month.",
+    "PAYMENT_START_DATE_INVALID": "The first billing period can't start in the past or too far ahead.",
+    "INVALID_IBAN": "This IBAN isn't valid.",
+    "REAUTH_PASSWORD_REQUIRED": "Enter your password to change the bank account.",
+    "INVALID_CURRENT_PASSWORD": "That isn't your current password.",
+    "REAUTH_CODE_REQUIRED": "Enter the code we emailed you.",
+    "REAUTH_CODE_INVALID": "That code is wrong, expired or locked. Ask for a new one.",
+    "REAUTH_CODE_NOT_AVAILABLE": "Your account uses a password, not an emailed code.",
     "AUTOMATION_RULE_NOT_FOUND": "This rule no longer exists.",
+    "PACKAGE_ARCHIVED": "This package is archived and can no longer be changed.",
+    "DISCOUNT_ARCHIVED": "This discount is archived and can no longer be changed.",
+    "DISCOUNT_PACKAGE_INVALID": "One of the selected packages is archived or no longer exists. The list was refreshed.",
+    "CURRENCY_MISMATCH": "A fixed-amount discount must use the same currency as every package it applies to.",
+    "CURRENCY_LOCKED": "The currency cannot change while clients use it. The saved currency was restored.",
     "AUTOMATION_TAG_NOT_FOUND": "The chosen tag no longer exists.",
     "AUTOMATION_AUDIENCE_CLIENT_NOT_FOUND": "One of the chosen clients is no longer linked to you.",
     "AUTOMATION_QUESTIONNAIRE_NOT_FOUND": "The chosen form no longer exists.",
@@ -4766,6 +5132,12 @@
         "resend": "Send again"
       }
     },
+    "inviteAccept": {
+      "title": "You have an invite on Form Up",
+      "lede": "Open the app and sign in with the email the invite came to — you'll find it on your Today screen.",
+      "openApp": "Open the app",
+      "getApp": "Don't have the app yet?"
+    },
     "verifyEmail": {
       "verifying": "Verifying your email...",
       "success": {
@@ -5126,6 +5498,197 @@
       "trendDelta": "−2.1 in 6 weeks",
       "reviewQuote": "“Legs felt heavy on Friday.” · energy 4/5",
       "replyPlaceholder": "Reply to Petra…"
+    }
+  },
+  "packages": {
+    "eyebrow": "Business",
+    "title": "Packages",
+    "subtitle": "What clients pay you for. Assign a package on the client’s Payment tab.",
+    "newPackage": "New package",
+    "tabs": {
+      "packages": "Packages",
+      "discounts": "Discounts"
+    },
+    "table": {
+      "package": "Package",
+      "price": "Price",
+      "billing": "Billing",
+      "clients": "Clients",
+      "status": "Status",
+      "publicProfile": "Public profile",
+      "actions": "Actions",
+      "clientCount_one": "{{count}} client",
+      "clientCount_other": "{{count}} clients",
+      "onProfile": "On profile",
+      "hidden": "Hidden"
+    },
+    "billing": {
+      "Monthly": "Monthly",
+      "EveryNWeeks": "Every N weeks",
+      "OneOff": "One-off"
+    },
+    "billingEveryN_one": "Every week",
+    "billingEveryN_other": "Every {{count}} weeks",
+    "status": {
+      "active": "Active",
+      "ended": "Ended",
+      "archived": "Archived"
+    },
+    "empty": "No packages yet. Create the first one to assign it to a client.",
+    "footer": "Packages: {{count}} · Archived packages keep billing their clients until you move them",
+    "loadError": "The list could not be loaded.",
+    "retry": "Try again",
+    "saveSuccess": "Package saved.",
+    "saveError": "The package could not be saved.",
+    "archiveSuccess": "Package archived.",
+    "archiveError": "The package could not be archived.",
+    "rowMenu": {
+      "open": "Actions for {{name}}",
+      "edit": "Edit",
+      "archive": "Archive"
+    },
+    "archiveDialog": {
+      "title": "Archive package",
+      "description": "Archive “{{name}}”? Clients already billed on it keep their terms until you move them. You cannot assign it to new clients.",
+      "confirm": "Archive"
+    },
+    "profileCard": {
+      "title": "Your public profile shows “from {{price}} {{unit}}”",
+      "body": "The cheapest active package marked “On profile”. It replaces the old free-text price.",
+      "emptyTitle": "Your public profile shows no price yet",
+      "emptyBody": "Mark an active package “On profile” to show a “from …” price.",
+      "open": "Open profile"
+    },
+    "paywall": {
+      "badge": "Not on your plan",
+      "title": "Payments are not included in your plan",
+      "description": "Set up packages and discounts, and keep track of what each client pays you.",
+      "bullet1": "Packages with a price and billing cycle",
+      "bullet2": "Discounts for single clients or campaigns",
+      "bullet3": "Payment requests and an overview on every client"
+    },
+    "validation": {
+      "nameRequired": "Enter a name.",
+      "nameTooLong": "The name can have at most 100 characters.",
+      "descriptionTooLong": "The description can have at most 500 characters.",
+      "priceInvalid": "Enter a price above 0 with up to 2 decimals.",
+      "priceTooHigh": "The price is above the limit for this currency.",
+      "intervalWeeks": "Enter a whole number of weeks from 1 to 52.",
+      "runsFor": "Enter a whole number of payments from 1 to 120.",
+      "paymentDue": "Enter a whole number of days from 1 to 90."
+    },
+    "drawer": {
+      "titleNew": "New package",
+      "titleEdit": "Edit {{name}}",
+      "description": "Clients pay you by bank transfer",
+      "sectionPackage": "Package",
+      "name": "Name",
+      "included": "What’s included",
+      "sectionPrice": "Price and billing",
+      "price": "Price",
+      "currency": "Currency",
+      "currencyLocked": "The currency cannot change while clients are billed on this package.",
+      "priceCap": "Up to {{max}}",
+      "billing": "Billing",
+      "intervalWeeks": "Weeks between payments",
+      "runsFor": "Runs for",
+      "runsForPlaceholder": "Until you stop it",
+      "runsForHint": "Or a set number of payments",
+      "runsForOption_one": "{{count}} payment",
+      "runsForOption_other": "{{count}} payments",
+      "paymentDue": "Payment due",
+      "paymentDuePlaceholder": "Use my default",
+      "paymentDueOption_one": "{{count}} day after the request",
+      "paymentDueOption_other": "{{count}} days after the request",
+      "paymentDueHint": "Default from Settings › Payments",
+      "sectionVisibility": "Visibility",
+      "showOnProfile": "Show on my public profile",
+      "showOnProfileHint": "Used for the “from … / month” price clients see in search.",
+      "priceChangeNote": "Changing the price later applies from each client’s next billing period. Requests already sent keep their amount.",
+      "footer": "You can archive a package, not delete it",
+      "save": "Save package",
+      "saving": "Saving..."
+    },
+    "discounts": {
+      "newDiscount": "New discount",
+      "empty": "No discounts yet.",
+      "footer": "One discount per client. A custom price on the client’s Payment tab replaces both the package price and the discount.",
+      "saveSuccess": "Discount saved.",
+      "saveError": "The discount could not be saved.",
+      "archiveSuccess": "Discount archived.",
+      "archiveError": "The discount could not be archived.",
+      "archiveDialog": {
+        "title": "Archive discount",
+        "description": "Archive “{{name}}”? Clients already using it keep it until you change their terms."
+      },
+      "table": {
+        "discount": "Discount",
+        "value": "Value",
+        "appliesTo": "Applies to",
+        "valid": "Valid",
+        "howLong": "How long",
+        "usedBy": "Used by"
+      },
+      "type": {
+        "Percentage": "Percentage",
+        "FixedAmount": "Fixed amount"
+      },
+      "scope": {
+        "AllPackages": "All packages",
+        "MonthlyPackages": "Monthly packages",
+        "SelectedPackages": "Selected packages"
+      },
+      "valid": {
+        "always": "Always",
+        "from": "From {{date}}",
+        "until": "Until {{date}}",
+        "range": "{{from}} – {{to}}"
+      },
+      "duration": {
+        "EveryPayment": "Every payment",
+        "FirstPaymentsChoice": "First payments only",
+        "FirstPayments_one": "First payment only",
+        "FirstPayments_other": "First {{count}} payments"
+      },
+      "codes": {
+        "title": "Discount codes",
+        "comingLater": "Coming later",
+        "body": "Give a discount a code, such as SUMMER26, and clients enter it when they join you.",
+        "create": "Create code"
+      },
+      "validation": {
+        "nameRequired": "Enter a name.",
+        "nameTooLong": "The name can have at most 100 characters.",
+        "percentage": "Enter a percentage from 1 to 100.",
+        "amountInvalid": "Enter an amount above 0 with up to 2 decimals.",
+        "amountTooHigh": "The amount is above the limit for this currency.",
+        "packagesRequired": "Select at least one package.",
+        "dateInvalid": "Enter a valid date.",
+        "dateOrder": "The end date cannot be before the start date.",
+        "durationPayments": "Enter a whole number of payments from 1 to 120."
+      },
+      "drawer": {
+        "titleNew": "New discount",
+        "titleEdit": "Edit {{name}}",
+        "description": "Apply it on a client’s Payment tab",
+        "sectionDiscount": "Discount",
+        "name": "Name",
+        "nameHint": "Only you see the name. Clients see the amount saved.",
+        "type": "Type",
+        "value": "Value",
+        "currencyLocked": "The currency cannot change while clients use this discount.",
+        "sectionAppliesTo": "Applies to",
+        "noPackages": "You have no active packages yet.",
+        "sectionWhen": "When it applies",
+        "validFrom": "Valid from",
+        "validTo": "Valid to",
+        "windowNote": "Payments due in this window get the discount. Before and after it, the client pays the package price.",
+        "duration": "Within the window",
+        "firstPayments": "Number of payments",
+        "footer": "Discount codes come later",
+        "save": "Save discount",
+        "saving": "Saving..."
+      }
     }
   },
   "automations": {

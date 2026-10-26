@@ -30,4 +30,14 @@ public class CreatePendingInviteRequest
     /// Trainer-only professional cannot request <see cref="LinkCapabilityScope.NutritionOnly"/>.
     /// </summary>
     public LinkCapabilityScope? RequestedScope { get; set; }
+
+    /// <summary>
+    /// Optional public id of the coach package the client is assigned when they accept.
+    /// </summary>
+    public Guid? PackageId { get; set; }
+
+    /// <summary>
+    /// Optional public id of a discount on <see cref="PackageId"/>; needs a package.
+    /// </summary>
+    public Guid? DiscountId { get; set; }
 }

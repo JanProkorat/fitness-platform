@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using System.Text.Json;
 using FastEndpoints;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Services;
@@ -15,7 +16,11 @@ namespace FitnessPlatform.Application.Features.Professionals.SearchProfessionals
 /// </summary>
 /// <param name="db">Database context.</param>
 /// <param name="userManager">ASP.NET Identity user manager.</param>
-public class SearchProfessionalsEndpoint(IApplicationDbContext db, UserManager<ApplicationUser> userManager)
+/// <param name="entitlementService">Resolves subscription entitlements.</param>
+public class SearchProfessionalsEndpoint(
+    IApplicationDbContext db,
+    UserManager<ApplicationUser> userManager,
+    EntitlementService entitlementService)
     : Endpoint<SearchProfessionalsRequest, SearchProfessionalsResponse>
 {
     /// <inheritdoc />
@@ -77,6 +82,10 @@ public class SearchProfessionalsEndpoint(IApplicationDbContext db, UserManager<A
             .ThenBy(p => p.User.FirstName)
             .ToListAsync(ct);
 
+        // One batched lookup for every profile's derived price, never one query per profile
+        var fromPrices = await CoachPackagePricing.LoadFromPricesAsync(
+            db, entitlementService, profiles.Select(p => p.Id).ToList(), ct);
+
         // Resolve roles in memory (Identity tables are not easily joinable in LINQ)
         var items = new List<ProfessionalSummaryDto>();
 
@@ -98,6 +107,8 @@ public class SearchProfessionalsEndpoint(IApplicationDbContext db, UserManager<A
                 continue;
             }
 
+            FromPrice? fromPrice = fromPrices.TryGetValue(profile.Id, out var found) ? found : null;
+
             items.Add(new ProfessionalSummaryDto
             {
                 PublicId = profile.PublicId,
@@ -106,7 +117,10 @@ public class SearchProfessionalsEndpoint(IApplicationDbContext db, UserManager<A
                 Bio = profile.Bio,
                 Specializations = ParseJsonArray(profile.Specializations),
                 City = profile.City,
-                EstimatedPrice = profile.EstimatedPrice,
+                FromMonthlyPrice = fromPrice?.Amount,
+                FromMonthlyPriceCurrency = fromPrice?.Currency,
+                FromPriceBilling = fromPrice?.Billing,
+                FromPriceIntervalWeeks = fromPrice?.IntervalWeeks,
                 CollaborationType = profile.CollaborationType,
                 Languages = ParseJsonArray(profile.Languages),
                 Roles = professionalRoles,

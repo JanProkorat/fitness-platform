@@ -297,6 +297,7 @@
       "photos": "Fortschrittsfotos",
       "checkIns": "Check-in-Verlauf"
     },
+    "payments": "Zahlungen",
     "settings": "Einstellungen",
     "error": {
       "summary": "Deine Zahlen konnten nicht geladen werden.",
@@ -345,10 +346,12 @@
   },
   "invites": {
     "invitedYou": "{{name}} hat dich eingeladen",
-    "accept": "Annehmen",
     "decline": "Ablehnen",
     "acceptInvite": "Einladung annehmen",
     "openHint": "Öffnet die Einladung",
+    "viewInvite": "Einladung ansehen",
+    "includesPackage": "Enthält ein Paket",
+    "includesPackagePrice": "Enthält ein Paket · {{price}}",
     "roles": { "Trainer": "Trainer", "Nutritionist": "Ernährungsberater" },
     "roleJoiner": " & ",
     "time": {
@@ -365,14 +368,15 @@
       "back": "Zurück",
       "alsoOnline": "auch online",
       "invitedYouAt": "{{name}} hat dich eingeladen · {{time}}",
-      "workingWith": "Zusammenarbeit mit {{name}}",
-      "offers": {
-        "training": "Persönlicher Trainingsplan",
-        "nutrition": "Persönlicher Ernährungsplan",
-        "checkins": "Wöchentliche Check-ins",
-        "chat": "Chat mit deinem Coach"
-      },
-      "shareNote": "Mit dem Annehmen teilst du deine Onboarding-Antworten mit {{name}}."
+      "shareNote": "Mit dem Annehmen teilen Sie Ihre Onboarding-Antworten mit {{name}}.",
+      "shareNoteWithPackage": "Mit dem Annehmen teilen Sie Ihre Onboarding-Antworten mit {{name}} und starten das Paket.",
+      "viewProfile": "Profil von {{name}} ansehen",
+      "viewProfileHint": "Bio, Zertifikate und alle Pakete",
+      "package": {
+        "title": "Ihr Paket",
+        "youPay": "Sie zahlen",
+        "note": "Startet am Tag der Annahme. {{name}} sendet jede Zahlungsaufforderung, Sie zahlen per Banküberweisung."
+      }
     },
     "errors": {
       "ok": "OK",
@@ -478,6 +482,35 @@
     "unreadCount": "{{count}} ungelesen",
     "empty": "Alles gelesen.",
     "error": "Benachrichtigungen konnten nicht geladen werden. Tippe, um es erneut zu versuchen."
+  },
+  "payments": {
+    "title": "Zahlungen",
+    "back": "Zurück",
+    "toPay": "Offen",
+    "overdue": "Überfällig",
+    "due": "Fällig am {{date}}",
+    "customPrice": "Individueller Preis",
+    "scan": "Scannen Sie den Code in Ihrer Banking-App. {{name}} bestätigt, sobald das Geld eingegangen ist.",
+    "transfer": "Überweisen Sie den Betrag mit den Angaben unten. {{name}} bestätigt, sobald das Geld eingegangen ist.",
+    "qrLabel": "QR-Platba-Code",
+    "account": "Konto",
+    "variableSymbol": "Variables Symbol",
+    "message": "Nachricht",
+    "copy": "{{label}} kopieren",
+    "copied": "Kopiert",
+    "paid": "Bezahlt",
+    "paidOn": "Bezahlt am {{date}}",
+    "collaborationEnded": "Zusammenarbeit beendet",
+    "empty": "Noch keine Zahlungen. Wenn Ihr Trainer oder Ernährungsberater Sie um eine Zahlung bittet, erscheint sie hier.",
+    "error": "Zahlungen konnten nicht geladen werden. Tippen Sie, um es erneut zu versuchen.",
+    "card": {
+      "title": "Zahlung offen",
+      "titleOverdue": "Zahlung überfällig",
+      "single": "{{amount}} · {{coach}}",
+      "several_one": "{{count}} Zahlung offen",
+      "several_other": "{{count}} Zahlungen offen",
+      "hint": "Öffnet Ihre Zahlungen"
+    }
   },
   "push": {
     "channelName": "Allgemein"
@@ -673,24 +706,44 @@
       "generic": "Die Coaches konnten nicht geladen werden. Versuche es erneut."
     }
   },
+  "packages": {
+    "chip": {
+      "monthly": "Jeden Monat",
+      "everyNWeeks_one": "Jede Woche",
+      "everyNWeeks_other": "Alle {{count}} Wochen",
+      "oneOff": "Einmalige Zahlung"
+    },
+    "unit": {
+      "monthly": "/ Monat",
+      "everyNWeeks_one": "/ Woche",
+      "everyNWeeks_other": "/ {{count}} Wochen",
+      "oneOff": "einmalig"
+    }
+  },
   "coachProfile": {
     "alsoOnline": "auch online",
-    "workingWith": "Zusammenarbeit mit {{name}}",
-    "workingWithRows": {
-      "Trainer": {
-        "plan": "Persönlicher Trainingsplan",
-        "checkIns": "Wöchentliche Check-ins",
-        "chat": "Chat mit deinem Coach"
-      },
-      "Nutritionist": {
-        "plan": "Persönlicher Ernährungsplan",
-        "checkIns": "Wöchentliche Check-ins",
-        "chat": "Chat mit deinem Coach"
-      }
+    "packages": "Pakete",
+    "how": {
+      "title": "So arbeitet {{name}}",
+      "online": { "label": "Online", "hint": "Pläne und Check-ins online, wo immer Sie sind." },
+      "inperson": { "label": "Vor Ort", "hint": "Termine vor Ort, persönlich." },
+      "both": { "label": "Online & vor Ort", "hint": "Termine vor Ort sowie Pläne und Check-ins online." }
     },
+    "certificates": "Zertifikate",
+    "languages": "Sprachen",
+    "links": "Links",
+    "link": {
+      "website": "Website",
+      "instagram": "Instagram",
+      "linkedin": "LinkedIn"
+    },
+    "contact": "Kontakt",
+    "contactNote": "Nur für Klienten",
+    "email": "E-Mail",
+    "phone": "Telefon",
+    "backToInvite": "Zurück zur Einladung",
     "sendRequest": "Anfrage senden",
     "pending": "Anfrage ausstehend",
-    "linked": "Ihr arbeitet bereits zusammen",
     "retry": "Erneut versuchen",
     "error": {
       "title": "Profil konnte nicht geladen werden",

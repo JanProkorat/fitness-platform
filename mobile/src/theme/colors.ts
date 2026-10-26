@@ -35,6 +35,8 @@ export type Colors = {
   infoInk: string;
   infoSoft: string;
 
+  warning: string;
+  warningSoft: string;
   success: string;
   successSoft: string;
   error: string;
@@ -43,6 +45,8 @@ export type Colors = {
   segmentSelected: string;
   tabSelected: string;
   avatar: string;
+  qrTile: string;
+  qrInk: string;
   onAvatar: string;
 
   glassFill: string;
@@ -79,6 +83,9 @@ const shared = {
   onNutrition: '#141414',
   avatar: '#141414',
   onAvatar: '#F6F4F0',
+  // A QR code must be dark on white to scan, so its tile is the same in both schemes.
+  qrTile: '#FFFFFF',
+  qrInk: '#141414',
   wordmarkAccent: '#C8382F',
   launchRing: '#F4A08A',
 };
@@ -104,6 +111,8 @@ export const lightColors: Colors = {
   nutritionSoft: '#EEF6E3',
   infoInk: '#3563C9',
   infoSoft: '#E8EEFB',
+  warning: '#B4500C',
+  warningSoft: '#FFE8D2',
   success: '#3F7D2A',
   successSoft: '#EEF6E3',
   error: '#9F1F17',
@@ -140,6 +149,8 @@ export const darkColors: Colors = {
   nutritionSoft: '#243319',
   infoInk: '#8EAAEB',
   infoSoft: '#1B2640',
+  warning: '#F7A863',
+  warningSoft: '#3A2414',
   success: '#A9D673',
   successSoft: '#243319',
   error: '#F2705F',
