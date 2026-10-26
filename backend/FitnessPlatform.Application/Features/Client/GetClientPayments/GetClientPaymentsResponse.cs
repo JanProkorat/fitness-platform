@@ -24,6 +24,9 @@ public class ClientPaymentCoachDto
     /// <summary>The coach's name.</summary>
     public string CoachName { get; set; } = string.Empty;
 
+    /// <summary>Whether the client's collaboration with this coach has ended; the payments stay visible and payable.</summary>
+    public bool CollaborationEnded { get; set; }
+
     /// <summary>Payments the coach asked for, still unpaid (overdue ones marked), oldest due date first.</summary>
     public List<ClientPaymentItemDto> Requested { get; set; } = [];
 

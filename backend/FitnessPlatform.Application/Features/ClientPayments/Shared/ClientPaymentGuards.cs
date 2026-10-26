@@ -23,6 +23,8 @@ internal static class ClientPaymentGuards
     /// <remarks>
     /// Payments belong to the coaching relationship, not to a plan domain, so a live link that grants
     /// neither nutrition nor training plans (<see cref="LinkCapabilities.GrantsNothing"/>) is enough.
+    /// With <paramref name="allowEnded"/> a link that has ended is accepted too, but only when the coach and
+    /// this exact client share a payment assignment: the kept periods stay the coach's to manage.
     /// </remarks>
     public static async Task<CoachClientContext?> LoadCoachClientContextOrRespondAsync(
         this IEndpoint endpoint,
@@ -31,7 +33,8 @@ internal static class ClientPaymentGuards
         IClientLinkAuthorizationService linkAuthorizationService,
         Guid userId,
         Guid clientPublicId,
-        CancellationToken ct)
+        CancellationToken ct,
+        bool allowEnded = false)
     {
         var profileId = await endpoint.LoadEntitledProfileIdOrRespondAsync(db, entitlementService, userId, ct);
 
@@ -42,7 +45,7 @@ internal static class ClientPaymentGuards
 
         var capabilities = await linkAuthorizationService.GetCapabilitiesByClientPublicIdAsync(userId, clientPublicId, ct);
 
-        if (capabilities is null)
+        if (capabilities is null && !allowEnded)
         {
             await endpoint.HttpContext.Response.SendNotFoundAsync(ct);
             return null;
@@ -62,15 +65,28 @@ internal static class ClientPaymentGuards
             })
             .FirstOrDefaultAsync(ct);
 
-        var linkDates = client is null
-            ? []
-            : await db.ClientProfessionalLinks
-                .AsNoTracking()
-                .Where(l => l.ProfessionalProfileId == profileId && l.ClientProfileId == client.Id && l.IsActive)
-                .Select(l => l.DateCreated)
-                .ToListAsync(ct);
+        var links = new List<(bool IsActive, DateTime DateCreated)>();
 
-        if (client is null || linkDates.Count == 0)
+        if (client is not null)
+        {
+            links = (await db.ClientProfessionalLinks
+                    .AsNoTracking()
+                    .Where(l => l.ProfessionalProfileId == profileId && l.ClientProfileId == client.Id)
+                    .Select(l => new { l.IsActive, l.DateCreated })
+                    .ToListAsync(ct))
+                .Select(l => (l.IsActive, l.DateCreated))
+                .ToList();
+        }
+
+        // Without a live capability the link must have ended (never merely be unreadable) and a payment
+        // assignment for exactly this coach and client must exist.
+        var ended = capabilities is null;
+        var linkDates = links.Where(l => ended ? !l.IsActive : l.IsActive).Select(l => l.DateCreated).ToList();
+
+        if (client is null
+            || linkDates.Count == 0
+            || (ended && (links.Any(l => l.IsActive) || !await db.ClientPaymentAssignments
+                .AnyAsync(a => a.ProfessionalProfileId == profileId && a.ClientProfileId == client.Id, ct))))
         {
             await endpoint.HttpContext.Response.SendNotFoundAsync(ct);
             return null;
@@ -92,7 +108,8 @@ internal static class ClientPaymentGuards
             client.LastName,
             client.Email,
             client.Language,
-            linkDates.Min());
+            linkDates.Min(),
+            ended);
     }
 
     /// <summary>
@@ -166,11 +183,7 @@ internal static class ClientPaymentGuards
         }
 
         var terms = await ClientPaymentSchedule.LoadTermsAsync(db, payment.ClientPaymentAssignmentId, ct);
-        var recurringStarts = await db.ClientPayments
-            .AsNoTracking()
-            .Where(p => p.ClientPaymentAssignmentId == payment.ClientPaymentAssignmentId && p.PeriodStart != null)
-            .Select(p => p.PeriodStart!.Value)
-            .ToListAsync(ct);
+        var recurringStarts = await ClientPaymentSchedule.LoadRecurringStartsAsync(db, payment.ClientPaymentAssignmentId, terms, ct);
 
         ClientPaymentSchedule.Freeze(payment, terms, recurringStarts);
     }

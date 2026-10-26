@@ -33,11 +33,11 @@ internal sealed class GetClientPaymentSummaryEndpoint(
         Summary(s =>
         {
             s.Summary = "Get a client's payment summary";
-            s.Description = "Returns the client's package and price, the next payment and how far they have paid. Creates the billing periods that have started, plus the next one.";
+            s.Description = "Returns the client's package and price, the next payment and how far they have paid. Still works after the collaboration ended, when the coach and client share a payment assignment. Creates the billing periods that have started, plus the next one.";
             s.Responses[StatusCodes.Status200OK] = "Payment summary";
             s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
             s.Responses[StatusCodes.Status403Forbidden] = "The subscription does not include payments (PAYMENTS_NOT_ENTITLED)";
-            s.Responses[StatusCodes.Status404NotFound] = "The caller has no professional profile or no live link to the client";
+            s.Responses[StatusCodes.Status404NotFound] = "The caller has no professional profile, or no live link to the client and no ended one with a payment assignment";
         });
     }
 
@@ -51,7 +51,7 @@ internal sealed class GetClientPaymentSummaryEndpoint(
         }
 
         var context = await this.LoadCoachClientContextOrRespondAsync(
-            db, entitlementService, linkAuthorizationService, userId, req.ClientId, ct);
+            db, entitlementService, linkAuthorizationService, userId, req.ClientId, ct, allowEnded: true);
 
         if (context is null)
         {
@@ -65,6 +65,8 @@ internal sealed class GetClientPaymentSummaryEndpoint(
         var response = new GetClientPaymentSummaryResponse
         {
             ClientId = req.ClientId,
+            ClientName = $"{context.ClientFirstName} {context.ClientLastName}".Trim(),
+            CollaborationEnded = context.CollaborationEnded,
             ClientSince = context.ClientSince,
             BankAccountSet = !string.IsNullOrEmpty(settings?.Iban) && !string.IsNullOrEmpty(settings.AccountHolder)
         };
@@ -97,10 +99,7 @@ internal sealed class GetClientPaymentSummaryEndpoint(
         List<ClientPayment> payments,
         DateOnly today)
     {
-        var recurringStarts = payments
-            .Where(p => p.PeriodStart is not null)
-            .Select(p => p.PeriodStart!.Value)
-            .ToList();
+        var recurringStarts = ClientPaymentSchedule.RecurringStartsOf(terms, payments);
         var recurring = payments.Where(p => p.PeriodStart is not null).OrderBy(p => p.PeriodStart).ToList();
         var nextPeriod = recurring.FirstOrDefault(p => p.PeriodStart > today);
 
