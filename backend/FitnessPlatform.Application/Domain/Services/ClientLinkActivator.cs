@@ -80,6 +80,7 @@ public static class ClientLinkActivator
         if (link is not null)
         {
             link.IsActive = true;
+            link.ActivatedAtUtc = DateTime.UtcNow;
             link.ProfessionalRole = professionalRole;
             link.CanViewNutritionPlans = canViewNutritionPlans;
             link.CanViewTrainingPlans = canViewTrainingPlans;
@@ -94,6 +95,7 @@ public static class ClientLinkActivator
             ProfessionalProfileId = professional.Id,
             ProfessionalRole = professionalRole,
             IsActive = true,
+            ActivatedAtUtc = DateTime.UtcNow,
             CanViewNutritionPlans = canViewNutritionPlans,
             CanViewTrainingPlans = canViewTrainingPlans,
             QuestionnaireId = questionnaireId,

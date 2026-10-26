@@ -257,6 +257,12 @@ public class ClientProfessionalLinkBuilder
     private ClientProfile? _clientProfile;
     private ProfessionalProfile? _professionalProfile;
     private DateTime _dateCreated = DateTime.UtcNow;
+    private DateTime? _activatedAtUtc;
+
+    /// <summary>
+    /// Sets when the current collaboration began (defaults to null, a legacy link).
+    /// </summary>
+    public ClientProfessionalLinkBuilder WithActivatedAtUtc(DateTime activatedAtUtc) { _activatedAtUtc = activatedAtUtc; return this; }
 
     /// <summary>
     /// Sets the internal ID.
@@ -319,7 +325,8 @@ public class ClientProfessionalLinkBuilder
         CanViewNutritionPlans = _canViewNutritionPlans,
         CanViewTrainingPlans = _canViewTrainingPlans,
         ClientProfile = _clientProfile!, ProfessionalProfile = _professionalProfile!,
-        DateCreated = _dateCreated
+        DateCreated = _dateCreated,
+        ActivatedAtUtc = _activatedAtUtc
     };
 }
 

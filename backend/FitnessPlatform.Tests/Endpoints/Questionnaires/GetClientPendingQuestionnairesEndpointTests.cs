@@ -60,7 +60,7 @@ public class GetClientPendingQuestionnairesEndpointTests(FitnessApiFactory facto
     }
 
     private async Task<long> InsertLinkAsync(Guid clientUserId, Guid professionalUserId,
-        UserRole role = UserRole.Nutritionist, bool isActive = true)
+        UserRole role = UserRole.Nutritionist, bool isActive = true, DateTime? activatedAtUtc = null)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -80,6 +80,7 @@ public class GetClientPendingQuestionnairesEndpointTests(FitnessApiFactory facto
             CanViewTrainingPlans = role == UserRole.Trainer,
             PublicId = Guid.NewGuid(),
             DateCreated = DateTime.UtcNow,
+            ActivatedAtUtc = activatedAtUtc,
         };
         db.ClientProfessionalLinks.Add(link);
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -435,6 +436,138 @@ public class GetClientPendingQuestionnairesEndpointTests(FitnessApiFactory facto
         diaryIds.IndexOf(newerRequestId).Should().BeLessThan(diaryIds.IndexOf(olderRequestId));
     }
 
+    // ── Returning client: onboarding form follows the current collaboration ────
+
+    private async Task<long> InsertOnboardingQuestionnaireAsync(Guid professionalUserId)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var questionnaire = new Questionnaire
+        {
+            PublicId = Guid.NewGuid(),
+            ProfessionalId = professionalUserId,
+            Title = "Onboarding",
+            IsDefault = true,
+            IsActive = true,
+            Type = QuestionnaireType.Onboarding,
+            DateCreated = DateTime.UtcNow,
+        };
+        db.Questionnaires.Add(questionnaire);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        return questionnaire.Id;
+    }
+
+    private async Task<Guid> InsertResponseAsync(
+        long questionnaireId, Guid clientUserId, Guid professionalUserId, long linkId,
+        QuestionnaireResponseStatus status, DateTime? submittedAt = null)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var response = new QuestionnaireResponse
+        {
+            PublicId = Guid.NewGuid(),
+            QuestionnaireId = questionnaireId,
+            ClientId = clientUserId,
+            ProfessionalId = professionalUserId,
+            LinkId = linkId,
+            Status = status,
+            SubmittedAt = submittedAt,
+        };
+        db.QuestionnaireResponses.Add(response);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        return response.PublicId;
+    }
+
+    private async Task<List<QuestionnaireItem>> GetItemsAsync(HttpClient clientHttp)
+    {
+        var response = await clientHttp.GetAsync(
+            "/client/questionnaires/pending",
+            TestContext.Current.CancellationToken);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<BannerResponse>(
+            JsonOptions, TestContext.Current.CancellationToken);
+        return body!.Items;
+    }
+
+    [Fact]
+    public async Task Onboarding_AnsweredInEarlierCollaboration_ReactivatedLink_PendingAgain()
+    {
+        var (_, profId) = await SetupNutritionistAsync();
+        var (clientHttp, clientUserId, _) = await SetupClientAsync();
+        var questionnaireId = await InsertOnboardingQuestionnaireAsync(profId);
+
+        var activatedAt = DateTime.UtcNow;
+        var linkId = await InsertLinkAsync(clientUserId, profId, activatedAtUtc: activatedAt);
+        await InsertResponseAsync(questionnaireId, clientUserId, profId, linkId,
+            QuestionnaireResponseStatus.Submitted, submittedAt: activatedAt.AddDays(-29));
+
+        var items = await GetItemsAsync(clientHttp);
+
+        items.Should().ContainSingle().Which.ResponsePublicId.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Onboarding_AnsweredInCurrentCollaboration_NotPending()
+    {
+        var (_, profId) = await SetupNutritionistAsync();
+        var (clientHttp, clientUserId, _) = await SetupClientAsync();
+        var questionnaireId = await InsertOnboardingQuestionnaireAsync(profId);
+
+        var activatedAt = DateTime.UtcNow.AddDays(-2);
+        var linkId = await InsertLinkAsync(clientUserId, profId, activatedAtUtc: activatedAt);
+        await InsertResponseAsync(questionnaireId, clientUserId, profId, linkId,
+            QuestionnaireResponseStatus.Submitted, submittedAt: activatedAt.AddHours(2));
+
+        var items = await GetItemsAsync(clientHttp);
+
+        items.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Onboarding_LegacyLinkWithoutActivationTime_EarlierSubmissionStillSuppresses()
+    {
+        var (_, profId) = await SetupNutritionistAsync();
+        var (clientHttp, clientUserId, _) = await SetupClientAsync();
+        var questionnaireId = await InsertOnboardingQuestionnaireAsync(profId);
+
+        var linkId = await InsertLinkAsync(clientUserId, profId);
+        await InsertResponseAsync(questionnaireId, clientUserId, profId, linkId,
+            QuestionnaireResponseStatus.Submitted, submittedAt: DateTime.UtcNow.AddDays(-29));
+
+        var items = await GetItemsAsync(clientHttp);
+
+        items.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Onboarding_ReactivatedLinkWithOldInProgressResponse_OldResponseNotShown()
+    {
+        var (_, profId) = await SetupNutritionistAsync();
+        var (clientHttp, clientUserId, _) = await SetupClientAsync();
+        var questionnaireId = await InsertOnboardingQuestionnaireAsync(profId);
+
+        // DateCreated is stamped on insert, so the response is created first and the
+        // link is re-activated afterwards, as the real flow does.
+        var linkId = await InsertLinkAsync(clientUserId, profId, activatedAtUtc: DateTime.UtcNow.AddDays(-30));
+        var oldResponseId = await InsertResponseAsync(questionnaireId, clientUserId, profId, linkId,
+            QuestionnaireResponseStatus.InProgress);
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var link = await db.ClientProfessionalLinks.FirstAsync(l => l.Id == linkId, TestContext.Current.CancellationToken);
+            link.ActivatedAtUtc = DateTime.UtcNow.AddSeconds(1);
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        var items = await GetItemsAsync(clientHttp);
+
+        var item = items.Should().ContainSingle().Which;
+        item.ResponsePublicId.Should().NotBe(oldResponseId);
+        item.ResponsePublicId.Should().BeNull();
+        item.ResponseStatus.Should().BeNull();
+    }
+
     // ── Response shape helpers ─────────────────────────────────────────────────
 
     private record DiaryItem(
@@ -451,7 +584,9 @@ public class GetClientPendingQuestionnairesEndpointTests(FitnessApiFactory facto
     private record QuestionnaireItem(
         Guid LinkPublicId,
         string ProfessionalName,
-        string? ProfessionalRole);
+        string? ProfessionalRole,
+        Guid? ResponsePublicId = null,
+        string? ResponseStatus = null);
 
     private record BannerResponse(
         List<DiaryItem> PendingDiaryRequests,

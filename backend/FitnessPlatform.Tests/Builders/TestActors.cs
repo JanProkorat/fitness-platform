@@ -204,6 +204,7 @@ public sealed class LinkBuilder(FitnessApiFactory factory, long professionalProf
     private bool _canViewNutritionPlans = true;
     private bool _canViewTrainingPlans = true;
     private DateTime _dateCreated = DateTime.UtcNow;
+    private DateTime? _activatedAtUtc;
 
     /// <summary>
     /// The link's public id, pre-generated so callers can read it without a second DB round
@@ -237,6 +238,11 @@ public sealed class LinkBuilder(FitnessApiFactory factory, long professionalProf
     public LinkBuilder WithDateCreated(DateTime dateCreated) { _dateCreated = dateCreated; return this; }
 
     /// <summary>
+    /// Sets when the current collaboration began (defaults to null, a legacy link).
+    /// </summary>
+    public LinkBuilder WithActivatedAtUtc(DateTime activatedAtUtc) { _activatedAtUtc = activatedAtUtc; return this; }
+
+    /// <summary>
     /// Persists the link and returns its internal id.
     /// </summary>
     public async Task<long> CreateAsync(CancellationToken ct = default)
@@ -254,6 +260,7 @@ public sealed class LinkBuilder(FitnessApiFactory factory, long professionalProf
             CanViewNutritionPlans = _canViewNutritionPlans,
             CanViewTrainingPlans = _canViewTrainingPlans,
             DateCreated = _dateCreated,
+            ActivatedAtUtc = _activatedAtUtc,
         };
         db.ClientProfessionalLinks.Add(link);
 

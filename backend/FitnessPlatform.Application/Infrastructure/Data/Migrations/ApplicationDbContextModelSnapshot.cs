@@ -1296,6 +1296,10 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
+                    b.Property<DateTime?>("ActivatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("activated_at_utc");
+
                     b.Property<bool>("CanViewNutritionPlans")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
