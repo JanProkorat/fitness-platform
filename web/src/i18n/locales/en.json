@@ -2574,7 +2574,7 @@
         "requestedOn": "requested {{date}}",
         "notRequested": "not requested yet",
         "nothingDue": "Nothing waiting for payment",
-        "paidCount": "{{paid}} of {{total}} payments paid",
+        "paidCount": "{{paid}} of {{total}} due payments paid",
         "clientSince": "client since {{date}}"
       },
       "list": {

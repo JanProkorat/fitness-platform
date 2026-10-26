@@ -498,6 +498,38 @@ public class ClientPaymentScheduleTests
     }
 
     [Fact]
+    public void PlanMissingPeriods_SameDayRestartsWithAnotherPackage_FollowTheNewestTermsOnly()
+    {
+        var endDay = new DateOnly(2026, 10, 26);
+        var longTerm = Package(PackageBillingInterval.EveryNWeeks, 5000m, intervalWeeks: 5);
+        var threeMonths = Package(PackageBillingInterval.Monthly, 3000m, runsFor: 3);
+
+        var first = Terms(longTerm, new DateOnly(2026, 9, 21));
+        first.EndsAtUtc = ClientPaymentSchedule.StartOfDayUtc(endDay).AddHours(12).AddMinutes(14);
+
+        var reaccepted = Terms(longTerm, endDay);
+        reaccepted.EffectiveFromUtc = first.EndsAtUtc.Value;
+        reaccepted.EndsAtUtc = ClientPaymentSchedule.StartOfDayUtc(endDay).AddHours(18).AddMinutes(48);
+
+        var restarted = Terms(threeMonths, endDay);
+        restarted.EffectiveFromUtc = reaccepted.EndsAtUtc.Value;
+
+        var existing = new[] { new DateOnly(2026, 9, 21), endDay };
+
+        var planned = ClientPaymentSchedule.PlanMissingPeriods([first, reaccepted, restarted], existing, endDay);
+
+        planned.Should().Equal((new DateOnly(2026, 11, 26), new DateOnly(2026, 12, 25)));
+
+        var allRuns = ClientPaymentSchedule.PlanMissingPeriods(
+            [first, reaccepted, restarted], existing, endDay.AddYears(200));
+
+        allRuns.Should().Equal(
+            (new DateOnly(2026, 11, 26), new DateOnly(2026, 12, 25)),
+            (new DateOnly(2026, 12, 26), new DateOnly(2027, 1, 25)),
+            (new DateOnly(2027, 1, 26), new DateOnly(2027, 2, 25)));
+    }
+
+    [Fact]
     public void PlanMissingPeriods_KeptPaidRowOnTheNewTermsDay_NeitherStallsNorIsPlannedTwice()
     {
         var old = Ended(Terms(Package(), new DateOnly(2026, 8, 5)), new DateOnly(2026, 10, 26));

@@ -168,8 +168,18 @@ public static class ClientPaymentSchedule
             {
                 // A single-payment package, or the end of the collaboration, ended the schedule; later terms
                 // restart it. After an end the new terms' start day is the billing day.
+                // After an end the restart is the first terms that began after the latest end, not the first
+                // one after the last row: terms that began and ended on the same day take no part in it.
+                var latestEnd = terms
+                    .Where(t => t.EndsAtUtc is not null)
+                    .Select(t => t.EndsAtUtc!.Value)
+                    .DefaultIfEmpty()
+                    .Max();
+
                 var restart = terms
-                    .Where(t => t.EffectiveFromUtc > StartOfDayUtc(last))
+                    .Where(t => endedByCollaboration && latestEnd != default
+                        ? t.EffectiveFromUtc >= latestEnd
+                        : t.EffectiveFromUtc > StartOfDayUtc(last))
                     .OrderBy(t => t.EffectiveFromUtc)
                     .ThenBy(t => t.Id)
                     .FirstOrDefault();

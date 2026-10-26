@@ -2573,7 +2573,7 @@
         "requestedOn": "angefordert {{date}}",
         "notRequested": "noch nicht angefordert",
         "nothingDue": "Nichts wartet auf Zahlung",
-        "paidCount": "{{paid}} von {{total}} Zahlungen bezahlt",
+        "paidCount": "{{paid}} von {{total}} fälligen Zahlungen bezahlt",
         "clientSince": "Klient seit {{date}}"
       },
       "list": {
