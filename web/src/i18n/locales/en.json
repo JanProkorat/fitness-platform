@@ -2743,7 +2743,7 @@
         "waived": "You waived {{period}}",
         "waivedReason": "You waived {{period}} · “{{reason}}”",
         "requested": "You requested {{period}}{{amount}}",
-        "ended": "The client ended the collaboration.",
+        "ended": "The collaboration ended.",
         "unknown": "You changed something."
       }
     },

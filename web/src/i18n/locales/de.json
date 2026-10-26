@@ -2742,7 +2742,7 @@
         "waived": "Sie haben {{period}} erlassen",
         "waivedReason": "Sie haben {{period}} erlassen · „{{reason}}“",
         "requested": "Sie haben {{period}} angefordert{{amount}}",
-        "ended": "Der Klient hat die Zusammenarbeit beendet.",
+        "ended": "Die Zusammenarbeit ist beendet.",
         "unknown": "Sie haben etwas geändert."
       }
     },
