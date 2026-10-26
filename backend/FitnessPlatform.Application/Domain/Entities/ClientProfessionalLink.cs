@@ -30,6 +30,12 @@ public class ClientProfessionalLink : PublicTimestampableEntity
     public bool IsActive { get; set; } = true;
 
     /// <summary>
+    /// When the current collaboration began (UTC): set on creation and on every reactivation.
+    /// Null on links that predate the column.
+    /// </summary>
+    public DateTime? ActivatedAtUtc { get; set; }
+
+    /// <summary>
     /// Whether this professional can view the client's nutrition plans.
     /// Default true for Nutritionists, false for Trainers.
     /// </summary>

@@ -144,22 +144,29 @@ public class GetClientPendingQuestionnairesEndpoint(
 
         foreach (var link in links)
         {
+            var activatedAtUtc = link.ActivatedAtUtc;
+
             // Skip links where the client already submitted a questionnaire response.
+            // A link with an activation time only counts a submission made in the current collaboration.
             var hasSubmitted = await db.QuestionnaireResponses
                 .AsNoTracking()
                 .AnyAsync(r =>
                     r.ClientId == userGuid
                     && r.Status == QuestionnaireResponseStatus.Submitted
-                    && (r.LinkId == link.Id || r.ProfessionalId == link.ProfessionalProfile.UserId), ct);
+                    && (activatedAtUtc == null
+                        ? (r.LinkId == link.Id || r.ProfessionalId == link.ProfessionalProfile.UserId)
+                        : (r.LinkId == link.Id && r.SubmittedAt >= activatedAtUtc)), ct);
 
             if (hasSubmitted) continue;
 
-            // Check for an existing pending/in-progress response on this link
+            // Check for an existing pending/in-progress response on this link,
+            // ignoring ones left over from an earlier collaboration.
             var existingResponse = await db.QuestionnaireResponses
                 .AsNoTracking()
                 .FirstOrDefaultAsync(r =>
                     r.ClientId == userGuid
                     && r.LinkId == link.Id
+                    && (activatedAtUtc == null || r.DateCreated >= activatedAtUtc)
                     && (r.Status == QuestionnaireResponseStatus.Pending || r.Status == QuestionnaireResponseStatus.InProgress), ct);
 
             // Resolve which questionnaire applies for this link

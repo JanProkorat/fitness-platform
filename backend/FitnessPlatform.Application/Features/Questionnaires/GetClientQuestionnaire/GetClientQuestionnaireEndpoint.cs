@@ -101,11 +101,14 @@ public class GetClientQuestionnaireEndpoint(IApplicationDbContext db)
         }
 
         // 5. Check for an existing pending/in-progress response scoped to this link
+        // Responses left over from an earlier collaboration on a re-activated link are ignored.
+        var activatedAtUtc = link.ActivatedAtUtc;
         var existingResponse = await db.QuestionnaireResponses
             .Include(r => r.Answers)
             .FirstOrDefaultAsync(r =>
                 r.ClientId == userGuid
                 && r.LinkId == link.Id
+                && (activatedAtUtc == null || r.DateCreated >= activatedAtUtc)
                 && r.QuestionnaireId == questionnaire.Id
                 && (r.Status == QuestionnaireResponseStatus.Pending || r.Status == QuestionnaireResponseStatus.InProgress), ct);
 
