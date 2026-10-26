@@ -145,7 +145,6 @@ public class GetClientPendingQuestionnairesEndpoint(
         foreach (var link in links)
         {
             var activatedAtUtc = link.ActivatedAtUtc;
-            var professionalUserId = link.ProfessionalProfile.UserId;
 
             // Skip links where the client already submitted a questionnaire response.
             // A link with an activation time only counts a submission made in the current collaboration.
@@ -155,7 +154,7 @@ public class GetClientPendingQuestionnairesEndpoint(
                     r.ClientId == userGuid
                     && r.Status == QuestionnaireResponseStatus.Submitted
                     && (activatedAtUtc == null
-                        ? (r.LinkId == link.Id || r.ProfessionalId == professionalUserId)
+                        ? (r.LinkId == link.Id || r.ProfessionalId == link.ProfessionalProfile.UserId)
                         : (r.LinkId == link.Id && r.SubmittedAt >= activatedAtUtc)), ct);
 
             if (hasSubmitted) continue;
