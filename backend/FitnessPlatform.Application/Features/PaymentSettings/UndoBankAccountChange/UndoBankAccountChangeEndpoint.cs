@@ -81,6 +81,17 @@ internal sealed class UndoBankAccountChangeEndpoint(
             return;
         }
 
+        // The history has no undo marker, so the undo is recorded as a change back to the previous account.
+        // It carries no undo token: there is nothing further to undo to.
+        db.CoachBankAccountChanges.Add(new CoachBankAccountChange
+        {
+            ProfessionalProfileId = change.ProfessionalProfileId,
+            PreviousIban = settings.Iban,
+            PreviousAccountHolder = settings.AccountHolder,
+            NewIban = change.PreviousIban!,
+            NewAccountHolder = change.PreviousAccountHolder ?? string.Empty
+        });
+
         settings.Iban = change.PreviousIban;
         settings.AccountHolder = change.PreviousAccountHolder;
         settings.BankAccountChangedAt = now;

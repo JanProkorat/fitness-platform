@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Infrastructure;
@@ -53,7 +54,16 @@ public class UndoBankAccountChangeEndpointTests(FitnessApiFactory factory)
         var settings = await ReadSettingsAsync(factory, coach);
         settings!.Iban.Should().Be(ValidIban);
         settings.AccountHolder.Should().Be("Old Holder");
-        (await ReadChangesAsync(factory, coach)).Single().UndoneAt.Should().NotBeNull();
+
+        var history = await ReadChangesAsync(factory, coach);
+        history.Should().HaveCount(2);
+        history[0].UndoneAt.Should().NotBeNull();
+        history[1].Should().Match<CoachBankAccountChange>(c =>
+            c.PreviousIban == OtherIban
+            && c.NewIban == ValidIban
+            && c.NewAccountHolder == "Old Holder"
+            && c.UndoTokenHash == null
+            && c.UndoneAt == null);
 
         var second = await UndoAsync(token);
 
