@@ -121,7 +121,7 @@ const makeStyles = (theme: Theme, insets: EdgeInsets) =>
       flex: 1,
       minWidth: 0,
       alignItems: 'center',
-      gap: theme.spacing.xxs / 4,
+      gap: theme.spacing.hair,
     },
     centered: {
       maxWidth: '100%',
