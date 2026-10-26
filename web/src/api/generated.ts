@@ -28451,8 +28451,10 @@ export interface ClientPaymentRowDto {
     currency?: PaymentCurrency;
     /** Package price before any discount. */
     basePrice?: number | undefined;
-    /** Label of the discount or custom price behind the amount. */
+    /** Label of the discount behind the amount; null for a custom price (see IsCustomPrice). */
     discountLabel?: string | undefined;
+    /** Whether the amount is a custom price the coach set; clients localize the wording. */
+    isCustomPrice?: boolean;
     /** Day the payment falls due. */
     dueDate?: string;
     /** Variable symbol of the transfer; null once the payment is waived. */
@@ -28577,8 +28579,10 @@ export interface GetMyPaymentResponse {
     currency?: PaymentCurrency;
     /** Package price before any discount. */
     basePrice?: number | undefined;
-    /** Label of the discount or custom price behind the amount. */
+    /** Label of the discount behind the amount; null for a custom price (see IsCustomPrice). */
     discountLabel?: string | undefined;
+    /** Whether the amount is a custom price the coach set; clients localize the wording. */
+    isCustomPrice?: boolean;
     /** Day the payment falls due. */
     dueDate?: string;
     /** Day the coach confirmed the money; paid payments only. */
@@ -29588,8 +29592,10 @@ export interface ClientPaymentItemDto {
     currency?: PaymentCurrency;
     /** Package price before any discount. */
     basePrice?: number | undefined;
-    /** Label of the discount or custom price behind the amount. */
+    /** Label of the discount behind the amount; null for a custom price (see IsCustomPrice). */
     discountLabel?: string | undefined;
+    /** Whether the amount is a custom price the coach set; clients localize the wording. */
+    isCustomPrice?: boolean;
     /** Day the payment falls due. */
     dueDate?: string;
     /** Day the coach confirmed the money; paid payments only. */

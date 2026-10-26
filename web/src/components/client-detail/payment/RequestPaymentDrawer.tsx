@@ -22,6 +22,7 @@ import {
   paymentErrorCode,
 } from '@/components/client-detail/payment/paymentErrors';
 import { getApiErrorMessage, showApiError, showSuccess } from '@/lib/api-errors';
+import { parseAmount } from '@/lib/money';
 import {
   addDaysIso,
   formatPaymentAmount,
@@ -44,10 +45,6 @@ interface FormValues {
   amount: string;
   sendNotification: boolean;
   sendEmail: boolean;
-}
-
-function parseAmount(raw: string): number {
-  return Number(raw.trim().replace(',', '.'));
 }
 
 /** The due date the form starts from: the row's own when it is still ahead, else the coach's payment term. */
@@ -130,7 +127,7 @@ function RequestForm({ clientId, clientName, rows, initialPaymentId, onClose }: 
 
   const amountValue = editingAmount ? parseAmount(amountText) : row?.amount;
   const amountInvalid =
-    editingAmount && !(Number.isFinite(amountValue) && (amountValue ?? 0) > 0 && (amountValue ?? 0) <= AMOUNT_MAX);
+    editingAmount && !(amountValue != null && amountValue > 0 && amountValue <= AMOUNT_MAX);
 
   const submit = (values: FormValues) => {
     if (amountInvalid || !row?.paymentId) {
@@ -142,7 +139,7 @@ function RequestForm({ clientId, clientName, rows, initialPaymentId, onClose }: 
         paymentId: values.paymentId,
         request: {
           dueDate: values.dueDate,
-          amount: editingAmount ? Math.round(parseAmount(values.amount) * 100) / 100 : undefined,
+          amount: editingAmount ? (parseAmount(values.amount) ?? undefined) : undefined,
           sendNotification: values.sendNotification,
           sendEmail: values.sendEmail,
         },
