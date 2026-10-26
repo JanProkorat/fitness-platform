@@ -189,6 +189,31 @@ public class PaymentsAfterEndIntegrationTests(FitnessApiFactory factory)
     }
 
     [Fact]
+    public async Task EndCollaboration_IndefinitePackage_FreezesTheStartedPeriodAtItsPriceAndALaterPackageNeverReprices()
+    {
+        var world = await CreateWorldAsync(factory);
+        var longTerm = await CreatePackageAsync(world.Coach, 5000m, "Dlouhodobá", "EveryNWeeks", intervalWeeks: 5);
+        await SetTermsOkAsync(world, longTerm);
+        await EndCollaborationAsync(world);
+
+        var frozen = (await StoredRowsAsync(world)).Should().ContainSingle().Subject;
+        frozen.PeriodStart.Should().Be(Today);
+        frozen.Amount.Should().Be(5000m);
+        frozen.BasePrice.Should().Be(5000m);
+        frozen.PackageName.Should().Be("Dlouhodobá");
+
+        var threeMonths = await CreatePackageAsync(world.Coach, 3000m, "Tříměsíční", runsFor: 3);
+        await AcceptInviteAsync(world, threeMonths);
+
+        var rows = (await ListAsync(world)).OrderBy(p => p.PeriodStart).ToList();
+        rows[0].PeriodStart.Should().Be(Today);
+        rows[0].Amount.Should().Be(5000m);
+        rows[0].PackageName.Should().Be("Dlouhodobá");
+        rows[1].PeriodStart.Should().Be(Today.AddMonths(1));
+        rows[1].Amount.Should().Be(3000m);
+    }
+
+    [Fact]
     public async Task Reaccept_WhileAKeptPeriodIsRequestedInTheFuture_KeepsItAndStillPlansTheNewTerms()
     {
         var (world, _, rows) = await EndedFixedLengthAsync();

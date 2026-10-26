@@ -65,6 +65,8 @@ public static class ClientPaymentTermsCloser
         var kept = await KeepFixedLengthPeriodsAsync(
             db, assignment, settings?.VariableSymbolFormat ?? VariableSymbolFormat.YearMonthClientNumber, endDay, ct);
 
+        await FreezeStartedPeriodsAsync(db, assignment.Id, endDay, ct);
+
         var closed = await db.ClientPaymentTerms
             .Where(t => t.ClientPaymentAssignmentId == assignment.Id && t.EndsAtUtc == null)
             .ExecuteUpdateAsync(setters => setters.SetProperty(t => t.EndsAtUtc, (DateTime?)now), ct);
@@ -115,6 +117,47 @@ public static class ClientPaymentTermsCloser
         }
 
         await transaction.CommitAsync(ct);
+    }
+
+    /// <summary>
+    /// Freezes every started, still-planned period at the price of the terms open at the end, so a later
+    /// package never reprices it. The caller holds the coach lock inside a transaction and has not yet
+    /// ended the terms.
+    /// </summary>
+    private static async Task FreezeStartedPeriodsAsync(
+        IApplicationDbContext db, long assignmentId, DateOnly endDay, CancellationToken ct)
+    {
+        var terms = await ClientPaymentSchedule.LoadTermsAsync(db, assignmentId, ct);
+        var open = terms.LastOrDefault(t => t.EndsAtUtc == null);
+
+        if (open is null)
+        {
+            return;
+        }
+
+        var payments = await db.ClientPayments
+            .Where(p => p.ClientPaymentAssignmentId == assignmentId && p.PeriodStart != null)
+            .ToListAsync(ct);
+        var recurringStarts = ClientPaymentSchedule.RecurringStartsOf(payments);
+
+        foreach (var payment in payments.Where(p => p.Status == ClientPaymentStatus.Upcoming
+                     && p.Kind == ClientPaymentKind.Recurring
+                     && p.Amount is null
+                     && p.PeriodStart <= endDay))
+        {
+            var start = payment.PeriodStart!.Value;
+            var breakdown = ClientPaymentSchedule.Breakdown(
+                open, start, ClientPaymentSchedule.OrdinalOf(terms, recurringStarts, start), payment.DueDate);
+
+            payment.Amount = breakdown.Amount;
+            payment.BasePrice = breakdown.BasePrice;
+            payment.DiscountLabel = breakdown.Label;
+            payment.IsCustomPrice = breakdown.IsCustomPrice;
+            payment.PackageName ??= open.CoachPackage.Name;
+            payment.Currency = open.CoachPackage.Currency;
+        }
+
+        await db.SaveChangesAsync(ct);
     }
 
     /// <summary>
