@@ -140,6 +140,11 @@ internal sealed class GetClientPaymentSummaryEndpoint(
 
         var latest = terms[^1];
 
+        if (latest.EndsAtUtc is not null)
+        {
+            return;
+        }
+
         response.Terms = new ClientPaymentSummaryTermsDto
         {
             PackageId = latest.CoachPackage.PublicId,
@@ -158,7 +163,10 @@ internal sealed class GetClientPaymentSummaryEndpoint(
 
         var priceStart = nextPeriod?.PeriodStart ?? today;
         var breakdown = ClientPaymentSchedule.Breakdown(
-            latest, priceStart, recurring.Count(p => p.PeriodStart <= priceStart) + (nextPeriod is null ? 1 : 0), priceStart);
+            latest,
+            priceStart,
+            ClientPaymentSchedule.OrdinalOf(terms, recurringStarts, priceStart) + (nextPeriod is null ? 1 : 0),
+            priceStart);
 
         response.Price = new ClientPaymentSummaryPriceDto
         {

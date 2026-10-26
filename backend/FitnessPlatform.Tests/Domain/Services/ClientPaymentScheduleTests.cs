@@ -319,4 +319,63 @@ public class ClientPaymentScheduleTests
         payment.PackageName.Should().Be("Online coaching");
         payment.DiscountLabel.Should().Contain("30");
     }
+
+    private static ClientPaymentTerms Ended(ClientPaymentTerms terms, DateOnly endDay)
+    {
+        terms.EndsAtUtc = ClientPaymentSchedule.StartOfDayUtc(endDay).AddHours(12);
+
+        return terms;
+    }
+
+    [Fact]
+    public void TermsAt_FromTheEndOfTheCollaboration_ReturnsNothing()
+    {
+        var terms = Ended(Terms(Package(), new DateOnly(2026, 8, 1)), new DateOnly(2026, 9, 15));
+
+        ClientPaymentSchedule.TermsAt([terms], ClientPaymentSchedule.StartOfDayUtc(new DateOnly(2026, 9, 15))).Should().BeSameAs(terms);
+        ClientPaymentSchedule.TermsAt([terms], ClientPaymentSchedule.StartOfDayUtc(new DateOnly(2026, 9, 16))).Should().BeNull();
+    }
+
+    [Fact]
+    public void PlanMissingPeriods_EndedWithNoLaterTerms_PlansNothing()
+    {
+        var terms = Ended(Terms(Package(), new DateOnly(2026, 8, 1)), new DateOnly(2026, 9, 15));
+        var existing = new[] { new DateOnly(2026, 8, 1), new DateOnly(2026, 9, 1) };
+
+        ClientPaymentSchedule.PlanMissingPeriods([terms], existing, Today).Should().BeEmpty();
+    }
+
+    [Fact]
+    public void PlanMissingPeriods_NewTermsAfterAnEnd_RestartOnTheirStartDayWithoutFillingTheGap()
+    {
+        var old = Ended(Terms(Package(), new DateOnly(2026, 8, 1)), new DateOnly(2026, 9, 15));
+        var fresh = Terms(Package(), new DateOnly(2026, 10, 21));
+        var existing = new[] { new DateOnly(2026, 8, 1), new DateOnly(2026, 9, 1) };
+
+        ClientPaymentSchedule.PlanMissingPeriods([old, fresh], existing, Today)
+            .Select(p => p.Start).Should().Equal(new DateOnly(2026, 10, 21), new DateOnly(2026, 11, 21));
+    }
+
+    [Fact]
+    public void PlanMissingPeriods_NewTermsOnTheDayThePeriodStarted_ContinueWithTheNextPeriod()
+    {
+        var old = Ended(Terms(Package(), new DateOnly(2026, 9, 21)), Today);
+        var fresh = Terms(Package(), Today);
+        fresh.EffectiveFromUtc = old.EndsAtUtc!.Value;
+        var existing = new[] { new DateOnly(2026, 9, 21), Today };
+
+        ClientPaymentSchedule.PlanMissingPeriods([old, fresh], existing, Today)
+            .Select(p => p.Start).Should().Equal(new DateOnly(2026, 11, 21));
+    }
+
+    [Fact]
+    public void OrdinalOf_AfterAnEnd_CountsOnlyThePeriodsSinceThen()
+    {
+        var old = Ended(Terms(Package(), new DateOnly(2026, 8, 1)), new DateOnly(2026, 9, 15));
+        var fresh = Terms(Package(), new DateOnly(2026, 10, 21));
+        var starts = new[] { new DateOnly(2026, 8, 1), new DateOnly(2026, 9, 1), new DateOnly(2026, 10, 21) };
+
+        ClientPaymentSchedule.OrdinalOf([old, fresh], starts, new DateOnly(2026, 9, 1)).Should().Be(2);
+        ClientPaymentSchedule.OrdinalOf([old, fresh], starts, new DateOnly(2026, 10, 21)).Should().Be(1);
+    }
 }

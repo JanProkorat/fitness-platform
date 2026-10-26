@@ -35,6 +35,11 @@ public class ClientPaymentTerms : BaseEntity
     public DateTime EffectiveFromUtc { get; set; }
 
     /// <summary>
+    /// When the collaboration ended and the terms stopped applying (UTC); null while they are open-ended.
+    /// </summary>
+    public DateTime? EndsAtUtc { get; set; }
+
+    /// <summary>
     /// Navigation property to the assignment.
     /// </summary>
     public ClientPaymentAssignment ClientPaymentAssignment { get; set; } = null!;
