@@ -287,24 +287,6 @@ public static class ClientPaymentSchedule
     }
 
     /// <summary>
-    /// Stored in <see cref="ClientPayment.DiscountLabel"/> to remember that a frozen payment was priced with a
-    /// custom price. Never sent to clients: use <see cref="PublicDiscountLabel"/> and <see cref="IsCustomPriceLabel"/>.
-    /// </summary>
-    public const string CustomPriceMarker = "custom-price";
-
-    /// <summary>
-    /// The stored discount label as clients see it: null when the payment carries the custom-price marker.
-    /// </summary>
-    /// <param name="stored">The stored label.</param>
-    public static string? PublicDiscountLabel(string? stored) => stored == CustomPriceMarker ? null : stored;
-
-    /// <summary>
-    /// Whether a stored discount label is the custom-price marker.
-    /// </summary>
-    /// <param name="stored">The stored label.</param>
-    public static bool IsCustomPriceLabel(string? stored) => stored == CustomPriceMarker;
-
-    /// <summary>
     /// Applies the derived overdue status: a payment still waiting for the money is overdue once its due date has passed.
     /// </summary>
     /// <param name="stored">The stored status.</param>
@@ -332,9 +314,9 @@ public static class ClientPaymentSchedule
             return (
                 payment.Amount,
                 payment.BasePrice,
-                PublicDiscountLabel(payment.DiscountLabel),
+                payment.DiscountLabel,
                 payment.PackageName ?? payment.Title,
-                IsCustomPriceLabel(payment.DiscountLabel));
+                payment.IsCustomPrice);
         }
 
         if (TermsAt(terms, StartOfDayUtc(start)) is not { } termsOfPeriod)
@@ -363,7 +345,8 @@ public static class ClientPaymentSchedule
 
         payment.Amount ??= figures.Amount;
         payment.BasePrice ??= figures.BasePrice;
-        payment.DiscountLabel ??= figures.IsCustomPrice ? CustomPriceMarker : figures.DiscountLabel;
+        payment.DiscountLabel ??= figures.DiscountLabel;
+        payment.IsCustomPrice = figures.IsCustomPrice;
 
         if (payment.Kind == ClientPaymentKind.Recurring)
         {

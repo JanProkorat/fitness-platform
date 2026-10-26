@@ -104,8 +104,8 @@ public class ClientPaymentItemDto
             Amount = payment.Amount,
             Currency = payment.Currency,
             BasePrice = payment.BasePrice,
-            DiscountLabel = ClientPaymentSchedule.PublicDiscountLabel(payment.DiscountLabel),
-            IsCustomPrice = ClientPaymentSchedule.IsCustomPriceLabel(payment.DiscountLabel),
+            DiscountLabel = payment.DiscountLabel,
+            IsCustomPrice = payment.IsCustomPrice,
             DueDate = payment.DueDate,
             PaidOn = payment.PaidOn
         };

@@ -108,8 +108,8 @@ public class ClientPaymentRowDto
             (
                 payment.Amount,
                 payment.BasePrice,
-                ClientPaymentSchedule.PublicDiscountLabel(payment.DiscountLabel),
+                payment.DiscountLabel,
                 payment.PackageName ?? payment.Title,
-                ClientPaymentSchedule.IsCustomPriceLabel(payment.DiscountLabel)),
+                payment.IsCustomPrice),
             payment.Message);
 }

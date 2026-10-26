@@ -322,7 +322,7 @@ internal sealed class RequestClientPaymentEndpoint(
                     payment.PeriodEnd,
                     payment.Amount.Value,
                     payment.BasePrice,
-                    ClientPaymentSchedule.PublicDiscountLabel(payment.DiscountLabel),
+                    payment.DiscountLabel,
                     payment.DueDate,
                     payment.AccountIban!,
                     payment.VariableSymbol ?? string.Empty,
@@ -330,7 +330,7 @@ internal sealed class RequestClientPaymentEndpoint(
                     QrCodePngRenderer.Render(qrPayload),
                     PaymentMessageComposer.QrContentId,
                     payment.Currency,
-                    ClientPaymentSchedule.IsCustomPriceLabel(payment.DiscountLabel)),
+                    payment.IsCustomPrice),
                 ct);
 
             return true;

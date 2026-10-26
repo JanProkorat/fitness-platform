@@ -307,7 +307,7 @@ public class ClientPaymentScheduleTests
     }
 
     [Fact]
-    public void Freeze_CustomPrice_StoresAMarkerThatClientsNeverSeeAsText()
+    public void Freeze_CustomPrice_SetsTheFlagAndLeavesNoLabel()
     {
         var terms = Terms(Package(), new DateOnly(2026, 9, 1), customPrice: 1200m);
         var payment = new ClientPayment { Status = ClientPaymentStatus.Upcoming, PeriodStart = new DateOnly(2026, 10, 1), DueDate = new DateOnly(2026, 10, 1) };
@@ -315,7 +315,8 @@ public class ClientPaymentScheduleTests
         ClientPaymentSchedule.Freeze(payment, [terms], [new DateOnly(2026, 10, 1)]);
         var figures = ClientPaymentSchedule.FiguresOf(payment, [terms], [new DateOnly(2026, 10, 1)]);
 
-        payment.DiscountLabel.Should().Be(ClientPaymentSchedule.CustomPriceMarker);
+        payment.IsCustomPrice.Should().BeTrue();
+        payment.DiscountLabel.Should().BeNull();
         figures.DiscountLabel.Should().BeNull();
         figures.IsCustomPrice.Should().BeTrue();
         ClientPaymentSchedule.Breakdown(terms, new DateOnly(2026, 10, 1), 1, new DateOnly(2026, 10, 1)).Label.Should().BeNull();
