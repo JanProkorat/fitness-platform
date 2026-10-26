@@ -1,3 +1,4 @@
+using System.Globalization;
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
@@ -91,61 +92,31 @@ public class WeeklyCheckInSchedulerTests(FitnessApiFactory factory)
 
     // ── Core scheduler behavior ───────────────────────────────────────────────
 
-    /// <summary>
-    /// Monday 18:00 Prague as a UTC instant, derived from the zone rules so the test
-    /// holds in CET (UTC+1) and CEST (UTC+2) alike.
-    /// </summary>
-    private static DateTime PragueMondayEveningUtc(DateOnly localMonday)
-    {
-        var prague = TimeZoneInfo.FindSystemTimeZoneById("Europe/Prague");
-        var localFireAt = DateTime.SpecifyKind(
-            localMonday.ToDateTime(new TimeOnly(18, 0)), DateTimeKind.Unspecified);
-        return TimeZoneInfo.ConvertTimeToUtc(localFireAt, prague);
-    }
-
-    /// <summary>The most recent Prague Monday whose 18:00 local instant is already in the past.</summary>
-    private static DateOnly LastPragueMondayWithPastFireTime()
-    {
-        var prague = TimeZoneInfo.FindSystemTimeZoneById("Europe/Prague");
-        var utcNow = DateTime.UtcNow;
-        var localToday = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(utcNow, prague));
-        var daysToLastMonday = ((int)localToday.DayOfWeek - (int)DayOfWeek.Monday + 7) % 7;
-        var lastMonday = localToday.AddDays(-daysToLastMonday);
-
-        // Today may be Monday before 18:00 local: step back a week.
-        return PragueMondayEveningUtc(lastMonday) >= utcNow ? lastMonday.AddDays(-7) : lastMonday;
-    }
-
-    [Fact]
-    public Task Tick_PastFireTime_CreatesExactlyOneCheckIn() =>
-        AssertPragueMondayTickCreatesOneCheckInAsync(LastPragueMondayWithPastFireTime());
-
     [Theory]
-    [InlineData("2026-07-13")] // CEST (UTC+2): 18:00 Prague = 16:00 UTC
-    [InlineData("2026-11-02")] // CET (UTC+1): 18:00 Prague = 17:00 UTC
-    public Task Tick_PastFireTime_CreatesExactlyOneCheckIn_InSummerAndWinterTime(string localMondayText) =>
-        AssertPragueMondayTickCreatesOneCheckInAsync(DateOnly.Parse(localMondayText));
-
-    private async Task AssertPragueMondayTickCreatesOneCheckInAsync(DateOnly localMonday)
+    [InlineData("2026-07-13")] // Monday in CEST: 18:00 Prague = 16:00 UTC
+    [InlineData("2026-01-12")] // Monday in CET:  18:00 Prague = 17:00 UTC
+    public async Task Tick_PastFireTime_CreatesExactlyOneCheckIn(string pinnedMonday)
     {
         var (trainerUserId, clientUserId) = await SetupTrainerAndClientWithSettingAsync(
             DayOfWeek.Monday,
             TimeSpan.FromHours(18),
             "Europe/Prague");
 
-        var fireAt = PragueMondayEveningUtc(localMonday);
+        // The UTC fire time comes from the Prague zone rules for the pinned (past) Monday,
+        // so it is right in summer and in winter time.
+        var fireAt = TimeZoneInfo.ConvertTimeToUtc(
+            DateTime.SpecifyKind(
+                DateOnly.ParseExact(pinnedMonday, "yyyy-MM-dd", CultureInfo.InvariantCulture)
+                    .ToDateTime(new TimeOnly(18, 0)),
+                DateTimeKind.Unspecified),
+            TimeZoneInfo.FindSystemTimeZoneById("Europe/Prague"));
 
         var scheduler = factory.Services.GetRequiredService<WeeklyCheckInScheduler>();
 
-        // The scheduler is a shared singleton: pin the cursor so a tick left over from another
-        // test (possibly months away) cannot widen the window and fire an earlier week too.
-        scheduler.SetLastTickAt(fireAt.AddMinutes(-120));
+        // Position the cursor just before the fire time so it falls within the window.
+        scheduler.SetLastTickAt(fireAt.AddMinutes(-60));
 
-        // Set cursor to just before the fire time so it falls within the window.
-        scheduler.OverrideNow = fireAt.AddMinutes(-60);
-        await scheduler.TickAsync(scheduler.OverrideNow.Value, TestContext.Current.CancellationToken);
-
-        // Now tick PAST the fire time.
+        // Tick PAST the fire time.
         scheduler.OverrideNow = fireAt.AddMinutes(1);
         await scheduler.TickAsync(scheduler.OverrideNow.Value, TestContext.Current.CancellationToken);
 
