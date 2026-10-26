@@ -1,5 +1,6 @@
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Tests.Builders;
 using FluentAssertions;
@@ -57,6 +58,31 @@ public class CoachRoleStatusTests
         var roles = CoachRoleStatus.ActiveRoles([AppRoles.Client, AppRoles.Trainer], null);
 
         roles.Should().Equal(AppRoles.Trainer);
+    }
+
+    [Theory]
+    [InlineData(null, new[] { AppRoles.Trainer, AppRoles.Nutritionist }, false, false, LinkCapabilityScope.Both)]
+    [InlineData(LinkCapabilityScope.NutritionOnly, new[] { AppRoles.Trainer, AppRoles.Nutritionist }, false, false, LinkCapabilityScope.NutritionOnly)]
+    [InlineData(LinkCapabilityScope.TrainingOnly, new[] { AppRoles.Trainer, AppRoles.Nutritionist }, false, false, LinkCapabilityScope.TrainingOnly)]
+    [InlineData(LinkCapabilityScope.Both, new[] { AppRoles.Trainer, AppRoles.Nutritionist }, false, true, LinkCapabilityScope.TrainingOnly)]
+    [InlineData(LinkCapabilityScope.NutritionOnly, new[] { AppRoles.Trainer, AppRoles.Nutritionist }, false, true, null)]
+    [InlineData(null, new[] { AppRoles.Trainer, AppRoles.Nutritionist }, true, true, null)]
+    [InlineData(null, new[] { AppRoles.Trainer }, true, false, null)]
+    [InlineData(null, new[] { AppRoles.Client }, false, false, null)]
+    public void ResolveOfferedScope_ReturnsWhatAcceptWouldGrant(
+        LinkCapabilityScope? scope,
+        string[] heldRoles,
+        bool trainerRemoved,
+        bool nutritionistRemoved,
+        LinkCapabilityScope? expected)
+    {
+        var profile = new ProfessionalProfile
+        {
+            TrainerRoleRemovedAt = trainerRemoved ? DateTime.UtcNow : null,
+            NutritionistRoleRemovedAt = nutritionistRemoved ? DateTime.UtcNow : null,
+        };
+
+        CoachRoleStatus.ResolveOfferedScope(scope, heldRoles, profile).Should().Be(expected);
     }
 
     [Fact]

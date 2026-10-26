@@ -2,6 +2,7 @@ using FastEndpoints;
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Features.Client.Invites.GetPending;
 using FitnessPlatform.Tests.Builders;
 using NSubstitute;
@@ -61,6 +62,7 @@ public class GetPendingInviteEndpointTests
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
         ep.Response.TrainerRole.Should().Be("Trainer & Nutritionist");
+        ep.Response.OfferedType.Should().Be(LinkCapabilityScope.Both);
     }
 
     /// <summary>
@@ -98,5 +100,6 @@ public class GetPendingInviteEndpointTests
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
         ep.Response.TrainerRole.Should().Be("Trainer");
+        ep.Response.OfferedType.Should().Be(LinkCapabilityScope.TrainingOnly);
     }
 }
