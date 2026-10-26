@@ -20,7 +20,7 @@ export class ApiClient {
 
         this.instance = instance || axios.create();
 
-        this.baseUrl = baseUrl ?? "https://localhost:5001";
+        this.baseUrl = baseUrl ?? "https://localhost:64981";
 
     }
 
@@ -19879,27 +19879,20 @@ export interface CreateWorkoutTemplateSetRequest {
     restSeconds?: number | undefined;
 }
 
-/** RFC7807 compatible problem details/ error response class. this can be used by configuring startup like so: app.UseFastEndpoints(c => c.Errors.UseProblemDetails()) */
 export interface ProblemDetails {
     type?: string;
     title?: string;
     status?: number;
     instance?: string;
     traceId?: string;
-    /** the details of the error */
     detail?: string | undefined;
     errors?: ProblemDetails_Error[];
 }
 
-/** the error details object */
 export interface ProblemDetails_Error {
-    /** the name of the error or property of the dto that caused the error */
     name?: string;
-    /** the reason for the error */
     reason?: string;
-    /** the code of the error */
     code?: string | undefined;
-    /** the severity of the error */
     severity?: string | undefined;
 }
 
@@ -27025,6 +27018,8 @@ export interface PendingInviteResponse {
     trainerName?: string;
     trainerRole?: string;
     trainerCity?: string;
+    /** Collaboration type accepting would grant now, or null when it would grant nothing. */
+    offeredType?: LinkCapabilityScope | undefined;
     message?: string | undefined;
 }
 
@@ -27046,6 +27041,8 @@ export interface ClientInviteDto {
     coachRole?: string;
     /** City of the professional, or empty when unset. */
     coachCity?: string;
+    /** Collaboration type accepting would grant now, or null when it would grant nothing. */
+    offeredType?: LinkCapabilityScope | undefined;
     /** Optional introduction message. */
     message?: string | undefined;
     /** When the invitation was sent (UTC). */
@@ -27070,6 +27067,8 @@ export interface CollaborationDto {
     professionalName?: string;
     professionalCity?: string | undefined;
     role?: string;
+    /** Collaboration type the link covers, or null when it grants no plan view. */
+    coveredType?: LinkCapabilityScope | undefined;
     since?: string;
     /** Professional's avatar URL. Falls back to the underlying user's
 personal avatar when the professional-profile-specific one isn't set.
