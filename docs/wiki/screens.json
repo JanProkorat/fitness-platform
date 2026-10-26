@@ -1238,8 +1238,10 @@
         "mobile/src/components/today/FindCoachSection.tsx",
         "mobile/src/components/today/InviteCard.tsx",
         "mobile/src/components/today/InvitesSection.tsx",
+        "mobile/src/components/today/PaymentDueCard.tsx",
         "mobile/src/components/today/TodayHeader.tsx",
         "mobile/src/components/invites/**",
+        "mobile/src/components/payments/format.ts",
         "mobile/src/components/Button.tsx",
         "mobile/src/components/Chip.tsx",
         "mobile/src/components/Screen.tsx",
@@ -1248,13 +1250,17 @@
         "mobile/src/hooks/useInviteActions.ts",
         "mobile/src/hooks/useInvites.ts",
         "mobile/src/hooks/useNotifications.ts",
+        "mobile/src/hooks/usePayments.ts",
+        "mobile/src/hooks/usePaymentsEnabled.ts",
         "mobile/src/hooks/useProfile.ts",
         "mobile/src/hooks/usePushRegistration.ts",
         "mobile/src/realtime/**",
+        "mobile/src/api/appConfig.ts",
         "mobile/src/api/conversations.ts",
         "mobile/src/api/errors.ts",
         "mobile/src/api/invites.ts",
         "mobile/src/api/notifications.ts",
+        "mobile/src/api/payments.ts",
         "mobile/src/api/professionals.ts",
         "mobile/src/api/profile.ts",
         "mobile/src/api/pushToken.ts"
@@ -1267,7 +1273,9 @@
         "GET /client/notifications",
         "GET /conversations",
         "POST /client/push-token",
-        "DELETE /client/push-token"
+        "DELETE /client/push-token",
+        "GET /client/payments",
+        "GET /client/app-config"
       ],
       "board": "GlassTodayNoCoach",
       "shots": [
@@ -1293,6 +1301,8 @@
         "mobile/src/components/Text.tsx",
         "mobile/src/hooks/useInvites.ts",
         "mobile/src/hooks/useNotifications.ts",
+        "mobile/src/hooks/usePaymentsEnabled.ts",
+        "mobile/src/api/appConfig.ts",
         "mobile/src/api/errors.ts",
         "mobile/src/api/invites.ts",
         "mobile/src/api/notifications.ts"
@@ -1301,7 +1311,8 @@
         "GET /client/notifications",
         "POST /client/notifications/{id}/read",
         "POST /client/notifications/read-all",
-        "GET /client/invites"
+        "GET /client/invites",
+        "GET /client/app-config"
       ],
       "board": "GlassNotifications",
       "shots": [
@@ -1458,12 +1469,14 @@
         "mobile/src/api/clientRequests.ts",
         "mobile/src/api/errors.ts",
         "mobile/src/api/professionals.ts",
-        "mobile/src/api/profile.ts"
+        "mobile/src/api/profile.ts",
+        "mobile/src/api/appConfig.ts"
       ],
       "endpoints": [
         "GET /professionals/{publicId}",
         "POST /client/requests",
-        "GET /client/invites"
+        "GET /client/invites",
+        "GET /client/app-config"
       ],
       "board": "GlassCoachProfile",
       "shots": [
@@ -1497,13 +1510,15 @@
         "mobile/src/api/errors.ts",
         "mobile/src/api/invites.ts",
         "mobile/src/api/notifications.ts",
-        "mobile/src/api/profile.ts"
+        "mobile/src/api/profile.ts",
+        "mobile/src/api/appConfig.ts"
       ],
       "endpoints": [
         "GET /client/invites",
         "GET /professionals/{publicId}",
         "POST /client/invites/{id}/accept",
-        "POST /client/invites/{id}/decline"
+        "POST /client/invites/{id}/decline",
+        "GET /client/app-config"
       ],
       "board": "GlassInviteDetail",
       "shots": [
@@ -1592,21 +1607,53 @@
         "mobile/src/components/profile/format.ts",
         "mobile/src/hooks/useCollaborations.ts",
         "mobile/src/hooks/useOnboardingAnswers.ts",
+        "mobile/src/hooks/usePaymentsEnabled.ts",
         "mobile/src/hooks/useProfile.ts",
         "mobile/src/hooks/useProfileSummary.ts",
-        "mobile/src/hooks/useWeightSeries.ts"
+        "mobile/src/hooks/useWeightSeries.ts",
+        "mobile/src/api/appConfig.ts"
       ],
       "endpoints": [
         "GET /users/me",
         "GET /client/profile/summary",
         "GET /client/collaborations",
         "GET /client/onboarding/answers",
-        "GET /client/measurements"
+        "GET /client/measurements",
+        "GET /client/app-config"
       ],
       "board": "GlassProfile",
       "shots": [
         { "name": "default", "steps": "tap the initials button on Today" },
         { "name": "no-coach", "steps": "client without a coach; the coach row is replaced by the find-a-coach prompt" }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "client.profile.payments",
+      "app": "client",
+      "area": "Profile",
+      "title": "Payments",
+      "route": "/payments",
+      "roles": ["Client"],
+      "files": [
+        "mobile/src/app/payments.tsx",
+        "mobile/src/components/payments/**",
+        "mobile/src/components/invites/format.ts",
+        "mobile/src/components/BackButton.tsx",
+        "mobile/src/components/Screen.tsx",
+        "mobile/src/components/Text.tsx",
+        "mobile/src/hooks/usePayments.ts",
+        "mobile/src/hooks/usePaymentsEnabled.ts",
+        "mobile/src/api/appConfig.ts",
+        "mobile/src/api/payments.ts"
+      ],
+      "endpoints": [
+        "GET /client/payments",
+        "GET /client/app-config"
+      ],
+      "board": "GlassPayment",
+      "shots": [
+        { "name": "default", "steps": "client with a payment requested by their coach; tap Payments on Profile" }
       ],
       "notionPageId": null
     },
