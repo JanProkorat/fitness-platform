@@ -152,6 +152,7 @@ public class WeeklyCheckInSchedulerTests(FitnessApiFactory factory)
         var scheduler = factory.Services.GetRequiredService<WeeklyCheckInScheduler>();
 
         // First tick: before fire.
+        scheduler.SetLastTickAt(lastTuesday.AddMinutes(-10));
         scheduler.OverrideNow = lastTuesday.AddMinutes(-5);
         await scheduler.TickAsync(scheduler.OverrideNow.Value, TestContext.Current.CancellationToken);
 
@@ -315,6 +316,7 @@ public class WeeklyCheckInSchedulerTests(FitnessApiFactory factory)
 
         var scheduler = factory.Services.GetRequiredService<WeeklyCheckInScheduler>();
 
+        scheduler.SetLastTickAt(lastWed.AddMinutes(-35));
         scheduler.OverrideNow = lastWed.AddMinutes(-30);
         await scheduler.TickAsync(scheduler.OverrideNow.Value, TestContext.Current.CancellationToken);
 
@@ -367,6 +369,7 @@ public class WeeklyCheckInSchedulerTests(FitnessApiFactory factory)
 
         var scheduler = factory.Services.GetRequiredService<WeeklyCheckInScheduler>();
 
+        scheduler.SetLastTickAt(lastWed.AddMinutes(-35));
         scheduler.OverrideNow = lastWed.AddMinutes(-30);
         await scheduler.TickAsync(scheduler.OverrideNow.Value, TestContext.Current.CancellationToken);
 
@@ -404,6 +407,7 @@ public class WeeklyCheckInSchedulerTests(FitnessApiFactory factory)
 
         var scheduler = factory.Services.GetRequiredService<WeeklyCheckInScheduler>();
 
+        scheduler.SetLastTickAt(lastThu.AddMinutes(-65));
         scheduler.OverrideNow = lastThu.AddMinutes(-60);
         await scheduler.TickAsync(scheduler.OverrideNow.Value, TestContext.Current.CancellationToken);
 
