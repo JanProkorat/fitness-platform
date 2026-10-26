@@ -18,6 +18,7 @@ import { Field } from '@/components/profile/ProfileSection';
 import { PaymentCurrency } from '@/api/client-payments';
 import { useAddClientOneOffPayment } from '@/hooks/useClientPaymentQueries';
 import { showApiError, showSuccess } from '@/lib/api-errors';
+import { parseAmount } from '@/lib/money';
 import { addDaysIso, todayIso } from '@/lib/payment-format';
 
 const TITLE_MAX = 100;
@@ -31,11 +32,6 @@ interface FormValues {
   amount: string;
   currency: PaymentCurrency;
   dueDate: string;
-}
-
-/** An amount typed by hand: a dot or a comma as the decimal separator. */
-function parseAmount(raw: string): number {
-  return Number(raw.trim().replace(',', '.'));
 }
 
 interface FormProps {
@@ -60,7 +56,7 @@ function OneOffForm({ clientId, clientName, defaultCurrency, defaultDueDays, onC
           .max(TITLE_MAX, t('payments.client.oneOff.titleTooLong', { max: TITLE_MAX })),
         amount: z.string().refine((raw) => {
           const value = parseAmount(raw);
-          return Number.isFinite(value) && value > 0 && value <= AMOUNT_MAX;
+          return value !== null && value > 0 && value <= AMOUNT_MAX;
         }, t('payments.client.oneOff.amountInvalid')),
         currency: z.enum(PaymentCurrency),
         dueDate: z.string().min(1, t('payments.client.oneOff.dueRequired')),
@@ -87,7 +83,7 @@ function OneOffForm({ clientId, clientName, defaultCurrency, defaultDueDays, onC
     addMutation.mutate(
       {
         title: values.title.trim(),
-        amount: Math.round(parseAmount(values.amount) * 100) / 100,
+        amount: parseAmount(values.amount) ?? 0,
         currency: values.currency,
         dueDate: values.dueDate,
       },
