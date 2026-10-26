@@ -14,6 +14,9 @@ import { getHubAccessToken } from './token';
 const HUB_PATH = '/hubs/notifications';
 /** Back-off before each automatic reconnect attempt; after the last one the connection stays closed. */
 const RECONNECT_DELAYS_MS = [0, 2000, 5000, 10000, 30000];
+/** Back-off for restarting the connection once automatic reconnect has given up. */
+const RESTART_INITIAL_DELAY_MS = 2000;
+const RESTART_MAX_DELAY_MS = 30000;
 
 type RealtimeProviderProps = {
   /** True while the signed-in client is on the home screens; the connection exists only then. */
@@ -82,29 +85,81 @@ export function RealtimeProvider({ enabled, children }: RealtimeProviderProps) {
       });
     });
 
-    const notifyReconnected = () => reconnectCallbacks.current.forEach((callback) => callback());
-    connection.onreconnected(notifyReconnected);
-
     let closed = false;
-    const start = (isRestart: boolean) => {
-      connection
-        .start()
-        .then(() => {
-          if (isRestart && !closed) notifyReconnected();
-        })
-        .catch((error: unknown) => {
-          if (!closed) console.warn('Realtime connection failed to start', error);
-        });
-    };
-    start(false);
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let starting = false;
+    // Set once a start failed or the connection closed, so the next success refreshes the lists.
+    let recovering = false;
+    let delay = RESTART_INITIAL_DELAY_MS;
 
-    // A connection that gave up (or never started) is opened again when the app returns to the foreground.
+    const notifyReconnected = () => reconnectCallbacks.current.forEach((callback) => callback());
+    connection.onreconnected(() => {
+      recovering = false;
+      notifyReconnected();
+    });
+
+    const clearTimer = () => {
+      if (timer !== null) {
+        clearTimeout(timer);
+        timer = null;
+      }
+    };
+
+    // At most one pending timer; stops for good once the session has ended.
+    const scheduleRestart = () => {
+      if (closed || timer !== null || starting) return;
+      if (!useAuthStore.getState().isAuthenticated) return;
+      recovering = true;
+      const wait = delay;
+      delay = Math.min(delay * 2, RESTART_MAX_DELAY_MS);
+      timer = setTimeout(() => {
+        timer = null;
+        void startConnection();
+      }, wait);
+    };
+
+    // Restarts the same connection object, so handlers and the attached WeakMap stay valid.
+    const startConnection = async () => {
+      if (closed || starting || connection.state !== HubConnectionState.Disconnected) return;
+      starting = true;
+      try {
+        await connection.start();
+      } catch (error: unknown) {
+        starting = false;
+        if (closed) return;
+        console.warn('Realtime connection failed to start', error);
+        scheduleRestart();
+        return;
+      }
+      starting = false;
+      if (closed) return;
+      delay = RESTART_INITIAL_DELAY_MS;
+      if (recovering) {
+        recovering = false;
+        notifyReconnected();
+      }
+    };
+
+    // Automatic reconnect gave up: keep restarting with a capped back-off.
+    connection.onclose(() => {
+      if (closed) return;
+      console.warn('Realtime connection closed, restarting');
+      scheduleRestart();
+    });
+
+    void startConnection();
+
+    // Returning to the foreground skips any pending back-off and starts immediately.
     const subscription = AppState.addEventListener('change', (state) => {
-      if (state === 'active' && connection.state === HubConnectionState.Disconnected) start(true);
+      if (state !== 'active' || connection.state !== HubConnectionState.Disconnected) return;
+      if (!useAuthStore.getState().isAuthenticated) return;
+      clearTimer();
+      void startConnection();
     });
 
     return () => {
       closed = true;
+      clearTimer();
       subscription.remove();
       connectionRef.current = null;
       void connection.stop().catch(() => undefined);
