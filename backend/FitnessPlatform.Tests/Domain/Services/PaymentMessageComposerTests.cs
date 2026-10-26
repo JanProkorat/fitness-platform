@@ -192,7 +192,8 @@ public class PaymentMessageComposerTests
     {
         var custom = Email() with { DiscountLabel = null, IsCustomPrice = true };
 
-        PaymentMessageComposer.RenderEmailHtml("[{{Breakdown}}]", custom, language, "https://app.example.com")
-            .Should().Contain(expected);
+        var html = PaymentMessageComposer.RenderEmailHtml("[{{Breakdown}}]", custom, language, "https://app.example.com");
+
+        System.Net.WebUtility.HtmlDecode(html).Should().Contain(expected);
     }
 }
