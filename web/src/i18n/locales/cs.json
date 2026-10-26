@@ -2833,7 +2833,7 @@
         "waived": "Prominuli jste {{period}}",
         "waivedReason": "Prominuli jste {{period}} · „{{reason}}“",
         "requested": "Vyžádali jste {{period}}{{amount}}",
-        "ended": "Klient ukončil spolupráci.",
+        "ended": "Spolupráce skončila.",
         "unknown": "Něco jste změnili."
       }
     },
