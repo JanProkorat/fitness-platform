@@ -22,3 +22,14 @@ export function formatMoney(amount: number, currency: PaymentCurrency, language:
     maximumFractionDigits: hasCents ? 2 : 0,
   }).format(amount);
 }
+
+const AMOUNT_PATTERN = /^\d+([.,]\d{1,2})?$/;
+
+/** Parses a typed amount ("2 500", "75,50"); null when it is not a number with up to 2 decimals. */
+export function parseAmount(raw: string): number | null {
+  const normalised = raw.replace(/\s/g, '');
+  if (!AMOUNT_PATTERN.test(normalised)) {
+    return null;
+  }
+  return Number(normalised.replace(',', '.'));
+}

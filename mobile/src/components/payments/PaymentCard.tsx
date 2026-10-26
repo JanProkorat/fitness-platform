@@ -49,7 +49,7 @@ export function PaymentCard({ payment, coachFirstName }: PaymentCardProps) {
             {formatMoney(payment.amount, payment.currency, i18n.language)}
           </Text>
           <Text variant="label" color="muted">
-            {dueLine(t, payment.dueDate, payment.discountLabel, i18n.language)}
+            {dueLine(t, payment.dueDate, payment.discountLabel, payment.isCustomPrice, i18n.language)}
           </Text>
         </View>
         <View style={[styles.tag, overdue ? styles.tagOverdue : styles.tagDue]}>

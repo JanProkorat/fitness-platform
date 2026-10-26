@@ -5,6 +5,7 @@ import {
   type CoachPackageDto,
   type CreateCoachPackageRequest,
 } from '@/api/coach-packages';
+import { parseAmount } from '@/lib/money';
 
 export const PACKAGE_NAME_MAX = 100;
 export const PACKAGE_DESCRIPTION_MAX = 500;
@@ -16,17 +17,6 @@ export const MAX_AMOUNT: Record<PaymentCurrency, number> = {
 };
 
 const INT_PATTERN = /^\d+$/;
-const AMOUNT_PATTERN = /^\d+([.,]\d{1,2})?$/;
-
-/** Parses a typed amount ("2 500", "75,50"); null when it is not a number with up to 2 decimals. */
-export function parseAmount(raw: string): number | null {
-  const normalised = raw.replace(/\s/g, '');
-  if (!AMOUNT_PATTERN.test(normalised)) {
-    return null;
-  }
-  return Number(normalised.replace(',', '.'));
-}
-
 export const intInRange = (raw: string, min: number, max: number): boolean => {
   const value = raw.trim();
   return INT_PATTERN.test(value) && Number(value) >= min && Number(value) <= max;

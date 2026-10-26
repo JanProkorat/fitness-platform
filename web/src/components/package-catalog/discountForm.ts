@@ -7,7 +7,8 @@ import {
   type CreateCoachDiscountRequest,
 } from '@/api/coach-discounts';
 import { PaymentCurrency } from '@/api/coach-packages';
-import { MAX_AMOUNT, PACKAGE_NAME_MAX, intInRange, parseAmount } from '@/components/package-catalog/packageForm';
+import { MAX_AMOUNT, PACKAGE_NAME_MAX, intInRange } from '@/components/package-catalog/packageForm';
+import { parseAmount } from '@/lib/money';
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 

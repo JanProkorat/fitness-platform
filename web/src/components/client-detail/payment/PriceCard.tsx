@@ -30,7 +30,7 @@ import {
   previewDiscountAmount,
 } from '@/components/client-detail/payment/paymentModel';
 import { showApiError, showError, showSuccess } from '@/lib/api-errors';
-import { formatMoney } from '@/lib/money';
+import { formatMoney, parseAmount } from '@/lib/money';
 import { formatMonthName, todayIso } from '@/lib/payment-format';
 
 const PRICE_MAX = 9999999.99;
@@ -44,10 +44,6 @@ interface FormValues {
   customPriceOn: boolean;
   customPrice: string;
   firstPeriodStart: string;
-}
-
-function parsePrice(raw: string): number {
-  return Number(raw.trim().replace(',', '.'));
 }
 
 function initialValues(terms: ClientPaymentSummaryTermsDto | undefined): FormValues {
@@ -137,8 +133,8 @@ function PriceForm({ clientId, clientName, summary, packages, discounts }: FormP
           if (!values.customPriceOn) {
             return;
           }
-          const price = parsePrice(values.customPrice);
-          if (!Number.isFinite(price) || price <= 0 || price > PRICE_MAX) {
+          const price = parseAmount(values.customPrice);
+          if (price === null || price <= 0 || price > PRICE_MAX) {
             ctx.addIssue({ code: 'custom', path: ['customPrice'], message: t('payments.client.terms.customPriceInvalid') });
           }
         })
@@ -174,8 +170,8 @@ function PriceForm({ clientId, clientName, summary, packages, discounts }: FormP
   const discountOptions = discounts.filter((discount) => discountFitsPackage(discount, selectedPackage));
   const selectedDiscount = findDiscount(discountId, discounts, terms);
 
-  const customPrice = customPriceOn ? parsePrice(customPriceText) : Number.NaN;
-  const hasCustomPrice = Number.isFinite(customPrice) && customPrice > 0;
+  const customPrice = customPriceOn ? (parseAmount(customPriceText) ?? 0) : 0;
+  const hasCustomPrice = customPrice > 0;
   const basePrice = selectedPackage?.price ?? 0;
   const discountAmount = hasCustomPrice ? 0 : previewDiscountAmount(selectedDiscount, basePrice);
   const payable = hasCustomPrice ? customPrice : Math.max(0, basePrice - discountAmount);
@@ -203,7 +199,7 @@ function PriceForm({ clientId, clientName, summary, packages, discounts }: FormP
       {
         packageId: values.packageId,
         discountId: values.customPriceOn || !values.discountId ? undefined : values.discountId,
-        customPrice: values.customPriceOn ? Math.round(parsePrice(values.customPrice) * 100) / 100 : undefined,
+        customPrice: values.customPriceOn ? (parseAmount(values.customPrice) ?? undefined) : undefined,
         firstPeriodStart: terms ? undefined : values.firstPeriodStart,
       },
       {
