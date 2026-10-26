@@ -2658,7 +2658,7 @@
         "requestedOn": "vyžádáno {{date}}",
         "notRequested": "zatím nevyžádáno",
         "nothingDue": "Nic nečeká na zaplacení",
-        "paidCount": "zaplaceno {{paid}} z {{total}} plateb",
+        "paidCount": "zaplaceno {{paid}} z {{total}} splatných plateb",
         "clientSince": "klient od {{date}}"
       },
       "list": {
