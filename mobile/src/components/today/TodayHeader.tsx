@@ -13,10 +13,12 @@ import type { Theme } from '@/theme';
 
 type TodayHeaderProps = {
   title: string;
+  /** Small line above the title: a date, or a state hint such as "You have an invite". */
+  subtitle?: string;
 };
 
 /** Greeting and the notifications bell at the top of the Today tab. */
-export function TodayHeader({ title }: TodayHeaderProps) {
+export function TodayHeader({ title, subtitle }: TodayHeaderProps) {
   const { t } = useTranslation();
   const theme = useTheme();
   const styles = makeStyles(theme);
@@ -28,6 +30,11 @@ export function TodayHeader({ title }: TodayHeaderProps) {
   return (
     <View style={styles.row}>
       <View style={styles.copy}>
+        {subtitle ? (
+          <Text variant="label" color="muted">
+            {subtitle}
+          </Text>
+        ) : null}
         <Text variant="title" accessibilityRole="header">
           {title}
         </Text>
@@ -69,6 +76,7 @@ const makeStyles = (theme: Theme) =>
     copy: {
       flex: 1,
       minWidth: 0,
+      gap: theme.spacing.xxs,
     },
     actions: {
       flexDirection: 'row',

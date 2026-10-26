@@ -35,6 +35,14 @@ export type Colors = {
   infoInk: string;
   infoSoft: string;
 
+  /** Quiet tinted fill for hints, tiles and the idle number badge. */
+  subtle: string;
+  stepIdle: string;
+  stepLine: string;
+  stepRing: string;
+  actionSoft: string;
+  actionInk: string;
+
   success: string;
   successSoft: string;
   error: string;
@@ -104,6 +112,12 @@ export const lightColors: Colors = {
   nutritionSoft: '#EEF6E3',
   infoInk: '#3563C9',
   infoSoft: '#E8EEFB',
+  subtle: '#F6F4F0',
+  stepIdle: '#F1EFEB',
+  stepLine: '#E4E1DC',
+  stepRing: '#CFCAC3',
+  actionSoft: '#FDECEA',
+  actionInk: '#D2342A',
   success: '#3F7D2A',
   successSoft: '#EEF6E3',
   error: '#9F1F17',
@@ -140,6 +154,12 @@ export const darkColors: Colors = {
   nutritionSoft: '#243319',
   infoInk: '#8EAAEB',
   infoSoft: '#1B2640',
+  subtle: '#2C2C2E',
+  stepIdle: '#2C2C2E',
+  stepLine: '#3A3A3C',
+  stepRing: '#48484A',
+  actionSoft: 'rgba(210,52,42,0.22)',
+  actionInk: '#FF7A6E',
   success: '#A9D673',
   successSoft: '#243319',
   error: '#F2705F',

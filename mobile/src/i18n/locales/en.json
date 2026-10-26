@@ -149,6 +149,11 @@
     "notificationsUnread": "Notifications, {{count}} unread",
     "profile": "Profile",
     "invitesTitle": "Invites",
+    "dateTitle": "Today",
+    "subtitle": {
+      "start": "Let's get you started",
+      "invite": "You have an invite"
+    },
     "findCoach": {
       "title": "Find a coach",
       "subtitle": "They build your plan, you follow it here.",
@@ -160,6 +165,71 @@
         "title": "Nutritionist",
         "hint": "Meals that fit your day"
       }
+    },
+    "coaches": {
+      "title": "Your coaches",
+      "subtitle": "One trainer and one nutritionist at a time.",
+      "subtitleBoth": "One coach can cover both training and nutrition."
+    },
+    "row": {
+      "find": { "Trainer": "Find a trainer", "Nutritionist": "Find a nutritionist" },
+      "add": { "Trainer": "Add a trainer", "Nutritionist": "Add a nutritionist" }
+    },
+    "invite": {
+      "invitedYou": "{{name}} invited you",
+      "newBadge": "New invite",
+      "view": "View invite",
+      "compare": "Compare others",
+      "footnote": "The invite stays open while you look around.",
+      "footnoteBoth": "One plan for each, from the same coach. The invite stays open while you look around.",
+      "planTraining": "Training plan",
+      "planNutrition": "Nutrition plan"
+    },
+    "howItWorks": {
+      "title": "How it works",
+      "step1": { "title": "Pick a coach", "body": "Browse profiles and send a request, or accept an invite." },
+      "step2": { "title": "Share your starting point", "body": "A short questionnaire about your goal and habits." },
+      "step3": { "title": "Follow your plan here", "body": "Sessions and meals land on this screen every day." }
+    },
+    "own": {
+      "title": "Start on your own",
+      "subtitle": "Your coach sees this history from day one.",
+      "logWeight": "Log weight",
+      "addPhoto": "Add photo"
+    },
+    "progress": {
+      "coachFallback": "Your coach",
+      "since": "since {{when}}",
+      "headline": {
+        "Trainer": "{{name}} is building your training plan",
+        "Nutritionist": "{{name}} is building your nutrition plan",
+        "both": "{{name}} is building both your plans"
+      },
+      "things_one": "{{count}} thing for you meanwhile",
+      "things_other": "{{count}} things for you meanwhile",
+      "accepted": "Invite accepted",
+      "questionnaireSent": "Questionnaire sent",
+      "questionnairePending": "Questionnaire",
+      "questionnairePendingHint": "Waiting for you to fill it in",
+      "photos": "Starting photos",
+      "photosHint": "{{name}} asked for photos",
+      "photosAdd": "Add",
+      "planSingle": "Plan in progress",
+      "planSingleHint": "We'll notify you the moment it's published.",
+      "plan": {
+        "Trainer": "Training plan in progress",
+        "Nutritionist": "Nutrition plan in progress"
+      },
+      "footnoteBoth": "Each plan can arrive on its own day. We'll notify you as each one is published.",
+      "footnoteOne": "We'll notify you the moment it's published.",
+      "tell": {
+        "title": "Tell {{name}} what matters to you",
+        "Trainer": "Your schedule, the training you enjoy, any injuries. It helps with your plan.",
+        "Nutritionist": "Foods you avoid, your schedule, how you cook. It helps with your plan.",
+        "both": "Your schedule, the training you enjoy, foods you avoid. It helps with both plans."
+      },
+      "message": "Message {{name}}",
+      "messageLabel": "Message {{name}}"
     }
   },
   "editProfile": {
