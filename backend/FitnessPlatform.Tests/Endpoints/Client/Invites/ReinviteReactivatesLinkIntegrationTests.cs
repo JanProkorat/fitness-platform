@@ -157,8 +157,8 @@ public class ReinviteReactivatesLinkIntegrationTests(FitnessApiFactory factory)
                 .Select(a => a.Id).SingleAsync(Ct);
             foreach (var terms in await db.ClientPaymentTerms.Where(t => t.ClientPaymentAssignmentId == assignmentId).ToListAsync(Ct))
             {
-                terms.EffectiveFromUtc = terms.EffectiveFromUtc.AddMonths(-3);
-                terms.EndsAtUtc = terms.EndsAtUtc?.AddMonths(-3);
+                terms.EffectiveFromUtc = PaymentTermsAging.ShiftMonths(terms.EffectiveFromUtc, -3);
+                terms.EndsAtUtc = terms.EndsAtUtc is { } endsAt ? PaymentTermsAging.ShiftMonths(endsAt, -3) : null;
             }
 
             foreach (var period in await db.ClientPayments.Where(p => p.ClientPaymentAssignmentId == assignmentId).ToListAsync(Ct))

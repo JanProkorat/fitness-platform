@@ -50,8 +50,8 @@ public class CollaborationEndBillingIntegrationTests(FitnessApiFactory factory)
 
         foreach (var terms in await db.ClientPaymentTerms.Where(t => t.ClientPaymentAssignmentId == assignmentId).ToListAsync(Ct))
         {
-            terms.EffectiveFromUtc = terms.EffectiveFromUtc.AddMonths(-months);
-            terms.EndsAtUtc = terms.EndsAtUtc?.AddMonths(-months);
+            terms.EffectiveFromUtc = PaymentTermsAging.ShiftMonths(terms.EffectiveFromUtc, -months);
+            terms.EndsAtUtc = terms.EndsAtUtc is { } endsAt ? PaymentTermsAging.ShiftMonths(endsAt, -months) : null;
         }
 
         foreach (var period in await db.ClientPayments.Where(p => p.ClientPaymentAssignmentId == assignmentId).ToListAsync(Ct))
