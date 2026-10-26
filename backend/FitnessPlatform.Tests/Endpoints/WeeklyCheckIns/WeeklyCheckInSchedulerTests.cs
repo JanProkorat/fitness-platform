@@ -91,28 +91,55 @@ public class WeeklyCheckInSchedulerTests(FitnessApiFactory factory)
 
     // ── Core scheduler behavior ───────────────────────────────────────────────
 
+    /// <summary>
+    /// Monday 18:00 Prague as a UTC instant, derived from the zone rules so the test
+    /// holds in CET (UTC+1) and CEST (UTC+2) alike.
+    /// </summary>
+    private static DateTime PragueMondayEveningUtc(DateOnly localMonday)
+    {
+        var prague = TimeZoneInfo.FindSystemTimeZoneById("Europe/Prague");
+        var localFireAt = DateTime.SpecifyKind(
+            localMonday.ToDateTime(new TimeOnly(18, 0)), DateTimeKind.Unspecified);
+        return TimeZoneInfo.ConvertTimeToUtc(localFireAt, prague);
+    }
+
+    /// <summary>The most recent Prague Monday whose 18:00 local instant is already in the past.</summary>
+    private static DateOnly LastPragueMondayWithPastFireTime()
+    {
+        var prague = TimeZoneInfo.FindSystemTimeZoneById("Europe/Prague");
+        var utcNow = DateTime.UtcNow;
+        var localToday = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(utcNow, prague));
+        var daysToLastMonday = ((int)localToday.DayOfWeek - (int)DayOfWeek.Monday + 7) % 7;
+        var lastMonday = localToday.AddDays(-daysToLastMonday);
+
+        // Today may be Monday before 18:00 local: step back a week.
+        return PragueMondayEveningUtc(lastMonday) >= utcNow ? lastMonday.AddDays(-7) : lastMonday;
+    }
+
     [Fact]
-    public async Task Tick_PastFireTime_CreatesExactlyOneCheckIn()
+    public Task Tick_PastFireTime_CreatesExactlyOneCheckIn() =>
+        AssertPragueMondayTickCreatesOneCheckInAsync(LastPragueMondayWithPastFireTime());
+
+    [Theory]
+    [InlineData("2026-07-13")] // CEST (UTC+2): 18:00 Prague = 16:00 UTC
+    [InlineData("2026-11-02")] // CET (UTC+1): 18:00 Prague = 17:00 UTC
+    public Task Tick_PastFireTime_CreatesExactlyOneCheckIn_InSummerAndWinterTime(string localMondayText) =>
+        AssertPragueMondayTickCreatesOneCheckInAsync(DateOnly.Parse(localMondayText));
+
+    private async Task AssertPragueMondayTickCreatesOneCheckInAsync(DateOnly localMonday)
     {
         var (trainerUserId, clientUserId) = await SetupTrainerAndClientWithSettingAsync(
             DayOfWeek.Monday,
             TimeSpan.FromHours(18),
             "Europe/Prague");
 
-        // Europe/Prague is UTC+2 in summer (CEST).
-        // Monday 18:00 Prague = Monday 16:00 UTC.
-        // So if "now" is just after Monday 16:00 UTC, the scheduler should fire.
-
-        // Find the last (past) Monday at 16:00 UTC.
-        var utcNow = DateTime.UtcNow;
-        var daysToLastMonday = ((int)utcNow.DayOfWeek - (int)DayOfWeek.Monday + 7) % 7;
-        var lastMonday = utcNow.Date.AddDays(-daysToLastMonday);
-        // 18:00 Prague CEST = 16:00 UTC
-        var fireAt = lastMonday.AddHours(16);
-        // Ensure fireAt is in the past (back it up a week if today is exactly Monday 16:00 UTC).
-        if (fireAt >= utcNow) fireAt = fireAt.AddDays(-7);
+        var fireAt = PragueMondayEveningUtc(localMonday);
 
         var scheduler = factory.Services.GetRequiredService<WeeklyCheckInScheduler>();
+
+        // The scheduler is a shared singleton: pin the cursor so a tick left over from another
+        // test (possibly months away) cannot widen the window and fire an earlier week too.
+        scheduler.SetLastTickAt(fireAt.AddMinutes(-120));
 
         // Set cursor to just before the fire time so it falls within the window.
         scheduler.OverrideNow = fireAt.AddMinutes(-60);
