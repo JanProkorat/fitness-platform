@@ -32,7 +32,8 @@ const DEFAULT_DUE_DAYS = 7;
 
 interface Props {
   clientId: string;
-  dashboard: GetClientDashboardResponse;
+  /** Absent for an ended client, whose dashboard is gone; the name then comes from the payment summary. */
+  dashboard?: GetClientDashboardResponse;
 }
 
 /**
@@ -53,7 +54,7 @@ export default function ClientPaymentTab({ clientId, dashboard }: Props) {
   const [request, setRequest] = useState<{ paymentId: string | null } | null>(null);
   const [oneOffOpen, setOneOffOpen] = useState(false);
 
-  const clientName = dashboard.firstName?.trim() || t('clientDetail.photos.clientFallback');
+  const fallbackName = dashboard?.firstName?.trim() || t('clientDetail.photos.clientFallback');
 
   if (summaryQuery.isPending) {
     return (
@@ -78,7 +79,7 @@ export default function ClientPaymentTab({ clientId, dashboard }: Props) {
     return (
       <div role="alert" className="flex flex-col items-center gap-3 py-16">
         <p className="text-body text-muted-foreground">
-          {notFound ? t('payments.client.notFound', { name: clientName }) : t('payments.client.loadError')}
+          {notFound ? t('payments.client.notFound', { name: fallbackName }) : t('payments.client.loadError')}
         </p>
         {!notFound && (
           <Button type="button" variant="outline" onClick={() => void summaryQuery.refetch()}>
@@ -90,6 +91,8 @@ export default function ClientPaymentTab({ clientId, dashboard }: Props) {
   }
 
   const summary = summaryQuery.data;
+  const ended = summary.collaborationEnded === true;
+  const clientName = dashboard?.firstName?.trim() || summary.clientName?.trim() || fallbackName;
   const rows = rowsQuery.data ?? [];
   const requestable = requestablePayments(rows);
   const canRequest = summary.bankAccountSet === true;
@@ -103,6 +106,11 @@ export default function ClientPaymentTab({ clientId, dashboard }: Props) {
 
   return (
     <div className="flex flex-col gap-4">
+      {ended && (
+        <p data-testid="collaboration-ended" className="text-body text-muted-foreground">
+          {t('payments.client.ended')}
+        </p>
+      )}
       <PaymentSummaryCards summary={summary} />
 
       {/* The price column sits beside the table only where the table still fits unscrolled. */}
@@ -111,10 +119,12 @@ export default function ClientPaymentTab({ clientId, dashboard }: Props) {
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-copy font-semibold text-ink">{t('payments.client.list.title')}</h2>
             <span className="ml-auto flex flex-wrap gap-2">
-              <Button type="button" variant="outline" size="lg" className="px-3.5 font-semibold" onClick={() => setOneOffOpen(true)}>
-                <Plus aria-hidden="true" />
-                {t('payments.client.list.addOneOff')}
-              </Button>
+              {!ended && (
+                <Button type="button" variant="outline" size="lg" className="px-3.5 font-semibold" onClick={() => setOneOffOpen(true)}>
+                  <Plus aria-hidden="true" />
+                  {t('payments.client.list.addOneOff')}
+                </Button>
+              )}
               <Button
                 type="button"
                 size="lg"
@@ -178,7 +188,7 @@ export default function ClientPaymentTab({ clientId, dashboard }: Props) {
         </div>
 
         <div className="flex min-w-0 flex-col gap-3.5">
-          <PriceCard clientId={clientId} clientName={clientName} summary={summary} />
+          {!ended && <PriceCard clientId={clientId} clientName={clientName} summary={summary} />}
           <RequestsRemindersCard clientId={clientId} />
           {historyQuery.isPending ? (
             <Skeleton className="h-40 w-full rounded-2xl" />
@@ -202,14 +212,16 @@ export default function ClientPaymentTab({ clientId, dashboard }: Props) {
         periodLabel={periodLabelOf(waiveRow)}
         onClose={() => setWaiveRow(null)}
       />
-      <OneOffDialog
-        open={oneOffOpen}
-        onOpenChange={setOneOffOpen}
-        clientId={clientId}
-        clientName={clientName}
-        defaultCurrency={defaultCurrency}
-        defaultDueDays={defaultDueDays}
-      />
+      {!ended && (
+        <OneOffDialog
+          open={oneOffOpen}
+          onOpenChange={setOneOffOpen}
+          clientId={clientId}
+          clientName={clientName}
+          defaultCurrency={defaultCurrency}
+          defaultDueDays={defaultDueDays}
+        />
+      )}
       <RequestPaymentDrawer
         open={request !== null}
         onOpenChange={(open) => !open && setRequest(null)}

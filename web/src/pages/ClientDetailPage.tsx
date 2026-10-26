@@ -13,6 +13,8 @@ import ClientDetailTabs,{ type ClientDetailTab } from '@/components/client-detai
 import ClientOverviewTab from '@/components/client-detail/ClientOverviewTab';
 import ClientNutritionTab from '@/components/client-detail/nutrition/ClientNutritionTab';
 import ClientPaymentTab from '@/components/client-detail/payment/ClientPaymentTab';
+import EndedClientPaymentView from '@/components/client-detail/payment/EndedClientPaymentView';
+import { getErrorStatus } from '@/lib/api-errors';
 import ClientPhotosTab from '@/components/client-detail/photos/ClientPhotosTab';
 
 const MEASUREMENTS_PAGE_SIZE = 50;
@@ -69,6 +71,11 @@ export default function ClientDetailPage() {
         <Skeleton className="h-64 w-full" />
       </div>
     );
+  }
+
+  // An ended link answers the dashboard with 404, but its kept payments are still reachable.
+  if (isPaymentRoute && dashboardQuery.isError && getErrorStatus(dashboardQuery.error) === 404) {
+    return <EndedClientPaymentView clientId={clientId} />;
   }
 
   if (dashboardQuery.isError || !dashboardQuery.data) {

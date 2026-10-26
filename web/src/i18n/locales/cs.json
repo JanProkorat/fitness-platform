@@ -597,7 +597,8 @@
     },
     "rowMenu": {
       "open": "Otevřít nabídku řádku",
-      "viewDetail": "Otevřít detail klienta"
+      "viewDetail": "Otevřít detail klienta",
+      "payments": "Platby"
     },
     "noResultsForFilters": "Žádní klienti neodpovídají zvoleným filtrům.",
     "clearFilters": "Zrušit filtry",
@@ -2632,6 +2633,7 @@
     "client": {
       "retry": "Zkusit znovu",
       "loadError": "Platby tohoto klienta se nepodařilo načíst.",
+      "ended": "Spolupráce skončila. Platby můžete dál vyřizovat, cenu ani další platby už ale přidávat nelze.",
       "notFound": "S klientem {{name}} už nejste propojeni, jeho platby nejsou dostupné.",
       "billing": {
         "monthly": "/ měsíc",
