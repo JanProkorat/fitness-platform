@@ -499,7 +499,7 @@
     "toPay": "K úhradě",
     "overdue": "Po splatnosti",
     "due": "Splatnost {{date}}",
-    "customPrice": "Cena na míru",
+    "customPrice": "Individuální cena",
     "scan": "Naskenujte kód v bankovní aplikaci. {{name}} potvrdí, až peníze dorazí.",
     "transfer": "Zaplaťte převodem podle údajů níže. {{name}} potvrdí, až peníze dorazí.",
     "qrLabel": "QR kód QR Platby",

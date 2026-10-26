@@ -441,6 +441,27 @@ public class ClientPaymentScheduleTests
             .Select(p => p.Start).Should().Equal(new DateOnly(2026, 10, 29), new DateOnly(2026, 11, 29));
     }
 
+    [Theory]
+    [InlineData(29)]
+    [InlineData(30)]
+    [InlineData(31)]
+    public void PlanMissingPeriods_RestartLaterOnTheDayOfTheEnd_KeepsTheRestartBillingDay(int restartDay)
+    {
+        var old = Ended(Terms(Package(), new DateOnly(2026, 12, 1)), new DateOnly(2027, 1, restartDay));
+        var fresh = Terms(Package(), new DateOnly(2027, 1, restartDay));
+        fresh.EffectiveFromUtc = old.EndsAtUtc!.Value.AddHours(3);
+        var existing = new[]
+        {
+            new DateOnly(2026, 12, 1),
+            new DateOnly(2027, 1, 1),
+            new DateOnly(2027, 1, restartDay),
+            new DateOnly(2027, 2, 28)
+        };
+
+        ClientPaymentSchedule.PlanMissingPeriods([old, fresh], existing, new DateOnly(2027, 3, 1))
+            .Select(p => p.Start).Should().Equal(new DateOnly(2027, 3, restartDay));
+    }
+
     [Fact]
     public void PlanMissingPeriods_KeptRequestedRowInTheFuture_DoesNotStallTheNewTerms()
     {

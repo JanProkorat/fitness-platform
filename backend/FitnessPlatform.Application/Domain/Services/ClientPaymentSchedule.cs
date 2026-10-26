@@ -260,17 +260,20 @@ public static class ClientPaymentSchedule
 
     /// <summary>
     /// The billing day of existing periods: the day of the first period starting on or after the latest end of
-    /// the collaboration (a restart picks its own day), or of the first period ever when nothing ended.
+    /// the collaboration (a restart picks its own day), or of the first period ever when nothing ended. Days are
+    /// compared as calendar days, so a restart later on the day of the end still counts.
     /// </summary>
     private static int BillingDayOf(IReadOnlyCollection<ClientPaymentTerms> terms, List<DateOnly> orderedStarts)
     {
-        var boundary = terms
+        var endedAt = terms
             .Where(t => t.EndsAtUtc is not null)
             .Select(t => t.EndsAtUtc!.Value)
-            .DefaultIfEmpty(DateTime.MinValue)
+            .DefaultIfEmpty()
             .Max();
 
-        var sinceEnd = orderedStarts.Where(start => StartOfDayUtc(start) >= boundary).ToList();
+        var sinceEnd = endedAt == default
+            ? orderedStarts
+            : orderedStarts.Where(start => start >= ClientLocalDateResolver.ResolveLocalDate(endedAt, Zone)).ToList();
 
         return (sinceEnd.Count > 0 ? sinceEnd[0] : orderedStarts[0]).Day;
     }

@@ -109,6 +109,48 @@ public class GetPublicProfilePackagesTests(FitnessApiFactory factory)
     }
 
     [Fact]
+    public async Task GetPublicProfile_RoleBehindTheLinkRemoved_DoesNotRevealContactDetails()
+    {
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var client = await TestActors.Client(factory).CreateAsync(Ct);
+        await TestActors.Link(factory, coach, client).CanViewNutritionPlans(false).CreateAsync(Ct);
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            (await db.Users.SingleAsync(u => u.Id == coach.UserId, Ct)).PhoneNumber = "+420123456789";
+            (await db.ProfessionalProfiles.SingleAsync(p => p.Id == coach.ProfileId, Ct)).TrainerRoleRemovedAt = DateTime.UtcNow;
+            await db.SaveChangesAsync(Ct);
+        }
+
+        var profile = await ReadProfileAsync(client, coach);
+
+        profile.ContactEmail.Should().BeNull();
+        profile.ContactPhone.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetPublicProfile_OneOfTwoRolesRemovedAndLinkCoversTheOther_StillRevealsContactDetails()
+    {
+        var coach = await TestActors.Professional(factory, UserRole.Trainer, UserRole.Nutritionist).CreateAsync(Ct);
+        var client = await TestActors.Client(factory).CreateAsync(Ct);
+        await TestActors.Link(factory, coach, client).CreateAsync(Ct);
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            (await db.Users.SingleAsync(u => u.Id == coach.UserId, Ct)).PhoneNumber = "+420123456789";
+            (await db.ProfessionalProfiles.SingleAsync(p => p.Id == coach.ProfileId, Ct)).TrainerRoleRemovedAt = DateTime.UtcNow;
+            await db.SaveChangesAsync(Ct);
+        }
+
+        var profile = await ReadProfileAsync(client, coach);
+
+        profile.ContactEmail.Should().Be(coach.Email);
+        profile.ContactPhone.Should().Be("+420123456789");
+    }
+
+    [Fact]
     public async Task GetPublicProfile_CoachWithoutPayments_ListsNoPackages()
     {
         var coach = await TestActors.Trainer(factory).CreateAsync(Ct);

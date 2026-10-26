@@ -27,10 +27,12 @@ function Tile({ label, value, detail }: TileProps) {
 
 interface Props {
   summary: GetClientPaymentSummaryResponse;
+  /** The collaboration is over: the package card says so instead of asking for a package. */
+  ended?: boolean;
 }
 
 /** The three tiles above the payments: package, next payment and how far the client has paid. */
-export default function PaymentSummaryCards({ summary }: Props) {
+export default function PaymentSummaryCards({ summary, ended = false }: Props) {
   const { t, i18n } = useTranslation();
   const language = i18n.language;
   const { terms, nextPayment } = summary;
@@ -54,8 +56,17 @@ export default function PaymentSummaryCards({ summary }: Props) {
     >
       <Tile
         label={t('payments.client.summary.package')}
-        value={terms?.packageName ?? t('payments.client.summary.noPackage')}
-        detail={terms ? termsSummary(t, terms, language) : t('payments.client.summary.noPackageHint')}
+        value={
+          terms?.packageName ??
+          t(ended ? 'payments.client.summary.endedNoPackage' : 'payments.client.summary.noPackage')
+        }
+        detail={
+          terms
+            ? termsSummary(t, terms, language)
+            : ended
+              ? t('payments.client.summary.endedHint')
+              : t('payments.client.summary.noPackageHint')
+        }
       />
       <Tile
         label={t('payments.client.summary.nextPayment')}

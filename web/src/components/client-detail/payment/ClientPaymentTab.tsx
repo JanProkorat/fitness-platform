@@ -111,7 +111,7 @@ export default function ClientPaymentTab({ clientId, dashboard }: Props) {
           {t('payments.client.ended')}
         </p>
       )}
-      <PaymentSummaryCards summary={summary} />
+      <PaymentSummaryCards summary={summary} ended={ended} />
 
       {/* The price column sits beside the table only where the table still fits unscrolled. */}
       <div className="grid grid-cols-1 items-start gap-3.5 min-[1440px]:grid-cols-[minmax(0,1fr)_23.75rem]">
