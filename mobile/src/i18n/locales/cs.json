@@ -617,7 +617,7 @@
       "title": "Zatím žádné konverzace",
       "body": "Až začnete s poradcem spolupracovat, objeví se tu váš chat."
     },
-    "error": "Zprávy se nepodařilo načíst. Klepněte a zkustete to znovu.",
+    "error": "Zprávy se nepodařilo načíst. Klepněte a zkuste to znovu.",
     "eventPreview": {
       "Invited": "Pozvánka",
       "Requested": "Žádost odeslána",
@@ -633,7 +633,7 @@
     "sendFailed": "Zprávu se nepodařilo odeslat. Zůstala v poli.",
     "readOnly": "Tento chat je jen pro čtení.",
     "locked": "Psát můžete, jakmile se pozvánka přijme.",
-    "loadError": "Chat se nepodařilo načíst. Klepněte a zkustete to znovu.",
+    "loadError": "Chat se nepodařilo načíst. Klepněte a zkuste to znovu.",
     "empty": "Zatím žádné zprávy. Pozdravte.",
     "notFound": {
       "title": "Chat není dostupný",
