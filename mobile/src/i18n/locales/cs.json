@@ -140,8 +140,8 @@
     "messages": "Zprávy"
   },
   "today": {
-    "greeting": "Vítej, {{name}}",
-    "greetingAnonymous": "Vítej",
+    "greeting": "Vítejte, {{name}}",
+    "greetingAnonymous": "Vítejte",
     "linkedGreeting": "Ahoj, {{name}}",
     "linkedGreetingAnonymous": "Ahoj",
     "linkedBody": "Tvoji poradci jsou připraveni. Tady uvidíš svůj den.",
@@ -149,17 +149,89 @@
     "notificationsUnread": "Upozornění, nepřečtených: {{count}}",
     "profile": "Profil",
     "invitesTitle": "Pozvánky",
+    "dateTitle": "Dnes",
+    "subtitle": {
+      "start": "Pojďme začít",
+      "invite": "Máte pozvánku"
+    },
     "findCoach": {
-      "title": "Najdi si poradce",
-      "subtitle": "Oni ti sestaví plán, ty ho tady plníš.",
+      "title": "Najděte si poradce",
+      "subtitle": "Oni vám sestaví plán, vy ho tady plníte.",
       "trainer": {
         "title": "Trenér",
-        "hint": "Tréninky šité na míru tvému cíli"
+        "hint": "Tréninky šité na míru vašemu cíli"
       },
       "nutritionist": {
         "title": "Nutriční poradce",
-        "hint": "Jídlo, které zapadne do tvého dne"
+        "hint": "Jídlo, které zapadne do vašeho dne"
       }
+    },
+    "coaches": {
+      "title": "Vaši poradci",
+      "subtitle": "Vždy jeden trenér a jeden nutriční poradce.",
+      "subtitleBoth": "Jeden poradce může pokrýt trénink i výživu."
+    },
+    "row": {
+      "find": { "Trainer": "Najít trenéra", "Nutritionist": "Najít nutričního poradce" },
+      "add": { "Trainer": "Přidat trenéra", "Nutritionist": "Přidat nutričního poradce" }
+    },
+    "invite": {
+      "invitedYou": "{{name}} vás zve",
+      "newBadge": "Nová pozvánka",
+      "view": "Zobrazit pozvánku",
+      "compare": "Porovnat další",
+      "footnote": "Pozvánka zůstane otevřená, i když se porozhlédnete.",
+      "footnoteBoth": "Pro každou oblast jeden plán od stejného poradce. Pozvánka zůstane otevřená, i když se porozhlédnete.",
+      "planTraining": "Tréninkový plán",
+      "planNutrition": "Jídelníček"
+    },
+    "howItWorks": {
+      "title": "Jak to funguje",
+      "step1": { "title": "Vyberte poradce", "body": "Prohlédněte si profily a pošlete žádost, nebo přijměte pozvánku." },
+      "step2": { "title": "Sdělte výchozí bod", "body": "Krátký dotazník o vašem cíli a návycích." },
+      "step3": { "title": "Plňte plán tady", "body": "Tréninky a jídla se vám tu zobrazí každý den." }
+    },
+    "own": {
+      "title": "Začněte sami",
+      "subtitle": "Váš poradce uvidí tuto historii od prvního dne.",
+      "logWeight": "Zapsat váhu",
+      "addPhoto": "Přidat fotku"
+    },
+    "progress": {
+      "coachFallback": "Váš poradce",
+      "since": "od {{when}}",
+      "headline": {
+        "Trainer": "{{name}} připravuje váš tréninkový plán",
+        "Nutritionist": "{{name}} připravuje váš jídelníček",
+        "both": "{{name}} připravuje oba vaše plány"
+      },
+      "things_one": "{{count}} věc pro vás zatím",
+      "things_few": "{{count}} věci pro vás zatím",
+      "things_many": "{{count}} věci pro vás zatím",
+      "things_other": "{{count}} věcí pro vás zatím",
+      "accepted": "Pozvánka přijata",
+      "questionnaireSent": "Dotazník odeslán",
+      "questionnairePending": "Dotazník",
+      "questionnairePendingHint": "Čeká na vaše vyplnění",
+      "photos": "Úvodní fotky",
+      "photosHint": "{{name}} žádá o fotky",
+      "photosAdd": "Přidat",
+      "planSingle": "Plán se připravuje",
+      "planSingleHint": "Dáme vám vědět, jakmile bude zveřejněn.",
+      "plan": {
+        "Trainer": "Tréninkový plán se připravuje",
+        "Nutritionist": "Jídelníček se připravuje"
+      },
+      "footnoteBoth": "Každý plán může přijít v jiný den. Dáme vám vědět u každého zvlášť.",
+      "footnoteOne": "Dáme vám vědět, jakmile bude zveřejněn.",
+      "tell": {
+        "title": "Napište, na čem vám záleží",
+        "Trainer": "Váš rozvrh, trénink, který vás baví, případná zranění. Pomůže to s plánem.",
+        "Nutritionist": "Potraviny, kterým se vyhýbáte, váš rozvrh, jak vaříte. Pomůže to s plánem.",
+        "both": "Váš rozvrh, trénink, který vás baví, potraviny, kterým se vyhýbáte. Pomůže to u obou plánů."
+      },
+      "message": "Napsat zprávu",
+      "messageLabel": "Napsat zprávu poradci"
     }
   },
   "editProfile": {
