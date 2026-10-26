@@ -4,6 +4,7 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.AspNetCore.Identity;
@@ -19,11 +20,13 @@ namespace FitnessPlatform.Application.Features.Professionals.GetPublicProfile;
 /// <param name="userManager">ASP.NET Identity user manager.</param>
 /// <param name="entitlementService">Resolves subscription entitlements.</param>
 /// <param name="timeProvider">Clock used to judge invite expiry.</param>
+/// <param name="linkAuthorizationService">Resolves whether the caller has a live link to the professional.</param>
 public class GetPublicProfileEndpoint(
     IApplicationDbContext db,
     UserManager<ApplicationUser> userManager,
     EntitlementService entitlementService,
-    TimeProvider timeProvider)
+    TimeProvider timeProvider,
+    IClientLinkAuthorizationService linkAuthorizationService)
     : Endpoint<GetPublicProfileRequest, GetPublicProfileResponse>
 {
     /// <inheritdoc />
@@ -79,11 +82,9 @@ public class GetPublicProfileEndpoint(
                      && r.Status == ClientRequestStatus.Pending,
                 ct);
 
-            isLinked = await db.ClientProfessionalLinks.AnyAsync(
-                l => l.ClientProfileId == clientProfile.Id
-                     && l.ProfessionalProfileId == profile.Id
-                     && l.IsActive,
-                ct);
+            // The same live-link check as GetCoachBankDetailsEndpoint; it also gates the contact details below.
+            isLinked = await linkAuthorizationService.GetCapabilitiesByClientUserIdAsync(
+                profile.UserId, callerUserId, ct) is not null;
         }
 
         // Resolve roles
