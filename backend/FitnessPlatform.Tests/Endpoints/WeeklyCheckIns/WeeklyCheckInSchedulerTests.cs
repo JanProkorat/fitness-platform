@@ -1,3 +1,4 @@
+using System.Globalization;
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
@@ -91,34 +92,31 @@ public class WeeklyCheckInSchedulerTests(FitnessApiFactory factory)
 
     // ── Core scheduler behavior ───────────────────────────────────────────────
 
-    [Fact]
-    public async Task Tick_PastFireTime_CreatesExactlyOneCheckIn()
+    [Theory]
+    [InlineData("2026-07-13")] // Monday in CEST: 18:00 Prague = 16:00 UTC
+    [InlineData("2026-01-12")] // Monday in CET:  18:00 Prague = 17:00 UTC
+    public async Task Tick_PastFireTime_CreatesExactlyOneCheckIn(string pinnedMonday)
     {
         var (trainerUserId, clientUserId) = await SetupTrainerAndClientWithSettingAsync(
             DayOfWeek.Monday,
             TimeSpan.FromHours(18),
             "Europe/Prague");
 
-        // Europe/Prague is UTC+2 in summer (CEST).
-        // Monday 18:00 Prague = Monday 16:00 UTC.
-        // So if "now" is just after Monday 16:00 UTC, the scheduler should fire.
-
-        // Find the last (past) Monday at 16:00 UTC.
-        var utcNow = DateTime.UtcNow;
-        var daysToLastMonday = ((int)utcNow.DayOfWeek - (int)DayOfWeek.Monday + 7) % 7;
-        var lastMonday = utcNow.Date.AddDays(-daysToLastMonday);
-        // 18:00 Prague CEST = 16:00 UTC
-        var fireAt = lastMonday.AddHours(16);
-        // Ensure fireAt is in the past (back it up a week if today is exactly Monday 16:00 UTC).
-        if (fireAt >= utcNow) fireAt = fireAt.AddDays(-7);
+        // The UTC fire time comes from the Prague zone rules for the pinned (past) Monday,
+        // so it is right in summer and in winter time.
+        var fireAt = TimeZoneInfo.ConvertTimeToUtc(
+            DateTime.SpecifyKind(
+                DateOnly.ParseExact(pinnedMonday, "yyyy-MM-dd", CultureInfo.InvariantCulture)
+                    .ToDateTime(new TimeOnly(18, 0)),
+                DateTimeKind.Unspecified),
+            TimeZoneInfo.FindSystemTimeZoneById("Europe/Prague"));
 
         var scheduler = factory.Services.GetRequiredService<WeeklyCheckInScheduler>();
 
-        // Set cursor to just before the fire time so it falls within the window.
-        scheduler.OverrideNow = fireAt.AddMinutes(-60);
-        await scheduler.TickAsync(scheduler.OverrideNow.Value, TestContext.Current.CancellationToken);
+        // Position the cursor just before the fire time so it falls within the window.
+        scheduler.SetLastTickAt(fireAt.AddMinutes(-60));
 
-        // Now tick PAST the fire time.
+        // Tick PAST the fire time.
         scheduler.OverrideNow = fireAt.AddMinutes(1);
         await scheduler.TickAsync(scheduler.OverrideNow.Value, TestContext.Current.CancellationToken);
 
