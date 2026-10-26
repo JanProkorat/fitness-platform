@@ -56,7 +56,10 @@ export default function PaymentSummaryCards({ summary, ended = false }: Props) {
     >
       <Tile
         label={t('payments.client.summary.package')}
-        value={terms?.packageName ?? t('payments.client.summary.noPackage')}
+        value={
+          terms?.packageName ??
+          t(ended ? 'payments.client.summary.endedNoPackage' : 'payments.client.summary.noPackage')
+        }
         detail={
           terms
             ? termsSummary(t, terms, language)

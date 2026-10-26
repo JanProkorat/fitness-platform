@@ -2566,6 +2566,7 @@
         "noPackage": "Noch kein Paket",
         "noPackageHint": "Wählen Sie unter Preis ein Paket, um die Abrechnung zu starten.",
         "endedHint": "Die Zusammenarbeit ist beendet.",
+        "endedNoPackage": "Kein Paket",
         "customPrice": "individueller Preis {{price}}",
         "due": "Fällig {{date}}",
         "overdueSince": "Überfällig seit {{date}}",

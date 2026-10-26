@@ -2567,6 +2567,7 @@
         "noPackage": "No package yet",
         "noPackageHint": "Choose a package under Price to start billing.",
         "endedHint": "The collaboration has ended.",
+        "endedNoPackage": "No package",
         "customPrice": "custom price {{price}}",
         "due": "Due {{date}}",
         "overdueSince": "Overdue since {{date}}",

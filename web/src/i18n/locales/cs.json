@@ -2651,6 +2651,7 @@
         "noPackage": "Zatím žádný balíček",
         "noPackageHint": "Pro zahájení fakturace vyberte balíček v části Cena.",
         "endedHint": "Spolupráce skončila.",
+        "endedNoPackage": "Žádný balíček",
         "customPrice": "individuální cena {{price}}",
         "due": "Splatnost {{date}}",
         "overdueSince": "Po splatnosti od {{date}}",
