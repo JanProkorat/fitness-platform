@@ -103,17 +103,36 @@ public class PhotoDiaryReminderSchedulerTests(FitnessApiFactory factory)
         return (profUser.Id, clientUser.Id, request.Id, link.Id);
     }
 
+    // ── Zone-aware noon helpers (DST-safe) ────────────────────────────────────
+
+    /// <summary>Local noon of <paramref name="localDate"/> in the IANA zone, as UTC.</summary>
+    private static DateTime NoonUtc(string ianaZone, DateOnly localDate)
+    {
+        var zone = TimeZoneInfo.FindSystemTimeZoneById(ianaZone);
+        var noonLocal = DateTime.SpecifyKind(
+            localDate.ToDateTime(new TimeOnly(12, 0)), DateTimeKind.Unspecified);
+        return TimeZoneInfo.ConvertTimeToUtc(noonLocal, zone);
+    }
+
+    /// <summary>Today's calendar date in the IANA zone, by the real clock.</summary>
+    private static DateOnly TodayIn(string ianaZone)
+    {
+        var zone = TimeZoneInfo.FindSystemTimeZoneById(ianaZone);
+        return DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, zone));
+    }
+
+    /// <summary>Local noon today in the IANA zone, as UTC.</summary>
+    private static DateTime TodayNoonUtc(string ianaZone) => NoonUtc(ianaZone, TodayIn(ianaZone));
+
     // ── Tests ─────────────────────────────────────────────────────────────────
 
     [Fact]
     public async Task Tick_BeforeNoon_DoesNotFire()
     {
-        // Europe/Prague CEST (UTC+2): noon = 12:00 Prague = 10:00 UTC.
-        // Seed cursor at 10:30 UTC (AFTER noon) so noon is NOT in the next tick window.
-        // Use real UTC today as the virtual date and AcceptedAt = yesterday so window is valid.
+        // Noon Prague is derived from the zone rules, so the test holds in CET and CEST.
+        // Seed cursor 30 min AFTER noon so noon is NOT in the next tick window.
         var utcNow = DateTime.UtcNow;
-        var virtualDate = utcNow.Date;
-        var afterNoonPrague = virtualDate.AddHours(10).AddMinutes(30); // 10:30 UTC (noon Prague CEST)
+        var afterNoonPrague = TodayNoonUtc("Europe/Prague").AddMinutes(30);
 
         var (_, clientUserId, requestId, _) = await SetupWorkflowRequestAsync(
             acceptedAt: new DateTimeOffset(utcNow.AddDays(-1)),
@@ -122,10 +141,10 @@ public class PhotoDiaryReminderSchedulerTests(FitnessApiFactory factory)
         var scheduler = factory.Services.GetRequiredService<PhotoDiaryReminderScheduler>();
         scheduler.ResetCursor();
 
-        // Seed cursor to 10:30 UTC (after noon Prague = 10:00 UTC).
+        // Seed cursor to noon + 30 min.
         scheduler.SetLastTickAt(afterNoonPrague);
 
-        // Tick at 11:30 UTC: window is (10:30, 11:30]. Noon = 10:00 UTC is NOT in the window.
+        // Tick one hour later: window is (noon + 30 min, noon + 90 min]. Noon is NOT in the window.
         scheduler.OverrideNow = afterNoonPrague.AddHours(1);
         await scheduler.TickAsync(scheduler.OverrideNow.Value, TestContext.Current.CancellationToken);
 
@@ -139,19 +158,21 @@ public class PhotoDiaryReminderSchedulerTests(FitnessApiFactory factory)
         reminderLogs.Should().BeEmpty("noon already passed before the tick window — reminder must not fire");
     }
 
-    [Fact]
-    public async Task Tick_AtNoon_Prague_Fires()
+    [Theory]
+    [InlineData("2026-01-15")] // CET (UTC+1): noon Prague = 11:00 UTC
+    [InlineData("2026-07-15")] // CEST (UTC+2): noon Prague = 10:00 UTC
+    public async Task Tick_AtNoon_Prague_Fires(string localDateText)
     {
-        // Europe/Prague CEST (UTC+2): noon = 12:00 Prague = 10:00 UTC.
-        // Tick window: _lastTickAt=09:00 UTC, now=10:30 UTC → noon (10:00) is inside window → FIRES.
-        // Use real UTC today as the virtual date and AcceptedAt = yesterday.
-        var utcNow = DateTime.UtcNow;
-        var virtualDate = utcNow.Date;
-        var beforeNoonPrague = virtualDate.AddHours(9);   // 09:00 UTC
-        var afterNoonPrague  = virtualDate.AddHours(10).AddMinutes(30); // 10:30 UTC
+        // The virtual date is pinned, so acceptance and creation are derived from it
+        // (the setup defaults use the real clock).
+        var noonPrague = NoonUtc("Europe/Prague", DateOnly.Parse(localDateText));
+        var beforeNoonPrague = noonPrague.AddHours(-1);
+        var afterNoonPrague = noonPrague.AddMinutes(30);
+        var acceptedAt = new DateTimeOffset(noonPrague.AddDays(-1), TimeSpan.Zero);
 
         var (_, clientUserId, requestId, _) = await SetupWorkflowRequestAsync(
-            acceptedAt: new DateTimeOffset(utcNow.AddDays(-1)),
+            acceptedAt: acceptedAt,
+            createdAt: acceptedAt,
             clientTimeZone: "Europe/Prague");
 
         var notifier = factory.Services.GetRequiredService<FakeRealtimeNotifier>();
@@ -160,10 +181,10 @@ public class PhotoDiaryReminderSchedulerTests(FitnessApiFactory factory)
         var scheduler = factory.Services.GetRequiredService<PhotoDiaryReminderScheduler>();
         scheduler.ResetCursor();
 
-        // Seed cursor to 09:00 UTC (before noon Prague = 10:00 UTC).
+        // Seed cursor one hour before noon Prague.
         scheduler.SetLastTickAt(beforeNoonPrague);
 
-        // Tick at 10:30 UTC: window (09:00, 10:30]. Noon (10:00) IS inside → FIRES.
+        // Tick 30 min after noon: window (noon - 1h, noon + 30m]. Noon IS inside → FIRES.
         scheduler.OverrideNow = afterNoonPrague;
         await scheduler.TickAsync(scheduler.OverrideNow.Value, TestContext.Current.CancellationToken);
 
@@ -200,9 +221,9 @@ public class PhotoDiaryReminderSchedulerTests(FitnessApiFactory factory)
     public async Task Tick_ClientLanguageDe_CreatesLocalizedNotification()
     {
         var utcNow = DateTime.UtcNow;
-        var virtualDate = utcNow.Date;
-        var beforeNoonPrague = virtualDate.AddHours(9);   // 09:00 UTC
-        var afterNoonPrague  = virtualDate.AddHours(10).AddMinutes(30); // 10:30 UTC
+        var noonPrague = TodayNoonUtc("Europe/Prague");
+        var beforeNoonPrague = noonPrague.AddHours(-1);
+        var afterNoonPrague = noonPrague.AddMinutes(30);
 
         var (_, clientUserId, requestId, _) = await SetupWorkflowRequestAsync(
             acceptedAt: new DateTimeOffset(utcNow.AddDays(-1)),
@@ -296,7 +317,7 @@ public class PhotoDiaryReminderSchedulerTests(FitnessApiFactory factory)
     {
         // Completed requests are excluded by the candidate query.
         var utcNow = DateTime.UtcNow;
-        var virtualDate = utcNow.Date;
+        var noonPrague = TodayNoonUtc("Europe/Prague");
 
         var (_, _, requestId, _) = await SetupWorkflowRequestAsync(
             status: PhotoDiaryStatus.Completed,
@@ -306,9 +327,9 @@ public class PhotoDiaryReminderSchedulerTests(FitnessApiFactory factory)
         var scheduler = factory.Services.GetRequiredService<PhotoDiaryReminderScheduler>();
         scheduler.ResetCursor();
 
-        // Window: (09:00, 10:30] UTC → noon Prague (10:00) inside, but request is Completed → skip.
-        scheduler.SetLastTickAt(virtualDate.AddHours(9));
-        scheduler.OverrideNow = virtualDate.AddHours(10).AddMinutes(30);
+        // Window: (noon - 1h, noon + 30m] → noon Prague inside, but request is Completed → skip.
+        scheduler.SetLastTickAt(noonPrague.AddHours(-1));
+        scheduler.OverrideNow = noonPrague.AddMinutes(30);
         await scheduler.TickAsync(scheduler.OverrideNow.Value, TestContext.Current.CancellationToken);
 
         using var scope = factory.Services.CreateScope();
@@ -340,6 +361,9 @@ public class PhotoDiaryReminderSchedulerTests(FitnessApiFactory factory)
         var clientUser = await setupDb.Users.FirstAsync(u => u.Email == clientEmail, TestContext.Current.CancellationToken);
         var profProfile = await setupDb.ProfessionalProfiles.FirstAsync(p => p.UserId == profUser.Id, TestContext.Current.CancellationToken);
         var clientProfile = await setupDb.ClientProfiles.FirstAsync(p => p.UserId == clientUser.Id, TestContext.Current.CancellationToken);
+
+        // Pin the zone so the window below really contains the client's noon.
+        clientUser.TimeZone = "Europe/Prague";
 
         var link = new ClientProfessionalLink
         {
@@ -374,10 +398,10 @@ public class PhotoDiaryReminderSchedulerTests(FitnessApiFactory factory)
         var scheduler = factory.Services.GetRequiredService<PhotoDiaryReminderScheduler>();
         scheduler.ResetCursor();
 
-        // Window: (09:00, 10:30] UTC today → noon Prague (10:00) inside, but Bulk → no reminder.
-        var todayUtc = utcNowForBulk.UtcDateTime.Date;
-        scheduler.SetLastTickAt(todayUtc.AddHours(9));
-        scheduler.OverrideNow = todayUtc.AddHours(10).AddMinutes(30);
+        // Window: (noon - 1h, noon + 30m] → noon Prague inside, but Bulk → no reminder.
+        var noonPrague = TodayNoonUtc("Europe/Prague");
+        scheduler.SetLastTickAt(noonPrague.AddHours(-1));
+        scheduler.OverrideNow = noonPrague.AddMinutes(30);
         await scheduler.TickAsync(scheduler.OverrideNow.Value, TestContext.Current.CancellationToken);
 
         using var verifyScope = factory.Services.CreateScope();
@@ -397,10 +421,9 @@ public class PhotoDiaryReminderSchedulerTests(FitnessApiFactory factory)
         // _lastTickAt was not persisted. On restart we force the cursor back to before noon
         // so the scheduler tries to fire again — the unique constraint must catch it.
         var utcNow = DateTime.UtcNow;
-        var virtualDate = utcNow.Date;
-        // Noon Prague CEST (UTC+2) = 10:00 UTC.
-        var beforeNoon = virtualDate.AddHours(9);   // 09:00 UTC
-        var afterNoon  = virtualDate.AddHours(10).AddMinutes(30); // 10:30 UTC
+        var noonPrague = TodayNoonUtc("Europe/Prague");
+        var beforeNoon = noonPrague.AddHours(-1);
+        var afterNoon = noonPrague.AddMinutes(30);
 
         var (_, clientUserId, requestId, _) = await SetupWorkflowRequestAsync(
             acceptedAt: new DateTimeOffset(utcNow.AddDays(-1)),
@@ -409,14 +432,14 @@ public class PhotoDiaryReminderSchedulerTests(FitnessApiFactory factory)
         var scheduler = factory.Services.GetRequiredService<PhotoDiaryReminderScheduler>();
         scheduler.ResetCursor();
 
-        // First run: seed cursor to 09:00, tick to 10:30 → fires.
+        // First run: seed cursor to noon - 1h, tick to noon + 30m → fires.
         scheduler.SetLastTickAt(beforeNoon);
         scheduler.OverrideNow = afterNoon;
         await scheduler.TickAsync(afterNoon, TestContext.Current.CancellationToken);
 
         // Simulate restart: force cursor back to before noon on the same day.
         scheduler.SetLastTickAt(beforeNoon);
-        scheduler.OverrideNow = afterNoon.AddMinutes(30);  // 11:00 UTC — noon still in (09:00, 11:00]
+        scheduler.OverrideNow = afterNoon.AddMinutes(30);  // noon still in (noon - 1h, noon + 1h]
         await scheduler.TickAsync(afterNoon.AddMinutes(30), TestContext.Current.CancellationToken);
 
         using var scope = factory.Services.CreateScope();
@@ -438,15 +461,12 @@ public class PhotoDiaryReminderSchedulerTests(FitnessApiFactory factory)
     [Fact]
     public async Task Tick_NewYorkTimezone_FiresAtNoonEastern()
     {
-        // America/New_York in April 2026 = EDT (UTC-4).
-        // Noon New York = 12:00 EDT = 16:00 UTC.
-        // Window: _lastTickAt=15:00 UTC, now=16:30 UTC → noon NY (16:00) inside window → FIRES.
+        // Noon New York is derived from the zone rules (EDT or EST depending on the date).
+        // Window: (noon - 1h, noon + 30m] → noon inside window → FIRES.
         //
-        // Use real UTC today as the virtual date so AcceptedAt (yesterday) is inside the
-        // 7-day window AND the auto-finalize threshold (AcceptedAt + 8 days) is in the future.
+        // Real UTC today anchors AcceptedAt (yesterday) inside the 7-day window.
         var utcNow = DateTime.UtcNow;
-        var virtualDate = utcNow.Date; // today UTC
-        var virtualNoonNY = virtualDate.AddHours(16);  // noon New York EDT = 16:00 UTC
+        var virtualNoonNY = TodayNoonUtc("America/New_York");
 
         var (_, clientUserId, requestId, _) = await SetupWorkflowRequestAsync(
             acceptedAt: new DateTimeOffset(utcNow.AddDays(-1)),
@@ -458,11 +478,10 @@ public class PhotoDiaryReminderSchedulerTests(FitnessApiFactory factory)
         var scheduler = factory.Services.GetRequiredService<PhotoDiaryReminderScheduler>();
         scheduler.ResetCursor();
 
-        // Seed cursor to 15:00 UTC today (before noon NY).
-        var seedTime = virtualDate.AddHours(15);
-        scheduler.SetLastTickAt(seedTime);
+        // Seed cursor one hour before noon NY.
+        scheduler.SetLastTickAt(virtualNoonNY.AddHours(-1));
 
-        // Tick at 16:30 UTC today = 12:30 New York EDT — noon (16:00 UTC) is inside (15:00, 16:30].
+        // Tick at 12:30 New York local — noon is inside (noon - 1h, noon + 30m].
         scheduler.OverrideNow = virtualNoonNY.AddMinutes(30);
         await scheduler.TickAsync(scheduler.OverrideNow.Value, TestContext.Current.CancellationToken);
 
@@ -473,18 +492,16 @@ public class PhotoDiaryReminderSchedulerTests(FitnessApiFactory factory)
             .Where(l => l.DiaryRequestId == requestId)
             .ToListAsync(TestContext.Current.CancellationToken);
 
-        reminderLogs.Should().HaveCount(1, "noon New York should trigger a reminder for EDT clients");
+        reminderLogs.Should().HaveCount(1, "noon New York should trigger a reminder for New York clients");
     }
 
     [Fact]
     public async Task Tick_NewYorkTimezone_BeforeNoonEastern_DoesNotFire()
     {
-        // America/New_York EDT (UTC-4). Noon NY = 16:00 UTC.
-        // Seed cursor at 16:30 UTC (AFTER noon) → noon is NOT in next window.
-        // Use real UTC today so the window period is safe.
+        // Noon NY is derived from the zone rules (EDT or EST depending on the date).
+        // Seed cursor 30 min AFTER noon → noon is NOT in next window.
         var utcNow = DateTime.UtcNow;
-        var virtualDate = utcNow.Date;
-        var afterNoonNY = virtualDate.AddHours(16).AddMinutes(30); // 16:30 UTC = 12:30 NY
+        var afterNoonNY = TodayNoonUtc("America/New_York").AddMinutes(30); // 12:30 NY local
 
         var (_, _, requestId, _) = await SetupWorkflowRequestAsync(
             acceptedAt: new DateTimeOffset(utcNow.AddDays(-1)),
@@ -493,10 +510,10 @@ public class PhotoDiaryReminderSchedulerTests(FitnessApiFactory factory)
         var scheduler = factory.Services.GetRequiredService<PhotoDiaryReminderScheduler>();
         scheduler.ResetCursor();
 
-        // Seed cursor to 16:30 UTC (AFTER noon NY).
+        // Seed cursor to 12:30 NY local (AFTER noon).
         scheduler.SetLastTickAt(afterNoonNY);
 
-        // Tick at 17:30 UTC: window is (16:30, 17:30]. Noon (16:00) is NOT in the window.
+        // Tick one hour later: window is (12:30, 13:30] NY local. Noon is NOT in the window.
         scheduler.OverrideNow = afterNoonNY.AddHours(1);
         await scheduler.TickAsync(scheduler.OverrideNow.Value, TestContext.Current.CancellationToken);
 
@@ -562,7 +579,8 @@ public class PhotoDiaryReminderSchedulerTests(FitnessApiFactory factory)
         // AcceptedAt = 2 days ago in Prague local time → today is day 3.
         var prague = TimeZoneInfo.FindSystemTimeZoneById("Europe/Prague");
         var utcNow = DateTime.UtcNow;
-        var virtualNow = utcNow.Date.AddHours(10).AddMinutes(30); // 10:30 UTC (after noon Prague CEST)
+        var noonPrague = TodayNoonUtc("Europe/Prague");
+        var virtualNow = noonPrague.AddMinutes(30); // 30 min after noon Prague
 
         var virtualNowPrague = TimeZoneInfo.ConvertTimeFromUtc(virtualNow, prague);
 
@@ -578,10 +596,10 @@ public class PhotoDiaryReminderSchedulerTests(FitnessApiFactory factory)
         var scheduler = factory.Services.GetRequiredService<PhotoDiaryReminderScheduler>();
         scheduler.ResetCursor();
 
-        // Seed cursor to before noon Prague (09:00 UTC).
-        scheduler.SetLastTickAt(utcNow.Date.AddHours(9));
+        // Seed cursor to one hour before noon Prague.
+        scheduler.SetLastTickAt(noonPrague.AddHours(-1));
 
-        // Tick at 10:30 UTC (after noon Prague = 10:00 UTC) → fires.
+        // Tick 30 min after noon Prague → fires.
         scheduler.OverrideNow = virtualNow;
         await scheduler.TickAsync(scheduler.OverrideNow.Value, TestContext.Current.CancellationToken);
 
