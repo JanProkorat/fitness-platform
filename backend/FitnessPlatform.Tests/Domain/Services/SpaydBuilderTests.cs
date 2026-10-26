@@ -128,6 +128,14 @@ public class SpaydBuilderTests
     }
 
     [Fact]
+    public void Build_PercentAndAsteriskInText_PercentIsEncodedFirst()
+    {
+        var spayd = SpaydBuilder.Build(Iban, 1m, null, "10% off*now", null, "5%*");
+
+        spayd.Should().Contain("*MSG:10%25 off%2Anow*").And.Contain("*RN:5%25%2A");
+    }
+
+    [Fact]
     public void Build_MessageIsCutBeforeEncoding_SoTheLimitCountsCharacters()
     {
         var spayd = SpaydBuilder.Build(Iban, 1m, null, new string('*', 70), null, null);

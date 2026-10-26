@@ -137,5 +137,6 @@ public static class SpaydBuilder
     private static string Cut(string text, int limit) =>
         text.Length <= limit ? text : text[..limit].TrimEnd();
 
-    private static string Escape(string text) => text.Replace("*", "%2A", StringComparison.Ordinal);
+    private static string Escape(string text) =>
+        text.Replace("%", "%25", StringComparison.Ordinal).Replace("*", "%2A", StringComparison.Ordinal);
 }
