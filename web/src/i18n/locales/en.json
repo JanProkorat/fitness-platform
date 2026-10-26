@@ -2566,6 +2566,7 @@
         "paidUntil": "Paid until",
         "noPackage": "No package yet",
         "noPackageHint": "Choose a package under Price to start billing.",
+        "endedHint": "The collaboration has ended.",
         "customPrice": "custom price {{price}}",
         "due": "Due {{date}}",
         "overdueSince": "Overdue since {{date}}",
@@ -2741,6 +2742,7 @@
         "waived": "You waived {{period}}",
         "waivedReason": "You waived {{period}} · “{{reason}}”",
         "requested": "You requested {{period}}{{amount}}",
+        "ended": "The client ended the collaboration.",
         "unknown": "You changed something."
       }
     },

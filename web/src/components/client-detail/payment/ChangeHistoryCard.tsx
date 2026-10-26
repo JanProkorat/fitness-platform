@@ -10,6 +10,7 @@ const ACTIONS = [
   'MarkClientPaymentPaid',
   'WaiveClientPayment',
   'RequestClientPayment',
+  'EndClientPaymentTerms',
 ] as const;
 
 type KnownAction = (typeof ACTIONS)[number];
@@ -45,6 +46,8 @@ function describeEntry(t: TFunction, entry: ClientPaymentHistoryEntryDto, langua
         : t('payments.client.history.waived', { period });
     case 'RequestClientPayment':
       return t('payments.client.history.requested', { period, amount: amount ? ` · ${amount}` : '' });
+    case 'EndClientPaymentTerms':
+      return t('payments.client.history.ended');
   }
 }
 
