@@ -180,7 +180,8 @@
       "footnote": "Pozvánka zůstane otevřená, i když se porozhlédnete.",
       "footnoteBoth": "Pro každou oblast jeden plán od stejného poradce. Pozvánka zůstane otevřená, i když se porozhlédnete.",
       "planTraining": "Tréninkový plán",
-      "planNutrition": "Jídelníček"
+      "planNutrition": "Jídelníček",
+      "packagePrice": "balíček {{price}}"
     },
     "howItWorks": {
       "title": "Jak to funguje",
@@ -236,7 +237,18 @@
         "both": "Váš rozvrh, trénink, který vás baví, potraviny, kterým se vyhýbáte. Pomůže to u obou plánů."
       },
       "message": "Napsat zprávu",
-      "messageLabel": "Napsat zprávu poradci"
+      "messageLabel": "Napsat zprávu poradci",
+      "firstPayment": {
+        "title": "Zaplaťte první měsíc",
+        "upcomingHint": "{{details}}. {{name}} vám pošle platební údaje.",
+        "requestedHint": "{{details}} přes QR",
+        "overdueHint": "{{details}} přes QR · po splatnosti",
+        "showQr": "Zobrazit QR"
+      },
+      "checkIn": {
+        "title": "Týdenní check-in: {{day}}",
+        "hint": "Začíná s prvním týdnem vašeho plánu"
+      }
     }
   },
   "editProfile": {

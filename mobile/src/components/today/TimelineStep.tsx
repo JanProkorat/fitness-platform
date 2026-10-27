@@ -16,6 +16,8 @@ type TimelineStepProps = {
   /** Trailing action button; a step without one is informational. */
   actionLabel?: string;
   onAction?: () => void;
+  /** Filled for the step's main call to action, outlined otherwise. */
+  actionTone?: 'primary' | 'secondary';
   /** Connector to the next step: null for the last step, otherwise whether it is already travelled. */
   connector: 'done' | 'idle' | null;
 };
@@ -28,6 +30,7 @@ export function TimelineStep({
   currentColor,
   actionLabel,
   onAction,
+  actionTone = 'secondary',
   connector,
 }: TimelineStepProps) {
   const theme = useTheme();
@@ -72,9 +75,11 @@ export function TimelineStep({
           accessibilityRole="button"
           accessibilityLabel={actionLabel}
           onPress={onAction}
-          style={styles.action}
+          style={[styles.action, actionTone === 'primary' ? styles.actionPrimary : null]}
         >
-          <Text variant="labelStrong">{actionLabel}</Text>
+          <Text variant="labelStrong" color={actionTone === 'primary' ? 'onPrimary' : 'ink'}>
+            {actionLabel}
+          </Text>
         </Pressable>
       ) : null}
     </View>
@@ -133,5 +138,9 @@ const makeStyles = (theme: Theme) =>
       borderWidth: theme.sizes.border,
       borderColor: theme.colors.lineStrong,
       backgroundColor: theme.colors.surface,
+    },
+    actionPrimary: {
+      borderColor: theme.colors.primary,
+      backgroundColor: theme.colors.primary,
     },
   });

@@ -19873,7 +19873,7 @@ export class ApiClient {
 
     /**
      * Get active collaborations
-     * @return Success
+     * @return The client's active collaborations
      */
     getCollaborationsEndpoint(signal?: AbortSignal): Promise<GetCollaborationsResponse> {
         let url_ = this.baseUrl + "/client/collaborations";
@@ -19918,7 +19918,7 @@ export class ApiClient {
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
@@ -29654,6 +29654,44 @@ export interface CollaborationDto {
 personal avatar when the professional-profile-specific one isn't set.
 Null when neither is uploaded. */
     avatarBlobUrl?: string | undefined;
+    /** First payment of the collaboration's current terms; null when the client has no terms with this professional. */
+    firstPayment?: CollaborationFirstPaymentDto | undefined;
+    /** Weekdays the professional's weekly check-ins reach this client; empty when none is scheduled. */
+    checkIns?: CollaborationCheckInDto[];
+}
+
+/** The first payment of a collaboration's current terms. Carries no bank details; the client matches PaymentId against GET /client/payments for the QR data. */
+export interface CollaborationFirstPaymentDto {
+    /** Name of the package the payment is for. */
+    packageName?: string | undefined;
+    /** Amount of the payment, or null when it cannot be worked out. */
+    amount?: number | undefined;
+    /** Currency of the amount. */
+    currency?: PaymentCurrency;
+    /** Upcoming, Requested, Overdue, Paid or Waived. */
+    status?: ClientPaymentStatus;
+    /** The day the payment falls due. */
+    dueDate?: string;
+    /** Public id of the payment once the coach has requested it; null while it is only upcoming. */
+    paymentId?: string | undefined;
+}
+
+/** The weekday a professional's weekly check-in reaches this client. */
+export interface CollaborationCheckInDto {
+    /** Training or Nutrition. */
+    profession?: Profession;
+    /** Day of the week the check-in is sent, after any per-client override. */
+    dayOfWeek?: DayOfWeek;
+}
+
+export enum DayOfWeek {
+    Sunday = "Sunday",
+    Monday = "Monday",
+    Tuesday = "Tuesday",
+    Wednesday = "Wednesday",
+    Thursday = "Thursday",
+    Friday = "Friday",
+    Saturday = "Saturday",
 }
 
 /** A coach's automation rule as returned by the management endpoints. */
