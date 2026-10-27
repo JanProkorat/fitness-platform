@@ -210,7 +210,7 @@ public class PaymentsAfterEndIntegrationTests(FitnessApiFactory factory)
         rows[0].PeriodStart.Should().Be(Today);
         rows[0].Amount.Should().Be(5000m);
         rows[0].PackageName.Should().Be("Dlouhodobá");
-        rows[1].PeriodStart.Should().Be(Today.AddMonths(1));
+        rows[1].PeriodStart.Should().Be(Today.AddDays(35));
         rows[1].Amount.Should().Be(3000m);
     }
 

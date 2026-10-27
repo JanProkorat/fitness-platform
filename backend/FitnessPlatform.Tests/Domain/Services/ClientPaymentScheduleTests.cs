@@ -516,17 +516,38 @@ public class ClientPaymentScheduleTests
 
         var existing = new[] { new DateOnly(2026, 9, 21), endDay };
 
-        var planned = ClientPaymentSchedule.PlanMissingPeriods([first, reaccepted, restarted], existing, endDay);
+        (DateOnly Start, DateOnly? End)[] ends =
+        [
+            (new DateOnly(2026, 9, 21), new DateOnly(2026, 10, 25)),
+            (endDay, new DateOnly(2026, 11, 29))
+        ];
 
-        planned.Should().Equal((new DateOnly(2026, 11, 26), new DateOnly(2026, 12, 25)));
+        var planned = ClientPaymentSchedule.PlanMissingPeriods([first, reaccepted, restarted], existing, endDay, null, ends);
+
+        planned.Should().Equal((new DateOnly(2026, 11, 30), new DateOnly(2026, 12, 29)));
 
         var allRuns = ClientPaymentSchedule.PlanMissingPeriods(
-            [first, reaccepted, restarted], existing, endDay.AddYears(200));
+            [first, reaccepted, restarted], existing, endDay.AddYears(200), null, ends);
 
         allRuns.Should().Equal(
-            (new DateOnly(2026, 11, 26), new DateOnly(2026, 12, 25)),
-            (new DateOnly(2026, 12, 26), new DateOnly(2027, 1, 25)),
-            (new DateOnly(2027, 1, 26), new DateOnly(2027, 2, 25)));
+            (new DateOnly(2026, 11, 30), new DateOnly(2026, 12, 29)),
+            (new DateOnly(2026, 12, 30), new DateOnly(2027, 1, 29)),
+            (new DateOnly(2027, 1, 30), new DateOnly(2027, 2, 27)));
+    }
+
+    [Fact]
+    public void PlanMissingPeriods_RestartOnADayWithARowOnAShorterStep_BeginsTheDayAfterTheLatestEnd()
+    {
+        var old = Ended(Terms(Package(PackageBillingInterval.EveryNWeeks, 5000m, intervalWeeks: 10), new DateOnly(2026, 9, 1)), new DateOnly(2026, 10, 26));
+        var fresh = Terms(Package(PackageBillingInterval.EveryNWeeks, 5000m, intervalWeeks: 1), new DateOnly(2026, 10, 26));
+        fresh.EffectiveFromUtc = old.EndsAtUtc!.Value;
+        (DateOnly Start, DateOnly? End)[] ends =
+        [
+            (new DateOnly(2026, 10, 26), new DateOnly(2027, 1, 3))
+        ];
+
+        ClientPaymentSchedule.PlanMissingPeriods([old, fresh], [new DateOnly(2026, 10, 26)], new DateOnly(2026, 10, 26), null, ends)
+            .Should().Equal((new DateOnly(2027, 1, 4), new DateOnly(2027, 1, 10)));
     }
 
     [Fact]

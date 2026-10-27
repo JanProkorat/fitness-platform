@@ -114,12 +114,18 @@ public static class ClientPaymentSchedule
     /// First days of rows that were kept from terms that ended (see <see cref="KeptPeriodStarts"/>). They are
     /// part of <paramref name="existingPeriodStarts"/> but take no part in the schedule of later terms.
     /// </param>
+    /// <param name="existingPeriods">
+    /// The stored first and last day of every row. When given, a restart on a day that already has a row begins
+    /// the day after the latest end of the rows covering or following that day; a null end counts as the start day.
+    /// When omitted, the restart steps forward from the restart day with the new package's step.
+    /// </param>
     /// <returns>The missing periods, oldest first.</returns>
     public static List<(DateOnly Start, DateOnly End)> PlanMissingPeriods(
         IReadOnlyCollection<ClientPaymentTerms> terms,
         IReadOnlyCollection<DateOnly> existingPeriodStarts,
         DateOnly today,
-        IReadOnlyCollection<DateOnly>? keptPeriodStarts = null)
+        IReadOnlyCollection<DateOnly>? keptPeriodStarts = null,
+        IReadOnlyCollection<(DateOnly Start, DateOnly? End)>? existingPeriods = null)
     {
         var planned = new List<(DateOnly Start, DateOnly End)>();
 
@@ -193,9 +199,25 @@ public static class ClientPaymentSchedule
 
                 // Terms starting on the day the last period began (an end and a new start on the same day)
                 // take over from the next period on.
-                while (restart is not null && cursor is { } restartDay && everyStart.Contains(restartDay))
+                if (restart is not null && existingPeriods is not null
+                    && cursor is { } rowDay && everyStart.Contains(rowDay))
                 {
-                    cursor = NextPeriodStart(restartDay, restart, billingDay);
+                    // The rows were built on the old step, so the new terms begin where the latest of them ends.
+                    var coveredUntil = existingPeriods
+                        .Select(row => row.End ?? row.Start)
+                        .Where(end => end >= rowDay)
+                        .DefaultIfEmpty(rowDay)
+                        .Max();
+
+                    cursor = coveredUntil.AddDays(1);
+                    billingDay = cursor.Value.Day;
+                }
+                else
+                {
+                    while (restart is not null && cursor is { } restartDay && everyStart.Contains(restartDay))
+                    {
+                        cursor = NextPeriodStart(restartDay, restart, billingDay);
+                    }
                 }
             }
         }
@@ -555,7 +577,8 @@ public static class ClientPaymentSchedule
             terms,
             payments.Select(p => p.PeriodStart!.Value).ToList(),
             today,
-            KeptPeriodStarts(payments));
+            KeptPeriodStarts(payments),
+            payments.Select(p => (p.PeriodStart!.Value, p.PeriodEnd)).ToList());
     }
 
     /// <summary>
