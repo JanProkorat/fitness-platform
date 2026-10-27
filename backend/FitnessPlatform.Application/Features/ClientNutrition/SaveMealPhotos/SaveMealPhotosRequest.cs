@@ -13,6 +13,12 @@ public class SaveMealPhotosRequest
     public Guid MealId { get; set; }
 
     /// <summary>
+    /// Optional plan day the photos belong to (client-local calendar date, today or past).
+    /// Omitted means the client-local today.
+    /// </summary>
+    public DateOnly? Date { get; set; }
+
+    /// <summary>
     /// The complete list of photos to persist on the meal log.
     /// Replaces the existing Photos list entirely — pass an empty list to remove all
     /// photos. Each item carries the blob URL and an optional per-photo caption.

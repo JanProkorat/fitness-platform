@@ -6,6 +6,7 @@ using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Domain.Services;
+using FitnessPlatform.Application.Features.ClientNutrition.Shared;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using Microsoft.EntityFrameworkCore;
@@ -40,7 +41,10 @@ public class GenerateMealPhotoUploadUrlEndpoint(
             s.Description =
                 "Returns a time-limited pre-signed URL for direct upload of a meal diary photo "
                 + "to blob storage (diary/{mealId}/{guid}.{ext}), together with the permanent "
-                + "blob URL to pass to POST /client/nutrition/log/meals/{mealId}/photos.";
+                + "blob URL to pass to POST /client/nutrition/log/meals/{mealId}/photos. "
+                + "An optional date targets a past day (or today) of the active plan; omitted means the client-local today.";
+            s.Responses[StatusCodes.Status400BadRequest] = "Invalid request, or the date is in the future (MEAL_LOG_DATE_IN_FUTURE)";
+            s.Responses[StatusCodes.Status404NotFound] = "No active plan covers the date, or the meal is not on that day";
         });
     }
 
@@ -77,8 +81,23 @@ public class GenerateMealPhotoUploadUrlEndpoint(
 
         var planCursor = await mongo.NutritionPlans.FindAsync(planFilter, cancellationToken: ct);
         var activePlans = await planCursor.ToListAsync(ct);
-        var todayLocalUtc = await db.ResolveClientLocalDateUtcAsync(clientId, timeProvider.GetUtcNow().UtcDateTime, ct);
-        var plan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, todayLocalUtc);
+        var timeZone = await db.ResolveClientTimeZoneAsync(clientId, ct);
+        var localToday = ClientLocalDateResolver.ResolveLocalDate(timeProvider.GetUtcNow().UtcDateTime, timeZone);
+
+        if (req.Date > localToday)
+        {
+            await this.SendProblemAsync(400, ErrorCodes.MealLogDateInFuture,
+                "Meal photos cannot be added to a future day.", ct);
+            return;
+        }
+
+        // Without a date the legacy best-effort plan resolution applies; with one the plan
+        // window must contain the date.
+        var targetDate = req.Date ?? localToday;
+        var targetDayUtc = targetDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+        var plan = req.Date is null
+            ? PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, targetDayUtc)
+            : PlanWindowResolver.ResolveCurrentPlanStrict(activePlans, p => p.StartDate, p => p.Weeks.Count, targetDate);
 
         if (plan is null)
         {
@@ -86,11 +105,13 @@ public class GenerateMealPhotoUploadUrlEndpoint(
             return;
         }
 
-        // Verify the mealId belongs to the active plan
-        var meal = plan.Weeks
-            .SelectMany(w => w.Days)
-            .SelectMany(d => d.Meals)
-            .FirstOrDefault(m => m.MealId == req.MealId);
+        // Verify the mealId belongs to the plan — to that date's plan day when a date was given.
+        var meal = req.Date is null
+            ? plan.Weeks
+                .SelectMany(w => w.Days)
+                .SelectMany(d => d.Meals)
+                .FirstOrDefault(m => m.MealId == req.MealId)
+            : NutritionPlanDayResolver.FindMeal(plan, targetDayUtc, req.MealId);
 
         if (meal is null)
         {
