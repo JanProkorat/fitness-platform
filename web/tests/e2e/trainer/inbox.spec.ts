@@ -136,6 +136,19 @@ async function isThreadScrolledToBottom(page: Page): Promise<boolean> {
   }, SCROLL_BOTTOM_SLACK_PX);
 }
 
+const FILTERS: Array<{ name: string; inboxLabel: RegExp; chipLabel: RegExp; filterParam: string }> = [
+  { name: 'No messages', inboxLabel: /^No messages/, chipLabel: /No messages/, filterParam: 'NoMessages' },
+  { name: 'Unread messages', inboxLabel: /^Unread messages/, chipLabel: /Unread messages/, filterParam: 'UnreadMessages' },
+  { name: 'New check-ins', inboxLabel: /^New check-ins/, chipLabel: /New check-ins/, filterParam: 'NewCheckIns' },
+  {
+    name: 'Missing check-ins',
+    inboxLabel: /^Missing check-ins/,
+    chipLabel: /Missing check-ins/,
+    filterParam: 'MissingCheckIns',
+  },
+  { name: 'Ending soon', inboxLabel: /^Ending soon/, chipLabel: /Ending soon/, filterParam: 'EndingSoon' },
+];
+
 test.describe('inbox page', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/inbox');
@@ -257,22 +270,14 @@ test.describe('inbox page', () => {
     }
   });
 
-  test('each live filter returns the clients-list chip set restricted to clients with a conversation (#1095)', async ({
-    page,
-  }) => {
-    const FILTERS: Array<{ inboxLabel: RegExp; chipLabel: RegExp; filterParam: string }> = [
-      { inboxLabel: /^No messages/, chipLabel: /No messages/, filterParam: 'NoMessages' },
-      { inboxLabel: /^Unread messages/, chipLabel: /Unread messages/, filterParam: 'UnreadMessages' },
-      { inboxLabel: /^New check-ins/, chipLabel: /New check-ins/, filterParam: 'NewCheckIns' },
-      { inboxLabel: /^Missing check-ins/, chipLabel: /Missing check-ins/, filterParam: 'MissingCheckIns' },
-      { inboxLabel: /^Ending soon/, chipLabel: /Ending soon/, filterParam: 'EndingSoon' },
-    ];
+  for (const { name, inboxLabel, chipLabel, filterParam } of FILTERS) {
+    test(`a live filter returns the clients-list chip set restricted to clients with a conversation (#1095): ${name}`, async ({
+      page,
+    }) => {
+      // The inbox lists only clients that have a conversation, so the unfiltered inbox is the
+      // "has a conversation" population the filtered set is restricted to.
+      const withConversation = await getInboxRowNames(page);
 
-    // The inbox lists only clients that have a conversation, so the unfiltered inbox is the
-    // "has a conversation" population every filtered set is restricted to.
-    const withConversation = await getInboxRowNames(page);
-
-    for (const { inboxLabel, chipLabel, filterParam } of FILTERS) {
       const clientsNames = (await getClientsListNamesForChip(page, chipLabel)).filter((n) =>
         withConversation.includes(n),
       );
@@ -282,8 +287,7 @@ test.describe('inbox page', () => {
       await page.getByRole('button', { name: /^All \(\d+\)$/ }).click();
       // `networkidle` alone is unreliable here — the inbox keeps a live
       // SignalR WebSocket open, so wait for the SPECIFIC filtered request
-      // this click triggers instead (same pattern proven against the
-      // running harness while diagnosing this exact flake).
+      // this click triggers instead.
       const filteredResponsePromise = page.waitForResponse(
         (r) => r.url().includes('/conversations?') && r.url().includes(`filter=${filterParam}`) && r.status() === 200,
       );
@@ -293,8 +297,8 @@ test.describe('inbox page', () => {
       // A brief render lag can separate the response resolving from React
       // committing the row list — poll rather than a single snapshot read.
       await expect.poll(() => getInboxRowNames(page)).toEqual(clientsNames);
-    }
-  });
+    });
+  }
 
   test('a YouTube link in message text renders as an embedded preview card', async ({ page }) => {
     await qaClientRow(page).click();
