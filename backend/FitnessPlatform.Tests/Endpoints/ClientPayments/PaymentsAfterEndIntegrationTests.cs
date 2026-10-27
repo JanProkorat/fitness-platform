@@ -5,6 +5,7 @@ using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Features.Client.GetClientPayments;
 using FitnessPlatform.Application.Features.ClientPayments.GetClientPaymentSummary;
 using FitnessPlatform.Application.Features.ClientPayments.Shared;
+using FitnessPlatform.Application.Features.ClientPayments.SetClientPaymentTerms;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Infrastructure;
@@ -231,6 +232,23 @@ public class PaymentsAfterEndIntegrationTests(FitnessApiFactory factory)
         newRow.PackageName.Should().Be("Fresh start");
         (await StoredRowsAsync(world)).Single(p => p.PeriodStart == Today.AddMonths(2)).IsKeptAfterEnd.Should().BeFalse();
         (await StoredRowsAsync(world)).Single(p => p.PeriodStart == Today.AddMonths(1)).IsKeptAfterEnd.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task SetTerms_AfterReaccept_WithARequestedKeptPeriod_PreviewsTheFirstNewPeriodAtTheNewPrice()
+    {
+        var (world, _, rows) = await EndedFixedLengthAsync();
+        var requestedRow = rows.First(p => p.PeriodStart > Today);
+        (await PostActionAsync(world, requestedRow.PaymentId, "request", new { SendEmail = true })).StatusCode.Should().Be(HttpStatusCode.OK);
+        var fresh = await CreatePackageAsync(world.Coach, name: "Fresh start");
+        await AcceptInviteAsync(world, fresh);
+
+        var response = await SetTermsAsync(world, fresh, customPrice: 1800m);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK, await response.Content.ReadAsStringAsync(Ct));
+        var preview = await ReadAsync<SetClientPaymentTermsResponse>(response);
+        preview.AppliesFromPeriodStart.Should().Be(Today.AddMonths(2), "the kept Requested row keeps its frozen terms");
+        preview.Amount.Should().Be(1800m);
     }
 
     [Fact]
