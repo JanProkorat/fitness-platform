@@ -174,22 +174,24 @@ public class AcceptInvitationEndpoint(
         // Only for a link that was just created or reactivated (#1108 review) — an already-linked
         // client re-using this token would otherwise get a fresh, undeduplicated Accepted
         // banner on every re-use, since a null-source event has no index to dedupe on.
+        // Show the "waiting" state in the portal when the invite carried a questionnaire. A widened link gets
+        // its own response for the added scope only.
+        if ((linkStarted || activation.Extended) && pendingInvite?.QuestionnaireId is { } questionnaireId)
+        {
+            db.QuestionnaireResponses.Add(new QuestionnaireResponse
+            {
+                QuestionnaireId = questionnaireId,
+                ClientId = userGuid,
+                ProfessionalId = invitation.ProfessionalProfile.UserId,
+                LinkId = activation.Link!.Id,
+                Status = QuestionnaireResponseStatus.Pending,
+                Scope = activation.GrantedScope,
+            });
+            await db.SaveChangesAsync(ct);
+        }
+
         if (linkStarted)
         {
-            // Show the "waiting" state in the portal when the invite carried a questionnaire.
-            if (pendingInvite?.QuestionnaireId is { } questionnaireId)
-            {
-                db.QuestionnaireResponses.Add(new QuestionnaireResponse
-                {
-                    QuestionnaireId = questionnaireId,
-                    ClientId = userGuid,
-                    ProfessionalId = invitation.ProfessionalProfile.UserId,
-                    LinkId = activation.Link!.Id,
-                    Status = QuestionnaireResponseStatus.Pending,
-                });
-                await db.SaveChangesAsync(ct);
-            }
-
             // A client who was already linked keeps whatever the coach set on the Payments tab.
             if (pendingInvite?.CoachPackageId is { } packageId)
             {

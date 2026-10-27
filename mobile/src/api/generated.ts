@@ -20,7 +20,7 @@ export class ApiClient {
 
         this.instance = instance || axios.create();
 
-        this.baseUrl = baseUrl ?? "https://localhost:64981";
+        this.baseUrl = baseUrl ?? "https://localhost:5001";
 
     }
 
@@ -8253,7 +8253,7 @@ export class ApiClient {
 
     /**
      * Get client questionnaire
-     * @return Success
+     * @return The questionnaire with any existing answers
      */
     getClientQuestionnaireEndpoint(signal?: AbortSignal): Promise<GetClientQuestionnaireResponse> {
         let url_ = this.baseUrl + "/client/questionnaire";
@@ -21693,20 +21693,27 @@ export interface CreateWorkoutTemplateSetRequest {
     restSeconds?: number | undefined;
 }
 
+/** RFC7807 compatible problem details/ error response class. this can be used by configuring startup like so: app.UseFastEndpoints(c => c.Errors.UseProblemDetails()) */
 export interface ProblemDetails {
     type?: string;
     title?: string;
     status?: number;
     instance?: string;
     traceId?: string;
+    /** the details of the error */
     detail?: string | undefined;
     errors?: ProblemDetails_Error[];
 }
 
+/** the error details object */
 export interface ProblemDetails_Error {
+    /** the name of the error or property of the dto that caused the error */
     name?: string;
+    /** the reason for the error */
     reason?: string;
+    /** the code of the error */
     code?: string | undefined;
+    /** the severity of the error */
     severity?: string | undefined;
 }
 
@@ -25165,6 +25172,8 @@ export interface SubmittedResponseItem {
     responsePublicId?: string;
     questionnaireTitle?: string;
     submittedAt?: string | undefined;
+    /** Plan type the response was sent for; null when it was assigned without one. */
+    scope?: LinkCapabilityScope | undefined;
     answers?: SubmittedAnswerItem[];
 }
 
@@ -25187,6 +25196,8 @@ export interface ClientResponseItem {
     status?: string;
     submittedAt?: string | undefined;
     dateCreated?: string;
+    /** Plan type the response was sent for; null when it was assigned without one. */
+    scope?: LinkCapabilityScope | undefined;
     answerCount?: number;
     answers?: ResponseAnswerDto[];
 }
@@ -25258,7 +25269,8 @@ export interface GetClientPendingQuestionnairesResponse {
 Always populated before Items so the mobile banner stack
 renders diary banners above questionnaire banners. */
     pendingDiaryRequests?: PendingDiaryRequestItem[];
-    /** Pending / in-progress questionnaires for this client (one per active professional link). */
+    /** Pending / in-progress questionnaires for this client: one per open response, or one per active link
+that has none yet. */
     items?: PendingQuestionnaireItem[];
 }
 
@@ -25300,6 +25312,8 @@ export interface PendingQuestionnaireItem {
     questionCount?: number;
     responsePublicId?: string | undefined;
     responseStatus?: string | undefined;
+    /** Plan type the response was sent for; null for the link-level fallback item. */
+    scope?: LinkCapabilityScope | undefined;
 }
 
 export interface DeleteQuestionnaireRequest {

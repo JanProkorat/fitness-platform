@@ -4,6 +4,7 @@ import { SymbolView } from 'expo-symbols';
 import { useTranslation } from 'react-i18next';
 
 import type { Collaboration } from '@/api/collaborations';
+import { LinkCapabilityScope } from '@/api/generated';
 import type { Conversation } from '@/api/conversations';
 import type { PendingItems, SubmittedByCoach } from '@/api/questionnaires';
 import { Chip } from '@/components/Chip';
@@ -59,17 +60,35 @@ function findConversation(
   return name === '' ? undefined : live.find((c) => normalize(c.participant?.name) === name);
 }
 
-const hasPendingQuestionnaire = (pending: PendingItems | undefined, linkId: string | undefined): boolean =>
-  linkId !== undefined && (pending?.questionnaires ?? []).some((item) => item.linkPublicId === linkId);
+/** The role a questionnaire was sent for; null when it has no plan type (or covers both). */
+const scopeRole = (scope: LinkCapabilityScope | undefined): CoachRole | null => {
+  if (scope === LinkCapabilityScope.TrainingOnly) return 'Trainer';
+  if (scope === LinkCapabilityScope.NutritionOnly) return 'Nutritionist';
+  return null;
+};
 
-const hasSubmittedQuestionnaire = (
+type QuestionnaireStatus = { pending: boolean; sent: boolean };
+const NONE: QuestionnaireStatus = { pending: false, sent: false };
+
+/** Whether this coach link has a questionnaire waiting or sent. `role`: a role to match, null for unscoped, undefined for any. */
+function questionnaireStatus(
+  pending: PendingItems | undefined,
   submitted: readonly SubmittedByCoach[] | undefined,
   linkId: string | undefined,
-): boolean =>
-  linkId !== undefined &&
-  (submitted ?? []).some(
-    (coach) => coach.linkPublicId === linkId && (coach.responses ?? []).length > 0,
+  role: CoachRole | null | undefined,
+): QuestionnaireStatus {
+  if (linkId === undefined) return NONE;
+  const matches = (scope: LinkCapabilityScope | undefined) => role === undefined || scopeRole(scope) === role;
+  const isPending = (pending?.questionnaires ?? []).some(
+    (item) => item.linkPublicId === linkId && matches(item.scope),
   );
+  const isSent =
+    !isPending &&
+    (submitted ?? []).some(
+      (coach) => coach.linkPublicId === linkId && (coach.responses ?? []).some((r) => matches(r.scope)),
+    );
+  return { pending: isPending, sent: isSent };
+}
 
 const hasPhotoRequest = (
   pending: PendingItems | undefined,
@@ -100,10 +119,15 @@ export function CoachProgressCard({
   const fullName = collaboration.professionalName?.trim() ?? '';
   const first = firstName(fullName) || t('today.progress.coachFallback');
   const single = covered.length === 1;
-  const questionnairePending = hasPendingQuestionnaire(pending, collaboration.publicId);
-  const questionnaireSent = !questionnairePending && hasSubmittedQuestionnaire(submitted, collaboration.publicId);
+  const linkId = collaboration.publicId;
+  // A single-role collaboration keeps one step; several roles get one step per plan type.
+  const generic = questionnaireStatus(pending, submitted, linkId, single ? undefined : null);
+  const perRole = new Map<CoachRole, QuestionnaireStatus>(
+    single ? [] : covered.map((role) => [role, questionnaireStatus(pending, submitted, linkId, role)]),
+  );
   const photoRequested = hasPhotoRequest(pending, collaboration, onlyCollaboration);
-  const waiting = (questionnairePending ? 1 : 0) + (photoRequested ? 1 : 0);
+  let waiting = (generic.pending ? 1 : 0) + (photoRequested ? 1 : 0);
+  for (const status of perRole.values()) if (status.pending) waiting += 1;
 
   const openChat = () => {
     const target = findConversation(conversations, collaboration);
@@ -112,15 +136,32 @@ export function CoachProgressCard({
   };
 
   const steps: Step[] = [{ key: 'accepted', state: 'done', title: t('today.progress.accepted') }];
-  if (questionnairePending) {
-    steps.push({
-      key: 'questionnaire',
-      state: 'open',
-      title: t('today.progress.questionnairePending'),
-      hint: t('today.progress.questionnairePendingHint'),
-    });
-  } else if (questionnaireSent) {
-    steps.push({ key: 'questionnaire', state: 'done', title: t('today.progress.questionnaireSent') });
+  const questionnaireStep = (key: string, status: QuestionnaireStatus, role?: CoachRole): Step | null => {
+    if (status.pending) {
+      return {
+        key,
+        state: 'open',
+        title: t(role ? `today.progress.questionnaireFor.${role}` : 'today.progress.questionnairePending'),
+        hint: t('today.progress.questionnairePendingHint'),
+      };
+    }
+    if (status.sent) {
+      return {
+        key,
+        state: 'done',
+        title: t(role ? `today.progress.questionnaireSentFor.${role}` : 'today.progress.questionnaireSent'),
+      };
+    }
+    return null;
+  };
+  const generalStep = questionnaireStep('questionnaire', generic);
+  if (generalStep) steps.push(generalStep);
+  // A role whose plan is already published has no plan step to sit above, so its questionnaire goes here.
+  for (const role of covered) {
+    const status = perRole.get(role);
+    const step =
+      status && !unpublished.includes(role) ? questionnaireStep(`questionnaire-${role}`, status, role) : null;
+    if (step) steps.push(step);
   }
   if (photoRequested) {
     steps.push({
@@ -134,6 +175,9 @@ export function CoachProgressCard({
   }
   for (const role of unpublished) {
     const look = roleLook(theme, role);
+    const status = perRole.get(role);
+    const roleStep = status ? questionnaireStep(`questionnaire-${role}`, status, role) : null;
+    if (roleStep) steps.push(roleStep);
     steps.push({
       key: `plan-${role}`,
       state: 'current',

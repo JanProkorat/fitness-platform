@@ -16,7 +16,8 @@ public class GetClientPendingQuestionnairesResponse
     public List<PendingDiaryRequestItem> PendingDiaryRequests { get; set; } = [];
 
     /// <summary>
-    /// Pending / in-progress questionnaires for this client (one per active professional link).
+    /// Pending / in-progress questionnaires for this client: one per open response, or one per active link
+    /// that has none yet.
     /// </summary>
     public List<PendingQuestionnaireItem> Items { get; set; } = [];
 }
@@ -69,4 +70,7 @@ public class PendingQuestionnaireItem
     public int QuestionCount { get; set; }
     public Guid? ResponsePublicId { get; set; }
     public string? ResponseStatus { get; set; }
+
+    /// <summary>Plan type the response was sent for; null for the link-level fallback item.</summary>
+    public LinkCapabilityScope? Scope { get; set; }
 }

@@ -77,7 +77,9 @@ public static class ClientLinkActivator
             link.CanViewTrainingPlans = canViewTrainingPlans;
             link.QuestionnaireId = questionnaireId;
 
-            return new ClientLinkActivationResult(ClientLinkActivationOutcome.Reactivated, link);
+            return new ClientLinkActivationResult(
+                ClientLinkActivationOutcome.Reactivated, link,
+                ClientLinkActivationResult.ScopeOf(canViewNutritionPlans, canViewTrainingPlans));
         }
 
         link = new ClientProfessionalLink
@@ -93,12 +95,15 @@ public static class ClientLinkActivator
         };
         db.ClientProfessionalLinks.Add(link);
 
-        return new ClientLinkActivationResult(ClientLinkActivationOutcome.Created, link);
+        return new ClientLinkActivationResult(
+            ClientLinkActivationOutcome.Created, link,
+            ClientLinkActivationResult.ScopeOf(canViewNutritionPlans, canViewTrainingPlans));
     }
 
     /// <summary>
     /// Adds the plan types the invite covers beyond what the active link already grants. Never narrows,
-    /// and leaves the role, questionnaire and activation time alone.
+    /// and leaves the role, questionnaire and activation time alone. The widened link and the added scope
+    /// are returned so the caller can attach the invite's questionnaire to that part only.
     /// </summary>
     private static async Task<ClientLinkActivationResult> WidenActiveLinkAsync(
         IApplicationDbContext db,
@@ -142,6 +147,8 @@ public static class ClientLinkActivator
         link.CanViewNutritionPlans |= addsNutrition;
         link.CanViewTrainingPlans |= addsTraining;
 
-        return new ClientLinkActivationResult(ClientLinkActivationOutcome.Extended, null);
+        return new ClientLinkActivationResult(
+            ClientLinkActivationOutcome.Extended, link,
+            ClientLinkActivationResult.ScopeOf(addsNutrition, addsTraining));
     }
 }
