@@ -237,7 +237,7 @@
       "message": "Nachricht schreiben",
       "messageLabel": "Nachricht an den Coach schreiben",
       "firstPayment": {
-        "title": "Ersten Monat bezahlen",
+        "title": "Erste Zahlung leisten",
         "upcomingHint": "{{details}}. {{name}} sendet Ihnen die Zahlungsdaten.",
         "requestedHint": "{{details}} per QR",
         "overdueHint": "{{details}} per QR · überfällig",
