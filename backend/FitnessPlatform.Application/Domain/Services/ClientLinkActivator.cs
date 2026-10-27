@@ -39,7 +39,7 @@ public static class ClientLinkActivator
 
         if (link is { IsActive: true })
         {
-            return new ClientLinkActivationResult(ClientLinkActivationOutcome.AlreadyActive, null);
+            return await WidenActiveLinkAsync(db, userManager, link, professional, requestedScope, ct);
         }
 
         var professionalUser = await userManager.FindByIdAsync(professional.UserId.ToString());
@@ -94,5 +94,54 @@ public static class ClientLinkActivator
         db.ClientProfessionalLinks.Add(link);
 
         return new ClientLinkActivationResult(ClientLinkActivationOutcome.Created, link);
+    }
+
+    /// <summary>
+    /// Adds the plan types the invite covers beyond what the active link already grants. Never narrows,
+    /// and leaves the role, questionnaire and activation time alone.
+    /// </summary>
+    private static async Task<ClientLinkActivationResult> WidenActiveLinkAsync(
+        IApplicationDbContext db,
+        UserManager<ApplicationUser> userManager,
+        ClientProfessionalLink link,
+        ProfessionalProfile professional,
+        LinkCapabilityScope? requestedScope,
+        CancellationToken ct)
+    {
+        var professionalUser = await userManager.FindByIdAsync(professional.UserId.ToString());
+        var professionalRoles = professionalUser is not null
+            ? await userManager.GetRolesAsync(professionalUser)
+            : [];
+
+        var grantResolved = CoachRoleStatus.TryResolveLinkGrant(
+            requestedScope, professionalRoles, professional,
+            out var canViewNutritionPlans, out var canViewTrainingPlans);
+
+        // Only the part the link does not cover yet counts as new.
+        var addsNutrition = canViewNutritionPlans && !link.CanViewNutritionPlans;
+        var addsTraining = canViewTrainingPlans && !link.CanViewTrainingPlans;
+
+        if (!addsNutrition && !addsTraining)
+        {
+            return new ClientLinkActivationResult(ClientLinkActivationOutcome.AlreadyActive, null);
+        }
+
+        // A removed coach role may not add anything to the link.
+        if (!grantResolved)
+        {
+            return new ClientLinkActivationResult(ClientLinkActivationOutcome.CoachRoleRemoved, null);
+        }
+
+        if (await ProfessionSlotGuard.IsSlotTakenByAnotherProfessionalAsync(
+                db.ClientProfessionalLinks, link.ClientProfileId, professional.Id,
+                addsNutrition, addsTraining, ct))
+        {
+            return new ClientLinkActivationResult(ClientLinkActivationOutcome.SlotTaken, null);
+        }
+
+        link.CanViewNutritionPlans |= addsNutrition;
+        link.CanViewTrainingPlans |= addsTraining;
+
+        return new ClientLinkActivationResult(ClientLinkActivationOutcome.Extended, null);
     }
 }

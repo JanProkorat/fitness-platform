@@ -150,7 +150,10 @@ public class AcceptInvitationEndpoint(
         // True for a newly created or a reactivated link; false when the client was already linked.
         var linkStarted = activation.Started;
 
-        if (linkStarted && pendingInvite is not null)
+        // A widened link is a real accept too: the invite is consumed and the chat events follow.
+        var inviteAccepted = linkStarted || activation.Extended;
+
+        if (inviteAccepted && pendingInvite is not null)
         {
             pendingInvite.Status = PendingInviteStatus.Accepted;
         }
@@ -201,7 +204,11 @@ public class AcceptInvitationEndpoint(
                     timeProvider.GetUtcNow().UtcDateTime,
                     ct);
             }
+        }
 
+        // Chat events also follow a widened link; deduped by the invite's PublicId.
+        if (inviteAccepted)
+        {
             if (pendingInvite is not null)
             {
                 await conversationSeedService.AppendCooperationEventAsync(

@@ -8,6 +8,9 @@ namespace FitnessPlatform.Application.Domain.Services;
 /// <param name="Link">The created or reactivated link, otherwise null.</param>
 public readonly record struct ClientLinkActivationResult(ClientLinkActivationOutcome Outcome, ClientProfessionalLink? Link)
 {
+    /// <summary>True when an already-active link was widened, so the invite counts as accepted but brings no new terms.</summary>
+    public bool Extended => Outcome == ClientLinkActivationOutcome.Extended;
+
     /// <summary>True when the link was created or reactivated, so the invite's terms and events apply.</summary>
     public bool Started => Outcome is ClientLinkActivationOutcome.Created or ClientLinkActivationOutcome.Reactivated;
 }
