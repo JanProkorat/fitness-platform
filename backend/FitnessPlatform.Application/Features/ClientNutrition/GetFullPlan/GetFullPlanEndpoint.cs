@@ -171,7 +171,8 @@ public class GetFullPlanEndpoint(IMongoContext mongo, IApplicationDbContext db, 
         var eatenMealIds = await mongo.MealLogs
             .Find(Builders<MealLog>.Filter.And(
                 Builders<MealLog>.Filter.Eq(m => m.ClientId, clientId),
-                Builders<MealLog>.Filter.Eq(m => m.PlanId, plan.ExternalId)))
+                Builders<MealLog>.Filter.Eq(m => m.PlanId, plan.ExternalId),
+                Builders<MealLog>.Filter.Ne(m => m.EatenAt, null)))
             .Project(m => m.MealId)
             .ToListAsync(ct);
 
