@@ -31,6 +31,7 @@ public class CatalogSeedingFactory(SharedTestContainers sharedContainers) : WebA
 {
     private string _postgresConnectionString = string.Empty;
     private string _mongoDatabaseName = string.Empty;
+    private bool _catalogSeeded;
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -104,6 +105,31 @@ public class CatalogSeedingFactory(SharedTestContainers sharedContainers) : WebA
         await ApplicationDbContextSeed.SeedAsync(Services);
     }
 
+    /// <summary>
+    /// Wipes Postgres and Mongo and marks the shared catalog seed as gone.
+    /// </summary>
+    public async Task ResetAsync()
+    {
+        _catalogSeeded = false;
+        await Services.ResetPostgresAndMongoAsync();
+    }
+
+    /// <summary>
+    /// Makes sure the database holds exactly one catalog seed, seeding it only when a previous
+    /// fact wiped or replaced it. Read-only facts share that one seed.
+    /// </summary>
+    public async Task EnsureCatalogSeededAsync()
+    {
+        if (_catalogSeeded)
+        {
+            return;
+        }
+
+        await ResetAsync();
+        await MongoSeeder.SeedAsync(Services);
+        _catalogSeeded = true;
+    }
+
     // Skip base.DisposeAsync() — see QaSeedRunnerFactory / FitnessApiFactory for the
     // ObjectDisposedException rationale (FastEndpoints' process-global ServiceResolver). No
     // Testcontainer to dispose here anymore (#1104 Phase B); SharedTestContainers owns that.
@@ -114,7 +140,7 @@ public class CatalogSeedingFactory(SharedTestContainers sharedContainers) : WebA
 /// Defines a separate collection for catalog seeding tests so they run serially and don't
 /// contend with the shared Integration collection's Testcontainers. Boots
 /// <see cref="CatalogSeedingFactory"/> ONCE for the collection rather than per test — see
-/// <see cref="CatalogSeedingTests.InitializeAsync"/> for the per-test reset (#1104).
+/// <see cref="CatalogSeedingFactory.EnsureCatalogSeededAsync"/> for how facts share one seed (#1104).
 /// </summary>
 [CollectionDefinition("CatalogSeedingTests")]
 public class CatalogSeedingTestsCollection : ICollectionFixture<CatalogSeedingFactory>;
@@ -124,18 +150,14 @@ public class CatalogSeedingTestsCollection : ICollectionFixture<CatalogSeedingFa
 /// foods/recipes/exercises/workout templates loaded from the embedded JSON seed data.
 /// </summary>
 /// <remarks>
-/// Resets Postgres + Mongo to a pristine state before each fact — several facts assert
-/// exact document counts (e.g. "184 foods, no duplicates") that must not see a prior
-/// fact's seeded rows now that the factory is shared across the class instead of booted
-/// fresh per test (#1104).
+/// Read-only catalog facts share one seeded database (<see cref="CatalogSeedingFactory.EnsureCatalogSeededAsync"/>).
+/// Facts that assert exact counts after a re-seed, pre-insert legacy rows or test the reset helper
+/// itself wipe first with <see cref="CatalogSeedingFactory.ResetAsync"/>.
 /// </remarks>
 [Collection("CatalogSeedingTests")]
-public class CatalogSeedingTests(CatalogSeedingFactory factory) : IAsyncLifetime
+public class CatalogSeedingTests(CatalogSeedingFactory factory)
 {
     private readonly CatalogSeedingFactory _factory = factory;
-
-    public async ValueTask InitializeAsync() => await _factory.Services.ResetPostgresAndMongoAsync();
-    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
     /// <summary>
     /// The reset helper recreates the Mongo indexes it drops (#1129).
@@ -145,10 +167,12 @@ public class CatalogSeedingTests(CatalogSeedingFactory factory) : IAsyncLifetime
     {
         var ct = TestContext.Current.CancellationToken;
 
+        await _factory.ResetAsync();
+
         using var scope = _factory.Services.CreateScope();
         var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
 
-        var indexes = await (await mongo.FoodTags.Indexes.ListAsync(ct)).ToListAsync(ct);
+        var indexes =await (await mongo.FoodTags.Indexes.ListAsync(ct)).ToListAsync(ct);
 
         var ownerNameIndex = indexes.SingleOrDefault(
             i => i["name"].AsString == "idx_foodtag_ownerUserId_normalizedName");
@@ -167,6 +191,7 @@ public class CatalogSeedingTests(CatalogSeedingFactory factory) : IAsyncLifetime
     {
         var ct = TestContext.Current.CancellationToken;
 
+        await _factory.ResetAsync();
         await MongoSeeder.SeedAsync(_factory.Services);
         await MongoSeeder.SeedAsync(_factory.Services);
 
@@ -233,7 +258,7 @@ public class CatalogSeedingTests(CatalogSeedingFactory factory) : IAsyncLifetime
     {
         var ct = TestContext.Current.CancellationToken;
 
-        await MongoSeeder.SeedAsync(_factory.Services);
+        await _factory.EnsureCatalogSeededAsync();
 
         using var scope = _factory.Services.CreateScope();
         var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
@@ -270,7 +295,7 @@ public class CatalogSeedingTests(CatalogSeedingFactory factory) : IAsyncLifetime
     {
         var ct = TestContext.Current.CancellationToken;
 
-        await MongoSeeder.SeedAsync(_factory.Services);
+        await _factory.EnsureCatalogSeededAsync();
 
         using var scope = _factory.Services.CreateScope();
         var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
@@ -319,7 +344,7 @@ public class CatalogSeedingTests(CatalogSeedingFactory factory) : IAsyncLifetime
     {
         var ct = TestContext.Current.CancellationToken;
 
-        await MongoSeeder.SeedAsync(_factory.Services);
+        await _factory.EnsureCatalogSeededAsync();
 
         using var scope = _factory.Services.CreateScope();
         var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
@@ -348,7 +373,7 @@ public class CatalogSeedingTests(CatalogSeedingFactory factory) : IAsyncLifetime
     {
         var ct = TestContext.Current.CancellationToken;
 
-        await MongoSeeder.SeedAsync(_factory.Services);
+        await _factory.EnsureCatalogSeededAsync();
 
         using var scope = _factory.Services.CreateScope();
         var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
@@ -374,7 +399,7 @@ public class CatalogSeedingTests(CatalogSeedingFactory factory) : IAsyncLifetime
     {
         var ct = TestContext.Current.CancellationToken;
 
-        await MongoSeeder.SeedAsync(_factory.Services);
+        await _factory.EnsureCatalogSeededAsync();
 
         using var scope = _factory.Services.CreateScope();
         var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
@@ -427,6 +452,8 @@ public class CatalogSeedingTests(CatalogSeedingFactory factory) : IAsyncLifetime
     public async Task SeedAsync_LegacyNamedDocsWithRandomExternalIds_RecipeAndTemplateRefsBindToPreExistingDoc()
     {
         var ct = TestContext.Current.CancellationToken;
+
+        await _factory.ResetAsync();
 
         using var scope = _factory.Services.CreateScope();
         var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
