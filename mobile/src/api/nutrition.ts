@@ -67,9 +67,29 @@ export function fetchRecipe(recipeId: string, signal?: AbortSignal): Promise<Get
   return api.getRecipeDetailEndpoint(recipeId, signal);
 }
 
-/** The log entry of one meal, when it has any. */
-export const findMealLog = (log: GetTodayLogResponse | undefined, mealId: string): TodayMealLogDto | undefined =>
-  (log?.mealsEaten ?? []).find((entry) => entry.mealId === mealId);
+/**
+ * The log of one meal as a single entry. The server returns one row per log record, so a meal can appear
+ * twice (a photo-only row and an eaten row): eaten if any row is, photos are the union by blob URL.
+ */
+export function findMealLog(log: GetTodayLogResponse | undefined, mealId: string): TodayMealLogDto | undefined {
+  const rows = (log?.mealsEaten ?? []).filter((entry) => entry.mealId === mealId);
+  const [first] = rows;
+  if (!first) return undefined;
+
+  const photos = new Map<string, MealPhotoDto>();
+  for (const row of rows) {
+    for (const photo of row.photos ?? []) {
+      if (photo.blobUrl && !photos.has(photo.blobUrl)) photos.set(photo.blobUrl, photo);
+    }
+  }
+  const eatenRow = rows.find((row) => row.eatenAt);
+  return {
+    ...(eatenRow ?? first),
+    eatenAt: eatenRow?.eatenAt,
+    note: rows.find((row) => row.note)?.note,
+    photos: [...photos.values()],
+  };
+}
 
 /** A photo the screen can show: both the write identity and the signed read URL are present. */
 export type MealPhoto = MealPhotoDto & { blobUrl: string; displayUrl: string };
@@ -93,7 +113,7 @@ export function withMealEaten(
   eaten: boolean,
 ): GetTodayLogResponse {
   const entries = log?.mealsEaten ?? [];
-  const existing = entries.find((entry) => entry.mealId === meal.mealId);
+  const existing = findMealLog(log, meal.mealId);
   const others = entries.filter((entry) => entry.mealId !== meal.mealId);
   const next: GetTodayLogResponse = { ...log, mealsEaten: others };
   if (!eaten) {
