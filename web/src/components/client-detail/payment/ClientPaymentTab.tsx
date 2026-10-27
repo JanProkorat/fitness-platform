@@ -25,7 +25,7 @@ import RequestPaymentDrawer from '@/components/client-detail/payment/RequestPaym
 import RequestsRemindersCard from '@/components/client-detail/payment/RequestsRemindersCard';
 import WaiveDialog from '@/components/client-detail/payment/WaiveDialog';
 import { isNotEntitled } from '@/components/client-detail/payment/paymentErrors';
-import { requestablePayments } from '@/components/client-detail/payment/paymentModel';
+import { requestablePayments, splitByCollaboration } from '@/components/client-detail/payment/paymentModel';
 
 const SKELETON_ROW_COUNT = 4;
 const DEFAULT_DUE_DAYS = 7;
@@ -94,6 +94,7 @@ export default function ClientPaymentTab({ clientId, dashboard }: Props) {
   const ended = summary.collaborationEnded === true;
   const clientName = dashboard?.firstName?.trim() || summary.clientName?.trim() || fallbackName;
   const rows = rowsQuery.data ?? [];
+  const { current: currentRows, earlier: earlierRows } = splitByCollaboration(rows);
   const requestable = requestablePayments(rows);
   const canRequest = summary.bankAccountSet === true;
   const defaultCurrency = summary.terms?.currency ?? settingsQuery.data?.profileCurrency ?? PaymentCurrency.CZK;
@@ -172,9 +173,9 @@ export default function ClientPaymentTab({ clientId, dashboard }: Props) {
               <p className="px-4 py-10 text-center text-body text-muted-foreground">
                 {t('payments.client.list.empty', { name: clientName })}
               </p>
-            ) : (
+            ) : currentRows.length === 0 ? null : (
               <PaymentsTable
-                rows={rows}
+                rows={currentRows}
                 canRequest={canRequest}
                 onMarkPaid={setMarkPaidRow}
                 onRequest={(row) => openRequest(row.paymentId ?? null)}
@@ -185,6 +186,26 @@ export default function ClientPaymentTab({ clientId, dashboard }: Props) {
               {t('payments.client.list.footnote', { name: clientName })}
             </p>
           </div>
+
+          {earlierRows.length > 0 && (
+            <section data-testid="earlier-collaboration-payments" className="flex flex-col gap-2.5">
+              <div className="flex flex-col gap-1">
+                <h3 className="text-copy font-semibold text-ink">{t('payments.client.list.earlierTitle')}</h3>
+                <p className="text-meta text-muted-foreground">
+                  {t('payments.client.list.earlierNote', { name: clientName })}
+                </p>
+              </div>
+              <div className="overflow-hidden rounded-2xl border border-line bg-card shadow-panel">
+                <PaymentsTable
+                  rows={earlierRows}
+                  canRequest={canRequest}
+                  onMarkPaid={setMarkPaidRow}
+                  onRequest={(row) => openRequest(row.paymentId ?? null)}
+                  onWaive={setWaiveRow}
+                />
+              </div>
+            </section>
+          )}
         </div>
 
         <div className="flex min-w-0 flex-col gap-3.5">

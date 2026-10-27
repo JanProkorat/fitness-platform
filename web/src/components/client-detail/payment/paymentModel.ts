@@ -58,6 +58,17 @@ export function requestablePayments(rows: readonly ClientPaymentRowDto[]): Clien
   return rows.filter(isOpenPayment).sort((a, b) => (a.dueDate ?? '').localeCompare(b.dueDate ?? ''));
 }
 
+/** Splits the rows into the current collaboration's and those of an earlier, ended one. */
+export function splitByCollaboration(rows: readonly ClientPaymentRowDto[]): {
+  current: ClientPaymentRowDto[];
+  earlier: ClientPaymentRowDto[];
+} {
+  return {
+    current: rows.filter((row) => row.isEarlierCollaboration !== true),
+    earlier: rows.filter((row) => row.isEarlierCollaboration === true),
+  };
+}
+
 /** What a discount takes off a package price, as the server would compute it. */
 export function previewDiscountAmount(
   discount: CoachDiscountDto | undefined,
