@@ -115,6 +115,7 @@ export function useCheckCollaborationEnded(clientId: string) {
         queryKey: clientPaymentKeys.summary(clientId),
         queryFn: () => getClientPaymentSummary(clientId),
         staleTime: 0,
+        retry: retryUnlessDenied,
       });
       if (summary.collaborationEnded !== true) {
         return false;
