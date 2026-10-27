@@ -1,7 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import Animated, { LinearTransition, ReduceMotion } from 'react-native-reanimated';
 
 import { Text } from '@/components/Text';
 import { useTheme } from '@/theme';
@@ -10,8 +9,6 @@ import type { Theme } from '@/theme';
 import type { CoachRole, OfferedInvite } from './collaborationRoles';
 import { RoleInviteCard } from './RoleInviteCard';
 import { RoleRow } from './RoleRow';
-
-const reflow = LinearTransition.reduceMotion(ReduceMotion.System);
 
 type RoleSlotsProps = {
   /** Roles no coach covers yet. */
@@ -39,7 +36,7 @@ export function RoleSlots({ missing, offers, mode, showHeading = false }: RoleSl
     router.push(role ? { pathname: '/coach-search', params: { role } } : '/coach-search');
 
   return (
-    <Animated.View layout={reflow} style={styles.section}>
+    <View style={styles.section}>
       {showHeading ? (
         <View style={styles.heading}>
           <Text variant="overline" color="muted" style={styles.overline}>
@@ -50,7 +47,7 @@ export function RoleSlots({ missing, offers, mode, showHeading = false }: RoleSl
           </Text>
         </View>
       ) : null}
-      <Animated.View layout={reflow} style={styles.cards}>
+      <View style={styles.cards}>
         {offers.map(({ invite, roles }) => {
           const id = invite.id ?? '';
           return (
@@ -64,12 +61,10 @@ export function RoleSlots({ missing, offers, mode, showHeading = false }: RoleSl
           );
         })}
         {rows.map((role) => (
-          <Animated.View key={role} layout={reflow}>
-            <RoleRow role={role} mode={mode} onPress={() => search(role)} />
-          </Animated.View>
+          <RoleRow key={role} role={role} mode={mode} onPress={() => search(role)} />
         ))}
-      </Animated.View>
-    </Animated.View>
+      </View>
+    </View>
   );
 }
 
