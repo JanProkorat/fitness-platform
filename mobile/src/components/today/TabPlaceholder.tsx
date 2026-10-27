@@ -21,6 +21,7 @@ export function TabPlaceholder({ title, body, children }: TabPlaceholderProps) {
   return (
     <Screen
       scroll
+      collapseTabBar
       topGap={theme.spacing.safeAreaGap}
       bottomInset={barClearance}
       contentStyle={styles.content}

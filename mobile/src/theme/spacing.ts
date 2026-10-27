@@ -41,6 +41,7 @@ export const sizes = {
   tabItem: 48,
   tabIcon: 20,
   tabBarBottom: 28,
+  tabPill: 58,
   tabBarPadding: 5,
   tabItemGap: 2,
   border: 1,

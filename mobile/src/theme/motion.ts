@@ -49,6 +49,12 @@ export const tabSwitchMotion = {
   duration: 300,
 } as const;
 
+/** Tab bar collapsing to a pill: ms for the morph, and px of scrolling in one direction before it flips. */
+export const tabBarCollapseMotion = {
+  duration: 240,
+  scrollThreshold: 12,
+} as const;
+
 /** Chat rows that arrive after the screen opened: spring entrance and list reflow. */
 export const chatMotion = {
   spring: { damping: 20, stiffness: 220, mass: 0.8 },

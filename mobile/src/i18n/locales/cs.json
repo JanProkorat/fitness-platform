@@ -137,7 +137,8 @@
     "today": "Dnes",
     "training": "Trénink",
     "nutrition": "Výživa",
-    "messages": "Zprávy"
+    "messages": "Zprávy",
+    "showTabs": "Zobrazit záložky, aktuální: {{tab}}"
   },
   "today": {
     "greeting": "Vítejte, {{name}}",
@@ -150,10 +151,6 @@
     "profile": "Profil",
     "invitesTitle": "Pozvánky",
     "dateTitle": "Dnes",
-    "subtitle": {
-      "start": "Pojďme začít",
-      "invite": "Máte pozvánku"
-    },
     "findCoach": {
       "title": "Najděte si poradce",
       "subtitle": "Oni vám sestaví plán, vy ho tady plníte.",

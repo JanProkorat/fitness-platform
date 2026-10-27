@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { SymbolView } from 'expo-symbols';
 import type { SFSymbol } from 'expo-symbols';
 import { Tabs } from 'expo-router/js-tabs';
@@ -5,6 +6,7 @@ import type { BottomTabBarProps } from 'expo-router/js-tabs';
 import { useTranslation } from 'react-i18next';
 
 import { GlassTabBar } from '@/components/GlassTabBar';
+import { TabBarCollapseProvider, useTabBarCollapse } from '@/components/TabBarCollapse';
 import { useUnreadMessageCount } from '@/hooks/useConversations';
 import { useTheme } from '@/theme';
 
@@ -24,12 +26,17 @@ const TAB_LABEL_KEYS: Record<TabKey, string> = {
   messages: 'tabs.messages',
 };
 
+const noop = () => {};
+
 const isTabKey = (name: string): name is TabKey => name in TAB_SYMBOLS;
 
 function AppTabBar({ state, navigation }: BottomTabBarProps) {
   const { t } = useTranslation();
   const theme = useTheme();
   const unreadMessages = useUnreadMessageCount();
+  const collapse = useTabBarCollapse();
+  const collapsed = collapse?.collapsed ?? false;
+  const setCollapsed = collapse?.setCollapsed ?? noop;
 
   const tabs = state.routes.flatMap((route, index) => {
     if (!isTabKey(route.name)) {
@@ -60,10 +67,32 @@ function AppTabBar({ state, navigation }: BottomTabBarProps) {
     ];
   });
 
-  return <GlassTabBar tabs={tabs} />;
+  const activeLabel = tabs.find((tab) => tab.active)?.label ?? '';
+
+  // A newly selected tab never opens with the bar collapsed.
+  useEffect(() => {
+    setCollapsed(false);
+  }, [state.index, setCollapsed]);
+
+  return (
+    <GlassTabBar
+      tabs={tabs}
+      collapsed={collapsed}
+      onExpand={() => setCollapsed(false)}
+      expandLabel={t('tabs.showTabs', { tab: activeLabel })}
+    />
+  );
 }
 
 export default function TabsLayout() {
+  return (
+    <TabBarCollapseProvider>
+      <TabsNavigator />
+    </TabBarCollapseProvider>
+  );
+}
+
+function TabsNavigator() {
   return (
     <Tabs
       screenOptions={{
