@@ -96,9 +96,9 @@ const makeStyles = (theme: Theme) =>
       justifyContent: 'center',
     },
     pressed: {
-      opacity: 0.85,
+      opacity: theme.opacity.pressed,
     },
     disabled: {
-      opacity: 0.4,
+      opacity: theme.opacity.disabled,
     },
   });

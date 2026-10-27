@@ -89,6 +89,6 @@ const makeStyles = (theme: Theme) =>
       backgroundColor: theme.colors.accent,
     },
     sendDisabled: {
-      opacity: 0.4,
+      opacity: theme.opacity.disabled,
     },
   });
