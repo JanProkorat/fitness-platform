@@ -137,7 +137,8 @@
     "today": "Heute",
     "training": "Training",
     "nutrition": "Ernährung",
-    "messages": "Nachrichten"
+    "messages": "Nachrichten",
+    "showTabs": "Tabs anzeigen, aktuell: {{tab}}"
   },
   "today": {
     "greeting": "Willkommen, {{name}}",
@@ -150,10 +151,6 @@
     "profile": "Profil",
     "invitesTitle": "Einladungen",
     "dateTitle": "Heute",
-    "subtitle": {
-      "start": "Legen wir los",
-      "invite": "Sie haben eine Einladung"
-    },
     "findCoach": {
       "title": "Coach finden",
       "subtitle": "Ihr Coach erstellt Ihren Plan, Sie folgen ihm hier.",

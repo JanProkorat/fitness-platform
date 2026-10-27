@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { RefreshControl, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Animated, { LinearTransition, ReduceMotion } from 'react-native-reanimated';
 
 import { Screen } from '@/components/Screen';
 import { TabFade } from '@/components/TabFade';
@@ -21,7 +21,6 @@ import { PaymentDueCard } from '@/components/today/PaymentDueCard';
 import { RoleSlots } from '@/components/today/RoleSlots';
 import { StartOnYourOwn } from '@/components/today/StartOnYourOwn';
 import { TodayHeader } from '@/components/today/TodayHeader';
-import { todayDateLabel } from '@/components/today/todayFormat';
 import { isActivePlan, planKind } from '@/api/plans';
 import { useClientPlans } from '@/hooks/useClientPlans';
 import { useCollaborations } from '@/hooks/useCollaborations';
@@ -31,7 +30,9 @@ import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
 
-const unique = <T,>(values: readonly T[]): T[] => Array.from(new Set(values));
+const reflow = LinearTransition.reduceMotion(ReduceMotion.System);
+
+const unique =<T,>(values: readonly T[]): T[] => Array.from(new Set(values));
 
 export default function TodayScreen() {
   return (
@@ -42,14 +43,13 @@ export default function TodayScreen() {
 }
 
 function TodayContent() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const theme = useTheme();
   const styles = makeStyles(theme);
   const { data: profile } = useProfile();
   const collaborations = useCollaborations();
   const invites = useInvites();
   const plans = useClientPlans();
-  const insets = useSafeAreaInsets();
   const { refreshing, onRefresh } = usePullToRefresh();
   const barClearance = theme.sizes.tabBar + theme.sizes.tabBarBottom + theme.spacing.xxl;
 
@@ -59,9 +59,11 @@ function TodayContent() {
 
   const name = profile.firstName?.trim();
   const greeting = name ? t('today.greeting', { name }) : t('today.greetingAnonymous');
-  const screen = (content: ReactNode, tight = false) => (
+  const screen = (header: ReactNode, content: ReactNode, tight = false) => (
     <Screen
       scroll
+      collapseTabBar
+      header={header}
       topGap={theme.spacing.safeAreaGap}
       bottomInset={barClearance}
       contentStyle={tight ? styles.contentTight : styles.content}
@@ -71,7 +73,6 @@ function TodayContent() {
           onRefresh={onRefresh}
           tintColor={theme.colors.muted}
           colors={[theme.colors.muted]}
-          progressViewOffset={insets.top}
         />
       }
     >
@@ -86,7 +87,7 @@ function TodayContent() {
     const waitingForData =
       collaborations.isPending || invites.isPending || (covering.length > 0 && plans.isPending);
     if (waitingForData) {
-      return screen(<TodayHeader title={greeting} />);
+      return screen(<TodayHeader title={greeting} />, null);
     }
 
     const coveredRoles = unique(covering.flatMap((entry) => entry.roles));
@@ -95,18 +96,19 @@ function TodayContent() {
 
     if (covering.length === 0) {
       return screen(
+        <TodayHeader title={greeting} />,
         <>
-          <TodayHeader
-            title={greeting}
-            subtitle={t(offers.length > 0 ? 'today.subtitle.invite' : 'today.subtitle.start')}
-          />
           {offers.length > 0 ? (
             <RoleSlots missing={missing} offers={offers} mode="find" showHeading />
           ) : (
             <FindCoachSection roles={missing} />
           )}
-          <HowItWorks />
-          <StartOnYourOwn />
+          <Animated.View layout={reflow}>
+            <HowItWorks />
+          </Animated.View>
+          <Animated.View layout={reflow}>
+            <StartOnYourOwn />
+          </Animated.View>
         </>,
       );
     }
@@ -125,8 +127,8 @@ function TodayContent() {
       if (progress.length > 0) {
         const hasPublished = coveredRoles.some((role) => published.includes(role));
         return screen(
+          <TodayHeader title={t('today.dateTitle')} />,
           <>
-            <TodayHeader title={t('today.dateTitle')} subtitle={todayDateLabel(i18n.language)} />
             {progress.map((entry) => (
               <CoachProgressCard
                 key={entry.collaboration.publicId ?? entry.collaboration.professionalPublicId}
@@ -141,8 +143,14 @@ function TodayContent() {
                 {t('today.linkedBody')}
               </Text>
             ) : null}
-            {missing.length > 0 ? <RoleSlots missing={missing} offers={offers} mode="add" /> : null}
-            <StartOnYourOwn showHeading={false} />
+            {missing.length > 0 ? (
+              <Animated.View layout={reflow}>
+                <RoleSlots missing={missing} offers={offers} mode="add" />
+              </Animated.View>
+            ) : null}
+            <Animated.View layout={reflow}>
+              <StartOnYourOwn showHeading={false} />
+            </Animated.View>
           </>,
           true,
         );
@@ -160,8 +168,8 @@ function TodayContent() {
       : t('today.linkedGreetingAnonymous');
 
   return screen(
+    <TodayHeader title={title} />,
     <>
-      <TodayHeader title={title} />
       {missingRoles.length > 0 ? (
         <FindCoachSection roles={missingRoles} />
       ) : (

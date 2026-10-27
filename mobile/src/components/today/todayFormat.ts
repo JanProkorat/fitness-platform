@@ -3,11 +3,6 @@ import type { TFunction } from 'i18next';
 const DAY_MS = 24 * 60 * 60 * 1000;
 const WEEK_DAYS = 7;
 
-/** "Thursday, 1 October" in the app language. */
-export function todayDateLabel(language: string, now: Date = new Date()): string {
-  return now.toLocaleDateString(language, { weekday: 'long', day: 'numeric', month: 'long' });
-}
-
 /** "since Monday" within the last week, "since 3 Oct" for older links; empty when the date is unusable. */
 export function sinceLabel(
   t: TFunction,
