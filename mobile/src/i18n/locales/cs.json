@@ -1117,6 +1117,109 @@
       }
     }
   },
+  "nutritionPlan": {
+    "title": "Nutriční plán",
+    "retry": "Zkusit znovu",
+    "back": "Zpět",
+    "empty": {
+      "title": "Zatím žádný nutriční plán",
+      "body": "Váš nutriční poradce pro vás zatím nezveřejnil plán."
+    },
+    "error": {
+      "title": "Plán se nepodařilo načíst",
+      "body": "Zkontrolujte připojení a zkuste to znovu."
+    },
+    "plan": {
+      "week": "Týden {{week}}",
+      "weekOf": "Týden {{week}} z {{total}}",
+      "weeksTotal": "Týdnů: {{total}}",
+      "weeksRange": "Týdny {{from}} – {{to}}",
+      "thisWeek": "Týden {{week}} · tento týden",
+      "ofMeals": "{{done}} z {{total}}",
+      "ofTotal": "{{done}} / {{total}}",
+      "loggedShare": "zapsáno {{value}} %",
+      "percent": "{{value}} %",
+      "published": "{{range}} · zveřejněno",
+      "preparing": "{{name}} ho připravuje",
+      "preparingGeneric": "Váš nutriční poradce ho připravuje",
+      "dailyTarget": "Denní cíl",
+      "mealsLogged": "Zapsaná jídla",
+      "mealsPerDay": "Jídel denně",
+      "weeks": "Týdny",
+      "weeksHint": "Klepnutím týden otevřete",
+      "togglePast": "Zobrazit nebo skrýt minulé týdny"
+    },
+    "week": {
+      "title": "Týden {{week}} z {{total}}",
+      "previous": "Předchozí týden",
+      "next": "Další týden",
+      "todayLabel": "{{day}}, dnes",
+      "meals": "Jídla",
+      "logged": "zapsáno {{done}} z {{total}}",
+      "mealsOf": "{{done}} z {{total}} jídel",
+      "noMeals": "Na tento den nejsou naplánovaná žádná jídla.",
+      "logError": "Zapsaná jídla se nepodařilo načíst.",
+      "notFound": {
+        "title": "Týden není k dispozici",
+        "body": "Tento týden není součástí vašeho plánu nebo ještě nebyl zveřejněn."
+      }
+    },
+    "meal": {
+      "kcal": "{{value}} kcal",
+      "more_one": "a 1 další položka",
+      "more_few": "a {{count}} další položky",
+      "more_many": "a {{count}} další položky",
+      "more_other": "a {{count}} dalších položek",
+      "toggle": "Zobrazit nebo skrýt: {{meal}}"
+    },
+    "amount": {
+      "portions_one": "{{value}} porce",
+      "portions_few": "{{value}} porce",
+      "portions_many": "{{value}} porce",
+      "portions_other": "{{value}} porcí",
+      "grams": "{{value}} g"
+    },
+    "status": {
+      "eaten": "{{meal}}: snězeno",
+      "pending": "{{meal}}: nesnězeno",
+      "missed": "{{meal}}: nezapsáno"
+    },
+    "photo": {
+      "add": "Přidat fotku k jídlu {{meal}}",
+      "open": "Otevřít fotku {{index}} z {{count}} ({{meal}})",
+      "title": "Přidat fotku jídla",
+      "camera": "Vyfotit",
+      "library": "Vybrat z knihovny",
+      "cancel": "Zrušit",
+      "permission": {
+        "title": "Přístup k fotoaparátu je vypnutý",
+        "body": "Povolte přístup k fotoaparátu v Nastavení, abyste mohli jídlo vyfotit.",
+        "openSettings": "Otevřít Nastavení"
+      },
+      "errors": {
+        "title": "Fotku se nepodařilo přidat",
+        "tooLarge": "Fotka je příliš velká. Vyberte fotku do 5 MB.",
+        "unsupportedType": "Tento formát fotky není podporován. Použijte JPEG, PNG, WebP nebo HEIC.",
+        "upload": "Nahrání se nezdařilo. Zkontrolujte připojení a zkuste to znovu.",
+        "future": "Fotku nelze přidat k dni, který ještě nenastal."
+      }
+    },
+    "viewer": {
+      "position": "Fotka {{index}} z {{count}}",
+      "imageLabel": "{{meal}}, fotka {{index}} z {{count}}",
+      "close": "Zavřít",
+      "previous": "Předchozí fotka",
+      "next": "Další fotka"
+    },
+    "summary": {
+      "ringOf": "{{value}} z {{target}} kilokalorií",
+      "ringValue": "{{value}} kilokalorií",
+      "ofKcal": "z {{target}} kcal",
+      "kcal": "kcal",
+      "ofGrams": " / {{target}} g",
+      "grams": " g"
+    }
+  },
   "nutritionRecipe": {
     "notFound": {
       "title": "Recept není dostupný",

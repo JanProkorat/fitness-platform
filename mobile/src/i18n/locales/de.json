@@ -1093,6 +1093,105 @@
       }
     }
   },
+  "nutritionPlan": {
+    "title": "Ernährungsplan",
+    "retry": "Erneut versuchen",
+    "back": "Zurück",
+    "empty": {
+      "title": "Noch kein Ernährungsplan",
+      "body": "Ihr Ernährungsberater hat noch keinen Plan für Sie veröffentlicht."
+    },
+    "error": {
+      "title": "Der Plan konnte nicht geladen werden",
+      "body": "Prüfen Sie Ihre Verbindung und versuchen Sie es erneut."
+    },
+    "plan": {
+      "week": "Woche {{week}}",
+      "weekOf": "Woche {{week}} von {{total}}",
+      "weeksTotal": "{{total}} Wochen",
+      "weeksRange": "Wochen {{from}} – {{to}}",
+      "thisWeek": "Woche {{week}} · diese Woche",
+      "ofMeals": "{{done}} von {{total}}",
+      "ofTotal": "{{done}} / {{total}}",
+      "loggedShare": "{{value}} % erfasst",
+      "percent": "{{value}} %",
+      "published": "{{range}} · veröffentlicht",
+      "preparing": "{{name}} bereitet sie vor",
+      "preparingGeneric": "Ihr Ernährungsberater bereitet sie vor",
+      "dailyTarget": "Tagesziel",
+      "mealsLogged": "Erfasste Mahlzeiten",
+      "mealsPerDay": "Mahlzeiten / Tag",
+      "weeks": "Wochen",
+      "weeksHint": "Tippen Sie auf eine Woche, um sie anzusehen",
+      "togglePast": "Vergangene Wochen ein- oder ausblenden"
+    },
+    "week": {
+      "title": "Woche {{week}} von {{total}}",
+      "previous": "Vorherige Woche",
+      "next": "Nächste Woche",
+      "todayLabel": "{{day}}, heute",
+      "meals": "Mahlzeiten",
+      "logged": "{{done}} von {{total}} erfasst",
+      "mealsOf": "{{done}} von {{total}} Mahlzeiten",
+      "noMeals": "Für diesen Tag sind keine Mahlzeiten geplant.",
+      "logError": "Die erfassten Mahlzeiten konnten nicht geladen werden.",
+      "notFound": {
+        "title": "Woche nicht verfügbar",
+        "body": "Diese Woche gehört nicht zu Ihrem Plan oder wurde noch nicht veröffentlicht."
+      }
+    },
+    "meal": {
+      "kcal": "{{value}} kcal",
+      "more_one": "und 1 weiteres Element",
+      "more_other": "und {{count}} weitere Elemente",
+      "toggle": "{{meal}} ein- oder ausblenden"
+    },
+    "amount": {
+      "portions_one": "{{value}} Portion",
+      "portions_other": "{{value}} Portionen",
+      "grams": "{{value}} g"
+    },
+    "status": {
+      "eaten": "{{meal}}: gegessen",
+      "pending": "{{meal}}: nicht gegessen",
+      "missed": "{{meal}}: nicht erfasst"
+    },
+    "photo": {
+      "add": "Foto zu {{meal}} hinzufügen",
+      "open": "{{meal}}, Foto {{index}} von {{count}} öffnen",
+      "title": "Mahlzeitenfoto hinzufügen",
+      "camera": "Foto aufnehmen",
+      "library": "Aus der Mediathek wählen",
+      "cancel": "Abbrechen",
+      "permission": {
+        "title": "Kamerazugriff ist deaktiviert",
+        "body": "Erlauben Sie den Kamerazugriff in den Einstellungen, um Ihre Mahlzeit zu fotografieren.",
+        "openSettings": "Einstellungen öffnen"
+      },
+      "errors": {
+        "title": "Das Foto wurde nicht hinzugefügt",
+        "tooLarge": "Das Foto ist zu groß. Wählen Sie eines unter 5 MB.",
+        "unsupportedType": "Dieses Fotoformat wird nicht unterstützt. Verwenden Sie JPEG, PNG, WebP oder HEIC.",
+        "upload": "Der Upload ist fehlgeschlagen. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
+        "future": "Zu einem Tag, der noch nicht gekommen ist, können Sie kein Foto hinzufügen."
+      }
+    },
+    "viewer": {
+      "position": "Foto {{index}} von {{count}}",
+      "imageLabel": "{{meal}}, Foto {{index}} von {{count}}",
+      "close": "Schließen",
+      "previous": "Vorheriges Foto",
+      "next": "Nächstes Foto"
+    },
+    "summary": {
+      "ringOf": "{{value}} von {{target}} Kilokalorien",
+      "ringValue": "{{value}} Kilokalorien",
+      "ofKcal": "von {{target}} kcal",
+      "kcal": "kcal",
+      "ofGrams": " / {{target}} g",
+      "grams": " g"
+    }
+  },
   "nutritionRecipe": {
     "notFound": {
       "title": "Rezept nicht verfügbar",
