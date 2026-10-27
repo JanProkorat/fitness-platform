@@ -133,6 +133,22 @@ public class MealLogPastDayIntegrationTests(FitnessApiFactory factory)
             .ToListAsync(TestContext.Current.CancellationToken);
     }
 
+    /// <summary>
+    /// Creates a client whose time zone is explicitly UTC, so the UTC-based "today" used by these
+    /// tests equals the client-local today the endpoints resolve, at any hour of the day.
+    /// </summary>
+    private async Task<Actor> CreateClientAsync()
+    {
+        var client = await TestActors.Client(factory).CreateAsync(TestContext.Current.CancellationToken);
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        await db.Users
+            .Where(u => u.Id == client.UserId)
+            .ExecuteUpdateAsync(s => s.SetProperty(u => u.TimeZone, "UTC"), TestContext.Current.CancellationToken);
+        return client;
+    }
+
     private async Task<TimeZoneInfo> LoadTimeZoneAsync(Guid userId)
     {
         using var scope = factory.Services.CreateScope();
@@ -170,7 +186,7 @@ public class MealLogPastDayIntegrationTests(FitnessApiFactory factory)
     [Fact]
     public async Task SavePhotos_PastDate_KeysRowToThatDay_NeverMarksEaten_AndShowsInWeek()
     {
-        var client = await TestActors.Client(factory).CreateAsync();
+        var client = await CreateClientAsync();
         var (plan, mealId, _) = await SeedPlanAsync(client.UserId);
         var pastDate = PastNonMonday;
 
@@ -199,7 +215,7 @@ public class MealLogPastDayIntegrationTests(FitnessApiFactory factory)
     [Fact]
     public async Task SavePhotos_DateOmitted_UsesToday_AndKeepsTakenAtNow()
     {
-        var client = await TestActors.Client(factory).CreateAsync();
+        var client = await CreateClientAsync();
         var (_, mealId, _) = await SeedPlanAsync(client.UserId);
 
         var response = await SavePhotosAsync(client, mealId, null, PhotoA);
@@ -214,7 +230,7 @@ public class MealLogPastDayIntegrationTests(FitnessApiFactory factory)
     [Fact]
     public async Task SavePhotos_PastDateOnEatenMeal_KeepsEatenAtAndReplacesPhotosWithoutDuplicateRow()
     {
-        var client = await TestActors.Client(factory).CreateAsync();
+        var client = await CreateClientAsync();
         var (plan, mealId, _) = await SeedPlanAsync(client.UserId);
         var pastDate = PastNonMonday;
         var seeded = await SeedLogAsync(client.UserId, plan.ExternalId, mealId, pastDate, eaten: true, PhotoA);
@@ -231,7 +247,7 @@ public class MealLogPastDayIntegrationTests(FitnessApiFactory factory)
     [Fact]
     public async Task SavePhotos_FutureDate_Returns400WithErrorCode_AndWritesNothing()
     {
-        var client = await TestActors.Client(factory).CreateAsync();
+        var client = await CreateClientAsync();
         var (_, mealId, _) = await SeedPlanAsync(client.UserId);
 
         var response = await SavePhotosAsync(client, mealId, Today.AddDays(1), PhotoA);
@@ -244,7 +260,7 @@ public class MealLogPastDayIntegrationTests(FitnessApiFactory factory)
     [Fact]
     public async Task SavePhotos_InvalidDate_Returns400()
     {
-        var client = await TestActors.Client(factory).CreateAsync();
+        var client = await CreateClientAsync();
         var (_, mealId, _) = await SeedPlanAsync(client.UserId);
 
         var response = await client.Http.PostAsJsonAsync(
@@ -258,7 +274,7 @@ public class MealLogPastDayIntegrationTests(FitnessApiFactory factory)
     [Fact]
     public async Task SavePhotos_DateBeforePlanStart_Returns404()
     {
-        var client = await TestActors.Client(factory).CreateAsync();
+        var client = await CreateClientAsync();
         var (_, mealId, _) = await SeedPlanAsync(client.UserId);
 
         var response = await SavePhotosAsync(client, mealId, PlanStart.AddDays(-1), PhotoA);
@@ -270,7 +286,7 @@ public class MealLogPastDayIntegrationTests(FitnessApiFactory factory)
     [Fact]
     public async Task SavePhotos_CompletedPlan_Returns404()
     {
-        var client = await TestActors.Client(factory).CreateAsync();
+        var client = await CreateClientAsync();
         var (_, mealId, _) = await SeedPlanAsync(client.UserId, NutritionPlanStatus.Completed);
 
         var response = await SavePhotosAsync(client, mealId, PastNonMonday, PhotoA);
@@ -281,7 +297,7 @@ public class MealLogPastDayIntegrationTests(FitnessApiFactory factory)
     [Fact]
     public async Task SavePhotos_MealNotOnThatDaysPlanDay_Returns404()
     {
-        var client = await TestActors.Client(factory).CreateAsync();
+        var client = await CreateClientAsync();
         var (_, _, mondayMealId) = await SeedPlanAsync(client.UserId);
 
         var response = await SavePhotosAsync(client, mondayMealId, PastNonMonday, PhotoA);
@@ -293,8 +309,8 @@ public class MealLogPastDayIntegrationTests(FitnessApiFactory factory)
     [Fact]
     public async Task SavePhotos_OtherClientsMeal_Returns404_AndLeavesOwnerRowUntouched()
     {
-        var owner = await TestActors.Client(factory).CreateAsync();
-        var intruder = await TestActors.Client(factory).CreateAsync();
+        var owner = await CreateClientAsync();
+        var intruder = await CreateClientAsync();
         var (plan, mealId, _) = await SeedPlanAsync(owner.UserId);
         var pastDate = PastNonMonday;
         var seeded = await SeedLogAsync(owner.UserId, plan.ExternalId, mealId, pastDate, eaten: false, PhotoA);
@@ -311,7 +327,7 @@ public class MealLogPastDayIntegrationTests(FitnessApiFactory factory)
     [Fact]
     public async Task UploadUrl_PastDateInPlan_Returns200WithUrls()
     {
-        var client = await TestActors.Client(factory).CreateAsync();
+        var client = await CreateClientAsync();
         var (_, mealId, _) = await SeedPlanAsync(client.UserId);
 
         var withDate = await UploadUrlAsync(client, mealId, PastNonMonday.ToString("yyyy-MM-dd"));
@@ -327,7 +343,7 @@ public class MealLogPastDayIntegrationTests(FitnessApiFactory factory)
     [Fact]
     public async Task UploadUrl_FutureDate_Returns400WithErrorCode()
     {
-        var client = await TestActors.Client(factory).CreateAsync();
+        var client = await CreateClientAsync();
         var (_, mealId, _) = await SeedPlanAsync(client.UserId);
 
         var response = await UploadUrlAsync(client, mealId, Today.AddDays(1).ToString("yyyy-MM-dd"));
@@ -339,7 +355,7 @@ public class MealLogPastDayIntegrationTests(FitnessApiFactory factory)
     [Fact]
     public async Task UploadUrl_InvalidDate_Returns400()
     {
-        var client = await TestActors.Client(factory).CreateAsync();
+        var client = await CreateClientAsync();
         var (_, mealId, _) = await SeedPlanAsync(client.UserId);
 
         var response = await UploadUrlAsync(client, mealId, "0001-01-01");
@@ -350,7 +366,7 @@ public class MealLogPastDayIntegrationTests(FitnessApiFactory factory)
     [Fact]
     public async Task UploadUrl_DateOutsidePlanOrMealNotOnDay_Returns404()
     {
-        var client = await TestActors.Client(factory).CreateAsync();
+        var client = await CreateClientAsync();
         var (_, allDaysMealId, mondayMealId) = await SeedPlanAsync(client.UserId);
 
         var beforePlan = await UploadUrlAsync(client, allDaysMealId, PlanStart.AddDays(-1).ToString("yyyy-MM-dd"));
@@ -363,8 +379,8 @@ public class MealLogPastDayIntegrationTests(FitnessApiFactory factory)
     [Fact]
     public async Task UploadUrl_OtherClientsMeal_Returns404()
     {
-        var owner = await TestActors.Client(factory).CreateAsync();
-        var intruder = await TestActors.Client(factory).CreateAsync();
+        var owner = await CreateClientAsync();
+        var intruder = await CreateClientAsync();
         var (_, mealId, _) = await SeedPlanAsync(owner.UserId);
 
         var response = await UploadUrlAsync(intruder, mealId, PastNonMonday.ToString("yyyy-MM-dd"));
@@ -375,7 +391,7 @@ public class MealLogPastDayIntegrationTests(FitnessApiFactory factory)
     [Fact]
     public async Task GetWeek_SplitRowsOfOneMealAndDay_AreMergedIntoOneEntry()
     {
-        var client = await TestActors.Client(factory).CreateAsync();
+        var client = await CreateClientAsync();
         var (plan, mealId, _) = await SeedPlanAsync(client.UserId);
         var pastDate = PastNonMonday;
         await SeedLogAsync(client.UserId, plan.ExternalId, mealId, pastDate, eaten: true, PhotoA);
@@ -393,7 +409,7 @@ public class MealLogPastDayIntegrationTests(FitnessApiFactory factory)
     [Fact]
     public async Task GetWeek_ReturnsSevenDays_WeekBounds_AndNoMealsOrPhotoRightsForFutureDays()
     {
-        var client = await TestActors.Client(factory).CreateAsync();
+        var client = await CreateClientAsync();
         var (plan, mealId, _) = await SeedPlanAsync(client.UserId);
         await SeedLogAsync(client.UserId, plan.ExternalId, mealId, Today, eaten: true);
 
@@ -413,9 +429,9 @@ public class MealLogPastDayIntegrationTests(FitnessApiFactory factory)
     [Fact]
     public async Task GetWeek_DateOutsidePlanOrCompletedPlan_Returns404()
     {
-        var client = await TestActors.Client(factory).CreateAsync();
+        var client = await CreateClientAsync();
         await SeedPlanAsync(client.UserId);
-        var completedClient = await TestActors.Client(factory).CreateAsync();
+        var completedClient = await CreateClientAsync();
         await SeedPlanAsync(completedClient.UserId, NutritionPlanStatus.Completed);
 
         var beforePlan = await client.Http.GetAsync(
@@ -433,8 +449,8 @@ public class MealLogPastDayIntegrationTests(FitnessApiFactory factory)
     [Fact]
     public async Task GetWeek_OtherClient_Returns404_AndNeverSeesOwnerRows()
     {
-        var owner = await TestActors.Client(factory).CreateAsync();
-        var other = await TestActors.Client(factory).CreateAsync();
+        var owner = await CreateClientAsync();
+        var other = await CreateClientAsync();
         var (plan, mealId, _) = await SeedPlanAsync(owner.UserId);
         await SeedLogAsync(owner.UserId, plan.ExternalId, mealId, PastNonMonday, eaten: true, PhotoA);
 
@@ -447,7 +463,7 @@ public class MealLogPastDayIntegrationTests(FitnessApiFactory factory)
     [Fact]
     public async Task GetWeek_MissingDate_Returns400()
     {
-        var client = await TestActors.Client(factory).CreateAsync();
+        var client = await CreateClientAsync();
 
         var response = await client.Http.GetAsync("/client/nutrition/log/week", TestContext.Current.CancellationToken);
 
