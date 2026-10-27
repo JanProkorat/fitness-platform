@@ -13,7 +13,12 @@ public class GetTodayLogResponse
     public List<TodayMealLogDto> MealsEaten { get; set; } = [];
 
     /// <summary>
-    /// Total nutrients consumed across all meals today.
+    /// Foods eaten outside the plan today, oldest first. Already included in <see cref="TotalConsumed"/>.
+    /// </summary>
+    public List<TodayOffPlanFoodDto> OffPlanFoods { get; set; } = [];
+
+    /// <summary>
+    /// Total nutrients consumed across all meals and off-plan foods today.
     /// </summary>
     public NutrientTotals TotalConsumed { get; set; } = new();
 
@@ -61,6 +66,57 @@ public class TodayMealLogDto
     /// Null when no note was provided.
     /// </summary>
     public string? Note { get; set; }
+}
+
+/// <summary>
+/// DTO for one off-plan food entry with its snapshotted macros.
+/// </summary>
+public class TodayOffPlanFoodDto
+{
+    /// <summary>Identifier of the entry — pass to the remove endpoint.</summary>
+    public Guid EntryId { get; set; }
+
+    /// <summary>The food's ExternalId.</summary>
+    public Guid FoodExternalId { get; set; }
+
+    /// <summary>Food name.</summary>
+    public string FoodName { get; set; } = string.Empty;
+
+    /// <summary>Amount eaten in grams.</summary>
+    public decimal AmountGrams { get; set; }
+
+    /// <summary>Kilocalories for the eaten amount.</summary>
+    public decimal Kcal { get; set; }
+
+    /// <summary>Protein in grams.</summary>
+    public decimal Protein { get; set; }
+
+    /// <summary>Carbohydrates in grams.</summary>
+    public decimal Carbs { get; set; }
+
+    /// <summary>Fat in grams.</summary>
+    public decimal Fat { get; set; }
+
+    /// <summary>Fiber in grams.</summary>
+    public decimal Fiber { get; set; }
+
+    /// <summary>UTC time the entry was added.</summary>
+    public DateTime LoggedAt { get; set; }
+
+    /// <summary>Maps the stored entry to the DTO.</summary>
+    public static TodayOffPlanFoodDto FromDocument(OffPlanFoodEntry entry) => new()
+    {
+        EntryId = entry.EntryId,
+        FoodExternalId = entry.FoodExternalId,
+        FoodName = entry.FoodName,
+        AmountGrams = entry.AmountGrams,
+        Kcal = entry.Kcal,
+        Protein = entry.Protein,
+        Carbs = entry.Carbs,
+        Fat = entry.Fat,
+        Fiber = entry.Fiber,
+        LoggedAt = entry.LoggedAt,
+    };
 }
 
 /// <summary>

@@ -6,6 +6,7 @@ using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Domain.Services;
+using FitnessPlatform.Application.Features.ClientNutrition.Shared;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using Microsoft.EntityFrameworkCore;
@@ -170,14 +171,24 @@ public class GetTodayLogEndpoint(IMongoContext mongo, IApplicationDbContext db, 
             photo.DisplayUrl = await blobStorage.GenerateReadUrlAsync(photo.BlobUrl, ct) ?? string.Empty;
         }
 
-        // Sum all meal totals
+        // Off-plan foods logged on today's day log count toward the consumed totals.
+        var offPlanFoods = new List<OffPlanFoodEntry>();
+        if (plan is not null)
+        {
+            var dayLogFilter = TodayDayLogFilter.Build(clientId, plan.ExternalId, todayUtc, windowStartUtc, windowEndUtc);
+            using var dayLogCursor = await mongo.DayLogs.FindAsync(dayLogFilter, cancellationToken: ct);
+            var dayLogs = await dayLogCursor.ToListAsync(ct);
+            offPlanFoods = dayLogs.SelectMany(l => l.OffPlanFoods).OrderBy(e => e.LoggedAt).ToList();
+        }
+
+        // Sum all meal totals plus off-plan foods
         var totalConsumed = new NutrientTotals
         {
-            Kcal = mealsEaten.Sum(m => m.Totals.Kcal),
-            Protein = mealsEaten.Sum(m => m.Totals.Protein),
-            Carbs = mealsEaten.Sum(m => m.Totals.Carbs),
-            Fat = mealsEaten.Sum(m => m.Totals.Fat),
-            Fiber = mealsEaten.Sum(m => m.Totals.Fiber)
+            Kcal = mealsEaten.Sum(m => m.Totals.Kcal) + offPlanFoods.Sum(e => e.Kcal),
+            Protein = mealsEaten.Sum(m => m.Totals.Protein) + offPlanFoods.Sum(e => e.Protein),
+            Carbs = mealsEaten.Sum(m => m.Totals.Carbs) + offPlanFoods.Sum(e => e.Carbs),
+            Fat = mealsEaten.Sum(m => m.Totals.Fat) + offPlanFoods.Sum(e => e.Fat),
+            Fiber = mealsEaten.Sum(m => m.Totals.Fiber) + offPlanFoods.Sum(e => e.Fiber)
         };
 
         // Calculate remaining if global settings exist
@@ -198,6 +209,7 @@ public class GetTodayLogEndpoint(IMongoContext mongo, IApplicationDbContext db, 
         await Send.OkAsync(new GetTodayLogResponse
         {
             MealsEaten = mealsEaten,
+            OffPlanFoods = offPlanFoods.Select(TodayOffPlanFoodDto.FromDocument).ToList(),
             TotalConsumed = totalConsumed,
             Remaining = remaining
         }, ct);

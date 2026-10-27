@@ -57,6 +57,13 @@ public class DayLog
     public string? Note { get; set; }
 
     /// <summary>
+    /// Food eaten outside the plan on this day, with macros snapshotted at add time.
+    /// Empty on documents written before the field existed.
+    /// </summary>
+    [BsonElement("offPlanFoods")]
+    public List<OffPlanFoodEntry> OffPlanFoods { get; set; } = [];
+
+    /// <summary>
     /// Optimistic-concurrency version counter. Bumped on every write.
     /// </summary>
     [BsonElement("version")]

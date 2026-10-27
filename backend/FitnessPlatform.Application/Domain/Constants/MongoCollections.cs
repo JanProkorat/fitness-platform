@@ -110,4 +110,9 @@ public static class MongoCollections
     /// (ownerUserId, recipeExternalId) pair. Reuses the coach's food tags.
     /// </summary>
     public const string RecipeTagAssignments = "recipeTagAssignments";
+
+    /// <summary>
+    /// Shopping-list tick documents — one per (client, plan, week number, food).
+    /// </summary>
+    public const string ShoppingListTicks = "shoppingListTicks";
 }
