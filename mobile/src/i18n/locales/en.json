@@ -1031,6 +1031,102 @@
       }
     }
   },
+  "nutritionMeal": {
+    "title": "Meal",
+    "back": "Back",
+    "retry": "Try again",
+    "notFound": {
+      "title": "Meal not found",
+      "body": "This meal is no longer in your plan."
+    },
+    "error": {
+      "title": "Could not load the meal",
+      "body": "Check your connection and try again."
+    },
+    "kind": {
+      "Breakfast": "Breakfast",
+      "MorningSnack": "Morning snack",
+      "Lunch": "Lunch",
+      "AfternoonSnack": "Afternoon snack",
+      "Dinner": "Dinner",
+      "PreWorkout": "Pre-workout",
+      "PostWorkout": "Post-workout"
+    },
+    "eatenAt": "Eaten at {{time}}",
+    "logMeal": "Log meal",
+    "unmarkEaten": "Mark as not eaten",
+    "notToday": "You can log a meal on the day it is planned.",
+    "macros": {
+      "kcal": "kcal",
+      "protein": "Protein",
+      "carbs": "Carbs",
+      "fat": "Fat",
+      "fiber": "Fiber",
+      "grams": "{{value}} g"
+    },
+    "items": {
+      "title": "What is in it",
+      "kcal": "{{value}} kcal",
+      "grams": "{{value}} g",
+      "servings": "{{value}}×",
+      "openRecipe": "Open recipe {{name}}"
+    },
+    "errors": {
+      "toggle": "Could not update the meal. Please try again."
+    },
+    "photo": {
+      "add": "Add a meal photo",
+      "title": "Add a meal photo",
+      "camera": "Take a photo",
+      "library": "Choose from library",
+      "cancel": "Cancel",
+      "permission": {
+        "title": "Camera access is off",
+        "body": "Allow camera access in Settings to take a photo of your meal.",
+        "openSettings": "Open Settings"
+      },
+      "errors": {
+        "title": "The photo was not added",
+        "tooLarge": "The photo is too large. Choose one under 5 MB.",
+        "unsupportedType": "This photo format is not supported. Use JPEG, PNG, WebP or HEIC.",
+        "upload": "The upload failed. Check your connection and try again."
+      }
+    }
+  },
+  "nutritionRecipe": {
+    "notFound": {
+      "title": "Recipe not available",
+      "body": "This recipe is not part of your plan."
+    },
+    "error": {
+      "title": "Could not load the recipe",
+      "body": "Check your connection and try again."
+    },
+    "share": "Share recipe",
+    "minutes": "{{value}} min",
+    "portions": {
+      "title": "Portions",
+      "planSays": "Plan says {{value}} · amounts update below",
+      "hint": "Amounts update below",
+      "fewer": "Fewer portions",
+      "more": "More portions"
+    },
+    "macros": {
+      "perPortion": "Per portion",
+      "allPortions": "All {{value}} portions"
+    },
+    "ingredients": {
+      "title": "Ingredients",
+      "forPortions": "for {{value}} portions",
+      "kcal": "{{value}} kcal",
+      "grams": "{{value}} g"
+    },
+    "steps": {
+      "title": "How to make it",
+      "button_one": "How to make it · {{count}} step",
+      "button_other": "How to make it · {{count}} steps"
+    }
+  },
   "coachPending": {
     "title": "Your coach account is ready",
     "body": "Coach tools aren't in the app yet. Use the Form Up web portal to manage your clients."

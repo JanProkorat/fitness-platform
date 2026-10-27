@@ -1031,6 +1031,102 @@
       }
     }
   },
+  "nutritionMeal": {
+    "title": "Mahlzeit",
+    "back": "Zurück",
+    "retry": "Erneut versuchen",
+    "notFound": {
+      "title": "Mahlzeit nicht gefunden",
+      "body": "Diese Mahlzeit ist nicht mehr in Ihrem Plan."
+    },
+    "error": {
+      "title": "Die Mahlzeit konnte nicht geladen werden",
+      "body": "Prüfen Sie Ihre Verbindung und versuchen Sie es erneut."
+    },
+    "kind": {
+      "Breakfast": "Frühstück",
+      "MorningSnack": "Vormittagssnack",
+      "Lunch": "Mittagessen",
+      "AfternoonSnack": "Nachmittagssnack",
+      "Dinner": "Abendessen",
+      "PreWorkout": "Vor dem Training",
+      "PostWorkout": "Nach dem Training"
+    },
+    "eatenAt": "Gegessen um {{time}}",
+    "logMeal": "Mahlzeit eintragen",
+    "unmarkEaten": "Als nicht gegessen markieren",
+    "notToday": "Sie können eine Mahlzeit an dem Tag eintragen, für den sie geplant ist.",
+    "macros": {
+      "kcal": "kcal",
+      "protein": "Eiweiß",
+      "carbs": "Kohlenhydrate",
+      "fat": "Fett",
+      "fiber": "Ballaststoffe",
+      "grams": "{{value}} g"
+    },
+    "items": {
+      "title": "Was enthalten ist",
+      "kcal": "{{value}} kcal",
+      "grams": "{{value}} g",
+      "servings": "{{value}}×",
+      "openRecipe": "Rezept {{name}} öffnen"
+    },
+    "errors": {
+      "toggle": "Die Mahlzeit konnte nicht aktualisiert werden. Bitte versuchen Sie es erneut."
+    },
+    "photo": {
+      "add": "Mahlzeitenfoto hinzufügen",
+      "title": "Mahlzeitenfoto hinzufügen",
+      "camera": "Foto aufnehmen",
+      "library": "Aus der Mediathek wählen",
+      "cancel": "Abbrechen",
+      "permission": {
+        "title": "Kamerazugriff ist aus",
+        "body": "Erlauben Sie den Kamerazugriff in den Einstellungen, um Ihre Mahlzeit zu fotografieren.",
+        "openSettings": "Einstellungen öffnen"
+      },
+      "errors": {
+        "title": "Das Foto wurde nicht hinzugefügt",
+        "tooLarge": "Das Foto ist zu groß. Wählen Sie eines unter 5 MB.",
+        "unsupportedType": "Dieses Fotoformat wird nicht unterstützt. Verwenden Sie JPEG, PNG, WebP oder HEIC.",
+        "upload": "Der Upload ist fehlgeschlagen. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut."
+      }
+    }
+  },
+  "nutritionRecipe": {
+    "notFound": {
+      "title": "Rezept nicht verfügbar",
+      "body": "Dieses Rezept gehört nicht zu Ihrem Plan."
+    },
+    "error": {
+      "title": "Das Rezept konnte nicht geladen werden",
+      "body": "Prüfen Sie Ihre Verbindung und versuchen Sie es erneut."
+    },
+    "share": "Rezept teilen",
+    "minutes": "{{value}} Min.",
+    "portions": {
+      "title": "Portionen",
+      "planSays": "Der Plan sieht {{value}} vor · Mengen werden unten angepasst",
+      "hint": "Mengen werden unten angepasst",
+      "fewer": "Weniger Portionen",
+      "more": "Mehr Portionen"
+    },
+    "macros": {
+      "perPortion": "Pro Portion",
+      "allPortions": "Alle {{value}} Portionen"
+    },
+    "ingredients": {
+      "title": "Zutaten",
+      "forPortions": "für {{value}} Portionen",
+      "kcal": "{{value}} kcal",
+      "grams": "{{value}} g"
+    },
+    "steps": {
+      "title": "Zubereitung",
+      "button_one": "Zubereitung · {{count}} Schritt",
+      "button_other": "Zubereitung · {{count}} Schritte"
+    }
+  },
   "coachPending": {
     "title": "Dein Coach-Konto ist bereit",
     "body": "Die Coach-Werkzeuge gibt es in der App noch nicht. Verwalte deine Klienten im Form Up Webportal."

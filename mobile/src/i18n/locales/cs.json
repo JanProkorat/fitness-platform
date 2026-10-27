@@ -1055,6 +1055,104 @@
       }
     }
   },
+  "nutritionMeal": {
+    "title": "Jídlo",
+    "back": "Zpět",
+    "retry": "Zkusit znovu",
+    "notFound": {
+      "title": "Jídlo nenalezeno",
+      "body": "Toto jídlo už ve vašem plánu není."
+    },
+    "error": {
+      "title": "Jídlo se nepodařilo načíst",
+      "body": "Zkontrolujte připojení a zkuste to znovu."
+    },
+    "kind": {
+      "Breakfast": "Snídaně",
+      "MorningSnack": "Dopolední svačina",
+      "Lunch": "Oběd",
+      "AfternoonSnack": "Odpolední svačina",
+      "Dinner": "Večeře",
+      "PreWorkout": "Před tréninkem",
+      "PostWorkout": "Po tréninku"
+    },
+    "eatenAt": "Snězeno v {{time}}",
+    "logMeal": "Zapsat jídlo",
+    "unmarkEaten": "Označit jako nesnězené",
+    "notToday": "Jídlo můžete zapsat v den, na který je naplánované.",
+    "macros": {
+      "kcal": "kcal",
+      "protein": "Bílkoviny",
+      "carbs": "Sacharidy",
+      "fat": "Tuky",
+      "fiber": "Vláknina",
+      "grams": "{{value}} g"
+    },
+    "items": {
+      "title": "Co v něm je",
+      "kcal": "{{value}} kcal",
+      "grams": "{{value}} g",
+      "servings": "{{value}}×",
+      "openRecipe": "Otevřít recept {{name}}"
+    },
+    "errors": {
+      "toggle": "Jídlo se nepodařilo upravit. Zkuste to prosím znovu."
+    },
+    "photo": {
+      "add": "Přidat fotku jídla",
+      "title": "Přidat fotku jídla",
+      "camera": "Vyfotit",
+      "library": "Vybrat z knihovny",
+      "cancel": "Zrušit",
+      "permission": {
+        "title": "Fotoaparát je vypnutý",
+        "body": "Povolte přístup k fotoaparátu v Nastavení, abyste mohli jídlo vyfotit.",
+        "openSettings": "Otevřít Nastavení"
+      },
+      "errors": {
+        "title": "Fotka se nepřidala",
+        "tooLarge": "Fotka je příliš velká. Vyberte takovou do 5 MB.",
+        "unsupportedType": "Tento formát fotky není podporovaný. Použijte JPEG, PNG, WebP nebo HEIC.",
+        "upload": "Nahrání se nepodařilo. Zkontrolujte připojení a zkuste to znovu."
+      }
+    }
+  },
+  "nutritionRecipe": {
+    "notFound": {
+      "title": "Recept není dostupný",
+      "body": "Tento recept není součástí vašeho plánu."
+    },
+    "error": {
+      "title": "Recept se nepodařilo načíst",
+      "body": "Zkontrolujte připojení a zkuste to znovu."
+    },
+    "share": "Sdílet recept",
+    "minutes": "{{value}} min",
+    "portions": {
+      "title": "Porce",
+      "planSays": "Plán počítá s {{value}} · množství se níže přepočítá",
+      "hint": "Množství se níže přepočítá",
+      "fewer": "Méně porcí",
+      "more": "Více porcí"
+    },
+    "macros": {
+      "perPortion": "Na porci",
+      "allPortions": "Všech {{value}} porcí"
+    },
+    "ingredients": {
+      "title": "Suroviny",
+      "forPortions": "na {{value}} porcí",
+      "kcal": "{{value}} kcal",
+      "grams": "{{value}} g"
+    },
+    "steps": {
+      "title": "Postup",
+      "button_one": "Postup · {{count}} krok",
+      "button_few": "Postup · {{count}} kroky",
+      "button_many": "Postup · {{count}} kroku",
+      "button_other": "Postup · {{count}} kroků"
+    }
+  },
   "coachPending": {
     "title": "Váš trenérský účet je připravený",
     "body": "Nástroje pro trenéry v aplikaci zatím nejsou. Klienty spravujte ve webovém portálu Form Up."
