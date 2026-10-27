@@ -2725,6 +2725,7 @@
         "save": "Save price",
         "saved": "Price saved.",
         "saveError": "Could not save the price.",
+        "collaborationEnded": "The collaboration with this client has ended, so the price can no longer be changed.",
         "currencyMismatch": "A fixed discount must be in the same currency as the package.",
         "loadError": "Could not load your packages and discounts."
       },
