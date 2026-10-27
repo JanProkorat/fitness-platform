@@ -13,7 +13,6 @@ import type { Theme } from '@/theme';
 /** Chart geometry in points; colours, spacing and type all come from the theme. */
 const PLOT_HEIGHT = 132;
 const MARKER_RADIUS = 5;
-const BAND_OPACITY = 0.12;
 const LABEL_WIDTH = 44;
 const MAX_MONTH_LABELS = 8;
 
@@ -82,7 +81,7 @@ export function JourneyChart({ points, bands, photoDates, domain }: JourneyChart
                 width={Math.max(0, x(band.to) - x(band.from))}
                 height={PLOT_HEIGHT}
                 fill={bandColor(band.kind)}
-                fillOpacity={BAND_OPACITY}
+                fillOpacity={theme.opacity.chartBand}
               />
             ))}
             <Path

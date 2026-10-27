@@ -60,9 +60,9 @@ const makeStyles = (theme: Theme) =>
       color: theme.colors.ink,
     },
     pressed: {
-      opacity: 0.85,
+      opacity: theme.opacity.pressed,
     },
     disabled: {
-      opacity: 0.4,
+      opacity: theme.opacity.disabled,
     },
   });

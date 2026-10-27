@@ -126,7 +126,7 @@ const makeStyles = (theme: Theme) =>
       borderTopColor: theme.colors.line,
     },
     pressed: {
-      opacity: 0.7,
+      opacity: theme.opacity.pressedRow,
     },
     icon: {
       width: theme.sizes.listIcon,
