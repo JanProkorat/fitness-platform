@@ -241,8 +241,7 @@
         "upcomingHint": "{{details}}. {{name}} will send the payment details.",
         "requestedHint": "{{details}} by QR",
         "overdueHint": "{{details}} by QR · overdue",
-        "showQr": "Show QR",
-        "hideQr": "Hide QR"
+        "showQr": "Show QR"
       },
       "checkIn": {
         "title": "Weekly check-in: {{day}}",

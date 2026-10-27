@@ -243,8 +243,7 @@
         "upcomingHint": "{{details}}. {{name}} vám pošle platební údaje.",
         "requestedHint": "{{details}} přes QR",
         "overdueHint": "{{details}} přes QR · po splatnosti",
-        "showQr": "Zobrazit QR",
-        "hideQr": "Skrýt QR"
+        "showQr": "Zobrazit QR"
       },
       "checkIn": {
         "title": "Týdenní check-in: {{day}}",

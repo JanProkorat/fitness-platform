@@ -241,8 +241,7 @@
         "upcomingHint": "{{details}}. {{name}} sendet Ihnen die Zahlungsdaten.",
         "requestedHint": "{{details}} per QR",
         "overdueHint": "{{details}} per QR · überfällig",
-        "showQr": "QR anzeigen",
-        "hideQr": "QR ausblenden"
+        "showQr": "QR anzeigen"
       },
       "checkIn": {
         "title": "Wöchentlicher Check-in: {{day}}",

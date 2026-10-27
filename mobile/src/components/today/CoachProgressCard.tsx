@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
@@ -10,11 +9,9 @@ import type { Conversation } from '@/api/conversations';
 import type { PendingItems, SubmittedByCoach } from '@/api/questionnaires';
 import { Chip } from '@/components/Chip';
 import { firstName, initials } from '@/components/invites/format';
-import { QrTile } from '@/components/payments/QrTile';
 import { formatMoney } from '@/components/payments/format';
 import { Text } from '@/components/Text';
 import { useConversations } from '@/hooks/useConversations';
-import { usePayments } from '@/hooks/usePayments';
 import { usePaymentsEnabled } from '@/hooks/usePaymentsEnabled';
 import { usePendingQuestionnaires } from '@/hooks/usePendingQuestionnaires';
 import { useSubmittedQuestionnaires } from '@/hooks/useSubmittedQuestionnaires';
@@ -122,8 +119,6 @@ export function CoachProgressCard({
   const { data: submitted } = useSubmittedQuestionnaires();
   const { data: conversations } = useConversations();
   const { enabled: paymentsEnabled } = usePaymentsEnabled();
-  const { data: paymentCoaches } = usePayments(paymentsEnabled);
-  const [qrOpen, setQrOpen] = useState(false);
 
   const fullName = collaboration.professionalName?.trim() ?? '';
   const first = firstName(fullName) || t('today.progress.coachFallback');
@@ -143,11 +138,6 @@ export function CoachProgressCard({
   const payStatus = firstPayment?.status;
   const payUpcoming = payStatus === ClientPaymentStatus.Upcoming;
   const payDue = payStatus === ClientPaymentStatus.Requested || payStatus === ClientPaymentStatus.Overdue;
-  const qrPayload = payDue
-    ? (paymentCoaches ?? [])
-        .flatMap((coach) => coach.requested ?? [])
-        .find((item) => item.paymentId !== undefined && item.paymentId === firstPayment?.paymentId)?.qrPayload
-    : undefined;
   if (payDue) waiting += 1;
 
   const openChat = () => {
@@ -182,7 +172,6 @@ export function CoachProgressCard({
     ]
       .filter((part): part is string => Boolean(part))
       .join(' · ');
-    const canShowQr = payDue && qrPayload !== undefined;
     let hintKey = 'today.progress.firstPayment.requestedHint';
     if (payUpcoming) hintKey = 'today.progress.firstPayment.upcomingHint';
     else if (payStatus === ClientPaymentStatus.Overdue) hintKey = 'today.progress.firstPayment.overdueHint';
@@ -191,10 +180,9 @@ export function CoachProgressCard({
       state: 'open',
       title: t('today.progress.firstPayment.title'),
       hint: t(hintKey, { details, name: first }),
-      actionLabel: canShowQr
-        ? t(qrOpen ? 'today.progress.firstPayment.hideQr' : 'today.progress.firstPayment.showQr')
-        : undefined,
-      onAction: canShowQr ? () => setQrOpen((open) => !open) : undefined,
+      // The QR code lives on the Payments screen; the step only leads there.
+      actionLabel: payDue ? t('today.progress.firstPayment.showQr') : undefined,
+      onAction: payDue ? () => router.push('/payments') : undefined,
       actionTone: 'primary',
     });
   }
@@ -306,14 +294,6 @@ export function CoachProgressCard({
           );
         })}
       </View>
-      {qrOpen && qrPayload ? (
-        <View style={styles.qr}>
-          <QrTile payload={qrPayload} accessibilityLabel={t('payments.qrLabel')} />
-          <Text variant="caption" color="muted" style={styles.qrCaption}>
-            {t('payments.scan', { name: first })}
-          </Text>
-        </View>
-      ) : null}
       {checkInDays ? (
         <View style={styles.tell}>
           <Text variant="labelStrong">{t('today.progress.checkIn.title', { day: checkInDays })}</Text>
@@ -406,12 +386,6 @@ const makeStyles = (theme: Theme) =>
       paddingHorizontal: theme.spacing.lg,
       borderRadius: theme.radii.lg,
       backgroundColor: theme.colors.subtle,
-    },
-    qr: {
-      gap: theme.spacing.xs,
-    },
-    qrCaption: {
-      textAlign: 'center',
     },
     message: {
       height: theme.sizes.buttonMedium,
