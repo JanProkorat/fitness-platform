@@ -12,6 +12,12 @@ public class GenerateMealPhotoUploadUrlRequest
     public Guid MealId { get; set; }
 
     /// <summary>
+    /// Optional plan day the photo will belong to (client-local calendar date, today or past).
+    /// Omitted means the client-local today.
+    /// </summary>
+    public DateOnly? Date { get; set; }
+
+    /// <summary>
     /// MIME type of the image file (e.g. "image/jpeg", "image/png", "image/webp", "image/heic", "image/heif").
     /// </summary>
     public string ContentType { get; set; } = string.Empty;

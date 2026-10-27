@@ -28,6 +28,12 @@ public class GenerateMealPhotoUploadUrlValidator : Validator<GenerateMealPhotoUp
     /// </summary>
     public GenerateMealPhotoUploadUrlValidator()
     {
+        RuleFor(x => x.Date)
+            .Must(date => date!.Value.Year >= 2000)
+            .WithErrorCode(ErrorCodes.OutOfRange)
+            .WithMessage("Date must be a real calendar date.")
+            .When(x => x.Date.HasValue);
+
         RuleFor(x => x.ContentType)
             .NotEmpty().WithErrorCode(ErrorCodes.Required);
 

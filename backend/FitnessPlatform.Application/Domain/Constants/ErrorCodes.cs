@@ -284,6 +284,9 @@ public static class ErrorCodes
     /// </summary>
     public const string InvalidBlobUrl = "INVALID_BLOB_URL";
 
+    /// <summary>A meal-log date is later than the client's local today.</summary>
+    public const string MealLogDateInFuture = "MEAL_LOG_DATE_IN_FUTURE";
+
     // ── Image Uploads ────────────────────────────────────────────────
     /// <summary>Content type is not in the allowed image whitelist (image/jpeg, image/png, image/webp).</summary>
     public const string InvalidImageContentType = "INVALID_IMAGE_CONTENT_TYPE";
