@@ -370,6 +370,6 @@ const makeStyles = (theme: Theme, insets: EdgeInsets | null) =>
       gap: theme.spacing.xs,
     },
     dimmed: {
-      opacity: 0.7,
+      opacity: theme.opacity.dimmed,
     },
   });

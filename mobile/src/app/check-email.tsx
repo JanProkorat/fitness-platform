@@ -218,6 +218,6 @@ const makeStyles = (theme: Theme, insets: EdgeInsets) =>
       paddingTop: theme.spacing.snug,
     },
     dimmed: {
-      opacity: 0.7,
+      opacity: theme.opacity.dimmed,
     },
   });

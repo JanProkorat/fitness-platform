@@ -102,7 +102,7 @@ const makeStyles = (theme: Theme) =>
       justifyContent: 'center',
       borderRadius: theme.radii.pill,
       backgroundColor: theme.colors.avatar,
-      opacity: 0.7,
+      opacity: theme.opacity.busyOverlay,
     },
     badge: {
       position: 'absolute',

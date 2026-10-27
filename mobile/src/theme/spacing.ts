@@ -16,6 +16,12 @@ export const spacing = {
 
 export const opacity = {
   pressed: 0.85,
+  pressedRow: 0.7,
+  dimmed: 0.7,
+  busyOverlay: 0.7,
+  disabled: 0.4,
+  missed: 0.75,
+  chartBand: 0.12,
 } as const;
 
 export const radii = {

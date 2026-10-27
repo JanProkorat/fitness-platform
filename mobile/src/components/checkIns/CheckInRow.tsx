@@ -57,7 +57,7 @@ const makeStyles = (theme: Theme) =>
       paddingVertical: theme.spacing.md,
     },
     missed: {
-      opacity: 0.75,
+      opacity: theme.opacity.missed,
     },
     copy: {
       flex: 1,
