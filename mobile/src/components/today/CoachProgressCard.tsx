@@ -1,16 +1,21 @@
+import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useTranslation } from 'react-i18next';
 
 import type { Collaboration } from '@/api/collaborations';
-import { LinkCapabilityScope } from '@/api/generated';
+import { ClientPaymentStatus, LinkCapabilityScope } from '@/api/generated';
 import type { Conversation } from '@/api/conversations';
 import type { PendingItems, SubmittedByCoach } from '@/api/questionnaires';
 import { Chip } from '@/components/Chip';
 import { firstName, initials } from '@/components/invites/format';
+import { QrTile } from '@/components/payments/QrTile';
+import { formatMoney } from '@/components/payments/format';
 import { Text } from '@/components/Text';
 import { useConversations } from '@/hooks/useConversations';
+import { usePayments } from '@/hooks/usePayments';
+import { usePaymentsEnabled } from '@/hooks/usePaymentsEnabled';
 import { usePendingQuestionnaires } from '@/hooks/usePendingQuestionnaires';
 import { useSubmittedQuestionnaires } from '@/hooks/useSubmittedQuestionnaires';
 import { useTheme } from '@/theme';
@@ -20,7 +25,7 @@ import type { CoachRole } from './collaborationRoles';
 import { roleLook } from './roleLook';
 import { TimelineStep } from './TimelineStep';
 import type { StepState } from './TimelineStep';
-import { sinceLabel } from './todayFormat';
+import { checkInDaysLabel, sinceLabel } from './todayFormat';
 
 type CoachProgressCardProps = {
   collaboration: Collaboration;
@@ -115,6 +120,9 @@ export function CoachProgressCard({
   const { data: pending } = usePendingQuestionnaires();
   const { data: submitted } = useSubmittedQuestionnaires();
   const { data: conversations } = useConversations();
+  const { enabled: paymentsEnabled } = usePaymentsEnabled();
+  const { data: paymentCoaches } = usePayments(paymentsEnabled);
+  const [qrOpen, setQrOpen] = useState(false);
 
   const fullName = collaboration.professionalName?.trim() ?? '';
   const first = firstName(fullName) || t('today.progress.coachFallback');
@@ -128,6 +136,18 @@ export function CoachProgressCard({
   const photoRequested = hasPhotoRequest(pending, collaboration, onlyCollaboration);
   let waiting = (generic.pending ? 1 : 0) + (photoRequested ? 1 : 0);
   for (const status of perRole.values()) if (status.pending) waiting += 1;
+
+  // First payment of the agreed terms: Upcoming only informs, Requested and Overdue ask the client to pay.
+  const firstPayment = paymentsEnabled ? collaboration.firstPayment : undefined;
+  const payStatus = firstPayment?.status;
+  const payUpcoming = payStatus === ClientPaymentStatus.Upcoming;
+  const payDue = payStatus === ClientPaymentStatus.Requested || payStatus === ClientPaymentStatus.Overdue;
+  const qrPayload = payDue
+    ? (paymentCoaches ?? [])
+        .flatMap((coach) => coach.requested ?? [])
+        .find((item) => item.paymentId !== undefined && item.paymentId === firstPayment?.paymentId)?.qrPayload
+    : undefined;
+  if (payDue) waiting += 1;
 
   const openChat = () => {
     const target = findConversation(conversations, collaboration);
@@ -154,6 +174,28 @@ export function CoachProgressCard({
     }
     return null;
   };
+  if (firstPayment && (payUpcoming || payDue)) {
+    const details = [
+      firstPayment.packageName?.trim(),
+      formatMoney(firstPayment.amount, firstPayment.currency, i18n.language),
+    ]
+      .filter((part): part is string => Boolean(part))
+      .join(' · ');
+    const canShowQr = payDue && qrPayload !== undefined;
+    let hintKey = 'today.progress.firstPayment.requestedHint';
+    if (payUpcoming) hintKey = 'today.progress.firstPayment.upcomingHint';
+    else if (payStatus === ClientPaymentStatus.Overdue) hintKey = 'today.progress.firstPayment.overdueHint';
+    steps.push({
+      key: 'first-payment',
+      state: 'open',
+      title: t('today.progress.firstPayment.title'),
+      hint: t(hintKey, { details, name: first }),
+      actionLabel: canShowQr
+        ? t(qrOpen ? 'today.progress.firstPayment.hideQr' : 'today.progress.firstPayment.showQr')
+        : undefined,
+      onAction: canShowQr ? () => setQrOpen((open) => !open) : undefined,
+    });
+  }
   const generalStep = questionnaireStep('questionnaire', generic);
   if (generalStep) steps.push(generalStep);
   // A role whose plan is already published has no plan step to sit above, so its questionnaire goes here.
@@ -192,6 +234,7 @@ export function CoachProgressCard({
   const headlineKey = unpublished.length > 1 ? 'both' : (unpublished[0] ?? 'Trainer');
   const tellKey = covered.length > 1 ? 'both' : (covered[0] ?? 'Trainer');
   const since = sinceLabel(t, i18n.language, collaboration.since);
+  const checkInDays = checkInDaysLabel(i18n.language, collaboration.checkIns);
 
   return (
     <View style={styles.card}>
@@ -260,6 +303,22 @@ export function CoachProgressCard({
           );
         })}
       </View>
+      {qrOpen && qrPayload ? (
+        <View style={styles.qr}>
+          <QrTile payload={qrPayload} accessibilityLabel={t('payments.qrLabel')} />
+          <Text variant="caption" color="muted" style={styles.qrCaption}>
+            {t('payments.scan', { name: first })}
+          </Text>
+        </View>
+      ) : null}
+      {checkInDays ? (
+        <View style={styles.tell}>
+          <Text variant="labelStrong">{t('today.progress.checkIn.title', { day: checkInDays })}</Text>
+          <Text variant="caption" color="muted">
+            {t('today.progress.checkIn.hint')}
+          </Text>
+        </View>
+      ) : null}
       {covered.length > 1 ? (
         <Text variant="caption" color="muted">
           {t(unpublished.length > 1 ? 'today.progress.footnoteBoth' : 'today.progress.footnoteOne')}
@@ -344,6 +403,12 @@ const makeStyles = (theme: Theme) =>
       paddingHorizontal: theme.spacing.lg,
       borderRadius: theme.radii.lg,
       backgroundColor: theme.colors.subtle,
+    },
+    qr: {
+      gap: theme.spacing.xs,
+    },
+    qrCaption: {
+      textAlign: 'center',
     },
     message: {
       height: theme.sizes.buttonMedium,

@@ -180,7 +180,8 @@
       "footnote": "The invite stays open while you look around.",
       "footnoteBoth": "One plan for each, from the same coach. The invite stays open while you look around.",
       "planTraining": "Training plan",
-      "planNutrition": "Nutrition plan"
+      "planNutrition": "Nutrition plan",
+      "packagePrice": "package {{price}}"
     },
     "howItWorks": {
       "title": "How it works",
@@ -234,7 +235,19 @@
         "both": "Your schedule, the training you enjoy, foods you avoid. It helps with both plans."
       },
       "message": "Message {{name}}",
-      "messageLabel": "Message {{name}}"
+      "messageLabel": "Message {{name}}",
+      "firstPayment": {
+        "title": "Pay the first month",
+        "upcomingHint": "{{details}}. {{name}} will send the payment details.",
+        "requestedHint": "{{details}} by QR",
+        "overdueHint": "{{details}} by QR · overdue",
+        "showQr": "Show QR",
+        "hideQr": "Hide QR"
+      },
+      "checkIn": {
+        "title": "Weekly check-in: {{day}}",
+        "hint": "Starts with your first plan week"
+      }
     }
   },
   "editProfile": {

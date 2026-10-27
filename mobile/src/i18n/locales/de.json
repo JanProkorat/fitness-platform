@@ -180,7 +180,8 @@
       "footnote": "Die Einladung bleibt offen, während Sie sich umsehen.",
       "footnoteBoth": "Je ein Plan vom selben Coach. Die Einladung bleibt offen, während Sie sich umsehen.",
       "planTraining": "Trainingsplan",
-      "planNutrition": "Ernährungsplan"
+      "planNutrition": "Ernährungsplan",
+      "packagePrice": "Paket {{price}}"
     },
     "howItWorks": {
       "title": "So funktioniert es",
@@ -234,7 +235,19 @@
         "both": "Ihr Zeitplan, das Training, das Ihnen Spaß macht, Lebensmittel, die Sie meiden. Das hilft bei beiden Plänen."
       },
       "message": "Nachricht schreiben",
-      "messageLabel": "Nachricht an den Coach schreiben"
+      "messageLabel": "Nachricht an den Coach schreiben",
+      "firstPayment": {
+        "title": "Ersten Monat bezahlen",
+        "upcomingHint": "{{details}}. {{name}} sendet Ihnen die Zahlungsdaten.",
+        "requestedHint": "{{details}} per QR",
+        "overdueHint": "{{details}} per QR · überfällig",
+        "showQr": "QR anzeigen",
+        "hideQr": "QR ausblenden"
+      },
+      "checkIn": {
+        "title": "Wöchentlicher Check-in: {{day}}",
+        "hint": "Beginnt mit der ersten Woche Ihres Plans"
+      }
     }
   },
   "editProfile": {
