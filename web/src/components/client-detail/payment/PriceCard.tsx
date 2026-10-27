@@ -18,7 +18,12 @@ import {
   type CoachPackageDto,
   type GetClientPaymentSummaryResponse,
 } from '@/api/client-payments';
-import { useSetClientPaymentTerms, usePaymentDiscounts, usePaymentPackages } from '@/hooks/useClientPaymentQueries';
+import {
+  useCheckCollaborationEnded,
+  useSetClientPaymentTerms,
+  usePaymentDiscounts,
+  usePaymentPackages,
+} from '@/hooks/useClientPaymentQueries';
 import {
   CURRENCY_MISMATCH_CODE,
   paymentErrorCode,
@@ -29,7 +34,7 @@ import {
   discountValueLabel,
   previewDiscountAmount,
 } from '@/components/client-detail/payment/paymentModel';
-import { showApiError, showError, showSuccess } from '@/lib/api-errors';
+import { getErrorStatus, showApiError, showError, showSuccess } from '@/lib/api-errors';
 import { formatMoney, parseAmount } from '@/lib/money';
 import { formatMonthName, todayIso } from '@/lib/payment-format';
 
@@ -117,6 +122,7 @@ function PriceForm({ clientId, clientName, summary, packages, discounts }: FormP
   const language = i18n.language;
   const terms = summary.terms;
   const setTermsMutation = useSetClientPaymentTerms(clientId);
+  const checkCollaborationEnded = useCheckCollaborationEnded(clientId);
   const packageSelectRef = useRef<HTMLSelectElement | null>(null);
 
   const schema = useMemo(
@@ -210,6 +216,17 @@ function PriceForm({ clientId, clientName, summary, packages, discounts }: FormP
         onError: (error) => {
           if (paymentErrorCode(error) === CURRENCY_MISMATCH_CODE) {
             showError('payments.client.terms.currencyMismatch');
+            return;
+          }
+          // A bare 404 is either an ended link or a vanished package; the summary tells which.
+          if (paymentErrorCode(error) === null && getErrorStatus(error) === 404) {
+            void checkCollaborationEnded().then((ended) => {
+              if (ended) {
+                showError('payments.client.terms.collaborationEnded');
+              } else {
+                showApiError(error, 'payments.client.terms.saveError');
+              }
+            });
             return;
           }
           showApiError(error, 'payments.client.terms.saveError');
