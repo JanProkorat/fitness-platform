@@ -6,8 +6,12 @@ import type { ClientInvite } from '@/api/invites';
 import { InviteAvatar } from '@/components/invites/InviteAvatar';
 import { relativeTime } from '@/components/invites/format';
 import { Text } from '@/components/Text';
+import Animated, { useReducedMotion, withTiming } from 'react-native-reanimated';
+import type { EntryAnimationsValues } from 'react-native-reanimated';
+
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
+import { roleInviteMotion } from '@/theme/motion';
 
 import type { CoachRole } from './collaborationRoles';
 import { roleLook } from './roleLook';
@@ -24,6 +28,7 @@ type RoleInviteCardProps = {
 export function RoleInviteCard({ invite, roles, onView, onCompare }: RoleInviteCardProps) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const reduceMotion = useReducedMotion();
   const styles = makeStyles(theme);
   const dual = roles.length > 1;
   const first = roles[0] ?? 'Trainer';
@@ -31,8 +36,23 @@ export function RoleInviteCard({ invite, roles, onView, onCompare }: RoleInviteC
   const label = roles.map((role) => t(`invites.roles.${role}`)).join(t('invites.roleJoiner'));
   const name = t('today.invite.invitedYou', { name: invite.coachName ?? '' });
 
+  const offset = theme.spacing[roleInviteMotion.offsetSpacing];
+  const entering = (values: EntryAnimationsValues) => {
+    'worklet';
+    return {
+      initialValues: { opacity: 0, originY: values.targetOriginY + offset },
+      animations: {
+        opacity: withTiming(1, { duration: roleInviteMotion.duration }),
+        originY: withTiming(values.targetOriginY, { duration: roleInviteMotion.duration }),
+      },
+    };
+  };
+
   return (
-    <View style={[styles.card, { borderColor }]}>
+    <Animated.View
+      entering={reduceMotion ? undefined : entering}
+      style={[styles.card, { borderColor }]}
+    >
       <View style={styles.header}>
         <View style={styles.icons}>
           {roles.map((role, index) => {
@@ -113,7 +133,7 @@ export function RoleInviteCard({ invite, roles, onView, onCompare }: RoleInviteC
       <Text variant="caption" color="muted">
         {t(dual ? 'today.invite.footnoteBoth' : 'today.invite.footnote')}
       </Text>
-    </View>
+    </Animated.View>
   );
 }
 

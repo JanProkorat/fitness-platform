@@ -29,6 +29,12 @@ export const inviteMotion = {
   spring: { damping: 18, stiffness: 180, mass: 0.9 },
 } as const;
 
+/** Role invite card entrance on Today: ms to fade in, and the spacing token it slides up from. */
+export const roleInviteMotion = {
+  duration: 300,
+  offsetSpacing: 'xl',
+} as const;
+
 /** Drag-to-close on bottom sheets: px before the drag claims the touch, px or velocity (px/ms) that closes it. */
 export const sheetDragMotion = {
   claimDistance: 8,
