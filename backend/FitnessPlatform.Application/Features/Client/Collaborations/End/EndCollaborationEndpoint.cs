@@ -25,11 +25,11 @@ public class EndCollaborationEndpoint(
     IRealtimeNotifier notifier,
     INotificationService notificationService,
     IMongoContext mongo,
-    IAuditService audit) : Endpoint<EndCollaborationRequest>
+    IAuditService audit) : EndpointWithoutRequest
 {
     public override void Configure()
     {
-        Delete("/client/collaborations/{PublicId}");
+        Delete("/client/collaborations/{publicId}");
         Roles(AppRoles.Client);
         Summary(s =>
         {
@@ -38,12 +38,13 @@ public class EndCollaborationEndpoint(
         });
     }
 
-    public override async Task HandleAsync(EndCollaborationRequest req, CancellationToken ct)
+    public override async Task HandleAsync(CancellationToken ct)
     {
         var userId = User.FindFirstValue(AppClaims.UserId);
         if (userId is null) { await Send.UnauthorizedAsync(ct); return; }
 
         var userGuid = Guid.Parse(userId);
+        var publicId = Route<Guid>("publicId");
 
         var clientProfile = await db.ClientProfiles
             .AsNoTracking()
@@ -58,7 +59,7 @@ public class EndCollaborationEndpoint(
         var link = await db.ClientProfessionalLinks
             .Include(l => l.ProfessionalProfile)
                 .ThenInclude(pp => pp.User)
-            .FirstOrDefaultAsync(l => l.PublicId == req.PublicId
+            .FirstOrDefaultAsync(l => l.PublicId == publicId
                                    && l.ClientProfileId == clientProfile.Id
                                    && l.IsActive, ct);
 

@@ -18,11 +18,11 @@ public class CancelClientRequestEndpoint(
     IApplicationDbContext db,
     IRealtimeNotifier notifier,
     INotificationService notificationService,
-    IConversationSeedService conversationSeedService) : Endpoint<CancelClientRequestRequest>
+    IConversationSeedService conversationSeedService) : EndpointWithoutRequest
 {
     public override void Configure()
     {
-        Delete("/client/requests/{PublicId}");
+        Delete("/client/requests/{publicId}");
         Roles(AppRoles.Client);
         Summary(s =>
         {
@@ -31,7 +31,7 @@ public class CancelClientRequestEndpoint(
         });
     }
 
-    public override async Task HandleAsync(CancelClientRequestRequest req, CancellationToken ct)
+    public override async Task HandleAsync(CancellationToken ct)
     {
         var userId = User.FindFirstValue(AppClaims.UserId);
 
@@ -42,6 +42,7 @@ public class CancelClientRequestEndpoint(
         }
 
         var userGuid = Guid.Parse(userId);
+        var publicId = Route<Guid>("publicId");
 
         var clientProfile = await db.ClientProfiles
             .AsNoTracking()
@@ -54,7 +55,7 @@ public class CancelClientRequestEndpoint(
         }
 
         var request = await db.ClientRequests
-            .FirstOrDefaultAsync(r => r.PublicId == req.PublicId, ct);
+            .FirstOrDefaultAsync(r => r.PublicId == publicId, ct);
 
         if (request is null)
         {
