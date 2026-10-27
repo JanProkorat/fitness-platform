@@ -516,12 +516,14 @@ public class ClientPaymentScheduleTests
 
         var existing = new[] { new DateOnly(2026, 9, 21), endDay };
 
-        var planned = ClientPaymentSchedule.PlanMissingPeriods([first, reaccepted, restarted], existing, endDay);
+        // The first collaboration's period on the restart day was requested, so it is kept and covers that day.
+        DateOnly[] kept = [endDay];
+        var planned = ClientPaymentSchedule.PlanMissingPeriods([first, reaccepted, restarted], existing, endDay, kept);
 
         planned.Should().Equal((new DateOnly(2026, 11, 26), new DateOnly(2026, 12, 25)));
 
         var allRuns = ClientPaymentSchedule.PlanMissingPeriods(
-            [first, reaccepted, restarted], existing, endDay.AddYears(200));
+            [first, reaccepted, restarted], existing, endDay.AddYears(200), kept);
 
         allRuns.Should().Equal(
             (new DateOnly(2026, 11, 26), new DateOnly(2026, 12, 25)),

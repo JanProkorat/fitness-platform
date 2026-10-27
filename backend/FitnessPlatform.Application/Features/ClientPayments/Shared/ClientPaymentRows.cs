@@ -47,7 +47,8 @@ internal static class ClientPaymentRows
                     payment,
                     ClientPaymentSchedule.DerivedStatus(payment.Status, payment.DueDate, today),
                     figures,
-                    message);
+                    message,
+                    ClientPaymentQueries.IsEarlierCollaboration(payment, terms));
             })
             .ToList();
     }

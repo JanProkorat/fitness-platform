@@ -1,9 +1,12 @@
 using System.Net;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Features.Client.Collaborations.GetAll;
 using FitnessPlatform.Application.Features.Client.GetClientPayments;
+using FitnessPlatform.Application.Features.ClientPayments.GetClientPaymentSummary;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Tests.Infrastructure;
+using System.Net.Http.Json;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -12,8 +15,8 @@ using static FitnessPlatform.Tests.Endpoints.ClientPayments.ClientPaymentFixture
 namespace FitnessPlatform.Tests.Endpoints.ClientPayments;
 
 /// <summary>
-/// REPRODUCTIONS for #1767 (payment rows after a client reconnects to the same coach). The tests that assert the
-/// expected behaviour FAIL on purpose until the fix lands; they are the regression tests for it.
+/// Regression tests for #1767 (payment rows after a client reconnects to the same coach): same-day restart cleanup,
+/// pricing under the new terms, and the earlier-collaboration marker.
 /// </summary>
 [Collection(TestCollection.Name)]
 public class Issue1767ReconnectPaymentsReproTests(FitnessApiFactory factory)
@@ -112,11 +115,11 @@ public class Issue1767ReconnectPaymentsReproTests(FitnessApiFactory factory)
     }
 
     /// <summary>
-    /// Symptom 2. A started period of an ended collaboration (stored Upcoming, frozen amount, not IsKeptAfterEnd)
-    /// can be requested by the coach and shows up for the client.
+    /// Symptom 2. A started period of an ended collaboration is the coach's to collect: the request goes through,
+    /// the client sees it under the coach, and it is flagged as an earlier collaboration's.
     /// </summary>
     [Fact]
-    public async Task Request_StartedPeriodOfAnEndedCollaboration_IsRefusedAndNeverReachesTheClient()
+    public async Task Request_StartedPeriodOfAnEndedCollaboration_IsAcceptedAndShownToTheClientAsEarlier()
     {
         var world = await CreateWorldAsync(factory);
         var package = await CreatePackageAsync(world.Coach, 2500m, "Package");
@@ -130,15 +133,20 @@ public class Issue1767ReconnectPaymentsReproTests(FitnessApiFactory factory)
 
         var response = await PostActionAsync(world, old.PublicId, "request", new { SendNotification = true });
 
-        response.StatusCode.Should().BeOneOf(HttpStatusCode.NotFound, HttpStatusCode.Conflict, HttpStatusCode.Forbidden);
-        (await ReadStoredAsync(factory, old.PublicId)).Status.Should().Be(ClientPaymentStatus.Upcoming);
+        response.StatusCode.Should().Be(HttpStatusCode.OK, await response.Content.ReadAsStringAsync(Ct));
+        (await ReadStoredAsync(factory, old.PublicId)).Status.Should().Be(ClientPaymentStatus.Requested);
         var clientView = await world.Client.Http.GetAsync("/client/payments", Ct);
-        (await ReadAsync<GetClientPaymentsResponse>(clientView)).Coaches.SelectMany(c => c.Requested).Should().BeEmpty();
+        (await ReadAsync<GetClientPaymentsResponse>(clientView)).Coaches.SelectMany(c => c.Requested)
+            .Should().ContainSingle(item => item.PaymentId == old.PublicId).Which.IsEarlierCollaboration.Should().BeTrue();
+        (await ListAsync(world)).Single(row => row.PaymentId == old.PublicId).IsEarlierCollaboration.Should().BeTrue();
     }
 
-    /// <summary>Symptom 2 after a reconnect: the earlier collaboration's row is still requestable while the new one runs.</summary>
+    /// <summary>
+    /// Symptom 2 after a reconnect: the earlier collaboration's row can still be requested, is flagged as earlier, and
+    /// neither the client's first payment nor the coach's summary picks it.
+    /// </summary>
     [Fact]
-    public async Task Request_RowOfAnEarlierCollaboration_AfterAReconnect_IsRefused()
+    public async Task Request_RowOfAnEarlierCollaboration_AfterAReconnect_IsAcceptedAndFlaggedEarlier()
     {
         var world = await CreateWorldAsync(factory);
         var package = await CreatePackageAsync(world.Coach, 2500m, "Package");
@@ -151,7 +159,98 @@ public class Issue1767ReconnectPaymentsReproTests(FitnessApiFactory factory)
 
         var response = await PostActionAsync(world, old.PublicId, "request", new { SendNotification = true });
 
-        response.StatusCode.Should().BeOneOf(HttpStatusCode.NotFound, HttpStatusCode.Conflict, HttpStatusCode.Forbidden);
+        response.StatusCode.Should().Be(HttpStatusCode.OK, await response.Content.ReadAsStringAsync(Ct));
+        var rows = await ListAsync(world);
+        rows.Single(row => row.PaymentId == old.PublicId).IsEarlierCollaboration.Should().BeTrue();
+        rows.Where(row => row.PaymentId != old.PublicId).Should().OnlyContain(row => !row.IsEarlierCollaboration);
+
+        var collaborations = await ReadAsync<GetCollaborationsResponse>(await world.Client.Http.GetAsync("/client/collaborations", Ct));
+        var firstPayment = collaborations.Collaborations.Single().FirstPayment;
+        firstPayment.Should().NotBeNull();
+        firstPayment!.PaymentId.Should().NotBe(old.PublicId);
+        firstPayment.DueDate.Should().Be(Today);
+
+        var summary = await ReadAsync<GetClientPaymentSummaryResponse>(await world.Coach.Http.GetAsync($"{world.Route}/summary", Ct));
+        summary.NextPayment.Should().NotBeNull();
+        summary.NextPayment!.PaymentId.Should().NotBe(old.PublicId);
+        summary.PaidCount.Should().Be(0);
+    }
+
+    /// <summary>
+    /// Same-day restart onto a different package with a first-payment discount: the new first period is priced
+    /// under the new terms (price, discount, currency), not the ended ones.
+    /// </summary>
+    [Fact]
+    public async Task Reaccept_OnTheDayOfTheEnd_WithAnotherPackageAndDiscount_PricesTheFirstPeriodUnderTheNewTerms()
+    {
+        var world = await CreateWorldAsync(factory);
+        var oldPackage = await CreatePackageAsync(world.Coach, 2500m, "Old");
+        var newPackage = await CreatePackageAsync(world.Coach, 400m, "New", currency: "EUR");
+        var discount = await CreateDiscountAsync(world.Coach, 50m, "FirstPayments", 1);
+        await SetTermsOkAsync(world, oldPackage);
+        await EndCollaborationAsync(world);
+        await AcceptInviteAsync(world, newPackage);
+        await SetTermsOkAsync(world, newPackage, discount);
+
+        var rows = await ListAsync(world);
+
+        var first = rows.Single(row => row.PeriodStart == Today);
+        first.PackageName.Should().Be("New");
+        first.BasePrice.Should().Be(400m);
+        first.Amount.Should().Be(200m);
+        first.DiscountLabel.Should().NotBeNull();
+        first.Currency.Should().Be(PaymentCurrency.EUR);
+        first.IsEarlierCollaboration.Should().BeFalse();
+        (await ReadStoredAsync(factory, first.PaymentId)).Currency.Should().Be(PaymentCurrency.EUR);
+        rows.Should().OnlyContain(row => !row.IsEarlierCollaboration);
+    }
+
+    /// <summary>
+    /// A period of the ended collaboration that was already requested on the restart day cannot be deleted: it
+    /// stays as the coach's earlier row and the new collaboration's first period starts one interval later.
+    /// </summary>
+    [Fact]
+    public async Task Reaccept_OnTheDayOfTheEnd_WithTheDaysPeriodRequested_KeepsItAsEarlierAndStartsOneIntervalLater()
+    {
+        var world = await CreateWorldAsync(factory);
+        var package = await CreatePackageAsync(world.Coach, 2500m, "Package");
+        await SetTermsOkAsync(world, package);
+        var locked = (await ListAsync(world)).Single(row => row.PeriodStart == Today);
+        (await PostActionAsync(world, locked.PaymentId, "request", new { SendEmail = true })).StatusCode.Should().Be(HttpStatusCode.OK);
+        await EndCollaborationAsync(world);
+
+        await AcceptInviteAsync(world, package);
+
+        var stored = await ReadStoredAsync(factory, locked.PaymentId);
+        stored.IsKeptAfterEnd.Should().BeTrue();
+        stored.Status.Should().Be(ClientPaymentStatus.Requested);
+        var rows = await ListAsync(world);
+        rows.Single(row => row.PaymentId == locked.PaymentId).IsEarlierCollaboration.Should().BeTrue();
+        rows.Where(row => row.PaymentId != locked.PaymentId).Select(row => row.PeriodStart).Should().Equal(Today.AddMonths(1));
+        rows.Where(row => row.PaymentId != locked.PaymentId).Should().OnlyContain(row => !row.IsEarlierCollaboration);
+    }
+
+    /// <summary>A one-off payment made before the end is an earlier collaboration's; one added after the reconnect is not.</summary>
+    [Fact]
+    public async Task OneOffPayment_AddedAfterTheReconnect_IsNotMarkedEarlier()
+    {
+        var world = await CreateWorldAsync(factory);
+        var package = await CreatePackageAsync(world.Coach, 2500m, "Package");
+        await SetTermsOkAsync(world, package);
+        var before = await world.Coach.Http.PostAsJsonAsync(
+            $"{world.Route}/one-off", new { Title = "Before", Amount = 300m, DueDate = Today }, Ct);
+        before.StatusCode.Should().BeOneOf(HttpStatusCode.OK, HttpStatusCode.Created);
+        await EndCollaborationAsync(world);
+        await AcceptInviteAsync(world, package);
+        var after = await world.Coach.Http.PostAsJsonAsync(
+            $"{world.Route}/one-off", new { Title = "After", Amount = 400m, DueDate = Today }, Ct);
+        after.StatusCode.Should().BeOneOf(HttpStatusCode.OK, HttpStatusCode.Created);
+
+        var rows = await ListAsync(world);
+
+        rows.Single(row => row.Title == "Before").IsEarlierCollaboration.Should().BeTrue();
+        rows.Single(row => row.Title == "After").IsEarlierCollaboration.Should().BeFalse();
+        rows.Where(row => row.Kind == ClientPaymentKind.Recurring).Should().OnlyContain(row => !row.IsEarlierCollaboration);
     }
 
     /// <summary>

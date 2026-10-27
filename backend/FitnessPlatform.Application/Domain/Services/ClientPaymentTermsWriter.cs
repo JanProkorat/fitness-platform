@@ -150,6 +150,11 @@ public sealed class ClientPaymentTermsWriter(IApplicationDbContext db, IAuditSer
                 await db.ClientPayments.Where(p => staleIds.Contains(p.Id)).ExecuteDeleteAsync(ct);
             }
 
+            if (current is null && latest?.EndsAtUtc is not null)
+            {
+                staleIds.AddRange(await ReleaseRestartDayAsync(assignment.Id, effectiveFrom, ct));
+            }
+
             await ClientPaymentAudit.LogAsync(
                 audit,
                 actorUserId,
@@ -170,5 +175,37 @@ public sealed class ClientPaymentTermsWriter(IApplicationDbContext db, IAuditSer
         await transaction.CommitAsync(ct);
 
         return assignment;
+    }
+
+    /// <summary>
+    /// Frees the day a restarted collaboration begins from the earlier collaboration's period on it: a period that
+    /// was never requested is deleted, one that was requested, paid or waived stays as a kept row so the new first
+    /// period starts one interval later. Returns the ids of the deleted rows.
+    /// </summary>
+    private async Task<List<long>> ReleaseRestartDayAsync(long assignmentId, DateTime effectiveFrom, CancellationToken ct)
+    {
+        var restartDay = ClientPaymentSchedule.Today(effectiveFrom);
+        var earlier = await db.ClientPayments
+            .AsNoTracking()
+            .FirstOrDefaultAsync(
+                p => p.ClientPaymentAssignmentId == assignmentId && p.PeriodStart == restartDay && !p.IsKeptAfterEnd, ct);
+
+        if (earlier is null)
+        {
+            return [];
+        }
+
+        if (earlier.Status == ClientPaymentStatus.Upcoming && earlier.RequestedAt is null)
+        {
+            await db.ClientPayments.Where(p => p.Id == earlier.Id).ExecuteDeleteAsync(ct);
+
+            return [earlier.Id];
+        }
+
+        await db.ClientPayments
+            .Where(p => p.Id == earlier.Id)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(p => p.IsKeptAfterEnd, true), ct);
+
+        return [];
     }
 }
