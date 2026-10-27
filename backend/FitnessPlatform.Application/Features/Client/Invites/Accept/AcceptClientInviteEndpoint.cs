@@ -125,8 +125,6 @@ public class AcceptClientInviteEndpoint(
             return;
         }
 
-        var newLink = activation.Link;
-
         invite.Status = PendingInviteStatus.Accepted;
 
         // Also mark matching invitation tokens as used
@@ -145,14 +143,14 @@ public class AcceptClientInviteEndpoint(
 
         // If the invite included a questionnaire, create a pending response
         // so the web portal immediately shows the "waiting" state.
-        if (newLink is not null && invite.QuestionnaireId.HasValue)
+        if (activation.Started && invite.QuestionnaireId.HasValue)
         {
             var questionnaireResponse = new QuestionnaireResponse
             {
                 QuestionnaireId = invite.QuestionnaireId.Value,
                 ClientId = userGuid,
                 ProfessionalId = invite.ProfessionalProfile.UserId,
-                LinkId = newLink.Id,
+                LinkId = activation.Link!.Id,
                 Status = QuestionnaireResponseStatus.Pending,
             };
             db.QuestionnaireResponses.Add(questionnaireResponse);
@@ -161,7 +159,7 @@ public class AcceptClientInviteEndpoint(
 
         // Only a newly started (created or reactivated) link takes the invite's terms: a client who was already linked keeps whatever
         // the coach set on the Payments tab. A package that no longer qualifies is skipped, never an error.
-        if (newLink is not null && invite.CoachPackageId is { } packageId)
+        if (activation.Started && invite.CoachPackageId is { } packageId)
         {
             await termsApplier.ApplyAsync(
                 invite.PublicId,
