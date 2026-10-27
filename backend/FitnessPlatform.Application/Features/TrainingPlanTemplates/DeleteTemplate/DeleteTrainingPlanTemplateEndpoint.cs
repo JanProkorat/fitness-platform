@@ -18,7 +18,7 @@ namespace FitnessPlatform.Application.Features.TrainingPlanTemplates.DeleteTempl
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 [RemovedCoachRole(AppRoles.Trainer, RemovedCoachRoleMode.Refuse)]
-public class DeleteTrainingPlanTemplateEndpoint(IMongoContext mongo) : EndpointWithoutRequest
+public class DeleteTrainingPlanTemplateEndpoint(IMongoContext mongo) : Endpoint<DeleteTrainingPlanTemplateRequest>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -33,7 +33,7 @@ public class DeleteTrainingPlanTemplateEndpoint(IMongoContext mongo) : EndpointW
     }
 
     /// <inheritdoc />
-    public override async Task HandleAsync(CancellationToken ct)
+    public override async Task HandleAsync(DeleteTrainingPlanTemplateRequest req, CancellationToken ct)
     {
         var userId = User.FindFirstValue(AppClaims.UserId);
 
@@ -44,10 +44,9 @@ public class DeleteTrainingPlanTemplateEndpoint(IMongoContext mongo) : EndpointW
         }
 
         var ownerId = Guid.Parse(userId);
-        var templateId = Route<Guid>("TemplateId");
 
         var template = await this.LoadLibraryEntryForWriteOrRespondAsync(
-            mongo.TrainingPlanTemplates, templateId, ownerId, TrainingPlanTemplateLibrary.Denial, ct);
+            mongo.TrainingPlanTemplates, req.TemplateId, ownerId, TrainingPlanTemplateLibrary.Denial, ct);
 
         if (template is null)
         {

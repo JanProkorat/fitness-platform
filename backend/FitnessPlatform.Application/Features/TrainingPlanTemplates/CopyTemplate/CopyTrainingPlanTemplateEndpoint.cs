@@ -19,7 +19,7 @@ namespace FitnessPlatform.Application.Features.TrainingPlanTemplates.CopyTemplat
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="timeProvider">Injected time source for audit timestamps.</param>
 [RemovedCoachRole(AppRoles.Trainer, RemovedCoachRoleMode.Refuse)]
-public class CopyTrainingPlanTemplateEndpoint(IMongoContext mongo, TimeProvider timeProvider) : EndpointWithoutRequest
+public class CopyTrainingPlanTemplateEndpoint(IMongoContext mongo, TimeProvider timeProvider) : Endpoint<CopyTrainingPlanTemplateRequest>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -34,7 +34,7 @@ public class CopyTrainingPlanTemplateEndpoint(IMongoContext mongo, TimeProvider 
     }
 
     /// <inheritdoc />
-    public override async Task HandleAsync(CancellationToken ct)
+    public override async Task HandleAsync(CopyTrainingPlanTemplateRequest req, CancellationToken ct)
     {
         var userId = User.FindFirstValue(AppClaims.UserId);
 
@@ -45,10 +45,9 @@ public class CopyTrainingPlanTemplateEndpoint(IMongoContext mongo, TimeProvider 
         }
 
         var callerId = Guid.Parse(userId);
-        var templateId = Route<Guid>("TemplateId");
 
         var source = await this.LoadLibraryEntryForReadOrRespondAsync(
-            mongo.TrainingPlanTemplates, templateId, callerId, TrainingPlanTemplateLibrary.Denial, ct);
+            mongo.TrainingPlanTemplates, req.TemplateId, callerId, TrainingPlanTemplateLibrary.Denial, ct);
 
         if (source is null)
         {

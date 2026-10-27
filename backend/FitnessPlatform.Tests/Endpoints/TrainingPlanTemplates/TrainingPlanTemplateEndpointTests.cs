@@ -244,7 +244,7 @@ public class TrainingPlanTemplateEndpointTests(FitnessApiFactory factory)
 
         var (caller, _) = await RegisterAsync("Trainer", "caller-copy-public");
 
-        var response = await caller.PostAsync($"/training/plan-templates/{template.ExternalId}/copy", null);
+        var response = await caller.PostAsJsonAsync($"/training/plan-templates/{template.ExternalId}/copy", new { });
 
         response.StatusCode.Should().Be(
             HttpStatusCode.Created,
@@ -270,7 +270,7 @@ public class TrainingPlanTemplateEndpointTests(FitnessApiFactory factory)
 
         var (caller, _) = await RegisterAsync("Trainer", "caller-copy-private");
 
-        var response = await caller.PostAsync($"/training/plan-templates/{template.ExternalId}/copy", null);
+        var response = await caller.PostAsJsonAsync($"/training/plan-templates/{template.ExternalId}/copy", new { });
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
