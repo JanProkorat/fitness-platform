@@ -28474,6 +28474,8 @@ export interface ClientPaymentRowDto {
     paidOn?: string | undefined;
     /** Why the payment was waived. */
     waiveReason?: string | undefined;
+    /** Whether the payment belongs to a collaboration that ended before the current one. */
+    isEarlierCollaboration?: boolean;
 }
 
 /** How a client payment row came to exist. */
@@ -29617,6 +29619,8 @@ export interface ClientPaymentItemDto {
     dueDate?: string;
     /** Day the coach confirmed the money; paid payments only. */
     paidOn?: string | undefined;
+    /** Whether the payment belongs to a collaboration that ended before the current one with this coach. */
+    isEarlierCollaboration?: boolean;
     /** The coach's IBAN; requested payments only. */
     iban?: string | undefined;
     /** Name of the account holder; requested payments only. */
