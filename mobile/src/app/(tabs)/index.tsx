@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react';
 import { RefreshControl, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import Animated, { LinearTransition, ReduceMotion } from 'react-native-reanimated';
 
 import { Screen } from '@/components/Screen';
 import { TabFade } from '@/components/TabFade';
@@ -29,8 +28,6 @@ import { useProfile } from '@/hooks/useProfile';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
-
-const reflow = LinearTransition.reduceMotion(ReduceMotion.System);
 
 const unique =<T,>(values: readonly T[]): T[] => Array.from(new Set(values));
 
@@ -103,12 +100,8 @@ function TodayContent() {
           ) : (
             <FindCoachSection roles={missing} />
           )}
-          <Animated.View layout={reflow}>
-            <HowItWorks />
-          </Animated.View>
-          <Animated.View layout={reflow}>
-            <StartOnYourOwn />
-          </Animated.View>
+          <HowItWorks />
+          <StartOnYourOwn />
         </>,
       );
     }
@@ -144,13 +137,9 @@ function TodayContent() {
               </Text>
             ) : null}
             {missing.length > 0 ? (
-              <Animated.View layout={reflow}>
-                <RoleSlots missing={missing} offers={offers} mode="add" />
-              </Animated.View>
+              <RoleSlots missing={missing} offers={offers} mode="add" />
             ) : null}
-            <Animated.View layout={reflow}>
-              <StartOnYourOwn showHeading={false} />
-            </Animated.View>
+            <StartOnYourOwn showHeading={false} />
           </>,
           true,
         );
