@@ -10,6 +10,7 @@ import { INVITES_QUERY_KEY, acceptInvite, declineInvite } from '@/api/invites';
 import { NOTIFICATIONS_QUERY_KEY } from '@/api/notifications';
 import { PAYMENTS_QUERY_KEY } from '@/api/payments';
 import { PROFILE_QUERY_KEY, PROFILE_SUMMARY_QUERY_KEY } from '@/api/profile';
+import { PENDING_QUESTIONNAIRES_QUERY_KEY, SUBMITTED_QUESTIONNAIRES_QUERY_KEY } from '@/api/questionnaires';
 
 type Answer = 'accept' | 'decline';
 
@@ -54,6 +55,9 @@ export function useInviteActions({ onSettled }: Options = {}) {
         void queryClient.invalidateQueries({ queryKey: COLLABORATIONS_QUERY_KEY });
         // The package the invite assigns can request payments, which Today's payment card shows.
         void queryClient.invalidateQueries({ queryKey: PAYMENTS_QUERY_KEY });
+        // An invite's questionnaire becomes a pending step on the coach card, also when it widens a link.
+        void queryClient.invalidateQueries({ queryKey: PENDING_QUESTIONNAIRES_QUERY_KEY });
+        void queryClient.invalidateQueries({ queryKey: SUBMITTED_QUESTIONNAIRES_QUERY_KEY });
       }
       onSettled?.();
     },

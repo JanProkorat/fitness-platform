@@ -239,7 +239,7 @@
       "message": "Napsat zprávu",
       "messageLabel": "Napsat zprávu poradci",
       "firstPayment": {
-        "title": "Zaplaťte první měsíc",
+        "title": "Zaplaťte první platbu",
         "upcomingHint": "{{details}}. {{name}} vám pošle platební údaje.",
         "requestedHint": "{{details}} přes QR",
         "overdueHint": "{{details}} přes QR · po splatnosti",

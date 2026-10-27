@@ -237,7 +237,7 @@
       "message": "Message {{name}}",
       "messageLabel": "Message {{name}}",
       "firstPayment": {
-        "title": "Pay the first month",
+        "title": "Make the first payment",
         "upcomingHint": "{{details}}. {{name}} will send the payment details.",
         "requestedHint": "{{details}} by QR",
         "overdueHint": "{{details}} by QR · overdue",
