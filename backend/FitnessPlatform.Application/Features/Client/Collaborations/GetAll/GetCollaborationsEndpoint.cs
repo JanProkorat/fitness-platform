@@ -84,11 +84,43 @@ public class GetCollaborationsEndpoint(IApplicationDbContext db, TimeProvider ti
 
         var today = ClientPaymentSchedule.Today(timeProvider.GetUtcNow().UtcDateTime);
 
+        // A payment the coach asked for is the first payment, exactly as GET /client/payments lists it.
+        var requested = await ClientPaymentQueries.RequestedOrdered(ClientPaymentQueries.VisibleToClient(db, clientProfileId).AsNoTracking())
+            .ToListAsync(ct);
+        var requestedCoachIds = requested.Select(p => p.ProfessionalProfileId).Distinct().ToList();
+        var coachPublicIds = await db.ProfessionalProfiles
+            .AsNoTracking()
+            .Where(c => requestedCoachIds.Contains(c.Id))
+            .ToDictionaryAsync(c => c.Id, c => c.PublicId, ct);
+
+        foreach (var collaboration in collaborations)
+        {
+            var open = requested.FirstOrDefault(p =>
+                coachPublicIds.TryGetValue(p.ProfessionalProfileId, out var publicId) && publicId == collaboration.ProfessionalPublicId);
+
+            if (open is null)
+            {
+                continue;
+            }
+
+            var openFigures = ClientPaymentSchedule.FiguresOf(open, [], []);
+
+            collaboration.FirstPayment = new CollaborationFirstPaymentDto
+            {
+                PackageName = openFigures.PackageName,
+                Amount = openFigures.Amount,
+                Currency = open.Currency,
+                Status = ClientPaymentSchedule.DerivedStatus(open.Status, open.DueDate, today),
+                DueDate = open.DueDate,
+                PaymentId = open.PublicId
+            };
+        }
+
         foreach (var assignment in assignments)
         {
             var collaboration = collaborations.FirstOrDefault(c => c.ProfessionalPublicId == assignment.ProfessionalPublicId);
 
-            if (collaboration is null)
+            if (collaboration is null || collaboration.FirstPayment is not null)
             {
                 continue;
             }

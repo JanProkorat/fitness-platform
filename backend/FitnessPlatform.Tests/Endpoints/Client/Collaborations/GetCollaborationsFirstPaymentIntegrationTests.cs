@@ -93,6 +93,26 @@ public class GetCollaborationsFirstPaymentIntegrationTests(FitnessApiFactory fac
     }
 
     [Fact]
+    public async Task GetAll_LaterRowRequested_FirstPaymentIsTheRequestedRowOfClientPayments()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var world = await CreateWorldAsync(factory);
+        var rows = await StartMonthlyAsync(world, price: 1400m);
+        rows.Count.Should().BeGreaterThan(1, "the requested row must differ from the earliest period");
+        var requestedRow = rows[^1];
+        (await PostActionAsync(world, requestedRow.PaymentId, "request", new { SendEmail = true })).StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var firstPayment = await GetFirstPaymentAsync(world.Client, world.Coach);
+        var clientPayments = await world.Client.Http.GetFromJsonAsync<ClientPaymentsResult>("/client/payments", Wire, ct);
+        var requestedItem = clientPayments!.Coaches.SelectMany(c => c.Requested).Single();
+
+        firstPayment!.PaymentId.Should().Be(requestedItem.PaymentId);
+        firstPayment.PaymentId.Should().Be(requestedRow.PaymentId);
+        firstPayment.Status.Should().Be(nameof(ClientPaymentStatus.Requested));
+        firstPayment.Amount.Should().Be(1400m);
+    }
+
+    [Fact]
     public async Task GetAll_FirstPaymentRequestedAndPastDue_ReturnsOverdue()
     {
         var world = await CreateWorldAsync(factory);
