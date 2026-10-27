@@ -22,7 +22,7 @@ public class CancelClientRequestEndpoint(
 {
     public override void Configure()
     {
-        Delete("/client/requests/{PublicId}");
+        Delete("/client/requests/{publicId}");
         Roles(AppRoles.Client);
         Summary(s =>
         {
@@ -42,7 +42,7 @@ public class CancelClientRequestEndpoint(
         }
 
         var userGuid = Guid.Parse(userId);
-        var publicId = Route<Guid>("PublicId");
+        var publicId = Route<Guid>("publicId");
 
         var clientProfile = await db.ClientProfiles
             .AsNoTracking()
