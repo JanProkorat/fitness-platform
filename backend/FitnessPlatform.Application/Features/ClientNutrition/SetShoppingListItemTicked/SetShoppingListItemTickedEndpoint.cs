@@ -83,8 +83,19 @@ internal sealed class SetShoppingListItemTickedEndpoint(IMongoContext mongo, IAp
             var upsert = Builders<ShoppingListTick>.Update
                 .SetOnInsert(t => t.CreatedAt, timeProvider.GetUtcNow().UtcDateTime);
 
-            await mongo.ShoppingListTicks.UpdateOneAsync(
-                tickFilter, upsert, new UpdateOptions { IsUpsert = true }, ct);
+            try
+            {
+                await mongo.ShoppingListTicks.UpdateOneAsync(
+                    tickFilter, upsert, new UpdateOptions { IsUpsert = true }, ct);
+            }
+            catch (MongoCommandException ex) when (ex.Code == 11000)
+            {
+                // A concurrent first tick won the unique-index race; the item is ticked either way.
+            }
+            catch (MongoWriteException ex) when (ex.WriteError.Category == ServerErrorCategory.DuplicateKey)
+            {
+                // Same race, surfaced as a write error.
+            }
         }
         else
         {

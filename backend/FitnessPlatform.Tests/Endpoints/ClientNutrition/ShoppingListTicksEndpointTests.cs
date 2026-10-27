@@ -77,6 +77,34 @@ public class ShoppingListTicksEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
+    public async Task Tick_ConcurrentSameItem_LeavesExactlyOneDocument_AndUniqueIndexRejectsDuplicates()
+    {
+        var client = await TestActors.Client(factory).CreateAsync(TestContext.Current.CancellationToken);
+        var food = PlanTestHelpers.CreateMealFood(foodName: "Beans");
+        var plan = await InsertTwoWeekPlanAsync(client, food);
+
+        var responses = await Task.WhenAll(Enumerable.Range(0, 6).Select(_ => TickAsync(client, 1, food.FoodExternalId, true)));
+
+        responses.Should().OnlyContain(r => r.StatusCode == HttpStatusCode.NoContent);
+        (await CountTicksAsync(client.UserId)).Should().Be(1);
+
+        using var scope = factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+        var duplicate = async () => await mongo.ShoppingListTicks.InsertOneAsync(
+            new ShoppingListTick
+            {
+                ClientId = client.UserId,
+                PlanId = plan.ExternalId,
+                WeekNumber = 1,
+                FoodExternalId = food.FoodExternalId,
+            },
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        (await duplicate.Should().ThrowAsync<MongoWriteException>())
+            .Which.WriteError.Category.Should().Be(ServerErrorCategory.DuplicateKey);
+    }
+
+    [Fact]
     public async Task ShoppingList_MultiWeekRange_IsTickedOnlyWhenTickedInEveryWeek()
     {
         var client = await TestActors.Client(factory).CreateAsync(TestContext.Current.CancellationToken);
