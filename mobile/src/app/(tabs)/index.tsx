@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { RefreshControl, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import Animated, { LinearTransition, ReduceMotion } from 'react-native-reanimated';
 
 import { Screen } from '@/components/Screen';
 import { TabFade } from '@/components/TabFade';
@@ -29,7 +30,9 @@ import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
 
-const unique = <T,>(values: readonly T[]): T[] => Array.from(new Set(values));
+const reflow = LinearTransition.reduceMotion(ReduceMotion.System);
+
+const unique =<T,>(values: readonly T[]): T[] => Array.from(new Set(values));
 
 export default function TodayScreen() {
   return (
@@ -100,8 +103,12 @@ function TodayContent() {
           ) : (
             <FindCoachSection roles={missing} />
           )}
-          <HowItWorks />
-          <StartOnYourOwn />
+          <Animated.View layout={reflow}>
+            <HowItWorks />
+          </Animated.View>
+          <Animated.View layout={reflow}>
+            <StartOnYourOwn />
+          </Animated.View>
         </>,
       );
     }
@@ -136,8 +143,14 @@ function TodayContent() {
                 {t('today.linkedBody')}
               </Text>
             ) : null}
-            {missing.length > 0 ? <RoleSlots missing={missing} offers={offers} mode="add" /> : null}
-            <StartOnYourOwn showHeading={false} />
+            {missing.length > 0 ? (
+              <Animated.View layout={reflow}>
+                <RoleSlots missing={missing} offers={offers} mode="add" />
+              </Animated.View>
+            ) : null}
+            <Animated.View layout={reflow}>
+              <StartOnYourOwn showHeading={false} />
+            </Animated.View>
           </>,
           true,
         );
