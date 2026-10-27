@@ -181,14 +181,22 @@ public class GetTodayLogEndpoint(IMongoContext mongo, IApplicationDbContext db, 
             offPlanFoods = dayLogs.SelectMany(l => l.OffPlanFoods).OrderBy(e => e.LoggedAt).ToList();
         }
 
-        // Sum all meal totals plus off-plan foods
+        // Only rows marked eaten count, once per meal: photo-only rows (EatenAt null) are returned
+        // above for their photos but contribute nothing to consumption.
+        var eatenMeals = mealsEaten
+            .Where(m => m.EatenAt is not null)
+            .GroupBy(m => m.MealId)
+            .Select(g => g.First())
+            .ToList();
+
+        // Sum eaten meal totals plus off-plan foods
         var totalConsumed = new NutrientTotals
         {
-            Kcal = mealsEaten.Sum(m => m.Totals.Kcal) + offPlanFoods.Sum(e => e.Kcal),
-            Protein = mealsEaten.Sum(m => m.Totals.Protein) + offPlanFoods.Sum(e => e.Protein),
-            Carbs = mealsEaten.Sum(m => m.Totals.Carbs) + offPlanFoods.Sum(e => e.Carbs),
-            Fat = mealsEaten.Sum(m => m.Totals.Fat) + offPlanFoods.Sum(e => e.Fat),
-            Fiber = mealsEaten.Sum(m => m.Totals.Fiber) + offPlanFoods.Sum(e => e.Fiber)
+            Kcal = eatenMeals.Sum(m => m.Totals.Kcal) + offPlanFoods.Sum(e => e.Kcal),
+            Protein = eatenMeals.Sum(m => m.Totals.Protein) + offPlanFoods.Sum(e => e.Protein),
+            Carbs = eatenMeals.Sum(m => m.Totals.Carbs) + offPlanFoods.Sum(e => e.Carbs),
+            Fat = eatenMeals.Sum(m => m.Totals.Fat) + offPlanFoods.Sum(e => e.Fat),
+            Fiber = eatenMeals.Sum(m => m.Totals.Fiber) + offPlanFoods.Sum(e => e.Fiber)
         };
 
         // Calculate remaining if global settings exist
