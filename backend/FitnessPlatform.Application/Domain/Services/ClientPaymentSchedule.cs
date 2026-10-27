@@ -199,7 +199,7 @@ public static class ClientPaymentSchedule
 
                 // Terms starting on the day the last period began (an end and a new start on the same day)
                 // take over from the next period on.
-                if (restart is not null && existingPeriods is not null
+                if (restart is not null && endedByCollaboration && existingPeriods is not null
                     && cursor is { } rowDay && everyStart.Contains(rowDay))
                 {
                     // The rows were built on the old step, so the new terms begin where the latest of them ends.

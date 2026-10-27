@@ -551,6 +551,18 @@ public class ClientPaymentScheduleTests
     }
 
     [Fact]
+    public void PlanMissingPeriods_OneOffThenRecurringTheSameDayWithoutAnEnd_StartsOneStepAfterTheRestartDay()
+    {
+        var oneOff = Terms(Package(PackageBillingInterval.OneOff), Today);
+        var monthly = Terms(Package(), Today);
+        monthly.EffectiveFromUtc = oneOff.EffectiveFromUtc.AddHours(6);
+        (DateOnly Start, DateOnly? End)[] rows = [(Today, Today)];
+
+        ClientPaymentSchedule.PlanMissingPeriods([oneOff, monthly], [Today], Today, null, rows)
+            .Should().Equal((new DateOnly(2026, 11, 21), new DateOnly(2026, 12, 20)));
+    }
+
+    [Fact]
     public void PlanMissingPeriods_KeptPaidRowOnTheNewTermsDay_NeitherStallsNorIsPlannedTwice()
     {
         var old = Ended(Terms(Package(), new DateOnly(2026, 8, 5)), new DateOnly(2026, 10, 26));
