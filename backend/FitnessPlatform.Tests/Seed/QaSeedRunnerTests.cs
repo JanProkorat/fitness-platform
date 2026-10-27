@@ -112,6 +112,7 @@ public class QaSeedRunnerFactory(SharedTestContainers sharedContainers) : WebApp
 {
     private string _postgresConnectionString = string.Empty;
     private string _mongoDatabaseName = string.Empty;
+    private bool _defaultSeeded;
 
     public TrackingBlobStorageService BlobStorage { get; } = new();
 
@@ -204,6 +205,32 @@ public class QaSeedRunnerFactory(SharedTestContainers sharedContainers) : WebApp
         await ApplicationDbContextSeed.SeedAsync(Services);
     }
 
+    /// <summary>
+    /// Wipes Postgres, Mongo and the blob tracker, and marks the shared default-kind seed as gone.
+    /// </summary>
+    public async Task ResetAsync()
+    {
+        _defaultSeeded = false;
+        await Services.ResetPostgresAndMongoAsync();
+        BlobStorage.Reset();
+    }
+
+    /// <summary>
+    /// Makes sure the database holds exactly one default-kind (rich) seed, seeding it only when a
+    /// previous fact wiped or replaced it. Read-only facts share that one seed.
+    /// </summary>
+    public async Task EnsureDefaultSeedAsync()
+    {
+        if (_defaultSeeded)
+        {
+            return;
+        }
+
+        await ResetAsync();
+        await QaSeedRunner.SeedAsync(Services);
+        _defaultSeeded = true;
+    }
+
     // Skip base.DisposeAsync() to avoid disposing the root IServiceProvider while other tests
     // may be holding a reference (see FitnessApiFactory comment). No Testcontainer to dispose
     // here anymore (#1104 Phase B); SharedTestContainers owns that.
@@ -219,8 +246,7 @@ public class QaSeedRunnerFactory(SharedTestContainers sharedContainers) : WebApp
 /// and don't contend with the shared Integration collection's Testcontainers.
 /// Boots <see cref="QaSeedRunnerFactory"/> ONCE for the whole collection (mirrors
 /// <see cref="Infrastructure.TestCollection"/>) rather than per test — see
-/// <see cref="QaSeedRunnerTests.InitializeAsync"/> for the per-test reset that
-/// keeps each fact's assertions pristine despite the shared host (#1104).
+/// <see cref="QaSeedRunnerFactory.EnsureDefaultSeedAsync"/> for how facts share one seed (#1104).
 /// </summary>
 [CollectionDefinition("SeedTests")]
 public class SeedTestsCollection : ICollectionFixture<QaSeedRunnerFactory>;
@@ -231,35 +257,32 @@ public class SeedTestsCollection : ICollectionFixture<QaSeedRunnerFactory>;
 /// fully seeded stack must converge without throwing on duplicate keys.
 /// </summary>
 /// <remarks>
-/// Resets Postgres + Mongo to a pristine state before each fact (same
-/// drop-schema/drop-collections technique as <c>ResetTestStateEndpoint</c>) because
-/// several facts assert exact counts or exercise different QA_SEED_KIND branches
-/// that must not see a prior fact's leftover state now that the factory is shared
-/// across the whole class instead of booted fresh per test (#1104).
+/// Read-only shape facts share one default-kind seed (<see cref="QaSeedRunnerFactory.EnsureDefaultSeedAsync"/>).
+/// Facts that need a pristine database — run-twice, minimal kind, unknown kind, Duo — wipe it first with
+/// <see cref="QaSeedRunnerFactory.ResetAsync"/>, which also invalidates the shared seed.
 /// </remarks>
 [Collection("SeedTests")]
-public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
+public class QaSeedRunnerTests(QaSeedRunnerFactory factory)
 {
     private readonly QaSeedRunnerFactory _factory = factory;
 
-    public async ValueTask InitializeAsync()
+    private async Task ResetAndSeedAsync()
     {
-        await _factory.Services.ResetPostgresAndMongoAsync();
-        _factory.BlobStorage.Reset();
+        await _factory.ResetAsync();
+        await QaSeedRunner.SeedAsync(_factory.Services);
     }
 
-    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
-
     /// <summary>
-    /// Running SeedAsync twice must be idempotent: all counts stay at 1
-    /// and blob upload is not repeated after the first run.
+    /// Running SeedAsync twice must be idempotent: every fixture stays at its first-run count,
+    /// ids and links stay stable, and blob upload is not repeated after the first run.
     /// </summary>
     [Fact]
     public async Task SeedAsync_RunTwice_IsIdempotent()
     {
         var ct = TestContext.Current.CancellationToken;
 
-        // Act — run twice.
+        // Act — run twice over a pristine database.
+        await _factory.ResetAsync();
         await QaSeedRunner.SeedAsync(_factory.Services);
         await QaSeedRunner.SeedAsync(_factory.Services);
 
@@ -372,6 +395,110 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
         var endedLinkMessageIds = new[] { QaSeedRunner.QaEndedLinkMessage1Id, QaSeedRunner.QaEndedLinkMessage2Id };
         (await db.ChatMessages.CountAsync(m => endedLinkMessageIds.Contains(m.PublicId), ct))
             .Should().Be(2, "both ended-link messages must be present with no duplicates");
+
+        // #326 — past training plan and its two executions.
+        (await mongo.TrainingPlans.CountDocumentsAsync(
+                Builders<TrainingPlan>.Filter.Eq(p => p.ExternalId, QaSeedRunner.QaPastTrainingPlanExternalId),
+                cancellationToken: ct))
+            .Should().Be(1, "past training plan must not be duplicated on re-seed");
+        (await mongo.SessionExecutions.CountDocumentsAsync(
+                Builders<SessionExecution>.Filter.Eq(l => l.ExternalId, QaSeedRunner.QaPastCompletedExecutionId),
+                cancellationToken: ct))
+            .Should().Be(1, "completed SessionExecution must not be duplicated on re-seed");
+        (await mongo.SessionExecutions.CountDocumentsAsync(
+                Builders<SessionExecution>.Filter.Eq(l => l.ExternalId, QaSeedRunner.QaPastSkippedExecutionId),
+                cancellationToken: ct))
+            .Should().Be(1, "skipped SessionExecution must not be duplicated on re-seed");
+
+        // #1303 — client Overview fixtures.
+        var qaClientProfile = await db.ClientProfiles.FirstAsync(p => p.UserId == QaSeedRunner.ClientUserId, ct);
+        (await db.BodyMeasurements.CountAsync(m => m.ClientProfileId == qaClientProfile.Id, ct)).Should().Be(8);
+        (await db.ClientOnboardingData.CountAsync(o => o.ClientProfileId == qaClientProfile.Id, ct)).Should().Be(1);
+        (await db.ClientNutritionTargets.CountAsync(t => t.ClientOnboardingData.ClientProfileId == qaClientProfile.Id, ct)).Should().Be(1);
+        (await db.WeeklyCheckIns.CountAsync(w => w.ClientUserId == QaSeedRunner.ClientUserId, ct)).Should().Be(7);
+        (await mongo.MealLogs.CountDocumentsAsync(l => l.ClientId == QaSeedRunner.ClientUserId, cancellationToken: ct)).Should().Be(14);
+        (await mongo.PersonalRecords.CountDocumentsAsync(r => r.ClientId == QaSeedRunner.ClientUserId, cancellationToken: ct)).Should().Be(1);
+        (await FindMondayExecutionsAsync(mongo, ct)).Should().HaveCount(1);
+
+        // #1311 — both-roles coach and QA Duo.
+        (await db.Users.CountAsync(u => u.Email == QaSeedRunner.CoachEmail, ct)).Should().Be(1);
+        (await db.Users.CountAsync(u => u.Email == QaSeedRunner.ClientDuoEmail, ct)).Should().Be(1);
+        (await db.ClientProfessionalLinks.CountAsync(l => l.ProfessionalProfile.UserId == QaSeedRunner.CoachUserId, ct)).Should().Be(1);
+
+        var duoProfile = await db.ClientProfiles.FirstAsync(p => p.UserId == QaSeedRunner.ClientDuoUserId, ct);
+        (await db.BodyMeasurements.CountAsync(m => m.ClientProfileId == duoProfile.Id, ct)).Should().Be(8);
+        (await db.ClientOnboardingData.CountAsync(o => o.ClientProfileId == duoProfile.Id, ct)).Should().Be(1);
+        (await db.WeeklyCheckIns.CountAsync(w => w.ClientUserId == QaSeedRunner.ClientDuoUserId, ct)).Should().Be(5);
+
+        (await mongo.NutritionPlans.CountDocumentsAsync(p => p.ClientId == QaSeedRunner.ClientDuoUserId, cancellationToken: ct)).Should().Be(1);
+        (await mongo.TrainingPlans.CountDocumentsAsync(p => p.ClientId == QaSeedRunner.ClientDuoUserId, cancellationToken: ct)).Should().Be(1);
+        (await mongo.SessionExecutions.CountDocumentsAsync(e => e.ClientId == QaSeedRunner.ClientDuoUserId, cancellationToken: ct)).Should().Be(1);
+        (await mongo.PersonalRecords.CountDocumentsAsync(r => r.ClientId == QaSeedRunner.ClientDuoUserId, cancellationToken: ct)).Should().Be(1);
+        (await mongo.MealLogs.CountDocumentsAsync(l => l.ClientId == QaSeedRunner.ClientDuoUserId, cancellationToken: ct))
+            .Should().BeGreaterThan(0);
+
+        // #879 — dual-placement completion execution.
+        (await mongo.SessionExecutions.CountDocumentsAsync(
+                Builders<SessionExecution>.Filter.Eq(e => e.ExternalId, QaSeedRunner.QaDualPlacementSessionExecutionId),
+                cancellationToken: ct))
+            .Should().Be(1, "the dual-placement completion SessionExecution must not be duplicated on re-seed");
+
+        // #946 — photo diary request rows.
+        (await db.PhotoDiaryRequests.CountAsync(
+                r => r.Id == QaSeedRunner.QaPhotoDiaryRequestWithPlanId || r.Id == QaSeedRunner.QaPhotoDiaryRequestPlanlessId, ct))
+            .Should().Be(2, "the two PhotoDiaryRequest fixture rows must not be duplicated on re-seed");
+
+        // Main-plan execution and the #474 multi-section plan + execution.
+        (await mongo.SessionExecutions.CountDocumentsAsync(
+                Builders<SessionExecution>.Filter.Eq(l => l.ExternalId, QaSeedRunner.QaMainPlanCompletedExecutionId),
+                cancellationToken: ct))
+            .Should().Be(1, "main-plan SessionExecution must not be duplicated on re-seed");
+        (await mongo.TrainingPlans.CountDocumentsAsync(
+                Builders<TrainingPlan>.Filter.Eq(p => p.ExternalId, QaSeedRunner.QaMultiSectionPlanExternalId),
+                cancellationToken: ct))
+            .Should().Be(1, "multi-section plan must not be duplicated on re-seed");
+        (await mongo.SessionExecutions.CountDocumentsAsync(
+                Builders<SessionExecution>.Filter.Eq(l => l.ExternalId, QaSeedRunner.QaMultiSectionExecutionId),
+                cancellationToken: ct))
+            .Should().Be(1, "multi-section SessionExecution must not be duplicated on re-seed");
+
+        // #715 — trainer-owned questionnaire template, response, answers and training-plan link.
+        (await db.Questionnaires.CountAsync(q => q.PublicId == QaSeedRunner.QaQuestionnaireExternalId, ct))
+            .Should().Be(1, "the questionnaire template must not be duplicated on re-seed");
+        (await db.QuestionnaireQuestions.CountAsync(q => q.Questionnaire.PublicId == QaSeedRunner.QaQuestionnaireExternalId, ct))
+            .Should().Be(8, "the 8 template questions must not be duplicated on re-seed");
+        (await db.QuestionnaireResponses.CountAsync(r => r.PublicId == QaSeedRunner.QaQuestionnaireResponseExternalId, ct))
+            .Should().Be(1, "the submitted response must not be duplicated on re-seed");
+        (await db.QuestionnaireAnswers.CountAsync(a => a.Response.PublicId == QaSeedRunner.QaQuestionnaireResponseExternalId, ct))
+            .Should().Be(6, "the 6 answers must not be duplicated on re-seed");
+
+        var trainingPlan = await mongo.TrainingPlans
+            .Find(p => p.ExternalId == QaSeedRunner.QaTrainingPlanExternalId)
+            .FirstOrDefaultAsync(ct);
+        trainingPlan!.QuestionnaireResponseId.Should().Be(QaSeedRunner.QaQuestionnaireResponseExternalId,
+            "the training plan link must remain stable across re-seeds");
+        trainingPlan.Version.Should().Be(2, "the link update bumps Version exactly once, not once per seed run");
+
+        // #720 — nutritionist-owned questionnaire template, response, answers and nutrition-plan link.
+        (await db.Questionnaires.CountAsync(q => q.PublicId == QaSeedRunner.QaNutriQuestionnaireExternalId, ct))
+            .Should().Be(1, "the nutritionist questionnaire template must not be duplicated on re-seed");
+        (await db.QuestionnaireQuestions.CountAsync(q => q.Questionnaire.PublicId == QaSeedRunner.QaNutriQuestionnaireExternalId, ct))
+            .Should().Be(8, "the 8 template questions must not be duplicated on re-seed");
+        (await db.QuestionnaireResponses.CountAsync(r => r.PublicId == QaSeedRunner.QaNutriQuestionnaireResponseExternalId, ct))
+            .Should().Be(1, "the submitted response must not be duplicated on re-seed");
+        (await db.QuestionnaireAnswers.CountAsync(a => a.Response.PublicId == QaSeedRunner.QaNutriQuestionnaireResponseExternalId, ct))
+            .Should().Be(6, "the 6 answers must not be duplicated on re-seed");
+
+        // Total links: 2 trainer↔client (#474) + 1 nutritionist↔client (#720) + 1 qa.trainer↔client3 (#1095)
+        // + 1 ended qa.trainer↔former-client (#1101) + 1 qa.coach↔QA Duo (#1311).
+        (await db.ClientProfessionalLinks.CountAsync(ct)).Should().Be(6, "no duplicate links on re-seed");
+
+        var nutritionPlan = await mongo.NutritionPlans
+            .Find(p => p.ExternalId == QaSeedRunner.QaNutritionPlanExternalId)
+            .FirstOrDefaultAsync(ct);
+        nutritionPlan!.QuestionnaireResponseId.Should().Be(QaSeedRunner.QaNutriQuestionnaireResponseExternalId,
+            "the nutrition plan link must remain stable across re-seeds");
+        nutritionPlan.Version.Should().Be(2, "the link update bumps Version exactly once, not once per seed run");
     }
 
     /// <summary>
@@ -385,6 +512,7 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
         var ct = TestContext.Current.CancellationToken;
 
         // Arrange — switch to minimal mode for this seed run.
+        await _factory.ResetAsync();
         Environment.SetEnvironmentVariable("QA_SEED_KIND", "minimal");
         try
         {
@@ -467,6 +595,7 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
     {
         var ct = TestContext.Current.CancellationToken;
 
+        await _factory.ResetAsync();
         Environment.SetEnvironmentVariable("QA_SEED_KIND", "ritch");
         try
         {
@@ -509,7 +638,7 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
     {
         var ct = TestContext.Current.CancellationToken;
 
-        await QaSeedRunner.SeedAsync(_factory.Services);
+        await _factory.EnsureDefaultSeedAsync();
 
         using var scope = _factory.Services.CreateScope();
         var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
@@ -597,7 +726,7 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
     {
         var ct = TestContext.Current.CancellationToken;
 
-        await QaSeedRunner.SeedAsync(_factory.Services);
+        await _factory.EnsureDefaultSeedAsync();
 
         using var scope = _factory.Services.CreateScope();
         var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
@@ -632,7 +761,7 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
     {
         var ct = TestContext.Current.CancellationToken;
 
-        await QaSeedRunner.SeedAsync(_factory.Services);
+        await _factory.EnsureDefaultSeedAsync();
 
         using var scope = _factory.Services.CreateScope();
         var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
@@ -672,36 +801,6 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
     }
 
     /// <summary>
-    /// Seeding twice must not create duplicate past-plan or workout-log documents.
-    /// </summary>
-    [Fact]
-    public async Task SeedAsync_PastTrainingPlan_IsIdempotent()
-    {
-        var ct = TestContext.Current.CancellationToken;
-
-        await QaSeedRunner.SeedAsync(_factory.Services);
-        await QaSeedRunner.SeedAsync(_factory.Services);
-
-        using var scope = _factory.Services.CreateScope();
-        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
-
-        var planCount = await mongo.TrainingPlans.CountDocumentsAsync(
-            Builders<TrainingPlan>.Filter.Eq(p => p.ExternalId, QaSeedRunner.QaPastTrainingPlanExternalId),
-            cancellationToken: ct);
-        planCount.Should().Be(1, "past training plan must not be duplicated on re-seed");
-
-        var completedLogCount = await mongo.SessionExecutions.CountDocumentsAsync(
-            Builders<SessionExecution>.Filter.Eq(l => l.ExternalId, QaSeedRunner.QaPastCompletedExecutionId),
-            cancellationToken: ct);
-        completedLogCount.Should().Be(1, "completed SessionExecution must not be duplicated on re-seed");
-
-        var skippedLogCount = await mongo.SessionExecutions.CountDocumentsAsync(
-            Builders<SessionExecution>.Filter.Eq(l => l.ExternalId, QaSeedRunner.QaPastSkippedExecutionId),
-            cancellationToken: ct);
-        skippedLogCount.Should().Be(1, "skipped SessionExecution must not be duplicated on re-seed");
-    }
-
-    /// <summary>
     /// The nutrition plan seeded by <see cref="QaSeedRunner"/> must have Status=Active
     /// and two Published weeks, each with seven days of three meals (Breakfast, Lunch, Dinner).
     /// </summary>
@@ -710,7 +809,7 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
     {
         var ct = TestContext.Current.CancellationToken;
 
-        await QaSeedRunner.SeedAsync(_factory.Services);
+        await _factory.EnsureDefaultSeedAsync();
 
         using var scope = _factory.Services.CreateScope();
         var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
@@ -747,7 +846,7 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
     {
         var ct = TestContext.Current.CancellationToken;
 
-        await QaSeedRunner.SeedAsync(_factory.Services);
+        await _factory.EnsureDefaultSeedAsync();
 
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -793,7 +892,7 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
     {
         var ct = TestContext.Current.CancellationToken;
 
-        await QaSeedRunner.SeedAsync(_factory.Services);
+        await _factory.EnsureDefaultSeedAsync();
 
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -829,7 +928,7 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
     {
         var ct = TestContext.Current.CancellationToken;
 
-        await QaSeedRunner.SeedAsync(_factory.Services);
+        await _factory.EnsureDefaultSeedAsync();
 
         using var scope = _factory.Services.CreateScope();
         var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
@@ -873,7 +972,7 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
     {
         var ct = TestContext.Current.CancellationToken;
 
-        await QaSeedRunner.SeedAsync(_factory.Services);
+        await _factory.EnsureDefaultSeedAsync();
 
         using var scope = _factory.Services.CreateScope();
         var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
@@ -900,7 +999,7 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
     {
         var ct = TestContext.Current.CancellationToken;
 
-        await QaSeedRunner.SeedAsync(_factory.Services);
+        await _factory.EnsureDefaultSeedAsync();
 
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -971,7 +1070,7 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
     {
         var ct = TestContext.Current.CancellationToken;
 
-        await QaSeedRunner.SeedAsync(_factory.Services);
+        await _factory.EnsureDefaultSeedAsync();
 
         using var scope = _factory.Services.CreateScope();
         var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
@@ -1006,7 +1105,7 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
     {
         var ct = TestContext.Current.CancellationToken;
 
-        await QaSeedRunner.SeedAsync(_factory.Services);
+        await _factory.EnsureDefaultSeedAsync();
 
         using var scope = _factory.Services.CreateScope();
         var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
@@ -1034,7 +1133,7 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
     {
         var ct = TestContext.Current.CancellationToken;
 
-        await QaSeedRunner.SeedAsync(_factory.Services);
+        await _factory.EnsureDefaultSeedAsync();
 
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -1053,31 +1152,6 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
     }
 
     /// <summary>
-    /// #1303 — re-running the seed leaves every Overview fixture at its first-run count.
-    /// </summary>
-    [Fact]
-    public async Task SeedAsync_ClientOverview_RunTwice_IsIdempotent()
-    {
-        var ct = TestContext.Current.CancellationToken;
-
-        await QaSeedRunner.SeedAsync(_factory.Services);
-        await QaSeedRunner.SeedAsync(_factory.Services);
-
-        using var scope = _factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
-
-        var profile = await db.ClientProfiles.FirstAsync(p => p.UserId == QaSeedRunner.ClientUserId, ct);
-        (await db.BodyMeasurements.CountAsync(m => m.ClientProfileId == profile.Id, ct)).Should().Be(8);
-        (await db.ClientOnboardingData.CountAsync(o => o.ClientProfileId == profile.Id, ct)).Should().Be(1);
-        (await db.ClientNutritionTargets.CountAsync(t => t.ClientOnboardingData.ClientProfileId == profile.Id, ct)).Should().Be(1);
-        (await db.WeeklyCheckIns.CountAsync(w => w.ClientUserId == QaSeedRunner.ClientUserId, ct)).Should().Be(7);
-        (await mongo.MealLogs.CountDocumentsAsync(l => l.ClientId == QaSeedRunner.ClientUserId, cancellationToken: ct)).Should().Be(14);
-        (await mongo.PersonalRecords.CountDocumentsAsync(r => r.ClientId == QaSeedRunner.ClientUserId, cancellationToken: ct)).Should().Be(1);
-        (await FindMondayExecutionsAsync(mongo, ct)).Should().HaveCount(1);
-    }
-
-    /// <summary>
     /// #1303 — the minimal kind seeds none of the Overview fixtures.
     /// </summary>
     [Fact]
@@ -1085,6 +1159,7 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
     {
         var ct = TestContext.Current.CancellationToken;
 
+        await _factory.ResetAsync();
         Environment.SetEnvironmentVariable("QA_SEED_KIND", "minimal");
         try
         {
@@ -1117,7 +1192,7 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
     [Fact]
     public async Task SeedAsync_Duo_CoachHoldsTrainerAndNutritionistRoles()
     {
-        await QaSeedRunner.SeedAsync(_factory.Services);
+        await ResetAndSeedAsync();
 
         using var scope = _factory.Services.CreateScope();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<FitnessPlatform.Application.Domain.Entities.ApplicationUser>>();
@@ -1150,7 +1225,7 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
     {
         var ct = TestContext.Current.CancellationToken;
 
-        await QaSeedRunner.SeedAsync(_factory.Services);
+        await ResetAndSeedAsync();
 
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -1194,7 +1269,7 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
     {
         var ct = TestContext.Current.CancellationToken;
 
-        await QaSeedRunner.SeedAsync(_factory.Services);
+        await ResetAndSeedAsync();
 
         using var scope = _factory.Services.CreateScope();
         var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
@@ -1238,7 +1313,7 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
     {
         var ct = TestContext.Current.CancellationToken;
 
-        await QaSeedRunner.SeedAsync(_factory.Services);
+        await ResetAndSeedAsync();
 
         using var scope = _factory.Services.CreateScope();
         var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
@@ -1287,7 +1362,7 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
     {
         var ct = TestContext.Current.CancellationToken;
 
-        await QaSeedRunner.SeedAsync(_factory.Services);
+        await ResetAndSeedAsync();
 
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -1337,41 +1412,6 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
     }
 
     /// <summary>
-    /// #1311 — re-running the seed leaves every Duo fixture at its first-run count.
-    /// </summary>
-    [Fact]
-    public async Task SeedAsync_Duo_RunTwice_IsIdempotent()
-    {
-        var ct = TestContext.Current.CancellationToken;
-
-        await QaSeedRunner.SeedAsync(_factory.Services);
-        await QaSeedRunner.SeedAsync(_factory.Services);
-
-        using var scope = _factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
-
-        (await db.Users.CountAsync(u => u.Email == QaSeedRunner.CoachEmail, ct)).Should().Be(1);
-        (await db.Users.CountAsync(u => u.Email == QaSeedRunner.ClientDuoEmail, ct)).Should().Be(1);
-        (await db.ClientProfessionalLinks.CountAsync(l => l.ProfessionalProfile.UserId == QaSeedRunner.CoachUserId, ct)).Should().Be(1);
-
-        var profile = await db.ClientProfiles.FirstAsync(p => p.UserId == QaSeedRunner.ClientDuoUserId, ct);
-        (await db.BodyMeasurements.CountAsync(m => m.ClientProfileId == profile.Id, ct)).Should().Be(8);
-        (await db.ClientOnboardingData.CountAsync(o => o.ClientProfileId == profile.Id, ct)).Should().Be(1);
-        (await db.WeeklyCheckIns.CountAsync(w => w.ClientUserId == QaSeedRunner.ClientDuoUserId, ct)).Should().Be(5);
-
-        (await mongo.NutritionPlans.CountDocumentsAsync(p => p.ClientId == QaSeedRunner.ClientDuoUserId, cancellationToken: ct)).Should().Be(1);
-        (await mongo.TrainingPlans.CountDocumentsAsync(p => p.ClientId == QaSeedRunner.ClientDuoUserId, cancellationToken: ct)).Should().Be(1);
-        (await mongo.SessionExecutions.CountDocumentsAsync(e => e.ClientId == QaSeedRunner.ClientDuoUserId, cancellationToken: ct)).Should().Be(1);
-        (await mongo.PersonalRecords.CountDocumentsAsync(r => r.ClientId == QaSeedRunner.ClientDuoUserId, cancellationToken: ct)).Should().Be(1);
-
-        var logsAfterFirst = await mongo.MealLogs.CountDocumentsAsync(l => l.ClientId == QaSeedRunner.ClientDuoUserId, cancellationToken: ct);
-        logsAfterFirst.Should().BeGreaterThan(0);
-        (await mongo.MealLogs.CountDocumentsAsync(l => l.ClientId == QaSeedRunner.ClientUserId, cancellationToken: ct))
-            .Should().Be(14, "qa.client's meal logs are unchanged");
-    }
-
-    /// <summary>
     /// #1094 — the QA nutrition plan must carry a <c>StartDate</c> anchored to the current
     /// week's Monday so <c>PlanWindowResolver</c>'s window <c>[StartDate, StartDate +
     /// weeks*7)</c> covers today, and a <c>GlobalSettings</c> block whose three gram values
@@ -1384,7 +1424,7 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
     {
         var ct = TestContext.Current.CancellationToken;
 
-        await QaSeedRunner.SeedAsync(_factory.Services);
+        await _factory.EnsureDefaultSeedAsync();
 
         using var scope = _factory.Services.CreateScope();
         var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
@@ -1430,7 +1470,7 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
     {
         var ct = TestContext.Current.CancellationToken;
 
-        await QaSeedRunner.SeedAsync(_factory.Services);
+        await _factory.EnsureDefaultSeedAsync();
 
         using var scope = _factory.Services.CreateScope();
         var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
@@ -1476,7 +1516,7 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
     {
         var ct = TestContext.Current.CancellationToken;
 
-        await QaSeedRunner.SeedAsync(_factory.Services);
+        await _factory.EnsureDefaultSeedAsync();
 
         using var scope = _factory.Services.CreateScope();
         var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
@@ -1526,7 +1566,7 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
     {
         var ct = TestContext.Current.CancellationToken;
 
-        await QaSeedRunner.SeedAsync(_factory.Services);
+        await _factory.EnsureDefaultSeedAsync();
 
         using var scope = _factory.Services.CreateScope();
         var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
@@ -1561,7 +1601,7 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
     {
         var ct = TestContext.Current.CancellationToken;
 
-        await QaSeedRunner.SeedAsync(_factory.Services);
+        await _factory.EnsureDefaultSeedAsync();
 
         using var scope = _factory.Services.CreateScope();
         var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
@@ -1603,7 +1643,7 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
     {
         var ct = TestContext.Current.CancellationToken;
 
-        await QaSeedRunner.SeedAsync(_factory.Services);
+        await _factory.EnsureDefaultSeedAsync();
 
         using var scope = _factory.Services.CreateScope();
         var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
@@ -1638,7 +1678,7 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
     {
         var ct = TestContext.Current.CancellationToken;
 
-        await QaSeedRunner.SeedAsync(_factory.Services);
+        await _factory.EnsureDefaultSeedAsync();
 
         using var scope = _factory.Services.CreateScope();
         var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
@@ -1659,26 +1699,6 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
     }
 
     /// <summary>
-    /// Seeding twice must not duplicate the #879 dual-placement completion SessionExecution.
-    /// </summary>
-    [Fact]
-    public async Task SeedAsync_DualPlacementCompletion_IsIdempotent()
-    {
-        var ct = TestContext.Current.CancellationToken;
-
-        await QaSeedRunner.SeedAsync(_factory.Services);
-        await QaSeedRunner.SeedAsync(_factory.Services);
-
-        using var scope = _factory.Services.CreateScope();
-        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
-
-        var count = await mongo.SessionExecutions.CountDocumentsAsync(
-            Builders<SessionExecution>.Filter.Eq(e => e.ExternalId, QaSeedRunner.QaDualPlacementSessionExecutionId),
-            cancellationToken: ct);
-        count.Should().Be(1, "the dual-placement completion SessionExecution must not be duplicated on re-seed");
-    }
-
-    /// <summary>
     /// #946 — the QA client-nutritionist link must carry at least two PhotoDiaryRequest rows:
     /// one scoped to the seeded QA nutrition plan, one deliberately plan-less. Both must be
     /// Status=Accepted (reachable from the client app's active-request list, which filters
@@ -1689,7 +1709,7 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
     {
         var ct = TestContext.Current.CancellationToken;
 
-        await QaSeedRunner.SeedAsync(_factory.Services);
+        await _factory.EnsureDefaultSeedAsync();
 
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -1722,26 +1742,6 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
     }
 
     /// <summary>
-    /// Seeding twice must not duplicate the #946 PhotoDiaryRequest fixture rows.
-    /// </summary>
-    [Fact]
-    public async Task SeedAsync_PhotoDiaryRequestFixture_IsIdempotent()
-    {
-        var ct = TestContext.Current.CancellationToken;
-
-        await QaSeedRunner.SeedAsync(_factory.Services);
-        await QaSeedRunner.SeedAsync(_factory.Services);
-
-        using var scope = _factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-
-        var count = await db.PhotoDiaryRequests.CountAsync(
-            r => r.Id == QaSeedRunner.QaPhotoDiaryRequestWithPlanId || r.Id == QaSeedRunner.QaPhotoDiaryRequestPlanlessId,
-            ct);
-        count.Should().Be(2, "the two PhotoDiaryRequest fixture rows must not be duplicated on re-seed");
-    }
-
-    /// <summary>
     /// The completed SessionExecution seeded for the main QA plan must exercise all four
     /// planned-vs-actual set cases in a single session:
     ///
@@ -1758,7 +1758,7 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
     {
         var ct = TestContext.Current.CancellationToken;
 
-        await QaSeedRunner.SeedAsync(_factory.Services);
+        await _factory.EnsureDefaultSeedAsync();
 
         using var scope = _factory.Services.CreateScope();
         var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
@@ -1817,27 +1817,6 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
     }
 
     /// <summary>
-    /// Seeding twice must not create a duplicate main-plan SessionExecution.
-    /// </summary>
-    [Fact]
-    public async Task SeedAsync_MainPlanWorkoutLog_IsIdempotent()
-    {
-        var ct = TestContext.Current.CancellationToken;
-
-        await QaSeedRunner.SeedAsync(_factory.Services);
-        await QaSeedRunner.SeedAsync(_factory.Services);
-
-        using var scope = _factory.Services.CreateScope();
-        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
-
-        var count = await mongo.SessionExecutions.CountDocumentsAsync(
-            Builders<SessionExecution>.Filter.Eq(l => l.ExternalId, QaSeedRunner.QaMainPlanCompletedExecutionId),
-            cancellationToken: ct);
-
-        count.Should().Be(1, "main-plan SessionExecution must not be duplicated on re-seed");
-    }
-
-    /// <summary>
     /// The multi-section fixture (#474) must seed:
     ///  - A TrainingPlan for the second QA client/trainer pair with one session
     ///    whose two sections BOTH reference the same shared exercise (SharedExerciseId).
@@ -1851,7 +1830,7 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
     {
         var ct = TestContext.Current.CancellationToken;
 
-        await QaSeedRunner.SeedAsync(_factory.Services);
+        await _factory.EnsureDefaultSeedAsync();
 
         using var scope = _factory.Services.CreateScope();
         var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
@@ -1945,31 +1924,6 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
     }
 
     /// <summary>
-    /// Seeding twice must not create duplicate multi-section plan or SessionExecution documents.
-    /// </summary>
-    [Fact]
-    public async Task SeedAsync_MultiSectionFixture_IsIdempotent()
-    {
-        var ct = TestContext.Current.CancellationToken;
-
-        await QaSeedRunner.SeedAsync(_factory.Services);
-        await QaSeedRunner.SeedAsync(_factory.Services);
-
-        using var scope = _factory.Services.CreateScope();
-        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
-
-        var planCount = await mongo.TrainingPlans.CountDocumentsAsync(
-            Builders<TrainingPlan>.Filter.Eq(p => p.ExternalId, QaSeedRunner.QaMultiSectionPlanExternalId),
-            cancellationToken: ct);
-        planCount.Should().Be(1, "multi-section plan must not be duplicated on re-seed");
-
-        var logCount = await mongo.SessionExecutions.CountDocumentsAsync(
-            Builders<SessionExecution>.Filter.Eq(l => l.ExternalId, QaSeedRunner.QaMultiSectionExecutionId),
-            cancellationToken: ct);
-        logCount.Should().Be(1, "multi-section SessionExecution must not be duplicated on re-seed");
-    }
-
-    /// <summary>
     /// The #715 questionnaire fixture must seed a template with 2 sections and
     /// 6 answerable questions covering every formatAnswerValue branch
     /// (short_text, number, single_choice, scale, multi_select, file_upload),
@@ -1984,7 +1938,7 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
     {
         var ct = TestContext.Current.CancellationToken;
 
-        await QaSeedRunner.SeedAsync(_factory.Services);
+        await _factory.EnsureDefaultSeedAsync();
 
         using var scope = _factory.Services.CreateScope();
         var sp    = scope.ServiceProvider;
@@ -2042,47 +1996,6 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
     }
 
     /// <summary>
-    /// Seeding twice must not duplicate the questionnaire template, the response,
-    /// or its answers, and must not clobber the training plan link on the second pass.
-    /// </summary>
-    [Fact]
-    public async Task SeedAsync_QuestionnaireFixture_IsIdempotent()
-    {
-        var ct = TestContext.Current.CancellationToken;
-
-        await QaSeedRunner.SeedAsync(_factory.Services);
-        await QaSeedRunner.SeedAsync(_factory.Services);
-
-        using var scope = _factory.Services.CreateScope();
-        var sp    = scope.ServiceProvider;
-        var db    = sp.GetRequiredService<ApplicationDbContext>();
-        var mongo = sp.GetRequiredService<IMongoContext>();
-
-        var questionnaireCount = await db.Questionnaires
-            .CountAsync(q => q.PublicId == QaSeedRunner.QaQuestionnaireExternalId, ct);
-        questionnaireCount.Should().Be(1, "the questionnaire template must not be duplicated on re-seed");
-
-        var questionCount = await db.QuestionnaireQuestions
-            .CountAsync(q => q.Questionnaire.PublicId == QaSeedRunner.QaQuestionnaireExternalId, ct);
-        questionCount.Should().Be(8, "the 8 template questions must not be duplicated on re-seed");
-
-        var responseCount = await db.QuestionnaireResponses
-            .CountAsync(r => r.PublicId == QaSeedRunner.QaQuestionnaireResponseExternalId, ct);
-        responseCount.Should().Be(1, "the submitted response must not be duplicated on re-seed");
-
-        var answerCount = await db.QuestionnaireAnswers
-            .CountAsync(a => a.Response.PublicId == QaSeedRunner.QaQuestionnaireResponseExternalId, ct);
-        answerCount.Should().Be(6, "the 6 answers must not be duplicated on re-seed");
-
-        var trainingPlan = await mongo.TrainingPlans
-            .Find(p => p.ExternalId == QaSeedRunner.QaTrainingPlanExternalId)
-            .FirstOrDefaultAsync(ct);
-        trainingPlan!.QuestionnaireResponseId.Should().Be(QaSeedRunner.QaQuestionnaireResponseExternalId,
-            "the training plan link must remain stable across re-seeds");
-        trainingPlan.Version.Should().Be(2, "the link update bumps Version exactly once, not once per seed run");
-    }
-
-    /// <summary>
     /// The #720 nutritionist-owned questionnaire fixture must seed a template
     /// with 2 sections and 6 answerable questions covering every
     /// formatAnswerValue branch, a SUBMITTED response owned by the QA
@@ -2096,7 +2009,7 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
     {
         var ct = TestContext.Current.CancellationToken;
 
-        await QaSeedRunner.SeedAsync(_factory.Services);
+        await _factory.EnsureDefaultSeedAsync();
 
         using var scope = _factory.Services.CreateScope();
         var sp    = scope.ServiceProvider;
@@ -2157,57 +2070,6 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
     }
 
     /// <summary>
-    /// Seeding twice must not duplicate the nutritionist-owned template,
-    /// response, its answers, or the nutritionist↔client link, and must not
-    /// clobber the nutrition plan link on the second pass.
-    /// </summary>
-    [Fact]
-    public async Task SeedAsync_NutritionistQuestionnaireFixture_IsIdempotent()
-    {
-        var ct = TestContext.Current.CancellationToken;
-
-        await QaSeedRunner.SeedAsync(_factory.Services);
-        await QaSeedRunner.SeedAsync(_factory.Services);
-
-        using var scope = _factory.Services.CreateScope();
-        var sp    = scope.ServiceProvider;
-        var db    = sp.GetRequiredService<ApplicationDbContext>();
-        var mongo = sp.GetRequiredService<IMongoContext>();
-
-        var questionnaireCount = await db.Questionnaires
-            .CountAsync(q => q.PublicId == QaSeedRunner.QaNutriQuestionnaireExternalId, ct);
-        questionnaireCount.Should().Be(1, "the nutritionist questionnaire template must not be duplicated on re-seed");
-
-        var questionCount = await db.QuestionnaireQuestions
-            .CountAsync(q => q.Questionnaire.PublicId == QaSeedRunner.QaNutriQuestionnaireExternalId, ct);
-        questionCount.Should().Be(8, "the 8 template questions must not be duplicated on re-seed");
-
-        var responseCount = await db.QuestionnaireResponses
-            .CountAsync(r => r.PublicId == QaSeedRunner.QaNutriQuestionnaireResponseExternalId, ct);
-        responseCount.Should().Be(1, "the submitted response must not be duplicated on re-seed");
-
-        var answerCount = await db.QuestionnaireAnswers
-            .CountAsync(a => a.Response.PublicId == QaSeedRunner.QaNutriQuestionnaireResponseExternalId, ct);
-        answerCount.Should().Be(6, "the 6 answers must not be duplicated on re-seed");
-
-        // Total link count: trainer↔client (#474 has 2 pairs = 2 links) + this
-        // nutritionist↔client link + the #1095 qa.trainer↔client3 link + the #1101 ended
-        // qa.trainer↔former-client link + the #1311 qa.coach↔QA Duo link = 6 total.
-        var linkCount = await db.ClientProfessionalLinks.CountAsync(ct);
-        linkCount.Should().Be(6,
-            "2 trainer↔client links (#474) + 1 nutritionist↔client link (#720) + 1 qa.trainer↔client3 " +
-            "link (#1095) + 1 ended qa.trainer↔former-client link (#1101) + 1 qa.coach↔QA Duo link (#1311), " +
-            "no duplicates on re-seed");
-
-        var nutritionPlan = await mongo.NutritionPlans
-            .Find(p => p.ExternalId == QaSeedRunner.QaNutritionPlanExternalId)
-            .FirstOrDefaultAsync(ct);
-        nutritionPlan!.QuestionnaireResponseId.Should().Be(QaSeedRunner.QaNutriQuestionnaireResponseExternalId,
-            "the nutrition plan link must remain stable across re-seeds");
-        nutritionPlan.Version.Should().Be(2, "the link update bumps Version exactly once, not once per seed run");
-    }
-
-    /// <summary>
     /// Root-cause probe for the #854 e2e regression (PR #854 / epic #835): reproduces,
     /// over real HTTP with a real JWT (not a direct Mongo/EF assertion), the exact two
     /// calls the trainer-portal "Dotazník" tab makes on the training-plan detail page:
@@ -2222,7 +2084,7 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
     {
         var ct = TestContext.Current.CancellationToken;
 
-        await QaSeedRunner.SeedAsync(_factory.Services);
+        await _factory.EnsureDefaultSeedAsync();
 
         var client = _factory.CreateClient();
         var (accessToken, _) = await TestHelpers.LoginAsync(client, QaSeedRunner.TrainerEmail, "TestSeed1!");
@@ -2278,7 +2140,7 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
     {
         var ct = TestContext.Current.CancellationToken;
 
-        await QaSeedRunner.SeedAsync(_factory.Services);
+        await _factory.EnsureDefaultSeedAsync();
 
         var client = _factory.CreateClient();
         var (accessToken, _) = await TestHelpers.LoginAsync(client, QaSeedRunner.TrainerEmail, "TestSeed1!");
@@ -2335,7 +2197,7 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
     {
         var ct = TestContext.Current.CancellationToken;
 
-        await QaSeedRunner.SeedAsync(_factory.Services);
+        await _factory.EnsureDefaultSeedAsync();
 
         var client = _factory.CreateClient();
         var (accessToken, _) = await TestHelpers.LoginAsync(client, QaSeedRunner.NutriEmail, "TestSeed1!");
@@ -2400,7 +2262,7 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
     {
         var ct = TestContext.Current.CancellationToken;
 
-        await QaSeedRunner.SeedAsync(_factory.Services);
+        await _factory.EnsureDefaultSeedAsync();
 
         var client = _factory.CreateClient();
         var (accessToken, _) = await TestHelpers.LoginAsync(client, QaSeedRunner.TrainerEmail, "TestSeed1!");
@@ -2463,7 +2325,7 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
     {
         var ct = TestContext.Current.CancellationToken;
 
-        await QaSeedRunner.SeedAsync(_factory.Services);
+        await _factory.EnsureDefaultSeedAsync();
 
         var client = _factory.CreateClient();
         var (accessToken, _) = await TestHelpers.LoginAsync(client, QaSeedRunner.NutriEmail, "TestSeed1!");
