@@ -228,7 +228,8 @@ public class AcceptClientRequestEndpoint(
                 ClientId = clientRequest.ClientProfile.UserId,
                 ProfessionalId = userGuid,
                 LinkId = link.Id,
-                Status = QuestionnaireResponseStatus.Pending
+                Status = QuestionnaireResponseStatus.Pending,
+                Scope = ClientLinkActivationResult.ScopeOf(canViewNutritionPlans, canViewTrainingPlans),
             };
 
             db.QuestionnaireResponses.Add(questionnaireResponse);

@@ -91,6 +91,7 @@ public class GetClientResponsesEndpoint(IApplicationDbContext db, IClientLinkAut
                     Status = r.Status.ToString(),
                     SubmittedAt = r.SubmittedAt,
                     DateCreated = r.DateCreated,
+                    Scope = r.Scope,
                     AnswerCount = r.Answers.Count,
                     Answers = r.Status == QuestionnaireResponseStatus.Submitted
                         ? r.Answers.Select(a =>

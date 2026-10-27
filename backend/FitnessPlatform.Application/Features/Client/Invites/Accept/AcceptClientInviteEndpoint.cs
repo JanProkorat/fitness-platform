@@ -142,8 +142,9 @@ public class AcceptClientInviteEndpoint(
         await transaction.CommitAsync(ct);
 
         // If the invite included a questionnaire, create a pending response
-        // so the web portal immediately shows the "waiting" state.
-        if (activation.Started && invite.QuestionnaireId.HasValue)
+        // so the web portal immediately shows the "waiting" state. A widened link gets its own response
+        // for the added scope only; the link's own questionnaire stays as it was.
+        if ((activation.Started || activation.Extended) && invite.QuestionnaireId.HasValue)
         {
             var questionnaireResponse = new QuestionnaireResponse
             {
@@ -152,6 +153,7 @@ public class AcceptClientInviteEndpoint(
                 ProfessionalId = invite.ProfessionalProfile.UserId,
                 LinkId = activation.Link!.Id,
                 Status = QuestionnaireResponseStatus.Pending,
+                Scope = activation.GrantedScope,
             };
             db.QuestionnaireResponses.Add(questionnaireResponse);
             await db.SaveChangesAsync(ct);

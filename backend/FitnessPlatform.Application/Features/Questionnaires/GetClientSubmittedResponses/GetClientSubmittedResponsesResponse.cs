@@ -1,3 +1,5 @@
+using FitnessPlatform.Application.Domain.Enums;
+
 namespace FitnessPlatform.Application.Features.Questionnaires.GetClientSubmittedResponses;
 
 public class GetClientSubmittedResponsesResponse
@@ -18,6 +20,10 @@ public class SubmittedResponseItem
     public Guid ResponsePublicId { get; set; }
     public string QuestionnaireTitle { get; set; } = null!;
     public DateTime? SubmittedAt { get; set; }
+
+    /// <summary>Plan type the response was sent for; null when it was assigned without one.</summary>
+    public LinkCapabilityScope? Scope { get; set; }
+
     public List<SubmittedAnswerItem> Answers { get; set; } = [];
 }
 
