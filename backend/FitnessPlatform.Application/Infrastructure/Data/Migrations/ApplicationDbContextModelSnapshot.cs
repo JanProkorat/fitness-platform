@@ -260,6 +260,9 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                     b.HasKey("Id")
                         .HasName("pk_audit_logs");
 
+                    b.HasIndex("EntityId")
+                        .HasDatabaseName("ix_audit_logs_entity_id");
+
                     b.ToTable("audit_logs", (string)null);
                 });
 
@@ -1047,6 +1050,251 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                     b.ToTable("client_onboarding_data", (string)null);
                 });
 
+            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.ClientPayment", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("AccountHolder")
+                        .HasMaxLength(140)
+                        .HasColumnType("character varying(140)")
+                        .HasColumnName("account_holder");
+
+                    b.Property<string>("AccountIban")
+                        .HasMaxLength(34)
+                        .HasColumnType("character varying(34)")
+                        .HasColumnName("account_iban");
+
+                    b.Property<decimal?>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("amount");
+
+                    b.Property<decimal?>("BasePrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("base_price");
+
+                    b.Property<long>("ClientPaymentAssignmentId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("client_payment_assignment_id");
+
+                    b.Property<int>("Currency")
+                        .HasColumnType("integer")
+                        .HasColumnName("currency");
+
+                    b.Property<DateTime>("DateCreated")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_created");
+
+                    b.Property<DateTime?>("DateUpdated")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_updated");
+
+                    b.Property<string>("DiscountLabel")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)")
+                        .HasColumnName("discount_label");
+
+                    b.Property<DateOnly>("DueDate")
+                        .HasColumnType("date")
+                        .HasColumnName("due_date");
+
+                    b.Property<bool>("IsCustomPrice")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_custom_price");
+
+                    b.Property<bool>("IsKeptAfterEnd")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_kept_after_end");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("integer")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("Message")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("message");
+
+                    b.Property<string>("PackageName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("package_name");
+
+                    b.Property<DateOnly?>("PaidOn")
+                        .HasColumnType("date")
+                        .HasColumnName("paid_on");
+
+                    b.Property<DateOnly?>("PeriodEnd")
+                        .HasColumnType("date")
+                        .HasColumnName("period_end");
+
+                    b.Property<DateOnly?>("PeriodStart")
+                        .HasColumnType("date")
+                        .HasColumnName("period_start");
+
+                    b.Property<long>("ProfessionalProfileId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("professional_profile_id");
+
+                    b.Property<Guid>("PublicId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("public_id");
+
+                    b.Property<DateTime?>("RequestedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("requested_at");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer")
+                        .HasColumnName("status");
+
+                    b.Property<string>("Title")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("title");
+
+                    b.Property<string>("VariableSymbol")
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("variable_symbol");
+
+                    b.Property<string>("WaiveReason")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("waive_reason");
+
+                    b.HasKey("Id")
+                        .HasName("pk_client_payments");
+
+                    b.HasIndex("PublicId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_client_payments_public_id");
+
+                    b.HasIndex("ClientPaymentAssignmentId", "DueDate")
+                        .HasDatabaseName("ix_client_payments_client_payment_assignment_id_due_date");
+
+                    b.HasIndex("ClientPaymentAssignmentId", "PeriodStart")
+                        .IsUnique()
+                        .HasDatabaseName("ix_client_payments_client_payment_assignment_id_period_start")
+                        .HasFilter("period_start IS NOT NULL");
+
+                    b.HasIndex("ProfessionalProfileId", "VariableSymbol")
+                        .IsUnique()
+                        .HasDatabaseName("ix_client_payments_professional_profile_id_variable_symbol")
+                        .HasFilter("variable_symbol IS NOT NULL");
+
+                    b.ToTable("client_payments", (string)null);
+                });
+
+            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.ClientPaymentAssignment", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<int>("ClientNumber")
+                        .HasColumnType("integer")
+                        .HasColumnName("client_number");
+
+                    b.Property<long>("ClientProfileId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("client_profile_id");
+
+                    b.Property<DateTime>("DateCreated")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_created");
+
+                    b.Property<DateTime?>("DateUpdated")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_updated");
+
+                    b.Property<long>("ProfessionalProfileId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("professional_profile_id");
+
+                    b.Property<Guid>("PublicId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("public_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_client_payment_assignments");
+
+                    b.HasIndex("ClientProfileId")
+                        .HasDatabaseName("ix_client_payment_assignments_client_profile_id");
+
+                    b.HasIndex("PublicId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_client_payment_assignments_public_id");
+
+                    b.HasIndex("ProfessionalProfileId", "ClientNumber")
+                        .IsUnique()
+                        .HasDatabaseName("ix_client_payment_assignments_professional_profile_id_client_n");
+
+                    b.HasIndex("ProfessionalProfileId", "ClientProfileId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_client_payment_assignments_professional_profile_id_client_p");
+
+                    b.ToTable("client_payment_assignments", (string)null);
+                });
+
+            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.ClientPaymentTerms", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long>("ClientPaymentAssignmentId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("client_payment_assignment_id");
+
+                    b.Property<long?>("CoachDiscountId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("coach_discount_id");
+
+                    b.Property<long>("CoachPackageId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("coach_package_id");
+
+                    b.Property<decimal?>("CustomPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("custom_price");
+
+                    b.Property<DateTime>("EffectiveFromUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("effective_from_utc");
+
+                    b.Property<DateTime?>("EndsAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("ends_at_utc");
+
+                    b.HasKey("Id")
+                        .HasName("pk_client_payment_terms");
+
+                    b.HasIndex("CoachDiscountId")
+                        .HasDatabaseName("ix_client_payment_terms_coach_discount_id");
+
+                    b.HasIndex("CoachPackageId")
+                        .HasDatabaseName("ix_client_payment_terms_coach_package_id");
+
+                    b.HasIndex("ClientPaymentAssignmentId", "EffectiveFromUtc")
+                        .HasDatabaseName("ix_client_payment_terms_client_payment_assignment_id_effective");
+
+                    b.ToTable("client_payment_terms", (string)null);
+                });
+
             modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.ClientProfessionalLink", b =>
                 {
                     b.Property<long>("Id")
@@ -1055,6 +1303,10 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                         .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime?>("ActivatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("activated_at_utc");
 
                     b.Property<bool>("CanViewNutritionPlans")
                         .ValueGeneratedOnAdd()
@@ -1362,6 +1614,419 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                         .HasDatabaseName("ix_client_tag_assignments_client_tag_id_client_professional_li");
 
                     b.ToTable("client_tag_assignments", (string)null);
+                });
+
+            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.CoachBankAccountChange", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("DateCreated")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_created");
+
+                    b.Property<DateTime?>("DateUpdated")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_updated");
+
+                    b.Property<string>("NewAccountHolder")
+                        .IsRequired()
+                        .HasMaxLength(140)
+                        .HasColumnType("character varying(140)")
+                        .HasColumnName("new_account_holder");
+
+                    b.Property<string>("NewIban")
+                        .IsRequired()
+                        .HasMaxLength(34)
+                        .HasColumnType("character varying(34)")
+                        .HasColumnName("new_iban");
+
+                    b.Property<string>("PreviousAccountHolder")
+                        .HasMaxLength(140)
+                        .HasColumnType("character varying(140)")
+                        .HasColumnName("previous_account_holder");
+
+                    b.Property<string>("PreviousIban")
+                        .HasMaxLength(34)
+                        .HasColumnType("character varying(34)")
+                        .HasColumnName("previous_iban");
+
+                    b.Property<long>("ProfessionalProfileId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("professional_profile_id");
+
+                    b.Property<DateTime?>("UndoExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("undo_expires_at");
+
+                    b.Property<string>("UndoTokenHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("undo_token_hash");
+
+                    b.Property<DateTime?>("UndoneAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("undone_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_coach_bank_account_changes");
+
+                    b.HasIndex("ProfessionalProfileId")
+                        .HasDatabaseName("ix_coach_bank_account_changes_professional_profile_id");
+
+                    b.HasIndex("UndoTokenHash")
+                        .IsUnique()
+                        .HasDatabaseName("ix_coach_bank_account_changes_undo_token_hash")
+                        .HasFilter("undo_token_hash IS NOT NULL");
+
+                    b.ToTable("coach_bank_account_changes", (string)null);
+                });
+
+            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.CoachDiscount", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime?>("ArchivedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("archived_at");
+
+                    b.Property<int?>("Currency")
+                        .HasColumnType("integer")
+                        .HasColumnName("currency");
+
+                    b.Property<DateTime>("DateCreated")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_created");
+
+                    b.Property<DateTime?>("DateUpdated")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_updated");
+
+                    b.Property<int>("Duration")
+                        .HasColumnType("integer")
+                        .HasColumnName("duration");
+
+                    b.Property<int?>("DurationPayments")
+                        .HasColumnType("integer")
+                        .HasColumnName("duration_payments");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.Property<long>("ProfessionalProfileId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("professional_profile_id");
+
+                    b.Property<Guid>("PublicId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("public_id");
+
+                    b.Property<int>("Scope")
+                        .HasColumnType("integer")
+                        .HasColumnName("scope");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer")
+                        .HasColumnName("type");
+
+                    b.Property<DateOnly?>("ValidFrom")
+                        .HasColumnType("date")
+                        .HasColumnName("valid_from");
+
+                    b.Property<DateOnly?>("ValidTo")
+                        .HasColumnType("date")
+                        .HasColumnName("valid_to");
+
+                    b.Property<decimal>("Value")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("value");
+
+                    b.HasKey("Id")
+                        .HasName("pk_coach_discounts");
+
+                    b.HasIndex("ProfessionalProfileId")
+                        .HasDatabaseName("ix_coach_discounts_professional_profile_id");
+
+                    b.HasIndex("PublicId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_coach_discounts_public_id");
+
+                    b.ToTable("coach_discounts", (string)null);
+                });
+
+            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.CoachDiscountPackage", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long>("CoachDiscountId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("coach_discount_id");
+
+                    b.Property<long>("CoachPackageId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("coach_package_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_coach_discount_packages");
+
+                    b.HasIndex("CoachPackageId")
+                        .HasDatabaseName("ix_coach_discount_packages_coach_package_id");
+
+                    b.HasIndex("CoachDiscountId", "CoachPackageId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_coach_discount_packages_coach_discount_id_coach_package_id");
+
+                    b.ToTable("coach_discount_packages", (string)null);
+                });
+
+            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.CoachPackage", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime?>("ArchivedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("archived_at");
+
+                    b.Property<int>("Billing")
+                        .HasColumnType("integer")
+                        .HasColumnName("billing");
+
+                    b.Property<int>("Currency")
+                        .HasColumnType("integer")
+                        .HasColumnName("currency");
+
+                    b.Property<DateTime>("DateCreated")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_created");
+
+                    b.Property<DateTime?>("DateUpdated")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_updated");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("description");
+
+                    b.Property<int?>("IntervalWeeks")
+                        .HasColumnType("integer")
+                        .HasColumnName("interval_weeks");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.Property<int?>("PaymentDueDaysOverride")
+                        .HasColumnType("integer")
+                        .HasColumnName("payment_due_days_override");
+
+                    b.Property<decimal>("Price")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("price");
+
+                    b.Property<long>("ProfessionalProfileId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("professional_profile_id");
+
+                    b.Property<Guid>("PublicId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("public_id");
+
+                    b.Property<int?>("RunsForPayments")
+                        .HasColumnType("integer")
+                        .HasColumnName("runs_for_payments");
+
+                    b.Property<bool>("ShowOnProfile")
+                        .HasColumnType("boolean")
+                        .HasColumnName("show_on_profile");
+
+                    b.HasKey("Id")
+                        .HasName("pk_coach_packages");
+
+                    b.HasIndex("ProfessionalProfileId")
+                        .HasDatabaseName("ix_coach_packages_professional_profile_id");
+
+                    b.HasIndex("PublicId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_coach_packages_public_id");
+
+                    b.ToTable("coach_packages", (string)null);
+                });
+
+            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.CoachPackagePrice", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long>("CoachPackageId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("coach_package_id");
+
+                    b.Property<DateTime>("EffectiveFromUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("effective_from_utc");
+
+                    b.Property<decimal>("Price")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("price");
+
+                    b.HasKey("Id")
+                        .HasName("pk_coach_package_prices");
+
+                    b.HasIndex("CoachPackageId", "EffectiveFromUtc")
+                        .HasDatabaseName("ix_coach_package_prices_coach_package_id_effective_from_utc");
+
+                    b.ToTable("coach_package_prices", (string)null);
+                });
+
+            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.CoachPaymentSettings", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("AccountHolder")
+                        .HasMaxLength(140)
+                        .HasColumnType("character varying(140)")
+                        .HasColumnName("account_holder");
+
+                    b.Property<DateTime?>("BankAccountChangedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("bank_account_changed_at");
+
+                    b.Property<DateTime>("DateCreated")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_created");
+
+                    b.Property<DateTime?>("DateUpdated")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_updated");
+
+                    b.Property<string>("Iban")
+                        .HasMaxLength(34)
+                        .HasColumnType("character varying(34)")
+                        .HasColumnName("iban");
+
+                    b.Property<int>("MessageFormat")
+                        .HasColumnType("integer")
+                        .HasColumnName("message_format");
+
+                    b.Property<int>("PaymentDueDays")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(7)
+                        .HasColumnName("payment_due_days");
+
+                    b.Property<long>("ProfessionalProfileId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("professional_profile_id");
+
+                    b.Property<int>("ProfileCurrency")
+                        .HasColumnType("integer")
+                        .HasColumnName("profile_currency");
+
+                    b.Property<Guid>("PublicId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("public_id");
+
+                    b.Property<int>("VariableSymbolFormat")
+                        .HasColumnType("integer")
+                        .HasColumnName("variable_symbol_format");
+
+                    b.HasKey("Id")
+                        .HasName("pk_coach_payment_settings");
+
+                    b.HasIndex("ProfessionalProfileId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_coach_payment_settings_professional_profile_id");
+
+                    b.HasIndex("PublicId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_coach_payment_settings_public_id");
+
+                    b.ToTable("coach_payment_settings", (string)null);
+                });
+
+            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.CoachReauthCode", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("CodeHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("code_hash");
+
+                    b.Property<DateTime>("DateCreated")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_created");
+
+                    b.Property<DateTime?>("DateUpdated")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_updated");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<int>("FailedAttempts")
+                        .HasColumnType("integer")
+                        .HasColumnName("failed_attempts");
+
+                    b.Property<DateTime?>("UsedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("used_at");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_coach_reauth_codes");
+
+                    b.HasIndex("UserId", "ExpiresAt")
+                        .HasDatabaseName("ix_coach_reauth_codes_user_id_expires_at");
+
+                    b.ToTable("coach_reauth_codes", (string)null);
                 });
 
             modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.CoachSubscription", b =>
@@ -1777,6 +2442,14 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
+                    b.Property<long?>("CoachDiscountId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("coach_discount_id");
+
+                    b.Property<long?>("CoachPackageId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("coach_package_id");
+
                     b.Property<DateTime>("DateCreated")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("date_created");
@@ -1822,6 +2495,12 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_pending_invites");
+
+                    b.HasIndex("CoachDiscountId")
+                        .HasDatabaseName("ix_pending_invites_coach_discount_id");
+
+                    b.HasIndex("CoachPackageId")
+                        .HasDatabaseName("ix_pending_invites_coach_package_id");
 
                     b.HasIndex("ProfessionalProfileId")
                         .HasDatabaseName("ix_pending_invites_professional_profile_id");
@@ -2133,11 +2812,6 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                     b.Property<DateTime?>("DateUpdated")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("date_updated");
-
-                    b.Property<string>("EstimatedPrice")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("estimated_price");
 
                     b.Property<string>("Instagram")
                         .HasMaxLength(200)
@@ -2584,6 +3258,10 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                     b.Property<bool>("CanSendQuestionnaires")
                         .HasColumnType("boolean")
                         .HasColumnName("can_send_questionnaires");
+
+                    b.Property<bool>("CanUsePayments")
+                        .HasColumnType("boolean")
+                        .HasColumnName("can_use_payments");
 
                     b.Property<bool>("CanUsePerClientCheckInConfig")
                         .HasColumnType("boolean")
@@ -3210,6 +3888,68 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                     b.Navigation("ClientProfile");
                 });
 
+            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.ClientPayment", b =>
+                {
+                    b.HasOne("FitnessPlatform.Application.Domain.Entities.ClientPaymentAssignment", "ClientPaymentAssignment")
+                        .WithMany("Payments")
+                        .HasForeignKey("ClientPaymentAssignmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_client_payments_client_payment_assignments_client_payment_a");
+
+                    b.Navigation("ClientPaymentAssignment");
+                });
+
+            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.ClientPaymentAssignment", b =>
+                {
+                    b.HasOne("FitnessPlatform.Application.Domain.Entities.ClientProfile", "ClientProfile")
+                        .WithMany()
+                        .HasForeignKey("ClientProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_client_payment_assignments_client_profiles_client_profile_id");
+
+                    b.HasOne("FitnessPlatform.Application.Domain.Entities.ProfessionalProfile", "ProfessionalProfile")
+                        .WithMany()
+                        .HasForeignKey("ProfessionalProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_client_payment_assignments_professional_profiles_profession");
+
+                    b.Navigation("ClientProfile");
+
+                    b.Navigation("ProfessionalProfile");
+                });
+
+            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.ClientPaymentTerms", b =>
+                {
+                    b.HasOne("FitnessPlatform.Application.Domain.Entities.ClientPaymentAssignment", "ClientPaymentAssignment")
+                        .WithMany("Terms")
+                        .HasForeignKey("ClientPaymentAssignmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_client_payment_terms_client_payment_assignments_client_paym");
+
+                    b.HasOne("FitnessPlatform.Application.Domain.Entities.CoachDiscount", "CoachDiscount")
+                        .WithMany()
+                        .HasForeignKey("CoachDiscountId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_client_payment_terms_coach_discounts_coach_discount_id");
+
+                    b.HasOne("FitnessPlatform.Application.Domain.Entities.CoachPackage", "CoachPackage")
+                        .WithMany()
+                        .HasForeignKey("CoachPackageId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_client_payment_terms_coach_packages_coach_package_id");
+
+                    b.Navigation("ClientPaymentAssignment");
+
+                    b.Navigation("CoachDiscount");
+
+                    b.Navigation("CoachPackage");
+                });
+
             modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.ClientProfessionalLink", b =>
                 {
                     b.HasOne("FitnessPlatform.Application.Domain.Entities.ClientProfile", "ClientProfile")
@@ -3309,6 +4049,99 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                     b.Navigation("ClientProfessionalLink");
 
                     b.Navigation("ClientTag");
+                });
+
+            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.CoachBankAccountChange", b =>
+                {
+                    b.HasOne("FitnessPlatform.Application.Domain.Entities.ProfessionalProfile", "ProfessionalProfile")
+                        .WithMany()
+                        .HasForeignKey("ProfessionalProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_coach_bank_account_changes_professional_profiles_profession");
+
+                    b.Navigation("ProfessionalProfile");
+                });
+
+            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.CoachDiscount", b =>
+                {
+                    b.HasOne("FitnessPlatform.Application.Domain.Entities.ProfessionalProfile", "ProfessionalProfile")
+                        .WithMany()
+                        .HasForeignKey("ProfessionalProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_coach_discounts_professional_profiles_professional_profile_");
+
+                    b.Navigation("ProfessionalProfile");
+                });
+
+            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.CoachDiscountPackage", b =>
+                {
+                    b.HasOne("FitnessPlatform.Application.Domain.Entities.CoachDiscount", "CoachDiscount")
+                        .WithMany("Packages")
+                        .HasForeignKey("CoachDiscountId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_coach_discount_packages_coach_discounts_coach_discount_id");
+
+                    b.HasOne("FitnessPlatform.Application.Domain.Entities.CoachPackage", "CoachPackage")
+                        .WithMany()
+                        .HasForeignKey("CoachPackageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_coach_discount_packages_coach_packages_coach_package_id");
+
+                    b.Navigation("CoachDiscount");
+
+                    b.Navigation("CoachPackage");
+                });
+
+            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.CoachPackage", b =>
+                {
+                    b.HasOne("FitnessPlatform.Application.Domain.Entities.ProfessionalProfile", "ProfessionalProfile")
+                        .WithMany()
+                        .HasForeignKey("ProfessionalProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_coach_packages_professional_profiles_professional_profile_id");
+
+                    b.Navigation("ProfessionalProfile");
+                });
+
+            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.CoachPackagePrice", b =>
+                {
+                    b.HasOne("FitnessPlatform.Application.Domain.Entities.CoachPackage", "CoachPackage")
+                        .WithMany("Prices")
+                        .HasForeignKey("CoachPackageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_coach_package_prices_coach_packages_coach_package_id");
+
+                    b.Navigation("CoachPackage");
+                });
+
+            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.CoachPaymentSettings", b =>
+                {
+                    b.HasOne("FitnessPlatform.Application.Domain.Entities.ProfessionalProfile", "ProfessionalProfile")
+                        .WithOne()
+                        .HasForeignKey("FitnessPlatform.Application.Domain.Entities.CoachPaymentSettings", "ProfessionalProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_coach_payment_settings_professional_profiles_professional_p");
+
+                    b.Navigation("ProfessionalProfile");
+                });
+
+            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.CoachReauthCode", b =>
+                {
+                    b.HasOne("FitnessPlatform.Application.Domain.Entities.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_coach_reauth_codes_users_user_id");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.CoachSubscription", b =>
@@ -3415,6 +4248,18 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.PendingInvite", b =>
                 {
+                    b.HasOne("FitnessPlatform.Application.Domain.Entities.CoachDiscount", "CoachDiscount")
+                        .WithMany()
+                        .HasForeignKey("CoachDiscountId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_pending_invites_coach_discounts_coach_discount_id");
+
+                    b.HasOne("FitnessPlatform.Application.Domain.Entities.CoachPackage", "CoachPackage")
+                        .WithMany()
+                        .HasForeignKey("CoachPackageId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_pending_invites_coach_packages_coach_package_id");
+
                     b.HasOne("FitnessPlatform.Application.Domain.Entities.ProfessionalProfile", "ProfessionalProfile")
                         .WithMany("PendingInvites")
                         .HasForeignKey("ProfessionalProfileId")
@@ -3426,6 +4271,10 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                         .WithMany()
                         .HasForeignKey("QuestionnaireId")
                         .HasConstraintName("fk_pending_invites_questionnaires_questionnaire_id");
+
+                    b.Navigation("CoachDiscount");
+
+                    b.Navigation("CoachPackage");
 
                     b.Navigation("ProfessionalProfile");
 
@@ -3756,6 +4605,13 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                     b.Navigation("NutritionTargets");
                 });
 
+            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.ClientPaymentAssignment", b =>
+                {
+                    b.Navigation("Payments");
+
+                    b.Navigation("Terms");
+                });
+
             modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.ClientProfile", b =>
                 {
                     b.Navigation("BodyMeasurements");
@@ -3770,6 +4626,16 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
             modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.ClientTag", b =>
                 {
                     b.Navigation("Assignments");
+                });
+
+            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.CoachDiscount", b =>
+                {
+                    b.Navigation("Packages");
+                });
+
+            modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.CoachPackage", b =>
+                {
+                    b.Navigation("Prices");
                 });
 
             modelBuilder.Entity("FitnessPlatform.Application.Domain.Entities.Conversation", b =>

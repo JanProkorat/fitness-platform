@@ -4,18 +4,22 @@ import { Award, Eye, Globe, MapPin } from 'lucide-react';
 import { InstagramIcon, LinkedinIcon } from '@/components/profile/SocialIcons';
 import { instagramUrl, linkedinUrl, websiteUrl } from '@/components/profile/profileLinks';
 import ProfileAvatar from '@/components/profile/ProfileAvatar';
-import { initialsOf, type ProfileFormValues } from '@/components/profile/profile-form';
+import { initialsOf, type FromPrice, type ProfileFormValues } from '@/components/profile/profile-form';
+import { billingSuffix } from '@/components/client-detail/payment/paymentModel';
+import { formatMoney } from '@/lib/money';
 
 const ROLE_ORDER = ['trainer', 'nutritionist'] as const;
 
 interface Props {
   avatarUrl: string | undefined;
   roles: string[];
+  /** The "from" price clients see; the row is hidden when null. */
+  fromPrice: FromPrice | null;
 }
 
 /** Live "How clients see you" card, rebuilt from the form values on every keystroke. */
-export default function ProfilePreviewCard({ avatarUrl, roles }: Props) {
-  const { t } = useTranslation();
+export default function ProfilePreviewCard({ avatarUrl, roles, fromPrice }: Props) {
+  const { t, i18n } = useTranslation();
   const { control } = useFormContext<ProfileFormValues>();
   const values = useWatch({ control }) as ProfileFormValues;
 
@@ -96,17 +100,18 @@ export default function ProfilePreviewCard({ avatarUrl, roles }: Props) {
           )}
         </div>
 
-        <dl className="grid grid-cols-2 border-t border-border">
-          <div className="flex min-w-0 flex-col gap-1 p-4">
-            <dt className="text-label font-semibold tracking-label text-muted-foreground uppercase">
-              {t('profile.page.preview.price')}
-            </dt>
-            <dd className="truncate text-body font-semibold text-ink">{values.estimatedPrice?.trim()
-                ? `${values.estimatedPrice.trim()} ${t('profile.page.preview.perMonth')}`
-                : '—'}
-            </dd>
-          </div>
-          <div className="flex min-w-0 flex-col gap-1 border-l border-border p-4">
+        <dl className={`grid border-t border-border ${fromPrice ? 'grid-cols-2' : 'grid-cols-1'}`}>
+          {fromPrice && (
+            <div className="flex min-w-0 flex-col gap-1 p-4">
+              <dt className="text-label font-semibold tracking-label text-muted-foreground uppercase">
+                {t('profile.page.preview.price')}
+              </dt>
+              <dd className="truncate text-body font-semibold text-ink">
+                {`${formatMoney(fromPrice.amount, fromPrice.currency, i18n.language)} ${billingSuffix(t, fromPrice.billing, fromPrice.intervalWeeks)}`}
+              </dd>
+            </div>
+          )}
+          <div className={`flex min-w-0 flex-col gap-1 p-4 ${fromPrice ? 'border-l border-border' : ''}`}>
             <dt className="text-label font-semibold tracking-label text-muted-foreground uppercase">
               {t('profile.page.preview.languages')}
             </dt>

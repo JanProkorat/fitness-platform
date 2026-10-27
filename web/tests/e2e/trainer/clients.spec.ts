@@ -442,8 +442,11 @@ test.describe('client tag filter — create a tag (#1119)', () => {
     await expect(rowTrigger).toBeFocused();
   });
 
-  /** An ended link has no detail page (the API 404s it), so neither the name nor the row menu may open one. */
-  test('an archived row with an ended link is not a link and its menu item is disabled', async ({ page }) => {
+  /**
+   * An ended link has no detail page (the API 404s it), so neither the name nor the row menu may open one.
+   * The menu offers the kept payments instead (#1711).
+   */
+  test('an archived row with an ended link is not a link and its menu offers Payments, not the detail', async ({ page }) => {
     // The seed has no ended link, so fake the Archived tab's list response.
     await page.route(
       (url) => url.pathname.endsWith('/trainer/clients') && url.searchParams.get('status') === 'Archived',
@@ -483,7 +486,11 @@ test.describe('client tag filter — create a tag (#1119)', () => {
     await expect(row.getByRole('link')).toHaveCount(0);
 
     await row.getByRole('button', { name: 'Open row menu' }).click();
-    await expect(page.getByRole('menuitem', { name: 'Open client detail' })).toHaveAttribute('aria-disabled', 'true');
+    await expect(page.getByRole('menuitem', { name: 'Open client detail' })).toHaveCount(0);
+    await expect(page.getByRole('menuitem', { name: 'Payments' })).toHaveAttribute(
+      'href',
+      '/clients/99999999-9999-9999-9999-999999999999/payment',
+    );
   });
 });
 

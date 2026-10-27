@@ -20,12 +20,17 @@ namespace FitnessPlatform.Application.Features.Auth.VerifyEmail;
 /// addressed to this email, now that the account is verified (#1100, R4 — moved here from
 /// RegisterEndpoint so an invite thread never exists for an unverified account).
 /// </param>
-/// <param name="logger">Logger for the seeder's non-fatal failure path.</param>
+/// <param name="inviteNotificationSeeder">
+/// Creates the in-app InvitationReceived notification for invites sent before the account
+/// existed (#1676).
+/// </param>
+/// <param name="logger">Logger for the seeders' non-fatal failure path.</param>
 /// <param name="userManager">Used to read the verified account's roles.</param>
 public class VerifyEmailEndpoint(
     IApplicationDbContext db,
     IRealtimeNotifier notifier,
     IPendingInviteConversationSeeder inviteConversationSeeder,
+    IPendingInviteNotificationSeeder inviteNotificationSeeder,
     ILogger<VerifyEmailEndpoint> logger,
     UserManager<ApplicationUser> userManager)
     : Endpoint<VerifyEmailRequest, VerifyEmailResponse>
@@ -89,6 +94,17 @@ public class VerifyEmailEndpoint(
                 logger.LogError(ex,
                     "Failed to seed pending-invite conversation(s) for {Email} during email verification. Email verified; conversation will still be seeded at invite-accept time.",
                     token.User.Email);
+            }
+
+            try
+            {
+                await inviteNotificationSeeder.SeedForNewUserAsync(token.User, ct);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                logger.LogError(ex,
+                    "Failed to create pending-invite notification(s) for user {UserId} during email verification.",
+                    token.UserId);
             }
         }
 

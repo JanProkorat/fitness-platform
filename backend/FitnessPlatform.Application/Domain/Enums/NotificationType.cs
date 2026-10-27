@@ -66,5 +66,8 @@ public enum NotificationType
     MeasurementRequested,
 
     /// <summary>A client edited their onboarding answers; delivered to each linked professional.</summary>
-    OnboardingAnswersUpdated
+    OnboardingAnswersUpdated,
+
+    /// <summary>A coach asked the client to pay; delivered to the client.</summary>
+    PaymentRequested
 }

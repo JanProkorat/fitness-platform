@@ -1,13 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import Animated, { FadeInUp, LinearTransition, ReduceMotion } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { EdgeInsets } from 'react-native-safe-area-context';
 
-import { CONVERSATIONS_QUERY_KEY } from '@/api/conversations';
 import { getErrorStatus } from '@/api/errors';
 import { ChatMessageKind } from '@/api/generated';
 import { ChatEventCard } from '@/components/messages/ChatEventCard';
@@ -35,7 +33,6 @@ export default function ChatScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const styles = makeStyles(theme, insets);
-  const queryClient = useQueryClient();
   const { id = '' } = useLocalSearchParams<{ id: string }>();
 
   const conversations = useConversations();
@@ -106,10 +103,6 @@ export default function ChatScreen() {
   const knownIds = tracked.known;
 
   const leave = () => (router.canGoBack() ? router.back() : router.replace('/'));
-  const refreshAfterAnswer = useCallback(() => {
-    void refreshMessages();
-    void queryClient.invalidateQueries({ queryKey: CONVERSATIONS_QUERY_KEY });
-  }, [queryClient, refreshMessages]);
 
   const onSend = () => {
     const text = draft.trim();
@@ -174,7 +167,6 @@ export default function ChatScreen() {
               message={item.message}
               settledAt={item.settledAt}
               own={own}
-              onAnswered={refreshAfterAnswer}
             />
           ) : null
         ) : (

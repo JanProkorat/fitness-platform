@@ -9,9 +9,14 @@ export const spacing = {
   xl: 16,
   roomy: 18,
   xxl: 20,
+  cardInset: 18,
   xxxl: 24,
   huge: 32,
   safeAreaGap: 0,
+} as const;
+
+export const opacity = {
+  pressed: 0.85,
 } as const;
 
 export const radii = {
@@ -51,6 +56,7 @@ export const sizes = {
   backButton: 40,
   headerSlot: 64,
   backIcon: 18,
+  barSlot: 64,
   bellButton: 40,
   bellGlyph: 18,
   coachIcon: 38,
@@ -100,6 +106,8 @@ export const sizes = {
   searchFab: 56,
   searchFabGlyph: 20,
   statusDot: 6,
+  pageDot: 6,
+  pageDotActive: 16,
   messageField: 112,
   chatAvatar: 32,
   composer: 46,
@@ -111,6 +119,12 @@ export const sizes = {
   launchMarkGap: 6.48,
   launchStackGap: 22,
   launchTaglineRise: 8,
+  qrCode: 176,
+  statusTag: 24,
+  copyButton: 32,
+  copyGlyph: 16,
+  paidGlyph: 16,
+  paymentGlyph: 20,
   measureSparklineWidth: 90,
   measureSparklineHeight: 26,
   measureLabel: 120,

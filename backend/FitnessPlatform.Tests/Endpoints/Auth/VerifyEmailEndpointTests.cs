@@ -20,6 +20,7 @@ public class VerifyEmailEndpointTests
 {
     private readonly IRealtimeNotifier _notifier = Substitute.For<IRealtimeNotifier>();
     private readonly IPendingInviteConversationSeeder _inviteConversationSeeder = Substitute.For<IPendingInviteConversationSeeder>();
+    private readonly IPendingInviteNotificationSeeder _inviteNotificationSeeder = Substitute.For<IPendingInviteNotificationSeeder>();
     private readonly ILogger<VerifyEmailEndpoint> _logger = Substitute.For<ILogger<VerifyEmailEndpoint>>();
 
     private static ApplicationUser CreateUser(Guid id, string email) => new()
@@ -35,7 +36,7 @@ public class VerifyEmailEndpointTests
     private readonly UserManager<ApplicationUser> _userManager = EndpointTestHelpers.CreateFakeUserManager();
 
     private VerifyEmailEndpoint CreateEndpoint(Application.Infrastructure.Data.IApplicationDbContext db) =>
-        Factory.Create<VerifyEmailEndpoint>(db, _notifier, _inviteConversationSeeder, _logger, _userManager);
+        Factory.Create<VerifyEmailEndpoint>(db, _notifier, _inviteConversationSeeder, _inviteNotificationSeeder, _logger, _userManager);
 
     [Fact]
     public async Task HandleAsync_ValidToken_ConfirmsEmail_AndNotifies()

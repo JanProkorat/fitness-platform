@@ -1,13 +1,21 @@
 import { useFormContext, useWatch } from 'react-hook-form';
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { MapPin } from 'lucide-react';
+import { Box, MapPin } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Field, ProfileSection } from '@/components/profile/ProfileSection';
-import { BIO_MAX, type ProfileFormValues } from '@/components/profile/profile-form';
+import { BIO_MAX, type FromPrice, type ProfileFormValues } from '@/components/profile/profile-form';
+import { billingSuffix } from '@/components/client-detail/payment/paymentModel';
+import { formatMoney } from '@/lib/money';
 
-export default function AboutSection() {
-  const { t } = useTranslation();
+interface Props {
+  /** The read-only "from" price derived from the coach's packages; null when nothing qualifies. */
+  fromPrice: FromPrice | null;
+}
+
+export default function AboutSection({ fromPrice }: Props) {
+  const { t, i18n } = useTranslation();
   const {
     register,
     control,
@@ -55,19 +63,29 @@ export default function AboutSection() {
             />
           </div>
         </Field>
-        <Field
-          label={t('profile.page.about.price')}
-          htmlFor="profile-price"
-          hint={t('profile.page.about.priceHint')}
-          error={errors.estimatedPrice?.message}
-        >
-          <Input
+        <Field label={t('profile.page.about.price')} htmlFor="profile-price" hint={t('profile.page.about.priceHint')}>
+          <div
             id="profile-price"
-            className="h-10"
-            aria-invalid={!!errors.estimatedPrice}
+            data-testid="profile-from-price"
             aria-describedby="profile-price-message"
-            {...register('estimatedPrice')}
-          />
+            className="flex h-10 items-center gap-2 rounded-field border border-input bg-sunken px-3 text-copy text-ink"
+          >
+            <Box className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+            <span className="truncate">
+              {fromPrice
+                ? t('profile.page.about.priceFrom', {
+                    price: formatMoney(fromPrice.amount, fromPrice.currency, i18n.language),
+                    unit: billingSuffix(t, fromPrice.billing, fromPrice.intervalWeeks),
+                  })
+                : t('profile.page.about.priceNone')}
+            </span>
+            <Link
+              to="/packages"
+              className="ml-auto shrink-0 rounded-sm text-body font-semibold text-ink outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
+            >
+              {fromPrice ? t('profile.page.about.priceManage') : t('profile.page.about.priceSetUp')}
+            </Link>
+          </div>
         </Field>
       </div>
     </ProfileSection>

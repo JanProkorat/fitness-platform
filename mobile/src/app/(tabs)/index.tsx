@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
-import { StyleSheet } from 'react-native';
+import { RefreshControl, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Screen } from '@/components/Screen';
 import { TabFade } from '@/components/TabFade';
@@ -16,6 +17,7 @@ import type { CoachRole } from '@/components/today/collaborationRoles';
 import { FindCoachSection } from '@/components/today/FindCoachSection';
 import { HowItWorks } from '@/components/today/HowItWorks';
 import { InvitesSection } from '@/components/today/InvitesSection';
+import { PaymentDueCard } from '@/components/today/PaymentDueCard';
 import { RoleSlots } from '@/components/today/RoleSlots';
 import { StartOnYourOwn } from '@/components/today/StartOnYourOwn';
 import { TodayHeader } from '@/components/today/TodayHeader';
@@ -25,6 +27,7 @@ import { useClientPlans } from '@/hooks/useClientPlans';
 import { useCollaborations } from '@/hooks/useCollaborations';
 import { useInvites } from '@/hooks/useInvites';
 import { useProfile } from '@/hooks/useProfile';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
 
@@ -46,6 +49,8 @@ function TodayContent() {
   const collaborations = useCollaborations();
   const invites = useInvites();
   const plans = useClientPlans();
+  const insets = useSafeAreaInsets();
+  const { refreshing, onRefresh } = usePullToRefresh();
   const barClearance = theme.sizes.tabBar + theme.sizes.tabBarBottom + theme.spacing.xxl;
 
   if (!profile) {
@@ -60,6 +65,15 @@ function TodayContent() {
       topGap={theme.spacing.safeAreaGap}
       bottomInset={barClearance}
       contentStyle={tight ? styles.contentTight : styles.content}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor={theme.colors.muted}
+          colors={[theme.colors.muted]}
+          progressViewOffset={insets.top}
+        />
+      }
     >
       {content}
     </Screen>
@@ -155,6 +169,7 @@ function TodayContent() {
           {t('today.linkedBody')}
         </Text>
       )}
+      <PaymentDueCard />
       <InvitesSection />
     </>,
   );

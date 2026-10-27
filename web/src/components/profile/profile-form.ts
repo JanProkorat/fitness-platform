@@ -1,6 +1,11 @@
 import { z } from 'zod';
 import type { TFunction } from 'i18next';
-import type { GetProfessionalProfileResponse, GetProfileResponse } from '@/api/generated';
+import type {
+  GetProfessionalProfileResponse,
+  GetProfileResponse,
+  PackageBillingInterval,
+  PaymentCurrency,
+} from '@/api/generated';
 import type { UpdateTrainerProfilePayload } from '@/api/profile';
 
 export const BIO_MAX = 1000;
@@ -28,7 +33,6 @@ export interface ProfileFormValues {
   phoneNumber: string;
   bio: string;
   city: string;
-  estimatedPrice: string;
   specializations: string[];
   languages: string[];
   certificates: CertificateItem[];
@@ -38,6 +42,27 @@ export interface ProfileFormValues {
   linkedIn: string;
   showInSearch: boolean;
   acceptNewClients: boolean;
+}
+
+/** The cheapest package price shown on the profile, with its currency and billing unit. */
+export interface FromPrice {
+  amount: number;
+  currency: PaymentCurrency;
+  billing: PackageBillingInterval | undefined;
+  intervalWeeks: number | undefined;
+}
+
+/** The "from" price of a profile, or null when nothing qualifies (both fields are then absent). */
+export function fromPriceOf(trainer: GetProfessionalProfileResponse): FromPrice | null {
+  if (trainer.fromMonthlyPrice == null || trainer.fromMonthlyPriceCurrency == null) {
+    return null;
+  }
+  return {
+    amount: trainer.fromMonthlyPrice,
+    currency: trainer.fromMonthlyPriceCurrency,
+    billing: trainer.fromPriceBilling ?? undefined,
+    intervalWeeks: trainer.fromPriceIntervalWeeks ?? undefined,
+  };
 }
 
 export function initialsOf(firstName: string, lastName: string): string {
@@ -132,7 +157,6 @@ export function buildDefaultValues(
     phoneNumber: me.phoneNumber ?? '',
     bio: trainer.bio ?? '',
     city: trainer.city ?? '',
-    estimatedPrice: trainer.estimatedPrice ?? '',
     specializations: parseStringList(trainer.specializations),
     languages: parseStringList(trainer.languages),
     certificates: parseCertificates(trainer.certificates),
@@ -159,7 +183,6 @@ export function buildTrainerPayload(
     bio: orNull(values.bio),
     specialization: legacySpecialization ?? null,
     city: orNull(values.city),
-    estimatedPrice: orNull(values.estimatedPrice),
     specializations: JSON.stringify(values.specializations),
     certificates: serializeCertificates(values.certificates),
     languages: JSON.stringify(values.languages),
@@ -180,7 +203,6 @@ export function createProfileSchema(t: TFunction) {
     phoneNumber: z.string().max(PHONE_MAX, t('profile.page.validation.tooLong', { max: PHONE_MAX })),
     bio: z.string().max(BIO_MAX, t('profile.page.validation.tooLong', { max: BIO_MAX })),
     city: z.string().max(SHORT_MAX, t('profile.page.validation.tooLong', { max: SHORT_MAX })),
-    estimatedPrice: z.string().max(SHORT_MAX, t('profile.page.validation.tooLong', { max: SHORT_MAX })),
     specializations: z
       .array(z.string())
       .refine((list) => JSON.stringify(list).length <= SPECIALIZATIONS_JSON_MAX, t('profile.page.validation.listTooLong')),
@@ -225,7 +247,6 @@ const FIELD_BY_BACKEND_NAME: Record<string, keyof ProfileFormValues> = {
   phonenumber: 'phoneNumber',
   bio: 'bio',
   city: 'city',
-  estimatedprice: 'estimatedPrice',
   specializations: 'specializations',
   languages: 'languages',
   certificates: 'certificates',

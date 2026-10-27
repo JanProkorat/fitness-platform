@@ -3,6 +3,7 @@ using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.Client.Invites.GetPending;
 using FitnessPlatform.Tests.Builders;
 using NSubstitute;
@@ -57,7 +58,7 @@ public class GetPendingInviteEndpointTests
             ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
                 new System.Security.Claims.ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientUserId, AppRoles.Client))),
-            db, userManager, TimeProvider.System);
+            db, userManager, TimeProvider.System, new EntitlementService(db));
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
@@ -95,7 +96,7 @@ public class GetPendingInviteEndpointTests
             ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
                 new System.Security.Claims.ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientUserId, AppRoles.Client))),
-            db, userManager, TimeProvider.System);
+            db, userManager, TimeProvider.System, new EntitlementService(db));
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 

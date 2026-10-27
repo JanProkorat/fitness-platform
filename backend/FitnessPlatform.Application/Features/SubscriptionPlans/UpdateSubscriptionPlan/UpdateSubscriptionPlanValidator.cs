@@ -54,6 +54,9 @@ internal sealed class UpdateSubscriptionPlanValidator : Validator<UpdateSubscrip
         RuleFor(x => x.CanUsePerClientCheckInConfig)
             .NotNull().WithErrorCode(ErrorCodes.Required);
 
+        RuleFor(x => x.CanUsePayments)
+            .NotNull().WithErrorCode(ErrorCodes.Required);
+
         RuleFor(x => x.IsActive)
             .NotNull().WithErrorCode(ErrorCodes.Required);
 

@@ -10,6 +10,7 @@ import {
   FileText,
   HelpCircle,
   MessageSquare,
+  Package,
   Users,
   Zap,
 } from 'lucide-react';
@@ -55,6 +56,11 @@ const NAV_SECTIONS = [
       { to: '/forms', labelKey: 'sidebar.forms', Icon: FileText },
       { to: '/automations', labelKey: 'sidebar.automations', Icon: Zap },
     ],
+  },
+  {
+    headerKey: 'sidebar.businessSection',
+    dot: false,
+    items: [{ to: '/packages', labelKey: 'sidebar.packages', Icon: Package }],
   },
 ] as const;
 

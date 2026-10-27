@@ -6,7 +6,10 @@ using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Infrastructure;
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using static FitnessPlatform.Tests.Endpoints.ClientPayments.ClientPaymentFixtures;
+using static FitnessPlatform.Tests.Endpoints.PaymentSettings.PaymentSettingsFixtures;
 
 namespace FitnessPlatform.Tests.Endpoints.Client.Invites;
 
@@ -20,12 +23,19 @@ public class GetClientInvitesEndpointTests(FitnessApiFactory factory)
 
     private record InviteItem(
         Guid Id, Guid CoachPublicId, string CoachName, string CoachRole, string CoachCity,
-        string? OfferedType, string? Message, DateTime SentAt, DateTime ExpiresAt);
+        string? OfferedType, string? Message, DateTime SentAt, DateTime ExpiresAt, InvitePackage? Package = null);
+
+    private record InvitePackage(
+        string Name, string Billing, int? IntervalWeeks, int? RunsForPayments, string? Description,
+        decimal BasePrice, string? DiscountLabel, decimal FinalPrice, string Currency);
+
+    private record PendingResult(Guid Id, InvitePackage? Package);
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     private async Task<Guid> SeedInviteAsync(
-        Actor coach, string email, PendingInviteStatus status, DateTime sentAt, string? message = null)
+        Actor coach, string email, PendingInviteStatus status, DateTime sentAt, string? message = null,
+        Guid? packageId = null, Guid? discountId = null)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -36,6 +46,8 @@ public class GetClientInvitesEndpointTests(FitnessApiFactory factory)
             Message = message,
             SentAt = sentAt,
             Status = status,
+            CoachPackageId = packageId is null ? null : (await db.CoachPackages.SingleAsync(p => p.PublicId == packageId, Ct)).Id,
+            CoachDiscountId = discountId is null ? null : (await db.CoachDiscounts.SingleAsync(d => d.PublicId == discountId, Ct)).Id,
         };
         db.PendingInvites.Add(invite);
         await db.SaveChangesAsync(Ct);
@@ -117,5 +129,35 @@ public class GetClientInvitesEndpointTests(FitnessApiFactory factory)
         await SeedInviteAsync(inviter, dual.Email, PendingInviteStatus.Pending, DateTime.UtcNow);
 
         (await GetAsync(dual)).Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetAll_InviteWithPackage_ShowsThePriceAndDiscount_AndNothingOnceItCannotBeGiven()
+    {
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        await SubscribeAsync(factory, coach, canUsePayments: true);
+        var client = await TestActors.Client(factory).CreateAsync(Ct);
+        var packageId = await CreatePackageAsync(coach, 2500m, "Coaching 12", runsFor: 12);
+        var discountId = await CreateDiscountAsync(coach, 30m);
+        var inviteId = await SeedInviteAsync(
+            coach, client.Email, PendingInviteStatus.Pending, DateTime.UtcNow, packageId: packageId, discountId: discountId);
+
+        var package = (await GetAsync(client)).Single(i => i.Id == inviteId).Package;
+
+        package.Should().NotBeNull();
+        package!.Name.Should().Be("Coaching 12");
+        package.Billing.Should().Be("Monthly");
+        package.RunsForPayments.Should().Be(12);
+        package.BasePrice.Should().Be(2500m);
+        package.FinalPrice.Should().Be(1750m);
+        package.DiscountLabel.Should().Contain("30");
+        package.Currency.Should().Be("CZK");
+
+        var pending = await client.Http.GetFromJsonAsync<PendingResult>("/client/invites/pending", Ct);
+        pending!.Package.Should().BeEquivalentTo(package);
+
+        await coach.Http.PostAsync($"/payments/packages/{packageId}/archive", Empty(), Ct);
+
+        (await GetAsync(client)).Single(i => i.Id == inviteId).Package.Should().BeNull("accepting would no longer give it");
     }
 }

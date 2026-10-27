@@ -52,6 +52,26 @@ public class PendingInvite : PublicTimestampableEntity
     public LinkCapabilityScope? RequestedScope { get; set; }
 
     /// <summary>
+    /// Optional package the client is assigned when they accept; null for an invite without terms.
+    /// </summary>
+    public long? CoachPackageId { get; set; }
+
+    /// <summary>
+    /// Optional discount applied to <see cref="CoachPackageId"/>; never set without a package.
+    /// </summary>
+    public long? CoachDiscountId { get; set; }
+
+    /// <summary>
+    /// Navigation property to the package offered with the invite.
+    /// </summary>
+    public CoachPackage? CoachPackage { get; set; }
+
+    /// <summary>
+    /// Navigation property to the discount offered with the invite.
+    /// </summary>
+    public CoachDiscount? CoachDiscount { get; set; }
+
+    /// <summary>
     /// Navigation property to the assigned questionnaire.
     /// </summary>
     public Questionnaire? Questionnaire { get; set; }

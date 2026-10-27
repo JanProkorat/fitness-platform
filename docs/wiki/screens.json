@@ -112,6 +112,25 @@
       "notionPageId": null
     },
     {
+      "id": "web.entry.invite-accept",
+      "app": "web",
+      "area": "Entry",
+      "title": "Invite email link",
+      "route": "/invite/accept",
+      "roles": ["Public"],
+      "files": [
+        "web/src/pages/InviteAcceptPage.tsx",
+        "web/src/components/register/StoreButtons.tsx",
+        "web/src/components/register/storeLinks.ts"
+      ],
+      "endpoints": [],
+      "board": null,
+      "shots": [
+        { "name": "phone", "steps": "open /invite/accept with a phone user agent (iPhone or Android)" }
+      ],
+      "notionPageId": null
+    },
+    {
       "id": "web.entry.check-email",
       "app": "web",
       "area": "Entry",
@@ -219,11 +238,17 @@
         "web/src/hooks/useClientsQueries.ts",
         "web/src/hooks/useQuestionnaireQueries.ts",
         "web/src/api/pending-invites.ts",
-        "web/src/api/questionnaires.ts"
+        "web/src/api/questionnaires.ts",
+        "web/src/components/clients/InvitePaymentSection.tsx",
+        "web/src/hooks/useClientPaymentQueries.ts",
+        "web/src/components/client-detail/payment/paymentErrors.ts",
+        "web/src/api/client-payments.ts"
       ],
       "endpoints": [
         "POST /trainer/pending-invites",
-        "GET /trainer/questionnaires"
+        "GET /trainer/questionnaires",
+        "GET /payments/packages",
+        "GET /payments/discounts"
       ],
       "board": "PageClientInviteDrawer",
       "shots": [
@@ -350,6 +375,109 @@
       "board": "PageClientAutomations",
       "shots": [
         { "name": "default", "steps": "sign in as the trainer, open /clients, click 'QA Client', open the Automations tab and wait for the rule list to load (board PageClientAutomations)" }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "web.clients.detail-payment",
+      "app": "web",
+      "area": "Clients",
+      "title": "Client detail — Payment",
+      "route": "/clients/:clientId/payment",
+      "roles": [
+        "Trainer",
+        "Nutritionist"
+      ],
+      "files": [
+        "web/src/pages/ClientDetailPage.tsx",
+        "web/src/components/client-detail/payment/*",
+        "web/src/hooks/useClientPaymentQueries.ts",
+        "web/src/hooks/usePaymentSettingsQueries.ts",
+        "web/src/api/client-payments.ts",
+        "web/src/api/payment-settings.ts",
+        "web/src/components/paywall/FeaturePaywall.tsx",
+        "web/src/lib/payment-format.ts",
+        "web/src/lib/money.ts"
+      ],
+      "endpoints": [
+        "GET /payments/clients/{clientId}/summary",
+        "GET /payments/clients/{clientId}/payments",
+        "GET /payments/clients/{clientId}/history",
+        "PUT /payments/clients/{clientId}/terms",
+        "POST /payments/clients/{clientId}/one-off",
+        "POST /payments/clients/{clientId}/payments/{paymentId}/request",
+        "POST /payments/clients/{clientId}/payments/{paymentId}/mark-paid",
+        "POST /payments/clients/{clientId}/payments/{paymentId}/waive",
+        "GET /payments/packages",
+        "GET /payments/discounts",
+        "GET /payments/settings"
+      ],
+      "board": "PageClientPayment",
+      "shots": [
+        {
+          "name": "default",
+          "steps": "sign in as the trainer, open /clients, click 'QA Client', open the Payment tab and wait for the payment list to load (board PageClientPayment)"
+        }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "web.account.settings-payments",
+      "app": "web",
+      "area": "Account",
+      "title": "Settings — Payments",
+      "route": "/settings",
+      "roles": [
+        "Trainer",
+        "Nutritionist"
+      ],
+      "files": [
+        "web/src/pages/SettingsPage.tsx",
+        "web/src/components/settings/payments/*",
+        "web/src/components/settings/SettingsCard.tsx",
+        "web/src/components/paywall/FeaturePaywall.tsx",
+        "web/src/hooks/usePaymentSettingsQueries.ts",
+        "web/src/api/payment-settings.ts",
+        "web/src/api/profile.ts"
+      ],
+      "endpoints": [
+        "GET /payments/settings",
+        "PUT /payments/settings",
+        "PUT /payments/bank-account",
+        "POST /payments/bank-account/code",
+        "GET /users/me"
+      ],
+      "board": "PageSettingsPayments",
+      "shots": [
+        {
+          "name": "default",
+          "steps": "sign in as the trainer, open /settings and scroll to the Payments card (board PageSettingsPayments)"
+        }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "web.account.bank-account-undo",
+      "app": "web",
+      "area": "Account",
+      "title": "Undo a bank account change (email link)",
+      "route": "/bank-account/undo",
+      "roles": [
+        "Public"
+      ],
+      "files": [
+        "web/src/pages/BankAccountUndoPage.tsx",
+        "web/src/api/payment-settings.ts"
+      ],
+      "endpoints": [
+        "POST /payments/bank-account/undo"
+      ],
+      "board": "PageSettingsBank",
+      "shots": [
+        {
+          "name": "default",
+          "steps": "open /bank-account/undo?token=sample on the dev server; the page only asks for confirmation and sends nothing until Undo change is clicked"
+        }
       ],
       "notionPageId": null
     },
@@ -686,6 +814,37 @@
         "DELETE /trainer/automations/rules/{ruleId}"
       ],
       "board": "PageAutomations",
+      "shots": [
+        { "name": "default" }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "web.business.packages",
+      "app": "web",
+      "area": "Business",
+      "title": "Packages and discounts",
+      "route": "/packages",
+      "roles": ["Trainer", "Nutritionist"],
+      "files": [
+        "web/src/pages/PackagesPage.tsx",
+        "web/src/components/package-catalog/*",
+        "web/src/components/paywall/FeaturePaywall.tsx",
+        "web/src/api/coach-packages.ts",
+        "web/src/api/coach-discounts.ts",
+        "web/src/lib/money.ts"
+      ],
+      "endpoints": [
+        "GET /payments/packages",
+        "POST /payments/packages",
+        "PUT /payments/packages/{packageId}",
+        "POST /payments/packages/{packageId}/archive",
+        "GET /payments/discounts",
+        "POST /payments/discounts",
+        "PUT /payments/discounts/{discountId}",
+        "POST /payments/discounts/{discountId}/archive"
+      ],
+      "board": "PagePackages",
       "shots": [
         { "name": "default" }
       ],
@@ -1079,8 +1238,10 @@
         "mobile/src/components/today/FindCoachSection.tsx",
         "mobile/src/components/today/InviteCard.tsx",
         "mobile/src/components/today/InvitesSection.tsx",
+        "mobile/src/components/today/PaymentDueCard.tsx",
         "mobile/src/components/today/TodayHeader.tsx",
         "mobile/src/components/invites/**",
+        "mobile/src/components/payments/format.ts",
         "mobile/src/components/Button.tsx",
         "mobile/src/components/Chip.tsx",
         "mobile/src/components/Screen.tsx",
@@ -1089,13 +1250,17 @@
         "mobile/src/hooks/useInviteActions.ts",
         "mobile/src/hooks/useInvites.ts",
         "mobile/src/hooks/useNotifications.ts",
+        "mobile/src/hooks/usePayments.ts",
+        "mobile/src/hooks/usePaymentsEnabled.ts",
         "mobile/src/hooks/useProfile.ts",
         "mobile/src/hooks/usePushRegistration.ts",
         "mobile/src/realtime/**",
+        "mobile/src/api/appConfig.ts",
         "mobile/src/api/conversations.ts",
         "mobile/src/api/errors.ts",
         "mobile/src/api/invites.ts",
         "mobile/src/api/notifications.ts",
+        "mobile/src/api/payments.ts",
         "mobile/src/api/professionals.ts",
         "mobile/src/api/profile.ts",
         "mobile/src/api/pushToken.ts"
@@ -1108,7 +1273,9 @@
         "GET /client/notifications",
         "GET /conversations",
         "POST /client/push-token",
-        "DELETE /client/push-token"
+        "DELETE /client/push-token",
+        "GET /client/payments",
+        "GET /client/app-config"
       ],
       "board": "GlassTodayNoCoach",
       "shots": [
@@ -1134,6 +1301,8 @@
         "mobile/src/components/Text.tsx",
         "mobile/src/hooks/useInvites.ts",
         "mobile/src/hooks/useNotifications.ts",
+        "mobile/src/hooks/usePaymentsEnabled.ts",
+        "mobile/src/api/appConfig.ts",
         "mobile/src/api/errors.ts",
         "mobile/src/api/invites.ts",
         "mobile/src/api/notifications.ts"
@@ -1142,7 +1311,8 @@
         "GET /client/notifications",
         "POST /client/notifications/{id}/read",
         "POST /client/notifications/read-all",
-        "GET /client/invites"
+        "GET /client/invites",
+        "GET /client/app-config"
       ],
       "board": "GlassNotifications",
       "shots": [
@@ -1281,6 +1451,14 @@
         "mobile/src/components/coach/CoachAvatar.tsx",
         "mobile/src/components/coach/CoachRoleChip.tsx",
         "mobile/src/components/coach/RequestSheet.tsx",
+        "mobile/src/components/coach/PackageCard.tsx",
+        "mobile/src/components/coach/PackageCarousel.tsx",
+        "mobile/src/components/coach/ProfileSection.tsx",
+        "mobile/src/components/coach/links.ts",
+        "mobile/src/components/payments/format.ts",
+        "mobile/src/hooks/usePaymentsEnabled.ts",
+        "mobile/src/hooks/useInvites.ts",
+        "mobile/src/api/invites.ts",
         "mobile/src/components/BackButton.tsx",
         "mobile/src/components/Button.tsx",
         "mobile/src/components/Chip.tsx",
@@ -1291,11 +1469,14 @@
         "mobile/src/api/clientRequests.ts",
         "mobile/src/api/errors.ts",
         "mobile/src/api/professionals.ts",
-        "mobile/src/api/profile.ts"
+        "mobile/src/api/profile.ts",
+        "mobile/src/api/appConfig.ts"
       ],
       "endpoints": [
         "GET /professionals/{publicId}",
-        "POST /client/requests"
+        "POST /client/requests",
+        "GET /client/invites",
+        "GET /client/app-config"
       ],
       "board": "GlassCoachProfile",
       "shots": [
@@ -1314,6 +1495,9 @@
       "files": [
         "mobile/src/app/invite/*.tsx",
         "mobile/src/components/invites/InviteActions.tsx",
+        "mobile/src/components/invites/InvitePackageCard.tsx",
+        "mobile/src/components/payments/format.ts",
+        "mobile/src/hooks/usePaymentsEnabled.ts",
         "mobile/src/components/invites/RoleChip.tsx",
         "mobile/src/components/invites/format.ts",
         "mobile/src/components/BackButton.tsx",
@@ -1326,13 +1510,15 @@
         "mobile/src/api/errors.ts",
         "mobile/src/api/invites.ts",
         "mobile/src/api/notifications.ts",
-        "mobile/src/api/profile.ts"
+        "mobile/src/api/profile.ts",
+        "mobile/src/api/appConfig.ts"
       ],
       "endpoints": [
         "GET /client/invites",
         "GET /professionals/{publicId}",
         "POST /client/invites/{id}/accept",
-        "POST /client/invites/{id}/decline"
+        "POST /client/invites/{id}/decline",
+        "GET /client/app-config"
       ],
       "board": "GlassInviteDetail",
       "shots": [
@@ -1421,21 +1607,53 @@
         "mobile/src/components/profile/format.ts",
         "mobile/src/hooks/useCollaborations.ts",
         "mobile/src/hooks/useOnboardingAnswers.ts",
+        "mobile/src/hooks/usePaymentsEnabled.ts",
         "mobile/src/hooks/useProfile.ts",
         "mobile/src/hooks/useProfileSummary.ts",
-        "mobile/src/hooks/useWeightSeries.ts"
+        "mobile/src/hooks/useWeightSeries.ts",
+        "mobile/src/api/appConfig.ts"
       ],
       "endpoints": [
         "GET /users/me",
         "GET /client/profile/summary",
         "GET /client/collaborations",
         "GET /client/onboarding/answers",
-        "GET /client/measurements"
+        "GET /client/measurements",
+        "GET /client/app-config"
       ],
       "board": "GlassProfile",
       "shots": [
         { "name": "default", "steps": "tap the initials button on Today" },
         { "name": "no-coach", "steps": "client without a coach; the coach row is replaced by the find-a-coach prompt" }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "client.profile.payments",
+      "app": "client",
+      "area": "Profile",
+      "title": "Payments",
+      "route": "/payments",
+      "roles": ["Client"],
+      "files": [
+        "mobile/src/app/payments.tsx",
+        "mobile/src/components/payments/**",
+        "mobile/src/components/invites/format.ts",
+        "mobile/src/components/BackButton.tsx",
+        "mobile/src/components/Screen.tsx",
+        "mobile/src/components/Text.tsx",
+        "mobile/src/hooks/usePayments.ts",
+        "mobile/src/hooks/usePaymentsEnabled.ts",
+        "mobile/src/api/appConfig.ts",
+        "mobile/src/api/payments.ts"
+      ],
+      "endpoints": [
+        "GET /client/payments",
+        "GET /client/app-config"
+      ],
+      "board": "GlassPayment",
+      "shots": [
+        { "name": "default", "steps": "client with a payment requested by their coach; tap Payments on Profile" }
       ],
       "notionPageId": null
     },

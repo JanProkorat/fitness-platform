@@ -4,6 +4,7 @@ using FitnessPlatform.Application.Domain.Authorization;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -60,7 +61,7 @@ public class GenerateProfessionalAvatarUploadUrlEndpoint(
         }
 
         var extension = GetExtension(req.ContentType);
-        var subPath = $"prof-{profile.Id}.{extension}";
+        var subPath = AvatarBlobKeys.NewProfessionalSubPath(profile.Id, extension);
 
         var result = await imageUpload.GenerateUploadUrlAsync(
             ImageUploadScope.Avatar,

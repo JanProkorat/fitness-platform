@@ -25,11 +25,11 @@
         "network": "Nelze se připojit k serveru. Zkontrolujte připojení a zkuste to znovu.",
         "generic": "Přihlášení se nezdařilo. Zkuste to prosím znovu."
       },
-      "registeredNotice": "Účet je založený, ale nepodařilo se tě přihlásit. Přihlas se prosím."
+      "registeredNotice": "Účet je založený, ale nepodařilo se vás přihlásit. Přihlaste se prosím."
     },
     "register": {
       "heading": "Vytvořit účet",
-      "subtitle": "Zabere to minutu. Vyber, jak budeš Form Up používat.",
+      "subtitle": "Zabere to minutu. Vyberte, jak budete Form Up používat.",
       "back": "Zpět",
       "roleGroup": "Typ účtu",
       "roleLabel": "Přidávám se jako",
@@ -67,10 +67,10 @@
       "submit": "Vytvořit účet",
       "errors": {
         "duplicateEmail": "Účet s tímto e-mailem už existuje.",
-        "rateLimited": "Příliš mnoho pokusů. Zkus to za chvíli znovu.",
-        "network": "Server není dostupný. Zkontroluj připojení a zkus to znovu.",
-        "validation": "Zkontroluj prosím zvýrazněná pole.",
-        "generic": "Účet se nepodařilo vytvořit. Zkus to prosím znovu."
+        "rateLimited": "Příliš mnoho pokusů. Zkuste to za chvíli znovu.",
+        "network": "Server není dostupný. Zkontrolujte připojení a zkuste to znovu.",
+        "validation": "Zkontrolujte prosím zvýrazněná pole.",
+        "generic": "Účet se nepodařilo vytvořit. Zkuste to prosím znovu."
       }
     }
   },
@@ -144,7 +144,7 @@
     "greetingAnonymous": "Vítejte",
     "linkedGreeting": "Ahoj, {{name}}",
     "linkedGreetingAnonymous": "Ahoj",
-    "linkedBody": "Tvoji poradci jsou připraveni. Tady uvidíš svůj den.",
+    "linkedBody": "Vaši poradci jsou připraveni. Tady uvidíte svůj den.",
     "notifications": "Upozornění",
     "notificationsUnread": "Upozornění, nepřečtených: {{count}}",
     "profile": "Profil",
@@ -255,16 +255,16 @@
       "change": "Změnit fotku",
       "remove": "Odstranit",
       "errors": {
-        "tooLarge": "Fotka je příliš velká. Vyber menší (max. 5 MB).",
+        "tooLarge": "Fotka je příliš velká. Vyberte menší (max. 5 MB).",
         "unsupported": "Tento formát fotky se nepodporuje.",
-        "network": "Server není dostupný. Zkontroluj připojení a zkus to znovu.",
-        "generic": "Fotku se nepodařilo změnit. Zkus to znovu."
+        "network": "Server není dostupný. Zkontrolujte připojení a zkuste to znovu.",
+        "generic": "Fotku se nepodařilo změnit. Zkuste to znovu."
       }
     },
     "info": {
       "title": "Moje údaje",
-      "subtitle": "Z tvé registrace. Udržuj je aktuální, ať ti plány sednou.",
-      "aboutSection": "O tobě",
+      "subtitle": "Z vaší registrace. Udržujte je aktuální, ať vám plány sednou.",
+      "aboutSection": "O vás",
       "goalSection": "Cíl",
       "trainingSection": "Trénink",
       "lifestyleSection": "Životní styl",
@@ -290,27 +290,27 @@
       "injuries": "Zranění",
       "diet": "Strava",
       "allergies": "Alergie",
-      "dislikes": "Jídla, která nechceš",
+      "dislikes": "Jídla, která nechcete",
       "rowLabel": "{{label}}: {{value}}. Změnit"
     },
     "errors": {
-      "required": "Vyplň toto pole.",
-      "weightRange": "Zadej váhu mezi {{min}} a {{max}} kg.",
-      "heightRange": "Zadej výšku mezi {{min}} a {{max}} cm.",
-      "sleepRange": "Zadej spánek mezi {{min}} a {{max}} hodinami.",
-      "stressRange": "Vyber úroveň stresu od {{min}} do {{max}}.",
-      "dateOfBirthRange": "Vyber datum narození, které odpovídá věku {{min}} až {{max}} let.",
+      "required": "Vyplňte toto pole.",
+      "weightRange": "Zadejte váhu mezi {{min}} a {{max}} kg.",
+      "heightRange": "Zadejte výšku mezi {{min}} a {{max}} cm.",
+      "sleepRange": "Zadejte spánek mezi {{min}} a {{max}} hodinami.",
+      "stressRange": "Vyberte úroveň stresu od {{min}} do {{max}}.",
+      "dateOfBirthRange": "Vyberte datum narození, které odpovídá věku {{min}} až {{max}} let.",
       "itemBlank": "Položka nesmí být prázdná.",
       "itemComma": "Položka nesmí obsahovat čárku.",
-      "rejected": "Tuto odpověď server nepřijal. Zkontroluj ji a zkus to znovu.",
-      "listTooLong": "Seznam je příliš dlouhý. Odeber pár položek.",
+      "rejected": "Tuto odpověď server nepřijal. Zkontrolujte ji a zkuste to znovu.",
+      "listTooLong": "Seznam je příliš dlouhý. Odeberte pár položek.",
       "tooManyItems": "Maximálně 20 položek.",
       "itemTooLong": "Jedna položka je příliš dlouhá.",
-      "partial": "Část změn se uložila, zbytek ne. Zkus uložit znovu.",
+      "partial": "Část změn se uložila, zbytek ne. Zkuste uložit znovu.",
       "save": {
-        "network": "Server není dostupný. Zkontroluj připojení a zkus to znovu.",
-        "invalid": "Zkontroluj zvýrazněná pole a zkus to znovu.",
-        "generic": "Změny se nepodařilo uložit. Zkus to znovu."
+        "network": "Server není dostupný. Zkontrolujte připojení a zkuste to znovu.",
+        "invalid": "Zkontrolujte zvýrazněná pole a zkuste to znovu.",
+        "generic": "Změny se nepodařilo uložit. Zkuste to znovu."
       }
     },
     "discard": {
@@ -362,7 +362,7 @@
     },
     "coaches": {
       "title": "Moji poradci",
-      "empty": "Zatím nespolupracuješ s žádným poradcem."
+      "empty": "Zatím nespolupracujete s žádným poradcem."
     },
     "progress": {
       "title": "Pokrok",
@@ -371,6 +371,7 @@
       "photos": "Fotky pokroku",
       "checkIns": "Historie check-inů"
     },
+    "payments": "Platby",
     "settings": "Nastavení",
     "error": {
       "summary": "Čísla se nepodařilo načíst.",
@@ -393,7 +394,7 @@
       "library": "Vybrat z knihovny"
     },
     "empty": "Zatím tu nejsou žádné fotky pokroku.",
-    "emptyHint": "Přidej první a začni sledovat svou změnu.",
+    "emptyHint": "Přidejte první a začněte sledovat svou změnu.",
     "photoLabel": "Fotka z {{date}}",
     "viewer": {
       "close": "Zavřít",
@@ -404,7 +405,7 @@
     },
     "permission": {
       "title": "Přístup k fotoaparátu je vypnutý",
-      "body": "Povol přístup k fotoaparátu v Nastavení, aby šlo pořizovat fotky pokroku.",
+      "body": "Povolte přístup k fotoaparátu v Nastavení, aby šlo pořizovat fotky pokroku.",
       "openSettings": "Otevřít Nastavení"
     },
     "errors": {
@@ -415,18 +416,20 @@
       "batchFailed_few": "Nenahrály se {{count}} fotky",
       "batchFailed_many": "Nenahrálo se {{count}} fotky",
       "batchFailed_other": "Nenahrálo se {{count}} fotek",
-      "tooLarge": "Tato fotka je větší než 5 MB. Vyber menší.",
-      "unsupportedType": "Tento typ souboru není podporovaný. Použij fotku JPEG, PNG, WebP nebo HEIC.",
-      "upload": "Nahrání se nezdařilo. Zkontroluj připojení a zkus to znovu.",
-      "delete": "Fotku se nepodařilo smazat. Zkus to znovu."
+      "tooLarge": "Tato fotka je větší než 5 MB. Vyberte menší.",
+      "unsupportedType": "Tento typ souboru není podporovaný. Použijte fotku JPEG, PNG, WebP nebo HEIC.",
+      "upload": "Nahrání se nezdařilo. Zkontrolujte připojení a zkuste to znovu.",
+      "delete": "Fotku se nepodařilo smazat. Zkuste to znovu."
     }
   },
   "invites": {
-    "invitedYou": "{{name}} tě zve",
-    "accept": "Přijmout",
+    "invitedYou": "{{name}} vás zve",
     "decline": "Odmítnout",
     "acceptInvite": "Přijmout pozvánku",
     "openHint": "Otevře pozvánku",
+    "viewInvite": "Zobrazit pozvánku",
+    "includesPackage": "Zahrnuje balíček",
+    "includesPackagePrice": "Zahrnuje balíček · {{price}}",
     "roles": { "Trainer": "Trenér", "Nutritionist": "Nutriční poradce" },
     "roleJoiner": " a ",
     "time": {
@@ -444,21 +447,22 @@
     "detail": {
       "back": "Zpět",
       "alsoOnline": "i online",
-      "invitedYouAt": "{{name}} tě zve · {{time}}",
-      "workingWith": "Spolupráce s {{name}}",
-      "offers": {
-        "training": "Osobní tréninkový plán",
-        "nutrition": "Osobní jídelníček",
-        "checkins": "Týdenní check-iny",
-        "chat": "Chat se svým poradcem"
-      },
-      "shareNote": "Přijetím sdílíš své odpovědi z úvodního dotazníku s osobou {{name}}."
+      "invitedYouAt": "{{name}} vás zve · {{time}}",
+      "shareNote": "Přijetím sdílíte své odpovědi z úvodního dotazníku s osobou {{name}}.",
+      "shareNoteWithPackage": "Přijetím sdílíte své odpovědi z úvodního dotazníku s osobou {{name}} a spustíte balíček.",
+      "viewProfile": "Zobrazit profil: {{name}}",
+      "viewProfileHint": "Medailonek, certifikáty a všechny balíčky",
+      "package": {
+        "title": "Váš balíček",
+        "youPay": "Platíte",
+        "note": "Začíná dnem přijetí. {{name}} vám posílá každou žádost o platbu, platíte bankovním převodem."
+      }
     },
     "errors": {
       "ok": "OK",
       "expired": {
         "title": "Pozvánka vypršela",
-        "body": "Tato pozvánka už neplatí. Požádej svého poradce o novou."
+        "body": "Tato pozvánka už neplatí. Požádejte svého poradce o novou."
       },
       "unavailable": {
         "title": "Pozvánka už není k dispozici",
@@ -466,11 +470,11 @@
       },
       "network": {
         "title": "Bez připojení",
-        "body": "Server není dostupný. Zkontroluj připojení a zkus to znovu."
+        "body": "Server není dostupný. Zkontrolujte připojení a zkuste to znovu."
       },
       "generic": {
         "title": "Něco se nepovedlo",
-        "body": "Na pozvánku se nepodařilo odpovědět. Zkus to prosím znovu."
+        "body": "Na pozvánku se nepodařilo odpovědět. Zkuste to prosím znovu."
       }
     }
   },
@@ -496,13 +500,13 @@
     },
     "chart": {
       "empty": {
-        "weight": "Přidej alespoň dvě váhy a uvidíš svůj vývoj.",
-        "waist": "Přidej alespoň dvě míry pasu a uvidíš svůj vývoj."
+        "weight": "Přidejte alespoň dvě váhy a uvidíte svůj vývoj.",
+        "waist": "Přidejte alespoň dvě míry pasu a uvidíte svůj vývoj."
       }
     },
     "plans": {
       "title": "Plány",
-      "empty": "Zatím nemáš žádné plány."
+      "empty": "Zatím nemáte žádné plány."
     },
     "status": {
       "active": "Aktivní",
@@ -530,7 +534,7 @@
       "beforeAfter": "Před a po",
       "start": "Začátek",
       "end": "Konec",
-      "onlyPhoto": "Tvoje fotka",
+      "onlyPhoto": "Vaše fotka",
       "allSessions": "Všechny tréninky v plánu",
       "notFound": {
         "title": "Plán nenalezen",
@@ -539,7 +543,7 @@
       },
       "error": {
         "title": "Plán se nepodařilo načíst",
-        "body": "Zkontroluj připojení a zkus to znovu."
+        "body": "Zkontrolujte připojení a zkuste to znovu."
       }
     },
     "error": {
@@ -559,15 +563,46 @@
     "unread": "Nepřečtené",
     "unreadCount": "Nepřečtených: {{count}}",
     "empty": "Vše je přečtené.",
-    "error": "Upozornění se nepodařilo načíst. Klepnutím to zkus znovu."
+    "error": "Upozornění se nepodařilo načíst. Klepnutím to zkuste znovu."
+  },
+  "payments": {
+    "title": "Platby",
+    "back": "Zpět",
+    "toPay": "K úhradě",
+    "overdue": "Po splatnosti",
+    "due": "Splatnost {{date}}",
+    "customPrice": "Individuální cena",
+    "scan": "Naskenujte kód v bankovní aplikaci. {{name}} potvrdí, až peníze dorazí.",
+    "transfer": "Zaplaťte převodem podle údajů níže. {{name}} potvrdí, až peníze dorazí.",
+    "qrLabel": "QR kód QR Platby",
+    "account": "Účet",
+    "variableSymbol": "Variabilní symbol",
+    "message": "Zpráva",
+    "copy": "Zkopírovat: {{label}}",
+    "copied": "Zkopírováno",
+    "paid": "Zaplaceno",
+    "paidOn": "Zaplaceno {{date}}",
+    "collaborationEnded": "Spolupráce skončila",
+    "empty": "Zatím tu nejsou žádné platby. Až vás trenér nebo nutriční poradce požádá o platbu, objeví se tady.",
+    "error": "Platby se nepodařilo načíst. Klepnutím to zkusíte znovu.",
+    "card": {
+      "title": "K úhradě",
+      "titleOverdue": "Platba po splatnosti",
+      "single": "{{amount}} · {{coach}}",
+      "several_one": "{{count}} platba čeká na úhradu",
+      "several_few": "{{count}} platby čekají na úhradu",
+      "several_many": "{{count}} platby čeká na úhradu",
+      "several_other": "{{count}} plateb čeká na úhradu",
+      "hint": "Otevře vaše platby"
+    }
   },
   "push": {
     "channelName": "Obecné"
   },
   "placeholder": {
-    "training": "Tady se objeví tvůj tréninkový plán.",
-    "nutrition": "Tady se objeví tvůj jídelníček.",
-    "messages": "Tady se objeví tvoje konverzace."
+    "training": "Tady se objeví váš tréninkový plán.",
+    "nutrition": "Tady se objeví váš jídelníček.",
+    "messages": "Tady se objeví vaše konverzace."
   },
   "measurements": {
     "title": "Tělesné míry",
@@ -615,7 +650,7 @@
     },
     "empty": {
       "title": "Zatím žádná měření",
-      "body": "Přidej první měření a začni sledovat svůj pokrok."
+      "body": "Přidejte první měření a začněte sledovat svůj pokrok."
     },
     "add": "Přidat měření",
     "error": {
@@ -624,9 +659,9 @@
     },
     "sheet": {
       "close": "Zavřít",
-      "subtitle": "Vyplň jen to, co jsi měřil(a)",
+      "subtitle": "Vyplňte jen to, co jste měřili",
       "save": "Uložit měření",
-      "error": "Měření se nepodařilo uložit. Zkus to znovu.",
+      "error": "Měření se nepodařilo uložit. Zkuste to znovu.",
       "measured": "Změřeno",
       "measuredA11y": "Změřeno: {{value}}. Změnit",
       "today": "Dnes",
@@ -647,16 +682,16 @@
     "pastCoaches": "Dřívější poradci",
     "readOnly": "Jen pro čtení",
     "readOnlyEnded": "Jen pro čtení · skončilo {{date}}",
-    "you": "Ty: {{text}}",
+    "you": "Vy: {{text}}",
     "photo": "Fotka",
     "yesterday": "Včera",
     "unreadCount": "Nepřečtených: {{count}}",
     "openChat": "Otevřít chat s poradcem {{name}}",
     "empty": {
       "title": "Zatím žádné konverzace",
-      "body": "Až začneš s poradcem spolupracovat, objeví se tu váš chat."
+      "body": "Až začnete s poradcem spolupracovat, objeví se tu váš chat."
     },
-    "error": "Zprávy se nepodařilo načíst. Klepni a zkus to znovu.",
+    "error": "Zprávy se nepodařilo načíst. Klepněte a zkuste to znovu.",
     "eventPreview": {
       "Invited": "Pozvánka",
       "Requested": "Žádost odeslána",
@@ -671,9 +706,9 @@
     "send": "Odeslat zprávu",
     "sendFailed": "Zprávu se nepodařilo odeslat. Zůstala v poli.",
     "readOnly": "Tento chat je jen pro čtení.",
-    "locked": "Psát můžeš, jakmile se pozvánka přijme.",
-    "loadError": "Chat se nepodařilo načíst. Klepni a zkus to znovu.",
-    "empty": "Zatím žádné zprávy. Pozdrav.",
+    "locked": "Psát můžete, jakmile se pozvánka přijme.",
+    "loadError": "Chat se nepodařilo načíst. Klepněte a zkuste to znovu.",
+    "empty": "Zatím žádné zprávy. Pozdravte.",
     "notFound": {
       "title": "Chat není dostupný",
       "body": "Tato konverzace už neexistuje.",
@@ -693,7 +728,7 @@
         },
         "details": {
           "Accepted": "Začali jste spolupracovat",
-          "Declined": "Odmítl(a) jsi",
+          "Declined": "Odmítli jste",
           "Cancelled": "{{name}} pozvánku stáhl(a)",
           "Expired": "Nikdo neodpověděl včas"
         }
@@ -711,7 +746,7 @@
           "Pending": "Čeká se na odpověď poradce {{name}}",
           "Accepted": "{{name}} žádost přijal(a)",
           "Declined": "{{name}} žádost odmítl(a)",
-          "Cancelled": "Žádost jsi stáhl(a)",
+          "Cancelled": "Žádost jste stáhli",
           "Expired": "Nikdo neodpověděl včas"
         }
       },
@@ -729,9 +764,9 @@
   },
   "coachSearch": {
     "title": {
-      "All": "Najdi si poradce",
-      "Trainer": "Najdi si trenéra",
-      "Nutritionist": "Najdi si nutričního poradce"
+      "All": "Najděte si poradce",
+      "Trainer": "Najděte si trenéra",
+      "Nutritionist": "Najděte si nutričního poradce"
     },
     "segmentsLabel": "Typ poradce",
     "segments": {
@@ -755,32 +790,56 @@
     "empty": "Těmto filtrům nic neodpovídá.",
     "retry": "Zkusit znovu",
     "errors": {
-      "network": "Server je nedostupný. Zkontroluj připojení a zkus to znovu.",
-      "generic": "Poradce se nepodařilo načíst. Zkus to znovu."
+      "network": "Server je nedostupný. Zkontrolujte připojení a zkuste to znovu.",
+      "generic": "Poradce se nepodařilo načíst. Zkuste to znovu."
+    }
+  },
+  "packages": {
+    "chip": {
+      "monthly": "Každý měsíc",
+      "everyNWeeks_one": "Každý týden",
+      "everyNWeeks_few": "Každé {{count}} týdny",
+      "everyNWeeks_many": "Každých {{count}} týdnů",
+      "everyNWeeks_other": "Každých {{count}} týdnů",
+      "oneOff": "Jedna platba"
+    },
+    "unit": {
+      "monthly": "/ měsíc",
+      "everyNWeeks_one": "/ týden",
+      "everyNWeeks_few": "/ {{count}} týdny",
+      "everyNWeeks_many": "/ {{count}} týdnů",
+      "everyNWeeks_other": "/ {{count}} týdnů",
+      "oneOff": "jednorázově"
     }
   },
   "coachProfile": {
     "alsoOnline": "i online",
-    "workingWith": "Spolupráce s {{name}}",
-    "workingWithRows": {
-      "Trainer": {
-        "plan": "Osobní tréninkový plán",
-        "checkIns": "Týdenní check-iny",
-        "chat": "Chat s tvým trenérem"
-      },
-      "Nutritionist": {
-        "plan": "Osobní jídelníček",
-        "checkIns": "Týdenní check-iny",
-        "chat": "Chat s tvým poradcem"
-      }
+    "packages": "Balíčky",
+    "how": {
+      "title": "Jak pracuje {{name}}",
+      "online": { "label": "Online", "hint": "Plány a check-iny online, kdekoli jste." },
+      "inperson": { "label": "Osobně", "hint": "Setkání osobně, tváří v tvář." },
+      "both": { "label": "Online i osobně", "hint": "Osobní setkání plus online plány a check-iny." }
     },
+    "certificates": "Certifikáty",
+    "languages": "Jazyky",
+    "links": "Odkazy",
+    "link": {
+      "website": "Web",
+      "instagram": "Instagram",
+      "linkedin": "LinkedIn"
+    },
+    "contact": "Kontakt",
+    "contactNote": "Jen pro klienty",
+    "email": "E-mail",
+    "phone": "Telefon",
+    "backToInvite": "Zpět na pozvánku",
     "sendRequest": "Odeslat žádost",
     "pending": "Žádost čeká na vyřízení",
-    "linked": "Už spolu spolupracujete",
     "retry": "Zkusit znovu",
     "error": {
       "title": "Profil se nepodařilo načíst",
-      "body": "Zkontroluj připojení a zkus to znovu."
+      "body": "Zkontrolujte připojení a zkuste to znovu."
     },
     "notFound": {
       "title": "Poradce nenalezen",
@@ -789,21 +848,21 @@
   },
   "requestSheet": {
     "title": "Žádost pro {{name}}",
-    "subtitle": "Představ se v pár slovech.",
+    "subtitle": "Představte se v pár slovech.",
     "cancel": "Zrušit",
     "messageLabel": "Zpráva (nepovinné)",
-    "messagePlaceholder": "Napiš, na čem chceš pracovat",
+    "messagePlaceholder": "Napište, na čem chcete pracovat",
     "historyLabel": "Sdílet mou historii",
     "historyHint": "Dřívější plány, měření a fotky z doby před spoluprací s poradcem {{name}}.",
-    "onboardingCaption": "Odpovědi z tvého úvodního dotazníku uvidí {{name}} a podle nich se připraví.",
+    "onboardingCaption": "Odpovědi z vašeho úvodního dotazníku uvidí {{name}} a podle nich se připraví.",
     "submit": "Odeslat žádost",
     "errors": {
       "notAccepting": "Tento poradce teď nepřijímá nové klienty.",
       "alreadyPending": "Žádost tomuto poradci už byla odeslána.",
-      "alreadyLinked": "S tímto poradcem už spolupracuješ.",
+      "alreadyLinked": "S tímto poradcem už spolupracujete.",
       "notFound": "Tento poradce už není dostupný.",
-      "network": "Server je nedostupný. Zpráva zůstala zachována, zkus to znovu.",
-      "generic": "Žádost se nepodařilo odeslat. Zkus to znovu."
+      "network": "Server je nedostupný. Zpráva zůstala zachována, zkuste to znovu.",
+      "generic": "Žádost se nepodařilo odeslat. Zkuste to znovu."
     }
   },
   "common": {
@@ -811,15 +870,15 @@
   },
   "profileError": {
     "title": "Účet se nepodařilo načíst",
-    "body": "Zkontroluj připojení a zkus to znovu.",
+    "body": "Zkontrolujte připojení a zkuste to znovu.",
     "retry": "Zkusit znovu"
   },
   "checkEmail": {
-    "title": "Zkontroluj e-mail",
+    "title": "Zkontrolujte e-mail",
     "sentTo": "Poslali jsme ověřovací odkaz na adresu",
-    "tapIt": "Klepni na něj v tomto telefonu a pokračuj.",
+    "tapIt": "Klepněte na něj v tomto telefonu a pokračujte.",
     "noEmailTitle": "E-mail nedorazil?",
-    "noEmailBody": "Podívej se do složky se spamem, nebo chvíli počkej. Doručení může chvíli trvat.",
+    "noEmailBody": "Podívejte se do složky se spamem, nebo chvíli počkejte. Doručení může chvíli trvat.",
     "resend": "Poslat znovu",
     "resendIn": "· dostupné za {{time}}",
     "resent": "E-mail odeslán.",
@@ -828,10 +887,10 @@
     "wrongAddress": "Špatná adresa?",
     "changeEmail": "Změnit e-mail",
     "errors": {
-      "limitReached": "Dosáhl jsi limitu ověřovacích e-mailů. Podívej se do složky se spamem.",
-      "rateLimited": "Příliš mnoho pokusů. Zkus to za chvíli znovu.",
-      "network": "Server není dostupný. Zkontroluj připojení a zkus to znovu.",
-      "generic": "E-mail se nepodařilo odeslat. Zkus to prosím znovu."
+      "limitReached": "Dosáhli jste limitu ověřovacích e-mailů. Podívejte se do složky se spamem.",
+      "rateLimited": "Příliš mnoho pokusů. Zkuste to za chvíli znovu.",
+      "network": "Server není dostupný. Zkontrolujte připojení a zkuste to znovu.",
+      "generic": "E-mail se nepodařilo odeslat. Zkuste to prosím znovu."
     }
   },
   "checkInHistory": {
@@ -846,7 +905,7 @@
     "countSince_other": "{{count}} check-inů od {{since}}",
     "filterAll": "Vše",
     "filterLabel": "Filtrovat podle trenéra",
-    "openNow": "Čeká na tebe",
+    "openNow": "Čeká na vás",
     "weekOf": "Týden od {{date}}",
     "answerBy": "{{coach}} · termín: {{weekday}}",
     "status": {
@@ -854,72 +913,72 @@
       "reviewed": "Zhodnoceno",
       "missed": "Zmeškáno"
     },
-    "empty": "Zatím žádné check-iny. Týdenní check-iny od tvých trenérů se objeví tady.",
+    "empty": "Zatím žádné check-iny. Týdenní check-iny od vašich trenérů se objeví tady.",
     "error": "Check-iny se nepodařilo načíst.",
     "retry": "Zkusit znovu"
   },
   "changeEmail": {
     "title": "Změnit e-mail",
     "cancel": "Zrušit",
-    "explainStart": "Přesuneme tvůj účet na novou adresu a pošleme nový odkaz. Odkaz odeslaný na",
+    "explainStart": "Přesuneme váš účet na novou adresu a pošleme nový odkaz. Odkaz odeslaný na",
     "explainEnd": "přestane fungovat.",
     "newEmail": "Nová e-mailová adresa",
     "submit": "Poslat nový odkaz",
     "errors": {
       "alreadyInUse": "Tato e-mailová adresa se už používá.",
-      "unchanged": "Tuto adresu už máme. Zadej jinou.",
-      "limitReached": "Dosáhl jsi limitu ověřovacích e-mailů. Podívej se do složky se spamem.",
-      "invalid": "Zadej platnou e-mailovou adresu.",
-      "rateLimited": "Příliš mnoho pokusů. Zkus to za chvíli znovu.",
-      "network": "Server není dostupný. Zkontroluj připojení a zkus to znovu.",
-      "generic": "E-mail se nepodařilo změnit. Zkus to prosím znovu."
+      "unchanged": "Tuto adresu už máme. Zadejte jinou.",
+      "limitReached": "Dosáhli jste limitu ověřovacích e-mailů. Podívejte se do složky se spamem.",
+      "invalid": "Zadejte platnou e-mailovou adresu.",
+      "rateLimited": "Příliš mnoho pokusů. Zkuste to za chvíli znovu.",
+      "network": "Server není dostupný. Zkontrolujte připojení a zkuste to znovu.",
+      "generic": "E-mail se nepodařilo změnit. Zkuste to prosím znovu."
     }
   },
   "verifyLink": {
-    "verifying": "Ověřujeme tvůj e-mail",
+    "verifying": "Ověřujeme váš e-mail",
     "signIn": "Přihlásit se",
     "backToSignIn": "Zpět na přihlášení",
     "retry": "Zkusit znovu",
     "invalid": {
       "title": "Tento odkaz není platný",
-      "body": "Možná už byl použit. Níže si vyžádej nový odkaz."
+      "body": "Možná už byl použit. Níže si vyžádejte nový odkaz."
     },
     "expired": {
       "title": "Platnost odkazu vypršela",
-      "body": "Ověřovací odkazy platí 24 hodin. Níže si vyžádej nový."
+      "body": "Ověřovací odkazy platí 24 hodin. Níže si vyžádejte nový."
     },
     "failed": {
       "title": "E-mail se nepodařilo ověřit",
-      "network": "Server není dostupný. Zkontroluj připojení a zkus to znovu.",
-      "rateLimited": "Příliš mnoho pokusů. Zkus to za chvíli znovu.",
-      "generic": "Něco se pokazilo. Zkus to prosím znovu."
+      "network": "Server není dostupný. Zkontrolujte připojení a zkuste to znovu.",
+      "rateLimited": "Příliš mnoho pokusů. Zkuste to za chvíli znovu.",
+      "generic": "Něco se pokazilo. Zkuste to prosím znovu."
     },
     "emailLabel": "E-mail",
-    "emailPlaceholder": "ty@example.com",
+    "emailPlaceholder": "jmeno@example.com",
     "resend": "Poslat nový odkaz",
     "resendIn": "· dostupné za {{time}}",
     "resent": "E-mail odeslán.",
     "resentAnonymous": "Pokud pro tuto adresu existuje účet, poslali jsme nový odkaz.",
     "errors": {
-      "limitReached": "Dosáhl jsi limitu ověřovacích e-mailů. Podívej se do složky se spamem.",
-      "rateLimited": "Příliš mnoho pokusů. Zkus to za chvíli znovu.",
-      "network": "Server není dostupný. Zkontroluj připojení a zkus to znovu.",
-      "generic": "E-mail se nepodařilo odeslat. Zkus to prosím znovu."
+      "limitReached": "Dosáhli jste limitu ověřovacích e-mailů. Podívejte se do složky se spamem.",
+      "rateLimited": "Příliš mnoho pokusů. Zkuste to za chvíli znovu.",
+      "network": "Server není dostupný. Zkontrolujte připojení a zkuste to znovu.",
+      "generic": "E-mail se nepodařilo odeslat. Zkuste to prosím znovu."
     }
   },
   "verified": {
     "title": "E-mail ověřen",
-    "welcome": "Vítej ve Form Up, {{name}}. Tvůj účet je připravený.",
-    "welcomeAnonymous": "Vítej ve Form Up. Tvůj účet je připravený.",
+    "welcome": "Vítejte ve Form Up, {{name}}. Váš účet je připravený.",
+    "welcomeAnonymous": "Vítejte ve Form Up. Váš účet je připravený.",
     "continue": "Pokračovat",
     "next": "CO DÁL",
     "aboutYou": {
-      "title": "Řekni nám o sobě",
+      "title": "Řekněte nám o sobě",
       "hint": "6 krátkých kroků, asi 3 minuty"
     },
     "findCoach": {
-      "title": "Najdi trenéra",
-      "hint": "Nebo přijmi pozvánku, kterou už máš"
+      "title": "Najděte trenéra",
+      "hint": "Nebo přijměte pozvánku, kterou už máte"
     },
     "cta": "Nastavit profil"
   },
@@ -934,12 +993,12 @@
     "increase": "Zvýšit: {{field}}",
     "removeItem": "Odebrat: {{item}}",
     "errors": {
-      "network": "Nepodařilo se spojit se serverem. Zkontroluj připojení a zkus to znovu.",
-      "generic": "Odpovědi se nepodařilo uložit. Zkus to prosím znovu."
+      "network": "Nepodařilo se spojit se serverem. Zkontrolujte připojení a zkuste to znovu.",
+      "generic": "Odpovědi se nepodařilo uložit. Zkuste to prosím znovu."
     },
     "goal": {
-      "title": "Jaký je tvůj hlavní cíl?",
-      "subtitle": "Tvůj trenér kolem něj postaví první plán.",
+      "title": "Jaký je váš hlavní cíl?",
+      "subtitle": "Váš trenér kolem něj postaví první plán.",
       "options": {
         "LoseFat": { "title": "Zhubnout", "hint": "Zredukovat tuk a udržet sílu" },
         "GainMuscle": { "title": "Nabrat svaly", "hint": "Přibrat díky strukturovanému plánu" },
@@ -957,8 +1016,8 @@
       }
     },
     "basics": {
-      "title": "O tobě",
-      "subtitle": "Aby tvůj trenér nastavil reálné cíle.",
+      "title": "O vás",
+      "subtitle": "Aby váš trenér nastavil reálné cíle.",
       "sexLabel": "Pohlaví",
       "sex": { "Female": "Žena", "Male": "Muž" },
       "age": "Věk",
@@ -976,9 +1035,9 @@
       }
     },
     "lifestyle": {
-      "title": "Tvůj běžný den",
-      "subtitle": "Práce, spánek a stres mění, co potřebuješ.",
-      "workLabel": "Jaká je tvoje práce?",
+      "title": "Váš běžný den",
+      "subtitle": "Práce, spánek a stres mění, co potřebujete.",
+      "workLabel": "Jaká je vaše práce?",
       "work": {
         "Sedentary": { "title": "Většinou vsedě", "hint": "Kancelář nebo práce u stolu" },
         "Standing": { "title": "Na nohou", "hint": "Obchod, výuka, zdravotní péče" },
@@ -997,16 +1056,16 @@
     },
     "training": {
       "title": "Trénink",
-      "subtitle": "Odkud začínáš.",
-      "currentLabel": "Jak často teď trénuješ?",
+      "subtitle": "Odkud začínáte.",
+      "currentLabel": "Jak často teď trénujete?",
       "current": {
         "None": "Zatím ne",
         "Occasional": "Občas",
         "Regular": "Pravidelně",
         "High": "Hodně"
       },
-      "daysLabel": "Dnů v týdnu, kdy můžeš trénovat",
-      "fitnessLabel": "Ohodnoť svou kondici",
+      "daysLabel": "Dnů v týdnu, kdy můžete trénovat",
+      "fitnessLabel": "Ohodnoťte svou kondici",
       "fitnessLow": "Teprve začínám",
       "fitnessHigh": "Velmi fit",
       "gymLabel": "Přístup do posilovny",
@@ -1014,31 +1073,31 @@
     },
     "eating": {
       "title": "Stravování",
-      "subtitle": "Tvůj nutriční poradce podle toho plánuje jídla.",
+      "subtitle": "Váš nutriční poradce podle toho plánuje jídla.",
       "mealsLabel": "Jídel denně",
       "meals": { "TwoToThree": "2–3", "FourToFive": "4–5", "SixPlus": "6+" },
-      "styleLabel": "Jak se stravuješ?",
+      "styleLabel": "Jak se stravujete?",
       "style": {
         "Anything": "Vše",
         "Vegetarian": "Vegetarián",
         "Vegan": "Vegan",
         "GlutenFree": "Bez lepku"
       },
-      "ratingLabel": "Ohodnoť dnešní stravu",
+      "ratingLabel": "Ohodnoťte dnešní stravu",
       "ratingLow": "Špatná",
       "ratingHigh": "Skvělá"
     },
     "motivation": {
-      "title": "Co tě pohání",
-      "subtitle": "Pomáhá trenérovi udržet tě na správné cestě.",
-      "label": "Co tě motivuje nejvíc?",
+      "title": "Co vás pohání",
+      "subtitle": "Pomáhá trenérovi udržet vás na správné cestě.",
+      "label": "Co vás motivuje nejvíc?",
       "options": {
         "Appearance": "Vypadat lépe",
         "Health": "Zdraví",
         "Performance": "Výkon",
         "Confidence": "Sebevědomí"
       },
-      "experienceLabel": "Máš zkušenost s nějakým plánem?",
+      "experienceLabel": "Máte zkušenost s nějakým plánem?",
       "experience": {
         "Never": "Nikdy",
         "TriedFailed": "Nevydrželo to",
@@ -1046,17 +1105,17 @@
       }
     },
     "chips": {
-      "activities": { "label": "Aktivity, které tě baví", "add": "Přidat" },
+      "activities": { "label": "Aktivity, které vás baví", "add": "Přidat" },
       "injuries": { "label": "Zranění nebo omezení", "add": "Přidat" },
       "allergies": { "label": "Alergie", "add": "Přidat alergii" },
-      "dislikes": { "label": "Jídla, která ti nechutnají", "add": "Přidat jídlo" },
-      "blockers": { "label": "Co ti stálo v cestě?", "add": "Přidat" },
-      "habits": { "label": "Návyky, které chceš vybudovat", "add": "Přidat návyk" }
+      "dislikes": { "label": "Jídla, která vám nechutnají", "add": "Přidat jídlo" },
+      "blockers": { "label": "Co vám stálo v cestě?", "add": "Přidat" },
+      "habits": { "label": "Návyky, které chcete vybudovat", "add": "Přidat návyk" }
     },
     "sheet": {
       "added": "Přidáno: {{count}}",
       "done": "Hotovo",
-      "hint": "Napiš jednu nebo více položek oddělených čárkami",
+      "hint": "Napište jednu nebo více položek oddělených čárkami",
       "common": "Časté",
       "suggestions": {
         "Lactose": "Laktóza",
@@ -1069,7 +1128,7 @@
     }
   },
   "coachPending": {
-    "title": "Tvůj trenérský účet je připravený",
-    "body": "Nástroje pro trenéry v aplikaci zatím nejsou. Klienty spravuj ve webovém portálu Form Up."
+    "title": "Váš trenérský účet je připravený",
+    "body": "Nástroje pro trenéry v aplikaci zatím nejsou. Klienty spravujte ve webovém portálu Form Up."
   }
 }

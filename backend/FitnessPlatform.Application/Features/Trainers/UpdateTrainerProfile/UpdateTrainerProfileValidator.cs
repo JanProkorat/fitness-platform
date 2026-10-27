@@ -21,9 +21,6 @@ public class UpdateProfessionalProfileValidator : Validator<UpdateProfessionalPr
         RuleFor(x => x.City)
             .MaximumLength(100);
 
-        RuleFor(x => x.EstimatedPrice)
-            .MaximumLength(100);
-
         RuleFor(x => x.Specializations)
             .MaximumLength(2000);
 

@@ -220,6 +220,56 @@ public interface IApplicationDbContext
     DbSet<AutomationRun> AutomationRuns { get; set; }
 
     /// <summary>
+    /// Coach payment settings (bank account and payment request defaults), one row per professional.
+    /// </summary>
+    DbSet<CoachPaymentSettings> CoachPaymentSettings { get; set; }
+
+    /// <summary>
+    /// History of bank account changes, carrying the data needed to undo one.
+    /// </summary>
+    DbSet<CoachBankAccountChange> CoachBankAccountChanges { get; set; }
+
+    /// <summary>
+    /// Emailed one-time codes that re-authenticate a coach without a password.
+    /// </summary>
+    DbSet<CoachReauthCode> CoachReauthCodes { get; set; }
+
+    /// <summary>
+    /// Paid offers a coach sells to clients.
+    /// </summary>
+    DbSet<CoachPackage> CoachPackages { get; set; }
+
+    /// <summary>
+    /// Price history of coach packages.
+    /// </summary>
+    DbSet<CoachPackagePrice> CoachPackagePrices { get; set; }
+
+    /// <summary>
+    /// Discounts a coach can apply to payments.
+    /// </summary>
+    DbSet<CoachDiscount> CoachDiscounts { get; set; }
+
+    /// <summary>
+    /// Links between a discount and the packages it is limited to.
+    /// </summary>
+    DbSet<CoachDiscountPackage> CoachDiscountPackages { get; set; }
+
+    /// <summary>
+    /// Each coach's payment relationship with a client (client number, terms, payments).
+    /// </summary>
+    DbSet<ClientPaymentAssignment> ClientPaymentAssignments { get; set; }
+
+    /// <summary>
+    /// History of the terms clients pay under.
+    /// </summary>
+    DbSet<ClientPaymentTerms> ClientPaymentTerms { get; set; }
+
+    /// <summary>
+    /// Payments clients owe coaches.
+    /// </summary>
+    DbSet<ClientPayment> ClientPayments { get; set; }
+
+    /// <summary>
     /// Saves all changes made in this context to the database.
     /// </summary>
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
@@ -274,6 +324,13 @@ public interface IApplicationDbContext
     /// no-op.
     /// </summary>
     Task LockClientProfileAsync(long clientProfileId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Takes a row-level <c>FOR NO KEY UPDATE</c> lock on one professional-profile row, serializing the
+    /// writes that allocate a coach-wide unique value (a client number, a variable symbol). Call it inside
+    /// a transaction from <see cref="BeginTransactionAsync"/>.
+    /// </summary>
+    Task LockProfessionalProfileAsync(long professionalProfileId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Claims the earliest automation schedule row that is due at <paramref name="nowUtc"/> with

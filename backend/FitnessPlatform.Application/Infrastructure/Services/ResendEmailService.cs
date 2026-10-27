@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Domain.Services;
 using Resend;
 using System.Reflection;
 
@@ -53,8 +54,28 @@ public class ResendEmailService(IResend resend, IConfiguration configuration, IL
         ["de"] = "Bestätigen Sie Ihre E-Mail für GF Platform"
     };
 
+    /// <summary>
+    /// Localized email subjects for the bank account re-authentication code.
+    /// </summary>
+    private static readonly Dictionary<string, string> ReauthCodeSubjects = new()
+    {
+        ["en"] = "Your GF Platform confirmation code",
+        ["cs"] = "Potvrzovací kód pro GF Platform",
+        ["de"] = "Ihr Bestätigungscode für GF Platform"
+    };
+
+    /// <summary>
+    /// Localized email subjects for the bank account changed notice.
+    /// </summary>
+    private static readonly Dictionary<string, string> BankAccountChangedSubjects = new()
+    {
+        ["en"] = "Your GF Platform bank account was changed",
+        ["cs"] = "Bankovní účet na GF Platform byl změněn",
+        ["de"] = "Ihr Bankkonto bei GF Platform wurde geändert"
+    };
+
     /// <inheritdoc />
-    public async Task SendInvitationEmailAsync(string toEmail, string trainerName, string invitationToken, string language, string? personalMessage, CancellationToken ct)
+    public async Task SendInvitationEmailAsync(string toEmail, string trainerName, string invitationToken, string language, string? personalMessage, InvitationPackageInfo? package, CancellationToken ct)
     {
         var lang = NormalizeLanguage(language);
         var baseUrl = configuration[ConfigKeys.AppBaseUrl] ?? "http://localhost:5173";
@@ -63,6 +84,7 @@ public class ResendEmailService(IResend resend, IConfiguration configuration, IL
 
         var template = LoadTemplate("Invitation", lang);
         var html = template
+            .Replace("{{PackageBlock}}", InvitationPackageBlock.Render(package, lang))
             .Replace("{{TrainerName}}", System.Net.WebUtility.HtmlEncode(trainerName))
             .Replace("{{AcceptUrl}}", acceptUrl)
             .Replace("{{PersonalMessage}}", string.IsNullOrWhiteSpace(personalMessage)
@@ -121,6 +143,51 @@ public class ResendEmailService(IResend resend, IConfiguration configuration, IL
         logger.LogInformation("Email verification sent via Resend to {Email} (lang={Language})", toEmail, lang);
     }
 
+    /// <inheritdoc />
+    public async Task SendReauthCodeEmailAsync(string toEmail, string code, string language, CancellationToken ct)
+    {
+        var lang = NormalizeLanguage(language);
+        var html = LoadTemplate("ReauthCode", lang).Replace("{{Code}}", System.Net.WebUtility.HtmlEncode(code));
+        var subject = ReauthCodeSubjects.GetValueOrDefault(lang, ReauthCodeSubjects["en"]);
+
+        await SendEmailAsync(toEmail, subject, html, ct);
+
+        logger.LogInformation("Re-authentication code email sent via Resend to {Email} (lang={Language})", toEmail, lang);
+    }
+
+    /// <inheritdoc />
+    public async Task SendBankAccountChangedEmailAsync(
+        string toEmail, string maskedNewIban, string maskedPreviousIban, string undoToken, string language, CancellationToken ct)
+    {
+        var lang = NormalizeLanguage(language);
+        var baseUrl = configuration[ConfigKeys.AppBaseUrl] ?? "http://localhost:5173";
+        var undoUrl = $"{baseUrl}/bank-account/undo?token={System.Net.WebUtility.UrlEncode(undoToken)}";
+
+        var html = LoadTemplate("BankAccountChanged", lang)
+            .Replace("{{NewIban}}", System.Net.WebUtility.HtmlEncode(maskedNewIban))
+            .Replace("{{PreviousIban}}", System.Net.WebUtility.HtmlEncode(maskedPreviousIban))
+            .Replace("{{UndoUrl}}", undoUrl);
+        var subject = BankAccountChangedSubjects.GetValueOrDefault(lang, BankAccountChangedSubjects["en"]);
+
+        await SendEmailAsync(toEmail, subject, html, ct);
+
+        logger.LogInformation("Bank account changed email sent via Resend to {Email} (lang={Language})", toEmail, lang);
+    }
+
+    /// <inheritdoc />
+    public async Task SendPaymentRequestEmailAsync(PaymentRequestEmail email, CancellationToken ct)
+    {
+        var lang = NormalizeLanguage(email.Language);
+        var baseUrl = configuration[ConfigKeys.AppBaseUrl] ?? "http://localhost:5173";
+
+        var html = PaymentMessageComposer.RenderEmailHtml(LoadTemplate("PaymentRequest", lang), email, lang, baseUrl);
+        var subject = PaymentMessageComposer.EmailSubject(email, lang);
+
+        await SendEmailAsync(email.ToEmail, subject, html, ct, (email.QrContentId, email.QrPng));
+
+        logger.LogInformation("Payment request email sent via Resend (lang={Language})", lang);
+    }
+
     /// <summary>
     /// Sends an email message via the Resend API.
     /// </summary>
@@ -128,7 +195,9 @@ public class ResendEmailService(IResend resend, IConfiguration configuration, IL
     /// <param name="subject">The email subject line.</param>
     /// <param name="htmlBody">The HTML body of the email.</param>
     /// <param name="ct">Cancellation token.</param>
-    private async Task SendEmailAsync(string toEmail, string subject, string htmlBody, CancellationToken ct)
+    /// <param name="inlineImage">A PNG to embed in the HTML as <c>cid:</c>, or null for a plain HTML mail.</param>
+    private async Task SendEmailAsync(
+        string toEmail, string subject, string htmlBody, CancellationToken ct, (string ContentId, byte[] Png)? inlineImage = null)
     {
         var fromAddress = configuration[ConfigKeys.EmailFromAddress] ?? "noreply@fitnessplatform.local";
         var fromName = configuration[ConfigKeys.EmailFromName] ?? "GF Platform";
@@ -140,6 +209,20 @@ public class ResendEmailService(IResend resend, IConfiguration configuration, IL
             HtmlBody = htmlBody
         };
         message.To.Add(toEmail);
+
+        if (inlineImage is { } image)
+        {
+            message.Attachments =
+            [
+                new EmailAttachment
+                {
+                    Filename = "payment-qr.png",
+                    Content = image.Png,
+                    ContentType = "image/png",
+                    ContentId = image.ContentId
+                }
+            ];
+        }
 
         await resend.EmailSendAsync(message, ct);
     }

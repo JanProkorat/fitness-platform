@@ -49,6 +49,9 @@ public class UpdateSubscriptionPlanRequest
     /// <summary>Whether the plan allows per-client check-in configuration. Required.</summary>
     public bool? CanUsePerClientCheckInConfig { get; set; }
 
+    /// <summary>Whether the plan allows the payments feature. Required.</summary>
+    public bool? CanUsePayments { get; set; }
+
     /// <summary>
     /// Maximum number of active clients allowed under this plan. Required — must be present
     /// in the body. An explicit <c>null</c> means unlimited; omitting the field entirely 400s.

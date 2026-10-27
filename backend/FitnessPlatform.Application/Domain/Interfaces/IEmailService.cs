@@ -13,8 +13,9 @@ public interface IEmailService
     /// <param name="invitationToken">The unique token for accepting the invitation.</param>
     /// <param name="language">Two-letter language code (en, cs, de). Defaults to en.</param>
     /// <param name="personalMessage">Optional personal message from the trainer to include in the email.</param>
+    /// <param name="package">Optional package the invitation offers; the email names it without a price.</param>
     /// <param name="ct">Cancellation token.</param>
-    Task SendInvitationEmailAsync(string toEmail, string trainerName, string invitationToken, string language, string? personalMessage, CancellationToken ct);
+    Task SendInvitationEmailAsync(string toEmail, string trainerName, string invitationToken, string language, string? personalMessage, InvitationPackageInfo? package, CancellationToken ct);
 
     /// <summary>
     /// Sends a password reset email containing a link to reset the user's password.
@@ -33,4 +34,32 @@ public interface IEmailService
     /// <param name="language">Two-letter language code (en, cs, de). Defaults to en.</param>
     /// <param name="ct">Cancellation token.</param>
     Task SendEmailVerificationAsync(string toEmail, string verificationToken, string language, CancellationToken ct);
+
+    /// <summary>
+    /// Sends a one-time code that re-authenticates a user without a password before a bank account change.
+    /// </summary>
+    /// <param name="toEmail">The recipient's email address.</param>
+    /// <param name="code">The one-time code.</param>
+    /// <param name="language">Two-letter language code (en, cs, de). Defaults to en.</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task SendReauthCodeEmailAsync(string toEmail, string code, string language, CancellationToken ct);
+
+    /// <summary>
+    /// Notifies a coach that their bank account changed, with a link to undo it.
+    /// </summary>
+    /// <param name="toEmail">The recipient's email address.</param>
+    /// <param name="maskedNewIban">The new IBAN, masked.</param>
+    /// <param name="maskedPreviousIban">The previous IBAN, masked.</param>
+    /// <param name="undoToken">The single-use undo token.</param>
+    /// <param name="language">Two-letter language code (en, cs, de). Defaults to en.</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task SendBankAccountChangedEmailAsync(
+        string toEmail, string maskedNewIban, string maskedPreviousIban, string undoToken, string language, CancellationToken ct);
+
+    /// <summary>
+    /// Asks a client to pay: the amount, the bank details and a QR Platba code attached inline.
+    /// </summary>
+    /// <param name="email">The resolved email content.</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task SendPaymentRequestEmailAsync(PaymentRequestEmail email, CancellationToken ct);
 }

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{Heading}}</title>
+</head>
+<body style="margin:0;padding:0;background-color:#F6F4F0;font-family:'DM Sans','Helvetica Neue',Helvetica,Arial,sans-serif;color:#141414;-webkit-font-smoothing:antialiased;">
+  <span style="display:none;max-height:0;overflow:hidden;opacity:0;">Scannen Sie den QR-Code in Ihrer Banking-App oder nutzen Sie die Angaben unten.</span>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#F6F4F0;padding:32px 16px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+          <tr>
+            <td style="padding:0 8px 20px;">
+              <span style="font-size:20px;font-weight:300;letter-spacing:4px;color:#141414;">FORM <span style="color:#C8382F;">UP</span></span>
+            </td>
+          </tr>
+          <tr>
+            <td style="background-color:#FFFFFF;border:1px solid #E7E4DE;border-radius:20px;padding:36px 32px;">
+              <p style="margin:0 0 8px;font-size:12px;font-weight:600;letter-spacing:2px;color:#6B6863;">ZAHLUNGSAUFFORDERUNG</p>
+              <h1 style="margin:0 0 12px;font-size:28px;font-weight:600;line-height:1.2;color:#141414;">{{Heading}}</h1>
+              <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#3A3835;">{{Intro}}</p>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#F6F4F0;border-radius:14px;">
+                <tr>
+                  <td width="170" style="padding:18px;" valign="top">
+                    <img src="cid:{{QrCid}}" width="150" height="150" alt="QR Platba" style="display:block;background-color:#FFFFFF;border-radius:10px;">
+                  </td>
+                  <td style="padding:18px 18px 18px 0;font-size:14px;line-height:1.9;" valign="top">
+                    <span style="color:#6B6863;">Betrag</span><br><strong>{{Amount}}</strong><br>
+                    <span style="color:#6B6863;">Konto</span><br>{{Iban}}<br>
+                    <span style="color:#6B6863;">Variabler Verwendungszweck</span><br>{{VariableSymbol}}<br>
+                    <span style="color:#6B6863;">Nachricht</span><br>{{Message}}<br>
+                    <span style="color:#6B6863;">F&auml;llig</span><br>{{Due}}
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:18px 0 0;font-size:13px;line-height:1.55;color:#3A3835;">{{Breakdown}}</p>
+              <p style="margin:4px 0 24px;font-size:13px;line-height:1.55;color:#3A3835;">Die Zahlung geht direkt auf das Konto von {{CoachName}}, der den Eingang best&auml;tigt.</p>
+              <a href="{{AppUrl}}" style="display:inline-block;background-color:#141414;color:#FFFFFF;text-decoration:none;font-size:15px;font-weight:700;padding:15px 26px;border-radius:12px;">In der App &ouml;ffnen</a>
+              <p style="margin:24px 0 0;padding-top:18px;border-top:1px solid #E7E4DE;font-size:12px;line-height:1.5;color:#6B6863;">Fragen zum Betrag? Schreiben Sie im Chat mit {{CoachName}}.</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:20px 8px 0;font-size:12px;line-height:1.6;color:#6B6863;">
+              Sie erhalten diese Nachricht, weil Sie bei Form Up mit {{CoachName}} zusammenarbeiten. Form Up fragt nie nach Kartendaten.<br>
+              Form Up &middot; Ihr Plan. Gemeinsam.
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

@@ -6,6 +6,8 @@ import { useEffect } from 'react';
 import { Platform } from 'react-native';
 
 import { registerPushToken, rememberRegisteredToken, removePushTokenAs } from '@/api/pushToken';
+import { isPaymentRequestedType } from '@/api/payments';
+import { usePaymentsEnabled } from '@/hooks/usePaymentsEnabled';
 import i18n from '@/i18n';
 import { useAuthStore } from '@/stores/auth';
 
@@ -77,22 +79,30 @@ export function usePushRegistration(): void {
 let handledResponseId: string | null = null;
 
 /**
- * Opens the invite a tapped push notification points at, or Today when it carries none.
+ * Opens the invite or payments list a tapped push notification points at, or Today when it carries
+ * none (or payments are hidden).
  * Mount it only once the user is on the home screens, so a cold-start tap waits for sign-in.
  */
 export function usePushTapNavigation(): void {
   const router = useRouter();
   const response = Notifications.useLastNotificationResponse();
+  const { enabled: paymentsEnabled, settled: paymentsSettled } = usePaymentsEnabled();
 
   useEffect(() => {
     if (!response || response.actionIdentifier !== Notifications.DEFAULT_ACTION_IDENTIFIER) return;
     const { identifier, content } = response.notification.request;
     if (handledResponseId === identifier) return;
+
+    const isPayment = isPaymentRequestedType(content.data?.type);
+    // A payment tap waits for the server switch: on a cold start it is not known yet.
+    if (isPayment && !paymentsSettled) return;
     handledResponseId = identifier;
 
     const inviteId = content.data?.inviteId;
     try {
-      if (typeof inviteId === 'string' && inviteId.length > 0) {
+      if (isPayment && paymentsEnabled) {
+        router.push('/payments');
+      } else if (typeof inviteId === 'string' && inviteId.length > 0) {
         router.push({ pathname: '/invite/[id]', params: { id: inviteId } });
       } else {
         router.navigate('/');
@@ -100,5 +110,5 @@ export function usePushTapNavigation(): void {
     } catch (error) {
       console.warn('Could not open the notification target', error);
     }
-  }, [response, router]);
+  }, [response, router, paymentsEnabled, paymentsSettled]);
 }

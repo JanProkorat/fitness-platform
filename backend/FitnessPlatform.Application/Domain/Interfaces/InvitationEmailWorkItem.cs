@@ -12,6 +12,12 @@ namespace FitnessPlatform.Application.Domain.Interfaces;
 /// <param name="Token">The already-persisted invitation token value to send.</param>
 /// <param name="Language">Two-letter language code (en, cs, de) for the email template.</param>
 /// <param name="PersonalMessage">Optional personal message included in the invite.</param>
+/// <param name="Package">Optional package the invitation offers; named in the email without a price.</param>
 public sealed record InvitationEmailWorkItem(
-    string Email, string TrainerName, string Token, string Language, string? PersonalMessage)
+    string Email,
+    string TrainerName,
+    string Token,
+    string Language,
+    string? PersonalMessage,
+    InvitationPackageInfo? Package = null)
     : EmailDispatchWorkItem(Email, Language);

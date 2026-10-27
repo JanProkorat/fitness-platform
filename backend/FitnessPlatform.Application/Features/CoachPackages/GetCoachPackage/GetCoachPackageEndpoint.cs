@@ -1,0 +1,66 @@
+using System.Security.Claims;
+using FastEndpoints;
+using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Domain.Extensions;
+using FitnessPlatform.Application.Domain.Services;
+using FitnessPlatform.Application.Features.CoachPackages.Shared;
+using FitnessPlatform.Application.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
+
+namespace FitnessPlatform.Application.Features.CoachPackages.GetCoachPackage;
+
+/// <summary>
+/// Returns one of the calling coach's packages, archived or not.
+/// </summary>
+/// <param name="db">Application database context.</param>
+/// <param name="entitlementService">Resolves subscription entitlements.</param>
+internal sealed class GetCoachPackageEndpoint(IApplicationDbContext db, EntitlementService entitlementService)
+    : Endpoint<GetCoachPackageRequest, CoachPackageDto>
+{
+    /// <inheritdoc />
+    public override void Configure()
+    {
+        Get("/payments/packages/{PackageId}");
+        Roles(AppRoles.Trainer, AppRoles.Nutritionist);
+        Summary(s =>
+        {
+            s.Summary = "Get a package";
+            s.Description = "Returns one of the calling coach's packages.";
+            s.Responses[StatusCodes.Status200OK] = "The package";
+            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
+            s.Responses[StatusCodes.Status403Forbidden] = "The subscription does not include payments (PAYMENTS_NOT_ENTITLED)";
+            s.Responses[StatusCodes.Status404NotFound] = "The package does not exist or belongs to another coach, or the caller has no professional profile";
+        });
+    }
+
+    /// <inheritdoc />
+    public override async Task HandleAsync(GetCoachPackageRequest req, CancellationToken ct)
+    {
+        if (!Guid.TryParse(User.FindFirstValue(AppClaims.UserId), out var userId))
+        {
+            await Send.UnauthorizedAsync(ct);
+            return;
+        }
+
+        var profileId = await this.LoadEntitledProfileIdOrRespondAsync(db, entitlementService, userId, ct);
+
+        if (profileId is null)
+        {
+            return;
+        }
+
+        var package = await db.CoachPackages
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.PublicId == req.PackageId && p.ProfessionalProfileId == profileId, ct);
+
+        if (package is null)
+        {
+            await Send.NotFoundAsync(ct);
+            return;
+        }
+
+        var usage = await ClientPaymentSchedule.CountCurrentUsageAsync(db, profileId.Value, ct);
+
+        await Send.OkAsync(CoachPackageDto.FromEntity(package, usage.ByPackage.GetValueOrDefault(package.Id)), ct);
+    }
+}

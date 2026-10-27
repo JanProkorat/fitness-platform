@@ -65,6 +65,7 @@ public class UpdateSubscriptionPlanEndpointTests(FitnessApiFactory factory)
         CanSendQuestionnaires: true,
         CanUseWeeklyCheckIns: true,
         CanUsePerClientCheckInConfig: true,
+        CanUsePayments: true,
         MaxActiveClients: 20,
         PriceMinorUnits: 50000,
         Currency: "EUR",
@@ -97,6 +98,7 @@ public class UpdateSubscriptionPlanEndpointTests(FitnessApiFactory factory)
         persisted.NameEn.Should().Be("Updated");
         persisted.PriceMinorUnits.Should().Be(50000);
         persisted.BillingInterval.Should().Be(BillingInterval.Annual);
+        persisted.CanUsePayments.Should().BeTrue();
     }
 
     [Fact]
@@ -160,6 +162,7 @@ public class UpdateSubscriptionPlanEndpointTests(FitnessApiFactory factory)
                 CanSendQuestionnaires = true,
                 CanUseWeeklyCheckIns = true,
                 CanUsePerClientCheckInConfig = true,
+                CanUsePayments = true,
                 // MaxActiveClients intentionally omitted — must 400, not silently grant unlimited.
                 PriceMinorUnits = 50000,
                 Currency = "EUR",
@@ -191,6 +194,7 @@ public class UpdateSubscriptionPlanEndpointTests(FitnessApiFactory factory)
                 CanSendQuestionnaires = true,
                 CanUseWeeklyCheckIns = true,
                 CanUsePerClientCheckInConfig = true,
+                CanUsePayments = true,
                 MaxActiveClients = 20,
                 PriceMinorUnits = 50000,
                 Currency = "EUR",
@@ -222,6 +226,39 @@ public class UpdateSubscriptionPlanEndpointTests(FitnessApiFactory factory)
                 CanSendQuestionnaires = true,
                 CanUseWeeklyCheckIns = true,
                 CanUsePerClientCheckInConfig = true,
+                CanUsePayments = true,
+                MaxActiveClients = 20,
+                PriceMinorUnits = 50000,
+                Currency = "EUR",
+                BillingInterval = "Annual",
+                IsActive = true,
+            },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task Update_OmittedCanUsePayments_Returns400()
+    {
+        var client = await TestHelpers.RegisterAdminAsync(factory, TestContext.Current.CancellationToken);
+        var code = await SeedPlanAsync();
+
+        var response = await client.PutAsJsonAsync(
+            $"/admin/subscription-plans/{code}",
+            new
+            {
+                Code = code,
+                NameCs = "Aktualizováno",
+                NameEn = "Updated",
+                NameDe = "Aktualisiert",
+                ApplicableRoles = "Both",
+                CanCreatePlans = true,
+                CanMessage = true,
+                CanSendQuestionnaires = true,
+                CanUseWeeklyCheckIns = true,
+                CanUsePerClientCheckInConfig = true,
+                // CanUsePayments intentionally omitted — must 400, not silently revoke.
                 MaxActiveClients = 20,
                 PriceMinorUnits = 50000,
                 Currency = "EUR",
@@ -266,6 +303,7 @@ public class UpdateSubscriptionPlanEndpointTests(FitnessApiFactory factory)
         bool CanSendQuestionnaires,
         bool CanUseWeeklyCheckIns,
         bool CanUsePerClientCheckInConfig,
+        bool CanUsePayments,
         int? MaxActiveClients,
         long PriceMinorUnits,
         string Currency,

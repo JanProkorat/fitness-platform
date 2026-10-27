@@ -6,8 +6,10 @@ export type ChatMessage = MessageDto;
 
 /** Query-key prefix for the conversation list; realtime events invalidate it. */
 export const CONVERSATIONS_QUERY_KEY = ['conversations'] as const;
+/** Query-key prefix shared by every conversation's messages. */
+export const CONVERSATION_MESSAGES_QUERY_KEY = ['conversation-messages'] as const;
 export const conversationMessagesQueryKey = (conversationId: string) =>
-  ['conversation-messages', conversationId] as const;
+  [...CONVERSATION_MESSAGES_QUERY_KEY, conversationId] as const;
 
 /** Newest messages shown in a chat; older history is not paged in yet. */
 export const MESSAGES_PAGE_SIZE = 50;
