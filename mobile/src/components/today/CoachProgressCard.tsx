@@ -45,6 +45,7 @@ type Step = {
   currentColor?: string;
   actionLabel?: string;
   onAction?: () => void;
+  actionTone?: 'primary' | 'secondary';
 };
 
 const normalize = (name: string | undefined): string => (name ?? '').trim().toLowerCase();
@@ -194,6 +195,7 @@ export function CoachProgressCard({
         ? t(qrOpen ? 'today.progress.firstPayment.hideQr' : 'today.progress.firstPayment.showQr')
         : undefined,
       onAction: canShowQr ? () => setQrOpen((open) => !open) : undefined,
+      actionTone: 'primary',
     });
   }
   const generalStep = questionnaireStep('questionnaire', generic);
@@ -298,6 +300,7 @@ export function CoachProgressCard({
               currentColor={step.currentColor}
               actionLabel={step.actionLabel}
               onAction={step.onAction}
+              actionTone={step.actionTone}
               connector={connector}
             />
           );
