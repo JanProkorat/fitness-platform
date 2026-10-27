@@ -55,17 +55,9 @@ internal sealed class GetClientPaymentsEndpoint(IApplicationDbContext db, TimePr
             return;
         }
 
-        var visible = db.ClientPayments
-            .AsNoTracking()
-            .Where(p => p.ClientPaymentAssignment.ClientProfileId == clientProfileId
-                && db.ClientProfessionalLinks.Any(l =>
-                    l.ClientProfileId == clientProfileId && l.ProfessionalProfileId == p.ProfessionalProfileId));
+        var visible = ClientPaymentQueries.VisibleToClient(db, clientProfileId.Value).AsNoTracking();
 
-        var requested = await visible
-            .Where(p => p.Status == ClientPaymentStatus.Requested)
-            .OrderBy(p => p.DueDate)
-            .ThenBy(p => p.Id)
-            .ToListAsync(ct);
+        var requested = await ClientPaymentQueries.RequestedOrdered(visible).ToListAsync(ct);
         var paid = await visible
             .Where(p => p.Status == ClientPaymentStatus.Paid)
             .OrderByDescending(p => p.PaidOn)

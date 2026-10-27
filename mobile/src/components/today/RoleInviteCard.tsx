@@ -5,7 +5,9 @@ import { useTranslation } from 'react-i18next';
 import type { ClientInvite } from '@/api/invites';
 import { InviteAvatar } from '@/components/invites/InviteAvatar';
 import { relativeTime } from '@/components/invites/format';
+import { billingUnit, formatMoney } from '@/components/payments/format';
 import { Text } from '@/components/Text';
+import { usePaymentsEnabled } from '@/hooks/usePaymentsEnabled';
 import Animated, { useReducedMotion, withTiming } from 'react-native-reanimated';
 import type { EntryAnimationsValues } from 'react-native-reanimated';
 
@@ -26,7 +28,8 @@ type RoleInviteCardProps = {
 
 /** A pending invite on Today, shown in place of the "Find / Add a <role>" row it would fill. */
 export function RoleInviteCard({ invite, roles, onView, onCompare }: RoleInviteCardProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const { enabled: paymentsEnabled } = usePaymentsEnabled();
   const theme = useTheme();
   const reduceMotion = useReducedMotion();
   const styles = makeStyles(theme);
@@ -35,6 +38,14 @@ export function RoleInviteCard({ invite, roles, onView, onCompare }: RoleInviteC
   const borderColor = dual ? theme.colors.ink : roleLook(theme, first).strong;
   const label = roles.map((role) => t(`invites.roles.${role}`)).join(t('invites.roleJoiner'));
   const name = t('today.invite.invitedYou', { name: invite.coachName ?? '' });
+  const pack = invite.package;
+  const when = relativeTime(t, invite.sentAt);
+  const meta =
+    pack && paymentsEnabled
+      ? `${when} · ${t('today.invite.packagePrice', {
+          price: `${formatMoney(pack.finalPrice, pack.currency, i18n.language)} ${billingUnit(t, pack.billing, pack.intervalWeeks)}`,
+        })}`
+      : when;
 
   const offset = theme.spacing[roleInviteMotion.offsetSpacing];
   const entering = (values: EntryAnimationsValues) => {
@@ -86,7 +97,7 @@ export function RoleInviteCard({ invite, roles, onView, onCompare }: RoleInviteC
             {name}
           </Text>
           <Text variant="caption" color="muted">
-            {relativeTime(t, invite.sentAt)}
+            {meta}
           </Text>
         </View>
       </View>
