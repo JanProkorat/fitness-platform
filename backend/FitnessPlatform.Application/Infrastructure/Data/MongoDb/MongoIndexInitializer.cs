@@ -62,6 +62,7 @@ public class MongoIndexInitializer : IHostedService
         await CreateTrainingPlanTemplateIndexes(cancellationToken);
         await CreateFoodTagIndexes(cancellationToken);
         await CreateRecipeTagIndexes(cancellationToken);
+        await CreateShoppingListTickIndexes(cancellationToken);
 
         _logger.LogInformation("MongoDB indexes created successfully");
     }
@@ -535,5 +536,22 @@ public class MongoIndexInitializer : IHostedService
             new CreateIndexOptions { Name = "idx_recipetagassignment_recipeExternalId" });
 
         await _mongo.RecipeTagAssignments.Indexes.CreateManyAsync([ownerRecipeIndex, ownerTagsIndex, recipeIndex], ct);
+    }
+
+    /// <summary>
+    /// Creates the ShoppingListTick unique index on (ClientId, PlanId, WeekNumber, FoodExternalId):
+    /// one tick per client, plan, week and food, so a concurrent first tick cannot duplicate.
+    /// </summary>
+    private async Task CreateShoppingListTickIndexes(CancellationToken ct)
+    {
+        var uniqueTickIndex = new CreateIndexModel<ShoppingListTick>(
+            Builders<ShoppingListTick>.IndexKeys
+                .Ascending(t => t.ClientId)
+                .Ascending(t => t.PlanId)
+                .Ascending(t => t.WeekNumber)
+                .Ascending(t => t.FoodExternalId),
+            new CreateIndexOptions { Name = "idx_shoppinglisttick_clientId_planId_weekNumber_foodExternalId", Unique = true });
+
+        await _mongo.ShoppingListTicks.Indexes.CreateOneAsync(uniqueTickIndex, cancellationToken: ct);
     }
 }

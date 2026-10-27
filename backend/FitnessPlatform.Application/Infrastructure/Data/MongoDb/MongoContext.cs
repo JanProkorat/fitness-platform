@@ -35,6 +35,7 @@ public class MongoContext : IMongoContext
         FoodTags = database.GetCollection<FoodTag>(MongoCollections.FoodTags);
         FoodTagAssignments = database.GetCollection<FoodTagAssignment>(MongoCollections.FoodTagAssignments);
         RecipeTagAssignments = database.GetCollection<RecipeTagAssignment>(MongoCollections.RecipeTagAssignments);
+        ShoppingListTicks = database.GetCollection<ShoppingListTick>(MongoCollections.ShoppingListTicks);
     }
 
     /// <inheritdoc />
@@ -96,4 +97,7 @@ public class MongoContext : IMongoContext
 
     /// <inheritdoc />
     public IMongoCollection<RecipeTagAssignment> RecipeTagAssignments { get; }
+
+    /// <inheritdoc />
+    public IMongoCollection<ShoppingListTick> ShoppingListTicks { get; }
 }

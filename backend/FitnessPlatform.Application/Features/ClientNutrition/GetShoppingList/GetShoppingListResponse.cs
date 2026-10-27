@@ -30,4 +30,14 @@ public class ShoppingListItem
     /// Total amount needed in grams.
     /// </summary>
     public decimal TotalAmountGrams { get; set; }
+
+    /// <summary>
+    /// Food category name (the plan's snapshot, else the food's own category, else "Other").
+    /// </summary>
+    public string FoodCategory { get; set; } = "Other";
+
+    /// <summary>
+    /// True when the item is ticked in every requested week it appears in.
+    /// </summary>
+    public bool IsTicked { get; set; }
 }

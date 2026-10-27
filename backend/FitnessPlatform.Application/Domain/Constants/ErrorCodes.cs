@@ -647,4 +647,8 @@ public static class ErrorCodes
 
     /// <summary>The first billing period starts in the past or too far ahead.</summary>
     public const string PaymentStartDateInvalid = "PAYMENT_START_DATE_INVALID";
+
+    // ── Client nutrition day log ────────────────────────────────────────
+    /// <summary>The day log changed between the read and the write; retry.</summary>
+    public const string DayLogVersionConflict = "DAY_LOG_VERSION_CONFLICT";
 }

@@ -120,4 +120,9 @@ public interface IMongoContext
     /// (ownerUserId, recipeExternalId) pair. The tags themselves are <see cref="FoodTags"/>.
     /// </summary>
     IMongoCollection<RecipeTagAssignment> RecipeTagAssignments { get; }
+
+    /// <summary>
+    /// Ticked shopping-list items — one document per (client, plan, week number, food).
+    /// </summary>
+    IMongoCollection<ShoppingListTick> ShoppingListTicks { get; }
 }
