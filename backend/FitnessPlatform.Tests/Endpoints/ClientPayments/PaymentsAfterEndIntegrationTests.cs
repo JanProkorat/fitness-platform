@@ -266,4 +266,38 @@ public class PaymentsAfterEndIntegrationTests(FitnessApiFactory factory)
         after.Single(p => p.PaymentId == paidRow.PaymentId).Status.Should().Be(ClientPaymentStatus.Paid);
         after.Single(p => p.PeriodStart == Today.AddMonths(2)).PackageName.Should().Be("Fresh start");
     }
+
+    [Theory]
+    [InlineData(10)]
+    [InlineData(1)]
+    public async Task Reaccept_OnADifferentStepWhileAKeptPeriodIsPaid_LeavesNoGapAndNoOverlapInTheLiveCollaboration(int newIntervalWeeks)
+    {
+        var (world, _, rows) = await EndedFixedLengthAsync();
+        var paidRow = rows.First(p => p.PeriodStart > Today);
+        (await PostActionAsync(world, paidRow.PaymentId, "mark-paid")).StatusCode.Should().Be(HttpStatusCode.OK);
+        var rowsBefore = await StoredRowsAsync(world);
+        rowsBefore.Should().Contain(p => p.PeriodStart == Today && !p.IsKeptAfterEnd, "the restart loop only runs when a row starts on the restart day");
+        rowsBefore.Should().Contain(p => p.PeriodStart == Today.AddMonths(1) && p.IsKeptAfterEnd);
+        var fresh = await CreatePackageAsync(world.Coach, name: "Fresh start", billing: "EveryNWeeks", intervalWeeks: newIntervalWeeks);
+
+        await AcceptInviteAsync(world, fresh);
+
+        var stored = await StoredRowsAsync(world);
+        var summary = string.Join(", ", stored.Select(p => $"{p.PeriodStart}..{p.PeriodEnd} kept={p.IsKeptAfterEnd}"));
+        var defects = new List<string>();
+
+        foreach (var (previous, next) in stored.Zip(stored.Skip(1)))
+        {
+            if (next.PeriodStart!.Value > previous.PeriodEnd!.Value.AddDays(1))
+            {
+                defects.Add($"gap {previous.PeriodEnd!.Value.AddDays(1)}..{next.PeriodStart!.Value.AddDays(-1)}");
+            }
+            else if (next.PeriodStart!.Value <= previous.PeriodEnd!.Value)
+            {
+                defects.Add($"overlap {next.PeriodStart}..{previous.PeriodEnd}");
+            }
+        }
+
+        defects.Should().BeEmpty($"every live day should fall in exactly one period; rows: {summary}");
+    }
 }
