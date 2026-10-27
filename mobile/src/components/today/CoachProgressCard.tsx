@@ -165,6 +165,16 @@ export function CoachProgressCard({
     }
     return null;
   };
+  const generalStep = questionnaireStep('questionnaire', generic);
+  if (generalStep) steps.push(generalStep);
+  // A role whose plan is already published has no plan step to sit above, so its questionnaire goes here.
+  for (const role of covered) {
+    const status = perRole.get(role);
+    const step =
+      status && !unpublished.includes(role) ? questionnaireStep(`questionnaire-${role}`, status, role) : null;
+    if (step) steps.push(step);
+  }
+  // Board order: questionnaire, then the first payment, then starting photos.
   if (firstPayment && (payUpcoming || payDue)) {
     const details = [
       firstPayment.packageName?.trim(),
@@ -185,15 +195,6 @@ export function CoachProgressCard({
       onAction: payDue ? () => router.push('/payments') : undefined,
       actionTone: 'primary',
     });
-  }
-  const generalStep = questionnaireStep('questionnaire', generic);
-  if (generalStep) steps.push(generalStep);
-  // A role whose plan is already published has no plan step to sit above, so its questionnaire goes here.
-  for (const role of covered) {
-    const status = perRole.get(role);
-    const step =
-      status && !unpublished.includes(role) ? questionnaireStep(`questionnaire-${role}`, status, role) : null;
-    if (step) steps.push(step);
   }
   if (photoRequested) {
     steps.push({
@@ -257,7 +258,7 @@ export function CoachProgressCard({
         {waiting > 0 ? (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={t('today.progress.messageLabel')}
+            accessibilityLabel={t('today.progress.messageLabel', { name: first })}
             onPress={openChat}
             style={styles.iconButton}
           >
@@ -310,7 +311,7 @@ export function CoachProgressCard({
       {waiting === 0 ? (
         <>
           <View style={styles.tell}>
-            <Text variant="labelStrong">{t('today.progress.tell.title')}</Text>
+            <Text variant="labelStrong">{t('today.progress.tell.title', { name: first })}</Text>
             <Text variant="caption" color="muted">
               {t(`today.progress.tell.${tellKey}`)}
             </Text>
