@@ -32,8 +32,13 @@ export function CoachSection({ coach, showHeading = true }: CoachSectionProps) {
   const { t } = useTranslation();
   const theme = useTheme();
   const styles = makeStyles(theme);
-  const requested = coach.requested ?? [];
-  const paid = coach.paid ?? [];
+  // A missing flag counts as the current collaboration.
+  const requested = (coach.requested ?? []).filter((p) => !p.isEarlierCollaboration);
+  const paid = (coach.paid ?? []).filter((p) => !p.isEarlierCollaboration);
+  const earlierRequested = (coach.requested ?? []).filter((p) => p.isEarlierCollaboration);
+  const earlierPaid = (coach.paid ?? []).filter((p) => p.isEarlierCollaboration);
+  const hasEarlier = earlierRequested.length > 0 || earlierPaid.length > 0;
+  const coachFirstName = firstName(coach.coachName);
 
   return (
     <View style={styles.section}>
@@ -48,7 +53,7 @@ export function CoachSection({ coach, showHeading = true }: CoachSectionProps) {
         </Text>
       ) : null}
       {requested.map((payment) => (
-        <PaymentCard key={payment.paymentId} payment={payment} coachFirstName={firstName(coach.coachName)} />
+        <PaymentCard key={payment.paymentId} payment={payment} coachFirstName={coachFirstName} />
       ))}
       {paid.length > 0 ? (
         <View style={styles.paid}>
@@ -56,6 +61,17 @@ export function CoachSection({ coach, showHeading = true }: CoachSectionProps) {
             {t('payments.paid').toUpperCase()}
           </Text>
           <PaidList payments={paid} />
+        </View>
+      ) : null}
+      {hasEarlier ? (
+        <View style={styles.section}>
+          <Text variant="overline" color="muted" style={styles.overline} accessibilityRole="header">
+            {t('payments.earlierCollaboration').toUpperCase()}
+          </Text>
+          {earlierRequested.map((payment) => (
+            <PaymentCard key={payment.paymentId} payment={payment} coachFirstName={coachFirstName} />
+          ))}
+          {earlierPaid.length > 0 ? <PaidList payments={earlierPaid} /> : null}
         </View>
       ) : null}
     </View>

@@ -588,6 +588,7 @@
     "paid": "Paid",
     "paidOn": "Paid {{date}}",
     "collaborationEnded": "Collaboration ended",
+    "earlierCollaboration": "Earlier collaboration",
     "empty": "No payments yet. When your coach asks you to pay, it shows up here.",
     "error": "Couldn't load payments. Tap to try again.",
     "card": {
