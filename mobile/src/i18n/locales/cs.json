@@ -210,6 +210,14 @@
       "questionnaireSent": "Dotazník odeslán",
       "questionnairePending": "Dotazník",
       "questionnairePendingHint": "Čeká na vaše vyplnění",
+      "questionnaireFor": {
+        "Trainer": "Dotazník k tréninku",
+        "Nutritionist": "Dotazník k jídelníčku"
+      },
+      "questionnaireSentFor": {
+        "Trainer": "Dotazník k tréninku odeslán",
+        "Nutritionist": "Dotazník k jídelníčku odeslán"
+      },
       "photos": "Úvodní fotky",
       "photosHint": "{{name}} žádá o fotky",
       "photosAdd": "Přidat",

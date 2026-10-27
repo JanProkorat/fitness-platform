@@ -208,6 +208,14 @@
       "questionnaireSent": "Questionnaire sent",
       "questionnairePending": "Questionnaire",
       "questionnairePendingHint": "Waiting for you to fill it in",
+      "questionnaireFor": {
+        "Trainer": "Training questionnaire",
+        "Nutritionist": "Meal plan questionnaire"
+      },
+      "questionnaireSentFor": {
+        "Trainer": "Training questionnaire sent",
+        "Nutritionist": "Meal plan questionnaire sent"
+      },
       "photos": "Starting photos",
       "photosHint": "{{name}} asked for photos",
       "photosAdd": "Add",

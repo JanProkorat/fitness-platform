@@ -208,6 +208,14 @@
       "questionnaireSent": "Fragebogen gesendet",
       "questionnairePending": "Fragebogen",
       "questionnairePendingHint": "Wartet auf Ihre Antworten",
+      "questionnaireFor": {
+        "Trainer": "Fragebogen zum Training",
+        "Nutritionist": "Fragebogen zum Ernährungsplan"
+      },
+      "questionnaireSentFor": {
+        "Trainer": "Fragebogen zum Training gesendet",
+        "Nutritionist": "Fragebogen zum Ernährungsplan gesendet"
+      },
       "photos": "Startfotos",
       "photosHint": "{{name}} bittet um Fotos",
       "photosAdd": "Hinzufügen",
