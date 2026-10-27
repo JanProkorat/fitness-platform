@@ -110,6 +110,6 @@ const makeStyles = (theme: Theme) =>
       backgroundColor: theme.colors.primary,
     },
     pressed: {
-      opacity: 0.85,
+      opacity: theme.opacity.pressed,
     },
   });

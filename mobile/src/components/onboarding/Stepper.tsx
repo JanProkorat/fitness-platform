@@ -137,6 +137,6 @@ const makeStyles = (theme: Theme) =>
       justifyContent: 'center',
     },
     buttonDisabled: {
-      opacity: 0.4,
+      opacity: theme.opacity.disabled,
     },
   });
