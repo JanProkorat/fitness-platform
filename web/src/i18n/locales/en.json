@@ -2585,7 +2585,9 @@
         "openSettings": "Open Settings",
         "loadError": "Could not load the payments.",
         "empty": "No payments yet. Choose a package for {{name}} and the first one is created.",
-        "footnote": "{{name}} pays by bank transfer to your account. Match the variable symbol on your bank statement, then mark the payment paid."
+        "footnote": "{{name}} pays by bank transfer to your account. Match the variable symbol on your bank statement, then mark the payment paid.",
+        "earlierTitle": "Earlier collaboration",
+        "earlierNote": "These payments are from a collaboration with {{name}} that has ended. They stay open to request, mark paid or waive."
       },
       "table": {
         "period": "Period",

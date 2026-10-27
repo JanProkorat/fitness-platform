@@ -75,6 +75,9 @@ public class ClientPaymentItemDto
     /// <summary>Day the coach confirmed the money; paid payments only.</summary>
     public DateOnly? PaidOn { get; set; }
 
+    /// <summary>Whether the payment belongs to a collaboration that ended before the current one with this coach.</summary>
+    public bool IsEarlierCollaboration { get; set; }
+
     /// <summary>The coach's IBAN; requested payments only.</summary>
     public string? Iban { get; set; }
 
@@ -95,7 +98,8 @@ public class ClientPaymentItemDto
     /// </summary>
     /// <param name="payment">The payment.</param>
     /// <param name="today">Today in the schedule's zone, for the derived status.</param>
-    public static ClientPaymentItemDto FromEntity(ClientPayment payment, DateOnly today)
+    /// <param name="isEarlierCollaboration">Whether the payment belongs to an earlier collaboration.</param>
+    public static ClientPaymentItemDto FromEntity(ClientPayment payment, DateOnly today, bool isEarlierCollaboration = false)
     {
         var item = new ClientPaymentItemDto
         {
@@ -110,7 +114,8 @@ public class ClientPaymentItemDto
             DiscountLabel = payment.DiscountLabel,
             IsCustomPrice = payment.IsCustomPrice,
             DueDate = payment.DueDate,
-            PaidOn = payment.PaidOn
+            PaidOn = payment.PaidOn,
+            IsEarlierCollaboration = isEarlierCollaboration
         };
 
         if (payment.Status != ClientPaymentStatus.Requested)

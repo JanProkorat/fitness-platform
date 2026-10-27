@@ -588,6 +588,7 @@
     "paid": "Bezahlt",
     "paidOn": "Bezahlt am {{date}}",
     "collaborationEnded": "Zusammenarbeit beendet",
+    "earlierCollaboration": "Frühere Zusammenarbeit",
     "empty": "Noch keine Zahlungen. Wenn Ihr Trainer oder Ernährungsberater Sie um eine Zahlung bittet, erscheint sie hier.",
     "error": "Zahlungen konnten nicht geladen werden. Tippen Sie, um es erneut zu versuchen.",
     "card": {

@@ -87,6 +87,15 @@ public class GetCollaborationsEndpoint(IApplicationDbContext db, TimeProvider ti
         // A payment the coach asked for is the first payment, exactly as GET /client/payments lists it.
         var requested = await ClientPaymentQueries.RequestedOrdered(ClientPaymentQueries.VisibleToClient(db, clientProfileId).AsNoTracking())
             .ToListAsync(ct);
+        var termsByAssignment = await ClientPaymentQueries.LoadTermsByAssignmentAsync(
+            db, requested.Select(p => p.ClientPaymentAssignmentId).Distinct().ToList(), ct);
+
+        // Payments of an earlier collaboration are not the first payment of the current one.
+        requested = requested
+            .Where(p => !ClientPaymentQueries.IsEarlierCollaboration(
+                p, termsByAssignment.GetValueOrDefault(p.ClientPaymentAssignmentId) ?? []))
+            .ToList();
+
         var requestedCoachIds = requested.Select(p => p.ProfessionalProfileId).Distinct().ToList();
         var coachPublicIds = await db.ProfessionalProfiles
             .AsNoTracking()
@@ -141,14 +150,9 @@ public class GetCollaborationsEndpoint(IApplicationDbContext db, TimeProvider ti
                     && !p.IsKeptAfterEnd)
                 .ToListAsync(ct);
 
-            // Only periods since the latest end of the collaboration count: a returning client starts again.
-            // A period on the very day of the end belongs to the new collaboration only if its row was created after the end.
-            var latestEnd = terms.Where(t => t.EndsAtUtc is not null).Select(t => t.EndsAtUtc!.Value).DefaultIfEmpty().Max();
-            var endDay = latestEnd == default ? DateOnly.MinValue : ClientPaymentSchedule.Today(latestEnd);
+            // Only the current collaboration counts: a returning client starts again.
             var first = payments
-                .Where(p => latestEnd == default
-                    || ClientPaymentSchedule.StartOfDayUtc(p.PeriodStart!.Value) >= latestEnd
-                    || (p.PeriodStart >= endDay && p.DateCreated >= latestEnd))
+                .Where(p => !ClientPaymentQueries.IsEarlierCollaboration(p, terms))
                 .OrderBy(p => p.PeriodStart)
                 .FirstOrDefault();
 

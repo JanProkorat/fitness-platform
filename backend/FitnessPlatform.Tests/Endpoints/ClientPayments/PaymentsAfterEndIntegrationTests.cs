@@ -189,7 +189,7 @@ public class PaymentsAfterEndIntegrationTests(FitnessApiFactory factory)
     }
 
     [Fact]
-    public async Task EndCollaboration_IndefinitePackage_FreezesTheStartedPeriodAtItsPriceAndALaterPackageNeverReprices()
+    public async Task EndCollaboration_IndefinitePackage_FreezesTheStartedPeriod_AndASameDayRestartReplacesTheUnrequestedRow()
     {
         var world = await CreateWorldAsync(factory);
         var longTerm = await CreatePackageAsync(world.Coach, 5000m, "Dlouhodobá", "EveryNWeeks", intervalWeeks: 5);
@@ -205,10 +205,13 @@ public class PaymentsAfterEndIntegrationTests(FitnessApiFactory factory)
         var threeMonths = await CreatePackageAsync(world.Coach, 3000m, "Tříměsíční", runsFor: 3);
         await AcceptInviteAsync(world, threeMonths);
 
+        // The ended collaboration's never-requested row for the restart day is gone; the new terms bill that day.
         var rows = (await ListAsync(world)).OrderBy(p => p.PeriodStart).ToList();
+        rows.Select(p => p.PaymentId).Should().NotContain(frozen.PublicId);
         rows[0].PeriodStart.Should().Be(Today);
-        rows[0].Amount.Should().Be(5000m);
-        rows[0].PackageName.Should().Be("Dlouhodobá");
+        rows[0].Amount.Should().Be(3000m);
+        rows[0].PackageName.Should().Be("Tříměsíční");
+        rows[0].IsEarlierCollaboration.Should().BeFalse();
         rows[1].PeriodStart.Should().Be(Today.AddMonths(1));
         rows[1].Amount.Should().Be(3000m);
     }
@@ -224,12 +227,13 @@ public class PaymentsAfterEndIntegrationTests(FitnessApiFactory factory)
         await AcceptInviteAsync(world, fresh);
 
         var after = await ListAsync(world);
-        after.Select(p => p.PeriodStart).Should().BeEquivalentTo([Today, Today.AddMonths(1), Today.AddMonths(2)]);
+        // The new terms bill the restart day itself; the requested row of the ended collaboration keeps its own day.
+        after.Select(p => p.PeriodStart).Should().BeEquivalentTo([Today, Today.AddMonths(1)]);
         after.Single(p => p.PaymentId == requestedRow.PaymentId).Status.Should().Be(ClientPaymentStatus.Requested);
-        var newRow = after.Single(p => p.PeriodStart == Today.AddMonths(2));
+        var newRow = after.Single(p => p.PeriodStart == Today);
         newRow.Status.Should().Be(ClientPaymentStatus.Upcoming);
         newRow.PackageName.Should().Be("Fresh start");
-        (await StoredRowsAsync(world)).Single(p => p.PeriodStart == Today.AddMonths(2)).IsKeptAfterEnd.Should().BeFalse();
+        (await StoredRowsAsync(world)).Single(p => p.PeriodStart == Today).IsKeptAfterEnd.Should().BeFalse();
         (await StoredRowsAsync(world)).Single(p => p.PeriodStart == Today.AddMonths(1)).IsKeptAfterEnd.Should().BeTrue();
     }
 
@@ -244,8 +248,8 @@ public class PaymentsAfterEndIntegrationTests(FitnessApiFactory factory)
         await AcceptInviteAsync(world, fresh);
 
         var after = await ListAsync(world);
-        after.Select(p => p.PeriodStart).Should().BeEquivalentTo([Today, Today.AddMonths(1), Today.AddMonths(2)]);
+        after.Select(p => p.PeriodStart).Should().BeEquivalentTo([Today, Today.AddMonths(1)]);
         after.Single(p => p.PaymentId == paidRow.PaymentId).Status.Should().Be(ClientPaymentStatus.Paid);
-        after.Single(p => p.PeriodStart == Today.AddMonths(2)).PackageName.Should().Be("Fresh start");
+        after.Single(p => p.PeriodStart == Today).PackageName.Should().Be("Fresh start");
     }
 }

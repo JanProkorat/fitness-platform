@@ -119,6 +119,7 @@ public class CollaborationEndBillingIntegrationTests(FitnessApiFactory factory)
         var world = await CreateWorldAsync(factory);
         var package = await CreatePackageAsync(world.Coach);
         await SetTermsOkAsync(world, package);
+        var oldRow = (await ListAsync(world)).Single(row => row.PeriodStart == Today).PaymentId;
         await EndCollaborationAsync(world);
 
         await AcceptInviteAsync(world, package);
@@ -127,8 +128,11 @@ public class CollaborationEndBillingIntegrationTests(FitnessApiFactory factory)
         terms.Should().HaveCount(2);
         terms[1].EndsAtUtc.Should().BeNull();
         terms[1].EffectiveFromUtc.Should().BeOnOrAfter(terms[0].EndsAtUtc!.Value);
-        (await ListAsync(world)).Should().NotBeEmpty();
         (await PeriodStartsAsync(world)).Should().Equal(Today, Today.AddMonths(1));
+        var rows = await ListAsync(world);
+        rows.Should().HaveCount(2);
+        rows.Select(row => row.PaymentId).Should().NotContain(oldRow, "the ended collaboration's never-requested row for the day is replaced");
+        rows.Should().OnlyContain(row => !row.IsEarlierCollaboration);
     }
 
     [Fact]
