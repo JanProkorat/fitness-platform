@@ -2724,6 +2724,7 @@
         "save": "Preis speichern",
         "saved": "Preis gespeichert.",
         "saveError": "Der Preis konnte nicht gespeichert werden.",
+        "collaborationEnded": "Die Zusammenarbeit mit diesem Kunden ist beendet, der Preis kann nicht mehr geändert werden.",
         "currencyMismatch": "Ein fester Rabatt muss in derselben Währung wie das Paket sein.",
         "loadError": "Pakete und Rabatte konnten nicht geladen werden."
       },

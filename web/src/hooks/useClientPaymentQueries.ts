@@ -92,6 +92,41 @@ function useRefetchClientPayments(clientId: string) {
   return () => queryClient.invalidateQueries({ queryKey: clientPaymentKeys.client(clientId) });
 }
 
+/** Refetches everything on the client page that depends on a live link, so it can switch to the ended view. */
+export function useInvalidateClientLinkState(clientId: string) {
+  const queryClient = useQueryClient();
+  return () =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['client-dashboard', clientId] }),
+      queryClient.invalidateQueries({ queryKey: clientPaymentKeys.client(clientId) }),
+    ]);
+}
+
+/**
+ * Asks the payment summary, which still answers for an ended link, whether the collaboration ended.
+ * When it did, the page's queries are refreshed so it switches to the ended view.
+ */
+export function useCheckCollaborationEnded(clientId: string) {
+  const queryClient = useQueryClient();
+  const invalidateLinkState = useInvalidateClientLinkState(clientId);
+  return async (): Promise<boolean> => {
+    try {
+      const summary = await queryClient.fetchQuery({
+        queryKey: clientPaymentKeys.summary(clientId),
+        queryFn: () => getClientPaymentSummary(clientId),
+        staleTime: 0,
+      });
+      if (summary.collaborationEnded !== true) {
+        return false;
+      }
+    } catch {
+      return false;
+    }
+    await invalidateLinkState();
+    return true;
+  };
+}
+
 /** Setting terms also changes the package and discount client counts. */
 export function useSetClientPaymentTerms(clientId: string) {
   const queryClient = useQueryClient();
