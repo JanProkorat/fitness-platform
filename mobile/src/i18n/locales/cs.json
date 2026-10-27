@@ -600,7 +600,7 @@
     "paid": "Zaplaceno",
     "paidOn": "Zaplaceno {{date}}",
     "collaborationEnded": "Spolupráce skončila",
-    "earlierCollaboration": "Dřívější spolupráce",
+    "earlierCollaboration": "Předchozí spolupráce",
     "empty": "Zatím tu nejsou žádné platby. Až vás trenér nebo nutriční poradce požádá o platbu, objeví se tady.",
     "error": "Platby se nepodařilo načíst. Klepnutím to zkusíte znovu.",
     "card": {
