@@ -23,7 +23,7 @@ public class DeleteTrainingPlanTemplateEndpoint(IMongoContext mongo) : EndpointW
     /// <inheritdoc />
     public override void Configure()
     {
-        Delete("/training/plan-templates/{TemplateId}");
+        Delete("/training/plan-templates/{templateId}");
         Roles(AppRoles.Trainer);
         Summary(s =>
         {
@@ -44,7 +44,7 @@ public class DeleteTrainingPlanTemplateEndpoint(IMongoContext mongo) : EndpointW
         }
 
         var ownerId = Guid.Parse(userId);
-        var templateId = Route<Guid>("TemplateId");
+        var templateId = Route<Guid>("templateId");
 
         var template = await this.LoadLibraryEntryForWriteOrRespondAsync(
             mongo.TrainingPlanTemplates, templateId, ownerId, TrainingPlanTemplateLibrary.Denial, ct);

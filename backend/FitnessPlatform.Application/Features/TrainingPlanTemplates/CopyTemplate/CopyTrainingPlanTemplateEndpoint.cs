@@ -24,7 +24,7 @@ public class CopyTrainingPlanTemplateEndpoint(IMongoContext mongo, TimeProvider 
     /// <inheritdoc />
     public override void Configure()
     {
-        Post("/training/plan-templates/{TemplateId}/copy");
+        Post("/training/plan-templates/{templateId}/copy");
         Roles(AppRoles.Trainer);
         Summary(s =>
         {
@@ -45,7 +45,7 @@ public class CopyTrainingPlanTemplateEndpoint(IMongoContext mongo, TimeProvider 
         }
 
         var callerId = Guid.Parse(userId);
-        var templateId = Route<Guid>("TemplateId");
+        var templateId = Route<Guid>("templateId");
 
         var source = await this.LoadLibraryEntryForReadOrRespondAsync(
             mongo.TrainingPlanTemplates, templateId, callerId, TrainingPlanTemplateLibrary.Denial, ct);

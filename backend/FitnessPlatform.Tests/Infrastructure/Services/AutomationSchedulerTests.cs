@@ -22,10 +22,25 @@ namespace FitnessPlatform.Tests.Infrastructure.Services;
 /// explicit instant, never relying on the hosted loop, and read plan data from the real Mongo container.
 /// </summary>
 [Collection(TestCollection.Name)]
-public class AutomationSchedulerTests(FitnessApiFactory factory)
+public class AutomationSchedulerTests(FitnessApiFactory factory) : IAsyncLifetime
 {
     private static readonly CancellationToken Ct = TestContext.Current.CancellationToken;
     private static readonly TimeZoneInfo Prague = TimeZoneInfo.FindSystemTimeZoneById("Europe/Prague");
+
+    /// <inheritdoc />
+    public async ValueTask InitializeAsync() => await ClearAutomationRulesAsync();
+
+    /// <inheritdoc />
+    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+
+    // The scheduler sweeps every coach's rules, so rules left by earlier tests slow each run.
+    private async Task ClearAutomationRulesAsync()
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        await db.AutomationRules.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
+    }
 
     private AutomationScheduler Scheduler => factory.Services.GetRequiredService<AutomationScheduler>();
 

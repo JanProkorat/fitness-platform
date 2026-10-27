@@ -191,8 +191,12 @@ internal sealed class SetClientPaymentTermsEndpoint(
             .Where(p => p.ClientPaymentAssignmentId == assignment.Id && p.PeriodStart != null)
             .OrderBy(p => p.PeriodStart)
             .ToListAsync(ct);
-        var starts = payments.Select(p => p.PeriodStart!.Value).ToList();
-        var first = payments.FirstOrDefault(p => ClientPaymentSchedule.StartOfDayUtc(p.PeriodStart!.Value) >= latest.EffectiveFromUtc);
+        var starts = ClientPaymentSchedule.RecurringStartsOf(payments);
+        var first = payments.FirstOrDefault(p =>
+            !p.IsKeptAfterEnd
+            && (ClientPaymentSchedule.StartOfDayUtc(p.PeriodStart!.Value) >= latest.EffectiveFromUtc
+                || (p.Status == ClientPaymentStatus.Upcoming
+                    && ClientPaymentSchedule.TermsForPeriod(terms, p.PeriodStart!.Value)?.Id == latest.Id)));
 
         return new SetClientPaymentTermsResponse
         {

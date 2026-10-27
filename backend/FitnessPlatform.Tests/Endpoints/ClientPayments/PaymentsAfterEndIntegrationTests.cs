@@ -5,6 +5,7 @@ using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Features.Client.GetClientPayments;
 using FitnessPlatform.Application.Features.ClientPayments.GetClientPaymentSummary;
 using FitnessPlatform.Application.Features.ClientPayments.Shared;
+using FitnessPlatform.Application.Features.ClientPayments.SetClientPaymentTerms;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Infrastructure;
@@ -238,6 +239,23 @@ public class PaymentsAfterEndIntegrationTests(FitnessApiFactory factory)
     }
 
     [Fact]
+    public async Task SetTerms_AfterReaccept_WithARequestedKeptPeriod_PreviewsTheFirstNewPeriodAtTheNewPrice()
+    {
+        var (world, _, rows) = await EndedFixedLengthAsync();
+        var requestedRow = rows.First(p => p.PeriodStart > Today);
+        (await PostActionAsync(world, requestedRow.PaymentId, "request", new { SendEmail = true })).StatusCode.Should().Be(HttpStatusCode.OK);
+        var fresh = await CreatePackageAsync(world.Coach, name: "Fresh start");
+        await AcceptInviteAsync(world, fresh);
+
+        var response = await SetTermsAsync(world, fresh, customPrice: 1800m);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK, await response.Content.ReadAsStringAsync(Ct));
+        var preview = await ReadAsync<SetClientPaymentTermsResponse>(response);
+        preview.AppliesFromPeriodStart.Should().Be(Today, "the restart day is the new collaboration's first period; the kept Requested row keeps its frozen terms");
+        preview.Amount.Should().Be(1800m);
+    }
+
+    [Fact]
     public async Task Reaccept_WhileAKeptPeriodIsPaid_KeepsItAndDoesNotPlanItsDayTwice()
     {
         var (world, _, rows) = await EndedFixedLengthAsync();
@@ -251,5 +269,39 @@ public class PaymentsAfterEndIntegrationTests(FitnessApiFactory factory)
         after.Select(p => p.PeriodStart).Should().BeEquivalentTo([Today, Today.AddMonths(1)]);
         after.Single(p => p.PaymentId == paidRow.PaymentId).Status.Should().Be(ClientPaymentStatus.Paid);
         after.Single(p => p.PeriodStart == Today).PackageName.Should().Be("Fresh start");
+    }
+
+    [Theory]
+    [InlineData(10)]
+    [InlineData(1)]
+    public async Task Reaccept_OnADifferentStepWhileAKeptPeriodIsPaid_LeavesNoGapAndNoOverlapInTheLiveCollaboration(int newIntervalWeeks)
+    {
+        var (world, _, rows) = await EndedFixedLengthAsync();
+        var paidRow = rows.First(p => p.PeriodStart > Today);
+        (await PostActionAsync(world, paidRow.PaymentId, "mark-paid")).StatusCode.Should().Be(HttpStatusCode.OK);
+        var rowsBefore = await StoredRowsAsync(world);
+        rowsBefore.Should().Contain(p => p.PeriodStart == Today && !p.IsKeptAfterEnd, "the restart loop only runs when a row starts on the restart day");
+        rowsBefore.Should().Contain(p => p.PeriodStart == Today.AddMonths(1) && p.IsKeptAfterEnd);
+        var fresh = await CreatePackageAsync(world.Coach, name: "Fresh start", billing: "EveryNWeeks", intervalWeeks: newIntervalWeeks);
+
+        await AcceptInviteAsync(world, fresh);
+
+        var stored = await StoredRowsAsync(world);
+        var summary = string.Join(", ", stored.Select(p => $"{p.PeriodStart}..{p.PeriodEnd} kept={p.IsKeptAfterEnd}"));
+        var defects = new List<string>();
+
+        foreach (var (previous, next) in stored.Zip(stored.Skip(1)))
+        {
+            if (next.PeriodStart!.Value > previous.PeriodEnd!.Value.AddDays(1))
+            {
+                defects.Add($"gap {previous.PeriodEnd!.Value.AddDays(1)}..{next.PeriodStart!.Value.AddDays(-1)}");
+            }
+            else if (next.PeriodStart!.Value <= previous.PeriodEnd!.Value)
+            {
+                defects.Add($"overlap {next.PeriodStart}..{previous.PeriodEnd}");
+            }
+        }
+
+        defects.Should().BeEmpty($"every live day should fall in exactly one period; rows: {summary}");
     }
 }

@@ -204,7 +204,7 @@ const makeStyles = (theme: Theme, insets: EdgeInsets) =>
       boxShadow: theme.shadows.card,
     },
     pressed: {
-      opacity: 0.7,
+      opacity: theme.opacity.pressedRow,
     },
     profileCopy: {
       flex: 1,

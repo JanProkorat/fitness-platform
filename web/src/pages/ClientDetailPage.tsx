@@ -15,6 +15,8 @@ import ClientNutritionTab from '@/components/client-detail/nutrition/ClientNutri
 import ClientPaymentTab from '@/components/client-detail/payment/ClientPaymentTab';
 import EndedClientPaymentView from '@/components/client-detail/payment/EndedClientPaymentView';
 import { getErrorStatus } from '@/lib/api-errors';
+import { useInvalidateClientLinkState } from '@/hooks/useClientPaymentQueries';
+import { useSignalR } from '@/hooks/useSignalR';
 import ClientPhotosTab from '@/components/client-detail/photos/ClientPhotosTab';
 
 const MEASUREMENTS_PAGE_SIZE = 50;
@@ -45,6 +47,8 @@ export default function ClientDetailPage() {
           ? 'automations'
           : 'overview';
 
+  const invalidateLinkState = useInvalidateClientLinkState(clientId);
+
   const dashboardQuery = useQuery({
     queryKey: ['client-dashboard', clientId],
     queryFn: () => apiClient.getClientDashboardEndpoint(clientId),
@@ -61,6 +65,13 @@ export default function ClientDetailPage() {
     queryKey: ['client-measurements', clientId],
     queryFn: () => getClientMeasurements(clientId, 1, MEASUREMENTS_PAGE_SIZE),
     enabled: Boolean(clientId),
+  });
+
+  // The event carries no client id, so the open page refreshes its own keys every time.
+  useSignalR({
+    collaborationended: () => {
+      void invalidateLinkState();
+    },
   });
 
   if (dashboardQuery.isPending) {

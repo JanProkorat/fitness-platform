@@ -161,12 +161,18 @@ public static class ClientPaymentSchedule
     /// First days of rows that were kept from terms that ended (see <see cref="KeptPeriodStarts"/>). They are
     /// part of <paramref name="existingPeriodStarts"/> but take no part in the schedule of later terms.
     /// </param>
+    /// <param name="existingPeriods">
+    /// The stored first and last day of every row. When given, a restart on a day that already has a row begins
+    /// the day after the latest end of the rows covering or following that day; a null end counts as the start day.
+    /// When omitted, the restart steps forward from the restart day with the new package's step.
+    /// </param>
     /// <returns>The missing periods, oldest first.</returns>
     public static List<(DateOnly Start, DateOnly End)> PlanMissingPeriods(
         IReadOnlyCollection<ClientPaymentTerms> terms,
         IReadOnlyCollection<DateOnly> existingPeriodStarts,
         DateOnly today,
-        IReadOnlyCollection<DateOnly>? keptPeriodStarts = null)
+        IReadOnlyCollection<DateOnly>? keptPeriodStarts = null,
+        IReadOnlyCollection<(DateOnly Start, DateOnly? End)>? existingPeriods = null)
     {
         var planned = new List<(DateOnly Start, DateOnly End)>();
 
@@ -247,18 +253,62 @@ public static class ClientPaymentSchedule
 
                 // Terms starting on the day the last period began (an end and a new start on the same day)
                 // take over from the next period on.
-                while (restart is not null && cursor is { } restartDay && everyStart.Contains(restartDay))
+                if (restart is not null && endedByCollaboration && existingPeriods is not null
+                    && cursor is { } rowDay && everyStart.Contains(rowDay))
                 {
-                    cursor = NextPeriodStart(restartDay, restart, billingDay);
+                    // The rows were built on the old step, so the new terms begin where the latest of them ends.
+                    var coveredUntil = existingPeriods
+                        .Select(row => row.End ?? row.Start)
+                        .Where(end => end >= rowDay)
+                        .DefaultIfEmpty(rowDay)
+                        .Max();
+
+                    cursor = coveredUntil.AddDays(1);
+                    billingDay = cursor.Value.Day;
+                }
+                else
+                {
+                    while (restart is not null && cursor is { } restartDay && everyStart.Contains(restartDay))
+                    {
+                        cursor = NextPeriodStart(restartDay, restart, billingDay);
+                    }
                 }
             }
         }
 
-        while (cursor is { } start)
+        var keptStarts = keptPeriodStarts?.ToList() ?? [];
+
+        // Only rows that begin on or after the restart day can push the new terms' periods forward: a kept row
+        // that began earlier belongs to the earlier collaboration and may overlap the restart.
+        var latestRestartDay = terms
+            .Where(t => terms.Any(other => other.EndsAtUtc is { } endsAt && endsAt <= t.EffectiveFromUtc))
+            .OrderByDescending(t => t.EffectiveFromUtc)
+            .ThenByDescending(t => t.Id)
+            .Select(t => (DateOnly?)ClientLocalDateResolver.ResolveLocalDate(t.EffectiveFromUtc, Zone))
+            .FirstOrDefault();
+        var spansFromRestart = latestRestartDay is { } restartFrom
+            ? existingPeriods?.Where(row => row.Start >= restartFrom).ToList()
+            : null;
+
+        while (cursor is { } candidate)
         {
+            // A period never begins inside a stored row's span: it begins the day after the latest end covering it.
+            var start = SkipCoveredDays(candidate, spansFromRestart);
+
+            if (start != candidate)
+            {
+                billingDay = start.Day;
+            }
+
             var termsOfPeriod = TermsForPeriod(terms, start);
 
             if (termsOfPeriod is null)
+            {
+                break;
+            }
+
+            // A kept row that starts after today is already the first period after today.
+            if (start > today && keptStarts.Any(keptStart => keptStart > today && keptStart < start))
             {
                 break;
             }
@@ -273,15 +323,25 @@ public static class ClientPaymentSchedule
             }
 
             var next = NextPeriodStart(start, termsOfPeriod, billingDay);
+            var end = next is { } following ? following.AddDays(-1) : start;
+            var keptAhead = keptStarts.Where(keptStart => keptStart > start && keptStart <= end).DefaultIfEmpty().Min();
 
-            // A kept row already covers its day; it is not planned twice.
+            if (keptAhead != default)
+            {
+                // The period would run into a kept row: it ends the day before it, and the schedule resumes after it.
+                end = keptAhead.AddDays(-1);
+                next = keptAhead;
+            }
+
+            // A row that starts on this day already covers it; it is not planned twice.
             if (!everyStart.Contains(start))
             {
-                planned.Add((start, next is { } following ? following.AddDays(-1) : start));
+                planned.Add((start, end));
                 runsByTerms[termsOfPeriod.Id] = usedRuns + 1;
             }
 
-            if (start > today)
+            // Stop at the first period after today, unless a kept row still lies ahead: the days up to it must be covered.
+            if (start > today && !keptStarts.Any(keptStart => keptStart > start))
             {
                 break;
             }
@@ -290,6 +350,25 @@ public static class ClientPaymentSchedule
         }
 
         return planned;
+    }
+
+    /// <summary>
+    /// Moves a day that falls inside a stored row's span to the day after the latest end covering it.
+    /// Rows without an end cover nothing beyond their first day and are left to the caller.
+    /// </summary>
+    private static DateOnly SkipCoveredDays(DateOnly day, List<(DateOnly Start, DateOnly? End)>? rows)
+    {
+        if (rows is null)
+        {
+            return day;
+        }
+
+        while (rows.Where(row => row.End is { } end && row.Start <= day && day <= end).Select(row => row.End!.Value).ToList() is { Count: > 0 } covering)
+        {
+            day = covering.Max().AddDays(1);
+        }
+
+        return day;
     }
 
     /// <summary>
@@ -609,7 +688,8 @@ public static class ClientPaymentSchedule
             terms,
             payments.Select(p => p.PeriodStart!.Value).ToList(),
             today,
-            KeptPeriodStarts(payments));
+            KeptPeriodStarts(payments),
+            payments.Select(p => (p.PeriodStart!.Value, p.PeriodEnd)).ToList());
     }
 
     /// <summary>

@@ -2817,6 +2817,7 @@
         "save": "Uložit cenu",
         "saved": "Cena uložena.",
         "saveError": "Cenu se nepodařilo uložit.",
+        "collaborationEnded": "Spolupráce s tímto klientem skončila, cenu už nelze změnit.",
         "currencyMismatch": "Pevná sleva musí být ve stejné měně jako balíček.",
         "loadError": "Balíčky a slevy se nepodařilo načíst."
       },

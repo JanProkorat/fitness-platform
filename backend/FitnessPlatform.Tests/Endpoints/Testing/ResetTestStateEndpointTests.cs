@@ -225,11 +225,12 @@ public class ResetTestStateEndpointTests(
     // ── Happy path ──────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Testing:Enabled=true + Development → POST /test/reset returns 204
-    /// and QaSeedRunner users are present with their stable GUIDs.
+    /// Testing:Enabled=true + Development → POST /test/reset returns 204, QaSeedRunner users are
+    /// present with their stable GUIDs, and the main QA training plan is seeded with its
+    /// ForTime / AMRAP / Standard / Tabata sections.
     /// </summary>
     [Fact]
-    public async Task Reset_EnabledInDevelopment_Returns204AndSeedsQaUsers()
+    public async Task Reset_EnabledInDevelopment_Returns204AndSeedsQaUsersAndTrainingPlan()
     {
         var client = _enabledFactory.CreateClient();
         var ct = TestContext.Current.CancellationToken;
@@ -238,7 +239,6 @@ public class ResetTestStateEndpointTests(
 
         response.StatusCode.Should().Be(HttpStatusCode.NoContent);
 
-        // Assert QA client user exists with the stable GUID from QaSeedRunner
         using var scope = _enabledFactory.Services.CreateScope();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
 
@@ -254,52 +254,7 @@ public class ResetTestStateEndpointTests(
         var qaNutri = await userManager.FindByEmailAsync(QaSeedRunner.NutriEmail);
         qaNutri.Should().NotBeNull(because: "QaSeedRunner must create the QA nutritionist user");
         qaNutri!.Id.Should().Be(QaSeedRunner.NutriUserId);
-    }
 
-    /// <summary>
-    /// Idempotency: two consecutive POSTs to /test/reset both return 204.
-    /// QaSeedRunner.EnsureUserAsync short-circuits on existing users so the
-    /// second call must not throw or double-create.
-    /// </summary>
-    [Fact]
-    public async Task Reset_CalledTwice_BothReturn204AndUsersStillHaveStableGuids()
-    {
-        var client = _enabledFactory.CreateClient();
-        var ct = TestContext.Current.CancellationToken;
-
-        var first = await client.PostAsync("/test/reset", null, ct);
-        first.StatusCode.Should().Be(HttpStatusCode.NoContent, because: "first reset must succeed");
-
-        var second = await client.PostAsync("/test/reset", null, ct);
-        second.StatusCode.Should().Be(HttpStatusCode.NoContent, because: "second reset must be idempotent");
-
-        using var scope = _enabledFactory.Services.CreateScope();
-        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-
-        var qaClient = await userManager.FindByEmailAsync(QaSeedRunner.ClientEmail);
-        qaClient.Should().NotBeNull();
-        qaClient!.Id.Should().Be(QaSeedRunner.ClientUserId,
-            because: "stable GUID must be preserved after re-seed");
-    }
-
-    // ── Training plan seed assertions ───────────────────────────────────────
-
-    /// <summary>
-    /// POST /test/reset seeds a TrainingPlan with ExternalId = QaTrainingPlanExternalId.
-    /// The plan must be keyed on ClientUserId (ApplicationUser.Id, #840/#845 — not
-    /// ClientProfilePublicId) and have exactly one Published week with one session
-    /// containing three sections in the expected order and format.
-    /// </summary>
-    [Fact]
-    public async Task Reset_SeedsTrainingPlan_WithForTimeSectionAndNonRegressionSections()
-    {
-        var httpClient = _enabledFactory.CreateClient();
-        var ct = TestContext.Current.CancellationToken;
-
-        var response = await httpClient.PostAsync("/test/reset", null, ct);
-        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
-
-        using var scope = _enabledFactory.Services.CreateScope();
         var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
 
         var plan = await mongo.TrainingPlans
@@ -379,95 +334,59 @@ public class ResetTestStateEndpointTests(
             because: "Tabata section must have exactly one seeded exercise");
     }
 
-    /// <summary>
-    /// Idempotency for the training plan: two consecutive POSTs to /test/reset must
-    /// not duplicate the TrainingPlan document. Count by ExternalId must stay exactly 1.
-    /// </summary>
-    [Fact]
-    public async Task Reset_CalledTwice_TrainingPlanNotDuplicated()
-    {
-        var httpClient = _enabledFactory.CreateClient();
-        var ct = TestContext.Current.CancellationToken;
-
-        var first = await httpClient.PostAsync("/test/reset", null, ct);
-        first.StatusCode.Should().Be(HttpStatusCode.NoContent, because: "first reset must succeed");
-
-        var second = await httpClient.PostAsync("/test/reset", null, ct);
-        second.StatusCode.Should().Be(HttpStatusCode.NoContent, because: "second reset must be idempotent");
-
-        using var scope = _enabledFactory.Services.CreateScope();
-        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
-
-        var count = await mongo.TrainingPlans
-            .CountDocumentsAsync(
-                Builders<FitnessPlatform.Application.Domain.Documents.TrainingPlan>.Filter
-                    .Eq(p => p.ExternalId, QaSeedRunner.QaTrainingPlanExternalId),
-                cancellationToken: ct);
-
-        count.Should().Be(1, because: "EnsureTrainingPlanAsync must be idempotent — no duplicate plan documents");
-    }
-
-    // ── Mongo index recreation (#1124) ──────────────────────────────────────
+    // ── Idempotency + Mongo index recreation (#1124) ────────────────────────
 
     /// <summary>
-    /// POST /test/reset drops every MongoDB collection and must recreate the
-    /// startup indexes (via <c>MongoIndexInitializer.StartAsync</c>) before
-    /// re-seeding — otherwise the unique per-owner food-tag name constraint
-    /// silently disappears until the process next restarts.
+    /// Two consecutive POSTs to /test/reset both return 204 and converge on the same state:
+    /// the QA users keep their stable GUIDs, the training plan is not duplicated, and the reset
+    /// path (not the catalog seeder) recreates the foodTags indexes it dropped — the unique
+    /// per-owner normalized-name index exists after the first reset, and the index-name set is
+    /// identical after the second.
     /// </summary>
     [Fact]
-    public async Task Reset_RecreatesFoodTagIndexes_UniqueOwnerNormalizedNameIndexExists()
-    {
-        var client = _enabledFactory.CreateClient();
-        var ct = TestContext.Current.CancellationToken;
-
-        var response = await client.PostAsync("/test/reset", null, ct);
-        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
-
-        using var scope = _enabledFactory.Services.CreateScope();
-        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
-
-        var indexNames = await (await mongo.FoodTags.Indexes.ListAsync(ct)).ToListAsync(ct);
-
-        var ownerNameIndex = indexNames.SingleOrDefault(
-            i => i["name"].AsString == "idx_foodtag_ownerUserId_normalizedName");
-        ownerNameIndex.Should().NotBeNull(
-            because: "MongoIndexInitializer.StartAsync must recreate the foodTags indexes after the reset drops the collection");
-        ownerNameIndex!["unique"].AsBoolean.Should().BeTrue(
-            because: "the per-owner normalized-name constraint must stay unique after the reset");
-    }
-
-    /// <summary>
-    /// The set of index names on a representative collection must be identical
-    /// before and after a reset — proving the reset doesn't just drop indexes
-    /// once and leave the database permanently un-indexed.
-    /// </summary>
-    [Fact]
-    public async Task Reset_CalledTwice_FoodTagIndexNamesUnchanged()
+    public async Task Reset_CalledTwice_IsIdempotentAndRecreatesFoodTagIndexes()
     {
         var client = _enabledFactory.CreateClient();
         var ct = TestContext.Current.CancellationToken;
 
         var first = await client.PostAsync("/test/reset", null, ct);
-        first.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        first.StatusCode.Should().Be(HttpStatusCode.NoContent, because: "first reset must succeed");
 
         using var scope = _enabledFactory.Services.CreateScope();
         var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
-        var namesAfterFirst = (await (await mongo.FoodTags.Indexes.ListAsync(ct)).ToListAsync(ct))
-            .Select(i => i["name"].AsString)
-            .OrderBy(n => n)
-            .ToList();
+
+        var indexesAfterFirst = await (await mongo.FoodTags.Indexes.ListAsync(ct)).ToListAsync(ct);
+
+        var ownerNameIndex = indexesAfterFirst.SingleOrDefault(
+            i => i["name"].AsString == "idx_foodtag_ownerUserId_normalizedName");
+        ownerNameIndex.Should().NotBeNull(
+            because: "MongoIndexInitializer.StartAsync must recreate the foodTags indexes after the reset drops the collection");
+        ownerNameIndex!["unique"].AsBoolean.Should().BeTrue(
+            because: "the per-owner normalized-name constraint must stay unique after the reset");
+
+        var namesAfterFirst = indexesAfterFirst.Select(i => i["name"].AsString).OrderBy(n => n).ToList();
 
         var second = await client.PostAsync("/test/reset", null, ct);
-        second.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        second.StatusCode.Should().Be(HttpStatusCode.NoContent, because: "second reset must be idempotent");
 
         var namesAfterSecond = (await (await mongo.FoodTags.Indexes.ListAsync(ct)).ToListAsync(ct))
             .Select(i => i["name"].AsString)
             .OrderBy(n => n)
             .ToList();
-
         namesAfterSecond.Should().Equal(namesAfterFirst,
             because: "a second reset must recreate the exact same index set, not accumulate or drop indexes");
+
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var qaClient = await userManager.FindByEmailAsync(QaSeedRunner.ClientEmail);
+        qaClient.Should().NotBeNull();
+        qaClient!.Id.Should().Be(QaSeedRunner.ClientUserId,
+            because: "stable GUID must be preserved after re-seed");
+
+        var planCount = await mongo.TrainingPlans.CountDocumentsAsync(
+            Builders<FitnessPlatform.Application.Domain.Documents.TrainingPlan>.Filter
+                .Eq(p => p.ExternalId, QaSeedRunner.QaTrainingPlanExternalId),
+            cancellationToken: ct);
+        planCount.Should().Be(1, because: "EnsureTrainingPlanAsync must be idempotent — no duplicate plan documents");
     }
 
     // ── Gate: Testing:Enabled=false ─────────────────────────────────────────

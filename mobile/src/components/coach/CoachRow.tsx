@@ -82,7 +82,7 @@ const makeStyles = (theme: Theme) =>
       borderBottomColor: theme.colors.line,
     },
     pressed: {
-      opacity: 0.7,
+      opacity: theme.opacity.pressedRow,
     },
     body: {
       flex: 1,

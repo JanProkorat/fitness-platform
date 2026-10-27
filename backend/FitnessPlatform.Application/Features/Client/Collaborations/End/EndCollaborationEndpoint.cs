@@ -29,7 +29,7 @@ public class EndCollaborationEndpoint(
 {
     public override void Configure()
     {
-        Delete("/client/collaborations/{PublicId}");
+        Delete("/client/collaborations/{publicId}");
         Roles(AppRoles.Client);
         Summary(s =>
         {
@@ -44,7 +44,7 @@ public class EndCollaborationEndpoint(
         if (userId is null) { await Send.UnauthorizedAsync(ct); return; }
 
         var userGuid = Guid.Parse(userId);
-        var publicId = Route<Guid>("PublicId");
+        var publicId = Route<Guid>("publicId");
 
         var clientProfile = await db.ClientProfiles
             .AsNoTracking()
