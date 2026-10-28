@@ -253,4 +253,63 @@ public class PlanWindowResolverTests
 
         PlanWindowResolver.EndsLater(oldStart, 2, null, 2).Should().BeTrue();
     }
+
+    private sealed record UpcomingPlan(string Name, DateTime? StartDate, int WeekCount, bool HasPublishedWeek, DateTime DateCreated);
+
+    private static UpcomingPlan Upcoming(string name, DateTime? start, bool published = true, int createdDay = 1) =>
+        new(name, start, 2, published, new DateTime(2026, 1, createdDay, 0, 0, 0, DateTimeKind.Utc));
+
+    private static UpcomingPlan? ResolveUpcoming(DateTime today, params UpcomingPlan[] plans) =>
+        PlanWindowResolver.ResolveCurrentOrUpcomingPlan(
+            plans, p => p.StartDate, p => p.WeekCount, p => p.HasPublishedWeek, p => p.DateCreated, today);
+
+    private static readonly DateTime Today = new(2026, 3, 10, 0, 0, 0, DateTimeKind.Utc);
+
+    [Fact]
+    public void ResolveCurrentOrUpcomingPlan_CurrentPlanExists_WinsOverEarlierUpcoming()
+    {
+        var current = Upcoming("current", new DateTime(2026, 3, 9, 0, 0, 0, DateTimeKind.Utc));
+        var upcoming = Upcoming("upcoming", new DateTime(2026, 3, 30, 0, 0, 0, DateTimeKind.Utc));
+
+        ResolveUpcoming(Today, upcoming, current).Should().Be(current);
+    }
+
+    [Fact]
+    public void ResolveCurrentOrUpcomingPlan_SeveralUpcoming_ReturnsEarliestStart()
+    {
+        var later = Upcoming("later", new DateTime(2026, 4, 20, 0, 0, 0, DateTimeKind.Utc));
+        var earlier = Upcoming("earlier", new DateTime(2026, 3, 30, 0, 0, 0, DateTimeKind.Utc));
+
+        ResolveUpcoming(Today, later, earlier).Should().Be(earlier);
+    }
+
+    [Fact]
+    public void ResolveCurrentOrUpcomingPlan_SameStartDate_ReturnsMostRecentlyCreated()
+    {
+        var start = new DateTime(2026, 3, 30, 0, 0, 0, DateTimeKind.Utc);
+        var older = Upcoming("older", start, createdDay: 1);
+        var newer = Upcoming("newer", start, createdDay: 5);
+
+        ResolveUpcoming(Today, older, newer).Should().Be(newer);
+    }
+
+    [Fact]
+    public void ResolveCurrentOrUpcomingPlan_UpcomingWithoutPublishedWeek_IsSkipped()
+    {
+        var unpublished = Upcoming("unpublished", new DateTime(2026, 3, 16, 0, 0, 0, DateTimeKind.Utc), published: false);
+        var published = Upcoming("published", new DateTime(2026, 4, 20, 0, 0, 0, DateTimeKind.Utc));
+
+        ResolveUpcoming(Today, unpublished, published).Should().Be(published);
+    }
+
+    [Fact]
+    public void ResolveCurrentOrUpcomingPlan_StartingTodayIsCurrentNotUpcoming_AndPastOrUnrangedPlansAreNeverUpcoming()
+    {
+        var startsToday = Upcoming("today", Today);
+        ResolveUpcoming(Today, startsToday).Should().Be(startsToday);
+
+        var past = Upcoming("past", new DateTime(2026, 1, 5, 0, 0, 0, DateTimeKind.Utc));
+        var unranged = Upcoming("unranged", null);
+        ResolveUpcoming(Today, past, unranged).Should().BeNull();
+    }
 }

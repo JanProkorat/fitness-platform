@@ -56,6 +56,32 @@ public class ClientOwnPlanItem
     public decimal? DailyKcal { get; set; }
 
     /// <summary>
+    /// Mean kilocalories per day, averaged over the published days that have at least one meal.
+    /// Nutrition plans only; null for training plans or when no published day has a meal. Whole number.
+    /// </summary>
+    public decimal? AvgKcalPerDay { get; set; }
+
+    /// <summary>
+    /// Mean protein grams per day over the published days that have a meal. Nutrition plans only; null when none. Whole number.
+    /// </summary>
+    public decimal? AvgProteinPerDay { get; set; }
+
+    /// <summary>
+    /// Mean carbohydrate grams per day over the published days that have a meal. Nutrition plans only; null when none. Whole number.
+    /// </summary>
+    public decimal? AvgCarbsPerDay { get; set; }
+
+    /// <summary>
+    /// Mean fat grams per day over the published days that have a meal. Nutrition plans only; null when none. Whole number.
+    /// </summary>
+    public decimal? AvgFatPerDay { get; set; }
+
+    /// <summary>
+    /// Mean fiber grams per day over the published days that have a meal. Nutrition plans only; null when none. Whole number.
+    /// </summary>
+    public decimal? AvgFiberPerDay { get; set; }
+
+    /// <summary>
     /// Whether today's day-of-week has a session in the current week. Populated for training plans only.
     /// Null when CurrentWeek is null or for nutrition plans.
     /// </summary>

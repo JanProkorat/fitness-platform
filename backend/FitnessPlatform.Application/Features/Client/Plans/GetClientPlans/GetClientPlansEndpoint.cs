@@ -4,6 +4,7 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.ClientTraining;
 using FitnessPlatform.Application.Infrastructure.Data;
@@ -20,7 +21,12 @@ namespace FitnessPlatform.Application.Features.Client.Plans.GetClientPlans;
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="db">Relational database context.</param>
 /// <param name="timeProvider">Clock abstraction (#955) — lets tests pin the "now" instant deterministically.</param>
-public class GetClientPlansEndpoint(IMongoContext mongo, IApplicationDbContext db, TimeProvider timeProvider)
+/// <param name="macroCalculator">Meal-totals calculator for the per-day nutrition averages.</param>
+public class GetClientPlansEndpoint(
+    IMongoContext mongo,
+    IApplicationDbContext db,
+    TimeProvider timeProvider,
+    IMacroCalculatorService macroCalculator)
     : Endpoint<GetClientPlansRequest, GetClientPlansResponse>
 {
     /// <inheritdoc />
@@ -123,8 +129,15 @@ public class GetClientPlansEndpoint(IMongoContext mongo, IApplicationDbContext d
                     plan.DateCreated,
                     now);
 
+                var averages = CalculateDailyAverages(publishedWeeks);
+
                 items.Add(new ClientOwnPlanItem
                 {
+                    AvgKcalPerDay = averages?.Kcal,
+                    AvgProteinPerDay = averages?.Protein,
+                    AvgCarbsPerDay = averages?.Carbs,
+                    AvgFatPerDay = averages?.Fat,
+                    AvgFiberPerDay = averages?.Fiber,
                     PlanId = plan.ExternalId,
                     PlanName = plan.Name,
                     Type = "nutrition",
@@ -252,6 +265,50 @@ public class GetClientPlansEndpoint(IMongoContext mongo, IApplicationDbContext d
             .ToList();
 
         await Send.OkAsync(new GetClientPlansResponse { Items = items }, ct);
+    }
+
+    /// <summary>
+    /// Mean of each published day's planned totals over the days that have at least one meal,
+    /// rounded to whole numbers. Null when no such day exists.
+    /// </summary>
+    private NutrientTotals? CalculateDailyAverages(List<PlanWeek> publishedWeeks)
+    {
+        var dayTotals = publishedWeeks
+            .SelectMany(week => week.Days)
+            .Where(day => day.Meals.Count > 0)
+            .Select(day =>
+            {
+                var total = new NutrientTotals();
+                foreach (var meal in day.Meals)
+                {
+                    var mealTotals = macroCalculator.CalculateMealTotals(meal.Foods, meal.Recipes);
+                    total.Kcal += mealTotals.Kcal;
+                    total.Protein += mealTotals.Protein;
+                    total.Carbs += mealTotals.Carbs;
+                    total.Fat += mealTotals.Fat;
+                    total.Fiber += mealTotals.Fiber;
+                }
+
+                return total;
+            })
+            .ToList();
+
+        if (dayTotals.Count == 0)
+        {
+            return null;
+        }
+
+        static decimal Mean(IEnumerable<decimal> values, int count) =>
+            Math.Round(values.Sum() / count, 0, MidpointRounding.AwayFromZero);
+
+        return new NutrientTotals
+        {
+            Kcal = Mean(dayTotals.Select(t => t.Kcal), dayTotals.Count),
+            Protein = Mean(dayTotals.Select(t => t.Protein), dayTotals.Count),
+            Carbs = Mean(dayTotals.Select(t => t.Carbs), dayTotals.Count),
+            Fat = Mean(dayTotals.Select(t => t.Fat), dayTotals.Count),
+            Fiber = Mean(dayTotals.Select(t => t.Fiber), dayTotals.Count),
+        };
     }
 
     private async Task ApplyTrainingProgressAsync(

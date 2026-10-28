@@ -57,7 +57,14 @@ internal sealed class SetShoppingListItemTickedEndpoint(IMongoContext mongo, IAp
 
         using var planCursor = await mongo.NutritionPlans.FindAsync(planFilter, cancellationToken: ct);
         var activePlans = await planCursor.ToListAsync(ct);
-        var plan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, todayUtc);
+        // Falls back to the earliest upcoming plan with a published week, matching the shopping list read.
+        var plan = PlanWindowResolver.ResolveCurrentOrUpcomingPlan(
+            activePlans,
+            p => p.StartDate,
+            p => p.Weeks.Count,
+            p => p.Weeks.Any(w => w.Status == WeekStatus.Published),
+            p => p.DateCreated,
+            todayUtc);
 
         var week = plan?.Weeks.FirstOrDefault(w => w.WeekNumber == req.WeekNumber);
 
