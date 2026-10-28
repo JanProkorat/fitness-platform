@@ -17,6 +17,7 @@ import EndedClientPaymentView from '@/components/client-detail/payment/EndedClie
 import { getErrorStatus } from '@/lib/api-errors';
 import { useInvalidateClientLinkState } from '@/hooks/useClientPaymentQueries';
 import { useSignalR } from '@/hooks/useSignalR';
+import { useClientNutritionRealtime } from '@/hooks/useClientNutritionRealtime';
 import ClientPhotosTab from '@/components/client-detail/photos/ClientPhotosTab';
 
 const MEASUREMENTS_PAGE_SIZE = 50;
@@ -73,6 +74,8 @@ export default function ClientDetailPage() {
       void invalidateLinkState();
     },
   });
+
+  useClientNutritionRealtime(clientId);
 
   if (dashboardQuery.isPending) {
     return (
