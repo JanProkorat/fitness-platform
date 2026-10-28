@@ -96,9 +96,13 @@ internal sealed class GetClientPaymentSummaryEndpoint(
     private static void Fill(
         GetClientPaymentSummaryResponse response,
         List<ClientPaymentTerms> terms,
-        List<ClientPayment> payments,
+        List<ClientPayment> allPayments,
         DateOnly today)
     {
+        // A restarted collaboration is summarised on its own; an ended one with no restart shows its own history.
+        var payments = ClientPaymentQueries.HasCurrentCollaboration(terms)
+            ? allPayments.Where(p => !ClientPaymentQueries.IsEarlierCollaboration(p, terms)).ToList()
+            : allPayments;
         var recurringStarts = ClientPaymentSchedule.RecurringStartsOf(payments);
         var recurring = payments.Where(p => p.PeriodStart is not null).OrderBy(p => p.PeriodStart).ToList();
         var nextPeriod = recurring.FirstOrDefault(p => p.PeriodStart > today);

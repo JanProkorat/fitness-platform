@@ -1,3 +1,4 @@
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Features.Client.Invites.Shared;
 
 namespace FitnessPlatform.Application.Features.Client.Invites.GetAll;
@@ -30,6 +31,9 @@ public class ClientInviteDto
 
     /// <summary>City of the professional, or empty when unset.</summary>
     public string CoachCity { get; set; } = string.Empty;
+
+    /// <summary>Collaboration type accepting would grant now, or null when it would grant nothing.</summary>
+    public LinkCapabilityScope? OfferedType { get; set; }
 
     /// <summary>Optional introduction message.</summary>
     public string? Message { get; set; }

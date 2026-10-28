@@ -125,8 +125,6 @@ public class AcceptClientInviteEndpoint(
             return;
         }
 
-        var newLink = activation.Link;
-
         invite.Status = PendingInviteStatus.Accepted;
 
         // Also mark matching invitation tokens as used
@@ -144,16 +142,18 @@ public class AcceptClientInviteEndpoint(
         await transaction.CommitAsync(ct);
 
         // If the invite included a questionnaire, create a pending response
-        // so the web portal immediately shows the "waiting" state.
-        if (newLink is not null && invite.QuestionnaireId.HasValue)
+        // so the web portal immediately shows the "waiting" state. A widened link gets its own response
+        // for the added scope only; the link's own questionnaire stays as it was.
+        if ((activation.Started || activation.Extended) && invite.QuestionnaireId.HasValue)
         {
             var questionnaireResponse = new QuestionnaireResponse
             {
                 QuestionnaireId = invite.QuestionnaireId.Value,
                 ClientId = userGuid,
                 ProfessionalId = invite.ProfessionalProfile.UserId,
-                LinkId = newLink.Id,
+                LinkId = activation.Link!.Id,
                 Status = QuestionnaireResponseStatus.Pending,
+                Scope = activation.GrantedScope,
             };
             db.QuestionnaireResponses.Add(questionnaireResponse);
             await db.SaveChangesAsync(ct);
@@ -161,7 +161,7 @@ public class AcceptClientInviteEndpoint(
 
         // Only a newly started (created or reactivated) link takes the invite's terms: a client who was already linked keeps whatever
         // the coach set on the Payments tab. A package that no longer qualifies is skipped, never an error.
-        if (newLink is not null && invite.CoachPackageId is { } packageId)
+        if (activation.Started && invite.CoachPackageId is { } packageId)
         {
             await termsApplier.ApplyAsync(
                 invite.PublicId,

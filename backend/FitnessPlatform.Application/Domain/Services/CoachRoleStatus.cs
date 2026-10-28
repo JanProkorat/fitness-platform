@@ -94,6 +94,40 @@ public class CoachRoleStatus(UserManager<ApplicationUser> userManager, IApplicat
     }
 
     /// <summary>
+    /// The collaboration type accepting an invite would grant right now, or null when accepting
+    /// would grant nothing (every relevant coach role removed, or no coach role held).
+    /// </summary>
+    /// <param name="scope">The scope stored on the invite, or null.</param>
+    /// <param name="heldRoles">Identity roles of the professional.</param>
+    /// <param name="profile">The professional's profile, or null.</param>
+    public static LinkCapabilityScope? ResolveOfferedScope(
+        LinkCapabilityScope? scope,
+        IEnumerable<string> heldRoles,
+        ProfessionalProfile? profile)
+    {
+        if (!TryResolveLinkGrant(scope, heldRoles, profile, out var nutrition, out var training))
+        {
+            return null;
+        }
+
+        return ScopeFromGrant(nutrition, training);
+    }
+
+    /// <summary>
+    /// Maps plan-view flags to the collaboration type they represent, or null when neither is set.
+    /// </summary>
+    /// <param name="canViewNutritionPlans">Nutrition flag.</param>
+    /// <param name="canViewTrainingPlans">Training flag.</param>
+    public static LinkCapabilityScope? ScopeFromGrant(bool canViewNutritionPlans, bool canViewTrainingPlans) =>
+        (canViewNutritionPlans, canViewTrainingPlans) switch
+        {
+            (true, true) => LinkCapabilityScope.Both,
+            (true, false) => LinkCapabilityScope.NutritionOnly,
+            (false, true) => LinkCapabilityScope.TrainingOnly,
+            _ => null,
+        };
+
+    /// <summary>
     /// True when <paramref name="role"/> carries a removal marker on the profile.
     /// </summary>
     /// <param name="profile">The professional profile, or null.</param>

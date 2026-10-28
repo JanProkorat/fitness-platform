@@ -57,7 +57,21 @@ public static class ClientPaymentSchedule
     }
 
     /// <summary>
-    /// Which recurring payment a period is, counting from 1: only periods since the latest end of the
+    /// The terms a period starting on a calendar day is priced under. Terms that restart a collaboration part-way
+    /// through the day it began own the period starting that day, where <see cref="TermsAt"/> at the start of that
+    /// day would still see the ended terms.
+    /// </summary>
+    /// <param name="terms">The assignment's terms history.</param>
+    /// <param name="periodStart">First day of the period.</param>
+    public static ClientPaymentTerms? TermsForPeriod(IEnumerable<ClientPaymentTerms> terms, DateOnly periodStart)
+    {
+        var all = terms as IReadOnlyCollection<ClientPaymentTerms> ?? terms.ToList();
+
+        return RestartingOn(all, periodStart) ?? TermsAt(all, StartOfDayUtc(periodStart));
+    }
+
+    /// <summary>
+    /// Which recurring payment a period is, counting from 1: only periods since the start of the current
     /// collaboration count, so a fresh start resets the "first N payments" ordinal.
     /// </summary>
     /// <param name="terms">The assignment's terms history.</param>
@@ -66,14 +80,47 @@ public static class ClientPaymentSchedule
     public static int OrdinalOf(
         IEnumerable<ClientPaymentTerms> terms, IEnumerable<DateOnly> recurringPeriodStarts, DateOnly periodStart)
     {
-        var periodStartUtc = StartOfDayUtc(periodStart);
-        var boundary = terms
-            .Where(t => t.EndsAtUtc is { } endsAt && endsAt <= periodStartUtc)
+        var all = terms as IReadOnlyCollection<ClientPaymentTerms> ?? terms.ToList();
+        var instant = RestartingOn(all, periodStart)?.EffectiveFromUtc ?? StartOfDayUtc(periodStart);
+        var boundary = all
+            .Where(t => t.EndsAtUtc is { } endsAt && endsAt <= instant)
             .Select(t => t.EndsAtUtc!.Value)
             .DefaultIfEmpty(DateTime.MinValue)
             .Max();
 
-        return recurringPeriodStarts.Count(other => other <= periodStart && StartOfDayUtc(other) >= boundary);
+        if (boundary == DateTime.MinValue)
+        {
+            return recurringPeriodStarts.Count(other => other <= periodStart);
+        }
+
+        var restart = all
+            .Where(t => t.EffectiveFromUtc >= boundary)
+            .OrderBy(t => t.EffectiveFromUtc)
+            .ThenBy(t => t.Id)
+            .FirstOrDefault();
+
+        // The restart may begin part-way through a day, so its periods are compared by calendar day.
+        return restart is null
+            ? recurringPeriodStarts.Count(other => other <= periodStart && StartOfDayUtc(other) >= boundary)
+            : recurringPeriodStarts.Count(other =>
+                other <= periodStart && other >= ClientLocalDateResolver.ResolveLocalDate(restart.EffectiveFromUtc, Zone));
+    }
+
+    /// <summary>
+    /// The latest terms that restart a collaboration (they begin at or after another terms' end) part-way through
+    /// the given day, or null.
+    /// </summary>
+    private static ClientPaymentTerms? RestartingOn(IReadOnlyCollection<ClientPaymentTerms> terms, DateOnly day)
+    {
+        var startUtc = StartOfDayUtc(day);
+
+        return terms
+            .Where(t => t.EffectiveFromUtc > startUtc
+                && ClientLocalDateResolver.ResolveLocalDate(t.EffectiveFromUtc, Zone) == day
+                && terms.Any(other => other.EndsAtUtc is { } endsAt && endsAt <= t.EffectiveFromUtc))
+            .OrderByDescending(t => t.EffectiveFromUtc)
+            .ThenByDescending(t => t.Id)
+            .FirstOrDefault();
     }
 
     /// <summary>
@@ -140,7 +187,7 @@ public static class ClientPaymentSchedule
 
         foreach (var start in existing)
         {
-            if (TermsAt(terms, StartOfDayUtc(start)) is { } termsOfRow)
+            if (TermsForPeriod(terms, start) is { } termsOfRow)
             {
                 runsByTerms[termsOfRow.Id] = runsByTerms.GetValueOrDefault(termsOfRow.Id) + 1;
             }
@@ -151,7 +198,14 @@ public static class ClientPaymentSchedule
 
         if (existing.Count == 0)
         {
-            var first = terms.OrderBy(t => t.EffectiveFromUtc).ThenBy(t => t.Id).First();
+            // Only the current collaboration's terms start a schedule; rows kept from an earlier one take no part.
+            var latestEndOfAll = terms.Where(t => t.EndsAtUtc is not null).Select(t => t.EndsAtUtc!.Value).DefaultIfEmpty().Max();
+            var first = terms
+                .Where(t => latestEndOfAll == default || t.EffectiveFromUtc >= latestEndOfAll)
+                .OrderBy(t => t.EffectiveFromUtc)
+                .ThenBy(t => t.Id)
+                .FirstOrDefault()
+                ?? terms.OrderBy(t => t.EffectiveFromUtc).ThenBy(t => t.Id).First();
             cursor = ClientLocalDateResolver.ResolveLocalDate(first.EffectiveFromUtc, Zone);
             billingDay = cursor.Value.Day;
         }
@@ -165,7 +219,7 @@ public static class ClientPaymentSchedule
                 return planned;
             }
 
-            var lastTerms = TermsAt(terms, StartOfDayUtc(last));
+            var lastTerms = TermsForPeriod(terms, last);
             var endedByCollaboration = lastTerms is null || lastTerms.EndsAtUtc is not null;
 
             cursor = lastTerms is null ? null : NextPeriodStart(last, lastTerms, billingDay);
@@ -222,11 +276,39 @@ public static class ClientPaymentSchedule
             }
         }
 
-        while (cursor is { } start)
+        var keptStarts = keptPeriodStarts?.ToList() ?? [];
+
+        // Only rows that begin on or after the restart day can push the new terms' periods forward: a kept row
+        // that began earlier belongs to the earlier collaboration and may overlap the restart.
+        var latestRestartDay = terms
+            .Where(t => terms.Any(other => other.EndsAtUtc is { } endsAt && endsAt <= t.EffectiveFromUtc))
+            .OrderByDescending(t => t.EffectiveFromUtc)
+            .ThenByDescending(t => t.Id)
+            .Select(t => (DateOnly?)ClientLocalDateResolver.ResolveLocalDate(t.EffectiveFromUtc, Zone))
+            .FirstOrDefault();
+        var spansFromRestart = latestRestartDay is { } restartFrom
+            ? existingPeriods?.Where(row => row.Start >= restartFrom).ToList()
+            : null;
+
+        while (cursor is { } candidate)
         {
-            var termsOfPeriod = TermsAt(terms, StartOfDayUtc(start));
+            // A period never begins inside a stored row's span: it begins the day after the latest end covering it.
+            var start = SkipCoveredDays(candidate, spansFromRestart);
+
+            if (start != candidate)
+            {
+                billingDay = start.Day;
+            }
+
+            var termsOfPeriod = TermsForPeriod(terms, start);
 
             if (termsOfPeriod is null)
+            {
+                break;
+            }
+
+            // A kept row that starts after today is already the first period after today.
+            if (start > today && keptStarts.Any(keptStart => keptStart > today && keptStart < start))
             {
                 break;
             }
@@ -241,15 +323,25 @@ public static class ClientPaymentSchedule
             }
 
             var next = NextPeriodStart(start, termsOfPeriod, billingDay);
+            var end = next is { } following ? following.AddDays(-1) : start;
+            var keptAhead = keptStarts.Where(keptStart => keptStart > start && keptStart <= end).DefaultIfEmpty().Min();
 
-            // A kept row already covers its day; it is not planned twice.
+            if (keptAhead != default)
+            {
+                // The period would run into a kept row: it ends the day before it, and the schedule resumes after it.
+                end = keptAhead.AddDays(-1);
+                next = keptAhead;
+            }
+
+            // A row that starts on this day already covers it; it is not planned twice.
             if (!everyStart.Contains(start))
             {
-                planned.Add((start, next is { } following ? following.AddDays(-1) : start));
+                planned.Add((start, end));
                 runsByTerms[termsOfPeriod.Id] = usedRuns + 1;
             }
 
-            if (start > today)
+            // Stop at the first period after today, unless a kept row still lies ahead: the days up to it must be covered.
+            if (start > today && !keptStarts.Any(keptStart => keptStart > start))
             {
                 break;
             }
@@ -258,6 +350,25 @@ public static class ClientPaymentSchedule
         }
 
         return planned;
+    }
+
+    /// <summary>
+    /// Moves a day that falls inside a stored row's span to the day after the latest end covering it.
+    /// Rows without an end cover nothing beyond their first day and are left to the caller.
+    /// </summary>
+    private static DateOnly SkipCoveredDays(DateOnly day, List<(DateOnly Start, DateOnly? End)>? rows)
+    {
+        if (rows is null)
+        {
+            return day;
+        }
+
+        while (rows.Where(row => row.End is { } end && row.Start <= day && day <= end).Select(row => row.End!.Value).ToList() is { Count: > 0 } covering)
+        {
+            day = covering.Max().AddDays(1);
+        }
+
+        return day;
     }
 
     /// <summary>
@@ -395,7 +506,7 @@ public static class ClientPaymentSchedule
                 payment.IsCustomPrice);
         }
 
-        if (TermsAt(terms, StartOfDayUtc(start)) is not { } termsOfPeriod)
+        if (TermsForPeriod(terms, start) is not { } termsOfPeriod)
         {
             return (null, null, null, null, false);
         }
@@ -430,7 +541,7 @@ public static class ClientPaymentSchedule
 
             if (payment.Status == ClientPaymentStatus.Upcoming
                 && payment.PeriodStart is { } start
-                && TermsAt(terms, StartOfDayUtc(start)) is { } termsOfPeriod)
+                && TermsForPeriod(terms, start) is { } termsOfPeriod)
             {
                 payment.Currency = termsOfPeriod.CoachPackage.Currency;
             }
@@ -545,7 +656,7 @@ public static class ClientPaymentSchedule
                 ProfessionalProfileId = assignment.ProfessionalProfileId,
                 Kind = ClientPaymentKind.Recurring,
                 Status = ClientPaymentStatus.Upcoming,
-                Currency = TermsAt(terms, StartOfDayUtc(start))?.CoachPackage.Currency ?? PaymentCurrency.CZK,
+                Currency = TermsForPeriod(terms, start)?.CoachPackage.Currency ?? PaymentCurrency.CZK,
                 PeriodStart = start,
                 PeriodEnd = end,
                 DueDate = start,

@@ -11,8 +11,11 @@ public enum ClientLinkActivationOutcome
     /// <summary>An ended link existed for the pair and was switched back on with the invite's terms.</summary>
     Reactivated,
 
-    /// <summary>The link is already active; nothing was changed.</summary>
+    /// <summary>The link is already active and the invite adds nothing; nothing was changed.</summary>
     AlreadyActive,
+
+    /// <summary>The link is already active and the invite widened it with a plan type it did not cover yet.</summary>
+    Extended,
 
     /// <summary>The coach role the invite grants was removed, so no link may be granted.</summary>
     CoachRoleRemoved,

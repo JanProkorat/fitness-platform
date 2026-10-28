@@ -1692,6 +1692,18 @@
   "h": 960
  },
  {
+  "html": "mobile-light/13-04-today-no-coach-invite-both.html",
+  "png": "mobile-light/13-04-today-no-coach-invite-both.png",
+  "w": 390,
+  "h": 1040
+ },
+ {
+  "html": "mobile-light/13-05-today-no-plan-both.html",
+  "png": "mobile-light/13-05-today-no-plan-both.png",
+  "w": 390,
+  "h": 844
+ },
+ {
   "html": "mobile-dark/01-01-launch-quiet.html",
   "png": "mobile-dark/01-01-launch-quiet.png",
   "w": 390,
@@ -2140,6 +2152,18 @@
   "png": "mobile-dark/13-03-today-no-plan-full.png",
   "w": 390,
   "h": 960
+ },
+ {
+  "html": "mobile-dark/13-04-today-no-coach-invite-both.html",
+  "png": "mobile-dark/13-04-today-no-coach-invite-both.png",
+  "w": 390,
+  "h": 1040
+ },
+ {
+  "html": "mobile-dark/13-05-today-no-plan-both.html",
+  "png": "mobile-dark/13-05-today-no-plan-both.png",
+  "w": 390,
+  "h": 844
  },
  {
   "html": "coach-light/01-01-coach-setup.html",

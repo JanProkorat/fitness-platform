@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
@@ -55,17 +56,9 @@ internal sealed class GetClientPaymentsEndpoint(IApplicationDbContext db, TimePr
             return;
         }
 
-        var visible = db.ClientPayments
-            .AsNoTracking()
-            .Where(p => p.ClientPaymentAssignment.ClientProfileId == clientProfileId
-                && db.ClientProfessionalLinks.Any(l =>
-                    l.ClientProfileId == clientProfileId && l.ProfessionalProfileId == p.ProfessionalProfileId));
+        var visible = ClientPaymentQueries.VisibleToClient(db, clientProfileId.Value).AsNoTracking();
 
-        var requested = await visible
-            .Where(p => p.Status == ClientPaymentStatus.Requested)
-            .OrderBy(p => p.DueDate)
-            .ThenBy(p => p.Id)
-            .ToListAsync(ct);
+        var requested = await ClientPaymentQueries.RequestedOrdered(visible).ToListAsync(ct);
         var paid = await visible
             .Where(p => p.Status == ClientPaymentStatus.Paid)
             .OrderByDescending(p => p.PaidOn)
@@ -86,6 +79,12 @@ internal sealed class GetClientPaymentsEndpoint(IApplicationDbContext db, TimePr
                 .ToListAsync(ct))
             .ToHashSet();
         var today = ClientPaymentSchedule.Today(timeProvider.GetUtcNow().UtcDateTime);
+        var termsByAssignment = await ClientPaymentQueries.LoadTermsByAssignmentAsync(
+            db, requested.Concat(paid).Select(p => p.ClientPaymentAssignmentId).Distinct().ToList(), ct);
+
+        bool IsEarlier(ClientPayment payment) =>
+            ClientPaymentQueries.IsEarlierCollaboration(
+                payment, termsByAssignment.GetValueOrDefault(payment.ClientPaymentAssignmentId) ?? []);
 
         await Send.OkAsync(
             new GetClientPaymentsResponse
@@ -99,11 +98,11 @@ internal sealed class GetClientPaymentsEndpoint(IApplicationDbContext db, TimePr
                         CollaborationEnded = !activeCoachIds.Contains(coach.Id),
                         Requested = requested
                             .Where(p => p.ProfessionalProfileId == coach.Id)
-                            .Select(p => ClientPaymentItemDto.FromEntity(p, today))
+                            .Select(p => ClientPaymentItemDto.FromEntity(p, today, IsEarlier(p)))
                             .ToList(),
                         Paid = paid
                             .Where(p => p.ProfessionalProfileId == coach.Id)
-                            .Select(p => ClientPaymentItemDto.FromEntity(p, today))
+                            .Select(p => ClientPaymentItemDto.FromEntity(p, today, IsEarlier(p)))
                             .ToList()
                     })
                     .ToList()

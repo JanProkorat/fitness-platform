@@ -2669,7 +2669,9 @@
         "openSettings": "Otevřít Nastavení",
         "loadError": "Platby se nepodařilo načíst.",
         "empty": "Zatím žádné platby. Vyberte klientovi {{name}} balíček a první platba se vytvoří.",
-        "footnote": "Klient {{name}} platí bankovním převodem na váš účet. Platbu najdete ve výpisu z banky podle variabilního symbolu a pak ji označíte jako zaplacenou."
+        "footnote": "Klient {{name}} platí bankovním převodem na váš účet. Platbu najdete ve výpisu z banky podle variabilního symbolu a pak ji označíte jako zaplacenou.",
+        "earlierTitle": "Předchozí spolupráce",
+        "earlierNote": "Tyto platby pocházejí z ukončené spolupráce s klientem {{name}}. Můžete je dál vyžádat, označit jako zaplacené nebo prominout."
       },
       "table": {
         "period": "Období",

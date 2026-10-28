@@ -60,6 +60,7 @@ public class GetClientSubmittedResponsesEndpoint(IApplicationDbContext db)
                         ResponsePublicId = r.PublicId,
                         QuestionnaireTitle = r.Questionnaire.Title,
                         SubmittedAt = r.SubmittedAt,
+                        Scope = r.Scope,
                         Answers = r.Answers
                             .OrderBy(a => a.Question.OrderIndex)
                             .Where(a => a.Question.Type != QuestionTypes.Section)
