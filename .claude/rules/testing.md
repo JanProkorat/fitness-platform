@@ -34,7 +34,7 @@ saves nothing; only cheaper tests do.
 | 3 Remaining | everything else (complement of 1 and 2) | 487 | 51-63 s |
 
 Measured on `develop` after #1768 (runs 40552071229, 40648936167 and
-40763264376): 191 s, 224 s and 239 s against the 300 s budget, while the
+40763264376): 192 s, 224 s and 239 s against the 300 s budget, while the
 suite grew from 4479 to 4646 tests. Runner variance is about ±30 s, almost
 all of it in chunk 1. **Headroom is thin:** each feature epic adds tests to
 chunks 1 and 3. The next lever is running independent collections in
