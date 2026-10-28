@@ -16,25 +16,37 @@ type DayStripProps = {
   /** Arrows are disabled while there is no published week in that direction. */
   onPreviousWeek?: () => void;
   onNextWeek?: () => void;
+  /** Leaves the week arrows out, for a strip that only ever shows one week. */
+  hideWeekArrows?: boolean;
   onSelect: (date: string) => void;
 };
 
 /** The seven days of a week with arrows to the neighbouring weeks; the selected day gets a green chip. */
-export function DayStrip({ days, selected, today, onPreviousWeek, onNextWeek, onSelect }: DayStripProps) {
+export function DayStrip({
+  days,
+  selected,
+  today,
+  onPreviousWeek,
+  onNextWeek,
+  hideWeekArrows = false,
+  onSelect,
+}: DayStripProps) {
   const { t, i18n } = useTranslation();
   const theme = useTheme();
-  const styles = makeStyles(theme);
+  const styles = makeStyles(theme, hideWeekArrows);
   const tint = theme.scheme === 'dark' ? 'systemThinMaterialDark' : 'systemThinMaterialLight';
 
   return (
     <View style={styles.shadow}>
       <BlurView intensity={theme.glass.control.intensity} tint={tint} style={styles.blur}>
-        <Arrow
-          symbol="chevron.left"
-          label={t('nutritionPlan.week.previous')}
-          onPress={onPreviousWeek}
-          styles={styles}
-        />
+        {hideWeekArrows ? null : (
+          <Arrow
+            symbol="chevron.left"
+            label={t('nutritionPlan.week.previous')}
+            onPress={onPreviousWeek}
+            styles={styles}
+          />
+        )}
         <View style={styles.days}>
           {days.map(({ date }) => {
             const isSelected = date === selected;
@@ -68,12 +80,14 @@ export function DayStrip({ days, selected, today, onPreviousWeek, onNextWeek, on
             );
           })}
         </View>
-        <Arrow
-          symbol="chevron.right"
-          label={t('nutritionPlan.week.next')}
-          onPress={onNextWeek}
-          styles={styles}
-        />
+        {hideWeekArrows ? null : (
+          <Arrow
+            symbol="chevron.right"
+            label={t('nutritionPlan.week.next')}
+            onPress={onNextWeek}
+            styles={styles}
+          />
+        )}
       </BlurView>
     </View>
   );
@@ -102,7 +116,7 @@ function Arrow({ symbol, label, onPress, styles }: ArrowProps) {
   );
 }
 
-const makeStyles = (theme: Theme) =>
+const makeStyles = (theme: Theme, hideWeekArrows = false) =>
   StyleSheet.create({
     shadow: {
       borderRadius: theme.radii.xl,
@@ -131,6 +145,7 @@ const makeStyles = (theme: Theme) =>
     days: {
       flex: 1,
       flexDirection: 'row',
+      paddingHorizontal: hideWeekArrows ? theme.spacing.xs : 0,
     },
     day: {
       flex: 1,

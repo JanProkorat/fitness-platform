@@ -605,7 +605,6 @@
   },
   "placeholder": {
     "training": "Your training plan will appear here.",
-    "nutrition": "Your nutrition plan will appear here.",
     "messages": "Your conversations will appear here."
   },
   "measurements": {
@@ -1117,6 +1116,130 @@
         "Soy": "Soy",
         "Sesame": "Sesame"
       }
+    }
+  },
+  "nutritionTab": {
+    "retry": "Try again",
+    "shortcuts": {
+      "plan": "Full plan",
+      "recipes": "Recipes",
+      "shoppingList": "Shopping list"
+    },
+    "error": {
+      "title": "Could not load your nutrition",
+      "body": "Check your connection and try again."
+    },
+    "errors": {
+      "toggleTitle": "The meal was not updated",
+      "cancelRequest": "The request could not be cancelled. Please try again.",
+      "removeOffPlan": "The food could not be removed. Please try again."
+    },
+    "offPlan": {
+      "title": "Outside the plan",
+      "kcal": "{{value}} kcal",
+      "amount": "{{grams}} g · {{kcal}} kcal",
+      "remove": "Remove {{name}}",
+      "add": "Add food you ate outside the plan"
+    },
+    "sheet": {
+      "close": "Close",
+      "back": "Back to search",
+      "title": "Add food",
+      "subtitle": "Eaten outside the plan today",
+      "searchLabel": "Search foods",
+      "searchPlaceholder": "Search foods",
+      "clear": "Clear search",
+      "hint": "Type at least {{min}} letters to search.",
+      "searchError": "The search failed.",
+      "noResults": "No foods found.",
+      "results_one": "{{count}} result",
+      "results_other": "{{count}} results",
+      "per100": "{{value}} kcal / 100 g",
+      "amount": "Amount",
+      "unit": "g",
+      "quick": "{{value}} g",
+      "addsToToday": "Adds to today",
+      "kcal": "{{value}} kcal",
+      "submit": "Add to today",
+      "errors": {
+        "conflict": "Your day changed while you were adding this. Please try again.",
+        "missing": "This food or your plan is no longer available.",
+        "generic": "The food was not added. Check your connection and try again."
+      }
+    },
+    "empty": {
+      "title": "Add a nutritionist",
+      "body": "A nutritionist plans your meals, macros and shopping list around your day.",
+      "find": "Find a nutritionist",
+      "pending": "Pending request",
+      "waiting": "waiting for reply",
+      "sentToday": "Sent today",
+      "sentDaysAgo_one": "Sent {{count}} day ago",
+      "sentDaysAgo_other": "Sent {{count}} days ago",
+      "cancel": "Cancel",
+      "cancelKeep": "Keep request",
+      "cancelTitle": "Cancel your request to {{name}}?",
+      "cancelLabel": "Cancel request to {{name}}",
+      "limit": "You can have one trainer and one nutritionist at a time."
+    },
+    "waiting": {
+      "includes": "What your plan includes",
+      "tiles": {
+        "meals": "Daily meals & macros",
+        "recipes": "Recipes",
+        "shopping": "Shopping list"
+      },
+      "preferences": {
+        "title": "Your eating preferences",
+        "body": "{{name}} plans around them. Update anytime.",
+        "bodyGeneric": "Your nutritionist plans around them. Update anytime."
+      }
+    }
+  },
+  "nutritionFood": {
+    "per100": "Per 100 g",
+    "suits": "Suits",
+    "allergens": "Allergens",
+    "noAllergens": "None listed",
+    "serving": "Unit",
+    "servingValue": "1 {{label}} = {{value}} g",
+    "portion": "portion",
+    "notFound": {
+      "title": "Food not available",
+      "body": "This food is not part of your plan."
+    },
+    "error": {
+      "title": "Could not load the food",
+      "body": "Check your connection and try again."
+    },
+    "inMeal": "In {{meal}}",
+    "eaten": "You ate",
+    "usedAmount": "{{grams}} g · {{kcal}} kcal",
+    "diets": {
+      "Vegan": "Vegan",
+      "Vegetarian": "Vegetarian",
+      "Pescatarian": "Pescatarian",
+      "GlutenFree": "Gluten-free",
+      "LactoseFree": "Lactose-free",
+      "DairyFree": "Dairy-free",
+      "Keto": "Keto",
+      "LowCarb": "Low-carb"
+    },
+    "allergenNames": {
+      "Gluten": "Gluten",
+      "Crustaceans": "Crustaceans",
+      "Eggs": "Eggs",
+      "Fish": "Fish",
+      "Peanuts": "Peanuts",
+      "Soy": "Soy",
+      "Milk": "Milk",
+      "TreeNuts": "Tree nuts",
+      "Celery": "Celery",
+      "Mustard": "Mustard",
+      "Sesame": "Sesame",
+      "Sulphites": "Sulphites",
+      "Lupin": "Lupin",
+      "Molluscs": "Molluscs"
     }
   },
   "nutritionMeal": {
