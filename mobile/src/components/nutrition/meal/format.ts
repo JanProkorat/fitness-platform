@@ -45,7 +45,10 @@ export const recipeMacros = (recipe: MealRecipe): Macros =>
   scaleMacros(macrosOf(recipe.nutrientValuePerServing), recipe.servings ?? 1);
 
 /** The food's name in the app language, falling back to the stored name. */
-export function foodName(food: MealFood, language: string): string {
+export function foodName(
+  food: Pick<MealFood, 'foodName' | 'foodNameCs' | 'foodNameEn' | 'foodNameDe'>,
+  language: string,
+): string {
   const localized = language.startsWith('cs')
     ? food.foodNameCs
     : language.startsWith('de')

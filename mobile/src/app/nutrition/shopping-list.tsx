@@ -106,6 +106,7 @@ function ShoppingListContent({ current, next, onBack }: ShoppingListContentProps
       sections,
       categoryLabel,
       quantityLabel,
+      language,
     });
     void Share.share({ message });
   };
@@ -170,6 +171,7 @@ function ShoppingListContent({ current, next, onBack }: ShoppingListContentProps
             key={section.category}
             heading={categoryLabel(section.category)}
             items={section.items}
+            language={language}
             quantityLabel={quantityLabel}
             onToggle={(foodExternalId, isTicked) => toggle.mutate({ foodExternalId, isTicked })}
           />
