@@ -90,9 +90,10 @@ public class GetShoppingListEndpoint(IMongoContext mongo, IApplicationDbContext 
             .Where(w => w.WeekNumber >= req.WeekFrom && w.WeekNumber <= weekTo)
             .ToList();
 
-        // Flatten all meals -> all foods (tagged with their week), group by FoodExternalId, sum amounts
+        // Flatten all meals -> foods plus recipe ingredients (tagged with their week), group by FoodExternalId, sum amounts
         var groups = weeks
             .SelectMany(w => w.Days.SelectMany(d => d.Meals).SelectMany(m => m.Foods).Select(f => (w.WeekNumber, Food: f)))
+            .Concat(await LoadRecipeIngredientsAsync(weeks, ct))
             .GroupBy(entry => entry.Food.FoodExternalId)
             .ToList();
 
@@ -104,8 +105,11 @@ public class GetShoppingListEndpoint(IMongoContext mongo, IApplicationDbContext 
             {
                 FoodExternalId = g.Key,
                 FoodName = g.First().Food.FoodName,
+                FoodNameCs = FirstNonEmpty(g, food => food.FoodNameCs),
+                FoodNameEn = FirstNonEmpty(g, food => food.FoodNameEn),
+                FoodNameDe = FirstNonEmpty(g, food => food.FoodNameDe),
                 TotalAmountGrams = g.Sum(entry => entry.Food.AmountGrams),
-                FoodCategory = g.Select(entry => entry.Food.FoodCategory).FirstOrDefault(c => !string.IsNullOrWhiteSpace(c))
+                FoodCategory = FirstNonEmpty(g, food => food.FoodCategory)
                                ?? fallbackCategories.GetValueOrDefault(g.Key, OtherCategory),
                 IsTicked = g.Select(entry => entry.WeekNumber).Distinct().All(week => tickedKeys.Contains((week, g.Key)))
             })
@@ -116,6 +120,58 @@ public class GetShoppingListEndpoint(IMongoContext mongo, IApplicationDbContext 
     }
 
     private const string OtherCategory = "Other";
+
+    private static string? FirstNonEmpty(IEnumerable<(int WeekNumber, MealFood Food)> group, Func<MealFood, string?> selector) =>
+        group.Select(entry => selector(entry.Food)).FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
+
+    /// <summary>
+    /// Expands the recipes of the given weeks into ingredient entries scaled to the planned servings.
+    /// Recipes that no longer exist are skipped.
+    /// </summary>
+    private async Task<List<(int WeekNumber, MealFood Food)>> LoadRecipeIngredientsAsync(
+        List<PlanWeek> weeks, CancellationToken ct)
+    {
+        var mealRecipes = weeks
+            .SelectMany(w => w.Days.SelectMany(d => d.Meals).SelectMany(m => m.Recipes).Select(r => (w.WeekNumber, MealRecipe: r)))
+            .ToList();
+
+        if (mealRecipes.Count == 0)
+        {
+            return [];
+        }
+
+        var recipeIds = mealRecipes.Select(r => r.MealRecipe.RecipeId).Distinct().ToList();
+
+        using var cursor = await mongo.Recipes.FindAsync(
+            Builders<Recipe>.Filter.In(r => r.ExternalId, recipeIds), cancellationToken: ct);
+        var recipesById = (await cursor.ToListAsync(ct)).ToDictionary(r => r.ExternalId);
+
+        var ingredients = new List<(int WeekNumber, MealFood Food)>();
+
+        foreach (var (weekNumber, mealRecipe) in mealRecipes)
+        {
+            if (!recipesById.TryGetValue(mealRecipe.RecipeId, out var recipe))
+            {
+                continue;
+            }
+
+            // Recipe.Foods hold whole-recipe amounts; Servings is the recipe's yield.
+            var factor = mealRecipe.Servings / Math.Max(recipe.Servings, 1);
+
+            ingredients.AddRange(recipe.Foods.Select(food => (weekNumber, new MealFood
+            {
+                FoodExternalId = food.FoodExternalId,
+                FoodName = food.FoodName,
+                FoodNameCs = food.FoodNameCs,
+                FoodNameEn = food.FoodNameEn,
+                FoodNameDe = food.FoodNameDe,
+                FoodCategory = food.FoodCategory,
+                AmountGrams = food.AmountGrams * factor,
+            })));
+        }
+
+        return ingredients;
+    }
 
     private async Task<HashSet<(int WeekNumber, Guid FoodExternalId)>> LoadTickedKeysAsync(
         Guid clientId, Guid planId, List<int> weekNumbers, CancellationToken ct)

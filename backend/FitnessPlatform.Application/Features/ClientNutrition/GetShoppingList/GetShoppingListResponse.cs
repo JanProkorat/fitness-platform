@@ -27,6 +27,21 @@ public class ShoppingListItem
     public string FoodName { get; set; } = string.Empty;
 
     /// <summary>
+    /// Czech name of the food, when known.
+    /// </summary>
+    public string? FoodNameCs { get; set; }
+
+    /// <summary>
+    /// English name of the food, when known.
+    /// </summary>
+    public string? FoodNameEn { get; set; }
+
+    /// <summary>
+    /// German name of the food, when known.
+    /// </summary>
+    public string? FoodNameDe { get; set; }
+
+    /// <summary>
     /// Total amount needed in grams.
     /// </summary>
     public decimal TotalAmountGrams { get; set; }
