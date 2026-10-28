@@ -1074,6 +1074,22 @@
       "x": 1410,
       "y": 15596
     },
+    "GlassNutritionPlanWeekMoreLight.dc.html": {
+      "h": 1020,
+      "page": "glass",
+      "title": "NutritionPlanWeek · week at a glance + recipes today, full scroll · light",
+      "w": 390,
+      "x": 0,
+      "y": 29696
+    },
+    "GlassNutritionPlanWeekMoreDark.dc.html": {
+      "h": 1020,
+      "page": "glass",
+      "title": "NutritionPlanWeek · week at a glance + recipes today, full scroll · dark",
+      "w": 390,
+      "x": 0,
+      "y": 30836
+    },
     "GlassNutritionWaitingDark.dc.html": {
       "h": 844,
       "page": "glass",
@@ -4132,6 +4148,8 @@
     "GlassTrainingWeekDetailLight.dc.html",
     "GlassNutritionPlanLight.dc.html",
     "GlassNutritionPlanWeekLight.dc.html",
+    "GlassNutritionPlanWeekMoreLight.dc.html",
+    "GlassNutritionPlanWeekMoreDark.dc.html",
     "GlassTrainingPlanDark.dc.html",
     "GlassTrainingWeekDetailDark.dc.html",
     "GlassNutritionPlanDark.dc.html",

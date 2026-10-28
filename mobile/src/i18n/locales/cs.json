@@ -1393,6 +1393,18 @@
       "logged": "zapsáno {{done}} z {{total}}",
       "mealsOf": "{{done}} z {{total}} jídel",
       "noMeals": "Na tento den nejsou naplánovaná žádná jídla.",
+      "glance": {
+        "title": "Tento týden",
+        "average": "průměr {{value}} kcal denně",
+        "target": "Denní cíl {{value}} kcal",
+        "bar": "{{day}}: {{value}} kcal"
+      },
+      "recipes": {
+        "title": "Dnešní recepty",
+        "all": "Všechny recepty",
+        "meta": "{{meal}} · {{value}} kcal",
+        "open": "Otevřít recept {{name}}, {{meta}}"
+      },
       "logError": "Zapsaná jídla se nepodařilo načíst.",
       "notFound": {
         "title": "Týden není k dispozici",

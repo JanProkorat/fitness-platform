@@ -1,8 +1,16 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
+import type { LayoutChangeEvent } from 'react-native';
 import { Image } from 'expo-image';
 import { SymbolView } from 'expo-symbols';
 import { useTranslation } from 'react-i18next';
+import Reanimated, {
+  Easing,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 
 import type { MealFood } from '@/api/generated';
 import type { NutritionMeal } from '@/api/nutrition';
@@ -13,6 +21,7 @@ import { mealKcal } from '@/components/nutrition/meals/model';
 import { foodName, formatAmount, formatWhole } from '@/components/nutrition/meal/format';
 import { Text } from '@/components/Text';
 import { useTheme } from '@/theme';
+import { mealExpandMotion } from '@/theme/motion';
 import type { Theme } from '@/theme';
 
 /** A meal photo as the row shows it: a signed read URL. */
@@ -61,6 +70,27 @@ export function MealRow({
   const styles = makeStyles(theme);
   const language = i18n.language;
   const [expanded, setExpanded] = useState(defaultExpanded);
+  const reduceMotion = useReducedMotion();
+  const progress = useSharedValue(defaultExpanded ? 1 : 0);
+  // Natural height of the body; -1 until measured, so an expanded row is never clipped before its first layout.
+  const bodyHeight = useSharedValue(-1);
+  const bodyStyle = useAnimatedStyle(() => {
+    if (bodyHeight.value < 0) return progress.value >= 1 ? {} : { height: 0, opacity: 0 };
+    return { height: bodyHeight.value * progress.value, opacity: progress.value };
+  });
+  const toggle = () => {
+    const next = !expanded;
+    setExpanded(next);
+    const target = next ? 1 : 0;
+    progress.set(
+      reduceMotion
+        ? target
+        : withTiming(target, { duration: mealExpandMotion.duration, easing: Easing.out(Easing.cubic) }),
+    );
+  };
+  const measureBody = (event: LayoutChangeEvent) => {
+    bodyHeight.set(event.nativeEvent.layout.height);
+  };
 
   const items: MealItem[] = [
     ...(meal.recipes ?? []).map((recipe, index): MealItem => {
@@ -98,7 +128,7 @@ export function MealRow({
           accessibilityState={{ expanded, disabled: !expandable }}
           accessibilityLabel={t('nutritionPlan.meal.toggle', { meal: kindLabel })}
           disabled={!expandable}
-          onPress={() => setExpanded((value) => !value)}
+          onPress={toggle}
           style={styles.toggle}
         >
           <SymbolView
@@ -138,62 +168,69 @@ export function MealRow({
         <MealStatusIcon status={status} label={statusLabel} onPress={onToggleEaten} />
       </View>
 
-      {expanded ? (
-        <View style={styles.body}>
-          {items.map((item) => {
-            const content = (
-              <>
-                <Text variant="body" numberOfLines={2} style={styles.itemName}>
-                  {item.name}
-                </Text>
-                <Text variant="label" color="muted" style={styles.itemAmount}>
-                  {item.amount}
-                </Text>
-                {item.onPress ? (
-                  <SymbolView
-                    name="chevron.right"
-                    weight="medium"
-                    tintColor={theme.colors.muted}
-                    size={theme.sizes.mealItemChevron}
-                  />
-                ) : null}
-              </>
-            );
-            return item.onPress ? (
-              <Pressable
-                key={item.key}
-                accessibilityRole="link"
-                accessibilityLabel={`${item.name}, ${item.amount}`}
-                onPress={item.onPress}
-                style={styles.item}
-              >
-                {content}
-              </Pressable>
-            ) : (
-              <View key={item.key} style={styles.item}>
-                {content}
-              </View>
-            );
-          })}
-          {photos.length > 0 ? (
-            <View style={styles.photos}>
-              {photos.map((photo, index) => (
+      {expandable ? (
+        <Reanimated.View
+          style={[styles.clip, bodyStyle]}
+          pointerEvents={expanded ? 'auto' : 'none'}
+          accessibilityElementsHidden={!expanded}
+          importantForAccessibility={expanded ? 'auto' : 'no-hide-descendants'}
+        >
+          <View style={styles.body} onLayout={measureBody}>
+            {items.map((item) => {
+              const content = (
+                <>
+                  <Text variant="body" numberOfLines={2} style={styles.itemName}>
+                    {item.name}
+                  </Text>
+                  <Text variant="label" color="muted" style={styles.itemAmount}>
+                    {item.amount}
+                  </Text>
+                  {item.onPress ? (
+                    <SymbolView
+                      name="chevron.right"
+                      weight="medium"
+                      tintColor={theme.colors.muted}
+                      size={theme.sizes.mealItemChevron}
+                    />
+                  ) : null}
+                </>
+              );
+              return item.onPress ? (
                 <Pressable
-                  key={photo.key}
-                  accessibilityRole="imagebutton"
-                  accessibilityLabel={t('nutritionPlan.photo.open', {
-                    meal: kindLabel,
-                    index: index + 1,
-                    count: photos.length,
-                  })}
-                  onPress={() => onOpenPhoto?.(index)}
+                  key={item.key}
+                  accessibilityRole="link"
+                  accessibilityLabel={`${item.name}, ${item.amount}`}
+                  onPress={item.onPress}
+                  style={styles.item}
                 >
-                  <Image source={{ uri: photo.uri }} style={styles.thumb} contentFit="cover" />
+                  {content}
                 </Pressable>
-              ))}
-            </View>
-          ) : null}
-        </View>
+              ) : (
+                <View key={item.key} style={styles.item}>
+                  {content}
+                </View>
+              );
+            })}
+            {photos.length > 0 ? (
+              <View style={styles.photos}>
+                {photos.map((photo, index) => (
+                  <Pressable
+                    key={photo.key}
+                    accessibilityRole="imagebutton"
+                    accessibilityLabel={t('nutritionPlan.photo.open', {
+                      meal: kindLabel,
+                      index: index + 1,
+                      count: photos.length,
+                    })}
+                    onPress={() => onOpenPhoto?.(index)}
+                  >
+                    <Image source={{ uri: photo.uri }} style={styles.thumb} contentFit="cover" />
+                  </Pressable>
+                ))}
+              </View>
+            ) : null}
+          </View>
+        </Reanimated.View>
       ) : null}
     </View>
   );
@@ -239,6 +276,9 @@ const makeStyles = (theme: Theme) =>
     previewName: {
       flexShrink: 1,
       minWidth: 0,
+    },
+    clip: {
+      overflow: 'hidden',
     },
     body: {
       paddingLeft: theme.sizes.mealIndent,
