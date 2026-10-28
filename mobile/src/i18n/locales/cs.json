@@ -1535,11 +1535,7 @@
       "grams": "{{value}} g"
     },
     "steps": {
-      "title": "Postup",
-      "button_one": "Postup · {{count}} krok",
-      "button_few": "Postup · {{count}} kroky",
-      "button_many": "Postup · {{count}} kroku",
-      "button_other": "Postup · {{count}} kroků"
+      "title": "Postup"
     }
   },
   "nutritionRecipes": {
