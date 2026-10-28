@@ -6,7 +6,12 @@ import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { EdgeInsets } from 'react-native-safe-area-context';
 
-import { getNotificationInviteId, NOTIFICATIONS_QUERY_KEY } from '@/api/notifications';
+import {
+  getNotificationInviteId,
+  getNotificationPayload,
+  isNutritionPlanPayload,
+  NOTIFICATIONS_QUERY_KEY,
+} from '@/api/notifications';
 import type { AppNotification } from '@/api/notifications';
 import { isPaymentRequestedType } from '@/api/payments';
 import { NotificationRow } from '@/components/notifications/NotificationRow';
@@ -53,6 +58,7 @@ export default function NotificationsSheet() {
   const open = (notification: AppNotification) => {
     if (notification.id && notification.read !== true) markOne(notification.id);
     if (isPaymentRequestedType(notification.type) && payments.enabled) router.replace('/payments');
+    else if (isNutritionPlanPayload(getNotificationPayload(notification))) router.replace('/nutrition');
   };
 
   const viewInvite = (notification: AppNotification, inviteId: string) => {
