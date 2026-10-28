@@ -3457,6 +3457,54 @@
       "w": 390,
       "x": 2630,
       "y": 0
+    },
+    "GlassNutritionOffPlanLight.dc.html": {
+      "h": 844,
+      "page": "glass",
+      "title": "NutritionOffPlan · food eaten outside the plan · light",
+      "w": 390,
+      "x": 2350,
+      "y": 8912
+    },
+    "GlassNutritionOffPlanDark.dc.html": {
+      "h": 844,
+      "page": "glass",
+      "title": "NutritionOffPlan · food eaten outside the plan · dark",
+      "w": 390,
+      "x": 2350,
+      "y": 9876
+    },
+    "GlassNutritionOffPlanSearchLight.dc.html": {
+      "h": 844,
+      "page": "glass",
+      "title": "NutritionOffPlanSearch · add food, search step · light",
+      "w": 390,
+      "x": 2820,
+      "y": 8912
+    },
+    "GlassNutritionOffPlanSearchDark.dc.html": {
+      "h": 844,
+      "page": "glass",
+      "title": "NutritionOffPlanSearch · add food, search step · dark",
+      "w": 390,
+      "x": 2820,
+      "y": 9876
+    },
+    "GlassNutritionOffPlanAmountLight.dc.html": {
+      "h": 844,
+      "page": "glass",
+      "title": "NutritionOffPlanAmount · add food, amount step · light",
+      "w": 390,
+      "x": 3290,
+      "y": 8912
+    },
+    "GlassNutritionOffPlanAmountDark.dc.html": {
+      "h": 844,
+      "page": "glass",
+      "title": "NutritionOffPlanAmount · add food, amount step · dark",
+      "w": 390,
+      "x": 3290,
+      "y": 9876
     }
   },
   "createdOnFiles": {
@@ -4231,6 +4279,12 @@
     "GlassNutritionEmptyDark.dc.html",
     "GlassNutritionWaitingLight.dc.html",
     "GlassNutritionWaitingDark.dc.html",
+    "GlassNutritionOffPlanLight.dc.html",
+    "GlassNutritionOffPlanDark.dc.html",
+    "GlassNutritionOffPlanSearchLight.dc.html",
+    "GlassNutritionOffPlanSearchDark.dc.html",
+    "GlassNutritionOffPlanAmountLight.dc.html",
+    "GlassNutritionOffPlanAmountDark.dc.html",
     "GlassMealDetailDark.dc.html",
     "GlassShoppingListDark.dc.html",
     "GlassMessagesListDark.dc.html",

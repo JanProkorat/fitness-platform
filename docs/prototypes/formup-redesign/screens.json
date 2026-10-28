@@ -1488,6 +1488,24 @@
   "h": 844
  },
  {
+  "html": "mobile-light/05-06-nutrition-off-plan.html",
+  "png": "mobile-light/05-06-nutrition-off-plan.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/05-07-nutrition-off-plan-search.html",
+  "png": "mobile-light/05-07-nutrition-off-plan-search.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/05-08-nutrition-off-plan-amount.html",
+  "png": "mobile-light/05-08-nutrition-off-plan-amount.png",
+  "w": 390,
+  "h": 844
+ },
+ {
   "html": "mobile-light/06-01-messages-list.html",
   "png": "mobile-light/06-01-messages-list.png",
   "w": 390,
@@ -1958,6 +1976,24 @@
  {
   "html": "mobile-dark/05-05-nutrition-waiting.html",
   "png": "mobile-dark/05-05-nutrition-waiting.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/05-06-nutrition-off-plan.html",
+  "png": "mobile-dark/05-06-nutrition-off-plan.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/05-07-nutrition-off-plan-search.html",
+  "png": "mobile-dark/05-07-nutrition-off-plan-search.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/05-08-nutrition-off-plan-amount.html",
+  "png": "mobile-dark/05-08-nutrition-off-plan-amount.png",
   "w": 390,
   "h": 844
  },
