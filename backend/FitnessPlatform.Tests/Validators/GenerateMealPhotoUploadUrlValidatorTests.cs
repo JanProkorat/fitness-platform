@@ -121,4 +121,24 @@ public class GenerateMealPhotoUploadUrlValidatorTests
 
         _validator.TestValidate(req).ShouldNotHaveValidationErrorFor(x => x.SizeBytes);
     }
+
+    [Fact]
+    public void Date_RealDate_PassesValidation()
+    {
+        var req = ValidRequest();
+        req.Date = new DateOnly(2026, 10, 20);
+
+        _validator.TestValidate(req).IsValid.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Date_DefaultValue_FailsWithOutOfRange()
+    {
+        var req = ValidRequest();
+        req.Date = default(DateOnly);
+
+        var result = _validator.TestValidate(req);
+
+        result.Errors.Should().ContainSingle(e => e.ErrorCode == ErrorCodes.OutOfRange);
+    }
 }

@@ -619,7 +619,6 @@
   },
   "placeholder": {
     "training": "Tady se objeví váš tréninkový plán.",
-    "nutrition": "Tady se objeví váš jídelníček.",
     "messages": "Tady se objeví vaše konverzace."
   },
   "measurements": {
@@ -1143,6 +1142,466 @@
         "Soy": "Sója",
         "Sesame": "Sezam"
       }
+    }
+  },
+  "nutritionUpcoming": {
+    "published": "váš plán je zveřejněn",
+    "title": "Váš plán začíná {{when}}",
+    "on": {
+      "0": "v neděli",
+      "1": "v pondělí",
+      "2": "v úterý",
+      "3": "ve středu",
+      "4": "ve čtvrtek",
+      "5": "v pátek",
+      "6": "v sobotu"
+    },
+    "subtitle": "{{plan}} · {{weeks}} · {{days}}",
+    "weeks_one": "{{count}} týden",
+    "weeks_few": "{{count}} týdny",
+    "weeks_many": "{{count}} týdne",
+    "weeks_other": "{{count}} týdnů",
+    "inDays_one": "za {{count}} den",
+    "inDays_few": "za {{count}} dny",
+    "inDays_many": "za {{count}} dne",
+    "inDays_other": "za {{count}} dní",
+    "averages": "Denní průměr za celý plán",
+    "kcalPerDay": "kcal / den",
+    "noValue": "–",
+    "browse": "Prohlédnout plán",
+    "getReady": "Připravte se",
+    "shopping": {
+      "title": "Připravte nákupní seznam",
+      "hint": "Vše na váš první týden"
+    },
+    "recipes": {
+      "title": "Recepty ve vašem plánu",
+      "hint_one": "{{count}} recept k uvaření",
+      "hint_few": "{{count}} recepty k uvaření",
+      "hint_many": "{{count}} receptu k uvaření",
+      "hint_other": "{{count}} receptů k uvaření"
+    }
+  },
+  "nutritionTab": {
+    "retry": "Zkusit znovu",
+    "shortcuts": {
+      "plan": "Celý plán",
+      "recipes": "Recepty",
+      "shoppingList": "Nákupní seznam"
+    },
+    "error": {
+      "title": "Výživu se nepodařilo načíst",
+      "body": "Zkontrolujte připojení a zkuste to znovu."
+    },
+    "errors": {
+      "toggleTitle": "Jídlo se nepodařilo upravit",
+      "cancelRequest": "Žádost se nepodařilo zrušit. Zkuste to prosím znovu.",
+      "removeOffPlan": "Potravinu se nepodařilo odebrat. Zkuste to prosím znovu."
+    },
+    "offPlan": {
+      "title": "Mimo plán",
+      "kcal": "{{value}} kcal",
+      "amount": "{{grams}} g · {{kcal}} kcal",
+      "remove": "Odebrat {{name}}",
+      "add": "Přidat jídlo, které jste snědli mimo plán"
+    },
+    "sheet": {
+      "close": "Zavřít",
+      "back": "Zpět na hledání",
+      "title": "Přidat potravinu",
+      "subtitle": "Snězeno dnes mimo plán",
+      "searchLabel": "Hledat potraviny",
+      "searchPlaceholder": "Hledat potraviny",
+      "clear": "Smazat hledání",
+      "hint": "Pro hledání napište alespoň {{min}} znaky.",
+      "searchError": "Hledání se nezdařilo.",
+      "noResults": "Nic jsme nenašli.",
+      "results_one": "{{count}} výsledek",
+      "results_few": "{{count}} výsledky",
+      "results_many": "{{count}} výsledku",
+      "results_other": "{{count}} výsledků",
+      "per100": "{{value}} kcal / 100 g",
+      "amount": "Množství",
+      "unit": "g",
+      "quick": "{{value}} g",
+      "addsToToday": "Přidá se do dneška",
+      "kcal": "{{value}} kcal",
+      "submit": "Přidat do dneška",
+      "errors": {
+        "conflict": "Váš den se mezitím změnil. Zkuste to prosím znovu.",
+        "missing": "Tato potravina nebo váš plán už není dostupný.",
+        "generic": "Potravinu se nepodařilo přidat. Zkontrolujte připojení a zkuste to znovu."
+      }
+    },
+    "empty": {
+      "title": "Přidejte si nutričního poradce",
+      "body": "Nutriční poradce naplánuje vaše jídla, makroživiny a nákupní seznam podle vašeho dne.",
+      "find": "Najít nutričního poradce",
+      "pending": "Čekající žádost",
+      "waiting": "čeká na odpověď",
+      "sentToday": "Odesláno dnes",
+      "sentDaysAgo_one": "Odesláno před {{count}} dnem",
+      "sentDaysAgo_few": "Odesláno před {{count}} dny",
+      "sentDaysAgo_many": "Odesláno před {{count}} dne",
+      "sentDaysAgo_other": "Odesláno před {{count}} dny",
+      "cancel": "Zrušit",
+      "cancelKeep": "Ponechat žádost",
+      "cancelTitle": "Zrušit žádost pro {{name}}?",
+      "cancelLabel": "Zrušit žádost pro {{name}}",
+      "limit": "Můžete mít jednoho trenéra a jednoho nutričního poradce zároveň."
+    },
+    "waiting": {
+      "includes": "Co váš plán obsahuje",
+      "tiles": {
+        "meals": "Denní jídla a makra",
+        "recipes": "Recepty",
+        "shopping": "Nákupní seznam"
+      },
+      "preferences": {
+        "title": "Vaše stravovací preference",
+        "body": "{{name}} s nimi plánuje. Změnit je můžete kdykoli.",
+        "bodyGeneric": "Váš nutriční poradce s nimi plánuje. Změnit je můžete kdykoli."
+      }
+    }
+  },
+  "nutritionFood": {
+    "per100": "Na 100 g",
+    "suits": "Hodí se pro",
+    "allergens": "Alergeny",
+    "noAllergens": "Žádné",
+    "serving": "Jednotka",
+    "servingValue": "1 {{label}} = {{value}} g",
+    "portion": "porce",
+    "units": {
+      "portion": "porce",
+      "piece": "kus",
+      "slice": "plátek",
+      "cup": "šálek",
+      "tbsp": "lžíce",
+      "tsp": "lžička",
+      "handful": "hrst",
+      "glass": "sklenice",
+      "pack": "balení",
+      "can": "plechovka",
+      "tub": "kelímek",
+      "head": "hlávka",
+      "clove": "stroužek",
+      "bunch": "svazek",
+      "scoop": "odměrka"
+    },
+    "notFound": {
+      "title": "Potravina není dostupná",
+      "body": "Tato potravina není součástí vašeho plánu."
+    },
+    "error": {
+      "title": "Potravinu se nepodařilo načíst",
+      "body": "Zkontrolujte připojení a zkuste to znovu."
+    },
+    "inMeal": "V jídle: {{meal}}",
+    "eaten": "Snědli jste",
+    "usedAmount": "{{grams}} g · {{kcal}} kcal",
+    "diets": {
+      "Vegan": "Veganské",
+      "Vegetarian": "Vegetariánské",
+      "Pescatarian": "Pescetariánské",
+      "GlutenFree": "Bez lepku",
+      "LactoseFree": "Bez laktózy",
+      "DairyFree": "Bez mléka",
+      "Keto": "Keto",
+      "LowCarb": "Nízkosacharidové"
+    },
+    "allergenNames": {
+      "Gluten": "Lepek",
+      "Crustaceans": "Korýši",
+      "Eggs": "Vejce",
+      "Fish": "Ryby",
+      "Peanuts": "Arašídy",
+      "Soy": "Sója",
+      "Milk": "Mléko",
+      "TreeNuts": "Skořápkové plody",
+      "Celery": "Celer",
+      "Mustard": "Hořčice",
+      "Sesame": "Sezam",
+      "Sulphites": "Siřičitany",
+      "Lupin": "Vlčí bob",
+      "Molluscs": "Měkkýši"
+    }
+  },
+  "nutritionMeal": {
+    "title": "Jídlo",
+    "back": "Zpět",
+    "retry": "Zkusit znovu",
+    "kind": {
+      "Breakfast": "Snídaně",
+      "MorningSnack": "Dopolední svačina",
+      "Lunch": "Oběd",
+      "AfternoonSnack": "Odpolední svačina",
+      "Dinner": "Večeře",
+      "PreWorkout": "Před tréninkem",
+      "PostWorkout": "Po tréninku"
+    },
+    "macros": {
+      "kcal": "kcal",
+      "protein": "Bílkoviny",
+      "carbs": "Sacharidy",
+      "fat": "Tuky",
+      "fiber": "Vláknina",
+      "grams": "{{value}} g"
+    },
+    "errors": {
+      "toggle": "Jídlo se nepodařilo upravit. Zkuste to prosím znovu."
+    }
+  },
+  "nutritionPlan": {
+    "title": "Nutriční plán",
+    "retry": "Zkusit znovu",
+    "back": "Zpět",
+    "empty": {
+      "title": "Zatím žádný nutriční plán",
+      "body": "Váš nutriční poradce pro vás zatím nezveřejnil plán."
+    },
+    "error": {
+      "title": "Plán se nepodařilo načíst",
+      "body": "Zkontrolujte připojení a zkuste to znovu."
+    },
+    "plan": {
+      "week": "Týden {{week}}",
+      "weekOf": "Týden {{week}} z {{total}}",
+      "weeksTotal": "Týdnů: {{total}}",
+      "weeksRange": "Týdny {{from}} – {{to}}",
+      "thisWeek": "Týden {{week}} · tento týden",
+      "ofMeals": "{{done}} z {{total}}",
+      "ofTotal": "{{done}} / {{total}}",
+      "loggedShare": "zapsáno {{value}} %",
+      "percent": "{{value}} %",
+      "published": "{{range}} · zveřejněno",
+      "preparing": "{{name}} ho připravuje",
+      "preparingGeneric": "Váš nutriční poradce ho připravuje",
+      "dailyTarget": "Denní cíl",
+      "mealsLogged": "Zapsaná jídla",
+      "mealsPerDay": "Jídel denně",
+      "weeks": "Týdny",
+      "weeksHint": "Klepnutím týden otevřete",
+      "togglePast": "Zobrazit nebo skrýt minulé týdny"
+    },
+    "week": {
+      "title": "Týden {{week}} z {{total}}",
+      "previous": "Předchozí týden",
+      "next": "Další týden",
+      "todayLabel": "{{day}}, dnes",
+      "meals": "Jídla",
+      "logged": "zapsáno {{done}} z {{total}}",
+      "mealsOf": "{{done}} z {{total}} jídel",
+      "noMeals": "Na tento den nejsou naplánovaná žádná jídla.",
+      "glance": {
+        "title": "Tento týden",
+        "average": "průměr {{value}} kcal denně",
+        "target": "Denní cíl {{value}} kcal",
+        "bar": "{{day}}: {{value}} kcal"
+      },
+      "recipes": {
+        "title": "Dnešní recepty",
+        "all": "Všechny recepty",
+        "meta": "{{meal}} · {{value}} kcal",
+        "open": "Otevřít recept {{name}}, {{meta}}"
+      },
+      "logError": "Zapsaná jídla se nepodařilo načíst.",
+      "notFound": {
+        "title": "Týden není k dispozici",
+        "body": "Tento týden není součástí vašeho plánu nebo ještě nebyl zveřejněn."
+      }
+    },
+    "meal": {
+      "kcal": "{{value}} kcal",
+      "more_one": "a 1 další položka",
+      "more_few": "a {{count}} další položky",
+      "more_many": "a {{count}} další položky",
+      "more_other": "a {{count}} dalších položek",
+      "toggle": "Zobrazit nebo skrýt: {{meal}}"
+    },
+    "amount": {
+      "portions_one": "{{value}} porce",
+      "portions_few": "{{value}} porce",
+      "portions_many": "{{value}} porce",
+      "portions_other": "{{value}} porcí",
+      "grams": "{{value}} g"
+    },
+    "status": {
+      "eaten": "{{meal}}: snězeno",
+      "pending": "{{meal}}: nesnězeno",
+      "missed": "{{meal}}: nezapsáno"
+    },
+    "photo": {
+      "add": "Přidat fotku k jídlu {{meal}}",
+      "open": "Otevřít fotku {{index}} z {{count}} ({{meal}})",
+      "title": "Přidat fotku jídla",
+      "camera": "Vyfotit",
+      "library": "Vybrat z knihovny",
+      "cancel": "Zrušit",
+      "permission": {
+        "title": "Přístup k fotoaparátu je vypnutý",
+        "body": "Povolte přístup k fotoaparátu v Nastavení, abyste mohli jídlo vyfotit.",
+        "openSettings": "Otevřít Nastavení"
+      },
+      "errors": {
+        "title": "Fotku se nepodařilo přidat",
+        "tooLarge": "Fotka je příliš velká. Vyberte fotku do 5 MB.",
+        "unsupportedType": "Tento formát fotky není podporován. Použijte JPEG, PNG, WebP nebo HEIC.",
+        "upload": "Nahrání se nezdařilo. Zkontrolujte připojení a zkuste to znovu.",
+        "future": "Fotku nelze přidat k dni, který ještě nenastal."
+      }
+    },
+    "viewer": {
+      "position": "Fotka {{index}} z {{count}}",
+      "imageLabel": "{{meal}}, fotka {{index}} z {{count}}",
+      "close": "Zavřít",
+      "previous": "Předchozí fotka",
+      "next": "Další fotka"
+    },
+    "summary": {
+      "ringOf": "{{value}} z {{target}} kilokalorií",
+      "ringValue": "{{value}} kilokalorií",
+      "ofKcal": "z {{target}} kcal",
+      "kcal": "kcal",
+      "ofGrams": " / {{target}} g",
+      "grams": " g"
+    }
+  },
+  "nutritionShoppingList": {
+    "title": "Nákupní seznam",
+    "subtitle": "Týden od {{date}} · koupeno {{done}} z {{total}}",
+    "subtitleEmpty": "Týden od {{date}}",
+    "thisWeek": "Tento týden",
+    "nextWeek": "Příští týden",
+    "share": "Sdílet nákupní seznam",
+    "grams": "{{value}} g",
+    "kilograms": "{{value}} kg",
+    "retry": "Zkusit znovu",
+    "tickError": "Změnu se nepodařilo uložit. Seznam jsme vrátili zpět.",
+    "error": {
+      "title": "Nákupní seznam není k dispozici",
+      "body": "Nákupní seznam se nepodařilo načíst. Zkuste to prosím znovu."
+    },
+    "empty": {
+      "noPlanTitle": "Zatím žádný nákupní seznam",
+      "noPlanBody": "Nemáte aktivní jídelníček, takže není co nakupovat.",
+      "noWeekTitle": "Není co nakupovat",
+      "noWeekBody": "Váš jídelníček nemá aktuální ani nadcházející týden.",
+      "weekTitle": "Není co koupit",
+      "weekBody": "Tento týden jídelníčku neobsahuje žádná jídla se surovinami."
+    },
+    "categories": {
+      "Vegetables": "Zelenina",
+      "Fruit": "Ovoce",
+      "Meat": "Maso",
+      "FishAndSeafood": "Ryby a mořské plody",
+      "Dairy": "Mléčné výrobky",
+      "GrainsAndCereals": "Obiloviny a pečivo",
+      "Legumes": "Luštěniny",
+      "NutsAndSeeds": "Ořechy a semínka",
+      "OilsAndFats": "Oleje a tuky",
+      "SweetsAndSnacks": "Sladkosti a svačiny",
+      "Beverages": "Nápoje",
+      "Supplements": "Doplňky stravy",
+      "Other": "Ostatní"
+    }
+  },
+  "nutritionRecipe": {
+    "notFound": {
+      "title": "Recept není dostupný",
+      "body": "Tento recept není součástí vašeho plánu."
+    },
+    "error": {
+      "title": "Recept se nepodařilo načíst",
+      "body": "Zkontrolujte připojení a zkuste to znovu."
+    },
+    "share": "Sdílet recept",
+    "minutes": "{{value}} min",
+    "portions": {
+      "title": "Porce",
+      "planSays": "Plán počítá s {{value}} · množství se níže přepočítá",
+      "hint": "Množství se níže přepočítá",
+      "fewer": "Méně porcí",
+      "more": "Více porcí"
+    },
+    "macros": {
+      "perPortion": "Na porci",
+      "allPortions": "Všech {{value}} porcí"
+    },
+    "ingredients": {
+      "title": "Suroviny",
+      "forPortions": "na {{value}} porcí",
+      "kcal": "{{value}} kcal",
+      "grams": "{{value}} g"
+    },
+    "steps": {
+      "title": "Postup"
+    }
+  },
+  "nutritionRecipes": {
+    "title": "Recepty",
+    "back": "Zpět",
+    "retry": "Zkusit znovu",
+    "view": {
+      "label": "Zdroj receptů",
+      "plan": "Tento plán",
+      "all": "Všechny plány"
+    },
+    "chips": {
+      "label": "Typ jídla",
+      "all": "Vše",
+      "breakfast": "Snídaně",
+      "lunch": "Oběd",
+      "dinner": "Večeře",
+      "snack": "Svačina"
+    },
+    "kind": {
+      "Breakfast": "Snídaně",
+      "MorningSnack": "Svačina",
+      "Lunch": "Oběd",
+      "AfternoonSnack": "Svačina",
+      "Dinner": "Večeře",
+      "PreWorkout": "Před tréninkem",
+      "PostWorkout": "Po tréninku"
+    },
+    "recipes_one": "{{count}} recept",
+    "recipes_few": "{{count}} recepty",
+    "recipes_many": "{{count}} receptu",
+    "recipes_other": "{{count}} receptů",
+    "plans_one": "{{count}} plánu",
+    "plans_few": "{{count}} plánů",
+    "plans_many": "{{count}} plánu",
+    "plans_other": "{{count}} plánů",
+    "summaryPlan": "{{recipes}} v plánu {{plan}} · {{week}} tento týden",
+    "summaryAll": "{{recipes}} z {{plans}}",
+    "now": "nyní",
+    "thisWeek": "Tento týden",
+    "kcal": "{{value}} kcal",
+    "protein": "{{value}} g B",
+    "minutes": "{{value}} min",
+    "openRecipe": "Otevřít recept {{name}}",
+    "search": {
+      "open": "Hledat recepty",
+      "close": "Zavřít hledání",
+      "label": "Hledat recepty",
+      "placeholder": "Hledat podle názvu"
+    },
+    "empty": {
+      "title": "Zatím žádné recepty",
+      "body": "Recepty z vašich plánů se zobrazí tady."
+    },
+    "noMatch": {
+      "title": "Žádný recept nevyhovuje",
+      "body": "Zkuste jiný typ jídla nebo jiné hledání."
+    },
+    "noPlan": {
+      "title": "Žádný aktuální plán",
+      "body": "Teď nemáte aktivní plán. Projděte si místo toho recepty ze všech svých plánů.",
+      "action": "Zobrazit všechny plány"
+    },
+    "error": {
+      "title": "Recepty se nepodařilo načíst",
+      "body": "Zkontrolujte připojení a zkuste to znovu."
     }
   },
   "coachPending": {

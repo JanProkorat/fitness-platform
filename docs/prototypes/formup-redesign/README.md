@@ -5,7 +5,7 @@ the web portal and the mobile apps:
 <https://claude.ai/artifact/HFzM8WqykBxJvkLdiqU85h> (private claude.ai Design
 artifact — only the main Claude session can open it; agents read this snapshot).
 
-**Snapshot of canvas version 1793020706-9500, exported 2026-10-26.** If the canvas has moved
+**Snapshot of canvas version 1793174295-8cf0, exported 2026-10-28; `canvas.json` and the GlassNutritionUpcoming boards from 1793191363-d94b (#1788); `canvas.json` and the GlassNutritionPlanWeekMore boards from 1793207899-5335 (#1790).** If the canvas has moved
 on, re-export before relying on this copy (see Rebuilding).
 
 | Path | Contents |

@@ -4,12 +4,10 @@ import { SymbolView } from 'expo-symbols';
 import { useTranslation } from 'react-i18next';
 
 import type { Collaboration } from '@/api/collaborations';
-import { ClientPaymentStatus, LinkCapabilityScope } from '@/api/generated';
-import type { Conversation } from '@/api/conversations';
+import { LinkCapabilityScope } from '@/api/generated';
 import type { PendingItems, SubmittedByCoach } from '@/api/questionnaires';
 import { Chip } from '@/components/Chip';
 import { firstName, initials } from '@/components/invites/format';
-import { formatMoney } from '@/components/payments/format';
 import { Text } from '@/components/Text';
 import { useConversations } from '@/hooks/useConversations';
 import { usePaymentsEnabled } from '@/hooks/usePaymentsEnabled';
@@ -19,9 +17,10 @@ import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
 
 import type { CoachRole } from './collaborationRoles';
+import { firstPaymentStep, findConversation, hasPhotoRequest, paymentPhase, photoStep } from './coachSteps';
+import type { Step } from './coachSteps';
 import { roleLook } from './roleLook';
 import { TimelineStep } from './TimelineStep';
-import type { StepState } from './TimelineStep';
 import { checkInDaysLabel, sinceLabel } from './todayFormat';
 
 type CoachProgressCardProps = {
@@ -33,35 +32,6 @@ type CoachProgressCardProps = {
   /** True when the client has exactly one covering collaboration, so an unmatched photo request is theirs. */
   onlyCollaboration: boolean;
 };
-
-type Step = {
-  key: string;
-  state: StepState;
-  title: string;
-  hint?: string;
-  currentColor?: string;
-  actionLabel?: string;
-  onAction?: () => void;
-  actionTone?: 'primary' | 'secondary';
-};
-
-const normalize = (name: string | undefined): string => (name ?? '').trim().toLowerCase();
-
-/** The chat with this coach, matched by participant id first and display name second. */
-function findConversation(
-  conversations: readonly Conversation[] | undefined,
-  collaboration: Collaboration,
-): Conversation | undefined {
-  const live = (conversations ?? []).filter((conversation) => !conversation.isFormer);
-  const byId = live.find(
-    (conversation) =>
-      conversation.participant?.id !== undefined &&
-      conversation.participant.id === collaboration.professionalPublicId,
-  );
-  if (byId) return byId;
-  const name = normalize(collaboration.professionalName);
-  return name === '' ? undefined : live.find((c) => normalize(c.participant?.name) === name);
-}
 
 /** The role a questionnaire was sent for; null when it has no plan type (or covers both). */
 const scopeRole = (scope: LinkCapabilityScope | undefined): CoachRole | null => {
@@ -92,17 +62,6 @@ function questionnaireStatus(
     );
   return { pending: isPending, sent: isSent };
 }
-
-const hasPhotoRequest = (
-  pending: PendingItems | undefined,
-  collaboration: Collaboration,
-  onlyCollaboration: boolean,
-): boolean => {
-  const requests = pending?.diaryRequests ?? [];
-  const name = normalize(collaboration.professionalName);
-  if (requests.some((request) => normalize(request.professionalName) === name)) return true;
-  return onlyCollaboration && requests.length > 0;
-};
 
 /** One coach who is still building a plan: who they are, what is done, what is waiting on the client. */
 export function CoachProgressCard({
@@ -135,9 +94,7 @@ export function CoachProgressCard({
 
   // First payment of the agreed terms: Upcoming only informs, Requested and Overdue ask the client to pay.
   const firstPayment = paymentsEnabled ? collaboration.firstPayment : undefined;
-  const payStatus = firstPayment?.status;
-  const payUpcoming = payStatus === ClientPaymentStatus.Upcoming;
-  const payDue = payStatus === ClientPaymentStatus.Requested || payStatus === ClientPaymentStatus.Overdue;
+  const { upcoming: payUpcoming, due: payDue } = paymentPhase(firstPayment);
   if (payDue) waiting += 1;
 
   const openChat = () => {
@@ -176,36 +133,17 @@ export function CoachProgressCard({
   }
   // Board order: questionnaire, then the first payment, then starting photos.
   if (firstPayment && (payUpcoming || payDue)) {
-    const details = [
-      firstPayment.packageName?.trim(),
-      formatMoney(firstPayment.amount, firstPayment.currency, i18n.language),
-    ]
-      .filter((part): part is string => Boolean(part))
-      .join(' · ');
-    let hintKey = 'today.progress.firstPayment.requestedHint';
-    if (payUpcoming) hintKey = 'today.progress.firstPayment.upcomingHint';
-    else if (payStatus === ClientPaymentStatus.Overdue) hintKey = 'today.progress.firstPayment.overdueHint';
-    steps.push({
-      key: 'first-payment',
-      state: 'open',
-      title: t('today.progress.firstPayment.title'),
-      hint: t(hintKey, { details, name: first }),
-      // The QR code lives on the Payments screen; the step only leads there.
-      actionLabel: payDue ? t('today.progress.firstPayment.showQr') : undefined,
-      onAction: payDue ? () => router.push('/payments') : undefined,
-      actionTone: 'primary',
-    });
+    steps.push(
+      firstPaymentStep({
+        t,
+        language: i18n.language,
+        firstPayment,
+        name: first,
+        onShowQr: () => router.push('/payments'),
+      }),
+    );
   }
-  if (photoRequested) {
-    steps.push({
-      key: 'photos',
-      state: 'open',
-      title: t('today.progress.photos'),
-      hint: t('today.progress.photosHint', { name: first }),
-      actionLabel: t('today.progress.photosAdd'),
-      onAction: () => router.push('/profile/photos'),
-    });
-  }
+  if (photoRequested) steps.push(photoStep(t, first, () => router.push('/profile/photos')));
   for (const role of unpublished) {
     const look = roleLook(theme, role);
     const status = perRole.get(role);

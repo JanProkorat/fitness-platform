@@ -8,6 +8,7 @@ using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Features.Client.Plans.GetClientPlans;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Application.Infrastructure.Services;
 using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints.NutritionPlans;
 using FitnessPlatform.Tests.Endpoints.TrainingPlans;
@@ -37,7 +38,7 @@ public class GetClientPlansEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_userId, AppRoles.Client))),
-            mongo, db, TimeProvider.System);
+            mongo, db, TimeProvider.System, new MacroCalculatorService());
     }
 
     // ── Helpers to build mock Mongo contexts ────────────────────────────
@@ -401,4 +402,71 @@ public class GetClientPlansEndpointTests
         unrangedItem.CurrentWeek.Should().Be(1);
     }
 
+    // ── Per-day nutrition averages ──
+
+    private static void AddMeal(PlanWeek week, int dayOfWeek, decimal kcalPer100, decimal protein, decimal carbs, decimal fat, decimal grams = 100)
+    {
+        week.Days.First(d => d.DayOfWeek == dayOfWeek).Meals.Add(PlanTestHelpers.CreateMeal(
+            foods: PlanTestHelpers.CreateMealFood(
+                amountGrams: grams, kcal: kcalPer100, protein: protein, carbs: carbs, fat: fat)));
+    }
+
+    private async Task<ClientOwnPlanItem> GetSingleItemAsync(NutritionPlan plan)
+    {
+        var ep = CreateEndpoint(CreateMockMongo([plan]), CreateMockDb());
+        await ep.HandleAsync(new GetClientPlansRequest(), TestContext.Current.CancellationToken);
+        return ep.Response.Items.Single();
+    }
+
+    [Fact]
+    public async Task NutritionPlan_AveragesUsePublishedWeeksAndSkipEmptyDays()
+    {
+        var plan = PlanTestHelpers.CreatePlan(clientId: _clientId, status: NutritionPlanStatus.Active, weekCount: 2);
+        plan.Weeks[0].Status = WeekStatus.Published;
+        // Two published days with meals; the other five published days are empty and must not dilute.
+        AddMeal(plan.Weeks[0], 1, kcalPer100: 100, protein: 10, carbs: 20, fat: 5);
+        AddMeal(plan.Weeks[0], 2, kcalPer100: 201, protein: 11, carbs: 21, fat: 6);
+        // Draft week is ignored even though it has a big meal.
+        AddMeal(plan.Weeks[1], 1, kcalPer100: 5000, protein: 500, carbs: 500, fat: 500);
+
+        var item = await GetSingleItemAsync(plan);
+
+        item.AvgKcalPerDay.Should().Be(151m); // (100 + 201) / 2 = 150.5 -> away from zero
+        item.AvgProteinPerDay.Should().Be(11m); // 10.5 -> 11
+        item.AvgCarbsPerDay.Should().Be(21m); // 20.5 -> 21
+        item.AvgFatPerDay.Should().Be(6m); // 5.5 -> 6
+        item.AvgFiberPerDay.Should().Be(0m);
+    }
+
+    [Fact]
+    public async Task NutritionPlan_PublishedDaysWithoutMeals_AveragesAreNullNotZero()
+    {
+        var plan = PlanTestHelpers.CreatePlan(clientId: _clientId, status: NutritionPlanStatus.Active, weekCount: 1);
+        plan.Weeks[0].Status = WeekStatus.Published;
+
+        var item = await GetSingleItemAsync(plan);
+
+        item.AvgKcalPerDay.Should().BeNull();
+        item.AvgProteinPerDay.Should().BeNull();
+        item.AvgCarbsPerDay.Should().BeNull();
+        item.AvgFatPerDay.Should().BeNull();
+        item.AvgFiberPerDay.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task TrainingPlan_AveragesAreNull()
+    {
+        var plan = TrainingPlanTestHelpers.CreatePlan(clientId: _clientId, status: TrainingPlanStatus.Active, weekCount: 1);
+        plan.Weeks[0].Status = WeekStatus.Published;
+        var ep = CreateEndpoint(CreateMockMongo(trainingPlans: [plan]), CreateMockDb());
+
+        await ep.HandleAsync(new GetClientPlansRequest(), TestContext.Current.CancellationToken);
+
+        var item = ep.Response.Items.Single();
+        item.AvgKcalPerDay.Should().BeNull();
+        item.AvgProteinPerDay.Should().BeNull();
+        item.AvgCarbsPerDay.Should().BeNull();
+        item.AvgFatPerDay.Should().BeNull();
+        item.AvgFiberPerDay.Should().BeNull();
+    }
 }

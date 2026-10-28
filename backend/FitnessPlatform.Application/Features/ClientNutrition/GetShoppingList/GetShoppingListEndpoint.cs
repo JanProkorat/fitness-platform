@@ -5,6 +5,7 @@ using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Services;
+using FitnessPlatform.Application.Features.ClientNutrition.Shared;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using Microsoft.EntityFrameworkCore;
@@ -31,6 +32,7 @@ public class GetShoppingListEndpoint(IMongoContext mongo, IApplicationDbContext 
             s.Summary = "Get shopping list from active plan";
             s.Description = "Aggregates all food items from the client's active nutrition plan into a shopping list, optionally filtered by week range.";
             s.Responses[404] = "No active nutrition plan found";
+            s.Description += " Each item carries its food category and tick state (ticked in every requested week it appears in).";
         });
     }
 
@@ -67,7 +69,14 @@ public class GetShoppingListEndpoint(IMongoContext mongo, IApplicationDbContext 
         var cursor = await mongo.NutritionPlans.FindAsync(filter, cancellationToken: ct);
         var activePlans = await cursor.ToListAsync(ct);
         var todayLocalUtc = await db.ResolveClientLocalDateUtcAsync(clientId, timeProvider.GetUtcNow().UtcDateTime, ct);
-        var plan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, todayLocalUtc);
+        // Falls back to the earliest upcoming plan with a published week (browse before it starts).
+        var plan = PlanWindowResolver.ResolveCurrentOrUpcomingPlan(
+            activePlans,
+            p => p.StartDate,
+            p => p.Weeks.Count,
+            p => p.Weeks.Any(w => w.Status == WeekStatus.Published),
+            p => p.DateCreated,
+            todayLocalUtc);
 
         if (plan is null)
         {
@@ -79,23 +88,77 @@ public class GetShoppingListEndpoint(IMongoContext mongo, IApplicationDbContext 
         var weekTo = req.WeekTo ?? plan.Weeks.Count;
 
         var weeks = plan.Weeks
-            .Where(w => w.WeekNumber >= req.WeekFrom && w.WeekNumber <= weekTo);
+            .Where(w => w.WeekNumber >= req.WeekFrom && w.WeekNumber <= weekTo)
+            .ToList();
 
-        // Flatten all meals -> all foods, group by FoodExternalId, sum amounts
-        var items = weeks
-            .SelectMany(w => w.Days)
-            .SelectMany(d => d.Meals)
-            .SelectMany(m => m.Foods)
-            .GroupBy(f => f.FoodExternalId)
+        // Flatten all meals -> foods plus recipe ingredients (tagged with their week), group by FoodExternalId, sum amounts
+        var groups = weeks
+            .SelectMany(w => w.Days.SelectMany(d => d.Meals).SelectMany(m => m.Foods).Select(f => (w.WeekNumber, Food: f)))
+            .Concat(await ShoppingListRecipeIngredients.LoadAsync(mongo, weeks, ct))
+            .GroupBy(entry => entry.Food.FoodExternalId)
+            .ToList();
+
+        var tickedKeys = await LoadTickedKeysAsync(clientId, plan.ExternalId, weeks.Select(w => w.WeekNumber).ToList(), ct);
+        var fallbackCategories = await LoadFallbackCategoriesAsync(groups, ct);
+
+        var items = groups
             .Select(g => new ShoppingListItem
             {
                 FoodExternalId = g.Key,
-                FoodName = g.First().FoodName,
-                TotalAmountGrams = g.Sum(f => f.AmountGrams)
+                FoodName = g.First().Food.FoodName,
+                FoodNameCs = FirstNonEmpty(g, food => food.FoodNameCs),
+                FoodNameEn = FirstNonEmpty(g, food => food.FoodNameEn),
+                FoodNameDe = FirstNonEmpty(g, food => food.FoodNameDe),
+                TotalAmountGrams = g.Sum(entry => entry.Food.AmountGrams),
+                FoodCategory = FirstNonEmpty(g, food => food.FoodCategory)
+                               ?? fallbackCategories.GetValueOrDefault(g.Key, OtherCategory),
+                IsTicked = g.Select(entry => entry.WeekNumber).Distinct().All(week => tickedKeys.Contains((week, g.Key)))
             })
             .OrderBy(i => i.FoodName, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
         await Send.OkAsync(new GetShoppingListResponse { Items = items }, ct);
+    }
+
+    private const string OtherCategory = "Other";
+
+    private static string? FirstNonEmpty(IEnumerable<(int WeekNumber, MealFood Food)> group, Func<MealFood, string?> selector) =>
+        group.Select(entry => selector(entry.Food)).FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
+
+    private async Task<HashSet<(int WeekNumber, Guid FoodExternalId)>> LoadTickedKeysAsync(
+        Guid clientId, Guid planId, List<int> weekNumbers, CancellationToken ct)
+    {
+        var filter = Builders<ShoppingListTick>.Filter.And(
+            Builders<ShoppingListTick>.Filter.Eq(t => t.ClientId, clientId),
+            Builders<ShoppingListTick>.Filter.Eq(t => t.PlanId, planId),
+            Builders<ShoppingListTick>.Filter.In(t => t.WeekNumber, weekNumbers));
+
+        using var cursor = await mongo.ShoppingListTicks.FindAsync(filter, cancellationToken: ct);
+        var ticks = await cursor.ToListAsync(ct);
+
+        return ticks.Select(t => (t.WeekNumber, t.FoodExternalId)).ToHashSet();
+    }
+
+    /// <summary>
+    /// One batched lookup of <c>Food.Category</c> for items whose plan snapshot has no category.
+    /// </summary>
+    private async Task<Dictionary<Guid, string>> LoadFallbackCategoriesAsync(
+        List<IGrouping<Guid, (int WeekNumber, MealFood Food)>> groups, CancellationToken ct)
+    {
+        var missingIds = groups
+            .Where(g => g.All(entry => string.IsNullOrWhiteSpace(entry.Food.FoodCategory)))
+            .Select(g => g.Key)
+            .ToList();
+
+        if (missingIds.Count == 0)
+        {
+            return [];
+        }
+
+        using var cursor = await mongo.Foods.FindAsync(
+            Builders<Food>.Filter.In(f => f.ExternalId, missingIds), cancellationToken: ct);
+        var foods = await cursor.ToListAsync(ct);
+
+        return foods.ToDictionary(f => f.ExternalId, f => f.Category.ToString());
     }
 }

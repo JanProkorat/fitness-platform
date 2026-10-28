@@ -605,7 +605,6 @@
   },
   "placeholder": {
     "training": "Your training plan will appear here.",
-    "nutrition": "Your nutrition plan will appear here.",
     "messages": "Your conversations will appear here."
   },
   "measurements": {
@@ -1117,6 +1116,448 @@
         "Soy": "Soy",
         "Sesame": "Sesame"
       }
+    }
+  },
+  "nutritionUpcoming": {
+    "published": "published your plan",
+    "title": "Your plan starts {{when}}",
+    "on": {
+      "0": "on Sunday",
+      "1": "on Monday",
+      "2": "on Tuesday",
+      "3": "on Wednesday",
+      "4": "on Thursday",
+      "5": "on Friday",
+      "6": "on Saturday"
+    },
+    "subtitle": "{{plan}} · {{weeks}} · {{days}}",
+    "weeks_one": "{{count}} week",
+    "weeks_other": "{{count}} weeks",
+    "inDays_one": "in {{count}} day",
+    "inDays_other": "in {{count}} days",
+    "averages": "Daily average across the plan",
+    "kcalPerDay": "kcal / day",
+    "noValue": "–",
+    "browse": "Browse the plan",
+    "getReady": "Get ready",
+    "shopping": {
+      "title": "Prepare the shopping list",
+      "hint": "Everything for your first week"
+    },
+    "recipes": {
+      "title": "Recipes in your plan",
+      "hint_one": "{{count}} recipe to cook",
+      "hint_other": "{{count}} recipes to cook"
+    }
+  },
+  "nutritionTab": {
+    "retry": "Try again",
+    "shortcuts": {
+      "plan": "Full plan",
+      "recipes": "Recipes",
+      "shoppingList": "Shopping list"
+    },
+    "error": {
+      "title": "Could not load your nutrition",
+      "body": "Check your connection and try again."
+    },
+    "errors": {
+      "toggleTitle": "The meal was not updated",
+      "cancelRequest": "The request could not be cancelled. Please try again.",
+      "removeOffPlan": "The food could not be removed. Please try again."
+    },
+    "offPlan": {
+      "title": "Outside the plan",
+      "kcal": "{{value}} kcal",
+      "amount": "{{grams}} g · {{kcal}} kcal",
+      "remove": "Remove {{name}}",
+      "add": "Add food you ate outside the plan"
+    },
+    "sheet": {
+      "close": "Close",
+      "back": "Back to search",
+      "title": "Add food",
+      "subtitle": "Eaten outside the plan today",
+      "searchLabel": "Search foods",
+      "searchPlaceholder": "Search foods",
+      "clear": "Clear search",
+      "hint": "Type at least {{min}} letters to search.",
+      "searchError": "The search failed.",
+      "noResults": "No foods found.",
+      "results_one": "{{count}} result",
+      "results_other": "{{count}} results",
+      "per100": "{{value}} kcal / 100 g",
+      "amount": "Amount",
+      "unit": "g",
+      "quick": "{{value}} g",
+      "addsToToday": "Adds to today",
+      "kcal": "{{value}} kcal",
+      "submit": "Add to today",
+      "errors": {
+        "conflict": "Your day changed while you were adding this. Please try again.",
+        "missing": "This food or your plan is no longer available.",
+        "generic": "The food was not added. Check your connection and try again."
+      }
+    },
+    "empty": {
+      "title": "Add a nutritionist",
+      "body": "A nutritionist plans your meals, macros and shopping list around your day.",
+      "find": "Find a nutritionist",
+      "pending": "Pending request",
+      "waiting": "waiting for reply",
+      "sentToday": "Sent today",
+      "sentDaysAgo_one": "Sent {{count}} day ago",
+      "sentDaysAgo_other": "Sent {{count}} days ago",
+      "cancel": "Cancel",
+      "cancelKeep": "Keep request",
+      "cancelTitle": "Cancel your request to {{name}}?",
+      "cancelLabel": "Cancel request to {{name}}",
+      "limit": "You can have one trainer and one nutritionist at a time."
+    },
+    "waiting": {
+      "includes": "What your plan includes",
+      "tiles": {
+        "meals": "Daily meals & macros",
+        "recipes": "Recipes",
+        "shopping": "Shopping list"
+      },
+      "preferences": {
+        "title": "Your eating preferences",
+        "body": "{{name}} plans around them. Update anytime.",
+        "bodyGeneric": "Your nutritionist plans around them. Update anytime."
+      }
+    }
+  },
+  "nutritionFood": {
+    "per100": "Per 100 g",
+    "suits": "Suits",
+    "allergens": "Allergens",
+    "noAllergens": "None listed",
+    "serving": "Unit",
+    "servingValue": "1 {{label}} = {{value}} g",
+    "portion": "portion",
+    "units": {
+      "portion": "portion",
+      "piece": "piece",
+      "slice": "slice",
+      "cup": "cup",
+      "tbsp": "tablespoon",
+      "tsp": "teaspoon",
+      "handful": "handful",
+      "glass": "glass",
+      "pack": "pack",
+      "can": "can",
+      "tub": "tub",
+      "head": "head",
+      "clove": "clove",
+      "bunch": "bunch",
+      "scoop": "scoop"
+    },
+    "notFound": {
+      "title": "Food not available",
+      "body": "This food is not part of your plan."
+    },
+    "error": {
+      "title": "Could not load the food",
+      "body": "Check your connection and try again."
+    },
+    "inMeal": "In {{meal}}",
+    "eaten": "You ate",
+    "usedAmount": "{{grams}} g · {{kcal}} kcal",
+    "diets": {
+      "Vegan": "Vegan",
+      "Vegetarian": "Vegetarian",
+      "Pescatarian": "Pescatarian",
+      "GlutenFree": "Gluten-free",
+      "LactoseFree": "Lactose-free",
+      "DairyFree": "Dairy-free",
+      "Keto": "Keto",
+      "LowCarb": "Low-carb"
+    },
+    "allergenNames": {
+      "Gluten": "Gluten",
+      "Crustaceans": "Crustaceans",
+      "Eggs": "Eggs",
+      "Fish": "Fish",
+      "Peanuts": "Peanuts",
+      "Soy": "Soy",
+      "Milk": "Milk",
+      "TreeNuts": "Tree nuts",
+      "Celery": "Celery",
+      "Mustard": "Mustard",
+      "Sesame": "Sesame",
+      "Sulphites": "Sulphites",
+      "Lupin": "Lupin",
+      "Molluscs": "Molluscs"
+    }
+  },
+  "nutritionMeal": {
+    "title": "Meal",
+    "back": "Back",
+    "retry": "Try again",
+    "kind": {
+      "Breakfast": "Breakfast",
+      "MorningSnack": "Morning snack",
+      "Lunch": "Lunch",
+      "AfternoonSnack": "Afternoon snack",
+      "Dinner": "Dinner",
+      "PreWorkout": "Pre-workout",
+      "PostWorkout": "Post-workout"
+    },
+    "macros": {
+      "kcal": "kcal",
+      "protein": "Protein",
+      "carbs": "Carbs",
+      "fat": "Fat",
+      "fiber": "Fiber",
+      "grams": "{{value}} g"
+    },
+    "errors": {
+      "toggle": "Could not update the meal. Please try again."
+    }
+  },
+  "nutritionPlan": {
+    "title": "Nutrition plan",
+    "retry": "Try again",
+    "back": "Back",
+    "empty": {
+      "title": "No nutrition plan yet",
+      "body": "Your nutritionist has not published a plan for you yet."
+    },
+    "error": {
+      "title": "Could not load the plan",
+      "body": "Check your connection and try again."
+    },
+    "plan": {
+      "week": "Week {{week}}",
+      "weekOf": "Week {{week}} of {{total}}",
+      "weeksTotal": "{{total}} weeks",
+      "weeksRange": "Weeks {{from}} – {{to}}",
+      "thisWeek": "Week {{week}} · this week",
+      "ofMeals": "{{done}} of {{total}}",
+      "ofTotal": "{{done}} / {{total}}",
+      "loggedShare": "{{value}} % logged",
+      "percent": "{{value}} %",
+      "published": "{{range}} · published",
+      "preparing": "{{name}} is preparing it",
+      "preparingGeneric": "Your nutritionist is preparing it",
+      "dailyTarget": "Daily target",
+      "mealsLogged": "Meals logged",
+      "mealsPerDay": "Meals / day",
+      "weeks": "Weeks",
+      "weeksHint": "Tap a week to browse it",
+      "togglePast": "Show or hide the past weeks"
+    },
+    "week": {
+      "title": "Week {{week}} of {{total}}",
+      "previous": "Previous week",
+      "next": "Next week",
+      "todayLabel": "{{day}}, today",
+      "meals": "Meals",
+      "logged": "{{done}} of {{total}} logged",
+      "mealsOf": "{{done}} of {{total}} meals",
+      "noMeals": "No meals planned for this day.",
+      "glance": {
+        "title": "This week",
+        "average": "avg {{value}} kcal a day",
+        "target": "Daily target {{value}} kcal",
+        "bar": "{{day}}: {{value}} kcal"
+      },
+      "recipes": {
+        "title": "Recipes today",
+        "all": "All recipes",
+        "meta": "{{meal}} · {{value}} kcal",
+        "open": "Open recipe {{name}}, {{meta}}"
+      },
+      "logError": "Could not load what you logged.",
+      "notFound": {
+        "title": "Week not available",
+        "body": "This week is not part of your plan or has not been published yet."
+      }
+    },
+    "meal": {
+      "kcal": "{{value}} kcal",
+      "more_one": "and 1 more item",
+      "more_other": "and {{count}} more items",
+      "toggle": "Show or hide {{meal}}"
+    },
+    "amount": {
+      "portions_one": "{{value}} portion",
+      "portions_other": "{{value}} portions",
+      "grams": "{{value}} g"
+    },
+    "status": {
+      "eaten": "{{meal}}: eaten",
+      "pending": "{{meal}}: not eaten",
+      "missed": "{{meal}}: not logged"
+    },
+    "photo": {
+      "add": "Add a photo to {{meal}}",
+      "open": "Open {{meal}} photo {{index}} of {{count}}",
+      "title": "Add a meal photo",
+      "camera": "Take a photo",
+      "library": "Choose from library",
+      "cancel": "Cancel",
+      "permission": {
+        "title": "Camera access is off",
+        "body": "Allow camera access in Settings to take a photo of your meal.",
+        "openSettings": "Open Settings"
+      },
+      "errors": {
+        "title": "The photo was not added",
+        "tooLarge": "The photo is too large. Choose one under 5 MB.",
+        "unsupportedType": "This photo format is not supported. Use JPEG, PNG, WebP or HEIC.",
+        "upload": "The upload failed. Check your connection and try again.",
+        "future": "You cannot add a photo to a day that has not come yet."
+      }
+    },
+    "viewer": {
+      "position": "Photo {{index}} of {{count}}",
+      "imageLabel": "{{meal}} photo {{index}} of {{count}}",
+      "close": "Close",
+      "previous": "Previous photo",
+      "next": "Next photo"
+    },
+    "summary": {
+      "ringOf": "{{value}} of {{target}} kilocalories",
+      "ringValue": "{{value}} kilocalories",
+      "ofKcal": "of {{target}} kcal",
+      "kcal": "kcal",
+      "ofGrams": " / {{target}} g",
+      "grams": " g"
+    }
+  },
+  "nutritionShoppingList": {
+    "title": "Shopping list",
+    "subtitle": "Week of {{date}} · {{done}} of {{total}} bought",
+    "subtitleEmpty": "Week of {{date}}",
+    "thisWeek": "This week",
+    "nextWeek": "Next week",
+    "share": "Share shopping list",
+    "grams": "{{value}} g",
+    "kilograms": "{{value}} kg",
+    "retry": "Try again",
+    "tickError": "Could not save your change. The list was restored.",
+    "error": {
+      "title": "Shopping list not available",
+      "body": "We could not load your shopping list. Please try again."
+    },
+    "empty": {
+      "noPlanTitle": "No shopping list yet",
+      "noPlanBody": "You have no active nutrition plan, so there is nothing to shop for.",
+      "noWeekTitle": "No week to shop for",
+      "noWeekBody": "Your plan has no current or upcoming week.",
+      "weekTitle": "Nothing to buy",
+      "weekBody": "This week of your plan has no meals with ingredients."
+    },
+    "categories": {
+      "Vegetables": "Vegetables",
+      "Fruit": "Fruit",
+      "Meat": "Meat",
+      "FishAndSeafood": "Fish and seafood",
+      "Dairy": "Dairy",
+      "GrainsAndCereals": "Grains and cereals",
+      "Legumes": "Legumes",
+      "NutsAndSeeds": "Nuts and seeds",
+      "OilsAndFats": "Oils and fats",
+      "SweetsAndSnacks": "Sweets and snacks",
+      "Beverages": "Beverages",
+      "Supplements": "Supplements",
+      "Other": "Other"
+    }
+  },
+  "nutritionRecipe": {
+    "notFound": {
+      "title": "Recipe not available",
+      "body": "This recipe is not part of your plan."
+    },
+    "error": {
+      "title": "Could not load the recipe",
+      "body": "Check your connection and try again."
+    },
+    "share": "Share recipe",
+    "minutes": "{{value}} min",
+    "portions": {
+      "title": "Portions",
+      "planSays": "Plan says {{value}} · amounts update below",
+      "hint": "Amounts update below",
+      "fewer": "Fewer portions",
+      "more": "More portions"
+    },
+    "macros": {
+      "perPortion": "Per portion",
+      "allPortions": "All {{value}} portions"
+    },
+    "ingredients": {
+      "title": "Ingredients",
+      "forPortions": "for {{value}} portions",
+      "kcal": "{{value}} kcal",
+      "grams": "{{value}} g"
+    },
+    "steps": {
+      "title": "How to make it"
+    }
+  },
+  "nutritionRecipes": {
+    "title": "Recipes",
+    "back": "Back",
+    "retry": "Try again",
+    "view": {
+      "label": "Recipe source",
+      "plan": "This plan",
+      "all": "All plans"
+    },
+    "chips": {
+      "label": "Meal type",
+      "all": "All",
+      "breakfast": "Breakfast",
+      "lunch": "Lunch",
+      "dinner": "Dinner",
+      "snack": "Snack"
+    },
+    "kind": {
+      "Breakfast": "Breakfast",
+      "MorningSnack": "Snack",
+      "Lunch": "Lunch",
+      "AfternoonSnack": "Snack",
+      "Dinner": "Dinner",
+      "PreWorkout": "Pre-workout",
+      "PostWorkout": "Post-workout"
+    },
+    "recipes_one": "{{count}} recipe",
+    "recipes_other": "{{count}} recipes",
+    "plans_one": "{{count}} plan",
+    "plans_other": "{{count}} plans",
+    "summaryPlan": "{{recipes}} in {{plan}} · {{week}} this week",
+    "summaryAll": "{{recipes}} across {{plans}}",
+    "now": "now",
+    "thisWeek": "This week",
+    "kcal": "{{value}} kcal",
+    "protein": "{{value}} g P",
+    "minutes": "{{value}} min",
+    "openRecipe": "Open recipe {{name}}",
+    "search": {
+      "open": "Search recipes",
+      "close": "Close search",
+      "label": "Search recipes",
+      "placeholder": "Search by name"
+    },
+    "empty": {
+      "title": "No recipes yet",
+      "body": "Recipes from your plans will show up here."
+    },
+    "noMatch": {
+      "title": "No recipes match",
+      "body": "Try another meal type or a different search."
+    },
+    "noPlan": {
+      "title": "No current plan",
+      "body": "You have no active plan right now. Browse recipes from all of your plans instead.",
+      "action": "Show all plans"
+    },
+    "error": {
+      "title": "Could not load the recipes",
+      "body": "Check your connection and try again."
     }
   },
   "coachPending": {

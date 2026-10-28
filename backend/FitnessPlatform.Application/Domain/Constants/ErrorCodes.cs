@@ -284,6 +284,9 @@ public static class ErrorCodes
     /// </summary>
     public const string InvalidBlobUrl = "INVALID_BLOB_URL";
 
+    /// <summary>A meal-log date is later than the client's local today.</summary>
+    public const string MealLogDateInFuture = "MEAL_LOG_DATE_IN_FUTURE";
+
     // ── Image Uploads ────────────────────────────────────────────────
     /// <summary>Content type is not in the allowed image whitelist (image/jpeg, image/png, image/webp).</summary>
     public const string InvalidImageContentType = "INVALID_IMAGE_CONTENT_TYPE";
@@ -647,4 +650,8 @@ public static class ErrorCodes
 
     /// <summary>The first billing period starts in the past or too far ahead.</summary>
     public const string PaymentStartDateInvalid = "PAYMENT_START_DATE_INVALID";
+
+    // ── Client nutrition day log ────────────────────────────────────────
+    /// <summary>The day log changed between the read and the write; retry.</summary>
+    public const string DayLogVersionConflict = "DAY_LOG_VERSION_CONFLICT";
 }

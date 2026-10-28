@@ -1482,6 +1482,36 @@
   "h": 844
  },
  {
+  "html": "mobile-light/05-05-nutrition-waiting.html",
+  "png": "mobile-light/05-05-nutrition-waiting.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/05-06-nutrition-off-plan.html",
+  "png": "mobile-light/05-06-nutrition-off-plan.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/05-07-nutrition-off-plan-search.html",
+  "png": "mobile-light/05-07-nutrition-off-plan-search.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/05-08-nutrition-off-plan-amount.html",
+  "png": "mobile-light/05-08-nutrition-off-plan-amount.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/05-09-nutrition-upcoming.html",
+  "png": "mobile-light/05-09-nutrition-upcoming.png",
+  "w": 390,
+  "h": 844
+ },
+ {
   "html": "mobile-light/06-01-messages-list.html",
   "png": "mobile-light/06-01-messages-list.png",
   "w": 390,
@@ -1602,8 +1632,14 @@
   "h": 844
  },
  {
-  "html": "mobile-light/08-04-nutrition-week-detail.html",
-  "png": "mobile-light/08-04-nutrition-week-detail.png",
+  "html": "mobile-light/08-04-nutrition-plan-week.html",
+  "png": "mobile-light/08-04-nutrition-plan-week.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/08-05-meal-photo-viewer.html",
+  "png": "mobile-light/08-05-meal-photo-viewer.png",
   "w": 390,
   "h": 844
  },
@@ -1702,6 +1738,12 @@
   "png": "mobile-light/13-05-today-no-plan-both.png",
   "w": 390,
   "h": 844
+ },
+ {
+  "html": "mobile-light/14-01-nutrition-plan-week-more.html",
+  "png": "mobile-light/14-01-nutrition-plan-week-more.png",
+  "w": 390,
+  "h": 1020
  },
  {
   "html": "mobile-dark/01-01-launch-quiet.html",
@@ -1944,6 +1986,36 @@
   "h": 844
  },
  {
+  "html": "mobile-dark/05-05-nutrition-waiting.html",
+  "png": "mobile-dark/05-05-nutrition-waiting.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/05-06-nutrition-off-plan.html",
+  "png": "mobile-dark/05-06-nutrition-off-plan.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/05-07-nutrition-off-plan-search.html",
+  "png": "mobile-dark/05-07-nutrition-off-plan-search.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/05-08-nutrition-off-plan-amount.html",
+  "png": "mobile-dark/05-08-nutrition-off-plan-amount.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/05-09-nutrition-upcoming.html",
+  "png": "mobile-dark/05-09-nutrition-upcoming.png",
+  "w": 390,
+  "h": 844
+ },
+ {
   "html": "mobile-dark/06-01-messages-list.html",
   "png": "mobile-dark/06-01-messages-list.png",
   "w": 390,
@@ -2064,8 +2136,14 @@
   "h": 844
  },
  {
-  "html": "mobile-dark/08-04-nutrition-week-detail.html",
-  "png": "mobile-dark/08-04-nutrition-week-detail.png",
+  "html": "mobile-dark/08-04-nutrition-plan-week.html",
+  "png": "mobile-dark/08-04-nutrition-plan-week.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/08-05-meal-photo-viewer.html",
+  "png": "mobile-dark/08-05-meal-photo-viewer.png",
   "w": 390,
   "h": 844
  },
@@ -2164,6 +2242,12 @@
   "png": "mobile-dark/13-05-today-no-plan-both.png",
   "w": 390,
   "h": 844
+ },
+ {
+  "html": "mobile-dark/14-01-nutrition-plan-week-more.html",
+  "png": "mobile-dark/14-01-nutrition-plan-week-more.png",
+  "w": 390,
+  "h": 1020
  },
  {
   "html": "coach-light/01-01-coach-setup.html",

@@ -1,5 +1,6 @@
 using FastEndpoints;
 using FluentValidation;
+using FitnessPlatform.Application.Domain.Constants;
 
 namespace FitnessPlatform.Application.Features.ClientNutrition.SaveMealPhotos;
 
@@ -13,6 +14,12 @@ public class SaveMealPhotosValidator : Validator<SaveMealPhotosRequest>
     /// </summary>
     public SaveMealPhotosValidator()
     {
+        RuleFor(x => x.Date)
+            .Must(date => date!.Value.Year >= 2000)
+            .WithErrorCode(ErrorCodes.OutOfRange)
+            .WithMessage("Date must be a real calendar date.")
+            .When(x => x.Date.HasValue);
+
         RuleFor(x => x.Note)
             .MaximumLength(500)
             .WithMessage("Note must not exceed 500 characters.")

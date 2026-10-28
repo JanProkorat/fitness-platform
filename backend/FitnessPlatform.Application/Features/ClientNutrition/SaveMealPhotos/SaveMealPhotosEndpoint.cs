@@ -7,6 +7,7 @@ using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Domain.Services;
+using FitnessPlatform.Application.Features.ClientNutrition.Shared;
 using FitnessPlatform.Application.Features.ClientPhotos;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
@@ -63,7 +64,11 @@ public class SaveMealPhotosEndpoint(
                 "timestamp; new URLs receive the current UTC time. Pass an empty Photos list " +
                 "to remove all photos; pass null for Note to clear the meal-level diary note. " +
                 "Never changes the meal's EatenAt state. Creates the log entry if it does " +
-                "not exist yet.";
+                "not exist yet. An optional date targets a past day (or today) of the active plan; " +
+                "omitted means the client-local today.";
+            s.Responses[StatusCodes.Status204NoContent] = "Photos saved";
+            s.Responses[StatusCodes.Status400BadRequest] = "Invalid request, or the date is in the future (MEAL_LOG_DATE_IN_FUTURE)";
+            s.Responses[StatusCodes.Status404NotFound] = "No active plan covers the date, or the meal is not on that day";
         });
     }
 
@@ -99,11 +104,29 @@ public class SaveMealPhotosEndpoint(
 
         var planCursor = await mongo.NutritionPlans.FindAsync(planFilter, cancellationToken: ct);
         var activePlans = await planCursor.ToListAsync(ct);
-        // Resolve the client's local calendar day (#935) once — todayUtc anchors LogDate-style
-        // equality checks and plan-window resolution; windowStartUtc/windowEndUtc anchor the
-        // legacy EatenAt instant-range filter below so it isn't skewed by the UTC offset.
-        var (todayUtc, windowStartUtc, windowEndUtc) = await db.ResolveClientLocalDayWindowAsync(clientId, timeProvider.GetUtcNow().UtcDateTime, ct);
-        var plan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, todayUtc);
+
+        // Resolve the client's local calendar day (#935) once. An explicit req.Date targets that
+        // day instead (today or past); targetDayUtc anchors LogDate-style equality checks and
+        // windowStartUtc/windowEndUtc anchor the legacy EatenAt instant-range filter.
+        var timeZone = await db.ResolveClientTimeZoneAsync(clientId, ct);
+        var localToday = ClientLocalDateResolver.ResolveLocalDate(timeProvider.GetUtcNow().UtcDateTime, timeZone);
+        var targetDate = req.Date ?? localToday;
+
+        if (targetDate > localToday)
+        {
+            await this.SendProblemAsync(400, ErrorCodes.MealLogDateInFuture,
+                "Meal photos cannot be added to a future day.", ct);
+            return;
+        }
+
+        var targetDayUtc = targetDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+        var (windowStartUtc, windowEndUtc) = ClientLocalDateResolver.ResolveLocalDayWindowUtc(targetDate, timeZone);
+
+        // Without a date the legacy best-effort plan resolution applies; with one the plan
+        // window must contain the date.
+        var plan = req.Date is null
+            ? PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, targetDayUtc)
+            : PlanWindowResolver.ResolveCurrentPlanStrict(activePlans, p => p.StartDate, p => p.Weeks.Count, targetDate);
 
         if (plan is null)
         {
@@ -111,11 +134,13 @@ public class SaveMealPhotosEndpoint(
             return;
         }
 
-        // Verify the mealId belongs to the active plan
-        var meal = plan.Weeks
-            .SelectMany(w => w.Days)
-            .SelectMany(d => d.Meals)
-            .FirstOrDefault(m => m.MealId == req.MealId);
+        // Verify the mealId belongs to the plan — to that date's plan day when a date was given.
+        var meal = req.Date is null
+            ? plan.Weeks
+                .SelectMany(w => w.Days)
+                .SelectMany(d => d.Meals)
+                .FirstOrDefault(m => m.MealId == req.MealId)
+            : NutritionPlanDayResolver.FindMeal(plan, targetDayUtc, req.MealId);
 
         if (meal is null)
         {
@@ -131,20 +156,11 @@ public class SaveMealPhotosEndpoint(
 
         var now = DateTime.UtcNow;
 
-        // Key: one log per (client, plan, meal, calendar day).
-        // Matches both the modern keying (LogDate == today) and legacy records that were
-        // created before the LogDate field existed and carry LogDate = default(DateTime)
-        // but have EatenAt within today's window. Without the OR, legacy records cause
-        // a duplicate photo-only log to be inserted alongside the existing eaten log.
-        var logFilter = Builders<MealLog>.Filter.And(
-            Builders<MealLog>.Filter.Eq(l => l.ClientId, clientId),
-            Builders<MealLog>.Filter.Eq(l => l.PlanId, plan.ExternalId),
-            Builders<MealLog>.Filter.Eq(l => l.MealId, req.MealId),
-            Builders<MealLog>.Filter.Or(
-                Builders<MealLog>.Filter.Eq(l => l.LogDate, todayUtc),
-                Builders<MealLog>.Filter.And(
-                    Builders<MealLog>.Filter.Gte(l => l.EatenAt, windowStartUtc),
-                    Builders<MealLog>.Filter.Lt(l => l.EatenAt, windowEndUtc))));
+        // Key: one log per (client, plan, meal, calendar day). The shared filter matches both the
+        // modern LogDate keying and legacy records with LogDate = default but EatenAt inside the
+        // day; without the OR a duplicate photo-only log would be inserted next to the eaten one.
+        var logFilter = MealLogDayFilter.Build(
+            clientId, plan.ExternalId, req.MealId, targetDayUtc, windowStartUtc, windowEndUtc);
 
         var existingCursor = await mongo.MealLogs.FindAsync(logFilter, cancellationToken: ct);
         var existingLog = await existingCursor.FirstOrDefaultAsync(ct);
@@ -185,7 +201,7 @@ public class SaveMealPhotosEndpoint(
                 ClientId = clientId,
                 PlanId = plan.ExternalId,
                 MealId = req.MealId,
-                LogDate = todayUtc,
+                LogDate = targetDayUtc,
                 EatenAt = null,
                 FoodsEaten = meal.Foods,
                 Photos = replacementPhotos,
@@ -205,7 +221,7 @@ public class SaveMealPhotosEndpoint(
             var update = Builders<MealLog>.Update
                 .Set(l => l.Photos, replacementPhotos)
                 .Set(l => l.Note, resolvedNote)
-                .Set(l => l.LogDate, todayUtc);
+                .Set(l => l.LogDate, targetDayUtc);
 
             await mongo.MealLogs.UpdateOneAsync(updateFilter, update, cancellationToken: ct);
             mealLogId = existingLog.Id.ToString();
@@ -220,6 +236,10 @@ public class SaveMealPhotosEndpoint(
             replacementPhotos.Select(p => (p.BlobUrl, p.Note)).ToList(),
             plan.NutritionistId,
             now,
+            targetDate < localToday
+                ? TimeZoneInfo.ConvertTimeToUtc(
+                    targetDate.ToDateTime(new TimeOnly(12, 0), DateTimeKind.Unspecified), timeZone)
+                : now,
             ct);
 
         // Emit planPhotoUploaded to the owning nutritionist for each newly-created row (best-effort).
@@ -334,6 +354,7 @@ public class SaveMealPhotosEndpoint(
         IReadOnlyList<(string BlobUrl, string? Note)> photos,
         Guid planCreatorUserId,
         DateTime now,
+        DateTime takenAt,
         CancellationToken ct)
     {
         if (photos.Count == 0)
@@ -380,7 +401,7 @@ public class SaveMealPhotosEndpoint(
                 BlobUrl = blobUrl,
                 Description = note,
                 MealLogId = mealLogId,
-                TakenAt = now,
+                TakenAt = takenAt,
                 UploadedByUserId = callerUserId,
                 DateCreated = now,
                 DateUpdated = now

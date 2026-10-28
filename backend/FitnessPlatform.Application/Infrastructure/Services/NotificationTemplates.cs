@@ -28,6 +28,11 @@ public static class NotificationTemplates
     // Variant keys — only needed for NotificationTypes with more than one distinct wording.
     public const string PlanPublishedNutritionCompleted = "nutritionCompleted";
     public const string PlanPublishedNutritionPublished = "nutritionPublished";
+
+    // Push/notification data keys that let a client tell a nutrition plan from a training plan.
+    public const string PlanKindKey = "planKind";
+    public const string PlanIdKey = "planId";
+    public const string PlanKindNutrition = "nutrition";
     public const string PlanPublishedTrainingCompleted = "trainingCompleted";
     public const string PlanPublishedTrainingPublished = "trainingPublished";
     public const string InvitationCancelledByProfessional = "cancelledByProfessional";

@@ -16,7 +16,7 @@ export const PHOTOS_STALE_MS = 5 * 60 * 1000;
 /** Quality below 1 makes the picker re-encode, which keeps camera shots under the size limit. */
 export const PICK_QUALITY = 0.7;
 
-const ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif']);
+export const ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif']);
 
 /** A photo the screen can show: the fields it relies on are present. */
 export type ProgressPhoto = ClientPhotoResponse & { id: string; displayUrl: string };
@@ -69,7 +69,7 @@ export class PhotoUploadError extends Error {
 /** What the picker hands back; `fileSize` and `mimeType` are optional on some platforms. */
 export type PickedPhoto = { uri: string; mimeType?: string; fileSize?: number };
 
-const normalizeType = (type: string | undefined): string => {
+export const normalizeType = (type: string | undefined): string => {
   const lower = (type ?? '').toLowerCase().split(';')[0]?.trim() ?? '';
   return lower === 'image/jpg' ? 'image/jpeg' : lower;
 };

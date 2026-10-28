@@ -29,7 +29,7 @@ public class UnlogMealEatenEndpoint(IMongoContext mongo, IApplicationDbContext d
         Summary(s =>
         {
             s.Summary = "Unmark a meal as eaten";
-            s.Description = "Removes today's meal log entries for the given meal, letting the client uncheck a meal.";
+            s.Description = "Unchecks a meal: today's entries without photos or a note are deleted; entries with photos or a note are kept as not eaten.";
         });
     }
 
@@ -75,9 +75,27 @@ public class UnlogMealEatenEndpoint(IMongoContext mongo, IApplicationDbContext d
                     Builders<MealLog>.Filter.Gte(l => l.EatenAt, windowStart),
                     Builders<MealLog>.Filter.Lt(l => l.EatenAt, windowEnd))));
 
-        var deleteResult = await mongo.MealLogs.DeleteManyAsync(filter, ct);
+        // Rows with nothing worth keeping (no photos, no note) are removed. Rows that carry
+        // photos or a note stay — their _id is referenced by PlanPhoto.MealLogId — and only lose
+        // their eaten state. LogDate is backfilled so legacy rows (LogDate = default, found only
+        // through EatenAt) stay findable once EatenAt is gone.
+        var emptyRowFilter = Builders<MealLog>.Filter.And(
+            filter,
+            Builders<MealLog>.Filter.Eq(l => l.Note, null),
+            Builders<MealLog>.Filter.Or(
+                Builders<MealLog>.Filter.Size(l => l.Photos, 0),
+                Builders<MealLog>.Filter.Exists(l => l.Photos, false)));
 
-        if (deleteResult.DeletedCount > 0)
+        var deleteResult = await mongo.MealLogs.DeleteManyAsync(emptyRowFilter, ct);
+
+        var keepResult = await mongo.MealLogs.UpdateManyAsync(
+            Builders<MealLog>.Filter.And(filter, Builders<MealLog>.Filter.Ne(l => l.EatenAt, null)),
+            Builders<MealLog>.Update
+                .Unset(l => l.EatenAt)
+                .Set(l => l.LogDate, today),
+            cancellationToken: ct);
+
+        if (deleteResult.DeletedCount + keepResult.ModifiedCount > 0)
         {
             // The SignalR payload's ClientId is the trainer-facing ClientProfile.PublicId
             // convention (unrelated to the Mongo document clientId key migrated in #840) —
