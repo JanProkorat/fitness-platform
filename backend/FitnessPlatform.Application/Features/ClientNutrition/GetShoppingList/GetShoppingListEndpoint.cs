@@ -68,7 +68,14 @@ public class GetShoppingListEndpoint(IMongoContext mongo, IApplicationDbContext 
         var cursor = await mongo.NutritionPlans.FindAsync(filter, cancellationToken: ct);
         var activePlans = await cursor.ToListAsync(ct);
         var todayLocalUtc = await db.ResolveClientLocalDateUtcAsync(clientId, timeProvider.GetUtcNow().UtcDateTime, ct);
-        var plan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, todayLocalUtc);
+        // Falls back to the earliest upcoming plan with a published week (browse before it starts).
+        var plan = PlanWindowResolver.ResolveCurrentOrUpcomingPlan(
+            activePlans,
+            p => p.StartDate,
+            p => p.Weeks.Count,
+            p => p.Weeks.Any(w => w.Status == WeekStatus.Published),
+            p => p.DateCreated,
+            todayLocalUtc);
 
         if (plan is null)
         {

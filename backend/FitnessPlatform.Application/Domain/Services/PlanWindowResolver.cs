@@ -143,6 +143,45 @@ public static class PlanWindowResolver
     }
 
     /// <summary>
+    /// Returns <see cref="ResolveCurrentPlan{T}"/>'s answer when it finds one; otherwise the upcoming plan:
+    /// the earliest-starting candidate that has a published week and starts after the local day of
+    /// <paramref name="now"/> (ties go to the most recently created).
+    /// </summary>
+    /// <param name="plans">Candidates, already filtered to the client and Active status.</param>
+    /// <param name="startDateSelector">Reads the plan's start date.</param>
+    /// <param name="weekCountSelector">Reads the plan's total week count.</param>
+    /// <param name="hasPublishedWeekSelector">Whether the plan has at least one published week.</param>
+    /// <param name="dateCreatedSelector">Reads the creation time, used only to break start-date ties.</param>
+    /// <param name="now">The client's local "now".</param>
+    public static T? ResolveCurrentOrUpcomingPlan<T>(
+        IEnumerable<T> plans,
+        Func<T, DateTime?> startDateSelector,
+        Func<T, int> weekCountSelector,
+        Func<T, bool> hasPublishedWeekSelector,
+        Func<T, DateTime> dateCreatedSelector,
+        DateTime now)
+        where T : class
+    {
+        var planList = plans as IReadOnlyCollection<T> ?? plans.ToList();
+
+        var current = ResolveCurrentPlan(planList, startDateSelector, weekCountSelector, now);
+        if (current is not null)
+        {
+            return current;
+        }
+
+        var today = DateOnly.FromDateTime(now);
+
+        return planList
+            .Where(p => startDateSelector(p) is not null)
+            .Where(p => hasPublishedWeekSelector(p))
+            .Where(p => DateOnly.FromDateTime(startDateSelector(p)!.Value) > today)
+            .OrderBy(p => startDateSelector(p)!.Value)
+            .ThenByDescending(p => dateCreatedSelector(p))
+            .FirstOrDefault();
+    }
+
+    /// <summary>
     /// Selects the plan out of <paramref name="plans"/> whose window strictly contains
     /// <paramref name="today"/> — <see cref="IsWithinWindow"/> only, never the legacy
     /// single-candidate unranged fallback that <see cref="ResolveCurrentPlan{T}"/> applies. An

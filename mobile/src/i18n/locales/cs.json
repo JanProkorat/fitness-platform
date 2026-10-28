@@ -1144,6 +1144,44 @@
       }
     }
   },
+  "nutritionUpcoming": {
+    "published": "váš plán je zveřejněn",
+    "title": "Váš plán začíná {{when}}",
+    "on": {
+      "0": "v neděli",
+      "1": "v pondělí",
+      "2": "v úterý",
+      "3": "ve středu",
+      "4": "ve čtvrtek",
+      "5": "v pátek",
+      "6": "v sobotu"
+    },
+    "subtitle": "{{plan}} · {{weeks}} · {{days}}",
+    "weeks_one": "{{count}} týden",
+    "weeks_few": "{{count}} týdny",
+    "weeks_many": "{{count}} týdne",
+    "weeks_other": "{{count}} týdnů",
+    "inDays_one": "za {{count}} den",
+    "inDays_few": "za {{count}} dny",
+    "inDays_many": "za {{count}} dne",
+    "inDays_other": "za {{count}} dní",
+    "averages": "Denní průměr za celý plán",
+    "kcalPerDay": "kcal / den",
+    "noValue": "–",
+    "browse": "Prohlédnout plán",
+    "getReady": "Připravte se",
+    "shopping": {
+      "title": "Připravte nákupní seznam",
+      "hint": "Vše na váš první týden"
+    },
+    "recipes": {
+      "title": "Recepty ve vašem plánu",
+      "hint_one": "{{count}} recept k uvaření",
+      "hint_few": "{{count}} recepty k uvaření",
+      "hint_many": "{{count}} receptu k uvaření",
+      "hint_other": "{{count}} receptů k uvaření"
+    }
+  },
   "nutritionTab": {
     "retry": "Zkusit znovu",
     "shortcuts": {

@@ -190,4 +190,7 @@ export const sizes = {
   recipeCardGlyph: 28,
   recipeGroupBar: 4,
   recipeGroupBarHeight: 22,
+  calendarTileWidth: 52,
+  calendarTileHeight: 56,
+  prepareIcon: 36,
 } as const;

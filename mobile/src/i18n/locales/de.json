@@ -1118,6 +1118,38 @@
       }
     }
   },
+  "nutritionUpcoming": {
+    "published": "hat Ihren Plan veröffentlicht",
+    "title": "Ihr Plan beginnt {{when}}",
+    "on": {
+      "0": "am Sonntag",
+      "1": "am Montag",
+      "2": "am Dienstag",
+      "3": "am Mittwoch",
+      "4": "am Donnerstag",
+      "5": "am Freitag",
+      "6": "am Samstag"
+    },
+    "subtitle": "{{plan}} · {{weeks}} · {{days}}",
+    "weeks_one": "{{count}} Woche",
+    "weeks_other": "{{count}} Wochen",
+    "inDays_one": "in {{count}} Tag",
+    "inDays_other": "in {{count}} Tagen",
+    "averages": "Tagesdurchschnitt über den ganzen Plan",
+    "kcalPerDay": "kcal / Tag",
+    "noValue": "–",
+    "browse": "Plan ansehen",
+    "getReady": "Machen Sie sich bereit",
+    "shopping": {
+      "title": "Einkaufsliste vorbereiten",
+      "hint": "Alles für Ihre erste Woche"
+    },
+    "recipes": {
+      "title": "Rezepte in Ihrem Plan",
+      "hint_one": "{{count}} Rezept zum Kochen",
+      "hint_other": "{{count}} Rezepte zum Kochen"
+    }
+  },
   "nutritionTab": {
     "retry": "Erneut versuchen",
     "shortcuts": {

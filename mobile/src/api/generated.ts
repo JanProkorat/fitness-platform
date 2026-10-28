@@ -29883,6 +29883,17 @@ Computed from StartDate (preferred) or the first published week's DatePublished.
     currentWeek?: number | undefined;
     /** Target daily kilocalories from the plan's GlobalSettings. Populated for nutrition plans only. */
     dailyKcal?: number | undefined;
+    /** Mean kilocalories per day, averaged over the published days that have at least one meal.
+Nutrition plans only; null for training plans or when no published day has a meal. Whole number. */
+    avgKcalPerDay?: number | undefined;
+    /** Mean protein grams per day over the published days that have a meal. Nutrition plans only; null when none. Whole number. */
+    avgProteinPerDay?: number | undefined;
+    /** Mean carbohydrate grams per day over the published days that have a meal. Nutrition plans only; null when none. Whole number. */
+    avgCarbsPerDay?: number | undefined;
+    /** Mean fat grams per day over the published days that have a meal. Nutrition plans only; null when none. Whole number. */
+    avgFatPerDay?: number | undefined;
+    /** Mean fiber grams per day over the published days that have a meal. Nutrition plans only; null when none. Whole number. */
+    avgFiberPerDay?: number | undefined;
     /** Whether today's day-of-week has a session in the current week. Populated for training plans only.
 Null when CurrentWeek is null or for nutrition plans. */
     hasTodaySession?: boolean | undefined;

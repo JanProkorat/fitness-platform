@@ -70,7 +70,15 @@ public class GetFullPlanEndpoint(IMongoContext mongo, IApplicationDbContext db, 
 
         var cursor = await mongo.NutritionPlans.FindAsync(filter, cancellationToken: ct);
         var activePlans = await cursor.ToListAsync(ct);
-        var plan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, todayLocalUtc);
+        // Falls back to the earliest upcoming plan with a published week, so the client can browse it
+        // before it starts; CurrentWeek stays null for it.
+        var plan = PlanWindowResolver.ResolveCurrentOrUpcomingPlan(
+            activePlans,
+            p => p.StartDate,
+            p => p.Weeks.Count,
+            p => p.Weeks.Any(w => w.Status == WeekStatus.Published),
+            p => p.DateCreated,
+            todayLocalUtc);
 
         if (plan is null)
         {

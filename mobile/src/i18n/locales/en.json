@@ -1118,6 +1118,38 @@
       }
     }
   },
+  "nutritionUpcoming": {
+    "published": "published your plan",
+    "title": "Your plan starts {{when}}",
+    "on": {
+      "0": "on Sunday",
+      "1": "on Monday",
+      "2": "on Tuesday",
+      "3": "on Wednesday",
+      "4": "on Thursday",
+      "5": "on Friday",
+      "6": "on Saturday"
+    },
+    "subtitle": "{{plan}} · {{weeks}} · {{days}}",
+    "weeks_one": "{{count}} week",
+    "weeks_other": "{{count}} weeks",
+    "inDays_one": "in {{count}} day",
+    "inDays_other": "in {{count}} days",
+    "averages": "Daily average across the plan",
+    "kcalPerDay": "kcal / day",
+    "noValue": "–",
+    "browse": "Browse the plan",
+    "getReady": "Get ready",
+    "shopping": {
+      "title": "Prepare the shopping list",
+      "hint": "Everything for your first week"
+    },
+    "recipes": {
+      "title": "Recipes in your plan",
+      "hint_one": "{{count}} recipe to cook",
+      "hint_other": "{{count}} recipes to cook"
+    }
+  },
   "nutritionTab": {
     "retry": "Try again",
     "shortcuts": {
