@@ -1236,6 +1236,23 @@
     "serving": "Einheit",
     "servingValue": "1 {{label}} = {{value}} g",
     "portion": "Portion",
+    "units": {
+      "portion": "Portion",
+      "piece": "Stück",
+      "slice": "Scheibe",
+      "cup": "Tasse",
+      "tbsp": "Esslöffel",
+      "tsp": "Teelöffel",
+      "handful": "Handvoll",
+      "glass": "Glas",
+      "pack": "Packung",
+      "can": "Dose",
+      "tub": "Becher",
+      "head": "Kopf",
+      "clove": "Zehe",
+      "bunch": "Bund",
+      "scoop": "Messlöffel"
+    },
     "notFound": {
       "title": "Lebensmittel nicht verfügbar",
       "body": "Dieses Lebensmittel gehört nicht zu Ihrem Plan."
