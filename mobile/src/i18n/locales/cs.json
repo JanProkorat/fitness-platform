@@ -1346,6 +1346,72 @@
       "button_other": "Postup · {{count}} kroků"
     }
   },
+  "nutritionRecipes": {
+    "title": "Recepty",
+    "back": "Zpět",
+    "retry": "Zkusit znovu",
+    "view": {
+      "label": "Zdroj receptů",
+      "plan": "Tento plán",
+      "all": "Všechny plány"
+    },
+    "chips": {
+      "label": "Typ jídla",
+      "all": "Vše",
+      "breakfast": "Snídaně",
+      "lunch": "Oběd",
+      "dinner": "Večeře",
+      "snack": "Svačina"
+    },
+    "kind": {
+      "Breakfast": "Snídaně",
+      "MorningSnack": "Svačina",
+      "Lunch": "Oběd",
+      "AfternoonSnack": "Svačina",
+      "Dinner": "Večeře",
+      "PreWorkout": "Před tréninkem",
+      "PostWorkout": "Po tréninku"
+    },
+    "recipes_one": "{{count}} recept",
+    "recipes_few": "{{count}} recepty",
+    "recipes_many": "{{count}} receptu",
+    "recipes_other": "{{count}} receptů",
+    "plans_one": "{{count}} plánu",
+    "plans_few": "{{count}} plánů",
+    "plans_many": "{{count}} plánu",
+    "plans_other": "{{count}} plánů",
+    "summaryPlan": "{{recipes}} v plánu {{plan}} · {{week}} tento týden",
+    "summaryAll": "{{recipes}} z {{plans}}",
+    "now": "nyní",
+    "thisWeek": "Tento týden",
+    "kcal": "{{value}} kcal",
+    "protein": "{{value}} g B",
+    "minutes": "{{value}} min",
+    "openRecipe": "Otevřít recept {{name}}",
+    "search": {
+      "open": "Hledat recepty",
+      "close": "Zavřít hledání",
+      "label": "Hledat recepty",
+      "placeholder": "Hledat podle názvu"
+    },
+    "empty": {
+      "title": "Zatím žádné recepty",
+      "body": "Recepty z vašich plánů se zobrazí tady."
+    },
+    "noMatch": {
+      "title": "Žádný recept nevyhovuje",
+      "body": "Zkuste jiný typ jídla nebo jiné hledání."
+    },
+    "noPlan": {
+      "title": "Žádný aktuální plán",
+      "body": "Teď nemáte aktivní plán. Projděte si místo toho recepty ze všech svých plánů.",
+      "action": "Zobrazit všechny plány"
+    },
+    "error": {
+      "title": "Recepty se nepodařilo načíst",
+      "body": "Zkontrolujte připojení a zkuste to znovu."
+    }
+  },
   "coachPending": {
     "title": "Váš trenérský účet je připravený",
     "body": "Nástroje pro trenéry v aplikaci zatím nejsou. Klienty spravujte ve webovém portálu Form Up."

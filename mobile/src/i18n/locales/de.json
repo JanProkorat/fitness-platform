@@ -1314,6 +1314,68 @@
       "button_other": "Zubereitung · {{count}} Schritte"
     }
   },
+  "nutritionRecipes": {
+    "title": "Rezepte",
+    "back": "Zurück",
+    "retry": "Erneut versuchen",
+    "view": {
+      "label": "Rezeptquelle",
+      "plan": "Dieser Plan",
+      "all": "Alle Pläne"
+    },
+    "chips": {
+      "label": "Mahlzeitentyp",
+      "all": "Alle",
+      "breakfast": "Frühstück",
+      "lunch": "Mittagessen",
+      "dinner": "Abendessen",
+      "snack": "Snack"
+    },
+    "kind": {
+      "Breakfast": "Frühstück",
+      "MorningSnack": "Snack",
+      "Lunch": "Mittagessen",
+      "AfternoonSnack": "Snack",
+      "Dinner": "Abendessen",
+      "PreWorkout": "Vor dem Training",
+      "PostWorkout": "Nach dem Training"
+    },
+    "recipes_one": "{{count}} Rezept",
+    "recipes_other": "{{count}} Rezepte",
+    "plans_one": "{{count}} Plan",
+    "plans_other": "{{count}} Plänen",
+    "summaryPlan": "{{recipes}} in {{plan}} · {{week}} diese Woche",
+    "summaryAll": "{{recipes}} aus {{plans}}",
+    "now": "aktuell",
+    "thisWeek": "Diese Woche",
+    "kcal": "{{value}} kcal",
+    "protein": "{{value}} g E",
+    "minutes": "{{value}} Min.",
+    "openRecipe": "Rezept {{name}} öffnen",
+    "search": {
+      "open": "Rezepte suchen",
+      "close": "Suche schließen",
+      "label": "Rezepte suchen",
+      "placeholder": "Nach Namen suchen"
+    },
+    "empty": {
+      "title": "Noch keine Rezepte",
+      "body": "Rezepte aus Ihren Plänen erscheinen hier."
+    },
+    "noMatch": {
+      "title": "Keine passenden Rezepte",
+      "body": "Probieren Sie einen anderen Mahlzeitentyp oder eine andere Suche."
+    },
+    "noPlan": {
+      "title": "Kein aktueller Plan",
+      "body": "Sie haben derzeit keinen aktiven Plan. Stöbern Sie stattdessen in den Rezepten aus allen Ihren Plänen.",
+      "action": "Alle Pläne anzeigen"
+    },
+    "error": {
+      "title": "Die Rezepte konnten nicht geladen werden",
+      "body": "Prüfen Sie Ihre Verbindung und versuchen Sie es erneut."
+    }
+  },
   "coachPending": {
     "title": "Dein Coach-Konto ist bereit",
     "body": "Die Coach-Werkzeuge gibt es in der App noch nicht. Verwalte deine Klienten im Form Up Webportal."
