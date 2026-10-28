@@ -4,6 +4,8 @@ import type {
   GetRecipeResponse,
   GetTodayLogResponse,
   GetTodayPlanResponse,
+  GetWeekMealLogMealDto,
+  GetWeekMealLogResponse,
   MealPhotoDto,
   PlanMeal,
   TodayMealLogDto,
@@ -15,6 +17,9 @@ export const TODAY_PLAN_KEY = ['nutrition', 'plan', 'today'] as const;
 export const TODAY_LOG_KEY = ['nutrition', 'log', 'today'] as const;
 /** Shared with the plan screens so both read one cached copy of the full plan. */
 export const FULL_PLAN_KEY = ['nutrition', 'plan', 'full'] as const;
+/** Prefix of every per-week meal log, so one invalidation covers all weeks. */
+export const WEEK_LOG_KEY = ['nutrition', 'log', 'week'] as const;
+export const weekLogQueryKey = (date: string) => [...WEEK_LOG_KEY, date] as const;
 export const recipeQueryKey = (recipeId: string) => ['nutrition', 'recipe', recipeId] as const;
 
 /** Signed photo URLs live 15 minutes, so the cached log must go stale well before that. */
@@ -60,6 +65,11 @@ export function fetchTodayLog(signal?: AbortSignal): Promise<GetTodayLogResponse
 /** The full plan (GET /client/nutrition/plan/full). */
 export function fetchFullPlan(signal?: AbortSignal): Promise<GetFullPlanResponse> {
   return api.getFullPlanEndpoint(signal);
+}
+
+/** The meal log of the plan week containing `date` (GET /client/nutrition/log/week). */
+export function fetchWeekLog(date: string, signal?: AbortSignal): Promise<GetWeekMealLogResponse> {
+  return api.getWeekMealLogEndpoint(date, signal);
 }
 
 /** One recipe the client may see (GET /client/recipes/{recipeId}). */
@@ -147,11 +157,47 @@ export const storedMealPhotos = (entry: TodayMealLogDto | undefined): StoredMeal
   note: entry?.note,
 });
 
+/** The stored photos and note of a meal in a week log, in the shape the save call takes. */
+export const storedWeekMealPhotos = (entry: GetWeekMealLogMealDto | undefined): StoredMealPhotos => ({
+  photos: (entry?.photos ?? [])
+    .filter((photo) => Boolean(photo.blobUrl))
+    .map((photo) => ({ blobUrl: photo.blobUrl ?? '', note: photo.note })),
+  note: entry?.note,
+});
+
+/** Error code the server sends when a meal log date lies after the client's today. */
+export const MEAL_LOG_DATE_IN_FUTURE = 'MEAL_LOG_DATE_IN_FUTURE';
+
+const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
+
+/** Top-level `errorCode` of a ProblemDetails body carried by a failed generated-client call. */
+export function getTopLevelErrorCode(error: unknown): string | undefined {
+  if (!isRecord(error)) return undefined;
+  const fromBody = (body: unknown): string | undefined =>
+    isRecord(body) && typeof body.errorCode === 'string' ? body.errorCode : undefined;
+  const direct = fromBody(error.result);
+  if (direct) return direct;
+  if (typeof error.response === 'string') {
+    try {
+      return fromBody(JSON.parse(error.response) as unknown);
+    } catch {
+      return undefined;
+    }
+  }
+  return undefined;
+}
+
 /**
- * Uploads a picked photo for today's log of a meal: signed URL, direct PUT, then save. Save replaces the
- * whole photo list, so the already stored blob URLs are sent back with the new one.
+ * Uploads a picked photo for the log of a meal on `date` (the client-local today when omitted): signed URL,
+ * direct PUT, then save. Save replaces the whole photo list, so the already stored blob URLs are sent back
+ * with the new one.
  */
-export async function addMealPhoto(mealId: string, photo: PickedPhoto, existing: StoredMealPhotos): Promise<void> {
+export async function addMealPhoto(
+  mealId: string,
+  photo: PickedPhoto,
+  existing: StoredMealPhotos,
+  date?: string,
+): Promise<void> {
   let blob: Blob;
   try {
     blob = await (await fetch(photo.uri)).blob();
@@ -168,7 +214,7 @@ export async function addMealPhoto(mealId: string, photo: PickedPhoto, existing:
     throw new PhotoUploadError('tooLarge');
   }
 
-  const { uploadUrl, blobUrl } = await api.generateMealPhotoUploadUrlEndpoint(mealId, { contentType, sizeBytes });
+  const { uploadUrl, blobUrl } = await api.generateMealPhotoUploadUrlEndpoint(mealId, { contentType, sizeBytes, date });
   if (!uploadUrl || !blobUrl) {
     throw new PhotoUploadError('upload');
   }
@@ -186,6 +232,7 @@ export async function addMealPhoto(mealId: string, photo: PickedPhoto, existing:
   }
 
   await api.saveMealPhotosEndpoint(mealId, {
+    date,
     photos: [...existing.photos, { blobUrl }],
     note: existing.note,
   });

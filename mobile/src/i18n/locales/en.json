@@ -1093,6 +1093,105 @@
       }
     }
   },
+  "nutritionPlan": {
+    "title": "Nutrition plan",
+    "retry": "Try again",
+    "back": "Back",
+    "empty": {
+      "title": "No nutrition plan yet",
+      "body": "Your nutritionist has not published a plan for you yet."
+    },
+    "error": {
+      "title": "Could not load the plan",
+      "body": "Check your connection and try again."
+    },
+    "plan": {
+      "week": "Week {{week}}",
+      "weekOf": "Week {{week}} of {{total}}",
+      "weeksTotal": "{{total}} weeks",
+      "weeksRange": "Weeks {{from}} – {{to}}",
+      "thisWeek": "Week {{week}} · this week",
+      "ofMeals": "{{done}} of {{total}}",
+      "ofTotal": "{{done}} / {{total}}",
+      "loggedShare": "{{value}} % logged",
+      "percent": "{{value}} %",
+      "published": "{{range}} · published",
+      "preparing": "{{name}} is preparing it",
+      "preparingGeneric": "Your nutritionist is preparing it",
+      "dailyTarget": "Daily target",
+      "mealsLogged": "Meals logged",
+      "mealsPerDay": "Meals / day",
+      "weeks": "Weeks",
+      "weeksHint": "Tap a week to browse it",
+      "togglePast": "Show or hide the past weeks"
+    },
+    "week": {
+      "title": "Week {{week}} of {{total}}",
+      "previous": "Previous week",
+      "next": "Next week",
+      "todayLabel": "{{day}}, today",
+      "meals": "Meals",
+      "logged": "{{done}} of {{total}} logged",
+      "mealsOf": "{{done}} of {{total}} meals",
+      "noMeals": "No meals planned for this day.",
+      "logError": "Could not load what you logged.",
+      "notFound": {
+        "title": "Week not available",
+        "body": "This week is not part of your plan or has not been published yet."
+      }
+    },
+    "meal": {
+      "kcal": "{{value}} kcal",
+      "more_one": "and 1 more item",
+      "more_other": "and {{count}} more items",
+      "toggle": "Show or hide {{meal}}"
+    },
+    "amount": {
+      "portions_one": "{{value}} portion",
+      "portions_other": "{{value}} portions",
+      "grams": "{{value}} g"
+    },
+    "status": {
+      "eaten": "{{meal}}: eaten",
+      "pending": "{{meal}}: not eaten",
+      "missed": "{{meal}}: not logged"
+    },
+    "photo": {
+      "add": "Add a photo to {{meal}}",
+      "open": "Open {{meal}} photo {{index}} of {{count}}",
+      "title": "Add a meal photo",
+      "camera": "Take a photo",
+      "library": "Choose from library",
+      "cancel": "Cancel",
+      "permission": {
+        "title": "Camera access is off",
+        "body": "Allow camera access in Settings to take a photo of your meal.",
+        "openSettings": "Open Settings"
+      },
+      "errors": {
+        "title": "The photo was not added",
+        "tooLarge": "The photo is too large. Choose one under 5 MB.",
+        "unsupportedType": "This photo format is not supported. Use JPEG, PNG, WebP or HEIC.",
+        "upload": "The upload failed. Check your connection and try again.",
+        "future": "You cannot add a photo to a day that has not come yet."
+      }
+    },
+    "viewer": {
+      "position": "Photo {{index}} of {{count}}",
+      "imageLabel": "{{meal}} photo {{index}} of {{count}}",
+      "close": "Close",
+      "previous": "Previous photo",
+      "next": "Next photo"
+    },
+    "summary": {
+      "ringOf": "{{value}} of {{target}} kilocalories",
+      "ringValue": "{{value}} kilocalories",
+      "ofKcal": "of {{target}} kcal",
+      "kcal": "kcal",
+      "ofGrams": " / {{target}} g",
+      "grams": " g"
+    }
+  },
   "nutritionRecipe": {
     "notFound": {
       "title": "Recipe not available",
