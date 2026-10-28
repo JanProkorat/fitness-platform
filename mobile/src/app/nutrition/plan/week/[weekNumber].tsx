@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Alert, Linking, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { GestureDetector } from 'react-native-gesture-handler';
+import Reanimated from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
 
 import type { FullPlanWeek, GetFullPlanResponse } from '@/api/generated';
@@ -145,10 +146,8 @@ function WeekContent({ plan, week, initialDay, onBack }: WeekContentProps) {
     if (!target) return;
     const targetNumber = target.weekNumber ?? 1;
     setPicked(day ? { weekNumber: targetNumber, date: day } : null);
-    router.replace({
-      pathname: '/nutrition/plan/week/[weekNumber]',
-      params: { weekNumber: String(targetNumber), ...(day ? { day } : {}) },
-    });
+    // Same screen instance, new params: the swipe's slide-in then plays on the content that is already mounted.
+    router.setParams({ weekNumber: String(targetNumber), day });
   };
   const previous = neighbour(-1);
   const next = neighbour(1);
@@ -173,8 +172,19 @@ function WeekContent({ plan, week, initialDay, onBack }: WeekContentProps) {
     const landing = direction === 'next' ? targetDays[0] : targetDays[targetDays.length - 1];
     goToWeek(target, landing?.date);
   };
-  const weekSwipe = useHorizontalSwipe(swipeWeek);
-  const daySwipe = useHorizontalSwipe(swipeDay);
+  const dayIndex = days.findIndex(({ date }) => date === selected);
+  const weekSwipe = useHorizontalSwipe({
+    onSwipe: swipeWeek,
+    canGoPrevious: previous !== undefined,
+    canGoNext: next !== undefined,
+    contentKey: String(weekNumber),
+  });
+  const daySwipe = useHorizontalSwipe({
+    onSwipe: swipeDay,
+    canGoPrevious: dayIndex > 0 || previous !== undefined,
+    canGoNext: (dayIndex >= 0 && dayIndex < days.length - 1) || next !== undefined,
+    contentKey: `${weekNumber}-${selected}`,
+  });
 
   const recipesQuery = useClientRecipes(plan.planId, Boolean(plan.planId));
   const recipeImages = useMemo(() => {
@@ -258,7 +268,7 @@ function WeekContent({ plan, week, initialDay, onBack }: WeekContentProps) {
           onBack={onBack}
         />
 
-        <GestureDetector gesture={weekSwipe}>
+        <GestureDetector gesture={weekSwipe.gesture}>
           <View>
             <DayStrip
               days={days}
@@ -267,12 +277,13 @@ function WeekContent({ plan, week, initialDay, onBack }: WeekContentProps) {
               onPreviousWeek={previous ? () => goToWeek(previous) : undefined}
               onNextWeek={next ? () => goToWeek(next) : undefined}
               onSelect={(date) => setPicked({ weekNumber, date })}
+              daysStyle={weekSwipe.style}
             />
           </View>
         </GestureDetector>
 
-        <GestureDetector gesture={daySwipe}>
-          <View style={styles.day}>
+        <GestureDetector gesture={daySwipe.gesture}>
+          <Reanimated.View style={[styles.day, daySwipe.style]}>
         <DaySummary
           eaten={eatenMacros(meals, (mealId) => isEaten(selected, mealId))}
           targets={plan.globalSettings}
@@ -348,7 +359,7 @@ function WeekContent({ plan, week, initialDay, onBack }: WeekContentProps) {
             })
           )}
         </Card>
-          </View>
+          </Reanimated.View>
         </GestureDetector>
 
         <WeekGlance

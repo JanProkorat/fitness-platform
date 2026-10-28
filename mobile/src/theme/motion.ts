@@ -71,10 +71,18 @@ export const mealExpandMotion = {
   duration: 240,
 } as const;
 
-/** Horizontal swipes on the plan week view: px before the pan claims the touch, px of vertical drift that hands it back to scrolling, and the distance (px) or velocity (px/s) that commits a swipe. */
+/**
+ * Horizontal swipes on the plan week view: px before the pan claims the touch, px of vertical drift that hands it
+ * back to scrolling, the distance (px) or velocity (px/s) that commits a swipe, the share of the drag that still
+ * follows the finger where there is nothing to swipe to, and the slide-out/slide-in times (ms) and spring-back.
+ */
 export const swipeMotion = {
   claimDistance: 16,
   verticalTolerance: 12,
   commitDistance: 56,
   commitVelocity: 700,
+  resistance: 0.3,
+  slideOutDuration: 160,
+  slideInDuration: 240,
+  spring: { damping: 22, stiffness: 240, mass: 0.9 },
 } as const;

@@ -1,7 +1,10 @@
 import { Pressable, StyleSheet, View } from 'react-native';
+import type { StyleProp, ViewStyle } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { SymbolView } from 'expo-symbols';
 import { useTranslation } from 'react-i18next';
+import Reanimated from 'react-native-reanimated';
+import type { AnimatedStyle } from 'react-native-reanimated';
 
 import { dayOfMonth, weekdayInitial, weekdayName } from '@/components/nutrition/plan/model';
 import type { WeekDay } from '@/components/nutrition/plan/model';
@@ -19,6 +22,8 @@ type DayStripProps = {
   /** Leaves the week arrows out, for a strip that only ever shows one week. */
   hideWeekArrows?: boolean;
   onSelect: (date: string) => void;
+  /** Animated style for the row of days only (a week swipe slides it); the card and arrows stay put. */
+  daysStyle?: StyleProp<AnimatedStyle<StyleProp<ViewStyle>>>;
 };
 
 /** The seven days of a week with arrows to the neighbouring weeks; the selected day gets a green chip. */
@@ -30,6 +35,7 @@ export function DayStrip({
   onNextWeek,
   hideWeekArrows = false,
   onSelect,
+  daysStyle,
 }: DayStripProps) {
   const { t, i18n } = useTranslation();
   const theme = useTheme();
@@ -47,7 +53,7 @@ export function DayStrip({
             styles={styles}
           />
         )}
-        <View style={styles.days}>
+        <Reanimated.View style={[styles.days, daysStyle]}>
           {days.map(({ date }) => {
             const isSelected = date === selected;
             const isToday = date === today;
@@ -79,7 +85,7 @@ export function DayStrip({
               </Pressable>
             );
           })}
-        </View>
+        </Reanimated.View>
         {hideWeekArrows ? null : (
           <Arrow
             symbol="chevron.right"
