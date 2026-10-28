@@ -5,6 +5,7 @@ using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Services;
+using FitnessPlatform.Application.Features.ClientNutrition.Shared;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using MongoDB.Driver;
@@ -33,7 +34,7 @@ internal sealed class SetShoppingListItemTickedEndpoint(IMongoContext mongo, IAp
             s.Responses[StatusCodes.Status204NoContent] = "Tick state saved";
             s.Responses[StatusCodes.Status400BadRequest] = "Invalid week number or food id";
             s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
-            s.Responses[StatusCodes.Status404NotFound] = "No active plan, week not in the plan, or food not on that week's list";
+            s.Responses[StatusCodes.Status404NotFound] = "No active plan, week not in the plan, or food is neither a meal food nor a recipe ingredient on that week's list";
         });
     }
 
@@ -68,10 +69,11 @@ internal sealed class SetShoppingListItemTickedEndpoint(IMongoContext mongo, IAp
 
         var week = plan?.Weeks.FirstOrDefault(w => w.WeekNumber == req.WeekNumber);
 
-        var foodOnWeekList = week is not null && week.Days
-            .SelectMany(d => d.Meals)
-            .SelectMany(m => m.Foods)
-            .Any(f => f.FoodExternalId == req.FoodExternalId);
+        var foodOnWeekList = week is not null && (
+            week.Days.SelectMany(d => d.Meals).SelectMany(m => m.Foods).Any(f => f.FoodExternalId == req.FoodExternalId)
+            // Recipes are loaded only when the plain-food check misses.
+            || (await ShoppingListRecipeIngredients.LoadAsync(mongo, [week], ct))
+                .Any(entry => entry.Food.FoodExternalId == req.FoodExternalId));
 
         if (plan is null || !foodOnWeekList)
         {

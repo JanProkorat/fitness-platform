@@ -5,6 +5,7 @@ using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Services;
+using FitnessPlatform.Application.Features.ClientNutrition.Shared;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using Microsoft.EntityFrameworkCore;
@@ -93,7 +94,7 @@ public class GetShoppingListEndpoint(IMongoContext mongo, IApplicationDbContext 
         // Flatten all meals -> foods plus recipe ingredients (tagged with their week), group by FoodExternalId, sum amounts
         var groups = weeks
             .SelectMany(w => w.Days.SelectMany(d => d.Meals).SelectMany(m => m.Foods).Select(f => (w.WeekNumber, Food: f)))
-            .Concat(await LoadRecipeIngredientsAsync(weeks, ct))
+            .Concat(await ShoppingListRecipeIngredients.LoadAsync(mongo, weeks, ct))
             .GroupBy(entry => entry.Food.FoodExternalId)
             .ToList();
 
@@ -123,55 +124,6 @@ public class GetShoppingListEndpoint(IMongoContext mongo, IApplicationDbContext 
 
     private static string? FirstNonEmpty(IEnumerable<(int WeekNumber, MealFood Food)> group, Func<MealFood, string?> selector) =>
         group.Select(entry => selector(entry.Food)).FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
-
-    /// <summary>
-    /// Expands the recipes of the given weeks into ingredient entries scaled to the planned servings.
-    /// Recipes that no longer exist are skipped.
-    /// </summary>
-    private async Task<List<(int WeekNumber, MealFood Food)>> LoadRecipeIngredientsAsync(
-        List<PlanWeek> weeks, CancellationToken ct)
-    {
-        var mealRecipes = weeks
-            .SelectMany(w => w.Days.SelectMany(d => d.Meals).SelectMany(m => m.Recipes).Select(r => (w.WeekNumber, MealRecipe: r)))
-            .ToList();
-
-        if (mealRecipes.Count == 0)
-        {
-            return [];
-        }
-
-        var recipeIds = mealRecipes.Select(r => r.MealRecipe.RecipeId).Distinct().ToList();
-
-        using var cursor = await mongo.Recipes.FindAsync(
-            Builders<Recipe>.Filter.In(r => r.ExternalId, recipeIds), cancellationToken: ct);
-        var recipesById = (await cursor.ToListAsync(ct)).ToDictionary(r => r.ExternalId);
-
-        var ingredients = new List<(int WeekNumber, MealFood Food)>();
-
-        foreach (var (weekNumber, mealRecipe) in mealRecipes)
-        {
-            if (!recipesById.TryGetValue(mealRecipe.RecipeId, out var recipe))
-            {
-                continue;
-            }
-
-            // Recipe.Foods hold whole-recipe amounts; Servings is the recipe's yield.
-            var factor = mealRecipe.Servings / Math.Max(recipe.Servings, 1);
-
-            ingredients.AddRange(recipe.Foods.Select(food => (weekNumber, new MealFood
-            {
-                FoodExternalId = food.FoodExternalId,
-                FoodName = food.FoodName,
-                FoodNameCs = food.FoodNameCs,
-                FoodNameEn = food.FoodNameEn,
-                FoodNameDe = food.FoodNameDe,
-                FoodCategory = food.FoodCategory,
-                AmountGrams = food.AmountGrams * factor,
-            })));
-        }
-
-        return ingredients;
-    }
 
     private async Task<HashSet<(int WeekNumber, Guid FoodExternalId)>> LoadTickedKeysAsync(
         Guid clientId, Guid planId, List<int> weekNumbers, CancellationToken ct)

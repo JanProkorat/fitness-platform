@@ -171,6 +171,49 @@ public class ShoppingListTicksEndpointTests(FitnessApiFactory factory)
         (await CountTicksAsync(client.UserId)).Should().Be(0);
     }
 
+    private async Task<Recipe> InsertRecipeWithIngredientAsync(MealFood ingredient)
+    {
+        var recipe = await ClientNutritionFixtures.InsertRecipeAsync(factory);
+        recipe.Servings = 2;
+        recipe.Foods = [ingredient];
+
+        using var scope = factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+        await mongo.Recipes.ReplaceOneAsync(r => r.ExternalId == recipe.ExternalId, recipe, cancellationToken: TestContext.Current.CancellationToken);
+        return recipe;
+    }
+
+    [Fact]
+    public async Task Tick_RecipeOnlyIngredient_Returns204_AndListShowsItTicked()
+    {
+        var client = await TestActors.Client(factory).CreateAsync(TestContext.Current.CancellationToken);
+        var ingredient = PlanTestHelpers.CreateMealFood(foodName: "Quinoa", amountGrams: 200);
+        var recipe = await InsertRecipeWithIngredientAsync(ingredient);
+        await ClientNutritionFixtures.InsertPlanAsync(factory, client.UserId, NutritionPlanStatus.Active, Start, null, null,
+            ClientNutritionFixtures.Week(1, WeekStatus.Published, ClientNutritionFixtures.MealWithRecipes(MealKind.Dinner, recipe)));
+
+        (await GetListAsync(client)).Single().IsTicked.Should().BeFalse();
+
+        (await TickAsync(client, 1, ingredient.FoodExternalId, true)).StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        (await CountTicksAsync(client.UserId)).Should().Be(1);
+        (await GetListAsync(client)).Single().IsTicked.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Tick_FoodInNeitherPlainFoodsNorWeeksRecipes_Returns404()
+    {
+        var client = await TestActors.Client(factory).CreateAsync(TestContext.Current.CancellationToken);
+        var recipe = await InsertRecipeWithIngredientAsync(PlanTestHelpers.CreateMealFood(foodName: "Millet"));
+        await ClientNutritionFixtures.InsertPlanAsync(factory, client.UserId, NutritionPlanStatus.Active, Start, null, null,
+            ClientNutritionFixtures.Week(1, WeekStatus.Published, ClientNutritionFixtures.MealWithRecipes(MealKind.Dinner, recipe)));
+
+        var response = await TickAsync(client, 1, Guid.NewGuid(), true);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        (await CountTicksAsync(client.UserId)).Should().Be(0);
+    }
+
     [Fact]
     public async Task Tick_InvalidWeekNumber_Returns400()
     {
