@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 
 import { Button } from '@/components/Button';
 import { NutritionEmpty } from '@/components/nutrition/tab/NutritionEmpty';
+import { NutritionUpcoming } from '@/components/nutrition/tab/NutritionUpcoming';
 import { NutritionPlanView, isMissingPlan } from '@/components/nutrition/tab/NutritionPlanView';
 import { NutritionWaiting } from '@/components/nutrition/tab/NutritionWaiting';
 import { TabHeader } from '@/components/nutrition/tab/TabHeader';
@@ -14,6 +15,7 @@ import { coveredCollaborations } from '@/components/today/collaborationRoles';
 import { useCollaborations } from '@/hooks/useCollaborations';
 import { useNutritionWeekPlan } from '@/hooks/useNutritionWeekPlan';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
+import { useUpcomingNutritionPlan } from '@/hooks/useUpcomingNutritionPlan';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
 
@@ -31,6 +33,7 @@ function NutritionContent() {
   const styles = makeStyles(theme);
   const collaborations = useCollaborations();
   const weekPlan = useNutritionWeekPlan();
+  const upcoming = useUpcomingNutritionPlan();
   const { refreshing, onRefresh } = usePullToRefresh();
   const barClearance = theme.sizes.tabBar + theme.sizes.tabBarBottom + theme.spacing.xxl;
 
@@ -59,7 +62,7 @@ function NutritionContent() {
     return screen(<NutritionPlanView week={weekPlan.data} />, true);
   }
 
-  if (weekPlan.isPending || (weekPlan.isError && isMissingPlan(weekPlan.error) && collaborations.isPending)) {
+  if (weekPlan.isPending || (weekPlan.isError && isMissingPlan(weekPlan.error) && (collaborations.isPending || upcoming.isPending))) {
     return screen(
       <View style={styles.center}>
         <ActivityIndicator color={theme.colors.accent} />
@@ -84,6 +87,17 @@ function NutritionContent() {
   // No published plan: a linked nutritionist is still building it, otherwise offer to find one.
   const covering = collaborations.isError ? [] : coveredCollaborations(collaborations.data ?? []);
   const nutritionist = covering.find((entry) => entry.roles.includes('Nutritionist'));
+  // A published plan that starts later wins over the waiting and empty states.
+  if (upcoming.plan) {
+    return screen(
+      <NutritionUpcoming
+        plan={upcoming.plan}
+        collaboration={nutritionist?.collaboration}
+        onlyCollaboration={covering.length === 1}
+        today={upcoming.today}
+      />,
+    );
+  }
   if (nutritionist) {
     return screen(
       <NutritionWaiting collaboration={nutritionist.collaboration} onlyCollaboration={covering.length === 1} />,
