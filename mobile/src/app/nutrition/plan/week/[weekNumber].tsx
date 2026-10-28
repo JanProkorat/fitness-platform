@@ -42,7 +42,7 @@ import { Text } from '@/components/Text';
 import { useAddDayMealPhoto } from '@/hooks/useAddDayMealPhoto';
 import { useClientRecipes } from '@/hooks/useClientRecipes';
 import { useFullNutritionPlan } from '@/hooks/useFullNutritionPlan';
-import { useHorizontalSwipe } from '@/hooks/useHorizontalSwipe';
+import { useHorizontalSwipe, useSlideTransition } from '@/hooks/useHorizontalSwipe';
 import type { SwipeDirection } from '@/hooks/useHorizontalSwipe';
 import { useNutritionDayLog } from '@/hooks/useNutritionDayLog';
 import { useTheme } from '@/theme';
@@ -173,17 +173,22 @@ function WeekContent({ plan, week, initialDay, onBack }: WeekContentProps) {
     goToWeek(target, landing?.date);
   };
   const dayIndex = days.findIndex(({ date }) => date === selected);
-  const weekSwipe = useHorizontalSwipe({
-    onSwipe: swipeWeek,
-    canGoPrevious: previous !== undefined,
-    canGoNext: next !== undefined,
-    contentKey: String(weekNumber),
-  });
   const daySwipe = useHorizontalSwipe({
     onSwipe: swipeDay,
     canGoPrevious: dayIndex > 0 || previous !== undefined,
     canGoNext: (dayIndex >= 0 && dayIndex < days.length - 1) || next !== undefined,
     contentKey: `${weekNumber}-${selected}`,
+  });
+  // The part below the day content only changes with the week, so it slides only then.
+  const belowSlide = useSlideTransition(String(weekNumber));
+  // A week change (strip swipe or arrows) slides the day content and everything under it with the strip's days.
+  const alsoSlide = useMemo(() => [daySwipe.transition, belowSlide], [daySwipe.transition, belowSlide]);
+  const weekSwipe = useHorizontalSwipe({
+    onSwipe: swipeWeek,
+    canGoPrevious: previous !== undefined,
+    canGoNext: next !== undefined,
+    contentKey: String(weekNumber),
+    alsoSlide,
   });
 
   const recipesQuery = useClientRecipes(plan.planId, Boolean(plan.planId));
@@ -274,8 +279,8 @@ function WeekContent({ plan, week, initialDay, onBack }: WeekContentProps) {
               days={days}
               selected={selected}
               today={today}
-              onPreviousWeek={previous ? () => goToWeek(previous) : undefined}
-              onNextWeek={next ? () => goToWeek(next) : undefined}
+              onPreviousWeek={previous ? () => weekSwipe.slide('previous') : undefined}
+              onNextWeek={next ? () => weekSwipe.slide('next') : undefined}
               onSelect={(date) => setPicked({ weekNumber, date })}
               daysStyle={weekSwipe.style}
             />
@@ -362,6 +367,7 @@ function WeekContent({ plan, week, initialDay, onBack }: WeekContentProps) {
           </Reanimated.View>
         </GestureDetector>
 
+        <Reanimated.View style={[styles.day, belowSlide.style]}>
         <WeekGlance
           days={days}
           selected={selected}
@@ -382,6 +388,7 @@ function WeekContent({ plan, week, initialDay, onBack }: WeekContentProps) {
           }
           onOpenAll={() => router.push('/nutrition/recipes')}
         />
+        </Reanimated.View>
       </Screen>
 
       <MealPhotoViewer
