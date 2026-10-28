@@ -134,6 +134,7 @@ public class SaveMealPhotosIntegrationTests(FitnessApiFactory factory)
     public async Task SavePhotos_LegacyPhotoAlreadyOnLog_Returns204AndKeepsUploadedAt()
     {
         var (client, planId, mealId) = await SeedClientWithMealAsync();
+        // The legacy URL normalises only because FakeBlobStorageService.NormalizeToCanonicalUrl accepts any non-empty value.
         const string legacyUrl = "https://minio.local/bucket/legacy-folder/legacy.jpg";
         var uploadedAt = DateTime.UtcNow.AddDays(-1);
 
@@ -159,5 +160,41 @@ public class SaveMealPhotosIntegrationTests(FitnessApiFactory factory)
             .Which.Photos.Should().ContainSingle().Subject;
         photo.BlobUrl.Should().Be(legacyUrl);
         photo.UploadedAt.Should().BeCloseTo(uploadedAt, TimeSpan.FromSeconds(1));
+    }
+
+    [Fact]
+    public async Task SavePhotos_LegacyPhotoPlusNewUrlOutsideMealFolder_Returns400AndLeavesLogUnchanged()
+    {
+        var (client, planId, mealId) = await SeedClientWithMealAsync();
+        const string legacyUrl = "https://minio.local/bucket/legacy-folder/legacy.jpg";
+        var uploadedAt = DateTime.UtcNow.AddDays(-1);
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+            await mongo.MealLogs.InsertOneAsync(
+                new MealLog
+                {
+                    ClientId = client.UserId,
+                    PlanId = planId,
+                    MealId = mealId,
+                    LogDate = TodayUtc,
+                    Photos = [new MealPhoto { BlobUrl = legacyUrl, UploadedAt = uploadedAt }],
+                },
+                cancellationToken: TestContext.Current.CancellationToken);
+        }
+
+        var outsideUrl = $"{MealPhotoTestHost.BlobRoot}other-folder/{Guid.NewGuid():N}.jpg";
+
+        var response = await SavePhotosAsync(client, mealId, legacyUrl, outsideUrl);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+        body.RootElement.GetProperty("errorCode").GetString().Should().Be("INVALID_BLOB_URL");
+        var photo = (await LoadLogsAsync(client.UserId, mealId)).Should().ContainSingle()
+            .Which.Photos.Should().ContainSingle().Subject;
+        photo.BlobUrl.Should().Be(legacyUrl);
+        photo.UploadedAt.Should().BeCloseTo(uploadedAt, TimeSpan.FromSeconds(1));
+        (await CountPlanPhotosAsync(planId)).Should().Be(0);
     }
 }
