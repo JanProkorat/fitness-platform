@@ -1280,6 +1280,45 @@
       "grams": " g"
     }
   },
+  "nutritionShoppingList": {
+    "title": "Shopping list",
+    "subtitle": "Week of {{date}} · {{done}} of {{total}} bought",
+    "subtitleEmpty": "Week of {{date}}",
+    "thisWeek": "This week",
+    "nextWeek": "Next week",
+    "share": "Share shopping list",
+    "grams": "{{value}} g",
+    "kilograms": "{{value}} kg",
+    "retry": "Try again",
+    "tickError": "Could not save your change. The list was restored.",
+    "error": {
+      "title": "Shopping list not available",
+      "body": "We could not load your shopping list. Please try again."
+    },
+    "empty": {
+      "noPlanTitle": "No shopping list yet",
+      "noPlanBody": "You have no active nutrition plan, so there is nothing to shop for.",
+      "noWeekTitle": "No week to shop for",
+      "noWeekBody": "Your plan has no current or upcoming week.",
+      "weekTitle": "Nothing to buy",
+      "weekBody": "This week of your plan has no meals with ingredients."
+    },
+    "categories": {
+      "Vegetables": "Vegetables",
+      "Fruit": "Fruit",
+      "Meat": "Meat",
+      "FishAndSeafood": "Fish and seafood",
+      "Dairy": "Dairy",
+      "GrainsAndCereals": "Grains and cereals",
+      "Legumes": "Legumes",
+      "NutsAndSeeds": "Nuts and seeds",
+      "OilsAndFats": "Oils and fats",
+      "SweetsAndSnacks": "Sweets and snacks",
+      "Beverages": "Beverages",
+      "Supplements": "Supplements",
+      "Other": "Other"
+    }
+  },
   "nutritionRecipe": {
     "notFound": {
       "title": "Recipe not available",
