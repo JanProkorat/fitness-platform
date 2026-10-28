@@ -1740,6 +1740,12 @@
   "h": 844
  },
  {
+  "html": "mobile-light/14-01-nutrition-plan-week-more.html",
+  "png": "mobile-light/14-01-nutrition-plan-week-more.png",
+  "w": 390,
+  "h": 1020
+ },
+ {
   "html": "mobile-dark/01-01-launch-quiet.html",
   "png": "mobile-dark/01-01-launch-quiet.png",
   "w": 390,
@@ -2236,6 +2242,12 @@
   "png": "mobile-dark/13-05-today-no-plan-both.png",
   "w": 390,
   "h": 844
+ },
+ {
+  "html": "mobile-dark/14-01-nutrition-plan-week-more.html",
+  "png": "mobile-dark/14-01-nutrition-plan-week-more.png",
+  "w": 390,
+  "h": 1020
  },
  {
   "html": "coach-light/01-01-coach-setup.html",
