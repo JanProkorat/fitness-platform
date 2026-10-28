@@ -6,6 +6,7 @@ import { Chip } from '@/components/Chip';
 import { DetailCard } from '@/components/nutrition/meal/DetailCard';
 import { formatWhole } from '@/components/nutrition/meal/format';
 import { Text } from '@/components/Text';
+import { servingUnitLabel } from '@/components/nutrition/food/servingUnit';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
 
@@ -53,7 +54,9 @@ export function FoodFacts({ food }: FoodFactsProps) {
             </Text>
             <Text variant="bodyLarge">
               {t('nutritionFood.servingValue', {
-                label: serving?.label ?? t('nutritionFood.portion'),
+                label: serving?.label
+                  ? servingUnitLabel(t, serving.label)
+                  : t('nutritionFood.portion'),
                 value: formatWhole(i18n.language, servingGrams),
               })}
             </Text>
