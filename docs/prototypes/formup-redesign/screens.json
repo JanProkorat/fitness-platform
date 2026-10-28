@@ -1482,6 +1482,12 @@
   "h": 844
  },
  {
+  "html": "mobile-light/05-05-nutrition-waiting.html",
+  "png": "mobile-light/05-05-nutrition-waiting.png",
+  "w": 390,
+  "h": 844
+ },
+ {
   "html": "mobile-light/06-01-messages-list.html",
   "png": "mobile-light/06-01-messages-list.png",
   "w": 390,
@@ -1602,8 +1608,14 @@
   "h": 844
  },
  {
-  "html": "mobile-light/08-04-nutrition-week-detail.html",
-  "png": "mobile-light/08-04-nutrition-week-detail.png",
+  "html": "mobile-light/08-04-nutrition-plan-week.html",
+  "png": "mobile-light/08-04-nutrition-plan-week.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/08-05-meal-photo-viewer.html",
+  "png": "mobile-light/08-05-meal-photo-viewer.png",
   "w": 390,
   "h": 844
  },
@@ -1944,6 +1956,12 @@
   "h": 844
  },
  {
+  "html": "mobile-dark/05-05-nutrition-waiting.html",
+  "png": "mobile-dark/05-05-nutrition-waiting.png",
+  "w": 390,
+  "h": 844
+ },
+ {
   "html": "mobile-dark/06-01-messages-list.html",
   "png": "mobile-dark/06-01-messages-list.png",
   "w": 390,
@@ -2064,8 +2082,14 @@
   "h": 844
  },
  {
-  "html": "mobile-dark/08-04-nutrition-week-detail.html",
-  "png": "mobile-dark/08-04-nutrition-week-detail.png",
+  "html": "mobile-dark/08-04-nutrition-plan-week.html",
+  "png": "mobile-dark/08-04-nutrition-plan-week.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/08-05-meal-photo-viewer.html",
+  "png": "mobile-dark/08-05-meal-photo-viewer.png",
   "w": 390,
   "h": 844
  },
