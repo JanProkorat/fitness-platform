@@ -28,7 +28,7 @@ public class MealLogPastDayIntegrationTests(FitnessApiFactory factory)
     private const string PhotoB = "https://minio.local/bucket/past-b.jpg";
 
     /// <summary>A photo URL under the meal's <c>diary/{mealId}/</c> folder, as the upload-url endpoint issues it.</summary>
-    private static string DiaryPhoto(Guid mealId, string name) => $"diary/{mealId}/{name}.jpg";
+    private static string DiaryPhoto(Guid mealId, string name) => $"{MealPhotoTestHost.BlobRoot}diary/{mealId}/{name}.jpg";
 
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
 
@@ -159,9 +159,9 @@ public class MealLogPastDayIntegrationTests(FitnessApiFactory factory)
         return await db.ResolveClientTimeZoneAsync(userId, TestContext.Current.CancellationToken);
     }
 
-    private static Task<HttpResponseMessage> SavePhotosAsync(
+    private Task<HttpResponseMessage> SavePhotosAsync(
         Actor client, Guid mealId, DateOnly? date, params string[] photoUrls) =>
-        client.Http.PostAsJsonAsync(
+        MealPhotoTestHost.CreateClientFor(factory, client).PostAsJsonAsync(
             $"/client/nutrition/log/meals/{mealId}/photos",
             new { Date = date?.ToString("yyyy-MM-dd"), Photos = photoUrls.Select(url => new { BlobUrl = url }).ToArray() },
             TestContext.Current.CancellationToken);

@@ -24,6 +24,8 @@ public class SaveMealPhotosIntegrationTests(FitnessApiFactory factory)
 {
     private static DateTime TodayUtc => DateTime.UtcNow.Date;
 
+    private static string DiaryFolder(Guid mealId) => $"{MealPhotoTestHost.BlobRoot}diary/{mealId}/";
+
     private async Task<(Actor Client, Guid PlanId, Guid MealId)> SeedClientWithMealAsync()
     {
         var client = await TestActors.Client(factory).CreateAsync(TestContext.Current.CancellationToken);
@@ -77,8 +79,8 @@ public class SaveMealPhotosIntegrationTests(FitnessApiFactory factory)
         return (client, plan.ExternalId, mealId);
     }
 
-    private static Task<HttpResponseMessage> SavePhotosAsync(Actor client, Guid mealId, params string[] photoUrls) =>
-        client.Http.PostAsJsonAsync(
+    private Task<HttpResponseMessage> SavePhotosAsync(Actor client, Guid mealId, params string[] photoUrls) =>
+        MealPhotoTestHost.CreateClientFor(factory, client).PostAsJsonAsync(
             $"/client/nutrition/log/meals/{mealId}/photos",
             new { Photos = photoUrls.Select(url => new { BlobUrl = url }).ToArray() },
             TestContext.Current.CancellationToken);
@@ -103,7 +105,7 @@ public class SaveMealPhotosIntegrationTests(FitnessApiFactory factory)
     public async Task SavePhotos_UrlUnderMealFolder_Returns204AndPersists()
     {
         var (client, planId, mealId) = await SeedClientWithMealAsync();
-        var url = $"diary/{mealId}/{Guid.NewGuid():N}.jpg";
+        var url = $"{DiaryFolder(mealId)}{Guid.NewGuid():N}.jpg";
 
         var response = await SavePhotosAsync(client, mealId, url);
 
@@ -117,9 +119,9 @@ public class SaveMealPhotosIntegrationTests(FitnessApiFactory factory)
     public async Task SavePhotos_ForeignUrl_Returns400AndSavesNothing()
     {
         var (client, planId, mealId) = await SeedClientWithMealAsync();
-        var foreignUrl = $"diary/{Guid.NewGuid()}/{Guid.NewGuid():N}.jpg";
+        var foreignUrl = $"{DiaryFolder(Guid.NewGuid())}{Guid.NewGuid():N}.jpg";
 
-        var response = await SavePhotosAsync(client, mealId, $"diary/{mealId}/{Guid.NewGuid():N}.jpg", foreignUrl);
+        var response = await SavePhotosAsync(client, mealId, $"{DiaryFolder(mealId)}{Guid.NewGuid():N}.jpg", foreignUrl);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
@@ -132,7 +134,7 @@ public class SaveMealPhotosIntegrationTests(FitnessApiFactory factory)
     public async Task SavePhotos_LegacyPhotoAlreadyOnLog_Returns204AndKeepsUploadedAt()
     {
         var (client, planId, mealId) = await SeedClientWithMealAsync();
-        const string legacyUrl = "plan-photos/legacy-folder/legacy.jpg";
+        const string legacyUrl = "https://minio.local/bucket/legacy-folder/legacy.jpg";
         var uploadedAt = DateTime.UtcNow.AddDays(-1);
 
         using (var scope = factory.Services.CreateScope())
