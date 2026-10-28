@@ -115,7 +115,12 @@ public class CompletePlanEndpoint(
             await notificationService.CreateAsync(
                 clientProfile.UserId,
                 NotificationType.PlanPublished,
-                new Dictionary<string, string> { ["planName"] = plan.Name },
+                new Dictionary<string, string>
+                {
+                    ["planName"] = plan.Name,
+                    [NotificationTemplates.PlanKindKey] = NotificationTemplates.PlanKindNutrition,
+                    [NotificationTemplates.PlanIdKey] = plan.ExternalId.ToString(),
+                },
                 variant: NotificationTemplates.PlanPublishedNutritionCompleted,
                 ct: ct);
 
