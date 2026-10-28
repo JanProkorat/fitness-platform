@@ -30,7 +30,7 @@ export function RecipesToday({ recipes, images, gutter, onOpenRecipe, onOpenAll 
 
   return (
     <View style={[styles.section, { marginHorizontal: -gutter }]}>
-      <View style={[styles.head, { paddingHorizontal: gutter }]}>
+      <View style={[styles.head, { paddingHorizontal: gutter + theme.spacing.cardInset }]}>
         <Text variant="barTitle" accessibilityRole="header">
           {t('nutritionPlan.week.recipes.title')}
         </Text>
