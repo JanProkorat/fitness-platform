@@ -1897,7 +1897,7 @@
       ],
       "board": "GlassIngredientDetail",
       "shots": [
-        { "name": "default", "steps": "open a recipe and tap its first ingredient" }
+        { "name": "default", "steps": "on the Nutrition tab, expand a meal and tap one of its foods" }
       ],
       "notionPageId": null
     },
