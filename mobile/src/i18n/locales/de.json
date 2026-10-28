@@ -1357,6 +1357,18 @@
       "logged": "{{done}} von {{total}} erfasst",
       "mealsOf": "{{done}} von {{total}} Mahlzeiten",
       "noMeals": "Für diesen Tag sind keine Mahlzeiten geplant.",
+      "glance": {
+        "title": "Diese Woche",
+        "average": "Ø {{value}} kcal pro Tag",
+        "target": "Tagesziel {{value}} kcal",
+        "bar": "{{day}}: {{value}} kcal"
+      },
+      "recipes": {
+        "title": "Rezepte heute",
+        "all": "Alle Rezepte",
+        "meta": "{{meal}} · {{value}} kcal",
+        "open": "Rezept {{name}} öffnen, {{meta}}"
+      },
       "logError": "Die erfassten Mahlzeiten konnten nicht geladen werden.",
       "notFound": {
         "title": "Woche nicht verfügbar",

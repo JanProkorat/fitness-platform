@@ -193,4 +193,10 @@ export const sizes = {
   calendarTileWidth: 52,
   calendarTileHeight: 56,
   prepareIcon: 36,
+  weekBars: 72,
+  weekBarMin: 6,
+  weekBarRadius: 10,
+  weekTargetDash: 10,
+  recipeTodayWidth: 150,
+  recipeTodayImage: 94,
 } as const;
