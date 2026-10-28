@@ -1,4 +1,5 @@
 import { FoodCategory } from '@/api/generated';
+import { foodName } from '@/components/nutrition/meal/format';
 import type { ShoppingListData, ShoppingListEntry } from '@/api/nutrition';
 
 /** Section order of the list; every category the API can send has its own section. */
@@ -31,7 +32,7 @@ export function groupByCategory(items: readonly ShoppingListEntry[], language: s
     category,
     items: items
       .filter((item) => categoryOf(item) === category)
-      .sort((first, second) => (first.foodName ?? '').localeCompare(second.foodName ?? '', language)),
+      .sort((first, second) => foodName(first, language).localeCompare(foodName(second, language), language)),
   })).filter((section) => section.items.length > 0);
 }
 
@@ -75,14 +76,22 @@ type ShareTextOptions = {
   sections: readonly ShoppingSection[];
   categoryLabel: (category: FoodCategory) => string;
   quantityLabel: (item: ShoppingListEntry) => string;
+  language: string;
 };
 
 /** Plain-text list for the share sheet: title, week, then items grouped by category with amounts. */
-export function buildShareText({ title, subtitle, sections, categoryLabel, quantityLabel }: ShareTextOptions): string {
+export function buildShareText({
+  title,
+  subtitle,
+  sections,
+  categoryLabel,
+  quantityLabel,
+  language,
+}: ShareTextOptions): string {
   const blocks = sections.map((section) =>
     [
       categoryLabel(section.category),
-      ...section.items.map((item) => `- ${item.foodName ?? ''}: ${quantityLabel(item)}`),
+      ...section.items.map((item) => `- ${foodName(item, language)}: ${quantityLabel(item)}`),
     ].join('\n'),
   );
   return [[title, subtitle].join('\n'), ...blocks].join('\n\n');

@@ -29438,6 +29438,12 @@ export interface ShoppingListItem {
     foodExternalId?: string;
     /** Display name of the food. */
     foodName?: string;
+    /** Czech name of the food, when known. */
+    foodNameCs?: string | undefined;
+    /** English name of the food, when known. */
+    foodNameEn?: string | undefined;
+    /** German name of the food, when known. */
+    foodNameDe?: string | undefined;
     /** Total amount needed in grams. */
     totalAmountGrams?: number;
     /** Food category name (the plan's snapshot, else the food's own category, else "Other"). */
