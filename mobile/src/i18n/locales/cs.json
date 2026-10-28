@@ -1272,6 +1272,23 @@
     "serving": "Jednotka",
     "servingValue": "1 {{label}} = {{value}} g",
     "portion": "porce",
+    "units": {
+      "portion": "porce",
+      "piece": "kus",
+      "slice": "plátek",
+      "cup": "šálek",
+      "tbsp": "lžíce",
+      "tsp": "lžička",
+      "handful": "hrst",
+      "glass": "sklenice",
+      "pack": "balení",
+      "can": "plechovka",
+      "tub": "kelímek",
+      "head": "hlávka",
+      "clove": "stroužek",
+      "bunch": "svazek",
+      "scoop": "odměrka"
+    },
     "notFound": {
       "title": "Potravina není dostupná",
       "body": "Tato potravina není součástí vašeho plánu."

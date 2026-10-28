@@ -1236,6 +1236,23 @@
     "serving": "Unit",
     "servingValue": "1 {{label}} = {{value}} g",
     "portion": "portion",
+    "units": {
+      "portion": "portion",
+      "piece": "piece",
+      "slice": "slice",
+      "cup": "cup",
+      "tbsp": "tablespoon",
+      "tsp": "teaspoon",
+      "handful": "handful",
+      "glass": "glass",
+      "pack": "pack",
+      "can": "can",
+      "tub": "tub",
+      "head": "head",
+      "clove": "clove",
+      "bunch": "bunch",
+      "scoop": "scoop"
+    },
     "notFound": {
       "title": "Food not available",
       "body": "This food is not part of your plan."
