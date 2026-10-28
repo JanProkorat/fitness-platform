@@ -137,7 +137,8 @@
     "today": "Heute",
     "training": "Training",
     "nutrition": "Ernährung",
-    "messages": "Nachrichten"
+    "messages": "Nachrichten",
+    "showTabs": "Tabs anzeigen, aktuell: {{tab}}"
   },
   "today": {
     "greeting": "Willkommen, {{name}}",
@@ -149,16 +150,102 @@
     "notificationsUnread": "Benachrichtigungen, {{count}} ungelesen",
     "profile": "Profil",
     "invitesTitle": "Einladungen",
+    "dateTitle": "Heute",
     "findCoach": {
       "title": "Coach finden",
-      "subtitle": "Sie erstellen deinen Plan, du folgst ihm hier.",
+      "subtitle": "Ihr Coach erstellt Ihren Plan, Sie folgen ihm hier.",
       "trainer": {
         "title": "Trainer",
-        "hint": "Einheiten rund um dein Ziel"
+        "hint": "Einheiten rund um Ihr Ziel"
       },
       "nutritionist": {
         "title": "Ernährungsberater",
-        "hint": "Mahlzeiten, die zu deinem Tag passen"
+        "hint": "Mahlzeiten, die zu Ihrem Tag passen"
+      }
+    },
+    "coaches": {
+      "title": "Ihre Coaches",
+      "subtitle": "Immer ein Trainer und ein Ernährungsberater.",
+      "subtitleBoth": "Ein Coach kann Training und Ernährung abdecken."
+    },
+    "row": {
+      "find": { "Trainer": "Trainer finden", "Nutritionist": "Ernährungsberater finden" },
+      "add": { "Trainer": "Trainer hinzufügen", "Nutritionist": "Ernährungsberater hinzufügen" }
+    },
+    "invite": {
+      "invitedYou": "{{name}} hat Sie eingeladen",
+      "newBadge": "Neue Einladung",
+      "view": "Einladung ansehen",
+      "compare": "Andere vergleichen",
+      "footnote": "Die Einladung bleibt offen, während Sie sich umsehen.",
+      "footnoteBoth": "Je ein Plan vom selben Coach. Die Einladung bleibt offen, während Sie sich umsehen.",
+      "planTraining": "Trainingsplan",
+      "planNutrition": "Ernährungsplan",
+      "packagePrice": "Paket {{price}}"
+    },
+    "howItWorks": {
+      "title": "So funktioniert es",
+      "step1": { "title": "Coach wählen", "body": "Stöbern Sie in Profilen und senden Sie eine Anfrage, oder nehmen Sie eine Einladung an." },
+      "step2": { "title": "Ausgangslage teilen", "body": "Ein kurzer Fragebogen zu Ihrem Ziel und Ihren Gewohnheiten." },
+      "step3": { "title": "Plan hier verfolgen", "body": "Einheiten und Mahlzeiten erscheinen jeden Tag auf diesem Bildschirm." }
+    },
+    "own": {
+      "title": "Selbst starten",
+      "subtitle": "Ihr Coach sieht diesen Verlauf von Anfang an.",
+      "logWeight": "Gewicht eintragen",
+      "addPhoto": "Foto hinzufügen"
+    },
+    "progress": {
+      "coachFallback": "Ihr Coach",
+      "since": "seit {{when}}",
+      "headline": {
+        "Trainer": "{{name}} erstellt Ihren Trainingsplan",
+        "Nutritionist": "{{name}} erstellt Ihren Ernährungsplan",
+        "both": "{{name}} erstellt Ihre beiden Pläne"
+      },
+      "things_one": "{{count}} Sache für Sie in der Zwischenzeit",
+      "things_other": "{{count}} Dinge für Sie in der Zwischenzeit",
+      "accepted": "Einladung angenommen",
+      "questionnaireSent": "Fragebogen gesendet",
+      "questionnairePending": "Fragebogen",
+      "questionnairePendingHint": "Wartet auf Ihre Antworten",
+      "questionnaireFor": {
+        "Trainer": "Fragebogen zum Training",
+        "Nutritionist": "Fragebogen zum Ernährungsplan"
+      },
+      "questionnaireSentFor": {
+        "Trainer": "Fragebogen zum Training gesendet",
+        "Nutritionist": "Fragebogen zum Ernährungsplan gesendet"
+      },
+      "photos": "Startfotos",
+      "photosHint": "{{name}} bittet um Fotos",
+      "photosAdd": "Hinzufügen",
+      "planSingle": "Plan in Arbeit",
+      "planSingleHint": "Wir benachrichtigen Sie, sobald er veröffentlicht ist.",
+      "plan": {
+        "Trainer": "Trainingsplan in Arbeit",
+        "Nutritionist": "Ernährungsplan in Arbeit"
+      },
+      "footnoteBoth": "Jeder Plan kann an einem anderen Tag eintreffen. Wir benachrichtigen Sie bei jedem einzeln.",
+      "footnoteOne": "Wir benachrichtigen Sie, sobald er veröffentlicht ist.",
+      "tell": {
+        "title": "Sagen Sie, was Ihnen wichtig ist",
+        "Trainer": "Ihr Zeitplan, das Training, das Ihnen Spaß macht, eventuelle Verletzungen. Das hilft bei Ihrem Plan.",
+        "Nutritionist": "Lebensmittel, die Sie meiden, Ihr Zeitplan, wie Sie kochen. Das hilft bei Ihrem Plan.",
+        "both": "Ihr Zeitplan, das Training, das Ihnen Spaß macht, Lebensmittel, die Sie meiden. Das hilft bei beiden Plänen."
+      },
+      "message": "Nachricht schreiben",
+      "messageLabel": "Nachricht an den Coach schreiben",
+      "firstPayment": {
+        "title": "Erste Zahlung leisten",
+        "upcomingHint": "{{details}}. {{name}} sendet Ihnen die Zahlungsdaten.",
+        "requestedHint": "{{details}} per QR",
+        "overdueHint": "{{details}} per QR · überfällig",
+        "showQr": "QR anzeigen"
+      },
+      "checkIn": {
+        "title": "Wöchentlicher Check-in: {{day}}",
+        "hint": "Beginnt mit der ersten Woche Ihres Plans"
       }
     }
   },
@@ -501,6 +588,7 @@
     "paid": "Bezahlt",
     "paidOn": "Bezahlt am {{date}}",
     "collaborationEnded": "Zusammenarbeit beendet",
+    "earlierCollaboration": "Frühere Zusammenarbeit",
     "empty": "Noch keine Zahlungen. Wenn Ihr Trainer oder Ernährungsberater Sie um eine Zahlung bittet, erscheint sie hier.",
     "error": "Zahlungen konnten nicht geladen werden. Tippen Sie, um es erneut zu versuchen.",
     "card": {

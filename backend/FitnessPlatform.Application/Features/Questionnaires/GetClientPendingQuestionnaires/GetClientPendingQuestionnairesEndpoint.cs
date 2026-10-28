@@ -146,6 +146,45 @@ public class GetClientPendingQuestionnairesEndpoint(
         {
             var activatedAtUtc = link.ActivatedAtUtc;
 
+            // Responses of the current collaboration; ones left over from an earlier one are ignored.
+            // A submission counts by when it was submitted, an open response by when it was created.
+            var linkResponses = await db.QuestionnaireResponses
+                .AsNoTracking()
+                .Include(r => r.Questionnaire).ThenInclude(q => q.Questions)
+                .Where(r => r.ClientId == userGuid
+                            && r.LinkId == link.Id
+                            && (activatedAtUtc == null
+                                || (r.Status == QuestionnaireResponseStatus.Submitted
+                                    ? r.SubmittedAt >= activatedAtUtc
+                                    : r.DateCreated >= activatedAtUtc)))
+                .OrderBy(r => r.Id)
+                .ToListAsync(ct);
+
+            // One item per open response, so a link widened to a second role lists both questionnaires.
+            // The submitted check is per response: answering one never hides the other.
+            if (linkResponses.Count > 0)
+            {
+                foreach (var response in linkResponses.Where(r =>
+                             r.Status is QuestionnaireResponseStatus.Pending or QuestionnaireResponseStatus.InProgress))
+                {
+                    questionnaireItems.Add(new PendingQuestionnaireItem
+                    {
+                        LinkPublicId = link.PublicId,
+                        ProfessionalName = $"{link.ProfessionalProfile.User.FirstName} {link.ProfessionalProfile.User.LastName}",
+                        ProfessionalRole = link.ProfessionalRole.ToString(),
+                        QuestionnairePublicId = response.Questionnaire.PublicId,
+                        QuestionnaireTitle = response.Questionnaire.Title,
+                        QuestionCount = response.Questionnaire.Questions.Count,
+                        ResponsePublicId = response.PublicId,
+                        ResponseStatus = response.Status.ToString(),
+                        Scope = response.Scope,
+                    });
+                }
+
+                continue;
+            }
+
+            // No response rows: fall back to the link's questionnaire or the coach's default (scope unknown).
             // Skip links where the client already submitted a questionnaire response.
             // A link with an activation time only counts a submission made in the current collaboration.
             var hasSubmitted = await db.QuestionnaireResponses
@@ -158,16 +197,6 @@ public class GetClientPendingQuestionnairesEndpoint(
                         : (r.LinkId == link.Id && r.SubmittedAt >= activatedAtUtc)), ct);
 
             if (hasSubmitted) continue;
-
-            // Check for an existing pending/in-progress response on this link,
-            // ignoring ones left over from an earlier collaboration.
-            var existingResponse = await db.QuestionnaireResponses
-                .AsNoTracking()
-                .FirstOrDefaultAsync(r =>
-                    r.ClientId == userGuid
-                    && r.LinkId == link.Id
-                    && (activatedAtUtc == null || r.DateCreated >= activatedAtUtc)
-                    && (r.Status == QuestionnaireResponseStatus.Pending || r.Status == QuestionnaireResponseStatus.InProgress), ct);
 
             // Resolve which questionnaire applies for this link
             Domain.Entities.Questionnaire? questionnaire = null;
@@ -183,18 +212,16 @@ public class GetClientPendingQuestionnairesEndpoint(
                 .AsNoTracking()
                 .FirstOrDefaultAsync(q => q.ProfessionalId == link.ProfessionalProfile.UserId && q.IsDefault && q.IsActive && q.Type == QuestionnaireType.Onboarding, ct);
 
-            if (questionnaire is null && existingResponse is null) continue;
+            if (questionnaire is null) continue;
 
             questionnaireItems.Add(new PendingQuestionnaireItem
             {
                 LinkPublicId = link.PublicId,
                 ProfessionalName = $"{link.ProfessionalProfile.User.FirstName} {link.ProfessionalProfile.User.LastName}",
                 ProfessionalRole = link.ProfessionalRole.ToString(),
-                QuestionnairePublicId = questionnaire?.PublicId,
-                QuestionnaireTitle = questionnaire?.Title,
-                QuestionCount = questionnaire?.Questions.Count ?? 0,
-                ResponsePublicId = existingResponse?.PublicId,
-                ResponseStatus = existingResponse?.Status.ToString(),
+                QuestionnairePublicId = questionnaire.PublicId,
+                QuestionnaireTitle = questionnaire.Title,
+                QuestionCount = questionnaire.Questions.Count,
             });
         }
 

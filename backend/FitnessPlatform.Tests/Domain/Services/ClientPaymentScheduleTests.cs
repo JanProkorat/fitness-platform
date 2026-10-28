@@ -516,18 +516,21 @@ public class ClientPaymentScheduleTests
 
         var existing = new[] { new DateOnly(2026, 9, 21), endDay };
 
+        // The first collaboration's period on the restart day was requested, so it is kept and covers that day
+        // through its stored end; the new terms begin the day after it.
+        DateOnly[] kept = [endDay];
         (DateOnly Start, DateOnly? End)[] ends =
         [
             (new DateOnly(2026, 9, 21), new DateOnly(2026, 10, 25)),
             (endDay, new DateOnly(2026, 11, 29))
         ];
 
-        var planned = ClientPaymentSchedule.PlanMissingPeriods([first, reaccepted, restarted], existing, endDay, null, ends);
+        var planned = ClientPaymentSchedule.PlanMissingPeriods([first, reaccepted, restarted], existing, endDay, kept, ends);
 
         planned.Should().Equal((new DateOnly(2026, 11, 30), new DateOnly(2026, 12, 29)));
 
         var allRuns = ClientPaymentSchedule.PlanMissingPeriods(
-            [first, reaccepted, restarted], existing, endDay.AddYears(200), null, ends);
+            [first, reaccepted, restarted], existing, endDay.AddYears(200), kept, ends);
 
         allRuns.Should().Equal(
             (new DateOnly(2026, 11, 30), new DateOnly(2026, 12, 29)),
@@ -548,6 +551,32 @@ public class ClientPaymentScheduleTests
 
         ClientPaymentSchedule.PlanMissingPeriods([old, fresh], [new DateOnly(2026, 10, 26)], new DateOnly(2026, 10, 26), null, ends)
             .Should().Equal((new DateOnly(2027, 1, 4), new DateOnly(2027, 1, 10)));
+    }
+
+    [Fact]
+    public void PlanMissingPeriods_RestartWithAKeptRowAhead_EndsTheFirstPeriodBeforeItAndResumesAfterIt()
+    {
+        var restartDay = new DateOnly(2026, 10, 28);
+        var old = Ended(Terms(Package(), new DateOnly(2026, 8, 5)), new DateOnly(2026, 10, 26));
+        var fresh = Terms(Package(PackageBillingInterval.EveryNWeeks, 5000m, intervalWeeks: 10), restartDay);
+        DateOnly[] kept = [new DateOnly(2026, 11, 27)];
+        (DateOnly Start, DateOnly? End)[] ends = [(new DateOnly(2026, 11, 27), new DateOnly(2026, 12, 26))];
+
+        ClientPaymentSchedule.PlanMissingPeriods([old, fresh], kept, restartDay, kept, ends)
+            .Should().Equal((restartDay, new DateOnly(2026, 11, 26)));
+    }
+
+    [Fact]
+    public void PlanMissingPeriods_KeptRowOnTheRestartDay_StartsTheNewTermsTheDayAfterItsEnd()
+    {
+        var restartDay = new DateOnly(2026, 10, 28);
+        var old = Ended(Terms(Package(), new DateOnly(2026, 8, 5)), new DateOnly(2026, 10, 26));
+        var fresh = Terms(Package(PackageBillingInterval.EveryNWeeks, 5000m, intervalWeeks: 1), restartDay);
+        DateOnly[] kept = [restartDay];
+        (DateOnly Start, DateOnly? End)[] ends = [(restartDay, new DateOnly(2026, 11, 26))];
+
+        ClientPaymentSchedule.PlanMissingPeriods([old, fresh], kept, restartDay, kept, ends)
+            .Should().Equal((new DateOnly(2026, 11, 27), new DateOnly(2026, 12, 3)));
     }
 
     [Fact]

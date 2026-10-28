@@ -19,7 +19,11 @@ public class GetClientQuestionnaireEndpoint(IApplicationDbContext db)
             s.Summary = "Get client questionnaire";
             s.Description = "Returns the active questionnaire for a specific professional link. " +
                             "Pass ?linkPublicId= to select which coach's questionnaire to load. " +
-                            "If omitted, falls back to the first active link (legacy behaviour).";
+                            "If omitted, falls back to the first active link (legacy behaviour). " +
+                            "Pass ?responsePublicId= to load the questionnaire of one open response instead; " +
+                            "an unknown, foreign, closed or inactive-link response is a 404.";
+            s.Responses[StatusCodes.Status200OK] = "The questionnaire with any existing answers";
+            s.Responses[StatusCodes.Status404NotFound] = "No matching questionnaire, response or active link";
         });
     }
 
@@ -39,12 +43,29 @@ public class GetClientQuestionnaireEndpoint(IApplicationDbContext db)
             return;
         }
 
-        // 2. Resolve the professional link — prefer explicit linkPublicId, fall back to first active
+        // 2. Resolve the professional link — a named response wins, then explicit linkPublicId, then first active
         var linkPublicIdParam = Query<Guid?>("linkPublicId", isRequired: false);
+        var responsePublicIdParam = Query<Guid?>("responsePublicId", isRequired: false);
 
+        Domain.Entities.QuestionnaireResponse? requestedResponse = null;
         Domain.Entities.ClientProfessionalLink? link;
 
-        if (linkPublicIdParam.HasValue)
+        if (responsePublicIdParam.HasValue)
+        {
+            // Own response, still open, on a live link — anything else is indistinguishable from unknown.
+            requestedResponse = await db.QuestionnaireResponses
+                .Include(r => r.Answers)
+                .Include(r => r.Link)
+                .FirstOrDefaultAsync(r =>
+                    r.PublicId == responsePublicIdParam.Value
+                    && r.ClientId == userGuid
+                    && r.Link.ClientProfileId == clientProfile.Id
+                    && r.Link.IsActive
+                    && (r.Status == QuestionnaireResponseStatus.Pending || r.Status == QuestionnaireResponseStatus.InProgress), ct);
+
+            link = requestedResponse?.Link;
+        }
+        else if (linkPublicIdParam.HasValue)
         {
             link = await db.ClientProfessionalLinks
                 .Where(l => l.ClientProfileId == clientProfile.Id
@@ -79,7 +100,15 @@ public class GetClientQuestionnaireEndpoint(IApplicationDbContext db)
 
         // 4. Resolve questionnaire: link override → professional default
         Domain.Entities.Questionnaire? questionnaire = null;
-        if (link.QuestionnaireId.HasValue)
+        if (requestedResponse is not null)
+        {
+            questionnaire = await db.Questionnaires
+                .Include(q => q.Questions
+                    .Where(qq => !qq.IsHidden)
+                    .OrderBy(qq => qq.OrderIndex))
+                .FirstOrDefaultAsync(q => q.Id == requestedResponse.QuestionnaireId, ct);
+        }
+        else if (link.QuestionnaireId.HasValue)
         {
             questionnaire = await db.Questionnaires
                 .Include(q => q.Questions
@@ -88,11 +117,14 @@ public class GetClientQuestionnaireEndpoint(IApplicationDbContext db)
                 .FirstOrDefaultAsync(q => q.Id == link.QuestionnaireId.Value && q.IsActive, ct);
         }
 
-        questionnaire ??= await db.Questionnaires
-            .Include(q => q.Questions
-                .Where(qq => !qq.IsHidden)
-                .OrderBy(qq => qq.OrderIndex))
-            .FirstOrDefaultAsync(q => q.ProfessionalId == professionalProfile.UserId && q.IsDefault && q.IsActive && q.Type == QuestionnaireType.Onboarding, ct);
+        if (requestedResponse is null)
+        {
+            questionnaire ??= await db.Questionnaires
+                .Include(q => q.Questions
+                    .Where(qq => !qq.IsHidden)
+                    .OrderBy(qq => qq.OrderIndex))
+                .FirstOrDefaultAsync(q => q.ProfessionalId == professionalProfile.UserId && q.IsDefault && q.IsActive && q.Type == QuestionnaireType.Onboarding, ct);
+        }
 
         if (questionnaire is null)
         {
@@ -103,7 +135,7 @@ public class GetClientQuestionnaireEndpoint(IApplicationDbContext db)
         // 5. Check for an existing pending/in-progress response scoped to this link
         // Responses left over from an earlier collaboration on a re-activated link are ignored.
         var activatedAtUtc = link.ActivatedAtUtc;
-        var existingResponse = await db.QuestionnaireResponses
+        var existingResponse = requestedResponse ?? await db.QuestionnaireResponses
             .Include(r => r.Answers)
             .FirstOrDefaultAsync(r =>
                 r.ClientId == userGuid

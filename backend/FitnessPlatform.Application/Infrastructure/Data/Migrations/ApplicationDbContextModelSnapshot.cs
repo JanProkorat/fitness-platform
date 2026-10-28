@@ -3116,6 +3116,10 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("questionnaire_id");
 
+                    b.Property<int?>("Scope")
+                        .HasColumnType("integer")
+                        .HasColumnName("scope");
+
                     b.Property<int>("Status")
                         .HasColumnType("integer")
                         .HasColumnName("status");

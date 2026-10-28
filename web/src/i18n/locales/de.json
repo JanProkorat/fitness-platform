@@ -2584,7 +2584,9 @@
         "openSettings": "Einstellungen öffnen",
         "loadError": "Die Zahlungen konnten nicht geladen werden.",
         "empty": "Noch keine Zahlungen. Wählen Sie für {{name}} ein Paket, dann entsteht die erste Zahlung.",
-        "footnote": "{{name}} zahlt per Banküberweisung auf Ihr Konto. Ordnen Sie die Zahlung anhand des Variablen Symbols auf Ihrem Kontoauszug zu und markieren Sie sie dann als bezahlt."
+        "footnote": "{{name}} zahlt per Banküberweisung auf Ihr Konto. Ordnen Sie die Zahlung anhand des Variablen Symbols auf Ihrem Kontoauszug zu und markieren Sie sie dann als bezahlt.",
+        "earlierTitle": "Frühere Zusammenarbeit",
+        "earlierNote": "Diese Zahlungen stammen aus einer beendeten Zusammenarbeit mit {{name}}. Sie können sie weiterhin anfordern, als bezahlt markieren oder erlassen."
       },
       "table": {
         "period": "Zeitraum",

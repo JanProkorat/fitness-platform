@@ -52,6 +52,7 @@ function MessagesContent() {
   return (
     <Screen
       scroll
+      collapseTabBar
       topGap={theme.spacing.safeAreaGap}
       bottomInset={barClearance}
       contentStyle={styles.content}

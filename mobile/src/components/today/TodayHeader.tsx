@@ -69,6 +69,7 @@ const makeStyles = (theme: Theme) =>
     copy: {
       flex: 1,
       minWidth: 0,
+      gap: theme.spacing.xxs,
     },
     actions: {
       flexDirection: 'row',

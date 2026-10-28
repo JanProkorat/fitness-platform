@@ -7,8 +7,9 @@ import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
 
 import { CoachCard } from './CoachCard';
+import type { CoachRole } from './collaborationRoles';
 
-export type CoachRole = 'Trainer' | 'Nutritionist';
+export type { CoachRole };
 
 type FindCoachSectionProps = {
   /** Roles still without a linked coach; one card each. */

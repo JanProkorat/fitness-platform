@@ -1,6 +1,8 @@
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,7 +11,7 @@ namespace FitnessPlatform.Application.Features.Client.Collaborations.GetAll;
 /// <summary>
 /// Returns the client's active professional collaborations.
 /// </summary>
-public class GetCollaborationsEndpoint(IApplicationDbContext db) : EndpointWithoutRequest<GetCollaborationsResponse>
+public class GetCollaborationsEndpoint(IApplicationDbContext db, TimeProvider timeProvider) : EndpointWithoutRequest<GetCollaborationsResponse>
 {
     public override void Configure()
     {
@@ -18,7 +20,9 @@ public class GetCollaborationsEndpoint(IApplicationDbContext db) : EndpointWitho
         Summary(s =>
         {
             s.Summary = "Get active collaborations";
-            s.Description = "Returns all active professional links for the authenticated client.";
+            s.Description = "Returns all active professional links for the authenticated client, each with the first payment of its current terms and the effective weekly check-in days.";
+            s.Responses[StatusCodes.Status200OK] = "The client's active collaborations";
+            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
         });
     }
 
@@ -51,6 +55,7 @@ public class GetCollaborationsEndpoint(IApplicationDbContext db) : EndpointWitho
                 ProfessionalName = l.ProfessionalProfile.User.FirstName + " " + l.ProfessionalProfile.User.LastName,
                 ProfessionalCity = l.ProfessionalProfile.City,
                 Role = l.ProfessionalRole.ToString(),
+                CoveredType = CoachRoleStatus.ScopeFromGrant(l.CanViewNutritionPlans, l.CanViewTrainingPlans),
                 Since = l.DateCreated,
                 // Same fallback as SearchProfessionals / GetPublicProfile:
                 // surface the personal user avatar when the pro-profile one
@@ -60,7 +65,168 @@ public class GetCollaborationsEndpoint(IApplicationDbContext db) : EndpointWitho
             .OrderBy(l => l.Role)
             .ToListAsync(ct);
 
+        await AttachFirstPaymentsAsync(links, clientProfile.Id, ct);
+        await AttachCheckInsAsync(links, clientProfile.Id, userGuid, ct);
+
         await Send.OkAsync(new GetCollaborationsResponse { Collaborations = links }, ct);
+    }
+
+    /// <summary>
+    /// Sets each collaboration's first payment from the current terms of the client's assignment with that coach.
+    /// </summary>
+    private async Task AttachFirstPaymentsAsync(List<CollaborationDto> collaborations, long clientProfileId, CancellationToken ct)
+    {
+        var assignments = await db.ClientPaymentAssignments
+            .AsNoTracking()
+            .Where(a => a.ClientProfileId == clientProfileId)
+            .Select(a => new { a.Id, ProfessionalPublicId = a.ProfessionalProfile.PublicId })
+            .ToListAsync(ct);
+
+        var today = ClientPaymentSchedule.Today(timeProvider.GetUtcNow().UtcDateTime);
+
+        // A payment the coach asked for is the first payment, exactly as GET /client/payments lists it.
+        var requested = await ClientPaymentQueries.RequestedOrdered(ClientPaymentQueries.VisibleToClient(db, clientProfileId).AsNoTracking())
+            .ToListAsync(ct);
+        var termsByAssignment = await ClientPaymentQueries.LoadTermsByAssignmentAsync(
+            db, requested.Select(p => p.ClientPaymentAssignmentId).Distinct().ToList(), ct);
+
+        // Payments of an earlier collaboration are not the first payment of the current one.
+        requested = requested
+            .Where(p => !ClientPaymentQueries.IsEarlierCollaboration(
+                p, termsByAssignment.GetValueOrDefault(p.ClientPaymentAssignmentId) ?? []))
+            .ToList();
+
+        var requestedCoachIds = requested.Select(p => p.ProfessionalProfileId).Distinct().ToList();
+        var coachPublicIds = await db.ProfessionalProfiles
+            .AsNoTracking()
+            .Where(c => requestedCoachIds.Contains(c.Id))
+            .ToDictionaryAsync(c => c.Id, c => c.PublicId, ct);
+
+        foreach (var collaboration in collaborations)
+        {
+            var open = requested.FirstOrDefault(p =>
+                coachPublicIds.TryGetValue(p.ProfessionalProfileId, out var publicId) && publicId == collaboration.ProfessionalPublicId);
+
+            if (open is null)
+            {
+                continue;
+            }
+
+            var openFigures = ClientPaymentSchedule.FiguresOf(open, [], []);
+
+            collaboration.FirstPayment = new CollaborationFirstPaymentDto
+            {
+                PackageName = openFigures.PackageName,
+                Amount = openFigures.Amount,
+                Currency = open.Currency,
+                Status = ClientPaymentSchedule.DerivedStatus(open.Status, open.DueDate, today),
+                DueDate = open.DueDate,
+                PaymentId = open.PublicId
+            };
+        }
+
+        foreach (var assignment in assignments)
+        {
+            var collaboration = collaborations.FirstOrDefault(c => c.ProfessionalPublicId == assignment.ProfessionalPublicId);
+
+            if (collaboration is null || collaboration.FirstPayment is not null)
+            {
+                continue;
+            }
+
+            var terms = await ClientPaymentSchedule.LoadTermsAsync(db, assignment.Id, ct);
+            var current = terms.OrderByDescending(t => t.EffectiveFromUtc).ThenByDescending(t => t.Id).FirstOrDefault();
+
+            if (current is null || current.EndsAtUtc is not null)
+            {
+                continue;
+            }
+
+            var payments = await db.ClientPayments
+                .AsNoTracking()
+                .Where(p => p.ClientPaymentAssignmentId == assignment.Id
+                    && p.Kind == ClientPaymentKind.Recurring
+                    && p.PeriodStart != null
+                    && !p.IsKeptAfterEnd)
+                .ToListAsync(ct);
+
+            // Only the current collaboration counts: a returning client starts again.
+            var first = payments
+                .Where(p => !ClientPaymentQueries.IsEarlierCollaboration(p, terms))
+                .OrderBy(p => p.PeriodStart)
+                .FirstOrDefault();
+
+            if (first is null)
+            {
+                continue;
+            }
+
+            var figures = ClientPaymentSchedule.FiguresOf(first, terms, ClientPaymentSchedule.RecurringStartsOf(payments));
+
+            collaboration.FirstPayment = new CollaborationFirstPaymentDto
+            {
+                PackageName = figures.PackageName,
+                Amount = figures.Amount,
+                Currency = first.Currency,
+                Status = ClientPaymentSchedule.DerivedStatus(first.Status, first.DueDate, today),
+                DueDate = first.DueDate,
+                PaymentId = first.Status is ClientPaymentStatus.Requested or ClientPaymentStatus.Paid ? first.PublicId : null
+            };
+        }
+    }
+
+    /// <summary>
+    /// Sets each collaboration's check-in days the way <c>WeeklyCheckInScheduler</c> resolves them, limited to the
+    /// professions the link lets the client see.
+    /// </summary>
+    private async Task AttachCheckInsAsync(List<CollaborationDto> collaborations, long clientProfileId, Guid clientUserId, CancellationToken ct)
+    {
+        var links = await db.ClientProfessionalLinks
+            .AsNoTracking()
+            .Where(l => l.ClientProfileId == clientProfileId && l.IsActive)
+            .Select(l => new
+            {
+                l.PublicId,
+                ProfessionalUserId = l.ProfessionalProfile.UserId,
+                l.CanViewTrainingPlans,
+                l.CanViewNutritionPlans
+            })
+            .ToListAsync(ct);
+
+        var professionalUserIds = links.Select(l => l.ProfessionalUserId).ToList();
+
+        var settings = await db.WeeklyCheckInSettings
+            .AsNoTracking()
+            .Where(s => s.Enabled && professionalUserIds.Contains(s.UserId))
+            .ToListAsync(ct);
+
+        var overrides = await db.WeeklyCheckInClientOverrides
+            .AsNoTracking()
+            .Where(o => o.ClientUserId == clientUserId && professionalUserIds.Contains(o.ProfessionalUserId))
+            .ToListAsync(ct);
+
+        foreach (var link in links)
+        {
+            var collaboration = collaborations.First(c => c.PublicId == link.PublicId);
+
+            foreach (var setting in settings.Where(s => s.UserId == link.ProfessionalUserId).OrderBy(s => s.Profession))
+            {
+                var visible = setting.Profession == Profession.Training ? link.CanViewTrainingPlans : link.CanViewNutritionPlans;
+                var clientOverride = overrides.FirstOrDefault(o =>
+                    o.ProfessionalUserId == link.ProfessionalUserId && o.Profession == setting.Profession);
+
+                if (!visible || clientOverride?.Enabled == false)
+                {
+                    continue;
+                }
+
+                collaboration.CheckIns.Add(new CollaborationCheckInDto
+                {
+                    Profession = setting.Profession,
+                    DayOfWeek = clientOverride?.DayOfWeek ?? setting.DayOfWeek
+                });
+            }
+        }
     }
 }
 
@@ -76,6 +242,10 @@ public class CollaborationDto
     public string ProfessionalName { get; set; } = string.Empty;
     public string? ProfessionalCity { get; set; }
     public string Role { get; set; } = string.Empty;
+
+    /// <summary>Collaboration type the link covers, or null when it grants no plan view.</summary>
+    public LinkCapabilityScope? CoveredType { get; set; }
+
     public DateTime Since { get; set; }
     /// <summary>
     /// Professional's avatar URL. Falls back to the underlying user's
@@ -83,4 +253,14 @@ public class CollaborationDto
     /// Null when neither is uploaded.
     /// </summary>
     public string? AvatarBlobUrl { get; set; }
+
+    /// <summary>
+    /// First payment of the collaboration's current terms; null when the client has no terms with this professional.
+    /// </summary>
+    public CollaborationFirstPaymentDto? FirstPayment { get; set; }
+
+    /// <summary>
+    /// Weekdays the professional's weekly check-ins reach this client; empty when none is scheduled.
+    /// </summary>
+    public List<CollaborationCheckInDto> CheckIns { get; set; } = [];
 }

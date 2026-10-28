@@ -34,6 +34,11 @@ public class QuestionnaireResponse : PublicTimestampableEntity
     public QuestionnaireResponseStatus Status { get; set; } = QuestionnaireResponseStatus.Pending;
 
     /// <summary>
+    /// The plan type the invite or request behind this response granted; null for responses assigned without one.
+    /// </summary>
+    public LinkCapabilityScope? Scope { get; set; }
+
+    /// <summary>
     /// Timestamp when the response was submitted by the client.
     /// </summary>
     public DateTime? SubmittedAt { get; set; }

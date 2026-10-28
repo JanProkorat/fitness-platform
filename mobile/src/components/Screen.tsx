@@ -6,6 +6,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
 
+import { useTabBarScrollHandler } from './TabBarCollapse';
+
 type ScreenProps = {
   children: ReactNode;
   scroll?: boolean;
@@ -21,6 +23,13 @@ type ScreenProps = {
    * content padding to the scroll view's content inset, so the spinner sits below the status bar.
    */
   refreshControl?: ReactElement<RefreshControlProps>;
+  /**
+   * Fixed header above a scrolling body. It takes the top safe-area inset and `topGap`; only the body
+   * scrolls, and a refresh spinner sits just below it. Needs `scroll`.
+   */
+  header?: ReactNode;
+  /** Collapses the tab bar into a pill while this screen scrolls down. Only the tab screens set it. */
+  collapseTabBar?: boolean;
 };
 
 export function Screen({
@@ -31,21 +40,26 @@ export function Screen({
   gutter,
   topGap = 0,
   refreshControl,
+  header,
+  collapseTabBar = false,
 }: ScreenProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const styles = makeStyles(theme);
   const sideGutter = gutter ?? theme.spacing.xxl;
-  const insetOnScrollView = scroll && refreshControl !== undefined && Platform.OS === 'ios';
+  const onTabBarScroll = useTabBarScrollHandler();
+  const fixedHeader = scroll && header !== undefined;
+  const insetOnScrollView =
+    scroll && !fixedHeader && refreshControl !== undefined && Platform.OS === 'ios';
   const padding = {
-    paddingTop: (insetOnScrollView ? 0 : insets.top) + topGap,
+    paddingTop: fixedHeader ? 0 : (insetOnScrollView ? 0 : insets.top) + topGap,
     paddingBottom: insets.bottom + bottomInset,
     paddingLeft: insets.left + sideGutter,
     paddingRight: insets.right + sideGutter,
   };
 
   if (scroll) {
-    return (
+    const body = (
       <ScrollView
         style={styles.root}
         contentContainerStyle={[padding, contentStyle]}
@@ -54,9 +68,26 @@ export function Screen({
         contentOffset={insetOnScrollView ? { x: 0, y: -insets.top } : undefined}
         refreshControl={refreshControl}
         keyboardShouldPersistTaps="handled"
+        onScroll={collapseTabBar ? onTabBarScroll : undefined}
+        scrollEventThrottle={collapseTabBar ? 16 : undefined}
       >
         {children}
       </ScrollView>
+    );
+    if (!fixedHeader) {
+      return body;
+    }
+    const headerPadding = {
+      paddingTop: insets.top + topGap,
+      paddingBottom: theme.spacing.xl,
+      paddingLeft: insets.left + sideGutter,
+      paddingRight: insets.right + sideGutter,
+    };
+    return (
+      <View style={styles.root}>
+        <View style={headerPadding}>{header}</View>
+        {body}
+      </View>
     );
   }
 

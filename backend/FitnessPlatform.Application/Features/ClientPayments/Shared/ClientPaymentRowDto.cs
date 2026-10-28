@@ -63,6 +63,9 @@ public class ClientPaymentRowDto
     /// <summary>Why the payment was waived.</summary>
     public string? WaiveReason { get; set; }
 
+    /// <summary>Whether the payment belongs to a collaboration that ended before the current one.</summary>
+    public bool IsEarlierCollaboration { get; set; }
+
     /// <summary>
     /// Maps a payment, with the figures and message already resolved, to its row.
     /// </summary>
@@ -70,11 +73,13 @@ public class ClientPaymentRowDto
     /// <param name="status">The derived status.</param>
     /// <param name="figures">Amount, price breakdown and package name to show.</param>
     /// <param name="message">The transfer message to show.</param>
+    /// <param name="isEarlierCollaboration">Whether the payment belongs to an earlier collaboration.</param>
     public static ClientPaymentRowDto FromEntity(
         ClientPayment payment,
         ClientPaymentStatus status,
         (decimal? Amount, decimal? BasePrice, string? DiscountLabel, string? PackageName, bool IsCustomPrice) figures,
-        string? message) => new()
+        string? message,
+        bool isEarlierCollaboration = false) => new()
     {
         PaymentId = payment.PublicId,
         Kind = payment.Kind,
@@ -93,7 +98,8 @@ public class ClientPaymentRowDto
         Message = message,
         RequestedAt = payment.RequestedAt,
         PaidOn = payment.PaidOn,
-        WaiveReason = payment.WaiveReason
+        WaiveReason = payment.WaiveReason,
+        IsEarlierCollaboration = isEarlierCollaboration
     };
 
     /// <summary>
