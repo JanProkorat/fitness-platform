@@ -282,3 +282,21 @@ export async function fetchAllClientRecipes(planId?: string, signal?: AbortSigna
   }
   return { items, total: Math.max(total, items.length) };
 }
+
+/** The shopping list of a week range as the API returns it. */
+export type ShoppingListData = Awaited<ReturnType<typeof api.getShoppingListEndpoint>>;
+export type ShoppingListEntry = NonNullable<ShoppingListData['items']>[number];
+
+/** Key of a cached shopping list; the prefix is shared by every requested week range. */
+export const shoppingListQueryKey = (weekFrom: number, weekTo: number) =>
+  ['nutrition', 'shoppingList', weekFrom, weekTo] as const;
+
+/** The shopping list of plan weeks `weekFrom` to `weekTo` (GET /client/nutrition/plan/shopping-list). */
+export function fetchShoppingList(weekFrom: number, weekTo: number, signal?: AbortSignal): Promise<ShoppingListData> {
+  return api.getShoppingListEndpoint(weekFrom, weekTo, signal);
+}
+
+/** Ticks or unticks one food of a plan week (PUT /client/nutrition/plan/shopping-list/ticks). */
+export function setShoppingListItemTicked(weekNumber: number, foodExternalId: string, isTicked: boolean): Promise<void> {
+  return api.setShoppingListItemTickedEndpoint({ weekNumber, foodExternalId, isTicked });
+}

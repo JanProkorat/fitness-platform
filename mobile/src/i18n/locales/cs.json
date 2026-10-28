@@ -1310,6 +1310,45 @@
       "grams": " g"
     }
   },
+  "nutritionShoppingList": {
+    "title": "Nákupní seznam",
+    "subtitle": "Týden od {{date}} · koupeno {{done}} z {{total}}",
+    "subtitleEmpty": "Týden od {{date}}",
+    "thisWeek": "Tento týden",
+    "nextWeek": "Příští týden",
+    "share": "Sdílet nákupní seznam",
+    "grams": "{{value}} g",
+    "kilograms": "{{value}} kg",
+    "retry": "Zkusit znovu",
+    "tickError": "Změnu se nepodařilo uložit. Seznam jsme vrátili zpět.",
+    "error": {
+      "title": "Nákupní seznam není k dispozici",
+      "body": "Nákupní seznam se nepodařilo načíst. Zkuste to prosím znovu."
+    },
+    "empty": {
+      "noPlanTitle": "Zatím žádný nákupní seznam",
+      "noPlanBody": "Nemáte aktivní jídelníček, takže není co nakupovat.",
+      "noWeekTitle": "Není co nakupovat",
+      "noWeekBody": "Váš jídelníček nemá aktuální ani nadcházející týden.",
+      "weekTitle": "Není co koupit",
+      "weekBody": "Tento týden jídelníčku neobsahuje žádná jídla se surovinami."
+    },
+    "categories": {
+      "Vegetables": "Zelenina",
+      "Fruit": "Ovoce",
+      "Meat": "Maso",
+      "FishAndSeafood": "Ryby a mořské plody",
+      "Dairy": "Mléčné výrobky",
+      "GrainsAndCereals": "Obiloviny a pečivo",
+      "Legumes": "Luštěniny",
+      "NutsAndSeeds": "Ořechy a semínka",
+      "OilsAndFats": "Oleje a tuky",
+      "SweetsAndSnacks": "Sladkosti a svačiny",
+      "Beverages": "Nápoje",
+      "Supplements": "Doplňky stravy",
+      "Other": "Ostatní"
+    }
+  },
   "nutritionRecipe": {
     "notFound": {
       "title": "Recept není dostupný",

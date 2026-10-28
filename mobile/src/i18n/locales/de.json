@@ -1280,6 +1280,45 @@
       "grams": " g"
     }
   },
+  "nutritionShoppingList": {
+    "title": "Einkaufsliste",
+    "subtitle": "Woche ab {{date}} · {{done}} von {{total}} gekauft",
+    "subtitleEmpty": "Woche ab {{date}}",
+    "thisWeek": "Diese Woche",
+    "nextWeek": "Nächste Woche",
+    "share": "Einkaufsliste teilen",
+    "grams": "{{value}} g",
+    "kilograms": "{{value}} kg",
+    "retry": "Erneut versuchen",
+    "tickError": "Ihre Änderung konnte nicht gespeichert werden. Die Liste wurde zurückgesetzt.",
+    "error": {
+      "title": "Einkaufsliste nicht verfügbar",
+      "body": "Ihre Einkaufsliste konnte nicht geladen werden. Bitte versuchen Sie es erneut."
+    },
+    "empty": {
+      "noPlanTitle": "Noch keine Einkaufsliste",
+      "noPlanBody": "Sie haben keinen aktiven Ernährungsplan, daher gibt es nichts einzukaufen.",
+      "noWeekTitle": "Nichts einzukaufen",
+      "noWeekBody": "Ihr Plan hat keine aktuelle oder bevorstehende Woche.",
+      "weekTitle": "Nichts zu kaufen",
+      "weekBody": "Diese Woche Ihres Plans enthält keine Mahlzeiten mit Zutaten."
+    },
+    "categories": {
+      "Vegetables": "Gemüse",
+      "Fruit": "Obst",
+      "Meat": "Fleisch",
+      "FishAndSeafood": "Fisch und Meeresfrüchte",
+      "Dairy": "Milchprodukte",
+      "GrainsAndCereals": "Getreide und Backwaren",
+      "Legumes": "Hülsenfrüchte",
+      "NutsAndSeeds": "Nüsse und Samen",
+      "OilsAndFats": "Öle und Fette",
+      "SweetsAndSnacks": "Süßigkeiten und Snacks",
+      "Beverages": "Getränke",
+      "Supplements": "Nahrungsergänzung",
+      "Other": "Sonstiges"
+    }
+  },
   "nutritionRecipe": {
     "notFound": {
       "title": "Rezept nicht verfügbar",
