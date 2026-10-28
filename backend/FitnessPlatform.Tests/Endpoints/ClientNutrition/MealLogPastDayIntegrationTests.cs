@@ -27,6 +27,9 @@ public class MealLogPastDayIntegrationTests(FitnessApiFactory factory)
     private const string PhotoA = "https://minio.local/bucket/past-a.jpg";
     private const string PhotoB = "https://minio.local/bucket/past-b.jpg";
 
+    /// <summary>A photo URL under the meal's <c>diary/{mealId}/</c> folder, as the upload-url endpoint issues it.</summary>
+    private static string DiaryPhoto(Guid mealId, string name) => $"diary/{mealId}/{name}.jpg";
+
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
 
     private static DateTime TodayUtc => DateTime.UtcNow.Date;
@@ -190,7 +193,7 @@ public class MealLogPastDayIntegrationTests(FitnessApiFactory factory)
         var (plan, mealId, _) = await SeedPlanAsync(client.UserId);
         var pastDate = PastNonMonday;
 
-        var response = await SavePhotosAsync(client, mealId, pastDate, PhotoA);
+        var response = await SavePhotosAsync(client, mealId, pastDate, DiaryPhoto(mealId, "past-a"));
 
         response.StatusCode.Should().Be(HttpStatusCode.NoContent);
         var row = (await LoadLogsAsync(client.UserId, mealId)).Should().ContainSingle().Subject;
@@ -208,7 +211,7 @@ public class MealLogPastDayIntegrationTests(FitnessApiFactory factory)
         var meal = week.Days.Single(d => d.Date == pastDate).Meals.Should().ContainSingle().Subject;
         meal.Eaten.Should().BeFalse();
         var photo = meal.Photos.Should().ContainSingle().Subject;
-        photo.BlobUrl.Should().Be(PhotoA);
+        photo.BlobUrl.Should().Be(DiaryPhoto(mealId, "past-a"));
         photo.DisplayUrl.Should().NotBeNullOrEmpty();
     }
 
@@ -218,7 +221,7 @@ public class MealLogPastDayIntegrationTests(FitnessApiFactory factory)
         var client = await CreateClientAsync();
         var (_, mealId, _) = await SeedPlanAsync(client.UserId);
 
-        var response = await SavePhotosAsync(client, mealId, null, PhotoA);
+        var response = await SavePhotosAsync(client, mealId, null, DiaryPhoto(mealId, "past-a"));
 
         response.StatusCode.Should().Be(HttpStatusCode.NoContent);
         var row = (await LoadLogsAsync(client.UserId, mealId)).Should().ContainSingle().Subject;
@@ -235,13 +238,13 @@ public class MealLogPastDayIntegrationTests(FitnessApiFactory factory)
         var pastDate = PastNonMonday;
         var seeded = await SeedLogAsync(client.UserId, plan.ExternalId, mealId, pastDate, eaten: true, PhotoA);
 
-        var response = await SavePhotosAsync(client, mealId, pastDate, PhotoB);
+        var response = await SavePhotosAsync(client, mealId, pastDate, DiaryPhoto(mealId, "past-b"));
 
         response.StatusCode.Should().Be(HttpStatusCode.NoContent);
         var row = (await LoadLogsAsync(client.UserId, mealId)).Should().ContainSingle().Subject;
         row.Id.Should().Be(seeded.Id);
         row.EatenAt.Should().Be(seeded.EatenAt);
-        row.Photos.Should().ContainSingle().Which.BlobUrl.Should().Be(PhotoB);
+        row.Photos.Should().ContainSingle().Which.BlobUrl.Should().Be(DiaryPhoto(mealId, "past-b"));
     }
 
     [Fact]

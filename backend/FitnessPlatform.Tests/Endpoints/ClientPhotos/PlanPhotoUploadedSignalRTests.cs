@@ -185,7 +185,7 @@ public class PlanPhotoUploadedSignalRTests
         Factory.Create<SaveMealPhotosEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, linkAuthorizationService ?? EndpointTestHelpers.CreateGrantingLinkAuthorizationService(), _mealLogger, new FakeBlobStorageService(), TimeProvider.System);
+            mongo, db, _notifier, linkAuthorizationService ?? EndpointTestHelpers.CreateGrantingLinkAuthorizationService(), _mealLogger, new FakeBlobStorageService(), new ImageUploadService(new FakeBlobStorageService()), TimeProvider.System);
 
     private SaveDayPhotosEndpoint CreateSaveDayPhotosEndpoint(
         IMongoContext mongo, IApplicationDbContext db, IClientLinkAuthorizationService? linkAuthorizationService = null) =>
@@ -421,7 +421,7 @@ public class PlanPhotoUploadedSignalRTests
         await ep.HandleAsync(new SaveMealPhotosRequest
         {
             MealId = mealId,
-            Photos = [new MealPhotoInput { BlobUrl = "https://cdn.example.com/photo.jpg" }]
+            Photos = [new MealPhotoInput { BlobUrl = $"diary/{mealId}/photo.jpg" }]
         }, TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(204);
@@ -459,7 +459,7 @@ public class PlanPhotoUploadedSignalRTests
         await ep.HandleAsync(new SaveMealPhotosRequest
         {
             MealId = mealId,
-            Photos = [new MealPhotoInput { BlobUrl = "https://cdn.example.com/chicken.jpg" }]
+            Photos = [new MealPhotoInput { BlobUrl = $"diary/{mealId}/chicken.jpg" }]
         }, TestContext.Current.CancellationToken);
 
         // A different professional must NOT receive
@@ -485,7 +485,7 @@ public class PlanPhotoUploadedSignalRTests
             status: NutritionPlanStatus.Active);
         plan.Weeks[0].Days[0].Meals.Add(meal);
 
-        const string existingUrl = "https://cdn.example.com/existing.jpg";
+        var existingUrl = $"diary/{mealId}/existing.jpg";
 
         // Pre-seed an existing PlanPhoto row so the dual-write skips it
         var db = new MockDbBuilder()

@@ -171,4 +171,46 @@ public class ImageUploadServiceTests
         ex.Which.Failures
             .Should().ContainSingle(f => f.ErrorCode == ErrorCodes.InvalidImageContentType);
     }
+
+    // ── IsValidBlobUrlUnderSubPath ──────────────────────────────────────────
+
+    private const string BucketRoot = "https://minio/bucket/";
+
+    [Theory]
+    [InlineData("https://minio/bucket/diary/meal1/a.jpg", true)]
+    [InlineData("https://minio/bucket/diary/meal1/0f8fad5b.png", true)]
+    [InlineData("https://minio/bucket/diary/meal1/x.webp", true)]
+    [InlineData("https://minio/bucket/diary/meal1/x.heic", true)]
+    [InlineData("https://minio/bucket/diary/meal1/x.heif", true)]
+    [InlineData("https://minio/bucket/diary/meal1/a.JPG", false)]            // case-sensitive extension
+    [InlineData("https://minio/bucket/diary/meal1/a.gif", false)]            // disallowed extension
+    [InlineData("https://minio/bucket/diary/meal1/.jpg", false)]             // only an extension
+    [InlineData("https://minio/bucket/diary/meal1/", false)]                 // empty name
+    [InlineData("https://minio/bucket/diary/meal1/sub/a.jpg", false)]        // nested
+    [InlineData("https://minio/bucket/diary/meal1/..a.jpg", false)]          // dot-dot
+    [InlineData("https://minio/bucket/diary/meal1/a\\b.jpg", false)]         // backslash
+    [InlineData("https://minio/bucket/diary/meal1/a%2Fb.jpg", false)]        // percent
+    [InlineData("https://minio/bucket/diary/meal1/a.jpg?sig=1", false)]      // query
+    [InlineData("https://minio/bucket/diary/meal1/a.jpg#frag", false)]       // fragment
+    [InlineData("https://minio/bucket/diary/meal10/a.jpg", false)]           // sibling folder sharing the prefix
+    [InlineData("https://minio/bucket/diary/meal2/a.jpg", false)]            // other folder
+    [InlineData("https://minio/bucket/plan-photos/meal1/a.jpg", false)]      // other scope
+    [InlineData("https://evil.example.com/diary/meal1/a.jpg", false)]        // foreign host
+    [InlineData("", false)]
+    public void IsValidBlobUrlUnderSubPath_Url_MatchesExpectation(string blobUrl, bool expected)
+    {
+        _blobStorage.BuildPublicUrl(Arg.Any<string>()).Returns(call => BucketRoot + call.Arg<string>());
+
+        _sut.IsValidBlobUrlUnderSubPath(ImageUploadScope.Diary, "meal1", blobUrl)
+            .Should().Be(expected);
+    }
+
+    [Fact]
+    public void IsValidBlobUrlUnderSubPath_BlankSubPath_ReturnsFalse()
+    {
+        _blobStorage.BuildPublicUrl(Arg.Any<string>()).Returns(call => BucketRoot + call.Arg<string>());
+
+        _sut.IsValidBlobUrlUnderSubPath(ImageUploadScope.Diary, " ", "https://minio/bucket/diary//a.jpg")
+            .Should().BeFalse();
+    }
 }

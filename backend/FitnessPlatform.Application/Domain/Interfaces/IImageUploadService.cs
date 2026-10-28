@@ -113,4 +113,17 @@ public interface IImageUploadService
     /// mismatched prefix, or a foreign/external URL.
     /// </returns>
     bool IsValidBlobUrlForSubPath(ImageUploadScope scope, string subPathPrefix, string blobUrl);
+
+    /// <summary>
+    /// Validates that <paramref name="blobUrl"/> points at one file directly under the
+    /// <c>"{prefix}/{subPathPrefix}/"</c> folder, with an allowed image extension.
+    /// </summary>
+    /// <param name="scope">Logical bucket scope (e.g. <see cref="ImageUploadScope.Diary"/>).</param>
+    /// <param name="subPathPrefix">Folder below the scope prefix, e.g. the meal id.</param>
+    /// <param name="blobUrl">The blobUrl the caller is attempting to persist.</param>
+    /// <returns>
+    /// True only when the remainder after the folder is a single non-empty file name (no
+    /// separators, <c>..</c>, <c>%</c>, <c>?</c> or <c>#</c>) ending in a lowercase allowed extension.
+    /// </returns>
+    bool IsValidBlobUrlUnderSubPath(ImageUploadScope scope, string subPathPrefix, string blobUrl);
 }

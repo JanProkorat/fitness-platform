@@ -139,6 +139,42 @@ public class ImageUploadService(IBlobStorageService blobStorage) : IImageUploadS
         return false;
     }
 
+    /// <inheritdoc />
+    public bool IsValidBlobUrlUnderSubPath(ImageUploadScope scope, string subPathPrefix, string blobUrl)
+    {
+        if (string.IsNullOrWhiteSpace(blobUrl) || string.IsNullOrWhiteSpace(subPathPrefix))
+        {
+            return false;
+        }
+
+        var folderUrl = blobStorage.BuildPublicUrl($"{ScopeToPrefix(scope)}/{subPathPrefix}/");
+
+        if (!blobUrl.StartsWith(folderUrl, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        var fileName = blobUrl[folderUrl.Length..];
+
+        if (fileName.Length == 0 || fileName.IndexOfAny(['/', '\\', '%', '?', '#']) >= 0 ||
+            fileName.Contains("..", StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        foreach (var extension in AllowedContentTypes.Values)
+        {
+            var suffix = $".{extension}";
+
+            if (fileName.Length > suffix.Length && fileName.EndsWith(suffix, StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private static string ScopeToPrefix(ImageUploadScope scope) => scope switch
     {
         ImageUploadScope.Avatar     => "avatars",

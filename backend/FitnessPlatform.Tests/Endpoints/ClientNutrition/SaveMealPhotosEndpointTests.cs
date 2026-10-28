@@ -104,7 +104,7 @@ public class SaveMealPhotosEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, linkAuthorizationService ?? EndpointTestHelpers.CreateGrantingLinkAuthorizationService(), _logger, _blobStorage, TimeProvider.System);
+            mongo, db, _notifier, linkAuthorizationService ?? EndpointTestHelpers.CreateGrantingLinkAuthorizationService(), _logger, _blobStorage, new ImageUploadService(_blobStorage), TimeProvider.System);
 
     // ──────────────────────────────────────────────────────────────────────────
     // Replace-semantics happy-path tests
@@ -136,8 +136,8 @@ public class SaveMealPhotosEndpointTests
                 MealId = mealId,
                 Photos =
                 [
-                    new MealPhotoInput { BlobUrl = "https://minio.local/bucket/photo1.jpg" },
-                    new MealPhotoInput { BlobUrl = "https://minio.local/bucket/photo2.jpg" }
+                    new MealPhotoInput { BlobUrl = $"diary/{mealId}/photo1.jpg" },
+                    new MealPhotoInput { BlobUrl = $"diary/{mealId}/photo2.jpg" }
                 ],
                 Note = note
             },
@@ -204,7 +204,7 @@ public class SaveMealPhotosEndpointTests
             new SaveMealPhotosRequest
             {
                 MealId = mealId,
-                Photos = [new MealPhotoInput { BlobUrl = "https://minio.local/bucket/new.jpg" }],
+                Photos = [new MealPhotoInput { BlobUrl = $"diary/{mealId}/new.jpg" }],
                 Note = "new note"
             },
             TestContext.Current.CancellationToken);
@@ -341,7 +341,7 @@ public class SaveMealPhotosEndpointTests
         plan.Weeks[0].Days[0].Meals.Add(meal);
 
         const string urlA = "https://minio.local/bucket/photoA.jpg";
-        const string urlB = "https://minio.local/bucket/photoB.jpg";
+        var urlB = $"diary/{mealId}/photoB.jpg";
         var originalUploadedAt = DateTime.UtcNow.AddHours(-3);
 
         // Pre-existing log with photo A at timestamp T
@@ -458,7 +458,7 @@ public class SaveMealPhotosEndpointTests
             new SaveMealPhotosRequest
             {
                 MealId = mealId,
-                Photos = [new MealPhotoInput { BlobUrl = "https://minio.local/bucket/photo.jpg" }],
+                Photos = [new MealPhotoInput { BlobUrl = $"diary/{mealId}/photo.jpg" }],
                 Note = null
             },
             TestContext.Current.CancellationToken);
@@ -517,8 +517,8 @@ public class SaveMealPhotosEndpointTests
                 MealId = mealId,
                 Photos =
                 [
-                    new MealPhotoInput { BlobUrl = "https://minio.local/a.jpg", Note = "Side of guac added" },
-                    new MealPhotoInput { BlobUrl = "https://minio.local/b.jpg", Note = null }
+                    new MealPhotoInput { BlobUrl = $"diary/{mealId}/a.jpg", Note = "Side of guac added" },
+                    new MealPhotoInput { BlobUrl = $"diary/{mealId}/b.jpg", Note = null }
                 ],
                 Note = null
             },
@@ -528,9 +528,9 @@ public class SaveMealPhotosEndpointTests
 
         insertedLog.Should().NotBeNull();
         insertedLog!.Photos.Should().HaveCount(2);
-        insertedLog.Photos[0].BlobUrl.Should().Be("https://minio.local/a.jpg");
+        insertedLog.Photos[0].BlobUrl.Should().Be($"diary/{mealId}/a.jpg");
         insertedLog.Photos[0].Note.Should().Be("Side of guac added");
-        insertedLog.Photos[1].BlobUrl.Should().Be("https://minio.local/b.jpg");
+        insertedLog.Photos[1].BlobUrl.Should().Be($"diary/{mealId}/b.jpg");
         insertedLog.Photos[1].Note.Should().BeNull();
     }
 
@@ -672,7 +672,7 @@ public class SaveMealPhotosEndpointTests
             new SaveMealPhotosRequest
             {
                 MealId = mealId,
-                Photos = [new MealPhotoInput { BlobUrl = "https://minio.local/bucket/legacy-photo.jpg" }],
+                Photos = [new MealPhotoInput { BlobUrl = $"diary/{mealId}/legacy-photo.jpg" }],
                 Note = "added after migration"
             },
             TestContext.Current.CancellationToken);
@@ -718,7 +718,7 @@ public class SaveMealPhotosEndpointTests
             new SaveMealPhotosRequest
             {
                 MealId = mealId,
-                Photos = [new MealPhotoInput { BlobUrl = "https://minio.local/bucket/viewer.jpg" }],
+                Photos = [new MealPhotoInput { BlobUrl = $"diary/{mealId}/viewer.jpg" }],
                 Note = null
             },
             TestContext.Current.CancellationToken);
@@ -757,7 +757,7 @@ public class SaveMealPhotosEndpointTests
             new SaveMealPhotosRequest
             {
                 MealId = mealId,
-                Photos = [new MealPhotoInput { BlobUrl = "https://minio.local/bucket/note-photo.jpg", Note = "My note" }],
+                Photos = [new MealPhotoInput { BlobUrl = $"diary/{mealId}/note-photo.jpg", Note = "My note" }],
                 Note = null
             },
             TestContext.Current.CancellationToken);
@@ -766,7 +766,7 @@ public class SaveMealPhotosEndpointTests
         ep.HttpContext.Response.StatusCode.Should().Be(204);
 
         db.PlanPhotos.Received(1).Add(Arg.Is<PlanPhoto>(p =>
-            p.BlobUrl == "https://minio.local/bucket/note-photo.jpg" &&
+            p.BlobUrl == $"diary/{mealId}/note-photo.jpg" &&
             p.Description == "My note" &&
             p.Category == PlanPhotoCategory.Food));
     }
@@ -889,7 +889,7 @@ public class SaveMealPhotosEndpointTests
             new SaveMealPhotosRequest
             {
                 MealId = mealId,
-                Photos = [new MealPhotoInput { BlobUrl = "https://minio.local/bucket/echoed.jpg?signed=test" }],
+                Photos = [new MealPhotoInput { BlobUrl = $"diary/{mealId}/echoed.jpg?signed=test" }],
                 Note = null
             },
             TestContext.Current.CancellationToken);
@@ -897,7 +897,7 @@ public class SaveMealPhotosEndpointTests
         ep.HttpContext.Response.StatusCode.Should().Be(204);
         insertedLog.Should().NotBeNull();
         insertedLog!.Photos.Should().ContainSingle();
-        insertedLog.Photos[0].BlobUrl.Should().Be("https://minio.local/bucket/echoed.jpg");
+        insertedLog.Photos[0].BlobUrl.Should().Be($"diary/{mealId}/echoed.jpg");
         insertedLog.Photos[0].BlobUrl.Should().NotContain("?");
     }
 
@@ -975,7 +975,7 @@ public class SaveMealPhotosEndpointTests
             new SaveMealPhotosRequest
             {
                 MealId = mealId,
-                Photos = [new MealPhotoInput { BlobUrl = "https://minio.local/bucket/denied.jpg" }],
+                Photos = [new MealPhotoInput { BlobUrl = $"diary/{mealId}/denied.jpg" }],
                 Note = null
             },
             TestContext.Current.CancellationToken);
@@ -988,6 +988,147 @@ public class SaveMealPhotosEndpointTests
             "planphotouploaded",
             Arg.Any<object>(),
             Arg.Any<CancellationToken>());
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Photo URL must belong to this meal's diary folder
+    // ──────────────────────────────────────────────────────────────────────────
+
+    [Theory]
+    [InlineData("plan-photos/{other}/photo.jpg")]      // another scope
+    [InlineData("diary/{other}/photo.jpg")]            // another meal's folder
+    [InlineData("https://cdn.example.com/photo.jpg")]  // foreign host
+    [InlineData("diary/{meal}/nested/photo.jpg")]      // nested segment
+    [InlineData("diary/{meal}/../{other}/photo.jpg")]  // traversal
+    [InlineData("diary/{meal}/photo.gif")]             // disallowed extension
+    [InlineData("diary/{meal}/.jpg")]                  // empty file name
+    public async Task HandleAsync_PhotoUrlOutsideMealFolder_Returns400AndWritesNothing(string template)
+    {
+        var mealId = Guid.NewGuid();
+        var url = template
+            .Replace("{meal}", mealId.ToString())
+            .Replace("{other}", Guid.NewGuid().ToString());
+        var (mongo, mealLogCollection, db) = CreateMealSetup(mealId, existingLogs: []);
+        var ep = CreateEndpoint(mongo, db);
+
+        await ep.HandleAsync(
+            new SaveMealPhotosRequest { MealId = mealId, Photos = [new MealPhotoInput { BlobUrl = url }] },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(400);
+        await AssertNothingWrittenAsync(mealLogCollection, db);
+    }
+
+    [Fact]
+    public async Task HandleAsync_MixedValidAndForeignUrls_RejectsWholeRequest()
+    {
+        var mealId = Guid.NewGuid();
+        var (mongo, mealLogCollection, db) = CreateMealSetup(mealId, existingLogs: []);
+        var ep = CreateEndpoint(mongo, db);
+
+        await ep.HandleAsync(
+            new SaveMealPhotosRequest
+            {
+                MealId = mealId,
+                Photos =
+                [
+                    new MealPhotoInput { BlobUrl = $"diary/{mealId}/ok.jpg" },
+                    new MealPhotoInput { BlobUrl = $"diary/{Guid.NewGuid()}/foreign.jpg" }
+                ]
+            },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(400);
+        await AssertNothingWrittenAsync(mealLogCollection, db);
+    }
+
+    [Fact]
+    public async Task HandleAsync_LegacyPhotoAlreadyOnLog_IsAcceptedAndKeepsUploadedAt()
+    {
+        var mealId = Guid.NewGuid();
+        const string legacyUrl = "https://minio.local/bucket/legacy-outside.jpg";
+        var existingLog = new MealLog
+        {
+            Id = ObjectId.GenerateNewId(),
+            ClientId = _clientId,
+            MealId = mealId,
+            LogDate = DateTime.UtcNow.Date,
+            Photos = [new MealPhoto { BlobUrl = legacyUrl, UploadedAt = DateTime.UtcNow.AddDays(-1) }],
+        };
+        var (mongo, mealLogCollection, db) = CreateMealSetup(mealId, existingLogs: [existingLog]);
+        var ep = CreateEndpoint(mongo, db);
+
+        await ep.HandleAsync(
+            new SaveMealPhotosRequest
+            {
+                MealId = mealId,
+                Photos = [new MealPhotoInput { BlobUrl = $"{legacyUrl}?signed=test" }]
+            },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(204);
+        await mealLogCollection.Received(1).UpdateOneAsync(
+            Arg.Any<FilterDefinition<MealLog>>(),
+            Arg.Any<UpdateDefinition<MealLog>>(),
+            Arg.Any<UpdateOptions>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task HandleAsync_NewPhotoUnderMealFolder_IsAccepted()
+    {
+        var mealId = Guid.NewGuid();
+        var (mongo, mealLogCollection, db) = CreateMealSetup(mealId, existingLogs: []);
+        var ep = CreateEndpoint(mongo, db);
+
+        await ep.HandleAsync(
+            new SaveMealPhotosRequest
+            {
+                MealId = mealId,
+                Photos = [new MealPhotoInput { BlobUrl = $"diary/{mealId}/{Guid.NewGuid():N}.jpg" }]
+            },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(204);
+        await mealLogCollection.Received(1).InsertOneAsync(
+            Arg.Is<MealLog>(log => log.Photos.Count == 1),
+            Arg.Any<InsertOneOptions>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    private (IMongoContext Mongo, IMongoCollection<MealLog> MealLogs, IApplicationDbContext Db) CreateMealSetup(
+        Guid mealId, List<MealLog> existingLogs)
+    {
+        var meal = PlanTestHelpers.CreateMeal(
+            mealId: mealId, kind: MealKind.Breakfast, foods: PlanTestHelpers.CreateMealFood(foodName: "Toast"));
+        var plan = PlanTestHelpers.CreatePlan(clientId: _clientId, status: NutritionPlanStatus.Active);
+        plan.StartDate = DateTime.UtcNow;
+        plan.Weeks[0].Days[0].Meals.Add(meal);
+
+        foreach (var log in existingLogs)
+        {
+            log.PlanId = plan.ExternalId;
+            log.FoodsEaten = meal.Foods;
+        }
+
+        var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
+        var mealLogCollection = CreateMealLogCollection(existingLogs);
+        mongo.MealLogs.Returns(mealLogCollection);
+
+        return (mongo, mealLogCollection, CreateMockDb());
+    }
+
+    private static async Task AssertNothingWrittenAsync(
+        IMongoCollection<MealLog> mealLogCollection, IApplicationDbContext db)
+    {
+        await mealLogCollection.DidNotReceive().InsertOneAsync(
+            Arg.Any<MealLog>(), Arg.Any<InsertOneOptions>(), Arg.Any<CancellationToken>());
+        await mealLogCollection.DidNotReceive().UpdateOneAsync(
+            Arg.Any<FilterDefinition<MealLog>>(),
+            Arg.Any<UpdateDefinition<MealLog>>(),
+            Arg.Any<UpdateOptions>(),
+            Arg.Any<CancellationToken>());
+        db.PlanPhotos.DidNotReceive().Add(Arg.Any<PlanPhoto>());
     }
 
     // ──────────────────────────────────────────────────────────────────────────
