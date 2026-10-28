@@ -21,6 +21,31 @@ welcome; a slow one is not.
 Raising the budget needs a sentence in the PR saying what got slower and why
 it can't be made cheaper. "The suite grew" is not a reason.
 
+### Chunk layout
+
+`build-and-test` runs the suite in three steps, one after another in the same
+job. The budget covers all three together, so moving a class between chunks
+saves nothing; only cheaper tests do.
+
+| Chunk | Namespaces | Tests | CI time |
+|---|---|---|---|
+| 1 Endpoints | `Endpoints*` | 3130 | 110-140 s |
+| 2 Services, Validators, Infrastructure | `Services*`, `Validators*`, `Infrastructure*` | 1029 | 31-36 s |
+| 3 Remaining | everything else (complement of 1 and 2) | 487 | 51-63 s |
+
+Measured on `develop` after #1768 (runs 40552071229, 40648936167 and
+40763264376): 192 s, 224 s and 239 s against the 300 s budget, while the
+suite grew from 4479 to 4646 tests. Runner variance is about ±30 s, almost
+all of it in chunk 1. **Headroom is thin:** each feature epic adds tests to
+chunks 1 and 3. The next lever is running independent collections in
+parallel (#1805).
+
+Where the time goes (local full run, #1563): chunk 1 has no slow class; its
+1489 shared-database tests (`[Collection(TestCollection.Name)]`) take a
+median of ~43 ms each. The big wins so far were whole-database work repeated
+per test: `QaSeedRunnerTests` re-seeding (#1741) and `AutomationSchedulerTests`
+sweeping every earlier test's rules (#1768). Look for that pattern first.
+
 ## What each layer is for
 
 | Layer | Tool | Use for |
