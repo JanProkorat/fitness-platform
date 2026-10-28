@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
 
+import { isNutritionPlanPayload } from '@/api/notifications';
 import { registerPushToken, rememberRegisteredToken, removePushTokenAs } from '@/api/pushToken';
 import { isPaymentRequestedType } from '@/api/payments';
 import { usePaymentsEnabled } from '@/hooks/usePaymentsEnabled';
@@ -104,6 +105,8 @@ export function usePushTapNavigation(): void {
         router.push('/payments');
       } else if (typeof inviteId === 'string' && inviteId.length > 0) {
         router.push({ pathname: '/invite/[id]', params: { id: inviteId } });
+      } else if (isNutritionPlanPayload(content.data)) {
+        router.navigate('/nutrition');
       } else {
         router.navigate('/');
       }

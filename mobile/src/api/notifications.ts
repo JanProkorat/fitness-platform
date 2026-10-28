@@ -45,6 +45,11 @@ export function getNotificationPayload(notification: AppNotification): Record<st
   }
 }
 
+/** True for a nutrition plan notification: its payload carries `planKind` "nutrition". */
+export function isNutritionPlanPayload(payload: Record<string, unknown> | undefined): boolean {
+  return payload?.planKind === 'nutrition';
+}
+
 /** The invite a notification points at, when it has one. */
 export function getNotificationInviteId(notification: AppNotification): string | undefined {
   const inviteId = getNotificationPayload(notification).inviteId;

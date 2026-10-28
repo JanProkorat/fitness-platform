@@ -1,9 +1,7 @@
 import type { ReactNode } from 'react';
 import { ActivityIndicator, RefreshControl, StyleSheet, View } from 'react-native';
-import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 
-import { PLANS_QUERY_KEY } from '@/api/plans';
 import { Button } from '@/components/Button';
 import { NutritionEmpty } from '@/components/nutrition/tab/NutritionEmpty';
 import { NutritionPlanView, isMissingPlan } from '@/components/nutrition/tab/NutritionPlanView';
@@ -16,7 +14,6 @@ import { coveredCollaborations } from '@/components/today/collaborationRoles';
 import { useCollaborations } from '@/hooks/useCollaborations';
 import { useNutritionWeekPlan } from '@/hooks/useNutritionWeekPlan';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
-import { useRealtimeEvent } from '@/realtime/useRealtimeEvent';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
 
@@ -32,17 +29,10 @@ function NutritionContent() {
   const { t } = useTranslation();
   const theme = useTheme();
   const styles = makeStyles(theme);
-  const queryClient = useQueryClient();
   const collaborations = useCollaborations();
   const weekPlan = useNutritionWeekPlan();
   const { refreshing, onRefresh } = usePullToRefresh();
   const barClearance = theme.sizes.tabBar + theme.sizes.tabBarBottom + theme.spacing.xxl;
-
-  // A published plan changes everything on this tab; the server pushes the event to the plan's client.
-  useRealtimeEvent('nutritionplanpublished', () => {
-    void queryClient.invalidateQueries({ queryKey: ['nutrition'] });
-    void queryClient.invalidateQueries({ queryKey: PLANS_QUERY_KEY });
-  });
 
   const screen = (content: ReactNode, withShortcuts = false) => (
     <Screen

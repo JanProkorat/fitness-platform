@@ -237,7 +237,12 @@ public class PublishWeekEndpoint(
             await notificationService.CreateAsync(
                 clientProfile.UserId,
                 NotificationType.PlanPublished,
-                new Dictionary<string, string> { ["weekNumber"] = req.WeekNumber.ToString() },
+                new Dictionary<string, string>
+                {
+                    ["weekNumber"] = req.WeekNumber.ToString(),
+                    [NotificationTemplates.PlanKindKey] = NotificationTemplates.PlanKindNutrition,
+                    [NotificationTemplates.PlanIdKey] = plan.ExternalId.ToString(),
+                },
                 variant: NotificationTemplates.PlanPublishedNutritionPublished,
                 ct: ct);
 
