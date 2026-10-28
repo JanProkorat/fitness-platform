@@ -65,3 +65,16 @@ export const tabBarCollapseMotion = {
 export const chatMotion = {
   spring: { damping: 20, stiffness: 220, mass: 0.8 },
 } as const;
+
+/** Meal row expanding or collapsing on the plan week view and the Nutrition tab, in ms. */
+export const mealExpandMotion = {
+  duration: 240,
+} as const;
+
+/** Horizontal swipes on the plan week view: px before the pan claims the touch, px of vertical drift that hands it back to scrolling, and the distance (px) or velocity (px/s) that commits a swipe. */
+export const swipeMotion = {
+  claimDistance: 16,
+  verticalTolerance: 12,
+  commitDistance: 56,
+  commitVelocity: 700,
+} as const;

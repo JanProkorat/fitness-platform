@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Alert, Linking, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { GestureDetector } from 'react-native-gesture-handler';
 import { useTranslation } from 'react-i18next';
 
 import type { FullPlanWeek, GetFullPlanResponse } from '@/api/generated';
@@ -31,11 +32,17 @@ import {
   weekDays,
   weekMealCount,
 } from '@/components/nutrition/plan/model';
+import { RecipesToday } from '@/components/nutrition/week/RecipesToday';
+import { WeekGlance } from '@/components/nutrition/week/WeekGlance';
+import { dayRecipes, dayWithinWeek } from '@/components/nutrition/week/model';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Text } from '@/components/Text';
 import { useAddDayMealPhoto } from '@/hooks/useAddDayMealPhoto';
+import { useClientRecipes } from '@/hooks/useClientRecipes';
 import { useFullNutritionPlan } from '@/hooks/useFullNutritionPlan';
+import { useHorizontalSwipe } from '@/hooks/useHorizontalSwipe';
+import type { SwipeDirection } from '@/hooks/useHorizontalSwipe';
 import { useNutritionDayLog } from '@/hooks/useNutritionDayLog';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
@@ -52,7 +59,7 @@ const photoFailure = (error: unknown): PhotoFailure => {
 export default function NutritionPlanWeekScreen() {
   const { t } = useTranslation();
   const router = useRouter();
-  const params = useLocalSearchParams<{ weekNumber?: string }>();
+  const params = useLocalSearchParams<{ weekNumber?: string; day?: string }>();
   const weekNumber = Number.parseInt(typeof params.weekNumber === 'string' ? params.weekNumber : '', 10);
   const plan = useFullNutritionPlan();
   const goBack = () => (router.canGoBack() ? router.back() : router.replace('/nutrition/plan'));
@@ -83,12 +90,19 @@ export default function NutritionPlanWeekScreen() {
       />
     );
   }
-  return <WeekContent plan={plan.data} week={week} onBack={goBack} />;
+  const day = typeof params.day === 'string' ? params.day : undefined;
+  return <WeekContent plan={plan.data} week={week} initialDay={day} onBack={goBack} />;
 }
 
-type WeekContentProps = { plan: GetFullPlanResponse; week: FullPlanWeek; onBack: () => void };
+type WeekContentProps = {
+  plan: GetFullPlanResponse;
+  week: FullPlanWeek;
+  /** The `day` route param, unvalidated; it is used only when it is a date of this week. */
+  initialDay: string | undefined;
+  onBack: () => void;
+};
 
-function WeekContent({ plan, week, onBack }: WeekContentProps) {
+function WeekContent({ plan, week, initialDay, onBack }: WeekContentProps) {
   const { t, i18n } = useTranslation();
   const theme = useTheme();
   const styles = makeStyles(theme);
@@ -106,7 +120,8 @@ function WeekContent({ plan, week, onBack }: WeekContentProps) {
 
   // The server knows the client's local today; the device date only stands in until the log is loaded.
   const today = isoDay(log.data?.today) || localToday();
-  const defaultDate = days.some(({ date }) => date === today) ? today : weekStart;
+  const defaultDate =
+    dayWithinWeek(days, initialDay) ?? (days.some(({ date }) => date === today) ? today : weekStart);
   const [picked, setPicked] = useState<{ weekNumber: number; date: string } | null>(null);
   const selected = picked && picked.weekNumber === weekNumber ? picked.date : defaultDate;
   const selectedDay = days.find(({ date }) => date === selected);
@@ -125,15 +140,51 @@ function WeekContent({ plan, week, onBack }: WeekContentProps) {
 
   const weeks = plan.weeks ?? [];
   const neighbour = (offset: number) => weeks.find((candidate) => candidate.weekNumber === weekNumber + offset);
-  const goToWeek = (target: FullPlanWeek | undefined) => {
+  /** Opens another week; `day` picks the day to land on, otherwise the week's own default applies. */
+  const goToWeek = (target: FullPlanWeek | undefined, day?: string) => {
     if (!target) return;
+    const targetNumber = target.weekNumber ?? 1;
+    setPicked(day ? { weekNumber: targetNumber, date: day } : null);
     router.replace({
       pathname: '/nutrition/plan/week/[weekNumber]',
-      params: { weekNumber: String(target.weekNumber ?? 1) },
+      params: { weekNumber: String(targetNumber), ...(day ? { day } : {}) },
     });
   };
   const previous = neighbour(-1);
   const next = neighbour(1);
+
+  const swipeWeek = (direction: SwipeDirection) => {
+    const target = direction === 'next' ? next : previous;
+    if (target) goToWeek(target);
+  };
+
+  // Past the first or last day of the week the swipe continues into the neighbouring week, when there is one.
+  const swipeDay = (direction: SwipeDirection) => {
+    const index = days.findIndex(({ date }) => date === selected);
+    const step = direction === 'next' ? 1 : -1;
+    const inWeek = days[index + step];
+    if (inWeek) {
+      setPicked({ weekNumber, date: inWeek.date });
+      return;
+    }
+    const target = direction === 'next' ? next : previous;
+    if (!target) return;
+    const targetDays = weekDays(target);
+    const landing = direction === 'next' ? targetDays[0] : targetDays[targetDays.length - 1];
+    goToWeek(target, landing?.date);
+  };
+  const weekSwipe = useHorizontalSwipe(swipeWeek);
+  const daySwipe = useHorizontalSwipe(swipeDay);
+
+  const recipesQuery = useClientRecipes(plan.planId, Boolean(plan.planId));
+  const recipeImages = useMemo(() => {
+    const images = new Map<string, string>();
+    for (const recipe of recipesQuery.data?.items ?? []) {
+      if (recipe.recipeId && recipe.imageUrl) images.set(recipe.recipeId, recipe.imageUrl);
+    }
+    return images;
+  }, [recipesQuery.data]);
+  const recipes = dayRecipes(meals);
 
   const upload = (meal: NutritionMeal, photo: PickedPhoto) => {
     photoUpload.mutate(
@@ -207,15 +258,21 @@ function WeekContent({ plan, week, onBack }: WeekContentProps) {
           onBack={onBack}
         />
 
-        <DayStrip
-          days={days}
-          selected={selected}
-          today={today}
-          onPreviousWeek={previous ? () => goToWeek(previous) : undefined}
-          onNextWeek={next ? () => goToWeek(next) : undefined}
-          onSelect={(date) => setPicked({ weekNumber, date })}
-        />
+        <GestureDetector gesture={weekSwipe}>
+          <View>
+            <DayStrip
+              days={days}
+              selected={selected}
+              today={today}
+              onPreviousWeek={previous ? () => goToWeek(previous) : undefined}
+              onNextWeek={next ? () => goToWeek(next) : undefined}
+              onSelect={(date) => setPicked({ weekNumber, date })}
+            />
+          </View>
+        </GestureDetector>
 
+        <GestureDetector gesture={daySwipe}>
+          <View style={styles.day}>
         <DaySummary
           eaten={eatenMacros(meals, (mealId) => isEaten(selected, mealId))}
           targets={plan.globalSettings}
@@ -291,6 +348,29 @@ function WeekContent({ plan, week, onBack }: WeekContentProps) {
             })
           )}
         </Card>
+          </View>
+        </GestureDetector>
+
+        <WeekGlance
+          days={days}
+          selected={selected}
+          today={today}
+          target={plan.globalSettings?.dailyKcal}
+          onSelect={(date) => setPicked({ weekNumber, date })}
+        />
+
+        <RecipesToday
+          recipes={recipes}
+          images={recipeImages}
+          gutter={theme.spacing.xl}
+          onOpenRecipe={(recipe) =>
+            router.push({
+              pathname: '/nutrition/recipe/[recipeId]',
+              params: { recipeId: recipe.recipeId, servings: String(recipe.servings) },
+            })
+          }
+          onOpenAll={() => router.push('/nutrition/recipes')}
+        />
       </Screen>
 
       <MealPhotoViewer
@@ -307,6 +387,9 @@ function WeekContent({ plan, week, onBack }: WeekContentProps) {
 const makeStyles = (theme: Theme) =>
   StyleSheet.create({
     content: {
+      gap: theme.spacing.xl,
+    },
+    day: {
       gap: theme.spacing.xl,
     },
     meals: {

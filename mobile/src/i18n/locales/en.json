@@ -1340,6 +1340,18 @@
       "logged": "{{done}} of {{total}} logged",
       "mealsOf": "{{done}} of {{total}} meals",
       "noMeals": "No meals planned for this day.",
+      "glance": {
+        "title": "This week",
+        "average": "avg {{value}} kcal a day",
+        "target": "Daily target {{value}} kcal",
+        "bar": "{{day}}: {{value}} kcal"
+      },
+      "recipes": {
+        "title": "Recipes today",
+        "all": "All recipes",
+        "meta": "{{meal}} · {{value}} kcal",
+        "open": "Open recipe {{name}}, {{meta}}"
+      },
       "logError": "Could not load what you logged.",
       "notFound": {
         "title": "Week not available",
