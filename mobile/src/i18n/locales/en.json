@@ -1353,6 +1353,68 @@
       "button_other": "How to make it · {{count}} steps"
     }
   },
+  "nutritionRecipes": {
+    "title": "Recipes",
+    "back": "Back",
+    "retry": "Try again",
+    "view": {
+      "label": "Recipe source",
+      "plan": "This plan",
+      "all": "All plans"
+    },
+    "chips": {
+      "label": "Meal type",
+      "all": "All",
+      "breakfast": "Breakfast",
+      "lunch": "Lunch",
+      "dinner": "Dinner",
+      "snack": "Snack"
+    },
+    "kind": {
+      "Breakfast": "Breakfast",
+      "MorningSnack": "Snack",
+      "Lunch": "Lunch",
+      "AfternoonSnack": "Snack",
+      "Dinner": "Dinner",
+      "PreWorkout": "Pre-workout",
+      "PostWorkout": "Post-workout"
+    },
+    "recipes_one": "{{count}} recipe",
+    "recipes_other": "{{count}} recipes",
+    "plans_one": "{{count}} plan",
+    "plans_other": "{{count}} plans",
+    "summaryPlan": "{{recipes}} in {{plan}} · {{week}} this week",
+    "summaryAll": "{{recipes}} across {{plans}}",
+    "now": "now",
+    "thisWeek": "This week",
+    "kcal": "{{value}} kcal",
+    "protein": "{{value}} g P",
+    "minutes": "{{value}} min",
+    "openRecipe": "Open recipe {{name}}",
+    "search": {
+      "open": "Search recipes",
+      "close": "Close search",
+      "label": "Search recipes",
+      "placeholder": "Search by name"
+    },
+    "empty": {
+      "title": "No recipes yet",
+      "body": "Recipes from your plans will show up here."
+    },
+    "noMatch": {
+      "title": "No recipes match",
+      "body": "Try another meal type or a different search."
+    },
+    "noPlan": {
+      "title": "No current plan",
+      "body": "You have no active plan right now. Browse recipes from all of your plans instead.",
+      "action": "Show all plans"
+    },
+    "error": {
+      "title": "Could not load the recipes",
+      "body": "Check your connection and try again."
+    }
+  },
   "coachPending": {
     "title": "Your coach account is ready",
     "body": "Coach tools aren't in the app yet. Use the Form Up web portal to manage your clients."

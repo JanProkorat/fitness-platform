@@ -1,5 +1,6 @@
-import { api } from '@/api/client';
+import { api, http } from '@/api/client';
 import type {
+  ClientRecipeListItem,
   GetFullPlanResponse,
   GetRecipeResponse,
   GetTodayLogResponse,
@@ -236,6 +237,50 @@ export async function addMealPhoto(
     photos: [...existing.photos, { blobUrl }],
     note: existing.note,
   });
+}
+
+/** Query key of the client's recipe list: one cached list per plan, or one for all plans. */
+export const recipesQueryKey = (planId?: string) => ['nutrition', 'recipes', planId ?? 'all'] as const;
+
+/** The server rejects a page size above this. */
+export const RECIPES_PAGE_SIZE = 100;
+/** Upper bound on pages loaded in one go, so a total that keeps growing cannot loop forever. */
+export const RECIPES_MAX_PAGES = 20;
+
+export type ClientRecipesPage = { items: ClientRecipeListItem[]; total: number };
+
+/**
+ * One page of the client's recipes (GET /client/nutrition/recipes). Calls the HTTP client directly because
+ * the generated client drops the X-Total-Count header; a missing header falls back to the page length.
+ */
+export async function fetchClientRecipes(
+  params: { page: number; pageSize: number; planId?: string },
+  signal?: AbortSignal,
+): Promise<ClientRecipesPage> {
+  const response = await http.get<string>('/client/nutrition/recipes', {
+    params: { page: params.page, pageSize: params.pageSize, planId: params.planId },
+    headers: { Accept: 'application/json' },
+    signal,
+  });
+  const body: unknown = typeof response.data === 'string' && response.data ? JSON.parse(response.data) : response.data;
+  const items = isRecord(body) && Array.isArray(body.items) ? (body.items as ClientRecipeListItem[]) : [];
+  const header: unknown = response.headers['x-total-count'];
+  const total = Number(header);
+  return { items, total: header !== undefined && Number.isFinite(total) ? total : items.length };
+}
+
+/** Every recipe in scope, paged until the total is reached; any failed page fails the whole load. */
+export async function fetchAllClientRecipes(planId?: string, signal?: AbortSignal): Promise<ClientRecipesPage> {
+  const items: ClientRecipeListItem[] = [];
+  let total = 0;
+  for (let page = 1; page <= RECIPES_MAX_PAGES; page += 1) {
+    const result = await fetchClientRecipes({ page, pageSize: RECIPES_PAGE_SIZE, planId }, signal);
+    total = result.total;
+    if (result.items.length === 0) break;
+    items.push(...result.items);
+    if (items.length >= total) break;
+  }
+  return { items, total: Math.max(total, items.length) };
 }
 
 /** The shopping list of a week range as the API returns it. */

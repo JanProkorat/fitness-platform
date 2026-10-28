@@ -187,4 +187,8 @@ export const sizes = {
   quickIcon: 32,
   tileIcon: 24,
   tileGlyph: 13,
+  recipeCardRatio: 1.55,
+  recipeCardGlyph: 28,
+  recipeGroupBar: 4,
+  recipeGroupBarHeight: 22,
 } as const;
