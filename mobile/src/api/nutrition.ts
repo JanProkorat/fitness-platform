@@ -1,5 +1,6 @@
 import { api, http } from '@/api/client';
 import type {
+  AddOffPlanFoodResponse,
   ClientRecipeListItem,
   GetFullPlanResponse,
   GetRecipeResponse,
@@ -7,6 +8,7 @@ import type {
   GetTodayPlanResponse,
   GetWeekMealLogMealDto,
   GetWeekMealLogResponse,
+  GetWeekPlanResponse,
   MealPhotoDto,
   PlanMeal,
   TodayMealLogDto,
@@ -15,6 +17,8 @@ import { ALLOWED_TYPES, MAX_PHOTO_BYTES, PhotoUploadError, normalizeType } from 
 import type { PickedPhoto } from '@/api/photos';
 
 export const TODAY_PLAN_KEY = ['nutrition', 'plan', 'today'] as const;
+/** The current plan week with all its days (GET /client/nutrition/plan/week). */
+export const WEEK_PLAN_KEY = ['nutrition', 'plan', 'week'] as const;
 export const TODAY_LOG_KEY = ['nutrition', 'log', 'today'] as const;
 /** Shared with the plan screens so both read one cached copy of the full plan. */
 export const FULL_PLAN_KEY = ['nutrition', 'plan', 'full'] as const;
@@ -128,8 +132,9 @@ export function withMealEaten(
   const others = entries.filter((entry) => entry.mealId !== meal.mealId);
   const next: GetTodayLogResponse = { ...log, mealsEaten: others };
   if (!eaten) {
-    // Unmarking deletes the whole entry on the server, photos included.
-    return next;
+    // The server keeps an entry that has photos or a note and only clears `eatenAt`; any other entry is deleted.
+    const keeps = existing && ((existing.photos ?? []).length > 0 || Boolean(existing.note));
+    return keeps ? { ...next, mealsEaten: [...others, { ...existing, eatenAt: undefined }] } : next;
   }
   const entry: TodayMealLogDto = {
     ...existing,
@@ -300,3 +305,24 @@ export function fetchShoppingList(weekFrom: number, weekTo: number, signal?: Abo
 export function setShoppingListItemTicked(weekNumber: number, foodExternalId: string, isTicked: boolean): Promise<void> {
   return api.setShoppingListItemTickedEndpoint({ weekNumber, foodExternalId, isTicked });
 }
+
+/** The current plan week (GET /client/nutrition/plan/week). */
+export function fetchWeekPlan(signal?: AbortSignal): Promise<GetWeekPlanResponse> {
+  return api.getWeekPlanEndpoint(signal);
+}
+
+/** The server rejects an off-plan amount above this. */
+export const OFF_PLAN_MAX_GRAMS = 10000;
+
+/** Logs a food eaten outside the plan today (POST /client/nutrition/log/off-plan-foods). */
+export function addOffPlanFood(foodExternalId: string, amountGrams: number): Promise<AddOffPlanFoodResponse> {
+  return api.addOffPlanFoodEndpoint({ foodExternalId, amountGrams });
+}
+
+/** Removes an off-plan entry of today (DELETE /client/nutrition/log/off-plan-foods/{entryId}). */
+export function removeOffPlanFood(entryId: string): Promise<void> {
+  return api.removeOffPlanFoodEndpoint(entryId);
+}
+
+/** Error code the server sends when the day log changed under a write. */
+export const DAY_LOG_VERSION_CONFLICT = 'DAY_LOG_VERSION_CONFLICT';

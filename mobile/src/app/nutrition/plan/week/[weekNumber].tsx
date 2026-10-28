@@ -272,6 +272,17 @@ function WeekContent({ plan, week, onBack }: WeekContentProps) {
                       params: { recipeId, servings: String(servings) },
                     })
                   }
+                  onOpenFood={(food) => {
+                    if (!food.foodExternalId) return;
+                    router.push({
+                      pathname: '/nutrition/food/[foodId]',
+                      params: {
+                        foodId: food.foodExternalId,
+                        grams: String(food.amountGrams ?? 0),
+                        ...(meal.kind ? { meal: meal.kind } : {}),
+                      },
+                    });
+                  }}
                   onAddPhoto={showAddPhoto ? () => askSource(meal) : undefined}
                   addPhotoBusy={busy || picking}
                   onOpenPhoto={(photoIndex) => setViewer({ mealId: meal.mealId, index: photoIndex })}

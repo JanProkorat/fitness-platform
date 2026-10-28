@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
-import { FULL_PLAN_KEY, TODAY_LOG_KEY, TODAY_PLAN_KEY, setMealEaten, withMealEaten } from '@/api/nutrition';
+import { FULL_PLAN_KEY, TODAY_LOG_KEY, TODAY_PLAN_KEY, WEEK_LOG_KEY, setMealEaten, withMealEaten } from '@/api/nutrition';
 import type { NutritionMeal } from '@/api/nutrition';
 import type { GetTodayLogResponse } from '@/api/generated';
 
@@ -22,6 +22,7 @@ export function useMealEaten(meal: NutritionMeal) {
       void queryClient.invalidateQueries({ queryKey: TODAY_LOG_KEY });
       void queryClient.invalidateQueries({ queryKey: TODAY_PLAN_KEY });
       void queryClient.invalidateQueries({ queryKey: FULL_PLAN_KEY });
+      void queryClient.invalidateQueries({ queryKey: WEEK_LOG_KEY });
     },
   });
 }

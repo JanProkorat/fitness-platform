@@ -619,7 +619,6 @@
   },
   "placeholder": {
     "training": "Tady se objeví váš tréninkový plán.",
-    "nutrition": "Tady se objeví váš jídelníček.",
     "messages": "Tady se objeví vaše konverzace."
   },
   "measurements": {
@@ -1143,6 +1142,134 @@
         "Soy": "Sója",
         "Sesame": "Sezam"
       }
+    }
+  },
+  "nutritionTab": {
+    "retry": "Zkusit znovu",
+    "shortcuts": {
+      "plan": "Celý plán",
+      "recipes": "Recepty",
+      "shoppingList": "Nákupní seznam"
+    },
+    "error": {
+      "title": "Výživu se nepodařilo načíst",
+      "body": "Zkontrolujte připojení a zkuste to znovu."
+    },
+    "errors": {
+      "toggleTitle": "Jídlo se nepodařilo upravit",
+      "cancelRequest": "Žádost se nepodařilo zrušit. Zkuste to prosím znovu.",
+      "removeOffPlan": "Potravinu se nepodařilo odebrat. Zkuste to prosím znovu."
+    },
+    "offPlan": {
+      "title": "Mimo plán",
+      "kcal": "{{value}} kcal",
+      "amount": "{{grams}} g · {{kcal}} kcal",
+      "remove": "Odebrat {{name}}",
+      "add": "Přidat jídlo, které jste snědli mimo plán"
+    },
+    "sheet": {
+      "close": "Zavřít",
+      "back": "Zpět na hledání",
+      "title": "Přidat potravinu",
+      "subtitle": "Snězeno dnes mimo plán",
+      "searchLabel": "Hledat potraviny",
+      "searchPlaceholder": "Hledat potraviny",
+      "clear": "Smazat hledání",
+      "hint": "Pro hledání napište alespoň {{min}} znaky.",
+      "searchError": "Hledání se nezdařilo.",
+      "noResults": "Nic jsme nenašli.",
+      "results_one": "{{count}} výsledek",
+      "results_few": "{{count}} výsledky",
+      "results_many": "{{count}} výsledku",
+      "results_other": "{{count}} výsledků",
+      "per100": "{{value}} kcal / 100 g",
+      "amount": "Množství",
+      "unit": "g",
+      "quick": "{{value}} g",
+      "addsToToday": "Přidá se do dneška",
+      "kcal": "{{value}} kcal",
+      "submit": "Přidat do dneška",
+      "errors": {
+        "conflict": "Váš den se mezitím změnil. Zkuste to prosím znovu.",
+        "missing": "Tato potravina nebo váš plán už není dostupný.",
+        "generic": "Potravinu se nepodařilo přidat. Zkontrolujte připojení a zkuste to znovu."
+      }
+    },
+    "empty": {
+      "title": "Přidejte si nutričního poradce",
+      "body": "Nutriční poradce naplánuje vaše jídla, makroživiny a nákupní seznam podle vašeho dne.",
+      "find": "Najít nutričního poradce",
+      "pending": "Čekající žádost",
+      "waiting": "čeká na odpověď",
+      "sentToday": "Odesláno dnes",
+      "sentDaysAgo_one": "Odesláno před {{count}} dnem",
+      "sentDaysAgo_few": "Odesláno před {{count}} dny",
+      "sentDaysAgo_many": "Odesláno před {{count}} dne",
+      "sentDaysAgo_other": "Odesláno před {{count}} dny",
+      "cancel": "Zrušit",
+      "cancelKeep": "Ponechat žádost",
+      "cancelTitle": "Zrušit žádost pro {{name}}?",
+      "cancelLabel": "Zrušit žádost pro {{name}}",
+      "limit": "Můžete mít jednoho trenéra a jednoho nutričního poradce zároveň."
+    },
+    "waiting": {
+      "includes": "Co váš plán obsahuje",
+      "tiles": {
+        "meals": "Denní jídla a makra",
+        "recipes": "Recepty",
+        "shopping": "Nákupní seznam"
+      },
+      "preferences": {
+        "title": "Vaše stravovací preference",
+        "body": "{{name}} s nimi plánuje. Změnit je můžete kdykoli.",
+        "bodyGeneric": "Váš nutriční poradce s nimi plánuje. Změnit je můžete kdykoli."
+      }
+    }
+  },
+  "nutritionFood": {
+    "per100": "Na 100 g",
+    "suits": "Hodí se pro",
+    "allergens": "Alergeny",
+    "noAllergens": "Žádné",
+    "serving": "Jednotka",
+    "servingValue": "1 {{label}} = {{value}} g",
+    "portion": "porce",
+    "notFound": {
+      "title": "Potravina není dostupná",
+      "body": "Tato potravina není součástí vašeho plánu."
+    },
+    "error": {
+      "title": "Potravinu se nepodařilo načíst",
+      "body": "Zkontrolujte připojení a zkuste to znovu."
+    },
+    "inMeal": "V jídle: {{meal}}",
+    "eaten": "Snědli jste",
+    "usedAmount": "{{grams}} g · {{kcal}} kcal",
+    "diets": {
+      "Vegan": "Veganské",
+      "Vegetarian": "Vegetariánské",
+      "Pescatarian": "Pescetariánské",
+      "GlutenFree": "Bez lepku",
+      "LactoseFree": "Bez laktózy",
+      "DairyFree": "Bez mléka",
+      "Keto": "Keto",
+      "LowCarb": "Nízkosacharidové"
+    },
+    "allergenNames": {
+      "Gluten": "Lepek",
+      "Crustaceans": "Korýši",
+      "Eggs": "Vejce",
+      "Fish": "Ryby",
+      "Peanuts": "Arašídy",
+      "Soy": "Sója",
+      "Milk": "Mléko",
+      "TreeNuts": "Skořápkové plody",
+      "Celery": "Celer",
+      "Mustard": "Hořčice",
+      "Sesame": "Sezam",
+      "Sulphites": "Siřičitany",
+      "Lupin": "Vlčí bob",
+      "Molluscs": "Měkkýši"
     }
   },
   "nutritionMeal": {

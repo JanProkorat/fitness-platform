@@ -1,5 +1,6 @@
 import { api } from '@/api/client';
-import { ApiException } from '@/api/generated';
+import { ApiException, ClientRequestStatus } from '@/api/generated';
+import type { ClientRequestDto } from '@/api/generated';
 import { getErrorStatus, getProblemCode, isNetworkError } from '@/api/errors';
 
 export const REQUEST_MESSAGE_MAX_LENGTH = 500;
@@ -59,4 +60,22 @@ export function classifySendRequestError(error: unknown): SendRequestFailure {
       return 'notFound';
   }
   return getErrorStatus(error) === 404 ? 'notFound' : 'generic';
+}
+
+export const MY_REQUESTS_KEY = ['clientRequests', 'mine'] as const;
+
+export type ClientRequest = ClientRequestDto;
+
+/** The requests the client has sent (GET /client/requests). */
+export async function fetchMyRequests(signal?: AbortSignal): Promise<ClientRequest[]> {
+  const response = await api.getMyRequestsEndpoint(signal);
+  return response.requests ?? [];
+}
+
+/** Still waiting for the professional's reply. */
+export const isPendingRequest = (request: ClientRequest): boolean => request.status === ClientRequestStatus.Pending;
+
+/** Withdraws a pending request (DELETE /client/requests/{publicId}). */
+export function cancelClientRequest(publicId: string): Promise<void> {
+  return api.cancelClientRequestEndpoint(publicId);
 }

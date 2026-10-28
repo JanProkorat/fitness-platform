@@ -605,7 +605,6 @@
   },
   "placeholder": {
     "training": "Dein Trainingsplan erscheint hier.",
-    "nutrition": "Dein Ernährungsplan erscheint hier.",
     "messages": "Deine Unterhaltungen erscheinen hier."
   },
   "measurements": {
@@ -1117,6 +1116,130 @@
         "Soy": "Soja",
         "Sesame": "Sesam"
       }
+    }
+  },
+  "nutritionTab": {
+    "retry": "Erneut versuchen",
+    "shortcuts": {
+      "plan": "Gesamter Plan",
+      "recipes": "Rezepte",
+      "shoppingList": "Einkaufsliste"
+    },
+    "error": {
+      "title": "Ihre Ernährung konnte nicht geladen werden",
+      "body": "Prüfen Sie Ihre Verbindung und versuchen Sie es erneut."
+    },
+    "errors": {
+      "toggleTitle": "Die Mahlzeit wurde nicht aktualisiert",
+      "cancelRequest": "Die Anfrage konnte nicht zurückgezogen werden. Bitte versuchen Sie es erneut.",
+      "removeOffPlan": "Das Lebensmittel konnte nicht entfernt werden. Bitte versuchen Sie es erneut."
+    },
+    "offPlan": {
+      "title": "Außerhalb des Plans",
+      "kcal": "{{value}} kcal",
+      "amount": "{{grams}} g · {{kcal}} kcal",
+      "remove": "{{name}} entfernen",
+      "add": "Außerhalb des Plans Gegessenes hinzufügen"
+    },
+    "sheet": {
+      "close": "Schließen",
+      "back": "Zurück zur Suche",
+      "title": "Lebensmittel hinzufügen",
+      "subtitle": "Heute außerhalb des Plans gegessen",
+      "searchLabel": "Lebensmittel suchen",
+      "searchPlaceholder": "Lebensmittel suchen",
+      "clear": "Suche löschen",
+      "hint": "Geben Sie mindestens {{min}} Buchstaben ein, um zu suchen.",
+      "searchError": "Die Suche ist fehlgeschlagen.",
+      "noResults": "Keine Lebensmittel gefunden.",
+      "results_one": "{{count}} Ergebnis",
+      "results_other": "{{count}} Ergebnisse",
+      "per100": "{{value}} kcal / 100 g",
+      "amount": "Menge",
+      "unit": "g",
+      "quick": "{{value}} g",
+      "addsToToday": "Wird heute hinzugefügt",
+      "kcal": "{{value}} kcal",
+      "submit": "Zu heute hinzufügen",
+      "errors": {
+        "conflict": "Ihr Tag hat sich in der Zwischenzeit geändert. Bitte versuchen Sie es erneut.",
+        "missing": "Dieses Lebensmittel oder Ihr Plan ist nicht mehr verfügbar.",
+        "generic": "Das Lebensmittel wurde nicht hinzugefügt. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut."
+      }
+    },
+    "empty": {
+      "title": "Ernährungsberater hinzufügen",
+      "body": "Ein Ernährungsberater plant Ihre Mahlzeiten, Makros und Ihre Einkaufsliste passend zu Ihrem Tag.",
+      "find": "Ernährungsberater finden",
+      "pending": "Offene Anfrage",
+      "waiting": "wartet auf Antwort",
+      "sentToday": "Heute gesendet",
+      "sentDaysAgo_one": "Vor {{count}} Tag gesendet",
+      "sentDaysAgo_other": "Vor {{count}} Tagen gesendet",
+      "cancel": "Zurückziehen",
+      "cancelKeep": "Anfrage behalten",
+      "cancelTitle": "Anfrage an {{name}} zurückziehen?",
+      "cancelLabel": "Anfrage an {{name}} zurückziehen",
+      "limit": "Sie können gleichzeitig einen Trainer und einen Ernährungsberater haben."
+    },
+    "waiting": {
+      "includes": "Das enthält Ihr Plan",
+      "tiles": {
+        "meals": "Tägliche Mahlzeiten & Makros",
+        "recipes": "Rezepte",
+        "shopping": "Einkaufsliste"
+      },
+      "preferences": {
+        "title": "Ihre Essgewohnheiten",
+        "body": "{{name}} plant danach. Sie können sie jederzeit ändern.",
+        "bodyGeneric": "Ihr Ernährungsberater plant danach. Sie können sie jederzeit ändern."
+      }
+    }
+  },
+  "nutritionFood": {
+    "per100": "Pro 100 g",
+    "suits": "Geeignet für",
+    "allergens": "Allergene",
+    "noAllergens": "Keine angegeben",
+    "serving": "Einheit",
+    "servingValue": "1 {{label}} = {{value}} g",
+    "portion": "Portion",
+    "notFound": {
+      "title": "Lebensmittel nicht verfügbar",
+      "body": "Dieses Lebensmittel gehört nicht zu Ihrem Plan."
+    },
+    "error": {
+      "title": "Das Lebensmittel konnte nicht geladen werden",
+      "body": "Prüfen Sie Ihre Verbindung und versuchen Sie es erneut."
+    },
+    "inMeal": "In {{meal}}",
+    "eaten": "Sie haben gegessen",
+    "usedAmount": "{{grams}} g · {{kcal}} kcal",
+    "diets": {
+      "Vegan": "Vegan",
+      "Vegetarian": "Vegetarisch",
+      "Pescatarian": "Pescetarisch",
+      "GlutenFree": "Glutenfrei",
+      "LactoseFree": "Laktosefrei",
+      "DairyFree": "Milchfrei",
+      "Keto": "Keto",
+      "LowCarb": "Low-Carb"
+    },
+    "allergenNames": {
+      "Gluten": "Gluten",
+      "Crustaceans": "Krebstiere",
+      "Eggs": "Eier",
+      "Fish": "Fisch",
+      "Peanuts": "Erdnüsse",
+      "Soy": "Soja",
+      "Milk": "Milch",
+      "TreeNuts": "Schalenfrüchte",
+      "Celery": "Sellerie",
+      "Mustard": "Senf",
+      "Sesame": "Sesam",
+      "Sulphites": "Sulfite",
+      "Lupin": "Lupinen",
+      "Molluscs": "Weichtiere"
     }
   },
   "nutritionMeal": {
