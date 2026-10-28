@@ -127,7 +127,6 @@ export const sizes = {
   launchStackGap: 22,
   launchTaglineRise: 8,
   qrCode: 176,
-  mealHero: 270,
   recipeHero: 220,
   heroOverlap: 24,
   heroActionClearance: 120,

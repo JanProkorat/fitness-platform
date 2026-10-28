@@ -37,26 +37,6 @@ export const isNutritionId = (value: string): boolean => ID_PATTERN.test(value);
 /** A plan meal that carries its id. */
 export type NutritionMeal = PlanMeal & { mealId: string };
 
-export type MealLookup = { meal: NutritionMeal; isToday: boolean };
-
-const hasId = (meal: PlanMeal): meal is NutritionMeal => typeof meal.mealId === 'string';
-
-/** Finds a meal in today's plan first, then anywhere in the published weeks of the full plan. */
-export function findMeal(
-  mealId: string,
-  today: GetTodayPlanResponse | undefined,
-  full: GetFullPlanResponse | undefined,
-): MealLookup | null {
-  const inToday = (today?.meals ?? []).find((meal): meal is NutritionMeal => hasId(meal) && meal.mealId === mealId);
-  if (inToday) return { meal: inToday, isToday: true };
-
-  const inFull = (full?.weeks ?? [])
-    .flatMap((week) => week.days ?? [])
-    .flatMap((day) => day.meals ?? [])
-    .find((meal): meal is NutritionMeal => hasId(meal) && meal.mealId === mealId);
-  return inFull ? { meal: inFull, isToday: false } : null;
-}
-
 /** Today's plan (GET /client/nutrition/plan/today). */
 export function fetchTodayPlan(signal?: AbortSignal): Promise<GetTodayPlanResponse> {
   return api.getTodayPlanEndpoint(signal);

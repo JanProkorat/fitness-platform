@@ -1246,14 +1246,6 @@
     "title": "Mahlzeit",
     "back": "Zurück",
     "retry": "Erneut versuchen",
-    "notFound": {
-      "title": "Mahlzeit nicht gefunden",
-      "body": "Diese Mahlzeit ist nicht mehr in Ihrem Plan."
-    },
-    "error": {
-      "title": "Die Mahlzeit konnte nicht geladen werden",
-      "body": "Prüfen Sie Ihre Verbindung und versuchen Sie es erneut."
-    },
     "kind": {
       "Breakfast": "Frühstück",
       "MorningSnack": "Vormittagssnack",
@@ -1263,10 +1255,6 @@
       "PreWorkout": "Vor dem Training",
       "PostWorkout": "Nach dem Training"
     },
-    "eatenAt": "Gegessen um {{time}}",
-    "logMeal": "Mahlzeit eintragen",
-    "unmarkEaten": "Als nicht gegessen markieren",
-    "notToday": "Sie können eine Mahlzeit an dem Tag eintragen, für den sie geplant ist.",
     "macros": {
       "kcal": "kcal",
       "protein": "Eiweiß",
@@ -1275,33 +1263,8 @@
       "fiber": "Ballaststoffe",
       "grams": "{{value}} g"
     },
-    "items": {
-      "title": "Was enthalten ist",
-      "kcal": "{{value}} kcal",
-      "grams": "{{value}} g",
-      "servings": "{{value}}×",
-      "openRecipe": "Rezept {{name}} öffnen"
-    },
     "errors": {
       "toggle": "Die Mahlzeit konnte nicht aktualisiert werden. Bitte versuchen Sie es erneut."
-    },
-    "photo": {
-      "add": "Mahlzeitenfoto hinzufügen",
-      "title": "Mahlzeitenfoto hinzufügen",
-      "camera": "Foto aufnehmen",
-      "library": "Aus der Mediathek wählen",
-      "cancel": "Abbrechen",
-      "permission": {
-        "title": "Kamerazugriff ist aus",
-        "body": "Erlauben Sie den Kamerazugriff in den Einstellungen, um Ihre Mahlzeit zu fotografieren.",
-        "openSettings": "Einstellungen öffnen"
-      },
-      "errors": {
-        "title": "Das Foto wurde nicht hinzugefügt",
-        "tooLarge": "Das Foto ist zu groß. Wählen Sie eines unter 5 MB.",
-        "unsupportedType": "Dieses Fotoformat wird nicht unterstützt. Verwenden Sie JPEG, PNG, WebP oder HEIC.",
-        "upload": "Der Upload ist fehlgeschlagen. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut."
-      }
     }
   },
   "nutritionPlan": {
