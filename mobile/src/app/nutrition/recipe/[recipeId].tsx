@@ -1,5 +1,5 @@
-import { useRef, useState } from 'react';
-import { ScrollView, Share, StyleSheet, View } from 'react-native';
+import { useState } from 'react';
+import { Share, StyleSheet, View } from 'react-native';
 import { SymbolView } from 'expo-symbols';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -17,7 +17,6 @@ import { RecipeIngredients } from '@/components/nutrition/recipe/RecipeIngredien
 import { RecipeMacros } from '@/components/nutrition/recipe/RecipeMacros';
 import type { MacroBasis } from '@/components/nutrition/recipe/RecipeMacros';
 import { RecipeSteps } from '@/components/nutrition/recipe/RecipeSteps';
-import { Button } from '@/components/Button';
 import { Text } from '@/components/Text';
 import { useRecipeDetail } from '@/hooks/useRecipeDetail';
 import { useTheme } from '@/theme';
@@ -68,11 +67,9 @@ function RecipeDetailContent({ recipe, planServings }: { recipe: GetRecipeRespon
   const theme = useTheme();
   const styles = makeStyles(theme);
   const router = useRouter();
-  const scrollRef = useRef<ScrollView>(null);
   const baseServings = recipe.servings && recipe.servings > 0 ? recipe.servings : 1;
   const [portions, setPortions] = useState(planServings ?? baseServings);
   const [basis, setBasis] = useState<MacroBasis>('portion');
-  const [stepsOpen, setStepsOpen] = useState(false);
 
   const steps = (recipe.steps ?? []).filter((step) => step.trim().length > 0);
   const foods = recipe.foods ?? [];
@@ -95,39 +92,13 @@ function RecipeDetailContent({ recipe, planServings }: { recipe: GetRecipeRespon
     void Share.share({ message });
   };
 
-  const toggleSteps = () => setStepsOpen((open) => !open);
-  const scrollToSteps = (offsetInSheet: number) => {
-    scrollRef.current?.scrollTo({
-      y: theme.sizes.recipeHero - theme.sizes.heroOverlap + offsetInSheet - theme.spacing.xl,
-      animated: true,
-    });
-  };
-
   return (
     <DetailLayout
       heroHeight={theme.sizes.recipeHero}
       imageUri={recipe.imageUrl}
       backLabel={t('onboarding.back')}
       onBack={() => router.back()}
-      scrollRef={scrollRef}
       actions={<GlassIconButton symbol="square.and.arrow.up" label={t('nutritionRecipe.share')} onPress={share} />}
-      footer={
-        steps.length > 0 ? (
-          <Button
-            label={t('nutritionRecipe.steps.button', { count: steps.length })}
-            onPress={toggleSteps}
-            style={styles.footerButton}
-            icon={
-              <SymbolView
-                name={stepsOpen ? 'chevron.down' : 'chevron.right'}
-                weight="semibold"
-                tintColor={theme.colors.onPrimary}
-                size={theme.sizes.fieldIcon}
-              />
-            }
-          />
-        ) : undefined
-      }
     >
       <View style={styles.title}>
         <Text variant="profileName" accessibilityRole="header">
@@ -166,9 +137,7 @@ function RecipeDetailContent({ recipe, planServings }: { recipe: GetRecipeRespon
         </DetailCard>
       ) : null}
 
-      {stepsOpen ? (
-        <RecipeSteps steps={steps} onLayout={(event) => scrollToSteps(event.nativeEvent.layout.y)} />
-      ) : null}
+      {steps.length > 0 ? <RecipeSteps steps={steps} /> : null}
     </DetailLayout>
   );
 }
@@ -183,8 +152,5 @@ const makeStyles = (theme: Theme) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: theme.spacing.xxs,
-    },
-    footerButton: {
-      flex: 1,
     },
   });
