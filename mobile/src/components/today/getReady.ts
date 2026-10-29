@@ -62,10 +62,12 @@ export function unstartedCoaches(
   return [...coaches.values()];
 }
 
-/** True when a paid, period-bound payment of the coach covers the local day of `now`. */
+/** True when a paid period of an earlier collaboration with the coach covers the local day of `now`. */
 const periodCovers = (coach: PaymentCoach | undefined, now: number): boolean => {
   const today = startOfLocalDay(now);
   return (coach?.paid ?? []).some((item) => {
+    // The current collaboration's own paid first payment shows its row as done instead.
+    if (!item.isEarlierCollaboration) return false;
     const start = dayStart(item.periodStart);
     const end = dayStart(item.periodEnd);
     return start !== null && end !== null && start <= today && today <= end;

@@ -1322,6 +1322,8 @@
         "mobile/src/components/today/getReady.ts",
         "mobile/src/components/today/statTileData.ts",
         "mobile/src/components/today/todayBlocks.ts",
+        "mobile/src/components/today/AddCoachRows.tsx",
+        "mobile/src/components/today/AreaPaymentDue.tsx",
         "mobile/src/hooks/useAddDayMealPhoto.ts",
         "mobile/src/hooks/useCheckInHistory.ts",
         "mobile/src/hooks/useFoodSearch.ts",
