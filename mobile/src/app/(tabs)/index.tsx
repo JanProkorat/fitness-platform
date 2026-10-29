@@ -15,6 +15,7 @@ import {
 } from '@/components/today/collaborationRoles';
 import type { CoachRole } from '@/components/today/collaborationRoles';
 import { FindCoachSection } from '@/components/today/FindCoachSection';
+import { GetReadyList } from '@/components/today/GetReadyList';
 import { HowItWorks } from '@/components/today/HowItWorks';
 import { InvitesSection } from '@/components/today/InvitesSection';
 import { PaymentDueCard } from '@/components/today/PaymentDueCard';
@@ -120,6 +121,7 @@ function TodayContent() {
           <>
             {hasRunningPlan(areaBlocks) ? <StatTiles /> : null}
             <AreaBlocks blocks={areaBlocks} today={today} />
+            <GetReadyList blocks={areaBlocks} covering={covering} />
           </>,
           true,
         );

@@ -238,6 +238,22 @@
       "logWeight": "Gewicht eintragen",
       "addPhoto": "Foto hinzufügen"
     },
+    "getReady": {
+      "title": "Bereit machen",
+      "progress_one": "{{done}} von {{count}} erledigt",
+      "progress_other": "{{done}} von {{count}} erledigt",
+      "payment": "Ersten Monat bezahlen",
+      "weight": "Startgewicht",
+      "weightHint": "Ihr Ausgangswert für den ersten Tag",
+      "logWeight": "Gewicht eintragen",
+      "photos": "Startfotos",
+      "photosHint": "{{name}} hat darum gebeten",
+      "addPhotos": "Fotos hinzufügen"
+    },
+    "nextPlan": {
+      "title": "Der nächste Plan ist bereit",
+      "subtitle": "{{plan}} · startet am {{when}}"
+    },
     "progress": {
       "coachFallback": "Ihr Coach",
       "since": "seit {{when}}",

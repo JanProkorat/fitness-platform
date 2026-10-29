@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { SymbolView } from 'expo-symbols';
 import { useTranslation } from 'react-i18next';
@@ -28,10 +29,12 @@ type RunningNutritionCardProps = {
   plan: ClientOwnPlanItem;
   /** Local today as `yyyy-MM-dd`, until the server's client-local today is known. */
   today: string;
+  /** Shown at the bottom of the card, e.g. the next-plan strip. */
+  footer?: ReactNode;
 };
 
 /** The running nutrition plan on Today: week, kcal against target, and today's meals as on the Nutrition tab. */
-export function RunningNutritionCard({ plan, today: deviceToday }: RunningNutritionCardProps) {
+export function RunningNutritionCard({ plan, today: deviceToday, footer }: RunningNutritionCardProps) {
   const { t, i18n } = useTranslation();
   const theme = useTheme();
   const styles = makeStyles(theme);
@@ -171,6 +174,8 @@ export function RunningNutritionCard({ plan, today: deviceToday }: RunningNutrit
         onAdd={logAvailable ? () => actions.setSheetOpen(true) : undefined}
       />
 
+      {footer ? <View style={styles.footer}>{footer}</View> : null}
+
       <OffPlanSheet visible={actions.sheetOpen} onClose={() => actions.setSheetOpen(false)} />
 
       <MealPhotoViewer
@@ -231,6 +236,10 @@ const makeStyles = (theme: Theme) =>
     },
     logErrorText: {
       flex: 1,
+    },
+    footer: {
+      paddingTop: theme.spacing.xs,
+      paddingBottom: theme.spacing.cardInset,
     },
     empty: {
       paddingVertical: theme.spacing.xl,

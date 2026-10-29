@@ -238,6 +238,22 @@
       "logWeight": "Log weight",
       "addPhoto": "Add photo"
     },
+    "getReady": {
+      "title": "Get ready",
+      "progress_one": "{{done}} of {{count}} done",
+      "progress_other": "{{done}} of {{count}} done",
+      "payment": "Pay the first month",
+      "weight": "Starting weight",
+      "weightHint": "Your baseline for day one",
+      "logWeight": "Log weight",
+      "photos": "Starting photos",
+      "photosHint": "{{name}} asked for them",
+      "addPhotos": "Add photos"
+    },
+    "nextPlan": {
+      "title": "Next plan is ready",
+      "subtitle": "{{plan}} · starts {{when}}"
+    },
     "progress": {
       "coachFallback": "Your coach",
       "since": "since {{when}}",
