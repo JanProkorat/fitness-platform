@@ -6,7 +6,7 @@
  * notification list are stubbed at the network layer. The live `offlinesyncconflict`
  * SignalR refresh is an interactive-QA item.
  */
-import type { Page } from '@playwright/test';
+import type { Page, Route } from '@playwright/test';
 import { nutritionistTest, trainerTest, expect } from '../fixtures/auth';
 
 const MINUTE_MS = 60 * 1000;
@@ -18,6 +18,13 @@ const logDate = (msAgo: number) => iso(msAgo).slice(0, 10);
 
 const CONFLICTS_URL = '**/trainer/clients/*/offline-sync-conflicts*';
 const CLIENT_PUBLIC_ID = '33333333-3333-3333-3333-333333333333';
+
+/** Stubs the conflicts list for GET only, so the review POSTs are never swallowed. */
+async function stubConflicts(page: Page, respond: (route: Route) => Promise<void>) {
+  await page.route(CONFLICTS_URL, (route, request) =>
+    request.method() === 'GET' ? respond(route) : route.fallback(),
+  );
+}
 
 async function stubTimeline(page: Page) {
   await page.route('**/trainer/clients/*/timeline*', (route) =>
@@ -58,7 +65,7 @@ async function openFirstClient(page: Page) {
 nutritionistTest.describe('offline-sync conflicts in Recent activity', () => {
   nutritionistTest('shows both conflict kinds and ranks a late-synced one by detection time', async ({ page }) => {
     await stubTimeline(page);
-    await page.route(CONFLICTS_URL, (route) =>
+    await stubConflicts(page, (route) =>
       route.fulfill({
         json: {
           items: [
@@ -92,6 +99,8 @@ nutritionistTest.describe('offline-sync conflicts in Recent activity', () => {
               basedOnPlanVersion: 4,
               currentPlanVersion: 6,
               detectedAt: iso(2 * HOUR_MS),
+              // Reviewed: it keeps its chronological place instead of pinning to the top.
+              reviewedAt: iso(HOUR_MS),
             },
           ],
         },
@@ -128,9 +137,55 @@ nutritionistTest.describe('offline-sync conflicts in Recent activity', () => {
     await expect(items.nth(2).getByTestId('activity-conflict-time')).toHaveText('2 hours ago');
   });
 
+  nutritionistTest('pins an unreviewed conflict above newer timeline rows and leaves reviewed ones in place', async ({ page }) => {
+    await stubTimeline(page);
+    const conflict = {
+      planId: 'p1',
+      planName: 'Cut',
+      operation: 'LogMealEaten',
+      kind: 'PlanChanged',
+      mealKind: 'Lunch',
+      mealLogged: true,
+      basedOnPlanVersion: 4,
+      currentPlanVersion: 6,
+    };
+    await stubConflicts(page, (route) =>
+      route.fulfill({
+        json: {
+          items: [
+            // Detected 5 h ago (older than the 1 h measurement) but unreviewed: pinned first.
+            { ...conflict, conflictId: 'c-open', occurredAt: iso(6 * HOUR_MS), logDate: logDate(6 * HOUR_MS), detectedAt: iso(5 * HOUR_MS) },
+            // Reviewed: ranks by detection time like any row, so 30 min sits above the 1 h measurement.
+            {
+              ...conflict,
+              conflictId: 'c-done',
+              kind: 'MealRemoved',
+              mealKind: 'AfternoonSnack',
+              occurredAt: iso(HOUR_MS),
+              logDate: logDate(HOUR_MS),
+              detectedAt: iso(30 * MINUTE_MS),
+              reviewedAt: iso(10 * MINUTE_MS),
+            },
+          ],
+        },
+      }),
+    );
+
+    await openFirstClient(page);
+
+    const card = page.getByRole('heading', { name: 'Recent activity', exact: true }).locator('xpath=../..');
+    const items = card.locator('li');
+    await expect(items).toHaveCount(4);
+    await expect(items.nth(0)).toHaveAttribute('data-reviewed', 'false');
+    await expect(items.nth(0)).toContainText('Logged offline on an older plan');
+    await expect(items.nth(1)).toHaveAttribute('data-reviewed', 'true');
+    await expect(items.nth(1)).toContainText('Eaten offline, meal since removed');
+    await expect(items.nth(2)).toContainText('Measurement');
+  });
+
   nutritionistTest('a failing conflicts endpoint keeps the timeline rows', async ({ page }) => {
     await stubTimeline(page);
-    await page.route(CONFLICTS_URL, (route) => route.fulfill({ status: 500, json: { title: 'boom' } }));
+    await stubConflicts(page, (route) => route.fulfill({ status: 500, json: { title: 'boom' } }));
 
     await openFirstClient(page);
 
@@ -141,7 +196,7 @@ nutritionistTest.describe('offline-sync conflicts in Recent activity', () => {
 
   nutritionistTest('a 403 from the conflicts endpoint reads as an empty list', async ({ page }) => {
     await stubTimeline(page);
-    await page.route(CONFLICTS_URL, (route) => route.fulfill({ status: 403, json: { title: 'forbidden' } }));
+    await stubConflicts(page, (route) => route.fulfill({ status: 403, json: { title: 'forbidden' } }));
 
     await openFirstClient(page);
 
