@@ -187,7 +187,9 @@ function conflict(fixture: Fixture, over: Record<string, unknown>): Record<strin
 /** Routes the conflicts list (GET), the review calls (POST) and the plan itself, served with its start date. */
 async function installStub(page: Page, stub: ConflictStub, fixture: Fixture): Promise<void> {
   await page.route(new RegExp(`/nutrition/plans/${fixture.planId}$`), async (route) => {
-    if (route.request().method() !== 'GET') {
+    // The editor page shares this path; only the API call carries the plan JSON.
+    const resourceType = route.request().resourceType();
+    if (route.request().method() !== 'GET' || (resourceType !== 'fetch' && resourceType !== 'xhr')) {
       return route.fallback();
     }
     const response = await route.fetch();
