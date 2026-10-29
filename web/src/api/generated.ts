@@ -3921,6 +3921,152 @@ export class ApiClient {
     }
 
     /**
+     * Mark an offline-sync conflict reviewed
+     * @param clientId The client's ClientProfile.PublicId (route parameter).
+     * @param conflictId The conflict's public id (route parameter).
+     * @return Conflict reviewed (or already reviewed)
+     */
+    reviewClientOfflineSyncConflictEndpoint(clientId: string, conflictId: string, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/trainer/clients/{clientId}/offline-sync-conflicts/{conflictId}/review";
+        if (clientId === undefined || clientId === null)
+            throw new globalThis.Error("The parameter 'clientId' must be defined.");
+        url_ = url_.replace("{clientId}", encodeURIComponent("" + clientId));
+        if (conflictId === undefined || conflictId === null)
+            throw new globalThis.Error("The parameter 'conflictId' must be defined.");
+        url_ = url_.replace("{conflictId}", encodeURIComponent("" + conflictId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processReviewClientOfflineSyncConflictEndpoint(_response);
+        });
+    }
+
+    protected processReviewClientOfflineSyncConflictEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The link does not grant nutrition access", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Mark all of a client's conflicts on a plan reviewed
+     * @param clientId The client's ClientProfile.PublicId (route parameter).
+     * @return Number of conflicts newly marked reviewed
+     */
+    reviewAllClientOfflineSyncConflictsEndpoint(clientId: string, reviewAllClientOfflineSyncConflictsRequest: ReviewAllClientOfflineSyncConflictsRequest, signal?: AbortSignal): Promise<ReviewAllClientOfflineSyncConflictsResponse> {
+        let url_ = this.baseUrl + "/trainer/clients/{clientId}/offline-sync-conflicts/review-all";
+        if (clientId === undefined || clientId === null)
+            throw new globalThis.Error("The parameter 'clientId' must be defined.");
+        url_ = url_.replace("{clientId}", encodeURIComponent("" + clientId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(reviewAllClientOfflineSyncConflictsRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processReviewAllClientOfflineSyncConflictsEndpoint(_response);
+        });
+    }
+
+    protected processReviewAllClientOfflineSyncConflictsEndpoint(response: AxiosResponse): Promise<ReviewAllClientOfflineSyncConflictsResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<ReviewAllClientOfflineSyncConflictsResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The link does not grant nutrition access", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ReviewAllClientOfflineSyncConflictsResponse>(null as any);
+    }
+
+    /**
      * Replace a pending questionnaire
      * @return No Content
      */
@@ -4691,9 +4837,11 @@ export class ApiClient {
      * @param clientId The client's ClientProfile.PublicId (route parameter).
      * @param page 1-based page number.
      * @param pageSize Items per page (1 to 100).
+     * @param planId (optional) Optional plan id (query); only conflicts on that plan are returned.
+     * @param unreviewedOnly (optional) Optional query flag; when true only conflicts not yet reviewed are returned.
      * @return One page of conflicts
      */
-    getClientOfflineSyncConflictsEndpoint(clientId: string, page: number, pageSize: number, signal?: AbortSignal): Promise<GetClientOfflineSyncConflictsResponse> {
+    getClientOfflineSyncConflictsEndpoint(clientId: string, page: number, pageSize: number, planId?: string | null | undefined, unreviewedOnly?: boolean | null | undefined, signal?: AbortSignal): Promise<GetClientOfflineSyncConflictsResponse> {
         let url_ = this.baseUrl + "/trainer/clients/{clientId}/offline-sync-conflicts?";
         if (clientId === undefined || clientId === null)
             throw new globalThis.Error("The parameter 'clientId' must be defined.");
@@ -4706,6 +4854,10 @@ export class ApiClient {
             throw new globalThis.Error("The parameter 'pageSize' must be defined and cannot be null.");
         else
             url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        if (planId !== undefined && planId !== null)
+            url_ += "planId=" + encodeURIComponent("" + planId) + "&";
+        if (unreviewedOnly !== undefined && unreviewedOnly !== null)
+            url_ += "unreviewedOnly=" + encodeURIComponent("" + unreviewedOnly) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -23715,6 +23867,22 @@ export interface UpdateClientDataRequest {
     mealDistribution?: string | undefined;
 }
 
+/** Request for marking one offline-sync conflict reviewed. */
+export interface ReviewClientOfflineSyncConflictRequest {
+}
+
+/** Result of reviewing all of a client's conflicts on one plan. */
+export interface ReviewAllClientOfflineSyncConflictsResponse {
+    /** How many conflicts were newly marked reviewed. */
+    reviewedCount?: number;
+}
+
+/** Request for marking all of a client's conflicts on one plan reviewed. */
+export interface ReviewAllClientOfflineSyncConflictsRequest {
+    /** The plan whose conflicts are reviewed. */
+    planId: string;
+}
+
 export interface ReplaceQuestionnaireRequest {
     questionnairePublicId?: string;
 }
@@ -24355,6 +24523,10 @@ export interface OfflineSyncConflictDto {
     currentPlanVersion?: number;
     /** When the conflict was detected (UTC). */
     detectedAt?: string;
+    /** The meal items as the client saw them; empty on older conflicts. */
+    seenItems?: SeenMealItemDto[];
+    /** When a coach marked the conflict reviewed (UTC); null while unreviewed. */
+    reviewedAt?: string | undefined;
 }
 
 /** Why an offline-synced client action collided with the coach's plan. */
@@ -24372,6 +24544,26 @@ export enum MealKind {
     Dinner = "Dinner",
     PreWorkout = "PreWorkout",
     PostWorkout = "PostWorkout",
+}
+
+/** One meal item as the client saw it. */
+export interface SeenMealItemDto {
+    /** Whether the item was a food or a recipe. */
+    kind?: SeenMealItemKind;
+    /** Public id of the food or recipe. */
+    refId?: string;
+    /** Display name the client showed. */
+    name?: string;
+    /** Amount the client showed. */
+    amount?: number;
+    /** Energy the client showed, in kcal. */
+    kcal?: number;
+}
+
+/** What a seen meal item referred to. */
+export enum SeenMealItemKind {
+    Food = "Food",
+    Recipe = "Recipe",
 }
 
 /** Request for listing a client's offline-sync conflicts. */
@@ -29414,6 +29606,22 @@ at most 5 minutes ahead and 7 days back. */
     clientRequestId?: string | undefined;
     /** The NutritionPlan.Version the client saw when it queued the request. */
     basedOnPlanVersion?: number | undefined;
+    /** The meal items the client saw; stored only when the request collides with a plan change. */
+    seenMealItems?: SeenMealItemRequest[] | undefined;
+}
+
+/** One meal item as the client saw it when it queued the request. */
+export interface SeenMealItemRequest {
+    /** Whether the item is a food or a recipe. */
+    kind?: SeenMealItemKind;
+    /** Public id of the food or recipe. */
+    refId?: string;
+    /** Display name shown to the client. */
+    name?: string;
+    /** Amount shown to the client. */
+    amount?: number;
+    /** Energy shown to the client, in kcal. */
+    kcal?: number;
 }
 
 /** Response model for the client's active nutrition plan for the current week. */
