@@ -3705,6 +3705,7 @@
     "showAllComingSoon": "Vollständige Benachrichtigungsseite kommt bald",
     "justNow": "Gerade eben",
     "reviewInClients": "In Kunden ansehen",
+    "seeInClientActivity": "In der Klientenaktivität ansehen",
     "markRead": "Als gelesen markieren",
     "markAllReadShort": "Alle gelesen",
     "unreadCount": "{{count}} ungelesen"
@@ -4710,6 +4711,17 @@
           "bodyFat": "Körperfett {{value}} %",
           "planWeek": "{{name}}, Woche {{week}}",
           "weekOnly": "Woche {{week}}"
+        },
+        "conflict": {
+          "title": {
+            "PlanChanged": "Offline auf einem älteren Plan erfasst",
+            "MealRemoved": "Offline gegessen, Mahlzeit inzwischen entfernt"
+          },
+          "subject": "{{meal}}, {{date}}",
+          "detail": {
+            "PlanChanged": "Offline um {{time}} als gegessen markiert. Der Klient sah Planversion {{based}}; seitdem haben Sie Version {{current}} gespeichert.",
+            "MealRemoved": "Nicht ins Mahlzeitenprotokoll übernommen. Der Klient sah Planversion {{based}}; aktuell ist Version {{current}}."
+          }
         }
       },
       "profile": {

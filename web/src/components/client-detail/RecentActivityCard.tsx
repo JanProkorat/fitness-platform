@@ -1,11 +1,13 @@
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
-import { CalendarDays, ClipboardList, Dumbbell, Link2, TrendingUp, Trophy, Utensils, type LucideIcon } from 'lucide-react';
+import { CalendarDays, ClipboardList, Dumbbell, History, Link2, TrendingUp, Trophy, Utensils, type LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useClientTimeline } from '@/hooks/useClientTimeline';
+import { useClientOfflineSyncConflicts } from '@/hooks/useClientOfflineSyncConflicts';
 import { formatRelativeTime, type ClientOverviewRole } from '@/lib/client-metrics';
 import type { ClientTimelineItem } from '@/api/timeline';
+import type { OfflineSyncConflictDto } from '@/api/generated';
 
 interface Props {
   /** Route client id (PublicId), as the timeline endpoint expects. */
@@ -112,19 +114,90 @@ function capitalize(value: string, locale: string): string {
   return value.charAt(0).toLocaleUpperCase(locale) + value.slice(1);
 }
 
+type ActivityRow =
+  | { key: string; kind: 'timeline'; sortAt: number; item: ClientTimelineItem }
+  | { key: string; kind: 'conflict'; sortAt: number; conflict: OfflineSyncConflictDto };
+
+function toTime(iso: string | undefined): number {
+  const value = iso ? new Date(iso).getTime() : Number.NaN;
+  return Number.isNaN(value) ? 0 : value;
+}
+
+/** Calendar day of the action, e.g. "27 Oct"; a plain `YYYY-MM-DD` is read as a local date. */
+function formatLogDate(logDate: string | undefined, locale: string): string {
+  if (!logDate) return '';
+  const [year, month, day] = logDate.slice(0, 10).split('-').map(Number);
+  const date = new Date(year, (month ?? 1) - 1, day ?? 1);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleDateString(locale, { day: 'numeric', month: 'short' });
+}
+
+function ConflictRow({ conflict, locale, t }: { conflict: OfflineSyncConflictDto; locale: string; t: TFunction }) {
+  const kind = conflict.kind === 'MealRemoved' ? 'MealRemoved' : 'PlanChanged';
+  const occurred = conflict.occurredAt ? new Date(conflict.occurredAt) : null;
+  const time =
+    occurred && !Number.isNaN(occurred.getTime())
+      ? occurred.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
+      : '';
+  const meal = conflict.mealKind ? t(`mealKind.${conflict.mealKind}`) : '';
+  const subject = t('clientDetail.overview.activity.conflict.subject', {
+    meal,
+    date: formatLogDate(conflict.logDate, locale),
+  });
+  return (
+    <li
+      data-testid="activity-conflict"
+      data-kind={kind}
+      className="flex items-start gap-3 border-b border-border py-2 last:border-b-0"
+    >
+      <span className="flex size-7.5 shrink-0 items-center justify-center rounded-tile bg-caution-soft text-caution-ink">
+        <History className="size-4" aria-hidden="true" />
+      </span>
+      <span className="flex min-w-0 flex-col gap-0.5">
+        <span className="text-body text-ink-2">
+          <b className="font-semibold">{t(`clientDetail.overview.activity.conflict.title.${kind}`)}</b>
+          {` · ${subject}`}
+        </span>
+        <span className="text-meta text-muted-foreground">
+          {t(`clientDetail.overview.activity.conflict.detail.${kind}`, {
+            time,
+            based: conflict.basedOnPlanVersion,
+            current: conflict.currentPlanVersion,
+          })}
+        </span>
+      </span>
+      {conflict.occurredAt && (
+        <span className="ml-auto pt-px text-meta whitespace-nowrap text-muted-foreground">
+          {capitalize(formatRelativeTime(conflict.occurredAt, locale), locale)}
+        </span>
+      )}
+    </li>
+  );
+}
+
 /** "Recent activity" card: the latest five timeline items, labelled from `type` and detailed from the payload. */
 export default function RecentActivityCard({ clientId, role }: Props) {
   const { t, i18n } = useTranslation();
   const timelineQuery = useClientTimeline(clientId, { limit: ACTIVITY_LIMIT });
+  // Offline-sync conflicts are a nutrition-plan feature; trainer-only viewers never query them.
+  const conflictsQuery = useClientOfflineSyncConflicts(clientId, ACTIVITY_LIMIT, role !== 'trainer');
   const formatNumber = (value: number) => new Intl.NumberFormat(i18n.language, { maximumFractionDigits: 1 }).format(value);
 
-  const items = (timelineQuery.data?.items ?? [])
+  const timelineRows: ActivityRow[] = (timelineQuery.data?.items ?? [])
     .filter((item) => {
       if (role === 'trainer') return !NUTRITION_ONLY_TYPES.has(item.type);
       if (role === 'nutritionist') return !TRAINING_ONLY_TYPES.has(item.type);
       return true;
     })
-    .slice(0, ACTIVITY_LIMIT);
+    .map((item) => ({ key: item.id, kind: 'timeline', sortAt: toTime(item.occurredAt), item }));
+  // A late-synced conflict ranks by when it was detected; the row itself shows when it happened.
+  const conflictRows: ActivityRow[] = (conflictsQuery.data ?? []).map((conflict, index) => ({
+    key: `conflict:${conflict.conflictId ?? index}`,
+    kind: 'conflict',
+    sortAt: toTime(conflict.detectedAt),
+    conflict,
+  }));
+  const items = [...timelineRows, ...conflictRows].sort((a, b) => b.sortAt - a.sortAt).slice(0, ACTIVITY_LIMIT);
 
   return (
     <div className="flex h-full flex-col gap-3 rounded-2xl border border-border bg-card p-4.5 shadow-panel">
@@ -156,11 +229,15 @@ export default function RecentActivityCard({ clientId, role }: Props) {
 
       {!timelineQuery.isPending && !timelineQuery.isError && items.length > 0 && (
         <ul className="flex flex-col">
-          {items.map((item) => {
+          {items.map((row) => {
+            if (row.kind === 'conflict') {
+              return <ConflictRow key={row.key} conflict={row.conflict} locale={i18n.language} t={t} />;
+            }
+            const item = row.item;
             const style = TYPE_STYLES[item.type] ?? FALLBACK_STYLE;
             const detail = activityDetail(item, t, formatNumber);
             return (
-              <li key={item.id} className="flex items-center gap-3 border-b border-border py-2 last:border-b-0">
+              <li key={row.key} className="flex items-center gap-3 border-b border-border py-2 last:border-b-0">
                 <span
                   className={`flex size-7.5 shrink-0 items-center justify-center rounded-tile ${TONE_CLASS[style.tone]}`}
                 >

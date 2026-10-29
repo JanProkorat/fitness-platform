@@ -1,9 +1,16 @@
 import { useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useSignalR } from '@/hooks/useSignalR';
+import { clientOfflineSyncConflictKeys } from '@/hooks/useClientOfflineSyncConflicts';
 
 interface ComplianceUpdatedPayload {
   clientId?: string;
+}
+
+interface OfflineSyncConflictPayload {
+  clientId?: string;
+  planId?: string;
+  count?: number;
 }
 
 interface PlanPhotoUploadedPayload {
@@ -43,6 +50,12 @@ export function useClientNutritionRealtime(clientId: string) {
         const data = payload as ComplianceUpdatedPayload | null;
         if (sameId(data?.clientId, clientId)) {
           refreshCompliance();
+        }
+      },
+      offlinesyncconflict: (payload) => {
+        const data = payload as OfflineSyncConflictPayload | null;
+        if (sameId(data?.clientId, clientId)) {
+          void queryClient.invalidateQueries({ queryKey: clientOfflineSyncConflictKeys.all(clientId) });
         }
       },
       // The event carries no client id, so the open page refreshes its own photo keys every time.
