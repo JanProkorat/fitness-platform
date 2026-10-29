@@ -121,6 +121,11 @@ nutritionistTest.describe('offline-sync conflicts in Recent activity', () => {
     await expect(items.nth(1)).toContainText('Measurement');
     await expect(items.nth(2)).toContainText('Eaten offline, meal since removed');
     await expect(items.nth(3)).toContainText('Meal plan published');
+
+    // The right-hand time is the detection time, so the list reads in order.
+    await expect(items.nth(0).getByTestId('activity-conflict-time')).toHaveText('30 minutes ago');
+    await expect(items.nth(1)).toContainText('1 hour ago');
+    await expect(items.nth(2).getByTestId('activity-conflict-time')).toHaveText('2 hours ago');
   });
 
   nutritionistTest('a failing conflicts endpoint keeps the timeline rows', async ({ page }) => {

@@ -166,9 +166,12 @@ function ConflictRow({ conflict, locale, t }: { conflict: OfflineSyncConflictDto
           })}
         </span>
       </span>
-      {conflict.occurredAt && (
-        <span className="ml-auto pt-px text-meta whitespace-nowrap text-muted-foreground">
-          {capitalize(formatRelativeTime(conflict.occurredAt, locale), locale)}
+      {conflict.detectedAt && (
+        <span
+          data-testid="activity-conflict-time"
+          className="ml-auto pt-px text-meta whitespace-nowrap text-muted-foreground"
+        >
+          {capitalize(formatRelativeTime(conflict.detectedAt, locale), locale)}
         </span>
       )}
     </li>

@@ -31,6 +31,7 @@ export function useClientNutritionRealtime(clientId: string) {
     void queryClient.invalidateQueries({ queryKey: ['client-dashboard', clientId] });
     void queryClient.invalidateQueries({ queryKey: ['client-plans', clientId] });
     void queryClient.invalidateQueries({ queryKey: ['nutrition-plan-detail'] });
+    void queryClient.invalidateQueries({ queryKey: clientOfflineSyncConflictKeys.all(clientId) });
   }, [queryClient, clientId]);
 
   const refreshPhotos = useCallback(
