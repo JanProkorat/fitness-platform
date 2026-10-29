@@ -10,16 +10,21 @@ using Microsoft.EntityFrameworkCore;
 namespace FitnessPlatform.Application.Features.Questionnaires.CreateResponse;
 
 public class CreateResponseEndpoint(IApplicationDbContext db, IClientLinkAuthorizationService linkAuthorizationService)
-    : Endpoint<CreateResponseRequest>
+    : Endpoint<CreateResponseRequest, CreateResponseResponse>
 {
     public override void Configure()
     {
         Post("/client/questionnaire/response");
         Roles(AppRoles.Client);
+        Description(b => b.ClearDefaultProduces(StatusCodes.Status200OK)
+            .Produces<CreateResponseResponse>(StatusCodes.Status201Created));
         Summary(s =>
         {
             s.Summary = "Create questionnaire response";
             s.Description = "Creates a new in-progress questionnaire response for the authenticated client.";
+            s.Responses[StatusCodes.Status201Created] = "Response created";
+            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
+            s.Responses[StatusCodes.Status404NotFound] = "Unknown questionnaire, no client profile, or no active link to its owner";
         });
     }
 
@@ -104,8 +109,9 @@ public class CreateResponseEndpoint(IApplicationDbContext db, IClientLinkAuthori
         db.QuestionnaireResponses.Add(response);
         await db.SaveChangesAsync(ct);
 
-        await HttpContext.Response.SendAsync(
-            new { ResponsePublicId = response.PublicId },
-            201, cancellation: ct);
+        await Send.ResponseAsync(
+            new CreateResponseResponse { ResponsePublicId = response.PublicId },
+            StatusCodes.Status201Created,
+            ct);
     }
 }

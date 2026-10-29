@@ -62,6 +62,42 @@ public class SubmitResponseEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
+    public async Task Submit_RequiredFileUploadUnanswered_Succeeds()
+    {
+        var scenario = await QuestionnaireAnswerScenario.CreateAsync(factory,
+        [
+            new("text", QuestionTypes.ShortText, Required: true),
+            new("file", QuestionTypes.FileUpload, Required: true),
+        ]);
+        await SeedAnswerAsync(scenario, "text", "done");
+
+        var response = await SubmitAsync(scenario);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        (await db.QuestionnaireResponses.Where(r => r.PublicId == scenario.ResponsePublicId)
+            .Select(r => r.Status).FirstAsync(TestContext.Current.CancellationToken))
+            .Should().Be(QuestionnaireResponseStatus.Submitted);
+    }
+
+    [Fact]
+    public async Task Submit_RequiredFileUploadAndRequiredTextUnanswered_Returns400WithCode()
+    {
+        var scenario = await QuestionnaireAnswerScenario.CreateAsync(factory,
+        [
+            new("text", QuestionTypes.ShortText, Required: true),
+            new("file", QuestionTypes.FileUpload, Required: true),
+        ]);
+
+        var response = await SubmitAsync(scenario);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken))
+            .Should().Contain(ErrorCodes.QuestionnaireRequiredAnswerMissing);
+    }
+
+    [Fact]
     public async Task Submit_RequiredAnswerBlank_Returns400WithCode()
     {
         var scenario = await QuestionnaireAnswerScenario.CreateAsync(factory, Form);
