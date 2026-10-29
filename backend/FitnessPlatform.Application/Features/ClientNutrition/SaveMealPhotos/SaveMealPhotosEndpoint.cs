@@ -38,6 +38,8 @@ namespace FitnessPlatform.Application.Features.ClientNutrition.SaveMealPhotos;
 /// <param name="blobStorage">Blob storage service — normalises each submitted BlobUrl to its
 /// canonical stored form before persisting, so an echoed short-lived read URL cannot become the
 /// permanently stored value (F9 follow-up).</param>
+/// <param name="imageUploadService">Image upload service — confirms each new photo URL sits under
+/// this meal's <c>diary/{mealId}/</c> folder.</param>
 /// <param name="timeProvider">Clock abstraction (#955) — lets tests pin the "now" instant deterministically.</param>
 public class SaveMealPhotosEndpoint(
     IMongoContext mongo,
@@ -46,6 +48,7 @@ public class SaveMealPhotosEndpoint(
     IClientLinkAuthorizationService linkAuthorizationService,
     ILogger<SaveMealPhotosEndpoint> logger,
     IBlobStorageService blobStorage,
+    IImageUploadService imageUploadService,
     TimeProvider timeProvider)
     : Endpoint<SaveMealPhotosRequest>
 {
@@ -67,7 +70,7 @@ public class SaveMealPhotosEndpoint(
                 "not exist yet. An optional date targets a past day (or today) of the active plan; " +
                 "omitted means the client-local today.";
             s.Responses[StatusCodes.Status204NoContent] = "Photos saved";
-            s.Responses[StatusCodes.Status400BadRequest] = "Invalid request, or the date is in the future (MEAL_LOG_DATE_IN_FUTURE)";
+            s.Responses[StatusCodes.Status400BadRequest] = "Invalid request, the date is in the future (MEAL_LOG_DATE_IN_FUTURE), or a photo URL is not a blob URL of this meal (INVALID_BLOB_URL)";
             s.Responses[StatusCodes.Status404NotFound] = "No active plan covers the date, or the meal is not on that day";
         });
     }
@@ -148,14 +151,6 @@ public class SaveMealPhotosEndpoint(
             return;
         }
 
-        var normalizedPhotos = await NormalizePhotoUrlsOrRespondAsync(req.Photos, ct);
-        if (normalizedPhotos is null)
-        {
-            return;
-        }
-
-        var now = DateTime.UtcNow;
-
         // Key: one log per (client, plan, meal, calendar day). The shared filter matches both the
         // modern LogDate keying and legacy records with LogDate = default but EatenAt inside the
         // day; without the OR a duplicate photo-only log would be inserted next to the eaten one.
@@ -164,6 +159,15 @@ public class SaveMealPhotosEndpoint(
 
         var existingCursor = await mongo.MealLogs.FindAsync(logFilter, cancellationToken: ct);
         var existingLog = await existingCursor.FirstOrDefaultAsync(ct);
+
+        var normalizedPhotos = await NormalizePhotoUrlsOrRespondAsync(
+            req.Photos, req.MealId, existingLog?.Photos ?? [], ct);
+        if (normalizedPhotos is null)
+        {
+            return;
+        }
+
+        var now = DateTime.UtcNow;
 
         // Build the replacement photo list, preserving UploadedAt for unchanged URLs
         // and persisting the per-photo Note caption from the request.
@@ -306,17 +310,31 @@ public class SaveMealPhotosEndpoint(
 
     /// <summary>
     /// Normalises every submitted <see cref="MealPhotoInput.BlobUrl"/> to its canonical stored
-    /// form before it reaches any Mongo/DB write — see
-    /// <see cref="IBlobStorageService.NormalizeToCanonicalUrl"/>. A client may echo back the
-    /// short-lived DisplayUrl issued by GetTodayLog (or, from an app build that predates the
-    /// identity/presentation split, a value that used to BE the permanent BlobUrl); without this
-    /// the signed query string would become the permanently stored value. Returns <c>null</c>
-    /// when any submitted URL cannot be recognised as a blob storage URL — a 400 has already
-    /// been written in that case.
+    /// form (see <see cref="IBlobStorageService.NormalizeToCanonicalUrl"/>, so an echoed signed
+    /// read URL never becomes the stored value) and checks it belongs to this meal. A URL is
+    /// accepted when it sits directly under <c>diary/{mealId}/</c>, or when it is already stored
+    /// on the existing meal log (legacy photos saved before the folder check existed). Returns
+    /// <c>null</c> when any URL is rejected — a 400 has already been written and nothing persisted.
     /// </summary>
     private async Task<List<MealPhotoInput>?> NormalizePhotoUrlsOrRespondAsync(
-        List<MealPhotoInput> inputs, CancellationToken ct)
+        List<MealPhotoInput> inputs,
+        Guid mealId,
+        List<MealPhoto> existingPhotos,
+        CancellationToken ct)
     {
+        var knownUrls = new HashSet<string>(StringComparer.Ordinal);
+
+        foreach (var existing in existingPhotos)
+        {
+            knownUrls.Add(existing.BlobUrl);
+
+            var canonicalExisting = blobStorage.NormalizeToCanonicalUrl(existing.BlobUrl);
+            if (canonicalExisting is not null)
+            {
+                knownUrls.Add(canonicalExisting);
+            }
+        }
+
         var normalized = new List<MealPhotoInput>(inputs.Count);
 
         foreach (var input in inputs)
@@ -326,6 +344,15 @@ public class SaveMealPhotosEndpoint(
             {
                 await this.SendProblemAsync(400, ErrorCodes.InvalidBlobUrl,
                     "Photo URL is not a recognised blob storage URL.", ct);
+                return null;
+            }
+
+            if (!knownUrls.Contains(canonicalBlobUrl) &&
+                !imageUploadService.IsValidBlobUrlUnderSubPath(
+                    ImageUploadScope.Diary, mealId.ToString(), canonicalBlobUrl))
+            {
+                await this.SendProblemAsync(400, ErrorCodes.InvalidBlobUrl,
+                    "Photo URL does not belong to this meal.", ct);
                 return null;
             }
 

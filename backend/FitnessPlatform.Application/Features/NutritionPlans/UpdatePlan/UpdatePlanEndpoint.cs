@@ -155,14 +155,14 @@ public class UpdatePlanEndpoint(
     /// version-gated replace. Returns <c>false</c> after writing a 403 when a removed coach role
     /// tries to extend an in-progress plan; other validation failures throw via <c>ThrowError</c>.
     /// </summary>
-    private Task<bool> MutateAsync(NutritionPlan plan, UpdatePlanRequest req, CancellationToken ct)
+    private async Task<bool> MutateAsync(NutritionPlan plan, UpdatePlanRequest req, CancellationToken ct)
     {
         // A removed role may finish its in-progress plans but not push their end date out.
         if (HttpContext.Items.ContainsKey(RemovedCoachRoleMiddleware.RoleRemovedItemKey)
             && plan.StartDate.HasValue
             && PlanWindowResolver.EndsLater(plan.StartDate.Value, plan.Weeks.Count, req.StartDate, req.Weeks.Count))
         {
-            return RefuseExtensionAsync(ct);
+            return await RefuseExtensionAsync(ct);
         }
 
         // Build lookup of existing week statuses
@@ -177,7 +177,7 @@ public class UpdatePlanEndpoint(
         if (removedPublished.Count > 0)
         {
             ThrowError($"Cannot remove published weeks: {string.Join(", ", removedPublished.Select(w => w.WeekNumber))}");
-            return Task.FromResult(false);
+            return false;
         }
 
         // Start date validation
@@ -189,14 +189,14 @@ public class UpdatePlanEndpoint(
             if (DateOnly.FromDateTime(plan.StartDate.Value) < today)
             {
                 ThrowError(ErrorCodes.StartDateLocked, "Start date cannot be changed after it has arrived.");
-                return Task.FromResult(false);
+                return false;
             }
 
             // Clearing: only allowed if no weeks are published
             if (!req.StartDate.HasValue && plan.Weeks.Any(w => w.Status == WeekStatus.Published))
             {
                 ThrowError(ErrorCodes.StartDateLocked, "Start date cannot be cleared when weeks are published.");
-                return Task.FromResult(false);
+                return false;
             }
         }
 
@@ -205,7 +205,7 @@ public class UpdatePlanEndpoint(
             if (req.StartDate.Value.DayOfWeek != System.DayOfWeek.Monday)
             {
                 ThrowError(ErrorCodes.StartDateNotMonday, "Start date must be a Monday.");
-                return Task.FromResult(false);
+                return false;
             }
 
             // Only enforce "not in past" when the start date is being set or changed.
@@ -216,8 +216,23 @@ public class UpdatePlanEndpoint(
             if (isStartDateNewOrChanged && DateOnly.FromDateTime(req.StartDate.Value) < today)
             {
                 ThrowError(ErrorCodes.StartDateInPast, "Start date cannot be in the past.");
-                return Task.FromResult(false);
+                return false;
             }
+        }
+
+        // Meal ids key the client's diary photo folder, so a caller-sent id may not collide with
+        // another plan: foreign ids and repeats later in the request get a fresh id, silently.
+        var foreignMealIds = await FindForeignMealIdsAsync(plan, req, ct);
+        var keptMealIds = new HashSet<Guid>();
+
+        Guid ResolveMealId(Guid? requested)
+        {
+            if (requested is { } mealId && !foreignMealIds.Contains(mealId) && keptMealIds.Add(mealId))
+            {
+                return mealId;
+            }
+
+            return Guid.NewGuid();
         }
 
         // Map request to domain
@@ -245,7 +260,7 @@ public class UpdatePlanEndpoint(
                     Note = rd.Note,
                     Meals = rd.Meals.Select(rm => new PlanMeal
                     {
-                        MealId = rm.MealId ?? Guid.NewGuid(),
+                        MealId = ResolveMealId(rm.MealId),
                         Kind = rm.Kind,
                         Order = rm.Order,
                         Time = rm.Time,
@@ -296,6 +311,75 @@ public class UpdatePlanEndpoint(
         plan.DateUpdated = DateTime.UtcNow;
         plan.Version += 1;
 
-        return Task.FromResult(true);
+        return true;
+    }
+
+    /// <summary>
+    /// Returns the request's meal ids that already belong to another plan or to another plan's
+    /// meal logs. Ids stored on this plan, and ids only on this plan's own logs, are never foreign.
+    /// </summary>
+    private async Task<HashSet<Guid>> FindForeignMealIdsAsync(
+        NutritionPlan plan, UpdatePlanRequest req, CancellationToken ct)
+    {
+        var storedMealIds = plan.Weeks
+            .SelectMany(w => w.Days)
+            .SelectMany(d => d.Meals)
+            .Select(m => m.MealId)
+            .ToHashSet();
+
+        var candidates = req.Weeks
+            .SelectMany(w => w.Days)
+            .SelectMany(d => d.Meals)
+            .Where(m => m.MealId.HasValue && !storedMealIds.Contains(m.MealId.Value))
+            .Select(m => m.MealId!.Value)
+            .ToHashSet();
+
+        var foreign = new HashSet<Guid>();
+
+        if (candidates.Count == 0)
+        {
+            return foreign;
+        }
+
+        var planFilter = Builders<NutritionPlan>.Filter.Ne(p => p.ExternalId, plan.ExternalId)
+                         & Builders<NutritionPlan>.Filter.ElemMatch(
+                             p => p.Weeks,
+                             Builders<PlanWeek>.Filter.ElemMatch(
+                                 w => w.Days,
+                                 Builders<PlanDay>.Filter.ElemMatch(
+                                     d => d.Meals,
+                                     Builders<PlanMeal>.Filter.In(m => m.MealId, candidates))));
+
+        var otherPlans = await mongo.NutritionPlans
+            .Find(planFilter)
+            .Project(p => new { p.ExternalId, p.Weeks })
+            .ToListAsync(ct);
+
+        foreach (var otherPlan in otherPlans.Where(p => p.ExternalId != plan.ExternalId))
+        {
+            foreach (var mealId in otherPlan.Weeks
+                         .SelectMany(w => w.Days)
+                         .SelectMany(d => d.Meals)
+                         .Select(m => m.MealId)
+                         .Where(candidates.Contains))
+            {
+                foreign.Add(mealId);
+            }
+        }
+
+        var logFilter = Builders<MealLog>.Filter.In(l => l.MealId, candidates)
+                        & Builders<MealLog>.Filter.Ne(l => l.PlanId, plan.ExternalId);
+
+        var otherLogs = await mongo.MealLogs
+            .Find(logFilter)
+            .Project(l => new { l.MealId, l.PlanId })
+            .ToListAsync(ct);
+
+        foreach (var log in otherLogs.Where(l => l.PlanId != plan.ExternalId && candidates.Contains(l.MealId)))
+        {
+            foreign.Add(log.MealId);
+        }
+
+        return foreign;
     }
 }
