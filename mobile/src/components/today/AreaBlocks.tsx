@@ -6,6 +6,7 @@ import type { Theme } from '@/theme';
 
 import { CoachBuildingRow } from './CoachBuildingRow';
 import { RoleRow } from './RoleRow';
+import { RunningNutritionCard } from './RunningNutritionCard';
 import type { AreaBlock } from './todayBlocks';
 import { UpcomingPlanRow } from './UpcomingPlanRow';
 
@@ -15,8 +16,9 @@ type AreaBlocksProps = {
   today: string;
 };
 
-/** True when the area has something to render; a running plan has no block here yet. */
-export const hasAreaBlock = (block: AreaBlock): boolean => block.state.kind !== 'running';
+/** True when the area has something to render; a running training plan has no block here yet. */
+export const hasAreaBlock = (block: AreaBlock): boolean =>
+  block.state.kind !== 'running' || block.role === 'Nutritionist';
 
 /** One block per area, chosen by the area's state. */
 export function AreaBlocks({ blocks, today }: AreaBlocksProps) {
@@ -41,6 +43,8 @@ export function AreaBlocks({ blocks, today }: AreaBlocksProps) {
                 onPress={() => router.push({ pathname: '/coach-search', params: { role } })}
               />
             );
+          case 'running':
+            return role === 'Nutritionist' ? <RunningNutritionCard key={role} plan={state.plan} today={today} /> : null;
           default:
             return null;
         }

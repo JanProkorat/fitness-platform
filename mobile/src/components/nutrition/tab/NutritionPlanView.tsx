@@ -1,25 +1,13 @@
 import { useState } from 'react';
-import { Alert, Linking, StyleSheet, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { getErrorStatus } from '@/api/errors';
 import type { GetWeekPlanResponse, MealFood } from '@/api/generated';
-import {
-  MEAL_LOG_DATE_IN_FUTURE,
-  findMealLog,
-  getTopLevelErrorCode,
-  isMealEaten,
-  mealPhotos,
-  storedMealPhotos,
-} from '@/api/nutrition';
+import { findMealLog, isMealEaten, mealPhotos } from '@/api/nutrition';
 import type { NutritionMeal } from '@/api/nutrition';
-import { PhotoUploadError } from '@/api/photos';
-import type { PickedPhoto } from '@/api/photos';
 import { Card } from '@/components/Card';
 import { EMPTY_MACROS, macrosOf } from '@/components/nutrition/meal/format';
-import { pickMealPhoto } from '@/components/nutrition/meal/pickMealPhoto';
-import type { PhotoSource } from '@/components/nutrition/meal/pickMealPhoto';
 import { MealPhotoViewer } from '@/components/nutrition/meals/MealPhotoViewer';
 import type { ViewerPhoto } from '@/components/nutrition/meals/MealPhotoViewer';
 import { DayStrip } from '@/components/nutrition/plan/DayStrip';
@@ -30,38 +18,23 @@ import { OffPlanGroup } from '@/components/nutrition/tab/OffPlanGroup';
 import { OffPlanSheet } from '@/components/nutrition/tab/OffPlanSheet';
 import { TabMealRow } from '@/components/nutrition/tab/TabMealRow';
 import { Text } from '@/components/Text';
-import { useAddDayMealPhoto } from '@/hooks/useAddDayMealPhoto';
 import { useNutritionDayLog } from '@/hooks/useNutritionDayLog';
-import { useRemoveOffPlanFood } from '@/hooks/useOffPlanFood';
+import { useTodayMealActions } from '@/hooks/useTodayMealActions';
 import { useTodayMealLog } from '@/hooks/useTodayMealLog';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
-
-type PhotoFailure = 'tooLarge' | 'unsupportedType' | 'upload' | 'future';
-
-const photoFailure = (error: unknown): PhotoFailure => {
-  if (getTopLevelErrorCode(error) === MEAL_LOG_DATE_IN_FUTURE) return 'future';
-  const failure = error instanceof PhotoUploadError ? error.failure : 'upload';
-  return failure === 'tooLarge' || failure === 'unsupportedType' ? failure : 'upload';
-};
 
 type NutritionPlanViewProps = { week: GetWeekPlanResponse };
 
 /** The published plan on the Nutrition tab: the week's days, the day's totals and meals, and off-plan food. */
 export function NutritionPlanView({ week }: NutritionPlanViewProps) {
   const { t } = useTranslation();
-  const router = useRouter();
   const theme = useTheme();
   const styles = makeStyles(theme);
 
   const todayLog = useTodayMealLog(true);
   const weekLog = useNutritionDayLog(localToday());
-  const photoUpload = useAddDayMealPhoto();
-  const removeOffPlan = useRemoveOffPlanFood();
-  const [picking, setPicking] = useState(false);
-  const [sheetOpen, setSheetOpen] = useState(false);
   const [picked, setPicked] = useState<string | null>(null);
-  const [viewer, setViewer] = useState<{ mealId: string; index: number } | null>(null);
 
   // The server knows the client's local today; the device date only stands in until the log is loaded.
   const today = isoDay(weekLog.data?.today) || localToday();
@@ -105,63 +78,18 @@ export function NutritionPlanView({ week }: NutritionPlanViewProps) {
         : eatenMacros(meals, isEaten);
   const dayEaten = meals.filter((meal) => isEaten(meal.mealId)).length;
 
-  const upload = (meal: NutritionMeal, photo: PickedPhoto) => {
-    photoUpload.mutate(
-      {
-        mealId: meal.mealId,
-        date: today,
-        photo,
-        existing: storedMealPhotos(findMealLog(todayLog.data, meal.mealId)),
-      },
-      {
-        onError: (error) =>
-          Alert.alert(t('nutritionPlan.photo.errors.title'), t(`nutritionPlan.photo.errors.${photoFailure(error)}`)),
-      },
-    );
-  };
-
-  const addPhoto = async (meal: NutritionMeal, source: PhotoSource) => {
-    setPicking(true);
-    try {
-      const result = await pickMealPhoto(source);
-      if (result.kind === 'denied') {
-        Alert.alert(t('nutritionPlan.photo.permission.title'), t('nutritionPlan.photo.permission.body'), [
-          { text: t('nutritionPlan.photo.cancel'), style: 'cancel' },
-          { text: t('nutritionPlan.photo.permission.openSettings'), onPress: () => void Linking.openSettings() },
-        ]);
-      } else if (result.kind === 'picked') {
-        upload(meal, result.photo);
-      }
-    } finally {
-      setPicking(false);
-    }
-  };
-
-  const askSource = (meal: NutritionMeal) => {
-    Alert.alert(t('nutritionPlan.photo.title'), undefined, [
-      { text: t('nutritionPlan.photo.camera'), onPress: () => void addPhoto(meal, 'camera') },
-      { text: t('nutritionPlan.photo.library'), onPress: () => void addPhoto(meal, 'library') },
-      { text: t('nutritionPlan.photo.cancel'), style: 'cancel' },
-    ]);
-  };
-
-  const openFood = (foodId: string | undefined, grams?: number, kind?: string) => {
-    if (!foodId) return;
-    router.push({
-      pathname: '/nutrition/food/[foodId]',
-      params: {
-        foodId,
-        ...(grams !== undefined ? { grams: String(grams) } : {}),
-        ...(kind ? { meal: kind } : {}),
-      },
-    });
-  };
-
-  const removeEntry = (entryId: string) => {
-    removeOffPlan.mutate(entryId, {
-      onError: () => Alert.alert(t('nutritionTab.errors.removeOffPlan')),
-    });
-  };
+  const {
+    removeOffPlan,
+    sheetOpen,
+    setSheetOpen,
+    viewer,
+    setViewer,
+    askSource,
+    openFood,
+    removeEntry,
+    openRecipe,
+    addPhotoBusy,
+  } = useTodayMealActions(todayLog.data, today);
 
   const viewerMeal = viewer ? meals.find((meal) => meal.mealId === viewer.mealId) : undefined;
   const viewerPhotos = viewerMeal ? photosOf(viewerMeal) : [];
@@ -228,17 +156,12 @@ export function NutritionPlanView({ week }: NutritionPlanViewProps) {
               })}
               photos={photosOf(meal).map((photo) => ({ key: photo.key, uri: photo.uri }))}
               canLog={isToday && logAvailable}
-              onOpenRecipe={(recipeId, servings) =>
-                router.push({
-                  pathname: '/nutrition/recipe/[recipeId]',
-                  params: { recipeId, servings: String(servings) },
-                })
-              }
+              onOpenRecipe={openRecipe}
               onOpenFood={(food: MealFood, parent: NutritionMeal) =>
                 openFood(food.foodExternalId, food.amountGrams, parent.kind)
               }
               onAddPhoto={isToday && logAvailable ? () => askSource(meal) : undefined}
-              addPhotoBusy={(photoUpload.isPending && photoUpload.variables?.mealId === meal.mealId) || picking}
+              addPhotoBusy={addPhotoBusy(meal.mealId)}
               onOpenPhoto={(photoIndex) => setViewer({ mealId: meal.mealId, index: photoIndex })}
             />
           ))

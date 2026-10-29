@@ -21,6 +21,8 @@ type TabMealRowProps = {
   onAddPhoto?: () => void;
   addPhotoBusy: boolean;
   onOpenPhoto: (index: number) => void;
+  /** Initial state only: the row starts expanded. */
+  defaultExpanded?: boolean;
 };
 
 /** A meal row of the Nutrition tab: the shared row plus the check that marks the meal eaten. */
@@ -35,6 +37,7 @@ export function TabMealRow({
   onAddPhoto,
   addPhotoBusy,
   onOpenPhoto,
+  defaultExpanded = false,
 }: TabMealRowProps) {
   const { t } = useTranslation();
   const eaten = useMealEaten(meal);
@@ -57,6 +60,7 @@ export function TabMealRow({
       onAddPhoto={onAddPhoto}
       addPhotoBusy={addPhotoBusy}
       onOpenPhoto={onOpenPhoto}
+      defaultExpanded={defaultExpanded}
     />
   );
 }

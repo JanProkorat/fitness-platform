@@ -167,6 +167,32 @@
     "notificationsUnread": "Benachrichtigungen, {{count}} ungelesen",
     "profile": "Profil",
     "invitesTitle": "Einladungen",
+    "runningNutrition": {
+      "weekOf": "Woche {{current}} von {{total}}",
+      "week": "Woche {{current}}",
+      "ofKcal": " / {{target}} kcal",
+      "kcal": " kcal"
+    },
+    "stats": {
+      "unavailable": "Nicht verfügbar",
+      "kg": "kg",
+      "weight": "Gewicht",
+      "weightNone": "Noch nicht erfasst",
+      "weightChange": "{{change}} diese Woche",
+      "photos": "Fotos",
+      "photosNone": "Noch keine Fotos",
+      "photosToday": "Heute",
+      "photosAgo_one": "vor {{count}} Tag",
+      "photosAgo_other": "vor {{count}} Tagen",
+      "checkIn": "Check-in",
+      "checkInOpen": "Offen",
+      "checkInDueToday": "Heute fällig",
+      "checkInDue_one": "Fällig in {{count}} Tag",
+      "checkInDue_other": "Fällig in {{count}} Tagen",
+      "checkInWeekly": "Jede Woche",
+      "checkInNone": "Keiner geplant",
+      "openCheckIns": "Check-ins öffnen"
+    },
     "dateTitle": "Heute",
     "findCoach": {
       "title": "Coach finden",

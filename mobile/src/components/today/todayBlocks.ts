@@ -9,8 +9,8 @@ import type { CoachRole, CoveredCollaboration } from './collaborationRoles';
 
 /** What one area (training or nutrition) of Today shows. */
 export type AreaState =
-  /** An Active plan is under way; its block is not part of this selector yet. */
-  | { kind: 'running' }
+  /** An Active plan is under way. */
+  | { kind: 'running'; plan: ClientOwnPlanItem }
   /** An Active plan with a published week whose start date is still ahead. */
   | { kind: 'startsLater'; plan: ClientOwnPlanItem }
   /** A coach covers the area but no plan is published yet. */
@@ -42,6 +42,10 @@ export function pickUpcomingPlan(
   return best;
 }
 
+/** True when any area has a plan under way. */
+export const hasRunningPlan = (blocks: readonly AreaBlock[]): boolean =>
+  blocks.some((block) => block.state.kind === 'running');
+
 /**
  * One block state per area, training first. Null when no area has an Active plan, which leaves
  * Today to its coach-progress view. `covering` holds the collaborations that cover at least one role.
@@ -58,7 +62,8 @@ export function selectAreaBlocks(
     const upcoming = pickUpcomingPlan(plans, kind, today);
     const active = plans.filter((plan) => planKind(plan) === kind && isActivePlan(plan));
     // An Active plan that is not the upcoming one is under way, even if another one is queued behind it.
-    if (active.some((plan) => plan !== upcoming)) return { role, state: { kind: 'running' } };
+    const running = active.find((plan) => plan !== upcoming);
+    if (running) return { role, state: { kind: 'running', plan: running } };
     if (upcoming) return { role, state: { kind: 'startsLater', plan: upcoming } };
     const coach = covering.find((entry) => entry.roles.includes(role));
     if (coach) return { role, state: { kind: 'building', collaboration: coach.collaboration } };
