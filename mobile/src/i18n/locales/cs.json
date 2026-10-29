@@ -260,6 +260,20 @@
       "title": "Další plán je připraven",
       "subtitle": "{{plan}} · začíná {{when}}"
     },
+    "questionnaire": {
+      "title": "Otázky od {{name}}",
+      "titleFallback": {
+        "Trainer": "Otázky od vašeho trenéra",
+        "Nutritionist": "Otázky od vašeho nutričního poradce",
+        "other": "Otázky od vašeho poradce"
+      },
+      "count_one": "{{count}} otázka",
+      "count_few": "{{count}} otázky",
+      "count_many": "{{count}} otázky",
+      "count_other": "{{count}} otázek",
+      "fill": "Vyplnit",
+      "fillLabel": "Vyplnit: {{title}}"
+    },
     "progress": {
       "coachFallback": "Váš poradce",
       "since": "od {{when}}",
