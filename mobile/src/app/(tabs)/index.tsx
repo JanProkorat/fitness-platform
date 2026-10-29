@@ -7,7 +7,7 @@ import { TabFade } from '@/components/TabFade';
 import { Text } from '@/components/Text';
 import { AddCoachRows } from '@/components/today/AddCoachRows';
 import { AreaPaymentDue } from '@/components/today/AreaPaymentDue';
-import { AreaBlocks,hasAreaBlock } from '@/components/today/AreaBlocks';
+import { AreaBlocks, hasAreaBlock } from '@/components/today/AreaBlocks';
 import { CoachProgressCard } from '@/components/today/CoachProgressCard';
 import {
   COACH_ROLES,
