@@ -441,4 +441,5 @@ internal sealed class IndexInitMongoContext : IMongoContext
     public IMongoCollection<RecipeTagAssignment> RecipeTagAssignments => _db.GetCollection<RecipeTagAssignment>("recipeTagAssignments");
     public IMongoCollection<ShoppingListTick> ShoppingListTicks => _db.GetCollection<ShoppingListTick>("shoppingListTicks");
     public IMongoCollection<ProcessedClientRequest> ProcessedClientRequests => _db.GetCollection<ProcessedClientRequest>("processedClientRequests");
+    public IMongoCollection<OfflineSyncConflict> OfflineSyncConflicts => _db.GetCollection<OfflineSyncConflict>("offlineSyncConflicts");
 }

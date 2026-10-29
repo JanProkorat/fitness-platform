@@ -11,6 +11,11 @@ public class GetFullPlanResponse
     /// <summary>External identifier of the nutrition plan.</summary>
     public Guid PlanId { get; set; }
 
+    /// <summary>
+    /// Plan <c>Version</c> the client saw; echoed back as <c>BasedOnPlanVersion</c> on offline writes.
+    /// </summary>
+    public int PlanVersion { get; set; }
+
     /// <summary>Display name of the nutrition plan.</summary>
     public string PlanName { get; set; } = string.Empty;
 

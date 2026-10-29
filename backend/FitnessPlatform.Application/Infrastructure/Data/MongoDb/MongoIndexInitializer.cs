@@ -64,6 +64,7 @@ public class MongoIndexInitializer : IHostedService
         await CreateRecipeTagIndexes(cancellationToken);
         await CreateShoppingListTickIndexes(cancellationToken);
         await CreateProcessedClientRequestIndexes(cancellationToken);
+        await CreateOfflineSyncConflictIndexes(cancellationToken);
 
         _logger.LogInformation("MongoDB indexes created successfully");
     }
@@ -577,5 +578,25 @@ public class MongoIndexInitializer : IHostedService
             });
 
         await _mongo.ProcessedClientRequests.Indexes.CreateManyAsync([uniqueIndex, ttlIndex], ct);
+    }
+
+    /// <summary>
+    /// Creates the OfflineSyncConflict index on (ClientId, PlanId, DateCreated desc) used by the
+    /// coach's list and by notification counting, plus a unique index on ExternalId.
+    /// </summary>
+    private async Task CreateOfflineSyncConflictIndexes(CancellationToken ct)
+    {
+        var listIndex = new CreateIndexModel<OfflineSyncConflict>(
+            Builders<OfflineSyncConflict>.IndexKeys
+                .Ascending(c => c.ClientId)
+                .Ascending(c => c.PlanId)
+                .Descending(c => c.DateCreated),
+            new CreateIndexOptions { Name = "idx_offlinesyncconflict_clientId_planId_dateCreated" });
+
+        var externalIdIndex = new CreateIndexModel<OfflineSyncConflict>(
+            Builders<OfflineSyncConflict>.IndexKeys.Ascending(c => c.ExternalId),
+            new CreateIndexOptions { Name = "idx_offlinesyncconflict_externalId", Unique = true });
+
+        await _mongo.OfflineSyncConflicts.Indexes.CreateManyAsync([listIndex, externalIdIndex], ct);
     }
 }
