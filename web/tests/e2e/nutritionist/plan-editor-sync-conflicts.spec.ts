@@ -3,9 +3,10 @@
  * popover (Week view), the panel inside the meal card (Day view), the ghost of a removed meal, the
  * text-only fallback for a conflict without seen items, and marking conflicts reviewed.
  *
- * The plan is real (created through the API, never published); the fixture has no conflicts, so the
- * conflicts list and the review calls are stubbed at the network layer. One plan serves the whole file,
- * which therefore runs serially; its start date is far from the dates the other editor specs use.
+ * The plan is real (created through the API, never published, and stored without a start date so it never
+ * appears on the client's plan timeline, which other specs read); the editor is served that plan with a
+ * start date patched in. The fixture has no conflicts, so the conflicts list and the review calls are
+ * stubbed at the network layer. One plan serves the whole file, which therefore runs serially.
  */
 import { request as apiRequest, type APIRequestContext, type Page } from '@playwright/test';
 import { nutritionistTest as test, expect } from '../fixtures/auth';
@@ -14,7 +15,7 @@ const NUTRITIONIST_EMAIL = 'qa.nutri@fitnessplatform.test';
 const CLIENT_PROFILE_ID = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 const PLAN_NAME = 'QA SyncConflicts';
 const DAY_MS = 24 * 60 * 60 * 1000;
-/** Weeks after the next Monday the plan starts, clear of the plans the other editor specs create. */
+/** Weeks after the next Monday the editor is told the plan starts. */
 const START_OFFSET_WEEKS = 12;
 
 interface Food {
@@ -26,7 +27,10 @@ interface Food {
 interface Fixture {
   planId: string;
   mealId: string;
+  /** Start date patched into the plan the editor loads; the stored plan has none. */
   startDate: string;
+  /** Version of the stored plan, which the editor shows as "Plan now". */
+  version: number;
   food: Food;
 }
 
@@ -97,7 +101,6 @@ async function createPlan(baseURL: string): Promise<Fixture> {
         name: PLAN_NAME,
         weekCount: 1,
         globalSettings: { dailyKcal: 2000 },
-        startDate,
       },
     });
     if (!created.ok()) {
@@ -112,7 +115,6 @@ async function createPlan(baseURL: string): Promise<Fixture> {
           name: PLAN_NAME,
           globalSettings: { dailyKcal: 2000 },
           version,
-          startDate,
           supplements: [],
           weeks: [
             {
@@ -146,12 +148,15 @@ async function createPlan(baseURL: string): Promise<Fixture> {
         throw new Error(`[plan-editor-sync-conflicts] PUT /nutrition/plans/${planId} returned ${update.status()}: ${await update.text()}`);
       }
       const saved = await api.get(`/nutrition/plans/${planId}`);
-      const body = (await saved.json()) as { weeks?: { days: { dayOfWeek: number; meals: { mealId?: string }[] }[] }[] };
+      const body = (await saved.json()) as { version?: number; weeks?: { days: { dayOfWeek: number; meals: { mealId?: string }[] }[] }[] };
       const mealId = body.weeks?.[0]?.days.find((day) => day.dayOfWeek === 1)?.meals[0]?.mealId;
       if (!mealId) {
         throw new Error('[plan-editor-sync-conflicts] the saved plan has no meal id.');
       }
-      return { planId, mealId, startDate, food };
+      if (body.version === undefined) {
+        throw new Error('[plan-editor-sync-conflicts] the saved plan has no version.');
+      }
+      return { planId, mealId, startDate, version: body.version, food };
     } catch (error) {
       await api.delete(`/nutrition/plans/${planId}`);
       throw error;
@@ -179,8 +184,16 @@ function conflict(fixture: Fixture, over: Record<string, unknown>): Record<strin
   };
 }
 
-/** Routes the conflicts list (GET) and the review calls (POST) to `stub`. */
-async function installStub(page: Page, stub: ConflictStub): Promise<void> {
+/** Routes the conflicts list (GET), the review calls (POST) and the plan itself, served with its start date. */
+async function installStub(page: Page, stub: ConflictStub, fixture: Fixture): Promise<void> {
+  await page.route(new RegExp(`/nutrition/plans/${fixture.planId}$`), async (route) => {
+    if (route.request().method() !== 'GET') {
+      return route.fallback();
+    }
+    const response = await route.fetch();
+    const plan = (await response.json()) as Record<string, unknown>;
+    return route.fulfill({ response, json: { ...plan, startDate: fixture.startDate } });
+  });
   await page.route('**/trainer/clients/*/offline-sync-conflicts*', (route, request) =>
     request.method() === 'GET' ? route.fulfill({ json: { items: stub.conflicts } }) : route.fallback(),
   );
@@ -229,7 +242,7 @@ test.describe('plan editor offline-sync conflicts', () => {
 
   test('a changed meal: strip, badges, comparison popover and mark reviewed', async ({ page }) => {
     const stub: ConflictStub = { conflicts: [changedMeal()], reviewStatus: 204, reviewed: [] };
-    await installStub(page, stub);
+    await installStub(page, stub, fixture);
     await openEditor(page, fixture);
 
     const strip = page.getByTestId('sync-conflict-strip');
@@ -245,7 +258,8 @@ test.describe('plan editor offline-sync conflicts', () => {
     const saw = popover.getByTestId('conflict-column-saw');
     const now = popover.getByTestId('conflict-column-now');
     await expect(saw).toContainText('v4');
-    await expect(now).toContainText('v6');
+    // "Plan now" is the version of the plan the editor loaded, not the conflict's own currentPlanVersion (6).
+    await expect(now).toContainText(`v${fixture.version}`);
     // Client-written names render as plain text: the markup is shown, not interpreted.
     await expect(saw).toContainText('Banana <b>bold</b>');
     await expect(saw).toContainText('Removed');
@@ -263,7 +277,7 @@ test.describe('plan editor offline-sync conflicts', () => {
   });
 
   test('the Day view shows the comparison inside the meal card, with kcal and an Amount chip', async ({ page }) => {
-    await installStub(page, { conflicts: [changedMeal()], reviewStatus: 204, reviewed: [] });
+    await installStub(page, { conflicts: [changedMeal()], reviewStatus: 204, reviewed: [] }, fixture);
     await openEditor(page, fixture);
 
     await page.getByRole('group', { name: 'Range' }).getByRole('button', { name: 'Day', exact: true }).click();
@@ -289,7 +303,7 @@ test.describe('plan editor offline-sync conflicts', () => {
       logDate: new Date(Date.parse(`${fixture.startDate}T00:00:00Z`) + DAY_MS).toISOString().slice(0, 10),
       seenItems: [{ kind: 'Food', refId: '33333333-3333-3333-3333-333333333333', name: 'Almonds', amount: 30, kcal: 130 }],
     });
-    await installStub(page, { conflicts: [removed], reviewStatus: 204, reviewed: [] });
+    await installStub(page, { conflicts: [removed], reviewStatus: 204, reviewed: [] }, fixture);
     await openEditor(page, fixture);
 
     // The plan has no snack row, so the ghost gets one appended after the last row, on Tuesday.
@@ -307,19 +321,19 @@ test.describe('plan editor offline-sync conflicts', () => {
   });
 
   test('a conflict without seen items shows the text only', async ({ page }) => {
-    await installStub(page, { conflicts: [conflict(fixture, {})], reviewStatus: 204, reviewed: [] });
+    await installStub(page, { conflicts: [conflict(fixture, {})], reviewStatus: 204, reviewed: [] }, fixture);
     await openEditor(page, fixture);
 
     await page.locator('[data-testid="meal-cell"][data-day="1"][data-row="0"]').click();
     const popover = page.getByTestId('sync-conflict-popover');
     await expect(popover.getByTestId('conflict-text-only')).toContainText('saw version 4');
-    await expect(popover.getByTestId('conflict-text-only')).toContainText('you saved version 6');
+    await expect(popover.getByTestId('conflict-text-only')).toContainText(`you saved version ${fixture.version}`);
     await expect(popover.getByTestId('conflict-comparison')).toHaveCount(0);
   });
 
   test('"Show" opens the first conflict and "Mark all reviewed" clears the strip', async ({ page }) => {
     const stub: ConflictStub = { conflicts: [changedMeal()], reviewStatus: 204, reviewed: [] };
-    await installStub(page, stub);
+    await installStub(page, stub, fixture);
     let reviewAllBody: unknown = null;
     await page.route('**/trainer/clients/*/offline-sync-conflicts/review-all', (route) => {
       reviewAllBody = route.request().postDataJSON();
@@ -338,7 +352,7 @@ test.describe('plan editor offline-sync conflicts', () => {
 
   test('a failed review keeps the conflict visible and shows an error toast', async ({ page }) => {
     const stub: ConflictStub = { conflicts: [changedMeal()], reviewStatus: 500, reviewed: [] };
-    await installStub(page, stub);
+    await installStub(page, stub, fixture);
     await openEditor(page, fixture);
 
     await page.locator('[data-testid="meal-cell"][data-day="1"][data-row="0"]').click();
