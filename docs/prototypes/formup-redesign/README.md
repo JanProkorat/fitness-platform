@@ -5,7 +5,7 @@ the web portal and the mobile apps:
 <https://claude.ai/artifact/HFzM8WqykBxJvkLdiqU85h> (private claude.ai Design
 artifact — only the main Claude session can open it; agents read this snapshot).
 
-**Snapshot of canvas version 1793174295-8cf0, exported 2026-10-28; `canvas.json` and the GlassNutritionUpcoming boards from 1793191363-d94b (#1788); `canvas.json` and the GlassNutritionPlanWeekMore boards from 1793207899-5335 (#1790); `canvas.json`, the GlassOffline* boards and the 20 Glass boards added since (Today before a plan, Today blocks, Training upcoming, Nutrition plans) from 1793279172-ac8c (#1830). No PNGs for the boards added in #1830.** If the canvas has moved
+**Snapshot of canvas version 1793174295-8cf0, exported 2026-10-28; `canvas.json` and the GlassNutritionUpcoming boards from 1793191363-d94b (#1788); `canvas.json` and the GlassNutritionPlanWeekMore boards from 1793207899-5335 (#1790); `canvas.json`, the GlassOffline* boards and the 20 Glass boards added since (Today before a plan, Today blocks, Training upcoming, Nutrition plans) from 1793279172-ac8c (#1830); `canvas.json` and the PageClientActivityOfflineSync / PageNotificationsOfflineSync boards from 1793281475-31a2 (#1819). No PNGs for the boards added in #1830 and #1819.** If the canvas has moved
 on, re-export before relying on this copy (see Rebuilding).
 
 | Path | Contents |
