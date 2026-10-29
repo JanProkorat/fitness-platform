@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Screen } from '@/components/Screen';
 import { TabFade } from '@/components/TabFade';
 import { Text } from '@/components/Text';
+import { AddCoachRows } from '@/components/today/AddCoachRows';
 import { AreaPaymentDue } from '@/components/today/AreaPaymentDue';
 import { AreaBlocks,hasAreaBlock } from '@/components/today/AreaBlocks';
 import { CoachProgressCard } from '@/components/today/CoachProgressCard';
@@ -123,6 +124,8 @@ function TodayContent() {
             <AreaPaymentDue blocks={areaBlocks} covering={covering} />
             <AreaBlocks blocks={areaBlocks} today={today} />
             <GetReadyList blocks={areaBlocks} covering={covering} />
+            <AddCoachRows blocks={areaBlocks} />
+            <StartOnYourOwn showHeading={false} />
             <InvitesSection />
           </>,
           true,
