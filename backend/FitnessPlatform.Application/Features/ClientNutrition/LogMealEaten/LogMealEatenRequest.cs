@@ -33,4 +33,7 @@ public class LogMealEatenRequest
 
     /// <summary>The <c>NutritionPlan.Version</c> the client saw when it queued the request.</summary>
     public int? BasedOnPlanVersion { get; set; }
+
+    /// <summary>The meal items the client saw; stored only when the request collides with a plan change.</summary>
+    public List<SeenMealItemRequest>? SeenMealItems { get; set; }
 }

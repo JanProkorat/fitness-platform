@@ -56,6 +56,12 @@ public class OfflineSyncConflictDto
     /// <summary>When the conflict was detected (UTC).</summary>
     public DateTime DetectedAt { get; set; }
 
+    /// <summary>The meal items as the client saw them; empty on older conflicts.</summary>
+    public List<SeenMealItemDto> SeenItems { get; set; } = [];
+
+    /// <summary>When a coach marked the conflict reviewed (UTC); null while unreviewed.</summary>
+    public DateTime? ReviewedAt { get; set; }
+
     /// <summary>Maps the stored document to the DTO.</summary>
     public static OfflineSyncConflictDto FromDocument(OfflineSyncConflict conflict) => new()
     {
@@ -72,5 +78,38 @@ public class OfflineSyncConflictDto
         BasedOnPlanVersion = conflict.BasedOnPlanVersion,
         CurrentPlanVersion = conflict.CurrentPlanVersion,
         DetectedAt = conflict.DateCreated,
+        SeenItems = conflict.SeenItems.Select(SeenMealItemDto.FromDocument).ToList(),
+        ReviewedAt = conflict.ReviewedAt,
+    };
+}
+
+/// <summary>
+/// One meal item as the client saw it.
+/// </summary>
+public class SeenMealItemDto
+{
+    /// <summary>Whether the item was a food or a recipe.</summary>
+    public SeenMealItemKind Kind { get; set; }
+
+    /// <summary>Public id of the food or recipe.</summary>
+    public Guid RefId { get; set; }
+
+    /// <summary>Display name the client showed.</summary>
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary>Amount the client showed.</summary>
+    public decimal Amount { get; set; }
+
+    /// <summary>Energy the client showed, in kcal.</summary>
+    public decimal Kcal { get; set; }
+
+    /// <summary>Maps the stored item to the DTO.</summary>
+    public static SeenMealItemDto FromDocument(SeenMealItem item) => new()
+    {
+        Kind = item.Kind,
+        RefId = item.RefId,
+        Name = item.Name,
+        Amount = item.Amount,
+        Kcal = item.Kcal,
     };
 }

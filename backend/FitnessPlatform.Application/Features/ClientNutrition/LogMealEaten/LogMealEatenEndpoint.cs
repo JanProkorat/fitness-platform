@@ -186,6 +186,16 @@ public class LogMealEatenEndpoint(
         MealKind = meal.Kind,
         MealLogged = mealLogged,
         DateCreated = timeProvider.GetUtcNow().UtcDateTime,
+        SeenItems = (req.SeenMealItems ?? [])
+            .Select(item => new SeenMealItem
+            {
+                Kind = item.Kind,
+                RefId = item.RefId,
+                Name = item.Name,
+                Amount = item.Amount,
+                Kcal = item.Kcal,
+            })
+            .ToList(),
     };
 
     /// <summary>
