@@ -78,6 +78,20 @@ public class OfflineSyncConflict
     [BsonElement("mealLogged")]
     public bool MealLogged { get; set; }
 
+    /// <summary>The meal items as the client saw them; empty on older conflicts.</summary>
+    [BsonElement("seenItems")]
+    public List<SeenMealItem> SeenItems { get; set; } = [];
+
+    /// <summary>When a coach marked the conflict reviewed (UTC); null while unreviewed.</summary>
+    [BsonElement("reviewedAt")]
+    [BsonIgnoreIfNull]
+    public DateTime? ReviewedAt { get; set; }
+
+    /// <summary>The coach who reviewed it (ApplicationUser.Id).</summary>
+    [BsonElement("reviewedByUserId")]
+    [BsonIgnoreIfNull]
+    public Guid? ReviewedByUserId { get; set; }
+
     /// <summary>UTC time the conflict was detected.</summary>
     [BsonElement("dateCreated")]
     public DateTime DateCreated { get; set; } = DateTime.UtcNow;

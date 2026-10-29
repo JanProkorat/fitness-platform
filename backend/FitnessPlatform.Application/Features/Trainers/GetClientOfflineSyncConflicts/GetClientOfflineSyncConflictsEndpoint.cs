@@ -35,7 +35,7 @@ internal sealed class GetClientOfflineSyncConflictsEndpoint(
         Summary(s =>
         {
             s.Summary = "List a client's offline-sync conflicts";
-            s.Description = "Returns paginated client actions that collided with a plan change, newest first. Sets X-Total-Count.";
+            s.Description = "Returns paginated client actions that collided with a plan change, newest first. Optional planId and unreviewedOnly filters. Sets X-Total-Count to the filtered total.";
             s.Responses[StatusCodes.Status200OK] = "One page of conflicts";
             s.Responses[StatusCodes.Status400BadRequest] = "Invalid paging parameters";
             s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
@@ -83,6 +83,17 @@ internal sealed class GetClientOfflineSyncConflictsEndpoint(
 
         var filter = Builders<OfflineSyncConflict>.Filter.Eq(c => c.ClientId, clientUserId)
                      & Builders<OfflineSyncConflict>.Filter.Eq(c => c.PlanAuthorId, coachUserId);
+
+        if (req.PlanId is { } planId)
+        {
+            filter &= Builders<OfflineSyncConflict>.Filter.Eq(c => c.PlanId, planId);
+        }
+
+        if (req.UnreviewedOnly == true)
+        {
+            // Matches legacy documents that have no reviewedAt field at all.
+            filter &= Builders<OfflineSyncConflict>.Filter.Eq(c => c.ReviewedAt, null);
+        }
 
         var total = await mongo.OfflineSyncConflicts.CountDocumentsAsync(filter, cancellationToken: ct);
         HttpContext.Response.Headers["X-Total-Count"] = total.ToString();

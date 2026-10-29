@@ -30,6 +30,23 @@ public class LogMealEatenValidator : Validator<LogMealEatenRequest>
             .WithMessage("Photo URL must be a valid HTTP/HTTPS URL.")
             .When(x => x.PhotoBlobUrls is not null && x.PhotoBlobUrls.Count > 0);
 
+        RuleFor(x => x.SeenMealItems)
+            .Must(items => items!.Count <= 40)
+            .WithMessage("At most 40 seen meal items are allowed.")
+            .When(x => x.SeenMealItems is not null);
+
+        RuleForEach(x => x.SeenMealItems)
+            .NotNull()
+            .ChildRules(item =>
+            {
+                item.RuleFor(i => i.Kind).IsInEnum();
+                item.RuleFor(i => i.RefId).NotEmpty();
+                item.RuleFor(i => i.Name).NotEmpty().MaximumLength(200);
+                item.RuleFor(i => i.Amount).InclusiveBetween(0m, 10000m);
+                item.RuleFor(i => i.Kcal).InclusiveBetween(0m, 20000m);
+            })
+            .When(x => x.SeenMealItems is not null);
+
         this.AddOfflineSyncRules(x => x.OccurredAt, x => x.ClientRequestId);
     }
 }
