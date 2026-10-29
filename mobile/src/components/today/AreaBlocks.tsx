@@ -11,7 +11,6 @@ import type { Theme } from '@/theme';
 
 import { CoachBuildingRow } from './CoachBuildingRow';
 import { NextPlanStrip } from './NextPlanStrip';
-import { RoleRow } from './RoleRow';
 import { RunningNutritionCard } from './RunningNutritionCard';
 import type { AreaBlock } from './todayBlocks';
 import { UpcomingPlanRow } from './UpcomingPlanRow';
@@ -40,7 +39,7 @@ function nextPlanSubtitle(t: TFunction, language: string, plan: ClientOwnPlanIte
   });
 }
 
-/** One block per area, chosen by the area's state. */
+/** One block per area, chosen by the area's state; areas without a coach render in AddCoachRows. */
 export function AreaBlocks({ blocks, today }: AreaBlocksProps) {
   const { t, i18n } = useTranslation();
   const router = useRouter();
@@ -55,15 +54,6 @@ export function AreaBlocks({ blocks, today }: AreaBlocksProps) {
             return <UpcomingPlanRow key={role} role={role} plan={state.plan} today={today} />;
           case 'building':
             return <CoachBuildingRow key={role} role={role} collaboration={state.collaboration} />;
-          case 'noCoach':
-            return (
-              <RoleRow
-                key={role}
-                role={role}
-                mode="add"
-                onPress={() => router.push({ pathname: '/coach-search', params: { role } })}
-              />
-            );
           case 'running':
             return role === 'Nutritionist' ? (
               <RunningNutritionCard

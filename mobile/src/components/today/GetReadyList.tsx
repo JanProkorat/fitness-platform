@@ -7,6 +7,7 @@ import { AddMeasurementSheet } from '@/components/measurements/AddMeasurementShe
 import { firstName } from '@/components/invites/format';
 import { Text } from '@/components/Text';
 import { useMeasurementHistory } from '@/hooks/useMeasurementHistory';
+import { usePayments } from '@/hooks/usePayments';
 import { usePaymentsEnabled } from '@/hooks/usePaymentsEnabled';
 import { usePendingQuestionnaires } from '@/hooks/usePendingQuestionnaires';
 import { usePhotos } from '@/hooks/usePhotos';
@@ -37,6 +38,7 @@ export function GetReadyList({ blocks, covering }: GetReadyListProps) {
   const history = useMeasurementHistory();
   const photos = usePhotos();
   const { enabled: paymentsEnabled } = usePaymentsEnabled();
+  const payments = usePayments(paymentsEnabled);
 
   if (!hasUnstartedArea(blocks)) return null;
 
@@ -44,6 +46,7 @@ export function GetReadyList({ blocks, covering }: GetReadyListProps) {
     blocks,
     covering,
     paymentsEnabled,
+    payments: payments.data,
     pending: pending.data,
     weights: history.data,
     photoMonths: photos.data,
@@ -78,6 +81,7 @@ export function GetReadyList({ blocks, covering }: GetReadyListProps) {
             done={row.done}
             title={t('today.getReady.payment')}
             hint={step?.hint}
+            hintOverdue={row.overdue}
             action={
               row.due && step?.onAction
                 ? { label: t('today.progress.firstPayment.showQr'), onPress: step.onAction, tone: 'primary' }
@@ -93,7 +97,7 @@ export function GetReadyList({ blocks, covering }: GetReadyListProps) {
             done={row.done}
             title={t('today.getReady.weight')}
             hint={t('today.getReady.weightHint')}
-            action={{ label: t('today.getReady.logWeight'), onPress: () => setSheetOpen(true), tone: 'secondary' }}
+            action={{ label: t('today.getReady.logWeight'), onPress: () => setSheetOpen(true), tone: 'primary' }}
           />
         );
       case 'photos':
