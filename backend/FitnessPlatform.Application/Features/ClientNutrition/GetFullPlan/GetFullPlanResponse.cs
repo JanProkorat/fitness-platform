@@ -1,4 +1,5 @@
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Features.NutritionPlans.GetPlan;
 
 namespace FitnessPlatform.Application.Features.ClientNutrition.GetFullPlan;
@@ -55,6 +56,122 @@ public class GetFullPlanResponse
     /// local reminder notifications; the list is read-only on the client side.
     /// </summary>
     public List<SupplementDto> Supplements { get; set; } = [];
+
+    /// <summary>
+    /// Builds the response from a plan that has at least one published week.
+    /// </summary>
+    /// <param name="plan">The plan document.</param>
+    /// <param name="todayLocalUtc">The client's local calendar day.</param>
+    /// <param name="eatenMealIds">Meal ids the client has logged as eaten.</param>
+    public static GetFullPlanResponse FromPlan(NutritionPlan plan, DateTime todayLocalUtc, IEnumerable<Guid> eatenMealIds)
+    {
+        // Collect published weeks ordered by week number
+        var publishedWeeks = plan.Weeks
+            .Where(w => w.Status == WeekStatus.Published)
+            .OrderBy(w => w.WeekNumber)
+            .ToList();
+
+        var today = todayLocalUtc;
+
+        // Anchor date for the per-week start/end dates below. publishedWeeks is non-empty
+        // here, which implies StartDate is set (#1015 — see the reachability note below), so the
+        // plan-level DatePublished fallback this used to carry was unreachable.
+        DateTime? anchorDate = plan.StartDate;
+
+        // Determine currentWeek and currentDayOfWeek
+        int? currentWeek = null;
+        int? currentDayOfWeek = null;
+
+        if (plan.StartDate.HasValue)
+        {
+            var daysSinceStart = (int)(today - plan.StartDate.Value.Date).TotalDays;
+
+            if (daysSinceStart < 0)
+            {
+                // Plan hasn't started yet — upcoming
+                currentWeek = null;
+                currentDayOfWeek = null;
+            }
+            else
+            {
+                var weekNum = daysSinceStart / 7 + 1;
+                var dayNum = daysSinceStart % 7 + 1;
+
+                // Check whether the calculated week is published
+                var calculatedWeek = plan.Weeks.FirstOrDefault(w => w.WeekNumber == weekNum);
+
+                if (weekNum > publishedWeeks[^1].WeekNumber || calculatedWeek is null || calculatedWeek.Status != WeekStatus.Published)
+                {
+                    // Beyond published weeks or on an unpublished week — fall back to last published week
+                    currentWeek = publishedWeeks[^1].WeekNumber;
+                    // Use current day of week (Monday=1 … Sunday=7) — today already carries
+                    // the client's local calendar date (#935).
+                    var dow = (int)today.DayOfWeek;
+                    currentDayOfWeek = dow == 0 ? 7 : dow;
+                }
+                else
+                {
+                    currentWeek = weekNum;
+                    currentDayOfWeek = dayNum;
+                }
+            }
+        }
+
+        // No else: publishedWeeks is non-empty here, which implies StartDate is set —
+        // PublishWeekEndpoint refuses to publish a week without one (START_DATE_REQUIRED) and
+        // UpdatePlanEndpoint refuses to clear one while any week is published
+        // (START_DATE_LOCKED), and publishing is the only route to WeekStatus.Published. The
+        // legacy plan-level DatePublished cycling branch that stood here was unreachable, and
+        // the field it read has had no writer since 8d39e113 (#1015).
+
+        // Build week list with pre-computed date ranges
+        var fullPlanWeeks = publishedWeeks.Select(w =>
+        {
+            string weekStart = string.Empty;
+            string weekEnd = string.Empty;
+
+            if (anchorDate.HasValue)
+            {
+                // Week 1 starts on anchorDate; each subsequent week is +7 days
+                var weekStartDate = anchorDate.Value.Date.AddDays((w.WeekNumber - 1) * 7);
+                var weekEndDate = weekStartDate.AddDays(6);
+                weekStart = weekStartDate.ToString("yyyy-MM-dd");
+                weekEnd = weekEndDate.ToString("yyyy-MM-dd");
+            }
+
+            return new FullPlanWeek
+            {
+                WeekNumber = w.WeekNumber,
+                WeekStartDate = weekStart,
+                WeekEndDate = weekEnd,
+                Days = w.Days
+            };
+        }).ToList();
+
+        return new GetFullPlanResponse
+        {
+            PlanId = plan.ExternalId,
+            PlanName = plan.Name,
+            StartDate = plan.StartDate,
+            GlobalSettings = plan.GlobalSettings,
+            Weeks = fullPlanWeeks,
+            PublishedWeekCount = publishedWeeks.Count,
+            TotalWeeks = plan.Weeks.Count,
+            CurrentWeek = currentWeek,
+            CurrentDayOfWeek = currentDayOfWeek,
+            Status = plan.Status.ToString(),
+            QuestionnaireResponseId = plan.QuestionnaireResponseId,
+            DateCompleted = plan.DateCompleted,
+            EatenMealIds = [..eatenMealIds],
+            Supplements = plan.Supplements.Select(s => new SupplementDto
+            {
+                ExternalId = s.ExternalId,
+                Name = s.Name,
+                Dose = s.Dose,
+                Notes = s.Notes
+            }).ToList(),
+        };
+    }
 }
 
 /// <summary>
