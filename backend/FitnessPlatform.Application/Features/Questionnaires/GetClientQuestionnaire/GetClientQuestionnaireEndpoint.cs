@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 namespace FitnessPlatform.Application.Features.Questionnaires.GetClientQuestionnaire;
 
 public class GetClientQuestionnaireEndpoint(IApplicationDbContext db)
-    : EndpointWithoutRequest<GetClientQuestionnaireResponse>
+    : Endpoint<GetClientQuestionnaireRequest, GetClientQuestionnaireResponse>
 {
     public override void Configure()
     {
@@ -27,7 +27,7 @@ public class GetClientQuestionnaireEndpoint(IApplicationDbContext db)
         });
     }
 
-    public override async Task HandleAsync(CancellationToken ct)
+    public override async Task HandleAsync(GetClientQuestionnaireRequest req, CancellationToken ct)
     {
         var userId = User.FindFirstValue(AppClaims.UserId);
         if (userId is null) { await Send.UnauthorizedAsync(ct); return; }
@@ -44,8 +44,8 @@ public class GetClientQuestionnaireEndpoint(IApplicationDbContext db)
         }
 
         // 2. Resolve the professional link — a named response wins, then explicit linkPublicId, then first active
-        var linkPublicIdParam = Query<Guid?>("linkPublicId", isRequired: false);
-        var responsePublicIdParam = Query<Guid?>("responsePublicId", isRequired: false);
+        var linkPublicIdParam = req.LinkPublicId;
+        var responsePublicIdParam = req.ResponsePublicId;
 
         Domain.Entities.QuestionnaireResponse? requestedResponse = null;
         Domain.Entities.ClientProfessionalLink? link;
