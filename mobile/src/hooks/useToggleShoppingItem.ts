@@ -1,12 +1,16 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
-import { setShoppingListItemTicked, shoppingListQueryKey } from '@/api/nutrition';
+import { shoppingListQueryKey } from '@/api/nutrition';
 import type { ShoppingListData } from '@/api/nutrition';
 import { withItemTicked } from '@/components/nutrition/shopping/model';
+import { submitWrite } from '@/lib/outbox/submit';
 
 type TickVariables = { foodExternalId: string; isTicked: boolean };
 
-/** Ticks or unticks an item of a week; the list changes at once and is restored if the call fails. */
+/**
+ * Ticks or unticks an item of a week; the list changes at once and is restored if the server rejects the call.
+ * Offline, the tick is queued and this still resolves.
+ */
 export function useToggleShoppingItem(weekNumber: number) {
   const queryClient = useQueryClient();
   const queryKey = shoppingListQueryKey(weekNumber, weekNumber);
@@ -14,8 +18,9 @@ export function useToggleShoppingItem(weekNumber: number) {
 
   return useMutation({
     mutationKey,
+    networkMode: 'always',
     mutationFn: ({ foodExternalId, isTicked }: TickVariables) =>
-      setShoppingListItemTicked(weekNumber, foodExternalId, isTicked),
+      submitWrite({ kind: 'shoppingTicked', payload: { weekNumber, foodExternalId, isTicked } }),
     onMutate: async ({ foodExternalId, isTicked }) => {
       await queryClient.cancelQueries({ queryKey });
       const previous = queryClient.getQueryData<ShoppingListData>(queryKey);

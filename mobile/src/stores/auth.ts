@@ -4,6 +4,7 @@ import { create } from 'zustand';
 import { isOfflineFailure } from '@/api/errors';
 import { clearPersistedCache } from '@/lib/persistence';
 import { queryClient } from '@/lib/queryClient';
+import { useOutboxStore } from '@/stores/outbox';
 
 const REFRESH_TOKEN_KEY = 'refreshToken';
 
@@ -62,6 +63,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     // Memory first, then disk: a throttled write can otherwise bring the old user's snapshot back.
     queryClient.clear();
     await clearPersistedCache();
+    // The previous user's pending writes must never go out under this user's token.
+    await useOutboxStore.getState().wipe();
     // Memory first, so a stale refresh that wrote SecureStore meanwhile restores this token.
     set((state) => ({
       accessToken,
@@ -103,6 +106,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }));
     queryClient.clear();
     await clearPersistedCache();
+    await useOutboxStore.getState().wipe();
     // Fire and forget, imported lazily because the API client imports this store.
     void import('@/api/pushToken')
       .then(({ unregisterPushToken }) => unregisterPushToken(endingAccessToken))

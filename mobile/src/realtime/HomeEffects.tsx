@@ -1,3 +1,4 @@
+import { useOutboxDrain } from '@/hooks/useOutboxDrain';
 import { usePushRegistration, usePushTapNavigation } from '@/hooks/usePushRegistration';
 
 import { RealtimeSync } from './RealtimeSync';
@@ -6,5 +7,6 @@ import { RealtimeSync } from './RealtimeSync';
 export function HomeEffects() {
   usePushRegistration();
   usePushTapNavigation();
+  useOutboxDrain();
   return <RealtimeSync />;
 }
