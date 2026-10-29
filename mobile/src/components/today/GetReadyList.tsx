@@ -93,7 +93,7 @@ export function GetReadyList({ blocks, covering }: GetReadyListProps) {
             done={row.done}
             title={t('today.getReady.weight')}
             hint={t('today.getReady.weightHint')}
-            action={{ label: t('today.getReady.logWeight'), onPress: () => setSheetOpen(true), tone: 'secondary' }}
+            action={{ label: t('today.getReady.logWeight'), onPress: () => setSheetOpen(true), tone: 'primary' }}
           />
         );
       case 'photos':
