@@ -18,12 +18,14 @@ type GetReadyRowProps = {
   done: boolean;
   title: string;
   hint?: string;
+  /** Paints the hint in the error colour (an overdue payment). */
+  hintOverdue?: boolean;
   /** Hidden once the row is done. */
   action?: GetReadyAction;
 };
 
 /** One Get ready line: a status dot, what to do and, while open, its action. */
-export function GetReadyRow({ done, title, hint, action }: GetReadyRowProps) {
+export function GetReadyRow({ done, title, hint, hintOverdue, action }: GetReadyRowProps) {
   const theme = useTheme();
   const styles = makeStyles(theme);
   const primary = action?.tone === 'primary';
@@ -42,7 +44,7 @@ export function GetReadyRow({ done, title, hint, action }: GetReadyRowProps) {
           {title}
         </Text>
         {hint && !done ? (
-          <Text variant="caption" color="muted">
+          <Text variant="caption" color={hintOverdue ? 'error' : 'muted'}>
             {hint}
           </Text>
         ) : null}

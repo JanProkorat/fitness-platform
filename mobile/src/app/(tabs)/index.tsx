@@ -5,7 +5,8 @@ import { useTranslation } from 'react-i18next';
 import { Screen } from '@/components/Screen';
 import { TabFade } from '@/components/TabFade';
 import { Text } from '@/components/Text';
-import { AreaBlocks, hasAreaBlock } from '@/components/today/AreaBlocks';
+import { AreaPaymentDue } from '@/components/today/AreaPaymentDue';
+import { AreaBlocks,hasAreaBlock } from '@/components/today/AreaBlocks';
 import { CoachProgressCard } from '@/components/today/CoachProgressCard';
 import {
   COACH_ROLES,
@@ -119,8 +120,10 @@ function TodayContent() {
           <TodayHeader title={t('today.dateTitle')} />,
           <>
             {hasRunningPlan(areaBlocks) ? <StatTiles /> : null}
+            <AreaPaymentDue blocks={areaBlocks} covering={covering} />
             <AreaBlocks blocks={areaBlocks} today={today} />
             <GetReadyList blocks={areaBlocks} covering={covering} />
+            <InvitesSection />
           </>,
           true,
         );
