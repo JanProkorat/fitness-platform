@@ -1,6 +1,8 @@
 using System.Security.Claims;
 using FastEndpoints;
+using FitnessPlatform.Application.Domain.Authorization;
 using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
@@ -20,6 +22,7 @@ namespace FitnessPlatform.Application.Features.Trainers.ReviewClientOfflineSyncC
 /// <param name="coachDiscipline">Narrows the link flags to the disciplines the caller still holds a role for.</param>
 /// <param name="audit">Audit logging service.</param>
 /// <param name="timeProvider">Clock.</param>
+[RemovedCoachRole(RemovedCoachRoleMode.Refuse)]
 internal sealed class ReviewClientOfflineSyncConflictEndpoint(
     IMongoContext mongo,
     IApplicationDbContext db,
