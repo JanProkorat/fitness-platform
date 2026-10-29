@@ -1638,5 +1638,88 @@
   "coachPending": {
     "title": "Your coach account is ready",
     "body": "Coach tools aren't in the app yet. Use the Form Up web portal to manage your clients."
+  },
+  "questionnaireFill": {
+    "back": "Back",
+    "close": "Close",
+    "loading": "Loading questions",
+    "retry": "Try again",
+    "start": "Start",
+    "continue": "Continue",
+    "reviewAnswers": "Review answers",
+    "backToReview": "Back to review",
+    "send": "Send to {{name}}",
+    "sending": "Sending…",
+    "stepOf": "{{step}} of {{total}}",
+    "fromCoach": "Questions from {{name}}",
+    "unnamedSection": "More questions",
+    "coachFallback": "Your coach",
+    "required": "Required",
+    "optional": "Optional",
+    "pickAny": "Pick any",
+    "other": "Something else…",
+    "otherLabel": "Your answer",
+    "notAnswered": "Not answered",
+    "missing": "Answer missing",
+    "edit": "Edit",
+    "editSection": "Edit {{section}}",
+    "intro": {
+      "title": "{{name}} has a few questions for you",
+      "subtitle": "{{name}} will see your answers.",
+      "allQuestions": "All questions",
+      "questionCount_one": "{{count}} question",
+      "questionCount_other": "{{count}} questions"
+    },
+    "number": {
+      "placeholder": "Number",
+      "range": "Enter a number from {{min}} to {{max}}.",
+      "atLeast": "Enter a number of at least {{min}}.",
+      "atMost": "Enter a number of at most {{max}}.",
+      "decrease": "Decrease {{field}}",
+      "increase": "Increase {{field}}"
+    },
+    "rating": {
+      "ofMax": "{{value}} of {{max}}"
+    },
+    "scale": {
+      "low": "Lowest",
+      "high": "Highest"
+    },
+    "review": {
+      "progress": "Review",
+      "title": "Check your answers",
+      "subtitle": "Nothing is sent until you confirm.",
+      "note": "Once sent, {{name}} sees your answers and you can't change them."
+    },
+    "sent": {
+      "title": "Sent",
+      "body": "{{name}} can now see your answers.",
+      "summary_one": "{{count}} answer · today at {{time}}",
+      "summary_other": "{{count}} answers · today at {{time}}",
+      "back": "Back to Today"
+    },
+    "discard": {
+      "title": "Discard your answers?",
+      "body": "Your answers won't be saved.",
+      "keep": "Keep answering",
+      "discard": "Discard"
+    },
+    "errors": {
+      "ok": "OK",
+      "loadTitle": "Couldn't load the questions",
+      "load": "Something went wrong. Please try again.",
+      "network": "Can't reach the server. Check your connection and try again.",
+      "requiredMissing": "A required question has no answer. Fill it in and try again.",
+      "saveFailed": "Couldn't save your answers. Please try again.",
+      "generic": "Couldn't send your answers. Please try again.",
+      "unavailable": {
+        "title": "This form is no longer available",
+        "body": "This form can no longer be filled in."
+      },
+      "alreadySent": {
+        "title": "Already sent",
+        "body": "You have already sent this form."
+      }
+    }
   }
 }
