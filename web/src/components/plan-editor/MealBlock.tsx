@@ -29,6 +29,8 @@ import {
   setMealNote,
   setRecipeServings,
 } from '@/components/plan-editor/plan-editor-ops';
+import SyncConflictDayPanel from '@/components/plan-editor/sync-conflicts/SyncConflictDayPanel';
+import { useSyncConflicts } from '@/components/plan-editor/sync-conflicts/SyncConflictsContext';
 import { MAX_NOTE_LENGTH, type EditorMeal } from '@/components/plan-editor/plan-editor-types';
 import type { PlanEditorState } from '@/components/plan-editor/usePlanEditorState';
 
@@ -80,6 +82,8 @@ export default function MealBlock({
   onEdit,
 }: Props) {
   const { t } = useTranslation();
+  const conflicts = useSyncConflicts();
+  const conflict = conflicts?.forMeal(weekIndex, meal.mealId);
   const draggable = !readOnly && mealItemCount(meal) > 0;
   const { ref: dropRef, isDropTarget } = useDroppable({
     id: `cell:${weekIndex}:${dayOfWeek}:${rowIndex}`,
@@ -120,6 +124,7 @@ export default function MealBlock({
       data-row={rowIndex}
       data-landing={landing ? 'true' : undefined}
       data-drop-target={dropMode}
+      data-conflict={conflict ? conflict.id : undefined}
       tabIndex={readOnly ? undefined : 0}
       aria-label={kindLabel}
       onClick={onSelect}
@@ -134,6 +139,7 @@ export default function MealBlock({
       className={cn(
         'relative flex flex-col gap-3 rounded-2xl border border-raised-line bg-raised p-5 shadow-raised outline-none transition-[background-color,border-color,box-shadow,transform] duration-150 focus-visible:ring-3 focus-visible:ring-ring/50',
         draggable && !isDragging && 'hover:-translate-y-px hover:shadow-raised-hover motion-reduce:hover:translate-y-0',
+        conflict && 'border-caution-ink',
         selected && 'ring-2 ring-ink ring-inset',
         isDropTarget && !isDragging && 'border-nutrition bg-nutrition-soft',
         dropMode !== undefined && 'border-dashed border-nutrition bg-nutrition-soft',
@@ -179,6 +185,8 @@ export default function MealBlock({
             </span>
           )}
         </div>
+
+        {conflict && conflicts && <SyncConflictDayPanel placed={conflict} model={conflicts} />}
 
         {entries.length > 0 ? (
           <ul className="flex flex-col gap-2.5">

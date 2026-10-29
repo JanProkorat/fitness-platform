@@ -1,5 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import MealBlock from '@/components/plan-editor/MealBlock';
+import SyncConflictGhostCard from '@/components/plan-editor/sync-conflicts/SyncConflictGhostCard';
+import { useSyncConflicts } from '@/components/plan-editor/sync-conflicts/SyncConflictsContext';
 import { dayTotals } from '@/components/plan-editor/plan-editor-nutrition';
 import MealRowInsertLine from '@/components/plan-editor/MealRowInsertLine';
 import { mealKindLabelKey } from '@/components/plan-editor/plan-editor-format';
@@ -40,6 +42,8 @@ export default function DayView({
   drag = null,
 }: Props) {
   const { t, i18n } = useTranslation();
+  const conflicts = useSyncConflicts();
+  const ghosts = conflicts?.ghosts(weekIndex, dayOfWeek) ?? [];
   const day = week.days.find((candidate) => candidate.dayOfWeek === dayOfWeek);
   // Meals show in the canonical kind order; `rowIndex` is the meal's row in the week grid, so selection and drops address the right meal.
   const rowIndexes = dayRowIndexes(week, day);
@@ -53,7 +57,7 @@ export default function DayView({
 
   return (
     <div className="flex flex-col gap-3 rounded-2xl bg-grid p-3" data-testid="day-view">
-      {meals.length > 0 ? (
+      {meals.length > 0 || ghosts.length > 0 ? (
         <ul className="flex flex-col gap-3" aria-label={t('planEditor.day.meals')}>
           {meals.map(({ meal, rowIndex }, position) => (
             <MealBlock
@@ -82,6 +86,8 @@ export default function DayView({
               onEdit={onEdit}
             />
           ))}
+          {conflicts &&
+            ghosts.map((ghost) => <SyncConflictGhostCard key={ghost.id} placed={ghost} model={conflicts} />)}
         </ul>
       ) : (
         <p className="rounded-2xl border border-dashed border-line px-4 py-8 text-center text-body text-muted-foreground">

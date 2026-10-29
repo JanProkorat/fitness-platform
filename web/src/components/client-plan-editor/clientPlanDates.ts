@@ -47,6 +47,23 @@ function weekFirstDay(startDate: string, weekNumber: number): string {
 }
 
 /**
+ * The week (0-based) and weekday (1 = Monday) a calendar date falls on in a plan starting on `startDate`,
+ * or null when the date is before the plan or not a valid `YYYY-MM-DD`.
+ */
+export function planPositionOfDate(startDate: string, date: string): { weekIndex: number; dayOfWeek: number } | null {
+  const start = startDate.slice(0, 10).split('-').map(Number);
+  const target = date.slice(0, 10).split('-').map(Number);
+  if (start.length !== 3 || target.length !== 3 || [...start, ...target].some(Number.isNaN)) {
+    return null;
+  }
+  const offset = Math.round((Date.UTC(target[0], target[1] - 1, target[2]) - Date.UTC(start[0], start[1] - 1, start[2])) / DAY_MS);
+  if (offset < 0) {
+    return null;
+  }
+  return { weekIndex: Math.floor(offset / DAYS_PER_WEEK), dayOfWeek: (offset % DAYS_PER_WEEK) + 1 };
+}
+
+/**
  * True once a published week's first day is today or earlier, which is when the server stops deleting the
  * plan. A plan without a start date has not started.
  */
