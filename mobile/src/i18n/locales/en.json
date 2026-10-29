@@ -863,6 +863,10 @@
   "common": {
     "signOut": "Sign out"
   },
+  "offline": {
+    "banner": "You're offline",
+    "bannerWithTime": "You're offline. Last updated {{time}}"
+  },
   "profileError": {
     "title": "Can't load your account",
     "body": "Check your connection and try again.",

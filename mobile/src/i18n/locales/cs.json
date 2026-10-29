@@ -885,6 +885,10 @@
   "common": {
     "signOut": "Odhlásit se"
   },
+  "offline": {
+    "banner": "Jste offline",
+    "bannerWithTime": "Jste offline. Naposledy aktualizováno {{time}}"
+  },
   "profileError": {
     "title": "Účet se nepodařilo načíst",
     "body": "Zkontrolujte připojení a zkuste to znovu.",

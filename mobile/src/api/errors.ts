@@ -31,3 +31,11 @@ export function getErrorStatus(error: unknown): number | undefined {
 export function isNetworkError(error: unknown): boolean {
   return axios.isAxiosError(error) && error.response === undefined;
 }
+
+/** True when the API could not be reached or failed server-side; a 4xx answer is not offline. */
+export function isOfflineFailure(error: unknown): boolean {
+  if (axios.isCancel(error)) return false;
+  if (isNetworkError(error)) return true;
+  const status = getErrorStatus(error);
+  return status !== undefined && status >= 500;
+}

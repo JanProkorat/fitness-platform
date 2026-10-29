@@ -863,6 +863,10 @@
   "common": {
     "signOut": "Abmelden"
   },
+  "offline": {
+    "banner": "Sie sind offline",
+    "bannerWithTime": "Sie sind offline. Zuletzt aktualisiert {{time}}"
+  },
   "profileError": {
     "title": "Konto konnte nicht geladen werden",
     "body": "Prüfe deine Verbindung und versuche es erneut.",
