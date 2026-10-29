@@ -1,6 +1,11 @@
 import { isAxiosError } from 'axios';
 import api from '@/lib/api';
-import type { GetClientOfflineSyncConflictsResponse, OfflineSyncConflictDto } from '@/api/generated';
+import type {
+  GetClientOfflineSyncConflictsResponse,
+  OfflineSyncConflictDto,
+  ReviewAllClientOfflineSyncConflictsRequest,
+  ReviewAllClientOfflineSyncConflictsResponse,
+} from '@/api/generated';
 
 /**
  * Fetches a page of a client's offline-sync conflicts (newest detected first).
@@ -10,11 +15,12 @@ export async function getClientOfflineSyncConflicts(
   clientId: string,
   page = 1,
   pageSize = 5,
+  filter: { planId?: string; unreviewedOnly?: boolean } = {},
 ): Promise<OfflineSyncConflictDto[]> {
   try {
     const { data } = await api.get<GetClientOfflineSyncConflictsResponse>(
       `/trainer/clients/${clientId}/offline-sync-conflicts`,
-      { params: { page, pageSize } },
+      { params: { page, pageSize, planId: filter.planId, unreviewedOnly: filter.unreviewedOnly } },
     );
     return data.items ?? [];
   } catch (error) {
@@ -23,6 +29,21 @@ export async function getClientOfflineSyncConflicts(
     }
     throw error;
   }
+}
+
+/** Marks one conflict reviewed (204). */
+export async function reviewOfflineSyncConflict(clientId: string, conflictId: string): Promise<void> {
+  await api.post(`/trainer/clients/${clientId}/offline-sync-conflicts/${conflictId}/review`);
+}
+
+/** Marks every unreviewed conflict of a client's plan reviewed; resolves with how many were newly marked. */
+export async function reviewAllOfflineSyncConflicts(clientId: string, planId: string): Promise<number> {
+  const body: ReviewAllClientOfflineSyncConflictsRequest = { planId };
+  const { data } = await api.post<ReviewAllClientOfflineSyncConflictsResponse>(
+    `/trainer/clients/${clientId}/offline-sync-conflicts/review-all`,
+    body,
+  );
+  return data.reviewedCount ?? 0;
 }
 
 /** Payload of the `offlinesyncconflict` notification, as serialised in `NotificationDto.actionPayload`. */

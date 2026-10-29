@@ -148,6 +148,7 @@ function ConflictRow({ conflict, locale, t }: { conflict: OfflineSyncConflictDto
     <li
       data-testid="activity-conflict"
       data-kind={kind}
+      data-reviewed={conflict.reviewedAt ? 'true' : 'false'}
       className="flex items-start gap-3 border-b border-border py-2 last:border-b-0"
     >
       <span className="flex size-7.5 shrink-0 items-center justify-center rounded-tile bg-caution-soft text-caution-ink">
@@ -200,7 +201,11 @@ export default function RecentActivityCard({ clientId, role }: Props) {
     sortAt: toTime(conflict.detectedAt),
     conflict,
   }));
-  const items = [...timelineRows, ...conflictRows].sort((a, b) => b.sortAt - a.sortAt).slice(0, ACTIVITY_LIMIT);
+  // Unreviewed conflicts are pinned to the top; reviewed ones stay in chronological order with the rest.
+  const isPinned = (row: ActivityRow) => row.kind === 'conflict' && !row.conflict.reviewedAt;
+  const items = [...timelineRows, ...conflictRows]
+    .sort((a, b) => Number(isPinned(b)) - Number(isPinned(a)) || b.sortAt - a.sortAt)
+    .slice(0, ACTIVITY_LIMIT);
 
   return (
     <div className="flex h-full flex-col gap-3 rounded-2xl border border-border bg-card p-4.5 shadow-panel">

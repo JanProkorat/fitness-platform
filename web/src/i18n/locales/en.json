@@ -1765,6 +1765,55 @@
     }
   },
   "planEditor": {
+    "syncConflicts": {
+      "badge": "Offline-sync conflict",
+      "close": "Close",
+      "markReviewed": "Mark reviewed",
+      "openDay": "Open {{day}}",
+      "total": "Total {{kcal}} kcal",
+      "saw": "{{name}} saw",
+      "planNow": "Plan now",
+      "version": "v{{version}}",
+      "chip": {
+        "removed": "Removed",
+        "added": "Added",
+        "amount": "Amount"
+      },
+      "amount": {
+        "grams": "{{amount}} g",
+        "servings": "{{amount}} portion"
+      },
+      "textOnly": "{{client}} saw version {{based}} of the plan; you saved version {{current}} since. The meal contents were not recorded.",
+      "popover": {
+        "title": {
+          "changed": "{{meal}} eaten offline",
+          "removed": "{{meal}} removed, eaten offline"
+        },
+        "intro": {
+          "changed": "{{client}} marked it eaten {{date}} at {{time}}. You changed this meal after {{client}}'s last sync.",
+          "removed": "You removed this meal, but {{client}} ate it offline on {{date}} at {{time}}. It is not in {{client}}'s meal log."
+        }
+      },
+      "day": {
+        "lead": "{{client}} marked this eaten offline on {{date}} at {{time}}.",
+        "versions": "{{client}} saw version {{based}}; you saved version {{current}} since."
+      },
+      "ghost": {
+        "badge": "Removed · eaten offline",
+        "body": "You removed this {{meal}}, but {{client}} ate it offline on {{date}} at {{time}}. It is not in {{client}}'s meal log.",
+        "aria": "{{meal}} removed, eaten offline"
+      },
+      "strip": {
+        "lead_one": "{{client}} ate {{count}} meal offline on an older version of this plan.",
+        "lead_other": "{{client}} ate {{count}} meals offline on an older version of this plan.",
+        "changed": "{{meal}} you changed",
+        "removed": "{{meal}} you removed",
+        "show": "Show",
+        "markAll": "Mark all reviewed"
+      },
+      "reviewError": "Couldn't mark the conflict as reviewed. Please try again.",
+      "reviewAllError": "Couldn't mark the conflicts as reviewed. Please try again."
+    },
     "nameLabel": "Plan name",
     "undo": "Undo",
     "redo": "Redo",
