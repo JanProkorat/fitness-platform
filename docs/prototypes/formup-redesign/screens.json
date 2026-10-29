@@ -1650,6 +1650,18 @@
   "h": 844
  },
  {
+  "html": "mobile-light/08-06-nutrition-plans.html",
+  "png": "mobile-light/08-06-nutrition-plans.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/08-07-nutrition-plan-not-started.html",
+  "png": "mobile-light/08-07-nutrition-plan-not-started.png",
+  "w": 390,
+  "h": 844
+ },
+ {
   "html": "mobile-light/09-01-recipes-plan.html",
   "png": "mobile-light/09-01-recipes-plan.png",
   "w": 390,
@@ -2198,6 +2210,18 @@
  {
   "html": "mobile-dark/08-05-meal-photo-viewer.html",
   "png": "mobile-dark/08-05-meal-photo-viewer.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/08-06-nutrition-plans.html",
+  "png": "mobile-dark/08-06-nutrition-plans.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/08-07-nutrition-plan-not-started.html",
+  "png": "mobile-dark/08-07-nutrition-plan-not-started.png",
   "w": 390,
   "h": 844
  },
