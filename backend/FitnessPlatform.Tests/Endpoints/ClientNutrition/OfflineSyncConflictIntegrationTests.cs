@@ -341,23 +341,40 @@ public class OfflineSyncConflictIntegrationTests(FitnessApiFactory factory)
     }
 
     [Fact]
-    public async Task Conflict_OnlyLinkedCoachesWithEffectiveNutritionAccessAreNotified()
+    public async Task Conflict_OnlyThePlanAuthorIsNotified_NotOtherLinkedCoaches()
     {
         var client = await TestActors.Client(factory).CreateAsync(Ct);
-        var nutritionist = await TestActors.Nutritionist(factory).CreateAsync(Ct);
+        var author = await TestActors.Nutritionist(factory).CreateAsync(Ct);
+        var secondNutritionist = await TestActors.Nutritionist(factory).CreateAsync(Ct);
         var trainerOnly = await TestActors.Trainer(factory).CreateAsync(Ct);
-        var inactiveNutritionist = await TestActors.Nutritionist(factory).CreateAsync(Ct);
-        await TestActors.Link(factory, nutritionist, client).AsRole(UserRole.Nutritionist).CreateAsync(Ct);
+        await TestActors.Link(factory, author, client).AsRole(UserRole.Nutritionist).CreateAsync(Ct);
+        await TestActors.Link(factory, secondNutritionist, client).AsRole(UserRole.Nutritionist).CreateAsync(Ct);
         await TestActors.Link(factory, trainerOnly, client).CreateAsync(Ct);
-        await TestActors.Link(factory, inactiveNutritionist, client).AsRole(UserRole.Nutritionist).Inactive().CreateAsync(Ct);
         var meal = NewMeal(changedAtPlanVersion: 3);
-        await InsertPlanAsync(client, meal, nutritionist.UserId, version: 3);
+        await InsertPlanAsync(client, meal, author.UserId, version: 3);
 
         (await LogAsync(client, meal.MealId, 2)).StatusCode.Should().Be(HttpStatusCode.Created);
 
-        (await LoadConflictNotificationsAsync(nutritionist.UserId)).Should().ContainSingle();
+        (await LoadConflictNotificationsAsync(author.UserId)).Should().ContainSingle();
+        (await LoadConflictNotificationsAsync(secondNutritionist.UserId)).Should().BeEmpty();
         (await LoadConflictNotificationsAsync(trainerOnly.UserId)).Should().BeEmpty();
-        (await LoadConflictNotificationsAsync(inactiveNutritionist.UserId)).Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Conflict_AuthorWithEndedLink_NobodyIsNotified()
+    {
+        var client = await TestActors.Client(factory).CreateAsync(Ct);
+        var author = await TestActors.Nutritionist(factory).CreateAsync(Ct);
+        var otherNutritionist = await TestActors.Nutritionist(factory).CreateAsync(Ct);
+        await TestActors.Link(factory, author, client).AsRole(UserRole.Nutritionist).Inactive().CreateAsync(Ct);
+        await TestActors.Link(factory, otherNutritionist, client).AsRole(UserRole.Nutritionist).CreateAsync(Ct);
+        var meal = NewMeal(changedAtPlanVersion: 3);
+        await InsertPlanAsync(client, meal, author.UserId, version: 3);
+
+        (await LogAsync(client, meal.MealId, 2)).StatusCode.Should().Be(HttpStatusCode.Created);
+
+        (await LoadConflictNotificationsAsync(author.UserId)).Should().BeEmpty();
+        (await LoadConflictNotificationsAsync(otherNutritionist.UserId)).Should().BeEmpty();
     }
 
     [Fact]

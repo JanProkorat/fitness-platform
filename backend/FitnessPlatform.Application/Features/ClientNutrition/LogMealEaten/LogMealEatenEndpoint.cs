@@ -303,7 +303,7 @@ public class LogMealEatenEndpoint(
     }
 
     /// <summary>
-    /// Tells every linked coach with effective nutrition access about the conflict: the first conflict
+    /// Tells the plan's author, if still actively linked with effective nutrition access, about the conflict: the first conflict
     /// per client and plan creates one unread notification (with push), later ones only update its
     /// count. Failures are logged and never fail the client's already-applied write.
     /// </summary>
@@ -314,7 +314,9 @@ public class LogMealEatenEndpoint(
         {
             var links = await db.ClientProfessionalLinks
                 .AsNoTracking()
-                .Where(l => l.ClientProfileId == clientProfile.Id && l.IsActive)
+                .Where(l => l.ClientProfileId == clientProfile.Id
+                            && l.IsActive
+                            && l.ProfessionalProfile.UserId == conflict.PlanAuthorId)
                 .Select(l => new
                 {
                     l.ProfessionalProfile.UserId,
