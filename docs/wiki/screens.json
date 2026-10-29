@@ -1287,7 +1287,53 @@
         "mobile/src/api/payments.ts",
         "mobile/src/api/professionals.ts",
         "mobile/src/api/profile.ts",
-        "mobile/src/api/pushToken.ts"
+        "mobile/src/api/pushToken.ts",
+        "mobile/src/api/checkIns.ts",
+        "mobile/src/api/foods.ts",
+        "mobile/src/api/nutrition.ts",
+        "mobile/src/api/photos.ts",
+        "mobile/src/components/Card.tsx",
+        "mobile/src/components/checkIns/model.ts",
+        "mobile/src/components/nutrition/meal/format.ts",
+        "mobile/src/components/nutrition/meal/pickMealPhoto.ts",
+        "mobile/src/components/nutrition/meals/AddPhotoButton.tsx",
+        "mobile/src/components/nutrition/meals/MealPhotoViewer.tsx",
+        "mobile/src/components/nutrition/meals/MealRow.tsx",
+        "mobile/src/components/nutrition/meals/MealStatusIcon.tsx",
+        "mobile/src/components/nutrition/meals/model.ts",
+        "mobile/src/components/nutrition/plan/model.ts",
+        "mobile/src/components/nutrition/tab/OffPlanGroup.tsx",
+        "mobile/src/components/nutrition/tab/OffPlanSheet.tsx",
+        "mobile/src/components/nutrition/tab/TabMealRow.tsx",
+        "mobile/src/components/nutrition/tab/model.ts",
+        "mobile/src/components/nutrition/upcoming/format.ts",
+        "mobile/src/components/photos/ImageViewer.tsx",
+        "mobile/src/components/profile/edit/SheetFrame.tsx",
+        "mobile/src/components/today/AreaBlocks.tsx",
+        "mobile/src/components/today/CoachBuildingRow.tsx",
+        "mobile/src/components/today/GetReadyList.tsx",
+        "mobile/src/components/today/GetReadyRow.tsx",
+        "mobile/src/components/today/NextPlanStrip.tsx",
+        "mobile/src/components/today/RunningNutritionCard.tsx",
+        "mobile/src/components/today/StatTile.tsx",
+        "mobile/src/components/today/StatTiles.tsx",
+        "mobile/src/components/today/UpcomingPlanRow.tsx",
+        "mobile/src/components/today/coachSteps.ts",
+        "mobile/src/components/today/getReady.ts",
+        "mobile/src/components/today/statTileData.ts",
+        "mobile/src/components/today/todayBlocks.ts",
+        "mobile/src/hooks/useAddDayMealPhoto.ts",
+        "mobile/src/hooks/useCheckInHistory.ts",
+        "mobile/src/hooks/useFoodSearch.ts",
+        "mobile/src/hooks/useLocalDayChange.ts",
+        "mobile/src/hooks/useMealEaten.ts",
+        "mobile/src/hooks/useNutritionDayLog.ts",
+        "mobile/src/hooks/useNutritionWeekPlan.ts",
+        "mobile/src/hooks/useOffPlanFood.ts",
+        "mobile/src/hooks/usePhotos.ts",
+        "mobile/src/hooks/useProfileSummary.ts",
+        "mobile/src/hooks/useTodayMealActions.ts",
+        "mobile/src/hooks/useTodayMealLog.ts"
       ],
       "endpoints": [
         "GET /users/me",
@@ -1305,7 +1351,22 @@
         "GET /client/questionnaires/pending",
         "GET /client/questionnaires/submitted",
         "GET /client/measurements",
-        "POST /client/measurements"
+        "POST /client/measurements",
+        "DELETE /client/nutrition/log/meals/{mealId}/eaten",
+        "DELETE /client/nutrition/log/off-plan-foods/{entryId}",
+        "GET /client/me/photos",
+        "GET /client/nutrition/log/today",
+        "GET /client/nutrition/log/week",
+        "GET /client/nutrition/plan/week",
+        "GET /client/profile/summary",
+        "GET /client/weekly-check-ins/history",
+        "GET /foods/search",
+        "POST /client/notifications/read-all",
+        "POST /client/notifications/{id}/read",
+        "POST /client/nutrition/log/meals/{mealId}/eaten",
+        "POST /client/nutrition/log/meals/{mealId}/photo-upload-url",
+        "POST /client/nutrition/log/meals/{mealId}/photos",
+        "POST /client/nutrition/log/off-plan-foods"
       ],
       "board": "GlassTodayNoCoach",
       "shots": [
@@ -1656,7 +1717,9 @@
         "mobile/src/hooks/usePullToRefresh.ts",
         "mobile/src/hooks/useSubmittedQuestionnaires.ts",
         "mobile/src/hooks/useTodayMealLog.ts",
-        "mobile/src/hooks/useUpcomingNutritionPlan.ts"
+        "mobile/src/hooks/useUpcomingNutritionPlan.ts",
+        "mobile/src/components/today/todayBlocks.ts",
+        "mobile/src/hooks/useTodayMealActions.ts"
       ],
       "endpoints": [
         "DELETE /client/nutrition/log/meals/{mealId}/eaten",
@@ -1715,11 +1778,14 @@
         "mobile/src/components/nutrition/plan/WeekRow.tsx",
         "mobile/src/components/nutrition/plan/model.ts",
         "mobile/src/hooks/useCollaborations.ts",
-        "mobile/src/hooks/useFullNutritionPlan.ts"
+        "mobile/src/hooks/useFullNutritionPlan.ts",
+        "mobile/src/api/plans.ts",
+        "mobile/src/components/nutrition/upcoming/format.ts"
       ],
       "endpoints": [
         "GET /client/collaborations",
-        "GET /client/nutrition/plan/full"
+        "GET /client/nutrition/plan/full",
+        "GET /client/nutrition/plans/{planId}"
       ],
       "board": "GlassNutritionPlan",
       "shots": [
@@ -1766,18 +1832,63 @@
         "mobile/src/hooks/useClientRecipes.ts",
         "mobile/src/hooks/useFullNutritionPlan.ts",
         "mobile/src/hooks/useHorizontalSwipe.ts",
-        "mobile/src/hooks/useNutritionDayLog.ts"
+        "mobile/src/hooks/useNutritionDayLog.ts",
+        "mobile/src/api/plans.ts"
       ],
       "endpoints": [
         "GET /client/nutrition/log/week",
         "GET /client/nutrition/plan/full",
         "GET /client/nutrition/recipes",
         "POST /client/nutrition/log/meals/{mealId}/photo-upload-url",
-        "POST /client/nutrition/log/meals/{mealId}/photos"
+        "POST /client/nutrition/log/meals/{mealId}/photos",
+        "GET /client/nutrition/plans/{planId}"
       ],
       "board": "GlassNutritionPlanWeek",
       "shots": [
         { "name": "default", "steps": "open the nutrition plan and tap week 1" }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "client.nutrition.plans",
+      "app": "client",
+      "area": "Nutrition",
+      "title": "Your plans",
+      "route": "/nutrition/plans",
+      "roles": ["Client"],
+      "files": [
+        "mobile/src/api/collaborations.ts",
+        "mobile/src/api/invites.ts",
+        "mobile/src/api/nutrition.ts",
+        "mobile/src/api/photos.ts",
+        "mobile/src/api/plans.ts",
+        "mobile/src/app/nutrition/plans.tsx",
+        "mobile/src/components/BackButton.tsx",
+        "mobile/src/components/Button.tsx",
+        "mobile/src/components/Card.tsx",
+        "mobile/src/components/Screen.tsx",
+        "mobile/src/components/ScreenHeader.tsx",
+        "mobile/src/components/TabBarCollapse.tsx",
+        "mobile/src/components/Text.tsx",
+        "mobile/src/components/nutrition/meal/format.ts",
+        "mobile/src/components/nutrition/meals/MealStatusIcon.tsx",
+        "mobile/src/components/nutrition/meals/model.ts",
+        "mobile/src/components/nutrition/plan/PlanState.tsx",
+        "mobile/src/components/nutrition/plan/WeekRow.tsx",
+        "mobile/src/components/nutrition/plan/model.ts",
+        "mobile/src/components/nutrition/plans/PlansSection.tsx",
+        "mobile/src/components/nutrition/plans/model.ts",
+        "mobile/src/components/nutrition/upcoming/format.ts",
+        "mobile/src/components/today/collaborationRoles.ts",
+        "mobile/src/components/today/todayBlocks.ts",
+        "mobile/src/hooks/useClientPlans.ts"
+      ],
+      "endpoints": [
+        "GET /client/plans"
+      ],
+      "board": "GlassNutritionPlans",
+      "shots": [
+        { "name": "default", "steps": "sign in as a client with a current and an upcoming nutrition plan, open the Nutrition tab and tap the calendar icon in the header" }
       ],
       "notionPageId": null
     },
