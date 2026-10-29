@@ -85,10 +85,19 @@ type PaymentStepOptions = {
   /** First name of the coach, shown in the hint. */
   name: string;
   onShowQr: () => void;
+  /** Filled by default; outlined when another step holds the main call to action. */
+  tone?: 'primary' | 'secondary';
 };
 
 /** The open "pay the first month" step; the QR action exists only while a payment is due. */
-export function firstPaymentStep({ t, language, firstPayment, name, onShowQr }: PaymentStepOptions): Step {
+export function firstPaymentStep({
+  t,
+  language,
+  firstPayment,
+  name,
+  onShowQr,
+  tone = 'primary',
+}: PaymentStepOptions): Step {
   const { upcoming, due } = paymentPhase(firstPayment);
   const details = [firstPayment.packageName?.trim(), formatMoney(firstPayment.amount, firstPayment.currency, language)]
     .filter((part): part is string => Boolean(part))
@@ -104,7 +113,7 @@ export function firstPaymentStep({ t, language, firstPayment, name, onShowQr }: 
     // The QR code lives on the Payments screen; the step only leads there.
     actionLabel: due ? t('today.progress.firstPayment.showQr') : undefined,
     onAction: due ? onShowQr : undefined,
-    actionTone: 'primary',
+    actionTone: tone,
   };
 }
 

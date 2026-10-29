@@ -254,6 +254,18 @@
       "title": "Next plan is ready",
       "subtitle": "{{plan}} · starts {{when}}"
     },
+    "questionnaire": {
+      "title": "{{name}} sent you questions",
+      "titleFallback": {
+        "Trainer": "Your trainer sent you questions",
+        "Nutritionist": "Your nutritionist sent you questions",
+        "other": "Your coach sent you questions"
+      },
+      "count_one": "{{count}} question",
+      "count_other": "{{count}} questions",
+      "fill": "Fill in",
+      "fillLabel": "Fill in: {{title}}"
+    },
     "progress": {
       "coachFallback": "Your coach",
       "since": "since {{when}}",

@@ -254,6 +254,18 @@
       "title": "Der nächste Plan ist bereit",
       "subtitle": "{{plan}} · startet am {{when}}"
     },
+    "questionnaire": {
+      "title": "Fragen von {{name}}",
+      "titleFallback": {
+        "Trainer": "Fragen von Ihrem Trainer",
+        "Nutritionist": "Fragen von Ihrem Ernährungsberater",
+        "other": "Fragen von Ihrem Coach"
+      },
+      "count_one": "{{count}} Frage",
+      "count_other": "{{count}} Fragen",
+      "fill": "Ausfüllen",
+      "fillLabel": "Ausfüllen: {{title}}"
+    },
     "progress": {
       "coachFallback": "Ihr Coach",
       "since": "seit {{when}}",
