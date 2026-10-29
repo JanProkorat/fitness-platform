@@ -1,6 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 
+import { COLLABORATIONS_QUERY_KEY } from '@/api/collaborations';
 import { CONVERSATIONS_QUERY_KEY } from '@/api/conversations';
 import { INVITES_QUERY_KEY } from '@/api/invites';
 import { NOTIFICATIONS_QUERY_KEY } from '@/api/notifications';
@@ -59,6 +60,8 @@ function EventRefresh({ event }: { event: string }) {
     }
     if (PAYMENT_EVENTS.includes(event)) {
       void queryClient.invalidateQueries({ queryKey: PAYMENTS_QUERY_KEY });
+      // Each collaboration carries its first payment's status, which Today's Get ready row reads.
+      void queryClient.invalidateQueries({ queryKey: COLLABORATIONS_QUERY_KEY });
     }
   });
   return null;
@@ -74,6 +77,7 @@ export function RealtimeSync() {
     void queryClient.invalidateQueries({ queryKey: CONVERSATIONS_QUERY_KEY });
     void queryClient.invalidateQueries({ queryKey: PROFILE_QUERY_KEY });
     void queryClient.invalidateQueries({ queryKey: PAYMENTS_QUERY_KEY });
+    void queryClient.invalidateQueries({ queryKey: COLLABORATIONS_QUERY_KEY });
     void queryClient.invalidateQueries({ queryKey: NUTRITION_QUERY_KEY });
     void queryClient.invalidateQueries({ queryKey: PLANS_QUERY_KEY });
   }, [queryClient]);

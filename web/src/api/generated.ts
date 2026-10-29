@@ -18565,6 +18565,77 @@ export class ApiClient {
     }
 
     /**
+     * Get one of the caller's nutrition plans
+     * @param planId Route parameter — public id of the plan.
+     * @return Nutrition plan with its published weeks
+     */
+    getClientNutritionPlanEndpoint(planId: string, signal?: AbortSignal): Promise<GetFullPlanResponse> {
+        let url_ = this.baseUrl + "/client/nutrition/plans/{planId}";
+        if (planId === undefined || planId === null)
+            throw new globalThis.Error("The parameter 'planId' must be defined.");
+        url_ = url_.replace("{planId}", encodeURIComponent("" + planId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetClientNutritionPlanEndpoint(_response);
+        });
+    }
+
+    protected processGetClientNutritionPlanEndpoint(response: AxiosResponse): Promise<GetFullPlanResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GetFullPlanResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid plan id", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GetFullPlanResponse>(null as any);
+    }
+
+    /**
      * Generate meal diary photo upload URL
      * @param mealId The unique identifier of the meal the photo will be attached to.
     Sourced from the route segment {mealId}.
@@ -29905,6 +29976,10 @@ export interface FullPlanWeek {
     weekEndDate?: string;
     /** Days in this week. */
     days?: PlanDay[];
+}
+
+/** Request for one of the caller's own nutrition plans by id. */
+export interface GetClientNutritionPlanRequest {
 }
 
 /** Response model containing the pre-signed upload URL and the permanent blob URL for a meal diary photo. */

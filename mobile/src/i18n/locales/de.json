@@ -146,10 +146,53 @@
     "linkedGreeting": "Hallo, {{name}}",
     "linkedGreetingAnonymous": "Hallo",
     "linkedBody": "Deine Coaches sind an Bord. Dein Tag erscheint hier.",
+    "areaBlocks": {
+      "startsOn": {
+        "training": "Ihr Trainingsplan startet am {{weekday}}",
+        "nutrition": "Ihr Ernährungsplan startet am {{weekday}}"
+      },
+      "weekday": {
+        "1": "Montag",
+        "2": "Dienstag",
+        "3": "Mittwoch",
+        "4": "Donnerstag",
+        "5": "Freitag",
+        "6": "Samstag",
+        "7": "Sonntag"
+      },
+      "area": { "training": "Training", "nutrition": "Ernährung" },
+      "notifyHint": "Wir benachrichtigen Sie, sobald er veröffentlicht ist"
+    },
     "notifications": "Benachrichtigungen",
     "notificationsUnread": "Benachrichtigungen, {{count}} ungelesen",
     "profile": "Profil",
     "invitesTitle": "Einladungen",
+    "runningNutrition": {
+      "weekOf": "Woche {{current}} von {{total}}",
+      "week": "Woche {{current}}",
+      "ofKcal": " / {{target}} kcal",
+      "kcal": " kcal"
+    },
+    "stats": {
+      "unavailable": "Nicht verfügbar",
+      "kg": "kg",
+      "weight": "Gewicht",
+      "weightNone": "Noch nicht erfasst",
+      "weightChange": "{{change}} diese Woche",
+      "photos": "Fotos",
+      "photosNone": "Noch keine Fotos",
+      "photosToday": "Heute",
+      "photosAgo_one": "vor {{count}} Tag",
+      "photosAgo_other": "vor {{count}} Tagen",
+      "checkIn": "Check-in",
+      "checkInOpen": "Offen",
+      "checkInDueToday": "Heute fällig",
+      "checkInDue_one": "Fällig in {{count}} Tag",
+      "checkInDue_other": "Fällig in {{count}} Tagen",
+      "checkInWeekly": "Jede Woche",
+      "checkInNone": "Keiner geplant",
+      "openCheckIns": "Check-ins öffnen"
+    },
     "dateTitle": "Heute",
     "findCoach": {
       "title": "Coach finden",
@@ -194,6 +237,22 @@
       "subtitle": "Ihr Coach sieht diesen Verlauf von Anfang an.",
       "logWeight": "Gewicht eintragen",
       "addPhoto": "Foto hinzufügen"
+    },
+    "getReady": {
+      "title": "Bereit machen",
+      "progress_one": "{{done}} von {{count}} erledigt",
+      "progress_other": "{{done}} von {{count}} erledigt",
+      "payment": "Ersten Monat bezahlen",
+      "weight": "Startgewicht",
+      "weightHint": "Ihr Ausgangswert für den ersten Tag",
+      "logWeight": "Gewicht eintragen",
+      "photos": "Startfotos",
+      "photosHint": "{{name}} hat darum gebeten",
+      "addPhotos": "Fotos hinzufügen"
+    },
+    "nextPlan": {
+      "title": "Der nächste Plan ist bereit",
+      "subtitle": "{{plan}} · startet am {{when}}"
     },
     "progress": {
       "coachFallback": "Ihr Coach",
@@ -1352,6 +1411,19 @@
       "toggle": "Die Mahlzeit konnte nicht aktualisiert werden. Bitte versuchen Sie es erneut."
     }
   },
+  "nutritionPlans": {
+    "title": "Ihre Pläne",
+    "upcoming": "Anstehend",
+    "current": "Aktuell",
+    "past": "Vergangen",
+    "from": "Ab {{date}} · {{weeks}}",
+    "range": "{{range}} · {{weeks}}",
+    "running": "{{range}} · {{week}}",
+    "empty": {
+      "title": "Noch keine Pläne",
+      "body": "Sobald Ihr Trainer oder Ernährungsberater einen Ernährungsplan für Sie veröffentlicht, erscheint er hier."
+    }
+  },
   "nutritionPlan": {
     "title": "Ernährungsplan",
     "retry": "Erneut versuchen",
@@ -1382,6 +1454,9 @@
       "mealsPerDay": "Mahlzeiten / Tag",
       "weeks": "Wochen",
       "weeksHint": "Tippen Sie auf eine Woche, um sie anzusehen",
+      "startsOn": "Beginnt am {{weekday}}",
+      "publishedOf": "Veröffentlichte Wochen",
+      "publishedCount": "{{published}} von {{total}}",
       "togglePast": "Vergangene Wochen ein- oder ausblenden"
     },
     "week": {

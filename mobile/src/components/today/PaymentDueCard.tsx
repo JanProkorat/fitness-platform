@@ -3,7 +3,7 @@ import { useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useTranslation } from 'react-i18next';
 
-import { countOpenPayments, isOverdue } from '@/api/payments';
+import { isOverdue } from '@/api/payments';
 import { Text } from '@/components/Text';
 import { formatMoney } from '@/components/payments/format';
 import { usePayments } from '@/hooks/usePayments';
@@ -11,8 +11,13 @@ import { usePaymentsEnabled } from '@/hooks/usePaymentsEnabled';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
 
+type PaymentDueCardProps = {
+  /** Requested payments another block on the screen already shows; they are not counted here. */
+  excludePaymentIds?: readonly string[];
+};
+
 /** "Payment due" on Today while a payment is requested or overdue; nothing when payments are hidden or none is open. */
-export function PaymentDueCard() {
+export function PaymentDueCard({ excludePaymentIds }: PaymentDueCardProps) {
   const { t, i18n } = useTranslation();
   const router = useRouter();
   const theme = useTheme();
@@ -21,10 +26,12 @@ export function PaymentDueCard() {
   const { data: coaches } = usePayments(enabled);
 
   if (!enabled || !coaches) return null;
-  const open = countOpenPayments(coaches);
+  const requested = coaches
+    .flatMap((coach) => (coach.requested ?? []).map((payment) => ({ coach, payment })))
+    .filter(({ payment }) => !payment.paymentId || !excludePaymentIds?.includes(payment.paymentId));
+  const open = requested.length;
   if (open === 0) return null;
 
-  const requested = coaches.flatMap((coach) => (coach.requested ?? []).map((payment) => ({ coach, payment })));
   const overdue = requested.some(({ payment }) => isOverdue(payment));
   const only = requested.length === 1 ? requested[0] : undefined;
   const title = overdue ? t('payments.card.titleOverdue') : t('payments.card.title');

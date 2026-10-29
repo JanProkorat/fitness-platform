@@ -1,6 +1,5 @@
 import type { ClientOwnPlanItem } from '@/api/generated';
-import { isActivePlan, planKind } from '@/api/plans';
-import { isoDay } from '@/components/nutrition/plan/model';
+import { pickUpcomingPlan } from '@/components/today/todayBlocks';
 import { useClientPlans } from '@/hooks/useClientPlans';
 import { useLocalDayChange } from '@/hooks/useLocalDayChange';
 
@@ -12,15 +11,7 @@ export function pickUpcomingNutritionPlan(
   plans: readonly ClientOwnPlanItem[] | undefined,
   today: string,
 ): ClientOwnPlanItem | undefined {
-  let best: ClientOwnPlanItem | undefined;
-  for (const plan of plans ?? []) {
-    if (planKind(plan) !== 'nutrition' || !isActivePlan(plan)) continue;
-    if ((plan.publishedWeekCount ?? 0) <= 0) continue;
-    const start = isoDay(plan.startDate);
-    if (start === '' || start <= today) continue;
-    if (!best || start < isoDay(best.startDate)) best = plan;
-  }
-  return best;
+  return pickUpcomingPlan(plans, 'nutrition', today);
 }
 
 /** The client's upcoming nutrition plan, if any; re-evaluated when the local day changes. */
