@@ -4,7 +4,7 @@ import { CalendarDays, ClipboardList, Dumbbell, History, Link2, TrendingUp, Trop
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useClientTimeline } from '@/hooks/useClientTimeline';
-import { useClientOfflineSyncConflicts } from '@/hooks/useClientOfflineSyncConflicts';
+import { useClientOfflineSyncConflicts, useClientUnreviewedOfflineSyncConflicts } from '@/hooks/useClientOfflineSyncConflicts';
 import { formatRelativeTime, type ClientOverviewRole } from '@/lib/client-metrics';
 import type { ClientTimelineItem } from '@/api/timeline';
 import type { OfflineSyncConflictDto } from '@/api/generated';
@@ -185,6 +185,8 @@ export default function RecentActivityCard({ clientId, role }: Props) {
   const timelineQuery = useClientTimeline(clientId, { limit: ACTIVITY_LIMIT });
   // Offline-sync conflicts are a nutrition-plan feature; trainer-only viewers never query them.
   const conflictsQuery = useClientOfflineSyncConflicts(clientId, ACTIVITY_LIMIT, role !== 'trainer');
+  // Fetched apart from the newest list: an old unreviewed conflict may sit behind many newer reviewed ones.
+  const unreviewedQuery = useClientUnreviewedOfflineSyncConflicts(clientId, role !== 'trainer');
   const formatNumber = (value: number) => new Intl.NumberFormat(i18n.language, { maximumFractionDigits: 1 }).format(value);
 
   const timelineRows: ActivityRow[] = (timelineQuery.data?.items ?? [])
@@ -195,17 +197,23 @@ export default function RecentActivityCard({ clientId, role }: Props) {
     })
     .map((item) => ({ key: item.id, kind: 'timeline', sortAt: toTime(item.occurredAt), item }));
   // A late-synced conflict ranks by when it was detected; the row itself shows when it happened.
-  const conflictRows: ActivityRow[] = (conflictsQuery.data ?? []).map((conflict, index) => ({
+  const toConflictRow = (conflict: OfflineSyncConflictDto, index: number): ActivityRow => ({
     key: `conflict:${conflict.conflictId ?? index}`,
     kind: 'conflict',
     sortAt: toTime(conflict.detectedAt),
     conflict,
-  }));
-  // Unreviewed conflicts are pinned to the top; reviewed ones stay in chronological order with the rest.
-  const isPinned = (row: ActivityRow) => row.kind === 'conflict' && !row.conflict.reviewedAt;
-  const items = [...timelineRows, ...conflictRows]
-    .sort((a, b) => Number(isPinned(b)) - Number(isPinned(a)) || b.sortAt - a.sortAt)
-    .slice(0, ACTIVITY_LIMIT);
+  });
+  // Unreviewed conflicts are all pinned to the top (uncapped); the rest fill the card chronologically.
+  const pinnedConflicts = (unreviewedQuery.data ?? []).filter((conflict) => !conflict.reviewedAt);
+  const pinnedIds = new Set(pinnedConflicts.map((conflict) => conflict.conflictId).filter(Boolean));
+  const pinnedRows = pinnedConflicts.map(toConflictRow).sort((a, b) => b.sortAt - a.sortAt);
+  const conflictRows = (conflictsQuery.data ?? [])
+    .filter((conflict) => !conflict.conflictId || !pinnedIds.has(conflict.conflictId))
+    .map(toConflictRow);
+  const items = [
+    ...pinnedRows,
+    ...[...timelineRows, ...conflictRows].sort((a, b) => b.sortAt - a.sortAt).slice(0, ACTIVITY_LIMIT),
+  ];
 
   return (
     <div className="flex h-full flex-col gap-3 rounded-2xl border border-border bg-card p-4.5 shadow-panel">
