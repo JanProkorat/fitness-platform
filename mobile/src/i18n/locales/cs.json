@@ -146,10 +146,57 @@
     "linkedGreeting": "Ahoj, {{name}}",
     "linkedGreetingAnonymous": "Ahoj",
     "linkedBody": "Vaši poradci jsou připraveni. Tady uvidíte svůj den.",
+    "areaBlocks": {
+      "startsOn": {
+        "training": "Tréninkový plán začíná {{weekday}}",
+        "nutrition": "Nutriční plán začíná {{weekday}}"
+      },
+      "weekday": {
+        "1": "v pondělí",
+        "2": "v úterý",
+        "3": "ve středu",
+        "4": "ve čtvrtek",
+        "5": "v pátek",
+        "6": "v sobotu",
+        "7": "v neděli"
+      },
+      "area": { "training": "Trénink", "nutrition": "Výživa" },
+      "notifyHint": "Upozorníme vás, jakmile bude zveřejněn"
+    },
     "notifications": "Upozornění",
     "notificationsUnread": "Upozornění, nepřečtených: {{count}}",
     "profile": "Profil",
     "invitesTitle": "Pozvánky",
+    "runningNutrition": {
+      "weekOf": "{{current}}. týden z {{total}}",
+      "week": "{{current}}. týden",
+      "ofKcal": " / {{target}} kcal",
+      "kcal": " kcal"
+    },
+    "stats": {
+      "unavailable": "Nedostupné",
+      "kg": "kg",
+      "weight": "Váha",
+      "weightNone": "Zatím nezapsáno",
+      "weightChange": "{{change}} za týden",
+      "photos": "Fotky",
+      "photosNone": "Zatím žádné fotky",
+      "photosToday": "Dnes",
+      "photosAgo_one": "před {{count}} dnem",
+      "photosAgo_few": "před {{count}} dny",
+      "photosAgo_many": "před {{count}} dne",
+      "photosAgo_other": "před {{count}} dny",
+      "checkIn": "Check-in",
+      "checkInOpen": "Otevřený",
+      "checkInDueToday": "Termín dnes",
+      "checkInDue_one": "Termín za {{count}} den",
+      "checkInDue_few": "Termín za {{count}} dny",
+      "checkInDue_many": "Termín za {{count}} dne",
+      "checkInDue_other": "Termín za {{count}} dní",
+      "checkInWeekly": "Každý týden",
+      "checkInNone": "Nic naplánováno",
+      "openCheckIns": "Otevřít check-iny"
+    },
     "dateTitle": "Dnes",
     "findCoach": {
       "title": "Najděte si poradce",
@@ -194,6 +241,24 @@
       "subtitle": "Váš poradce uvidí tuto historii od prvního dne.",
       "logWeight": "Zapsat váhu",
       "addPhoto": "Přidat fotku"
+    },
+    "getReady": {
+      "title": "Připravte se",
+      "progress_one": "{{done}} z {{count}} hotovo",
+      "progress_few": "{{done}} z {{count}} hotovo",
+      "progress_many": "{{done}} z {{count}} hotovo",
+      "progress_other": "{{done}} z {{count}} hotovo",
+      "payment": "Zaplaťte první měsíc",
+      "weight": "Úvodní váha",
+      "weightHint": "Váš výchozí bod pro první den",
+      "logWeight": "Zapsat váhu",
+      "photos": "Úvodní fotky",
+      "photosHint": "{{name}} žádá o fotky",
+      "addPhotos": "Přidat fotky"
+    },
+    "nextPlan": {
+      "title": "Další plán je připraven",
+      "subtitle": "{{plan}} · začíná {{when}}"
     },
     "progress": {
       "coachFallback": "Váš poradce",
@@ -1352,6 +1417,19 @@
       "toggle": "Jídlo se nepodařilo upravit. Zkuste to prosím znovu."
     }
   },
+  "nutritionPlans": {
+    "title": "Vaše plány",
+    "upcoming": "Nadcházející",
+    "current": "Aktuální",
+    "past": "Minulé",
+    "from": "Od {{date}} · {{weeks}}",
+    "range": "{{range}} · {{weeks}}",
+    "running": "{{range}} · {{week}}",
+    "empty": {
+      "title": "Zatím žádné plány",
+      "body": "Jakmile pro vás trenér nebo nutriční poradce zveřejní nutriční plán, objeví se zde."
+    }
+  },
   "nutritionPlan": {
     "title": "Nutriční plán",
     "retry": "Zkusit znovu",
@@ -1382,6 +1460,9 @@
       "mealsPerDay": "Jídel denně",
       "weeks": "Týdny",
       "weeksHint": "Klepnutím týden otevřete",
+      "startsOn": "Začíná {{weekday}}",
+      "publishedOf": "Zveřejněné týdny",
+      "publishedCount": "{{published}} z {{total}}",
       "togglePast": "Zobrazit nebo skrýt minulé týdny"
     },
     "week": {

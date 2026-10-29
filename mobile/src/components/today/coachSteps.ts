@@ -4,7 +4,7 @@ import type { Collaboration } from '@/api/collaborations';
 import type { Conversation } from '@/api/conversations';
 import { ClientPaymentStatus } from '@/api/generated';
 import type { CollaborationFirstPaymentDto } from '@/api/generated';
-import type { PendingItems } from '@/api/questionnaires';
+import type { PendingDiaryRequest, PendingItems } from '@/api/questionnaires';
 import { formatMoney } from '@/components/payments/format';
 
 import type { StepState } from './TimelineStep';
@@ -39,16 +39,32 @@ export function findConversation(
   return name === '' ? undefined : live.find((c) => normalize(c.participant?.name) === name);
 }
 
+const createdTime = (request: PendingDiaryRequest): number => {
+  const time = request.createdAt ? Date.parse(request.createdAt) : Number.NaN;
+  return Number.isNaN(time) ? Number.POSITIVE_INFINITY : time;
+};
+
+/** The oldest pending photo request from this coach; an unmatched one belongs to the only coach. */
+export function photoRequestFor(
+  pending: PendingItems | undefined,
+  collaboration: Collaboration,
+  onlyCollaboration: boolean,
+): PendingDiaryRequest | undefined {
+  const requests = pending?.diaryRequests ?? [];
+  const name = normalize(collaboration.professionalName);
+  const named = requests.filter((request) => normalize(request.professionalName) === name);
+  const candidates = named.length > 0 ? named : onlyCollaboration ? requests : [];
+  return candidates.reduce<PendingDiaryRequest | undefined>(
+    (oldest, request) => (oldest === undefined || createdTime(request) < createdTime(oldest) ? request : oldest),
+    undefined,
+  );
+}
+
 export const hasPhotoRequest = (
   pending: PendingItems | undefined,
   collaboration: Collaboration,
   onlyCollaboration: boolean,
-): boolean => {
-  const requests = pending?.diaryRequests ?? [];
-  const name = normalize(collaboration.professionalName);
-  if (requests.some((request) => normalize(request.professionalName) === name)) return true;
-  return onlyCollaboration && requests.length > 0;
-};
+): boolean => photoRequestFor(pending, collaboration, onlyCollaboration) !== undefined;
 
 /** First payment of the agreed terms: Upcoming only informs, Requested and Overdue ask the client to pay. */
 export function paymentPhase(firstPayment: CollaborationFirstPaymentDto | undefined): {

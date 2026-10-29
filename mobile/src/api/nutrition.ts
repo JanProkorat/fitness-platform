@@ -52,6 +52,14 @@ export function fetchFullPlan(signal?: AbortSignal): Promise<GetFullPlanResponse
   return api.getFullPlanEndpoint(signal);
 }
 
+/** Cache key of one plan opened by id; under the full-plan key so its invalidations reach it. */
+export const fullPlanByIdKey = (planId: string) => [...FULL_PLAN_KEY, planId] as const;
+
+/** One of the client's own plans, Active or Completed (GET /client/nutrition/plans/{planId}). */
+export function fetchNutritionPlanById(planId: string, signal?: AbortSignal): Promise<GetFullPlanResponse> {
+  return api.getClientNutritionPlanEndpoint(planId, signal);
+}
+
 /** The meal log of the plan week containing `date` (GET /client/nutrition/log/week). */
 export function fetchWeekLog(date: string, signal?: AbortSignal): Promise<GetWeekMealLogResponse> {
   return api.getWeekMealLogEndpoint(date, signal);
