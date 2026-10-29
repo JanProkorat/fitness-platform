@@ -1,7 +1,7 @@
 import type { ClientOwnPlanItem } from '@/api/generated';
 import { isActivePlan, planKind } from '@/api/plans';
 import { isoDay, planEndDate } from '@/components/nutrition/plan/model';
-import { pickUpcomingPlan } from '@/components/today/todayBlocks';
+import { isRunningPlan, pickUpcomingPlan } from '@/components/today/todayBlocks';
 
 export type PlanSections = {
   upcoming: ClientOwnPlanItem[];
@@ -45,8 +45,10 @@ export function groupNutritionPlans(plans: readonly ClientOwnPlanItem[] | undefi
   for (const plan of rest) {
     if (plan.status === COMPLETED_STATUS) {
       past.push(plan);
-    } else if (isActivePlan(plan) && (plan.publishedWeekCount ?? 0) > 0 && startOf(plan) !== '') {
-      if (startOf(plan) <= today) (planEnd(plan) >= today ? current : past).push(plan);
+    } else if (isRunningPlan(plan, today)) {
+      current.push(plan);
+    } else if (isActivePlan(plan) && (plan.publishedWeekCount ?? 0) > 0 && startOf(plan) !== '' && startOf(plan) <= today) {
+      past.push(plan);
     }
   }
   return { upcoming, current: current.sort(newestFirst), past: past.sort(newestFirst) };
