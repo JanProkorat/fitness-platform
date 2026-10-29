@@ -1,3 +1,4 @@
+import { SeenMealItemKind } from '@/api/generated';
 import type { DroppedEntry, EntryLabel, OutboxEntry, SyncConflict } from '@/lib/outbox/types';
 
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
@@ -16,10 +17,25 @@ function isMacroSet(value: unknown): boolean {
   );
 }
 
+function isSeenItem(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    (value.kind === SeenMealItemKind.Food || value.kind === SeenMealItemKind.Recipe) &&
+    isText(value.refId) &&
+    typeof value.name === 'string' &&
+    isNumber(value.amount) &&
+    isNumber(value.kcal)
+  );
+}
+
 function isPayload(kind: unknown, payload: unknown): boolean {
   if (!isRecord(payload)) return false;
   switch (kind) {
     case 'mealEaten':
+      return (
+        isText(payload.mealId) &&
+        (payload.seenItems === undefined || (Array.isArray(payload.seenItems) && payload.seenItems.every(isSeenItem)))
+      );
     case 'mealUnlogged':
       return isText(payload.mealId);
     case 'offPlanAdded':
