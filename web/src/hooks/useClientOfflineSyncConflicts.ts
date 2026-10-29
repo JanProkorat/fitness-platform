@@ -24,6 +24,16 @@ export function useClientOfflineSyncConflicts(clientId: string | undefined, page
   });
 }
 
+/** Every unreviewed conflict of one client (one max-size page), so none hides behind newer reviewed ones. */
+export function useClientUnreviewedOfflineSyncConflicts(clientId: string | undefined, enabled = true) {
+  return useQuery({
+    queryKey: [...clientOfflineSyncConflictKeys.all(clientId ?? ''), 'unreviewed'] as const,
+    queryFn: () => getClientOfflineSyncConflicts(clientId!, 1, PLAN_CONFLICTS_PAGE_SIZE, { unreviewedOnly: true }),
+    enabled: Boolean(clientId) && enabled,
+    retry: false,
+  });
+}
+
 /** The unreviewed conflicts of one client plan, for the plan editor. */
 export function useClientPlanOfflineSyncConflicts(clientId: string | undefined, planId: string | undefined) {
   return useQuery({

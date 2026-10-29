@@ -183,6 +183,53 @@ nutritionistTest.describe('offline-sync conflicts in Recent activity', () => {
     await expect(items.nth(2)).toContainText('Measurement');
   });
 
+  nutritionistTest('pins an old unreviewed conflict that sits behind five newer reviewed ones', async ({ page }) => {
+    await stubTimeline(page);
+    const base = {
+      planId: 'p1',
+      planName: 'Cut',
+      operation: 'LogMealEaten',
+      kind: 'PlanChanged',
+      mealKind: 'Lunch',
+      mealLogged: true,
+      basedOnPlanVersion: 4,
+      currentPlanVersion: 6,
+    };
+    const reviewed = [1, 2, 3, 4, 5].map((n) => ({
+      ...base,
+      conflictId: `c-done-${n}`,
+      kind: 'MealRemoved',
+      mealKind: 'AfternoonSnack',
+      occurredAt: iso(n * MINUTE_MS),
+      logDate: logDate(n * MINUTE_MS),
+      detectedAt: iso(n * MINUTE_MS),
+      reviewedAt: iso(MINUTE_MS / 2),
+    }));
+    const oldOpen = {
+      ...base,
+      conflictId: 'c-old-open',
+      occurredAt: iso(20 * DAY_MS),
+      logDate: logDate(20 * DAY_MS),
+      detectedAt: iso(20 * DAY_MS),
+    };
+    // The server orders by detection time regardless of review state, so the newest page holds only reviewed rows.
+    await stubConflicts(page, (route) => {
+      const params = new URL(route.request().url()).searchParams;
+      return route.fulfill({ json: { items: params.get('unreviewedOnly') === 'true' ? [oldOpen] : reviewed } });
+    });
+
+    await openFirstClient(page);
+
+    const card = page.getByRole('heading', { name: 'Recent activity', exact: true }).locator('xpath=../..');
+    const conflicts = card.getByTestId('activity-conflict');
+    // One pinned row plus the five-row card limit for the rest.
+    await expect(card.locator('li')).toHaveCount(6);
+    await expect(conflicts).toHaveCount(6);
+    await expect(card.locator('li').nth(0)).toHaveAttribute('data-reviewed', 'false');
+    await expect(card.locator('li').nth(0)).toContainText('Logged offline on an older plan');
+    await expect(card.locator('li').nth(1)).toHaveAttribute('data-reviewed', 'true');
+  });
+
   nutritionistTest('a failing conflicts endpoint keeps the timeline rows', async ({ page }) => {
     await stubTimeline(page);
     await stubConflicts(page, (route) => route.fulfill({ status: 500, json: { title: 'boom' } }));
