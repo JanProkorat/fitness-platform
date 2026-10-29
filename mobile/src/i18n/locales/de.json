@@ -244,7 +244,7 @@
       "progress_other": "{{done}} von {{count}} erledigt",
       "payment": "Ersten Monat bezahlen",
       "weight": "Startgewicht",
-      "weightHint": "Ihr Coach sieht es von Anfang an",
+      "weightHint": "Ihr Ausgangswert für den ersten Tag",
       "logWeight": "Gewicht eintragen",
       "photos": "Startfotos",
       "photosHint": "{{name}} hat darum gebeten",

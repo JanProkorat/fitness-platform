@@ -250,7 +250,7 @@
       "progress_other": "{{done}} z {{count}} hotovo",
       "payment": "Zaplaťte první měsíc",
       "weight": "Úvodní váha",
-      "weightHint": "Váš poradce ji uvidí od prvního dne",
+      "weightHint": "Váš výchozí bod pro první den",
       "logWeight": "Zapsat váhu",
       "photos": "Úvodní fotky",
       "photosHint": "{{name}} žádá o fotky",

@@ -244,7 +244,7 @@
       "progress_other": "{{done}} of {{count}} done",
       "payment": "Pay the first month",
       "weight": "Starting weight",
-      "weightHint": "Your coach sees it from day one",
+      "weightHint": "Your baseline for day one",
       "logWeight": "Log weight",
       "photos": "Starting photos",
       "photosHint": "{{name}} asked for them",
