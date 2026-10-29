@@ -70,7 +70,7 @@ export async function drainOutbox(): Promise<void> {
 
       let response: Awaited<ReturnType<typeof sendEntry>>;
       try {
-        response = await sendEntry(head);
+        response = await sendEntry(head, { fromOutbox: true });
       } catch (error: unknown) {
         if (!alive()) break;
         const outcome = classifyFailure(error, head.kind, conflicts.get(head.id) ?? 0);

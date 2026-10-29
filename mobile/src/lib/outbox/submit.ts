@@ -52,7 +52,7 @@ export function submitWrite(write: OutboxWrite, options: { occurredAt?: string }
       return queue();
     }
     try {
-      const response = await sendEntry(entry);
+      const response = await sendEntry(entry, { fromOutbox: false });
       await recordSyncOutcome(entry, response);
       return 'sent';
     } catch (error: unknown) {

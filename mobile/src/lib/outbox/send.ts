@@ -10,8 +10,12 @@ import type { OutboxEntry, OutboxKind } from '@/lib/outbox/types';
 /**
  * Sends one entry with its replay metadata; the same entry sent twice applies once on the server.
  * Resolves with the server's answer for a logged meal, which says whether it collided with a plan change.
+ * `fromOutbox` is true for an entry that was queued: only then does a meal mark carry the items the user saw.
  */
-export async function sendEntry(entry: OutboxEntry): Promise<LogMealEatenResponse | undefined> {
+export async function sendEntry(
+  entry: OutboxEntry,
+  options: { fromOutbox: boolean },
+): Promise<LogMealEatenResponse | undefined> {
   const basedOnPlanVersion = entry.basedOnPlanVersion ?? undefined;
   switch (entry.kind) {
     case 'mealEaten':
@@ -19,6 +23,7 @@ export async function sendEntry(entry: OutboxEntry): Promise<LogMealEatenRespons
         occurredAt: entry.occurredAt,
         clientRequestId: entry.id,
         basedOnPlanVersion,
+        seenMealItems: options.fromOutbox ? entry.payload.seenItems : undefined,
       });
     case 'mealUnlogged':
       await api.unlogMealEatenEndpoint(entry.payload.mealId, entry.occurredAt, entry.id, basedOnPlanVersion);
