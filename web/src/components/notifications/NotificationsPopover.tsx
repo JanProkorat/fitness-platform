@@ -1,12 +1,13 @@
 import { useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Bell, Check, ChevronRight, MessageSquare, UserCheck, UserPlus, UserX, type LucideIcon } from 'lucide-react';
+import { Bell, Check, ChevronRight, History, MessageSquare, UserCheck, UserPlus, UserX, type LucideIcon } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { NotificationDto } from '@/api/notifications';
+import { parseOfflineSyncConflictPayload } from '@/api/offlineSyncConflicts';
 import {
   useMarkAllNotificationsRead,
   useMarkNotificationRead,
@@ -24,6 +25,17 @@ const TYPE_ICON: Record<string, LucideIcon> = {
   invitationdeclined: UserX,
   newmessage: MessageSquare,
 };
+
+const OFFLINE_SYNC_CONFLICT_TYPE = 'offlinesyncconflict';
+
+/** Up to two initials from a full name, e.g. "Jana Nováková" -> "JN". */
+function nameInitials(name: string | undefined): string {
+  const parts = (name ?? '').trim().split(/\s+/).filter(Boolean);
+  return parts
+    .slice(0, 2)
+    .map((part) => part.charAt(0).toLocaleUpperCase())
+    .join('');
+}
 
 interface Props {
   collapsed: boolean;
@@ -68,6 +80,13 @@ export default function NotificationsPopover({ collapsed, rowClassName, label, o
     setOpen(false);
     onNavigate?.();
     navigate('/clients?tab=Pending');
+  }
+
+  function seeClientActivity(item: NotificationDto, clientPublicId: string) {
+    if (!item.read) markRead.mutate(item.id);
+    setOpen(false);
+    onNavigate?.();
+    navigate(`/clients/${encodeURIComponent(clientPublicId)}`);
   }
 
   return (
@@ -142,6 +161,9 @@ export default function NotificationsPopover({ collapsed, rowClassName, label, o
           <ul className="flex max-h-96 flex-col gap-0.5 overflow-y-auto">
             {items.map((item) => {
               const Icon = TYPE_ICON[item.type] ?? Bell;
+              const isConflict = item.type === OFFLINE_SYNC_CONFLICT_TYPE;
+              const conflictPayload = isConflict ? parseOfflineSyncConflictPayload(item.actionPayload) : {};
+              const initials = nameInitials(conflictPayload.clientName);
               return (
                 <li
                   key={item.id}
@@ -149,9 +171,21 @@ export default function NotificationsPopover({ collapsed, rowClassName, label, o
                   data-unread={!item.read}
                   className={cn('flex gap-2.5 rounded-field p-2.5', !item.read && 'bg-marker/5')}
                 >
-                  <span className="flex size-8.5 shrink-0 items-center justify-center rounded-full bg-muted text-foreground">
-                    <Icon className="size-4" aria-hidden="true" />
-                  </span>
+                  {isConflict && initials ? (
+                    <span
+                      data-testid="notification-conflict-avatar"
+                      className="relative flex size-8.5 shrink-0 items-center justify-center rounded-full bg-muted text-label font-semibold text-foreground"
+                    >
+                      {initials}
+                      <span className="absolute -right-0.5 -bottom-0.5 flex size-4 items-center justify-center rounded-full border border-card bg-caution-soft text-caution-ink">
+                        <History className="size-2.5" aria-hidden="true" />
+                      </span>
+                    </span>
+                  ) : (
+                    <span className="flex size-8.5 shrink-0 items-center justify-center rounded-full bg-muted text-foreground">
+                      <Icon className="size-4" aria-hidden="true" />
+                    </span>
+                  )}
                   <div className="flex min-w-0 grow flex-col gap-1">
                     <div className="flex items-start gap-2">
                       <span
@@ -170,6 +204,16 @@ export default function NotificationsPopover({ collapsed, rowClassName, label, o
                       </time>
                     </div>
                     {item.body && <span className="truncate text-label text-muted-foreground">{item.body}</span>}
+                    {isConflict && conflictPayload.clientPublicId && (
+                      <button
+                        type="button"
+                        onClick={() => seeClientActivity(item, conflictPayload.clientPublicId!)}
+                        className="inline-flex items-center gap-0.5 self-start text-label font-semibold text-foreground underline underline-offset-2"
+                      >
+                        {t('notifications.seeInClientActivity')}
+                        <ChevronRight className="size-3.5" aria-hidden="true" />
+                      </button>
+                    )}
                     {item.type === 'clientrequestreceived' && (
                       <button
                         type="button"

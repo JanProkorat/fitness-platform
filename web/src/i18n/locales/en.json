@@ -3706,6 +3706,7 @@
     "showAllComingSoon": "Full notifications page coming soon",
     "justNow": "Just now",
     "reviewInClients": "Review in Clients",
+    "seeInClientActivity": "See in client activity",
     "markRead": "Mark as read",
     "markAllReadShort": "Mark all read",
     "unreadCount": "{{count}} unread"
@@ -4711,6 +4712,17 @@
           "bodyFat": "body fat {{value}} %",
           "planWeek": "{{name}}, week {{week}}",
           "weekOnly": "Week {{week}}"
+        },
+        "conflict": {
+          "title": {
+            "PlanChanged": "Logged offline on an older plan",
+            "MealRemoved": "Eaten offline, meal since removed"
+          },
+          "subject": "{{meal}}, {{date}}",
+          "detail": {
+            "PlanChanged": "Marked eaten at {{time}} while offline. The client saw plan version {{based}}; you saved version {{current}} since.",
+            "MealRemoved": "Not added to the meal log. The client saw plan version {{based}}; the current version is {{current}}."
+          }
         }
       },
       "profile": {

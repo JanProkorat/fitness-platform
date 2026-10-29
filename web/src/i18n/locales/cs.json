@@ -3804,6 +3804,7 @@
     "showAllComingSoon": "Stránka se všemi oznámeními se připravuje",
     "justNow": "Právě teď",
     "reviewInClients": "Zobrazit v Klientech",
+    "seeInClientActivity": "Zobrazit v aktivitě klienta",
     "markRead": "Označit jako přečtené",
     "markAllReadShort": "Označit vše",
     "unreadCount": "nepřečtených: {{count}}"
@@ -4859,6 +4860,17 @@
           "bodyFat": "tělesný tuk {{value}} %",
           "planWeek": "{{name}}, týden {{week}}",
           "weekOnly": "Týden {{week}}"
+        },
+        "conflict": {
+          "title": {
+            "PlanChanged": "Zapsáno offline podle staršího plánu",
+            "MealRemoved": "Snězeno offline, jídlo mezitím odstraněno"
+          },
+          "subject": "{{meal}}, {{date}}",
+          "detail": {
+            "PlanChanged": "Offline označeno jako snězené v {{time}}. Klient viděl verzi plánu {{based}}, od té doby byla uložena verze {{current}}.",
+            "MealRemoved": "Nepřidáno do zápisu jídel. Klient viděl verzi plánu {{based}}, aktuální je verze {{current}}."
+          }
         }
       },
       "profile": {

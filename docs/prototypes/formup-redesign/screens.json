@@ -1242,6 +1242,30 @@
   "h": 1240
  },
  {
+  "html": "web/39-01-page-client-activity-offline-sync-c.html",
+  "png": "web/39-01-page-client-activity-offline-sync-c.png",
+  "w": 640,
+  "h": 520
+ },
+ {
+  "html": "web/39-02-page-notifications-offline-sync-c.html",
+  "png": "web/39-02-page-notifications-offline-sync-c.png",
+  "w": 860,
+  "h": 600
+ },
+ {
+  "html": "web/40-01-page-client-activity-offline-sync-d.html",
+  "png": "web/40-01-page-client-activity-offline-sync-d.png",
+  "w": 640,
+  "h": 520
+ },
+ {
+  "html": "web/40-02-page-notifications-offline-sync-d.html",
+  "png": "web/40-02-page-notifications-offline-sync-d.png",
+  "w": 860,
+  "h": 600
+ },
+ {
   "html": "mobile-light/01-01-launch-quiet.html",
   "png": "mobile-light/01-01-launch-quiet.png",
   "w": 390,
