@@ -151,6 +151,15 @@
         "training": "Ihr Trainingsplan startet am {{weekday}}",
         "nutrition": "Ihr Ernährungsplan startet am {{weekday}}"
       },
+      "weekday": {
+        "1": "Montag",
+        "2": "Dienstag",
+        "3": "Mittwoch",
+        "4": "Donnerstag",
+        "5": "Freitag",
+        "6": "Samstag",
+        "7": "Sonntag"
+      },
       "area": { "training": "Training", "nutrition": "Ernährung" },
       "notifyHint": "Wir benachrichtigen Sie, sobald er veröffentlicht ist"
     },

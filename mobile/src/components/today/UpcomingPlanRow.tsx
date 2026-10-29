@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 
 import type { ClientOwnPlanItem } from '@/api/generated';
 import { isoDay } from '@/components/nutrition/plan/model';
-import { calendarParts, daysUntil, weekdayName } from '@/components/nutrition/upcoming/format';
+import { calendarParts, daysUntil } from '@/components/nutrition/upcoming/format';
 import { Text } from '@/components/Text';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
@@ -31,7 +31,9 @@ export function UpcomingPlanRow({ role, plan, today }: UpcomingPlanRowProps) {
 
   const start = calendarParts(i18n.language, plan.startDate);
   const days = daysUntil(isoDay(plan.startDate), today);
-  const title = t(`today.areaBlocks.startsOn.${area}`, { weekday: weekdayName(i18n.language, plan.startDate) });
+  // calendarParts is UTC-parsed (0 = Sunday); the copy keys are ISO weekdays (1 = Monday, 7 = Sunday).
+  const isoWeekday = start.weekday === 0 ? 7 : start.weekday;
+  const title = t(`today.areaBlocks.startsOn.${area}`, { weekday: t(`today.areaBlocks.weekday.${isoWeekday}`) });
   const subtitle = t('nutritionUpcoming.subtitle', {
     plan: plan.planName ?? '',
     weeks: t('nutritionUpcoming.weeks', { count: plan.totalWeeks ?? 0 }),
