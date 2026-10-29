@@ -4687,6 +4687,87 @@ export class ApiClient {
     }
 
     /**
+     * List a client's offline-sync conflicts
+     * @param clientId The client's ClientProfile.PublicId (route parameter).
+     * @param page 1-based page number.
+     * @param pageSize Items per page (1 to 100).
+     * @return One page of conflicts
+     */
+    getClientOfflineSyncConflictsEndpoint(clientId: string, page: number, pageSize: number, signal?: AbortSignal): Promise<GetClientOfflineSyncConflictsResponse> {
+        let url_ = this.baseUrl + "/trainer/clients/{clientId}/offline-sync-conflicts?";
+        if (clientId === undefined || clientId === null)
+            throw new globalThis.Error("The parameter 'clientId' must be defined.");
+        url_ = url_.replace("{clientId}", encodeURIComponent("" + clientId));
+        if (page === undefined || page === null)
+            throw new globalThis.Error("The parameter 'page' must be defined and cannot be null.");
+        else
+            url_ += "page=" + encodeURIComponent("" + page) + "&";
+        if (pageSize === undefined || pageSize === null)
+            throw new globalThis.Error("The parameter 'pageSize' must be defined and cannot be null.");
+        else
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetClientOfflineSyncConflictsEndpoint(_response);
+        });
+    }
+
+    protected processGetClientOfflineSyncConflictsEndpoint(response: AxiosResponse): Promise<GetClientOfflineSyncConflictsResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GetClientOfflineSyncConflictsResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid paging parameters", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The link does not grant nutrition access", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GetClientOfflineSyncConflictsResponse>(null as any);
+    }
+
+    /**
      * Reject a client request
      * @param publicId Public identifier of the client request (from route).
      * @return No Content
@@ -17381,9 +17462,9 @@ export class ApiClient {
     /**
      * Log a meal as eaten
      * @param mealId The unique identifier of the meal to log as eaten.
-     * @return No Content
+     * @return Meal logged; syncConflict flags a collision with a plan change, and mealLogged is false when the meal left the plan
      */
-    logMealEatenEndpoint(mealId: string, logMealEatenRequest: LogMealEatenRequest, signal?: AbortSignal): Promise<void> {
+    logMealEatenEndpoint(mealId: string, logMealEatenRequest: LogMealEatenRequest, signal?: AbortSignal): Promise<LogMealEatenResponse> {
         let url_ = this.baseUrl + "/client/nutrition/log/meals/{mealId}/eaten";
         if (mealId === undefined || mealId === null)
             throw new globalThis.Error("The parameter 'mealId' must be defined.");
@@ -17398,6 +17479,7 @@ export class ApiClient {
             url: url_,
             headers: {
                 "Content-Type": "application/json",
+                "Accept": "application/json"
             },
             signal
         };
@@ -17413,7 +17495,7 @@ export class ApiClient {
         });
     }
 
-    protected processLogMealEatenEndpoint(response: AxiosResponse): Promise<void> {
+    protected processLogMealEatenEndpoint(response: AxiosResponse): Promise<LogMealEatenResponse> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -17423,20 +17505,23 @@ export class ApiClient {
                 }
             }
         }
-        if (status === 204) {
+        if (status === 201) {
             const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = JSON.parse(resultData201);
+            return Promise.resolve<LogMealEatenResponse>(result201);
 
         } else if (status === 400) {
             const _responseText = response.data;
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("Invalid request", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
@@ -17446,7 +17531,7 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<void>(null as any);
+        return Promise.resolve<LogMealEatenResponse>(null as any);
     }
 
     /**
@@ -24236,6 +24321,63 @@ export interface NutrientTotals {
 export interface GetClientProgressRequest {
 }
 
+/** One page of a client's offline-sync conflicts, newest first. */
+export interface GetClientOfflineSyncConflictsResponse {
+    /** The conflicts on this page. */
+    items?: OfflineSyncConflictDto[];
+}
+
+/** A client action that collided with a plan change. */
+export interface OfflineSyncConflictDto {
+    /** Public id of the conflict. */
+    conflictId?: string;
+    /** Id of the plan the conflict belongs to. */
+    planId?: string;
+    /** Plan name at sync time. */
+    planName?: string;
+    /** Name of the synced operation, e.g. LogMealEaten. */
+    operation?: string;
+    /** Why the action collided with the plan. */
+    kind?: OfflineSyncConflictKind;
+    /** The meal the client acted on. */
+    mealId?: string;
+    /** Meal kind at sync time. */
+    mealKind?: MealKind;
+    /** False when the meal had left the plan, so no meal log was written. */
+    mealLogged?: boolean;
+    /** When the client performed the action offline (UTC). */
+    occurredAt?: string;
+    /** The client's local calendar day of the action. */
+    logDate?: string;
+    /** The plan version the client saw. */
+    basedOnPlanVersion?: number;
+    /** The plan version at sync time. */
+    currentPlanVersion?: number;
+    /** When the conflict was detected (UTC). */
+    detectedAt?: string;
+}
+
+/** Why an offline-synced client action collided with the coach's plan. */
+export enum OfflineSyncConflictKind {
+    PlanChanged = "PlanChanged",
+    MealRemoved = "MealRemoved",
+}
+
+/** Kind of meal within a nutrition plan day. */
+export enum MealKind {
+    Breakfast = "Breakfast",
+    MorningSnack = "MorningSnack",
+    Lunch = "Lunch",
+    AfternoonSnack = "AfternoonSnack",
+    Dinner = "Dinner",
+    PreWorkout = "PreWorkout",
+    PostWorkout = "PostWorkout",
+}
+
+/** Request for listing a client's offline-sync conflicts. */
+export interface GetClientOfflineSyncConflictsRequest {
+}
+
 /** Response model containing a client's dashboard summary for a trainer. */
 export interface GetClientDashboardResponse {
     /** Internal integer primary key of the ClientProfessionalLink row.
@@ -26216,19 +26358,11 @@ export interface PlanMeal {
     recipes?: MealRecipe[];
     /** Optional note for this meal. */
     note?: string | undefined;
+    /** The plan Version at which this meal was last added or changed in content or position.
+Null means never edited since the marker existed, which offline sync treats as "no conflict". */
+    changedAtPlanVersion?: number | undefined;
     /** Computed totals for this meal. */
     mealTotals?: NutrientTotals | undefined;
-}
-
-/** Kind of meal within a nutrition plan day. */
-export enum MealKind {
-    Breakfast = "Breakfast",
-    MorningSnack = "MorningSnack",
-    Lunch = "Lunch",
-    AfternoonSnack = "AfternoonSnack",
-    Dinner = "Dinner",
-    PreWorkout = "PreWorkout",
-    PostWorkout = "PostWorkout",
 }
 
 /** A recipe item within a meal — denormalized snapshot of recipe data at the time of addition. */
@@ -29253,6 +29387,18 @@ export enum DayPhotoCategory {
 export interface RemoveOffPlanFoodRequest {
 }
 
+/** Result of logging a meal as eaten. Always returned with 201, also when the action collided with a plan change (the coach is told separately). */
+export interface LogMealEatenResponse {
+    /** Human-readable confirmation. */
+    message?: string;
+    /** False only when the meal is no longer in the plan, so no meal log was written. */
+    mealLogged?: boolean;
+    /** True when the action collided with a plan change the coach made. */
+    syncConflict?: boolean;
+    /** Why it collided; null when SyncConflict is false. */
+    syncConflictKind?: OfflineSyncConflictKind | undefined;
+}
+
 /** Request model for logging a meal as eaten. */
 export interface LogMealEatenRequest {
     /** Optional list of MinIO blob URLs for photos attached to this meal.
@@ -29274,6 +29420,8 @@ at most 5 minutes ahead and 7 days back. */
 export interface GetWeekPlanResponse {
     /** External identifier of the nutrition plan. */
     planId?: string;
+    /** Plan Version the client saw; echoed back as BasedOnPlanVersion on offline writes. */
+    planVersion?: number;
     /** Display name of the nutrition plan. */
     planName?: string;
     /** Current week number within the plan (1-based). */
@@ -29344,6 +29492,8 @@ export interface GetWeekMealLogRequest {
 export interface GetTodayPlanResponse {
     /** External identifier of the nutrition plan. */
     planId?: string;
+    /** Plan Version the client saw; echoed back as BasedOnPlanVersion on offline writes. */
+    planVersion?: number;
     /** Display name of the nutrition plan. */
     planName?: string;
     /** Current week number within the plan (1-based). */
@@ -29505,6 +29655,8 @@ export interface GetRecipeDetailRequest {
 export interface GetFullPlanResponse {
     /** External identifier of the nutrition plan. */
     planId?: string;
+    /** Plan Version the client saw; echoed back as BasedOnPlanVersion on offline writes. */
+    planVersion?: number;
     /** Display name of the nutrition plan. */
     planName?: string;
     /** The Monday when Week 1 begins, if set. */
