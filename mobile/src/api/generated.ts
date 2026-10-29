@@ -20,7 +20,7 @@ export class ApiClient {
 
         this.instance = instance || axios.create();
 
-        this.baseUrl = baseUrl ?? "https://localhost:5021";
+        this.baseUrl = baseUrl ?? "https://localhost:5001";
 
     }
 
@@ -17304,13 +17304,23 @@ export class ApiClient {
     /**
      * Unmark a meal as eaten
      * @param mealId The unique identifier of the meal to unmark.
+     * @param occurredAt (optional) When the client unmarked the meal (offline sync). Defaults to the server clock;
+    at most 5 minutes ahead and 7 days back.
+     * @param clientRequestId (optional) Client-generated id that makes a retried request apply only once.
+     * @param basedOnPlanVersion (optional) The NutritionPlan.Version the client saw when it queued the request.
      * @return No Content
      */
-    unlogMealEatenEndpoint(mealId: string, signal?: AbortSignal): Promise<void> {
-        let url_ = this.baseUrl + "/client/nutrition/log/meals/{mealId}/eaten";
+    unlogMealEatenEndpoint(mealId: string, occurredAt?: string | null | undefined, clientRequestId?: string | null | undefined, basedOnPlanVersion?: number | null | undefined, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/client/nutrition/log/meals/{mealId}/eaten?";
         if (mealId === undefined || mealId === null)
             throw new globalThis.Error("The parameter 'mealId' must be defined.");
         url_ = url_.replace("{mealId}", encodeURIComponent("" + mealId));
+        if (occurredAt !== undefined && occurredAt !== null)
+            url_ += "occurredAt=" + encodeURIComponent("" + occurredAt) + "&";
+        if (clientRequestId !== undefined && clientRequestId !== null)
+            url_ += "clientRequestId=" + encodeURIComponent("" + clientRequestId) + "&";
+        if (basedOnPlanVersion !== undefined && basedOnPlanVersion !== null)
+            url_ += "basedOnPlanVersion=" + encodeURIComponent("" + basedOnPlanVersion) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -17644,7 +17654,7 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Invalid request, or the date is in the future (MEAL_LOG_DATE_IN_FUTURE)", status, _responseText, _headers, result400);
+            return throwException("Invalid request, the date is in the future (MEAL_LOG_DATE_IN_FUTURE), or a photo URL is not a blob URL of this meal (INVALID_BLOB_URL)", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -17730,14 +17740,24 @@ export class ApiClient {
 
     /**
      * Remove an off-plan food entry
-     * @param entryId Route parameter — the entry id returned when the food was added.
+     * @param entryId Route parameter — the entry id returned (or chosen by the client) when the food was added.
+     * @param occurredAt (optional) When the client removed the entry (offline sync); selects the day log to look in.
+    Defaults to the server clock; at most 5 minutes ahead and 7 days back.
+     * @param clientRequestId (optional) Client-generated id that makes a retried request apply only once.
+     * @param basedOnPlanVersion (optional) The NutritionPlan.Version the client saw when it queued the request.
      * @return Entry removed
      */
-    removeOffPlanFoodEndpoint(entryId: string, signal?: AbortSignal): Promise<void> {
-        let url_ = this.baseUrl + "/client/nutrition/log/off-plan-foods/{entryId}";
+    removeOffPlanFoodEndpoint(entryId: string, occurredAt?: string | null | undefined, clientRequestId?: string | null | undefined, basedOnPlanVersion?: number | null | undefined, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/client/nutrition/log/off-plan-foods/{entryId}?";
         if (entryId === undefined || entryId === null)
             throw new globalThis.Error("The parameter 'entryId' must be defined.");
         url_ = url_.replace("{entryId}", encodeURIComponent("" + entryId));
+        if (occurredAt !== undefined && occurredAt !== null)
+            url_ += "occurredAt=" + encodeURIComponent("" + occurredAt) + "&";
+        if (clientRequestId !== undefined && clientRequestId !== null)
+            url_ += "clientRequestId=" + encodeURIComponent("" + clientRequestId) + "&";
+        if (basedOnPlanVersion !== undefined && basedOnPlanVersion !== null)
+            url_ += "basedOnPlanVersion=" + encodeURIComponent("" + basedOnPlanVersion) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -17772,6 +17792,13 @@ export class ApiClient {
         if (status === 204) {
             const _responseText = response.data;
             return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -29111,6 +29138,13 @@ export interface SetShoppingListItemTickedRequest {
     foodExternalId: string;
     /** True to tick, false to untick. Repeating the same value is a no-op. */
     isTicked?: boolean;
+    /** When the client ticked the item (offline sync); selects the plan current on that day.
+Defaults to the server clock; at most 5 minutes ahead and 7 days back. */
+    occurredAt?: string | undefined;
+    /** Client-generated id that makes a retried request apply only once. */
+    clientRequestId?: string | undefined;
+    /** The NutritionPlan.Version the client saw when it queued the request. */
+    basedOnPlanVersion?: number | undefined;
 }
 
 /** One page of (plan, recipe) items. The total across all pages is in the X-Total-Count header. */
@@ -29215,7 +29249,7 @@ export enum DayPhotoCategory {
     Free = "Free",
 }
 
-/** Request for removing an off-plan food entry added today. */
+/** Request for removing an off-plan food entry from a day's log. */
 export interface RemoveOffPlanFoodRequest {
 }
 
@@ -29227,6 +29261,13 @@ submits the resulting URLs here. When null or empty, no photos are stored. */
     photoBlobUrls?: string[] | undefined;
     /** Optional free-text note attached to this meal log entry (max 500 chars). */
     note?: string | undefined;
+    /** When the client actually ate the meal (offline sync). Defaults to the server clock;
+at most 5 minutes ahead and 7 days back. */
+    occurredAt?: string | undefined;
+    /** Client-generated id that makes a retried request apply only once. */
+    clientRequestId?: string | undefined;
+    /** The NutritionPlan.Version the client saw when it queued the request. */
+    basedOnPlanVersion?: number | undefined;
 }
 
 /** Response model for the client's active nutrition plan for the current week. */
@@ -29567,12 +29608,22 @@ export interface AddOffPlanFoodResponse {
     loggedAt?: string;
 }
 
-/** Request for logging a food eaten outside the plan today. */
+/** Request for logging a food eaten outside the plan. */
 export interface AddOffPlanFoodRequest {
     /** The food's ExternalId. */
     foodExternalId: string;
     /** Amount eaten in grams. */
     amountGrams?: number;
+    /** Client-chosen id for the new entry (offline sync), so the client can remove it by that id
+before the add is confirmed. An id already present in that day's log is a replay. */
+    entryId?: string | undefined;
+    /** When the client ate the food (offline sync). Defaults to the server clock;
+at most 5 minutes ahead and 7 days back. */
+    occurredAt?: string | undefined;
+    /** Client-generated id that makes a retried request apply only once. */
+    clientRequestId?: string | undefined;
+    /** The NutritionPlan.Version the client saw when it queued the request. */
+    basedOnPlanVersion?: number | undefined;
 }
 
 /** Aggregated statistics for a client's body weight measurements. */
@@ -29657,6 +29708,13 @@ export interface AddMeasurementRequest {
     thighsCm?: number | undefined;
     /** Optional notes about the measurement session. */
     notes?: string | undefined;
+    /** When the client queued the measurement (offline sync); validated against the 7-day
+offline window only. MeasuredAt still decides the measurement's own date. */
+    occurredAt?: string | undefined;
+    /** Client-generated id that makes a retried request apply only once. */
+    clientRequestId?: string | undefined;
+    /** The NutritionPlan.Version the client saw when it queued the request. */
+    basedOnPlanVersion?: number | undefined;
 }
 
 /** Request model for a trainer/nutritionist recording a body measurement on behalf of a linked client. */

@@ -13,6 +13,7 @@ import { SheetFrame } from '@/components/profile/edit/SheetFrame';
 import { Text } from '@/components/Text';
 import { useAddOffPlanFood } from '@/hooks/useOffPlanFood';
 import { useFoodSearch } from '@/hooks/useFoodSearch';
+import { newClientId } from '@/lib/outbox/id';
 import { useTheme } from '@/theme';
 import type { Colors, Theme } from '@/theme';
 
@@ -76,7 +77,7 @@ export function OffPlanSheet({ visible, onClose }: OffPlanSheetProps) {
           onSubmit={(grams) => {
             setFailure(null);
             add.mutate(
-              { foodExternalId: food.foodId ?? '', amountGrams: grams },
+              { entryId: newClientId(), food, amountGrams: grams },
               {
                 onSuccess: close,
                 onError: (error) => {

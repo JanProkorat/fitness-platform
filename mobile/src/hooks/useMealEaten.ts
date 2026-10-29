@@ -1,14 +1,25 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
-import { FULL_PLAN_KEY, TODAY_LOG_KEY, TODAY_PLAN_KEY, WEEK_LOG_KEY, setMealEaten, withMealEaten } from '@/api/nutrition';
+import { FULL_PLAN_KEY, TODAY_LOG_KEY, TODAY_PLAN_KEY, WEEK_LOG_KEY, withMealEaten } from '@/api/nutrition';
 import type { NutritionMeal } from '@/api/nutrition';
 import type { GetTodayLogResponse } from '@/api/generated';
+import { submitWrite } from '@/lib/outbox/submit';
 
-/** Marks the meal eaten or unmarks it; the log is updated at once and rolled back if the call fails. */
+/**
+ * Marks the meal eaten or unmarks it; the log is updated at once and rolled back if the server rejects the call.
+ * Offline, the write is queued and this still resolves.
+ */
 export function useMealEaten(meal: NutritionMeal) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (eaten: boolean) => setMealEaten(meal.mealId, eaten),
+    // The outbox decides whether the call can go out; the mutation must never pause on its own.
+    networkMode: 'always',
+    mutationFn: (eaten: boolean) =>
+      submitWrite(
+        eaten
+          ? { kind: 'mealEaten', payload: { mealId: meal.mealId } }
+          : { kind: 'mealUnlogged', payload: { mealId: meal.mealId } },
+      ),
     onMutate: async (eaten) => {
       await queryClient.cancelQueries({ queryKey: TODAY_LOG_KEY });
       const previous = queryClient.getQueryData<GetTodayLogResponse>(TODAY_LOG_KEY);
