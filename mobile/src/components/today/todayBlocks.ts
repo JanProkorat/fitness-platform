@@ -10,7 +10,7 @@ import type { CoachRole, CoveredCollaboration } from './collaborationRoles';
 /** What one area (training or nutrition) of Today shows. */
 export type AreaState =
   /** An Active plan is under way. */
-  | { kind: 'running'; plan: ClientOwnPlanItem }
+  | { kind: 'running'; plan: ClientOwnPlanItem; next?: ClientOwnPlanItem }
   /** An Active plan with a published week whose start date is still ahead. */
   | { kind: 'startsLater'; plan: ClientOwnPlanItem }
   /** A coach covers the area but no plan is published yet. */
@@ -46,6 +46,10 @@ export function pickUpcomingPlan(
 export const hasRunningPlan = (blocks: readonly AreaBlock[]): boolean =>
   blocks.some((block) => block.state.kind === 'running');
 
+/** True when an area is waiting on a plan (it starts later or the coach is still building it). */
+export const hasUnstartedArea = (blocks: readonly AreaBlock[]): boolean =>
+  blocks.some((block) => block.state.kind === 'startsLater' || block.state.kind === 'building');
+
 /**
  * One block state per area, training first. Null when no area has an Active plan, which leaves
  * Today to its coach-progress view. `covering` holds the collaborations that cover at least one role.
@@ -63,7 +67,11 @@ export function selectAreaBlocks(
     const active = plans.filter((plan) => planKind(plan) === kind && isActivePlan(plan));
     // An Active plan that is not the upcoming one is under way, even if another one is queued behind it.
     const running = active.find((plan) => plan !== upcoming);
-    if (running) return { role, state: { kind: 'running', plan: running } };
+    if (running) {
+      const lastWeek =
+        running.currentWeek !== undefined && running.totalWeeks !== undefined && running.currentWeek === running.totalWeeks;
+      return { role, state: { kind: 'running', plan: running, next: lastWeek ? upcoming : undefined } };
+    }
     if (upcoming) return { role, state: { kind: 'startsLater', plan: upcoming } };
     const coach = covering.find((entry) => entry.roles.includes(role));
     if (coach) return { role, state: { kind: 'building', collaboration: coach.collaboration } };

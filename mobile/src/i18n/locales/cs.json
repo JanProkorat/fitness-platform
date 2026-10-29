@@ -242,6 +242,24 @@
       "logWeight": "Zapsat váhu",
       "addPhoto": "Přidat fotku"
     },
+    "getReady": {
+      "title": "Připravte se",
+      "progress_one": "{{done}} z {{count}} hotovo",
+      "progress_few": "{{done}} z {{count}} hotovo",
+      "progress_many": "{{done}} z {{count}} hotovo",
+      "progress_other": "{{done}} z {{count}} hotovo",
+      "payment": "Zaplaťte první měsíc",
+      "weight": "Úvodní váha",
+      "weightHint": "Váš poradce ji uvidí od prvního dne",
+      "logWeight": "Zapsat váhu",
+      "photos": "Úvodní fotky",
+      "photosHint": "{{name}} žádá o fotky",
+      "addPhotos": "Přidat fotky"
+    },
+    "nextPlan": {
+      "title": "Další plán je připraven",
+      "subtitle": "{{plan}} · začíná {{when}}"
+    },
     "progress": {
       "coachFallback": "Váš poradce",
       "since": "od {{when}}",
