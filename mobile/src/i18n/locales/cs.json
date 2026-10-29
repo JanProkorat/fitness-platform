@@ -1688,5 +1688,92 @@
   "coachPending": {
     "title": "Váš trenérský účet je připravený",
     "body": "Nástroje pro trenéry v aplikaci zatím nejsou. Klienty spravujte ve webovém portálu Form Up."
+  },
+  "questionnaireFill": {
+    "back": "Zpět",
+    "close": "Zavřít",
+    "loading": "Načítám otázky",
+    "retry": "Zkusit znovu",
+    "start": "Začít",
+    "continue": "Pokračovat",
+    "reviewAnswers": "Zkontrolovat odpovědi",
+    "backToReview": "Zpět ke kontrole",
+    "send": "Odeslat",
+    "sending": "Odesílám…",
+    "stepOf": "{{step}} z {{total}}",
+    "fromCoach": "Otázky od: {{name}}",
+    "unnamedSection": "Další otázky",
+    "coachFallback": "Váš trenér",
+    "required": "Povinné",
+    "optional": "Nepovinné",
+    "pickAny": "Vyberte libovolné",
+    "other": "Jiné…",
+    "otherLabel": "Vaše odpověď",
+    "notAnswered": "Bez odpovědi",
+    "missing": "Chybí odpověď",
+    "edit": "Upravit",
+    "editSection": "Upravit: {{section}}",
+    "intro": {
+      "title": "{{name}} má pro vás pár otázek",
+      "subtitle": "Vaše odpovědi uvidí {{name}}.",
+      "allQuestions": "Všechny otázky",
+      "questionCount_one": "{{count}} otázka",
+      "questionCount_few": "{{count}} otázky",
+      "questionCount_many": "{{count}} otázky",
+      "questionCount_other": "{{count}} otázek"
+    },
+    "number": {
+      "placeholder": "Číslo",
+      "range": "Zadejte číslo od {{min}} do {{max}}.",
+      "atLeast": "Zadejte číslo alespoň {{min}}.",
+      "atMost": "Zadejte číslo nejvýše {{max}}.",
+      "decrease": "Snížit: {{field}}",
+      "increase": "Zvýšit: {{field}}"
+    },
+    "rating": {
+      "ofMax": "{{value}} z {{max}}"
+    },
+    "scale": {
+      "low": "Nejnižší",
+      "high": "Nejvyšší"
+    },
+    "review": {
+      "progress": "Kontrola",
+      "title": "Zkontrolujte své odpovědi",
+      "subtitle": "Nic se neodešle, dokud to nepotvrdíte.",
+      "note": "Po odeslání uvidí vaše odpovědi {{name}} a nepůjde je změnit."
+    },
+    "sent": {
+      "title": "Odesláno",
+      "body": "Vaše odpovědi teď vidí {{name}}.",
+      "summary_one": "{{count}} odpověď · dnes v {{time}}",
+      "summary_few": "{{count}} odpovědi · dnes v {{time}}",
+      "summary_many": "{{count}} odpovědi · dnes v {{time}}",
+      "summary_other": "{{count}} odpovědí · dnes v {{time}}",
+      "back": "Zpět na Dnes"
+    },
+    "discard": {
+      "title": "Zahodit odpovědi?",
+      "body": "Vaše odpovědi se neuloží.",
+      "keep": "Pokračovat ve vyplňování",
+      "discard": "Zahodit"
+    },
+    "errors": {
+      "ok": "OK",
+      "loadTitle": "Otázky se nepodařilo načíst",
+      "load": "Něco se nepovedlo. Zkuste to prosím znovu.",
+      "network": "Server není dostupný. Zkontrolujte připojení a zkuste to znovu.",
+      "requiredMissing": "Chybí odpověď na povinnou otázku. Doplňte ji a zkuste to znovu.",
+      "saveFailed": "Odpovědi se nepodařilo uložit. Zkuste to prosím znovu.",
+      "generic": "Odpovědi se nepodařilo odeslat. Zkuste to prosím znovu.",
+      "unavailable": {
+        "title": "Formulář už není dostupný",
+        "body": "Tento formulář už nelze vyplnit."
+      },
+      "alreadySent": {
+        "title": "Už odesláno",
+        "body": "Tento formulář už jste odeslali."
+      }
+    }
   }
 }
