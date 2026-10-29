@@ -21,7 +21,7 @@ public class SubmitResponseEndpoint(IApplicationDbContext db, IProfileMapperServ
         Summary(s =>
         {
             s.Summary = "Submit questionnaire response";
-            s.Description = "Marks a questionnaire response as submitted. Every required, visible question needs an answer.";
+            s.Description = "Marks a questionnaire response as submitted. Every required, visible question needs an answer; file_upload questions are not enforced yet.";
             s.Responses[StatusCodes.Status200OK] = "Response submitted";
             s.Responses[StatusCodes.Status400BadRequest] = "A required question has no answer (QUESTIONNAIRE_REQUIRED_ANSWER_MISSING)";
             s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
@@ -94,7 +94,9 @@ public class SubmitResponseEndpoint(IApplicationDbContext db, IProfileMapperServ
             .Where(q => q.QuestionnaireId == response.QuestionnaireId
                         && q.IsRequired
                         && !q.IsHidden
-                        && q.Type != QuestionTypes.Section)
+                        && q.Type != QuestionTypes.Section
+                        // File answers cannot be uploaded yet, so they are not enforced; #1850 removes this.
+                        && q.Type != QuestionTypes.FileUpload)
             .Select(q => q.Id)
             .ToListAsync(ct);
 
