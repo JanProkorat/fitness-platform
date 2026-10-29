@@ -1,4 +1,5 @@
 using FastEndpoints;
+using FitnessPlatform.Application.Domain.Extensions;
 using FluentValidation;
 
 namespace FitnessPlatform.Application.Features.ClientNutrition.LogMealEaten;
@@ -28,5 +29,7 @@ public class LogMealEatenValidator : Validator<LogMealEatenRequest>
             .Must(url => url.StartsWith("http", StringComparison.OrdinalIgnoreCase))
             .WithMessage("Photo URL must be a valid HTTP/HTTPS URL.")
             .When(x => x.PhotoBlobUrls is not null && x.PhotoBlobUrls.Count > 0);
+
+        this.AddOfflineSyncRules(x => x.OccurredAt, x => x.ClientRequestId);
     }
 }

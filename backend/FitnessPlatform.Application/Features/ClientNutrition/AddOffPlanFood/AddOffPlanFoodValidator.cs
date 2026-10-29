@@ -1,4 +1,5 @@
 using FastEndpoints;
+using FitnessPlatform.Application.Domain.Extensions;
 using FluentValidation;
 
 namespace FitnessPlatform.Application.Features.ClientNutrition.AddOffPlanFood;
@@ -22,5 +23,11 @@ public class AddOffPlanFoodValidator : Validator<AddOffPlanFoodRequest>
         RuleFor(x => x.AmountGrams)
             .GreaterThan(0)
             .LessThanOrEqualTo(MaxAmountGrams);
+
+        RuleFor(x => x.EntryId)
+            .NotEqual(Guid.Empty)
+            .When(x => x.EntryId.HasValue);
+
+        this.AddOfflineSyncRules(x => x.OccurredAt, x => x.ClientRequestId);
     }
 }

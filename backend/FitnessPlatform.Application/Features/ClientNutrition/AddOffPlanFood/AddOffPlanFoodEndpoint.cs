@@ -52,8 +52,45 @@ internal sealed class AddOffPlanFoodEndpoint(IMongoContext mongo, IApplicationDb
         }
 
         var clientId = Guid.Parse(userId);
-        var nowUtc = timeProvider.GetUtcNow().UtcDateTime;
+
+        var processed = await ClientRequestDeduplicator.FindAsync(mongo, clientId, req.ClientRequestId, ct);
+
+        if (processed is not null)
+        {
+            var original = processed.ResultId is { } resultId
+                ? await LoadEntryAsync(Builders<DayLog>.Filter.Eq(l => l.ClientId, clientId), resultId, ct)
+                : null;
+
+            if (original is null)
+            {
+                await Send.NotFoundAsync(ct);
+                return;
+            }
+
+            await Send.OkAsync(AddOffPlanFoodResponse.FromDocument(original), ct);
+            return;
+        }
+
+        var serverNowUtc = timeProvider.GetUtcNow().UtcDateTime;
+
+        // OccurredAt (offline sync) anchors the local day, plan resolution and LoggedAt.
+        var nowUtc = req.OccurredAt?.UtcDateTime ?? serverNowUtc;
         var (todayUtc, windowStartUtc, windowEndUtc) = await db.ResolveClientLocalDayWindowAsync(clientId, nowUtc, ct);
+
+        if (req.EntryId is { } clientEntryId)
+        {
+            var dayFilter = TodayDayLogFilter.Build(clientId, null, todayUtc, windowStartUtc, windowEndUtc);
+            var replayed = await LoadEntryAsync(dayFilter, clientEntryId, ct);
+
+            if (replayed is not null)
+            {
+                await ClientRequestDeduplicator.RecordAsync(
+                    mongo, clientId, req.ClientRequestId, "AddOffPlanFood", req.BasedOnPlanVersion,
+                    replayed.EntryId, serverNowUtc, ct);
+                await Send.OkAsync(AddOffPlanFoodResponse.FromDocument(replayed), ct);
+                return;
+            }
+        }
 
         var plan = await ResolveCurrentPlanAsync(clientId, todayUtc, ct);
 
@@ -72,6 +109,8 @@ internal sealed class AddOffPlanFoodEndpoint(IMongoContext mongo, IApplicationDb
         }
 
         var entry = BuildEntry(food, req.AmountGrams, nowUtc);
+        entry.EntryId = req.EntryId ?? entry.EntryId;
+        entry.BasedOnPlanVersion = req.BasedOnPlanVersion;
 
         var logFilter = TodayDayLogFilter.Build(clientId, plan.ExternalId, todayUtc, windowStartUtc, windowEndUtc);
         using var logCursor = await mongo.DayLogs.FindAsync(logFilter, cancellationToken: ct);
@@ -87,7 +126,7 @@ internal sealed class AddOffPlanFoodEndpoint(IMongoContext mongo, IApplicationDb
                 OffPlanFoods = [entry],
                 Version = 1,
                 CreatedAt = nowUtc,
-                UpdatedAt = nowUtc,
+                UpdatedAt = serverNowUtc,
             }, cancellationToken: ct);
         }
         else
@@ -99,7 +138,7 @@ internal sealed class AddOffPlanFoodEndpoint(IMongoContext mongo, IApplicationDb
             var update = Builders<DayLog>.Update
                 .Push(l => l.OffPlanFoods, entry)
                 .Set(l => l.LogDate, todayUtc)
-                .Set(l => l.UpdatedAt, nowUtc)
+                .Set(l => l.UpdatedAt, serverNowUtc)
                 .Inc(l => l.Version, 1);
 
             var result = await mongo.DayLogs.UpdateOneAsync(versionedFilter, update, cancellationToken: ct);
@@ -112,7 +151,22 @@ internal sealed class AddOffPlanFoodEndpoint(IMongoContext mongo, IApplicationDb
             }
         }
 
+        await ClientRequestDeduplicator.RecordAsync(
+            mongo, clientId, req.ClientRequestId, "AddOffPlanFood", req.BasedOnPlanVersion, entry.EntryId, serverNowUtc, ct);
+
         await Send.OkAsync(AddOffPlanFoodResponse.FromDocument(entry), ct);
+    }
+
+    private async Task<OffPlanFoodEntry?> LoadEntryAsync(FilterDefinition<DayLog> dayFilter, Guid entryId, CancellationToken ct)
+    {
+        var filter = Builders<DayLog>.Filter.And(
+            dayFilter,
+            Builders<DayLog>.Filter.ElemMatch(l => l.OffPlanFoods, e => e.EntryId == entryId));
+
+        using var cursor = await mongo.DayLogs.FindAsync(filter, cancellationToken: ct);
+        var log = await cursor.FirstOrDefaultAsync(ct);
+
+        return log?.OffPlanFoods.FirstOrDefault(e => e.EntryId == entryId);
     }
 
     private async Task<NutritionPlan?> ResolveCurrentPlanAsync(Guid clientId, DateTime todayUtc, CancellationToken ct)
