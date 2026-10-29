@@ -25,7 +25,6 @@ import {
   valueOf,
 } from '@/components/measurements/metrics';
 import type { Range } from '@/components/measurements/metrics';
-import { OfflineBanner } from '@/components/OfflineBanner';
 import { Segmented } from '@/components/onboarding/Segmented';
 import type { SegmentOption } from '@/components/onboarding/Segmented';
 import { EMPTY_VALUE } from '@/components/profile/format';
@@ -131,9 +130,8 @@ export default function MeasurementsScreen() {
           subtitle={entries.length > 0 ? updatedLabel(t, entries[0].at, now) : undefined}
           backLabel={t('onboarding.back')}
           onBack={() => router.back()}
+          offlineShort
         />
-
-        <OfflineBanner short />
 
         {historyQuery.isPending ? (
           <View style={styles.state}>

@@ -15,6 +15,7 @@ import {
 import type { AppNotification } from '@/api/notifications';
 import { isPaymentRequestedType } from '@/api/payments';
 import { NotificationRow } from '@/components/notifications/NotificationRow';
+import { OfflineBanner } from '@/components/OfflineBanner';
 import { Text } from '@/components/Text';
 import { useInvites } from '@/hooks/useInvites';
 import { useMarkNotificationsRead, useNotifications } from '@/hooks/useNotifications';
@@ -119,6 +120,7 @@ export default function NotificationsSheet() {
             </Pressable>
           ) : null}
         </View>
+        <OfflineBanner />
         <ScrollView style={styles.list} contentContainerStyle={styles.listContent}>
           {isError && !page ? (
             <Pressable accessibilityRole="button" onPress={() => void refetch()}>

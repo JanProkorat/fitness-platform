@@ -7,6 +7,7 @@ import type { EdgeInsets } from 'react-native-safe-area-context';
 
 import { BackButton } from '@/components/BackButton';
 import { Screen } from '@/components/Screen';
+import { OfflineBanner } from '@/components/OfflineBanner';
 import { Text } from '@/components/Text';
 import { CoachSection, coachHeading, hasPayments } from '@/components/payments/CoachSection';
 import { usePayments } from '@/hooks/usePayments';
@@ -50,6 +51,7 @@ export default function PaymentsScreen() {
         bottomInset={theme.spacing.huge}
         contentStyle={styles.content}
       >
+        <OfflineBanner />
         {isPending ? <ActivityIndicator color={theme.colors.muted} style={styles.loading} /> : null}
         {isError && !coaches ? (
           <Pressable accessibilityRole="button" onPress={() => void refetch()}>

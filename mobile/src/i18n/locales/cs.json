@@ -729,7 +729,7 @@
     "shared": {
       "line": "Sdíleno s {{names}}.",
       "pending": "{{names}} to uvidí, jakmile se synchronizuje.",
-      "pendingUnknown": "Vaši trenéři to uvidí, jakmile se synchronizuje.",
+      "pendingUnknown": "Uvidí to vaši trenéři a nutriční poradci, jakmile se záznam synchronizuje.",
       "and": "a"
     },
     "empty": {
