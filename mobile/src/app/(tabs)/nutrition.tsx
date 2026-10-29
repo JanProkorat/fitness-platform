@@ -8,6 +8,7 @@ import { NutritionUpcoming } from '@/components/nutrition/tab/NutritionUpcoming'
 import { NutritionPlanView, isMissingPlan } from '@/components/nutrition/tab/NutritionPlanView';
 import { NutritionWaiting } from '@/components/nutrition/tab/NutritionWaiting';
 import { TabHeader } from '@/components/nutrition/tab/TabHeader';
+import { OfflineBanner } from '@/components/OfflineBanner';
 import { Screen } from '@/components/Screen';
 import { TabFade } from '@/components/TabFade';
 import { Text } from '@/components/Text';
@@ -41,7 +42,12 @@ function NutritionContent() {
     <Screen
       scroll
       collapseTabBar
-      header={<TabHeader withShortcuts={withShortcuts} />}
+      header={
+        <View style={styles.header}>
+          <TabHeader withShortcuts={withShortcuts} />
+          <OfflineBanner />
+        </View>
+      }
       topGap={theme.spacing.safeAreaGap}
       bottomInset={barClearance}
       contentStyle={styles.content}
@@ -108,6 +114,9 @@ function NutritionContent() {
 
 const makeStyles = (theme: Theme) =>
   StyleSheet.create({
+    header: {
+      gap: theme.spacing.lg,
+    },
     content: {
       gap: theme.spacing.xl,
     },

@@ -25,6 +25,7 @@ import {
   valueOf,
 } from '@/components/measurements/metrics';
 import type { Range } from '@/components/measurements/metrics';
+import { OfflineBanner } from '@/components/OfflineBanner';
 import { Segmented } from '@/components/onboarding/Segmented';
 import type { SegmentOption } from '@/components/onboarding/Segmented';
 import { EMPTY_VALUE } from '@/components/profile/format';
@@ -75,6 +76,17 @@ export default function MeasurementsScreen() {
     .map((coach) => (coach.professionalName ?? '').trim().split(/\s+/)[0] ?? '')
     .filter((name) => name !== '');
 
+  // While a measurement is still unsynced the footnote says when the coaches will see it.
+  const hasUnsynced = pendingKeys.measurementAdded.size > 0;
+  const names = joinNames(t, coachNames);
+  const sharedLine = hasUnsynced
+    ? coachNames.length > 0
+      ? t('measurements.shared.pending', { count: coachNames.length, names })
+      : t('measurements.shared.pendingUnknown')
+    : coachNames.length > 0
+      ? t('measurements.shared.line', { names })
+      : null;
+
   const rows = METRICS.filter(
     (metric) => metric.key !== 'biceps' || latestValue(entries, metric) !== undefined,
   ).map((metric) => {
@@ -121,6 +133,8 @@ export default function MeasurementsScreen() {
           onBack={() => router.back()}
         />
 
+        <OfflineBanner short />
+
         {historyQuery.isPending ? (
           <View style={styles.state}>
             <ActivityIndicator color={theme.colors.accent} />
@@ -155,7 +169,7 @@ export default function MeasurementsScreen() {
           </>
         )}
 
-        {coachNames.length > 0 ? (
+        {sharedLine !== null ? (
           <View style={styles.shared}>
             <SymbolView
               name="info.circle"
@@ -163,7 +177,7 @@ export default function MeasurementsScreen() {
               size={theme.sizes.measureInfoGlyph}
             />
             <Text variant="label" color="muted" style={styles.sharedText}>
-              {t('measurements.shared.line', { names: joinNames(t, coachNames) })}
+              {sharedLine}
             </Text>
           </View>
         ) : null}

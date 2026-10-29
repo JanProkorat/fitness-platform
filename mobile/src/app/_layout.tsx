@@ -9,7 +9,6 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import '@/i18n';
 import { LaunchScreen } from '@/components/LaunchScreen';
-import { OfflineBanner } from '@/components/OfflineBanner';
 import { ProfileErrorState } from '@/components/ProfileErrorState';
 import { useAuthPhase } from '@/hooks/useAuthPhase';
 import { newestCachedUpdate, persistOptions } from '@/lib/persistence';
@@ -94,7 +93,6 @@ function AppShell() {
             <AppStack phase={phase} onRetry={retry} />
             {phase === 'home' ? <HomeEffects /> : null}
           </RealtimeProvider>
-          {phase === 'home' ? <OfflineBanner /> : null}
         </View>
       ) : null}
       {overlayVisible ? (

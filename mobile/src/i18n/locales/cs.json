@@ -728,6 +728,8 @@
     },
     "shared": {
       "line": "Sdíleno s {{names}}.",
+      "pending": "{{names}} to uvidí, jakmile se synchronizuje.",
+      "pendingUnknown": "Vaši trenéři to uvidí, jakmile se synchronizuje.",
       "and": "a"
     },
     "empty": {
@@ -953,7 +955,8 @@
   "offline": {
     "banner": "Jste offline",
     "detail": ". Změny se odešlou, až budete zpět online.",
-    "detailWithTime": " · zobrazuji data z {{time}}. Změny se odešlou, až budete zpět online."
+    "detailWithTime": " · zobrazuji data z {{time}}. Změny se odešlou, až budete zpět online.",
+    "detailShort": " · zobrazuji data z {{time}}"
   },
   "offlineSync": {
     "pending": "Zatím nesynchronizováno",
@@ -968,7 +971,10 @@
       "mealRemoved": { "title": "Z plánu odebráno ({{who}}): {{meal}}, {{date}}", "body": "Toto jídlo už ve vašem plánu není, proto se váš záznam nepodařilo uložit." }
     },
     "dropped": {
-      "title": "Tento záznam se nepodařilo uložit",
+      "title_one": "{{count}} záznam se nepodařilo uložit",
+      "title_few": "{{count}} záznamy se nepodařilo uložit",
+      "title_many": "{{count}} záznamu se nepodařilo uložit",
+      "title_other": "{{count}} záznamů se nepodařilo uložit",
       "subjectNamed": "Záznam „{{name}}“ ze dne {{date}}",
       "subject": {
         "mealEaten": "Záznam jídla ze dne {{date}}",

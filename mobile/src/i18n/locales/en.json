@@ -706,6 +706,9 @@
     },
     "shared": {
       "line": "Shared with {{names}}.",
+      "pending_one": "{{names}} sees it once it syncs.",
+      "pending_other": "{{names}} see it once it syncs.",
+      "pendingUnknown": "Your coaches see it once it syncs.",
       "and": "and"
     },
     "empty": {
@@ -925,7 +928,8 @@
   "offline": {
     "banner": "You're offline",
     "detail": ". Changes sync when you're back online.",
-    "detailWithTime": " · showing data from {{time}}. Changes sync when you're back online."
+    "detailWithTime": " · showing data from {{time}}. Changes sync when you're back online.",
+    "detailShort": " · showing data from {{time}}"
   },
   "offlineSync": {
     "pending": "Not synced yet",
@@ -940,7 +944,8 @@
       "mealRemoved": { "title": "{{who}} removed {{meal}} on {{date}}", "body": "That meal is no longer in your plan, so your entry could not be saved." }
     },
     "dropped": {
-      "title": "This entry couldn't be saved",
+      "title_one": "{{count}} entry couldn't be saved",
+      "title_other": "{{count}} entries couldn't be saved",
       "subjectNamed": "{{name}} from {{date}}",
       "subject": {
         "mealEaten": "A meal entry from {{date}}",

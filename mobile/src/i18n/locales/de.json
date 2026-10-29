@@ -706,6 +706,9 @@
     },
     "shared": {
       "line": "Geteilt mit {{names}}.",
+      "pending_one": "{{names}} sieht es, sobald es synchronisiert ist.",
+      "pending_other": "{{names}} sehen es, sobald es synchronisiert ist.",
+      "pendingUnknown": "Ihre Coaches sehen es, sobald es synchronisiert ist.",
       "and": "und"
     },
     "empty": {
@@ -925,7 +928,8 @@
   "offline": {
     "banner": "Sie sind offline",
     "detail": ". Änderungen werden synchronisiert, sobald Sie wieder online sind.",
-    "detailWithTime": " · angezeigt werden Daten von {{time}}. Änderungen werden synchronisiert, sobald Sie wieder online sind."
+    "detailWithTime": " · angezeigt werden Daten von {{time}}. Änderungen werden synchronisiert, sobald Sie wieder online sind.",
+    "detailShort": " · angezeigt werden Daten von {{time}}"
   },
   "offlineSync": {
     "pending": "Noch nicht synchronisiert",
@@ -940,7 +944,8 @@
       "mealRemoved": { "title": "{{who}} hat {{meal}} am {{date}} entfernt", "body": "Diese Mahlzeit ist nicht mehr in Ihrem Plan, daher konnte Ihr Eintrag nicht gespeichert werden." }
     },
     "dropped": {
-      "title": "Dieser Eintrag konnte nicht gespeichert werden",
+      "title_one": "{{count}} Eintrag konnte nicht gespeichert werden",
+      "title_other": "{{count}} Einträge konnten nicht gespeichert werden",
       "subjectNamed": "Der Eintrag „{{name}}“ vom {{date}}",
       "subject": {
         "mealEaten": "Der Mahlzeiteneintrag vom {{date}}",

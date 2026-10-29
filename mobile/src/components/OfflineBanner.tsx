@@ -1,72 +1,80 @@
-import { getLocales } from 'expo-localization';
+import { SymbolView } from 'expo-symbols';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Text } from '@/components/Text';
 import { selectIsOffline, useConnectivityStore } from '@/stores/connectivity';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
 
-/** Date and time in the device locale; empty when the value is not a real time. */
-function formatUpdatedAt(at: number | null): string | null {
+/** "14:05" for data from today, "27 Oct, 14:05" for older data; null when the value is not a real time. */
+export function formatUpdatedAt(at: number | null, language: string, now: number = Date.now()): string | null {
   if (at === null || !Number.isFinite(at) || at <= 0) return null;
   const date = new Date(at);
-  const tag = getLocales()[0]?.languageTag;
+  const clock = { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' } as const;
   try {
-    return date.toLocaleString(tag, { dateStyle: 'short', timeStyle: 'short' });
+    const time = date.toLocaleTimeString(language, clock);
+    if (date.toDateString() === new Date(now).toDateString()) return time;
+    return `${date.toLocaleDateString(language, { day: 'numeric', month: 'short' })}, ${time}`;
   } catch {
     return date.toLocaleString();
   }
 }
 
-/** Floating notice shown while the API is unreachable and the screens run on saved data. */
-export function OfflineBanner() {
-  const { t } = useTranslation();
+type OfflineBannerProps = {
+  /** Leave out the "changes sync when you're back online" sentence, as the shorter boards do. */
+  short?: boolean;
+};
+
+/** In-flow status card shown under a screen's title while the API is unreachable and the screen runs on saved data. */
+export function OfflineBanner({ short = false }: OfflineBannerProps) {
+  const { t, i18n } = useTranslation();
   const theme = useTheme();
-  const insets = useSafeAreaInsets();
   const isOffline = useConnectivityStore(selectIsOffline);
   const lastSuccessAt = useConnectivityStore((state) => state.lastSuccessAt);
 
   if (!isOffline) return null;
 
   const styles = makeStyles(theme);
-  const time = formatUpdatedAt(lastSuccessAt);
+  const time = formatUpdatedAt(lastSuccessAt, i18n.language);
+  const detail =
+    time === null
+      ? short
+        ? ''
+        : t('offline.detail')
+      : t(short ? 'offline.detailShort' : 'offline.detailWithTime', { time });
 
   return (
-    <View
-      pointerEvents="none"
-      style={[styles.wrap, { top: insets.top }]}
-      accessibilityRole="alert"
-    >
-      <View style={styles.pill}>
-        <Text variant="caption" color="ink2" style={styles.text}>
-          <Text variant="captionStrong" color="ink">
-            {t('offline.banner')}
-          </Text>
-          {time === null ? t('offline.detail') : t('offline.detailWithTime', { time })}
+    <View accessible accessibilityRole="alert" style={styles.card}>
+      <SymbolView
+        name="icloud.slash"
+        weight="medium"
+        tintColor={theme.colors.ink2}
+        size={theme.sizes.bannerGlyph}
+      />
+      <Text variant="label" color="ink2" style={styles.text}>
+        <Text variant="labelStrong" color="ink">
+          {t('offline.banner')}
         </Text>
-      </View>
+        {detail}
+      </Text>
     </View>
   );
 }
 
 const makeStyles = (theme: Theme) =>
   StyleSheet.create({
-    wrap: {
-      position: 'absolute',
-      left: 0,
-      right: 0,
+    card: {
+      flexDirection: 'row',
       alignItems: 'center',
-    },
-    pill: {
+      gap: theme.spacing.md,
+      alignSelf: 'stretch',
       backgroundColor: theme.colors.subtle,
-      maxWidth: '92%',
-      borderRadius: theme.radii.pill,
+      borderRadius: theme.radii.xl,
+      paddingVertical: theme.spacing.md,
       paddingHorizontal: theme.spacing.lg,
-      paddingVertical: theme.spacing.xxs,
     },
     text: {
-      textAlign: 'center',
+      flex: 1,
     },
   });

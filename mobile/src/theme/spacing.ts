@@ -206,4 +206,5 @@ export const sizes = {
   noticeIcon: 28,
   noticeGlyph: 15,
   pendingGlyph: 13,
+  bannerGlyph: 18,
 } as const;
