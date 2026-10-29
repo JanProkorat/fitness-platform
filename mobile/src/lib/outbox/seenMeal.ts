@@ -16,7 +16,7 @@ const clamp = (value: number, max: number): number => (Number.isFinite(value) ? 
 export function seenItemsOf(meal: PlanMeal): SeenItem[] {
   const items: SeenItem[] = [];
   for (const food of meal.foods ?? []) {
-    if (!food.foodExternalId) continue;
+    if (!food.foodExternalId || !food.foodName?.trim()) continue;
     const grams = food.amountGrams ?? 0;
     items.push({
       kind: SeenMealItemKind.Food,
@@ -27,7 +27,7 @@ export function seenItemsOf(meal: PlanMeal): SeenItem[] {
     });
   }
   for (const recipe of meal.recipes ?? []) {
-    if (!recipe.recipeId) continue;
+    if (!recipe.recipeId || !recipe.recipeName?.trim()) continue;
     const servings = recipe.servings ?? 0;
     items.push({
       kind: SeenMealItemKind.Recipe,
