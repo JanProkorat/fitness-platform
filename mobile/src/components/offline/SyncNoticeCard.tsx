@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/Card';
 import { formatShortDate, localToday } from '@/components/nutrition/plan/model';
 import { Text } from '@/components/Text';
+import { coveredCollaborations } from '@/components/today/collaborationRoles';
 import { useCollaborations } from '@/hooks/useCollaborations';
 import type { DroppedEntry, EntryLabel, SyncConflict } from '@/lib/outbox/types';
 import { useDroppedEntries, useOutboxStore, useSyncConflicts } from '@/stores/outbox';
@@ -67,10 +68,12 @@ export function SyncNoticeCard() {
 
   if (conflicts.length === 0 && dropped.length === 0) return null;
 
-  const professionals = (collaborations.data ?? [])
-    .map((coach) => (coach.professionalName ?? '').trim().split(/\s+/)[0] ?? '')
-    .filter((name) => name !== '');
-  const who = professionals.length === 1 ? professionals[0] : t('offlineSync.who');
+  // A plan conflict is only ever reported to the plan's author, the client's nutritionist.
+  const nutritionistName = coveredCollaborations(collaborations.data ?? [])
+    .filter((entry) => entry.roles.includes('Nutritionist'))
+    .map((entry) => (entry.collaboration.professionalName ?? '').trim().split(/\s+/)[0] ?? '')
+    .find((name) => name !== '');
+  const who = nutritionistName ?? t('offlineSync.who');
 
   const mealName = (label: EntryLabel): string => {
     if (!label.mealKind) return t('offlineSync.mealFallback');

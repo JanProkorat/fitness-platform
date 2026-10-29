@@ -896,10 +896,10 @@
     "title": "Vaše offline změny jsou synchronizované",
     "titleDropped": "Některé offline změny se nepodařilo uložit",
     "gotIt": "Rozumím",
-    "who": "Váš trenér",
+    "who": "Váš nutriční poradce",
     "mealFallback": "jídlo",
     "conflict": {
-      "planChanged": { "title": "Plán upraven ({{who}}): {{meal}}, {{date}}", "body": "Označili jste jídlo jako snězené offline. Váš záznam je uložený a uvidí ho i váš trenér nebo nutriční poradce." },
+      "planChanged": { "title": "Plán upraven ({{who}}): {{meal}}, {{date}}", "body": "Označili jste jídlo jako snězené offline. Váš záznam je uložený a uvidí ho i váš nutriční poradce." },
       "mealRemoved": { "title": "Z plánu odebráno ({{who}}): {{meal}}, {{date}}", "body": "Toto jídlo už ve vašem plánu není, proto se váš záznam nepodařilo uložit." }
     },
     "dropped": {

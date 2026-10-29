@@ -874,10 +874,10 @@
     "title": "Ihre Offline-Änderungen sind synchronisiert",
     "titleDropped": "Einige Offline-Änderungen wurden nicht gespeichert",
     "gotIt": "Verstanden",
-    "who": "Ihr Coach",
+    "who": "Ihre Ernährungsberatung",
     "mealFallback": "eine Mahlzeit",
     "conflict": {
-      "planChanged": { "title": "{{who}} hat {{meal}} am {{date}} geändert", "body": "Sie haben sie offline als gegessen markiert. Ihr Eintrag ist gespeichert, und Ihr Coach kann ihn sehen." },
+      "planChanged": { "title": "{{who}} hat {{meal}} am {{date}} geändert", "body": "Sie haben sie offline als gegessen markiert. Ihr Eintrag ist gespeichert, und Ihre Ernährungsberatung kann ihn sehen." },
       "mealRemoved": { "title": "{{who}} hat {{meal}} am {{date}} entfernt", "body": "Diese Mahlzeit ist nicht mehr in Ihrem Plan, daher konnte Ihr Eintrag nicht gespeichert werden." }
     },
     "dropped": {
