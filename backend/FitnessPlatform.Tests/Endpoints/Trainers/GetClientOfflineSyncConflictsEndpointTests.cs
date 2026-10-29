@@ -12,6 +12,8 @@ using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Infrastructure;
 using FluentValidation.TestHelper;
 using Microsoft.Extensions.DependencyInjection;
+using MongoDB.Bson;
+using MongoDB.Driver;
 
 namespace FitnessPlatform.Tests.Endpoints.Trainers;
 
@@ -79,6 +81,84 @@ public class GetClientOfflineSyncConflictsEndpointTests(FitnessApiFactory factor
         body.Items.Select(i => i.DetectedAt).Should().BeInDescendingOrder();
         body.Items[0].DetectedAt.Should().BeCloseTo(now.AddHours(-1), TimeSpan.FromSeconds(1));
         body.Items.Should().OnlyContain(i => i.PlanId == planId && i.Kind == OfflineSyncConflictKind.PlanChanged);
+    }
+
+    [Fact]
+    public async Task Get_LegacyDocumentWithoutNewFields_LoadsAndIsUnreviewed()
+    {
+        var coach = await TestActors.Nutritionist(factory).CreateAsync(Ct);
+        var client = await TestActors.Client(factory).CreateAsync(Ct);
+        await TestActors.Link(factory, coach, client).AsRole(UserRole.Nutritionist).CreateAsync(Ct);
+        var legacyId = Guid.NewGuid();
+        using (var scope = factory.Services.CreateScope())
+        {
+            var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+            var raw = mongo.OfflineSyncConflicts.Database
+                .GetCollection<BsonDocument>(mongo.OfflineSyncConflicts.CollectionNamespace.CollectionName);
+            await raw.InsertOneAsync(new BsonDocument
+            {
+                { "externalId", new BsonBinaryData(legacyId, GuidRepresentation.Standard) },
+                { "clientId", new BsonBinaryData(client.UserId, GuidRepresentation.Standard) },
+                { "planId", new BsonBinaryData(Guid.NewGuid(), GuidRepresentation.Standard) },
+                { "planAuthorId", new BsonBinaryData(coach.UserId, GuidRepresentation.Standard) },
+                { "operation", "LogMealEaten" },
+                { "kind", "PlanChanged" },
+                { "mealId", new BsonBinaryData(Guid.NewGuid(), GuidRepresentation.Standard) },
+                { "occurredAt", DateTime.UtcNow },
+                { "logDate", DateTime.UtcNow.Date },
+                { "basedOnPlanVersion", 1 },
+                { "currentPlanVersion", 2 },
+                { "planName", "Plan" },
+                { "mealKind", "Lunch" },
+                { "mealLogged", true },
+                { "dateCreated", DateTime.UtcNow },
+                { "version", 1 },
+            }, cancellationToken: Ct);
+        }
+
+        var response = await GetAsync(coach, client.PublicId, "?unreviewedOnly=true");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = (await response.Content.ReadFromJsonAsync<GetClientOfflineSyncConflictsResponse>(Json, Ct))!;
+        var item = body.Items.Should().ContainSingle().Subject;
+        item.ConflictId.Should().Be(legacyId);
+        item.SeenItems.Should().BeEmpty();
+        item.ReviewedAt.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Get_PlanIdAndUnreviewedFilters_NarrowResultsAndTotalCount()
+    {
+        var coach = await TestActors.Nutritionist(factory).CreateAsync(Ct);
+        var client = await TestActors.Client(factory).CreateAsync(Ct);
+        await TestActors.Link(factory, coach, client).AsRole(UserRole.Nutritionist).CreateAsync(Ct);
+        var planA = Guid.NewGuid();
+        var planB = Guid.NewGuid();
+        await InsertConflictAsync(client.UserId, coach.UserId, planA, DateTime.UtcNow.AddHours(-1));
+        await InsertConflictAsync(client.UserId, coach.UserId, planA, DateTime.UtcNow.AddHours(-2));
+        await InsertConflictAsync(client.UserId, coach.UserId, planB, DateTime.UtcNow.AddHours(-3));
+        using (var scope = factory.Services.CreateScope())
+        {
+            var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+            var oldestOfA = (await mongo.OfflineSyncConflicts
+                .Find(c => c.ClientId == client.UserId && c.PlanId == planA)
+                .SortBy(c => c.DateCreated)
+                .FirstAsync(Ct));
+            await mongo.OfflineSyncConflicts.UpdateOneAsync(
+                c => c.ExternalId == oldestOfA.ExternalId,
+                Builders<OfflineSyncConflict>.Update.Set(c => c.ReviewedAt, DateTime.UtcNow),
+                cancellationToken: Ct);
+        }
+
+        var byPlan = await GetAsync(coach, client.PublicId, $"?planId={planA}");
+        var unreviewed = await GetAsync(coach, client.PublicId, "?unreviewedOnly=true");
+        var both = await GetAsync(coach, client.PublicId, $"?planId={planA}&unreviewedOnly=true");
+
+        byPlan.Headers.GetValues("X-Total-Count").Single().Should().Be("2");
+        unreviewed.Headers.GetValues("X-Total-Count").Single().Should().Be("2");
+        both.Headers.GetValues("X-Total-Count").Single().Should().Be("1");
+        var bothBody = (await both.Content.ReadFromJsonAsync<GetClientOfflineSyncConflictsResponse>(Json, Ct))!;
+        bothBody.Items.Should().ContainSingle().Which.PlanId.Should().Be(planA);
     }
 
     [Fact]

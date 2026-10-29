@@ -63,14 +63,22 @@ public class OfflineSyncConflictIntegrationTests(FitnessApiFactory factory)
     }
 
     private static Task<HttpResponseMessage> LogAsync(
-        Actor client, Guid mealId, int? basedOnPlanVersion = null, Guid? clientRequestId = null) =>
+        Actor client, Guid mealId, int? basedOnPlanVersion = null, Guid? clientRequestId = null,
+        List<SeenMealItemRequest>? seenItems = null) =>
         client.Http.PostAsJsonAsync($"/client/nutrition/log/meals/{mealId}/eaten",
             new LogMealEatenRequest
             {
                 MealId = mealId,
                 BasedOnPlanVersion = basedOnPlanVersion,
                 ClientRequestId = clientRequestId,
+                SeenMealItems = seenItems,
             }, Ct);
+
+    private static List<SeenMealItemRequest> SeenItems() =>
+    [
+        new() { Kind = SeenMealItemKind.Food, RefId = Guid.NewGuid(), Name = "Rice", Amount = 150m, Kcal = 195m },
+        new() { Kind = SeenMealItemKind.Recipe, RefId = Guid.NewGuid(), Name = "Chili", Amount = 1m, Kcal = 420m },
+    ];
 
     private static async Task<LogMealEatenResponse> ReadAsync(HttpResponseMessage response) =>
         (await response.Content.ReadFromJsonAsync<LogMealEatenResponse>(Json, Ct))!;
@@ -134,6 +142,50 @@ public class OfflineSyncConflictIntegrationTests(FitnessApiFactory factory)
         conflict.CurrentPlanVersion.Should().Be(3);
         conflict.MealChangedAtPlanVersion.Should().Be(3);
         conflict.MealLogged.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Log_ConflictWithSeenItems_StoresThemOnTheConflict()
+    {
+        var (client, coach) = await SeedLinkedPairAsync();
+        var meal = NewMeal(changedAtPlanVersion: 3);
+        await InsertPlanAsync(client, meal, coach.UserId, version: 3);
+        var seen = SeenItems();
+
+        var response = await LogAsync(client, meal.MealId, basedOnPlanVersion: 2, seenItems: seen);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        var conflict = (await LoadConflictsAsync(client.UserId)).Should().ContainSingle().Subject;
+        conflict.SeenItems.Should().BeEquivalentTo(seen);
+    }
+
+    [Fact]
+    public async Task Log_NoConflictWithSeenItems_IgnoresThem()
+    {
+        var (client, coach) = await SeedLinkedPairAsync();
+        var meal = NewMeal(changedAtPlanVersion: 2);
+        await InsertPlanAsync(client, meal, coach.UserId, version: 2);
+
+        var response = await LogAsync(client, meal.MealId, basedOnPlanVersion: 2, seenItems: SeenItems());
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        (await LoadConflictsAsync(client.UserId)).Should().BeEmpty();
+        (await LoadMealLogsAsync(client.UserId)).Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task Log_TooManySeenItems_Returns400()
+    {
+        var (client, coach) = await SeedLinkedPairAsync();
+        var meal = NewMeal();
+        await InsertPlanAsync(client, meal, coach.UserId);
+        var tooMany = Enumerable.Range(0, 41)
+            .Select(_ => new SeenMealItemRequest { RefId = Guid.NewGuid(), Name = "Item" })
+            .ToList();
+
+        var response = await LogAsync(client, meal.MealId, basedOnPlanVersion: 1, seenItems: tooMany);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
     [Theory]
