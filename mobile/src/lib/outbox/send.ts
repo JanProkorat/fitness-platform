@@ -1,25 +1,28 @@
 import type { QueryKey } from '@tanstack/react-query';
 
 import { api } from '@/api/client';
+import type { LogMealEatenResponse } from '@/api/generated';
 import { MEASUREMENTS_QUERY_KEY } from '@/api/measurements';
 import { FULL_PLAN_KEY, TODAY_LOG_KEY, TODAY_PLAN_KEY, WEEK_LOG_KEY } from '@/api/nutrition';
 import { PROFILE_SUMMARY_QUERY_KEY } from '@/api/profile';
 import type { OutboxEntry, OutboxKind } from '@/lib/outbox/types';
 
-/** Sends one entry with its replay metadata; the same entry sent twice applies once on the server. */
-export async function sendEntry(entry: OutboxEntry): Promise<void> {
+/**
+ * Sends one entry with its replay metadata; the same entry sent twice applies once on the server.
+ * Resolves with the server's answer for a logged meal, which says whether it collided with a plan change.
+ */
+export async function sendEntry(entry: OutboxEntry): Promise<LogMealEatenResponse | undefined> {
   const basedOnPlanVersion = entry.basedOnPlanVersion ?? undefined;
   switch (entry.kind) {
     case 'mealEaten':
-      await api.logMealEatenEndpoint(entry.payload.mealId, {
+      return api.logMealEatenEndpoint(entry.payload.mealId, {
         occurredAt: entry.occurredAt,
         clientRequestId: entry.id,
         basedOnPlanVersion,
       });
-      return;
     case 'mealUnlogged':
       await api.unlogMealEatenEndpoint(entry.payload.mealId, entry.occurredAt, entry.id, basedOnPlanVersion);
-      return;
+      return undefined;
     case 'offPlanAdded':
       await api.addOffPlanFoodEndpoint({
         foodExternalId: entry.payload.foodExternalId,
@@ -29,10 +32,10 @@ export async function sendEntry(entry: OutboxEntry): Promise<void> {
         clientRequestId: entry.id,
         basedOnPlanVersion,
       });
-      return;
+      return undefined;
     case 'offPlanRemoved':
       await api.removeOffPlanFoodEndpoint(entry.payload.entryId, entry.occurredAt, entry.id, basedOnPlanVersion);
-      return;
+      return undefined;
     case 'shoppingTicked':
       await api.setShoppingListItemTickedEndpoint({
         weekNumber: entry.payload.weekNumber,
@@ -42,7 +45,7 @@ export async function sendEntry(entry: OutboxEntry): Promise<void> {
         clientRequestId: entry.id,
         basedOnPlanVersion,
       });
-      return;
+      return undefined;
     case 'measurementAdded':
       await api.addMeasurementEndpoint({
         ...entry.payload,
@@ -50,7 +53,7 @@ export async function sendEntry(entry: OutboxEntry): Promise<void> {
         clientRequestId: entry.id,
         basedOnPlanVersion,
       });
-      return;
+      return undefined;
   }
 }
 

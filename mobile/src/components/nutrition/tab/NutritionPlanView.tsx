@@ -29,6 +29,7 @@ import { currentWeekDays, dayPhase, mondayOf } from '@/components/nutrition/tab/
 import { OffPlanGroup } from '@/components/nutrition/tab/OffPlanGroup';
 import { OffPlanSheet } from '@/components/nutrition/tab/OffPlanSheet';
 import { TabMealRow } from '@/components/nutrition/tab/TabMealRow';
+import { SyncNoticeCard } from '@/components/offline/SyncNoticeCard';
 import { Text } from '@/components/Text';
 import { useAddDayMealPhoto } from '@/hooks/useAddDayMealPhoto';
 import { useNutritionDayLog } from '@/hooks/useNutritionDayLog';
@@ -170,6 +171,8 @@ export function NutritionPlanView({ week }: NutritionPlanViewProps) {
 
   return (
     <>
+      <SyncNoticeCard />
+
       <DayStrip
         days={days}
         selected={selected}

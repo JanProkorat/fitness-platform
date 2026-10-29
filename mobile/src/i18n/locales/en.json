@@ -865,7 +865,39 @@
   },
   "offline": {
     "banner": "You're offline",
-    "bannerWithTime": "You're offline. Last updated {{time}}"
+    "detail": ". Changes sync when you're back online.",
+    "detailWithTime": " · showing data from {{time}}. Changes sync when you're back online."
+  },
+  "offlineSync": {
+    "pending": "Not synced yet",
+    "pendingA11y": "not synced yet",
+    "title": "Your offline changes are synced",
+    "titleDropped": "Some offline changes weren't saved",
+    "gotIt": "Got it",
+    "who": "Your coach",
+    "mealFallback": "a meal",
+    "conflict": {
+      "planChanged": { "title": "{{who}} changed {{meal}} on {{date}}", "body": "You marked it eaten while offline. Your entry is saved, and your coach can see it." },
+      "mealRemoved": { "title": "{{who}} removed {{meal}} on {{date}}", "body": "That meal is no longer in your plan, so your entry could not be saved." }
+    },
+    "dropped": {
+      "title": "This entry couldn't be saved",
+      "subjectNamed": "{{name}} from {{date}}",
+      "subject": {
+        "mealEaten": "A meal entry from {{date}}",
+        "mealUnlogged": "A meal entry from {{date}}",
+        "offPlanAdded": "A food entry from {{date}}",
+        "offPlanRemoved": "A food entry from {{date}}",
+        "shoppingTicked": "A shopping list entry from {{date}}",
+        "measurementAdded": "A measurement from {{date}}"
+      },
+      "reason": {
+        "tooOld": "{{subject}} was more than 7 days old when you came back online. Add it again if you still need it.",
+        "notFound": "{{subject}} could not be saved because it is no longer available.",
+        "conflict": "{{subject}} clashed with a change and could not be saved. Add it again if you still need it.",
+        "rejected": "{{subject}} was not accepted and could not be saved. Add it again if you still need it."
+      }
+    }
   },
   "profileError": {
     "title": "Can't load your account",

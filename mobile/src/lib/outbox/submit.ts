@@ -1,5 +1,6 @@
 import { isOfflineFailure } from '@/api/errors';
 import { drainOutbox, isDraining } from '@/lib/outbox/drain';
+import { recordSyncOutcome } from '@/lib/outbox/label';
 import { newClientId } from '@/lib/outbox/id';
 import { currentPlanVersion } from '@/lib/outbox/planVersion';
 import { sendEntry } from '@/lib/outbox/send';
@@ -51,7 +52,8 @@ export function submitWrite(write: OutboxWrite, options: { occurredAt?: string }
       return queue();
     }
     try {
-      await sendEntry(entry);
+      const response = await sendEntry(entry);
+      await recordSyncOutcome(entry, response);
       return 'sent';
     } catch (error: unknown) {
       if (isOfflineFailure(error)) return queue();

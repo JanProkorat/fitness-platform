@@ -4,7 +4,9 @@ import { useTranslation } from 'react-i18next';
 
 import type { TodayOffPlanFoodDto } from '@/api/generated';
 import { formatWhole } from '@/components/nutrition/meal/format';
+import { PendingMark } from '@/components/offline/PendingMark';
 import { Text } from '@/components/Text';
+import { usePendingKeys } from '@/stores/outbox';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
 
@@ -25,6 +27,7 @@ export function OffPlanGroup({ entries = [], removingId, onOpenFood, onRemove, o
   const theme = useTheme();
   const styles = makeStyles(theme);
   const language = i18n.language;
+  const pendingKeys = usePendingKeys();
   const total = entries.reduce((sum, entry) => sum + (entry.kcal ?? 0), 0);
 
   if (entries.length === 0 && !onAdd) return null;
@@ -49,18 +52,24 @@ export function OffPlanGroup({ entries = [], removingId, onOpenFood, onRemove, o
             });
             const entryId = entry.entryId;
             const foodId = entry.foodExternalId;
+            const pending = entryId !== undefined && pendingKeys.offPlanAdded.has(entryId);
             return (
               <View key={entryId ?? `${foodId ?? ''}-${entry.loggedAt ?? ''}`} style={styles.item}>
                 <Pressable
                   accessibilityRole={foodId ? 'link' : undefined}
-                  accessibilityLabel={`${name}, ${amount}`}
+                  accessibilityLabel={
+                    pending ? `${name}, ${amount}, ${t('offlineSync.pendingA11y')}` : `${name}, ${amount}`
+                  }
                   disabled={!foodId}
                   onPress={() => foodId && onOpenFood(foodId)}
                   style={styles.itemMain}
                 >
-                  <Text variant="body" numberOfLines={2} style={styles.itemName}>
-                    {name}
-                  </Text>
+                  <View style={styles.itemName}>
+                    <Text variant="body" numberOfLines={2}>
+                      {name}
+                    </Text>
+                    {pending ? <PendingMark /> : null}
+                  </View>
                   <Text variant="label" color="muted" style={styles.itemAmount}>
                     {amount}
                   </Text>
@@ -138,6 +147,7 @@ const makeStyles = (theme: Theme) =>
     itemName: {
       flex: 1,
       minWidth: 0,
+      gap: theme.spacing.hair,
     },
     itemAmount: {
       flexShrink: 0,

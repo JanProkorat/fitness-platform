@@ -1,5 +1,6 @@
 import { queryClient } from '@/lib/queryClient';
 import { classifyFailure, describeFailure } from '@/lib/outbox/classify';
+import { describeEntry, recordSyncOutcome } from '@/lib/outbox/label';
 import { invalidationKeys, sendEntry } from '@/lib/outbox/send';
 import type { OutboxKind } from '@/lib/outbox/types';
 import { useAuthStore } from '@/stores/auth';
@@ -62,18 +63,19 @@ export async function drainOutbox(): Promise<void> {
       if (!head || Date.now() < nextAttemptAt) break;
 
       if (Date.now() - Date.parse(head.occurredAt) > OUTBOX_MAX_AGE_MS) {
-        await outbox.dropEntry(head, 'tooOld');
+        await outbox.dropEntry(head, 'tooOld', describeEntry(head));
         touched.add(head.kind);
         continue;
       }
 
+      let response: Awaited<ReturnType<typeof sendEntry>>;
       try {
-        await sendEntry(head);
+        response = await sendEntry(head);
       } catch (error: unknown) {
         if (!alive()) break;
         const outcome = classifyFailure(error, head.kind, conflicts.get(head.id) ?? 0);
         if (outcome.type === 'drop') {
-          await outbox.dropEntry(head, outcome.reason);
+          await outbox.dropEntry(head, outcome.reason, describeEntry(head));
           touched.add(head.kind);
           continue;
         }
@@ -90,6 +92,8 @@ export async function drainOutbox(): Promise<void> {
       if (!alive()) break;
       failureStreak = 0;
       conflicts.delete(head.id);
+      // Name the meal now: the refetch that follows can drop a meal the coach removed from the cache.
+      await recordSyncOutcome(head, response);
       await outbox.removeEntry(head.id);
       touched.add(head.kind);
     }

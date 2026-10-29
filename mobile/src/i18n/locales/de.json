@@ -865,7 +865,39 @@
   },
   "offline": {
     "banner": "Sie sind offline",
-    "bannerWithTime": "Sie sind offline. Zuletzt aktualisiert {{time}}"
+    "detail": ". Änderungen werden synchronisiert, sobald Sie wieder online sind.",
+    "detailWithTime": " · angezeigt werden Daten von {{time}}. Änderungen werden synchronisiert, sobald Sie wieder online sind."
+  },
+  "offlineSync": {
+    "pending": "Noch nicht synchronisiert",
+    "pendingA11y": "noch nicht synchronisiert",
+    "title": "Ihre Offline-Änderungen sind synchronisiert",
+    "titleDropped": "Einige Offline-Änderungen wurden nicht gespeichert",
+    "gotIt": "Verstanden",
+    "who": "Ihr Coach",
+    "mealFallback": "eine Mahlzeit",
+    "conflict": {
+      "planChanged": { "title": "{{who}} hat {{meal}} am {{date}} geändert", "body": "Sie haben sie offline als gegessen markiert. Ihr Eintrag ist gespeichert, und Ihr Coach kann ihn sehen." },
+      "mealRemoved": { "title": "{{who}} hat {{meal}} am {{date}} entfernt", "body": "Diese Mahlzeit ist nicht mehr in Ihrem Plan, daher konnte Ihr Eintrag nicht gespeichert werden." }
+    },
+    "dropped": {
+      "title": "Dieser Eintrag konnte nicht gespeichert werden",
+      "subjectNamed": "Der Eintrag „{{name}}“ vom {{date}}",
+      "subject": {
+        "mealEaten": "Der Mahlzeiteneintrag vom {{date}}",
+        "mealUnlogged": "Der Mahlzeiteneintrag vom {{date}}",
+        "offPlanAdded": "Der Lebensmitteleintrag vom {{date}}",
+        "offPlanRemoved": "Der Lebensmitteleintrag vom {{date}}",
+        "shoppingTicked": "Der Einkaufslisteneintrag vom {{date}}",
+        "measurementAdded": "Der Messwerteintrag vom {{date}}"
+      },
+      "reason": {
+        "tooOld": "{{subject}} war älter als 7 Tage, als Sie wieder online waren. Fügen Sie ihn erneut hinzu, falls Sie ihn noch brauchen.",
+        "notFound": "{{subject}} konnte nicht gespeichert werden, weil er nicht mehr verfügbar ist.",
+        "conflict": "{{subject}} kollidierte mit einer Änderung und konnte nicht gespeichert werden. Fügen Sie ihn erneut hinzu, falls Sie ihn noch brauchen.",
+        "rejected": "{{subject}} wurde nicht angenommen und konnte nicht gespeichert werden. Fügen Sie ihn erneut hinzu, falls Sie ihn noch brauchen."
+      }
+    }
   },
   "profileError": {
     "title": "Konto konnte nicht geladen werden",
