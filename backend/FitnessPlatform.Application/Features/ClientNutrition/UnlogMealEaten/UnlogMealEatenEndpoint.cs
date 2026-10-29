@@ -4,6 +4,7 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using Microsoft.EntityFrameworkCore;
@@ -64,7 +65,14 @@ public class UnlogMealEatenEndpoint(IMongoContext mongo, IApplicationDbContext d
         // Uses the same OR pattern as GetTodayLog and SaveMealPhotos to find all log
         // variants: modern records (LogDate == today), photo-only records (EatenAt null,
         // LogDate == today), and legacy records (LogDate = default, EatenAt in today's window).
-        var (today, windowStart, windowEnd) = await db.ResolveClientLocalDayWindowAsync(clientId, timeProvider.GetUtcNow().UtcDateTime, ct);
+        if (await ClientRequestDeduplicator.FindAsync(mongo, clientId, req.ClientRequestId, ct) is not null)
+        {
+            await Send.NoContentAsync(ct);
+            return;
+        }
+
+        var (today, windowStart, windowEnd) = await db.ResolveClientLocalDayWindowAsync(
+            clientId, req.OccurredAt?.UtcDateTime ?? timeProvider.GetUtcNow().UtcDateTime, ct);
 
         var filter = Builders<MealLog>.Filter.And(
             Builders<MealLog>.Filter.Eq(l => l.ClientId, clientId),
@@ -94,6 +102,10 @@ public class UnlogMealEatenEndpoint(IMongoContext mongo, IApplicationDbContext d
                 .Unset(l => l.EatenAt)
                 .Set(l => l.LogDate, today),
             cancellationToken: ct);
+
+        await ClientRequestDeduplicator.RecordAsync(
+            mongo, clientId, req.ClientRequestId, "UnlogMealEaten", req.BasedOnPlanVersion, null,
+            timeProvider.GetUtcNow().UtcDateTime, ct);
 
         if (deleteResult.DeletedCount + keepResult.ModifiedCount > 0)
         {

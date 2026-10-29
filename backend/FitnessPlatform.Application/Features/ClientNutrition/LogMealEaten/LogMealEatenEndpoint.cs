@@ -62,7 +62,16 @@ public class LogMealEatenEndpoint(IMongoContext mongo, IApplicationDbContext db,
         // Resolve the client's local calendar day (#935) — anchors plan-window resolution AND
         // the MealLog.LogDate this endpoint writes below, so a meal logged near local midnight
         // is keyed on the client's local day, not the server's UTC day.
-        var (todayLocalUtc, windowStartUtc, windowEndUtc) = await db.ResolveClientLocalDayWindowAsync(clientId, timeProvider.GetUtcNow().UtcDateTime, ct);
+        if (await ClientRequestDeduplicator.FindAsync(mongo, clientId, req.ClientRequestId, ct) is not null)
+        {
+            await HttpContext.Response.SendAsync(new { Message = "Meal logged successfully." }, 201, cancellation: ct);
+            return;
+        }
+
+        // OccurredAt (offline sync) anchors the local day, plan resolution and EatenAt; without it
+        // the server clock is used.
+        var now = req.OccurredAt?.UtcDateTime ?? timeProvider.GetUtcNow().UtcDateTime;
+        var (todayLocalUtc, windowStartUtc, windowEndUtc) = await db.ResolveClientLocalDayWindowAsync(clientId, now, ct);
 
         // Resolve the Active plan whose date window contains today — a client may hold several
         // sequential, non-overlapping Active plans (#780).
@@ -90,8 +99,6 @@ public class LogMealEatenEndpoint(IMongoContext mongo, IApplicationDbContext db,
             await Send.NotFoundAsync(ct);
             return;
         }
-
-        var now = DateTime.UtcNow;
 
         // Same lookup as SaveMealPhotos: a photo-only row kept by an unmark (or created by a
         // photo save) is revived instead of duplicated, so one meal has one row per day.
@@ -126,7 +133,8 @@ public class LogMealEatenEndpoint(IMongoContext mongo, IApplicationDbContext db,
                 Photos = (req.PhotoBlobUrls ?? [])
                     .Select(url => new MealPhoto { BlobUrl = url, UploadedAt = now })
                     .ToList(),
-                Note = note
+                Note = note,
+                BasedOnPlanVersion = req.BasedOnPlanVersion
             };
 
             await mongo.MealLogs.InsertOneAsync(mealLog, cancellationToken: ct);
@@ -154,9 +162,17 @@ public class LogMealEatenEndpoint(IMongoContext mongo, IApplicationDbContext db,
                 update = update.Set(l => l.Note, note);
             }
 
+            if (req.BasedOnPlanVersion is not null)
+            {
+                update = update.Set(l => l.BasedOnPlanVersion, req.BasedOnPlanVersion);
+            }
+
             await mongo.MealLogs.UpdateOneAsync(
                 Builders<MealLog>.Filter.Eq(l => l.Id, existingLog.Id), update, cancellationToken: ct);
         }
+
+        await ClientRequestDeduplicator.RecordAsync(
+            mongo, clientId, req.ClientRequestId, "LogMealEaten", req.BasedOnPlanVersion, null, timeProvider.GetUtcNow().UtcDateTime, ct);
 
         // The SignalR payload's ClientId is the trainer-facing ClientProfile.PublicId
         // convention (unrelated to the Mongo document clientId key migrated in #840) —

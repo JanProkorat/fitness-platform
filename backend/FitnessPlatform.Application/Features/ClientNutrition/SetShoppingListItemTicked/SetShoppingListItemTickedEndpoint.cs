@@ -50,7 +50,15 @@ internal sealed class SetShoppingListItemTickedEndpoint(IMongoContext mongo, IAp
         }
 
         var clientId = Guid.Parse(userId);
-        var todayUtc = await db.ResolveClientLocalDateUtcAsync(clientId, timeProvider.GetUtcNow().UtcDateTime, ct);
+
+        if (await ClientRequestDeduplicator.FindAsync(mongo, clientId, req.ClientRequestId, ct) is not null)
+        {
+            await Send.NoContentAsync(ct);
+            return;
+        }
+
+        var todayUtc = await db.ResolveClientLocalDateUtcAsync(
+            clientId, req.OccurredAt?.UtcDateTime ?? timeProvider.GetUtcNow().UtcDateTime, ct);
 
         var planFilter = Builders<NutritionPlan>.Filter.And(
             Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, clientId),
@@ -110,6 +118,10 @@ internal sealed class SetShoppingListItemTickedEndpoint(IMongoContext mongo, IAp
         {
             await mongo.ShoppingListTicks.DeleteManyAsync(tickFilter, ct);
         }
+
+        await ClientRequestDeduplicator.RecordAsync(
+            mongo, clientId, req.ClientRequestId, "SetShoppingListItemTicked", req.BasedOnPlanVersion, null,
+            timeProvider.GetUtcNow().UtcDateTime, ct);
 
         await Send.NoContentAsync(ct);
     }

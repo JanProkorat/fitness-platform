@@ -115,4 +115,9 @@ public static class MongoCollections
     /// Shopping-list tick documents — one per (client, plan, week number, food).
     /// </summary>
     public const string ShoppingListTicks = "shoppingListTicks";
+
+    /// <summary>
+    /// Offline-sync dedupe records — one per (client, client request id), expiring after 8 days.
+    /// </summary>
+    public const string ProcessedClientRequests = "processedClientRequests";
 }

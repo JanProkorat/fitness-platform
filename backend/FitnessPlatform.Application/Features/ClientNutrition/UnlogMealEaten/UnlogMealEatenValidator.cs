@@ -1,4 +1,5 @@
 using FastEndpoints;
+using FitnessPlatform.Application.Domain.Extensions;
 using FluentValidation;
 
 namespace FitnessPlatform.Application.Features.ClientNutrition.UnlogMealEaten;
@@ -16,5 +17,7 @@ public class UnlogMealEatenValidator : Validator<UnlogMealEatenRequest>
         RuleFor(x => x.MealId)
             .NotEmpty()
             .WithMessage("MealId is required.");
+
+        this.AddOfflineSyncRules(x => x.OccurredAt, x => x.ClientRequestId);
     }
 }

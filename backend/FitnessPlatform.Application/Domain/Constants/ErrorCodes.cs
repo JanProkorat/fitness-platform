@@ -654,4 +654,11 @@ public static class ErrorCodes
     // ── Client nutrition day log ────────────────────────────────────────
     /// <summary>The day log changed between the read and the write; retry.</summary>
     public const string DayLogVersionConflict = "DAY_LOG_VERSION_CONFLICT";
+
+    // ── Offline sync ────────────────────────────────────────────────────
+    /// <summary>The client-reported occurrence time is more than 5 minutes ahead of the server.</summary>
+    public const string OccurredAtInFuture = "OCCURRED_AT_IN_FUTURE";
+
+    /// <summary>The client-reported occurrence time is older than the 7-day offline window.</summary>
+    public const string OccurredAtTooOld = "OCCURRED_AT_TOO_OLD";
 }

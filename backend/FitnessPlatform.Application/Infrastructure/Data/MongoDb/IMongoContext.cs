@@ -125,4 +125,9 @@ public interface IMongoContext
     /// Ticked shopping-list items — one document per (client, plan, week number, food).
     /// </summary>
     IMongoCollection<ShoppingListTick> ShoppingListTicks { get; }
+
+    /// <summary>
+    /// Offline-sync dedupe records — one per (client, client request id).
+    /// </summary>
+    IMongoCollection<ProcessedClientRequest> ProcessedClientRequests { get; }
 }

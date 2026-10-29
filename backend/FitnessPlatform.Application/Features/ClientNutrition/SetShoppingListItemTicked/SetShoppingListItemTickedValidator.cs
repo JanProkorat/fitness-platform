@@ -1,4 +1,5 @@
 using FastEndpoints;
+using FitnessPlatform.Application.Domain.Extensions;
 using FluentValidation;
 
 namespace FitnessPlatform.Application.Features.ClientNutrition.SetShoppingListItemTicked;
@@ -18,5 +19,7 @@ public class SetShoppingListItemTickedValidator : Validator<SetShoppingListItemT
 
         RuleFor(x => x.FoodExternalId)
             .NotEmpty();
+
+        this.AddOfflineSyncRules(x => x.OccurredAt, x => x.ClientRequestId);
     }
 }

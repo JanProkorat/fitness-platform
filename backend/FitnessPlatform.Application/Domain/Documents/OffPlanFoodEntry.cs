@@ -52,4 +52,12 @@ public class OffPlanFoodEntry
     /// <summary>UTC time the entry was added.</summary>
     [BsonElement("loggedAt")]
     public DateTime LoggedAt { get; set; } = DateTime.UtcNow;
+
+    /// <summary>
+    /// The <c>NutritionPlan.Version</c> the client saw when it queued this entry offline.
+    /// Null when the client did not send one.
+    /// </summary>
+    [BsonElement("basedOnPlanVersion")]
+    [BsonIgnoreIfNull]
+    public int? BasedOnPlanVersion { get; set; }
 }

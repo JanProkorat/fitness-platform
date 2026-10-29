@@ -63,6 +63,7 @@ public class MongoIndexInitializer : IHostedService
         await CreateFoodTagIndexes(cancellationToken);
         await CreateRecipeTagIndexes(cancellationToken);
         await CreateShoppingListTickIndexes(cancellationToken);
+        await CreateProcessedClientRequestIndexes(cancellationToken);
 
         _logger.LogInformation("MongoDB indexes created successfully");
     }
@@ -553,5 +554,28 @@ public class MongoIndexInitializer : IHostedService
             new CreateIndexOptions { Name = "idx_shoppinglisttick_clientId_planId_weekNumber_foodExternalId", Unique = true });
 
         await _mongo.ShoppingListTicks.Indexes.CreateOneAsync(uniqueTickIndex, cancellationToken: ct);
+    }
+
+    /// <summary>
+    /// Creates the ProcessedClientRequest unique index on (ClientId, ClientRequestId) and an
+    /// 8-day expiry index on CreatedAt, one day longer than the 7-day offline window.
+    /// </summary>
+    private async Task CreateProcessedClientRequestIndexes(CancellationToken ct)
+    {
+        var uniqueIndex = new CreateIndexModel<ProcessedClientRequest>(
+            Builders<ProcessedClientRequest>.IndexKeys
+                .Ascending(r => r.ClientId)
+                .Ascending(r => r.ClientRequestId),
+            new CreateIndexOptions { Name = "idx_processedclientrequest_clientId_clientRequestId", Unique = true });
+
+        var ttlIndex = new CreateIndexModel<ProcessedClientRequest>(
+            Builders<ProcessedClientRequest>.IndexKeys.Ascending(r => r.CreatedAt),
+            new CreateIndexOptions
+            {
+                Name = "idx_processedclientrequest_createdAt_ttl",
+                ExpireAfter = TimeSpan.FromDays(8)
+            });
+
+        await _mongo.ProcessedClientRequests.Indexes.CreateManyAsync([uniqueIndex, ttlIndex], ct);
     }
 }
