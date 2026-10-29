@@ -1,35 +1,5 @@
 [
  {
-  "html": "concepts/01-01-main.html",
-  "png": "concepts/01-01-main.png",
-  "w": 560,
-  "h": 900
- },
- {
-  "html": "concepts/01-02-web-c.html",
-  "png": "concepts/01-02-web-c.png",
-  "w": 1440,
-  "h": 900
- },
- {
-  "html": "concepts/01-03-today-c.html",
-  "png": "concepts/01-03-today-c.png",
-  "w": 390,
-  "h": 844
- },
- {
-  "html": "concepts/01-04-workout-c.html",
-  "png": "concepts/01-04-workout-c.png",
-  "w": 390,
-  "h": 844
- },
- {
-  "html": "concepts/01-05-nutrition-c.html",
-  "png": "concepts/01-05-nutrition-c.png",
-  "w": 390,
-  "h": 844
- },
- {
   "html": "web/01-01-page-home-c.html",
   "png": "web/01-01-page-home-c.png",
   "w": 1440,
@@ -60,44 +30,32 @@
   "h": 1000
  },
  {
-  "html": "web/03-02-page-register-check-email-c.html",
-  "png": "web/03-02-page-register-check-email-c.png",
-  "w": 1440,
-  "h": 900
+  "html": "web/03-02-page-register-email-steps-c.html",
+  "png": "web/03-02-page-register-email-steps-c.png",
+  "w": 4440,
+  "h": 928
  },
  {
-  "html": "web/03-03-page-register-change-email-c.html",
-  "png": "web/03-03-page-register-change-email-c.png",
-  "w": 1440,
-  "h": 900
- },
- {
-  "html": "web/03-04-page-register-verified-c.html",
-  "png": "web/03-04-page-register-verified-c.png",
-  "w": 1440,
-  "h": 900
- },
- {
-  "html": "web/03-05-page-register-plan-c.html",
-  "png": "web/03-05-page-register-plan-c.png",
+  "html": "web/03-03-page-register-plan-c.html",
+  "png": "web/03-03-page-register-plan-c.png",
   "w": 1440,
   "h": 1000
  },
  {
-  "html": "web/03-06-page-register-client-c.html",
-  "png": "web/03-06-page-register-client-c.png",
+  "html": "web/03-04-page-register-client-c.html",
+  "png": "web/03-04-page-register-client-c.png",
   "w": 1440,
   "h": 1060
  },
  {
-  "html": "web/03-07-page-register-client-check-email-c.html",
-  "png": "web/03-07-page-register-client-check-email-c.png",
+  "html": "web/03-05-page-register-client-check-email-c.html",
+  "png": "web/03-05-page-register-client-check-email-c.png",
   "w": 1440,
   "h": 900
  },
  {
-  "html": "web/03-08-page-register-get-app-c.html",
-  "png": "web/03-08-page-register-get-app-c.png",
+  "html": "web/03-06-page-register-get-app-c.html",
+  "png": "web/03-06-page-register-get-app-c.png",
   "w": 1440,
   "h": 900
  },
@@ -108,44 +66,32 @@
   "h": 1000
  },
  {
-  "html": "web/04-02-page-register-check-email-d.html",
-  "png": "web/04-02-page-register-check-email-d.png",
-  "w": 1440,
-  "h": 900
+  "html": "web/04-02-page-register-email-steps-d.html",
+  "png": "web/04-02-page-register-email-steps-d.png",
+  "w": 4440,
+  "h": 928
  },
  {
-  "html": "web/04-03-page-register-change-email-d.html",
-  "png": "web/04-03-page-register-change-email-d.png",
-  "w": 1440,
-  "h": 900
- },
- {
-  "html": "web/04-04-page-register-verified-d.html",
-  "png": "web/04-04-page-register-verified-d.png",
-  "w": 1440,
-  "h": 900
- },
- {
-  "html": "web/04-05-page-register-plan-d.html",
-  "png": "web/04-05-page-register-plan-d.png",
+  "html": "web/04-03-page-register-plan-d.html",
+  "png": "web/04-03-page-register-plan-d.png",
   "w": 1440,
   "h": 1000
  },
  {
-  "html": "web/04-06-page-register-client-d.html",
-  "png": "web/04-06-page-register-client-d.png",
+  "html": "web/04-04-page-register-client-d.html",
+  "png": "web/04-04-page-register-client-d.png",
   "w": 1440,
   "h": 1060
  },
  {
-  "html": "web/04-07-page-register-client-check-email-d.html",
-  "png": "web/04-07-page-register-client-check-email-d.png",
+  "html": "web/04-05-page-register-client-check-email-d.html",
+  "png": "web/04-05-page-register-client-check-email-d.png",
   "w": 1440,
   "h": 900
  },
  {
-  "html": "web/04-08-page-register-get-app-d.html",
-  "png": "web/04-08-page-register-get-app-d.png",
+  "html": "web/04-06-page-register-get-app-d.html",
+  "png": "web/04-06-page-register-get-app-d.png",
   "w": 1440,
   "h": 900
  },
@@ -462,28 +408,10 @@
   "h": 900
  },
  {
-  "html": "web/09-03-page-recipe-drawer-c.html",
-  "png": "web/09-03-page-recipe-drawer-c.png",
-  "w": 1440,
-  "h": 900
- },
- {
-  "html": "web/09-04-page-recipe-drawer-ingredients-c.html",
-  "png": "web/09-04-page-recipe-drawer-ingredients-c.png",
-  "w": 1440,
-  "h": 900
- },
- {
-  "html": "web/09-05-page-recipe-drawer-preparation-c.html",
-  "png": "web/09-05-page-recipe-drawer-preparation-c.png",
-  "w": 1440,
-  "h": 900
- },
- {
-  "html": "web/09-06-page-recipe-drawer-pictures-c.html",
-  "png": "web/09-06-page-recipe-drawer-pictures-c.png",
-  "w": 1440,
-  "h": 900
+  "html": "web/09-03-page-recipe-drawer-tabs-c.html",
+  "png": "web/09-03-page-recipe-drawer-tabs-c.png",
+  "w": 5940,
+  "h": 928
  },
  {
   "html": "web/10-01-page-recipes-d.html",
@@ -498,28 +426,10 @@
   "h": 900
  },
  {
-  "html": "web/10-03-page-recipe-drawer-d.html",
-  "png": "web/10-03-page-recipe-drawer-d.png",
-  "w": 1440,
-  "h": 900
- },
- {
-  "html": "web/10-04-page-recipe-drawer-ingredients-d.html",
-  "png": "web/10-04-page-recipe-drawer-ingredients-d.png",
-  "w": 1440,
-  "h": 900
- },
- {
-  "html": "web/10-05-page-recipe-drawer-preparation-d.html",
-  "png": "web/10-05-page-recipe-drawer-preparation-d.png",
-  "w": 1440,
-  "h": 900
- },
- {
-  "html": "web/10-06-page-recipe-drawer-pictures-d.html",
-  "png": "web/10-06-page-recipe-drawer-pictures-d.png",
-  "w": 1440,
-  "h": 900
+  "html": "web/10-03-page-recipe-drawer-tabs-d.html",
+  "png": "web/10-03-page-recipe-drawer-tabs-d.png",
+  "w": 5940,
+  "h": 928
  },
  {
   "html": "web/11-01-page-ingredients-c.html",
@@ -612,20 +522,14 @@
   "h": 900
  },
  {
-  "html": "web/13-12-page-template-library-filters-recipes-c.html",
-  "png": "web/13-12-page-template-library-filters-recipes-c.png",
-  "w": 1440,
-  "h": 900
+  "html": "web/13-12-page-template-library-filters-c.html",
+  "png": "web/13-12-page-template-library-filters-c.png",
+  "w": 2940,
+  "h": 928
  },
  {
-  "html": "web/13-13-page-template-library-filters-ingredients-c.html",
-  "png": "web/13-13-page-template-library-filters-ingredients-c.png",
-  "w": 1440,
-  "h": 900
- },
- {
-  "html": "web/13-14-page-template-row-remove-c.html",
-  "png": "web/13-14-page-template-row-remove-c.png",
+  "html": "web/13-13-page-template-row-remove-c.html",
+  "png": "web/13-13-page-template-row-remove-c.png",
   "w": 1440,
   "h": 900
  },
@@ -696,20 +600,14 @@
   "h": 900
  },
  {
-  "html": "web/14-12-page-template-library-filters-recipes-d.html",
-  "png": "web/14-12-page-template-library-filters-recipes-d.png",
-  "w": 1440,
-  "h": 900
+  "html": "web/14-12-page-template-library-filters-d.html",
+  "png": "web/14-12-page-template-library-filters-d.png",
+  "w": 2940,
+  "h": 928
  },
  {
-  "html": "web/14-13-page-template-library-filters-ingredients-d.html",
-  "png": "web/14-13-page-template-library-filters-ingredients-d.png",
-  "w": 1440,
-  "h": 900
- },
- {
-  "html": "web/14-14-page-template-row-remove-d.html",
-  "png": "web/14-14-page-template-row-remove-d.png",
+  "html": "web/14-13-page-template-row-remove-d.html",
+  "png": "web/14-13-page-template-row-remove-d.png",
   "w": 1440,
   "h": 900
  },
@@ -774,34 +672,10 @@
   "h": 600
  },
  {
-  "html": "web/19-03-page-settings-roles-one-c.html",
-  "png": "web/19-03-page-settings-roles-one-c.png",
-  "w": 860,
-  "h": 600
- },
- {
-  "html": "web/19-04-page-settings-disable-c.html",
-  "png": "web/19-04-page-settings-disable-c.png",
-  "w": 860,
-  "h": 800
- },
- {
-  "html": "web/19-05-page-settings-remove-trainer-c.html",
-  "png": "web/19-05-page-settings-remove-trainer-c.png",
-  "w": 860,
-  "h": 800
- },
- {
-  "html": "web/19-06-page-settings-remove-nutrition-c.html",
-  "png": "web/19-06-page-settings-remove-nutrition-c.png",
-  "w": 860,
-  "h": 800
- },
- {
-  "html": "web/19-07-page-settings-password-c.html",
-  "png": "web/19-07-page-settings-password-c.png",
-  "w": 860,
-  "h": 800
+  "html": "web/19-03-page-dialogs-c.html",
+  "png": "web/19-03-page-dialogs-c.png",
+  "w": 7300,
+  "h": 828
  },
  {
   "html": "web/20-01-page-settings-d.html",
@@ -816,130 +690,34 @@
   "h": 600
  },
  {
-  "html": "web/20-03-page-settings-roles-one-d.html",
-  "png": "web/20-03-page-settings-roles-one-d.png",
-  "w": 860,
-  "h": 600
+  "html": "web/20-03-page-dialogs-d.html",
+  "png": "web/20-03-page-dialogs-d.png",
+  "w": 7300,
+  "h": 828
  },
  {
-  "html": "web/20-04-page-settings-disable-d.html",
-  "png": "web/20-04-page-settings-disable-d.png",
-  "w": 860,
-  "h": 800
+  "html": "web/21-01-page-reset-password-flow-c.html",
+  "png": "web/21-01-page-reset-password-flow-c.png",
+  "w": 7440,
+  "h": 928
  },
  {
-  "html": "web/20-05-page-settings-remove-trainer-d.html",
-  "png": "web/20-05-page-settings-remove-trainer-d.png",
-  "w": 860,
-  "h": 800
+  "html": "web/22-01-page-reset-password-flow-d.html",
+  "png": "web/22-01-page-reset-password-flow-d.png",
+  "w": 7440,
+  "h": 928
  },
  {
-  "html": "web/20-06-page-settings-remove-nutrition-d.html",
-  "png": "web/20-06-page-settings-remove-nutrition-d.png",
-  "w": 860,
-  "h": 800
+  "html": "web/23-01-page-email-off-c.html",
+  "png": "web/23-01-page-email-off-c.png",
+  "w": 4440,
+  "h": 928
  },
  {
-  "html": "web/20-07-page-settings-password-d.html",
-  "png": "web/20-07-page-settings-password-d.png",
-  "w": 860,
-  "h": 800
- },
- {
-  "html": "web/21-01-page-reset-request-c.html",
-  "png": "web/21-01-page-reset-request-c.png",
-  "w": 1440,
-  "h": 900
- },
- {
-  "html": "web/21-02-page-reset-check-email-c.html",
-  "png": "web/21-02-page-reset-check-email-c.png",
-  "w": 1440,
-  "h": 900
- },
- {
-  "html": "web/21-03-page-reset-new-password-c.html",
-  "png": "web/21-03-page-reset-new-password-c.png",
-  "w": 1440,
-  "h": 900
- },
- {
-  "html": "web/21-04-page-reset-done-c.html",
-  "png": "web/21-04-page-reset-done-c.png",
-  "w": 1440,
-  "h": 900
- },
- {
-  "html": "web/21-05-page-reset-expired-c.html",
-  "png": "web/21-05-page-reset-expired-c.png",
-  "w": 1440,
-  "h": 900
- },
- {
-  "html": "web/22-01-page-reset-request-d.html",
-  "png": "web/22-01-page-reset-request-d.png",
-  "w": 1440,
-  "h": 900
- },
- {
-  "html": "web/22-02-page-reset-check-email-d.html",
-  "png": "web/22-02-page-reset-check-email-d.png",
-  "w": 1440,
-  "h": 900
- },
- {
-  "html": "web/22-03-page-reset-new-password-d.html",
-  "png": "web/22-03-page-reset-new-password-d.png",
-  "w": 1440,
-  "h": 900
- },
- {
-  "html": "web/22-04-page-reset-done-d.html",
-  "png": "web/22-04-page-reset-done-d.png",
-  "w": 1440,
-  "h": 900
- },
- {
-  "html": "web/22-05-page-reset-expired-d.html",
-  "png": "web/22-05-page-reset-expired-d.png",
-  "w": 1440,
-  "h": 900
- },
- {
-  "html": "web/23-01-page-email-off-off-c.html",
-  "png": "web/23-01-page-email-off-off-c.png",
-  "w": 1440,
-  "h": 900
- },
- {
-  "html": "web/23-02-page-email-off-on-c.html",
-  "png": "web/23-02-page-email-off-on-c.png",
-  "w": 1440,
-  "h": 900
- },
- {
-  "html": "web/23-03-page-email-off-invalid-c.html",
-  "png": "web/23-03-page-email-off-invalid-c.png",
-  "w": 1440,
-  "h": 900
- },
- {
-  "html": "web/24-01-page-email-off-off-d.html",
-  "png": "web/24-01-page-email-off-off-d.png",
-  "w": 1440,
-  "h": 900
- },
- {
-  "html": "web/24-02-page-email-off-on-d.html",
-  "png": "web/24-02-page-email-off-on-d.png",
-  "w": 1440,
-  "h": 900
- },
- {
-  "html": "web/24-03-page-email-off-invalid-d.html",
-  "png": "web/24-03-page-email-off-invalid-d.png",
-  "w": 1440,
-  "h": 900
+  "html": "web/24-01-page-email-off-d.html",
+  "png": "web/24-01-page-email-off-d.png",
+  "w": 4440,
+  "h": 928
  },
  {
   "html": "web/25-01-page-packages-c.html",
@@ -1068,22 +846,10 @@
   "h": 1000
  },
  {
-  "html": "web/31-02-page-settings-bank-c.html",
-  "png": "web/31-02-page-settings-bank-c.png",
-  "w": 860,
-  "h": 800
- },
- {
   "html": "web/32-01-page-settings-payments-d.html",
   "png": "web/32-01-page-settings-payments-d.png",
   "w": 1440,
   "h": 1000
- },
- {
-  "html": "web/32-02-page-settings-bank-d.html",
-  "png": "web/32-02-page-settings-bank-d.png",
-  "w": 860,
-  "h": 800
  },
  {
   "html": "web/33-01-page-plan-picker-c.html",
@@ -1104,12 +870,6 @@
   "h": 1240
  },
  {
-  "html": "web/33-04-page-settings-add-role-c.html",
-  "png": "web/33-04-page-settings-add-role-c.png",
-  "w": 860,
-  "h": 800
- },
- {
   "html": "web/34-01-page-plan-picker-d.html",
   "png": "web/34-01-page-plan-picker-d.png",
   "w": 1440,
@@ -1128,26 +888,14 @@
   "h": 1240
  },
  {
-  "html": "web/34-04-page-settings-add-role-d.html",
-  "png": "web/34-04-page-settings-add-role-d.png",
-  "w": 860,
-  "h": 800
- },
- {
   "html": "web/35-01-page-paywall-feature-c.html",
   "png": "web/35-01-page-paywall-feature-c.png",
   "w": 1440,
   "h": 1000
  },
  {
-  "html": "web/35-02-page-paywall-client-cap-c.html",
-  "png": "web/35-02-page-paywall-client-cap-c.png",
-  "w": 860,
-  "h": 800
- },
- {
-  "html": "web/35-03-page-lapse-keep-clients-c.html",
-  "png": "web/35-03-page-lapse-keep-clients-c.png",
+  "html": "web/35-02-page-lapse-keep-clients-c.html",
+  "png": "web/35-02-page-lapse-keep-clients-c.png",
   "w": 1440,
   "h": 1000
  },
@@ -1158,14 +906,8 @@
   "h": 1000
  },
  {
-  "html": "web/36-02-page-paywall-client-cap-d.html",
-  "png": "web/36-02-page-paywall-client-cap-d.png",
-  "w": 860,
-  "h": 800
- },
- {
-  "html": "web/36-03-page-lapse-keep-clients-d.html",
-  "png": "web/36-03-page-lapse-keep-clients-d.png",
+  "html": "web/36-02-page-lapse-keep-clients-d.html",
+  "png": "web/36-02-page-lapse-keep-clients-d.png",
   "w": 1440,
   "h": 1000
  },
@@ -1242,6 +984,54 @@
   "h": 1240
  },
  {
+  "html": "web/39-01-page-client-activity-offline-sync-c.html",
+  "png": "web/39-01-page-client-activity-offline-sync-c.png",
+  "w": 640,
+  "h": 520
+ },
+ {
+  "html": "web/39-02-page-notifications-offline-sync-c.html",
+  "png": "web/39-02-page-notifications-offline-sync-c.png",
+  "w": 860,
+  "h": 600
+ },
+ {
+  "html": "web/40-01-page-client-activity-offline-sync-d.html",
+  "png": "web/40-01-page-client-activity-offline-sync-d.png",
+  "w": 640,
+  "h": 520
+ },
+ {
+  "html": "web/40-02-page-notifications-offline-sync-d.html",
+  "png": "web/40-02-page-notifications-offline-sync-d.png",
+  "w": 860,
+  "h": 600
+ },
+ {
+  "html": "web/41-01-page-client-plan-editor-offline-sync-c.html",
+  "png": "web/41-01-page-client-plan-editor-offline-sync-c.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/41-02-page-client-plan-day-offline-sync-c.html",
+  "png": "web/41-02-page-client-plan-day-offline-sync-c.png",
+  "w": 1440,
+  "h": 1200
+ },
+ {
+  "html": "web/42-01-page-client-plan-editor-offline-sync-d.html",
+  "png": "web/42-01-page-client-plan-editor-offline-sync-d.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/42-02-page-client-plan-day-offline-sync-d.html",
+  "png": "web/42-02-page-client-plan-day-offline-sync-d.png",
+  "w": 1440,
+  "h": 1200
+ },
+ {
   "html": "mobile-light/01-01-launch-quiet.html",
   "png": "mobile-light/01-01-launch-quiet.png",
   "w": 390,
@@ -1260,104 +1050,86 @@
   "h": 844
  },
  {
-  "html": "mobile-light/01-04-register-check-email.html",
-  "png": "mobile-light/01-04-register-check-email.png",
+  "html": "mobile-light/01-04-register-email-steps.html",
+  "png": "mobile-light/01-04-register-email-steps.png",
+  "w": 1290,
+  "h": 872
+ },
+ {
+  "html": "mobile-light/01-05-onboarding-goal.html",
+  "png": "mobile-light/01-05-onboarding-goal.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "mobile-light/01-05-register-change-email.html",
-  "png": "mobile-light/01-05-register-change-email.png",
+  "html": "mobile-light/01-06-onboarding-basics.html",
+  "png": "mobile-light/01-06-onboarding-basics.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "mobile-light/01-06-register-verified.html",
-  "png": "mobile-light/01-06-register-verified.png",
+  "html": "mobile-light/01-07-onboarding-lifestyle.html",
+  "png": "mobile-light/01-07-onboarding-lifestyle.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "mobile-light/01-07-onboarding-goal.html",
-  "png": "mobile-light/01-07-onboarding-goal.png",
+  "html": "mobile-light/01-08-onboarding-training.html",
+  "png": "mobile-light/01-08-onboarding-training.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "mobile-light/01-08-onboarding-basics.html",
-  "png": "mobile-light/01-08-onboarding-basics.png",
+  "html": "mobile-light/01-09-onboarding-eating.html",
+  "png": "mobile-light/01-09-onboarding-eating.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "mobile-light/01-09-onboarding-lifestyle.html",
-  "png": "mobile-light/01-09-onboarding-lifestyle.png",
+  "html": "mobile-light/01-10-onboarding-eating-sheet.html",
+  "png": "mobile-light/01-10-onboarding-eating-sheet.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "mobile-light/01-10-onboarding-training.html",
-  "png": "mobile-light/01-10-onboarding-training.png",
+  "html": "mobile-light/01-11-onboarding-motivation.html",
+  "png": "mobile-light/01-11-onboarding-motivation.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "mobile-light/01-11-onboarding-eating.html",
-  "png": "mobile-light/01-11-onboarding-eating.png",
+  "html": "mobile-light/01-12-today-no-coach.html",
+  "png": "mobile-light/01-12-today-no-coach.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "mobile-light/01-12-onboarding-eating-sheet.html",
-  "png": "mobile-light/01-12-onboarding-eating-sheet.png",
+  "html": "mobile-light/01-13-coach-search.html",
+  "png": "mobile-light/01-13-coach-search.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "mobile-light/01-13-onboarding-motivation.html",
-  "png": "mobile-light/01-13-onboarding-motivation.png",
+  "html": "mobile-light/01-14-coach-profile.html",
+  "png": "mobile-light/01-14-coach-profile.png",
+  "w": 840,
+  "h": 872
+ },
+ {
+  "html": "mobile-light/01-15-request-sheet.html",
+  "png": "mobile-light/01-15-request-sheet.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "mobile-light/01-14-today-no-coach.html",
-  "png": "mobile-light/01-14-today-no-coach.png",
+  "html": "mobile-light/01-16-notifications-invite.html",
+  "png": "mobile-light/01-16-notifications-invite.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "mobile-light/01-15-coach-search.html",
-  "png": "mobile-light/01-15-coach-search.png",
-  "w": 390,
-  "h": 844
- },
- {
-  "html": "mobile-light/01-16-coach-profile.html",
-  "png": "mobile-light/01-16-coach-profile.png",
-  "w": 390,
-  "h": 844
- },
- {
-  "html": "mobile-light/01-17-request-sheet.html",
-  "png": "mobile-light/01-17-request-sheet.png",
-  "w": 390,
-  "h": 844
- },
- {
-  "html": "mobile-light/01-18-notifications-invite.html",
-  "png": "mobile-light/01-18-notifications-invite.png",
-  "w": 390,
-  "h": 844
- },
- {
-  "html": "mobile-light/01-19-invite-detail.html",
-  "png": "mobile-light/01-19-invite-detail.png",
-  "w": 390,
-  "h": 844
- },
- {
-  "html": "mobile-light/01-20-coach-profile-more.html",
-  "png": "mobile-light/01-20-coach-profile-more.png",
+  "html": "mobile-light/01-17-invite-detail.html",
+  "png": "mobile-light/01-17-invite-detail.png",
   "w": 390,
   "h": 844
  },
@@ -1386,20 +1158,14 @@
   "h": 844
  },
  {
-  "html": "mobile-light/02-05-training-empty.html",
-  "png": "mobile-light/02-05-training-empty.png",
+  "html": "mobile-light/02-05-session-detail.html",
+  "png": "mobile-light/02-05-session-detail.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "mobile-light/02-06-session-detail.html",
-  "png": "mobile-light/02-06-session-detail.png",
-  "w": 390,
-  "h": 844
- },
- {
-  "html": "mobile-light/02-07-workout.html",
-  "png": "mobile-light/02-07-workout.png",
+  "html": "mobile-light/02-06-workout.html",
+  "png": "mobile-light/02-06-workout.png",
   "w": 390,
   "h": 844
  },
@@ -1464,10 +1230,10 @@
   "h": 844
  },
  {
-  "html": "mobile-light/05-02-nutrition-empty.html",
-  "png": "mobile-light/05-02-nutrition-empty.png",
-  "w": 390,
-  "h": 844
+  "html": "mobile-light/05-02-empty-states.html",
+  "png": "mobile-light/05-02-empty-states.png",
+  "w": 2190,
+  "h": 872
  },
  {
   "html": "mobile-light/05-03-meal-detail.html",
@@ -1482,40 +1248,16 @@
   "h": 844
  },
  {
-  "html": "mobile-light/05-05-nutrition-waiting.html",
-  "png": "mobile-light/05-05-nutrition-waiting.png",
+  "html": "mobile-light/05-05-nutrition-off-plan.html",
+  "png": "mobile-light/05-05-nutrition-off-plan.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "mobile-light/05-06-nutrition-off-plan.html",
-  "png": "mobile-light/05-06-nutrition-off-plan.png",
-  "w": 390,
-  "h": 844
- },
- {
-  "html": "mobile-light/05-07-nutrition-off-plan-search.html",
-  "png": "mobile-light/05-07-nutrition-off-plan-search.png",
-  "w": 390,
-  "h": 844
- },
- {
-  "html": "mobile-light/05-08-nutrition-off-plan-amount.html",
-  "png": "mobile-light/05-08-nutrition-off-plan-amount.png",
-  "w": 390,
-  "h": 844
- },
- {
-  "html": "mobile-light/05-09-nutrition-upcoming.html",
-  "png": "mobile-light/05-09-nutrition-upcoming.png",
-  "w": 390,
-  "h": 844
- },
- {
-  "html": "mobile-light/05-10-training-upcoming.html",
-  "png": "mobile-light/05-10-training-upcoming.png",
-  "w": 390,
-  "h": 844
+  "html": "mobile-light/05-06-nutrition-add-food.html",
+  "png": "mobile-light/05-06-nutrition-add-food.png",
+  "w": 840,
+  "h": 872
  },
  {
   "html": "mobile-light/06-01-messages-list.html",
@@ -1610,14 +1352,8 @@
  {
   "html": "mobile-light/07-11-edit-profile-info.html",
   "png": "mobile-light/07-11-edit-profile-info.png",
-  "w": 390,
-  "h": 844
- },
- {
-  "html": "mobile-light/07-12-edit-profile-info2.html",
-  "png": "mobile-light/07-12-edit-profile-info2.png",
-  "w": 390,
-  "h": 844
+  "w": 840,
+  "h": 872
  },
  {
   "html": "mobile-light/08-01-training-plan.html",
@@ -1758,44 +1494,14 @@
   "h": 844
  },
  {
-  "html": "mobile-light/13-06-today-plan-upcoming.html",
-  "png": "mobile-light/13-06-today-plan-upcoming.png",
-  "w": 390,
-  "h": 844
+  "html": "mobile-light/13-06-today-upcoming-variants.html",
+  "png": "mobile-light/13-06-today-upcoming-variants.png",
+  "w": 2640,
+  "h": 872
  },
  {
-  "html": "mobile-light/13-07-today-upcoming-trainer-building.html",
-  "png": "mobile-light/13-07-today-upcoming-trainer-building.png",
-  "w": 390,
-  "h": 844
- },
- {
-  "html": "mobile-light/13-08-today-upcoming-both.html",
-  "png": "mobile-light/13-08-today-upcoming-both.png",
-  "w": 390,
-  "h": 844
- },
- {
-  "html": "mobile-light/13-09-today-nutrition-upcoming-training-active.html",
-  "png": "mobile-light/13-09-today-nutrition-upcoming-training-active.png",
-  "w": 390,
-  "h": 844
- },
- {
-  "html": "mobile-light/13-10-today-training-upcoming-nutrition-active.html",
-  "png": "mobile-light/13-10-today-training-upcoming-nutrition-active.png",
-  "w": 390,
-  "h": 844
- },
- {
-  "html": "mobile-light/13-11-today-training-upcoming.html",
-  "png": "mobile-light/13-11-today-training-upcoming.png",
-  "w": 390,
-  "h": 844
- },
- {
-  "html": "mobile-light/13-12-today-blocks.html",
-  "png": "mobile-light/13-12-today-blocks.png",
+  "html": "mobile-light/13-07-today-blocks.html",
+  "png": "mobile-light/13-07-today-blocks.png",
   "w": 1744,
   "h": 1120
  },
@@ -1804,6 +1510,78 @@
   "png": "mobile-light/14-01-nutrition-plan-week-more.png",
   "w": 390,
   "h": 1020
+ },
+ {
+  "html": "mobile-light/15-01-offline-nutrition.html",
+  "png": "mobile-light/15-01-offline-nutrition.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/15-02-offline-synced.html",
+  "png": "mobile-light/15-02-offline-synced.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/15-03-offline-shopping.html",
+  "png": "mobile-light/15-03-offline-shopping.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/15-04-offline-measurements.html",
+  "png": "mobile-light/15-04-offline-measurements.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/16-01-today-questionnaire-banner.html",
+  "png": "mobile-light/16-01-today-questionnaire-banner.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/16-02-today-no-plan-questionnaire.html",
+  "png": "mobile-light/16-02-today-no-plan-questionnaire.png",
+  "w": 390,
+  "h": 960
+ },
+ {
+  "html": "mobile-light/16-03-questionnaire-intro.html",
+  "png": "mobile-light/16-03-questionnaire-intro.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/16-04-questionnaire-step1.html",
+  "png": "mobile-light/16-04-questionnaire-step1.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/16-05-questionnaire-step2.html",
+  "png": "mobile-light/16-05-questionnaire-step2.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/16-06-questionnaire-step3.html",
+  "png": "mobile-light/16-06-questionnaire-step3.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/16-07-questionnaire-review.html",
+  "png": "mobile-light/16-07-questionnaire-review.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/16-08-questionnaire-sent.html",
+  "png": "mobile-light/16-08-questionnaire-sent.png",
+  "w": 390,
+  "h": 844
  },
  {
   "html": "mobile-dark/01-01-launch-quiet.html",
@@ -1824,104 +1602,86 @@
   "h": 844
  },
  {
-  "html": "mobile-dark/01-04-register-check-email.html",
-  "png": "mobile-dark/01-04-register-check-email.png",
+  "html": "mobile-dark/01-04-register-email-steps.html",
+  "png": "mobile-dark/01-04-register-email-steps.png",
+  "w": 1290,
+  "h": 872
+ },
+ {
+  "html": "mobile-dark/01-05-onboarding-goal.html",
+  "png": "mobile-dark/01-05-onboarding-goal.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "mobile-dark/01-05-register-change-email.html",
-  "png": "mobile-dark/01-05-register-change-email.png",
+  "html": "mobile-dark/01-06-onboarding-basics.html",
+  "png": "mobile-dark/01-06-onboarding-basics.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "mobile-dark/01-06-register-verified.html",
-  "png": "mobile-dark/01-06-register-verified.png",
+  "html": "mobile-dark/01-07-onboarding-lifestyle.html",
+  "png": "mobile-dark/01-07-onboarding-lifestyle.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "mobile-dark/01-07-onboarding-goal.html",
-  "png": "mobile-dark/01-07-onboarding-goal.png",
+  "html": "mobile-dark/01-08-onboarding-training.html",
+  "png": "mobile-dark/01-08-onboarding-training.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "mobile-dark/01-08-onboarding-basics.html",
-  "png": "mobile-dark/01-08-onboarding-basics.png",
+  "html": "mobile-dark/01-09-onboarding-eating.html",
+  "png": "mobile-dark/01-09-onboarding-eating.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "mobile-dark/01-09-onboarding-lifestyle.html",
-  "png": "mobile-dark/01-09-onboarding-lifestyle.png",
+  "html": "mobile-dark/01-10-onboarding-eating-sheet.html",
+  "png": "mobile-dark/01-10-onboarding-eating-sheet.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "mobile-dark/01-10-onboarding-training.html",
-  "png": "mobile-dark/01-10-onboarding-training.png",
+  "html": "mobile-dark/01-11-onboarding-motivation.html",
+  "png": "mobile-dark/01-11-onboarding-motivation.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "mobile-dark/01-11-onboarding-eating.html",
-  "png": "mobile-dark/01-11-onboarding-eating.png",
+  "html": "mobile-dark/01-12-today-no-coach.html",
+  "png": "mobile-dark/01-12-today-no-coach.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "mobile-dark/01-12-onboarding-eating-sheet.html",
-  "png": "mobile-dark/01-12-onboarding-eating-sheet.png",
+  "html": "mobile-dark/01-13-coach-search.html",
+  "png": "mobile-dark/01-13-coach-search.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "mobile-dark/01-13-onboarding-motivation.html",
-  "png": "mobile-dark/01-13-onboarding-motivation.png",
+  "html": "mobile-dark/01-14-coach-profile.html",
+  "png": "mobile-dark/01-14-coach-profile.png",
+  "w": 840,
+  "h": 872
+ },
+ {
+  "html": "mobile-dark/01-15-request-sheet.html",
+  "png": "mobile-dark/01-15-request-sheet.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "mobile-dark/01-14-today-no-coach.html",
-  "png": "mobile-dark/01-14-today-no-coach.png",
+  "html": "mobile-dark/01-16-notifications-invite.html",
+  "png": "mobile-dark/01-16-notifications-invite.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "mobile-dark/01-15-coach-search.html",
-  "png": "mobile-dark/01-15-coach-search.png",
-  "w": 390,
-  "h": 844
- },
- {
-  "html": "mobile-dark/01-16-coach-profile.html",
-  "png": "mobile-dark/01-16-coach-profile.png",
-  "w": 390,
-  "h": 844
- },
- {
-  "html": "mobile-dark/01-17-request-sheet.html",
-  "png": "mobile-dark/01-17-request-sheet.png",
-  "w": 390,
-  "h": 844
- },
- {
-  "html": "mobile-dark/01-18-notifications-invite.html",
-  "png": "mobile-dark/01-18-notifications-invite.png",
-  "w": 390,
-  "h": 844
- },
- {
-  "html": "mobile-dark/01-19-invite-detail.html",
-  "png": "mobile-dark/01-19-invite-detail.png",
-  "w": 390,
-  "h": 844
- },
- {
-  "html": "mobile-dark/01-20-coach-profile-more.html",
-  "png": "mobile-dark/01-20-coach-profile-more.png",
+  "html": "mobile-dark/01-17-invite-detail.html",
+  "png": "mobile-dark/01-17-invite-detail.png",
   "w": 390,
   "h": 844
  },
@@ -1950,20 +1710,14 @@
   "h": 844
  },
  {
-  "html": "mobile-dark/02-05-training-empty.html",
-  "png": "mobile-dark/02-05-training-empty.png",
+  "html": "mobile-dark/02-05-session-detail.html",
+  "png": "mobile-dark/02-05-session-detail.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "mobile-dark/02-06-session-detail.html",
-  "png": "mobile-dark/02-06-session-detail.png",
-  "w": 390,
-  "h": 844
- },
- {
-  "html": "mobile-dark/02-07-workout.html",
-  "png": "mobile-dark/02-07-workout.png",
+  "html": "mobile-dark/02-06-workout.html",
+  "png": "mobile-dark/02-06-workout.png",
   "w": 390,
   "h": 844
  },
@@ -2028,10 +1782,10 @@
   "h": 844
  },
  {
-  "html": "mobile-dark/05-02-nutrition-empty.html",
-  "png": "mobile-dark/05-02-nutrition-empty.png",
-  "w": 390,
-  "h": 844
+  "html": "mobile-dark/05-02-empty-states.html",
+  "png": "mobile-dark/05-02-empty-states.png",
+  "w": 2190,
+  "h": 872
  },
  {
   "html": "mobile-dark/05-03-meal-detail.html",
@@ -2046,40 +1800,16 @@
   "h": 844
  },
  {
-  "html": "mobile-dark/05-05-nutrition-waiting.html",
-  "png": "mobile-dark/05-05-nutrition-waiting.png",
+  "html": "mobile-dark/05-05-nutrition-off-plan.html",
+  "png": "mobile-dark/05-05-nutrition-off-plan.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "mobile-dark/05-06-nutrition-off-plan.html",
-  "png": "mobile-dark/05-06-nutrition-off-plan.png",
-  "w": 390,
-  "h": 844
- },
- {
-  "html": "mobile-dark/05-07-nutrition-off-plan-search.html",
-  "png": "mobile-dark/05-07-nutrition-off-plan-search.png",
-  "w": 390,
-  "h": 844
- },
- {
-  "html": "mobile-dark/05-08-nutrition-off-plan-amount.html",
-  "png": "mobile-dark/05-08-nutrition-off-plan-amount.png",
-  "w": 390,
-  "h": 844
- },
- {
-  "html": "mobile-dark/05-09-nutrition-upcoming.html",
-  "png": "mobile-dark/05-09-nutrition-upcoming.png",
-  "w": 390,
-  "h": 844
- },
- {
-  "html": "mobile-dark/05-10-training-upcoming.html",
-  "png": "mobile-dark/05-10-training-upcoming.png",
-  "w": 390,
-  "h": 844
+  "html": "mobile-dark/05-06-nutrition-add-food.html",
+  "png": "mobile-dark/05-06-nutrition-add-food.png",
+  "w": 840,
+  "h": 872
  },
  {
   "html": "mobile-dark/06-01-messages-list.html",
@@ -2174,14 +1904,8 @@
  {
   "html": "mobile-dark/07-11-edit-profile-info.html",
   "png": "mobile-dark/07-11-edit-profile-info.png",
-  "w": 390,
-  "h": 844
- },
- {
-  "html": "mobile-dark/07-12-edit-profile-info2.html",
-  "png": "mobile-dark/07-12-edit-profile-info2.png",
-  "w": 390,
-  "h": 844
+  "w": 840,
+  "h": 872
  },
  {
   "html": "mobile-dark/08-01-training-plan.html",
@@ -2322,40 +2046,10 @@
   "h": 844
  },
  {
-  "html": "mobile-dark/13-06-today-plan-upcoming.html",
-  "png": "mobile-dark/13-06-today-plan-upcoming.png",
-  "w": 390,
-  "h": 844
- },
- {
-  "html": "mobile-dark/13-07-today-upcoming-trainer-building.html",
-  "png": "mobile-dark/13-07-today-upcoming-trainer-building.png",
-  "w": 390,
-  "h": 844
- },
- {
-  "html": "mobile-dark/13-08-today-upcoming-both.html",
-  "png": "mobile-dark/13-08-today-upcoming-both.png",
-  "w": 390,
-  "h": 844
- },
- {
-  "html": "mobile-dark/13-09-today-nutrition-upcoming-training-active.html",
-  "png": "mobile-dark/13-09-today-nutrition-upcoming-training-active.png",
-  "w": 390,
-  "h": 844
- },
- {
-  "html": "mobile-dark/13-10-today-training-upcoming-nutrition-active.html",
-  "png": "mobile-dark/13-10-today-training-upcoming-nutrition-active.png",
-  "w": 390,
-  "h": 844
- },
- {
-  "html": "mobile-dark/13-11-today-training-upcoming.html",
-  "png": "mobile-dark/13-11-today-training-upcoming.png",
-  "w": 390,
-  "h": 844
+  "html": "mobile-dark/13-06-today-upcoming-variants.html",
+  "png": "mobile-dark/13-06-today-upcoming-variants.png",
+  "w": 2640,
+  "h": 872
  },
  {
   "html": "mobile-dark/14-01-today-blocks.html",
@@ -2368,6 +2062,78 @@
   "png": "mobile-dark/15-01-nutrition-plan-week-more.png",
   "w": 390,
   "h": 1020
+ },
+ {
+  "html": "mobile-dark/16-01-offline-nutrition.html",
+  "png": "mobile-dark/16-01-offline-nutrition.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/16-02-offline-synced.html",
+  "png": "mobile-dark/16-02-offline-synced.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/16-03-offline-shopping.html",
+  "png": "mobile-dark/16-03-offline-shopping.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/16-04-offline-measurements.html",
+  "png": "mobile-dark/16-04-offline-measurements.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/17-01-today-questionnaire-banner.html",
+  "png": "mobile-dark/17-01-today-questionnaire-banner.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/17-02-today-no-plan-questionnaire.html",
+  "png": "mobile-dark/17-02-today-no-plan-questionnaire.png",
+  "w": 390,
+  "h": 960
+ },
+ {
+  "html": "mobile-dark/17-03-questionnaire-intro.html",
+  "png": "mobile-dark/17-03-questionnaire-intro.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/17-04-questionnaire-step1.html",
+  "png": "mobile-dark/17-04-questionnaire-step1.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/17-05-questionnaire-step2.html",
+  "png": "mobile-dark/17-05-questionnaire-step2.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/17-06-questionnaire-step3.html",
+  "png": "mobile-dark/17-06-questionnaire-step3.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/17-07-questionnaire-review.html",
+  "png": "mobile-dark/17-07-questionnaire-review.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/17-08-questionnaire-sent.html",
+  "png": "mobile-dark/17-08-questionnaire-sent.png",
+  "w": 390,
+  "h": 844
  },
  {
   "html": "coach-light/01-01-coach-setup.html",
@@ -2668,107 +2434,5 @@
   "png": "email/06-01-email-payment-request-d.png",
   "w": 720,
   "h": 1240
- },
- {
-  "html": "logo/01-01-logo-combo-cascade-check.html",
-  "png": "logo/01-01-logo-combo-cascade-check.png",
-  "w": 600,
-  "h": 760
- },
- {
-  "html": "logo/01-02-logo-combo-free.html",
-  "png": "logo/01-02-logo-combo-free.png",
-  "w": 600,
-  "h": 760
- },
- {
-  "html": "logo/01-03-logo-combo-progress.html",
-  "png": "logo/01-03-logo-combo-progress.png",
-  "w": 600,
-  "h": 760
- },
- {
-  "html": "logo/01-04-logo-combo-stack.html",
-  "png": "logo/01-04-logo-combo-stack.png",
-  "w": 600,
-  "h": 760
- },
- {
-  "html": "logo/01-05-logo-combo-deep-card.html",
-  "png": "logo/01-05-logo-combo-deep-card.png",
-  "w": 600,
-  "h": 760
- },
- {
-  "html": "logo/01-06-logo-app-icon.html",
-  "png": "logo/01-06-logo-app-icon.png",
-  "w": 600,
-  "h": 760
- },
- {
-  "html": "logo/02-01-logo-wordmark-test.html",
-  "png": "logo/02-01-logo-wordmark-test.png",
-  "w": 1440,
-  "h": 1260
- },
- {
-  "html": "logo/03-01-logo-launch-cascade-check.html",
-  "png": "logo/03-01-logo-launch-cascade-check.png",
-  "w": 390,
-  "h": 844
- },
- {
-  "html": "logo/03-02-logo-launch-free.html",
-  "png": "logo/03-02-logo-launch-free.png",
-  "w": 390,
-  "h": 844
- },
- {
-  "html": "logo/03-03-logo-launch-progress.html",
-  "png": "logo/03-03-logo-launch-progress.png",
-  "w": 390,
-  "h": 844
- },
- {
-  "html": "logo/03-04-logo-launch-stack.html",
-  "png": "logo/03-04-logo-launch-stack.png",
-  "w": 390,
-  "h": 844
- },
- {
-  "html": "logo/03-05-logo-launch-deep-card.html",
-  "png": "logo/03-05-logo-launch-deep-card.png",
-  "w": 390,
-  "h": 844
- },
- {
-  "html": "logo/04-01-logo-launch-cascade-check.html",
-  "png": "logo/04-01-logo-launch-cascade-check.png",
-  "w": 390,
-  "h": 844
- },
- {
-  "html": "logo/04-02-logo-launch-free.html",
-  "png": "logo/04-02-logo-launch-free.png",
-  "w": 390,
-  "h": 844
- },
- {
-  "html": "logo/04-03-logo-launch-progress.html",
-  "png": "logo/04-03-logo-launch-progress.png",
-  "w": 390,
-  "h": 844
- },
- {
-  "html": "logo/04-04-logo-launch-stack.html",
-  "png": "logo/04-04-logo-launch-stack.png",
-  "w": 390,
-  "h": 844
- },
- {
-  "html": "logo/04-05-logo-launch-deep-card.html",
-  "png": "logo/04-05-logo-launch-deep-card.png",
-  "w": 390,
-  "h": 844
  }
 ]

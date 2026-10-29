@@ -5,7 +5,7 @@ the web portal and the mobile apps:
 <https://claude.ai/artifact/HFzM8WqykBxJvkLdiqU85h> (private claude.ai Design
 artifact — only the main Claude session can open it; agents read this snapshot).
 
-**Snapshot of canvas version 1793274985-492c, exported 2026-10-29 (#1810).** If the canvas has moved
+**Snapshot of canvas version 1793298021-83ec, exported 2026-10-29 (#1841).** If the canvas has moved
 on, re-export before relying on this copy (see Rebuilding).
 
 | Path | Contents |
@@ -17,7 +17,6 @@ on, re-export before relying on this copy (see Rebuilding).
 | `mobile-light/`, `mobile-dark/` | Client mobile app (Liquid Glass) |
 | `coach-light/`, `coach-dark/` | Coach mobile app |
 | `email/` | Account, notification and payment emails — light (`C`) and dark (`D`) |
-| `concepts/`, `logo/` | Colour concept frames and logo explorations |
 | `screens.json` | Board list with sizes, used by the screenshot script |
 | `source/` | Generators (`gen*.py`), board files (`project/*.dc.html`) and canvas layout (`project/canvas.json`) |
 

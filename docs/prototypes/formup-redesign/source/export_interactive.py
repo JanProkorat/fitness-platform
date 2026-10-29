@@ -283,6 +283,33 @@ body.fu-show .fu-hot{outline:2px solid rgba(37,99,235,.75);outline-offset:1px}
 """
 
 
+# Boards merged into one side-by-side board on the canvas: links to the old name open the merged board.
+MERGED = {
+    **dict.fromkeys(["PageSettingsRolesOne", "PageSettingsDisable", "PageSettingsRemoveTrainer", "PageSettingsRemoveNutrition",
+                     "PageSettingsPassword", "PageSettingsBank", "PageSettingsAddRole", "PagePaywallClientCap"], "PageDialogs"),
+    **dict.fromkeys(["PageResetRequest", "PageResetCheckEmail", "PageResetNewPassword", "PageResetDone", "PageResetExpired"],
+                    "PageResetPasswordFlow"),
+    **dict.fromkeys(["PageEmailOffOff", "PageEmailOffOn", "PageEmailOffInvalid"], "PageEmailOff"),
+    **dict.fromkeys(["PageRegisterCheckEmail", "PageRegisterChangeEmail", "PageRegisterVerified"], "PageRegisterEmailSteps"),
+    **dict.fromkeys(["PageTemplateLibraryFiltersRecipes", "PageTemplateLibraryFiltersIngredients"], "PageTemplateLibraryFilters"),
+    **dict.fromkeys(["PageRecipeDrawer", "PageRecipeDrawerIngredients", "PageRecipeDrawerPreparation", "PageRecipeDrawerPictures"],
+                    "PageRecipeDrawerTabs"),
+    **dict.fromkeys(["GlassTodayPlanUpcoming", "GlassTodayUpcomingTrainerBuilding", "GlassTodayUpcomingBoth",
+                     "GlassTodayNutritionUpcomingTrainingActive", "GlassTodayTrainingUpcomingNutritionActive",
+                     "GlassTodayTrainingUpcoming"], "GlassTodayUpcomingVariants"),
+    **dict.fromkeys(["GlassNutritionEmpty", "GlassNutritionWaiting", "GlassNutritionUpcoming", "GlassTrainingEmpty",
+                     "GlassTrainingUpcoming"], "GlassEmptyStates"),
+    **dict.fromkeys(["GlassRegisterCheckEmail", "GlassRegisterChangeEmail", "GlassRegisterVerified"], "GlassRegisterEmailSteps"),
+    "GlassEditProfileInfo2": "GlassEditProfileInfo",
+    "GlassCoachProfileMore": "GlassCoachProfile",
+    **dict.fromkeys(["GlassNutritionOffPlanSearch", "GlassNutritionOffPlanAmount"], "GlassNutritionAddFood"),
+}
+
+
+def merged(flow):
+    return {k: MERGED.get(v, v) for k, v in flow.items()}
+
+
 # Output folder -> canvas pages (light, dark), board-name suffix pattern, shared nav, per-page maps, start page, phone frame.
 ZONES = [
     ("interactive", ("web",), r"[CD]\.dc\.html$", NAV, FLOWS, "PageHome", False),
@@ -292,6 +319,7 @@ ZONES = [
 
 
 def build(folder, pages, suffix, nav, flows, start, device):
+    nav, flows = merged(nav), {MERGED.get(k, k): merged(v) for k, v in flows.items()}
     out = os.path.join(sys.argv[1], folder)
     boards = sorted(((k, b) for k, b in canvas["boards"].items() if b.get("page") in pages), key=lambda kb: (kb[1]["y"], kb[1]["x"]))
     names = []

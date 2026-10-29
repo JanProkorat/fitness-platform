@@ -55,7 +55,7 @@
         "web/src/components/entry/EntryDialogTitle.tsx"
       ],
       "endpoints": ["POST /auth/password/reset"],
-      "board": "PageResetRequest",
+      "board": "PageResetPasswordFlow",
       "shots": [
         { "name": "default" },
         { "name": "not-registered", "steps": "type an email with no account (e.g. nobody@example.com), click 'Poslat odkaz pro obnovení', wait for the error under the field" },
@@ -143,7 +143,7 @@
         "web/src/components/register/RegisterStepper.tsx"
       ],
       "endpoints": ["POST /auth/resend-verification/anonymous"],
-      "board": "PageRegisterCheckEmail",
+      "board": "PageRegisterEmailSteps",
       "shots": [
         { "name": "default", "steps": "on /register click 'Osobní trenér', fill the form with a new email, tick the consent, click 'Založit účet', wait for 'Zkontrolujte poštu'" }
       ],
@@ -1096,7 +1096,7 @@
         "POST /auth/resend-verification",
         "PUT /auth/email"
       ],
-      "board": "GlassRegisterCheckEmail",
+      "board": "GlassRegisterEmailSteps",
       "shots": [
         { "name": "default", "steps": "register a new account; the screen opens after sign-up" },
         { "name": "change-email", "steps": "tap Change email to open the sheet" }
@@ -1747,8 +1747,8 @@
       "board": "GlassNutrition",
       "shots": [
         { "name": "default", "steps": "client with an active published nutrition plan; tap the Nutrition tab" },
-        { "name": "empty", "steps": "client without a nutritionist; tap the Nutrition tab (board GlassNutritionEmpty)" },
-        { "name": "waiting", "steps": "client whose nutritionist has not published a plan yet; tap the Nutrition tab (board GlassNutritionWaiting)" },
+        { "name": "empty", "steps": "client without a nutritionist; tap the Nutrition tab (board GlassEmptyStates)" },
+        { "name": "waiting", "steps": "client whose nutritionist has not published a plan yet; tap the Nutrition tab (board GlassEmptyStates)" },
         { "name": "upcoming", "steps": "client whose published plan starts later; tap the Nutrition tab" }
       ],
       "notionPageId": null
@@ -2210,7 +2210,7 @@
       "shots": [
         { "name": "default", "steps": "tap Edit profile on Profile" },
         { "name": "my-info", "steps": "scroll to the My info section (board GlassEditProfileInfo)" },
-        { "name": "my-info-sheet", "steps": "tap a My info row to open its sheet (board GlassEditProfileInfo2)" }
+        { "name": "my-info-sheet", "steps": "tap a My info row to open its sheet (board GlassEditProfileInfo)" }
       ],
       "notionPageId": null
     },
