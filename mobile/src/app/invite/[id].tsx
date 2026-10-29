@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { EdgeInsets } from 'react-native-safe-area-context';
 
+import { OfflineBanner } from '@/components/OfflineBanner';
 import { BackButton } from '@/components/BackButton';
 import { InviteActions } from '@/components/invites/InviteActions';
 import { InviteAvatar } from '@/components/invites/InviteAvatar';
@@ -72,6 +73,7 @@ export default function InviteDetailScreen() {
             </Text>
             <RoleChip coachRole={invite.coachRole} />
           </View>
+          <OfflineBanner />
           {city || profile?.online ? (
             <View style={styles.location}>
               <SymbolView name="mappin.and.ellipse" tintColor={theme.colors.muted} size={theme.sizes.rowGlyph} />

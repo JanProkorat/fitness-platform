@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getErrorStatus } from '@/api/errors';
 import { coachFullName, coachInitials, primaryRole } from '@/api/professionals';
 import type { CoachRole } from '@/api/professionals';
+import { OfflineBanner } from '@/components/OfflineBanner';
 import { BackButton } from '@/components/BackButton';
 import { Button } from '@/components/Button';
 import { CoachAvailability } from '@/components/coach/CoachAvailability';
@@ -63,6 +64,7 @@ export default function CoachProfileScreen() {
         <View style={styles.stateBack}>
           <BackButton label={t('onboarding.back')} onPress={back} />
         </View>
+        <OfflineBanner />
         <View style={styles.state}>
           {query.isPending ? (
             <ActivityIndicator color={theme.colors.accent} />
@@ -151,6 +153,7 @@ export default function CoachProfileScreen() {
             </Text>
             {role ? <CoachRoleChip role={role} /> : null}
           </View>
+          <OfflineBanner />
           <View style={styles.meta}>
             {where ? (
               <Text variant="body" color="muted">

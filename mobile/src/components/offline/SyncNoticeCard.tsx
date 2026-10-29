@@ -93,22 +93,30 @@ export function SyncNoticeCard() {
     body: t(`offlineSync.conflict.${conflict.kind}.body`),
   });
 
-  const droppedRow = (entry: DroppedEntry) => {
+  const droppedBody = (entry: DroppedEntry): string => {
     const date = dayLabel(language, entry.label?.date, entry.at);
     const name = entry.label?.name ?? (entry.label?.mealKind ? t(`nutritionMeal.kind.${entry.label.mealKind}`) : '');
     const subject =
       name === ''
         ? t(`offlineSync.dropped.subject.${entry.kind}`, { date })
         : t('offlineSync.dropped.subjectNamed', { name, date });
-    return {
-      key: `dropped-${entry.id}`,
-      tone: 'caution' as const,
-      title: t('offlineSync.dropped.title'),
-      body: t(`offlineSync.dropped.reason.${entry.reason}`, { subject }),
-    };
+    return t(`offlineSync.dropped.reason.${entry.reason}`, { subject });
   };
 
-  const rows = [...conflicts.map(conflictRow), ...dropped.map(droppedRow)];
+  // One row with a counted title; each entry's reason is a line under it.
+  const droppedRows =
+    dropped.length === 0
+      ? []
+      : [
+          {
+            key: 'dropped',
+            tone: 'caution' as const,
+            title: t('offlineSync.dropped.title', { count: dropped.length }),
+            body: dropped.map(droppedBody).join('\n'),
+          },
+        ];
+
+  const rows = [...conflicts.map(conflictRow), ...droppedRows];
 
   return (
     <Card style={styles.card}>

@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react';
-import { RefreshControl, StyleSheet } from 'react-native';
+import { RefreshControl, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
+import { OfflineBanner } from '@/components/OfflineBanner';
 import { Screen } from '@/components/Screen';
 import { TabFade } from '@/components/TabFade';
 import { Text } from '@/components/Text';
@@ -67,7 +68,12 @@ function TodayContent() {
     <Screen
       scroll
       collapseTabBar
-      header={header}
+      header={
+        <View style={styles.header}>
+          {header}
+          <OfflineBanner />
+        </View>
+      }
       topGap={theme.spacing.safeAreaGap}
       bottomInset={barClearance}
       contentStyle={tight ? styles.contentTight : styles.content}
@@ -190,6 +196,9 @@ function TodayContent() {
 
 const makeStyles = (theme: Theme) =>
   StyleSheet.create({
+    header: {
+      gap: theme.spacing.lg,
+    },
     content: {
       gap: theme.spacing.huge,
     },

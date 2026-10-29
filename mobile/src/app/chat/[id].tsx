@@ -9,6 +9,7 @@ import type { EdgeInsets } from 'react-native-safe-area-context';
 import { getErrorStatus } from '@/api/errors';
 import { ChatMessageKind } from '@/api/generated';
 import { ChatEventCard } from '@/components/messages/ChatEventCard';
+import { OfflineBanner } from '@/components/OfflineBanner';
 import { ChatHeader } from '@/components/messages/ChatHeader';
 import { Composer } from '@/components/messages/Composer';
 import { MessageBubble } from '@/components/messages/MessageBubble';
@@ -187,6 +188,7 @@ export default function ChatScreen() {
           roles={conversation?.participant?.roles}
           onBack={leave}
         />
+        <OfflineBanner />
       </View>
 
       {loadFailed ? (
@@ -255,6 +257,7 @@ const makeStyles = (theme: Theme, insets: EdgeInsets) =>
       backgroundColor: theme.colors.ground,
     },
     header: {
+      gap: theme.spacing.md,
       paddingTop: insets.top + theme.spacing.safeAreaGap,
       paddingHorizontal: theme.spacing.xxl,
       paddingBottom: theme.spacing.md,

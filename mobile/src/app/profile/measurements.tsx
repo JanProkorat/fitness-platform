@@ -75,6 +75,17 @@ export default function MeasurementsScreen() {
     .map((coach) => (coach.professionalName ?? '').trim().split(/\s+/)[0] ?? '')
     .filter((name) => name !== '');
 
+  // While a measurement is still unsynced the footnote says when the coaches will see it.
+  const hasUnsynced = pendingKeys.measurementAdded.size > 0;
+  const names = joinNames(t, coachNames);
+  const sharedLine = hasUnsynced
+    ? coachNames.length > 0
+      ? t('measurements.shared.pending', { count: coachNames.length, names })
+      : t('measurements.shared.pendingUnknown')
+    : coachNames.length > 0
+      ? t('measurements.shared.line', { names })
+      : null;
+
   const rows = METRICS.filter(
     (metric) => metric.key !== 'biceps' || latestValue(entries, metric) !== undefined,
   ).map((metric) => {
@@ -119,6 +130,7 @@ export default function MeasurementsScreen() {
           subtitle={entries.length > 0 ? updatedLabel(t, entries[0].at, now) : undefined}
           backLabel={t('onboarding.back')}
           onBack={() => router.back()}
+          offlineShort
         />
 
         {historyQuery.isPending ? (
@@ -155,7 +167,7 @@ export default function MeasurementsScreen() {
           </>
         )}
 
-        {coachNames.length > 0 ? (
+        {sharedLine !== null ? (
           <View style={styles.shared}>
             <SymbolView
               name="info.circle"
@@ -163,7 +175,7 @@ export default function MeasurementsScreen() {
               size={theme.sizes.measureInfoGlyph}
             />
             <Text variant="label" color="muted" style={styles.sharedText}>
-              {t('measurements.shared.line', { names: joinNames(t, coachNames) })}
+              {sharedLine}
             </Text>
           </View>
         ) : null}

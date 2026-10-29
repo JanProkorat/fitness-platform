@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
 import { BackButton } from '@/components/BackButton';
+import { OfflineBanner } from '@/components/OfflineBanner';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
 
@@ -51,7 +52,10 @@ export function DetailLayout({
             <SymbolView name="fork.knife" tintColor={theme.colors.nutritionInk} size={theme.sizes.heroGlyph} />
           )}
         </View>
-        <View style={styles.sheet}>{children}</View>
+        <View style={styles.sheet}>
+          <OfflineBanner />
+          {children}
+        </View>
       </ScrollView>
 
       <View style={[styles.topBar, { top: insets.top + theme.spacing.xs }]}>

@@ -22,6 +22,7 @@ import {
   weightChangeLabel,
   weightLabel,
 } from '@/components/profile/format';
+import { OfflineBanner } from '@/components/OfflineBanner';
 import { Screen } from '@/components/Screen';
 import { Text } from '@/components/Text';
 import { useCollaborations } from '@/hooks/useCollaborations';
@@ -70,6 +71,8 @@ export default function ProfileScreen() {
         name={name}
         subtitle={summary ? subtitleLabel(t, language, summary.goal, summary.memberSince) : ''}
       />
+
+      <OfflineBanner />
 
       {summaryQuery.isPending ? (
         <View style={styles.state}>

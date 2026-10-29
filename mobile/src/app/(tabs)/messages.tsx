@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 
 import type { Conversation } from '@/api/conversations';
 import { ConversationRow } from '@/components/messages/ConversationRow';
+import { OfflineBanner } from '@/components/OfflineBanner';
 import { Screen } from '@/components/Screen';
 import { TabFade } from '@/components/TabFade';
 import { Text } from '@/components/Text';
@@ -72,6 +73,8 @@ function MessagesContent() {
           <SymbolView name="square.and.pencil" tintColor={theme.colors.ink} size={theme.sizes.bellGlyph} />
         </Pressable>
       </View>
+
+      <OfflineBanner />
 
       {isPending ? (
         <ActivityIndicator color={theme.colors.accent} style={styles.status} />
