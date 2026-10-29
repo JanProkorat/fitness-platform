@@ -42,7 +42,17 @@ export type OutboxEntry = OutboxMeta & OutboxWrite;
 
 export type DropReason = 'tooOld' | 'notFound' | 'conflict' | 'rejected';
 
-/** An entry that was given up on; the later UI shows a note for it. */
+/** What a note names, captured when it is recorded because the cached data may be gone after the next refetch. */
+export type EntryLabel = {
+  /** Food name, for entries about a food. */
+  name?: string;
+  /** Plan meal kind such as "lunch", translated when shown. */
+  mealKind?: string;
+  /** ISO time of the day the user acted on. */
+  date?: string;
+};
+
+/** An entry that was given up on; the Nutrition tab shows a note for it. */
 export type DroppedEntry = {
   id: string;
   kind: OutboxKind;
@@ -50,6 +60,20 @@ export type DroppedEntry = {
   target: string;
   reason: DropReason;
   /** ISO time the entry was dropped. */
+  at: string;
+  label?: EntryLabel;
+};
+
+export type SyncConflictKind = 'planChanged' | 'mealRemoved';
+
+/** A write that reached the server but collided with a change the coach made to the plan. */
+export type SyncConflict = {
+  /** The id of the entry that collided. */
+  id: string;
+  kind: SyncConflictKind;
+  mealId: string;
+  label: EntryLabel;
+  /** ISO time the conflict was recorded. */
   at: string;
 };
 

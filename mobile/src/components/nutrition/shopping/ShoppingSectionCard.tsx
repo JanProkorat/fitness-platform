@@ -1,10 +1,13 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 import { SymbolView } from 'expo-symbols';
+import { useTranslation } from 'react-i18next';
 
 import type { ShoppingListEntry } from '@/api/nutrition';
 import { foodName } from '@/components/nutrition/meal/format';
 import { Card } from '@/components/Card';
+import { PendingMark } from '@/components/offline/PendingMark';
 import { Text } from '@/components/Text';
+import { usePendingKeys } from '@/stores/outbox';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
 
@@ -13,13 +16,24 @@ type ShoppingSectionCardProps = {
   items: readonly ShoppingListEntry[];
   language: string;
   quantityLabel: (item: ShoppingListEntry) => string;
+  /** Plan week of the list, to match the outbox keys "week:food". */
+  weekNumber: number;
   onToggle: (foodExternalId: string, isTicked: boolean) => void;
 };
 
 /** One category: an overline heading and a card of items, each with a tick circle and its amount. */
-export function ShoppingSectionCard({ heading, items, language, quantityLabel, onToggle }: ShoppingSectionCardProps) {
+export function ShoppingSectionCard({
+  heading,
+  items,
+  language,
+  quantityLabel,
+  weekNumber,
+  onToggle,
+}: ShoppingSectionCardProps) {
+  const { t } = useTranslation();
   const theme = useTheme();
   const styles = makeStyles(theme);
+  const pendingKeys = usePendingKeys();
 
   return (
     <View style={styles.section}>
@@ -31,11 +45,13 @@ export function ShoppingSectionCard({ heading, items, language, quantityLabel, o
           const id = item.foodExternalId;
           const ticked = item.isTicked === true;
           const name = foodName(item, language);
+          const pending = id !== undefined && pendingKeys.shoppingTicked.has(`${weekNumber}:${id}`);
+          const baseLabel = `${name}, ${quantityLabel(item)}`;
           return (
             <Pressable
               key={id ?? `${name}-${index}`}
               accessibilityRole="checkbox"
-              accessibilityLabel={`${name}, ${quantityLabel(item)}`}
+              accessibilityLabel={pending ? `${baseLabel}, ${t('offlineSync.pendingA11y')}` : baseLabel}
               accessibilityState={{ checked: ticked }}
               disabled={id === undefined}
               onPress={() => id !== undefined && onToggle(id, !ticked)}
@@ -51,14 +67,17 @@ export function ShoppingSectionCard({ heading, items, language, quantityLabel, o
                   />
                 ) : null}
               </View>
-              <Text
-                variant="bodyLarge"
-                color={ticked ? 'muted' : 'ink'}
-                numberOfLines={2}
-                style={[styles.name, ticked && styles.struck]}
-              >
-                {name}
-              </Text>
+              <View style={styles.name}>
+                <Text
+                  variant="bodyLarge"
+                  color={ticked ? 'muted' : 'ink'}
+                  numberOfLines={2}
+                  style={ticked && styles.struck}
+                >
+                  {name}
+                </Text>
+                {pending ? <PendingMark /> : null}
+              </View>
               <Text variant="body" color="muted">
                 {quantityLabel(item)}
               </Text>
@@ -109,6 +128,7 @@ const makeStyles = (theme: Theme) =>
     },
     name: {
       flex: 1,
+      gap: theme.spacing.hair,
     },
     struck: {
       textDecorationLine: 'line-through',

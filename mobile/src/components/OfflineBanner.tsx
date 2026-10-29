@@ -40,8 +40,11 @@ export function OfflineBanner() {
       accessibilityRole="alert"
     >
       <View style={styles.pill}>
-        <Text variant="captionStrong" color="warning">
-          {time === null ? t('offline.banner') : t('offline.bannerWithTime', { time })}
+        <Text variant="caption" color="ink2" style={styles.text}>
+          <Text variant="captionStrong" color="ink">
+            {t('offline.banner')}
+          </Text>
+          {time === null ? t('offline.detail') : t('offline.detailWithTime', { time })}
         </Text>
       </View>
     </View>
@@ -57,9 +60,13 @@ const makeStyles = (theme: Theme) =>
       alignItems: 'center',
     },
     pill: {
-      backgroundColor: theme.colors.warningSoft,
+      backgroundColor: theme.colors.subtle,
+      maxWidth: '92%',
       borderRadius: theme.radii.pill,
       paddingHorizontal: theme.spacing.lg,
       paddingVertical: theme.spacing.xxs,
+    },
+    text: {
+      textAlign: 'center',
     },
   });

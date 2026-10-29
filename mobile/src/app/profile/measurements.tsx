@@ -22,6 +22,7 @@ import {
   rangeStart,
   seriesChange,
   seriesSince,
+  valueOf,
 } from '@/components/measurements/metrics';
 import type { Range } from '@/components/measurements/metrics';
 import { Segmented } from '@/components/onboarding/Segmented';
@@ -33,6 +34,7 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import { Text } from '@/components/Text';
 import { useCollaborations } from '@/hooks/useCollaborations';
 import { useMeasurementHistory, usePlanStart } from '@/hooks/useMeasurementHistory';
+import { usePendingKeys } from '@/stores/outbox';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
 
@@ -48,6 +50,7 @@ export default function MeasurementsScreen() {
   const router = useRouter();
   const language = i18n.language;
   const historyQuery = useMeasurementHistory();
+  const pendingKeys = usePendingKeys();
   const planStartQuery = usePlanStart();
   const collaborationsQuery = useCollaborations();
   const [chosenRange, setChosenRange] = useState<Range | null>(null);
@@ -79,6 +82,10 @@ export default function MeasurementsScreen() {
     const values = seriesSince(entries, metric, since);
     const change = seriesChange(values);
     const isEstimate = metric.key === 'bodyFat';
+    // The latest value is pending when the entry holding it is one the outbox still carries (keyed by measuredAt).
+    const latestEntry = entries.find((entry) => valueOf(entry, metric) !== undefined);
+    const pending =
+      latestEntry !== undefined && [...pendingKeys.measurementAdded].some((key) => Date.parse(key) === latestEntry.at);
     return (
       <MeasurementRow
         key={metric.key}
@@ -90,6 +97,7 @@ export default function MeasurementsScreen() {
               ? undefined
               : trendLabel(t, language, range, change)
         }
+        pending={pending}
         captionPositive={!isEstimate && change !== null && isDecrease(change)}
         values={values}
         value={latest === undefined ? EMPTY_VALUE : metricValueLabel(t, language, metric.unit, latest)}

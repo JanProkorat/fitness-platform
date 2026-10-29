@@ -199,4 +199,7 @@ export const sizes = {
   weekTargetDash: 10,
   recipeTodayWidth: 150,
   recipeTodayImage: 94,
+  noticeIcon: 28,
+  noticeGlyph: 15,
+  pendingGlyph: 13,
 } as const;

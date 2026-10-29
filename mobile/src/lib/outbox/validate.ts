@@ -1,4 +1,4 @@
-import type { DroppedEntry, OutboxEntry } from '@/lib/outbox/types';
+import type { DroppedEntry, EntryLabel, OutboxEntry, SyncConflict } from '@/lib/outbox/types';
 
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
 const isText = (value: unknown): value is string => typeof value === 'string' && value.length > 0;
@@ -64,6 +64,17 @@ const KINDS: readonly unknown[] = [
   'measurementAdded',
 ];
 
+const isOptionalText = (value: unknown): boolean => value === undefined || typeof value === 'string';
+
+function isEntryLabel(value: unknown): value is EntryLabel {
+  return (
+    isRecord(value) &&
+    isOptionalText(value.name) &&
+    isOptionalText(value.mealKind) &&
+    (value.date === undefined || isIsoTime(value.date))
+  );
+}
+
 export function isDroppedEntry(value: unknown): value is DroppedEntry {
   return (
     isRecord(value) &&
@@ -71,6 +82,20 @@ export function isDroppedEntry(value: unknown): value is DroppedEntry {
     KINDS.includes(value.kind) &&
     typeof value.target === 'string' &&
     DROP_REASONS.includes(value.reason) &&
+    isIsoTime(value.at) &&
+    (value.label === undefined || isEntryLabel(value.label))
+  );
+}
+
+const CONFLICT_KINDS: readonly unknown[] = ['planChanged', 'mealRemoved'];
+
+export function isSyncConflict(value: unknown): value is SyncConflict {
+  return (
+    isRecord(value) &&
+    isText(value.id) &&
+    CONFLICT_KINDS.includes(value.kind) &&
+    isText(value.mealId) &&
+    isEntryLabel(value.label) &&
     isIsoTime(value.at)
   );
 }

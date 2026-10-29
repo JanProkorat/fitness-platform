@@ -45,6 +45,9 @@ export type Colors = {
 
   warning: string;
   warningSoft: string;
+  /** Glyph and tinted badge for a notice that needs the user's attention, such as an entry that was not saved. */
+  cautionInk: string;
+  cautionSoft: string;
   success: string;
   successSoft: string;
   error: string;
@@ -127,6 +130,8 @@ export const lightColors: Colors = {
   actionInk: '#D2342A',
   warning: '#B4500C',
   warningSoft: '#FFE8D2',
+  cautionInk: '#A15C00',
+  cautionSoft: '#FBEFD9',
   success: '#3F7D2A',
   successSoft: '#EEF6E3',
   error: '#9F1F17',
@@ -171,6 +176,8 @@ export const darkColors: Colors = {
   actionInk: '#FF7A6E',
   warning: '#F7A863',
   warningSoft: '#3A2414',
+  cautionInk: '#F0A84B',
+  cautionSoft: 'rgba(240,168,75,0.16)',
   success: '#A9D673',
   successSoft: '#243319',
   error: '#F2705F',

@@ -19,6 +19,7 @@ import { MealStatusIcon } from '@/components/nutrition/meals/MealStatusIcon';
 import type { MealStatus } from '@/components/nutrition/meals/MealStatusIcon';
 import { mealKcal } from '@/components/nutrition/meals/model';
 import { foodName, formatAmount, formatWhole } from '@/components/nutrition/meal/format';
+import { PendingMark } from '@/components/offline/PendingMark';
 import { Text } from '@/components/Text';
 import { useTheme } from '@/theme';
 import { mealExpandMotion } from '@/theme/motion';
@@ -35,6 +36,8 @@ type MealRowProps = {
   /** First row of a list has no divider above it. */
   first?: boolean;
   defaultExpanded?: boolean;
+  /** The meal's log write waits in the outbox; the row says so in place of the item preview. */
+  pending?: boolean;
   onOpenRecipe: (recipeId: string, servings: number) => void;
   /** Foods are links only when this is given; without it they have no chevron. */
   onOpenFood?: (food: MealFood) => void;
@@ -58,6 +61,7 @@ export function MealRow({
   photos = [],
   first = false,
   defaultExpanded = false,
+  pending = false,
   onOpenRecipe,
   onOpenFood,
   onToggleEaten,
@@ -118,7 +122,8 @@ export function MealRow({
   const [firstItem] = items;
   const more = items.length - 1;
   const expandable = items.length > 0 || photos.length > 0;
-  const statusLabel = t(`nutritionPlan.status.${status}`, { meal: kindLabel });
+  const baseStatusLabel = t(`nutritionPlan.status.${status}`, { meal: kindLabel });
+  const statusLabel = pending ? `${baseStatusLabel}, ${t('offlineSync.pendingA11y')}` : baseStatusLabel;
 
   return (
     <View style={[styles.row, !first && styles.divider]}>
@@ -144,7 +149,9 @@ export function MealRow({
                 {t('nutritionPlan.meal.kcal', { value: kcal })}
               </Text>
             </View>
-            {!expanded && firstItem ? (
+            {pending ? (
+              <PendingMark />
+            ) : !expanded && firstItem ? (
               <View style={styles.preview}>
                 <Text variant="label" color="muted" numberOfLines={1} style={styles.previewName}>
                   {firstItem.name}

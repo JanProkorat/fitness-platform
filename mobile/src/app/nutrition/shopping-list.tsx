@@ -173,6 +173,7 @@ function ShoppingListContent({ current, next, onBack }: ShoppingListContentProps
             items={section.items}
             language={language}
             quantityLabel={quantityLabel}
+            weekNumber={week.weekNumber}
             onToggle={(foodExternalId, isTicked) => toggle.mutate({ foodExternalId, isTicked })}
           />
         ))
