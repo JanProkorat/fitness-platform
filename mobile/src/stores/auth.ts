@@ -1,6 +1,8 @@
 import * as SecureStore from 'expo-secure-store';
 import { create } from 'zustand';
 
+import { isOfflineFailure } from '@/api/errors';
+import { clearPersistedCache } from '@/lib/persistence';
 import { queryClient } from '@/lib/queryClient';
 
 const REFRESH_TOKEN_KEY = 'refreshToken';
@@ -57,7 +59,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   acknowledgeVerified: () => set({ verifiedAcknowledged: true }),
 
   login: async (accessToken, refreshToken) => {
+    // Memory first, then disk: a throttled write can otherwise bring the old user's snapshot back.
     queryClient.clear();
+    await clearPersistedCache();
     // Memory first, so a stale refresh that wrote SecureStore meanwhile restores this token.
     set((state) => ({
       accessToken,
@@ -98,6 +102,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       sessionGeneration: state.sessionGeneration + 1,
     }));
     queryClient.clear();
+    await clearPersistedCache();
     // Fire and forget, imported lazily because the API client imports this store.
     void import('@/api/pushToken')
       .then(({ unregisterPushToken }) => unregisterPushToken(endingAccessToken))
@@ -117,9 +122,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const { executeRefresh } = await import('@/lib/refresh');
       await executeRefresh();
       set({ isAuthenticated: true, isInitialized: true });
-    } catch {
-      // A 400/401 already logged out inside executeRefresh. Any other failure
-      // (network, server) keeps the stored token so the next launch can retry.
+    } catch (error) {
+      if (isOfflineFailure(error)) {
+        // Unreachable API with a stored token: open the session from the saved snapshot.
+        // The access token comes with the first request that gets through.
+        set({ isAuthenticated: true, accessToken: null, isInitialized: true });
+        return;
+      }
+      // A 400/401 already logged out inside executeRefresh, and the local refresh failures
+      // (missing token, bad response, stale session) are not an offline start.
       set({ isInitialized: true });
     }
   },

@@ -2,19 +2,22 @@ import { useFonts } from 'expo-font';
 import { Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { QueryClientProvider } from '@tanstack/react-query';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import '@/i18n';
 import { LaunchScreen } from '@/components/LaunchScreen';
+import { OfflineBanner } from '@/components/OfflineBanner';
 import { ProfileErrorState } from '@/components/ProfileErrorState';
 import { useAuthPhase } from '@/hooks/useAuthPhase';
+import { newestCachedUpdate, persistOptions } from '@/lib/persistence';
 import { queryClient } from '@/lib/queryClient';
 import { HomeEffects } from '@/realtime/HomeEffects';
 import { RealtimeProvider } from '@/realtime/RealtimeProvider';
 import { useAuthStore } from '@/stores/auth';
+import { useConnectivityStore } from '@/stores/connectivity';
 import { fontAssets, useTheme } from '@/theme';
 import { buildNavigationTheme } from '@/theme/navigationTheme';
 
@@ -91,6 +94,7 @@ function AppShell() {
             <AppStack phase={phase} onRetry={retry} />
             {phase === 'home' ? <HomeEffects /> : null}
           </RealtimeProvider>
+          {phase === 'home' ? <OfflineBanner /> : null}
         </View>
       ) : null}
       {overlayVisible ? (
@@ -101,6 +105,14 @@ function AppShell() {
       ) : null}
     </>
   );
+}
+
+/** After the snapshot is restored, the banner's "last updated" time comes from the newest restored entry. */
+function handleRestored() {
+  const newest = newestCachedUpdate();
+  if (newest !== null) {
+    useConnectivityStore.getState().seedSuccess(newest);
+  }
 }
 
 export default function RootLayout() {
@@ -125,12 +137,16 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={styles.content}>
-      <QueryClientProvider client={queryClient}>
+      <PersistQueryClientProvider
+        client={queryClient}
+        persistOptions={persistOptions}
+        onSuccess={handleRestored}
+      >
         <ThemeProvider value={navigationTheme}>
           <StatusBar style={theme.scheme === 'dark' ? 'light' : 'dark'} />
           <AppShell />
         </ThemeProvider>
-      </QueryClientProvider>
+      </PersistQueryClientProvider>
     </GestureHandlerRootView>
   );
 }
