@@ -120,4 +120,9 @@ public static class MongoCollections
     /// Offline-sync dedupe records — one per (client, client request id), expiring after 8 days.
     /// </summary>
     public const string ProcessedClientRequests = "processedClientRequests";
+
+    /// <summary>
+    /// Offline-sync conflicts — client actions that collided with a coach's plan change.
+    /// </summary>
+    public const string OfflineSyncConflicts = "offlineSyncConflicts";
 }

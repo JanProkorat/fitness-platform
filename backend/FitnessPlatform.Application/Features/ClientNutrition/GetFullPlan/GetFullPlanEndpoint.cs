@@ -187,6 +187,7 @@ public class GetFullPlanEndpoint(IMongoContext mongo, IApplicationDbContext db, 
         await Send.OkAsync(new GetFullPlanResponse
         {
             PlanId = plan.ExternalId,
+            PlanVersion = plan.Version,
             PlanName = plan.Name,
             StartDate = plan.StartDate,
             GlobalSettings = plan.GlobalSettings,

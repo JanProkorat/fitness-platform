@@ -130,4 +130,9 @@ public interface IMongoContext
     /// Offline-sync dedupe records — one per (client, client request id).
     /// </summary>
     IMongoCollection<ProcessedClientRequest> ProcessedClientRequests { get; }
+
+    /// <summary>
+    /// Offline-sync conflicts — client actions that collided with a coach's plan change.
+    /// </summary>
+    IMongoCollection<OfflineSyncConflict> OfflineSyncConflicts { get; }
 }

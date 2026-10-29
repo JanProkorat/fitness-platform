@@ -54,6 +54,14 @@ public class PlanMeal
     public string? Note { get; set; }
 
     /// <summary>
+    /// The plan <c>Version</c> at which this meal was last added or changed in content or position.
+    /// Null means never edited since the marker existed, which offline sync treats as "no conflict".
+    /// </summary>
+    [BsonElement("changedAtPlanVersion")]
+    [BsonIgnoreIfNull]
+    public int? ChangedAtPlanVersion { get; set; }
+
+    /// <summary>
     /// Computed totals for this meal.
     /// </summary>
     [BsonElement("mealTotals")]

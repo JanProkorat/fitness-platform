@@ -112,6 +112,7 @@ public class GetWeekPlanEndpoint(IMongoContext mongo, IApplicationDbContext db, 
         await Send.OkAsync(new GetWeekPlanResponse
         {
             PlanId = plan.ExternalId,
+            PlanVersion = plan.Version,
             PlanName = plan.Name,
             WeekNumber = week.WeekNumber,
             Days = week.Days,
