@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import type { FullPlanWeek, GetFullPlanResponse } from '@/api/generated';
@@ -16,6 +16,7 @@ import {
   formatRange,
   isoDay,
   localToday,
+  parsePlanIdParam,
   planEndDate,
   weekDays,
   weekMealCount,
@@ -23,6 +24,7 @@ import {
 } from '@/components/nutrition/plan/model';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
+import { calendarParts, daysUntil } from '@/components/nutrition/upcoming/format';
 import { Text } from '@/components/Text';
 import { useCollaborations } from '@/hooks/useCollaborations';
 import { useFullNutritionPlan } from '@/hooks/useFullNutritionPlan';
@@ -39,15 +41,33 @@ const initials = (name: string): string =>
 
 const percent = (part: number, whole: number): number => (whole > 0 ? Math.round((part / whole) * 100) : 0);
 
-/** The whole nutrition plan: progress, and every week to open. */
+/** The whole nutrition plan: progress, and every week to open. `planId` opens a specific plan. */
 export default function NutritionPlanScreen() {
   const { t } = useTranslation();
   const router = useRouter();
-  const plan = useFullNutritionPlan();
+  const params = useLocalSearchParams<{ planId?: string }>();
+  const planParam = parsePlanIdParam(params.planId);
   const goBack = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
+  if (planParam.kind === 'invalid') {
+    return (
+      <PlanState
+        kind="empty"
+        title={t('nutritionPlan.empty.title')}
+        body={t('nutritionPlan.empty.body')}
+        onBack={goBack}
+      />
+    );
+  }
+  return <PlanLoader planId={planParam.kind === 'valid' ? planParam.planId : undefined} onBack={goBack} />;
+}
+
+function PlanLoader({ planId, onBack }: { planId: string | undefined; onBack: () => void }) {
+  const { t } = useTranslation();
+  const plan = useFullNutritionPlan(planId);
+
   if (plan.isPending) {
-    return <PlanState kind="pending" onBack={goBack} />;
+    return <PlanState kind="pending" onBack={onBack} />;
   }
   if (plan.isError || !plan.data) {
     const missing = getErrorStatus(plan.error) === 404;
@@ -56,15 +76,22 @@ export default function NutritionPlanScreen() {
         kind={missing ? 'empty' : 'error'}
         title={missing ? t('nutritionPlan.empty.title') : t('nutritionPlan.error.title')}
         body={missing ? t('nutritionPlan.empty.body') : t('nutritionPlan.error.body')}
-        onBack={goBack}
+        onBack={onBack}
         onRetry={() => void plan.refetch()}
       />
     );
   }
-  return <PlanContent plan={plan.data} onBack={goBack} />;
+  return <PlanContent plan={plan.data} planId={planId} onBack={onBack} />;
 }
 
-function PlanContent({ plan, onBack }: { plan: GetFullPlanResponse; onBack: () => void }) {
+type PlanContentProps = {
+  plan: GetFullPlanResponse;
+  /** The `planId` route param when the plan was opened by id; carried on to the week screen. */
+  planId: string | undefined;
+  onBack: () => void;
+};
+
+function PlanContent({ plan, planId, onBack }: PlanContentProps) {
   const { t, i18n } = useTranslation();
   const theme = useTheme();
   const styles = makeStyles(theme);
@@ -81,9 +108,16 @@ function PlanContent({ plan, onBack }: { plan: GetFullPlanResponse; onBack: () =
   const coachName = nutritionist?.professionalName;
   const startDate = isoDay(plan.startDate);
   const range = startDate ? formatRange(language, startDate, planEndDate(startDate, totalWeeks)) : '';
+  const notStarted = startDate !== '' && startDate > today;
+  const startsIn = notStarted ? daysUntil(startDate, today) : 0;
+  // calendarParts is UTC-parsed (0 = Sunday); the copy keys are ISO weekdays (1 = Monday, 7 = Sunday).
+  const startWeekday = calendarParts(language, plan.startDate).weekday;
 
   const openWeek = (week: FullPlanWeek) => {
-    router.push({ pathname: '/nutrition/plan/week/[weekNumber]', params: { weekNumber: String(week.weekNumber ?? 1) } });
+    router.push({
+      pathname: '/nutrition/plan/week/[weekNumber]',
+      params: { weekNumber: String(week.weekNumber ?? 1), ...(planId ? { planId } : {}) },
+    });
   };
 
   const current = weeks.find((week) => weekPhase(week, today) === 'current');
@@ -225,18 +259,34 @@ function PlanContent({ plan, onBack }: { plan: GetFullPlanResponse; onBack: () =
       ) : null}
 
       <Card style={styles.progress}>
-        <View style={styles.progressHead}>
-          <Text variant="bodyStrong">
-            {currentNumber
-              ? t('nutritionPlan.plan.weekOf', { week: currentNumber, total: totalWeeks })
-              : t('nutritionPlan.plan.weeksTotal', { total: totalWeeks })}
-          </Text>
-          {currentNumber && totalWeeks > 0 ? (
-            <Text variant="labelStrong" color="nutritionInk">
-              {`${percent(currentNumber, totalWeeks)}%`}
+        {notStarted ? (
+          <View style={styles.progressHead}>
+            <Text variant="bodyStrong" style={styles.startsCopy}>
+              {t('nutritionPlan.plan.startsOn', {
+                weekday: t(`today.areaBlocks.weekday.${startWeekday === 0 ? 7 : startWeekday}`),
+              })}{' '}
+              <Text variant="body" color="muted">
+                {t('nutritionUpcoming.inDays', { count: startsIn })}
+              </Text>
             </Text>
-          ) : null}
-        </View>
+            <Text variant="labelStrong" color="nutritionInk">
+              {t('nutritionUpcoming.weeks', { count: totalWeeks })}
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.progressHead}>
+            <Text variant="bodyStrong">
+              {currentNumber
+                ? t('nutritionPlan.plan.weekOf', { week: currentNumber, total: totalWeeks })
+                : t('nutritionPlan.plan.weeksTotal', { total: totalWeeks })}
+            </Text>
+            {currentNumber && totalWeeks > 0 ? (
+              <Text variant="labelStrong" color="nutritionInk">
+                {`${percent(currentNumber, totalWeeks)}%`}
+              </Text>
+            ) : null}
+          </View>
+        )}
         <View style={styles.track}>
           <View
             style={[styles.fill, { width: `${currentNumber ? percent(currentNumber, totalWeeks) : 0}%` }]}
@@ -247,10 +297,17 @@ function PlanContent({ plan, onBack }: { plan: GetFullPlanResponse; onBack: () =
             label={t('nutritionPlan.plan.dailyTarget')}
             value={kcalTarget ? t('nutritionPlan.meal.kcal', { value: formatWhole(language, kcalTarget) }) : '–'}
           />
-          <Stat
-            label={t('nutritionPlan.plan.mealsLogged')}
-            value={elapsed > 0 ? t('nutritionPlan.plan.percent', { value: percent(elapsedEaten, elapsed) }) : '–'}
-          />
+          {notStarted ? (
+            <Stat
+              label={t('nutritionPlan.plan.publishedOf')}
+              value={t('nutritionPlan.plan.publishedCount', { published: weeks.length, total: totalWeeks })}
+            />
+          ) : (
+            <Stat
+              label={t('nutritionPlan.plan.mealsLogged')}
+              value={elapsed > 0 ? t('nutritionPlan.plan.percent', { value: percent(elapsedEaten, elapsed) }) : '–'}
+            />
+          )}
           <Stat label={t('nutritionPlan.plan.mealsPerDay')} value={perDay > 0 ? String(perDay) : '–'} />
         </View>
       </Card>
@@ -311,6 +368,9 @@ const makeStyles = (theme: Theme) =>
       flexDirection: 'row',
       alignItems: 'baseline',
       justifyContent: 'space-between',
+    },
+    startsCopy: {
+      flex: 1,
     },
     track: {
       height: theme.sizes.progressBar,

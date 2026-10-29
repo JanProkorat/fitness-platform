@@ -27,9 +27,11 @@ import {
   findLoggedMeal,
   formatRange,
   isPlanFinished,
+  isReadOnlyPlan,
   isoDay,
   localToday,
   mealStatus,
+  parsePlanIdParam,
   weekDays,
   weekMealCount,
 } from '@/components/nutrition/plan/model';
@@ -60,10 +62,45 @@ const photoFailure = (error: unknown): PhotoFailure => {
 export default function NutritionPlanWeekScreen() {
   const { t } = useTranslation();
   const router = useRouter();
-  const params = useLocalSearchParams<{ weekNumber?: string; day?: string }>();
+  const params = useLocalSearchParams<{ weekNumber?: string; day?: string; planId?: string }>();
   const weekNumber = Number.parseInt(typeof params.weekNumber === 'string' ? params.weekNumber : '', 10);
-  const plan = useFullNutritionPlan();
-  const goBack = () => (router.canGoBack() ? router.back() : router.replace('/nutrition/plan'));
+  const planParam = parsePlanIdParam(params.planId);
+  const planId = planParam.kind === 'valid' ? planParam.planId : undefined;
+  const goBack = () =>
+    router.canGoBack()
+      ? router.back()
+      : router.replace({ pathname: '/nutrition/plan', params: planId ? { planId } : {} });
+
+  if (planParam.kind === 'invalid') {
+    return (
+      <PlanState
+        kind="empty"
+        title={t('nutritionPlan.empty.title')}
+        body={t('nutritionPlan.empty.body')}
+        onBack={goBack}
+      />
+    );
+  }
+  return (
+    <WeekLoader
+      planId={planId}
+      weekNumber={weekNumber}
+      initialDay={typeof params.day === 'string' ? params.day : undefined}
+      onBack={goBack}
+    />
+  );
+}
+
+type WeekLoaderProps = {
+  planId: string | undefined;
+  weekNumber: number;
+  initialDay: string | undefined;
+  onBack: () => void;
+};
+
+function WeekLoader({ planId, weekNumber, initialDay, onBack: goBack }: WeekLoaderProps) {
+  const { t } = useTranslation();
+  const plan = useFullNutritionPlan(planId);
 
   if (plan.isPending) {
     return <PlanState kind="pending" onBack={goBack} />;
@@ -91,19 +128,20 @@ export default function NutritionPlanWeekScreen() {
       />
     );
   }
-  const day = typeof params.day === 'string' ? params.day : undefined;
-  return <WeekContent plan={plan.data} week={week} initialDay={day} onBack={goBack} />;
+  return <WeekContent plan={plan.data} planId={planId} week={week} initialDay={initialDay} onBack={goBack} />;
 }
 
 type WeekContentProps = {
   plan: GetFullPlanResponse;
+  /** The `planId` route param when the plan was opened by id. */
+  planId: string | undefined;
   week: FullPlanWeek;
   /** The `day` route param, unvalidated; it is used only when it is a date of this week. */
   initialDay: string | undefined;
   onBack: () => void;
 };
 
-function WeekContent({ plan, week, initialDay, onBack }: WeekContentProps) {
+function WeekContent({ plan, planId, week, initialDay, onBack }: WeekContentProps) {
   const { t, i18n } = useTranslation();
   const theme = useTheme();
   const styles = makeStyles(theme);
@@ -114,7 +152,10 @@ function WeekContent({ plan, week, initialDay, onBack }: WeekContentProps) {
   const weekStart = isoDay(week.weekStartDate);
   const weekEnd = isoDay(week.weekEndDate);
   const days = weekDays(week);
-  const log = useNutritionDayLog(weekStart);
+  const readOnly = isReadOnlyPlan(plan, planId !== undefined);
+  // A browse-only plan has no week log to fetch; its eaten state comes from the plan's own eaten-meal set.
+  const log = useNutritionDayLog(readOnly ? undefined : weekStart);
+  const eatenIds = useMemo(() => new Set(plan.eatenMealIds ?? []), [plan.eatenMealIds]);
   const photoUpload = useAddDayMealPhoto();
   const [picking, setPicking] = useState(false);
   const [viewer, setViewer] = useState<{ mealId: string; index: number } | null>(null);
@@ -128,9 +169,10 @@ function WeekContent({ plan, week, initialDay, onBack }: WeekContentProps) {
   const selectedDay = days.find(({ date }) => date === selected);
   const meals = dayMeals(selectedDay?.day);
 
-  const logAvailable = log.data !== undefined;
+  const logAvailable = readOnly || log.data !== undefined;
   const planFinished = isPlanFinished(plan);
-  const isEaten = (date: string, mealId: string) => findLoggedMeal(log.data, date, mealId)?.eaten === true;
+  const isEaten = (date: string, mealId: string) =>
+    readOnly ? eatenIds.has(mealId) : findLoggedMeal(log.data, date, mealId)?.eaten === true;
 
   const totalMeals = weekMealCount(week);
   const eatenMeals = days.reduce(
@@ -147,7 +189,7 @@ function WeekContent({ plan, week, initialDay, onBack }: WeekContentProps) {
     const targetNumber = target.weekNumber ?? 1;
     setPicked(day ? { weekNumber: targetNumber, date: day } : null);
     // Same screen instance, new params: the swipe's slide-in then plays on the content that is already mounted.
-    router.setParams({ weekNumber: String(targetNumber), day });
+    router.setParams({ weekNumber: String(targetNumber), day, ...(planId ? { planId } : {}) });
   };
   const previous = neighbour(-1);
   const next = neighbour(1);
@@ -254,7 +296,7 @@ function WeekContent({ plan, week, initialDay, onBack }: WeekContentProps) {
 
   const viewerMeal = viewer ? meals.find((meal) => meal.mealId === viewer.mealId) : undefined;
   const viewerPhotos = viewerMeal ? photosOf(viewerMeal) : [];
-  const showAddPhoto = logAvailable && canAddPhotos(log.data, selected);
+  const showAddPhoto = !readOnly && logAvailable && canAddPhotos(log.data, selected);
 
   const subtitle = [
     formatRange(language, weekStart, weekEnd),

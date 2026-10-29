@@ -13,6 +13,8 @@ type WeekRowProps = {
   subtitle: string;
   /** Right-hand figure: progress, or the daily energy of a week still ahead. */
   detail?: string;
+  /** Colour of the right-hand figure; a current row defaults to accent, any other row to muted. */
+  detailTone?: 'accent' | 'muted';
   /** A group row shows a down/up chevron, other rows a right chevron; a row without a handler has none. */
   expanded?: boolean;
   first?: boolean;
@@ -26,6 +28,7 @@ export function WeekRow({
   title,
   subtitle,
   detail,
+  detailTone,
   expanded = false,
   first = false,
   onPress,
@@ -34,6 +37,7 @@ export function WeekRow({
   const theme = useTheme();
   const styles = makeStyles(theme);
   const isCurrent = kind === 'current';
+  const accentDetail = detailTone ? detailTone === 'accent' : isCurrent;
   const muted = kind === 'group' || kind === 'past' || kind === 'preparing';
   const chevron = kind === 'group' ? (expanded ? 'chevron.up' : 'chevron.down') : 'chevron.right';
 
@@ -49,7 +53,7 @@ export function WeekRow({
         </Text>
       </View>
       {detail ? (
-        <Text variant={isCurrent ? 'labelStrong' : 'label'} color={isCurrent ? 'nutritionInk' : 'muted'}>
+        <Text variant={accentDetail ? 'labelStrong' : 'label'} color={accentDetail ? 'nutritionInk' : 'muted'}>
           {detail}
         </Text>
       ) : null}

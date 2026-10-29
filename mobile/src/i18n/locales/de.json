@@ -1375,6 +1375,19 @@
       "toggle": "Die Mahlzeit konnte nicht aktualisiert werden. Bitte versuchen Sie es erneut."
     }
   },
+  "nutritionPlans": {
+    "title": "Ihre Pläne",
+    "upcoming": "Anstehend",
+    "current": "Aktuell",
+    "past": "Vergangen",
+    "from": "Ab {{date}} · {{weeks}}",
+    "range": "{{range}} · {{weeks}}",
+    "running": "{{range}} · {{week}}",
+    "empty": {
+      "title": "Noch keine Pläne",
+      "body": "Sobald Ihr Trainer oder Ernährungsberater einen Ernährungsplan für Sie veröffentlicht, erscheint er hier."
+    }
+  },
   "nutritionPlan": {
     "title": "Ernährungsplan",
     "retry": "Erneut versuchen",
@@ -1405,6 +1418,9 @@
       "mealsPerDay": "Mahlzeiten / Tag",
       "weeks": "Wochen",
       "weeksHint": "Tippen Sie auf eine Woche, um sie anzusehen",
+      "startsOn": "Beginnt am {{weekday}}",
+      "publishedOf": "Veröffentlichte Wochen",
+      "publishedCount": "{{published}} von {{total}}",
       "togglePast": "Vergangene Wochen ein- oder ausblenden"
     },
     "week": {
