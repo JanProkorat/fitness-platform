@@ -1417,6 +1417,19 @@
       "toggle": "Jídlo se nepodařilo upravit. Zkuste to prosím znovu."
     }
   },
+  "nutritionPlans": {
+    "title": "Vaše plány",
+    "upcoming": "Nadcházející",
+    "current": "Aktuální",
+    "past": "Minulé",
+    "from": "Od {{date}} · {{weeks}}",
+    "range": "{{range}} · {{weeks}}",
+    "running": "{{range}} · {{week}}",
+    "empty": {
+      "title": "Zatím žádné plány",
+      "body": "Jakmile pro vás trenér nebo nutriční poradce zveřejní nutriční plán, objeví se zde."
+    }
+  },
   "nutritionPlan": {
     "title": "Nutriční plán",
     "retry": "Zkusit znovu",
@@ -1447,6 +1460,9 @@
       "mealsPerDay": "Jídel denně",
       "weeks": "Týdny",
       "weeksHint": "Klepnutím týden otevřete",
+      "startsOn": "Začíná {{weekday}}",
+      "publishedOf": "Zveřejněné týdny",
+      "publishedCount": "{{published}} z {{total}}",
       "togglePast": "Zobrazit nebo skrýt minulé týdny"
     },
     "week": {

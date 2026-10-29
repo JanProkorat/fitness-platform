@@ -1375,6 +1375,19 @@
       "toggle": "Could not update the meal. Please try again."
     }
   },
+  "nutritionPlans": {
+    "title": "Your plans",
+    "upcoming": "Upcoming",
+    "current": "Current",
+    "past": "Past",
+    "from": "From {{date}} · {{weeks}}",
+    "range": "{{range}} · {{weeks}}",
+    "running": "{{range}} · {{week}}",
+    "empty": {
+      "title": "No plans yet",
+      "body": "Once your trainer or nutritionist publishes a nutrition plan for you, it will show up here."
+    }
+  },
   "nutritionPlan": {
     "title": "Nutrition plan",
     "retry": "Try again",
@@ -1405,6 +1418,9 @@
       "mealsPerDay": "Meals / day",
       "weeks": "Weeks",
       "weeksHint": "Tap a week to browse it",
+      "startsOn": "Starts {{weekday}}",
+      "publishedOf": "Weeks published",
+      "publishedCount": "{{published}} of {{total}}",
       "togglePast": "Show or hide the past weeks"
     },
     "week": {

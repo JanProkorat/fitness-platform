@@ -34,7 +34,7 @@ export function TabHeader({ withShortcuts = false }: TabHeaderProps) {
       </Text>
       {withShortcuts ? (
         <View style={styles.actions}>
-          {shortcut('calendar', t('nutritionTab.shortcuts.plan'), () => router.push('/nutrition/plan'))}
+          {shortcut('calendar', t('nutritionTab.shortcuts.plan'), () => router.push('/nutrition/plans'))}
           {shortcut('book', t('nutritionTab.shortcuts.recipes'), () => router.push('/nutrition/recipes'))}
           {shortcut('cart', t('nutritionTab.shortcuts.shoppingList'), () => router.push('/nutrition/shopping-list'))}
         </View>

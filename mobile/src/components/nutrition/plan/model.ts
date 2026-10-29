@@ -1,5 +1,6 @@
 import type { FullPlanWeek, GetFullPlanResponse, GetWeekMealLogResponse, PlanDay } from '@/api/generated';
 import type { NutritionMeal } from '@/api/nutrition';
+import { isPlanId } from '@/api/plans';
 import type { MealStatus } from '@/components/nutrition/meals/MealStatusIcon';
 import { addMacros, EMPTY_MACROS } from '@/components/nutrition/meal/format';
 import type { Macros } from '@/components/nutrition/meal/format';
@@ -125,3 +126,18 @@ export function eatenMacros(meals: NutritionMeal[], isEaten: (mealId: string) =>
 export function planEndDate(startIso: string, totalWeeks: number): string {
   return addDays(startIso, Math.max(totalWeeks, 1) * 7 - 1);
 }
+
+/** The `planId` route param: absent (today's plan), a well-formed id, or present but unusable. */
+export type PlanIdParam = { kind: 'none' } | { kind: 'valid'; planId: string } | { kind: 'invalid' };
+
+export function parsePlanIdParam(value: string | string[] | undefined): PlanIdParam {
+  if (value === undefined) return { kind: 'none' };
+  return typeof value === 'string' && isPlanId(value) ? { kind: 'valid', planId: value } : { kind: 'invalid' };
+}
+
+/**
+ * A plan opened by id that is not running today is browse-only: its week log is not served (only Active plans
+ * have one) and nothing can be logged against it.
+ */
+export const isReadOnlyPlan = (plan: GetFullPlanResponse, openedById: boolean): boolean =>
+  openedById && typeof plan.currentWeek !== 'number';
