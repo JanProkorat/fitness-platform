@@ -25748,7 +25748,11 @@ export interface PendingQuestionnaireItem {
     professionalRole?: string | undefined;
     questionnairePublicId?: string | undefined;
     questionnaireTitle?: string | undefined;
+    /** Questions the client answers in the app: not hidden, not a heading, not a file upload. */
     questionCount?: number;
+    /** When the questionnaire was sent (UTC): response creation time, else link activation time,
+else link creation time. */
+    sentAt?: string;
     responsePublicId?: string | undefined;
     responseStatus?: string | undefined;
     /** Plan type the response was sent for; null for the link-level fallback item. */
