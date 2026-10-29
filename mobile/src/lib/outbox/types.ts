@@ -1,4 +1,5 @@
 import type { AddMeasurementRequest } from '@/api/generated';
+import type { SeenItem } from '@/lib/outbox/seenMeal';
 
 /** Nutrient amounts in the units the day log uses. */
 export type MacroSet = { kcal: number; protein: number; carbs: number; fat: number; fiber: number };
@@ -8,7 +9,11 @@ export type MeasurementPayload = Omit<AddMeasurementRequest, 'occurredAt' | 'cli
 
 /** What a queued write does. One variant per client write that may be replayed later. */
 export type OutboxWrite =
-  | { kind: 'mealEaten'; payload: { mealId: string } }
+  | {
+      kind: 'mealEaten';
+      /** `seenItems`: the meal as it showed when the user tapped; sent only if the write goes out from the outbox. */
+      payload: { mealId: string; seenItems?: SeenItem[] };
+    }
   | { kind: 'mealUnlogged'; payload: { mealId: string } }
   | {
       kind: 'offPlanAdded';

@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { FULL_PLAN_KEY, TODAY_LOG_KEY, TODAY_PLAN_KEY, WEEK_LOG_KEY, withMealEaten } from '@/api/nutrition';
 import type { NutritionMeal } from '@/api/nutrition';
 import type { GetTodayLogResponse } from '@/api/generated';
+import { seenItemsOf } from '@/lib/outbox/seenMeal';
 import { submitWrite } from '@/lib/outbox/submit';
 
 /**
@@ -17,7 +18,8 @@ export function useMealEaten(meal: NutritionMeal) {
     mutationFn: (eaten: boolean) =>
       submitWrite(
         eaten
-          ? { kind: 'mealEaten', payload: { mealId: meal.mealId } }
+          ? // Captured now: by the time a queued write is sent, the plan cache may hold the coach's newer plan.
+            { kind: 'mealEaten', payload: { mealId: meal.mealId, seenItems: seenItemsOf(meal) } }
           : { kind: 'mealUnlogged', payload: { mealId: meal.mealId } },
       ),
     onMutate: async (eaten) => {
