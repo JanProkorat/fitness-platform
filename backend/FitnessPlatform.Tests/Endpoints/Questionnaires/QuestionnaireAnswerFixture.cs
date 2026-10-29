@@ -16,7 +16,10 @@ internal sealed class QuestionnaireAnswerScenario
 {
     public required Actor Client { get; init; }
     public required Guid LinkPublicId { get; init; }
+    /// <summary>The open response's public id; <see cref="Guid.Empty"/> when seeded without a response.</summary>
     public required Guid ResponsePublicId { get; init; }
+    public required long LinkId { get; init; }
+    public required long ResponseId { get; init; }
     public required Guid QuestionnairePublicId { get; init; }
     public required Dictionary<string, Guid> QuestionIds { get; init; }
 
@@ -26,11 +29,13 @@ internal sealed class QuestionnaireAnswerScenario
         IReadOnlyList<SeedQuestion> questions,
         DateTime? activatedAtUtc = null,
         bool linkActive = true,
-        QuestionnaireResponseStatus status = QuestionnaireResponseStatus.Pending)
+        QuestionnaireResponseStatus status = QuestionnaireResponseStatus.Pending,
+        Actor? existingClient = null,
+        bool withResponse = true)
     {
         var ct = TestContext.Current.CancellationToken;
         var coach = await TestActors.Trainer(factory).CreateAsync(ct);
-        var client = await TestActors.Client(factory).CreateAsync(ct);
+        var client = existingClient ?? await TestActors.Client(factory).CreateAsync(ct);
 
         var link = TestActors.Link(factory, coach, client);
         if (activatedAtUtc.HasValue)
@@ -70,21 +75,27 @@ internal sealed class QuestionnaireAnswerScenario
         db.Questionnaires.Add(questionnaire);
         await db.SaveChangesAsync(ct);
 
-        var response = EntityBuilder.QuestionnaireResponse
-            .ForQuestionnaire(questionnaire.Id)
-            .OnLink(linkId)
-            .FromClient(client.UserId)
-            .FromProfessional(coach.UserId)
-            .WithStatus(status, status == QuestionnaireResponseStatus.Submitted ? DateTime.UtcNow : null)
-            .Build();
-        db.QuestionnaireResponses.Add(response);
-        await db.SaveChangesAsync(ct);
+        QuestionnaireResponse? response = null;
+        if (withResponse)
+        {
+            response = EntityBuilder.QuestionnaireResponse
+                .ForQuestionnaire(questionnaire.Id)
+                .OnLink(linkId)
+                .FromClient(client.UserId)
+                .FromProfessional(coach.UserId)
+                .WithStatus(status, status == QuestionnaireResponseStatus.Submitted ? DateTime.UtcNow : null)
+                .Build();
+            db.QuestionnaireResponses.Add(response);
+            await db.SaveChangesAsync(ct);
+        }
 
         return new QuestionnaireAnswerScenario
         {
             Client = client,
             LinkPublicId = link.PublicId,
-            ResponsePublicId = response.PublicId,
+            ResponsePublicId = response?.PublicId ?? Guid.Empty,
+            LinkId = linkId,
+            ResponseId = response?.Id ?? 0,
             QuestionnairePublicId = questionnaire.PublicId,
             QuestionIds = questionIds,
         };

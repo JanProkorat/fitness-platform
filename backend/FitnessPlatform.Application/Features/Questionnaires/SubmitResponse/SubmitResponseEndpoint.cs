@@ -91,12 +91,8 @@ public class SubmitResponseEndpoint(IApplicationDbContext db, IProfileMapperServ
             .ToHashSet();
 
         var requiredQuestionIds = await db.QuestionnaireQuestions
-            .Where(q => q.QuestionnaireId == response.QuestionnaireId
-                        && q.IsRequired
-                        && !q.IsHidden
-                        && q.Type != QuestionTypes.Section
-                        // File answers cannot be uploaded yet, so they are not enforced; #1850 removes this.
-                        && q.Type != QuestionTypes.FileUpload)
+            .Where(q => q.QuestionnaireId == response.QuestionnaireId && q.IsRequired)
+            .Where(ClientAnswerableQuestion.Predicate)
             .Select(q => q.Id)
             .ToListAsync(ct);
 
