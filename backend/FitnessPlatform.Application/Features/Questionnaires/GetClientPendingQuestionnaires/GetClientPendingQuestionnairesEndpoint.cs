@@ -3,6 +3,7 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Features.Questionnaires.Shared;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -17,7 +18,8 @@ namespace FitnessPlatform.Application.Features.Questionnaires.GetClientPendingQu
 ///   1. <see cref="GetClientPendingQuestionnairesResponse.PendingDiaryRequests"/> — diary first,
 ///      sorted by <c>CreatedAt DESC</c> within the list.
 ///   2. <see cref="GetClientPendingQuestionnairesResponse.Items"/> — questionnaires second,
-///      one per active professional link.
+///      one per open response or per active link without one, oldest first by
+///      <see cref="PendingQuestionnaireItem.SentAt"/> across all coaches.
 ///
 /// The mobile client renders the two arrays in order, producing: diary banner(s) → questionnaire banner(s).
 /// </summary>
@@ -36,7 +38,8 @@ public class GetClientPendingQuestionnairesEndpoint(
             s.Summary = "Get pending questionnaires and diary requests for the client";
             s.Description =
                 "Returns pending photo-diary requests (diary first) and pending/in-progress questionnaires " +
-                "across all active professional links. Single query — no additional round-trip required.";
+                "across all active professional links. Questionnaires are ordered oldest first by their sent time. " +
+                "Single query — no additional round-trip required.";
         });
     }
 
@@ -150,7 +153,7 @@ public class GetClientPendingQuestionnairesEndpoint(
             // A submission counts by when it was submitted, an open response by when it was created.
             var linkResponses = await db.QuestionnaireResponses
                 .AsNoTracking()
-                .Include(r => r.Questionnaire).ThenInclude(q => q.Questions)
+                .Include(r => r.Questionnaire)
                 .Where(r => r.ClientId == userGuid
                             && r.LinkId == link.Id
                             && (activatedAtUtc == null
@@ -174,7 +177,8 @@ public class GetClientPendingQuestionnairesEndpoint(
                         ProfessionalRole = link.ProfessionalRole.ToString(),
                         QuestionnairePublicId = response.Questionnaire.PublicId,
                         QuestionnaireTitle = response.Questionnaire.Title,
-                        QuestionCount = response.Questionnaire.Questions.Count,
+                        QuestionCount = await CountAnswerableQuestionsAsync(response.QuestionnaireId, ct),
+                        SentAt = response.DateCreated,
                         ResponsePublicId = response.PublicId,
                         ResponseStatus = response.Status.ToString(),
                         Scope = response.Scope,
@@ -221,16 +225,28 @@ public class GetClientPendingQuestionnairesEndpoint(
                 ProfessionalRole = link.ProfessionalRole.ToString(),
                 QuestionnairePublicId = questionnaire.PublicId,
                 QuestionnaireTitle = questionnaire.Title,
-                QuestionCount = questionnaire.Questions.Count,
+                QuestionCount = await CountAnswerableQuestionsAsync(questionnaire.Id, ct),
+                SentAt = link.ActivatedAtUtc ?? link.DateCreated,
             });
         }
 
-        // ── 3. Return: diary first, questionnaires second ─────────────────────
+        // ── 3. Return: diary first, questionnaires second (oldest first) ──────
 
         await Send.OkAsync(new GetClientPendingQuestionnairesResponse
         {
             PendingDiaryRequests = pendingDiaryItems,
-            Items = questionnaireItems,
+            Items = questionnaireItems
+                .OrderBy(item => item.SentAt)
+                .ThenBy(item => item.LinkPublicId)
+                .ThenBy(item => item.ResponsePublicId)
+                .ToList(),
         }, ct);
     }
+
+    private Task<int> CountAnswerableQuestionsAsync(long questionnaireId, CancellationToken ct) =>
+        db.QuestionnaireQuestions
+            .AsNoTracking()
+            .Where(q => q.QuestionnaireId == questionnaireId)
+            .Where(ClientAnswerableQuestion.Predicate)
+            .CountAsync(ct);
 }
