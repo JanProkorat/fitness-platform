@@ -181,7 +181,7 @@ public class UpdatePlanChangedMealMarkerIntegrationTests(FitnessApiFactory facto
 
         var response = await PutAsync(
             nutritionist, planId,
-            [MealBody(mealId, "Lunch", FoodBody()), MealBody(Guid.NewGuid(), "Snack", FoodBody())]);
+            [MealBody(mealId, "Lunch", FoodBody()), MealBody(Guid.NewGuid(), "Dinner", FoodBody())]);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK, await response.Content.ReadAsStringAsync(Ct));
         var stored = await StoredMealsAsync(planId);
