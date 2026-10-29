@@ -146,6 +146,23 @@
     "linkedGreeting": "Ahoj, {{name}}",
     "linkedGreetingAnonymous": "Ahoj",
     "linkedBody": "Vaši poradci jsou připraveni. Tady uvidíte svůj den.",
+    "areaBlocks": {
+      "startsOn": {
+        "training": "Tréninkový plán začíná {{weekday}}",
+        "nutrition": "Nutriční plán začíná {{weekday}}"
+      },
+      "weekday": {
+        "1": "v pondělí",
+        "2": "v úterý",
+        "3": "ve středu",
+        "4": "ve čtvrtek",
+        "5": "v pátek",
+        "6": "v sobotu",
+        "7": "v neděli"
+      },
+      "area": { "training": "Trénink", "nutrition": "Výživa" },
+      "notifyHint": "Upozorníme vás, jakmile bude zveřejněn"
+    },
     "notifications": "Upozornění",
     "notificationsUnread": "Upozornění, nepřečtených: {{count}}",
     "profile": "Profil",

@@ -192,6 +192,8 @@ export const sizes = {
   recipeGroupBarHeight: 22,
   calendarTileWidth: 52,
   calendarTileHeight: 56,
+  areaTileWidth: 42,
+  areaTileHeight: 46,
   prepareIcon: 36,
   weekBars: 72,
   weekBarMin: 6,

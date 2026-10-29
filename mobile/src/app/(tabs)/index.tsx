@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Screen } from '@/components/Screen';
 import { TabFade } from '@/components/TabFade';
 import { Text } from '@/components/Text';
+import { AreaBlocks, hasAreaBlock } from '@/components/today/AreaBlocks';
 import { CoachProgressCard } from '@/components/today/CoachProgressCard';
 import {
   COACH_ROLES,
@@ -19,11 +20,13 @@ import { InvitesSection } from '@/components/today/InvitesSection';
 import { PaymentDueCard } from '@/components/today/PaymentDueCard';
 import { RoleSlots } from '@/components/today/RoleSlots';
 import { StartOnYourOwn } from '@/components/today/StartOnYourOwn';
+import { selectAreaBlocks } from '@/components/today/todayBlocks';
 import { TodayHeader } from '@/components/today/TodayHeader';
 import { isActivePlan, planKind } from '@/api/plans';
 import { useClientPlans } from '@/hooks/useClientPlans';
 import { useCollaborations } from '@/hooks/useCollaborations';
 import { useInvites } from '@/hooks/useInvites';
+import { useLocalDayChange } from '@/hooks/useLocalDayChange';
 import { useProfile } from '@/hooks/useProfile';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useTheme } from '@/theme';
@@ -47,6 +50,7 @@ function TodayContent() {
   const collaborations = useCollaborations();
   const invites = useInvites();
   const plans = useClientPlans();
+  const today = useLocalDayChange();
   const { refreshing, onRefresh } = usePullToRefresh();
   const barClearance = theme.sizes.tabBar + theme.sizes.tabBarBottom + theme.spacing.xxl;
 
@@ -107,6 +111,18 @@ function TodayContent() {
     }
 
     if (!plans.isError) {
+      const areaBlocks = selectAreaBlocks(plans.data ?? [], covering, today);
+      // Once any area has an Active plan, each area gets its own block instead of the progress card.
+      if (areaBlocks !== null && areaBlocks.some(hasAreaBlock)) {
+        return screen(
+          <TodayHeader title={t('today.dateTitle')} />,
+          <AreaBlocks blocks={areaBlocks} today={today} />,
+          true,
+        );
+      }
+    }
+
+    if (!plans.isError && !(plans.data ?? []).some(isActivePlan)) {
       const published = unique(
         (plans.data ?? []).filter(isActivePlan).map((plan) => roleForPlanKind(planKind(plan))),
       );
