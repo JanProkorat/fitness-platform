@@ -11,7 +11,6 @@ import {
   COACH_ROLES,
   coveredCollaborations,
   offeredInvites,
-  roleForPlanKind,
 } from '@/components/today/collaborationRoles';
 import type { CoachRole } from '@/components/today/collaborationRoles';
 import { FindCoachSection } from '@/components/today/FindCoachSection';
@@ -24,7 +23,7 @@ import { StartOnYourOwn } from '@/components/today/StartOnYourOwn';
 import { StatTiles } from '@/components/today/StatTiles';
 import { hasRunningPlan, selectAreaBlocks } from '@/components/today/todayBlocks';
 import { TodayHeader } from '@/components/today/TodayHeader';
-import { isActivePlan, planKind } from '@/api/plans';
+import { isActivePlan } from '@/api/plans';
 import { useClientPlans } from '@/hooks/useClientPlans';
 import { useCollaborations } from '@/hooks/useCollaborations';
 import { useInvites } from '@/hooks/useInvites';
@@ -129,18 +128,12 @@ function TodayContent() {
     }
 
     if (!plans.isError && !(plans.data ?? []).some(isActivePlan)) {
-      const published = unique(
-        (plans.data ?? []).filter(isActivePlan).map((plan) => roleForPlanKind(planKind(plan))),
-      );
+      // No plan is Active here, so every covered role is still unpublished.
       const progress = covering
-        .map((entry) => ({
-          ...entry,
-          unpublished: entry.roles.filter((role) => !published.includes(role)),
-        }))
+        .map((entry) => ({ ...entry, unpublished: entry.roles }))
         .filter((entry) => entry.unpublished.length > 0);
 
       if (progress.length > 0) {
-        const hasPublished = coveredRoles.some((role) => published.includes(role));
         return screen(
           <TodayHeader title={t('today.dateTitle')} />,
           <>
@@ -153,11 +146,6 @@ function TodayContent() {
                 onlyCollaboration={covering.length === 1}
               />
             ))}
-            {hasPublished ? (
-              <Text variant="bodyLarge" color="muted">
-                {t('today.linkedBody')}
-              </Text>
-            ) : null}
             {missing.length > 0 ? (
               <RoleSlots missing={missing} offers={offers} mode="add" />
             ) : null}

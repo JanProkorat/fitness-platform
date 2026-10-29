@@ -2,7 +2,7 @@ import type { Collaboration } from '@/api/collaborations';
 import type { ClientOwnPlanItem } from '@/api/generated';
 import { isActivePlan, planKind } from '@/api/plans';
 import type { PlanKind } from '@/api/plans';
-import { isoDay } from '@/components/nutrition/plan/model';
+import { isoDay, planEndDate } from '@/components/nutrition/plan/model';
 
 import { COACH_ROLES } from './collaborationRoles';
 import type { CoachRole, CoveredCollaboration } from './collaborationRoles';
@@ -42,6 +42,17 @@ export function pickUpcomingPlan(
   return best;
 }
 
+/**
+ * True when `plan` is under way on `today`: Active, at least one published week, started on or before today and
+ * its window not yet ended. Shared by Today and the "Your plans" list so they cannot disagree.
+ */
+export function isRunningPlan(plan: ClientOwnPlanItem, today: string): boolean {
+  if (!isActivePlan(plan) || (plan.publishedWeekCount ?? 0) <= 0) return false;
+  const start = startOf(plan);
+  if (start === '' || start > today) return false;
+  return planEndDate(start, Math.max(plan.totalWeeks ?? 0, 1)) >= today;
+}
+
 /** True when any area has a plan under way. */
 export const hasRunningPlan = (blocks: readonly AreaBlock[]): boolean =>
   blocks.some((block) => block.state.kind === 'running');
@@ -64,9 +75,7 @@ export function selectAreaBlocks(
   return COACH_ROLES.map((role): AreaBlock => {
     const kind: PlanKind = role === 'Nutritionist' ? 'nutrition' : 'training';
     const upcoming = pickUpcomingPlan(plans, kind, today);
-    const active = plans.filter((plan) => planKind(plan) === kind && isActivePlan(plan));
-    // An Active plan that is not the upcoming one is under way, even if another one is queued behind it.
-    const running = active.find((plan) => plan !== upcoming);
+    const running = plans.find((plan) => planKind(plan) === kind && isRunningPlan(plan, today));
     if (running) {
       const lastWeek =
         running.currentWeek !== undefined && running.totalWeeks !== undefined && running.currentWeek === running.totalWeeks;

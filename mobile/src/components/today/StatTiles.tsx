@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -7,6 +7,7 @@ import { dueWeekday } from '@/components/checkIns/model';
 import { AddMeasurementSheet } from '@/components/measurements/AddMeasurementSheet';
 import { useCheckInHistory } from '@/hooks/useCheckInHistory';
 import { useCollaborations } from '@/hooks/useCollaborations';
+import { useLocalDayChange } from '@/hooks/useLocalDayChange';
 import { useMeasurementHistory } from '@/hooks/useMeasurementHistory';
 import { usePhotos } from '@/hooks/usePhotos';
 import { useProfileSummary } from '@/hooks/useProfileSummary';
@@ -34,7 +35,12 @@ export function StatTiles() {
   const photos = usePhotos();
   const checkIns = useCheckInHistory();
   const collaborations = useCollaborations();
-  const now = Date.now();
+  // Day precision is enough here; reading the clock in render is impure, so derive it from the current day.
+  const day = useLocalDayChange();
+  const now = useMemo(() => {
+    const [year, month, date] = day.split('-').map(Number);
+    return new Date(year, month - 1, date).getTime();
+  }, [day]);
 
   const unavailable = t('today.stats.unavailable');
 
