@@ -360,7 +360,7 @@ test.describe('plan editor offline-sync conflicts', () => {
     await page.locator('[data-testid="meal-cell"][data-day="1"][data-row="0"]').click();
     await page.getByTestId('conflict-mark-reviewed').click();
 
-    await expect(page.getByText("Couldn't mark the conflict as reviewed. Please try again.")).toBeVisible();
+    await expect(page.locator('[data-slot="toast-title"]')).toHaveText("Couldn't mark the conflict as reviewed. Please try again.");
     expect(stub.reviewed).toEqual(['c-1']);
     await expect(page.getByTestId('sync-conflict-strip')).toBeVisible();
     await expect(page.getByTestId('sync-conflict-popover')).toBeVisible();
