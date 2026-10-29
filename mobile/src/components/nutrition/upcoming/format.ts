@@ -19,6 +19,12 @@ export type CalendarParts = {
   weekday: number;
 };
 
+/** Full weekday name of the start date in the app language, e.g. "Monday". */
+export const weekdayName = (language: string, startDate: string | undefined): string =>
+  new Intl.DateTimeFormat(language, { weekday: 'long', timeZone: 'UTC' }).format(
+    new Date(parseDay(isoDay(startDate))),
+  );
+
 /** The start date split into what the calendar tile and the title need. */
 export function calendarParts(language: string, startDate: string | undefined): CalendarParts {
   const iso = isoDay(startDate);

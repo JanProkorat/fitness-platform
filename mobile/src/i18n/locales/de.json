@@ -146,6 +146,14 @@
     "linkedGreeting": "Hallo, {{name}}",
     "linkedGreetingAnonymous": "Hallo",
     "linkedBody": "Deine Coaches sind an Bord. Dein Tag erscheint hier.",
+    "areaBlocks": {
+      "startsOn": {
+        "training": "Ihr Trainingsplan startet am {{weekday}}",
+        "nutrition": "Ihr Ernährungsplan startet am {{weekday}}"
+      },
+      "area": { "training": "Training", "nutrition": "Ernährung" },
+      "notifyHint": "Wir benachrichtigen Sie, sobald er veröffentlicht ist"
+    },
     "notifications": "Benachrichtigungen",
     "notificationsUnread": "Benachrichtigungen, {{count}} ungelesen",
     "profile": "Profil",

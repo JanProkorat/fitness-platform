@@ -146,6 +146,14 @@
     "linkedGreeting": "Hi, {{name}}",
     "linkedGreetingAnonymous": "Hi",
     "linkedBody": "Your coaches are on board. Your day will show up here.",
+    "areaBlocks": {
+      "startsOn": {
+        "training": "Training plan starts {{weekday}}",
+        "nutrition": "Nutrition plan starts {{weekday}}"
+      },
+      "area": { "training": "Training", "nutrition": "Nutrition" },
+      "notifyHint": "We'll notify you when it's published"
+    },
     "notifications": "Notifications",
     "notificationsUnread": "Notifications, {{count}} unread",
     "profile": "Profile",
