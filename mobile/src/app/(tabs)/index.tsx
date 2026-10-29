@@ -20,7 +20,8 @@ import { InvitesSection } from '@/components/today/InvitesSection';
 import { PaymentDueCard } from '@/components/today/PaymentDueCard';
 import { RoleSlots } from '@/components/today/RoleSlots';
 import { StartOnYourOwn } from '@/components/today/StartOnYourOwn';
-import { selectAreaBlocks } from '@/components/today/todayBlocks';
+import { StatTiles } from '@/components/today/StatTiles';
+import { hasRunningPlan, selectAreaBlocks } from '@/components/today/todayBlocks';
 import { TodayHeader } from '@/components/today/TodayHeader';
 import { isActivePlan, planKind } from '@/api/plans';
 import { useClientPlans } from '@/hooks/useClientPlans';
@@ -116,7 +117,10 @@ function TodayContent() {
       if (areaBlocks !== null && areaBlocks.some(hasAreaBlock)) {
         return screen(
           <TodayHeader title={t('today.dateTitle')} />,
-          <AreaBlocks blocks={areaBlocks} today={today} />,
+          <>
+            {hasRunningPlan(areaBlocks) ? <StatTiles /> : null}
+            <AreaBlocks blocks={areaBlocks} today={today} />
+          </>,
           true,
         );
       }

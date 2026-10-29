@@ -167,6 +167,32 @@
     "notificationsUnread": "Notifications, {{count}} unread",
     "profile": "Profile",
     "invitesTitle": "Invites",
+    "runningNutrition": {
+      "weekOf": "Week {{current}} of {{total}}",
+      "week": "Week {{current}}",
+      "ofKcal": " / {{target}} kcal",
+      "kcal": " kcal"
+    },
+    "stats": {
+      "unavailable": "Not available",
+      "kg": "kg",
+      "weight": "Weight",
+      "weightNone": "Not logged yet",
+      "weightChange": "{{change}} this week",
+      "photos": "Photos",
+      "photosNone": "No photos yet",
+      "photosToday": "Today",
+      "photosAgo_one": "{{count}} day ago",
+      "photosAgo_other": "{{count}} days ago",
+      "checkIn": "Check-in",
+      "checkInOpen": "Open now",
+      "checkInDueToday": "Due today",
+      "checkInDue_one": "Due in {{count}} day",
+      "checkInDue_other": "Due in {{count}} days",
+      "checkInWeekly": "Every week",
+      "checkInNone": "None scheduled",
+      "openCheckIns": "Open check-ins"
+    },
     "dateTitle": "Today",
     "findCoach": {
       "title": "Find a coach",
