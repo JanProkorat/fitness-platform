@@ -964,6 +964,21 @@
     "title": "Vaše offline změny jsou synchronizované",
     "titleDropped": "Některé offline změny se nepodařilo uložit",
     "gotIt": "Rozumím",
+    "cardTitle": "Offline změny synchronizovány",
+    "subtitle": "Zatímco jste byli offline, byl váš plán upraven ({{who}}).",
+    "openHint": "Zobrazí podrobnosti",
+    "dismiss": "Zavřít",
+    "summary": {
+      "changed_one": "{{count}} jídlo změněno",
+      "changed_few": "{{count}} jídla změněna",
+      "changed_many": "{{count}} jídla změněno",
+      "changed_other": "{{count}} jídel změněno",
+      "notSaved_one": "{{count}} neuložený záznam",
+      "notSaved_few": "{{count}} neuložené záznamy",
+      "notSaved_many": "{{count}} neuloženého záznamu",
+      "notSaved_other": "{{count}} neuložených záznamů",
+      "separator": " · "
+    },
     "who": "Váš nutriční poradce",
     "mealFallback": "jídlo",
     "conflict": {

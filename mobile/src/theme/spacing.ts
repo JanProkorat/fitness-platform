@@ -204,6 +204,8 @@ export const sizes = {
   recipeTodayWidth: 150,
   recipeTodayImage: 94,
   noticeIcon: 28,
+  syncCardHeight: 60,
+  syncSheetListMax: 360,
   noticeGlyph: 15,
   pendingGlyph: 13,
   bannerGlyph: 18,

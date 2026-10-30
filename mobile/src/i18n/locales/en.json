@@ -937,6 +937,17 @@
     "title": "Your offline changes are synced",
     "titleDropped": "Some offline changes weren't saved",
     "gotIt": "Got it",
+    "cardTitle": "Offline changes synced",
+    "subtitle": "While you were offline, {{who}} updated your plan.",
+    "openHint": "Shows the details",
+    "dismiss": "Dismiss",
+    "summary": {
+      "changed_one": "{{count}} meal changed",
+      "changed_other": "{{count}} meals changed",
+      "notSaved_one": "{{count}} not saved",
+      "notSaved_other": "{{count}} not saved",
+      "separator": " · "
+    },
     "who": "Your nutritionist",
     "mealFallback": "a meal",
     "conflict": {
