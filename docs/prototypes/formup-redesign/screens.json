@@ -1878,6 +1878,12 @@
   "h": 844
  },
  {
+  "html": "mobile-light/15-05-offline-synced-sheet.html",
+  "png": "mobile-light/15-05-offline-synced-sheet.png",
+  "w": 390,
+  "h": 844
+ },
+ {
   "html": "mobile-dark/01-01-launch-quiet.html",
   "png": "mobile-dark/01-01-launch-quiet.png",
   "w": 390,
@@ -2462,6 +2468,12 @@
  {
   "html": "mobile-dark/16-04-offline-measurements.html",
   "png": "mobile-dark/16-04-offline-measurements.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/16-05-offline-synced-sheet.html",
+  "png": "mobile-dark/16-05-offline-synced-sheet.png",
   "w": 390,
   "h": 844
  },
