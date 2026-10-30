@@ -4,7 +4,7 @@
  *
  * The fixture has no conflict data, so the conflicts endpoint, the timeline and the
  * notification list are stubbed at the network layer. The live `offlinesyncconflict`
- * SignalR refresh is an interactive-QA item.
+ * SignalR refresh is covered by offline-sync-conflict-live.spec.ts.
  */
 import type { Page, Route } from '@playwright/test';
 import { nutritionistTest, trainerTest, expect } from '../fixtures/auth';
