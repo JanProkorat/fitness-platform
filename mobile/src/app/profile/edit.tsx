@@ -17,6 +17,7 @@ import { isAnswersUnavailable } from '@/api/onboardingAnswers';
 import type { EditableAnswers } from '@/api/onboardingAnswers';
 import type { Profile } from '@/api/profile';
 import { Button } from '@/components/Button';
+import { PlanState } from '@/components/nutrition/plan/PlanState';
 import { AvatarEditor } from '@/components/profile/edit/AvatarEditor';
 import { InfoSection } from '@/components/profile/edit/InfoSection';
 import { PersonalCard } from '@/components/profile/edit/PersonalCard';
@@ -30,6 +31,7 @@ import { useCollaborations } from '@/hooks/useCollaborations';
 import { useEditProfile } from '@/hooks/useEditProfile';
 import { useOnboardingAnswers } from '@/hooks/useOnboardingAnswers';
 import { useProfile } from '@/hooks/useProfile';
+import { isOfflineEmpty, showsError } from '@/lib/queryState';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
 
@@ -43,14 +45,18 @@ export default function EditProfileScreen() {
   const answersQuery = useOnboardingAnswers();
 
   // 404 and 409 mean there are no answers to edit; that hides My info but not the rest.
-  const answersMissing = answersQuery.isError && isAnswersUnavailable(answersQuery.error);
+  const answersMissing = showsError(answersQuery) && isAnswersUnavailable(answersQuery.error);
   const profile = profileQuery.data;
 
-  if (profile && (answersQuery.isSuccess || answersMissing)) {
+  if (profile && (answersQuery.isSuccess || answersQuery.data !== undefined || answersMissing)) {
     return <EditForm profile={profile} answers={answersQuery.data ?? null} />;
   }
 
-  const failed = profileQuery.isError || answersQuery.isError;
+  if (isOfflineEmpty(profileQuery) || isOfflineEmpty(answersQuery)) {
+    return <PlanState kind="offline" onBack={() => router.back()} />;
+  }
+
+  const failed = showsError(profileQuery) || showsError(answersQuery);
   return (
     <Screen gutter={theme.spacing.xl} topGap={theme.spacing.safeAreaGap} contentStyle={styles.fill}>
       <ScreenHeader

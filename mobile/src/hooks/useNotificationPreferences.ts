@@ -8,6 +8,7 @@ import {
   withMessagesEnabled,
 } from '@/api/settings';
 import type { NotificationPreferenceDto } from '@/api/generated';
+import { showsError } from '@/lib/queryState';
 import { useAuthStore } from '@/stores/auth';
 
 /** The Messages notification switch: reads the preferences and saves a flip, rolling back on failure. */
@@ -54,7 +55,7 @@ export function useNotificationPreferences() {
 
   return {
     isPending: query.isPending,
-    isError: query.isError,
+    isError: showsError(query),
     refetch: query.refetch,
     messagesEnabled: query.data ? isMessagesEnabled(query.data) : false,
     setMessagesEnabled: mutation.mutate,

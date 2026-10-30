@@ -929,7 +929,11 @@
     "banner": "You're offline",
     "detail": ". Changes sync when you're back online.",
     "detailWithTime": " · showing data from {{time}}. Changes sync when you're back online.",
-    "detailShort": " · showing data from {{time}}"
+    "detailShort": " · showing data from {{time}}",
+    "notSaved": {
+      "title": "Not saved on this phone yet",
+      "body": "This page hasn't been opened while you were online, so there's nothing to show offline. It loads by itself as soon as you're back online."
+    }
   },
   "offlineSync": {
     "pending": "Not synced yet",

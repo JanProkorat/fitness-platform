@@ -47,6 +47,7 @@ import { useFullNutritionPlan } from '@/hooks/useFullNutritionPlan';
 import { useHorizontalSwipe, useSlideTransition } from '@/hooks/useHorizontalSwipe';
 import type { SwipeDirection } from '@/hooks/useHorizontalSwipe';
 import { useNutritionDayLog } from '@/hooks/useNutritionDayLog';
+import { isOfflineEmpty, showsError } from '@/lib/queryState';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
 
@@ -105,7 +106,10 @@ function WeekLoader({ planId, weekNumber, initialDay, onBack: goBack }: WeekLoad
   if (plan.isPending) {
     return <PlanState kind="pending" onBack={goBack} />;
   }
-  if (plan.isError || !plan.data) {
+  if (isOfflineEmpty(plan)) {
+    return <PlanState kind="offline" onBack={goBack} />;
+  }
+  if (showsError(plan) || !plan.data) {
     const missing = getErrorStatus(plan.error) === 404;
     return (
       <PlanState
@@ -348,7 +352,7 @@ function WeekContent({ plan, planId, week, initialDay, onBack }: WeekContentProp
             ) : null}
           </View>
 
-          {log.isError ? (
+          {showsError(log) ? (
             <View style={styles.logError}>
               <Text variant="bodySmall" color="muted" style={styles.logErrorText}>
                 {t('nutritionPlan.week.logError')}

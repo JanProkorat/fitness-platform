@@ -110,7 +110,7 @@ export default function ProfileScreen() {
           <View style={styles.state}>
             <ActivityIndicator color={theme.colors.accent} />
           </View>
-        ) : coachesQuery.isError ? (
+        ) : coachesQuery.data === undefined ? (
           <SectionError
             message={t('profile.error.coaches')}
             retryLabel={t('profile.error.retry')}

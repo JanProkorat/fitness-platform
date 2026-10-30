@@ -3,6 +3,7 @@ import { ActivityIndicator, RefreshControl, StyleSheet, View } from 'react-nativ
 import { useTranslation } from 'react-i18next';
 
 import { Button } from '@/components/Button';
+import { PlanState } from '@/components/nutrition/plan/PlanState';
 import { NutritionEmpty } from '@/components/nutrition/tab/NutritionEmpty';
 import { NutritionUpcoming } from '@/components/nutrition/tab/NutritionUpcoming';
 import { NutritionPlanView, isMissingPlan } from '@/components/nutrition/tab/NutritionPlanView';
@@ -17,6 +18,7 @@ import { useCollaborations } from '@/hooks/useCollaborations';
 import { useNutritionWeekPlan } from '@/hooks/useNutritionWeekPlan';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useUpcomingNutritionPlan } from '@/hooks/useUpcomingNutritionPlan';
+import { isOfflineEmpty, showsError } from '@/lib/queryState';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
 
@@ -68,7 +70,7 @@ function NutritionContent() {
     return screen(<NutritionPlanView week={weekPlan.data} />, true);
   }
 
-  if (weekPlan.isPending || (weekPlan.isError && isMissingPlan(weekPlan.error) && (collaborations.isPending || upcoming.isPending))) {
+  if (weekPlan.isPending || (showsError(weekPlan) && isMissingPlan(weekPlan.error) && (collaborations.isPending || upcoming.isPending))) {
     return screen(
       <View style={styles.center}>
         <ActivityIndicator color={theme.colors.accent} />
@@ -76,7 +78,11 @@ function NutritionContent() {
     );
   }
 
-  if (weekPlan.isError && !isMissingPlan(weekPlan.error)) {
+  if (isOfflineEmpty(weekPlan)) {
+    return <PlanState kind="offline" />;
+  }
+
+  if (showsError(weekPlan) && !isMissingPlan(weekPlan.error)) {
     return screen(
       <View style={styles.center}>
         <Text variant="heading" accessibilityRole="header" style={styles.centered}>
@@ -91,7 +97,7 @@ function NutritionContent() {
   }
 
   // No published plan: a linked nutritionist is still building it, otherwise offer to find one.
-  const covering = collaborations.isError ? [] : coveredCollaborations(collaborations.data ?? []);
+  const covering = showsError(collaborations) ? [] : coveredCollaborations(collaborations.data ?? []);
   const nutritionist = covering.find((entry) => entry.roles.includes('Nutritionist'));
   // A published plan that starts later wins over the waiting and empty states.
   if (upcoming.plan) {

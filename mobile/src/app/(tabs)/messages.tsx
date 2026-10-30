@@ -5,11 +5,13 @@ import { useTranslation } from 'react-i18next';
 
 import type { Conversation } from '@/api/conversations';
 import { ConversationRow } from '@/components/messages/ConversationRow';
+import { PlanState } from '@/components/nutrition/plan/PlanState';
 import { OfflineBanner } from '@/components/OfflineBanner';
 import { Screen } from '@/components/Screen';
 import { TabFade } from '@/components/TabFade';
 import { Text } from '@/components/Text';
 import { useConversations } from '@/hooks/useConversations';
+import { isOfflineEmpty, showsError } from '@/lib/queryState';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
 
@@ -29,7 +31,8 @@ function MessagesContent() {
   const theme = useTheme();
   const styles = makeStyles(theme);
   const router = useRouter();
-  const { data, isPending, isError, refetch } = useConversations();
+  const conversations = useConversations();
+  const { data, isPending, refetch } = conversations;
   const barClearance = theme.sizes.tabBar + theme.sizes.tabBarBottom + theme.spacing.xxl;
 
   const rows = (data ?? []).filter((conversation) => conversation.id);
@@ -49,6 +52,10 @@ function MessagesContent() {
       ))}
     </View>
   );
+
+  if (isOfflineEmpty(conversations)) {
+    return <PlanState kind="offline" />;
+  }
 
   return (
     <Screen
@@ -78,7 +85,7 @@ function MessagesContent() {
 
       {isPending ? (
         <ActivityIndicator color={theme.colors.accent} style={styles.status} />
-      ) : isError ? (
+      ) : showsError(conversations) ? (
         <Pressable accessibilityRole="button" onPress={() => void refetch()} style={styles.status}>
           <Text variant="bodyLarge" color="muted">
             {t('messages.error')}

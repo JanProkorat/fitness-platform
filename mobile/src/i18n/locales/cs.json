@@ -956,7 +956,11 @@
     "banner": "Jste offline",
     "detail": ". Změny se odešlou, až budete zpět online.",
     "detailWithTime": " · zobrazuji data z {{time}}. Změny se odešlou, až budete zpět online.",
-    "detailShort": " · zobrazuji data z {{time}}"
+    "detailShort": " · zobrazuji data z {{time}}",
+    "notSaved": {
+      "title": "Zatím neuloženo v telefonu",
+      "body": "Tato stránka nebyla otevřena, když jste byli online, takže offline není co zobrazit. Načte se sama, jakmile budete zpět online."
+    }
   },
   "offlineSync": {
     "pending": "Zatím nesynchronizováno",

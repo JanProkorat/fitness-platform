@@ -20,6 +20,7 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import { Text } from '@/components/Text';
 import { useClientRecipes } from '@/hooks/useClientRecipes';
 import { useFullNutritionPlan } from '@/hooks/useFullNutritionPlan';
+import { isOfflineEmpty, showsError } from '@/lib/queryState';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
 
@@ -86,7 +87,8 @@ export default function NutritionRecipesScreen() {
 
   const body = (() => {
     if (planScope && plan.isPending) return <RecipesState kind="pending" />;
-    if (planScope && (plan.isError || !plan.data)) {
+    if (planScope && isOfflineEmpty(plan)) return <RecipesState kind="offline" />;
+    if (planScope && (showsError(plan) || !plan.data)) {
       if (getErrorStatus(plan.error) === 404) return noPlan;
       return (
         <RecipesState
@@ -99,7 +101,8 @@ export default function NutritionRecipesScreen() {
       );
     }
     if (recipes.isPending) return <RecipesState kind="pending" />;
-    if (recipes.isError) {
+    if (isOfflineEmpty(recipes)) return <RecipesState kind="offline" />;
+    if (showsError(recipes)) {
       if (planScope && getErrorStatus(recipes.error) === 404) return noPlan;
       return (
         <RecipesState
