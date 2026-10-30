@@ -367,6 +367,37 @@ public class OfflineSyncConflictIntegrationTests(FitnessApiFactory factory)
     }
 
     [Fact]
+    public async Task Conflict_CountExcludesConflictsTheCoachAlreadyReviewed()
+    {
+        var (client, coach) = await SeedLinkedPairAsync("en");
+        var meal = NewMeal(changedAtPlanVersion: 3);
+        var plan = await InsertPlanAsync(client, meal, coach.UserId, version: 3);
+        using (var scope = factory.Services.CreateScope())
+        {
+            var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+            await mongo.OfflineSyncConflicts.InsertOneAsync(new OfflineSyncConflict
+            {
+                ExternalId = Guid.NewGuid(),
+                ClientId = client.UserId,
+                PlanId = plan.ExternalId,
+                PlanAuthorId = coach.UserId,
+                Operation = "LogMealEaten",
+                Kind = OfflineSyncConflictKind.PlanChanged,
+                MealId = meal.MealId,
+                PlanName = plan.Name,
+                ReviewedAt = DateTime.UtcNow,
+                ReviewedByUserId = coach.UserId,
+            }, cancellationToken: Ct);
+        }
+
+        (await LogAsync(client, meal.MealId, 2)).StatusCode.Should().Be(HttpStatusCode.Created);
+
+        (await LoadConflictsAsync(client.UserId)).Should().HaveCount(2);
+        var notification = (await LoadConflictNotificationsAsync(coach.UserId)).Should().ContainSingle().Subject;
+        notification.Data.Should().Contain("\"count\":\"1\"");
+    }
+
+    [Fact]
     public async Task Conflict_AfterNotificationWasRead_CreatesANewOne()
     {
         var (client, coach) = await SeedLinkedPairAsync();

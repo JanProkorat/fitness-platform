@@ -299,6 +299,7 @@ public class UpdatePlanEndpoint(
         }).ToList();
 
         StampChangedMeals(plan, storedMeals, plan.Version + 1);
+        RecordRemovedMeals(plan, storedMeals, plan.Version + 1, DateTime.UtcNow);
 
         // Map supplements (full-state replace)
         plan.Supplements = req.Supplements.Select(rs => new Supplement
@@ -349,6 +350,50 @@ public class UpdatePlanEndpoint(
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// Keeps <see cref="NutritionPlan.RemovedMeals"/> in step with the save: meals that were stored
+    /// but are gone get a record, re-added ids lose theirs, and entries past the offline window
+    /// (8 days) are pruned.
+    /// </summary>
+    private static void RecordRemovedMeals(
+        NutritionPlan plan,
+        Dictionary<Guid, (PlanMeal Meal, int WeekNumber, int DayOfWeek)> storedMeals,
+        int newPlanVersion,
+        DateTime now)
+    {
+        var currentMealIds = plan.Weeks
+            .SelectMany(w => w.Days)
+            .SelectMany(d => d.Meals)
+            .Select(m => m.MealId)
+            .ToHashSet();
+        var cutoff = now.AddDays(-8);
+
+        var kept = plan.RemovedMeals
+            .Where(r => r.RemovedAt >= cutoff && !currentMealIds.Contains(r.MealId))
+            .ToList();
+        var recordedIds = kept.Select(r => r.MealId).ToHashSet();
+
+        foreach (var (mealId, stored) in storedMeals)
+        {
+            if (currentMealIds.Contains(mealId) || !recordedIds.Add(mealId))
+            {
+                continue;
+            }
+
+            kept.Add(new RemovedPlanMeal
+            {
+                MealId = mealId,
+                Kind = stored.Meal.Kind,
+                WeekNumber = stored.WeekNumber,
+                DayOfWeek = stored.DayOfWeek,
+                RemovedAtPlanVersion = newPlanVersion,
+                RemovedAt = now,
+            });
+        }
+
+        plan.RemovedMeals = kept;
     }
 
     private static bool HasSameContent(PlanMeal stored, PlanMeal incoming) =>
