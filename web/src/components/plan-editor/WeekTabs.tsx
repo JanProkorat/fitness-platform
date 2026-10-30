@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import ConflictBadge from '@/components/plan-editor/sync-conflicts/ConflictBadge';
 import { useSyncConflicts } from '@/components/plan-editor/sync-conflicts/SyncConflictsContext';
-import { MAX_WEEKS,type WeekPillStatus } from '@/components/plan-editor/plan-editor-types';
+import { MAX_WEEKS, type WeekPillStatus } from '@/components/plan-editor/plan-editor-types';
 
 const SCROLL_STEP_PX = 240;
 const DOT_CLASS = 'size-1.75 shrink-0 rounded-full';
