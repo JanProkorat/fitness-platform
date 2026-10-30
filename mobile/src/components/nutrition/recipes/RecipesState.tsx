@@ -68,6 +68,6 @@ const makeStyles = (theme: Theme) =>
       width: theme.sizes.offlineIcon,
       height: theme.sizes.offlineIcon,
       borderRadius: theme.radii.pill,
-      backgroundColor: theme.colors.subtle,
+      backgroundColor: theme.colors.tabSelected,
     },
   });

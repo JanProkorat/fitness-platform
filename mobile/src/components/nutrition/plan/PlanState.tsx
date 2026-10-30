@@ -67,7 +67,7 @@ export function PlanState({ kind, title, body, onBack, onRetry }: PlanStateProps
                 onPress={onBack}
                 style={({ pressed }) => [styles.quietPill, pressed && styles.pressed]}
               >
-                <Text variant="labelStrong">{t('nutritionPlan.back')}</Text>
+                <Text variant="bodyStrong">{t('nutritionPlan.back')}</Text>
               </Pressable>
             ) : onBack ? (
               <Button label={t('nutritionPlan.back')} onPress={onBack} />
@@ -96,7 +96,7 @@ const makeStyles = (theme: Theme) =>
       width: theme.sizes.offlineIcon,
       height: theme.sizes.offlineIcon,
       borderRadius: theme.radii.pill,
-      backgroundColor: theme.colors.subtle,
+      backgroundColor: theme.colors.tabSelected,
     },
     quietPill: {
       alignSelf: 'center',
