@@ -937,6 +937,17 @@
     "title": "Ihre Offline-Änderungen sind synchronisiert",
     "titleDropped": "Einige Offline-Änderungen wurden nicht gespeichert",
     "gotIt": "Verstanden",
+    "cardTitle": "Offline-Änderungen synchronisiert",
+    "subtitle": "Während Sie offline waren, hat {{who}} Ihren Plan angepasst.",
+    "openHint": "Zeigt die Details",
+    "dismiss": "Schließen",
+    "summary": {
+      "changed_one": "{{count}} Mahlzeit geändert",
+      "changed_other": "{{count}} Mahlzeiten geändert",
+      "notSaved_one": "{{count}} nicht gespeichert",
+      "notSaved_other": "{{count}} nicht gespeichert",
+      "separator": " · "
+    },
     "who": "Ihre Ernährungsberatung",
     "mealFallback": "eine Mahlzeit",
     "conflict": {
