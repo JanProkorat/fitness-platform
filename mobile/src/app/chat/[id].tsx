@@ -21,6 +21,7 @@ import { useConversationMessages, useRefreshConversationMessages } from '@/hooks
 import { useConversations } from '@/hooks/useConversations';
 import { useMarkConversationRead } from '@/hooks/useMarkConversationRead';
 import { useSendMessage } from '@/hooks/useSendMessage';
+import { isOfflineEmpty, showsError } from '@/lib/queryState';
 import { useRealtimeEvent, useRealtimeReconnected } from '@/realtime/useRealtimeEvent';
 import { useTheme } from '@/theme';
 import { chatMotion } from '@/theme/motion';
@@ -133,7 +134,8 @@ export default function ChatScreen() {
     );
   }
 
-  const loadFailed = messagesQuery.isError || conversations.isError;
+  const loadFailed = showsError(messagesQuery) || showsError(conversations);
+  const notSaved = isOfflineEmpty(messagesQuery) || isOfflineEmpty(conversations);
   const loading = !loadFailed && (!conversation || messages === undefined);
   const readOnly = conversation?.isFormer === true;
   const locked = conversation?.isSendLocked === true;
@@ -191,7 +193,16 @@ export default function ChatScreen() {
         <OfflineBanner />
       </View>
 
-      {loadFailed ? (
+      {notSaved ? (
+        <View style={styles.center}>
+          <Text variant="subtitle" style={styles.centerText}>
+            {t('offline.notSaved.title')}
+          </Text>
+          <Text variant="bodyLarge" color="muted" style={styles.centerText}>
+            {t('offline.notSaved.body')}
+          </Text>
+        </View>
+      ) : loadFailed ? (
         <Pressable
           accessibilityRole="button"
           onPress={() => {

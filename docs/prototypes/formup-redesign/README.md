@@ -5,7 +5,7 @@ the web portal and the mobile apps:
 <https://claude.ai/artifact/HFzM8WqykBxJvkLdiqU85h> (private claude.ai Design
 artifact — only the main Claude session can open it; agents read this snapshot).
 
-**Snapshot of canvas version 1793274985-492c, exported 2026-10-29 (#1810); `canvas.json` and the GlassOffline* boards from 1793279172-ac8c (#1830); `canvas.json` and the PageClientActivityOfflineSync / PageNotificationsOfflineSync boards from 1793281475-31a2 (#1819); `canvas.json` and the PageClientPlanEditorOfflineSync / PageClientPlanDayOfflineSync boards from 1793295740-493c (#1840), leaving out the 10 GlassQuestionnaire* boards on the canvas; the GlassOfflineSynced boards and the new GlassOfflineSyncedSheet boards from 1793351906-f400 (#1862), keeping this snapshot's own layout (the live canvas has since been reorganised; re-sync separately).** If the canvas has moved
+**Snapshot of canvas version 1793274985-492c, exported 2026-10-29 (#1810); `canvas.json` and the GlassOffline* boards from 1793279172-ac8c (#1830); `canvas.json` and the PageClientActivityOfflineSync / PageNotificationsOfflineSync boards from 1793281475-31a2 (#1819); `canvas.json` and the PageClientPlanEditorOfflineSync / PageClientPlanDayOfflineSync boards from 1793295740-493c (#1840), leaving out the 10 GlassQuestionnaire* boards on the canvas; the GlassOfflineSynced boards and the new GlassOfflineSyncedSheet boards from 1793351906-f400 (#1862), keeping this snapshot's own layout (the live canvas has since been reorganised; re-sync separately); the GlassOfflineNotSaved boards from 1793352833-8ee4 (#1865), same approach.** If the canvas has moved
 on, re-export before relying on this copy (see Rebuilding).
 
 | Path | Contents |

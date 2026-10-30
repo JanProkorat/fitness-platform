@@ -11,6 +11,7 @@ import { useLocalDayChange } from '@/hooks/useLocalDayChange';
 import { useMeasurementHistory } from '@/hooks/useMeasurementHistory';
 import { usePhotos } from '@/hooks/usePhotos';
 import { useProfileSummary } from '@/hooks/useProfileSummary';
+import { showsError } from '@/lib/queryState';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
 
@@ -47,7 +48,7 @@ export function StatTiles() {
   const weightTile = (() => {
     const action = { symbol: 'plus' as const, label: t('today.own.logWeight'), onPress: () => setSheetOpen(true) };
     const base = { symbol: 'scalemass' as const, label: t('today.stats.weight'), action };
-    if (summary.isError) return { ...base, value: PLACEHOLDER_VALUE, caption: unavailable };
+    if (showsError(summary)) return { ...base, value: PLACEHOLDER_VALUE, caption: unavailable };
     const latest = summary.data?.latestWeightKg;
     if (summary.data === undefined) return { ...base, value: PLACEHOLDER_VALUE, caption: '' };
     if (latest === undefined) return { ...base, value: PLACEHOLDER_VALUE, caption: t('today.stats.weightNone') };
@@ -71,7 +72,7 @@ export function StatTiles() {
   const photoTile = (() => {
     const action = { symbol: 'plus' as const, label: t('today.own.addPhoto'), onPress: () => router.push('/profile/photos') };
     const base = { symbol: 'camera' as const, label: t('today.stats.photos'), action };
-    if (summary.isError) return { ...base, value: PLACEHOLDER_VALUE, caption: unavailable };
+    if (showsError(summary)) return { ...base, value: PLACEHOLDER_VALUE, caption: unavailable };
     if (summary.data === undefined) return { ...base, value: PLACEHOLDER_VALUE, caption: '' };
     const count = summary.data.progressPhotoCount ?? 0;
     if (count === 0) return { ...base, value: '0', caption: t('today.stats.photosNone') };

@@ -13,6 +13,7 @@ import { DetailState } from '@/components/nutrition/meal/DetailState';
 import { formatWhole, macrosOf, scaleMacros } from '@/components/nutrition/meal/format';
 import { Text } from '@/components/Text';
 import { useFoodDetail } from '@/hooks/useFoodDetail';
+import { isOfflineEmpty } from '@/lib/queryState';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
 
@@ -33,12 +34,12 @@ export default function FoodDetailScreen() {
   const query = useFoodDetail(foodId, valid);
   const goBack = () => (router.canGoBack() ? router.back() : router.replace('/nutrition'));
 
-  if (!valid || query.isPending || query.isError) {
+  if (!valid || query.isPending || query.data === undefined) {
     const notFound = !valid || (query.isError && getErrorStatus(query.error) === 404);
     const pending = valid && query.isPending;
     return (
       <DetailState
-        kind={pending ? 'pending' : notFound ? 'notFound' : 'error'}
+        kind={pending ? 'pending' : notFound ? 'notFound' : isOfflineEmpty(query) ? 'offline' : 'error'}
         title={notFound ? t('nutritionFood.notFound.title') : t('nutritionFood.error.title')}
         body={notFound ? t('nutritionFood.notFound.body') : t('nutritionFood.error.body')}
         onBack={goBack}

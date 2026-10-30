@@ -35,6 +35,7 @@ import { Text } from '@/components/Text';
 import { useCollaborations } from '@/hooks/useCollaborations';
 import { useMeasurementHistory, usePlanStart } from '@/hooks/useMeasurementHistory';
 import { usePendingKeys } from '@/stores/outbox';
+import { showsError } from '@/lib/queryState';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
 
@@ -137,7 +138,7 @@ export default function MeasurementsScreen() {
           <View style={styles.state}>
             <ActivityIndicator color={theme.colors.accent} />
           </View>
-        ) : historyQuery.isError ? (
+        ) : showsError(historyQuery) ? (
           <View style={styles.error}>
             <Text variant="body" color="muted" style={styles.centered}>
               {t('measurements.error.history')}

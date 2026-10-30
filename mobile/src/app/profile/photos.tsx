@@ -19,6 +19,7 @@ import { usePhotos } from '@/hooks/usePhotos';
 import { useProfile } from '@/hooks/useProfile';
 import { useProfileSummary } from '@/hooks/useProfileSummary';
 import { useUploadPhoto } from '@/hooks/useUploadPhoto';
+import { showsError } from '@/lib/queryState';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
 
@@ -155,7 +156,7 @@ export default function ProgressPhotosScreen() {
           <View style={styles.state}>
             <ActivityIndicator color={theme.colors.accent} />
           </View>
-        ) : photosQuery.isError ? (
+        ) : showsError(photosQuery) ? (
           <View style={styles.state}>
             <Text variant="body" color="muted" style={styles.centered}>
               {t('photos.errors.load')}

@@ -22,6 +22,7 @@ import { Text } from '@/components/Text';
 import { useNutritionDayLog } from '@/hooks/useNutritionDayLog';
 import { useTodayMealActions } from '@/hooks/useTodayMealActions';
 import { useTodayMealLog } from '@/hooks/useTodayMealLog';
+import { showsError } from '@/lib/queryState';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
 
@@ -94,7 +95,7 @@ export function NutritionPlanView({ week }: NutritionPlanViewProps) {
 
   const viewerMeal = viewer ? meals.find((meal) => meal.mealId === viewer.mealId) : undefined;
   const viewerPhotos = viewerMeal ? photosOf(viewerMeal) : [];
-  const logFailed = isToday ? todayLog.isError : weekLog.isError;
+  const logFailed = isToday ? showsError(todayLog) : showsError(weekLog);
   const offPlan = isToday ? (todayLog.data?.offPlanFoods ?? []) : [];
 
   return (

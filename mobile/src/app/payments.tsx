@@ -11,6 +11,7 @@ import { OfflineBanner } from '@/components/OfflineBanner';
 import { Text } from '@/components/Text';
 import { CoachSection, coachHeading, hasPayments } from '@/components/payments/CoachSection';
 import { usePayments } from '@/hooks/usePayments';
+import { isOfflineEmpty, showsError } from '@/lib/queryState';
 import { usePaymentsEnabled } from '@/hooks/usePaymentsEnabled';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
@@ -23,7 +24,8 @@ export default function PaymentsScreen() {
   const insets = useSafeAreaInsets();
   const styles = makeStyles(theme, insets);
   const { enabled, settled } = usePaymentsEnabled();
-  const { data: coaches, isPending, isError, refetch } = usePayments(enabled);
+  const paymentsQuery = usePayments(enabled);
+  const { data: coaches, isPending, refetch } = paymentsQuery;
 
   // Deep links and push taps can land here with payments switched off: leave instead of showing anything.
   useEffect(() => {
@@ -53,7 +55,11 @@ export default function PaymentsScreen() {
       >
         <OfflineBanner />
         {isPending ? <ActivityIndicator color={theme.colors.muted} style={styles.loading} /> : null}
-        {isError && !coaches ? (
+        {isOfflineEmpty(paymentsQuery) ? (
+          <Text variant="body" color="muted">
+            {t('offline.notSaved.title')}. {t('offline.notSaved.body')}
+          </Text>
+        ) : showsError(paymentsQuery) ? (
           <Pressable accessibilityRole="button" onPress={() => void refetch()}>
             <Text variant="body" color="muted">
               {t('payments.error')}

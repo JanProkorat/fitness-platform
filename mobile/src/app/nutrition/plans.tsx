@@ -14,6 +14,7 @@ import { daysUntil } from '@/components/nutrition/upcoming/format';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { useClientPlans } from '@/hooks/useClientPlans';
+import { isOfflineEmpty, showsError } from '@/lib/queryState';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
 
@@ -39,7 +40,10 @@ export default function NutritionPlansScreen() {
   if (plans.isPending) {
     return <PlanState kind="pending" onBack={goBack} />;
   }
-  if (plans.isError) {
+  if (isOfflineEmpty(plans)) {
+    return <PlanState kind="offline" onBack={goBack} />;
+  }
+  if (showsError(plans)) {
     return (
       <PlanState
         kind="error"

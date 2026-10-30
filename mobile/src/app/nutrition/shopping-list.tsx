@@ -16,6 +16,7 @@ import { Screen } from '@/components/Screen';
 import { Text } from '@/components/Text';
 import { useFullNutritionPlan } from '@/hooks/useFullNutritionPlan';
 import { useShoppingList } from '@/hooks/useShoppingList';
+import { isOfflineEmpty, showsError } from '@/lib/queryState';
 import { useToggleShoppingItem } from '@/hooks/useToggleShoppingItem';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
@@ -44,7 +45,10 @@ export default function ShoppingListScreen() {
   if (plan.isPending) {
     return <PlanState kind="pending" onBack={goBack} />;
   }
-  if (plan.isError || !plan.data) {
+  if (isOfflineEmpty(plan)) {
+    return <PlanState kind="offline" onBack={goBack} />;
+  }
+  if (showsError(plan) || !plan.data) {
     const missing = getErrorStatus(plan.error) === 404;
     return (
       <PlanState
@@ -116,7 +120,7 @@ function ShoppingListContent({ current, next, onBack }: ShoppingListContentProps
     { key: 'next', label: t('nutritionShoppingList.nextWeek'), disabled: next === undefined },
   ];
 
-  const missing = list.isError && getErrorStatus(list.error) === 404;
+  const missing = showsError(list) && getErrorStatus(list.error) === 404;
 
   return (
     <Screen
@@ -149,7 +153,16 @@ function ShoppingListContent({ current, next, onBack }: ShoppingListContentProps
         <View style={styles.state}>
           <ActivityIndicator color={theme.colors.accent} />
         </View>
-      ) : list.isError ? (
+      ) : isOfflineEmpty(list) ? (
+        <View style={styles.state}>
+          <Text variant="heading" accessibilityRole="header" style={styles.centered}>
+            {t('offline.notSaved.title')}
+          </Text>
+          <Text variant="body" color="muted" style={styles.centered}>
+            {t('offline.notSaved.body')}
+          </Text>
+        </View>
+      ) : showsError(list) ? (
         <View style={styles.state}>
           <Text variant="body" color="muted" style={styles.centered}>
             {missing ? t('nutritionShoppingList.empty.noPlanBody') : t('nutritionShoppingList.error.body')}

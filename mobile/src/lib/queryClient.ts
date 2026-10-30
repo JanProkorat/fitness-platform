@@ -32,6 +32,8 @@ export const queryClient = new QueryClient({
       // Run the fetch even without a connection, so a failure shows the banner and cached data stays.
       networkMode: 'offlineFirst',
       gcTime: CACHE_MAX_AGE_MS,
+      // An unreachable API will not answer a retry: settle at once so offline refresh stops spinning.
+      retry: (failureCount, error) => !isOfflineFailure(error) && failureCount < 3,
     },
   },
 });
