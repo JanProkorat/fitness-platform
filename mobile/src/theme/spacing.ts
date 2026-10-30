@@ -4,6 +4,7 @@ export const spacing = {
   snug: 6,
   xs: 8,
   sm: 10,
+  tight: 9,
   md: 12,
   lg: 14,
   xl: 16,
@@ -208,5 +209,9 @@ export const sizes = {
   syncSheetListMax: 360,
   noticeGlyph: 15,
   pendingGlyph: 13,
-  bannerGlyph: 18,
+  bannerGlyph: 16,
+  offlineIcon: 64,
+  offlineGlyph: 28,
+  quietButton: 46,
+  quietButtonInset: 28,
 } as const;

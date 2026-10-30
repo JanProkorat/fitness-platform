@@ -31,7 +31,7 @@ export function submitWrite(write: OutboxWrite, options: { occurredAt?: string }
       ...write,
       id: newClientId(),
       occurredAt: options.occurredAt ?? new Date().toISOString(),
-      basedOnPlanVersion: currentPlanVersion(),
+      basedOnPlanVersion: currentPlanVersion(write),
       attempts: 0,
       lastError: null,
     };
