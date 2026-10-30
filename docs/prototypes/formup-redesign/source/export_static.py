@@ -13,7 +13,6 @@ canvas = json.load(open(os.path.join(HERE, "project", "canvas.json")))
 FOLDERS = {"concepts": ("concepts", None), "web": ("web", None), "mobile-light": ("glass", "Light"), "mobile-dark": ("glass", "Dark"),
            "coach-light": ("coach", "Light"), "coach-dark": ("coach", "Dark"), "email": ("email", None), "logo": ("logo", None)}
 PAGE_NAMES = {p["id"]: p["name"] for p in canvas["pages"]}
-FOLDERS = {f: v for f, v in FOLDERS.items() if v[0] in PAGE_NAMES}
 
 
 def folder_title(folder):

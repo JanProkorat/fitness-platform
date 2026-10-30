@@ -76,6 +76,13 @@ public class NutritionPlan
     public List<Supplement> Supplements { get; set; } = [];
 
     /// <summary>
+    /// Meals removed by recent saves (last ~8 days), so offline syncs for them can be answered.
+    /// Absent on legacy documents, which load as empty.
+    /// </summary>
+    [BsonElement("removedMeals")]
+    public List<RemovedPlanMeal> RemovedMeals { get; set; } = [];
+
+    /// <summary>
     /// Primary fitness goal for this plan period.
     /// When set, read sites prefer this value over the client's onboarding baseline.
     /// </summary>

@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { ChevronLeft, ChevronRight, Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import ConflictBadge from '@/components/plan-editor/sync-conflicts/ConflictBadge';
+import { useSyncConflicts } from '@/components/plan-editor/sync-conflicts/SyncConflictsContext';
 import { MAX_WEEKS, type WeekPillStatus } from '@/components/plan-editor/plan-editor-types';
 
 const SCROLL_STEP_PX = 240;
@@ -37,6 +39,7 @@ interface Props {
 /** Scrollable row of week pills with prev/next arrows and an add-week button. */
 export default function WeekTabs({ weekCount, current, readOnly, weekStatus, onSelect, onAddWeek, onRemoveLast }: Props) {
   const { t } = useTranslation();
+  const conflicts = useSyncConflicts();
   const statuses = weekStatus ? Array.from({ length: weekCount }, (_, index) => weekStatus(index)) : [];
   const published = statuses.filter((status) => status === 'published').length;
   const draft = statuses.filter((status) => status === 'draft').length;
@@ -93,6 +96,7 @@ export default function WeekTabs({ weekCount, current, readOnly, weekStatus, onS
                 {status && <StatusDot status={status} />}
                 {t('planEditor.weeks.week', { number: index + 1 })}
                 {status && <span className="sr-only">{t(`planEditor.weeks.status_${status}`)}</span>}
+                {conflicts && conflicts.countInWeek(index) > 0 && <ConflictBadge />}
               </button>
             );
           })}

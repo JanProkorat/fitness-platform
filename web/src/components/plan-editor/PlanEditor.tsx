@@ -32,6 +32,14 @@ import PlanEditorHeader from '@/components/plan-editor/PlanEditorHeader';
 import RemoveMealRowDialog, { type PendingRowRemoval } from '@/components/plan-editor/RemoveMealRowDialog';
 import RemoveWeekDialog from '@/components/plan-editor/RemoveWeekDialog';
 import TemplateInfoPanel, { type PlanUsage } from '@/components/plan-editor/TemplateInfoPanel';
+import SyncConflictPopoverBody from '@/components/plan-editor/sync-conflicts/SyncConflictPopoverBody';
+import SyncConflictStrip from '@/components/plan-editor/sync-conflicts/SyncConflictStrip';
+import {
+  buildSyncConflictsModel,
+  SyncConflictsContext,
+  type PlanEditorSyncConflicts,
+} from '@/components/plan-editor/sync-conflicts/SyncConflictsContext';
+import { placeConflicts, type PlacedConflict } from '@/components/plan-editor/sync-conflicts/syncConflictModel';
 import WeekdayPills from '@/components/plan-editor/WeekdayPills';
 import WeekGrid, { type SelectedCell } from '@/components/plan-editor/WeekGrid';
 import WeekTabs from '@/components/plan-editor/WeekTabs';
@@ -195,6 +203,8 @@ interface Props {
   renderBanner?: (context: PlanEditorHostContext) => ReactNode;
   /** Lets the last, unpublished week be removed (needs `weekStatus`); saves the plan once confirmed. */
   allowWeekRemoval?: boolean;
+  /** Unreviewed offline-sync conflicts of this plan; only the client plan editor passes them. */
+  syncConflicts?: PlanEditorSyncConflicts;
   saveState: PlanEditorSaveState;
   /** Persists the document; resolves with the server's copy, or null when the save failed. */
   onSave: (doc: EditorDocument) => Promise<EditorDocument | null>;
@@ -363,6 +373,7 @@ export default function PlanEditor({
   renderHeaderActions,
   renderBanner,
   allowWeekRemoval,
+  syncConflicts,
   saveState,
   onSave,
   onReload,
@@ -396,6 +407,8 @@ export default function PlanEditor({
   const [removeWeekNumber, setRemoveWeekNumber] = useState<number | null>(null);
   const [removingWeek, setRemovingWeek] = useState(false);
   const [announcement, setAnnouncement] = useState('');
+  const [openGhostId, setOpenGhostId] = useState<string | null>(null);
+  const pendingConflictScroll = useRef<string | null>(null);
   const dragActive = useRef(false);
   const pendingFocus = useRef<{ dayOfWeek: number; mealId: string } | null>(null);
   const pendingLabelFocus = useRef<{ axis: LabelAxis; index: number } | null>(null);
@@ -411,6 +424,15 @@ export default function PlanEditor({
   const activeSelected = selected && selected.rowIndex < rows.length ? selected : null;
   const activeDay = week?.days.find((candidate) => candidate.dayOfWeek === dayOfWeek);
   const showPicker = !readOnly && rows.length === 0;
+  const conflictsModel = syncConflicts
+    ? buildSyncConflictsModel(
+        syncConflicts,
+        placeConflicts(syncConflicts.conflicts, doc),
+        openGhostId,
+        setOpenGhostId,
+        openConflictDay,
+      )
+    : null;
 
   // The drag listeners outlive a render, so they read what changes between renders through this.
   const latest = useRef({ doc, currentIndex, range });
@@ -504,8 +526,64 @@ export default function PlanEditor({
     setDayOfWeek(toDay);
     setSelected(null);
     setDetailCell(null);
+    setOpenGhostId(null);
     setPendingRemoval(null);
   }
+
+  /** "Open <day>" in a conflict popover: the Day view on the conflict's weekday. */
+  function openConflictDay(placed: PlacedConflict) {
+    if (placed.weekIndex === null || placed.dayOfWeek === null) {
+      return;
+    }
+    navigate({ week: placed.weekIndex, day: placed.dayOfWeek });
+    setRange('day');
+    setView('meals');
+    setDetailCell(null);
+    setOpenGhostId(null);
+  }
+
+  /** "Show" in the strip: the conflict's popover in the Week view (switching week), its panel in the Day view. */
+  function showConflict(placed: PlacedConflict) {
+    if (placed.weekIndex === null || placed.dayOfWeek === null) {
+      return;
+    }
+    if (range === 'day') {
+      navigate({ week: placed.weekIndex, day: placed.dayOfWeek });
+      pendingConflictScroll.current = placed.id;
+      return;
+    }
+    navigate({ week: placed.weekIndex });
+    setView('meals');
+    if (placed.ghost) {
+      setOpenGhostId(placed.id);
+      return;
+    }
+    const target = doc.weeks[placed.weekIndex];
+    const row =
+      target && placed.meal
+        ? dayRowIndexes(target, target.days.find((day) => day.dayOfWeek === placed.dayOfWeek)).get(placed.meal.mealId)
+        : undefined;
+    if (row !== undefined) {
+      const cell = { dayOfWeek: placed.dayOfWeek, rowIndex: row };
+      setSelected(cell);
+      setDetailCell(cell);
+    }
+  }
+
+  // After "Show" in the Day view the conflict's panel scrolls into view once its day has rendered.
+  useEffect(() => {
+    const id = pendingConflictScroll.current;
+    if (!id || !scrollArea) {
+      return;
+    }
+    const panel = scrollArea.querySelector<HTMLElement>(
+      `[data-testid="sync-conflict-panel"][data-conflict-id="${id}"],[data-testid="sync-conflict-ghost-card"][data-conflict-id="${id}"]`,
+    );
+    if (panel) {
+      pendingConflictScroll.current = null;
+      panel.scrollIntoView({ block: 'nearest' });
+    }
+  });
 
   /** One swipe step: the day in the Day view (no wrap into the next week), otherwise the week. */
   function swipe(direction: 'next' | 'prev') {
@@ -554,13 +632,19 @@ export default function PlanEditor({
     setSelected(cell);
     const meal = mealAt(cell.dayOfWeek, cell.rowIndex);
     const reopen = detailCell?.dayOfWeek === cell.dayOfWeek && detailCell.rowIndex === cell.rowIndex;
-    setDetailCell(meal && mealItemCount(meal) > 0 && !reopen ? cell : null);
+    const hasConflict = meal ? conflictsModel?.forMeal(currentIndex, meal.mealId) !== undefined : false;
+    setDetailCell(meal && (mealItemCount(meal) > 0 || hasConflict) && !reopen ? cell : null);
   }
 
   function renderDetail(cell: SelectedCell): ReactNode {
     const meal = mealAt(cell.dayOfWeek, cell.rowIndex);
     if (!meal || !week) {
       return null;
+    }
+    // A meal with an unreviewed conflict opens the comparison first; "Open <day>" leads on to editing it.
+    const conflict = conflictsModel?.forMeal(currentIndex, meal.mealId);
+    if (conflict && conflictsModel) {
+      return <SyncConflictPopoverBody placed={conflict} model={conflictsModel} onClose={() => setDetailCell(null)} />;
     }
     return (
       <MealDetail
@@ -1296,6 +1380,7 @@ export default function PlanEditor({
   ];
 
   return (
+    <SyncConflictsContext.Provider value={conflictsModel}>
     <PopoverBoundaryContext.Provider value={scrollArea}>
     <DragDropProvider
       sensors={DRAG_SENSORS}
@@ -1447,6 +1532,7 @@ export default function PlanEditor({
                   />
                   <WeekdayPills
                     week={week}
+                    weekIndex={currentIndex}
                     current={dayOfWeek}
                     dailyKcalTarget={dailyKcalTarget}
                     onSelect={(day) => navigate({ day })}
@@ -1480,6 +1566,8 @@ export default function PlanEditor({
             className="flex min-h-0 flex-1 touch-pan-y touch-pinch-zoom flex-col gap-4 overflow-y-auto overflow-x-clip overscroll-x-contain px-6 pt-1 pb-6"
           >
           {renderBanner?.(hostContext)}
+
+          {conflictsModel && <SyncConflictStrip model={conflictsModel} onShow={showConflict} />}
 
           {readOnly && readOnlyNotice && (
             <p role="note" className="rounded-xl border border-line bg-muted px-4 py-3 text-body text-ink">
@@ -1673,5 +1761,6 @@ export default function PlanEditor({
       </Dialog>
     </DragDropProvider>
     </PopoverBoundaryContext.Provider>
+    </SyncConflictsContext.Provider>
   );
 }

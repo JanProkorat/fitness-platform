@@ -8,6 +8,7 @@ import { NOTIFICATIONS_QUERY_KEY } from '@/api/notifications';
 import { PAYMENTS_QUERY_KEY } from '@/api/payments';
 import { PLANS_QUERY_KEY } from '@/api/plans';
 import { PROFILE_QUERY_KEY } from '@/api/profile';
+import { useRefetchOnRecovery } from '@/hooks/useRefetchOnRecovery';
 
 import { useRealtimeEvent, useRealtimeReconnected } from './useRealtimeEvent';
 
@@ -82,6 +83,7 @@ export function RealtimeSync() {
     void queryClient.invalidateQueries({ queryKey: PLANS_QUERY_KEY });
   }, [queryClient]);
   useRealtimeReconnected(refreshAll);
+  useRefetchOnRecovery();
 
   return (
     <>

@@ -1804,6 +1804,57 @@
     }
   },
   "planEditor": {
+    "syncConflicts": {
+      "badge": "Konflikt offline synchronizace",
+      "close": "Zavřít",
+      "markReviewed": "Označit jako zkontrolované",
+      "openDay": "Otevřít {{day}}",
+      "total": "Celkem {{kcal}} kcal",
+      "saw": "{{name}} viděl(a)",
+      "planNow": "Plán nyní",
+      "version": "v{{version}}",
+      "chip": {
+        "removed": "Odebráno",
+        "added": "Přidáno",
+        "amount": "Množství"
+      },
+      "amount": {
+        "grams": "{{amount}} g",
+        "servings": "{{amount}}× porce"
+      },
+      "textOnly": "{{client}} viděl(a) verzi {{based}} plánu; od té doby jste uložili verzi {{current}}. Obsah jídla se nezaznamenal.",
+      "popover": {
+        "title": {
+          "changed": "{{meal}} snězeno offline",
+          "removed": "{{meal}} odebráno, snězeno offline"
+        },
+        "intro": {
+          "changed": "{{client}} to označil(a) jako snězené {{date}} v {{time}}. Toto jídlo jste změnili po poslední synchronizaci v klientské aplikaci.",
+          "removed": "Toto jídlo jste odebrali, ale {{client}} ho snědl(a) offline {{date}} v {{time}}. V jídelním deníku není."
+        }
+      },
+      "day": {
+        "lead": "{{client}} toto označil(a) jako snězené offline {{date}} v {{time}}.",
+        "versions": "{{client}} viděl(a) verzi {{based}}; od té doby jste uložili verzi {{current}}."
+      },
+      "ghost": {
+        "badge": "Odebráno · snězeno offline",
+        "body": "Toto jídlo ({{meal}}) jste odebrali, ale {{client}} ho snědl(a) offline {{date}} v {{time}}. V jídelním deníku není.",
+        "aria": "{{meal}} odebráno, snězeno offline"
+      },
+      "strip": {
+        "lead_one": "{{client}} snědl(a) offline {{count}} jídlo podle starší verze tohoto plánu.",
+        "lead_few": "{{client}} snědl(a) offline {{count}} jídla podle starší verze tohoto plánu.",
+        "lead_many": "{{client}} snědl(a) offline {{count}} jídla podle starší verze tohoto plánu.",
+        "lead_other": "{{client}} snědl(a) offline {{count}} jídel podle starší verze tohoto plánu.",
+        "changed": "{{meal}} jste změnili",
+        "removed": "{{meal}} jste odebrali",
+        "show": "Zobrazit",
+        "markAll": "Označit vše jako zkontrolované"
+      },
+      "reviewError": "Konflikt se nepodařilo označit jako zkontrolovaný. Zkuste to prosím znovu.",
+      "reviewAllError": "Konflikty se nepodařilo označit jako zkontrolované. Zkuste to prosím znovu."
+    },
     "nameLabel": "Název plánu",
     "undo": "Zpět",
     "redo": "Znovu",
@@ -3804,6 +3855,7 @@
     "showAllComingSoon": "Stránka se všemi oznámeními se připravuje",
     "justNow": "Právě teď",
     "reviewInClients": "Zobrazit v Klientech",
+    "seeInClientActivity": "Zobrazit v aktivitě klienta",
     "markRead": "Označit jako přečtené",
     "markAllReadShort": "Označit vše",
     "unreadCount": "nepřečtených: {{count}}"
@@ -4859,6 +4911,17 @@
           "bodyFat": "tělesný tuk {{value}} %",
           "planWeek": "{{name}}, týden {{week}}",
           "weekOnly": "Týden {{week}}"
+        },
+        "conflict": {
+          "title": {
+            "PlanChanged": "Zapsáno offline podle staršího plánu",
+            "MealRemoved": "Snězeno offline, jídlo mezitím odstraněno"
+          },
+          "subject": "{{meal}}, {{date}}",
+          "detail": {
+            "PlanChanged": "Offline označeno jako snězené v {{time}}. Klient viděl verzi plánu {{based}}, od té doby byla uložena verze {{current}}.",
+            "MealRemoved": "Nepřidáno do zápisu jídel. Klient viděl verzi plánu {{based}}, aktuální je verze {{current}}."
+          }
         }
       },
       "profile": {

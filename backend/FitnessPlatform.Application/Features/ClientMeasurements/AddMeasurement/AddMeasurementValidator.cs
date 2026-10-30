@@ -1,4 +1,5 @@
 using FastEndpoints;
+using FitnessPlatform.Application.Domain.Extensions;
 using FluentValidation;
 
 namespace FitnessPlatform.Application.Features.ClientMeasurements.AddMeasurement;
@@ -47,5 +48,7 @@ public class AddMeasurementValidator : Validator<AddMeasurementRequest>
         RuleFor(x => x.ThighsCm)
             .GreaterThan(0)
             .When(x => x.ThighsCm.HasValue);
+
+        this.AddOfflineSyncRules(x => x.OccurredAt, x => x.ClientRequestId);
     }
 }

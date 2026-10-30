@@ -11,6 +11,10 @@ import MealRowInsertLine from '@/components/plan-editor/MealRowInsertLine';
 import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Textarea } from '@/components/ui/textarea';
 import { usePopoverBoundary } from '@/components/plan-editor/PopoverBoundary';
+import ConflictBadge from '@/components/plan-editor/sync-conflicts/ConflictBadge';
+import SyncConflictGhostTile from '@/components/plan-editor/sync-conflicts/SyncConflictGhostTile';
+import { useSyncConflicts } from '@/components/plan-editor/sync-conflicts/SyncConflictsContext';
+import { placeGhosts, type PlacedConflict } from '@/components/plan-editor/sync-conflicts/syncConflictModel';
 import {
   DAY_ORDER,
   formatKcal,
@@ -70,6 +74,8 @@ interface CellProps {
   readOnly: boolean;
   /** What is being dragged over the grid, if a meal tile or a row or day label is. */
   drag: GridDragView | null;
+  /** The unreviewed offline-sync conflict on this cell's meal: the tile is outlined and badged. */
+  conflict?: PlacedConflict;
   /** True while this cell's meal detail is open. */
   detailOpen: boolean;
   detail: ReactNode;
@@ -91,6 +97,7 @@ function MealCell({
   selected,
   readOnly,
   drag,
+  conflict,
   detailOpen,
   detail,
   onSelect,
@@ -155,6 +162,7 @@ function MealCell({
           data-landing={landing ? 'true' : undefined}
           data-drop-target={dropMode}
           data-band={band}
+          data-conflict={conflict ? conflict.id : undefined}
           aria-pressed={selected}
           aria-expanded={meal && itemCount > 0 ? detailOpen : undefined}
           aria-label={t('planEditor.cell.label', { day: t(`planEditor.days.${dayOfWeek}`), row: rowIndex + 1 })}
@@ -181,6 +189,7 @@ function MealCell({
           className={cn(
             'flex min-h-0 min-w-0 flex-col items-stretch justify-between gap-1 rounded-xl border p-3 text-left outline-none transition-[color,background-color,border-color,box-shadow,transform] duration-150 focus-visible:ring-3 focus-visible:ring-ring/50',
             tileSurfaceClass(shownCount > 0),
+            conflict && 'relative border-solid border-caution-ink',
             draggable &&
               'cursor-grab hover:-translate-y-px hover:shadow-raised-hover active:cursor-grabbing motion-reduce:hover:translate-y-0',
             selected && 'border-solid border-ink ring-2 ring-ink',
@@ -194,6 +203,7 @@ function MealCell({
           )}
         >
           <MealTileFace meal={display} rowLabelKey={rowLabelKey} flipKey={gridFaceKey(dayOfWeek, rowIndex)} />
+          {conflict && <ConflictBadge className="absolute top-2 right-2 size-5" />}
         </button>
       </PopoverAnchor>
       {detailOpen && (
@@ -228,10 +238,12 @@ interface DayHeaderProps {
   note?: { weekIndex: number; readOnly: boolean; onEdit: PlanEditorState['edit'] };
   /** Makes the day's name draggable onto another day, and Alt+Arrow move it onto the neighbour; off by default. */
   labelDrag?: { weekIndex: number; onKeyMove: (direction: -1 | 1) => void; over?: boolean };
+  /** Unreviewed offline-sync conflicts on this day; a badge marks the header when above zero. */
+  conflictCount?: number;
 }
 
 /** A weekday's name with its note button; the note opens in a small popover. */
-export function DayHeader({ day, note: noteEditing, labelDrag }: DayHeaderProps) {
+export function DayHeader({ day, note: noteEditing, labelDrag, conflictCount = 0 }: DayHeaderProps) {
   const { t } = useTranslation();
   const boundary = usePopoverBoundary();
   const [open, setOpen] = useState(false);
@@ -273,6 +285,7 @@ export function DayHeader({ day, note: noteEditing, labelDrag }: DayHeaderProps)
       ) : (
         shortName
       )}
+      {conflictCount > 0 && <ConflictBadge />}
       <Popover open={open} onOpenChange={setOpen} modal={false}>
         <PopoverTrigger asChild>
           <button
@@ -421,6 +434,9 @@ export default function WeekGrid({
   const { t } = useTranslation();
   const labelsDraggable = !readOnly && onLabelKeyMove !== undefined;
   const rows = weekRows(week);
+  const conflicts = useSyncConflicts();
+  const ghostPlacement = conflicts ? placeGhosts(week, conflicts.ghosts(weekIndex)) : null;
+  const extraRows = ghostPlacement?.extraRows ?? [];
   const dayByNumber = new Map(week.days.map((day) => [day.dayOfWeek, day]));
   // The slots stay the real week's; only what they show comes from the preview while a move is hovered.
   const shownDayByNumber = new Map((drag ? drag.week : week).days.map((day) => [day.dayOfWeek, day]));
@@ -432,7 +448,7 @@ export default function WeekGrid({
       role="group"
       aria-label={t('planEditor.grid.label')}
       className={cn(WEEK_GRID_CLASS, 'flex-1')}
-      style={weekGridRows(rows.length, WEEK_GRID_MIN_ROW_REM)}
+      style={weekGridRows(rows.length + extraRows.length, WEEK_GRID_MIN_ROW_REM)}
     >
       <div className={GRID_CLASS}>
         {!readOnly && onAddMeal && rows.length > 0 ? (
@@ -461,6 +477,7 @@ export default function WeekGrid({
             key={dayOfWeek}
             day={dayByNumber.get(dayOfWeek) ?? { dayOfWeek, meals: [] }}
             note={{ weekIndex, readOnly, onEdit }}
+            conflictCount={conflicts?.countOnDay(weekIndex, dayOfWeek) ?? 0}
             labelDrag={
               labelsDraggable
                 ? {
@@ -545,6 +562,10 @@ export default function WeekGrid({
           {DAY_ORDER.map((dayOfWeek) => {
             const detailOpen = detailCell?.dayOfWeek === dayOfWeek && detailCell.rowIndex === row.index;
             const cellMeal = rowMeal(dayByNumber.get(dayOfWeek), row);
+            const ghost = cellMeal ? undefined : ghostPlacement?.inRow.get(`${dayOfWeek}:${row.index}`);
+            if (ghost && conflicts) {
+              return <SyncConflictGhostTile key={dayOfWeek} placed={ghost} model={conflicts} />;
+            }
             return (
               <MealCell
                 key={dayOfWeek}
@@ -557,6 +578,7 @@ export default function WeekGrid({
                 selected={selected?.dayOfWeek === dayOfWeek && selected.rowIndex === row.index}
                 readOnly={readOnly}
                 drag={drag}
+                conflict={cellMeal ? conflicts?.forMeal(weekIndex, cellMeal.mealId) : undefined}
                 detailOpen={detailOpen}
                 detail={detailOpen ? renderDetail({ dayOfWeek, rowIndex: row.index }) : null}
                 onSelect={() => onSelect({ dayOfWeek, rowIndex: row.index })}
@@ -575,6 +597,23 @@ export default function WeekGrid({
         </div>
         );
       })}
+
+      {conflicts &&
+        extraRows.map((extra, extraIndex) => (
+          <div key={`ghost-row-${extraIndex}`} data-testid="sync-conflict-ghost-row" className={cn(GRID_CLASS, 'items-stretch')}>
+            <span className={cn(STICKY_LABEL_CLASS, 'self-center text-body font-semibold text-balance text-muted-foreground')}>
+              {t(`planEditor.rows.${mealKindLabelKey(extra.kind)}`)}
+            </span>
+            {DAY_ORDER.map((dayOfWeek) => {
+              const ghost = extra.byDay.get(dayOfWeek);
+              return ghost ? (
+                <SyncConflictGhostTile key={dayOfWeek} placed={ghost} model={conflicts} />
+              ) : (
+                <span key={dayOfWeek} aria-hidden="true" />
+              );
+            })}
+          </div>
+        ))}
     </div>
     </div>
   );

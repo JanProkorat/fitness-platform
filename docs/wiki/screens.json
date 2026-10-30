@@ -271,8 +271,10 @@
         "web/src/lib/clientDetailNavigation.ts",
         "web/src/lib/date-format.ts",
         "web/src/hooks/useClientTimeline.ts",
+        "web/src/hooks/useClientOfflineSyncConflicts.ts",
         "web/src/hooks/useWeeklyCheckIns.ts",
         "web/src/api/timeline.ts",
+        "web/src/api/offlineSyncConflicts.ts",
         "web/src/api/client-verdict.ts",
         "web/src/api/measurements.ts",
         "web/src/api/client-plans.ts",
@@ -284,6 +286,7 @@
         "GET /trainer/clients/{clientId}",
         "GET /trainer/clients/{clientId}/verdict",
         "GET /trainer/clients/{clientId}/timeline",
+        "GET /trainer/clients/{clientId}/offline-sync-conflicts",
         "GET /trainer/clients/{clientId}/measurements",
         "GET /trainer/clients/{clientId}/plans",
         "GET /trainer/clients/{clientUserId}/weekly-check-ins/history",
@@ -494,6 +497,9 @@
         "web/src/components/plan-editor/**",
         "web/src/components/editor/**",
         "web/src/hooks/useClientPlanEditor.ts",
+        "web/src/hooks/useClientOfflineSyncConflicts.ts",
+        "web/src/api/offlineSyncConflicts.ts",
+        "web/src/stores/toast.ts",
         "web/src/hooks/usePlanTemplatesQueries.ts",
         "web/src/hooks/useIngredientsQueries.ts",
         "web/src/hooks/useRecipesQueries.ts",
@@ -510,6 +516,9 @@
         "DELETE /nutrition/plans/{planId}",
         "POST /nutrition/plans/{planId}/complete",
         "POST /nutrition/plans/{planId}/weeks/{weekNumber}/publish",
+        "GET /trainer/clients/{clientId}/offline-sync-conflicts",
+        "POST /trainer/clients/{clientId}/offline-sync-conflicts/{conflictId}/review",
+        "POST /trainer/clients/{clientId}/offline-sync-conflicts/review-all",
         "GET /nutrition/plan-templates",
         "GET /nutrition/plan-templates/{templateId}",
         "GET /foods/search",
@@ -887,6 +896,7 @@
         "web/src/components/notifications/**",
         "web/src/hooks/useNotificationsQueries.ts",
         "web/src/api/notifications.ts",
+        "web/src/api/offlineSyncConflicts.ts",
         "web/src/components/layout/AppShell.tsx",
         "web/src/components/layout/Sidebar.tsx",
         "web/src/components/layout/AccountMenu.tsx",
@@ -1338,7 +1348,24 @@
         "mobile/src/hooks/useTodayMealLog.ts",
         "mobile/src/components/today/QuestionnaireBanner.tsx",
         "mobile/src/components/today/QuestionnaireBanners.tsx",
-        "mobile/src/components/today/pendingForms.ts"
+        "mobile/src/components/today/pendingForms.ts",
+        "mobile/src/components/OfflineBanner.tsx",
+        "mobile/src/components/offline/PendingMark.tsx",
+        "mobile/src/components/offline/SyncNoticeCard.tsx",
+        "mobile/src/components/offline/SyncNoticeSheet.tsx",
+        "mobile/src/lib/outbox/apply.ts",
+        "mobile/src/lib/outbox/classify.ts",
+        "mobile/src/lib/outbox/drain.ts",
+        "mobile/src/lib/outbox/id.ts",
+        "mobile/src/lib/outbox/label.ts",
+        "mobile/src/lib/outbox/planVersion.ts",
+        "mobile/src/lib/outbox/seenMeal.ts",
+        "mobile/src/lib/outbox/send.ts",
+        "mobile/src/lib/outbox/submit.ts",
+        "mobile/src/lib/outbox/types.ts",
+        "mobile/src/lib/outbox/validate.ts",
+        "mobile/src/hooks/useOutboxDrain.ts",
+        "mobile/src/hooks/useRefetchOnRecovery.ts"
       ],
       "endpoints": [
         "GET /users/me",
@@ -1401,7 +1428,8 @@
         "mobile/src/api/appConfig.ts",
         "mobile/src/api/errors.ts",
         "mobile/src/api/invites.ts",
-        "mobile/src/api/notifications.ts"
+        "mobile/src/api/notifications.ts",
+        "mobile/src/components/OfflineBanner.tsx"
       ],
       "endpoints": [
         "GET /client/notifications",
@@ -1435,7 +1463,8 @@
         "mobile/src/components/TabFade.tsx",
         "mobile/src/components/Text.tsx",
         "mobile/src/hooks/useConversations.ts",
-        "mobile/src/api/conversations.ts"
+        "mobile/src/api/conversations.ts",
+        "mobile/src/components/OfflineBanner.tsx"
       ],
       "endpoints": [
         "GET /conversations"
@@ -1481,7 +1510,8 @@
         "mobile/src/api/errors.ts",
         "mobile/src/api/invites.ts",
         "mobile/src/api/notifications.ts",
-        "mobile/src/api/profile.ts"
+        "mobile/src/api/profile.ts",
+        "mobile/src/components/OfflineBanner.tsx"
       ],
       "endpoints": [
         "GET /conversations",
@@ -1523,7 +1553,8 @@
         "mobile/src/hooks/useCoachSearch.ts",
         "mobile/src/api/errors.ts",
         "mobile/src/api/professionals.ts",
-        "mobile/src/api/profile.ts"
+        "mobile/src/api/profile.ts",
+        "mobile/src/components/OfflineBanner.tsx"
       ],
       "endpoints": [
         "GET /professionals/search"
@@ -1566,7 +1597,8 @@
         "mobile/src/api/errors.ts",
         "mobile/src/api/professionals.ts",
         "mobile/src/api/profile.ts",
-        "mobile/src/api/appConfig.ts"
+        "mobile/src/api/appConfig.ts",
+        "mobile/src/components/OfflineBanner.tsx"
       ],
       "endpoints": [
         "GET /professionals/{publicId}",
@@ -1607,7 +1639,8 @@
         "mobile/src/api/invites.ts",
         "mobile/src/api/notifications.ts",
         "mobile/src/api/profile.ts",
-        "mobile/src/api/appConfig.ts"
+        "mobile/src/api/appConfig.ts",
+        "mobile/src/components/OfflineBanner.tsx"
       ],
       "endpoints": [
         "GET /client/invites",
@@ -1635,7 +1668,8 @@
         "mobile/src/components/Button.tsx",
         "mobile/src/components/Screen.tsx",
         "mobile/src/components/TabFade.tsx",
-        "mobile/src/components/Text.tsx"
+        "mobile/src/components/Text.tsx",
+        "mobile/src/components/OfflineBanner.tsx"
       ],
       "endpoints": [],
       "board": null,
@@ -1724,7 +1758,24 @@
         "mobile/src/hooks/useTodayMealLog.ts",
         "mobile/src/hooks/useUpcomingNutritionPlan.ts",
         "mobile/src/components/today/todayBlocks.ts",
-        "mobile/src/hooks/useTodayMealActions.ts"
+        "mobile/src/hooks/useTodayMealActions.ts",
+        "mobile/src/components/OfflineBanner.tsx",
+        "mobile/src/components/offline/PendingMark.tsx",
+        "mobile/src/components/offline/SyncNoticeCard.tsx",
+        "mobile/src/components/offline/SyncNoticeSheet.tsx",
+        "mobile/src/lib/outbox/apply.ts",
+        "mobile/src/lib/outbox/classify.ts",
+        "mobile/src/lib/outbox/drain.ts",
+        "mobile/src/lib/outbox/id.ts",
+        "mobile/src/lib/outbox/label.ts",
+        "mobile/src/lib/outbox/planVersion.ts",
+        "mobile/src/lib/outbox/seenMeal.ts",
+        "mobile/src/lib/outbox/send.ts",
+        "mobile/src/lib/outbox/submit.ts",
+        "mobile/src/lib/outbox/types.ts",
+        "mobile/src/lib/outbox/validate.ts",
+        "mobile/src/hooks/useOutboxDrain.ts",
+        "mobile/src/hooks/useRefetchOnRecovery.ts"
       ],
       "endpoints": [
         "DELETE /client/nutrition/log/meals/{mealId}/eaten",
@@ -1785,7 +1836,24 @@
         "mobile/src/hooks/useCollaborations.ts",
         "mobile/src/hooks/useFullNutritionPlan.ts",
         "mobile/src/api/plans.ts",
-        "mobile/src/components/nutrition/upcoming/format.ts"
+        "mobile/src/components/nutrition/upcoming/format.ts",
+        "mobile/src/components/OfflineBanner.tsx",
+        "mobile/src/components/offline/PendingMark.tsx",
+        "mobile/src/components/offline/SyncNoticeCard.tsx",
+        "mobile/src/components/offline/SyncNoticeSheet.tsx",
+        "mobile/src/lib/outbox/apply.ts",
+        "mobile/src/lib/outbox/classify.ts",
+        "mobile/src/lib/outbox/drain.ts",
+        "mobile/src/lib/outbox/id.ts",
+        "mobile/src/lib/outbox/label.ts",
+        "mobile/src/lib/outbox/planVersion.ts",
+        "mobile/src/lib/outbox/seenMeal.ts",
+        "mobile/src/lib/outbox/send.ts",
+        "mobile/src/lib/outbox/submit.ts",
+        "mobile/src/lib/outbox/types.ts",
+        "mobile/src/lib/outbox/validate.ts",
+        "mobile/src/hooks/useOutboxDrain.ts",
+        "mobile/src/hooks/useRefetchOnRecovery.ts"
       ],
       "endpoints": [
         "GET /client/collaborations",
@@ -1838,7 +1906,24 @@
         "mobile/src/hooks/useFullNutritionPlan.ts",
         "mobile/src/hooks/useHorizontalSwipe.ts",
         "mobile/src/hooks/useNutritionDayLog.ts",
-        "mobile/src/api/plans.ts"
+        "mobile/src/api/plans.ts",
+        "mobile/src/components/OfflineBanner.tsx",
+        "mobile/src/components/offline/PendingMark.tsx",
+        "mobile/src/components/offline/SyncNoticeCard.tsx",
+        "mobile/src/components/offline/SyncNoticeSheet.tsx",
+        "mobile/src/lib/outbox/apply.ts",
+        "mobile/src/lib/outbox/classify.ts",
+        "mobile/src/lib/outbox/drain.ts",
+        "mobile/src/lib/outbox/id.ts",
+        "mobile/src/lib/outbox/label.ts",
+        "mobile/src/lib/outbox/planVersion.ts",
+        "mobile/src/lib/outbox/seenMeal.ts",
+        "mobile/src/lib/outbox/send.ts",
+        "mobile/src/lib/outbox/submit.ts",
+        "mobile/src/lib/outbox/types.ts",
+        "mobile/src/lib/outbox/validate.ts",
+        "mobile/src/hooks/useOutboxDrain.ts",
+        "mobile/src/hooks/useRefetchOnRecovery.ts"
       ],
       "endpoints": [
         "GET /client/nutrition/log/week",
@@ -1886,7 +1971,8 @@
         "mobile/src/components/nutrition/upcoming/format.ts",
         "mobile/src/components/today/collaborationRoles.ts",
         "mobile/src/components/today/todayBlocks.ts",
-        "mobile/src/hooks/useClientPlans.ts"
+        "mobile/src/hooks/useClientPlans.ts",
+        "mobile/src/components/OfflineBanner.tsx"
       ],
       "endpoints": [
         "GET /client/plans"
@@ -1927,7 +2013,8 @@
         "mobile/src/components/nutrition/recipes/model.ts",
         "mobile/src/components/onboarding/Segmented.tsx",
         "mobile/src/hooks/useClientRecipes.ts",
-        "mobile/src/hooks/useFullNutritionPlan.ts"
+        "mobile/src/hooks/useFullNutritionPlan.ts",
+        "mobile/src/components/OfflineBanner.tsx"
       ],
       "endpoints": [
         "GET /client/nutrition/plan/full",
@@ -1968,7 +2055,8 @@
         "mobile/src/components/nutrition/recipe/RecipeIngredients.tsx",
         "mobile/src/components/nutrition/recipe/RecipeMacros.tsx",
         "mobile/src/components/nutrition/recipe/RecipeSteps.tsx",
-        "mobile/src/hooks/useRecipeDetail.ts"
+        "mobile/src/hooks/useRecipeDetail.ts",
+        "mobile/src/components/OfflineBanner.tsx"
       ],
       "endpoints": [
         "GET /client/recipes/{recipeId}"
@@ -2006,7 +2094,8 @@
         "mobile/src/components/nutrition/meal/DetailLayout.tsx",
         "mobile/src/components/nutrition/meal/DetailState.tsx",
         "mobile/src/components/nutrition/meal/format.ts",
-        "mobile/src/hooks/useFoodDetail.ts"
+        "mobile/src/hooks/useFoodDetail.ts",
+        "mobile/src/components/OfflineBanner.tsx"
       ],
       "endpoints": [
         "GET /foods/{foodId}"
@@ -2047,7 +2136,24 @@
         "mobile/src/components/nutrition/shopping/model.ts",
         "mobile/src/hooks/useFullNutritionPlan.ts",
         "mobile/src/hooks/useShoppingList.ts",
-        "mobile/src/hooks/useToggleShoppingItem.ts"
+        "mobile/src/hooks/useToggleShoppingItem.ts",
+        "mobile/src/components/OfflineBanner.tsx",
+        "mobile/src/components/offline/PendingMark.tsx",
+        "mobile/src/components/offline/SyncNoticeCard.tsx",
+        "mobile/src/components/offline/SyncNoticeSheet.tsx",
+        "mobile/src/lib/outbox/apply.ts",
+        "mobile/src/lib/outbox/classify.ts",
+        "mobile/src/lib/outbox/drain.ts",
+        "mobile/src/lib/outbox/id.ts",
+        "mobile/src/lib/outbox/label.ts",
+        "mobile/src/lib/outbox/planVersion.ts",
+        "mobile/src/lib/outbox/seenMeal.ts",
+        "mobile/src/lib/outbox/send.ts",
+        "mobile/src/lib/outbox/submit.ts",
+        "mobile/src/lib/outbox/types.ts",
+        "mobile/src/lib/outbox/validate.ts",
+        "mobile/src/hooks/useOutboxDrain.ts",
+        "mobile/src/hooks/useRefetchOnRecovery.ts"
       ],
       "endpoints": [
         "GET /client/nutrition/plan/full",
@@ -2101,7 +2207,8 @@
         "mobile/src/hooks/useProfile.ts",
         "mobile/src/hooks/useProfileSummary.ts",
         "mobile/src/hooks/useWeightSeries.ts",
-        "mobile/src/api/appConfig.ts"
+        "mobile/src/api/appConfig.ts",
+        "mobile/src/components/OfflineBanner.tsx"
       ],
       "endpoints": [
         "GET /users/me",
@@ -2135,7 +2242,8 @@
         "mobile/src/hooks/usePayments.ts",
         "mobile/src/hooks/usePaymentsEnabled.ts",
         "mobile/src/api/appConfig.ts",
-        "mobile/src/api/payments.ts"
+        "mobile/src/api/payments.ts",
+        "mobile/src/components/OfflineBanner.tsx"
       ],
       "endpoints": [
         "GET /client/payments",
@@ -2197,7 +2305,8 @@
         "mobile/src/hooks/useCollaborations.ts",
         "mobile/src/hooks/useEditProfile.ts",
         "mobile/src/hooks/useOnboardingAnswers.ts",
-        "mobile/src/hooks/useProfile.ts"
+        "mobile/src/hooks/useProfile.ts",
+        "mobile/src/components/OfflineBanner.tsx"
       ],
       "endpoints": [
         "GET /users/me",
@@ -2246,7 +2355,24 @@
         "mobile/src/components/profile/format.ts",
         "mobile/src/hooks/useAddMeasurement.ts",
         "mobile/src/hooks/useCollaborations.ts",
-        "mobile/src/hooks/useMeasurementHistory.ts"
+        "mobile/src/hooks/useMeasurementHistory.ts",
+        "mobile/src/components/OfflineBanner.tsx",
+        "mobile/src/components/offline/PendingMark.tsx",
+        "mobile/src/components/offline/SyncNoticeCard.tsx",
+        "mobile/src/components/offline/SyncNoticeSheet.tsx",
+        "mobile/src/lib/outbox/apply.ts",
+        "mobile/src/lib/outbox/classify.ts",
+        "mobile/src/lib/outbox/drain.ts",
+        "mobile/src/lib/outbox/id.ts",
+        "mobile/src/lib/outbox/label.ts",
+        "mobile/src/lib/outbox/planVersion.ts",
+        "mobile/src/lib/outbox/seenMeal.ts",
+        "mobile/src/lib/outbox/send.ts",
+        "mobile/src/lib/outbox/submit.ts",
+        "mobile/src/lib/outbox/types.ts",
+        "mobile/src/lib/outbox/validate.ts",
+        "mobile/src/hooks/useOutboxDrain.ts",
+        "mobile/src/hooks/useRefetchOnRecovery.ts"
       ],
       "endpoints": [
         "GET /client/measurements",
@@ -2287,7 +2413,8 @@
         "mobile/src/hooks/usePhotos.ts",
         "mobile/src/hooks/useProfile.ts",
         "mobile/src/hooks/useProfileSummary.ts",
-        "mobile/src/hooks/useUploadPhoto.ts"
+        "mobile/src/hooks/useUploadPhoto.ts",
+        "mobile/src/components/OfflineBanner.tsx"
       ],
       "endpoints": [
         "GET /client/me/photos",
@@ -2329,7 +2456,8 @@
         "mobile/src/hooks/useClientPlans.ts",
         "mobile/src/hooks/useJourneyPhotos.ts",
         "mobile/src/hooks/useJourneySeries.ts",
-        "mobile/src/hooks/usePlanSummary.ts"
+        "mobile/src/hooks/usePlanSummary.ts",
+        "mobile/src/components/OfflineBanner.tsx"
       ],
       "endpoints": [
         "GET /client/measurements",
@@ -2368,7 +2496,8 @@
         "mobile/src/components/profile/ListCard.tsx",
         "mobile/src/components/profile/ListRow.tsx",
         "mobile/src/hooks/useClientPlans.ts",
-        "mobile/src/hooks/usePlanSummary.ts"
+        "mobile/src/hooks/usePlanSummary.ts",
+        "mobile/src/components/OfflineBanner.tsx"
       ],
       "endpoints": [
         "GET /client/plans",
@@ -2408,7 +2537,8 @@
         "mobile/src/components/profile/SectionHeader.tsx",
         "mobile/src/hooks/useCheckInHistory.ts",
         "mobile/src/hooks/useCollaborations.ts",
-        "mobile/src/hooks/useProfileSummary.ts"
+        "mobile/src/hooks/useProfileSummary.ts",
+        "mobile/src/components/OfflineBanner.tsx"
       ],
       "endpoints": [
         "GET /client/weekly-check-ins/history",
@@ -2443,7 +2573,8 @@
         "mobile/src/components/settings/SettingsRow.tsx",
         "mobile/src/hooks/useDeleteAccount.ts",
         "mobile/src/hooks/useNotificationPreferences.ts",
-        "mobile/src/hooks/useProfile.ts"
+        "mobile/src/hooks/useProfile.ts",
+        "mobile/src/components/OfflineBanner.tsx"
       ],
       "endpoints": [
         "GET /users/me",
@@ -2476,7 +2607,8 @@
         "mobile/src/components/Screen.tsx",
         "mobile/src/components/ScreenHeader.tsx",
         "mobile/src/components/Text.tsx",
-        "mobile/src/hooks/useChangePassword.ts"
+        "mobile/src/hooks/useChangePassword.ts",
+        "mobile/src/components/OfflineBanner.tsx"
       ],
       "endpoints": [
         "POST /users/me/password"

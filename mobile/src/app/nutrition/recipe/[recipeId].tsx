@@ -19,6 +19,7 @@ import type { MacroBasis } from '@/components/nutrition/recipe/RecipeMacros';
 import { RecipeSteps } from '@/components/nutrition/recipe/RecipeSteps';
 import { Text } from '@/components/Text';
 import { useRecipeDetail } from '@/hooks/useRecipeDetail';
+import { isOfflineEmpty } from '@/lib/queryState';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
 
@@ -40,12 +41,12 @@ export default function RecipeDetailScreen() {
   const query = useRecipeDetail(recipeId, valid);
   const goBack = () => router.back();
 
-  if (!valid || query.isPending || query.isError) {
+  if (!valid || query.isPending || query.data === undefined) {
     const notFound = !valid || (query.isError && getErrorStatus(query.error) === 404);
     const pending = valid && query.isPending;
     return (
       <DetailState
-        kind={pending ? 'pending' : notFound ? 'notFound' : 'error'}
+        kind={pending ? 'pending' : notFound ? 'notFound' : isOfflineEmpty(query) ? 'offline' : 'error'}
         title={notFound ? t('nutritionRecipe.notFound.title') : t('nutritionRecipe.error.title')}
         body={notFound ? t('nutritionRecipe.notFound.body') : t('nutritionRecipe.error.body')}
         onBack={goBack}

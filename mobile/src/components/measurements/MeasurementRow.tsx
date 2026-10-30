@@ -1,5 +1,7 @@
 import { StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
+import { PendingMark } from '@/components/offline/PendingMark';
 import { Sparkline } from '@/components/profile/Sparkline';
 import { Text } from '@/components/Text';
 import { useTheme } from '@/theme';
@@ -11,6 +13,8 @@ type MeasurementRowProps = {
   caption?: string;
   /** Green caption for a change in the good direction. */
   captionPositive?: boolean;
+  /** The latest value was recorded offline and has not reached the server. */
+  pending?: boolean;
   values: readonly number[];
   value: string;
 };
@@ -20,23 +24,27 @@ export function MeasurementRow({
   label,
   caption,
   captionPositive = false,
+  pending = false,
   values,
   value,
 }: MeasurementRowProps) {
+  const { t } = useTranslation();
   const theme = useTheme();
   const styles = makeStyles(theme);
 
   return (
     <View
       accessible
-      accessibilityLabel={[label, value, caption].filter(Boolean).join(', ')}
+      accessibilityLabel={[label, value, pending ? t('offlineSync.pendingA11y') : caption].filter(Boolean).join(', ')}
       style={styles.row}
     >
       <View style={styles.copy}>
         <Text variant="body" numberOfLines={1}>
           {label}
         </Text>
-        {caption ? (
+        {pending ? (
+          <PendingMark />
+        ) : caption ? (
           <Text variant="caption" color={captionPositive ? 'success' : 'muted'} numberOfLines={1}>
             {caption}
           </Text>

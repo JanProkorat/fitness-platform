@@ -7,6 +7,7 @@ import { MealRow } from '@/components/nutrition/meals/MealRow';
 import type { MealRowPhoto } from '@/components/nutrition/meals/MealRow';
 import type { MealStatus } from '@/components/nutrition/meals/MealStatusIcon';
 import { useMealEaten } from '@/hooks/useMealEaten';
+import { usePendingKeys } from '@/stores/outbox';
 
 type TabMealRowProps = {
   meal: NutritionMeal;
@@ -41,6 +42,8 @@ export function TabMealRow({
 }: TabMealRowProps) {
   const { t } = useTranslation();
   const eaten = useMealEaten(meal);
+  const pendingKeys = usePendingKeys();
+  const pending = pendingKeys.mealEaten.has(meal.mealId) || pendingKeys.mealUnlogged.has(meal.mealId);
 
   const toggle = () => {
     eaten.mutate(status !== 'eaten', {
@@ -53,6 +56,7 @@ export function TabMealRow({
       meal={meal}
       first={first}
       status={status}
+      pending={pending}
       photos={photos}
       onOpenRecipe={onOpenRecipe}
       onOpenFood={(food) => onOpenFood(food, meal)}

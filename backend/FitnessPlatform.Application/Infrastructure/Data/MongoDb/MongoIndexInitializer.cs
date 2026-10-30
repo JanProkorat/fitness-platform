@@ -63,6 +63,8 @@ public class MongoIndexInitializer : IHostedService
         await CreateFoodTagIndexes(cancellationToken);
         await CreateRecipeTagIndexes(cancellationToken);
         await CreateShoppingListTickIndexes(cancellationToken);
+        await CreateProcessedClientRequestIndexes(cancellationToken);
+        await CreateOfflineSyncConflictIndexes(cancellationToken);
 
         _logger.LogInformation("MongoDB indexes created successfully");
     }
@@ -553,5 +555,48 @@ public class MongoIndexInitializer : IHostedService
             new CreateIndexOptions { Name = "idx_shoppinglisttick_clientId_planId_weekNumber_foodExternalId", Unique = true });
 
         await _mongo.ShoppingListTicks.Indexes.CreateOneAsync(uniqueTickIndex, cancellationToken: ct);
+    }
+
+    /// <summary>
+    /// Creates the ProcessedClientRequest unique index on (ClientId, ClientRequestId) and an
+    /// 8-day expiry index on CreatedAt, one day longer than the 7-day offline window.
+    /// </summary>
+    private async Task CreateProcessedClientRequestIndexes(CancellationToken ct)
+    {
+        var uniqueIndex = new CreateIndexModel<ProcessedClientRequest>(
+            Builders<ProcessedClientRequest>.IndexKeys
+                .Ascending(r => r.ClientId)
+                .Ascending(r => r.ClientRequestId),
+            new CreateIndexOptions { Name = "idx_processedclientrequest_clientId_clientRequestId", Unique = true });
+
+        var ttlIndex = new CreateIndexModel<ProcessedClientRequest>(
+            Builders<ProcessedClientRequest>.IndexKeys.Ascending(r => r.CreatedAt),
+            new CreateIndexOptions
+            {
+                Name = "idx_processedclientrequest_createdAt_ttl",
+                ExpireAfter = TimeSpan.FromDays(8)
+            });
+
+        await _mongo.ProcessedClientRequests.Indexes.CreateManyAsync([uniqueIndex, ttlIndex], ct);
+    }
+
+    /// <summary>
+    /// Creates the OfflineSyncConflict index on (ClientId, PlanId, DateCreated desc) used by the
+    /// coach's list and by notification counting, plus a unique index on ExternalId.
+    /// </summary>
+    private async Task CreateOfflineSyncConflictIndexes(CancellationToken ct)
+    {
+        var listIndex = new CreateIndexModel<OfflineSyncConflict>(
+            Builders<OfflineSyncConflict>.IndexKeys
+                .Ascending(c => c.ClientId)
+                .Ascending(c => c.PlanId)
+                .Descending(c => c.DateCreated),
+            new CreateIndexOptions { Name = "idx_offlinesyncconflict_clientId_planId_dateCreated" });
+
+        var externalIdIndex = new CreateIndexModel<OfflineSyncConflict>(
+            Builders<OfflineSyncConflict>.IndexKeys.Ascending(c => c.ExternalId),
+            new CreateIndexOptions { Name = "idx_offlinesyncconflict_externalId", Unique = true });
+
+        await _mongo.OfflineSyncConflicts.Indexes.CreateManyAsync([listIndex, externalIdIndex], ct);
     }
 }

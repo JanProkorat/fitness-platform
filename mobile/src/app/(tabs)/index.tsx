@@ -1,7 +1,9 @@
 import type { ReactNode } from 'react';
-import { RefreshControl, StyleSheet } from 'react-native';
+import { RefreshControl, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
+import { PlanState } from '@/components/nutrition/plan/PlanState';
+import { OfflineBanner } from '@/components/OfflineBanner';
 import { Screen } from '@/components/Screen';
 import { TabFade } from '@/components/TabFade';
 import { Text } from '@/components/Text';
@@ -33,6 +35,7 @@ import { useInvites } from '@/hooks/useInvites';
 import { useLocalDayChange } from '@/hooks/useLocalDayChange';
 import { useProfile } from '@/hooks/useProfile';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
+import { isOfflineEmpty, showsError } from '@/lib/queryState';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
 
@@ -68,7 +71,12 @@ function TodayContent() {
     <Screen
       scroll
       collapseTabBar
-      header={header}
+      header={
+        <View style={styles.header}>
+          {header}
+          <OfflineBanner />
+        </View>
+      }
       topGap={theme.spacing.safeAreaGap}
       bottomInset={barClearance}
       contentStyle={tight ? styles.contentTight : styles.content}
@@ -86,7 +94,12 @@ function TodayContent() {
   );
 
   // A failed collaborations lookup falls back to what the profile says, as before.
-  const covering = collaborations.isError ? null : coveredCollaborations(collaborations.data ?? []);
+  // Nothing saved and no connection: say so instead of showing the "find a coach" fallback.
+  if (isOfflineEmpty(collaborations)) {
+    return <PlanState kind="offline" />;
+  }
+
+  const covering = showsError(collaborations) ? null : coveredCollaborations(collaborations.data ?? []);
 
   if (covering !== null) {
     const waitingForData =
@@ -114,7 +127,11 @@ function TodayContent() {
       );
     }
 
-    if (!plans.isError) {
+    if (covering.length > 0 && isOfflineEmpty(plans)) {
+      return <PlanState kind="offline" />;
+    }
+
+    if (!showsError(plans)) {
       const areaBlocks = selectAreaBlocks(plans.data ?? [], covering, today);
       // Once any area has an Active plan, each area gets its own block instead of the progress card.
       if (areaBlocks !== null && areaBlocks.some(hasAreaBlock)) {
@@ -131,7 +148,8 @@ function TodayContent() {
             <AreaBlocks blocks={areaBlocks} today={today} />
             <GetReadyList blocks={areaBlocks} covering={covering} />
             <AddCoachRows blocks={areaBlocks} />
-            <StartOnYourOwn showHeading={false} />
+            {/* The stat tiles already offer logging weight and adding photos. */}
+            {hasRunningPlan(areaBlocks) ? null : <StartOnYourOwn showHeading={false} />}
             <InvitesSection />
           </>,
           true,
@@ -139,7 +157,7 @@ function TodayContent() {
       }
     }
 
-    if (!plans.isError && !(plans.data ?? []).some(isActivePlan)) {
+    if (!showsError(plans) && !(plans.data ?? []).some(isActivePlan)) {
       // No plan is Active here, so every covered role is still unpublished.
       const progress = covering
         .map((entry) => ({ ...entry, unpublished: entry.roles }))
@@ -196,6 +214,9 @@ function TodayContent() {
 
 const makeStyles = (theme: Theme) =>
   StyleSheet.create({
+    header: {
+      gap: theme.spacing.lg,
+    },
     content: {
       gap: theme.spacing.huge,
     },

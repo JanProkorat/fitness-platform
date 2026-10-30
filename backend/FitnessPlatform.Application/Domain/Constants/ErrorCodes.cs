@@ -664,4 +664,11 @@ public static class ErrorCodes
 
     /// <summary>A required, visible question has no answer at submit time.</summary>
     public const string QuestionnaireRequiredAnswerMissing = "QUESTIONNAIRE_REQUIRED_ANSWER_MISSING";
+
+    // ── Offline sync ────────────────────────────────────────────────────
+    /// <summary>The client-reported occurrence time is more than 5 minutes ahead of the server.</summary>
+    public const string OccurredAtInFuture = "OCCURRED_AT_IN_FUTURE";
+
+    /// <summary>The client-reported occurrence time is older than the 7-day offline window.</summary>
+    public const string OccurredAtTooOld = "OCCURRED_AT_TOO_OLD";
 }

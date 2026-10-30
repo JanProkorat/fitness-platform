@@ -118,6 +118,9 @@ public static class NotificationTemplates
 
             [Key(NotificationType.PaymentRequested)] =
                 new("Payment request", "{coachName} asks for {amount}, due {dueDate}."),
+
+            [Key(NotificationType.OfflineSyncConflict)] =
+                new("Offline changes need a look", "{clientName} synced {count} offline action(s) that no longer match the plan \"{planName}\"."),
         },
         ["cs"] = new()
         {
@@ -189,6 +192,9 @@ public static class NotificationTemplates
 
             [Key(NotificationType.PaymentRequested)] =
                 new("Žádost o platbu", "{coachName} vás žádá o platbu {amount} se splatností {dueDate}."),
+
+            [Key(NotificationType.OfflineSyncConflict)] =
+                new("Offline změny ke kontrole", "{clientName} nahrál(a) offline akce ({count}), které už neodpovídají jídelníčku \"{planName}\". Podívejte se na ně."),
         },
         ["de"] = new()
         {
@@ -260,6 +266,9 @@ public static class NotificationTemplates
 
             [Key(NotificationType.PaymentRequested)] =
                 new("Zahlungsaufforderung", "{coachName} bittet um {amount}, fällig am {dueDate}."),
+
+            [Key(NotificationType.OfflineSyncConflict)] =
+                new("Offline-Änderungen prüfen", "{clientName} hat {count} Offline-Aktion(en) synchronisiert, die nicht mehr zum Plan \"{planName}\" passen. Bitte prüfen Sie diese."),
         },
     };
 

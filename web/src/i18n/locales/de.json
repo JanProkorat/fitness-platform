@@ -1764,6 +1764,55 @@
     }
   },
   "planEditor": {
+    "syncConflicts": {
+      "badge": "Konflikt bei der Offline-Synchronisierung",
+      "close": "Schließen",
+      "markReviewed": "Als geprüft markieren",
+      "openDay": "{{day}} öffnen",
+      "total": "Gesamt {{kcal}} kcal",
+      "saw": "{{name}} sah",
+      "planNow": "Plan jetzt",
+      "version": "v{{version}}",
+      "chip": {
+        "removed": "Entfernt",
+        "added": "Hinzugefügt",
+        "amount": "Menge"
+      },
+      "amount": {
+        "grams": "{{amount}} g",
+        "servings": "{{amount}}× Portion"
+      },
+      "textOnly": "{{client}} sah Version {{based}} des Plans; Sie haben seitdem Version {{current}} gespeichert. Der Inhalt der Mahlzeit wurde nicht aufgezeichnet.",
+      "popover": {
+        "title": {
+          "changed": "{{meal}} offline gegessen",
+          "removed": "{{meal}} entfernt, offline gegessen"
+        },
+        "intro": {
+          "changed": "{{client}} hat es am {{date}} um {{time}} als gegessen markiert. Sie haben diese Mahlzeit nach der letzten Synchronisierung von {{client}} geändert.",
+          "removed": "Sie haben diese Mahlzeit entfernt, aber {{client}} hat sie am {{date}} um {{time}} offline gegessen. Sie steht nicht im Mahlzeitenprotokoll von {{client}}."
+        }
+      },
+      "day": {
+        "lead": "{{client}} hat dies am {{date}} um {{time}} offline als gegessen markiert.",
+        "versions": "{{client}} sah Version {{based}}; Sie haben seitdem Version {{current}} gespeichert."
+      },
+      "ghost": {
+        "badge": "Entfernt · offline gegessen",
+        "body": "Sie haben diese Mahlzeit ({{meal}}) entfernt, aber {{client}} hat sie am {{date}} um {{time}} offline gegessen. Sie steht nicht im Mahlzeitenprotokoll von {{client}}.",
+        "aria": "{{meal}} entfernt, offline gegessen"
+      },
+      "strip": {
+        "lead_one": "{{client}} hat {{count}} Mahlzeit offline nach einer älteren Version dieses Plans gegessen.",
+        "lead_other": "{{client}} hat {{count}} Mahlzeiten offline nach einer älteren Version dieses Plans gegessen.",
+        "changed": "{{meal}} von Ihnen geändert",
+        "removed": "{{meal}} von Ihnen entfernt",
+        "show": "Anzeigen",
+        "markAll": "Alle als geprüft markieren"
+      },
+      "reviewError": "Der Konflikt konnte nicht als geprüft markiert werden. Bitte versuchen Sie es erneut.",
+      "reviewAllError": "Die Konflikte konnten nicht als geprüft markiert werden. Bitte versuchen Sie es erneut."
+    },
     "nameLabel": "Planname",
     "undo": "Rückgängig",
     "redo": "Wiederholen",
@@ -3705,6 +3754,7 @@
     "showAllComingSoon": "Vollständige Benachrichtigungsseite kommt bald",
     "justNow": "Gerade eben",
     "reviewInClients": "In Kunden ansehen",
+    "seeInClientActivity": "In der Klientenaktivität ansehen",
     "markRead": "Als gelesen markieren",
     "markAllReadShort": "Alle gelesen",
     "unreadCount": "{{count}} ungelesen"
@@ -4710,6 +4760,17 @@
           "bodyFat": "Körperfett {{value}} %",
           "planWeek": "{{name}}, Woche {{week}}",
           "weekOnly": "Woche {{week}}"
+        },
+        "conflict": {
+          "title": {
+            "PlanChanged": "Offline auf einem älteren Plan erfasst",
+            "MealRemoved": "Offline gegessen, Mahlzeit inzwischen entfernt"
+          },
+          "subject": "{{meal}}, {{date}}",
+          "detail": {
+            "PlanChanged": "Offline um {{time}} als gegessen markiert. Der Klient sah Planversion {{based}}; seitdem haben Sie Version {{current}} gespeichert.",
+            "MealRemoved": "Nicht ins Mahlzeitenprotokoll übernommen. Der Klient sah Planversion {{based}}; aktuell ist Version {{current}}."
+          }
         }
       },
       "profile": {

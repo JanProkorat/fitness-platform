@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { HubConnectionBuilder, HubConnection, LogLevel, HubConnectionState, HttpError } from '@microsoft/signalr';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/auth';
+import { clientOfflineSyncConflictKeys } from '@/hooks/useClientOfflineSyncConflicts';
 import { executeRefresh } from '@/lib/refresh';
 import { RealtimeContext, setHubConnection, useSignalR, type RealtimeApi } from '@/hooks/useSignalR';
 
@@ -188,8 +189,15 @@ function CoachRealtimeSync() {
     void queryClient.invalidateQueries({ queryKey: ['conversations', 'list'] });
   }, [queryClient]);
 
+  // Also sent when the backend updates an existing unread conflict notification.
+  const invalidateConflicts = useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    void queryClient.invalidateQueries({ queryKey: clientOfflineSyncConflictKeys.root });
+  }, [queryClient]);
+
   const invalidateAll = useCallback(() => {
     invalidateInbox();
+    void queryClient.invalidateQueries({ queryKey: clientOfflineSyncConflictKeys.root });
     void queryClient.invalidateQueries({ queryKey: ['clients', 'pending'] });
     // Carries the Pending tab's badge count.
     void queryClient.invalidateQueries({ queryKey: ['clients', 'list'] });
@@ -199,8 +207,9 @@ function CoachRealtimeSync() {
     () => ({
       ...Object.fromEntries(COOPERATION_EVENTS.map((event) => [event, invalidateAll])),
       newmessage: invalidateInbox,
+      offlinesyncconflict: invalidateConflicts,
     }),
-    [invalidateAll, invalidateInbox],
+    [invalidateAll, invalidateInbox, invalidateConflicts],
   );
   useSignalR(handlers, invalidateAll);
 

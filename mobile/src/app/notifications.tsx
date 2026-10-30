@@ -15,10 +15,12 @@ import {
 import type { AppNotification } from '@/api/notifications';
 import { isPaymentRequestedType } from '@/api/payments';
 import { NotificationRow } from '@/components/notifications/NotificationRow';
+import { OfflineBanner } from '@/components/OfflineBanner';
 import { Text } from '@/components/Text';
 import { useInvites } from '@/hooks/useInvites';
 import { useMarkNotificationsRead, useNotifications } from '@/hooks/useNotifications';
 import { usePaymentsEnabled } from '@/hooks/usePaymentsEnabled';
+import { isOfflineEmpty, showsError } from '@/lib/queryState';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
 
@@ -37,7 +39,8 @@ export default function NotificationsSheet() {
   const insets = useSafeAreaInsets();
   const styles = makeStyles(theme, insets);
   const queryClient = useQueryClient();
-  const { data: page, isPending, isError, refetch } = useNotifications();
+  const notificationsQuery = useNotifications();
+  const { data: page, isPending, refetch } = notificationsQuery;
   const { data: invites } = useInvites();
   const { markOne, markAll } = useMarkNotificationsRead();
   const payments = usePaymentsEnabled();
@@ -119,15 +122,20 @@ export default function NotificationsSheet() {
             </Pressable>
           ) : null}
         </View>
+        <OfflineBanner />
         <ScrollView style={styles.list} contentContainerStyle={styles.listContent}>
-          {isError && !page ? (
+          {isOfflineEmpty(notificationsQuery) ? (
+            <Text variant="body" color="muted">
+              {t('offline.notSaved.title')}. {t('offline.notSaved.body')}
+            </Text>
+          ) : showsError(notificationsQuery) ? (
             <Pressable accessibilityRole="button" onPress={() => void refetch()}>
               <Text variant="body" color="muted">
                 {t('notifications.error')}
               </Text>
             </Pressable>
           ) : null}
-          {!isPending && !isError && items.length === 0 ? (
+          {!isPending && page !== undefined && items.length === 0 ? (
             <Text variant="body" color="muted">
               {t('notifications.empty')}
             </Text>

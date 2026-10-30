@@ -101,6 +101,9 @@
   --gf-training-bright: #f28c38;
   --gf-on-training: #ffffff;
 
+  --gf-caution-soft: #fbefd9;
+  --gf-caution-ink: #a15c00;
+
   --gf-nutrition: #3f7d2a;
   --gf-nutrition-soft: #e3f1d4;
   --gf-nutrition-ink: #2f5e1f;
@@ -582,6 +585,8 @@
   --gf-training-soft-dark: #3a2414;
   --gf-training-ink-dark: #f7a863;
   --gf-on-training-dark: #141414;
+  --gf-caution-soft-dark: rgba(240, 168, 75, 0.16);
+  --gf-caution-ink-dark: #f0a84b;
   --gf-nutrition-dark: #8cc152;
   --gf-nutrition-soft-dark: #243319;
   --gf-nutrition-ink-dark: #a9d673;
@@ -637,6 +642,8 @@
   --gf-training-soft: var(--gf-training-soft-dark);
   --gf-training-ink: var(--gf-training-ink-dark);
   --gf-on-training: var(--gf-on-training-dark);
+  --gf-caution-soft: var(--gf-caution-soft-dark);
+  --gf-caution-ink: var(--gf-caution-ink-dark);
   --gf-nutrition: var(--gf-nutrition-dark);
   --gf-nutrition-soft: var(--gf-nutrition-soft-dark);
   --gf-nutrition-ink: var(--gf-nutrition-ink-dark);
@@ -688,6 +695,8 @@
     --gf-training-soft: var(--gf-training-soft-dark);
     --gf-training-ink: var(--gf-training-ink-dark);
     --gf-on-training: var(--gf-on-training-dark);
+    --gf-caution-soft: var(--gf-caution-soft-dark);
+    --gf-caution-ink: var(--gf-caution-ink-dark);
     --gf-nutrition: var(--gf-nutrition-dark);
     --gf-nutrition-soft: var(--gf-nutrition-soft-dark);
     --gf-nutrition-ink: var(--gf-nutrition-ink-dark);
@@ -790,6 +799,8 @@
   --color-training-ink: var(--gf-training-ink);
   --color-training-bright: var(--gf-training-bright);
   --color-on-training: var(--gf-on-training);
+  --color-caution-soft: var(--gf-caution-soft);
+  --color-caution-ink: var(--gf-caution-ink);
   --color-nutrition: var(--gf-nutrition);
   --color-nutrition-soft: var(--gf-nutrition-soft);
   --color-nutrition-ink: var(--gf-nutrition-ink);

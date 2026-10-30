@@ -20,6 +20,7 @@ import { useNutritionDayLog } from '@/hooks/useNutritionDayLog';
 import { useNutritionWeekPlan } from '@/hooks/useNutritionWeekPlan';
 import { useTodayMealActions } from '@/hooks/useTodayMealActions';
 import { useTodayMealLog } from '@/hooks/useTodayMealLog';
+import { showsError } from '@/lib/queryState';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
 
@@ -124,7 +125,7 @@ export function RunningNutritionCard({ plan, today: deviceToday, footer }: Runni
         <View style={[styles.fill, { backgroundColor: theme.colors.nutrition, width: `${Math.round(ratio * 100)}%` }]} />
       </View>
 
-      {todayLog.isError ? (
+      {showsError(todayLog) ? (
         <View style={styles.logError}>
           <Text variant="bodySmall" color="muted" style={styles.logErrorText}>
             {t('nutritionPlan.week.logError')}

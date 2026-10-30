@@ -10,6 +10,7 @@ using FitnessPlatform.Application.Features.ClientNutrition.LogMealEaten;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints.NutritionPlans;
+using Microsoft.Extensions.Logging.Abstractions;
 using MongoDB.Driver;
 using NSubstitute;
 
@@ -52,7 +53,9 @@ public class LogMealEatenEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, Substitute.For<IRealtimeNotifier>(), TimeProvider.System);
+            mongo, db, Substitute.For<IRealtimeNotifier>(), TimeProvider.System,
+            Substitute.For<INotificationService>(), Substitute.For<ICoachDisciplineAccess>(),
+            NullLogger<LogMealEatenEndpoint>.Instance);
 
         await ep.HandleAsync(
             new LogMealEatenRequest { MealId = mealId },
@@ -93,7 +96,9 @@ public class LogMealEatenEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, Substitute.For<IRealtimeNotifier>(), TimeProvider.System);
+            mongo, db, Substitute.For<IRealtimeNotifier>(), TimeProvider.System,
+            Substitute.For<INotificationService>(), Substitute.For<ICoachDisciplineAccess>(),
+            NullLogger<LogMealEatenEndpoint>.Instance);
 
         var photoUrls = new List<string>
         {
@@ -144,7 +149,9 @@ public class LogMealEatenEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, Substitute.For<IRealtimeNotifier>(), TimeProvider.System);
+            mongo, db, Substitute.For<IRealtimeNotifier>(), TimeProvider.System,
+            Substitute.For<INotificationService>(), Substitute.For<ICoachDisciplineAccess>(),
+            NullLogger<LogMealEatenEndpoint>.Instance);
 
         // No PhotoBlobUrls or Note supplied — original quick-log path
         await ep.HandleAsync(
@@ -181,7 +188,9 @@ public class LogMealEatenEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, Substitute.For<IRealtimeNotifier>(), TimeProvider.System);
+            mongo, db, Substitute.For<IRealtimeNotifier>(), TimeProvider.System,
+            Substitute.For<INotificationService>(), Substitute.For<ICoachDisciplineAccess>(),
+            NullLogger<LogMealEatenEndpoint>.Instance);
 
         await ep.HandleAsync(
             new LogMealEatenRequest { MealId = Guid.NewGuid() },
@@ -203,7 +212,9 @@ public class LogMealEatenEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, Substitute.For<IRealtimeNotifier>(), TimeProvider.System);
+            mongo, db, Substitute.For<IRealtimeNotifier>(), TimeProvider.System,
+            Substitute.For<INotificationService>(), Substitute.For<ICoachDisciplineAccess>(),
+            NullLogger<LogMealEatenEndpoint>.Instance);
 
         await ep.HandleAsync(
             new LogMealEatenRequest { MealId = Guid.NewGuid() },
