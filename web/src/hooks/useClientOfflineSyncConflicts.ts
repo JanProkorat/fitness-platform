@@ -8,10 +8,14 @@ import {
 /** The backend caps a conflicts page at 100. */
 const PLAN_CONFLICTS_PAGE_SIZE = 100;
 
+const CONFLICTS_ROOT = ['client-offline-sync-conflicts'] as const;
+
 export const clientOfflineSyncConflictKeys = {
-  all: (clientId: string) => ['client-offline-sync-conflicts', clientId] as const,
-  list: (clientId: string, pageSize: number) => ['client-offline-sync-conflicts', clientId, pageSize] as const,
-  plan: (clientId: string, planId: string) => ['client-offline-sync-conflicts', clientId, 'plan', planId] as const,
+  /** Prefix shared by every conflict query of every client. */
+  root: CONFLICTS_ROOT,
+  all: (clientId: string) => [...CONFLICTS_ROOT, clientId] as const,
+  list: (clientId: string, pageSize: number) => [...CONFLICTS_ROOT, clientId, pageSize] as const,
+  plan: (clientId: string, planId: string) => [...CONFLICTS_ROOT, clientId, 'plan', planId] as const,
 };
 
 /** One client's latest offline-sync conflicts; `enabled` is false for viewers without nutrition access. */
