@@ -142,7 +142,8 @@ function TodayContent() {
             <AreaBlocks blocks={areaBlocks} today={today} />
             <GetReadyList blocks={areaBlocks} covering={covering} />
             <AddCoachRows blocks={areaBlocks} />
-            <StartOnYourOwn showHeading={false} />
+            {/* The stat tiles already offer logging weight and adding photos. */}
+            {hasRunningPlan(areaBlocks) ? null : <StartOnYourOwn showHeading={false} />}
             <InvitesSection />
           </>,
           true,
