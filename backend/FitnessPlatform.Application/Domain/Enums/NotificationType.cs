@@ -71,6 +71,6 @@ public enum NotificationType
     /// <summary>A coach asked the client to pay; delivered to the client.</summary>
     PaymentRequested,
 
-    /// <summary>A client's offline-synced action collided with a plan change; delivered to each linked nutrition coach.</summary>
+    /// <summary>A client's offline-synced action collided with a plan change; delivered to the plan's author.</summary>
     OfflineSyncConflict
 }

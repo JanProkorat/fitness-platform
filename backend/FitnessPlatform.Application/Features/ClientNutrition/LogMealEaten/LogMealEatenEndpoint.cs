@@ -20,7 +20,7 @@ namespace FitnessPlatform.Application.Features.ClientNutrition.LogMealEaten;
 /// Endpoint for logging a meal from the client's active plan as eaten.
 /// Creates a <see cref="MealLog"/> document with a snapshot of the meal's foods. An offline-synced
 /// request (one carrying <c>BasedOnPlanVersion</c>) that collides with a plan change is still applied
-/// and recorded as an <see cref="OfflineSyncConflict"/>, and the linked coaches are notified.
+/// and recorded as an <see cref="OfflineSyncConflict"/>, and the plan's author is notified.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="db">Relational database context.</param>
@@ -113,19 +113,19 @@ public class LogMealEatenEndpoint(
         {
             // Only an offline-synced request may be answered for a meal that left the plan, and only
             // when the meal is provably this client's own; an unknown id stays 404.
-            var removedFrom = req.BasedOnPlanVersion is null
+            var removed = req.BasedOnPlanVersion is null
                 ? null
-                : await FindOwnPlanContainingMealAsync(clientId, req.MealId, ct);
+                : await FindRemovedMealAsync(clientId, req.MealId, ct);
 
-            if (removedFrom is null)
+            if (removed is null)
             {
                 await Send.NotFoundAsync(ct);
                 return;
             }
 
             conflict = NewConflict(
-                removedFrom, FindMeal(removedFrom, req.MealId)!, req, clientId, OfflineSyncConflictKind.MealRemoved,
-                mealLogged: false, now, todayLocalUtc);
+                removed.Value.Plan, removed.Value.Kind, removed.Value.ChangedAtPlanVersion, req, clientId,
+                OfflineSyncConflictKind.MealRemoved, mealLogged: false, now, todayLocalUtc);
         }
         else
         {
@@ -134,7 +134,8 @@ public class LogMealEatenEndpoint(
             if (req.BasedOnPlanVersion is { } basedOn && meal.ChangedAtPlanVersion > basedOn)
             {
                 conflict = NewConflict(
-                    plan, meal, req, clientId, OfflineSyncConflictKind.PlanChanged, mealLogged: true, now, todayLocalUtc);
+                    plan, meal.Kind, meal.ChangedAtPlanVersion, req, clientId,
+                    OfflineSyncConflictKind.PlanChanged, mealLogged: true, now, todayLocalUtc);
             }
         }
 
@@ -167,7 +168,7 @@ public class LogMealEatenEndpoint(
             .FirstOrDefault(m => m.MealId == mealId);
 
     private OfflineSyncConflict NewConflict(
-        NutritionPlan plan, PlanMeal meal, LogMealEatenRequest req, Guid clientId,
+        NutritionPlan plan, MealKind mealKind, int? mealChangedAtPlanVersion, LogMealEatenRequest req, Guid clientId,
         OfflineSyncConflictKind kind, bool mealLogged, DateTime occurredAt, DateTime logDate) => new()
     {
         ExternalId = Guid.NewGuid(),
@@ -181,9 +182,9 @@ public class LogMealEatenEndpoint(
         LogDate = logDate,
         BasedOnPlanVersion = req.BasedOnPlanVersion!.Value,
         CurrentPlanVersion = plan.Version,
-        MealChangedAtPlanVersion = meal.ChangedAtPlanVersion,
+        MealChangedAtPlanVersion = mealChangedAtPlanVersion,
         PlanName = plan.Name,
-        MealKind = meal.Kind,
+        MealKind = mealKind,
         MealLogged = mealLogged,
         DateCreated = timeProvider.GetUtcNow().UtcDateTime,
         SeenItems = (req.SeenMealItems ?? [])
@@ -197,6 +198,42 @@ public class LogMealEatenEndpoint(
             })
             .ToList(),
     };
+
+    /// <summary>
+    /// Finds where a meal that is no longer in the current plan went: a plan of the client's own
+    /// (any status) that still contains it, or that recorded its removal in
+    /// <see cref="NutritionPlan.RemovedMeals"/>. Null when the id is unknown to the client.
+    /// </summary>
+    private async Task<(NutritionPlan Plan, MealKind Kind, int? ChangedAtPlanVersion)?> FindRemovedMealAsync(
+        Guid clientId, Guid mealId, CancellationToken ct)
+    {
+        var containing = await FindOwnPlanContainingMealAsync(clientId, mealId, ct);
+
+        if (containing is not null)
+        {
+            var meal = FindMeal(containing, mealId)!;
+            return (containing, meal.Kind, meal.ChangedAtPlanVersion);
+        }
+
+        var recordFilter = Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, clientId)
+                           & Builders<NutritionPlan>.Filter.ElemMatch(
+                               p => p.RemovedMeals, Builders<RemovedPlanMeal>.Filter.Eq(r => r.MealId, mealId));
+
+        using var cursor = await mongo.NutritionPlans.FindAsync(recordFilter, cancellationToken: ct);
+        var candidates = await cursor.ToListAsync(ct);
+
+        foreach (var candidate in candidates.Where(p => p.ClientId == clientId))
+        {
+            var record = candidate.RemovedMeals.FirstOrDefault(r => r.MealId == mealId);
+
+            if (record is not null)
+            {
+                return (candidate, record.Kind, record.RemovedAtPlanVersion);
+            }
+        }
+
+        return null;
+    }
 
     /// <summary>
     /// Finds any of the client's own plans (any status) that contains the meal, or null.
@@ -349,7 +386,8 @@ public class LogMealEatenEndpoint(
 
             var count = (int)await mongo.OfflineSyncConflicts.CountDocumentsAsync(
                 Builders<OfflineSyncConflict>.Filter.Eq(c => c.ClientId, conflict.ClientId)
-                & Builders<OfflineSyncConflict>.Filter.Eq(c => c.PlanId, conflict.PlanId),
+                & Builders<OfflineSyncConflict>.Filter.Eq(c => c.PlanId, conflict.PlanId)
+                & Builders<OfflineSyncConflict>.Filter.Eq(c => c.ReviewedAt, null),
                 cancellationToken: ct);
 
             var coalesceKey = $"{clientProfile.PublicId}:{conflict.PlanId}";
