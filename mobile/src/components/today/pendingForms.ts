@@ -23,10 +23,24 @@ export function fillRoute(item: PendingQuestionnaire): FillRoute | null {
 export const fillableForms = (items: readonly PendingQuestionnaire[] | undefined): PendingQuestionnaire[] =>
   (items ?? []).filter((item) => Boolean(item.linkPublicId));
 
-/** "N questions"; empty when the server reports none the client can answer. */
-export function questionCountHint(t: TFunction, item: PendingQuestionnaire): string | undefined {
+/** Question-count hint for the Today banner or the progress step; empty when no question is answerable. */
+export function questionCountHint(
+  t: TFunction,
+  item: PendingQuestionnaire,
+  kind: 'banner' | 'step',
+): string | undefined {
   const count = item.questionCount ?? 0;
-  return count > 0 ? t('today.questionnaire.count', { count }) : undefined;
+  if (count <= 0) return undefined;
+  return t(kind === 'banner' ? 'today.questionnaire.bannerHint' : 'today.questionnaire.stepHint', { count });
+}
+
+/** "Answer Jana's questions" for the single-coach progress step; without a name, the coach is named by role. */
+export function questionnaireStepTitle(t: TFunction, item: PendingQuestionnaire): string {
+  const name = firstName(item.professionalName?.trim() ?? '');
+  if (name) return t('today.questionnaire.stepTitle', { name });
+  if (item.professionalRole === 'Trainer') return t('today.questionnaire.stepTitleFallback.Trainer');
+  if (item.professionalRole === 'Nutritionist') return t('today.questionnaire.stepTitleFallback.Nutritionist');
+  return t('today.questionnaire.stepTitleFallback.other');
 }
 
 /** "Questions from Jana"; without a name, the coach is named by role. */

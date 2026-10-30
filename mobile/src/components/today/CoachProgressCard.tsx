@@ -19,7 +19,7 @@ import type { Theme } from '@/theme';
 import type { CoachRole } from './collaborationRoles';
 import { firstPaymentStep, findConversation, hasPhotoRequest, paymentPhase, photoStep } from './coachSteps';
 import type { Step } from './coachSteps';
-import { fillRoute, questionCountHint } from './pendingForms';
+import { fillRoute, questionCountHint, questionnaireStepTitle } from './pendingForms';
 import { roleLook } from './roleLook';
 import { TimelineStep } from './TimelineStep';
 import { checkInDaysLabel, sinceLabel } from './todayFormat';
@@ -118,8 +118,8 @@ export function CoachProgressCard({
       return {
         key,
         state: 'open',
-        title: t(role ? `today.progress.questionnaireFor.${role}` : 'today.progress.questionnairePending'),
-        hint: questionCountHint(t, item) ?? t('today.progress.questionnairePendingHint'),
+        title: role ? t(`today.progress.questionnaireFor.${role}`) : questionnaireStepTitle(t, item),
+        hint: questionCountHint(t, item, 'step') ?? t('today.progress.questionnairePendingHint'),
         actionLabel: route ? t('today.questionnaire.fill') : undefined,
         onAction: route ? () => router.push(route) : undefined,
         actionTone: 'primary',
