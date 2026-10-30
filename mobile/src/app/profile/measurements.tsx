@@ -22,6 +22,7 @@ import {
   rangeStart,
   seriesChange,
   seriesSince,
+  valueOf,
 } from '@/components/measurements/metrics';
 import type { Range } from '@/components/measurements/metrics';
 import { Segmented } from '@/components/onboarding/Segmented';
@@ -33,6 +34,8 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import { Text } from '@/components/Text';
 import { useCollaborations } from '@/hooks/useCollaborations';
 import { useMeasurementHistory, usePlanStart } from '@/hooks/useMeasurementHistory';
+import { usePendingKeys } from '@/stores/outbox';
+import { showsError } from '@/lib/queryState';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
 
@@ -48,6 +51,7 @@ export default function MeasurementsScreen() {
   const router = useRouter();
   const language = i18n.language;
   const historyQuery = useMeasurementHistory();
+  const pendingKeys = usePendingKeys();
   const planStartQuery = usePlanStart();
   const collaborationsQuery = useCollaborations();
   const [chosenRange, setChosenRange] = useState<Range | null>(null);
@@ -72,6 +76,17 @@ export default function MeasurementsScreen() {
     .map((coach) => (coach.professionalName ?? '').trim().split(/\s+/)[0] ?? '')
     .filter((name) => name !== '');
 
+  // While a measurement is still unsynced the footnote says when the coaches will see it.
+  const hasUnsynced = pendingKeys.measurementAdded.size > 0;
+  const names = joinNames(t, coachNames);
+  const sharedLine = hasUnsynced
+    ? coachNames.length > 0
+      ? t('measurements.shared.pending', { count: coachNames.length, names })
+      : t('measurements.shared.pendingUnknown')
+    : coachNames.length > 0
+      ? t('measurements.shared.line', { names })
+      : null;
+
   const rows = METRICS.filter(
     (metric) => metric.key !== 'biceps' || latestValue(entries, metric) !== undefined,
   ).map((metric) => {
@@ -79,6 +94,10 @@ export default function MeasurementsScreen() {
     const values = seriesSince(entries, metric, since);
     const change = seriesChange(values);
     const isEstimate = metric.key === 'bodyFat';
+    // The latest value is pending when the entry holding it is one the outbox still carries (keyed by measuredAt).
+    const latestEntry = entries.find((entry) => valueOf(entry, metric) !== undefined);
+    const pending =
+      latestEntry !== undefined && [...pendingKeys.measurementAdded].some((key) => Date.parse(key) === latestEntry.at);
     return (
       <MeasurementRow
         key={metric.key}
@@ -90,6 +109,7 @@ export default function MeasurementsScreen() {
               ? undefined
               : trendLabel(t, language, range, change)
         }
+        pending={pending}
         captionPositive={!isEstimate && change !== null && isDecrease(change)}
         values={values}
         value={latest === undefined ? EMPTY_VALUE : metricValueLabel(t, language, metric.unit, latest)}
@@ -111,13 +131,14 @@ export default function MeasurementsScreen() {
           subtitle={entries.length > 0 ? updatedLabel(t, entries[0].at, now) : undefined}
           backLabel={t('onboarding.back')}
           onBack={() => router.back()}
+          offlineShort
         />
 
         {historyQuery.isPending ? (
           <View style={styles.state}>
             <ActivityIndicator color={theme.colors.accent} />
           </View>
-        ) : historyQuery.isError ? (
+        ) : showsError(historyQuery) ? (
           <View style={styles.error}>
             <Text variant="body" color="muted" style={styles.centered}>
               {t('measurements.error.history')}
@@ -147,7 +168,7 @@ export default function MeasurementsScreen() {
           </>
         )}
 
-        {coachNames.length > 0 ? (
+        {sharedLine !== null ? (
           <View style={styles.shared}>
             <SymbolView
               name="info.circle"
@@ -155,7 +176,7 @@ export default function MeasurementsScreen() {
               size={theme.sizes.measureInfoGlyph}
             />
             <Text variant="label" color="muted" style={styles.sharedText}>
-              {t('measurements.shared.line', { names: joinNames(t, coachNames) })}
+              {sharedLine}
             </Text>
           </View>
         ) : null}

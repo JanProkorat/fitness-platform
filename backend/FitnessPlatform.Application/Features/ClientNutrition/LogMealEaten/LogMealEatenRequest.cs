@@ -21,4 +21,19 @@ public class LogMealEatenRequest
     /// Optional free-text note attached to this meal log entry (max 500 chars).
     /// </summary>
     public string? Note { get; set; }
+
+    /// <summary>
+    /// When the client actually ate the meal (offline sync). Defaults to the server clock;
+    /// at most 5 minutes ahead and 7 days back.
+    /// </summary>
+    public DateTimeOffset? OccurredAt { get; set; }
+
+    /// <summary>Client-generated id that makes a retried request apply only once.</summary>
+    public Guid? ClientRequestId { get; set; }
+
+    /// <summary>The <c>NutritionPlan.Version</c> the client saw when it queued the request.</summary>
+    public int? BasedOnPlanVersion { get; set; }
+
+    /// <summary>The meal items the client saw; stored only when the request collides with a plan change.</summary>
+    public List<SeenMealItemRequest>? SeenMealItems { get; set; }
 }

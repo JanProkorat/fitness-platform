@@ -25,6 +25,7 @@ import { useClientPlans } from '@/hooks/useClientPlans';
 import { useJourneyPhotos } from '@/hooks/useJourneyPhotos';
 import { useJourneySeries } from '@/hooks/useJourneySeries';
 import { usePlanSummaries } from '@/hooks/usePlanSummary';
+import { showsError } from '@/lib/queryState';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
 
@@ -148,7 +149,7 @@ export default function JourneyScreen() {
           <View style={styles.state}>
             <ActivityIndicator color={theme.colors.accent} />
           </View>
-        ) : seriesQuery.isError ? (
+        ) : showsError(seriesQuery) ? (
           <JourneyError
             message={t('journey.error.series')}
             retryLabel={t('journey.error.retry')}
@@ -182,7 +183,7 @@ export default function JourneyScreen() {
                 ))}
               </View>
             ) : null}
-            {photosQuery.isError ? (
+            {showsError(photosQuery) ? (
               <JourneyError
                 message={t('journey.error.photos')}
                 retryLabel={t('journey.error.retry')}
@@ -207,7 +208,7 @@ export default function JourneyScreen() {
           <View style={styles.state}>
             <ActivityIndicator color={theme.colors.accent} />
           </View>
-        ) : plansQuery.isError ? (
+        ) : showsError(plansQuery) ? (
           <JourneyError
             message={t('journey.error.plans')}
             retryLabel={t('journey.error.retry')}

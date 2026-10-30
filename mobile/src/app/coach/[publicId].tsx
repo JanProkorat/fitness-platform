@@ -8,6 +8,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getErrorStatus } from '@/api/errors';
 import { coachFullName, coachInitials, primaryRole } from '@/api/professionals';
 import type { CoachRole } from '@/api/professionals';
+import { PlanState } from '@/components/nutrition/plan/PlanState';
+import { OfflineBanner } from '@/components/OfflineBanner';
 import { BackButton } from '@/components/BackButton';
 import { Button } from '@/components/Button';
 import { CoachAvailability } from '@/components/coach/CoachAvailability';
@@ -21,6 +23,7 @@ import { Text } from '@/components/Text';
 import { useCoachProfile } from '@/hooks/useCoachProfile';
 import { useInvites } from '@/hooks/useInvites';
 import { usePaymentsEnabled } from '@/hooks/usePaymentsEnabled';
+import { isOfflineEmpty } from '@/lib/queryState';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
 
@@ -57,12 +60,17 @@ export default function CoachProfileScreen() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const back = () => router.back();
 
-  if (query.isPending || query.isError) {
+  if (isOfflineEmpty(query)) {
+    return <PlanState kind="offline" onBack={back} />;
+  }
+
+  if (query.isPending || query.data === undefined) {
     return (
       <Screen>
         <View style={styles.stateBack}>
           <BackButton label={t('onboarding.back')} onPress={back} />
         </View>
+        <OfflineBanner />
         <View style={styles.state}>
           {query.isPending ? (
             <ActivityIndicator color={theme.colors.accent} />
@@ -151,6 +159,7 @@ export default function CoachProfileScreen() {
             </Text>
             {role ? <CoachRoleChip role={role} /> : null}
           </View>
+          <OfflineBanner />
           <View style={styles.meta}>
             {where ? (
               <Text variant="body" color="muted">

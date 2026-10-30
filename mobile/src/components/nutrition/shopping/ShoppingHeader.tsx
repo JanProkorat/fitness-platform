@@ -2,6 +2,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { BackButton } from '@/components/BackButton';
 import { GlassIconButton } from '@/components/nutrition/meal/GlassIconButton';
+import { OfflineBanner } from '@/components/OfflineBanner';
 import { Text } from '@/components/Text';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
@@ -54,6 +55,8 @@ export function ShoppingHeader({
           {onShare ? <GlassIconButton symbol="square.and.arrow.up" label={shareLabel} onPress={onShare} /> : null}
         </View>
       </View>
+
+      <OfflineBanner short />
 
       <View accessibilityRole="tablist" style={styles.segments}>
         {tabs.map((tab) => {

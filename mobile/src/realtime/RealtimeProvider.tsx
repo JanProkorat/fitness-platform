@@ -1,4 +1,4 @@
-import { HubConnectionBuilder, HubConnectionState, LogLevel } from '@microsoft/signalr';
+import { HubConnectionBuilder, HubConnectionState } from '@microsoft/signalr';
 import type { HubConnection } from '@microsoft/signalr';
 import { useEffect, useMemo, useRef } from 'react';
 import type { ReactNode } from 'react';
@@ -9,6 +9,7 @@ import { useAuthStore } from '@/stores/auth';
 
 import { RealtimeContext } from './context';
 import type { RealtimeApi, RealtimeHandler } from './context';
+import { hubLogger } from './hubLogger';
 import { getHubAccessToken } from './token';
 
 const HUB_PATH = '/hubs/notifications';
@@ -72,7 +73,7 @@ export function RealtimeProvider({ enabled, children }: RealtimeProviderProps) {
     const connection = new HubConnectionBuilder()
       .withUrl(`${API_BASE_URL}${HUB_PATH}`, { accessTokenFactory: getHubAccessToken })
       .withAutomaticReconnect(RECONNECT_DELAYS_MS)
-      .configureLogging(LogLevel.Warning)
+      .configureLogging(hubLogger)
       .build();
     connectionRef.current = connection;
 

@@ -20,7 +20,7 @@ export function AboutMeCard() {
   const query = useOnboardingAnswers();
 
   // No retry box: a 404/409 means there are no answers yet, and any other failure just hides the card.
-  if (query.isPending || query.isError || isAnswersUnavailable(query.error)) return null;
+  if (query.isPending || query.data === undefined || isAnswersUnavailable(query.error)) return null;
 
   const edit = () => router.push('/profile/edit');
 

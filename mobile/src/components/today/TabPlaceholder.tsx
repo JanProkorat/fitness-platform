@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { StyleSheet } from 'react-native';
 
+import { OfflineBanner } from '@/components/OfflineBanner';
 import { Screen } from '@/components/Screen';
 import { Text } from '@/components/Text';
 import { useTheme } from '@/theme';
@@ -29,6 +30,7 @@ export function TabPlaceholder({ title, body, children }: TabPlaceholderProps) {
       <Text variant="title" accessibilityRole="header">
         {title}
       </Text>
+      <OfflineBanner />
       <Text variant="bodyLarge" color="muted">
         {body}
       </Text>

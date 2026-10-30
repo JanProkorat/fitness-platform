@@ -49,4 +49,16 @@ public class AddMeasurementRequest
     /// Optional notes about the measurement session.
     /// </summary>
     public string? Notes { get; set; }
+
+    /// <summary>
+    /// When the client queued the measurement (offline sync); validated against the 7-day
+    /// offline window only. <c>MeasuredAt</c> still decides the measurement's own date.
+    /// </summary>
+    public DateTimeOffset? OccurredAt { get; set; }
+
+    /// <summary>Client-generated id that makes a retried request apply only once.</summary>
+    public Guid? ClientRequestId { get; set; }
+
+    /// <summary>The <c>NutritionPlan.Version</c> the client saw when it queued the request.</summary>
+    public int? BasedOnPlanVersion { get; set; }
 }

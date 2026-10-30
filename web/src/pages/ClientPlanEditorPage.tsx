@@ -16,7 +16,9 @@ import CopyMealsDialog from '@/components/plan-templates/CopyMealsDialog';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { isClosedPlan, useClientPlanEditor } from '@/hooks/useClientPlanEditor';
+import { useClientPlanOfflineSyncConflicts, useReviewOfflineSyncConflicts } from '@/hooks/useClientOfflineSyncConflicts';
 import { getErrorStatus } from '@/lib/api-errors';
+import { useToastStore } from '@/stores/toast';
 
 interface LoadedProps {
   plan: GetPlanResponse;
@@ -50,9 +52,25 @@ function LoadedClientPlanEditor({ plan, clientId, clientName, firstName, lastNam
   } = useClientPlanEditor(plan, clientId);
   const backToNutrition = () => navigate(`/clients/${clientId}/nutrition`);
 
+  const planId = plan.planId ?? '';
+  const addToast = useToastStore((state) => state.addToast);
+  const conflictsQuery = useClientPlanOfflineSyncConflicts(clientId, planId);
+  const { reviewOne, reviewAll } = useReviewOfflineSyncConflicts(clientId, planId, (kind) =>
+    addToast(t(kind === 'one' ? 'planEditor.syncConflicts.reviewError' : 'planEditor.syncConflicts.reviewAllError'), 'error'),
+  );
+
   return (
     <PlanEditor
       initial={initial}
+      syncConflicts={{
+        conflicts: conflictsQuery.data ?? [],
+        clientName: firstName || clientName,
+        planVersion: plan.version,
+        reviewingId: reviewOne.isPending ? (reviewOne.variables ?? null) : null,
+        reviewingAll: reviewAll.isPending,
+        onReview: (conflictId) => reviewOne.mutateAsync(conflictId).then(() => true, () => false),
+        onReviewAll: () => reviewAll.mutateAsync().then(() => true, () => false),
+      }}
       renderCopyMeals={(slot) => (
         <CopyMealsDialog
           open={slot.open}

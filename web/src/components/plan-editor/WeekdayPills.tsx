@@ -1,5 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
+import ConflictBadge from '@/components/plan-editor/sync-conflicts/ConflictBadge';
+import { useSyncConflicts } from '@/components/plan-editor/sync-conflicts/SyncConflictsContext';
 import { DAY_ORDER } from '@/components/plan-editor/plan-editor-format';
 import { dayTotals, targetStatus, type TargetStatus } from '@/components/plan-editor/plan-editor-nutrition';
 import type { EditorWeek } from '@/components/plan-editor/plan-editor-types';
@@ -13,14 +15,17 @@ const DOT_CLASS: Record<TargetStatus, string | null> = {
 
 interface Props {
   week: EditorWeek;
+  /** Position of the week in the plan (0-based); lets a pill show that day's offline-sync conflicts. */
+  weekIndex?: number;
   current: number;
   dailyKcalTarget: number | undefined;
   onSelect: (dayOfWeek: number) => void;
 }
 
 /** Mon-Sun pills; each carries a dot for how close that day's kcal is to the target. */
-export default function WeekdayPills({ week, current, dailyKcalTarget, onSelect }: Props) {
+export default function WeekdayPills({ week, weekIndex, current, dailyKcalTarget, onSelect }: Props) {
   const { t } = useTranslation();
+  const conflicts = useSyncConflicts();
 
   return (
     <div role="tablist" aria-label={t('planEditor.day.weekdays')} className="flex flex-wrap gap-2">
@@ -43,6 +48,7 @@ export default function WeekdayPills({ week, current, dailyKcalTarget, onSelect 
             )}
           >
             {t(`planEditor.days.${dayOfWeek}`)}
+            {conflicts && weekIndex !== undefined && conflicts.countOnDay(weekIndex, dayOfWeek) > 0 && <ConflictBadge />}
             {dot && <span className={cn('size-1.75 rounded-full', dot)} aria-hidden="true" />}
           </button>
         );

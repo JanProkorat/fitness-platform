@@ -9,6 +9,7 @@ import type { EdgeInsets } from 'react-native-safe-area-context';
 import { getErrorStatus } from '@/api/errors';
 import { ChatMessageKind } from '@/api/generated';
 import { ChatEventCard } from '@/components/messages/ChatEventCard';
+import { OfflineBanner } from '@/components/OfflineBanner';
 import { ChatHeader } from '@/components/messages/ChatHeader';
 import { Composer } from '@/components/messages/Composer';
 import { MessageBubble } from '@/components/messages/MessageBubble';
@@ -20,6 +21,7 @@ import { useConversationMessages, useRefreshConversationMessages } from '@/hooks
 import { useConversations } from '@/hooks/useConversations';
 import { useMarkConversationRead } from '@/hooks/useMarkConversationRead';
 import { useSendMessage } from '@/hooks/useSendMessage';
+import { isOfflineEmpty, showsError } from '@/lib/queryState';
 import { useRealtimeEvent, useRealtimeReconnected } from '@/realtime/useRealtimeEvent';
 import { useTheme } from '@/theme';
 import { chatMotion } from '@/theme/motion';
@@ -132,7 +134,8 @@ export default function ChatScreen() {
     );
   }
 
-  const loadFailed = messagesQuery.isError || conversations.isError;
+  const loadFailed = showsError(messagesQuery) || showsError(conversations);
+  const notSaved = isOfflineEmpty(messagesQuery) || isOfflineEmpty(conversations);
   const loading = !loadFailed && (!conversation || messages === undefined);
   const readOnly = conversation?.isFormer === true;
   const locked = conversation?.isSendLocked === true;
@@ -187,9 +190,19 @@ export default function ChatScreen() {
           roles={conversation?.participant?.roles}
           onBack={leave}
         />
+        <OfflineBanner />
       </View>
 
-      {loadFailed ? (
+      {notSaved ? (
+        <View style={styles.center}>
+          <Text variant="subtitle" style={styles.centerText}>
+            {t('offline.notSaved.title')}
+          </Text>
+          <Text variant="bodyLarge" color="muted" style={styles.centerText}>
+            {t('offline.notSaved.body')}
+          </Text>
+        </View>
+      ) : loadFailed ? (
         <Pressable
           accessibilityRole="button"
           onPress={() => {
@@ -255,6 +268,7 @@ const makeStyles = (theme: Theme, insets: EdgeInsets) =>
       backgroundColor: theme.colors.ground,
     },
     header: {
+      gap: theme.spacing.md,
       paddingTop: insets.top + theme.spacing.safeAreaGap,
       paddingHorizontal: theme.spacing.xxl,
       paddingBottom: theme.spacing.md,

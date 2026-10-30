@@ -32,7 +32,7 @@ public class AddMeasurementEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            db);
+            db, new MockMongoBuilder().Build(), TimeProvider.System);
 
         var request = new AddMeasurementRequest
         {
@@ -61,7 +61,7 @@ public class AddMeasurementEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            db);
+            db, new MockMongoBuilder().Build(), TimeProvider.System);
 
         await ep.HandleAsync(
             new AddMeasurementRequest { MeasuredAt = DateTime.UtcNow, WeightKg = 80 },

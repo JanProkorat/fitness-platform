@@ -22,6 +22,7 @@ import {
   weightChangeLabel,
   weightLabel,
 } from '@/components/profile/format';
+import { OfflineBanner } from '@/components/OfflineBanner';
 import { Screen } from '@/components/Screen';
 import { Text } from '@/components/Text';
 import { useCollaborations } from '@/hooks/useCollaborations';
@@ -71,6 +72,8 @@ export default function ProfileScreen() {
         subtitle={summary ? subtitleLabel(t, language, summary.goal, summary.memberSince) : ''}
       />
 
+      <OfflineBanner />
+
       {summaryQuery.isPending ? (
         <View style={styles.state}>
           <ActivityIndicator color={theme.colors.accent} />
@@ -107,7 +110,7 @@ export default function ProfileScreen() {
           <View style={styles.state}>
             <ActivityIndicator color={theme.colors.accent} />
           </View>
-        ) : coachesQuery.isError ? (
+        ) : coachesQuery.data === undefined ? (
           <SectionError
             message={t('profile.error.coaches')}
             retryLabel={t('profile.error.retry')}

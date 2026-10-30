@@ -28,6 +28,7 @@ import { calendarParts, daysUntil } from '@/components/nutrition/upcoming/format
 import { Text } from '@/components/Text';
 import { useCollaborations } from '@/hooks/useCollaborations';
 import { useFullNutritionPlan } from '@/hooks/useFullNutritionPlan';
+import { isOfflineEmpty, showsError } from '@/lib/queryState';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
 
@@ -69,7 +70,10 @@ function PlanLoader({ planId, onBack }: { planId: string | undefined; onBack: ()
   if (plan.isPending) {
     return <PlanState kind="pending" onBack={onBack} />;
   }
-  if (plan.isError || !plan.data) {
+  if (isOfflineEmpty(plan)) {
+    return <PlanState kind="offline" onBack={onBack} />;
+  }
+  if (showsError(plan) || !plan.data) {
     const missing = getErrorStatus(plan.error) === 404;
     return (
       <PlanState

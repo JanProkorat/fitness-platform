@@ -3,6 +3,7 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Extensions;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.ClientNutrition.Shared;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
@@ -48,7 +49,15 @@ internal sealed class RemoveOffPlanFoodEndpoint(IMongoContext mongo, IApplicatio
 
         var clientId = Guid.Parse(userId);
         var nowUtc = timeProvider.GetUtcNow().UtcDateTime;
-        var (todayUtc, windowStartUtc, windowEndUtc) = await db.ResolveClientLocalDayWindowAsync(clientId, nowUtc, ct);
+
+        if (await ClientRequestDeduplicator.FindAsync(mongo, clientId, req.ClientRequestId, ct) is not null)
+        {
+            await Send.NoContentAsync(ct);
+            return;
+        }
+
+        var (todayUtc, windowStartUtc, windowEndUtc) = await db.ResolveClientLocalDayWindowAsync(
+            clientId, req.OccurredAt?.UtcDateTime ?? nowUtc, ct);
 
         var logFilter = Builders<DayLog>.Filter.And(
             TodayDayLogFilter.Build(clientId, null, todayUtc, windowStartUtc, windowEndUtc),
@@ -80,6 +89,9 @@ internal sealed class RemoveOffPlanFoodEndpoint(IMongoContext mongo, IApplicatio
                 "The day log was modified by another request.", ct);
             return;
         }
+
+        await ClientRequestDeduplicator.RecordAsync(
+            mongo, clientId, req.ClientRequestId, "RemoveOffPlanFood", req.BasedOnPlanVersion, null, nowUtc, ct);
 
         await Send.NoContentAsync(ct);
     }

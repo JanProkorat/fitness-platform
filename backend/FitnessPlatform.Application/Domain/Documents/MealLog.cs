@@ -75,6 +75,14 @@ public class MealLog
     [BsonElement("note")]
     [BsonIgnoreIfNull]
     public string? Note { get; set; }
+
+    /// <summary>
+    /// The <c>NutritionPlan.Version</c> the client saw when it logged this meal offline.
+    /// Null when the client did not send one.
+    /// </summary>
+    [BsonElement("basedOnPlanVersion")]
+    [BsonIgnoreIfNull]
+    public int? BasedOnPlanVersion { get; set; }
 }
 
 /// <summary>

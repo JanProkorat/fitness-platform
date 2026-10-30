@@ -235,6 +235,13 @@ public class UpdatePlanEndpoint(
             return Guid.NewGuid();
         }
 
+        // Snapshot the stored meals before the weeks are replaced, so StampChangedMeals can tell
+        // which meals really changed and stamp them with the version this save produces.
+        var storedMeals = plan.Weeks
+            .SelectMany(w => w.Days.SelectMany(d => d.Meals.Select(m => (Meal: m, w.WeekNumber, d.DayOfWeek))))
+            .GroupBy(entry => entry.Meal.MealId)
+            .ToDictionary(group => group.Key, group => group.First());
+
         // Map request to domain
         plan.Name = req.Name;
         plan.StartDate = req.StartDate.HasValue ? DateTime.SpecifyKind(req.StartDate.Value.Date, DateTimeKind.Utc) : null;
@@ -291,6 +298,9 @@ public class UpdatePlanEndpoint(
             };
         }).ToList();
 
+        StampChangedMeals(plan, storedMeals, plan.Version + 1);
+        RecordRemovedMeals(plan, storedMeals, plan.Version + 1, DateTime.UtcNow);
+
         // Map supplements (full-state replace)
         plan.Supplements = req.Supplements.Select(rs => new Supplement
         {
@@ -313,6 +323,84 @@ public class UpdatePlanEndpoint(
 
         return true;
     }
+
+    /// <summary>
+    /// Sets <see cref="PlanMeal.ChangedAtPlanVersion"/> to <paramref name="newPlanVersion"/> on every
+    /// meal that is new or whose kind, foods, recipes or week/day position changed, and carries the
+    /// stored marker over on unchanged meals.
+    /// </summary>
+    private static void StampChangedMeals(
+        NutritionPlan plan,
+        Dictionary<Guid, (PlanMeal Meal, int WeekNumber, int DayOfWeek)> storedMeals,
+        int newPlanVersion)
+    {
+        foreach (var week in plan.Weeks)
+        {
+            foreach (var day in week.Days)
+            {
+                foreach (var meal in day.Meals)
+                {
+                    var unchanged = storedMeals.TryGetValue(meal.MealId, out var stored)
+                        && stored.WeekNumber == week.WeekNumber
+                        && stored.DayOfWeek == day.DayOfWeek
+                        && stored.Meal.Kind == meal.Kind
+                        && HasSameContent(stored.Meal, meal);
+
+                    meal.ChangedAtPlanVersion = unchanged ? stored.Meal.ChangedAtPlanVersion : newPlanVersion;
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Keeps <see cref="NutritionPlan.RemovedMeals"/> in step with the save: meals that were stored
+    /// but are gone get a record, re-added ids lose theirs, and entries past the offline window
+    /// (8 days) are pruned.
+    /// </summary>
+    private static void RecordRemovedMeals(
+        NutritionPlan plan,
+        Dictionary<Guid, (PlanMeal Meal, int WeekNumber, int DayOfWeek)> storedMeals,
+        int newPlanVersion,
+        DateTime now)
+    {
+        var currentMealIds = plan.Weeks
+            .SelectMany(w => w.Days)
+            .SelectMany(d => d.Meals)
+            .Select(m => m.MealId)
+            .ToHashSet();
+        var cutoff = now.AddDays(-8);
+
+        var kept = plan.RemovedMeals
+            .Where(r => r.RemovedAt >= cutoff && !currentMealIds.Contains(r.MealId))
+            .ToList();
+        var recordedIds = kept.Select(r => r.MealId).ToHashSet();
+
+        foreach (var (mealId, stored) in storedMeals)
+        {
+            if (currentMealIds.Contains(mealId) || !recordedIds.Add(mealId))
+            {
+                continue;
+            }
+
+            kept.Add(new RemovedPlanMeal
+            {
+                MealId = mealId,
+                Kind = stored.Meal.Kind,
+                WeekNumber = stored.WeekNumber,
+                DayOfWeek = stored.DayOfWeek,
+                RemovedAtPlanVersion = newPlanVersion,
+                RemovedAt = now,
+            });
+        }
+
+        plan.RemovedMeals = kept;
+    }
+
+    private static bool HasSameContent(PlanMeal stored, PlanMeal incoming) =>
+        stored.Foods.Select(f => (f.FoodExternalId, f.AmountGrams))
+            .SequenceEqual(incoming.Foods.Select(f => (f.FoodExternalId, f.AmountGrams)))
+        && stored.Recipes.Select(r => (r.RecipeId, r.Servings))
+            .SequenceEqual(incoming.Recipes.Select(r => (r.RecipeId, r.Servings)));
 
     /// <summary>
     /// Returns the request's meal ids that already belong to another plan or to another plan's

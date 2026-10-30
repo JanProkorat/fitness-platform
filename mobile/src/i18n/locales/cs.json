@@ -728,6 +728,8 @@
     },
     "shared": {
       "line": "Sdíleno s {{names}}.",
+      "pending": "{{names}} to uvidí, jakmile se synchronizuje.",
+      "pendingUnknown": "Uvidí to vaši trenéři a nutriční poradci, jakmile se záznam synchronizuje.",
       "and": "a"
     },
     "empty": {
@@ -949,6 +951,65 @@
   },
   "common": {
     "signOut": "Odhlásit se"
+  },
+  "offline": {
+    "banner": "Jste offline",
+    "detail": ". Změny se odešlou, až budete zpět online.",
+    "detailWithTime": " · zobrazuji data z {{time}}. Změny se odešlou, až budete zpět online.",
+    "detailShort": " · zobrazuji data z {{time}}",
+    "notSaved": {
+      "title": "Zatím neuloženo v telefonu",
+      "body": "Tato stránka nebyla otevřena, když jste byli online, takže offline není co zobrazit. Načte se sama, jakmile budete zpět online."
+    }
+  },
+  "offlineSync": {
+    "pending": "Zatím nesynchronizováno",
+    "pendingA11y": "zatím nesynchronizováno",
+    "title": "Vaše offline změny jsou synchronizované",
+    "titleDropped": "Některé offline změny se nepodařilo uložit",
+    "gotIt": "Rozumím",
+    "cardTitle": "Offline změny synchronizovány",
+    "subtitle": "Zatímco jste byli offline, byl váš plán upraven ({{who}}).",
+    "openHint": "Zobrazí podrobnosti",
+    "dismiss": "Zavřít",
+    "summary": {
+      "changed_one": "{{count}} jídlo změněno",
+      "changed_few": "{{count}} jídla změněna",
+      "changed_many": "{{count}} jídla změněno",
+      "changed_other": "{{count}} jídel změněno",
+      "notSaved_one": "{{count}} neuložený záznam",
+      "notSaved_few": "{{count}} neuložené záznamy",
+      "notSaved_many": "{{count}} neuloženého záznamu",
+      "notSaved_other": "{{count}} neuložených záznamů",
+      "separator": " · "
+    },
+    "who": "Váš nutriční poradce",
+    "mealFallback": "jídlo",
+    "conflict": {
+      "planChanged": { "title": "Plán upraven ({{who}}): {{meal}}, {{date}}", "body": "Označili jste jídlo jako snězené offline. Váš záznam je uložený a uvidí ho i váš nutriční poradce." },
+      "mealRemoved": { "title": "Z plánu odebráno ({{who}}): {{meal}}, {{date}}", "body": "Toto jídlo už ve vašem plánu není, proto se váš záznam nepodařilo uložit." }
+    },
+    "dropped": {
+      "title_one": "{{count}} záznam se nepodařilo uložit",
+      "title_few": "{{count}} záznamy se nepodařilo uložit",
+      "title_many": "{{count}} záznamu se nepodařilo uložit",
+      "title_other": "{{count}} záznamů se nepodařilo uložit",
+      "subjectNamed": "Záznam „{{name}}“ ze dne {{date}}",
+      "subject": {
+        "mealEaten": "Záznam jídla ze dne {{date}}",
+        "mealUnlogged": "Záznam jídla ze dne {{date}}",
+        "offPlanAdded": "Záznam potraviny ze dne {{date}}",
+        "offPlanRemoved": "Záznam potraviny ze dne {{date}}",
+        "shoppingTicked": "Záznam nákupního seznamu ze dne {{date}}",
+        "measurementAdded": "Záznam měření ze dne {{date}}"
+      },
+      "reason": {
+        "tooOld": "{{subject}} byl starší než 7 dní, když jste se znovu připojili. Pokud ho stále potřebujete, přidejte ho znovu.",
+        "notFound": "{{subject}} se nepodařilo uložit, protože už není dostupný.",
+        "conflict": "{{subject}} se střetl se změnou a nepodařilo se ho uložit. Pokud ho stále potřebujete, přidejte ho znovu.",
+        "rejected": "{{subject}} nebyl přijat a nepodařilo se ho uložit. Pokud ho stále potřebujete, přidejte ho znovu."
+      }
+    }
   },
   "profileError": {
     "title": "Účet se nepodařilo načíst",

@@ -18,6 +18,7 @@ import {
   percentLabel,
   weeksBetween,
 } from '@/components/journey/format';
+import { PlanState } from '@/components/nutrition/plan/PlanState';
 import { ListCard } from '@/components/profile/ListCard';
 import { ListRow, RowIcon } from '@/components/profile/ListRow';
 import { Screen } from '@/components/Screen';
@@ -25,6 +26,7 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import { Text } from '@/components/Text';
 import { useClientPlans } from '@/hooks/useClientPlans';
 import { usePlanSummary } from '@/hooks/usePlanSummary';
+import { isOfflineEmpty } from '@/lib/queryState';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
 
@@ -49,7 +51,11 @@ export default function PlanSummaryScreen() {
   const backLabel = t('onboarding.back');
   const goBack = () => router.back();
 
-  if (!valid || query.isPending || query.isError) {
+  if (valid && isOfflineEmpty(query)) {
+    return <PlanState kind="offline" onBack={goBack} />;
+  }
+
+  if (!valid || query.isPending || query.data === undefined) {
     const notFound = valid && query.isError && getErrorStatus(query.error) === 404;
     return (
       <Screen gutter={theme.spacing.xl} topGap={theme.spacing.safeAreaGap}>
