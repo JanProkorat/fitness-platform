@@ -213,4 +213,5 @@ export const sizes = {
   offlineIcon: 64,
   offlineGlyph: 28,
   quietButton: 46,
+  quietButtonInset: 28,
 } as const;

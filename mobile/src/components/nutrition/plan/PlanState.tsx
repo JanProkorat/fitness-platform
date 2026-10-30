@@ -103,7 +103,7 @@ const makeStyles = (theme: Theme) =>
       alignItems: 'center',
       justifyContent: 'center',
       height: theme.sizes.quietButton,
-      paddingHorizontal: theme.spacing.xxxl,
+      paddingHorizontal: theme.sizes.quietButtonInset,
       borderRadius: theme.radii.pill,
       backgroundColor: theme.colors.quietPill,
     },
