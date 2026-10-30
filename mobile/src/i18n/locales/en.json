@@ -263,6 +263,16 @@
       },
       "count_one": "{{count}} question",
       "count_other": "{{count}} questions",
+      "stepTitle": "Answer {{name}}'s questions",
+      "stepTitleFallback": {
+        "Trainer": "Answer your trainer's questions",
+        "Nutritionist": "Answer your nutritionist's questions",
+        "other": "Answer your coach's questions"
+      },
+      "stepHint_one": "{{count}} question for your plan",
+      "stepHint_other": "{{count}} questions for your plan",
+      "bannerHint_one": "{{count}} question, for your next plan",
+      "bannerHint_other": "{{count}} questions, for your next plan",
       "fill": "Fill in",
       "fillLabel": "Fill in: {{title}}"
     },
@@ -278,7 +288,6 @@
       "things_other": "{{count}} things for you meanwhile",
       "accepted": "Invite accepted",
       "questionnaireSent": "Questionnaire sent",
-      "questionnairePending": "Questionnaire",
       "questionnairePendingHint": "Waiting for you to fill it in",
       "questionnaireFor": {
         "Trainer": "Training questionnaire",

@@ -271,6 +271,20 @@
       "count_few": "{{count}} otázky",
       "count_many": "{{count}} otázky",
       "count_other": "{{count}} otázek",
+      "stepTitle": "Odpovězte na otázky od {{name}}",
+      "stepTitleFallback": {
+        "Trainer": "Odpovězte na otázky od vašeho trenéra",
+        "Nutritionist": "Odpovězte na otázky od vašeho nutričního poradce",
+        "other": "Odpovězte na otázky od vašeho poradce"
+      },
+      "stepHint_one": "{{count}} otázka pro váš plán",
+      "stepHint_few": "{{count}} otázky pro váš plán",
+      "stepHint_many": "{{count}} otázky pro váš plán",
+      "stepHint_other": "{{count}} otázek pro váš plán",
+      "bannerHint_one": "{{count}} otázka, pro váš příští plán",
+      "bannerHint_few": "{{count}} otázky, pro váš příští plán",
+      "bannerHint_many": "{{count}} otázky, pro váš příští plán",
+      "bannerHint_other": "{{count}} otázek, pro váš příští plán",
       "fill": "Vyplnit",
       "fillLabel": "Vyplnit: {{title}}"
     },
@@ -288,7 +302,6 @@
       "things_other": "{{count}} věcí pro vás zatím",
       "accepted": "Pozvánka přijata",
       "questionnaireSent": "Dotazník odeslán",
-      "questionnairePending": "Dotazník",
       "questionnairePendingHint": "Čeká na vaše vyplnění",
       "questionnaireFor": {
         "Trainer": "Dotazník k tréninku",

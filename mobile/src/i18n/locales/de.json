@@ -263,6 +263,16 @@
       },
       "count_one": "{{count}} Frage",
       "count_other": "{{count}} Fragen",
+      "stepTitle": "Beantworten Sie die Fragen von {{name}}",
+      "stepTitleFallback": {
+        "Trainer": "Beantworten Sie die Fragen Ihres Trainers",
+        "Nutritionist": "Beantworten Sie die Fragen Ihres Ernährungsberaters",
+        "other": "Beantworten Sie die Fragen Ihres Coachs"
+      },
+      "stepHint_one": "{{count}} Frage für Ihren Plan",
+      "stepHint_other": "{{count}} Fragen für Ihren Plan",
+      "bannerHint_one": "{{count}} Frage, für Ihren nächsten Plan",
+      "bannerHint_other": "{{count}} Fragen, für Ihren nächsten Plan",
       "fill": "Ausfüllen",
       "fillLabel": "Ausfüllen: {{title}}"
     },
@@ -278,7 +288,6 @@
       "things_other": "{{count}} Dinge für Sie in der Zwischenzeit",
       "accepted": "Einladung angenommen",
       "questionnaireSent": "Fragebogen gesendet",
-      "questionnairePending": "Fragebogen",
       "questionnairePendingHint": "Wartet auf Ihre Antworten",
       "questionnaireFor": {
         "Trainer": "Fragebogen zum Training",

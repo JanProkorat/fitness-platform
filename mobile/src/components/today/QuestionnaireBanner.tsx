@@ -20,7 +20,7 @@ export function QuestionnaireBanner({ item }: QuestionnaireBannerProps) {
   const styles = makeStyles(theme);
   const route = fillRoute(item);
   if (!route) return null;
-  const hint = questionCountHint(t, item);
+  const hint = questionCountHint(t, item, 'banner');
 
   return (
     <View style={styles.banner}>
