@@ -67,11 +67,11 @@ const makeStyles = (theme: Theme) =>
     card: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: theme.spacing.md,
+      gap: theme.spacing.tight,
       alignSelf: 'stretch',
-      backgroundColor: theme.colors.subtle,
+      backgroundColor: theme.colors.tabSelected,
       borderRadius: theme.radii.xl,
-      paddingVertical: theme.spacing.md,
+      paddingVertical: theme.spacing.tight,
       paddingHorizontal: theme.spacing.lg,
     },
     text: {

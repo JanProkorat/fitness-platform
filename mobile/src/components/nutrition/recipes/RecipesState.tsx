@@ -36,8 +36,8 @@ export function RecipesState({ kind, title, body, actionLabel, onAction }: Recip
           <SymbolView
             name="icloud.slash"
             weight="medium"
-            tintColor={theme.colors.ink2}
-            size={theme.sizes.heroGlyph}
+            tintColor={theme.colors.muted}
+            size={theme.sizes.offlineGlyph}
           />
         </View>
       ) : null}
@@ -65,8 +65,8 @@ const makeStyles = (theme: Theme) =>
       alignSelf: 'center',
       alignItems: 'center',
       justifyContent: 'center',
-      width: theme.sizes.heroIcon,
-      height: theme.sizes.heroIcon,
+      width: theme.sizes.offlineIcon,
+      height: theme.sizes.offlineIcon,
       borderRadius: theme.radii.pill,
       backgroundColor: theme.colors.subtle,
     },

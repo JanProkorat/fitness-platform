@@ -1,5 +1,5 @@
 import { SymbolView } from 'expo-symbols';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { Button } from '@/components/Button';
@@ -48,8 +48,8 @@ export function PlanState({ kind, title, body, onBack, onRetry }: PlanStateProps
                 <SymbolView
                   name="icloud.slash"
                   weight="medium"
-                  tintColor={theme.colors.ink2}
-                  size={theme.sizes.heroGlyph}
+                  tintColor={theme.colors.muted}
+                  size={theme.sizes.offlineGlyph}
                 />
               </View>
             ) : null}
@@ -61,6 +61,14 @@ export function PlanState({ kind, title, body, onBack, onRetry }: PlanStateProps
             </Text>
             {kind === 'error' && onRetry ? (
               <Button label={t('nutritionPlan.retry')} onPress={onRetry} />
+            ) : onBack && kind === 'offline' ? (
+              <Pressable
+                accessibilityRole="button"
+                onPress={onBack}
+                style={({ pressed }) => [styles.quietPill, pressed && styles.pressed]}
+              >
+                <Text variant="labelStrong">{t('nutritionPlan.back')}</Text>
+              </Pressable>
             ) : onBack ? (
               <Button label={t('nutritionPlan.back')} onPress={onBack} />
             ) : null}
@@ -85,9 +93,21 @@ const makeStyles = (theme: Theme) =>
       alignSelf: 'center',
       alignItems: 'center',
       justifyContent: 'center',
-      width: theme.sizes.heroIcon,
-      height: theme.sizes.heroIcon,
+      width: theme.sizes.offlineIcon,
+      height: theme.sizes.offlineIcon,
       borderRadius: theme.radii.pill,
       backgroundColor: theme.colors.subtle,
+    },
+    quietPill: {
+      alignSelf: 'center',
+      alignItems: 'center',
+      justifyContent: 'center',
+      height: theme.sizes.quietButton,
+      paddingHorizontal: theme.spacing.xxxl,
+      borderRadius: theme.radii.pill,
+      backgroundColor: theme.colors.quietPill,
+    },
+    pressed: {
+      opacity: theme.opacity.pressed,
     },
   });

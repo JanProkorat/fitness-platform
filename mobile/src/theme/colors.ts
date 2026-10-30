@@ -55,6 +55,8 @@ export type Colors = {
 
   segmentSelected: string;
   tabSelected: string;
+  /** Fill of a quiet pill button, such as Back on the not-saved-offline state. */
+  quietPill: string;
   avatar: string;
   qrTile: string;
   qrInk: string;
@@ -138,6 +140,7 @@ export const lightColors: Colors = {
   errorSoft: '#FBE3DF',
   segmentSelected: '#FFFFFF',
   tabSelected: 'rgba(20,20,20,0.05)',
+  quietPill: 'rgba(20,20,20,0.05)',
   glassFill: 'rgba(255,255,255,0.58)',
   glassBorder: 'rgba(255,255,255,0.85)',
   wordmarkInk: '#141414',
@@ -184,6 +187,7 @@ export const darkColors: Colors = {
   errorSoft: '#3A1A17',
   segmentSelected: '#3A3A3E',
   tabSelected: 'rgba(255,255,255,0.06)',
+  quietPill: 'rgba(255,255,255,0.08)',
   glassFill: 'rgba(44,44,48,0.52)',
   glassBorder: 'rgba(255,255,255,0.14)',
   wordmarkInk: '#F4F2EE',
