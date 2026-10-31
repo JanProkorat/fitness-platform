@@ -171,6 +171,7 @@ export function NutritionPlanView({ week }: NutritionPlanViewProps) {
               }
               onAddPhoto={isToday && logAvailable ? () => askSource(meal) : undefined}
               addPhotoBusy={addPhotoBusy(meal.mealId)}
+              hideEatenState={phase === 'future'}
               onOpenPhoto={(photoIndex) => setViewer({ mealId: meal.mealId, index: photoIndex })}
             />
           ))
