@@ -1801,8 +1801,8 @@
       "board": "GlassNutrition",
       "shots": [
         { "name": "default", "steps": "client with an active published nutrition plan; tap the Nutrition tab" },
-        { "name": "empty", "steps": "client without a nutritionist; tap the Nutrition tab (board GlassEmptyStates)" },
-        { "name": "waiting", "steps": "client whose nutritionist has not published a plan yet; tap the Nutrition tab (board GlassEmptyStates)" },
+        { "name": "empty", "steps": "client without a nutritionist; tap the Nutrition tab (board GlassNutritionEmpty)" },
+        { "name": "waiting", "steps": "client whose nutritionist has not published a plan yet; tap the Nutrition tab (board GlassNutritionWaiting)" },
         { "name": "upcoming", "steps": "client whose published plan starts later; tap the Nutrition tab" }
       ],
       "notionPageId": null
@@ -2322,7 +2322,7 @@
       "shots": [
         { "name": "default", "steps": "tap Edit profile on Profile" },
         { "name": "my-info", "steps": "scroll to the My info section (board GlassEditProfileInfo)" },
-        { "name": "my-info-sheet", "steps": "tap a My info row to open its sheet (board GlassEditProfileInfo)" }
+        { "name": "my-info-sheet", "steps": "tap a My info row to open its sheet (board GlassEditProfileInfo2)" }
       ],
       "notionPageId": null
     },
