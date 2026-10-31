@@ -163,6 +163,7 @@ export const sizes = {
   mealItemChevron: 14,
   mealItemMin: 40,
   mealIndent: 26,
+  noteGlyph: 15,
   mealThumb: 44,
   macroBar: 3,
   macroDot: 6,

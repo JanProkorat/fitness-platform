@@ -110,7 +110,12 @@ export function NutritionPlanView({ week }: NutritionPlanViewProps) {
         onSelect={setPicked}
       />
 
-      <DaySummary eaten={eaten} targets={week.globalSettings} />
+      <DaySummary
+        eaten={eaten}
+        targets={week.globalSettings}
+        note={selectedDay?.day?.note}
+        noteLabel={isToday ? t('nutritionPlan.note.today') : undefined}
+      />
 
       <Card style={styles.meals}>
         <View style={styles.mealsHead}>

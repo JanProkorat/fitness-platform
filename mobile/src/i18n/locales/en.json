@@ -1533,6 +1533,12 @@
       "more_other": "and {{count}} more items",
       "toggle": "Show or hide {{meal}}"
     },
+    "note": {
+      "day": "Note for this day",
+      "today": "Note for today",
+      "meal": "Note",
+      "mealIcon": "This meal has a note"
+    },
     "amount": {
       "portions_one": "{{value}} portion",
       "portions_other": "{{value}} portions",
