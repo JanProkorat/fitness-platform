@@ -22,6 +22,7 @@ import { GetReadyList } from '@/components/today/GetReadyList';
 import { HowItWorks } from '@/components/today/HowItWorks';
 import { InvitesSection } from '@/components/today/InvitesSection';
 import { PaymentDueCard } from '@/components/today/PaymentDueCard';
+import { QuestionnaireBanners } from '@/components/today/QuestionnaireBanners';
 import { RoleSlots } from '@/components/today/RoleSlots';
 import { StartOnYourOwn } from '@/components/today/StartOnYourOwn';
 import { StatTiles } from '@/components/today/StatTiles';
@@ -137,7 +138,12 @@ function TodayContent() {
         return screen(
           <TodayHeader title={t('today.dateTitle')} />,
           <>
-            {hasRunningPlan(areaBlocks) ? <StatTiles /> : null}
+            {hasRunningPlan(areaBlocks) ? (
+              <>
+                <StatTiles />
+                <QuestionnaireBanners />
+              </>
+            ) : null}
             <AreaPaymentDue blocks={areaBlocks} covering={covering} />
             <AreaBlocks blocks={areaBlocks} today={today} />
             <GetReadyList blocks={areaBlocks} covering={covering} />

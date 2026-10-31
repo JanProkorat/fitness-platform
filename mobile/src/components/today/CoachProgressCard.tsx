@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 
 import type { Collaboration } from '@/api/collaborations';
 import { LinkCapabilityScope } from '@/api/generated';
-import type { PendingItems, SubmittedByCoach } from '@/api/questionnaires';
+import type { PendingItems, PendingQuestionnaire, SubmittedByCoach } from '@/api/questionnaires';
 import { Chip } from '@/components/Chip';
 import { firstName, initials } from '@/components/invites/format';
 import { Text } from '@/components/Text';
@@ -19,6 +19,7 @@ import type { Theme } from '@/theme';
 import type { CoachRole } from './collaborationRoles';
 import { firstPaymentStep, findConversation, hasPhotoRequest, paymentPhase, photoStep } from './coachSteps';
 import type { Step } from './coachSteps';
+import { fillRoute, questionCountHint, questionnaireStepTitle } from './pendingForms';
 import { roleLook } from './roleLook';
 import { TimelineStep } from './TimelineStep';
 import { checkInDaysLabel, sinceLabel } from './todayFormat';
@@ -40,10 +41,10 @@ const scopeRole = (scope: LinkCapabilityScope | undefined): CoachRole | null => 
   return null;
 };
 
-type QuestionnaireStatus = { pending: boolean; sent: boolean };
-const NONE: QuestionnaireStatus = { pending: false, sent: false };
+type QuestionnaireStatus = { pending: PendingQuestionnaire | undefined; sent: boolean };
+const NONE: QuestionnaireStatus = { pending: undefined, sent: false };
 
-/** Whether this coach link has a questionnaire waiting or sent. `role`: a role to match, null for unscoped, undefined for any. */
+/** The oldest questionnaire waiting, or whether one was sent, for this coach link. `role`: a role to match, null for unscoped, undefined for any. */
 function questionnaireStatus(
   pending: PendingItems | undefined,
   submitted: readonly SubmittedByCoach[] | undefined,
@@ -52,15 +53,15 @@ function questionnaireStatus(
 ): QuestionnaireStatus {
   if (linkId === undefined) return NONE;
   const matches = (scope: LinkCapabilityScope | undefined) => role === undefined || scopeRole(scope) === role;
-  const isPending = (pending?.questionnaires ?? []).some(
-    (item) => item.linkPublicId === linkId && matches(item.scope),
+  const item = (pending?.questionnaires ?? []).find(
+    (entry) => entry.linkPublicId === linkId && matches(entry.scope),
   );
   const isSent =
-    !isPending &&
+    item === undefined &&
     (submitted ?? []).some(
       (coach) => coach.linkPublicId === linkId && (coach.responses ?? []).some((r) => matches(r.scope)),
     );
-  return { pending: isPending, sent: isSent };
+  return { pending: item, sent: isSent };
 }
 
 /** One coach who is still building a plan: who they are, what is done, what is waiting on the client. */
@@ -90,7 +91,13 @@ export function CoachProgressCard({
   );
   const photoRequested = hasPhotoRequest(pending, collaboration, onlyCollaboration);
   let waiting = (generic.pending ? 1 : 0) + (photoRequested ? 1 : 0);
-  for (const status of perRole.values()) if (status.pending) waiting += 1;
+  let questionnaireOpen = generic.pending !== undefined;
+  for (const status of perRole.values()) {
+    if (status.pending) {
+      waiting += 1;
+      questionnaireOpen = true;
+    }
+  }
 
   // First payment of the agreed terms: Upcoming only informs, Requested and Overdue ask the client to pay.
   const firstPayment = paymentsEnabled ? collaboration.firstPayment : undefined;
@@ -106,11 +113,16 @@ export function CoachProgressCard({
   const steps: Step[] = [{ key: 'accepted', state: 'done', title: t('today.progress.accepted') }];
   const questionnaireStep = (key: string, status: QuestionnaireStatus, role?: CoachRole): Step | null => {
     if (status.pending) {
+      const route = fillRoute(status.pending);
+      const item = status.pending;
       return {
         key,
         state: 'open',
-        title: t(role ? `today.progress.questionnaireFor.${role}` : 'today.progress.questionnairePending'),
-        hint: t('today.progress.questionnairePendingHint'),
+        title: role ? t(`today.progress.questionnaireFor.${role}`) : questionnaireStepTitle(t, item),
+        hint: questionCountHint(t, item, 'step') ?? t('today.progress.questionnairePendingHint'),
+        actionLabel: route ? t('today.questionnaire.fill') : undefined,
+        onAction: route ? () => router.push(route) : undefined,
+        actionTone: 'primary',
       };
     }
     if (status.sent) {
@@ -140,6 +152,7 @@ export function CoachProgressCard({
         firstPayment,
         name: first,
         onShowQr: () => router.push('/payments'),
+        tone: questionnaireOpen ? 'secondary' : 'primary',
       }),
     );
   }
