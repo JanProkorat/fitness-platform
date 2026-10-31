@@ -1346,6 +1346,9 @@
         "mobile/src/hooks/useProfileSummary.ts",
         "mobile/src/hooks/useTodayMealActions.ts",
         "mobile/src/hooks/useTodayMealLog.ts",
+        "mobile/src/components/today/QuestionnaireBanner.tsx",
+        "mobile/src/components/today/QuestionnaireBanners.tsx",
+        "mobile/src/components/today/pendingForms.ts",
         "mobile/src/components/OfflineBanner.tsx",
         "mobile/src/components/offline/PendingMark.tsx",
         "mobile/src/components/offline/SyncNoticeCard.tsx",
@@ -2614,6 +2617,166 @@
       "shots": [
         { "name": "default", "steps": "tap Change password on Settings" },
         { "name": "wrong-current-password", "steps": "enter a wrong current password and submit" }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "client.questionnaire.intro",
+      "app": "client",
+      "area": "Questionnaire",
+      "title": "Questionnaire intro",
+      "route": "/questionnaire/[linkPublicId]",
+      "roles": ["Client"],
+      "files": [
+        "mobile/src/app/questionnaire/*/index.tsx",
+        "mobile/src/api/errors.ts",
+        "mobile/src/api/questionnaires.ts",
+        "mobile/src/app/questionnaire/*/_layout.tsx",
+        "mobile/src/components/BackButton.tsx",
+        "mobile/src/components/Button.tsx",
+        "mobile/src/components/Card.tsx",
+        "mobile/src/components/Chip.tsx",
+        "mobile/src/components/Text.tsx",
+        "mobile/src/components/invites/InviteAvatar.tsx",
+        "mobile/src/components/invites/RoleChip.tsx",
+        "mobile/src/components/invites/format.ts",
+        "mobile/src/components/questionnaire/FillContext.tsx",
+        "mobile/src/components/questionnaire/FlowFrame.tsx",
+        "mobile/src/components/questionnaire/FlowHeader.tsx",
+        "mobile/src/components/questionnaire/FlowState.tsx",
+        "mobile/src/components/questionnaire/fillModel.ts",
+        "mobile/src/hooks/useQuestionnaireFill.ts",
+        "mobile/src/hooks/useSendQuestionnaire.ts"
+      ],
+      "endpoints": [
+        "GET /client/questionnaire"
+      ],
+      "board": "GlassQuestionnaireIntro",
+      "shots": [
+        { "name": "default", "steps": "tap Fill in on a pending questionnaire banner on Today" }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "client.questionnaire.step",
+      "app": "client",
+      "area": "Questionnaire",
+      "title": "Questionnaire step",
+      "route": "/questionnaire/[linkPublicId]/step/[step]",
+      "roles": ["Client"],
+      "files": [
+        "mobile/src/app/questionnaire/*/step/*.tsx",
+        "mobile/src/api/errors.ts",
+        "mobile/src/api/questionnaires.ts",
+        "mobile/src/app/questionnaire/*/_layout.tsx",
+        "mobile/src/components/BackButton.tsx",
+        "mobile/src/components/Button.tsx",
+        "mobile/src/components/Input.tsx",
+        "mobile/src/components/Text.tsx",
+        "mobile/src/components/invites/format.ts",
+        "mobile/src/components/onboarding/RatingEnds.tsx",
+        "mobile/src/components/onboarding/RatingScale.tsx",
+        "mobile/src/components/onboarding/Segmented.tsx",
+        "mobile/src/components/questionnaire/ChoiceField.tsx",
+        "mobile/src/components/questionnaire/FillContext.tsx",
+        "mobile/src/components/questionnaire/FlowFrame.tsx",
+        "mobile/src/components/questionnaire/FlowHeader.tsx",
+        "mobile/src/components/questionnaire/FlowState.tsx",
+        "mobile/src/components/questionnaire/NumberField.tsx",
+        "mobile/src/components/questionnaire/OptionRow.tsx",
+        "mobile/src/components/questionnaire/QuestionField.tsx",
+        "mobile/src/components/questionnaire/ScaleField.tsx",
+        "mobile/src/components/questionnaire/SmileyField.tsx",
+        "mobile/src/components/questionnaire/StarField.tsx",
+        "mobile/src/components/questionnaire/TextAnswerField.tsx",
+        "mobile/src/components/questionnaire/fieldProps.ts",
+        "mobile/src/components/questionnaire/fillModel.ts",
+        "mobile/src/hooks/useQuestionnaireFill.ts",
+        "mobile/src/hooks/useSendQuestionnaire.ts"
+      ],
+      "endpoints": [
+        "GET /client/questionnaire"
+      ],
+      "board": "GlassQuestionnaireStep1",
+      "shots": [
+        { "name": "default", "steps": "tap Start on the questionnaire intro" },
+        { "name": "ratings", "steps": "continue to a section with smiley, star and scale questions" }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "client.questionnaire.review",
+      "app": "client",
+      "area": "Questionnaire",
+      "title": "Questionnaire review",
+      "route": "/questionnaire/[linkPublicId]/review",
+      "roles": ["Client"],
+      "files": [
+        "mobile/src/app/questionnaire/*/review.tsx",
+        "mobile/src/api/errors.ts",
+        "mobile/src/api/questionnaires.ts",
+        "mobile/src/app/questionnaire/*/_layout.tsx",
+        "mobile/src/components/BackButton.tsx",
+        "mobile/src/components/Button.tsx",
+        "mobile/src/components/Card.tsx",
+        "mobile/src/components/Text.tsx",
+        "mobile/src/components/invites/format.ts",
+        "mobile/src/components/questionnaire/FillContext.tsx",
+        "mobile/src/components/questionnaire/FlowFrame.tsx",
+        "mobile/src/components/questionnaire/FlowHeader.tsx",
+        "mobile/src/components/questionnaire/FlowState.tsx",
+        "mobile/src/components/questionnaire/ReviewCard.tsx",
+        "mobile/src/components/questionnaire/ReviewValue.tsx",
+        "mobile/src/components/questionnaire/StarField.tsx",
+        "mobile/src/components/questionnaire/fieldProps.ts",
+        "mobile/src/components/questionnaire/fillModel.ts",
+        "mobile/src/hooks/useQuestionnaireFill.ts",
+        "mobile/src/hooks/useSendQuestionnaire.ts"
+      ],
+      "endpoints": [
+        "GET /client/questionnaire",
+        "POST /client/questionnaire/response",
+        "PUT /client/questionnaire/response/{responsePublicId}",
+        "POST /client/questionnaire/response/{responsePublicId}/submit"
+      ],
+      "board": "GlassQuestionnaireReview",
+      "shots": [
+        { "name": "default", "steps": "continue past the last section" },
+        { "name": "missing-answer", "steps": "leave a required question empty and tap Send" }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "client.questionnaire.sent",
+      "app": "client",
+      "area": "Questionnaire",
+      "title": "Questionnaire sent",
+      "route": "/questionnaire/[linkPublicId]/sent",
+      "roles": ["Client"],
+      "files": [
+        "mobile/src/app/questionnaire/*/sent.tsx",
+        "mobile/src/api/errors.ts",
+        "mobile/src/api/questionnaires.ts",
+        "mobile/src/app/questionnaire/*/_layout.tsx",
+        "mobile/src/components/BackButton.tsx",
+        "mobile/src/components/Button.tsx",
+        "mobile/src/components/Card.tsx",
+        "mobile/src/components/Text.tsx",
+        "mobile/src/components/invites/format.ts",
+        "mobile/src/components/questionnaire/FillContext.tsx",
+        "mobile/src/components/questionnaire/FlowFrame.tsx",
+        "mobile/src/components/questionnaire/FlowHeader.tsx",
+        "mobile/src/components/questionnaire/FlowState.tsx",
+        "mobile/src/components/questionnaire/fillModel.ts",
+        "mobile/src/hooks/useQuestionnaireFill.ts",
+        "mobile/src/hooks/useSendQuestionnaire.ts"
+      ],
+      "endpoints": [
+        "GET /client/questionnaire"
+      ],
+      "board": "GlassQuestionnaireSent",
+      "shots": [
+        { "name": "default", "steps": "tap Send on the review screen" }
       ],
       "notionPageId": null
     }

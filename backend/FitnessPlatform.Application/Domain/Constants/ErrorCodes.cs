@@ -655,6 +655,16 @@ public static class ErrorCodes
     /// <summary>The day log changed between the read and the write; retry.</summary>
     public const string DayLogVersionConflict = "DAY_LOG_VERSION_CONFLICT";
 
+    // ── Questionnaire answers ───────────────────────────────────────────
+    /// <summary>An answer does not fit its question's type or config.</summary>
+    public const string QuestionnaireAnswerInvalid = "QUESTIONNAIRE_ANSWER_INVALID";
+
+    /// <summary>An answered question id is not a visible, answerable question of the response's questionnaire.</summary>
+    public const string QuestionnaireQuestionNotInForm = "QUESTIONNAIRE_QUESTION_NOT_IN_FORM";
+
+    /// <summary>A required, visible question has no answer at submit time.</summary>
+    public const string QuestionnaireRequiredAnswerMissing = "QUESTIONNAIRE_REQUIRED_ANSWER_MISSING";
+
     // ── Offline sync ────────────────────────────────────────────────────
     /// <summary>The client-reported occurrence time is more than 5 minutes ahead of the server.</summary>
     public const string OccurredAtInFuture = "OCCURRED_AT_IN_FUTURE";

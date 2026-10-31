@@ -5,6 +5,8 @@ using System.Text.Json.Serialization;
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Features.Questionnaires.Shared;
+using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Tests.Infrastructure;
 using Microsoft.EntityFrameworkCore;
@@ -568,6 +570,111 @@ public class GetClientPendingQuestionnairesEndpointTests(FitnessApiFactory facto
         item.ResponseStatus.Should().BeNull();
     }
 
+    // ── Question count, sent date and ordering ─────────────────────────────────
+
+    private static readonly SeedQuestion[] MixedQuestions =
+    [
+        new("a", QuestionTypes.ShortText),
+        new("b", QuestionTypes.Number),
+        new("heading", QuestionTypes.Section),
+        new("upload", QuestionTypes.FileUpload),
+        new("secret", QuestionTypes.ShortText, Hidden: true),
+    ];
+
+    private async Task BackdateResponseAsync(long responseId, DateTime createdAt)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        await db.QuestionnaireResponses
+            .Where(r => r.Id == responseId)
+            .ExecuteUpdateAsync(s => s.SetProperty(r => r.DateCreated, createdAt), TestContext.Current.CancellationToken);
+    }
+
+    [Fact]
+    public async Task QuestionCount_ExistingResponse_ExcludesHeadingsHiddenAndFileUpload()
+    {
+        var scenario = await QuestionnaireAnswerScenario.CreateAsync(factory, MixedQuestions);
+
+        var items = await GetItemsAsync(scenario.Client.Http);
+
+        items.Should().ContainSingle(i => i.ResponsePublicId == scenario.ResponsePublicId)
+            .Which.QuestionCount.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task QuestionCount_LinkWithoutResponse_ReportsRealCount()
+    {
+        var scenario = await QuestionnaireAnswerScenario.CreateAsync(factory, MixedQuestions, withResponse: false);
+
+        var items = await GetItemsAsync(scenario.Client.Http);
+
+        var item = items.Should().ContainSingle(i => i.LinkPublicId == scenario.LinkPublicId).Which;
+        item.ResponsePublicId.Should().BeNull();
+        item.QuestionCount.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task SentAt_ExistingResponse_IsResponseCreationTime()
+    {
+        var sentAt = DateTime.UtcNow.AddDays(-3);
+        var scenario = await QuestionnaireAnswerScenario.CreateAsync(
+            factory, MixedQuestions, activatedAtUtc: DateTime.UtcNow.AddDays(-10));
+        await BackdateResponseAsync(scenario.ResponseId, sentAt);
+
+        var items = await GetItemsAsync(scenario.Client.Http);
+
+        items.Should().ContainSingle(i => i.ResponsePublicId == scenario.ResponsePublicId)
+            .Which.SentAt.Should().BeCloseTo(sentAt, TimeSpan.FromSeconds(1));
+    }
+
+    [Fact]
+    public async Task SentAt_LinkWithoutResponse_IsLinkActivationTime()
+    {
+        var activatedAt = DateTime.UtcNow.AddDays(-4);
+        var scenario = await QuestionnaireAnswerScenario.CreateAsync(
+            factory, MixedQuestions, activatedAtUtc: activatedAt, withResponse: false);
+
+        var items = await GetItemsAsync(scenario.Client.Http);
+
+        items.Should().ContainSingle(i => i.LinkPublicId == scenario.LinkPublicId)
+            .Which.SentAt.Should().BeCloseTo(activatedAt, TimeSpan.FromSeconds(1));
+    }
+
+    [Fact]
+    public async Task SentAt_LegacyLinkWithoutActivationTime_FallsBackToLinkCreationTime()
+    {
+        var scenario = await QuestionnaireAnswerScenario.CreateAsync(factory, MixedQuestions, withResponse: false);
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var link = await db.ClientProfessionalLinks
+            .AsNoTracking()
+            .FirstAsync(l => l.Id == scenario.LinkId, TestContext.Current.CancellationToken);
+        link.ActivatedAtUtc.Should().BeNull();
+
+        var items = await GetItemsAsync(scenario.Client.Http);
+
+        items.Should().ContainSingle(i => i.LinkPublicId == scenario.LinkPublicId)
+            .Which.SentAt.Should().BeCloseTo(link.DateCreated, TimeSpan.FromSeconds(1));
+    }
+
+    [Fact]
+    public async Task Items_AcrossTwoCoaches_AreOldestFirst()
+    {
+        var first = await QuestionnaireAnswerScenario.CreateAsync(
+            factory, MixedQuestions, activatedAtUtc: DateTime.UtcNow.AddDays(-10));
+        // Newer link sits on the response path, older one on the no-response path, so the sort
+        // has to compare timestamps from both sources.
+        var older = await QuestionnaireAnswerScenario.CreateAsync(
+            factory, MixedQuestions, activatedAtUtc: DateTime.UtcNow.AddDays(-6),
+            existingClient: first.Client, withResponse: false);
+        await BackdateResponseAsync(first.ResponseId, DateTime.UtcNow.AddDays(-2));
+
+        var items = await GetItemsAsync(first.Client.Http);
+
+        items.Select(i => i.LinkPublicId)
+            .Should().Equal(older.LinkPublicId, first.LinkPublicId);
+    }
+
     // ── Response shape helpers ─────────────────────────────────────────────────
 
     private record DiaryItem(
@@ -586,7 +693,9 @@ public class GetClientPendingQuestionnairesEndpointTests(FitnessApiFactory facto
         string ProfessionalName,
         string? ProfessionalRole,
         Guid? ResponsePublicId = null,
-        string? ResponseStatus = null);
+        string? ResponseStatus = null,
+        int QuestionCount = 0,
+        DateTime SentAt = default);
 
     private record BannerResponse(
         List<DiaryItem> PendingDiaryRequests,

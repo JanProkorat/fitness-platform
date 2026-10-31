@@ -254,6 +254,28 @@
       "title": "Der nächste Plan ist bereit",
       "subtitle": "{{plan}} · startet am {{when}}"
     },
+    "questionnaire": {
+      "title": "Fragen von {{name}}",
+      "titleFallback": {
+        "Trainer": "Fragen von Ihrem Trainer",
+        "Nutritionist": "Fragen von Ihrem Ernährungsberater",
+        "other": "Fragen von Ihrem Coach"
+      },
+      "count_one": "{{count}} Frage",
+      "count_other": "{{count}} Fragen",
+      "stepTitle": "Beantworten Sie die Fragen von {{name}}",
+      "stepTitleFallback": {
+        "Trainer": "Beantworten Sie die Fragen Ihres Trainers",
+        "Nutritionist": "Beantworten Sie die Fragen Ihres Ernährungsberaters",
+        "other": "Beantworten Sie die Fragen Ihres Coachs"
+      },
+      "stepHint_one": "{{count}} Frage für Ihren Plan",
+      "stepHint_other": "{{count}} Fragen für Ihren Plan",
+      "bannerHint_one": "{{count}} Frage, für Ihren nächsten Plan",
+      "bannerHint_other": "{{count}} Fragen, für Ihren nächsten Plan",
+      "fill": "Ausfüllen",
+      "fillLabel": "Ausfüllen: {{title}}"
+    },
     "progress": {
       "coachFallback": "Ihr Coach",
       "since": "seit {{when}}",
@@ -266,7 +288,6 @@
       "things_other": "{{count}} Dinge für Sie in der Zwischenzeit",
       "accepted": "Einladung angenommen",
       "questionnaireSent": "Fragebogen gesendet",
-      "questionnairePending": "Fragebogen",
       "questionnairePendingHint": "Wartet auf Ihre Antworten",
       "questionnaireFor": {
         "Trainer": "Fragebogen zum Training",
@@ -1694,5 +1715,88 @@
   "coachPending": {
     "title": "Dein Coach-Konto ist bereit",
     "body": "Die Coach-Werkzeuge gibt es in der App noch nicht. Verwalte deine Klienten im Form Up Webportal."
+  },
+  "questionnaireFill": {
+    "back": "Zurück",
+    "close": "Schließen",
+    "loading": "Fragen werden geladen",
+    "retry": "Erneut versuchen",
+    "start": "Starten",
+    "continue": "Weiter",
+    "reviewAnswers": "Antworten prüfen",
+    "backToReview": "Zurück zur Übersicht",
+    "send": "An {{name}} senden",
+    "sending": "Wird gesendet…",
+    "stepOf": "{{step}} von {{total}}",
+    "fromCoach": "Fragen von {{name}}",
+    "unnamedSection": "Weitere Fragen",
+    "coachFallback": "Ihr Coach",
+    "required": "Pflicht",
+    "optional": "Optional",
+    "pickAny": "Beliebig viele",
+    "other": "Sonstiges…",
+    "otherLabel": "Ihre Antwort",
+    "notAnswered": "Nicht beantwortet",
+    "missing": "Antwort fehlt",
+    "edit": "Ändern",
+    "editSection": "{{section}} ändern",
+    "intro": {
+      "title": "{{name}} hat ein paar Fragen an Sie",
+      "subtitle": "{{name}} sieht Ihre Antworten.",
+      "allQuestions": "Alle Fragen",
+      "questionCount_one": "{{count}} Frage",
+      "questionCount_other": "{{count}} Fragen"
+    },
+    "number": {
+      "placeholder": "Zahl",
+      "range": "Geben Sie eine Zahl von {{min}} bis {{max}} ein.",
+      "atLeast": "Geben Sie eine Zahl von mindestens {{min}} ein.",
+      "atMost": "Geben Sie eine Zahl von höchstens {{max}} ein.",
+      "decrease": "{{field}} verringern",
+      "increase": "{{field}} erhöhen"
+    },
+    "rating": {
+      "ofMax": "{{value}} von {{max}}"
+    },
+    "scale": {
+      "low": "Niedrigster Wert",
+      "high": "Höchster Wert"
+    },
+    "review": {
+      "progress": "Übersicht",
+      "title": "Prüfen Sie Ihre Antworten",
+      "subtitle": "Nichts wird gesendet, bis Sie es bestätigen.",
+      "note": "Nach dem Senden sieht {{name}} Ihre Antworten und Sie können sie nicht mehr ändern."
+    },
+    "sent": {
+      "title": "Gesendet",
+      "body": "{{name}} kann Ihre Antworten jetzt sehen.",
+      "summary_one": "{{count}} Antwort · heute um {{time}}",
+      "summary_other": "{{count}} Antworten · heute um {{time}}",
+      "back": "Zurück zu Heute"
+    },
+    "discard": {
+      "title": "Antworten verwerfen?",
+      "body": "Ihre Antworten werden nicht gespeichert.",
+      "keep": "Weiter ausfüllen",
+      "discard": "Verwerfen"
+    },
+    "errors": {
+      "ok": "OK",
+      "loadTitle": "Die Fragen konnten nicht geladen werden",
+      "load": "Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut.",
+      "network": "Der Server ist nicht erreichbar. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
+      "requiredMissing": "Eine Pflichtfrage ist nicht beantwortet. Ergänzen Sie sie und versuchen Sie es erneut.",
+      "saveFailed": "Ihre Antworten konnten nicht gespeichert werden. Bitte versuchen Sie es erneut.",
+      "generic": "Ihre Antworten konnten nicht gesendet werden. Bitte versuchen Sie es erneut.",
+      "unavailable": {
+        "title": "Dieses Formular ist nicht mehr verfügbar",
+        "body": "Dieses Formular kann nicht mehr ausgefüllt werden."
+      },
+      "alreadySent": {
+        "title": "Bereits gesendet",
+        "body": "Sie haben dieses Formular bereits gesendet."
+      }
+    }
   }
 }

@@ -7653,7 +7653,7 @@ export class ApiClient {
 
     /**
      * Update questionnaire response
-     * @return No Content
+     * @return Answers saved
      */
     updateResponseEndpoint(responsePublicId: string, updateResponseRequest: UpdateResponseRequest, signal?: AbortSignal): Promise<void> {
         let url_ = this.baseUrl + "/client/questionnaire/response/{responsePublicId}";
@@ -7704,15 +7704,15 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("An answer is invalid (QUESTIONNAIRE_ANSWER_INVALID) or a question is not part of the form (QUESTIONNAIRE_QUESTION_NOT_IN_FORM)", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
+            return throwException("The response belongs to another client", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -7963,11 +7963,11 @@ export class ApiClient {
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
+            return throwException("The response belongs to another client", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -8486,10 +8486,16 @@ export class ApiClient {
 
     /**
      * Get client questionnaire
+     * @param linkPublicId (optional) Selects which coach's questionnaire to load; omitted falls back to the first active link.
+     * @param responsePublicId (optional) Loads the questionnaire of one open response; takes precedence over the link.
      * @return The questionnaire with any existing answers
      */
-    getClientQuestionnaireEndpoint(signal?: AbortSignal): Promise<GetClientQuestionnaireResponse> {
-        let url_ = this.baseUrl + "/client/questionnaire";
+    getClientQuestionnaireEndpoint(linkPublicId?: string | null | undefined, responsePublicId?: string | null | undefined, signal?: AbortSignal): Promise<GetClientQuestionnaireResponse> {
+        let url_ = this.baseUrl + "/client/questionnaire?";
+        if (linkPublicId !== undefined && linkPublicId !== null)
+            url_ += "linkPublicId=" + encodeURIComponent("" + linkPublicId) + "&";
+        if (responsePublicId !== undefined && responsePublicId !== null)
+            url_ += "responsePublicId=" + encodeURIComponent("" + responsePublicId) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -8606,9 +8612,9 @@ export class ApiClient {
 
     /**
      * Create questionnaire response
-     * @return No Content
+     * @return Response created
      */
-    createResponseEndpoint(createResponseRequest: CreateResponseRequest, signal?: AbortSignal): Promise<void> {
+    createResponseEndpoint(createResponseRequest: CreateResponseRequest, signal?: AbortSignal): Promise<CreateResponseResponse> {
         let url_ = this.baseUrl + "/client/questionnaire/response";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -8620,6 +8626,7 @@ export class ApiClient {
             url: url_,
             headers: {
                 "Content-Type": "application/json",
+                "Accept": "application/json"
             },
             signal
         };
@@ -8635,7 +8642,7 @@ export class ApiClient {
         });
     }
 
-    protected processCreateResponseEndpoint(response: AxiosResponse): Promise<void> {
+    protected processCreateResponseEndpoint(response: AxiosResponse): Promise<CreateResponseResponse> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -8645,13 +8652,16 @@ export class ApiClient {
                 }
             }
         }
-        if (status === 204) {
+        if (status === 201) {
             const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = JSON.parse(resultData201);
+            return Promise.resolve<CreateResponseResponse>(result201);
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
@@ -8661,7 +8671,7 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<void>(null as any);
+        return Promise.resolve<CreateResponseResponse>(null as any);
     }
 
     /**
@@ -26049,6 +26059,10 @@ export interface ClientAnswerDto {
     fileUrl?: string | undefined;
 }
 
+/** Query parameters of GET /client/questionnaire. */
+export interface GetClientQuestionnaireRequest {
+}
+
 /** Combined banner response. Diary requests come first (ordering convention documented on the endpoint summary); questionnaires second. */
 export interface GetClientPendingQuestionnairesResponse {
     /** Pending photo-diary requests addressed to this client.
@@ -26095,7 +26109,11 @@ export interface PendingQuestionnaireItem {
     professionalRole?: string | undefined;
     questionnairePublicId?: string | undefined;
     questionnaireTitle?: string | undefined;
+    /** Questions the client answers in the app: not hidden, not a heading, not a file upload. */
     questionCount?: number;
+    /** When the questionnaire was sent (UTC): response creation time, else link activation time,
+else link creation time. */
+    sentAt?: string;
     responsePublicId?: string | undefined;
     responseStatus?: string | undefined;
     /** Plan type the response was sent for; null for the link-level fallback item. */
@@ -26103,6 +26121,12 @@ export interface PendingQuestionnaireItem {
 }
 
 export interface DeleteQuestionnaireRequest {
+}
+
+/** Result of creating an in-progress questionnaire response. */
+export interface CreateResponseResponse {
+    /** Public id of the new response. */
+    responsePublicId?: string;
 }
 
 export interface CreateResponseRequest {

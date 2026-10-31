@@ -67,7 +67,15 @@ public class PendingQuestionnaireItem
     public string? ProfessionalRole { get; set; }
     public Guid? QuestionnairePublicId { get; set; }
     public string? QuestionnaireTitle { get; set; }
+    /// <summary>Questions the client answers in the app: not hidden, not a heading, not a file upload.</summary>
     public int QuestionCount { get; set; }
+
+    /// <summary>
+    /// When the questionnaire was sent (UTC): response creation time, else link activation time,
+    /// else link creation time.
+    /// </summary>
+    public DateTime SentAt { get; set; }
+
     public Guid? ResponsePublicId { get; set; }
     public string? ResponseStatus { get; set; }
 
