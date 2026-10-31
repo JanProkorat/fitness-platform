@@ -55,7 +55,7 @@
         "web/src/components/entry/EntryDialogTitle.tsx"
       ],
       "endpoints": ["POST /auth/password/reset"],
-      "board": "PageResetPasswordFlow",
+      "board": "PageResetRequest",
       "shots": [
         { "name": "default" },
         { "name": "not-registered", "steps": "type an email with no account (e.g. nobody@example.com), click 'Poslat odkaz pro obnovení', wait for the error under the field" },
@@ -143,7 +143,7 @@
         "web/src/components/register/RegisterStepper.tsx"
       ],
       "endpoints": ["POST /auth/resend-verification/anonymous"],
-      "board": "PageRegisterEmailSteps",
+      "board": "PageRegisterCheckEmail",
       "shots": [
         { "name": "default", "steps": "on /register click 'Osobní trenér', fill the form with a new email, tick the consent, click 'Založit účet', wait for 'Zkontrolujte poštu'" }
       ],
@@ -1106,7 +1106,7 @@
         "POST /auth/resend-verification",
         "PUT /auth/email"
       ],
-      "board": "GlassRegisterEmailSteps",
+      "board": "GlassRegisterCheckEmail",
       "shots": [
         { "name": "default", "steps": "register a new account; the screen opens after sign-up" },
         { "name": "change-email", "steps": "tap Change email to open the sheet" }
