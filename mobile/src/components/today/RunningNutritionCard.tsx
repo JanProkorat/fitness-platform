@@ -8,6 +8,7 @@ import { findMealLog, isMealEaten, mealPhotos } from '@/api/nutrition';
 import type { NutritionMeal } from '@/api/nutrition';
 import { Card } from '@/components/Card';
 import { EMPTY_MACROS, formatWhole, macrosOf } from '@/components/nutrition/meal/format';
+import { NoteBox } from '@/components/nutrition/meals/NoteBox';
 import { MealPhotoViewer } from '@/components/nutrition/meals/MealPhotoViewer';
 import type { ViewerPhoto } from '@/components/nutrition/meals/MealPhotoViewer';
 import { dayMeals, isoDay, mealStatus } from '@/components/nutrition/plan/model';
@@ -124,6 +125,8 @@ export function RunningNutritionCard({ plan, today: deviceToday, footer }: Runni
       <View style={styles.track}>
         <View style={[styles.fill, { backgroundColor: theme.colors.nutrition, width: `${Math.round(ratio * 100)}%` }]} />
       </View>
+
+      <NoteBox plain label={t('nutritionPlan.note.today')} note={todayPlanDay?.day?.note} />
 
       {showsError(todayLog) ? (
         <View style={styles.logError}>

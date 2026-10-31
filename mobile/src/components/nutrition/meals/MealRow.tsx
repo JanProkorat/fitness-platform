@@ -18,6 +18,7 @@ import { AddPhotoButton } from '@/components/nutrition/meals/AddPhotoButton';
 import { MealStatusIcon } from '@/components/nutrition/meals/MealStatusIcon';
 import type { MealStatus } from '@/components/nutrition/meals/MealStatusIcon';
 import { mealKcal } from '@/components/nutrition/meals/model';
+import { NoteBox, trimmedNote } from '@/components/nutrition/meals/NoteBox';
 import { foodName, formatAmount, formatWhole } from '@/components/nutrition/meal/format';
 import { PendingMark } from '@/components/offline/PendingMark';
 import { Text } from '@/components/Text';
@@ -121,7 +122,8 @@ export function MealRow({
   const kcal = formatWhole(language, mealKcal(meal));
   const [firstItem] = items;
   const more = items.length - 1;
-  const expandable = items.length > 0 || photos.length > 0;
+  const note = trimmedNote(meal.note);
+  const expandable = items.length > 0 || photos.length > 0 || note !== undefined;
   const baseStatusLabel = t(`nutritionPlan.status.${status}`, { meal: kindLabel });
   const statusLabel = pending ? `${baseStatusLabel}, ${t('offlineSync.pendingA11y')}` : baseStatusLabel;
 
@@ -148,6 +150,15 @@ export function MealRow({
               <Text variant="label" color="muted">
                 {t('nutritionPlan.meal.kcal', { value: kcal })}
               </Text>
+              {note && !expanded ? (
+                <SymbolView
+                  name="text.bubble"
+                  weight="medium"
+                  tintColor={theme.colors.muted}
+                  size={theme.sizes.noteGlyph}
+                  accessibilityLabel={t('nutritionPlan.note.mealIcon')}
+                />
+              ) : null}
             </View>
             {pending ? (
               <PendingMark />
@@ -183,6 +194,7 @@ export function MealRow({
           importantForAccessibility={expanded ? 'auto' : 'no-hide-descendants'}
         >
           <View style={styles.body} onLayout={measureBody}>
+            <NoteBox label={t('nutritionPlan.note.meal')} note={note} />
             {items.map((item) => {
               const content = (
                 <>
