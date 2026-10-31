@@ -48,6 +48,8 @@ type MealRowProps = {
   onAddPhoto?: () => void;
   addPhotoBusy?: boolean;
   onOpenPhoto?: (index: number) => void;
+  /** Future day: the meal cannot be eaten yet, so no tick (an empty slot stays), no status label, no add-photo. */
+  hideEatenState?: boolean;
 };
 
 type MealItem = { key: string; name: string; amount: string; onPress?: () => void };
@@ -69,6 +71,7 @@ export function MealRow({
   onAddPhoto,
   addPhotoBusy = false,
   onOpenPhoto,
+  hideEatenState = false,
 }: MealRowProps) {
   const { t, i18n } = useTranslation();
   const theme = useTheme();
@@ -180,10 +183,15 @@ export function MealRow({
             ) : null}
           </View>
         </Pressable>
-        {onAddPhoto ? (
+        {onAddPhoto && !hideEatenState ? (
           <AddPhotoButton label={t('nutritionPlan.photo.add', { meal: kindLabel })} onPress={onAddPhoto} busy={addPhotoBusy} />
         ) : null}
-        <MealStatusIcon status={status} label={statusLabel} onPress={onToggleEaten} />
+        <MealStatusIcon
+          status={status}
+          label={statusLabel}
+          onPress={hideEatenState ? undefined : onToggleEaten}
+          hidden={hideEatenState}
+        />
       </View>
 
       {expandable ? (
