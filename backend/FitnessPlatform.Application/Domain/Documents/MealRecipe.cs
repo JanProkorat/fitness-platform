@@ -8,6 +8,13 @@ namespace FitnessPlatform.Application.Domain.Documents;
 public class MealRecipe
 {
     /// <summary>
+    /// Stable identity of this item inside its plan meal; survives edits of the meal. Empty on
+    /// documents written before item ids existed.
+    /// </summary>
+    [BsonElement("itemId")]
+    public Guid ItemId { get; set; }
+
+    /// <summary>
     /// Reference to the original recipe's ID.
     /// </summary>
     [BsonElement("recipeId")]

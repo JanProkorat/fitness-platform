@@ -88,6 +88,11 @@ public class UpdateMealRequest
 public class UpdateMealRecipeRequest
 {
     /// <summary>
+    /// Optional id of the stored item this entry continues; unknown ids get a server-minted one.
+    /// </summary>
+    public Guid? ItemId { get; set; }
+
+    /// <summary>
     /// Recipe identifier.
     /// </summary>
     public Guid RecipeId { get; set; }
@@ -123,6 +128,11 @@ public class UpdateMealRecipeRequest
 /// </summary>
 public class UpdateMealFoodRequest
 {
+    /// <summary>
+    /// Optional id of the stored item this entry continues; unknown ids get a server-minted one.
+    /// </summary>
+    public Guid? ItemId { get; set; }
+
     /// <summary>
     /// External (public) identifier of the food item.
     /// </summary>

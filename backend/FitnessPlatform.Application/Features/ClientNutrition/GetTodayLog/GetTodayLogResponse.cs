@@ -1,4 +1,5 @@
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Enums;
 
 namespace FitnessPlatform.Application.Features.ClientNutrition.GetTodayLog;
 
@@ -45,13 +46,23 @@ public class TodayMealLogDto
     public string MealName { get; set; } = string.Empty;
 
     /// <summary>
-    /// When the meal was eaten. Null for photo/note-only log entries that have not
-    /// been confirmed as eaten via the quick-log button.
+    /// When the meal was eaten. Null for photo/note-only log entries and for partly eaten meals:
+    /// it is set only while every item of the meal is eaten.
     /// </summary>
     public DateTime? EatenAt { get; set; }
 
     /// <summary>
-    /// Computed nutrient totals for this logged meal.
+    /// How much of the meal is eaten: none, some items, or every item.
+    /// </summary>
+    public MealEatenState EatenState { get; set; }
+
+    /// <summary>
+    /// Ids of the meal's foods and recipes that are eaten.
+    /// </summary>
+    public List<Guid> EatenItemIds { get; set; } = [];
+
+    /// <summary>
+    /// Computed nutrient totals for this logged meal; for a partly eaten meal, only its eaten items.
     /// </summary>
     public NutrientTotals Totals { get; set; } = new();
 

@@ -8,6 +8,13 @@ namespace FitnessPlatform.Application.Domain.Documents;
 public class MealFood
 {
     /// <summary>
+    /// Stable identity of this item inside its plan meal; survives edits of the meal. Empty on
+    /// documents written before item ids existed and on library documents (recipes, meal templates).
+    /// </summary>
+    [BsonElement("itemId")]
+    public Guid ItemId { get; set; }
+
+    /// <summary>
     /// Reference to the original food document's ExternalId.
     /// </summary>
     [BsonElement("foodExternalId")]

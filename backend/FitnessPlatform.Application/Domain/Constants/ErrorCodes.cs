@@ -665,6 +665,9 @@ public static class ErrorCodes
     /// <summary>A required, visible question has no answer at submit time.</summary>
     public const string QuestionnaireRequiredAnswerMissing = "QUESTIONNAIRE_REQUIRED_ANSWER_MISSING";
 
+    /// <summary>The item is not in the plan meal, or the meal is not in the caller's plan.</summary>
+    public const string MealItemNotFound = "MEAL_ITEM_NOT_FOUND";
+
     // ── Offline sync ────────────────────────────────────────────────────
     /// <summary>The client-reported occurrence time is more than 5 minutes ahead of the server.</summary>
     public const string OccurredAtInFuture = "OCCURRED_AT_IN_FUTURE";
