@@ -59,6 +59,16 @@ public class QuestionnaireResponse : PublicTimestampableEntity
     public DateTime? CheckInDueAtUtc { get; set; }
 
     /// <summary>
+    /// For a check-in: when the unanswered reminder was sent (UTC); null until it is.
+    /// </summary>
+    public DateTime? CheckInReminderSentAtUtc { get; set; }
+
+    /// <summary>
+    /// For a check-in: when the coach was told the week was missed (UTC); null until then.
+    /// </summary>
+    public DateTime? CheckInMissedNotifiedAtUtc { get; set; }
+
+    /// <summary>
     /// When the coach first opened the submitted response (UTC); null while it is still new.
     /// </summary>
     public DateTime? ReviewedByCoachAtUtc { get; set; }

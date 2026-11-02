@@ -2,6 +2,7 @@ using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using Microsoft.AspNetCore.Identity;
@@ -759,6 +760,7 @@ public static class QaSeedRunner
 
         db.ProfessionalProfiles.Add(profile);
         await db.SaveChangesAsync();
+        await DefaultCheckInForm.EnsureAsync(db, userId, "en", CancellationToken.None);
 
         logger.LogInformation("QA ProfessionalProfile created for userId={UserId} publicId={PublicId}", userId, publicId);
         return profile;

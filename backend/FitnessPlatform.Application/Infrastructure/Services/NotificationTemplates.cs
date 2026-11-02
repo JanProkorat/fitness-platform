@@ -121,6 +121,11 @@ public static class NotificationTemplates
 
             [Key(NotificationType.OfflineSyncConflict)] =
                 new("Offline changes need a look", "{clientName} synced {count} offline action(s) that no longer match the plan \"{planName}\"."),
+
+            [Key(NotificationType.ClientCheckInReminder)] =
+                new("Weekly check-in reminder", "{professionalName} is still waiting for your weekly check-in. It only takes a couple of minutes."),
+            [Key(NotificationType.CoachCheckInMissed)] =
+                new("Check-in missed", "{clientName} did not answer the weekly check-in in time."),
         },
         ["cs"] = new()
         {
@@ -195,6 +200,11 @@ public static class NotificationTemplates
 
             [Key(NotificationType.OfflineSyncConflict)] =
                 new("Offline změny ke kontrole", "{clientName} nahrál(a) offline akce ({count}), které už neodpovídají jídelníčku \"{planName}\". Podívejte se na ně."),
+
+            [Key(NotificationType.ClientCheckInReminder)] =
+                new("Připomenutí týdenního check-inu", "{professionalName} stále čeká na váš týdenní check-in. Zabere jen pár minut."),
+            [Key(NotificationType.CoachCheckInMissed)] =
+                new("Check-in zmeškán", "{clientName} neodpověděl(a) včas na týdenní check-in."),
         },
         ["de"] = new()
         {
@@ -269,6 +279,11 @@ public static class NotificationTemplates
 
             [Key(NotificationType.OfflineSyncConflict)] =
                 new("Offline-Änderungen prüfen", "{clientName} hat {count} Offline-Aktion(en) synchronisiert, die nicht mehr zum Plan \"{planName}\" passen. Bitte prüfen Sie diese."),
+
+            [Key(NotificationType.ClientCheckInReminder)] =
+                new("Erinnerung an Ihren wöchentlichen Check-in", "{professionalName} wartet noch auf Ihren wöchentlichen Check-in. Er dauert nur wenige Minuten."),
+            [Key(NotificationType.CoachCheckInMissed)] =
+                new("Check-in verpasst", "{clientName} hat den wöchentlichen Check-in nicht rechtzeitig beantwortet."),
         },
     };
 

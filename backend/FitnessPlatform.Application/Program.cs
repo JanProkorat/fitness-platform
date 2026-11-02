@@ -265,9 +265,9 @@ builder.Services.AddScoped<IConversationSeedService, ConversationSeedService>();
 builder.Services.AddScoped<IPendingInviteConversationSeeder, PendingInviteConversationSeeder>();
 builder.Services.AddScoped<IPendingInviteNotificationSeeder, PendingInviteNotificationSeeder>();
 
-// Weekly check-in scheduler — registered as both singleton (for test access) and hosted service.
+// Weekly check-in scheduler — registered as a singleton only (tests resolve it). It is no longer a
+// hosted service: check-ins are sent by an automation rule now.
 builder.Services.AddSingleton<WeeklyCheckInScheduler>();
-builder.Services.AddHostedService(sp => sp.GetRequiredService<WeeklyCheckInScheduler>());
 
 // Photo diary reminder scheduler — registered as both singleton (for test access) and hosted service.
 builder.Services.AddSingleton<PhotoDiaryReminderScheduler>();
@@ -284,6 +284,7 @@ builder.Services.AddScoped<AutomationClaimProcessor>();
 builder.Services.AddScoped<AutomationReconciler>();
 builder.Services.AddScoped<AutomationEventPoller>();
 builder.Services.AddScoped<AutomationAnswerSweeper>();
+builder.Services.AddScoped<AutomationCheckInSweeper>();
 
 // Social login nonce reaper — periodically deletes expired/consumed nonce rows.
 // Registered as singleton (for test access via IServiceProvider) and hosted service.

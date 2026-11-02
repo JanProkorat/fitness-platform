@@ -1043,6 +1043,24 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory)
         rows.Count(r => r.Status == WeeklyCheckInStatus.Expired).Should().Be(2);
     }
 
+    [Fact]
+    public async Task SeedAsync_CoachProfiles_EachGetTheDefaultWeeklyCheckInForm()
+    {
+        await _factory.EnsureDefaultSeedAsync();
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var coachIds = new[] { QaSeedRunner.TrainerUserId, QaSeedRunner.NutriUserId };
+
+        var forms = await db.Questionnaires
+            .Include(q => q.Questions)
+            .Where(q => q.Type == QuestionnaireType.CheckIn && coachIds.Contains(q.ProfessionalId))
+            .ToListAsync(TestContext.Current.CancellationToken);
+
+        forms.Select(f => f.ProfessionalId).Should().BeEquivalentTo(coachIds, "one form per coach, never a duplicate");
+        forms.Should().AllSatisfy(f => f.Questions.Should().HaveCount(2));
+    }
+
     private static DateTime ThisMonday()
     {
         var today = DateTime.UtcNow.Date;

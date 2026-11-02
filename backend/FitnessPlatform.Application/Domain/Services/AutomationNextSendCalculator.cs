@@ -39,6 +39,13 @@ public static class AutomationNextSendCalculator
 
         if (effective.TriggerKind == AutomationTriggerKind.Schedule)
         {
+            if (effective.ScheduleWeekday is { } weekday)
+            {
+                return effective.LocalTime is null
+                    ? null
+                    : AutomationScheduleCalculator.ComputeNextWeekdayRunAt(weekday, effective.LocalTime.Value, zone, nowUtc);
+            }
+
             if (effective.ScheduleInterval is null || effective.ScheduleUnit is null || effective.LocalTime is null)
             {
                 return null;

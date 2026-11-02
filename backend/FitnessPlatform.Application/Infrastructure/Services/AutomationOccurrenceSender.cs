@@ -73,7 +73,7 @@ public sealed class AutomationOccurrenceSender(
         if (!IsActionUsable(evaluation))
         {
             logger.LogWarning(
-                "AutomationScheduler: rule {RuleId} cannot send its form to client {ClientProfileId}: the form is missing, inactive, a check-in form, or not the coach's.",
+                "AutomationScheduler: rule {RuleId} cannot send its form to client {ClientProfileId}: the form is missing, inactive, not the coach's, or a check-in form without an answer window.",
                 ruleId, clientProfileId);
 
             return await RecordWithoutSendingAsync(
@@ -174,7 +174,10 @@ public sealed class AutomationOccurrenceSender(
             }
         }
 
-        if (effective.SkipWhilePreviousUnanswered && await IsPreviousUnansweredAsync(evaluation, nowUtc, ct))
+        // A check-in rule never skips: each week stands on its own and an unanswered one counts as missed.
+        if (effective.SkipWhilePreviousUnanswered
+            && !IsCheckInRule(evaluation)
+            && await IsPreviousUnansweredAsync(evaluation, nowUtc, ct))
         {
             return AutomationSkipReason.PreviousUnanswered;
         }
@@ -226,6 +229,10 @@ public sealed class AutomationOccurrenceSender(
         return candidates.Any(r => r.IsOpenAt(now));
     }
 
+    private static bool IsCheckInRule(AutomationEvaluation evaluation) =>
+        evaluation.Rule is { ActionType: AutomationActionType.SendForm, Questionnaire: { } questionnaire }
+        && AutomationQuestionnaireUsability.IsCheckInForm(questionnaire.Type);
+
     private static bool IsActionUsable(AutomationEvaluation evaluation)
     {
         if (evaluation.Rule.ActionType != AutomationActionType.SendForm)
@@ -235,9 +242,15 @@ public sealed class AutomationOccurrenceSender(
 
         var questionnaire = evaluation.Rule.Questionnaire;
 
-        return questionnaire is not null
-               && AutomationQuestionnaireUsability.IsUsable(questionnaire.IsActive, questionnaire.Type)
-               && questionnaire.ProfessionalId == evaluation.Coach.UserId;
+        if (questionnaire is null
+            || !AutomationQuestionnaireUsability.IsUsable(questionnaire.IsActive)
+            || questionnaire.ProfessionalId != evaluation.Coach.UserId)
+        {
+            return false;
+        }
+
+        // A check-in form needs the answer window, or its week could never be judged missed.
+        return !IsCheckInRule(evaluation) || evaluation.Effective.AnswerWindowHours is not null;
     }
 
     private async Task<AutomationSendOutcome> RecordWithoutSendingAsync(
@@ -287,17 +300,18 @@ public sealed class AutomationOccurrenceSender(
     {
         return evaluation.Rule.ActionType switch
         {
-            AutomationActionType.SendForm => await DeliverFormAsync(evaluation, ct),
+            AutomationActionType.SendForm => await DeliverFormAsync(evaluation, nowUtc, ct),
             AutomationActionType.RequestMeasurements => await DeliverMeasurementRequestAsync(evaluation, ct),
             AutomationActionType.RequestProgressPhotos => await DeliverPhotoRequestAsync(evaluation, nowUtc, ct),
             _ => throw new InvalidOperationException($"Unsupported automation action {evaluation.Rule.ActionType}."),
         };
     }
 
-    private async Task<Guid> DeliverFormAsync(AutomationEvaluation evaluation, CancellationToken ct)
+    private async Task<Guid> DeliverFormAsync(AutomationEvaluation evaluation, DateTime nowUtc, CancellationToken ct)
     {
         var questionnaire = evaluation.Rule.Questionnaire!;
         var clientUserId = evaluation.Client.ClientUserId;
+        var isCheckIn = IsCheckInRule(evaluation);
 
         // The pending response is the whole delivery: the link's own questionnaire stays as it is.
         var response = new QuestionnaireResponse
@@ -307,8 +321,16 @@ public sealed class AutomationOccurrenceSender(
             ProfessionalId = evaluation.Coach.UserId,
             LinkId = evaluation.Client.PrimaryLinkId,
             Status = QuestionnaireResponseStatus.Pending,
-            Kind = QuestionnaireResponseKind.Questionnaire,
+            Kind = isCheckIn ? QuestionnaireResponseKind.CheckIn : QuestionnaireResponseKind.Questionnaire,
         };
+
+        if (isCheckIn)
+        {
+            var localSendDate = ClientLocalDateResolver.ResolveLocalDate(nowUtc, evaluation.Zone);
+            response.CheckInWeekStart = AutomationScheduleCalculator.MondayOf(localSendDate);
+            response.CheckInDueAtUtc = nowUtc.AddHours(evaluation.Effective.AnswerWindowHours!.Value);
+        }
+
         db.QuestionnaireResponses.Add(response);
         await db.SaveChangesAsync(ct);
 

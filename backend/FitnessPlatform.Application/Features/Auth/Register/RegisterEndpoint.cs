@@ -3,6 +3,7 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
@@ -73,8 +74,11 @@ public class RegisterEndpoint(
         var roles = req.Roles.Select(r => Enum.Parse<UserRole>(r, ignoreCase: true)).Distinct().ToList();
         await userManager.AddToRolesAsync(user, roles.Select(r => r.ToString()));
 
+        var language = HttpContext.Request.Headers.AcceptLanguage.FirstOrDefault() ?? "en";
+        var isCoach = roles.Any(r => r == UserRole.Trainer || r == UserRole.Nutritionist);
+
         // Create role-specific profiles
-        if (roles.Any(r => r == UserRole.Trainer || r == UserRole.Nutritionist))
+        if (isCoach)
         {
             dbContext.ProfessionalProfiles.Add(new ProfessionalProfile { UserId = user.Id });
         }
@@ -88,10 +92,14 @@ public class RegisterEndpoint(
         // account exists even if the token issuance/send step below fails.
         await dbContext.SaveChangesAsync(ct);
 
+        if (isCoach)
+        {
+            await DefaultCheckInForm.EnsureAsync(dbContext, user.Id, language, ct);
+        }
+
         // Issue + send the verification email via the shared token service (#679) —
         // non-fatal: if the send fails the user is already created and can re-trigger
         // sending via /auth/resend-verification (or the anonymous resend endpoint).
-        var language = HttpContext.Request.Headers.AcceptLanguage.FirstOrDefault() ?? "en";
         try
         {
             await tokenService.IssueAndSendAsync(user, language, ct);

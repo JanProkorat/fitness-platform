@@ -36,6 +36,18 @@ public class AutomationClientOverride : TimestampableEntity
     /// <summary>Customised client-local time of day.</summary>
     public TimeOnly? LocalTime { get; set; }
 
+    /// <summary>Customised check-in weekday.</summary>
+    public DayOfWeek? ScheduleWeekday { get; set; }
+
+    /// <summary>Customised check-in answer window in hours.</summary>
+    public int? AnswerWindowHours { get; set; }
+
+    /// <summary>Customised check-in reminder delay in hours; null means no reminder.</summary>
+    public int? ReminderAfterHours { get; set; }
+
+    /// <summary>Customised notify-the-coach-on-missed-week flag.</summary>
+    public bool? NotifyCoachOnMissedWeek { get; set; }
+
     /// <summary>Customised event.</summary>
     public AutomationEventType? EventType { get; set; }
 

@@ -35,6 +35,18 @@ public class AutomationRuleDto
     /// <summary>Client-local time of day; required for a schedule, optional for an event (09:00 when absent).</summary>
     public TimeSpan? LocalTime { get; set; }
 
+    /// <summary>Check-in rule: client-local weekday of the send; null for any other rule.</summary>
+    public DayOfWeek? ScheduleWeekday { get; set; }
+
+    /// <summary>Check-in rule: hours the client has to answer before the week counts as missed.</summary>
+    public int? AnswerWindowHours { get; set; }
+
+    /// <summary>Check-in rule: hours after the send at which an unanswered check-in is reminded; null means no reminder.</summary>
+    public int? ReminderAfterHours { get; set; }
+
+    /// <summary>Check-in rule: whether the coach is notified once when a week is missed.</summary>
+    public bool? NotifyCoachOnMissedWeek { get; set; }
+
     /// <summary>Event trigger: the event.</summary>
     public AutomationEventType? EventType { get; set; }
 
@@ -83,6 +95,10 @@ public class AutomationRuleDto
         ScheduleInterval = rule.ScheduleInterval,
         ScheduleUnit = rule.ScheduleUnit,
         LocalTime = rule.LocalTime?.ToTimeSpan(),
+        ScheduleWeekday = rule.ScheduleWeekday,
+        AnswerWindowHours = rule.AnswerWindowHours,
+        ReminderAfterHours = rule.ReminderAfterHours,
+        NotifyCoachOnMissedWeek = rule.NotifyCoachOnMissedWeek,
         EventType = rule.EventType,
         EventOffsetDays = rule.EventOffsetDays,
         EventOffsetDirection = rule.EventOffsetDirection,

@@ -12,7 +12,7 @@ namespace FitnessPlatform.Application.Infrastructure.Services;
 /// <summary>
 /// Background worker that runs coaches' automation rules. Each tick it runs the schedule rows that
 /// are due, brings the rows in step with the rules, sends the sends that fell due for the polled
-/// events, and stamps answered requests. Every claimed row is its own committed transaction, so
+/// events, stamps answered requests, and sends the check-in reminders and missed-week notices. Every claimed row is its own committed transaction, so
 /// stopping the host only cancels the loop; a half-run row rolls back and is claimed again later.
 /// </summary>
 /// <param name="scopeFactory">Opens a scope per unit of work.</param>
@@ -43,6 +43,7 @@ public class AutomationScheduler(
         await RunPhaseAsync("claim", () => ProcessDueAsync(now, ct), ct);
         await RunPhaseAsync("coaches", () => ForEachCoachAsync(now, ct), ct);
         await RunPhaseAsync("sweep", () => SweepAnswersAsync(now, ct), ct);
+        await RunPhaseAsync("check-ins", () => SweepCheckInsAsync(now, ct), ct);
     }
 
     /// <inheritdoc />
@@ -164,5 +165,11 @@ public class AutomationScheduler(
     {
         using var scope = scopeFactory.CreateScope();
         await scope.ServiceProvider.GetRequiredService<AutomationAnswerSweeper>().SweepAsync(now, ct);
+    }
+
+    private async Task SweepCheckInsAsync(DateTime now, CancellationToken ct)
+    {
+        using var scope = scopeFactory.CreateScope();
+        await scope.ServiceProvider.GetRequiredService<AutomationCheckInSweeper>().SweepAsync(now, ct);
     }
 }

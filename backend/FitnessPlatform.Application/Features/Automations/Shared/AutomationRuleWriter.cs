@@ -10,8 +10,11 @@ namespace FitnessPlatform.Application.Features.Automations.Shared;
 /// </summary>
 public static class AutomationRuleWriter
 {
-    /// <summary>Applies the body's message, trigger and options to a rule.</summary>
-    public static void Apply(AutomationRule rule, AutomationTriggerBody body)
+    /// <summary>
+    /// Applies the body's message, trigger and options to a rule. A check-in rule never skips while the
+    /// previous request is unanswered, whatever the body says.
+    /// </summary>
+    public static void Apply(AutomationRule rule, AutomationTriggerBody body, bool isCheckIn = false)
     {
         var isSchedule = body.TriggerKind == AutomationTriggerKind.Schedule;
 
@@ -24,13 +27,20 @@ public static class AutomationRuleWriter
         rule.EventOffsetDays = isSchedule ? null : body.EventOffsetDays ?? 0;
         rule.EventOffsetDirection = isSchedule ? null : body.EventOffsetDirection ?? AutomationOffsetDirection.After;
         rule.OncePerPlan = body.OncePerPlan;
-        rule.SkipWhilePreviousUnanswered = body.SkipWhilePreviousUnanswered;
+        rule.SkipWhilePreviousUnanswered = body.SkipWhilePreviousUnanswered && !isCheckIn;
         rule.StopAfterSends = body.StopAfterSends;
         rule.Enabled = body.Enabled;
+        rule.ScheduleWeekday = isCheckIn ? body.ScheduleWeekday : null;
+        rule.AnswerWindowHours = isCheckIn ? body.AnswerWindowHours : null;
+        rule.ReminderAfterHours = isCheckIn ? body.ReminderAfterHours : null;
+        rule.NotifyCoachOnMissedWeek = isCheckIn ? body.NotifyCoachOnMissedWeek ?? false : null;
     }
 
-    /// <summary>Applies the body's message, trigger and options to a per-client override.</summary>
-    public static void Apply(AutomationClientOverride clientOverride, AutomationTriggerBody body)
+    /// <summary>
+    /// Applies the body's message, trigger and options to a per-client override. A check-in rule never
+    /// skips while the previous request is unanswered, whatever the body says.
+    /// </summary>
+    public static void Apply(AutomationClientOverride clientOverride, AutomationTriggerBody body, bool isCheckIn = false)
     {
         var isSchedule = body.TriggerKind == AutomationTriggerKind.Schedule;
 
@@ -44,8 +54,12 @@ public static class AutomationRuleWriter
         clientOverride.EventOffsetDays = isSchedule ? null : body.EventOffsetDays ?? 0;
         clientOverride.EventOffsetDirection = isSchedule ? null : body.EventOffsetDirection ?? AutomationOffsetDirection.After;
         clientOverride.OncePerPlan = body.OncePerPlan;
-        clientOverride.SkipWhilePreviousUnanswered = body.SkipWhilePreviousUnanswered;
+        clientOverride.SkipWhilePreviousUnanswered = body.SkipWhilePreviousUnanswered && !isCheckIn;
         clientOverride.StopAfterSends = body.StopAfterSends;
         clientOverride.Enabled = body.Enabled;
+        clientOverride.ScheduleWeekday = isCheckIn ? body.ScheduleWeekday : null;
+        clientOverride.AnswerWindowHours = isCheckIn ? body.AnswerWindowHours : null;
+        clientOverride.ReminderAfterHours = isCheckIn ? body.ReminderAfterHours : null;
+        clientOverride.NotifyCoachOnMissedWeek = isCheckIn ? body.NotifyCoachOnMissedWeek ?? false : null;
     }
 }
