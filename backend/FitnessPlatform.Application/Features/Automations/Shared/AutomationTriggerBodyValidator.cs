@@ -1,6 +1,7 @@
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Services;
 using FluentValidation;
 
 namespace FitnessPlatform.Application.Features.Automations.Shared;
@@ -94,6 +95,27 @@ public abstract class AutomationTriggerBodyValidator<T> : Validator<T>
                 .WithMessage("Once per plan applies to plan events only.")
                 .When(x => x.EventType is not (AutomationEventType.PlanStarted or AutomationEventType.PlanEnded));
         });
+
+        RuleFor(x => x.ScheduleWeekday)
+            .IsInEnum()
+            .WithErrorCode(ErrorCodes.AutomationCheckInInvalid)
+            .WithMessage("The check-in weekday is not valid.");
+
+        RuleFor(x => x.AnswerWindowHours)
+            .Must(v => v is null || AutomationCheckInOptions.AnswerWindowHours.Contains(v.Value))
+            .WithErrorCode(ErrorCodes.AutomationCheckInInvalid)
+            .WithMessage("The answer window is not one of the offered options.");
+
+        RuleFor(x => x.ReminderAfterHours)
+            .Must(v => v is null || AutomationCheckInOptions.ReminderAfterHours.Contains(v.Value))
+            .WithErrorCode(ErrorCodes.AutomationCheckInInvalid)
+            .WithMessage("The reminder delay is not one of the offered options.");
+
+        RuleFor(x => x)
+            .Must(x => x.ReminderAfterHours < x.AnswerWindowHours)
+            .WithErrorCode(ErrorCodes.AutomationCheckInInvalid)
+            .WithMessage("The reminder must come before the answer window ends.")
+            .When(x => x.ReminderAfterHours.HasValue && x.AnswerWindowHours.HasValue);
 
         RuleFor(x => x.StopAfterSends)
             .Must(v => v is null or (>= 1 and <= 1000))

@@ -72,5 +72,11 @@ public enum NotificationType
     PaymentRequested,
 
     /// <summary>A client's offline-synced action collided with a plan change; delivered to the plan's author.</summary>
-    OfflineSyncConflict
+    OfflineSyncConflict,
+
+    /// <summary>A weekly check-in is still unanswered after the rule's reminder delay; delivered to the client.</summary>
+    ClientCheckInReminder,
+
+    /// <summary>A client did not answer a weekly check-in within its answer window; delivered to the coach.</summary>
+    CoachCheckInMissed
 }

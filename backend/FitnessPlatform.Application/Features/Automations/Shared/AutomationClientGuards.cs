@@ -95,6 +95,7 @@ public static class AutomationClientGuards
     {
         var rule = await db.AutomationRules
             .AsNoTracking()
+            .Include(r => r.Questionnaire)
             .CoveringClient(context.Profile.Id, context.Client.Id, context.TagIds)
             .FirstOrDefaultAsync(r => r.PublicId == ruleId, ct);
 

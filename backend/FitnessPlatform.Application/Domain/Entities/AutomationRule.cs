@@ -43,6 +43,18 @@ public class AutomationRule : PublicTimestampableEntity
     /// <summary>Schedule trigger: client-local time of day.</summary>
     public TimeOnly? LocalTime { get; set; }
 
+    /// <summary>Check-in rule: weekday of the send, in the client's time zone.</summary>
+    public DayOfWeek? ScheduleWeekday { get; set; }
+
+    /// <summary>Check-in rule: hours after the send in which the client can answer before the week counts as missed.</summary>
+    public int? AnswerWindowHours { get; set; }
+
+    /// <summary>Check-in rule: hours after the send at which an unanswered check-in is reminded; null means no reminder.</summary>
+    public int? ReminderAfterHours { get; set; }
+
+    /// <summary>Check-in rule: whether the coach is notified once when a week is missed.</summary>
+    public bool? NotifyCoachOnMissedWeek { get; set; }
+
     /// <summary>Event trigger: the event.</summary>
     public AutomationEventType? EventType { get; set; }
 

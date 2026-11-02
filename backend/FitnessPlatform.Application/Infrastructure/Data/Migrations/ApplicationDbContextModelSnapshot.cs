@@ -275,6 +275,10 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
+                    b.Property<int?>("AnswerWindowHours")
+                        .HasColumnType("integer")
+                        .HasColumnName("answer_window_hours");
+
                     b.Property<long>("AutomationRuleId")
                         .HasColumnType("bigint")
                         .HasColumnName("automation_rule_id");
@@ -324,6 +328,10 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                         .HasColumnType("character varying(1000)")
                         .HasColumnName("message");
 
+                    b.Property<bool?>("NotifyCoachOnMissedWeek")
+                        .HasColumnType("boolean")
+                        .HasColumnName("notify_coach_on_missed_week");
+
                     b.Property<bool>("OncePerPlan")
                         .HasColumnType("boolean")
                         .HasColumnName("once_per_plan");
@@ -337,6 +345,10 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                         .HasColumnType("date")
                         .HasColumnName("paused_until");
 
+                    b.Property<int?>("ReminderAfterHours")
+                        .HasColumnType("integer")
+                        .HasColumnName("reminder_after_hours");
+
                     b.Property<int?>("ScheduleInterval")
                         .HasColumnType("integer")
                         .HasColumnName("schedule_interval");
@@ -344,6 +356,10 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                     b.Property<int?>("ScheduleUnit")
                         .HasColumnType("integer")
                         .HasColumnName("schedule_unit");
+
+                    b.Property<int?>("ScheduleWeekday")
+                        .HasColumnType("integer")
+                        .HasColumnName("schedule_weekday");
 
                     b.Property<bool>("SkipWhilePreviousUnanswered")
                         .HasColumnType("boolean")
@@ -382,6 +398,10 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                     b.Property<int>("ActionType")
                         .HasColumnType("integer")
                         .HasColumnName("action_type");
+
+                    b.Property<int?>("AnswerWindowHours")
+                        .HasColumnType("integer")
+                        .HasColumnName("answer_window_hours");
 
                     b.Property<int>("Audience")
                         .HasColumnType("integer")
@@ -434,6 +454,10 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("name");
 
+                    b.Property<bool?>("NotifyCoachOnMissedWeek")
+                        .HasColumnType("boolean")
+                        .HasColumnName("notify_coach_on_missed_week");
+
                     b.Property<bool>("OncePerPlan")
                         .HasColumnType("boolean")
                         .HasColumnName("once_per_plan");
@@ -450,6 +474,10 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("questionnaire_id");
 
+                    b.Property<int?>("ReminderAfterHours")
+                        .HasColumnType("integer")
+                        .HasColumnName("reminder_after_hours");
+
                     b.Property<int?>("ScheduleInterval")
                         .HasColumnType("integer")
                         .HasColumnName("schedule_interval");
@@ -457,6 +485,10 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                     b.Property<int?>("ScheduleUnit")
                         .HasColumnType("integer")
                         .HasColumnName("schedule_unit");
+
+                    b.Property<int?>("ScheduleWeekday")
+                        .HasColumnType("integer")
+                        .HasColumnName("schedule_weekday");
 
                     b.Property<bool>("SkipWhilePreviousUnanswered")
                         .HasColumnType("boolean")
@@ -3091,6 +3123,14 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                     b.Property<DateTime?>("CheckInDueAtUtc")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("check_in_due_at_utc");
+
+                    b.Property<DateTime?>("CheckInMissedNotifiedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("check_in_missed_notified_at_utc");
+
+                    b.Property<DateTime?>("CheckInReminderSentAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("check_in_reminder_sent_at_utc");
 
                     b.Property<DateOnly?>("CheckInWeekStart")
                         .HasColumnType("date")
