@@ -135,7 +135,8 @@ const makeStyles = (theme: Theme) =>
     box: {
       padding: theme.spacing.md,
       borderRadius: theme.radii.md,
-      backgroundColor: theme.colors.field,
+      // `field` equals the card colour in dark mode; `subtle` stays visible in both themes.
+      backgroundColor: theme.colors.subtle,
       marginVertical: theme.spacing.snug,
     },
     // Inline views need a fixed size inside Text.
