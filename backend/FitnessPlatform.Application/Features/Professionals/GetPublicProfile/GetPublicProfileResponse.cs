@@ -64,6 +64,9 @@ public class PublicCertificateDto
 /// </summary>
 public class PublicProfilePackageDto
 {
+    /// <summary>Public id of the package, sent as <c>PackagePublicId</c> on a join request.</summary>
+    public Guid PublicId { get; set; }
+
     /// <summary>Display name of the package.</summary>
     public string Name { get; set; } = string.Empty;
 
