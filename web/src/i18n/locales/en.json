@@ -2408,6 +2408,56 @@
     },
     "answers": {
       "noAnswer": "No answer"
+    },
+    "page": {
+      "title": "Forms",
+      "counts": "{{answered}} answered · {{waiting}} waiting",
+      "send": "Send a form",
+      "sendAnother": "Send another form",
+      "filterLabel": "Filter forms",
+      "filters": {
+        "all": "All",
+        "onboarding": "Onboarding",
+        "questionnaire": "Questionnaires",
+        "checkin": "Check-ins"
+      },
+      "thisCollaboration": "This collaboration",
+      "previous_one": "Previous collaboration · {{year}} · {{count}} form",
+      "previous_other": "Previous collaboration · {{year}} · {{count}} forms",
+      "noMatch": "No forms of this kind yet.",
+      "selectAForm": "Select an answered form to read it.",
+      "noLink": "{{name}}'s forms are no longer available because the collaboration has ended.",
+      "emptyTitle": "No answers from {{name}} yet",
+      "emptyBody": "When {{name}} sends back a form, the answers show up here. You can also read them in the plan editor while you build the plan.",
+      "weekTitle": "{{title}} · week {{week}}",
+      "weekShort": "W{{week}}",
+      "stripLabel": "Check-in weeks",
+      "strip": {
+        "Answered": "answered",
+        "Missed": "missed",
+        "Waiting": "waiting"
+      },
+      "checkInCard_one": "Week {{week}} answered {{date}} · {{count}} question",
+      "checkInCard_other": "Week {{week}} answered {{date}} · {{count}} questions",
+      "checkInMeta": "Sent {{sent}} · answered {{answered}}",
+      "notReviewed": "not reviewed yet",
+      "reviewedOn": "Reviewed {{date}}",
+      "markReviewed": "Mark reviewed",
+      "replyInChat": "Reply in chat",
+      "markError": "Couldn't mark the check-in as reviewed. Please try again.",
+      "jumpTo": "Jump to section",
+      "changeVsWeek": "{{change}} vs week {{week}}",
+      "sameAsWeek": "same as week {{week}}"
+    },
+    "send": {
+      "title": "Send a form to {{name}}",
+      "description": "Pick one of your active forms. {{name}} gets it in the app.",
+      "pick": "Choose a form",
+      "confirm": "Send",
+      "empty": "You have no active forms to send. Create one under Forms first.",
+      "loadError": "Couldn't load your forms. Please try again.",
+      "success": "Form sent.",
+      "error": "Couldn't send the form. Please try again."
     }
   },
   "clientPlanEditor": {
@@ -4670,7 +4720,8 @@
         "workouts": "Workouts",
         "storage": "Photos",
         "payment": "Payment",
-        "automations": "Automations"
+        "automations": "Automations",
+        "forms": "Forms"
       },
       "stats": {
         "mealCompliance": {

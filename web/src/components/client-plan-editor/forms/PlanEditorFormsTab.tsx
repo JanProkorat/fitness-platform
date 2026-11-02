@@ -4,7 +4,11 @@ import { Link } from 'react-router-dom';
 import type { UseQueryResult } from '@tanstack/react-query';
 import { ChevronRight } from 'lucide-react';
 import type { OnboardingDataDto } from '@/api/generated';
-import type { ClientFormItem, GetClientFormsResponse } from '@/api/questionnaires';
+import {
+  QuestionnaireResponseKind,
+  type ClientFormItem,
+  type GetClientFormsResponse,
+} from '@/api/questionnaires';
 import { useMarkClientFormSeen } from '@/components/client-forms/useClientForms';
 import FormAnswersPopover from '@/components/client-plan-editor/forms/FormAnswersPopover';
 import FormCard from '@/components/client-plan-editor/forms/FormCard';
@@ -33,8 +37,8 @@ export default function PlanEditorFormsTab({ clientId, clientFirstName, onboardi
 
   function open(item: ClientFormItem) {
     setOpenId(item.responsePublicId ?? null);
-    // A failed mark-seen never blocks reading the answers.
-    if (item.isNew && item.responsePublicId) {
+    // A failed mark-seen never blocks reading the answers. Check-ins are marked only by "Mark reviewed".
+    if (item.isNew && item.responsePublicId && item.kind !== QuestionnaireResponseKind.CheckIn) {
       markSeen.mutate(item.responsePublicId);
     }
   }

@@ -2407,6 +2407,56 @@
     },
     "answers": {
       "noAnswer": "Keine Antwort"
+    },
+    "page": {
+      "title": "Formulare",
+      "counts": "{{answered}} beantwortet · {{waiting}} wartend",
+      "send": "Formular senden",
+      "sendAnother": "Weiteres Formular senden",
+      "filterLabel": "Formulare filtern",
+      "filters": {
+        "all": "Alle",
+        "onboarding": "Onboarding",
+        "questionnaire": "Fragebögen",
+        "checkin": "Check-ins"
+      },
+      "thisCollaboration": "Diese Zusammenarbeit",
+      "previous_one": "Frühere Zusammenarbeit · {{year}} · {{count}} Formular",
+      "previous_other": "Frühere Zusammenarbeit · {{year}} · {{count}} Formulare",
+      "noMatch": "Noch keine Formulare dieser Art.",
+      "selectAForm": "Wählen Sie ein beantwortetes Formular, um es zu lesen.",
+      "noLink": "Die Formulare von {{name}} sind nicht mehr verfügbar, weil die Zusammenarbeit beendet wurde.",
+      "emptyTitle": "Noch keine Antworten von {{name}}",
+      "emptyBody": "Sobald {{name}} ein Formular zurückschickt, erscheinen die Antworten hier. Sie können sie auch im Planeditor lesen, während Sie den Plan erstellen.",
+      "weekTitle": "{{title}} · Woche {{week}}",
+      "weekShort": "KW{{week}}",
+      "stripLabel": "Check-in-Wochen",
+      "strip": {
+        "Answered": "beantwortet",
+        "Missed": "verpasst",
+        "Waiting": "wartend"
+      },
+      "checkInCard_one": "Woche {{week}} beantwortet am {{date}} · {{count}} Frage",
+      "checkInCard_other": "Woche {{week}} beantwortet am {{date}} · {{count}} Fragen",
+      "checkInMeta": "Gesendet {{sent}} · beantwortet {{answered}}",
+      "notReviewed": "noch nicht geprüft",
+      "reviewedOn": "Geprüft am {{date}}",
+      "markReviewed": "Als geprüft markieren",
+      "replyInChat": "Im Chat antworten",
+      "markError": "Der Check-in konnte nicht als geprüft markiert werden. Bitte versuchen Sie es erneut.",
+      "jumpTo": "Zum Abschnitt springen",
+      "changeVsWeek": "{{change}} ggü. Woche {{week}}",
+      "sameAsWeek": "wie in Woche {{week}}"
+    },
+    "send": {
+      "title": "Formular an {{name}} senden",
+      "description": "Wählen Sie eines Ihrer aktiven Formulare. {{name}} erhält es in der App.",
+      "pick": "Formular auswählen",
+      "confirm": "Senden",
+      "empty": "Sie haben keine aktiven Formulare zum Senden. Erstellen Sie zuerst eines unter Formulare.",
+      "loadError": "Ihre Formulare konnten nicht geladen werden. Bitte versuchen Sie es erneut.",
+      "success": "Formular gesendet.",
+      "error": "Das Formular konnte nicht gesendet werden. Bitte versuchen Sie es erneut."
     }
   },
   "clientPlanEditor": {
@@ -4669,7 +4719,8 @@
         "workouts": "Workouts",
         "storage": "Fotos",
         "payment": "Zahlung",
-        "automations": "Automatisierungen"
+        "automations": "Automatisierungen",
+        "forms": "Formulare"
       },
       "stats": {
         "mealCompliance": {
