@@ -1,7 +1,7 @@
 using FitnessPlatform.Application.Domain.Documents;
 using MongoDB.Driver;
 
-namespace FitnessPlatform.Application.Features.ClientNutrition.Shared;
+namespace FitnessPlatform.Application.Domain.Services;
 
 /// <summary>
 /// Builds the filter that finds a client's meal-log rows for one client-local calendar day,

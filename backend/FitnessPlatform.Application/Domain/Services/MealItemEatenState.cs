@@ -2,7 +2,7 @@ using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Infrastructure.Services;
 
-namespace FitnessPlatform.Application.Features.ClientNutrition.Shared;
+namespace FitnessPlatform.Application.Domain.Services;
 
 /// <summary>
 /// Reads the per-item eaten state of a plan meal off its <see cref="MealLog"/> rows. Shared by the
