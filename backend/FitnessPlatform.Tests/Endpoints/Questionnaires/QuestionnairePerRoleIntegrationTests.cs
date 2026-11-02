@@ -115,6 +115,7 @@ public class QuestionnairePerRoleIntegrationTests(FitnessApiFactory factory)
         responses.Select(r => r.Scope).Should().BeEquivalentTo(
             [LinkCapabilityScope.TrainingOnly, LinkCapabilityScope.NutritionOnly]);
         responses.Should().OnlyContain(r => r.Status == QuestionnaireResponseStatus.Pending);
+        responses.Should().OnlyContain(r => r.Kind == QuestionnaireResponseKind.Onboarding);
     }
 
     [Fact]
@@ -156,6 +157,7 @@ public class QuestionnairePerRoleIntegrationTests(FitnessApiFactory factory)
         responses.Should().HaveCount(2);
         responses.Single(r => r.QuestionnaireId == nutrition.Id).Scope.Should().Be(LinkCapabilityScope.NutritionOnly);
         responses.Single(r => r.QuestionnaireId == training.Id).Scope.Should().Be(LinkCapabilityScope.TrainingOnly);
+        responses.Should().OnlyContain(r => r.Kind == QuestionnaireResponseKind.Onboarding);
     }
 
     [Fact]
@@ -258,8 +260,9 @@ public class QuestionnairePerRoleIntegrationTests(FitnessApiFactory factory)
             Ct);
 
         response.StatusCode.Should().Be(HttpStatusCode.NoContent, await response.Content.ReadAsStringAsync(Ct));
-        (await ResponsesOfAsync(client)).Should().ContainSingle()
-            .Which.Scope.Should().Be(LinkCapabilityScope.NutritionOnly);
+        var stored = (await ResponsesOfAsync(client)).Should().ContainSingle().Subject;
+        stored.Scope.Should().Be(LinkCapabilityScope.NutritionOnly);
+        stored.Kind.Should().Be(QuestionnaireResponseKind.Onboarding);
     }
 
     [Fact]

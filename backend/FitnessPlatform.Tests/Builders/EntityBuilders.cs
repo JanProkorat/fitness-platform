@@ -76,6 +76,7 @@ public class QuestionnaireBuilder
 {
     private Guid _professionalUserId = Guid.NewGuid();
     private string _title = "Onboarding";
+    private readonly List<QuestionnaireQuestion> _questions = [];
 
     /// <summary>
     /// Sets the coach (<c>ApplicationUser.Id</c>) who owns the questionnaire.
@@ -86,6 +87,21 @@ public class QuestionnaireBuilder
     /// Sets the questionnaire title.
     /// </summary>
     public QuestionnaireBuilder WithTitle(string title) { _title = title; return this; }
+
+    /// <summary>
+    /// Adds a question; questions keep the order they are added in.
+    /// </summary>
+    public QuestionnaireBuilder WithQuestion(string type, string label)
+    {
+        _questions.Add(new QuestionnaireQuestion
+        {
+            PublicId = Guid.NewGuid(),
+            OrderIndex = _questions.Count,
+            Type = type,
+            Label = label,
+        });
+        return this;
+    }
 
     /// <summary>
     /// Builds an active, default onboarding questionnaire.
@@ -99,6 +115,7 @@ public class QuestionnaireBuilder
         IsActive = true,
         Type = QuestionnaireType.Onboarding,
         DateCreated = DateTime.UtcNow,
+        Questions = _questions,
     };
 }
 
@@ -113,6 +130,11 @@ public class QuestionnaireResponseBuilder
     private Guid _professionalUserId = Guid.NewGuid();
     private QuestionnaireResponseStatus _status = QuestionnaireResponseStatus.Pending;
     private DateTime? _submittedAt;
+    private QuestionnaireResponseKind _kind = QuestionnaireResponseKind.Onboarding;
+    private DateOnly? _checkInWeekStart;
+    private DateTime? _checkInDueAtUtc;
+    private DateTime? _reviewedAtUtc;
+    private readonly List<QuestionnaireAnswer> _answers = [];
 
     /// <summary>
     /// Sets the questionnaire (internal id) being answered.
@@ -145,6 +167,36 @@ public class QuestionnaireResponseBuilder
     }
 
     /// <summary>
+    /// Sets the response kind (defaults to onboarding).
+    /// </summary>
+    public QuestionnaireResponseBuilder WithKind(QuestionnaireResponseKind kind) { _kind = kind; return this; }
+
+    /// <summary>
+    /// Marks the response as a check-in for the given week with its deadline.
+    /// </summary>
+    public QuestionnaireResponseBuilder AsCheckIn(DateOnly weekStart, DateTime dueAtUtc)
+    {
+        _kind = QuestionnaireResponseKind.CheckIn;
+        _checkInWeekStart = weekStart;
+        _checkInDueAtUtc = dueAtUtc;
+        return this;
+    }
+
+    /// <summary>
+    /// Records that the coach already opened the response.
+    /// </summary>
+    public QuestionnaireResponseBuilder ReviewedAt(DateTime reviewedAtUtc) { _reviewedAtUtc = reviewedAtUtc; return this; }
+
+    /// <summary>
+    /// Adds a text answer to the given question (internal id).
+    /// </summary>
+    public QuestionnaireResponseBuilder WithTextAnswer(long questionId, string text)
+    {
+        _answers.Add(new QuestionnaireAnswer { PublicId = Guid.NewGuid(), QuestionId = questionId, ValueText = text });
+        return this;
+    }
+
+    /// <summary>
     /// Builds the <see cref="QuestionnaireResponse"/> instance. DateCreated is stamped on insert.
     /// </summary>
     public QuestionnaireResponse Build() => new()
@@ -156,6 +208,11 @@ public class QuestionnaireResponseBuilder
         LinkId = _linkId,
         Status = _status,
         SubmittedAt = _submittedAt,
+        Kind = _kind,
+        CheckInWeekStart = _checkInWeekStart,
+        CheckInDueAtUtc = _checkInDueAtUtc,
+        ReviewedByCoachAtUtc = _reviewedAtUtc,
+        Answers = _answers,
     };
 }
 
