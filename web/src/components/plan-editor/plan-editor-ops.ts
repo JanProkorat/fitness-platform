@@ -491,12 +491,17 @@ export function reorderMealItems(
   );
 }
 
+/** Copies of items carry no stored item id, so the server mints new ones on save. */
+export function copyItemsWithoutIds<T extends { itemId?: string }>(items: readonly T[]): T[] {
+  return items.map((item) => ({ ...item, itemId: undefined }));
+}
+
 function copyContents(source: EditorMeal, target: EditorMeal): EditorMeal {
   return {
     ...target,
     note: source.note,
-    foods: source.foods.map((food) => ({ ...food })),
-    recipes: source.recipes.map((recipe) => ({ ...recipe })),
+    foods: copyItemsWithoutIds(source.foods),
+    recipes: copyItemsWithoutIds(source.recipes),
   };
 }
 
@@ -923,8 +928,8 @@ function isEmptyContents(contents: MealContents): boolean {
 
 function cloneContents(contents: MealContents): MealContents {
   return {
-    foods: contents.foods.map((food) => ({ ...food })),
-    recipes: contents.recipes.map((recipe) => ({ ...recipe })),
+    foods: copyItemsWithoutIds(contents.foods),
+    recipes: copyItemsWithoutIds(contents.recipes),
     note: contents.note,
   };
 }

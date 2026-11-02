@@ -74,12 +74,17 @@ function activityDetail(item: ClientTimelineItem, t: TFunction, formatNumber: (v
       if (!mealDay) {
         return undefined;
       }
-      return mealDay.mealsPlanned != null
-        ? t('clientDetail.overview.activity.detail.mealsOfPlanned', {
-            logged: mealDay.mealsLogged,
-            planned: mealDay.mealsPlanned,
-          })
-        : t('clientDetail.overview.activity.detail.mealsLogged', { count: mealDay.mealsLogged });
+      const logged =
+        mealDay.mealsPlanned != null
+          ? t('clientDetail.overview.activity.detail.mealsOfPlanned', {
+              logged: mealDay.mealsLogged,
+              planned: mealDay.mealsPlanned,
+            })
+          : t('clientDetail.overview.activity.detail.mealsLogged', { count: mealDay.mealsLogged });
+      const partly = mealDay.mealsPartlyEaten ?? 0;
+      return partly > 0
+        ? `${logged}, ${t('clientDetail.overview.activity.detail.mealsPartlyEaten', { count: partly })}`
+        : logged;
     }
     case 'measurement': {
       const measurement = item.measurement;

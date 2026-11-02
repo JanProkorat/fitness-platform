@@ -123,6 +123,11 @@ export default function ThisWeekCard({ detail, onRetry }: Props) {
               <span className="text-body text-muted-foreground">
                 {t('clientDetail.nutrition.thisWeek.ticked', { percent: model.percent })}
               </span>
+              {model.partly > 0 && (
+                <span data-testid="this-week-partly" className="text-body text-muted-foreground">
+                  {t('clientDetail.nutrition.thisWeek.partlyHeader', { count: model.partly })}
+                </span>
+              )}
             </div>
           ) : (
             <p role="status" className="text-body text-muted-foreground">
@@ -133,7 +138,8 @@ export default function ThisWeekCard({ detail, onRetry }: Props) {
           <ol className="flex gap-2" aria-label={t('clientDetail.nutrition.thisWeek.daysLabel')}>
             {model.tiles.map((tile) => {
               const weekday = formatWeekday(tile.date, locale);
-              const ratio = tile.planned > 0 ? tile.eaten / tile.planned : 0;
+              const eatenRatio = tile.planned > 0 ? tile.eaten / tile.planned : 0;
+              const partlyRatio = tile.planned > 0 ? tile.partly / tile.planned : 0;
               const showFill = tile.state === 'past' && tile.planned > 0;
               return (
                 <li
@@ -144,17 +150,26 @@ export default function ThisWeekCard({ detail, onRetry }: Props) {
                 >
                   <div
                     className={`relative h-11 w-full overflow-hidden rounded-lg border ${tileClass(tile)}`}
-                    title={t('clientDetail.nutrition.thisWeek.tileTitle', {
-                      day: weekday,
-                      eaten: tile.eaten,
-                      planned: tile.planned,
-                    })}
+                    title={t(
+                      tile.partly > 0
+                        ? 'clientDetail.nutrition.thisWeek.tileTitlePartly'
+                        : 'clientDetail.nutrition.thisWeek.tileTitle',
+                      { day: weekday, eaten: tile.eaten, partly: tile.partly, planned: tile.planned },
+                    )}
                   >
                     {showFill && (
                       <span
                         aria-hidden="true"
                         className={`absolute inset-x-0 bottom-0 ${tile.low ? 'bg-training/50' : 'bg-nutrition/50'}`}
-                        style={{ height: `${Math.round(ratio * 100)}%` }}
+                        style={{ height: `${Math.round(eatenRatio * 100)}%` }}
+                      />
+                    )}
+                    {showFill && tile.partly > 0 && (
+                      <span
+                        aria-hidden="true"
+                        data-partly="true"
+                        className={`absolute inset-x-0 ${tile.low ? 'bg-training/25' : 'bg-nutrition/25'}`}
+                        style={{ bottom: `${Math.round(eatenRatio * 100)}%`, height: `${Math.round(partlyRatio * 100)}%` }}
                       />
                     )}
                   </div>
@@ -166,7 +181,9 @@ export default function ThisWeekCard({ detail, onRetry }: Props) {
                         ? ''
                         : tile.planned === 0
                           ? '–'
-                          : `${tile.eaten}/${tile.planned}`}
+                          : tile.partly > 0
+                            ? `${tile.eaten}+${tile.partly}/${tile.planned}`
+                            : `${tile.eaten}/${tile.planned}`}
                   </span>
                 </li>
               );
@@ -189,10 +206,19 @@ export default function ThisWeekCard({ detail, onRetry }: Props) {
                 >
                   <span className="font-semibold text-ink">{t(`clientDetail.nutrition.thisWeek.group.${row.group}`)}</span>
                   <div className="h-1.5 rounded-full bg-line">
-                    <div
-                      className={`h-1.5 rounded-full ${row.flagged ? 'bg-error' : 'bg-ink-2'}`}
-                      style={{ width: `${Math.round((row.eaten / row.planned) * 100)}%` }}
-                    />
+                    <div className="flex h-1.5 overflow-hidden rounded-full">
+                      <div
+                        className={`h-1.5 ${row.flagged ? 'bg-error' : 'bg-ink-2'}`}
+                        style={{ width: `${Math.round((row.eaten / row.planned) * 100)}%` }}
+                      />
+                      {row.partly > 0 && (
+                        <div
+                          data-partly="true"
+                          className={`h-1.5 ${row.flagged ? 'bg-error/40' : 'bg-ink-2/40'}`}
+                          style={{ width: `${Math.round((row.partly / row.planned) * 100)}%` }}
+                        />
+                      )}
+                    </div>
                   </div>
                   <span className="text-muted-foreground">
                     {row.eaten}/{row.planned}
@@ -200,6 +226,10 @@ export default function ThisWeekCard({ detail, onRetry }: Props) {
                   {row.note === 'skipped' ? (
                     <span className="col-span-3 font-bold text-error sm:col-span-1">
                       {t('clientDetail.nutrition.thisWeek.skipped', { count: row.skipped })}
+                    </span>
+                  ) : row.partly > 0 ? (
+                    <span data-testid="row-partly" className="col-span-3 text-muted-foreground sm:col-span-1">
+                      {t('clientDetail.nutrition.thisWeek.partly', { count: row.partly })}
                     </span>
                   ) : row.note === 'always' ? (
                     <span className="col-span-3 text-muted-foreground sm:col-span-1">
