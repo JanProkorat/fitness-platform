@@ -81,7 +81,10 @@ export function NutritionPlanView({ week }: NutritionPlanViewProps) {
         ? todayLog.data
           ? macrosOf(todayLog.data.totalConsumed)
           : EMPTY_MACROS
-        : eatenMacros(meals, isEaten);
+        : eatenMacros(meals, (meal) => ({
+            eaten: isEaten(meal.mealId),
+            itemIds: findLoggedMeal(weekLog.data, selected, meal.mealId)?.eatenItemIds ?? [],
+          }));
   const dayEaten = meals.filter((meal) => isEaten(meal.mealId)).length;
 
   const {

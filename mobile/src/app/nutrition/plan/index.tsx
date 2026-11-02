@@ -13,9 +13,11 @@ import { WeekRow } from '@/components/nutrition/plan/WeekRow';
 import {
   dayMeals,
   eatenInWeek,
+  eatenShareInWeek,
   formatRange,
   isoDay,
   localToday,
+  mealEatenShare,
   parsePlanIdParam,
   planEndDate,
   weekDays,
@@ -142,7 +144,15 @@ function PlanContent({ plan, planId, onBack }: PlanContentProps) {
       }
       if (date <= today) {
         elapsed += meals.length;
-        elapsedEaten += meals.filter((meal) => eatenIds.has(meal.mealId)).length;
+        elapsedEaten += meals.reduce(
+          (sum, meal) =>
+            sum +
+            mealEatenShare(meal, {
+              eaten: eatenIds.has(meal.mealId),
+              itemIds: plan.eatenItemIdsByMeal?.[meal.mealId] ?? [],
+            }),
+          0,
+        );
       }
     }
   }
@@ -173,7 +183,7 @@ function PlanContent({ plan, planId, onBack }: PlanContentProps) {
   const firstPast = pastWeeks[0];
   const lastPast = pastWeeks[pastWeeks.length - 1];
   const pastPlanned = pastWeeks.reduce((sum, week) => sum + weekMealCount(week), 0);
-  const pastEaten = pastWeeks.reduce((sum, week) => sum + eatenInWeek(week, eatenIds), 0);
+  const pastEaten = pastWeeks.reduce((sum, week) => sum + eatenShareInWeek(week, eatenIds, plan.eatenItemIdsByMeal), 0);
   const futureWeeks = weeks.filter((week) => weekPhase(week, today) === 'future');
   const rows: ReactNode[] = [];
 
