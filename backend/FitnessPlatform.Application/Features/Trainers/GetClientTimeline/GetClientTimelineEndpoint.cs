@@ -207,7 +207,7 @@ public class GetClientTimelineEndpoint(
                     Id = $"meals:{day.Key:yyyy-MM-dd}",
                     Type = "meal_day",
                     OccurredAt = day.SelectMany(meal => meal.Rows).Max(l => l.EatenAt ?? l.LogDate),
-                    Title = $"Zaznamenáno {mealsEaten + mealsPartlyEaten} jídel",
+                    Title = $"Zaznamenáno {day.Sum(meal => meal.Rows.Count)} jídel",
                     Icon = "🍽",
                     MealDay = new TimelineMealDayPayload
                     {
