@@ -24608,7 +24608,7 @@ Request. This is the id the row's action endpoint expects. */
     /** Pending, or Expired for an
 invite past its validity window that has not been re-sent. Always Pending for requests. */
     status?: PendingInviteStatus;
-    /** The package the client attached to the request; always null for invite rows. */
+    /** The package attached to the request, or stored on the invite; null when none. */
     package?: PendingRowPackageDto | undefined;
     /** Whether the client agreed to share their history; always false for invite rows. */
     shareHistory?: boolean;
@@ -26796,6 +26796,8 @@ export interface PublicCertificateDto {
 
 /** One package on a coach's public profile. */
 export interface PublicProfilePackageDto {
+    /** Public id of the package, sent as PackagePublicId on a join request. */
+    publicId?: string;
     /** Display name of the package. */
     name?: string;
     /** How often the package is billed. */
