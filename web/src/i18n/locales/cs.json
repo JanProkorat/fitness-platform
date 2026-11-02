@@ -2484,6 +2484,60 @@
     },
     "answers": {
       "noAnswer": "Bez odpovědi"
+    },
+    "page": {
+      "title": "Formuláře",
+      "counts": "{{answered}} zodpovězeno · {{waiting}} čeká",
+      "send": "Odeslat formulář",
+      "sendAnother": "Odeslat další formulář",
+      "filterLabel": "Filtrovat formuláře",
+      "filters": {
+        "all": "Vše",
+        "onboarding": "Vstupní dotazník",
+        "questionnaire": "Dotazníky",
+        "checkin": "Check-iny"
+      },
+      "thisCollaboration": "Tato spolupráce",
+      "previous_one": "Předchozí spolupráce · {{year}} · {{count}} formulář",
+      "previous_few": "Předchozí spolupráce · {{year}} · {{count}} formuláře",
+      "previous_many": "Předchozí spolupráce · {{year}} · {{count}} formuláře",
+      "previous_other": "Předchozí spolupráce · {{year}} · {{count}} formulářů",
+      "noMatch": "Zatím žádné formuláře tohoto druhu.",
+      "selectAForm": "Vyberte zodpovězený formulář, který chcete číst.",
+      "noLink": "Formuláře klienta {{name}} už nejsou dostupné, protože spolupráce skončila.",
+      "emptyTitle": "Od klienta {{name}} zatím nejsou žádné odpovědi",
+      "emptyBody": "Až klient {{name}} formulář odešle zpět, odpovědi se zobrazí tady. Přečíst si je můžete i v editoru plánu při jeho tvorbě.",
+      "weekTitle": "{{title}} · týden {{week}}",
+      "weekShort": "T{{week}}",
+      "stripLabel": "Týdny check-inu",
+      "strip": {
+        "Answered": "zodpovězeno",
+        "Missed": "zmeškáno",
+        "Waiting": "čeká"
+      },
+      "checkInCard_one": "Týden {{week}} zodpovězen {{date}} · {{count}} otázka",
+      "checkInCard_few": "Týden {{week}} zodpovězen {{date}} · {{count}} otázky",
+      "checkInCard_many": "Týden {{week}} zodpovězen {{date}} · {{count}} otázky",
+      "checkInCard_other": "Týden {{week}} zodpovězen {{date}} · {{count}} otázek",
+      "checkInMeta": "Odesláno {{sent}} · zodpovězeno {{answered}}",
+      "notReviewed": "zatím neposouzeno",
+      "reviewedOn": "Posouzeno {{date}}",
+      "markReviewed": "Označit jako posouzené",
+      "replyInChat": "Odpovědět v chatu",
+      "markError": "Check-in se nepodařilo označit jako posouzený. Zkuste to prosím znovu.",
+      "jumpTo": "Přejít na sekci",
+      "changeVsWeek": "{{change}} oproti týdnu {{week}}",
+      "sameAsWeek": "stejně jako v týdnu {{week}}"
+    },
+    "send": {
+      "title": "Odeslat formulář klientovi {{name}}",
+      "description": "Vyberte jeden ze svých aktivních formulářů. Klient {{name}} ho dostane v aplikaci.",
+      "pick": "Vyberte formulář",
+      "confirm": "Odeslat",
+      "empty": "Nemáte žádné aktivní formuláře k odeslání. Nejdřív nějaký vytvořte v sekci Formuláře.",
+      "loadError": "Vaše formuláře se nepodařilo načíst. Zkuste to prosím znovu.",
+      "success": "Formulář odeslán.",
+      "error": "Formulář se nepodařilo odeslat. Zkuste to prosím znovu."
     }
   },
   "clientPlanEditor": {
@@ -4812,7 +4866,8 @@
         "workouts": "Tréninky",
         "storage": "Fotky",
         "payment": "Platby",
-        "automations": "Automatizace"
+        "automations": "Automatizace",
+        "forms": "Formuláře"
       },
       "stats": {
         "mealCompliance": {

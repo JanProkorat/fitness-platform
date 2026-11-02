@@ -1,8 +1,9 @@
-import { Fragment } from 'react';
+import { Fragment, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Star } from 'lucide-react';
 import type { ClientFormAnswer } from '@/api/questionnaires';
 import { parseChoices } from '@/components/client-forms/answerValues';
+import { cn } from '@/lib/utils';
 
 const CHIP_CLASS =
   'inline-flex h-7 items-center rounded-full border border-border bg-card px-3 text-body font-semibold text-ink';
@@ -62,15 +63,19 @@ function AnswerValue({ answer }: { answer: ClientFormAnswer }) {
 
 interface Props {
   answers: readonly ClientFormAnswer[];
+  /** Skips the built-in section headings and side padding, for a caller that lays out sections itself. */
+  bare?: boolean;
+  /** Extra content beside an answer's value, e.g. a change against last week. */
+  renderExtra?: (answer: ClientFormAnswer) => ReactNode;
 }
 
 /** Read-only list of one form's answers: question, then value, with section headings where the form has them. */
-export default function ClientFormAnswers({ answers }: Props) {
+export default function ClientFormAnswers({ answers, bare = false, renderExtra }: Props) {
   return (
     <ul className="flex flex-col">
       {answers.map((answer, index) => {
         const previous = answers[index - 1];
-        const newSection = answer.sectionLabel && answer.sectionLabel !== previous?.sectionLabel;
+        const newSection = !bare && answer.sectionLabel && answer.sectionLabel !== previous?.sectionLabel;
         return (
           <Fragment key={answer.questionPublicId ?? index}>
             {newSection && (
@@ -78,9 +83,12 @@ export default function ClientFormAnswers({ answers }: Props) {
                 {answer.sectionLabel}
               </li>
             )}
-            <li className="flex flex-col gap-1.5 border-b border-line px-6 py-3.5 last:border-b-0">
+            <li className={cn('flex flex-col gap-1.5 border-b border-line py-3.5 last:border-b-0', !bare && 'px-6')}>
               <span className="text-body text-muted-foreground">{answer.questionLabel}</span>
-              <AnswerValue answer={answer} />
+              <span className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+                <AnswerValue answer={answer} />
+                {renderExtra?.(answer)}
+              </span>
             </li>
           </Fragment>
         );
