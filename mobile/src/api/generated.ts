@@ -4453,7 +4453,7 @@ export class ApiClient {
 
     /**
      * Get trainer dashboard summary
-     * @return Success
+     * @return Per-client dashboard items
      */
     getDashboardSummaryEndpoint(signal?: AbortSignal): Promise<GetDashboardSummaryResponse> {
         let url_ = this.baseUrl + "/trainer/dashboard-summary";
@@ -4498,7 +4498,7 @@ export class ApiClient {
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
@@ -4585,7 +4585,7 @@ export class ApiClient {
      * Get client activity timeline
      * @param clientId The client's ApplicationUser.Id, provided as a route parameter.
      * @param limit Maximum number of items to return. Defaults to 30, capped at 100.
-     * @return Success
+     * @return Timeline items, newest first
      */
     getClientTimelineEndpoint(clientId: string, limit: number, signal?: AbortSignal): Promise<GetClientTimelineResponse> {
         let url_ = this.baseUrl + "/trainer/clients/{clientId}/timeline?";
@@ -4644,11 +4644,11 @@ export class ApiClient {
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
+            return throwException("The link grants no nutrition or training access to the caller", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -4760,7 +4760,7 @@ export class ApiClient {
      * @param clientId The client's ApplicationUser.Id, provided as a route parameter.
      * @param from (optional) Start date for the progress calculation. Defaults to 7 days ago if not provided.
      * @param to (optional) End date for the progress calculation. Defaults to today if not provided.
-     * @return Success
+     * @return Client progress
      */
     getClientProgressEndpoint(clientId: string, from?: string | null | undefined, to?: string | null | undefined, signal?: AbortSignal): Promise<GetClientProgressResponse> {
         let url_ = this.baseUrl + "/trainer/clients/{clientId}/progress?";
@@ -4819,7 +4819,7 @@ export class ApiClient {
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
@@ -10683,7 +10683,7 @@ export class ApiClient {
     /**
      * Get a nutrition plan
      * @param planId The plan's public identifier (route parameter).
-     * @return Success
+     * @return Nutrition plan detail
      */
     getPlanEndpoint(planId: string, signal?: AbortSignal): Promise<GetPlanResponse> {
         let url_ = this.baseUrl + "/nutrition/plans/{planId}";
@@ -10731,7 +10731,7 @@ export class ApiClient {
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
@@ -18680,7 +18680,7 @@ export class ApiClient {
 
     /**
      * Get full nutrition plan
-     * @return Success
+     * @return Nutrition plan with its published weeks and eaten state
      */
     getFullPlanEndpoint(signal?: AbortSignal): Promise<GetFullPlanResponse> {
         let url_ = this.baseUrl + "/client/nutrition/plan/full";
@@ -18725,7 +18725,7 @@ export class ApiClient {
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
@@ -19657,7 +19657,7 @@ export class ApiClient {
 
     /**
      * Get weekly overview
-     * @return Success
+     * @return Weekly overview
      */
     getWeeklyOverviewEndpoint(signal?: AbortSignal): Promise<GetWeeklyOverviewResponse> {
         let url_ = this.baseUrl + "/client/progress/weekly";
@@ -19702,7 +19702,7 @@ export class ApiClient {
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
@@ -19719,7 +19719,7 @@ export class ApiClient {
      * Get compliance score
      * @param from (optional) Start date for the compliance calculation. Defaults to 7 days ago if not provided.
      * @param to (optional) End date for the compliance calculation. Defaults to today if not provided.
-     * @return Success
+     * @return Compliance score
      */
     getComplianceScoreEndpoint(from?: string | null | undefined, to?: string | null | undefined, signal?: AbortSignal): Promise<GetComplianceScoreResponse> {
         let url_ = this.baseUrl + "/client/progress/compliance?";
@@ -19775,7 +19775,7 @@ export class ApiClient {
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
@@ -19923,7 +19923,7 @@ export class ApiClient {
      * List client plans
      * @param status (optional) Filter by plan status (e.g. "Completed", "Active").
     When null, returns all non-draft plans.
-     * @return Success
+     * @return The client's plans
      */
     getClientPlansEndpoint(status?: string | null | undefined, signal?: AbortSignal): Promise<GetClientPlansResponse> {
         let url_ = this.baseUrl + "/client/plans?";
@@ -19970,7 +19970,7 @@ export class ApiClient {
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
@@ -24510,8 +24510,10 @@ export interface PersonalRecordPayload {
 
 /** Structured payload embedded in a meal_day timeline item. */
 export interface TimelineMealDayPayload {
-    /** Number of distinct planned meals logged that day. */
+    /** Number of distinct planned meals fully eaten that day. */
     mealsLogged?: number;
+    /** Number of distinct planned meals partly eaten that day (not included in MealsLogged). */
+    mealsPartlyEaten?: number;
     /** Planned meals for that day. Null when the day's plan was not authored by the caller
 or the day has no planned meals. */
     mealsPlanned?: number | undefined;
@@ -24705,6 +24707,12 @@ does not grant the nutrition domain. */
     /** Total number of meals logged in the date range, or null when the caller's link
 does not grant the nutrition domain. */
     mealsLogged?: number | undefined;
+    /** Number of partly eaten meals in the date range, or null when the caller's link does not
+grant the nutrition domain. Not included in MealsLogged. */
+    mealsPartlyEaten?: number | undefined;
+    /** Sum of each logged meal's eaten share in the date range (a partly eaten meal counts its eaten
+items over its current items), or null without the nutrition domain. */
+    mealsEatenShare?: number | undefined;
     /** Current streak of consecutive compliant days, computed over the caller's own domain. */
     currentStreak?: number;
     /** Average daily macronutrient totals for the date range, or null when the caller's
@@ -27125,20 +27133,30 @@ export interface PlanWeek {
     days?: PlanDay[];
 }
 
-/** Per-meal eaten state derived from a MealLog document. Lets the web layer render eaten/not-touched indicators and lock editing affordances on meals the client has already confirmed as eaten. */
+/** Per-meal eaten state derived from the MealLog rows of one meal on one day. Lets the web layer render eaten/partly eaten/not-touched indicators. */
 export interface MealEatenStatusDto {
     /** The MealId this log belongs to. */
     mealId?: string;
     /** The calendar date (UTC) this log entry belongs to, as a date-only value.
 Matches LogDate truncated to day precision. */
     logDate?: string;
-    /** Whether the meal has been confirmed as eaten by the client.
-true iff EatenAt was non-null in the document.
-A log with EatenAt == null is a photo-only or note-only stub —
-it is NOT considered eaten. */
+    /** Whether the meal is fully eaten: true iff EatenState is Eaten.
+A partly eaten meal is false; read EatenState to tell it from not eaten. */
     isEaten?: boolean;
-    /** When the meal was eaten, if eaten. Null for photo-only / note-only stubs. */
+    /** Derived eaten state of the meal: NotEaten, PartlyEaten or Eaten. */
+    eatenState?: MealEatenState;
+    /** Ids of the meal's current items (foods and recipes) that are eaten. Items the coach
+has since removed are not listed. */
+    eatenItemIds?: string[];
+    /** When the meal was eaten. Set only when EatenState is Eaten. */
     eatenAt?: string | undefined;
+}
+
+/** How much of a plan meal the client has eaten. */
+export enum MealEatenState {
+    NotEaten = "NotEaten",
+    PartlyEaten = "PartlyEaten",
+    Eaten = "Eaten",
 }
 
 /** A supplement entry in a nutrition plan response DTO. */
@@ -29739,13 +29757,6 @@ export interface UnlogMealItemEatenResponse {
     eatenAt?: string | undefined;
 }
 
-/** How much of a plan meal the client has eaten. */
-export enum MealEatenState {
-    NotEaten = "NotEaten",
-    PartlyEaten = "PartlyEaten",
-    Eaten = "Eaten",
-}
-
 /** Request model for unmarking one food or recipe of a plan meal. */
 export interface UnlogMealItemEatenRequest {
 }
@@ -30218,9 +30229,15 @@ export interface GetFullPlanResponse {
     questionnaireResponseId?: string | undefined;
     /** When this plan was marked as completed, if applicable. */
     dateCompleted?: string | undefined;
-    /** Set of meal IDs that the client has logged as eaten.
+    /** Set of meal IDs that are fully eaten: every current item of the meal is eaten.
 Meal IDs are unique across the plan, so a flat set covers all days. */
     eatenMealIds?: string[];
+    /** Set of meal IDs that are partly eaten (some, not all, current items). Disjoint from
+EatenMealIds. */
+    partlyEatenMealIds?: string[];
+    /** The eaten item ids of each eaten or partly eaten meal, keyed by meal id. Ids of items
+no longer in the meal are not listed. */
+    eatenItemIdsByMeal?: { [key: string]: string[]; };
     /** Supplement recommendations for this plan. Clients use this list to configure
 local reminder notifications; the list is read-only on the client side. */
     supplements?: SupplementDto[];
@@ -30517,6 +30534,10 @@ export interface GetWeeklyOverviewResponse {
     mealsPlanned?: number;
     /** Total number of meals logged for the current week. */
     mealsLogged?: number;
+    /** Number of partly eaten meals for the current week. Not included in MealsLogged. */
+    mealsPartlyEaten?: number;
+    /** Sum of each logged meal's eaten share for the current week (partly eaten meals count their share). */
+    mealsEatenShare?: number;
     /** Average daily macronutrient totals for the current week. */
     averageDailyMacros?: NutrientTotals;
     /** Current streak of consecutive compliant days. */
@@ -30531,6 +30552,10 @@ export interface GetComplianceScoreResponse {
     mealsPlanned?: number;
     /** Total number of meals logged in the date range. */
     mealsLogged?: number;
+    /** Number of partly eaten meals in the date range. Not included in MealsLogged. */
+    mealsPartlyEaten?: number;
+    /** Sum of each logged meal's eaten share in the date range (partly eaten meals count their share). */
+    mealsEatenShare?: number;
     /** Current streak of consecutive compliant days. */
     currentStreak?: number;
     /** Start date of the compliance calculation range. */
