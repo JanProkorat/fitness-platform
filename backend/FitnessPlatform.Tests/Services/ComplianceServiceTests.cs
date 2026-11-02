@@ -152,8 +152,8 @@ public class ComplianceServiceTests
         // 2 meal logs for today
         var logs = new List<MealLog>
         {
-            new() { ClientId = _clientId, EatenAt = today.AddHours(8), FoodsEaten = [] },
-            new() { ClientId = _clientId, EatenAt = today.AddHours(12), FoodsEaten = [] }
+            new() { ClientId = _clientId, MealId = Guid.NewGuid(), EatenAt = today.AddHours(8), FoodsEaten = [] },
+            new() { ClientId = _clientId, MealId = Guid.NewGuid(), EatenAt = today.AddHours(12), FoodsEaten = [] }
         };
 
         var mongo = CreateMongo([plan], logs);
@@ -1202,7 +1202,7 @@ public class ComplianceServiceTests
         var expired = NutritionPlanEveryDay(today.AddDays(-28), weekCount: 1, mealsPerDay: 1);
         var current = NutritionPlanEveryDay(today.AddDays(-3), weekCount: 2, mealsPerDay: 3);
         var logs = Enumerable.Range(0, 3)
-            .Select(_ => new MealLog { ClientId = _clientId, EatenAt = today.AddHours(8), FoodsEaten = [] })
+            .Select(_ => new MealLog { ClientId = _clientId, MealId = Guid.NewGuid(), EatenAt = today.AddHours(8), FoodsEaten = [] })
             .ToList();
 
         // Older plan first, so an arbitrary first-match lookup would pick the expired one.

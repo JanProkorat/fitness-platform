@@ -143,18 +143,25 @@ public class GetTodayLogEndpoint(IMongoContext mongo, IApplicationDbContext db, 
                 planMeals.TryAdd(meal.MealId, meal);
         }
 
-        // Map logs to DTOs — use plan MealTotals when available, fall back to
-        // computing from FoodsEaten for meals not found in today's plan day.
+        // Map logs to DTOs. A fully eaten (or untouched) meal uses the plan's MealTotals, falling back to
+        // FoodsEaten for meals not found in today's plan day; a partly eaten meal sums just its eaten
+        // items from the live plan meal.
         var mealsEaten = logs.Select(log =>
         {
             planMeals.TryGetValue(log.MealId, out var planMeal);
-            var totals = planMeal?.MealTotals ?? CalculateTotals(log.FoodsEaten);
+            var eatenIds = MealItemEatenState.EffectiveEatenIds(log, planMeal);
+            var state = MealItemEatenState.StateOf(planMeal, eatenIds, log.EatenAt is not null);
+            var totals = state == MealEatenState.PartlyEaten && planMeal is not null
+                ? MealItemEatenState.EatenTotals(planMeal, eatenIds)
+                : planMeal?.MealTotals ?? CalculateTotals(log.FoodsEaten);
 
             return new TodayMealLogDto
             {
                 MealId = log.MealId,
                 MealName = planMeal?.Kind.ToString() ?? string.Empty,
-                EatenAt = log.EatenAt,
+                EatenAt = state == MealEatenState.Eaten ? log.EatenAt : null,
+                EatenState = state,
+                EatenItemIds = eatenIds.ToList(),
                 Totals = totals,
                 Photos = log.Photos
                     .Select(p => new MealPhotoDto { BlobUrl = p.BlobUrl, UploadedAt = p.UploadedAt, Note = p.Note })
@@ -181,10 +188,11 @@ public class GetTodayLogEndpoint(IMongoContext mongo, IApplicationDbContext db, 
             offPlanFoods = dayLogs.SelectMany(l => l.OffPlanFoods).OrderBy(e => e.LoggedAt).ToList();
         }
 
-        // Only rows marked eaten count, once per meal: photo-only rows (EatenAt null) are returned
-        // above for their photos but contribute nothing to consumption.
+        // Only rows with an eaten item count, once per meal: photo-only rows are returned above for
+        // their photos but contribute nothing to consumption; a partly eaten row contributes its
+        // eaten items' totals.
         var eatenMeals = mealsEaten
-            .Where(m => m.EatenAt is not null)
+            .Where(m => m.EatenState != MealEatenState.NotEaten)
             .GroupBy(m => m.MealId)
             .Select(g => g.First())
             .ToList();

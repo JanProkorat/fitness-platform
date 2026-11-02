@@ -1566,6 +1566,18 @@
   "h": 844
  },
  {
+  "html": "mobile-light/05-11-nutrition-notes.html",
+  "png": "mobile-light/05-11-nutrition-notes.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/05-12-today-notes.html",
+  "png": "mobile-light/05-12-today-notes.png",
+  "w": 390,
+  "h": 1080
+ },
+ {
   "html": "mobile-light/06-01-messages-list.html",
   "png": "mobile-light/06-01-messages-list.png",
   "w": 390,
@@ -2164,6 +2176,18 @@
   "png": "mobile-dark/05-10-training-upcoming.png",
   "w": 390,
   "h": 844
+ },
+ {
+  "html": "mobile-dark/05-11-nutrition-notes.html",
+  "png": "mobile-dark/05-11-nutrition-notes.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/05-12-today-notes.html",
+  "png": "mobile-dark/05-12-today-notes.png",
+  "w": 390,
+  "h": 1080
  },
  {
   "html": "mobile-dark/06-01-messages-list.html",

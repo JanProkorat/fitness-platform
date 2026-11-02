@@ -7,11 +7,10 @@ namespace FitnessPlatform.Application.Domain.Services;
 /// Deep-clones the nutrition plan/template content tree (weeks → days → meals → foods/recipes)
 /// between a <see cref="NutritionPlanTemplate"/> and a <see cref="NutritionPlan"/>, and the
 /// supplement list either direction copies. Centralizes the one instance-identity hazard in this
-/// tree: <see cref="PlanMeal.MealId"/> is the only id below the week level (<see cref="PlanDay"/>
-/// keys on <c>DayOfWeek</c>; <see cref="MealFood"/>/<see cref="MealRecipe"/> carry only
-/// references — <see cref="MealFood.FoodExternalId"/> / <see cref="MealRecipe.RecipeId"/> — not
-/// instance ids). <see cref="CloneWeeksAsPlan"/> mints a fresh <see cref="PlanMeal.MealId"/> for
-/// every meal because <c>UpdatePlanValidator</c> rejects duplicate <c>MealId</c>s within a day
+/// tree: <see cref="PlanMeal.MealId"/> and the per-item <see cref="MealFood.ItemId"/> /
+/// <see cref="MealRecipe.ItemId"/> are the only instance ids below the week level
+/// (<see cref="PlanDay"/> keys on <c>DayOfWeek</c>). <see cref="CloneWeeksAsPlan"/> mints a fresh
+/// <see cref="PlanMeal.MealId"/> (and fresh item ids) for every meal because <c>UpdatePlanValidator</c> rejects duplicate <c>MealId</c>s within a day
 /// and <c>LogMealEatenEndpoint</c> resolves a meal by scanning <c>MealId</c> across the whole
 /// plan — carrying the template's ids into a new plan would collide with any sibling plan
 /// instantiated from the same template. The two other clone directions (template ↔ template,
@@ -106,6 +105,7 @@ internal static class NutritionPlanContentCloner
                 MealTotals = meal.MealTotals,
                 Foods = meal.Foods.Select(food => new MealFood
                 {
+                    ItemId = mintFreshMealIds ? Guid.NewGuid() : food.ItemId,
                     FoodExternalId = food.FoodExternalId,
                     FoodName = food.FoodName,
                     FoodNameCs = food.FoodNameCs,
@@ -118,6 +118,7 @@ internal static class NutritionPlanContentCloner
                 }).ToList(),
                 Recipes = meal.Recipes.Select(recipe => new MealRecipe
                 {
+                    ItemId = mintFreshMealIds ? Guid.NewGuid() : recipe.ItemId,
                     RecipeId = recipe.RecipeId,
                     RecipeName = recipe.RecipeName,
                     NutrientValuePerServing = recipe.NutrientValuePerServing,

@@ -38,6 +38,13 @@ function isPayload(kind: unknown, payload: unknown): boolean {
       );
     case 'mealUnlogged':
       return isText(payload.mealId);
+    case 'mealItemEaten':
+    case 'mealItemUnlogged':
+      return (
+        isText(payload.mealId) &&
+        isText(payload.itemId) &&
+        (payload.itemIds === undefined || (Array.isArray(payload.itemIds) && payload.itemIds.every(isText)))
+      );
     case 'offPlanAdded':
       return (
         isText(payload.entryId) &&
@@ -74,6 +81,8 @@ const DROP_REASONS: readonly unknown[] = ['tooOld', 'notFound', 'conflict', 'rej
 const KINDS: readonly unknown[] = [
   'mealEaten',
   'mealUnlogged',
+  'mealItemEaten',
+  'mealItemUnlogged',
   'offPlanAdded',
   'offPlanRemoved',
   'shoppingTicked',

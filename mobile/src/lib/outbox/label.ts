@@ -58,6 +58,8 @@ export function describeEntry(entry: OutboxEntry): EntryLabel {
   switch (entry.kind) {
     case 'mealEaten':
     case 'mealUnlogged':
+    case 'mealItemEaten':
+    case 'mealItemUnlogged':
       return { mealKind: mealKindOf(entry.payload.mealId), date };
     case 'offPlanAdded':
       return { name: entry.payload.foodName || undefined, date };

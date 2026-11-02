@@ -25,6 +25,7 @@ export function toEditorWeeks(source: readonly PlanWeek[] | undefined): EditorWe
               time: nullToUndefined(meal.time),
               note: nullToUndefined(meal.note),
               foods: (meal.foods ?? []).map((food) => ({
+                itemId: nullToUndefined(food.itemId),
                 foodExternalId: food.foodExternalId ?? '',
                 foodName: food.foodName ?? '',
                 foodNameCs: nullToUndefined(food.foodNameCs),
@@ -36,6 +37,7 @@ export function toEditorWeeks(source: readonly PlanWeek[] | undefined): EditorWe
                 note: nullToUndefined(food.note),
               })),
               recipes: (meal.recipes ?? []).map((recipe) => ({
+                itemId: nullToUndefined(recipe.itemId),
                 recipeId: recipe.recipeId ?? '',
                 recipeName: recipe.recipeName ?? '',
                 nutrientValuePerServing: recipe.nutrientValuePerServing ?? {},

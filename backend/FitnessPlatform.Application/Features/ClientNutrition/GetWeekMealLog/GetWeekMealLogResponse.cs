@@ -1,3 +1,5 @@
+using FitnessPlatform.Application.Domain.Enums;
+
 namespace FitnessPlatform.Application.Features.ClientNutrition.GetWeekMealLog;
 
 /// <summary>
@@ -47,10 +49,16 @@ public class GetWeekMealLogMealDto
     /// <summary>Id of the plan meal.</summary>
     public Guid MealId { get; set; }
 
-    /// <summary>True when any row for the meal and day is marked eaten.</summary>
+    /// <summary>True when every item of the meal is eaten; false for a partly eaten meal.</summary>
     public bool Eaten { get; set; }
 
-    /// <summary>Earliest eaten instant (UTC) across the rows, when eaten.</summary>
+    /// <summary>How much of the meal is eaten: none, some items, or every item.</summary>
+    public MealEatenState EatenState { get; set; }
+
+    /// <summary>Ids of the meal's foods and recipes that are eaten, unioned across the rows.</summary>
+    public List<Guid> EatenItemIds { get; set; } = [];
+
+    /// <summary>Earliest eaten instant (UTC) across the rows, when every item is eaten.</summary>
     public DateTime? EatenAt { get; set; }
 
     /// <summary>Diary note on the meal, when present.</summary>

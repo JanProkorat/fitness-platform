@@ -986,6 +986,8 @@
       "subject": {
         "mealEaten": "A meal entry from {{date}}",
         "mealUnlogged": "A meal entry from {{date}}",
+        "mealItemEaten": "A meal item entry from {{date}}",
+        "mealItemUnlogged": "A meal item entry from {{date}}",
         "offPlanAdded": "A food entry from {{date}}",
         "offPlanRemoved": "A food entry from {{date}}",
         "shoppingTicked": "A shopping list entry from {{date}}",
@@ -1428,6 +1430,10 @@
     }
   },
   "nutritionMeal": {
+    "markEaten": {
+      "mark": "Mark as eaten",
+      "undo": "Eaten, tap to undo"
+    },
     "title": "Meal",
     "back": "Back",
     "retry": "Try again",
@@ -1531,7 +1537,19 @@
       "kcal": "{{value}} kcal",
       "more_one": "and 1 more item",
       "more_other": "and {{count}} more items",
-      "toggle": "Show or hide {{meal}}"
+      "toggle": "Show or hide {{meal}}",
+      "partial_one": "{{done}} of {{count}} eaten",
+      "partial_other": "{{done}} of {{count}} eaten",
+      "partialA11y_one": "{{meal}}: partly eaten, {{done}} of {{count}} item",
+      "partialA11y_other": "{{meal}}: partly eaten, {{done}} of {{count}} items"
+    },
+    "note": {
+      "day": "Note",
+      "today": "Note",
+      "meal": "Note",
+      "mealIcon": "This meal has a note",
+      "expand": "Show the whole note",
+      "collapse": "Show less"
     },
     "amount": {
       "portions_one": "{{value}} portion",
@@ -1541,7 +1559,12 @@
     "status": {
       "eaten": "{{meal}}: eaten",
       "pending": "{{meal}}: not eaten",
-      "missed": "{{meal}}: not logged"
+      "missed": "{{meal}}: not logged",
+      "partial": "{{meal}}: partly eaten"
+    },
+    "item": {
+      "markEaten": "Mark {{item}} as eaten",
+      "unmarkEaten": "{{item}} eaten. Mark as not eaten"
     },
     "photo": {
       "add": "Add a photo to {{meal}}",

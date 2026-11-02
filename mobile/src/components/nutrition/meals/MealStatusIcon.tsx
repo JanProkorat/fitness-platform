@@ -4,32 +4,47 @@ import { SymbolView } from 'expo-symbols';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
 
-/** eaten: confirmed; pending: not eaten yet (today or later); missed: not logged on a past day. */
-export type MealStatus = 'eaten' | 'pending' | 'missed';
+/** eaten: confirmed; partial: some items eaten; pending: not eaten yet (today or later); missed: not logged on a past day. */
+export type MealStatus = 'eaten' | 'partial' | 'pending' | 'missed';
 
 type MealStatusIconProps = {
   status: MealStatus;
   label: string;
   /** When set the icon is a button (the Nutrition tab logs and unlogs through it); otherwise it is read-only. */
   onPress?: () => void;
+  /** Renders an empty slot of the same width: nothing to show or tap, hidden from screen readers. */
+  hidden?: boolean;
+  /** `item` is the smaller tick of one food or recipe inside a meal; it only ever shows eaten or pending. */
+  size?: 'meal' | 'item';
 };
 
-/** Status of a meal at the right of its row: filled green check, empty ring or red X. */
-export function MealStatusIcon({ status, label, onPress }: MealStatusIconProps) {
+/** Status of a meal or one of its items at the right of its row: green check, dash, empty ring or red X. */
+export function MealStatusIcon({ status, label, onPress, hidden = false, size = 'meal' }: MealStatusIconProps) {
   const theme = useTheme();
   const styles = makeStyles(theme);
+  const small = size === 'item';
 
+  if (hidden) {
+    return <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.slot} />;
+  }
+
+  const glyphSize = small ? theme.sizes.mealItemStatusGlyph : theme.sizes.mealStatusGlyph;
+  const circle = small ? styles.circleItem : styles.circle;
   const glyph =
     status === 'eaten' ? (
-      <View style={[styles.circle, styles.eaten]}>
-        <SymbolView name="checkmark" weight="bold" tintColor={theme.colors.onNutrition} size={theme.sizes.mealStatusGlyph} />
+      <View style={[circle, styles.eaten]}>
+        <SymbolView name="checkmark" weight="bold" tintColor={theme.colors.onNutrition} size={glyphSize} />
+      </View>
+    ) : status === 'partial' ? (
+      <View style={[circle, styles.partial]}>
+        <SymbolView name="minus" weight="heavy" tintColor={theme.colors.nutritionInk} size={glyphSize} />
       </View>
     ) : status === 'missed' ? (
-      <View style={[styles.circle, styles.missed]}>
+      <View style={[circle, styles.missed]}>
         <SymbolView name="xmark" weight="heavy" tintColor={theme.colors.error} size={theme.sizes.mealMissedGlyph} />
       </View>
     ) : (
-      <View style={[styles.circle, styles.pending]} />
+      <View style={[circle, styles.pending]} />
     );
 
   if (onPress) {
@@ -37,6 +52,7 @@ export function MealStatusIcon({ status, label, onPress }: MealStatusIconProps) 
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={label}
+        accessibilityState={{ checked: status === 'eaten' ? true : status === 'partial' ? 'mixed' : false }}
         onPress={onPress}
         style={styles.slot}
         hitSlop={theme.spacing.xxs}
@@ -64,12 +80,27 @@ const makeStyles = (theme: Theme) =>
     circle: {
       width: theme.sizes.mealStatus,
       height: theme.sizes.mealStatus,
+      // Both sizes sit right-aligned in the slot; pull the larger one out by half the difference so its centre
+      // lines up with the item ticks below it.
+      marginRight: -(theme.sizes.mealStatus - theme.sizes.mealItemStatus) / 2,
+      borderRadius: theme.radii.pill,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    circleItem: {
+      width: theme.sizes.mealItemStatus,
+      height: theme.sizes.mealItemStatus,
       borderRadius: theme.radii.pill,
       alignItems: 'center',
       justifyContent: 'center',
     },
     eaten: {
       backgroundColor: theme.colors.nutrition,
+    },
+    partial: {
+      borderWidth: theme.sizes.borderStrong,
+      borderColor: theme.colors.nutrition,
+      backgroundColor: theme.colors.nutritionSoft,
     },
     missed: {
       backgroundColor: theme.colors.errorSoft,

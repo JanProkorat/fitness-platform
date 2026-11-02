@@ -2231,7 +2231,29 @@ public static class QaSeedRunner
                             Kind   = MealKind.Lunch,
                             Order  = 2,
                             Time   = "12:00",
-                            Foods  = [],
+                            // One food and one recipe with stable item ids, so item ticks can be driven by QA.
+                            Foods  =
+                            [
+                                new MealFood
+                                {
+                                    ItemId = PlannedItemId(weekNumber, dayOfWeek, 2, 1, mealIdPrefix),
+                                    FoodExternalId = QaFood1ExternalId,
+                                    FoodName = "Chicken Breast",
+                                    AmountGrams = 150m,
+                                    NutrientValuePer100Grams = new NutrientValue { Kcal = 165m, Protein = 31m, Fat = 3.6m, Carbs = 0m },
+                                },
+                            ],
+                            Recipes =
+                            [
+                                new MealRecipe
+                                {
+                                    ItemId = PlannedItemId(weekNumber, dayOfWeek, 2, 2, mealIdPrefix),
+                                    RecipeId = QaRecipe1ExternalId,
+                                    RecipeName = "Chicken, Rice & Broccoli Bowl",
+                                    NutrientValuePerServing = new NutrientValue { Kcal = 650m, Protein = 65m, Fat = 8m, Carbs = 80m },
+                                    Servings = 1m,
+                                },
+                            ],
                         },
                         new PlanMeal
                         {
@@ -3057,6 +3079,14 @@ public static class QaSeedRunner
     /// </summary>
     private static Guid PlannedMealId(int weekNumber, int dayOfWeek, int mealIndex, string prefix = DefaultMealIdPrefix) =>
         new($"{prefix}-{weekNumber:D2}{dayOfWeek:D2}0000000{mealIndex}");
+
+    /// <summary>
+    /// Stable id of an item (food or recipe) of a planned QA meal; <paramref name="itemIndex"/> is
+    /// 1 for the seeded food and 2 for the seeded recipe. Shares the meal id prefix, so it never
+    /// collides with a meal id.
+    /// </summary>
+    private static Guid PlannedItemId(int weekNumber, int dayOfWeek, int mealIndex, int itemIndex, string prefix = DefaultMealIdPrefix) =>
+        new($"{prefix}-{weekNumber:D2}{dayOfWeek:D2}{mealIndex:D2}{itemIndex:D2}0000");
 
     /// <summary>Meal id prefix of the qa.nutri plan for qa.client.</summary>
     private const string DefaultMealIdPrefix = "00000000-0000-0000-1111";

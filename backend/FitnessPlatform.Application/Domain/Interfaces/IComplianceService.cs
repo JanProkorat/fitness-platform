@@ -94,9 +94,20 @@ public class ComplianceResult
     public int MealsPlanned { get; set; }
 
     /// <summary>
-    /// Total number of meals logged in the date range.
+    /// Number of fully eaten meals in the date range. A partly eaten meal is not counted here.
     /// </summary>
     public int MealsLogged { get; set; }
+
+    /// <summary>
+    /// Number of partly eaten meals (some, not all, current items eaten) in the date range.
+    /// </summary>
+    public int MealsPartlyEaten { get; set; }
+
+    /// <summary>
+    /// Sum of the eaten share of every logged meal in the date range (a partly eaten meal adds
+    /// eaten items over current items). The nutrition percent is this over <see cref="MealsPlanned"/>.
+    /// </summary>
+    public decimal MealsEatenShare { get; set; }
 
     /// <summary>
     /// Nutrition-only compliance percentage (0-100).

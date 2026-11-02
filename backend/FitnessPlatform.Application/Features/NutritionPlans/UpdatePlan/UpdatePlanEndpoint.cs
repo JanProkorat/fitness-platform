@@ -265,34 +265,10 @@ public class UpdatePlanEndpoint(
                 {
                     DayOfWeek = rd.DayOfWeek,
                     Note = rd.Note,
-                    Meals = rd.Meals.Select(rm => new PlanMeal
+                    Meals = rd.Meals.Select(rm =>
                     {
-                        MealId = ResolveMealId(rm.MealId),
-                        Kind = rm.Kind,
-                        Order = rm.Order,
-                        Time = rm.Time,
-                        Note = rm.Note,
-                        Foods = rm.Foods.Select(rf => new MealFood
-                        {
-                            FoodExternalId = rf.FoodExternalId,
-                            FoodName = rf.FoodName,
-                            FoodNameCs = rf.FoodNameCs,
-                            FoodNameEn = rf.FoodNameEn,
-                            FoodNameDe = rf.FoodNameDe,
-                            FoodCategory = rf.FoodCategory,
-                            NutrientValuePer100Grams = rf.NutrientValuePer100Grams,
-                            AmountGrams = rf.AmountGrams,
-                            Note = rf.Note
-                        }).ToList(),
-                        Recipes = rm.Recipes.Select(rr => new MealRecipe
-                        {
-                            RecipeId = rr.RecipeId,
-                            RecipeName = rr.RecipeName,
-                            NutrientValuePerServing = rr.NutrientValuePerServing,
-                            Servings = rr.Servings,
-                            Note = rr.Note,
-                            FoodCategories = rr.FoodCategories
-                        }).ToList()
+                        var mealId = ResolveMealId(rm.MealId);
+                        return BuildMeal(rm, mealId, storedMeals.TryGetValue(mealId, out var stored) ? stored.Meal : null);
                     }).ToList()
                 }).ToList()
             };
@@ -322,6 +298,50 @@ public class UpdatePlanEndpoint(
         plan.Version += 1;
 
         return true;
+    }
+
+    /// <summary>
+    /// Maps one requested meal; item ids are carried over from the stored meal with the same id
+    /// (see <see cref="MealItemIdResolver"/>) so a client's eaten ticks survive the edit.
+    /// </summary>
+    private static PlanMeal BuildMeal(UpdateMealRequest request, Guid mealId, PlanMeal? stored)
+    {
+        var foodIds = MealItemIdResolver.ResolveFoodIds(
+            stored, request.Foods.Select(food => (food.ItemId, food.FoodExternalId)).ToList());
+        var recipeIds = MealItemIdResolver.ResolveRecipeIds(
+            stored, request.Recipes.Select(recipe => (recipe.ItemId, recipe.RecipeId)).ToList());
+
+        return new PlanMeal
+        {
+            MealId = mealId,
+            Kind = request.Kind,
+            Order = request.Order,
+            Time = request.Time,
+            Note = request.Note,
+            Foods = request.Foods.Select((food, index) => new MealFood
+            {
+                ItemId = foodIds[index],
+                FoodExternalId = food.FoodExternalId,
+                FoodName = food.FoodName,
+                FoodNameCs = food.FoodNameCs,
+                FoodNameEn = food.FoodNameEn,
+                FoodNameDe = food.FoodNameDe,
+                FoodCategory = food.FoodCategory,
+                NutrientValuePer100Grams = food.NutrientValuePer100Grams,
+                AmountGrams = food.AmountGrams,
+                Note = food.Note
+            }).ToList(),
+            Recipes = request.Recipes.Select((recipe, index) => new MealRecipe
+            {
+                ItemId = recipeIds[index],
+                RecipeId = recipe.RecipeId,
+                RecipeName = recipe.RecipeName,
+                NutrientValuePerServing = recipe.NutrientValuePerServing,
+                Servings = recipe.Servings,
+                Note = recipe.Note,
+                FoodCategories = recipe.FoodCategories
+            }).ToList()
+        };
     }
 
     /// <summary>

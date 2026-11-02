@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { GestureDetector } from 'react-native-gesture-handler';
+import Reanimated from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
 
 import { getErrorStatus } from '@/api/errors';
 import type { GetWeekPlanResponse, MealFood } from '@/api/generated';
-import { findMealLog, isMealEaten, mealPhotos } from '@/api/nutrition';
+import { findMealLog, isMealEaten, isMealPartlyEaten, mealPhotos, planItemId } from '@/api/nutrition';
 import type { NutritionMeal } from '@/api/nutrition';
 import { Card } from '@/components/Card';
 import { EMPTY_MACROS, macrosOf } from '@/components/nutrition/meal/format';
@@ -12,13 +14,23 @@ import { MealPhotoViewer } from '@/components/nutrition/meals/MealPhotoViewer';
 import type { ViewerPhoto } from '@/components/nutrition/meals/MealPhotoViewer';
 import { DayStrip } from '@/components/nutrition/plan/DayStrip';
 import { DaySummary } from '@/components/nutrition/plan/DaySummary';
-import { dayMeals, eatenMacros, findLoggedMeal, isoDay, localToday, mealStatus } from '@/components/nutrition/plan/model';
+import {
+  dayMeals,
+  dayPlannedTargets,
+  eatenMacros,
+  findLoggedMeal,
+  isoDay,
+  localToday,
+  mealStatus,
+} from '@/components/nutrition/plan/model';
 import { currentWeekDays, dayPhase, mondayOf } from '@/components/nutrition/tab/model';
 import { OffPlanGroup } from '@/components/nutrition/tab/OffPlanGroup';
 import { OffPlanSheet } from '@/components/nutrition/tab/OffPlanSheet';
 import { TabMealRow } from '@/components/nutrition/tab/TabMealRow';
 import { SyncNoticeCard } from '@/components/offline/SyncNoticeCard';
 import { Text } from '@/components/Text';
+import { useHorizontalSwipe } from '@/hooks/useHorizontalSwipe';
+import type { SwipeDirection } from '@/hooks/useHorizontalSwipe';
 import { useNutritionDayLog } from '@/hooks/useNutritionDayLog';
 import { useTodayMealActions } from '@/hooks/useTodayMealActions';
 import { useTodayMealLog } from '@/hooks/useTodayMealLog';
@@ -48,9 +60,26 @@ export function NutritionPlanView({ week }: NutritionPlanViewProps) {
   const phase = dayPhase(selected, today);
   const isToday = phase === 'today';
 
+  // Swiping the day content moves one day within this week, like the plan week screen.
+  const dayIndex = days.findIndex(({ date }) => date === selected);
+  const swipeDay = (direction: SwipeDirection) => {
+    const target = days[dayIndex + (direction === 'next' ? 1 : -1)];
+    if (target) setPicked(target.date);
+  };
+  const daySwipe = useHorizontalSwipe({
+    onSwipe: swipeDay,
+    canGoPrevious: dayIndex > 0,
+    canGoNext: dayIndex >= 0 && dayIndex < days.length - 1,
+    contentKey: selected,
+  });
+
   const logAvailable = isToday ? todayLog.data !== undefined : weekLog.data !== undefined;
+  const logEntryOf = (mealId: string) =>
+    isToday ? findMealLog(todayLog.data, mealId) : findLoggedMeal(weekLog.data, selected, mealId);
   const isEaten = (mealId: string): boolean =>
     isToday ? isMealEaten(findMealLog(todayLog.data, mealId)) : findLoggedMeal(weekLog.data, selected, mealId)?.eaten === true;
+  // Only a row that can log today passes its ids on, so the food and recipe screens offer "Mark as eaten" there alone.
+  const canLogToday = isToday && logAvailable;
 
   const photosOf = (meal: NutritionMeal): ViewerPhoto[] =>
     (isToday
@@ -77,7 +106,10 @@ export function NutritionPlanView({ week }: NutritionPlanViewProps) {
         ? todayLog.data
           ? macrosOf(todayLog.data.totalConsumed)
           : EMPTY_MACROS
-        : eatenMacros(meals, isEaten);
+        : eatenMacros(meals, (meal) => ({
+            eaten: isEaten(meal.mealId),
+            itemIds: findLoggedMeal(weekLog.data, selected, meal.mealId)?.eatenItemIds ?? [],
+          }));
   const dayEaten = meals.filter((meal) => isEaten(meal.mealId)).length;
 
   const {
@@ -110,75 +142,95 @@ export function NutritionPlanView({ week }: NutritionPlanViewProps) {
         onSelect={setPicked}
       />
 
-      <DaySummary eaten={eaten} targets={week.globalSettings} />
+      <GestureDetector gesture={daySwipe.gesture}>
+        <Reanimated.View style={[styles.day, daySwipe.style]}>
+          <DaySummary
+            eaten={eaten}
+            targets={dayPlannedTargets(meals)}
+            note={selectedDay?.day?.note}
+            noteLabel={isToday ? t('nutritionPlan.note.today') : undefined}
+          />
 
-      <Card style={styles.meals}>
-        <View style={styles.mealsHead}>
-          <Text variant="barTitle" accessibilityRole="header">
-            {t('nutritionPlan.week.meals')}
-          </Text>
-          {logAvailable && meals.length > 0 ? (
-            <Text variant="caption" color="muted">
-              {t('nutritionPlan.week.logged', { done: dayEaten, total: meals.length })}
-            </Text>
-          ) : null}
-        </View>
+          <Card style={styles.meals}>
+            <View style={styles.mealsHead}>
+              <Text variant="barTitle" accessibilityRole="header">
+                {t('nutritionPlan.week.meals')}
+              </Text>
+              {logAvailable && meals.length > 0 ? (
+                <Text variant="caption" color="muted">
+                  {t('nutritionPlan.week.logged', { done: dayEaten, total: meals.length })}
+                </Text>
+              ) : null}
+            </View>
 
-        {logFailed ? (
-          <View style={styles.logError}>
-            <Text variant="bodySmall" color="muted" style={styles.logErrorText}>
-              {t('nutritionPlan.week.logError')}
-            </Text>
-            <Text
-              variant="link"
-              color="nutritionInk"
-              accessibilityRole="button"
-              onPress={() => void (isToday ? todayLog.refetch() : weekLog.refetch())}
-            >
-              {t('nutritionPlan.retry')}
-            </Text>
-          </View>
-        ) : null}
+            {logFailed ? (
+              <View style={styles.logError}>
+                <Text variant="bodySmall" color="muted" style={styles.logErrorText}>
+                  {t('nutritionPlan.week.logError')}
+                </Text>
+                <Text
+                  variant="link"
+                  color="nutritionInk"
+                  accessibilityRole="button"
+                  onPress={() => void (isToday ? todayLog.refetch() : weekLog.refetch())}
+                >
+                  {t('nutritionPlan.retry')}
+                </Text>
+              </View>
+            ) : null}
 
-        {meals.length === 0 ? (
-          <Text variant="bodySmall" color="muted" style={styles.empty}>
-            {t('nutritionPlan.week.noMeals')}
-          </Text>
-        ) : (
-          meals.map((meal, index) => (
-            <TabMealRow
-              // A new day remounts the rows so each starts collapsed.
-              key={`${selected}-${meal.mealId}`}
-              meal={meal}
-              first={index === 0}
-              status={mealStatus({
-                eaten: isEaten(meal.mealId),
-                logAvailable,
-                date: selected,
-                today,
-                planFinished: false,
-              })}
-              photos={photosOf(meal).map((photo) => ({ key: photo.key, uri: photo.uri }))}
-              canLog={isToday && logAvailable}
-              onOpenRecipe={openRecipe}
-              onOpenFood={(food: MealFood, parent: NutritionMeal) =>
-                openFood(food.foodExternalId, food.amountGrams, parent.kind)
-              }
-              onAddPhoto={isToday && logAvailable ? () => askSource(meal) : undefined}
-              addPhotoBusy={addPhotoBusy(meal.mealId)}
-              onOpenPhoto={(photoIndex) => setViewer({ mealId: meal.mealId, index: photoIndex })}
+            {meals.length === 0 ? (
+              <Text variant="bodySmall" color="muted" style={styles.empty}>
+                {t('nutritionPlan.week.noMeals')}
+              </Text>
+            ) : (
+              meals.map((meal, index) => (
+                <TabMealRow
+                  // A new day remounts the rows so each starts collapsed.
+                  key={`${selected}-${meal.mealId}`}
+                  meal={meal}
+                  first={index === 0}
+                  status={mealStatus({
+                    eaten: isEaten(meal.mealId),
+                    partial: isMealPartlyEaten(logEntryOf(meal.mealId), isEaten(meal.mealId)),
+                    logAvailable,
+                    date: selected,
+                    today,
+                    planFinished: false,
+                  })}
+                  photos={photosOf(meal).map((photo) => ({ key: photo.key, uri: photo.uri }))}
+                  canLog={canLogToday}
+                  eatenItemIds={logEntryOf(meal.mealId)?.eatenItemIds}
+                  onOpenRecipe={(recipeId, servings, parent, itemId) =>
+                    openRecipe(recipeId, servings, canLogToday && parent && itemId ? { mealId: parent.mealId, itemId } : undefined)
+                  }
+                  onOpenFood={(food: MealFood, parent: NutritionMeal) => {
+                    const itemId = planItemId(food.itemId);
+                    openFood(
+                      food.foodExternalId,
+                      food.amountGrams,
+                      parent.kind,
+                      canLogToday && itemId ? { mealId: parent.mealId, itemId } : undefined,
+                    );
+                  }}
+                  onAddPhoto={isToday && logAvailable ? () => askSource(meal) : undefined}
+                  addPhotoBusy={addPhotoBusy(meal.mealId)}
+                  hideEatenState={phase === 'future'}
+                  onOpenPhoto={(photoIndex) => setViewer({ mealId: meal.mealId, index: photoIndex })}
+                />
+              ))
+            )}
+
+            <OffPlanGroup
+              entries={offPlan}
+              removingId={removeOffPlan.isPending ? removeOffPlan.variables : undefined}
+              onOpenFood={(foodId) => openFood(foodId)}
+              onRemove={removeEntry}
+              onAdd={isToday && logAvailable ? () => setSheetOpen(true) : undefined}
             />
-          ))
-        )}
-
-        <OffPlanGroup
-          entries={offPlan}
-          removingId={removeOffPlan.isPending ? removeOffPlan.variables : undefined}
-          onOpenFood={(foodId) => openFood(foodId)}
-          onRemove={removeEntry}
-          onAdd={isToday && logAvailable ? () => setSheetOpen(true) : undefined}
-        />
-      </Card>
+          </Card>
+        </Reanimated.View>
+      </GestureDetector>
 
       <OffPlanSheet visible={sheetOpen} onClose={() => setSheetOpen(false)} />
 
@@ -198,6 +250,10 @@ export const isMissingPlan = (error: unknown): boolean => getErrorStatus(error) 
 
 const makeStyles = (theme: Theme) =>
   StyleSheet.create({
+    // The day's summary and meals, moved together by a day swipe; same spacing as the screen's cards.
+    day: {
+      gap: theme.spacing.xl,
+    },
     meals: {
       paddingHorizontal: theme.spacing.cardInset,
       paddingTop: theme.spacing.md,

@@ -39,7 +39,7 @@ interface PlanDetailBody {
   weeks?: {
     weekNumber: number;
     status?: string;
-    days: { dayOfWeek: number; meals: { foods?: { amountGrams: number }[] }[] }[];
+    days: { dayOfWeek: number; meals: { foods?: { itemId?: string; amountGrams: number }[] }[] }[];
   }[];
 }
 
@@ -278,6 +278,40 @@ test.describe('client plan editor', () => {
       await expectEditorLoaded(page, name);
       await page.locator('[data-testid="meal-cell"][data-day="1"][data-row="0"]').click();
       await expect(page.getByTestId('meal-detail').getByTestId('meal-item').getByLabel(/^Amount of /)).toHaveValue(String(EDITED_GRAMS));
+    } finally {
+      await archivePlan(origin, planId);
+    }
+  });
+
+  test('saving sends the stored item ids, before and after a reload', async ({ page, baseURL }) => {
+    const origin = baseURL ?? 'http://localhost:5173';
+    const { planId, name } = await createPlan(origin, 'Item ids', undefined, 2);
+    try {
+      const firstMeal = (plan: PlanDetailBody) => plan.weeks?.[0]?.days.find((day) => day.dayOfWeek === 1)?.meals;
+      const storedIds = (plan: PlanDetailBody) => (firstMeal(plan) ?? []).flatMap((meal) => (meal.foods ?? []).map((food) => food.itemId));
+      const before = storedIds(await readPlan(origin, planId));
+      expect(before).toHaveLength(3);
+      expect(before.every((id) => typeof id === 'string' && id.length > 0)).toBe(true);
+
+      await page.goto(editorUrl(planId));
+      await expectEditorLoaded(page, name);
+
+      for (const grams of [EDITED_GRAMS, EDITED_GRAMS + 10]) {
+        await page.locator('[data-testid="meal-cell"][data-day="1"][data-row="0"]').click();
+        await page.getByTestId('meal-detail').getByTestId('meal-item').getByLabel(/^Amount of /).fill(String(grams));
+        const put = page.waitForRequest(
+          (request) => request.url().includes(`/nutrition/plans/${planId}`) && request.method() === 'PUT',
+        );
+        await page.getByRole('button', { name: 'Save', exact: true }).click();
+        const body = (await put).postDataJSON() as PlanDetailBody;
+        // The edited Breakfast food and the untouched Lunch foods all keep the ids they were stored with.
+        expect(storedIds(body)).toEqual(before);
+        await expect(page.getByTestId('save-status')).toHaveText('Saved');
+        await page.reload();
+        await expectEditorLoaded(page, name);
+      }
+
+      expect(storedIds(await readPlan(origin, planId))).toEqual(before);
     } finally {
       await archivePlan(origin, planId);
     }

@@ -55,7 +55,9 @@ public class GetClientTimelineEndpoint(
             Builders<NutritionPlan>.Projection.Include("weeks.weekNumber"),
             Builders<NutritionPlan>.Projection.Include("weeks.status"),
             Builders<NutritionPlan>.Projection.Include("weeks.days.dayOfWeek"),
-            Builders<NutritionPlan>.Projection.Include("weeks.days.meals.mealId"));
+            Builders<NutritionPlan>.Projection.Include("weeks.days.meals.mealId"),
+            Builders<NutritionPlan>.Projection.Include("weeks.days.meals.foods.itemId"),
+            Builders<NutritionPlan>.Projection.Include("weeks.days.meals.recipes.itemId"));
 
     /// <summary>
     /// Projection for resolving session names: plan id plus each session's id and name.
@@ -86,6 +88,10 @@ public class GetClientTimelineEndpoint(
         {
             s.Summary = "Get client activity timeline";
             s.Description = "Returns a merged timeline of recent client activity (meals, workouts, measurements, plan events) for a specific client managed by the authenticated trainer.";
+            s.Responses[StatusCodes.Status200OK] = "Timeline items, newest first";
+            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
+            s.Responses[StatusCodes.Status403Forbidden] = "The link grants no nutrition or training access to the caller";
+            s.Responses[StatusCodes.Status404NotFound] = "Client not found, or not linked to the caller";
         });
     }
 
@@ -164,22 +170,27 @@ public class GetClientTimelineEndpoint(
         // Nutrition-domain: gated on CanViewNutritionPlans.
         if (effective.CanViewNutritionPlans)
         {
-            var mealFilter = Builders<MealLog>.Filter.Eq(l => l.ClientId, clientUserId)
-                & Builders<MealLog>.Filter.Gte(l => l.EatenAt, from);
+            // Rows are selected by LogDate (EatenAt for legacy rows): a partly eaten row has no EatenAt.
+            var lastDay = DateTime.UtcNow.Date.AddDays(1);
+            var mealFilter = MealLogDayFilter.BuildClientRange(
+                clientUserId, null, from, lastDay, from, lastDay.AddDays(1));
 
             using var cursor = await mongo.MealLogs.FindAsync(mealFilter, cancellationToken: ct);
-            var logs = await cursor.ToListAsync(ct);
-            // Group by EatenAt date when available; fall back to LogDate for photo-only
-            // entries that slipped through the Gte filter (defensive).
-            var perDay = logs
-                .GroupBy(l => (l.EatenAt ?? l.LogDate).Date)
-                .OrderByDescending(g => g.Key)
-                .ToList();
+            var logs = (await cursor.ToListAsync(ct)).Where(l => MealLogMerger.DayOf(l) >= from).ToList();
 
             // Planned-meal counts come only from plans the caller authored; any other plan
             // referenced by a log yields a null count.
             var authoredPlans = await LoadAuthoredNutritionPlansAsync(
                 logs.Select(l => l.PlanId).Distinct().ToList(), clientUserId, trainerUserId, ct);
+
+            var perDay = MealLogMerger
+                .Merge(logs, (planId, day, mealId) => authoredPlans.TryGetValue(planId, out var plan)
+                    ? NutritionPlanDayResolver.FindMeal(plan, day, mealId)
+                    : null)
+                .Where(meal => meal.State != MealEatenState.NotEaten)
+                .GroupBy(meal => meal.DayUtc)
+                .OrderByDescending(g => g.Key)
+                .ToList();
 
             foreach (var day in perDay)
             {
@@ -188,17 +199,20 @@ public class GetClientTimelineEndpoint(
                     .ToList();
                 var mealsPlanned = authoredPlanIds
                     .Sum(planId => PlannedMealCounter.GetPlannedMealCountForDate(authoredPlans[planId], day.Key));
+                var mealsEaten = day.Where(meal => meal.State == MealEatenState.Eaten).Select(meal => meal.MealId).Distinct().Count();
+                var mealsPartlyEaten = day.Where(meal => meal.State == MealEatenState.PartlyEaten).Select(meal => meal.MealId).Distinct().Count();
 
                 items.Add(new ClientTimelineItem
                 {
                     Id = $"meals:{day.Key:yyyy-MM-dd}",
                     Type = "meal_day",
-                    OccurredAt = day.Max(l => l.EatenAt ?? l.LogDate),
-                    Title = $"Zaznamenáno {day.Count()} jídel",
+                    OccurredAt = day.SelectMany(meal => meal.Rows).Max(l => l.EatenAt ?? l.LogDate),
+                    Title = $"Zaznamenáno {day.Sum(meal => meal.Rows.Count)} jídel",
                     Icon = "🍽",
                     MealDay = new TimelineMealDayPayload
                     {
-                        MealsLogged = day.Select(l => l.MealId).Distinct().Count(),
+                        MealsLogged = mealsEaten,
+                        MealsPartlyEaten = mealsPartlyEaten,
                         MealsPlanned = mealsPlanned > 0 ? mealsPlanned : null,
                     },
                 });

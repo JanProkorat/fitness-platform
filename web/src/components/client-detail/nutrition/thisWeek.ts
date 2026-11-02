@@ -23,7 +23,12 @@ export interface DayTile {
   date: Date;
   state: DayTileState;
   planned: number;
+  /** Meals with every item eaten. */
   eaten: number;
+  /** Meals with some, not all, items eaten. */
+  partly: number;
+  /** Eaten share of the day's meals by item, in [0, 1]. */
+  share: number;
   /** A finished day with planned meals and an eaten share below `LOW_DAY_RATIO`. */
   low: boolean;
 }
@@ -32,6 +37,7 @@ export interface MealGroupRow {
   group: MealGroup;
   planned: number;
   eaten: number;
+  partly: number;
   skipped: number;
   /** The row skipped at least `FLAGGED_SKIPPED_COUNT` meals. */
   flagged: boolean;
@@ -55,8 +61,11 @@ export interface ThisWeekModel {
   tiles: DayTile[];
   /** Planned meals on finished days (today excluded). */
   planned: number;
-  /** Meals ticked as eaten on finished days. */
+  /** Meals fully eaten on finished days. */
   eaten: number;
+  /** Meals partly eaten on finished days. */
+  partly: number;
+  /** Eaten share of the planned meals by item, so a partly eaten meal counts for its eaten items. */
   percent: number;
   /** First and last finished day of the week, when there is one. */
   loggedFrom?: Date;
@@ -106,6 +115,46 @@ export function mealMacros(meal: PlanMeal): Macros {
   return sumMacros([...fromFoods, ...fromRecipes]);
 }
 
+function mealItemCount(meal: PlanMeal): number {
+  return meal.foods.length + (meal.recipes ?? []).length;
+}
+
+/** Share of a meal's items in `eatenIds`; mirrors the backend's MealItemEatenState.EatenShare. */
+function eatenItemShare(meal: PlanMeal, eatenIds: ReadonlySet<string>): number {
+  const total = mealItemCount(meal);
+  if (total === 0) {
+    return 0;
+  }
+  const eaten =
+    meal.foods.filter((food) => food.itemId && eatenIds.has(food.itemId)).length +
+    (meal.recipes ?? []).filter((recipe) => recipe.itemId && eatenIds.has(recipe.itemId)).length;
+  return eaten / total;
+}
+
+/** Macros of just the items in `eatenIds`; mirrors the backend's MealItemEatenState.EatenTotals. */
+function eatenItemMacros(meal: PlanMeal, eatenIds: ReadonlySet<string>): Macros {
+  const foods = meal.foods
+    .filter((food) => food.itemId && eatenIds.has(food.itemId))
+    .map((food) => {
+      const { kcal, protein, carbs, fat } = food.nutrientValuePer100Grams;
+      return macrosForAmount({ kcal, protein, carbs, fat }, food.amountGrams);
+    });
+  const recipes = (meal.recipes ?? [])
+    .filter((recipe) => recipe.itemId && eatenIds.has(recipe.itemId))
+    .map((recipe) => ({
+      kcal: recipe.nutrientValuePerServing.kcal * recipe.servings,
+      protein: recipe.nutrientValuePerServing.protein * recipe.servings,
+      carbs: recipe.nutrientValuePerServing.carbs * recipe.servings,
+      fat: recipe.nutrientValuePerServing.fat * recipe.servings,
+    }));
+  return sumMacros([...foods, ...recipes]);
+}
+
+interface MealLogState {
+  state: 'NotEaten' | 'PartlyEaten' | 'Eaten';
+  eatenIds: ReadonlySet<string>;
+}
+
 function positive(value: number | null | undefined): number | undefined {
   return value && value > 0 ? value : undefined;
 }
@@ -116,6 +165,7 @@ function emptyModel(status: ThisWeekStatus, plan: NutritionPlanDetail, partial: 
     tiles: [],
     planned: 0,
     eaten: 0,
+    partly: 0,
     percent: 0,
     rows: [],
     averages: EMPTY_AVERAGES,
@@ -154,20 +204,31 @@ export function buildThisWeek(plan: NutritionPlanDetail, today: Date): ThisWeekM
   }
 
   const weekStart = addDays(planStart, (weekNumber - 1) * DAYS_PER_WEEK);
-  const eatenKeys = new Set(
-    (plan.mealLogs ?? []).filter((log) => log.isEaten).map((log) => `${log.mealId}|${log.logDate.slice(0, 10)}`),
-  );
+  const logStates = new Map<string, MealLogState>();
+  for (const log of plan.mealLogs ?? []) {
+    const state = log.eatenState ?? (log.isEaten ? 'Eaten' : 'NotEaten');
+    logStates.set(`${log.mealId}|${log.logDate.slice(0, 10)}`, { state, eatenIds: new Set(log.eatenItemIds ?? []) });
+  }
+  /** Eaten share of one meal by item; a fully eaten meal counts 1, a meal without items only when ticked. */
+  const shareOf = (meal: PlanMeal, log: MealLogState | undefined): number => {
+    if (!log || log.state === 'NotEaten') {
+      return 0;
+    }
+    return log.state === 'Eaten' ? 1 : eatenItemShare(meal, log.eatenIds);
+  };
 
   const tiles: DayTile[] = [];
-  const groupTotals: Record<MealGroup, { planned: number; eaten: number }> = {
-    breakfast: { planned: 0, eaten: 0 },
-    snack: { planned: 0, eaten: 0 },
-    lunch: { planned: 0, eaten: 0 },
-    dinner: { planned: 0, eaten: 0 },
+  const groupTotals: Record<MealGroup, { planned: number; eaten: number; partly: number }> = {
+    breakfast: { planned: 0, eaten: 0, partly: 0 },
+    snack: { planned: 0, eaten: 0, partly: 0 },
+    lunch: { planned: 0, eaten: 0, partly: 0 },
+    dinner: { planned: 0, eaten: 0, partly: 0 },
   };
   const eatenMacros: Macros[] = [];
   let planned = 0;
   let eaten = 0;
+  let partly = 0;
+  let shareSum = 0;
   let countedDays = 0;
   let loggedFrom: Date | undefined;
   let loggedTo: Date | undefined;
@@ -178,22 +239,39 @@ export function buildThisWeek(plan: NutritionPlanDetail, today: Date): ThisWeekM
     const state: DayTileState =
       date.getTime() < today.getTime() ? 'past' : date.getTime() === today.getTime() ? 'today' : 'future';
     const iso = isoDate(date);
-    const eatenMeals = meals.filter((meal) => eatenKeys.has(`${meal.mealId}|${iso}`));
-    const low = state === 'past' && meals.length > 0 && eatenMeals.length / meals.length < LOW_DAY_RATIO;
-    tiles.push({ date, state, planned: meals.length, eaten: eatenMeals.length, low });
+    const logged = meals.map((meal) => ({ meal, log: logStates.get(`${meal.mealId}|${iso}`) }));
+    const eatenMeals = logged.filter(({ log }) => log?.state === 'Eaten');
+    const partlyMeals = logged.filter(({ log }) => log?.state === 'PartlyEaten');
+    const dayShare = logged.reduce((sum, { meal, log }) => sum + shareOf(meal, log), 0);
+    const low = state === 'past' && meals.length > 0 && dayShare / meals.length < LOW_DAY_RATIO;
+    tiles.push({
+      date,
+      state,
+      planned: meals.length,
+      eaten: eatenMeals.length,
+      partly: partlyMeals.length,
+      share: meals.length > 0 ? dayShare / meals.length : 0,
+      low,
+    });
 
     if (state === 'past' && meals.length > 0) {
       countedDays += 1;
       planned += meals.length;
       eaten += eatenMeals.length;
+      partly += partlyMeals.length;
+      shareSum += dayShare;
       loggedFrom ??= date;
       loggedTo = date;
       for (const meal of meals) {
         groupTotals[mealGroup(meal.kind)].planned += 1;
       }
-      for (const meal of eatenMeals) {
+      for (const { meal } of eatenMeals) {
         groupTotals[mealGroup(meal.kind)].eaten += 1;
         eatenMacros.push(mealMacros(meal));
+      }
+      for (const { meal, log } of partlyMeals) {
+        groupTotals[mealGroup(meal.kind)].partly += 1;
+        eatenMacros.push(eatenItemMacros(meal, log?.eatenIds ?? new Set()));
       }
     }
   }
@@ -205,16 +283,17 @@ export function buildThisWeek(plan: NutritionPlanDetail, today: Date): ThisWeekM
 
   const totals = sumMacros(eatenMacros);
   const rows = MEAL_GROUPS.filter((group) => groupTotals[group].planned > 0).map((group): MealGroupRow => {
-    const { planned: rowPlanned, eaten: rowEaten } = groupTotals[group];
-    const skipped = rowPlanned - rowEaten;
+    const { planned: rowPlanned, eaten: rowEaten, partly: rowPartly } = groupTotals[group];
+    const skipped = rowPlanned - rowEaten - rowPartly;
     const flagged = skipped >= FLAGGED_SKIPPED_COUNT;
     return {
       group,
       planned: rowPlanned,
       eaten: rowEaten,
+      partly: rowPartly,
       skipped,
       flagged,
-      note: flagged ? 'skipped' : skipped === 0 ? 'always' : undefined,
+      note: flagged ? 'skipped' : skipped === 0 && rowPartly === 0 ? 'always' : undefined,
     };
   });
 
@@ -225,7 +304,8 @@ export function buildThisWeek(plan: NutritionPlanDetail, today: Date): ThisWeekM
     tiles,
     planned,
     eaten,
-    percent: Math.round((eaten / planned) * 100),
+    partly,
+    percent: Math.round((shareSum / planned) * 100),
     loggedFrom,
     loggedTo,
     rows,

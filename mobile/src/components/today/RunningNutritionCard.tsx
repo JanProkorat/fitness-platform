@@ -4,17 +4,19 @@ import { SymbolView } from 'expo-symbols';
 import { useTranslation } from 'react-i18next';
 
 import type { ClientOwnPlanItem, MealFood } from '@/api/generated';
-import { findMealLog, isMealEaten, mealPhotos } from '@/api/nutrition';
+import { findMealLog, isMealEaten, isMealPartlyEaten, mealPhotos, planItemId } from '@/api/nutrition';
 import type { NutritionMeal } from '@/api/nutrition';
 import { Card } from '@/components/Card';
 import { EMPTY_MACROS, formatWhole, macrosOf } from '@/components/nutrition/meal/format';
+import { NoteBox } from '@/components/nutrition/meals/NoteBox';
 import { MealPhotoViewer } from '@/components/nutrition/meals/MealPhotoViewer';
 import type { ViewerPhoto } from '@/components/nutrition/meals/MealPhotoViewer';
-import { dayMeals, isoDay, mealStatus } from '@/components/nutrition/plan/model';
+import { dayMeals, dayPlannedTargets, isoDay, mealStatus } from '@/components/nutrition/plan/model';
 import { currentWeekDays, mondayOf } from '@/components/nutrition/tab/model';
 import { OffPlanGroup } from '@/components/nutrition/tab/OffPlanGroup';
 import { OffPlanSheet } from '@/components/nutrition/tab/OffPlanSheet';
 import { TabMealRow } from '@/components/nutrition/tab/TabMealRow';
+import { ProgressFill } from '@/components/ProgressFill';
 import { Text } from '@/components/Text';
 import { useNutritionDayLog } from '@/hooks/useNutritionDayLog';
 import { useNutritionWeekPlan } from '@/hooks/useNutritionWeekPlan';
@@ -68,7 +70,7 @@ export function RunningNutritionCard({ plan, today: deviceToday, footer }: Runni
     }));
 
   const eaten = todayLog.data ? macrosOf(todayLog.data.totalConsumed) : EMPTY_MACROS;
-  const target = week.globalSettings?.dailyKcal ?? plan.dailyKcal;
+  const target = dayPlannedTargets(meals).dailyKcal;
   const ratio = target && target > 0 ? Math.min(Math.max(eaten.kcal / target, 0), 1) : 0;
   const current = plan.currentWeek ?? week.weekNumber;
   const weekLabel =
@@ -88,42 +90,46 @@ export function RunningNutritionCard({ plan, today: deviceToday, footer }: Runni
 
   return (
     <Card style={styles.card}>
-      <View style={styles.head}>
-        <View style={styles.area}>
-          <SymbolView name={look.symbol} tintColor={look.ink} size={theme.sizes.roleBadgeGlyph} />
-          <Text variant="captionStrong" style={[styles.areaText, { color: look.ink }]}>
-            {t('today.areaBlocks.area.nutrition').toUpperCase()}
+      <View style={[styles.band, { backgroundColor: theme.colors.nutritionSoft }]}>
+        <View style={styles.head}>
+          <View style={styles.area}>
+            <SymbolView name={look.symbol} tintColor={look.ink} size={theme.sizes.roleBadgeGlyph} />
+            <Text variant="captionStrong" style={[styles.areaText, { color: look.ink }]}>
+              {t('today.areaBlocks.area.nutrition').toUpperCase()}
+            </Text>
+          </View>
+          {weekLabel ? (
+            <Text variant="caption" color="muted" numberOfLines={1} style={styles.week}>
+              {`· ${weekLabel}`}
+            </Text>
+          ) : null}
+          <Text
+            variant="label"
+            style={styles.kcal}
+            accessibilityLabel={
+              target
+                ? t('nutritionPlan.summary.ringOf', {
+                    value: formatWhole(language, eaten.kcal),
+                    target: formatWhole(language, target),
+                  })
+                : t('nutritionPlan.summary.ringValue', { value: formatWhole(language, eaten.kcal) })
+            }
+          >
+            <Text variant="labelStrong">{formatWhole(language, eaten.kcal)}</Text>
+            <Text variant="label" color="muted">
+              {target
+                ? t('today.runningNutrition.ofKcal', { target: formatWhole(language, target) })
+                : t('today.runningNutrition.kcal')}
+            </Text>
           </Text>
         </View>
-        {weekLabel ? (
-          <Text variant="caption" color="muted" numberOfLines={1} style={styles.week}>
-            {`· ${weekLabel}`}
-          </Text>
-        ) : null}
-        <Text
-          variant="label"
-          style={styles.kcal}
-          accessibilityLabel={
-            target
-              ? t('nutritionPlan.summary.ringOf', {
-                  value: formatWhole(language, eaten.kcal),
-                  target: formatWhole(language, target),
-                })
-              : t('nutritionPlan.summary.ringValue', { value: formatWhole(language, eaten.kcal) })
-          }
-        >
-          <Text variant="labelStrong">{formatWhole(language, eaten.kcal)}</Text>
-          <Text variant="label" color="muted">
-            {target
-              ? t('today.runningNutrition.ofKcal', { target: formatWhole(language, target) })
-              : t('today.runningNutrition.kcal')}
-          </Text>
-        </Text>
+
+        <View style={styles.track}>
+          <ProgressFill ratio={ratio} color={theme.colors.nutrition} style={styles.fill} />
+        </View>
       </View>
 
-      <View style={styles.track}>
-        <View style={[styles.fill, { backgroundColor: theme.colors.nutrition, width: `${Math.round(ratio * 100)}%` }]} />
-      </View>
+      <NoteBox label={t('nutritionPlan.note.today')} note={todayPlanDay?.day?.note} />
 
       {showsError(todayLog) ? (
         <View style={styles.logError}>
@@ -149,6 +155,7 @@ export function RunningNutritionCard({ plan, today: deviceToday, footer }: Runni
             defaultExpanded={meal.mealId === nextMealId}
             status={mealStatus({
               eaten: isEaten(meal.mealId),
+              partial: isMealPartlyEaten(findMealLog(todayLog.data, meal.mealId), isEaten(meal.mealId)),
               logAvailable,
               date: today,
               today,
@@ -156,10 +163,23 @@ export function RunningNutritionCard({ plan, today: deviceToday, footer }: Runni
             })}
             photos={photosOf(meal).map((photo) => ({ key: photo.key, uri: photo.uri }))}
             canLog={logAvailable}
-            onOpenRecipe={actions.openRecipe}
-            onOpenFood={(food: MealFood, parent: NutritionMeal) =>
-              actions.openFood(food.foodExternalId, food.amountGrams, parent.kind)
+            eatenItemIds={findMealLog(todayLog.data, meal.mealId)?.eatenItemIds}
+            onOpenRecipe={(recipeId, servings, parent, itemId) =>
+              actions.openRecipe(
+                recipeId,
+                servings,
+                logAvailable && parent && itemId ? { mealId: parent.mealId, itemId } : undefined,
+              )
             }
+            onOpenFood={(food: MealFood, parent: NutritionMeal) => {
+              const itemId = planItemId(food.itemId);
+              actions.openFood(
+                food.foodExternalId,
+                food.amountGrams,
+                parent.kind,
+                logAvailable && itemId ? { mealId: parent.mealId, itemId } : undefined,
+              );
+            }}
             onAddPhoto={logAvailable ? () => actions.askSource(meal) : undefined}
             addPhotoBusy={actions.addPhotoBusy(meal.mealId)}
             onOpenPhoto={(photoIndex) => actions.setViewer({ mealId: meal.mealId, index: photoIndex })}
@@ -199,6 +219,17 @@ const makeStyles = (theme: Theme) =>
       paddingHorizontal: theme.spacing.cardInset,
       paddingTop: theme.spacing.xl,
       paddingBottom: theme.spacing.xxs,
+    },
+    // Module-colour header: label, week, kcal and the bar, bleeding to the card's edges; the body stays white.
+    band: {
+      gap: theme.spacing.sm,
+      marginHorizontal: -theme.spacing.cardInset,
+      marginTop: -theme.spacing.xl,
+      paddingHorizontal: theme.spacing.cardInset,
+      paddingTop: theme.spacing.xl,
+      paddingBottom: theme.spacing.md,
+      borderTopLeftRadius: theme.radii.xxl - theme.sizes.border,
+      borderTopRightRadius: theme.radii.xxl - theme.sizes.border,
     },
     head: {
       flexDirection: 'row',

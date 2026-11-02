@@ -8,6 +8,7 @@ using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Domain.Services;
+using FitnessPlatform.Application.Features.ClientNutrition.Shared;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Application.Infrastructure.Services;
@@ -18,7 +19,7 @@ namespace FitnessPlatform.Application.Features.ClientNutrition.LogMealEaten;
 
 /// <summary>
 /// Endpoint for logging a meal from the client's active plan as eaten.
-/// Creates a <see cref="MealLog"/> document with a snapshot of the meal's foods. An offline-synced
+/// Creates a <see cref="MealLog"/> document with a snapshot of the meal's foods and every item marked eaten. An offline-synced
 /// request (one carrying <c>BasedOnPlanVersion</c>) that collides with a plan change is still applied
 /// and recorded as an <see cref="OfflineSyncConflict"/>, and the plan's author is notified.
 /// </summary>
@@ -307,6 +308,7 @@ public class LogMealEatenEndpoint(
                 // day the client's own Today card shows. EatenAt stays the true UTC instant.
                 LogDate = todayLocalUtc,
                 EatenAt = now,
+                EatenItemIds = MealItemEatenState.ItemIds(meal).ToList(),
                 FoodsEaten = meal.Foods,
                 Photos = (req.PhotoBlobUrls ?? [])
                     .Select(url => new MealPhoto { BlobUrl = url, UploadedAt = now })
@@ -331,6 +333,7 @@ public class LogMealEatenEndpoint(
 
         var update = Builders<MealLog>.Update
             .Set(l => l.EatenAt, now)
+            .Set(l => l.EatenItemIds, MealItemEatenState.ItemIds(meal).ToList())
             .Set(l => l.LogDate, todayLocalUtc)
             .Set(l => l.FoodsEaten, meal.Foods)
             .Set(l => l.Photos, photos);

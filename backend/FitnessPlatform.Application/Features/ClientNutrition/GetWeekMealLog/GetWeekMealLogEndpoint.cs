@@ -124,9 +124,14 @@ internal sealed class GetWeekMealLogEndpoint(
 
             if (date <= localToday)
             {
-                var planMealOrder = NutritionPlanDayResolver.Resolve(plan, dayUtc)?.Meals
+                var dayMeals = NutritionPlanDayResolver.Resolve(plan, dayUtc)?.Meals ?? [];
+                var planMealOrder = dayMeals
                     .Select((meal, index) => (meal.MealId, index))
-                    .ToDictionary(x => x.MealId, x => x.index) ?? [];
+                    .GroupBy(x => x.MealId)
+                    .ToDictionary(group => group.Key, group => group.First().index);
+                var planMeals = dayMeals
+                    .GroupBy(meal => meal.MealId)
+                    .ToDictionary(group => group.Key, group => group.First());
 
                 var dayLogs = logs
                     .Where(log => MealLogDayFilter.Matches(log, dayUtc, startUtc, endUtc))
@@ -135,7 +140,7 @@ internal sealed class GetWeekMealLogEndpoint(
 
                 foreach (var group in dayLogs)
                 {
-                    day.Meals.Add(await MergeMealAsync(group.Key, group.ToList(), ct));
+                    day.Meals.Add(await MergeMealAsync(group.Key, group.ToList(), planMeals.GetValueOrDefault(group.Key), ct));
                 }
             }
 
@@ -146,15 +151,20 @@ internal sealed class GetWeekMealLogEndpoint(
     }
 
     /// <summary>
-    /// Merges every row of one meal on one day: eaten if any row is eaten (earliest wins), photos
-    /// unioned by blob URL, note taken from the first row that has one.
+    /// Merges every row of one meal on one day: eaten items unioned across the rows (the meal is eaten
+    /// only when every item is, earliest eaten time wins), photos unioned by blob URL, note taken from
+    /// the first row that has one.
     /// </summary>
-    private async Task<GetWeekMealLogMealDto> MergeMealAsync(Guid mealId, List<MealLog> rows, CancellationToken ct)
+    private async Task<GetWeekMealLogMealDto> MergeMealAsync(
+        Guid mealId, List<MealLog> rows, PlanMeal? planMeal, CancellationToken ct)
     {
-        var eatenAt = rows
-            .Where(r => r.EatenAt.HasValue)
-            .Select(r => r.EatenAt)
-            .Min();
+        var eatenIds = rows
+            .SelectMany(r => MealItemEatenState.EffectiveEatenIds(r, planMeal))
+            .ToHashSet();
+        var state = MealItemEatenState.StateOf(planMeal, eatenIds, rows.Any(r => r.EatenAt.HasValue));
+        var eatenAt = state == MealEatenState.Eaten
+            ? rows.Where(r => r.EatenAt.HasValue).Select(r => r.EatenAt).Min()
+            : null;
 
         var photos = rows
             .SelectMany(r => r.Photos)
@@ -166,7 +176,9 @@ internal sealed class GetWeekMealLogEndpoint(
         var meal = new GetWeekMealLogMealDto
         {
             MealId = mealId,
-            Eaten = eatenAt.HasValue,
+            Eaten = state == MealEatenState.Eaten,
+            EatenState = state,
+            EatenItemIds = eatenIds.ToList(),
             EatenAt = eatenAt,
             Note = rows.Select(r => r.Note).FirstOrDefault(note => !string.IsNullOrWhiteSpace(note)),
         };

@@ -18,7 +18,10 @@ export interface PersonalRecordPayload {
 
 /** Payload of a `meal_day` item. Mirrors TimelineMealDayPayload. */
 export interface TimelineMealDayPayload {
+  /** Meals fully eaten. */
   mealsLogged: number;
+  /** Meals partly eaten; not included in mealsLogged. */
+  mealsPartlyEaten?: number;
   /** Null when the day's plan was not authored by the caller or has no planned meals. */
   mealsPlanned?: number | null;
 }

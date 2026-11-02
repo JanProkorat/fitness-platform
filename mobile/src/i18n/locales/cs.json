@@ -1025,6 +1025,8 @@
       "subject": {
         "mealEaten": "Záznam jídla ze dne {{date}}",
         "mealUnlogged": "Záznam jídla ze dne {{date}}",
+        "mealItemEaten": "Záznam položky jídla ze dne {{date}}",
+        "mealItemUnlogged": "Záznam položky jídla ze dne {{date}}",
         "offPlanAdded": "Záznam potraviny ze dne {{date}}",
         "offPlanRemoved": "Záznam potraviny ze dne {{date}}",
         "shoppingTicked": "Záznam nákupního seznamu ze dne {{date}}",
@@ -1481,6 +1483,10 @@
     }
   },
   "nutritionMeal": {
+    "markEaten": {
+      "mark": "Označit jako snězené",
+      "undo": "Snězeno, klepnutím vrátíte zpět"
+    },
     "title": "Jídlo",
     "back": "Zpět",
     "retry": "Zkusit znovu",
@@ -1586,7 +1592,23 @@
       "more_few": "a {{count}} další položky",
       "more_many": "a {{count}} další položky",
       "more_other": "a {{count}} dalších položek",
-      "toggle": "Zobrazit nebo skrýt: {{meal}}"
+      "toggle": "Zobrazit nebo skrýt: {{meal}}",
+      "partial_one": "snězeno {{done}} z {{count}}",
+      "partial_few": "snězeno {{done}} z {{count}}",
+      "partial_many": "snězeno {{done}} z {{count}}",
+      "partial_other": "snězeno {{done}} z {{count}}",
+      "partialA11y_one": "{{meal}}: částečně snězeno, {{done}} z {{count}} položky",
+      "partialA11y_few": "{{meal}}: částečně snězeno, {{done}} z {{count}} položek",
+      "partialA11y_many": "{{meal}}: částečně snězeno, {{done}} z {{count}} položky",
+      "partialA11y_other": "{{meal}}: částečně snězeno, {{done}} z {{count}} položek"
+    },
+    "note": {
+      "day": "Poznámka",
+      "today": "Poznámka",
+      "meal": "Poznámka",
+      "mealIcon": "Toto jídlo má poznámku",
+      "expand": "Zobrazit celou poznámku",
+      "collapse": "Zobrazit méně"
     },
     "amount": {
       "portions_one": "{{value}} porce",
@@ -1598,7 +1620,12 @@
     "status": {
       "eaten": "{{meal}}: snězeno",
       "pending": "{{meal}}: nesnězeno",
-      "missed": "{{meal}}: nezapsáno"
+      "missed": "{{meal}}: nezapsáno",
+      "partial": "{{meal}}: částečně snězeno"
+    },
+    "item": {
+      "markEaten": "Označit položku {{item}} jako snězenou",
+      "unmarkEaten": "Položka {{item}} je snězená. Označit jako nesnězenou"
     },
     "photo": {
       "add": "Přidat fotku k jídlu {{meal}}",

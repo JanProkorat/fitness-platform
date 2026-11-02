@@ -1,7 +1,7 @@
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 
-namespace FitnessPlatform.Application.Features.ClientNutrition.Shared;
+namespace FitnessPlatform.Application.Domain.Services;
 
 /// <summary>
 /// Maps a calendar date to the plan day scheduled for it, using the same rule as the

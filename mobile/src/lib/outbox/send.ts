@@ -28,6 +28,22 @@ export async function sendEntry(
     case 'mealUnlogged':
       await api.unlogMealEatenEndpoint(entry.payload.mealId, entry.occurredAt, entry.id, basedOnPlanVersion);
       return undefined;
+    case 'mealItemEaten':
+      await api.logMealItemEatenEndpoint(entry.payload.mealId, entry.payload.itemId, {
+        occurredAt: entry.occurredAt,
+        clientRequestId: entry.id,
+        basedOnPlanVersion,
+      });
+      return undefined;
+    case 'mealItemUnlogged':
+      await api.unlogMealItemEatenEndpoint(
+        entry.payload.mealId,
+        entry.payload.itemId,
+        entry.occurredAt,
+        entry.id,
+        basedOnPlanVersion,
+      );
+      return undefined;
     case 'offPlanAdded':
       await api.addOffPlanFoodEndpoint({
         foodExternalId: entry.payload.foodExternalId,
@@ -69,6 +85,8 @@ export function invalidationKeys(kind: OutboxKind): readonly QueryKey[] {
   switch (kind) {
     case 'mealEaten':
     case 'mealUnlogged':
+    case 'mealItemEaten':
+    case 'mealItemUnlogged':
       return [TODAY_LOG_KEY, TODAY_PLAN_KEY, FULL_PLAN_KEY, WEEK_LOG_KEY];
     case 'offPlanAdded':
     case 'offPlanRemoved':

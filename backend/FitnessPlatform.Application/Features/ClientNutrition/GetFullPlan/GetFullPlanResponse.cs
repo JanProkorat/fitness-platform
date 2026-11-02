@@ -1,5 +1,6 @@
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.NutritionPlans.GetPlan;
 
 namespace FitnessPlatform.Application.Features.ClientNutrition.GetFullPlan;
@@ -51,10 +52,22 @@ public class GetFullPlanResponse
     public DateTime? DateCompleted { get; set; }
 
     /// <summary>
-    /// Set of meal IDs that the client has logged as eaten.
+    /// Set of meal IDs that are fully eaten: every current item of the meal is eaten.
     /// Meal IDs are unique across the plan, so a flat set covers all days.
     /// </summary>
     public HashSet<Guid> EatenMealIds { get; set; } = [];
+
+    /// <summary>
+    /// Set of meal IDs that are partly eaten (some, not all, current items). Disjoint from
+    /// <see cref="EatenMealIds"/>.
+    /// </summary>
+    public HashSet<Guid> PartlyEatenMealIds { get; set; } = [];
+
+    /// <summary>
+    /// The eaten item ids of each eaten or partly eaten meal, keyed by meal id. Ids of items
+    /// no longer in the meal are not listed.
+    /// </summary>
+    public Dictionary<Guid, List<Guid>> EatenItemIdsByMeal { get; set; } = [];
 
     /// <summary>
     /// Supplement recommendations for this plan. Clients use this list to configure
@@ -67,9 +80,25 @@ public class GetFullPlanResponse
     /// </summary>
     /// <param name="plan">The plan document.</param>
     /// <param name="todayLocalUtc">The client's local calendar day.</param>
-    /// <param name="eatenMealIds">Meal ids the client has logged as eaten.</param>
-    public static GetFullPlanResponse FromPlan(NutritionPlan plan, DateTime todayLocalUtc, IEnumerable<Guid> eatenMealIds)
+    /// <param name="mealLogs">The plan's meal logs merged per meal and day, with derived eaten state.</param>
+    public static GetFullPlanResponse FromPlan(NutritionPlan plan, DateTime todayLocalUtc, IReadOnlyCollection<MergedMealLog> mealLogs)
     {
+        var eatenMealIds = mealLogs
+            .Where(meal => meal.State == MealEatenState.Eaten)
+            .Select(meal => meal.MealId)
+            .ToHashSet();
+        var partlyEatenMealIds = mealLogs
+            .Where(meal => meal.State == MealEatenState.PartlyEaten)
+            .Select(meal => meal.MealId)
+            .Where(mealId => !eatenMealIds.Contains(mealId))
+            .ToHashSet();
+        var eatenItemIdsByMeal = mealLogs
+            .Where(meal => meal.State != MealEatenState.NotEaten)
+            .GroupBy(meal => meal.MealId)
+            .ToDictionary(
+                group => group.Key,
+                group => group.SelectMany(meal => meal.EatenItemIds).Distinct().ToList());
+
         // Collect published weeks ordered by week number
         var publishedWeeks = plan.Weeks
             .Where(w => w.Status == WeekStatus.Published)
@@ -168,7 +197,9 @@ public class GetFullPlanResponse
             Status = plan.Status.ToString(),
             QuestionnaireResponseId = plan.QuestionnaireResponseId,
             DateCompleted = plan.DateCompleted,
-            EatenMealIds = [..eatenMealIds],
+            EatenMealIds = eatenMealIds,
+            PartlyEatenMealIds = partlyEatenMealIds,
+            EatenItemIdsByMeal = eatenItemIdsByMeal,
             Supplements = plan.Supplements.Select(s => new SupplementDto
             {
                 ExternalId = s.ExternalId,

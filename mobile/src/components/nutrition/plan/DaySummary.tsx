@@ -1,4 +1,12 @@
+import { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
+import Reanimated, {
+  Easing,
+  useAnimatedProps,
+  useReducedMotion,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import Svg, { Circle } from 'react-native-svg';
 import { useTranslation } from 'react-i18next';
 
@@ -6,8 +14,11 @@ import type { GlobalNutritionSettings } from '@/api/generated';
 import { formatWhole } from '@/components/nutrition/meal/format';
 import type { Macros } from '@/components/nutrition/meal/format';
 import { Card } from '@/components/Card';
+import { NoteBox, trimmedNote } from '@/components/nutrition/meals/NoteBox';
+import { ProgressFill } from '@/components/ProgressFill';
 import { Text } from '@/components/Text';
 import { useTheme } from '@/theme';
+import { progressFillMotion } from '@/theme/motion';
 import type { Colors, Theme } from '@/theme';
 
 type MacroKey = 'protein' | 'carbs' | 'fat' | 'fiber';
@@ -22,14 +33,34 @@ const BARS: { key: MacroKey; color: keyof Colors; target: keyof GlobalNutritionS
 const ratio = (value: number, target: number | undefined): number =>
   target && target > 0 ? Math.min(Math.max(value / target, 0), 1) : 0;
 
+const AnimatedCircle = Reanimated.createAnimatedComponent(Circle);
+
+/** A 0–1 value that eases to each new target like the progress bars; instant when Reduce Motion is on. */
+function useAnimatedRatio(target: number) {
+  const reduceMotion = useReducedMotion();
+  const progress = useSharedValue(0);
+  useEffect(() => {
+    progress.set(
+      reduceMotion
+        ? target
+        : withTiming(target, { duration: progressFillMotion.duration, easing: Easing.out(Easing.cubic) }),
+    );
+  }, [target, reduceMotion, progress]);
+  return progress;
+}
+
 type DaySummaryProps = {
   /** Totals of the meals eaten on the selected day. */
   eaten: Macros;
   targets: GlobalNutritionSettings | undefined;
+  /** The day's note from the plan; shown under a divider when it has text. */
+  note?: string | null;
+  /** Label for the note; the Today card says "today", other days "this day". */
+  noteLabel?: string;
 };
 
 /** Energy ring and macro bars for one day: what was eaten against the plan's daily targets. */
-export function DaySummary({ eaten, targets }: DaySummaryProps) {
+export function DaySummary({ eaten, targets, note, noteLabel }: DaySummaryProps) {
   const { t, i18n } = useTranslation();
   const theme = useTheme();
   const styles = makeStyles(theme);
@@ -40,89 +71,95 @@ export function DaySummary({ eaten, targets }: DaySummaryProps) {
   const radius = (size - stroke) / 2;
   const circumference = 2 * Math.PI * radius;
   const kcalTarget = targets?.dailyKcal;
-  const filled = ratio(eaten.kcal, kcalTarget) * circumference;
+  const dayNote = trimmedNote(note);
+  const ringProgress = useAnimatedRatio(ratio(eaten.kcal, kcalTarget));
+  const ringProps = useAnimatedProps(() => ({
+    strokeDasharray: `${ringProgress.value * circumference} ${circumference}`,
+  }));
 
   return (
     <Card style={styles.card}>
-      <View
-        style={styles.ring}
-        accessible
-        accessibilityLabel={
-          kcalTarget
-            ? t('nutritionPlan.summary.ringOf', {
-                value: formatWhole(language, eaten.kcal),
-                target: formatWhole(language, kcalTarget),
-              })
-            : t('nutritionPlan.summary.ringValue', { value: formatWhole(language, eaten.kcal) })
-        }
-      >
-        <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-          <Circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            fill="none"
-            stroke={theme.colors.lineStrong}
-            strokeWidth={stroke}
-          />
-          <Circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            fill="none"
-            stroke={theme.colors.nutrition}
-            strokeWidth={stroke}
-            strokeLinecap="round"
-            strokeDasharray={`${filled} ${circumference}`}
-            transform={`rotate(-90 ${size / 2} ${size / 2})`}
-          />
-        </Svg>
-        <View style={styles.ringLabel}>
-          <Text variant="barTitle">{formatWhole(language, eaten.kcal)}</Text>
-          {kcalTarget ? (
-            <Text variant="micro" color="muted">
-              {t('nutritionPlan.summary.ofKcal', { target: formatWhole(language, kcalTarget) })}
-            </Text>
-          ) : (
-            <Text variant="micro" color="muted">
-              {t('nutritionPlan.summary.kcal')}
-            </Text>
-          )}
+      <View style={styles.main}>
+        <View
+          style={styles.ring}
+          accessible
+          accessibilityLabel={
+            kcalTarget
+              ? t('nutritionPlan.summary.ringOf', {
+                  value: formatWhole(language, eaten.kcal),
+                  target: formatWhole(language, kcalTarget),
+                })
+              : t('nutritionPlan.summary.ringValue', { value: formatWhole(language, eaten.kcal) })
+          }
+        >
+          <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+            <Circle
+              cx={size / 2}
+              cy={size / 2}
+              r={radius}
+              fill="none"
+              stroke={theme.colors.lineStrong}
+              strokeWidth={stroke}
+            />
+            <AnimatedCircle
+              cx={size / 2}
+              cy={size / 2}
+              r={radius}
+              fill="none"
+              stroke={theme.colors.nutrition}
+              strokeWidth={stroke}
+              strokeLinecap="round"
+              animatedProps={ringProps}
+              transform={`rotate(-90 ${size / 2} ${size / 2})`}
+            />
+          </Svg>
+          <View style={styles.ringLabel}>
+            <Text variant="barTitle">{formatWhole(language, eaten.kcal)}</Text>
+            {kcalTarget ? (
+              <Text variant="micro" color="muted">
+                {t('nutritionPlan.summary.ofKcal', { target: formatWhole(language, kcalTarget) })}
+              </Text>
+            ) : (
+              <Text variant="micro" color="muted">
+                {t('nutritionPlan.summary.kcal')}
+              </Text>
+            )}
+          </View>
         </View>
-      </View>
-      <View style={styles.bars}>
-        {BARS.map(({ key, color, target }) => {
-          const goal = targets?.[target];
-          return (
-            <View key={key} style={styles.bar}>
-              <View style={styles.barHead}>
-                <View style={styles.barName}>
-                  <View style={[styles.dot, { backgroundColor: theme.colors[color] }]} />
-                  <Text variant="label" color="muted">
-                    {t(`nutritionMeal.macros.${key}`)}
+        <View style={styles.bars}>
+          {BARS.map(({ key, color, target }) => {
+            const goal = targets?.[target];
+            return (
+              <View key={key} style={styles.bar}>
+                <View style={styles.barHead}>
+                  <View style={styles.barName}>
+                    <View style={[styles.dot, { backgroundColor: theme.colors[color] }]} />
+                    <Text variant="label" color="muted">
+                      {t(`nutritionMeal.macros.${key}`)}
+                    </Text>
+                  </View>
+                  <Text variant="labelStrong">
+                    {formatWhole(language, eaten[key])}
+                    <Text variant="label" color="muted">
+                      {goal
+                        ? t('nutritionPlan.summary.ofGrams', { target: formatWhole(language, goal) })
+                        : t('nutritionPlan.summary.grams')}
+                    </Text>
                   </Text>
                 </View>
-                <Text variant="labelStrong">
-                  {formatWhole(language, eaten[key])}
-                  <Text variant="label" color="muted">
-                    {goal
-                      ? t('nutritionPlan.summary.ofGrams', { target: formatWhole(language, goal) })
-                      : t('nutritionPlan.summary.grams')}
-                  </Text>
-                </Text>
+                <View style={styles.track}>
+                  <ProgressFill ratio={ratio(eaten[key], goal)} color={theme.colors[color]} style={styles.fill} />
+                </View>
               </View>
-              <View style={styles.track}>
-                <View
-                  style={[
-                    styles.fill,
-                    { backgroundColor: theme.colors[color], width: `${Math.round(ratio(eaten[key], goal) * 100)}%` },
-                  ]}
-                />
-              </View>
-            </View>
-          );
-        })}
+            );
+          })}
+        </View>
       </View>
+      {dayNote ? (
+        <View style={styles.noteWrap}>
+          <NoteBox label={noteLabel ?? t('nutritionPlan.note.day')} note={dayNote} />
+        </View>
+      ) : null}
     </Card>
   );
 }
@@ -130,10 +167,18 @@ export function DaySummary({ eaten, targets }: DaySummaryProps) {
 const makeStyles = (theme: Theme) =>
   StyleSheet.create({
     card: {
+      padding: theme.spacing.cardInset,
+      gap: theme.spacing.md,
+    },
+    main: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: theme.spacing.cardInset,
-      padding: theme.spacing.cardInset,
+    },
+    noteWrap: {
+      borderTopWidth: theme.sizes.border,
+      borderTopColor: theme.colors.lineStrong,
+      paddingTop: theme.spacing.md,
     },
     ring: {
       width: theme.sizes.summaryRing,

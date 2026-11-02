@@ -55,6 +55,15 @@ public class MealLog
     public DateTime? EatenAt { get; set; }
 
     /// <summary>
+    /// Ids of the plan meal's items (foods and recipes) the client has eaten. Empty on rows written
+    /// before item ticks existed; such a row with <see cref="EatenAt"/> set counts as fully eaten.
+    /// <see cref="EatenAt"/> is set only while every current item is eaten, so a partly eaten row has
+    /// it null and this list non-empty.
+    /// </summary>
+    [BsonElement("eatenItemIds")]
+    public List<Guid> EatenItemIds { get; set; } = [];
+
+    /// <summary>
     /// Snapshot of foods actually consumed (may differ from plan).
     /// </summary>
     [BsonElement("foodsEaten")]

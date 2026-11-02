@@ -7,7 +7,12 @@ import { useTranslation } from 'react-i18next';
 
 import type { FullPlanWeek, GetFullPlanResponse } from '@/api/generated';
 import { getErrorStatus } from '@/api/errors';
-import { MEAL_LOG_DATE_IN_FUTURE, getTopLevelErrorCode, storedWeekMealPhotos } from '@/api/nutrition';
+import {
+  MEAL_LOG_DATE_IN_FUTURE,
+  getTopLevelErrorCode,
+  isMealPartlyEaten,
+  storedWeekMealPhotos,
+} from '@/api/nutrition';
 import type { NutritionMeal } from '@/api/nutrition';
 import { PhotoUploadError } from '@/api/photos';
 import type { PickedPhoto } from '@/api/photos';
@@ -24,6 +29,7 @@ import {
   canAddPhotos,
   dayMeals,
   eatenMacros,
+  dayPlannedTargets,
   findLoggedMeal,
   formatRange,
   isPlanFinished,
@@ -35,6 +41,7 @@ import {
   weekDays,
   weekMealCount,
 } from '@/components/nutrition/plan/model';
+import { dayPhase } from '@/components/nutrition/tab/model';
 import { RecipesToday } from '@/components/nutrition/week/RecipesToday';
 import { WeekGlance } from '@/components/nutrition/week/WeekGlance';
 import { dayRecipes, dayWithinWeek } from '@/components/nutrition/week/model';
@@ -160,6 +167,7 @@ function WeekContent({ plan, planId, week, initialDay, onBack }: WeekContentProp
   // A browse-only plan has no week log to fetch; its eaten state comes from the plan's own eaten-meal set.
   const log = useNutritionDayLog(readOnly ? undefined : weekStart);
   const eatenIds = useMemo(() => new Set(plan.eatenMealIds ?? []), [plan.eatenMealIds]);
+  const eatenItemIdsByMeal = plan.eatenItemIdsByMeal;
   const photoUpload = useAddDayMealPhoto();
   const [picking, setPicking] = useState(false);
   const [viewer, setViewer] = useState<{ mealId: string; index: number } | null>(null);
@@ -177,6 +185,9 @@ function WeekContent({ plan, planId, week, initialDay, onBack }: WeekContentProp
   const planFinished = isPlanFinished(plan);
   const isEaten = (date: string, mealId: string) =>
     readOnly ? eatenIds.has(mealId) : findLoggedMeal(log.data, date, mealId)?.eaten === true;
+  // Ticked items of a meal: the plan's own map for a browse-only plan, the week log otherwise.
+  const eatenItemIdsOf = (date: string, mealId: string): string[] =>
+    (readOnly ? eatenItemIdsByMeal?.[mealId] : findLoggedMeal(log.data, date, mealId)?.eatenItemIds) ?? [];
 
   const totalMeals = weekMealCount(week);
   const eatenMeals = days.reduce(
@@ -300,7 +311,8 @@ function WeekContent({ plan, planId, week, initialDay, onBack }: WeekContentProp
 
   const viewerMeal = viewer ? meals.find((meal) => meal.mealId === viewer.mealId) : undefined;
   const viewerPhotos = viewerMeal ? photosOf(viewerMeal) : [];
-  const showAddPhoto = !readOnly && logAvailable && canAddPhotos(log.data, selected);
+  const hideEatenState = dayPhase(selected, today) === 'future';
+  const showAddPhoto =!readOnly && logAvailable && canAddPhotos(log.data, selected);
 
   const subtitle = [
     formatRange(language, weekStart, weekEnd),
@@ -336,8 +348,11 @@ function WeekContent({ plan, planId, week, initialDay, onBack }: WeekContentProp
         <GestureDetector gesture={daySwipe.gesture}>
           <Reanimated.View style={[styles.day, daySwipe.style]}>
         <DaySummary
-          eaten={eatenMacros(meals, (mealId) => isEaten(selected, mealId))}
-          targets={plan.globalSettings}
+          eaten={eatenMacros(meals, (meal) => ({
+            eaten: isEaten(selected, meal.mealId),
+            itemIds: eatenItemIdsOf(selected, meal.mealId),
+          }))}
+          targets={dayPlannedTargets(meals)}
         />
 
         <Card style={styles.meals}>
@@ -379,12 +394,19 @@ function WeekContent({ plan, planId, week, initialDay, onBack }: WeekContentProp
                   first={index === 0}
                   status={mealStatus({
                     eaten: isEaten(selected, meal.mealId),
+                    partial: isMealPartlyEaten(
+                      readOnly
+                        ? { eatenItemIds: eatenItemIdsOf(selected, meal.mealId) }
+                        : findLoggedMeal(log.data, selected, meal.mealId),
+                      isEaten(selected, meal.mealId),
+                    ),
                     logAvailable,
                     date: selected,
                     today,
                     planFinished,
                   })}
                   photos={photos.map((photo) => ({ key: photo.key, uri: photo.uri }))}
+                  eatenItemIds={eatenItemIdsOf(selected, meal.mealId)}
                   onOpenRecipe={(recipeId, servings) =>
                     router.push({
                       pathname: '/nutrition/recipe/[recipeId]',
@@ -404,6 +426,7 @@ function WeekContent({ plan, planId, week, initialDay, onBack }: WeekContentProp
                   }}
                   onAddPhoto={showAddPhoto ? () => askSource(meal) : undefined}
                   addPhotoBusy={busy || picking}
+                  hideEatenState={hideEatenState}
                   onOpenPhoto={(photoIndex) => setViewer({ mealId: meal.mealId, index: photoIndex })}
                 />
               );

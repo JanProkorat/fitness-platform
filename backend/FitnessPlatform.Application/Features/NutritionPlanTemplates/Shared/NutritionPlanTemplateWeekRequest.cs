@@ -92,6 +92,11 @@ public class TemplateMealRequest
 public class TemplateMealFoodRequest
 {
     /// <summary>
+    /// Optional id of the stored item this entry continues; unknown ids get a server-minted one.
+    /// </summary>
+    public Guid? ItemId { get; set; }
+
+    /// <summary>
     /// External (public) identifier of the food item.
     /// </summary>
     public Guid FoodExternalId { get; set; }
@@ -135,6 +140,11 @@ public class TemplateMealFoodRequest
 /// </summary>
 public class TemplateMealRecipeRequest
 {
+    /// <summary>
+    /// Optional id of the stored item this entry continues; unknown ids get a server-minted one.
+    /// </summary>
+    public Guid? ItemId { get; set; }
+
     /// <summary>
     /// Recipe identifier.
     /// </summary>

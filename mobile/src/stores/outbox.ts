@@ -180,6 +180,8 @@ export function buildPendingKeys(entries: readonly OutboxEntry[]): PendingKeys {
   const keys: Record<OutboxKind, Set<string>> = {
     mealEaten: new Set(),
     mealUnlogged: new Set(),
+    mealItemEaten: new Set(),
+    mealItemUnlogged: new Set(),
     offPlanAdded: new Set(),
     offPlanRemoved: new Set(),
     shoppingTicked: new Set(),

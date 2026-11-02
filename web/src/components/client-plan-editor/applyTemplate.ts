@@ -7,7 +7,7 @@ import {
   type EditorMeal,
   type EditorWeek,
 } from '@/components/plan-editor/plan-editor-types';
-import { weekHasItems } from '@/components/plan-editor/plan-editor-ops';
+import { copyItemsWithoutIds, weekHasItems } from '@/components/plan-editor/plan-editor-ops';
 
 /** How a template lands on a plan, worked out before anything is applied. */
 export interface ApplyPreview {
@@ -79,8 +79,8 @@ function copyMeal(meal: EditorMeal, order: number): EditorMeal {
     order,
     time: meal.time,
     note: meal.note,
-    foods: meal.foods.map((food) => ({ ...food })),
-    recipes: meal.recipes.map((recipe) => ({ ...recipe })),
+    foods: copyItemsWithoutIds(meal.foods),
+    recipes: copyItemsWithoutIds(meal.recipes),
   };
 }
 

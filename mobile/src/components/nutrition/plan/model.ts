@@ -1,8 +1,14 @@
-import type { FullPlanWeek, GetFullPlanResponse, GetWeekMealLogResponse, PlanDay } from '@/api/generated';
+import type {
+  FullPlanWeek,
+  GetFullPlanResponse,
+  GetWeekMealLogResponse,
+  GlobalNutritionSettings,
+  PlanDay,
+} from '@/api/generated';
 import type { NutritionMeal } from '@/api/nutrition';
 import { isPlanId } from '@/api/plans';
 import type { MealStatus } from '@/components/nutrition/meals/MealStatusIcon';
-import { addMacros, EMPTY_MACROS } from '@/components/nutrition/meal/format';
+import { addMacros, EMPTY_MACROS, foodMacros, recipeMacros } from '@/components/nutrition/meal/format';
 import type { Macros } from '@/components/nutrition/meal/format';
 import { mealMacros } from '@/components/nutrition/meals/model';
 
@@ -64,6 +70,21 @@ export const dayMeals = (day: PlanDay | undefined): NutritionMeal[] =>
     .filter((meal): meal is NutritionMeal => typeof meal.mealId === 'string')
     .sort((first, second) => (first.order ?? 0) - (second.order ?? 0));
 
+/**
+ * What the client is meant to eat on a day: the summed macros of its planned meals, shaped like the plan's targets.
+ * Daily progress compares against this, not the coach's plan-level setting, which can differ from the meals.
+ */
+export const dayPlannedTargets = (meals: NutritionMeal[]): GlobalNutritionSettings => {
+  const total = meals.map(mealMacros).reduce(addMacros, EMPTY_MACROS);
+  return {
+    dailyKcal: total.kcal,
+    proteinGrams: total.protein,
+    carbsGrams: total.carbs,
+    fatGrams: total.fat,
+    fiberGrams: total.fiber,
+  };
+};
+
 export const weekMealCount = (week: FullPlanWeek): number =>
   weekDays(week).reduce((total, { day }) => total + dayMeals(day).length, 0);
 
@@ -89,6 +110,24 @@ export function eatenInWeek(week: FullPlanWeek, eatenIds: ReadonlySet<string>): 
   );
 }
 
+/** Eaten share of a week's meals by item (a partly eaten meal counts for its ticked items), from the plan's eaten sets. */
+export function eatenShareInWeek(
+  week: FullPlanWeek,
+  eatenIds: ReadonlySet<string>,
+  itemIdsByMeal: GetFullPlanResponse['eatenItemIdsByMeal'],
+): number {
+  return weekDays(week).reduce(
+    (total, { day }) =>
+      total +
+      dayMeals(day).reduce(
+        (sum, meal) =>
+          sum + mealEatenShare(meal, { eaten: eatenIds.has(meal.mealId), itemIds: itemIdsByMeal?.[meal.mealId] ?? [] }),
+        0,
+      ),
+    0,
+  );
+}
+
 type LogMeal = NonNullable<NonNullable<GetWeekMealLogResponse['days']>[number]['meals']>[number];
 
 /** The log entry of one meal on one date, when the week log has one. */
@@ -107,6 +146,8 @@ export const canAddPhotos = (log: GetWeekMealLogResponse | undefined, date: stri
 /** Status of a meal on a date. Without a log nothing can be called eaten or missed, so it stays neutral. */
 export function mealStatus(options: {
   eaten: boolean;
+  /** Some, but not all, items of the meal are eaten; taken from the log's eaten state. */
+  partial?: boolean;
   logAvailable: boolean;
   date: string;
   today: string;
@@ -114,12 +155,40 @@ export function mealStatus(options: {
 }): MealStatus {
   if (options.eaten) return 'eaten';
   if (!options.logAvailable) return 'pending';
+  if (options.partial) return 'partial';
   return options.date < options.today || options.planFinished ? 'missed' : 'pending';
 }
 
-/** Total macros of the meals of a day that are eaten. */
-export function eatenMacros(meals: NutritionMeal[], isEaten: (mealId: string) => boolean): Macros {
-  return meals.filter((meal) => isEaten(meal.mealId)).map(mealMacros).reduce(addMacros, EMPTY_MACROS);
+/** What a meal's log says is eaten: all of it, or only the items listed in `itemIds`. */
+export type MealEaten = { eaten: boolean; itemIds: readonly string[] };
+
+/** Macros of only the items in `itemIds`; mirrors the backend's MealItemEatenState.EatenTotals. */
+export function eatenItemMacros(meal: NutritionMeal, itemIds: readonly string[]): Macros {
+  const ids = new Set(itemIds);
+  return [
+    ...(meal.foods ?? []).filter((food) => food.itemId && ids.has(food.itemId)).map((food) => foodMacros(food)),
+    ...(meal.recipes ?? []).filter((recipe) => recipe.itemId && ids.has(recipe.itemId)).map(recipeMacros),
+  ].reduce(addMacros, EMPTY_MACROS);
+}
+
+/** Share of a meal that is eaten by item count: 1 when fully eaten, else its eaten items over all items. */
+export function mealEatenShare(meal: NutritionMeal, { eaten, itemIds }: MealEaten): number {
+  if (eaten) return 1;
+  const items = [...(meal.foods ?? []), ...(meal.recipes ?? [])];
+  if (items.length === 0) return 0;
+  const ids = new Set(itemIds);
+  return items.filter((item) => item.itemId && ids.has(item.itemId)).length / items.length;
+}
+
+/** Total macros eaten on a day: whole eaten meals plus the ticked items of partly eaten ones. */
+export function eatenMacros(meals: NutritionMeal[], eatenOf: (meal: NutritionMeal) => MealEaten): Macros {
+  return meals
+    .map((meal) => {
+      const { eaten, itemIds } = eatenOf(meal);
+      if (eaten) return mealMacros(meal);
+      return itemIds.length > 0 ? eatenItemMacros(meal, itemIds) : EMPTY_MACROS;
+    })
+    .reduce(addMacros, EMPTY_MACROS);
 }
 
 /** Calendar end of the plan, from its start date and total week count. */

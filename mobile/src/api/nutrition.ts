@@ -1,4 +1,5 @@
 import { api, http } from '@/api/client';
+import { MealEatenState } from '@/api/generated';
 import type {
   AddOffPlanFoodResponse,
   ClientRecipeListItem,
@@ -33,6 +34,12 @@ export const NUTRITION_PHOTO_STALE_MS = 5 * 60 * 1000;
 const ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export const isNutritionId = (value: string): boolean => ID_PATTERN.test(value);
+
+const EMPTY_ID = '00000000-0000-0000-0000-000000000000';
+
+/** A plan item's id, or undefined when it has none (items saved before item ids existed come back as the empty Guid). */
+export const planItemId = (itemId: string | undefined): string | undefined =>
+  itemId && itemId !== EMPTY_ID && isNutritionId(itemId) ? itemId : undefined;
 
 /** A plan meal that carries its id. */
 export type NutritionMeal = PlanMeal & { mealId: string };
@@ -86,9 +93,17 @@ export function findMealLog(log: GetTodayLogResponse | undefined, mealId: string
     }
   }
   const eatenRow = rows.find((row) => row.eatenAt);
+  const itemIds = [...new Set(rows.flatMap((row) => row.eatenItemIds ?? []))];
+  const state = rows.some((row) => row.eatenState === MealEatenState.Eaten)
+    ? MealEatenState.Eaten
+    : rows.some((row) => row.eatenState === MealEatenState.PartlyEaten)
+      ? MealEatenState.PartlyEaten
+      : first.eatenState;
   return {
     ...(eatenRow ?? first),
     eatenAt: eatenRow?.eatenAt,
+    eatenState: state,
+    eatenItemIds: itemIds,
     note: rows.find((row) => row.note)?.note,
     photos: [...photos.values()],
   };
@@ -106,8 +121,70 @@ export const mealPhotos = (entry: TodayMealLogDto | undefined): MealPhoto[] =>
     .filter(isShownMealPhoto)
     .sort((first, second) => (first.uploadedAt ?? '').localeCompare(second.uploadedAt ?? ''));
 
-/** True when the meal was confirmed as eaten; a photo-only entry has no `eatenAt`. */
-export const isMealEaten = (entry: TodayMealLogDto | undefined): boolean => Boolean(entry?.eatenAt);
+/** True when every item of the meal is eaten; a photo-only or partly eaten entry has no `eatenAt`. */
+export const isMealEaten = (entry: TodayMealLogDto | undefined): boolean =>
+  Boolean(entry?.eatenAt) || entry?.eatenState === MealEatenState.Eaten;
+
+/** The eaten fields both the today log and the week log carry for a meal. */
+export type MealEatenFields = { eatenState?: MealEatenState; eatenItemIds?: string[] };
+
+/** True when some, but not all, items of a meal are eaten. `eaten` is the meal's own fully-eaten flag. */
+export const isMealPartlyEaten = (entry: MealEatenFields | undefined, eaten: boolean): boolean =>
+  !eaten && (entry?.eatenState === MealEatenState.PartlyEaten || (entry?.eatenItemIds?.length ?? 0) > 0);
+
+/** Ids of the items of a plan meal, foods and recipes together; items without an id are left out. */
+export const mealItemIdsOf = (meal: PlanMeal): string[] =>
+  [...(meal.recipes ?? []), ...(meal.foods ?? [])]
+    .map((item) => planItemId(item.itemId))
+    .filter((itemId): itemId is string => itemId !== undefined);
+
+/** An item counts as eaten when its meal is fully eaten or the item itself is ticked. */
+export const isItemEaten = (mealEaten: boolean, eatenItemIds: readonly string[], itemId: string): boolean =>
+  mealEaten || eatenItemIds.includes(itemId);
+
+/** The entry a meal log row becomes once nothing is eaten: kept with photos or a note, otherwise gone. */
+function clearedEntry(existing: TodayMealLogDto | undefined): TodayMealLogDto | undefined {
+  // The server keeps an entry that has photos or a note and only clears the eaten fields; any other entry is deleted.
+  const keeps = existing && ((existing.photos ?? []).length > 0 || Boolean(existing.note));
+  return keeps
+    ? { ...existing, eatenAt: undefined, eatenState: MealEatenState.NotEaten, eatenItemIds: [] }
+    : undefined;
+}
+
+/**
+ * Log with one item of a meal ticked or unticked, used for the optimistic toggle. `allItemIds` are the items the
+ * meal had when the user tapped; with them the meal becomes fully eaten once its last item is ticked.
+ */
+export function withMealItemEaten(
+  log: GetTodayLogResponse | undefined,
+  mealId: string,
+  itemId: string,
+  eaten: boolean,
+  allItemIds: readonly string[],
+  at: string = new Date().toISOString(),
+): GetTodayLogResponse {
+  const existing = findMealLog(log, mealId);
+  const others = (log?.mealsEaten ?? []).filter((entry) => entry.mealId !== mealId);
+  // A fully eaten meal has every item ticked, even when its log row carries no id list.
+  const ticked = new Set(isMealEaten(existing) && allItemIds.length > 0 ? allItemIds : (existing?.eatenItemIds ?? []));
+  if (eaten) ticked.add(itemId);
+  else ticked.delete(itemId);
+
+  if (ticked.size === 0) {
+    const kept = clearedEntry(existing);
+    return { ...log, mealsEaten: kept ? [...others, kept] : others };
+  }
+  const everyTicked = allItemIds.length > 0 && allItemIds.every((id) => ticked.has(id));
+  const entry: TodayMealLogDto = {
+    ...existing,
+    mealId,
+    eatenAt: everyTicked ? (existing?.eatenAt ?? at) : undefined,
+    eatenState: everyTicked ? MealEatenState.Eaten : MealEatenState.PartlyEaten,
+    eatenItemIds: [...ticked],
+    photos: existing?.photos ?? [],
+  };
+  return { ...log, mealsEaten: [...others, entry] };
+}
 
 /** Log with one meal marked eaten or unmarked, used for the optimistic toggle. */
 export function withMealEaten(
@@ -120,14 +197,15 @@ export function withMealEaten(
   const others = entries.filter((entry) => entry.mealId !== meal.mealId);
   const next: GetTodayLogResponse = { ...log, mealsEaten: others };
   if (!eaten) {
-    // The server keeps an entry that has photos or a note and only clears `eatenAt`; any other entry is deleted.
-    const keeps = existing && ((existing.photos ?? []).length > 0 || Boolean(existing.note));
-    return keeps ? { ...next, mealsEaten: [...others, { ...existing, eatenAt: undefined }] } : next;
+    const kept = clearedEntry(existing);
+    return kept ? { ...next, mealsEaten: [...others, kept] } : next;
   }
   const entry: TodayMealLogDto = {
     ...existing,
     mealId: meal.mealId,
     eatenAt: new Date().toISOString(),
+    eatenState: MealEatenState.Eaten,
+    eatenItemIds: [...new Set([...(existing?.eatenItemIds ?? []), ...mealItemIdsOf(meal)])],
     photos: existing?.photos ?? [],
   };
   return { ...next, mealsEaten: [...others, entry] };
