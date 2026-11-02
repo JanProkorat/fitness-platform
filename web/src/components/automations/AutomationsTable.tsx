@@ -1,5 +1,4 @@
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
 import { Calendar, Camera, CheckSquare, Clock, FileText, Flag, MoreHorizontal, Ruler } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
@@ -16,11 +15,17 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import {
   AutomationActionType,
   AutomationTriggerKind,
-  type AutomationLinkedCheckInDto,
   type AutomationRuleDto,
 } from '@/api/automations';
 import AutomationIconTile from '@/components/automations/AutomationIconTile';
-import { appliesToLabel, formatNextSend, subtitleFor, toneForAction, whenLabel } from '@/components/automations/automationFormat';
+import {
+  appliesToLabel,
+  formatNextSend,
+  isCheckInRule,
+  subtitleFor,
+  toneForAction,
+  whenLabel,
+} from '@/components/automations/automationFormat';
 
 const SKELETON_ROW_COUNT = 4;
 const COLUMN_COUNT = 7;
@@ -35,7 +40,6 @@ const ACTION_ICON: Record<AutomationActionType, ReactNode> = {
 
 interface Props {
   rules: AutomationRuleDto[];
-  linkedCheckIns: AutomationLinkedCheckInDto[];
   /** Questionnaire titles by public id, for the "Form · name" subtitle. */
   formTitles: ReadonlyMap<string, string>;
   isPending: boolean;
@@ -48,10 +52,9 @@ interface Props {
   onDelete: (rule: AutomationRuleDto) => void;
 }
 
-/** The global rules list: linked weekly check-in rows first, then the coach's rules. */
+/** The global rules list; the weekly check-in is an ordinary rule row. */
 export default function AutomationsTable({
   rules,
-  linkedCheckIns,
   formTitles,
   isPending,
   isError,
@@ -101,52 +104,6 @@ export default function AutomationsTable({
           </TableRow>
         )}
 
-        {!isPending &&
-          !isError &&
-          linkedCheckIns.map((checkIn) => (
-            <TableRow key={`checkin-${checkIn.profession}`} className="border-line">
-              <TableCell className={CELL_CLASS}>
-                <div className="flex items-center gap-3">
-                  <AutomationIconTile tone="checkIn">
-                    <CheckSquare className="size-4.5" aria-hidden="true" />
-                  </AutomationIconTile>
-                  <div className="flex min-w-0 flex-col">
-                    <span className="text-copy font-semibold text-ink">{t('automations.linked.title')}</span>
-                    <span className="truncate text-meta text-muted-foreground">
-                      {t(`automations.linked.subtitle.${checkIn.profession}`)}
-                    </span>
-                  </div>
-                </div>
-              </TableCell>
-              <TableCell className={`${CELL_CLASS} text-body text-ink-2`}>
-                <span className="flex items-center gap-2">
-                  <Calendar className="size-4 text-muted-foreground" aria-hidden="true" />
-                  {t('automations.linked.when')}
-                </span>
-              </TableCell>
-              <TableCell className={`${CELL_CLASS} text-body text-ink-2`}>{t('automations.linked.action')}</TableCell>
-              <TableCell className={`${CELL_CLASS} text-body text-ink-2`}>
-                {t('automations.table.clients', { count: checkIn.clientCount ?? 0 })}
-              </TableCell>
-              <TableCell className={CELL_CLASS}>
-                <span className="rounded-full bg-sunken px-2.5 py-1 text-meta font-semibold text-ink-2">
-                  {t('automations.linked.badge')}
-                </span>
-              </TableCell>
-              <TableCell className={CELL_CLASS}>
-                <span className="flex items-center gap-3 text-body">
-                  {checkIn.enabled === false && (
-                    <span className="text-muted-foreground">{t('automations.linked.off')}</span>
-                  )}
-                  <Link to="/forms?type=CheckIn" className="font-semibold text-ink underline underline-offset-2">
-                    {t('automations.linked.open')}
-                  </Link>
-                </span>
-              </TableCell>
-              <TableCell className={CELL_CLASS} />
-            </TableRow>
-          ))}
-
         {!isPending && !isError && rules.length === 0 && (
           <TableRow>
             <TableCell colSpan={COLUMN_COUNT} className="py-10 text-center text-body text-muted-foreground">
@@ -162,12 +119,17 @@ export default function AutomationsTable({
             const name = rule.name ?? '';
             const formTitle = rule.questionnaireId ? formTitles.get(rule.questionnaireId) : undefined;
             const isEvent = rule.triggerKind === AutomationTriggerKind.Event;
+            const checkIn = isCheckInRule(rule);
             return (
               <TableRow key={ruleId} className="cursor-pointer border-line" onClick={() => onEdit(rule)}>
                 <TableCell className={CELL_CLASS}>
                   <div className="flex items-center gap-3">
-                    <AutomationIconTile tone={toneForAction(rule.actionType)}>
-                      {ACTION_ICON[rule.actionType ?? AutomationActionType.SendForm]}
+                    <AutomationIconTile tone={checkIn ? 'checkIn' : toneForAction(rule.actionType)}>
+                      {checkIn ? (
+                        <CheckSquare className="size-4.5" aria-hidden="true" />
+                      ) : (
+                        ACTION_ICON[rule.actionType ?? AutomationActionType.SendForm]
+                      )}
                     </AutomationIconTile>
                     <div className="flex min-w-0 max-w-80 flex-col">
                       <button
@@ -190,6 +152,8 @@ export default function AutomationsTable({
                   <span className="flex items-center gap-2">
                     {isEvent ? (
                       <Flag className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                    ) : checkIn ? (
+                      <Calendar className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
                     ) : (
                       <Clock className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
                     )}

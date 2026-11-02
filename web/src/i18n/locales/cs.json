@@ -2342,7 +2342,11 @@
       },
       "info": {
         "onboarding": "Odešle se automaticky každému novému klientovi po přijetí vaší pozvánky",
-        "checkIn": "Týdenní check-in · odpovědi se zobrazí v historii check-inů každého klienta",
+        "checkInSent": "Odesíláno <strong>{{day}} v {{time}}</strong>",
+        "checkInReminder": "připomenutí po {{hours}} h",
+        "checkInEdit": "Upravit v Automatizacích",
+        "checkInNotSent": "Zatím se neodesílá",
+        "checkInSetUp": "Nastavit v Automatizacích",
         "questions_one": "{{count}} otázka",
         "questions_few": "{{count}} otázky",
         "questions_many": "{{count}} otázky",
@@ -3144,6 +3148,12 @@
     "AUTOMATION_NO_OVERRIDE_TO_RESET": "Toto pravidlo nemá pro tohoto klienta žádné úpravy, které by šlo vrátit.",
     "AUTOMATION_CLIENT_ONLY_RULE_NOT_OVERRIDABLE": "Pravidlo jen pro jednoho klienta nejde upravit pro klienta, pozastavit ani vrátit. Upravte ho přímo.",
     "AUTOMATION_AUDIENCE_NOT_ALLOWED_ON_CLIENT_ONLY_RULE": "Pravidlo jen pro jednoho klienta nemá okruh klientů k výběru.",
+    "CHECK_IN_RULE_EXISTS": "Týdenní check-in už máte zapnutý. Nejprve ho vypněte, nebo upravte ten stávající.",
+    "AUTOMATION_CHECK_IN_INVALID": "Týdenní check-in potřebuje den v týdnu, čas, dobu na odpověď a týdenní interval.",
+    "AUTOMATION_CHECK_IN_FIELDS_NOT_ALLOWED": "Den v týdnu, doba na odpověď a připomenutí patří jen pravidlům týdenního check-inu.",
+    "CHECK_INS_NOT_ENTITLED": "Týdenní check-iny nejsou ve vašem tarifu.",
+    "PER_CLIENT_CHECK_IN_CONFIG_NOT_ENTITLED": "Úprava týdenního check-inu pro jednoho klienta není ve vašem tarifu.",
+    "CHECK_IN_ANSWER_WINDOW_CLOSED": "Čas na odpověď na tento check-in už vypršel.",
     "INVALID_CREDENTIALS": "Neplatný email nebo heslo.",
     "ACCOUNT_DEACTIVATED": "Váš účet byl deaktivován.",
     "INVALID_REFRESH_TOKEN": "Vaše relace vypršela. Přihlaste se znovu.",
@@ -4180,8 +4190,7 @@
         "changedFrom": "Změněno oproti: {{when}}",
         "paused": "Pozastaveno",
         "pausedUntil": "Pozastaveno do {{date}}",
-        "linkedSubtitle": "{{profession}} · Spravuje se v nastavení check-inu",
-        "linkedSubtitleOnly": "Spravuje se v nastavení check-inu"
+        "changedFromWeekday": "Změněno z: {{day}}"
       },
       "result": {
         "notSent": "Zatím neodesláno",
@@ -6031,7 +6040,6 @@
     }
   },
   "automations": {
-    "eyebrow": "Formuláře",
     "title": "Automatizace",
     "subtitle": "Pravidla, která posílají formuláře a požadavky sama. Pravidlo pro jednoho klienta změníte na jeho záložce Automatizace.",
     "newRule": "Nové pravidlo",
@@ -6115,21 +6123,31 @@
       "offsetInactive_other": "{{event}} {{count}} dní",
       "subtitleForm": "Formulář · {{name}}",
       "subtitleFormUnknown": "Formulář",
+      "subtitleCheckInReminder": "Formulář · {{name}} · připomenutí po {{hours}} h",
+      "checkInWhen": "{{day}}, {{time}}",
       "subtitlePhotos": "Fotky pokroku",
       "subtitleMeasurements": "Tělesná měření",
       "toggle": "Zapnout pravidlo „{{name}}“"
     },
-    "linked": {
-      "title": "Týdenní check-in",
-      "subtitle": {
-        "Training": "Trénink",
-        "Nutrition": "Výživa"
+    "weekday": {
+      "every": {
+        "Monday": "každé pondělí",
+        "Tuesday": "každé úterý",
+        "Wednesday": "každou středu",
+        "Thursday": "každý čtvrtek",
+        "Friday": "každý pátek",
+        "Saturday": "každou sobotu",
+        "Sunday": "každou neděli"
       },
-      "when": "Jednou týdně",
-      "action": "Check-in",
-      "badge": "Propojeno",
-      "off": "Vypnuto",
-      "open": "Otevřít"
+      "short": {
+        "Monday": "Po",
+        "Tuesday": "Út",
+        "Wednesday": "St",
+        "Thursday": "Čt",
+        "Friday": "Pá",
+        "Saturday": "So",
+        "Sunday": "Ne"
+      }
     },
     "actions": {
       "SendForm": "Poslat formulář",
@@ -6190,6 +6208,11 @@
         "clientTime": "Čas klienta",
         "starting": "Začátek",
         "startingFixed": "Od data zahájení každého klienta",
+        "startingCheckIn": "Od prvního celého týdne každého klienta",
+        "weekdayLabel": "Každý týden v",
+        "answerWithin": "Odpovědět do",
+        "answerWindowFixed": "2 dny",
+        "answerWindowHint": "Poté se týden počítá jako zmeškaný",
         "eventLabel": "Událost",
         "timing": "Načasování",
         "daysAfter": "Dní po",
@@ -6207,7 +6230,12 @@
         "formOption_few": "{{title}} · {{count}} otázky",
         "formOption_many": "{{title}} · {{count}} otázky",
         "formOption_other": "{{title}} · {{count}} otázek",
+        "formOptionCheckIn": "{{title}} · formulář check-inu",
+        "formHintCheckIn": "Otázky změníte ve Formulářích › {{title}}",
         "formsError": "Formuláře se nepodařilo načíst.",
+        "reminder": "Připomenout klientovi po 24 h, pokud neodpoví",
+        "missedWeek": "Upozornit mě na zmeškaný týden",
+        "missedWeekHint": "Jedno upozornění za zmeškaný týden, ne za každé připomenutí",
         "message": "Zpráva",
         "counter": "{{current}} / {{max}}"
       },
@@ -6230,6 +6258,7 @@
         "heading": "Možnosti",
         "skip": "Přeskočit klienta, dokud předchozí požadavek nemá odpověď",
         "skipHint": "Požadavky se nehromadí.",
+        "skipCheckInHint": "U check-inů vypnuto: každý týden stojí sám za sebe a nezodpovězený týden se počítá jako zmeškaný.",
         "stopAfter": "Skončit po určitém počtu odeslání",
         "stopAfterCount": "Počet odeslání",
         "oncePerPlan": "Jednou za plán",

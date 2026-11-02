@@ -14,10 +14,10 @@ import {
   AutomationScheduleUnit,
   AutomationSkipReason,
   AutomationTriggerKind,
+  DayOfWeek,
   Profession,
 } from '@/api/generated';
 import type {
-  AutomationLinkedCheckInDto,
   AutomationRuleDto,
   AutomationRuleSummaryDto,
   ClientAutomationItem,
@@ -41,10 +41,10 @@ export {
   AutomationScheduleUnit,
   AutomationSkipReason,
   AutomationTriggerKind,
+  DayOfWeek,
   Profession,
 };
 export type {
-  AutomationLinkedCheckInDto,
   AutomationRuleDto,
   AutomationRuleSummaryDto,
   ClientAutomationItem,
@@ -60,13 +60,12 @@ export type {
 
 export interface AutomationRulesResult {
   rules: AutomationRuleDto[];
-  linkedCheckIns: AutomationLinkedCheckInDto[];
 }
 
-/** Lists the caller's global rules and the linked weekly check-in rows via GET /trainer/automations/rules. */
+/** Lists the caller's global rules, the weekly check-in rule included, via GET /trainer/automations/rules. */
 export async function getAutomationRules(): Promise<AutomationRulesResult> {
   const response = await apiClient.getAutomationRulesEndpoint();
-  return { rules: response.rules ?? [], linkedCheckIns: response.linkedCheckIns ?? [] };
+  return { rules: response.rules ?? [] };
 }
 
 /** Creates a global rule via POST /trainer/automations/rules. The response carries no summary. */
