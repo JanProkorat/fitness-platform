@@ -5,7 +5,7 @@ import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
 
-import { isNutritionPlanPayload } from '@/api/notifications';
+import { getPushRequestId, isNutritionPlanPayload } from '@/api/notifications';
 import { registerPushToken, rememberRegisteredToken, removePushTokenAs } from '@/api/pushToken';
 import { isPaymentRequestedType } from '@/api/payments';
 import { usePaymentsEnabled } from '@/hooks/usePaymentsEnabled';
@@ -80,8 +80,8 @@ export function usePushRegistration(): void {
 let handledResponseId: string | null = null;
 
 /**
- * Opens the invite or payments list a tapped push notification points at, or Today when it carries
- * none (or payments are hidden).
+ * Opens the invite, package proposal or payments list a tapped push notification points at, or Today
+ * when it carries none (or payments are hidden).
  * Mount it only once the user is on the home screens, so a cold-start tap waits for sign-in.
  */
 export function usePushTapNavigation(): void {
@@ -100,9 +100,12 @@ export function usePushTapNavigation(): void {
     handledResponseId = identifier;
 
     const inviteId = content.data?.inviteId;
+    const requestId = getPushRequestId(content.data);
     try {
       if (isPayment && paymentsEnabled) {
         router.push('/payments');
+      } else if (requestId) {
+        router.push({ pathname: '/request/[id]', params: { id: requestId } });
       } else if (typeof inviteId === 'string' && inviteId.length > 0) {
         router.push({ pathname: '/invite/[id]', params: { id: inviteId } });
       } else if (isNutritionPlanPayload(content.data)) {

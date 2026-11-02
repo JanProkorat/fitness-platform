@@ -9,6 +9,7 @@ import type { EdgeInsets } from 'react-native-safe-area-context';
 import {
   getNotificationInviteId,
   getNotificationPayload,
+  getNotificationRequestId,
   isNutritionPlanPayload,
   NOTIFICATIONS_QUERY_KEY,
 } from '@/api/notifications';
@@ -60,7 +61,9 @@ export default function NotificationsSheet() {
 
   const open = (notification: AppNotification) => {
     if (notification.id && notification.read !== true) markOne(notification.id);
+    const requestId = getNotificationRequestId(notification);
     if (isPaymentRequestedType(notification.type) && payments.enabled) router.replace('/payments');
+    else if (requestId) router.replace({ pathname: '/request/[id]', params: { id: requestId } });
     else if (isNutritionPlanPayload(getNotificationPayload(notification))) router.replace('/nutrition');
   };
 

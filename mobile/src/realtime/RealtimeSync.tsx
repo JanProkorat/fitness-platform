@@ -1,6 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 
+import { MY_REQUESTS_KEY } from '@/api/clientRequests';
 import { COLLABORATIONS_QUERY_KEY } from '@/api/collaborations';
 import { CONVERSATIONS_QUERY_KEY } from '@/api/conversations';
 import { INVITES_QUERY_KEY } from '@/api/invites';
@@ -21,8 +22,19 @@ const REFRESH_EVENTS = [
   'clientrequestaccepted',
   'clientrequestrejected',
   'clientrequestcancelled',
+  'clientrequestpackageproposed',
+  'clientrequestproposalwithdrawn',
   'newnotification',
 ] as const;
+
+/** A proposal appearing or being withdrawn changes the request the proposal screen reads. */
+const REQUEST_EVENTS: readonly string[] = [
+  'clientrequestaccepted',
+  'clientrequestrejected',
+  'clientrequestcancelled',
+  'clientrequestpackageproposed',
+  'clientrequestproposalwithdrawn',
+];
 
 /** A coach accepting the client's request links a coach, which changes Today. */
 const PROFILE_EVENTS: readonly string[] = ['clientrequestaccepted'];
@@ -56,6 +68,9 @@ function EventRefresh({ event }: { event: string }) {
     void queryClient.invalidateQueries({ queryKey: INVITES_QUERY_KEY });
     void queryClient.invalidateQueries({ queryKey: NOTIFICATIONS_QUERY_KEY });
     void queryClient.invalidateQueries({ queryKey: CONVERSATIONS_QUERY_KEY });
+    if (REQUEST_EVENTS.includes(event)) {
+      void queryClient.invalidateQueries({ queryKey: MY_REQUESTS_KEY });
+    }
     if (PROFILE_EVENTS.includes(event)) {
       void queryClient.invalidateQueries({ queryKey: PROFILE_QUERY_KEY });
     }
@@ -74,6 +89,7 @@ export function RealtimeSync() {
 
   const refreshAll = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: INVITES_QUERY_KEY });
+    void queryClient.invalidateQueries({ queryKey: MY_REQUESTS_KEY });
     void queryClient.invalidateQueries({ queryKey: NOTIFICATIONS_QUERY_KEY });
     void queryClient.invalidateQueries({ queryKey: CONVERSATIONS_QUERY_KEY });
     void queryClient.invalidateQueries({ queryKey: PROFILE_QUERY_KEY });
