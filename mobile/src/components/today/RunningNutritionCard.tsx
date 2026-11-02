@@ -129,7 +129,7 @@ export function RunningNutritionCard({ plan, today: deviceToday, footer }: Runni
         </View>
       </View>
 
-      <NoteBox plain label={t('nutritionPlan.note.today')} note={todayPlanDay?.day?.note} />
+      <NoteBox label={t('nutritionPlan.note.today')} note={todayPlanDay?.day?.note} />
 
       {showsError(todayLog) ? (
         <View style={styles.logError}>

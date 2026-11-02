@@ -226,7 +226,9 @@ export function MealRow({
           importantForAccessibility={expanded ? 'auto' : 'no-hide-descendants'}
         >
           <View style={styles.body} onLayout={measureBody}>
-            <NoteBox label={t('nutritionPlan.note.meal')} note={note} />
+            <View style={styles.noteFullWidth}>
+              <NoteBox label={t('nutritionPlan.note.meal')} note={note} />
+            </View>
             {items.map((item) => {
               const content = (
                 <>
@@ -355,6 +357,10 @@ const makeStyles = (theme: Theme) =>
       right: 0,
       paddingLeft: theme.sizes.mealIndent,
       paddingBottom: theme.spacing.xxs,
+    },
+    // The meal note spans the whole row like the day note, so it cancels the body's item indent.
+    noteFullWidth: {
+      marginLeft: -theme.sizes.mealIndent,
     },
     itemRow: {
       flexDirection: 'row',

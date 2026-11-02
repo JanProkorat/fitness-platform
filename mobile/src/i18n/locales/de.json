@@ -1544,10 +1544,12 @@
       "partialA11y_other": "{{meal}}: teilweise gegessen, {{done}} von {{count}} Bestandteilen"
     },
     "note": {
-      "day": "Hinweis für diesen Tag",
-      "today": "Hinweis für heute",
+      "day": "Hinweis",
+      "today": "Hinweis",
       "meal": "Hinweis",
-      "mealIcon": "Diese Mahlzeit hat einen Hinweis"
+      "mealIcon": "Diese Mahlzeit hat einen Hinweis",
+      "expand": "Ganzen Hinweis anzeigen",
+      "collapse": "Weniger anzeigen"
     },
     "amount": {
       "portions_one": "{{value}} Portion",

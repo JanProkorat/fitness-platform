@@ -157,7 +157,7 @@ export function DaySummary({ eaten, targets, note, noteLabel }: DaySummaryProps)
       </View>
       {dayNote ? (
         <View style={styles.noteWrap}>
-          <NoteBox plain label={noteLabel ?? t('nutritionPlan.note.day')} note={dayNote} />
+          <NoteBox label={noteLabel ?? t('nutritionPlan.note.day')} note={dayNote} />
         </View>
       ) : null}
     </Card>
