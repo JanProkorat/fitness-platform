@@ -206,7 +206,15 @@
         "web/src/api/clients.ts",
         "web/src/api/client-tags.ts",
         "web/src/api/broadcast.ts",
-        "web/src/api/client-requests.ts"
+        "web/src/api/client-requests.ts",
+        "web/src/components/inbox/invite-review/**",
+        "web/src/components/offer/**",
+        "web/src/components/client-detail/payment/paymentErrors.ts",
+        "web/src/components/client-detail/payment/paymentModel.ts",
+        "web/src/hooks/useClientPaymentQueries.ts",
+        "web/src/hooks/useQuestionnaireQueries.ts",
+        "web/src/api/client-payments.ts",
+        "web/src/api/questionnaires.ts"
       ],
       "endpoints": [
         "GET /trainer/clients",
@@ -216,8 +224,14 @@
         "POST /trainer/client-tags",
         "PUT /trainer/clients/{clientId}/tags",
         "POST /trainer/broadcast",
+        "GET /trainer/client-requests",
         "POST /trainer/client-requests/{publicId}/accept",
-        "POST /trainer/client-requests/{publicId}/reject"
+        "POST /trainer/client-requests/{publicId}/reject",
+        "POST /trainer/client-requests/{publicId}/propose-package",
+        "POST /trainer/client-requests/{publicId}/withdraw-proposal",
+        "GET /trainer/questionnaires",
+        "GET /payments/packages",
+        "GET /payments/discounts"
       ],
       "board": "PageClients",
       "shots": [
@@ -957,7 +971,14 @@
         "web/src/api/training-plan-types.ts",
         "web/src/api/roles.ts",
         "web/src/api/client-tags.ts",
-        "web/src/api/broadcast.ts"
+        "web/src/api/broadcast.ts",
+        "web/src/components/offer/**",
+        "web/src/components/client-detail/payment/paymentErrors.ts",
+        "web/src/components/client-detail/payment/paymentModel.ts",
+        "web/src/hooks/useClientPaymentQueries.ts",
+        "web/src/hooks/useQuestionnaireQueries.ts",
+        "web/src/api/client-payments.ts",
+        "web/src/api/questionnaires.ts"
       ],
       "endpoints": [
         "GET /conversations",
@@ -970,6 +991,11 @@
         "GET /trainer/client-requests",
         "POST /trainer/client-requests/{publicId}/accept",
         "POST /trainer/client-requests/{publicId}/reject",
+        "POST /trainer/client-requests/{publicId}/propose-package",
+        "POST /trainer/client-requests/{publicId}/withdraw-proposal",
+        "GET /trainer/questionnaires",
+        "GET /payments/packages",
+        "GET /payments/discounts",
         "GET /trainer/clients/pending",
         "DELETE /trainer/pending-invites/{id}",
         "GET /trainer/clients/{clientId}",

@@ -83,22 +83,30 @@ export function previewDiscountAmount(
   return Math.round(basePrice * discount.value) / 100;
 }
 
-/** Whether a discount can be combined with a package (scope and currency). */
-export function discountFitsPackage(discount: CoachDiscountDto, pkg: CoachPackageDto | undefined): boolean {
-  if (!pkg) {
-    return false;
-  }
+/** Why a discount cannot be combined with a package: another currency, or a scope that leaves the package out. */
+export type DiscountMismatch = 'currency' | 'scope';
+
+/** The reason a discount does not fit a package, or null when it does. */
+export function discountMismatch(
+  discount: CoachDiscountDto,
+  pkg: CoachPackageDto,
+): DiscountMismatch | null {
   if (discount.type === DiscountType.FixedAmount && discount.currency !== pkg.currency) {
-    return false;
+    return 'currency';
   }
   switch (discount.scope) {
     case DiscountScope.SelectedPackages:
-      return (discount.packageIds ?? []).includes(pkg.packageId ?? '');
+      return (discount.packageIds ?? []).includes(pkg.packageId ?? '') ? null : 'scope';
     case DiscountScope.MonthlyPackages:
-      return pkg.billing === PackageBillingInterval.Monthly;
+      return pkg.billing === PackageBillingInterval.Monthly ? null : 'scope';
     default:
-      return true;
+      return null;
   }
+}
+
+/** Whether a discount can be combined with a package (scope and currency). */
+export function discountFitsPackage(discount: CoachDiscountDto, pkg: CoachPackageDto | undefined): boolean {
+  return pkg !== undefined && discountMismatch(discount, pkg) === null;
 }
 
 /** The terms in force as a one-line summary: "2 500 Kč / month · Friends & family −30 %". */

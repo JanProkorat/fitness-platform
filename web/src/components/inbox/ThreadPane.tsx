@@ -97,8 +97,8 @@ export default function ThreadPane({
     () => (messagesQuery.data?.pages.flatMap((page) => page.items ?? []) ?? []).reverse(),
     [messagesQuery.data],
   );
-  // Accepted/Declined/Withdrawn events are folded into their card, so they are not rendered on their own.
-  const { visible: visibleMessages, followUps } = useMemo(() => foldThreadCards(messages), [messages]);
+  // Accepted/Declined/Withdrawn events are folded into the card they answer, so they are not rendered on their own.
+  const { visible: visibleMessages, followUps, sourceFollowUps } = useMemo(() => foldThreadCards(messages), [messages]);
 
   // Entrance animation: a message is "new" when it sits after the newest message that was
   // known when the thread was opened (or last rendered). Older pages are prepended, so they
@@ -311,7 +311,8 @@ export default function ThreadPane({
                     message={message}
                     isOwn={isOwn}
                     participantName={participant.name ?? ''}
-                    followUp={sourceId ? followUps.get(sourceId) : undefined}
+                    followUp={message.id ? followUps.get(message.id) : undefined}
+                    sourceFollowUp={sourceId ? sourceFollowUps.get(sourceId) : undefined}
                     requestedScope={sourceId && sourceId === cooperation?.sourceId ? cooperation.requestedScope : undefined}
                   />
                 ) : (

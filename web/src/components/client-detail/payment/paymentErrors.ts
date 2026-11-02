@@ -44,25 +44,42 @@ export interface InvitePaymentFailure {
   notEntitled?: boolean;
 }
 
-/** Maps a failed invite create to its payment-specific handling, or null when the failure is not about payments. */
-export function invitePaymentFailure(error: unknown): InvitePaymentFailure | null {
+const INVITE_ERROR_KEYS = 'clients.addClientDrawer.payment.errors';
+const OFFER_ERROR_KEYS = 'offer.errors';
+
+function paymentFailure(error: unknown, keyPrefix: string): InvitePaymentFailure | null {
   const code = paymentErrorCode(error);
   switch (code) {
     case PAYMENTS_NOT_ENTITLED:
-      return { messageKey: 'clients.addClientDrawer.payment.errors.notEntitled', refetch: 'both', notEntitled: true };
+      return { messageKey: `${keyPrefix}.notEntitled`, refetch: 'both', notEntitled: true };
     case PACKAGE_ARCHIVED_CODE:
-      return { messageKey: 'clients.addClientDrawer.payment.errors.packageArchived', refetch: 'both' };
+      return { messageKey: `${keyPrefix}.packageArchived`, refetch: 'both' };
     case DISCOUNT_ARCHIVED_CODE:
-      return { messageKey: 'clients.addClientDrawer.payment.errors.discountArchived', refetch: 'discounts' };
+      return { messageKey: `${keyPrefix}.discountArchived`, refetch: 'discounts' };
     case DISCOUNT_PACKAGE_INVALID_CODE:
     case INVITE_DISCOUNT_NEEDS_PACKAGE_CODE:
-      return { messageKey: 'clients.addClientDrawer.payment.errors.discountInvalid', refetch: 'discounts' };
+      return { messageKey: `${keyPrefix}.discountInvalid`, refetch: 'discounts' };
     case CURRENCY_MISMATCH_CODE:
-      return { messageKey: 'clients.addClientDrawer.payment.errors.currencyMismatch', refetch: 'none' };
+      return { messageKey: `${keyPrefix}.currencyMismatch`, refetch: 'none' };
     default:
       // A bare 404 (no code) means the package or discount was deleted or is not the coach's.
       return code === null && getErrorStatus(error) === 404
-        ? { messageKey: 'clients.addClientDrawer.payment.errors.unavailable', refetch: 'both' }
+        ? { messageKey: `${keyPrefix}.unavailable`, refetch: 'both' }
         : null;
   }
+}
+
+/** Maps a failed invite create to its payment-specific handling, or null when the failure is not about payments. */
+export function invitePaymentFailure(error: unknown): InvitePaymentFailure | null {
+  return paymentFailure(error, INVITE_ERROR_KEYS);
+}
+
+/** The same handling for a failed accept or propose of a client request, with copy that fits the review drawer. */
+export function offerPaymentFailure(error: unknown): InvitePaymentFailure | null {
+  return paymentFailure(error, OFFER_ERROR_KEYS);
+}
+
+/** True when the request was already answered, withdrawn or cancelled elsewhere (409). */
+export function isRequestStateConflict(error: unknown): boolean {
+  return paymentErrorCode(error) === 'CLIENT_REQUEST_INVALID_STATE';
 }

@@ -586,16 +586,22 @@
       "columnName": "Name",
       "columnEmail": "Email",
       "columnType": "Type",
+      "columnPackage": "Package",
       "columnSentAt": "Sent",
-      "kindInvite": "Invite sent",
-      "kindRequest": "Request received",
+      "kindInvite": "Your invite",
+      "kindRequest": "Client invite",
       "empty": "No pending invites or requests.",
       "accept": "Accept",
       "reject": "Decline",
       "cancel": "Cancel invite",
       "columnMessage": "Message",
       "newMarker": "New",
-      "waitingFor": "Waiting for {{name}} to accept"
+      "waitingFor": "Waiting for {{name}} to accept",
+      "noPackage": "—",
+      "proposed": "proposed",
+      "proposedWaiting": "You proposed a package · waiting for {{name}}",
+      "viewInvite": "View invite",
+      "withdraw": "Withdraw"
     },
     "tags": {
       "createError": "Couldn't create the tag. Please try again.",
@@ -1068,6 +1074,103 @@
         "generic": "Failed to load your profile. Please try again.",
         "retry": "Try again"
       }
+    }
+  },
+  "inviteReview": {
+    "title": "Client invite",
+    "description": "Review the request and answer it.",
+    "unavailable": "This invite is no longer available. It may have been answered or withdrawn.",
+    "about": "About {{name}}",
+    "history": "History shared · {{plans}} · {{measurements}} · {{photos}}",
+    "historyPlans_one": "{{count}} plan",
+    "historyPlans_other": "{{count}} plans",
+    "historyMeasurements_one": "{{count}} measurement",
+    "historyMeasurements_other": "{{count}} measurements",
+    "historyPhotos_one": "{{count}} photo",
+    "historyPhotos_other": "{{count}} photos",
+    "yourOffer": "Your offer",
+    "wants": {
+      "training": "Wants training",
+      "nutrition": "Wants nutrition coaching",
+      "both": "Wants to work with you"
+    },
+    "sent": "Invite · sent {{when}}",
+    "invite": "Invite",
+    "clientChoice": "{{name}}'s choice",
+    "billingStarts": "Billing starts the day you accept.",
+    "proposeHint": "{{name}} didn't choose one. Pick one to propose, or No package to accept without it.",
+    "noPackageHint": "You accept {{name}} without a package. You can set up payments later.",
+    "waitingFor": "Waiting for {{name}} to accept your package",
+    "accept": "Accept",
+    "acceptWithoutPackage": "Accept without package",
+    "proposePackage": "Propose package",
+    "decline": "Decline",
+    "withdraw": "Withdraw proposal"
+  },
+  "offer": {
+    "package": "Package",
+    "noPackage": "No package",
+    "decideLater": "Decide later",
+    "optional": "· optional",
+    "pays": "{{name}} pays",
+    "paysFirst_one": "{{amount}} for the first payment",
+    "paysFirst_other": "{{amount}} for the first {{count}} payments",
+    "paysThen": "then {{amount}} {{suffix}}",
+    "loadError": "Your packages couldn't be loaded.",
+    "noPackages": "You have no packages yet.",
+    "createPackage": "Create a package",
+    "proposeSuccess": "Package proposed.",
+    "proposeError": "Couldn't send the proposal. Please try again.",
+    "withdrawSuccess": "Proposal withdrawn.",
+    "withdrawError": "Couldn't withdraw the proposal. It may already have been answered.",
+    "billingLong": {
+      "monthly": "Every month",
+      "everyWeeks_one": "Every week",
+      "everyWeeks_other": "Every {{count}} weeks",
+      "oneOff": "One-off"
+    },
+    "discount": {
+      "add": "Add discount",
+      "remove": "Remove discount",
+      "title": "Discount",
+      "forPackage": "Active discounts for {{name}}",
+      "none": "You have no active discounts.",
+      "manage": "Manage discounts",
+      "duration": {
+        "every": "Every payment",
+        "firstOne": "First payment only",
+        "firstMany": "First {{count}} payments"
+      },
+      "reason": {
+        "currency": "Fixed amount in {{currency}}, not for this package",
+        "scope": "Doesn't apply to this package"
+      }
+    },
+    "form": {
+      "label": "Onboarding form",
+      "none": "No form",
+      "questions_one": "{{count}} question",
+      "questions_other": "{{count}} questions",
+      "change": "Change",
+      "loadError": "Forms couldn't be loaded",
+      "defaultHint": "Sent to every new client after they accept",
+      "noneOption": "None",
+      "noneHint": "Skip the form for {{name}}",
+      "new": "New form",
+      "manage": "Manage forms"
+    },
+    "message": {
+      "title": "Message to {{name}}",
+      "placeholder": "Write a few words to {{name}}…",
+      "tooLong": "The message can be at most {{max}} characters."
+    },
+    "errors": {
+      "notEntitled": "Payments aren't part of your plan. Accept without a package instead.",
+      "packageArchived": "That package was archived. Pick another one, or none.",
+      "discountArchived": "That discount was archived. Pick another one, or none.",
+      "discountInvalid": "That discount doesn't apply to the chosen package. Pick another one.",
+      "currencyMismatch": "A fixed-amount discount must be in the same currency as the package.",
+      "unavailable": "That package or discount is no longer available. The lists were refreshed."
     }
   },
   "invite": {
@@ -2976,6 +3079,8 @@
     "COLLABORATOR_NOT_FOUND": "Collaborator not found.",
     "PLAN_NOT_DRAFT": "Only draft plans can be published.",
     "COACH_ROLE_REMOVED": "You removed this coach role, so its plans, templates and library items are read-only. A plan in progress can still be adjusted until it ends, but not extended. Add the role back in Settings to edit again.",
+    "CLIENT_REQUEST_INVALID_STATE": "This request was already answered or withdrawn. The lists were refreshed.",
+    "CHECKIN_FORM_NOT_SENDABLE": "A check-in form cannot be sent as an onboarding form. Pick another one.",
     "START_DATE_NOT_MONDAY": "Start date must be a Monday.",
     "START_DATE_IN_PAST": "Start date cannot be in the past.",
     "START_DATE_LOCKED": "Start date cannot be changed after it has arrived.",
@@ -4855,12 +4960,15 @@
         "own": "You declined {{name}}'s request",
         "other": "{{name}} declined your invitation"
       },
-      "withdrawn": "The collaboration offer was withdrawn"
+      "withdrawn": "The collaboration offer was withdrawn",
+      "proposalSent": "You proposed a package to {{name}}"
     },
     "panel": {
       "loadError": "Couldn't load the details.",
       "pendingChip": "Pending",
-      "pendingLine": "Not a client yet · accept the request to start coaching",
+      "pendingLine": "Not a client yet · open the invite to respond",
+      "proposalSentChip": "Proposal sent",
+      "proposalSentLine": "Not a client yet · waiting for {{name}} to accept your package",
       "invitedChip": "Invited",
       "invitedLine": "Not a client yet · waiting for {{name}} to accept",
       "notAClient": "Not a client",
@@ -4917,7 +5025,28 @@
         "decline": "Decline",
         "youAccepted": "You accepted",
         "youDeclined": "You declined",
-        "clientCancelled": "{{name}} cancelled"
+        "clientCancelled": "{{name}} cancelled",
+        "package": "Package",
+        "packageNotChosen": "Not chosen",
+        "viewInvite": "View invite",
+        "clientAcceptedProposal": "{{name}} accepted your proposal",
+        "clientDeclinedProposal": "{{name}} declined your proposal"
+      },
+      "proposal": {
+        "title": "Package proposal",
+        "youProposed": "You proposed {{name}}",
+        "sent": "sent {{when}}",
+        "label": {
+          "waiting": "Waiting for the client",
+          "accepted": "Proposal accepted",
+          "declined": "Proposal declined",
+          "withdrawn": "Proposal withdrawn"
+        },
+        "waitingFor": "Waiting for {{name}} to accept",
+        "accepted": "{{name}} accepted",
+        "declined": "{{name}} declined",
+        "youWithdrew": "You withdrew it",
+        "withdraw": "Withdraw"
       },
       "invite": {
         "label": {

@@ -610,16 +610,22 @@
       "columnName": "Jméno",
       "columnEmail": "E-mail",
       "columnType": "Typ",
+      "columnPackage": "Balíček",
       "columnSentAt": "Odesláno",
-      "kindInvite": "Pozvánka odeslána",
-      "kindRequest": "Přijata žádost",
+      "kindInvite": "Vaše pozvánka",
+      "kindRequest": "Pozvánka od klienta",
       "empty": "Žádné čekající pozvánky ani žádosti.",
       "accept": "Přijmout",
       "reject": "Odmítnout",
       "cancel": "Zrušit pozvánku",
       "columnMessage": "Zpráva",
       "newMarker": "Nové",
-      "waitingFor": "Čeká se, až {{name}} přijme"
+      "waitingFor": "Čeká se, až {{name}} přijme",
+      "noPackage": "—",
+      "proposed": "navrženo",
+      "proposedWaiting": "Navrhli jste balíček · čeká se na {{name}}",
+      "viewInvite": "Zobrazit pozvánku",
+      "withdraw": "Stáhnout"
     },
     "tags": {
       "createError": "Štítek se nepodařilo vytvořit. Zkuste to prosím znovu.",
@@ -1107,6 +1113,115 @@
         "generic": "Profil se nepodařilo načíst. Zkuste to prosím znovu.",
         "retry": "Zkusit znovu"
       }
+    }
+  },
+  "inviteReview": {
+    "title": "Pozvánka od klienta",
+    "description": "Projděte žádost a odpovězte na ni.",
+    "unavailable": "Tato pozvánka už není k dispozici. Možná na ni bylo odpovězeno nebo byla stažena.",
+    "about": "Informace o klientovi",
+    "history": "Sdílená historie · {{plans}} · {{measurements}} · {{photos}}",
+    "historyPlans_one": "{{count}} plán",
+    "historyPlans_few": "{{count}} plány",
+    "historyPlans_many": "{{count}} plánu",
+    "historyPlans_other": "{{count}} plánů",
+    "historyMeasurements_one": "{{count}} měření",
+    "historyMeasurements_few": "{{count}} měření",
+    "historyMeasurements_many": "{{count}} měření",
+    "historyMeasurements_other": "{{count}} měření",
+    "historyPhotos_one": "{{count}} fotka",
+    "historyPhotos_few": "{{count}} fotky",
+    "historyPhotos_many": "{{count}} fotky",
+    "historyPhotos_other": "{{count}} fotek",
+    "yourOffer": "Vaše nabídka",
+    "wants": {
+      "training": "Chce trénovat",
+      "nutrition": "Chce nutriční poradenství",
+      "both": "Chce s vámi spolupracovat"
+    },
+    "sent": "Pozvánka · odesláno {{when}}",
+    "invite": "Pozvánka",
+    "clientChoice": "Volba klienta",
+    "billingStarts": "Fakturace začíná dnem přijetí.",
+    "proposeHint": "{{name}} žádný balíček nevybral(a). Vyberte balíček k návrhu, nebo „Bez balíčku“ a přijměte bez něj.",
+    "noPackageHint": "Přijmete klienta bez balíčku. Platby můžete nastavit později.",
+    "waitingFor": "Čeká se, až {{name}} přijme váš balíček",
+    "accept": "Přijmout",
+    "acceptWithoutPackage": "Přijmout bez balíčku",
+    "proposePackage": "Navrhnout balíček",
+    "decline": "Odmítnout",
+    "withdraw": "Stáhnout návrh"
+  },
+  "offer": {
+    "package": "Balíček",
+    "noPackage": "Bez balíčku",
+    "decideLater": "Rozhodnout později",
+    "optional": "· nepovinné",
+    "pays": "{{name}} zaplatí",
+    "paysFirst_one": "{{amount}} za první platbu",
+    "paysFirst_few": "{{amount}} za první {{count}} platby",
+    "paysFirst_many": "{{amount}} za prvních {{count}} plateb",
+    "paysFirst_other": "{{amount}} za prvních {{count}} plateb",
+    "paysThen": "poté {{amount}} {{suffix}}",
+    "loadError": "Balíčky se nepodařilo načíst.",
+    "noPackages": "Zatím nemáte žádné balíčky.",
+    "createPackage": "Vytvořit balíček",
+    "proposeSuccess": "Balíček byl navržen.",
+    "proposeError": "Návrh se nepodařilo odeslat. Zkuste to prosím znovu.",
+    "withdrawSuccess": "Návrh byl stažen.",
+    "withdrawError": "Návrh se nepodařilo stáhnout. Možná už na něj bylo odpovězeno.",
+    "billingLong": {
+      "monthly": "Každý měsíc",
+      "everyWeeks_one": "Každý týden",
+      "everyWeeks_few": "Každé {{count}} týdny",
+      "everyWeeks_many": "Každého {{count}} týdne",
+      "everyWeeks_other": "Každých {{count}} týdnů",
+      "oneOff": "Jednorázově"
+    },
+    "discount": {
+      "add": "Přidat slevu",
+      "remove": "Odebrat slevu",
+      "title": "Sleva",
+      "forPackage": "Aktivní slevy pro {{name}}",
+      "none": "Nemáte žádné aktivní slevy.",
+      "manage": "Spravovat slevy",
+      "duration": {
+        "every": "Každá platba",
+        "firstOne": "Pouze první platba",
+        "firstMany": "Prvních {{count}} plateb"
+      },
+      "reason": {
+        "currency": "Pevná částka v {{currency}}, nelze pro tento balíček",
+        "scope": "Pro tento balíček neplatí"
+      }
+    },
+    "form": {
+      "label": "Úvodní formulář",
+      "none": "Bez formuláře",
+      "questions_one": "{{count}} otázka",
+      "questions_few": "{{count}} otázky",
+      "questions_many": "{{count}} otázky",
+      "questions_other": "{{count}} otázek",
+      "change": "Změnit",
+      "loadError": "Formuláře se nepodařilo načíst",
+      "defaultHint": "Odešle se každému novému klientovi po přijetí",
+      "noneOption": "Žádný",
+      "noneHint": "Formulář klientovi neposílat",
+      "new": "Nový formulář",
+      "manage": "Spravovat formuláře"
+    },
+    "message": {
+      "title": "Zpráva klientovi",
+      "placeholder": "Napište klientovi pár slov…",
+      "tooLong": "Zpráva může mít nejvýše {{max}} znaků."
+    },
+    "errors": {
+      "notEntitled": "Platby nejsou součástí vašeho tarifu. Přijměte raději bez balíčku.",
+      "packageArchived": "Tento balíček je archivovaný. Vyberte jiný, nebo žádný.",
+      "discountArchived": "Tato sleva je archivovaná. Vyberte jinou, nebo žádnou.",
+      "discountInvalid": "Tato sleva se na vybraný balíček nevztahuje. Vyberte jinou.",
+      "currencyMismatch": "Sleva s pevnou částkou musí být ve stejné měně jako balíček.",
+      "unavailable": "Balíček nebo sleva už není k dispozici. Seznamy jsme obnovili."
     }
   },
   "invite": {
@@ -3070,6 +3185,8 @@
     "COLLABORATOR_NOT_FOUND": "Spolupracovník nebyl nalezen.",
     "PLAN_NOT_DRAFT": "Publikovat lze pouze plány ve stavu konceptu.",
     "COACH_ROLE_REMOVED": "Tuto roli jste odebrali, proto jsou její plány, šablony a položky knihovny jen pro čtení. Rozběhnutý plán lze do konce upravovat, ale nelze ho prodloužit. Po opětovném přidání role v Nastavení půjde znovu upravovat.",
+    "CLIENT_REQUEST_INVALID_STATE": "Na tuto žádost už bylo odpovězeno nebo byla stažena. Seznamy jsme obnovili.",
+    "CHECKIN_FORM_NOT_SENDABLE": "Formulář týdenní kontroly nelze poslat jako úvodní formulář. Vyberte jiný.",
     "START_DATE_NOT_MONDAY": "Datum zahájení musí být pondělí.",
     "START_DATE_IN_PAST": "Datum zahájení nemůže být v minulosti.",
     "START_DATE_LOCKED": "Datum zahájení nelze změnit poté, co nastalo.",
@@ -5013,12 +5130,15 @@
         "own": "Odmítli jste žádost od {{name}}",
         "other": "{{name}} odmítl/a vaši pozvánku"
       },
-      "withdrawn": "Nabídka spolupráce byla zrušena"
+      "withdrawn": "Nabídka spolupráce byla zrušena",
+      "proposalSent": "Navrhli jste balíček · {{name}}"
     },
     "panel": {
       "loadError": "Podrobnosti se nepodařilo načíst.",
       "pendingChip": "Čeká na vyřízení",
-      "pendingLine": "Zatím není klient · přijměte žádost a začněte spolupráci",
+      "pendingLine": "Zatím není klient · otevřete pozvánku a odpovězte",
+      "proposalSentChip": "Návrh odeslán",
+      "proposalSentLine": "Zatím není klient · čeká se, až {{name}} přijme váš balíček",
       "invitedChip": "Pozván(a)",
       "invitedLine": "Zatím není klient · čeká se, až {{name}} přijme",
       "notAClient": "Není klient",
@@ -5079,7 +5199,28 @@
         "decline": "Odmítnout",
         "youAccepted": "Přijali jste",
         "youDeclined": "Odmítli jste",
-        "clientCancelled": "{{name}} zrušil(a)"
+        "clientCancelled": "{{name}} zrušil(a)",
+        "package": "Balíček",
+        "packageNotChosen": "Nezvolen",
+        "viewInvite": "Zobrazit pozvánku",
+        "clientAcceptedProposal": "{{name}} přijal(a) váš návrh",
+        "clientDeclinedProposal": "{{name}} odmítl(a) váš návrh"
+      },
+      "proposal": {
+        "title": "Návrh balíčku",
+        "youProposed": "Navrhli jste balíček {{name}}",
+        "sent": "odesláno {{when}}",
+        "label": {
+          "waiting": "Čeká se na klienta",
+          "accepted": "Návrh přijat",
+          "declined": "Návrh odmítnut",
+          "withdrawn": "Návrh stažen"
+        },
+        "waitingFor": "Čeká se, až {{name}} přijme",
+        "accepted": "{{name}} přijal(a)",
+        "declined": "{{name}} odmítl(a)",
+        "youWithdrew": "Stáhli jste ho",
+        "withdraw": "Stáhnout"
       },
       "invite": {
         "label": {

@@ -12,9 +12,16 @@ import {
 } from '@/api/client-tags';
 import { broadcastMessage, type BroadcastMessageRequest } from '@/api/broadcast';
 import { createPendingInvite, deletePendingInvite, type CreatePendingInviteRequest } from '@/api/pending-invites';
-import { acceptClientRequest, getIncomingRequests, rejectClientRequest } from '@/api/client-requests';
+import {
+  acceptClientRequest,
+  getIncomingRequests,
+  proposeClientRequestPackage,
+  rejectClientRequest,
+  withdrawClientRequestProposal,
+  type ProposeClientRequestPackageRequest,
+} from '@/api/client-requests';
 import { paymentDiscountsKey, paymentPackagesKey } from '@/hooks/useClientPaymentQueries';
-import { invitePaymentFailure } from '@/components/client-detail/payment/paymentErrors';
+import { invitePaymentFailure, offerPaymentFailure } from '@/components/client-detail/payment/paymentErrors';
 import { showApiError, showError, showSuccess } from '@/lib/api-errors';
 import type { ClientListFilters, ClientListTab } from '@/hooks/useClientListParams';
 
@@ -307,23 +314,84 @@ export interface AcceptClientRequestVariables {
   publicId: string;
   questionnairePublicId?: string | null;
   statement?: string;
+  /** A discount applied to the package the client attached to the request. */
+  discountPublicId?: string | null;
 }
 
-/** Accepts an incoming client request from the Pending tab. */
+/**
+ * Handles a failed accept or propose. A stale package or discount refetches its picker list and
+ * shows the drawer's own copy; anything else (request no longer open, form not sendable, role
+ * removed) shows the matching API error, and the request lists refetch so rows and cards settle.
+ */
+function handleOfferError(queryClient: ReturnType<typeof useQueryClient>, error: unknown, fallbackKey: string) {
+  queryClient.invalidateQueries({ queryKey: ['clients'] });
+  invalidateInbox(queryClient);
+  const failure = offerPaymentFailure(error);
+  if (failure) {
+    if (failure.refetch === 'packages' || failure.refetch === 'both') {
+      queryClient.invalidateQueries({ queryKey: paymentPackagesKey });
+    }
+    if (failure.refetch === 'discounts' || failure.refetch === 'both') {
+      queryClient.invalidateQueries({ queryKey: paymentDiscountsKey });
+    }
+    showError(failure.messageKey);
+    return;
+  }
+  showApiError(error, fallbackKey);
+}
+
+/** Accepts an incoming client request, optionally with a discount on the package the client chose. */
 export function useAcceptClientRequest() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (variables: AcceptClientRequestVariables) =>
-      acceptClientRequest(variables.publicId, variables.questionnairePublicId, variables.statement),
+      acceptClientRequest(variables.publicId, {
+        questionnairePublicId: variables.questionnairePublicId,
+        statement: variables.statement,
+        discountPublicId: variables.discountPublicId,
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
       invalidateInbox(queryClient);
     },
-    onError: (error) => {
-      // The row may already be gone (cancelled or handled elsewhere) — refetch so it disappears.
-      queryClient.invalidateQueries({ queryKey: ['clients', 'pending'] });
+    onError: (error) => handleOfferError(queryClient, error, 'clients.pending.acceptError'),
+  });
+}
+
+export interface ProposeClientRequestPackageVariables extends ProposeClientRequestPackageRequest {
+  publicId: string;
+}
+
+/** Proposes one of the coach's packages on a request that has none. */
+export function useProposeClientRequestPackage() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ publicId, ...body }: ProposeClientRequestPackageVariables) =>
+      proposeClientRequestPackage(publicId, body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
       invalidateInbox(queryClient);
-      showApiError(error, 'clients.pending.acceptError');
+      showSuccess('offer.proposeSuccess');
+    },
+    onError: (error) => handleOfferError(queryClient, error, 'offer.proposeError'),
+  });
+}
+
+/** Takes back a package proposal that still waits for the client. */
+export function useWithdrawClientRequestProposal() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (publicId: string) => withdrawClientRequestProposal(publicId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      invalidateInbox(queryClient);
+      showSuccess('offer.withdrawSuccess');
+    },
+    onError: (error) => {
+      // The client may have answered first (409): refetch so the card and row show the real state.
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      invalidateInbox(queryClient);
+      showApiError(error, 'offer.withdrawError');
     },
   });
 }
