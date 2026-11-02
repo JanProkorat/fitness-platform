@@ -144,7 +144,7 @@ public class StartConversationEndpoint(
                 .AnyAsync(r =>
                     r.ClientProfile.UserId == clientUserId &&
                     r.ProfessionalProfile.UserId == professionalUserId &&
-                    r.Status == ClientRequestStatus.Pending, ct);
+                    (r.Status == ClientRequestStatus.Pending || r.Status == ClientRequestStatus.PackageProposed), ct);
 
             if (!hasPendingJoinRequest)
             {

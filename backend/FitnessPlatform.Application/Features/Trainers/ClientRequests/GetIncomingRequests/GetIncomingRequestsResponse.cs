@@ -42,6 +42,48 @@ public class IncomingClientRequestDto
 
     /// <summary>Counts of the client's history; null unless <see cref="ShareHistory"/> is true.</summary>
     public IncomingRequestHistoryDto? History { get; set; }
+
+    /// <summary><see cref="ClientRequestStatus.Pending"/>, or <see cref="ClientRequestStatus.PackageProposed"/> while a proposal waits for the client.</summary>
+    public ClientRequestStatus Status { get; set; }
+
+    /// <summary>The coach's open package proposal; null unless <see cref="Status"/> is PackageProposed.</summary>
+    public IncomingRequestProposalDto? Proposal { get; set; }
+}
+
+/// <summary>
+/// A package the coach proposed on an incoming request.
+/// </summary>
+public class IncomingRequestProposalDto
+{
+    /// <summary>When the proposal was sent (UTC).</summary>
+    public DateTime ProposedAt { get; set; }
+
+    /// <summary>The proposed package.</summary>
+    public IncomingRequestPackageDto Package { get; set; } = new();
+
+    /// <summary>The proposed discount; null when none.</summary>
+    public IncomingRequestDiscountDto? Discount { get; set; }
+}
+
+/// <summary>
+/// The discount of a package proposal.
+/// </summary>
+public class IncomingRequestDiscountDto
+{
+    /// <summary>Public id of the discount.</summary>
+    public Guid PublicId { get; set; }
+
+    /// <summary>Display name of the discount.</summary>
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary>Whether <see cref="Value"/> is a percentage or a fixed amount.</summary>
+    public DiscountType Type { get; set; }
+
+    /// <summary>The percentage or the fixed amount taken off the price.</summary>
+    public decimal Value { get; set; }
+
+    /// <summary>Currency of a fixed amount; null for a percentage.</summary>
+    public PaymentCurrency? Currency { get; set; }
 }
 
 /// <summary>

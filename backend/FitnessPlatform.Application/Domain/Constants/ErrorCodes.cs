@@ -212,6 +212,9 @@ public static class ErrorCodes
     /// <summary>A pending request already exists for this professional.</summary>
     public const string RequestAlreadyPending = "REQUEST_ALREADY_PENDING";
 
+    /// <summary>The client request is not in the state the action needs (for example a package proposal that is no longer open).</summary>
+    public const string ClientRequestInvalidState = "CLIENT_REQUEST_INVALID_STATE";
+
     /// <summary>Professional is not accepting new clients.</summary>
     public const string ProfessionalNotAccepting = "PROFESSIONAL_NOT_ACCEPTING";
 

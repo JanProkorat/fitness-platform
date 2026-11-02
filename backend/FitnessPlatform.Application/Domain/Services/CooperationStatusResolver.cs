@@ -66,6 +66,8 @@ public static class CooperationStatusResolver
                 ClientRequestStatus.Accepted => CooperationCardStatus.Accepted,
                 ClientRequestStatus.Rejected => CooperationCardStatus.Declined,
                 ClientRequestStatus.Cancelled => CooperationCardStatus.Cancelled,
+                ClientRequestStatus.ProposalDeclined => CooperationCardStatus.Declined,
+                ClientRequestStatus.PackageProposed => CooperationCardStatus.Pending,
                 _ => CooperationCardStatus.Pending,
             };
 

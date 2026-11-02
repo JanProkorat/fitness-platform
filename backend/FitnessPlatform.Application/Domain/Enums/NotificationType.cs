@@ -72,5 +72,17 @@ public enum NotificationType
     PaymentRequested,
 
     /// <summary>A client's offline-synced action collided with a plan change; delivered to the plan's author.</summary>
-    OfflineSyncConflict
+    OfflineSyncConflict,
+
+    /// <summary>A coach proposed a package on the client's request; delivered to the client.</summary>
+    ClientRequestPackageProposed,
+
+    /// <summary>A client accepted the coach's package proposal; delivered to the coach.</summary>
+    ClientRequestProposalAccepted,
+
+    /// <summary>A client declined the coach's package proposal; delivered to the coach.</summary>
+    ClientRequestProposalDeclined,
+
+    /// <summary>A coach withdrew their package proposal; delivered to the client.</summary>
+    ClientRequestProposalWithdrawn
 }

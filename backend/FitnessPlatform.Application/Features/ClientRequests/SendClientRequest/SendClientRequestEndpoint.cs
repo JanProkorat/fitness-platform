@@ -108,7 +108,7 @@ public class SendClientRequestEndpoint(
         var existingRequest = await db.ClientRequests
             .AnyAsync(r => r.ClientProfileId == clientProfile.Id
                         && r.ProfessionalProfileId == professionalProfile.Id
-                        && r.Status == ClientRequestStatus.Pending, ct);
+                        && (r.Status == ClientRequestStatus.Pending || r.Status == ClientRequestStatus.PackageProposed), ct);
 
         if (existingRequest)
         {

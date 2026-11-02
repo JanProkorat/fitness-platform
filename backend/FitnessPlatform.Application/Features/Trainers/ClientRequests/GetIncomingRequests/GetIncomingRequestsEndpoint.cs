@@ -21,7 +21,8 @@ public class GetIncomingRequestsEndpoint(IApplicationDbContext db, IMongoContext
         Summary(s =>
         {
             s.Summary = "Get incoming client requests";
-            s.Description = "Returns all pending client requests for the authenticated professional.";
+            s.Description = "Returns all open client requests for the authenticated professional: pending ones, and ones " +
+                "where the coach proposed a package and waits for the client's answer (Status PackageProposed, with Proposal).";
         });
     }
 
@@ -52,11 +53,37 @@ public class GetIncomingRequestsEndpoint(IApplicationDbContext db, IMongoContext
         var rows = await db.ClientRequests
             .AsNoTracking()
             .Where(r => r.ProfessionalProfileId == professionalProfile.Id
-                     && r.Status == ClientRequestStatus.Pending)
+                     && (r.Status == ClientRequestStatus.Pending || r.Status == ClientRequestStatus.PackageProposed))
             .OrderByDescending(r => r.SentAt)
             .Select(r => new
             {
                 r.PublicId,
+                r.Status,
+                Proposal = r.Status == ClientRequestStatus.PackageProposed && r.ProposedPackage != null
+                    ? new IncomingRequestProposalDto
+                    {
+                        ProposedAt = r.ProposedAt ?? r.SentAt,
+                        Package = new IncomingRequestPackageDto
+                        {
+                            PublicId = r.ProposedPackage.PublicId,
+                            Name = r.ProposedPackage.Name,
+                            Billing = r.ProposedPackage.Billing,
+                            IntervalWeeks = r.ProposedPackage.IntervalWeeks,
+                            Price = r.ProposedPackage.Price,
+                            Currency = r.ProposedPackage.Currency,
+                        },
+                        Discount = r.ProposedDiscount == null
+                            ? null
+                            : new IncomingRequestDiscountDto
+                            {
+                                PublicId = r.ProposedDiscount.PublicId,
+                                Name = r.ProposedDiscount.Name,
+                                Type = r.ProposedDiscount.Type,
+                                Value = r.ProposedDiscount.Value,
+                                Currency = r.ProposedDiscount.Currency,
+                            },
+                    }
+                    : null,
                 ClientPublicId = r.ClientProfile.PublicId,
                 FirstName = r.ClientProfile.User.FirstName,
                 LastName = r.ClientProfile.User.LastName,
@@ -99,6 +126,8 @@ public class GetIncomingRequestsEndpoint(IApplicationDbContext db, IMongoContext
         var requests = rows.Select(r => new IncomingClientRequestDto
         {
             Package = r.Package,
+            Status = r.Status,
+            Proposal = r.Proposal,
             ShareHistory = r.ShareHistory,
             History = r.ShareHistory && counts.TryGetValue(r.ClientProfileId, out var history)
                 ? new IncomingRequestHistoryDto

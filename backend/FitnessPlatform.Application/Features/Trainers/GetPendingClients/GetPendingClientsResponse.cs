@@ -59,6 +59,47 @@ public class PendingClientRow
 
     /// <summary>History counts; null unless this is a request row with <see cref="ShareHistory"/> true.</summary>
     public PendingRowHistoryDto? History { get; set; }
+
+    /// <summary>
+    /// The coach's package proposal waiting for the client's answer; null for invites and for requests without one.
+    /// </summary>
+    public PendingRowProposalDto? Proposal { get; set; }
+}
+
+/// <summary>
+/// A package the coach proposed on a request row.
+/// </summary>
+public class PendingRowProposalDto
+{
+    /// <summary>When the proposal was sent (UTC).</summary>
+    public DateTime ProposedAt { get; set; }
+
+    /// <summary>The proposed package.</summary>
+    public PendingRowPackageDto Package { get; set; } = new();
+
+    /// <summary>The proposed discount; null when none.</summary>
+    public PendingRowDiscountDto? Discount { get; set; }
+}
+
+/// <summary>
+/// The discount of a package proposal.
+/// </summary>
+public class PendingRowDiscountDto
+{
+    /// <summary>Public id of the discount.</summary>
+    public Guid PublicId { get; set; }
+
+    /// <summary>Display name of the discount.</summary>
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary>Whether <see cref="Value"/> is a percentage or a fixed amount.</summary>
+    public DiscountType Type { get; set; }
+
+    /// <summary>The percentage or the fixed amount taken off the price.</summary>
+    public decimal Value { get; set; }
+
+    /// <summary>Currency of a fixed amount; null for a percentage.</summary>
+    public PaymentCurrency? Currency { get; set; }
 }
 
 /// <summary>

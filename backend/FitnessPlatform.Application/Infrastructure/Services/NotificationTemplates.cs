@@ -121,6 +121,15 @@ public static class NotificationTemplates
 
             [Key(NotificationType.OfflineSyncConflict)] =
                 new("Offline changes need a look", "{clientName} synced {count} offline action(s) that no longer match the plan \"{planName}\"."),
+
+            [Key(NotificationType.ClientRequestPackageProposed)] =
+                new("Package proposal", "{profName} proposed a package for your collaboration."),
+            [Key(NotificationType.ClientRequestProposalAccepted)] =
+                new("Proposal accepted", "{clientName} accepted your package proposal."),
+            [Key(NotificationType.ClientRequestProposalDeclined)] =
+                new("Proposal declined", "{clientName} declined your package proposal."),
+            [Key(NotificationType.ClientRequestProposalWithdrawn)] =
+                new("Proposal withdrawn", "{profName} withdrew the package proposal."),
         },
         ["cs"] = new()
         {
@@ -195,6 +204,15 @@ public static class NotificationTemplates
 
             [Key(NotificationType.OfflineSyncConflict)] =
                 new("Offline změny ke kontrole", "{clientName} nahrál(a) offline akce ({count}), které už neodpovídají jídelníčku \"{planName}\". Podívejte se na ně."),
+
+            [Key(NotificationType.ClientRequestPackageProposed)] =
+                new("Návrh balíčku", "{profName} vám navrhl(a) balíček pro vaši spolupráci."),
+            [Key(NotificationType.ClientRequestProposalAccepted)] =
+                new("Návrh přijat", "{clientName} přijal(a) váš návrh balíčku."),
+            [Key(NotificationType.ClientRequestProposalDeclined)] =
+                new("Návrh odmítnut", "{clientName} odmítl(a) váš návrh balíčku."),
+            [Key(NotificationType.ClientRequestProposalWithdrawn)] =
+                new("Návrh stažen", "{profName} stáhl(a) návrh balíčku."),
         },
         ["de"] = new()
         {
@@ -269,6 +287,15 @@ public static class NotificationTemplates
 
             [Key(NotificationType.OfflineSyncConflict)] =
                 new("Offline-Änderungen prüfen", "{clientName} hat {count} Offline-Aktion(en) synchronisiert, die nicht mehr zum Plan \"{planName}\" passen. Bitte prüfen Sie diese."),
+
+            [Key(NotificationType.ClientRequestPackageProposed)] =
+                new("Paketvorschlag", "{profName} hat Ihnen ein Paket für Ihre Zusammenarbeit vorgeschlagen."),
+            [Key(NotificationType.ClientRequestProposalAccepted)] =
+                new("Vorschlag angenommen", "{clientName} hat Ihren Paketvorschlag angenommen."),
+            [Key(NotificationType.ClientRequestProposalDeclined)] =
+                new("Vorschlag abgelehnt", "{clientName} hat Ihren Paketvorschlag abgelehnt."),
+            [Key(NotificationType.ClientRequestProposalWithdrawn)] =
+                new("Vorschlag zurückgezogen", "{profName} hat den Paketvorschlag zurückgezogen."),
         },
     };
 
