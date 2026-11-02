@@ -30,6 +30,9 @@ public class GetFullPlanEndpoint(IMongoContext mongo, IApplicationDbContext db, 
         {
             s.Summary = "Get full nutrition plan";
             s.Description = "Returns all published weeks of the client's active nutrition plan for mobile browsing.";
+            s.Responses[StatusCodes.Status200OK] = "Nutrition plan with its published weeks and eaten state";
+            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
+            s.Responses[StatusCodes.Status404NotFound] = "Client profile or active plan with a published week not found";
         });
     }
 
@@ -85,15 +88,13 @@ public class GetFullPlanEndpoint(IMongoContext mongo, IApplicationDbContext db, 
             return;
         }
 
-        // Fetch all meal logs for this plan to determine which meals have been eaten
-        var eatenMealIds = await mongo.MealLogs
+        // Every row of the plan: a partly eaten row has no EatenAt, so the state is derived from the items.
+        var mealRows = await mongo.MealLogs
             .Find(Builders<MealLog>.Filter.And(
                 Builders<MealLog>.Filter.Eq(m => m.ClientId, clientId),
-                Builders<MealLog>.Filter.Eq(m => m.PlanId, plan.ExternalId),
-                Builders<MealLog>.Filter.Ne(m => m.EatenAt, null)))
-            .Project(m => m.MealId)
+                Builders<MealLog>.Filter.Eq(m => m.PlanId, plan.ExternalId)))
             .ToListAsync(ct);
 
-        await Send.OkAsync(GetFullPlanResponse.FromPlan(plan, todayLocalUtc, eatenMealIds), ct);
+        await Send.OkAsync(GetFullPlanResponse.FromPlan(plan, todayLocalUtc, MealLogMerger.MergeForPlan(mealRows, plan)), ct);
     }
 }

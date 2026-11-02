@@ -2,8 +2,10 @@ using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using MongoDB.Driver;
@@ -30,6 +32,9 @@ public class GetPlanEndpoint(
         {
             s.Summary = "Get a nutrition plan";
             s.Description = "Returns the full nutrition plan with all weeks, days, meals, and foods.";
+            s.Responses[StatusCodes.Status200OK] = "Nutrition plan detail";
+            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
+            s.Responses[StatusCodes.Status404NotFound] = "Plan not found, or not readable by the caller";
         });
     }
 
@@ -63,20 +68,23 @@ public class GetPlanEndpoint(
         // Query MealLogs by PlanId only. Authorship AND the caller's live nutrition link to the
         // plan's client are both validated above, so there is no IDOR risk here.
         //
-        // A meal is considered eaten iff MealLog.EatenAt != null.
-        // MealLog.EatenAt == null means the log is a photo-only or note-only stub
-        // and is NOT treated as eaten (disambiguation rule per issue #329).
+        // The eaten state is derived per meal and day from the live plan meal's current items: a row
+        // with no ticked items (photo-only or note-only stub) is not eaten, some ticked is partly
+        // eaten, every current item ticked is eaten (even when EatenAt is null).
         var logFilter = Builders<MealLog>.Filter.Eq(l => l.PlanId, req.PlanId);
         var logCursor = await mongo.MealLogs.FindAsync(logFilter, cancellationToken: ct);
         var mealLogs = await logCursor.ToListAsync(ct);
 
-        response.MealLogs = mealLogs
-            .Select(l => new MealEatenStatusDto
+        response.MealLogs = MealLogMerger
+            .Merge(mealLogs, (_, day, mealId) => NutritionPlanDayResolver.FindMeal(plan, day, mealId))
+            .Select(meal => new MealEatenStatusDto
             {
-                MealId = l.MealId,
-                LogDate = DateOnly.FromDateTime(l.LogDate),
-                IsEaten = l.EatenAt.HasValue,
-                EatenAt = l.EatenAt
+                MealId = meal.MealId,
+                LogDate = DateOnly.FromDateTime(meal.DayUtc),
+                IsEaten = meal.State == MealEatenState.Eaten,
+                EatenState = meal.State,
+                EatenItemIds = meal.EatenItemIds.ToList(),
+                EatenAt = meal.EatenAt
             })
             .ToList();
 

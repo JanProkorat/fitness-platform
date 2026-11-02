@@ -17,6 +17,12 @@ public static class MealLogMerger
         (row.LogDate != default ? row.LogDate : row.EatenAt ?? default).Date;
 
     /// <summary>
+    /// <see cref="Merge"/> for rows of a single, fully loaded plan.
+    /// </summary>
+    public static List<MergedMealLog> MergeForPlan(IEnumerable<MealLog> rows, NutritionPlan plan) =>
+        Merge(rows, (_, day, mealId) => NutritionPlanDayResolver.FindMeal(plan, day, mealId));
+
+    /// <summary>
     /// Groups rows by plan, day and meal, and derives each group's state and eaten share against the
     /// live plan meal returned by <paramref name="findMeal"/> (plan id, day, meal id).
     /// </summary>

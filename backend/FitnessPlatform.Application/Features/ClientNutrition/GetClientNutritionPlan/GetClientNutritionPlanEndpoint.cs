@@ -66,15 +66,13 @@ internal sealed class GetClientNutritionPlanEndpoint(IMongoContext mongo, IAppli
 
         var todayLocalUtc = await db.ResolveClientLocalDateUtcAsync(clientId, timeProvider.GetUtcNow().UtcDateTime, ct);
 
-        var eatenMealIds = await mongo.MealLogs
+        var mealRows = await mongo.MealLogs
             .Find(Builders<MealLog>.Filter.And(
                 Builders<MealLog>.Filter.Eq(m => m.ClientId, clientId),
-                Builders<MealLog>.Filter.Eq(m => m.PlanId, plan.ExternalId),
-                Builders<MealLog>.Filter.Ne(m => m.EatenAt, null)))
-            .Project(m => m.MealId)
+                Builders<MealLog>.Filter.Eq(m => m.PlanId, plan.ExternalId)))
             .ToListAsync(ct);
 
-        var response = GetFullPlanResponse.FromPlan(plan, todayLocalUtc, eatenMealIds);
+        var response = GetFullPlanResponse.FromPlan(plan, todayLocalUtc, MealLogMerger.MergeForPlan(mealRows, plan));
 
         // The shared builder falls back to the last published week once the window is over; a finished
         // plan has no current position.

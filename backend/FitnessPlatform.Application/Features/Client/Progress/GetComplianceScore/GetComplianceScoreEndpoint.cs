@@ -27,6 +27,9 @@ public class GetComplianceScoreEndpoint(IComplianceService complianceService, IA
         {
             s.Summary = "Get compliance score";
             s.Description = "Returns the authenticated client's meal compliance score and streak for a given date range.";
+            s.Responses[StatusCodes.Status200OK] = "Compliance score";
+            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
+            s.Responses[StatusCodes.Status404NotFound] = "Client profile not found";
         });
     }
 
