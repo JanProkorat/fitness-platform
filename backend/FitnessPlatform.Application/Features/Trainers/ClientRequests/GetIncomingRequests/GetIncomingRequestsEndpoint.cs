@@ -2,7 +2,9 @@ using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
+using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using Microsoft.EntityFrameworkCore;
 
 namespace FitnessPlatform.Application.Features.Trainers.ClientRequests.GetIncomingRequests;
@@ -10,7 +12,7 @@ namespace FitnessPlatform.Application.Features.Trainers.ClientRequests.GetIncomi
 /// <summary>
 /// Endpoint for a professional to retrieve incoming pending client requests.
 /// </summary>
-public class GetIncomingRequestsEndpoint(IApplicationDbContext db) : EndpointWithoutRequest<GetIncomingRequestsResponse>
+public class GetIncomingRequestsEndpoint(IApplicationDbContext db, IMongoContext mongo) : EndpointWithoutRequest<GetIncomingRequestsResponse>
 {
     public override void Configure()
     {
@@ -61,6 +63,20 @@ public class GetIncomingRequestsEndpoint(IApplicationDbContext db) : EndpointWit
                 Email = r.ClientProfile.User.Email,
                 r.Message,
                 r.SentAt,
+                r.ShareHistory,
+                ClientProfileId = r.ClientProfileId,
+                ClientUserId = r.ClientProfile.UserId,
+                Package = r.CoachPackage == null
+                    ? null
+                    : new IncomingRequestPackageDto
+                    {
+                        PublicId = r.CoachPackage.PublicId,
+                        Name = r.CoachPackage.Name,
+                        Billing = r.CoachPackage.Billing,
+                        IntervalWeeks = r.CoachPackage.IntervalWeeks,
+                        Price = r.CoachPackage.Price,
+                        Currency = r.CoachPackage.Currency,
+                    },
                 r.ClientProfile.HeightCm,
                 r.ClientProfile.WeightKg,
                 PrimaryGoal = r.ClientProfile.OnboardingData != null
@@ -73,8 +89,25 @@ public class GetIncomingRequestsEndpoint(IApplicationDbContext db) : EndpointWit
             })
             .ToListAsync(ct);
 
+        // History counts only for clients who agreed to share, fetched once for the whole list.
+        var counts = await ClientHistoryCounts.LoadAsync(
+            db,
+            mongo,
+            rows.Where(r => r.ShareHistory).Select(r => (r.ClientProfileId, r.ClientUserId)).ToList(),
+            ct);
+
         var requests = rows.Select(r => new IncomingClientRequestDto
         {
+            Package = r.Package,
+            ShareHistory = r.ShareHistory,
+            History = r.ShareHistory && counts.TryGetValue(r.ClientProfileId, out var history)
+                ? new IncomingRequestHistoryDto
+                {
+                    PlanCount = history.PlanCount,
+                    MeasurementCount = history.MeasurementCount,
+                    PhotoCount = history.PhotoCount,
+                }
+                : null,
             PublicId = r.PublicId,
             ClientPublicId = r.ClientPublicId,
             ClientFirstName = r.FirstName ?? string.Empty,

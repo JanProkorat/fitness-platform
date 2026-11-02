@@ -50,4 +50,52 @@ public class PendingClientRow
     /// invite past its validity window that has not been re-sent. Always Pending for requests.
     /// </summary>
     public PendingInviteStatus Status { get; set; } = PendingInviteStatus.Pending;
+
+    /// <summary>The package the client attached to the request; always null for invite rows.</summary>
+    public PendingRowPackageDto? Package { get; set; }
+
+    /// <summary>Whether the client agreed to share their history; always false for invite rows.</summary>
+    public bool ShareHistory { get; set; }
+
+    /// <summary>History counts; null unless this is a request row with <see cref="ShareHistory"/> true.</summary>
+    public PendingRowHistoryDto? History { get; set; }
+}
+
+/// <summary>
+/// The package attached to a pending request row.
+/// </summary>
+public class PendingRowPackageDto
+{
+    /// <summary>Public id of the package.</summary>
+    public Guid PublicId { get; set; }
+
+    /// <summary>Display name of the package.</summary>
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary>How often the package is billed.</summary>
+    public PackageBillingInterval Billing { get; set; }
+
+    /// <summary>Weeks between payments; set only for a package billed every N weeks.</summary>
+    public int? IntervalWeeks { get; set; }
+
+    /// <summary>The price per payment.</summary>
+    public decimal Price { get; set; }
+
+    /// <summary>Currency of the price.</summary>
+    public PaymentCurrency Currency { get; set; }
+}
+
+/// <summary>
+/// Summary of the history a client shares with the coach.
+/// </summary>
+public class PendingRowHistoryDto
+{
+    /// <summary>Nutrition and training plans from any coach.</summary>
+    public int PlanCount { get; set; }
+
+    /// <summary>Body measurements.</summary>
+    public int MeasurementCount { get; set; }
+
+    /// <summary>Progress photos.</summary>
+    public int PhotoCount { get; set; }
 }

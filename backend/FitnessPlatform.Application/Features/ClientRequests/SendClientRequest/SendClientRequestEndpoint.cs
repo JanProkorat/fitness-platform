@@ -5,6 +5,7 @@ using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -18,6 +19,7 @@ public class SendClientRequestEndpoint(
     IRealtimeNotifier notifier,
     INotificationService notificationService,
     IConversationSeedService conversationSeedService,
+    EntitlementService entitlementService,
     ILogger<SendClientRequestEndpoint> logger)
     : Endpoint<SendClientRequestRequest, SendClientRequestResponse>
 {
@@ -32,6 +34,8 @@ public class SendClientRequestEndpoint(
             s.Summary = "Send a client request";
             s.Description = "Sends a request from a client to a professional to establish a working relationship.";
             s.Responses[StatusCodes.Status201Created] = "Request sent";
+            s.Responses[StatusCodes.Status400BadRequest] =
+                "Invalid request, or the package is not available (REQUEST_PACKAGE_UNAVAILABLE)";
         });
     }
 
@@ -72,6 +76,22 @@ public class SendClientRequestEndpoint(
             return;
         }
 
+        // Unknown, foreign, archived, hidden and not-payable packages all answer alike, so a client
+        // cannot probe another coach's packages.
+        CoachPackage? package = null;
+
+        if (req.PackagePublicId is { } packagePublicId)
+        {
+            package = await CoachPackagePricing.FindProfileVisiblePackageAsync(
+                db, entitlementService, professionalProfile.Id, packagePublicId, ct);
+
+            if (package is null)
+            {
+                this.ThrowErrorWithCode(ErrorCodes.RequestPackageUnavailable, "The package is not available.");
+                return;
+            }
+        }
+
         // Check for existing active link
         var existingLink = await db.ClientProfessionalLinks
             .AnyAsync(l => l.ClientProfileId == clientProfile.Id
@@ -102,6 +122,7 @@ public class SendClientRequestEndpoint(
             ProfessionalProfileId = professionalProfile.Id,
             Message = req.Message,
             ShareHistory = req.ShareHistory,
+            CoachPackageId = package?.Id,
             Status = ClientRequestStatus.Pending,
             SentAt = DateTime.UtcNow
         };

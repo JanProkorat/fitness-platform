@@ -601,6 +601,9 @@ public static class ErrorCodes
     /// <summary>An invite names a discount but no package.</summary>
     public const string InviteDiscountNeedsPackage = "INVITE_DISCOUNT_NEEDS_PACKAGE";
 
+    /// <summary>The package a client attached to a request is unknown, not the coach's, archived or not shown on the profile.</summary>
+    public const string RequestPackageUnavailable = "REQUEST_PACKAGE_UNAVAILABLE";
+
     // ── Coach packages and discounts (#1578) ────────────────────────────
     /// <summary>The package is archived and can no longer be edited.</summary>
     public const string PackageArchived = "PACKAGE_ARCHIVED";

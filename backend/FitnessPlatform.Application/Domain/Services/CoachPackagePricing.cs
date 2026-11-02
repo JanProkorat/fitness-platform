@@ -62,7 +62,41 @@ public static class CoachPackagePricing
             .ToListAsync(ct);
     }
 
-    private static IQueryable<CoachPackage> ProfileVisiblePackages(IApplicationDbContext db, IReadOnlyCollection<long> entitledIds) =>
+    /// <summary>
+    /// Finds one package by public id when it is shown on its coach's public profile (see
+    /// <see cref="LoadProfilePackagesAsync"/>), or null when it is unknown, archived, hidden, in another
+    /// currency than the profile's, or the coach's subscription lacks payments.
+    /// </summary>
+    /// <param name="db">Application database context.</param>
+    /// <param name="entitlementService">Resolves subscription entitlements.</param>
+    /// <param name="professionalProfileId">The coach's internal id; a package of another coach is not found.</param>
+    /// <param name="packagePublicId">The package's public id.</param>
+    /// <param name="ct">Cancellation token.</param>
+    public static async Task<CoachPackage?> FindProfileVisiblePackageAsync(
+        IApplicationDbContext db,
+        EntitlementService entitlementService,
+        long professionalProfileId,
+        Guid packagePublicId,
+        CancellationToken ct)
+    {
+        var entitledIds = await entitlementService.GetPaymentsEntitledProfileIdsAsync([professionalProfileId], ct);
+
+        if (entitledIds.Count == 0)
+        {
+            return null;
+        }
+
+        return await ProfileVisiblePackages(db, entitledIds)
+            .FirstOrDefaultAsync(package => package.PublicId == packagePublicId, ct);
+    }
+
+    /// <summary>
+    /// The packages shown on the public profile of the given coaches: not archived, shown on the profile and in
+    /// the coach's main currency. The caller passes only coaches whose subscription includes payments.
+    /// </summary>
+    /// <param name="db">Application database context.</param>
+    /// <param name="entitledIds">Internal ids of the coaches to include.</param>
+    public static IQueryable<CoachPackage> ProfileVisiblePackages(IApplicationDbContext db, IReadOnlyCollection<long> entitledIds) =>
         from package in db.CoachPackages.AsNoTracking()
         where entitledIds.Contains(package.ProfessionalProfileId)
             && package.ArchivedAt == null

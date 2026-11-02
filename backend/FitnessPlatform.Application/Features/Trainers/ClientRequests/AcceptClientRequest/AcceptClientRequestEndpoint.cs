@@ -24,6 +24,7 @@ public class AcceptClientRequestEndpoint(
     INotificationService notificationService,
     IConversationSeedService conversationSeedService,
     UserManager<ApplicationUser> userManager,
+    InvitePackageTermsApplier termsApplier,
     ILogger<AcceptClientRequestEndpoint> logger)
     : Endpoint<AcceptClientRequestRequest>
 {
@@ -34,7 +35,8 @@ public class AcceptClientRequestEndpoint(
         Summary(s =>
         {
             s.Summary = "Accept a client request";
-            s.Description = "Accepts a pending client request, creates a client-professional link, and optionally assigns a questionnaire.";
+            s.Description = "Accepts a pending client request, creates a client-professional link, and optionally assigns a questionnaire. " +
+                "When the request carries a package, its terms (with the optional discount) are applied; an unusable package or discount means accepting without terms.";
         });
     }
 
@@ -218,6 +220,38 @@ public class AcceptClientRequestEndpoint(
 
         await db.SaveChangesAsync(ct);
         await transaction.CommitAsync(ct);
+
+        // The link is committed, so an unusable package or discount only means no terms (same rule as
+        // an accepted invite). A discount on a request without a package is ignored.
+        if (clientRequest.CoachPackageId is { } packageId)
+        {
+            // An unknown discount id maps to 0, which matches no row, so the applier skips and audits it.
+            var discountId = req.DiscountPublicId is { } discountPublicId
+                ? await db.CoachDiscounts
+                    .AsNoTracking()
+                    .Where(d => d.PublicId == discountPublicId)
+                    .Select(d => d.Id)
+                    .FirstOrDefaultAsync(ct)
+                : (long?)null;
+
+            var applied = await termsApplier.ApplyAsync(
+                clientRequest.PublicId,
+                professionalProfile.Id,
+                packageId,
+                discountId,
+                clientRequest.ClientProfileId,
+                userGuid,
+                HttpContext.Connection.RemoteIpAddress?.ToString(),
+                DateTime.UtcNow,
+                ct,
+                nameof(ClientRequest));
+
+            if (applied && discountId is not null)
+            {
+                clientRequest.CoachDiscountId = discountId;
+                await db.SaveChangesAsync(ct);
+            }
+        }
 
         // Create QuestionnaireResponse after save so link.Id is generated
         if (questionnaire is not null)

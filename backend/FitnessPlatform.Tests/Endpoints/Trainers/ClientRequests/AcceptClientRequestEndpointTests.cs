@@ -55,6 +55,7 @@ public class AcceptClientRequestEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(MultiRoleClaims(_professionalUserId, callerRoles))),
             db, _notifier, _notificationService, _conversationSeedService, _userManager,
+            EndpointTestHelpers.CreateInviteTermsApplier(db),
             Substitute.For<ILogger<AcceptClientRequestEndpoint>>());
 
     /// <summary>
