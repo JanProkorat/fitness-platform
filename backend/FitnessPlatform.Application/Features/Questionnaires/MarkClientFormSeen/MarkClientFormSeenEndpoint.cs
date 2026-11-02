@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using FastEndpoints;
+using FitnessPlatform.Application.Domain.Authorization;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
@@ -15,6 +16,7 @@ namespace FitnessPlatform.Application.Features.Questionnaires.MarkClientFormSeen
 /// <param name="db">Database context.</param>
 /// <param name="linkAuthorizationService">Resolves the caller's live link to the client.</param>
 /// <param name="timeProvider">Clock.</param>
+[RemovedCoachRole(RemovedCoachRoleMode.Refuse)]
 internal sealed class MarkClientFormSeenEndpoint(
     IApplicationDbContext db,
     IClientLinkAuthorizationService linkAuthorizationService,
