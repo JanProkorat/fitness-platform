@@ -2436,7 +2436,7 @@
       "action": "Plan beenden"
     },
     "info": {
-      "tab": "Planinfo",
+      "tab": "Info",
       "name": "Planname",
       "dates": "Zeitraum",
       "starts": "Beginn",

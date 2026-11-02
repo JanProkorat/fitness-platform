@@ -55,8 +55,8 @@ export default function EditorSidePanel<T extends string>({
   const collapseRef = useRef<HTMLButtonElement>(null);
   const toggled = useRef(false);
   const current = tabs.find((candidate) => candidate.id === tab);
-  // Three labelled tabs plus the collapse button do not fit the 320px panel in cs and de, so only the selected tab
-  // keeps its label; the others show their icon (the label stays as the accessible name).
+  // Three tabs plus the collapse button fit the 320px panel in cs, en and de only with a tighter gap and no icons
+  // in the tab row; the collapsed strip keeps its icons.
   const compact = tabs.length > 2;
 
   // Keep keyboard focus on the visible toggle: the collapse button goes inert, the expand button unmounts.
@@ -108,7 +108,6 @@ export default function EditorSidePanel<T extends string>({
           >
             {tabs.map(({ id, label, icon: Icon, indicator }) => {
               const selected = tab === id;
-              const showLabel = !compact || selected;
               return (
                 <button
                   key={id}
@@ -118,16 +117,14 @@ export default function EditorSidePanel<T extends string>({
                   aria-selected={selected}
                   aria-controls={`${baseId}-${id}-panel`}
                   tabIndex={selected ? 0 : -1}
-                  title={showLabel ? undefined : label}
                   onClick={() => onTabChange(id)}
                   className={cn(
                     'flex h-7.5 cursor-pointer items-center gap-1.75 border-b-2 text-label font-bold tracking-label whitespace-nowrap uppercase outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
                     selected ? 'border-ink text-ink' : 'border-transparent text-muted-foreground hover:text-ink',
-                    !showLabel && 'px-1',
                   )}
                 >
-                  <Icon className="size-3.5 shrink-0" aria-hidden="true" />
-                  {showLabel ? label : <span className="sr-only">{label}</span>}
+                  {!compact && <Icon className="size-3.5 shrink-0" aria-hidden="true" />}
+                  {label}
                   {indicator && <IndicatorDot label={indicator.label} />}
                 </button>
               );
