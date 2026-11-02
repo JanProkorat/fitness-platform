@@ -52,6 +52,35 @@ internal static class MealLogDayFilter
                     Builders<MealLog>.Filter.Lt(l => l.EatenAt, rangeEndUtc))));
 
     /// <summary>
+    /// Builds the filter for every row of a client in the inclusive day range, across all plans (or only
+    /// <paramref name="planIds"/> when given). Matches the modern <c>LogDate</c> shape and legacy rows
+    /// keyed only by an <c>EatenAt</c> inside the instant range.
+    /// </summary>
+    public static FilterDefinition<MealLog> BuildClientRange(
+        Guid clientId, IReadOnlyCollection<Guid>? planIds,
+        DateTime firstDayUtc, DateTime lastDayUtc, DateTime rangeStartUtc, DateTime rangeEndUtc)
+    {
+        var filters = new List<FilterDefinition<MealLog>>
+        {
+            Builders<MealLog>.Filter.Eq(l => l.ClientId, clientId),
+            Builders<MealLog>.Filter.Or(
+                Builders<MealLog>.Filter.And(
+                    Builders<MealLog>.Filter.Gte(l => l.LogDate, firstDayUtc),
+                    Builders<MealLog>.Filter.Lte(l => l.LogDate, lastDayUtc)),
+                Builders<MealLog>.Filter.And(
+                    Builders<MealLog>.Filter.Gte(l => l.EatenAt, rangeStartUtc),
+                    Builders<MealLog>.Filter.Lt(l => l.EatenAt, rangeEndUtc))),
+        };
+
+        if (planIds is not null)
+        {
+            filters.Add(Builders<MealLog>.Filter.In(l => l.PlanId, planIds));
+        }
+
+        return Builders<MealLog>.Filter.And(filters);
+    }
+
+    /// <summary>
     /// In-memory counterpart of <see cref="Build"/> for one row and one day.
     /// </summary>
     public static bool Matches(MealLog log, DateTime dayUtc, DateTime windowStartUtc, DateTime windowEndUtc) =>

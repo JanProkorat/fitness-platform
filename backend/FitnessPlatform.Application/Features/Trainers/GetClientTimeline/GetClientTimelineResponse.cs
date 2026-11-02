@@ -70,8 +70,11 @@ public class ClientTimelineItem
 /// </summary>
 public class TimelineMealDayPayload
 {
-    /// <summary>Number of distinct planned meals logged that day.</summary>
+    /// <summary>Number of distinct planned meals fully eaten that day.</summary>
     public int MealsLogged { get; set; }
+
+    /// <summary>Number of distinct planned meals partly eaten that day (not included in <see cref="MealsLogged"/>).</summary>
+    public int MealsPartlyEaten { get; set; }
 
     /// <summary>
     /// Planned meals for that day. Null when the day's plan was not authored by the caller

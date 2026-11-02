@@ -120,6 +120,8 @@ public class GetClientProgressEndpoint(
             },
             MealsPlanned = capabilities.Value.CanViewNutritionPlans ? compliance.MealsPlanned : null,
             MealsLogged = capabilities.Value.CanViewNutritionPlans ? compliance.MealsLogged : null,
+            MealsPartlyEaten = capabilities.Value.CanViewNutritionPlans ? compliance.MealsPartlyEaten : null,
+            MealsEatenShare = capabilities.Value.CanViewNutritionPlans ? compliance.MealsEatenShare : null,
             CurrentStreak = streak,
             AverageDailyMacros = averageMacros,
             From = from,

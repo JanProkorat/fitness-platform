@@ -21,6 +21,16 @@ public class GetComplianceScoreResponse
     public int MealsLogged { get; set; }
 
     /// <summary>
+    /// Number of partly eaten meals in the date range. Not included in <see cref="MealsLogged"/>.
+    /// </summary>
+    public int MealsPartlyEaten { get; set; }
+
+    /// <summary>
+    /// Sum of each logged meal's eaten share in the date range (partly eaten meals count their share).
+    /// </summary>
+    public decimal MealsEatenShare { get; set; }
+
+    /// <summary>
     /// Current streak of consecutive compliant days.
     /// </summary>
     public int CurrentStreak { get; set; }

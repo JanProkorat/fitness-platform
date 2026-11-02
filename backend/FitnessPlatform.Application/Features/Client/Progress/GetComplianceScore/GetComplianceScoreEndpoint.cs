@@ -68,6 +68,8 @@ public class GetComplianceScoreEndpoint(IComplianceService complianceService, IA
             CompliancePercent = compliance.CompliancePercent,
             MealsPlanned = compliance.MealsPlanned,
             MealsLogged = compliance.MealsLogged,
+            MealsPartlyEaten = compliance.MealsPartlyEaten,
+            MealsEatenShare = compliance.MealsEatenShare,
             CurrentStreak = streak,
             From = from,
             To = to

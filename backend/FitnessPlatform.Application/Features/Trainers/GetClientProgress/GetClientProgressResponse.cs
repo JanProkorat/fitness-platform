@@ -27,6 +27,18 @@ public class GetClientProgressResponse
     public int? MealsLogged { get; set; }
 
     /// <summary>
+    /// Number of partly eaten meals in the date range, or <c>null</c> when the caller's link does not
+    /// grant the nutrition domain. Not included in <see cref="MealsLogged"/>.
+    /// </summary>
+    public int? MealsPartlyEaten { get; set; }
+
+    /// <summary>
+    /// Sum of each logged meal's eaten share in the date range (a partly eaten meal counts its eaten
+    /// items over its current items), or <c>null</c> without the nutrition domain.
+    /// </summary>
+    public decimal? MealsEatenShare { get; set; }
+
+    /// <summary>
     /// Current streak of consecutive compliant days, computed over the caller's own domain.
     /// </summary>
     public int CurrentStreak { get; set; }

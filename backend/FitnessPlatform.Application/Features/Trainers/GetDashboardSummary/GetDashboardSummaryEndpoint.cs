@@ -277,21 +277,33 @@ public class GetDashboardSummaryEndpoint(
 
         if (todayPlanDay is not null)
         {
-            // Get which MealIds were logged today
-            var todayMealLogs = await mongo.MealLogs
-                .Find(Builders<MealLog>.Filter.And(
-                    Builders<MealLog>.Filter.Eq(m => m.ClientId, clientUserId),
-                    Builders<MealLog>.Filter.Gte(m => m.EatenAt, todayStart),
-                    Builders<MealLog>.Filter.Lt(m => m.EatenAt, todayStart.AddDays(1))))
-                .Project(m => m.MealId)
+            // Rows are selected by LogDate (EatenAt for legacy rows): a partly eaten row has no EatenAt.
+            var todayUtc = DateTime.SpecifyKind(todayStart, DateTimeKind.Utc);
+            var todayRows = await mongo.MealLogs
+                .Find(MealLogDayFilter.BuildClientRange(
+                    clientUserId, null, todayUtc, todayUtc, todayStart, todayStart.AddDays(1)))
                 .ToListAsync(ct);
 
-            var eatenMealIds = new HashSet<Guid>(todayMealLogs);
+            var todayMeals = MealLogMerger.Merge(
+                todayRows.Where(row => MealLogMerger.DayOf(row) == todayStart),
+                (_, _, mealId) => todayPlanDay.Meals.FirstOrDefault(m => m.MealId == mealId));
 
-            // Sum mealTotals.Kcal for each eaten meal from the plan
-            todayKcal = todayPlanDay.Meals
-                .Where(m => eatenMealIds.Contains(m.MealId))
-                .Sum(m => m.MealTotals?.Kcal ?? 0);
+            // A fully eaten meal adds its plan mealTotals kcal; a partly eaten one only its eaten items.
+            todayKcal = todayPlanDay.Meals.Sum(planMeal =>
+            {
+                var merged = todayMeals.Where(meal => meal.MealId == planMeal.MealId).ToList();
+
+                if (merged.Any(meal => meal.State == MealEatenState.Eaten))
+                {
+                    return planMeal.MealTotals?.Kcal ?? 0;
+                }
+
+                var eatenIds = merged.SelectMany(meal => meal.EatenItemIds).ToHashSet();
+
+                return merged.Count == 0 || eatenIds.Count == 0
+                    ? 0
+                    : MealItemEatenState.EatenTotals(planMeal, eatenIds).Kcal;
+            });
         }
 
         // Active nutrition plans: started, not completed/archived, has ≥1 published week.

@@ -76,6 +76,8 @@ public class GetWeeklyOverviewEndpoint(IComplianceService complianceService, IAp
             CompliancePercent = compliance.CompliancePercent,
             MealsPlanned = compliance.MealsPlanned,
             MealsLogged = compliance.MealsLogged,
+            MealsPartlyEaten = compliance.MealsPartlyEaten,
+            MealsEatenShare = compliance.MealsEatenShare,
             AverageDailyMacros = averageMacros,
             CurrentStreak = streak
         }, ct);

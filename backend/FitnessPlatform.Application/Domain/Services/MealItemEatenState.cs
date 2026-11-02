@@ -68,6 +68,22 @@ internal static class MealItemEatenState
     }
 
     /// <summary>
+    /// The share of the meal eaten, in [0, 1]: eaten current items over current items. A meal with
+    /// no items is 1 when a row marks it eaten and 0 otherwise.
+    /// </summary>
+    public static decimal EatenShare(PlanMeal? meal, IReadOnlyCollection<Guid> eatenIds, bool markedEaten = false)
+    {
+        var items = meal is null ? [] : ItemIds(meal);
+
+        if (items.Count == 0)
+        {
+            return markedEaten ? 1m : 0m;
+        }
+
+        return (decimal)items.Count(eatenIds.Contains) / items.Count;
+    }
+
+    /// <summary>
     /// Nutrient totals of just the eaten items of the live plan meal.
     /// </summary>
     public static NutrientTotals EatenTotals(PlanMeal meal, IReadOnlyCollection<Guid> eatenIds) =>

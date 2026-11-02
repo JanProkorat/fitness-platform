@@ -33,6 +33,16 @@ public class GetWeeklyOverviewResponse
     public int MealsLogged { get; set; }
 
     /// <summary>
+    /// Number of partly eaten meals for the current week. Not included in <see cref="MealsLogged"/>.
+    /// </summary>
+    public int MealsPartlyEaten { get; set; }
+
+    /// <summary>
+    /// Sum of each logged meal's eaten share for the current week (partly eaten meals count their share).
+    /// </summary>
+    public decimal MealsEatenShare { get; set; }
+
+    /// <summary>
     /// Average daily macronutrient totals for the current week.
     /// </summary>
     public NutrientTotals AverageDailyMacros { get; set; } = new();
