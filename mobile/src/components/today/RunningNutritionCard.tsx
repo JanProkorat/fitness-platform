@@ -1,10 +1,18 @@
+import { useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
+import Reanimated, {
+  Easing,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import { SymbolView } from 'expo-symbols';
 import { useTranslation } from 'react-i18next';
 
 import type { ClientOwnPlanItem, MealFood } from '@/api/generated';
-import { findMealLog, isMealEaten, isMealPartlyEaten, mealPhotos } from '@/api/nutrition';
+import { findMealLog, isMealEaten, isMealPartlyEaten, mealPhotos, planItemId } from '@/api/nutrition';
 import type { NutritionMeal } from '@/api/nutrition';
 import { Card } from '@/components/Card';
 import { EMPTY_MACROS, formatWhole, macrosOf } from '@/components/nutrition/meal/format';
@@ -23,6 +31,7 @@ import { useTodayMealActions } from '@/hooks/useTodayMealActions';
 import { useTodayMealLog } from '@/hooks/useTodayMealLog';
 import { showsError } from '@/lib/queryState';
 import { useTheme } from '@/theme';
+import { progressFillMotion } from '@/theme/motion';
 import type { Theme } from '@/theme';
 
 import { roleLook } from './roleLook';
@@ -89,41 +98,43 @@ export function RunningNutritionCard({ plan, today: deviceToday, footer }: Runni
 
   return (
     <Card style={styles.card}>
-      <View style={styles.head}>
-        <View style={styles.area}>
-          <SymbolView name={look.symbol} tintColor={look.ink} size={theme.sizes.roleBadgeGlyph} />
-          <Text variant="captionStrong" style={[styles.areaText, { color: look.ink }]}>
-            {t('today.areaBlocks.area.nutrition').toUpperCase()}
+      <View style={[styles.band, { backgroundColor: theme.colors.nutritionSoft }]}>
+        <View style={styles.head}>
+          <View style={styles.area}>
+            <SymbolView name={look.symbol} tintColor={look.ink} size={theme.sizes.roleBadgeGlyph} />
+            <Text variant="captionStrong" style={[styles.areaText, { color: look.ink }]}>
+              {t('today.areaBlocks.area.nutrition').toUpperCase()}
+            </Text>
+          </View>
+          {weekLabel ? (
+            <Text variant="caption" color="muted" numberOfLines={1} style={styles.week}>
+              {`· ${weekLabel}`}
+            </Text>
+          ) : null}
+          <Text
+            variant="label"
+            style={styles.kcal}
+            accessibilityLabel={
+              target
+                ? t('nutritionPlan.summary.ringOf', {
+                    value: formatWhole(language, eaten.kcal),
+                    target: formatWhole(language, target),
+                  })
+                : t('nutritionPlan.summary.ringValue', { value: formatWhole(language, eaten.kcal) })
+            }
+          >
+            <Text variant="labelStrong">{formatWhole(language, eaten.kcal)}</Text>
+            <Text variant="label" color="muted">
+              {target
+                ? t('today.runningNutrition.ofKcal', { target: formatWhole(language, target) })
+                : t('today.runningNutrition.kcal')}
+            </Text>
           </Text>
         </View>
-        {weekLabel ? (
-          <Text variant="caption" color="muted" numberOfLines={1} style={styles.week}>
-            {`· ${weekLabel}`}
-          </Text>
-        ) : null}
-        <Text
-          variant="label"
-          style={styles.kcal}
-          accessibilityLabel={
-            target
-              ? t('nutritionPlan.summary.ringOf', {
-                  value: formatWhole(language, eaten.kcal),
-                  target: formatWhole(language, target),
-                })
-              : t('nutritionPlan.summary.ringValue', { value: formatWhole(language, eaten.kcal) })
-          }
-        >
-          <Text variant="labelStrong">{formatWhole(language, eaten.kcal)}</Text>
-          <Text variant="label" color="muted">
-            {target
-              ? t('today.runningNutrition.ofKcal', { target: formatWhole(language, target) })
-              : t('today.runningNutrition.kcal')}
-          </Text>
-        </Text>
-      </View>
 
-      <View style={styles.track}>
-        <View style={[styles.fill, { backgroundColor: theme.colors.nutrition, width: `${Math.round(ratio * 100)}%` }]} />
+        <View style={styles.track}>
+          <ProgressFill ratio={ratio} color={theme.colors.nutrition} style={styles.fill} />
+        </View>
       </View>
 
       <NoteBox plain label={t('nutritionPlan.note.today')} note={todayPlanDay?.day?.note} />
@@ -168,14 +179,15 @@ export function RunningNutritionCard({ plan, today: deviceToday, footer }: Runni
                 logAvailable && parent && itemId ? { mealId: parent.mealId, itemId } : undefined,
               )
             }
-            onOpenFood={(food: MealFood, parent: NutritionMeal) =>
+            onOpenFood={(food: MealFood, parent: NutritionMeal) => {
+              const itemId = planItemId(food.itemId);
               actions.openFood(
                 food.foodExternalId,
                 food.amountGrams,
                 parent.kind,
-                logAvailable && food.itemId ? { mealId: parent.mealId, itemId: food.itemId } : undefined,
-              )
-            }
+                logAvailable && itemId ? { mealId: parent.mealId, itemId } : undefined,
+              );
+            }}
             onAddPhoto={logAvailable ? () => actions.askSource(meal) : undefined}
             addPhotoBusy={actions.addPhotoBusy(meal.mealId)}
             onOpenPhoto={(photoIndex) => actions.setViewer({ mealId: meal.mealId, index: photoIndex })}
@@ -208,6 +220,23 @@ export function RunningNutritionCard({ plan, today: deviceToday, footer }: Runni
   );
 }
 
+type ProgressFillProps = { ratio: number; color: string; style: object };
+
+/** The bar's fill, easing to each new ratio (0–1) instead of jumping; instant when reduce motion is on. */
+function ProgressFill({ ratio, color, style }: ProgressFillProps) {
+  const reduceMotion = useReducedMotion();
+  const progress = useSharedValue(0);
+  useEffect(() => {
+    progress.set(
+      reduceMotion
+        ? ratio
+        : withTiming(ratio, { duration: progressFillMotion.duration, easing: Easing.out(Easing.cubic) }),
+    );
+  }, [ratio, reduceMotion, progress]);
+  const fillStyle = useAnimatedStyle(() => ({ width: `${progress.value * 100}%` }));
+  return <Reanimated.View style={[style, { backgroundColor: color }, fillStyle]} />;
+}
+
 const makeStyles = (theme: Theme) =>
   StyleSheet.create({
     card: {
@@ -215,6 +244,17 @@ const makeStyles = (theme: Theme) =>
       paddingHorizontal: theme.spacing.cardInset,
       paddingTop: theme.spacing.xl,
       paddingBottom: theme.spacing.xxs,
+    },
+    // Module-colour header: label, week, kcal and the bar, bleeding to the card's edges; the body stays white.
+    band: {
+      gap: theme.spacing.sm,
+      marginHorizontal: -theme.spacing.cardInset,
+      marginTop: -theme.spacing.xl,
+      paddingHorizontal: theme.spacing.cardInset,
+      paddingTop: theme.spacing.xl,
+      paddingBottom: theme.spacing.md,
+      borderTopLeftRadius: theme.radii.xxl - theme.sizes.border,
+      borderTopRightRadius: theme.radii.xxl - theme.sizes.border,
     },
     head: {
       flexDirection: 'row',

@@ -80,6 +80,9 @@ const makeStyles = (theme: Theme) =>
     circle: {
       width: theme.sizes.mealStatus,
       height: theme.sizes.mealStatus,
+      // Both sizes sit right-aligned in the slot; pull the larger one out by half the difference so its centre
+      // lines up with the item ticks below it.
+      marginRight: -(theme.sizes.mealStatus - theme.sizes.mealItemStatus) / 2,
       borderRadius: theme.radii.pill,
       alignItems: 'center',
       justifyContent: 'center',
