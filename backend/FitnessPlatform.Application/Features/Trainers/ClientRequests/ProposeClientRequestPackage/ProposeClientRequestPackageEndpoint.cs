@@ -21,6 +21,7 @@ public class ProposeClientRequestPackageEndpoint(
     IApplicationDbContext db,
     IRealtimeNotifier notifier,
     INotificationService notificationService,
+    IConversationSeedService conversationSeedService,
     EntitlementService entitlementService,
     TimeProvider timeProvider,
     ILogger<ProposeClientRequestPackageEndpoint> logger)
@@ -143,6 +144,17 @@ public class ProposeClientRequestPackageEndpoint(
             ProfessionalPublicId = professionalProfile.PublicId,
             ProfessionalName = profName,
         }, ct);
+
+        // The coach's ProposalSent event, only into a thread that already exists. The statement is not a chat message.
+        await conversationSeedService.AppendCooperationEventAsync(
+            userGuid,
+            clientRequest.ClientProfile.UserId,
+            userGuid,
+            ChatEventType.ProposalSent,
+            clientRequest.PublicId,
+            messageText: null,
+            createConversationIfMissing: false,
+            ct);
 
         logger.LogInformation(
             "Package proposed on client request {RequestId} by professional {ProfessionalId}",

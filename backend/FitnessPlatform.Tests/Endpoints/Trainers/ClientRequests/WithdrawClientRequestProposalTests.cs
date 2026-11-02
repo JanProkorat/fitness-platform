@@ -122,5 +122,65 @@ public class WithdrawClientRequestProposalTests(FitnessApiFactory factory)
         (await ErrorCodesAsync(response)).Should().Contain("COACH_ROLE_REMOVED");
     }
 
+    private static async Task<List<JsonElement>> EventsAsync(Actor viewer)
+    {
+        var conversations = JsonDocument.Parse(await (await viewer.Http.GetAsync("/conversations", Ct)).Content.ReadAsStringAsync(Ct));
+        var id = conversations.RootElement.EnumerateArray().Single().GetProperty("id").GetGuid();
+        var messages = JsonDocument.Parse(await (await viewer.Http.GetAsync($"/conversations/{id}/messages", Ct)).Content.ReadAsStringAsync(Ct));
+
+        return messages.RootElement.GetProperty("items").EnumerateArray()
+            .Where(m => m.GetProperty("kind").GetString() == "Event")
+            .Select(m => m.Clone())
+            .ToList();
+    }
+
+    private async Task<Guid> InsertRequestWithoutThreadAsync(Actor coach, Actor client, ClientRequestStatus status)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var request = new ClientRequest { ClientProfileId = client.ProfileId, ProfessionalProfileId = coach.ProfileId, Status = status };
+        db.ClientRequests.Add(request);
+        await db.SaveChangesAsync(Ct);
+
+        return request.PublicId;
+    }
+
+    private async Task<bool> ThreadExistsAsync(Actor coach, Actor client)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        return await db.Conversations.AnyAsync(c => c.ClientUserId == client.UserId && c.ProfessionalUserId == coach.UserId, Ct);
+    }
+
+    [Fact]
+    public async Task Withdraw_WritesACoachAuthoredWithdrawnEventAndTheProposalCardReadsCancelled()
+    {
+        var (coach, client, requestId, _) = await ProposedAsync();
+
+        (await WithdrawAsync(coach, requestId)).StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        var events = await EventsAsync(client);
+        var withdrawn = events.Should().ContainSingle(e => e.GetProperty("eventType").GetString() == "Withdrawn").Subject;
+        withdrawn.GetProperty("senderId").GetGuid().Should().Be(coach.UserId);
+        withdrawn.GetProperty("eventSourceId").GetGuid().Should().Be(requestId);
+        events.Single(e => e.GetProperty("eventType").GetString() == "ProposalSent")
+            .GetProperty("eventStatus").GetString().Should().Be("Cancelled");
+        events.Single(e => e.GetProperty("eventType").GetString() == "Requested")
+            .GetProperty("eventStatus").GetString().Should().Be("Pending");
+    }
+
+    [Fact]
+    public async Task Withdraw_WhenNoThreadExists_CreatesNone()
+    {
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var client = await TestActors.Client(factory).CreateAsync(Ct);
+        var requestId = await InsertRequestWithoutThreadAsync(coach, client, ClientRequestStatus.PackageProposed);
+
+        (await WithdrawAsync(coach, requestId)).StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        (await ThreadExistsAsync(coach, client)).Should().BeFalse();
+    }
+
     private record RequestCreated(Guid PublicId);
 }

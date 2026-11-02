@@ -18,6 +18,7 @@ public class WithdrawClientRequestProposalEndpoint(
     IApplicationDbContext db,
     IRealtimeNotifier notifier,
     INotificationService notificationService,
+    IConversationSeedService conversationSeedService,
     ILogger<WithdrawClientRequestProposalEndpoint> logger)
     : Endpoint<WithdrawClientRequestProposalRequest>
 {
@@ -119,6 +120,17 @@ public class WithdrawClientRequestProposalEndpoint(
             ProfessionalPublicId = professionalProfile.PublicId,
             ProfessionalName = profName,
         }, ct);
+
+        // The coach's Withdrawn event, only into a thread that already exists.
+        await conversationSeedService.AppendCooperationEventAsync(
+            userGuid,
+            clientRequest.ClientProfile.UserId,
+            userGuid,
+            ChatEventType.Withdrawn,
+            clientRequest.PublicId,
+            messageText: null,
+            createConversationIfMissing: false,
+            ct);
 
         logger.LogInformation(
             "Package proposal on client request {RequestId} withdrawn by professional {ProfessionalId}",

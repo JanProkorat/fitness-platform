@@ -21,5 +21,8 @@ public enum ChatEventType
     Declined = 3,
 
     /// <summary>An invite or request was withdrawn by its author.</summary>
-    Withdrawn = 4
+    Withdrawn = 4,
+
+    /// <summary>A professional proposed a package on the client's request.</summary>
+    ProposalSent = 5
 }

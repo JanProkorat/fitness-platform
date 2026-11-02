@@ -297,5 +297,70 @@ public class ProposeClientRequestPackageTests(FitnessApiFactory factory)
         (await ErrorCodesAsync(response)).Should().Contain("COACH_ROLE_REMOVED");
     }
 
+    private static async Task<List<JsonElement>> EventsAsync(Actor viewer)
+    {
+        var conversations = JsonDocument.Parse(await (await viewer.Http.GetAsync("/conversations", Ct)).Content.ReadAsStringAsync(Ct));
+        var id = conversations.RootElement.EnumerateArray().Single().GetProperty("id").GetGuid();
+        var messages = JsonDocument.Parse(await (await viewer.Http.GetAsync($"/conversations/{id}/messages", Ct)).Content.ReadAsStringAsync(Ct));
+
+        return messages.RootElement.GetProperty("items").EnumerateArray()
+            .Where(m => m.GetProperty("kind").GetString() == "Event")
+            .Select(m => m.Clone())
+            .ToList();
+    }
+
+    private async Task<Guid> InsertRequestWithoutThreadAsync(Actor coach, Actor client, ClientRequestStatus status)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var request = new ClientRequest { ClientProfileId = client.ProfileId, ProfessionalProfileId = coach.ProfileId, Status = status };
+        db.ClientRequests.Add(request);
+        await db.SaveChangesAsync(Ct);
+
+        return request.PublicId;
+    }
+
+    private async Task<bool> ThreadExistsAsync(Actor coach, Actor client)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        return await db.Conversations.AnyAsync(c => c.ClientUserId == client.UserId && c.ProfessionalUserId == coach.UserId, Ct);
+    }
+
+    [Fact]
+    public async Task Propose_WritesACoachAuthoredProposalSentEventButNoStatementMessage()
+    {
+        var coach = await CoachWithPaymentsAsync();
+        var client = await TestActors.Client(factory).CreateAsync(Ct);
+        var packageId = await CreatePackageAsync(coach);
+        var requestId = await SendRequestAsync(coach, client);
+
+        (await ProposeAsync(coach, requestId, packageId, statement: "Private note")).StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        var events = await EventsAsync(client);
+        var sent = events.Should().ContainSingle(e => e.GetProperty("eventType").GetString() == "ProposalSent").Subject;
+        sent.GetProperty("senderId").GetGuid().Should().Be(coach.UserId);
+        sent.GetProperty("eventSourceId").GetGuid().Should().Be(requestId);
+        sent.GetProperty("eventStatus").GetString().Should().Be("Pending");
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        (await db.ChatMessages.AnyAsync(m => m.Text == "Private note", Ct)).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Propose_WhenNoThreadExists_CreatesNone()
+    {
+        var coach = await CoachWithPaymentsAsync();
+        var client = await TestActors.Client(factory).CreateAsync(Ct);
+        var packageId = await CreatePackageAsync(coach);
+        var requestId = await InsertRequestWithoutThreadAsync(coach, client, ClientRequestStatus.Pending);
+
+        (await ProposeAsync(coach, requestId, packageId)).StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        (await ThreadExistsAsync(coach, client)).Should().BeFalse();
+    }
+
     private record RequestCreated(Guid PublicId);
 }

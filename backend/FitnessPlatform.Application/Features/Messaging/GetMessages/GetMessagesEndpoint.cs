@@ -113,8 +113,8 @@ public class GetMessagesEndpoint(IApplicationDbContext db, IBlobStorageService b
                 Kind = row.Kind,
                 EventType = row.EventType,
                 EventSourceId = row.EventSourceId,
-                EventStatus = row.EventSourceId is { } sourceId && statuses.TryGetValue(sourceId, out var status)
-                    ? status
+                EventStatus = row.EventSourceId is { } sourceId && statuses.TryGetValue(sourceId, out var state)
+                    ? StatusFor(row.EventType, state)
                     : null,
             });
         }
@@ -130,7 +130,7 @@ public class GetMessagesEndpoint(IApplicationDbContext db, IBlobStorageService b
     /// Resolves the current status of every invite or request the page's event messages point at,
     /// with one batched lookup per table.
     /// </summary>
-    private async Task<Dictionary<Guid, CooperationCardStatus>> ResolveEventStatusesAsync(
+    private async Task<Dictionary<Guid, CooperationSourceState>> ResolveEventStatusesAsync(
         List<MessageRow> rows, CancellationToken ct)
     {
         var sourceIds = rows
@@ -139,11 +139,19 @@ public class GetMessagesEndpoint(IApplicationDbContext db, IBlobStorageService b
             .Distinct()
             .ToList();
 
-        var resolved = await CooperationStatusResolver.ResolveAsync(
+        return await CooperationStatusResolver.ResolveAsync(
             db, sourceIds, timeProvider.GetUtcNow().UtcDateTime, ct);
-
-        return resolved.ToDictionary(kv => kv.Key, kv => kv.Value.Status);
     }
+
+    /// <summary>
+    /// The card status for one event. A proposal card still reading Pending after the proposal stopped waiting
+    /// (the coach withdrew it), and a Withdrawn card on a request that is pending again, are Cancelled.
+    /// </summary>
+    private static CooperationCardStatus StatusFor(ChatEventType? eventType, CooperationSourceState state) =>
+        state.Status == CooperationCardStatus.Pending
+            && (eventType == ChatEventType.Withdrawn || (eventType == ChatEventType.ProposalSent && !state.ProposalOpen))
+            ? CooperationCardStatus.Cancelled
+            : state.Status;
 
     /// <summary>Internal EF projection shape — carries the raw, unsigned <c>ImageBlobUrl</c> before signing.</summary>
     private sealed class MessageRow
