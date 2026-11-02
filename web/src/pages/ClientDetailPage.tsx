@@ -19,6 +19,9 @@ import { useInvalidateClientLinkState } from '@/hooks/useClientPaymentQueries';
 import { useSignalR } from '@/hooks/useSignalR';
 import { useClientNutritionRealtime } from '@/hooks/useClientNutritionRealtime';
 import ClientPhotosTab from '@/components/client-detail/photos/ClientPhotosTab';
+import ClientFormsTab from '@/components/client-detail/forms/ClientFormsTab';
+import { hasNewForms } from '@/components/client-detail/forms/clientFormsModel';
+import { useClientForms } from '@/components/client-forms/useClientForms';
 
 const MEASUREMENTS_PAGE_SIZE = 50;
 
@@ -27,7 +30,7 @@ const MEASUREMENTS_PAGE_SIZE = 50;
  * Overview tab, `/clients/:clientId/nutrition` the Nutrition tab (a link
  * without the nutrition capability is redirected to Overview) and
  * `/clients/:clientId/photos` the Photos tab, `/clients/:clientId/payment` the Payment tab
- * and `/clients/:clientId/automations` the Automations tab.
+ * `/clients/:clientId/automations` the Automations tab and `/clients/:clientId/forms` the Forms tab.
  */
 export default function ClientDetailPage() {
   const { t } = useTranslation();
@@ -38,6 +41,7 @@ export default function ClientDetailPage() {
   const isPhotosRoute = useMatch('/clients/:clientId/photos') !== null;
   const isPaymentRoute = useMatch('/clients/:clientId/payment') !== null;
   const isAutomationsRoute = useMatch('/clients/:clientId/automations') !== null;
+  const isFormsRoute = useMatch('/clients/:clientId/forms') !== null;
   const activeTab: ClientDetailTab = isNutritionRoute
     ? 'nutrition'
     : isPhotosRoute
@@ -46,7 +50,9 @@ export default function ClientDetailPage() {
         ? 'payment'
         : isAutomationsRoute
           ? 'automations'
-          : 'overview';
+          : isFormsRoute
+            ? 'forms'
+            : 'overview';
 
   const invalidateLinkState = useInvalidateClientLinkState(clientId);
 
@@ -67,6 +73,10 @@ export default function ClientDetailPage() {
     queryFn: () => getClientMeasurements(clientId, 1, MEASUREMENTS_PAGE_SIZE),
     enabled: Boolean(clientId),
   });
+
+  // Shares the Forms tab's cache entry. An ended link (404) just shows no dot.
+  const formsQuery = useClientForms(clientId);
+  const hasNewFormAnswers = !formsQuery.isError && hasNewForms(formsQuery.data?.current);
 
   // The event carries no client id, so the open page refreshes its own keys every time.
   useSignalR({
@@ -130,6 +140,7 @@ export default function ClientDetailPage() {
             onTabChange={handleTabChange}
             canViewNutritionPlans={role !== 'trainer'}
             canViewTrainingPlans={role !== 'nutritionist'}
+            hasNewForms={hasNewFormAnswers}
           />
         }
       />
@@ -146,6 +157,8 @@ export default function ClientDetailPage() {
         <ClientPaymentTab clientId={clientId} dashboard={dashboard} />
       ) : activeTab === 'automations' ? (
         <ClientAutomationsTab clientId={clientId} dashboard={dashboard} />
+      ) : activeTab === 'forms' ? (
+        <ClientFormsTab clientId={clientId} dashboard={dashboard} />
       ) : (
         <ClientOverviewTab
           clientId={clientId}
