@@ -2376,6 +2376,39 @@
       "error": "Das Formular konnte nicht erstellt werden. Bitte versuchen Sie es erneut."
     }
   },
+  "clientForms": {
+    "tab": "Formulare",
+    "newAnswer": "Neue Antwort",
+    "new": "Neu",
+    "waiting": "Wartet",
+    "missed": "Verpasst",
+    "intro": "Antworten von {{name}} aus dieser Zusammenarbeit. Öffnen Sie eine, um sie neben dem Plan zu lesen.",
+    "empty": "In dieser Zusammenarbeit wurde noch kein Formular gesendet.",
+    "loadError": "Die Formulare konnten nicht geladen werden. Bitte versuchen Sie es erneut.",
+    "retry": "Erneut versuchen",
+    "avoids": "Meidet {{items}}",
+    "allForms": "Alle Formulare im Profil von {{name}}",
+    "kind": {
+      "Onboarding": "Onboarding",
+      "Questionnaire": "Fragebogen",
+      "CheckIn": "Check-in"
+    },
+    "card": {
+      "sent": "Gesendet {{date}} · noch nicht beantwortet",
+      "missed": "Verpasst · fällig am {{date}}",
+      "latestAnswered": "Neueste · beantwortet am {{date}}",
+      "answered_one": "Beantwortet am {{date}} · {{count}} Frage",
+      "answered_other": "Beantwortet am {{date}} · {{count}} Fragen"
+    },
+    "popover": {
+      "meta_one": "{{name}} · beantwortet am {{date}} · {{count}} Frage",
+      "meta_other": "{{name}} · beantwortet am {{date}} · {{count}} Fragen",
+      "openInProfile": "Im Profil von {{name}} öffnen"
+    },
+    "answers": {
+      "noAnswer": "Keine Antwort"
+    }
+  },
   "clientPlanEditor": {
     "publishWeek": "Woche {{week}} veröffentlichen",
     "clientFallback": "Klient",
