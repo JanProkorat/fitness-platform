@@ -8,19 +8,19 @@ import { Text } from '@/components/Text';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
 
-import { fillRoute, formTitle, questionCountHint } from './pendingForms';
+import { checkInDueHint, fillRoute, formTitle, questionCountHint } from './pendingForms';
 
 type QuestionnaireBannerProps = { item: PendingQuestionnaire };
 
 /** One pending questionnaire on Today: who sent it, how long it is, and a Fill in button. */
 export function QuestionnaireBanner({ item }: QuestionnaireBannerProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const router = useRouter();
   const theme = useTheme();
   const styles = makeStyles(theme);
   const route = fillRoute(item);
   if (!route) return null;
-  const hint = questionCountHint(t, item, 'banner');
+  const hint = checkInDueHint(t, i18n.language, item) ?? questionCountHint(t, item, 'banner');
 
   return (
     <View style={styles.banner}>

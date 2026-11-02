@@ -113,6 +113,17 @@ export function monthLabel(language: string, month: Date, now: number): string {
   }).format(month);
 }
 
+/** Due moment of a check-in in the device time zone, e.g. "Saturday 18:00"; null when the date is missing. */
+export function dueMoment(language: string, dueAt: string | undefined): string | null {
+  const time = parseInstant(dueAt);
+  if (time === null) return null;
+  return new Intl.DateTimeFormat(language, {
+    weekday: 'long',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(time);
+}
+
 /** Weekday of an instant in the device time zone, e.g. "Saturday"; null when the date is missing. */
 export function dueWeekday(language: string, dueAt: string | undefined): string | null {
   const time = parseInstant(dueAt);
