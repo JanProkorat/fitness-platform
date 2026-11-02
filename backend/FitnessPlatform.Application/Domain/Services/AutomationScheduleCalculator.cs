@@ -74,6 +74,30 @@ public static class AutomationScheduleCalculator
     }
 
     /// <summary>
+    /// The first weekly run of a rule anchored to a weekday that falls in a full week: the week of the
+    /// first Monday (client-local) that is on or after <paramref name="notBeforeUtc"/>. A moment exactly
+    /// at local Monday 00:00 counts as that week.
+    /// </summary>
+    /// <param name="weekday">Client-local weekday of the send.</param>
+    /// <param name="localTime">Client-local time of day.</param>
+    /// <param name="zone">The client's time zone.</param>
+    /// <param name="notBeforeUtc">The moment the first week may not start before.</param>
+    public static DateTime ComputeFirstFullWeekRunAt(
+        DayOfWeek weekday, TimeOnly localTime, TimeZoneInfo zone, DateTime notBeforeUtc)
+    {
+        var local = TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(notBeforeUtc, DateTimeKind.Utc), zone);
+        var localDate = DateOnly.FromDateTime(local);
+        var monday = MondayOf(localDate);
+
+        if (monday != localDate || local.TimeOfDay > TimeSpan.Zero)
+        {
+            monday = monday.AddDays(7);
+        }
+
+        return ToUtc(monday.AddDays(((int)weekday + 6) % 7), localTime, zone);
+    }
+
+    /// <summary>
     /// The Monday of the week that contains <paramref name="localDate"/>.
     /// </summary>
     /// <param name="localDate">A calendar date.</param>

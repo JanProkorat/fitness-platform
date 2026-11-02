@@ -76,7 +76,13 @@ public sealed class AutomationCoachSnapshot
                     rule, _overrides.GetValueOrDefault((rule.Id, client.ClientProfileId)), _entitlements);
                 var effective = AutomationEffectiveRule.Resolve(rule, clientOverride, localToday);
 
-                yield return new AutomationPair(rule, client, effective, zone, startLocalDate);
+                yield return new AutomationPair(
+                    rule,
+                    client,
+                    effective,
+                    zone,
+                    startLocalDate,
+                    AutomationNextSendCalculator.ResolveFirstSendNotBefore(client.CollaborationStartedAtUtc, rule, clientOverride));
             }
         }
     }

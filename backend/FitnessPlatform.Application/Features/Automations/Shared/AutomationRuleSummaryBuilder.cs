@@ -100,7 +100,13 @@ public static class AutomationRuleSummaryBuilder
 
             var windows = planWindows.TryGetValue(pair.Context.Client.ClientUserId, out var found) ? found : [];
             var nextSendAt = AutomationNextSendCalculator.Compute(
-                pair.Effective, pair.Context.Zone, pair.Context.StartLocalDate, windows, nowUtc);
+                pair.Effective,
+                pair.Context.Zone,
+                pair.Context.StartLocalDate,
+                windows,
+                nowUtc,
+                AutomationNextSendCalculator.ResolveFirstSendNotBefore(
+                    pair.Context.Client.CollaborationStartedAtUtc, pair.Rule, pair.Override));
 
             if (nextSendAt is not null && (summary.NextSendAt is null || nextSendAt < summary.NextSendAt))
             {

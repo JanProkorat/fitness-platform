@@ -26,6 +26,9 @@ public sealed class AutomationEvaluation
     /// <summary>The client's schedule start date in their local calendar.</summary>
     public required DateOnly StartLocalDate { get; init; }
 
+    /// <summary>The moment a weekly check-in may not start before; see <see cref="AutomationNextSendCalculator.ResolveFirstSendNotBefore"/>.</summary>
+    public required DateTime FirstSendNotBeforeUtc { get; init; }
+
     /// <summary>The coach's display name, for the messages sent in their name.</summary>
     public string CoachName => $"{Coach.User.FirstName} {Coach.User.LastName}".Trim();
 }

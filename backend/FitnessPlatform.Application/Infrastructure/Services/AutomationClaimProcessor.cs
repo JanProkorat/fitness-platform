@@ -158,7 +158,7 @@ public sealed class AutomationClaimProcessor(
         if (!effective.IsPaused)
         {
             var recomputed = AutomationNextSendCalculator.Compute(
-                effective, evaluation.Zone, evaluation.StartLocalDate, windows, due.AddSeconds(-1));
+                effective, evaluation.Zone, evaluation.StartLocalDate, windows, due.AddSeconds(-1), evaluation.FirstSendNotBeforeUtc);
 
             if (recomputed is not { } expected || Math.Abs((expected - due).TotalSeconds) >= 1)
             {
@@ -196,7 +196,7 @@ public sealed class AutomationClaimProcessor(
         var effective = evaluation.Effective;
 
         var next = AutomationNextSendCalculator.Compute(
-            effective, evaluation.Zone, evaluation.StartLocalDate, windows, nowUtc);
+            effective, evaluation.Zone, evaluation.StartLocalDate, windows, nowUtc, evaluation.FirstSendNotBeforeUtc);
 
         if (next is not null && effective.StopAfterSends is { } limit)
         {

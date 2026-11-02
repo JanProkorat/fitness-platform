@@ -10,9 +10,11 @@ namespace FitnessPlatform.Application.Domain.Services;
 /// <param name="Effective">The rule with the client's override and pause applied.</param>
 /// <param name="Zone">The client's time zone.</param>
 /// <param name="StartLocalDate">The client's schedule start date in their local calendar.</param>
+/// <param name="FirstSendNotBeforeUtc">The moment a weekly check-in may not start before; see <see cref="AutomationNextSendCalculator.ResolveFirstSendNotBefore"/>.</param>
 public sealed record AutomationPair(
     AutomationRule Rule,
     AutomationCoveredClient Client,
     AutomationEffectiveRule Effective,
     TimeZoneInfo Zone,
-    DateOnly StartLocalDate);
+    DateOnly StartLocalDate,
+    DateTime FirstSendNotBeforeUtc);

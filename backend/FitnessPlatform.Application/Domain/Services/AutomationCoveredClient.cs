@@ -20,6 +20,9 @@ public sealed class AutomationCoveredClient
     /// <summary>When the coach's earliest live link to the client began (UTC).</summary>
     public DateTime LinkedSince { get; init; }
 
+    /// <summary>When the current collaboration began (UTC): the earliest live link's activation, else its creation.</summary>
+    public DateTime CollaborationStartedAtUtc { get; init; }
+
     /// <summary>The earliest live link that grants access; what a delivered request is attached to.</summary>
     public long PrimaryLinkId { get; init; }
 

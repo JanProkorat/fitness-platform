@@ -129,10 +129,12 @@ public class GetClientCheckInHistoryEndpointTests(FitnessApiFactory factory)
             QuestionnaireResponseStatus.Submitted, DateTime.UtcNow.AddDays(-69));
         await CheckInFixtures.AddCheckInAsync(
             factory, scenario, CheckInFixtures.Monday(9), DateTime.UtcNow.AddDays(-62));
+        await CheckInFixtures.AddCheckInAsync(
+            factory, scenario, CheckInFixtures.Monday(0), DateTime.UtcNow.AddDays(2));
 
         var body = await GetAsync(scenario.Coach, scenario.Client.UserId, "?weeks=1");
 
-        body.Weeks.Should().ContainSingle().Which.Status.Should().Be("none");
+        body.Weeks.Should().ContainSingle().Which.Status.Should().Be("waiting");
         body.AnsweredCount.Should().Be(1);
         body.TotalCount.Should().Be(2);
     }

@@ -1,3 +1,4 @@
+using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Services;
 using FluentAssertions;
@@ -155,5 +156,52 @@ public class AutomationScheduleCalculatorTests
 
         AutomationScheduleCalculator.IsPauseEffective(isPaused, until, new DateOnly(2026, 5, 10))
             .Should().Be(expected);
+    }
+
+    // A Thursday 18:00 weekly check-in in Prague: the first send waits for the first full week.
+
+    [Theory]
+    [InlineData(2026, 1, 9, 11, 0, 2026, 1, 15, 17)]   // linked on a Friday: the Monday week after
+    [InlineData(2026, 1, 11, 23, 0, 2026, 1, 15, 17)]  // Monday 00:00 local counts as that week
+    [InlineData(2026, 1, 11, 23, 1, 2026, 1, 22, 17)]  // a minute later is the week after
+    [InlineData(2026, 3, 25, 10, 0, 2026, 4, 2, 16)]   // the week after the spring-forward Sunday, now at CEST
+    [InlineData(2026, 3, 29, 22, 0, 2026, 4, 2, 16)]   // Monday 00:00 CEST, an hour after the clock change
+    public void ComputeFirstFullWeekRunAt_ThursdayCheckIn_StartsWithTheFirstFullWeek(
+        int year, int month, int day, int hour, int minute, int sendYear, int sendMonth, int sendDay, int sendHour)
+    {
+        var first = AutomationScheduleCalculator.ComputeFirstFullWeekRunAt(
+            DayOfWeek.Thursday, new TimeOnly(18, 0), Prague, Utc(year, month, day, hour, minute));
+
+        first.Should().Be(Utc(sendYear, sendMonth, sendDay, sendHour));
+    }
+
+    [Fact]
+    public void ResolveFirstSendNotBefore_RuleEnabledMidWeekForAnExistingClient_SendsInTheFollowingWeek()
+    {
+        var effective = new AutomationEffectiveRule(
+            AutomationRuleSource.Default, null, AutomationTriggerKind.Schedule, 1, AutomationScheduleUnit.Weeks,
+            new TimeOnly(18, 0), null, null, null, false, false, null, true, false, null, null,
+            DayOfWeek.Thursday, 48);
+        var rule = new AutomationRule { Name = "Weekly check-in", DateCreated = Utc(2026, 1, 14, 10) };
+        var notBefore = AutomationNextSendCalculator.ResolveFirstSendNotBefore(Utc(2025, 6, 1), rule, null);
+
+        var next = AutomationNextSendCalculator.Compute(
+            effective, Prague, new DateOnly(2025, 6, 1), [], Utc(2026, 1, 14, 10), notBefore);
+
+        next.Should().Be(Utc(2026, 1, 22, 17), "the Thursday of the week the rule was enabled in is not a full week");
+    }
+
+    [Fact]
+    public void Compute_AfterTheFirstWeek_FollowsTheWeekdayAsUsual()
+    {
+        var effective = new AutomationEffectiveRule(
+            AutomationRuleSource.Default, null, AutomationTriggerKind.Schedule, 1, AutomationScheduleUnit.Weeks,
+            new TimeOnly(18, 0), null, null, null, false, false, null, true, false, null, null,
+            DayOfWeek.Thursday, 48);
+
+        var next = AutomationNextSendCalculator.Compute(
+            effective, Prague, new DateOnly(2026, 1, 9), [], Utc(2026, 1, 15, 17, 1), Utc(2026, 1, 9, 11));
+
+        next.Should().Be(Utc(2026, 1, 22, 17));
     }
 }

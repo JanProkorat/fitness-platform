@@ -127,7 +127,14 @@ public class GetClientAutomationsEndpoint(
                     AnsweredAt = last.AnsweredAt,
                 }
                 : null;
-            item.NextSendAt = AutomationNextSendCalculator.Compute(effective, zone, startLocalDate, planWindows, nowUtc);
+            item.NextSendAt = AutomationNextSendCalculator.Compute(
+                effective,
+                zone,
+                startLocalDate,
+                planWindows,
+                nowUtc,
+                AutomationNextSendCalculator.ResolveFirstSendNotBefore(
+                    context.CollaborationStartedAt, rule, overrides.GetValueOrDefault(rule.Id)));
 
             items.Add(item);
         }
@@ -167,6 +174,10 @@ public class GetClientAutomationsEndpoint(
         IsPaused = effective.IsPaused,
         PausedUntil = effective.PausedUntil,
         PauseNote = effective.PauseNote,
+        ScheduleWeekday = effective.ScheduleWeekday,
+        AnswerWindowHours = effective.AnswerWindowHours,
+        ReminderAfterHours = effective.ReminderAfterHours,
+        NotifyCoachOnMissedWeek = effective.NotifyCoachOnMissedWeek,
     };
 
     private async Task<List<AutomationPlanWindow>> LoadPlanWindowsAsync(

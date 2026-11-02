@@ -81,6 +81,8 @@ public static class AutomationEvaluationLoader
             Effective = AutomationEffectiveRule.Resolve(rule, clientOverride, localToday),
             Zone = zone,
             StartLocalDate = AutomationNextSendCalculator.ResolveStartLocalDate(client.LinkedSince, zone),
+            FirstSendNotBeforeUtc = AutomationNextSendCalculator.ResolveFirstSendNotBefore(
+                client.CollaborationStartedAtUtc, rule, clientOverride),
         };
     }
 
