@@ -88,6 +88,27 @@ public class GetPendingClientsEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
+    public async Task Get_InviteWithStoredPackage_ReturnsThePackageOnTheRow()
+    {
+        var (http, trainerId) = await SetupTrainerAsync();
+        var withPackage = await SeedInviteAsync(
+            trainerId, UniqueEmail("with-package"), sentAt: DateTime.UtcNow.AddHours(-2), withPackage: true);
+        var withoutPackage = await SeedInviteAsync(trainerId, UniqueEmail("no-package"), sentAt: DateTime.UtcNow.AddHours(-1));
+
+        var response = await http.GetAsync("/trainer/clients/pending", TestContext.Current.CancellationToken);
+        var body = await Deserialize(response);
+
+        var packaged = body!.Rows.Single(r => r.PublicId == withPackage);
+        packaged.Package.Should().NotBeNull();
+        packaged.Package!.Name.Should().Be("Invite package");
+        packaged.Package.Billing.Should().Be("Monthly");
+        packaged.Package.Price.Should().Be(900m);
+        packaged.Package.Currency.Should().Be("CZK");
+        packaged.Package.PublicId.Should().NotBeEmpty();
+        body.Rows.Single(r => r.PublicId == withoutPackage).Package.Should().BeNull();
+    }
+
+    [Fact]
     public async Task Get_NoProfessionalProfile_Returns404NotEmptyList()
     {
         // Deliberately NOT the 200-empty shape GetIncomingRequestsEndpoint uses for this case —
@@ -148,15 +169,32 @@ public class GetPendingClientsEndpointTests(FitnessApiFactory factory)
     }
 
     private async Task<Guid> SeedInviteAsync(
-        Guid professionalUserId, string email, DateTime sentAt, bool isAccepted = false)
+        Guid professionalUserId, string email, DateTime sentAt, bool isAccepted = false, bool withPackage = false)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var professionalProfile = await db.ProfessionalProfiles
             .FirstAsync(pp => pp.UserId == professionalUserId, TestContext.Current.CancellationToken);
 
+        CoachPackage? package = null;
+
+        if (withPackage)
+        {
+            package = new CoachPackage
+            {
+                PublicId = Guid.NewGuid(),
+                ProfessionalProfileId = professionalProfile.Id,
+                Name = "Invite package",
+                Price = 900m,
+                Currency = PaymentCurrency.CZK,
+                Billing = PackageBillingInterval.Monthly,
+            };
+            db.CoachPackages.Add(package);
+        }
+
         var invite = new PendingInvite
         {
+            CoachPackage = package,
             PublicId = Guid.NewGuid(),
             ProfessionalProfileId = professionalProfile.Id,
             Email = email,
@@ -219,5 +257,15 @@ public class GetPendingClientsEndpointTests(FitnessApiFactory factory)
         public string? Message { get; set; }
         public DateTime SentAt { get; set; }
         public string Status { get; set; } = string.Empty;
+        public PackageDto? Package { get; set; }
+    }
+
+    private sealed class PackageDto
+    {
+        public Guid PublicId { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string Billing { get; set; } = string.Empty;
+        public decimal Price { get; set; }
+        public string Currency { get; set; } = string.Empty;
     }
 }

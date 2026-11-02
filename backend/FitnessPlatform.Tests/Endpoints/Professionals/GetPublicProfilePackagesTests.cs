@@ -18,7 +18,7 @@ namespace FitnessPlatform.Tests.Endpoints.Professionals;
 public class GetPublicProfilePackagesTests(FitnessApiFactory factory)
 {
     private record ProfilePackage(
-        string Name, PackageBillingInterval Billing, int? IntervalWeeks, int? RunsForPayments, string? Description,
+        Guid PublicId, string Name, PackageBillingInterval Billing, int? IntervalWeeks, int? RunsForPayments, string? Description,
         decimal Price, PaymentCurrency Currency);
 
     private record ProfileCertificate(string Title, string? Issuer, string? Year);
@@ -65,7 +65,7 @@ public class GetPublicProfilePackagesTests(FitnessApiFactory factory)
         var unlinked = await ReadProfileAsync(client, coach);
 
         unlinked.Packages.Should().ContainSingle().Which.Should().BeEquivalentTo(
-            new ProfilePackage("Coaching", PackageBillingInterval.Monthly, null, 12, null, 1800m, PaymentCurrency.CZK));
+            new ProfilePackage(shown, "Coaching", PackageBillingInterval.Monthly, null, 12, null, 1800m, PaymentCurrency.CZK));
         unlinked.ContactEmail.Should().BeNull();
         unlinked.ContactPhone.Should().BeNull();
 
