@@ -1775,7 +1775,8 @@
         "mobile/src/lib/outbox/types.ts",
         "mobile/src/lib/outbox/validate.ts",
         "mobile/src/hooks/useOutboxDrain.ts",
-        "mobile/src/hooks/useRefetchOnRecovery.ts"
+        "mobile/src/hooks/useRefetchOnRecovery.ts",
+        "mobile/src/hooks/useMealItemEaten.ts"
       ],
       "endpoints": [
         "DELETE /client/nutrition/log/meals/{mealId}/eaten",
@@ -1796,7 +1797,9 @@
         "POST /client/nutrition/log/meals/{mealId}/eaten",
         "POST /client/nutrition/log/meals/{mealId}/photo-upload-url",
         "POST /client/nutrition/log/meals/{mealId}/photos",
-        "POST /client/nutrition/log/off-plan-foods"
+        "POST /client/nutrition/log/off-plan-foods",
+        "POST /client/nutrition/log/meals/{mealId}/items/{itemId}/eaten",
+        "DELETE /client/nutrition/log/meals/{mealId}/items/{itemId}/eaten"
       ],
       "board": "GlassNutrition",
       "shots": [
@@ -2056,10 +2059,18 @@
         "mobile/src/components/nutrition/recipe/RecipeMacros.tsx",
         "mobile/src/components/nutrition/recipe/RecipeSteps.tsx",
         "mobile/src/hooks/useRecipeDetail.ts",
-        "mobile/src/components/OfflineBanner.tsx"
+        "mobile/src/components/OfflineBanner.tsx",
+        "mobile/src/components/nutrition/meal/MarkEatenButton.tsx",
+        "mobile/src/hooks/useMealItemEaten.ts",
+        "mobile/src/hooks/useTodayMealLog.ts",
+        "mobile/src/lib/outbox/submit.ts"
       ],
       "endpoints": [
-        "GET /client/recipes/{recipeId}"
+        "GET /client/recipes/{recipeId}",
+        "GET /client/nutrition/plan/today",
+        "GET /client/nutrition/log/today",
+        "POST /client/nutrition/log/meals/{mealId}/items/{itemId}/eaten",
+        "DELETE /client/nutrition/log/meals/{mealId}/items/{itemId}/eaten"
       ],
       "board": "GlassRecipeDetail",
       "shots": [
@@ -2095,10 +2106,18 @@
         "mobile/src/components/nutrition/meal/DetailState.tsx",
         "mobile/src/components/nutrition/meal/format.ts",
         "mobile/src/hooks/useFoodDetail.ts",
-        "mobile/src/components/OfflineBanner.tsx"
+        "mobile/src/components/OfflineBanner.tsx",
+        "mobile/src/components/nutrition/meal/MarkEatenButton.tsx",
+        "mobile/src/hooks/useMealItemEaten.ts",
+        "mobile/src/hooks/useTodayMealLog.ts",
+        "mobile/src/lib/outbox/submit.ts"
       ],
       "endpoints": [
-        "GET /foods/{foodId}"
+        "GET /foods/{foodId}",
+        "GET /client/nutrition/plan/today",
+        "GET /client/nutrition/log/today",
+        "POST /client/nutrition/log/meals/{mealId}/items/{itemId}/eaten",
+        "DELETE /client/nutrition/log/meals/{mealId}/items/{itemId}/eaten"
       ],
       "board": "GlassIngredientDetail",
       "shots": [

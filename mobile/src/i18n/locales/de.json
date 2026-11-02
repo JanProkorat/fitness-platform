@@ -986,6 +986,8 @@
       "subject": {
         "mealEaten": "Der Mahlzeiteneintrag vom {{date}}",
         "mealUnlogged": "Der Mahlzeiteneintrag vom {{date}}",
+        "mealItemEaten": "Der Eintrag zu einem Mahlzeitenbestandteil vom {{date}}",
+        "mealItemUnlogged": "Der Eintrag zu einem Mahlzeitenbestandteil vom {{date}}",
         "offPlanAdded": "Der Lebensmitteleintrag vom {{date}}",
         "offPlanRemoved": "Der Lebensmitteleintrag vom {{date}}",
         "shoppingTicked": "Der Einkaufslisteneintrag vom {{date}}",
@@ -1428,6 +1430,10 @@
     }
   },
   "nutritionMeal": {
+    "markEaten": {
+      "mark": "Als gegessen markieren",
+      "undo": "Gegessen, zum Rückgängigmachen tippen"
+    },
     "title": "Mahlzeit",
     "back": "Zurück",
     "retry": "Erneut versuchen",
@@ -1531,7 +1537,11 @@
       "kcal": "{{value}} kcal",
       "more_one": "und 1 weiteres Element",
       "more_other": "und {{count}} weitere Elemente",
-      "toggle": "{{meal}} ein- oder ausblenden"
+      "toggle": "{{meal}} ein- oder ausblenden",
+      "partial_one": "{{done}} von {{count}} gegessen",
+      "partial_other": "{{done}} von {{count}} gegessen",
+      "partialA11y_one": "{{meal}}: teilweise gegessen, {{done}} von {{count}} Bestandteil",
+      "partialA11y_other": "{{meal}}: teilweise gegessen, {{done}} von {{count}} Bestandteilen"
     },
     "note": {
       "day": "Hinweis für diesen Tag",
@@ -1547,7 +1557,12 @@
     "status": {
       "eaten": "{{meal}}: gegessen",
       "pending": "{{meal}}: nicht gegessen",
-      "missed": "{{meal}}: nicht erfasst"
+      "missed": "{{meal}}: nicht erfasst",
+      "partial": "{{meal}}: teilweise gegessen"
+    },
+    "item": {
+      "markEaten": "{{item}} als gegessen markieren",
+      "unmarkEaten": "{{item}} gegessen. Als nicht gegessen markieren"
     },
     "photo": {
       "add": "Foto zu {{meal}} hinzufügen",

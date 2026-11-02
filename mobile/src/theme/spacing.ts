@@ -155,6 +155,8 @@ export const sizes = {
   mealTouch: 44,
   mealStatus: 26,
   mealStatusGlyph: 14,
+  mealItemStatus: 22,
+  mealItemStatusGlyph: 12,
   mealMissedGlyph: 12,
   mealStatusSlot: 36,
   mealAddSlot: 40,

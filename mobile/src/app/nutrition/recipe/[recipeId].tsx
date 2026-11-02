@@ -12,6 +12,7 @@ import { DetailLayout } from '@/components/nutrition/meal/DetailLayout';
 import { DetailState } from '@/components/nutrition/meal/DetailState';
 import { foodName, formatAmount, formatWhole, macrosOf, scaleMacros } from '@/components/nutrition/meal/format';
 import { GlassIconButton } from '@/components/nutrition/meal/GlassIconButton';
+import { useMarkEatenFooter } from '@/components/nutrition/meal/MarkEatenButton';
 import { PortionStepper } from '@/components/nutrition/recipe/PortionStepper';
 import { RecipeIngredients } from '@/components/nutrition/recipe/RecipeIngredients';
 import { RecipeMacros } from '@/components/nutrition/recipe/RecipeMacros';
@@ -35,7 +36,7 @@ const parsePlanServings = (value: string | undefined): number | undefined => {
 export default function RecipeDetailScreen() {
   const { t } = useTranslation();
   const router = useRouter();
-  const params = useLocalSearchParams<{ recipeId?: string; servings?: string }>();
+  const params = useLocalSearchParams<{ recipeId?: string; servings?: string; mealId?: string; itemId?: string }>();
   const recipeId = typeof params.recipeId === 'string' ? params.recipeId : '';
   const valid = isNutritionId(recipeId);
   const query = useRecipeDetail(recipeId, valid);
@@ -59,11 +60,21 @@ export default function RecipeDetailScreen() {
     <RecipeDetailContent
       recipe={query.data}
       planServings={typeof params.servings === 'string' ? parsePlanServings(params.servings) : undefined}
+      mealId={typeof params.mealId === 'string' ? params.mealId : undefined}
+      itemId={typeof params.itemId === 'string' ? params.itemId : undefined}
     />
   );
 }
 
-function RecipeDetailContent({ recipe, planServings }: { recipe: GetRecipeResponse; planServings?: number }) {
+type RecipeDetailContentProps = {
+  recipe: GetRecipeResponse;
+  planServings?: number;
+  /** The plan meal and item the recipe was opened from; present only from a row that can log today. */
+  mealId?: string;
+  itemId?: string;
+};
+
+function RecipeDetailContent({ recipe, planServings, mealId, itemId }: RecipeDetailContentProps) {
   const { t, i18n } = useTranslation();
   const theme = useTheme();
   const styles = makeStyles(theme);
@@ -77,6 +88,7 @@ function RecipeDetailContent({ recipe, planServings }: { recipe: GetRecipeRespon
   const perPortion = scaleMacros(macrosOf(recipe.totalNutrients), 1 / baseServings);
   const minutes = (recipe.prepTimeMinutes ?? 0) + (recipe.cookTimeMinutes ?? 0);
   const language = i18n.language;
+  const markEaten = useMarkEatenFooter(mealId, itemId);
 
   const share = () => {
     const lines = foods.map(
@@ -99,6 +111,7 @@ function RecipeDetailContent({ recipe, planServings }: { recipe: GetRecipeRespon
       imageUri={recipe.imageUrl}
       backLabel={t('onboarding.back')}
       onBack={() => router.back()}
+      footer={markEaten}
       actions={<GlassIconButton symbol="square.and.arrow.up" label={t('nutritionRecipe.share')} onPress={share} />}
     >
       <View style={styles.title}>

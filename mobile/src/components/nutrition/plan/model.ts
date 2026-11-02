@@ -107,6 +107,8 @@ export const canAddPhotos = (log: GetWeekMealLogResponse | undefined, date: stri
 /** Status of a meal on a date. Without a log nothing can be called eaten or missed, so it stays neutral. */
 export function mealStatus(options: {
   eaten: boolean;
+  /** Some, but not all, items of the meal are eaten; taken from the log's eaten state. */
+  partial?: boolean;
   logAvailable: boolean;
   date: string;
   today: string;
@@ -114,6 +116,7 @@ export function mealStatus(options: {
 }): MealStatus {
   if (options.eaten) return 'eaten';
   if (!options.logAvailable) return 'pending';
+  if (options.partial) return 'partial';
   return options.date < options.today || options.planFinished ? 'missed' : 'pending';
 }
 

@@ -3,7 +3,14 @@ import type { QueryClient } from '@tanstack/react-query';
 import type { GetTodayLogResponse, NutrientTotals, TodayOffPlanFoodDto } from '@/api/generated';
 import { MEASUREMENT_HISTORY_QUERY_KEY } from '@/api/measurements';
 import type { MeasurementEntry } from '@/api/measurements';
-import { TODAY_LOG_KEY, findMealLog, isMealEaten, withMealEaten } from '@/api/nutrition';
+import {
+  TODAY_LOG_KEY,
+  findMealLog,
+  isItemEaten,
+  isMealEaten,
+  withMealEaten,
+  withMealItemEaten,
+} from '@/api/nutrition';
 import type { NutritionMeal, ShoppingListData } from '@/api/nutrition';
 import { addMacros, macrosOf, scaleMacros } from '@/components/nutrition/meal/format';
 import type { Macros } from '@/components/nutrition/meal/format';
@@ -36,6 +43,31 @@ export function applyMealUnlogged(
 ): GetTodayLogResponse | undefined {
   return log ? withMealEaten(log, asMeal(payload.mealId), false) : log;
 }
+
+/** Ticks or unticks one item; a replay over a log that already shows that state changes nothing. */
+function applyMealItem(
+  log: GetTodayLogResponse | undefined,
+  payload: Payload<'mealItemEaten'>,
+  eaten: boolean,
+  occurredAt: string,
+): GetTodayLogResponse | undefined {
+  if (!log) return log;
+  const row = findMealLog(log, payload.mealId);
+  if (isItemEaten(isMealEaten(row), row?.eatenItemIds ?? [], payload.itemId) === eaten) return log;
+  return withMealItemEaten(log, payload.mealId, payload.itemId, eaten, payload.itemIds ?? [], occurredAt);
+}
+
+export const applyMealItemEaten = (
+  log: GetTodayLogResponse | undefined,
+  payload: Payload<'mealItemEaten'>,
+  occurredAt: string,
+): GetTodayLogResponse | undefined => applyMealItem(log, payload, true, occurredAt);
+
+export const applyMealItemUnlogged = (
+  log: GetTodayLogResponse | undefined,
+  payload: Payload<'mealItemUnlogged'>,
+  occurredAt: string,
+): GetTodayLogResponse | undefined => applyMealItem(log, payload, false, occurredAt);
 
 /** Moves the day totals by `delta`; the remaining budget moves the other way. */
 function shiftTotals(log: GetTodayLogResponse, delta: Macros, direction: 1 | -1): GetTodayLogResponse {
@@ -117,6 +149,12 @@ export function applyToTodayLog(
         break;
       case 'mealUnlogged':
         next = applyMealUnlogged(next, entry.payload);
+        break;
+      case 'mealItemEaten':
+        next = applyMealItemEaten(next, entry.payload, entry.occurredAt);
+        break;
+      case 'mealItemUnlogged':
+        next = applyMealItemUnlogged(next, entry.payload, entry.occurredAt);
         break;
       case 'offPlanAdded':
         next = applyOffPlanAdded(next, entry.payload, entry.occurredAt);
