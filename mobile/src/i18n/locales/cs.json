@@ -977,8 +977,8 @@
     "historyHint": "Dřívější plány, měření a fotky z doby před spoluprací s poradcem {{name}}.",
     "onboardingCaption": "Odpovědi z vašeho úvodního dotazníku uvidí {{name}} a podle nich se připraví.",
     "submit": "Odeslat žádost",
-    "packageLabel": "Balíček (nepovinné)",
-    "packageHint": "Vyberte si, pokud už víte, co chcete. Můžete to také přeskočit a domluvit se s osobou {{name}} později.",
+    "packageLabel": "Balíček · nepovinné",
+    "packageHint": "Ještě nevíte? Přeskočte to a {{name}} vám nějaký navrhne.",
     "errors": {
       "notAccepting": "Tento poradce teď nepřijímá nové klienty.",
       "alreadyPending": "Žádost tomuto poradci už byla odeslána.",
@@ -995,14 +995,13 @@
       "title": "Není co potvrzovat",
       "body": "Tento návrh byl stažen nebo už je vyřízený. S trenérem nebo poradcem můžete dál psát ve Zprávách."
     },
+    "noPackagePicked": "V žádosti jste si balíček nevybrali, proto vám ho navrhuje {{name}}.",
     "suggestsAt": "{{name}} vám navrhuje balíček · {{time}}",
     "questionnaire": "Po přijetí vyplníte formulář „{{title}}“.",
     "package": {
-      "title": "Navržený balíček",
-      "youPay": "Platíte",
-      "note": "Začíná dnem přijetí. {{name}} vám posílá každou žádost o platbu, platíte bankovním převodem."
+      "title": "Navržený balíček"
     },
-    "barNote": "Přijetím sdílíte své odpovědi z úvodního dotazníku s osobou {{name}} a spustíte balíček. Odmítnutím žádost končí, chat zůstane k dispozici.",
+    "barNote": "Přijetím se balíček spustí. Odmítnutím vaše žádost u osoby {{name}} končí, chat zůstane k dispozici.",
     "accept": "Přijmout balíček",
     "decline": "Odmítnout",
     "errors": {

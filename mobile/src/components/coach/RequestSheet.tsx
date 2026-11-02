@@ -24,7 +24,7 @@ import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
 
 import { CoachAvatar } from './CoachAvatar';
-import { RequestPackageTile } from './RequestPackageTile';
+import { PackageCarousel } from './PackageCarousel';
 
 export type RequestSheetCoach = {
   publicId: string;
@@ -136,6 +136,27 @@ function SheetContent({
             </Pressable>
           </View>
 
+          {selectable.length > 0 ? (
+            <View style={styles.field}>
+              <PackageCarousel
+                packages={selectable}
+                showPrices={showPrices}
+                label={t('requestSheet.packageLabel')}
+                selection={{
+                  selectedId: packagePublicId,
+                  disabled: mutation.isPending || mutation.isSuccess,
+                  onSelect: (publicId) => {
+                    setPackagePublicId(publicId);
+                    if (mutation.isError) mutation.reset();
+                  },
+                }}
+              />
+              <Text variant="caption" color="muted" style={styles.packageHint}>
+                {t('requestSheet.packageHint', { name })}
+              </Text>
+            </View>
+          ) : null}
+
           <View style={styles.field}>
             <Text variant="label" color="muted">
               {t('requestSheet.messageLabel')}
@@ -161,30 +182,6 @@ function SheetContent({
               </Text>
             </View>
           </View>
-
-          {selectable.length > 0 ? (
-            <View style={styles.field} accessibilityRole="radiogroup">
-              <Text variant="label" color="muted">
-                {t('requestSheet.packageLabel')}
-              </Text>
-              {selectable.map((pack) => (
-                <RequestPackageTile
-                  key={pack.publicId}
-                  pack={pack}
-                  selected={pack.publicId === packagePublicId}
-                  showPrices={showPrices}
-                  disabled={mutation.isPending || mutation.isSuccess}
-                  onPress={() => {
-                    setPackagePublicId(pack.publicId === packagePublicId ? undefined : pack.publicId);
-                    if (mutation.isError) mutation.reset();
-                  }}
-                />
-              ))}
-              <Text variant="caption" color="muted">
-                {t('requestSheet.packageHint', { name })}
-              </Text>
-            </View>
-          ) : null}
 
           <View style={styles.toggleCard}>
             <View style={styles.toggleRow}>
@@ -279,6 +276,9 @@ const makeStyles = (theme: Theme, insets: EdgeInsets) =>
       flex: 1,
       padding: 0,
       color: theme.colors.ink,
+    },
+    packageHint: {
+      paddingHorizontal: theme.spacing.xxs,
     },
     counter: {
       alignSelf: 'flex-end',

@@ -118,6 +118,9 @@ export default function RequestProposalScreen() {
               {t('requestProposal.suggestsAt', { name: first, time: relativeTime(t, proposal.proposedAt) })}
             </Text>
             {statement ? <Text variant="bodyLarge">{statement}</Text> : null}
+            <Text variant="bodySmall" color="muted">
+              {t('requestProposal.noPackagePicked', { name: first })}
+            </Text>
             {questionnaireTitle ? (
               <Text variant="bodySmall" color="muted">
                 {t('requestProposal.questionnaire', { title: questionnaireTitle })}
@@ -130,7 +133,6 @@ export default function RequestProposalScreen() {
               pack={pack}
               discount={proposal.discount}
               description={description || undefined}
-              coachFirstName={first}
               showPrices={paymentsEnabled}
             />
           ) : null}

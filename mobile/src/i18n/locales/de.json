@@ -940,8 +940,8 @@
     "historyHint": "Frühere Pläne, Messungen und Fotos aus der Zeit vor {{name}}.",
     "onboardingCaption": "Deine Antworten aus dem Einstiegsfragebogen sieht {{name}}, um sich vorzubereiten.",
     "submit": "Anfrage senden",
-    "packageLabel": "Paket (optional)",
-    "packageHint": "Wählen Sie eines, wenn Sie schon wissen, was Sie möchten. Sie können es auch überspringen und später mit {{name}} klären.",
+    "packageLabel": "Paket · optional",
+    "packageHint": "Noch unsicher? Überspringen Sie es, und {{name}} kann eines vorschlagen.",
     "errors": {
       "notAccepting": "Dieser Coach nimmt derzeit keine neuen Klienten an.",
       "alreadyPending": "Du hast diesem Coach bereits eine Anfrage geschickt.",
@@ -958,14 +958,13 @@
       "title": "Kein Paket zu beantworten",
       "body": "Dieser Vorschlag wurde zurückgezogen oder ist bereits beantwortet. Unter Nachrichten können Sie Ihrem Coach weiterhin schreiben."
     },
+    "noPackagePicked": "Sie haben in Ihrer Anfrage kein Paket gewählt, daher hat {{name}} eines für Sie ausgesucht.",
     "suggestsAt": "{{name}} schlägt ein Paket vor · {{time}}",
     "questionnaire": "Nach der Annahme füllen Sie das Formular „{{title}}“ aus.",
     "package": {
-      "title": "Vorgeschlagenes Paket",
-      "youPay": "Sie zahlen",
-      "note": "Beginnt am Tag der Annahme. {{name}} schickt Ihnen jede Zahlungsanforderung, Sie zahlen per Banküberweisung."
+      "title": "Vorgeschlagenes Paket"
     },
-    "barNote": "Mit der Annahme teilen Sie Ihre Antworten aus dem Einstiegsfragebogen mit {{name}} und starten das Paket. Mit der Ablehnung endet diese Anfrage, der Chat bleibt erhalten.",
+    "barNote": "Mit der Annahme startet das Paket. Mit der Ablehnung endet Ihre Anfrage an {{name}}, der Chat bleibt erhalten.",
     "accept": "Paket annehmen",
     "decline": "Ablehnen",
     "errors": {
