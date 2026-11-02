@@ -29,6 +29,7 @@ import {
   canAddPhotos,
   dayMeals,
   eatenMacros,
+  dayPlannedTargets,
   findLoggedMeal,
   formatRange,
   isPlanFinished,
@@ -351,7 +352,7 @@ function WeekContent({ plan, planId, week, initialDay, onBack }: WeekContentProp
             eaten: isEaten(selected, meal.mealId),
             itemIds: eatenItemIdsOf(selected, meal.mealId),
           }))}
-          targets={plan.globalSettings}
+          targets={dayPlannedTargets(meals)}
         />
 
         <Card style={styles.meals}>

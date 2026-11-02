@@ -1,4 +1,10 @@
-import type { FullPlanWeek, GetFullPlanResponse, GetWeekMealLogResponse, PlanDay } from '@/api/generated';
+import type {
+  FullPlanWeek,
+  GetFullPlanResponse,
+  GetWeekMealLogResponse,
+  GlobalNutritionSettings,
+  PlanDay,
+} from '@/api/generated';
 import type { NutritionMeal } from '@/api/nutrition';
 import { isPlanId } from '@/api/plans';
 import type { MealStatus } from '@/components/nutrition/meals/MealStatusIcon';
@@ -63,6 +69,21 @@ export const dayMeals = (day: PlanDay | undefined): NutritionMeal[] =>
   [...(day?.meals ?? [])]
     .filter((meal): meal is NutritionMeal => typeof meal.mealId === 'string')
     .sort((first, second) => (first.order ?? 0) - (second.order ?? 0));
+
+/**
+ * What the client is meant to eat on a day: the summed macros of its planned meals, shaped like the plan's targets.
+ * Daily progress compares against this, not the coach's plan-level setting, which can differ from the meals.
+ */
+export const dayPlannedTargets = (meals: NutritionMeal[]): GlobalNutritionSettings => {
+  const total = meals.map(mealMacros).reduce(addMacros, EMPTY_MACROS);
+  return {
+    dailyKcal: total.kcal,
+    proteinGrams: total.protein,
+    carbsGrams: total.carbs,
+    fatGrams: total.fat,
+    fiberGrams: total.fiber,
+  };
+};
 
 export const weekMealCount = (week: FullPlanWeek): number =>
   weekDays(week).reduce((total, { day }) => total + dayMeals(day).length, 0);

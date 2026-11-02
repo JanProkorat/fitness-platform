@@ -1,4 +1,12 @@
+import { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
+import Reanimated, {
+  Easing,
+  useAnimatedProps,
+  useReducedMotion,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import Svg, { Circle } from 'react-native-svg';
 import { useTranslation } from 'react-i18next';
 
@@ -7,8 +15,10 @@ import { formatWhole } from '@/components/nutrition/meal/format';
 import type { Macros } from '@/components/nutrition/meal/format';
 import { Card } from '@/components/Card';
 import { NoteBox, trimmedNote } from '@/components/nutrition/meals/NoteBox';
+import { ProgressFill } from '@/components/ProgressFill';
 import { Text } from '@/components/Text';
 import { useTheme } from '@/theme';
+import { progressFillMotion } from '@/theme/motion';
 import type { Colors, Theme } from '@/theme';
 
 type MacroKey = 'protein' | 'carbs' | 'fat' | 'fiber';
@@ -22,6 +32,22 @@ const BARS: { key: MacroKey; color: keyof Colors; target: keyof GlobalNutritionS
 
 const ratio = (value: number, target: number | undefined): number =>
   target && target > 0 ? Math.min(Math.max(value / target, 0), 1) : 0;
+
+const AnimatedCircle = Reanimated.createAnimatedComponent(Circle);
+
+/** A 0–1 value that eases to each new target like the progress bars; instant when Reduce Motion is on. */
+function useAnimatedRatio(target: number) {
+  const reduceMotion = useReducedMotion();
+  const progress = useSharedValue(0);
+  useEffect(() => {
+    progress.set(
+      reduceMotion
+        ? target
+        : withTiming(target, { duration: progressFillMotion.duration, easing: Easing.out(Easing.cubic) }),
+    );
+  }, [target, reduceMotion, progress]);
+  return progress;
+}
 
 type DaySummaryProps = {
   /** Totals of the meals eaten on the selected day. */
@@ -45,8 +71,11 @@ export function DaySummary({ eaten, targets, note, noteLabel }: DaySummaryProps)
   const radius = (size - stroke) / 2;
   const circumference = 2 * Math.PI * radius;
   const kcalTarget = targets?.dailyKcal;
-  const filled = ratio(eaten.kcal, kcalTarget) * circumference;
   const dayNote = trimmedNote(note);
+  const ringProgress = useAnimatedRatio(ratio(eaten.kcal, kcalTarget));
+  const ringProps = useAnimatedProps(() => ({
+    strokeDasharray: `${ringProgress.value * circumference} ${circumference}`,
+  }));
 
   return (
     <Card style={styles.card}>
@@ -72,7 +101,7 @@ export function DaySummary({ eaten, targets, note, noteLabel }: DaySummaryProps)
               stroke={theme.colors.lineStrong}
               strokeWidth={stroke}
             />
-            <Circle
+            <AnimatedCircle
               cx={size / 2}
               cy={size / 2}
               r={radius}
@@ -80,7 +109,7 @@ export function DaySummary({ eaten, targets, note, noteLabel }: DaySummaryProps)
               stroke={theme.colors.nutrition}
               strokeWidth={stroke}
               strokeLinecap="round"
-              strokeDasharray={`${filled} ${circumference}`}
+              animatedProps={ringProps}
               transform={`rotate(-90 ${size / 2} ${size / 2})`}
             />
           </Svg>
@@ -119,12 +148,7 @@ export function DaySummary({ eaten, targets, note, noteLabel }: DaySummaryProps)
                   </Text>
                 </View>
                 <View style={styles.track}>
-                  <View
-                    style={[
-                      styles.fill,
-                      { backgroundColor: theme.colors[color], width: `${Math.round(ratio(eaten[key], goal) * 100)}%` },
-                    ]}
-                  />
+                  <ProgressFill ratio={ratio(eaten[key], goal)} color={theme.colors[color]} style={styles.fill} />
                 </View>
               </View>
             );
