@@ -71,6 +71,11 @@ export const progressFillMotion = {
   duration: 600,
 } as const;
 
+/** A long coach note sliding open to its full text or back to its preview lines, in ms. */
+export const noteExpandMotion = {
+  duration: 240,
+} as const;
+
 /** Meal row expanding or collapsing on the plan week view and the Nutrition tab, in ms. */
 export const mealExpandMotion = {
   duration: 240,

@@ -1603,10 +1603,12 @@
       "partialA11y_other": "{{meal}}: částečně snězeno, {{done}} z {{count}} položek"
     },
     "note": {
-      "day": "Poznámka k tomuto dni",
-      "today": "Poznámka na dnes",
+      "day": "Poznámka",
+      "today": "Poznámka",
       "meal": "Poznámka",
-      "mealIcon": "Toto jídlo má poznámku"
+      "mealIcon": "Toto jídlo má poznámku",
+      "expand": "Zobrazit celou poznámku",
+      "collapse": "Zobrazit méně"
     },
     "amount": {
       "portions_one": "{{value}} porce",

@@ -1544,10 +1544,12 @@
       "partialA11y_other": "{{meal}}: partly eaten, {{done}} of {{count}} items"
     },
     "note": {
-      "day": "Note for this day",
-      "today": "Note for today",
+      "day": "Note",
+      "today": "Note",
       "meal": "Note",
-      "mealIcon": "This meal has a note"
+      "mealIcon": "This meal has a note",
+      "expand": "Show the whole note",
+      "collapse": "Show less"
     },
     "amount": {
       "portions_one": "{{value}} portion",
