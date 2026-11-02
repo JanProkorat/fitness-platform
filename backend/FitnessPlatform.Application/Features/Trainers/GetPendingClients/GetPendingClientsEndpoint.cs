@@ -84,7 +84,18 @@ public class GetPendingClientsEndpoint(IApplicationDbContext db, IMongoContext m
                 PublicId = pi.PublicId,
                 Email = pi.Email,
                 Message = pi.Message,
-                SentAt = pi.SentAt
+                SentAt = pi.SentAt,
+                Package = pi.CoachPackage == null
+                    ? null
+                    : new PendingRowPackageDto
+                    {
+                        PublicId = pi.CoachPackage.PublicId,
+                        Name = pi.CoachPackage.Name,
+                        Billing = pi.CoachPackage.Billing,
+                        IntervalWeeks = pi.CoachPackage.IntervalWeeks,
+                        Price = pi.CoachPackage.Price,
+                        Currency = pi.CoachPackage.Currency,
+                    },
             })
             .ToListAsync(ct);
 

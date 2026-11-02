@@ -51,7 +51,7 @@ public class PendingClientRow
     /// </summary>
     public PendingInviteStatus Status { get; set; } = PendingInviteStatus.Pending;
 
-    /// <summary>The package the client attached to the request; always null for invite rows.</summary>
+    /// <summary>The package attached to the request, or stored on the invite; null when none.</summary>
     public PendingRowPackageDto? Package { get; set; }
 
     /// <summary>Whether the client agreed to share their history; always false for invite rows.</summary>

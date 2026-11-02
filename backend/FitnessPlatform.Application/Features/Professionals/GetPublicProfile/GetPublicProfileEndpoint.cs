@@ -117,6 +117,7 @@ public class GetPublicProfileEndpoint(
             Packages = packages
                 .Select(package => new PublicProfilePackageDto
                 {
+                    PublicId = package.PublicId,
                     Name = package.Name,
                     Billing = package.Billing,
                     IntervalWeeks = package.IntervalWeeks,
