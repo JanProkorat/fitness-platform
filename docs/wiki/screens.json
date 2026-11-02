@@ -1658,6 +1658,51 @@
       "notionPageId": null
     },
     {
+      "id": "client.requests.proposal",
+      "app": "client",
+      "area": "Invites",
+      "title": "Package proposal",
+      "route": "/request/:id",
+      "roles": ["Client"],
+      "files": [
+        "mobile/src/app/request/*.tsx",
+        "mobile/src/components/requests/ProposalPackageCard.tsx",
+        "mobile/src/components/coach/PackageCard.tsx",
+        "mobile/src/components/invites/InviteActions.tsx",
+        "mobile/src/components/invites/InviteAvatar.tsx",
+        "mobile/src/components/invites/RoleChip.tsx",
+        "mobile/src/components/invites/format.ts",
+        "mobile/src/components/payments/format.ts",
+        "mobile/src/components/BackButton.tsx",
+        "mobile/src/components/Button.tsx",
+        "mobile/src/components/Chip.tsx",
+        "mobile/src/components/Text.tsx",
+        "mobile/src/components/OfflineBanner.tsx",
+        "mobile/src/hooks/useMyClientRequests.ts",
+        "mobile/src/hooks/useRequestProposal.ts",
+        "mobile/src/hooks/useCoachProfile.ts",
+        "mobile/src/hooks/usePaymentsEnabled.ts",
+        "mobile/src/api/clientRequests.ts",
+        "mobile/src/api/professionals.ts",
+        "mobile/src/api/notifications.ts",
+        "mobile/src/api/errors.ts",
+        "mobile/src/api/appConfig.ts",
+        "mobile/src/lib/outbox/classify.ts"
+      ],
+      "endpoints": [
+        "GET /client/requests",
+        "GET /professionals/{publicId}",
+        "POST /client/requests/{publicId}/accept-proposal",
+        "POST /client/requests/{publicId}/decline-proposal",
+        "GET /client/app-config"
+      ],
+      "board": "GlassPackageProposal",
+      "shots": [
+        { "name": "default", "steps": "client whose request a coach answered with a package proposal; tap the proposal notification" }
+      ],
+      "notionPageId": null
+    },
+    {
       "id": "client.training.placeholder",
       "app": "client",
       "area": "Training",

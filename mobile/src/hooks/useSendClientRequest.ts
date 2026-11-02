@@ -12,7 +12,7 @@ export function useSendClientRequest(professionalPublicId: string) {
     queryClient.invalidateQueries({ queryKey: coachProfileQueryKey(professionalPublicId) });
 
   return useMutation({
-    mutationFn: (input: { message: string; shareHistory: boolean }) =>
+    mutationFn: (input: { message: string; shareHistory: boolean; packagePublicId?: string }) =>
       sendClientRequest({ professionalPublicId, ...input }),
     onSuccess: () => {
       // The new request conversation is not pushed to the client.
@@ -28,6 +28,7 @@ export function useSendClientRequest(professionalPublicId: string) {
         case 'notAccepting':
         case 'alreadyPending':
         case 'notFound':
+        case 'packageUnavailable':
           void refreshCoach();
           break;
       }
