@@ -1,14 +1,10 @@
 /**
  * Automations is open to both coach roles: the Forms section of the sidebar links to
  * /automations and the page renders for a trainer-only and a nutritionist-only user.
- * The trainer block also drives a schedule rule through create, edit, toggle and delete,
- * and checks that no check-in row names a weekday.
+ * The trainer block also drives a schedule rule through create, edit, toggle and delete.
  */
 import { trainerTest, nutritionistTest, expect } from '../fixtures/auth';
 import type { Page } from '@playwright/test';
-import { ensureCheckInSetting } from '../fixtures/check-in-setting';
-
-const WEEKDAY = /\b(Mon|Tue|Wed|Thu|Fri|Sat|Sun)(day|sday|nesday|rsday|urday)?\b/;
 
 async function expectAutomationsPage(page: Page) {
   await page.goto('/clients');
@@ -32,21 +28,6 @@ nutritionistTest.describe('nutritionist automations nav', () => {
 trainerTest.describe('trainer automations', () => {
   trainerTest('sidebar links to /automations and the page renders', async ({ page }) => {
     await expectAutomationsPage(page);
-  });
-
-  trainerTest('linked check-in rows never name a weekday', async ({ page, baseURL }) => {
-    await ensureCheckInSetting(baseURL ?? 'http://localhost:5173');
-    await page.goto('/automations');
-    const table = page.getByRole('table');
-    await expect(table.getByRole('row').nth(1)).toBeVisible();
-    const checkInRows = page.getByRole('row').filter({ hasText: 'Weekly check-in' });
-    await expect(checkInRows.first()).toBeVisible();
-    for (const row of await checkInRows.all()) {
-      await expect(row.getByText('Linked')).toBeVisible();
-      await expect(row.getByRole('switch')).toHaveCount(0);
-      await expect(row.getByRole('link', { name: 'Open' })).toHaveAttribute('href', '/forms?type=CheckIn');
-    }
-    expect(await table.innerText()).not.toMatch(WEEKDAY);
   });
 
   trainerTest('create, edit, toggle and delete a schedule rule', async ({ page }) => {

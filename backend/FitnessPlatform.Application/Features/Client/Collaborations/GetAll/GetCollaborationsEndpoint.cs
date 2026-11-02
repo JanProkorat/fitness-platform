@@ -66,7 +66,7 @@ public class GetCollaborationsEndpoint(IApplicationDbContext db, TimeProvider ti
             .ToListAsync(ct);
 
         await AttachFirstPaymentsAsync(links, clientProfile.Id, ct);
-        await AttachCheckInsAsync(links, clientProfile.Id, userGuid, ct);
+        await AttachCheckInsAsync(links, clientProfile.Id, ct);
 
         await Send.OkAsync(new GetCollaborationsResponse { Collaborations = links }, ct);
     }
@@ -176,56 +176,74 @@ public class GetCollaborationsEndpoint(IApplicationDbContext db, TimeProvider ti
     }
 
     /// <summary>
-    /// Sets each collaboration's check-in days the way <c>WeeklyCheckInScheduler</c> resolves them, limited to the
-    /// professions the link lets the client see.
+    /// Sets each collaboration's check-in day from the coach's enabled check-in rule that covers the client,
+    /// the way the automation worker resolves it: audience, then the client's override when the coach's
+    /// subscription allows it.
     /// </summary>
-    private async Task AttachCheckInsAsync(List<CollaborationDto> collaborations, long clientProfileId, Guid clientUserId, CancellationToken ct)
+    private async Task AttachCheckInsAsync(List<CollaborationDto> collaborations, long clientProfileId, CancellationToken ct)
     {
         var links = await db.ClientProfessionalLinks
             .AsNoTracking()
             .Where(l => l.ClientProfileId == clientProfileId && l.IsActive)
-            .Select(l => new
-            {
-                l.PublicId,
-                ProfessionalUserId = l.ProfessionalProfile.UserId,
-                l.CanViewTrainingPlans,
-                l.CanViewNutritionPlans
-            })
+            .Select(l => new { l.Id, l.PublicId, l.ProfessionalProfileId, l.ProfessionalRole })
             .ToListAsync(ct);
 
-        var professionalUserIds = links.Select(l => l.ProfessionalUserId).ToList();
+        if (links.Count == 0)
+        {
+            return;
+        }
 
-        var settings = await db.WeeklyCheckInSettings
-            .AsNoTracking()
-            .Where(s => s.Enabled && professionalUserIds.Contains(s.UserId))
-            .ToListAsync(ct);
+        var linkIds = links.Select(l => l.Id).ToList();
 
-        var overrides = await db.WeeklyCheckInClientOverrides
-            .AsNoTracking()
-            .Where(o => o.ClientUserId == clientUserId && professionalUserIds.Contains(o.ProfessionalUserId))
-            .ToListAsync(ct);
+        var tagIdsByLink = (await db.ClientTagAssignments
+                .AsNoTracking()
+                .Where(a => linkIds.Contains(a.ClientProfessionalLinkId))
+                .Select(a => new { a.ClientProfessionalLinkId, a.ClientTagId })
+                .ToListAsync(ct))
+            .ToLookup(a => a.ClientProfessionalLinkId, a => a.ClientTagId);
+
+        var entitlementService = new EntitlementService(db);
+        var localToday = DateOnly.FromDateTime(timeProvider.GetUtcNow().UtcDateTime);
 
         foreach (var link in links)
         {
-            var collaboration = collaborations.First(c => c.PublicId == link.PublicId);
+            var entitlements = await entitlementService.GetEntitlementsAsync(link.ProfessionalProfileId, ct);
 
-            foreach (var setting in settings.Where(s => s.UserId == link.ProfessionalUserId).OrderBy(s => s.Profession))
+            if (!entitlements.CanUseWeeklyCheckIns)
             {
-                var visible = setting.Profession == Profession.Training ? link.CanViewTrainingPlans : link.CanViewNutritionPlans;
-                var clientOverride = overrides.FirstOrDefault(o =>
-                    o.ProfessionalUserId == link.ProfessionalUserId && o.Profession == setting.Profession);
-
-                if (!visible || clientOverride?.Enabled == false)
-                {
-                    continue;
-                }
-
-                collaboration.CheckIns.Add(new CollaborationCheckInDto
-                {
-                    Profession = setting.Profession,
-                    DayOfWeek = clientOverride?.DayOfWeek ?? setting.DayOfWeek
-                });
+                continue;
             }
+
+            var rule = await db.AutomationRules
+                .AsNoTracking()
+                .Include(r => r.Questionnaire)
+                .Where(r => r.ActionType == AutomationActionType.SendForm
+                            && r.Questionnaire!.Type == QuestionnaireType.CheckIn)
+                .CoveringClient(link.ProfessionalProfileId, clientProfileId, tagIdsByLink[link.Id])
+                .FirstOrDefaultAsync(ct);
+
+            if (rule is null)
+            {
+                continue;
+            }
+
+            var clientOverride = await db.AutomationClientOverrides
+                .AsNoTracking()
+                .FirstOrDefaultAsync(o => o.AutomationRuleId == rule.Id && o.ClientProfileId == clientProfileId, ct);
+
+            var effective = AutomationEffectiveRule.Resolve(
+                rule, AutomationCheckInGate.ApplicableOverride(rule, clientOverride, entitlements), localToday);
+
+            if (!effective.Enabled || effective.ScheduleWeekday is not { } weekday)
+            {
+                continue;
+            }
+
+            collaborations.First(c => c.PublicId == link.PublicId).CheckIns.Add(new CollaborationCheckInDto
+            {
+                Profession = CheckInResponses.ProfessionOf(link.ProfessionalRole),
+                DayOfWeek = weekday
+            });
         }
     }
 }

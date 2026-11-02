@@ -52,6 +52,7 @@ public static class AutomationCoverage
                 l.ClientProfile.UserId,
                 l.ClientProfile.User.TimeZone,
                 l.DateCreated,
+                l.ActivatedAtUtc,
                 l.ProfessionalRole,
                 l.CanViewNutritionPlans,
                 l.CanViewTrainingPlans))
@@ -107,6 +108,7 @@ public static class AutomationCoverage
                     ClientUserId = group.First().ClientUserId,
                     TimeZoneId = group.First().TimeZoneId,
                     LinkedSince = group.Min(l => l.DateCreated),
+                    CollaborationStartedAtUtc = group.Min(l => l.ActivatedAtUtc ?? l.DateCreated),
                     PrimaryLinkId = primary.LinkId,
                     PrimaryLinkRole = primary.ProfessionalRole,
                     CanViewNutritionPlans = group.Any(l => l.CanViewNutritionPlans),
@@ -132,6 +134,7 @@ public static class AutomationCoverage
         Guid ClientUserId,
         string? TimeZoneId,
         DateTime DateCreated,
+        DateTime? ActivatedAtUtc,
         UserRole ProfessionalRole,
         bool CanViewNutritionPlans,
         bool CanViewTrainingPlans);

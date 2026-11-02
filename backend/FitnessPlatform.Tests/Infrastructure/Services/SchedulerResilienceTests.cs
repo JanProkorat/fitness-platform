@@ -33,44 +33,19 @@ public class SchedulerResilienceContainerFixture(SharedTestContainers sharedCont
 public class SchedulerResilienceCollection : ICollectionFixture<SchedulerResilienceContainerFixture>;
 
 /// <summary>
-/// Regression coverage for #906. <see cref="WeeklyCheckInScheduler"/> and
-/// <see cref="PhotoDiaryReminderScheduler"/> used to seed their tick cursor in an unguarded
-/// block sitting between the alignment delay and the tick loop. That was the only
-/// DB-touching call in either service that could throw out of <c>ExecuteAsync</c>: the tick
-/// bodies inside the loop were already wrapped. A throw there faults the
-/// <c>ExecuteAsync</c> task, and <c>HostOptions.BackgroundServiceExceptionBehavior</c>
+/// Regression coverage for #906. <see cref="PhotoDiaryReminderScheduler"/> used to seed its tick
+/// cursor in an unguarded block between the alignment delay and the tick loop. A throw there faults
+/// the <c>ExecuteAsync</c> task, and <c>HostOptions.BackgroundServiceExceptionBehavior</c>
 /// (<c>StopHost</c> by default) then terminates the whole process.
 ///
-/// Two groups of tests, and the difference between them is load-bearing.
-///
-/// The two <c>ExecuteAsync</c> tests are the ones that protect this fix: they drive the code
-/// the change actually touches, and they fail if the seed is hoisted back out of the guard.
-/// Verified by reverting both production hunks and re-running — those two fail, the other
-/// three pass.
-///
-/// The three <c>42P01</c> tests call <c>TickAsync</c>, which this change does NOT touch. They
-/// establish that a dropped table produces an exception for the guard to absorb, and document
-/// where it comes from: for <see cref="PhotoDiaryReminderScheduler"/> the seed is genuinely
-/// isolated (table present but empty, so <c>ProcessTickAsync</c> returns early); for
-/// <see cref="WeeklyCheckInScheduler"/> it is not, because <c>ProcessTickAsync</c> opens with
-/// <c>SweepExpiredAsync</c>, which resolves only <see cref="IApplicationDbContext"/> and hits
-/// the same dropped table — so a companion test isolates the sweep as that second reader.
-/// These three do not discriminate the fix and are not claimed to.
-///
-/// On #726: it forbids leaving these schedulers registered as hosted services in a test
-/// <c>WebApplicationFactory</c>, where a fault plus <c>StopHost</c> cascades across xUnit
-/// collections — which is why <c>RemoveBackgroundHostedServices()</c> strips them from every
-/// factory. It does NOT forbid <c>StartAsync</c> on a directly-constructed instance: no
-/// <c>IHost</c> observes it, so <c>BackgroundServiceExceptionBehavior</c> never engages. That
-/// is what makes the <c>ExecuteTask</c> assertion below both possible and safe.
-///
-/// No test here asserts end-to-end that a real host did not stop, because no real host is
-/// involved. <c>ExecuteTask</c> not faulting is the complete proxy: <c>StopHost</c> has
-/// exactly one trigger, and that is <c>ExecuteAsync</c>'s task faulting.
+/// The <c>ExecuteAsync</c> test protects the fix: it fails if the seed is hoisted back out of the
+/// guard. The <c>TickAsync</c> test only documents that a dropped table surfaces as <c>42P01</c>
+/// from the seed, and does not discriminate the fix.
 ///
 /// Uses a dedicated container and a minimal DI graph rather than the shared
-/// <c>FitnessApiFactory</c> on purpose — dropping <c>weekly_check_ins</c> inside the shared
-/// fixture would poison every sibling in <c>TestCollection</c>.
+/// <c>FitnessApiFactory</c> on purpose — dropping a table inside the shared fixture would poison
+/// every sibling in <c>TestCollection</c>. Directly-constructed instances are safe under #726: no
+/// <c>IHost</c> observes them, so <c>BackgroundServiceExceptionBehavior</c> never engages.
 /// </summary>
 [Collection("SchedulerResilience")]
 public class SchedulerResilienceTests(SchedulerResilienceContainerFixture containerFixture) : IAsyncLifetime
@@ -165,100 +140,6 @@ public class SchedulerResilienceTests(SchedulerResilienceContainerFixture contai
         await using var command = connection.CreateCommand();
         command.CommandText = $"DROP TABLE {table} CASCADE;";
         await command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
-    }
-
-    /// <summary>
-    /// Named for what it actually pins: a missing table surfaces out of <c>TickAsync</c> as
-    /// <c>42P01</c>, so the loop's guard has something to absorb. It does NOT isolate the
-    /// seed — see the companion test below and this class's remarks.
-    /// </summary>
-    [Fact]
-    public async Task WeeklyCheckInScheduler_TickWithMissingTable_Surfaces42P01ForTheGuardToAbsorb()
-    {
-        await DropTableAsync("weekly_check_ins");
-
-        var scheduler = new WeeklyCheckInScheduler(
-            BuildScopeFactory(),
-            NullLogger<WeeklyCheckInScheduler>.Instance,
-            EmptyConfiguration());
-
-        var tick = async () => await scheduler.TickAsync(
-            new DateTime(2026, 8, 5, 12, 0, 0, DateTimeKind.Utc),
-            TestContext.Current.CancellationToken);
-
-        // 42P01 = undefined_table. This is the exact exception that used to escape
-        // ExecuteAsync and stop the host; it now happens inside the loop's try/catch.
-        (await tick.Should().ThrowAsync<PostgresException>())
-            .Which.SqlState.Should().Be("42P01",
-                "a dropped weekly_check_ins must surface as undefined_table for the guard to catch");
-    }
-
-    /// <summary>
-    /// <c>SweepExpiredAsync</c> is a SECOND unguarded-if-hoisted DB call: it is the first
-    /// statement of <c>ProcessTickAsync</c> and reads the same table as the seed. Skipping the
-    /// seed via <see cref="WeeklyCheckInScheduler.SetLastTickAt"/> (which marks the cursor
-    /// initialised without touching the database) isolates it, so the sweep is on record as a
-    /// call that would also become fatal if anyone moved it outside the tick guard.
-    /// </summary>
-    [Fact]
-    public async Task WeeklyCheckInScheduler_SweepWithMissingTable_ThrowsEvenWhenTheSeedIsSkipped()
-    {
-        await DropTableAsync("weekly_check_ins");
-
-        var scheduler = new WeeklyCheckInScheduler(
-            BuildScopeFactory(),
-            NullLogger<WeeklyCheckInScheduler>.Instance,
-            EmptyConfiguration());
-
-        // Marks the cursor initialised, so TickAsync skips SeedCursorAsync entirely and the
-        // only remaining reader of weekly_check_ins is the sweep.
-        scheduler.SetLastTickAt(new DateTime(2026, 8, 5, 11, 55, 0, DateTimeKind.Utc));
-
-        var tick = async () => await scheduler.TickAsync(
-            new DateTime(2026, 8, 5, 12, 0, 0, DateTimeKind.Utc),
-            TestContext.Current.CancellationToken);
-
-        (await tick.Should().ThrowAsync<PostgresException>())
-            .Which.SqlState.Should().Be("42P01",
-                "the expiry sweep reads weekly_check_ins too, so it is fatal if hoisted out of the guard");
-    }
-
-    /// <summary>
-    /// One of the two tests that fail on revert — see this class's remarks for why the
-    /// <c>TickAsync</c> tests do not. <c>OverrideNow</c> is parked a millisecond short of a
-    /// boundary with a one-minute interval, collapsing the alignment delay to ~1ms.
-    /// </summary>
-    [Fact]
-    public async Task WeeklyCheckInScheduler_ExecuteAsyncWithMissingTable_LogsAndDoesNotFault()
-    {
-        await DropTableAsync("weekly_check_ins");
-
-        var logger = new ErrorSignallingLogger<WeeklyCheckInScheduler>();
-        var configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["CheckInTickIntervalMinutes"] = "1",
-            })
-            .Build();
-
-        var scheduler = new WeeklyCheckInScheduler(BuildScopeFactory(), logger, configuration)
-        {
-            OverrideNow = new DateTime(2026, 8, 5, 12, 0, 59, 999, DateTimeKind.Utc),
-        };
-
-        await scheduler.StartAsync(CancellationToken.None);
-        try
-        {
-            scheduler.ExecuteTask.Should().NotBeNull("StartAsync must have begun ExecuteAsync");
-            await WaitForErrorOrExitAsync(logger.FirstError, scheduler.ExecuteTask!);
-
-            scheduler.ExecuteTask!.IsFaulted.Should().BeFalse(
-                "an unguarded cursor seed faults ExecuteAsync, which is what lets StopHost kill the API");
-        }
-        finally
-        {
-            await scheduler.StopAsync(CancellationToken.None);
-        }
     }
 
     /// <summary>

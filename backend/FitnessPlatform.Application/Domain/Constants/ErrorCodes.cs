@@ -585,6 +585,15 @@ public static class ErrorCodes
     /// <summary>The coach's subscription does not include the payments feature, or is not in good standing.</summary>
     public const string PaymentsNotEntitled = "PAYMENTS_NOT_ENTITLED";
 
+    /// <summary>The check-in can no longer be answered: its answer window has passed.</summary>
+    public const string CheckInAnswerWindowClosed = "CHECK_IN_ANSWER_WINDOW_CLOSED";
+
+    /// <summary>The coach's subscription does not include weekly check-ins, or is not in good standing.</summary>
+    public const string CheckInsNotEntitled = "CHECK_INS_NOT_ENTITLED";
+
+    /// <summary>The coach's subscription does not include per-client check-in configuration, or is not in good standing.</summary>
+    public const string PerClientCheckInConfigNotEntitled = "PER_CLIENT_CHECK_IN_CONFIG_NOT_ENTITLED";
+
     /// <summary>The IBAN is malformed or fails the mod-97 check.</summary>
     public const string InvalidIban = "INVALID_IBAN";
 

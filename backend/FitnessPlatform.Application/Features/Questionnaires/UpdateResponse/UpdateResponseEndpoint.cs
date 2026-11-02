@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FitnessPlatform.Application.Features.Questionnaires.UpdateResponse;
 
-public class UpdateResponseEndpoint(IApplicationDbContext db)
+public class UpdateResponseEndpoint(IApplicationDbContext db, TimeProvider timeProvider)
     : Endpoint<UpdateResponseRequest>
 {
     public override void Configure()
@@ -32,7 +32,7 @@ public class UpdateResponseEndpoint(IApplicationDbContext db)
             s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
             s.Responses[StatusCodes.Status403Forbidden] = "The response belongs to another client";
             s.Responses[StatusCodes.Status404NotFound] = "Unknown response, or one outside the current collaboration";
-            s.Responses[StatusCodes.Status409Conflict] = "The response has already been submitted";
+            s.Responses[StatusCodes.Status409Conflict] = "The response has already been submitted, or it is a check-in past its answer window (CHECK_IN_ANSWER_WINDOW_CLOSED)";
         });
     }
 
@@ -80,6 +80,11 @@ public class UpdateResponseEndpoint(IApplicationDbContext db)
             await HttpContext.Response.SendAsync(
                 new { Error = "Response has already been submitted." },
                 409, cancellation: ct);
+            return;
+        }
+
+        if (await this.RespondIfCheckInWindowClosedAsync(response, timeProvider.GetUtcNow().UtcDateTime, ct))
+        {
             return;
         }
 

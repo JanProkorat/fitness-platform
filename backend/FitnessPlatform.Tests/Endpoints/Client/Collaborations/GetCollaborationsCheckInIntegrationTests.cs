@@ -4,6 +4,7 @@ using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Tests.Builders;
+using FitnessPlatform.Tests.Endpoints.Automations;
 using FitnessPlatform.Tests.Infrastructure;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
@@ -11,92 +12,93 @@ using Microsoft.Extensions.DependencyInjection;
 namespace FitnessPlatform.Tests.Endpoints.Client.Collaborations;
 
 /// <summary>
-/// Integration tests for the check-in days of <c>GET /client/collaborations</c>.
+/// Integration tests for the check-in days of <c>GET /client/collaborations</c>, which come from the
+/// coach's enabled check-in rule that covers the client.
 /// </summary>
 [Collection(TestCollection.Name)]
 public class GetCollaborationsCheckInIntegrationTests(FitnessApiFactory factory)
 {
+    private static CancellationToken Ct => TestContext.Current.CancellationToken;
+
     private record CollaborationsResult(List<CollaborationItem> Collaborations);
 
     private record CollaborationItem(Guid ProfessionalPublicId, List<CheckInItem> CheckIns);
 
     private record CheckInItem(string Profession, string DayOfWeek);
 
-    private async Task<(Actor Coach, Actor Client)> LinkedPairAsync(bool nutrition = true, bool training = true)
+    private async Task<(Actor Coach, Actor Client)> LinkedPairAsync(UserRole role = UserRole.Trainer)
     {
-        var ct = TestContext.Current.CancellationToken;
-        var coach = await TestActors.Professional(factory, UserRole.Trainer, UserRole.Nutritionist).CreateAsync(ct);
-        var client = await TestActors.Client(factory).CreateAsync(ct);
-        await TestActors.Link(factory, coach, client)
-            .CanViewNutritionPlans(nutrition)
-            .CanViewTrainingPlans(training)
-            .CreateAsync(ct);
+        var coach = await TestActors.Professional(factory, UserRole.Trainer, UserRole.Nutritionist).CreateAsync(Ct);
+        var client = await TestActors.Client(factory).CreateAsync(Ct);
+        await TestActors.Link(factory, coach, client).AsRole(role).CreateAsync(Ct);
 
         return (coach, client);
     }
 
-    private async Task AddSettingAsync(Actor coach, Profession profession, DayOfWeek day, bool enabled = true)
+    private async Task<AutomationRule> AddCheckInRuleAsync(
+        Actor coach, DayOfWeek day, bool enabled = true, Action<AutomationRule>? configure = null)
     {
-        using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        db.WeeklyCheckInSettings.Add(new WeeklyCheckInSetting
+        var form = await AutomationTestData.InsertQuestionnaireAsync(factory, coach, QuestionnaireType.CheckIn);
+
+        return await AutomationTestData.InsertRuleAsync(factory, coach, rule =>
         {
-            UserId = coach.UserId,
-            Profession = profession,
-            DayOfWeek = day,
-            TimeOfDay = TimeSpan.FromHours(8),
-            Enabled = enabled,
-            DateCreated = DateTime.UtcNow,
-            DateModified = DateTime.UtcNow
+            rule.ActionType = AutomationActionType.SendForm;
+            rule.QuestionnaireId = form.Id;
+            rule.ScheduleUnit = AutomationScheduleUnit.Weeks;
+            rule.ScheduleWeekday = day;
+            rule.AnswerWindowHours = 48;
+            rule.Enabled = enabled;
+            configure?.Invoke(rule);
         });
-        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
-    private async Task AddOverrideAsync(Actor coach, Actor client, Profession profession, DayOfWeek? day, bool? enabled = null)
+    private async Task AddOverrideAsync(AutomationRule rule, Actor client, DayOfWeek? day, bool enabled = true)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        db.WeeklyCheckInClientOverrides.Add(new WeeklyCheckInClientOverride
+        db.AutomationClientOverrides.Add(new AutomationClientOverride
         {
-            ProfessionalUserId = coach.UserId,
-            ClientUserId = client.UserId,
-            Profession = profession,
-            DayOfWeek = day,
+            AutomationRuleId = rule.Id,
+            ClientProfileId = client.ProfileId,
+            IsCustomized = true,
+            TriggerKind = AutomationTriggerKind.Schedule,
+            ScheduleInterval = 1,
+            ScheduleUnit = AutomationScheduleUnit.Weeks,
+            LocalTime = new TimeOnly(9, 0),
+            ScheduleWeekday = day,
+            AnswerWindowHours = 48,
             Enabled = enabled,
-            DateCreated = DateTime.UtcNow,
-            DateModified = DateTime.UtcNow
         });
-        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await db.SaveChangesAsync(Ct);
     }
 
     private async Task<List<CheckInItem>> GetCheckInsAsync(Actor client, Actor coach)
     {
-        var ct = TestContext.Current.CancellationToken;
-        var response = await client.Http.GetAsync("/client/collaborations", ct);
+        var response = await client.Http.GetAsync("/client/collaborations", Ct);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var body = await response.Content.ReadFromJsonAsync<CollaborationsResult>(cancellationToken: ct);
+        var body = await response.Content.ReadFromJsonAsync<CollaborationsResult>(cancellationToken: Ct);
 
         return body!.Collaborations.Single(c => c.ProfessionalPublicId == coach.PublicId).CheckIns;
     }
 
     [Fact]
-    public async Task GetAll_SettingEnabledWithoutOverride_ReturnsSettingDay()
+    public async Task GetAll_RuleEnabledWithoutOverride_ReturnsRuleDayForTheLinkProfession()
     {
-        var (coach, client) = await LinkedPairAsync();
-        await AddSettingAsync(coach, Profession.Training, DayOfWeek.Wednesday);
+        var (coach, client) = await LinkedPairAsync(UserRole.Nutritionist);
+        await AddCheckInRuleAsync(coach, DayOfWeek.Wednesday);
 
         var checkIns = await GetCheckInsAsync(client, coach);
 
-        checkIns.Should().ContainSingle().Which.Should().Be(new CheckInItem("Training", "Wednesday"));
+        checkIns.Should().ContainSingle().Which.Should().Be(new CheckInItem("Nutrition", "Wednesday"));
     }
 
     [Fact]
     public async Task GetAll_OverrideHasDay_OverrideDayWins()
     {
         var (coach, client) = await LinkedPairAsync();
-        await AddSettingAsync(coach, Profession.Training, DayOfWeek.Wednesday);
-        await AddOverrideAsync(coach, client, Profession.Training, DayOfWeek.Friday);
+        var rule = await AddCheckInRuleAsync(coach, DayOfWeek.Wednesday);
+        await AddOverrideAsync(rule, client, DayOfWeek.Friday);
 
         var checkIns = await GetCheckInsAsync(client, coach);
 
@@ -104,59 +106,60 @@ public class GetCollaborationsCheckInIntegrationTests(FitnessApiFactory factory)
     }
 
     [Fact]
-    public async Task GetAll_SettingDisabledEvenWithEnabledOverride_ReturnsNoEntry()
+    public async Task GetAll_OverrideWhilePerClientConfigIsNotInThePlan_FallsBackToTheRuleDay()
     {
         var (coach, client) = await LinkedPairAsync();
-        await AddSettingAsync(coach, Profession.Training, DayOfWeek.Wednesday, enabled: false);
-        await AddOverrideAsync(coach, client, Profession.Training, DayOfWeek.Friday, enabled: true);
-
-        (await GetCheckInsAsync(client, coach)).Should().BeEmpty();
-    }
-
-    [Fact]
-    public async Task GetAll_OverrideDisablesEnabledSetting_ReturnsNoEntry()
-    {
-        var (coach, client) = await LinkedPairAsync();
-        await AddSettingAsync(coach, Profession.Training, DayOfWeek.Wednesday);
-        await AddOverrideAsync(coach, client, Profession.Training, null, enabled: false);
-
-        (await GetCheckInsAsync(client, coach)).Should().BeEmpty();
-    }
-
-    [Fact]
-    public async Task GetAll_NoSettingRow_ReturnsNoEntry()
-    {
-        var (coach, client) = await LinkedPairAsync();
-
-        (await GetCheckInsAsync(client, coach)).Should().BeEmpty();
-    }
-
-    [Fact]
-    public async Task GetAll_TrainingOnlyLinkOfDualRoleCoach_OmitsNutritionCheckIn()
-    {
-        var (coach, client) = await LinkedPairAsync(nutrition: false, training: true);
-        await AddSettingAsync(coach, Profession.Training, DayOfWeek.Monday);
-        await AddSettingAsync(coach, Profession.Nutrition, DayOfWeek.Thursday);
+        await CoachSubscriptionBuilder.SubscribeAsync(factory, coach, canUseWeeklyCheckIns: true, canUsePerClientCheckInConfig: false);
+        var rule = await AddCheckInRuleAsync(coach, DayOfWeek.Wednesday);
+        await AddOverrideAsync(rule, client, DayOfWeek.Friday);
 
         var checkIns = await GetCheckInsAsync(client, coach);
 
-        checkIns.Should().ContainSingle().Which.Profession.Should().Be("Training");
+        checkIns.Should().ContainSingle().Which.DayOfWeek.Should().Be("Wednesday");
     }
 
     [Fact]
-    public async Task GetAll_TwoClientsOfOneCoach_EachSeesOnlyOwnOverride()
+    public async Task GetAll_RuleDisabledOrOverrideDisablesIt_ReturnsNoEntry()
     {
-        var ct = TestContext.Current.CancellationToken;
         var (coach, client) = await LinkedPairAsync();
-        var otherClient = await TestActors.Client(factory).CreateAsync(ct);
-        await TestActors.Link(factory, coach, otherClient).CanViewTrainingPlans().CreateAsync(ct);
-        await AddSettingAsync(coach, Profession.Training, DayOfWeek.Wednesday);
-        await AddOverrideAsync(coach, otherClient, Profession.Training, DayOfWeek.Saturday);
+        await AddCheckInRuleAsync(coach, DayOfWeek.Wednesday, enabled: false);
 
-        var own = await GetCheckInsAsync(client, coach);
-        var theirs = await GetCheckInsAsync(otherClient, coach);
+        (await GetCheckInsAsync(client, coach)).Should().BeEmpty();
 
-        own.Should().ContainSingle().Which.DayOfWeek.Should().Be("Wednesday");
-        theirs.Should().ContainSingle().Which.DayOfWeek.Should().Be("Saturday");
+        var (otherCoach, otherClient) = await LinkedPairAsync();
+        var rule = await AddCheckInRuleAsync(otherCoach, DayOfWeek.Wednesday);
+        await AddOverrideAsync(rule, otherClient, null, enabled: false);
+
+        (await GetCheckInsAsync(otherClient, otherCoach)).Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetAll_CoachWithoutTheCheckInFeature_ReturnsNoEntry()
+    {
+        var (coach, client) = await LinkedPairAsync();
+        await CoachSubscriptionBuilder.SubscribeAsync(factory, coach, canUseWeeklyCheckIns: false, canUsePerClientCheckInConfig: false);
+        await AddCheckInRuleAsync(coach, DayOfWeek.Wednesday);
+
+        (await GetCheckInsAsync(client, coach)).Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetAll_NoCheckInRule_ReturnsNoEntry()
+    {
+        var (coach, client) = await LinkedPairAsync();
+
+        (await GetCheckInsAsync(client, coach)).Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetAll_ClientOnlyRuleOfAnotherClient_IsNotShown()
+    {
+        var (coach, client) = await LinkedPairAsync();
+        var otherClient = await TestActors.Client(factory).CreateAsync(Ct);
+        await TestActors.Link(factory, coach, otherClient).CreateAsync(Ct);
+        await AddCheckInRuleAsync(coach, DayOfWeek.Saturday, configure: rule => rule.ClientProfileId = otherClient.ProfileId);
+
+        (await GetCheckInsAsync(client, coach)).Should().BeEmpty();
+        (await GetCheckInsAsync(otherClient, coach)).Should().ContainSingle().Which.DayOfWeek.Should().Be("Saturday");
     }
 }

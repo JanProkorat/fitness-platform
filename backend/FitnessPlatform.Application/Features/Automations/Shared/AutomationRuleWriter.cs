@@ -14,9 +14,12 @@ public static class AutomationRuleWriter
     /// Applies the body's message, trigger and options to a rule. A check-in rule never skips while the
     /// previous request is unanswered, whatever the body says.
     /// </summary>
-    public static void Apply(AutomationRule rule, AutomationTriggerBody body, bool isCheckIn = false)
+    public static void Apply(AutomationRule rule, AutomationTriggerBody body, bool isCheckIn = false, DateTime? nowUtc = null)
     {
         var isSchedule = body.TriggerKind == AutomationTriggerKind.Schedule;
+        var wasEnabled = rule.Id != 0 && rule.Enabled;
+        var scheduleChanged = rule.ScheduleWeekday != (isCheckIn ? body.ScheduleWeekday : null)
+                              || rule.LocalTime != (body.LocalTime is { } time ? TimeOnly.FromTimeSpan(time) : null);
 
         rule.Message = body.Message;
         rule.TriggerKind = body.TriggerKind;
@@ -34,15 +37,24 @@ public static class AutomationRuleWriter
         rule.AnswerWindowHours = isCheckIn ? body.AnswerWindowHours : null;
         rule.ReminderAfterHours = isCheckIn ? body.ReminderAfterHours : null;
         rule.NotifyCoachOnMissedWeek = isCheckIn ? body.NotifyCoachOnMissedWeek ?? false : null;
+
+        // Only switching on or moving the schedule restarts the first-full-week bound; other edits keep it.
+        if (rule.Enabled && (!wasEnabled || scheduleChanged))
+        {
+            rule.EnabledAtUtc = nowUtc ?? DateTime.UtcNow;
+        }
     }
 
     /// <summary>
     /// Applies the body's message, trigger and options to a per-client override. A check-in rule never
     /// skips while the previous request is unanswered, whatever the body says.
     /// </summary>
-    public static void Apply(AutomationClientOverride clientOverride, AutomationTriggerBody body, bool isCheckIn = false)
+    public static void Apply(AutomationClientOverride clientOverride, AutomationTriggerBody body, bool isCheckIn = false, DateTime? nowUtc = null)
     {
         var isSchedule = body.TriggerKind == AutomationTriggerKind.Schedule;
+        var wasEnabled = clientOverride.Id != 0 && clientOverride.IsCustomized && clientOverride.Enabled;
+        var scheduleChanged = clientOverride.ScheduleWeekday != (isCheckIn ? body.ScheduleWeekday : null)
+                              || clientOverride.LocalTime != (body.LocalTime is { } time ? TimeOnly.FromTimeSpan(time) : null);
 
         clientOverride.IsCustomized = true;
         clientOverride.Message = body.Message;
@@ -61,5 +73,10 @@ public static class AutomationRuleWriter
         clientOverride.AnswerWindowHours = isCheckIn ? body.AnswerWindowHours : null;
         clientOverride.ReminderAfterHours = isCheckIn ? body.ReminderAfterHours : null;
         clientOverride.NotifyCoachOnMissedWeek = isCheckIn ? body.NotifyCoachOnMissedWeek ?? false : null;
+
+        if (clientOverride.Enabled && (!wasEnabled || scheduleChanged))
+        {
+            clientOverride.EnabledAtUtc = nowUtc ?? DateTime.UtcNow;
+        }
     }
 }

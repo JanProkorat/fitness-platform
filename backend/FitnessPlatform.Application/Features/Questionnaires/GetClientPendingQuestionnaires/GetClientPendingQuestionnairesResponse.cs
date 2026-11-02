@@ -81,4 +81,13 @@ public class PendingQuestionnaireItem
 
     /// <summary>Plan type the response was sent for; null for the link-level fallback item.</summary>
     public LinkCapabilityScope? Scope { get; set; }
+
+    /// <summary>Onboarding, questionnaire or check-in; onboarding for the link-level fallback item.</summary>
+    public QuestionnaireResponseKind Kind { get; set; }
+
+    /// <summary>For a check-in: the Monday of the week it covers.</summary>
+    public DateOnly? CheckInWeekStart { get; set; }
+
+    /// <summary>For a check-in: when it is due (UTC); it is no longer listed after that.</summary>
+    public DateTime? CheckInDueAtUtc { get; set; }
 }

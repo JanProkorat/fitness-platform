@@ -4,6 +4,7 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using Microsoft.EntityFrameworkCore;
@@ -64,9 +65,10 @@ internal sealed class GetClientProfileSummaryEndpoint(IApplicationDbContext db, 
         {
             Goal = profile?.Goal,
             MemberSince = memberSince,
-            CheckInCount = await db.WeeklyCheckIns
+            CheckInCount = await db.QuestionnaireResponses
                 .AsNoTracking()
-                .CountAsync(checkIn => checkIn.ClientUserId == clientId, ct),
+                .AllCheckIns()
+                .CountAsync(checkIn => checkIn.ClientId == clientId, ct),
             PlanCount = await CountVisiblePlansAsync(clientId, ct),
             CompletedWorkoutCount = await CountCompletedWorkoutsAsync(clientId, ct),
         };

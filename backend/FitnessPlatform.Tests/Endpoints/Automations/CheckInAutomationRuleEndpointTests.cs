@@ -143,4 +143,46 @@ public class CheckInAutomationRuleEndpointTests(FitnessApiFactory factory)
         accepted.StatusCode.Should().Be(HttpStatusCode.NoContent);
         await AssertErrorCodeAsync(refused, HttpStatusCode.BadRequest, ErrorCodes.AutomationCheckInFieldsNotAllowed);
     }
+
+    [Fact]
+    public async Task Create_CheckInRuleWithoutTheCheckInFeature_Returns403()
+    {
+        var coach = await CreateCoachAsync();
+        await CoachSubscriptionBuilder.SubscribeAsync(factory, coach, canUseWeeklyCheckIns: false, canUsePerClientCheckInConfig: true);
+        var formId = await AutomationTestData.CreateQuestionnaireAsync(factory, coach, QuestionnaireType.CheckIn);
+
+        var response = await coach.Http.PostAsJsonAsync("/trainer/automations/rules", CheckInRule(formId), Ct);
+
+        await AssertErrorCodeAsync(response, HttpStatusCode.Forbidden, ErrorCodes.CheckInsNotEntitled);
+    }
+
+    [Fact]
+    public async Task Override_CheckInRuleWithoutPerClientConfig_Returns403()
+    {
+        var coach = await CreateCoachAsync();
+        var client = await TestActors.Client(factory).CreateAsync(Ct);
+        await TestActors.Link(factory, coach, client).CreateAsync(Ct);
+        await CoachSubscriptionBuilder.SubscribeAsync(factory, coach, canUseWeeklyCheckIns: true, canUsePerClientCheckInConfig: false);
+        var formId = await AutomationTestData.CreateQuestionnaireAsync(factory, coach, QuestionnaireType.CheckIn);
+        var rule = await ReadRuleAsync(await coach.Http.PostAsJsonAsync("/trainer/automations/rules", CheckInRule(formId), Ct));
+        var overrideBody = CheckInRule(formId);
+        overrideBody["scheduleWeekday"] = "Monday";
+
+        var response = await coach.Http.PutAsJsonAsync(
+            $"/trainer/clients/{client.PublicId}/automations/{rule.RuleId}/override", overrideBody, Ct);
+
+        await AssertErrorCodeAsync(response, HttpStatusCode.Forbidden, ErrorCodes.PerClientCheckInConfigNotEntitled);
+    }
+
+    [Fact]
+    public async Task Create_CheckInRuleWithBothFeatures_IsAllowed()
+    {
+        var coach = await CreateCoachAsync();
+        await CoachSubscriptionBuilder.SubscribeAsync(factory, coach, canUseWeeklyCheckIns: true, canUsePerClientCheckInConfig: true);
+        var formId = await AutomationTestData.CreateQuestionnaireAsync(factory, coach, QuestionnaireType.CheckIn);
+
+        var response = await coach.Http.PostAsJsonAsync("/trainer/automations/rules", CheckInRule(formId), Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
 }

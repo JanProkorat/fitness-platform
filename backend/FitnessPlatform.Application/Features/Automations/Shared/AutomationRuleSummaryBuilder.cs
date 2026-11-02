@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 namespace FitnessPlatform.Application.Features.Automations.Shared;
 
 /// <summary>
-/// Builds the coverage summary of rules and the linked check-in entries from the coach's covered clients.
+/// Builds the coverage summary of rules from the coach's covered clients.
 /// </summary>
 public static class AutomationRuleSummaryBuilder
 {
@@ -100,7 +100,13 @@ public static class AutomationRuleSummaryBuilder
 
             var windows = planWindows.TryGetValue(pair.Context.Client.ClientUserId, out var found) ? found : [];
             var nextSendAt = AutomationNextSendCalculator.Compute(
-                pair.Effective, pair.Context.Zone, pair.Context.StartLocalDate, windows, nowUtc);
+                pair.Effective,
+                pair.Context.Zone,
+                pair.Context.StartLocalDate,
+                windows,
+                nowUtc,
+                AutomationNextSendCalculator.ResolveFirstSendNotBefore(
+                    pair.Context.Client.CollaborationStartedAtUtc, pair.Rule, pair.Override));
 
             if (nextSendAt is not null && (summary.NextSendAt is null || nextSendAt < summary.NextSendAt))
             {
@@ -109,54 +115,6 @@ public static class AutomationRuleSummaryBuilder
         }
 
         return summaries;
-    }
-
-    /// <summary>
-    /// Builds one linked entry per profession the coach has a check-in setting for, counting the
-    /// covered clients with the check-in enabled after their per-client override.
-    /// </summary>
-    /// <param name="db">Application database context.</param>
-    /// <param name="coachUserId">The coach's user id.</param>
-    /// <param name="covered">The coach's covered clients.</param>
-    /// <param name="ct">Cancellation token.</param>
-    public static async Task<List<AutomationLinkedCheckInDto>> BuildLinkedCheckInsAsync(
-        IApplicationDbContext db,
-        Guid coachUserId,
-        IReadOnlyList<AutomationCoveredClient> covered,
-        CancellationToken ct)
-    {
-        var settings = await db.WeeklyCheckInSettings
-            .AsNoTracking()
-            .Where(s => s.UserId == coachUserId)
-            .ToListAsync(ct);
-
-        if (settings.Count == 0)
-        {
-            return [];
-        }
-
-        var clientUserIds = covered.Select(c => c.ClientUserId).ToList();
-
-        var overrides = await db.WeeklyCheckInClientOverrides
-            .AsNoTracking()
-            .Where(o => o.ProfessionalUserId == coachUserId && clientUserIds.Contains(o.ClientUserId))
-            .ToListAsync(ct);
-
-        return settings
-            .OrderBy(s => s.Profession)
-            .Select(setting => new AutomationLinkedCheckInDto
-            {
-                Profession = setting.Profession,
-                Enabled = setting.Enabled,
-                ClientCount = covered.Count(client =>
-                    (setting.Profession == Profession.Training
-                        ? client.CanViewTrainingPlans
-                        : client.CanViewNutritionPlans) &&
-                    (overrides.FirstOrDefault(o =>
-                        o.ClientUserId == client.ClientUserId && o.Profession == setting.Profession)?.Enabled
-                    ?? setting.Enabled)),
-            })
-            .ToList();
     }
 
     private static async Task<Dictionary<Guid, List<AutomationPlanWindow>>> LoadPlanWindowsAsync(

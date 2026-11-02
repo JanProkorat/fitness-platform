@@ -69,6 +69,12 @@ public class AutomationClientOverride : TimestampableEntity
     /// <summary>Customised enabled flag.</summary>
     public bool Enabled { get; set; } = true;
 
+    /// <summary>
+    /// When the rule was last switched on or its schedule or form last changed (UTC); null on rows that predate
+    /// the column. A weekly check-in does not start before the first full week after it.
+    /// </summary>
+    public DateTime? EnabledAtUtc { get; set; }
+
     /// <summary>Whether the rule is paused for the client.</summary>
     public bool IsPaused { get; set; }
 

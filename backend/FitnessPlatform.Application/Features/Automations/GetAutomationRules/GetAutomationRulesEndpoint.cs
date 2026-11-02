@@ -76,7 +76,6 @@ public class GetAutomationRulesEndpoint(IApplicationDbContext db, IMongoContext 
         await Send.OkAsync(new GetAutomationRulesResponse
         {
             Rules = items,
-            LinkedCheckIns = await AutomationRuleSummaryBuilder.BuildLinkedCheckInsAsync(db, profile.UserId, covered, ct),
         }, ct);
     }
 }

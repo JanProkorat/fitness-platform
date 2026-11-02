@@ -5,6 +5,7 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.Automations.Shared;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -15,8 +16,9 @@ namespace FitnessPlatform.Application.Features.Automations.UpdateAutomationRule;
 /// Replaces one of the caller's automation rules (global or client-only).
 /// </summary>
 /// <param name="db">Application database context.</param>
+/// <param name="entitlementService">Resolves the coach's subscription entitlements.</param>
 [RemovedCoachRole(RemovedCoachRoleMode.Refuse)]
-public class UpdateAutomationRuleEndpoint(IApplicationDbContext db)
+public class UpdateAutomationRuleEndpoint(IApplicationDbContext db, EntitlementService entitlementService)
     : Endpoint<UpdateAutomationRuleRequest, AutomationRuleDto>
 {
     /// <inheritdoc />
@@ -33,6 +35,7 @@ public class UpdateAutomationRuleEndpoint(IApplicationDbContext db)
             s.Responses[StatusCodes.Status400BadRequest] =
                 "Invalid rule, an audience sent for a client-only rule, the questionnaire is inactive, or the check-in fields do not match the form";
             s.Responses[StatusCodes.Status401Unauthorized] = "Missing or invalid credentials";
+            s.Responses[StatusCodes.Status403Forbidden] = "The rule would be an enabled check-in rule and the subscription does not include weekly check-ins";
             s.Responses[StatusCodes.Status404NotFound] =
                 "Rule not found or owned by another coach, or the questionnaire, tag or a chosen client was not found";
             s.Responses[StatusCodes.Status409Conflict] =
@@ -90,6 +93,12 @@ public class UpdateAutomationRuleEndpoint(IApplicationDbContext db)
             return;
         }
 
+        // Switching a check-in rule off stays allowed for a downgraded coach; any enabled one needs the feature.
+        if (isCheckIn && req.Enabled && await this.RespondIfCheckInNotEntitledAsync(entitlementService, profile.Id, false, ct))
+        {
+            return;
+        }
+
         ResolvedAutomationAudience? audience = null;
 
         if (req.Audience is not null)
@@ -102,9 +111,16 @@ public class UpdateAutomationRuleEndpoint(IApplicationDbContext db)
             }
         }
 
+        var formChanged = rule.QuestionnaireId != questionnaireId;
+
         rule.Name = req.Name.Trim();
         rule.QuestionnaireId = questionnaireId;
         AutomationRuleWriter.Apply(rule, req, isCheckIn);
+
+        if (formChanged && rule.Enabled)
+        {
+            rule.EnabledAtUtc = DateTime.UtcNow;
+        }
 
         if (audience is not null)
         {

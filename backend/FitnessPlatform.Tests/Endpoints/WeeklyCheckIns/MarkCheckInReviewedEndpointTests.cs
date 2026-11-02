@@ -1,191 +1,121 @@
 using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
-using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Infrastructure.Data;
+using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Infrastructure;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace FitnessPlatform.Tests.Endpoints.WeeklyCheckIns;
 
 /// <summary>
-/// Integration tests for POST /trainer/weekly-check-ins/{id}/mark-reviewed.
-/// Uses Testcontainers PostgreSQL (Docker required).
+/// Integration tests for POST /trainer/weekly-check-ins/{id}/mark-reviewed, which stamps the check-in's
+/// form response. Uses Testcontainers PostgreSQL (Docker required).
 /// </summary>
 [Collection(TestCollection.Name)]
 public class MarkCheckInReviewedEndpointTests(FitnessApiFactory factory)
 {
-    private static string UniqueEmail(string tag = "mark-reviewed") =>
-        $"{Guid.NewGuid():N}@{tag}-test.com";
+    private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
-    private async Task<(HttpClient Http, Guid TrainerId)> SetupTrainerAsync()
-    {
-        var http = factory.CreateClient();
-        var email = UniqueEmail();
-        await TestHelpers.RegisterAsync(http, email, "TestPass1!", "Trainer", "Mark", "Trainer");
-        var (token, _) = await TestHelpers.LoginAsync(http, email, "TestPass1!");
-        TestHelpers.SetBearerToken(http, token);
-
-        using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var user = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions
-            .FirstAsync(db.Users, u => u.Email == email, TestContext.Current.CancellationToken);
-        return (http, user.Id);
-    }
-
-    private async Task<Guid> SetupClientUserIdAsync()
-    {
-        var http = factory.CreateClient();
-        var email = UniqueEmail("client");
-        await TestHelpers.RegisterAsync(http, email, "TestPass1!", "C", "C", "Client");
-
-        using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var user = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions
-            .FirstAsync(db.Users, u => u.Email == email, TestContext.Current.CancellationToken);
-        return user.Id;
-    }
-
-    private async Task<Guid> InsertCheckInAsync(Guid clientUserId, Guid professionalUserId)
+    private async Task<DateTime?> ReviewedAtAsync(Guid responsePublicId)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        var days = ((int)today.DayOfWeek - (int)DayOfWeek.Monday + 7) % 7;
-        var monday = today.AddDays(-days);
-
-        var checkIn = new WeeklyCheckIn
-        {
-            ClientUserId = clientUserId,
-            ProfessionalUserId = professionalUserId,
-            Profession = Profession.Training,
-            WeekStartDate = monday,
-            SentAt = DateTime.UtcNow.AddHours(-2),
-            RespondedAt = DateTime.UtcNow.AddHours(-1),
-            DateCreated = DateTime.UtcNow,
-            DateModified = DateTime.UtcNow
-        };
-
-        db.WeeklyCheckIns.Add(checkIn);
-        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
-        return checkIn.Id;
+        return await db.QuestionnaireResponses
+            .Where(r => r.PublicId == responsePublicId)
+            .Select(r => r.ReviewedByCoachAtUtc)
+            .SingleAsync(Ct);
     }
 
-    // ── Happy path ────────────────────────────────────────────────────────────
+    private static Task<HttpResponseMessage> MarkAsync(Actor coach, Guid id) =>
+        coach.Http.PostAsJsonAsync($"/trainer/weekly-check-ins/{id}/mark-reviewed", new { }, Ct);
 
     [Fact]
     public async Task MarkReviewed_OwnCheckIn_Returns200_SetsReviewedAt_Broadcasts()
     {
-        var (http, trainerId) = await SetupTrainerAsync();
-        var clientId = await SetupClientUserIdAsync();
-        var checkInId = await InsertCheckInAsync(clientId, trainerId);
-
+        var scenario = await CheckInFixtures.CreateScenarioAsync(factory);
+        var id = await CheckInFixtures.AddCheckInAsync(
+            factory, scenario, CheckInFixtures.Monday(0), DateTime.UtcNow.AddDays(1),
+            QuestionnaireResponseStatus.Submitted, DateTime.UtcNow.AddHours(-1));
         var notifier = factory.Services.GetRequiredService<FakeRealtimeNotifier>();
         notifier.Reset();
 
-        var response = await http.PostAsJsonAsync(
-            $"/trainer/weekly-check-ins/{checkInId}/mark-reviewed",
-            new { },
-            TestContext.Current.CancellationToken);
+        var response = await MarkAsync(scenario.Coach, id);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-
-        // Verify DB.
-        using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var persisted = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions
-            .FirstAsync(db.WeeklyCheckIns, c => c.Id == checkInId, TestContext.Current.CancellationToken);
-
-        persisted.ReviewedByTrainerAt.Should().NotBeNull();
-
-        // Both trainer and client should receive weeklycheckinupdated.
+        (await ReviewedAtAsync(id)).Should().NotBeNull();
         var updatedCalls = notifier.Calls.Where(c => c.EventType == "weeklycheckinupdated").ToList();
-        updatedCalls.Should().HaveCountGreaterThanOrEqualTo(2);
-        updatedCalls.Should().Contain(c => c.UserId == trainerId);
-        updatedCalls.Should().Contain(c => c.UserId == clientId);
+        updatedCalls.Should().Contain(c => c.UserId == scenario.Coach.UserId);
+        updatedCalls.Should().Contain(c => c.UserId == scenario.Client.UserId);
     }
 
     [Fact]
-    public async Task MarkReviewed_CrossTrainerAccess_Returns403()
+    public async Task MarkReviewed_CalledTwice_KeepsTheFirstTimestamp()
     {
-        var (_, trainerId) = await SetupTrainerAsync();
-        var clientId = await SetupClientUserIdAsync();
-        var checkInId = await InsertCheckInAsync(clientId, trainerId);
+        var scenario = await CheckInFixtures.CreateScenarioAsync(factory);
+        var id = await CheckInFixtures.AddCheckInAsync(
+            factory, scenario, CheckInFixtures.Monday(0), DateTime.UtcNow.AddDays(1),
+            QuestionnaireResponseStatus.Submitted, DateTime.UtcNow.AddHours(-1));
 
-        // Set up a second trainer and try to mark the first trainer's check-in.
-        var (http2, _) = await SetupTrainerAsync();
+        await MarkAsync(scenario.Coach, id);
+        var first = await ReviewedAtAsync(id);
+        var second = await MarkAsync(scenario.Coach, id);
 
-        var response = await http2.PostAsJsonAsync(
-            $"/trainer/weekly-check-ins/{checkInId}/mark-reviewed",
-            new { },
-            TestContext.Current.CancellationToken);
-
-        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        second.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await ReviewedAtAsync(id)).Should().Be(first);
     }
 
     [Fact]
-    public async Task MarkReviewed_NotFound_Returns404()
+    public async Task MarkReviewed_UnansweredPastDueCheckIn_IsAllowed()
     {
-        var (http, _) = await SetupTrainerAsync();
+        var scenario = await CheckInFixtures.CreateScenarioAsync(factory);
+        var id = await CheckInFixtures.AddCheckInAsync(
+            factory, scenario, CheckInFixtures.Monday(1), DateTime.UtcNow.AddDays(-3));
 
-        var response = await http.PostAsJsonAsync(
-            $"/trainer/weekly-check-ins/{Guid.NewGuid()}/mark-reviewed",
-            new { },
-            TestContext.Current.CancellationToken);
+        var response = await MarkAsync(scenario.Coach, id);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await ReviewedAtAsync(id)).Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task MarkReviewed_AnotherCoachsCheckIn_Returns404()
+    {
+        var scenario = await CheckInFixtures.CreateScenarioAsync(factory);
+        var id = await CheckInFixtures.AddCheckInAsync(
+            factory, scenario, CheckInFixtures.Monday(0), DateTime.UtcNow.AddDays(1));
+        var other = await TestActors.Trainer(factory).CreateAsync(Ct);
+
+        var response = await MarkAsync(other, id);
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        (await ReviewedAtAsync(id)).Should().BeNull();
     }
 
-    // ── Design decision (#357): expired rows ARE reviewable ────────────────────
-
     [Fact]
-    public async Task MarkReviewed_OnExpiredCheckIn_Returns200_PreservesExpiredAt()
+    public async Task MarkReviewed_UnknownIdOrNonCheckInResponse_Returns404()
     {
-        // Per #357, trainers can mark Expired check-ins as Reviewed
-        // (audit-friendly cleanup workflow). ExpiredAt MUST survive the
-        // transition so the historical timeline ("expired at T1, then
-        // reviewed by trainer at T2") is preserved on the row.
+        var scenario = await CheckInFixtures.CreateScenarioAsync(factory);
+        Guid onboardingId;
 
-        var (http, trainerId) = await SetupTrainerAsync();
-        var clientId = await SetupClientUserIdAsync();
-        var checkInId = await InsertCheckInAsync(clientId, trainerId);
-
-        var expiredAtTimestamp = DateTime.UtcNow.AddHours(-3);
-
-        // Manually transition the row to Expired so we can verify MarkReviewed
-        // accepts the input (rather than 409-ing like Respond/Dismiss do).
         using (var scope = factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            var row = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions
-                .FirstAsync(db.WeeklyCheckIns, c => c.Id == checkInId, TestContext.Current.CancellationToken);
-            row.RespondedAt = null;
-            row.Status = WeeklyCheckInStatus.Expired;
-            row.ExpiredAt = expiredAtTimestamp;
-            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+            var onboarding = EntityBuilder.QuestionnaireResponse
+                .ForQuestionnaire(scenario.QuestionnaireId)
+                .OnLink(scenario.LinkId)
+                .FromClient(scenario.Client.UserId)
+                .FromProfessional(scenario.Coach.UserId)
+                .WithStatus(QuestionnaireResponseStatus.Submitted, DateTime.UtcNow)
+                .Build();
+            db.QuestionnaireResponses.Add(onboarding);
+            await db.SaveChangesAsync(Ct);
+            onboardingId = onboarding.PublicId;
         }
 
-        var response = await http.PostAsJsonAsync(
-            $"/trainer/weekly-check-ins/{checkInId}/mark-reviewed",
-            new { },
-            TestContext.Current.CancellationToken);
-
-        // Allow (NOT 409) — see endpoint <remarks> for design rationale.
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-
-        using var verifyScope = factory.Services.CreateScope();
-        var verifyDb = verifyScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var persisted = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions
-            .FirstAsync(verifyDb.WeeklyCheckIns, c => c.Id == checkInId, TestContext.Current.CancellationToken);
-
-        // Status flipped to Reviewed, ReviewedByTrainerAt stamped.
-        persisted.Status.Should().Be(WeeklyCheckInStatus.Reviewed);
-        persisted.ReviewedByTrainerAt.Should().NotBeNull();
-
-        // Audit preservation — ExpiredAt MUST survive the transition.
-        persisted.ExpiredAt.Should().NotBeNull();
-        persisted.ExpiredAt.Should().BeCloseTo(expiredAtTimestamp, TimeSpan.FromSeconds(1));
+        (await MarkAsync(scenario.Coach, Guid.NewGuid())).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        (await MarkAsync(scenario.Coach, onboardingId)).StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 }

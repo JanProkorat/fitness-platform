@@ -5,6 +5,7 @@ using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Features.Questionnaires.Shared;
 using FitnessPlatform.Application.Infrastructure.Data;
+using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Infrastructure;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
@@ -150,5 +151,19 @@ public class SubmitResponseEndpointTests(FitnessApiFactory factory)
         var response = await SubmitAsync(scenario);
 
         response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+    }
+
+    [Fact]
+    public async Task Submit_CheckInPastItsAnswerWindow_Returns409WithCode()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var scenario = await CheckInFixtures.CreateScenarioAsync(factory);
+        var id = await CheckInFixtures.AddCheckInAsync(
+            factory, scenario, CheckInFixtures.Monday(1), DateTime.UtcNow.AddHours(-1));
+
+        var response = await scenario.Client.Http.PostAsync($"/client/questionnaire/response/{id}/submit", null, ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await response.Content.ReadAsStringAsync(ct)).Should().Contain(ErrorCodes.CheckInAnswerWindowClosed);
     }
 }

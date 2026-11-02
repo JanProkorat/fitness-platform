@@ -14,7 +14,7 @@ namespace FitnessPlatform.Application.Features.Automations.GetClientAutomations;
 
 /// <summary>
 /// Lists the automation rules that apply to one client: the caller's global rules whose audience
-/// includes them (with their override or pause), client-only rules, and the read-only weekly check-in.
+/// includes them (with their override or pause), and client-only rules.
 /// </summary>
 /// <param name="db">Application database context.</param>
 /// <param name="mongo">MongoDB context, read for plan-event send dates.</param>
@@ -38,7 +38,7 @@ public class GetClientAutomationsEndpoint(
         {
             s.Summary = "List a client's effective automation rules";
             s.Description =
-                "Returns each rule with its source, next send, last result and 30-day counts. The weekly check-in is a read-only Linked row.";
+                "Returns each rule with its source, next send, last result and 30-day counts.";
             s.Responses[StatusCodes.Status200OK] = "The client's effective rules";
             s.Responses[StatusCodes.Status401Unauthorized] = "Missing or invalid credentials";
             s.Responses[StatusCodes.Status403Forbidden] = "The live link grants no access";
@@ -100,7 +100,19 @@ public class GetClientAutomationsEndpoint(
             .ToDictionaryAsync(r => r.RuleId, ct);
 
         var items = new List<ClientAutomationItem>();
-        items.AddRange(await BuildLinkedCheckInItemsAsync(Guid.Parse(userId), context.Client.UserId, ct));
+
+        // A coach without per-client check-in configuration runs a check-in rule on the coach-wide
+        // schedule, so the client's override and pause are not shown either.
+        var entitlements = await new EntitlementService(db).GetEntitlementsAsync(context.Profile.Id, ct);
+
+        foreach (var rule in rules)
+        {
+            if (overrides.TryGetValue(rule.Id, out var stored)
+                && AutomationCheckInGate.ApplicableOverride(rule, stored, entitlements) is null)
+            {
+                overrides.Remove(rule.Id);
+            }
+        }
 
         var effectiveRules = rules
             .Select(rule => (Rule: rule, Effective: AutomationEffectiveRule.Resolve(
@@ -128,7 +140,14 @@ public class GetClientAutomationsEndpoint(
                     AnsweredAt = last.AnsweredAt,
                 }
                 : null;
-            item.NextSendAt = AutomationNextSendCalculator.Compute(effective, zone, startLocalDate, planWindows, nowUtc);
+            item.NextSendAt = AutomationNextSendCalculator.Compute(
+                effective,
+                zone,
+                startLocalDate,
+                planWindows,
+                nowUtc,
+                AutomationNextSendCalculator.ResolveFirstSendNotBefore(
+                    context.CollaborationStartedAt, rule, overrides.GetValueOrDefault(rule.Id)));
 
             items.Add(item);
         }
@@ -168,6 +187,10 @@ public class GetClientAutomationsEndpoint(
         IsPaused = effective.IsPaused,
         PausedUntil = effective.PausedUntil,
         PauseNote = effective.PauseNote,
+        ScheduleWeekday = effective.ScheduleWeekday,
+        AnswerWindowHours = effective.AnswerWindowHours,
+        ReminderAfterHours = effective.ReminderAfterHours,
+        NotifyCoachOnMissedWeek = effective.NotifyCoachOnMissedWeek,
     };
 
     private async Task<List<AutomationPlanWindow>> LoadPlanWindowsAsync(
@@ -183,31 +206,6 @@ public class GetClientAutomationsEndpoint(
             ct);
 
         return windows.TryGetValue(context.Client.UserId, out var forClient) ? forClient : [];
-    }
-
-    private async Task<List<ClientAutomationItem>> BuildLinkedCheckInItemsAsync(
-        Guid coachUserId, Guid clientUserId, CancellationToken ct)
-    {
-        var settings = await db.WeeklyCheckInSettings
-            .AsNoTracking()
-            .Where(s => s.UserId == coachUserId)
-            .ToListAsync(ct);
-
-        var checkInOverrides = await db.WeeklyCheckInClientOverrides
-            .AsNoTracking()
-            .Where(o => o.ProfessionalUserId == coachUserId && o.ClientUserId == clientUserId)
-            .ToListAsync(ct);
-
-        return settings
-            .OrderBy(s => s.Profession)
-            .Select(setting => new ClientAutomationItem
-            {
-                Source = AutomationRuleSource.Linked,
-                Profession = setting.Profession.ToString(),
-                Enabled = checkInOverrides.FirstOrDefault(o => o.Profession == setting.Profession)?.Enabled
-                          ?? setting.Enabled,
-            })
-            .ToList();
     }
 
     private sealed record RunRow(

@@ -1,12 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   getTrainerCheckIns,
-  getClientCurrentCheckIn,
   getClientCheckInHistory,
   markCheckInReviewed,
-  type Profession,
   type TrainerCheckInDto,
-  type ClientCheckInDto,
   type MarkCheckInReviewedResponse,
 } from '@/api/weekly-checkins';
 
@@ -23,9 +20,6 @@ export const weeklyCheckInKeys = {
    */
   trainerList: (weekStartDate?: string) =>
     ['weekly-check-ins', 'trainer-list', weekStartDate ?? 'active'] as const,
-  /** Current check-in for a specific client (+ optional profession filter) */
-  clientCurrent: (clientUserId: string, profession?: Profession) =>
-    ['weekly-check-ins', 'client-current', clientUserId, profession ?? 'all'] as const,
   /** Weekly history slots for a specific client (ApplicationUser Id) */
   clientHistory: (clientUserId: string, weeks: number) =>
     ['weekly-check-ins', 'client-history', clientUserId, weeks] as const,
@@ -50,33 +44,6 @@ export function useTrainerWeeklyCheckIns(weekStartDate?: string): {
     queryKey: weeklyCheckInKeys.trainerList(weekStartDate),
     queryFn: () => getTrainerCheckIns(weekStartDate),
     staleTime: 60_000,
-  });
-
-  return {
-    data: data?.checkIns ?? [],
-    isLoading,
-  };
-}
-
-/**
- * Returns the current week's check-in for a specific client, optionally
- * filtered to one profession. Used by plan-editor banners and client detail.
- *
- * @param clientUserId - Client's ApplicationUser Id (Guid string).
- * @param profession   - Optional profession filter ("Training" | "Nutrition").
- */
-export function useClientCurrentCheckIn(
-  clientUserId: string,
-  profession?: Profession,
-): {
-  data: ClientCheckInDto[];
-  isLoading: boolean;
-} {
-  const { data, isLoading } = useQuery({
-    queryKey: weeklyCheckInKeys.clientCurrent(clientUserId, profession),
-    queryFn: () => getClientCurrentCheckIn(clientUserId, profession),
-    staleTime: 60_000,
-    enabled: Boolean(clientUserId),
   });
 
   return {

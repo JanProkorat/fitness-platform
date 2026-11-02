@@ -18,8 +18,12 @@ namespace FitnessPlatform.Application.Features.Automations.OverrideClientAutomat
 /// </summary>
 /// <param name="db">Application database context.</param>
 /// <param name="linkAuthorizationService">Resolves link capabilities.</param>
+/// <param name="entitlementService">Resolves the coach's subscription entitlements.</param>
 [RemovedCoachRole(RemovedCoachRoleMode.Refuse)]
-public class OverrideClientAutomationEndpoint(IApplicationDbContext db, IClientLinkAuthorizationService linkAuthorizationService)
+public class OverrideClientAutomationEndpoint(
+    IApplicationDbContext db,
+    IClientLinkAuthorizationService linkAuthorizationService,
+    EntitlementService entitlementService)
     : Endpoint<OverrideClientAutomationRequest>
 {
     /// <inheritdoc />
@@ -35,7 +39,7 @@ public class OverrideClientAutomationEndpoint(IApplicationDbContext db, IClientL
             s.Responses[StatusCodes.Status400BadRequest] =
                 "Invalid trigger or options, a progress photos message over 500 characters, or check-in fields that do not match the rule's form";
             s.Responses[StatusCodes.Status401Unauthorized] = "Missing or invalid credentials";
-            s.Responses[StatusCodes.Status403Forbidden] = "The live link grants no access";
+            s.Responses[StatusCodes.Status403Forbidden] = "The live link grants no access, or the subscription does not include per-client check-in configuration";
             s.Responses[StatusCodes.Status404NotFound] = "No live link to the client, or the rule does not apply to them";
             s.Responses[StatusCodes.Status409Conflict] = "A client-only rule is changed through the rule itself";
         });
@@ -80,6 +84,11 @@ public class OverrideClientAutomationEndpoint(IApplicationDbContext db, IClientL
                         && AutomationQuestionnaireUsability.IsCheckInForm(form.Type);
 
         if (await this.RespondIfCheckInBodyInvalidAsync(req, isCheckIn, ct))
+        {
+            return;
+        }
+
+        if (isCheckIn && await this.RespondIfCheckInNotEntitledAsync(entitlementService, context.Profile.Id, true, ct))
         {
             return;
         }

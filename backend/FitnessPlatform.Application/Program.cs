@@ -265,10 +265,6 @@ builder.Services.AddScoped<IConversationSeedService, ConversationSeedService>();
 builder.Services.AddScoped<IPendingInviteConversationSeeder, PendingInviteConversationSeeder>();
 builder.Services.AddScoped<IPendingInviteNotificationSeeder, PendingInviteNotificationSeeder>();
 
-// Weekly check-in scheduler — registered as a singleton only (tests resolve it). It is no longer a
-// hosted service: check-ins are sent by an automation rule now.
-builder.Services.AddSingleton<WeeklyCheckInScheduler>();
-
 // Photo diary reminder scheduler — registered as both singleton (for test access) and hosted service.
 builder.Services.AddSingleton<PhotoDiaryReminderScheduler>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<PhotoDiaryReminderScheduler>());

@@ -61,7 +61,7 @@ public static class AutomationClientGuards
         var links = await db.ClientProfessionalLinks
             .AsNoTracking()
             .Where(l => l.ProfessionalProfileId == profile.Id && l.ClientProfileId == client.Id && l.IsActive)
-            .Select(l => new { l.Id, l.DateCreated })
+            .Select(l => new { l.Id, l.DateCreated, l.ActivatedAtUtc })
             .ToListAsync(ct);
 
         if (links.Count == 0)
@@ -79,7 +79,8 @@ public static class AutomationClientGuards
             .Distinct()
             .ToListAsync(ct);
 
-        return new AutomationClientContext(profile, client, links.Min(l => l.DateCreated), tagIds, capabilities.Value);
+        return new AutomationClientContext(
+            profile, client, links.Min(l => l.DateCreated), links.Min(l => l.ActivatedAtUtc ?? l.DateCreated), tagIds, capabilities.Value);
     }
 
     /// <summary>
