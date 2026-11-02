@@ -111,9 +111,16 @@ public class UpdateAutomationRuleEndpoint(IApplicationDbContext db, EntitlementS
             }
         }
 
+        var formChanged = rule.QuestionnaireId != questionnaireId;
+
         rule.Name = req.Name.Trim();
         rule.QuestionnaireId = questionnaireId;
         AutomationRuleWriter.Apply(rule, req, isCheckIn);
+
+        if (formChanged && rule.Enabled)
+        {
+            rule.EnabledAtUtc = DateTime.UtcNow;
+        }
 
         if (audience is not null)
         {

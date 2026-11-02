@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
 {
     /// <inheritdoc />
-    public partial class DropWeeklyCheckInTables : Migration
+    public partial class DropWeeklyCheckInTablesAndAddEnabledAtUtc : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -19,11 +19,31 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
 
             migrationBuilder.DropTable(
                 name: "weekly_check_ins");
+
+            migrationBuilder.AddColumn<DateTime>(
+                name: "enabled_at_utc",
+                table: "automation_rules",
+                type: "timestamp with time zone",
+                nullable: true);
+
+            migrationBuilder.AddColumn<DateTime>(
+                name: "enabled_at_utc",
+                table: "automation_client_overrides",
+                type: "timestamp with time zone",
+                nullable: true);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropColumn(
+                name: "enabled_at_utc",
+                table: "automation_rules");
+
+            migrationBuilder.DropColumn(
+                name: "enabled_at_utc",
+                table: "automation_client_overrides");
+
             migrationBuilder.CreateTable(
                 name: "weekly_check_in_client_overrides",
                 columns: table => new

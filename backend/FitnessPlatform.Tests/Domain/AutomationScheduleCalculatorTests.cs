@@ -1,6 +1,7 @@
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Services;
+using FitnessPlatform.Application.Features.Automations.Shared;
 using FluentAssertions;
 
 namespace FitnessPlatform.Tests.Domain;
@@ -203,5 +204,75 @@ public class AutomationScheduleCalculatorTests
             effective, Prague, new DateOnly(2026, 1, 9), [], Utc(2026, 1, 15, 17, 1), Utc(2026, 1, 9, 11));
 
         next.Should().Be(Utc(2026, 1, 22, 17));
+    }
+
+    // The first-full-week bound is EnabledAtUtc: only switching on or moving the schedule restarts it.
+
+    private static AutomationTriggerBody Body(DayOfWeek weekday = DayOfWeek.Thursday, bool enabled = true) => new()
+    {
+        TriggerKind = AutomationTriggerKind.Schedule,
+        ScheduleInterval = 1,
+        ScheduleUnit = AutomationScheduleUnit.Weeks,
+        LocalTime = TimeSpan.FromHours(18),
+        ScheduleWeekday = weekday,
+        AnswerWindowHours = 48,
+        Enabled = enabled,
+    };
+
+    private static AutomationRule LiveRule(DateTime enabledAt)
+    {
+        var rule = new AutomationRule { Id = 7, Name = "Weekly check-in", DateCreated = Utc(2025, 1, 1) };
+        AutomationRuleWriter.Apply(rule, Body(), isCheckIn: true, enabledAt);
+
+        return rule;
+    }
+
+    [Fact]
+    public void Apply_CreatingAnEnabledCheckInRule_SetsTheBound()
+    {
+        var rule = new AutomationRule { Name = "Weekly check-in" };
+
+        AutomationRuleWriter.Apply(rule, Body(), isCheckIn: true, Utc(2026, 1, 14, 10));
+
+        rule.EnabledAtUtc.Should().Be(Utc(2026, 1, 14, 10));
+    }
+
+    [Fact]
+    public void Apply_RenameOrReminderEdit_KeepsTheBoundAndTheNextSend()
+    {
+        var rule = LiveRule(Utc(2026, 1, 2, 10));
+        var before = AutomationNextSendCalculator.ResolveFirstSendNotBefore(Utc(2025, 6, 1), rule, null);
+        var body = Body();
+        body.ReminderAfterHours = 12;
+        body.Message = "New wording";
+
+        AutomationRuleWriter.Apply(rule, body, isCheckIn: true, Utc(2026, 1, 14, 10));
+        rule.Name = "Renamed";
+
+        rule.EnabledAtUtc.Should().Be(Utc(2026, 1, 2, 10));
+        AutomationNextSendCalculator.ResolveFirstSendNotBefore(Utc(2025, 6, 1), rule, null).Should().Be(before);
+    }
+
+    [Fact]
+    public void Apply_WeekdayChange_ResetsTheBound()
+    {
+        var rule = LiveRule(Utc(2026, 1, 2, 10));
+
+        AutomationRuleWriter.Apply(rule, Body(DayOfWeek.Friday), isCheckIn: true, Utc(2026, 1, 14, 10));
+
+        rule.EnabledAtUtc.Should().Be(Utc(2026, 1, 14, 10));
+    }
+
+    [Fact]
+    public void Apply_SwitchingAnOverrideOn_SetsItsBoundButAnEditKeepsIt()
+    {
+        var clientOverride = new AutomationClientOverride { Id = 3 };
+        AutomationRuleWriter.Apply(clientOverride, Body(enabled: false), isCheckIn: true, Utc(2026, 1, 2, 10));
+        clientOverride.EnabledAtUtc.Should().BeNull();
+
+        AutomationRuleWriter.Apply(clientOverride, Body(), isCheckIn: true, Utc(2026, 1, 5, 10));
+        AutomationRuleWriter.Apply(clientOverride, Body(), isCheckIn: true, Utc(2026, 1, 9, 10));
+
+        clientOverride.EnabledAtUtc.Should().Be(Utc(2026, 1, 5, 10));
     }
 }

@@ -110,6 +110,7 @@ public class PauseClientAutomationEndpoint(
         else if (clientOverride is not null)
         {
             clientOverride.IsPaused = false;
+            clientOverride.EnabledAtUtc = timeProvider.GetUtcNow().UtcDateTime;
             clientOverride.PausedUntil = null;
             clientOverride.PauseNote = null;
 

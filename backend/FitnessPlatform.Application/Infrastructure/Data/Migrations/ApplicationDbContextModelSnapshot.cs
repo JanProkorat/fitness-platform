@@ -299,6 +299,10 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("enabled");
 
+                    b.Property<DateTime?>("EnabledAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("enabled_at_utc");
+
                     b.Property<int?>("EventOffsetDays")
                         .HasColumnType("integer")
                         .HasColumnName("event_offset_days");
@@ -426,6 +430,10 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                     b.Property<bool>("Enabled")
                         .HasColumnType("boolean")
                         .HasColumnName("enabled");
+
+                    b.Property<DateTime?>("EnabledAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("enabled_at_utc");
 
                     b.Property<int?>("EventOffsetDays")
                         .HasColumnType("integer")

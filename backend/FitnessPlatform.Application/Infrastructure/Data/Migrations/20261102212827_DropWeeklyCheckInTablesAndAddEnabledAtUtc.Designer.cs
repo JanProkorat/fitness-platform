@@ -13,8 +13,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20261102205010_DropWeeklyCheckInTables")]
-    partial class DropWeeklyCheckInTables
+    [Migration("20261102212827_DropWeeklyCheckInTablesAndAddEnabledAtUtc")]
+    partial class DropWeeklyCheckInTablesAndAddEnabledAtUtc
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -302,6 +302,10 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("enabled");
 
+                    b.Property<DateTime?>("EnabledAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("enabled_at_utc");
+
                     b.Property<int?>("EventOffsetDays")
                         .HasColumnType("integer")
                         .HasColumnName("event_offset_days");
@@ -429,6 +433,10 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                     b.Property<bool>("Enabled")
                         .HasColumnType("boolean")
                         .HasColumnName("enabled");
+
+                    b.Property<DateTime?>("EnabledAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("enabled_at_utc");
 
                     b.Property<int?>("EventOffsetDays")
                         .HasColumnType("integer")

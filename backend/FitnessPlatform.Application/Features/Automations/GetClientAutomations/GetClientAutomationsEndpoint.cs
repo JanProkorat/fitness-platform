@@ -101,6 +101,19 @@ public class GetClientAutomationsEndpoint(
 
         var items = new List<ClientAutomationItem>();
 
+        // A coach without per-client check-in configuration runs a check-in rule on the coach-wide
+        // schedule, so the client's override and pause are not shown either.
+        var entitlements = await new EntitlementService(db).GetEntitlementsAsync(context.Profile.Id, ct);
+
+        foreach (var rule in rules)
+        {
+            if (overrides.TryGetValue(rule.Id, out var stored)
+                && AutomationCheckInGate.ApplicableOverride(rule, stored, entitlements) is null)
+            {
+                overrides.Remove(rule.Id);
+            }
+        }
+
         var effectiveRules = rules
             .Select(rule => (Rule: rule, Effective: AutomationEffectiveRule.Resolve(
                 rule, overrides.GetValueOrDefault(rule.Id), localToday)))

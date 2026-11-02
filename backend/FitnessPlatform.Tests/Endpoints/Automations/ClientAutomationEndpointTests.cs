@@ -488,4 +488,45 @@ public class ClientAutomationEndpointTests(FitnessApiFactory factory)
         var rule = await response.Content.ReadFromJsonAsync<AutomationRuleDto>(AutomationTestData.Json, Ct);
         rule!.OnlyClientId.Should().Be(client.PublicId);
     }
+
+    [Fact]
+    public async Task List_CheckInOverrideIgnoredWhenThePlanLacksPerClientConfig()
+    {
+        var (coach, client, _) = await LinkedPairAsync();
+        var formId = await AutomationTestData.CreateQuestionnaireAsync(factory, coach, QuestionnaireType.CheckIn);
+        var rule = await CreateRuleAsync(coach, new Dictionary<string, object?>
+        {
+            ["name"] = "Weekly check-in",
+            ["actionType"] = "SendForm",
+            ["questionnaireId"] = formId,
+            ["triggerKind"] = "Schedule",
+            ["scheduleInterval"] = 1,
+            ["scheduleUnit"] = "Weeks",
+            ["localTime"] = "18:00:00",
+            ["scheduleWeekday"] = "Thursday",
+            ["answerWindowHours"] = 48,
+        });
+        var overrideBody = new Dictionary<string, object?>
+        {
+            ["name"] = "Weekly check-in", ["actionType"] = "SendForm", ["questionnaireId"] = formId, ["reminderAfterHours"] = 24, ["notifyCoachOnMissedWeek"] = true, ["enabled"] = true,
+            ["triggerKind"] = "Schedule",
+            ["scheduleInterval"] = 1,
+            ["scheduleUnit"] = "Weeks",
+            ["localTime"] = "18:00:00",
+            ["scheduleWeekday"] = "Monday",
+            ["answerWindowHours"] = 48,
+        };
+        (await coach.Http.PutAsJsonAsync(RuleRoute(client, rule.RuleId, "override"), overrideBody, Ct))
+            .StatusCode.Should().Be(HttpStatusCode.NoContent);
+        (await ListAsync(coach, client)).Items.Single(i => i.RuleId == rule.RuleId)
+            .ScheduleWeekday.Should().Be(DayOfWeek.Monday, "an entitled coach's override shows");
+
+        await CoachSubscriptionBuilder.SubscribeAsync(
+            factory, coach, canUseWeeklyCheckIns: true, canUsePerClientCheckInConfig: false);
+
+        var item = (await ListAsync(coach, client)).Items.Single(i => i.RuleId == rule.RuleId);
+        item.ScheduleWeekday.Should().Be(DayOfWeek.Thursday);
+        item.AnswerWindowHours.Should().Be(48);
+        item.Source.Should().Be(AutomationRuleSource.Default);
+    }
 }

@@ -19,7 +19,7 @@ public static class AutomationNextSendCalculator
 
     /// <summary>
     /// The moment a weekly check-in may not start before: the later of the collaboration start and when the
-    /// rule (or the client's customised override) was last written, which is when it was enabled or edited.
+    /// rule (or the client's customised override) was last switched on or had its schedule or form changed.
     /// </summary>
     /// <param name="collaborationStartedAtUtc">When the current collaboration began (link activation, else creation).</param>
     /// <param name="rule">The rule.</param>
@@ -27,10 +27,10 @@ public static class AutomationNextSendCalculator
     public static DateTime ResolveFirstSendNotBefore(
         DateTime collaborationStartedAtUtc, AutomationRule rule, AutomationClientOverride? clientOverride)
     {
-        var notBefore = Max(collaborationStartedAtUtc, rule.DateUpdated ?? rule.DateCreated);
+        var notBefore = Max(collaborationStartedAtUtc, rule.EnabledAtUtc ?? rule.DateCreated);
 
         return clientOverride is { IsCustomized: true }
-            ? Max(notBefore, clientOverride.DateUpdated ?? clientOverride.DateCreated)
+            ? Max(notBefore, clientOverride.EnabledAtUtc ?? clientOverride.DateCreated)
             : notBefore;
     }
 

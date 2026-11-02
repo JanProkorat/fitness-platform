@@ -76,6 +76,12 @@ public class AutomationRule : PublicTimestampableEntity
     /// <summary>Whether the rule is active.</summary>
     public bool Enabled { get; set; } = true;
 
+    /// <summary>
+    /// When the rule was last switched on or its schedule or form last changed (UTC); null on rows that predate
+    /// the column. A weekly check-in does not start before the first full week after it.
+    /// </summary>
+    public DateTime? EnabledAtUtc { get; set; }
+
     /// <summary>Which clients a global rule applies to.</summary>
     public AutomationAudience Audience { get; set; } = AutomationAudience.All;
 
