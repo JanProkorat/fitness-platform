@@ -101,7 +101,8 @@ public class AssignQuestionnaireEndpoint(
             ClientId = clientProfile.UserId,
             ProfessionalId = userGuid,
             LinkId = link.Id,
-            Status = QuestionnaireResponseStatus.Pending
+            Status = QuestionnaireResponseStatus.Pending,
+            Kind = QuestionnaireResponseKind.Questionnaire,
         };
 
         db.QuestionnaireResponses.Add(questionnaireResponse);

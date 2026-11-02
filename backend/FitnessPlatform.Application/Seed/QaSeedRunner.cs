@@ -2374,6 +2374,7 @@ public static class QaSeedRunner
                 ProfessionalId  = TrainerUserId,
                 LinkId          = link.Id,
                 Status          = QuestionnaireResponseStatus.Submitted,
+                Kind            = QuestionnaireResponseKind.Onboarding,
                 SubmittedAt     = submittedAt,
                 Answers =
                 [
@@ -2587,6 +2588,7 @@ public static class QaSeedRunner
                 ProfessionalId  = NutriUserId,
                 LinkId          = nutriLink.Id,
                 Status          = QuestionnaireResponseStatus.Submitted,
+                Kind            = QuestionnaireResponseKind.Onboarding,
                 SubmittedAt     = submittedAt,
                 Answers =
                 [

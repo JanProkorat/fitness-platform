@@ -659,6 +659,9 @@ public static class ErrorCodes
     /// <summary>An answer does not fit its question's type or config.</summary>
     public const string QuestionnaireAnswerInvalid = "QUESTIONNAIRE_ANSWER_INVALID";
 
+    /// <summary>The coach tried to mark a response as seen before the client submitted it.</summary>
+    public const string QuestionnaireResponseNotSubmitted = "QUESTIONNAIRE_RESPONSE_NOT_SUBMITTED";
+
     /// <summary>An answered question id is not a visible, answerable question of the response's questionnaire.</summary>
     public const string QuestionnaireQuestionNotInForm = "QUESTIONNAIRE_QUESTION_NOT_IN_FORM";
 
