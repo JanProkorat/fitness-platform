@@ -114,7 +114,12 @@ function DrawerBody({ variant = 'global', rule, pause, clientName = '', onSubmit
             </label>
           )}
           <AutomationWhenSection />
-          <AutomationWhatSection actionLocked={variant === 'override'} actionReadOnly={!isNew} />
+          <AutomationWhatSection
+            actionLocked={variant === 'override'}
+            actionReadOnly={!isNew}
+            checkInFormsAllowed={variant === 'global'}
+            editingRuleId={rule?.ruleId}
+          />
           {variant === 'global' && <AutomationWhoSection initialClients={rule?.clients} />}
           <AutomationOptionsSection />
           {variant === 'override' && <AutomationPauseSection />}

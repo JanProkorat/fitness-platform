@@ -146,7 +146,13 @@ trainerTest.describe('form builder', () => {
     try {
       // The check-in board lists the rating types first.
       await expect(page.getByTestId('palette-tile').first()).toHaveAttribute('data-kind', 'smiley_rating');
-      await expect(page.getByText(/Weekly check-in/)).toBeVisible();
+      // A new check-in form has no enabled rule yet, so the line offers to set one up in Automations.
+      const scheduleLine = page.getByTestId('check-in-schedule-line');
+      await expect(scheduleLine).toContainText('Not sent yet');
+      await expect(scheduleLine.getByRole('link', { name: 'Set up in Automations' })).toHaveAttribute(
+        'href',
+        '/automations',
+      );
       await expect(page.getByText(/Sunday|Sonntag|neděl/i)).toHaveCount(0);
 
       await page.getByRole('tab', { name: 'Info' }).click();

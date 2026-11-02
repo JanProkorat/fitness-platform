@@ -6,7 +6,7 @@ import {
   type ClientAutomationItem,
   type ClientAutomationLastResult,
 } from '@/api/automations';
-import { formatNextSend, subtitleFor, whenLabel } from '@/components/automations/automationFormat';
+import { formatNextSend, subtitleFor, weekdayEvery, whenLabel } from '@/components/automations/automationFormat';
 import { clientItemToRule } from '@/components/automations/automationRuleForm';
 
 const SEPARATOR = ' · ';
@@ -46,7 +46,7 @@ export function pauseSubtitle(item: ClientAutomationItem, t: TFunction, language
   return note ? `${head}${SEPARATOR}${note}` : head;
 }
 
-/** The second line of a rule row; never used for a linked check-in row. */
+/** The second line of a rule row. */
 export function rowSubtitle(
   item: ClientAutomationItem,
   parent: AutomationRuleDto | undefined,
@@ -58,6 +58,9 @@ export function rowSubtitle(
     return pauseSubtitle(item, t, language);
   }
   if (item.source === AutomationRuleSource.Custom && parent) {
+    if (parent.scheduleWeekday != null) {
+      return t('clientDetail.automations.row.changedFromWeekday', { day: weekdayEvery(parent.scheduleWeekday, t) });
+    }
     return t('clientDetail.automations.row.changedFrom', { when: whenLabel(parent, t) });
   }
   return subtitleFor(clientItemToRule(item), formTitle, t);

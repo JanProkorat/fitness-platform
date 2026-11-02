@@ -20,8 +20,10 @@ import {
   DEFAULT_EVENT_TIME,
   EVENT_TYPES,
   isPlanEvent,
+  WEEKDAYS,
   type AutomationRuleFormValues,
 } from '@/components/automations/automationRuleForm';
+import { cn } from '@/lib/utils';
 
 /** Section 1: schedule or event trigger, with its timing fields. */
 export default function AutomationWhenSection() {
@@ -29,7 +31,9 @@ export default function AutomationWhenSection() {
   const { register, setValue, control, getValues } = useFormContext<AutomationRuleFormValues>();
   const triggerKind = useWatch({ control, name: 'triggerKind' });
   const eventType = useWatch({ control, name: 'eventType' });
-  const isSchedule = triggerKind === AutomationTriggerKind.Schedule;
+  const checkIn = useWatch({ control, name: 'checkIn' });
+  const scheduleWeekday = useWatch({ control, name: 'scheduleWeekday' });
+  const isSchedule = checkIn || triggerKind === AutomationTriggerKind.Schedule;
   const planEvent = isPlanEvent(eventType);
 
   const chooseKind = (kind: AutomationTriggerKind) => {
@@ -63,6 +67,7 @@ export default function AutomationWhenSection() {
         </ChoiceButton>
         <ChoiceButton
           selected={!isSchedule}
+          disabled={checkIn}
           onClick={() => chooseKind(AutomationTriggerKind.Event)}
           icon={<Flag className="size-4" />}
         >
@@ -70,7 +75,53 @@ export default function AutomationWhenSection() {
         </ChoiceButton>
       </div>
 
-      {isSchedule ? (
+      {checkIn ? (
+        <>
+          <div className={FIELD_CLASS}>
+            <span id="check-in-weekday-label">{t('automations.drawer.when.weekdayLabel')}</span>
+            <div
+              role="group"
+              aria-labelledby="check-in-weekday-label"
+              className="grid grid-cols-7 gap-1.5"
+            >
+              {WEEKDAYS.map((day) => (
+                <button
+                  key={day}
+                  type="button"
+                  aria-pressed={scheduleWeekday === day}
+                  onClick={() => setValue('scheduleWeekday', day, { shouldDirty: true })}
+                  className={cn(
+                    'flex h-11 min-w-0 items-center justify-center rounded-field border px-1 text-body font-semibold outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50',
+                    scheduleWeekday === day
+                      ? 'border-success bg-success-soft text-success-ink'
+                      : 'border-input bg-background text-foreground hover:bg-sunken',
+                  )}
+                >
+                  {t(`automations.weekday.short.${day}`)}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            {timeField}
+            <div className={FIELD_CLASS}>
+              <span>{t('automations.drawer.when.answerWithin')}</span>
+              <p className="flex h-10 items-center rounded-field border border-line bg-sunken px-3 text-copy font-normal text-ink-2">
+                {t('automations.drawer.when.answerWindowFixed')}
+              </p>
+              <span className="text-meta font-normal text-muted-foreground">
+                {t('automations.drawer.when.answerWindowHint')}
+              </span>
+            </div>
+          </div>
+          <div className={FIELD_CLASS}>
+            <span>{t('automations.drawer.when.starting')}</span>
+            <p className="rounded-field border border-line bg-sunken px-3 py-2.5 text-copy font-normal text-ink-2">
+              {t('automations.drawer.when.startingCheckIn')}
+            </p>
+          </div>
+        </>
+      ) : isSchedule ? (
         <>
           <div className="grid grid-cols-3 gap-3">
             <label className={FIELD_CLASS}>

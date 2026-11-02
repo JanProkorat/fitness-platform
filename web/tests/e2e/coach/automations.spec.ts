@@ -5,6 +5,7 @@
  */
 import { trainerTest, nutritionistTest, expect } from '../fixtures/auth';
 import type { Page } from '@playwright/test';
+import { ensureCheckInRule } from '../fixtures/check-in-rule';
 
 async function expectAutomationsPage(page: Page) {
   await page.goto('/clients');
@@ -69,5 +70,40 @@ trainerTest.describe('trainer automations', () => {
     await page.getByRole('menuitem', { name: 'Delete' }).click();
     await page.getByRole('dialog').getByRole('button', { name: 'Delete rule' }).click();
     await expect(page.getByRole('row').filter({ hasText: renamed })).toHaveCount(0);
+  });
+
+  trainerTest('the weekly check-in is an ordinary rule: it has a switch, no Linked marker, and a changed weekday survives a reload', async ({
+    page,
+    baseURL,
+  }) => {
+    const rule = await ensureCheckInRule(baseURL ?? 'http://localhost:5173');
+    try {
+      await page.goto('/automations');
+      const row = page.getByRole('row').filter({ hasText: rule.name });
+      await expect(row).toBeVisible();
+      await expect(row).toContainText('Every Monday, 18:00');
+      await expect(page.getByText('Linked', { exact: true })).toHaveCount(0);
+
+      // The switch flips off and on again.
+      const toggle = page.getByRole('switch', { name: `Enable rule “${rule.name}”` });
+      await expect(toggle).toBeChecked();
+      await toggle.click();
+      await expect(toggle).not.toBeChecked();
+      await toggle.click();
+      await expect(toggle).toBeChecked();
+
+      // Change the weekday in the drawer; the new day is still there after a reload.
+      await page.getByRole('button', { name: rule.name, exact: true }).click();
+      const drawer = page.getByRole('dialog');
+      await expect(drawer.getByRole('button', { name: 'Mon', exact: true })).toHaveAttribute('aria-pressed', 'true');
+      await drawer.getByRole('button', { name: 'Thu', exact: true }).click();
+      await drawer.getByRole('button', { name: 'Save rule' }).click();
+      await expect(drawer).toBeHidden();
+
+      await page.reload();
+      await expect(row).toContainText('Every Thursday, 18:00');
+    } finally {
+      await rule.restore();
+    }
   });
 });

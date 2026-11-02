@@ -2273,7 +2273,11 @@
       },
       "info": {
         "onboarding": "Wird automatisch an jeden neuen Klienten gesendet, nachdem er Ihre Einladung angenommen hat",
-        "checkIn": "Wöchentlicher Check-in · Antworten erscheinen im Check-in-Verlauf jedes Klienten",
+        "checkInSent": "Gesendet <strong>{{day}} um {{time}}</strong>",
+        "checkInReminder": "Erinnerung nach {{hours}} h",
+        "checkInEdit": "In Automatisierungen bearbeiten",
+        "checkInNotSent": "Noch nicht gesendet",
+        "checkInSetUp": "In Automatisierungen einrichten",
         "questions_one": "{{count}} Frage",
         "questions_other": "{{count}} Fragen",
         "minutes_one": "etwa {{count}} Minute",
@@ -3041,6 +3045,12 @@
     "AUTOMATION_NO_OVERRIDE_TO_RESET": "Diese Regel hat für diesen Klienten keine Änderungen, die sich zurücksetzen ließen.",
     "AUTOMATION_CLIENT_ONLY_RULE_NOT_OVERRIDABLE": "Eine Regel nur für einen Klienten lässt sich nicht anpassen, pausieren oder zurücksetzen. Bearbeiten Sie sie direkt.",
     "AUTOMATION_AUDIENCE_NOT_ALLOWED_ON_CLIENT_ONLY_RULE": "Eine Regel nur für einen Klienten hat keine Zielgruppe zur Auswahl.",
+    "CHECK_IN_RULE_EXISTS": "Sie haben bereits eine aktive Regel für den wöchentlichen Check-in. Schalten Sie sie zuerst aus oder bearbeiten Sie diese.",
+    "AUTOMATION_CHECK_IN_INVALID": "Ein wöchentlicher Check-in braucht einen Wochentag, eine Uhrzeit, ein Antwortfenster und ein wöchentliches Intervall.",
+    "AUTOMATION_CHECK_IN_FIELDS_NOT_ALLOWED": "Wochentag, Antwortfenster und Erinnerung gehören nur zu Regeln für den wöchentlichen Check-in.",
+    "CHECK_INS_NOT_ENTITLED": "Wöchentliche Check-ins sind in Ihrem Tarif nicht enthalten.",
+    "PER_CLIENT_CHECK_IN_CONFIG_NOT_ENTITLED": "Den wöchentlichen Check-in für einen einzelnen Klienten anzupassen, ist in Ihrem Tarif nicht enthalten.",
+    "CHECK_IN_ANSWER_WINDOW_CLOSED": "Die Zeit zum Beantworten dieses Check-ins ist abgelaufen.",
     "INVALID_CREDENTIALS": "Ungültige E-Mail oder Passwort.",
     "ACCOUNT_DEACTIVATED": "Ihr Konto wurde deaktiviert.",
     "INVALID_REFRESH_TOKEN": "Ihre Sitzung ist abgelaufen. Bitte melden Sie sich erneut an.",
@@ -4065,8 +4075,7 @@
         "changedFrom": "Geändert gegenüber: {{when}}",
         "paused": "Pausiert",
         "pausedUntil": "Pausiert bis {{date}}",
-        "linkedSubtitle": "{{profession}} · Wird in den Check-in-Einstellungen verwaltet",
-        "linkedSubtitleOnly": "Wird in den Check-in-Einstellungen verwaltet"
+        "changedFromWeekday": "Geändert von: {{day}}"
       },
       "result": {
         "notSent": "Noch nicht gesendet",
@@ -5846,7 +5855,6 @@
     }
   },
   "automations": {
-    "eyebrow": "Formulare",
     "title": "Automatisierungen",
     "subtitle": "Regeln, die Formulare und Anfragen von selbst senden. Eine Regel für einen Klienten ändern Sie auf seinem Tab Automatisierungen.",
     "newRule": "Neue Regel",
@@ -5916,21 +5924,31 @@
       "offsetInactive_other": "{{event}} seit {{count}} Tagen",
       "subtitleForm": "Formular · {{name}}",
       "subtitleFormUnknown": "Formular",
+      "subtitleCheckInReminder": "Formular · {{name}} · Erinnerung nach {{hours}} h",
+      "checkInWhen": "{{day}}, {{time}}",
       "subtitlePhotos": "Fortschrittsfotos",
       "subtitleMeasurements": "Körpermaße",
       "toggle": "Regel „{{name}}“ aktivieren"
     },
-    "linked": {
-      "title": "Wöchentlicher Check-in",
-      "subtitle": {
-        "Training": "Training",
-        "Nutrition": "Ernährung"
+    "weekday": {
+      "every": {
+        "Monday": "montags",
+        "Tuesday": "dienstags",
+        "Wednesday": "mittwochs",
+        "Thursday": "donnerstags",
+        "Friday": "freitags",
+        "Saturday": "samstags",
+        "Sunday": "sonntags"
       },
-      "when": "Einmal pro Woche",
-      "action": "Check-in",
-      "badge": "Verknüpft",
-      "off": "Aus",
-      "open": "Öffnen"
+      "short": {
+        "Monday": "Mo",
+        "Tuesday": "Di",
+        "Wednesday": "Mi",
+        "Thursday": "Do",
+        "Friday": "Fr",
+        "Saturday": "Sa",
+        "Sunday": "So"
+      }
     },
     "actions": {
       "SendForm": "Formular senden",
@@ -5987,6 +6005,11 @@
         "clientTime": "Zeit des Klienten",
         "starting": "Beginn",
         "startingFixed": "Ab dem Startdatum jedes Klienten",
+        "startingCheckIn": "Ab der ersten vollen Woche jedes Klienten",
+        "weekdayLabel": "Jede Woche am",
+        "answerWithin": "Antwort innerhalb von",
+        "answerWindowFixed": "2 Tage",
+        "answerWindowHint": "Danach zählt die Woche als verpasst",
         "eventLabel": "Ereignis",
         "timing": "Zeitpunkt",
         "daysAfter": "Tage danach",
@@ -6002,7 +6025,12 @@
         "formPlaceholder": "Formular wählen",
         "formOption_one": "{{title}} · {{count}} Frage",
         "formOption_other": "{{title}} · {{count}} Fragen",
+        "formOptionCheckIn": "{{title}} · Check-in-Formular",
+        "formHintCheckIn": "Die Fragen ändern Sie unter Formulare › {{title}}",
         "formsError": "Die Formulare konnten nicht geladen werden.",
+        "reminder": "Klienten nach 24 h erinnern, wenn nicht geantwortet wurde",
+        "missedWeek": "Mich benachrichtigen, wenn eine Woche verpasst wird",
+        "missedWeekHint": "Eine Benachrichtigung pro verpasster Woche, nicht pro Erinnerung",
         "message": "Nachricht",
         "counter": "{{current}} / {{max}}"
       },
@@ -6025,6 +6053,7 @@
         "heading": "Optionen",
         "skip": "Klienten überspringen, solange die vorherige Anfrage unbeantwortet ist",
         "skipHint": "Verhindert, dass sich Anfragen stauen.",
+        "skipCheckInHint": "Bei Check-ins aus: Jede Woche steht für sich, und eine unbeantwortete Woche zählt als verpasst.",
         "stopAfter": "Nach einer bestimmten Anzahl Sendungen stoppen",
         "stopAfterCount": "Anzahl Sendungen",
         "oncePerPlan": "Einmal pro Plan",

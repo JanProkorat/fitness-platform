@@ -19,7 +19,7 @@ import { useAuthStore } from '@/stores/auth';
 
 export const automationRulesKey = ['automations', 'rules'] as const;
 
-/** The caller's global rules plus the linked weekly check-in rows. */
+/** The caller's global rules, the weekly check-in rule included. */
 export function useAutomationRules() {
   const isProfessional = useAuthStore(
     (state) => state.user?.roles.some((role) => role === 'Trainer' || role === 'Nutritionist') ?? false,

@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import EditorSidePanel, { type EditorSideTabDef } from '@/components/editor/EditorSidePanel';
+import CheckInScheduleLine from '@/components/forms/builder/CheckInScheduleLine';
 import FormBuilderHeader from '@/components/forms/builder/FormBuilderHeader';
 import FormPreviewDialog from '@/components/forms/builder/FormPreviewDialog';
 import FormInfoPanel from '@/components/forms/builder/FormInfoPanel';
@@ -309,7 +310,11 @@ export default function FormBuilder({ initial, onBack }: Props) {
               ) : (
                 <CalendarDays className="size-4 shrink-0" aria-hidden="true" />
               )}
-              <span>{t(isOnboarding ? 'forms.builder.info.onboarding' : 'forms.builder.info.checkIn')}</span>
+              {isOnboarding ? (
+                <span>{t('forms.builder.info.onboarding')}</span>
+              ) : (
+                <CheckInScheduleLine formId={initial.publicId} />
+              )}
               <span aria-hidden="true">·</span>
               <strong data-testid="question-count" className="font-bold text-ink">
                 {t('forms.builder.info.questions', { count })}
