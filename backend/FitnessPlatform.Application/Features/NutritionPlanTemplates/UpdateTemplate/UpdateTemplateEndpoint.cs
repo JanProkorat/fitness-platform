@@ -81,7 +81,7 @@ public class UpdateTemplateEndpoint(
     /// </summary>
     private Task<bool> MutateAsync(NutritionPlanTemplate template, UpdateNutritionPlanTemplateRequest req)
     {
-        var weeks = TemplateRequestMapper.ToWeeks(req.Weeks);
+        var weeks = TemplateRequestMapper.ToWeeks(req.Weeks, template.Weeks);
 
         template.Name = req.Name;
         template.Description = req.Description;

@@ -85,7 +85,7 @@ public class UnlogMealEatenEndpoint(IMongoContext mongo, IApplicationDbContext d
 
         // Rows with nothing worth keeping (no photos, no note) are removed. Rows that carry
         // photos or a note stay — their _id is referenced by PlanPhoto.MealLogId — and only lose
-        // their eaten state. LogDate is backfilled so legacy rows (LogDate = default, found only
+        // their eaten state (EatenAt and every ticked item). LogDate is backfilled so legacy rows (LogDate = default, found only
         // through EatenAt) stay findable once EatenAt is gone.
         var emptyRowFilter = Builders<MealLog>.Filter.And(
             filter,
@@ -97,9 +97,14 @@ public class UnlogMealEatenEndpoint(IMongoContext mongo, IApplicationDbContext d
         var deleteResult = await mongo.MealLogs.DeleteManyAsync(emptyRowFilter, ct);
 
         var keepResult = await mongo.MealLogs.UpdateManyAsync(
-            Builders<MealLog>.Filter.And(filter, Builders<MealLog>.Filter.Ne(l => l.EatenAt, null)),
+            Builders<MealLog>.Filter.And(
+                filter,
+                Builders<MealLog>.Filter.Or(
+                    Builders<MealLog>.Filter.Ne(l => l.EatenAt, null),
+                    Builders<MealLog>.Filter.SizeGt(l => l.EatenItemIds, 0))),
             Builders<MealLog>.Update
                 .Unset(l => l.EatenAt)
+                .Set(l => l.EatenItemIds, new List<Guid>())
                 .Set(l => l.LogDate, today),
             cancellationToken: ct);
 

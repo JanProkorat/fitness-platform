@@ -183,6 +183,31 @@ public class InstantiateTemplateEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
+    public async Task Instantiate_MealItems_GetFreshItemIds()
+    {
+        var (nutritionist, nutritionistId) = await RegisterNutritionistAsync("item-id");
+        var (clientPublicId, clientProfileId, _) = await RegisterClientAsync("item-id");
+        await LinkAsync(await GetProfessionalProfileIdAsync(nutritionistId), clientProfileId);
+
+        var template = BuildTemplateWithMeals(nutritionistId);
+        var templateMeal = template.Weeks[0].Days[0].Meals[0];
+        templateMeal.Foods = [new MealFood { ItemId = Guid.NewGuid(), FoodExternalId = Guid.NewGuid(), FoodName = "Rice" }];
+        templateMeal.Recipes = [new MealRecipe { ItemId = Guid.NewGuid(), RecipeId = Guid.NewGuid(), RecipeName = "Bowl" }];
+        await SeedTemplateAsync(template);
+
+        var response = await nutritionist.PostAsJsonAsync(
+            $"/nutrition/plan-templates/{template.ExternalId}/instantiate",
+            new { ClientId = clientPublicId, Name = "Item Ids Plan" });
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        var body = await response.Content.ReadFromJsonAsync<InstantiateResponseDto>(
+            cancellationToken: TestContext.Current.CancellationToken);
+        var planMeal = (await FetchPlanAsync(body!.PlanId)).Weeks[0].Days[0].Meals[0];
+        planMeal.Foods[0].ItemId.Should().NotBe(Guid.Empty).And.NotBe(templateMeal.Foods[0].ItemId);
+        planMeal.Recipes[0].ItemId.Should().NotBe(Guid.Empty).And.NotBe(templateMeal.Recipes[0].ItemId);
+    }
+
+    [Fact]
     public async Task Instantiate_SameTemplateForDifferentClients_ProducesIndependentPlansWithDistinctMealIds()
     {
         var (nutritionist, nutritionistId) = await RegisterNutritionistAsync("independent");
