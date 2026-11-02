@@ -44,6 +44,8 @@ export function daysSinceNewestPhoto(months: readonly PhotoMonth[], now: number)
 }
 
 export type OpenCheckIn = {
+  /** Public id of the check-in response; the fill flow opens it. */
+  responseId: string | undefined;
   /** The response deadline; absent for rows without one. */
   dueAt: string | undefined;
   /** Whole local days until the deadline, 0 when it is today. */
@@ -60,6 +62,7 @@ export function openCheckIn(items: readonly CheckInHistoryItem[], now: number): 
     const sortKey = Number.isNaN(due) ? Number.POSITIVE_INFINITY : due;
     if (best === null || sortKey < bestDue) {
       best = {
+        responseId: item.id,
         dueAt: item.dueAt,
         daysLeft: Number.isNaN(due) ? null : Math.max(calendarDays(now, due), 0),
       };
