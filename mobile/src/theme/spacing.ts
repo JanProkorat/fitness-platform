@@ -114,6 +114,7 @@ export const sizes = {
   sparklinePadding: 3,
   searchFab: 56,
   searchFabGlyph: 20,
+  searchFade: 110,
   searchField: 48,
   searchFieldGlyph: 18,
   searchClear: 36,

@@ -12,6 +12,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
@@ -72,7 +73,23 @@ export function CoachSearchField({ open, value, onChangeText, onOpen, onClose }:
   }));
 
   return (
-    <Animated.View pointerEvents="box-none" style={[styles.row, { bottom }, rowStyle]}>
+    <Animated.View pointerEvents="box-none" style={[styles.layer, rowStyle]}>
+      <View
+        pointerEvents="none"
+        style={[styles.fade, { height: theme.sizes.searchFade + bottom }]}
+      >
+        <Svg width="100%" height="100%">
+          <Defs>
+            <LinearGradient id="coachSearchFade" x1="0" y1="0" x2="0" y2="1">
+              <Stop offset="0" stopColor={theme.colors.ground} stopOpacity={0} />
+              <Stop offset="0.6" stopColor={theme.colors.ground} stopOpacity={1} />
+              <Stop offset="1" stopColor={theme.colors.ground} stopOpacity={1} />
+            </LinearGradient>
+          </Defs>
+          <Rect width="100%" height="100%" fill="url(#coachSearchFade)" />
+        </Svg>
+      </View>
+      <View pointerEvents="box-none" style={[styles.row, { bottom }]}>
       <Animated.View style={[styles.shadow, fieldStyle]}>
         <BlurView intensity={theme.glass.bar.intensity} tint={tint} style={styles.blur}>
           <Pressable
@@ -139,12 +156,26 @@ export function CoachSearchField({ open, value, onChangeText, onOpen, onClose }:
           </BlurView>
         </View>
       </Animated.View>
+      </View>
     </Animated.View>
   );
 }
 
 const makeStyles = (theme: Theme) =>
   StyleSheet.create({
+    layer: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      bottom: 0,
+      top: 0,
+    },
+    fade: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      bottom: 0,
+    },
     row: {
       position: 'absolute',
       right: theme.spacing.xxl,
