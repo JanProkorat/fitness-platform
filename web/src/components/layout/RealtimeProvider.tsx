@@ -17,6 +17,8 @@ const COOPERATION_EVENTS = [
   'clientrequestcancelled',
   'inviteaccepted',
   'invitedeclined',
+  'clientrequestproposalaccepted',
+  'clientrequestproposaldeclined',
 ] as const;
 
 /**
@@ -201,6 +203,9 @@ function CoachRealtimeSync() {
     void queryClient.invalidateQueries({ queryKey: ['clients', 'pending'] });
     // Carries the Pending tab's badge count.
     void queryClient.invalidateQueries({ queryKey: ['clients', 'list'] });
+    // The review drawer, the request card and the open thread read these.
+    void queryClient.invalidateQueries({ queryKey: ['clients', 'incoming-requests'] });
+    void queryClient.invalidateQueries({ queryKey: ['conversations'] });
   }, [queryClient, invalidateInbox]);
 
   const handlers = useMemo(

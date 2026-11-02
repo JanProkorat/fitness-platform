@@ -2,7 +2,9 @@ import { useTranslation } from 'react-i18next';
 import { Skeleton } from '@/components/ui/skeleton';
 import OnboardingAnswersCard from '@/components/inbox/panel/OnboardingAnswersCard';
 import { PanelLoadError, PanelStatusHeader } from '@/components/inbox/panel/PanelPrimitives';
+import { ClientRequestStatus } from '@/api/client-requests';
 import { useIncomingRequests } from '@/hooks/useClientsQueries';
+import { firstName } from '@/lib/cooperationCards';
 
 interface Props {
   name: string;
@@ -12,9 +14,10 @@ interface Props {
 }
 
 /**
- * Right panel for a client whose request is still pending: a Pending chip and
- * the onboarding answers carried by the incoming request, matched on the
- * request id or the client's profile id.
+ * Right panel for a client whose request is still pending: a Pending chip (or
+ * Proposal sent while a package proposal waits) and the onboarding answers
+ * carried by the incoming request, matched on the request id or the client's
+ * profile id.
  */
 export default function PendingClientPanel({ name, sourceId, clientPublicId }: Props) {
   const { t } = useTranslation();
@@ -22,14 +25,19 @@ export default function PendingClientPanel({ name, sourceId, clientPublicId }: P
   const request = requestsQuery.data?.find(
     (r) => r.publicId === sourceId || (clientPublicId !== undefined && r.clientPublicId === clientPublicId),
   );
+  const isProposalSent = request?.status === ClientRequestStatus.PackageProposed;
 
   return (
     <div data-testid="pending-client-panel" className="flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto px-4.5 py-5.5">
       <PanelStatusHeader
         name={name}
-        chip={t('inbox.panel.pendingChip')}
+        chip={isProposalSent ? t('inbox.panel.proposalSentChip') : t('inbox.panel.pendingChip')}
         chipDotClassName="bg-marker-solid"
-        description={t('inbox.panel.pendingLine')}
+        description={
+          isProposalSent
+            ? t('inbox.panel.proposalSentLine', { name: firstName(name) })
+            : t('inbox.panel.pendingLine')
+        }
       />
       {requestsQuery.isPending ? (
         <Skeleton className="h-48 w-full" />

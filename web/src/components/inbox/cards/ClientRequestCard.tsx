@@ -1,36 +1,48 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Check, Dumbbell } from 'lucide-react';
+import { Dumbbell, Package } from 'lucide-react';
 import CooperationCardShell, { type CardLabelTone } from '@/components/inbox/cards/CooperationCardShell';
+import InviteReviewDrawer from '@/components/inbox/invite-review/InviteReviewDrawer';
 import { Button } from '@/components/ui/button';
-import { useAcceptClientRequest, useRejectClientRequest } from '@/hooks/useClientsQueries';
+import { useIncomingRequests } from '@/hooks/useClientsQueries';
 import { formatCardDate, formatSentWhen, firstName, formatServices, useHeldServices } from '@/lib/cooperationCards';
-import { CooperationCardStatus } from '@/api/generated';
+import { useAuthStore } from '@/stores/auth';
+import { ChatEventType, CooperationCardStatus } from '@/api/generated';
 import type { MessageDto } from '@/api/generated';
 
 interface Props {
   message: MessageDto;
   status: CooperationCardStatus;
   participantName: string;
-  /** The newest Accepted/Declined/Withdrawn event for this request, when loaded. */
+  /** The newest Accepted/Declined/Withdrawn event folded into this card, when loaded. */
   followUp?: MessageDto;
+  /** The newest answer to this request, whichever card it folded into; tells who accepted or declined. */
+  sourceFollowUp?: MessageDto;
 }
 
 /**
- * The incoming client-request card in the thread: Accept / Decline while the
- * request is pending, then the same card with only its label and sub-line
- * changed. The card reads its own `eventStatus`, never the conversation's.
+ * The incoming client-request card in the thread: the requested package (or
+ * "Not chosen") and a "View invite" action while the request is pending, then
+ * the same card with only its label and sub-line changed. Answering happens in
+ * the review drawer. The card reads its own `eventStatus`, never the conversation's.
  */
-export default function ClientRequestCard({ message, status, participantName, followUp }: Props) {
+export default function ClientRequestCard({ message, status, participantName, followUp, sourceFollowUp }: Props) {
   const { t, i18n } = useTranslation();
   const services = useHeldServices();
-  const acceptMutation = useAcceptClientRequest();
-  const rejectMutation = useRejectClientRequest();
+  const ownId = useAuthStore((state) => state.user?.publicId);
+  const [reviewOpen, setReviewOpen] = useState(false);
   const sourceId = message.eventSourceId ?? '';
-  const isBusy = acceptMutation.isPending || rejectMutation.isPending;
+  const isPending = status === CooperationCardStatus.Pending;
+  // Only a pending card shows the package, and the list is already loaded for the panel beside the thread.
+  const requestsQuery = useIncomingRequests(isPending);
+  const request = requestsQuery.data?.find((candidate) => candidate.publicId === sourceId);
+  const name = firstName(participantName);
 
   const serviceLine = formatServices(t, services);
   const followUpDate = followUp?.timestamp ? formatCardDate(followUp.timestamp, i18n.language) : '';
   const withDate = (text: string) => (followUpDate ? `${text} · ${followUpDate}` : text);
+  // The client answers a proposal, so an answer from someone other than the coach is theirs.
+  const answeredByClient = sourceFollowUp !== undefined && sourceFollowUp.senderId !== ownId;
 
   const titleKey =
     services.length === 1
@@ -52,53 +64,67 @@ export default function ClientRequestCard({ message, status, participantName, fo
     case CooperationCardStatus.Accepted:
       label = t('inbox.card.request.label.accepted');
       labelTone = 'success';
-      subtitle = withDate(t('inbox.card.request.youAccepted'));
+      subtitle = withDate(
+        answeredByClient && sourceFollowUp?.eventType === ChatEventType.Accepted
+          ? t('inbox.card.request.clientAcceptedProposal', { name })
+          : t('inbox.card.request.youAccepted'),
+      );
       break;
     case CooperationCardStatus.Declined:
       label = t('inbox.card.request.label.declined');
-      subtitle = withDate(t('inbox.card.request.youDeclined'));
+      subtitle = withDate(
+        answeredByClient && sourceFollowUp?.eventType === ChatEventType.Declined
+          ? t('inbox.card.request.clientDeclinedProposal', { name })
+          : t('inbox.card.request.youDeclined'),
+      );
       break;
     default:
       label = t('inbox.card.request.label.cancelled');
-      subtitle = withDate(t('inbox.card.request.clientCancelled', { name: firstName(participantName) }));
+      subtitle = withDate(t('inbox.card.request.clientCancelled', { name }));
       break;
   }
 
   return (
-    <CooperationCardShell
-      align="incoming"
-      icon={<Dumbbell className="size-4.75" aria-hidden="true" />}
-      iconTone="request"
-      label={label}
-      labelTone={labelTone}
-      title={title}
-      subtitle={subtitle}
-      testId="client-request-card"
-      status={status}
-      actions={
-        status === CooperationCardStatus.Pending ? (
-          <>
+    <>
+      <CooperationCardShell
+        align="incoming"
+        icon={<Dumbbell className="size-4.75" aria-hidden="true" />}
+        iconTone="request"
+        label={label}
+        labelTone={labelTone}
+        hideLabel={isPending}
+        title={title}
+        subtitle={subtitle}
+        testId="client-request-card"
+        status={status}
+        body={
+          isPending && request ? (
+            <div
+              data-testid="client-request-card-package"
+              className="flex items-center gap-2.5 rounded-field bg-sunken px-3 py-2.5 text-body"
+            >
+              <Package className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+              <span className="text-muted-foreground">{t('inbox.card.request.package')}</span>
+              <span className="ml-auto truncate font-semibold text-ink">
+                {request.package?.name ?? t('inbox.card.request.packageNotChosen')}
+              </span>
+            </div>
+          ) : undefined
+        }
+        actions={
+          isPending ? (
             <Button
               type="button"
-              className="h-8.5 flex-1 font-semibold"
-              disabled={!sourceId || isBusy}
-              onClick={() => acceptMutation.mutate({ publicId: sourceId })}
+              className="h-9.5 flex-1 font-semibold"
+              disabled={!sourceId}
+              onClick={() => setReviewOpen(true)}
             >
-              {!acceptMutation.isPending && <Check aria-hidden="true" />}
-              {acceptMutation.isPending ? t('common.saving') : t('inbox.card.request.accept')}
+              {t('inbox.card.request.viewInvite')}
             </Button>
-            <Button
-              type="button"
-              variant="outline"
-              className="h-8.5 flex-1 font-semibold"
-              disabled={!sourceId || isBusy}
-              onClick={() => rejectMutation.mutate({ publicId: sourceId })}
-            >
-              {rejectMutation.isPending ? t('common.saving') : t('inbox.card.request.decline')}
-            </Button>
-          </>
-        ) : undefined
-      }
-    />
+          ) : undefined
+        }
+      />
+      {isPending && sourceId && <InviteReviewDrawer requestId={sourceId} open={reviewOpen} onOpenChange={setReviewOpen} />}
+    </>
   );
 }

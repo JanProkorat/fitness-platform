@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
 export type CardLabelTone = 'muted' | 'request' | 'success';
-export type CardIconTone = 'request' | 'invite';
+export type CardIconTone = 'request' | 'invite' | 'proposal';
 
 const LABEL_TONES: Record<CardLabelTone, string> = {
   muted: 'text-muted-foreground',
@@ -13,6 +13,7 @@ const LABEL_TONES: Record<CardLabelTone, string> = {
 const ICON_TONES: Record<CardIconTone, string> = {
   request: 'bg-training-soft text-training-ink',
   invite: 'bg-sunken text-ink-2',
+  proposal: 'bg-nutrition-soft text-nutrition-ink',
 };
 
 interface Props {
@@ -20,13 +21,18 @@ interface Props {
   align: 'incoming' | 'outgoing';
   icon: ReactNode;
   iconTone: CardIconTone;
+  /** The status label. Always the card's accessible name; shown above the title unless `hideLabel`. */
   label: string;
   labelTone: CardLabelTone;
+  /** Keeps the label out of sight, for a card whose title already says what it is. */
+  hideLabel?: boolean;
   title: string;
   subtitle: string;
   /** Test hook, e.g. `client-request-card`. */
   testId: string;
   status: string;
+  /** A band between the header and the buttons, e.g. the package line or the waiting state. */
+  body?: ReactNode;
   /** Buttons row; omitted once the card is settled. */
   actions?: ReactNode;
 }
@@ -43,10 +49,12 @@ export default function CooperationCardShell({
   iconTone,
   label,
   labelTone,
+  hideLabel = false,
   title,
   subtitle,
   testId,
   status,
+  body,
   actions,
 }: Props) {
   return (
@@ -64,11 +72,12 @@ export default function CooperationCardShell({
             {icon}
           </span>
           <span className="flex min-w-0 flex-col gap-0.5">
-            <span className={cn('text-meta font-semibold', LABEL_TONES[labelTone])}>{label}</span>
+            {!hideLabel && <span className={cn('text-meta font-semibold', LABEL_TONES[labelTone])}>{label}</span>}
             <span className="font-display text-copy font-semibold">{title}</span>
             <span className="text-meta text-muted-foreground">{subtitle}</span>
           </span>
         </div>
+        {body}
         {actions && <div className="flex gap-2">{actions}</div>}
       </div>
       {align === 'outgoing' && <span aria-hidden="true" className="w-7 shrink-0" />}

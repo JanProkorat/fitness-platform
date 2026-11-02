@@ -106,7 +106,9 @@ export function isOriginEvent(message: MessageDto): boolean {
   return (
     message.kind === ChatMessageKind.Event &&
     Boolean(message.eventSourceId) &&
-    (message.eventType === ChatEventType.Invited || message.eventType === ChatEventType.Requested)
+    (message.eventType === ChatEventType.Invited ||
+      message.eventType === ChatEventType.Requested ||
+      message.eventType === ChatEventType.ProposalSent)
   );
 }
 
@@ -123,27 +125,37 @@ function isFollowUpEvent(message: MessageDto): boolean {
 export interface ThreadCards {
   /** Messages to render, with folded follow-up events removed. */
   visible: MessageDto[];
-  /** The newest follow-up event per source id, for the card's date. */
+  /** The newest follow-up event folded into each card, keyed by the card's message id. */
   followUps: Map<string, MessageDto>;
+  /** The newest follow-up event per source id whichever card it folded into, for the card's wording. */
+  sourceFollowUps: Map<string, MessageDto>;
 }
 
 /**
- * Folds Accepted/Declined/Withdrawn events into the card of the invite or
- * request they answer. A follow-up whose card is not loaded stays visible as a pill.
+ * Folds Accepted/Declined/Withdrawn events into the card they answer: the
+ * newest earlier card with the same source id. A request carries one source id
+ * for its Requested card and every ProposalSent card, so a withdrawn proposal
+ * folds into the proposal card, not into the request card. A follow-up whose
+ * card is not loaded stays visible as a pill. Expects messages oldest first.
  */
 export function foldThreadCards(messages: MessageDto[]): ThreadCards {
-  const originSources = new Set(messages.filter(isOriginEvent).map((message) => message.eventSourceId));
+  const latestCardIdBySource = new Map<string, string>();
   const followUps = new Map<string, MessageDto>();
+  const sourceFollowUps = new Map<string, MessageDto>();
   const visible: MessageDto[] = [];
 
   for (const message of messages) {
-    if (isFollowUpEvent(message) && originSources.has(message.eventSourceId)) {
-      followUps.set(message.eventSourceId!, message);
+    const sourceId = message.eventSourceId;
+    if (isOriginEvent(message) && sourceId && message.id) {
+      latestCardIdBySource.set(sourceId, message.id);
+    } else if (isFollowUpEvent(message) && sourceId && latestCardIdBySource.has(sourceId)) {
+      followUps.set(latestCardIdBySource.get(sourceId)!, message);
+      sourceFollowUps.set(sourceId, message);
       continue;
     }
     visible.push(message);
   }
-  return { visible, followUps };
+  return { visible, followUps, sourceFollowUps };
 }
 
 /** Pending requests and invites get their own panel; everything else is the client panel when a client id exists. */
