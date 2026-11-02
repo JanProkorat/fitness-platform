@@ -303,6 +303,7 @@ public class AutomationSchedulerTests(FitnessApiFactory factory) : IAsyncLifetim
         response.Status.Should().Be(QuestionnaireResponseStatus.Pending);
         response.LinkId.Should().Be(linkId);
         response.ProfessionalId.Should().Be(coach.UserId);
+        response.Kind.Should().Be(QuestionnaireResponseKind.Questionnaire);
 
         var run = (await RunsAsync(rule.Id)).Should().ContainSingle().Subject;
         run.Status.Should().Be(AutomationRunStatus.Sent);

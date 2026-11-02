@@ -82,6 +82,48 @@ public class CheckInFormSendGuardIntegrationTests(FitnessApiFactory factory)
             TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        (await db.QuestionnaireResponses.AsNoTracking().SingleAsync(
+                r => r.ClientId == client.UserId && r.ProfessionalId == trainer.UserId, TestContext.Current.CancellationToken))
+            .Kind.Should().Be(QuestionnaireResponseKind.Questionnaire);
+    }
+
+    [Fact]
+    public async Task Replace_OnboardingForm_CancelsThePendingResponseAndCreatesAQuestionnaireKindOne()
+    {
+        var (trainer, client, linkId) = await CreateLinkedPairAsync();
+        var firstId = await CreateQuestionnaireAsync(trainer.UserId, QuestionnaireType.Onboarding);
+        var secondId = await CreateQuestionnaireAsync(trainer.UserId, QuestionnaireType.Onboarding);
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var first = await db.Questionnaires.SingleAsync(q => q.PublicId == firstId, TestContext.Current.CancellationToken);
+            db.QuestionnaireResponses.Add(new QuestionnaireResponse
+            {
+                QuestionnaireId = first.Id,
+                ClientId = client.UserId,
+                ProfessionalId = trainer.UserId,
+                LinkId = linkId,
+                Status = QuestionnaireResponseStatus.Pending,
+            });
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        var response = await trainer.Http.PostAsJsonAsync(
+            $"/trainer/clients/{client.PublicId}/replace-questionnaire",
+            new { QuestionnairePublicId = secondId },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent, await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+
+        using var assertScope = factory.Services.CreateScope();
+        var assertDb = assertScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var replacement = await assertDb.QuestionnaireResponses.AsNoTracking()
+            .SingleAsync(r => r.LinkId == linkId && r.Status == QuestionnaireResponseStatus.Pending, TestContext.Current.CancellationToken);
+        replacement.Kind.Should().Be(QuestionnaireResponseKind.Questionnaire);
     }
 
     [Fact]

@@ -307,6 +307,7 @@ public sealed class AutomationOccurrenceSender(
             ProfessionalId = evaluation.Coach.UserId,
             LinkId = evaluation.Client.PrimaryLinkId,
             Status = QuestionnaireResponseStatus.Pending,
+            Kind = QuestionnaireResponseKind.Questionnaire,
         };
         db.QuestionnaireResponses.Add(response);
         await db.SaveChangesAsync(ct);

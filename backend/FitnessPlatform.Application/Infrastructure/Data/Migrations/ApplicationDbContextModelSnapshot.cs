@@ -3088,6 +3088,14 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
+                    b.Property<DateTime?>("CheckInDueAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("check_in_due_at_utc");
+
+                    b.Property<DateOnly?>("CheckInWeekStart")
+                        .HasColumnType("date")
+                        .HasColumnName("check_in_week_start");
+
                     b.Property<Guid>("ClientId")
                         .HasColumnType("uuid")
                         .HasColumnName("client_id");
@@ -3099,6 +3107,10 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                     b.Property<DateTime?>("DateUpdated")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("date_updated");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("integer")
+                        .HasColumnName("kind");
 
                     b.Property<long>("LinkId")
                         .HasColumnType("bigint")
@@ -3115,6 +3127,10 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                     b.Property<long>("QuestionnaireId")
                         .HasColumnType("bigint")
                         .HasColumnName("questionnaire_id");
+
+                    b.Property<DateTime?>("ReviewedByCoachAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("reviewed_by_coach_at_utc");
 
                     b.Property<int?>("Scope")
                         .HasColumnType("integer")
