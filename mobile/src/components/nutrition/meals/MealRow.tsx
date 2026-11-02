@@ -252,8 +252,8 @@ export function MealRow({
               const tickLabel = ticked
                 ? t('nutritionPlan.item.unmarkEaten', { item: item.name })
                 : t('nutritionPlan.item.markEaten', { item: item.name });
-              const tick =
-                itemId === undefined || hideEatenState ? (
+              // Future days drop the tick column so amounts reach the edge; an item without an id keeps the empty slot.
+              const tick = hideEatenState ? null : itemId === undefined ? (
                   <MealStatusIcon status="pending" label="" hidden size="item" />
                 ) : (
                   <MealStatusIcon

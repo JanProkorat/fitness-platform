@@ -1,13 +1,5 @@
-import { useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
-import Reanimated, {
-  Easing,
-  useAnimatedStyle,
-  useReducedMotion,
-  useSharedValue,
-  withTiming,
-} from 'react-native-reanimated';
 import { SymbolView } from 'expo-symbols';
 import { useTranslation } from 'react-i18next';
 
@@ -19,11 +11,12 @@ import { EMPTY_MACROS, formatWhole, macrosOf } from '@/components/nutrition/meal
 import { NoteBox } from '@/components/nutrition/meals/NoteBox';
 import { MealPhotoViewer } from '@/components/nutrition/meals/MealPhotoViewer';
 import type { ViewerPhoto } from '@/components/nutrition/meals/MealPhotoViewer';
-import { dayMeals, isoDay, mealStatus } from '@/components/nutrition/plan/model';
+import { dayMeals, dayPlannedTargets, isoDay, mealStatus } from '@/components/nutrition/plan/model';
 import { currentWeekDays, mondayOf } from '@/components/nutrition/tab/model';
 import { OffPlanGroup } from '@/components/nutrition/tab/OffPlanGroup';
 import { OffPlanSheet } from '@/components/nutrition/tab/OffPlanSheet';
 import { TabMealRow } from '@/components/nutrition/tab/TabMealRow';
+import { ProgressFill } from '@/components/ProgressFill';
 import { Text } from '@/components/Text';
 import { useNutritionDayLog } from '@/hooks/useNutritionDayLog';
 import { useNutritionWeekPlan } from '@/hooks/useNutritionWeekPlan';
@@ -31,7 +24,6 @@ import { useTodayMealActions } from '@/hooks/useTodayMealActions';
 import { useTodayMealLog } from '@/hooks/useTodayMealLog';
 import { showsError } from '@/lib/queryState';
 import { useTheme } from '@/theme';
-import { progressFillMotion } from '@/theme/motion';
 import type { Theme } from '@/theme';
 
 import { roleLook } from './roleLook';
@@ -78,7 +70,7 @@ export function RunningNutritionCard({ plan, today: deviceToday, footer }: Runni
     }));
 
   const eaten = todayLog.data ? macrosOf(todayLog.data.totalConsumed) : EMPTY_MACROS;
-  const target = week.globalSettings?.dailyKcal ?? plan.dailyKcal;
+  const target = dayPlannedTargets(meals).dailyKcal;
   const ratio = target && target > 0 ? Math.min(Math.max(eaten.kcal / target, 0), 1) : 0;
   const current = plan.currentWeek ?? week.weekNumber;
   const weekLabel =
@@ -218,23 +210,6 @@ export function RunningNutritionCard({ plan, today: deviceToday, footer }: Runni
       />
     </Card>
   );
-}
-
-type ProgressFillProps = { ratio: number; color: string; style: object };
-
-/** The bar's fill, easing to each new ratio (0–1) instead of jumping; instant when reduce motion is on. */
-function ProgressFill({ ratio, color, style }: ProgressFillProps) {
-  const reduceMotion = useReducedMotion();
-  const progress = useSharedValue(0);
-  useEffect(() => {
-    progress.set(
-      reduceMotion
-        ? ratio
-        : withTiming(ratio, { duration: progressFillMotion.duration, easing: Easing.out(Easing.cubic) }),
-    );
-  }, [ratio, reduceMotion, progress]);
-  const fillStyle = useAnimatedStyle(() => ({ width: `${progress.value * 100}%` }));
-  return <Reanimated.View style={[style, { backgroundColor: color }, fillStyle]} />;
 }
 
 const makeStyles = (theme: Theme) =>
