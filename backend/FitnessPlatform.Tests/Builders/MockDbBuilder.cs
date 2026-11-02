@@ -25,6 +25,7 @@ public class MockDbBuilder
     private readonly List<PendingInvite> _pendingInvites = [];
     private readonly List<ClientRequest> _clientRequests = [];
     private readonly List<QuestionnaireResponse> _questionnaireResponses = [];
+    private readonly List<Questionnaire> _questionnaires = [];
     private readonly List<EmailVerificationToken> _emailVerificationTokens = [];
     private readonly List<DevicePushToken> _devicePushTokens = [];
     private readonly List<WeeklyCheckInSetting> _weeklyCheckInSettings = [];
@@ -121,6 +122,11 @@ public class MockDbBuilder
     public MockDbBuilder With(QuestionnaireResponse response) { _questionnaireResponses.Add(response); return this; }
 
     /// <summary>
+    /// Adds a <see cref="Questionnaire"/> to the mock context.
+    /// </summary>
+    public MockDbBuilder With(Questionnaire questionnaire) { _questionnaires.Add(questionnaire); return this; }
+
+    /// <summary>
     /// Adds an <see cref="EmailVerificationToken"/> to the mock context.
     /// </summary>
     public MockDbBuilder With(EmailVerificationToken token) { _emailVerificationTokens.Add(token); return this; }
@@ -186,6 +192,7 @@ public class MockDbBuilder
         var pendingInvitesSet = _pendingInvites.BuildMockDbSet();
         var clientRequestsSet = _clientRequests.BuildMockDbSet();
         var questionnaireResponsesSet = _questionnaireResponses.BuildMockDbSet();
+        var questionnairesSet = _questionnaires.BuildMockDbSet();
         var emailVerificationTokensSet = _emailVerificationTokens.BuildMockDbSet();
         var devicePushTokensSet = _devicePushTokens.BuildMockDbSet();
         var weeklyCheckInSettingsSet = _weeklyCheckInSettings.BuildMockDbSet();
@@ -217,6 +224,7 @@ public class MockDbBuilder
         db.PendingInvites.Returns(pendingInvitesSet);
         db.ClientRequests.Returns(clientRequestsSet);
         db.QuestionnaireResponses.Returns(questionnaireResponsesSet);
+        db.Questionnaires.Returns(questionnairesSet);
         db.EmailVerificationTokens.Returns(emailVerificationTokensSet);
         db.DevicePushTokens.Returns(devicePushTokensSet);
         db.WeeklyCheckInSettings.Returns(weeklyCheckInSettingsSet);

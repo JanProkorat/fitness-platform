@@ -108,6 +108,43 @@ public class AutomationScheduleCalculatorTests
     }
 
     [Theory]
+    [InlineData(DayOfWeek.Thursday, "UTC", "2026-01-05T12:00:00Z", "2026-01-08T18:00:00Z")] // weekday later this week
+    [InlineData(DayOfWeek.Monday, "UTC", "2026-01-08T19:00:00Z", "2026-01-12T18:00:00Z")] // weekday already passed
+    [InlineData(DayOfWeek.Thursday, "UTC", "2026-01-08T10:00:00Z", "2026-01-08T18:00:00Z")] // same day, before the time
+    [InlineData(DayOfWeek.Thursday, "UTC", "2026-01-08T19:00:00Z", "2026-01-15T18:00:00Z")] // same day, after the time
+    [InlineData(DayOfWeek.Thursday, "UTC", "2026-01-08T18:00:00Z", "2026-01-15T18:00:00Z")] // exactly now is not "after"
+    [InlineData(DayOfWeek.Thursday, "Europe/Prague", "2026-01-08T16:30:00Z", "2026-01-08T17:00:00Z")] // 17:30 local, 18:00 still ahead
+    [InlineData(DayOfWeek.Thursday, "Europe/Prague", "2026-01-08T17:30:00Z", "2026-01-15T17:00:00Z")] // 18:30 local, already passed
+    [InlineData(DayOfWeek.Thursday, "Europe/Prague", "2026-01-07T23:30:00Z", "2026-01-08T17:00:00Z")] // already Thursday locally
+    [InlineData(DayOfWeek.Thursday, "Europe/Prague", "2026-03-24T12:00:00Z", "2026-03-26T17:00:00Z")] // winter-time offset
+    [InlineData(DayOfWeek.Thursday, "Europe/Prague", "2026-03-30T12:00:00Z", "2026-04-02T16:00:00Z")] // summer-time offset
+    public void ComputeNextWeekdayRunAt_PicksTheNextWeekdayAtTheLocalTime(
+        DayOfWeek weekday, string zoneId, string now, string expected)
+    {
+        var next = AutomationScheduleCalculator.ComputeNextWeekdayRunAt(
+            weekday, new TimeOnly(18, 0), TimeZoneInfo.FindSystemTimeZoneById(zoneId), DateTime.Parse(now).ToUniversalTime());
+
+        next.Should().Be(DateTime.Parse(expected).ToUniversalTime());
+    }
+
+    [Fact]
+    public void ComputeNextWeekdayRunAt_LocalTimeInSpringForwardGap_MovesOneHourLater()
+    {
+        var next = AutomationScheduleCalculator.ComputeNextWeekdayRunAt(
+            DayOfWeek.Sunday, new TimeOnly(2, 30), Prague, Utc(2026, 3, 25, 12));
+
+        next.Should().Be(Utc(2026, 3, 29, 1, 30), "02:30 does not exist on 29 March in Prague, so 03:30 summer time is used");
+    }
+
+    [Theory]
+    [InlineData("2026-01-05", "2026-01-05")]
+    [InlineData("2026-01-08", "2026-01-05")]
+    [InlineData("2026-01-11", "2026-01-05")]
+    [InlineData("2026-01-12", "2026-01-12")]
+    public void MondayOf_ReturnsTheMondayOfTheWeek(string date, string expected) =>
+        AutomationScheduleCalculator.MondayOf(DateOnly.Parse(date)).Should().Be(DateOnly.Parse(expected));
+
+    [Theory]
     [InlineData(false, null, false)]
     [InlineData(true, null, true)]
     [InlineData(true, "2026-05-10", true)]
