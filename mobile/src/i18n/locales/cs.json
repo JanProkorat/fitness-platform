@@ -1588,6 +1588,12 @@
       "more_other": "a {{count}} dalších položek",
       "toggle": "Zobrazit nebo skrýt: {{meal}}"
     },
+    "note": {
+      "day": "Poznámka k tomuto dni",
+      "today": "Poznámka na dnes",
+      "meal": "Poznámka",
+      "mealIcon": "Toto jídlo má poznámku"
+    },
     "amount": {
       "portions_one": "{{value}} porce",
       "portions_few": "{{value}} porce",

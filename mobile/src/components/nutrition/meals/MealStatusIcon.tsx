@@ -12,12 +12,18 @@ type MealStatusIconProps = {
   label: string;
   /** When set the icon is a button (the Nutrition tab logs and unlogs through it); otherwise it is read-only. */
   onPress?: () => void;
+  /** Renders an empty slot of the same width: nothing to show or tap, hidden from screen readers. */
+  hidden?: boolean;
 };
 
 /** Status of a meal at the right of its row: filled green check, empty ring or red X. */
-export function MealStatusIcon({ status, label, onPress }: MealStatusIconProps) {
+export function MealStatusIcon({ status, label, onPress, hidden = false }: MealStatusIconProps) {
   const theme = useTheme();
   const styles = makeStyles(theme);
+
+  if (hidden) {
+    return <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.slot} />;
+  }
 
   const glyph =
     status === 'eaten' ? (

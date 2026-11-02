@@ -35,6 +35,7 @@ import {
   weekDays,
   weekMealCount,
 } from '@/components/nutrition/plan/model';
+import { dayPhase } from '@/components/nutrition/tab/model';
 import { RecipesToday } from '@/components/nutrition/week/RecipesToday';
 import { WeekGlance } from '@/components/nutrition/week/WeekGlance';
 import { dayRecipes, dayWithinWeek } from '@/components/nutrition/week/model';
@@ -300,7 +301,8 @@ function WeekContent({ plan, planId, week, initialDay, onBack }: WeekContentProp
 
   const viewerMeal = viewer ? meals.find((meal) => meal.mealId === viewer.mealId) : undefined;
   const viewerPhotos = viewerMeal ? photosOf(viewerMeal) : [];
-  const showAddPhoto = !readOnly && logAvailable && canAddPhotos(log.data, selected);
+  const hideEatenState = dayPhase(selected, today) === 'future';
+  const showAddPhoto =!readOnly && logAvailable && canAddPhotos(log.data, selected);
 
   const subtitle = [
     formatRange(language, weekStart, weekEnd),
@@ -404,6 +406,7 @@ function WeekContent({ plan, planId, week, initialDay, onBack }: WeekContentProp
                   }}
                   onAddPhoto={showAddPhoto ? () => askSource(meal) : undefined}
                   addPhotoBusy={busy || picking}
+                  hideEatenState={hideEatenState}
                   onOpenPhoto={(photoIndex) => setViewer({ mealId: meal.mealId, index: photoIndex })}
                 />
               );

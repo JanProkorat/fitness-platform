@@ -1533,6 +1533,12 @@
       "more_other": "und {{count}} weitere Elemente",
       "toggle": "{{meal}} ein- oder ausblenden"
     },
+    "note": {
+      "day": "Hinweis für diesen Tag",
+      "today": "Hinweis für heute",
+      "meal": "Hinweis",
+      "mealIcon": "Diese Mahlzeit hat einen Hinweis"
+    },
     "amount": {
       "portions_one": "{{value}} Portion",
       "portions_other": "{{value}} Portionen",
