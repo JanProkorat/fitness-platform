@@ -8040,6 +8040,70 @@ export class ApiClient {
     }
 
     /**
+     * Mark a client's form as seen
+     * @param clientPublicId Route parameter — public id of the client.
+     * @param responsePublicId Route parameter — public id of the response.
+     * @return Marked as seen, or already seen
+     */
+    markClientFormSeenEndpoint(clientPublicId: string, responsePublicId: string, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/trainer/clients/{clientPublicId}/forms/{responsePublicId}/seen";
+        if (clientPublicId === undefined || clientPublicId === null)
+            throw new globalThis.Error("The parameter 'clientPublicId' must be defined.");
+        url_ = url_.replace("{clientPublicId}", encodeURIComponent("" + clientPublicId));
+        if (responsePublicId === undefined || responsePublicId === null)
+            throw new globalThis.Error("The parameter 'responsePublicId' must be defined.");
+        url_ = url_.replace("{responsePublicId}", encodeURIComponent("" + responsePublicId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processMarkClientFormSeenEndpoint(_response);
+        });
+    }
+
+    protected processMarkClientFormSeenEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * List trainer questionnaires
      * @param type (optional) Only forms of this type.
      * @param search (optional) Case-insensitive substring match on the title.
@@ -8608,6 +8672,69 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<GetClientPendingQuestionnairesResponse>(null as any);
+    }
+
+    /**
+     * List a client's forms and answers
+     * @return Forms of the current and previous collaborations
+     */
+    getClientFormsEndpoint(clientPublicId: string, signal?: AbortSignal): Promise<GetClientFormsResponse> {
+        let url_ = this.baseUrl + "/trainer/clients/{clientPublicId}/forms";
+        if (clientPublicId === undefined || clientPublicId === null)
+            throw new globalThis.Error("The parameter 'clientPublicId' must be defined.");
+        url_ = url_.replace("{clientPublicId}", encodeURIComponent("" + clientPublicId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetClientFormsEndpoint(_response);
+        });
+    }
+
+    protected processGetClientFormsEndpoint(response: AxiosResponse): Promise<GetClientFormsResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GetClientFormsResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GetClientFormsResponse>(null as any);
     }
 
     /**
@@ -26102,6 +26229,10 @@ export interface UpdateQuestionDto {
 export interface PreviewQuestionnaireRequest {
 }
 
+/** Request for marking a submitted form as seen by the coach. */
+export interface MarkClientFormSeenRequest {
+}
+
 export interface GetTrainerQuestionnairesResponse {
     questionnaires?: QuestionnaireSummaryDto[];
 }
@@ -26293,6 +26424,78 @@ else link creation time. */
     responseStatus?: string | undefined;
     /** Plan type the response was sent for; null for the link-level fallback item. */
     scope?: LinkCapabilityScope | undefined;
+}
+
+/** The forms a coach sent a client, split by collaboration. */
+export interface GetClientFormsResponse {
+    /** Answered forms and forms still waiting, from the current collaboration, newest first. */
+    current?: ClientFormItem[];
+    /** Answered forms from an earlier collaboration with the same client, newest first. */
+    previous?: ClientFormItem[];
+}
+
+/** One form sent to the client, with its answers once submitted. */
+export interface ClientFormItem {
+    /** Public id of the response. */
+    responsePublicId?: string;
+    /** Onboarding, questionnaire or check-in. */
+    kind?: QuestionnaireResponseKind;
+    /** Title of the form. */
+    questionnaireTitle?: string;
+    /** Waiting, answered, or (check-ins only) missed. */
+    state?: FormResponseState;
+    /** The plan type the invite or request behind the form granted, when known. */
+    scope?: LinkCapabilityScope | undefined;
+    /** When the form was sent (UTC). */
+    sentAt?: string;
+    /** When the client submitted it (UTC); null while unanswered. */
+    submittedAt?: string | undefined;
+    /** True when the form is submitted and the coach has not opened it yet. */
+    isNew?: boolean;
+    /** When the coach first opened the submitted form (UTC). */
+    seenAt?: string | undefined;
+    /** For a check-in: the Monday of the week it covers. */
+    checkInWeekStart?: string | undefined;
+    /** For a check-in: when it is due (UTC). */
+    checkInDueAtUtc?: string | undefined;
+    /** The answers; empty until the form is submitted. */
+    answers?: ClientFormAnswer[];
+}
+
+/** Which kind of form a questionnaire response belongs to. Set when the response is created, never inferred afterwards. */
+export enum QuestionnaireResponseKind {
+    Onboarding = "Onboarding",
+    Questionnaire = "Questionnaire",
+    CheckIn = "CheckIn",
+}
+
+/** How a form shows to the coach: sent but not answered, answered, or a check-in whose deadline passed. */
+export enum FormResponseState {
+    Waiting = "Waiting",
+    Answered = "Answered",
+    Missed = "Missed",
+}
+
+/** One answer: the question's text and type, and the value the client gave. */
+export interface ClientFormAnswer {
+    /** Public id of the question. */
+    questionPublicId?: string;
+    /** The question text. */
+    questionLabel?: string;
+    /** The question type, e.g. short_text or scale. */
+    questionType?: string;
+    /** Text value, for text and choice questions. */
+    valueText?: string | undefined;
+    /** Numeric value, for number and scale questions. */
+    valueNumber?: number | undefined;
+    /** JSON value, for multi-select questions. */
+    valueJson?: string | undefined;
+    /** File URL, for upload questions. */
+    fileUrl?: string | undefined;
+    /** Label of the section the question sits under, or null before the first section. */
+    sectionLabel?: string | undefined;
+    /** 0-based order of the section, or null when SectionLabel is null. */
+    sectionOrder?: number | undefined;
 }
 
 export interface DeleteQuestionnaireRequest {

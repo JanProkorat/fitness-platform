@@ -2,11 +2,14 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, FileText } from 'lucide-react';
 import { apiClient } from '@/api/client';
 import type { GetPlanResponse, OnboardingDataDto } from '@/api/generated';
 import { fetchPlanForEditor } from '@/api/plans';
+import { useClientForms } from '@/components/client-forms/useClientForms';
 import ClientAvatar from '@/components/clients/ClientAvatar';
+import PlanEditorFormsTab from '@/components/client-plan-editor/forms/PlanEditorFormsTab';
+import { selectPlanEditorForms } from '@/components/client-plan-editor/forms/planEditorForms';
 import ClientPlanInfoPanel from '@/components/client-plan-editor/ClientPlanInfoPanel';
 import PlanActionsMenu, { DeletePlanDialog, FinishPlanDialog } from '@/components/client-plan-editor/PlanActionsMenu';
 import PlanEndedBanner from '@/components/client-plan-editor/PlanEndedBanner';
@@ -59,9 +62,29 @@ function LoadedClientPlanEditor({ plan, clientId, clientName, firstName, lastNam
     addToast(t(kind === 'one' ? 'planEditor.syncConflicts.reviewError' : 'planEditor.syncConflicts.reviewAllError'), 'error'),
   );
 
+  const clientFirstName = firstName || clientName;
+  const formsQuery = useClientForms(clientId);
+  const hasNewForm = selectPlanEditorForms(formsQuery.data?.current).some((item) => item.isNew);
+
   return (
     <PlanEditor
       initial={initial}
+      extraSideTabs={[
+        {
+          id: 'forms',
+          label: t('clientForms.tab'),
+          icon: FileText,
+          indicator: hasNewForm ? { label: t('clientForms.newAnswer') } : undefined,
+          content: (
+            <PlanEditorFormsTab
+              clientId={clientId}
+              clientFirstName={clientFirstName}
+              onboarding={onboarding}
+              forms={formsQuery}
+            />
+          ),
+        },
+      ]}
       syncConflicts={{
         conflicts: conflictsQuery.data ?? [],
         clientName: firstName || clientName,
