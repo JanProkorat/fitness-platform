@@ -121,6 +121,36 @@ public static class AutomationRuleGuards
     }
 
     /// <summary>
+    /// Checks the coach's subscription for a check-in rule write: the weekly check-in feature, or, with
+    /// <paramref name="perClient"/>, per-client check-in configuration (an override or a pause). Answers
+    /// a coded 403 and returns true when the plan does not include it. A coach with no subscription is entitled.
+    /// </summary>
+    /// <param name="endpoint">The endpoint instance.</param>
+    /// <param name="entitlementService">Resolves subscription entitlements.</param>
+    /// <param name="profileId">The coach's professional profile id.</param>
+    /// <param name="perClient">True to check the per-client configuration flag instead of the check-in flag.</param>
+    /// <param name="ct">Cancellation token.</param>
+    public static async Task<bool> RespondIfCheckInNotEntitledAsync(
+        this IEndpoint endpoint, EntitlementService entitlementService, long profileId, bool perClient, CancellationToken ct)
+    {
+        var entitlements = await entitlementService.GetEntitlementsAsync(profileId, ct);
+
+        if (perClient ? entitlements.CanUsePerClientCheckInConfig : entitlements.CanUseWeeklyCheckIns)
+        {
+            return false;
+        }
+
+        await endpoint.SendProblemAsync(
+            StatusCodes.Status403Forbidden,
+            perClient ? ErrorCodes.PerClientCheckInConfigNotEntitled : ErrorCodes.CheckInsNotEntitled,
+            perClient
+                ? "The current subscription does not include per-client check-in configuration."
+                : "The current subscription does not include weekly check-ins.",
+            ct);
+        return true;
+    }
+
+    /// <summary>
     /// A coach can have one enabled check-in rule. Answers 409 and returns true when another enabled
     /// check-in rule exists. Call it inside the write's transaction, after locking the coach's profile.
     /// </summary>

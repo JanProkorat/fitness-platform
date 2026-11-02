@@ -2999,77 +2999,161 @@ public static class QaSeedRunner
     }
 
     /// <summary>
-    /// #1095 — Two WeeklyCheckIn rows on the qa.trainer&lt;-&gt;qa.client link, scoped to
-    /// Training (the only profession that link grants — see
-    /// <see cref="EnsureTrainerClientLinkAsync"/>): one responded but not yet reviewed by the
-    /// trainer (exercises the NewCheckIns filter chip), and one expired unanswered (exercises
-    /// MissingCheckIns). WeekStartDate values are distinct Mondays so neither collides with the
-    /// other under the (ClientUserId, ProfessionalUserId, Profession, WeekStartDate) unique index.
+    /// #1095 — Two check-in responses on the qa.trainer&lt;-&gt;qa.client link: one submitted but not
+    /// yet reviewed by the trainer (exercises the NewCheckIns filter chip), and one past due and
+    /// unanswered (exercises MissingCheckIns). Their week starts are distinct Mondays.
     /// </summary>
     private static async Task EnsureInboxWeeklyCheckInsFixtureAsync(ApplicationDbContext db, ILogger logger)
     {
         var checkInIds = new[] { QaWeeklyCheckInRespondedUnreviewedId, QaWeeklyCheckInExpiredId };
 
-        var existingIds = (await db.WeeklyCheckIns
-            .Where(w => checkInIds.Contains(w.Id))
-            .Select(w => w.Id)
+        var existingIds = (await db.QuestionnaireResponses
+            .Where(r => checkInIds.Contains(r.PublicId))
+            .Select(r => r.PublicId)
             .ToListAsync())
             .ToHashSet();
 
         if (existingIds.Count == checkInIds.Length)
         {
-            logger.LogInformation("QA inbox weekly check-in fixtures already present ({Count}), skipping.", existingIds.Count);
+            logger.LogInformation("QA inbox check-in fixtures already present ({Count}), skipping.", existingIds.Count);
             return;
         }
 
+        var target = await FindCheckInTargetAsync(db, ClientUserId, TrainerUserId);
         var now = DateTime.UtcNow;
-        // Anchor to the Monday of the current (seed-time) week — same idiom as
-        // EnsurePastTrainingPlanAsync's lastMonday.
-        var daysSinceMonday = ((int)now.DayOfWeek == 0 ? 7 : (int)now.DayOfWeek) - 1;
-        var thisMonday = now.Date.AddDays(-daysSinceMonday);
-        var respondedWeekStart = DateOnly.FromDateTime(thisMonday.AddDays(-7));
-        var expiredWeekStart = DateOnly.FromDateTime(thisMonday.AddDays(-14));
+        var thisMonday = MondayOfWeek(now);
 
-        var checkIns = new List<WeeklyCheckIn>
+        var checkIns = new List<QuestionnaireResponse>
         {
             new()
             {
-                Id = QaWeeklyCheckInRespondedUnreviewedId,
-                ClientUserId = ClientUserId,
-                ProfessionalUserId = TrainerUserId,
-                Profession = Profession.Training,
-                WeekStartDate = respondedWeekStart,
-                Status = WeeklyCheckInStatus.Responded,
-                SentAt = now.AddDays(-8),
-                DueAt = now.AddDays(-6),
-                RespondedAt = now.AddDays(-7),
-                ReviewedByTrainerAt = null,
-                DateCreated = now,
-                DateModified = now,
+                PublicId = QaWeeklyCheckInRespondedUnreviewedId,
+                ClientId = ClientUserId,
+                ProfessionalId = TrainerUserId,
+                QuestionnaireId = target.QuestionnaireId,
+                LinkId = target.LinkId,
+                Kind = QuestionnaireResponseKind.CheckIn,
+                Status = QuestionnaireResponseStatus.Submitted,
+                CheckInWeekStart = DateOnly.FromDateTime(thisMonday.AddDays(-7)),
+                CheckInDueAtUtc = now.AddDays(-6),
+                SubmittedAt = now.AddDays(-7),
             },
             new()
             {
-                Id = QaWeeklyCheckInExpiredId,
-                ClientUserId = ClientUserId,
-                ProfessionalUserId = TrainerUserId,
-                Profession = Profession.Training,
-                WeekStartDate = expiredWeekStart,
-                Status = WeeklyCheckInStatus.Expired,
-                SentAt = now.AddDays(-15),
-                DueAt = now.AddDays(-13),
-                ExpiredAt = now.AddDays(-13),
-                RespondedAt = null,
-                ReviewedByTrainerAt = null,
-                DateCreated = now,
-                DateModified = now,
+                PublicId = QaWeeklyCheckInExpiredId,
+                ClientId = ClientUserId,
+                ProfessionalId = TrainerUserId,
+                QuestionnaireId = target.QuestionnaireId,
+                LinkId = target.LinkId,
+                Kind = QuestionnaireResponseKind.CheckIn,
+                Status = QuestionnaireResponseStatus.Pending,
+                CheckInWeekStart = DateOnly.FromDateTime(thisMonday.AddDays(-14)),
+                CheckInDueAtUtc = now.AddDays(-13),
             },
         };
 
-        var toInsert = checkIns.Where(c => !existingIds.Contains(c.Id)).ToList();
-        db.WeeklyCheckIns.AddRange(toInsert);
+        var toInsert = checkIns.Where(c => !existingIds.Contains(c.PublicId)).ToList();
+        db.QuestionnaireResponses.AddRange(toInsert);
         await db.SaveChangesAsync();
 
-        logger.LogInformation("QA inbox weekly check-in fixtures created: {Count} inserted.", toInsert.Count);
+        logger.LogInformation("QA inbox check-in fixtures created: {Count} inserted.", toInsert.Count);
+    }
+
+    /// <summary>
+    /// #1303 — check-in history for the qa.trainer scope: the newest slot (next Monday) is waiting,
+    /// last week and weeks 4 and 6 back are answered and already reviewed, week 5 back is missed.
+    /// Together with the two #1095 rows (weeks 1 and 2 back) the history shows answered and missed
+    /// weeks, and the inbox NewCheckIns chip still sees only the #1095 unreviewed row.
+    /// </summary>
+    private static async Task EnsureOverviewCheckInsAsync(
+        ApplicationDbContext db,
+        ILogger logger,
+        Guid? clientUserId = null,
+        Guid? professionalUserId = null,
+        Guid[]? ids = null)
+    {
+        var checkInClientId = clientUserId ?? ClientUserId;
+        var checkInProfessionalId = professionalUserId ?? TrainerUserId;
+
+        // Order: waiting, answered last week, answered week 4, missed week 5, answered week 6.
+        var checkInIds = ids ??
+        [
+            QaCheckInWaitingId, QaCheckInAnsweredLastWeekId, QaCheckInAnsweredWeek4Id,
+            QaCheckInMissedWeek5Id, QaCheckInAnsweredWeek6Id,
+        ];
+
+        var existingIds = (await db.QuestionnaireResponses
+            .Where(r => checkInIds.Contains(r.PublicId))
+            .Select(r => r.PublicId)
+            .ToListAsync())
+            .ToHashSet();
+
+        if (existingIds.Count == checkInIds.Length)
+        {
+            logger.LogInformation("QA overview check-ins already present ({Count}), skipping.", existingIds.Count);
+            return;
+        }
+
+        var target = await FindCheckInTargetAsync(db, checkInClientId, checkInProfessionalId);
+        var now = DateTime.UtcNow;
+        var anchor = MondayOfWeek(now).AddDays(7);
+
+        QuestionnaireResponse Build(Guid id, int weeksBack, QuestionnaireResponseStatus status)
+        {
+            var weekStart = anchor.AddDays(-7 * weeksBack);
+            var sentAt = weekStart.AddDays(-1).AddHours(18);
+            var isWaiting = weeksBack == 0;
+
+            return new QuestionnaireResponse
+            {
+                PublicId = id,
+                ClientId = checkInClientId,
+                ProfessionalId = checkInProfessionalId,
+                QuestionnaireId = target.QuestionnaireId,
+                LinkId = target.LinkId,
+                Kind = QuestionnaireResponseKind.CheckIn,
+                Status = status,
+                CheckInWeekStart = DateOnly.FromDateTime(weekStart),
+                CheckInDueAtUtc = isWaiting ? now.AddDays(2) : sentAt.AddDays(2),
+                SubmittedAt = status == QuestionnaireResponseStatus.Submitted ? sentAt.AddHours(3) : null,
+                ReviewedByCoachAtUtc = status == QuestionnaireResponseStatus.Submitted ? sentAt.AddHours(3).AddMinutes(30) : null,
+            };
+        }
+
+        var checkIns = new List<QuestionnaireResponse>
+        {
+            Build(checkInIds[0], 0, QuestionnaireResponseStatus.Pending),
+            Build(checkInIds[1], 1, QuestionnaireResponseStatus.Submitted),
+            Build(checkInIds[2], 4, QuestionnaireResponseStatus.Submitted),
+            Build(checkInIds[3], 5, QuestionnaireResponseStatus.Pending),
+            Build(checkInIds[4], 6, QuestionnaireResponseStatus.Submitted),
+        };
+
+        var toInsert = checkIns.Where(c => !existingIds.Contains(c.PublicId)).ToList();
+        db.QuestionnaireResponses.AddRange(toInsert);
+        await db.SaveChangesAsync();
+
+        logger.LogInformation("QA overview check-ins created: {Count} inserted.", toInsert.Count);
+    }
+
+    /// <summary>The link and the coach's check-in form a seeded check-in response points at.</summary>
+    private static async Task<(long LinkId, long QuestionnaireId)> FindCheckInTargetAsync(
+        ApplicationDbContext db, Guid clientUserId, Guid professionalUserId)
+    {
+        await DefaultCheckInForm.EnsureAsync(db, professionalUserId, "en", CancellationToken.None);
+
+        var linkId = await db.ClientProfessionalLinks
+            .Where(l => l.ClientProfile.UserId == clientUserId && l.ProfessionalProfile.UserId == professionalUserId)
+            .Select(l => l.Id)
+            .FirstAsync();
+
+        var questionnaireId = await db.Questionnaires
+            .Where(q => q.ProfessionalId == professionalUserId && q.Type == QuestionnaireType.CheckIn)
+            .OrderBy(q => q.Id)
+            .Select(q => q.Id)
+            .FirstAsync();
+
+        return (linkId, questionnaireId);
     }
 
     /// <summary>Returns the UTC-midnight Monday of the ISO week containing <paramref name="now"/>.</summary>
@@ -3324,114 +3408,6 @@ public static class QaSeedRunner
         });
 
         logger.LogInformation("QA personal record created: externalId={ExternalId}", QaPersonalRecordExternalId);
-    }
-
-    /// <summary>
-    /// #1303 — check-in history for the qa.trainer scope around the NextIsoMonday anchor (next
-    /// Monday): the anchor slot is waiting, last week and weeks 4 and 6 back are answered and
-    /// already reviewed, week 5 back is missed. Together with the two #1095 rows (weeks 2 and 3
-    /// back) that is 4 answered of 6, and the inbox NewCheckIns chip still sees only the #1095
-    /// unreviewed row.
-    /// </summary>
-    private static async Task EnsureOverviewCheckInsAsync(
-        ApplicationDbContext db,
-        ILogger logger,
-        Guid? clientUserId = null,
-        Guid? professionalUserId = null,
-        Guid[]? ids = null)
-    {
-        var checkInClientId = clientUserId ?? ClientUserId;
-        var checkInProfessionalId = professionalUserId ?? TrainerUserId;
-
-        // Order: waiting, answered last week, answered week 4, missed week 5, answered week 6.
-        var checkInIds = ids ??
-        [
-            QaCheckInWaitingId, QaCheckInAnsweredLastWeekId, QaCheckInAnsweredWeek4Id,
-            QaCheckInMissedWeek5Id, QaCheckInAnsweredWeek6Id,
-        ];
-
-        var existingIds = (await db.WeeklyCheckIns
-            .Where(w => checkInIds.Contains(w.Id))
-            .Select(w => w.Id)
-            .ToListAsync())
-            .ToHashSet();
-
-        if (existingIds.Count == checkInIds.Length)
-        {
-            logger.LogInformation("QA overview weekly check-ins already present ({Count}), skipping.", existingIds.Count);
-            return;
-        }
-
-        var now = DateTime.UtcNow;
-        var anchor = MondayOfWeek(now).AddDays(7);
-
-        WeeklyCheckIn Answered(Guid id, int weeksBack, CheckInFlag[] flags, string? note)
-        {
-            var weekStart = anchor.AddDays(-7 * weeksBack);
-            var sentAt = weekStart.AddDays(-1).AddHours(18);
-            var respondedAt = sentAt.AddHours(3);
-
-            return new WeeklyCheckIn
-            {
-                Id = id,
-                ClientUserId = checkInClientId,
-                ProfessionalUserId = checkInProfessionalId,
-                Profession = Profession.Training,
-                WeekStartDate = DateOnly.FromDateTime(weekStart),
-                Status = WeeklyCheckInStatus.Responded,
-                Flags = [.. flags],
-                Note = note,
-                SentAt = sentAt,
-                DueAt = sentAt.AddDays(2),
-                RespondedAt = respondedAt,
-                ReviewedByTrainerAt = respondedAt.AddMinutes(30),
-                DateCreated = now,
-                DateModified = now,
-            };
-        }
-
-        var missedWeekStart = anchor.AddDays(-7 * 5);
-        var missedSentAt = missedWeekStart.AddDays(-1).AddHours(18);
-
-        var checkIns = new List<WeeklyCheckIn>
-        {
-            new()
-            {
-                Id = checkInIds[0],
-                ClientUserId = checkInClientId,
-                ProfessionalUserId = checkInProfessionalId,
-                Profession = Profession.Training,
-                WeekStartDate = DateOnly.FromDateTime(anchor),
-                Status = WeeklyCheckInStatus.Pending,
-                SentAt = now.AddHours(-2),
-                DueAt = now.AddDays(2),
-                DateCreated = now,
-                DateModified = now,
-            },
-            Answered(checkInIds[1], 1, [CheckInFlag.Traveling], "Travelling for work, shorter sessions."),
-            Answered(checkInIds[2], 4, [], null),
-            new()
-            {
-                Id = checkInIds[3],
-                ClientUserId = checkInClientId,
-                ProfessionalUserId = checkInProfessionalId,
-                Profession = Profession.Training,
-                WeekStartDate = DateOnly.FromDateTime(missedWeekStart),
-                Status = WeeklyCheckInStatus.Expired,
-                SentAt = missedSentAt,
-                DueAt = missedSentAt.AddDays(2),
-                ExpiredAt = missedSentAt.AddDays(2),
-                DateCreated = now,
-                DateModified = now,
-            },
-            Answered(checkInIds[4], 6, [CheckInFlag.SickOrLowEnergy], null),
-        };
-
-        var toInsert = checkIns.Where(c => !existingIds.Contains(c.Id)).ToList();
-        db.WeeklyCheckIns.AddRange(toInsert);
-        await db.SaveChangesAsync();
-
-        logger.LogInformation("QA overview weekly check-ins created: {Count} inserted.", toInsert.Count);
     }
 
     /// <summary>

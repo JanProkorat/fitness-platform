@@ -61,6 +61,14 @@ public sealed class AutomationCheckInSweeper(IApplicationDbContext db, INotifica
             return;
         }
 
+        // A coach who lost the check-in feature sends no more reminders or missed-week notices.
+        var entitlements = await new EntitlementService(db).GetEntitlementsAsync(rule.OwnerProfessionalProfileId, ct);
+
+        if (!entitlements.CanUseWeeklyCheckIns)
+        {
+            return;
+        }
+
         var overrides = (await db.AutomationClientOverrides
                 .AsNoTracking()
                 .Include(o => o.ClientProfile)
@@ -80,6 +88,12 @@ public sealed class AutomationCheckInSweeper(IApplicationDbContext db, INotifica
         foreach (var response in open)
         {
             overrides.TryGetValue(response.ClientId, out var clientOverride);
+
+            if (!entitlements.CanUsePerClientCheckInConfig)
+            {
+                clientOverride = null;
+            }
+
             var effective = AutomationEffectiveRule.Resolve(rule, clientOverride, localToday);
 
             if (!effective.Enabled || effective.AnswerWindowHours is not { } windowHours)

@@ -15,6 +15,7 @@ public sealed class AutomationCoachSnapshot
     private readonly IReadOnlyDictionary<(long RuleId, long ClientId), AutomationClientOverride> _overrides;
     private readonly IReadOnlyDictionary<(long RuleId, long ClientId), int> _sentCounts;
     private readonly IReadOnlyDictionary<Guid, List<AutomationPlanWindow>> _planWindows;
+    private readonly CoachEntitlements _entitlements;
 
     private AutomationCoachSnapshot(
         ProfessionalProfile coach,
@@ -22,7 +23,8 @@ public sealed class AutomationCoachSnapshot
         IReadOnlyList<AutomationCoveredClient> clients,
         IReadOnlyDictionary<(long RuleId, long ClientId), AutomationClientOverride> overrides,
         IReadOnlyDictionary<(long RuleId, long ClientId), int> sentCounts,
-        IReadOnlyDictionary<Guid, List<AutomationPlanWindow>> planWindows)
+        IReadOnlyDictionary<Guid, List<AutomationPlanWindow>> planWindows,
+        CoachEntitlements entitlements)
     {
         Coach = coach;
         Rules = rules;
@@ -30,6 +32,7 @@ public sealed class AutomationCoachSnapshot
         _overrides = overrides;
         _sentCounts = sentCounts;
         _planWindows = planWindows;
+        _entitlements = entitlements;
     }
 
     /// <summary>The coach's professional profile, with their user loaded.</summary>
@@ -63,13 +66,15 @@ public sealed class AutomationCoachSnapshot
 
             foreach (var rule in Rules)
             {
-                if (!AutomationAudienceFilter.Covers(rule, client.ClientProfileId, client.TagIds))
+                if (!AutomationAudienceFilter.Covers(rule, client.ClientProfileId, client.TagIds)
+                    || !AutomationCheckInGate.MaySend(rule, _entitlements))
                 {
                     continue;
                 }
 
-                var effective = AutomationEffectiveRule.Resolve(
-                    rule, _overrides.GetValueOrDefault((rule.Id, client.ClientProfileId)), localToday);
+                var clientOverride = AutomationCheckInGate.ApplicableOverride(
+                    rule, _overrides.GetValueOrDefault((rule.Id, client.ClientProfileId)), _entitlements);
+                var effective = AutomationEffectiveRule.Resolve(rule, clientOverride, localToday);
 
                 yield return new AutomationPair(rule, client, effective, zone, startLocalDate);
             }
@@ -94,6 +99,7 @@ public sealed class AutomationCoachSnapshot
         var rules = await db.AutomationRules
             .AsNoTracking()
             .Include(r => r.AudienceClients)
+            .Include(r => r.Questionnaire)
             .Where(r => r.OwnerProfessionalProfileId == coachProfileId)
             .OrderBy(r => r.Id)
             .AsSplitQuery()
@@ -141,7 +147,9 @@ public sealed class AutomationCoachSnapshot
                 ct)
             : new Dictionary<Guid, List<AutomationPlanWindow>>();
 
-        return new AutomationCoachSnapshot(coach, rules, clients, overrides, sentCounts, planWindows);
+        var entitlements = await new EntitlementService(db).GetEntitlementsAsync(coachProfileId, ct);
+
+        return new AutomationCoachSnapshot(coach, rules, clients, overrides, sentCounts, planWindows, entitlements);
     }
 
     private static bool IsPlanEventTrigger(AutomationTriggerKind kind, AutomationEventType? eventType) =>

@@ -5,6 +5,7 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.Automations.Shared;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -16,8 +17,12 @@ namespace FitnessPlatform.Application.Features.Automations.CreateClientAutomatio
 /// </summary>
 /// <param name="db">Application database context.</param>
 /// <param name="linkAuthorizationService">Resolves link capabilities.</param>
+/// <param name="entitlementService">Resolves the coach's subscription entitlements.</param>
 [RemovedCoachRole(RemovedCoachRoleMode.Refuse)]
-public class CreateClientAutomationRuleEndpoint(IApplicationDbContext db, IClientLinkAuthorizationService linkAuthorizationService)
+public class CreateClientAutomationRuleEndpoint(
+    IApplicationDbContext db,
+    IClientLinkAuthorizationService linkAuthorizationService,
+    EntitlementService entitlementService)
     : Endpoint<CreateClientAutomationRuleRequest, AutomationRuleDto>
 {
     /// <inheritdoc />
@@ -33,7 +38,7 @@ public class CreateClientAutomationRuleEndpoint(IApplicationDbContext db, IClien
             s.Responses[StatusCodes.Status400BadRequest] =
                 "Invalid rule, the questionnaire is inactive, or the check-in fields do not match the form";
             s.Responses[StatusCodes.Status401Unauthorized] = "Missing or invalid credentials";
-            s.Responses[StatusCodes.Status403Forbidden] = "The live link grants no access";
+            s.Responses[StatusCodes.Status403Forbidden] = "The live link grants no access, or the subscription does not include weekly check-ins";
             s.Responses[StatusCodes.Status404NotFound] = "No live link to the client, or the questionnaire was not found";
             s.Responses[StatusCodes.Status409Conflict] = "The coach already has an enabled check-in rule";
         });
@@ -62,6 +67,12 @@ public class CreateClientAutomationRuleEndpoint(IApplicationDbContext db, IClien
             await this.ResolveQuestionnaireOrRespondAsync(db, Guid.Parse(userId), req, ct);
 
         if (!questionnaireOk)
+        {
+            return;
+        }
+
+        if (isCheckIn && req.Enabled
+            && await this.RespondIfCheckInNotEntitledAsync(entitlementService, context.Profile.Id, false, ct))
         {
             return;
         }
