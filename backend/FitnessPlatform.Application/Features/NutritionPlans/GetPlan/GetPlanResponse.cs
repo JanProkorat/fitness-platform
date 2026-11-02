@@ -1,4 +1,5 @@
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Enums;
 
 namespace FitnessPlatform.Application.Features.NutritionPlans.GetPlan;
 
@@ -21,24 +22,25 @@ public class SupplementDto
 }
 
 /// <summary>
-/// Per-meal eaten state derived from a <see cref="MealLog"/> document.
-/// Lets the web layer render eaten/not-touched indicators and lock editing
-/// affordances on meals the client has already confirmed as eaten.
+/// Per-meal eaten state derived from the <see cref="MealLog"/> rows of one meal on one day.
+/// Lets the web layer render eaten/partly eaten/not-touched indicators.
 /// </summary>
 /// <remarks>
-/// Disambiguation rule (derived, never stored):
+/// Derived from the live plan meal's current items, never stored:
 /// <list type="bullet">
 ///   <item><description>
-///     <b>eaten</b> — <see cref="IsEaten"/> is <c>true</c>, meaning the corresponding
-///     <see cref="MealLog.EatenAt"/> was non-null at read time.
+///     <b>eaten</b> — <see cref="EatenState"/> is <c>Eaten</c>: every current item is eaten
+///     (<see cref="IsEaten"/> is <c>true</c>).
+///   </description></item>
+///   <item><description>
+///     <b>partly eaten</b> — <see cref="EatenState"/> is <c>PartlyEaten</c>: some, not all, current items.
 ///   </description></item>
 ///   <item><description>
 ///     <b>not-touched</b> — no <see cref="MealEatenStatusDto"/> row exists for the meal,
-///     or <see cref="IsEaten"/> is <c>false</c> (photo-only / note-only stub).
+///     or <see cref="EatenState"/> is <c>NotEaten</c> (photo-only / note-only stub).
 ///   </description></item>
 /// </list>
-/// Day-level state (all-eaten vs not-touched) is derived client-side by
-/// inspecting every meal in the day — no separate aggregate field is stored here.
+/// Day-level state is derived client-side by inspecting every meal in the day.
 /// </remarks>
 public class MealEatenStatusDto
 {
@@ -54,15 +56,24 @@ public class MealEatenStatusDto
     public DateOnly LogDate { get; set; }
 
     /// <summary>
-    /// Whether the meal has been confirmed as eaten by the client.
-    /// <c>true</c> iff <see cref="MealLog.EatenAt"/> was non-null in the document.
-    /// A log with <c>EatenAt == null</c> is a photo-only or note-only stub —
-    /// it is NOT considered eaten.
+    /// Whether the meal is fully eaten: <c>true</c> iff <see cref="EatenState"/> is <c>Eaten</c>.
+    /// A partly eaten meal is <c>false</c>; read <see cref="EatenState"/> to tell it from not eaten.
     /// </summary>
     public bool IsEaten { get; set; }
 
     /// <summary>
-    /// When the meal was eaten, if eaten. Null for photo-only / note-only stubs.
+    /// Derived eaten state of the meal: NotEaten, PartlyEaten or Eaten.
+    /// </summary>
+    public MealEatenState EatenState { get; set; }
+
+    /// <summary>
+    /// Ids of the meal's current items (foods and recipes) that are eaten. Items the coach
+    /// has since removed are not listed.
+    /// </summary>
+    public List<Guid> EatenItemIds { get; set; } = [];
+
+    /// <summary>
+    /// When the meal was eaten. Set only when <see cref="EatenState"/> is <c>Eaten</c>.
     /// </summary>
     public DateTime? EatenAt { get; set; }
 }

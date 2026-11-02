@@ -36,6 +36,9 @@ public class GetClientProgressEndpoint(
         {
             s.Summary = "Get client progress";
             s.Description = "Returns compliance, macros, and streak data for a specific client managed by the authenticated trainer.";
+            s.Responses[StatusCodes.Status200OK] = "Client progress";
+            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
+            s.Responses[StatusCodes.Status404NotFound] = "Client not found, or not linked to the caller";
         });
     }
 
@@ -120,6 +123,8 @@ public class GetClientProgressEndpoint(
             },
             MealsPlanned = capabilities.Value.CanViewNutritionPlans ? compliance.MealsPlanned : null,
             MealsLogged = capabilities.Value.CanViewNutritionPlans ? compliance.MealsLogged : null,
+            MealsPartlyEaten = capabilities.Value.CanViewNutritionPlans ? compliance.MealsPartlyEaten : null,
+            MealsEatenShare = capabilities.Value.CanViewNutritionPlans ? compliance.MealsEatenShare : null,
             CurrentStreak = streak,
             AverageDailyMacros = averageMacros,
             From = from,

@@ -39,6 +39,8 @@ public class ComplianceService : IComplianceService
         // ── Nutrition side ──────────────────────────────────────────────
         int mealsPlanned = 0;
         int mealsLogged = 0;
+        int mealsPartlyEaten = 0;
+        decimal mealsEatenShare = 0m;
         decimal nutritionPercent = 0m;
 
         if (nutritionPlans.Any(candidate => candidate.StartDate.HasValue))
@@ -49,17 +51,14 @@ public class ComplianceService : IComplianceService
                 mealsPlanned += plan is null ? 0 : PlannedMealCounter.GetPlannedMealCountForDate(plan, date);
             }
 
-            var logFilter = Builders<MealLog>.Filter.Eq(l => l.ClientId, clientId)
-                & Builders<MealLog>.Filter.Gte(l => l.EatenAt, from)
-                & Builders<MealLog>.Filter.Lt(l => l.EatenAt, to.AddDays(1));
-
-            using var logCursor = await _mongo.MealLogs.FindAsync(logFilter, cancellationToken: ct);
-            var logs = await logCursor.ToListAsync(ct);
-            mealsLogged = logs.Count;
+            var meals = await LoadMergedMealsAsync(clientId, from.Date, to.Date, from, to.AddDays(1), nutritionPlans, ct);
+            mealsLogged = meals.Count(meal => meal.State == MealEatenState.Eaten);
+            mealsPartlyEaten = meals.Count(meal => meal.State == MealEatenState.PartlyEaten);
+            mealsEatenShare = meals.Sum(meal => meal.Share);
 
             nutritionPercent = mealsPlanned == 0
                 ? 0m
-                : Math.Round((decimal)mealsLogged / mealsPlanned * 100, 1);
+                : Math.Round(mealsEatenShare / mealsPlanned * 100, 1);
         }
 
         // ── Training side ───────────────────────────────────────────────
@@ -109,6 +108,8 @@ public class ComplianceService : IComplianceService
             CompliancePercent = combinedPercent,
             MealsPlanned = mealsPlanned,
             MealsLogged = mealsLogged,
+            MealsPartlyEaten = mealsPartlyEaten,
+            MealsEatenShare = mealsEatenShare,
             NutritionCompliancePercent = nutritionPercent,
             TrainingsPlanned = trainingsPlanned,
             TrainingsCompleted = trainingsCompleted,
@@ -209,20 +210,13 @@ public class ComplianceService : IComplianceService
                 continue;
             }
 
-            // Check nutrition compliance for this day (≥1 meal logged)
+            // Check nutrition compliance for this day (≥1 meal logged; a partly eaten meal counts)
             bool nutritionDone = false;
             if (nutritionActive)
             {
-                var dayStart = currentDate;
-                var dayEnd = currentDate.AddDays(1);
-
-                var dayFilter = Builders<MealLog>.Filter.Eq(l => l.ClientId, clientId)
-                    & Builders<MealLog>.Filter.Gte(l => l.EatenAt, dayStart)
-                    & Builders<MealLog>.Filter.Lt(l => l.EatenAt, dayEnd);
-
-                using var dayCursor = await _mongo.MealLogs.FindAsync(dayFilter, cancellationToken: ct);
-                var dayLogs = await dayCursor.ToListAsync(ct);
-                nutritionDone = dayLogs.Count >= 1;
+                var dayMeals = await LoadMergedMealsAsync(
+                    clientId, currentDate, currentDate, currentDate, currentDate.AddDays(1), nutritionPlans, ct);
+                nutritionDone = dayMeals.Any(meal => meal.State != MealEatenState.NotEaten);
             }
 
             // Check training compliance for this day (≥1 session fully complete — any-pattern)
@@ -318,6 +312,38 @@ public class ComplianceService : IComplianceService
             Fat = Math.Round(dailyTotals.Sum(d => d.Fat) / dayCount, 1),
             Fiber = Math.Round(dailyTotals.Sum(d => d.Fiber) / dayCount, 1)
         };
+    }
+
+    /// <summary>
+    /// Loads the client's meal-log rows for the inclusive day range (by <c>LogDate</c>, with the
+    /// <c>EatenAt</c> fallback for legacy rows) and derives one state per plan meal per day. A partly
+    /// eaten row has no <c>EatenAt</c>, so an <c>EatenAt</c>-only range would never load it.
+    /// </summary>
+    private async Task<List<MergedMealLog>> LoadMergedMealsAsync(
+        Guid clientId, DateTime firstDay, DateTime lastDay, DateTime rangeStart, DateTime rangeEnd,
+        IReadOnlyList<NutritionPlan> plans, CancellationToken ct)
+    {
+        var filter = MealLogDayFilter.BuildClientRange(
+            clientId,
+            null,
+            DateTime.SpecifyKind(firstDay.Date, DateTimeKind.Utc),
+            DateTime.SpecifyKind(lastDay.Date, DateTimeKind.Utc),
+            rangeStart,
+            rangeEnd);
+
+        using var cursor = await _mongo.MealLogs.FindAsync(filter, cancellationToken: ct);
+        var rows = await cursor.ToListAsync(ct);
+
+        // The day a row belongs to wins over a stray EatenAt that fell into the range near midnight.
+        var inRange = rows.Where(row => MealLogMerger.DayOf(row) >= firstDay.Date && MealLogMerger.DayOf(row) <= lastDay.Date);
+
+        return MealLogMerger.Merge(
+            inRange,
+            (planId, day, mealId) =>
+            {
+                var plan = plans.FirstOrDefault(candidate => candidate.ExternalId == planId);
+                return plan is null ? null : NutritionPlanDayResolver.FindMeal(plan, day, mealId);
+            });
     }
 
     /// <summary>

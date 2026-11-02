@@ -39,6 +39,9 @@ public class GetClientPlansEndpoint(
             s.Summary = "List client plans";
             s.Description =
                 "Returns a combined list of nutrition and training plans for the authenticated client, optionally filtered by status.";
+            s.Responses[StatusCodes.Status200OK] = "The client's plans";
+            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
+            s.Responses[StatusCodes.Status404NotFound] = "Client profile not found";
         });
     }
 
@@ -368,13 +371,22 @@ public class GetClientPlansEndpoint(
         var latestEnd = windowedPlans.Max(entry => entry.Window!.Value.End);
         var planIds = windowedPlans.Select(entry => entry.Plan.ExternalId).ToList();
 
-        var filter = Builders<MealLog>.Filter.Eq(l => l.ClientId, clientId)
-            & Builders<MealLog>.Filter.In(l => l.PlanId, planIds)
-            & Builders<MealLog>.Filter.Gte(l => l.EatenAt, earliestStart)
-            & Builders<MealLog>.Filter.Lt(l => l.EatenAt, latestEnd.AddDays(1));
+        // Rows are selected by LogDate (EatenAt for legacy rows): a partly eaten row has no EatenAt.
+        var filter = MealLogDayFilter.BuildClientRange(
+            clientId,
+            planIds,
+            DateTime.SpecifyKind(earliestStart.Date, DateTimeKind.Utc),
+            DateTime.SpecifyKind(latestEnd.Date, DateTimeKind.Utc),
+            earliestStart,
+            latestEnd.AddDays(1));
 
         using var cursor = await mongo.MealLogs.FindAsync(filter, cancellationToken: ct);
-        var logs = await cursor.ToListAsync(ct);
+        var plansById = windowedPlans.ToDictionary(entry => entry.Plan.ExternalId, entry => entry.Plan);
+        var meals = MealLogMerger.Merge(
+            await cursor.ToListAsync(ct),
+            (planId, day, mealId) => plansById.TryGetValue(planId, out var plan)
+                ? NutritionPlanDayResolver.FindMeal(plan, day, mealId)
+                : null);
 
         foreach (var (plan, window) in windowedPlans)
         {
@@ -389,13 +401,15 @@ public class GetClientPlansEndpoint(
                 continue;
             }
 
-            var logged = logs.Count(l =>
-                l.PlanId == plan.ExternalId
-                && l.EatenAt >= window.Value.Start
-                && l.EatenAt < window.Value.End.AddDays(1));
+            // A partly eaten meal adds its eaten share instead of a whole meal.
+            var logged = meals
+                .Where(meal => meal.PlanId == plan.ExternalId
+                    && meal.DayUtc >= window.Value.Start.Date
+                    && meal.DayUtc <= window.Value.End.Date)
+                .Sum(meal => meal.Share);
 
             itemsByPlanId[plan.ExternalId].MealsLoggedPercent =
-                Math.Min(100, (int)Math.Round(logged * 100.0 / planned, MidpointRounding.AwayFromZero));
+                Math.Min(100, (int)Math.Round(logged * 100m / planned, MidpointRounding.AwayFromZero));
         }
     }
 

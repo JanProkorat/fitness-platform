@@ -27,6 +27,9 @@ public class GetWeeklyOverviewEndpoint(IComplianceService complianceService, IAp
         {
             s.Summary = "Get weekly overview";
             s.Description = "Returns the authenticated client's progress overview for the current week.";
+            s.Responses[StatusCodes.Status200OK] = "Weekly overview";
+            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
+            s.Responses[StatusCodes.Status404NotFound] = "Client profile not found";
         });
     }
 
@@ -76,6 +79,8 @@ public class GetWeeklyOverviewEndpoint(IComplianceService complianceService, IAp
             CompliancePercent = compliance.CompliancePercent,
             MealsPlanned = compliance.MealsPlanned,
             MealsLogged = compliance.MealsLogged,
+            MealsPartlyEaten = compliance.MealsPartlyEaten,
+            MealsEatenShare = compliance.MealsEatenShare,
             AverageDailyMacros = averageMacros,
             CurrentStreak = streak
         }, ct);

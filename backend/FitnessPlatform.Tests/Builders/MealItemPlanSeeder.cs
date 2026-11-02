@@ -95,6 +95,81 @@ public static class MealItemPlanSeeder
         return seeded;
     }
 
+    /// <summary>
+    /// Inserts a meal log row for today. Pass <paramref name="eatenAt"/> to mark the row eaten; leave it
+    /// null (with some item ids) for a partly eaten row, or with no ids for a photo-only stub.
+    /// </summary>
+    public static async Task InsertLogAsync(
+        FitnessApiFactory factory, Guid clientUserId, SeededItemMeal seeded, DateTime? eatenAt, params Guid[] eatenItemIds)
+    {
+        using var scope = factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+        await mongo.MealLogs.InsertOneAsync(
+            new MealLog
+            {
+                ClientId = clientUserId,
+                PlanId = seeded.PlanId,
+                MealId = seeded.MealId,
+                LogDate = Today,
+                EatenAt = eatenAt,
+                EatenItemIds = eatenItemIds.ToList(),
+            },
+            cancellationToken: TestContext.Current.CancellationToken);
+    }
+
+    /// <summary>Sets the plan's author, as the coach-facing endpoints scope plans by it.</summary>
+    public static Task SetNutritionistAsync(FitnessApiFactory factory, Guid planId, Guid nutritionistId) =>
+        MutatePlanAsync(factory, planId, plan => plan.NutritionistId = nutritionistId);
+
+    /// <summary>Adds a food to the meal on every day, as a coach editing the plan would. Returns its item id.</summary>
+    public static async Task<Guid> AddFoodAsync(FitnessApiFactory factory, SeededItemMeal seeded)
+    {
+        var itemId = Guid.NewGuid();
+
+        await MutatePlanAsync(factory, seeded.PlanId, plan => ForEachMeal(plan, seeded.MealId, meal =>
+            meal.Foods.Add(new MealFood
+            {
+                ItemId = itemId,
+                FoodExternalId = Guid.NewGuid(),
+                FoodName = "Egg",
+                NutrientValuePer100Grams = new NutrientValue { Kcal = 100 },
+                AmountGrams = 100,
+            })));
+
+        return itemId;
+    }
+
+    /// <summary>Removes one item from the meal on every day, as a coach editing the plan would.</summary>
+    public static Task RemoveItemAsync(FitnessApiFactory factory, SeededItemMeal seeded, Guid itemId) =>
+        MutatePlanAsync(factory, seeded.PlanId, plan => ForEachMeal(plan, seeded.MealId, meal =>
+        {
+            meal.Foods.RemoveAll(food => food.ItemId == itemId);
+            meal.Recipes.RemoveAll(recipe => recipe.ItemId == itemId);
+        }));
+
+    private static void ForEachMeal(NutritionPlan plan, Guid mealId, Action<PlanMeal> edit)
+    {
+        foreach (var meal in plan.Weeks.SelectMany(week => week.Days).SelectMany(day => day.Meals).Where(meal => meal.MealId == mealId))
+        {
+            edit(meal);
+        }
+    }
+
+    private static async Task MutatePlanAsync(FitnessApiFactory factory, Guid planId, Action<NutritionPlan> edit)
+    {
+        using var scope = factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+        var plan = await mongo.NutritionPlans
+            .Find(p => p.ExternalId == planId)
+            .FirstAsync(TestContext.Current.CancellationToken);
+
+        edit(plan);
+
+        await mongo.NutritionPlans.ReplaceOneAsync(
+            p => p.ExternalId == planId, plan, cancellationToken: TestContext.Current.CancellationToken);
+    }
+
     /// <summary>Loads every meal log row of the client for the meal.</summary>
     public static async Task<List<MealLog>> LoadLogsAsync(FitnessApiFactory factory, Guid clientUserId, Guid mealId)
     {
