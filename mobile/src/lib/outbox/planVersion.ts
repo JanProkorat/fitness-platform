@@ -42,7 +42,12 @@ function newestVersion(queries: Query[], accept: (data: unknown) => boolean): nu
 }
 
 const mealIdOf = (write: OutboxWrite): string | null =>
-  write.kind === 'mealEaten' || write.kind === 'mealUnlogged' ? write.payload.mealId : null;
+  write.kind === 'mealEaten' ||
+  write.kind === 'mealUnlogged' ||
+  write.kind === 'mealItemEaten' ||
+  write.kind === 'mealItemUnlogged'
+    ? write.payload.mealId
+    : null;
 
 /**
  * The plan version the client last saw for a write, read from the query cache so it works outside React.

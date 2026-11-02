@@ -13,6 +13,7 @@ import Reanimated, {
 } from 'react-native-reanimated';
 
 import type { MealFood } from '@/api/generated';
+import { isItemEaten } from '@/api/nutrition';
 import type { NutritionMeal } from '@/api/nutrition';
 import { AddPhotoButton } from '@/components/nutrition/meals/AddPhotoButton';
 import { MealStatusIcon } from '@/components/nutrition/meals/MealStatusIcon';
@@ -39,7 +40,7 @@ type MealRowProps = {
   defaultExpanded?: boolean;
   /** The meal's log write waits in the outbox; the row says so in place of the item preview. */
   pending?: boolean;
-  onOpenRecipe: (recipeId: string, servings: number) => void;
+  onOpenRecipe: (recipeId: string, servings: number, itemId?: string) => void;
   /** Foods are links only when this is given; without it they have no chevron. */
   onOpenFood?: (food: MealFood) => void;
   /** Makes the status icon a button (logging); read-only without it. */
@@ -50,9 +51,15 @@ type MealRowProps = {
   onOpenPhoto?: (index: number) => void;
   /** Future day: the meal cannot be eaten yet, so no tick (an empty slot stays), no status label, no add-photo. */
   hideEatenState?: boolean;
+  /** Ids of the items ticked as eaten; every item counts as ticked while `status` is eaten. */
+  eatenItemIds?: readonly string[];
+  /** Ids of the items whose tick waits in the outbox. */
+  pendingItemIds?: ReadonlySet<string>;
+  /** Makes each item's tick a button (logging); the ticks are read-only without it. */
+  onToggleItem?: (itemId: string, eaten: boolean) => void;
 };
 
-type MealItem = { key: string; name: string; amount: string; onPress?: () => void };
+type MealItem = { key: string; itemId?: string; name: string; amount: string; onPress?: () => void };
 
 /**
  * A collapsible meal: collapsed it is one line plus a preview of the first item, expanded it lists every
@@ -72,6 +79,9 @@ export function MealRow({
   addPhotoBusy = false,
   onOpenPhoto,
   hideEatenState = false,
+  eatenItemIds = [],
+  pendingItemIds,
+  onToggleItem,
 }: MealRowProps) {
   const { t, i18n } = useTranslation();
   const theme = useTheme();
@@ -106,14 +116,16 @@ export function MealRow({
       const servings = recipe.servings ?? 1;
       return {
         key: `recipe-${recipeId ?? ''}-${index}`,
+        itemId: recipe.itemId,
         name: recipe.recipeName ?? '',
         amount: t('nutritionPlan.amount.portions', { count: servings, value: formatAmount(language, servings) }),
-        onPress: recipeId ? () => onOpenRecipe(recipeId, servings) : undefined,
+        onPress: recipeId ? () => onOpenRecipe(recipeId, servings, recipe.itemId) : undefined,
       };
     }),
     ...(meal.foods ?? []).map(
       (food, index): MealItem => ({
         key: `food-${food.foodExternalId ?? ''}-${index}`,
+        itemId: food.itemId,
         name: foodName(food, language),
         amount: t('nutritionPlan.amount.grams', { value: formatWhole(language, food.amountGrams ?? 0) }),
         onPress: onOpenFood ? () => onOpenFood(food) : undefined,
@@ -127,7 +139,14 @@ export function MealRow({
   const more = items.length - 1;
   const note = trimmedNote(meal.note);
   const expandable = items.length > 0 || photos.length > 0 || note !== undefined;
-  const baseStatusLabel = t(`nutritionPlan.status.${status}`, { meal: kindLabel });
+  const mealEaten = status === 'eaten';
+  const isTicked = (item: MealItem): boolean =>
+    item.itemId !== undefined && isItemEaten(mealEaten, eatenItemIds, item.itemId);
+  const eatenCount = items.filter(isTicked).length;
+  const partialCount = status === 'partial' && items.length > 0 && !hideEatenState;
+  const baseStatusLabel = partialCount
+    ? t('nutritionPlan.meal.partialA11y', { meal: kindLabel, done: eatenCount, count: items.length })
+    : t(`nutritionPlan.status.${status}`, { meal: kindLabel });
   const statusLabel = pending ? `${baseStatusLabel}, ${t('offlineSync.pendingA11y')}` : baseStatusLabel;
 
   return (
@@ -161,6 +180,11 @@ export function MealRow({
                   size={theme.sizes.noteGlyph}
                   accessibilityLabel={t('nutritionPlan.note.mealIcon')}
                 />
+              ) : null}
+              {partialCount ? (
+                <Text variant="label" color="nutritionInk" numberOfLines={1}>
+                  {t('nutritionPlan.meal.partial', { done: eatenCount, count: items.length })}
+                </Text>
               ) : null}
             </View>
             {pending ? (
@@ -222,19 +246,34 @@ export function MealRow({
                   ) : null}
                 </>
               );
-              return item.onPress ? (
-                <Pressable
-                  key={item.key}
-                  accessibilityRole="link"
-                  accessibilityLabel={`${item.name}, ${item.amount}`}
-                  onPress={item.onPress}
-                  style={styles.item}
-                >
-                  {content}
-                </Pressable>
-              ) : (
-                <View key={item.key} style={styles.item}>
-                  {content}
+              const ticked = isTicked(item);
+              const itemId = item.itemId;
+              const itemPending = itemId !== undefined && pendingItemIds?.has(itemId) === true;
+              const tickLabel = ticked
+                ? t('nutritionPlan.item.unmarkEaten', { item: item.name })
+                : t('nutritionPlan.item.markEaten', { item: item.name });
+              const tick =
+                itemId === undefined || hideEatenState ? (
+                  <MealStatusIcon status="pending" label="" hidden size="item" />
+                ) : (
+                  <MealStatusIcon
+                    size="item"
+                    status={ticked ? 'eaten' : 'pending'}
+                    label={itemPending ? `${tickLabel}, ${t('offlineSync.pendingA11y')}` : tickLabel}
+                    onPress={onToggleItem ? () => onToggleItem(itemId, !ticked) : undefined}
+                  />
+                );
+              const label = `${item.name}, ${item.amount}`;
+              return (
+                <View key={item.key} style={styles.itemRow}>
+                  {item.onPress ? (
+                    <Pressable accessibilityRole="link" accessibilityLabel={label} onPress={item.onPress} style={styles.item}>
+                      {content}
+                    </Pressable>
+                  ) : (
+                    <View style={styles.item}>{content}</View>
+                  )}
+                  {tick}
                 </View>
               );
             })}
@@ -291,6 +330,7 @@ const makeStyles = (theme: Theme) =>
     },
     titleLine: {
       flexDirection: 'row',
+      flexWrap: 'wrap',
       alignItems: 'baseline',
       gap: theme.spacing.sm,
     },
@@ -311,7 +351,13 @@ const makeStyles = (theme: Theme) =>
       paddingLeft: theme.sizes.mealIndent,
       paddingBottom: theme.spacing.xxs,
     },
+    itemRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
     item: {
+      flex: 1,
+      minWidth: 0,
       flexDirection: 'row',
       alignItems: 'center',
       gap: theme.spacing.sm,

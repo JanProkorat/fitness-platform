@@ -10,6 +10,7 @@ import { FoodFacts } from '@/components/nutrition/food/FoodFacts';
 import { FoodMacros } from '@/components/nutrition/food/FoodMacros';
 import { DetailLayout } from '@/components/nutrition/meal/DetailLayout';
 import { DetailState } from '@/components/nutrition/meal/DetailState';
+import { useMarkEatenFooter } from '@/components/nutrition/meal/MarkEatenButton';
 import { formatWhole, macrosOf, scaleMacros } from '@/components/nutrition/meal/format';
 import { Text } from '@/components/Text';
 import { useFoodDetail } from '@/hooks/useFoodDetail';
@@ -28,7 +29,7 @@ const parseGrams = (value: string | undefined): number | undefined => {
 export default function FoodDetailScreen() {
   const { t } = useTranslation();
   const router = useRouter();
-  const params = useLocalSearchParams<{ foodId?: string; grams?: string; meal?: string }>();
+  const params = useLocalSearchParams<{ foodId?: string; grams?: string; meal?: string; mealId?: string; itemId?: string }>();
   const foodId = typeof params.foodId === 'string' ? params.foodId : '';
   const valid = isNutritionId(foodId);
   const query = useFoodDetail(foodId, valid);
@@ -53,14 +54,24 @@ export default function FoodDetailScreen() {
       food={query.data}
       grams={typeof params.grams === 'string' ? parseGrams(params.grams) : undefined}
       mealKind={typeof params.meal === 'string' ? params.meal : undefined}
+      mealId={typeof params.mealId === 'string' ? params.mealId : undefined}
+      itemId={typeof params.itemId === 'string' ? params.itemId : undefined}
       onBack={goBack}
     />
   );
 }
 
-type FoodDetailContentProps = { food: FoodSummary; grams?: number; mealKind?: string; onBack: () => void };
+type FoodDetailContentProps = {
+  food: FoodSummary;
+  grams?: number;
+  mealKind?: string;
+  /** The plan meal and item the food was opened from; present only from a row that can log today. */
+  mealId?: string;
+  itemId?: string;
+  onBack: () => void;
+};
 
-function FoodDetailContent({ food, grams, mealKind, onBack }: FoodDetailContentProps) {
+function FoodDetailContent({ food, grams, mealKind, mealId, itemId, onBack }: FoodDetailContentProps) {
   const { t, i18n } = useTranslation();
   const theme = useTheme();
   const styles = makeStyles(theme);
@@ -68,6 +79,7 @@ function FoodDetailContent({ food, grams, mealKind, onBack }: FoodDetailContentP
   const per100 = macrosOf(food.nutrientValue);
   const used = grams === undefined ? undefined : scaleMacros(per100, grams / 100);
   const mealLabel = mealKind ? t(`nutritionMeal.kind.${mealKind}`, { defaultValue: '' }) : '';
+  const markEaten = useMarkEatenFooter(mealId, itemId);
 
   return (
     <DetailLayout
@@ -75,6 +87,7 @@ function FoodDetailContent({ food, grams, mealKind, onBack }: FoodDetailContentP
       imageUri={food.imageUrl}
       backLabel={t('onboarding.back')}
       onBack={onBack}
+      footer={markEaten}
     >
       <View style={styles.title}>
         <Text variant="profileName" accessibilityRole="header">

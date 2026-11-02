@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 
 import { getErrorStatus } from '@/api/errors';
 import type { GetWeekPlanResponse, MealFood } from '@/api/generated';
-import { findMealLog, isMealEaten, mealPhotos } from '@/api/nutrition';
+import { findMealLog, isMealEaten, isMealPartlyEaten, mealPhotos } from '@/api/nutrition';
 import type { NutritionMeal } from '@/api/nutrition';
 import { Card } from '@/components/Card';
 import { EMPTY_MACROS, macrosOf } from '@/components/nutrition/meal/format';
@@ -49,8 +49,12 @@ export function NutritionPlanView({ week }: NutritionPlanViewProps) {
   const isToday = phase === 'today';
 
   const logAvailable = isToday ? todayLog.data !== undefined : weekLog.data !== undefined;
+  const logEntryOf = (mealId: string) =>
+    isToday ? findMealLog(todayLog.data, mealId) : findLoggedMeal(weekLog.data, selected, mealId);
   const isEaten = (mealId: string): boolean =>
     isToday ? isMealEaten(findMealLog(todayLog.data, mealId)) : findLoggedMeal(weekLog.data, selected, mealId)?.eaten === true;
+  // Only a row that can log today passes its ids on, so the food and recipe screens offer "Mark as eaten" there alone.
+  const canLogToday = isToday && logAvailable;
 
   const photosOf = (meal: NutritionMeal): ViewerPhoto[] =>
     (isToday
@@ -158,16 +162,25 @@ export function NutritionPlanView({ week }: NutritionPlanViewProps) {
               first={index === 0}
               status={mealStatus({
                 eaten: isEaten(meal.mealId),
+                partial: isMealPartlyEaten(logEntryOf(meal.mealId), isEaten(meal.mealId)),
                 logAvailable,
                 date: selected,
                 today,
                 planFinished: false,
               })}
               photos={photosOf(meal).map((photo) => ({ key: photo.key, uri: photo.uri }))}
-              canLog={isToday && logAvailable}
-              onOpenRecipe={openRecipe}
+              canLog={canLogToday}
+              eatenItemIds={logEntryOf(meal.mealId)?.eatenItemIds}
+              onOpenRecipe={(recipeId, servings, parent, itemId) =>
+                openRecipe(recipeId, servings, canLogToday && parent && itemId ? { mealId: parent.mealId, itemId } : undefined)
+              }
               onOpenFood={(food: MealFood, parent: NutritionMeal) =>
-                openFood(food.foodExternalId, food.amountGrams, parent.kind)
+                openFood(
+                  food.foodExternalId,
+                  food.amountGrams,
+                  parent.kind,
+                  canLogToday && food.itemId ? { mealId: parent.mealId, itemId: food.itemId } : undefined,
+                )
               }
               onAddPhoto={isToday && logAvailable ? () => askSource(meal) : undefined}
               addPhotoBusy={addPhotoBusy(meal.mealId)}

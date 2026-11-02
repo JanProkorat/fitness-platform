@@ -7,7 +7,12 @@ import { useTranslation } from 'react-i18next';
 
 import type { FullPlanWeek, GetFullPlanResponse } from '@/api/generated';
 import { getErrorStatus } from '@/api/errors';
-import { MEAL_LOG_DATE_IN_FUTURE, getTopLevelErrorCode, storedWeekMealPhotos } from '@/api/nutrition';
+import {
+  MEAL_LOG_DATE_IN_FUTURE,
+  getTopLevelErrorCode,
+  isMealPartlyEaten,
+  storedWeekMealPhotos,
+} from '@/api/nutrition';
 import type { NutritionMeal } from '@/api/nutrition';
 import { PhotoUploadError } from '@/api/photos';
 import type { PickedPhoto } from '@/api/photos';
@@ -381,12 +386,17 @@ function WeekContent({ plan, planId, week, initialDay, onBack }: WeekContentProp
                   first={index === 0}
                   status={mealStatus({
                     eaten: isEaten(selected, meal.mealId),
+                    partial: isMealPartlyEaten(
+                      readOnly ? undefined : findLoggedMeal(log.data, selected, meal.mealId),
+                      isEaten(selected, meal.mealId),
+                    ),
                     logAvailable,
                     date: selected,
                     today,
                     planFinished,
                   })}
                   photos={photos.map((photo) => ({ key: photo.key, uri: photo.uri }))}
+                  eatenItemIds={readOnly ? undefined : findLoggedMeal(log.data, selected, meal.mealId)?.eatenItemIds}
                   onOpenRecipe={(recipeId, servings) =>
                     router.push({
                       pathname: '/nutrition/recipe/[recipeId]',

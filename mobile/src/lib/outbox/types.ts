@@ -16,6 +16,12 @@ export type OutboxWrite =
     }
   | { kind: 'mealUnlogged'; payload: { mealId: string } }
   | {
+      kind: 'mealItemEaten';
+      /** `itemIds`: every item of the meal as it showed when the user tapped; tells a local replay when the meal is complete. */
+      payload: { mealId: string; itemId: string; itemIds?: string[] };
+    }
+  | { kind: 'mealItemUnlogged'; payload: { mealId: string; itemId: string; itemIds?: string[] } }
+  | {
       kind: 'offPlanAdded';
       payload: {
         entryId: string;
@@ -88,6 +94,9 @@ export function targetOf(write: OutboxWrite): string {
     case 'mealEaten':
     case 'mealUnlogged':
       return write.payload.mealId;
+    case 'mealItemEaten':
+    case 'mealItemUnlogged':
+      return `${write.payload.mealId}:${write.payload.itemId}`;
     case 'offPlanAdded':
     case 'offPlanRemoved':
       return write.payload.entryId;

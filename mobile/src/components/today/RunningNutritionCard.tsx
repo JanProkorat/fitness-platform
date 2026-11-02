@@ -4,7 +4,7 @@ import { SymbolView } from 'expo-symbols';
 import { useTranslation } from 'react-i18next';
 
 import type { ClientOwnPlanItem, MealFood } from '@/api/generated';
-import { findMealLog, isMealEaten, mealPhotos } from '@/api/nutrition';
+import { findMealLog, isMealEaten, isMealPartlyEaten, mealPhotos } from '@/api/nutrition';
 import type { NutritionMeal } from '@/api/nutrition';
 import { Card } from '@/components/Card';
 import { EMPTY_MACROS, formatWhole, macrosOf } from '@/components/nutrition/meal/format';
@@ -152,6 +152,7 @@ export function RunningNutritionCard({ plan, today: deviceToday, footer }: Runni
             defaultExpanded={meal.mealId === nextMealId}
             status={mealStatus({
               eaten: isEaten(meal.mealId),
+              partial: isMealPartlyEaten(findMealLog(todayLog.data, meal.mealId), isEaten(meal.mealId)),
               logAvailable,
               date: today,
               today,
@@ -159,9 +160,21 @@ export function RunningNutritionCard({ plan, today: deviceToday, footer }: Runni
             })}
             photos={photosOf(meal).map((photo) => ({ key: photo.key, uri: photo.uri }))}
             canLog={logAvailable}
-            onOpenRecipe={actions.openRecipe}
+            eatenItemIds={findMealLog(todayLog.data, meal.mealId)?.eatenItemIds}
+            onOpenRecipe={(recipeId, servings, parent, itemId) =>
+              actions.openRecipe(
+                recipeId,
+                servings,
+                logAvailable && parent && itemId ? { mealId: parent.mealId, itemId } : undefined,
+              )
+            }
             onOpenFood={(food: MealFood, parent: NutritionMeal) =>
-              actions.openFood(food.foodExternalId, food.amountGrams, parent.kind)
+              actions.openFood(
+                food.foodExternalId,
+                food.amountGrams,
+                parent.kind,
+                logAvailable && food.itemId ? { mealId: parent.mealId, itemId: food.itemId } : undefined,
+              )
             }
             onAddPhoto={logAvailable ? () => actions.askSource(meal) : undefined}
             addPhotoBusy={actions.addPhotoBusy(meal.mealId)}
