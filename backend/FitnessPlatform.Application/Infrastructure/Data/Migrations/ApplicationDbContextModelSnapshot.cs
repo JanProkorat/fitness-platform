@@ -1457,6 +1457,14 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("client_profile_id");
 
+                    b.Property<long?>("CoachDiscountId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("coach_discount_id");
+
+                    b.Property<long?>("CoachPackageId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("coach_package_id");
+
                     b.Property<DateTime>("DateCreated")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("date_created");
@@ -1508,6 +1516,12 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
 
                     b.HasIndex("ClientProfileId")
                         .HasDatabaseName("ix_client_requests_client_profile_id");
+
+                    b.HasIndex("CoachDiscountId")
+                        .HasDatabaseName("ix_client_requests_coach_discount_id");
+
+                    b.HasIndex("CoachPackageId")
+                        .HasDatabaseName("ix_client_requests_coach_package_id");
 
                     b.HasIndex("ProfessionalProfileId")
                         .HasDatabaseName("ix_client_requests_professional_profile_id");
@@ -4003,6 +4017,18 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                         .IsRequired()
                         .HasConstraintName("fk_client_requests_client_profiles_client_profile_id");
 
+                    b.HasOne("FitnessPlatform.Application.Domain.Entities.CoachDiscount", "CoachDiscount")
+                        .WithMany()
+                        .HasForeignKey("CoachDiscountId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_client_requests_coach_discounts_coach_discount_id");
+
+                    b.HasOne("FitnessPlatform.Application.Domain.Entities.CoachPackage", "CoachPackage")
+                        .WithMany()
+                        .HasForeignKey("CoachPackageId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_client_requests_coach_packages_coach_package_id");
+
                     b.HasOne("FitnessPlatform.Application.Domain.Entities.ProfessionalProfile", "ProfessionalProfile")
                         .WithMany()
                         .HasForeignKey("ProfessionalProfileId")
@@ -4016,6 +4042,10 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                         .HasConstraintName("fk_client_requests_questionnaires_questionnaire_id");
 
                     b.Navigation("ClientProfile");
+
+                    b.Navigation("CoachDiscount");
+
+                    b.Navigation("CoachPackage");
 
                     b.Navigation("ProfessionalProfile");
 

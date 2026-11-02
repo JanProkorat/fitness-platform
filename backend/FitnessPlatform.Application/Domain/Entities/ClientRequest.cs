@@ -29,6 +29,19 @@ public class ClientRequest : PublicTimestampableEntity
     /// </summary>
     public bool ShareHistory { get; set; }
 
+    /// <summary>
+    /// Optional package of the coach the client attached to the request.
+    /// </summary>
+    public long? CoachPackageId { get; set; }
+
+    /// <summary>
+    /// Discount the coach chose on accept; never set without a package.
+    /// </summary>
+    public long? CoachDiscountId { get; set; }
+
+    public CoachPackage? CoachPackage { get; set; }
+    public CoachDiscount? CoachDiscount { get; set; }
+
     public ClientProfile ClientProfile { get; set; } = null!;
     public ProfessionalProfile ProfessionalProfile { get; set; } = null!;
     public Questionnaire? Questionnaire { get; set; }

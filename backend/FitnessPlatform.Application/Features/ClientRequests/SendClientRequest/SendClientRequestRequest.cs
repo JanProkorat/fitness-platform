@@ -19,4 +19,9 @@ public class SendClientRequestRequest
     /// Optional: whether the client agrees to share their history with the professional. Stored only; not enforced yet.
     /// </summary>
     public bool ShareHistory { get; set; }
+
+    /// <summary>
+    /// Optional public id of one of the coach's packages shown on their profile, to be applied when the coach accepts.
+    /// </summary>
+    public Guid? PackagePublicId { get; set; }
 }

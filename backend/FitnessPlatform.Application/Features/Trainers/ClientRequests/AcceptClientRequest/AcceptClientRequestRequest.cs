@@ -30,4 +30,10 @@ public class AcceptClientRequestRequest
     /// <see cref="LinkCapabilityScope.NutritionOnly"/>.
     /// </summary>
     public LinkCapabilityScope? RequestedScope { get; set; }
+
+    /// <summary>
+    /// Optional public id of one of the coach's discounts, applied to the package the client attached to the
+    /// request. Ignored when the request has no package; an unusable discount means accepting without terms.
+    /// </summary>
+    public Guid? DiscountPublicId { get; set; }
 }

@@ -535,6 +535,21 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
+        // A deleted package or discount leaves the request without terms rather than removing it.
+        builder.Entity<ClientRequest>(e =>
+        {
+            e.HasIndex(r => r.CoachPackageId);
+            e.HasIndex(r => r.CoachDiscountId);
+            e.HasOne(r => r.CoachPackage)
+                .WithMany()
+                .HasForeignKey(r => r.CoachPackageId)
+                .OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(r => r.CoachDiscount)
+                .WithMany()
+                .HasForeignKey(r => r.CoachDiscountId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
         builder.Entity<CoachReauthCode>(e =>
         {
             e.HasIndex(c => new { c.UserId, c.ExpiresAt });

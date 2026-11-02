@@ -39,6 +39,7 @@ public sealed class InvitePackageTermsApplier(
     /// <param name="ipAddress">The caller's IP address.</param>
     /// <param name="now">The current instant (UTC).</param>
     /// <param name="ct">Cancellation token.</param>
+    /// <param name="subjectEntity">Audit entity name of the subject; defaults to the pending invite.</param>
     /// <returns>True when the client now has the terms.</returns>
     public async Task<bool> ApplyAsync(
         Guid invitePublicId,
@@ -49,7 +50,8 @@ public sealed class InvitePackageTermsApplier(
         Guid clientUserId,
         string? ipAddress,
         DateTime now,
-        CancellationToken ct)
+        CancellationToken ct,
+        string subjectEntity = nameof(PendingInvite))
     {
         try
         {
@@ -70,7 +72,7 @@ public sealed class InvitePackageTermsApplier(
 
             if (failure != PackageTermsFailure.None)
             {
-                await SkipAsync(invitePublicId, failure.ToString(), clientUserId, ipAddress, ct);
+                await SkipAsync(invitePublicId, failure.ToString(), clientUserId, ipAddress, subjectEntity, ct);
                 return false;
             }
 
@@ -79,7 +81,7 @@ public sealed class InvitePackageTermsApplier(
 
             if (assignment is null)
             {
-                await SkipAsync(invitePublicId, "ClientNumberExhausted", clientUserId, ipAddress, ct);
+                await SkipAsync(invitePublicId, "ClientNumberExhausted", clientUserId, ipAddress, subjectEntity, ct);
                 return false;
             }
 
@@ -93,7 +95,8 @@ public sealed class InvitePackageTermsApplier(
         }
     }
 
-    private async Task SkipAsync(Guid invitePublicId, string reason, Guid clientUserId, string? ipAddress, CancellationToken ct)
+    private async Task SkipAsync(
+        Guid invitePublicId, string reason, Guid clientUserId, string? ipAddress, string subjectEntity, CancellationToken ct)
     {
         logger.LogWarning(
             "Invite {InvitePublicId} was accepted without its package terms: {Reason}", invitePublicId, reason);
@@ -101,7 +104,7 @@ public sealed class InvitePackageTermsApplier(
         await audit.LogAsync(
             clientUserId,
             SkippedAuditAction,
-            nameof(PendingInvite),
+            subjectEntity,
             invitePublicId,
             ipAddress,
             null,
