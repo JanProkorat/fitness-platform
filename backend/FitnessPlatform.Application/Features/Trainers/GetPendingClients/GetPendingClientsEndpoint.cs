@@ -98,7 +98,8 @@ public class GetPendingClientsEndpoint(IApplicationDbContext db, IMongoContext m
 
         var requestRows = await db.ClientRequests
             .AsNoTracking()
-            .Where(r => r.ProfessionalProfileId == professionalProfile.Id && r.Status == ClientRequestStatus.Pending)
+            .Where(r => r.ProfessionalProfileId == professionalProfile.Id
+                && (r.Status == ClientRequestStatus.Pending || r.Status == ClientRequestStatus.PackageProposed))
             .Select(r => new
             {
                 Row = new PendingClientRow
@@ -122,6 +123,31 @@ public class GetPendingClientsEndpoint(IApplicationDbContext db, IMongoContext m
                             Price = r.CoachPackage.Price,
                             Currency = r.CoachPackage.Currency,
                         },
+                    Proposal = r.Status == ClientRequestStatus.PackageProposed && r.ProposedPackage != null
+                        ? new PendingRowProposalDto
+                        {
+                            ProposedAt = r.ProposedAt ?? r.SentAt,
+                            Package = new PendingRowPackageDto
+                            {
+                                PublicId = r.ProposedPackage.PublicId,
+                                Name = r.ProposedPackage.Name,
+                                Billing = r.ProposedPackage.Billing,
+                                IntervalWeeks = r.ProposedPackage.IntervalWeeks,
+                                Price = r.ProposedPackage.Price,
+                                Currency = r.ProposedPackage.Currency,
+                            },
+                            Discount = r.ProposedDiscount == null
+                                ? null
+                                : new PendingRowDiscountDto
+                                {
+                                    PublicId = r.ProposedDiscount.PublicId,
+                                    Name = r.ProposedDiscount.Name,
+                                    Type = r.ProposedDiscount.Type,
+                                    Value = r.ProposedDiscount.Value,
+                                    Currency = r.ProposedDiscount.Currency,
+                                },
+                        }
+                        : null,
                 },
                 r.ClientProfileId,
                 ClientUserId = r.ClientProfile.UserId,

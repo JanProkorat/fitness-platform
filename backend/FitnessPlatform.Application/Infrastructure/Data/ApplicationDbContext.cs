@@ -548,6 +548,16 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                 .WithMany()
                 .HasForeignKey(r => r.CoachDiscountId)
                 .OnDelete(DeleteBehavior.SetNull);
+            e.HasIndex(r => r.ProposedPackageId);
+            e.HasIndex(r => r.ProposedDiscountId);
+            e.HasOne(r => r.ProposedPackage)
+                .WithMany()
+                .HasForeignKey(r => r.ProposedPackageId)
+                .OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(r => r.ProposedDiscount)
+                .WithMany()
+                .HasForeignKey(r => r.ProposedDiscountId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         builder.Entity<CoachReauthCode>(e =>

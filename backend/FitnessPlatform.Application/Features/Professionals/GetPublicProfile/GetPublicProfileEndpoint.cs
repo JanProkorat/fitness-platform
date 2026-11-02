@@ -80,7 +80,7 @@ public class GetPublicProfileEndpoint(
             hasPendingRequest = await db.ClientRequests.AnyAsync(
                 r => r.ClientProfileId == clientProfile.Id
                      && r.ProfessionalProfileId == profile.Id
-                     && r.Status == ClientRequestStatus.Pending,
+                     && (r.Status == ClientRequestStatus.Pending || r.Status == ClientRequestStatus.PackageProposed),
                 ct);
 
             // The same live-link check as GetCoachBankDetailsEndpoint.

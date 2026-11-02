@@ -366,7 +366,8 @@ public class GetClientsEndpoint(IMongoContext mongo, IApplicationDbContext db, T
 
         var requestCount = await db.ClientRequests
             .AsNoTracking()
-            .CountAsync(r => r.ProfessionalProfileId == professionalProfileId && r.Status == ClientRequestStatus.Pending, ct);
+            .CountAsync(r => r.ProfessionalProfileId == professionalProfileId
+                && (r.Status == ClientRequestStatus.Pending || r.Status == ClientRequestStatus.PackageProposed), ct);
 
         return inviteCount + requestCount;
     }
