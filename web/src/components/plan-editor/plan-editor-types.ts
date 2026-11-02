@@ -2,6 +2,8 @@ import type { DietaryStyle, MealKind, NutrientValue, PrimaryGoal } from '@/api/g
 
 /** One ingredient in a meal, with the per-100g values snapshotted when it was added. */
 export interface EditorFood {
+  /** Stored item id; absent on items added in the editor. The server mints one on save. */
+  itemId?: string;
   foodExternalId: string;
   foodName: string;
   foodNameCs?: string;
@@ -15,6 +17,8 @@ export interface EditorFood {
 
 /** One recipe in a meal, with the per-serving values snapshotted when it was added. */
 export interface EditorRecipe {
+  /** Stored item id; absent on items added in the editor. The server mints one on save. */
+  itemId?: string;
   recipeId: string;
   recipeName: string;
   nutrientValuePerServing: NutrientValue;

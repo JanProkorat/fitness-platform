@@ -485,6 +485,7 @@ test.describe('client detail — nutrition tab', () => {
       startDate: string,
       monday: Date,
       control: { failing: boolean } = { failing: false },
+      tweak: (plan: ReturnType<typeof buildPlan>) => object = (plan) => plan,
     ): Promise<void> {
       await rewritePlansList(page, (body) => ({
         ...body,
@@ -503,7 +504,7 @@ test.describe('client detail — nutrition tab', () => {
           await route.fulfill({ status: 500, contentType: 'application/problem+json', body: '{"status":500}' });
           return;
         }
-        await route.fulfill({ json: buildPlan(startDate, monday) });
+        await route.fulfill({ json: tweak(buildPlan(startDate, monday)) });
       });
     }
 
@@ -574,6 +575,54 @@ test.describe('client detail — nutrition tab', () => {
       await expect(card.locator('[data-macro="protein"]')).toContainText('/ 150 g');
       await expect(card.locator('[data-macro="carbs"]')).toContainText('130');
       await expect(card.locator('[data-macro="fat"]')).toContainText('40');
+    });
+
+    test('counts a partly eaten meal apart and takes its macros and share from the eaten items', async ({ page }) => {
+      const monday = thisMonday();
+      await pinThursday(page, monday);
+      // Tuesday's dinner gets two items; only the first is eaten, so it is partly eaten.
+      const food = (itemId: string) => ({
+        itemId,
+        foodExternalId: 'stub-food',
+        foodName: 'Stub food',
+        nutrientValuePer100Grams: { kcal: 200, protein: 10, carbs: 20, fat: 5 },
+        amountGrams: 100,
+      });
+      await stubPlan(page, localIso(monday), monday, { failing: false }, (plan) => ({
+        ...plan,
+        weeks: plan.weeks.map((week) => ({
+          ...week,
+          days: week.days.map((day) => ({
+            ...day,
+            meals: day.meals.map((meal) =>
+              meal.mealId === 'tue-d' ? { ...meal, foods: [food('item-1'), food('item-2')], mealTotals: null } : meal,
+            ),
+          })),
+        })),
+        mealLogs: plan.mealLogs.map((log) =>
+          log.mealId === 'tue-d' ? { ...log, eatenState: 'PartlyEaten', eatenItemIds: ['item-1'] } : log,
+        ),
+      }));
+      await openNutritionTab(page);
+
+      const card = page.getByRole('region', { name: 'This week' });
+      await expect(card.getByTestId('this-week-eaten')).toHaveText('8');
+      await expect(card.getByTestId('this-week-partly')).toHaveText('1 meal partly eaten');
+      // 8 eaten meals plus half of the partly eaten one, of 12.
+      await expect(card).toContainText('ticked off · 71 %');
+
+      const tuesday = card.getByRole('list', { name: 'Meals ticked off per day' }).getByRole('listitem').nth(1);
+      await expect(tuesday).toContainText('3+1/4');
+
+      // Dinner: 1 eaten, 1 partly eaten, 1 skipped, so it is no longer flagged.
+      const dinner = card.locator('[data-group="dinner"]');
+      await expect(dinner).toContainText('1/3');
+      await expect(dinner).toContainText('1× partly eaten');
+      await expect(dinner).toHaveAttribute('data-flagged', 'false');
+
+      // Only the eaten item of the partly eaten meal adds to the averages (200 kcal, 10 g protein).
+      await expect(card.locator('[data-macro="kcal"]')).toContainText('1,367');
+      await expect(card.locator('[data-macro="protein"]')).toContainText('87');
     });
 
     test('shows a retry when the plan fails to load and recovers', async ({ page }) => {

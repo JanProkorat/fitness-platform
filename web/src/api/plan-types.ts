@@ -18,6 +18,8 @@ export interface GlobalNutritionSettings {
 
 /** A single food item within a meal. */
 export interface MealFood {
+  /** Stable id of this item within its meal. */
+  itemId?: string | null;
   foodExternalId: string;
   foodName: string;
   foodNameCs?: string | null;
@@ -40,6 +42,8 @@ export interface MealFood {
 
 /** A recipe item within a meal. */
 export interface MealRecipe {
+  /** Stable id of this item within its meal. */
+  itemId?: string | null;
   recipeId: string;
   recipeName: string;
   nutrientValuePerServing: {
@@ -97,6 +101,10 @@ export interface MealEatenStatusDto {
    * false means photo-only / note-only stub — NOT considered eaten.
    */
   isEaten: boolean;
+  /** Derived state; absent on older responses, where isEaten decides. */
+  eatenState?: 'NotEaten' | 'PartlyEaten' | 'Eaten';
+  /** Ids of the meal's current items that are eaten. */
+  eatenItemIds?: string[];
   /** When the meal was eaten; null for stubs. ISO datetime string. */
   eatenAt: string | null;
 }
