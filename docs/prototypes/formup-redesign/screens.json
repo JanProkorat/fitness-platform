@@ -420,6 +420,36 @@
   "h": 600
  },
  {
+  "html": "web/07-06-page-invite-review-c.html",
+  "png": "web/07-06-page-invite-review-c.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/07-07-page-invite-no-package-c.html",
+  "png": "web/07-07-page-invite-no-package-c.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/07-08-page-invite-proposal-sent-c.html",
+  "png": "web/07-08-page-invite-proposal-sent-c.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/07-09-page-invite-discount-c.html",
+  "png": "web/07-09-page-invite-discount-c.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/07-10-page-invite-form-menu-c.html",
+  "png": "web/07-10-page-invite-form-menu-c.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
   "html": "web/08-01-page-inbox-d.html",
   "png": "web/08-01-page-inbox-d.png",
   "w": 1440,
@@ -448,6 +478,36 @@
   "png": "web/08-05-page-inbox-invite-states-d.png",
   "w": 860,
   "h": 600
+ },
+ {
+  "html": "web/08-06-page-invite-review-d.html",
+  "png": "web/08-06-page-invite-review-d.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/08-07-page-invite-no-package-d.html",
+  "png": "web/08-07-page-invite-no-package-d.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/08-08-page-invite-proposal-sent-d.html",
+  "png": "web/08-08-page-invite-proposal-sent-d.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/08-09-page-invite-discount-d.html",
+  "png": "web/08-09-page-invite-discount-d.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/08-10-page-invite-form-menu-d.html",
+  "png": "web/08-10-page-invite-form-menu-d.png",
+  "w": 1440,
+  "h": 900
  },
  {
   "html": "web/09-01-page-recipes-c.html",
@@ -1410,6 +1470,12 @@
   "h": 844
  },
  {
+  "html": "mobile-light/01-21-package-proposal.html",
+  "png": "mobile-light/01-21-package-proposal.png",
+  "w": 390,
+  "h": 844
+ },
+ {
   "html": "mobile-light/02-01-today.html",
   "png": "mobile-light/02-01-today.png",
   "w": 390,
@@ -1902,6 +1968,54 @@
   "h": 844
  },
  {
+  "html": "mobile-light/16-01-today-questionnaire-banner.html",
+  "png": "mobile-light/16-01-today-questionnaire-banner.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/16-02-today-no-plan-questionnaire.html",
+  "png": "mobile-light/16-02-today-no-plan-questionnaire.png",
+  "w": 390,
+  "h": 960
+ },
+ {
+  "html": "mobile-light/16-03-questionnaire-intro.html",
+  "png": "mobile-light/16-03-questionnaire-intro.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/16-04-questionnaire-step1.html",
+  "png": "mobile-light/16-04-questionnaire-step1.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/16-05-questionnaire-step2.html",
+  "png": "mobile-light/16-05-questionnaire-step2.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/16-06-questionnaire-step3.html",
+  "png": "mobile-light/16-06-questionnaire-step3.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/16-07-questionnaire-review.html",
+  "png": "mobile-light/16-07-questionnaire-review.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/16-08-questionnaire-sent.html",
+  "png": "mobile-light/16-08-questionnaire-sent.png",
+  "w": 390,
+  "h": 844
+ },
+ {
   "html": "mobile-dark/01-01-launch-quiet.html",
   "png": "mobile-dark/01-01-launch-quiet.png",
   "w": 390,
@@ -2018,6 +2132,12 @@
  {
   "html": "mobile-dark/01-20-coach-profile-more.html",
   "png": "mobile-dark/01-20-coach-profile-more.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/01-21-package-proposal.html",
+  "png": "mobile-dark/01-21-package-proposal.png",
   "w": 390,
   "h": 844
  },
@@ -2510,6 +2630,54 @@
  {
   "html": "mobile-dark/16-06-offline-not-saved.html",
   "png": "mobile-dark/16-06-offline-not-saved.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/17-01-today-questionnaire-banner.html",
+  "png": "mobile-dark/17-01-today-questionnaire-banner.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/17-02-today-no-plan-questionnaire.html",
+  "png": "mobile-dark/17-02-today-no-plan-questionnaire.png",
+  "w": 390,
+  "h": 960
+ },
+ {
+  "html": "mobile-dark/17-03-questionnaire-intro.html",
+  "png": "mobile-dark/17-03-questionnaire-intro.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/17-04-questionnaire-step1.html",
+  "png": "mobile-dark/17-04-questionnaire-step1.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/17-05-questionnaire-step2.html",
+  "png": "mobile-dark/17-05-questionnaire-step2.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/17-06-questionnaire-step3.html",
+  "png": "mobile-dark/17-06-questionnaire-step3.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/17-07-questionnaire-review.html",
+  "png": "mobile-dark/17-07-questionnaire-review.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/17-08-questionnaire-sent.html",
+  "png": "mobile-dark/17-08-questionnaire-sent.png",
   "w": 390,
   "h": 844
  },
