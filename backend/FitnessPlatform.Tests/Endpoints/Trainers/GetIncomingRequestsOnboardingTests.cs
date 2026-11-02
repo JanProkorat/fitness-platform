@@ -2,18 +2,23 @@ using System.Net;
 using System.Net.Http.Json;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Infrastructure.Data;
+using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Infrastructure;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using static FitnessPlatform.Tests.Endpoints.ClientPayments.ClientPaymentFixtures;
+using static FitnessPlatform.Tests.Endpoints.PaymentSettings.PaymentSettingsFixtures;
 
 namespace FitnessPlatform.Tests.Endpoints.Trainers;
 
 /// <summary>
-/// <c>GET /trainer/client-requests</c>: a pending requester's onboarding answers are visible to the
-/// addressed coach only, and never after the request is answered.
+/// <c>GET /trainer/client-requests</c> and <c>GET /trainer/clients/pending</c>: a pending requester's
+/// onboarding answers are visible to the addressed coach only, and never after the request is answered;
+/// the attached package and the shared-history counts ride along on request rows.
 /// </summary>
 [Collection(TestCollection.Name)]
 public class GetIncomingRequestsOnboardingTests(FitnessApiFactory factory)
@@ -22,7 +27,16 @@ public class GetIncomingRequestsOnboardingTests(FitnessApiFactory factory)
 
     private record RequestItem(
         Guid PublicId, Guid ClientPublicId, decimal? HeightCm, decimal? WeightKg,
-        string? PrimaryGoal, string? DerivedActivityLevel);
+        string? PrimaryGoal, string? DerivedActivityLevel,
+        PackageItem? Package, bool ShareHistory, HistoryItem? History);
+
+    private record PackageItem(Guid PublicId, string Name, string Billing, int? IntervalWeeks, decimal Price, string Currency);
+
+    private record HistoryItem(int PlanCount, int MeasurementCount, int PhotoCount);
+
+    private record PendingResult(List<PendingItem> Rows);
+
+    private record PendingItem(Guid PublicId, string Kind, PackageItem? Package, bool ShareHistory, HistoryItem? History);
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
@@ -112,5 +126,148 @@ public class GetIncomingRequestsOnboardingTests(FitnessApiFactory factory)
 
         item.PrimaryGoal.Should().BeNull();
         item.DerivedActivityLevel.Should().BeNull();
+    }
+
+    private async Task<(Actor Client, Actor Coach)> SendRequestAsync(object body, Actor? existingCoach = null)
+    {
+        var coach = existingCoach ?? await TestActors.Trainer(factory).CreateAsync(Ct);
+        var client = await TestActors.Client(factory).CreateAsync(Ct);
+        var payload = new Dictionary<string, object?>
+        {
+            ["ProfessionalPublicId"] = coach.PublicId,
+        };
+
+        foreach (var property in body.GetType().GetProperties())
+        {
+            payload[property.Name] = property.GetValue(body);
+        }
+
+        (await client.Http.PostAsJsonAsync("/client/requests", payload, Ct)).StatusCode.Should().Be(HttpStatusCode.Created);
+
+        return (client, coach);
+    }
+
+    private async Task SeedHistoryAsync(Actor client, int measurements, int photos, int nutritionPlans, int trainingPlans)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+        for (var i = 0; i < measurements; i++)
+        {
+            db.BodyMeasurements.Add(new BodyMeasurement { ClientProfileId = client.ProfileId, MeasuredAt = DateTime.UtcNow.AddDays(-i) });
+        }
+
+        for (var i = 0; i < photos; i++)
+        {
+            db.PlanPhotos.Add(new PlanPhoto
+            {
+                ClientProfileId = client.ProfileId,
+                UploadedByUserId = client.UserId,
+                Category = PlanPhotoCategory.FreeForm,
+                BlobUrl = $"plan-photos/{Guid.NewGuid()}.jpg",
+                TakenAt = DateTime.UtcNow,
+            });
+        }
+
+        await db.SaveChangesAsync(Ct);
+
+        for (var i = 0; i < nutritionPlans; i++)
+        {
+            // Plans from any coach count, so the author is a fresh id.
+            await mongo.NutritionPlans.InsertOneAsync(
+                new NutritionPlan { ExternalId = Guid.NewGuid(), ClientId = client.UserId, NutritionistId = Guid.NewGuid() },
+                cancellationToken: Ct);
+        }
+
+        for (var i = 0; i < trainingPlans; i++)
+        {
+            await mongo.TrainingPlans.InsertOneAsync(
+                new TrainingPlan { ExternalId = Guid.NewGuid(), ClientId = client.UserId, TrainerId = Guid.NewGuid() },
+                cancellationToken: Ct);
+        }
+    }
+
+    private static async Task<List<PendingItem>> ListPendingAsync(Actor coach)
+    {
+        var response = await coach.Http.GetAsync("/trainer/clients/pending", Ct);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        return (await response.Content.ReadFromJsonAsync<PendingResult>(cancellationToken: Ct))!.Rows;
+    }
+
+    [Fact]
+    public async Task RequestWithPackage_ListsThePackageOnBothEndpoints()
+    {
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        await SubscribeAsync(factory, coach, canUsePayments: true);
+        var packageId = await CreatePackageAsync(coach, 1200m, "Starter");
+        await SendRequestAsync(new { PackagePublicId = packageId }, coach);
+
+        var incoming = (await ListAsync(coach)).Should().ContainSingle().Subject;
+        var pending = (await ListPendingAsync(coach)).Should().ContainSingle().Subject;
+
+        foreach (var package in new[] { incoming.Package, pending.Package })
+        {
+            package.Should().NotBeNull();
+            package!.PublicId.Should().Be(packageId);
+            package.Name.Should().Be("Starter");
+            package.Price.Should().Be(1200m);
+            package.Billing.Should().Be("Monthly");
+            package.Currency.Should().Be("CZK");
+        }
+    }
+
+    [Fact]
+    public async Task RequestWithoutPackage_HasNullPackage()
+    {
+        var (_, coach) = await RequestWithOnboardingAsync();
+
+        (await ListAsync(coach)).Should().ContainSingle().Which.Package.Should().BeNull();
+        (await ListPendingAsync(coach)).Should().ContainSingle().Which.Package.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task SharedHistory_ListsCountsOfAllTheClientsPlansMeasurementsAndPhotos()
+    {
+        var (client, coach) = await SendRequestAsync(new { ShareHistory = true });
+        await SeedHistoryAsync(client, measurements: 3, photos: 2, nutritionPlans: 2, trainingPlans: 1);
+
+        var incoming = (await ListAsync(coach)).Should().ContainSingle().Subject;
+        var pending = (await ListPendingAsync(coach)).Should().ContainSingle().Subject;
+
+        incoming.ShareHistory.Should().BeTrue();
+        pending.ShareHistory.Should().BeTrue();
+        incoming.History.Should().Be(new HistoryItem(PlanCount: 3, MeasurementCount: 3, PhotoCount: 2));
+        pending.History.Should().Be(new HistoryItem(PlanCount: 3, MeasurementCount: 3, PhotoCount: 2));
+    }
+
+    [Fact]
+    public async Task HistoryNotShared_HasNullCountsEvenWhenTheClientHoldsHistory()
+    {
+        var (client, coach) = await SendRequestAsync(new { ShareHistory = false });
+        await SeedHistoryAsync(client, measurements: 1, photos: 1, nutritionPlans: 1, trainingPlans: 1);
+
+        var incoming = (await ListAsync(coach)).Should().ContainSingle().Subject;
+        var pending = (await ListPendingAsync(coach)).Should().ContainSingle().Subject;
+
+        incoming.ShareHistory.Should().BeFalse();
+        incoming.History.Should().BeNull();
+        pending.History.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task SharedHistory_TwoClients_EachRowCarriesItsOwnCounts()
+    {
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (first, _) = await SendRequestAsync(new { ShareHistory = true }, coach);
+        var (second, _) = await SendRequestAsync(new { ShareHistory = true }, coach);
+        await SeedHistoryAsync(first, measurements: 4, photos: 0, nutritionPlans: 0, trainingPlans: 0);
+        await SeedHistoryAsync(second, measurements: 0, photos: 5, nutritionPlans: 0, trainingPlans: 2);
+
+        var items = await ListAsync(coach);
+
+        items.Single(i => i.ClientPublicId == first.PublicId).History.Should().Be(new HistoryItem(0, 4, 0));
+        items.Single(i => i.ClientPublicId == second.PublicId).History.Should().Be(new HistoryItem(2, 0, 5));
     }
 }
