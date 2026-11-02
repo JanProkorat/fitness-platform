@@ -1290,6 +1290,78 @@
   "h": 1200
  },
  {
+  "html": "web/43-01-page-client-forms-c.html",
+  "png": "web/43-01-page-client-forms-c.png",
+  "w": 1440,
+  "h": 1100
+ },
+ {
+  "html": "web/43-02-page-client-forms-empty-c.html",
+  "png": "web/43-02-page-client-forms-empty-c.png",
+  "w": 1440,
+  "h": 1100
+ },
+ {
+  "html": "web/43-03-page-client-plan-forms-c.html",
+  "png": "web/43-03-page-client-plan-forms-c.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/43-04-page-client-plan-forms-popover-c.html",
+  "png": "web/43-04-page-client-plan-forms-popover-c.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/44-01-page-client-forms-d.html",
+  "png": "web/44-01-page-client-forms-d.png",
+  "w": 1440,
+  "h": 1100
+ },
+ {
+  "html": "web/44-02-page-client-forms-empty-d.html",
+  "png": "web/44-02-page-client-forms-empty-d.png",
+  "w": 1440,
+  "h": 1100
+ },
+ {
+  "html": "web/44-03-page-client-plan-forms-d.html",
+  "png": "web/44-03-page-client-plan-forms-d.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/44-04-page-client-plan-forms-popover-d.html",
+  "png": "web/44-04-page-client-plan-forms-popover-d.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/45-01-page-automation-rule-drawer-check-in-c.html",
+  "png": "web/45-01-page-automation-rule-drawer-check-in-c.png",
+  "w": 1440,
+  "h": 1120
+ },
+ {
+  "html": "web/45-02-page-client-forms-check-in-c.html",
+  "png": "web/45-02-page-client-forms-check-in-c.png",
+  "w": 1440,
+  "h": 1100
+ },
+ {
+  "html": "web/46-01-page-automation-rule-drawer-check-in-d.html",
+  "png": "web/46-01-page-automation-rule-drawer-check-in-d.png",
+  "w": 1440,
+  "h": 1120
+ },
+ {
+  "html": "web/46-02-page-client-forms-check-in-d.html",
+  "png": "web/46-02-page-client-forms-check-in-d.png",
+  "w": 1440,
+  "h": 1100
+ },
+ {
   "html": "mobile-light/01-01-launch-quiet.html",
   "png": "mobile-light/01-01-launch-quiet.png",
   "w": 390,
@@ -1902,6 +1974,54 @@
   "h": 844
  },
  {
+  "html": "mobile-light/16-01-today-questionnaire-banner.html",
+  "png": "mobile-light/16-01-today-questionnaire-banner.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/16-02-today-no-plan-questionnaire.html",
+  "png": "mobile-light/16-02-today-no-plan-questionnaire.png",
+  "w": 390,
+  "h": 960
+ },
+ {
+  "html": "mobile-light/16-03-questionnaire-intro.html",
+  "png": "mobile-light/16-03-questionnaire-intro.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/16-04-questionnaire-step1.html",
+  "png": "mobile-light/16-04-questionnaire-step1.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/16-05-questionnaire-step2.html",
+  "png": "mobile-light/16-05-questionnaire-step2.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/16-06-questionnaire-step3.html",
+  "png": "mobile-light/16-06-questionnaire-step3.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/16-07-questionnaire-review.html",
+  "png": "mobile-light/16-07-questionnaire-review.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/16-08-questionnaire-sent.html",
+  "png": "mobile-light/16-08-questionnaire-sent.png",
+  "w": 390,
+  "h": 844
+ },
+ {
   "html": "mobile-dark/01-01-launch-quiet.html",
   "png": "mobile-dark/01-01-launch-quiet.png",
   "w": 390,
@@ -2510,6 +2630,54 @@
  {
   "html": "mobile-dark/16-06-offline-not-saved.html",
   "png": "mobile-dark/16-06-offline-not-saved.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/17-01-today-questionnaire-banner.html",
+  "png": "mobile-dark/17-01-today-questionnaire-banner.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/17-02-today-no-plan-questionnaire.html",
+  "png": "mobile-dark/17-02-today-no-plan-questionnaire.png",
+  "w": 390,
+  "h": 960
+ },
+ {
+  "html": "mobile-dark/17-03-questionnaire-intro.html",
+  "png": "mobile-dark/17-03-questionnaire-intro.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/17-04-questionnaire-step1.html",
+  "png": "mobile-dark/17-04-questionnaire-step1.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/17-05-questionnaire-step2.html",
+  "png": "mobile-dark/17-05-questionnaire-step2.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/17-06-questionnaire-step3.html",
+  "png": "mobile-dark/17-06-questionnaire-step3.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/17-07-questionnaire-review.html",
+  "png": "mobile-dark/17-07-questionnaire-review.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/17-08-questionnaire-sent.html",
+  "png": "mobile-dark/17-08-questionnaire-sent.png",
   "w": 390,
   "h": 844
  },
