@@ -28,8 +28,6 @@ public class MockDbBuilder
     private readonly List<Questionnaire> _questionnaires = [];
     private readonly List<EmailVerificationToken> _emailVerificationTokens = [];
     private readonly List<DevicePushToken> _devicePushTokens = [];
-    private readonly List<WeeklyCheckInSetting> _weeklyCheckInSettings = [];
-    private readonly List<WeeklyCheckInClientOverride> _weeklyCheckInClientOverrides = [];
     private readonly List<PhotoDiaryRequest> _photoDiaryRequests = [];
     private readonly List<UserExternalLogin> _userExternalLogins = [];
     private readonly List<SocialLoginNonce> _socialLoginNonces = [];
@@ -132,16 +130,6 @@ public class MockDbBuilder
     public MockDbBuilder With(EmailVerificationToken token) { _emailVerificationTokens.Add(token); return this; }
 
     /// <summary>
-    /// Adds a <see cref="WeeklyCheckInSetting"/> to the mock context.
-    /// </summary>
-    public MockDbBuilder With(WeeklyCheckInSetting setting) { _weeklyCheckInSettings.Add(setting); return this; }
-
-    /// <summary>
-    /// Adds a <see cref="WeeklyCheckInClientOverride"/> to the mock context.
-    /// </summary>
-    public MockDbBuilder With(WeeklyCheckInClientOverride o) { _weeklyCheckInClientOverrides.Add(o); return this; }
-
-    /// <summary>
     /// Adds a <see cref="PhotoDiaryRequest"/> to the mock context.
     /// </summary>
     public MockDbBuilder With(PhotoDiaryRequest request) { _photoDiaryRequests.Add(request); return this; }
@@ -195,8 +183,6 @@ public class MockDbBuilder
         var questionnairesSet = _questionnaires.BuildMockDbSet();
         var emailVerificationTokensSet = _emailVerificationTokens.BuildMockDbSet();
         var devicePushTokensSet = _devicePushTokens.BuildMockDbSet();
-        var weeklyCheckInSettingsSet = _weeklyCheckInSettings.BuildMockDbSet();
-        var weeklyCheckInClientOverridesSet = _weeklyCheckInClientOverrides.BuildMockDbSet();
         var photoDiaryRequestsSet = _photoDiaryRequests.BuildMockDbSet();
         var userExternalLoginsSet = _userExternalLogins.BuildMockDbSet();
         var socialLoginNoncesSet = _socialLoginNonces.BuildMockDbSet();
@@ -227,8 +213,6 @@ public class MockDbBuilder
         db.Questionnaires.Returns(questionnairesSet);
         db.EmailVerificationTokens.Returns(emailVerificationTokensSet);
         db.DevicePushTokens.Returns(devicePushTokensSet);
-        db.WeeklyCheckInSettings.Returns(weeklyCheckInSettingsSet);
-        db.WeeklyCheckInClientOverrides.Returns(weeklyCheckInClientOverridesSet);
         db.PhotoDiaryRequests.Returns(photoDiaryRequestsSet);
         db.UserExternalLogins.Returns(userExternalLoginsSet);
         db.SocialLoginNonces.Returns(socialLoginNoncesSet);

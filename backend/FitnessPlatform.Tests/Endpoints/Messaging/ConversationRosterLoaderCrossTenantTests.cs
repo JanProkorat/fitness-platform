@@ -27,16 +27,16 @@ public class ConversationRosterLoaderCrossTenantTests(FitnessApiFactory factory)
         var professionalA = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
         var professionalB = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
         var client = await TestActors.Client(factory).CreateAsync(TestContext.Current.CancellationToken);
-        await TestActors.Link(factory, professionalA, client).CreateAsync(TestContext.Current.CancellationToken);
-        await TestActors.Link(factory, professionalB, client).CreateAsync(TestContext.Current.CancellationToken);
+        var linkA = await TestActors.Link(factory, professionalA, client).CreateAsync(TestContext.Current.CancellationToken);
+        var linkB = await TestActors.Link(factory, professionalB, client).CreateAsync(TestContext.Current.CancellationToken);
 
         // A: a read thread and an expired (missing) check-in.
         var conversationA = await SeedConversationAsync(professionalA.UserId, client.UserId, "from A", isRead: true);
-        await SeedCheckInAsync(professionalA.UserId, client.UserId, WeeklyCheckInStatus.Expired, responded: false);
+        await SeedCheckInAsync(professionalA, client, linkA, responded: false);
 
         // B: an unread thread and a responded-but-unreviewed check-in.
         var conversationB = await SeedConversationAsync(professionalB.UserId, client.UserId, "from B", isRead: false);
-        await SeedCheckInAsync(professionalB.UserId, client.UserId, WeeklyCheckInStatus.Responded, responded: true);
+        await SeedCheckInAsync(professionalB, client, linkB, responded: true);
 
         var rowA = await SingleRowAsync(professionalA, client, "All");
         rowA.Id.Should().Be(conversationA);
@@ -66,8 +66,8 @@ public class ConversationRosterLoaderCrossTenantTests(FitnessApiFactory factory)
         var professionalA = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
         var professionalB = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
         var client = await TestActors.Client(factory).CreateAsync(TestContext.Current.CancellationToken);
-        await TestActors.Link(factory, professionalA, client).CreateAsync(TestContext.Current.CancellationToken);
-        await TestActors.Link(factory, professionalB, client).CreateAsync(TestContext.Current.CancellationToken);
+        var linkA = await TestActors.Link(factory, professionalA, client).CreateAsync(TestContext.Current.CancellationToken);
+        var linkB = await TestActors.Link(factory, professionalB, client).CreateAsync(TestContext.Current.CancellationToken);
 
         await SeedConversationAsync(professionalB.UserId, client.UserId, "from B", isRead: false);
 
@@ -107,28 +107,17 @@ public class ConversationRosterLoaderCrossTenantTests(FitnessApiFactory factory)
         return conversation.PublicId;
     }
 
-    private async Task SeedCheckInAsync(
-        Guid professionalUserId, Guid clientUserId, WeeklyCheckInStatus status, bool responded)
+    private async Task SeedCheckInAsync(Actor professional, Actor client, long linkId, bool responded)
     {
-        using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var scenario = await CheckInFixtures.ForLinkAsync(factory, professional, client, linkId);
 
-        db.WeeklyCheckIns.Add(new WeeklyCheckIn
-        {
-            Id = Guid.NewGuid(),
-            ClientUserId = clientUserId,
-            ProfessionalUserId = professionalUserId,
-            Profession = Profession.Training,
-            WeekStartDate = DateOnly.FromDateTime(DateTime.UtcNow),
-            Status = status,
-            SentAt = DateTime.UtcNow.AddDays(-7),
-            DueAt = DateTime.UtcNow.AddDays(-1),
-            RespondedAt = responded ? DateTime.UtcNow.AddDays(-2) : null,
-            ReviewedByTrainerAt = null,
-            DateCreated = DateTime.UtcNow,
-            DateModified = DateTime.UtcNow
-        });
-        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await CheckInFixtures.AddCheckInAsync(
+            factory,
+            scenario,
+            CheckInFixtures.Monday(0),
+            DateTime.UtcNow.AddDays(-1),
+            responded ? QuestionnaireResponseStatus.Submitted : QuestionnaireResponseStatus.Pending,
+            responded ? DateTime.UtcNow.AddDays(-2) : null);
     }
 
     private async Task<List<InboxRow>> ListAsync(Actor professional, string filter)

@@ -113,6 +113,19 @@ public class AutomationCheckInSweeperTests(FitnessApiFactory factory)
     }
 
     [Fact]
+    public async Task Send_CheckInRuleOfACoachWithoutTheCheckInFeature_SendsNothing()
+    {
+        var fixture = await ArrangeAsync();
+        await CoachSubscriptionBuilder.SubscribeAsync(
+            factory, fixture.Coach, canUseWeeklyCheckIns: false, canUsePerClientCheckInConfig: false);
+
+        (await SendAsync(fixture, "first", SentAt)).Should().Be(AutomationSendOutcome.NotEligible);
+
+        (await WithDbAsync(db => db.QuestionnaireResponses.CountAsync(r => r.QuestionnaireId == fixture.Form.Id, Ct)))
+            .Should().Be(0, "a coach whose plan has no check-ins sends none");
+    }
+
+    [Fact]
     public async Task Send_OnboardingFormRule_KeepsKindQuestionnaireAndNoCheckInFields()
     {
         var plainForm = await ArrangeAsync();

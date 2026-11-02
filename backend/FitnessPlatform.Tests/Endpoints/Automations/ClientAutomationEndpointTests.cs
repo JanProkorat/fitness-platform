@@ -173,60 +173,6 @@ public class ClientAutomationEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
-    public async Task List_WeeklyCheckInSetting_AppearsAsLinkedRowWithNoWeekday()
-    {
-        var (coach, client, _) = await LinkedPairAsync();
-        using (var scope = factory.Services.CreateScope())
-        {
-            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            db.WeeklyCheckInSettings.Add(new WeeklyCheckInSetting
-            {
-                UserId = coach.UserId,
-                Profession = Profession.Training,
-                DayOfWeek = DayOfWeek.Thursday,
-                TimeOfDay = TimeSpan.FromHours(18),
-                Enabled = true,
-            });
-            await db.SaveChangesAsync(Ct);
-        }
-
-        var response = await coach.Http.GetAsync($"/trainer/clients/{client.PublicId}/automations", Ct);
-        var raw = await response.Content.ReadAsStringAsync(Ct);
-
-        raw.Should().NotContainEquivalentOf("dayOfWeek");
-        raw.Should().NotContainEquivalentOf("Thursday");
-
-        var list = JsonSerializer.Deserialize<GetClientAutomationsResponse>(raw, AutomationTestData.Json)!;
-        var linked = list.Items.Should().ContainSingle(i => i.Source == AutomationRuleSource.Linked).Subject;
-        linked.RuleId.Should().BeNull();
-        linked.Profession.Should().Be("Training");
-        linked.Enabled.Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task List_LinkedCheckInHonoursThePerClientEnabledOverride()
-    {
-        var (coach, client, _) = await LinkedPairAsync();
-        using (var scope = factory.Services.CreateScope())
-        {
-            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            db.WeeklyCheckInSettings.Add(new WeeklyCheckInSetting
-            {
-                UserId = coach.UserId, Profession = Profession.Training, Enabled = true,
-            });
-            db.WeeklyCheckInClientOverrides.Add(new WeeklyCheckInClientOverride
-            {
-                ClientUserId = client.UserId, ProfessionalUserId = coach.UserId, Profession = Profession.Training, Enabled = false,
-            });
-            await db.SaveChangesAsync(Ct);
-        }
-
-        var list = await ListAsync(coach, client);
-
-        list.Items.Single(i => i.Source == AutomationRuleSource.Linked).Enabled.Should().BeFalse();
-    }
-
-    [Fact]
     public async Task List_ClientWithNoLiveLink_Returns404()
     {
         var coach = await TestActors.Trainer(factory).CreateAsync(Ct);

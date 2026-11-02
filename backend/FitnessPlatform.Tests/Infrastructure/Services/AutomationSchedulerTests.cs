@@ -772,21 +772,35 @@ public class AutomationSchedulerTests(FitnessApiFactory factory) : IAsyncLifetim
     }
 
     [Fact]
-    public async Task Poll_MissedCheckIn_FiresOnlyForAnExpiredOne()
+    public async Task Poll_MissedCheckIn_FiresOnlyForAPastDueUnansweredOne()
     {
-        var (coach, client, _) = await PairAsync();
+        var (coach, client, linkId) = await PairAsync();
         var rule = await EventRuleAsync(factory, coach, AutomationEventType.CheckInMissed, 0);
-        var expiredAt = DateTime.UtcNow;
+        var form = await AutomationTestData.InsertQuestionnaireAsync(factory, coach, QuestionnaireType.CheckIn);
+        var dueAt = DateTime.UtcNow;
 
         await WithDbAsync(async db =>
         {
+            QuestionnaireResponse CheckIn(DateOnly week, QuestionnaireResponseStatus status) => new()
+            {
+                QuestionnaireId = form.Id,
+                ClientId = client.UserId,
+                ProfessionalId = coach.UserId,
+                LinkId = linkId,
+                Kind = QuestionnaireResponseKind.CheckIn,
+                Status = status,
+                CheckInWeekStart = week,
+                CheckInDueAtUtc = dueAt,
+                SubmittedAt = status == QuestionnaireResponseStatus.Submitted ? dueAt.AddHours(-1) : null,
+            };
+
             var weekStart = DateOnly.FromDateTime(DateTime.UtcNow);
-            db.WeeklyCheckIns.Add(NewCheckIn(coach, client, Profession.Training, weekStart, WeeklyCheckInStatus.Responded, null));
-            db.WeeklyCheckIns.Add(NewCheckIn(coach, client, Profession.Nutrition, weekStart, WeeklyCheckInStatus.Expired, expiredAt));
+            db.QuestionnaireResponses.Add(CheckIn(weekStart, QuestionnaireResponseStatus.Submitted));
+            db.QuestionnaireResponses.Add(CheckIn(weekStart.AddDays(-7), QuestionnaireResponseStatus.Pending));
             await db.SaveChangesAsync(Ct);
             return 0;
         });
-        var fireAt = AutomationPolledEventCalculator.ComputeFireAt(expiredAt, 0, new TimeOnly(9, 0), Prague);
+        var fireAt = AutomationPolledEventCalculator.ComputeFireAt(dueAt, 0, new TimeOnly(9, 0), Prague);
 
         await Scheduler.RunDueNowAsync(After(fireAt), Ct);
 
@@ -795,20 +809,6 @@ public class AutomationSchedulerTests(FitnessApiFactory factory) : IAsyncLifetim
         run.Status.Should().Be(AutomationRunStatus.Sent);
     }
 
-    private static WeeklyCheckIn NewCheckIn(
-        Actor coach, Actor client, Profession profession, DateOnly weekStart, WeeklyCheckInStatus status, DateTime? expiredAt) => new()
-    {
-        ClientUserId = client.UserId,
-        ProfessionalUserId = coach.UserId,
-        Profession = profession,
-        WeekStartDate = weekStart,
-        Status = status,
-        SentAt = DateTime.UtcNow.AddDays(-3),
-        DueAt = expiredAt,
-        ExpiredAt = expiredAt,
-        DateCreated = DateTime.UtcNow,
-        DateModified = DateTime.UtcNow,
-    };
 
     [Fact]
     public async Task Poll_ClientInactiveForTheDays_FiresOnceForThatInactivity()
