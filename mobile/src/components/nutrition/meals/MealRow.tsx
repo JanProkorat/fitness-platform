@@ -13,7 +13,7 @@ import Reanimated, {
 } from 'react-native-reanimated';
 
 import type { MealFood } from '@/api/generated';
-import { isItemEaten } from '@/api/nutrition';
+import { isItemEaten, planItemId } from '@/api/nutrition';
 import type { NutritionMeal } from '@/api/nutrition';
 import { AddPhotoButton } from '@/components/nutrition/meals/AddPhotoButton';
 import { MealStatusIcon } from '@/components/nutrition/meals/MealStatusIcon';
@@ -116,16 +116,16 @@ export function MealRow({
       const servings = recipe.servings ?? 1;
       return {
         key: `recipe-${recipeId ?? ''}-${index}`,
-        itemId: recipe.itemId,
+        itemId: planItemId(recipe.itemId),
         name: recipe.recipeName ?? '',
         amount: t('nutritionPlan.amount.portions', { count: servings, value: formatAmount(language, servings) }),
-        onPress: recipeId ? () => onOpenRecipe(recipeId, servings, recipe.itemId) : undefined,
+        onPress: recipeId ? () => onOpenRecipe(recipeId, servings, planItemId(recipe.itemId)) : undefined,
       };
     }),
     ...(meal.foods ?? []).map(
       (food, index): MealItem => ({
         key: `food-${food.foodExternalId ?? ''}-${index}`,
-        itemId: food.itemId,
+        itemId: planItemId(food.itemId),
         name: foodName(food, language),
         amount: t('nutritionPlan.amount.grams', { value: formatWhole(language, food.amountGrams ?? 0) }),
         onPress: onOpenFood ? () => onOpenFood(food) : undefined,
@@ -348,6 +348,11 @@ const makeStyles = (theme: Theme) =>
       overflow: 'hidden',
     },
     body: {
+      // Out of flow so the height-animated clip never constrains it; onLayout then always reports the natural height.
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
       paddingLeft: theme.sizes.mealIndent,
       paddingBottom: theme.spacing.xxs,
     },

@@ -35,6 +35,12 @@ const ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
 
 export const isNutritionId = (value: string): boolean => ID_PATTERN.test(value);
 
+const EMPTY_ID = '00000000-0000-0000-0000-000000000000';
+
+/** A plan item's id, or undefined when it has none (items saved before item ids existed come back as the empty Guid). */
+export const planItemId = (itemId: string | undefined): string | undefined =>
+  itemId && itemId !== EMPTY_ID && isNutritionId(itemId) ? itemId : undefined;
+
 /** A plan meal that carries its id. */
 export type NutritionMeal = PlanMeal & { mealId: string };
 
@@ -129,8 +135,8 @@ export const isMealPartlyEaten = (entry: MealEatenFields | undefined, eaten: boo
 /** Ids of the items of a plan meal, foods and recipes together; items without an id are left out. */
 export const mealItemIdsOf = (meal: PlanMeal): string[] =>
   [...(meal.recipes ?? []), ...(meal.foods ?? [])]
-    .map((item) => item.itemId)
-    .filter((itemId): itemId is string => typeof itemId === 'string' && itemId.length > 0);
+    .map((item) => planItemId(item.itemId))
+    .filter((itemId): itemId is string => itemId !== undefined);
 
 /** An item counts as eaten when its meal is fully eaten or the item itself is ticked. */
 export const isItemEaten = (mealEaten: boolean, eatenItemIds: readonly string[], itemId: string): boolean =>

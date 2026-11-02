@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 
 import { getErrorStatus } from '@/api/errors';
 import type { GetWeekPlanResponse, MealFood } from '@/api/generated';
-import { findMealLog, isMealEaten, isMealPartlyEaten, mealPhotos } from '@/api/nutrition';
+import { findMealLog, isMealEaten, isMealPartlyEaten, mealPhotos, planItemId } from '@/api/nutrition';
 import type { NutritionMeal } from '@/api/nutrition';
 import { Card } from '@/components/Card';
 import { EMPTY_MACROS, macrosOf } from '@/components/nutrition/meal/format';
@@ -177,14 +177,15 @@ export function NutritionPlanView({ week }: NutritionPlanViewProps) {
               onOpenRecipe={(recipeId, servings, parent, itemId) =>
                 openRecipe(recipeId, servings, canLogToday && parent && itemId ? { mealId: parent.mealId, itemId } : undefined)
               }
-              onOpenFood={(food: MealFood, parent: NutritionMeal) =>
+              onOpenFood={(food: MealFood, parent: NutritionMeal) => {
+                const itemId = planItemId(food.itemId);
                 openFood(
                   food.foodExternalId,
                   food.amountGrams,
                   parent.kind,
-                  canLogToday && food.itemId ? { mealId: parent.mealId, itemId: food.itemId } : undefined,
-                )
-              }
+                  canLogToday && itemId ? { mealId: parent.mealId, itemId } : undefined,
+                );
+              }}
               onAddPhoto={isToday && logAvailable ? () => askSource(meal) : undefined}
               addPhotoBusy={addPhotoBusy(meal.mealId)}
               hideEatenState={phase === 'future'}

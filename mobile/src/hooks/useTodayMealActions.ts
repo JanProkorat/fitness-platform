@@ -39,7 +39,8 @@ export function useTodayMealActions(todayLog: GetTodayLogResponse | undefined, t
 
   const photoUpload = useAddDayMealPhoto();
   const removeOffPlan = useRemoveOffPlanFood();
-  const [picking, setPicking] = useState(false);
+  // The meal whose photo picker is open; only that row shows the spinner.
+  const [pickingMealId, setPickingMealId] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [viewer, setViewer] = useState<{ mealId: string; index: number } | null>(null);
 
@@ -59,7 +60,7 @@ export function useTodayMealActions(todayLog: GetTodayLogResponse | undefined, t
   };
 
   const addPhoto = async (meal: NutritionMeal, source: PhotoSource) => {
-    setPicking(true);
+    setPickingMealId(meal.mealId);
     try {
       const result = await pickMealPhoto(source);
       if (result.kind === 'denied') {
@@ -71,7 +72,7 @@ export function useTodayMealActions(todayLog: GetTodayLogResponse | undefined, t
         upload(meal, result.photo);
       }
     } finally {
-      setPicking(false);
+      setPickingMealId(null);
     }
   };
 
@@ -114,7 +115,7 @@ export function useTodayMealActions(todayLog: GetTodayLogResponse | undefined, t
     });
 
   const addPhotoBusy = (mealId: string): boolean =>
-    (photoUpload.isPending && photoUpload.variables?.mealId === mealId) || picking;
+    (photoUpload.isPending && photoUpload.variables?.mealId === mealId) || pickingMealId === mealId;
 
   return {
     removeOffPlan,

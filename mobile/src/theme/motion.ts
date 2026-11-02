@@ -66,6 +66,11 @@ export const chatMotion = {
   spring: { damping: 20, stiffness: 220, mass: 0.8 },
 } as const;
 
+/** Progress bar filling to a new value (kcal eaten against target), in ms. */
+export const progressFillMotion = {
+  duration: 600,
+} as const;
+
 /** Meal row expanding or collapsing on the plan week view and the Nutrition tab, in ms. */
 export const mealExpandMotion = {
   duration: 240,
