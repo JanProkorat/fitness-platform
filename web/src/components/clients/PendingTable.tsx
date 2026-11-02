@@ -20,6 +20,8 @@ const SKELETON_ROW_COUNT = 3;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 /** A request counts as new for this long after it was sent. */
 const NEW_REQUEST_WINDOW_MS = MS_PER_DAY;
+/** The message column only fits beside the package and the actions on a wide viewport; the drawer shows it in full. */
+const MESSAGE_COLUMN_CLASS = 'hidden min-[1400px]:table-cell';
 
 function isNewRequest(row: PendingClientRow): boolean {
   if (row.kind !== PendingRowKind.Request || !row.sentAt || row.proposal) return false;
@@ -73,9 +75,9 @@ export default function PendingTable({ rows, isPending, isError, onRetry }: Prop
             <TableHead>{t('clients.pendingTable.columnName')}</TableHead>
             <TableHead>{t('clients.pendingTable.columnType')}</TableHead>
             <TableHead>{t('clients.pendingTable.columnPackage')}</TableHead>
-            <TableHead>{t('clients.pendingTable.columnMessage')}</TableHead>
+            <TableHead className={MESSAGE_COLUMN_CLASS}>{t('clients.pendingTable.columnMessage')}</TableHead>
             <TableHead>{t('clients.pendingTable.columnSentAt')}</TableHead>
-            <TableHead className="w-64">
+            <TableHead className="w-52">
               <span className="sr-only">{t('common.actions')}</span>
             </TableHead>
           </TableRow>
@@ -179,7 +181,9 @@ export default function PendingTable({ rows, isPending, isError, onRetry }: Prop
                       <span className="text-muted-foreground">{t('clients.pendingTable.noPackage')}</span>
                     )}
                   </TableCell>
-                  <TableCell className="max-w-md truncate text-muted-foreground">{message}</TableCell>
+                  <TableCell className={cn('max-w-56 truncate text-muted-foreground', MESSAGE_COLUMN_CLASS)} title={message || undefined}>
+                    {message}
+                  </TableCell>
                   <TableCell className="text-muted-foreground">
                     {sentAt ? formatSent(sentAt, i18n.language) : null}
                   </TableCell>

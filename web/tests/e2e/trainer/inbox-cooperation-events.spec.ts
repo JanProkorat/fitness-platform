@@ -29,8 +29,8 @@
  * relying on the page's own All-by-default initial state, so this spec keeps
  * catching a regression even if that default ever changes.
  *
- * The decline action is driven from the client-request card in the thread
- * (#1547). Cooperation events with a source render as cards that read their own
+ * The decline action is driven from the review drawer that the client-request
+ * card in the thread opens (#1547, #1906). Cooperation events with a source render as cards that read their own
  * `eventStatus`; the follow-up Accepted/Declined/Withdrawn events fold into the
  * card, and only events without an `eventSourceId` keep the grey pill.
  */
@@ -140,20 +140,27 @@ test.describe('inbox client-request card (#1100, #1547)', () => {
     await requestedRow.click();
     await page.waitForLoadState('networkidle');
 
-    // The Requested event renders as a card with Accept / Decline, not a grey pill.
+    // The Requested event renders as a card with a package line and View invite, not a grey pill.
     const card = page.getByTestId('client-request-card');
     await expect(card).toBeVisible();
-    await expect(card.getByText('Client request')).toBeVisible();
-    await expect(card.getByRole('button', { name: 'Accept' })).toBeVisible();
+    await expect(card.getByText(/^QA Client2 wants /)).toBeVisible();
+    await expect(card.getByTestId('client-request-card-package')).toContainText('Not chosen');
+    await expect(card.getByRole('button', { name: 'View invite' })).toBeVisible();
+    await expect(card.getByRole('button', { name: 'Accept' })).toHaveCount(0);
     await expect(page.getByText('QA Client2 asked to collaborate with you')).toHaveCount(0);
 
     // The panel for a pending client: Pending chip and the onboarding answers card.
     const panel = page.getByTestId('pending-client-panel');
     await expect(panel.getByTestId('panel-status-chip')).toHaveText('Pending');
-    await expect(panel.getByText('Not a client yet · accept the request to start coaching')).toBeVisible();
+    await expect(panel.getByText('Not a client yet · open the invite to respond')).toBeVisible();
     await expect(panel.getByTestId('onboarding-answers-card')).toBeVisible();
 
-    await card.getByRole('button', { name: 'Decline' }).click();
+    // Declining happens in the review drawer the card opens.
+    await card.getByRole('button', { name: 'View invite' }).click();
+    const drawer = page.getByTestId('invite-review-drawer');
+    await expect(drawer).toBeVisible();
+    await drawer.getByRole('button', { name: 'Decline' }).click();
+    await expect(drawer).toHaveCount(0);
 
     // The same card stays in the thread; only its label changes, and the buttons go.
     await expect(card.getByText('Request declined')).toBeVisible();

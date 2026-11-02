@@ -56,7 +56,12 @@ export default function InviteReviewDrawer({ requestId, open, onOpenChange }: Pr
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent data-testid="invite-review-drawer" className="w-full gap-0 p-0 sm:w-drawer sm:max-w-none">
+      <SheetContent
+        data-testid="invite-review-drawer"
+        className="w-full gap-0 p-0 sm:w-drawer sm:max-w-none"
+        // The first field would take focus before the packages load; the coach starts from the offer, not the message.
+        onOpenAutoFocus={(event) => event.preventDefault()}
+      >
         {request ? (
           <ReviewBody key={request.publicId} request={request} onClose={() => onOpenChange(false)} />
         ) : (
@@ -197,7 +202,7 @@ function ReviewBody({ request, onClose }: { request: IncomingClientRequestDto; o
         <ClientAvatar
           firstName={request.clientFirstName}
           lastName={request.clientLastName}
-          className="size-12"
+          className="size-12 border border-border"
           fallbackClassName="bg-card text-body font-semibold text-ink"
         />
         <div className="flex min-w-0 flex-col gap-1.5">
