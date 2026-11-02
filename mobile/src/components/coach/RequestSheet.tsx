@@ -16,6 +16,7 @@ import type { EdgeInsets } from 'react-native-safe-area-context';
 
 import { REQUEST_MESSAGE_MAX_LENGTH, classifySendRequestError } from '@/api/clientRequests';
 import type { SendRequestFailure } from '@/api/clientRequests';
+import type { PublicProfilePackageDto } from '@/api/generated';
 import { Button } from '@/components/Button';
 import { Text } from '@/components/Text';
 import { useSendClientRequest } from '@/hooks/useSendClientRequest';
@@ -23,6 +24,7 @@ import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
 
 import { CoachAvatar } from './CoachAvatar';
+import { RequestPackageTile } from './RequestPackageTile';
 
 export type RequestSheetCoach = {
   publicId: string;
@@ -34,6 +36,10 @@ export type RequestSheetCoach = {
 type RequestSheetProps = {
   visible: boolean;
   coach: RequestSheetCoach;
+  /** The coach's packages from their profile; none hides the picker. */
+  packages?: PublicProfilePackageDto[];
+  /** False while payments are hidden: the tiles leave their prices out. */
+  showPrices?: boolean;
   onClose: () => void;
   onSent: () => void;
 };
@@ -60,15 +66,23 @@ const FINAL_FAILURES: SendRequestFailure[] = [
   'notFound',
 ];
 
-function SheetContent({ coach, onClose, onSent }: Omit<RequestSheetProps, 'visible'>) {
+function SheetContent({
+  coach,
+  packages = [],
+  showPrices = true,
+  onClose,
+  onSent,
+}: Omit<RequestSheetProps, 'visible'>) {
   const { t } = useTranslation();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const styles = makeStyles(theme, insets);
   const [message, setMessage] = useState('');
   const [shareHistory, setShareHistory] = useState(false);
+  const [packagePublicId, setPackagePublicId] = useState<string | undefined>(undefined);
   const mutation = useSendClientRequest(coach.publicId);
   const name = coach.firstName ?? '';
+  const selectable = packages.filter((pack) => Boolean(pack.publicId));
 
   const failure = mutation.isError ? classifySendRequestError(mutation.error) : null;
   const isFinal = failure !== null && FINAL_FAILURES.includes(failure);
@@ -76,7 +90,16 @@ function SheetContent({ coach, onClose, onSent }: Omit<RequestSheetProps, 'visib
 
   const submit = () => {
     if (disabled) return;
-    mutation.mutate({ message, shareHistory }, { onSuccess: onSent });
+    mutation.mutate(
+      { message, shareHistory, packagePublicId },
+      {
+        onSuccess: onSent,
+        onError: (error) => {
+          // A package that is gone cannot be sent again; the coach profile refetches behind the sheet.
+          if (classifySendRequestError(error) === 'packageUnavailable') setPackagePublicId(undefined);
+        },
+      },
+    );
   };
 
   return (
@@ -138,6 +161,30 @@ function SheetContent({ coach, onClose, onSent }: Omit<RequestSheetProps, 'visib
               </Text>
             </View>
           </View>
+
+          {selectable.length > 0 ? (
+            <View style={styles.field} accessibilityRole="radiogroup">
+              <Text variant="label" color="muted">
+                {t('requestSheet.packageLabel')}
+              </Text>
+              {selectable.map((pack) => (
+                <RequestPackageTile
+                  key={pack.publicId}
+                  pack={pack}
+                  selected={pack.publicId === packagePublicId}
+                  showPrices={showPrices}
+                  disabled={mutation.isPending || mutation.isSuccess}
+                  onPress={() => {
+                    setPackagePublicId(pack.publicId === packagePublicId ? undefined : pack.publicId);
+                    if (mutation.isError) mutation.reset();
+                  }}
+                />
+              ))}
+              <Text variant="caption" color="muted">
+                {t('requestSheet.packageHint', { name })}
+              </Text>
+            </View>
+          ) : null}
 
           <View style={styles.toggleCard}>
             <View style={styles.toggleRow}>

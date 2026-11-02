@@ -10,10 +10,14 @@ type InviteActionsProps = {
   busy: boolean;
   onAccept: () => void;
   onDecline: () => void;
+  /** Overrides the accept label; defaults to the invite copy. */
+  acceptLabel?: string;
+  /** Overrides the decline label; defaults to the invite copy. */
+  declineLabel?: string;
 };
 
 /** Decline (outlined) and Accept (filled) for the invite on its detail screen. */
-export function InviteActions({ busy, onAccept, onDecline }: InviteActionsProps) {
+export function InviteActions({ busy, onAccept, onDecline, acceptLabel, declineLabel }: InviteActionsProps) {
   const { t } = useTranslation();
   const theme = useTheme();
   const styles = makeStyles(theme);
@@ -28,10 +32,10 @@ export function InviteActions({ busy, onAccept, onDecline }: InviteActionsProps)
         style={({ pressed }) => [styles.decline, pressed && styles.pressed, busy && styles.disabled]}
       >
         <Text variant="button" style={styles.declineLabel}>
-          {t('invites.decline')}
+          {declineLabel ?? t('invites.decline')}
         </Text>
       </Pressable>
-      <Button label={t('invites.acceptInvite')} size="large" disabled={busy} onPress={onAccept} style={styles.accept} />
+      <Button label={acceptLabel ?? t('invites.acceptInvite')} size="large" disabled={busy} onPress={onAccept} style={styles.accept} />
     </View>
   );
 }

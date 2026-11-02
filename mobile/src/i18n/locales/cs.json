@@ -977,13 +977,42 @@
     "historyHint": "Dřívější plány, měření a fotky z doby před spoluprací s poradcem {{name}}.",
     "onboardingCaption": "Odpovědi z vašeho úvodního dotazníku uvidí {{name}} a podle nich se připraví.",
     "submit": "Odeslat žádost",
+    "packageLabel": "Balíček (nepovinné)",
+    "packageHint": "Vyberte si, pokud už víte, co chcete. Můžete to také přeskočit a domluvit se s osobou {{name}} později.",
     "errors": {
       "notAccepting": "Tento poradce teď nepřijímá nové klienty.",
       "alreadyPending": "Žádost tomuto poradci už byla odeslána.",
       "alreadyLinked": "S tímto poradcem už spolupracujete.",
       "notFound": "Tento poradce už není dostupný.",
+      "packageUnavailable": "Tento balíček už není dostupný. Vyberte jiný, nebo žádost odešlete bez balíčku.",
       "network": "Server je nedostupný. Zpráva zůstala zachována, zkuste to znovu.",
       "generic": "Žádost se nepodařilo odeslat. Zkuste to znovu."
+    }
+  },
+  "requestProposal": {
+    "back": "Zpět",
+    "closed": {
+      "title": "Není co potvrzovat",
+      "body": "Tento návrh byl stažen nebo už je vyřízený. S trenérem nebo poradcem můžete dál psát ve Zprávách."
+    },
+    "suggestsAt": "{{name}} vám navrhuje balíček · {{time}}",
+    "questionnaire": "Po přijetí vyplníte formulář „{{title}}“.",
+    "package": {
+      "title": "Navržený balíček",
+      "youPay": "Platíte",
+      "note": "Začíná dnem přijetí. {{name}} vám posílá každou žádost o platbu, platíte bankovním převodem."
+    },
+    "barNote": "Přijetím sdílíte své odpovědi z úvodního dotazníku s osobou {{name}} a spustíte balíček. Odmítnutím žádost končí, chat zůstane k dispozici.",
+    "accept": "Přijmout balíček",
+    "decline": "Odmítnout",
+    "errors": {
+      "ok": "OK",
+      "notFound": { "title": "Návrh už není otevřený", "body": "Byl stažen nebo už je vyřízený." },
+      "invalidState": { "title": "Návrh už není otevřený", "body": "Byl stažen nebo už je vyřízený." },
+      "professionOccupied": { "title": "Už máte svého poradce", "body": "V tomto oboru už spolupracujete s jiným poradcem, takže další balíček přijmout nemůžete." },
+      "coachRoleRemoved": { "title": "Spolupráci nelze zahájit", "body": "Tato role už u daného poradce není dostupná, balíček proto nelze spustit." },
+      "network": { "title": "Server je nedostupný", "body": "Zkontrolujte připojení a zkuste to znovu. Nic se nezměnilo." },
+      "generic": { "title": "Něco se nepovedlo", "body": "Vaši odpověď se nepodařilo odeslat. Zkuste to znovu." }
     }
   },
   "common": {

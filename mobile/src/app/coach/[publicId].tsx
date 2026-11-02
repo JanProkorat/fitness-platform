@@ -277,6 +277,8 @@ export default function CoachProfileScreen() {
           lastName: coach.lastName,
           avatarBlobUrl: coach.avatarBlobUrl,
         }}
+        packages={packages}
+        showPrices={paymentsEnabled}
         onClose={() => setSheetOpen(false)}
         onSent={() => setSheetOpen(false)}
       />
