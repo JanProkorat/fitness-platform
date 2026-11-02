@@ -8,6 +8,12 @@ export interface EditorSideTabDef<T extends string> {
   label: string;
   icon: LucideIcon;
   content: ReactNode;
+  /** Shows a small dot on the tab; `label` is its accessible name. */
+  indicator?: { label: string };
+}
+
+function IndicatorDot({ label, className }: { label: string; className?: string }) {
+  return <span role="img" aria-label={label} title={label} className={cn('size-1.5 shrink-0 rounded-full bg-error', className)} />;
 }
 
 export interface EditorSidePanelLabels {
@@ -49,6 +55,9 @@ export default function EditorSidePanel<T extends string>({
   const collapseRef = useRef<HTMLButtonElement>(null);
   const toggled = useRef(false);
   const current = tabs.find((candidate) => candidate.id === tab);
+  // Three tabs plus the collapse button fit the 320px panel in cs, en and de only with a tighter gap and no icons
+  // in the tab row; the collapsed strip keeps its icons.
+  const compact = tabs.length > 2;
 
   // Keep keyboard focus on the visible toggle: the collapse button goes inert, the expand button unmounts.
   useEffect(() => {
@@ -91,8 +100,13 @@ export default function EditorSidePanel<T extends string>({
         )}
       >
         <div className="flex items-center gap-2 px-4 pt-4.5">
-          <div role="tablist" aria-label={labels.tabs} onKeyDown={onKeyDown} className="flex items-center gap-4">
-            {tabs.map(({ id, label, icon: Icon }) => {
+          <div
+            role="tablist"
+            aria-label={labels.tabs}
+            onKeyDown={onKeyDown}
+            className={cn('flex min-w-0 items-center', compact ? 'gap-3' : 'gap-4')}
+          >
+            {tabs.map(({ id, label, icon: Icon, indicator }) => {
               const selected = tab === id;
               return (
                 <button
@@ -109,8 +123,9 @@ export default function EditorSidePanel<T extends string>({
                     selected ? 'border-ink text-ink' : 'border-transparent text-muted-foreground hover:text-ink',
                   )}
                 >
-                  <Icon className="size-3.5 shrink-0" aria-hidden="true" />
+                  {!compact && <Icon className="size-3.5 shrink-0" aria-hidden="true" />}
                   {label}
+                  {indicator && <IndicatorDot label={indicator.label} />}
                 </button>
               );
             })}
@@ -159,19 +174,22 @@ export default function EditorSidePanel<T extends string>({
         >
           <PanelLeftOpen className="size-4" aria-hidden="true" />
         </button>
-        {tabs.map(({ id, label, icon: Icon }) => (
+        {tabs.map(({ id, label, icon: Icon, indicator }) => (
           <button
             key={id}
             type="button"
             data-testid={`side-strip-${id}`}
-            aria-label={labels.openTab(label)}
+            aria-label={indicator ? `${labels.openTab(label)} (${indicator.label})` : labels.openTab(label)}
             title={labels.openTab(label)}
             onClick={() => {
               onTabChange(id);
               toggle(true);
             }}
-            className="flex w-9 cursor-pointer flex-col items-center gap-2 rounded-field py-2 text-ink outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
+            className="relative flex w-9 cursor-pointer flex-col items-center gap-2 rounded-field py-2 text-ink outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
           >
+            {indicator && (
+              <span aria-hidden="true" className="absolute top-1 right-1 size-1.5 rounded-full bg-error" />
+            )}
             <Icon className="size-3.5 shrink-0" aria-hidden="true" />
             <span className="text-label font-bold tracking-label whitespace-nowrap uppercase [writing-mode:vertical-rl] rotate-180">
               {label}

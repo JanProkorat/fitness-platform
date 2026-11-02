@@ -2377,6 +2377,39 @@
       "error": "Couldn't create the form. Please try again."
     }
   },
+  "clientForms": {
+    "tab": "Forms",
+    "newAnswer": "New answer",
+    "new": "New",
+    "waiting": "Waiting",
+    "missed": "Missed",
+    "intro": "{{name}}'s answers from this collaboration. Open one to read it next to the plan.",
+    "empty": "No forms have been sent to {{name}} in this collaboration yet.",
+    "loadError": "Couldn't load the forms. Please try again.",
+    "retry": "Retry",
+    "avoids": "Avoids {{items}}",
+    "allForms": "All forms in {{name}}'s profile",
+    "kind": {
+      "Onboarding": "Onboarding",
+      "Questionnaire": "Questionnaire",
+      "CheckIn": "Check-in"
+    },
+    "card": {
+      "sent": "Sent {{date}} · not answered yet",
+      "missed": "Missed · was due {{date}}",
+      "latestAnswered": "Latest · answered {{date}}",
+      "answered_one": "Answered {{date}} · {{count}} question",
+      "answered_other": "Answered {{date}} · {{count}} questions"
+    },
+    "popover": {
+      "meta_one": "{{name}} · answered {{date}} · {{count}} question",
+      "meta_other": "{{name}} · answered {{date}} · {{count}} questions",
+      "openInProfile": "Open in {{name}}'s profile"
+    },
+    "answers": {
+      "noAnswer": "No answer"
+    }
+  },
   "clientPlanEditor": {
     "publishWeek": "Publish week {{week}}",
     "clientFallback": "Client",

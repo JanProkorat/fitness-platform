@@ -2449,6 +2449,43 @@
       "error": "Formulář se nepodařilo vytvořit. Zkuste to prosím znovu."
     }
   },
+  "clientForms": {
+    "tab": "Formuláře",
+    "newAnswer": "Nová odpověď",
+    "new": "Nové",
+    "waiting": "Čeká",
+    "missed": "Zmeškáno",
+    "intro": "Odpovědi klienta z této spolupráce. Otevřete některou a přečtěte si ji vedle plánu.",
+    "empty": "V této spolupráci zatím nebyl odeslán žádný formulář.",
+    "loadError": "Formuláře se nepodařilo načíst. Zkuste to prosím znovu.",
+    "retry": "Zkusit znovu",
+    "avoids": "Vyhýbá se: {{items}}",
+    "allForms": "Všechny formuláře v profilu klienta",
+    "kind": {
+      "Onboarding": "Vstupní dotazník",
+      "Questionnaire": "Dotazník",
+      "CheckIn": "Check-in"
+    },
+    "card": {
+      "sent": "Odesláno {{date}} · zatím bez odpovědi",
+      "missed": "Zmeškáno · termín byl {{date}}",
+      "latestAnswered": "Poslední · odpovězeno {{date}}",
+      "answered_one": "Odpovězeno {{date}} · {{count}} otázka",
+      "answered_few": "Odpovězeno {{date}} · {{count}} otázky",
+      "answered_many": "Odpovězeno {{date}} · {{count}} otázky",
+      "answered_other": "Odpovězeno {{date}} · {{count}} otázek"
+    },
+    "popover": {
+      "meta_one": "{{name}} · odpovězeno {{date}} · {{count}} otázka",
+      "meta_few": "{{name}} · odpovězeno {{date}} · {{count}} otázky",
+      "meta_many": "{{name}} · odpovězeno {{date}} · {{count}} otázky",
+      "meta_other": "{{name}} · odpovězeno {{date}} · {{count}} otázek",
+      "openInProfile": "Otevřít v profilu klienta"
+    },
+    "answers": {
+      "noAnswer": "Bez odpovědi"
+    }
+  },
   "clientPlanEditor": {
     "publishWeek": "Publikovat týden {{week}}",
     "clientFallback": "Klient",
@@ -2476,7 +2513,7 @@
       "action": "Ukončit plán"
     },
     "info": {
-      "tab": "Info o plánu",
+      "tab": "Info",
       "name": "Název plánu",
       "dates": "Termín",
       "starts": "Začátek",
