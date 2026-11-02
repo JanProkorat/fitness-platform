@@ -76,6 +76,72 @@ public class UpdatePlanFullStateTests
         };
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task HandleAsync_ExistingMealItems_KeepTheirItemIdWithAndWithoutSentId(bool sendItemIds)
+    {
+        var planId = Guid.NewGuid();
+        var mealId = Guid.NewGuid();
+        var foodItemId = Guid.NewGuid();
+        var recipeItemId = Guid.NewGuid();
+        var foodRef = Guid.NewGuid();
+        var recipeRef = Guid.NewGuid();
+        var plan = PlanTestHelpers.CreatePlan(externalId: planId, nutritionistId: _nutritionistId, weekCount: 1, version: 1);
+        plan.Weeks[0].Days[0].Meals =
+        [
+            new PlanMeal
+            {
+                MealId = mealId,
+                Kind = MealKind.Breakfast,
+                Order = 1,
+                Foods = [new MealFood { ItemId = foodItemId, FoodExternalId = foodRef, FoodName = "Oats", AmountGrams = 50 }],
+                Recipes = [new MealRecipe { ItemId = recipeItemId, RecipeId = recipeRef, RecipeName = "Bowl", Servings = 1 }],
+            },
+        ];
+
+        var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
+        var ep = CreateEndpoint(mongo, Substitute.For<IMacroCalculatorService>());
+        var week = BuildWeekRequest(weekNumber: 1);
+        week.Days[0].Meals =
+        [
+            new UpdateMealRequest
+            {
+                MealId = mealId,
+                Kind = MealKind.Breakfast,
+                Order = 1,
+                Foods = [new UpdateMealFoodRequest { ItemId = sendItemIds ? foodItemId : null, FoodExternalId = foodRef, FoodName = "Oats", AmountGrams = 80 }],
+                Recipes = [new UpdateMealRecipeRequest { ItemId = sendItemIds ? recipeItemId : null, RecipeId = recipeRef, RecipeName = "Bowl", Servings = 2 }],
+            },
+        ];
+
+        await ep.HandleAsync(
+            new UpdatePlanRequest { PlanId = planId, Name = "Plan", Version = 1, Weeks = [week] },
+            TestContext.Current.CancellationToken);
+
+        var meal = plan.Weeks[0].Days[0].Meals.Single();
+        meal.MealId.Should().Be(mealId);
+        meal.Foods.Single().ItemId.Should().Be(foodItemId);
+        meal.Foods.Single().AmountGrams.Should().Be(80);
+        meal.Recipes.Single().ItemId.Should().Be(recipeItemId);
+    }
+
+    [Fact]
+    public async Task HandleAsync_NewMealItems_GetNewItemIds()
+    {
+        var planId = Guid.NewGuid();
+        var plan = PlanTestHelpers.CreatePlan(externalId: planId, nutritionistId: _nutritionistId, weekCount: 1, version: 1);
+        var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
+        var ep = CreateEndpoint(mongo, Substitute.For<IMacroCalculatorService>());
+        var week = BuildWeekRequest(weekNumber: 1, food: PlanTestHelpers.CreateMealFood(foodName: "Apple"));
+
+        await ep.HandleAsync(
+            new UpdatePlanRequest { PlanId = planId, Name = "Plan", Version = 1, Weeks = [week] },
+            TestContext.Current.CancellationToken);
+
+        plan.Weeks[0].Days[0].Meals.Single().Foods.Single().ItemId.Should().NotBe(Guid.Empty);
+    }
+
     [Fact]
     public async Task HandleAsync_ValidFullState_UpdatesPlan()
     {
