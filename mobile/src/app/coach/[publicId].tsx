@@ -111,7 +111,7 @@ export default function CoachProfileScreen() {
     if (from === 'invite' && router.canGoBack()) router.back();
     else if (openInvite?.id) router.push({ pathname: '/invite/[id]', params: { id: openInvite.id } });
   };
-  const requestLabel = coach.hasPendingRequest ? t('coachProfile.pending') : t('coachProfile.sendRequest');
+  const requestLabel = coach.hasPendingRequest ? t('coachProfile.pending') : t('coachProfile.invite');
   const requestDisabled = coach.hasPendingRequest || !accepting;
   const packages = coach.packages ?? [];
   const collaboration = collaborationTypeOf(coach.collaborationType);
