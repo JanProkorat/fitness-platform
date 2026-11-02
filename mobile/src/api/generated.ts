@@ -17545,6 +17545,170 @@ export class ApiClient {
     }
 
     /**
+     * Unmark one meal item as eaten
+     * @param mealId The plan meal that holds the item.
+     * @param itemId The food or recipe item (its itemId in the plan meal).
+     * @param occurredAt (optional) When the client unmarked the item (offline sync). Defaults to the server clock;
+    at most 5 minutes ahead and 7 days back.
+     * @param clientRequestId (optional) Client-generated id that makes a retried request apply only once.
+     * @param basedOnPlanVersion (optional) The NutritionPlan.Version the client saw when it queued the request.
+     * @return Eaten state of the meal after the untick
+     */
+    unlogMealItemEatenEndpoint(mealId: string, itemId: string, occurredAt?: string | null | undefined, clientRequestId?: string | null | undefined, basedOnPlanVersion?: number | null | undefined, signal?: AbortSignal): Promise<UnlogMealItemEatenResponse> {
+        let url_ = this.baseUrl + "/client/nutrition/log/meals/{mealId}/items/{itemId}/eaten?";
+        if (mealId === undefined || mealId === null)
+            throw new globalThis.Error("The parameter 'mealId' must be defined.");
+        url_ = url_.replace("{mealId}", encodeURIComponent("" + mealId));
+        if (itemId === undefined || itemId === null)
+            throw new globalThis.Error("The parameter 'itemId' must be defined.");
+        url_ = url_.replace("{itemId}", encodeURIComponent("" + itemId));
+        if (occurredAt !== undefined && occurredAt !== null)
+            url_ += "occurredAt=" + encodeURIComponent("" + occurredAt) + "&";
+        if (clientRequestId !== undefined && clientRequestId !== null)
+            url_ += "clientRequestId=" + encodeURIComponent("" + clientRequestId) + "&";
+        if (basedOnPlanVersion !== undefined && basedOnPlanVersion !== null)
+            url_ += "basedOnPlanVersion=" + encodeURIComponent("" + basedOnPlanVersion) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "DELETE",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUnlogMealItemEatenEndpoint(_response);
+        });
+    }
+
+    protected processUnlogMealItemEatenEndpoint(response: AxiosResponse): Promise<UnlogMealItemEatenResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<UnlogMealItemEatenResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<UnlogMealItemEatenResponse>(null as any);
+    }
+
+    /**
+     * Mark one meal item as eaten
+     * @param mealId The plan meal that holds the item.
+     * @param itemId The food or recipe item (its itemId in the plan meal).
+     * @return Eaten state of the meal after the tick
+     */
+    logMealItemEatenEndpoint(mealId: string, itemId: string, logMealItemEatenRequest: LogMealItemEatenRequest, signal?: AbortSignal): Promise<LogMealItemEatenResponse> {
+        let url_ = this.baseUrl + "/client/nutrition/log/meals/{mealId}/items/{itemId}/eaten";
+        if (mealId === undefined || mealId === null)
+            throw new globalThis.Error("The parameter 'mealId' must be defined.");
+        url_ = url_.replace("{mealId}", encodeURIComponent("" + mealId));
+        if (itemId === undefined || itemId === null)
+            throw new globalThis.Error("The parameter 'itemId' must be defined.");
+        url_ = url_.replace("{itemId}", encodeURIComponent("" + itemId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(logMealItemEatenRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processLogMealItemEatenEndpoint(_response);
+        });
+    }
+
+    protected processLogMealItemEatenEndpoint(response: AxiosResponse): Promise<LogMealItemEatenResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<LogMealItemEatenResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<LogMealItemEatenResponse>(null as any);
+    }
+
+    /**
      * Unmark a meal as eaten
      * @param mealId The unique identifier of the meal to unmark.
      * @param occurredAt (optional) When the client unmarked the meal (offline sync). Defaults to the server clock;
@@ -25570,6 +25734,9 @@ Clients of the API can use this flag to decide whether to show edit/delete affor
 
 /** A food item within a meal — denormalized snapshot of food data at the time of addition. */
 export interface MealFood {
+    /** Stable identity of this item inside its plan meal; survives edits of the meal. Empty on
+documents written before item ids existed and on library documents (recipes, meal templates). */
+    itemId?: string;
     /** Reference to the original food document's ExternalId. */
     foodExternalId?: string;
     /** Snapshot of the food name at time of addition. */
@@ -26654,6 +26821,9 @@ Null means never edited since the marker existed, which offline sync treats as "
 
 /** A recipe item within a meal — denormalized snapshot of recipe data at the time of addition. */
 export interface MealRecipe {
+    /** Stable identity of this item inside its plan meal; survives edits of the meal. Empty on
+documents written before item ids existed. */
+    itemId?: string;
     /** Reference to the original recipe's ID. */
     recipeId?: string;
     /** Snapshot of the recipe name at time of addition. */
@@ -26728,6 +26898,8 @@ when null a new Guid is generated. */
 
 /** Represents a single food entry submitted when creating or full-state updating a nutrition plan template. */
 export interface TemplateMealFoodRequest {
+    /** Optional id of the stored item this entry continues; unknown ids get a server-minted one. */
+    itemId?: string | undefined;
     /** External (public) identifier of the food item. */
     foodExternalId?: string;
     /** Display name of the food (snapshot at time of planning). */
@@ -26750,6 +26922,8 @@ export interface TemplateMealFoodRequest {
 
 /** Represents a single recipe entry submitted when creating or full-state updating a nutrition plan template. */
 export interface TemplateMealRecipeRequest {
+    /** Optional id of the stored item this entry continues; unknown ids get a server-minted one. */
+    itemId?: string | undefined;
     /** Recipe identifier. */
     recipeId?: string;
     /** Display name of the recipe. */
@@ -27042,6 +27216,8 @@ when null a new Guid is generated. */
 
 /** Represents a single food entry submitted in a full-state plan update. */
 export interface UpdateMealFoodRequest {
+    /** Optional id of the stored item this entry continues; unknown ids get a server-minted one. */
+    itemId?: string | undefined;
     /** External (public) identifier of the food item. */
     foodExternalId?: string;
     /** Display name of the food (snapshot at time of planning). */
@@ -27064,6 +27240,8 @@ export interface UpdateMealFoodRequest {
 
 /** Represents a recipe entry submitted in a full-state plan update. */
 export interface UpdateMealRecipeRequest {
+    /** Optional id of the stored item this entry continues; unknown ids get a server-minted one. */
+    itemId?: string | undefined;
     /** Recipe identifier. */
     recipeId?: string;
     /** Display name of the recipe. */
@@ -29547,6 +29725,31 @@ export interface AddClientOneOffPaymentRequest {
     dueDate?: string;
 }
 
+/** The eaten state of the meal after one of its items was unmarked. */
+export interface UnlogMealItemEatenResponse {
+    /** The plan meal. */
+    mealId?: string;
+    /** The item that was unmarked. */
+    itemId?: string;
+    /** How much of the meal is eaten now. */
+    eatenState?: MealEatenState;
+    /** Ids of every eaten item of the meal. */
+    eatenItemIds?: string[];
+    /** Always null: a meal with an unmarked item is not fully eaten. */
+    eatenAt?: string | undefined;
+}
+
+/** How much of a plan meal the client has eaten. */
+export enum MealEatenState {
+    NotEaten = "NotEaten",
+    PartlyEaten = "PartlyEaten",
+    Eaten = "Eaten",
+}
+
+/** Request model for unmarking one food or recipe of a plan meal. */
+export interface UnlogMealItemEatenRequest {
+}
+
 /** Request model for un-logging (removing) a previously logged meal for the current day. */
 export interface UnlogMealEatenRequest {
 }
@@ -29674,6 +29877,31 @@ export enum DayPhotoCategory {
 export interface RemoveOffPlanFoodRequest {
 }
 
+/** The eaten state of the meal after one of its items was marked eaten. */
+export interface LogMealItemEatenResponse {
+    /** The plan meal. */
+    mealId?: string;
+    /** The item that was marked. */
+    itemId?: string;
+    /** How much of the meal is eaten now. */
+    eatenState?: MealEatenState;
+    /** Ids of every eaten item of the meal. */
+    eatenItemIds?: string[];
+    /** When the last item was eaten; null unless every item is eaten. */
+    eatenAt?: string | undefined;
+}
+
+/** Request model for marking one food or recipe of a plan meal as eaten. */
+export interface LogMealItemEatenRequest {
+    /** When the client actually ate the item (offline sync). Defaults to the server clock;
+at most 5 minutes ahead and 7 days back. */
+    occurredAt?: string | undefined;
+    /** Client-generated id that makes a retried request apply only once. */
+    clientRequestId?: string | undefined;
+    /** The NutritionPlan.Version the client saw when it queued the request. */
+    basedOnPlanVersion?: number | undefined;
+}
+
 /** Result of logging a meal as eaten. Always returned with 201, also when the action collided with a plan change (the coach is told separately). */
 export interface LogMealEatenResponse {
     /** Human-readable confirmation. */
@@ -29765,9 +29993,13 @@ export interface GetWeekMealLogDayDto {
 export interface GetWeekMealLogMealDto {
     /** Id of the plan meal. */
     mealId?: string;
-    /** True when any row for the meal and day is marked eaten. */
+    /** True when every item of the meal is eaten; false for a partly eaten meal. */
     eaten?: boolean;
-    /** Earliest eaten instant (UTC) across the rows, when eaten. */
+    /** How much of the meal is eaten: none, some items, or every item. */
+    eatenState?: MealEatenState;
+    /** Ids of the meal's foods and recipes that are eaten, unioned across the rows. */
+    eatenItemIds?: string[];
+    /** Earliest eaten instant (UTC) across the rows, when every item is eaten. */
     eatenAt?: string | undefined;
     /** Diary note on the meal, when present. */
     note?: string | undefined;
@@ -29832,10 +30064,14 @@ export interface TodayMealLogDto {
     mealId?: string;
     /** Display name of the meal (resolved from the plan). */
     mealName?: string;
-    /** When the meal was eaten. Null for photo/note-only log entries that have not
-been confirmed as eaten via the quick-log button. */
+    /** When the meal was eaten. Null for photo/note-only log entries and for partly eaten meals:
+it is set only while every item of the meal is eaten. */
     eatenAt?: string | undefined;
-    /** Computed nutrient totals for this logged meal. */
+    /** How much of the meal is eaten: none, some items, or every item. */
+    eatenState?: MealEatenState;
+    /** Ids of the meal's foods and recipes that are eaten. */
+    eatenItemIds?: string[];
+    /** Computed nutrient totals for this logged meal; for a partly eaten meal, only its eaten items. */
     totals?: NutrientTotals;
     /** Photos attached to this meal log entry.
 Empty list when the client logged without photos. */
