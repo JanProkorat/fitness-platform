@@ -1,6 +1,6 @@
 import { Fragment, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Star } from 'lucide-react';
+import { Smile, Star } from 'lucide-react';
 import type { ClientFormAnswer } from '@/api/questionnaires';
 import { parseChoices } from '@/components/client-forms/answerValues';
 import { cn } from '@/lib/utils';
@@ -15,12 +15,14 @@ function AnswerValue({ answer }: { answer: ClientFormAnswer }) {
   switch (answer.questionType) {
     case 'multi_select': {
       const choices = parseChoices(answer.valueJson);
-      if (choices.length === 0) {
+      const other = answer.valueText?.trim();
+      const items = other ? [...choices, other] : choices;
+      if (items.length === 0) {
         return empty;
       }
       return (
         <ul className="flex flex-wrap gap-1.5">
-          {choices.map((choice, index) => (
+          {items.map((choice, index) => (
             <li key={`${index}-${choice}`} className={CHIP_CLASS}>
               {choice}
             </li>
@@ -29,11 +31,21 @@ function AnswerValue({ answer }: { answer: ClientFormAnswer }) {
       );
     }
     case 'scale':
+    case 'star_rating':
       return answer.valueNumber == null ? (
         empty
       ) : (
         <span className="inline-flex items-center gap-1.5 text-copy font-semibold text-ink">
           <Star className="size-4 fill-current text-training" aria-hidden="true" />
+          {answer.valueNumber}
+        </span>
+      );
+    case 'smiley_rating':
+      return answer.valueNumber == null ? (
+        empty
+      ) : (
+        <span className="inline-flex items-center gap-1.5 text-copy font-semibold text-ink">
+          <Smile className="size-4 text-training" aria-hidden="true" />
           {answer.valueNumber}
         </span>
       );
