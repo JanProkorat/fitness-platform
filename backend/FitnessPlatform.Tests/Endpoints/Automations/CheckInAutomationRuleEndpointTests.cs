@@ -64,6 +64,20 @@ public class CheckInAutomationRuleEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
+    public async Task Create_CheckInRuleWithSevenDayWindow_RoundTrips()
+    {
+        var coach = await CreateCoachAsync();
+        var formId = await AutomationTestData.CreateQuestionnaireAsync(factory, coach, QuestionnaireType.CheckIn);
+        var body = CheckInRule(formId);
+        body["answerWindowHours"] = 168;
+
+        var created = await ReadRuleAsync(await coach.Http.PostAsJsonAsync("/trainer/automations/rules", body, Ct));
+
+        created.AnswerWindowHours.Should().Be(168);
+        created.ReminderAfterHours.Should().Be(24);
+    }
+
+    [Fact]
     public async Task CheckInRule_SecondEnabledOne_IsRefusedOnCreateAndOnEnabling()
     {
         var coach = await CreateCoachAsync();

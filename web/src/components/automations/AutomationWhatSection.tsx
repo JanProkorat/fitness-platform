@@ -19,6 +19,7 @@ import {
   SelectChevron,
 } from '@/components/automations/automationFormParts';
 import {
+  checkInReminderHours,
   DEFAULT_SCHEDULE_TIME,
   messageLimitFor,
   type AutomationRuleFormValues,
@@ -54,6 +55,8 @@ export default function AutomationWhatSection({
   const message = useWatch({ control, name: 'message' }) ?? '';
   const questionnaireId = useWatch({ control, name: 'questionnaireId' });
   const checkIn = useWatch({ control, name: 'checkIn' });
+  const answerWindowDays = useWatch({ control, name: 'answerWindowDays' });
+  const reminderHours = checkInReminderHours(Number(answerWindowDays) * 24);
   const limit = messageLimitFor(actionType);
   // An automation sends an active onboarding or check-in form. One enabled check-in rule is allowed per coach,
   // so check-in forms are hidden while another enabled check-in rule exists.
@@ -190,7 +193,7 @@ export default function AutomationWhatSection({
                   checked={field.value}
                   onCheckedChange={(checked) => field.onChange(checked === true)}
                 />
-                <span className="text-copy text-ink">{t('automations.drawer.what.reminder')}</span>
+                <span className="text-copy text-ink">{t('automations.drawer.what.reminder', { hours: reminderHours })}</span>
               </label>
             )}
           />

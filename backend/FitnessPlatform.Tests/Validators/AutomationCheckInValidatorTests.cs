@@ -54,9 +54,9 @@ public class AutomationCheckInValidatorTests
     }
 
     [Theory]
-    [InlineData(12)]
-    [InlineData(72)]
     [InlineData(0)]
+    [InlineData(36)]
+    [InlineData(192)]
     public void Validate_AnswerWindowOutsideTheOfferedOptions_Fails(int hours)
     {
         var request = ValidCheckIn();
@@ -66,14 +66,30 @@ public class AutomationCheckInValidatorTests
     }
 
     [Theory]
-    [InlineData(12)]
-    [InlineData(48)]
-    public void Validate_ReminderOutsideTheOfferedOptionsOrNotBeforeTheWindowEnds_Fails(int hours)
+    [InlineData(48, 12)]
+    [InlineData(24, 24)]
+    [InlineData(48, 6)]
+    [InlineData(48, 48)]
+    public void Validate_ReminderNotMatchingTheWindow_Fails(int windowHours, int reminderHours)
     {
         var request = ValidCheckIn();
-        request.ReminderAfterHours = hours;
+        request.AnswerWindowHours = windowHours;
+        request.ReminderAfterHours = reminderHours;
 
         HasCheckInError(new CreateAutomationRuleValidator().TestValidate(request)).Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData(24, 12)]
+    [InlineData(48, 24)]
+    [InlineData(168, 24)]
+    public void Validate_WindowWithItsReminder_Passes(int windowHours, int reminderHours)
+    {
+        var request = ValidCheckIn();
+        request.AnswerWindowHours = windowHours;
+        request.ReminderAfterHours = reminderHours;
+
+        new CreateAutomationRuleValidator().TestValidate(request).ShouldNotHaveAnyValidationErrors();
     }
 
     [Fact]

@@ -113,6 +113,51 @@ public class AutomationCheckInSweeperTests(FitnessApiFactory factory)
     }
 
     [Fact]
+    public async Task Send_SevenDayWindow_NextWeekStillSendsAndTheUnansweredOneEndsUpMissed()
+    {
+        var fixture = await ArrangeAsync(r =>
+        {
+            r.AnswerWindowHours = 168;
+            r.ReminderAfterHours = 24;
+        });
+
+        (await SendAsync(fixture, "first", SentAt)).Should().Be(AutomationSendOutcome.Sent);
+        (await SendAsync(fixture, "second", SentAt.AddDays(7))).Should().Be(AutomationSendOutcome.Sent);
+        await SweepAsync(fixture, SentAt.AddDays(7).AddHours(1));
+
+        var responses = await WithDbAsync(db => db.QuestionnaireResponses.AsNoTracking()
+            .Where(r => r.QuestionnaireId == fixture.Form.Id && r.ClientId == fixture.Client.UserId)
+            .OrderBy(r => r.Id)
+            .ToListAsync(Ct));
+        responses.Should().HaveCount(2);
+        responses[0].CheckInDueAtUtc.Should().Be(SentAt.AddHours(168));
+        responses[0].CheckInMissedNotifiedAtUtc.Should().NotBeNull("the unanswered first week is missed once its window ends");
+        responses[1].CheckInMissedNotifiedAtUtc.Should().BeNull("the second week is still open");
+        (await NotificationCountAsync(fixture.Coach.UserId, NotificationType.CoachCheckInMissed)).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Send_OneDayWindow_DueAfter24HoursAndRemindedAfter12()
+    {
+        var fixture = await ArrangeAsync(r =>
+        {
+            r.AnswerWindowHours = 24;
+            r.ReminderAfterHours = 12;
+        });
+        await SendAsync(fixture, "first", SentAt);
+
+        var response = await WithDbAsync(db => db.QuestionnaireResponses.AsNoTracking()
+            .SingleAsync(r => r.QuestionnaireId == fixture.Form.Id && r.ClientId == fixture.Client.UserId, Ct));
+        response.CheckInDueAtUtc.Should().Be(SentAt.AddHours(24));
+
+        await SweepAsync(fixture, SentAt.AddHours(11));
+        (await NotificationCountAsync(fixture.Client.UserId, NotificationType.ClientCheckInReminder)).Should().Be(0, "12 h have not passed");
+
+        await SweepAsync(fixture, SentAt.AddHours(13));
+        (await NotificationCountAsync(fixture.Client.UserId, NotificationType.ClientCheckInReminder)).Should().Be(1);
+    }
+
+    [Fact]
     public async Task Send_CheckInRuleOfACoachWithoutTheCheckInFeature_SendsNothing()
     {
         var fixture = await ArrangeAsync();

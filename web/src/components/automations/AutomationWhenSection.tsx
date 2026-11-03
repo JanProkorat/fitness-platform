@@ -17,6 +17,7 @@ import {
   SelectChevron,
 } from '@/components/automations/automationFormParts';
 import {
+  CHECK_IN_WINDOW_DAYS,
   DEFAULT_EVENT_TIME,
   EVENT_TYPES,
   isPlanEvent,
@@ -104,15 +105,22 @@ export default function AutomationWhenSection() {
           </div>
           <div className="grid grid-cols-2 gap-3">
             {timeField}
-            <div className={FIELD_CLASS}>
+            <label className={FIELD_CLASS}>
               <span>{t('automations.drawer.when.answerWithin')}</span>
-              <p className="flex h-10 items-center rounded-field border border-line bg-sunken px-3 text-copy font-normal text-ink-2">
-                {t('automations.drawer.when.answerWindowFixed')}
-              </p>
+              <div className="relative">
+                <select {...register('answerWindowDays')} className={SELECT_CLASS}>
+                  {CHECK_IN_WINDOW_DAYS.map((days) => (
+                    <option key={days} value={String(days)}>
+                      {t('automations.drawer.when.answerWindowDays', { count: days })}
+                    </option>
+                  ))}
+                </select>
+                <SelectChevron />
+              </div>
               <span className="text-meta font-normal text-muted-foreground">
                 {t('automations.drawer.when.answerWindowHint')}
               </span>
-            </div>
+            </label>
           </div>
           <div className={FIELD_CLASS}>
             <span>{t('automations.drawer.when.starting')}</span>

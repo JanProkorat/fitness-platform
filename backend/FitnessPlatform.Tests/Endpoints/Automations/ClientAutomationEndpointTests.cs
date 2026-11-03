@@ -490,6 +490,41 @@ public class ClientAutomationEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
+    public async Task Override_CheckInWindowWithMismatchedReminder_Returns400()
+    {
+        var (coach, client, _) = await LinkedPairAsync();
+        var formId = await AutomationTestData.CreateQuestionnaireAsync(factory, coach, QuestionnaireType.CheckIn);
+        var rule = await CreateRuleAsync(coach, new Dictionary<string, object?>
+        {
+            ["name"] = "Weekly check-in",
+            ["actionType"] = "SendForm",
+            ["questionnaireId"] = formId,
+            ["triggerKind"] = "Schedule",
+            ["scheduleInterval"] = 1,
+            ["scheduleUnit"] = "Weeks",
+            ["localTime"] = "18:00:00",
+            ["scheduleWeekday"] = "Thursday",
+            ["answerWindowHours"] = 48,
+        });
+        var overrideBody = new Dictionary<string, object?>
+        {
+            ["name"] = "Weekly check-in", ["actionType"] = "SendForm", ["questionnaireId"] = formId, ["enabled"] = true,
+            ["triggerKind"] = "Schedule",
+            ["scheduleInterval"] = 1,
+            ["scheduleUnit"] = "Weeks",
+            ["localTime"] = "18:00:00",
+            ["scheduleWeekday"] = "Monday",
+            ["answerWindowHours"] = 48,
+            ["reminderAfterHours"] = 12,
+        };
+
+        var response = await coach.Http.PutAsJsonAsync(RuleRoute(client, rule.RuleId, "override"), overrideBody, Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await response.Content.ReadAsStringAsync(Ct)).Should().Contain(FitnessPlatform.Application.Domain.Constants.ErrorCodes.AutomationCheckInInvalid);
+    }
+
+    [Fact]
     public async Task List_CheckInOverrideIgnoredWhenThePlanLacksPerClientConfig()
     {
         var (coach, client, _) = await LinkedPairAsync();
