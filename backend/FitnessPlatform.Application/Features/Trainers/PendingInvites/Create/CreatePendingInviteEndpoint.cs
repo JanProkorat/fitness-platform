@@ -249,6 +249,7 @@ public class CreatePendingInviteEndpoint(
             Message = req.Message,
             SentAt = DateTime.UtcNow,
             QuestionnaireId = questionnaireId,
+            SkipOnboardingForm = req.SkipOnboardingForm,
             RequestedScope = req.RequestedScope,
             CoachPackageId = package?.Id,
             CoachDiscountId = discount?.Id

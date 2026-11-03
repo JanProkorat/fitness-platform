@@ -121,6 +121,7 @@ public class ProposeClientRequestPackageEndpoint(
         clientRequest.ProposedDiscountId = discount?.Id;
         clientRequest.ProposedAt = timeProvider.GetUtcNow().UtcDateTime;
         clientRequest.QuestionnaireId = questionnaire?.Id;
+        clientRequest.SkipOnboardingForm = req.SkipOnboardingForm;
         clientRequest.Statement = req.Statement;
 
         await db.SaveChangesAsync(ct);

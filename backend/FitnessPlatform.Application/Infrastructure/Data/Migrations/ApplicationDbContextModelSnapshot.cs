@@ -1352,6 +1352,10 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("questionnaire_id");
 
+                    b.Property<bool>("SkipOnboardingForm")
+                        .HasColumnType("boolean")
+                        .HasColumnName("skip_onboarding_form");
+
                     b.HasKey("Id")
                         .HasName("pk_client_professional_links");
 
@@ -1513,6 +1517,10 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                     b.Property<bool>("ShareHistory")
                         .HasColumnType("boolean")
                         .HasColumnName("share_history");
+
+                    b.Property<bool>("SkipOnboardingForm")
+                        .HasColumnType("boolean")
+                        .HasColumnName("skip_onboarding_form");
 
                     b.Property<string>("Statement")
                         .HasMaxLength(1000)
@@ -2520,6 +2528,10 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                     b.Property<DateTime>("SentAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("sent_at");
+
+                    b.Property<bool>("SkipOnboardingForm")
+                        .HasColumnType("boolean")
+                        .HasColumnName("skip_onboarding_form");
 
                     b.Property<int>("Status")
                         .HasColumnType("integer")

@@ -212,9 +212,13 @@ public class GetClientPendingQuestionnairesEndpoint(
                     .FirstOrDefaultAsync(q => q.Id == link.QuestionnaireId.Value && q.IsActive, ct);
             }
 
-            questionnaire ??= await db.Questionnaires
-                .AsNoTracking()
-                .FirstOrDefaultAsync(q => q.ProfessionalId == link.ProfessionalProfile.UserId && q.IsDefault && q.IsActive && q.Type == QuestionnaireType.Onboarding, ct);
+            // A link whose coach chose "no onboarding form" never falls back to the default form.
+            if (questionnaire is null && !link.SkipOnboardingForm)
+            {
+                questionnaire = await db.Questionnaires
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(q => q.ProfessionalId == link.ProfessionalProfile.UserId && q.IsDefault && q.IsActive && q.Type == QuestionnaireType.Onboarding, ct);
+            }
 
             if (questionnaire is null) continue;
 

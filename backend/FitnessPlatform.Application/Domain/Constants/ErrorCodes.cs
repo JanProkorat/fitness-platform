@@ -680,4 +680,8 @@ public static class ErrorCodes
 
     /// <summary>The client-reported occurrence time is older than the 7-day offline window.</summary>
     public const string OccurredAtTooOld = "OCCURRED_AT_TOO_OLD";
+
+    // ── Onboarding form choice ──────────────────────────────────────────
+    /// <summary>The request skips the onboarding form and also names a questionnaire.</summary>
+    public const string SkipOnboardingFormWithQuestionnaire = "SKIP_ONBOARDING_FORM_WITH_QUESTIONNAIRE";
 }

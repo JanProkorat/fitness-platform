@@ -23,6 +23,7 @@ public static class ClientLinkActivator
     /// <param name="professional">The inviting professional's profile.</param>
     /// <param name="requestedScope">Scope stored on the invite, or null for every active role.</param>
     /// <param name="questionnaireId">Questionnaire from the invite; overwrites the old value even when null.</param>
+    /// <param name="skipOnboardingForm">The invite's "no onboarding form" choice; set on create and reactivate, left alone on an active link.</param>
     /// <param name="ct">Cancellation token.</param>
     public static async Task<ClientLinkActivationResult> ActivateAsync(
         IApplicationDbContext db,
@@ -31,6 +32,7 @@ public static class ClientLinkActivator
         ProfessionalProfile professional,
         LinkCapabilityScope? requestedScope,
         long? questionnaireId,
+        bool skipOnboardingForm,
         CancellationToken ct)
     {
         var link = await db.ClientProfessionalLinks
@@ -76,6 +78,7 @@ public static class ClientLinkActivator
             link.CanViewNutritionPlans = canViewNutritionPlans;
             link.CanViewTrainingPlans = canViewTrainingPlans;
             link.QuestionnaireId = questionnaireId;
+            link.SkipOnboardingForm = skipOnboardingForm;
 
             return new ClientLinkActivationResult(
                 ClientLinkActivationOutcome.Reactivated, link,
@@ -92,6 +95,7 @@ public static class ClientLinkActivator
             CanViewNutritionPlans = canViewNutritionPlans,
             CanViewTrainingPlans = canViewTrainingPlans,
             QuestionnaireId = questionnaireId,
+            SkipOnboardingForm = skipOnboardingForm,
         };
         db.ClientProfessionalLinks.Add(link);
 
@@ -102,7 +106,7 @@ public static class ClientLinkActivator
 
     /// <summary>
     /// Adds the plan types the invite covers beyond what the active link already grants. Never narrows,
-    /// and leaves the role, questionnaire and activation time alone. The widened link and the added scope
+    /// and leaves the role, questionnaire, skip-onboarding flag and activation time alone. The widened link and the added scope
     /// are returned so the caller can attach the invite's questionnaire to that part only.
     /// </summary>
     private static async Task<ClientLinkActivationResult> WidenActiveLinkAsync(

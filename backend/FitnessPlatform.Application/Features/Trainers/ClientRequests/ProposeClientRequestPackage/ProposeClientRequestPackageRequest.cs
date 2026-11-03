@@ -26,6 +26,12 @@ public class ProposeClientRequestPackageRequest
     public Guid? QuestionnairePublicId { get; set; }
 
     /// <summary>
+    /// When true the client gets no onboarding form, not even the coach's default. Not sent means false.
+    /// Cannot be combined with <see cref="QuestionnairePublicId"/>.
+    /// </summary>
+    public bool SkipOnboardingForm { get; set; }
+
+    /// <summary>
     /// Optional message from the coach shown with the proposal.
     /// </summary>
     public string? Statement { get; set; }
