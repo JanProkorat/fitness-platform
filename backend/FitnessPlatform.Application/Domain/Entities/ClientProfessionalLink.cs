@@ -53,6 +53,12 @@ public class ClientProfessionalLink : PublicTimestampableEntity
     public long? QuestionnaireId { get; set; }
 
     /// <summary>
+    /// True when the professional chose no onboarding form: the default form is not offered.
+    /// An explicit <see cref="QuestionnaireId"/> still wins.
+    /// </summary>
+    public bool SkipOnboardingForm { get; set; }
+
+    /// <summary>
     /// Navigation property to the assigned questionnaire.
     /// </summary>
     public Questionnaire? Questionnaire { get; set; }

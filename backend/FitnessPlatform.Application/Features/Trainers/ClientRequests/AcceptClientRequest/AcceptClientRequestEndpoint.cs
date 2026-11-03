@@ -195,6 +195,7 @@ public class AcceptClientRequestEndpoint(
             link.ProfessionalRole = professionalRole;
             link.CanViewNutritionPlans = canViewNutritionPlans;
             link.CanViewTrainingPlans = canViewTrainingPlans;
+            link.SkipOnboardingForm = req.SkipOnboardingForm;
         }
         else
         {
@@ -206,10 +207,13 @@ public class AcceptClientRequestEndpoint(
                 IsActive = true,
                 ActivatedAtUtc = DateTime.UtcNow,
                 CanViewNutritionPlans = canViewNutritionPlans,
-                CanViewTrainingPlans = canViewTrainingPlans
+                CanViewTrainingPlans = canViewTrainingPlans,
+                SkipOnboardingForm = req.SkipOnboardingForm
             };
             db.ClientProfessionalLinks.Add(link);
         }
+
+        clientRequest.SkipOnboardingForm = req.SkipOnboardingForm;
 
         // Handle optional questionnaire assignment
         if (questionnaire is not null)

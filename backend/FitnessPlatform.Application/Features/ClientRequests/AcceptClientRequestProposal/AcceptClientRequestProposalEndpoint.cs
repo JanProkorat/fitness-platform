@@ -98,7 +98,8 @@ public class AcceptClientRequestProposalEndpoint(
 
         var activation = await ClientLinkActivator.ActivateAsync(
             db, userManager, clientRequest.ClientProfileId, professional,
-            requestedScope: null, clientRequest.QuestionnaireId, ct);
+            requestedScope: null, clientRequest.QuestionnaireId,
+            clientRequest.SkipOnboardingForm, ct);
 
         if (activation.Outcome == ClientLinkActivationOutcome.CoachRoleRemoved)
         {

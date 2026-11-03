@@ -23,6 +23,12 @@ public class CreatePendingInviteRequest
     public Guid? QuestionnairePublicId { get; set; }
 
     /// <summary>
+    /// When true the client gets no onboarding form, not even the coach's default. Not sent means false.
+    /// Cannot be combined with <see cref="QuestionnairePublicId"/>.
+    /// </summary>
+    public bool SkipOnboardingForm { get; set; }
+
+    /// <summary>
     /// Optional explicit domain scope for the relationship this invitation will form.
     /// When omitted, the accept flow defaults to every domain implied by the inviting
     /// professional's held identity roles (existing behavior — unchanged). When

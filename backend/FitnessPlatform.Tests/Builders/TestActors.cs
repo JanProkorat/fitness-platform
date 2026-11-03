@@ -205,6 +205,8 @@ public sealed class LinkBuilder(FitnessApiFactory factory, long professionalProf
     private bool _canViewTrainingPlans = true;
     private DateTime _dateCreated = DateTime.UtcNow;
     private DateTime? _activatedAtUtc;
+    private bool _skipOnboardingForm;
+    private long? _questionnaireId;
 
     /// <summary>
     /// The link's public id, pre-generated so callers can read it without a second DB round
@@ -243,6 +245,16 @@ public sealed class LinkBuilder(FitnessApiFactory factory, long professionalProf
     public LinkBuilder WithActivatedAtUtc(DateTime activatedAtUtc) { _activatedAtUtc = activatedAtUtc; return this; }
 
     /// <summary>
+    /// Marks the link as having no onboarding form (defaults to false).
+    /// </summary>
+    public LinkBuilder SkippingOnboardingForm() { _skipOnboardingForm = true; return this; }
+
+    /// <summary>
+    /// Sets the link's explicit questionnaire (internal id).
+    /// </summary>
+    public LinkBuilder WithQuestionnaireId(long questionnaireId) { _questionnaireId = questionnaireId; return this; }
+
+    /// <summary>
     /// Persists the link and returns its internal id.
     /// </summary>
     public async Task<long> CreateAsync(CancellationToken ct = default)
@@ -261,6 +273,8 @@ public sealed class LinkBuilder(FitnessApiFactory factory, long professionalProf
             CanViewTrainingPlans = _canViewTrainingPlans,
             DateCreated = _dateCreated,
             ActivatedAtUtc = _activatedAtUtc,
+            SkipOnboardingForm = _skipOnboardingForm,
+            QuestionnaireId = _questionnaireId,
         };
         db.ClientProfessionalLinks.Add(link);
 

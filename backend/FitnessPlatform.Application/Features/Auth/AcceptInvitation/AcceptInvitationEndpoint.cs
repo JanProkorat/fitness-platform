@@ -127,7 +127,8 @@ public class AcceptInvitationEndpoint(
         var activation = await ClientLinkActivator.ActivateAsync(
             db, userManager, clientProfile.Id, invitation.ProfessionalProfile,
             invitation.RequestedScope ?? pendingInvite?.RequestedScope,
-            pendingInvite?.QuestionnaireId, ct);
+            pendingInvite?.QuestionnaireId,
+            pendingInvite?.SkipOnboardingForm ?? false, ct);
 
         if (activation.Outcome == ClientLinkActivationOutcome.CoachRoleRemoved)
         {

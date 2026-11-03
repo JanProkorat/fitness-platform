@@ -21,6 +21,36 @@ public class CreatePendingInviteValidatorTests
             .WithErrorCode(ErrorCodes.InviteDiscountNeedsPackage);
     }
 
+    [Fact]
+    public void Validate_SkipOnboardingFormWithQuestionnaire_FailsWithItsOwnCode()
+    {
+        var request = new CreatePendingInviteRequest
+        {
+            Email = "client@example.com",
+            SkipOnboardingForm = true,
+            QuestionnairePublicId = Guid.NewGuid()
+        };
+
+        _validator.TestValidate(request)
+            .ShouldHaveValidationErrorFor(x => x.QuestionnairePublicId)
+            .WithErrorCode(ErrorCodes.SkipOnboardingFormWithQuestionnaire);
+    }
+
+    [Theory]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    public void Validate_SkipOrQuestionnaireAlone_Passes(bool skip, bool withQuestionnaire)
+    {
+        var request = new CreatePendingInviteRequest
+        {
+            Email = "client@example.com",
+            SkipOnboardingForm = skip,
+            QuestionnairePublicId = withQuestionnaire ? Guid.NewGuid() : null
+        };
+
+        _validator.TestValidate(request).ShouldNotHaveAnyValidationErrors();
+    }
+
     [Theory]
     [InlineData(false, false)]
     [InlineData(true, false)]

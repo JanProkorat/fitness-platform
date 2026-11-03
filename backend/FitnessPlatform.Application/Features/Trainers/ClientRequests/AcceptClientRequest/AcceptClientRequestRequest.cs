@@ -18,6 +18,12 @@ public class AcceptClientRequestRequest
     public Guid? QuestionnairePublicId { get; set; }
 
     /// <summary>
+    /// When true the client gets no onboarding form, not even the coach's default. Not sent means false.
+    /// Cannot be combined with <see cref="QuestionnairePublicId"/>.
+    /// </summary>
+    public bool SkipOnboardingForm { get; set; }
+
+    /// <summary>
     /// Optional statement from the professional (saved for future display in chat).
     /// </summary>
     public string? Statement { get; set; }

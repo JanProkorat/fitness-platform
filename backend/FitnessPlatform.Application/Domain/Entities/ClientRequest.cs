@@ -25,6 +25,11 @@ public class ClientRequest : PublicTimestampableEntity
     public long? QuestionnaireId { get; set; }
 
     /// <summary>
+    /// True when the professional chose no onboarding form; the default form is then not offered.
+    /// </summary>
+    public bool SkipOnboardingForm { get; set; }
+
+    /// <summary>
     /// Whether the client agreed to share their history with the professional. Stored only; not enforced yet.
     /// </summary>
     public bool ShareHistory { get; set; }

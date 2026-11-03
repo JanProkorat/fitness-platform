@@ -43,6 +43,11 @@ public class PendingInvite : PublicTimestampableEntity
     public long? QuestionnaireId { get; set; }
 
     /// <summary>
+    /// True when the professional chose no onboarding form; the default form is then not offered.
+    /// </summary>
+    public bool SkipOnboardingForm { get; set; }
+
+    /// <summary>
     /// Optional explicit domain scope the professional selected when sending this
     /// invitation. When null, the accept flow defaults to every domain implied by the
     /// professional's held identity roles at accept time — existing behavior, unchanged

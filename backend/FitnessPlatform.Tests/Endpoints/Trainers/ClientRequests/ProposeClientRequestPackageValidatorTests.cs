@@ -1,3 +1,4 @@
+using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Features.Trainers.ClientRequests.ProposeClientRequestPackage;
 using FluentAssertions;
 
@@ -35,6 +36,26 @@ public class ProposeClientRequestPackageValidatorTests
     public void Statement_OverLimit_IsInvalid()
     {
         _validator.Validate(Valid(new string('a', 1001))).IsValid.Should().BeFalse();
+    }
+
+    [Fact]
+    public void SkipOnboardingForm_WithQuestionnaire_FailsWithItsOwnCode()
+    {
+        var request = Valid();
+        request.SkipOnboardingForm = true;
+        request.QuestionnairePublicId = Guid.NewGuid();
+
+        _validator.Validate(request).Errors.Should().ContainSingle(
+            error => error.ErrorCode == ErrorCodes.SkipOnboardingFormWithQuestionnaire);
+    }
+
+    [Fact]
+    public void SkipOnboardingForm_WithoutQuestionnaire_IsValid()
+    {
+        var request = Valid();
+        request.SkipOnboardingForm = true;
+
+        _validator.Validate(request).IsValid.Should().BeTrue();
     }
 
     [Fact]
