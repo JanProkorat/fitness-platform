@@ -2270,6 +2270,7 @@
         "star_rating": { "name": "Star rating", "hint": "Satisfaction on a 1–5 scale" },
         "scale": { "name": "Scale" },
         "file_upload": { "name": "File upload" },
+        "section": { "name": "Section", "hint": "A heading that groups the questions below" },
         "other": { "name": "Other question" }
       },
       "info": {
@@ -2292,7 +2293,8 @@
         "question": "Untitled question",
         "option": "Option {{number}}",
         "low": "Very low",
-        "high": "Great"
+        "high": "Great",
+        "section": "Untitled section"
       },
       "card": {
         "label": "Question {{number}}: {{title}}",
@@ -2307,6 +2309,17 @@
         "helperPlaceholder": "Helper text (optional)",
         "required": "Required",
         "requiredToggle": "Required"
+      },
+      "section": {
+        "chip": "Section",
+        "label": "Section {{number}}: {{title}}",
+        "reorder": "Reorder section {{number}}",
+        "duplicate": "Duplicate section {{number}}",
+        "delete": "Delete section {{number}}",
+        "titleLabel": "Section {{number}} title",
+        "titlePlaceholder": "Name the section",
+        "descriptionLabel": "Section {{number}} description",
+        "descriptionPlaceholder": "Description (optional)"
       },
       "choice": {
         "reorder": "Reorder choice {{number}}",
@@ -2359,7 +2372,8 @@
         "options": "Add at least one choice and fill in every choice.",
         "numberInvalid": "Min and max must be numbers.",
         "numberRange": "Min can't be higher than max.",
-        "smileyLabels": "Fill in both face labels."
+        "smileyLabels": "Fill in both face labels.",
+        "onlySections": "Add at least one question besides the sections."
       }
     },
     "create": {
@@ -3093,6 +3107,7 @@
     "REQUIRED": "This field is required.",
     "OUT_OF_RANGE": "Value is out of the allowed range.",
     "INVALID_DEADLINE_OFFSET_HOURS": "Invalid deadline. Allowed values: 24, 48, 72, 120 or 168 hours.",
+    "QUESTION_SECTION_INVALID": "A section can't be required or have a mapped field.",
     "SESSION_ALREADY_COMPLETED": "This session has already been completed.",
     "CONVERSATION_LOCKED": "You can reply once the client accepts your invitation.",
     "SECTION_ALREADY_COMPLETED": "This section has already been completed by the client and cannot be edited.",

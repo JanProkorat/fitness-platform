@@ -33,7 +33,8 @@ export default function QuestionnaireStepScreen() {
   const name = fill.coachFirstName || t('questionnaireFill.coachFallback');
   const firstQuestion = step.questions[0];
   const title = single ? (firstQuestion?.label ?? '') : (step.title ?? t('questionnaireFill.unnamedSection'));
-  const subtitle = single && firstQuestion?.helper ? firstQuestion.helper : t('questionnaireFill.fromCoach', { name });
+  const description = single ? firstQuestion?.helper : step.description;
+  const subtitle = description ? description : t('questionnaireFill.fromCoach', { name });
 
   const next = () => {
     if (editing) {

@@ -172,6 +172,47 @@ public class UpdateQuestionnaireEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
+    public async Task Update_RequiredSection_Returns400()
+    {
+        var trainer = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
+        var form = await CreateAsync(trainer, "Intake", "Onboarding");
+
+        var response = await UpdateAsync(trainer, form.PublicId, null, isDefault: true,
+        [
+            new { OrderIndex = 0, Type = "section", Label = "Lifestyle", IsRequired = true },
+        ]);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken))
+            .Should().Contain("QUESTION_SECTION_INVALID");
+    }
+
+    [Fact]
+    public async Task Update_SectionsBetweenQuestions_RoundTripsInOrderWithHelperText()
+    {
+        var trainer = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
+        var form = await CreateAsync(trainer, "Intake", "Onboarding");
+
+        var response = await UpdateAsync(trainer, form.PublicId, null, isDefault: true,
+        [
+            new { OrderIndex = 0, Type = "section", Label = "About you", HelperText = "Basics first" },
+            new { OrderIndex = 1, Type = "short_text", Label = "Job" },
+            new { OrderIndex = 2, Type = "section", Label = "Training", HelperText = "How you move" },
+            new { OrderIndex = 3, Type = "short_text", Label = "Goal" },
+        ]);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var reloaded = await trainer.Http.GetFromJsonAsync<GetTrainerQuestionnaireResponse>(
+            $"/trainer/questionnaires/{form.PublicId}", JsonOptions, TestContext.Current.CancellationToken);
+
+        var questions = reloaded!.Questions.OrderBy(question => question.OrderIndex).ToList();
+        questions.Select(question => question.Type).Should().Equal("section", "short_text", "section", "short_text");
+        questions.Select(question => question.Label).Should().Equal("About you", "Job", "Training", "Goal");
+        questions[0].HelperText.Should().Be("Basics first");
+        questions[2].HelperText.Should().Be("How you move");
+    }
+
+    [Fact]
     public async Task Update_InvalidConfig_Returns400()
     {
         var trainer = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);

@@ -139,6 +139,37 @@ trainerTest.describe('form builder', () => {
     }
   });
 
+  trainerTest('a section with a description sits between questions and survives a reload', async ({ page }) => {
+    const name = `E2E section builder ${Date.now().toString(36)}`;
+    await createForm(page, name, 'Onboarding');
+
+    try {
+      await page.getByRole('button', { name: 'Add Text' }).click();
+      await page.getByLabel('Question 1 title').fill('Injuries');
+      await page.getByRole('button', { name: 'Add Section' }).click();
+      await page.getByLabel('Section 1 title').fill('Lifestyle');
+      await page.getByLabel('Section 1 description').fill('Sleep and daily routine');
+      await page.getByRole('button', { name: 'Add Text' }).click();
+      // The question after the section is number 2: sections take no number.
+      await page.getByLabel('Question 2 title').fill('Sleep hours');
+      await expect(page.getByTestId('question-count')).toHaveText('2 questions');
+
+      await page.getByRole('button', { name: 'Save' }).click();
+      await expect(page.getByTestId('save-status')).toHaveText('Saved');
+      await page.reload();
+
+      await expect(page.getByLabel('Form name')).toHaveValue(name);
+      await expect(page.getByTestId('form-canvas').locator('[data-key]')).toHaveCount(3);
+      await expect(page.getByTestId('form-canvas').locator('[data-key]').nth(1)).toHaveAttribute('data-kind', 'section');
+      await expect(page.getByLabel('Section 1 title')).toHaveValue('Lifestyle');
+      await expect(page.getByLabel('Section 1 description')).toHaveValue('Sleep and daily routine');
+      await expectTitles(page, ['Injuries', 'Sleep hours']);
+      await expect(page.getByTestId('question-count')).toHaveText('2 questions');
+    } finally {
+      await deleteForm(page, name);
+    }
+  });
+
   trainerTest('check-in form has no default switch and saves', async ({ page }) => {
     const name = `E2E check-in builder ${Date.now().toString(36)}`;
     await createForm(page, name, 'Check-in');

@@ -2269,6 +2269,7 @@
         "star_rating": { "name": "Sternebewertung", "hint": "Zufriedenheit auf einer Skala von 1–5" },
         "scale": { "name": "Skala" },
         "file_upload": { "name": "Datei-Upload" },
+        "section": { "name": "Abschnitt", "hint": "Eine Überschrift, die die folgenden Fragen gruppiert" },
         "other": { "name": "Andere Frage" }
       },
       "info": {
@@ -2291,7 +2292,8 @@
         "question": "Frage ohne Titel",
         "option": "Option {{number}}",
         "low": "Sehr niedrig",
-        "high": "Großartig"
+        "high": "Großartig",
+        "section": "Abschnitt ohne Titel"
       },
       "card": {
         "label": "Frage {{number}}: {{title}}",
@@ -2306,6 +2308,17 @@
         "helperPlaceholder": "Hilfetext (optional)",
         "required": "Pflicht",
         "requiredToggle": "Pflichtfeld"
+      },
+      "section": {
+        "chip": "Abschnitt",
+        "label": "Abschnitt {{number}}: {{title}}",
+        "reorder": "Abschnitt {{number}} verschieben",
+        "duplicate": "Abschnitt {{number}} duplizieren",
+        "delete": "Abschnitt {{number}} löschen",
+        "titleLabel": "Titel von Abschnitt {{number}}",
+        "titlePlaceholder": "Benennen Sie den Abschnitt",
+        "descriptionLabel": "Beschreibung von Abschnitt {{number}}",
+        "descriptionPlaceholder": "Beschreibung (optional)"
       },
       "choice": {
         "reorder": "Option {{number}} verschieben",
@@ -2358,7 +2371,8 @@
         "options": "Fügen Sie mindestens eine Option hinzu und füllen Sie alle Optionen aus.",
         "numberInvalid": "Min und Max müssen Zahlen sein.",
         "numberRange": "Min darf nicht größer als Max sein.",
-        "smileyLabels": "Füllen Sie beide Gesichtsbeschriftungen aus."
+        "smileyLabels": "Füllen Sie beide Gesichtsbeschriftungen aus.",
+        "onlySections": "Fügen Sie neben den Abschnitten mindestens eine Frage hinzu."
       }
     },
     "create": {
@@ -3092,6 +3106,7 @@
     "REQUIRED": "Dieses Feld ist erforderlich.",
     "OUT_OF_RANGE": "Der Wert liegt außerhalb des zulässigen Bereichs.",
     "INVALID_DEADLINE_OFFSET_HOURS": "Ungültige Frist. Erlaubte Werte: 24, 48, 72, 120 oder 168 Stunden.",
+    "QUESTION_SECTION_INVALID": "Ein Abschnitt kann weder erforderlich sein noch ein zugeordnetes Feld haben.",
     "SESSION_ALREADY_COMPLETED": "Diese Einheit wurde bereits abgeschlossen.",
     "CONVERSATION_LOCKED": "Sie können antworten, sobald der Klient Ihre Einladung annimmt.",
     "SECTION_ALREADY_COMPLETED": "Dieser Abschnitt wurde bereits vom Klienten abgeschlossen und kann nicht bearbeitet werden.",
