@@ -851,9 +851,7 @@
       "sections": {
         "client": "Klient",
         "scope": "Was Sie betreuen",
-        "onboarding": "Onboarding-Formular",
-        "payment": "Zahlung",
-        "message": "Persönliche Nachricht"
+        "offer": "Ihr Angebot"
       },
       "emailLabel": "E-Mail",
       "emailHelper": "Schon bei Form Up? Die Einladung erscheint auch in seinen Nachrichten.",
@@ -863,26 +861,9 @@
         "both": "Beides"
       },
       "scopeHelper": "Legt fest, welche seiner Pläne Sie sehen und bearbeiten können.",
-      "questionnaireLabel": "Zu sendendes Formular",
-      "questionnaireNone": "Keines",
-      "questionnaireOption_one": "{{title}} · {{count}} Frage",
-      "questionnaireOption_other": "{{title}} · {{count}} Fragen",
-      "questionnaireHelperDefault": "Er füllt es gleich nach der Annahme aus. Sie können auch ein anderes aktives Formular wählen.",
-      "questionnaireHelper": "Er füllt es gleich nach der Annahme aus. Wählen Sie „Keines“, um es zu überspringen.",
-      "questionnaireLoadError": "Die Formulare konnten nicht geladen werden. Sie können die Einladung trotzdem ohne Formular senden.",
-      "optional": "(optional)",
+      "billingHint": "Wird in der Einladung angezeigt. Wird zugewiesen, sobald der Klient annimmt, und die Abrechnung beginnt an diesem Tag.",
+      "noPackageHint": "Die Einladung enthält kein Paket. Die Zahlung können Sie später vereinbaren.",
       "payment": {
-        "package": "Paket",
-        "packagePlaceholder": "Kein Paket",
-        "discount": "Rabatt",
-        "discountPlaceholder": "Kein Rabatt",
-        "noDiscounts": "Keine Rabatte verfügbar",
-        "discountNeedsPackage": "Wählen Sie zuerst ein Paket",
-        "noPackages": "Sie haben noch keine Pakete.",
-        "createPackage": "Paket erstellen",
-        "loadError": "Die Pakete konnten nicht geladen werden. Sie können die Einladung auch ohne Paket senden.",
-        "pays": "Der Klient zahlt",
-        "helper": "Wird in der Einladung angezeigt. Wird zugewiesen, sobald der Klient annimmt, und die Abrechnung beginnt an diesem Tag.",
         "errors": {
           "notEntitled": "Zahlungen sind nicht Teil Ihres Tarifs. Entfernen Sie das Paket und senden Sie die Einladung erneut.",
           "packageArchived": "Dieses Paket wurde archiviert. Wählen Sie ein anderes und senden Sie die Einladung erneut.",
@@ -892,8 +873,6 @@
           "unavailable": "Dieses Paket oder dieser Rabatt ist nicht mehr verfügbar. Die Listen wurden aktualisiert."
         }
       },
-      "messageLabel": "Nachricht in der Einladungs-E-Mail",
-      "footerNote": "Die Einladung bleibt unter Ausstehend, bis er sie annimmt",
       "submit": "Einladung senden",
       "validation": {
         "emailRequired": "E-Mail ist erforderlich.",
@@ -1112,6 +1091,7 @@
     "decideLater": "Später entscheiden",
     "optional": "· optional",
     "pays": "{{name}} zahlt",
+    "paysGeneric": "Der Klient zahlt",
     "paysFirst_one": "{{amount}} für die erste Zahlung",
     "paysFirst_other": "{{amount}} für die ersten {{count}} Zahlungen",
     "paysThen": "danach {{amount}} {{suffix}}",
@@ -1155,12 +1135,15 @@
       "defaultHint": "Wird jedem neuen Klienten nach der Annahme gesendet",
       "noneOption": "Keines",
       "noneHint": "Formular für {{name}} überspringen",
+      "noneHintGeneric": "Formular für diesen Klienten überspringen",
       "new": "Neues Formular",
       "manage": "Formulare verwalten"
     },
     "message": {
       "title": "Nachricht an {{name}}",
+      "titleGeneric": "Nachricht an den Klienten",
       "placeholder": "Schreiben Sie {{name}} ein paar Worte…",
+      "placeholderGeneric": "Schreiben Sie dem Klienten ein paar Worte…",
       "tooLong": "Die Nachricht darf höchstens {{max}} Zeichen lang sein."
     },
     "errors": {
