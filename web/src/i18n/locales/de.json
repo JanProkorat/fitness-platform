@@ -2183,6 +2183,7 @@
   },
   "forms": {
     "eyebrow": "Formulare",
+    "defaultBadge": "Einstieg",
     "title": "Formulare",
     "subtitle": "Fragen, die Ihre Klienten beantworten — zu Beginn und jede Woche",
     "newForm": "Neues Formular",
@@ -2202,7 +2203,7 @@
       "type": "Typ"
     },
     "type": {
-      "Onboarding": "Onboarding",
+      "Onboarding": "Formular",
       "CheckIn": "Check-in"
     },
     "table": {
@@ -2274,6 +2275,7 @@
       },
       "info": {
         "onboarding": "Wird automatisch an jeden neuen Klienten gesendet, nachdem er Ihre Einladung angenommen hat",
+        "anyTime": "Kann jederzeit gesendet werden, von Hand oder per Automatisierungsregel",
         "checkInSent": "Gesendet <strong>{{day}} um {{time}}</strong>",
         "checkInReminder": "Erinnerung nach {{hours}} h",
         "checkInEdit": "In Automatisierungen bearbeiten",
@@ -2386,7 +2388,7 @@
       "descriptionInvalid": "Die Beschreibung darf höchstens {{max}} Zeichen lang sein.",
       "type": "Typ",
       "typeHint": {
-        "Onboarding": "Wird einmal an neue Klienten gesendet",
+        "Onboarding": "Kann jederzeit gesendet werden, von Hand oder per Automatisierungsregel",
         "CheckIn": "Wird jede Woche beantwortet"
       },
       "submit": "Formular erstellen",

@@ -35,18 +35,18 @@ trainerTest.describe('trainer forms', () => {
     const onboardingName = `E2E onboarding ${suffix}`;
     const checkInName = `E2E check-in ${suffix}`;
 
-    async function createForm(name: string, typeLabel: 'Onboarding' | 'Check-in') {
+    async function createForm(name: string, typeLabel: 'Form' | 'Check-in') {
       await page.goto('/forms');
       await page.getByRole('button', { name: 'New form' }).first().click();
       const dialog = page.getByRole('dialog');
       await dialog.getByLabel('Name').fill(name);
-      await dialog.getByRole('radio', { name: new RegExp(typeLabel) }).click();
+      await dialog.getByRole('radio', { name: new RegExp(`^${typeLabel}\\b`) }).click();
       await dialog.getByRole('button', { name: 'Create form' }).click();
       // The builder route lands in a later task; creating the form is what counts here.
       await expect(page).toHaveURL(/\/forms\/[0-9a-f-]{36}$/);
     }
 
-    await createForm(onboardingName, 'Onboarding');
+    await createForm(onboardingName, 'Form');
     await createForm(checkInName, 'Check-in');
 
     await page.goto('/forms');

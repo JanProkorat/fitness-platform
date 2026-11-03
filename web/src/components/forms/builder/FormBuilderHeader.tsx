@@ -3,6 +3,7 @@ import { Check, ChevronLeft, Eye, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import type { QuestionnaireType } from '@/api/questionnaires';
+import FormDefaultBadge from '@/components/forms/FormDefaultBadge';
 import FormTypeBadge from '@/components/forms/FormTypeBadge';
 import { TITLE_MAX_LENGTH } from '@/components/forms/builder/form-builder-model';
 
@@ -11,6 +12,7 @@ interface Props {
   onTitleChange: (title: string) => void;
   titleInvalid: boolean;
   type: QuestionnaireType;
+  isDefault: boolean;
   dirty: boolean;
   saving: boolean;
   onBack: () => void;
@@ -24,6 +26,7 @@ export default function FormBuilderHeader({
   onTitleChange,
   titleInvalid,
   type,
+  isDefault,
   dirty,
   saving,
   onBack,
@@ -69,6 +72,7 @@ export default function FormBuilderHeader({
 
       <div className="flex shrink-0 items-center gap-3">
         <FormTypeBadge type={type} />
+        {isDefault && <FormDefaultBadge />}
         <span
           role="status"
           data-testid="save-status"

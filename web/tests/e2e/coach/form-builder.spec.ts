@@ -9,12 +9,12 @@ import type { Locator, Page } from '@playwright/test';
 
 trainerTest.use({ viewport: { width: 1440, height: 1100 } });
 
-async function createForm(page: Page, name: string, typeLabel: 'Onboarding' | 'Check-in') {
+async function createForm(page: Page, name: string, typeLabel: 'Form' | 'Check-in') {
   await page.goto('/forms');
   await page.getByRole('button', { name: 'New form' }).first().click();
   const dialog = page.getByRole('dialog');
   await dialog.getByLabel('Name').fill(name);
-  await dialog.getByRole('radio', { name: new RegExp(typeLabel) }).click();
+  await dialog.getByRole('radio', { name: new RegExp(`^${typeLabel}\\b`) }).click();
   await dialog.getByRole('button', { name: 'Create form' }).click();
   await expect(page).toHaveURL(/\/forms\/[0-9a-f-]{36}$/);
   await expect(page.getByLabel('Form name')).toHaveValue(name);
@@ -61,13 +61,13 @@ async function expectTitles(page: Page, titles: string[]) {
 trainerTest.describe('form builder', () => {
   trainerTest('builds, edits, reorders and saves an onboarding form', async ({ page }) => {
     const name = `E2E builder ${Date.now().toString(36)}`;
-    await createForm(page, name, 'Onboarding');
+    await createForm(page, name, 'Form');
 
     try {
       await expect(page.getByText('No questions yet')).toBeVisible();
       await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
 
-      // Onboarding forms can be made the default for new clients (not toggled here: it is a shared setting).
+      // Forms can be made the default for new clients (not toggled here: it is a shared setting).
       await page.getByRole('tab', { name: 'Info' }).click();
       await expect(page.getByTestId('form-info').getByLabel('Default for new clients')).toBeVisible();
       await page.getByRole('tab', { name: 'Library' }).click();
@@ -141,7 +141,7 @@ trainerTest.describe('form builder', () => {
 
   trainerTest('a section with a description sits between questions and survives a reload', async ({ page }) => {
     const name = `E2E section builder ${Date.now().toString(36)}`;
-    await createForm(page, name, 'Onboarding');
+    await createForm(page, name, 'Form');
 
     try {
       await page.getByRole('button', { name: 'Add Text' }).click();

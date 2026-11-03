@@ -2184,6 +2184,7 @@
   },
   "forms": {
     "eyebrow": "Forms",
+    "defaultBadge": "Onboarding",
     "title": "Forms",
     "subtitle": "Questions your clients answer — at the start and every week",
     "newForm": "New form",
@@ -2203,7 +2204,7 @@
       "type": "Type"
     },
     "type": {
-      "Onboarding": "Onboarding",
+      "Onboarding": "Form",
       "CheckIn": "Check-in"
     },
     "table": {
@@ -2275,6 +2276,7 @@
       },
       "info": {
         "onboarding": "Sent automatically to every new client after they accept your invitation",
+        "anyTime": "Can be sent any time, by hand or by an Automations rule",
         "checkInSent": "Sent <strong>{{day}} at {{time}}</strong>",
         "checkInReminder": "reminder after {{hours}} h",
         "checkInEdit": "Edit in Automations",
@@ -2387,7 +2389,7 @@
       "descriptionInvalid": "The description can be at most {{max}} characters.",
       "type": "Type",
       "typeHint": {
-        "Onboarding": "Sent once to a new client",
+        "Onboarding": "Can be sent any time, by hand or by an Automations rule",
         "CheckIn": "Answered every week"
       },
       "submit": "Create form",
