@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/auth';
 import { clientOfflineSyncConflictKeys } from '@/hooks/useClientOfflineSyncConflicts';
 import { clientFormsKey } from '@/api/questionnaires';
+import { weeklyCheckInKeys } from '@/hooks/useWeeklyCheckIns';
 import { executeRefresh } from '@/lib/refresh';
 import { RealtimeContext, setHubConnection, useSignalR, type RealtimeApi } from '@/hooks/useSignalR';
 
@@ -215,6 +216,8 @@ function CoachRealtimeSync() {
   const invalidateForms = useCallback(
     (payload: unknown) => {
       void queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      // The client Overview check-in trend reads the same responses.
+      void queryClient.invalidateQueries({ queryKey: weeklyCheckInKeys.all });
       const clientPublicId = readClientPublicId(payload);
       void queryClient.invalidateQueries({
         queryKey: clientPublicId ? clientFormsKey(clientPublicId) : ['client-forms'],
