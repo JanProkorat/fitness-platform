@@ -505,6 +505,9 @@ public static class ErrorCodes
     /// <summary>A question's config is not valid JSON for its type.</summary>
     public const string QuestionConfigInvalid = "QUESTION_CONFIG_INVALID";
 
+    /// <summary>A section divider cannot be required or mapped to a profile field.</summary>
+    public const string QuestionSectionInvalid = "QUESTION_SECTION_INVALID";
+
     /// <summary>Only Onboarding forms can be the default form.</summary>
     public const string CheckInFormCannotBeDefault = "CHECKIN_FORM_CANNOT_BE_DEFAULT";
 

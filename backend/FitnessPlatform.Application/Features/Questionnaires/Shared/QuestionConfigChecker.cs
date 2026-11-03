@@ -31,6 +31,8 @@ public static class QuestionConfigChecker
                     return !hasConfig || IsValidNumber(JsonSerializer.Deserialize<NumberQuestionConfig>(config!, Options));
                 case QuestionTypes.SmileyRating:
                     return hasConfig && IsValidSmiley(JsonSerializer.Deserialize<SmileyRatingQuestionConfig>(config!, Options));
+                case QuestionTypes.Section:
+                    return !hasConfig;
                 default:
                     return !hasConfig || IsJsonObject(config!);
             }
