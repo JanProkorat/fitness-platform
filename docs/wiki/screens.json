@@ -253,9 +253,15 @@
         "web/src/hooks/useQuestionnaireQueries.ts",
         "web/src/api/pending-invites.ts",
         "web/src/api/questionnaires.ts",
-        "web/src/components/clients/InvitePaymentSection.tsx",
+        "web/src/components/offer/DiscountPicker.tsx",
+        "web/src/components/offer/OfferMessage.tsx",
+        "web/src/components/offer/OfferPayable.tsx",
+        "web/src/components/offer/OnboardingFormRow.tsx",
+        "web/src/components/offer/PackageTiles.tsx",
+        "web/src/components/offer/offerModel.ts",
         "web/src/hooks/useClientPaymentQueries.ts",
         "web/src/components/client-detail/payment/paymentErrors.ts",
+        "web/src/components/client-detail/payment/paymentModel.ts",
         "web/src/api/client-payments.ts"
       ],
       "endpoints": [

@@ -852,9 +852,7 @@
       "sections": {
         "client": "Client",
         "scope": "What you'll coach",
-        "onboarding": "Onboarding form",
-        "payment": "Payment",
-        "message": "Personal message"
+        "offer": "Your offer"
       },
       "emailLabel": "Email",
       "emailHelper": "Already on Form Up? The invite also arrives in their messages.",
@@ -864,26 +862,9 @@
         "both": "Both"
       },
       "scopeHelper": "Sets which of their plans you can see and edit.",
-      "questionnaireLabel": "Form to send",
-      "questionnaireNone": "None",
-      "questionnaireOption_one": "{{title}} · {{count}} question",
-      "questionnaireOption_other": "{{title}} · {{count}} questions",
-      "questionnaireHelperDefault": "They fill it in right after accepting. You can pick another active form instead.",
-      "questionnaireHelper": "They fill it in right after accepting. Pick “None” to skip it.",
-      "questionnaireLoadError": "Couldn't load your forms. You can still send the invite without one.",
-      "optional": "(optional)",
+      "billingHint": "Shown in the invite. Assigned when the client accepts, and billing starts that day.",
+      "noPackageHint": "The invite carries no package. You can agree on payment later.",
       "payment": {
-        "package": "Package",
-        "packagePlaceholder": "No package",
-        "discount": "Discount",
-        "discountPlaceholder": "No discount",
-        "noDiscounts": "No discounts available",
-        "discountNeedsPackage": "Choose a package first",
-        "noPackages": "You have no packages yet.",
-        "createPackage": "Create a package",
-        "loadError": "Packages couldn't be loaded. You can still send the invite without one.",
-        "pays": "The client pays",
-        "helper": "Shown in the invite. Assigned when they accept, and billing starts that day.",
         "errors": {
           "notEntitled": "Payments aren't part of your plan. Remove the package and send the invite again.",
           "packageArchived": "That package was archived. Pick another one and send the invite again.",
@@ -893,8 +874,6 @@
           "unavailable": "That package or discount is no longer available. The lists were refreshed."
         }
       },
-      "messageLabel": "Message in the invite email",
-      "footerNote": "The invite stays under Pending until they accept",
       "submit": "Send invitation",
       "validation": {
         "emailRequired": "Email is required.",
@@ -1113,6 +1092,7 @@
     "decideLater": "Decide later",
     "optional": "· optional",
     "pays": "{{name}} pays",
+    "paysGeneric": "The client pays",
     "paysFirst_one": "{{amount}} for the first payment",
     "paysFirst_other": "{{amount}} for the first {{count}} payments",
     "paysThen": "then {{amount}} {{suffix}}",
@@ -1156,12 +1136,15 @@
       "defaultHint": "Sent to every new client after they accept",
       "noneOption": "None",
       "noneHint": "Skip the form for {{name}}",
+      "noneHintGeneric": "Skip the form for this client",
       "new": "New form",
       "manage": "Manage forms"
     },
     "message": {
       "title": "Message to {{name}}",
+      "titleGeneric": "Message to the client",
       "placeholder": "Write a few words to {{name}}…",
+      "placeholderGeneric": "Write a few words to the client…",
       "tooLong": "The message can be at most {{max}} characters."
     },
     "errors": {

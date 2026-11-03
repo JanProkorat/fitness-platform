@@ -20,6 +20,8 @@ export interface AcceptClientRequestBody {
   statement?: string;
   /** A discount applied to the package the client attached; ignored by the server when there is none. */
   discountPublicId?: string | null;
+  /** "None": send no form at all instead of the coach's default. Never together with a questionnaire. */
+  skipOnboardingForm?: boolean;
 }
 
 export async function acceptClientRequest(publicId: string, body: AcceptClientRequestBody = {}): Promise<void> {
@@ -27,6 +29,7 @@ export async function acceptClientRequest(publicId: string, body: AcceptClientRe
     questionnairePublicId: body.questionnairePublicId || null,
     statement: body.statement || null,
     discountPublicId: body.discountPublicId || null,
+    ...(body.skipOnboardingForm ? { skipOnboardingForm: true } : {}),
   });
 }
 
@@ -46,6 +49,7 @@ export async function proposeClientRequestPackage(
     discountPublicId: body.discountPublicId || null,
     questionnairePublicId: body.questionnairePublicId || null,
     statement: body.statement || null,
+    ...(body.skipOnboardingForm ? { skipOnboardingForm: true } : {}),
   });
 }
 

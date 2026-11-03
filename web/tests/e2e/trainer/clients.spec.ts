@@ -61,13 +61,18 @@ test.describe('clients list page', () => {
     await page.getByRole('textbox', { name: 'Email', exact: true }).fill(`qa.invite.${uniqueSuffix}@fitnessplatform.test`);
     await page.getByRole('textbox', { name: 'Email', exact: true }).press('Tab');
 
-    // Onboarding form select: "None" is always offered, and "None" sends a null questionnaire.
-    const questionnaireSelect = page.getByLabel('Form to send');
-    await expect(questionnaireSelect.locator('option', { hasText: 'None' })).toHaveCount(1);
-    await questionnaireSelect.selectOption({ label: 'None' });
+    // Onboarding form row: "None" is always offered, and picking it is an explicit skip.
+    const formRow = page.getByTestId('offer-form-row');
+    await formRow.getByRole('button', { name: 'Change' }).click();
+    await page.getByRole('option', { name: /^None/ }).click();
+    await expect(formRow.getByText('No form', { exact: true })).toBeVisible();
 
-    // Personal message: live counter, and over 500 characters is blocked.
-    const message = page.getByLabel('Message in the invite email');
+    // The package starts as "No package / Decide later", so no payable shows in the footer.
+    await expect(page.getByRole('radio', { name: /No package/ })).toBeChecked();
+    await expect(page.getByTestId('offer-payable')).toHaveCount(0);
+
+    // Message to the client: live counter, and over 500 characters is blocked.
+    const message = page.getByLabel('Message to the client');
     await expect(page.getByText('0 / 500', { exact: true })).toBeVisible();
     await message.fill('Hello there');
     await expect(page.getByText('11 / 500', { exact: true })).toBeVisible();
@@ -78,13 +83,55 @@ test.describe('clients list page', () => {
 
     const submitButton = page.getByRole('button', { name: 'Send invitation' });
     await expect(submitButton).toBeEnabled();
+    const requestSent = page.waitForRequest(
+      (request) => request.method() === 'POST' && request.url().endsWith('/trainer/pending-invites'),
+    );
     await submitButton.click();
+
+    // "None" skips the form explicitly, so the server must not fall back to the default one.
+    const body = (await requestSent).postDataJSON() as Record<string, unknown>;
+    expect(body.skipOnboardingForm).toBe(true);
+    expect(body.questionnairePublicId ?? null).toBeNull();
+    expect(body.packageId).toBeUndefined();
 
     // Radix's Toast primitive renders a visible title plus a duplicate
     // aria-live announcer span — scope to the visible title so this doesn't
     // hit a strict-mode "resolved to 2 elements" violation.
     await expect(page.getByText('Invitation sent.', { exact: true })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Invite client', exact: true })).not.toBeVisible();
+  });
+
+  test('choosing a package tile sends its id and shows what the client pays', async ({ page }) => {
+    await page.getByRole('button', { name: 'Invite client', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Invite client', exact: true })).toBeVisible();
+
+    // Not every e2e coach has packages (or payments in the plan); the tiles are the only thing this checks.
+    const tiles = page.getByTestId('offer-package-tiles');
+    await tiles.waitFor({ state: 'visible', timeout: 10_000 }).catch(() => undefined);
+    const packageTiles = tiles.getByRole('radio').filter({ hasNotText: 'No package' });
+    test.skip((await packageTiles.count()) === 0, 'the e2e coach has no package to pick');
+
+    await page.getByRole('textbox', { name: 'Email', exact: true }).fill(`qa.invite.pkg.${Date.now()}@fitnessplatform.test`);
+    await page.getByRole('textbox', { name: 'Email', exact: true }).press('Tab');
+
+    await packageTiles.first().click();
+    await expect(packageTiles.first()).toBeChecked();
+    await expect(page.getByTestId('offer-payable')).toBeVisible();
+
+    // Stubbed so the spec does not create a second real invite (pending invites are rate-limited).
+    let sentBody: Record<string, unknown> | undefined;
+    await page.route('**/trainer/pending-invites', async (route) => {
+      if (route.request().method() !== 'POST') {
+        await route.fallback();
+        return;
+      }
+      sentBody = route.request().postDataJSON() as Record<string, unknown>;
+      await route.fulfill({ status: 201, contentType: 'application/json', body: '{}' });
+    });
+    await page.getByRole('button', { name: 'Send invitation' }).click();
+
+    await expect(page.getByRole('heading', { name: 'Invite client', exact: true })).not.toBeVisible();
+    expect(typeof sentBody?.packageId).toBe('string');
   });
 
   /**

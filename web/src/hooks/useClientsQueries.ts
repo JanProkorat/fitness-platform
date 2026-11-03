@@ -316,6 +316,7 @@ export interface AcceptClientRequestVariables {
   statement?: string;
   /** A discount applied to the package the client attached to the request. */
   discountPublicId?: string | null;
+  skipOnboardingForm?: boolean;
 }
 
 /**
@@ -349,6 +350,7 @@ export function useAcceptClientRequest() {
         questionnairePublicId: variables.questionnairePublicId,
         statement: variables.statement,
         discountPublicId: variables.discountPublicId,
+        skipOnboardingForm: variables.skipOnboardingForm,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clients'] });

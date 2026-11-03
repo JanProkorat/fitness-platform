@@ -154,13 +154,15 @@ function ReviewBody({ request, onClose }: { request: IncomingClientRequestDto; o
   // The server answers 409 CLIENT_REQUEST_INVALID_STATE when the request moved on elsewhere; the drawer has nothing left to do.
   const closeOnConflict = { onError: (error: unknown) => isRequestStateConflict(error) && onClose() };
   const statement = message.trim() || undefined;
-  const questionnairePublicId = formId === NO_FORM_ID ? null : formId;
+  const skipOnboardingForm = formId === NO_FORM_ID;
+  const questionnairePublicId = skipOnboardingForm ? null : formId;
 
   function accept() {
     acceptMutation.mutate(
       {
         publicId,
         questionnairePublicId,
+        skipOnboardingForm,
         statement,
         discountPublicId: clientPackage && offeredDiscount ? offeredDiscount.discountId : null,
       },
@@ -178,6 +180,7 @@ function ReviewBody({ request, onClose }: { request: IncomingClientRequestDto; o
         packagePublicId: offeredPackage.id,
         discountPublicId: offeredDiscount?.discountId,
         questionnairePublicId: questionnairePublicId ?? undefined,
+        skipOnboardingForm,
         statement,
       },
       { onSuccess: onClose, ...closeOnConflict },

@@ -21,8 +21,8 @@ interface Props {
   /** The chosen form id, or `NO_FORM_ID`. */
   value: string;
   onChange: (formId: string) => void;
-  /** First name of the client, for "Skip the form for Adam". */
-  clientName: string;
+  /** First name of the client, for "Skip the form for Adam"; generic copy when unknown. */
+  clientName?: string;
   isLoading?: boolean;
   isError?: boolean;
 }
@@ -81,7 +81,7 @@ export default function OnboardingFormRow({ forms, value, onChange, clientName, 
             <FormOption
               selected={value === NO_FORM_ID}
               title={t('offer.form.noneOption')}
-              hint={t('offer.form.noneHint', { name: clientName })}
+              hint={clientName ? t('offer.form.noneHint', { name: clientName }) : t('offer.form.noneHintGeneric')}
               onClick={() => choose(NO_FORM_ID)}
             />
           </div>

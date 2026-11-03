@@ -403,6 +403,22 @@ test.describe('invite review drawer (#1906)', () => {
     expect(state.acceptBodies).toEqual([{ questionnairePublicId: FORM_ID, statement: null, discountPublicId: null }]);
   });
 
+  test('picking None for the onboarding form skips it explicitly instead of sending a form', async ({ page }) => {
+    const state = await stubRequestThread(page, { clientPackage: MONTHLY });
+    await openThread(page);
+
+    await page.getByTestId('client-request-card').getByRole('button', { name: 'View invite' }).click();
+    const drawer = page.getByTestId('invite-review-drawer');
+    await drawer.getByTestId('offer-form-row').getByRole('button', { name: 'Change' }).click();
+    await page.getByRole('option', { name: /^None/ }).click();
+    await drawer.getByRole('button', { name: 'Accept', exact: true }).click();
+
+    await expect(drawer).toHaveCount(0);
+    expect(state.acceptBodies).toEqual([
+      { questionnairePublicId: null, skipOnboardingForm: true, statement: null, discountPublicId: null },
+    ]);
+  });
+
   test('an accept refused because the request moved on shows a readable toast and closes the drawer', async ({ page }) => {
     await stubRequestThread(page, { clientPackage: MONTHLY, acceptStatus: 409, acceptErrorCode: 'CLIENT_REQUEST_INVALID_STATE' });
     await openThread(page);

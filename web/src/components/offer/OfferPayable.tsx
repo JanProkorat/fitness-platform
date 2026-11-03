@@ -6,8 +6,8 @@ import { formatMoney } from '@/lib/money';
 interface Props {
   pkg: OfferPackage;
   price: OfferPrice;
-  /** First name of the client, for "Adam pays". */
-  clientName: string;
+  /** First name of the client, for "Adam pays"; generic copy when unknown. */
+  clientName?: string;
 }
 
 /** The footer's right-aligned "Adam pays 1 800 Kč / month" block; with a discount it strikes the full price. */
@@ -21,7 +21,7 @@ export default function OfferPayable({ pkg, price, clientName }: Props) {
 
   return (
     <div data-testid="offer-payable" className="flex flex-col items-end leading-tight">
-      <span className="text-meta text-muted-foreground">{t('offer.pays', { name: clientName })}</span>
+      <span className="text-meta text-muted-foreground">{clientName ? t('offer.pays', { name: clientName }) : t('offer.paysGeneric')}</span>
       {price.firstPayments != null && hasDiscount ? (
         <>
           <span className="text-body font-semibold text-ink">
