@@ -4,6 +4,7 @@ using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Services;
 using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints.Automations;
+using System.Text.Json;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -88,6 +89,11 @@ public class AutomationCheckInSweeperTests(FitnessApiFactory factory)
 
             return response;
         });
+
+    private List<FakeRealtimeNotifier.NotifyCall> MissedEventsFor(Guid coachUserId) =>
+        factory.Services.GetRequiredService<FakeRealtimeNotifier>().Calls
+            .Where(call => call.UserId == coachUserId && call.EventType == "checkinmissed")
+            .ToList();
 
     private Task<int> NotificationCountAsync(Guid userId, NotificationType type) =>
         WithDbAsync(db => db.Notifications.CountAsync(n => n.RecipientUserId == userId && n.Type == type, Ct));
@@ -214,7 +220,7 @@ public class AutomationCheckInSweeperTests(FitnessApiFactory factory)
     public async Task Sweep_MissedWeek_NotifiesTheCoachOnceOverTwoSweeps()
     {
         var fixture = await ArrangeAsync();
-        await AddOpenCheckInAsync(fixture, SentAt.AddHours(48));
+        var response = await AddOpenCheckInAsync(fixture, SentAt.AddHours(48));
 
         await SweepAsync(fixture, SentAt.AddHours(49));
         await SweepAsync(fixture, SentAt.AddHours(50));
@@ -222,6 +228,26 @@ public class AutomationCheckInSweeperTests(FitnessApiFactory factory)
         (await NotificationCountAsync(fixture.Coach.UserId, NotificationType.CoachCheckInMissed)).Should().Be(1);
         (await NotificationCountAsync(fixture.Client.UserId, NotificationType.ClientCheckInReminder))
             .Should().Be(0, "a week that is already missed is not reminded");
+
+        var events = MissedEventsFor(fixture.Coach.UserId);
+        events.Should().ContainSingle("the live alert goes out once, like the stored notice");
+        var payload = JsonSerializer.SerializeToElement(events[0].Payload);
+        payload.GetProperty("ClientPublicId").GetGuid().Should().Be(fixture.Client.PublicId);
+        payload.GetProperty("ResponsePublicId").GetGuid().Should().Be(response.PublicId);
+    }
+
+    [Fact]
+    public async Task Sweep_MissedWeekWhenTheHubFails_StillStampsAndNotifies()
+    {
+        var fixture = await ArrangeAsync();
+        var response = await AddOpenCheckInAsync(fixture, SentAt.AddHours(48));
+        factory.Services.GetRequiredService<FakeRealtimeNotifier>().SimulateThrowOnNextCall();
+
+        await SweepAsync(fixture, SentAt.AddHours(49));
+
+        var stored = await WithDbAsync(db => db.QuestionnaireResponses.AsNoTracking().SingleAsync(r => r.Id == response.Id, Ct));
+        stored.CheckInMissedNotifiedAtUtc.Should().NotBeNull();
+        (await NotificationCountAsync(fixture.Coach.UserId, NotificationType.CoachCheckInMissed)).Should().Be(1);
     }
 
     [Fact]
@@ -256,5 +282,6 @@ public class AutomationCheckInSweeperTests(FitnessApiFactory factory)
 
         (await NotificationCountAsync(fixture.Coach.UserId, NotificationType.CoachCheckInMissed)).Should().Be(0);
         (await NotificationCountAsync(fixture.Client.UserId, NotificationType.ClientCheckInReminder)).Should().Be(0);
+        MissedEventsFor(fixture.Coach.UserId).Should().BeEmpty();
     }
 }
