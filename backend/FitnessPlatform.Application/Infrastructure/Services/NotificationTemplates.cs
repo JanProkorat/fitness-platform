@@ -90,10 +90,10 @@ public static class NotificationTemplates
             [Key(NotificationType.InvitationCancelled, InvitationCancelledAutoBySibling)] =
                 new("Invitation cancelled", "{clientName} accepted another {role}, so your invitation was cancelled."),
 
-            // Not yet rewired to INotificationService.CreateAsync — WeeklyCheckInScheduler,
-            // PhotoDiaryReminderScheduler, and RespondToCheckInEndpoint still construct
-            // Notification entities directly (#788 follow-up). Templates exist here for
-            // completeness/consistency but are unused until those call sites are migrated.
+            // WeeklyCheckInRequested and WeeklyCheckInResponded have no sender any more; check-in reminders
+            // and missed-week notices go out as ClientCheckInReminder / CoachCheckInMissed from
+            // AutomationCheckInSweeper. PhotoDiaryReminderScheduler still constructs its Notification
+            // entities directly instead of calling INotificationService.CreateAsync (#788 follow-up).
             [Key(NotificationType.WeeklyCheckInRequested)] =
                 new("Planning next week", "{professionalName} is planning next week. Let them know if anything special is coming up."),
             [Key(NotificationType.WeeklyCheckInResponded)] =

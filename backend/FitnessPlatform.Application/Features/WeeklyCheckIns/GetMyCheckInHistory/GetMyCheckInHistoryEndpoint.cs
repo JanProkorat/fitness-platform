@@ -56,7 +56,8 @@ public class GetMyCheckInHistoryEndpoint(IApplicationDbContext db, TimeProvider 
         var totalCount = await query.CountAsync(ct);
 
         var rows = await query
-            .OrderByDescending(r => r.CheckInWeekStart)
+            .OrderBy(r => r.CheckInWeekStart == null)
+            .ThenByDescending(r => r.CheckInWeekStart)
             .ThenByDescending(r => r.DateCreated)
             .ThenByDescending(r => r.Id)
             .Skip((req.Page - 1) * req.PageSize)

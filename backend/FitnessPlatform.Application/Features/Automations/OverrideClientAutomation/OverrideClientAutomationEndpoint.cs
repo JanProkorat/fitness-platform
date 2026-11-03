@@ -106,7 +106,7 @@ public class OverrideClientAutomationEndpoint(
             db.AutomationClientOverrides.Add(clientOverride);
         }
 
-        AutomationRuleWriter.Apply(clientOverride, req, isCheckIn);
+        AutomationRuleWriter.Apply(clientOverride, req, isCheckIn, parentRule: rule);
         await db.SaveChangesAsync(ct);
 
         await Send.NoContentAsync(ct);
