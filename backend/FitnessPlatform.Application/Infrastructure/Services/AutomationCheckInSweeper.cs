@@ -14,7 +14,13 @@ namespace FitnessPlatform.Application.Infrastructure.Services;
 /// </summary>
 /// <param name="db">Application database context.</param>
 /// <param name="notifications">Creates the in-app and push notification.</param>
-public sealed class AutomationCheckInSweeper(IApplicationDbContext db, INotificationService notifications)
+/// <param name="notifier">Pushes the live missed-week event to the coach.</param>
+/// <param name="logger">Logger.</param>
+public sealed class AutomationCheckInSweeper(
+    IApplicationDbContext db,
+    INotificationService notifications,
+    IRealtimeNotifier notifier,
+    ILogger<AutomationCheckInSweeper> logger)
 {
     /// <summary>
     /// Sends the reminders and missed-week notices that are due.
@@ -84,6 +90,12 @@ public sealed class AutomationCheckInSweeper(IApplicationDbContext db, INotifica
             .Select(u => new { u.Id, u.FirstName, u.LastName })
             .ToDictionaryAsync(u => u.Id, u => $"{u.FirstName} {u.LastName}".Trim(), ct);
 
+        var clientPublicIds = await db.ClientProfiles
+            .AsNoTracking()
+            .Where(p => userIds.Contains(p.UserId))
+            .Select(p => new { p.UserId, p.PublicId })
+            .ToDictionaryAsync(p => p.UserId, p => p.PublicId, ct);
+
         var localToday = DateOnly.FromDateTime(nowUtc);
 
         foreach (var response in open)
@@ -110,7 +122,7 @@ public sealed class AutomationCheckInSweeper(IApplicationDbContext db, INotifica
             }
             else if (effective.NotifyCoachOnMissedWeek == true && response.CheckInMissedNotifiedAtUtc is null)
             {
-                await NotifyMissedAsync(response, nowUtc, names, coachUserId, ct);
+                await NotifyMissedAsync(response, nowUtc, names, clientPublicIds, coachUserId, ct);
             }
         }
     }
@@ -157,6 +169,7 @@ public sealed class AutomationCheckInSweeper(IApplicationDbContext db, INotifica
         QuestionnaireResponse response,
         DateTime nowUtc,
         IReadOnlyDictionary<Guid, string> names,
+        IReadOnlyDictionary<Guid, Guid> clientPublicIds,
         Guid coachUserId,
         CancellationToken ct)
     {
@@ -173,5 +186,27 @@ public sealed class AutomationCheckInSweeper(IApplicationDbContext db, INotifica
             ct: ct);
 
         await db.SaveChangesAsync(ct);
+
+        try
+        {
+            await notifier.NotifyAsync(
+                coachUserId,
+                "checkinmissed",
+                new
+                {
+                    ClientPublicId = clientPublicIds.TryGetValue(response.ClientId, out var clientPublicId)
+                        ? clientPublicId
+                        : (Guid?)null,
+                    ResponsePublicId = response.PublicId,
+                },
+                ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogWarning(
+                ex,
+                "AutomationCheckInSweeper: failed to broadcast checkinmissed to coach {CoachUserId}.",
+                coachUserId);
+        }
     }
 }
