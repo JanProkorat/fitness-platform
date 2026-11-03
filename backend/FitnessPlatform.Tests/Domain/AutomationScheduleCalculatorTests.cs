@@ -277,6 +277,22 @@ public class AutomationScheduleCalculatorTests
     }
 
     [Fact]
+    public void ResolveFirstSendNotBefore_FirstOverrideChangingOnlyTheReminder_EqualsTheResultWithoutIt()
+    {
+        var rule = LiveRule(Utc(2026, 1, 2, 10));
+        var without = AutomationNextSendCalculator.ResolveFirstSendNotBefore(Utc(2025, 6, 1), rule, null);
+        var clientOverride = new AutomationClientOverride { DateCreated = Utc(2026, 1, 14, 10) };
+        var body = Body();
+        body.ReminderAfterHours = 12;
+        AutomationRuleWriter.Apply(clientOverride, body, isCheckIn: true, Utc(2026, 1, 14, 10), rule);
+
+        var withOverride = AutomationNextSendCalculator.ResolveFirstSendNotBefore(Utc(2025, 6, 1), rule, clientOverride);
+
+        clientOverride.IsCustomized.Should().BeTrue();
+        withOverride.Should().Be(without);
+    }
+
+    [Fact]
     public void Apply_FirstOverrideMovingTheWeekday_SetsTheBound()
     {
         var rule = LiveRule(Utc(2026, 1, 2, 10));

@@ -29,8 +29,10 @@ public static class AutomationNextSendCalculator
     {
         var notBefore = Max(collaborationStartedAtUtc, rule.EnabledAtUtc ?? rule.DateCreated);
 
-        return clientOverride is { IsCustomized: true }
-            ? Max(notBefore, clientOverride.EnabledAtUtc ?? clientOverride.DateCreated)
+        // An override without its own bound (a first override that only changed the reminder) must not
+        // fall back to its DateCreated, which is "now" and would push the next check-in a week.
+        return clientOverride is { IsCustomized: true, EnabledAtUtc: { } overrideEnabledAt }
+            ? Max(notBefore, overrideEnabledAt)
             : notBefore;
     }
 
