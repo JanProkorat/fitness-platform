@@ -320,6 +320,7 @@ export default function FormBuilder({ initial, onBack }: Props) {
             onTitleChange={(title) => patchForm({ title })}
             titleInvalid={visibleErrors?.title !== undefined}
             type={doc.type}
+            isDefault={doc.isDefault}
             dirty={dirty}
             saving={updateMutation.isPending}
             onBack={leave}
@@ -335,7 +336,7 @@ export default function FormBuilder({ initial, onBack }: Props) {
                 <CalendarDays className="size-4 shrink-0" aria-hidden="true" />
               )}
               {isOnboarding ? (
-                <span>{t('forms.builder.info.onboarding')}</span>
+                <span>{t(doc.isDefault ? 'forms.builder.info.onboarding' : 'forms.builder.info.anyTime')}</span>
               ) : (
                 <CheckInScheduleLine formId={initial.publicId} />
               )}

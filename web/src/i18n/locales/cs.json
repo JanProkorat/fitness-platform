@@ -2248,6 +2248,7 @@
   },
   "forms": {
     "eyebrow": "Formuláře",
+    "defaultBadge": "Úvodní",
     "title": "Formuláře",
     "subtitle": "Otázky, na které klienti odpovídají — na začátku i každý týden",
     "newForm": "Nový formulář",
@@ -2267,7 +2268,7 @@
       "type": "Typ"
     },
     "type": {
-      "Onboarding": "Úvodní",
+      "Onboarding": "Formulář",
       "CheckIn": "Check-in"
     },
     "table": {
@@ -2343,6 +2344,7 @@
       },
       "info": {
         "onboarding": "Odešle se automaticky každému novému klientovi po přijetí vaší pozvánky",
+        "anyTime": "Lze odeslat kdykoli, ručně nebo pravidlem v Automatizacích",
         "checkInSent": "Odesíláno <strong>{{day}} v {{time}}</strong>",
         "checkInReminder": "připomenutí po {{hours}} h",
         "checkInEdit": "Upravit v Automatizacích",
@@ -2459,7 +2461,7 @@
       "descriptionInvalid": "Popis může mít nejvýše {{max}} znaků.",
       "type": "Typ",
       "typeHint": {
-        "Onboarding": "Posílá se jednou novému klientovi",
+        "Onboarding": "Lze odeslat kdykoli, ručně nebo pravidlem v Automatizacích",
         "CheckIn": "Klient odpovídá každý týden"
       },
       "submit": "Vytvořit formulář",
