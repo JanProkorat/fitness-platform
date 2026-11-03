@@ -37,6 +37,8 @@ export type FillStep = {
   key: string;
   type: 'section' | 'single';
   title: string | null;
+  /** The section's helper text; null before the first section and for `single` steps. */
+  description: string | null;
   questions: FillQuestion[];
 };
 
@@ -149,20 +151,24 @@ const readLabel = (value: unknown): string | null =>
 export function buildSteps(questions: readonly ClientQuestion[]): FillStep[] {
   const ordered = [...questions].sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0));
   const hasSections = ordered.some((question) => question.type === 'section');
-  const groups: { title: string | null; questions: FillQuestion[] }[] = [];
+  const groups: { title: string | null; description: string | null; questions: FillQuestion[] }[] = [];
 
   for (const question of ordered) {
     if (question.type === 'section') {
-      groups.push({ title: question.label ?? '', questions: [] });
+      groups.push({
+        title: question.label ?? '',
+        description: question.helperText?.trim() ? question.helperText.trim() : null,
+        questions: [],
+      });
       continue;
     }
     const fill = toFillQuestion(question);
     if (!fill) continue;
     if (!hasSections) {
-      groups.push({ title: null, questions: [fill] });
+      groups.push({ title: null, description: null, questions: [fill] });
       continue;
     }
-    if (groups.length === 0) groups.push({ title: null, questions: [] });
+    if (groups.length === 0) groups.push({ title: null, description: null, questions: [] });
     groups[groups.length - 1]?.questions.push(fill);
   }
 
@@ -172,6 +178,7 @@ export function buildSteps(questions: readonly ClientQuestion[]): FillStep[] {
       key: `${index}`,
       type: hasSections ? 'section' : 'single',
       title: group.title,
+      description: group.description,
       questions: group.questions,
     }));
 }
