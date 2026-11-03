@@ -5223,6 +5223,13 @@ export class ApiClient {
             const _responseText = response.data;
             return Promise.resolve<void>(null as any);
 
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
         } else if (status === 401) {
             const _responseText = response.data;
             return throwException("Unauthorized", status, _responseText, _headers);
@@ -24448,6 +24455,9 @@ export interface CreatePendingInviteRequest {
     message?: string | undefined;
     /** Optional public ID of a questionnaire to assign to the client. */
     questionnairePublicId?: string | undefined;
+    /** When true the client gets no onboarding form, not even the coach's default. Not sent means false.
+Cannot be combined with QuestionnairePublicId. */
+    skipOnboardingForm?: boolean;
     /** Optional explicit domain scope for the relationship this invitation will form.
 When omitted, the accept flow defaults to every domain implied by the inviting
 professional's held identity roles (existing behavior — unchanged). When
@@ -25324,6 +25334,9 @@ export interface ProposeClientRequestPackageRequest {
     discountPublicId?: string | undefined;
     /** Optional public id of a questionnaire the client fills in after accepting. */
     questionnairePublicId?: string | undefined;
+    /** When true the client gets no onboarding form, not even the coach's default. Not sent means false.
+Cannot be combined with QuestionnairePublicId. */
+    skipOnboardingForm?: boolean;
     /** Optional message from the coach shown with the proposal. */
     statement?: string | undefined;
 }
@@ -25425,6 +25438,9 @@ export interface IncomingRequestDiscountDto {
 export interface AcceptClientRequestRequest {
     /** Optional public ID of a questionnaire to assign to the client upon acceptance. */
     questionnairePublicId?: string | undefined;
+    /** When true the client gets no onboarding form, not even the coach's default. Not sent means false.
+Cannot be combined with QuestionnairePublicId. */
+    skipOnboardingForm?: boolean;
     /** Optional statement from the professional (saved for future display in chat). */
     statement?: string | undefined;
     /** Optional explicit domain scope for the resulting client-professional link. When
