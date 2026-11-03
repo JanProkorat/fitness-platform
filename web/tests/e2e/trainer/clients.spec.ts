@@ -11,7 +11,37 @@
  * page instead of the authenticated portal.
  */
 import { request as apiRequest } from '@playwright/test';
+import type { Page, Route } from '@playwright/test';
 import { trainerTest as test, expect } from '../fixtures/auth';
+
+const STUB_PACKAGE_ID = 'bbbbbbbb-0000-0000-0000-000000001907';
+
+/**
+ * The e2e coach has payments but no packages, so the drawer's offer pieces are stubbed to hold one package and no
+ * discounts. Register before opening the drawer.
+ */
+async function stubOneCoachPackage(page: Page): Promise<void> {
+  const json = (route: Route, body: unknown) =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
+  await page.route(
+    (url) => url.pathname === '/payments/packages',
+    (route) =>
+      json(route, {
+        items: [
+          {
+            packageId: STUB_PACKAGE_ID,
+            name: 'Monthly coaching',
+            billing: 'Monthly',
+            price: 1800,
+            currency: 'CZK',
+            showOnProfile: true,
+            clientCount: 0,
+          },
+        ],
+      }),
+  );
+  await page.route((url) => url.pathname === '/payments/discounts', (route) => json(route, { items: [] }));
+}
 
 test.describe('clients list page', () => {
   test.beforeEach(async ({ page }) => {
@@ -54,6 +84,7 @@ test.describe('clients list page', () => {
   });
 
   test('inviting a new client sends the invite and closes the drawer', async ({ page }) => {
+    await stubOneCoachPackage(page);
     await page.getByRole('button', { name: 'Invite client', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Invite client', exact: true })).toBeVisible();
 
@@ -102,20 +133,16 @@ test.describe('clients list page', () => {
   });
 
   test('choosing a package tile sends its id and shows what the client pays', async ({ page }) => {
+    await stubOneCoachPackage(page);
     await page.getByRole('button', { name: 'Invite client', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Invite client', exact: true })).toBeVisible();
 
-    // Not every e2e coach has packages (or payments in the plan); the tiles are the only thing this checks.
-    const tiles = page.getByTestId('offer-package-tiles');
-    await tiles.waitFor({ state: 'visible', timeout: 10_000 }).catch(() => undefined);
-    const packageTiles = tiles.getByRole('radio').filter({ hasNotText: 'No package' });
-    test.skip((await packageTiles.count()) === 0, 'the e2e coach has no package to pick');
-
+    const packageTile = page.getByTestId('offer-package-tiles').getByRole('radio', { name: /Monthly coaching/ });
     await page.getByRole('textbox', { name: 'Email', exact: true }).fill(`qa.invite.pkg.${Date.now()}@fitnessplatform.test`);
     await page.getByRole('textbox', { name: 'Email', exact: true }).press('Tab');
 
-    await packageTiles.first().click();
-    await expect(packageTiles.first()).toBeChecked();
+    await packageTile.click();
+    await expect(packageTile).toBeChecked();
     await expect(page.getByTestId('offer-payable')).toBeVisible();
 
     // Stubbed so the spec does not create a second real invite (pending invites are rate-limited).
@@ -131,7 +158,7 @@ test.describe('clients list page', () => {
     await page.getByRole('button', { name: 'Send invitation' }).click();
 
     await expect(page.getByRole('heading', { name: 'Invite client', exact: true })).not.toBeVisible();
-    expect(typeof sentBody?.packageId).toBe('string');
+    expect(sentBody?.packageId).toBe(STUB_PACKAGE_ID);
   });
 
   /**
