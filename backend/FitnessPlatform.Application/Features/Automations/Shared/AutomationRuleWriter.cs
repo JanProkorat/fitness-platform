@@ -47,14 +47,25 @@ public static class AutomationRuleWriter
 
     /// <summary>
     /// Applies the body's message, trigger and options to a per-client override. A check-in rule never
-    /// skips while the previous request is unanswered, whatever the body says.
+    /// skips while the previous request is unanswered, whatever the body says. The first override of a
+    /// client is compared with <paramref name="parentRule"/>, the schedule the client followed until now.
     /// </summary>
-    public static void Apply(AutomationClientOverride clientOverride, AutomationTriggerBody body, bool isCheckIn = false, DateTime? nowUtc = null)
+    public static void Apply(
+        AutomationClientOverride clientOverride,
+        AutomationTriggerBody body,
+        bool isCheckIn = false,
+        DateTime? nowUtc = null,
+        AutomationRule? parentRule = null)
     {
         var isSchedule = body.TriggerKind == AutomationTriggerKind.Schedule;
-        var wasEnabled = clientOverride.Id != 0 && clientOverride.IsCustomized && clientOverride.Enabled;
-        var scheduleChanged = clientOverride.ScheduleWeekday != (isCheckIn ? body.ScheduleWeekday : null)
-                              || clientOverride.LocalTime != (body.LocalTime is { } time ? TimeOnly.FromTimeSpan(time) : null);
+        var baseline = !clientOverride.IsCustomized && parentRule is not null;
+        var wasEnabled = baseline
+            ? parentRule!.Enabled && !clientOverride.IsPaused
+            : clientOverride.Id != 0 && clientOverride.IsCustomized && clientOverride.Enabled;
+        var baselineWeekday = baseline ? parentRule!.ScheduleWeekday : clientOverride.ScheduleWeekday;
+        var baselineTime = baseline ? parentRule!.LocalTime : clientOverride.LocalTime;
+        var scheduleChanged = baselineWeekday != (isCheckIn ? body.ScheduleWeekday : null)
+                              || baselineTime != (body.LocalTime is { } time ? TimeOnly.FromTimeSpan(time) : null);
 
         clientOverride.IsCustomized = true;
         clientOverride.Message = body.Message;

@@ -180,6 +180,23 @@ public class AutomationCheckInSweeperTests(FitnessApiFactory factory)
     }
 
     [Fact]
+    public async Task Sweep_EndedCollaboration_SendsNeitherReminderNorMissedNotice()
+    {
+        var fixture = await ArrangeAsync();
+        var reminded = await AddOpenCheckInAsync(fixture, SentAt.AddHours(48));
+        await WithDbAsync(db => db.ClientProfessionalLinks.Where(l => l.Id == fixture.LinkId)
+            .ExecuteUpdateAsync(s => s.SetProperty(l => l.IsActive, false), Ct));
+
+        await SweepAsync(fixture, SentAt.AddHours(25));
+        await SweepAsync(fixture, SentAt.AddHours(60));
+
+        (await NotificationCountAsync(fixture.Client.UserId, NotificationType.ClientCheckInReminder)).Should().Be(0);
+        (await NotificationCountAsync(fixture.Coach.UserId, NotificationType.CoachCheckInMissed)).Should().Be(0);
+        var stored = await WithDbAsync(db => db.QuestionnaireResponses.AsNoTracking().SingleAsync(r => r.Id == reminded.Id, Ct));
+        stored.CheckInReminderSentAtUtc.Should().BeNull();
+    }
+
+    [Fact]
     public async Task Sweep_NotifyOffAndNoReminder_SendsNothing()
     {
         var fixture = await ArrangeAsync(r =>

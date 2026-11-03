@@ -264,6 +264,30 @@ public class AutomationScheduleCalculatorTests
     }
 
     [Fact]
+    public void Apply_FirstOverrideChangingOnlyTheReminder_LeavesTheBoundUnset()
+    {
+        var rule = LiveRule(Utc(2026, 1, 2, 10));
+        var clientOverride = new AutomationClientOverride();
+        var body = Body();
+        body.ReminderAfterHours = 12;
+
+        AutomationRuleWriter.Apply(clientOverride, body, isCheckIn: true, Utc(2026, 1, 14, 10), rule);
+
+        clientOverride.EnabledAtUtc.Should().BeNull();
+    }
+
+    [Fact]
+    public void Apply_FirstOverrideMovingTheWeekday_SetsTheBound()
+    {
+        var rule = LiveRule(Utc(2026, 1, 2, 10));
+        var clientOverride = new AutomationClientOverride();
+
+        AutomationRuleWriter.Apply(clientOverride, Body(DayOfWeek.Friday), isCheckIn: true, Utc(2026, 1, 14, 10), rule);
+
+        clientOverride.EnabledAtUtc.Should().Be(Utc(2026, 1, 14, 10));
+    }
+
+    [Fact]
     public void Apply_SwitchingAnOverrideOn_SetsItsBoundButAnEditKeepsIt()
     {
         var clientOverride = new AutomationClientOverride { Id = 3 };
