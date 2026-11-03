@@ -117,6 +117,14 @@ public abstract class AutomationTriggerBodyValidator<T> : Validator<T>
             .WithMessage("The reminder must come before the answer window ends.")
             .When(x => x.ReminderAfterHours.HasValue && x.AnswerWindowHours.HasValue);
 
+        RuleFor(x => x)
+            .Must(x => x.ReminderAfterHours == AutomationCheckInOptions.ReminderHoursFor(x.AnswerWindowHours!.Value))
+            .WithErrorCode(ErrorCodes.AutomationCheckInInvalid)
+            .WithMessage("The reminder delay does not match the answer window.")
+            .When(x => x.ReminderAfterHours.HasValue
+                && x.AnswerWindowHours.HasValue
+                && AutomationCheckInOptions.AnswerWindowHours.Contains(x.AnswerWindowHours.Value));
+
         RuleFor(x => x.StopAfterSends)
             .Must(v => v is null or (>= 1 and <= 1000))
             .WithErrorCode(ErrorCodes.AutomationStopAfterInvalid)
