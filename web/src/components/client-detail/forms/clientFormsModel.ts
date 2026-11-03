@@ -4,6 +4,7 @@ import {
   type ClientFormAnswer,
   type ClientFormItem,
 } from '@/api/questionnaires';
+import { isRatingAnswer } from '@/components/client-forms/answerValues';
 
 export type FormsFilter = 'all' | 'onboarding' | 'questionnaire' | 'checkin';
 
@@ -155,7 +156,7 @@ export interface NumberChange {
 
 /** Change of a number answer against the previous week; undefined when either side has no number. */
 export function numberChange(answer: ClientFormAnswer, previous: ClientFormAnswer | undefined): NumberChange | undefined {
-  if (answer.questionType !== 'number' || answer.valueNumber == null || previous?.valueNumber == null) {
+  if ((answer.questionType !== 'number' && !isRatingAnswer(answer)) || answer.valueNumber == null || previous?.valueNumber == null) {
     return undefined;
   }
   return { diff: Math.round((answer.valueNumber - previous.valueNumber) * 10) / 10 };
