@@ -22,8 +22,14 @@ export const PHOTO_MESSAGE_MAX = 500;
 export const DEFAULT_EVENT_TIME = '09:00';
 export const DEFAULT_SCHEDULE_TIME = '09:00';
 export const STOP_AFTER_DEFAULT = '5';
-export const CHECK_IN_ANSWER_WINDOW_HOURS = 48;
-export const CHECK_IN_REMINDER_HOURS = 24;
+export const CHECK_IN_DEFAULT_WINDOW_DAYS = 2;
+/** The answer window a coach can pick, in days. */
+export const CHECK_IN_WINDOW_DAYS: readonly number[] = [1, 2, 3, 4, 5, 6, 7];
+
+/** The reminder goes out after a day, or at half the window when the window is a single day. */
+export function checkInReminderHours(windowHours: number): number {
+  return Math.min(24, windowHours / 2);
+}
 
 /** The weekday buttons of a check-in rule, Monday first. */
 export const WEEKDAYS: readonly DayOfWeek[] = [
@@ -94,6 +100,8 @@ export const automationRuleSchema = z
     /** The rule sends a CheckIn form: weekly on a weekday, with an answer window and its own options. */
     checkIn: z.boolean(),
     scheduleWeekday: z.enum(DayOfWeek),
+    /** Days the client has to answer, as the select's string value. */
+    answerWindowDays: z.string().refine((value) => numberInRange(value, 1, 7)),
     reminderEnabled: z.boolean(),
     notifyCoachOnMissedWeek: z.boolean(),
     eventType: z.enum(AutomationEventType),
@@ -194,6 +202,7 @@ export const SUMMARY_SENSITIVE_FIELDS = [
   'localTime',
   'checkIn',
   'scheduleWeekday',
+  'answerWindowDays',
   'eventType',
   'eventOffsetDays',
   'eventOffsetDirection',
@@ -218,6 +227,7 @@ export function defaultRuleValues(): AutomationRuleFormValues {
     localTime: DEFAULT_SCHEDULE_TIME,
     checkIn: false,
     scheduleWeekday: DayOfWeek.Monday,
+    answerWindowDays: String(CHECK_IN_DEFAULT_WINDOW_DAYS),
     reminderEnabled: true,
     notifyCoachOnMissedWeek: true,
     eventType: AutomationEventType.ClientJoined,
@@ -251,6 +261,10 @@ export function ruleToFormValues(rule: AutomationRuleDto): AutomationRuleFormVal
     ...defaults,
     checkIn,
     scheduleWeekday: rule.scheduleWeekday ?? defaults.scheduleWeekday,
+    answerWindowDays:
+      checkIn && rule.answerWindowHours != null
+        ? String(Math.round(rule.answerWindowHours / 24))
+        : defaults.answerWindowDays,
     reminderEnabled: checkIn ? rule.reminderAfterHours != null : defaults.reminderEnabled,
     notifyCoachOnMissedWeek: checkIn ? (rule.notifyCoachOnMissedWeek ?? false) : defaults.notifyCoachOnMissedWeek,
     name: rule.name ?? '',
@@ -287,6 +301,7 @@ export function formValuesToRequest(
   const checkIn = values.checkIn && values.actionType === AutomationActionType.SendForm;
   const isSchedule = checkIn || values.triggerKind === AutomationTriggerKind.Schedule;
   const planEvent = !isSchedule && isPlanEvent(values.eventType);
+  const answerWindowHours = Number(values.answerWindowDays) * 24;
   const request: UpdateAutomationRuleRequest = {
     name: values.name.trim(),
     actionType: values.actionType,
@@ -298,8 +313,8 @@ export function formValuesToRequest(
     localTime: values.localTime === '' ? undefined : values.localTime,
     // Check-in fields go out for a check-in rule only; the backend refuses them on any other rule.
     scheduleWeekday: checkIn ? values.scheduleWeekday : undefined,
-    answerWindowHours: checkIn ? CHECK_IN_ANSWER_WINDOW_HOURS : undefined,
-    reminderAfterHours: checkIn && values.reminderEnabled ? CHECK_IN_REMINDER_HOURS : undefined,
+    answerWindowHours: checkIn ? answerWindowHours : undefined,
+    reminderAfterHours: checkIn && values.reminderEnabled ? checkInReminderHours(answerWindowHours) : undefined,
     notifyCoachOnMissedWeek: checkIn ? values.notifyCoachOnMissedWeek : undefined,
     eventType: isSchedule ? undefined : values.eventType,
     eventOffsetDays: isSchedule ? undefined : Number(values.eventOffsetDays),
@@ -418,7 +433,7 @@ export function ruleToToggleRequest(rule: AutomationRuleDto, enabled: boolean): 
     request.localTime = undefined;
   }
   if (isCheckInRule(rule)) {
-    request.answerWindowHours = rule.answerWindowHours ?? CHECK_IN_ANSWER_WINDOW_HOURS;
+    request.answerWindowHours = rule.answerWindowHours ?? CHECK_IN_DEFAULT_WINDOW_DAYS * 24;
     request.reminderAfterHours = rule.reminderAfterHours;
   }
   return request;
