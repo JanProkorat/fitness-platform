@@ -84,14 +84,21 @@ One part of the hub rule does hold: subagents never push or merge
 
 ## Design source of truth
 
-The **Form Up redesign canvas** is the design source of truth for the web
-portal, the client app and the coach app:
-<https://claude.ai/artifact/HFzM8WqykBxJvkLdiqU85h>. Every design check, design
-review and UI test compares against it — light **and** dark — unless the user
-says otherwise for that task.
+The **Form Up redesign canvases** are the design source of truth, one per app,
+each with one page per module:
 
-- **Who can read what.** The canvas is a private claude.ai artifact: only the
-  main thread can open it (`Artifact` tool, `action: "read"`). Subagents read
+| App | Canvas | Boards |
+|---|---|---|
+| Web portal (and emails) | <https://claude.ai/artifact/5GDTsJDGYJ9RevCTva3ciK> | `Page*`, `Email*` |
+| Client app | <https://claude.ai/artifact/KMXvDF1KzZuqkq6LAsTDr9> | `Glass*` |
+| Coach app | <https://claude.ai/artifact/9ePcFr5gAj5uqzPHzqzXyR> | `Coach*` |
+
+Every design check, design review and UI test compares against them — light
+**and** dark — unless the user says otherwise for that task. The old combined
+canvas (`HFzM8WqykBxJvkLdiqU85h`) is frozen; do not use it.
+
+- **Who can read what.** The canvases are private claude.ai artifacts: only the
+  main thread can open them (`Artifact` tool, `action: "read"`). Subagents read
   the repo snapshot `docs/prototypes/formup-redesign/` instead (gallery
   `index.html`, one HTML + PNG per board, clickable prototypes in
   `interactive/` (web), `interactive-client/` and `interactive-coach/`).
@@ -101,9 +108,9 @@ says otherwise for that task.
   `Coach<Screen>{Light,Dark}` for the coach app. The exported copies are under
   `web/`, `mobile-light|dark/`, `coach-light|dark/`. Issues and briefs name the
   board (e.g. `PageTemplateDay`), not a file path.
-- **Keep the snapshot current.** Its README states the canvas version it was
-  exported from. Before a design check, the main thread compares that with the
-  live canvas; if the canvas is newer, re-export (README "Rebuilding") before
+- **Keep the snapshot current.** Its README states the version of each canvas it
+  was exported from. Before a design check, the main thread compares those with
+  the live canvases; if one is newer, re-export (README "Rebuilding") before
   dispatching agents that rely on it.
 - **Superseded:** the older `docs/prototypes/{mobile,trainer,notion}/scenes/*.html`
   prototypes. Use them only when the user asks for them explicitly.

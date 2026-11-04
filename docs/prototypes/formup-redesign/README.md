@@ -1,16 +1,30 @@
 # Form Up redesign — design source of truth
 
-Repo snapshot of the **Form Up redesign canvas**, the design source of truth for
-the web portal and the mobile apps:
-<https://claude.ai/artifact/HFzM8WqykBxJvkLdiqU85h> (private claude.ai Design
-artifact — only the main Claude session can open it; agents read this snapshot).
+Repo snapshot of the **Form Up redesign canvases**, the design source of truth for
+the web portal and the mobile apps. Since 2026-11-03 the design lives on three
+private claude.ai Design artifacts, one page per module (only the main Claude
+session can open them; agents read this snapshot):
 
-**Snapshot of canvas version 1793274985-492c, exported 2026-10-29 (#1810); `canvas.json` and the GlassOffline* boards from 1793279172-ac8c (#1830); `canvas.json` and the PageClientActivityOfflineSync / PageNotificationsOfflineSync boards from 1793281475-31a2 (#1819); `canvas.json` and the PageClientPlanEditorOfflineSync / PageClientPlanDayOfflineSync boards from 1793295740-493c (#1840), leaving out the 10 GlassQuestionnaire* boards on the canvas; the GlassOfflineSynced boards and the new GlassOfflineSyncedSheet boards from 1793351906-f400 (#1862), keeping this snapshot's own layout (the live canvas has since been reorganised; re-sync separately); the GlassOfflineNotSaved boards from 1793352833-8ee4 (#1865), same approach; the 16 GlassQuestionnaire* and GlassToday*Questionnaire boards from 1793298021-83ec (#1841), same approach; the GlassNutrition, GlassToday and GlassMealDetail boards and the new GlassNutritionNotes and GlassTodayNotes boards from 1793440555-c4af (#1876), same approach; the PageClientForms*, PageClientPlanForms* and PageAutomationRuleDrawerCheckIn boards and the changed PageAutomations, PageClientAutomations and PageFormCheckIn boards from 1793634305-ac3b (#1888), same approach.** If the canvas has moved
-on, re-export before relying on this copy (see Rebuilding).
+| Canvas | Link | Holds |
+|---|---|---|
+| Web portal | <https://claude.ai/artifact/5GDTsJDGYJ9RevCTva3ciK> | Web portal pages (`Page*`) and the emails (`Email*`) |
+| Client app | <https://claude.ai/artifact/KMXvDF1KzZuqkq6LAsTDr9> | Client mobile app (`Glass*`) |
+| Coach app | <https://claude.ai/artifact/9ePcFr5gAj5uqzPHzqzXyR> | Coach mobile app (`Coach*`) |
+
+The old combined canvas (<https://claude.ai/artifact/HFzM8WqykBxJvkLdiqU85h>) is
+frozen and no longer updated.
+
+**Snapshot of web portal 1793698360-07d3, client app 1793741057-bec0 and coach app
+1793695238-ebef, exported 2026-11-04 (#1946).** This was a full re-sync: boards the
+canvases had folded into combined boards (e.g. the `PageReset*` steps into
+`PageResetPasswordFlow`, the settings dialogs into `PageDialogs`) are gone, and the
+clickable prototypes link to the combined board instead. The concepts and logo boards
+are not on the new canvases and are kept as they were. If a canvas has moved on,
+re-export before relying on this copy (see Rebuilding).
 
 | Path | Contents |
 |---|---|
-| `index.html` | Gallery of every board, grouped by canvas page and row |
+| `index.html` | Gallery of every board, grouped by app and module |
 | `interactive/` | Clickable web-portal prototype, light and dark (open `interactive/index.html`) |
 | `interactive-client/`, `interactive-coach/` | Clickable client-app and coach-app prototypes, light and dark, shown in a phone frame |
 | `web/` | Web portal: entry page, registration, clients (incl. Payment and Automations tabs), inbox, recipes, ingredients, plan templates, forms, automations, packages and discounts, coach profile, settings (incl. payments, plan and billing) and account menu, password reset, coach plans (plan picker, sign-up plan step, paywalls, plan ended), Form Up admin (plans, promotions, coaches) — light and dark |
@@ -48,14 +62,21 @@ are approximations: a click jumps to the board that shows the result.
 
 ```bash
 cd source
+python3 merge_canvases.py <web> <client> <coach>   # three canvases → project/ (one merged canvas.json)
 python3 export_static.py ..          # boards → standalone HTML + index.html + screens.json
 python3 export_interactive.py ..     # boards → clickable prototypes in ../interactive*/
 node screenshot.mjs ..               # PNG per screen (uses web/node_modules/playwright and Brave)
 ```
 
-Before exporting, copy the current `canvas.json` and every board file from the
-canvas into `source/project/`. On the canvas, each mobile app is one page with
-light boards above dark ones; the exports split them into `*-light/` and
-`*-dark/` by the `Light`/`Dark` file suffix. Screenshots use reduced motion, so
+Before exporting, download each canvas's `project/canvas.json` and every board file
+into its own folder (`<web>/project/…`, `<client>/project/…`, `<coach>/project/…`) and
+run `merge_canvases.py`. It stacks every module page of a canvas under one export page
+(`web`, `email`, `glass`, `coach`), replaces the board files in `source/project/` and
+removes boards that left the canvases. Clear the generated `.html`/`.png` files in the
+export folders first, or renamed boards leave stale copies behind. A board the canvas
+folds into another one needs an entry in `MERGED` in `export_interactive.py` so old
+prototype links still land somewhere. In each mobile module, light boards sit above
+dark ones; the exports split them into `*-light/` and `*-dark/` by the `Light`/`Dark`
+file suffix. New board files are gitignored: stage them with `git add -f`. Screenshots use reduced motion, so
 animated boards (launch screen, logo marks) show their finished frame. The `gen*.py` scripts regenerate the board files;
 `gen.py` and `gen2.py` also rewrite `project/canvas.json` — restore it afterwards.
