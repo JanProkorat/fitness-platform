@@ -10,7 +10,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { PendingRowKind, type PendingClientRow } from '@/api/clients';
 import {
   useCancelPendingInvite,
-  useRejectClientRequest,
   useWithdrawClientRequestProposal,
 } from '@/hooks/useClientsQueries';
 import { firstName } from '@/lib/cooperationCards';
@@ -55,8 +54,8 @@ interface Props {
  * ClientRequest.PublicId). It is also unpaginated, so there is no pagination
  * control on this tab. Which action a row gets depends on its state: an Invite
  * row can only be cancelled (the trainer sent it); a Request row opens the
- * review drawer or is declined; a Request row that carries the coach's package
- * proposal can be reviewed or withdrawn. Invite rows no longer carry a
+ * review drawer (declining happens there); a Request row that carries the
+ * coach's package proposal can also be withdrawn. Invite rows no longer carry a
  * name (email-only invites), so the name column falls back to the email
  * for them; Request rows still carry a real registered-user name.
  */
@@ -64,7 +63,6 @@ export default function PendingTable({ rows, isPending, isError, onRetry }: Prop
   const { t, i18n } = useTranslation();
   const [reviewId, setReviewId] = useState<string | null>(null);
   const cancelMutation = useCancelPendingInvite();
-  const rejectMutation = useRejectClientRequest();
   const withdrawMutation = useWithdrawClientRequestProposal();
 
   return (
@@ -77,7 +75,7 @@ export default function PendingTable({ rows, isPending, isError, onRetry }: Prop
             <TableHead>{t('clients.pendingTable.columnPackage')}</TableHead>
             <TableHead className={MESSAGE_COLUMN_CLASS}>{t('clients.pendingTable.columnMessage')}</TableHead>
             <TableHead>{t('clients.pendingTable.columnSentAt')}</TableHead>
-            <TableHead className="w-52">
+            <TableHead className="w-px">
               <span className="sr-only">{t('common.actions')}</span>
             </TableHead>
           </TableRow>
@@ -121,7 +119,6 @@ export default function PendingTable({ rows, isPending, isError, onRetry }: Prop
               const proposal = isRequest ? row.proposal : undefined;
               const isNew = isNewRequest(row);
               const isCancelling = cancelMutation.isPending && cancelMutation.variables === publicId;
-              const isRejecting = rejectMutation.isPending && rejectMutation.variables?.publicId === publicId;
               const isWithdrawing = withdrawMutation.isPending && withdrawMutation.variables === publicId;
               const displayName =
                 row.firstName || row.lastName ? `${row.firstName ?? ''} ${row.lastName ?? ''}`.trim() : row.email;
@@ -138,10 +135,10 @@ export default function PendingTable({ rows, isPending, isError, onRetry }: Prop
                   data-proposal={proposal ? '' : undefined}
                   className={cn(isNew && 'bg-marker/5')}
                 >
-                  <TableCell>
+                  <TableCell className="max-w-64">
                     <div className="flex items-center gap-3">
                       <ClientAvatar firstName={row.firstName || row.email} lastName={row.lastName} />
-                      <div className="flex min-w-0 flex-col">
+                      <div className="flex min-w-0 flex-col [&>*]:truncate">
                         <span className="flex items-center gap-2">
                           <span className="font-semibold text-foreground">{displayName}</span>
                           {isNew && (
@@ -166,7 +163,7 @@ export default function PendingTable({ rows, isPending, isError, onRetry }: Prop
                       {isRequest ? t('clients.pendingTable.kindRequest') : t('clients.pendingTable.kindInvite')}
                     </Badge>
                   </TableCell>
-                  <TableCell data-testid="pending-package-cell">
+                  <TableCell data-testid="pending-package-cell" className="max-w-48 truncate">
                     {packageName ? (
                       <span className="font-semibold text-foreground">
                         {packageName}
@@ -187,18 +184,19 @@ export default function PendingTable({ rows, isPending, isError, onRetry }: Prop
                   <TableCell className="text-muted-foreground">
                     {sentAt ? formatSent(sentAt, i18n.language) : null}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="w-px">
                     {isRequest ? (
                       <div className="flex justify-end gap-2">
                         <Button
                           type="button"
+                          variant="outline"
                           size="sm"
                           disabled={!publicId}
                           onClick={() => setReviewId(publicId)}
                         >
                           {t('clients.pendingTable.viewInvite')}
                         </Button>
-                        {proposal ? (
+                        {proposal && (
                           <Button
                             type="button"
                             variant="outline"
@@ -207,16 +205,6 @@ export default function PendingTable({ rows, isPending, isError, onRetry }: Prop
                             onClick={() => withdrawMutation.mutate(publicId)}
                           >
                             {isWithdrawing ? t('common.saving') : t('clients.pendingTable.withdraw')}
-                          </Button>
-                        ) : (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            disabled={!publicId || isRejecting}
-                            onClick={() => rejectMutation.mutate({ publicId })}
-                          >
-                            {isRejecting ? t('common.saving') : t('clients.pendingTable.reject')}
                           </Button>
                         )}
                       </div>
