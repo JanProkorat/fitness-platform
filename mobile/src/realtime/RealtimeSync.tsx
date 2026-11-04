@@ -36,8 +36,12 @@ const REQUEST_EVENTS: readonly string[] = [
   'clientrequestproposalwithdrawn',
 ];
 
-/** A coach accepting the client's request links a coach, which changes Today. */
-const PROFILE_EVENTS: readonly string[] = ['clientrequestaccepted'];
+/**
+ * Events that link a coach without any action on the phone: the profile, the collaborations Today
+ * lists its coaches from and the plans the new coach publishes all change. An invitation links only
+ * once the client accepts it, which the accept mutation refreshes itself.
+ */
+const LINK_EVENTS: readonly string[] = ['clientrequestaccepted'];
 
 /** A coach asking for a payment arrives as a new notification, and changes what is owed. */
 const PAYMENT_EVENTS: readonly string[] = ['newnotification'];
@@ -71,8 +75,10 @@ function EventRefresh({ event }: { event: string }) {
     if (REQUEST_EVENTS.includes(event)) {
       void queryClient.invalidateQueries({ queryKey: MY_REQUESTS_KEY });
     }
-    if (PROFILE_EVENTS.includes(event)) {
+    if (LINK_EVENTS.includes(event)) {
       void queryClient.invalidateQueries({ queryKey: PROFILE_QUERY_KEY });
+      void queryClient.invalidateQueries({ queryKey: COLLABORATIONS_QUERY_KEY });
+      void queryClient.invalidateQueries({ queryKey: PLANS_QUERY_KEY });
     }
     if (PAYMENT_EVENTS.includes(event)) {
       void queryClient.invalidateQueries({ queryKey: PAYMENTS_QUERY_KEY });
