@@ -181,4 +181,65 @@ public class SkipOnboardingFormTests(FitnessApiFactory factory)
         (await StoredLinkAsync(coach, client)).SkipOnboardingForm.Should().BeTrue();
         (await PendingItemsAsync(client)).Should().BeEmpty();
     }
+
+    private record InviteCreated(Guid PublicId);
+
+    private static async Task<Guid> InviteAsync(Actor coach, Actor client, bool skipOnboardingForm)
+    {
+        var response = await coach.Http.PostAsJsonAsync(
+            "/trainer/pending-invites", new { client.Email, SkipOnboardingForm = skipOnboardingForm }, Ct);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        return (await response.Content.ReadFromJsonAsync<InviteCreated>(Ct))!.PublicId;
+    }
+
+    [Fact]
+    public async Task AcceptInvite_WithSkip_CreatesASkippedLinkAndNoFormIsOffered()
+    {
+        var (coach, client) = await CoachWithDefaultFormAsync();
+        var inviteId = await InviteAsync(coach, client, skipOnboardingForm: true);
+
+        var accepted = await client.Http.PostAsJsonAsync($"/client/invites/{inviteId}/accept", new { }, Ct);
+
+        accepted.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        (await StoredLinkAsync(coach, client)).SkipOnboardingForm.Should().BeTrue();
+        (await PendingItemsAsync(client)).Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task AcceptInvite_WithoutSkip_StillListsTheDefaultForm()
+    {
+        var (coach, client) = await CoachWithDefaultFormAsync();
+        var inviteId = await InviteAsync(coach, client, skipOnboardingForm: false);
+
+        var accepted = await client.Http.PostAsJsonAsync($"/client/invites/{inviteId}/accept", new { }, Ct);
+
+        accepted.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        var link = await StoredLinkAsync(coach, client);
+        link.SkipOnboardingForm.Should().BeFalse();
+        (await PendingItemsAsync(client)).Should().ContainSingle(item => item.GetProperty("linkPublicId").GetGuid() == link.PublicId);
+    }
+
+    [Fact]
+    public async Task AcceptInvitationToken_AfterAnInviteWithSkip_CreatesASkippedLink()
+    {
+        var (coach, client) = await CoachWithDefaultFormAsync();
+        await InviteAsync(coach, client, skipOnboardingForm: true);
+
+        string token;
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            token = await db.InvitationTokens.AsNoTracking()
+                .Where(t => t.ProfessionalProfileId == coach.ProfileId && t.Email == client.Email)
+                .Select(t => t.Token)
+                .SingleAsync(Ct);
+        }
+
+        var accepted = await client.Http.PostAsJsonAsync("/auth/invite/accept", new { Token = token }, Ct);
+
+        accepted.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await StoredLinkAsync(coach, client)).SkipOnboardingForm.Should().BeTrue();
+        (await PendingItemsAsync(client)).Should().BeEmpty();
+    }
 }
