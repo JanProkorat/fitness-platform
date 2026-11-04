@@ -283,6 +283,20 @@ body.fu-show .fu-hot{outline:2px solid rgba(37,99,235,.75);outline-offset:1px}
 """
 
 
+# Boards the canvas later folded into one combined board; links to them open the combined board.
+MERGED = {
+    **dict.fromkeys(["PageRecipeDrawer", "PageRecipeDrawerIngredients", "PageRecipeDrawerPreparation", "PageRecipeDrawerPictures"],
+                    "PageRecipeDrawerTabs"),
+    **dict.fromkeys(["PageRegisterCheckEmail", "PageRegisterVerified", "PageRegisterChangeEmail"], "PageRegisterEmailSteps"),
+    **dict.fromkeys(["PageResetRequest", "PageResetCheckEmail", "PageResetNewPassword", "PageResetDone", "PageResetExpired"],
+                    "PageResetPasswordFlow"),
+    **dict.fromkeys(["PageSettingsBank", "PageSettingsDisable", "PageSettingsPassword", "PageSettingsRemoveTrainer",
+                     "PageSettingsRemoveNutrition", "PageSettingsRolesOne", "PageSettingsAddRole"], "PageDialogs"),
+    **dict.fromkeys(["GlassNutritionEmpty", "GlassTrainingEmpty"], "GlassEmptyStates"),
+    **dict.fromkeys(["GlassNutritionOffPlanSearch", "GlassNutritionOffPlanAmount"], "GlassNutritionAddFood"),
+    **dict.fromkeys(["GlassRegisterCheckEmail", "GlassRegisterVerified", "GlassRegisterChangeEmail"], "GlassRegisterEmailSteps"),
+}
+
 # Output folder -> canvas pages (light, dark), board-name suffix pattern, shared nav, per-page maps, start page, phone frame.
 ZONES = [
     ("interactive", ("web",), r"[CD]\.dc\.html$", NAV, FLOWS, "PageHome", False),
@@ -305,7 +319,7 @@ def build(folder, pages, suffix, nav, flows, start, device):
         src = open(os.path.join(HERE, "project", k)).read()
         helmet = re.search(r"<helmet>(.*?)</helmet>", src, re.S).group(1).strip()
         body = re.search(r"</helmet>(.*?)</x-dc>", src, re.S).group(1).strip()
-        flow = dict(nav, **flows.get(name, {}))
+        flow = {k: MERGED.get(t, t) for k, t in dict(nav, **flows.get(name, {})).items()}
         runtime = (RUNTIME.replace("__FLOW__", json.dumps(flow, ensure_ascii=False)).replace("__PAGE__", json.dumps(name))
                    .replace("__THEME__", json.dumps(theme)).replace("__PAGES__", json.dumps(names, ensure_ascii=False))
                    .replace("__DEVICE__", json.dumps(device)))
@@ -317,7 +331,7 @@ def build(folder, pages, suffix, nav, flows, start, device):
         f.write(f'<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Form Up prototype</title>'
                 f'<meta http-equiv="refresh" content="0; url={start}-light.html"></head><body><a href="{start}-light.html">Open the prototype</a></body></html>\n')
     known = {n for n, _ in names}
-    missing = sorted({t for fl in list(flows.values()) + [nav] for t in fl.values() if t} - known)
+    missing = sorted({MERGED.get(t, t) for fl in list(flows.values()) + [nav] for t in fl.values() if t} - known)
     print(f"{folder}: {len(boards)} screens; unknown targets: {missing}")
 
 

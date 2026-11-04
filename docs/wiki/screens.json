@@ -214,7 +214,9 @@
         "web/src/hooks/useClientPaymentQueries.ts",
         "web/src/hooks/useQuestionnaireQueries.ts",
         "web/src/api/client-payments.ts",
-        "web/src/api/questionnaires.ts"
+        "web/src/api/questionnaires.ts",
+        "web/src/lib/cooperationCards.ts",
+        "web/src/hooks/useActiveRoles.ts"
       ],
       "endpoints": [
         "GET /trainer/clients",
@@ -1397,10 +1399,17 @@
         "mobile/src/lib/outbox/types.ts",
         "mobile/src/lib/outbox/validate.ts",
         "mobile/src/hooks/useOutboxDrain.ts",
-        "mobile/src/hooks/useRefetchOnRecovery.ts"
+        "mobile/src/hooks/useRefetchOnRecovery.ts",
+        "mobile/src/components/today/ProposalCard.tsx",
+        "mobile/src/components/messages/format.ts",
+        "mobile/src/components/payments/format.ts",
+        "mobile/src/hooks/useMyClientRequests.ts",
+        "mobile/src/hooks/usePaymentsEnabled.ts",
+        "mobile/src/api/clientRequests.ts"
       ],
       "endpoints": [
         "GET /users/me",
+        "GET /client/requests",
         "GET /client/invites",
         "POST /client/invites/{id}/accept",
         "POST /client/invites/{id}/decline",
@@ -1543,7 +1552,12 @@
         "mobile/src/api/invites.ts",
         "mobile/src/api/notifications.ts",
         "mobile/src/api/profile.ts",
-        "mobile/src/components/OfflineBanner.tsx"
+        "mobile/src/components/OfflineBanner.tsx",
+        "mobile/src/hooks/useMyClientRequests.ts",
+        "mobile/src/hooks/usePaymentsEnabled.ts",
+        "mobile/src/api/clientRequests.ts",
+        "mobile/src/api/appConfig.ts",
+        "mobile/src/components/payments/format.ts"
       ],
       "endpoints": [
         "GET /conversations",
@@ -1552,7 +1566,9 @@
         "POST /conversations/{conversationId}/read",
         "GET /client/invites",
         "POST /client/invites/{id}/accept",
-        "POST /client/invites/{id}/decline"
+        "POST /client/invites/{id}/decline",
+        "GET /client/requests",
+        "GET /client/app-config"
       ],
       "board": "GlassChat",
       "shots": [
