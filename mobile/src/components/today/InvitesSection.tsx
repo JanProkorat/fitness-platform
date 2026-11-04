@@ -19,13 +19,19 @@ import type { Theme } from '@/theme';
 import { InviteCard } from './InviteCard';
 import { ProposalCard } from './ProposalCard';
 
+type InvitesSectionProps = {
+  /** Leaves the invitations out, for layouts that already list them through the role slots. */
+  proposalsOnly?: boolean;
+};
+
 /** Pending coach invitations and open package proposals on Today; renders nothing when there are none. */
-export function InvitesSection() {
+export function InvitesSection({ proposalsOnly = false }: InvitesSectionProps) {
   const { t } = useTranslation();
   const router = useRouter();
   const theme = useTheme();
   const styles = makeStyles(theme);
-  const { data: invites = [] } = useInvites();
+  const { data: allInvites = [] } = useInvites();
+  const invites = proposalsOnly ? [] : allInvites;
   const { data: requests = [] } = useMyClientRequests();
   const proposals = requests.filter((request) => hasOpenProposal(request) && Boolean(request.publicId));
 

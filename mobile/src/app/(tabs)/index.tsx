@@ -121,6 +121,8 @@ function TodayContent() {
           ) : (
             <FindCoachSection roles={missing} />
           )}
+          {/* Offered invites are already listed above, so only the open proposals are added. */}
+          <InvitesSection proposalsOnly />
           <HowItWorks />
           <StartOnYourOwn />
         </>,
@@ -179,6 +181,7 @@ function TodayContent() {
             {missing.length > 0 ? (
               <RoleSlots missing={missing} offers={offers} mode="add" />
             ) : null}
+            <InvitesSection proposalsOnly />
             <StartOnYourOwn showHeading={false} />
           </>,
           true,
