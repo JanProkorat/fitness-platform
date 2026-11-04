@@ -154,8 +154,9 @@ function ReviewBody({ request, onClose }: { request: IncomingClientRequestDto; o
   // The server answers 409 CLIENT_REQUEST_INVALID_STATE when the request moved on elsewhere; the drawer has nothing left to do.
   const closeOnConflict = { onError: (error: unknown) => isRequestStateConflict(error) && onClose() };
   const statement = message.trim() || undefined;
-  const skipOnboardingForm = formId === NO_FORM_ID;
-  const questionnairePublicId = skipOnboardingForm ? null : formId;
+  // Skip is sent only when the coach explicitly picked "None"; an untouched row never skips.
+  const skipOnboardingForm = formChoice === NO_FORM_ID;
+  const questionnairePublicId = skipOnboardingForm ? null : formChoice ?? (defaultFormId === NO_FORM_ID ? null : defaultFormId);
 
   function accept() {
     acceptMutation.mutate(
@@ -311,16 +312,19 @@ function ReviewBody({ request, onClose }: { request: IncomingClientRequestDto; o
       </div>
 
       <div className="flex items-center gap-3 border-t border-border px-6 py-4">
-        <Button
-          type="button"
-          variant="ghost"
-          size="lg"
-          className="px-2 font-semibold"
-          disabled={isBusy}
-          onClick={() => rejectMutation.mutate({ publicId }, { onSuccess: onClose, ...closeOnConflict })}
-        >
-          {rejectMutation.isPending ? t('common.saving') : t('inviteReview.decline')}
-        </Button>
+        {/* A waiting proposal can only be withdrawn; the server rejects a decline for anything but Pending. */}
+        {!isWaiting && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="lg"
+            className="px-2 font-semibold"
+            disabled={isBusy}
+            onClick={() => rejectMutation.mutate({ publicId }, { onSuccess: onClose, ...closeOnConflict })}
+          >
+            {rejectMutation.isPending ? t('common.saving') : t('inviteReview.decline')}
+          </Button>
+        )}
         <span className="ml-auto" />
         {isWaiting ? (
           <Button
@@ -340,7 +344,12 @@ function ReviewBody({ request, onClose }: { request: IncomingClientRequestDto; o
               type="button"
               size="lg"
               className="gap-1.75 px-3.5"
-              disabled={isBusy || messageTooLong || (isProposeVariant && packagesQuery.isPending && !notEntitled)}
+              disabled={
+                isBusy ||
+                messageTooLong ||
+                formsQuery.isPending ||
+                (isProposeVariant && packagesQuery.isPending && !notEntitled)
+              }
               onClick={primaryIsPropose ? propose : accept}
             >
               {!isBusy && (primaryIsPropose ? <Upload aria-hidden="true" /> : <Check aria-hidden="true" />)}

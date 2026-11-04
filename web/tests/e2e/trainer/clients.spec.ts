@@ -15,6 +15,7 @@ import type { Page, Route } from '@playwright/test';
 import { trainerTest as test, expect } from '../fixtures/auth';
 
 const STUB_PACKAGE_ID = 'bbbbbbbb-0000-0000-0000-000000001907';
+const STUB_FORM_ID = 'bbbbbbbb-0000-0000-0000-000000001930';
 
 /**
  * The e2e coach has payments but no packages, so the drawer's offer pieces are stubbed to hold one package and no
@@ -159,6 +160,51 @@ test.describe('clients list page', () => {
 
     await expect(page.getByRole('heading', { name: 'Invite client', exact: true })).not.toBeVisible();
     expect(sentBody?.packageId).toBe(STUB_PACKAGE_ID);
+  });
+
+  test('an untouched onboarding form row sends the default form and no skip flag', async ({ page }) => {
+    await stubOneCoachPackage(page);
+    await page.route(
+      (url) => url.pathname === '/trainer/questionnaires',
+      (route) =>
+        route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            questionnaires: [
+              {
+                publicId: STUB_FORM_ID,
+                title: 'Default onboarding',
+                type: 'Onboarding',
+                isActive: true,
+                isDefault: true,
+                questionCount: 4,
+                usedForClientCount: 0,
+              },
+            ],
+          }),
+        }),
+    );
+    await page.getByRole('button', { name: 'Invite client', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Invite client', exact: true })).toBeVisible();
+    await expect(page.getByTestId('offer-form-row')).toContainText('Default onboarding');
+    await page.getByRole('textbox', { name: 'Email', exact: true }).fill(`qa.invite.form.${Date.now()}@fitnessplatform.test`);
+    await page.getByRole('textbox', { name: 'Email', exact: true }).press('Tab');
+
+    let sentBody: Record<string, unknown> | undefined;
+    await page.route('**/trainer/pending-invites', async (route) => {
+      if (route.request().method() !== 'POST') {
+        await route.fallback();
+        return;
+      }
+      sentBody = route.request().postDataJSON() as Record<string, unknown>;
+      await route.fulfill({ status: 201, contentType: 'application/json', body: '{}' });
+    });
+    await page.getByRole('button', { name: 'Send invitation' }).click();
+
+    await expect(page.getByRole('heading', { name: 'Invite client', exact: true })).not.toBeVisible();
+    expect(sentBody?.questionnairePublicId).toBe(STUB_FORM_ID);
+    expect(sentBody).not.toHaveProperty('skipOnboardingForm');
   });
 
   /**

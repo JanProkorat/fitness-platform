@@ -143,13 +143,18 @@ function InviteForm({ onClose }: { onClose: () => void }) {
   const listsLoading = !notEntitled && (packagesQuery.isPending || (packagesQuery.isSuccess && discountsQuery.isPending));
 
   function onSubmit(values: FormValues) {
-    const skipOnboardingForm = formId === NO_FORM_ID;
+    // Skip is sent only when the coach explicitly picked "None"; an untouched row never skips.
+    const skipOnboardingForm = formChoice === NO_FORM_ID;
+    const questionnairePublicId = formChoice ?? (defaultFormId === NO_FORM_ID ? null : defaultFormId);
     inviteMutation.mutate(
       {
         email: values.email,
         message: message.trim() || null,
-        // "None" is an explicit skip: the server would otherwise fall back to the coach's default form.
-        ...(skipOnboardingForm ? { skipOnboardingForm: true, questionnairePublicId: null } : { questionnairePublicId: formId }),
+        ...(skipOnboardingForm
+          ? { skipOnboardingForm: true, questionnairePublicId: null }
+          : questionnairePublicId
+            ? { questionnairePublicId }
+            : {}),
         ...(isDualRole ? { requestedScope: scope } : {}),
         ...(offeredPackage
           ? { packageId: offeredPackage.id, ...(offeredDiscount ? { discountId: offeredDiscount.discountId } : {}) }
@@ -283,7 +288,7 @@ function InviteForm({ onClose }: { onClose: () => void }) {
           type="submit"
           size="lg"
           className="gap-1.75 px-3.5"
-          disabled={!isValid || messageTooLong || listsLoading || inviteMutation.isPending}
+          disabled={!isValid || messageTooLong || listsLoading || formsQuery.isPending || inviteMutation.isPending}
         >
           <Send aria-hidden="true" />
           {inviteMutation.isPending ? t('common.sending') : t('clients.addClientDrawer.submit')}

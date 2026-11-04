@@ -377,6 +377,9 @@ test.describe('invite review drawer (#1906)', () => {
     await expect(waitingDrawer.getByTestId('invite-review-waiting')).toContainText('Long-term coaching');
     await expect(waitingDrawer.getByRole('button', { name: 'Accept', exact: true })).toHaveCount(0);
     await expect(waitingDrawer.getByRole('button', { name: 'Propose package' })).toHaveCount(0);
+    // Only Withdraw is offered: the server refuses a decline once a proposal is out.
+    await expect(waitingDrawer.getByRole('button', { name: 'Withdraw proposal' })).toBeVisible();
+    await expect(waitingDrawer.getByRole('button', { name: 'Decline' })).toHaveCount(0);
     await waitingDrawer.getByRole('button', { name: 'Withdraw proposal' }).click();
 
     expect(state.withdrawCalls).toBe(1);
@@ -401,6 +404,8 @@ test.describe('invite review drawer (#1906)', () => {
 
     await expect(drawer).toHaveCount(0);
     expect(state.acceptBodies).toEqual([{ questionnairePublicId: FORM_ID, statement: null, discountPublicId: null }]);
+    // An untouched form row sends the default form, never the skip flag.
+    expect(state.acceptBodies[0]).not.toHaveProperty('skipOnboardingForm');
   });
 
   test('picking None for the onboarding form skips it explicitly instead of sending a form', async ({ page }) => {
