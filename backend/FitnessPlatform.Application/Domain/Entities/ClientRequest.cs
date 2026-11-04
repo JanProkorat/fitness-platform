@@ -25,9 +25,45 @@ public class ClientRequest : PublicTimestampableEntity
     public long? QuestionnaireId { get; set; }
 
     /// <summary>
+    /// True when the professional chose no onboarding form; the default form is then not offered.
+    /// </summary>
+    public bool SkipOnboardingForm { get; set; }
+
+    /// <summary>
     /// Whether the client agreed to share their history with the professional. Stored only; not enforced yet.
     /// </summary>
     public bool ShareHistory { get; set; }
+
+    /// <summary>
+    /// Optional package of the coach the client attached to the request.
+    /// </summary>
+    public long? CoachPackageId { get; set; }
+
+    /// <summary>
+    /// Discount the coach chose on accept; never set without a package.
+    /// </summary>
+    public long? CoachDiscountId { get; set; }
+
+    /// <summary>
+    /// Package the coach proposed while <see cref="Status"/> is <see cref="ClientRequestStatus.PackageProposed"/>;
+    /// kept after the client answers, cleared when the coach withdraws.
+    /// </summary>
+    public long? ProposedPackageId { get; set; }
+
+    /// <summary>
+    /// Discount the coach proposed with the package; never set without a proposed package.
+    /// </summary>
+    public long? ProposedDiscountId { get; set; }
+
+    /// <summary>
+    /// When the coach proposed the package (UTC).
+    /// </summary>
+    public DateTime? ProposedAt { get; set; }
+
+    public CoachPackage? CoachPackage { get; set; }
+    public CoachDiscount? CoachDiscount { get; set; }
+    public CoachPackage? ProposedPackage { get; set; }
+    public CoachDiscount? ProposedDiscount { get; set; }
 
     public ClientProfile ClientProfile { get; set; } = null!;
     public ProfessionalProfile ProfessionalProfile { get; set; } = null!;

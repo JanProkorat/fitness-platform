@@ -105,7 +105,8 @@ public class AcceptClientInviteEndpoint(
         // Create the link, or switch an ended one back on (a re-invited former client).
         var activation = await ClientLinkActivator.ActivateAsync(
             db, userManager, clientProfile.Id, invite.ProfessionalProfile,
-            invite.RequestedScope, invite.QuestionnaireId, ct);
+            invite.RequestedScope, invite.QuestionnaireId,
+            invite.SkipOnboardingForm, ct);
 
         if (activation.Outcome == ClientLinkActivationOutcome.CoachRoleRemoved)
         {

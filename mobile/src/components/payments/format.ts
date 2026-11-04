@@ -1,6 +1,6 @@
 import type { TFunction } from 'i18next';
 
-import { PackageBillingInterval, PaymentCurrency } from '@/api/generated';
+import { DiscountType, PackageBillingInterval, PaymentCurrency } from '@/api/generated';
 
 const NBSP = ' ';
 /** Intl may group with a narrow no-break space or a plain space; one visible separator keeps amounts uniform. */
@@ -36,6 +36,21 @@ export function formatMoney(
 
   if (resolved === PaymentCurrency.CZK) return `${number}${NBSP}Kč`;
   return language === 'cs' || language === 'de' ? `${number}${NBSP}€` : `€${number}`;
+}
+
+/**
+ * The price after a discount, worked out like the backend does: a percentage takes `value` percent off,
+ * a fixed amount takes `value` off; the result is rounded to 2 decimals (half away from zero) and never below 0.
+ */
+export function priceAfterDiscount(
+  price: number,
+  discount: { type?: DiscountType; value?: number } | null | undefined,
+): number {
+  if (!discount || discount.value === undefined) return price;
+  const raw =
+    discount.type === DiscountType.Percentage ? (price * (100 - discount.value)) / 100 : price - discount.value;
+  const rounded = Math.sign(raw) * (Math.round((Math.abs(raw) + Number.EPSILON) * 100) / 100);
+  return Math.max(0, rounded);
 }
 
 /** An IBAN without spaces, as a bank app wants it pasted. */

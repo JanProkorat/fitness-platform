@@ -1,34 +1,40 @@
-import { useState, type ReactNode } from 'react';
-import { useForm, useWatch } from 'react-hook-form';
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useTranslation } from 'react-i18next';
-import { Check, ChevronDown, ClipboardList, CreditCard, Mail, MessageSquare, Send, Target } from 'lucide-react';
+import { Check, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import DiscountPicker from '@/components/offer/DiscountPicker';
+import OfferMessage from '@/components/offer/OfferMessage';
+import OfferPayable from '@/components/offer/OfferPayable';
+import OnboardingFormRow, { NO_FORM_ID, type OfferForm } from '@/components/offer/OnboardingFormRow';
+import PackageTiles, { NO_PACKAGE_ID } from '@/components/offer/PackageTiles';
+import {
+  OFFER_MESSAGE_MAX_LENGTH,
+  discountBlock,
+  offerPrice,
+  toOfferPackage,
+  usableDiscounts,
+  type OfferPackage,
+} from '@/components/offer/offerModel';
 import { LinkCapabilityScope, QuestionnaireType } from '@/api/generated';
 import { useCreatePendingInvite } from '@/hooks/useClientsQueries';
 import { useTrainerQuestionnaires } from '@/hooks/useQuestionnaireQueries';
-import InvitePaymentSection from '@/components/clients/InvitePaymentSection';
 import { isNotEntitled } from '@/components/client-detail/payment/paymentErrors';
 import { usePaymentDiscounts, usePaymentPackages } from '@/hooks/useClientPaymentQueries';
 import { useAuthStore } from '@/stores/auth';
-import { discountFitsPackage } from '@/components/client-detail/payment/paymentModel';
 import { cn } from '@/lib/utils';
 
 const EMAIL_MAX_LENGTH = 100;
-const MESSAGE_MAX_LENGTH = 500;
-const NO_QUESTIONNAIRE = '';
 
 interface FormValues {
   email: string;
-  message: string;
-  packageId: string;
-  discountId: string;
 }
 
 interface Props {
@@ -41,21 +47,6 @@ const SCOPE_OPTIONS: { value: LinkCapabilityScope; labelKey: string }[] = [
   { value: LinkCapabilityScope.NutritionOnly, labelKey: 'clients.addClientDrawer.scope.nutrition' },
   { value: LinkCapabilityScope.Both, labelKey: 'clients.addClientDrawer.scope.both' },
 ];
-
-function Section({ icon, title, hint, children }: { icon: ReactNode; title: string; hint?: string; children: ReactNode }) {
-  return (
-    <section className="flex flex-col gap-3">
-      <h3 className="flex items-center gap-2 text-subhead font-semibold text-foreground">
-        <span className="flex text-nutrition [&_svg]:size-4" aria-hidden="true">
-          {icon}
-        </span>
-        {title}
-        {hint && <span className="text-body font-normal text-muted-foreground">{hint}</span>}
-      </h3>
-      {children}
-    </section>
-  );
-}
 
 /**
  * The "Invite client" drawer. `requestedScope` is sent only by a professional
@@ -78,21 +69,21 @@ export default function AddClientDrawer({ open, onOpenChange }: Props) {
   );
 }
 
+function SectionTitle({ children }: { children: string }) {
+  return <h3 className="text-label font-bold tracking-label text-muted-foreground uppercase">{children}</h3>;
+}
+
 function InviteForm({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
   const roles = useAuthStore((state) => state.user?.roles ?? []);
   const isDualRole = roles.includes('Trainer') && roles.includes('Nutritionist');
 
   const [scope, setScope] = useState<LinkCapabilityScope>(LinkCapabilityScope.Both);
-  const [questionnaireChoice, setQuestionnaireChoice] = useState<string | undefined>(undefined);
-
-  const questionnairesQuery = useTrainerQuestionnaires({ type: QuestionnaireType.Onboarding });
-  const activeQuestionnaires = (questionnairesQuery.data ?? []).filter((questionnaire) => questionnaire.isActive);
-  const defaultQuestionnaireId =
-    activeQuestionnaires.find((questionnaire) => questionnaire.isDefault)?.publicId ?? NO_QUESTIONNAIRE;
-  // The server falls back to the active default form, so "None" only skips when no default exists.
-  const hasDefaultQuestionnaire = defaultQuestionnaireId !== NO_QUESTIONNAIRE;
-  const questionnaireId = questionnaireChoice ?? defaultQuestionnaireId;
+  // Untouched choices follow the defaults: no package, and the coach's default form once the list has loaded.
+  const [packageChoice, setPackageChoice] = useState(NO_PACKAGE_ID);
+  const [discountChoice, setDiscountChoice] = useState('');
+  const [formChoice, setFormChoice] = useState<string | null>(null);
+  const [message, setMessage] = useState('');
 
   const schema = z.object({
     email: z
@@ -100,60 +91,73 @@ function InviteForm({ onClose }: { onClose: () => void }) {
       .min(1, t('clients.addClientDrawer.validation.emailRequired'))
       .email(t('clients.addClientDrawer.validation.emailInvalid'))
       .max(EMAIL_MAX_LENGTH, t('clients.addClientDrawer.validation.emailTooLong')),
-    message: z.string().max(MESSAGE_MAX_LENGTH, t('clients.addClientDrawer.validation.messageTooLong')),
-    packageId: z.string(),
-    discountId: z.string(),
-  }).refine((values) => values.discountId === '' || values.packageId !== '', {
-    path: ['discountId'],
-    message: t('clients.addClientDrawer.payment.discountNeedsPackage'),
   });
 
   const {
     register,
     handleSubmit,
-    control,
-    setValue,
     formState: { errors, isValid },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     mode: 'onTouched',
-    defaultValues: { email: '', message: '', packageId: '', discountId: '' },
+    defaultValues: { email: '' },
   });
 
-  const packagesQuery = usePaymentPackages(true);
-  // Not entitled (or a plan that lost payments while the drawer was open): the section disappears.
-  const showPayment = !(packagesQuery.isError && isNotEntitled(packagesQuery.error));
-  const discountsQuery = usePaymentDiscounts(packagesQuery.isSuccess);
-  const packages = packagesQuery.data ?? [];
-  const discounts = discountsQuery.data ?? [];
-  const chosenPackageId = useWatch({ control, name: 'packageId' });
-  const chosenDiscountId = useWatch({ control, name: 'discountId' });
-  // A package or discount archived since the lists loaded drops out of the lists and so out of the request.
-  const sentPackage = packages.find((option) => option.packageId === chosenPackageId);
-  const sentDiscount = discounts.find((discount) => discount.discountId === chosenDiscountId);
+  const formsQuery = useTrainerQuestionnaires({ type: QuestionnaireType.Onboarding });
+  const forms: OfferForm[] = (formsQuery.data ?? [])
+    .filter((form) => form.isActive)
+    .map((form) => ({
+      publicId: form.publicId,
+      title: form.title,
+      questionCount: form.questionCount,
+      isDefault: form.isDefault,
+    }));
+  const defaultFormId = forms.find((form) => form.isDefault)?.publicId ?? NO_FORM_ID;
+  const formId = formChoice ?? defaultFormId;
 
-  function onPackageChange(nextPackageId: string) {
-    setValue('packageId', nextPackageId, { shouldDirty: true });
+  const packagesQuery = usePaymentPackages(true);
+  const discountsQuery = usePaymentDiscounts(packagesQuery.isSuccess);
+  // Not entitled (or a plan that lost payments while the drawer was open): the offer's payment pieces disappear.
+  const notEntitled =
+    (packagesQuery.isError && isNotEntitled(packagesQuery.error)) ||
+    (discountsQuery.isError && isNotEntitled(discountsQuery.error));
+  const packages: OfferPackage[] = (packagesQuery.data ?? []).map(toOfferPackage);
+  const discounts = discountsQuery.data ?? [];
+  // A package or discount archived since the lists loaded drops out of the lists and so out of the request.
+  const offeredPackage = notEntitled ? undefined : packages.find((pkg) => pkg.id === packageChoice);
+  const offeredDiscount = usableDiscounts(discounts).find(
+    (discount) => discount.discountId === discountChoice && discountBlock(discount, offeredPackage) === null,
+  );
+
+  function onPackageSelect(nextPackageId: string) {
+    setPackageChoice(nextPackageId);
     // A discount that does not cover the new package would be rejected by the server.
-    const nextPackage = packages.find((option) => option.packageId === nextPackageId);
-    if (!sentDiscount || !discountFitsPackage(sentDiscount, nextPackage)) {
-      setValue('discountId', '', { shouldDirty: true });
+    const nextPackage = packages.find((pkg) => pkg.id === nextPackageId);
+    if (!offeredDiscount || discountBlock(offeredDiscount, nextPackage) !== null) {
+      setDiscountChoice('');
     }
   }
 
   const inviteMutation = useCreatePendingInvite();
-  const messageLength = useWatch({ control, name: 'message' }).length;
-  const messageTooLong = messageLength > MESSAGE_MAX_LENGTH;
+  const messageTooLong = message.length > OFFER_MESSAGE_MAX_LENGTH;
+  const listsLoading = !notEntitled && (packagesQuery.isPending || (packagesQuery.isSuccess && discountsQuery.isPending));
 
   function onSubmit(values: FormValues) {
+    // Skip is sent only when the coach explicitly picked "None"; an untouched row never skips.
+    const skipOnboardingForm = formChoice === NO_FORM_ID;
+    const questionnairePublicId = formChoice ?? (defaultFormId === NO_FORM_ID ? null : defaultFormId);
     inviteMutation.mutate(
       {
         email: values.email,
-        message: values.message || null,
-        questionnairePublicId: questionnaireId === NO_QUESTIONNAIRE ? null : questionnaireId,
+        message: message.trim() || null,
+        ...(skipOnboardingForm
+          ? { skipOnboardingForm: true, questionnairePublicId: null }
+          : questionnairePublicId
+            ? { questionnairePublicId }
+            : {}),
         ...(isDualRole ? { requestedScope: scope } : {}),
-        ...(showPayment && sentPackage
-          ? { packageId: sentPackage.packageId, ...(sentDiscount ? { discountId: sentDiscount.discountId } : {}) }
+        ...(offeredPackage
+          ? { packageId: offeredPackage.id, ...(offeredDiscount ? { discountId: offeredDiscount.discountId } : {}) }
           : {}),
       },
       { onSuccess: onClose },
@@ -163,7 +167,8 @@ function InviteForm({ onClose }: { onClose: () => void }) {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex min-h-0 flex-1 flex-col">
       <div className="flex flex-1 flex-col gap-6 overflow-y-auto px-6 py-5">
-        <Section icon={<Mail />} title={t('clients.addClientDrawer.sections.client')}>
+        <section className="flex flex-col gap-3">
+          <SectionTitle>{t('clients.addClientDrawer.sections.client')}</SectionTitle>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="add-client-email">
               {t('clients.addClientDrawer.emailLabel')}
@@ -185,10 +190,11 @@ function InviteForm({ onClose }: { onClose: () => void }) {
               <p className="text-meta text-muted-foreground">{t('clients.addClientDrawer.emailHelper')}</p>
             )}
           </div>
-        </Section>
+        </section>
 
         {isDualRole && (
-          <Section icon={<Target />} title={t('clients.addClientDrawer.sections.scope')}>
+          <section className="flex flex-col gap-3">
+            <SectionTitle>{t('clients.addClientDrawer.sections.scope')}</SectionTitle>
             <div role="group" aria-label={t('clients.addClientDrawer.sections.scope')} className="grid grid-cols-3 gap-2">
               {SCOPE_OPTIONS.map((option) => {
                 const isSelected = scope === option.value;
@@ -212,104 +218,78 @@ function InviteForm({ onClose }: { onClose: () => void }) {
               })}
             </div>
             <p className="text-meta text-muted-foreground">{t('clients.addClientDrawer.scopeHelper')}</p>
-          </Section>
+          </section>
         )}
 
-        <Section icon={<ClipboardList />} title={t('clients.addClientDrawer.sections.onboarding')}>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="add-client-questionnaire">{t('clients.addClientDrawer.questionnaireLabel')}</Label>
-            <div className="relative">
-              <select
-                id="add-client-questionnaire"
-                value={questionnaireId}
-                disabled={questionnairesQuery.isPending}
-                onChange={(event) => setQuestionnaireChoice(event.target.value)}
-                className="h-10 w-full appearance-none rounded-field border border-input bg-background pr-9 pl-3 text-body text-foreground outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {!hasDefaultQuestionnaire && (
-                  <option value={NO_QUESTIONNAIRE}>{t('clients.addClientDrawer.questionnaireNone')}</option>
-                )}
-                {activeQuestionnaires.map((questionnaire) => (
-                  <option key={questionnaire.publicId} value={questionnaire.publicId}>
-                    {t('clients.addClientDrawer.questionnaireOption', {
-                      title: questionnaire.title,
-                      count: questionnaire.questionCount,
-                    })}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown
-                className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground"
-                aria-hidden="true"
-              />
-            </div>
-            {questionnairesQuery.isError ? (
-              <p className="text-meta text-destructive">{t('clients.addClientDrawer.questionnaireLoadError')}</p>
-            ) : (
-              <p className="text-meta text-muted-foreground">
-                {t(
-                  hasDefaultQuestionnaire
-                    ? 'clients.addClientDrawer.questionnaireHelperDefault'
-                    : 'clients.addClientDrawer.questionnaireHelper',
-                )}
-              </p>
-            )}
-          </div>
-        </Section>
+        <section data-testid="invite-offer" className="flex flex-col gap-3">
+          <SectionTitle>{t('clients.addClientDrawer.sections.offer')}</SectionTitle>
+          <div className="flex flex-col gap-3 rounded-2xl bg-sunken p-4">
+            {!notEntitled && (
+              <>
+                <span className="text-body font-semibold text-ink">{t('offer.package')}</span>
 
-        {showPayment && (
-          <Section icon={<CreditCard />} title={t('clients.addClientDrawer.sections.payment')} hint={t('clients.addClientDrawer.optional')}>
-            {packagesQuery.isPending ? (
-              <Skeleton className="h-10 w-full" />
-            ) : packagesQuery.isError ? (
-              <p className="text-meta text-destructive">{t('clients.addClientDrawer.payment.loadError')}</p>
-            ) : (
-              <InvitePaymentSection
-                packages={packages}
-                discounts={discounts}
-                packageId={sentPackage?.packageId ?? ''}
-                discountId={sentDiscount?.discountId ?? ''}
-                onPackageChange={onPackageChange}
-                onDiscountChange={(nextDiscountId) => setValue('discountId', nextDiscountId, { shouldDirty: true })}
-              />
-            )}
-          </Section>
-        )}
+                {packagesQuery.isPending ? (
+                  <Skeleton className="h-28 w-full" />
+                ) : packagesQuery.isError ? (
+                  <p className="text-body text-destructive">{t('offer.loadError')}</p>
+                ) : packages.length === 0 ? (
+                  <p className="text-body text-muted-foreground">
+                    {t('offer.noPackages')}{' '}
+                    <Link to="/packages" className="font-semibold text-ink underline underline-offset-2">
+                      {t('offer.createPackage')}
+                    </Link>
+                  </p>
+                ) : (
+                  <PackageTiles
+                    packages={packages}
+                    selectedId={offeredPackage?.id ?? NO_PACKAGE_ID}
+                    onSelect={onPackageSelect}
+                    allowNone
+                  />
+                )}
 
-        <Section
-          icon={<MessageSquare />}
-          title={t('clients.addClientDrawer.sections.message')}
-          hint={t('clients.addClientDrawer.optional')}
-        >
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="add-client-message">{t('clients.addClientDrawer.messageLabel')}</Label>
-            <Textarea
-              id="add-client-message"
-              rows={4}
-              className="min-h-26 resize-none"
-              aria-invalid={messageTooLong}
-              {...register('message')}
+                {offeredPackage && (
+                  <DiscountPicker
+                    discounts={discounts}
+                    pkg={offeredPackage}
+                    value={offeredDiscount?.discountId ?? ''}
+                    onChange={setDiscountChoice}
+                  />
+                )}
+
+                {packagesQuery.isSuccess && packages.length > 0 && (
+                  <p className="text-meta text-muted-foreground">
+                    {offeredPackage ? t('clients.addClientDrawer.billingHint') : t('clients.addClientDrawer.noPackageHint')}
+                  </p>
+                )}
+              </>
+            )}
+
+            <OnboardingFormRow
+              forms={forms}
+              value={formId}
+              onChange={setFormChoice}
+              isLoading={formsQuery.isPending}
+              isError={formsQuery.isError}
             />
-            {messageTooLong && (
-              <p className="text-meta text-destructive">{t('clients.addClientDrawer.validation.messageTooLong')}</p>
-            )}
-            <span
-              className={cn('self-end text-meta', messageTooLong ? 'text-destructive' : 'text-muted-foreground')}
-              aria-live="polite"
-            >
-              {`${messageLength} / ${MESSAGE_MAX_LENGTH}`}
-            </span>
           </div>
-        </Section>
+        </section>
+
+        <OfferMessage value={message} onChange={setMessage} />
       </div>
 
-      <div className="flex items-center gap-2 border-t border-border px-6 py-4">
-        <span className="text-meta text-muted-foreground">{t('clients.addClientDrawer.footerNote')}</span>
-        <span className="ml-auto" />
-        <Button type="button" variant="outline" size="lg" className="px-3.5" onClick={onClose}>
+      <div className="flex items-center gap-3 border-t border-border px-6 py-4">
+        <Button type="button" variant="ghost" size="lg" className="px-2 font-semibold" onClick={onClose}>
           {t('common.cancel')}
         </Button>
-        <Button type="submit" size="lg" className="gap-1.75 px-3.5" disabled={!isValid || inviteMutation.isPending}>
+        <span className="ml-auto" />
+        {offeredPackage && <OfferPayable pkg={offeredPackage} price={offerPrice(offeredPackage, offeredDiscount)} />}
+        <Button
+          type="submit"
+          size="lg"
+          className="gap-1.75 px-3.5"
+          disabled={!isValid || messageTooLong || listsLoading || formsQuery.isPending || inviteMutation.isPending}
+        >
           <Send aria-hidden="true" />
           {inviteMutation.isPending ? t('common.sending') : t('clients.addClientDrawer.submit')}
         </Button>

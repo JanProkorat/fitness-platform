@@ -55,3 +55,25 @@ export function getNotificationInviteId(notification: AppNotification): string |
   const inviteId = getNotificationPayload(notification).inviteId;
   return inviteId ? inviteId : undefined;
 }
+
+/** Types of the notifications that point at a coach's package proposal, lowercased. */
+const REQUEST_PROPOSAL_TYPES: readonly string[] = ['clientrequestpackageproposed', 'clientrequestproposalwithdrawn'];
+
+/** True for the notification type, or the push `type` value, of a package proposal or its withdrawal. */
+export function isRequestProposalType(type: unknown): boolean {
+  return typeof type === 'string' && REQUEST_PROPOSAL_TYPES.includes(type.toLowerCase());
+}
+
+/** The request an in-app proposal notification points at, when it has one. */
+export function getNotificationRequestId(notification: AppNotification): string | undefined {
+  if (!isRequestProposalType(notification.type)) return undefined;
+  const requestId = getNotificationPayload(notification).requestId;
+  return requestId ? requestId : undefined;
+}
+
+/** The request a proposal push points at, read from its `data` object. */
+export function getPushRequestId(data: Record<string, unknown> | undefined): string | undefined {
+  if (!isRequestProposalType(data?.type)) return undefined;
+  const requestId = data?.requestId;
+  return typeof requestId === 'string' && requestId.length > 0 ? requestId : undefined;
+}

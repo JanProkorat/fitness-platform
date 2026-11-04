@@ -212,6 +212,9 @@ public static class ErrorCodes
     /// <summary>A pending request already exists for this professional.</summary>
     public const string RequestAlreadyPending = "REQUEST_ALREADY_PENDING";
 
+    /// <summary>The client request is not in the state the action needs (for example a package proposal that is no longer open).</summary>
+    public const string ClientRequestInvalidState = "CLIENT_REQUEST_INVALID_STATE";
+
     /// <summary>Professional is not accepting new clients.</summary>
     public const string ProfessionalNotAccepting = "PROFESSIONAL_NOT_ACCEPTING";
 
@@ -622,6 +625,9 @@ public static class ErrorCodes
     /// <summary>An invite names a discount but no package.</summary>
     public const string InviteDiscountNeedsPackage = "INVITE_DISCOUNT_NEEDS_PACKAGE";
 
+    /// <summary>The package a client attached to a request is unknown, not the coach's, archived or not shown on the profile.</summary>
+    public const string RequestPackageUnavailable = "REQUEST_PACKAGE_UNAVAILABLE";
+
     // ── Coach packages and discounts (#1578) ────────────────────────────
     /// <summary>The package is archived and can no longer be edited.</summary>
     public const string PackageArchived = "PACKAGE_ARCHIVED";
@@ -698,4 +704,8 @@ public static class ErrorCodes
 
     /// <summary>The client-reported occurrence time is older than the 7-day offline window.</summary>
     public const string OccurredAtTooOld = "OCCURRED_AT_TOO_OLD";
+
+    // ── Onboarding form choice ──────────────────────────────────────────
+    /// <summary>The request skips the onboarding form and also names a questionnaire.</summary>
+    public const string SkipOnboardingFormWithQuestionnaire = "SKIP_ONBOARDING_FORM_WITH_QUESTIONNAIRE";
 }

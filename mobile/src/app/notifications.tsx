@@ -10,6 +10,7 @@ import { isCheckInReminderType } from '@/api/checkIns';
 import {
   getNotificationInviteId,
   getNotificationPayload,
+  getNotificationRequestId,
   isNutritionPlanPayload,
   NOTIFICATIONS_QUERY_KEY,
 } from '@/api/notifications';
@@ -63,11 +64,13 @@ export default function NotificationsSheet() {
 
   const open = (notification: AppNotification) => {
     if (notification.id && notification.read !== true) markOne(notification.id);
+    const requestId = getNotificationRequestId(notification);
     if (isCheckInReminderType(notification.type)) {
       // Close the sheet first so the form (or the notice) opens over Today, not over the sheet.
       router.back();
       void openCheckIn(getNotificationPayload(notification).responseId);
     } else if (isPaymentRequestedType(notification.type) && payments.enabled) router.replace('/payments');
+    else if (requestId) router.replace({ pathname: '/request/[id]', params: { id: requestId } });
     else if (isNutritionPlanPayload(getNotificationPayload(notification))) router.replace('/nutrition');
   };
 

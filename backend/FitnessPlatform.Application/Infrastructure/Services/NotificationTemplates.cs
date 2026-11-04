@@ -126,6 +126,14 @@ public static class NotificationTemplates
                 new("Weekly check-in reminder", "{professionalName} is still waiting for your weekly check-in. It only takes a couple of minutes."),
             [Key(NotificationType.CoachCheckInMissed)] =
                 new("Check-in missed", "{clientName} did not answer the weekly check-in in time."),
+            [Key(NotificationType.ClientRequestPackageProposed)] =
+                new("Package proposal", "{profName} proposed a package for your collaboration."),
+            [Key(NotificationType.ClientRequestProposalAccepted)] =
+                new("Proposal accepted", "{clientName} accepted your package proposal."),
+            [Key(NotificationType.ClientRequestProposalDeclined)] =
+                new("Proposal declined", "{clientName} declined your package proposal."),
+            [Key(NotificationType.ClientRequestProposalWithdrawn)] =
+                new("Proposal withdrawn", "{profName} withdrew the package proposal."),
         },
         ["cs"] = new()
         {
@@ -205,6 +213,14 @@ public static class NotificationTemplates
                 new("Připomenutí týdenního check-inu", "{professionalName} stále čeká na váš týdenní check-in. Zabere jen pár minut."),
             [Key(NotificationType.CoachCheckInMissed)] =
                 new("Check-in zmeškán", "{clientName} neodpověděl(a) včas na týdenní check-in."),
+            [Key(NotificationType.ClientRequestPackageProposed)] =
+                new("Návrh balíčku", "{profName} vám navrhl(a) balíček pro vaši spolupráci."),
+            [Key(NotificationType.ClientRequestProposalAccepted)] =
+                new("Návrh přijat", "{clientName} přijal(a) váš návrh balíčku."),
+            [Key(NotificationType.ClientRequestProposalDeclined)] =
+                new("Návrh odmítnut", "{clientName} odmítl(a) váš návrh balíčku."),
+            [Key(NotificationType.ClientRequestProposalWithdrawn)] =
+                new("Návrh stažen", "{profName} stáhl(a) návrh balíčku."),
         },
         ["de"] = new()
         {
@@ -284,6 +300,14 @@ public static class NotificationTemplates
                 new("Erinnerung an Ihren wöchentlichen Check-in", "{professionalName} wartet noch auf Ihren wöchentlichen Check-in. Er dauert nur wenige Minuten."),
             [Key(NotificationType.CoachCheckInMissed)] =
                 new("Check-in verpasst", "{clientName} hat den wöchentlichen Check-in nicht rechtzeitig beantwortet."),
+            [Key(NotificationType.ClientRequestPackageProposed)] =
+                new("Paketvorschlag", "{profName} hat Ihnen ein Paket für Ihre Zusammenarbeit vorgeschlagen."),
+            [Key(NotificationType.ClientRequestProposalAccepted)] =
+                new("Vorschlag angenommen", "{clientName} hat Ihren Paketvorschlag angenommen."),
+            [Key(NotificationType.ClientRequestProposalDeclined)] =
+                new("Vorschlag abgelehnt", "{clientName} hat Ihren Paketvorschlag abgelehnt."),
+            [Key(NotificationType.ClientRequestProposalWithdrawn)] =
+                new("Vorschlag zurückgezogen", "{profName} hat den Paketvorschlag zurückgezogen."),
         },
     };
 

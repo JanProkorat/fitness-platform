@@ -14,10 +14,18 @@ type PackageCarouselProps = {
   packages: readonly PublicProfilePackageDto[];
   /** False while payments are hidden: prices and period units are left out. */
   showPrices: boolean;
+  /** Turns the cards into radio options (request sheet): fixed-width cards, dots at the right, tap again to clear. */
+  selection?: {
+    selectedId: string | undefined;
+    onSelect: (publicId: string | undefined) => void;
+    disabled?: boolean;
+  };
+  /** Section label; defaults to the profile's "Packages". */
+  label?: string;
 };
 
 /** The coach's packages as full-width cards you swipe through, with page dots beside the section label. */
-export function PackageCarousel({ packages, showPrices }: PackageCarouselProps) {
+export function PackageCarousel({ packages, showPrices, selection, label }: PackageCarouselProps) {
   const { t } = useTranslation();
   const theme = useTheme();
   const styles = makeStyles(theme);
@@ -26,7 +34,7 @@ export function PackageCarousel({ packages, showPrices }: PackageCarouselProps) 
 
   if (packages.length === 0) return null;
 
-  const cardWidth = screenWidth - theme.spacing.xxl * 2;
+  const cardWidth = selection ? theme.sizes.packagePickerCard : screenWidth - theme.spacing.xxl * 2;
   const interval = cardWidth + theme.spacing.md;
 
   const onScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -38,11 +46,11 @@ export function PackageCarousel({ packages, showPrices }: PackageCarouselProps) 
     <View style={styles.section}>
       <View style={styles.header}>
         <Text variant="overline" color="muted" style={styles.overline}>
-          {t('coachProfile.packages').toUpperCase()}
+          {(label ?? t('coachProfile.packages')).toUpperCase()}
         </Text>
         {packages.length > 1 ? (
           <View
-            style={styles.dots}
+            style={[styles.dots, selection && styles.dotsEnd]}
             accessibilityElementsHidden
             importantForAccessibility="no-hide-descendants"
           >
@@ -66,7 +74,8 @@ export function PackageCarousel({ packages, showPrices }: PackageCarouselProps) 
         onScroll={onScroll}
         style={styles.scroller}
         contentContainerStyle={styles.cards}
-        accessibilityLabel={t('coachProfile.packages')}
+        accessibilityLabel={label ?? t('coachProfile.packages')}
+        accessibilityRole={selection ? 'radiogroup' : undefined}
       >
         {packages.map((pack, index) => (
           <PackageCard
@@ -74,6 +83,13 @@ export function PackageCarousel({ packages, showPrices }: PackageCarouselProps) 
             pack={pack}
             width={cardWidth}
             showPrices={showPrices}
+            selected={selection?.selectedId === pack.publicId}
+            disabled={selection?.disabled}
+            onSelect={
+              selection
+                ? () => selection.onSelect(selection.selectedId === pack.publicId ? undefined : pack.publicId)
+                : undefined
+            }
           />
         ))}
       </ScrollView>
@@ -104,6 +120,10 @@ const makeStyles = (theme: Theme) =>
       alignItems: 'center',
       justifyContent: 'center',
       gap: theme.spacing.snug,
+    },
+    dotsEnd: {
+      justifyContent: 'flex-end',
+      paddingRight: theme.spacing.xxs,
     },
     dot: {
       width: theme.sizes.pageDot,

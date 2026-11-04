@@ -4319,6 +4319,66 @@ export class ApiClient {
     }
 
     /**
+     * Withdraw a package proposal
+     * @param publicId Public identifier of the client request (from route).
+     * @return Proposal withdrawn
+     */
+    withdrawClientRequestProposalEndpoint(publicId: string, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/trainer/client-requests/{publicId}/withdraw-proposal";
+        if (publicId === undefined || publicId === null)
+            throw new globalThis.Error("The parameter 'publicId' must be defined.");
+        url_ = url_.replace("{publicId}", encodeURIComponent("" + publicId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processWithdrawClientRequestProposalEndpoint(_response);
+        });
+    }
+
+    protected processWithdrawClientRequestProposalEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The coach role was removed", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * Reject a client request
      * @param publicId Public identifier of the client request (from route).
      * @return No Content
@@ -4374,6 +4434,77 @@ export class ApiClient {
         } else if (status === 403) {
             const _responseText = response.data;
             return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Propose a package on a client request
+     * @param publicId Public identifier of the client request (from route).
+     * @return Proposal sent
+     */
+    proposeClientRequestPackageEndpoint(publicId: string, proposeClientRequestPackageRequest: ProposeClientRequestPackageRequest, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/trainer/client-requests/{publicId}/propose-package";
+        if (publicId === undefined || publicId === null)
+            throw new globalThis.Error("The parameter 'publicId' must be defined.");
+        url_ = url_.replace("{publicId}", encodeURIComponent("" + publicId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(proposeClientRequestPackageRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processProposeClientRequestPackageEndpoint(_response);
+        });
+    }
+
+    protected processProposeClientRequestPackageEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid request, a Check-in form (CHECKIN_FORM_NOT_SENDABLE), or a fixed discount in another currency than the package (CURRENCY_MISMATCH)", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The coach role was removed, or the subscription does not include payments (PAYMENTS_NOT_ENTITLED)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -4490,6 +4621,13 @@ export class ApiClient {
         if (status === 204) {
             const _responseText = response.data;
             return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -15656,7 +15794,7 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("Invalid request, or the package is not available (REQUEST_PACKAGE_UNAVAILABLE)", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -15734,6 +15872,66 @@ export class ApiClient {
     }
 
     /**
+     * Decline a package proposal
+     * @param publicId Public identifier of the client request (from route).
+     * @return Proposal declined
+     */
+    declineClientRequestProposalEndpoint(publicId: string, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/client/requests/{publicId}/decline-proposal";
+        if (publicId === undefined || publicId === null)
+            throw new globalThis.Error("The parameter 'publicId' must be defined.");
+        url_ = url_.replace("{publicId}", encodeURIComponent("" + publicId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processDeclineClientRequestProposalEndpoint(_response);
+        });
+    }
+
+    protected processDeclineClientRequestProposalEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * Cancel a client request
      * @return No Content
      */
@@ -15784,6 +15982,66 @@ export class ApiClient {
         } else if (status === 403) {
             const _responseText = response.data;
             return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Accept a package proposal
+     * @param publicId Public identifier of the client request (from route).
+     * @return Proposal accepted
+     */
+    acceptClientRequestProposalEndpoint(publicId: string, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/client/requests/{publicId}/accept-proposal";
+        if (publicId === undefined || publicId === null)
+            throw new globalThis.Error("The parameter 'publicId' must be defined.");
+        url_ = url_.replace("{publicId}", encodeURIComponent("" + publicId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processAcceptClientRequestProposalEndpoint(_response);
+        });
+    }
+
+    protected processAcceptClientRequestProposalEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The coach role was removed (COACH_ROLE_REMOVED)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -23504,6 +23762,9 @@ export interface CreatePendingInviteRequest {
     message?: string | undefined;
     /** Optional public ID of a questionnaire to assign to the client. */
     questionnairePublicId?: string | undefined;
+    /** When true the client gets no onboarding form, not even the coach's default. Not sent means false.
+Cannot be combined with QuestionnairePublicId. */
+    skipOnboardingForm?: boolean;
     /** Optional explicit domain scope for the relationship this invitation will form.
 When omitted, the accept flow defaults to every domain implied by the inviting
 professional's held identity roles (existing behavior — unchanged). When
@@ -23664,12 +23925,76 @@ Request. This is the id the row's action endpoint expects. */
     /** Pending, or Expired for an
 invite past its validity window that has not been re-sent. Always Pending for requests. */
     status?: PendingInviteStatus;
+    /** The package attached to the request, or stored on the invite; null when none. */
+    package?: PendingRowPackageDto | undefined;
+    /** Whether the client agreed to share their history; always false for invite rows. */
+    shareHistory?: boolean;
+    /** History counts; null unless this is a request row with ShareHistory true. */
+    history?: PendingRowHistoryDto | undefined;
+    /** The coach's package proposal waiting for the client's answer; null for invites and for requests without one. */
+    proposal?: PendingRowProposalDto | undefined;
 }
 
 /** Discriminates a row on the trainer's Pending tab, which merges two otherwise-unrelated source tables: unaccepted PendingInvite rows and incoming ClientRequest rows. The client uses this to decide which action to offer (cancel an invite; accept or reject a request) and which existing endpoint to call with the row's PublicId. */
 export enum PendingRowKind {
     Invite = "Invite",
     Request = "Request",
+}
+
+/** The package attached to a pending request row. */
+export interface PendingRowPackageDto {
+    /** Public id of the package. */
+    publicId?: string;
+    /** Display name of the package. */
+    name?: string;
+    /** How often the package is billed. */
+    billing?: PackageBillingInterval;
+    /** Weeks between payments; set only for a package billed every N weeks. */
+    intervalWeeks?: number | undefined;
+    /** The price per payment. */
+    price?: number;
+    /** Currency of the price. */
+    currency?: PaymentCurrency;
+}
+
+/** Summary of the history a client shares with the coach. */
+export interface PendingRowHistoryDto {
+    /** Nutrition and training plans from any coach. */
+    planCount?: number;
+    /** Body measurements. */
+    measurementCount?: number;
+    /** Progress photos. */
+    photoCount?: number;
+}
+
+/** A package the coach proposed on a request row. */
+export interface PendingRowProposalDto {
+    /** When the proposal was sent (UTC). */
+    proposedAt?: string;
+    /** The proposed package. */
+    package?: PendingRowPackageDto;
+    /** The proposed discount; null when none. */
+    discount?: PendingRowDiscountDto | undefined;
+}
+
+/** The discount of a package proposal. */
+export interface PendingRowDiscountDto {
+    /** Public id of the discount. */
+    publicId?: string;
+    /** Display name of the discount. */
+    name?: string;
+    /** Whether Value is a percentage or a fixed amount. */
+    type?: DiscountType;
+    /** The percentage or the fixed amount taken off the price. */
+    value?: number;
+    /** Currency of a fixed amount; null for a percentage. */
+    currency?: PaymentCurrency | undefined;
+}
+
+/** What a coach discount's value means. */
+export enum DiscountType {
+    Percentage = "Percentage",
+    FixedAmount = "FixedAmount",
 }
 
 /** Aggregated dashboard data for the trainer's client list. */
@@ -24299,8 +24624,27 @@ Target dates count only when the caller can view nutrition plans. */
 export interface GetClientDashboardRequest {
 }
 
+/** Request model for withdrawing a package proposal. */
+export interface WithdrawClientRequestProposalRequest {
+}
+
 export interface RejectClientRequestRequest {
     /** Optional statement from the professional (saved for future display in chat). */
+    statement?: string | undefined;
+}
+
+/** Request model for proposing a package on a client request that has none. */
+export interface ProposeClientRequestPackageRequest {
+    /** Public id of the coach's package to propose. */
+    packagePublicId: string;
+    /** Optional public id of one of the coach's discounts, offered with the package. */
+    discountPublicId?: string | undefined;
+    /** Optional public id of a questionnaire the client fills in after accepting. */
+    questionnairePublicId?: string | undefined;
+    /** When true the client gets no onboarding form, not even the coach's default. Not sent means false.
+Cannot be combined with QuestionnairePublicId. */
+    skipOnboardingForm?: boolean;
+    /** Optional message from the coach shown with the proposal. */
     statement?: string | undefined;
 }
 
@@ -24326,12 +24670,84 @@ export interface IncomingClientRequestDto {
     primaryGoal?: string | undefined;
     /** Activity level derived at onboarding (enum name), null when not available. */
     derivedActivityLevel?: string | undefined;
+    /** The package the client attached to the request; null when none, or when it was deleted. */
+    package?: IncomingRequestPackageDto | undefined;
+    /** Whether the client agreed to share their history with the coach. */
+    shareHistory?: boolean;
+    /** Counts of the client's history; null unless ShareHistory is true. */
+    history?: IncomingRequestHistoryDto | undefined;
+    /** Pending, or PackageProposed while a proposal waits for the client. */
+    status?: ClientRequestStatus;
+    /** The coach's open package proposal; null unless Status is PackageProposed. */
+    proposal?: IncomingRequestProposalDto | undefined;
+}
+
+/** The package attached to an incoming request. */
+export interface IncomingRequestPackageDto {
+    /** Public id of the package. */
+    publicId?: string;
+    /** Display name of the package. */
+    name?: string;
+    /** How often the package is billed. */
+    billing?: PackageBillingInterval;
+    /** Weeks between payments; set only for a package billed every N weeks. */
+    intervalWeeks?: number | undefined;
+    /** The price per payment. */
+    price?: number;
+    /** Currency of the price. */
+    currency?: PaymentCurrency;
+}
+
+/** Summary of the history a client shares with the coach. */
+export interface IncomingRequestHistoryDto {
+    /** Nutrition and training plans from any coach. */
+    planCount?: number;
+    /** Body measurements. */
+    measurementCount?: number;
+    /** Progress photos. */
+    photoCount?: number;
+}
+
+export enum ClientRequestStatus {
+    Pending = "Pending",
+    Accepted = "Accepted",
+    Rejected = "Rejected",
+    Cancelled = "Cancelled",
+    PackageProposed = "PackageProposed",
+    ProposalDeclined = "ProposalDeclined",
+}
+
+/** A package the coach proposed on an incoming request. */
+export interface IncomingRequestProposalDto {
+    /** When the proposal was sent (UTC). */
+    proposedAt?: string;
+    /** The proposed package. */
+    package?: IncomingRequestPackageDto;
+    /** The proposed discount; null when none. */
+    discount?: IncomingRequestDiscountDto | undefined;
+}
+
+/** The discount of a package proposal. */
+export interface IncomingRequestDiscountDto {
+    /** Public id of the discount. */
+    publicId?: string;
+    /** Display name of the discount. */
+    name?: string;
+    /** Whether Value is a percentage or a fixed amount. */
+    type?: DiscountType;
+    /** The percentage or the fixed amount taken off the price. */
+    value?: number;
+    /** Currency of a fixed amount; null for a percentage. */
+    currency?: PaymentCurrency | undefined;
 }
 
 /** Request model for accepting a client request. */
 export interface AcceptClientRequestRequest {
     /** Optional public ID of a questionnaire to assign to the client upon acceptance. */
     questionnairePublicId?: string | undefined;
+    /** When true the client gets no onboarding form, not even the coach's default. Not sent means false.
+Cannot be combined with QuestionnairePublicId. */
+    skipOnboardingForm?: boolean;
     /** Optional statement from the professional (saved for future display in chat). */
     statement?: string | undefined;
     /** Optional explicit domain scope for the resulting client-professional link. When
@@ -24340,6 +24756,9 @@ omitted, defaults to every domain implied by the caller's held identity roles
 caller's actually-held roles; e.g. a Trainer-only professional cannot request
 NutritionOnly. */
     requestedScope?: LinkCapabilityScope | undefined;
+    /** Optional public id of one of the coach's discounts, applied to the package the client attached to the
+request. Ignored when the request has no package; an unusable discount means accepting without terms. */
+    discountPublicId?: string | undefined;
 }
 
 export interface ListNotesResponse {
@@ -25782,6 +26201,8 @@ export interface PublicCertificateDto {
 
 /** One package on a coach's public profile. */
 export interface PublicProfilePackageDto {
+    /** Public id of the package, sent as PackagePublicId on a join request. */
+    publicId?: string;
     /** Display name of the package. */
     name?: string;
     /** How often the package is billed. */
@@ -26910,6 +27331,7 @@ export enum ChatEventType {
     Accepted = "Accepted",
     Declined = "Declined",
     Withdrawn = "Withdrawn",
+    ProposalSent = "ProposalSent",
 }
 
 /** The newest invite or client request between the caller and the other participant. */
@@ -27754,12 +28176,6 @@ export interface CoachDiscountDto {
     archivedAt?: string | undefined;
 }
 
-/** What a coach discount's value means. */
-export enum DiscountType {
-    Percentage = "Percentage",
-    FixedAmount = "FixedAmount",
-}
-
 /** How many payments of a client a coach discount applies to. */
 export enum DiscountDuration {
     EveryPayment = "EveryPayment",
@@ -28587,13 +29003,6 @@ export interface SendClientRequestResponse {
     sentAt?: string;
 }
 
-export enum ClientRequestStatus {
-    Pending = "Pending",
-    Accepted = "Accepted",
-    Rejected = "Rejected",
-    Cancelled = "Cancelled",
-}
-
 /** Request model for sending a client request to a professional. */
 export interface SendClientRequestRequest {
     /** Public identifier of the professional to send the request to. */
@@ -28602,6 +29011,8 @@ export interface SendClientRequestRequest {
     message?: string | undefined;
     /** Optional: whether the client agrees to share their history with the professional. Stored only; not enforced yet. */
     shareHistory?: boolean;
+    /** Optional public id of one of the coach's packages shown on their profile, to be applied when the coach accepts. */
+    packagePublicId?: string | undefined;
 }
 
 /** Response model containing the client's sent requests. */
@@ -28617,6 +29028,60 @@ export interface ClientRequestDto {
     status?: ClientRequestStatus;
     sentAt?: string;
     respondedAt?: string | undefined;
+    /** The coach's package proposal waiting for the client's answer; null unless Status is PackageProposed. */
+    proposal?: ClientRequestProposalDto | undefined;
+}
+
+/** A package the coach proposed on the client's request. */
+export interface ClientRequestProposalDto {
+    /** When the proposal was sent (UTC). */
+    proposedAt?: string;
+    /** The coach's message with the proposal. */
+    statement?: string | undefined;
+    /** Title of the form the client fills in after accepting; null when none. */
+    questionnaireTitle?: string | undefined;
+    /** The proposed package. */
+    package?: ClientRequestProposalPackageDto;
+    /** The proposed discount; null when none. */
+    discount?: ClientRequestProposalDiscountDto | undefined;
+}
+
+/** The package of a proposal. */
+export interface ClientRequestProposalPackageDto {
+    /** Public id of the package. */
+    publicId?: string;
+    /** Display name of the package. */
+    name?: string;
+    /** How often the package is billed. */
+    billing?: PackageBillingInterval;
+    /** Weeks between payments; set only for a package billed every N weeks. */
+    intervalWeeks?: number | undefined;
+    /** The price per payment. */
+    price?: number;
+    /** Currency of the price. */
+    currency?: PaymentCurrency;
+}
+
+/** The discount of a proposal. */
+export interface ClientRequestProposalDiscountDto {
+    /** Public id of the discount. */
+    publicId?: string;
+    /** Display name of the discount. */
+    name?: string;
+    /** Whether Value is a percentage or a fixed amount. */
+    type?: DiscountType;
+    /** The percentage or the fixed amount taken off the price. */
+    value?: number;
+    /** Currency of a fixed amount; null for a percentage. */
+    currency?: PaymentCurrency | undefined;
+}
+
+/** Request model for declining a coach's package proposal. */
+export interface DeclineClientRequestProposalRequest {
+}
+
+/** Request model for accepting a coach's package proposal. */
+export interface AcceptClientRequestProposalRequest {
 }
 
 /** Response for GET /trainer/clients/{id}/photos. Design decision — discriminated response in a single envelope: The endpoint serves two shapes depending on the groupByMonth query flag rather than splitting into two routes, because the filtering/auth logic is identical and a single URL is easier to cache and document. Exactly one of Photos or Groups will be non-null in any response: groupByMonth=false (default): Photos is populated,  Groups is null. Pagination applies to individual photos. groupByMonth=true: Groups is populated,  Photos is null. Pagination applies to month groups (one page = N groups). The X-Total-Count response header always reflects the total count of the active collection (photos or groups). */

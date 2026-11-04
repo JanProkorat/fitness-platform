@@ -139,18 +139,30 @@ test.describe('inbox client-request card (#1100, #1547)', () => {
     await requestedRow.click();
     await page.waitForLoadState('networkidle');
 
-    // The Requested event renders as a card with Accept / Decline, not a grey pill.
+    // The Requested event renders as a card with a package line and View invite, not a grey pill.
     const card = page.getByTestId('client-request-card');
     await expect(card).toBeVisible();
-    await expect(card.getByText('Client request')).toBeVisible();
-    await expect(card.getByRole('button', { name: 'Decline' })).toBeVisible();
+    await expect(card.getByText(/^QA Client2 wants /)).toBeVisible();
+    await expect(card.getByTestId('client-request-card-package')).toContainText('Not chosen');
+    await expect(card.getByRole('button', { name: 'View invite' })).toBeVisible();
     await expect(page.getByText('QA Client2 asked to collaborate with you')).toHaveCount(0);
 
     const panel = page.getByTestId('pending-client-panel');
     await expect(panel.getByTestId('panel-status-chip')).toHaveText('Pending');
     await expect(panel.getByTestId('onboarding-answers-card')).toBeVisible();
 
-    await card.getByRole('button', { name: 'Accept' }).click();
+    // Accepting happens in the review drawer. The request has no package, so the coach accepts without one.
+    await card.getByRole('button', { name: 'View invite' }).click();
+    const drawer = page.getByTestId('invite-review-drawer');
+    await expect(drawer).toBeVisible();
+    // The primary action stays disabled until the coach's packages have loaded.
+    await expect(drawer.getByRole('button', { name: /^(Accept without package|Propose package)$/ })).toBeEnabled();
+    const noPackage = drawer.getByRole('radio', { name: /No package/ });
+    if ((await noPackage.count()) > 0) {
+      await noPackage.click();
+    }
+    await drawer.getByRole('button', { name: 'Accept without package' }).click();
+    await expect(drawer).toHaveCount(0);
 
     // The same card stays in the thread; only its label changes, and the buttons go.
     await expect(card.getByText('Request accepted')).toBeVisible();

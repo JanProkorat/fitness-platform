@@ -29,6 +29,8 @@ export function getEventPreviewText(
         : t('inbox.events.declined.other', { name: participantName });
     case ChatEventType.Withdrawn:
       return t('inbox.events.withdrawn');
+    case ChatEventType.ProposalSent:
+      return t('inbox.events.proposalSent', { name: participantName });
     default:
       return '';
   }

@@ -167,6 +167,8 @@
     "notificationsUnread": "Upozornění, nepřečtených: {{count}}",
     "profile": "Profil",
     "invitesTitle": "Pozvánky",
+    "proposalsTitle": "Návrhy balíčků",
+    "invitesAndProposalsTitle": "Pozvánky a návrhy",
     "runningNutrition": {
       "weekOf": "{{current}}. týden z {{total}}",
       "week": "{{current}}. týden",
@@ -544,6 +546,9 @@
     "acceptInvite": "Přijmout pozvánku",
     "openHint": "Otevře pozvánku",
     "viewInvite": "Zobrazit pozvánku",
+    "proposedYou": "{{name}} vám navrhuje balíček",
+    "viewProposal": "Zobrazit návrh",
+    "openProposalHint": "Otevře návrh balíčku",
     "includesPackage": "Zahrnuje balíček",
     "includesPackagePrice": "Zahrnuje balíček · {{price}}",
     "roles": { "Trainer": "Trenér", "Nutritionist": "Nutriční poradce" },
@@ -868,6 +873,23 @@
           "Expired": "Nikdo neodpověděl včas"
         }
       },
+      "proposal": {
+        "title": "Návrh balíčku",
+        "labels": {
+          "Pending": "Nový návrh",
+          "Accepted": "Návrh přijat",
+          "Declined": "Návrh odmítnut",
+          "Cancelled": "Návrh stažen",
+          "Expired": "Návrh vypršel"
+        },
+        "details": {
+          "Pending": "{{name}} vám navrhuje balíček",
+          "Accepted": "Balíček jste přijali",
+          "Declined": "Balíček jste odmítli",
+          "Cancelled": "{{name}} návrh stáhl(a)",
+          "Expired": "Nikdo neodpověděl včas"
+        }
+      },
       "scope": {
         "Both": "Trénink a výživa",
         "TrainingOnly": "Trénink",
@@ -903,6 +925,16 @@
     "searchLabel": "Hledat podle jména",
     "searchPlaceholder": "Jméno poradce",
     "searchButton": "Hledat podle jména",
+    "closeSearch": "Zavřít hledání",
+    "clearSearch": "Vymazat hledání",
+    "count_one": "{{count}} poradce",
+    "count_few": "{{count}} poradci",
+    "count_many": "{{count}} poradce",
+    "count_other": "{{count}} poradců",
+    "countMatch_one": "{{count}} poradce pro „{{query}}“",
+    "countMatch_few": "{{count}} poradci pro „{{query}}“",
+    "countMatch_many": "{{count}} poradce pro „{{query}}“",
+    "countMatch_other": "{{count}} poradců pro „{{query}}“",
     "takingClients": "Přijímá klienty",
     "waitlist": "Čekací listina",
     "empty": "Těmto filtrům nic neodpovídá.",
@@ -952,7 +984,7 @@
     "email": "E-mail",
     "phone": "Telefon",
     "backToInvite": "Zpět na pozvánku",
-    "sendRequest": "Odeslat žádost",
+    "invite": "Pozvat",
     "pending": "Žádost čeká na vyřízení",
     "retry": "Zkusit znovu",
     "error": {
@@ -965,22 +997,54 @@
     }
   },
   "requestSheet": {
-    "title": "Žádost pro {{name}}",
+    "title": "Žádost: {{name}}",
     "subtitle": "Představte se v pár slovech.",
     "cancel": "Zrušit",
     "messageLabel": "Zpráva (nepovinné)",
     "messagePlaceholder": "Napište, na čem chcete pracovat",
     "historyLabel": "Sdílet mou historii",
-    "historyHint": "Dřívější plány, měření a fotky z doby před spoluprací s poradcem {{name}}.",
+    "historyHint": {
+      "Trainer": "Dřívější plány, měření a fotky z doby před spoluprací s tímto trenérem.",
+      "Nutritionist": "Dřívější plány, měření a fotky z doby před spoluprací s tímto nutričním poradcem.",
+      "Any": "Dřívější plány, měření a fotky z doby před touto spoluprací."
+    },
     "onboardingCaption": "Odpovědi z vašeho úvodního dotazníku uvidí {{name}} a podle nich se připraví.",
     "submit": "Odeslat žádost",
+    "packageLabel": "Balíček · nepovinné",
+    "packageHint": "Ještě nevíte? Přeskočte to a {{name}} vám nějaký navrhne.",
     "errors": {
       "notAccepting": "Tento poradce teď nepřijímá nové klienty.",
       "alreadyPending": "Žádost tomuto poradci už byla odeslána.",
       "alreadyLinked": "S tímto poradcem už spolupracujete.",
       "notFound": "Tento poradce už není dostupný.",
+      "packageUnavailable": "Tento balíček už není dostupný. Vyberte jiný, nebo žádost odešlete bez balíčku.",
       "network": "Server je nedostupný. Zpráva zůstala zachována, zkuste to znovu.",
       "generic": "Žádost se nepodařilo odeslat. Zkuste to znovu."
+    }
+  },
+  "requestProposal": {
+    "back": "Zpět",
+    "closed": {
+      "title": "Není co potvrzovat",
+      "body": "Tento návrh byl stažen nebo už je vyřízený. S trenérem nebo poradcem můžete dál psát ve Zprávách."
+    },
+    "noPackagePicked": "V žádosti jste si balíček nevybrali, proto vám ho navrhuje {{name}}.",
+    "suggestsAt": "{{name}} vám navrhuje balíček · {{time}}",
+    "questionnaire": "Po přijetí vyplníte formulář „{{title}}“.",
+    "package": {
+      "title": "Navržený balíček"
+    },
+    "barNote": "Přijetím se balíček spustí. Odmítnutím vaše žádost u osoby {{name}} končí, chat zůstane k dispozici.",
+    "accept": "Přijmout balíček",
+    "decline": "Odmítnout",
+    "errors": {
+      "ok": "OK",
+      "notFound": { "title": "Návrh už není otevřený", "body": "Byl stažen nebo už je vyřízený." },
+      "invalidState": { "title": "Návrh už není otevřený", "body": "Byl stažen nebo už je vyřízený." },
+      "professionOccupied": { "title": "Už máte svého poradce", "body": "V tomto oboru už spolupracujete s jiným poradcem, takže další balíček přijmout nemůžete." },
+      "coachRoleRemoved": { "title": "Spolupráci nelze zahájit", "body": "Tato role už u daného poradce není dostupná, balíček proto nelze spustit." },
+      "network": { "title": "Server je nedostupný", "body": "Zkontrolujte připojení a zkuste to znovu. Nic se nezměnilo." },
+      "generic": { "title": "Něco se nepovedlo", "body": "Vaši odpověď se nepodařilo odeslat. Zkuste to znovu." }
     }
   },
   "common": {

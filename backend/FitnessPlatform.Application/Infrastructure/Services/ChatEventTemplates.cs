@@ -36,6 +36,7 @@ public static class ChatEventTemplates
             [ChatEventType.Accepted] = "{actorName} accepted the collaboration.",
             [ChatEventType.Declined] = "{actorName} declined the collaboration.",
             [ChatEventType.Withdrawn] = "{actorName} withdrew the collaboration.",
+            [ChatEventType.ProposalSent] = "{actorName} proposed a package.",
         },
         ["cs"] = new()
         {
@@ -44,6 +45,7 @@ public static class ChatEventTemplates
             [ChatEventType.Accepted] = "{actorName} přijal(a) spolupráci.",
             [ChatEventType.Declined] = "{actorName} odmítl(a) spolupráci.",
             [ChatEventType.Withdrawn] = "{actorName} zrušil(a) spolupráci.",
+            [ChatEventType.ProposalSent] = "{actorName} navrhl(a) balíček.",
         },
         ["de"] = new()
         {
@@ -52,6 +54,7 @@ public static class ChatEventTemplates
             [ChatEventType.Accepted] = "{actorName} hat die Zusammenarbeit angenommen.",
             [ChatEventType.Declined] = "{actorName} hat die Zusammenarbeit abgelehnt.",
             [ChatEventType.Withdrawn] = "{actorName} hat die Zusammenarbeit zurückgezogen.",
+            [ChatEventType.ProposalSent] = "{actorName} hat ein Paket vorgeschlagen.",
         },
     };
 

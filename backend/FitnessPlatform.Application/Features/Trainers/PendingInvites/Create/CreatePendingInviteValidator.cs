@@ -30,5 +30,11 @@ public class CreatePendingInviteValidator : Validator<CreatePendingInviteRequest
             .WithErrorCode(ErrorCodes.InviteDiscountNeedsPackage)
             .WithMessage("A discount needs a package.")
             .When(x => x.DiscountId is not null);
+
+        RuleFor(x => x.QuestionnairePublicId)
+            .Null()
+            .WithErrorCode(ErrorCodes.SkipOnboardingFormWithQuestionnaire)
+            .WithMessage("Skipping the onboarding form cannot be combined with a questionnaire.")
+            .When(x => x.SkipOnboardingForm);
     }
 }

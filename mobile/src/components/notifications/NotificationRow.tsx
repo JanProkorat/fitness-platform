@@ -27,7 +27,7 @@ export function NotificationRow({ notification, invite, onPress, onViewInvite }:
   const unread = notification.read !== true;
   const inviteId = getNotificationInviteId(notification);
   const payload = getNotificationPayload(notification);
-  const coachName = invite?.coachName ?? payload.trainerName ?? payload.coachName;
+  const coachName = invite?.coachName ?? payload.trainerName ?? payload.coachName ?? payload.profName;
   const preview = invite?.message?.trim() || notification.body;
 
   return (

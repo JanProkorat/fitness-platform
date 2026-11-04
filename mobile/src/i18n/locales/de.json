@@ -167,6 +167,8 @@
     "notificationsUnread": "Benachrichtigungen, {{count}} ungelesen",
     "profile": "Profil",
     "invitesTitle": "Einladungen",
+    "proposalsTitle": "Paketvorschläge",
+    "invitesAndProposalsTitle": "Einladungen und Vorschläge",
     "runningNutrition": {
       "weekOf": "Woche {{current}} von {{total}}",
       "week": "Woche {{current}}",
@@ -524,6 +526,9 @@
     "acceptInvite": "Einladung annehmen",
     "openHint": "Öffnet die Einladung",
     "viewInvite": "Einladung ansehen",
+    "proposedYou": "{{name}} schlägt Ihnen ein Paket vor",
+    "viewProposal": "Vorschlag ansehen",
+    "openProposalHint": "Öffnet den Paketvorschlag",
     "includesPackage": "Enthält ein Paket",
     "includesPackagePrice": "Enthält ein Paket · {{price}}",
     "roles": { "Trainer": "Trainer", "Nutritionist": "Ernährungsberater" },
@@ -841,6 +846,23 @@
           "Expired": "Niemand hat rechtzeitig geantwortet"
         }
       },
+      "proposal": {
+        "title": "Paketvorschlag",
+        "labels": {
+          "Pending": "Neuer Vorschlag",
+          "Accepted": "Vorschlag angenommen",
+          "Declined": "Vorschlag abgelehnt",
+          "Cancelled": "Vorschlag zurückgezogen",
+          "Expired": "Vorschlag abgelaufen"
+        },
+        "details": {
+          "Pending": "{{name}} schlägt Ihnen ein Paket vor",
+          "Accepted": "Sie haben das Paket angenommen",
+          "Declined": "Sie haben das Paket abgelehnt",
+          "Cancelled": "{{name}} hat den Vorschlag zurückgezogen",
+          "Expired": "Niemand hat rechtzeitig geantwortet"
+        }
+      },
       "scope": {
         "Both": "Training und Ernährung",
         "TrainingOnly": "Training",
@@ -874,6 +896,12 @@
     "searchLabel": "Nach Name suchen",
     "searchPlaceholder": "Name des Coaches",
     "searchButton": "Nach Name suchen",
+    "closeSearch": "Suche schließen",
+    "clearSearch": "Suche löschen",
+    "count_one": "{{count}} Coach",
+    "count_other": "{{count}} Coaches",
+    "countMatch_one": "{{count}} Coach für „{{query}}“",
+    "countMatch_other": "{{count}} Coaches für „{{query}}“",
     "takingClients": "Nimmt Klienten an",
     "waitlist": "Warteliste",
     "empty": "Keine Coaches passen zu diesen Filtern.",
@@ -919,7 +947,7 @@
     "email": "E-Mail",
     "phone": "Telefon",
     "backToInvite": "Zurück zur Einladung",
-    "sendRequest": "Anfrage senden",
+    "invite": "Einladen",
     "pending": "Anfrage ausstehend",
     "retry": "Erneut versuchen",
     "error": {
@@ -938,16 +966,48 @@
     "messageLabel": "Nachricht (optional)",
     "messagePlaceholder": "Schreib, woran du arbeiten möchtest",
     "historyLabel": "Meinen Verlauf teilen",
-    "historyHint": "Frühere Pläne, Messungen und Fotos aus der Zeit vor {{name}}.",
+    "historyHint": {
+      "Trainer": "Frühere Pläne, Messungen und Fotos aus der Zeit vor der Zusammenarbeit mit diesem Trainer.",
+      "Nutritionist": "Frühere Pläne, Messungen und Fotos aus der Zeit vor der Zusammenarbeit mit diesem Ernährungsberater.",
+      "Any": "Frühere Pläne, Messungen und Fotos aus der Zeit vor dieser Zusammenarbeit."
+    },
     "onboardingCaption": "Deine Antworten aus dem Einstiegsfragebogen sieht {{name}}, um sich vorzubereiten.",
     "submit": "Anfrage senden",
+    "packageLabel": "Paket · optional",
+    "packageHint": "Noch unsicher? Überspringen Sie es, und {{name}} kann eines vorschlagen.",
     "errors": {
       "notAccepting": "Dieser Coach nimmt derzeit keine neuen Klienten an.",
       "alreadyPending": "Du hast diesem Coach bereits eine Anfrage geschickt.",
       "alreadyLinked": "Du arbeitest bereits mit diesem Coach zusammen.",
       "notFound": "Dieser Coach ist nicht mehr verfügbar.",
+      "packageUnavailable": "Dieses Paket ist nicht mehr verfügbar. Wählen Sie ein anderes oder senden Sie die Anfrage ohne Paket.",
       "network": "Server nicht erreichbar. Deine Nachricht bleibt erhalten, versuche es erneut.",
       "generic": "Die Anfrage konnte nicht gesendet werden. Versuche es erneut."
+    }
+  },
+  "requestProposal": {
+    "back": "Zurück",
+    "closed": {
+      "title": "Kein Paket zu beantworten",
+      "body": "Dieser Vorschlag wurde zurückgezogen oder ist bereits beantwortet. Unter Nachrichten können Sie Ihrem Coach weiterhin schreiben."
+    },
+    "noPackagePicked": "Sie haben in Ihrer Anfrage kein Paket gewählt, daher hat {{name}} eines für Sie ausgesucht.",
+    "suggestsAt": "{{name}} schlägt ein Paket vor · {{time}}",
+    "questionnaire": "Nach der Annahme füllen Sie das Formular „{{title}}“ aus.",
+    "package": {
+      "title": "Vorgeschlagenes Paket"
+    },
+    "barNote": "Mit der Annahme startet das Paket. Mit der Ablehnung endet Ihre Anfrage an {{name}}, der Chat bleibt erhalten.",
+    "accept": "Paket annehmen",
+    "decline": "Ablehnen",
+    "errors": {
+      "ok": "OK",
+      "notFound": { "title": "Vorschlag nicht mehr offen", "body": "Er wurde zurückgezogen oder ist bereits beantwortet." },
+      "invalidState": { "title": "Vorschlag nicht mehr offen", "body": "Er wurde zurückgezogen oder ist bereits beantwortet." },
+      "professionOccupied": { "title": "Sie haben bereits einen Coach", "body": "In diesem Bereich arbeiten Sie schon mit einem Coach zusammen, daher können Sie kein weiteres Paket annehmen." },
+      "coachRoleRemoved": { "title": "Zusammenarbeit nicht möglich", "body": "Dieser Coach bietet diese Rolle nicht mehr an, das Paket kann daher nicht starten." },
+      "network": { "title": "Server nicht erreichbar", "body": "Prüfen Sie Ihre Verbindung und versuchen Sie es erneut. Es wurde nichts geändert." },
+      "generic": { "title": "Etwas ist schiefgelaufen", "body": "Ihre Antwort konnte nicht gesendet werden. Versuchen Sie es erneut." }
     }
   },
   "common": {

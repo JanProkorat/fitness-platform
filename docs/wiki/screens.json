@@ -206,7 +206,17 @@
         "web/src/api/clients.ts",
         "web/src/api/client-tags.ts",
         "web/src/api/broadcast.ts",
-        "web/src/api/client-requests.ts"
+        "web/src/api/client-requests.ts",
+        "web/src/components/inbox/invite-review/**",
+        "web/src/components/offer/**",
+        "web/src/components/client-detail/payment/paymentErrors.ts",
+        "web/src/components/client-detail/payment/paymentModel.ts",
+        "web/src/hooks/useClientPaymentQueries.ts",
+        "web/src/hooks/useQuestionnaireQueries.ts",
+        "web/src/api/client-payments.ts",
+        "web/src/api/questionnaires.ts",
+        "web/src/lib/cooperationCards.ts",
+        "web/src/hooks/useActiveRoles.ts"
       ],
       "endpoints": [
         "GET /trainer/clients",
@@ -216,8 +226,14 @@
         "POST /trainer/client-tags",
         "PUT /trainer/clients/{clientId}/tags",
         "POST /trainer/broadcast",
+        "GET /trainer/client-requests",
         "POST /trainer/client-requests/{publicId}/accept",
-        "POST /trainer/client-requests/{publicId}/reject"
+        "POST /trainer/client-requests/{publicId}/reject",
+        "POST /trainer/client-requests/{publicId}/propose-package",
+        "POST /trainer/client-requests/{publicId}/withdraw-proposal",
+        "GET /trainer/questionnaires",
+        "GET /payments/packages",
+        "GET /payments/discounts"
       ],
       "board": "PageClients",
       "shots": [
@@ -239,9 +255,15 @@
         "web/src/hooks/useQuestionnaireQueries.ts",
         "web/src/api/pending-invites.ts",
         "web/src/api/questionnaires.ts",
-        "web/src/components/clients/InvitePaymentSection.tsx",
+        "web/src/components/offer/DiscountPicker.tsx",
+        "web/src/components/offer/OfferMessage.tsx",
+        "web/src/components/offer/OfferPayable.tsx",
+        "web/src/components/offer/OnboardingFormRow.tsx",
+        "web/src/components/offer/PackageTiles.tsx",
+        "web/src/components/offer/offerModel.ts",
         "web/src/hooks/useClientPaymentQueries.ts",
         "web/src/components/client-detail/payment/paymentErrors.ts",
+        "web/src/components/client-detail/payment/paymentModel.ts",
         "web/src/api/client-payments.ts"
       ],
       "endpoints": [
@@ -957,7 +979,14 @@
         "web/src/api/training-plan-types.ts",
         "web/src/api/roles.ts",
         "web/src/api/client-tags.ts",
-        "web/src/api/broadcast.ts"
+        "web/src/api/broadcast.ts",
+        "web/src/components/offer/**",
+        "web/src/components/client-detail/payment/paymentErrors.ts",
+        "web/src/components/client-detail/payment/paymentModel.ts",
+        "web/src/hooks/useClientPaymentQueries.ts",
+        "web/src/hooks/useQuestionnaireQueries.ts",
+        "web/src/api/client-payments.ts",
+        "web/src/api/questionnaires.ts"
       ],
       "endpoints": [
         "GET /conversations",
@@ -970,6 +999,11 @@
         "GET /trainer/client-requests",
         "POST /trainer/client-requests/{publicId}/accept",
         "POST /trainer/client-requests/{publicId}/reject",
+        "POST /trainer/client-requests/{publicId}/propose-package",
+        "POST /trainer/client-requests/{publicId}/withdraw-proposal",
+        "GET /trainer/questionnaires",
+        "GET /payments/packages",
+        "GET /payments/discounts",
         "GET /trainer/clients/pending",
         "DELETE /trainer/pending-invites/{id}",
         "GET /trainer/clients/{clientId}",
@@ -1365,10 +1399,17 @@
         "mobile/src/lib/outbox/types.ts",
         "mobile/src/lib/outbox/validate.ts",
         "mobile/src/hooks/useOutboxDrain.ts",
-        "mobile/src/hooks/useRefetchOnRecovery.ts"
+        "mobile/src/hooks/useRefetchOnRecovery.ts",
+        "mobile/src/components/today/ProposalCard.tsx",
+        "mobile/src/components/messages/format.ts",
+        "mobile/src/components/payments/format.ts",
+        "mobile/src/hooks/useMyClientRequests.ts",
+        "mobile/src/hooks/usePaymentsEnabled.ts",
+        "mobile/src/api/clientRequests.ts"
       ],
       "endpoints": [
         "GET /users/me",
+        "GET /client/requests",
         "GET /client/invites",
         "POST /client/invites/{id}/accept",
         "POST /client/invites/{id}/decline",
@@ -1511,7 +1552,12 @@
         "mobile/src/api/invites.ts",
         "mobile/src/api/notifications.ts",
         "mobile/src/api/profile.ts",
-        "mobile/src/components/OfflineBanner.tsx"
+        "mobile/src/components/OfflineBanner.tsx",
+        "mobile/src/hooks/useMyClientRequests.ts",
+        "mobile/src/hooks/usePaymentsEnabled.ts",
+        "mobile/src/api/clientRequests.ts",
+        "mobile/src/api/appConfig.ts",
+        "mobile/src/components/payments/format.ts"
       ],
       "endpoints": [
         "GET /conversations",
@@ -1520,7 +1566,9 @@
         "POST /conversations/{conversationId}/read",
         "GET /client/invites",
         "POST /client/invites/{id}/accept",
-        "POST /client/invites/{id}/decline"
+        "POST /client/invites/{id}/decline",
+        "GET /client/requests",
+        "GET /client/app-config"
       ],
       "board": "GlassChat",
       "shots": [
@@ -1541,8 +1589,10 @@
         "mobile/src/components/coach/CoachAvailability.tsx",
         "mobile/src/components/coach/CoachAvatar.tsx",
         "mobile/src/components/coach/CoachRoleChip.tsx",
-        "mobile/src/components/coach/CoachRow.tsx",
+        "mobile/src/components/coach/CoachCard.tsx",
+        "mobile/src/components/coach/CoachSearchField.tsx",
         "mobile/src/components/coach/FilterChip.tsx",
+        "mobile/src/components/ScreenHeader.tsx",
         "mobile/src/components/onboarding/Segmented.tsx",
         "mobile/src/components/BackButton.tsx",
         "mobile/src/components/Button.tsx",
@@ -1652,6 +1702,51 @@
       "board": "GlassInviteDetail",
       "shots": [
         { "name": "default", "steps": "client with a pending coach invite; tap the invite on Today" }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "client.requests.proposal",
+      "app": "client",
+      "area": "Invites",
+      "title": "Package proposal",
+      "route": "/request/:id",
+      "roles": ["Client"],
+      "files": [
+        "mobile/src/app/request/*.tsx",
+        "mobile/src/components/requests/ProposalPackageCard.tsx",
+        "mobile/src/components/coach/PackageCard.tsx",
+        "mobile/src/components/invites/InviteActions.tsx",
+        "mobile/src/components/invites/InviteAvatar.tsx",
+        "mobile/src/components/invites/RoleChip.tsx",
+        "mobile/src/components/invites/format.ts",
+        "mobile/src/components/payments/format.ts",
+        "mobile/src/components/BackButton.tsx",
+        "mobile/src/components/Button.tsx",
+        "mobile/src/components/Chip.tsx",
+        "mobile/src/components/Text.tsx",
+        "mobile/src/components/OfflineBanner.tsx",
+        "mobile/src/hooks/useMyClientRequests.ts",
+        "mobile/src/hooks/useRequestProposal.ts",
+        "mobile/src/hooks/useCoachProfile.ts",
+        "mobile/src/hooks/usePaymentsEnabled.ts",
+        "mobile/src/api/clientRequests.ts",
+        "mobile/src/api/professionals.ts",
+        "mobile/src/api/notifications.ts",
+        "mobile/src/api/errors.ts",
+        "mobile/src/api/appConfig.ts",
+        "mobile/src/lib/outbox/classify.ts"
+      ],
+      "endpoints": [
+        "GET /client/requests",
+        "GET /professionals/{publicId}",
+        "POST /client/requests/{publicId}/accept-proposal",
+        "POST /client/requests/{publicId}/decline-proposal",
+        "GET /client/app-config"
+      ],
+      "board": "GlassPackageProposal",
+      "shots": [
+        { "name": "default", "steps": "client whose request a coach answered with a package proposal; tap the proposal notification" }
       ],
       "notionPageId": null
     },

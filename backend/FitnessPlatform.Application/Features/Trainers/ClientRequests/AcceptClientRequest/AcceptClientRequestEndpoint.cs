@@ -24,6 +24,7 @@ public class AcceptClientRequestEndpoint(
     INotificationService notificationService,
     IConversationSeedService conversationSeedService,
     UserManager<ApplicationUser> userManager,
+    InvitePackageTermsApplier termsApplier,
     ILogger<AcceptClientRequestEndpoint> logger)
     : Endpoint<AcceptClientRequestRequest>
 {
@@ -34,7 +35,8 @@ public class AcceptClientRequestEndpoint(
         Summary(s =>
         {
             s.Summary = "Accept a client request";
-            s.Description = "Accepts a pending client request, creates a client-professional link, and optionally assigns a questionnaire.";
+            s.Description = "Accepts a pending client request, creates a client-professional link, and optionally assigns a questionnaire. " +
+                "When the request carries a package, its terms (with the optional discount) are applied; an unusable package or discount means accepting without terms.";
         });
     }
 
@@ -193,6 +195,7 @@ public class AcceptClientRequestEndpoint(
             link.ProfessionalRole = professionalRole;
             link.CanViewNutritionPlans = canViewNutritionPlans;
             link.CanViewTrainingPlans = canViewTrainingPlans;
+            link.SkipOnboardingForm = req.SkipOnboardingForm;
         }
         else
         {
@@ -204,10 +207,13 @@ public class AcceptClientRequestEndpoint(
                 IsActive = true,
                 ActivatedAtUtc = DateTime.UtcNow,
                 CanViewNutritionPlans = canViewNutritionPlans,
-                CanViewTrainingPlans = canViewTrainingPlans
+                CanViewTrainingPlans = canViewTrainingPlans,
+                SkipOnboardingForm = req.SkipOnboardingForm
             };
             db.ClientProfessionalLinks.Add(link);
         }
+
+        clientRequest.SkipOnboardingForm = req.SkipOnboardingForm;
 
         // Handle optional questionnaire assignment
         if (questionnaire is not null)
@@ -218,6 +224,38 @@ public class AcceptClientRequestEndpoint(
 
         await db.SaveChangesAsync(ct);
         await transaction.CommitAsync(ct);
+
+        // The link is committed, so an unusable package or discount only means no terms (same rule as
+        // an accepted invite). A discount on a request without a package is ignored.
+        if (clientRequest.CoachPackageId is { } packageId)
+        {
+            // An unknown discount id maps to 0, which matches no row, so the applier skips and audits it.
+            var discountId = req.DiscountPublicId is { } discountPublicId
+                ? await db.CoachDiscounts
+                    .AsNoTracking()
+                    .Where(d => d.PublicId == discountPublicId)
+                    .Select(d => d.Id)
+                    .FirstOrDefaultAsync(ct)
+                : (long?)null;
+
+            var applied = await termsApplier.ApplyAsync(
+                clientRequest.PublicId,
+                professionalProfile.Id,
+                packageId,
+                discountId,
+                clientRequest.ClientProfileId,
+                userGuid,
+                HttpContext.Connection.RemoteIpAddress?.ToString(),
+                DateTime.UtcNow,
+                ct,
+                nameof(ClientRequest));
+
+            if (applied && discountId is not null)
+            {
+                clientRequest.CoachDiscountId = discountId;
+                await db.SaveChangesAsync(ct);
+            }
+        }
 
         // Create QuestionnaireResponse after save so link.Id is generated
         if (questionnaire is not null)
@@ -253,65 +291,11 @@ public class AcceptClientRequestEndpoint(
             ProfessionalProfilePublicId = professionalProfile.PublicId
         }, ct);
 
-        // Auto-cancel other pending requests from the same client for the same role
+        // Auto-cancel the client's other open requests to professionals of the same role
         var roleString = professionalRole == UserRole.Nutritionist ? AppRoles.Nutritionist : AppRoles.Trainer;
-        var otherPending = await db.ClientRequests
-            .Include(r => r.ProfessionalProfile)
-                .ThenInclude(pp => pp.User)
-            .Where(r => r.ClientProfileId == clientRequest.ClientProfileId
-                     && r.Id != clientRequest.Id
-                     && r.Status == ClientRequestStatus.Pending)
-            .ToListAsync(ct);
 
-        // Filter by role — need to check each professional's identity role
-        var clientUser = clientRequest.ClientProfile.User;
-        var clientName = $"{clientUser.FirstName} {clientUser.LastName}";
-
-        foreach (var other in otherPending)
-        {
-            var otherProfRoles = await userManager.GetRolesAsync(other.ProfessionalProfile.User);
-            if (!otherProfRoles.Contains(roleString)) continue;
-
-            other.Status = ClientRequestStatus.Cancelled;
-            other.RespondedAt = DateTime.UtcNow;
-
-            await notifier.NotifyAsync(other.ProfessionalProfile.UserId, "clientrequestcancelled", new
-            {
-                RequestPublicId = other.PublicId,
-                ClientName = clientName
-            }, ct);
-
-            // A neutral Withdrawn event in the sibling professional's own thread, written only
-            // when one already exists (R3) — the client withdrew from that professional's
-            // consideration, not this one.
-            await conversationSeedService.AppendCooperationEventAsync(
-                other.ProfessionalProfile.UserId,
-                clientRequest.ClientProfile.UserId,
-                clientRequest.ClientProfile.UserId,
-                ChatEventType.Withdrawn,
-                other.PublicId,
-                messageText: null,
-                createConversationIfMissing: false,
-                ct);
-        }
-
-        // Save status changes for cancelled requests
-        await db.SaveChangesAsync(ct);
-
-        // Now create notifications for cancelled professionals
-        foreach (var other in otherPending.Where(o => o.Status == ClientRequestStatus.Cancelled))
-        {
-            await notificationService.CreateAsync(
-                other.ProfessionalProfile.UserId,
-                NotificationType.InvitationCancelled,
-                new Dictionary<string, string>
-                {
-                    ["clientName"] = clientName,
-                    ["role"] = roleString.ToLowerInvariant(),
-                },
-                variant: NotificationTemplates.InvitationCancelledAutoBySibling,
-                ct: ct);
-        }
+        await ClientRequestActivator.CancelOtherRequestsOfSameRoleAsync(
+            db, userManager, notifier, notificationService, conversationSeedService, clientRequest, roleString, ct);
 
         // Questionnaire notification
         if (questionnaire is not null)

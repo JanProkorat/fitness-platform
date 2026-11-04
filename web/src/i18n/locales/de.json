@@ -586,16 +586,22 @@
       "columnName": "Name",
       "columnEmail": "E-Mail",
       "columnType": "Typ",
+      "columnPackage": "Paket",
       "columnSentAt": "Gesendet",
-      "kindInvite": "Einladung gesendet",
-      "kindRequest": "Anfrage erhalten",
+      "kindInvite": "Ihre Einladung",
+      "kindRequest": "Einladung vom Klienten",
       "empty": "Keine ausstehenden Einladungen oder Anfragen.",
       "accept": "Annehmen",
       "reject": "Ablehnen",
       "cancel": "Einladung abbrechen",
       "columnMessage": "Nachricht",
       "newMarker": "Neu",
-      "waitingFor": "Warten auf Annahme durch {{name}}"
+      "waitingFor": "Warten auf Annahme durch {{name}}",
+      "noPackage": "—",
+      "proposed": "vorgeschlagen",
+      "proposedWaiting": "Sie haben ein Paket vorgeschlagen · Warten auf {{name}}",
+      "viewInvite": "Einladung ansehen",
+      "withdraw": "Zurückziehen"
     },
     "tags": {
       "createError": "Tag konnte nicht erstellt werden. Bitte versuchen Sie es erneut.",
@@ -845,9 +851,7 @@
       "sections": {
         "client": "Klient",
         "scope": "Was Sie betreuen",
-        "onboarding": "Onboarding-Formular",
-        "payment": "Zahlung",
-        "message": "Persönliche Nachricht"
+        "offer": "Ihr Angebot"
       },
       "emailLabel": "E-Mail",
       "emailHelper": "Schon bei Form Up? Die Einladung erscheint auch in seinen Nachrichten.",
@@ -857,26 +861,9 @@
         "both": "Beides"
       },
       "scopeHelper": "Legt fest, welche seiner Pläne Sie sehen und bearbeiten können.",
-      "questionnaireLabel": "Zu sendendes Formular",
-      "questionnaireNone": "Keines",
-      "questionnaireOption_one": "{{title}} · {{count}} Frage",
-      "questionnaireOption_other": "{{title}} · {{count}} Fragen",
-      "questionnaireHelperDefault": "Er füllt es gleich nach der Annahme aus. Sie können auch ein anderes aktives Formular wählen.",
-      "questionnaireHelper": "Er füllt es gleich nach der Annahme aus. Wählen Sie „Keines“, um es zu überspringen.",
-      "questionnaireLoadError": "Die Formulare konnten nicht geladen werden. Sie können die Einladung trotzdem ohne Formular senden.",
-      "optional": "(optional)",
+      "billingHint": "Wird in der Einladung angezeigt. Wird zugewiesen, sobald der Klient annimmt, und die Abrechnung beginnt an diesem Tag.",
+      "noPackageHint": "Die Einladung enthält kein Paket. Die Zahlung können Sie später vereinbaren.",
       "payment": {
-        "package": "Paket",
-        "packagePlaceholder": "Kein Paket",
-        "discount": "Rabatt",
-        "discountPlaceholder": "Kein Rabatt",
-        "noDiscounts": "Keine Rabatte verfügbar",
-        "discountNeedsPackage": "Wählen Sie zuerst ein Paket",
-        "noPackages": "Sie haben noch keine Pakete.",
-        "createPackage": "Paket erstellen",
-        "loadError": "Die Pakete konnten nicht geladen werden. Sie können die Einladung auch ohne Paket senden.",
-        "pays": "Der Klient zahlt",
-        "helper": "Wird in der Einladung angezeigt. Wird zugewiesen, sobald der Klient annimmt, und die Abrechnung beginnt an diesem Tag.",
         "errors": {
           "notEntitled": "Zahlungen sind nicht Teil Ihres Tarifs. Entfernen Sie das Paket und senden Sie die Einladung erneut.",
           "packageArchived": "Dieses Paket wurde archiviert. Wählen Sie ein anderes und senden Sie die Einladung erneut.",
@@ -886,8 +873,6 @@
           "unavailable": "Dieses Paket oder dieser Rabatt ist nicht mehr verfügbar. Die Listen wurden aktualisiert."
         }
       },
-      "messageLabel": "Nachricht in der Einladungs-E-Mail",
-      "footerNote": "Die Einladung bleibt unter Ausstehend, bis er sie annimmt",
       "submit": "Einladung senden",
       "validation": {
         "emailRequired": "E-Mail ist erforderlich.",
@@ -1067,6 +1052,107 @@
         "generic": "Dein Profil konnte nicht geladen werden. Bitte versuche es erneut.",
         "retry": "Erneut versuchen"
       }
+    }
+  },
+  "inviteReview": {
+    "title": "Einladung vom Klienten",
+    "description": "Prüfen Sie die Anfrage und beantworten Sie sie.",
+    "unavailable": "Diese Einladung ist nicht mehr verfügbar. Sie wurde möglicherweise beantwortet oder zurückgezogen.",
+    "about": "Über {{name}}",
+    "history": "Verlauf geteilt · {{plans}} · {{measurements}} · {{photos}}",
+    "historyPlans_one": "{{count}} Plan",
+    "historyPlans_other": "{{count}} Pläne",
+    "historyMeasurements_one": "{{count}} Messung",
+    "historyMeasurements_other": "{{count}} Messungen",
+    "historyPhotos_one": "{{count}} Foto",
+    "historyPhotos_other": "{{count}} Fotos",
+    "yourOffer": "Ihr Angebot",
+    "wants": {
+      "training": "Möchte trainieren",
+      "nutrition": "Möchte Ernährungsberatung",
+      "both": "Möchte mit Ihnen zusammenarbeiten"
+    },
+    "sent": "Einladung · gesendet {{when}}",
+    "invite": "Einladung",
+    "clientChoice": "Wahl von {{name}}",
+    "billingStarts": "Die Abrechnung beginnt am Tag der Annahme.",
+    "proposeHint": "{{name}} hat keines gewählt. Wählen Sie eines zum Vorschlagen oder „Kein Paket“, um ohne Paket anzunehmen.",
+    "noPackageHint": "Sie nehmen {{name}} ohne Paket an. Zahlungen können Sie später einrichten.",
+    "waitingFor": "Warten darauf, dass {{name}} Ihr Paket annimmt",
+    "accept": "Annehmen",
+    "acceptWithoutPackage": "Ohne Paket annehmen",
+    "proposePackage": "Paket vorschlagen",
+    "decline": "Ablehnen",
+    "withdraw": "Vorschlag zurückziehen"
+  },
+  "offer": {
+    "package": "Paket",
+    "noPackage": "Kein Paket",
+    "decideLater": "Später entscheiden",
+    "optional": "· optional",
+    "pays": "{{name}} zahlt",
+    "paysGeneric": "Der Klient zahlt",
+    "paysFirst_one": "{{amount}} für die erste Zahlung",
+    "paysFirst_other": "{{amount}} für die ersten {{count}} Zahlungen",
+    "paysThen": "danach {{amount}} {{suffix}}",
+    "loadError": "Ihre Pakete konnten nicht geladen werden.",
+    "noPackages": "Sie haben noch keine Pakete.",
+    "createPackage": "Paket erstellen",
+    "proposeSuccess": "Paket vorgeschlagen.",
+    "proposeError": "Der Vorschlag konnte nicht gesendet werden. Bitte versuchen Sie es erneut.",
+    "withdrawSuccess": "Vorschlag zurückgezogen.",
+    "withdrawError": "Der Vorschlag konnte nicht zurückgezogen werden. Möglicherweise wurde er bereits beantwortet.",
+    "billingLong": {
+      "monthly": "Jeden Monat",
+      "everyWeeks_one": "Jede Woche",
+      "everyWeeks_other": "Alle {{count}} Wochen",
+      "oneOff": "Einmalig"
+    },
+    "discount": {
+      "add": "Rabatt hinzufügen",
+      "remove": "Rabatt entfernen",
+      "title": "Rabatt",
+      "forPackage": "Aktive Rabatte für {{name}}",
+      "none": "Sie haben keine aktiven Rabatte.",
+      "manage": "Rabatte verwalten",
+      "duration": {
+        "every": "Jede Zahlung",
+        "firstOne": "Nur die erste Zahlung",
+        "firstMany": "Die ersten {{count}} Zahlungen"
+      },
+      "reason": {
+        "currency": "Fester Betrag in {{currency}}, nicht für dieses Paket",
+        "scope": "Gilt nicht für dieses Paket"
+      }
+    },
+    "form": {
+      "label": "Onboarding-Formular",
+      "none": "Kein Formular",
+      "questions_one": "{{count}} Frage",
+      "questions_other": "{{count}} Fragen",
+      "change": "Ändern",
+      "loadError": "Die Formulare konnten nicht geladen werden",
+      "defaultHint": "Wird jedem neuen Klienten nach der Annahme gesendet",
+      "noneOption": "Keines",
+      "noneHint": "Formular für {{name}} überspringen",
+      "noneHintGeneric": "Formular für diesen Klienten überspringen",
+      "new": "Neues Formular",
+      "manage": "Formulare verwalten"
+    },
+    "message": {
+      "title": "Nachricht an {{name}}",
+      "titleGeneric": "Nachricht an den Klienten",
+      "placeholder": "Schreiben Sie {{name}} ein paar Worte…",
+      "placeholderGeneric": "Schreiben Sie dem Klienten ein paar Worte…",
+      "tooLong": "Die Nachricht darf höchstens {{max}} Zeichen lang sein."
+    },
+    "errors": {
+      "notEntitled": "Zahlungen sind nicht Teil Ihres Tarifs. Nehmen Sie stattdessen ohne Paket an.",
+      "packageArchived": "Dieses Paket wurde archiviert. Wählen Sie ein anderes oder keines.",
+      "discountArchived": "Dieser Rabatt wurde archiviert. Wählen Sie einen anderen oder keinen.",
+      "discountInvalid": "Dieser Rabatt gilt nicht für das gewählte Paket. Wählen Sie einen anderen.",
+      "currencyMismatch": "Ein Rabatt mit festem Betrag muss dieselbe Währung wie das Paket haben.",
+      "unavailable": "Dieses Paket oder dieser Rabatt ist nicht mehr verfügbar. Die Listen wurden aktualisiert."
     }
   },
   "invite": {
@@ -3084,6 +3170,8 @@
     "COLLABORATOR_NOT_FOUND": "Mitarbeiter nicht gefunden.",
     "PLAN_NOT_DRAFT": "Nur Entwürfe können veröffentlicht werden.",
     "COACH_ROLE_REMOVED": "Sie haben diese Rolle entfernt, daher sind ihre Pläne, Vorlagen und Bibliothekseinträge schreibgeschützt. Ein laufender Plan kann bis zu seinem Ende angepasst, aber nicht verlängert werden. Fügen Sie die Rolle in den Einstellungen wieder hinzu, um erneut zu bearbeiten.",
+    "CLIENT_REQUEST_INVALID_STATE": "Diese Anfrage wurde bereits beantwortet oder zurückgezogen. Die Listen wurden aktualisiert.",
+    "CHECKIN_FORM_NOT_SENDABLE": "Ein Check-in-Formular kann nicht als Onboarding-Formular gesendet werden. Wählen Sie ein anderes.",
     "START_DATE_NOT_MONDAY": "Das Startdatum muss ein Montag sein.",
     "START_DATE_IN_PAST": "Das Startdatum darf nicht in der Vergangenheit liegen.",
     "START_DATE_LOCKED": "Das Startdatum kann nicht mehr geändert werden, nachdem es erreicht wurde.",
@@ -4964,12 +5052,15 @@
         "own": "Sie haben die Anfrage von {{name}} abgelehnt",
         "other": "{{name}} hat Ihre Einladung abgelehnt"
       },
-      "withdrawn": "Das Kooperationsangebot wurde zurückgezogen"
+      "withdrawn": "Das Kooperationsangebot wurde zurückgezogen",
+      "proposalSent": "Sie haben {{name}} ein Paket vorgeschlagen"
     },
     "panel": {
       "loadError": "Die Details konnten nicht geladen werden.",
       "pendingChip": "Ausstehend",
-      "pendingLine": "Noch kein Klient · nehmen Sie die Anfrage an, um zu starten",
+      "pendingLine": "Noch kein Klient · öffnen Sie die Einladung, um zu antworten",
+      "proposalSentChip": "Vorschlag gesendet",
+      "proposalSentLine": "Noch kein Klient · Warten darauf, dass {{name}} Ihr Paket annimmt",
       "invitedChip": "Eingeladen",
       "invitedLine": "Noch kein Klient · wartet darauf, dass {{name}} annimmt",
       "notAClient": "Kein Klient",
@@ -5026,7 +5117,28 @@
         "decline": "Ablehnen",
         "youAccepted": "Sie haben angenommen",
         "youDeclined": "Sie haben abgelehnt",
-        "clientCancelled": "{{name}} hat zurückgezogen"
+        "clientCancelled": "{{name}} hat zurückgezogen",
+        "package": "Paket",
+        "packageNotChosen": "Nicht gewählt",
+        "viewInvite": "Einladung ansehen",
+        "clientAcceptedProposal": "{{name}} hat Ihren Vorschlag angenommen",
+        "clientDeclinedProposal": "{{name}} hat Ihren Vorschlag abgelehnt"
+      },
+      "proposal": {
+        "title": "Paketvorschlag",
+        "youProposed": "Sie haben {{name}} vorgeschlagen",
+        "sent": "gesendet {{when}}",
+        "label": {
+          "waiting": "Warten auf den Klienten",
+          "accepted": "Vorschlag angenommen",
+          "declined": "Vorschlag abgelehnt",
+          "withdrawn": "Vorschlag zurückgezogen"
+        },
+        "waitingFor": "Warten auf Annahme durch {{name}}",
+        "accepted": "{{name}} hat angenommen",
+        "declined": "{{name}} hat abgelehnt",
+        "youWithdrew": "Sie haben ihn zurückgezogen",
+        "withdraw": "Zurückziehen"
       },
       "invite": {
         "label": {

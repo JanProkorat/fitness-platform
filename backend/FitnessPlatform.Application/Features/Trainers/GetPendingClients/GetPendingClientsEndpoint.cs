@@ -4,6 +4,7 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
+using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using Microsoft.EntityFrameworkCore;
 
 namespace FitnessPlatform.Application.Features.Trainers.GetPendingClients;
@@ -30,8 +31,9 @@ namespace FitnessPlatform.Application.Features.Trainers.GetPendingClients;
 /// </para>
 /// </remarks>
 /// <param name="db">Database context.</param>
+/// <param name="mongo">MongoDB context.</param>
 /// <param name="timeProvider">Clock.</param>
-public class GetPendingClientsEndpoint(IApplicationDbContext db, TimeProvider timeProvider) : EndpointWithoutRequest<GetPendingClientsResponse>
+public class GetPendingClientsEndpoint(IApplicationDbContext db, IMongoContext mongo, TimeProvider timeProvider) : EndpointWithoutRequest<GetPendingClientsResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -82,7 +84,18 @@ public class GetPendingClientsEndpoint(IApplicationDbContext db, TimeProvider ti
                 PublicId = pi.PublicId,
                 Email = pi.Email,
                 Message = pi.Message,
-                SentAt = pi.SentAt
+                SentAt = pi.SentAt,
+                Package = pi.CoachPackage == null
+                    ? null
+                    : new PendingRowPackageDto
+                    {
+                        PublicId = pi.CoachPackage.PublicId,
+                        Name = pi.CoachPackage.Name,
+                        Billing = pi.CoachPackage.Billing,
+                        IntervalWeeks = pi.CoachPackage.IntervalWeeks,
+                        Price = pi.CoachPackage.Price,
+                        Currency = pi.CoachPackage.Currency,
+                    },
             })
             .ToListAsync(ct);
 
@@ -94,20 +107,85 @@ public class GetPendingClientsEndpoint(IApplicationDbContext db, TimeProvider ti
             invite.Status = PendingInviteStatusResolver.Resolve(PendingInviteStatus.Pending, invite.SentAt, now);
         }
 
-        var requests = await db.ClientRequests
+        var requestRows = await db.ClientRequests
             .AsNoTracking()
-            .Where(r => r.ProfessionalProfileId == professionalProfile.Id && r.Status == ClientRequestStatus.Pending)
-            .Select(r => new PendingClientRow
+            .Where(r => r.ProfessionalProfileId == professionalProfile.Id
+                && (r.Status == ClientRequestStatus.Pending || r.Status == ClientRequestStatus.PackageProposed))
+            .Select(r => new
             {
-                Kind = PendingRowKind.Request,
-                PublicId = r.PublicId,
-                FirstName = r.ClientProfile.User.FirstName,
-                LastName = r.ClientProfile.User.LastName,
-                Email = r.ClientProfile.User.Email!,
-                Message = r.Message,
-                SentAt = r.SentAt
+                Row = new PendingClientRow
+                {
+                    Kind = PendingRowKind.Request,
+                    PublicId = r.PublicId,
+                    FirstName = r.ClientProfile.User.FirstName,
+                    LastName = r.ClientProfile.User.LastName,
+                    Email = r.ClientProfile.User.Email!,
+                    Message = r.Message,
+                    SentAt = r.SentAt,
+                    ShareHistory = r.ShareHistory,
+                    Package = r.CoachPackage == null
+                        ? null
+                        : new PendingRowPackageDto
+                        {
+                            PublicId = r.CoachPackage.PublicId,
+                            Name = r.CoachPackage.Name,
+                            Billing = r.CoachPackage.Billing,
+                            IntervalWeeks = r.CoachPackage.IntervalWeeks,
+                            Price = r.CoachPackage.Price,
+                            Currency = r.CoachPackage.Currency,
+                        },
+                    Proposal = r.Status == ClientRequestStatus.PackageProposed && r.ProposedPackage != null
+                        ? new PendingRowProposalDto
+                        {
+                            ProposedAt = r.ProposedAt ?? r.SentAt,
+                            Package = new PendingRowPackageDto
+                            {
+                                PublicId = r.ProposedPackage.PublicId,
+                                Name = r.ProposedPackage.Name,
+                                Billing = r.ProposedPackage.Billing,
+                                IntervalWeeks = r.ProposedPackage.IntervalWeeks,
+                                Price = r.ProposedPackage.Price,
+                                Currency = r.ProposedPackage.Currency,
+                            },
+                            Discount = r.ProposedDiscount == null
+                                ? null
+                                : new PendingRowDiscountDto
+                                {
+                                    PublicId = r.ProposedDiscount.PublicId,
+                                    Name = r.ProposedDiscount.Name,
+                                    Type = r.ProposedDiscount.Type,
+                                    Value = r.ProposedDiscount.Value,
+                                    Currency = r.ProposedDiscount.Currency,
+                                },
+                        }
+                        : null,
+                },
+                r.ClientProfileId,
+                ClientUserId = r.ClientProfile.UserId,
             })
             .ToListAsync(ct);
+
+        // History counts only for clients who agreed to share, fetched once for the whole list.
+        var counts = await ClientHistoryCounts.LoadAsync(
+            db,
+            mongo,
+            requestRows.Where(r => r.Row.ShareHistory).Select(r => (r.ClientProfileId, r.ClientUserId)).ToList(),
+            ct);
+
+        var requests = requestRows.Select(r =>
+        {
+            if (r.Row.ShareHistory && counts.TryGetValue(r.ClientProfileId, out var history))
+            {
+                r.Row.History = new PendingRowHistoryDto
+                {
+                    PlanCount = history.PlanCount,
+                    MeasurementCount = history.MeasurementCount,
+                    PhotoCount = history.PhotoCount,
+                };
+            }
+
+            return r.Row;
+        }).ToList();
 
         var rows = invites
             .Concat(requests)

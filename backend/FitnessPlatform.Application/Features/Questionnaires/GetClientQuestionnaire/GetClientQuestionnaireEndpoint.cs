@@ -125,7 +125,8 @@ public class GetClientQuestionnaireEndpoint(IApplicationDbContext db, TimeProvid
                 .FirstOrDefaultAsync(q => q.Id == link.QuestionnaireId.Value && q.IsActive, ct);
         }
 
-        if (requestedResponse is null)
+        // A link whose coach chose "no onboarding form" never falls back to the default form.
+        if (requestedResponse is null && !link.SkipOnboardingForm)
         {
             questionnaire ??= await db.Questionnaires
                 .Include(q => q.Questions

@@ -167,6 +167,8 @@
     "notificationsUnread": "Notifications, {{count}} unread",
     "profile": "Profile",
     "invitesTitle": "Invites",
+    "proposalsTitle": "Package proposals",
+    "invitesAndProposalsTitle": "Invites and proposals",
     "runningNutrition": {
       "weekOf": "Week {{current}} of {{total}}",
       "week": "Week {{current}}",
@@ -524,6 +526,9 @@
     "acceptInvite": "Accept invite",
     "openHint": "Opens the invite",
     "viewInvite": "View invite",
+    "proposedYou": "{{name}} proposed a package",
+    "viewProposal": "View proposal",
+    "openProposalHint": "Opens the package proposal",
     "includesPackage": "Includes a package",
     "includesPackagePrice": "Includes a package · {{price}}",
     "roles": { "Trainer": "Trainer", "Nutritionist": "Nutritionist" },
@@ -841,6 +846,23 @@
           "Expired": "Nobody answered in time"
         }
       },
+      "proposal": {
+        "title": "Package proposal",
+        "labels": {
+          "Pending": "New proposal",
+          "Accepted": "Proposal accepted",
+          "Declined": "Proposal declined",
+          "Cancelled": "Proposal withdrawn",
+          "Expired": "Proposal expired"
+        },
+        "details": {
+          "Pending": "{{name}} proposed a package",
+          "Accepted": "You accepted the package",
+          "Declined": "You declined the package",
+          "Cancelled": "{{name}} withdrew the proposal",
+          "Expired": "Nobody answered in time"
+        }
+      },
       "scope": {
         "Both": "Training and nutrition coaching",
         "TrainingOnly": "Training coaching",
@@ -874,6 +896,12 @@
     "searchLabel": "Search by name",
     "searchPlaceholder": "Name of a coach",
     "searchButton": "Search by name",
+    "closeSearch": "Close search",
+    "clearSearch": "Clear search",
+    "count_one": "{{count}} coach",
+    "count_other": "{{count}} coaches",
+    "countMatch_one": "{{count}} coach matches “{{query}}”",
+    "countMatch_other": "{{count}} coaches match “{{query}}”",
     "takingClients": "Taking clients",
     "waitlist": "Waitlist",
     "empty": "No coaches match these filters.",
@@ -919,7 +947,7 @@
     "email": "Email",
     "phone": "Phone",
     "backToInvite": "Back to invite",
-    "sendRequest": "Send request",
+    "invite": "Invite",
     "pending": "Request pending",
     "retry": "Try again",
     "error": {
@@ -938,16 +966,48 @@
     "messageLabel": "Message (optional)",
     "messagePlaceholder": "Tell them what you want to work on",
     "historyLabel": "Share my history",
-    "historyHint": "Past plans, measurements and photos from before {{name}}.",
+    "historyHint": {
+      "Trainer": "Past plans, measurements and photos from before working with this trainer.",
+      "Nutritionist": "Past plans, measurements and photos from before working with this nutritionist.",
+      "Any": "Past plans, measurements and photos from before this collaboration."
+    },
     "onboardingCaption": "Your onboarding answers are shared with {{name}} so they can prepare.",
     "submit": "Send request",
+    "packageLabel": "Package · optional",
+    "packageHint": "Not sure yet? Skip it, and {{name}} can suggest one.",
     "errors": {
       "notAccepting": "This coach isn't taking new clients right now.",
       "alreadyPending": "You've already sent a request to this coach.",
       "alreadyLinked": "You already work with this coach.",
       "notFound": "This coach isn't available any more.",
+      "packageUnavailable": "That package isn't available any more. Pick another or send the request without one.",
       "network": "Can't reach the server. Your message is kept, try again.",
       "generic": "Couldn't send the request. Try again."
+    }
+  },
+  "requestProposal": {
+    "back": "Back",
+    "closed": {
+      "title": "No package to answer",
+      "body": "This proposal was withdrawn or is already answered. You can still message your coach from Messages."
+    },
+    "noPackagePicked": "You didn't pick a package in your request, so {{name}} chose one for you.",
+    "suggestsAt": "{{name}} suggests a package · {{time}}",
+    "questionnaire": "After you accept, you'll fill in the form \"{{title}}\".",
+    "package": {
+      "title": "Suggested package"
+    },
+    "barNote": "Accepting starts the package. Declining ends your request to {{name}}, and the chat stays open.",
+    "accept": "Accept package",
+    "decline": "Decline",
+    "errors": {
+      "ok": "OK",
+      "notFound": { "title": "This proposal is no longer open", "body": "It was withdrawn or already answered." },
+      "invalidState": { "title": "This proposal is no longer open", "body": "It was withdrawn or already answered." },
+      "professionOccupied": { "title": "You already have a coach", "body": "You already work with a coach in this field, so you can't accept another package." },
+      "coachRoleRemoved": { "title": "The coach can't take you on", "body": "This coach no longer offers this role, so the package can't start." },
+      "network": { "title": "Can't reach the server", "body": "Check your connection and try again. Nothing was changed." },
+      "generic": { "title": "Something went wrong", "body": "We couldn't send your answer. Try again." }
     }
   },
   "common": {

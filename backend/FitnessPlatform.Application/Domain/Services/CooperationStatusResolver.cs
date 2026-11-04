@@ -9,7 +9,9 @@ namespace FitnessPlatform.Application.Domain.Services;
 /// </summary>
 /// <param name="Status">Card status, with invite expiry and request rejection folded in.</param>
 /// <param name="RequestedScope">The scope an invite asked for. Always null for a request.</param>
-public sealed record CooperationSourceState(CooperationCardStatus Status, LinkCapabilityScope? RequestedScope);
+/// <param name="ProposalOpen">True only for a request whose package proposal still waits for the client.</param>
+public sealed record CooperationSourceState(
+    CooperationCardStatus Status, LinkCapabilityScope? RequestedScope, bool ProposalOpen = false);
 
 /// <summary>
 /// Resolves the current state of invites and client requests by public id, one batched query per table.
@@ -66,10 +68,13 @@ public static class CooperationStatusResolver
                 ClientRequestStatus.Accepted => CooperationCardStatus.Accepted,
                 ClientRequestStatus.Rejected => CooperationCardStatus.Declined,
                 ClientRequestStatus.Cancelled => CooperationCardStatus.Cancelled,
+                ClientRequestStatus.ProposalDeclined => CooperationCardStatus.Declined,
+                ClientRequestStatus.PackageProposed => CooperationCardStatus.Pending,
                 _ => CooperationCardStatus.Pending,
             };
 
-            result[request.PublicId] = new CooperationSourceState(status, null);
+            result[request.PublicId] = new CooperationSourceState(
+                status, null, request.Status == ClientRequestStatus.PackageProposed);
         }
 
         return result;

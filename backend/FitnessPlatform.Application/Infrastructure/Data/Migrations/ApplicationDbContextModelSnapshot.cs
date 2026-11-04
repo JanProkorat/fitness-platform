@@ -1392,6 +1392,10 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("questionnaire_id");
 
+                    b.Property<bool>("SkipOnboardingForm")
+                        .HasColumnType("boolean")
+                        .HasColumnName("skip_onboarding_form");
+
                     b.HasKey("Id")
                         .HasName("pk_client_professional_links");
 
@@ -1497,6 +1501,14 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("client_profile_id");
 
+                    b.Property<long?>("CoachDiscountId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("coach_discount_id");
+
+                    b.Property<long?>("CoachPackageId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("coach_package_id");
+
                     b.Property<DateTime>("DateCreated")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("date_created");
@@ -1513,6 +1525,18 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                     b.Property<long>("ProfessionalProfileId")
                         .HasColumnType("bigint")
                         .HasColumnName("professional_profile_id");
+
+                    b.Property<DateTime?>("ProposedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("proposed_at");
+
+                    b.Property<long?>("ProposedDiscountId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("proposed_discount_id");
+
+                    b.Property<long?>("ProposedPackageId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("proposed_package_id");
 
                     b.Property<Guid>("PublicId")
                         .HasColumnType("uuid")
@@ -1534,6 +1558,10 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("share_history");
 
+                    b.Property<bool>("SkipOnboardingForm")
+                        .HasColumnType("boolean")
+                        .HasColumnName("skip_onboarding_form");
+
                     b.Property<string>("Statement")
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)")
@@ -1549,8 +1577,20 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                     b.HasIndex("ClientProfileId")
                         .HasDatabaseName("ix_client_requests_client_profile_id");
 
+                    b.HasIndex("CoachDiscountId")
+                        .HasDatabaseName("ix_client_requests_coach_discount_id");
+
+                    b.HasIndex("CoachPackageId")
+                        .HasDatabaseName("ix_client_requests_coach_package_id");
+
                     b.HasIndex("ProfessionalProfileId")
                         .HasDatabaseName("ix_client_requests_professional_profile_id");
+
+                    b.HasIndex("ProposedDiscountId")
+                        .HasDatabaseName("ix_client_requests_proposed_discount_id");
+
+                    b.HasIndex("ProposedPackageId")
+                        .HasDatabaseName("ix_client_requests_proposed_package_id");
 
                     b.HasIndex("PublicId")
                         .IsUnique()
@@ -2528,6 +2568,10 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                     b.Property<DateTime>("SentAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("sent_at");
+
+                    b.Property<bool>("SkipOnboardingForm")
+                        .HasColumnType("boolean")
+                        .HasColumnName("skip_onboarding_form");
 
                     b.Property<int>("Status")
                         .HasColumnType("integer")
@@ -3858,12 +3902,36 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                         .IsRequired()
                         .HasConstraintName("fk_client_requests_client_profiles_client_profile_id");
 
+                    b.HasOne("FitnessPlatform.Application.Domain.Entities.CoachDiscount", "CoachDiscount")
+                        .WithMany()
+                        .HasForeignKey("CoachDiscountId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_client_requests_coach_discounts_coach_discount_id");
+
+                    b.HasOne("FitnessPlatform.Application.Domain.Entities.CoachPackage", "CoachPackage")
+                        .WithMany()
+                        .HasForeignKey("CoachPackageId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_client_requests_coach_packages_coach_package_id");
+
                     b.HasOne("FitnessPlatform.Application.Domain.Entities.ProfessionalProfile", "ProfessionalProfile")
                         .WithMany()
                         .HasForeignKey("ProfessionalProfileId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_client_requests_professional_profiles_professional_profile_");
+
+                    b.HasOne("FitnessPlatform.Application.Domain.Entities.CoachDiscount", "ProposedDiscount")
+                        .WithMany()
+                        .HasForeignKey("ProposedDiscountId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_client_requests_coach_discounts_proposed_discount_id");
+
+                    b.HasOne("FitnessPlatform.Application.Domain.Entities.CoachPackage", "ProposedPackage")
+                        .WithMany()
+                        .HasForeignKey("ProposedPackageId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_client_requests_coach_packages_proposed_package_id");
 
                     b.HasOne("FitnessPlatform.Application.Domain.Entities.Questionnaire", "Questionnaire")
                         .WithMany()
@@ -3872,7 +3940,15 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
 
                     b.Navigation("ClientProfile");
 
+                    b.Navigation("CoachDiscount");
+
+                    b.Navigation("CoachPackage");
+
                     b.Navigation("ProfessionalProfile");
+
+                    b.Navigation("ProposedDiscount");
+
+                    b.Navigation("ProposedPackage");
 
                     b.Navigation("Questionnaire");
                 });

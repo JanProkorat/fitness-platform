@@ -1,24 +1,15 @@
-import { useState } from 'react';
-import {
-  ActivityIndicator,
-  FlatList,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  View,
-} from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, FlatList, ScrollView, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { SymbolView } from 'expo-symbols';
 import { useTranslation } from 'react-i18next';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { isNetworkError } from '@/api/errors';
 import { ROLE_NUTRITIONIST, ROLE_TRAINER } from '@/api/profile';
 import type { CoachRole } from '@/api/professionals';
 import { Button } from '@/components/Button';
-import { CoachRow } from '@/components/coach/CoachRow';
+import { CoachCard } from '@/components/coach/CoachCard';
+import { CoachSearchField } from '@/components/coach/CoachSearchField';
 import { FilterChip } from '@/components/coach/FilterChip';
-import { Input } from '@/components/Input';
 import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Segmented } from '@/components/onboarding/Segmented';
@@ -28,18 +19,20 @@ import { useCoachSearch } from '@/hooks/useCoachSearch';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
 
+/** Pause after the last keystroke before the name search runs. */
+const SEARCH_DEBOUNCE_MS = 350;
+
 type Segment = 'All' | CoachRole;
 
 const segmentFromParam = (role: string | undefined): Segment =>
   role === ROLE_TRAINER || role === ROLE_NUTRITIONIST ? role : 'All';
 
-/** Coach search: role segments, filter chips, a name search and the paged results. */
+/** Coach search: role segments, filter chips, a name search field and the paged result cards. */
 export default function CoachSearchScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const theme = useTheme();
   const styles = makeStyles(theme);
-  const insets = useSafeAreaInsets();
   const { role } = useLocalSearchParams<{ role?: string }>();
 
   const [segment, setSegment] = useState<Segment>(() => segmentFromParam(role));
@@ -56,18 +49,21 @@ export default function CoachSearchScreen() {
     online,
   });
 
+  useEffect(() => {
+    const handle = setTimeout(() => setSearch(draft.trim()), SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(handle);
+  }, [draft]);
+
   const options: SegmentOption<Segment>[] = [
     { value: 'All', label: t('coachSearch.segments.All') },
     { value: ROLE_TRAINER, label: t('coachSearch.segments.Trainer') },
     { value: ROLE_NUTRITIONIST, label: t('coachSearch.segments.Nutritionist') },
   ];
 
-  const toggleSearch = () => {
-    if (searchOpen) {
-      setDraft('');
-      setSearch('');
-    }
-    setSearchOpen(!searchOpen);
+  const closeSearch = () => {
+    setSearchOpen(false);
+    setDraft('');
+    setSearch('');
   };
 
   const topBar = (
@@ -91,19 +87,6 @@ export default function CoachSearchScreen() {
         }}
         accessibilityLabel={t('coachSearch.segmentsLabel')}
       />
-      {searchOpen ? (
-        <Input
-          label={t('coachSearch.searchLabel')}
-          value={draft}
-          onChangeText={setDraft}
-          onSubmitEditing={() => setSearch(draft)}
-          placeholder={t('coachSearch.searchPlaceholder')}
-          autoFocus
-          autoCorrect={false}
-          returnKeyType="search"
-          maxLength={100}
-        />
-      ) : null}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -125,6 +108,13 @@ export default function CoachSearchScreen() {
           />
         ))}
       </ScrollView>
+      {result.isPending || result.isError ? null : (
+        <Text variant="caption" color="muted" style={styles.count}>
+          {search
+            ? t('coachSearch.countMatch', { count: result.totalCount, query: search })
+            : t('coachSearch.count', { count: result.totalCount })}
+        </Text>
+      )}
     </View>
   );
 
@@ -156,7 +146,7 @@ export default function CoachSearchScreen() {
         data={result.isPending || result.isError ? [] : result.items}
         keyExtractor={(item) => item.publicId ?? ''}
         renderItem={({ item }) => (
-          <CoachRow
+          <CoachCard
             coach={item}
             showRoles={segment === 'All'}
             onPress={() =>
@@ -188,18 +178,13 @@ export default function CoachSearchScreen() {
         style={styles.listScroll}
         contentContainerStyle={styles.list}
       />
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={t('coachSearch.searchButton')}
-        onPress={toggleSearch}
-        style={[styles.fab, { bottom: insets.bottom + theme.spacing.xl }]}
-      >
-        <SymbolView
-          name={searchOpen ? 'xmark' : 'magnifyingglass'}
-          tintColor={theme.colors.ink}
-          size={theme.sizes.searchFabGlyph}
-        />
-      </Pressable>
+      <CoachSearchField
+        open={searchOpen}
+        value={draft}
+        onChangeText={setDraft}
+        onOpen={() => setSearchOpen(true)}
+        onClose={closeSearch}
+      />
     </Screen>
   );
 }
@@ -210,9 +195,12 @@ const makeStyles = (theme: Theme) =>
       paddingBottom: theme.spacing.lg,
     },
     header: {
-      gap: theme.spacing.xl,
+      gap: theme.spacing.lg,
       paddingTop: theme.spacing.xs,
-      paddingBottom: theme.spacing.md,
+      paddingBottom: theme.spacing.xs,
+    },
+    count: {
+      paddingHorizontal: theme.spacing.xxs,
     },
     chipScroll: {
       flexGrow: 0,
@@ -227,6 +215,7 @@ const makeStyles = (theme: Theme) =>
       marginHorizontal: -theme.spacing.xxl,
     },
     list: {
+      gap: theme.spacing.sm,
       paddingHorizontal: theme.spacing.xxl,
       paddingBottom: theme.sizes.searchFab + theme.spacing.huge * 2,
     },
@@ -240,18 +229,5 @@ const makeStyles = (theme: Theme) =>
     },
     footer: {
       paddingVertical: theme.spacing.xl,
-    },
-    fab: {
-      position: 'absolute',
-      right: theme.spacing.xxl,
-      width: theme.sizes.searchFab,
-      height: theme.sizes.searchFab,
-      borderRadius: theme.radii.pill,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderWidth: theme.sizes.border,
-      borderColor: theme.colors.line,
-      backgroundColor: theme.colors.surface,
-      boxShadow: theme.shadows.card,
     },
   });

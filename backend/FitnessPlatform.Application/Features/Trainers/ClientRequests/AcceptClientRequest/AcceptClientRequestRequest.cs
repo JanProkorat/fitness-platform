@@ -18,6 +18,12 @@ public class AcceptClientRequestRequest
     public Guid? QuestionnairePublicId { get; set; }
 
     /// <summary>
+    /// When true the client gets no onboarding form, not even the coach's default. Not sent means false.
+    /// Cannot be combined with <see cref="QuestionnairePublicId"/>.
+    /// </summary>
+    public bool SkipOnboardingForm { get; set; }
+
+    /// <summary>
     /// Optional statement from the professional (saved for future display in chat).
     /// </summary>
     public string? Statement { get; set; }
@@ -30,4 +36,10 @@ public class AcceptClientRequestRequest
     /// <see cref="LinkCapabilityScope.NutritionOnly"/>.
     /// </summary>
     public LinkCapabilityScope? RequestedScope { get; set; }
+
+    /// <summary>
+    /// Optional public id of one of the coach's discounts, applied to the package the client attached to the
+    /// request. Ignored when the request has no package; an unusable discount means accepting without terms.
+    /// </summary>
+    public Guid? DiscountPublicId { get; set; }
 }
