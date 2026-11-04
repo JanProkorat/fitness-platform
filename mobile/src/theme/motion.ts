@@ -43,6 +43,11 @@ export const sheetDragMotion = {
   spring: { damping: 22, stiffness: 240, mass: 0.9 },
 } as const;
 
+/** Request sheet: ms the dimmed backdrop takes to fade in and out while the sheet slides (sheetDragMotion.spring). */
+export const requestSheetMotion = {
+  backdropDuration: 220,
+} as const;
+
 /** Inline date picker in the add-measurement sheet: ms for its fade and for the content below it moving. */
 export const measuredAtPickerMotion = {
   enterDuration: 240,

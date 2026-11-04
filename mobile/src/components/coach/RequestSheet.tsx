@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
+  AccessibilityInfo,
+  Animated,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -8,6 +10,7 @@ import {
   StyleSheet,
   Switch,
   TextInput,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { SymbolView } from 'expo-symbols';
@@ -25,6 +28,7 @@ import { useCoachProfile } from '@/hooks/useCoachProfile';
 import { useSendClientRequest } from '@/hooks/useSendClientRequest';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
+import { requestSheetMotion, sheetDragMotion } from '@/theme/motion';
 
 import { CoachAvatar } from './CoachAvatar';
 import { PackageCarousel } from './PackageCarousel';
@@ -47,16 +51,23 @@ type RequestSheetProps = {
   onSent: () => void;
 };
 
+/**
+ * The Modal stays mounted after `visible` turns false, until the content has slid out; every close
+ * path (X, backdrop, Android back, a sent request) just asks the parent to hide it.
+ */
 export function RequestSheet({ visible, ...rest }: RequestSheetProps) {
+  const [mounted, setMounted] = useState(visible);
+  if (visible && !mounted) setMounted(true);
+  const handleExited = useCallback(() => setMounted(false), []);
   return (
     <Modal
-      visible={visible}
+      visible={mounted}
       transparent
-      animationType="fade"
+      animationType="none"
       statusBarTranslucent
       onRequestClose={rest.onClose}
     >
-      <SheetContent {...rest} />
+      <SheetContent {...rest} open={visible} onExited={handleExited} />
     </Modal>
   );
 }
@@ -75,11 +86,56 @@ function SheetContent({
   showPrices = true,
   onClose,
   onSent,
-}: Omit<RequestSheetProps, 'visible'>) {
+  open,
+  onExited,
+}: Omit<RequestSheetProps, 'visible'> & {
+  /** False once the parent hides the sheet: the content slides out, then reports `onExited`. */
+  open: boolean;
+  onExited: () => void;
+}) {
   const { t } = useTranslation();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const styles = makeStyles(theme, insets);
+  const { height: windowHeight } = useWindowDimensions();
+  const [translateY] = useState(() => new Animated.Value(windowHeight));
+  const [backdropOpacity] = useState(() => new Animated.Value(0));
+
+  // The sheet slides up while the backdrop fades in, and the reverse on close; Reduce Motion jumps.
+  useEffect(() => {
+    let cancelled = false;
+    void AccessibilityInfo.isReduceMotionEnabled().then((reduced) => {
+      if (cancelled) return;
+      const sheetTarget = open ? 0 : windowHeight;
+      const backdropTarget = open ? 1 : 0;
+      if (reduced) {
+        translateY.setValue(sheetTarget);
+        backdropOpacity.setValue(backdropTarget);
+        if (!open) onExited();
+        return;
+      }
+      Animated.parallel([
+        Animated.spring(translateY, {
+          toValue: sheetTarget,
+          ...sheetDragMotion.spring,
+          overshootClamping: true,
+          useNativeDriver: true,
+        }),
+        Animated.timing(backdropOpacity, {
+          toValue: backdropTarget,
+          duration: requestSheetMotion.backdropDuration,
+          useNativeDriver: true,
+        }),
+      ]).start(({ finished }) => {
+        if (finished && !open) onExited();
+      });
+    });
+    return () => {
+      cancelled = true;
+      translateY.stopAnimation();
+      backdropOpacity.stopAnimation();
+    };
+  }, [open, windowHeight, translateY, backdropOpacity, onExited]);
   const [message, setMessage] = useState('');
   const [shareHistory, setShareHistory] = useState(false);
   const [packagePublicId, setPackagePublicId] = useState<string | undefined>(undefined);
@@ -113,10 +169,17 @@ function SheetContent({
     <KeyboardAvoidingView
       style={styles.root}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      pointerEvents={open ? 'auto' : 'none'}
     >
-      {/* Sits behind the sheet, so only taps outside it reach it. */}
-      <Pressable accessible={false} onPress={onClose} style={StyleSheet.absoluteFill} />
-      <View accessibilityViewIsModal accessibilityLabel={t('requestSheet.title', { name })} style={styles.sheet}>
+      {/* The dim fades on its own; the Pressable sits behind the sheet, so only taps outside it reach it. */}
+      <Animated.View style={[StyleSheet.absoluteFill, styles.backdrop, { opacity: backdropOpacity }]}>
+        <Pressable accessible={false} onPress={onClose} style={StyleSheet.absoluteFill} />
+      </Animated.View>
+      <Animated.View
+        accessibilityViewIsModal
+        accessibilityLabel={t('requestSheet.title', { name })}
+        style={[styles.sheet, { transform: [{ translateY }] }]}
+      >
         <View style={styles.handle} />
         <ScrollView
           contentContainerStyle={styles.content}
@@ -222,7 +285,7 @@ function SheetContent({
             disabled={disabled}
           />
         </ScrollView>
-      </View>
+      </Animated.View>
     </KeyboardAvoidingView>
   );
 }
@@ -232,6 +295,8 @@ const makeStyles = (theme: Theme, insets: EdgeInsets) =>
     root: {
       flex: 1,
       justifyContent: 'flex-end',
+    },
+    backdrop: {
       backgroundColor: theme.glass.sheet.backdrop[theme.scheme],
     },
     sheet: {
